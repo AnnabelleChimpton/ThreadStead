@@ -41,10 +41,6 @@ export interface IncrementProps {
   /** Maximum value (don't go above) */
   max?: number;
 
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
-
   /** Children (ignored - Increment is an action component) */
   children?: React.ReactNode;
 }
@@ -54,26 +50,8 @@ export default function Increment(props: IncrementProps) {
     var: varName,
     by = 1,
     min,
-    max,
-    __visualBuilder,
-    _isInVisualBuilder
+    max
   } = props;
-
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
-
-  // Visual builder mode - show indicator
-  if (isVisualBuilder) {
-    const details = [];
-    if (by !== 1) details.push(`by ${by}`);
-    if (min !== undefined) details.push(`min ${min}`);
-    if (max !== undefined) details.push(`max ${max}`);
-
-    return (
-      <div className="inline-block px-2 py-1 bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded text-xs text-green-700 dark:text-green-300 font-mono">
-        ⬆️ Increment: {varName}{details.length > 0 ? ` (${details.join(', ')})` : ''}
-      </div>
-    );
-  }
 
   // Normal mode - component doesn't render
   // Action is executed by parent event handler

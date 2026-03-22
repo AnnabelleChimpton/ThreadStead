@@ -30,10 +30,6 @@ export interface PropertyProps {
   /** Target variable name to create */
   as: string;
 
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
-
   /** Children (ignored - Property is an action component) */
   children?: React.ReactNode;
 }
@@ -41,17 +37,14 @@ export interface PropertyProps {
 export default function Property(props: PropertyProps) {
   const {
     path,
-    as,
-    __visualBuilder,
-    _isInVisualBuilder
+    as
   } = props;
 
   const extractContext = useExtractContext();
   const templateState = useTemplateState();
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
 
-  // Execute extraction in normal mode (not visual builder)
-  if (!isVisualBuilder && extractContext && extractContext.sourceObject) {
+  // Execute extraction
+  if (extractContext && extractContext.sourceObject) {
     try {
       // Extract property value
       const value = getNestedProperty(extractContext.sourceObject, path);
@@ -88,15 +81,6 @@ export default function Property(props: PropertyProps) {
     } catch (error) {
       console.error(`[Property] Failed to extract property "${path}":`, error);
     }
-  }
-
-  // Visual builder mode - show indicator
-  if (isVisualBuilder) {
-    return (
-      <div className="inline-block px-2 py-1 bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 rounded text-xs text-purple-600 dark:text-purple-400 font-mono">
-        → {path} as {as}
-      </div>
-    );
   }
 
   // Normal mode - component doesn't render

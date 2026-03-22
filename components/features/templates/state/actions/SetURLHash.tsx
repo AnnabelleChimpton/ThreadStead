@@ -35,24 +35,9 @@ export interface SetURLHashProps {
 
   /** Expression to evaluate for dynamic hash value */
   expression?: string;
-
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
 }
 
 export default function SetURLHash(props: SetURLHashProps) {
-  const { __visualBuilder, _isInVisualBuilder } = props;
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
-
-  // Visual builder mode - show indicator
-  if (isVisualBuilder) {
-    return (
-      <div className="inline-block px-2 py-1 bg-cyan-100 dark:bg-cyan-900/30 border border-cyan-300 dark:border-cyan-700 rounded text-xs text-cyan-700 dark:text-cyan-300 font-mono">
-        🔗 SetURLHash: #{props.value || props.expression}
-      </div>
-    );
-  }
 
   // Normal mode - render nothing (executed by event handler)
   return null;

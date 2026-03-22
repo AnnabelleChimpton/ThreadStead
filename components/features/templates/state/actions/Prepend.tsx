@@ -28,10 +28,6 @@ export interface PrependProps {
   /** String value to prepend */
   value: string;
 
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
-
   /** Children (ignored - Prepend is an action component) */
   children?: React.ReactNode;
 }
@@ -39,21 +35,8 @@ export interface PrependProps {
 export default function Prepend(props: PrependProps) {
   const {
     var: varName,
-    value,
-    __visualBuilder,
-    _isInVisualBuilder
+    value
   } = props;
-
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
-
-  // Visual builder mode - show indicator
-  if (isVisualBuilder) {
-    return (
-      <div className="inline-block px-2 py-1 bg-teal-100 dark:bg-teal-900/30 border border-teal-300 dark:border-teal-700 rounded text-xs text-teal-700 dark:text-teal-300 font-mono">
-        ⬅️ Prepend: &quot;{value}&quot; + {varName}
-      </div>
-    );
-  }
 
   // Normal mode - component doesn't render
   // Action is executed by parent event handler

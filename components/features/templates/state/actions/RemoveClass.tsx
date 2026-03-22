@@ -26,24 +26,9 @@ export interface RemoveClassProps {
 
   /** Class name to remove */
   className: string;
-
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
 }
 
 export default function RemoveClass(props: RemoveClassProps) {
-  const { __visualBuilder, _isInVisualBuilder } = props;
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
-
-  // Visual builder mode - show indicator
-  if (isVisualBuilder) {
-    return (
-      <div className="inline-block px-2 py-1 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded text-xs text-red-700 dark:text-red-300 font-mono">
-        ➖ RemoveClass: {props.target} → {props.className}
-      </div>
-    );
-  }
 
   // Normal mode - render nothing (executed by event handler)
   return null;

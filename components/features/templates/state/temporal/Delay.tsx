@@ -41,43 +41,9 @@ export interface DelayProps {
   /** Action components to execute after delay */
   children?: React.ReactNode;
 
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
 }
 
 export default function Delay(props: DelayProps) {
-  const {
-    seconds,
-    milliseconds,
-    children,
-    __visualBuilder,
-    _isInVisualBuilder
-  } = props;
-
-  const templateState = useTemplateState();
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
-
-  // Visual builder mode - show indicator
-  if (isVisualBuilder) {
-    const displayDelay = seconds
-      ? `${seconds}s`
-      : milliseconds
-        ? `${milliseconds}ms`
-        : '0ms';
-
-    return (
-      <div className="inline-block px-2 py-1 bg-amber-100 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 rounded text-xs text-amber-700 dark:text-amber-300 font-mono">
-        ⏱️ Delay: {displayDelay}
-        {children && (
-          <div className="mt-1 pl-2 border-l-2 border-amber-400 dark:border-amber-600">
-            {children}
-          </div>
-        )}
-      </div>
-    );
-  }
-
   // Normal mode - component doesn't render
   // Action is executed by parent event handler
   return null;

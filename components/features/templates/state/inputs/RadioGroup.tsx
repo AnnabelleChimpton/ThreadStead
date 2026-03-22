@@ -30,10 +30,6 @@ export interface RadioGroupProps {
   /** Layout direction */
   direction?: 'vertical' | 'horizontal';
 
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
-
   /** Radio children + optional OnChange */
   children?: React.ReactNode;
 }
@@ -43,7 +39,6 @@ interface RadioGroupContextType {
   selectedValue: any;
   groupName: string;
   onChange: (value: any) => void;
-  isVisualBuilder: boolean;
 }
 
 const RadioGroupContext = createContext<RadioGroupContextType | null>(null);
@@ -61,15 +56,12 @@ export default function RadioGroup(props: RadioGroupProps) {
     var: varName,
     className: customClassName,
     direction = 'vertical',
-    __visualBuilder,
-    _isInVisualBuilder,
     children
   } = props;
 
   // PHASE 1.1: Use selective subscription - only re-render when this specific variable changes
   const dependencies = useMemo(() => varName ? [varName] : [], [varName]);
   const templateState = useTemplateStateWithDeps(dependencies);
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
 
   // Get OnChange handler if present
   const onChangeHandler = useOnChangeHandler(children);
@@ -105,24 +97,7 @@ export default function RadioGroup(props: RadioGroupProps) {
     selectedValue: currentValue,
     groupName,
     onChange: handleChange,
-    isVisualBuilder
-  }), [currentValue, groupName, handleChange, isVisualBuilder]);
-
-  // Visual builder mode - show indicator
-  if (isVisualBuilder) {
-    return (
-      <div className="inline-block relative">
-        <div className={`${finalClassName} opacity-70 p-2 border-2 border-dashed border-purple-300 dark:border-purple-700 rounded`}>
-          <div className="text-xs text-purple-600 dark:text-purple-400 font-mono mb-2">
-            🔘 RadioGroup (${varName})
-          </div>
-          <RadioGroupContext.Provider value={contextValue}>
-            {filteredChildren}
-          </RadioGroupContext.Provider>
-        </div>
-      </div>
-    );
-  }
+  }), [currentValue, groupName, handleChange]);
 
   // Normal mode - render functional radio group
   return (
@@ -159,10 +134,6 @@ export interface RadioProps {
   /** Additional CSS classes */
   className?: string;
 
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
-
   /** Children (used as label text) */
   children?: React.ReactNode;
 }
@@ -177,7 +148,7 @@ export function Radio(props: RadioProps) {
   } = props;
 
   const context = useRadioGroupContext();
-  const { selectedValue, groupName, onChange, isVisualBuilder } = context;
+  const { selectedValue, groupName, onChange } = context;
 
   // Use children as label, fallback to label prop, then value
   const displayLabel = children || label || String(value);
@@ -197,24 +168,6 @@ export function Radio(props: RadioProps) {
   const finalClassName = customClassName
     ? `${baseClasses} ${customClassName}`
     : baseClasses;
-
-  // Visual builder mode - show disabled radio
-  if (isVisualBuilder) {
-    return (
-      <label className={`${finalClassName} opacity-70`}>
-        <input
-          type="radio"
-          disabled
-          checked={false}
-          readOnly
-          className="w-4 h-4 border-gray-300"
-        />
-        <span className="text-sm">
-          {displayLabel}
-        </span>
-      </label>
-    );
-  }
 
   // Normal mode - render functional radio
   return (

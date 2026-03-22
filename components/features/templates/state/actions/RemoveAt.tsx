@@ -31,10 +31,6 @@ export interface RemoveAtProps {
   /** Index to remove (number or {i} placeholder from ForEach) */
   index: number | string;
 
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
-
   /** Children (ignored - RemoveAt is an action component) */
   children?: React.ReactNode;
 }
@@ -42,26 +38,12 @@ export interface RemoveAtProps {
 export default function RemoveAt(props: RemoveAtProps) {
   const {
     var: varName,
-    index,
-    __visualBuilder,
-    _isInVisualBuilder
+    index
   } = props;
-
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
   const forEachContext = useForEachContext();
 
   // Resolve index: use prop if provided, otherwise use ForEach context
   const resolvedIndex = index !== undefined ? index : forEachContext?.index;
-
-  // Visual builder mode - show indicator
-  if (isVisualBuilder) {
-    const displayIndex = resolvedIndex !== undefined ? String(resolvedIndex) : '?';
-    return (
-      <div className="inline-block px-2 py-1 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded text-xs text-red-700 dark:text-red-300 font-mono">
-        🗑️ RemoveAt: {varName}[{displayIndex}]
-      </div>
-    );
-  }
 
   // Normal mode - component doesn't render
   // Action is executed by parent event handler

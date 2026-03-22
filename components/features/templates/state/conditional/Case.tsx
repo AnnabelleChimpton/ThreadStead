@@ -63,9 +63,6 @@ export interface CaseProps {
   /** Actions to execute if this case matches */
   children?: React.ReactNode;
 
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
 }
 
 export default function Case(props: CaseProps) {
@@ -73,12 +70,9 @@ export default function Case(props: CaseProps) {
     value,
     when,
     children,
-    __visualBuilder,
-    _isInVisualBuilder
   } = props;
 
   const switchContext = useSwitchContext();
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
   const residentData = useResidentData();
 
   // Evaluate if this Case matches (before any early returns)
@@ -97,34 +91,6 @@ export default function Case(props: CaseProps) {
       switchContext.setMatched(true);
     }
   }, [matches, switchContext]);
-
-  // Visual builder mode - show indicator
-  if (isVisualBuilder) {
-    const displayValue = value !== undefined
-      ? `== ${value}`
-      : when
-        ? `when ${when}`
-        : 'condition';
-
-    const operators = [];
-    if (props.equals) operators.push(`== ${props.equals}`);
-    if (props.notEquals) operators.push(`!= ${props.notEquals}`);
-    if (props.greaterThan) operators.push(`> ${props.greaterThan}`);
-    if (props.lessThan) operators.push(`< ${props.lessThan}`);
-    if (props.greaterThanOrEqual) operators.push(`>= ${props.greaterThanOrEqual}`);
-    if (props.lessThanOrEqual) operators.push(`<= ${props.lessThanOrEqual}`);
-
-    return (
-      <div className="inline-block px-2 py-1 bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 rounded text-xs text-blue-700 dark:text-blue-300 font-mono">
-        📌 Case: {displayValue} {operators.join(' ')}
-        {children && (
-          <div className="mt-1 pl-2 border-l-2 border-blue-400 dark:border-blue-600">
-            {children}
-          </div>
-        )}
-      </div>
-    );
-  }
 
   // Normal mode - evaluate and conditionally render
   // Return null if no switch context (used outside Switch)

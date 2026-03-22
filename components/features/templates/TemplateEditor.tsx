@@ -269,7 +269,7 @@ export default function TemplateEditor({
             Load Sample
           </button>
           <a 
-            href="/design-tutorial" 
+            href="/design-css-tutorial" 
             target="_blank" 
             rel="noopener noreferrer"
             className="thread-button text-sm bg-purple-600 hover:bg-purple-700 text-white border-purple-600 hover:border-purple-700"
@@ -397,7 +397,7 @@ export default function TemplateEditor({
             </div>
           </details>
           <a 
-            href="/design-tutorial" 
+            href="/design-css-tutorial" 
             target="_blank" 
             rel="noopener noreferrer"
             className="ml-4 text-purple-600 hover:text-purple-800 text-sm font-medium"

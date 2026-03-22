@@ -30,34 +30,9 @@ export interface OnMouseEnterProps {
   /** Action components to execute on mouse enter */
   children?: React.ReactNode;
 
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
 }
 
 export default function OnMouseEnter(props: OnMouseEnterProps) {
-  const {
-    children,
-    __visualBuilder,
-    _isInVisualBuilder
-  } = props;
-
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
-
-  // Visual builder mode - show indicator
-  if (isVisualBuilder) {
-    return (
-      <div className="inline-block px-2 py-1 bg-indigo-100 dark:bg-indigo-900/30 border border-indigo-300 dark:border-indigo-700 rounded text-xs text-indigo-700 dark:text-indigo-300 font-mono">
-        ➡️ OnMouseEnter
-        {children && (
-          <div className="mt-1 pl-2 border-l-2 border-indigo-400 dark:border-indigo-600">
-            {children}
-          </div>
-        )}
-      </div>
-    );
-  }
-
   // Normal mode - render nothing
   return null;
 }

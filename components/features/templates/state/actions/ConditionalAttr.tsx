@@ -74,10 +74,6 @@ export interface ConditionalAttrProps {
   and?: string | string[];
   or?: string | string[];
 
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
-
   /** Children (ignored - ConditionalAttr is a reactive component) */
   children?: React.ReactNode;
 }
@@ -88,17 +84,14 @@ export default function ConditionalAttr(props: ConditionalAttrProps) {
     attribute,
     when,
     value = 'true',
-    __visualBuilder,
-    _isInVisualBuilder,
     ...conditionProps
   } = props;
 
   const residentData = useResidentData();
   const forEachContext = useForEachContext();
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
 
   useEffect(() => {
-    if (isVisualBuilder || !element || !attribute) {
+    if (!element || !attribute) {
       return;
     }
 
@@ -197,18 +190,7 @@ export default function ConditionalAttr(props: ConditionalAttrProps) {
         unsubscribe();
       }
     };
-  }, [element, attribute, value, when, JSON.stringify(conditionProps), residentData, forEachContext, isVisualBuilder]);
-
-  // Visual builder mode - show indicator
-  if (isVisualBuilder) {
-    const conditionDisplay = when || conditionProps.condition || conditionProps.data || '(condition)';
-    return (
-      <div className="inline-block px-2 py-1 bg-teal-100 dark:bg-teal-900/30 border border-teal-300 dark:border-teal-700 rounded text-xs text-teal-700 dark:text-teal-300 font-mono">
-        🔄 ConditionalAttr: {element}[{attribute}]
-        <div className="text-xs text-teal-600 mt-1">when {conditionDisplay}</div>
-      </div>
-    );
-  }
+  }, [element, attribute, value, when, JSON.stringify(conditionProps), residentData, forEachContext]);
 
   // Normal mode - component doesn't render
   return null;

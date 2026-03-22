@@ -25,34 +25,9 @@ export interface ElseProps {
   /** Action components to execute as fallback */
   children?: React.ReactNode;
 
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
 }
 
 export default function Else(props: ElseProps) {
-  const {
-    children,
-    __visualBuilder,
-    _isInVisualBuilder
-  } = props;
-
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
-
-  // Visual builder mode - show indicator
-  if (isVisualBuilder) {
-    return (
-      <div className="inline-block px-2 py-1 bg-gray-100 dark:bg-gray-900/30 border border-gray-300 dark:border-gray-700 rounded text-xs text-gray-700 dark:text-gray-300 font-mono">
-        ↩️ Else (fallback)
-        {children && (
-          <div className="mt-1 pl-2 border-l-2 border-gray-400 dark:border-gray-600">
-            {children}
-          </div>
-        )}
-      </div>
-    );
-  }
-
   // Normal mode - component doesn't render
   // Execution happens in parent event handler
   return null;

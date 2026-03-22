@@ -222,10 +222,6 @@ export interface ForEachProps {
   /** Additional CSS classes */
   className?: string;
 
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
-
   /** Children to render for each item */
   children?: React.ReactNode;
 }
@@ -236,13 +232,10 @@ export default function ForEach(props: ForEachProps) {
     item: itemName,
     index: indexName,
     className: customClassName,
-    __visualBuilder,
-    _isInVisualBuilder,
     children
   } = props;
 
   const templateState = useTemplateState();
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
 
   // Get array from template state with prefix fallback
   // IMPORTANT: This must be before any conditional returns to avoid breaking React Hooks rules
@@ -293,33 +286,6 @@ export default function ForEach(props: ForEachProps) {
       }}>
         ⚠️ <strong>ForEach Error:</strong> Missing required <code>item</code> prop.
         Example: <code>&lt;ForEach var=&quot;myArray&quot; item=&quot;item&quot;&gt;...&lt;/ForEach&gt;</code>
-      </div>
-    );
-  }
-
-  // Visual builder mode - show indicator with sample iteration
-  if (isVisualBuilder) {
-    return (
-      <div className="border-2 border-dashed border-indigo-300 dark:border-indigo-700 rounded-lg p-4 bg-indigo-50/50 dark:bg-indigo-900/10">
-        <div className="flex items-center gap-2 mb-3 pb-2 border-b border-indigo-200 dark:border-indigo-800">
-          <span className="px-2 py-1 bg-indigo-500 text-white text-xs rounded font-mono">
-            🔁 ForEach
-          </span>
-          <span className="text-xs text-indigo-700 dark:text-indigo-300 font-mono">
-            {itemName}{indexName ? `, ${indexName}` : ''} in {varName}
-          </span>
-        </div>
-        <div className="text-xs text-gray-600 dark:text-gray-400 space-y-2">
-          <div className="p-2 bg-white dark:bg-gray-800 rounded border border-indigo-200 dark:border-indigo-800">
-            <div className="font-mono text-indigo-600 dark:text-indigo-400 mb-1">
-              [Iteration Preview]
-            </div>
-            {children}
-          </div>
-          <div className="text-xs text-center text-gray-500">
-            {arrayValue.length} item{arrayValue.length !== 1 ? 's' : ''} in array
-          </div>
-        </div>
       </div>
     );
   }
@@ -546,8 +512,8 @@ function processForEachChildren(
       Object.keys(actualChild.props as any).forEach((key) => {
         const propValue = (actualChild.props as any)[key];
 
-        // Skip children and special props
-        if (key === 'children' || key === '__visualBuilder' || key === '_isInVisualBuilder') {
+        // Skip children
+        if (key === 'children') {
           return;
         }
 

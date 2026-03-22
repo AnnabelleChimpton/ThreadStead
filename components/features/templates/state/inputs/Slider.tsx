@@ -41,10 +41,6 @@ export interface SliderProps {
   /** Disabled state */
   disabled?: boolean;
 
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
-
   /** Children (OnChange handlers) */
   children?: React.ReactNode;
 }
@@ -59,15 +55,12 @@ export default function Slider(props: SliderProps) {
     label,
     className: customClassName,
     disabled = false,
-    __visualBuilder,
-    _isInVisualBuilder,
     children
   } = props;
 
   // PHASE 1.1: Use selective subscription - only re-render when this specific variable changes
   const dependencies = useMemo(() => varName ? [varName] : [], [varName]);
   const templateState = useTemplateStateWithDeps(dependencies);
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
 
   // Get OnChange handler if present
   const onChangeHandler = useOnChangeHandler(children);
@@ -96,35 +89,6 @@ export default function Slider(props: SliderProps) {
   const finalClassName = customClassName
     ? `${baseClasses} ${customClassName}`
     : baseClasses;
-
-  // Visual builder mode - show disabled slider with indicator
-  if (isVisualBuilder) {
-    return (
-      <div className="inline-block relative">
-        <div className={`${finalClassName} opacity-70 p-2`}>
-          {label && (
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              {label}
-              {showValue && <span className="ml-2 text-gray-500">({min})</span>}
-            </label>
-          )}
-          <input
-            type="range"
-            min={min}
-            max={max}
-            step={step}
-            disabled
-            value={min}
-            readOnly
-            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-          />
-          <div className="absolute -top-2 -right-2 px-1 py-0.5 bg-purple-500 text-white text-xs rounded">
-            🎚️ Slider
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   // Normal mode - render functional slider
   return (

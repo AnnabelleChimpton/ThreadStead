@@ -60,10 +60,6 @@ export interface ValidateProps {
   /** Error message to display when validation fails */
   message: string;
 
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
-
   /** Children (ignored) */
   children?: React.ReactNode;
 }
@@ -85,12 +81,9 @@ export default function Validate(props: ValidateProps) {
     minLength,
     maxLength,
     message,
-    __visualBuilder,
-    _isInVisualBuilder
   } = props;
 
   const templateState = useTemplateState();
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
 
   // Generate unique validator ID for this instance (persists across re-renders)
   const validatorId = useRef(`validator-${Math.random().toString(36).substr(2, 9)}`).current;
@@ -111,12 +104,6 @@ export default function Validate(props: ValidateProps) {
   // It only creates side effects (derivative variables)
   // The actual validation happens in the useEffect below
   useEffect(() => {
-    // Skip validation in visual builder mode
-    if (isVisualBuilder) {
-      return;
-    }
-
-
     // CRITICAL: Validate that we have a var name
     if (!actualVarName) {
       console.error('[Validate] Missing required "var" prop');
@@ -213,7 +200,6 @@ export default function Validate(props: ValidateProps) {
     templateState.setVariable(errorsVarName, allErrors);  // All errors (new)
 
   }, [
-    isVisualBuilder,
     actualVarName,
     pattern,
     required,
@@ -232,15 +218,6 @@ export default function Validate(props: ValidateProps) {
     templateState.setVariable,
     templateState.registerVariable
   ]);
-
-  // Visual builder mode - show indicator
-  if (isVisualBuilder) {
-    return (
-      <div className="inline-block px-2 py-1 bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 text-xs rounded">
-        ✓ Validate: {message}
-      </div>
-    );
-  }
 
   // Normal mode - render nothing
   return null;

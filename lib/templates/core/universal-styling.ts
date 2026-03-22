@@ -1,15 +1,15 @@
 /**
- * Universal Styling System for Visual Builder Components
+ * Universal Styling System for Template Components
  *
- * Provides consistent styling props and processing logic for all components,
- * eliminating the confusion of multiple styling approaches.
+ * Relocated from visual-builder/universal-styling.ts — the mergeWithUniversalProps
+ * function and related types are used by component-registrations-display.ts and
+ * component-registrations-state.ts.
  */
 
 import React from 'react';
 
 // Universal styling prop definitions for component registry
 export const UNIVERSAL_STYLE_PROPS = {
-  // Color properties
   backgroundColor: {
     type: 'string' as const,
     description: 'Background color of the component'
@@ -26,8 +26,6 @@ export const UNIVERSAL_STYLE_PROPS = {
     type: 'string' as const,
     description: 'Accent color for highlights and special elements'
   },
-
-  // Visual effects
   opacity: {
     type: 'string' as const,
     description: 'Component opacity (0-100%)'
@@ -44,8 +42,6 @@ export const UNIVERSAL_STYLE_PROPS = {
     type: 'string' as const,
     description: 'Drop shadow effect'
   },
-
-  // Typography (for text-containing components)
   fontSize: {
     type: 'string' as const,
     description: 'Font size'
@@ -67,8 +63,6 @@ export const UNIVERSAL_STYLE_PROPS = {
     type: 'string' as const,
     description: 'Line height for text spacing'
   },
-
-  // Spacing
   padding: {
     type: 'string' as const,
     description: 'Internal padding'
@@ -77,15 +71,12 @@ export const UNIVERSAL_STYLE_PROPS = {
     type: 'string' as const,
     description: 'External margin'
   },
-
-  // Advanced CSS override
   customCSS: {
     type: 'string' as const,
     description: 'Raw CSS styles as JSON string for advanced customization'
   }
 };
 
-// Type for universal style props
 export interface UniversalStyleProps {
   backgroundColor?: string;
   textColor?: string;
@@ -105,10 +96,8 @@ export interface UniversalStyleProps {
   customCSS?: string;
 }
 
-// Component categories for determining which props to apply
 export type ComponentStyleCategory = 'text' | 'container' | 'media' | 'interactive' | 'decorative';
 
-// Category-specific prop filters
 export const CATEGORY_STYLE_PROPS: Record<ComponentStyleCategory, (keyof UniversalStyleProps)[]> = {
   text: [
     'backgroundColor', 'textColor', 'borderColor', 'opacity', 'borderRadius',
@@ -132,42 +121,36 @@ export const CATEGORY_STYLE_PROPS: Record<ComponentStyleCategory, (keyof Univers
   ]
 };
 
-// Legacy prop name mappings for backwards compatibility (includes HTML lowercase variants)
+// Legacy prop name mappings for backwards compatibility
 const LEGACY_PROP_MAPPINGS: Record<string, keyof UniversalStyleProps> = {
-  // Original legacy mappings
-  'backgroundcolor': 'backgroundColor',  // Old Paragraph prop
-  'color': 'textColor',                  // Old color prop -> textColor
-  'fontsize': 'fontSize',               // Legacy prop
-  'fontweight': 'fontWeight',           // Legacy prop
-  'textalign': 'textAlign',             // Legacy prop
-  'bordercolor': 'borderColor',         // Legacy prop
-  'borderradius': 'borderRadius',       // Legacy prop
-  // HTML lowercase variants (what HTML attribute parsing creates)
-  'textcolor': 'textColor',             // HTML textColor -> textcolor
-  'accentcolor': 'accentColor',         // HTML accentColor -> accentcolor
-  'borderwidth': 'borderWidth',         // HTML borderWidth -> borderwidth
-  'boxshadow': 'boxShadow',             // HTML boxShadow -> boxshadow
-  'fontfamily': 'fontFamily',           // HTML fontFamily -> fontfamily
-  'lineheight': 'lineHeight',           // HTML lineHeight -> lineheight
-  'customcss': 'customCSS',             // HTML customCSS -> customcss
+  'backgroundcolor': 'backgroundColor',
+  'color': 'textColor',
+  'fontsize': 'fontSize',
+  'fontweight': 'fontWeight',
+  'textalign': 'textAlign',
+  'bordercolor': 'borderColor',
+  'borderradius': 'borderRadius',
+  'textcolor': 'textColor',
+  'accentcolor': 'accentColor',
+  'borderwidth': 'borderWidth',
+  'boxshadow': 'boxShadow',
+  'fontfamily': 'fontFamily',
+  'lineheight': 'lineHeight',
+  'customcss': 'customCSS',
 };
 
 /**
- * Migrate legacy props to new universal prop names (bidirectional compatibility)
+ * Migrate legacy props to new universal prop names
  */
 function migrateLegacyProps(props: Record<string, unknown>): UniversalStyleProps & Record<string, unknown> {
   const migratedProps = { ...props };
 
-  // Apply legacy prop mappings (legacy -> universal)
   Object.entries(LEGACY_PROP_MAPPINGS).forEach(([legacyKey, newKey]) => {
     if (props[legacyKey] !== undefined && props[newKey] === undefined) {
-      // Only migrate if the new prop doesn't already exist
       migratedProps[newKey] = props[legacyKey];
     }
   });
 
-  // Apply reverse mappings (universal -> legacy) for maximum compatibility
-  // This ensures components that expect legacy prop names still work
   const reverseMappings: Record<keyof UniversalStyleProps, string> = {
     'backgroundColor': 'backgroundcolor',
     'textColor': 'color',
@@ -177,7 +160,6 @@ function migrateLegacyProps(props: Record<string, unknown>): UniversalStyleProps
     'fontWeight': 'fontweight',
     'textAlign': 'textalign',
     'borderRadius': 'borderradius',
-    // Other props that don't have legacy equivalents
     'accentColor': 'accentColor',
     'opacity': 'opacity',
     'borderWidth': 'borderWidth',
@@ -190,7 +172,6 @@ function migrateLegacyProps(props: Record<string, unknown>): UniversalStyleProps
 
   Object.entries(reverseMappings).forEach(([universalKey, legacyKey]) => {
     if (props[universalKey] !== undefined && props[legacyKey] === undefined) {
-      // Add legacy prop for backwards compatibility
       migratedProps[legacyKey] = props[universalKey];
     }
   });
@@ -206,16 +187,10 @@ export function processUniversalStyles(
   category: ComponentStyleCategory = 'container',
   existingStyle?: React.CSSProperties
 ): React.CSSProperties {
-
-  // First migrate any legacy props
   const migratedProps = migrateLegacyProps(props);
-
   let processedStyle: React.CSSProperties = existingStyle ? { ...existingStyle } : {};
-
-  // Get relevant props for this component category
   const relevantProps = CATEGORY_STYLE_PROPS[category];
 
-  // Process each universal style prop
   for (const propName of relevantProps) {
     const value = migratedProps[propName];
     if (!value || typeof value !== 'string') continue;
@@ -231,11 +206,9 @@ export function processUniversalStyles(
         processedStyle.borderColor = value;
         break;
       case 'accentColor':
-        // Store as CSS custom property for component-specific use
         (processedStyle as any)['--accent-color'] = value;
         break;
       case 'opacity':
-        // Handle both percentage and decimal formats
         const opacityValue = value.endsWith('%')
           ? parseFloat(value) / 100
           : parseFloat(value);
@@ -281,7 +254,6 @@ export function processUniversalStyles(
           ? value : `${value}px`;
         break;
       case 'customCSS':
-        // Parse custom CSS JSON and merge it in
         try {
           const customStyles = JSON.parse(value) as React.CSSProperties;
           processedStyle = { ...processedStyle, ...customStyles };
@@ -309,7 +281,7 @@ export function getComponentStyleCategory(componentType: string): ComponentStyle
   if (mediaComponents.includes(componentType)) return 'media';
   if (interactiveComponents.includes(componentType)) return 'interactive';
 
-  return 'decorative'; // Default fallback
+  return 'decorative';
 }
 
 /**
@@ -324,45 +296,17 @@ export function useUniversalStyles(
     const category = getComponentStyleCategory(componentType);
     return processUniversalStyles(props, category, existingStyle);
   }, [
-    // Universal prop names (camelCase)
     props.backgroundColor, props.textColor, props.borderColor, props.accentColor,
     props.opacity, props.borderRadius, props.borderWidth, props.boxShadow,
     props.fontSize, props.fontWeight, props.fontFamily, props.textAlign, props.lineHeight,
     props.padding, props.margin, props.customCSS,
-    // HTML lowercase variants (what profile page actually receives)
-    props.backgroundcolor, props.textcolor, props.bordercolor, props.accentcolor,
-    props.borderradius, props.borderwidth, props.boxshadow,
-    props.fontsize, props.fontweight, props.fontfamily, props.textalign, props.lineheight,
-    props.customcss,
-    // Legacy variants
-    props.color,
-    // Component type and existing style
+    (props as any).backgroundcolor, (props as any).textcolor, (props as any).bordercolor, (props as any).accentcolor,
+    (props as any).borderradius, (props as any).borderwidth, (props as any).boxshadow,
+    (props as any).fontsize, (props as any).fontweight, (props as any).fontfamily, (props as any).textalign, (props as any).lineheight,
+    (props as any).customcss,
+    (props as any).color,
     componentType, existingStyle
   ]);
-}
-
-/**
- * Get the display value for a universal style prop, checking both new and legacy prop names
- */
-export function getDisplayValueForStyleProp(
-  props: Record<string, unknown>,
-  propName: keyof UniversalStyleProps
-): string {
-  // First check the new prop name
-  if (props[propName] !== undefined) {
-    return String(props[propName]);
-  }
-
-  // Then check for legacy prop names
-  const legacyKey = Object.keys(LEGACY_PROP_MAPPINGS).find(
-    key => LEGACY_PROP_MAPPINGS[key] === propName
-  );
-
-  if (legacyKey && props[legacyKey] !== undefined) {
-    return String(props[legacyKey]);
-  }
-
-  return '';
 }
 
 /**
@@ -375,7 +319,6 @@ export function mergeWithUniversalProps(
   const relevantUniversalProps = CATEGORY_STYLE_PROPS[styleCategory];
   const universalPropsForComponent: Record<string, any> = {};
 
-  // Only include relevant universal props for this component category
   for (const propName of relevantUniversalProps) {
     if (UNIVERSAL_STYLE_PROPS[propName]) {
       universalPropsForComponent[propName] = UNIVERSAL_STYLE_PROPS[propName];
@@ -390,7 +333,6 @@ export function mergeWithUniversalProps(
 
 /**
  * Separate universal styling props from other props
- * This prevents styling props from being added as HTML attributes
  */
 export function separateUniversalStyleProps<T extends Record<string, any>>(
   props: T
@@ -401,51 +343,17 @@ export function separateUniversalStyleProps<T extends Record<string, any>>(
   const styleProps: Record<string, any> = {};
   const otherProps: Record<string, any> = {};
 
-  // List of all style prop names (universal, legacy, and HTML lowercase variants)
   const allStylePropNames = new Set<string>([
-    // Universal prop names (camelCase)
-    'backgroundColor',
-    'textColor',
-    'borderColor',
-    'accentColor',
-    'opacity',
-    'borderRadius',
-    'borderWidth',
-    'boxShadow',
-    'fontSize',
-    'fontWeight',
-    'fontFamily',
-    'textAlign',
-    'lineHeight',
-    'padding',
-    'margin',
-    'customCSS',
-    // Legacy prop names (lowercase)
-    'backgroundcolor',
-    'color',
-    'bordercolor',
-    'fontsize',
-    'fontweight',
-    'fontfamily',
-    'textalign',
-    'borderradius',
-    // HTML attribute lowercase variants (what browser parsing creates)
-    'backgroundcolor',  // backgroundColor → backgroundcolor
-    'textcolor',        // textColor → textcolor
-    'bordercolor',      // borderColor → bordercolor
-    'accentcolor',      // accentColor → accentcolor
-    'borderradius',     // borderRadius → borderradius
-    'borderwidth',      // borderWidth → borderwidth
-    'boxshadow',        // boxShadow → boxshadow
-    'fontsize',         // fontSize → fontsize
-    'fontweight',       // fontWeight → fontweight
-    'fontfamily',       // fontFamily → fontfamily
-    'textalign',        // textAlign → textalign
-    'lineheight',       // lineHeight → lineheight
-    'customcss'         // customCSS → customcss
+    'backgroundColor', 'textColor', 'borderColor', 'accentColor',
+    'opacity', 'borderRadius', 'borderWidth', 'boxShadow',
+    'fontSize', 'fontWeight', 'fontFamily', 'textAlign', 'lineHeight',
+    'padding', 'margin', 'customCSS',
+    'backgroundcolor', 'color', 'bordercolor', 'fontsize', 'fontweight',
+    'fontfamily', 'textalign', 'borderradius',
+    'textcolor', 'accentcolor', 'borderwidth', 'boxshadow',
+    'lineheight', 'customcss'
   ]);
 
-  // Separate props
   Object.entries(props).forEach(([key, value]) => {
     if (allStylePropNames.has(key)) {
       styleProps[key] = value;

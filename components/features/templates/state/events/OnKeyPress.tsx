@@ -31,28 +31,21 @@ export interface OnKeyPressProps {
   /** Action components to execute on key press */
   children?: React.ReactNode;
 
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
 }
 
 export default function OnKeyPress(props: OnKeyPressProps) {
   const {
     keyName: keyToWatch,
     children,
-    __visualBuilder,
-    _isInVisualBuilder
   } = props;
 
   const templateState = useTemplateState();
   const residentData = useResidentData();
   const forEachContext = useForEachContext();
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
 
   // Set up global keyboard listener
   useEffect(() => {
-    // Don't set up listener in visual builder mode
-    if (isVisualBuilder || !keyToWatch) {
+    if (!keyToWatch) {
       return;
     }
 
@@ -70,21 +63,7 @@ export default function OnKeyPress(props: OnKeyPressProps) {
     return () => {
       document.removeEventListener('keydown', handleKeyPress);
     };
-  }, [keyToWatch, children, isVisualBuilder, templateState, residentData, forEachContext]);
-
-  // Visual builder mode - show indicator
-  if (isVisualBuilder) {
-    return (
-      <div className="inline-block px-2 py-1 bg-amber-100 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 rounded text-xs text-amber-700 dark:text-amber-300 font-mono">
-        ⌨️ OnKeyPress: {keyToWatch || '(no key)'}
-        {children && (
-          <div className="mt-1 pl-2 border-l-2 border-amber-400 dark:border-amber-600">
-            {children}
-          </div>
-        )}
-      </div>
-    );
-  }
+  }, [keyToWatch, children, templateState, residentData, forEachContext]);
 
   // Normal mode - render nothing (uses global event listener)
   return null;

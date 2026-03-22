@@ -45,10 +45,6 @@ export interface ShowToastProps {
   /** Position of toast on screen */
   position?: 'top-left' | 'top-center' | 'top-right' | 'bottom-left' | 'bottom-center' | 'bottom-right';
 
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
-
   /** Children (ignored - ShowToast is an action component) */
   children?: React.ReactNode;
 }
@@ -58,29 +54,8 @@ export default function ShowToast(props: ShowToastProps) {
     message,
     type = 'success',
     duration = 3000,
-    position,
-    __visualBuilder,
-    _isInVisualBuilder
+    position
   } = props;
-
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
-
-  // Visual builder mode - show indicator
-  if (isVisualBuilder) {
-    const typeEmoji = {
-      success: '✅',
-      error: '❌',
-      warning: '⚠️',
-      info: 'ℹ️',
-      loading: '⏳'
-    }[type] || '💬';
-
-    return (
-      <div className="inline-block px-2 py-1 bg-indigo-100 dark:bg-indigo-900/30 border border-indigo-300 dark:border-indigo-700 rounded text-xs text-indigo-700 dark:text-indigo-300 font-mono">
-        {typeEmoji} ShowToast: &quot;{message}&quot; ({type})
-      </div>
-    );
-  }
 
   // Normal mode - component doesn't render
   // Action is executed by parent event handler

@@ -42,9 +42,6 @@ export interface ShowVarProps {
   /** Scope ID for scoped variable resolution (provided by ForEach) */
   scopeId?: string;
 
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
 }
 
 export default function ShowVar(props: ShowVarProps) {
@@ -54,12 +51,7 @@ export default function ShowVar(props: ShowVarProps) {
     format,
     fallback,
     dateFormat,
-    __visualBuilder,
-    _isInVisualBuilder
   } = props;
-
-  // Visual builder mode - show placeholder
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
 
   // IMPORTANT: Always call hooks before any conditional returns
   // PHASE 1.1: Use selective subscription - only re-render when this specific variable changes
@@ -101,14 +93,6 @@ export default function ShowVar(props: ShowVarProps) {
 
   // Handle undefined/null values
   if (value === undefined || value === null) {
-    if (isVisualBuilder) {
-      return (
-        <span className="inline-block px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded text-xs text-yellow-700 dark:text-yellow-300 font-mono">
-          📊 ShowVar: {name} (undefined)
-        </span>
-      );
-    }
-
     // Normal mode - show fallback or nothing
     if (fallback) {
       return <>{fallback}</>;
@@ -161,18 +145,6 @@ export default function ShowVar(props: ShowVarProps) {
     } else {
       displayValue = String(value);
     }
-  }
-
-  // Visual builder mode - show with indicator
-  if (isVisualBuilder) {
-    return (
-      <span className="inline-block">
-        <span className="px-1 py-0.5 bg-purple-100 dark:bg-purple-900/30 border border-purple-300 dark:border-purple-700 rounded text-xs text-purple-700 dark:text-purple-300 font-mono mr-1">
-          📊
-        </span>
-        <span>{displayValue}</span>
-      </span>
-    );
   }
 
   // Normal mode - just show the value

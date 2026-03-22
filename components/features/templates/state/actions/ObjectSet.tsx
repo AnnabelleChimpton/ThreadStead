@@ -52,10 +52,6 @@ export interface ObjectSetProps {
   /** Expression to evaluate and set */
   expression?: string;
 
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
-
   /** Children (ignored - ObjectSet is an action component) */
   children?: React.ReactNode;
 }
@@ -65,27 +61,8 @@ export default function ObjectSet(props: ObjectSetProps) {
     var: varName,
     path,
     value,
-    expression,
-    __visualBuilder,
-    _isInVisualBuilder
+    expression
   } = props;
-
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
-
-  // Visual builder mode - show indicator
-  if (isVisualBuilder) {
-    const displayValue = expression
-      ? `expr: ${expression}`
-      : value !== undefined
-        ? `value: ${String(value)}`
-        : '(no value)';
-
-    return (
-      <div className="inline-block px-2 py-1 bg-purple-100 dark:bg-purple-900/30 border border-purple-300 dark:border-purple-700 rounded text-xs text-purple-700 dark:text-purple-300 font-mono">
-        🔧 ObjectSet: {varName}.{path} = {displayValue}
-      </div>
-    );
-  }
 
   // Normal mode - component doesn't render
   // Action is executed by parent event handler

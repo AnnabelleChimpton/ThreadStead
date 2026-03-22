@@ -6,8 +6,22 @@ import { normalizeVariableName } from '@/lib/templates/state/variable-utils';
 import { normalizeAttributeName } from '@/lib/templates/core/attribute-mappings';
 import { separateCSSProps, applyCSSProps } from '@/lib/templates/styling/universal-css-props';
 import { parseStyleString } from '@/lib/templates/positioning/positioning-utils';
-import { stripPositioningFromStyle } from '@/components/features/templates/visual-builder/canvas-renderer/utils/css-utilities';
 import type React from 'react';
+
+/**
+ * Strip positioning properties from a style object.
+ * Used when positioning is handled by a wrapper element.
+ */
+function stripPositioningFromStyle(style: React.CSSProperties): React.CSSProperties {
+  const {
+    position,
+    top, right, bottom, left,
+    zIndex,
+    transform,
+    ...rest
+  } = style;
+  return rest;
+}
 
 // Generate unique island ID based on component type and path
 export function generateIslandId(componentType: string, path: string[]): string {

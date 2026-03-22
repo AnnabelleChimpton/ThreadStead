@@ -8,20 +8,6 @@
 import { CSSProperties, ReactNode } from 'react';
 
 /**
- * Internal system context passed by the visual builder
- * These props are NOT part of the public API and should not be documented
- */
-export interface VisualBuilderContext {
-  isInVisualBuilder: boolean;
-  onContentChange?: (content: string) => void;
-  onPropsChange?: (props: Record<string, any>) => void;
-  positioningMode?: 'normal' | 'absolute' | 'grid';
-  size?: { width: string; height: string };
-  isSelected?: boolean;
-  isHovered?: boolean;
-}
-
-/**
  * Standard props that every template component should accept
  * Based on HTML/CSS standards for maximum predictability
  */
@@ -122,8 +108,6 @@ export interface StandardComponentProps {
   css?: CSSProperties;
   cssRenderMode?: string;
 
-  // Internal system props (prefixed with __ to indicate they're not public API)
-  __visualBuilder?: VisualBuilderContext;
 }
 
 /**
@@ -179,13 +163,11 @@ export function separateSystemProps<T extends Record<string, any>>(
   props: T
 ): {
   publicProps: PublicProps<T>;
-  systemProps: VisualBuilderContext | undefined;
 } {
-  const { __visualBuilder, ...publicProps } = props;
+  const { ...publicProps } = props;
 
   return {
     publicProps: publicProps as unknown as PublicProps<T>,
-    systemProps: __visualBuilder
   };
 }
 

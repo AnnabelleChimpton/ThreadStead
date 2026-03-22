@@ -32,10 +32,6 @@ export interface PushProps {
   /** Expression to evaluate for the value (alias for value) */
   expression?: string;
 
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
-
   /** Children (ignored - Push is an action component) */
   children?: React.ReactNode;
 }
@@ -44,24 +40,11 @@ export default function Push(props: PushProps) {
   const {
     var: varName,
     value,
-    expression,
-    __visualBuilder,
-    _isInVisualBuilder
+    expression
   } = props;
 
   // Support both value and expression props (expression takes precedence)
   const actualValue = expression ?? value;
-
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
-
-  // Visual builder mode - show indicator
-  if (isVisualBuilder) {
-    return (
-      <div className="inline-block px-2 py-1 bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded text-xs text-green-700 dark:text-green-300 font-mono">
-        ➕ Push: {varName} ← {String(actualValue)}
-      </div>
-    );
-  }
 
   // Normal mode - component doesn't render
   // Action is executed by parent event handler

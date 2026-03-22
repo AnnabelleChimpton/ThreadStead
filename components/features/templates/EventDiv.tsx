@@ -48,9 +48,6 @@ export interface EventDivProps extends UniversalCSSProps {
   /** Inline styles */
   style?: React.CSSProperties;
 
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
 }
 
 export default function EventDiv(props: EventDivProps) {
@@ -61,11 +58,7 @@ export default function EventDiv(props: EventDivProps) {
     class: customClass,
     id,
     style: inlineStyle,
-    __visualBuilder,
-    _isInVisualBuilder
   } = componentProps;
-
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
 
   // Extract event handlers from children
   const hoverHandlers = useOnHoverHandler(children);
@@ -134,23 +127,6 @@ export default function EventDiv(props: EventDivProps) {
   const onMouseEnterFn = mouseEnterHandler || hoverHandlers.onMouseEnter;
   const onMouseLeaveFn = mouseLeaveHandler || hoverHandlers.onMouseLeave;
 
-  // Visual builder mode - show indicator
-  if (isVisualBuilder) {
-    return (
-      <div
-        id={id}
-        className={`${finalClassName} border-2 border-dashed border-green-400 dark:border-green-600 relative`}
-        style={finalStyle}
-      >
-        <div className="absolute -top-2 -right-2 px-2 py-0.5 bg-green-500 text-white text-xs rounded font-mono">
-          🎯 EventDiv
-        </div>
-        {visibleChildren}
-      </div>
-    );
-  }
-
-  // Normal mode - functional div with event handlers
   return (
     <div
       id={id}

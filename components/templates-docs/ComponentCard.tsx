@@ -6,7 +6,6 @@ import { getCachedTutorialsForComponent, ComponentTutorialInfo } from "@/lib/tem
 
 interface ComponentCardProps {
   component: Component & {
-    availableInVisualBuilder?: boolean;
     codeOnly?: boolean;
     isRetro?: boolean;
     isInteractive?: boolean;
@@ -77,11 +76,6 @@ export default function ComponentCard({ component, category }: ComponentCardProp
 
             {/* Badges */}
             <div className="flex flex-wrap gap-1.5 mt-2">
-              {component.availableInVisualBuilder && (
-                <span className="px-2 py-0.5 bg-purple-200 border border-purple-400 text-xs font-bold flex items-center gap-1">
-                  <PixelIcon name="paint-bucket" size={12} /> Visual Builder
-                </span>
-              )}
               {component.codeOnly && (
                 <span className="px-2 py-0.5 bg-cyan-200 border border-cyan-400 text-xs font-bold flex items-center gap-1">
                   <PixelIcon name="code" size={12} /> Code Only

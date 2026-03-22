@@ -7,8 +7,8 @@ interface ComponentSearchProps {
   activeCategory: string;
   onCategoryChange: (category: string) => void;
   categories: Array<{ id: string; title: string; icon: string; color: string }>;
-  availabilityFilter?: 'all' | 'visual-builder' | 'code-only';
-  onAvailabilityFilterChange?: (filter: 'all' | 'visual-builder' | 'code-only') => void;
+  availabilityFilter?: 'all' | 'code-only';
+  onAvailabilityFilterChange?: (filter: 'all' | 'code-only') => void;
   difficultyFilter?: 'all' | 'beginner' | 'intermediate' | 'advanced';
   onDifficultyFilterChange?: (filter: 'all' | 'beginner' | 'intermediate' | 'advanced') => void;
 }
@@ -61,16 +61,6 @@ export default function ComponentSearch({
             }`}
           >
             <PixelIcon name="folder" size={14} className="inline mr-1" /> All Components
-          </button>
-          <button
-            onClick={() => onAvailabilityFilterChange('visual-builder')}
-            className={`px-4 py-2 border-2 border-black shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all font-medium ${
-              availabilityFilter === 'visual-builder'
-                ? 'bg-purple-300 text-black font-bold'
-                : 'bg-white hover:bg-gray-50'
-            }`}
-          >
-            <PixelIcon name="paint-bucket" size={14} className="inline mr-1" /> Visual Builder
           </button>
           <button
             onClick={() => onAvailabilityFilterChange('code-only')}

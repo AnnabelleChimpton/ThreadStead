@@ -31,35 +31,9 @@ export interface OnChangeProps {
   /** Optional debounce time in milliseconds */
   debounce?: number;
 
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
 }
 
 export default function OnChange(props: OnChangeProps) {
-  const {
-    children,
-    debounce,
-    __visualBuilder,
-    _isInVisualBuilder
-  } = props;
-
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
-
-  // Visual builder mode - show indicator
-  if (isVisualBuilder) {
-    return (
-      <div className="inline-block px-2 py-1 bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 rounded text-xs text-blue-700 dark:text-blue-300 font-mono">
-        🔄 OnChange Handler {debounce ? `(${debounce}ms debounce)` : ''}
-        {children && (
-          <div className="mt-1 pl-2 border-l-2 border-blue-400 dark:border-blue-600">
-            {children}
-          </div>
-        )}
-      </div>
-    );
-  }
-
   // Normal mode - render nothing
   // The change handler is meant to be attached to parent element
   return null;

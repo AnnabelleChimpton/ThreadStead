@@ -1,6 +1,4 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import ReactDOM from 'react-dom';
-import FloatingToolbar from './visual-builder/FloatingToolbar';
 import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
 export interface TextElementProps extends UniversalCSSProps {
@@ -24,8 +22,6 @@ export interface TextElementProps extends UniversalCSSProps {
   // Internal props for visual builder
   _positioningMode?: 'absolute' | 'grid';
   _size?: { width: string; height: string };
-  // Inline editing props
-  _isInVisualBuilder?: boolean;
   _onContentChange?: (content: string) => void;
 }
 
@@ -55,7 +51,6 @@ export default function TextElement(props: TextElementProps) {
     textLetterSpacing,
     _positioningMode,
     _size,
-    _isInVisualBuilder = false,
     _onContentChange
   } = componentProps;
 
@@ -75,14 +70,10 @@ export default function TextElement(props: TextElementProps) {
     setEditingContent(displayText);
   }, [content, children]);
 
-  // Handle double-click to start editing (only in visual builder)
-  const handleDoubleClick = useCallback((e: React.MouseEvent) => {
-    if (_isInVisualBuilder && !isEditing) {
-      e.preventDefault();
-      e.stopPropagation();
-      setIsEditing(true);
-    }
-  }, [_isInVisualBuilder, isEditing]);
+  // Handle double-click to start editing
+  const handleDoubleClick = useCallback((_e: React.MouseEvent) => {
+    // No-op: visual builder editing removed
+  }, []);
 
   // Handle ending edit mode
   const handleEndEdit = useCallback(() => {
@@ -183,8 +174,6 @@ export default function TextElement(props: TextElementProps) {
     'break-words', // Ensure text wrapping at word boundaries
     'hyphens-auto', // Enable automatic hyphenation
     isAbsolutePositioned && _size ? 'h-full flex items-center justify-start' : '',
-    // REMOVED outline classes that conflict with CSS outline - use inline styles instead
-    _isInVisualBuilder && !isEditing ? 'hover:ring-1 hover:ring-gray-300 cursor-pointer' : '',
   ].filter(Boolean).join(' ');
 
   const filteredClasses = removeTailwindConflicts(baseClasses, cssProps);
@@ -201,13 +190,7 @@ export default function TextElement(props: TextElementProps) {
       height: _size.height,
     } : {}),
 
-    // Non-conflicting Visual Builder base styles (don't override user CSS)
-    ...(_isInVisualBuilder ? {
-      minHeight: '1.5em',
-      minWidth: '60px',
-    } : {}),
-
-    // Consistent text wrapping behavior (non-conflicting)
+    // Consistent text wrapping behavior
     wordWrap: 'break-word',
     overflowWrap: 'break-word',
     hyphens: 'auto',
@@ -253,7 +236,7 @@ export default function TextElement(props: TextElementProps) {
         ref={editRef}
         className={classes}
         style={finalStyle}
-        contentEditable={_isInVisualBuilder && isEditing}
+        contentEditable={false}
         suppressContentEditableWarning={true}
         onDoubleClick={handleDoubleClick}
         onBlur={isEditing ? handleEndEdit : undefined}
@@ -274,18 +257,10 @@ export default function TextElement(props: TextElementProps) {
             // If children is invalid (empty array, array of undefined/false), fall back to content
           }
           // Use content prop or fallback
-          return content || (_isInVisualBuilder ? 'Edit this text' : '');
+          return content || '';
         })()}
       </ElementTag>
 
-      {/* Floating toolbar for formatting */}
-      {_isInVisualBuilder && isEditing && (
-        <FloatingToolbar
-          visible={isEditing}
-          targetElement={editRef.current}
-          onFormat={handleFormat}
-        />
-      )}
     </>
   );
 }

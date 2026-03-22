@@ -17,7 +17,6 @@ export interface ArcadeButtonProps extends UniversalCSSProps {
   href?: string;
   onClick?: () => void;
   className?: string;
-  _isInVisualBuilder?: boolean;
   _positioningMode?: 'absolute' | 'grid' | 'normal';
   _isInGrid?: boolean;
   children?: React.ReactNode;
@@ -38,7 +37,6 @@ export default function ArcadeButton(props: ArcadeButtonProps) {
     onClick,
     className: customClassName = '',
     children,
-    _isInVisualBuilder = false,
     _positioningMode = 'normal',
     _isInGrid = false
   } = componentProps;
@@ -210,7 +208,7 @@ export default function ArcadeButton(props: ArcadeButtonProps) {
     transition: 'all 0.1s ease',
     border: 'none',
     outline: 'none',
-    overflow: _isInVisualBuilder ? 'visible' : 'hidden'
+    overflow: 'hidden'
   };
 
   // Merge with CSS props (CSS props win)
@@ -299,12 +297,12 @@ export default function ArcadeButton(props: ArcadeButtonProps) {
             ? '0 1px 2px rgba(0,0,0,0.3)'
             : '0 1px 2px rgba(0,0,0,0.8)',
           padding: `${dimensions.padding}px`,
-          maxWidth: _isInVisualBuilder ? '100%' : '80%',
+          maxWidth: '80%',
           textAlign: 'center' as const,
           lineHeight: 1.2,
-          overflow: _isInVisualBuilder ? 'visible' : 'hidden',
-          textOverflow: _isInVisualBuilder ? 'unset' : 'ellipsis',
-          whiteSpace: _isInVisualBuilder ? 'nowrap' : 'normal'
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'normal'
         }}
       >
         {buttonContent}

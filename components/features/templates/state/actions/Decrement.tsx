@@ -41,10 +41,6 @@ export interface DecrementProps {
   /** Maximum value (don't go above) */
   max?: number;
 
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
-
   /** Children (ignored - Decrement is an action component) */
   children?: React.ReactNode;
 }
@@ -54,26 +50,8 @@ export default function Decrement(props: DecrementProps) {
     var: varName,
     by = 1,
     min,
-    max,
-    __visualBuilder,
-    _isInVisualBuilder
+    max
   } = props;
-
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
-
-  // Visual builder mode - show indicator
-  if (isVisualBuilder) {
-    const details = [];
-    if (by !== 1) details.push(`by ${by}`);
-    if (min !== undefined) details.push(`min ${min}`);
-    if (max !== undefined) details.push(`max ${max}`);
-
-    return (
-      <div className="inline-block px-2 py-1 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded text-xs text-red-700 dark:text-red-300 font-mono">
-        ⬇️ Decrement: {varName}{details.length > 0 ? ` (${details.join(', ')})` : ''}
-      </div>
-    );
-  }
 
   // Normal mode - component doesn't render
   // Action is executed by parent event handler

@@ -21,7 +21,6 @@ import PrivateProfile from "@/components/core/profile/PrivateProfile";
 import type { ResidentData } from "@/components/features/templates/ResidentDataProvider";
 import type { TemplateNode } from "@/lib/templates/compilation/template-parser";
 import { mapProfileCSSModeToComponentMode } from "@/lib/utils/css/css-mode-mapper";
-import { detectTemplateType } from "@/lib/utils/template-type-detector";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useRouter } from "next/router";
 import dynamic from 'next/dynamic';
@@ -174,54 +173,27 @@ export default function ProfilePage({
     // Islands mode: Handle CSS based on navigation and CSS settings
     if (hideNavigation) {
       if (includeSiteCSS) {
-        // Detect template type to determine rendering approach
-        const compiledTemplateData = compiledTemplate as any;
-        const templateType = detectTemplateType(
-          compiledTemplateData?.staticHTML,
-          customCSS
-        );
+        const wrapperClass = templateMode === 'advanced'
+          ? "min-h-screen flex flex-col"
+          : "min-h-screen thread-surface flex flex-col";
 
-        // Visual Builder templates MUST render full-screen for WYSIWYG
-        // Legacy templates can use constrained layout for backwards compatibility
-        if (templateType === 'visual-builder') {
-          // Full-screen rendering - no layout constraints
-          return (
-            <ProfileModeRenderer
-              user={profileUser}
-              residentData={residentData}
-              useIslands={true}
-              hideNavigation={true}
-              fallbackContent={
-                <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>
-                  <p>Template failed to load</p>
-                </div>
-              }
-            />
-          );
-        } else {
-          // Legacy template with constrained layout
-          const wrapperClass = templateMode === 'advanced'
-            ? "min-h-screen flex flex-col"
-            : "min-h-screen thread-surface flex flex-col";
-
-          return (
-            <div className={wrapperClass}>
-              <main className="flex-1 mx-auto max-w-5xl px-6 py-8">
-                <ProfileModeRenderer
-                  user={profileUser}
-                  residentData={residentData}
-                  useIslands={true}
-                  hideNavigation={true}
-                  fallbackContent={
-                    <div className="p-8 text-center text-gray-500">
-                      <p>Template failed to load</p>
-                    </div>
-                  }
+        return (
+          <div className={wrapperClass}>
+            <main className="flex-1 mx-auto max-w-5xl px-6 py-8">
+              <ProfileModeRenderer
+                user={profileUser}
+                residentData={residentData}
+                useIslands={true}
+                hideNavigation={true}
+                fallbackContent={
+                  <div className="p-8 text-center text-gray-500">
+                    <p>Template failed to load</p>
+                  </div>
+                }
                 />
               </main>
             </div>
           );
-        }
       } else {
         // Hide navigation and disable site CSS - no wrapper constraints
         return (

@@ -42,10 +42,6 @@ export interface CountProps {
   /** Optional condition expression to filter items (e.g., "item.active === true") */
   where?: string;
 
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
-
   /** Children (ignored - Count is an action component) */
   children?: React.ReactNode;
 }
@@ -54,22 +50,8 @@ export default function Count(props: CountProps) {
   const {
     var: varName,
     target,
-    where,
-    __visualBuilder,
-    _isInVisualBuilder
+    where
   } = props;
-
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
-
-  // Visual builder mode - show indicator
-  if (isVisualBuilder) {
-    return (
-      <div className="inline-block px-2 py-1 bg-indigo-100 dark:bg-indigo-900/30 border border-indigo-300 dark:border-indigo-700 rounded text-xs text-indigo-700 dark:text-indigo-300 font-mono">
-        🔢 Count: {varName} → {target}
-        {where && <span className="ml-1 text-indigo-500">where {where}</span>}
-      </div>
-    );
-  }
 
   // Normal mode - component doesn't render
   // Action is executed by parent event handler

@@ -36,24 +36,9 @@ export interface SetCSSVarProps {
 
   /** Target selector (default: ":root") */
   target?: string;
-
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
 }
 
 export default function SetCSSVar(props: SetCSSVarProps) {
-  const { __visualBuilder, _isInVisualBuilder } = props;
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
-
-  // Visual builder mode - show indicator
-  if (isVisualBuilder) {
-    return (
-      <div className="inline-block px-2 py-1 bg-teal-100 dark:bg-teal-900/30 border border-teal-300 dark:border-teal-700 rounded text-xs text-teal-700 dark:text-teal-300 font-mono">
-        🎨 SetCSSVar: {props.name} = {props.value || props.expression}
-      </div>
-    );
-  }
 
   // Normal mode - render nothing (executed by event handler)
   return null;

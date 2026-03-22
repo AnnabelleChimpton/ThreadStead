@@ -35,10 +35,6 @@ export interface ArrayAtProps {
   /** Index variable name or literal number */
   index: string | number;
 
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
-
   /** Children (ignored) */
   children?: React.ReactNode;
 }
@@ -47,21 +43,14 @@ export default function ArrayAt(props: ArrayAtProps) {
   const {
     var: targetVarName,
     array: arrayVarName,
-    index: indexProp,
-    __visualBuilder,
-    _isInVisualBuilder
+    index: indexProp
   } = props;
 
   // IMPORTANT: Always call hooks before any conditional returns
   const templateState = useTemplateState();
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
 
   // Normal mode - reactive effect to update target variable
   useEffect(() => {
-    // Skip in visual builder mode
-    if (isVisualBuilder) {
-      return;
-    }
 
     // Validate required props inside effect
     if (!targetVarName || !arrayVarName || indexProp === undefined) {
@@ -130,7 +119,6 @@ export default function ArrayAt(props: ArrayAtProps) {
     templateState.setVariable(targetVarName, element !== undefined ? element : '');
 
   }, [
-    isVisualBuilder,
     targetVarName,
     arrayVarName,
     indexProp,
@@ -193,15 +181,6 @@ export default function ArrayAt(props: ArrayAtProps) {
       }}>
         ⚠️ <strong>ArrayAt Error:</strong> Missing required <code>index</code> prop.
         Example: <code>&lt;ArrayAt var=&quot;currentItem&quot; array=&quot;items&quot; index=&quot;currentIndex&quot; /&gt;</code>
-      </div>
-    );
-  }
-
-  // Visual builder mode - show indicator
-  if (isVisualBuilder) {
-    return (
-      <div className="inline-block px-2 py-1 bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 rounded text-xs text-blue-700 dark:text-blue-300 font-mono">
-        📋 ArrayAt: {targetVarName} = {arrayVarName}[{String(indexProp)}]
       </div>
     );
   }

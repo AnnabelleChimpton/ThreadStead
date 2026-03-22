@@ -735,7 +735,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             {/* CSS Styling - Simplest */}
             <div className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-400 rounded-lg p-6 text-center shadow-md relative">
               <div className="absolute top-2 right-2 bg-green-500 text-white text-sm px-2 py-1 rounded font-bold">
@@ -755,24 +755,6 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                 Open CSS Editor →
               </a>
               <p className="text-sm text-gray-600 mt-2">5 minutes</p>
-            </div>
-
-            {/* Visual Builder */}
-            <div className="bg-white border-2 border-purple-300 rounded-lg p-6 text-center shadow-md">
-              <div className="mb-3">
-                <PixelIcon name="building" size={48} />
-              </div>
-              <h3 className="text-lg font-bold mb-2 text-gray-900">Visual Builder</h3>
-              <p className="text-sm text-gray-700 mb-4">
-                Drag & drop custom layouts with grid positioning. Build unique page structures.
-              </p>
-              <a
-                href={`/resident/${username}/template-editor?mode=visual`}
-                className="px-4 py-3 bg-purple-500 hover:bg-purple-600 !text-white font-medium rounded shadow-md transition-all inline-block no-underline text-sm min-h-[48px] flex items-center justify-center"
-              >
-                Open Visual Builder →
-              </a>
-              <p className="text-sm text-gray-600 mt-2">30 minutes</p>
             </div>
 
             {/* Template Language */}
@@ -799,7 +781,6 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
             <h4 className="font-semibold text-blue-900 mb-2">Not sure which to choose?</h4>
             <ul className="text-sm text-blue-800 space-y-1">
               <li>• <strong>Just want to change colors?</strong> Start with CSS Styling</li>
-              <li>• <strong>Want to build custom layouts?</strong> Try Visual Builder</li>
               <li>• <strong>Need dynamic features?</strong> Use Template Code</li>
             </ul>
             <Link

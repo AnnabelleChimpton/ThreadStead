@@ -48,9 +48,6 @@ export interface TimeoutProps {
   /** OnTimeout child component with actions to execute */
   children?: React.ReactNode;
 
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
 }
 
 export default function Timeout(props: TimeoutProps) {
@@ -58,13 +55,10 @@ export default function Timeout(props: TimeoutProps) {
     seconds,
     milliseconds,
     children,
-    __visualBuilder,
-    _isInVisualBuilder
   } = props;
 
   const templateState = useTemplateState();
   const residentData = useResidentData();
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
   const timeoutIdRef = useRef<NodeJS.Timeout | null>(null);
 
   // Use refs to always access current values without recreating timeout
@@ -84,11 +78,6 @@ export default function Timeout(props: TimeoutProps) {
 
   // Execute timeout
   useEffect(() => {
-    // Don't execute in visual builder mode
-    if (isVisualBuilder) {
-      return;
-    }
-
     // Set timeout - use refs to get current values
     timeoutIdRef.current = setTimeout(() => {
       // Find OnTimeout child and execute its actions
@@ -140,27 +129,7 @@ export default function Timeout(props: TimeoutProps) {
         timeoutIdRef.current = null;
       }
     };
-  }, [timeoutMs, isVisualBuilder]);
-
-  // Visual builder mode - show indicator
-  if (isVisualBuilder) {
-    const displayTimeout = seconds
-      ? `${seconds}s`
-      : milliseconds
-        ? `${milliseconds}ms`
-        : '5s';
-
-    return (
-      <div className="inline-block px-2 py-1 bg-rose-100 dark:bg-rose-900/30 border border-rose-300 dark:border-rose-700 rounded text-xs text-rose-700 dark:text-rose-300 font-mono">
-        ⏰ Timeout: {displayTimeout}
-        {children && (
-          <div className="mt-1 pl-2 border-l-2 border-rose-400 dark:border-rose-600">
-            {children}
-          </div>
-        )}
-      </div>
-    );
-  }
+  }, [timeoutMs]);
 
   // Normal mode - render nothing
   return null;

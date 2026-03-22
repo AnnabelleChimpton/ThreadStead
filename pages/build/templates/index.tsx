@@ -22,10 +22,10 @@ export default function TemplatesIndex({ siteConfig, username }: TemplatesIndexP
               <PixelIcon name="paint-bucket" size={48} className="inline-block align-middle mr-2" /> Customize Your Profile
             </h1>
             <p className="text-xl text-gray-700 max-w-2xl mx-auto mb-4">
-              Three ways to make your profile unique
+              Two ways to make your profile unique
             </p>
             <p className="text-sm text-gray-600 max-w-xl mx-auto">
-              Start simple with CSS styling, or go advanced with our Visual Builder and Template Language.
+              Start simple with CSS styling, or go advanced with our Template Language.
             </p>
           </div>
 
@@ -42,7 +42,7 @@ export default function TemplatesIndex({ siteConfig, username }: TemplatesIndexP
                       It&apos;s the simplest way to customize!
                     </p>
                     <p className="text-sm text-gray-600">
-                      Want custom layouts? Try <strong>Visual Builder</strong> (drag & drop) or <strong>Template Language</strong> (for developers).
+                      Want custom layouts? Try <strong>Template Language</strong> (for developers).
                     </p>
                   </div>
                 </div>
@@ -85,7 +85,7 @@ export default function TemplatesIndex({ siteConfig, username }: TemplatesIndexP
 
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                   <Link
-                    href={username ? `/resident/${username}/css-editor` : "/settings?tab=appearance"}
+                    href={username ? `/resident/${username}/template-editor?mode=template` : "/settings?tab=appearance"}
                     className="px-6 py-3 bg-green-200 border-3 border-black shadow-[4px_4px_0_#000] hover:shadow-[6px_6px_0_#000] transition-all font-bold text-center"
                   >
                     <PixelIcon name="edit" className="inline-block align-middle mr-1" /> Start CSS Styling
@@ -98,52 +98,6 @@ export default function TemplatesIndex({ siteConfig, username }: TemplatesIndexP
                   </Link>
                 </div>
                 <p className="text-xs text-gray-500 mt-3">(5 minutes - just style what&apos;s already there)</p>
-              </div>
-            </RetroCard>
-
-            {/* Visual Builder Mode */}
-            <RetroCard>
-              <div className="text-center">
-                <div className="text-6xl mb-4"><PixelIcon name="drag-and-drop" size={48} /></div>
-                <h2 className="text-3xl font-black mb-3">Visual Builder</h2>
-                <p className="text-gray-600 mb-6">
-                  Build completely custom layouts with drag-and-drop. Create unique page structures without code. Perfect for creative designs.
-                </p>
-
-                <div className="space-y-3 mb-6 text-left max-w-md mx-auto">
-                  <div className="flex items-start gap-2">
-                    <span className="text-green-600 font-bold"><PixelIcon name="check" size={14} /></span>
-                    <span className="text-sm">Drag & drop interface</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-green-600 font-bold"><PixelIcon name="check" size={14} /></span>
-                    <span className="text-sm">200+ retro components</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-green-600 font-bold"><PixelIcon name="check" size={14} /></span>
-                    <span className="text-sm">Grid positioning system</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-green-600 font-bold"><PixelIcon name="check" size={14} /></span>
-                    <span className="text-sm">Custom page layouts</span>
-                  </div>
-                </div>
-
-                <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                  <Link
-                    href={username ? `/resident/${username}/template-editor?mode=visual` : "/settings?tab=appearance"}
-                    className="px-6 py-3 bg-purple-200 border-3 border-black shadow-[4px_4px_0_#000] hover:shadow-[6px_6px_0_#000] transition-all font-bold text-center"
-                  >
-                    <PixelIcon name="paint-bucket" size={16} className="inline-block align-middle mr-1" /> Open Visual Builder
-                  </Link>
-                  <Link
-                    href="/templates/components?filter=visual-builder"
-                    className="px-6 py-3 bg-white border-2 border-black shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all font-medium text-center"
-                  >
-                    Browse Components
-                  </Link>
-                </div>
-                <p className="text-xs text-gray-500 mt-3">(30 minutes - build custom layouts visually)</p>
               </div>
             </RetroCard>
 
@@ -202,7 +156,6 @@ export default function TemplatesIndex({ siteConfig, username }: TemplatesIndexP
                   <tr className="border-b-2 border-black">
                     <th className="text-left p-3 font-bold">Feature</th>
                     <th className="text-center p-3 font-bold bg-green-50">CSS Styling</th>
-                    <th className="text-center p-3 font-bold">Visual Builder</th>
                     <th className="text-center p-3 font-bold">Template Language</th>
                   </tr>
                 </thead>
@@ -210,43 +163,36 @@ export default function TemplatesIndex({ siteConfig, username }: TemplatesIndexP
                   <tr className="border-b border-gray-300">
                     <td className="p-3">No coding required</td>
                     <td className="text-center p-3 bg-green-50"><span className="text-green-600 font-bold text-xl"><PixelIcon name="check" size={20} /></span></td>
-                    <td className="text-center p-3"><span className="text-green-600 font-bold text-xl"><PixelIcon name="check" size={20} /></span></td>
                     <td className="text-center p-3"><span className="text-gray-300">−</span></td>
                   </tr>
                   <tr className="border-b border-gray-300">
                     <td className="p-3">Change colors & fonts</td>
                     <td className="text-center p-3 bg-green-50"><span className="text-green-600 font-bold text-xl"><PixelIcon name="check" size={20} /></span></td>
                     <td className="text-center p-3"><span className="text-green-600 font-bold text-xl"><PixelIcon name="check" size={20} /></span></td>
-                    <td className="text-center p-3"><span className="text-green-600 font-bold text-xl"><PixelIcon name="check" size={20} /></span></td>
                   </tr>
                   <tr className="border-b border-gray-300">
                     <td className="p-3">Custom layouts</td>
                     <td className="text-center p-3 bg-green-50"><span className="text-gray-300">−</span></td>
                     <td className="text-center p-3"><span className="text-green-600 font-bold text-xl"><PixelIcon name="check" size={20} /></span></td>
-                    <td className="text-center p-3"><span className="text-green-600 font-bold text-xl"><PixelIcon name="check" size={20} /></span></td>
                   </tr>
                   <tr className="border-b border-gray-300">
                     <td className="p-3">Variables & state</td>
                     <td className="text-center p-3 bg-green-50"><span className="text-gray-300">−</span></td>
-                    <td className="text-center p-3"><span className="text-gray-300">−</span></td>
                     <td className="text-center p-3"><span className="text-green-600 font-bold text-xl"><PixelIcon name="check" size={20} /></span></td>
                   </tr>
                   <tr className="border-b border-gray-300">
                     <td className="p-3">Conditionals & loops</td>
                     <td className="text-center p-3 bg-green-50"><span className="text-gray-300">−</span></td>
-                    <td className="text-center p-3"><span className="text-gray-300">−</span></td>
                     <td className="text-center p-3"><span className="text-green-600 font-bold text-xl"><PixelIcon name="check" size={20} /></span></td>
                   </tr>
                   <tr className="border-b border-gray-300">
                     <td className="p-3">Learning time</td>
                     <td className="text-center p-3 bg-green-50">5 minutes</td>
-                    <td className="text-center p-3">30 minutes</td>
                     <td className="text-center p-3">1+ hour</td>
                   </tr>
                   <tr>
                     <td className="p-3">Best for</td>
                     <td className="text-center p-3 text-xs bg-green-50">Quick styling, beginners</td>
-                    <td className="text-center p-3 text-xs">Static custom layouts</td>
                     <td className="text-center p-3 text-xs">Dynamic interactive content</td>
                   </tr>
                 </tbody>
@@ -266,23 +212,16 @@ export default function TemplatesIndex({ siteConfig, username }: TemplatesIndexP
               </RetroCard>
 
               <RetroCard>
-                <h3 className="font-bold mb-2">Can I combine CSS Styling with Visual Builder?</h3>
+                <h3 className="font-bold mb-2">Can I combine CSS Styling with Template Language?</h3>
                 <p className="text-sm text-gray-700">
-                  Yes! CSS Styling works with any layout option. You can use CSS Styling alone on the default layout, or combine it with Visual Builder custom layouts, or with Template Language code.
-                </p>
-              </RetroCard>
-
-              <RetroCard>
-                <h3 className="font-bold mb-2">Can I switch from Visual Builder to Template Language?</h3>
-                <p className="text-sm text-gray-700">
-                  Visual Builder templates generate template language code behind the scenes. You can export your visual design as code and continue editing in the template editor to add advanced features.
+                  Yes! CSS Styling works with any layout option. You can use CSS Styling alone on the default layout, or combine it with Template Language code.
                 </p>
               </RetroCard>
 
               <RetroCard>
                 <h3 className="font-bold mb-2">Do I need to know CSS to customize my profile?</h3>
                 <p className="text-sm text-gray-700">
-                  Not required! You can use Visual Builder (drag & drop) without any code knowledge. However, basic CSS knowledge lets you do quick styling changes. Check out our CSS Class Reference for beginner-friendly examples.
+                  Basic CSS knowledge lets you do quick styling changes. Check out our CSS Class Reference for beginner-friendly examples.
                 </p>
               </RetroCard>
             </div>

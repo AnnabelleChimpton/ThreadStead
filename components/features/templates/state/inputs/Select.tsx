@@ -34,10 +34,6 @@ export interface SelectProps {
   /** Disabled state */
   disabled?: boolean;
 
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
-
   /** Option children + optional OnChange */
   children?: React.ReactNode;
 }
@@ -48,15 +44,12 @@ export default function Select(props: SelectProps) {
     placeholder,
     className: customClassName,
     disabled = false,
-    __visualBuilder,
-    _isInVisualBuilder,
     children
   } = props;
 
   // PHASE 1.1: Use selective subscription - only re-render when this specific variable changes
   const dependencies = useMemo(() => varName ? [varName] : [], [varName]);
   const templateState = useTemplateStateWithDeps(dependencies);
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
 
   // Get OnChange handler if present
   const onChangeHandler = useOnChangeHandler(children);
@@ -125,28 +118,6 @@ export default function Select(props: SelectProps) {
   const finalClassName = customClassName
     ? `${baseClasses} ${customClassName}`
     : baseClasses;
-
-  // Visual builder mode - show disabled select with indicator
-  if (isVisualBuilder) {
-    return (
-      <div className="inline-block relative">
-        <select
-          disabled
-          className={`${finalClassName} opacity-70`}
-        >
-          {placeholder && <option value="">{placeholder}</option>}
-          {options.map((opt, idx) => (
-            <option key={idx} value={String(opt.value)}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-        <div className="absolute -top-2 -right-2 px-1 py-0.5 bg-purple-500 text-white text-xs rounded">
-          📋 Select
-        </div>
-      </div>
-    );
-  }
 
   // Normal mode - render functional select
   return (

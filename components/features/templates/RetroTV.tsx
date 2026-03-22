@@ -16,7 +16,6 @@ export interface RetroTVProps extends UniversalCSSProps {
   contrast?: number;
   className?: string;
   children?: React.ReactNode;
-  _isInVisualBuilder?: boolean;
   _positioningMode?: 'absolute' | 'grid' | 'normal';
   _isInGrid?: boolean;
 }
@@ -34,7 +33,6 @@ export default function RetroTV(props: RetroTVProps) {
     contrast = 100,
     className: customClassName,
     children,
-    _isInVisualBuilder = false,
     _positioningMode = 'normal',
     _isInGrid = false
   } = componentProps;

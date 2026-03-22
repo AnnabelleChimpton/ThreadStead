@@ -10,7 +10,7 @@ import {
   getGridStyles,
   isGridOverlay,
   type ComponentGridBehavior
-} from '@/lib/templates/visual-builder/grid-compatibility';
+} from '@/lib/templates/positioning/grid-compatibility';
 import { UniversalCSSProps, separateCSSProps, applyCSSProps } from '@/lib/templates/styling/universal-css-props';
 
 interface GridCompatibleWrapperProps extends UniversalCSSProps {

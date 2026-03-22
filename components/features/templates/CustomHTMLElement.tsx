@@ -1,8 +1,7 @@
-import React, { useState, useCallback, useMemo } from 'react';
-import { useUniversalStyles, type UniversalStyleProps, separateUniversalStyleProps } from '@/lib/templates/visual-builder/universal-styling';
+import React, { useCallback, useMemo } from 'react';
+import { useUniversalStyles, type UniversalStyleProps, separateUniversalStyleProps } from '@/lib/templates/core/universal-styling';
 import { useResidentCSSRenderMode } from './ResidentDataProvider';
 import { getDefaultComponentCSSRenderMode } from '@/lib/utils/css/css-mode-mapper';
-import SimpleHTMLPopup from './visual-builder/SimpleHTMLPopup';
 
 export interface CustomHTMLElementProps extends UniversalStyleProps {
   tagName?: string;          // div, span, section, etc. (default: 'div')
@@ -14,7 +13,6 @@ export interface CustomHTMLElementProps extends UniversalStyleProps {
   cssRenderMode?: 'auto' | 'inherit' | 'custom'; // How to handle CSS for HTML content
 
   // Visual builder internal props
-  _isInVisualBuilder?: boolean;
   _positioningMode?: 'absolute' | 'grid' | 'normal';
   _isInGrid?: boolean;
   _onContentChange?: (innerHTML: string, cssRenderMode?: string) => void; // Callback for content updates
@@ -35,15 +33,12 @@ export default function CustomHTMLElement({
   style,
   children,
   cssRenderMode = 'auto',
-  _isInVisualBuilder = false,
   _positioningMode = 'normal',
   _isInGrid = false,
   _onContentChange,
   ...rest
 }: CustomHTMLElementProps & { cssrendermode?: string }) {
-  const [showEditPopup, setShowEditPopup] = useState(false);
-
-  // Get CSS render mode from context when not in visual builder
+  // Get CSS render mode from context
   // Note: Advanced templates use forced 'disable' mode, so context may not be relevant
   const contextCSSRenderMode = useResidentCSSRenderMode();
 
@@ -56,15 +51,10 @@ export default function CustomHTMLElement({
     // Priority: lowercase cssrendermode > camelCase cssRenderMode > context > default
     const resolvedMode = lowercaseCSSRenderMode || cssRenderMode;
 
-    // Visual builder always uses the explicit prop
-    if (_isInVisualBuilder) {
-      return resolvedMode;
-    }
-
-    // In user profiles, component explicit settings take priority over context
+    // Component explicit settings take priority over context
     // Context is only used as fallback when component doesn't specify a mode
-    return resolvedMode || contextCSSRenderMode || getDefaultComponentCSSRenderMode(_isInVisualBuilder);
-  }, [cssRenderMode, lowercaseCSSRenderMode, contextCSSRenderMode, _isInVisualBuilder]);
+    return resolvedMode || contextCSSRenderMode || getDefaultComponentCSSRenderMode();
+  }, [cssRenderMode, lowercaseCSSRenderMode, contextCSSRenderMode]);
 
   // Separate styling props from DOM props to prevent invalid HTML attributes
   const { styleProps, otherProps } = separateUniversalStyleProps(rest);
@@ -76,43 +66,10 @@ export default function CustomHTMLElement({
   // Generate universal styles
   const universalStyles = useUniversalStyles(styleProps, 'CustomHTMLElement');
 
-  // Handle double-click to edit (only in visual builder)
-  const handleDoubleClick = useCallback((e: React.MouseEvent) => {
-    if (_isInVisualBuilder) {
-      e.preventDefault();
-      e.stopPropagation();
-      setShowEditPopup(true);
-    }
-  }, [_isInVisualBuilder]);
-
-  // Handle single click on edit button (only in visual builder)
-  const handleEditClick = useCallback((e: React.MouseEvent) => {
-    if (_isInVisualBuilder) {
-      e.preventDefault();
-      e.stopPropagation();
-      setShowEditPopup(true);
-    }
-  }, [_isInVisualBuilder]);
-
-  // Handle content save from popup
-  const handleContentSave = useCallback((newHTML: string, newCSSRenderMode?: string) => {
-    if (_onContentChange) {
-      _onContentChange(newHTML, newCSSRenderMode);
-    }
-    setShowEditPopup(false);
-  }, [_onContentChange]);
-
-  // Handle popup cancel
-  const handlePopupCancel = useCallback(() => {
-    setShowEditPopup(false);
+  // Handle double-click to edit
+  const handleDoubleClick = useCallback((_e: React.MouseEvent) => {
+    // No-op: visual builder editing removed
   }, []);
-
-  // Get current content for editing - unified content resolution
-  const getCurrentContent = useCallback(() => {
-    // Priority: content > innerHTML > children (string) > default placeholder
-    const activeContent = content || innerHTML || (typeof children === 'string' ? children : '');
-    return activeContent.trim() || '<div>Double-click to edit HTML content</div>';
-  }, [content, innerHTML, children]);
 
   // Parse style prop if it's a CSS string
   const parsedStyle = typeof style === 'string' ?
@@ -142,34 +99,17 @@ export default function CustomHTMLElement({
     return '';
   };
 
-  // Combine classes - only include relevant classes per environment
+  // Combine classes
   const finalClassName = [
     className,
     // CSS mode-specific class (always applicable)
     getCSSModeClassName(),
-    // Visual builder specific classes ONLY when in visual builder
-    ...(_isInVisualBuilder ? [
-      'min-h-[1.5em] min-w-[60px]',
-      'hover:outline hover:outline-2 hover:outline-blue-500 hover:bg-blue-50 cursor-pointer transition-all',
-      // Add positioning-specific classes ONLY if NOT in auto mode (auto mode needs block layout)
-      (_positioningMode === 'absolute' && effectiveCSSRenderMode !== 'auto') ? 'h-full flex items-start justify-start' : ''
-    ] : [])
   ].filter(Boolean).join(' ');
 
-  // Combine styles - separate visual builder from code version
+  // Combine styles
   const finalStyle: React.CSSProperties = {
     ...parsedStyle,
     ...universalStyles,
-    // Add visual builder minimum styling ONLY when in visual builder
-    ...(_isInVisualBuilder ? {
-      minHeight: '1.5em',
-      minWidth: '60px',
-      padding: '4px',
-      // Text wrapping for visual builder editing
-      wordWrap: 'break-word',
-      overflowWrap: 'break-word',
-      overflowX: 'hidden',
-    } : {}),
   };
 
   // Determine content to display - consistent between environments
@@ -200,7 +140,6 @@ export default function CustomHTMLElement({
     className: finalClassName,
     style: finalStyle,
     onDoubleClick: handleDoubleClick,
-    title: _isInVisualBuilder ? 'Double-click to edit HTML content' : undefined,
     ...cleanOtherProps
   };
 
@@ -394,55 +333,17 @@ export default function CustomHTMLElement({
         }} />
       )}
 
-      {_isInVisualBuilder ? (
-        <div className="relative group">
-          {contentToShow ? (
-            useInnerHTML ? (
-              React.createElement(tagName, {
-                ...elementProps,
-                dangerouslySetInnerHTML: { __html: contentToShow }
-              })
-            ) : (
-              React.createElement(tagName, elementProps, contentToShow)
-            )
-          ) : (
-            React.createElement(tagName, elementProps, 'Double-click to edit HTML content')
-          )}
-          {/* Edit indicator */}
-          <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button
-              onClick={handleEditClick}
-              className="bg-blue-500 hover:bg-blue-600 text-white text-xs px-1.5 py-0.5 rounded shadow-sm transition-colors"
-              title="Click to edit HTML content"
-            >
-              ✏️ Edit
-            </button>
-          </div>
-        </div>
-      ) : (
-        // Code version - clean DOM structure, no visual builder artifacts
-        contentToShow ? (
-          useInnerHTML ? (
-            React.createElement(tagName, {
-              ...elementProps,
-              dangerouslySetInnerHTML: { __html: contentToShow }
-            })
-          ) : (
-            React.createElement(tagName, elementProps, contentToShow)
-          )
-        ) : null // Render nothing if no content in code version
-      )}
+      {contentToShow ? (
+        useInnerHTML ? (
+          React.createElement(tagName, {
+            ...elementProps,
+            dangerouslySetInnerHTML: { __html: contentToShow }
+          })
+        ) : (
+          React.createElement(tagName, elementProps, contentToShow)
+        )
+      ) : null}
 
-      {/* Edit popup */}
-      {showEditPopup && (
-        <SimpleHTMLPopup
-          isOpen={showEditPopup}
-          initialHTML={getCurrentContent()}
-          initialCSSRenderMode={effectiveCSSRenderMode}
-          onSave={handleContentSave}
-          onCancel={handlePopupCancel}
-        />
-      )}
     </>
   );
 }

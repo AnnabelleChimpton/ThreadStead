@@ -3,13 +3,11 @@ import type { GetServerSideProps, NextApiRequest } from "next";
 import { useRouter } from "next/router";
 import Head from "next/head";
 
-// Template Editor moved to dedicated page at /resident/[username]/template-editor
 import RetroCard from "@/components/ui/layout/RetroCard";
 import Layout from "@/components/ui/layout/Layout";
 import Tabs, { TabSpec } from "@/components/ui/navigation/Tabs";
 import WebsiteManager, { Website } from "@/components/shared/WebsiteManager";
 import FriendManager, { SelectedFriend } from "@/components/core/social/FriendManager";
-// Profile Layout Editor (unified CSS and template editor) at /resident/[username]/template-editor
 import ProfilePhotoUpload from "@/components/core/profile/ProfilePhotoUpload";
 import ProfileBadgeSelector from "@/components/core/profile/ProfileBadgeSelector";
 import BetaInviteCodesManager from "@/components/features/admin/BetaInviteCodesManager";
@@ -567,25 +565,6 @@ export default function ProfileEditPage({
               </div>
             )}
             
-            
-            {/* Editor Links */}
-            <div className="max-w-md mx-auto">
-              <div className="bg-white border border-black rounded-none p-6 text-center shadow-[3px_3px_0_#000]">
-                <div className="mb-4">
-                  <span className="text-5xl">Profile Editor</span>
-                </div>
-                <h3 className="text-lg font-bold mb-2">Profile Layout Editor</h3>
-                <p className="text-sm text-gray-600 mb-4">
-                  Design your profile with templates, components, and custom CSS - all in one place
-                </p>
-                <a
-                  href={`/resident/${username}/template-editor`}
-                  className="px-4 py-2 border border-black bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] inline-block no-underline"
-                >
-                  Open Profile Layout Editor →
-                </a>
-              </div>
-            </div>
           </div>
         </div>
       )

@@ -16,7 +16,6 @@ export interface VHSTapeProps extends UniversalCSSProps {
   showBarcode?: boolean;
   className?: string;
   children?: React.ReactNode;
-  _isInVisualBuilder?: boolean;
   _positioningMode?: 'absolute' | 'grid' | 'normal';
   _isInGrid?: boolean;
 }
@@ -34,7 +33,6 @@ export default function VHSTape(props: VHSTapeProps) {
     showBarcode = true,
     className: customClassName,
     children,
-    _isInVisualBuilder = false,
     _positioningMode = 'normal',
     _isInGrid = false
   } = componentProps;

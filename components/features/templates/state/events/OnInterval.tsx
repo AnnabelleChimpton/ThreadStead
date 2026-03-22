@@ -32,9 +32,6 @@ export interface OnIntervalProps {
   /** Interval in milliseconds (alternative to seconds) */
   milliseconds?: number;
 
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
 }
 
 export default function OnInterval(props: OnIntervalProps) {
@@ -42,14 +39,11 @@ export default function OnInterval(props: OnIntervalProps) {
     children,
     seconds,
     milliseconds,
-    __visualBuilder,
-    _isInVisualBuilder
   } = props;
 
   const templateState = useTemplateState();
   const residentData = useResidentData();
   const forEachContext = useForEachContext();
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
   const intervalIdRef = useRef<NodeJS.Timeout | null>(null);
 
   // Use refs to always access current values without recreating interval
@@ -71,11 +65,6 @@ export default function OnInterval(props: OnIntervalProps) {
 
   // Execute actions on interval
   useEffect(() => {
-    // Don't execute in visual builder mode
-    if (isVisualBuilder) {
-      return;
-    }
-
     // Wait for variables to be registered (100ms should be enough for all Var components)
     const initTimeout = setTimeout(() => {
       // Start interval - use refs to get current values
@@ -93,29 +82,9 @@ export default function OnInterval(props: OnIntervalProps) {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [intervalMs, isVisualBuilder]);
+  }, [intervalMs]);
   // Note: We use refs for children/templateState/residentData to avoid recreating interval
   // but still access current values
-
-  // Visual builder mode - show indicator
-  if (isVisualBuilder) {
-    const displayInterval = seconds
-      ? `${seconds}s`
-      : milliseconds
-        ? `${milliseconds}ms`
-        : '1s';
-
-    return (
-      <div className="inline-block px-2 py-1 bg-orange-100 dark:bg-orange-900/30 border border-orange-300 dark:border-orange-700 rounded text-xs text-orange-700 dark:text-orange-300 font-mono">
-        ⏱️ OnInterval Handler ({displayInterval})
-        {children && (
-          <div className="mt-1 pl-2 border-l-2 border-orange-400 dark:border-orange-600">
-            {children}
-          </div>
-        )}
-      </div>
-    );
-  }
 
   // Normal mode - render nothing
   return null;

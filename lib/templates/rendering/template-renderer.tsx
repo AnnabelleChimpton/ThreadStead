@@ -3,7 +3,7 @@ import { componentRegistry, validateAndCoerceProps } from '../core/template-regi
 import type { TemplateNode } from '../compilation/template-parser';
 import { ResidentDataProvider } from '@/components/features/templates/ResidentDataProvider';
 import GridCompatibleWrapper from '@/components/features/templates/GridCompatibleWrapper';
-import { isGridCompatible, getComponentGridBehavior } from '../visual-builder/grid-compatibility';
+import { isGridCompatible, getComponentGridBehavior } from '../positioning/grid-compatibility';
 
 /**
  * Convert kebab-case to camelCase

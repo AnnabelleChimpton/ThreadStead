@@ -3,7 +3,6 @@ import { useRouter } from "next/router";
 import Link from "next/link";
 import Layout from "@/components/ui/layout/Layout";
 import Head from "next/head";
-import RetroFooter from "@/components/design-tutorial/RetroFooter";
 import { PixelIcon } from "@/components/ui/PixelIcon";
 
 // CSS Class Categories
@@ -64,7 +63,6 @@ const cssData = {
       name: 'Welcome to CSS Customization!',
       description: 'Don\'t worry if you\'re new to CSS! These templates show you exactly how powerful CSS can be. Follow along step-by-step.',
       classes: [
-        { name: 'Prefer Visual?', description: 'Check out our Visual Builder (drag-and-drop, no code!) at /templates' },
         { name: 'Step 1', description: 'Choose a template that speaks to you' },
         { name: 'Step 2', description: 'Copy the CSS code and paste it into your profile editor' },
         { name: 'Step 3', description: 'See the magic happen instantly!' },
@@ -1875,7 +1873,7 @@ export default function DesignCSSTutorialPage() {
                 <div className="text-2xl"><PixelIcon name="paint-bucket" size={24} /></div>
                 <div>
                   <div className="font-semibold text-purple-900 text-sm">Don&apos;t want to write CSS?</div>
-                  <div className="text-xs text-purple-700">Try Visual Builder (drag & drop) or Template Language (for developers)</div>
+                  <div className="text-xs text-purple-700">Try the Template Language for advanced customization</div>
                 </div>
               </div>
               <Link
@@ -2046,7 +2044,6 @@ export default function DesignCSSTutorialPage() {
               </div>
             </div>
           )}
-        <RetroFooter isCSSPage />
         </div>
       </div>
     </Layout>

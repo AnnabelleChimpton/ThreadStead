@@ -312,7 +312,7 @@ export function validateStandardizedProps(
     'overflow', 'overflowX', 'overflowY',
 
     // Legacy props that need to pass through during migration
-    '_positioning', '_size', '_isInVisualBuilder', '_positioningMode', '_onContentChange'
+    '_positioning', '_size', '_positioningMode', '_onContentChange'
   ];
 
   // Validate and coerce each property

@@ -34,7 +34,7 @@ export function parseHTMLToReactChildren(
   const keyCounter = { value: 0 };
 
   // Convert DOM nodes to React elements
-  return domToReact(tempDiv, allIslands, residentData, onIslandRender, onIslandError, false, keyCounter);
+  return domToReact(tempDiv, allIslands, residentData, onIslandRender, onIslandError, keyCounter);
 }
 
 // Convert DOM nodes to React elements recursively
@@ -44,7 +44,6 @@ export function domToReact(
   residentData: ResidentData,
   onIslandRender: (islandId: string) => void,
   onIslandError: (error: Error, islandId: string) => void,
-  isInVisualBuilder = false,
   keyCounter = { value: 0 }
 ): React.ReactNode {
   // Text node
@@ -127,7 +126,7 @@ export function domToReact(
 
     // Convert children recursively
     const children = Array.from(node.childNodes)
-      .map(child => domToReact(child, allIslands, residentData, onIslandRender, onIslandError, isInVisualBuilder, keyCounter))
+      .map(child => domToReact(child, allIslands, residentData, onIslandRender, onIslandError, keyCounter))
       .filter(child => child !== null && child !== '');
 
     // Create React element

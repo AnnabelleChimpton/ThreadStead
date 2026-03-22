@@ -30,34 +30,9 @@ export interface OnMouseLeaveProps {
   /** Action components to execute on mouse leave */
   children?: React.ReactNode;
 
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
 }
 
 export default function OnMouseLeave(props: OnMouseLeaveProps) {
-  const {
-    children,
-    __visualBuilder,
-    _isInVisualBuilder
-  } = props;
-
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
-
-  // Visual builder mode - show indicator
-  if (isVisualBuilder) {
-    return (
-      <div className="inline-block px-2 py-1 bg-pink-100 dark:bg-pink-900/30 border border-pink-300 dark:border-pink-700 rounded text-xs text-pink-700 dark:text-pink-300 font-mono">
-        ⬅️ OnMouseLeave
-        {children && (
-          <div className="mt-1 pl-2 border-l-2 border-pink-400 dark:border-pink-600">
-            {children}
-          </div>
-        )}
-      </div>
-    );
-  }
-
   // Normal mode - render nothing
   return null;
 }

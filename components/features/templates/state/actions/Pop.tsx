@@ -25,31 +25,14 @@ export interface PopProps {
   /** Variable name (should be array type) */
   var: string;
 
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
-
   /** Children (ignored - Pop is an action component) */
   children?: React.ReactNode;
 }
 
 export default function Pop(props: PopProps) {
   const {
-    var: varName,
-    __visualBuilder,
-    _isInVisualBuilder
+    var: varName
   } = props;
-
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
-
-  // Visual builder mode - show indicator
-  if (isVisualBuilder) {
-    return (
-      <div className="inline-block px-2 py-1 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded text-xs text-red-700 dark:text-red-300 font-mono">
-        ➖ Pop: {varName}
-      </div>
-    );
-  }
 
   // Normal mode - component doesn't render
   // Action is executed by parent event handler

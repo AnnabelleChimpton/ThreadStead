@@ -1,7 +1,5 @@
 // Profile mode renderer with fallback logic
 import React from 'react';
-import { extractVisualBuilderClasses } from '@/lib/utils/css/visual-builder-class-extractor';
-import { detectTemplateType, type TemplateType } from '@/lib/utils/template-type-detector';
 
 // Simple error boundary for advanced profile renderer
 class ErrorBoundary extends React.Component<
@@ -35,10 +33,7 @@ import { transformNodeToReact } from '@/lib/templates/rendering/template-rendere
 import type { TemplateNode } from '@/lib/templates/compilation/template-parser';
 import ProfileLayout from '@/components/ui/layout/ProfileLayout';
 import NavigationPreview from '@/components/features/templates/NavigationPreview';
-import { featureFlags } from '@/lib/utils/features/feature-flags';
-import { getCurrentBreakpoint } from '@/lib/templates/visual-builder/grid-utils';
 import dynamic from 'next/dynamic';
-import { BodyClassManager } from '@/lib/utils/css/body-class-manager';
 
 // Restore proper AdvancedProfileRenderer with fixed dependencies
 const AdvancedProfileRenderer = dynamic(
@@ -100,57 +95,19 @@ export default function ProfileModeRenderer({
       return modeMatch[1] as 'inherit' | 'override' | 'disable';
     }
 
-    // Check for Visual Builder CSS
-    const hasVisualBuilderCSS = css.includes('/* Visual Builder Generated CSS */') ||
-                               (css.includes('.vb-theme-') && css.includes('--global-bg-color'));
-    if (hasVisualBuilderCSS) {
-      return 'disable';
-    }
-
     return 'inherit';
   };
 
   const cssMode = extractCSSMode(user.profile?.customCSS);
-  const isVisualBuilderDisableMode = mode === 'advanced' && cssMode === 'disable';
 
-  // Feature flag check for islands - bypass if we have compiled template data
-  const featureFlagResult = featureFlags.templateIslands({ id: user.id, role: 'member' });
   const hasCompiledTemplate = !!user.profile?.compiledTemplate;
   const shouldUseIslands = useIslands &&
                           mode === 'advanced' &&
-                          hasCompiledTemplate; // Always allow islands if compiled template exists
-
-  // Detect template type for Visual Builder class application
-  const compiledTemplate = user.profile?.compiledTemplate as any;
-  const templateType = shouldUseIslands && hasCompiledTemplate
-    ? detectTemplateType(compiledTemplate?.staticHTML, user.profile?.customCSS)
-    : 'legacy';
-
-  // Extract Visual Builder classes for body-level application
-  const visualBuilderClasses = shouldUseIslands && hasCompiledTemplate
-    ? extractVisualBuilderClasses(user.profile?.customCSS || '')
-    : [];
-
+                          hasCompiledTemplate;
 
   React.useEffect(() => {
     onModeChange?.(mode);
   }, [mode, onModeChange]);
-
-  // Apply VB pattern classes to body element for full viewport coverage
-  React.useEffect(() => {
-    if (mode === 'advanced' && shouldUseIslands && templateType === 'visual-builder' && visualBuilderClasses.length > 0) {
-      // Apply all VB classes to body for full-screen pattern coverage
-      visualBuilderClasses.forEach(className => {
-        BodyClassManager.applyPatternClass(className);
-      });
-
-      return () => {
-        // Cleanup on unmount
-        BodyClassManager.removePatternClass();
-      };
-    }
-  }, [mode, shouldUseIslands, templateType, visualBuilderClasses.join(',')]);
-
 
   // Render based on mode with fallback chain
   try {
@@ -163,21 +120,8 @@ export default function ProfileModeRenderer({
         
       case 'advanced':
         if (shouldUseIslands && user.profile?.compiledTemplate) {
-          // Show NavigationPreview when hideNavigation is false
           const shouldShowNavigation = !hideNavigation && !user.profile?.hideNavigation;
 
-          // For Visual Builder with no navigation, render without wrapper for true full-screen
-          if (templateType === 'visual-builder' && !shouldShowNavigation) {
-            return (
-              <AdvancedProfileRenderer
-                user={user}
-                residentData={residentData}
-                templateType={templateType}
-              />
-            );
-          }
-
-          // For templates with navigation or legacy templates, use wrapper for spacing
           return (
             <>
               {shouldShowNavigation && <NavigationPreview />}
@@ -185,7 +129,7 @@ export default function ProfileModeRenderer({
                 <AdvancedProfileRenderer
                   user={user}
                   residentData={residentData}
-                  templateType={templateType}
+                  templateType={'legacy'}
                 />
               </div>
             </>

@@ -6,30 +6,26 @@ export type TemplateMode = 'default' | 'enhanced' | 'advanced';
 interface CSSModeContextValue {
   cssMode: CSSMode;
   templateMode: TemplateMode;
-  isVisualBuilder: boolean;
 }
 
 const CSSModeContext = createContext<CSSModeContextValue>({
   cssMode: 'inherit',
   templateMode: 'default',
-  isVisualBuilder: false
 });
 
 interface CSSModeProviderProps {
   children: ReactNode;
   cssMode: CSSMode;
   templateMode: TemplateMode;
-  isVisualBuilder?: boolean;
 }
 
 export function CSSModeProvider({
   children,
   cssMode,
   templateMode,
-  isVisualBuilder = false
 }: CSSModeProviderProps) {
   return (
-    <CSSModeContext.Provider value={{ cssMode, templateMode, isVisualBuilder }}>
+    <CSSModeContext.Provider value={{ cssMode, templateMode }}>
       {children}
     </CSSModeContext.Provider>
   );

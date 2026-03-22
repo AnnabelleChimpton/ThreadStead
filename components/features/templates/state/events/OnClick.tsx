@@ -31,9 +31,6 @@ export interface OnClickProps {
   /** Action components to execute (Set, Increment, etc.) */
   children?: React.ReactNode;
 
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
 }
 
 // Context for event handler (future enhancement)
@@ -44,43 +41,18 @@ interface EventHandlerContextType {
 const EventHandlerContext = createContext<EventHandlerContextType>({});
 
 export default function OnClick(props: OnClickProps) {
-  const {
-    children,
-    __visualBuilder,
-    _isInVisualBuilder
-  } = props;
+  const { children } = props;
 
   const templateState = useTemplateState();
   const residentData = useResidentData();
   const forEachContext = useForEachContext();
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
 
   /**
    * Execute all action children
    */
   const handleClick = (event: React.MouseEvent) => {
-    // Don't execute in visual builder mode
-    if (isVisualBuilder) {
-      event.preventDefault();
-      return;
-    }
-
     executeActions(children, templateState, residentData, forEachContext);
   };
-
-  // Visual builder mode - show indicator
-  if (isVisualBuilder) {
-    return (
-      <div className="inline-block px-2 py-1 bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded text-xs text-green-700 dark:text-green-300 font-mono">
-        👆 OnClick Handler
-        {children && (
-          <div className="mt-1 pl-2 border-l-2 border-green-400 dark:border-green-600">
-            {children}
-          </div>
-        )}
-      </div>
-    );
-  }
 
   // Normal mode - render nothing
   // The click handler is meant to be attached to parent element

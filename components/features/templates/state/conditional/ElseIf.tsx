@@ -33,37 +33,6 @@ import { evaluateIfCondition, type IfProps } from './If';
 export type ElseIfProps = IfProps;
 
 export default function ElseIf(props: ElseIfProps) {
-  const {
-    children,
-    __visualBuilder,
-    _isInVisualBuilder
-  } = props;
-
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
-
-  // Visual builder mode - show indicator
-  if (isVisualBuilder) {
-    const conditionDisplay = props.condition || props.data || 'condition';
-    const operators = [];
-    if (props.equals) operators.push(`== ${props.equals}`);
-    if (props.notEquals) operators.push(`!= ${props.notEquals}`);
-    if (props.greaterThan) operators.push(`> ${props.greaterThan}`);
-    if (props.lessThan) operators.push(`< ${props.lessThan}`);
-    if (props.greaterThanOrEqual) operators.push(`>= ${props.greaterThanOrEqual}`);
-    if (props.lessThanOrEqual) operators.push(`<= ${props.lessThanOrEqual}`);
-
-    return (
-      <div className="inline-block px-2 py-1 bg-orange-100 dark:bg-orange-900/30 border border-orange-300 dark:border-orange-700 rounded text-xs text-orange-700 dark:text-orange-300 font-mono">
-        ❓ ElseIf: {conditionDisplay} {operators.join(' ')}
-        {children && (
-          <div className="mt-1 pl-2 border-l-2 border-orange-400 dark:border-orange-600">
-            {children}
-          </div>
-        )}
-      </div>
-    );
-  }
-
   // Normal mode - component doesn't render
   // Condition evaluation happens in parent event handler
   return null;

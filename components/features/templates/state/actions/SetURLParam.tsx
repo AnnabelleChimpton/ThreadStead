@@ -38,24 +38,9 @@ export interface SetURLParamProps {
 
   /** Expression to evaluate for dynamic value */
   expression?: string;
-
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
 }
 
 export default function SetURLParam(props: SetURLParamProps) {
-  const { __visualBuilder, _isInVisualBuilder } = props;
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
-
-  // Visual builder mode - show indicator
-  if (isVisualBuilder) {
-    return (
-      <div className="inline-block px-2 py-1 bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 rounded text-xs text-blue-700 dark:text-blue-300 font-mono">
-        🔗 SetURLParam: ?{props.key}={props.value || props.expression}
-      </div>
-    );
-  }
 
   // Normal mode - render nothing (executed by event handler)
   return null;

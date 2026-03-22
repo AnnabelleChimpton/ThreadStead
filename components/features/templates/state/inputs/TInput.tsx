@@ -50,10 +50,6 @@ export interface TInputProps {
   /** Disabled state */
   disabled?: boolean;
 
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
-
   /** Children (OnChange handlers) */
   children?: React.ReactNode;
 }
@@ -70,8 +66,6 @@ export default function TInput(props: TInputProps) {
     rows = 3,
     className: customClassName,
     disabled = false,
-    __visualBuilder,
-    _isInVisualBuilder,
     children
   } = props;
 
@@ -79,7 +73,6 @@ export default function TInput(props: TInputProps) {
   // PHASE 1.1: Use selective subscription - only re-render when this specific variable changes
   const dependencies = useMemo(() => varName ? [varName] : [], [varName]);
   const templateState = useTemplateStateWithDeps(dependencies);
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
 
   // Extract OnChange handler from children
   const changeHandler = useOnChangeHandler(children);
@@ -131,43 +124,6 @@ export default function TInput(props: TInputProps) {
   const finalClassName = customClassName
     ? `${baseClasses} ${customClassName}`
     : baseClasses;
-
-  // Visual builder mode - show disabled input with indicator
-  if (isVisualBuilder) {
-    if (isMultiline) {
-      return (
-        <div className="inline-block relative">
-          <textarea
-            placeholder={placeholder}
-            rows={typeof rows === 'string' ? parseInt(rows) : rows}
-            disabled
-            className={`${finalClassName} opacity-70 bg-gray-50 dark:bg-gray-800`}
-            value={`[Bound to $vars.${varName}]`}
-            readOnly
-          />
-          <div className="absolute -top-2 -right-2 px-1 py-0.5 bg-blue-500 text-white text-xs rounded">
-            📝 TInput
-          </div>
-        </div>
-      );
-    } else {
-      return (
-        <div className="inline-block relative">
-          <input
-            type={type}
-            placeholder={placeholder}
-            disabled
-            className={`${finalClassName} opacity-70 bg-gray-50 dark:bg-gray-800`}
-            value={`[Bound to $vars.${varName}]`}
-            readOnly
-          />
-          <div className="absolute -top-2 -right-2 px-1 py-0.5 bg-blue-500 text-white text-xs rounded">
-            📝 TInput
-          </div>
-        </div>
-      );
-    }
-  }
 
   // Normal mode - render functional input
   if (isMultiline) {

@@ -10,8 +10,6 @@ interface ProfilePhotoProps extends UniversalCSSProps {
   _isInGrid?: boolean;
   // Add positioning mode prop for Visual Builder integration
   _positioningMode?: 'absolute' | 'grid' | 'normal';
-  // Add Visual Builder detection prop
-  _isInVisualBuilder?: boolean;
   // Add image fit strategy for container shapes
   imageFit?: 'cover' | 'contain' | 'auto';
 }
@@ -25,7 +23,6 @@ export default function ProfilePhoto(props: ProfilePhotoProps) {
     className: customClassName,
     _isInGrid = false,
     _positioningMode = 'normal',
-    _isInVisualBuilder = false,
     imageFit = 'auto'
   } = componentProps;
 
@@ -40,9 +37,8 @@ export default function ProfilePhoto(props: ProfilePhotoProps) {
     : customClassName;
 
   // Determine if we should use container-filling behavior
-  // CRITICAL FIX: Don't fill container in Visual Builder to prevent huge rendering
-  // CRITICAL FIX: Don't fill container when absolutely positioned to respect natural size
-  const shouldFillContainer = !_isInVisualBuilder && isInGrid && _positioningMode !== 'absolute';
+  // Don't fill container when absolutely positioned to respect natural size
+  const shouldFillContainer = isInGrid && _positioningMode !== 'absolute';
 
   // Adaptive sizing: preserve aspect ratio when filling container, fixed sizes otherwise
   const sizeClasses = {
@@ -87,8 +83,6 @@ export default function ProfilePhoto(props: ProfilePhotoProps) {
   // Default: use original flex-col layout
   let baseWrapperClasses;
   if (shouldFillContainer) {
-    baseWrapperClasses = "profile-photo-wrapper flex items-center justify-center w-full h-full";
-  } else if (_isInVisualBuilder && _positioningMode === 'absolute') {
     baseWrapperClasses = "profile-photo-wrapper flex items-center justify-center w-full h-full";
   } else {
     baseWrapperClasses = "profile-photo-wrapper flex flex-col items-center mb-4";

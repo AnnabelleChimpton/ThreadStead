@@ -42,10 +42,6 @@ export interface FilterProps {
   /** Condition expression (has access to 'item' and 'index') */
   where: string;
 
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
-
   /** Children (ignored - Filter is an action component) */
   children?: React.ReactNode;
 }
@@ -54,22 +50,8 @@ export default function Filter(props: FilterProps) {
   const {
     var: varName,
     target,
-    where,
-    __visualBuilder,
-    _isInVisualBuilder
+    where
   } = props;
-
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
-
-  // Visual builder mode - show indicator
-  if (isVisualBuilder) {
-    return (
-      <div className="inline-block px-2 py-1 bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 rounded text-xs text-blue-700 dark:text-blue-300 font-mono">
-        🔽 Filter: {varName} → {target}
-        <div className="text-xs text-blue-600 mt-1">where {where}</div>
-      </div>
-    );
-  }
 
   // Normal mode - component doesn't render
   // Action is executed by parent event handler

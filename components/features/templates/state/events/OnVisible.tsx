@@ -34,9 +34,6 @@ export interface OnVisibleProps {
   /** Action components to execute when visible */
   children?: React.ReactNode;
 
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
 }
 
 export default function OnVisible(props: OnVisibleProps) {
@@ -44,14 +41,11 @@ export default function OnVisible(props: OnVisibleProps) {
     threshold = 0.5,
     once = true,
     children,
-    __visualBuilder,
-    _isInVisualBuilder
   } = props;
 
   const templateState = useTemplateState();
   const residentData = useResidentData();
   const forEachContext = useForEachContext();
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
   const hasExecutedRef = useRef(false);
   const targetRef = useRef<HTMLDivElement>(null);
 
@@ -60,8 +54,7 @@ export default function OnVisible(props: OnVisibleProps) {
   const onceValue = once === true || once === 'true';
 
   useEffect(() => {
-    // Don't set up observer in visual builder mode
-    if (isVisualBuilder || !targetRef.current) {
+    if (!targetRef.current) {
       return;
     }
 
@@ -93,21 +86,7 @@ export default function OnVisible(props: OnVisibleProps) {
     return () => {
       observer.disconnect();
     };
-  }, [children, isVisualBuilder, thresholdValue, onceValue, templateState, residentData, forEachContext]);
-
-  // Visual builder mode - show indicator
-  if (isVisualBuilder) {
-    return (
-      <div className="inline-block px-2 py-1 bg-lime-100 dark:bg-lime-900/30 border border-lime-300 dark:border-lime-700 rounded text-xs text-lime-700 dark:text-lime-300 font-mono">
-        👁️ OnVisible ({Math.round(thresholdValue * 100)}% threshold)
-        {children && (
-          <div className="mt-1 pl-2 border-l-2 border-lime-400 dark:border-lime-600">
-            {children}
-          </div>
-        )}
-      </div>
-    );
-  }
+  }, [children, thresholdValue, onceValue, templateState, residentData, forEachContext]);
 
   // Normal mode - render invisible marker element
   // The observer watches this element for visibility

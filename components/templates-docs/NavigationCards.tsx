@@ -35,14 +35,6 @@ const navigationCards: NavCard[] = [
     color: "bg-yellow-200",
     hoverColor: "hover:bg-yellow-100",
   },
-  {
-    title: "Template Editor",
-    description: "Start building your own interactive template right now",
-    icon: "🎨",
-    href: "/resident/me/template-editor",
-    color: "bg-green-200",
-    hoverColor: "hover:bg-green-100",
-  },
 ];
 
 export default function NavigationCards() {

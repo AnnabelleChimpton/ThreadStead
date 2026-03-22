@@ -58,10 +58,6 @@ export interface SortProps {
   /** Variable name containing sort order (alternative to order prop for dynamic sorting) */
   'order-var'?: string;
 
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
-
   /** Children (ignored - Sort is an action component) */
   children?: React.ReactNode;
 }
@@ -71,24 +67,8 @@ export default function Sort(props: SortProps) {
     var: varName,
     target,
     by,
-    order = 'asc',
-    __visualBuilder,
-    _isInVisualBuilder
+    order = 'asc'
   } = props;
-
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
-
-  // Visual builder mode - show indicator
-  if (isVisualBuilder) {
-    return (
-      <div className="inline-block px-2 py-1 bg-rose-100 dark:bg-rose-900/30 border border-rose-300 dark:border-rose-700 rounded text-xs text-rose-700 dark:text-rose-300 font-mono">
-        🔀 Sort: {varName} → {target}
-        <div className="text-xs text-rose-600 mt-1">
-          by {by} ({order})
-        </div>
-      </div>
-    );
-  }
 
   // Normal mode - component doesn't render
   // Action is executed by parent event handler

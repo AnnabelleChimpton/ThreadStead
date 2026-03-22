@@ -42,10 +42,6 @@ export interface TransformProps {
   /** Transformation expression (has access to 'item' and 'index') */
   expression: string;
 
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
-
   /** Children (ignored - Transform is an action component) */
   children?: React.ReactNode;
 }
@@ -54,22 +50,8 @@ export default function Transform(props: TransformProps) {
   const {
     var: varName,
     target,
-    expression,
-    __visualBuilder,
-    _isInVisualBuilder
+    expression
   } = props;
-
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
-
-  // Visual builder mode - show indicator
-  if (isVisualBuilder) {
-    return (
-      <div className="inline-block px-2 py-1 bg-amber-100 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 rounded text-xs text-amber-700 dark:text-amber-300 font-mono">
-        🔄 Transform: {varName} → {target}
-        <div className="text-xs text-amber-600 mt-1">expression: {expression}</div>
-      </div>
-    );
-  }
 
   // Normal mode - component doesn't render
   // Action is executed by parent event handler

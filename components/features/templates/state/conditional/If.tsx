@@ -79,9 +79,6 @@ export interface IfProps {
   // Content to render or actions to execute if condition is true
   children?: React.ReactNode;
 
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
 }
 
 /**
@@ -123,8 +120,6 @@ function extractVariableDependencies(props: IfProps): string[] {
 export default function If(props: IfProps) {
   const {
     children,
-    __visualBuilder,
-    _isInVisualBuilder,
     scopeId,
     condition,
     data,
@@ -132,7 +127,6 @@ export default function If(props: IfProps) {
     ...conditionProps
   } = props;
 
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
   const residentData = useResidentData();
 
   // PHASE 1.1: Extract variable dependencies and use selective subscription
@@ -176,29 +170,6 @@ export default function If(props: IfProps) {
     conditionProps.or,
     conditionProps.not
   ]);
-
-  // Visual builder mode - show indicator
-  if (isVisualBuilder) {
-    const conditionDisplay = props.condition || props.data || props.when || 'condition';
-    const operators = [];
-    if (props.equals) operators.push(`== ${props.equals}`);
-    if (props.notEquals) operators.push(`!= ${props.notEquals}`);
-    if (props.greaterThan) operators.push(`> ${props.greaterThan}`);
-    if (props.lessThan) operators.push(`< ${props.lessThan}`);
-    if (props.greaterThanOrEqual) operators.push(`>= ${props.greaterThanOrEqual}`);
-    if (props.lessThanOrEqual) operators.push(`<= ${props.lessThanOrEqual}`);
-
-    return (
-      <div className="inline-block px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded text-xs text-yellow-700 dark:text-yellow-300 font-mono">
-        ❓ If: {conditionDisplay} {operators.join(' ')}
-        {children && (
-          <div className="mt-1 pl-2 border-l-2 border-yellow-400 dark:border-yellow-600">
-            {children}
-          </div>
-        )}
-      </div>
-    );
-  }
 
   // Normal mode - evaluate condition and render conditionally
   // Evaluate condition using centralized engine

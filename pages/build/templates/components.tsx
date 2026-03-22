@@ -24,7 +24,7 @@ export default function ComponentsPage({ siteConfig }: ComponentsPageProps) {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
-  const [availabilityFilter, setAvailabilityFilter] = useState<'all' | 'visual-builder' | 'code-only'>('all');
+  const [availabilityFilter, setAvailabilityFilter] = useState<'all' | 'code-only'>('all');
   const [difficultyFilter, setDifficultyFilter] = useState<'all' | 'beginner' | 'intermediate' | 'advanced'>('all');
 
   // Get category from URL query parameter
@@ -37,8 +37,8 @@ export default function ComponentsPage({ siteConfig }: ComponentsPageProps) {
   // Get filter from URL query parameter
   React.useEffect(() => {
     if (router.query.filter && typeof router.query.filter === 'string') {
-      const filter = router.query.filter as 'all' | 'visual-builder' | 'code-only';
-      if (['all', 'visual-builder', 'code-only'].includes(filter)) {
+      const filter = router.query.filter as 'all' | 'code-only';
+      if (['all', 'code-only'].includes(filter)) {
         setAvailabilityFilter(filter);
       }
     }
@@ -102,7 +102,7 @@ export default function ComponentsPage({ siteConfig }: ComponentsPageProps) {
               href="/templates"
               className="text-xs px-3 py-1 bg-white border border-blue-400 hover:bg-blue-100 transition-colors rounded"
             >
-              Switch to Visual Builder →
+              Back to Templates →
             </Link>
           </div>
 
@@ -121,7 +121,7 @@ export default function ComponentsPage({ siteConfig }: ComponentsPageProps) {
               <PixelIcon name="script" size={48} /> Component Reference
             </h1>
             <p className="text-lg text-gray-700 text-center max-w-3xl mx-auto">
-              Browse all {filteredComponents.length === 0 ? '200+' : filteredComponents.length} components. Filter by Visual Builder availability, categories, or search by name.
+              Browse all {filteredComponents.length === 0 ? '200+' : filteredComponents.length} components. Filter by categories or search by name.
             </p>
           </div>
 

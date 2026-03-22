@@ -1,5 +1,4 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import FloatingToolbar from './visual-builder/FloatingToolbar';
 import { UniversalCSSProps, applyCSSProps, separateCSSProps } from '@/lib/templates/styling/universal-css-props';
 
 export interface ParagraphProps extends UniversalCSSProps {
@@ -10,8 +9,6 @@ export interface ParagraphProps extends UniversalCSSProps {
   // Internal props for visual builder
   _positioningMode?: 'absolute' | 'grid';
   _size?: { width: string; height: string };
-  // Inline editing props
-  _isInVisualBuilder?: boolean;
   _onContentChange?: (content: string) => void;
 }
 
@@ -30,7 +27,6 @@ export default function Paragraph(props: ParagraphProps) {
     children,
     _positioningMode,
     _size,
-    _isInVisualBuilder = false,
     _onContentChange,
     ...otherProps
   } = componentProps;
@@ -82,14 +78,10 @@ export default function Paragraph(props: ParagraphProps) {
     setEditingContent(displayText);
   }, [content, children]);
 
-  // Handle double-click to start editing (only in visual builder)
-  const handleDoubleClick = useCallback((e: React.MouseEvent) => {
-    if (_isInVisualBuilder && !isEditing) {
-      e.preventDefault();
-      e.stopPropagation();
-      setIsEditing(true);
-    }
-  }, [_isInVisualBuilder, isEditing]);
+  // Handle double-click to start editing
+  const handleDoubleClick = useCallback((_e: React.MouseEvent) => {
+    // No-op: visual builder editing removed
+  }, []);
 
   // Handle ending edit mode
   const handleEndEdit = useCallback(() => {
@@ -194,9 +186,6 @@ export default function Paragraph(props: ParagraphProps) {
     'hyphens-auto', // Enable automatic hyphenation
     className,
     isAbsolutePositioned && _size ? 'h-full flex items-start justify-start' : '',
-    // Add editing indicators
-    _isInVisualBuilder && isEditing ? 'outline outline-2 outline-blue-500 bg-blue-50' : '',
-    _isInVisualBuilder && !isEditing ? 'hover:outline hover:outline-1 hover:outline-gray-300 cursor-pointer' : '',
   ].filter(Boolean).join(' ');
 
   // Merge styles with consistent text wrapping behavior
@@ -207,17 +196,7 @@ export default function Paragraph(props: ParagraphProps) {
       width: _size.width,
       height: _size.height,
     } : {}),
-    // Add minimum styling for visual builder
-    ...(_isInVisualBuilder ? {
-      minHeight: '1.5em',
-      minWidth: '100px',
-      padding: '4px',
-    } : {}),
-    // Add editing styles
-    ...(isEditing ? {
-      minHeight: '1.5em', // Ensure minimum height when editing
-    } : {}),
-    // CRITICAL: Ensure consistent text wrapping behavior across both contexts
+    // Ensure consistent text wrapping behavior
     wordWrap: 'break-word',
     overflowWrap: 'break-word',
     hyphens: 'auto',
@@ -231,7 +210,7 @@ export default function Paragraph(props: ParagraphProps) {
         ref={editRef}
         className={classes}
         style={finalStyle}
-        contentEditable={_isInVisualBuilder && isEditing}
+        contentEditable={false}
         suppressContentEditableWarning={true}
         onDoubleClick={handleDoubleClick}
         onBlur={isEditing ? handleEndEdit : undefined}
@@ -253,18 +232,10 @@ export default function Paragraph(props: ParagraphProps) {
             // If children is invalid (empty array, array of undefined/false), fall back to content
           }
           // Use content prop or fallback
-          return content || (_isInVisualBuilder ? 'This is a paragraph. Click to edit this text and add your own content.' : '');
+          return content || '';
         })()}
       </p>
 
-      {/* Floating toolbar for formatting */}
-      {_isInVisualBuilder && isEditing && (
-        <FloatingToolbar
-          visible={isEditing}
-          targetElement={editRef.current}
-          onFormat={handleFormat}
-        />
-      )}
     </>
   );
 }

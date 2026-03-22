@@ -32,10 +32,6 @@ export interface CycleProps {
   /** Comma-separated list of values to cycle through */
   values: string;
 
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
-
   /** Children (ignored - Cycle is an action component) */
   children?: React.ReactNode;
 }
@@ -43,32 +39,8 @@ export interface CycleProps {
 export default function Cycle(props: CycleProps) {
   const {
     var: varName,
-    values,
-    __visualBuilder,
-    _isInVisualBuilder
+    values
   } = props;
-
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
-
-  // Visual builder mode - show indicator
-  if (isVisualBuilder) {
-    if (!values) {
-      return (
-        <div className="inline-block px-2 py-1 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded text-xs text-red-700 dark:text-red-300 font-mono">
-          ⚠️ Cycle: {varName} (missing values)
-        </div>
-      );
-    }
-
-    const displayValues = values.split(',').slice(0, 3).join(', ');
-    const more = values.split(',').length > 3 ? '...' : '';
-
-    return (
-      <div className="inline-block px-2 py-1 bg-indigo-100 dark:bg-indigo-900/30 border border-indigo-300 dark:border-indigo-700 rounded text-xs text-indigo-700 dark:text-indigo-300 font-mono">
-        🔄 Cycle: {varName} ∈ [{displayValues}{more}]
-      </div>
-    );
-  }
 
   // Normal mode - component doesn't render
   // Action is executed by parent event handler

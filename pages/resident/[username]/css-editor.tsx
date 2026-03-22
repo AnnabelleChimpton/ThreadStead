@@ -434,7 +434,7 @@ export default function CSSEditorPage({
                       </p>
                       <p className="text-xs text-purple-700 mt-1">
                         Saving CSS here will switch you to CSS Mode, which uses the default layout with your styles. Your custom template will be preserved but hidden.
-                        To use your template, go to <Link href={`/resident/${username}/template-editor`} className="underline">Template Editor</Link> or click &quot;Reset to Default&quot; above to return to standard layout.
+                        Click &quot;Reset to Default&quot; above to return to standard layout.
                       </p>
                     </div>
                   </>
@@ -448,7 +448,7 @@ export default function CSSEditorPage({
                       <p className="text-xs text-gray-700 mt-1">
                         Click <strong className="text-blue-700">&quot;🔍 Open Preview&quot;</strong> to see changes live. •
                         Load a theme below for quick-start styles. •
-                        Want custom layouts? Try <Link href="/templates" className="text-blue-600 hover:underline">Visual Builder or Template Language</Link>.
+                        Want custom layouts? Try <Link href="/templates" className="text-blue-600 hover:underline">Template Language</Link>.
                       </p>
                     </div>
                   </>
@@ -463,7 +463,7 @@ export default function CSSEditorPage({
                         New to CSS? <strong className="text-green-700">Load a theme</strong> below (Pixel Petals, Abstract Art, etc.) then customize it! •
                         Click <strong className="text-blue-700">&quot;🔍 Open Preview&quot;</strong> to see changes live. •
                         Click <strong className="text-green-700">&quot;💾 Save CSS&quot;</strong> to activate your styles. •
-                        Want custom layouts? Try <Link href="/templates" className="text-blue-600 hover:underline">Visual Builder or Template Language</Link>.
+                        Want custom layouts? Try <Link href="/templates" className="text-blue-600 hover:underline">Template Language</Link>.
                       </p>
                     </div>
                   </>

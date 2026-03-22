@@ -7,7 +7,7 @@
 
 import React from 'react';
 import type { ComponentSize } from './PositioningStrategy';
-import { getComponentSizingCategory } from '@/lib/templates/visual-builder/grid-utils';
+import { getComponentSizingCategory } from '@/lib/templates/positioning/breakpoints';
 
 /**
  * Parse position value that can be either a number or a string with 'px' suffix

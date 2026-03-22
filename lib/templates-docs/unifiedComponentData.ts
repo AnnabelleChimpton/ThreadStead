@@ -1,15 +1,13 @@
 // Unified Component Data
-// Combines Visual Builder components and Template Language components into one reference
+// Template Language components reference
 
 import { componentCategories as templateCategories, componentData as templateData, Component as TemplateComponent } from './componentData';
-import { componentCategories as visualCategories, componentData as visualData } from '@/components/design-tutorial/componentData';
 
 export interface UnifiedComponent {
   id: string;
   name: string;
   category: string;
   description: string;
-  availableInVisualBuilder: boolean;
   codeOnly: boolean;
   isRetro: boolean;
   isInteractive: boolean;
@@ -45,65 +43,6 @@ export interface UnifiedCategory {
   hoverColor?: string;
 }
 
-// Map Visual Builder component data to unified format
-function mapVisualComponentToUnified(component: any, categoryId: string): UnifiedComponent | null {
-  const isRetro = categoryId === 'retro-components';
-  const isCodeOnlyCategory = ['visual-builder', 'css-classes'].includes(categoryId);
-
-  // Filter out tutorial/documentation items that aren't actual components
-  const tutorialItems = [
-    'Getting Started',
-    'Component Palette',
-    'Multi-Select & Bulk Editing',
-    'CSS Grid System & Snapping',
-    'Advanced Positioning Controls',
-    'Responsive Breakpoint Preview',
-    'Universal CSS Styling'
-  ];
-
-  if (tutorialItems.includes(component.name)) {
-    return null;
-  }
-
-  // Auto-assign difficulty for Visual Builder components
-  let difficulty: 'beginner' | 'intermediate' | 'advanced' | undefined = component.difficulty;
-  if (!difficulty) {
-    if (['content', 'profile', 'retro-components'].includes(categoryId)) {
-      difficulty = 'beginner';
-    } else if (['layout', 'media', 'interactive'].includes(categoryId)) {
-      difficulty = 'intermediate';
-    }
-  }
-
-  return {
-    id: component.name.toLowerCase().replace(/\s+/g, '-'),
-    name: component.name,
-    category: categoryId,
-    description: component.description || '',
-    availableInVisualBuilder: !isCodeOnlyCategory,
-    codeOnly: false,
-    isRetro,
-    isInteractive: component.props?.some((p: any) => ['onClick', 'onChange', 'onSubmit'].includes(p.name)) || false,
-    tags: [
-      isRetro ? 'retro' : '',
-      categoryId === 'content' ? 'content' : '',
-      categoryId === 'layout' ? 'layout' : '',
-      categoryId === 'visual' ? 'visual' : '',
-      categoryId === 'interactive' ? 'interactive' : '',
-    ].filter(Boolean),
-    props: component.props || [],
-    examples: component.example ? [{ title: 'Example', code: component.example }] : [],
-    preview: component.preview,
-    tutorial: component.tutorial,
-    useCases: component.useCases || [],
-    difficulty,
-    pairsWellWith: component.pairsWellWith,
-    accessibility: component.accessibility,
-    performanceNotes: component.performanceNotes,
-    operators: component.operators,
-  };
-}
-
 // Map Template Language component data to unified format
 function mapTemplateComponentToUnified(component: TemplateComponent): UnifiedComponent {
   const codeOnlyCategories = ['state', 'actions', 'collections', 'objects', 'events', 'timing', 'conditionals', 'loops'];
@@ -127,7 +66,6 @@ function mapTemplateComponentToUnified(component: TemplateComponent): UnifiedCom
     name: component.name,
     category: component.category,
     description: component.description,
-    availableInVisualBuilder: !isCodeOnly,
     codeOnly: isCodeOnly,
     isRetro: false,
     isInteractive,
@@ -150,14 +88,7 @@ function mapTemplateComponentToUnified(component: TemplateComponent): UnifiedCom
 
 // Combine all categories
 export const unifiedCategories: UnifiedCategory[] = [
-  // Visual Builder categories
-  ...visualCategories.map(cat => ({
-    id: cat.id,
-    title: cat.title,
-    icon: cat.icon,
-    description: cat.description,
-  })),
-  // Template Language categories (excluding duplicates)
+  // Template Language categories
   ...templateCategories.map(cat => ({
     id: cat.id,
     title: cat.title,
@@ -170,19 +101,6 @@ export const unifiedCategories: UnifiedCategory[] = [
 
 // Combine all components
 export const unifiedComponentData: Record<string, UnifiedComponent[]> = {};
-
-// Add Visual Builder components
-Object.entries(visualData).forEach(([categoryId, components]) => {
-  if (!unifiedComponentData[categoryId]) {
-    unifiedComponentData[categoryId] = [];
-  }
-  components.forEach((component: any) => {
-    const mappedComponent = mapVisualComponentToUnified(component, categoryId);
-    if (mappedComponent) {
-      unifiedComponentData[categoryId].push(mappedComponent);
-    }
-  });
-});
 
 // Add Template Language components
 Object.entries(templateData).forEach(([categoryId, components]) => {
@@ -208,10 +126,7 @@ export function getAllUnifiedComponents(): Array<{ component: UnifiedComponent; 
 }
 
 // Filter helpers
-export function filterByAvailability(components: Array<{ component: UnifiedComponent; categoryId: string }>, filter: 'all' | 'visual-builder' | 'code-only'): Array<{ component: UnifiedComponent; categoryId: string }> {
-  if (filter === 'visual-builder') {
-    return components.filter(item => item.component.availableInVisualBuilder);
-  }
+export function filterByAvailability(components: Array<{ component: UnifiedComponent; categoryId: string }>, filter: 'all' | 'code-only'): Array<{ component: UnifiedComponent; categoryId: string }> {
   if (filter === 'code-only') {
     return components.filter(item => item.component.codeOnly);
   }

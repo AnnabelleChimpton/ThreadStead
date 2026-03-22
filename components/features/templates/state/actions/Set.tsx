@@ -39,10 +39,6 @@ export interface SetProps {
   /** Expression to evaluate and set (uses expression evaluator) */
   expression?: string;
 
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
-
   /** Children (ignored - Set is an action component) */
   children?: React.ReactNode;
 }
@@ -51,28 +47,10 @@ export default function Set(props: SetProps) {
   const {
     var: varName,
     value,
-    expression,
-    __visualBuilder,
-    _isInVisualBuilder
+    expression
   } = props;
 
   const templateState = useTemplateState();
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
-
-  // Visual builder mode - show indicator
-  if (isVisualBuilder) {
-    const displayValue = expression
-      ? `expr: ${expression}`
-      : value !== undefined
-        ? `value: ${String(value)}`
-        : '(no value)';
-
-    return (
-      <div className="inline-block px-2 py-1 bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 rounded text-xs text-blue-700 dark:text-blue-300 font-mono">
-        ⚡ Set: {varName} = {displayValue}
-      </div>
-    );
-  }
 
   // Normal mode - component doesn't render
   // Action is executed by parent event handler

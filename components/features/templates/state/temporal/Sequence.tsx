@@ -56,9 +56,6 @@ export interface SequenceProps {
   /** Step components to execute in sequence */
   children?: React.ReactNode;
 
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
 }
 
 /**
@@ -81,29 +78,6 @@ export function useSequenceContext(): SequenceContextType | null {
 }
 
 export default function Sequence(props: SequenceProps) {
-  const {
-    children,
-    __visualBuilder,
-    _isInVisualBuilder
-  } = props;
-
-  const templateState = useTemplateState();
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
-
-  // Visual builder mode - show indicator
-  if (isVisualBuilder) {
-    return (
-      <div className="inline-block px-2 py-1 bg-indigo-100 dark:bg-indigo-900/30 border border-indigo-300 dark:border-indigo-700 rounded text-xs text-indigo-700 dark:text-indigo-300 font-mono">
-        ⏩ Sequence
-        {children && (
-          <div className="mt-1 pl-2 border-l-2 border-indigo-400 dark:border-indigo-600 space-y-1">
-            {children}
-          </div>
-        )}
-      </div>
-    );
-  }
-
   // Normal mode - component doesn't render
   // Execution is handled by parent event handler
   return null;

@@ -9,7 +9,7 @@ import { componentRegistry } from '@/lib/templates/core/template-registry';
 import { getLoadedComponent } from '@/lib/templates/core/dynamic-registry';
 import { normalizeAttributeName } from '@/lib/templates/core/attribute-mappings';
 import { separateCSSProps, applyCSSProps } from '@/lib/templates/styling/universal-css-props';
-import { getCurrentBreakpoint } from '@/lib/templates/visual-builder/grid-utils';
+import { getCurrentBreakpoint } from '@/lib/templates/positioning/breakpoints';
 import type { StaticHTMLWithIslandsProps } from './types';
 import { parseStyleString } from './DOMConversionUtils';
 import { ProductionIslandRendererWithHTMLChildren } from './IslandRenderers';
@@ -101,8 +101,6 @@ export function StaticHTMLWithIslands({
   residentData,
   onIslandRender,
   onIslandError,
-  visualBuilderClasses = [],
-  isInVisualBuilder = false,
   templateType = 'legacy',
   profileId
 }: StaticHTMLWithIslandsProps) {
@@ -146,21 +144,6 @@ export function StaticHTMLWithIslands({
         }
       }
 
-      // Visual Builder container creation logic (SSR)
-      // NOTE: We no longer inject VB classes OR profileId into inner HTML
-      // The outer .profile-template-root wrapper (created by AdvancedProfileRenderer) has both
-      // This prevents redundant backgrounds, duplicate IDs, and cleaner rendering
-      if (templateType === 'visual-builder' && visualBuilderClasses.length > 0) {
-        const hasPositioningContainer = processedHTML.includes('pure-absolute-container') ||
-                                       processedHTML.includes('advanced-template-container');
-
-        // Create container if we don't have a proper positioning container (NO profileId for VB!)
-        if (!hasPositioningContainer) {
-          const classAttr = `class="pure-absolute-container"`;  // No VB classes or ID - outer div has them
-          processedHTML = `<div ${classAttr}>${processedHTML}</div>`;
-        }
-      }
-
       return [<div key="fallback" dangerouslySetInnerHTML={{ __html: processedHTML }} />];
     }
 
@@ -189,60 +172,14 @@ export function StaticHTMLWithIslands({
       }
     }
 
-    // For Visual Builder templates, only create container if missing (NO profileId!)
-    // The outer .profile-template-root wrapper (created by AdvancedProfileRenderer) already has the ID and VB classes
-    if (templateType === 'visual-builder' && visualBuilderClasses.length > 0) {
-      const hasPositioningContainer = processedHTML.includes('pure-absolute-container') ||
-                                     processedHTML.includes('advanced-template-container');
-
-      // Only create a new wrapper if there's no positioning container at all (NO profileId for VB!)
-      if (!hasPositioningContainer) {
-        processedHTML = `<div class="pure-absolute-container">${processedHTML}</div>`;
-      }
-    }
-
     // Parse HTML into DOM tree first
     container.innerHTML = processedHTML;
-
-    // CRITICAL FIX: Make inner container background transparent when VB theme/pattern exists
-    // This ensures only the outer profile-template-root shows the theme/pattern background
-    // Prevents redundant backgrounds and ensures consistent rendering
-    const hasThemeOrPattern = visualBuilderClasses.some(cls =>
-      cls.startsWith('vb-theme-') || cls.startsWith('vb-pattern-')
-    );
-
-    if (hasThemeOrPattern) {
-      // Find container divs with positioning classes
-      const containerDivs = container.querySelectorAll('.pure-absolute-container, .advanced-template-container');
-      containerDivs.forEach(div => {
-        const elem = div as HTMLElement;
-        // Remove any existing background-color
-        if (elem.style.backgroundColor) {
-          elem.style.removeProperty('background-color');
-        }
-        // Set to transparent to show outer theme/pattern through
-        elem.style.backgroundColor = 'transparent';
-
-        // CRITICAL: Remove VB classes from inner container's className
-        // These are baked into staticHTML from database and create redundancy
-        const classList = Array.from(elem.classList);
-        const vbClasses = classList.filter(cls =>
-          cls.startsWith('vb-theme-') ||
-          cls.startsWith('vb-pattern-') ||
-          cls.startsWith('vb-effect-')
-        );
-
-        vbClasses.forEach(vbClass => {
-          elem.classList.remove(vbClass);
-        });
-      });
-    }
 
     // Create a counter object to ensure unique keys across the entire tree
     const keyCounter = { value: 0 };
 
     // Helper function to convert DOM node to React element
-    const domToReact = (node: Node, islands: Island[], residentData: any, onIslandRender: (islandId: string) => void, onIslandError: (error: Error, islandId: string) => void, isNestedComponent = false, isInVisualBuilder = false): React.ReactNode => {
+    const domToReact = (node: Node, islands: Island[], residentData: any, onIslandRender: (islandId: string) => void, onIslandError: (error: Error, islandId: string) => void, isNestedComponent = false): React.ReactNode => {
       if (node.nodeType === Node.TEXT_NODE) {
         // IMPORTANT: Do not trim text nodes - this destroys meaningful whitespace
         // For example: <p>Hello, <ShowVar /></p> would lose the space after "Hello,"
@@ -271,7 +208,7 @@ export function StaticHTMLWithIslands({
               if (Component) {
                 // Recursively process children inside this island placeholder
                 const childElements = Array.from(element.childNodes).map((child, index) =>
-                  domToReact(child, islands, residentData, onIslandRender, onIslandError, true, isInVisualBuilder)
+                  domToReact(child, islands, residentData, onIslandRender, onIslandError, true)
                 ).filter(child => child !== null && child !== '');
 
                 // Parse children for component props
@@ -444,14 +381,9 @@ export function StaticHTMLWithIslands({
             // Add a stable key for React reconciliation (FIXED: removed Math.random() to prevent infinite loops)
             props.key = `${elementComponentName}-${element.getAttribute('data-island') || 'component'}`;
 
-            // Add Visual Builder flag when rendering in Visual Builder context
-            if (isInVisualBuilder) {
-              props._isInVisualBuilder = true;
-            }
-
             // Recursively process children
             const children = Array.from(element.childNodes).map((child, index) =>
-              domToReact(child, islands, residentData, onIslandRender, onIslandError, isNestedComponent, isInVisualBuilder)
+              domToReact(child, islands, residentData, onIslandRender, onIslandError, isNestedComponent)
             ).filter(child => child !== null && child !== '');
 
             const processedChildren = children.length > 0 ? children : undefined;
@@ -605,7 +537,7 @@ export function StaticHTMLWithIslands({
 
         // Recursively process children
         const children = Array.from(element.childNodes).map((child, index) =>
-          domToReact(child, islands, residentData, onIslandRender, onIslandError, isNestedComponent, isInVisualBuilder)
+          domToReact(child, islands, residentData, onIslandRender, onIslandError, isNestedComponent)
         ).filter(child => child !== null && child !== '');
 
         if (children.length === 0) {
@@ -668,7 +600,7 @@ export function StaticHTMLWithIslands({
 
     // Convert the entire DOM tree to React, replacing placeholders as we go
     const processedContent = Array.from(container.childNodes).map((node, index) =>
-      domToReact(node, islands, residentData, onIslandRender, onIslandError, false, isInVisualBuilder)
+      domToReact(node, islands, residentData, onIslandRender, onIslandError, false)
     ).filter(child => child !== null && child !== '');
 
     // Return processed content

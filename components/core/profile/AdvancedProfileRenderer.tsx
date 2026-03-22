@@ -4,7 +4,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { ProfileUser } from './ProfileModeRenderer';
 import type { CompiledTemplate, Island } from '@/lib/templates/compilation/compiler';
-import { extractVisualBuilderClasses } from '@/lib/utils/css/visual-builder-class-extractor';
 import { GlobalTemplateStateProvider } from '@/lib/templates/state/TemplateStateProvider';
 import { ToastProvider } from '@/lib/templates/state/ToastProvider';
 import TemplateErrorBoundary from '@/components/features/templates/TemplateErrorBoundary';
@@ -42,8 +41,7 @@ export default function AdvancedProfileRenderer({
   templateType,
   onFallback,
   onIslandsReady,
-  onIslandError,
-  isInVisualBuilder = false
+  onIslandError
 }: AdvancedProfileRendererProps) {
   const [isHydrated, setIsHydrated] = useState(false);
   const [componentsReady, setComponentsReady] = useState(false);
@@ -59,12 +57,6 @@ export default function AdvancedProfileRenderer({
     const islandsData = compiledTemplate?.islands || templateIslands || [];
     return islandsData;
   }, [compiledTemplate?.islands, templateIslands]);
-
-  // Extract Visual Builder classes from CSS to apply to HTML elements
-  const visualBuilderClasses = useMemo(() => {
-    if (!customCSS) return [];
-    return extractVisualBuilderClasses(customCSS);
-  }, [customCSS]);
 
   const islandIds = useMemo(() => islands.map(island => island.id), [islands]);
 
@@ -153,7 +145,7 @@ export default function AdvancedProfileRenderer({
             {/* UNIFIED: Minimal wrapper for both template types - non-interfering container for CSS scoping */}
             <div
               id={`profile-${user.id}`}
-              className={`profile-template-root ${visualBuilderClasses.join(' ')}`}
+              className="profile-template-root"
               style={{
                 position: 'static',    // Don't create positioning context
                 zIndex: 'auto',        // Don't create stacking context
@@ -170,8 +162,6 @@ export default function AdvancedProfileRenderer({
                 residentData={residentData}
                 onIslandRender={handleIslandRender}
                 onIslandError={handleIslandError}
-                visualBuilderClasses={visualBuilderClasses}
-                isInVisualBuilder={isInVisualBuilder}
                 templateType={templateType}
                 profileId={`profile-${user.id}`}
               />
@@ -202,8 +192,6 @@ function ProfileContentRenderer({
   residentData,
   onIslandRender,
   onIslandError,
-  visualBuilderClasses = [],
-  isInVisualBuilder = false,
   templateType = 'legacy',
   profileId
 }: ProfileContentRendererProps) {
@@ -229,8 +217,6 @@ function ProfileContentRenderer({
         residentData={residentData}
         onIslandRender={onIslandRender}
         onIslandError={onIslandError}
-        visualBuilderClasses={visualBuilderClasses}
-        isInVisualBuilder={isInVisualBuilder}
         templateType={templateType}
         profileId={profileId}
       />

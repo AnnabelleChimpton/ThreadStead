@@ -37,24 +37,9 @@ export interface CopyToClipboardProps {
 
   /** Expression to evaluate for dynamic value */
   expression?: string;
-
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
 }
 
 export default function CopyToClipboard(props: CopyToClipboardProps) {
-  const { __visualBuilder, _isInVisualBuilder } = props;
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
-
-  // Visual builder mode - show indicator
-  if (isVisualBuilder) {
-    return (
-      <div className="inline-block px-2 py-1 bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-300 dark:border-emerald-700 rounded text-xs text-emerald-700 dark:text-emerald-300 font-mono">
-        📋 Copy: {props.value || props.expression}
-      </div>
-    );
-  }
 
   // Normal mode - render nothing (executed by event handler)
   return null;

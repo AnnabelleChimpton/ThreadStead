@@ -13,9 +13,6 @@ import { useSiteConfig } from '@/hooks/useSiteConfig';
 import { generatePreviewCSS, type CSSMode, type TemplateMode } from '@/lib/utils/css/layers';
 import { useSiteCSS } from '@/hooks/useSiteCSS';
 import NavigationPreview from '@/components/features/templates/NavigationPreview';
-import VisualTemplateBuilder from './visual-builder/VisualTemplateBuilder';
-import { parseExistingTemplate } from '@/lib/templates/visual-builder/template-parser-reverse';
-import { extractLegacyValues, generateConvertedTemplate, generateConvertedCSS, generateConvertedTemplateWithCSS, validateExtractedValues, generateConversionSummary, generateGlobalSettingsFromLegacy } from '@/lib/utils/css/legacy-conversion';
 import ValidationFeedbackPanel from './ValidationFeedbackPanel';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import { useRouter } from 'next/router';
@@ -197,7 +194,7 @@ interface EnhancedTemplateEditorProps {
   initialCSSMode?: 'inherit' | 'override' | 'disable';
   initialTemplateMode?: 'default' | 'enhanced' | 'advanced';
   initialShowNavigation?: boolean;
-  initialEditorMode?: 'visual' | 'template' | 'css'; // URL mode parameter
+  initialEditorMode?: 'template' | 'css'; // URL mode parameter
   onSave?: (template: string, css: string, compiledTemplate?: CompiledTemplate, cssMode?: 'inherit' | 'override' | 'disable', hideNavigation?: boolean, templateMode?: 'default' | 'enhanced' | 'advanced') => void;
 }
 
@@ -454,54 +451,15 @@ export default function EnhancedTemplateEditor({
   const [isLoading, setIsLoading] = useState(true);
   const [compiledTemplate, setCompiledTemplate] = useState<CompiledTemplate | null>(null);
   // Smart default tab selection based on URL mode param or layout mode
-  const [activeTab, setActiveTab] = useState<'template' | 'css' | 'visual'>(() => {
+  const [activeTab, setActiveTab] = useState<'template' | 'css'>(() => {
     // Priority 1: URL parameter
-    if (initialEditorMode === 'visual') return 'visual';
     if (initialEditorMode === 'template') return 'template';
     if (initialEditorMode === 'css') return 'css';
 
     // Priority 2: If starting in standard layout mode, default to CSS tab
     return useStandardLayout ? 'css' : 'template';
   });
-  const [editorMode, setEditorMode] = useState<'code' | 'visual'>(() => {
-    // If URL says 'visual', start in visual mode
-    return initialEditorMode === 'visual' ? 'visual' : 'code';
-  });
-  // Set to true to always show welcome on Visual Builder open (for testing)
-  const [showVisualBuilderWelcome, setShowVisualBuilderWelcome] = useState(true);
 
-  // Legacy template conversion warning
-  const [showLegacyWarning, setShowLegacyWarning] = useState(false);
-  const [conversionSummary, setConversionSummary] = useState<{ preserved: string[]; cleared: string[] } | null>(null);
-
-  // Detect if current template is legacy (no Visual Builder wrapper)
-  const isLegacyTemplate = useCallback(() => {
-    const fullTemplate = `${template}${customCSS.trim() ? `\n<style>\n${customCSS}\n</style>` : ''}`;
-
-    // Check for Visual Builder HTML markers
-    const hasVBHtmlMarkers = fullTemplate.includes('pure-absolute-container') &&
-                            (fullTemplate.includes('vb-theme-') ||
-                             fullTemplate.includes('vb-pattern-') ||
-                             fullTemplate.includes('vb-effect-'));
-
-    // Check for Visual Builder CSS markers - indicates generated or converted VB content
-    const hasVBCssMarkers = customCSS.includes('Visual Builder Generated CSS') ||
-                           customCSS.includes('Visual Builder\'s theme system') ||
-                           customCSS.includes('vb-theme-custom') ||
-                           customCSS.includes('--global-bg-color') ||
-                           customCSS.includes('--global-bg-gradient') ||
-                           customCSS.includes(':root');
-
-    // Check for Visual Builder empty template - generated when no components are placed
-    const isVBEmptyTemplate = template.includes('template-empty') ||
-                             template.includes('No components placed');
-
-    // It's a Visual Builder template if it has any VB markers OR is an empty VB template
-    const isVisualBuilderTemplate = hasVBHtmlMarkers || hasVBCssMarkers || isVBEmptyTemplate;
-
-    // It's legacy only if it has content but no VB markers
-    return !isVisualBuilderTemplate && template.trim().length > 0;
-  }, [template, customCSS]);
 
   // Save state management
   const [saveState, setSaveState] = useState<'saved' | 'saving' | 'error' | 'pending'>('saved');
@@ -525,131 +483,6 @@ export default function EnhancedTemplateEditor({
   } | null>(null);
   const [showValidationPanel, setShowValidationPanel] = useState(false);
 
-  // Handle template changes from visual builder
-  const handleVisualTemplateChange = useCallback((html: string) => {
-    // When Visual Builder returns HTML, we need to separate CSS and HTML
-    // Check if the HTML contains style tags
-    const styleMatches = html.match(/<style[^>]*>([\s\S]*?)<\/style>/gi);
-
-    if (styleMatches && styleMatches.length > 0) {
-      // Extract CSS from style tags
-      let newCSS = '';
-      let userCSS = customCSS || '';
-
-      styleMatches.forEach(styleTag => {
-        const cssMatch = styleTag.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
-        if (cssMatch && cssMatch[1]) {
-          const css = cssMatch[1].trim();
-
-          // Check if this is Visual Builder CSS
-          const isVisualBuilderCSS =
-            css.includes('Visual Builder Generated CSS') ||
-            css.includes('VB_GENERATED_CSS') || // New marker
-            css.includes('CSS Custom Properties for easy editing') ||
-            css.includes('CSS Classes for styling') ||
-            css.includes('--global-bg-color') ||
-            css.includes('--vb-bg-type') ||
-            css.includes('--vb-pattern-type') ||
-            css.includes('--vb-pattern-primary') ||
-            css.includes('--global-font-family') ||
-            css.includes('--global-typography-scale') ||
-            css.includes('.vb-theme-') ||
-            css.includes('.vb-effect-') ||
-            css.includes('.vb-pattern-') ||
-            // Check for any CSS that contains multiple VB variables
-            (css.match(/--(?:vb-|global-)/g) || []).length > 2;
-
-          if (isVisualBuilderCSS) {
-            // For Visual Builder CSS, completely replace (not append)
-            // We'll generate fresh CSS each time instead of trying to deduplicate
-            newCSS = css;
-          } else {
-            // Keep other CSS as user CSS
-            if (!userCSS.includes(css)) {
-              userCSS += userCSS ? '\n\n' + css : css;
-            }
-          }
-        }
-      });
-
-      // Update CSS tab with ONLY user CSS + new Visual Builder CSS (complete replacement)
-      // First, strip out any existing Visual Builder CSS from current CSS
-      let cleanUserCSS = customCSS || '';
-
-      // Remove all existing Visual Builder CSS blocks
-      const vbRemovalPatterns = [
-        /\/\* Visual Builder Generated CSS.*?\*\/[\s\S]*?(?=(?:\/\*(?!.*Visual Builder)|\s*$))/g,
-        /\/\* CSS Custom Properties for easy editing \*\/[\s\S]*?(?=(?:\/\*(?!.*CSS Custom Properties)|\s*$))/g,
-        /\/\* CSS Classes for styling \*\/[\s\S]*?(?=(?:\/\*(?!.*CSS Classes)|\s*$))/g
-      ];
-
-      vbRemovalPatterns.forEach(pattern => {
-        cleanUserCSS = cleanUserCSS.replace(pattern, '').trim();
-      });
-
-      // Clean up multiple newlines
-      cleanUserCSS = cleanUserCSS.replace(/\n\s*\n\s*\n/g, '\n\n').trim();
-
-      // Combine clean user CSS with new Visual Builder CSS
-      const combinedCSS = newCSS ?
-        (cleanUserCSS ? `${cleanUserCSS}\n\n/* Visual Builder Generated CSS */\n${newCSS}` : `/* Visual Builder Generated CSS */\n${newCSS}`) :
-        cleanUserCSS;
-
-      if (combinedCSS !== customCSS) {
-        setCustomCSS(combinedCSS);
-      }
-    }
-
-    // Remove style tags from HTML for the template tab
-    const cleanedHtml = html.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '').trim();
-    setTemplate(cleanedHtml);
-  }, [customCSS]);
-
-  // Handle mode switching between code and visual
-  const handleModeSwitch = useCallback((newMode: 'code' | 'visual') => {
-    // REMOVED: Legacy template conversion to positioned mode
-    // Templates should only use positioned mode if they have pure-absolute-container
-    // All other templates render in flow mode automatically
-
-    setEditorMode(newMode);
-    if (newMode === 'visual') {
-      setActiveTab('visual');
-    } else {
-      setActiveTab('template');
-    }
-  }, []);
-
-  // Handle legacy template conversion confirmation
-  const handleLegacyConversion = useCallback(() => {
-    setShowLegacyWarning(false);
-
-    // Extract values from current CSS for conversion
-    const rawExtracted = extractLegacyValues(customCSS);
-    const extractedValues = validateExtractedValues(rawExtracted);
-
-    // Generate complete template with CSS for Visual Builder parsing
-    // This allows the Visual Builder to understand the global settings
-    const convertedTemplateWithCSS = generateConvertedTemplateWithCSS(extractedValues);
-
-    // For the template tab, we want just the clean HTML
-    const cleanTemplate = generateConvertedTemplate();
-
-    // For the CSS tab, we want the proper Visual Builder CSS
-    const convertedCSS = generateConvertedCSS(extractedValues);
-
-    // Set both template and CSS
-    setTemplate(convertedTemplateWithCSS); // This will be parsed by Visual Builder
-    setCustomCSS(convertedCSS); // This shows in the CSS tab for editing
-
-    // Switch to Visual Builder mode
-    setEditorMode('visual');
-    setActiveTab('visual');
-  }, [customCSS]);
-
-  const handleLegacyCancel = useCallback(() => {
-    setShowLegacyWarning(false);
-    // Stay in code mode
-  }, []);
 
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
@@ -759,7 +592,7 @@ export default function EnhancedTemplateEditor({
       if (!response.ok) {
         // Handle specific status codes
         if (response.status === 401) {
-          // User not authenticated - Visual Builder will continue to work
+          // User not authenticated
           return null;
         }
 
@@ -784,10 +617,10 @@ export default function EnhancedTemplateEditor({
     } catch (error) {
       // Check if it's a network error specifically
       if (error instanceof TypeError && error.message.includes('fetch')) {
-        // Network connectivity issue - Visual Builder will continue to work
+        // Network connectivity issue
       }
 
-      // Don't throw the error, just return null to allow Visual Builder to continue working
+      // Don't throw the error, just return null
       return null;
     }
   }, [template, useStandardLayout, user.id, customCSS, lastCompiledTemplate, compiledTemplate]);
@@ -1103,7 +936,7 @@ export default function EnhancedTemplateEditor({
       const timer = setTimeout(async () => {
         const result = await compileTemplateForPreview();
 
-        // If compilation failed, Visual Builder continues to work
+        // If compilation failed, editor continues to work
         if (result === null && template.trim()) {
           // Could show a toast notification here if needed
         }
@@ -1123,12 +956,12 @@ export default function EnhancedTemplateEditor({
     }
     // Removed the problematic auto-switch from CSS to template tab
     // Users should be able to manually navigate to CSS tab in advanced mode
-  }, [useStandardLayout, activeTab, editorMode]);
+  }, [useStandardLayout, activeTab]);
 
   // Handle initial mode from URL parameter
   useEffect(() => {
-    if ((initialEditorMode === 'visual' || initialEditorMode === 'template') && useStandardLayout) {
-      // User wants Visual Builder or Template Code but is in standard layout
+    if (initialEditorMode === 'template' && useStandardLayout) {
+      // User wants Template Code but is in standard layout
       // Need to switch to advanced mode first
       loadDefaultTemplate();
     }
@@ -1614,46 +1447,13 @@ export default function EnhancedTemplateEditor({
       {/* Mode Selector */}
       <div className="flex justify-between items-center px-4 py-2 bg-thread-cream border-b border-thread-sage">
         <div className="flex gap-1">
-          <button
-            onClick={() => handleModeSwitch('code')}
-            className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
-              editorMode === 'code'
-                ? 'bg-thread-sage text-white'
-                : 'text-thread-sage hover:text-thread-charcoal hover:bg-thread-paper'
-            }`}
-          >
+          <span className="px-3 py-1 text-sm font-medium rounded bg-thread-sage text-white">
             {useStandardLayout ? 'CSS Editor' : 'Code Editor'}
-          </button>
-          <button
-            onClick={() => {
-              // If in standard layout, upgrade to custom template first
-              if (useStandardLayout) {
-                loadDefaultTemplate(); // This switches to custom template mode
-                setTimeout(() => handleModeSwitch('visual'), 100); // Then open Visual Builder
-              } else {
-                handleModeSwitch('visual');
-              }
-            }}
-            className={`relative px-4 py-2 text-sm font-medium rounded-lg transition-all transform hover:scale-105 ${
-              editorMode === 'visual'
-                ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg'
-                : 'bg-gradient-to-r from-purple-500 to-blue-500 text-white hover:from-purple-600 hover:to-blue-600 shadow-md hover:shadow-lg'
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <span className="text-lg">✨</span>
-              <div className="flex flex-col items-start">
-                <span className="font-semibold">Visual Builder</span>
-                <span className="text-xs opacity-90">{useStandardLayout ? 'Unlock full design' : 'Design visually'}</span>
-              </div>
-            </div>
-          </button>
+          </span>
         </div>
         <div className="text-xs text-thread-sage">
           {useStandardLayout
             ? 'Customize the standard layout with CSS'
-            : editorMode === 'visual'
-            ? 'Drag & drop visual editing'
             : 'Direct HTML/CSS editing'
           }
         </div>
@@ -1676,36 +1476,28 @@ export default function EnhancedTemplateEditor({
 
       {/* Tab Navigation - exactly matching original style */}
       <div className="flex gap-1 px-4">
-        {editorMode === 'code' ? (
-          <>
-            {!useStandardLayout && (
-              <button
-                onClick={() => setActiveTab('template')}
-                className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
-                  activeTab === 'template'
-                    ? 'bg-thread-paper text-thread-charcoal border-t-2 border-l-2 border-r-2 border-thread-sage'
-                    : 'text-thread-sage hover:text-thread-charcoal hover:bg-thread-cream'
-                }`}
-              >
-                HTML Template
-              </button>
-            )}
-            <button
-              onClick={() => setActiveTab('css')}
-              className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
-                activeTab === 'css'
-                  ? 'bg-thread-paper text-thread-charcoal border-t-2 border-l-2 border-r-2 border-thread-sage'
-                  : 'text-thread-sage hover:text-thread-charcoal hover:bg-thread-cream'
-              }`}
-            >
-              {useStandardLayout ? 'CSS Styling' : 'CSS Styles'}
-            </button>
-          </>
-        ) : (
-          <div className="px-4 py-2 text-sm font-medium text-thread-charcoal bg-thread-paper border-t-2 border-l-2 border-r-2 border-thread-sage rounded-t-lg">
-            Visual Builder
-          </div>
+        {!useStandardLayout && (
+          <button
+            onClick={() => setActiveTab('template')}
+            className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+              activeTab === 'template'
+                ? 'bg-thread-paper text-thread-charcoal border-t-2 border-l-2 border-r-2 border-thread-sage'
+                : 'text-thread-sage hover:text-thread-charcoal hover:bg-thread-cream'
+            }`}
+          >
+            HTML Template
+          </button>
         )}
+        <button
+          onClick={() => setActiveTab('css')}
+          className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+            activeTab === 'css'
+              ? 'bg-thread-paper text-thread-charcoal border-t-2 border-l-2 border-r-2 border-thread-sage'
+              : 'text-thread-sage hover:text-thread-charcoal hover:bg-thread-cream'
+          }`}
+        >
+          {useStandardLayout ? 'CSS Styling' : 'CSS Styles'}
+        </button>
         {/* Only show preview button for standard layout (not custom templates) */}
         {useStandardLayout && (
           <button
@@ -1860,7 +1652,7 @@ export default function EnhancedTemplateEditor({
               {/* Action Bar */}
               <div className="flex items-center justify-between">
                 <a
-                  href="/design-tutorial"
+                  href="/design-css-tutorial"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 px-3 py-2 bg-blue-100 text-blue-800 rounded-lg text-sm font-medium hover:bg-blue-200 transition-colors"
@@ -2161,7 +1953,7 @@ export default function EnhancedTemplateEditor({
                   {cssMode === 'disable' && (
                     <div className="space-y-2">
                       <p><strong>How it works:</strong> All ThreadStead CSS is disabled - you style everything</p>
-                      <p><strong>Best for:</strong> {useStandardLayout ? 'NOT RECOMMENDED for standard layout' : 'Custom templates with complete visual control (Visual Builder uses this mode)'}</p>
+                      <p><strong>Best for:</strong> {useStandardLayout ? 'NOT RECOMMENDED for standard layout' : 'Custom templates with complete visual control'}</p>
                       <p><strong>Result:</strong> You must style buttons, navigation, layouts from scratch. Complete creative freedom but more work</p>
                       {useStandardLayout && (
                         <div className="bg-red-100 border border-red-200 rounded p-2 mt-2">
@@ -2223,193 +2015,6 @@ body {
           </div>
         )}
 
-        {/* Visual Builder Tab - Premium Full-Screen Experience */}
-        {activeTab === 'visual' && editorMode === 'visual' && (
-          <div className="fixed inset-0 bg-gradient-to-br from-purple-50 via-white to-blue-50 flex flex-col z-[9999]">
-            {/* Premium Visual Builder Header */}
-            <div className="flex-shrink-0 bg-white/80 backdrop-blur-md border-b border-purple-200 px-6 py-3 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <button
-                    onClick={() => handleModeSwitch('code')}
-                    className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-all text-sm font-medium"
-                  >
-                    <span>←</span>
-                    <span>Exit Builder</span>
-                  </button>
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl">✨</span>
-                    <div>
-                      <h3 className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-600">
-                        Visual Template Builder
-                      </h3>
-                      <span className="text-xs text-gray-600">Professional design tools at your fingertips</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 ml-4">
-                    <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
-                      30+ Components
-                    </span>
-                    <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
-                      Responsive Design
-                    </span>
-                    <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
-                      Live Preview
-                    </span>
-                    {/* Dev Testing Button - Remove in production */}
-                    {process.env.NODE_ENV === 'development' && (
-                      <button
-                        onClick={() => setShowVisualBuilderWelcome(true)}
-                        className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium hover:bg-yellow-200"
-                        title="Show welcome modal again (dev only)"
-                      >
-                        🔄 Show Welcome
-                      </button>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  {/* Enhanced Save State Display for Visual Builder */}
-                  <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                    saveState === 'saved' ? 'bg-green-100 text-green-800 border border-green-200' :
-                    saveState === 'saving' ? 'bg-blue-100 text-blue-800 border border-blue-200' :
-                    saveState === 'error' ? 'bg-red-100 text-red-800 border border-red-200' :
-                    'bg-amber-100 text-amber-800 border border-amber-200'
-                  }`}>
-                    {saveState === 'saved' && (
-                      <><span>✅</span><span>All changes saved</span></>
-                    )}
-                    {saveState === 'saving' && (
-                      <><span className="animate-spin">⏳</span><span>Saving changes...</span></>
-                    )}
-                    {saveState === 'error' && (
-                      <><span>❌</span><span>Save failed - retrying...</span></>
-                    )}
-                    {saveState === 'pending' && hasUnsavedChanges && (
-                      <><span className="animate-pulse">●</span><span>Unsaved changes</span></>
-                    )}
-                  </div>
-
-                  <button
-                    onClick={handleSave}
-                    disabled={saveState === 'saving'}
-                    className={`px-6 py-2.5 rounded-lg font-medium transition-all shadow-md hover:shadow-lg text-sm ${
-                      saveState === 'error'
-                        ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white'
-                        : hasUnsavedChanges
-                        ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white'
-                        : 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white'
-                    } disabled:opacity-50 disabled:cursor-not-allowed`}
-                  >
-                    {saveState === 'saving' ? (
-                      <span className="flex items-center gap-2">
-                        <span className="animate-spin">⏳</span>
-                        Saving...
-                      </span>
-                    ) : saveState === 'error' ? (
-                      <span className="flex items-center gap-2">
-                        <span>🔄</span>
-                        Retry Save
-                      </span>
-                    ) : hasUnsavedChanges ? (
-                      <span className="flex items-center gap-2">
-                        <span>💾</span>
-                        Save Now
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-2">
-                        <span>✅</span>
-                        Saved
-                      </span>
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Welcome Modal for First-Time Users - Press 'W' key to show again in dev mode */}
-            {showVisualBuilderWelcome && (
-              <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[10000] animate-fadeIn">
-                <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-4 overflow-hidden animate-slideUp">
-                  <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-6 text-white">
-                    <div className="flex items-center gap-3">
-                      <span className="text-4xl">✨</span>
-                      <div>
-                        <h2 className="text-2xl font-bold">Welcome to Visual Builder Pro</h2>
-                        <p className="opacity-90">Design your perfect profile - no coding required</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="p-6">
-                    <div className="grid grid-cols-3 gap-4 mb-6">
-                      <div className="text-center">
-                        <div className="text-3xl mb-2">🎨</div>
-                        <h3 className="font-semibold mb-1">Drag & Drop</h3>
-                        <p className="text-sm text-gray-600">Simply drag components onto your canvas</p>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-3xl mb-2">⚡</div>
-                        <h3 className="font-semibold mb-1">Live Preview</h3>
-                        <p className="text-sm text-gray-600">See changes instantly as you design</p>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-3xl mb-2">📱</div>
-                        <h3 className="font-semibold mb-1">Responsive</h3>
-                        <p className="text-sm text-gray-600">Automatically adapts to all screen sizes</p>
-                      </div>
-                    </div>
-
-                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-6">
-                      <h4 className="font-semibold text-purple-900 mb-2">Quick Start Options:</h4>
-                      <div className="space-y-2">
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input type="radio" name="start" defaultChecked className="text-purple-600" />
-                          <span className="text-sm">Start with a professional template</span>
-                        </label>
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input type="radio" name="start" className="text-purple-600" />
-                          <span className="text-sm">Start from scratch</span>
-                        </label>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-3">
-                      <button
-                        onClick={() => setShowVisualBuilderWelcome(false)}
-                        className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 transition-all shadow-md hover:shadow-lg"
-                      >
-                        Get Started
-                      </button>
-                      <button
-                        onClick={() => setShowVisualBuilderWelcome(false)}
-                        className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
-                      >
-                        Skip for now
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Visual Builder - Full Screen Space */}
-            <div className={`flex-1 min-h-0 overflow-hidden transition-all ${
-              showVisualBuilderWelcome ? 'blur-sm pointer-events-none' : ''
-            }`}>
-              <VisualTemplateBuilder
-                initialTemplate={customCSS && customCSS.trim() && !customCSS.includes('/* Add your custom CSS here */')
-                  ? `<style>\n${customCSS}\n</style>\n${template}`
-                  : template}
-                onTemplateChange={handleVisualTemplateChange}
-                residentData={residentData || undefined}
-                className="h-full w-full"
-                hideNavigation={hideNavigation}
-                onNavigationToggle={setHideNavigation}
-              />
-            </div>
-          </div>
-        )}
 
       </div>
 
@@ -2462,17 +2067,6 @@ body {
         message={warningDialog.message}
       />
 
-      {/* Legacy Template Conversion Warning */}
-      <DataLossWarning
-        isOpen={showLegacyWarning}
-        onClose={handleLegacyCancel}
-        onConfirm={handleLegacyConversion}
-        title="🔄 Convert to Visual Builder"
-        message="This legacy template will be converted to Visual Builder format. We'll preserve your key styling choices and provide a clean slate for Visual Builder development."
-        confirmText="Convert & Preserve Styling"
-        preservedItems={conversionSummary?.preserved}
-        clearedItems={conversionSummary?.cleared}
-      />
 
       {/* Validation Feedback Panel */}
       {showValidationPanel && validationResult && (

@@ -1,6 +1,6 @@
 // State and Interactive Component Registrations
 import { ComponentRegistry } from './template-registry-class';
-import { mergeWithUniversalProps } from '@/lib/templates/visual-builder/universal-styling';
+import { mergeWithUniversalProps } from '@/lib/templates/core/universal-styling';
 
 // Import state/interactive components
 import Var, { Option } from '@/components/features/templates/state/Var';

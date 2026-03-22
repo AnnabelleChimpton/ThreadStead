@@ -26,24 +26,9 @@ export interface ToggleClassProps {
 
   /** Class name to toggle */
   className: string;
-
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
 }
 
 export default function ToggleClass(props: ToggleClassProps) {
-  const { __visualBuilder, _isInVisualBuilder } = props;
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
-
-  // Visual builder mode - show indicator
-  if (isVisualBuilder) {
-    return (
-      <div className="inline-block px-2 py-1 bg-violet-100 dark:bg-violet-900/30 border border-violet-300 dark:border-violet-700 rounded text-xs text-violet-700 dark:text-violet-300 font-mono">
-        🔄 ToggleClass: {props.target} → {props.className}
-      </div>
-    );
-  }
 
   // Normal mode - render nothing (executed by event handler)
   return null;

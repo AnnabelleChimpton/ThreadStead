@@ -41,10 +41,6 @@ export interface MergeProps {
   /** Target variable name to store merged result */
   target: string;
 
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
-
   /** Children (ignored - Merge is an action component) */
   children?: React.ReactNode;
 }
@@ -52,21 +48,8 @@ export interface MergeProps {
 export default function Merge(props: MergeProps) {
   const {
     sources,
-    target,
-    __visualBuilder,
-    _isInVisualBuilder
+    target
   } = props;
-
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
-
-  // Visual builder mode - show indicator
-  if (isVisualBuilder) {
-    return (
-      <div className="inline-block px-2 py-1 bg-purple-100 dark:bg-purple-900/30 border border-purple-300 dark:border-purple-700 rounded text-xs text-purple-700 dark:text-purple-300 font-mono">
-        🔗 Merge: [{sources}] → {target}
-      </div>
-    );
-  }
 
   // Normal mode - component doesn't render
   // Action is executed by parent event handler

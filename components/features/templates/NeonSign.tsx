@@ -17,7 +17,6 @@ export interface NeonSignProps extends UniversalCSSProps {
   background?: boolean;
   className?: string;
   children?: React.ReactNode;
-  _isInVisualBuilder?: boolean;
   _positioningMode?: 'absolute' | 'grid' | 'normal';
   _isInGrid?: boolean;
 }
@@ -36,7 +35,6 @@ export default function NeonSign(props: NeonSignProps) {
     background = false,
     className: customClassName,
     children,
-    _isInVisualBuilder = false,
     _positioningMode = 'normal',
     _isInGrid = false
   } = componentProps;

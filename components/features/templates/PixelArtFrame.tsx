@@ -18,7 +18,6 @@ export interface PixelArtFrameProps extends UniversalCSSProps {
   fillColor?: string;
   className?: string;
   children?: React.ReactNode;
-  _isInVisualBuilder?: boolean;
   _positioningMode?: 'absolute' | 'grid' | 'normal';
   _isInGrid?: boolean;
 }
@@ -38,7 +37,6 @@ export default function PixelArtFrame(props: PixelArtFrameProps) {
     fillColor = 'transparent',
     className: customClassName,
     children,
-    _isInVisualBuilder = false,
     _positioningMode = 'normal',
     _isInGrid = false
   } = componentProps;
@@ -188,7 +186,7 @@ export default function PixelArtFrame(props: PixelArtFrameProps) {
     ...getShadowStyle(),
     ...getGlowStyle(),
     ...getAnimationStyle(),
-    overflow: _isInVisualBuilder ? 'visible' : 'hidden'
+    overflow: 'hidden'
   };
 
   // Merge component styles with CSS props (CSS props win)

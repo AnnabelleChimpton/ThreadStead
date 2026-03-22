@@ -1,74 +1,64 @@
 /**
  * Grid Compatibility System
  * Handles component adaptation for CSS Grid layouts
+ *
+ * Relocated from visual-builder/grid-compatibility.ts — used by
+ * template-renderer.tsx and GridCompatibleWrapper.tsx.
  */
 
 export type GridCompatibilityMode =
-  | 'grid-native'    // Designed specifically for grid layouts
-  | 'grid-adapted'   // Existing component with grid-aware behavior
-  | 'grid-overlay'   // Positioned absolutely over grid (e.g., FloatingBadge)
-  | 'grid-excluded'; // Not suitable for grid, use flow layout
+  | 'grid-native'
+  | 'grid-adapted'
+  | 'grid-overlay'
+  | 'grid-excluded';
 
 export type GridSizingBehavior =
-  | 'responsive'     // Adapts to grid cell size
-  | 'fixed'          // Maintains fixed size regardless of grid
-  | 'content'        // Sizes based on content
-  | 'aspect-ratio'   // Maintains aspect ratio while adapting width/height
-  | 'span-based';    // Uses grid span for sizing
+  | 'responsive'
+  | 'fixed'
+  | 'content'
+  | 'aspect-ratio'
+  | 'span-based';
 
 export type GridPositioningBehavior =
-  | 'grid-item'      // Normal grid item behavior
-  | 'absolute-overlay' // Positioned absolutely over grid
-  | 'relative-flow'  // Positioned relative within grid cell
-  | 'sticky'         // Sticky positioning within grid
-  | 'subgrid';       // Creates subgrid for children
+  | 'grid-item'
+  | 'absolute-overlay'
+  | 'relative-flow'
+  | 'sticky'
+  | 'subgrid';
 
 export interface ComponentGridBehavior {
   mode: GridCompatibilityMode;
   sizing: GridSizingBehavior;
   positioning: GridPositioningBehavior;
 
-  // Optional configuration
   preferredSpan?: {
     columns?: number;
     rows?: number;
   };
 
-  // Minimum/maximum constraints
   constraints?: {
     minSpan?: { columns?: number; rows?: number };
     maxSpan?: { columns?: number; rows?: number };
-    aspectRatio?: number; // width/height ratio
+    aspectRatio?: number;
   };
 
-  // Responsive behavior
   responsive?: {
     mobile?: Partial<ComponentGridBehavior>;
     tablet?: Partial<ComponentGridBehavior>;
     desktop?: Partial<ComponentGridBehavior>;
   };
 
-  // CSS classes to apply in grid context
   gridClasses?: string[];
-
-  // CSS classes to remove in grid context
   removeClasses?: string[];
-
-  // Custom grid styles
   gridStyles?: React.CSSProperties;
 }
 
-/**
- * Component grid compatibility registry
- * Maps component names to their grid behavior
- */
 export const COMPONENT_GRID_BEHAVIORS: Record<string, ComponentGridBehavior> = {
-  // Fixed-size components that need adaptation
   ProfilePhoto: {
     mode: 'grid-adapted',
     sizing: 'aspect-ratio',
     positioning: 'grid-item',
-    constraints: { aspectRatio: 1 }, // Square
+    constraints: { aspectRatio: 1 },
     preferredSpan: { columns: 1, rows: 1 },
     gridClasses: ['w-full', 'h-full', 'object-cover'],
     removeClasses: ['w-8', 'h-8', 'w-16', 'h-16', 'w-32', 'h-32', 'w-48', 'h-48']
@@ -84,7 +74,6 @@ export const COMPONENT_GRID_BEHAVIORS: Record<string, ComponentGridBehavior> = {
     removeClasses: ['w-8', 'h-8', 'w-16', 'h-16', 'w-32', 'h-32', 'w-48', 'h-48']
   },
 
-  // Overlay components that break grid flow
   FloatingBadge: {
     mode: 'grid-overlay',
     sizing: 'fixed',
@@ -142,12 +131,11 @@ export const COMPONENT_GRID_BEHAVIORS: Record<string, ComponentGridBehavior> = {
     gridClasses: ['w-full', 'h-full']
   },
 
-  // Layout containers that create subgrids
   GridLayout: {
     mode: 'grid-native',
     sizing: 'responsive',
     positioning: 'subgrid',
-    preferredSpan: { columns: 12, rows: 1 } // Full width by default
+    preferredSpan: { columns: 12, rows: 1 }
   },
 
   ContactCard: {
@@ -175,7 +163,6 @@ export const COMPONENT_GRID_BEHAVIORS: Record<string, ComponentGridBehavior> = {
     preferredSpan: { columns: 6, rows: 2 }
   },
 
-  // Content components
   DisplayName: {
     mode: 'grid-adapted',
     sizing: 'content',
@@ -190,7 +177,6 @@ export const COMPONENT_GRID_BEHAVIORS: Record<string, ComponentGridBehavior> = {
     preferredSpan: { columns: 3, rows: 2 }
   },
 
-  // Visual effects
   NeonBorder: {
     mode: 'grid-adapted',
     sizing: 'responsive',
@@ -215,11 +201,10 @@ export const COMPONENT_GRID_BEHAVIORS: Record<string, ComponentGridBehavior> = {
     mode: 'grid-adapted',
     sizing: 'aspect-ratio',
     positioning: 'grid-item',
-    constraints: { aspectRatio: 1.2 }, // Polaroid aspect ratio
+    constraints: { aspectRatio: 1.2 },
     preferredSpan: { columns: 2, rows: 2 }
   },
 
-  // Interactive components
   Tabs: {
     mode: 'grid-native',
     sizing: 'responsive',

@@ -377,9 +377,6 @@ export const INTERNAL_PROPS = new Set([
   '_positioning',
   '_positioningMode',
   '_size',
-  '_isInVisualBuilder',
-  '__visualBuilder',
-  '__visualbuilder',
   'children',
 ]);
 

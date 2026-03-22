@@ -29,10 +29,6 @@ export interface CheckboxProps {
   /** Disabled state */
   disabled?: boolean;
 
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
-
   /** Children (ignored) */
   children?: React.ReactNode;
 }
@@ -43,14 +39,11 @@ export default function Checkbox(props: CheckboxProps) {
     label,
     className: customClassName,
     disabled = false,
-    __visualBuilder,
-    _isInVisualBuilder
   } = props;
 
   // PHASE 1.1: Use selective subscription - only re-render when this specific variable changes
   const dependencies = useMemo(() => varName ? [varName] : [], [varName]);
   const templateState = useTemplateStateWithDeps(dependencies);
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
 
   // PHASE 1.1 FIX: Use getVariable() to get current value, not stale snapshot
   const currentValue = Boolean(templateState.getVariable(varName));
@@ -65,29 +58,6 @@ export default function Checkbox(props: CheckboxProps) {
   const finalClassName = customClassName
     ? `${baseClasses} ${customClassName}`
     : baseClasses;
-
-  // Visual builder mode - show disabled checkbox with indicator
-  if (isVisualBuilder) {
-    return (
-      <div className="inline-block relative">
-        <label className={`${finalClassName} opacity-70`}>
-          <input
-            type="checkbox"
-            disabled
-            checked={false}
-            readOnly
-            className="w-4 h-4 rounded border-gray-300"
-          />
-          <span className="text-sm">
-            {label || `[Bound to $vars.${varName}]`}
-          </span>
-        </label>
-        <div className="absolute -top-2 -right-2 px-1 py-0.5 bg-purple-500 text-white text-xs rounded">
-          ☑️ Checkbox
-        </div>
-      </div>
-    );
-  }
 
   // Normal mode - render functional checkbox
   return (

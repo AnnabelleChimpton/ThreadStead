@@ -42,9 +42,9 @@ export default function TemplateEditorPage({
 }: TemplateEditorPageProps) {
   const router = useRouter();
 
-  // Get mode parameter from URL (?mode=visual, ?mode=template, ?mode=css)
+  // Get mode parameter from URL (?mode=template, ?mode=css)
   const urlMode = router.query.mode as string | undefined;
-  const initialEditorMode = (urlMode === 'visual' || urlMode === 'template' || urlMode === 'css')
+  const initialEditorMode = (urlMode === 'template' || urlMode === 'css')
     ? urlMode
     : undefined;
 
@@ -53,50 +53,27 @@ export default function TemplateEditorPage({
   let embeddedCSS = '';
 
   if (existingTemplate) {
-    // Check for embedded style tags in the template
     const styleMatches = existingTemplate.match(/<style[^>]*>([\s\S]*?)<\/style>/gi);
     if (styleMatches) {
-      // Extract CSS from style tags, but skip Visual Builder CSS
       styleMatches.forEach(styleTag => {
         const cssMatch = styleTag.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
         if (cssMatch && cssMatch[1]) {
-          const css = cssMatch[1].trim();
-
-          // Skip Visual Builder CSS - it will be regenerated fresh by Visual Builder
-          // This prevents accumulation of old/outdated Visual Builder CSS blocks
-          const isVisualBuilderCSS =
-            css.includes('Visual Builder Generated CSS') ||
-            css.includes('CSS Custom Properties for easy editing') ||
-            css.includes('--vb-bg-color') ||
-            css.includes('--vb-bg-type') ||
-            css.includes('--global-bg-color') ||
-            css.includes('--global-font-family') ||
-            css.includes('.vb-theme-') ||
-            css.includes('.vb-effect-') ||
-            css.includes('.vb-pattern-');
-
-          if (!isVisualBuilderCSS) {
-            // Only preserve non-Visual Builder CSS
-            embeddedCSS += css + '\n\n';
-          }
+          embeddedCSS += cssMatch[1].trim() + '\n\n';
         }
       });
     }
-    // Remove ALL style tags from HTML (Visual Builder will regenerate its CSS)
     extractedHtmlContent = existingTemplate.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '').trim();
   }
 
-  // Combine saved customCSS with any embedded non-Visual Builder CSS
-  // Priority: saved customCSS first, then any embedded CSS
+  // Combine saved customCSS with any embedded CSS
   let extractedCssContent = customCSS || '';
   if (embeddedCSS && !extractedCssContent.includes(embeddedCSS.trim())) {
-    // Only add embedded CSS if it's not already in the saved CSS
     extractedCssContent = extractedCssContent.trim()
       ? `${extractedCssContent}\n\n/* Recovered from template */\n${embeddedCSS.trim()}`
       : embeddedCSS.trim();
   }
   extractedCssContent = extractedCssContent || '/* Add your custom CSS here */\n\n';
-  
+
   // Extract CSS mode from CSS comment if present
   const extractCSSMode = (): 'inherit' | 'override' | 'disable' => {
     const css = customCSS || '';
@@ -104,76 +81,47 @@ export default function TemplateEditorPage({
     if (modeMatch && ['inherit', 'override', 'disable'].includes(modeMatch[1])) {
       return modeMatch[1] as 'inherit' | 'override' | 'disable';
     }
-    // Default to inherit mode - this is the most common and safe default
     return 'inherit';
   };
-  
+
   const initialCSSMode = extractCSSMode();
-  
-  // Clean CSS mode comment from CSS for editor
   const cleanedCssContent = extractedCssContent.replace(/\/\* CSS_MODE:\w+ \*\/\n?/, '');
 
   const handleSave = async (template: string, css: string, compiledTemplate?: CompiledTemplate, cssMode?: 'inherit' | 'override' | 'disable', hideNavigation?: boolean, explicitTemplateMode?: 'default' | 'enhanced' | 'advanced') => {
-    // Combine HTML and CSS for API
-    const fullTemplate = `${template}${css.trim() ? `\n<style>\n${css}\n</style>` : ''}`;
-
-    // Debug: Check what we're sending to API
     const requestBody = {
-      template: template, // Send HTML template only
-      customCSS: css, // Send CSS separately
-      // For legacy compatibility, we might need the AST
+      template: template,
+      customCSS: css,
       ...(compiledTemplate && { ast: compiledTemplate }),
       ...(cssMode && { cssMode })
     };
     try {
-      // Save the template
       const response = await csrfFetch(`/api/profile/${username}/template`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('🎯 [TEMPLATE_EDITOR_SAVE] API error:', errorData);
-
-        // Format error message for display in ValidationFeedbackPanel
-        // Don't throw - let EnhancedTemplateEditor handle it gracefully
         let errorMessage = errorData.error || 'Failed to save template';
-
-        // Add helpful details if available
-        if (errorData.suggestion) {
-          errorMessage += `\n\n💡 ${errorData.suggestion}`;
-        }
-        if (errorData.details) {
-          errorMessage += `\n\nℹ️ ${errorData.details}`;
-        }
+        if (errorData.suggestion) errorMessage += `\n\n${errorData.suggestion}`;
+        if (errorData.details) errorMessage += `\n\n${errorData.details}`;
         if (errorData.line) {
           const lineInfo = errorData.column
             ? `Line ${errorData.line}, Column ${errorData.column}`
             : `Line ${errorData.line}`;
           errorMessage = `${lineInfo}: ${errorMessage}`;
         }
-
-        // Throw error to reject the async function's promise
-        // This allows EnhancedTemplateEditor's catch block to handle it
         throw new Error(errorMessage);
       }
 
-      const responseData = await response.json();
-
-      // Automatically enable template mode and set to advanced
+      // Enable template mode
       const capRes = await csrfFetch("/api/cap/profile", { method: "POST" });
       if (capRes.status === 401) {
         throw new Error("Failed to update layout mode. Please check Layout Settings.");
       }
       const { token } = await capRes.json();
 
-      // Determine template mode:
-      // 1. If explicitly provided (e.g., from Reset to Default), use it
-      // 2. Otherwise, infer from template content: empty = 'enhanced', has content = 'advanced'
       const templateMode = explicitTemplateMode || (template.trim() === '' ? 'enhanced' : 'advanced');
 
       const layoutResponse = await csrfFetch("/api/profile/update", {
@@ -187,10 +135,9 @@ export default function TemplateEditorPage({
       });
 
       if (!layoutResponse.ok) {
-        throw new Error("Template saved, but failed to enable template mode. Please check Layout Settings.");
+        throw new Error("Template saved, but failed to enable template mode.");
       }
 
-      // Also enable the template
       const templateToggleResponse = await csrfFetch(`/api/profile/${username}/template-toggle`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -198,12 +145,9 @@ export default function TemplateEditorPage({
       });
 
       if (!templateToggleResponse.ok) {
-        throw new Error("Template saved and mode set, but failed to enable template. Please check Layout Settings.");
+        throw new Error("Template saved and mode set, but failed to enable template.");
       }
-
-      // Success - will be handled by the EnhancedTemplateEditor
     } catch (error) {
-      // Re-throw to let EnhancedTemplateEditor handle the error display
       throw error;
     }
   };
@@ -234,7 +178,6 @@ export default function TemplateEditorPage({
     );
   }
 
-  // Use the actual current user or create a fallback
   const editorUser = currentUser || {
     id: 'template-editor-user',
     primaryHandle: username,
@@ -253,7 +196,6 @@ export default function TemplateEditorPage({
       </Head>
       <Layout fullWidth={true}>
         <div className="editor-full-page flex flex-col bg-white template-editor-page w-full">
-          {/* Header with navigation - matching original style */}
           <div className="bg-white border-b border-thread-sage/30 px-4 py-3 shadow-sm">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -265,16 +207,16 @@ export default function TemplateEditorPage({
                   </span>
                 )}
               </div>
-              
+
               <div className="flex items-center gap-2">
-                <button 
-                  onClick={handleBackToEdit} 
+                <button
+                  onClick={handleBackToEdit}
                   className="thread-button-secondary text-xs px-2 py-1"
                 >
                   ← Edit Profile
                 </button>
-                <button 
-                  onClick={handleBackToProfile} 
+                <button
+                  onClick={handleBackToProfile}
                   className="thread-button text-xs px-2 py-1"
                 >
                   View Profile
@@ -283,7 +225,6 @@ export default function TemplateEditorPage({
             </div>
           </div>
 
-          {/* Enhanced Template Editor - styled to match original tabs */}
           <div className="flex-1">
             <EnhancedTemplateEditor
               user={editorUser}
@@ -302,8 +243,8 @@ export default function TemplateEditorPage({
   );
 }
 
-export const getServerSideProps: GetServerSideProps<TemplateEditorPageProps> = async ({ 
-  params, 
+export const getServerSideProps: GetServerSideProps<TemplateEditorPageProps> = async ({
+  params,
   req
 }) => {
   const username = Array.isArray(params?.username) ? params.username[0] : String(params?.username || "");
@@ -314,7 +255,6 @@ export const getServerSideProps: GetServerSideProps<TemplateEditorPageProps> = a
   const base = `${proto}://${host}`;
 
   try {
-    // Get current user session
     const { getSessionUser } = await import('@/lib/auth/server');
     const currentUser = await getSessionUser(req as NextApiRequest);
 
@@ -327,17 +267,11 @@ export const getServerSideProps: GetServerSideProps<TemplateEditorPageProps> = a
       };
     }
 
-    // Get profile data
     const profileRes = await fetch(`${base}/api/profile/${encodeURIComponent(username)}`);
     if (profileRes.status === 404) return { notFound: true };
-    
+
     if (!profileRes.ok) {
-      return {
-        props: {
-          username,
-          isOwner: false,
-        },
-      };
+      return { props: { username, isOwner: false } };
     }
 
     const profileData = await profileRes.json();
@@ -345,13 +279,12 @@ export const getServerSideProps: GetServerSideProps<TemplateEditorPageProps> = a
     if (currentUser.primaryHandle) {
       currentUsername = currentUser.primaryHandle.split("@")[0];
     }
-    
+
     const isOwner = (
       (currentUsername && currentUsername.toLowerCase() === username.toLowerCase()) ||
       (currentUser.id && profileData.userId && currentUser.id === profileData.userId)
     );
 
-    // Try to get existing template
     let existingTemplate = "";
     let customCSS = "";
     let templateEnabled = false;
@@ -360,9 +293,7 @@ export const getServerSideProps: GetServerSideProps<TemplateEditorPageProps> = a
     if (isOwner) {
       try {
         const templateRes = await fetch(`${base}/api/profile/${username}/template`, {
-          headers: {
-            cookie: req.headers.cookie || "",
-          },
+          headers: { cookie: req.headers.cookie || "" },
         });
         if (templateRes.ok) {
           const templateData = await templateRes.json();

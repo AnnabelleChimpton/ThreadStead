@@ -3,7 +3,8 @@
 import type { ProfileUser } from './ProfileModeRenderer';
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
 import type { Island } from '@/lib/templates/compilation/compiler';
-import type { TemplateType } from '@/lib/utils/template-type-detector';
+// Template type — only 'legacy' now that visual-builder has been removed
+export type TemplateType = 'legacy';
 
 // Extended Island type with htmlStructure for runtime rendering
 export interface ExtendedIsland extends Island {
@@ -26,7 +27,6 @@ export interface AdvancedProfileRendererProps {
   templateType: TemplateType;
   onFallback?: (reason: string) => void;
   onIslandsReady?: () => void;
-  isInVisualBuilder?: boolean;
   onIslandError?: (error: Error, islandId: string) => void;
 }
 
@@ -45,8 +45,6 @@ export interface ProfileContentRendererProps {
   residentData: ResidentData;
   onIslandRender: (islandId: string) => void;
   onIslandError: (error: Error, islandId: string) => void;
-  visualBuilderClasses?: string[];
-  isInVisualBuilder?: boolean;
   templateType?: TemplateType;
   profileId?: string;
 }
@@ -58,19 +56,8 @@ export interface StaticHTMLWithIslandsProps {
   residentData: ResidentData;
   onIslandRender: (islandId: string) => void;
   onIslandError: (error: Error, islandId: string) => void;
-  visualBuilderClasses?: string[];
-  isInVisualBuilder?: boolean;
   templateType?: TemplateType;
   profileId?: string;
-}
-
-// Static HTML renderer props (LEGACY - UNUSED)
-export interface StaticHTMLRendererProps {
-  html: string;
-  islands: Island[];
-  residentData: ResidentData;
-  onIslandRender: (islandId: string) => void;
-  onIslandError: (error: Error, islandId: string) => void;
 }
 
 // Advanced profile fallback props

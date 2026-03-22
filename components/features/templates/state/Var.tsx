@@ -49,9 +49,6 @@ export interface VarProps {
   /** Children elements (for random type with Option children) */
   children?: React.ReactNode;
 
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
 }
 
 export default function Var(props: VarProps) {
@@ -66,12 +63,7 @@ export default function Var(props: VarProps) {
     coerce,
     separator,
     children,
-    __visualBuilder,
-    _isInVisualBuilder
   } = props;
-
-  // Visual builder mode - show placeholder
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
 
   const templateState = useTemplateState();
   const hasRegisteredRef = useRef(false);
@@ -234,15 +226,6 @@ export default function Var(props: VarProps) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [name, type, initial, persist, expression, param, defaultValue, coerce, separator, children]);
-
-  // Visual builder mode - show variable indicator
-  if (isVisualBuilder) {
-    return (
-      <div className="inline-block px-2 py-1 bg-purple-100 dark:bg-purple-900/30 border border-purple-300 dark:border-purple-700 rounded text-xs text-purple-700 dark:text-purple-300 font-mono">
-        📊 Var: {name} ({type})
-      </div>
-    );
-  }
 
   // Component renders nothing in normal mode
   return null;

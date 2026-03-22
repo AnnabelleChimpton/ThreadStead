@@ -157,7 +157,7 @@ export function Grid({
   ...rest
 }: GridProps) {
   // Separate system props from public props
-  const { publicProps, systemProps } = separateSystemProps(rest);
+  const { publicProps } = separateSystemProps(rest);
 
   // Process grid-specific props
   const gridProps = processGridProps(rest);
@@ -176,20 +176,9 @@ export function Grid({
     '@media (min-width: 1024px)': responsive.desktop ? processGridProps(responsive.desktop) : {},
   } : {};
 
-  // Visual builder specific styles
-  const visualBuilderStyles = systemProps?.isInVisualBuilder ? {
-    minHeight: '4rem',
-    minWidth: '8rem',
-    // Use outline instead of border to avoid affecting layout
-    outline: systemProps.isSelected ? '2px solid #3b82f6' : '1px dashed #d1d5db',
-    outlineOffset: '-1px', // Keep outline inside the element
-    position: 'relative' as const,
-  } : {};
-
   const finalStyles = {
     ...baseStyles,
     ...responsiveStyles,
-    ...visualBuilderStyles,
   };
 
   return (
@@ -211,7 +200,7 @@ export function GridItem({
   ...rest
 }: GridItemProps) {
   // Separate system props from public props
-  const { publicProps, systemProps } = separateSystemProps(rest);
+  const { publicProps } = separateSystemProps(rest);
 
   // Process grid item specific props
   const gridItemProps = processGridItemProps(rest);
@@ -222,17 +211,8 @@ export function GridItem({
     ...publicProps,
   });
 
-  // Visual builder specific styles
-  const visualBuilderStyles = systemProps?.isInVisualBuilder ? {
-    // Remove minHeight to avoid forcing row heights - let content dictate size
-    minWidth: '2rem', // Reduced minimum width
-    outline: systemProps.isSelected ? '2px solid #3b82f6' : 'none',
-    backgroundColor: systemProps.isHovered ? '#f8fafc' : undefined,
-  } : {};
-
   const finalStyles = {
     ...styles,
-    ...visualBuilderStyles,
   };
 
   return (

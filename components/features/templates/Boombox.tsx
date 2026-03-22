@@ -16,7 +16,6 @@ export interface BoomboxProps extends UniversalCSSProps {
   volume?: number;
   className?: string;
   children?: React.ReactNode;
-  _isInVisualBuilder?: boolean;
   _positioningMode?: 'absolute' | 'grid' | 'normal';
   _isInGrid?: boolean;
 }
@@ -34,7 +33,6 @@ export default function Boombox(props: BoomboxProps) {
   volume = 75,
   className: customClassName,
   children,
-  _isInVisualBuilder = false,
   _positioningMode = 'normal',
   _isInGrid = false
   } = componentProps;

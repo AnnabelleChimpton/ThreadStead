@@ -4,7 +4,6 @@ import React from 'react';
 import { useTemplateState } from '@/lib/templates/state/TemplateStateProvider';
 import { useForEachContext } from './loops/ForEach';
 import { globalTemplateStateManager } from '@/lib/templates/state/TemplateStateManager';
-import { PixelIcon } from '@/components/ui/PixelIcon';
 
 /**
  * DynamicImage Component - Image with src bound to a template variable
@@ -41,9 +40,6 @@ export interface DynamicImageProps {
   /** Scope ID for scoped variable resolution (provided by ForEach) */
   scopeId?: string;
 
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
 }
 
 export default function DynamicImage(props: DynamicImageProps) {
@@ -54,14 +50,11 @@ export default function DynamicImage(props: DynamicImageProps) {
     height,
     className,
     scopeId: propScopeId,
-    __visualBuilder,
-    _isInVisualBuilder
   } = props;
 
   // IMPORTANT: Always call hooks before any conditional returns
   const templateState = useTemplateState();
   const forEachContext = useForEachContext();
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
 
   // CRITICAL: Validate required props (after hooks)
   if (!varName) {
@@ -111,34 +104,6 @@ export default function DynamicImage(props: DynamicImageProps) {
   const finalClassName = className
     ? `${baseClasses} ${className}`
     : baseClasses;
-
-  // Visual builder mode - show placeholder with indicator
-  if (isVisualBuilder) {
-    return (
-      <div className="inline-block relative">
-        <div
-          className={`${finalClassName} flex items-center justify-center bg-gray-100 dark:bg-gray-800 border-2 border-dashed border-gray-300 dark:border-gray-600`}
-          style={{
-            ...style,
-            minWidth: width || '200px',
-            minHeight: height || '150px'
-          }}
-        >
-          <div className="text-center text-gray-500 dark:text-gray-400">
-            <div className="mb-2 flex justify-center">
-              <PixelIcon name="image" size={32} />
-            </div>
-            <div className="text-xs font-mono">
-              Bound to: ${varName}
-            </div>
-          </div>
-        </div>
-        <div className="absolute -top-2 -right-2 px-1 py-0.5 bg-blue-500 text-white text-xs rounded">
-          🖼️ DynamicImage
-        </div>
-      </div>
-    );
-  }
 
   // Normal mode - render actual image
   // Handle missing/invalid URL gracefully

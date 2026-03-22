@@ -27,24 +27,9 @@ export interface AddClassProps {
 
   /** Class name to add */
   className: string;
-
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
 }
 
 export default function AddClass(props: AddClassProps) {
-  const { __visualBuilder, _isInVisualBuilder } = props;
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
-
-  // Visual builder mode - show indicator
-  if (isVisualBuilder) {
-    return (
-      <div className="inline-block px-2 py-1 bg-sky-100 dark:bg-sky-900/30 border border-sky-300 dark:border-sky-700 rounded text-xs text-sky-700 dark:text-sky-300 font-mono">
-        ➕ AddClass: {props.target} → {props.className}
-      </div>
-    );
-  }
 
   // Normal mode - render nothing (executed by event handler)
   return null;

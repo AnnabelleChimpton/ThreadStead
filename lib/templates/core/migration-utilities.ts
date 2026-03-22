@@ -6,7 +6,7 @@
  */
 
 import React, { CSSProperties } from 'react';
-import { StandardComponentProps, VisualBuilderContext } from './standard-component-interface';
+import { StandardComponentProps } from './standard-component-interface';
 
 /**
  * Legacy prop mappings from the old universal styling system
@@ -91,36 +91,6 @@ function convertLegacyJustify(justify: string): 'start' | 'end' | 'flex-start' |
   };
 
   return justifyMap[justify] || 'start'; // Default to start if unknown
-}
-
-/**
- * Extract visual builder context from legacy props
- */
-function extractVisualBuilderContext(props: any): VisualBuilderContext | undefined {
-  const {
-    _isInVisualBuilder,
-    _onContentChange,
-    _onPropsChange,
-    _positioningMode,
-    _size,
-    _isSelected,
-    _isHovered,
-  } = props;
-
-  if (!_isInVisualBuilder) {
-    return undefined;
-  }
-
-  return {
-    isInVisualBuilder: _isInVisualBuilder,
-    onContentChange: _onContentChange,
-    onPropsChange: _onPropsChange,
-    positioningMode: _positioningMode === 'absolute' ? 'absolute' :
-                   _positioningMode === 'grid' ? 'grid' : 'normal',
-    size: _size,
-    isSelected: _isSelected,
-    isHovered: _isHovered,
-  };
 }
 
 /**
@@ -237,7 +207,6 @@ export function migrateComponentProps(
   componentType?: string
 ): {
   standardProps: StandardComponentProps;
-  visualBuilderContext?: VisualBuilderContext;
 } {
   const standardProps: StandardComponentProps = {};
 
@@ -276,12 +245,8 @@ export function migrateComponentProps(
     Object.assign(standardProps, migrateFlexContainerProps(oldProps));
   }
 
-  // Extract visual builder context
-  const visualBuilderContext = extractVisualBuilderContext(oldProps);
-
   return {
     standardProps,
-    visualBuilderContext,
   };
 }
 
@@ -294,14 +259,9 @@ export function withMigrationSupport<T extends StandardComponentProps>(
   componentType?: string
 ) {
   return function MigratedComponent(props: any) {
-    const { standardProps, visualBuilderContext } = migrateComponentProps(props, componentType);
+    const { standardProps } = migrateComponentProps(props, componentType);
 
-    // Merge visual builder context into props if it exists
-    const finalProps = visualBuilderContext
-      ? { ...standardProps, __visualBuilder: visualBuilderContext }
-      : standardProps;
-
-    return React.createElement(NewComponent, finalProps as T);
+    return React.createElement(NewComponent, standardProps as T);
   };
 }
 
@@ -386,9 +346,6 @@ export function cleanPropsForDOM(props: StandardComponentProps): Record<string, 
     justifySelf,
     alignSelf,
 
-    // Internal props
-    __visualBuilder,
-
     ...domProps
   } = props;
 
@@ -400,14 +357,13 @@ export function cleanPropsForDOM(props: StandardComponentProps): Record<string, 
  * Useful during migration to verify props are correctly transformed
  */
 export function debugPropMigration(oldProps: any, componentType?: string) {
-  const { standardProps, visualBuilderContext } = migrateComponentProps(oldProps, componentType);
+  const { standardProps } = migrateComponentProps(oldProps, componentType);
 
-  console.group(`🔄 Prop Migration Debug: ${componentType || 'Unknown'}`);
-  console.log('📥 Old Props:', oldProps);
-  console.log('📤 New Standard Props:', standardProps);
-  console.log('🎛️ Visual Builder Context:', visualBuilderContext);
-  console.log('🧹 DOM Props:', cleanPropsForDOM(standardProps));
+  console.group(`Prop Migration Debug: ${componentType || 'Unknown'}`);
+  console.log('Old Props:', oldProps);
+  console.log('New Standard Props:', standardProps);
+  console.log('DOM Props:', cleanPropsForDOM(standardProps));
   console.groupEnd();
 
-  return { standardProps, visualBuilderContext };
+  return { standardProps };
 }

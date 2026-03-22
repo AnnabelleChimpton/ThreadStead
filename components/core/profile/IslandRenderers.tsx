@@ -5,10 +5,9 @@ import type { Island } from '@/lib/templates/compilation/compiler';
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
 import { ResidentDataProvider } from '@/components/features/templates/ResidentDataProvider';
 import { componentRegistry } from '@/lib/templates/core/template-registry';
-import { getCurrentBreakpoint } from '@/lib/templates/visual-builder/grid-utils';
 import type { ExtendedIsland, HtmlNode, DirectIslandsRendererProps } from './types';
 import { parseStyleString } from './DOMConversionUtils';
-import { IslandErrorBoundary } from './IslandErrorBoundary';
+
 
 // Enhanced island renderer that combines island children with HTML children
 // QUICK WIN #1: Memoized to prevent unnecessary re-renders
@@ -674,64 +673,3 @@ export function DirectIslandRenderer({ island, residentData }: { island: Extende
   return component;
 }
 
-// Static HTML renderer with island placeholders (LEGACY - UNUSED)
-export function StaticHTMLRenderer({
-  html,
-  islands,
-  residentData,
-  onIslandRender,
-  onIslandError
-}: {
-  html: string;
-  islands: Island[];
-  residentData: ResidentData;
-  onIslandRender: (islandId: string) => void;
-  onIslandError: (error: Error, islandId: string) => void;
-}) {
-  const [mountedIslands, setMountedIslands] = useState<Set<string>>(new Set());
-
-  // Create a map for quick island lookup
-  const islandMap = useMemo(() => {
-    const map = new Map<string, Island>();
-    islands.forEach(island => {
-      map.set(island.id, island);
-    });
-    return map;
-  }, [islands]);
-
-  return (
-    <>
-      {/* Static HTML content */}
-      <div
-        dangerouslySetInnerHTML={{ __html: html }}
-        data-profile-mode="advanced-islands"
-        className="static-html-content"
-      />
-
-      {/* Render islands directly like in template editor with responsive padding to match Visual Builder */}
-      <div
-        className="profile-islands-container"
-        style={{
-          position: 'relative',
-          width: '100%',
-          minHeight: '100vh',
-          // Apply same responsive padding as Visual Builder canvas
-          padding: `${getCurrentBreakpoint().containerPadding}px`,
-          boxSizing: 'border-box'
-        }}
-        data-wysiwyg-padding={getCurrentBreakpoint().containerPadding}
-        data-wysiwyg-breakpoint={getCurrentBreakpoint().name}
-      >
-        {/* Only render root-level components */}
-        {islands.map((island) => (
-          <IslandErrorBoundary key={island.id} islandId={island.id}>
-            <DirectIslandRenderer
-              island={island}
-              residentData={residentData}
-            />
-          </IslandErrorBoundary>
-        ))}
-      </div>
-    </>
-  );
-}

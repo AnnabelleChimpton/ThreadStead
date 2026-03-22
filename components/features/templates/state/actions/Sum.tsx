@@ -42,10 +42,6 @@ export interface SumProps {
   /** Optional property path for arrays of objects (e.g., "price" or "user.age") */
   property?: string;
 
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
-
   /** Children (ignored - Sum is an action component) */
   children?: React.ReactNode;
 }
@@ -54,23 +50,8 @@ export default function Sum(props: SumProps) {
   const {
     var: varName,
     target,
-    property,
-    __visualBuilder,
-    _isInVisualBuilder
+    property
   } = props;
-
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
-
-  // Visual builder mode - show indicator
-  if (isVisualBuilder) {
-    return (
-      <div className="inline-block px-2 py-1 bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded text-xs text-green-700 dark:text-green-300 font-mono">
-        ➕ Sum: {varName}
-        {property && <span className="text-green-600">.{property}</span>}
-        {' '} → {target}
-      </div>
-    );
-  }
 
   // Normal mode - component doesn't render
   // Action is executed by parent event handler

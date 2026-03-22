@@ -16,7 +16,6 @@ export interface MatrixRainProps extends UniversalCSSProps {
   backgroundOpacity?: number;
   className?: string;
   children?: React.ReactNode;
-  _isInVisualBuilder?: boolean;
   _positioningMode?: 'absolute' | 'grid' | 'normal';
   _isInGrid?: boolean;
 }
@@ -34,7 +33,6 @@ export default function MatrixRain(props: MatrixRainProps) {
   backgroundOpacity = 95,
   className: customClassName,
   children,
-  _isInVisualBuilder = false,
   _positioningMode = 'normal',
   _isInGrid = false
   } = componentProps;
@@ -376,19 +374,6 @@ export default function MatrixRain(props: MatrixRainProps) {
         {children && (
           <div className="matrix-content">
             {children}
-          </div>
-        )}
-
-        {/* Control buttons (for interactive demos) */}
-        {_isInVisualBuilder && (
-          <div className="matrix-controls">
-            <div
-              className="matrix-control-button"
-              title={isVisible ? 'Pause' : 'Play'}
-              onClick={() => setIsVisible(!isVisible)}
-            >
-              {isVisible ? '⏸' : '▶'}
-            </div>
           </div>
         )}
 

@@ -1,6 +1,6 @@
 // Display and Layout Component Registrations
 import { ComponentRegistry } from './template-registry-class';
-import { mergeWithUniversalProps } from '@/lib/templates/visual-builder/universal-styling';
+import { mergeWithUniversalProps } from '@/lib/templates/core/universal-styling';
 
 // Import display/layout components
 import ProfilePhoto from '@/components/features/templates/ProfilePhoto';

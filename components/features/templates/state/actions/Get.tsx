@@ -42,10 +42,6 @@ export interface GetProps {
   /** Target variable name to store result */
   target: string;
 
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
-
   /** Children (ignored - Get is an action component) */
   children?: React.ReactNode;
 }
@@ -54,21 +50,8 @@ export default function Get(props: GetProps) {
   const {
     from,
     at,
-    target,
-    __visualBuilder,
-    _isInVisualBuilder
+    target
   } = props;
-
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
-
-  // Visual builder mode - show indicator
-  if (isVisualBuilder) {
-    return (
-      <div className="inline-block px-2 py-1 bg-cyan-100 dark:bg-cyan-900/30 border border-cyan-300 dark:border-cyan-700 rounded text-xs text-cyan-700 dark:text-cyan-300 font-mono">
-        🔍 Get: {from}[{String(at)}] → {target}
-      </div>
-    );
-  }
 
   // Normal mode - component doesn't render
   // Action is executed by parent event handler

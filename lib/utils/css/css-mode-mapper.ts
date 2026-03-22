@@ -75,14 +75,8 @@ export function isValidComponentCSSRenderMode(mode: string): mode is ComponentCS
  * Gets the default CSS render mode for a component based on context
  */
 export function getDefaultComponentCSSRenderMode(
-  isInVisualBuilder: boolean = false,
   profileCSSMode?: ProfileCSSMode
 ): ComponentCSSRenderMode {
-  // Visual builder always defaults to auto for predictable behavior
-  if (isInVisualBuilder) {
-    return 'auto';
-  }
-
   // If profile has a CSS mode preference, use that
   if (profileCSSMode) {
     return mapProfileCSSModeToComponentMode(profileCSSMode);

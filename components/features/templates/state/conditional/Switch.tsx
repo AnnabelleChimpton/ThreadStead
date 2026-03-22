@@ -41,9 +41,6 @@ export interface SwitchProps {
   /** Case and Default components to evaluate */
   children?: React.ReactNode;
 
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
 }
 
 /**
@@ -76,12 +73,9 @@ export default function Switch(props: SwitchProps) {
     value,
     expression,
     children,
-    __visualBuilder,
-    _isInVisualBuilder
   } = props;
 
   const templateState = useTemplateState();
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
 
   // Evaluate switch value
   const switchValue = useMemo(() => {
@@ -123,21 +117,6 @@ export default function Switch(props: SwitchProps) {
     hasMatched,
     setMatched
   }), [switchValue, hasMatched]);
-
-  // Visual builder mode - show indicator
-  if (isVisualBuilder) {
-    const displayValue = expression || value || 'value';
-    return (
-      <div className="inline-block px-2 py-1 bg-purple-100 dark:bg-purple-900/30 border border-purple-300 dark:border-purple-700 rounded text-xs text-purple-700 dark:text-purple-300 font-mono">
-        🔀 Switch: {displayValue}
-        {children && (
-          <div className="mt-1 pl-2 border-l-2 border-purple-400 dark:border-purple-600">
-            {children}
-          </div>
-        )}
-      </div>
-    );
-  }
 
   // Normal mode - provide context to Case/Default children
   // Component itself doesn't render

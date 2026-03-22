@@ -30,24 +30,9 @@ import { useTemplateState } from '@/lib/templates/state/TemplateStateProvider';
 export interface ResetProps {
   /** Variable name to reset (if omitted, resets all variables) */
   var?: string;
-
-  /** Internal: Visual builder mode flag */
-  __visualBuilder?: boolean;
-  _isInVisualBuilder?: boolean;
 }
 
 export default function Reset(props: ResetProps) {
-  const { __visualBuilder, _isInVisualBuilder } = props;
-  const isVisualBuilder = __visualBuilder === true || _isInVisualBuilder === true;
-
-  // Visual builder mode - show indicator
-  if (isVisualBuilder) {
-    return (
-      <div className="inline-block px-2 py-1 bg-orange-100 dark:bg-orange-900/30 border border-orange-300 dark:border-orange-700 rounded text-xs text-orange-700 dark:text-orange-300 font-mono">
-        🔄 Reset: {props.var || 'All Variables'}
-      </div>
-    );
-  }
 
   // Normal mode - render nothing (executed by event handler)
   return null;
