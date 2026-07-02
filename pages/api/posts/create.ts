@@ -211,6 +211,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         const accumulatedThreadRingPostIds: Record<string, string> =
           (post.threadRingPostIds as Record<string, string>) || {};
 
+        // Only rings the hub actually accepted get local associations below —
+        // otherwise the UI shows the post in rings it never reached.
+        const submittedSlugs: string[] = [];
+
         // Submit post to each Ring Hub ring using the correct Ring Hub API format
         for (const slug of validSlugs) {
           try {
@@ -319,6 +323,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             };
 
             const result = await authenticatedClient.submitPost(slug, postSubmission);
+            submittedSlugs.push(slug);
 
             // Store the ThreadRing database UUID from the response
             if (result.id) {
@@ -354,12 +359,14 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         }
 
         // Create local PostThreadRing associations for feed display
-        // even when using Ring Hub (maintains compatibility with existing feed APIs)
-        if (validSlugs.length > 0) {
+        // even when using Ring Hub (maintains compatibility with existing feed APIs).
+        // Only for rings the hub accepted — a failed submission must not show
+        // as attached in the UI.
+        if (submittedSlugs.length > 0) {
           try {
             // Get existing local ThreadRing records
             const existingLocalRings = await db.threadRing.findMany({
-              where: { slug: { in: validSlugs } },
+              where: { slug: { in: submittedSlugs } },
               select: { id: true, slug: true, name: true }
             });
 
@@ -369,7 +376,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             );
 
             // Create missing local ThreadRing records for RingHub rings
-            const missingRingSlugs = validSlugs.filter(slug => !existingRingsMap.has(slug));
+            const missingRingSlugs = submittedSlugs.filter(slug => !existingRingsMap.has(slug));
 
             for (const slug of missingRingSlugs) {
               try {
