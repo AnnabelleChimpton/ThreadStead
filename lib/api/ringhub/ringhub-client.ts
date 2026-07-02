@@ -737,7 +737,10 @@ export class RingHubClient {
     let bodyString = ''
     if (body && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
       bodyString = JSON.stringify(body)
-      headers['Content-Length'] = bodyString.length.toString()
+      // Never set Content-Length manually: string .length counts UTF-16 code
+      // units, not UTF-8 bytes, so any non-ASCII body undercounts and the
+      // connection stalls waiting for the "missing" bytes. fetch() computes
+      // the correct byte length itself.
 
       // Generate content digest for body
       const hash = crypto.createHash('sha256').update(bodyString).digest('base64')
@@ -761,6 +764,10 @@ export class RingHubClient {
         throw new RingHubClientError(`Failed to generate HTTP signature: ${error}`)
       }
     }
+
+    // Host was only needed to build the signing string above — fetch() derives
+    // the real Host header from the URL (same value), so don't send it manually.
+    delete headers['Host']
 
     const config: RequestInit = {
       method,
