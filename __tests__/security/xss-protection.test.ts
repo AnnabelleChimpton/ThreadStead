@@ -12,6 +12,38 @@ import { describe, it, expect } from '@jest/globals';
 import { cleanCss } from '@/lib/utils/sanitization/css';
 import { cleanHtml, markdownToSafeHtml } from '@/lib/utils/sanitization/html';
 
+// jest.setup.js globally mocks `marked` with a passthrough stub; these tests
+// exercise real markdown conversion, so restore the actual library here.
+// (jest.mock calls are hoisted above the imports.)
+//
+// Note: `marked` ships only an ESM build, and next/jest always keeps
+// node_modules in transformIgnorePatterns, so jest.requireActual('marked')
+// fails with "Unexpected token 'export'". Instead we load the ESM source
+// (a single dependency-free file whose only ESM syntax is one trailing
+// `export{...}` statement) and convert that statement to module.exports.
+jest.mock('marked', () => {
+  const fs = require('fs') as typeof import('fs');
+  const path = require('path') as typeof import('path');
+
+  const src = fs.readFileSync(
+    path.join(__dirname, '..', '..', 'node_modules', 'marked', 'lib', 'marked.esm.js'),
+    'utf8'
+  );
+
+  const cjs = src.replace(/export\{([^}]*)\}/, (_match: string, names: string) => {
+    const entries = names.split(',').map((entry: string) => {
+      const [local, exported] = entry.trim().split(/ as /);
+      return `${(exported ?? local).trim()}:${local.trim()}`;
+    });
+    return `module.exports={${entries.join(',')}}`;
+  });
+
+  const moduleShim = { exports: {} };
+  // eslint-disable-next-line no-new-func
+  new Function('module', 'exports', `"use strict";${cjs}`)(moduleShim, moduleShim.exports);
+  return moduleShim.exports;
+});
+
 describe('XSS Protection Test Suite', () => {
   describe('CSS Sanitization', () => {
     it('should block javascript: URLs in CSS', () => {

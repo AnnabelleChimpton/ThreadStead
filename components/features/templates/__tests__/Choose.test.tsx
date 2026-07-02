@@ -340,12 +340,13 @@ describe('Choose Component', () => {
 
   describe('Edge Cases', () => {
     it('should handle empty Choose component', () => {
-      renderWithTemplateContext(
-        <Choose>
-        </Choose>
+      // Intentionally render without children to verify robustness
+      const { container } = renderWithTemplateContext(
+        <Choose children={undefined as any} />
       );
-      
+
       // Should render nothing without error
+      expect(container).toBeEmptyDOMElement();
     });
 
     it('should handle Choose with only Otherwise', () => {

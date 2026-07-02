@@ -1232,13 +1232,20 @@ code block
             Cancel
           </button>
 
-          <button
-            type="submit"
-            className="border border-black px-6 py-2 bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000] font-medium disabled:opacity-50"
-            disabled={busy || !content.trim()}
-          >
-            {busy ? `${mode === "edit" ? "Updating" : "Publishing"}…` : (submitLabel || `${mode === "edit" ? "Update" : "Publish"} Post`)}
-          </button>
+          <div className="flex items-center gap-3">
+            {uploadingImage && (
+              <span className="text-sm text-gray-600" role="status">
+                Uploading image… please wait
+              </span>
+            )}
+            <button
+              type="submit"
+              className="border border-black px-6 py-2 bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000] font-medium disabled:opacity-50"
+              disabled={busy || uploadingImage || !content.trim()}
+            >
+              {busy ? `${mode === "edit" ? "Updating" : "Publishing"}…` : (submitLabel || `${mode === "edit" ? "Update" : "Publish"} Post`)}
+            </button>
+          </div>
         </div >
 
         {error && (

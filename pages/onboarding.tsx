@@ -1,6 +1,7 @@
 // pages/onboarding.tsx
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import Layout from "@/components/ui/layout/Layout";
 import UsernameSelector from "@/components/features/auth/UsernameSelector";
 import WelcomeRingOptIn from "@/components/features/onboarding/WelcomeRingOptIn";
@@ -8,6 +9,7 @@ import WelcomeRingOptIn from "@/components/features/onboarding/WelcomeRingOptIn"
 type OnboardingStep = 'username' | 'welcome-ring' | 'complete';
 
 export default function Onboarding() {
+  const router = useRouter();
   const [step, setStep] = useState<OnboardingStep>('username');
   const [username, setUsername] = useState<string>('');
   const [busy, setBusy] = useState(false);
@@ -52,15 +54,15 @@ export default function Onboarding() {
     if (joinWelcomeRing) {
       // If they want to join, redirect directly to Welcome Ring
       // This will let them join manually if needed, or see the ring if it exists
-      window.location.href = `/tr/welcome`;
+      router.push(`/tr/welcome`);
     } else {
       // If they skip, go to their profile
-      window.location.href = `/resident/${username}`;
+      router.push(`/resident/${username}`);
     }
   }
 
   function handleCancel() {
-    window.location.href = "/";
+    router.push("/");
   }
 
   return (

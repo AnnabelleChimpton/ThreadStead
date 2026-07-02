@@ -25,9 +25,16 @@ export function useDirectMessages(conversationId: string | null) {
     useEffect(() => {
         if (!user || !conversationId) {
             setMessages([]);
+            setSocket(null);
             return;
         }
 
+        // Guards against the previous conversation's late-resolving fetch
+        // overwriting this conversation's messages, and against setState
+        // after unmount.
+        let cancelled = false;
+
+        setMessages([]);
         setLoading(true);
 
         // Connect socket
@@ -36,6 +43,7 @@ export function useDirectMessages(conversationId: string | null) {
         });
 
         newSocket.on('dm:new_message', (message: Message) => {
+            if (cancelled) return;
             if (message.conversationId === conversationId) {
                 setMessages(prev => [...prev, message]);
                 // Mark as read
@@ -47,19 +55,25 @@ export function useDirectMessages(conversationId: string | null) {
 
         // Fetch messages
         fetch(`/api/messages/${conversationId}`)
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) throw new Error(`Failed to fetch messages (${res.status})`);
+                return res.json();
+            })
             .then(data => {
-                setMessages(data);
+                if (cancelled) return;
+                setMessages(Array.isArray(data) ? data : []);
                 setLoading(false);
                 // Mark as read on load
                 newSocket.emit('dm:read', { conversationId });
             })
             .catch(err => {
+                if (cancelled) return;
                 console.error(err);
                 setLoading(false);
             });
 
         return () => {
+            cancelled = true;
             newSocket.disconnect();
         };
     }, [user, conversationId]);

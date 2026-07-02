@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import NotificationBell from '../NotificationBell';
 
 // Mock Next.js Link component
@@ -286,8 +286,12 @@ describe('NotificationBell Component', () => {
 
   describe('Periodic Refresh', () => {
     it('should set up periodic refresh when logged in', async () => {
+      // The module-level jest.useFakeTimers() is undone by the afterEach
+      // jest.useRealTimers(), so re-enable fake timers for this test
+      jest.useFakeTimers();
+
       render(<NotificationBell />);
-      
+
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith('/api/notifications/count');
       });
@@ -295,7 +299,9 @@ describe('NotificationBell Component', () => {
       mockFetch.mockClear();
 
       // Fast forward 30 seconds
-      jest.advanceTimersByTime(30000);
+      act(() => {
+        jest.advanceTimersByTime(30000);
+      });
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith('/api/notifications/count');

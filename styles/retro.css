@@ -73,7 +73,6 @@ a:hover {
   z-index: 1;
 
   /* Consistent width across feed, directory, and profile pages */
-  min-width: 900px; /* Adjust this value to match your directory page width */
   width: 100%;
   max-width: 1100px; /* Maximum width to prevent overly wide content */
   margin-left: auto;
@@ -82,13 +81,11 @@ a:hover {
 
 /* Template-aware RetroCard - Allow flexing in profile templates */
 .profile-template-root .template-card.thread-module {
-  min-width: 0;
   max-width: 100%;
 }
 
 /* Fix all modules on regular profile pages - ensure consistent width */
 .ts-profile-main-content .thread-module {
-  min-width: 0;
   max-width: 100%;
 }
 
@@ -96,7 +93,7 @@ a:hover {
 .thread-label {
   font-family: "Menlo", "Monaco", "Consolas", monospace;
   font-size: 0.75rem;
-  color: #A18463;
+  color: #7A6248; /* darkened sage for WCAG contrast at small sizes */
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -241,11 +238,6 @@ a:hover {
 /* Custom numbered items (for user's reverse ranking) */
 .thread-content p {
   margin: 0.5rem 0;
-}
-
-/* Ensure escaped periods render correctly for custom numbering */
-.thread-content p:has-text("\.") {
-  font-weight: normal;
 }
 
 .thread-content strong,
@@ -476,7 +468,7 @@ html {
 
 /* Accessibility with warm focus */
 :focus-visible {
-  outline: 2px solid #4FAF6D;
+  outline: 2px solid #E27D60;
   outline-offset: 2px;
   border-radius: 2px;
 }
@@ -1213,15 +1205,6 @@ textarea:focus {
   }
 }
 
-/* Hover animations for user cards */
-.user-card {
-  /* User card styling without hover animations */
-}
-
-.user-card:hover {
-  /* No hover transformations */
-}
-
 /* =====================================================
    THREAD MODULE RESPONSIVE ADJUSTMENTS
    ===================================================== */
@@ -1262,7 +1245,7 @@ textarea:focus {
   
   /* Reduce label sizes */
   .thread-module .thread-label {
-    font-size: 0.65rem; /* Down from 0.75rem */
+    font-size: 0.7rem; /* Down from 0.75rem; floored for legibility */
     letter-spacing: 0.3px;
   }
   
@@ -1339,7 +1322,7 @@ textarea:focus {
   }
   
   .thread-module .thread-label {
-    font-size: 0.6rem;
+    font-size: 0.7rem; /* floored for legibility */
   }
   
   .thread-module .thread-divider {

@@ -64,11 +64,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const newPasswordHash = await hashPassword(newPassword);
 
     // Update user
+    // Only update the encrypted seed phrase when a non-empty value is provided;
+    // writing empty/null would corrupt account recovery data
     await db.user.update({
       where: { id: userId },
       data: {
         passwordHash: newPasswordHash,
-        encryptedSeedPhrase // Updated encrypted seed phrase with new password
+        ...(typeof encryptedSeedPhrase === "string" && encryptedSeedPhrase.length > 0
+          ? { encryptedSeedPhrase } // Updated encrypted seed phrase with new password
+          : {})
       }
     });
 

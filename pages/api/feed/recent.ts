@@ -12,8 +12,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const limit = Math.min(parseInt(String(req.query.limit || "20")), 50);
-    const offset = parseInt(String(req.query.offset || "0"));
+    const limit = Math.min(Math.max(parseInt(String(req.query.limit || "20"), 10) || 20, 1), 50);
+    const offset = Math.max(parseInt(String(req.query.offset || "0"), 10) || 0, 0);
 
     const posts = await db.post.findMany({
       where: {
@@ -34,12 +34,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             }
           }
         },
-        comments: {
+        _count: {
           select: {
-            id: true
-          },
-          where: {
-            status: "visible"
+            comments: {
+              where: {
+                status: "visible"
+              }
+            }
           }
         },
         threadRings: {
@@ -82,7 +83,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       bodyMarkdown: post.bodyMarkdown,
       media: post.media,
       tags: post.tags,
-      commentCount: post.comments.length,
+      commentCount: post._count.comments,
       threadRings: post.threadRings,
       isSpoiler: post.isSpoiler,
       contentWarning: post.contentWarning,

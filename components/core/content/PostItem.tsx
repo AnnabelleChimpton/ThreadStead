@@ -1,10 +1,9 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import { cleanAndNormalizeHtml, markdownToSafeHtml } from "@/lib/utils/sanitization/html";
 import { TextWithEmojis, HtmlWithEmojis, MarkdownWithEmojis, markdownToSafeHtmlWithEmojis, processHtmlWithEmojis } from "@/lib/comment-markup";
 import { truncateText, truncateHtml, needsTruncation } from "@/lib/utils/text-truncation";
-import hljs from "highlight.js"; // Ensure highlight.js is imported
 import CommentList, { CommentWire as CommentWireList } from "./CommentList";
 import NewCommentForm, { CommentWire as CommentWireForm } from "../../ui/forms/NewCommentForm";
 import ThreadRingBadge from "../threadring/ThreadRingBadge";
@@ -122,6 +121,7 @@ export default function PostItem({
   userRole,
   isUserMember = false,
   viewContext,
+  commentCount: initialCommentCount,
 }: {
   post: Post;
   isOwner: boolean;
@@ -135,6 +135,8 @@ export default function PostItem({
   userRole?: ThreadRingRole;
   isUserMember?: boolean;
   viewContext?: 'feed' | 'profile' | 'ring' | 'widget';
+  /** Comment count provided by a list-level batch fetch; when set, the per-post count fetch is skipped. */
+  commentCount?: number;
 }) {
   const router = useRouter();
 
@@ -154,7 +156,9 @@ export default function PostItem({
   const [err, setErr] = useState<string | null>(null);
   const [commentsOpen, setCommentsOpen] = useState(initialCommentsOpen);
   const [commentsVersion, setCommentsVersion] = useState(0);
-  const [commentCount, setCommentCount] = useState<number | null>(null);
+  const [commentCount, setCommentCount] = useState<number | null>(
+    typeof initialCommentCount === "number" ? initialCommentCount : null
+  );
   const [optimistic, setOptimistic] = useState<CommentWireList[]>([]);
   const [spoilerRevealed, setSpoilerRevealed] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -188,6 +192,12 @@ export default function PostItem({
 
 
   useEffect(() => {
+    // A list-level batch fetch (e.g. RingHubFeed) already provided the count;
+    // skip the per-post request.
+    if (typeof initialCommentCount === "number") {
+      setCommentCount(initialCommentCount);
+      return;
+    }
     let cancelled = false;
     (async () => {
       try {
@@ -200,7 +210,7 @@ export default function PostItem({
       } catch { }
     })();
     return () => { cancelled = true; };
-  }, [post.id]);
+  }, [post.id, initialCommentCount]);
 
   // callbacks
   const handleCommentAdded = (c: CommentWireForm) => {
@@ -221,22 +231,44 @@ export default function PostItem({
     : (optimistic.length ? `${optimistic.length}+` : "…");
 
 
-  // Function to apply syntax highlighting
-  const highlightCodeBlocks = () => {
-    const blocks = document.querySelectorAll("pre code");
-    blocks.forEach((block) => {
-      // Remove the highlighted state before applying highlighting again
-      block.removeAttribute("data-highlighted");
+  // Ref for this post's own content container so syntax highlighting is
+  // scoped to this post instead of the whole document.
+  const contentRef = useRef<HTMLDivElement | null>(null);
 
-      // Apply syntax highlighting
-      hljs.highlightElement(block as HTMLElement);
-    });
-  };
-
-  // UseEffect to apply highlighting on mount
+  // Lazily syntax-highlight code blocks inside this post only.
+  // - highlight.js is dynamically imported only when the rendered content
+  //   actually contains a code block (keeps it out of the shared bundle)
+  // - a MutationObserver catches async-rendered content (markdown/emoji
+  //   pipelines, truncation expand/collapse) instead of only running on mount
   useEffect(() => {
+    const container = contentRef.current;
+    if (!container) return;
+    let cancelled = false;
+
+    const highlightCodeBlocks = async () => {
+      const blocks = container.querySelectorAll('pre code:not([data-highlighted="yes"])');
+      if (blocks.length === 0) return;
+      const { default: hljs } = await import("highlight.js");
+      if (cancelled) return;
+      blocks.forEach((block) => {
+        hljs.highlightElement(block as HTMLElement);
+      });
+    };
+
     highlightCodeBlocks();
-  }, []);
+
+    const observer = new MutationObserver(() => {
+      // hljs marks processed blocks with data-highlighted="yes", so the
+      // selector above prevents re-highlight loops from its own mutations.
+      highlightCodeBlocks();
+    });
+    observer.observe(container, { childList: true, subtree: true });
+
+    return () => {
+      cancelled = true;
+      observer.disconnect();
+    };
+  }, [post.id]);
 
   async function mintPostCap(): Promise<string> {
     const capRes = await fetch("/api/cap/post", { method: "POST" });
@@ -450,7 +482,7 @@ export default function PostItem({
         </div>
       </header>
 
-      <div className="blog-post-content sm:px-0">
+      <div ref={contentRef} className="blog-post-content sm:px-0">
         {/* Check for fork notification */}
         {(() => {
           const isForkNotification = (post.ringHubData?.metadata?.type === 'fork_notification') ||

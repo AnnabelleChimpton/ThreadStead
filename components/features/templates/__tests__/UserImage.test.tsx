@@ -240,7 +240,7 @@ describe('UserImage Component', () => {
 
     sizeTests.forEach(({ size, expectedClass }) => {
       it(`should apply size="${size}" correctly`, () => {
-        renderWithTemplateContext(<UserImage src="test.jpg" size={size} />);
+        renderWithTemplateContext(<UserImage src="test.jpg" imageSize={size} />);
 
         const img = getImageElement();
         expectedClass.split(' ').forEach(cls => {
@@ -258,7 +258,7 @@ describe('UserImage Component', () => {
 
     it('should not apply size classes when width/height are specified', () => {
       renderWithTemplateContext(
-        <UserImage src="test.jpg" size="lg" width="100px" height="200px" />
+        <UserImage src="test.jpg" imageSize="lg" width="100px" height="200px" />
       );
 
       const img = getImageElement();
@@ -332,14 +332,14 @@ describe('UserImage Component', () => {
 
   describe('Border Props', () => {
     it('should apply border when border=true', () => {
-      renderWithTemplateContext(<UserImage src="test.jpg" border={true} />);
+      renderWithTemplateContext(<UserImage src="test.jpg" showBorder={true} />);
 
       const img = getImageElement();
       expect(img).toHaveClass('border-2', 'border-gray-300');
     });
 
     it('should not apply border when border=false', () => {
-      renderWithTemplateContext(<UserImage src="test.jpg" border={false} />);
+      renderWithTemplateContext(<UserImage src="test.jpg" showBorder={false} />);
 
       const img = getImageElement();
       expect(img).not.toHaveClass('border-2', 'border-gray-300');
@@ -363,7 +363,7 @@ describe('UserImage Component', () => {
 
     shadowTests.forEach(({ shadow, expectedClass }) => {
       it(`should apply shadow="${shadow}" correctly`, () => {
-        renderWithTemplateContext(<UserImage src="test.jpg" shadow={shadow} />);
+        renderWithTemplateContext(<UserImage src="test.jpg" imageShadow={shadow} />);
 
         const img = getImageElement();
         if (expectedClass) {
@@ -451,10 +451,10 @@ describe('UserImage Component', () => {
       renderWithTemplateContext(
         <UserImage 
           src="test.jpg"
-          size="lg"
+          imageSize="lg"
           rounded="full"
-          border={true}
-          shadow="md"
+          showBorder={true}
+          imageShadow="md"
           fit="contain"
         />
       );
@@ -480,10 +480,10 @@ describe('UserImage Component', () => {
           data="gallery"
           index={0}
           alt="Gallery image"
-          size="xl"
+          imageSize="xl"
           rounded="lg"
-          border={true}
-          shadow="lg"
+          showBorder={true}
+          imageShadow="lg"
           fit="cover"
         />, 
         { residentData }
@@ -505,11 +505,11 @@ describe('UserImage Component', () => {
       renderWithTemplateContext(
         <UserImage 
           src="test.jpg"
-          size="xl" // Should be ignored
+          imageSize="xl" // Should be ignored
           width="500px"
           height="300px"
           rounded="full"
-          shadow="sm"
+          imageShadow="sm"
         />
       );
 
@@ -648,7 +648,7 @@ describe('UserImage Component', () => {
       
       validSizes.forEach(size => {
         it(`should accept size="${size}"`, () => {
-          renderWithTemplateContext(<UserImage src="test.jpg" size={size} />);
+          renderWithTemplateContext(<UserImage src="test.jpg" imageSize={size} />);
           expect(getImageElement()).toBeInTheDocument();
         });
       });
@@ -670,7 +670,7 @@ describe('UserImage Component', () => {
       
       validShadows.forEach(shadow => {
         it(`should accept shadow="${shadow}"`, () => {
-          renderWithTemplateContext(<UserImage src="test.jpg" shadow={shadow} />);
+          renderWithTemplateContext(<UserImage src="test.jpg" imageShadow={shadow} />);
           expect(getImageElement()).toBeInTheDocument();
         });
       });
@@ -689,12 +689,12 @@ describe('UserImage Component', () => {
 
     describe('Boolean Props', () => {
       it('should accept border=true', () => {
-        renderWithTemplateContext(<UserImage src="test.jpg" border={true} />);
+        renderWithTemplateContext(<UserImage src="test.jpg" showBorder={true} />);
         expect(getImageElement()).toBeInTheDocument();
       });
 
       it('should accept border=false', () => {
-        renderWithTemplateContext(<UserImage src="test.jpg" border={false} />);
+        renderWithTemplateContext(<UserImage src="test.jpg" showBorder={false} />);
         expect(getImageElement()).toBeInTheDocument();
       });
     });

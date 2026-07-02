@@ -24,9 +24,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       process.env.R2_CDN_URL?.replace(/^https?:\/\//, '').replace(/\/$/, ''),
     ].filter(Boolean)
 
-    const isAllowedDomain = allowedDomains.some(domain =>
-      domain && parsedUrl.hostname.endsWith(domain.split('/')[0])
-    )
+    const isAllowedDomain = allowedDomains.some(domain => {
+      if (!domain) return false
+      const allowedHost = domain.split('/')[0]
+      return parsedUrl.hostname === allowedHost || parsedUrl.hostname.endsWith('.' + allowedHost)
+    })
 
     if (!isAllowedDomain) {
       return res.status(403).json({ error: 'Domain not allowed' })

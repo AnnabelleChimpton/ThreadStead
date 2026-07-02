@@ -40,24 +40,24 @@ export default function Layout({ children, siteConfig, fullWidth = false, advanc
 
         {/* Identity Sync Issue Banner */}
         {hasMismatch && (
-          <div className="bg-amber-100 border-b border-amber-300 px-6 py-2 relative z-[10000]">
+          <div className="bg-thread-cream border-b-2 border-thread-sunset px-6 py-2 relative z-[10000]">
             <div className="mx-auto max-w-5xl flex items-center justify-between">
               <div className="flex items-center gap-2 text-sm">
                 <PixelIcon name="alert" />
-                <span className="text-amber-800">
+                <span className="text-thread-charcoal">
                   Identity conflict detected. Your browser has keys for a different account than you&apos;re logged in as.
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={fixMismatch}
-                  className="px-3 py-1 text-xs bg-amber-600 hover:bg-amber-700 text-white rounded"
+                  className="px-3 py-1 text-xs bg-thread-sunset hover:bg-thread-pine text-thread-paper rounded"
                 >
                   Fix Now
                 </button>
                 <Link
                   href="/settings"
-                  className="px-3 py-1 text-xs bg-amber-200 hover:bg-amber-300 text-amber-800 rounded"
+                  className="px-3 py-1 text-xs bg-thread-paper hover:bg-thread-background border border-thread-sage text-thread-pine rounded"
                 >
                   Account Settings
                 </Link>
@@ -239,24 +239,24 @@ export default function Layout({ children, siteConfig, fullWidth = false, advanc
 
       {/* Identity Sync Issue Banner */}
       {hasMismatch && (
-        <div className="bg-amber-100 border-b border-amber-300 px-6 py-2">
+        <div className="bg-thread-cream border-b-2 border-thread-sunset px-6 py-2">
           <div className="mx-auto max-w-5xl flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-amber-600"><PixelIcon name="alert" size={16} /></span>
-              <span className="text-amber-800">
+              <span className="text-thread-sunset"><PixelIcon name="alert" size={16} /></span>
+              <span className="text-thread-charcoal">
                 Identity conflict detected. Your browser has keys for a different account than you&apos;re logged in as.
               </span>
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={fixMismatch}
-                className="px-3 py-1 text-xs bg-amber-600 hover:bg-amber-700 text-white rounded"
+                className="px-3 py-1 text-xs bg-thread-sunset hover:bg-thread-pine text-thread-paper rounded"
               >
                 Fix Now
               </button>
               <Link
                 href="/settings"
-                className="px-3 py-1 text-xs bg-amber-200 hover:bg-amber-300 text-amber-800 rounded"
+                className="px-3 py-1 text-xs bg-thread-paper hover:bg-thread-background border border-thread-sage text-thread-pine rounded"
               >
                 Account Settings
               </Link>

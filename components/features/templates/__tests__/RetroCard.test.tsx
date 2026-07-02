@@ -35,7 +35,8 @@ describe('RetroCard Component', () => {
       const section = container.querySelector('section');
       expect(section).toHaveClass(
         'thread-module',
-        'p-4',
+        'template-card',
+        'p-0',
         'sm:p-5',
         'md:p-6',
         'mb-3',
@@ -83,7 +84,9 @@ describe('RetroCard Component', () => {
         'sm:text-xl',
         'font-bold',
         'mb-3',
-        'sm:mb-4'
+        'sm:mb-4',
+        'px-4',
+        'sm:px-0'
       );
     });
 
@@ -371,7 +374,7 @@ describe('RetroCard Component', () => {
       );
       
       const section = container.querySelector('section');
-      expect(section).toHaveClass('p-4', 'sm:p-5', 'md:p-6');
+      expect(section).toHaveClass('p-0', 'sm:p-5', 'md:p-6');
     });
 
     it('should have responsive margin classes', () => {

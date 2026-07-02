@@ -2,6 +2,10 @@
  * Test component registry case-insensitive matching
  */
 
+// The component registry transitively imports the DID client, whose
+// @noble/ed25519 dependency is ESM-only and cannot be parsed by jest.
+jest.mock('@/lib/api/did/did-client', () => ({}));
+
 import { componentRegistry } from '@/lib/templates/core/template-registry';
 
 describe('Component Registry Case-Insensitive Matching', () => {

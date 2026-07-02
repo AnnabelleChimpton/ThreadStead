@@ -77,7 +77,7 @@ describe('StickyNote Component', () => {
 
     it('should apply pink color variant', () => {
       const { container } = renderWithTemplateContext(
-        <StickyNote color="pink">Content</StickyNote>
+        <StickyNote noteColor="pink">Content</StickyNote>
       );
       
       expect(container.firstChild).toHaveClass('bg-pink-200', 'border-pink-300');
@@ -85,7 +85,7 @@ describe('StickyNote Component', () => {
 
     it('should apply blue color variant', () => {
       const { container } = renderWithTemplateContext(
-        <StickyNote color="blue">Content</StickyNote>
+        <StickyNote noteColor="blue">Content</StickyNote>
       );
       
       expect(container.firstChild).toHaveClass('bg-blue-200', 'border-blue-300');
@@ -93,7 +93,7 @@ describe('StickyNote Component', () => {
 
     it('should apply green color variant', () => {
       const { container } = renderWithTemplateContext(
-        <StickyNote color="green">Content</StickyNote>
+        <StickyNote noteColor="green">Content</StickyNote>
       );
       
       expect(container.firstChild).toHaveClass('bg-green-200', 'border-green-300');
@@ -101,7 +101,7 @@ describe('StickyNote Component', () => {
 
     it('should apply orange color variant', () => {
       const { container } = renderWithTemplateContext(
-        <StickyNote color="orange">Content</StickyNote>
+        <StickyNote noteColor="orange">Content</StickyNote>
       );
       
       expect(container.firstChild).toHaveClass('bg-orange-200', 'border-orange-300');
@@ -109,7 +109,7 @@ describe('StickyNote Component', () => {
 
     it('should apply purple color variant', () => {
       const { container } = renderWithTemplateContext(
-        <StickyNote color="purple">Content</StickyNote>
+        <StickyNote noteColor="purple">Content</StickyNote>
       );
       
       expect(container.firstChild).toHaveClass('bg-purple-200', 'border-purple-300');
@@ -117,7 +117,7 @@ describe('StickyNote Component', () => {
 
     it('should handle invalid color gracefully', () => {
       const { container } = renderWithTemplateContext(
-        <StickyNote color={'invalid' as any}>Content</StickyNote>
+        <StickyNote noteColor={'invalid' as any}>Content</StickyNote>
       );
       
       // Should not crash and maintain some basic structure
@@ -311,7 +311,8 @@ describe('StickyNote Component', () => {
 
     it('should handle empty content', () => {
       const { container } = renderWithTemplateContext(
-        <StickyNote></StickyNote>
+        // Robustness: component should tolerate missing children
+        <StickyNote children={undefined as any} />
       );
       
       const contentArea = container.querySelector('.relative.z-10');
@@ -374,8 +375,8 @@ describe('StickyNote Component', () => {
   describe('Component Combinations', () => {
     it('should work with all props combined', () => {
       const { container } = renderWithTemplateContext(
-        <StickyNote 
-          color="blue" 
+        <StickyNote
+          noteColor="blue"
           size="lg" 
           rotation={-3}
         >
@@ -400,7 +401,7 @@ describe('StickyNote Component', () => {
 
     it('should work with minimal configuration', () => {
       const { container } = renderWithTemplateContext(
-        <StickyNote color="green" size="sm">
+        <StickyNote noteColor="green" size="sm">
           Small note
         </StickyNote>
       );
@@ -411,7 +412,7 @@ describe('StickyNote Component', () => {
 
     it('should work with extreme rotation', () => {
       const { container } = renderWithTemplateContext(
-        <StickyNote color="pink" rotation={45}>
+        <StickyNote noteColor="pink" rotation={45}>
           Tilted note
         </StickyNote>
       );
@@ -531,11 +532,38 @@ describe('StickyNote Component', () => {
     });
   });
 
+  describe('Universal CSS Props', () => {
+    it('should apply CSS props as inline styles and strip conflicting Tailwind classes', () => {
+      const { container } = renderWithTemplateContext(
+        <StickyNote backgroundColor="#123456" padding="10px">Content</StickyNote>
+      );
+
+      const note = container.firstChild as HTMLElement;
+      expect(note).toHaveStyle({ backgroundColor: '#123456', padding: '10px' });
+      // Conflicting Tailwind utilities are removed (CSS props win)
+      expect(note).not.toHaveClass('bg-yellow-200');
+      expect(note).not.toHaveClass('p-4');
+      // Non-conflicting classes are retained
+      expect(note).toHaveClass('border-dashed', 'shadow-md', 'font-handwriting');
+    });
+
+    it('should keep component rotation transform while applying CSS props', () => {
+      const { container } = renderWithTemplateContext(
+        <StickyNote rotation={10} opacity={0.5}>Content</StickyNote>
+      );
+
+      expect(container.firstChild).toHaveStyle({
+        transform: 'rotate(10deg)',
+        opacity: '0.5'
+      });
+    });
+  });
+
   describe('Performance', () => {
     it('should render quickly', () => {
       const startTime = performance.now();
       renderWithTemplateContext(
-        <StickyNote color="purple">Performance test</StickyNote>
+        <StickyNote noteColor="purple">Performance test</StickyNote>
       );
       const endTime = performance.now();
       
@@ -544,15 +572,15 @@ describe('StickyNote Component', () => {
 
     it('should handle multiple rerenders', () => {
       const { rerender } = renderWithTemplateContext(
-        <StickyNote color="yellow">Initial</StickyNote>
+        <StickyNote noteColor="yellow">Initial</StickyNote>
       );
       
       expect(screen.getByText('Initial')).toBeInTheDocument();
       
-      rerender(<StickyNote color="blue" size="lg">Updated</StickyNote>);
+      rerender(<StickyNote noteColor="blue" size="lg">Updated</StickyNote>);
       expect(screen.getByText('Updated')).toBeInTheDocument();
       
-      rerender(<StickyNote color="green" size="sm" rotation={10}>Final</StickyNote>);
+      rerender(<StickyNote noteColor="green" size="sm" rotation={10}>Final</StickyNote>);
       expect(screen.getByText('Final')).toBeInTheDocument();
     });
   });

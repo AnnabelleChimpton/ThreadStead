@@ -18,6 +18,10 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
   const [unreadCount, setUnreadCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  // Re-entrancy guard: a ref always reflects the in-flight state, unlike the
+  // `loading` state value captured in the useCallback closure (deps only
+  // include `loggedIn`, so `loading` there is stale and never blocks).
+  const fetchInFlightRef = useRef(false);
 
   // Helper function to extract username from handle (e.g., "alice@sitename" -> "alice")
   const getUsername = (handle: string | null | undefined): string | null => {
@@ -26,8 +30,9 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
   };
 
   const fetchNotifications = useCallback(async () => {
-    if (loading || !loggedIn) return;
-    
+    if (fetchInFlightRef.current || !loggedIn) return;
+
+    fetchInFlightRef.current = true;
     setLoading(true);
     try {
       const [notificationsRes, countRes] = await Promise.all([
@@ -48,6 +53,7 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
       console.error('Failed to fetch notifications:', error);
       // Could optionally show toast notification here
     } finally {
+      fetchInFlightRef.current = false;
       setLoading(false);
     }
   }, [loggedIn]);

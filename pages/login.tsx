@@ -245,12 +245,13 @@ export default function LoginPage() {
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-bold mb-2">Seed Phrase</label>
+                  <label htmlFor="login-seed-phrase" className="block text-sm font-bold mb-2">Seed Phrase</label>
                   <textarea
+                    id="login-seed-phrase"
                     value={seedPhrase}
                     onChange={(e) => setSeedPhrase(e.target.value)}
                     placeholder="Enter your 12-word seed phrase..."
-                    className="w-full px-4 py-3 text-lg border border-black rounded-none bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    className="w-full px-4 py-3 text-lg border border-black rounded-none bg-white focus:outline-none focus:ring-2 focus:ring-thread-sunset resize-none"
                     disabled={isLoading}
                     rows={3}
                     onKeyDown={(e) => {
@@ -308,28 +309,30 @@ export default function LoginPage() {
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-bold mb-2">Username</label>
+                  <label htmlFor="login-password-username" className="block text-sm font-bold mb-2">Username</label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">@</span>
                     <input
+                      id="login-password-username"
                       type="text"
                       value={usernameForPassword}
                       onChange={(e) => setUsernameForPassword(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ''))}
                       placeholder="alice"
-                      className="w-full pl-8 pr-4 py-3 text-lg border border-black rounded-none bg-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                      className="w-full pl-8 pr-4 py-3 text-lg border border-black rounded-none bg-white focus:outline-none focus:ring-2 focus:ring-thread-sunset"
                       disabled={isLoading}
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold mb-2">Password</label>
+                  <label htmlFor="login-password" className="block text-sm font-bold mb-2">Password</label>
                   <input
+                    id="login-password"
                     type="password"
                     value={passwordInput}
                     onChange={(e) => setPasswordInput(e.target.value)}
                     placeholder="Enter your password"
-                    className="w-full px-4 py-3 text-lg border border-black rounded-none bg-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full px-4 py-3 text-lg border border-black rounded-none bg-white focus:outline-none focus:ring-2 focus:ring-thread-sunset"
                     disabled={isLoading}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
@@ -387,28 +390,30 @@ export default function LoginPage() {
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-bold mb-2">Username</label>
+                  <label htmlFor="login-email-username" className="block text-sm font-bold mb-2">Username</label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">@</span>
                     <input
+                      id="login-email-username"
                       type="text"
                       value={usernameInput}
                       onChange={(e) => setUsernameInput(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ''))}
                       placeholder="alice"
-                      className="w-full pl-8 pr-4 py-3 text-lg border border-black rounded-none bg-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                      className="w-full pl-8 pr-4 py-3 text-lg border border-black rounded-none bg-white focus:outline-none focus:ring-2 focus:ring-thread-sunset"
                       disabled={isLoading}
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold mb-2">Email Address</label>
+                  <label htmlFor="login-email-address" className="block text-sm font-bold mb-2">Email Address</label>
                   <input
+                    id="login-email-address"
                     type="email"
                     value={emailInput}
                     onChange={(e) => setEmailInput(e.target.value)}
                     placeholder="alice@example.com"
-                    className="w-full px-4 py-3 text-lg border border-black rounded-none bg-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full px-4 py-3 text-lg border border-black rounded-none bg-white focus:outline-none focus:ring-2 focus:ring-thread-sunset"
                     disabled={isLoading}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {

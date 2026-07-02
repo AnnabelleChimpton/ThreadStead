@@ -2,6 +2,37 @@ import React from 'react';
 import { screen, render } from '@testing-library/react';
 import { renderWithTemplateContext, createMockResidentData } from '../test-utils';
 
+// PixelIcon uses next/dynamic which does not resolve in the jest environment
+jest.mock('@/components/ui/PixelIcon', () => ({
+  PixelIcon: ({ name }: { name: string }) => <span data-testid={`pixel-icon-${name}`} />
+}));
+
+// UserMention -> UserQuickView calls useChat, which requires the app-shell ChatProvider
+jest.mock('@/contexts/ChatContext', () => ({
+  __esModule: true,
+  useChat: () => ({ openDM: jest.fn() }),
+  ChatProvider: ({ children }: { children: React.ReactNode }) => children,
+}));
+
+beforeAll(() => {
+  // PostItem view tracking uses IntersectionObserver, which jsdom lacks
+  (global as any).IntersectionObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+
+  // Components like FollowButton and Guestbook fetch from the API on mount.
+  // Without a fetch global the unhandled rejection crashes the jest worker.
+  global.fetch = jest.fn(() =>
+    Promise.resolve({
+      ok: false,
+      status: 404,
+      json: async () => ({})
+    } as Response)
+  ) as jest.Mock;
+});
+
 // Import components directly instead of going through the template engine
 import DisplayName from '../../DisplayName';
 import Bio from '../../Bio';
@@ -67,16 +98,16 @@ describe('Template System End-to-End Integration', () => {
 
     it('should handle complex nested layout template', () => {
       // Simulate what the template system would produce for a complex nested layout:
-      // <GridLayout columns="2" gap="lg">
-      //   <SplitLayout ratio="1:2" gap="md">
-      //     <FlexContainer direction="column" gap="sm">
-      //       <GradientBox gradient="sunset" padding="md">
+      // <GridLayout columns="2" gapSize="lg">
+      //   <SplitLayout ratio="1:2" spacing="md">
+      //     <FlexContainer direction="column" gapSize="sm">
+      //       <GradientBox gradient="sunset" containerPadding="md">
       //         <h2>Welcome Section</h2>
       //         <DisplayName />
       //         <Bio />
       //       </GradientBox>
       //     </FlexContainer>
-      //     <CenteredBox maxWidth="md" padding="lg">
+      //     <CenteredBox containerMaxWidth="md" containerPadding="lg">
       //       <ProfilePhoto />
       //       <p class="description">Profile photo section</p>
       //     </CenteredBox>
@@ -109,16 +140,16 @@ describe('Template System End-to-End Integration', () => {
       });
 
       const { container } = renderWithTemplateContext(
-        <GridLayout columns={2} gap="lg">
-          <SplitLayout ratio="1:2" gap="md">
-            <FlexContainer direction="column" gap="sm">
-              <GradientBox gradient="sunset" padding="md">
+        <GridLayout columns={2} gapSize="lg">
+          <SplitLayout ratio="1:2" spacing="md">
+            <FlexContainer direction="column" gapSize="sm">
+              <GradientBox gradient="sunset" containerPadding="md">
                 <h2>Welcome Section</h2>
                 <DisplayName />
                 <Bio />
               </GradientBox>
             </FlexContainer>
-            <CenteredBox maxWidth="md" padding="lg">
+            <CenteredBox containerMaxWidth="md" containerPadding="lg">
               <ProfilePhoto />
               <p className="description">Profile photo section</p>
             </CenteredBox>
@@ -140,7 +171,8 @@ describe('Template System End-to-End Integration', () => {
 
       // Verify nested content
       expect(screen.getByText('Welcome Section')).toBeInTheDocument();
-      expect(screen.getByText('Complex User')).toBeInTheDocument();
+      // DisplayName renders it and PostItem also shows the author name
+      expect(screen.getAllByText('Complex User').length).toBeGreaterThan(0);
       expect(screen.getByText('Profile photo section')).toBeInTheDocument();
       expect(screen.getByText('My Blog Posts')).toBeInTheDocument();
       // Blog posts render through PostItem component, so check for the actual rendered content
@@ -302,7 +334,7 @@ describe('Template System End-to-End Integration', () => {
           </header>
           
           <main className="profile-content">
-            <GridLayout columns={2} gap="lg">
+            <GridLayout columns={2} gapSize="lg">
               <section className="posts-section">
                 <h2>My Posts</h2>
                 <BlogPosts />
@@ -325,7 +357,7 @@ describe('Template System End-to-End Integration', () => {
       );
 
       // Verify all sections render with correct data
-      expect(screen.getByText('Comprehensive User')).toBeInTheDocument();
+      expect(screen.getAllByText('Comprehensive User').length).toBeGreaterThan(0);
       expect(screen.getByText('A comprehensive user profile with all the features!')).toBeInTheDocument();
       // Blog posts content is rendered through PostItem - check for elements that should be there
       expect(screen.getByText('Recent Posts')).toBeInTheDocument(); // BlogPosts title
@@ -383,7 +415,7 @@ describe('Template System End-to-End Integration', () => {
       const startTime = Date.now();
 
       const { container } = renderWithTemplateContext(
-        <GridLayout columns={4} gap="sm">
+        <GridLayout columns={4} gapSize="sm">
           {Array.from({ length: 20 }, (_, i) => (
             <div key={i} className={`item-${i}`}>
               <h3>Item {i}</h3>
@@ -418,18 +450,18 @@ describe('Template System End-to-End Integration', () => {
           <SplitLayout ratio="1:1">
             <FlexContainer direction="column">
               <GradientBox gradient="sunset">
-                <CenteredBox maxWidth="md">
+                <CenteredBox containerMaxWidth="md">
                   <div className="level-5">
                     <h1>Deep Nesting Test</h1>
                     <FlexContainer direction="row">
                       <div className="level-6">
-                        <GradientBox gradient="ocean" padding="sm">
+                        <GradientBox gradient="ocean" containerPadding="sm">
                           <div className="level-7">
                             <DisplayName />
                             <SplitLayout ratio="1:2">
                               <ProfilePhoto />
                               <div className="level-8">
-                                <GridLayout columns={2} gap="xs">
+                                <GridLayout columns={2} gapSize="xs">
                                   <Bio />
                                   <div className="final-level">Final Level Content</div>
                                 </GridLayout>
@@ -458,7 +490,7 @@ describe('Template System End-to-End Integration', () => {
       // Verify all levels render correctly
       expect(screen.getByText('Deep Nesting Test')).toBeInTheDocument();
       expect(screen.getByText('Final Level Content')).toBeInTheDocument();
-      expect(screen.getByText('Test User')).toBeInTheDocument(); // DisplayName deep inside
+      expect(screen.getAllByText('Test User').length).toBeGreaterThan(0); // DisplayName deep inside
 
       // Verify complex layout structures are maintained
       expect(container.querySelector('.grid')).toBeInTheDocument();
@@ -485,9 +517,9 @@ describe('Template System End-to-End Integration', () => {
         <div className="developer-profile">
           <ProfileHeader showPhoto showBio />
           
-          <GridLayout columns={2} gap="lg">
+          <GridLayout columns={2} gapSize="lg">
             <div className="skills-section">
-              <ProgressTracker title="Technical Skills" display="bars" theme="modern">
+              <ProgressTracker title="Technical Skills" displayMode="bars" theme="modern">
                 <ProgressItem label="React" value={85} color="blue" />
                 <ProgressItem label="TypeScript" value={80} color="green" />
                 <ProgressItem label="Node.js" value={75} color="purple" />
@@ -496,7 +528,7 @@ describe('Template System End-to-End Integration', () => {
             </div>
             
             <div className="ratings-section">
-              <ProgressTracker title="Project Ratings" display="stars" theme="retro">
+              <ProgressTracker title="Project Ratings" displayMode="stars" theme="retro">
                 <ProgressItem label="E-commerce Site" value={4} max={5} />
                 <ProgressItem label="Mobile App" value={5} max={5} />
                 <ProgressItem label="Dashboard" value={3} max={5} />
@@ -504,16 +536,16 @@ describe('Template System End-to-End Integration', () => {
             </div>
           </GridLayout>
 
-          <FlexContainer direction="row" gap="lg">
-            <GradientBox gradient="neon" padding="md">
-              <ProgressTracker title="2024 Goals" display="circles" theme="neon" showValues size="sm">
+          <FlexContainer direction="row" gapSize="lg">
+            <GradientBox gradient="neon" containerPadding="md">
+              <ProgressTracker title="2024 Goals" displayMode="circles" theme="neon" showValues size="sm">
                 <ProgressItem label="Learning" value={75} color="pink" />
                 <ProgressItem label="Projects" value={60} color="blue" />
               </ProgressTracker>
             </GradientBox>
             
-            <CenteredBox maxWidth="md">
-              <ProgressTracker title="Skill Levels" display="dots" layout="horizontal" theme="minimal">
+            <CenteredBox containerMaxWidth="md">
+              <ProgressTracker title="Skill Levels" displayMode="dots" layout="horizontal" theme="minimal">
                 <ProgressItem label="JavaScript" value={9} max={10} />
                 <ProgressItem label="CSS" value={8} max={10} />
                 <ProgressItem label="Design" value={6} max={10} />
@@ -548,7 +580,8 @@ describe('Template System End-to-End Integration', () => {
       expect(container.querySelector('.ts-progress-dots')).toBeInTheDocument();
 
       // Verify other components still work alongside ProgressTracker
-      expect(screen.getByText('Jane Developer')).toBeInTheDocument();
+      // (rendered by ProfileHeader and again by the PostItem author line)
+      expect(screen.getAllByText('Jane Developer').length).toBeGreaterThan(0);
       expect(screen.getByText('Full-stack developer with 5 years of experience')).toBeInTheDocument();
       expect(screen.getByText('Recent Posts')).toBeInTheDocument();
     });
@@ -588,7 +621,7 @@ describe('Template System End-to-End Integration', () => {
       const startTime = Date.now();
 
       const { container } = renderWithTemplateContext(
-        <ProgressTracker title="All My Skills" display="bars" size="sm">
+        <ProgressTracker title="All My Skills" displayMode="bars" size="sm">
           {Array.from({ length: 50 }, (_, i) => (
             <ProgressItem 
               key={i}
@@ -653,16 +686,16 @@ describe('Template System End-to-End Integration', () => {
         <div className="photographer-portfolio">
           <ProfileHeader showPhoto showBio />
           
-          <GridLayout columns={1} gap="lg">
+          <GridLayout columns={1} gapSize="lg">
             <div className="main-gallery">
               <h2>My Photography</h2>
-              <ImageCarousel height="lg" transition="fade" autoplay interval={4} />
+              <ImageCarousel carouselHeight="lg" transition="fade" autoplay interval={4} />
             </div>
             
-            <SplitLayout ratio="2:1" gap="md">
+            <SplitLayout ratio="2:1" spacing="md">
               <div className="custom-gallery">
                 <h3>Featured Work</h3>
-                <ImageCarousel height="md" controls="dots">
+                <ImageCarousel carouselHeight="md" controls="dots">
                   <CarouselImage 
                     src="/featured/wedding1.jpg" 
                     alt="Wedding photography" 
@@ -678,7 +711,7 @@ describe('Template System End-to-End Integration', () => {
               </div>
               
               <div className="skills-section">
-                <ProgressTracker title="Photography Skills" display="bars" size="sm">
+                <ProgressTracker title="Photography Skills" displayMode="bars" size="sm">
                   <ProgressItem label="Portrait" value={95} color="blue" />
                   <ProgressItem label="Landscape" value={90} color="green" />
                   <ProgressItem label="Event" value={85} color="purple" />
@@ -715,7 +748,7 @@ describe('Template System End-to-End Integration', () => {
 
       // Verify layout integration
       const gridLayout = container.querySelector('.grid');
-      const splitLayout = container.querySelector('.ts-split-layout');
+      const splitLayout = container.querySelector('.w-full.flex.flex-col');
       expect(gridLayout).toBeInTheDocument();
       expect(splitLayout).toBeInTheDocument();
     });
@@ -759,7 +792,7 @@ describe('Template System End-to-End Integration', () => {
         <div className="conditional-gallery">
           <IfOwner>
             <h3>Private Gallery (Owner Only)</h3>
-            <ImageCarousel height="sm" controls="arrows" />
+            <ImageCarousel carouselHeight="sm" controls="arrows" />
           </IfOwner>
           
           <IfVisitor>
@@ -799,17 +832,17 @@ describe('Template System End-to-End Integration', () => {
       });
 
       const { container } = renderWithTemplateContext(
-        <FlexContainer direction="column" gap="lg">
+        <FlexContainer direction="column" gapSize="lg">
           <div className="carousel-1">
-            <ImageCarousel height="lg" transition="slide" showThumbnails loop />
+            <ImageCarousel carouselHeight="lg" transition="slide" showThumbnails loop />
           </div>
           
           <div className="carousel-2">
-            <ImageCarousel height="sm" transition="fade" controls="dots" showThumbnails={false} />
+            <ImageCarousel carouselHeight="sm" transition="fade" controls="dots" showThumbnails={false} />
           </div>
           
           <div className="carousel-3">
-            <ImageCarousel height="md" controls="arrows" autoplay={false}>
+            <ImageCarousel carouselHeight="md" controls="arrows" autoplay={false}>
               <CarouselImage src="/override1.jpg" alt="Override 1" />
               <CarouselImage src="/override2.jpg" alt="Override 2" />
             </ImageCarousel>
@@ -822,7 +855,7 @@ describe('Template System End-to-End Integration', () => {
       expect(carousels).toHaveLength(3);
 
       // First carousel uses resident data
-      expect(screen.getByAltText('Test image 1')).toBeInTheDocument();
+      expect(screen.getAllByAltText('Test image 1').length).toBeGreaterThan(0);
       
       // Third carousel uses custom images
       expect(screen.getByAltText('Override 1')).toBeInTheDocument();

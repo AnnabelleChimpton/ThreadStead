@@ -1,7 +1,12 @@
 import React from 'react';
 import { screen } from '@testing-library/react';
 import ProfileBadges from '../ProfileBadges';
-import { renderWithTemplateContext } from './test-utils';
+import { renderWithTemplateContext, createMockResidentData } from './test-utils';
+
+// PixelIcon uses next/dynamic which does not resolve in the jest environment
+jest.mock('@/components/ui/PixelIcon', () => ({
+  PixelIcon: ({ name }: { name: string }) => <span data-testid={`pixel-icon-${name}`} />
+}));
 
 // Mock the ThreadRing88x31Badge component
 jest.mock('../../../core/threadring/ThreadRing88x31Badge', () => {
@@ -21,70 +26,70 @@ describe('ProfileBadges Component', () => {
       title: 'Contributor', 
       subtitle: 'Active Member',
       imageUrl: '/badge1.jpg',
-      templateId: 1,
+      templateId: 'template-1',
       backgroundColor: '#ff0000',
       textColor: '#ffffff',
-      threadRing: { name: 'Tech Community' }
+      threadRing: { id: 'ring-tech-community', name: 'Tech Community', slug: 'tech-community' }
     },
     { 
       id: '2', 
       title: 'Creator', 
       subtitle: 'Original Content',
       imageUrl: '/badge2.jpg',
-      templateId: 2,
+      templateId: 'template-2',
       backgroundColor: '#00ff00',
       textColor: '#000000',
-      threadRing: { name: 'Art Circle' }
+      threadRing: { id: 'ring-art-circle', name: 'Art Circle', slug: 'art-circle' }
     },
     { 
       id: '3', 
       title: 'Moderator', 
       subtitle: 'Community Leader',
       imageUrl: '/badge3.jpg',
-      templateId: 3,
+      templateId: 'template-3',
       backgroundColor: '#0000ff',
       textColor: '#ffffff',
-      threadRing: { name: 'Gaming Hub' }
+      threadRing: { id: 'ring-gaming-hub', name: 'Gaming Hub', slug: 'gaming-hub' }
     },
     { 
       id: '4', 
       title: 'Veteran', 
       subtitle: '5 Years',
       imageUrl: '/badge4.jpg',
-      templateId: 4,
+      templateId: 'template-4',
       backgroundColor: '#ffff00',
       textColor: '#000000',
-      threadRing: { name: 'Old School' }
+      threadRing: { id: 'ring-old-school', name: 'Old School', slug: 'old-school' }
     },
     { 
       id: '5', 
       title: 'Expert', 
       subtitle: 'Knowledge Sharer',
       imageUrl: '/badge5.jpg',
-      templateId: 5,
+      templateId: 'template-5',
       backgroundColor: '#ff00ff',
       textColor: '#ffffff',
-      threadRing: { name: 'Learn Together' }
+      threadRing: { id: 'ring-learn-together', name: 'Learn Together', slug: 'learn-together' }
     },
     { 
       id: '6', 
       title: 'Helper', 
       subtitle: 'Always Available',
       imageUrl: '/badge6.jpg',
-      templateId: 6,
+      templateId: 'template-6',
       backgroundColor: '#00ffff',
       textColor: '#000000',
-      threadRing: { name: 'Support Network' }
+      threadRing: { id: 'ring-support-network', name: 'Support Network', slug: 'support-network' }
     },
     { 
       id: '7', 
       title: 'Pioneer', 
       subtitle: 'Early Adopter',
       imageUrl: '/badge7.jpg',
-      templateId: 7,
+      templateId: 'template-7',
       backgroundColor: '#808080',
       textColor: '#ffffff',
-      threadRing: { name: 'Beta Testers' }
+      threadRing: { id: 'ring-beta-testers', name: 'Beta Testers', slug: 'beta-testers' }
     },
   ];
 
@@ -92,7 +97,7 @@ describe('ProfileBadges Component', () => {
     it('should render with badges', () => {
       renderWithTemplateContext(
         <ProfileBadges />,
-        { residentData: { badges: mockBadges.slice(0, 3) } }
+        { residentData: createMockResidentData({ badges: mockBadges.slice(0, 3) }) }
       );
       
       expect(screen.getByText('ThreadRing Badges')).toBeInTheDocument();
@@ -102,17 +107,17 @@ describe('ProfileBadges Component', () => {
     it('should render empty state when no badges', () => {
       renderWithTemplateContext(
         <ProfileBadges />,
-        { residentData: { badges: [] } }
+        { residentData: createMockResidentData({ badges: [] }) }
       );
       
       expect(screen.getByText('No badges yet')).toBeInTheDocument();
-      expect(screen.getByText('🏆')).toBeInTheDocument();
+      expect(screen.getByText(/hasn't earned any ThreadRing badges yet/)).toBeInTheDocument();
     });
 
     it('should render empty state when badges is null', () => {
       renderWithTemplateContext(
         <ProfileBadges />,
-        { residentData: { badges: null } }
+        { residentData: createMockResidentData({ badges: null }) }
       );
       
       expect(screen.getByText('No badges yet')).toBeInTheDocument();
@@ -121,7 +126,7 @@ describe('ProfileBadges Component', () => {
     it('should render empty state when badges is undefined', () => {
       renderWithTemplateContext(
         <ProfileBadges />,
-        { residentData: { badges: undefined } }
+        { residentData: createMockResidentData({ badges: undefined }) }
       );
       
       expect(screen.getByText('No badges yet')).toBeInTheDocument();
@@ -130,7 +135,7 @@ describe('ProfileBadges Component', () => {
     it('should have correct container structure', () => {
       const { container } = renderWithTemplateContext(
         <ProfileBadges />,
-        { residentData: { badges: mockBadges } }
+        { residentData: createMockResidentData({ badges: mockBadges }) }
       );
       
       const profileBadges = container.querySelector('.profile-badges');
@@ -143,7 +148,7 @@ describe('ProfileBadges Component', () => {
     it('should limit display to 6 badges', () => {
       renderWithTemplateContext(
         <ProfileBadges />,
-        { residentData: { badges: mockBadges } }
+        { residentData: createMockResidentData({ badges: mockBadges }) }
       );
       
       const badges = screen.getAllByTestId('mock-badge');
@@ -153,7 +158,7 @@ describe('ProfileBadges Component', () => {
     it('should display first 6 badges in order', () => {
       renderWithTemplateContext(
         <ProfileBadges />,
-        { residentData: { badges: mockBadges } }
+        { residentData: createMockResidentData({ badges: mockBadges }) }
       );
       
       const badges = screen.getAllByTestId('mock-badge');
@@ -165,7 +170,7 @@ describe('ProfileBadges Component', () => {
     it('should pass correct props to ThreadRing88x31Badge', () => {
       renderWithTemplateContext(
         <ProfileBadges />,
-        { residentData: { badges: [mockBadges[0]] } }
+        { residentData: createMockResidentData({ badges: [mockBadges[0]] }) }
       );
       
       const badge = screen.getByTestId('mock-badge');
@@ -175,7 +180,7 @@ describe('ProfileBadges Component', () => {
     it('should show indicator for additional badges', () => {
       renderWithTemplateContext(
         <ProfileBadges />,
-        { residentData: { badges: mockBadges } } // 7 badges
+        { residentData: createMockResidentData({ badges: mockBadges }) } // 7 badges
       );
       
       expect(screen.getByText('+1 more badge in full collection')).toBeInTheDocument();
@@ -185,7 +190,7 @@ describe('ProfileBadges Component', () => {
       const moreBadges = [...mockBadges, ...mockBadges]; // 14 badges
       renderWithTemplateContext(
         <ProfileBadges />,
-        { residentData: { badges: moreBadges } }
+        { residentData: createMockResidentData({ badges: moreBadges }) }
       );
       
       expect(screen.getByText('+8 more badges in full collection')).toBeInTheDocument();
@@ -194,7 +199,7 @@ describe('ProfileBadges Component', () => {
     it('should not show indicator when 6 or fewer badges', () => {
       renderWithTemplateContext(
         <ProfileBadges />,
-        { residentData: { badges: mockBadges.slice(0, 6) } }
+        { residentData: createMockResidentData({ badges: mockBadges.slice(0, 6) }) }
       );
       
       expect(screen.queryByText(/more badge/)).not.toBeInTheDocument();
@@ -205,7 +210,7 @@ describe('ProfileBadges Component', () => {
     it('should use grid layout by default', () => {
       const { container } = renderWithTemplateContext(
         <ProfileBadges />,
-        { residentData: { badges: mockBadges } }
+        { residentData: createMockResidentData({ badges: mockBadges }) }
       );
       
       const layout = container.querySelector('.grid');
@@ -216,7 +221,7 @@ describe('ProfileBadges Component', () => {
     it('should apply grid layout when explicitly set', () => {
       const { container } = renderWithTemplateContext(
         <ProfileBadges layout="grid" />,
-        { residentData: { badges: mockBadges } }
+        { residentData: createMockResidentData({ badges: mockBadges }) }
       );
       
       const layout = container.querySelector('.grid');
@@ -227,7 +232,7 @@ describe('ProfileBadges Component', () => {
     it('should apply list layout', () => {
       const { container } = renderWithTemplateContext(
         <ProfileBadges layout="list" />,
-        { residentData: { badges: mockBadges } }
+        { residentData: createMockResidentData({ badges: mockBadges }) }
       );
       
       // The list layout is the container with badges, not the header flex container
@@ -242,10 +247,10 @@ describe('ProfileBadges Component', () => {
     it('should display owner displayName in header', () => {
       renderWithTemplateContext(
         <ProfileBadges />,
-        { residentData: { 
+        { residentData: createMockResidentData({ 
           badges: mockBadges,
           owner: { displayName: 'John Doe' }
-        }}
+        })}
       );
       
       expect(screen.getByText("John Doe's community memberships")).toBeInTheDocument();
@@ -254,10 +259,10 @@ describe('ProfileBadges Component', () => {
     it('should display owner handle when displayName is missing', () => {
       renderWithTemplateContext(
         <ProfileBadges />,
-        { residentData: { 
+        { residentData: createMockResidentData({ 
           badges: mockBadges,
           owner: { handle: '@johndoe' }
-        }}
+        })}
       );
       
       expect(screen.getByText("@johndoe's community memberships")).toBeInTheDocument();
@@ -266,7 +271,7 @@ describe('ProfileBadges Component', () => {
     it('should show View Collection button when badges exist', () => {
       renderWithTemplateContext(
         <ProfileBadges />,
-        { residentData: { badges: mockBadges } }
+        { residentData: createMockResidentData({ badges: mockBadges }) }
       );
       
       expect(screen.getByText('View Collection')).toBeInTheDocument();
@@ -275,7 +280,7 @@ describe('ProfileBadges Component', () => {
     it('should not show View Collection button when no badges', () => {
       renderWithTemplateContext(
         <ProfileBadges />,
-        { residentData: { badges: [] } }
+        { residentData: createMockResidentData({ badges: [] }) }
       );
       
       expect(screen.queryByText('View Collection')).not.toBeInTheDocument();
@@ -284,7 +289,7 @@ describe('ProfileBadges Component', () => {
     it('should not show title by default', () => {
       renderWithTemplateContext(
         <ProfileBadges />,
-        { residentData: { badges: mockBadges } }
+        { residentData: createMockResidentData({ badges: mockBadges }) }
       );
       
       // showTitle prop is false by default, but header section still shows
@@ -294,7 +299,7 @@ describe('ProfileBadges Component', () => {
     it('should show title when showTitle is true', () => {
       renderWithTemplateContext(
         <ProfileBadges showTitle={true} />,
-        { residentData: { badges: mockBadges } }
+        { residentData: createMockResidentData({ badges: mockBadges }) }
       );
       
       expect(screen.getByText('ThreadRing Badges')).toBeInTheDocument();
@@ -305,10 +310,10 @@ describe('ProfileBadges Component', () => {
     it('should show full collection link when badges exist', () => {
       renderWithTemplateContext(
         <ProfileBadges />,
-        { residentData: { 
+        { residentData: createMockResidentData({ 
           badges: mockBadges,
           owner: { displayName: 'Jane' }
-        }}
+        })}
       );
       
       expect(screen.getByText('View Full Badge Collection →')).toBeInTheDocument();
@@ -317,7 +322,7 @@ describe('ProfileBadges Component', () => {
     it('should not show full collection link when no badges', () => {
       renderWithTemplateContext(
         <ProfileBadges />,
-        { residentData: { badges: [] } }
+        { residentData: createMockResidentData({ badges: [] }) }
       );
       
       expect(screen.queryByText(/Badge Collection/)).not.toBeInTheDocument();
@@ -366,7 +371,7 @@ describe('ProfileBadges Component', () => {
     it('should apply hover effects to badges', () => {
       const { container } = renderWithTemplateContext(
         <ProfileBadges />,
-        { residentData: { badges: [mockBadges[0]] } }
+        { residentData: createMockResidentData({ badges: [mockBadges[0]] }) }
       );
       
       const badgeWrapper = container.querySelector('.hover\\:scale-105');
@@ -377,7 +382,7 @@ describe('ProfileBadges Component', () => {
     it('should have cursor-default on badges', () => {
       const { container } = renderWithTemplateContext(
         <ProfileBadges />,
-        { residentData: { badges: [mockBadges[0]] } }
+        { residentData: createMockResidentData({ badges: [mockBadges[0]] }) }
       );
       
       const badgeWrapper = container.querySelector('[title*="Member of"]');
@@ -387,21 +392,24 @@ describe('ProfileBadges Component', () => {
     it('should have tooltip with ThreadRing name', () => {
       const { container } = renderWithTemplateContext(
         <ProfileBadges />,
-        { residentData: { badges: [mockBadges[0]] } }
+        { residentData: createMockResidentData({ badges: [mockBadges[0]] }) }
       );
       
       const badgeWrapper = container.querySelector('[title]');
       expect(badgeWrapper).toHaveAttribute('title', 'Member of Tech Community');
     });
 
-    it('should pass w-full className to badge components', () => {
-      renderWithTemplateContext(
+    it('should render badge component inside the hover wrapper', () => {
+      const { container } = renderWithTemplateContext(
         <ProfileBadges />,
-        { residentData: { badges: [mockBadges[0]] } }
+        { residentData: createMockResidentData({ badges: [mockBadges[0]] }) }
       );
-      
+
+      // The component no longer forwards a className to the badge; sizing is
+      // handled by the wrapper div around ThreadRing88x31Badge
+      const wrapper = container.querySelector('[title="Member of Tech Community"]');
       const badge = screen.getByTestId('mock-badge');
-      expect(badge).toHaveClass('w-full');
+      expect(wrapper).toContainElement(badge);
     });
   });
 
@@ -409,10 +417,10 @@ describe('ProfileBadges Component', () => {
     it('should show correct empty state message with displayName', () => {
       renderWithTemplateContext(
         <ProfileBadges />,
-        { residentData: { 
+        { residentData: createMockResidentData({ 
           badges: [],
           owner: { displayName: 'Alice' }
-        }}
+        })}
       );
       
       expect(screen.getByText("Alice hasn't earned any ThreadRing badges yet.")).toBeInTheDocument();
@@ -421,10 +429,10 @@ describe('ProfileBadges Component', () => {
     it('should show correct empty state message with handle', () => {
       renderWithTemplateContext(
         <ProfileBadges />,
-        { residentData: { 
+        { residentData: createMockResidentData({ 
           badges: [],
           owner: { handle: '@alice' }
-        }}
+        })}
       );
       
       expect(screen.getByText("@alice hasn't earned any ThreadRing badges yet.")).toBeInTheDocument();
@@ -433,15 +441,15 @@ describe('ProfileBadges Component', () => {
     it('should have correct empty state styling', () => {
       const { container } = renderWithTemplateContext(
         <ProfileBadges />,
-        { residentData: { badges: [] } }
+        { residentData: createMockResidentData({ badges: [] }) }
       );
       
       const emptyState = container.querySelector('.text-center.py-12');
       expect(emptyState).toBeInTheDocument();
-      
-      const icon = container.querySelector('.text-6xl');
-      expect(icon).toBeInTheDocument();
-      expect(icon).toHaveTextContent('🏆');
+
+      // Icon is now a PixelIcon rendered inside a centered wrapper
+      const iconWrapper = container.querySelector('.mb-4.flex.justify-center');
+      expect(iconWrapper).toBeInTheDocument();
     });
   });
 
@@ -453,10 +461,10 @@ describe('ProfileBadges Component', () => {
           layout="list"
           className="custom-badges"
         />,
-        { residentData: { 
+        { residentData: createMockResidentData({ 
           badges: mockBadges,
           owner: { displayName: 'Test User' }
-        }}
+        })}
       );
       
       // Check custom class
@@ -475,7 +483,7 @@ describe('ProfileBadges Component', () => {
     it('should work with minimal props', () => {
       renderWithTemplateContext(
         <ProfileBadges />,
-        { residentData: { badges: mockBadges.slice(0, 2) } }
+        { residentData: createMockResidentData({ badges: mockBadges.slice(0, 2) }) }
       );
       
       expect(screen.getByText('ThreadRing Badges')).toBeInTheDocument();
@@ -486,13 +494,13 @@ describe('ProfileBadges Component', () => {
   describe('Edge Cases', () => {
     it('should handle badges with missing properties', () => {
       const incompleteBadges = [
-        { id: '1', title: 'Badge', threadRing: { name: 'Community' } } as any,
-        { id: '2', subtitle: 'Only subtitle', threadRing: { name: 'Another' } } as any,
+        { id: '1', title: 'Badge', threadRing: { id: 'ring-community', name: 'Community', slug: 'community' } } as any,
+        { id: '2', subtitle: 'Only subtitle', threadRing: { id: 'ring-another', name: 'Another', slug: 'another' } } as any,
       ];
       
       renderWithTemplateContext(
         <ProfileBadges />,
-        { residentData: { badges: incompleteBadges } }
+        { residentData: createMockResidentData({ badges: incompleteBadges }) }
       );
       
       // Should not crash
@@ -505,7 +513,7 @@ describe('ProfileBadges Component', () => {
       
       renderWithTemplateContext(
         <ProfileBadges />,
-        { residentData: { badges: [badgeWithoutRing] } }
+        { residentData: createMockResidentData({ badges: [badgeWithoutRing] }) }
       );
       
       // Should not crash
@@ -521,7 +529,7 @@ describe('ProfileBadges Component', () => {
       
       renderWithTemplateContext(
         <ProfileBadges />,
-        { residentData: { badges: [specialBadge] } }
+        { residentData: createMockResidentData({ badges: [specialBadge] }) }
       );
       
       expect(screen.getByText('Special & Badge (2024) "Test" - With symbols! 🎉')).toBeInTheDocument();
@@ -530,10 +538,10 @@ describe('ProfileBadges Component', () => {
     it('should handle null/undefined owner', () => {
       renderWithTemplateContext(
         <ProfileBadges />,
-        { residentData: { 
+        { residentData: createMockResidentData({ 
           badges: mockBadges,
           owner: null as any
-        }}
+        })}
       );
       
       // Should not crash
@@ -549,7 +557,7 @@ describe('ProfileBadges Component', () => {
       
       renderWithTemplateContext(
         <ProfileBadges />,
-        { residentData: { badges: manyBadges } }
+        { residentData: createMockResidentData({ badges: manyBadges }) }
       );
       
       // Should still limit to 6 displayed
@@ -563,7 +571,7 @@ describe('ProfileBadges Component', () => {
       const startTime = performance.now();
       renderWithTemplateContext(
         <ProfileBadges />,
-        { residentData: { badges: mockBadges } }
+        { residentData: createMockResidentData({ badges: mockBadges }) }
       );
       const endTime = performance.now();
       
@@ -573,7 +581,7 @@ describe('ProfileBadges Component', () => {
     it('should handle multiple rerenders', () => {
       const { rerender } = renderWithTemplateContext(
         <ProfileBadges />,
-        { residentData: { badges: [] } }
+        { residentData: createMockResidentData({ badges: [] }) }
       );
       
       expect(screen.getByText('No badges yet')).toBeInTheDocument();
@@ -581,7 +589,7 @@ describe('ProfileBadges Component', () => {
       rerender(<ProfileBadges />);
       renderWithTemplateContext(
         <ProfileBadges />,
-        { residentData: { badges: mockBadges } }
+        { residentData: createMockResidentData({ badges: mockBadges }) }
       );
       
       expect(screen.getByText('ThreadRing Badges')).toBeInTheDocument();
@@ -592,7 +600,7 @@ describe('ProfileBadges Component', () => {
     it('should have proper heading hierarchy', () => {
       renderWithTemplateContext(
         <ProfileBadges />,
-        { residentData: { badges: mockBadges } }
+        { residentData: createMockResidentData({ badges: mockBadges }) }
       );
       
       const heading = screen.getByText('ThreadRing Badges');
@@ -602,7 +610,7 @@ describe('ProfileBadges Component', () => {
     it('should provide meaningful text for empty state', () => {
       renderWithTemplateContext(
         <ProfileBadges />,
-        { residentData: { badges: [] } }
+        { residentData: createMockResidentData({ badges: [] }) }
       );
       
       expect(screen.getByText('No badges yet')).toBeInTheDocument();
@@ -612,7 +620,7 @@ describe('ProfileBadges Component', () => {
     it('should have descriptive tooltips', () => {
       const { container } = renderWithTemplateContext(
         <ProfileBadges />,
-        { residentData: { badges: [mockBadges[0]] } }
+        { residentData: createMockResidentData({ badges: [mockBadges[0]] }) }
       );
       
       const badgeWrapper = container.querySelector('[title]');
@@ -622,7 +630,7 @@ describe('ProfileBadges Component', () => {
     it('should not interfere with badge component accessibility', () => {
       renderWithTemplateContext(
         <ProfileBadges />,
-        { residentData: { badges: [mockBadges[0]] } }
+        { residentData: createMockResidentData({ badges: [mockBadges[0]] }) }
       );
       
       const badge = screen.getByTestId('mock-badge');

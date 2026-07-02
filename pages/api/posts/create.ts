@@ -207,6 +207,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
           validSlugs = ringSlugs; // Allow all requested rings in dev mode for prompt responses
         }
 
+        // Accumulate RingHub post IDs across all rings so earlier entries aren't overwritten
+        const accumulatedThreadRingPostIds: Record<string, string> =
+          (post.threadRingPostIds as Record<string, string>) || {};
+
         // Submit post to each Ring Hub ring using the correct Ring Hub API format
         for (const slug of validSlugs) {
           try {
@@ -318,13 +322,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
             // Store the ThreadRing database UUID from the response
             if (result.id) {
-              const currentThreadRingPostIds = post.threadRingPostIds as Record<string, string> || {};
-              currentThreadRingPostIds[slug] = result.id;
+              accumulatedThreadRingPostIds[slug] = result.id;
 
-              // Update the post with the ThreadRing post ID
+              // Update the post with the merged ThreadRing post ID map
               await db.post.update({
                 where: { id: post.id },
-                data: { threadRingPostIds: currentThreadRingPostIds }
+                data: { threadRingPostIds: accumulatedThreadRingPostIds }
               });
             }
 

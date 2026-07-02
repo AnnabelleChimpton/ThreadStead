@@ -286,7 +286,8 @@ describe('PolaroidFrame Component', () => {
 
     it('should handle empty content', () => {
       const { container } = renderWithTemplateContext(
-        <PolaroidFrame></PolaroidFrame>
+        // Robustness: component should tolerate missing children
+        <PolaroidFrame children={undefined as any} />
       );
       
       const photoArea = container.querySelector('.bg-gray-100');
@@ -468,6 +469,36 @@ describe('PolaroidFrame Component', () => {
       // Component should still render without crashing
       expect(container.firstChild).toBeInTheDocument();
       expect(screen.getByAltText('Test')).toBeInTheDocument();
+    });
+  });
+
+  describe('Universal CSS Props', () => {
+    it('should apply CSS props as inline styles and strip conflicting Tailwind classes', () => {
+      const { container } = renderWithTemplateContext(
+        <PolaroidFrame backgroundColor="#333333">
+          <img src="/test.jpg" alt="Test" />
+        </PolaroidFrame>
+      );
+
+      const frame = container.firstChild as HTMLElement;
+      expect(frame).toHaveStyle({ backgroundColor: '#333333' });
+      // Conflicting Tailwind background class is removed (CSS props win)
+      expect(frame).not.toHaveClass('bg-white');
+      // Non-conflicting classes are retained
+      expect(frame).toHaveClass('shadow-lg', 'inline-block');
+    });
+
+    it('should keep component rotation transform while applying CSS props', () => {
+      const { container } = renderWithTemplateContext(
+        <PolaroidFrame rotation={5} opacity={0.9}>
+          <img src="/test.jpg" alt="Test" />
+        </PolaroidFrame>
+      );
+
+      expect(container.firstChild).toHaveStyle({
+        transform: 'rotate(5deg)',
+        opacity: '0.9'
+      });
     });
   });
 

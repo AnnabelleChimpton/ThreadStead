@@ -1,7 +1,12 @@
 import React from 'react';
 import { screen, cleanup } from '@testing-library/react';
 import MediaGrid from '../MediaGrid';
-import { renderWithTemplateContext } from './test-utils';
+import { renderWithTemplateContext, createMockResidentData } from './test-utils';
+
+// PixelIcon uses next/dynamic which does not resolve in the jest environment
+jest.mock('@/components/ui/PixelIcon', () => ({
+  PixelIcon: ({ name }: { name: string }) => <span data-testid={`pixel-icon-${name}`} />
+}));
 
 describe('MediaGrid Component', () => {
   beforeEach(() => {
@@ -25,7 +30,7 @@ describe('MediaGrid Component', () => {
     it('should render with images', () => {
       renderWithTemplateContext(
         <MediaGrid />,
-        { residentData: { images: mockImages.slice(0, 3) } }
+        { residentData: createMockResidentData({ images: mockImages.slice(0, 3) }) }
       );
       
       expect(screen.getByText('Featured Photos')).toBeInTheDocument();
@@ -35,17 +40,17 @@ describe('MediaGrid Component', () => {
     it('should render empty state when no images', () => {
       renderWithTemplateContext(
         <MediaGrid />,
-        { residentData: { images: [] } }
+        { residentData: createMockResidentData({ images: [] }) }
       );
       
       expect(screen.getByText('No featured photos')).toBeInTheDocument();
-      expect(screen.getByText('🖼️')).toBeInTheDocument();
+      expect(screen.getByText(/hasn't featured any photos yet/)).toBeInTheDocument();
     });
 
     it('should render empty state when images is null', () => {
       renderWithTemplateContext(
         <MediaGrid />,
-        { residentData: { images: null } }
+        { residentData: createMockResidentData({ images: null }) }
       );
       
       expect(screen.getByText('No featured photos')).toBeInTheDocument();
@@ -54,7 +59,7 @@ describe('MediaGrid Component', () => {
     it('should render empty state when images is undefined', () => {
       renderWithTemplateContext(
         <MediaGrid />,
-        { residentData: { images: undefined } }
+        { residentData: createMockResidentData({ images: undefined }) }
       );
       
       expect(screen.getByText('No featured photos')).toBeInTheDocument();
@@ -63,7 +68,7 @@ describe('MediaGrid Component', () => {
     it('should have correct container structure', () => {
       const { container } = renderWithTemplateContext(
         <MediaGrid />,
-        { residentData: { images: mockImages } }
+        { residentData: createMockResidentData({ images: mockImages }) }
       );
       
       const mediaGrid = container.querySelector('.media-grid');
@@ -76,7 +81,7 @@ describe('MediaGrid Component', () => {
     it('should limit display to 6 images', () => {
       renderWithTemplateContext(
         <MediaGrid />,
-        { residentData: { images: mockImages } }
+        { residentData: createMockResidentData({ images: mockImages }) }
       );
       
       const images = screen.getAllByRole('img');
@@ -92,7 +97,7 @@ describe('MediaGrid Component', () => {
       
       renderWithTemplateContext(
         <MediaGrid />,
-        { residentData: { images: unsortedImages } }
+        { residentData: createMockResidentData({ images: unsortedImages }) }
       );
       
       const images = screen.getAllByRole('img');
@@ -110,7 +115,7 @@ describe('MediaGrid Component', () => {
       
       renderWithTemplateContext(
         <MediaGrid />,
-        { residentData: { images: testImages } }
+        { residentData: createMockResidentData({ images: testImages }) }
       );
       
       expect(screen.getByAltText('Second image')).toBeInTheDocument(); // Most recent first
@@ -123,7 +128,7 @@ describe('MediaGrid Component', () => {
       
       renderWithTemplateContext(
         <MediaGrid />,
-        { residentData: { images: [testImage] } } // Has alt but no caption
+        { residentData: createMockResidentData({ images: [testImage] }) } // Has alt but no caption
       );
       
       expect(screen.getByAltText('Third image alt')).toBeInTheDocument();
@@ -132,7 +137,7 @@ describe('MediaGrid Component', () => {
     it('should use default alt text when both caption and alt are missing', () => {
       renderWithTemplateContext(
         <MediaGrid />,
-        { residentData: { images: [mockImages[3]] } } // No caption or alt
+        { residentData: createMockResidentData({ images: [mockImages[3]] }) } // No caption or alt
       );
       
       expect(screen.getByAltText('Photo')).toBeInTheDocument();
@@ -141,7 +146,7 @@ describe('MediaGrid Component', () => {
     it('should set lazy loading on images', () => {
       renderWithTemplateContext(
         <MediaGrid />,
-        { residentData: { images: mockImages.slice(0, 2) } }
+        { residentData: createMockResidentData({ images: mockImages.slice(0, 2) }) }
       );
       
       const images = screen.getAllByRole('img');
@@ -155,10 +160,10 @@ describe('MediaGrid Component', () => {
     it('should display owner displayName in header', () => {
       renderWithTemplateContext(
         <MediaGrid />,
-        { residentData: { 
+        { residentData: createMockResidentData({ 
           images: mockImages,
           owner: { displayName: 'John Doe' }
-        }}
+        })}
       );
       
       expect(screen.getByText("John Doe's favorite photos")).toBeInTheDocument();
@@ -167,10 +172,10 @@ describe('MediaGrid Component', () => {
     it('should display owner handle when displayName is missing', () => {
       renderWithTemplateContext(
         <MediaGrid />,
-        { residentData: { 
+        { residentData: createMockResidentData({ 
           images: mockImages,
           owner: { handle: '@johndoe' }
-        }}
+        })}
       );
       
       expect(screen.getByText("@johndoe's favorite photos")).toBeInTheDocument();
@@ -179,7 +184,7 @@ describe('MediaGrid Component', () => {
     it('should show View All button when images exist', () => {
       renderWithTemplateContext(
         <MediaGrid />,
-        { residentData: { images: mockImages } }
+        { residentData: createMockResidentData({ images: mockImages }) }
       );
       
       expect(screen.getByText('View All')).toBeInTheDocument();
@@ -188,7 +193,7 @@ describe('MediaGrid Component', () => {
     it('should not show View All button when no images', () => {
       renderWithTemplateContext(
         <MediaGrid />,
-        { residentData: { images: [] } }
+        { residentData: createMockResidentData({ images: [] }) }
       );
       
       expect(screen.queryByText('View All')).not.toBeInTheDocument();
@@ -199,10 +204,10 @@ describe('MediaGrid Component', () => {
     it('should show explore link when images exist', () => {
       renderWithTemplateContext(
         <MediaGrid />,
-        { residentData: { 
+        { residentData: createMockResidentData({ 
           images: mockImages,
           owner: { displayName: 'Jane' }
-        }}
+        })}
       );
       
       expect(screen.getByText("Explore Jane's complete photo collection →")).toBeInTheDocument();
@@ -211,7 +216,7 @@ describe('MediaGrid Component', () => {
     it('should not show explore link when no images', () => {
       renderWithTemplateContext(
         <MediaGrid />,
-        { residentData: { images: [] } }
+        { residentData: createMockResidentData({ images: [] }) }
       );
       
       expect(screen.queryByText(/complete photo collection/)).not.toBeInTheDocument();
@@ -220,10 +225,10 @@ describe('MediaGrid Component', () => {
     it('should use handle in explore link when displayName missing', () => {
       renderWithTemplateContext(
         <MediaGrid />,
-        { residentData: { 
+        { residentData: createMockResidentData({ 
           images: mockImages,
           owner: { handle: '@user' }
-        }}
+        })}
       );
       
       expect(screen.getByText("Explore @user's complete photo collection →")).toBeInTheDocument();
@@ -272,7 +277,7 @@ describe('MediaGrid Component', () => {
     it('should use correct grid classes', () => {
       const { container } = renderWithTemplateContext(
         <MediaGrid />,
-        { residentData: { images: mockImages } }
+        { residentData: createMockResidentData({ images: mockImages }) }
       );
       
       const gallery = container.querySelector('.media-gallery');
@@ -282,7 +287,7 @@ describe('MediaGrid Component', () => {
     it('should apply aspect-square to images', () => {
       const { container } = renderWithTemplateContext(
         <MediaGrid />,
-        { residentData: { images: mockImages.slice(0, 2) } }
+        { residentData: createMockResidentData({ images: mockImages.slice(0, 2) }) }
       );
       
       const mediaItems = container.querySelectorAll('.media-item');
@@ -294,7 +299,7 @@ describe('MediaGrid Component', () => {
     it('should apply proper image styling', () => {
       const { container } = renderWithTemplateContext(
         <MediaGrid />,
-        { residentData: { images: mockImages.slice(0, 1) } }
+        { residentData: createMockResidentData({ images: mockImages.slice(0, 1) }) }
       );
       
       const img = container.querySelector('img');
@@ -304,7 +309,7 @@ describe('MediaGrid Component', () => {
     it('should have hover effect classes', () => {
       const { container } = renderWithTemplateContext(
         <MediaGrid />,
-        { residentData: { images: mockImages.slice(0, 1) } }
+        { residentData: createMockResidentData({ images: mockImages.slice(0, 1) }) }
       );
       
       const img = container.querySelector('img');
@@ -317,7 +322,7 @@ describe('MediaGrid Component', () => {
       const testImage = { id: '1', url: '/image1.jpg', caption: 'Test caption', createdAt: '2024-12-01' };
       const { container } = renderWithTemplateContext(
         <MediaGrid />,
-        { residentData: { images: [testImage] } }
+        { residentData: createMockResidentData({ images: [testImage] }) }
       );
       
       const overlay = container.querySelector('.absolute.inset-0');
@@ -328,7 +333,7 @@ describe('MediaGrid Component', () => {
     it('should not render caption overlay when caption is missing', () => {
       const { container } = renderWithTemplateContext(
         <MediaGrid />,
-        { residentData: { images: [mockImages[3]] } } // No caption
+        { residentData: createMockResidentData({ images: [mockImages[3]] }) } // No caption
       );
       
       const overlay = container.querySelector('.absolute.inset-0');
@@ -338,7 +343,7 @@ describe('MediaGrid Component', () => {
     it('should apply hover opacity classes to overlay', () => {
       const { container } = renderWithTemplateContext(
         <MediaGrid />,
-        { residentData: { images: [mockImages[0]] } }
+        { residentData: createMockResidentData({ images: [mockImages[0]] }) }
       );
       
       const overlay = container.querySelector('.absolute.inset-0');
@@ -349,9 +354,9 @@ describe('MediaGrid Component', () => {
       const longCaption = 'This is a very long caption that should be clamped to prevent overflow in the overlay';
       renderWithTemplateContext(
         <MediaGrid />,
-        { residentData: { images: [
+        { residentData: createMockResidentData({ images: [
           { id: '1', url: '/img.jpg', caption: longCaption, createdAt: '2024-01-01' }
-        ]}}
+        ]})}
       );
       
       const captionDiv = screen.getByText(longCaption);
@@ -363,10 +368,10 @@ describe('MediaGrid Component', () => {
     it('should show correct empty state message with displayName', () => {
       renderWithTemplateContext(
         <MediaGrid />,
-        { residentData: { 
+        { residentData: createMockResidentData({ 
           images: [],
           owner: { displayName: 'Alice' }
-        }}
+        })}
       );
       
       expect(screen.getByText("Alice hasn't featured any photos yet.")).toBeInTheDocument();
@@ -375,10 +380,10 @@ describe('MediaGrid Component', () => {
     it('should show correct empty state message with handle', () => {
       renderWithTemplateContext(
         <MediaGrid />,
-        { residentData: { 
+        { residentData: createMockResidentData({ 
           images: [],
           owner: { handle: '@alice' }
-        }}
+        })}
       );
       
       expect(screen.getByText("@alice hasn't featured any photos yet.")).toBeInTheDocument();
@@ -387,15 +392,15 @@ describe('MediaGrid Component', () => {
     it('should have correct empty state styling', () => {
       const { container } = renderWithTemplateContext(
         <MediaGrid />,
-        { residentData: { images: [] } }
+        { residentData: createMockResidentData({ images: [] }) }
       );
       
       const emptyState = container.querySelector('.text-center.py-12');
       expect(emptyState).toBeInTheDocument();
-      
-      const icon = container.querySelector('.text-6xl');
-      expect(icon).toBeInTheDocument();
-      expect(icon).toHaveTextContent('🖼️');
+
+      // Icon is now a PixelIcon rendered inside a centered wrapper
+      const iconWrapper = container.querySelector('.mb-4.flex.justify-center');
+      expect(iconWrapper).toBeInTheDocument();
     });
   });
 
@@ -408,7 +413,7 @@ describe('MediaGrid Component', () => {
       
       renderWithTemplateContext(
         <MediaGrid />,
-        { residentData: { images: invalidImages } }
+        { residentData: createMockResidentData({ images: invalidImages }) }
       );
       
       // Should not crash
@@ -423,7 +428,7 @@ describe('MediaGrid Component', () => {
       
       renderWithTemplateContext(
         <MediaGrid />,
-        { residentData: { images: incompleteImages } }
+        { residentData: createMockResidentData({ images: incompleteImages }) }
       );
       
       // Should not crash
@@ -435,9 +440,9 @@ describe('MediaGrid Component', () => {
       const longUrl = '/image/' + 'a'.repeat(500) + '.jpg';
       renderWithTemplateContext(
         <MediaGrid />,
-        { residentData: { images: [
+        { residentData: createMockResidentData({ images: [
           { id: '1', url: longUrl, createdAt: '2024-01-01' }
-        ]}}
+        ]})}
       );
       
       const img = screen.getByRole('img');
@@ -448,9 +453,9 @@ describe('MediaGrid Component', () => {
       const specialCaption = '!@#$%^&*()_+-=[]{}|;":,./<>? 🎉';
       renderWithTemplateContext(
         <MediaGrid />,
-        { residentData: { images: [
+        { residentData: createMockResidentData({ images: [
           { id: '1', url: '/img.jpg', caption: specialCaption, createdAt: '2024-01-01' }
-        ]}}
+        ]})}
       );
       
       expect(screen.getByAltText(specialCaption)).toBeInTheDocument();
@@ -460,10 +465,10 @@ describe('MediaGrid Component', () => {
     it('should handle null/undefined owner', () => {
       renderWithTemplateContext(
         <MediaGrid />,
-        { residentData: { 
+        { residentData: createMockResidentData({ 
           images: mockImages,
           owner: null as any
-        }}
+        })}
       );
       
       // Should not crash
@@ -476,7 +481,7 @@ describe('MediaGrid Component', () => {
       const startTime = performance.now();
       renderWithTemplateContext(
         <MediaGrid />,
-        { residentData: { images: mockImages } }
+        { residentData: createMockResidentData({ images: mockImages }) }
       );
       const endTime = performance.now();
       
@@ -486,7 +491,7 @@ describe('MediaGrid Component', () => {
     it('should handle multiple rerenders', () => {
       const { rerender } = renderWithTemplateContext(
         <MediaGrid />,
-        { residentData: { images: [] } }
+        { residentData: createMockResidentData({ images: [] }) }
       );
       
       expect(screen.getByText('No featured photos')).toBeInTheDocument();
@@ -494,7 +499,7 @@ describe('MediaGrid Component', () => {
       rerender(<MediaGrid />);
       renderWithTemplateContext(
         <MediaGrid />,
-        { residentData: { images: mockImages } }
+        { residentData: createMockResidentData({ images: mockImages }) }
       );
       
       expect(screen.getByText('Featured Photos')).toBeInTheDocument();
@@ -505,7 +510,7 @@ describe('MediaGrid Component', () => {
     it('should have alt text for all images', () => {
       renderWithTemplateContext(
         <MediaGrid />,
-        { residentData: { images: mockImages.slice(0, 4) } }
+        { residentData: createMockResidentData({ images: mockImages.slice(0, 4) }) }
       );
       
       const images = screen.getAllByRole('img');
@@ -517,7 +522,7 @@ describe('MediaGrid Component', () => {
     it('should have proper heading hierarchy', () => {
       renderWithTemplateContext(
         <MediaGrid />,
-        { residentData: { images: mockImages } }
+        { residentData: createMockResidentData({ images: mockImages }) }
       );
       
       const heading = screen.getByText('Featured Photos');
@@ -527,7 +532,7 @@ describe('MediaGrid Component', () => {
     it('should provide meaningful text for empty state', () => {
       renderWithTemplateContext(
         <MediaGrid />,
-        { residentData: { images: [] } }
+        { residentData: createMockResidentData({ images: [] }) }
       );
       
       expect(screen.getByText('No featured photos')).toBeInTheDocument();

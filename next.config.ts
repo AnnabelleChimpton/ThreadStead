@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  poweredByHeader: false,
 
   eslint: {
     ignoreDuringBuilds: false,
@@ -16,16 +17,14 @@ const nextConfig: NextConfig = {
     return config;
   },
 
-  // Configure external image domains
+  // Configure external image domains.
+  // HTTPS-only: user-supplied images can come from anywhere, but proxying
+  // plain-HTTP origins through the optimizer invites mixed-content abuse.
   images: {
     remotePatterns: [
       {
         protocol: 'https',
         hostname: '**', // Allow all HTTPS images
-      },
-      {
-        protocol: 'http',
-        hostname: '**', // Allow all HTTP images
       },
     ],
   },
@@ -181,7 +180,7 @@ const nextConfig: NextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://static.cloudflareinsights.com", // unsafe-inline needed for Next.js, unsafe-eval for dev
+              `script-src 'self' ${process.env.NODE_ENV !== 'production' ? "'unsafe-eval' " : ''}'unsafe-inline' https://static.cloudflareinsights.com`, // unsafe-inline needed for Next.js, unsafe-eval only for dev tooling
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com", // unsafe-inline needed for styled-components/CSS-in-JS
               "font-src 'self' https://fonts.gstatic.com data:",
               "img-src 'self' https: data: blob:",

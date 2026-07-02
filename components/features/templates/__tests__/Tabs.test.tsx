@@ -124,8 +124,9 @@ describe('Tabs Component', () => {
 
   describe('Edge Cases', () => {
     it('should handle empty tabs gracefully', () => {
-      render(<Tabs>{/* No children */}</Tabs>);
-      
+      // Intentionally render without children to verify robustness
+      render(<Tabs children={undefined as any} />);
+
       expect(screen.getByText(/No tabs to display/)).toBeInTheDocument();
     });
 
@@ -143,7 +144,7 @@ describe('Tabs Component', () => {
     it('should handle tabs with empty content', () => {
       render(
         <Tabs>
-          <Tab title="Empty Tab"></Tab>
+          <Tab title="Empty Tab">{null}</Tab>
           <Tab title="Content Tab">Has content</Tab>
         </Tabs>
       );

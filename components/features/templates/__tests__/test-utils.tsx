@@ -2,8 +2,22 @@ import React from 'react';
 import { render, RenderOptions, RenderResult } from '@testing-library/react';
 import { ResidentDataProvider, type ResidentData } from '../ResidentDataProvider';
 
+// Build N valid post objects for tests that only care about posts.length
+export const createMockPosts = (count: number): ResidentData['posts'] =>
+  Array.from({ length: count }, (_, i) => ({
+    id: `post-${i + 1}`,
+    bodyHtml: `<p>Test post ${i + 1}</p>`,
+    createdAt: new Date(Date.now() - i * 86400000).toISOString()
+  }));
+
+// Overrides are intentionally loose: tests exercise robustness paths (null/partial/extra
+// keys like custom data paths for conditionals), so we accept a superset of ResidentData.
+export type MockResidentDataOverrides = {
+  [K in keyof ResidentData]?: any;
+} & Record<string, any>;
+
 // Default mock resident data for testing - simplified version
-export const createMockResidentData = (overrides: Partial<ResidentData> = {}): ResidentData => ({
+export const createMockResidentData = (overrides: MockResidentDataOverrides = {}): ResidentData => ({
   owner: {
     id: 'test-user-123',
     handle: 'testuser',

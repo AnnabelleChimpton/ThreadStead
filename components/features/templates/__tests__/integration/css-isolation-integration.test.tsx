@@ -16,9 +16,9 @@ describe('CSS Isolation Integration', () => {
       const mockData = createMockResidentData();
 
       const { container } = renderWithTemplateContext(
-        <GridLayout columns={2} gap="lg">
-          <div 
-            className="child-with-explicit-styles bg-red-500 text-white p-2" 
+        <GridLayout columns={2} gapSize="lg">
+          <div
+            className="child-with-explicit-styles bg-red-500 text-white p-2"
             data-testid="explicit-child"
           >
             Explicitly styled child
@@ -63,7 +63,7 @@ describe('CSS Isolation Integration', () => {
       const mockData = createMockResidentData();
 
       const { container } = renderWithTemplateContext(
-        <SplitLayout ratio="2:1" gap="xl">
+        <SplitLayout ratio="2:1" spacing="xl">
           <div 
             className="left-child bg-blue-300 border-2 border-solid border-black"
             data-testid="left-child"
@@ -109,7 +109,7 @@ describe('CSS Isolation Integration', () => {
       const mockData = createMockResidentData();
 
       const { container } = renderWithTemplateContext(
-        <FlexContainer direction="column" align="center" justify="between" gap="md">
+        <FlexContainer direction="column" align="center" justify="between" gapSize="md">
           <div 
             className="flex-child-1 block text-left w-full"
             data-testid="block-child"
@@ -163,7 +163,7 @@ describe('CSS Isolation Integration', () => {
       const mockData = createMockResidentData();
 
       const { container } = renderWithTemplateContext(
-        <GradientBox gradient="sunset" padding="lg" rounded>
+        <GradientBox gradient="sunset" containerPadding="lg" rounded>
           <div 
             className="child-with-own-bg bg-white text-black border rounded-none"
             data-testid="white-bg-child"
@@ -215,7 +215,7 @@ describe('CSS Isolation Integration', () => {
       const mockData = createMockResidentData();
 
       const { container } = renderWithTemplateContext(
-        <CenteredBox maxWidth="lg" padding="xl">
+        <CenteredBox containerMaxWidth="lg" containerPadding="xl">
           <div 
             className="child-full-width w-full text-left"
             data-testid="full-width-child"
@@ -269,7 +269,7 @@ describe('CSS Isolation Integration', () => {
       const mockData = createMockResidentData();
 
       const { container } = renderWithTemplateContext(
-        <GridLayout columns={3} gap="sm" data-testid="grid-wrapper">
+        <GridLayout columns={3} gapSize="sm" data-testid="grid-wrapper">
           <div className="child-that-tries-to-break-grid flex flex-col gap-8 w-screen">
             Problematic child 1
           </div>
@@ -309,7 +309,7 @@ describe('CSS Isolation Integration', () => {
       const mockData = createMockResidentData();
 
       const { container } = renderWithTemplateContext(
-        <SplitLayout ratio="1:3" gap="md">
+        <SplitLayout ratio="1:3" spacing="md">
           <div className="left-child-with-fixed-width w-96 min-w-max">
             Fixed width left child that tries to break ratio
           </div>
@@ -339,7 +339,7 @@ describe('CSS Isolation Integration', () => {
       const mockData = createMockResidentData();
 
       const { container } = renderWithTemplateContext(
-        <FlexContainer direction="row" align="center" justify="evenly" gap="lg">
+        <FlexContainer direction="row" align="center" justify="evenly" gapSize="lg">
           <div className="child-that-tries-to-align text-left self-start justify-self-start">
             Child 1
           </div>
@@ -368,11 +368,11 @@ describe('CSS Isolation Integration', () => {
       const mockData = createMockResidentData();
 
       const { container } = renderWithTemplateContext(
-        <GridLayout columns={2} gap="lg" data-testid="outer-grid">
-          <SplitLayout ratio="1:1" gap="md" data-testid="nested-split">
-            <FlexContainer direction="column" gap="sm" data-testid="nested-flex">
-              <GradientBox gradient="ocean" padding="sm" data-testid="nested-gradient">
-                <CenteredBox maxWidth="sm" padding="xs" data-testid="nested-center">
+        <GridLayout columns={2} gapSize="lg" data-testid="outer-grid">
+          <SplitLayout ratio="1:1" spacing="md" data-testid="nested-split">
+            <FlexContainer direction="column" gapSize="sm" data-testid="nested-flex">
+              <GradientBox gradient="ocean" containerPadding="sm" data-testid="nested-gradient">
+                <CenteredBox containerMaxWidth="sm" containerPadding="xs" data-testid="nested-center">
                   <div className="deeply-nested-child bg-white p-1 text-black" data-testid="final-child">
                     Deeply nested content
                   </div>
@@ -431,7 +431,7 @@ describe('CSS Isolation Integration', () => {
               display: block !important;
             }
           `}</style>
-          <GridLayout columns={1} gap="md">
+          <GridLayout columns={1} gapSize="md">
             <div className="test-child" data-testid="grid-child">
               Child in grid
             </div>

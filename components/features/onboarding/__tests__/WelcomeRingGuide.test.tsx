@@ -13,6 +13,14 @@ jest.mock('next/link', () => {
     return <a href={href}>{children}</a>;
   };
 });
+// PixelIcon uses next/dynamic with a runtime SVG import that Jest cannot
+// resolve to a component, so stub it out.
+jest.mock('@/components/ui/PixelIcon', () => ({
+  PixelIcon: ({ name }: { name: string }) => {
+    const mockReact = require('react');
+    return mockReact.createElement('span', { 'data-testid': 'pixel-icon', 'data-name': name });
+  }
+}));
 
 // Import mocked modules after mocking
 import * as welcomeProgress from '@/lib/welcome/progress';
@@ -30,12 +38,12 @@ const mockUseWelcomeRingIntro = useWelcomeRingIntro.useWelcomeRingIntro as jest.
 describe('WelcomeRingGuide', () => {
   const mockViewer = {
     id: 'user1',
-    handle: 'testuser'
+    primaryHandle: 'testuser'
   };
 
   const mockWelcomeRingMember = {
     id: 'user1',
-    handle: 'testuser',
+    primaryHandle: 'testuser',
     threadRingMemberships: [
       { threadRingId: 'welcome' },
       { threadRingId: 'other-ring' }
@@ -62,8 +70,12 @@ describe('WelcomeRingGuide', () => {
     
     mockUseToast.mockReturnValue({
       toasts: [],
+      showToast: jest.fn(),
+      hideToast: jest.fn(),
       showSuccess: jest.fn(),
-      hideToast: jest.fn()
+      showError: jest.fn(),
+      showWarning: jest.fn(),
+      showInfo: jest.fn()
     });
     
     mockUseWelcomeRingIntro.mockReturnValue({
@@ -126,7 +138,7 @@ describe('WelcomeRingGuide', () => {
     it('should not auto-progress for users without threadRingMemberships', async () => {
       const userWithoutMemberships = {
         id: 'user1',
-        handle: 'testuser'
+        primaryHandle: 'testuser'
         // No threadRingMemberships property
       };
 
@@ -184,7 +196,8 @@ describe('WelcomeRingGuide', () => {
         />
       );
 
-      expect(screen.getByText('🎓 Welcome Ring Graduate!')).toBeInTheDocument();
+      // The badge now renders a PixelIcon trophy instead of the 🎓 emoji
+      expect(screen.getByText('Welcome Ring Graduate!')).toBeInTheDocument();
     });
   });
 });

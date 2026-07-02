@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
+import { getGlobalToast } from '@/lib/templates/state/ToastProvider';
 
 interface ChatContextType {
   isChatOpen: boolean;
@@ -81,19 +82,26 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ targetUserId: userId })
       });
+      if (!res.ok) {
+        throw new Error(`Failed to create conversation (${res.status})`);
+      }
       const data = await res.json();
 
       if (data.id) {
         setActiveConversationId(data.id);
         setIsChatOpen(true);
         setChatMinimized(false);
+      } else {
+        throw new Error('Conversation response missing id');
       }
     } catch (error) {
       console.error('Failed to open DM:', error);
+      // Surface the failure to the user instead of silently doing nothing
+      getGlobalToast()?.showError('Could not open the conversation. Please try again.');
     }
   }, []);
 
-  const value: ChatContextType = {
+  const value: ChatContextType = useMemo(() => ({
     isChatOpen,
     chatMinimized,
     activeConversationId,
@@ -102,7 +110,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     toggleChat,
     minimizeChat,
     openDM,
-  };
+  }), [isChatOpen, chatMinimized, activeConversationId, openChat, closeChat, toggleChat, minimizeChat, openDM]);
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
 }

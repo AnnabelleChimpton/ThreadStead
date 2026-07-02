@@ -11,24 +11,21 @@ const compat = new FlatCompat({
 
 const eslintConfig = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
-    {
+  {
     rules: {
-      "react-hooks/exhaustive-deps": "warn",
-      "@typescript-eslint/no-unused-vars": [
-        "warn",
-        {
-          "argsIgnorePattern": "^_",
-          "varsIgnorePattern": "^_",
-          "destructuredArrayIgnorePattern": "^_",
-          "ignoreRestSiblings": true
-        }
-      ],
-      "@typescript-eslint/no-explicit-any": "warn",
-      "@next/next/no-img-element": "warn",
       "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/no-unused-vars": "off",
       "react-hooks/exhaustive-deps": "off",
       "@next/next/no-img-element": "off"
+    }
+  },
+  {
+    // Tests intentionally pass children as an explicit prop (robustness cases)
+    // and use require() inside jest.mock factories.
+    files: ["**/__tests__/**", "**/*.test.*", "jest.setup.js"],
+    rules: {
+      "react/no-children-prop": "off",
+      "@typescript-eslint/no-require-imports": "off"
     }
   }
 ];

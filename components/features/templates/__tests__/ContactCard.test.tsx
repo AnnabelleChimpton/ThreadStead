@@ -496,7 +496,7 @@ describe('ContactCard', () => {
 
     it('should handle className as array', () => {
       const { container } = renderWithTemplateContext(
-        <ContactCard className={['custom-style-1', 'custom-style-2']}>
+        <ContactCard className={['custom-style-1', 'custom-style-2'] as any}>
           <ContactMethod type="email" value="test@example.com" />
         </ContactCard>,
         { residentData: mockData }

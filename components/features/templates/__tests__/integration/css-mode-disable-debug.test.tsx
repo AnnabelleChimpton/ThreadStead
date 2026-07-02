@@ -114,7 +114,8 @@ describe('CSS Mode Disable Debug', () => {
     }
 
     // Critical assertions
-    expect(optimizedCSS).toContain(':root');
+    // (:root rules are rewritten to be scoped to the profile template root)
+    expect(optimizedCSS).toContain('.profile-template-root#profile-123');
     expect(optimizedCSS).toContain('--global-bg-color: #0a0e27');
 
     // The critical test - theme classes should be preserved

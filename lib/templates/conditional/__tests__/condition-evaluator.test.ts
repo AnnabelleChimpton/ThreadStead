@@ -4,7 +4,7 @@ import {
   evaluateFullCondition,
   isTruthy
 } from '../condition-evaluator';
-import { _setGlobalTemplateState, TemplateStateContextType } from '../../state/TemplateStateProvider';
+import { globalTemplateStateManager } from '../../state/TemplateStateManager';
 
 describe('getNestedValue', () => {
   test('returns 0 for .length when parent is undefined', () => {
@@ -157,32 +157,18 @@ describe('isTruthy', () => {
 });
 
 describe('getNestedValue - $vars namespace support', () => {
-  // Mock template state
-  const mockTemplateState: TemplateStateContextType = {
-    variables: {
+  beforeEach(() => {
+    // Seed the global template state manager (used by getGlobalTemplateState)
+    globalTemplateStateManager.initialize({
       counter: { name: 'counter', type: 'number', value: 42, initial: 0 },
       message: { name: 'message', type: 'string', value: 'Hello', initial: '' },
       user: { name: 'user', type: 'string', value: { name: 'Alice', age: 30 }, initial: null }
-    },
-    getVariable: (name: string) => {
-      const variable = mockTemplateState.variables[name];
-      return variable?.value;
-    },
-    setVariable: () => {},
-    registerVariable: () => {},
-    unregisterVariable: () => {},
-    resetVariable: () => {},
-    resetAll: () => {}
-  };
-
-  beforeEach(() => {
-    // Set global template state for tests
-    _setGlobalTemplateState(mockTemplateState);
+    });
   });
 
   afterEach(() => {
     // Clean up
-    _setGlobalTemplateState(null);
+    globalTemplateStateManager.clear();
   });
 
   test('should access simple $vars variable', () => {
@@ -226,44 +212,26 @@ describe('getNestedValue - $vars namespace support', () => {
     expect(result).toBe('Bob');
   });
 
-  test('should warn when template state not available', () => {
-    _setGlobalTemplateState(null);
-    const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+  test('should return undefined when variable is not registered', () => {
+    globalTemplateStateManager.clear();
 
     const result = getNestedValue({}, '$vars.counter');
 
     expect(result).toBe(undefined);
-    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Template state not available'));
-
-    consoleSpy.mockRestore();
   });
 });
 
 describe('evaluateFullCondition - with $vars support', () => {
-  // Mock template state with counter variable
-  const mockTemplateState: TemplateStateContextType = {
-    variables: {
+  beforeEach(() => {
+    globalTemplateStateManager.initialize({
       counter: { name: 'counter', type: 'number', value: 15, initial: 0 },
       status: { name: 'status', type: 'string', value: 'active', initial: '' },
       items: { name: 'items', type: 'array', value: [1, 2, 3, 4, 5], initial: [] }
-    },
-    getVariable: (name: string) => {
-      const variable = mockTemplateState.variables[name];
-      return variable?.value;
-    },
-    setVariable: () => {},
-    registerVariable: () => {},
-    unregisterVariable: () => {},
-    resetVariable: () => {},
-    resetAll: () => {}
-  };
-
-  beforeEach(() => {
-    _setGlobalTemplateState(mockTemplateState);
+    });
   });
 
   afterEach(() => {
-    _setGlobalTemplateState(null);
+    globalTemplateStateManager.clear();
   });
 
   test('should evaluate greaterThan with $vars', () => {

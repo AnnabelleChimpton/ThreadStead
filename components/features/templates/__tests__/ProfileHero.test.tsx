@@ -1,7 +1,7 @@
 import React from 'react';
 import { screen } from '@testing-library/react';
 import ProfileHero from '../ProfileHero';
-import { renderWithTemplateContext } from './test-utils';
+import { renderWithTemplateContext, createMockResidentData } from './test-utils';
 
 describe('ProfileHero Component', () => {
   describe('Basic Rendering', () => {
@@ -18,7 +18,7 @@ describe('ProfileHero Component', () => {
     it('should render owner display name', () => {
       renderWithTemplateContext(
         <ProfileHero />,
-        { residentData: { owner: { displayName: 'John Doe' } } }
+        { residentData: createMockResidentData({ owner: { displayName: 'John Doe' } }) }
       );
       
       expect(screen.getByText('John Doe')).toBeInTheDocument();
@@ -35,7 +35,7 @@ describe('ProfileHero Component', () => {
     it('should have proper heading structure', () => {
       renderWithTemplateContext(
         <ProfileHero />,
-        { residentData: { owner: { displayName: 'Test User' } } }
+        { residentData: createMockResidentData({ owner: { displayName: 'Test User' } }) }
       );
       
       const heading = screen.getByRole('heading', { level: 1 });
@@ -107,7 +107,7 @@ describe('ProfileHero Component', () => {
     it('should display owner displayName', () => {
       renderWithTemplateContext(
         <ProfileHero />,
-        { residentData: { owner: { displayName: 'Alice Smith' } } }
+        { residentData: createMockResidentData({ owner: { displayName: 'Alice Smith' } }) }
       );
       
       const heading = screen.getByRole('heading', { level: 1 });
@@ -117,7 +117,7 @@ describe('ProfileHero Component', () => {
     it('should handle empty displayName', () => {
       renderWithTemplateContext(
         <ProfileHero />,
-        { residentData: { owner: { displayName: '' } } }
+        { residentData: createMockResidentData({ owner: { displayName: '' } }) }
       );
       
       const heading = screen.getByRole('heading', { level: 1 });
@@ -128,7 +128,7 @@ describe('ProfileHero Component', () => {
     it('should handle missing owner data', () => {
       renderWithTemplateContext(
         <ProfileHero />,
-        { residentData: { owner: {} } }
+        { residentData: createMockResidentData({ owner: {} }) }
       );
       
       const heading = screen.getByRole('heading', { level: 1 });
@@ -138,7 +138,7 @@ describe('ProfileHero Component', () => {
     it('should handle special characters in displayName', () => {
       renderWithTemplateContext(
         <ProfileHero />,
-        { residentData: { owner: { displayName: 'User & Co. (2024) "Test"' } } }
+        { residentData: createMockResidentData({ owner: { displayName: 'User & Co. (2024) "Test"' } }) }
       );
       
       expect(screen.getByText('User & Co. (2024) "Test"')).toBeInTheDocument();
@@ -147,7 +147,7 @@ describe('ProfileHero Component', () => {
     it('should handle Unicode in displayName', () => {
       renderWithTemplateContext(
         <ProfileHero />,
-        { residentData: { owner: { displayName: '🎉 Party Person ñáéíóú' } } }
+        { residentData: createMockResidentData({ owner: { displayName: '🎉 Party Person ñáéíóú' } }) }
       );
       
       expect(screen.getByText('🎉 Party Person ñáéíóú')).toBeInTheDocument();
@@ -157,7 +157,7 @@ describe('ProfileHero Component', () => {
       const longName = 'A'.repeat(100);
       renderWithTemplateContext(
         <ProfileHero />,
-        { residentData: { owner: { displayName: longName } } }
+        { residentData: createMockResidentData({ owner: { displayName: longName } }) }
       );
       
       expect(screen.getByText(longName)).toBeInTheDocument();
@@ -213,7 +213,7 @@ describe('ProfileHero Component', () => {
     it('should work with tape variant and custom name', () => {
       renderWithTemplateContext(
         <ProfileHero variant="tape" />,
-        { residentData: { owner: { displayName: 'Creative User' } } }
+        { residentData: createMockResidentData({ owner: { displayName: 'Creative User' } }) }
       );
       
       expect(screen.getByText('Creative User')).toBeInTheDocument();
@@ -223,7 +223,7 @@ describe('ProfileHero Component', () => {
     it('should work with plain variant and long name', () => {
       const { container } = renderWithTemplateContext(
         <ProfileHero variant="plain" />,
-        { residentData: { owner: { displayName: 'Very Long Display Name Here' } } }
+        { residentData: createMockResidentData({ owner: { displayName: 'Very Long Display Name Here' } }) }
       );
       
       const hero = container.querySelector('.ts-profile-hero');
@@ -302,7 +302,7 @@ describe('ProfileHero Component', () => {
     it('should maintain text readability with tape variant', () => {
       renderWithTemplateContext(
         <ProfileHero variant="tape" />,
-        { residentData: { owner: { displayName: 'Accessible Name' } } }
+        { residentData: createMockResidentData({ owner: { displayName: 'Accessible Name' } }) }
       );
       
       expect(screen.getByText('Accessible Name')).toBeInTheDocument();
@@ -314,7 +314,7 @@ describe('ProfileHero Component', () => {
     it('should handle null owner data', () => {
       renderWithTemplateContext(
         <ProfileHero />,
-        { residentData: { owner: null as any } }
+        { residentData: createMockResidentData({ owner: null as any }) }
       );
       
       // Should not crash
@@ -324,7 +324,7 @@ describe('ProfileHero Component', () => {
     it('should handle undefined owner data', () => {
       renderWithTemplateContext(
         <ProfileHero />,
-        { residentData: { owner: undefined as any } }
+        { residentData: createMockResidentData({ owner: undefined as any }) }
       );
       
       // Should not crash
@@ -334,7 +334,7 @@ describe('ProfileHero Component', () => {
     it('should handle displayName with only spaces', () => {
       renderWithTemplateContext(
         <ProfileHero />,
-        { residentData: { owner: { displayName: '   ' } } }
+        { residentData: createMockResidentData({ owner: { displayName: '   ' } }) }
       );
       
       const heading = screen.getByRole('heading', { level: 1 });
@@ -346,7 +346,7 @@ describe('ProfileHero Component', () => {
     it('should handle displayName with HTML-like content', () => {
       renderWithTemplateContext(
         <ProfileHero />,
-        { residentData: { owner: { displayName: '<script>alert("xss")</script>' } } }
+        { residentData: createMockResidentData({ owner: { displayName: '<script>alert("xss")</script>' } }) }
       );
       
       // Should render as text, not execute

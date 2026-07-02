@@ -2,6 +2,14 @@ import React from 'react';
 import { screen, render } from '@testing-library/react';
 import { renderWithTemplateContext, createMockResidentData } from '../test-utils';
 
+// Mock the PostItem component since it has complex dependencies
+// (ChatContext, next/dynamic PixelIcon, IntersectionObserver view tracking)
+jest.mock('@/components/core/content/PostItem', () => {
+  return function MockPostItem({ post }: any) {
+    return <div data-testid={`mock-post-item-${post?.id}`}>Post: {post?.bodyHtml}</div>;
+  };
+});
+
 import DisplayName from '../../DisplayName';
 import Bio from '../../Bio';
 import ProfilePhoto from '../../ProfilePhoto';
@@ -44,21 +52,8 @@ describe('Performance Cliff Edge Detection Integration', () => {
           );
         }
 
-        const layoutComponents = [GridLayout, SplitLayout, FlexContainer, GradientBox, CenteredBox];
-        const LayoutComponent = layoutComponents[depth % layoutComponents.length];
-        
-        const props = depth % 5 === 0 
-          ? { columns: 2, gap: 'sm' as const } // GridLayout props
-          : depth % 4 === 0 
-          ? { ratio: '1:1' as const, gap: 'md' as const } // SplitLayout props
-          : depth % 3 === 0
-          ? { direction: 'column' as const, gap: 'sm' as const } // FlexContainer props
-          : depth % 2 === 0
-          ? { gradient: 'sunset' as const, padding: 'sm' as const } // GradientBox props
-          : { maxWidth: 'md' as const, padding: 'sm' as const }; // CenteredBox props
-
-        return (
-          <LayoutComponent {...props}>
+        const children = (
+          <>
             <div className={`level-${depth}-a`}>
               <h3>Level {depth} Content A</h3>
               {createMassiveNestedStructure(depth - 1)}
@@ -67,8 +62,23 @@ describe('Performance Cliff Edge Detection Integration', () => {
               <h3>Level {depth} Content B</h3>
               {createMassiveNestedStructure(depth - 1)}
             </div>
-          </LayoutComponent>
+          </>
         );
+
+        // Alternate between the layout components with their own props
+        if (depth % 5 === 0) {
+          return <GridLayout columns={2} gapSize="sm">{children}</GridLayout>;
+        }
+        if (depth % 4 === 0) {
+          return <SplitLayout ratio="1:1" spacing="md">{children}</SplitLayout>;
+        }
+        if (depth % 3 === 0) {
+          return <FlexContainer direction="column" gapSize="sm">{children}</FlexContainer>;
+        }
+        if (depth % 2 === 0) {
+          return <GradientBox gradient="sunset" containerPadding="sm">{children}</GradientBox>;
+        }
+        return <CenteredBox containerMaxWidth="md" containerPadding="sm">{children}</CenteredBox>;
       };
 
       // Create structure with 20 levels deep (creates 100+ components exponentially)
@@ -100,7 +110,8 @@ describe('Performance Cliff Edge Detection Integration', () => {
       // Verify deep nesting rendered correctly
       expect(container.querySelector('.level-6-a')).toBeInTheDocument();
       expect(container.querySelector('.level-1-b')).toBeInTheDocument();
-      expect(screen.getByText('Performance Test User')).toBeInTheDocument(); // DisplayName rendered in leaves
+      // DisplayName rendered in (many) leaves
+      expect(screen.getAllByText('Performance Test User').length).toBeGreaterThan(0);
 
       // Memory check (if available)
       if (memoryBefore !== undefined && memoryAfter !== undefined) {
@@ -116,16 +127,16 @@ describe('Performance Cliff Edge Detection Integration', () => {
       const mockData = createMockResidentData();
       
       const templates = [
-        <GridLayout key="template-0" columns={2} gap="lg"><DisplayName /><Bio /></GridLayout>,
-        <SplitLayout key="template-1" ratio="1:2" gap="md"><ProfilePhoto /><BlogPosts /></SplitLayout>,
-        <FlexContainer key="template-2" direction="column" gap="sm">
-          <GradientBox gradient="sunset" padding="md">
+        <GridLayout key="template-0" columns={2} gapSize="lg"><DisplayName /><Bio /></GridLayout>,
+        <SplitLayout key="template-1" ratio="1:2" spacing="md"><ProfilePhoto /><BlogPosts /></SplitLayout>,
+        <FlexContainer key="template-2" direction="column" gapSize="sm">
+          <GradientBox gradient="sunset" containerPadding="md">
             <DisplayName />
             <Bio />
           </GradientBox>
         </FlexContainer>,
-        <CenteredBox key="template-3" maxWidth="lg" padding="xl">
-          <GridLayout columns={3} gap="xs">
+        <CenteredBox key="template-3" containerMaxWidth="lg" containerPadding="xl">
+          <GridLayout columns={3} gapSize="xs">
             <DisplayName />
             <ProfilePhoto />
             <Bio />
@@ -202,7 +213,7 @@ describe('Performance Cliff Edge Detection Integration', () => {
       const startTime = performance.now();
       
       const { container } = renderWithTemplateContext(
-        <GridLayout columns={1} gap="sm">
+        <GridLayout columns={1} gapSize="sm">
           <div>Safe Content</div>
           <ProblematicComponent />
           <DisplayName />
@@ -251,7 +262,7 @@ describe('Performance Cliff Edge Detection Integration', () => {
       const { container } = renderWithTemplateContext(
         <div className="stress-test-container">
           <h2>Stress Test Template</h2>
-          <GridLayout columns={4} gap="sm">
+          <GridLayout columns={4} gapSize="sm">
             {Array.from({ length: 16 }, (_, i) => (
               <div key={i}>
                 <StressComponent id={i} />
@@ -303,14 +314,14 @@ describe('Performance Cliff Edge Detection Integration', () => {
       };
 
       const complexTemplate = (
-        <GridLayout columns={2} gap="lg">
+        <GridLayout columns={2} gapSize="lg">
           {Array.from({ length: 10 }, (_, i) => (
-            <SplitLayout key={i} ratio="1:1" gap="md">
-              <FlexContainer direction="column" gap="sm">
+            <SplitLayout key={i} ratio="1:1" spacing="md">
+              <FlexContainer direction="column" gapSize="sm">
                 <ResourceComponent />
                 <DisplayName />
               </FlexContainer>
-              <GradientBox gradient="ocean" padding="md">
+              <GradientBox gradient="ocean" containerPadding="md">
                 <ResourceComponent />
                 <Bio />
               </GradientBox>

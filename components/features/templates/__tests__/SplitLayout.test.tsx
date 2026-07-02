@@ -14,7 +14,7 @@ describe('SplitLayout Component', () => {
   const testChildrenArray = [
     <div key="1" data-testid="first-child">First Content</div>,
     <div key="2" data-testid="second-child">Second Content</div>,
-    <div key="3" data-testid="third-child">Third Content (ignored)</div>
+    <div key="3" data-testid="third-child">Third Content</div>
   ];
 
   describe('Basic Rendering', () => {
@@ -25,19 +25,24 @@ describe('SplitLayout Component', () => {
       expect(screen.getByTestId('second-child')).toBeInTheDocument();
     });
 
-    it('should render only the first two children when more are provided', () => {
+    it('should group extra children into the second column', () => {
       const { container } = renderWithTemplateContext(<SplitLayout>{testChildrenArray}</SplitLayout>);
 
       expect(screen.getByTestId('first-child')).toBeInTheDocument();
       expect(screen.getByTestId('second-child')).toBeInTheDocument();
-      
-      // Check that only 2 wrapper divs exist (should be the direct children of the layout div)
+      expect(screen.getByTestId('third-child')).toBeInTheDocument();
+
+      // The layout still only has 2 wrapper divs (the two columns)
       const layoutDiv = container.firstChild as HTMLElement;
       const wrapperDivs = layoutDiv.children;
-      expect(wrapperDivs).toHaveLength(2); // Should only have 2 wrapper divs for the 2 children
-      
-      // Check the third child is not in the DOM at all
-      expect(screen.queryByTestId('third-child')).not.toBeInTheDocument();
+      expect(wrapperDivs).toHaveLength(2);
+
+      // Second and third children are stacked vertically inside the second column
+      const secondWrapper = wrapperDivs[1] as HTMLElement;
+      const group = secondWrapper.firstElementChild as HTMLElement;
+      expect(group).toHaveClass('flex', 'flex-col', 'gap-4'); // default md spacing
+      expect(group).toContainElement(screen.getByTestId('second-child'));
+      expect(group).toContainElement(screen.getByTestId('third-child'));
     });
 
     it('should handle single child gracefully', () => {
@@ -51,7 +56,7 @@ describe('SplitLayout Component', () => {
     });
 
     it('should handle no children', () => {
-      const { container } = renderWithTemplateContext(<SplitLayout></SplitLayout>);
+      const { container } = renderWithTemplateContext(<SplitLayout children={undefined as any} />);
 
       // Should render the container but with empty child divs
       expect(container.firstChild).toBeInTheDocument();
@@ -106,9 +111,9 @@ describe('SplitLayout Component', () => {
     ];
 
     gapTests.forEach(({ gap, expectedClass }) => {
-      it(`should apply ${expectedClass} for gap="${gap}"`, () => {
+      it(`should apply ${expectedClass} for spacing="${gap}"`, () => {
         const { container } = renderWithTemplateContext(
-          <SplitLayout gap={gap}>{testChildren}</SplitLayout>
+          <SplitLayout spacing={gap}>{testChildren}</SplitLayout>
         );
 
         const layoutDiv = container.firstChild as HTMLElement;
@@ -278,7 +283,7 @@ describe('SplitLayout Component', () => {
 
     it('should combine all classes correctly', () => {
       const { container } = renderWithTemplateContext(
-        <SplitLayout gap="lg" ratio="2:1" vertical={false} responsive={true}>
+        <SplitLayout spacing="lg" ratio="2:1" vertical={false} responsive={true}>
           {testChildren}
         </SplitLayout>
       );
@@ -361,8 +366,8 @@ describe('SplitLayout Component', () => {
       const validGaps = ['xs', 'sm', 'md', 'lg', 'xl'] as const;
       
       validGaps.forEach(gap => {
-        it(`should accept gap="${gap}"`, () => {
-          renderWithTemplateContext(<SplitLayout gap={gap}>{testChildren}</SplitLayout>);
+        it(`should accept spacing="${gap}"`, () => {
+          renderWithTemplateContext(<SplitLayout spacing={gap}>{testChildren}</SplitLayout>);
           expect(screen.getByTestId('first-child')).toBeInTheDocument();
           expect(screen.getByTestId('second-child')).toBeInTheDocument();
         });
@@ -422,7 +427,7 @@ describe('SplitLayout Component', () => {
   describe('Complex Combinations', () => {
     it('should handle all props together correctly', () => {
       const { container } = renderWithTemplateContext(
-        <SplitLayout ratio="2:1" vertical={false} gap="xl" responsive={false}>
+        <SplitLayout ratio="2:1" vertical={false} spacing="xl" responsive={false}>
           {testChildren}
         </SplitLayout>
       );

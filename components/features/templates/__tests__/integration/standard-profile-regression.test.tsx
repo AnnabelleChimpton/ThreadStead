@@ -48,7 +48,8 @@ describe('Standard Profile Regression Test', () => {
     expect(layeredCSS).toContain('.profile-header'); // User CSS preserved
     expect(layeredCSS).toContain('#3498db'); // User colors preserved
     expect(layeredCSS).toContain('font-family: -apple-system'); // Site CSS included
-    expect(layeredCSS).toContain('inherit'); // CSS mode respected
+    // CSS mode respected: inherit mode keeps site CSS in the threadstead-site layer
+    expect(layeredCSS).toContain('@layer threadstead-site');
   });
 
   test('Enhanced profiles should work unchanged', () => {

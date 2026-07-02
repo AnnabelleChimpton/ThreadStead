@@ -7,8 +7,8 @@
 }
 
 /* Enhanced Navigation Focus States */
-.nav-link:focus {
-  outline: 2px solid #D97B5A;
+.nav-link:focus-visible {
+  outline: 2px solid #E27D60;
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -218,13 +218,11 @@
   }
 
   /* Focus states for better mobile accessibility */
-  input:focus,
-  textarea:focus,
-  select:focus {
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-    border-color: #3B82F6;
-    transform: scale(1.02);
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: 2px solid #E27D60;
+    outline-offset: 2px;
   }
 
   /* Mobile-friendly buttons */
@@ -565,7 +563,7 @@
 
   /* Enhanced focus indicators for mobile */
   .mobile-focus-enhanced:focus-visible {
-    outline: 3px solid #3B82F6;
+    outline: 2px solid #E27D60;
     outline-offset: 2px;
     border-radius: 0.375rem;
     transition: outline 0.2s ease;
@@ -756,7 +754,7 @@
     width: 30px;
     height: 30px;
     margin-left: -15px;
-    border: 2px solid #3B82F6;
+    border: 2px solid #E27D60;
     border-top-color: transparent;
     border-radius: 50%;
     animation: mobilePullRefreshSpin 1s linear infinite;

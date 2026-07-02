@@ -20,7 +20,7 @@ describe('Layout Component Composition Integration', () => {
       });
 
       const { container } = renderWithTemplateContext(
-        <GridLayout columns={2} gap="md">
+        <GridLayout columns={2} gapSize="md">
           <div className="static-html bg-blue-100 p-4" data-testid="static-1">
             <h2>Static Content 1</h2>
             <p>This is static HTML content</p>
@@ -79,15 +79,15 @@ describe('Layout Component Composition Integration', () => {
       const mockData = createMockResidentData();
 
       const { container } = renderWithTemplateContext(
-        <SplitLayout ratio="2:1" gap="lg">
-          <FlexContainer direction="column" gap="md">
+        <SplitLayout ratio="2:1" spacing="lg">
+          <FlexContainer direction="column" gapSize="md">
             <div className="static-header bg-yellow-100 p-3" data-testid="nested-static-1">
               <h1>Nested Static Header</h1>
               <div className="inline-meta">
                 By: <DisplayName />
               </div>
             </div>
-            <GradientBox gradient="sunset" padding="sm">
+            <GradientBox gradient="sunset" containerPadding="sm">
               <p className="nested-text" data-testid="nested-static-2">
                 Static text inside gradient box
               </p>
@@ -152,11 +152,11 @@ describe('Layout Component Composition Integration', () => {
       });
 
       const { container } = renderWithTemplateContext(
-        <GridLayout columns={1} gap="xl" data-testid="level-1-grid">
-          <SplitLayout ratio="1:2" gap="lg" data-testid="level-2-split">
-            <CenteredBox maxWidth="md" padding="md" data-testid="level-3-center">
-              <GradientBox gradient="forest" padding="sm" data-testid="level-4-gradient">
-                <FlexContainer direction="column" align="center" gap="sm" data-testid="level-5-flex">
+        <GridLayout columns={1} gapSize="xl" data-testid="level-1-grid">
+          <SplitLayout ratio="1:2" spacing="lg" data-testid="level-2-split">
+            <CenteredBox containerMaxWidth="md" containerPadding="md" data-testid="level-3-center">
+              <GradientBox gradient="forest" containerPadding="sm" data-testid="level-4-gradient">
+                <FlexContainer direction="column" align="center" gapSize="sm" data-testid="level-5-flex">
                   <div className="deeply-nested-static bg-white rounded p-2" data-testid="level-6-static">
                     <h3>6 Levels Deep</h3>
                     <DisplayName />
@@ -256,16 +256,16 @@ describe('Layout Component Composition Integration', () => {
       const mockData = createMockResidentData();
 
       renderWithTemplateContext(
-        <GridLayout columns={2} gap="md">
+        <GridLayout columns={2} gapSize="md">
           <SplitLayout ratio="1:1">
-            <FlexContainer direction="column" gap="sm">
+            <FlexContainer direction="column" gapSize="sm">
               <input data-testid="input-1" placeholder="Input 1" />
-              <GradientBox gradient="ocean" padding="sm">
+              <GradientBox gradient="ocean" containerPadding="sm">
                 <button data-testid="button-1">Button in Gradient</button>
                 <input data-testid="input-2" placeholder="Input in Gradient" />
               </GradientBox>
             </FlexContainer>
-            <CenteredBox maxWidth="sm">
+            <CenteredBox containerMaxWidth="sm">
               <textarea data-testid="textarea-1" placeholder="Textarea in Center" />
               <button data-testid="button-2">Button in Center</button>
             </CenteredBox>
@@ -385,11 +385,11 @@ describe('Layout Component Composition Integration', () => {
               <div className="responsive-child" data-testid="flex-child-1">Flex Child 1</div>
               <div className="responsive-child" data-testid="flex-child-2">Flex Child 2</div>
             </FlexContainer>
-            <CenteredBox maxWidth="lg">
+            <CenteredBox containerMaxWidth="lg">
               <ProfilePhoto />
             </CenteredBox>
           </SplitLayout>
-          <GradientBox gradient="rainbow" padding="md">
+          <GradientBox gradient="rainbow" containerPadding="md">
             <div className="gradient-content" data-testid="gradient-content">
               Content in gradient
             </div>
@@ -425,18 +425,18 @@ describe('Layout Component Composition Integration', () => {
       const mockData = createMockResidentData();
 
       const ComplexLayout = ({ rerenderTrigger }: { rerenderTrigger: number }) => (
-        <GridLayout columns={2} gap="lg">
+        <GridLayout columns={2} gapSize="lg">
           {Array.from({ length: 4 }, (_, i) => (
-            <SplitLayout key={i} ratio="1:1" gap="md">
-              <FlexContainer direction="column" gap="sm">
-                <GradientBox gradient={i % 2 === 0 ? 'sunset' : 'ocean'} padding="xs">
+            <SplitLayout key={i} ratio="1:1" spacing="md">
+              <FlexContainer direction="column" gapSize="sm">
+                <GradientBox gradient={i % 2 === 0 ? 'sunset' : 'ocean'} containerPadding="xs">
                   <div data-testid={`complex-content-${i}`}>
                     Content {i} - Render {rerenderTrigger}
                   </div>
                   {i % 2 === 0 ? <DisplayName /> : <ProfilePhoto />}
                 </GradientBox>
               </FlexContainer>
-              <CenteredBox maxWidth="sm" padding="sm">
+              <CenteredBox containerMaxWidth="sm" containerPadding="sm">
                 <div data-testid={`simple-content-${i}`}>
                   Simple {i} - Render {rerenderTrigger}
                 </div>

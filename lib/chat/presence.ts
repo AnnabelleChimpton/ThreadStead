@@ -1,5 +1,8 @@
 // Shared presence tracking module
-// Used by both server.js and API routes
+// Used by both server.js (which requires the sibling presence.js) and API routes
+// (which import this file and get a separate webpack-bundled module instance).
+// Both instances share one store via globalThis — without that, the API routes
+// would read an always-empty map and presence endpoints would return nothing.
 
 interface UserPresence {
   id: string;
@@ -10,6 +13,8 @@ interface UserPresence {
     avatarThumbnailUrl?: string;
   };
   lastActiveAt: string;
+  status?: string;
+  statusMessage?: string | null;
 }
 
 interface PresenceUser {
@@ -18,10 +23,19 @@ interface PresenceUser {
   displayName?: string;
   avatarUrl?: string;
   lastActiveAt: string;
+  status: string;
+  statusMessage: string | null;
 }
 
-// In-memory presence tracking
-const roomPresence = new Map<string, Map<string, UserPresence>>(); // roomId -> Map<userId, userData>
+declare global {
+  // eslint-disable-next-line no-var
+  var __threadsteadRoomPresence: Map<string, Map<string, UserPresence>> | undefined;
+}
+
+// In-memory presence tracking, shared across module instances
+const roomPresence: Map<string, Map<string, UserPresence>> =
+  globalThis.__threadsteadRoomPresence ||
+  (globalThis.__threadsteadRoomPresence = new Map()); // roomId -> Map<userId, userData>
 
 /**
  * Get presence list for a room
@@ -36,6 +50,8 @@ export function getRoomPresence(roomId: string): PresenceUser[] {
     displayName: user.profile?.displayName,
     avatarUrl: user.profile?.avatarThumbnailUrl || user.profile?.avatarUrl,
     lastActiveAt: user.lastActiveAt,
+    status: user.status || 'online',
+    statusMessage: user.statusMessage || null,
   }));
 }
 
@@ -51,6 +67,8 @@ export function addToPresence(roomId: string, user: UserPresence): void {
   presence.set(user.id, {
     ...user,
     lastActiveAt: new Date().toISOString(),
+    status: 'online',
+    statusMessage: null,
   });
 }
 
@@ -72,5 +90,22 @@ export function updateLastActive(roomId: string, userId: string): void {
   if (presence && presence.has(userId)) {
     const user = presence.get(userId)!;
     user.lastActiveAt = new Date().toISOString();
+  }
+}
+
+/**
+ * Update user's status
+ */
+export function updateStatus(
+  roomId: string,
+  userId: string,
+  status: string,
+  statusMessage: string | null
+): void {
+  const presence = roomPresence.get(roomId);
+  if (presence && presence.has(userId)) {
+    const user = presence.get(userId)!;
+    user.status = status;
+    user.statusMessage = statusMessage;
   }
 }

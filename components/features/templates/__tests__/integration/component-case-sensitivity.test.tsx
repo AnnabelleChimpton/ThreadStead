@@ -1,126 +1,129 @@
 /**
- * Test to verify case-insensitive component parsing works correctly
+ * Test to verify case-insensitive component resolution works correctly.
+ *
+ * The HTML parser lowercases tag names (e.g. <ProfileHero> becomes
+ * "profilehero"), so the template renderer and component registry must
+ * resolve component tags case-insensitively.
+ *
+ * NOTE: The unified/rehype parsing pipeline itself is stubbed out globally in
+ * jest.setup.js (the real packages are ESM-only), so this suite exercises the
+ * post-parse pipeline: TemplateNode AST -> transformNodeToReact -> React DOM.
  */
 
-import { compileTemplate } from '@/lib/templates/compilation/template-parser';
+// The component registry transitively imports the DID client, whose
+// @noble/ed25519 dependency is ESM-only and cannot be parsed by jest.
+jest.mock('@/lib/api/did/did-client', () => ({}));
+
+import React from 'react';
+import { render } from '@testing-library/react';
+import { componentRegistry } from '@/lib/templates/core/template-registry';
+import { transformNodeToReact } from '@/lib/templates/rendering/template-renderer';
+import type { TemplateNode } from '@/lib/templates/compilation/template-parser';
+import { ResidentDataProvider } from '../../ResidentDataProvider';
+import { createMockResidentData } from '../test-utils';
+
+function renderAst(ast: TemplateNode) {
+  const residentData = createMockResidentData();
+  return render(
+    <ResidentDataProvider data={residentData}>
+      {transformNodeToReact(ast)}
+    </ResidentDataProvider>
+  );
+}
+
+const el = (
+  tagName: string,
+  properties: Record<string, unknown> = {},
+  children: TemplateNode[] = []
+): TemplateNode => ({ type: 'element', tagName, properties, children });
 
 describe('Component Case Sensitivity Test', () => {
-  
-  test('should handle PascalCase components converted to lowercase by HTML parser', () => {
-    // Test a simple template with nested components
-    const testTemplate = `
-      <div class="hero-section">
-        <ProfileHero variant="plain" />
-        <div class="content">
-          <CenteredBox maxWidth="xl" padding="lg">
-            <SkillChart title="My Skills" display="bars">
-              <Skill name="Writing" level="85" category="Creative" />
-              <Skill name="Design" level="82" category="Visual" />
-            </SkillChart>
-          </CenteredBox>
-        </div>
-      </div>
-    `;
-    
-    const result = compileTemplate(testTemplate);
-    
-    console.log('Compilation result:', JSON.stringify(result, null, 2));
-    
-    // Should succeed in parsing
-    expect(result.success).toBe(true);
-    expect(result.ast).toBeDefined();
-    expect(result.validation?.stats.componentCounts).toBeDefined();
-    
-    // Should find all components (even though they're now lowercase internally)
-    const componentCounts = result.validation?.stats.componentCounts || {};
-    console.log('Component counts found:', componentCounts);
-    
-    // Should find all our components
-    expect(Object.keys(componentCounts)).toContain('ProfileHero');
-    expect(Object.keys(componentCounts)).toContain('CenteredBox');
-    expect(Object.keys(componentCounts)).toContain('SkillChart');
-    expect(Object.keys(componentCounts)).toContain('Skill');
-    
-    // Should find nested components
-    expect(componentCounts['Skill']).toBe(2);
+  test('registry resolves PascalCase components from lowercased tag names', () => {
+    // What the HTML parser actually emits for <ProfileHero>, <SkillChart>, etc.
+    expect(componentRegistry.get('profilehero')?.name).toBe('ProfileHero');
+    expect(componentRegistry.get('centeredbox')?.name).toBe('CenteredBox');
+    expect(componentRegistry.get('skillchart')?.name).toBe('SkillChart');
+    expect(componentRegistry.get('skill')?.name).toBe('Skill');
+    expect(componentRegistry.get('gridlayout')?.name).toBe('GridLayout');
   });
 
-  test('should handle complex elegant showcase components', () => {
-    // Test just the component-heavy parts without DOCTYPE
-    const complexTemplate = `
-      <CenteredBox maxWidth="xl" padding="lg">
-        <div class="content-section">
-          <Tabs className="elegant-tabs">
-            <Tab title="Skills">
-              <SkillChart title="Creative Pursuits" display="bars" theme="professional">
-                <Skill name="Writing" level="85" category="Creative" color="purple" />
-                <Skill name="Photography" level="78" category="Visual" color="blue" />
-                <Skill name="Design" level="82" category="Visual" color="green" />
-              </SkillChart>
-            </Tab>
-            <Tab title="Gallery">
-              <MediaGrid />
-              <ImageCarousel autoplay="false" showThumbnails="true">
-                <CarouselImage src="#" alt="Image 1" caption="Test" />
-                <CarouselImage src="#" alt="Image 2" caption="Test" />
-              </ImageCarousel>
-            </Tab>
-          </Tabs>
-        </div>
-        
-        <SplitLayout ratio="2:1" gap="xl" responsive="true">
-          <div>
-            <GridLayout columns="2" gap="lg">
-              <RevealBox buttonText="Discover" revealText="Hide">
-                <PolaroidFrame caption="Test" rotation="3">
-                  <div>Content</div>
-                </PolaroidFrame>
-              </RevealBox>
-              <ProgressTracker title="Projects" display="circles">
-                <ProgressItem label="Writing" value="65" max="100" />
-                <ProgressItem label="Art" value="40" max="100" />
-              </ProgressTracker>
-            </GridLayout>
-          </div>
-          <aside>
-            <ContactCard expanded="false" theme="creative">
-              <ContactMethod type="email" value="test@test.com" />
-              <ContactMethod type="twitter" value="@test" />
-            </ContactCard>
-          </aside>
-        </SplitLayout>
-      </CenteredBox>
-    `;
-    
-    const result = compileTemplate(complexTemplate);
-    
-    console.log('Complex template compilation success:', result.success);
-    console.log('Component counts:', result.validation?.stats.componentCounts);
-    console.log('Errors:', result.errors);
-    
-    // Should successfully parse all nested components
-    expect(result.success).toBe(true);
-    
-    const componentCounts = result.validation?.stats.componentCounts || {};
-    
-    // Should find deeply nested components
-    expect(componentCounts['Skill']).toBe(3);
-    expect(componentCounts['CarouselImage']).toBe(2);
-    expect(componentCounts['ContactMethod']).toBe(2);
-    expect(componentCounts['ProgressItem']).toBe(2);
-    
-    // Should find all types of components
-    expect(Object.keys(componentCounts)).toContain('CenteredBox');
-    expect(Object.keys(componentCounts)).toContain('Tabs');
-    expect(Object.keys(componentCounts)).toContain('Tab');
-    expect(Object.keys(componentCounts)).toContain('SkillChart');
-    expect(Object.keys(componentCounts)).toContain('ImageCarousel');
-    expect(Object.keys(componentCounts)).toContain('SplitLayout');
-    expect(Object.keys(componentCounts)).toContain('GridLayout');
-    expect(Object.keys(componentCounts)).toContain('RevealBox');
-    expect(Object.keys(componentCounts)).toContain('PolaroidFrame');
-    expect(Object.keys(componentCounts)).toContain('ProgressTracker');
-    expect(Object.keys(componentCounts)).toContain('ContactCard');
+  test('should render components from lowercase tag names (as produced by the HTML parser)', () => {
+    const ast: TemplateNode = {
+      type: 'root',
+      children: [
+        el('gridlayout', { columns: '2' }, [
+          el('displayname'),
+          el('gradientbox', { gradient: 'ocean' }, [el('bio')])
+        ])
+      ]
+    };
+
+    const { container, getByText } = renderAst(ast);
+
+    // GridLayout resolved from "gridlayout"
+    expect(container.querySelector('.grid')).toBeInTheDocument();
+
+    // DisplayName resolved from "displayname" and rendered with resident data
+    expect(getByText('Test User')).toBeInTheDocument();
+
+    // GradientBox resolved from "gradientbox" with its gradient prop applied
+    expect(container.querySelector('.bg-gradient-to-br.from-blue-400')).toBeInTheDocument();
   });
 
+  test('should render components from exact PascalCase tag names too', () => {
+    const ast: TemplateNode = {
+      type: 'root',
+      children: [
+        el('GridLayout', { columns: '2' }, [el('DisplayName')])
+      ]
+    };
+
+    const { container, getByText } = renderAst(ast);
+
+    expect(container.querySelector('.grid')).toBeInTheDocument();
+    expect(getByText('Test User')).toBeInTheDocument();
+  });
+
+  test('should handle deeply nested lowercase components', () => {
+    const ast: TemplateNode = {
+      type: 'root',
+      children: [
+        el('centeredbox', {}, [
+          el('flexcontainer', { direction: 'column' }, [
+            el('gradientbox', { gradient: 'sunset' }, [
+              el('displayname'),
+              el('bio')
+            ])
+          ])
+        ])
+      ]
+    };
+
+    const { container, getByText } = renderAst(ast);
+
+    expect(container.querySelector('.mx-auto')).toBeInTheDocument(); // CenteredBox
+    expect(container.querySelector('.flex.flex-col')).toBeInTheDocument(); // FlexContainer
+    expect(container.querySelector('.bg-gradient-to-br.from-orange-400')).toBeInTheDocument(); // GradientBox
+    expect(getByText('Test User')).toBeInTheDocument(); // DisplayName leaf
+  });
+
+  test('should ignore unknown components without crashing', () => {
+    const ast: TemplateNode = {
+      type: 'root',
+      children: [
+        el('notarealcomponent', {}, [
+          { type: 'text', value: 'hidden content' }
+        ]),
+        el('displayname')
+      ]
+    };
+
+    const { queryByText, getByText } = renderAst(ast);
+
+    // Unknown tags render nothing (not their children, not an error)
+    expect(queryByText('hidden content')).not.toBeInTheDocument();
+
+    // Siblings still render
+    expect(getByText('Test User')).toBeInTheDocument();
+  });
 });

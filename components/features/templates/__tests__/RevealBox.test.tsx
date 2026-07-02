@@ -359,7 +359,8 @@ describe('RevealBox Component', () => {
 
     it('should handle empty content', () => {
       const { container } = renderWithTemplateContext(
-        <RevealBox></RevealBox>
+        // Robustness: component should tolerate missing children
+        <RevealBox children={undefined as any} />
       );
       
       const button = screen.getByRole('button');
@@ -603,6 +604,24 @@ describe('RevealBox Component', () => {
       
       // Should end up visible (odd number of clicks)
       expect(screen.queryByText('Rapid click content')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Universal CSS Props', () => {
+    it('should apply CSS props as inline styles on the wrapper', () => {
+      const { container } = renderWithTemplateContext(
+        <RevealBox padding="12px" backgroundColor="#eeeeee">
+          <div>Content</div>
+        </RevealBox>
+      );
+
+      const wrapper = container.firstChild as HTMLElement;
+      expect(wrapper).toHaveStyle({
+        padding: '12px',
+        backgroundColor: '#eeeeee'
+      });
+      // Button styling is unaffected by wrapper CSS props
+      expect(screen.getByRole('button')).toHaveClass('bg-blue-500', 'text-white');
     });
   });
 

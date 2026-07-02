@@ -37,8 +37,9 @@ describe('ProgressTracker', () => {
     });
 
     it('should handle empty children gracefully', () => {
+      // Intentionally render without children to verify robustness
       renderWithTemplateContext(
-        <ProgressTracker title="Empty Skills" />,
+        <ProgressTracker title="Empty Skills" children={undefined as any} />,
         { residentData: mockData }
       );
 
@@ -49,7 +50,7 @@ describe('ProgressTracker', () => {
   describe('Progress Bar Display (default)', () => {
     it('should render progress bars with correct percentages', () => {
       const { container } = renderWithTemplateContext(
-        <ProgressTracker display="bars">
+        <ProgressTracker displayMode="bars">
           <ProgressItem label="React" value={75} />
           <ProgressItem label="CSS" value={50} />
         </ProgressTracker>,
@@ -63,7 +64,7 @@ describe('ProgressTracker', () => {
 
     it('should handle values over 100% by capping at 100%', () => {
       const { container } = renderWithTemplateContext(
-        <ProgressTracker display="bars">
+        <ProgressTracker displayMode="bars">
           <ProgressItem label="Overachiever" value={150} />
         </ProgressTracker>,
         { residentData: mockData }
@@ -75,7 +76,7 @@ describe('ProgressTracker', () => {
 
     it('should apply correct color classes', () => {
       const { container } = renderWithTemplateContext(
-        <ProgressTracker display="bars" theme="modern">
+        <ProgressTracker displayMode="bars" theme="modern">
           <ProgressItem label="React" value={75} color="blue" />
           <ProgressItem label="Vue" value={50} color="green" />
         </ProgressTracker>,
@@ -91,7 +92,7 @@ describe('ProgressTracker', () => {
   describe('Star Rating Display', () => {
     it('should render star ratings correctly', () => {
       renderWithTemplateContext(
-        <ProgressTracker display="stars">
+        <ProgressTracker displayMode="stars">
           <ProgressItem label="Project A" value={4} max={5} />
           <ProgressItem label="Project B" value={3.5} max={5} />
         </ProgressTracker>,
@@ -106,7 +107,7 @@ describe('ProgressTracker', () => {
 
     it('should default to max 5 for stars', () => {
       renderWithTemplateContext(
-        <ProgressTracker display="stars">
+        <ProgressTracker displayMode="stars">
           <ProgressItem label="Rating" value={4} />
         </ProgressTracker>,
         { residentData: mockData }
@@ -120,7 +121,7 @@ describe('ProgressTracker', () => {
   describe('Circular Progress Display', () => {
     it('should render circular progress indicators', () => {
       const { container } = renderWithTemplateContext(
-        <ProgressTracker display="circles">
+        <ProgressTracker displayMode="circles">
           <ProgressItem label="Goal 1" value={75} />
           <ProgressItem label="Goal 2" value={30} />
         </ProgressTracker>,
@@ -144,7 +145,7 @@ describe('ProgressTracker', () => {
   describe('Dot Progress Display', () => {
     it('should render dot progress indicators', () => {
       const { container } = renderWithTemplateContext(
-        <ProgressTracker display="dots">
+        <ProgressTracker displayMode="dots">
           <ProgressItem label="Skill Level" value={7} max={10} />
         </ProgressTracker>,
         { residentData: mockData }
@@ -159,7 +160,7 @@ describe('ProgressTracker', () => {
 
     it('should default to max 10 for dots', () => {
       renderWithTemplateContext(
-        <ProgressTracker display="dots">
+        <ProgressTracker displayMode="dots">
           <ProgressItem label="Level" value={8} />
         </ProgressTracker>,
         { residentData: mockData }
@@ -172,7 +173,7 @@ describe('ProgressTracker', () => {
   describe('Themes', () => {
     it('should apply modern theme classes', () => {
       const { container } = renderWithTemplateContext(
-        <ProgressTracker theme="modern" display="bars">
+        <ProgressTracker theme="modern" displayMode="bars">
           <ProgressItem label="React" value={75} color="blue" />
         </ProgressTracker>,
         { residentData: mockData }
@@ -184,7 +185,7 @@ describe('ProgressTracker', () => {
 
     it('should apply retro theme classes', () => {
       const { container } = renderWithTemplateContext(
-        <ProgressTracker theme="retro" display="bars">
+        <ProgressTracker theme="retro" displayMode="bars">
           <ProgressItem label="React" value={75} color="blue" />
         </ProgressTracker>,
         { residentData: mockData }
@@ -196,7 +197,7 @@ describe('ProgressTracker', () => {
 
     it('should apply neon theme classes with glow effects', () => {
       const { container } = renderWithTemplateContext(
-        <ProgressTracker theme="neon" display="bars">
+        <ProgressTracker theme="neon" displayMode="bars">
           <ProgressItem label="React" value={75} color="blue" />
         </ProgressTracker>,
         { residentData: mockData }
@@ -211,7 +212,7 @@ describe('ProgressTracker', () => {
 
     it('should apply minimal theme classes', () => {
       const { container } = renderWithTemplateContext(
-        <ProgressTracker theme="minimal" display="bars">
+        <ProgressTracker theme="minimal" displayMode="bars">
           <ProgressItem label="React" value={75} color="blue" />
         </ProgressTracker>,
         { residentData: mockData }
@@ -310,7 +311,7 @@ describe('ProgressTracker', () => {
   describe('Custom Max Values', () => {
     it('should handle custom max values correctly', () => {
       renderWithTemplateContext(
-        <ProgressTracker display="bars">
+        <ProgressTracker displayMode="bars">
           <ProgressItem label="Score" value={8} max={10} />
           <ProgressItem label="Rating" value={3} max={4} />
         </ProgressTracker>,
@@ -323,7 +324,7 @@ describe('ProgressTracker', () => {
 
     it('should calculate percentages correctly with custom max', () => {
       const { container } = renderWithTemplateContext(
-        <ProgressTracker display="bars">
+        <ProgressTracker displayMode="bars">
           <ProgressItem label="Score" value={8} max={10} />
         </ProgressTracker>,
         { residentData: mockData }
@@ -348,8 +349,9 @@ describe('ProgressTracker', () => {
     });
 
     it('should handle className as array', () => {
+      // className is typed as string; arrays are invalid input the component tolerates
       const { container } = renderWithTemplateContext(
-        <ProgressTracker className={['custom-style-1', 'custom-style-2']}>
+        <ProgressTracker className={['custom-style-1', 'custom-style-2'] as any}>
           <ProgressItem label="React" value={75} />
         </ProgressTracker>,
         { residentData: mockData }
@@ -363,7 +365,7 @@ describe('ProgressTracker', () => {
   describe('Accessibility', () => {
     it('should include appropriate ARIA attributes for progress bars', () => {
       const { container } = renderWithTemplateContext(
-        <ProgressTracker display="bars">
+        <ProgressTracker displayMode="bars">
           <ProgressItem label="React" value={75} description="React proficiency level" />
         </ProgressTracker>,
         { residentData: mockData }

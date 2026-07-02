@@ -2,8 +2,9 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/config/database/connection";
 import { getSessionUser } from "@/lib/auth/server";
 import { ReportType, ReportReason } from "@prisma/client";
+import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
 
   const user = await getSessionUser(req);
@@ -159,3 +160,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.status(500).json({ error: "Failed to create report" });
   }
 }
+
+export default withCsrfProtection(handler);

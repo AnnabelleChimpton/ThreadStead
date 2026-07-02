@@ -7,19 +7,38 @@ marked.setOptions({
   gfm: true // Enable GitHub Flavored Markdown for better features
 });
 
+const ALLOWED_DATA_URI = /^data:image\/[a-zA-Z+]+;base64,/i;
+
+// DOMPurify exempts data: URIs on img/audio/video/image/track (DATA_URI_TAGS)
+// from ALLOWED_URI_REGEXP, so e.g. <img src="data:text/html,..."> would survive
+// sanitization. This hook enforces the base64-image-only policy on data: URIs.
+function enforceDataUriPolicy(_node: unknown, data: { attrName: string; attrValue: string; keepAttr: boolean }) {
+  if (data.attrName === "src" || data.attrName === "href") {
+    const value = data.attrValue.trim();
+    if (/^data:/i.test(value) && !ALLOWED_DATA_URI.test(value)) {
+      data.keepAttr = false;
+    }
+  }
+}
+
 export function cleanHtml(input: string) {
   if (!input) return "";
-  return DOMPurify.sanitize(input, {
-    ALLOWED_TAGS: [
-      "b","i","em","strong","a","p","ul","ol","li","blockquote","code","pre","br",
-      "h1","h2","h3","h4","h5","h6","img","span",
-      "table","thead","tbody","tr","th","td","input",
-      "sup","sub","section","div"
-    ],
-    ALLOWED_ATTR: ["href","title","alt","src","class","align","type","checked","disabled","id"],
-    ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto):|\/|#|data:image\/[a-zA-Z]+;base64,)/i,
-    FORBID_TAGS: ["style","script","iframe"],
-  });
+  DOMPurify.addHook("uponSanitizeAttribute", enforceDataUriPolicy);
+  try {
+    return DOMPurify.sanitize(input, {
+      ALLOWED_TAGS: [
+        "b","i","em","strong","a","p","ul","ol","li","blockquote","code","pre","br",
+        "h1","h2","h3","h4","h5","h6","img","span",
+        "table","thead","tbody","tr","th","td","input",
+        "sup","sub","section","div"
+      ],
+      ALLOWED_ATTR: ["href","title","alt","src","class","align","type","checked","disabled","id"],
+      ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto):|\/|#|data:image\/[a-zA-Z]+;base64,)/i,
+      FORBID_TAGS: ["style","script","iframe"],
+    });
+  } finally {
+    DOMPurify.removeHook("uponSanitizeAttribute");
+  }
 }
 
 export function normalizeLinks(html: string) {

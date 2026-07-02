@@ -75,7 +75,7 @@ describe('FloatingBadge Component', () => {
 
     it('should apply green color variant', () => {
       const { container } = renderWithTemplateContext(
-        <FloatingBadge color="green">Green</FloatingBadge>
+        <FloatingBadge badgeColor="green">Green</FloatingBadge>
       );
       
       const badge = container.querySelector('.rounded-full');
@@ -84,7 +84,7 @@ describe('FloatingBadge Component', () => {
 
     it('should apply red color variant', () => {
       const { container } = renderWithTemplateContext(
-        <FloatingBadge color="red">Red</FloatingBadge>
+        <FloatingBadge badgeColor="red">Red</FloatingBadge>
       );
       
       const badge = container.querySelector('.rounded-full');
@@ -93,7 +93,7 @@ describe('FloatingBadge Component', () => {
 
     it('should apply yellow color variant with black text', () => {
       const { container } = renderWithTemplateContext(
-        <FloatingBadge color="yellow">Yellow</FloatingBadge>
+        <FloatingBadge badgeColor="yellow">Yellow</FloatingBadge>
       );
       
       const badge = container.querySelector('.rounded-full');
@@ -102,7 +102,7 @@ describe('FloatingBadge Component', () => {
 
     it('should apply purple color variant', () => {
       const { container } = renderWithTemplateContext(
-        <FloatingBadge color="purple">Purple</FloatingBadge>
+        <FloatingBadge badgeColor="purple">Purple</FloatingBadge>
       );
       
       const badge = container.querySelector('.rounded-full');
@@ -111,7 +111,7 @@ describe('FloatingBadge Component', () => {
 
     it('should apply pink color variant', () => {
       const { container } = renderWithTemplateContext(
-        <FloatingBadge color="pink">Pink</FloatingBadge>
+        <FloatingBadge badgeColor="pink">Pink</FloatingBadge>
       );
       
       const badge = container.querySelector('.rounded-full');
@@ -120,7 +120,7 @@ describe('FloatingBadge Component', () => {
 
     it('should handle invalid color gracefully', () => {
       const { container } = renderWithTemplateContext(
-        <FloatingBadge color={'invalid' as any}>Content</FloatingBadge>
+        <FloatingBadge badgeColor={'invalid' as any}>Content</FloatingBadge>
       );
       
       // Should not crash and maintain some basic structure
@@ -228,7 +228,7 @@ describe('FloatingBadge Component', () => {
 
     it('should apply top-left position', () => {
       const { container } = renderWithTemplateContext(
-        <FloatingBadge position="top-left">Top Left</FloatingBadge>
+        <FloatingBadge badgePosition="top-left">Top Left</FloatingBadge>
       );
       
       const positionContainer = container.querySelector('.fixed');
@@ -237,7 +237,7 @@ describe('FloatingBadge Component', () => {
 
     it('should apply bottom-left position', () => {
       const { container } = renderWithTemplateContext(
-        <FloatingBadge position="bottom-left">Bottom Left</FloatingBadge>
+        <FloatingBadge badgePosition="bottom-left">Bottom Left</FloatingBadge>
       );
       
       const positionContainer = container.querySelector('.fixed');
@@ -246,7 +246,7 @@ describe('FloatingBadge Component', () => {
 
     it('should apply bottom-right position', () => {
       const { container } = renderWithTemplateContext(
-        <FloatingBadge position="bottom-right">Bottom Right</FloatingBadge>
+        <FloatingBadge badgePosition="bottom-right">Bottom Right</FloatingBadge>
       );
       
       const positionContainer = container.querySelector('.fixed');
@@ -255,7 +255,7 @@ describe('FloatingBadge Component', () => {
 
     it('should handle invalid position gracefully', () => {
       const { container } = renderWithTemplateContext(
-        <FloatingBadge position={'invalid' as any}>Content</FloatingBadge>
+        <FloatingBadge badgePosition={'invalid' as any}>Content</FloatingBadge>
       );
       
       expect(container.firstChild).toBeInTheDocument();
@@ -307,7 +307,7 @@ describe('FloatingBadge Component', () => {
       
       positions.forEach(position => {
         const { container } = renderWithTemplateContext(
-          <FloatingBadge position={position}>Test {position}</FloatingBadge>
+          <FloatingBadge badgePosition={position}>Test {position}</FloatingBadge>
         );
         
         const positionContainer = container.querySelector('.fixed');
@@ -351,7 +351,8 @@ describe('FloatingBadge Component', () => {
 
     it('should handle empty content', () => {
       const { container } = renderWithTemplateContext(
-        <FloatingBadge></FloatingBadge>
+        // Robustness: component should tolerate missing children
+        <FloatingBadge children={undefined as any} />
       );
       
       const badge = container.querySelector('.rounded-full');
@@ -386,10 +387,10 @@ describe('FloatingBadge Component', () => {
     it('should work with all props combined', () => {
       const { container } = renderWithTemplateContext(
         <FloatingBadge 
-          color="red" 
+          badgeColor="red"
           size="lg" 
           animation="bounce"
-          position="bottom-left"
+          badgePosition="bottom-left"
         >
           Alert!
         </FloatingBadge>
@@ -416,7 +417,7 @@ describe('FloatingBadge Component', () => {
 
     it('should work with minimal configuration', () => {
       const { container } = renderWithTemplateContext(
-        <FloatingBadge color="green">
+        <FloatingBadge badgeColor="green">
           ✓
         </FloatingBadge>
       );
@@ -430,7 +431,7 @@ describe('FloatingBadge Component', () => {
       const { container } = renderWithTemplateContext(
         <FloatingBadge 
           animation="none" 
-          position="top-left"
+          badgePosition="top-left"
           size="sm"
         >
           Static
@@ -466,7 +467,7 @@ describe('FloatingBadge Component', () => {
       
       colors.forEach(color => {
         const { container } = renderWithTemplateContext(
-          <FloatingBadge color={color}>Test {color}</FloatingBadge>
+          <FloatingBadge badgeColor={color}>Test {color}</FloatingBadge>
         );
         
         const badge = container.querySelector('.rounded-full');
@@ -575,11 +576,37 @@ describe('FloatingBadge Component', () => {
     });
   });
 
+  describe('Universal CSS Props', () => {
+    it('should treat position as a CSS position value applied as inline style (not corner placement)', () => {
+      const { container } = renderWithTemplateContext(
+        <FloatingBadge position="absolute" top="10px" left="20px">Pinned</FloatingBadge>
+      );
+
+      const wrapper = container.querySelector('.z-50');
+      expect(wrapper).toHaveStyle({
+        position: 'absolute',
+        top: '10px',
+        left: '20px'
+      });
+      // Corner placement is controlled by badgePosition, which stays at its default
+      expect(wrapper).toHaveClass('top-2', 'right-2');
+    });
+
+    it('should apply other CSS props as inline styles on the wrapper', () => {
+      const { container } = renderWithTemplateContext(
+        <FloatingBadge zIndex={99} opacity={0.8}>Styled</FloatingBadge>
+      );
+
+      const wrapper = container.querySelector('.fixed');
+      expect(wrapper).toHaveStyle({ zIndex: '99', opacity: '0.8' });
+    });
+  });
+
   describe('Performance', () => {
     it('should render quickly', () => {
       const startTime = performance.now();
       renderWithTemplateContext(
-        <FloatingBadge color="purple">Performance test</FloatingBadge>
+        <FloatingBadge badgeColor="purple">Performance test</FloatingBadge>
       );
       const endTime = performance.now();
       
@@ -588,15 +615,15 @@ describe('FloatingBadge Component', () => {
 
     it('should handle multiple rerenders', () => {
       const { rerender } = renderWithTemplateContext(
-        <FloatingBadge color="blue">Initial</FloatingBadge>
+        <FloatingBadge badgeColor="blue">Initial</FloatingBadge>
       );
       
       expect(screen.getByText('Initial')).toBeInTheDocument();
       
-      rerender(<FloatingBadge color="red" size="lg">Updated</FloatingBadge>);
+      rerender(<FloatingBadge badgeColor="red" size="lg">Updated</FloatingBadge>);
       expect(screen.getByText('Updated')).toBeInTheDocument();
       
-      rerender(<FloatingBadge animation="pulse" position="bottom-left">Final</FloatingBadge>);
+      rerender(<FloatingBadge animation="pulse" badgePosition="bottom-left">Final</FloatingBadge>);
       expect(screen.getByText('Final')).toBeInTheDocument();
     });
 
@@ -609,7 +636,7 @@ describe('FloatingBadge Component', () => {
       expect(container.querySelectorAll('style')).toHaveLength(1);
       
       // Rerender should not create additional style tags
-      rerender(<FloatingBadge color="red">Updated</FloatingBadge>);
+      rerender(<FloatingBadge badgeColor="red">Updated</FloatingBadge>);
       expect(container.querySelectorAll('style')).toHaveLength(1);
     });
   });

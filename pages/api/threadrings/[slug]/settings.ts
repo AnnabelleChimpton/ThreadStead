@@ -167,8 +167,7 @@ export default withRateLimit('threadring_operations')(
               return res.status(403).json({ error: "Insufficient permissions to update settings" });
             }
             return res.status(500).json({
-              error: "Failed to update ThreadRing settings",
-              details: ringHubError.message
+              error: "Failed to update ThreadRing settings"
             });
           }
         }

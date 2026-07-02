@@ -2,6 +2,26 @@ import React from 'react';
 import { screen, render, fireEvent, waitFor } from '@testing-library/react';
 import { renderWithTemplateContext, createMockResidentData } from '../test-utils';
 
+// Mock the PostItem component since it has complex dependencies
+// (ChatContext, next/dynamic PixelIcon, IntersectionObserver view tracking)
+jest.mock('@/components/core/content/PostItem', () => {
+  return function MockPostItem({ post }: any) {
+    return <div data-testid={`mock-post-item-${post.id}`}>Post: {post.bodyHtml}</div>;
+  };
+});
+
+// PixelIcon uses next/dynamic which does not resolve in the jest environment
+jest.mock('@/components/ui/PixelIcon', () => ({
+  PixelIcon: ({ name }: { name: string }) => <span data-testid={`pixel-icon-${name}`} />
+}));
+
+// Guestbook entries render UserMention -> UserQuickView, which calls useChat.
+jest.mock('@/contexts/ChatContext', () => ({
+  __esModule: true,
+  useChat: () => ({ openDM: jest.fn() }),
+  ChatProvider: ({ children }: { children: React.ReactNode }) => children,
+}));
+
 import DisplayName from '../../DisplayName';
 import Bio from '../../Bio';
 import ProfilePhoto from '../../ProfilePhoto';
@@ -98,7 +118,7 @@ describe('Real-World User Behavior Stress Tests', () => {
 
       const { container } = renderWithTemplateContext(
         <div className="stress-interaction-container">
-          <GridLayout columns={2} gap="lg">
+          <GridLayout columns={2} gapSize="lg">
             <section className="user-content">
               <DisplayName />
               <ProfilePhoto />
@@ -110,7 +130,7 @@ describe('Real-World User Behavior Stress Tests', () => {
 
             <section className="dynamic-content">
               <BlogPosts />
-              <FlexContainer direction="column" gap="sm">
+              <FlexContainer direction="column" gapSize="sm">
                 <LoadingImage src="image1" />
                 <LoadingImage src="image2" />
                 <LoadingImage src="image3" />
@@ -206,19 +226,19 @@ describe('Real-World User Behavior Stress Tests', () => {
             </div>
 
             {layout === 'grid' && (
-              <GridLayout columns={2} gap="md">
+              <GridLayout columns={2} gapSize="md">
                 {renderContent()}
               </GridLayout>
             )}
 
             {layout === 'split' && (
-              <SplitLayout ratio="1:1" gap="lg">
+              <SplitLayout ratio="1:1" spacing="lg">
                 {renderContent()}
               </SplitLayout>
             )}
 
             {layout === 'flex' && (
-              <FlexContainer direction="row" gap="xl">
+              <FlexContainer direction="row" gapSize="xl">
                 {renderContent()}
               </FlexContainer>
             )}
@@ -308,7 +328,7 @@ describe('Real-World User Behavior Stress Tests', () => {
       const { container } = renderWithTemplateContext(
         <div className="network-test-container">
           <h2>Network Resilience Test</h2>
-          <GridLayout columns={2} gap="lg">
+          <GridLayout columns={2} gapSize="lg">
             <section className="fast-loading">
               <h3>Fast Loading Section</h3>
               <DisplayName />
@@ -400,7 +420,7 @@ describe('Real-World User Behavior Stress Tests', () => {
       };
 
       const { unmount } = renderWithTemplateContext(
-        <SplitLayout ratio="1:1" gap="md">
+        <SplitLayout ratio="1:1" spacing="md">
           <div>
             <DisplayName />
             <AsyncComponent />
@@ -482,13 +502,13 @@ describe('Real-World User Behavior Stress Tests', () => {
             </nav>
 
             <main className="current-template">
-              <GridLayout columns={2} gap="lg">
-                <SplitLayout ratio="2:1" gap="md">
-                  <FlexContainer direction="column" gap="sm">
+              <GridLayout columns={2} gapSize="lg">
+                <SplitLayout ratio="2:1" spacing="md">
+                  <FlexContainer direction="column" gapSize="sm">
                     <DisplayName />
                     <Bio />
                   </FlexContainer>
-                  <GradientBox gradient="sunset" padding="md">
+                  <GradientBox gradient="sunset" containerPadding="md">
                     <ProfilePhoto />
                   </GradientBox>
                 </SplitLayout>

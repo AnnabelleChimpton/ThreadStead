@@ -242,8 +242,7 @@ export default async function handler(
   } catch (error) {
     console.error("Genealogy API error:", error);
     return res.status(500).json({
-      error: "Failed to fetch genealogy data",
-      message: error instanceof Error ? error.message : "Unknown error"
+      error: "Failed to fetch genealogy data"
     });
   }
 }

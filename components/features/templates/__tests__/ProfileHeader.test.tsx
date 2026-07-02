@@ -298,7 +298,7 @@ describe('ProfileHeader Component', () => {
 
     it('should apply custom className when provided as array', () => {
       const { container } = renderWithTemplateContext(
-        <ProfileHeader className={['custom-class-1', 'custom-class-2']} />, 
+        <ProfileHeader className={['custom-class-1', 'custom-class-2'] as any} />, 
         { residentData: defaultResidentData }
       );
 
@@ -308,7 +308,7 @@ describe('ProfileHeader Component', () => {
 
     it('should handle empty array className', () => {
       const { container } = renderWithTemplateContext(
-        <ProfileHeader className={[]} />, 
+        <ProfileHeader className={[] as any} />, 
         { residentData: defaultResidentData }
       );
 

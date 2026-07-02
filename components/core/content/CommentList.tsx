@@ -7,6 +7,7 @@ import ConfirmModal from "../../ui/feedback/ConfirmModal";
 import { CommentMarkupWithEmojis } from "@/lib/comment-markup";
 import UserMention from "@/components/ui/navigation/UserMention";
 import { csrfFetch } from "@/lib/api/client/csrf-fetch";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 // Helper function to format time ago
 function formatTimeAgo(date: Date): string {
@@ -54,7 +55,9 @@ export default function CommentList({
 }: CommentListProps) {
   const [serverComments, setServerComments] = useState<CommentWire[]>([]);
   const [loading, setLoading] = useState(true);
-  const [viewerId, setViewerId] = useState<string | null>(null);
+  // Shared, cached /api/auth/me lookup (deduped across all mounted consumers)
+  const { user: viewer } = useCurrentUser();
+  const viewerId = viewer?.id ?? null;
   const [removing, setRemoving] = useState<string | null>(null);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; useAdminEndpoint: boolean } | null>(null);
@@ -91,25 +94,6 @@ export default function CommentList({
       return () => clearTimeout(timer);
     }
   }, [highlightCommentId, loading, serverComments.length]);
-
-   useEffect(() => {
-      let cancelled = false;
-      (async () => {
-          try {
-          const r = await fetch("/api/auth/me", { credentials: "same-origin" });
-          if (!r.ok) return;
-          const d = await r.json().catch(() => null);
-          const v =
-              d?.userId ??
-              d?.user?.id ??
-              d?.id ??
-              d?.me?.id ??
-              null;
-          if (!cancelled && v) setViewerId(String(v));
-          } catch {}
-      })();
-      return () => { cancelled = true; };
-    }, []);
 
   useEffect(() => {
     let cancelled = false;

@@ -54,11 +54,24 @@ export default function RingHubFeed({
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [resolvedUsernames, setResolvedUsernames] = useState<Map<string, string>>(new Map());
+  // Batch-fetched comment counts keyed by PostItem id (see loadPosts)
+  const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
   const postsCountRef = useRef(0);
+  // Mirror of resolvedUsernames for reads inside loadPosts. The callback's
+  // deps intentionally omit the state, so reading the state directly would
+  // always see the initial empty Map and re-resolve the same DIDs every page.
+  const resolvedUsernamesRef = useRef<Map<string, string>>(new Map());
+  // Generation counter: bumped whenever type/timeWindow/includeNotifications
+  // changes, so late responses from a previous feed's in-flight load can't
+  // append the wrong feed's posts.
+  const generationRef = useRef(0);
 
   const endpoint = type === "my-rings" ? "/api/feed/my-rings" : "/api/feed/trending";
 
   const loadPosts = useCallback(async (isInitial = false) => {
+    const generation = generationRef.current;
+    const isStale = () => generation !== generationRef.current;
+
     if (!isInitial) setLoadingMore(true);
     setError(null);
 
@@ -81,8 +94,9 @@ export default function RingHubFeed({
       }
 
       const data: RingHubFeedResponse = await res.json();
-      
-      
+
+      if (isStale()) return;
+
       // Client-side filtering if server doesn't properly filter notifications
       let filteredPosts = data.posts;
       if (!includeNotifications) {
@@ -131,6 +145,33 @@ export default function RingHubFeed({
       // Filter out null entries (orphaned posts)
       const validPosts = enrichedPosts.filter(post => post !== null);
 
+      if (isStale()) return;
+
+      // Batch-fetch comment counts for this page of posts before rendering
+      // them, so PostItem doesn't fire its per-post fallback fetch. Keys must
+      // match the id convertToPostItem assigns.
+      const pagePostIds = validPosts
+        .filter(p => !(p.metadata?.type === 'threadring_prompt' || p.notificationType === 'threadring_prompt'))
+        .map(p => (p.postContent && !p.isNotification) ? p.postContent.id : `ringhub-${p.id}`);
+
+      if (pagePostIds.length > 0) {
+        try {
+          const countsRes = await fetch(
+            `/api/comments/counts?postIds=${encodeURIComponent(pagePostIds.join(','))}`
+          );
+          if (countsRes.ok) {
+            const countsData = await countsRes.json();
+            if (countsData?.counts && typeof countsData.counts === 'object' && !isStale()) {
+              setCommentCounts(prev => ({ ...prev, ...countsData.counts }));
+            }
+          }
+        } catch {
+          // Ignore — PostItem falls back to its own per-post count fetch
+        }
+      }
+
+      if (isStale()) return;
+
       if (isInitial) {
         setPosts(validPosts);
         postsCountRef.current = validPosts.length;
@@ -139,11 +180,15 @@ export default function RingHubFeed({
         postsCountRef.current += validPosts.length;
       }
       
-      // Resolve DIDs to usernames for posts we don't have resolved yet
-      const newDIDs = data.posts
-        .map(p => p.actorDid)
-        .filter(did => !resolvedUsernames.has(did));
-        
+      // Resolve DIDs to usernames for posts we don't have resolved yet.
+      // Read from the ref (not the state) so previously resolved DIDs are
+      // actually seen here and not re-resolved on every page.
+      const newDIDs = Array.from(new Set(
+        data.posts
+          .map(p => p.actorDid)
+          .filter(did => !resolvedUsernamesRef.current.has(did))
+      ));
+
       if (newDIDs.length > 0) {
         try {
           const response = await fetch('/api/users/resolve-dids', {
@@ -151,22 +196,25 @@ export default function RingHubFeed({
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ dids: newDIDs })
           });
-          
+
           if (response.ok) {
             const { resolved } = await response.json();
-            setResolvedUsernames(prev => {
-              const newMap = new Map(prev);
-              Object.entries(resolved).forEach(([did, username]) => {
-                newMap.set(did, username as string);
-              });
-              return newMap;
+            const merged = new Map(resolvedUsernamesRef.current);
+            Object.entries(resolved).forEach(([did, username]) => {
+              merged.set(did, username as string);
             });
+            // Update the ref even if this load went stale — the DID->username
+            // cache stays valid across feed switches.
+            resolvedUsernamesRef.current = merged;
+            setResolvedUsernames(merged);
           }
         } catch (err) {
           console.error('Failed to resolve DIDs:', err);
         }
       }
-      
+
+      if (isStale()) return;
+
       // Handle pagination - use RingHub pagination if available, otherwise assume no more
       if (data.pagination) {
         setHasMore(data.pagination.hasMore);
@@ -185,16 +233,25 @@ export default function RingHubFeed({
       }
     } catch (err) {
       console.error("RingHub feed error:", err);
-      setError((err as Error)?.message || "Failed to load posts");
+      if (!isStale()) {
+        setError((err as Error)?.message || "Failed to load posts");
+      }
     } finally {
-      setLoading(false);
-      setLoadingMore(false);
+      // A stale load must not clear the loading state the new feed's
+      // in-flight load is responsible for.
+      if (!isStale()) {
+        setLoading(false);
+        setLoadingMore(false);
+      }
     }
   }, [endpoint, timeWindow, includeNotifications, type]);
 
   // Initial load
   useEffect(() => {
+    generationRef.current += 1;
     setLoading(true);
+    setLoadingMore(false);
+    setError(null);
     setPosts([]);
     postsCountRef.current = 0;
     loadPosts(true);
@@ -393,6 +450,7 @@ export default function RingHubFeed({
             key={postItem.id}
             post={postItem}
             isOwner={false}
+            commentCount={commentCounts[postItem.id]}
             currentUser={currentUser}
             threadRingContext={{
               slug: ringHubPost.ringSlug,

@@ -54,9 +54,9 @@ describe('CenteredBox Component', () => {
     ];
 
     maxWidthTestCases.forEach(({ maxWidth, expectedClass }) => {
-      it(`should apply correct class for maxWidth="${maxWidth}"`, () => {
+      it(`should apply correct class for containerMaxWidth="${maxWidth}"`, () => {
         render(
-          <CenteredBox maxWidth={maxWidth}>
+          <CenteredBox containerMaxWidth={maxWidth}>
             <TestChild1 />
           </CenteredBox>
         );
@@ -66,7 +66,7 @@ describe('CenteredBox Component', () => {
       });
     });
 
-    it('should default to maxWidth="lg"', () => {
+    it('should default to containerMaxWidth="lg"', () => {
       render(
         <CenteredBox>
           <TestChild1 />
@@ -81,7 +81,7 @@ describe('CenteredBox Component', () => {
   describe('MaxWidth Prop - Custom Values', () => {
     it('should handle pixel values', () => {
       render(
-        <CenteredBox maxWidth="500px">
+        <CenteredBox containerMaxWidth="500px">
           <TestChild1 />
         </CenteredBox>
       );
@@ -92,7 +92,7 @@ describe('CenteredBox Component', () => {
 
     it('should handle rem values', () => {
       render(
-        <CenteredBox maxWidth="20rem">
+        <CenteredBox containerMaxWidth="20rem">
           <TestChild1 />
         </CenteredBox>
       );
@@ -103,7 +103,7 @@ describe('CenteredBox Component', () => {
 
     it('should handle percentage values', () => {
       render(
-        <CenteredBox maxWidth="80%">
+        <CenteredBox containerMaxWidth="80%">
           <TestChild1 />
         </CenteredBox>
       );
@@ -114,7 +114,7 @@ describe('CenteredBox Component', () => {
 
     it('should handle numeric values as pixels', () => {
       render(
-        <CenteredBox maxWidth="600">
+        <CenteredBox containerMaxWidth="600">
           <TestChild1 />
         </CenteredBox>
       );
@@ -132,7 +132,7 @@ describe('CenteredBox Component', () => {
 
       supportedCases.forEach(({ maxWidth, expected }) => {
         const { unmount } = render(
-          <CenteredBox maxWidth={maxWidth}>
+          <CenteredBox containerMaxWidth={maxWidth}>
             <div data-testid={`test-${maxWidth.replace('%', 'percent')}`}>Test</div>
           </CenteredBox>
         );
@@ -153,7 +153,7 @@ describe('CenteredBox Component', () => {
 
       supportedCases.forEach(maxWidth => {
         const { unmount } = render(
-          <CenteredBox maxWidth={maxWidth}>
+          <CenteredBox containerMaxWidth={maxWidth}>
             <div data-testid={`test-${maxWidth}`}>Test</div>
           </CenteredBox>
         );
@@ -170,7 +170,7 @@ describe('CenteredBox Component', () => {
 
       unsupportedCases.forEach(maxWidth => {
         const { unmount } = render(
-          <CenteredBox maxWidth={maxWidth}>
+          <CenteredBox containerMaxWidth={maxWidth}>
             <div data-testid={`test-${maxWidth}`}>Test</div>
           </CenteredBox>
         );
@@ -184,7 +184,7 @@ describe('CenteredBox Component', () => {
 
     it('should not apply styles for invalid custom values', () => {
       render(
-        <CenteredBox maxWidth="invalid-value">
+        <CenteredBox containerMaxWidth="invalid-value">
           <TestChild1 />
         </CenteredBox>
       );
@@ -204,9 +204,9 @@ describe('CenteredBox Component', () => {
     ];
 
     paddingTestCases.forEach(({ padding, expectedClass }) => {
-      it(`should apply correct class for padding="${padding}"`, () => {
+      it(`should apply correct class for containerPadding="${padding}"`, () => {
         render(
-          <CenteredBox padding={padding}>
+          <CenteredBox containerPadding={padding}>
             <TestChild1 />
           </CenteredBox>
         );
@@ -216,7 +216,7 @@ describe('CenteredBox Component', () => {
       });
     });
 
-    it('should default to padding="md"', () => {
+    it('should default to containerPadding="md"', () => {
       render(
         <CenteredBox>
           <TestChild1 />
@@ -231,7 +231,7 @@ describe('CenteredBox Component', () => {
   describe('Combined Props', () => {
     it('should apply both standard maxWidth and padding classes', () => {
       render(
-        <CenteredBox maxWidth="xl" padding="lg">
+        <CenteredBox containerMaxWidth="xl" containerPadding="lg">
           <TestChild1 />
         </CenteredBox>
       );
@@ -244,7 +244,7 @@ describe('CenteredBox Component', () => {
 
     it('should apply custom maxWidth with padding class', () => {
       render(
-        <CenteredBox maxWidth="750px" padding="sm">
+        <CenteredBox containerMaxWidth="750px" containerPadding="sm">
           <TestChild1 />
         </CenteredBox>
       );
@@ -257,7 +257,7 @@ describe('CenteredBox Component', () => {
 
     it('should handle all props at minimum values', () => {
       render(
-        <CenteredBox maxWidth="sm" padding="xs">
+        <CenteredBox containerMaxWidth="sm" containerPadding="xs">
           <TestChild1 />
         </CenteredBox>
       );
@@ -270,7 +270,7 @@ describe('CenteredBox Component', () => {
 
     it('should handle all props at maximum values', () => {
       render(
-        <CenteredBox maxWidth="2xl" padding="xl">
+        <CenteredBox containerMaxWidth="2xl" containerPadding="xl">
           <TestChild1 />
         </CenteredBox>
       );
@@ -348,7 +348,7 @@ describe('CenteredBox Component', () => {
   describe('Style Application', () => {
     it('should not apply styles when using standard maxWidth', () => {
       render(
-        <CenteredBox maxWidth="md">
+        <CenteredBox containerMaxWidth="md">
           <TestChild1 />
         </CenteredBox>
       );
@@ -360,7 +360,7 @@ describe('CenteredBox Component', () => {
 
     it('should apply styles only for custom maxWidth', () => {
       render(
-        <CenteredBox maxWidth="450px">
+        <CenteredBox containerMaxWidth="450px">
           <TestChild1 />
         </CenteredBox>
       );
@@ -372,7 +372,7 @@ describe('CenteredBox Component', () => {
 
     it('should handle empty style object correctly', () => {
       render(
-        <CenteredBox maxWidth="lg">
+        <CenteredBox containerMaxWidth="lg">
           <TestChild1 />
         </CenteredBox>
       );
@@ -385,7 +385,7 @@ describe('CenteredBox Component', () => {
   describe('CSS Class Generation', () => {
     it('should not have extra spaces in className', () => {
       render(
-        <CenteredBox maxWidth="md" padding="sm">
+        <CenteredBox containerMaxWidth="md" containerPadding="sm">
           <TestChild1 />
         </CenteredBox>
       );
@@ -401,7 +401,7 @@ describe('CenteredBox Component', () => {
 
     it('should handle custom maxWidth without class pollution', () => {
       render(
-        <CenteredBox maxWidth="600px" padding="md">
+        <CenteredBox containerMaxWidth="600px" containerPadding="md">
           <TestChild1 />
         </CenteredBox>
       );
@@ -414,6 +414,43 @@ describe('CenteredBox Component', () => {
       const classes = container?.className.split(' ') || [];
       const hasMaxWClass = classes.some(cls => cls.startsWith('max-w-'));
       expect(hasMaxWClass).toBe(false);
+    });
+  });
+
+  describe('Universal CSS Props', () => {
+    it('should apply CSS props as inline styles', () => {
+      render(
+        <CenteredBox backgroundColor="rgb(255, 0, 0)" borderRadius="8px">
+          <TestChild1 />
+        </CenteredBox>
+      );
+
+      const container = screen.getByTestId('child-1').parentElement;
+      expect(container).toHaveStyle({ backgroundColor: 'rgb(255, 0, 0)' });
+      expect(container?.style.borderRadius).toBe('8px');
+    });
+
+    it('should remove conflicting Tailwind padding class when CSS padding prop is provided', () => {
+      render(
+        <CenteredBox containerPadding="lg" padding="10px">
+          <TestChild1 />
+        </CenteredBox>
+      );
+
+      const container = screen.getByTestId('child-1').parentElement;
+      expect(container).not.toHaveClass('p-8');
+      expect(container).toHaveStyle({ padding: '10px' });
+    });
+
+    it('should let CSS maxWidth prop take precedence over custom containerMaxWidth', () => {
+      render(
+        <CenteredBox containerMaxWidth="500px" maxWidth="300px">
+          <TestChild1 />
+        </CenteredBox>
+      );
+
+      const container = screen.getByTestId('child-1').parentElement;
+      expect(container).toHaveStyle({ maxWidth: '300px' });
     });
   });
 
@@ -434,7 +471,7 @@ describe('CenteredBox Component', () => {
 
     it('should handle zero as numeric maxWidth', () => {
       render(
-        <CenteredBox maxWidth="0">
+        <CenteredBox containerMaxWidth="0">
           <TestChild1 />
         </CenteredBox>
       );
@@ -445,7 +482,7 @@ describe('CenteredBox Component', () => {
 
     it('should handle decimal numeric values', () => {
       render(
-        <CenteredBox maxWidth="123.5">
+        <CenteredBox containerMaxWidth="123.5">
           <TestChild1 />
         </CenteredBox>
       );
@@ -456,7 +493,7 @@ describe('CenteredBox Component', () => {
 
     it('should handle negative numeric values', () => {
       render(
-        <CenteredBox maxWidth="-100">
+        <CenteredBox containerMaxWidth="-100">
           <TestChild1 />
         </CenteredBox>
       );
@@ -467,7 +504,7 @@ describe('CenteredBox Component', () => {
 
     it('should handle very large numeric values', () => {
       render(
-        <CenteredBox maxWidth="999999">
+        <CenteredBox containerMaxWidth="999999">
           <TestChild1 />
         </CenteredBox>
       );
@@ -538,7 +575,7 @@ describe('CenteredBox Component', () => {
   describe('Component Integration', () => {
     it('should work well as a layout wrapper', () => {
       render(
-        <CenteredBox maxWidth="xl" padding="lg">
+        <CenteredBox containerMaxWidth="xl" containerPadding="lg">
           <div data-testid="header">Header Content</div>
           <div data-testid="main">Main Content</div>
           <div data-testid="footer">Footer Content</div>
@@ -555,7 +592,7 @@ describe('CenteredBox Component', () => {
 
     it('should render consistently with same props', () => {
       const { rerender } = render(
-        <CenteredBox maxWidth="lg" padding="md">
+        <CenteredBox containerMaxWidth="lg" containerPadding="md">
           <TestChild1 />
         </CenteredBox>
       );
@@ -564,7 +601,7 @@ describe('CenteredBox Component', () => {
       const classes1 = container1?.className;
       
       rerender(
-        <CenteredBox maxWidth="lg" padding="md">
+        <CenteredBox containerMaxWidth="lg" containerPadding="md">
           <TestChild1 />
         </CenteredBox>
       );
@@ -575,8 +612,8 @@ describe('CenteredBox Component', () => {
 
     it('should handle nested CenteredBox components', () => {
       render(
-        <CenteredBox maxWidth="2xl" padding="xl">
-          <CenteredBox maxWidth="md" padding="sm">
+        <CenteredBox containerMaxWidth="2xl" containerPadding="xl">
+          <CenteredBox containerMaxWidth="md" containerPadding="sm">
             <TestChild1 />
           </CenteredBox>
         </CenteredBox>

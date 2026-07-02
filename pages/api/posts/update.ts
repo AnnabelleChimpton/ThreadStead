@@ -61,9 +61,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
   const data: {
     title?: string;
-    bodyText?: string;
-    bodyHtml?: string;
-    bodyMarkdown?: string;
+    bodyText?: string | null;
+    bodyHtml?: string | null;
+    bodyMarkdown?: string | null;
     visibility?: Visibility;
     intent?: PostIntent | null;
     isSpoiler?: boolean;
@@ -75,17 +75,17 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (typeof title === "string") data.title = title;
   if (typeof bodyText === "string") {
     data.bodyText = bodyText;
-    data.bodyHtml = undefined; // Clear HTML when switching to text
-    data.bodyMarkdown = undefined; // Clear markdown when switching to text
+    data.bodyHtml = null; // Clear HTML when switching to text
+    data.bodyMarkdown = null; // Clear markdown when switching to text
   }
   if (typeof bodyMarkdown === "string") {
     data.bodyMarkdown = bodyMarkdown;
     data.bodyHtml = markdownToSafeHtml(bodyMarkdown);
-    data.bodyText = undefined; // Clear text when switching to markdown
+    data.bodyText = null; // Clear text when switching to markdown
   } else if (typeof bodyHtml === "string") {
     data.bodyHtml = cleanAndNormalizeHtml(bodyHtml);
-    data.bodyMarkdown = undefined; // Clear markdown when switching to HTML
-    data.bodyText = undefined; // Clear text when switching to HTML
+    data.bodyMarkdown = null; // Clear markdown when switching to HTML
+    data.bodyText = null; // Clear text when switching to HTML
   }
 
   // Handle other field updates

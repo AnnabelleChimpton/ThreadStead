@@ -201,7 +201,7 @@ describe('RetroTerminal Component', () => {
   describe('Padding Options', () => {
     it('should apply xs padding', () => {
       const { container } = renderWithTemplateContext(
-        <RetroTerminal padding="xs">Content</RetroTerminal>
+        <RetroTerminal containerPadding="xs">Content</RetroTerminal>
       );
       
       const content = container.querySelector('.p-2');
@@ -211,7 +211,7 @@ describe('RetroTerminal Component', () => {
 
     it('should apply sm padding', () => {
       const { container } = renderWithTemplateContext(
-        <RetroTerminal padding="sm">Content</RetroTerminal>
+        <RetroTerminal containerPadding="sm">Content</RetroTerminal>
       );
       
       const content = container.querySelector('.p-4');
@@ -229,7 +229,7 @@ describe('RetroTerminal Component', () => {
 
     it('should apply lg padding', () => {
       const { container } = renderWithTemplateContext(
-        <RetroTerminal padding="lg">Content</RetroTerminal>
+        <RetroTerminal containerPadding="lg">Content</RetroTerminal>
       );
       
       const content = container.querySelector('.p-8');
@@ -238,7 +238,7 @@ describe('RetroTerminal Component', () => {
 
     it('should apply xl padding', () => {
       const { container } = renderWithTemplateContext(
-        <RetroTerminal padding="xl">Content</RetroTerminal>
+        <RetroTerminal containerPadding="xl">Content</RetroTerminal>
       );
       
       const content = container.querySelector('.p-12');
@@ -247,7 +247,7 @@ describe('RetroTerminal Component', () => {
 
     it('should handle invalid padding gracefully', () => {
       const { container } = renderWithTemplateContext(
-        <RetroTerminal padding={'invalid' as any}>Content</RetroTerminal>
+        <RetroTerminal containerPadding={'invalid' as any}>Content</RetroTerminal>
       );
       
       expect(container.firstChild).toBeInTheDocument();
@@ -315,9 +315,9 @@ Line 2
       expect(preElement).toBeInTheDocument();
     });
 
-    it('should handle empty content', () => {
+    it('should handle missing children (invalid input robustness)', () => {
       const { container } = renderWithTemplateContext(
-        <RetroTerminal></RetroTerminal>
+        <RetroTerminal children={undefined as any} />
       );
       
       // Get the content div (second div, not the header with traffic lights)
@@ -333,10 +333,10 @@ Line 2
   describe('Component Combinations', () => {
     it('should work with all props combined', () => {
       const { container } = renderWithTemplateContext(
-        <RetroTerminal 
-          variant="amber" 
-          showHeader={true} 
-          padding="lg"
+        <RetroTerminal
+          variant="amber"
+          showHeader={true}
+          containerPadding="lg"
         >
           Terminal output here
         </RetroTerminal>
@@ -358,10 +358,10 @@ Line 2
 
     it('should work without header and with minimal padding', () => {
       const { container } = renderWithTemplateContext(
-        <RetroTerminal 
-          variant="white" 
-          showHeader={false} 
-          padding="xs"
+        <RetroTerminal
+          variant="white"
+          showHeader={false}
+          containerPadding="xs"
         >
           Minimal terminal
         </RetroTerminal>

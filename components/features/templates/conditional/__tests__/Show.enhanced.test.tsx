@@ -1,14 +1,14 @@
 import React from 'react';
 import { screen } from '@testing-library/react';
 import Show from '../Show';
-import { renderWithTemplateContext, createMockResidentData } from '../../__tests__/test-utils';
+import { renderWithTemplateContext, createMockResidentData, createMockPosts } from '../../__tests__/test-utils';
 
 describe('Show Component - Enhanced Operators', () => {
   describe('Comparison Operators', () => {
     describe('greaterThan', () => {
       it('should show content when value is greater than threshold', () => {
         const residentData = createMockResidentData({
-          posts: [{}, {}, {}] // 3 posts
+          posts: createMockPosts(3) // 3 posts
         });
 
         renderWithTemplateContext(
@@ -23,7 +23,7 @@ describe('Show Component - Enhanced Operators', () => {
 
       it('should not show content when value equals threshold', () => {
         const residentData = createMockResidentData({
-          posts: [{}, {}] // 2 posts
+          posts: createMockPosts(2) // 2 posts
         });
 
         renderWithTemplateContext(
@@ -38,7 +38,7 @@ describe('Show Component - Enhanced Operators', () => {
 
       it('should handle numeric string comparison', () => {
         const residentData = createMockResidentData({
-          posts: [{}, {}, {}, {}, {}] // 5 posts
+          posts: createMockPosts(5) // 5 posts
         });
 
         renderWithTemplateContext(
@@ -55,7 +55,7 @@ describe('Show Component - Enhanced Operators', () => {
     describe('lessThan', () => {
       it('should show content when value is less than threshold', () => {
         const residentData = createMockResidentData({
-          posts: [{}] // 1 post
+          posts: createMockPosts(1) // 1 post
         });
 
         renderWithTemplateContext(
@@ -70,7 +70,7 @@ describe('Show Component - Enhanced Operators', () => {
 
       it('should not show content when value equals threshold', () => {
         const residentData = createMockResidentData({
-          posts: [{}, {}, {}] // 3 posts
+          posts: createMockPosts(3) // 3 posts
         });
 
         renderWithTemplateContext(
@@ -87,7 +87,7 @@ describe('Show Component - Enhanced Operators', () => {
     describe('greaterThanOrEqual', () => {
       it('should show content when value is greater than threshold', () => {
         const residentData = createMockResidentData({
-          posts: [{}, {}, {}, {}] // 4 posts
+          posts: createMockPosts(4) // 4 posts
         });
 
         renderWithTemplateContext(
@@ -102,7 +102,7 @@ describe('Show Component - Enhanced Operators', () => {
 
       it('should show content when value equals threshold', () => {
         const residentData = createMockResidentData({
-          posts: [{}, {}, {}] // 3 posts
+          posts: createMockPosts(3) // 3 posts
         });
 
         renderWithTemplateContext(
@@ -119,7 +119,7 @@ describe('Show Component - Enhanced Operators', () => {
     describe('lessThanOrEqual', () => {
       it('should show content when value is less than threshold', () => {
         const residentData = createMockResidentData({
-          posts: [{}] // 1 post
+          posts: createMockPosts(1) // 1 post
         });
 
         renderWithTemplateContext(
@@ -134,7 +134,7 @@ describe('Show Component - Enhanced Operators', () => {
 
       it('should show content when value equals threshold', () => {
         const residentData = createMockResidentData({
-          posts: [{}, {}, {}] // 3 posts
+          posts: createMockPosts(3) // 3 posts
         });
 
         renderWithTemplateContext(
@@ -300,7 +300,7 @@ describe('Show Component - Enhanced Operators', () => {
     describe('and', () => {
       it('should show content when all conditions are truthy', () => {
         const residentData = createMockResidentData({
-          posts: [{}],
+          posts: createMockPosts(1),
           capabilities: { bio: 'Test bio' }
         });
 
@@ -366,7 +366,7 @@ describe('Show Component - Enhanced Operators', () => {
 
       it('should show content when all conditions are truthy', () => {
         const residentData = createMockResidentData({
-          posts: [{}],
+          posts: createMockPosts(1),
           capabilities: { bio: 'Test bio' }
         });
 
@@ -415,7 +415,7 @@ describe('Show Component - Enhanced Operators', () => {
 
       it('should not show content when condition is truthy', () => {
         const residentData = createMockResidentData({
-          posts: [{}]
+          posts: createMockPosts(1)
         });
 
         renderWithTemplateContext(
@@ -433,7 +433,7 @@ describe('Show Component - Enhanced Operators', () => {
   describe('Backwards Compatibility', () => {
     it('should still support basic data truthy check', () => {
       const residentData = createMockResidentData({
-        posts: [{}]
+        posts: createMockPosts(1)
       });
 
       renderWithTemplateContext(
@@ -448,7 +448,7 @@ describe('Show Component - Enhanced Operators', () => {
 
     it('should still support when expression', () => {
       const residentData = createMockResidentData({
-        posts: [{}]
+        posts: createMockPosts(1)
       });
 
       renderWithTemplateContext(
@@ -525,7 +525,7 @@ describe('Show Component - Enhanced Operators', () => {
 
     it('should show complete profile message when user has both posts and bio', () => {
       const residentData = createMockResidentData({
-        posts: [{}],
+        posts: createMockPosts(1),
         capabilities: { bio: 'Developer' }
       });
 

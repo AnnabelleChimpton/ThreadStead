@@ -82,9 +82,9 @@ body {
     expect(generatedCSS).toContain('html body html body #profile-123.vb-theme-space, html body html body #profile-123 .vb-theme-space');
     expect(generatedCSS).toContain('background-color: var(--global-bg-color) !important');
 
-    // Verify root variables are scoped to profile container (note the line break formatting)
-    expect(generatedCSS).toContain('#profile-123');
-    expect(generatedCSS).toContain(':root {');
+    // Verify root variables are scoped to profile container
+    // (:root rules are rewritten to target the profile template root)
+    expect(generatedCSS).toContain('.profile-template-root#profile-123');
     expect(generatedCSS).toContain('--global-bg-color: #0a0e27 !important');
 
     console.log('✅ Disable mode correctly excludes all system CSS layers');
@@ -107,11 +107,13 @@ body {
       profileId: 'profile-123'
     });
 
-    // In inherit mode, site CSS should be included (fallback mode doesn't use layers)
+    // In inherit mode, site CSS should be included (inside the threadstead-site layer)
+    expect(generatedCSS).toContain('@layer threadstead-site');
     expect(generatedCSS).toContain('.site-header');
 
-    // User CSS should still have nuclear priority
-    expect(generatedCSS).toContain('NUCLEAR FALLBACK (inherit mode)');
+    // User CSS should still have nuclear priority (inherit mode uses CSS layers)
+    expect(generatedCSS).toContain('@layer threadstead-user-nuclear');
+    expect(generatedCSS).toContain('NUCLEAR OPTION ACTIVATED');
     expect(generatedCSS).toContain('html body html body #profile-123.vb-theme-space, html body html body #profile-123 .vb-theme-space');
 
     console.log('✅ Inherit mode includes system CSS but user CSS still gets nuclear priority');

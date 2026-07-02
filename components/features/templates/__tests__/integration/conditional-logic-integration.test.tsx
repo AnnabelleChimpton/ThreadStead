@@ -2,6 +2,19 @@ import React from 'react';
 import { screen, render } from '@testing-library/react';
 import { renderWithTemplateContext, createMockResidentData } from '../test-utils';
 
+// Mock the PostItem component since it has complex dependencies
+// (ChatContext, next/dynamic PixelIcon, IntersectionObserver view tracking)
+jest.mock('@/components/core/content/PostItem', () => {
+  return function MockPostItem({ post }: any) {
+    return <div data-testid={`mock-post-item-${post.id}`}>Post: {post.bodyHtml}</div>;
+  };
+});
+
+// PixelIcon uses next/dynamic which does not resolve in the jest environment
+jest.mock('@/components/ui/PixelIcon', () => ({
+  PixelIcon: ({ name }: { name: string }) => <span data-testid={`pixel-icon-${name}`} />
+}));
+
 import DisplayName from '../../DisplayName';
 import Bio from '../../Bio';
 import ProfilePhoto from '../../ProfilePhoto';
@@ -32,8 +45,8 @@ describe('Conditional Logic Integration', () => {
 
       const { container } = renderWithTemplateContext(
         <div className="mutual-exclusivity-test">
-          <GridLayout columns={2} gap="lg">
-            <SplitLayout ratio="1:1" gap="md">
+          <GridLayout columns={2} gapSize="lg">
+            <SplitLayout ratio="1:1" spacing="md">
               <IfOwner>
                 <div data-testid="owner-section-1">
                   <h2>Owner Section 1</h2>
@@ -49,9 +62,9 @@ describe('Conditional Logic Integration', () => {
               </IfVisitor>
             </SplitLayout>
 
-            <FlexContainer direction="column" gap="sm">
+            <FlexContainer direction="column" gapSize="sm">
               <IfOwner>
-                <GradientBox gradient="sunset" padding="md">
+                <GradientBox gradient="sunset" containerPadding="md">
                   <div data-testid="owner-section-2">
                     <h3>Owner Dashboard</h3>
                     <BlogPosts />
@@ -60,7 +73,7 @@ describe('Conditional Logic Integration', () => {
                 </GradientBox>
               </IfOwner>
               <IfVisitor>
-                <CenteredBox maxWidth="md" padding="lg">
+                <CenteredBox containerMaxWidth="md" containerPadding="lg">
                   <div data-testid="visitor-section-2">
                     <h3>Public Profile</h3>
                     <p>Limited public view</p>
@@ -102,7 +115,7 @@ describe('Conditional Logic Integration', () => {
 
       renderWithTemplateContext(
         <div className="viewer-switch-test">
-          <GridLayout columns={1} gap="md">
+          <GridLayout columns={1} gapSize="md">
             <IfOwner>
               <div data-testid="owner-content">
                 <h2>Owner Content</h2>
@@ -157,8 +170,8 @@ describe('Conditional Logic Integration', () => {
 
       renderWithTemplateContext(
         <div className="nested-conditionals-test">
-          <SplitLayout ratio="2:1" gap="lg">
-            <FlexContainer direction="column" gap="md">
+          <SplitLayout ratio="2:1" spacing="lg">
+            <FlexContainer direction="column" gapSize="md">
               <IfOwner>
                 <div data-testid="owner-nested-section">
                   <h2>Owner Dashboard</h2>
@@ -435,7 +448,7 @@ describe('Conditional Logic Integration', () => {
 
       renderWithTemplateContext(
         <div className="mixed-conditionals-test">
-          <GridLayout columns={2} gap="lg">
+          <GridLayout columns={2} gapSize="lg">
             <IfOwner>
               <div data-testid="owner-complex">
                 <Show when="has:posts">
@@ -519,13 +532,13 @@ describe('Conditional Logic Integration', () => {
 
       const { container } = renderWithTemplateContext(
         <div className="layout-conditional-test">
-          <GridLayout columns={3} gap="md">
+          <GridLayout columns={3} gapSize="md">
             <IfOwner>
-              <SplitLayout ratio="1:1" gap="sm">
-                <GradientBox gradient="ocean" padding="md">
+              <SplitLayout ratio="1:1" spacing="sm">
+                <GradientBox gradient="ocean" containerPadding="md">
                   <DisplayName />
                 </GradientBox>
-                <FlexContainer direction="column" gap="xs">
+                <FlexContainer direction="column" gapSize="xs">
                   <Bio />
                   <ProfilePhoto />
                 </FlexContainer>
@@ -533,7 +546,7 @@ describe('Conditional Logic Integration', () => {
             </IfOwner>
 
             <IfVisitor>
-              <CenteredBox maxWidth="sm" padding="lg">
+              <CenteredBox containerMaxWidth="sm" containerPadding="lg">
                 <DisplayName />
                 <p>Visitor view</p>
               </CenteredBox>
@@ -602,10 +615,10 @@ describe('Conditional Logic Integration', () => {
 
       const { container } = renderWithTemplateContext(
         <div className="responsive-conditional-test">
-          <GridLayout columns={1} gap="lg" className="sm:grid-cols-2 lg:grid-cols-3">
+          <GridLayout columns={1} gapSize="lg">
             <IfOwner>
               <div data-testid="owner-responsive">
-                <SplitLayout ratio="1:2" gap="md" className="flex-col lg:flex-row">
+                <SplitLayout ratio="1:2" spacing="md">
                   <DisplayName />
                   <Bio />
                 </SplitLayout>
@@ -614,7 +627,7 @@ describe('Conditional Logic Integration', () => {
 
             <IfVisitor>
               <div data-testid="visitor-responsive">
-                <FlexContainer direction="column" gap="sm" className="md:flex-row">
+                <FlexContainer direction="column" gapSize="sm">
                   <DisplayName />
                   <p>Public profile</p>
                 </FlexContainer>
@@ -625,7 +638,7 @@ describe('Conditional Logic Integration', () => {
               <Show when="has:owner.displayName">
                 <GradientBox 
                   gradient="sunset" 
-                  padding="sm" 
+                  containerPadding="sm" 
                   className="text-center md:text-left"
                 >
                   <h2>Profile Information</h2>

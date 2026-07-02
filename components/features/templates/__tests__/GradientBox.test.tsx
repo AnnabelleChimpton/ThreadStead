@@ -116,9 +116,9 @@ describe('GradientBox Component', () => {
     ];
 
     paddingTests.forEach(({ padding, expectedClass }) => {
-      it(`should apply padding="${padding}" correctly`, () => {
+      it(`should apply containerPadding="${padding}" correctly`, () => {
         const { container } = renderWithTemplateContext(
-          <GradientBox padding={padding}>{testChildren}</GradientBox>
+          <GradientBox containerPadding={padding}>{testChildren}</GradientBox>
         );
 
         const gradientDiv = container.firstChild as HTMLElement;
@@ -137,7 +137,7 @@ describe('GradientBox Component', () => {
 
     it('should not apply padding when custom className is provided', () => {
       const { container } = renderWithTemplateContext(
-        <GradientBox padding="lg" className="custom-class">{testChildren}</GradientBox>
+        <GradientBox containerPadding="lg" className="custom-class">{testChildren}</GradientBox>
       );
 
       const gradientDiv = container.firstChild as HTMLElement;
@@ -251,22 +251,22 @@ describe('GradientBox Component', () => {
     });
   });
 
-  describe('Opacity Prop', () => {
-    it('should apply opacity when opacity prop is provided', () => {
+  describe('Gradient Opacity Prop', () => {
+    it('should apply opacity class when gradientOpacity prop is provided', () => {
       const { container } = renderWithTemplateContext(
-        <GradientBox opacity="50">{testChildren}</GradientBox>
+        <GradientBox gradientOpacity="50">{testChildren}</GradientBox>
       );
 
       const gradientDiv = container.firstChild as HTMLElement;
       expect(gradientDiv).toHaveClass('bg-opacity-50');
     });
 
-    it('should work with different opacity values', () => {
+    it('should work with different gradientOpacity values', () => {
       const opacityTests = ['10', '20', '50', '75', '90'];
-      
+
       opacityTests.forEach(opacity => {
         const { container } = renderWithTemplateContext(
-          <GradientBox opacity={opacity}>{testChildren}</GradientBox>
+          <GradientBox gradientOpacity={opacity}>{testChildren}</GradientBox>
         );
 
         const gradientDiv = container.firstChild as HTMLElement;
@@ -274,7 +274,7 @@ describe('GradientBox Component', () => {
       });
     });
 
-    it('should not apply opacity when opacity prop is not provided', () => {
+    it('should not apply opacity class when gradientOpacity prop is not provided', () => {
       const { container } = renderWithTemplateContext(
         <GradientBox>{testChildren}</GradientBox>
       );
@@ -303,9 +303,9 @@ describe('GradientBox Component', () => {
       expect(gradientDiv).toHaveClass('bg-white', 'custom-class');
     });
 
-    it('should handle array className', () => {
+    it('should handle array className (invalid input robustness)', () => {
       const { container } = renderWithTemplateContext(
-        <GradientBox className={['class1', 'class2']}>{testChildren}</GradientBox>
+        <GradientBox className={['class1', 'class2'] as any}>{testChildren}</GradientBox>
       );
 
       const gradientDiv = container.firstChild as HTMLElement;
@@ -318,9 +318,9 @@ describe('GradientBox Component', () => {
     it('should combine legacy props correctly', () => {
       const { container } = renderWithTemplateContext(
         <GradientBox 
-          gradient="neon" 
-          direction="tl" 
-          padding="xl" 
+          gradient="neon"
+          direction="tl"
+          containerPadding="xl"
           rounded={true}
         >
           {testChildren}
@@ -341,8 +341,8 @@ describe('GradientBox Component', () => {
     it('should combine modern props correctly', () => {
       const { container } = renderWithTemplateContext(
         <GradientBox 
-          colors="blue-purple" 
-          opacity="75" 
+          colors="blue-purple"
+          gradientOpacity="75"
           className="shadow-lg"
         >
           {testChildren}
@@ -366,8 +366,8 @@ describe('GradientBox Component', () => {
           gradient="fire"
           direction="b"
           colors="ocean" // Should override gradient
-          opacity="25"
-          padding="sm"
+          gradientOpacity="25"
+          containerPadding="sm"
           rounded={false}
         >
           {testChildren}
@@ -389,9 +389,9 @@ describe('GradientBox Component', () => {
   });
 
   describe('Edge Cases', () => {
-    it('should handle empty children', () => {
+    it('should handle missing children (invalid input robustness)', () => {
       const { container } = renderWithTemplateContext(
-        <GradientBox></GradientBox>
+        <GradientBox children={undefined as any} />
       );
 
       const gradientDiv = container.firstChild as HTMLElement;
@@ -414,7 +414,7 @@ describe('GradientBox Component', () => {
           gradient={undefined}
           direction={undefined}
           colors={undefined}
-          opacity={undefined}
+          gradientOpacity={undefined}
           className={undefined}
         >
           {testChildren}
@@ -428,7 +428,7 @@ describe('GradientBox Component', () => {
 
     it('should filter out empty class names correctly', () => {
       const { container } = renderWithTemplateContext(
-        <GradientBox colors="white" opacity="">{testChildren}</GradientBox>
+        <GradientBox colors="white" gradientOpacity="">{testChildren}</GradientBox>
       );
 
       const gradientDiv = container.firstChild as HTMLElement;
@@ -442,9 +442,9 @@ describe('GradientBox Component', () => {
     it('should produce clean className without extra spaces', () => {
       const { container } = renderWithTemplateContext(
         <GradientBox 
-          gradient="sunset" 
+          gradient="sunset"
           direction="br"
-          padding="md"
+          containerPadding="md"
           rounded={true}
         >
           {testChildren}
@@ -460,8 +460,8 @@ describe('GradientBox Component', () => {
     it('should handle all empty classes gracefully', () => {
       const { container } = renderWithTemplateContext(
         <GradientBox 
-          colors="white" 
-          opacity=""
+          colors="white"
+          gradientOpacity=""
           className=""
           rounded={false}
         >
@@ -474,6 +474,38 @@ describe('GradientBox Component', () => {
       // Should only have the background class and padding
       const classList = Array.from(gradientDiv.classList);
       expect(classList).toContain('bg-white');
+    });
+  });
+
+  describe('Universal CSS Props', () => {
+    it('should apply CSS padding prop as inline style and drop Tailwind padding classes', () => {
+      const { container } = renderWithTemplateContext(
+        <GradientBox containerPadding="lg" padding="20px">{testChildren}</GradientBox>
+      );
+
+      const gradientDiv = container.firstChild as HTMLElement;
+      expect(gradientDiv.style.padding).toBe('20px');
+      expect(gradientDiv).not.toHaveClass('p-8');
+    });
+
+    it('should apply backgroundColor as inline style and remove Tailwind bg classes', () => {
+      const { container } = renderWithTemplateContext(
+        <GradientBox colors="white" backgroundColor="#ff0000">{testChildren}</GradientBox>
+      );
+
+      const gradientDiv = container.firstChild as HTMLElement;
+      expect(gradientDiv.style.backgroundColor).toBe('rgb(255, 0, 0)');
+      expect(gradientDiv).not.toHaveClass('bg-white');
+    });
+
+    it('should apply borderRadius as inline style and drop rounded-lg class', () => {
+      const { container } = renderWithTemplateContext(
+        <GradientBox rounded={true} borderRadius="4px">{testChildren}</GradientBox>
+      );
+
+      const gradientDiv = container.firstChild as HTMLElement;
+      expect(gradientDiv.style.borderRadius).toBe('4px');
+      expect(gradientDiv).not.toHaveClass('rounded-lg');
     });
   });
 
@@ -535,9 +567,9 @@ describe('GradientBox Component', () => {
       const validPaddings = ['xs', 'sm', 'md', 'lg', 'xl'] as const;
       
       validPaddings.forEach(padding => {
-        it(`should accept padding="${padding}"`, () => {
+        it(`should accept containerPadding="${padding}"`, () => {
           renderWithTemplateContext(
-            <GradientBox padding={padding}>{testChildren}</GradientBox>
+            <GradientBox containerPadding={padding}>{testChildren}</GradientBox>
           );
           expect(screen.getByTestId('gradient-content')).toBeInTheDocument();
         });

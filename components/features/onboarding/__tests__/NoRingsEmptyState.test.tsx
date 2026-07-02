@@ -274,8 +274,9 @@ describe('NoRingsEmptyState Component', () => {
       const description = screen.getByText(/ThreadRings are like cozy corners/);
       expect(description).toHaveClass('max-w-md', 'mx-auto');
       
-      // Buttons should be in a vertical stack
-      const buttonContainer = screen.getByText('Start with Welcome Ring').closest('div')?.parentElement;
+      // Buttons should be in a vertical stack. The mocked Link renders a bare
+      // <a>, so the nearest <div> ancestor of the button is the stack itself.
+      const buttonContainer = screen.getByText('Start with Welcome Ring').closest('div');
       expect(buttonContainer).toHaveClass('space-y-3');
     });
 

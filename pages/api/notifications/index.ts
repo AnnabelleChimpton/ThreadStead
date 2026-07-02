@@ -39,7 +39,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       orderBy: {
         createdAt: "desc",
       },
-      take: parseInt(String(limit), 10),
+      take: Math.min(Math.max(parseInt(String(limit), 10) || 20, 1), 100),
     });
 
     const transformedNotifications = notifications.map((n) => ({

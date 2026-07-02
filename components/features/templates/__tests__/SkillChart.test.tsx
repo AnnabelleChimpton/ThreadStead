@@ -55,8 +55,9 @@ describe('SkillChart', () => {
     });
 
     it('should handle className as array', () => {
+      // className is typed as string; arrays are invalid input the component tolerates
       const { container } = render(
-        <SkillChart className={['custom-skill-chart', 'another-class']}>
+        <SkillChart className={['custom-skill-chart', 'another-class'] as any}>
           {sampleSkills}
         </SkillChart>
       );
@@ -69,7 +70,7 @@ describe('SkillChart', () => {
   describe('Display Modes', () => {
     it('should render bars display mode correctly', () => {
       render(
-        <SkillChart display="bars">
+        <SkillChart displayMode="bars">
           {sampleSkills}
         </SkillChart>
       );
@@ -81,7 +82,7 @@ describe('SkillChart', () => {
 
     it('should render radial display mode correctly', () => {
       render(
-        <SkillChart display="radial">
+        <SkillChart displayMode="radial">
           {sampleSkills}
         </SkillChart>
       );
@@ -93,7 +94,7 @@ describe('SkillChart', () => {
 
     it('should render bubbles display mode correctly', () => {
       render(
-        <SkillChart display="bubbles">
+        <SkillChart displayMode="bubbles">
           {sampleSkills}
         </SkillChart>
       );
@@ -105,7 +106,7 @@ describe('SkillChart', () => {
 
     it('should render tags display mode correctly', () => {
       render(
-        <SkillChart display="tags">
+        <SkillChart displayMode="tags">
           {sampleSkills}
         </SkillChart>
       );
@@ -165,7 +166,7 @@ describe('SkillChart', () => {
   describe('Size Variations', () => {
     it('should apply small size classes', () => {
       const { container } = render(
-        <SkillChart size="sm">
+        <SkillChart chartSize="sm">
           {sampleSkills}
         </SkillChart>
       );
@@ -187,7 +188,7 @@ describe('SkillChart', () => {
 
     it('should apply large size classes', () => {
       const { container } = render(
-        <SkillChart size="lg">
+        <SkillChart chartSize="lg">
           {sampleSkills}
         </SkillChart>
       );
@@ -200,7 +201,7 @@ describe('SkillChart', () => {
   describe('Layout Options', () => {
     it('should render grid layout correctly with radial display', () => {
       const { container } = render(
-        <SkillChart layout="grid" display="radial" showCategories={false}>
+        <SkillChart layout="grid" displayMode="radial" showCategories={false}>
           {sampleSkills}
         </SkillChart>
       );
@@ -433,7 +434,7 @@ describe('SkillChart', () => {
 
     it('should apply custom colors to skill elements', () => {
       render(
-        <SkillChart display="bars">
+        <SkillChart displayMode="bars">
           <Skill name="Custom Skill" level={80} color="#FF5733" />
         </SkillChart>
       );
@@ -499,7 +500,7 @@ describe('SkillChart', () => {
 
     it('should announce chart information to screen readers', () => {
       render(
-        <SkillChart display="radial" theme="neon">
+        <SkillChart displayMode="radial" theme="neon">
           {sampleSkills}
         </SkillChart>
       );

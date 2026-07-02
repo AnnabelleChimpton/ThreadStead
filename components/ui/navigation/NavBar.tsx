@@ -44,6 +44,22 @@ function MobileLoginStatus({ onAccountClick }: { onAccountClick: () => void }) {
   );
 }
 
+// Tracks whether the viewport is at the desktop breakpoint (md: 768px).
+// Returns null before hydration so exactly one branch renders after mount.
+function useIsDesktop() {
+  const [isDesktop, setIsDesktop] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(min-width: 768px)");
+    const update = () => setIsDesktop(mediaQuery.matches);
+    update();
+    mediaQuery.addEventListener("change", update);
+    return () => mediaQuery.removeEventListener("change", update);
+  }, []);
+
+  return isDesktop;
+}
+
 // Swipe gesture hook for mobile menu
 const useSwipeGesture = (onSwipe: (direction: 'left' | 'right') => void) => {
   const [touchStart, setTouchStart] = useState<number | null>(null);
@@ -206,7 +222,7 @@ function DropdownMenu({ title, items, dropdownKey, activeDropdown, setActiveDrop
 
       {isOpen && (
         <div
-          className="absolute top-full left-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-[10000] dropdown-animated"
+          className="absolute top-full left-0 mt-2 w-56 bg-thread-paper rounded-lg shadow-lg border border-thread-sage py-2 z-[10000] dropdown-animated"
           role="menu"
           aria-labelledby={`dropdown-button-${dropdownKey}`}
         >
@@ -246,6 +262,9 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
 
   // Prevent hydration mismatch by only rendering user-dependent content after hydration
   const [isClient, setIsClient] = useState(false);
+
+  // Track breakpoint so exactly one NotificationDropdown mounts (avoids duplicate polling)
+  const isDesktop = useIsDesktop();
 
   // Ref to measure nav bar height
   const navRef = useRef<HTMLElement>(null);
@@ -419,7 +438,7 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
             <div className="site-nav-actions flex items-center gap-4">
               {isClient && me?.loggedIn ? (
                 <>
-                  <NotificationDropdown className="nav-link" />
+                  {isDesktop === true && <NotificationDropdown className="nav-link" />}
                   <UserDropdown />
                 </>
               ) : (
@@ -432,7 +451,7 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
           
           {/* Mobile Navigation Controls */}
           <div className="flex md:hidden items-center gap-2">
-            <NotificationDropdown className="nav-link" />
+            {isDesktop === false && <NotificationDropdown className="nav-link" />}
             <button
               id="hamburger-button"
               className="p-3 text-thread-pine hover:text-thread-sunset focus:outline-none focus:ring-2 focus:ring-thread-sunset focus:ring-offset-2"
@@ -489,6 +508,8 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
               <button
                 className="w-full px-3 py-2 text-left text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center justify-between font-medium"
                 onClick={() => setMobileDropdownOpen(mobileDropdownOpen === 'discover' ? null : 'discover')}
+                aria-expanded={mobileDropdownOpen === 'discover'}
+                aria-controls="mobile-section-discover"
               >
                 <span>Discover</span>
                 <svg
@@ -496,12 +517,13 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
+                  aria-hidden="true"
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
               {mobileDropdownOpen === 'discover' && (
-                <div className="ml-4 mt-2 space-y-1">
+                <div id="mobile-section-discover" className="ml-4 mt-2 space-y-1">
                   <Link
                     href="/neighborhood/explore/all"
                     className="px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm block"
@@ -539,6 +561,8 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
               <button
                 className="w-full px-3 py-2 text-left text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center justify-between font-medium"
                 onClick={() => setMobileDropdownOpen(mobileDropdownOpen === 'build' ? null : 'build')}
+                aria-expanded={mobileDropdownOpen === 'build'}
+                aria-controls="mobile-section-build"
               >
                 <span>Build</span>
                 <svg
@@ -546,12 +570,13 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
+                  aria-hidden="true"
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
               {mobileDropdownOpen === 'build' && (
-                <div className="ml-4 mt-2 space-y-1">
+                <div id="mobile-section-build" className="ml-4 mt-2 space-y-1">
                   <Link
                     href="/build/templates"
                     className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm"
@@ -575,6 +600,8 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
               <button
                 className="w-full px-3 py-2 text-left text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center justify-between font-medium"
                 onClick={() => setMobileDropdownOpen(mobileDropdownOpen === 'threadrings' ? null : 'threadrings')}
+                aria-expanded={mobileDropdownOpen === 'threadrings'}
+                aria-controls="mobile-section-threadrings"
               >
                 <span>ThreadRings</span>
                 <svg
@@ -582,12 +609,13 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
+                  aria-hidden="true"
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
               {mobileDropdownOpen === 'threadrings' && (
-                <div className="ml-4 mt-2 space-y-1">
+                <div id="mobile-section-threadrings" className="ml-4 mt-2 space-y-1">
                   <Link
                     href="/threadrings"
                     className="px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm block"
@@ -611,6 +639,8 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
               <button
                 className="w-full px-3 py-2 text-left text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center justify-between font-medium"
                 onClick={() => setMobileDropdownOpen(mobileDropdownOpen === 'help' ? null : 'help')}
+                aria-expanded={mobileDropdownOpen === 'help'}
+                aria-controls="mobile-section-help"
               >
                 <span>Help</span>
                 <svg
@@ -618,12 +648,13 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
+                  aria-hidden="true"
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
               {mobileDropdownOpen === 'help' && (
-                <div className="ml-4 mt-2 space-y-1">
+                <div id="mobile-section-help" className="ml-4 mt-2 space-y-1">
                   <Link
                     href="/help/faq"
                     className="px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm block"

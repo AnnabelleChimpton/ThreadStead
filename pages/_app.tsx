@@ -260,13 +260,7 @@ ${pageProps.customCSS}`
                 <Component {...pageProps} />
 
                 {/* Cookie Consent Banner */}
-                <CookieConsentBanner
-                  userId={user?.id}
-                  onConsentChange={(consents) => {
-                    // Optional: Handle global consent changes
-                    console.log('Global consent updated:', consents);
-                  }}
-                />
+                <CookieConsentBanner userId={user?.id} />
 
                 {/* Global Chat - Only show for authenticated users */}
                 {user && (

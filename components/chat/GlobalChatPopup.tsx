@@ -19,9 +19,30 @@ interface PresenceUser {
   lastActiveAt: string;
 }
 
+// Matches Tailwind's `md` breakpoint (768px) so exactly one layout tree is
+// mounted at a time. Lazy initializer avoids mounting the wrong tree (and its
+// socket connections) for a frame before effects run; this component only
+// renders after client-side state flips isChatOpen, so window is available.
+function useIsMobileViewport(): boolean {
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia('(max-width: 767px)').matches : false
+  );
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 767px)');
+    const handleChange = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    setIsMobile(mediaQuery.matches);
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, []);
+
+  return isMobile;
+}
+
 export default function GlobalChatPopup() {
   const { isChatOpen, closeChat, activeConversationId } = useChat();
   const pathname = usePathname();
+  const isMobileViewport = useIsMobileViewport();
   const { conversations, createConversation } = useConversations();
   const [sfxEnabled, setSfxEnabled] = useState(true);
   const [activeTab, setActiveTab] = useState<'lounge' | 'messages'>('lounge');
@@ -87,6 +108,10 @@ export default function GlobalChatPopup() {
   return (
     <>
       {/* Mobile: Full screen overlay - covers nav bar */}
+      {/* Only one layout tree is mounted at a time so panels (and their socket
+          connections, fetches, and sound effects) exist exactly once. The
+          responsive classes are kept as a CSS fallback. */}
+      {isMobileViewport && (
       <div
         className="md:hidden fixed inset-0 z-[9999] pointer-events-none flex flex-col animate-slide-up overscroll-none"
       >
@@ -158,8 +183,10 @@ export default function GlobalChatPopup() {
           )}
         </div>
       </div>
+      )}
 
       {/* Desktop: Right-side floating popup - flush in bottom-right */}
+      {!isMobileViewport && (
       <div className="hidden md:flex flex-col fixed top-24 right-0 bottom-0 z-40 w-[480px] bg-thread-paper border-l border-t border-thread-sage rounded-tl-lg shadow-xl animate-slide-in-right overflow-hidden">
         {/* Header */}
         <div className="bg-thread-cream border-b border-thread-sage p-3 flex items-center justify-between">
@@ -223,6 +250,7 @@ export default function GlobalChatPopup() {
           )}
         </div>
       </div>
+      )}
 
 
 

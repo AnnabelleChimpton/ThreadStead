@@ -25,6 +25,11 @@ const handle = app.getRequestHandler();
 
 const prisma = new PrismaClient();
 
+// Dev-only logging; production only logs errors and lifecycle events
+const log = (...args) => {
+  if (dev) console.log(...args);
+};
+
 // Rate limiting storage
 const rateLimits = new Map(); // userId -> { burst: [], sustained: [] }
 
@@ -35,6 +40,18 @@ const RATE_LIMIT = {
   SUSTAINED_MAX: 30,
   SUSTAINED_WINDOW: 300000, // 5 minutes
 };
+
+// Evict idle rate-limit entries so the map doesn't grow with every user ever seen
+setInterval(() => {
+  const now = Date.now();
+  for (const [userId, limits] of rateLimits) {
+    limits.burst = limits.burst.filter(ts => now - ts < RATE_LIMIT.BURST_WINDOW);
+    limits.sustained = limits.sustained.filter(ts => now - ts < RATE_LIMIT.SUSTAINED_WINDOW);
+    if (limits.burst.length === 0 && limits.sustained.length === 0) {
+      rateLimits.delete(userId);
+    }
+  }
+}, 10 * 60 * 1000).unref();
 
 // Validate session from cookie
 async function validateSession(cookie) {
@@ -156,23 +173,20 @@ app.prepare().then(() => {
 
   // Socket.io connection handler
   io.on('connection', async (socket) => {
-    console.log('Socket connection attempt:', socket.id);
-
     // Validate session
     const cookie = socket.handshake.headers.cookie;
-    const user = await validateSession(cookie);
+    const sessionUser = await validateSession(cookie);
 
-    if (!user) {
-      console.log('Guest connected:', socket.id);
+    if (!sessionUser) {
+      log('Guest connected:', socket.id);
       socket.userData = { id: 'guest-' + socket.id, isGuest: true };
     } else {
-      console.log('Authenticated user connected:', user.primaryHandle || user.id, 'Socket:', socket.id);
-      socket.userData = user;
+      log('Authenticated user connected:', sessionUser.primaryHandle || sessionUser.id, 'Socket:', socket.id);
+      socket.userData = sessionUser;
     }
 
     // Join personal room for whispers (and DMs)
     if (!socket.userData.isGuest) {
-      console.log(`[Socket] User ${user.id} joining personal room`);
       socket.join(socket.userData.id); // Join personal room for whispers
     }
 
@@ -180,9 +194,10 @@ app.prepare().then(() => {
 
     // Handle chat:join
     socket.on('chat:join', async (data) => {
-      const { roomId } = data;
+      const { roomId } = data || {};
+      const user = socket.userData;
 
-      if (!roomId) {
+      if (!roomId || typeof roomId !== 'string') {
         socket.emit('system:notice', {
           message: 'Room ID required',
           type: 'error'
@@ -193,7 +208,9 @@ app.prepare().then(() => {
       // Leave previous room if any
       if (socket.currentRoom) {
         socket.leave(socket.currentRoom);
-        removeFromPresence(socket.currentRoom, user.id);
+        if (!user.isGuest) {
+          removeFromPresence(socket.currentRoom, user.id);
+        }
       }
 
       // Join new room
@@ -201,8 +218,8 @@ app.prepare().then(() => {
       socket.currentRoom = roomId;
 
       // Add to presence (only for authenticated users)
-      if (!socket.userData.isGuest) {
-        addToPresence(roomId, socket.userData);
+      if (!user.isGuest) {
+        addToPresence(roomId, user);
       }
 
       // Fetch room data including topic
@@ -225,15 +242,15 @@ app.prepare().then(() => {
 
       // Broadcast presence update to room
       const presence = getRoomPresence(roomId);
-      console.log(`Broadcasting presence update to room ${roomId}:`, presence);
       io.to(roomId).emit('presence:update', { users: presence });
 
-      console.log(`User ${user.primaryHandle} joined room ${roomId}`);
+      log(`User ${user.primaryHandle || user.id} joined room ${roomId}`);
     });
 
     // Handle chat:message
     socket.on('chat:message', async (data) => {
-      const { roomId, body } = data;
+      const { roomId, body } = data || {};
+      const user = socket.userData;
 
       if (!roomId || !socket.currentRoom || socket.currentRoom !== roomId) {
         socket.emit('system:notice', {
@@ -244,7 +261,7 @@ app.prepare().then(() => {
       }
 
       // Block guests from sending messages
-      if (socket.userData.isGuest) {
+      if (user.isGuest) {
         socket.emit('system:notice', {
           message: 'You must be logged in to send messages',
           type: 'error'
@@ -308,8 +325,6 @@ app.prepare().then(() => {
         };
 
         io.to(roomId).emit('chat:message', messageData);
-
-        console.log(`Message from ${user.primaryHandle} in ${roomId}: ${sanitized.isAction ? '/me ' : ''}${sanitized.text.substring(0, 50)}`);
       } catch (error) {
         console.error('Error saving message:', error);
         socket.emit('system:notice', {
@@ -321,8 +336,11 @@ app.prepare().then(() => {
 
     // Handle chat:leave
     socket.on('chat:leave', () => {
+      const user = socket.userData;
       if (socket.currentRoom) {
-        removeFromPresence(socket.currentRoom, user.id);
+        if (!user.isGuest) {
+          removeFromPresence(socket.currentRoom, user.id);
+        }
 
         // Broadcast presence update
         const presence = getRoomPresence(socket.currentRoom);
@@ -335,7 +353,9 @@ app.prepare().then(() => {
 
     // Handle typing indicators
     socket.on('chat:typing', (data) => {
-      const { roomId } = data;
+      if (socket.userData.isGuest) return;
+      const { roomId } = data || {};
+      const user = socket.userData;
       if (roomId && socket.currentRoom === roomId) {
         socket.to(roomId).emit('chat:typing', {
           userId: user.id,
@@ -346,10 +366,11 @@ app.prepare().then(() => {
     });
 
     socket.on('chat:stop_typing', (data) => {
-      const { roomId } = data;
+      if (socket.userData.isGuest) return;
+      const { roomId } = data || {};
       if (roomId && socket.currentRoom === roomId) {
         socket.to(roomId).emit('chat:stop_typing', {
-          userId: user.id
+          userId: socket.userData.id
         });
       }
     });
@@ -357,7 +378,7 @@ app.prepare().then(() => {
     // Handle chat:set_topic (admin only)
     socket.on('chat:set_topic', async (data) => {
       if (socket.userData.isGuest) return;
-      const { roomId, topic } = data;
+      const { roomId, topic } = data || {};
       const user = socket.userData;
 
       // Check if user is admin
@@ -379,7 +400,9 @@ app.prepare().then(() => {
 
       try {
         // Update room topic (limit to 200 characters)
-        const trimmedTopic = topic ? topic.trim().substring(0, 200) : null;
+        const trimmedTopic = typeof topic === 'string' && topic.trim()
+          ? topic.trim().substring(0, 200)
+          : null;
 
         await prisma.chatRoom.update({
           where: { id: roomId },
@@ -397,7 +420,7 @@ app.prepare().then(() => {
           topicSetAt: new Date(),
         });
 
-        console.log(`Topic set by ${user.primaryHandle} in ${roomId}: ${trimmedTopic || '(cleared)'}`);
+        log(`Topic set by ${user.primaryHandle} in ${roomId}: ${trimmedTopic || '(cleared)'}`);
       } catch (error) {
         console.error('Error setting topic:', error);
         socket.emit('system:notice', {
@@ -410,7 +433,7 @@ app.prepare().then(() => {
     // Handle chat:status
     socket.on('chat:status', (data) => {
       if (socket.userData.isGuest) return;
-      const { roomId, status, message } = data;
+      const { roomId, status, message } = data || {};
       const user = socket.userData;
 
       if (!roomId || roomId !== socket.currentRoom) return;
@@ -418,7 +441,9 @@ app.prepare().then(() => {
       // Validate status
       const validStatuses = ['online', 'away', 'busy'];
       const newStatus = validStatuses.includes(status) ? status : 'online';
-      const statusMessage = message ? message.trim().substring(0, 50) : null;
+      const statusMessage = typeof message === 'string' && message.trim()
+        ? message.trim().substring(0, 50)
+        : null;
 
       updateStatus(roomId, user.id, newStatus, statusMessage);
 
@@ -430,11 +455,12 @@ app.prepare().then(() => {
     // Handle chat:whisper
     socket.on('chat:whisper', (data) => {
       if (socket.userData.isGuest) return;
-      const { roomId, targetHandle, message } = data;
+      const { roomId, targetHandle, message } = data || {};
       const user = socket.userData;
 
       if (!roomId || roomId !== socket.currentRoom) return;
-      if (!message || !message.trim()) return;
+      if (typeof targetHandle !== 'string' || !targetHandle) return;
+      if (typeof message !== 'string' || !message.trim()) return;
 
       // Find target user in presence
       const presence = getRoomPresence(roomId);
@@ -478,10 +504,10 @@ app.prepare().then(() => {
         return;
       }
 
-      const { targetUserId, body } = data;
+      const { targetUserId, body } = data || {};
       const user = socket.userData;
 
-      if (!targetUserId || !body || !body.trim()) return;
+      if (typeof targetUserId !== 'string' || !targetUserId || !body || typeof body !== 'string' || !body.trim()) return;
 
       // Rate limit check
       const rateCheck = checkRateLimit(user.id);
@@ -575,13 +601,10 @@ app.prepare().then(() => {
           isRead: false
         };
 
-        console.log(`[DM] Sending message from ${user.id} to ${targetUserId}`);
-
         // Emit to sender
         socket.emit('dm:new_message', messageData);
 
         // Emit to recipient
-        console.log(`[DM] Emitting to room ${targetUserId}`);
         io.to(targetUserId).emit('dm:new_message', messageData);
 
       } catch (error) {
@@ -593,8 +616,10 @@ app.prepare().then(() => {
     // Handle dm:read
     socket.on('dm:read', async (data) => {
       if (socket.userData.isGuest) return;
-      const { conversationId } = data;
+      const { conversationId } = data || {};
       const user = socket.userData;
+
+      if (typeof conversationId !== 'string' || !conversationId) return;
 
       try {
         // Update lastReadAt for participant
@@ -646,8 +671,10 @@ app.prepare().then(() => {
     // Handle dm:typing
     socket.on('dm:typing', (data) => {
       if (socket.userData.isGuest) return;
-      const { targetUserId } = data;
+      const { targetUserId } = data || {};
       const user = socket.userData;
+
+      if (typeof targetUserId !== 'string' || !targetUserId) return;
 
       io.to(targetUserId).emit('dm:typing', {
         userId: user.id,
@@ -657,17 +684,20 @@ app.prepare().then(() => {
 
     socket.on('dm:stop_typing', (data) => {
       if (socket.userData.isGuest) return;
-      const { targetUserId } = data;
-      const user = socket.userData;
+      const { targetUserId } = data || {};
+
+      if (typeof targetUserId !== 'string' || !targetUserId) return;
 
       io.to(targetUserId).emit('dm:stop_typing', {
-        userId: user.id
+        userId: socket.userData.id
       });
     });
 
     // Handle disconnect
     socket.on('disconnect', async () => {
-      if (socket.currentRoom) {
+      const user = socket.userData;
+
+      if (socket.currentRoom && !user.isGuest) {
         // Check if user has other sockets in the room
         const sockets = await io.in(socket.currentRoom).fetchSockets();
         const userStillConnected = sockets.some(s => s.userData && s.userData.id === user.id);
@@ -681,12 +711,31 @@ app.prepare().then(() => {
         }
       }
 
-      console.log('User disconnected:', user.primaryHandle || user.id);
+      log('User disconnected:', user.primaryHandle || user.id);
     });
   });
 
-  server.listen(port, hostname, (err) => {
-    if (err) throw err;
+  // A rejected promise inside a socket handler must not take down the process
+  process.on('unhandledRejection', (reason) => {
+    console.error('Unhandled rejection:', reason);
+  });
+
+  const shutdown = async () => {
+    console.log('Shutting down...');
+    io.close();
+    server.close();
+    await prisma.$disconnect();
+    process.exit(0);
+  };
+  process.on('SIGTERM', shutdown);
+  process.on('SIGINT', shutdown);
+
+  server.on('error', (err) => {
+    console.error('Server error:', err);
+    process.exit(1);
+  });
+
+  server.listen(port, hostname, () => {
     const protocol = mobileTestingMode ? 'https' : 'http';
     console.log(`> Ready on ${protocol}://${hostname}:${port}`);
     if (mobileTestingMode) {

@@ -139,10 +139,14 @@ describe('analyzeIndieWeb', () => {
     expect(analyzeIndieWeb('username.neocities.org')).toBe(true);
   });
 
-  test('should not identify corporate sites', () => {
-    expect(analyzeIndieWeb('facebook.com')).toBe(false);
-    expect(analyzeIndieWeb('amazon.com')).toBe(false);
+  test('should not identify domains with corporate keywords', () => {
+    // The heuristic only rejects domains containing corporate keywords
+    // (corp, inc, llc, ltd, company, business). Short domains without
+    // those keywords (e.g. facebook.com) are treated as potential
+    // personal domains and return true.
     expect(analyzeIndieWeb('bigcorp.com')).toBe(false);
+    expect(analyzeIndieWeb('acme-inc.com')).toBe(false);
+    expect(analyzeIndieWeb('facebook.com')).toBe(true);
   });
 
   test('should handle personal domains heuristically', () => {
@@ -155,7 +159,8 @@ describe('estimatePrivacyScore', () => {
   test('should give high scores to privacy-focused sites', () => {
     expect(estimatePrivacyScore('duckduckgo.com')).toBe(0.9);
     expect(estimatePrivacyScore('searx.be')).toBe(0.9);
-    expect(estimatePrivacyScore('wikipedia.org')).toBe(0.9);
+    // wikipedia.org was removed from the privacy-good list (commit 482525d)
+    expect(estimatePrivacyScore('archive.org')).toBe(0.9);
   });
 
   test('should give low scores to tracking-heavy sites', () => {

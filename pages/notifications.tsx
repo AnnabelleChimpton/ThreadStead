@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import Link from "next/link";
 import Layout from "../components/ui/layout/Layout";
 import NotificationList from "../components/ui/feedback/NotificationList";
@@ -14,12 +14,6 @@ interface NotificationsPageProps {
 }
 
 export default function NotificationsPage({ user }: NotificationsPageProps) {
-  const [refreshKey, setRefreshKey] = useState(0);
-
-  const handleNotificationUpdate = () => {
-    setRefreshKey(prev => prev + 1);
-  };
-
   if (!user) {
     return (
       <Layout>
@@ -43,11 +37,12 @@ export default function NotificationsPage({ user }: NotificationsPageProps) {
     <Layout>
       <div className="max-w-4xl mx-auto">
         <div className="bg-thread-paper border border-thread-sage/30 p-6 rounded-cozy shadow-cozySm">
-          <NotificationList 
-            key={refreshKey}
+          {/* NotificationList updates its own state optimistically on
+              mark-as-read; remounting via a key caused a full refetch and
+              scroll reset on every update. */}
+          <NotificationList
             limit={50}
             showStatus={true}
-            onNotificationUpdate={handleNotificationUpdate}
           />
         </div>
       </div>

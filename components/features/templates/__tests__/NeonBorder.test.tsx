@@ -61,9 +61,9 @@ describe('NeonBorder Component', () => {
     ];
 
     colorTests.forEach(({ color, expectedRgb, expectedHex }) => {
-      it(`should apply ${color} color correctly`, () => {
+      it(`should apply neonColor="${color}" correctly`, () => {
         const { container } = renderWithTemplateContext(
-          <NeonBorder color={color}>{testChildren}</NeonBorder>
+          <NeonBorder neonColor={color}>{testChildren}</NeonBorder>
         );
 
         const neonDiv = container.querySelector('div[style*="border"]') as HTMLElement;
@@ -123,9 +123,9 @@ describe('NeonBorder Component', () => {
     ];
 
     paddingTests.forEach(({ padding, expectedClass }) => {
-      it(`should apply padding="${padding}" correctly`, () => {
+      it(`should apply containerPadding="${padding}" correctly`, () => {
         const { container } = renderWithTemplateContext(
-          <NeonBorder padding={padding}>{testChildren}</NeonBorder>
+          <NeonBorder containerPadding={padding}>{testChildren}</NeonBorder>
         );
 
         const neonDiv = container.querySelector('div[style*="border"]') as HTMLElement;
@@ -175,7 +175,7 @@ describe('NeonBorder Component', () => {
   describe('Inline Styles', () => {
     it('should apply correct border style', () => {
       const { container } = renderWithTemplateContext(
-        <NeonBorder color="green">{testChildren}</NeonBorder>
+        <NeonBorder neonColor="green">{testChildren}</NeonBorder>
       );
 
       const neonDiv = container.querySelector('div[style*="border"]') as HTMLElement;
@@ -184,7 +184,7 @@ describe('NeonBorder Component', () => {
 
     it('should apply box shadow with inner and outer glow', () => {
       const { container } = renderWithTemplateContext(
-        <NeonBorder color="pink" intensity="bright">{testChildren}</NeonBorder>
+        <NeonBorder neonColor="pink" intensity="bright">{testChildren}</NeonBorder>
       );
 
       const neonDiv = container.querySelector('div[style*="border"]') as HTMLElement;
@@ -200,12 +200,25 @@ describe('NeonBorder Component', () => {
       const neonDiv = container.querySelector('div[style*="border"]') as HTMLElement;
       expect(neonDiv.style.animation).toBe('neonPulse 2s ease-in-out infinite alternate');
     });
+
+    it('should let universal CSS props override component neon styles', () => {
+      const { container } = renderWithTemplateContext(
+        <NeonBorder neonColor="green" boxShadow="none" backgroundColor="#111111">{testChildren}</NeonBorder>
+      );
+
+      const neonDiv = container.querySelector('div[style*="border"]') as HTMLElement;
+      // CSS props win over the component's neon boxShadow
+      expect(neonDiv.style.boxShadow).toBe('none');
+      expect(neonDiv.style.backgroundColor).toBe('rgb(17, 17, 17)');
+      // Component border remains since no border CSS prop was given
+      expect(neonDiv.style.border).toContain('2px solid');
+    });
   });
 
   describe('Keyframe Animations', () => {
     it('should generate correct keyframe animation with color and intensity', () => {
       const { container } = renderWithTemplateContext(
-        <NeonBorder color="cyan" intensity="soft">{testChildren}</NeonBorder>
+        <NeonBorder neonColor="cyan" intensity="soft">{testChildren}</NeonBorder>
       );
 
       // In test environment, styled-jsx may not render style tags the same way
@@ -216,14 +229,14 @@ describe('NeonBorder Component', () => {
 
     it('should update keyframes when props change', () => {
       const { container, rerender } = renderWithTemplateContext(
-        <NeonBorder color="blue" intensity="medium">{testChildren}</NeonBorder>
+        <NeonBorder neonColor="blue" intensity="medium">{testChildren}</NeonBorder>
       );
 
       let neonDiv = container.querySelector('div[style*="border"]') as HTMLElement;
       expect(neonDiv.style.boxShadow).toContain('0 0 10px');
 
       rerender(
-        <NeonBorder color="yellow" intensity="bright">{testChildren}</NeonBorder>
+        <NeonBorder neonColor="yellow" intensity="bright">{testChildren}</NeonBorder>
       );
 
       neonDiv = container.querySelector('div[style*="border"]') as HTMLElement;
@@ -234,10 +247,10 @@ describe('NeonBorder Component', () => {
   describe('Complex Combinations', () => {
     it('should combine all props correctly', () => {
       const { container } = renderWithTemplateContext(
-        <NeonBorder 
-          color="purple"
+        <NeonBorder
+          neonColor="purple"
           intensity="bright"
-          padding="xl"
+          containerPadding="xl"
           rounded={false}
         >
           {testChildren}
@@ -271,7 +284,7 @@ describe('NeonBorder Component', () => {
 
       combinations.forEach(({ color, intensity, expectedBorderColor, expectedShadowColor, expectedShadow }) => {
         const { container } = renderWithTemplateContext(
-          <NeonBorder color={color} intensity={intensity}>{testChildren}</NeonBorder>
+          <NeonBorder neonColor={color} intensity={intensity}>{testChildren}</NeonBorder>
         );
 
         const neonDiv = container.querySelector('div[style*="border"]') as HTMLElement;
@@ -283,9 +296,9 @@ describe('NeonBorder Component', () => {
   });
 
   describe('Edge Cases', () => {
-    it('should handle empty children', () => {
+    it('should handle missing children (invalid input robustness)', () => {
       const { container } = renderWithTemplateContext(
-        <NeonBorder></NeonBorder>
+        <NeonBorder children={undefined as any} />
       );
 
       const neonDiv = container.querySelector('div[style*="border"]') as HTMLElement;
@@ -329,7 +342,7 @@ describe('NeonBorder Component', () => {
   describe('CSS Class Generation', () => {
     it('should generate clean className without extra spaces', () => {
       const { container } = renderWithTemplateContext(
-        <NeonBorder padding="lg" rounded={true}>{testChildren}</NeonBorder>
+        <NeonBorder containerPadding="lg" rounded={true}>{testChildren}</NeonBorder>
       );
 
       const neonDiv = container.querySelector('div[style*="border"]') as HTMLElement;
@@ -340,7 +353,7 @@ describe('NeonBorder Component', () => {
 
     it('should handle rounded=false correctly', () => {
       const { container } = renderWithTemplateContext(
-        <NeonBorder padding="sm" rounded={false}>{testChildren}</NeonBorder>
+        <NeonBorder containerPadding="sm" rounded={false}>{testChildren}</NeonBorder>
       );
 
       const neonDiv = container.querySelector('div[style*="border"]') as HTMLElement;
@@ -398,7 +411,7 @@ describe('NeonBorder Component', () => {
       const { container } = renderWithTemplateContext(
         <div>
           <div data-testid="outside-element">Outside Element</div>
-          <NeonBorder color="blue">
+          <NeonBorder neonColor="blue">
             <div data-testid="inside-element">Inside Element</div>
           </NeonBorder>
         </div>
@@ -420,9 +433,9 @@ describe('NeonBorder Component', () => {
       const validColors = ['blue', 'pink', 'green', 'purple', 'cyan', 'yellow'] as const;
       
       validColors.forEach(color => {
-        it(`should accept color="${color}"`, () => {
+        it(`should accept neonColor="${color}"`, () => {
           renderWithTemplateContext(
-            <NeonBorder color={color}>{testChildren}</NeonBorder>
+            <NeonBorder neonColor={color}>{testChildren}</NeonBorder>
           );
           expect(screen.getByTestId('neon-content')).toBeInTheDocument();
         });
@@ -446,9 +459,9 @@ describe('NeonBorder Component', () => {
       const validPaddings = ['xs', 'sm', 'md', 'lg', 'xl'] as const;
       
       validPaddings.forEach(padding => {
-        it(`should accept padding="${padding}"`, () => {
+        it(`should accept containerPadding="${padding}"`, () => {
           renderWithTemplateContext(
-            <NeonBorder padding={padding}>{testChildren}</NeonBorder>
+            <NeonBorder containerPadding={padding}>{testChildren}</NeonBorder>
           );
           expect(screen.getByTestId('neon-content')).toBeInTheDocument();
         });

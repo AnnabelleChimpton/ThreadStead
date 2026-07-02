@@ -20,7 +20,7 @@ describe('Mixed Content Rendering Integration', () => {
 
       // This is the exact pattern from the roadmap that has caused bugs
       const { container } = renderWithTemplateContext(
-        <GridLayout columns={2} gap="md">
+        <GridLayout columns={2} gapSize="md">
           <div className="static-html bg-white p-4" data-testid="static-content">
             <h2>Static user content</h2>
             <p>This is plain HTML content</p>
@@ -61,7 +61,7 @@ describe('Mixed Content Rendering Integration', () => {
       const mockData = createMockResidentData();
 
       const { container } = renderWithTemplateContext(
-        <GridLayout columns={1} gap="lg">
+        <GridLayout columns={1} gapSize="lg">
           <div 
             className="custom-wrapper bg-blue-500 p-8" 
             data-testid="wrapper-div"
@@ -138,7 +138,7 @@ describe('Mixed Content Rendering Integration', () => {
 
       renderWithTemplateContext(
         <SplitLayout>
-          <FlexContainer direction="column" gap="md">
+          <FlexContainer direction="column" gapSize="md">
             <GradientBox>
               <h2 data-testid="static-heading">Static heading in gradient box</h2>
               <DisplayName />

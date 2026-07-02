@@ -91,9 +91,8 @@ export default async function handler(
           
         } catch (error) {
           console.error('Failed to fetch public membership info:', error);
-          return res.status(500).json({ 
-            error: "Failed to fetch membership information",
-            message: error instanceof Error ? error.message : 'Unknown error'
+          return res.status(500).json({
+            error: "Failed to fetch membership information"
           });
         }
       }
@@ -146,9 +145,8 @@ export default async function handler(
 
       } catch (ringHubError) {
         console.error('Ring Hub member fetch failed:', ringHubError);
-        return res.status(500).json({ 
-          error: "Failed to fetch members from Ring Hub",
-          message: ringHubError instanceof Error ? ringHubError.message : 'Unknown error'
+        return res.status(500).json({
+          error: "Failed to fetch members from Ring Hub"
         });
       }
     }

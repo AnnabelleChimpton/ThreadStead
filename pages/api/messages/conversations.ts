@@ -1,8 +1,9 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { db as prisma } from '@/lib/config/database/connection';
 import { getSessionUser } from '@/lib/auth/server';
+import { withCsrfProtection } from '@/lib/api/middleware/withCsrfProtection';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
     const user = await getSessionUser(req);
     if (!user) {
         return res.status(401).json({ error: 'Unauthorized' });
@@ -122,3 +123,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     return res.status(405).json({ error: 'Method not allowed' });
 }
+
+// CSRF protection skips safe methods (GET/HEAD/OPTIONS) and validates POST
+export default withCsrfProtection(handler);

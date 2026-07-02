@@ -129,11 +129,11 @@ describe('GridLayout Component', () => {
     ];
 
     gapTests.forEach(({ gap, expectedClass }) => {
-      it(`should apply correct gap class for gap="${gap}"`, () => {
+      it(`should apply correct gap class for gapSize="${gap}"`, () => {
         const mockData = createMockResidentData();
 
         renderWithTemplateContext(
-          <GridLayout gap={gap}>
+          <GridLayout gapSize={gap}>
             <TestChild testId={`test-gap-${gap}`} />
           </GridLayout>,
           { residentData: mockData }
@@ -156,6 +156,21 @@ describe('GridLayout Component', () => {
 
       const container = screen.getByTestId('default-gap').parentElement;
       expect(container).toHaveClass('gap-4'); // md gap
+    });
+
+    it('should drop the Tailwind gap class and use inline style when CSS gap prop is provided', () => {
+      const mockData = createMockResidentData();
+
+      renderWithTemplateContext(
+        <GridLayout gap="12px">
+          <TestChild testId="css-gap" />
+        </GridLayout>,
+        { residentData: mockData }
+      );
+
+      const container = screen.getByTestId('css-gap').parentElement;
+      expect(container?.className).not.toMatch(/gap-\d/);
+      expect(container).toHaveStyle({ gap: '12px' });
     });
   });
 
@@ -214,7 +229,7 @@ describe('GridLayout Component', () => {
       const mockData = createMockResidentData();
 
       renderWithTemplateContext(
-        <GridLayout columns={5} gap="xl" responsive={true}>
+        <GridLayout columns={5} gapSize="xl" responsive={true}>
           <TestChild testId="combined-props" />
         </GridLayout>,
         { residentData: mockData }
@@ -233,7 +248,7 @@ describe('GridLayout Component', () => {
       const mockData = createMockResidentData();
 
       renderWithTemplateContext(
-        <GridLayout columns={1} gap="xs" responsive={false}>
+        <GridLayout columns={1} gapSize="xs" responsive={false}>
           <TestChild testId="minimal-props" />
         </GridLayout>,
         { residentData: mockData }
@@ -323,7 +338,7 @@ describe('GridLayout Component', () => {
       const mockData = createMockResidentData();
 
       const { container } = renderWithTemplateContext(
-        <GridLayout data-testid="empty-grid">
+        <GridLayout>
           {[]}
         </GridLayout>,
         { residentData: mockData }
@@ -341,7 +356,7 @@ describe('GridLayout Component', () => {
       const mockData = createMockResidentData();
 
       renderWithTemplateContext(
-        <GridLayout columns={1} gap="xs" responsive={false}>
+        <GridLayout columns={1} gapSize="xs" responsive={false}>
           <TestChild testId="structure-test" />
         </GridLayout>,
         { residentData: mockData }
@@ -355,7 +370,7 @@ describe('GridLayout Component', () => {
       const mockData = createMockResidentData();
 
       renderWithTemplateContext(
-        <GridLayout columns={2} gap="md" responsive={false}>
+        <GridLayout columns={2} gapSize="md" responsive={false}>
           <TestChild testId="class-check" />
         </GridLayout>,
         { residentData: mockData }
@@ -495,7 +510,7 @@ describe('GridLayout Component', () => {
       const mockData = createMockResidentData();
 
       renderWithTemplateContext(
-        <GridLayout columns={3} gap="lg">
+        <GridLayout columns={3} gapSize="lg">
           <div data-testid="card-1" className="bg-white p-4">Card 1</div>
           <div data-testid="card-2" className="bg-white p-4">Card 2</div>
           <div data-testid="card-3" className="bg-white p-4">Card 3</div>
@@ -515,7 +530,7 @@ describe('GridLayout Component', () => {
       const mockData = createMockResidentData();
 
       const { rerender } = renderWithTemplateContext(
-        <GridLayout columns={4} gap="sm" responsive={true}>
+        <GridLayout columns={4} gapSize="sm" responsive={true}>
           <TestChild testId="consistency-test" />
         </GridLayout>,
         { residentData: mockData }
@@ -525,7 +540,7 @@ describe('GridLayout Component', () => {
       const classes1 = Array.from(container1!.classList).sort();
 
       rerender(
-        <GridLayout columns={4} gap="sm" responsive={true}>
+        <GridLayout columns={4} gapSize="sm" responsive={true}>
           <TestChild testId="consistency-test" />
         </GridLayout>
       );
@@ -540,9 +555,9 @@ describe('GridLayout Component', () => {
       const mockData = createMockResidentData();
 
       renderWithTemplateContext(
-        <GridLayout columns={2} gap="md">
+        <GridLayout columns={2} gapSize="md">
           <div data-testid="outer-1">
-            <GridLayout columns={2} gap="sm">
+            <GridLayout columns={2} gapSize="sm">
               <TestChild testId="nested-1" text="Nested 1" />
               <TestChild testId="nested-2" text="Nested 2" />
             </GridLayout>
@@ -573,7 +588,7 @@ describe('GridLayout Component', () => {
       ));
 
       renderWithTemplateContext(
-        <GridLayout columns={5} gap="xs">
+        <GridLayout columns={5} gapSize="xs">
           {manyChildren}
         </GridLayout>,
         { residentData: mockData }

@@ -209,9 +209,9 @@ describe('FlexContainer Component', () => {
     ];
 
     gapTestCases.forEach(({ gap, expectedClass }) => {
-      it(`should apply correct class for gap="${gap}"`, () => {
+      it(`should apply correct class for gapSize="${gap}"`, () => {
         render(
-          <FlexContainer gap={gap}>
+          <FlexContainer gapSize={gap}>
             <TestChild1 />
           </FlexContainer>
         );
@@ -221,7 +221,7 @@ describe('FlexContainer Component', () => {
       });
     });
 
-    it('should default to gap="md"', () => {
+    it('should default to gapSize="md"', () => {
       render(
         <FlexContainer>
           <TestChild1 />
@@ -230,6 +230,18 @@ describe('FlexContainer Component', () => {
       
       const container = screen.getByTestId('child-1').parentElement;
       expect(container).toHaveClass('gap-4');
+    });
+
+    it('should drop the Tailwind gap class and use inline style when CSS gap prop is provided', () => {
+      render(
+        <FlexContainer gap="10px">
+          <TestChild1 />
+        </FlexContainer>
+      );
+
+      const container = screen.getByTestId('child-1').parentElement;
+      expect(container?.className).not.toMatch(/gap-\d/);
+      expect(container).toHaveStyle({ gap: '10px' });
     });
   });
 
@@ -275,7 +287,7 @@ describe('FlexContainer Component', () => {
           direction="column"
           align="center"
           justify="between"
-          gap="lg"
+          gapSize="lg"
           wrap={true}
           responsive={false}
         >
@@ -299,7 +311,7 @@ describe('FlexContainer Component', () => {
           direction="row-reverse"
           align="end"
           justify="evenly"
-          gap="xl"
+          gapSize="xl"
           wrap={true}
           responsive={true}
         >

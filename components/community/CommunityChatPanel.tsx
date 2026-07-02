@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { csrfFetchJson } from '@/lib/api/client/csrf-fetch';
@@ -44,6 +44,10 @@ interface MuteInfo {
 }
 
 const ROOM_ID = 'lounge';
+
+// Cap the in-memory message list so a long-lived chat session doesn't grow
+// memory (and per-render work) without bound. Oldest messages are dropped.
+const MAX_MESSAGES = 200;
 
 // Utility function to process @mentions in messages
 function processMentions(text: string, currentUserHandle: string | null, presenceUsers: PresenceUser[]): string {
@@ -173,9 +177,45 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
   const messageListRef = useRef<HTMLDivElement>(null);
   const hasLoadedInitialMessages = useRef(false);
 
+  // Track every setTimeout so they are cleared on unmount, preventing
+  // setState-after-unmount warnings/leaks from stray timers.
+  const timeoutsRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+  const setTrackedTimeout = useCallback((fn: () => void, delay: number) => {
+    const id = setTimeout(() => {
+      timeoutsRef.current.delete(id);
+      fn();
+    }, delay);
+    timeoutsRef.current.add(id);
+    return id;
+  }, []);
+
+  useEffect(() => {
+    const timeouts = timeoutsRef.current;
+    const typingTimeout = typingTimeoutRef;
+    return () => {
+      timeouts.forEach(clearTimeout);
+      timeouts.clear();
+      if (typingTimeout.current) clearTimeout(typingTimeout.current);
+    };
+  }, []);
+
   useEffect(() => {
     setSfxEnabled(retroSFX.isEnabled());
   }, []);
+
+  // Memoize the sanitized/processed HTML per message id so typing in the
+  // input (or any unrelated re-render) doesn't re-run the emoji/mention/link
+  // regex pipeline for every message on every keystroke.
+  const processedHtmlById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const msg of messages) {
+      map.set(
+        msg.id,
+        cleanAndNormalizeHtml(processMessageContent(msg.body, user?.primaryHandle || null, presence, customEmojis))
+      );
+    }
+    return map;
+  }, [messages, user?.primaryHandle, presence, customEmojis]);
 
   const toggleSfx = () => {
     const newState = !sfxEnabled;
@@ -260,12 +300,16 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
     });
 
     newSocket.on('chat:message', (message: ChatMessage) => {
-      setMessages((prev) => [...prev, message]);
+      setMessages((prev) => {
+        const next = [...prev, message];
+        // Drop oldest messages beyond the cap
+        return next.length > MAX_MESSAGES ? next.slice(next.length - MAX_MESSAGES) : next;
+      });
 
       // Play SFX for all messages (sent or received)
       retroSFX.playMessageOut();
 
-      setTimeout(scrollToBottom, 100);
+      setTrackedTimeout(scrollToBottom, 100);
     });
 
     newSocket.on('chat:typing', (data: { userId: string, handle: string }) => {
@@ -277,7 +321,7 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
         });
 
         // Auto-clear after 3 seconds (failsafe)
-        setTimeout(() => {
+        setTrackedTimeout(() => {
           setTypingUsers(prev => {
             const newSet = new Set(prev);
             newSet.delete(data.handle || 'Someone');
@@ -303,7 +347,7 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
 
     newSocket.on('system:notice', (data: { message: string; type: string }) => {
       setSystemNotice(data.message);
-      setTimeout(() => setSystemNotice(null), 5000);
+      setTrackedTimeout(() => setSystemNotice(null), 5000);
     });
 
     setSocket(newSocket);
@@ -312,13 +356,14 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
       newSocket.emit('chat:leave');
       newSocket.close();
     };
-  }, [user, userLoading]);
+  }, [user, userLoading, setTrackedTimeout]);
 
   // Scroll to bottom on initial load and new real-time messages
   useEffect(() => {
     if (messages.length > 0) {
       // Longer delay to ensure popup animation completes (300ms + buffer)
-      setTimeout(scrollToBottom, 350);
+      const id = setTimeout(scrollToBottom, 350);
+      return () => clearTimeout(id);
     }
   }, [messages]);
 
@@ -436,7 +481,7 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
         setBlockedUsers(prev => new Set(prev).add(userId));
         setShowUserMenu(null);
         setSystemNotice('User blocked');
-        setTimeout(() => setSystemNotice(null), 3000);
+        setTrackedTimeout(() => setSystemNotice(null), 3000);
       }
     } catch (error) {
       console.error('Error blocking user:', error);
@@ -734,7 +779,7 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
                               {' '}
                               <span
                                 dangerouslySetInnerHTML={{
-                                  __html: cleanAndNormalizeHtml(processMessageContent(msg.body, user?.primaryHandle || null, presence, customEmojis))
+                                  __html: processedHtmlById.get(msg.id) ?? ''
                                 }}
                               />
                             </>
@@ -750,7 +795,7 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
                           {': '}
                           <span
                             dangerouslySetInnerHTML={{
-                              __html: cleanAndNormalizeHtml(processMessageContent(msg.body, user?.primaryHandle || null, presence, customEmojis))
+                              __html: processedHtmlById.get(msg.id) ?? ''
                             }}
                           />
                         </div>
@@ -760,7 +805,7 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
                           dangerouslySetInnerHTML={{
                             __html: isMuted
                               ? 'Message hidden (user muted)'
-                              : cleanAndNormalizeHtml(processMessageContent(msg.body, user?.primaryHandle || null, presence, customEmojis))
+                              : processedHtmlById.get(msg.id) ?? ''
                           }}
                         />
                       )}

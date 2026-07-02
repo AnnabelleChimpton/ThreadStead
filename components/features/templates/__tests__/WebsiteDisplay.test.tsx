@@ -1,14 +1,14 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import WebsiteDisplay from '../WebsiteDisplay';
-import { renderWithTemplateContext } from './test-utils';
+import { renderWithTemplateContext, createMockResidentData } from './test-utils';
 
 describe('WebsiteDisplay Component', () => {
   describe('Empty State', () => {
     it('should render empty state when no websites provided', () => {
       renderWithTemplateContext(
         <WebsiteDisplay />,
-        { residentData: { websites: [] } }
+        { residentData: createMockResidentData({ websites: [] }) }
       );
       
       expect(screen.getByText('Website Recommendations')).toBeInTheDocument();
@@ -18,7 +18,7 @@ describe('WebsiteDisplay Component', () => {
     it('should render empty state when websites is null', () => {
       renderWithTemplateContext(
         <WebsiteDisplay />,
-        { residentData: { websites: null } }
+        { residentData: createMockResidentData({ websites: null }) }
       );
       
       expect(screen.getByText('Website Recommendations')).toBeInTheDocument();
@@ -37,7 +37,7 @@ describe('WebsiteDisplay Component', () => {
     it('should apply correct styling to empty state', () => {
       const { container } = renderWithTemplateContext(
         <WebsiteDisplay />,
-        { residentData: { websites: [] } }
+        { residentData: createMockResidentData({ websites: [] }) }
       );
       
       const emptyContainer = container.querySelector('div');
@@ -56,7 +56,7 @@ describe('WebsiteDisplay Component', () => {
     it('should have proper heading in empty state', () => {
       renderWithTemplateContext(
         <WebsiteDisplay />,
-        { residentData: { websites: [] } }
+        { residentData: createMockResidentData({ websites: [] }) }
       );
       
       const heading = screen.getByText('Website Recommendations');
@@ -90,7 +90,7 @@ describe('WebsiteDisplay Component', () => {
     it('should render website list when websites are provided', () => {
       renderWithTemplateContext(
         <WebsiteDisplay />,
-        { residentData: { websites: mockWebsites } }
+        { residentData: createMockResidentData({ websites: mockWebsites }) }
       );
       
       expect(screen.getByText('Example Site')).toBeInTheDocument();
@@ -101,7 +101,7 @@ describe('WebsiteDisplay Component', () => {
     it('should render website links correctly', () => {
       renderWithTemplateContext(
         <WebsiteDisplay />,
-        { residentData: { websites: mockWebsites } }
+        { residentData: createMockResidentData({ websites: mockWebsites }) }
       );
       
       const exampleLink = screen.getByRole('link', { name: 'Example Site' });
@@ -116,7 +116,7 @@ describe('WebsiteDisplay Component', () => {
     it('should render website blurbs when provided', () => {
       renderWithTemplateContext(
         <WebsiteDisplay />,
-        { residentData: { websites: mockWebsites } }
+        { residentData: createMockResidentData({ websites: mockWebsites }) }
       );
       
       expect(screen.getByText('A great example website')).toBeInTheDocument();
@@ -126,7 +126,7 @@ describe('WebsiteDisplay Component', () => {
     it('should not render blurb section when blurb is null', () => {
       renderWithTemplateContext(
         <WebsiteDisplay />,
-        { residentData: { websites: [mockWebsites[2]] } }
+        { residentData: createMockResidentData({ websites: [mockWebsites[2]] }) }
       );
       
       const websiteItem = screen.getByText('No Description Site').closest('.website-item');
@@ -143,7 +143,7 @@ describe('WebsiteDisplay Component', () => {
 
       renderWithTemplateContext(
         <WebsiteDisplay />,
-        { residentData: { websites: [websiteWithEmptyBlurb] } }
+        { residentData: createMockResidentData({ websites: [websiteWithEmptyBlurb] }) }
       );
       
       const websiteItem = screen.getByText('Empty Blurb Site').closest('.website-item');
@@ -153,7 +153,7 @@ describe('WebsiteDisplay Component', () => {
     it('should display website URLs', () => {
       renderWithTemplateContext(
         <WebsiteDisplay />,
-        { residentData: { websites: mockWebsites } }
+        { residentData: createMockResidentData({ websites: mockWebsites }) }
       );
       
       expect(screen.getByText('https://example.com')).toBeInTheDocument();
@@ -175,7 +175,7 @@ describe('WebsiteDisplay Component', () => {
     it('should apply correct container styling', () => {
       const { container } = renderWithTemplateContext(
         <WebsiteDisplay />,
-        { residentData: { websites: mockWebsites } }
+        { residentData: createMockResidentData({ websites: mockWebsites }) }
       );
       
       const websitesSection = container.querySelector('.websites-section');
@@ -192,7 +192,7 @@ describe('WebsiteDisplay Component', () => {
     it('should apply correct heading styling', () => {
       renderWithTemplateContext(
         <WebsiteDisplay />,
-        { residentData: { websites: mockWebsites } }
+        { residentData: createMockResidentData({ websites: mockWebsites }) }
       );
       
       const heading = screen.getByText('Website Recommendations');
@@ -202,7 +202,7 @@ describe('WebsiteDisplay Component', () => {
     it('should apply correct list container styling', () => {
       const { container } = renderWithTemplateContext(
         <WebsiteDisplay />,
-        { residentData: { websites: mockWebsites } }
+        { residentData: createMockResidentData({ websites: mockWebsites }) }
       );
       
       const websitesList = container.querySelector('.websites-list');
@@ -212,7 +212,7 @@ describe('WebsiteDisplay Component', () => {
     it('should apply correct website item styling', () => {
       const { container } = renderWithTemplateContext(
         <WebsiteDisplay />,
-        { residentData: { websites: mockWebsites } }
+        { residentData: createMockResidentData({ websites: mockWebsites }) }
       );
       
       const websiteItem = container.querySelector('.website-item');
@@ -222,7 +222,7 @@ describe('WebsiteDisplay Component', () => {
     it('should apply correct website content styling', () => {
       const { container } = renderWithTemplateContext(
         <WebsiteDisplay />,
-        { residentData: { websites: mockWebsites } }
+        { residentData: createMockResidentData({ websites: mockWebsites }) }
       );
       
       const websiteContent = container.querySelector('.website-content');
@@ -235,7 +235,7 @@ describe('WebsiteDisplay Component', () => {
     it('should apply correct link styling', () => {
       renderWithTemplateContext(
         <WebsiteDisplay />,
-        { residentData: { websites: mockWebsites } }
+        { residentData: createMockResidentData({ websites: mockWebsites }) }
       );
       
       const link = screen.getByRole('link', { name: 'Example Site' });
@@ -250,7 +250,7 @@ describe('WebsiteDisplay Component', () => {
     it('should apply correct title styling', () => {
       const { container } = renderWithTemplateContext(
         <WebsiteDisplay />,
-        { residentData: { websites: mockWebsites } }
+        { residentData: createMockResidentData({ websites: mockWebsites }) }
       );
       
       const title = container.querySelector('.website-title');
@@ -260,7 +260,7 @@ describe('WebsiteDisplay Component', () => {
     it('should apply correct blurb styling', () => {
       const { container } = renderWithTemplateContext(
         <WebsiteDisplay />,
-        { residentData: { websites: mockWebsites } }
+        { residentData: createMockResidentData({ websites: mockWebsites }) }
       );
       
       const blurb = container.querySelector('.website-blurb');
@@ -270,7 +270,7 @@ describe('WebsiteDisplay Component', () => {
     it('should apply correct URL styling', () => {
       const { container } = renderWithTemplateContext(
         <WebsiteDisplay />,
-        { residentData: { websites: mockWebsites } }
+        { residentData: createMockResidentData({ websites: mockWebsites }) }
       );
       
       const url = container.querySelector('.website-url');
@@ -289,7 +289,7 @@ describe('WebsiteDisplay Component', () => {
 
       renderWithTemplateContext(
         <WebsiteDisplay />,
-        { residentData: { websites: [specialWebsite] } }
+        { residentData: createMockResidentData({ websites: [specialWebsite] }) }
       );
       
       expect(screen.getByText('Special & "Unique" Site')).toBeInTheDocument();
@@ -306,7 +306,7 @@ describe('WebsiteDisplay Component', () => {
 
       renderWithTemplateContext(
         <WebsiteDisplay />,
-        { residentData: { websites: [unicodeWebsite] } }
+        { residentData: createMockResidentData({ websites: [unicodeWebsite] }) }
       );
       
       expect(screen.getByText('🌟 Amazing Site 中文')).toBeInTheDocument();
@@ -323,7 +323,7 @@ describe('WebsiteDisplay Component', () => {
 
       renderWithTemplateContext(
         <WebsiteDisplay />,
-        { residentData: { websites: [longLabelWebsite] } }
+        { residentData: createMockResidentData({ websites: [longLabelWebsite] }) }
       );
       
       expect(screen.getByText('A'.repeat(100))).toBeInTheDocument();
@@ -339,7 +339,7 @@ describe('WebsiteDisplay Component', () => {
 
       renderWithTemplateContext(
         <WebsiteDisplay />,
-        { residentData: { websites: [longBlurbWebsite] } }
+        { residentData: createMockResidentData({ websites: [longBlurbWebsite] }) }
       );
       
       expect(screen.getByText('B'.repeat(200))).toBeInTheDocument();
@@ -369,7 +369,7 @@ describe('WebsiteDisplay Component', () => {
 
       renderWithTemplateContext(
         <WebsiteDisplay />,
-        { residentData: { websites: urlVariations } }
+        { residentData: createMockResidentData({ websites: urlVariations }) }
       );
       
       expect(screen.getByText('http://insecure.com')).toBeInTheDocument();
@@ -406,7 +406,7 @@ describe('WebsiteDisplay Component', () => {
     it('should render all websites in the list', () => {
       renderWithTemplateContext(
         <WebsiteDisplay />,
-        { residentData: { websites: multipleWebsites } }
+        { residentData: createMockResidentData({ websites: multipleWebsites }) }
       );
       
       expect(screen.getByText('First Site')).toBeInTheDocument();
@@ -417,7 +417,7 @@ describe('WebsiteDisplay Component', () => {
     it('should render all website links correctly', () => {
       renderWithTemplateContext(
         <WebsiteDisplay />,
-        { residentData: { websites: multipleWebsites } }
+        { residentData: createMockResidentData({ websites: multipleWebsites }) }
       );
       
       const links = screen.getAllByRole('link');
@@ -430,7 +430,7 @@ describe('WebsiteDisplay Component', () => {
     it('should maintain correct spacing between websites', () => {
       const { container } = renderWithTemplateContext(
         <WebsiteDisplay />,
-        { residentData: { websites: multipleWebsites } }
+        { residentData: createMockResidentData({ websites: multipleWebsites }) }
       );
       
       const websitesList = container.querySelector('.websites-list');
@@ -440,7 +440,7 @@ describe('WebsiteDisplay Component', () => {
     it('should handle mixed content (some with blurbs, some without)', () => {
       renderWithTemplateContext(
         <WebsiteDisplay />,
-        { residentData: { websites: multipleWebsites } }
+        { residentData: createMockResidentData({ websites: multipleWebsites }) }
       );
       
       expect(screen.getByText('First website')).toBeInTheDocument();
@@ -462,7 +462,7 @@ describe('WebsiteDisplay Component', () => {
 
       renderWithTemplateContext(
         <WebsiteDisplay />,
-        { residentData: { websites: [incompleteWebsite] } }
+        { residentData: createMockResidentData({ websites: [incompleteWebsite] }) }
       );
       
       // Component should render without crashing
@@ -482,7 +482,7 @@ describe('WebsiteDisplay Component', () => {
       
       renderWithTemplateContext(
         <WebsiteDisplay />,
-        { residentData: { websites: [noIdWebsite] } }
+        { residentData: createMockResidentData({ websites: [noIdWebsite] }) }
       );
       
       // Website without ID should be filtered out, so we should see empty state
@@ -508,7 +508,7 @@ describe('WebsiteDisplay Component', () => {
       
       renderWithTemplateContext(
         <WebsiteDisplay />,
-        { residentData: { websites: websitesWithNull } }
+        { residentData: createMockResidentData({ websites: websitesWithNull }) }
       );
       
       expect(screen.getByText('Valid Site')).toBeInTheDocument();
@@ -526,7 +526,7 @@ describe('WebsiteDisplay Component', () => {
 
       renderWithTemplateContext(
         <WebsiteDisplay />,
-        { residentData: { websites: [emptyStringWebsite] } }
+        { residentData: createMockResidentData({ websites: [emptyStringWebsite] }) }
       );
       
       expect(screen.getByText('Empty Fields Site')).toBeInTheDocument();
@@ -547,7 +547,7 @@ describe('WebsiteDisplay Component', () => {
     it('should have semantic heading structure', () => {
       renderWithTemplateContext(
         <WebsiteDisplay />,
-        { residentData: { websites: [accessibilityWebsite] } }
+        { residentData: createMockResidentData({ websites: [accessibilityWebsite] }) }
       );
       
       const heading = screen.getByRole('heading', { level: 4 });
@@ -558,7 +558,7 @@ describe('WebsiteDisplay Component', () => {
     it('should have proper link accessibility attributes', () => {
       renderWithTemplateContext(
         <WebsiteDisplay />,
-        { residentData: { websites: [accessibilityWebsite] } }
+        { residentData: createMockResidentData({ websites: [accessibilityWebsite] }) }
       );
       
       const link = screen.getByRole('link');
@@ -569,7 +569,7 @@ describe('WebsiteDisplay Component', () => {
     it('should be keyboard navigable', () => {
       renderWithTemplateContext(
         <WebsiteDisplay />,
-        { residentData: { websites: [accessibilityWebsite] } }
+        { residentData: createMockResidentData({ websites: [accessibilityWebsite] }) }
       );
       
       const link = screen.getByRole('link');
@@ -580,7 +580,7 @@ describe('WebsiteDisplay Component', () => {
     it('should have proper color contrast classes', () => {
       renderWithTemplateContext(
         <WebsiteDisplay />,
-        { residentData: { websites: [accessibilityWebsite] } }
+        { residentData: createMockResidentData({ websites: [accessibilityWebsite] }) }
       );
       
       const link = screen.getByRole('link');

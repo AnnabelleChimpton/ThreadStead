@@ -151,6 +151,12 @@ async function processAndUploadMedia(
     ];
     metadata = { fileSize: buffer.length };
   } else if (isGif) {
+    // Validate GIF magic bytes since these files bypass Sharp processing entirely
+    const gifHeader = buffer.subarray(0, 6).toString('ascii');
+    if (gifHeader !== 'GIF87a' && gifHeader !== 'GIF89a') {
+      throw new Error('Invalid GIF file: magic byte validation failed');
+    }
+
     // For GIF files, upload as-is to preserve animation (no Sharp processing)
     // Sharp would convert to static JPEG and lose animation
     uploads = [

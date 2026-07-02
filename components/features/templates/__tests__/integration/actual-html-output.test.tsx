@@ -4,13 +4,40 @@
  */
 
 import React from 'react';
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { renderWithTemplateContext, createMockResidentData } from '../test-utils';
+
+// Guestbook entries render UserMention -> UserQuickView, which calls useChat.
+// That hook requires the app-shell ChatProvider, so mock it for template tests.
+jest.mock('@/contexts/ChatContext', () => ({
+  __esModule: true,
+  useChat: () => ({ openDM: jest.fn() }),
+  ChatProvider: ({ children }: { children: React.ReactNode }) => children,
+}));
 
 import Bio from '../../Bio';
 import ProfilePhoto from '../../ProfilePhoto';
 import Guestbook from '../../Guestbook';
 import ProfileHero from '../../ProfileHero';
+
+// The Guestbook component loads its entries from the API (not ResidentData),
+// so provide a fetch mock that serves guestbook entries.
+function mockGuestbookFetch(entries: Array<Record<string, unknown>>) {
+  global.fetch = jest.fn((url: unknown) => {
+    const u = String(url);
+    if (u.startsWith('/api/guestbook/')) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({ entries })
+      } as Response);
+    }
+    return Promise.resolve({
+      ok: false,
+      status: 404,
+      json: async () => ({})
+    } as Response);
+  }) as jest.Mock;
+}
 
 describe('Component HTML Output Verification', () => {
   describe('Bio Component', () => {
@@ -147,24 +174,28 @@ describe('Component HTML Output Verification', () => {
   });
 
   describe('Guestbook Component', () => {
-    it('should render actual guestbook interface, not empty div', () => {
-      const mockData = createMockResidentData({
-        guestbook: [
-          {
-            id: 'gb1',
-            content: 'Great profile!',
-            author: 'Test Visitor',
-            createdAt: new Date().toISOString()
-          }
-        ]
-      });
+    it('should render actual guestbook interface, not empty div', async () => {
+      mockGuestbookFetch([
+        {
+          id: 'gb1',
+          profileOwner: 'testuser',
+          authorId: null,
+          authorUsername: 'Test Visitor',
+          message: 'Great profile!',
+          createdAt: new Date().toISOString(),
+          status: 'visible'
+        }
+      ]);
+
+      const mockData = createMockResidentData();
 
       const { container } = renderWithTemplateContext(
         <Guestbook />,
         { residentData: mockData }
       );
 
-      // Should have actual guestbook content
+      // Should have actual guestbook content (loaded asynchronously via API)
+      expect(await screen.findByText('Great profile!')).toBeInTheDocument();
       const guestbookText = container.textContent;
       expect(guestbookText).toContain('Great profile!');
       expect(guestbookText).toContain('Test Visitor');
@@ -174,8 +205,20 @@ describe('Component HTML Output Verification', () => {
   });
 
   describe('Expected vs Actual Output', () => {
-    it('should produce meaningful HTML that would work in a real template', () => {
+    it('should produce meaningful HTML that would work in a real template', async () => {
       // This test simulates what should happen when elegant-showcase-template components are compiled
+      mockGuestbookFetch([
+        {
+          id: 'gb1',
+          profileOwner: 'elegantuser',
+          authorId: null,
+          authorUsername: 'Visitor',
+          message: 'Beautiful template!',
+          createdAt: new Date().toISOString(),
+          status: 'visible'
+        }
+      ]);
+
       const mockData = createMockResidentData({
         owner: {
           id: 'elegant-user',
@@ -185,15 +228,7 @@ describe('Component HTML Output Verification', () => {
         },
         capabilities: {
           bio: 'Welcome to my elegant digital space'
-        },
-        guestbook: [
-          {
-            id: 'gb1',
-            content: 'Beautiful template!',
-            author: 'Visitor',
-            createdAt: new Date().toISOString()
-          }
-        ]
+        }
       });
 
       // Test multiple components together like they appear in elegant-showcase
@@ -206,6 +241,9 @@ describe('Component HTML Output Verification', () => {
         </div>,
         { residentData: mockData }
       );
+
+      // Guestbook entries load asynchronously via the (mocked) API
+      expect(await screen.findByText('Beautiful template!')).toBeInTheDocument();
 
       const fullHTML = container.innerHTML;
       const fullText = container.textContent;

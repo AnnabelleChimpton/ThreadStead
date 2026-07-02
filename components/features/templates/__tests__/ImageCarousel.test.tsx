@@ -3,6 +3,11 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import ImageCarousel, { CarouselImage } from '../ImageCarousel';
 import { renderWithTemplateContext, createMockResidentData } from './test-utils';
 
+// PixelIcon uses next/dynamic which does not resolve in the jest environment
+jest.mock('@/components/ui/PixelIcon', () => ({
+  PixelIcon: ({ name }: { name: string }) => <span data-testid={`pixel-icon-${name}`} />
+}));
+
 // Mock timers for autoplay testing
 jest.useFakeTimers();
 
@@ -273,7 +278,7 @@ describe('ImageCarousel', () => {
       const mockData = createMockResidentData({ images: mockImagesData });
 
       const { container } = renderWithTemplateContext(
-        <ImageCarousel height="sm" />,
+        <ImageCarousel carouselHeight="sm" />,
         { residentData: mockData }
       );
 
@@ -285,7 +290,7 @@ describe('ImageCarousel', () => {
       const mockData = createMockResidentData({ images: mockImagesData });
 
       const { container } = renderWithTemplateContext(
-        <ImageCarousel height="lg" />,
+        <ImageCarousel carouselHeight="lg" />,
         { residentData: mockData }
       );
 
@@ -297,7 +302,7 @@ describe('ImageCarousel', () => {
       const mockData = createMockResidentData({ images: mockImagesData });
 
       const { container } = renderWithTemplateContext(
-        <ImageCarousel height="xl" />,
+        <ImageCarousel carouselHeight="xl" />,
         { residentData: mockData }
       );
 
@@ -434,7 +439,7 @@ describe('ImageCarousel', () => {
       );
 
       const carousel = container.querySelector('.ts-image-carousel');
-      carousel?.focus();
+      (carousel as HTMLElement | null)?.focus();
 
       fireEvent.keyDown(carousel!, { key: 'ArrowRight' });
       expect(screen.getByText('Image 2 of 3: Test image 2')).toBeInTheDocument();
@@ -452,7 +457,7 @@ describe('ImageCarousel', () => {
       );
 
       const carousel = container.querySelector('.ts-image-carousel');
-      carousel?.focus();
+      (carousel as HTMLElement | null)?.focus();
 
       fireEvent.keyDown(carousel!, { key: 'End' });
       expect(screen.getByText('Image 3 of 3: Test image 3')).toBeInTheDocument();
@@ -470,7 +475,7 @@ describe('ImageCarousel', () => {
       );
 
       const carousel = container.querySelector('.ts-image-carousel');
-      carousel?.focus();
+      (carousel as HTMLElement | null)?.focus();
 
       expect(screen.getByLabelText('Pause slideshow')).toBeInTheDocument();
 
@@ -537,7 +542,7 @@ describe('ImageCarousel', () => {
       const mockData = createMockResidentData({ images: mockImagesData });
 
       const { container } = renderWithTemplateContext(
-        <ImageCarousel className={['custom-style-1', 'custom-style-2']} />,
+        <ImageCarousel className={['custom-style-1', 'custom-style-2'] as any} />,
         { residentData: mockData }
       );
 

@@ -282,6 +282,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
       }
     } catch (error) {
       console.error('Failed to load user email:', error);
+      setSaveMessage("Error: Failed to load your email address. Email settings may be out of date.");
     }
   }
 
@@ -330,6 +331,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
       await updateIdentityWithSeedPhrase(newSeed, true);
 
       // If user has password auth, we need to update their encrypted seed phrase too
+      let passwordSyncFailed = false;
       if (hasPasswordAuth || isPasswordAuth()) {
         try {
           // Ask user to confirm their password to re-encrypt with new seed
@@ -347,6 +349,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
 
             if (!response.ok) {
               console.error('Failed to update encrypted seed phrase on server');
+              passwordSyncFailed = true;
             } else {
               // Update local storage too
               localStorage.setItem('retro_encrypted_seed_v1', newEncryptedSeed);
@@ -354,12 +357,14 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
           }
         } catch (error) {
           console.error('Failed to update password encryption:', error);
-          setSaveMessage("Warning: New seed phrase generated but password login may not work. Please add password authentication again if needed.");
+          passwordSyncFailed = true;
         }
       }
 
       setSeedPhrase(newSeed);
-      setSaveMessage("New recovery seed phrase generated! Please save it securely.");
+      setSaveMessage(passwordSyncFailed
+        ? "Error: New seed phrase generated, but password login could not be updated. Please save the new phrase securely and re-add password authentication if needed."
+        : "New recovery seed phrase generated! Please save it securely.");
       await loadCurrentIdentity();
     } catch (e: unknown) {
       setSaveMessage(`Error: ${(e as Error).message || 'Failed to generate new seed phrase'}`);
@@ -380,6 +385,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
       await recoverFromSeedPhrase(recoveryPhrase.trim());
 
       // If user has password auth, we need to update their encrypted seed phrase too
+      let passwordSyncFailed = false;
       if (hasPasswordAuth || isPasswordAuth()) {
         try {
           const userPassword = prompt("To keep password login working, please enter your current password:");
@@ -396,17 +402,23 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
 
             if (response.ok) {
               localStorage.setItem('retro_encrypted_seed_v1', newEncryptedSeed);
+            } else {
+              console.error('Failed to update encrypted seed phrase on server');
+              passwordSyncFailed = true;
             }
           }
         } catch (error) {
           console.error('Failed to update password encryption:', error);
+          passwordSyncFailed = true;
         }
       }
 
       await loadCurrentIdentity();
       setRecoveryPhrase("");
       setShowRecovery(false);
-      setSaveMessage("Account recovered successfully!");
+      setSaveMessage(passwordSyncFailed
+        ? "Error: Account recovered, but password login could not be updated. You may need to re-add password authentication."
+        : "Account recovered successfully!");
       setTimeout(() => window.location.reload(), 1500);
     } catch (e: unknown) {
       setSaveMessage(`Error: ${(e as Error).message || 'Failed to recover from seed phrase'}`);

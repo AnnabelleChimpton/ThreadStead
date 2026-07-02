@@ -83,12 +83,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           },
         },
       },
-      comments: {
+      _count: {
         select: {
-          id: true
-        },
-        where: {
-          status: "visible"
+          comments: {
+            where: {
+              status: "visible"
+            }
+          }
         }
       },
       threadRings: {
@@ -135,7 +136,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     authorUsername: post.author.handles[0]?.handle || null,
     authorDisplayName: post.author.profile?.displayName || null,
     authorAvatarUrl: post.author.profile?.avatarUrl || null,
-    commentCount: post.comments.length,
+    commentCount: post._count.comments,
   }));
 
   res.json({ posts: transformedPosts });
