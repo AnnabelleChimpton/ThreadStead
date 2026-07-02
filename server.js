@@ -2,6 +2,12 @@ const { createServer: createHttpServer } = require('http');
 const { createServer: createHttpsServer } = require('https');
 const { readFileSync } = require('fs');
 const { parse } = require('url');
+const dns = require('dns');
+
+// Prefer IPv4. Hosts with an IPv6 address configured but no working route
+// make fetch() to dual-stack targets (e.g. RingHub behind Cloudflare) hang
+// ~17s and fail intermittently, since Node may try AAAA records first.
+dns.setDefaultResultOrder('ipv4first');
 const next = require('next');
 const { Server } = require('socket.io');
 const { PrismaClient } = require('@prisma/client');
@@ -16,8 +22,10 @@ const {
 const dev = process.env.NODE_ENV !== 'production';
 const mobileTestingMode = process.env.MOBILE_TESTING === 'true';
 // In production, always listen on 0.0.0.0 for external access
-// In dev, use 0.0.0.0 only when mobile testing is enabled
-const hostname = dev ? (mobileTestingMode ? '0.0.0.0' : 'localhost') : '0.0.0.0';
+// In dev, use 0.0.0.0 only when mobile testing is enabled.
+// 127.0.0.1 rather than 'localhost' so SSR self-fetches (getInternalBaseUrl)
+// always reach the bound address regardless of how localhost resolves.
+const hostname = dev ? (mobileTestingMode ? '0.0.0.0' : '127.0.0.1') : '0.0.0.0';
 const port = parseInt(process.env.PORT || '3000', 10);
 
 const app = next({ dev, hostname, port });

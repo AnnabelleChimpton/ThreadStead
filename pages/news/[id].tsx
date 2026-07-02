@@ -1,4 +1,5 @@
 import React from "react";
+import { getInternalBaseUrl } from "@/lib/utils/api/internal-base-url";
 import type { GetServerSideProps } from "next";
 import Layout from "@/components/ui/layout/Layout";
 import RetroCard from "@/components/ui/layout/RetroCard";
@@ -173,9 +174,7 @@ export const getServerSideProps: GetServerSideProps<NewsArticlePageProps> = asyn
     return { notFound: true };
   }
 
-  const proto = req?.headers?.["x-forwarded-proto"] || "http";
-  const host = req?.headers?.host || "localhost:3000";
-  const base = `${proto}://${host}`;
+  const base = getInternalBaseUrl();
 
   try {
     // Fetch site config

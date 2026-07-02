@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { getInternalBaseUrl } from "@/lib/utils/api/internal-base-url";
 import type { GetServerSideProps } from "next";
 import Head from "next/head";
 import { useRouter } from "next/router";
@@ -199,9 +200,7 @@ export const getServerSideProps: GetServerSideProps<EditPostPageProps> = async (
     return { notFound: true };
   }
 
-  const proto = req?.headers?.["x-forwarded-proto"] || "http";
-  const host = req?.headers?.host || "localhost:3000";
-  const base = `${proto}://${host}`;
+  const base = getInternalBaseUrl();
 
   try {
     // Fetch the specific post

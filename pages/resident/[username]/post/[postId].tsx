@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { getInternalBaseUrl } from "@/lib/utils/api/internal-base-url";
 import type { GetServerSideProps } from "next";
 import Head from "next/head";
 import RetroCard from "@/components/ui/layout/RetroCard";
@@ -148,9 +149,7 @@ export const getServerSideProps: GetServerSideProps<PostPageProps> = async ({ pa
   const initialCommentsOpen = commentsParam === "closed" ? false : true;
   const highlightCommentId = highlightParam || null;
 
-  const proto = req?.headers?.["x-forwarded-proto"] || "http";
-  const host = req?.headers?.host || "localhost:3000";
-  const base = `${proto}://${host}`;
+  const base = getInternalBaseUrl();
 
   try {
     // Fetch the specific post

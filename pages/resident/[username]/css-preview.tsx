@@ -1,5 +1,6 @@
 // pages/resident/[username]/css-preview.tsx
 import React from "react";
+import { getInternalBaseUrl } from "@/lib/utils/api/internal-base-url";
 import { GetServerSideProps } from "next";
 import ProfileLayout from "@/components/ui/layout/ProfileLayout";
 import ProfileHeader from "@/components/core/profile/ProfileHeader";
@@ -241,9 +242,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
   try {
     // Determine the base URL for API calls
-    const protocol = context.req.headers['x-forwarded-proto'] || 'http';
-    const host = context.req.headers.host;
-    const baseUrl = `${protocol}://${host}`;
+    const baseUrl = getInternalBaseUrl();
     
     const response = await fetch(`${baseUrl}/api/css-preview-data?id=${id}`);
     

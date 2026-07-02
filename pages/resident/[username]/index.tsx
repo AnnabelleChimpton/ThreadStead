@@ -1,5 +1,6 @@
 // pages/resident/[username]/index.tsx
 import React from "react";
+import { getInternalBaseUrl } from "@/lib/utils/api/internal-base-url";
 import type { GetServerSideProps } from "next";
 import Head from "next/head";
 
@@ -429,9 +430,7 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   const usernameParam = Array.isArray(params?.username) ? params.username[0] : String(params?.username || "");
   if (!usernameParam) return { notFound: true };
 
-  const proto = req?.headers?.["x-forwarded-proto"] || "http";
-  const host = req?.headers?.host || "localhost:3000";
-  const base = `${proto}://${host}`;
+  const base = getInternalBaseUrl();
 
   const res = await fetch(`${base}/api/profile/${encodeURIComponent(usernameParam)}`, {
     headers: {

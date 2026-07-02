@@ -1,4 +1,5 @@
 import React from "react";
+import { getInternalBaseUrl } from "@/lib/utils/api/internal-base-url";
 import type { GetServerSideProps, NextApiRequest } from "next";
 import { useRouter } from "next/router";
 import Head from "next/head";
@@ -250,9 +251,7 @@ export const getServerSideProps: GetServerSideProps<TemplateEditorPageProps> = a
   const username = Array.isArray(params?.username) ? params.username[0] : String(params?.username || "");
   if (!username) return { notFound: true };
 
-  const proto = req?.headers?.["x-forwarded-proto"] || "http";
-  const host = req?.headers?.host || "localhost:3000";
-  const base = `${proto}://${host}`;
+  const base = getInternalBaseUrl();
 
   try {
     const { getSessionUser } = await import('@/lib/auth/server');
