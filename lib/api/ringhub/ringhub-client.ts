@@ -113,6 +113,8 @@ export class RingHubClientError extends Error {
 }
 
 export class RingHubClient {
+  static readonly REQUEST_TIMEOUT_MS = parseInt(process.env.RING_HUB_TIMEOUT_MS || '15000', 10)
+
   private baseUrl: string
   private instanceDID: string
   private privateKey: crypto.KeyObject
@@ -763,6 +765,10 @@ export class RingHubClient {
     const config: RequestInit = {
       method,
       headers,
+      // A slow or unreachable hub must not hang API routes past the reverse
+      // proxy's timeout — post creation awaits ring submissions before
+      // responding, so an unbounded fetch here surfaces as a 504 to users.
+      signal: AbortSignal.timeout(RingHubClient.REQUEST_TIMEOUT_MS),
     }
 
     if (bodyString) {
