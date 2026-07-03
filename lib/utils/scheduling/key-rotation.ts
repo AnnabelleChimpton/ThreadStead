@@ -4,7 +4,29 @@
  * Handles scheduled key rotation for ThreadStead server and user DIDs
  */
 
-import { rotateServerKeypair, getOrCreateServerKeypair } from '../../api/did/server-did-client'
+import { getOrCreateServerKeypair } from '../../api/did/server-did-client'
+
+/**
+ * Server key rotation is NOT IMPLEMENTED and is intentionally guarded.
+ *
+ * The previous implementation called rotateServerKeypair(), which just rewrote the
+ * local keypair file. That would SILENTLY BREAK Ring Hub authentication because it:
+ *   - never publishes the new key alongside the old one during a transition window,
+ *   - never notifies the hub of the new key,
+ *   - never atomically swaps the signing key env (THREADSTEAD_PRIVATE_KEY_B64URL) used
+ *     by RingHubClient.fromEnvironment — so signing and the published DID doc diverge.
+ *
+ * A correct rotation protocol requires: publish-new-alongside-old -> hub notify /
+ * re-register the new key -> wait for propagation -> atomic signing-key swap ->
+ * retire the old key. Until that exists, rotation must not be wired up.
+ */
+function serverKeyRotationNotImplemented(): never {
+  throw new Error(
+    'Server key rotation is not implemented. Rotating the server key without the full ' +
+    'protocol (publish-new-alongside-old + hub notify + atomic signing-key swap) would ' +
+    'break Ring Hub authentication and lock the instance out of the hub. See key-rotation.ts.'
+  )
+}
 
 interface RotationSchedule {
   serverKeyRotationDays: number
@@ -61,35 +83,18 @@ export async function performScheduledServerKeyRotation(): Promise<{
   reason?: string
   newKeyId?: string
 }> {
+  // GUARDED: server key rotation is not implemented (see serverKeyRotationNotImplemented).
+  // We still surface the age check so monitoring can warn, but never actually rotate.
   const check = await checkServerKeyRotation()
-  
+
   if (!check.needsRotation) {
     return {
       rotated: false,
       reason: `Key is ${check.keyAge} days old, rotation not needed until ${check.nextRotationDue}`
     }
   }
-  
-  try {
-    console.log(`Server key is ${check.keyAge} days old, performing rotation...`)
-    const newKeypair = await rotateServerKeypair()
-    
-    // TODO: Notify Ring Hub of key rotation
-    // TODO: Update monitoring systems
-    // TODO: Send admin notifications
-    
-    return {
-      rotated: true,
-      reason: `Scheduled rotation after ${check.keyAge} days`,
-      newKeyId: newKeypair.did
-    }
-  } catch (error) {
-    console.error('Failed to rotate server key:', error)
-    return {
-      rotated: false,
-      reason: `Rotation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-    }
-  }
+
+  serverKeyRotationNotImplemented()
 }
 
 /**
@@ -100,25 +105,9 @@ export async function forceServerKeyRotation(reason: string): Promise<{
   reason: string
   newKeyId?: string
 }> {
-  try {
-    console.log(`Forcing server key rotation: ${reason}`)
-    const newKeypair = await rotateServerKeypair()
-    
-    // Log the emergency rotation
-    console.warn(`EMERGENCY KEY ROTATION: ${reason}`)
-    
-    return {
-      rotated: true,
-      reason: `Emergency rotation: ${reason}`,
-      newKeyId: newKeypair.did
-    }
-  } catch (error) {
-    console.error('Failed to force rotate server key:', error)
-    return {
-      rotated: false,
-      reason: `Emergency rotation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-    }
-  }
+  // GUARDED: emergency rotation would also silently break auth without the full protocol.
+  console.warn(`Requested emergency server key rotation (${reason}) — blocked, not implemented.`)
+  serverKeyRotationNotImplemented()
 }
 
 /**
@@ -136,31 +125,10 @@ function getRotationSchedule(): RotationSchedule {
  * Start automatic key rotation monitoring
  */
 export function startKeyRotationMonitoring(): void {
-  const schedule = getRotationSchedule()
-  const intervalMs = schedule.checkIntervalHours * 60 * 60 * 1000
-  
-  console.log(`Starting key rotation monitoring (checking every ${schedule.checkIntervalHours} hours)`)
-  
-  setInterval(async () => {
-    try {
-      const result = await performScheduledServerKeyRotation()
-      if (result.rotated) {
-        console.log(`Automatic key rotation completed: ${result.newKeyId}`)
-      }
-    } catch (error) {
-      console.error('Error during scheduled key rotation check:', error)
-    }
-  }, intervalMs)
-  
-  // Perform initial check
-  setTimeout(async () => {
-    const check = await checkServerKeyRotation()
-    console.log(`Key rotation status: Key age ${check.keyAge} days, next rotation due ${check.nextRotationDue}`)
-    
-    if (check.needsRotation) {
-      console.warn('Server key needs rotation! Consider running rotation manually.')
-    }
-  }, 1000)
+  // GUARDED: this would set up an interval that calls the (unimplemented) rotation path.
+  // Wiring it up would eventually attempt a rotation that breaks Ring Hub auth. It has no
+  // callers today; keep it that way until a real rotation protocol exists.
+  serverKeyRotationNotImplemented()
 }
 
 /**

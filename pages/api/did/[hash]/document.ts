@@ -52,7 +52,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Set proper headers for DID document
     res.setHeader('Content-Type', 'application/did+json')
-    res.setHeader('Cache-Control', 'public, max-age=3600') // Cache for 1 hour
+    // Short cache so a rotated user key isn't served stale from a CDN for an hour.
+    res.setHeader('Cache-Control', 'public, max-age=300') // Cache for 5 minutes
     res.setHeader('Access-Control-Allow-Origin', '*') // Allow cross-origin DID resolution
 
     return res.status(200).json(didDocument)

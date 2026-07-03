@@ -68,25 +68,34 @@ async function setupRingHubKeys() {
 
 async function generateKeys() {
   console.log('🔑 Generating new Ring Hub keys...')
-  
-  // Delete existing files
+
+  // Only the SERVER keypair file is affected by server-key setup.
   const keypairFile = join(process.cwd(), '.threadstead-server-keypair.json')
   const userDidsFile = join(process.cwd(), '.threadstead-user-dids.json')
-  
+
   try {
     await fs.unlink(keypairFile)
     console.log('   ✅ Deleted existing server keypair file')
   } catch (error) {
     console.log('   ℹ️  No existing server keypair file to delete')
   }
-  
-  try {
-    await fs.unlink(userDidsFile)
-    console.log('   ✅ Deleted existing user DIDs file')
-  } catch (error) {
-    console.log('   ℹ️  No existing user DIDs file to delete')
+
+  // SAFETY: never delete USER DID data as a side effect of server-key setup.
+  // Deleting user DIDs re-mints every user's key and locks them out of their rings.
+  // Require an explicit --nuke-user-dids flag to touch user data.
+  const nukeUserDids = process.argv.includes('--nuke-user-dids')
+  if (nukeUserDids) {
+    console.warn('   ⚠️ --nuke-user-dids passed: deleting user DID data (this re-mints user keys!)')
+    try {
+      await fs.unlink(userDidsFile)
+      console.log('   ✅ Deleted existing user DIDs file')
+    } catch (error) {
+      console.log('   ℹ️  No existing user DIDs file to delete')
+    }
+  } else {
+    console.log('   🔒 Preserving user DID data (pass --nuke-user-dids to delete it).')
   }
-  
+
   // Generate new keypair
   const domain = getDomainFromEnvironment()
   console.log('   🌐 Domain:', domain)

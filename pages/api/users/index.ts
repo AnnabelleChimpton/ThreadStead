@@ -1,5 +1,4 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { loadUserDIDMappings } from '@/lib/api/did/server-did-client'
 import { db } from "@/lib/config/database/connection";
 import { SITE_NAME } from "@/lib/config/site/constants";
 
@@ -38,14 +37,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 }
 
 async function handleDIDDirectory(req: NextApiRequest, res: NextApiResponse) {
-  // Load all user DID mappings
-  const mappings = await loadUserDIDMappings()
+  // Load all user DID mappings from the authoritative UserDID table
+  const mappings = await db.userDID.findMany({
+    select: { userHash: true, did: true, createdAt: true },
+    orderBy: { createdAt: 'desc' },
+  })
 
   // Return public info only (no private keys or user IDs)
   const publicMappings = mappings.map(mapping => ({
     hash: mapping.userHash,
     did: mapping.did,
-    created: mapping.created,
+    created: mapping.createdAt.toISOString(),
     didDocument: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/users/${mapping.userHash}/did.json`
   }))
 

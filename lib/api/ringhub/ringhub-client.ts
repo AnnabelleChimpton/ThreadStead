@@ -7,6 +7,7 @@
 
 import crypto from 'crypto';
 import { featureFlags } from '@/lib/utils/features/feature-flags'
+import { RingHubAuthError } from './ringhub-errors'
 
 // Types for Ring Hub API compatibility
 export interface RingDescriptor {
@@ -812,15 +813,22 @@ export class RingHubClient {
         return null
       }
 
-      // Check for silent authentication failure header
+      // Check for silent authentication failure header.
+      // RingHub returns 200 with this header when signature verification failed but the
+      // endpoint degraded gracefully. Swallowing it (old behavior: console.warn only) hid
+      // stale-key breakage as a normal empty response. Surface it as a typed auth error so
+      // callers can distinguish "auth broken" from "no data".
       const authError = response.headers.get('X-RingHub-Auth-Error')
       if (authError) {
         console.warn(`⚠️ RingHub Authentication Failed Silently: ${authError}`)
+        throw new RingHubAuthError(`RingHub authentication failed: ${authError}`, {
+          code: 'X-RingHub-Auth-Error',
+        })
       }
 
       return response.json()
     } catch (error) {
-      if (error instanceof RingHubClientError) {
+      if (error instanceof RingHubClientError || error instanceof RingHubAuthError) {
         throw error
       }
 

@@ -14,6 +14,24 @@ loadEnvConfig(projectDir)
 
 import { loadUserDIDMappings, generateUserDIDDocument } from '@/lib/api/did/server-did-client'
 import { fromBase64Url } from '@/lib/utils/encoding/base64url'
+import bs58 from 'bs58'
+
+/**
+ * Convert a z-base58btc multibase Ed25519 public key (multicodec 0xed01) to base64.
+ * User DID documents only set publicKeyMultibase, so we derive the base64 the hub
+ * HttpSignature table expects here rather than reading a non-existent publicKeyBase64
+ * field (which previously emitted the literal string 'undefined').
+ */
+function multibaseToPublicKeyBase64(multibase: string): string {
+  if (!multibase || !multibase.startsWith('z')) {
+    throw new Error(`Unexpected multibase public key: ${multibase}`)
+  }
+  const decoded = Buffer.from(bs58.decode(multibase.slice(1)))
+  if (decoded.length < 2 || decoded[0] !== 0xed || decoded[1] !== 0x01) {
+    throw new Error('Public key multibase is not a valid Ed25519 multicodec value')
+  }
+  return Buffer.from(decoded.subarray(2)).toString('base64')
+}
 
 async function generateRegistrationSQL() {
   console.log('🔐 Generating Ring Hub DID Registration SQL')
@@ -39,10 +57,17 @@ async function generateRegistrationSQL() {
         continue
       }
 
-      // Generate DID document to get public key
+      // Generate DID document to get public key. User docs only set publicKeyMultibase,
+      // so derive the base64 the hub expects from it (the old code read a missing
+      // publicKeyBase64 field and emitted the literal 'undefined' into the SQL).
       const didDocument = await generateUserDIDDocument(mapping)
-      const publicKeyBase64 = didDocument.verificationMethod[0].publicKeyBase64
-      
+      const publicKeyMultibase = didDocument.verificationMethod[0].publicKeyMultibase
+      if (!publicKeyMultibase) {
+        console.log(`⚠️ Skipping ${mapping.did}: no publicKeyMultibase in DID document`)
+        continue
+      }
+      const publicKeyBase64 = multibaseToPublicKeyBase64(publicKeyMultibase)
+
       // Create SQL statement to register this DID with Ring Hub
       const keyId = `${mapping.did}#key-1`
       const sqlStatement = `INSERT INTO "HttpSignature" (id, "keyId", "publicKey", "actorDid", "createdAt", "updatedAt", "trusted") VALUES (gen_random_uuid(), '${keyId}', '${publicKeyBase64}', '${mapping.did}', NOW(), NOW(), true);`

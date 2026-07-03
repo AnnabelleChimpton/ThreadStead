@@ -9,6 +9,30 @@ import { getRingHubClient, RingHubClient } from './ringhub-client'
 import { getOrCreateUserDID, getUserDID, signMessageAsUser, getServerDID, publicKeyToMultibase } from '../did/server-did-client'
 import { db } from '../../config/database/connection'
 import type { RingDescriptor, RingMember } from './ringhub-client'
+import { RingHubAuthError, RingHubUnavailableError, classifyRingHubError } from './ringhub-errors'
+
+// Re-export typed errors so downstream API routes have a single import site.
+export { RingHubAuthError, RingHubUnavailableError, classifyRingHubError }
+
+/**
+ * How user Ring Hub operations authenticate:
+ *   'user'         -> sign with the user's own DID/keypair (default, correct for prod).
+ *   'server-proxy' -> sign with the SERVER DID on behalf of the user (dev-only convenience).
+ *
+ * IMPORTANT: this is now an EXPLICIT opt-in env. The old code guessed the mode from
+ * NEXT_PUBLIC_BASE_URL.includes('localhost') and DEFAULTED to server-proxy, so a prod
+ * instance with NEXT_PUBLIC_BASE_URL unset would make EVERY user act as the server actor.
+ * The dangerous "all users as server" behavior is now impossible unless explicitly opted in.
+ */
+type RingHubUserAuthMode = 'user' | 'server-proxy'
+
+function getUserAuthMode(): RingHubUserAuthMode {
+  const raw = (process.env.RINGHUB_USER_AUTH_MODE || 'user').trim()
+  if (raw === 'server-proxy') return 'server-proxy'
+  if (raw === 'user') return 'user'
+  console.warn(`⚠️ Unrecognized RINGHUB_USER_AUTH_MODE="${raw}"; defaulting to 'user' (safe).`)
+  return 'user'
+}
 
 /**
  * Enhanced Ring Hub client that automatically handles user authentication
@@ -31,26 +55,33 @@ export class AuthenticatedRingHubClient {
       return this.userClient
     }
 
-    // Get user's DID data
+    const mode = getUserAuthMode()
+
+    // Get user's DID data (fatal DB errors propagate; never silently re-mints).
     const userDIDMapping = await getOrCreateUserDID(this.userId)
 
-    // Check if we can use user DID directly (production with resolvable domain)
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
-    const isLocalhost = baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')
-
-    if (isLocalhost) {
-      console.log(`⚠️ Development mode: Using server DID proxy for Ring Hub authentication`)
-      console.log(`User intent tracked locally for: ${userDIDMapping.did}`)
-
-      // In development, use server DID but track user intent locally
+    if (mode === 'server-proxy') {
+      // Explicit dev-only opt-in: act as the SERVER actor, tracking user intent in logs.
+      console.log(`⚠️ RINGHUB_USER_AUTH_MODE=server-proxy: using server DID for Ring Hub auth`)
+      console.log(`User intent tracked for: ${userDIDMapping.did}`)
       if (!this.client) {
-        throw new Error('Ring Hub client not available')
+        throw new RingHubUnavailableError('Ring Hub server client not available (check env configuration)')
       }
-      return this.client
+      // Cache so repeated ops on this instance reuse the server client.
+      this.userClient = this.client
+      return this.userClient
     }
 
-    // In production, use user's DID directly (DID documents are now published)
-    console.log(`✅ Production mode: User ${userDIDMapping.did} authenticating directly to Ring Hub`)
+    // Default 'user' mode: authenticate directly as the user's own DID.
+    // Fail-fast if we don't have a resolvable user DID keypair.
+    if (!userDIDMapping?.did || !userDIDMapping?.secretKey || !userDIDMapping?.publicKey) {
+      throw new RingHubAuthError(
+        `Cannot perform user Ring Hub operation: no resolvable DID keypair for user ${this.userId} ` +
+        `in 'user' auth mode.`
+      )
+    }
+
+    console.log(`✅ User ${userDIDMapping.did} authenticating directly to Ring Hub`)
     console.log(`DID document available at: /.well-known/did/users/${userDIDMapping.userHash}/did.json`)
 
     // Convert base64url public key to multibase format for Ring Hub
@@ -92,14 +123,7 @@ export class AuthenticatedRingHubClient {
     const userClient = await this.getUserClient()
     const userDID = await this.ensureUserDID()
 
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
-    const isLocalhost = baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')
-
-    if (isLocalhost) {
-      console.log(`User ${userDID} joining ring ${slug} via server DID proxy (dev mode)`)
-    } else {
-      console.log(`User ${userDID} joining ring ${slug} with direct authentication (production)`)
-    }
+    console.log(`User ${userDID} joining ring ${slug} (auth mode: ${getUserAuthMode()})`)
 
     try {
       const result = await userClient.joinRing(slug, message)
@@ -174,14 +198,7 @@ export class AuthenticatedRingHubClient {
     const userClient = await this.getUserClient()
     const userDID = await this.ensureUserDID()
 
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
-    const isLocalhost = baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')
-
-    if (isLocalhost) {
-      console.log(`User ${userDID} updating ring ${slug} via server DID proxy (dev mode)`)
-    } else {
-      console.log(`User ${userDID} updating ring ${slug} directly (prod mode)`)
-    }
+    console.log(`User ${userDID} updating ring ${slug} (auth mode: ${getUserAuthMode()})`)
 
     // Update via Ring Hub using user-authenticated client
     // Ring Hub will verify the user has manage_ring permission
@@ -207,10 +224,7 @@ export class AuthenticatedRingHubClient {
     badgesUpdated?: number;
   }> {
     const userClient = await this.getUserClient()
-    const userDID = await this.ensureUserDID()
-
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
-    const isLocalhost = baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')
+    await this.ensureUserDID()
 
     // Update badge via Ring Hub using user-authenticated client
     // Ring Hub will verify the user owns the ring (ownerDid matches actorDid)
@@ -224,15 +238,10 @@ export class AuthenticatedRingHubClient {
     const userClient = await this.getUserClient()
     const userDIDMapping = await getOrCreateUserDID(this.userId)
 
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
-    const isLocalhost = baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')
-
     // Add user identification to fork metadata
     const enrichedForkData = {
       ...forkData,
-      curatorNotes: isLocalhost
-        ? `Created by user ${userDIDMapping.did} via ThreadStead (dev mode)`
-        : `Created by user ${userDIDMapping.did} via ThreadStead`
+      curatorNotes: `Created by user ${userDIDMapping.did} via ThreadStead`
     }
 
     console.log(`User ${userDIDMapping.did} forking ring ${parentSlug}`)
@@ -301,22 +310,30 @@ export class AuthenticatedRingHubClient {
   }
 
   async getMyMemberships(options?: Parameters<RingHubClient['getMyMemberships']>[0]) {
+    let userClient: RingHubClient
     try {
-      const userClient = await this.getUserClient()
-      return await userClient.getMyMemberships(options)
-    } catch (error: any) {
-      // If this is a new user without Ring Hub identity, return empty memberships
-      if (error.status === 401 || error.message?.includes('Authentication required')) {
-        console.log(`User ${this.userId} doesn't have Ring Hub identity yet, returning empty memberships`);
-        return {
-          memberships: [],
-          total: 0,
-          offset: options?.offset || 0,
-          limit: options?.limit || 20,
-          hasMore: false
-        };
+      userClient = await this.getUserClient()
+    } catch (error: unknown) {
+      // Building the user client failed (e.g. no resolvable DID keypair). This is an
+      // AUTH problem, not "user has no memberships" — surface it as a typed error.
+      if (error instanceof RingHubAuthError || error instanceof RingHubUnavailableError) {
+        throw error
       }
-      throw error;
+      throw classifyRingHubError(error)
+    }
+
+    try {
+      return await userClient.getMyMemberships(options)
+    } catch (error: unknown) {
+      // Previously ANY 401/'Authentication required' was swallowed into an empty result,
+      // making stale-key breakage indistinguishable from a genuinely-new user with no
+      // memberships. Now genuine hub/auth failures THROW a typed error so downstream API
+      // routes can catch and render the correct state. Only a real, successful
+      // "no memberships" response (from the client) returns empty here.
+      if (error instanceof RingHubAuthError || error instanceof RingHubUnavailableError) {
+        throw error
+      }
+      throw classifyRingHubError(error)
     }
   }
 
@@ -342,14 +359,7 @@ export class AuthenticatedRingHubClient {
     const userClient = await this.getUserClient()
     const userDID = await this.ensureUserDID()
 
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
-    const isLocalhost = baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1')
-
-    if (isLocalhost) {
-      console.log(`User ${userDID} curating post ${postId} with action ${action} via server DID proxy (dev mode)`)
-    } else {
-      console.log(`User ${userDID} curating post ${postId} with action ${action} directly (prod mode)`)
-    }
+    console.log(`User ${userDID} curating post ${postId} with action ${action} (auth mode: ${getUserAuthMode()})`)
 
     try {
       const result = await userClient.curatePost(postId, action, options)

@@ -9,12 +9,35 @@ import * as ed from "@noble/ed25519";
 import { sha512 } from "@noble/hashes/sha512";
 import { toBase64Url, fromBase64Url } from "@/lib/utils/encoding/base64url";
 import { promises as fs } from 'fs';
+import { existsSync } from 'fs';
 import { join } from 'path';
 import { createHash, randomBytes, createCipheriv, createDecipheriv } from 'crypto';
 import bs58 from 'bs58';
+import { db } from '@/lib/config/database/connection';
 
 // Configure @noble/ed25519 with SHA-512 (required)
 ed.etc.sha512Sync = (...m) => sha512(ed.etc.concatBytes(...m));
+
+/**
+ * Compute the deterministic, privacy-preserving user hash used in did:web:DOMAIN:users:HASH.
+ *
+ * IMPORTANT — FROZEN HASHING: String() intentionally reproduces historical hashing.
+ * The original code was `createHash('sha256').update(userId + process.env.THREADSTEAD_DID_SALT || 'default-salt')`.
+ * Because `+` binds tighter than `||`, that expression evaluated to the hash INPUT
+ * `userId + (process.env.THREADSTEAD_DID_SALT ?? 'undefined-as-string')` and the `|| 'default-salt'`
+ * fallback applied to the (always-truthy) hash string, so 'default-salt' was DEAD and never hashed.
+ *   - salt SET   -> input was `userId + salt`
+ *   - salt UNSET -> input was the literal string `userId + "undefined"` (String(undefined) === 'undefined')
+ * `String(process.env.THREADSTEAD_DID_SALT)` reproduces BOTH cases byte-for-byte.
+ * Changing this (e.g. introducing 'default-salt') would reassign every user's DID and lock them
+ * out of their rings on the hub. Do NOT change it.
+ */
+export function computeUserHash(userId: string): string {
+  return createHash('sha256')
+    .update(userId + String(process.env.THREADSTEAD_DID_SALT))
+    .digest('hex')
+    .slice(0, 16);
+}
 
 /**
  * Convert base64url public key to multibase format for Ring Hub
@@ -121,58 +144,123 @@ export async function signMessageAsServer(message: string): Promise<string> {
 }
 
 /**
- * Generate or get a DID for a ThreadStead user
+ * Convert a persisted UserDID DB row into the in-memory UserDIDMapping shape.
+ * Decrypts the secret key using the same encryption util the file store used.
+ */
+function rowToMapping(row: {
+  userId: string;
+  did: string;
+  userHash: string;
+  publicKeyMultibase: string;
+  secretKeyEncrypted: string;
+  createdAt: Date;
+}): UserDIDMapping {
+  return {
+    userId: row.userId,
+    did: row.did,
+    userHash: row.userHash,
+    // NOTE: publicKeyMultibase column stores the base64url public key (historical
+    // field naming); callers convert to multibase on demand via publicKeyToMultibase.
+    publicKey: row.publicKeyMultibase,
+    secretKey: decryptUserSecretKey(row.secretKeyEncrypted),
+    created: row.createdAt.toISOString(),
+  };
+}
+
+/**
+ * Generate or get a DID for a ThreadStead user.
+ *
+ * ROOT-CAUSE FIX: user DID keypairs now live in Postgres (UserDID table), not the
+ * legacy .threadstead-user-dids.json file. Per-row reads/writes (upsert) replace the
+ * whole-file rewrite, fixing the race + non-atomic-write data-loss that silently
+ * re-minted every user's key on any file read/parse/decrypt error.
+ *
+ * LOAD-FAILURE SEMANTICS (critical for identity preservation):
+ *   - DB read fails  -> THROW (fatal). Never return empty, never mint. A transient DB
+ *                       error must NOT be mistaken for "new user" and rotate the key.
+ *   - Row exists     -> return it EXACTLY. Never regenerate.
+ *   - Row missing but present in legacy file -> import that ONE row on the fly
+ *                       (transition safety for a not-yet-migrated user) and log.
+ *   - Genuinely new user (no row, not in file) -> mint a fresh keypair, log prominently.
  */
 export async function getOrCreateUserDID(userId: string): Promise<UserDIDMapping> {
-  const mappings = await loadUserDIDMappings();
-  
-  // Check if user already has a DID
-  const existing = mappings.find(m => m.userId === userId);
-  if (existing) {
-    // Migrate old did:key format to did:web format
-    if (existing.did.startsWith('did:key:')) {
-      // Generate new did:web DID but keep the same keys
-      const userHash = createHash('sha256').update(userId + process.env.THREADSTEAD_DID_SALT || 'default-salt').digest('hex').slice(0, 16);
-      const domain = getDomainFromEnvironment();
-      const newDID = `did:web:${domain}:users:${userHash}`;
-      
-      // Update the mapping
-      existing.did = newDID;
-      existing.userHash = userHash;
-      
-      // Save updated mappings
-      await storeUserDIDMappings(mappings);      
-    }
-    
-    return existing;
+  // Read the user's row. A DB failure here is FATAL — do not swallow.
+  let existing;
+  try {
+    existing = await db.userDID.findUnique({ where: { userId } });
+  } catch (error) {
+    throw new Error(
+      `FATAL: failed to read UserDID for user ${userId} from database. Refusing to mint a ` +
+      `replacement key (would rotate the user's identity and lock them out of their rings). ` +
+      `Original error: ${error instanceof Error ? error.message : String(error)}`
+    );
   }
-  
-  // Generate new DID for user using did:web format for Ring Hub compatibility
+
+  if (existing) {
+    // Row exists — return it EXACTLY. Never regenerate the keypair.
+    return rowToMapping(existing);
+  }
+
+  // No DB row. Before minting, check the legacy file for a not-yet-migrated user.
+  const legacy = await findUserInLegacyFile(userId);
+  if (legacy) {
+    console.warn(
+      `⚠️ UserDID for ${userId} missing from DB but present in legacy file; importing on-the-fly ` +
+      `to avoid re-minting the key. Run scripts/migrate-user-dids-to-db.ts to persist all users.`
+    );
+    try {
+      const saved = await db.userDID.upsert({
+        where: { userId },
+        create: {
+          userId,
+          did: legacy.did,
+          userHash: legacy.userHash,
+          publicKeyMultibase: legacy.publicKey,
+          secretKeyEncrypted: encryptUserSecretKey(legacy.secretKey),
+        },
+        update: {}, // never overwrite an existing row's identity
+      });
+      return rowToMapping(saved);
+    } catch (error) {
+      // If the upsert races/fails, still return the legacy identity so the user isn't re-minted.
+      console.error(`Failed to persist legacy UserDID for ${userId}; using file value:`, error);
+      return legacy;
+    }
+  }
+
+  // Genuinely new user: no DB row, no legacy entry. Minting is allowed here ONLY.
+  console.warn(`🆕 Minting a NEW DID keypair for user ${userId} (no existing DB row or legacy file entry).`);
+
   const secret = ed.utils.randomPrivateKey();
   const publicKey = await ed.getPublicKeyAsync(secret);
-  
+
   const skb64u = toBase64Url(secret);
   const pkb64u = toBase64Url(publicKey);
-  
-  // Create a deterministic but private user hash
-  const userHash = createHash('sha256').update(userId + process.env.THREADSTEAD_DID_SALT || 'default-salt').digest('hex').slice(0, 16);
+
+  const userHash = computeUserHash(userId);
   const domain = getDomainFromEnvironment();
   const did = `did:web:${domain}:users:${userHash}`;
-  
-  const mapping: UserDIDMapping = {
-    userId,
-    did,
-    userHash,
-    publicKey: pkb64u,
-    secretKey: skb64u,
-    created: new Date().toISOString()
-  };
-  
-  // Store the new mapping
-  mappings.push(mapping);
-  await storeUserDIDMappings(mappings);
-  
-  return mapping;
+
+  try {
+    const saved = await db.userDID.upsert({
+      where: { userId },
+      create: {
+        userId,
+        did,
+        userHash,
+        publicKeyMultibase: pkb64u,
+        secretKeyEncrypted: encryptUserSecretKey(skb64u),
+      },
+      // If a concurrent request created the row first, keep THAT identity (no overwrite),
+      // then we re-read below to return the winner.
+      update: {},
+    });
+    return rowToMapping(saved);
+  } catch (error) {
+    throw new Error(
+      `Failed to persist new UserDID for user ${userId}: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
 }
 
 /**
@@ -222,33 +310,120 @@ export interface DIDDocument {
 }
 
 /**
- * Generate DID document for did:web resolution
+ * Multibase (z-base58btc, multicodec 0xed01 Ed25519) -> raw 32-byte public key -> base64url.
+ * Inverse of publicKeyToMultibase.
+ */
+function multibaseToPublicKeyBase64Url(multibase: string): string {
+  if (!multibase.startsWith('z')) {
+    throw new Error(`Unsupported multibase prefix in server public key: ${multibase[0]}`);
+  }
+  const decoded = Buffer.from(bs58.decode(multibase.slice(1)));
+  // Strip the 2-byte Ed25519 multicodec prefix (0xed 0x01).
+  if (decoded.length < 2 || decoded[0] !== 0xed || decoded[1] !== 0x01) {
+    throw new Error('Server public key multibase is not a valid Ed25519 multicodec value');
+  }
+  return toBase64Url(decoded.subarray(2));
+}
+
+/**
+ * Resolve the server's published identity (DID + public key) from ENVIRONMENT — the
+ * single source of truth for signing (RingHubClient.fromEnvironment uses the same env
+ * private key). This guarantees the key published at /.well-known/did.json matches the
+ * key we actually sign hub requests with.
+ *
+ * Order of preference for the public key:
+ *   1. THREADSTEAD_PUBLIC_KEY_MULTIBASE (explicit)
+ *   2. Derived from THREADSTEAD_PRIVATE_KEY_B64URL (the signing key)
+ *
+ * Throws if neither the DID nor any usable server key material is present in env.
+ * NEVER mints a key — a fresh deploy with missing env must fail loudly, not publish a
+ * random key unrelated to the signing key.
+ */
+async function getServerIdentityFromEnv(): Promise<{ did: string; publicKeyBase64Url: string }> {
+  const did = process.env.THREADSTEAD_DID;
+  if (!did) {
+    throw new Error(
+      'THREADSTEAD_DID is not set — cannot publish a server DID document. Refusing to mint a ' +
+      'random server key. Configure the server identity env vars for this deployment.'
+    );
+  }
+
+  const multibase = process.env.THREADSTEAD_PUBLIC_KEY_MULTIBASE;
+  if (multibase) {
+    return { did, publicKeyBase64Url: multibaseToPublicKeyBase64Url(multibase) };
+  }
+
+  const privB64 = process.env.THREADSTEAD_PRIVATE_KEY_B64URL;
+  if (privB64) {
+    // Derive the public key from the signing private key (guarantees they match).
+    const secret = fromBase64Url(privB64);
+    const publicKey = await ed.getPublicKeyAsync(secret);
+    return { did, publicKeyBase64Url: toBase64Url(publicKey) };
+  }
+
+  throw new Error(
+    'No server public key available: set THREADSTEAD_PUBLIC_KEY_MULTIBASE or ' +
+    'THREADSTEAD_PRIVATE_KEY_B64URL. Refusing to mint a random server key.'
+  );
+}
+
+/**
+ * Generate DID document for did:web resolution.
+ *
+ * IDENTITY SOURCE OF TRUTH: derives the published server public key from ENV so the
+ * /.well-known/did.json key always matches the key used to sign Ring Hub requests
+ * (RingHubClient.fromEnvironment). Falls back to the local file keypair ONLY for local
+ * dev when no server env identity is configured. NEVER auto-mints in the request path.
  */
 export async function generateDIDDocument(): Promise<DIDDocument> {
-  const keypair = await getOrCreateServerKeypair();
-  const publicKeyBytes = fromBase64Url(keypair.publicKey);
-  
+  let did: string;
+  let publicKeyBase64Url: string;
+
+  const hasEnvIdentity =
+    !!process.env.THREADSTEAD_DID &&
+    (!!process.env.THREADSTEAD_PUBLIC_KEY_MULTIBASE || !!process.env.THREADSTEAD_PRIVATE_KEY_B64URL);
+
+  if (hasEnvIdentity) {
+    const env = await getServerIdentityFromEnv();
+    did = env.did;
+    publicKeyBase64Url = env.publicKeyBase64Url;
+  } else {
+    // Local-dev fallback: read the on-disk keypair if it already exists.
+    // Do NOT auto-generate here — a missing key must surface as an error, not a fresh mint.
+    const existing = await loadServerKeypair();
+    if (!existing) {
+      throw new Error(
+        'No server identity configured. Set THREADSTEAD_DID and THREADSTEAD_PUBLIC_KEY_MULTIBASE ' +
+        '(or THREADSTEAD_PRIVATE_KEY_B64URL), or provide a local ' + SERVER_KEYPAIR_FILE + ' for dev. ' +
+        'Refusing to mint a random server key in the DID-serving path.'
+      );
+    }
+    did = existing.did;
+    publicKeyBase64Url = existing.publicKey;
+  }
+
+  const publicKeyBytes = fromBase64Url(publicKeyBase64Url);
   // Support both base64 and multibase formats for compatibility
   const publicKeyBase64 = Buffer.from(publicKeyBytes).toString('base64');
-  const publicKeyMultibase = publicKeyToMultibase(keypair.publicKey);
-  
+  const publicKeyMultibase = publicKeyToMultibase(publicKeyBase64Url);
+
   return {
     "@context": [
       "https://www.w3.org/ns/did/v1",
       "https://w3id.org/security/suites/ed25519-2020/v1"
     ],
-    "id": keypair.did,
+    "id": did,
     "verificationMethod": [{
-      "id": `${keypair.did}#key-1`,
+      "id": `${did}#key-1`,
       "type": "Ed25519VerificationKey2020",
-      "controller": keypair.did,
+      "controller": did,
       "publicKeyBase64": publicKeyBase64,
       "publicKeyMultibase": publicKeyMultibase
     }],
-    "authentication": [`${keypair.did}#key-1`],
-    "assertionMethod": [`${keypair.did}#key-1`],
-    "capabilityDelegation": [`${keypair.did}#key-1`],
-    "capabilityInvocation": [`${keypair.did}#key-1`]
+    "authentication": [`${did}#key-1`],
+    "assertionMethod": [`${did}#key-1`],
+    "capabilityDelegation": [`${did}#key-1`],
+    "capabilityInvocation": [`${did}#key-1`]
   };
 }
 
@@ -342,9 +517,26 @@ export async function generateUserDIDDocument(
 }
 
 /**
- * Get user DID mapping by hash (for DID document publishing)
+ * Get user DID mapping by hash (for DID document publishing).
+ *
+ * Reads from the authoritative DB. A DB failure THROWS (never silently returns null,
+ * which the DID-serving route would surface as a 404 and hide stale-key breakage).
+ * Falls back to the legacy file only for a hash not yet migrated.
  */
 export async function getUserDIDMappingByHash(userHash: string): Promise<UserDIDMapping | null> {
+  let row;
+  try {
+    row = await db.userDID.findUnique({ where: { userHash } });
+  } catch (error) {
+    throw new Error(
+      `Failed to read UserDID by hash from database: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+  if (row) {
+    return rowToMapping(row);
+  }
+
+  // Transition safety: a not-yet-migrated user's hash may still only be in the legacy file.
   const mappings = await loadUserDIDMappings();
   return mappings.find(m => m.userHash === userHash) || null;
 }
@@ -353,20 +545,8 @@ export async function getUserDIDMappingByHash(userHash: string): Promise<UserDID
  * Migrate existing ThreadStead user to DID system
  */
 export async function migrateUserToDID(userId: string, existingPublicKey?: string): Promise<UserDIDMapping> {
-  // If user already has a DID, return it
-  const mappings = await loadUserDIDMappings();
-  const existing = mappings.find(m => m.userId === userId);
-  if (existing) {
-    return existing;
-  }
-  
-  // If they have an existing public key from the old system, derive DID from it
-  if (existingPublicKey) {
-    // Note: This would require having the private key too for full migration
-    // For now, we'll generate a new DID for simplicity
-  }
-  
-  // Generate new DID for the user
+  // getOrCreateUserDID already returns the existing DB/legacy identity if present,
+  // and only mints for a genuinely new user.
   return await getOrCreateUserDID(userId);
 }
 
@@ -433,6 +613,69 @@ function shouldEncrypt(): boolean {
   return !!getEncryptionKey() && process.env.NODE_ENV === 'production';
 }
 
+// --- User secret-key encryption for DB storage ---
+//
+// Mirrors the historical file-store behavior: only encrypt when an encryption key
+// is available AND we're in production. Otherwise store plaintext (with a loud
+// warning) rather than failing — this matches how the on-disk JSON behaved and
+// avoids blocking dev/test where THREADSTEAD_KEY_ENCRYPTION_KEY is unset.
+//
+// Encrypted values are prefixed with "enc:v1:" followed by a JSON EncryptedStorage
+// blob (base64). Plaintext values are prefixed with "plain:". The prefix lets us
+// decrypt correctly regardless of the environment the row was written in.
+
+const ENC_PREFIX = 'enc:v1:';
+const PLAIN_PREFIX = 'plain:';
+
+/**
+ * Encrypt a user's secret key (base64url) for at-rest storage in the DB.
+ */
+export function encryptUserSecretKey(secretKeyBase64Url: string): string {
+  if (shouldEncrypt()) {
+    const blob = encryptData(secretKeyBase64Url);
+    return ENC_PREFIX + Buffer.from(JSON.stringify(blob), 'utf8').toString('base64');
+  }
+
+  if (!getEncryptionKey()) {
+    console.warn(
+      '⚠️ THREADSTEAD_KEY_ENCRYPTION_KEY is not set — storing user DID secret keys in PLAINTEXT. ' +
+      'Set this env var (and NODE_ENV=production) to encrypt keys at rest.'
+    );
+  }
+  return PLAIN_PREFIX + secretKeyBase64Url;
+}
+
+/**
+ * Decrypt a stored secret key value written by encryptUserSecretKey.
+ * Tolerates un-prefixed legacy values (treated as plaintext) for safety.
+ */
+export function decryptUserSecretKey(stored: string): string {
+  if (stored.startsWith(ENC_PREFIX)) {
+    const json = Buffer.from(stored.slice(ENC_PREFIX.length), 'base64').toString('utf8');
+    const blob = JSON.parse(json) as EncryptedStorage;
+    return decryptData(blob);
+  }
+  if (stored.startsWith(PLAIN_PREFIX)) {
+    return stored.slice(PLAIN_PREFIX.length);
+  }
+  // Un-prefixed: assume plaintext base64url secret key (defensive).
+  return stored;
+}
+
+/**
+ * Look up a single user in the legacy on-disk file WITHOUT rewriting it.
+ * Returns null if the file is absent or the user is not present. Read-only.
+ * Used only as a transition safety net for not-yet-migrated users.
+ */
+async function findUserInLegacyFile(userId: string): Promise<UserDIDMapping | null> {
+  const filePath = join(process.cwd(), USER_DID_MAPPINGS_FILE);
+  if (!existsSync(filePath)) {
+    return null;
+  }
+  const mappings = await loadUserDIDMappings();
+  return mappings.find(m => m.userId === userId) || null;
+}
+
 // File I/O operations
 
 async function storeServerKeypair(keypair: ServerKeypair): Promise<void> {
@@ -469,6 +712,15 @@ async function loadServerKeypair(): Promise<ServerKeypair | null> {
   }
 }
 
+/**
+ * Read user DID mappings from the LEGACY on-disk file.
+ *
+ * The DB (UserDID table) is now authoritative — this function exists only for
+ * the one-time migration script and as a read-only transition fallback for
+ * not-yet-migrated users. Returns [] when the file is absent or unreadable
+ * (safe: the callers here treat "no legacy entry" as "not in file", and the DB
+ * is consulted first). Do NOT use this as the primary source of user identities.
+ */
 export async function loadUserDIDMappings(): Promise<UserDIDMapping[]> {
   try {
     const filePath = join(process.cwd(), USER_DID_MAPPINGS_FILE);
@@ -555,28 +807,62 @@ export async function rotateServerKeypair(): Promise<ServerKeypair> {
 }
 
 /**
- * Map DID back to ThreadStead user ID
+ * Map DID back to ThreadStead user ID (DB-authoritative, legacy-file fallback).
  */
 export async function mapDIDToUserId(did: string): Promise<string | null> {
+  let row;
+  try {
+    row = await db.userDID.findUnique({ where: { did } });
+  } catch (error) {
+    throw new Error(
+      `Failed to map DID to user ID from database: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+  if (row) {
+    return row.userId;
+  }
+
+  // Transition fallback for not-yet-migrated users.
   const mappings = await loadUserDIDMappings();
   const mapping = mappings.find(m => m.did === did);
   return mapping ? mapping.userId : null;
 }
 
 /**
- * Map multiple DIDs to user IDs (bulk operation)
+ * Map multiple DIDs to user IDs (bulk operation, DB-authoritative).
  */
 export async function mapDIDsToUserIds(dids: string[]): Promise<Map<string, string>> {
-  const mappings = await loadUserDIDMappings();
   const didToUserMap = new Map<string, string>();
-  
-  for (const did of dids) {
-    const mapping = mappings.find(m => m.did === did);
-    if (mapping) {
-      didToUserMap.set(did, mapping.userId);
+  if (dids.length === 0) return didToUserMap;
+
+  let rows;
+  try {
+    rows = await db.userDID.findMany({
+      where: { did: { in: dids } },
+      select: { did: true, userId: true },
+    });
+  } catch (error) {
+    throw new Error(
+      `Failed to bulk-map DIDs to user IDs from database: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+
+  for (const row of rows) {
+    didToUserMap.set(row.did, row.userId);
+  }
+
+  // Transition fallback: fill in any DIDs not yet in the DB from the legacy file.
+  const missing = dids.filter(d => !didToUserMap.has(d));
+  if (missing.length > 0) {
+    const mappings = await loadUserDIDMappings();
+    for (const did of missing) {
+      const mapping = mappings.find(m => m.did === did);
+      if (mapping) {
+        didToUserMap.set(did, mapping.userId);
+      }
     }
   }
-  
+
   return didToUserMap;
 }
 

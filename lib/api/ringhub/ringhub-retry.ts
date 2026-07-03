@@ -13,26 +13,41 @@ export interface RetryOptions {
 }
 
 /**
- * Default retry condition - only retry on registration-related errors
+ * Default retry condition - only retry on genuine "actor not yet registered" signals.
+ *
+ * NARROWED (was: retry on ANY 401/403): treating all 401/403 as retryable meant a
+ * stale-key signature failure or a legitimate 403 (permission denied) got pointlessly
+ * retried, delaying the real error and hammering the hub. RingHub auto-registers an
+ * actor on first contact and may return a transient "not yet registered" error that a
+ * retry resolves — those are the ONLY cases we retry now.
+ *
+ * We deliberately do NOT retry on generic 'authentication failed' /
+ * 'signature verification failed' — those indicate a real key/identity problem
+ * (stale key), which retrying cannot fix.
  */
 export function isRegistrationError(error: any): boolean {
-  // Check for HTTP status codes that indicate registration issues
-  if (error.status === 401 || error.status === 403) {
+  const errorMessage = error.message?.toLowerCase() || '';
+  const code = (error.code || '').toString().toLowerCase();
+
+  // Explicit "actor pending / not yet registered" signals only.
+  const pendingRegistrationCodes = [
+    'actor_not_registered',
+    'actor_pending_registration',
+    'registration_pending',
+  ];
+  if (pendingRegistrationCodes.includes(code)) {
     return true;
   }
 
-  // Check for error messages that indicate registration issues
-  const errorMessage = error.message?.toLowerCase() || '';
-  const registrationKeywords = [
+  const pendingRegistrationKeywords = [
     'actor not registered',
-    'user not found',
-    'actor not found',
-    'authentication failed',
-    'signature verification failed',
+    'actor not yet registered',
+    'not yet registered',
+    'registration pending',
     'unknown actor',
   ];
 
-  return registrationKeywords.some(keyword => errorMessage.includes(keyword));
+  return pendingRegistrationKeywords.some(keyword => errorMessage.includes(keyword));
 }
 
 /**
