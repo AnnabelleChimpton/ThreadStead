@@ -255,10 +255,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
             const result = await authenticatedClient.submitPost(slug, postSubmission);
 
-            // Only mirror locally when the hub ACCEPTED the post. For curated/
-            // moderated rings the hub returns PENDING (PostRef defaults PENDING);
-            // mirroring those would show the post as attached before approval.
-            if (result.status === 'ACCEPTED') {
+            // Mirror locally unless the hub EXPLICITLY says the post is PENDING
+            // (curated/moderated rings). A successful submit that returns no
+            // status — some hub versions reply with an empty body — is treated
+            // as accepted, matching the pre-existing behavior; gating strictly on
+            // 'ACCEPTED' silently dropped every attachment when the body was empty.
+            if (result?.status !== 'PENDING') {
               submittedSlugs.push(slug);
             }
 
