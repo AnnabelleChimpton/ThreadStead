@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getSessionUser } from "@/lib/auth/server";
-import { mintCapability } from "@/lib/domain/users/capabilities";
+import { mintCapability, classifyExternalPostId } from "@/lib/domain/users/capabilities";
 import { db } from "@/lib/config/database/connection";
 
 
@@ -14,30 +14,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!postId) return res.status(400).json({ error: "postId required" });
 
   // Check local database first
-  let post = await db.post.findUnique({ where: { id: postId }, select: { id: true } });
-  
-  // If not found locally, check if it's a valid Ring Hub post
+  const post = await db.post.findUnique({ where: { id: postId }, select: { id: true } });
+
+  // If not found locally, it may be an external (RingHub) post. Only accept the
+  // `ringhub-<PostRefId>` form the feed UI actually emits, and gate on a
+  // server-controlled surrogate key so a client can't mint a capability for an
+  // arbitrary attacker-chosen primary key. See classifyExternalPostId.
+  let capPostId = postId;
   if (!post) {
-    // Ring Hub posts can have various ID formats:
-    // - 'external-' prefix (e.g., 'external-welcome-xxx')
-    // - 'rhp_' prefix
-    // - Contains ':' (e.g., 'did:plc:xxx:post:xxx')
-    // - UUID format with dashes (more than 2 dashes indicates likely external)
-    const isLikelyExternal = 
-      postId.startsWith('external-') ||
-      postId.startsWith('rhp_') || 
-      postId.includes(':') ||
-      (postId.includes('-') && postId.split('-').length > 3); // UUID-like format
-    
-    if (isLikelyExternal) {
-      // It's an external post, allow commenting
-      post = { id: postId }; // Create virtual post object
-    } else {
+    const classified = classifyExternalPostId(postId);
+    if (classified.kind !== "external") {
       return res.status(404).json({ error: "post not found" });
     }
+    // Bind the capability to the exact id the client sent (which, for a valid
+    // external post, equals the server-derived surrogate key).
+    capPostId = classified.dbId;
   }
 
-  const resource = `post:${postId}/comments`;
+  const resource = `post:${capPostId}/comments`;
   const token = await mintCapability(viewer.id, ["write:comment"], resource, 10 * 60);
   res.json({ token, resource, expSec: 600 });
 }

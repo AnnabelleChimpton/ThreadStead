@@ -8,79 +8,9 @@ import { featureFlags } from "@/lib/utils/features/feature-flags";
 import { createAuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
 import { validatePostTitle } from "@/lib/domain/validation";
 import { getSiteBaseUrl } from "@/lib/config/site-url";
+import { buildPostUri, generateTextPreview, generateExcerpt } from "@/lib/domain/posts/ringhub-metadata";
 import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
 import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
-
-/**
- * Generate a text preview from post content (max 300 chars for Ring Hub)
- */
-function generateTextPreview(bodyText?: string | null, bodyHtml?: string | null, bodyMarkdown?: string | null): string {
-  // Get plain text content
-  let content = '';
-
-  if (bodyText) {
-    content = bodyText;
-  } else if (bodyHtml) {
-    // Strip HTML tags to get plain text
-    content = bodyHtml.replace(/<[^>]*>/g, '').replace(/&[^;]+;/g, ' ');
-  } else if (bodyMarkdown) {
-    // Strip markdown formatting to get plain text
-    content = bodyMarkdown
-      .replace(/[#*`_~]/g, '') // Remove markdown symbols
-      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Convert links to just text
-      .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1'); // Convert images to alt text
-  }
-
-  // Clean up whitespace and remove URLs for Ring Hub compatibility
-  content = content.replace(/\s+/g, ' ').trim();
-
-  // Remove URLs from metadata (they don't add value for discovery and cause validation issues)
-  content = content.replace(/https?:\/\/[^\s]+/g, '[link]');
-
-  if (content.length <= 300) {
-    return content;
-  }
-
-  // Truncate at word boundary
-  const truncated = content.substring(0, 300);
-  const lastSpace = truncated.lastIndexOf(' ');
-  return lastSpace > 250 ? truncated.substring(0, lastSpace) + '...' : truncated + '...';
-}
-
-/**
- * Generate an excerpt from post content (max 500 chars for Ring Hub)
- */
-function generateExcerpt(bodyText?: string | null, bodyHtml?: string | null, bodyMarkdown?: string | null): string {
-  // Get plain text content (same logic as preview but longer)
-  let content = '';
-
-  if (bodyText) {
-    content = bodyText;
-  } else if (bodyHtml) {
-    content = bodyHtml.replace(/<[^>]*>/g, '').replace(/&[^;]+;/g, ' ');
-  } else if (bodyMarkdown) {
-    content = bodyMarkdown
-      .replace(/[#*`_~]/g, '')
-      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-      .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1');
-  }
-
-  content = content.replace(/\s+/g, ' ').trim();
-
-  // Remove URLs from metadata (they don't add value for discovery and cause validation issues)
-  content = content.replace(/https?:\/\/[^\s]+/g, '[link]');
-
-  if (content.length <= 500) {
-    return content;
-  }
-
-  // Truncate at word boundary
-  const truncated = content.substring(0, 500);
-  const lastSpace = truncated.lastIndexOf(' ');
-  return lastSpace > 450 ? truncated.substring(0, lastSpace) + '...' : truncated + '...';
-}
-
-
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
@@ -318,7 +248,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
             // Create the post submission with the appropriate metadata
             const postSubmission = {
-              uri: `${getSiteBaseUrl()}/resident/${postWithAuthor?.author?.primaryHandle?.split('@')[0]}/post/${post.id}`,
+              uri: buildPostUri(postWithAuthor?.author?.primaryHandle, post.id),
               digest: `sha256:${post.id}`,
               metadata: metadata
             };

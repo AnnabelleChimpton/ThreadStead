@@ -1,6 +1,6 @@
 // pages/api/comments/[postId].ts
 import type { NextApiRequest, NextApiResponse } from "next";
-import { requireAction } from "@/lib/domain/users/capabilities";
+import { requireAction, classifyExternalPostId } from "@/lib/domain/users/capabilities";
 import { createCommentNotification, createReplyNotification } from "@/lib/domain/notifications";
 import { db } from "@/lib/config/database/connection";
 import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
@@ -13,28 +13,20 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
   // Check local database first
   let post = await db.post.findUnique({ where: { id: postId }, select: { id: true, authorId: true } });
-  
-  // If not found locally, check if it's a valid Ring Hub post
+
+  // If not found locally, it may be an external (RingHub) post. Only accept the
+  // `ringhub-<PostRefId>` form the feed UI emits and derive the DB primary key
+  // server-side, so a client can't upsert a shadow Post row with an arbitrary
+  // attacker-chosen primary key. See classifyExternalPostId.
   let isExternalPost = false;
   if (!post) {
-    // Ring Hub posts can have various ID formats:
-    // - 'external-' prefix (e.g., 'external-welcome-xxx')
-    // - 'rhp_' prefix
-    // - Contains ':' (e.g., 'did:plc:xxx:post:xxx')
-    // - UUID format with dashes (more than 2 dashes indicates likely external)
-    const isLikelyExternal = 
-      postId.startsWith('external-') ||
-      postId.startsWith('rhp_') || 
-      postId.includes(':') ||
-      (postId.includes('-') && postId.split('-').length > 3); // UUID-like format
-    
-    if (isLikelyExternal) {
-      // It's an external post, allow commenting
-      isExternalPost = true;
-      post = { id: postId, authorId: '' }; // Create virtual post object
-    } else {
+    const classified = classifyExternalPostId(postId);
+    if (classified.kind !== "external") {
       return res.status(404).json({ error: "post not found" });
     }
+    isExternalPost = true;
+    // classified.dbId is server-controlled and, for a valid external id, equals postId.
+    post = { id: classified.dbId, authorId: '' }; // Virtual post object
   }
 
   if (req.method === "GET") {
@@ -98,11 +90,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         }
 
         // Create a minimal shadow post record for storing comments
-        // This will only be created once per external post
+        // This will only be created once per external post. Key off the
+        // server-derived post.id (never the raw client-supplied query id).
         await db.post.upsert({
-          where: { id: postId },
+          where: { id: post.id },
           create: {
-            id: postId,
+            id: post.id,
             bodyText: "[External Ring Hub Post - Comments Only]",
             visibility: "public",
             platform: "ringhub",

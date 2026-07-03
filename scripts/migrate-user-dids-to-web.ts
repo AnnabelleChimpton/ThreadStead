@@ -12,8 +12,7 @@ import { loadEnvConfig } from '@next/env'
 const projectDir = process.cwd()
 loadEnvConfig(projectDir)
 
-import { loadUserDIDMappings, storeUserDIDMappings } from '@/lib/api/did/server-did-client'
-import { createHash } from 'crypto'
+import { loadUserDIDMappings, storeUserDIDMappings, computeUserHash } from '@/lib/api/did/server-did-client'
 
 function getDomainFromEnvironment(): string {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
@@ -54,10 +53,14 @@ async function migrateUserDIDs() {
       console.log(`\n🔄 Migrating user ${mapping.userId}`)
       console.log(`   Old DID: ${mapping.did}`)
       
-      // Generate new did:web DID but keep the same keys
-      const userHash = createHash('sha256')
-        .update(mapping.userId + process.env.THREADSTEAD_DID_SALT || 'default-salt')
-        .digest('hex').slice(0, 16)
+      // Generate new did:web DID but keep the same keys.
+      // Use the shared computeUserHash (userId + String(process.env.THREADSTEAD_DID_SALT))
+      // so this script reproduces the SAME historical hashes as the main code. The old
+      // inline expression here had an operator-precedence bug:
+      //   `mapping.userId + process.env.THREADSTEAD_DID_SALT || 'default-salt'`
+      // parses as `(userId + SALT) || 'default-salt'`, which diverges from the frozen
+      // canonical hash and would reassign users' DIDs. Do NOT reintroduce it.
+      const userHash = computeUserHash(mapping.userId)
       
       const newDID = `did:web:${domain}:users:${userHash}`
       

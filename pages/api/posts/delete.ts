@@ -3,7 +3,7 @@ import { db } from "@/lib/config/database/connection";
 import { createAuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
 import { getSessionUser } from "@/lib/auth/server";
 import { requireAction } from "@/lib/domain/users/capabilities";
-import { getSiteBaseUrl } from "@/lib/config/site-url";
+import { buildPostUri } from "@/lib/domain/posts/ringhub-metadata";
 import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
 import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
 
@@ -82,7 +82,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             // Fallback to old URI matching method for posts created before this fix
             console.warn(`❌ No stored ThreadRing post ID for ring ${ringSlug}, falling back to URI matching`);
             
-            const postUri = `${getSiteBaseUrl()}/resident/${post.author.primaryHandle}/post/${id}`;
+            // Build the SAME canonical URI create.ts submits (local handle part,
+            // i.e. primaryHandle.split('@')[0]) so this fallback actually matches
+            // the hub PostRef. Using the full primaryHandle here never matched.
+            const postUri = buildPostUri(post.author.primaryHandle, id);
             
             const ringPosts = await authenticatedClient.getRingFeed(ringSlug);
             const matchingPostRef = ringPosts.posts.find((postRef: any) => 
