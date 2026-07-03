@@ -4,6 +4,8 @@ import { filterBlockedUsers } from "@/lib/domain/threadrings/blocks";
 import { withThreadRingSupport } from "@/lib/api/ringhub/ringhub-middleware";
 import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
 import { transformRingDescriptorToThreadRing } from "@/lib/api/ringhub/ringhub-transformers";
+import { cached } from "@/lib/api/ringhub/ringhub-cache";
+import { RingHubAuthError, RingHubUnavailableError } from "@/lib/api/ringhub/ringhub-errors";
 
 export default withThreadRingSupport(async function handler(
   req: NextApiRequest, 
@@ -26,8 +28,22 @@ export default withThreadRingSupport(async function handler(
         return res.status(500).json({ error: "Ring Hub client not configured" });
       }
 
-      const ringDescriptor = await client.getRing(slug);
-      
+      let ringDescriptor;
+      try {
+        ringDescriptor = await cached(
+          `ring:${slug}`,
+          30_000,
+          5 * 60_000,
+          () => client.getRing(slug)
+        );
+      } catch (error) {
+        if (error instanceof RingHubAuthError || error instanceof RingHubUnavailableError) {
+          console.error('Ring Hub unavailable for ring fetch:', error.name, error.message);
+          return res.status(503).json({ error: 'hub_unavailable', degraded: true });
+        }
+        throw error;
+      }
+
       if (!ringDescriptor) {
         return res.status(404).json({ error: "ThreadRing not found" });
       }

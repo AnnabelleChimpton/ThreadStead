@@ -4,6 +4,8 @@ import { getSessionUser } from "@/lib/auth/server";
 import { SITE_NAME } from "@/lib/config/site/constants";
 import { withThreadRingSupport } from "@/lib/api/ringhub/ringhub-middleware";
 import { getRingHubClient, getPublicRingHubClient } from "@/lib/api/ringhub/ringhub-client";
+import { cached } from "@/lib/api/ringhub/ringhub-cache";
+import { RingHubAuthError, RingHubUnavailableError } from "@/lib/api/ringhub/ringhub-errors";
 
 export default withThreadRingSupport(async function handler(
   req: NextApiRequest, 
@@ -31,14 +33,21 @@ export default withThreadRingSupport(async function handler(
       }
 
       let ringDescriptor;
-      
-      // Use efficient root endpoint for spool
-      if (slug === 'spool') {
-        ringDescriptor = await client.getRootRing();
-      } else {
-        ringDescriptor = await client.getRing(slug as string);
+      try {
+        // Use efficient root endpoint for spool. Both wrapped in SWR cache.
+        if (slug === 'spool') {
+          ringDescriptor = await cached('ring-root', 30_000, 5 * 60_000, () => client.getRootRing());
+        } else {
+          ringDescriptor = await cached(`ring:${slug}`, 30_000, 5 * 60_000, () => client.getRing(slug as string));
+        }
+      } catch (error) {
+        if (error instanceof RingHubAuthError || error instanceof RingHubUnavailableError) {
+          console.error('Ring Hub unavailable for stats:', error.name, error.message);
+          return res.status(503).json({ error: 'hub_unavailable', degraded: true });
+        }
+        throw error;
       }
-      
+
       if (!ringDescriptor) {
         return res.status(404).json({ error: "ThreadRing not found" });
       }
@@ -46,16 +55,22 @@ export default withThreadRingSupport(async function handler(
       // Try to get membership info for more detailed stats
       let membershipInfo = null;
       let moderatorCount = 1; // Default to 1 (curator)
-      
+
       try {
         // Use public client for membership info (doesn't require authentication)
         const publicClient = getPublicRingHubClient();
         if (publicClient) {
-          membershipInfo = await publicClient.getRingMembershipInfo(slug as string);
+          membershipInfo = await cached(
+            `membership-info:${slug}`,
+            30_000,
+            5 * 60_000,
+            () => publicClient.getRingMembershipInfo(slug as string)
+          );
           // Count owner + moderators
           moderatorCount = 1 + (membershipInfo?.moderators?.length || 0);
         }
       } catch (error) {
+        // Non-fatal: stats still render from the descriptor. Membership detail is a bonus.
         console.log(`Could not fetch membership info for ${slug}:`, error);
       }
 

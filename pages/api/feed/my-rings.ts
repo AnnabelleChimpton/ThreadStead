@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { getSessionUser } from "@/lib/auth/server";
 import { createAuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
 import { featureFlags } from "@/lib/utils/features/feature-flags";
+import { RingHubAuthError, RingHubUnavailableError } from "@/lib/api/ringhub/ringhub-errors";
 
 export default async function handler(
   req: NextApiRequest,
@@ -69,14 +70,26 @@ export default async function handler(
     
   } catch (error: any) {
     console.error("My Rings feed error:", error);
-    
+
+    // Distinguish hub unavailability from a genuinely empty feed.
+    if (error instanceof RingHubAuthError) {
+      return res.status(401).json({
+        error: "Authentication failed",
+        message: "Could not authenticate with RingHub",
+        degraded: true
+      });
+    }
+    if (error instanceof RingHubUnavailableError) {
+      return res.status(503).json({ error: 'hub_unavailable', degraded: true });
+    }
+
     if (error.status === 401) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         error: "Authentication failed",
         message: "Could not authenticate with RingHub"
       });
     }
-    
+
     if (error.status === 429) {
       return res.status(429).json(error.data || {
         error: "Rate limit exceeded",

@@ -7,6 +7,7 @@ import { db } from "@/lib/config/database/connection";
 import { getSessionUser } from "@/lib/auth/server";
 import { featureFlags } from "@/lib/utils/features/feature-flags";
 import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
+import { raceHubCall, HUB_TIMEOUT } from "@/lib/api/ringhub/ringhub-ssr";
 import ThreadRingInviteForm from "../../../components/ui/forms/ThreadRingInviteForm";
 import ThreadRingPromptManager from "../../../components/core/threadring/ThreadRingPromptManager";
 import ThreadRingBlockManager from "../../../components/core/threadring/ThreadRingBlockManager";
@@ -509,7 +510,11 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       const client = getRingHubClient();
       if (client) {
         try {
-          const ringHubRing = await client.getRing(slug);
+          // Short SSR deadline; timeout -> local DB fallback.
+          const ringHubRing = await raceHubCall(client.getRing(slug));
+          if (ringHubRing === HUB_TIMEOUT) {
+            throw new Error('Ring Hub SSR timeout (getRing)');
+          }
 
           if (ringHubRing) {
             // Found Ring Hub ring

@@ -8,6 +8,7 @@ import { db } from "@/lib/config/database/connection";
 import { getSessionUser } from "@/lib/auth/server";
 import { featureFlags } from "@/lib/utils/features/feature-flags";
 import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
+import { raceHubCall, HUB_TIMEOUT } from "@/lib/api/ringhub/ringhub-ssr";
 
 interface ForkPageProps {
   siteConfig: SiteConfig;
@@ -103,8 +104,9 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       const client = getRingHubClient();
       if (client) {
         try {
-          const ringDescriptor = await client.getRing(slug as string);
-          if (ringDescriptor) {
+          // Short SSR deadline; timeout -> local DB fallback.
+          const ringDescriptor = await raceHubCall(client.getRing(slug as string));
+          if (ringDescriptor !== HUB_TIMEOUT && ringDescriptor) {
             ring = {
               id: ringDescriptor.slug,
               name: ringDescriptor.name,

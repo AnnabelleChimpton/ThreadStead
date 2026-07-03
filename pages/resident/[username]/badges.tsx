@@ -10,6 +10,7 @@ import { db } from '@/lib/config/database/connection'
 import { featureFlags } from '@/lib/utils/features/feature-flags'
 import { getSessionUser } from '@/lib/auth/server'
 import { getPublicRingHubClient } from '@/lib/api/ringhub/ringhub-client'
+import { raceHubCall, HUB_TIMEOUT } from '@/lib/api/ringhub/ringhub-ssr'
 import { getUserDID } from '@/lib/api/did/server-did-client'
 
 interface BadgeWithThreadRing {
@@ -39,13 +40,15 @@ interface UserBadgesPageProps {
   displayName?: string | null
   badges: BadgeWithThreadRing[]
   totalThreadRings: number
+  hubUnavailable?: boolean
 }
 
-export default function UserBadgesPage({ 
-  username, 
-  displayName, 
-  badges, 
-  totalThreadRings 
+export default function UserBadgesPage({
+  username,
+  displayName,
+  badges,
+  totalThreadRings,
+  hubUnavailable
 }: UserBadgesPageProps) {
   const title = `${displayName || username}'s ThreadRing Badges`
 
@@ -79,7 +82,15 @@ export default function UserBadgesPage({
           </div>
 
           <div className="p-6">
-            {badges.length === 0 ? (
+            {hubUnavailable ? (
+              <div className="text-center py-12">
+                <div className="text-6xl mb-4">⚠️</div>
+                <h2 className="text-xl font-semibold text-gray-800 mb-2">Badges temporarily unavailable</h2>
+                <p className="text-gray-600">
+                  We couldn&apos;t reach the badge service right now. Please try again in a moment.
+                </p>
+              </div>
+            ) : badges.length === 0 ? (
               <div className="text-center py-12">
                 <div className="text-6xl mb-4">🏷️</div>
                 <h2 className="text-xl font-semibold text-gray-800 mb-2">No badges to display</h2>
@@ -238,29 +249,35 @@ export const getServerSideProps: GetServerSideProps<UserBadgesPageProps> = async
         if (userDID) {
           const publicClient = getPublicRingHubClient()
           if (publicClient) {
-            // Fetch badges from Ring Hub
-            const ringHubBadges = await publicClient.getActorBadges(userDID, {
-              status: 'active',
-              limit: 100 // Get all active badges
-            })
+            // Fetch badges from Ring Hub with a short SSR deadline.
+            const ringHubBadges = await raceHubCall(
+              publicClient.getActorBadges(userDID, { status: 'active', limit: 100 })
+            )
+            if (ringHubBadges === HUB_TIMEOUT) {
+              return {
+                props: {
+                  username: usernameParam,
+                  displayName,
+                  badges: [],
+                  totalThreadRings: 0,
+                  hubUnavailable: true
+                }
+              }
+            }
 
-            // Fetch all unique rings to get their current badge designs
+            // Fetch all unique rings to get their current badge designs.
+            // allSettled so one slow/failed ring doesn't drop the whole badge list.
             const uniqueRingSlugs = [...new Set(ringHubBadges.badges.map(b => b.ring.slug))]
             const ringDataMap = new Map<string, any>()
-            
-            // Fetch ring data in parallel for all unique rings
-            const ringFetchPromises = uniqueRingSlugs.map(async slug => {
-              try {
-                const ring = await publicClient.getRing(slug)
-                if (ring) {
-                  ringDataMap.set(slug, ring)
-                }
-              } catch (error) {
-                // Silently continue if ring data fetch fails
+
+            const ringResults = await Promise.allSettled(
+              uniqueRingSlugs.map(slug => raceHubCall(publicClient.getRing(slug)))
+            )
+            ringResults.forEach((result, i) => {
+              if (result.status === 'fulfilled' && result.value && result.value !== HUB_TIMEOUT) {
+                ringDataMap.set(uniqueRingSlugs[i], result.value)
               }
             })
-            
-            await Promise.all(ringFetchPromises)
 
             // Transform Ring Hub badges to our expected format
             const transformedBadges: BadgeWithThreadRing[] = ringHubBadges.badges.map(badge => {
@@ -302,13 +319,14 @@ export const getServerSideProps: GetServerSideProps<UserBadgesPageProps> = async
         }
       } catch (error) {
         console.error('Ring Hub badges fetch failed in SSR:', error)
-        // Return empty badges if Ring Hub fails
+        // Distinguish "hub down" from "no badges" so the page can say so.
         return {
           props: {
             username: usernameParam,
             displayName,
             badges: [],
-            totalThreadRings: 0
+            totalThreadRings: 0,
+            hubUnavailable: true
           }
         }
       }

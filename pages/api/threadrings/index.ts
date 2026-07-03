@@ -4,6 +4,8 @@ import { getSessionUser } from "@/lib/auth/server";
 import { withThreadRingSupport } from "@/lib/api/ringhub/ringhub-middleware";
 import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
 import { createAuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
+import { cached } from "@/lib/api/ringhub/ringhub-cache";
+import { RingHubAuthError, RingHubUnavailableError } from "@/lib/api/ringhub/ringhub-errors";
 
 export default withThreadRingSupport(async function handler(
   req: NextApiRequest,
@@ -77,7 +79,21 @@ export default withThreadRingSupport(async function handler(
         }
       }
 
-      const result = await ringHubClient.listRings(ringHubOptions);
+      let result;
+      try {
+        result = await cached(
+          `list-rings:${JSON.stringify(ringHubOptions)}`,
+          30_000,
+          5 * 60_000,
+          () => ringHubClient.listRings(ringHubOptions)
+        );
+      } catch (error) {
+        if (error instanceof RingHubAuthError || error instanceof RingHubUnavailableError) {
+          console.error('Ring Hub unavailable for directory listing:', error.name, error.message);
+          return res.status(503).json({ error: 'hub_unavailable', degraded: true });
+        }
+        throw error;
+      }
 
       // Fallback: Get memberships via old API if new API doesn't include them
       const viewerMemberships: Map<string, any> = new Map();
@@ -86,7 +102,12 @@ export default withThreadRingSupport(async function handler(
 
         if (!hasNewMembershipAPI) {
           try {
-            const membershipsResult = await ringHubClient.getMyMemberships({ status: 'ACTIVE', limit: 100 });
+            const membershipsResult = await cached(
+              `my-memberships:${viewer.id}`,
+              30_000,
+              5 * 60_000,
+              () => ringHubClient.getMyMemberships({ status: 'ACTIVE', limit: 100 })
+            );
             membershipsResult.memberships.forEach(membership => {
               viewerMemberships.set(membership.ringSlug, {
                 role: membership.role.toLowerCase(),
@@ -94,6 +115,13 @@ export default withThreadRingSupport(async function handler(
               });
             });
           } catch (e: any) {
+            // Membership resolution failed but we DID get the ring list. Rather than
+            // silently render every ring as "not joined" (which lets the user re-join
+            // rings they're already in), surface a degraded signal.
+            if (e instanceof RingHubAuthError || e instanceof RingHubUnavailableError) {
+              console.error('Ring Hub membership resolution unavailable for directory:', e.name, e.message);
+              return res.status(503).json({ error: 'hub_unavailable', degraded: true });
+            }
             console.error('Failed to fetch memberships via fallback:', e?.message);
           }
         }

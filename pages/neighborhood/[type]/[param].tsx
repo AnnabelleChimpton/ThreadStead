@@ -15,7 +15,8 @@ import Link from 'next/link'
 import { PixelIcon } from '@/components/ui/PixelIcon'
 import { featureFlags } from '@/lib/utils/features/feature-flags'
 import { getRingHubClient } from '@/lib/api/ringhub/ringhub-client'
-import { transformRingDescriptorToThreadRing, transformRingMemberWithUserResolution } from '@/lib/api/ringhub/ringhub-transformers'
+import { raceHubCall, HUB_TIMEOUT } from '@/lib/api/ringhub/ringhub-ssr'
+import { transformRingDescriptorToThreadRing, transformRingMembersBatchWithUserResolution } from '@/lib/api/ringhub/ringhub-transformers'
 import { weatherWidget } from '@/components/widgets/examples/WeatherWidget'
 import useIsMobile from '../../../hooks/useIsMobile'
 
@@ -836,19 +837,15 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
           const client = getRingHubClient()
           if (client) {
             try {
-              // Fetch ring from Ring Hub
-              const ringDescriptor = await client.getRing(param)
-              if (ringDescriptor) {
+              // Fetch ring from Ring Hub with a short SSR deadline; timeout -> local fallback.
+              const ringDescriptor = await raceHubCall(client.getRing(param))
+              if (ringDescriptor !== HUB_TIMEOUT && ringDescriptor) {
                 ring = transformRingDescriptorToThreadRing(ringDescriptor)
 
-                // Fetch members from Ring Hub
-                try {
-                  const ringHubMembersResponse = await client.getRingMembers(param)
-                  if (ringHubMembersResponse && ringHubMembersResponse.members) {
-                    ringMembers = ringHubMembersResponse.members
-                  }
-                } catch (error) {
-                  console.error('Error fetching Ring Hub members:', error)
+                // Fetch members from Ring Hub (bounded; failure/timeout just yields no members)
+                const ringHubMembersResponse = await raceHubCall(client.getRingMembers(param))
+                if (ringHubMembersResponse !== HUB_TIMEOUT && ringHubMembersResponse && ringHubMembersResponse.members) {
+                  ringMembers = ringHubMembersResponse.members
                 }
               }
             } catch (error) {
@@ -891,36 +888,30 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         let resolvedMembers: any[] = []
 
         if (featureFlags.ringhub() && ringMembers.length > 0) {
-          // Use the same transformer that the API uses for proper member resolution
-          resolvedMembers = await Promise.all(
-            ringMembers.map(async (member) => {
-              try {
-                const resolvedMember = await transformRingMemberWithUserResolution(
-                  member,
-                  param as string,
-                  db
-                )
-
-                return {
-                  userId: resolvedMember.userId,
-                  user: {
-                    id: resolvedMember.user.id,
-                    handles: resolvedMember.user.handles,
-                    profile: {
-                      displayName: resolvedMember.user.displayName,
-                      avatarUrl: resolvedMember.user.avatarUrl
-                    }
-                  },
-                  role: resolvedMember.role,
-                  joinedAt: resolvedMember.joinedAt
+          // Batched member resolution (no N+1): one bulk DID map + one user findMany.
+          try {
+            const resolved = await transformRingMembersBatchWithUserResolution(
+              ringMembers,
+              param as string,
+              db
+            )
+            resolvedMembers = resolved.map((resolvedMember) => ({
+              userId: resolvedMember.userId,
+              user: {
+                id: resolvedMember.user.id,
+                handles: resolvedMember.user.handles,
+                profile: {
+                  displayName: resolvedMember.user.displayName,
+                  avatarUrl: resolvedMember.user.avatarUrl
                 }
-              } catch (error) {
-                console.error('Error resolving Ring Hub member:', error)
-                return null
-              }
-            })
-          )
-          resolvedMembers = resolvedMembers.filter(Boolean)
+              },
+              role: resolvedMember.role,
+              joinedAt: resolvedMember.joinedAt
+            }))
+          } catch (error) {
+            console.error('Error resolving Ring Hub members:', error)
+            resolvedMembers = []
+          }
         } else {
           // Use local members directly
           resolvedMembers = ringMembers

@@ -281,6 +281,101 @@ export async function transformRingMemberWithUserResolution(
 }
 
 /**
+ * Batch-resolve a list of Ring Hub members to ThreadStead members.
+ *
+ * Fixes the N+1 in per-member resolution: instead of one db.user.findUnique
+ * (and one DID lookup) per member, we collect all DIDs, do ONE bulk DID->userId
+ * map and ONE user findMany, then assemble each member in memory.
+ *
+ * Behavior matches transformRingMemberWithUserResolution on the happy path
+ * (same display-name fallbacks and handle extraction).
+ */
+export async function transformRingMembersBatchWithUserResolution(
+  members: RingMember[],
+  threadRingId: string,
+  db: any // Import from lib/db
+): Promise<ThreadRingMember[]> {
+  if (members.length === 0) return []
+
+  const { mapDIDsToUserIds } = await import('../did/server-did-client')
+
+  // 1. One bulk DID -> userId map for all members.
+  const dids = [...new Set(members.map(m => m.actorDid))]
+  let didToUserId = new Map<string, string>()
+  try {
+    didToUserId = await mapDIDsToUserIds(dids)
+  } catch (error) {
+    console.warn('Failed to bulk-map DIDs to user IDs:', error)
+  }
+
+  // 2. One findMany for all resolved users.
+  const userIds = [...new Set([...didToUserId.values()])]
+  const usersById = new Map<string, any>()
+  if (userIds.length > 0) {
+    try {
+      const users = await db.user.findMany({
+        where: { id: { in: userIds } },
+        include: { handles: true, profile: true }
+      })
+      for (const u of users) usersById.set(u.id, u)
+    } catch (error) {
+      console.warn('Failed to bulk-fetch ThreadStead users:', error)
+    }
+  }
+
+  // 3. Assemble each member in memory (no per-item DB calls).
+  return members.map(member => {
+    const resolvedUserId = didToUserId.get(member.actorDid) || null
+    const threadSteadUser = resolvedUserId ? usersById.get(resolvedUserId) : null
+
+    let displayName = 'Ring Hub User'
+    if (threadSteadUser?.profile?.displayName) {
+      displayName = threadSteadUser.profile.displayName
+    } else if (threadSteadUser?.handles?.[0]?.handle) {
+      displayName = threadSteadUser.handles[0].handle
+    } else if (member.actorName) {
+      displayName = member.actorName
+    } else {
+      const didParts = member.actorDid.split(':')
+      const lastPart = didParts.pop() || 'unknown'
+      if (resolvedUserId && resolvedUserId.startsWith('unknown-user-')) {
+        displayName = `External User (${lastPart})`
+      } else {
+        displayName = `Ring Hub User (${lastPart})`
+      }
+    }
+
+    let handles: Array<{ handle: string; host: string }> = []
+    if (threadSteadUser?.handles && threadSteadUser.handles.length > 0) {
+      handles = threadSteadUser.handles.map((h: any) => ({
+        handle: h.handle,
+        host: h.host
+      }))
+    } else if (member.profileUrl && member.instanceDomain) {
+      const handleFromUrl = member.profileUrl.split('/').pop()
+      if (handleFromUrl) {
+        handles = [{ handle: handleFromUrl, host: member.instanceDomain }]
+      }
+    }
+
+    return {
+      id: generateMemberId(member.actorDid, threadRingId),
+      threadRingId,
+      userId: resolvedUserId || member.actorDid,
+      role: mapRingHubRoleToThreadRingRole(member.role),
+      joinedAt: member.joinedAt || new Date().toISOString(),
+      user: {
+        id: resolvedUserId || member.actorDid,
+        displayName,
+        avatarUrl: threadSteadUser?.profile?.avatarUrl || member.avatarUrl,
+        profileUrl: member.profileUrl,
+        handles
+      }
+    }
+  })
+}
+
+/**
  * Transform ThreadStead PostThreadRing to Ring Hub PostRef
  */
 export function transformPostThreadRingToPostRef(

@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getPublicRingHubClient } from "@/lib/api/ringhub/ringhub-client";
 import { featureFlags } from "@/lib/utils/features/feature-flags";
+import { RingHubAuthError, RingHubUnavailableError } from "@/lib/api/ringhub/ringhub-errors";
 
 export default async function handler(
   req: NextApiRequest,
@@ -53,13 +54,18 @@ export default async function handler(
     
   } catch (error: any) {
     console.error("Trending feed error:", error);
+    // Log full detail server-side only; never leak error.message/data to the client.
     console.error("Error details:", {
       status: error.status,
       message: error.message,
       data: error.data,
       stack: error.stack
     });
-    
+
+    if (error instanceof RingHubAuthError || error instanceof RingHubUnavailableError) {
+      return res.status(503).json({ error: 'hub_unavailable', degraded: true });
+    }
+
     if (error.status === 429) {
       return res.status(429).json({
         error: "Rate limit exceeded",
@@ -67,10 +73,10 @@ export default async function handler(
       });
     }
 
-    return res.status(500).json({ 
-      error: "Internal server error", 
-      message: error.message || "Failed to fetch trending feed",
-      details: error.data || error.message
+    // Generic message only — do not surface error.message/data to callers.
+    return res.status(500).json({
+      error: "Internal server error",
+      message: "Failed to fetch trending feed"
     });
   }
 }

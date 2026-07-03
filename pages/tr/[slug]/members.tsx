@@ -8,6 +8,7 @@ import { getSessionUser } from "@/lib/auth/server";
 import { SITE_NAME } from "@/lib/config/site/constants";
 import { featureFlags } from "@/lib/utils/features/feature-flags";
 import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
+import { raceHubCall, HUB_TIMEOUT } from "@/lib/api/ringhub/ringhub-ssr";
 import UserMention from "@/components/ui/navigation/UserMention";
 import { csrfFetch } from "@/lib/api/client/csrf-fetch";
 
@@ -293,10 +294,17 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       const client = getRingHubClient();
       if (client) {
         try {
-          const ringDescriptor = await client.getRing(slug as string);
+          // Short SSR deadline so a hung hub doesn't block TTFB; timeout -> local fallback.
+          const ringDescriptor = await raceHubCall(client.getRing(slug as string));
+          if (ringDescriptor === HUB_TIMEOUT) {
+            throw new Error('Ring Hub SSR timeout (getRing)');
+          }
           if (ringDescriptor) {
             // Get Ring Hub members
-            const ringHubMembers = await client.getRingMembers(slug as string);
+            const ringHubMembers = await raceHubCall(client.getRingMembers(slug as string));
+            if (ringHubMembers === HUB_TIMEOUT) {
+              throw new Error('Ring Hub SSR timeout (getRingMembers)');
+            }
 
             // Check if viewer owns this Ring Hub ring locally
             let canManage = false;
@@ -311,34 +319,29 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
               }
             }
 
-            // Convert Ring Hub members to local format with user resolution
-            const { transformRingMemberWithUserResolution } = await import('@/lib/api/ringhub/ringhub-transformers')
+            // Convert Ring Hub members to local format with batched user resolution (no N+1)
+            const { transformRingMembersBatchWithUserResolution } = await import('@/lib/api/ringhub/ringhub-transformers')
 
-            const members = await Promise.all(
-              ringHubMembers.members.map(async (member) => {
-                const transformedMember = await transformRingMemberWithUserResolution(
-                  member,
-                  slug as string,
-                  db
-                )
+            const resolvedMembers = await transformRingMembersBatchWithUserResolution(
+              ringHubMembers.members,
+              slug as string,
+              db
+            )
 
-                // Convert to the expected format for this page
-                return {
-                  id: transformedMember.id,
-                  role: transformedMember.role,
-                  joinedAt: transformedMember.joinedAt,
-                  user: {
-                    id: transformedMember.user.id,
-                    handles: transformedMember.user.handles,
-                    profileUrl: transformedMember.user.profileUrl,
-                    profile: {
-                      displayName: transformedMember.user.displayName,
-                      avatarUrl: transformedMember.user.avatarUrl,
-                    },
-                  },
-                }
-              })
-            );
+            const members = resolvedMembers.map((transformedMember) => ({
+              id: transformedMember.id,
+              role: transformedMember.role,
+              joinedAt: transformedMember.joinedAt,
+              user: {
+                id: transformedMember.user.id,
+                handles: transformedMember.user.handles,
+                profileUrl: transformedMember.user.profileUrl,
+                profile: {
+                  displayName: transformedMember.user.displayName,
+                  avatarUrl: transformedMember.user.avatarUrl,
+                },
+              },
+            }));
 
             const ring = {
               id: ringDescriptor.slug,

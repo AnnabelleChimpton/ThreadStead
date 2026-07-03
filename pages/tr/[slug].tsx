@@ -16,6 +16,7 @@ import ThreadRing88x31Badge from "../../components/core/threadring/ThreadRing88x
 import ThreadRingAboutWidget from "../../components/core/threadring/ThreadRingAboutWidget";
 import { featureFlags } from "@/lib/utils/features/feature-flags";
 import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
+import { raceHubCall, HUB_TIMEOUT } from "@/lib/api/ringhub/ringhub-ssr";
 import { transformRingDescriptorToThreadRing } from "@/lib/api/ringhub/ringhub-transformers";
 import Toast from "../../components/ui/feedback/Toast";
 import UserQuickView from "../../components/ui/feedback/UserQuickView";
@@ -1712,9 +1713,11 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       // Ring Hub client check
       if (client) {
         try {
-          // Fetching ring from Ring Hub
-          const ringDescriptor = await client.getRing(slug as string);
-          // Ring Hub response received
+          // Fetch ring from Ring Hub with a short SSR deadline; timeout -> local fallback.
+          const ringDescriptor = await raceHubCall(client.getRing(slug as string));
+          if (ringDescriptor === HUB_TIMEOUT) {
+            throw new Error('Ring Hub SSR timeout (getRing)');
+          }
           if (ringDescriptor) {
             // Transform Ring Hub descriptor to expected format
             const transformedRing = transformRingDescriptorToThreadRing(ringDescriptor);
@@ -1724,21 +1727,18 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
             let lineageData = null;
 
             if (slug === 'spool') {
-              try {
-                // Fetching Ring Hub stats for Spool
-                ringHubStats = await client.getStats();
-                // Ring Hub stats received
-              } catch (error) {
-                console.error('Error fetching Ring Hub stats:', error);
+              // Bounded; timeout/failure just yields no stats (counts fall back to 0).
+              const stats = await raceHubCall(client.getStats());
+              if (stats !== HUB_TIMEOUT) {
+                ringHubStats = stats;
               }
             }
 
-            // For non-spool rings, fetch lineage data
+            // For non-spool rings, fetch lineage data (bounded).
             if (slug !== 'spool') {
-              try {
-                lineageData = await client.getRingLineage(slug as string);
-              } catch (error) {
-                console.error('Error fetching lineage from Ring Hub:', error);
+              const lineage = await raceHubCall(client.getRingLineage(slug as string));
+              if (lineage !== HUB_TIMEOUT) {
+                lineageData = lineage;
               }
             }
 

@@ -4,6 +4,8 @@ import { featureFlags } from "@/lib/utils/features/feature-flags";
 import { createAuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
 import { getPublicRingHubClient } from "@/lib/api/ringhub/ringhub-client";
 import { db } from "@/lib/config/database/connection";
+import { cached } from "@/lib/api/ringhub/ringhub-cache";
+import { RingHubAuthError, RingHubUnavailableError } from "@/lib/api/ringhub/ringhub-errors";
 
 export default async function handler(
   req: NextApiRequest,
@@ -32,8 +34,13 @@ export default async function handler(
             return res.status(500).json({ error: "Ring Hub client not configured" });
           }
           
-          // Get membership info from public endpoint
-          const membershipInfo = await publicClient.getRingMembershipInfo(slug as string);
+          // Get membership info from public endpoint (cached, SWR)
+          const membershipInfo = await cached(
+            `membership-info:${slug}`,
+            30_000,
+            5 * 60_000,
+            () => publicClient.getRingMembershipInfo(slug as string)
+          );
 
           // Transform membership info to member format for display
           const transformedMembers = [];
@@ -91,6 +98,9 @@ export default async function handler(
           
         } catch (error) {
           console.error('Failed to fetch public membership info:', error);
+          if (error instanceof RingHubAuthError || error instanceof RingHubUnavailableError) {
+            return res.status(503).json({ error: 'hub_unavailable', degraded: true });
+          }
           return res.status(500).json({
             error: "Failed to fetch membership information"
           });
@@ -102,38 +112,38 @@ export default async function handler(
         // Create user-authenticated Ring Hub client
         const authenticatedClient = await createAuthenticatedRingHubClient(viewer.id);
         
-        // Fetch members using user's DID authentication
-        const membersResponse = await authenticatedClient.getRingMembers(slug);
-
-        // Transform Ring Hub member format with proper user resolution
-        const { transformRingMemberWithUserResolution } = await import('@/lib/api/ringhub/ringhub-transformers')
-
-        const transformedMembers = await Promise.all(
-          (membersResponse.members || []).map(async (member) => {
-            const resolvedMember = await transformRingMemberWithUserResolution(
-              member,
-              slug as string,
-              db
-            )
-
-            // Convert to API response format
-            return {
-              id: resolvedMember.id,
-              userId: resolvedMember.userId,
-              role: resolvedMember.role,
-              joinedAt: resolvedMember.joinedAt,
-              user: {
-                id: resolvedMember.user.id,
-                handles: resolvedMember.user.handles,
-                profileUrl: resolvedMember.user.profileUrl,
-                profile: {
-                  displayName: resolvedMember.user.displayName,
-                  avatarUrl: resolvedMember.user.avatarUrl
-                }
-              }
-            }
-          })
+        // Fetch members using user's DID authentication (cached, SWR)
+        const membersResponse = await cached(
+          `ring-members:${viewer.id}:${slug}`,
+          30_000,
+          5 * 60_000,
+          () => authenticatedClient.getRingMembers(slug)
         );
+
+        // Transform Ring Hub member format with batched DID/user resolution (no N+1).
+        const { transformRingMembersBatchWithUserResolution } = await import('@/lib/api/ringhub/ringhub-transformers')
+
+        const resolvedMembers = await transformRingMembersBatchWithUserResolution(
+          membersResponse.members || [],
+          slug as string,
+          db
+        )
+
+        const transformedMembers = resolvedMembers.map(resolvedMember => ({
+          id: resolvedMember.id,
+          userId: resolvedMember.userId,
+          role: resolvedMember.role,
+          joinedAt: resolvedMember.joinedAt,
+          user: {
+            id: resolvedMember.user.id,
+            handles: resolvedMember.user.handles,
+            profileUrl: resolvedMember.user.profileUrl,
+            profile: {
+              displayName: resolvedMember.user.displayName,
+              avatarUrl: resolvedMember.user.avatarUrl
+            }
+          }
+        }));
 
         return res.json({
           members: transformedMembers,
@@ -145,6 +155,9 @@ export default async function handler(
 
       } catch (ringHubError) {
         console.error('Ring Hub member fetch failed:', ringHubError);
+        if (ringHubError instanceof RingHubAuthError || ringHubError instanceof RingHubUnavailableError) {
+          return res.status(503).json({ error: 'hub_unavailable', degraded: true });
+        }
         return res.status(500).json({
           error: "Failed to fetch members from Ring Hub"
         });

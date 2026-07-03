@@ -5,6 +5,8 @@ import { UserBadgePreferences } from '@/pages/api/users/me/badge-preferences'
 import { featureFlags } from '@/lib/utils/features/feature-flags'
 import { getPublicRingHubClient } from '@/lib/api/ringhub/ringhub-client'
 import { getUserDID } from '@/lib/api/did/server-did-client'
+import { cached } from '@/lib/api/ringhub/ringhub-cache'
+import { RingHubAuthError, RingHubUnavailableError } from '@/lib/api/ringhub/ringhub-errors'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
@@ -68,29 +70,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.json({ badges: [] })
       }
 
-      // Fetch all user's badges from Ring Hub
-      const ringHubBadges = await publicClient.getActorBadges(userDID, {
-        status: 'active',
-        limit: 100
-      })
+      // Fetch all user's badges from Ring Hub (cached, SWR)
+      const ringHubBadges = await cached(
+        `actor-badges:${userDID}`,
+        30_000,
+        5 * 60_000,
+        () => publicClient.getActorBadges(userDID, { status: 'active', limit: 100 })
+      )
 
-      // Fetch all unique rings to get their current badge designs
+      // Fetch all unique rings to get their current badge designs.
+      // allSettled + per-ring cache: one slow/failed ring must not drop the whole badge list.
       const uniqueRingSlugs = [...new Set(ringHubBadges.badges.map(b => b.ring.slug))]
       const ringDataMap = new Map<string, any>()
-      
-      // Fetch ring data in parallel for all unique rings
-      const ringFetchPromises = uniqueRingSlugs.map(async slug => {
-        try {
-          const ring = await publicClient.getRing(slug)
-          if (ring) {
-            ringDataMap.set(slug, ring)
-          }
-        } catch (error) {
-          // Silently continue if ring data fetch fails
+
+      const ringResults = await Promise.allSettled(
+        uniqueRingSlugs.map(slug =>
+          cached(`ring:${slug}`, 30_000, 5 * 60_000, () => publicClient.getRing(slug))
+        )
+      )
+      ringResults.forEach((result, i) => {
+        if (result.status === 'fulfilled' && result.value) {
+          ringDataMap.set(uniqueRingSlugs[i], result.value)
         }
       })
-      
-      await Promise.all(ringFetchPromises)
 
       // Filter to only the badges that match user's selected preferences
       const selectedBadgeIds = new Set(eligibleBadges.map(b => b.badgeId))
@@ -129,6 +131,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       })
     } catch (error) {
       console.error('Ring Hub badges fetch failed:', error)
+      if (error instanceof RingHubAuthError || error instanceof RingHubUnavailableError) {
+        return res.status(503).json({ error: 'hub_unavailable', degraded: true })
+      }
       return res.json({ badges: [] })
     }
   } catch (error) {

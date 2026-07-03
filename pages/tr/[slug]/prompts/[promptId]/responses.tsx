@@ -8,6 +8,7 @@ import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic'
 import { db } from '@/lib/config/database/connection'
 import { featureFlags } from '@/lib/utils/features/feature-flags'
 import { getRingHubClient } from '@/lib/api/ringhub/ringhub-client'
+import { raceHubCall, HUB_TIMEOUT } from '@/lib/api/ringhub/ringhub-ssr'
 import { PixelIcon } from '@/components/ui/PixelIcon'
 
 interface PromptResponse {
@@ -419,8 +420,20 @@ export const getServerSideProps: GetServerSideProps<PromptResponsesPageProps> = 
       const client = getRingHubClient();
       if (client) {
         try {
-          // Get Ring from Ring Hub
-          const ringDescriptor = await client.getRing(slug);
+          // Get Ring from Ring Hub with a short SSR deadline.
+          const ringDescriptor = await raceHubCall(client.getRing(slug));
+          if (ringDescriptor === HUB_TIMEOUT) {
+            return {
+              props: {
+                siteConfig,
+                threadRing: null,
+                prompt: null,
+                initialResponses: [],
+                canAccess: false,
+                error: 'ThreadRing service temporarily unavailable'
+              }
+            }
+          }
           if (!ringDescriptor) {
             return {
               props: {

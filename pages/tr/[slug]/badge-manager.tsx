@@ -9,6 +9,7 @@ import BadgeUpload from '@/components/ui/media/BadgeUpload';
 import { getSessionUser } from '@/lib/auth/server';
 import { featureFlags } from '@/lib/utils/features/feature-flags';
 import { getRingHubClient } from '@/lib/api/ringhub/ringhub-client';
+import { raceHubCall, HUB_TIMEOUT } from '@/lib/api/ringhub/ringhub-ssr';
 import { db } from '@/lib/config/database/connection';
 import { BADGE_TEMPLATES, type BadgeTemplate } from '@/lib/domain/threadrings/badges';
 import { generateBadge, type BadgeGenerationOptions } from '@/lib/badge-generator';
@@ -27,6 +28,7 @@ interface BadgeManagerPageProps {
     primaryHandle: string;
   };
   canManage: boolean;
+  hubUnavailable?: boolean;
 }
 
 interface BadgeDesign {
@@ -41,7 +43,7 @@ interface BadgeDesign {
   criteria?: string;
 }
 
-export default function BadgeManagerPage({ ring, user, canManage }: BadgeManagerPageProps) {
+export default function BadgeManagerPage({ ring, user, canManage, hubUnavailable }: BadgeManagerPageProps) {
   const router = useRouter();
 
   // Unified badge state
@@ -255,6 +257,27 @@ export default function BadgeManagerPage({ ring, user, canManage }: BadgeManager
 
     return badge;
   };
+
+  if (hubUnavailable) {
+    return (
+      <>
+        <Head>
+          <title>Badge Manager Unavailable | ThreadStead</title>
+        </Head>
+        <Layout>
+          <RetroCard>
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4">⚠️</div>
+              <h1 className="text-2xl font-bold mb-4">Badge service temporarily unavailable</h1>
+              <p className="text-gray-600 mb-6">
+                We couldn&apos;t reach the ring service right now. Please try again in a moment.
+              </p>
+            </div>
+          </RetroCard>
+        </Layout>
+      </>
+    );
+  }
 
   if (!canManageBadge) {
     return (
@@ -645,8 +668,18 @@ export const getServerSideProps: GetServerSideProps<BadgeManagerPageProps> = asy
       const ringHubClient = getRingHubClient();
       if (ringHubClient) {
         try {
-          // Fetching ring from RingHub
-          const ring = await ringHubClient.getRing(slug);
+          // Short SSR deadline so a hung hub renders a graceful state, not a hang.
+          const ring = await raceHubCall(ringHubClient.getRing(slug));
+          if (ring === HUB_TIMEOUT) {
+            return {
+              props: {
+                ring: { id: '', slug, name: '', description: '', visibility: 'public' },
+                user: { id: user.id, primaryHandle: user.primaryHandle || '' },
+                canManage: false,
+                hubUnavailable: true,
+              },
+            };
+          }
 
           if (ring) {
             // Found RingHub ring
