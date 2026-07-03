@@ -7,6 +7,7 @@ import { cleanAndNormalizeHtml, markdownToSafeHtml } from "@/lib/utils/sanitizat
 import { featureFlags } from "@/lib/utils/features/feature-flags";
 import { createAuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
 import { validatePostTitle } from "@/lib/domain/validation";
+import { getSiteBaseUrl } from "@/lib/config/site-url";
 import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
 import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
 
@@ -317,13 +318,19 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
             // Create the post submission with the appropriate metadata
             const postSubmission = {
-              uri: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001'}/resident/${postWithAuthor?.author?.primaryHandle?.split('@')[0]}/post/${post.id}`,
+              uri: `${getSiteBaseUrl()}/resident/${postWithAuthor?.author?.primaryHandle?.split('@')[0]}/post/${post.id}`,
               digest: `sha256:${post.id}`,
               metadata: metadata
             };
 
             const result = await authenticatedClient.submitPost(slug, postSubmission);
-            submittedSlugs.push(slug);
+
+            // Only mirror locally when the hub ACCEPTED the post. For curated/
+            // moderated rings the hub returns PENDING (PostRef defaults PENDING);
+            // mirroring those would show the post as attached before approval.
+            if (result.status === 'ACCEPTED') {
+              submittedSlugs.push(slug);
+            }
 
             // Store the ThreadRing database UUID from the response
             if (result.id) {
@@ -385,8 +392,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 const ringName = membership?.ringName || slug;
 
                 // Generate a unique URI for the RingHub ThreadRing
-                const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001';
-                const ringUri = `${baseUrl}/tr/${slug}`;
+                const ringUri = `${getSiteBaseUrl()}/tr/${slug}`;
 
                 const newLocalRing = await db.threadRing.create({
                   data: {
@@ -413,13 +419,23 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             // Create PostThreadRing associations for all valid rings (existing + newly created)
             const allLocalRings = Array.from(existingRingsMap.values());
             if (allLocalRings.length > 0) {
-              await db.postThreadRing.createMany({
-                data: allLocalRings.map(ring => ({
-                  postId: post.id,
-                  threadRingId: ring.id,
-                  addedBy: viewer.id
-                }))
-              });
+              const localRingIds = allLocalRings.map(ring => ring.id);
+              // Create associations AND bump postCount for each accepted ring in one
+              // transaction, mirroring the local-only branch below (which increments)
+              // and keeping counts symmetric with removal's decrement.
+              await db.$transaction([
+                db.postThreadRing.createMany({
+                  data: allLocalRings.map(ring => ({
+                    postId: post.id,
+                    threadRingId: ring.id,
+                    addedBy: viewer.id
+                  }))
+                }),
+                db.threadRing.updateMany({
+                  where: { id: { in: localRingIds } },
+                  data: { postCount: { increment: 1 } }
+                })
+              ]);
             }
           } catch (localAssocError) {
             console.error("Failed to create local PostThreadRing associations:", localAssocError);

@@ -99,9 +99,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
           id: postAssociation.id
         }
       }),
-      // Update ThreadRing post count
-      db.threadRing.update({
-        where: { id: threadRing.id },
+      // Update ThreadRing post count, clamped at 0 so it can't go negative
+      db.threadRing.updateMany({
+        where: { id: threadRing.id, postCount: { gt: 0 } },
         data: {
           postCount: {
             decrement: 1

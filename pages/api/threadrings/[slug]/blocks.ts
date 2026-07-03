@@ -222,19 +222,25 @@ async function handler(
         return newBlock
       })
 
-      // If blocking a user, remove them from the ThreadRing
+      // If blocking a user, remove them from the ThreadRing.
+      // Do the removal and memberCount decrement in one transaction, and only
+      // decrement by the number of membership rows actually deleted (0 if the
+      // blocked user was never a member) so the count stays accurate.
       if (blockType === 'user') {
-        await db.threadRingMember.deleteMany({
-          where: {
-            threadRingId: threadRing.id,
-            userId: resolvedUserId
-          }
-        })
+        await db.$transaction(async (tx) => {
+          const { count: removedMemberCount } = await tx.threadRingMember.deleteMany({
+            where: {
+              threadRingId: threadRing.id,
+              userId: resolvedUserId
+            }
+          })
 
-        // Update member count
-        await db.threadRing.update({
-          where: { id: threadRing.id },
-          data: { memberCount: { decrement: 1 } }
+          if (removedMemberCount > 0) {
+            await tx.threadRing.update({
+              where: { id: threadRing.id },
+              data: { memberCount: { decrement: removedMemberCount } }
+            })
+          }
         })
       }
 

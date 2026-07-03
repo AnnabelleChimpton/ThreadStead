@@ -3,6 +3,7 @@ import { db } from "@/lib/config/database/connection";
 import { createAuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
 import { getSessionUser } from "@/lib/auth/server";
 import { requireAction } from "@/lib/domain/users/capabilities";
+import { getSiteBaseUrl } from "@/lib/config/site-url";
 import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
 import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
 
@@ -81,8 +82,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             // Fallback to old URI matching method for posts created before this fix
             console.warn(`❌ No stored ThreadRing post ID for ring ${ringSlug}, falling back to URI matching`);
             
-            const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-            const postUri = `${baseUrl}/resident/${post.author.primaryHandle}/post/${id}`;
+            const postUri = `${getSiteBaseUrl()}/resident/${post.author.primaryHandle}/post/${id}`;
             
             const ringPosts = await authenticatedClient.getRingFeed(ringSlug);
             const matchingPostRef = ringPosts.posts.find((postRef: any) => 
@@ -142,8 +142,19 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     }
   }
 
-  // Delete the post from local database (cascade will handle all associations)
-  await db.post.delete({ where: { id } });
+  // Delete the post from local database (cascade will handle all associations).
+  // The cascade removes PostThreadRing rows but does NOT adjust ThreadRing.postCount,
+  // so decrement each associated ring's count here, clamped at 0 so it can't go negative.
+  const associatedRingIds = post.threadRings.map(ptr => ptr.threadRing.id);
+  await db.$transaction([
+    ...associatedRingIds.map(ringId =>
+      db.threadRing.updateMany({
+        where: { id: ringId, postCount: { gt: 0 } },
+        data: { postCount: { decrement: 1 } }
+      })
+    ),
+    db.post.delete({ where: { id } })
+  ]);
   
   res.json({
     ok: true,
