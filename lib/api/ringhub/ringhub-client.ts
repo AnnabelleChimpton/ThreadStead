@@ -468,7 +468,12 @@ export class RingHubClient {
       ringSlug,
       ...postSubmission
     }
-    return await this.post('/trp/submit', requestBody)
+    // The hub wraps the PostRef under `post`: { post: {...}, message, requiresApproval }.
+    // Unwrap it so the return matches this method's declared flat shape — every caller
+    // reads result.id/result.status directly (create/fork/prompt-service), and without
+    // this they silently get undefined (posts never attach to the ring).
+    const response = await this.post('/trp/submit', requestBody)
+    return response && response.post ? response.post : response
   }
 
   /**
