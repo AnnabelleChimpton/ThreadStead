@@ -27,6 +27,7 @@
     "user-did:register-sql": "tsx scripts/generate-ringhub-did-registration.ts",
     "test": "jest",
     "test:watch": "jest --watch",
+    "test:federation": "jest --config jest.federation.config.js",
     "test:coverage": "jest --config jest.config.coverage.js",
     "test:coverage:open": "npm run test:coverage && open coverage/lcov-report/index.html",
     "test:templates": "jest lib/templates components/features/templates",

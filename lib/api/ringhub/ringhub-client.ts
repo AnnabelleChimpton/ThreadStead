@@ -8,6 +8,17 @@
 import crypto from 'crypto';
 import { featureFlags } from '@/lib/utils/features/feature-flags'
 import { RingHubAuthError } from './ringhub-errors'
+import {
+  validateRingHubResponse,
+  RingDescriptorSchema,
+  SubmitPostResponseSchema,
+  JoinRingResponseSchema,
+  LeaveRingResponseSchema,
+  MyMembershipsResponseSchema,
+  RingFeedResponseSchema,
+  CuratePostResponseSchema,
+  ActorBadgesResponseSchema,
+} from './ringhub-contract'
 
 // Types for Ring Hub API compatibility
 export interface RingDescriptor {
@@ -76,6 +87,19 @@ export interface RingMember {
   role: 'owner' | 'moderator' | 'member'
   joinedAt: string | null  // ISO timestamp
   badgeId?: string         // Badge ID
+}
+
+/** What POST /trp/join actually returns (hub membership.ts). */
+export interface JoinRingResult {
+  membership: {
+    id: string
+    status: 'ACTIVE' | 'PENDING'
+    role: string
+    joinedAt?: string | null
+    requiresApproval: boolean
+  }
+  badge: { id: string; url: string } | null
+  message: string
 }
 
 export interface PostRef {
@@ -222,7 +246,8 @@ export class RingHubClient {
    */
   async getRing(slug: string): Promise<RingDescriptor | null> {
     try {
-      return await this.get(`/trp/rings/${slug}`)
+      const ring = await this.get(`/trp/rings/${slug}`)
+      return validateRingHubResponse(`GET /trp/rings/${slug}`, RingDescriptorSchema, ring)
     } catch (error) {
       if (error instanceof RingHubClientError && error.status === 404) {
         return null
@@ -346,25 +371,32 @@ export class RingHubClient {
     const queryString = params.toString()
     const path = `/trp/my/memberships${queryString ? `?${queryString}` : ''}`
 
-    return this.get(path)
+    const response = await this.get(path)
+    return validateRingHubResponse('GET /trp/my/memberships', MyMembershipsResponseSchema, response)
   }
 
   // Membership Operations
 
   /**
-   * Join a ring
+   * Join a ring.
+   *
+   * The hub returns `{ membership, badge, message }` (membership.ts), NOT a
+   * flat RingMember — this method's old `RingMember` return type was wrong
+   * on the wire and callers reading `.badgeId` silently got undefined.
    */
-  async joinRing(slug: string, message?: string): Promise<RingMember> {
+  async joinRing(slug: string, message?: string): Promise<JoinRingResult> {
     const body: any = { ringSlug: slug }
     if (message) body.message = message
-    return this.post(`/trp/join`, body)
+    const response = await this.post(`/trp/join`, body)
+    return validateRingHubResponse('POST /trp/join', JoinRingResponseSchema, response)
   }
 
   /**
    * Leave a ring
    */
   async leaveRing(slug: string): Promise<void> {
-    await this.post(`/trp/leave`, { ringSlug: slug })
+    const response = await this.post(`/trp/leave`, { ringSlug: slug })
+    validateRingHubResponse('POST /trp/leave', LeaveRingResponseSchema, response)
   }
 
   /**
@@ -473,6 +505,7 @@ export class RingHubClient {
     // reads result.id/result.status directly (create/fork/prompt-service), and without
     // this they silently get undefined (posts never attach to the ring).
     const response = await this.post('/trp/submit', requestBody)
+    validateRingHubResponse('POST /trp/submit', SubmitPostResponseSchema, response)
     return response && response.post ? response.post : response
   }
 
@@ -526,7 +559,8 @@ export class RingHubClient {
       requestBody.metadata = options.metadata
     }
 
-    return await this.post('/trp/curate', requestBody)
+    const response = await this.post('/trp/curate', requestBody)
+    return validateRingHubResponse('POST /trp/curate', CuratePostResponseSchema, response)
   }
 
   /**
@@ -542,7 +576,8 @@ export class RingHubClient {
     if (options?.offset) params.append('offset', options.offset.toString())
     if (options?.scope) params.append('scope', options.scope)
 
-    return this.get(`/trp/rings/${slug}/feed?${params.toString()}`)
+    const response = await this.get(`/trp/rings/${slug}/feed?${params.toString()}`)
+    return validateRingHubResponse(`GET /trp/rings/${slug}/feed`, RingFeedResponseSchema, response)
   }
 
   /**
@@ -614,7 +649,8 @@ export class RingHubClient {
     if (options?.offset) params.append('offset', options.offset.toString())
 
     const query = params.toString() ? `?${params.toString()}` : ''
-    return this.get(`/trp/actors/${encodeURIComponent(did)}/badges${query}`)
+    const response = await this.get(`/trp/actors/${encodeURIComponent(did)}/badges${query}`)
+    return validateRingHubResponse('GET /trp/actors/:did/badges', ActorBadgesResponseSchema, response)
   }
 
   /**

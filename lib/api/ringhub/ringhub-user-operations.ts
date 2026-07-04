@@ -8,7 +8,7 @@
 import { getRingHubClient, RingHubClient } from './ringhub-client'
 import { getOrCreateUserDID, getUserDID, signMessageAsUser, getServerDID, publicKeyToMultibase } from '../did/server-did-client'
 import { db } from '../../config/database/connection'
-import type { RingDescriptor, RingMember } from './ringhub-client'
+import type { RingDescriptor, RingMember, JoinRingResult } from './ringhub-client'
 import { RingHubAuthError, RingHubUnavailableError, classifyRingHubError } from './ringhub-errors'
 
 // Re-export typed errors so downstream API routes have a single import site.
@@ -117,7 +117,7 @@ export class AuthenticatedRingHubClient {
   /**
    * Join a ring as this user (dev: server proxy, prod: user DID)
    */
-  async joinRing(slug: string, message?: string): Promise<RingMember> {
+  async joinRing(slug: string, message?: string): Promise<JoinRingResult> {
     console.log(`Starting join operation for ring: ${slug}`)
 
     const userClient = await this.getUserClient()

@@ -44,19 +44,21 @@ export default withRateLimit('threadring_operations')(
         // This handles the case where RingHub auto-registers the user on first request
         // but needs a retry to complete the join operation successfully
         console.log('Calling joinRing on authenticated client with retry logic...');
-        const membership = await retryWithBackoff(
+        const joinResult = await retryWithBackoff(
           () => authenticatedClient.joinRing(slug as string),
           {
             maxRetries: 3,
             baseDelay: 500, // 500ms, 1s, 2s exponential backoff
           }
         );
-        console.log('Join successful, membership:', membership);
+        console.log('Join successful:', joinResult);
 
         return res.json({
           success: true,
           message: `Successfully joined the ThreadRing!`,
-          badgeId: membership.badgeId // Include badge ID if available
+          // The hub nests the badge: { membership, badge: { id, url } | null }.
+          // The old membership.badgeId read was always undefined on the wire.
+          badgeId: joinResult.badge?.id
         });
 
       } catch (ringHubError: any) {
