@@ -120,8 +120,11 @@ describe('badges (the `badge: {}` regression)', () => {
 describe('post removal and leave', () => {
   test('curatePost(remove) as author removes the post', async () => {
     const feed = await client.getRingFeed(ringSlug)
-    const post = feed.posts.find((p) => p.uri === POST_URI)!
-    const result = await client.curatePost(post.id, 'remove', { reason: 'itest cleanup' })
+    const post = feed.posts.find((p) => p.uri === POST_URI)
+    // PostRef.id is optional in the client type (some local transformers build
+    // PostRefs without it), but the hub always sends it — assert before using.
+    expect(post?.id).toBeDefined()
+    const result = await client.curatePost(post!.id!, 'remove', { reason: 'itest cleanup' })
     expect(result.post.status).toBe('REMOVED')
     expect(result.action).toBe('remove')
   })
