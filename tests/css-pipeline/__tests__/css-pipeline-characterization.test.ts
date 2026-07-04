@@ -237,6 +237,36 @@ describe('FIXED (was BUG): @import extraction preserves semicolon-containing URL
   })
 })
 
+describe('site-only generation (the production preRenderedCSS shape)', () => {
+  // Since the injection consolidation, the layered stylesheet on
+  // default/enhanced pages carries SITE CSS ONLY — user CSS reaches the page
+  // exactly once, as the raw whole-page injection in _app.tsx.
+  test('empty user CSS yields layer declaration + site layer, no user layers', () => {
+    const out = generateOptimizedCSS({
+      cssMode: 'inherit',
+      templateMode: 'enhanced',
+      siteWideCSS: '.site { color: gray; }',
+      userCustomCSS: '',
+      profileId: 'profile-layout',
+    })
+    expect(out.startsWith(LAYER_ORDER_DECLARATION)).toBe(true)
+    expect(out).toContain(`@layer ${CSS_LAYERS.SITE_WIDE}`)
+    expect(out).not.toContain(`@layer ${CSS_LAYERS.USER_NUCLEAR}`)
+    expect(out).not.toContain('html body html body')
+  })
+
+  test('disable mode with empty user CSS yields only the layer declaration', () => {
+    const out = generateOptimizedCSS({
+      cssMode: 'disable',
+      templateMode: 'enhanced',
+      siteWideCSS: '.site { color: gray; }',
+      userCustomCSS: '',
+      profileId: 'profile-layout',
+    })
+    expect(out.trim()).toBe(LAYER_ORDER_DECLARATION)
+  })
+})
+
 describe('DOCUMENTED FACT: the default/enhanced scoping anchor is phantom', () => {
   // ProfileLayout and the profile page SSR both call generateOptimizedCSS with
   // profileId: 'profile-layout', but NO element in the default/enhanced DOM

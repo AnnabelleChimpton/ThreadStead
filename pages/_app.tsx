@@ -43,10 +43,13 @@ export default function MyApp({ Component, pageProps }: AppProps) {
   const cssMode = pageProps.cssMode || 'inherit';
   const templateMode = pageProps.templateMode || 'default';
 
-  // Conditionally load site CSS
+  // Conditionally load site CSS. Profile pages pre-fetch site CSS in SSR
+  // (initialSiteCSS) — passing it through avoids the "Site CSS loading..."
+  // placeholder flash on advanced pages, which render #site-wide-css below.
   const { css, loading } = useSiteCSS({
     skipDOMInjection: false,
-    cssMode: cssMode
+    cssMode: cssMode,
+    initialCSS: pageProps.initialSiteCSS
   });
 
   // Ensure Layout component is bundled to include its CSS dependencies
@@ -168,12 +171,25 @@ export default function MyApp({ Component, pageProps }: AppProps) {
                   }} />
                 )}
 
-                {/* Load site-wide CSS based on page type and user preference */}
-                {(!isProfilePage || includeSiteCSS) && (
+                {/* Load site-wide CSS based on page type and user preference.
+                    Non-advanced profile pages get site CSS ONCE, via the
+                    SSR-prerendered layered stylesheet in ProfileLayout —
+                    rendering it here too delivered it twice. Advanced pages
+                    bypass ProfileLayout's injection, so they still need this
+                    copy. cssMode 'disable' now actually suppresses it (it
+                    previously only worked by cascade accident). */}
+                {(!isProfilePage ||
+                  (includeSiteCSS &&
+                    actualCSSMode !== 'disable' &&
+                    pageProps.templateMode === 'advanced')) && (
                   <style
                     id="site-wide-css"
                     key="site-css"
-                    dangerouslySetInnerHTML={{ __html: css || '/* Site CSS loading... */' }}
+                    dangerouslySetInnerHTML={{
+                      __html: css
+                        ? `@layer threadstead-site {\n${css}\n}`
+                        : '/* Site CSS loading... */'
+                    }}
                   />
                 )}
 

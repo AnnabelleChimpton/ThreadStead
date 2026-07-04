@@ -3,6 +3,7 @@ import React from "react";
 import { getInternalBaseUrl } from "@/lib/utils/api/internal-base-url";
 import { GetServerSideProps } from "next";
 import ProfileLayout from "@/components/ui/layout/ProfileLayout";
+import { extractImports } from "@/lib/utils/css/css-transform";
 import ProfileHeader from "@/components/core/profile/ProfileHeader";
 import Tabs, { TabSpec } from "@/components/ui/navigation/Tabs";
 import { featureFlags } from "@/lib/utils/features/feature-flags";
@@ -198,11 +199,21 @@ export default function CSSPreviewPage({
   // Always show all tabs in preview for consistent styling
   const tabs: TabSpec[] = baseTabs;
 
+  // Raw whole-page injection of the user CSS (imports hoisted above any
+  // rule, per spec) — the SAME delivery production uses via
+  // _app.tsx#profile-page-styles, so this preview matches the live page.
+  // ProfileLayout only carries site CSS.
+  const { imports, rest } = extractImports(customCSS || '');
+  const rawUserCSS = customCSS
+    ? `${imports.join('\n')}\n/* Custom CSS preview */\n${rest}`
+    : '';
+
   return (
-    <ProfileLayout 
+    <ProfileLayout
       customCSS={customCSS}
       includeSiteCSS={includeSiteCSS}
     >
+      {rawUserCSS && <style dangerouslySetInnerHTML={{ __html: rawUserCSS }} />}
       <section className="thread-module p-6 mb-6">
         <ProfileHeader
           username={username}

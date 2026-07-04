@@ -1,5 +1,6 @@
 // Profile mode renderer with fallback logic
 import React from 'react';
+import { resolveCSSMode } from '@/lib/utils/css/css-mode';
 
 // Simple error boundary for advanced profile renderer
 class ErrorBoundary extends React.Component<
@@ -84,21 +85,6 @@ export default function ProfileModeRenderer({
   hideNavigation = false
 }: ProfileModeRendererProps) {
   const mode = user.profile?.templateMode || 'default';
-
-  // Extract CSS mode to determine level of system CSS isolation needed
-  const extractCSSMode = (css: string | null | undefined): 'inherit' | 'override' | 'disable' => {
-    if (!css) return 'inherit';
-
-    // Check for explicit CSS_MODE comment
-    const modeMatch = css.match(/\/\* CSS_MODE:(\w+) \*\//);
-    if (modeMatch && ['inherit', 'override', 'disable'].includes(modeMatch[1])) {
-      return modeMatch[1] as 'inherit' | 'override' | 'disable';
-    }
-
-    return 'inherit';
-  };
-
-  const cssMode = extractCSSMode(user.profile?.customCSS);
 
   const hasCompiledTemplate = !!user.profile?.compiledTemplate;
   const shouldUseIslands = useIslands &&
@@ -192,7 +178,7 @@ function renderEnhancedMode(
     <ProfileLayout 
       customCSS={customCSS || undefined}
       templateMode='enhanced'
-      cssMode={user.profile?.cssMode || 'inherit'}
+      cssMode={resolveCSSMode(user.profile?.cssMode, customCSS)}
       hideNavigation={hideNavigation}
       includeSiteCSS={true}  // Match live profile behavior
     >

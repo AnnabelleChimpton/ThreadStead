@@ -29,6 +29,7 @@ import { useGlobalAudio } from "@/contexts/GlobalAudioContext";
 import { contentMetadataGenerator } from "@/lib/utils/metadata/content-metadata";
 import { getSiteCSS } from "@/lib/utils/css/site-css-server";
 import { generateOptimizedCSS } from "@/lib/utils/css/layers";
+import { resolveCSSMode } from "@/lib/utils/css/css-mode";
 
 
 // Dynamically import components to avoid SSR issues
@@ -560,8 +561,10 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   let customTemplateAst: TemplateNode | undefined;
   let residentData: ResidentData | undefined;
 
-  // Read CSS mode directly from database (no more CSS comment parsing!)
-  const cssMode = (data.profile?.cssMode as 'inherit' | 'override' | 'disable') || 'inherit';
+  // Shared resolver: DB field, with the legacy CSS_MODE comment honored for
+  // old rows. Server and client MUST resolve identically (this used to
+  // diverge between SSR, ProfileLayout, and ProfileModeRenderer).
+  const cssMode = resolveCSSMode(data.profile?.cssMode, data.profile?.customCSS);
 
   // Load custom template data for advanced mode (legacy AST or Islands compilation)
   if (data.profile?.templateMode === 'advanced' &&
@@ -799,15 +802,22 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   // Add site-wide CSS for SSR (prevents hydration mismatch)
   props.initialSiteCSS = siteWideCSS;
 
-  // Generate complete CSS on server to prevent hydration mismatches
-  // This ensures server and client render identical CSS
-  // Site CSS should only be included if cssMode allows it (not 'disable') AND includeSiteCSS is true
+  // Generate the SITE-CSS-ONLY layered stylesheet on the server (prevents
+  // hydration mismatches and site-CSS FOUC).
+  //
+  // User CSS is deliberately NOT included here. The user's CSS reaches the
+  // page exactly once, via the raw whole-page injection in _app.tsx
+  // (#profile-page-styles) — that is the intended model (presets style
+  // .site-header/.thread-surface, i.e. the whole page). The old layered copy
+  // scoped user CSS to '#profile-layout', an id no element carries, so it was
+  // dead weight that only leaked accidental output while the raw copy did the
+  // real work. One CSS source, one injection.
   const shouldIncludeSiteCSS = props.includeSiteCSS && cssMode !== 'disable';
   const preRenderedCSS = generateOptimizedCSS({
     cssMode,
     templateMode,
     siteWideCSS: shouldIncludeSiteCSS ? siteWideCSS : '',
-    userCustomCSS: props.customCSS || '',
+    userCustomCSS: '',
     profileId: 'profile-layout'
   });
   props.preRenderedCSS = preRenderedCSS;

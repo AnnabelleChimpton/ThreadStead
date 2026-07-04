@@ -3,6 +3,7 @@ import Layout from "./Layout";
 import NavBar from "../navigation/NavBar";
 import NavigationPreview from "@/components/features/templates/NavigationPreview";
 import { generateOptimizedCSS, type CSSMode, type TemplateMode } from "@/lib/utils/css/layers";
+import { resolveCSSMode } from "@/lib/utils/css/css-mode";
 import { useSiteCSS } from "@/hooks/useSiteCSS";
 
 interface ProfileLayoutProps {
@@ -30,17 +31,9 @@ export default function ProfileLayout({
   initialSiteCSS,
   preRenderedCSS
 }: ProfileLayoutProps) {
-  // Extract CSS mode from custom CSS if not explicitly provided
-  const extractCSSMode = (css: string | undefined): CSSMode => {
-    if (!css) return cssMode;
-    const modeMatch = css.match(/\/\* CSS_MODE:(\w+) \*\//);
-    if (modeMatch && ['inherit', 'override', 'disable'].includes(modeMatch[1])) {
-      return modeMatch[1] as CSSMode;
-    }
-    return cssMode;
-  };
-  
-  const actualCSSMode = extractCSSMode(customCSS);
+  // Shared resolver (legacy CSS_MODE comment wins over the prop) — the same
+  // resolution the profile-page SSR uses, so server and client agree.
+  const actualCSSMode = resolveCSSMode(cssMode, customCSS);
 
   const { css: siteWideCSS } = useSiteCSS({
     skipDOMInjection: templateMode === 'advanced', // Advanced templates manage their own CSS
@@ -48,15 +41,18 @@ export default function ProfileLayout({
     initialCSS: initialSiteCSS // Pass SSR-fetched CSS to prevent hydration mismatch
   });
 
-  // Use pre-rendered CSS from SSR if available, otherwise generate on client
-  // Pre-rendered CSS ensures server/client consistency and prevents hydration mismatches
-  // Site CSS should only be included if cssMode allows it (not 'disable') AND includeSiteCSS is true
+  // Use pre-rendered CSS from SSR if available, otherwise generate on client.
+  // Either way this stylesheet carries SITE CSS ONLY: user CSS reaches the
+  // page exactly once, as a raw whole-page injection (production:
+  // _app.tsx#profile-page-styles; previews: their own raw <style>). The old
+  // layered user copy was scoped to '#profile-layout', an id nothing renders,
+  // so it never worked by design — only by accident.
   const shouldIncludeSiteCSS = includeSiteCSS && actualCSSMode !== 'disable';
   const layeredCSS = preRenderedCSS ?? generateOptimizedCSS({
     cssMode: actualCSSMode,
     templateMode,
     siteWideCSS: shouldIncludeSiteCSS ? siteWideCSS : '',
-    userCustomCSS: customCSS || '',
+    userCustomCSS: '',
     profileId: 'profile-layout'
   });
   
