@@ -32,7 +32,12 @@ console.log(input)
 console.log('\n===== OUTPUT =====')
 console.log(out)
 console.log('\n===== ANALYSIS =====')
+const intactImport = input.split('\n')[0]
 console.log('@import statements in output:', out.match(/@import[^\n]*/g))
-console.log("orphaned URL fragment present ('600;700&family'):", out.includes('600;700&family'))
+console.log('import survives intact:', out.includes(intactImport))
+console.log(
+  'orphaned URL fragment OUTSIDE the import:',
+  out.split(intactImport).join('').includes('600;700&family')
+)
 console.log('thread-surface scoped to profile:', /#profile-layout[^{]*\.thread-surface/.test(out))
 console.log('thread-surface UNSCOPED (escapes scoping by accident):', /(^|\n|;|\})\s*\.thread-surface\s*\{/.test(out))

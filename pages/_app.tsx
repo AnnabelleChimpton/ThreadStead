@@ -12,6 +12,7 @@ import { useSiteCSS } from "@/hooks/useSiteCSS";
 import { useRouter } from "next/router";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { CSSModeProvider } from "@/contexts/CSSModeContext";
+import { extractImports, mapSelectors } from "@/lib/utils/css/css-transform";
 
 // Import Layout to ensure CSS dependencies are always available
 import Layout from "@/components/ui/layout/Layout";
@@ -180,19 +181,16 @@ export default function MyApp({ Component, pageProps }: AppProps) {
                 {isProfilePage && hasCustomCSS && pageProps.templateMode === 'advanced' && (() => {
                   const customCSS = pageProps.customCSS || '';
 
-                  // Boost specificity to beat Tailwind by adding 'html body' prefix
-                  const boostedCSS = customCSS.replace(/([^{}]+)\{/g, (match: string, selector: string) => {
-                    const trimmed = selector.trim();
-                    if (trimmed.startsWith('@')) return match;
-
-                    const selectors = selector.split(',').map((s: string) => {
-                      const sel = s.trim();
-                      if (sel.startsWith('html body')) return sel;
-                      return `html body ${sel}`;
-                    }).join(', ');
-
-                    return `${selectors} {`;
-                  });
+                  // Boost specificity to beat Tailwind by adding 'html body' prefix.
+                  // Statement-aware transform (css-transform.ts): @imports are
+                  // hoisted intact and @keyframes bodies are untouched — the
+                  // old regex boosted keyframe stops into invalid CSS, so
+                  // user animations never ran in advanced mode.
+                  const { imports, rest } = extractImports(customCSS);
+                  const boosted = mapSelectors(rest, (sel: string) =>
+                    sel.startsWith('html body') ? sel : `html body ${sel}`
+                  );
+                  const boostedCSS = imports.join('\n') + (imports.length ? '\n' : '') + boosted;
 
                   return (
                     <style
@@ -202,11 +200,18 @@ export default function MyApp({ Component, pageProps }: AppProps) {
                   );
                 })()}
 
-                {isProfilePage && hasCustomCSS && pageProps.templateMode !== 'advanced' && (
+                {isProfilePage && hasCustomCSS && pageProps.templateMode !== 'advanced' && (() => {
+                  // Hoist user @imports above our preamble rule: per the CSS
+                  // spec, browsers IGNORE @import statements that appear after
+                  // any other rule — with the preamble first, users' Google
+                  // Fonts imports silently never loaded.
+                  const { imports, rest } = extractImports(pageProps.customCSS || '');
+                  return (
                   <style
                     id="profile-page-styles"
                     dangerouslySetInnerHTML={{
-                      __html: `/* Profile page - Clean canvas for user customization */
+                      __html: `${imports.join('\n')}
+/* Profile page - Clean canvas for user customization */
 .profile-container {
   margin-top: 0;
   padding-top: 0;
@@ -245,11 +250,12 @@ body, body * {
 */
 ` : ''}
 
-/* Custom CSS - User or Admin Default */
-${pageProps.customCSS}`
+/* Custom CSS - User or Admin Default (imports hoisted above) */
+${rest}`
                     }}
                   />
-                )}
+                  );
+                })()}
               </Head>
               <div
                 className={`${pageProps.templateMode === 'advanced'

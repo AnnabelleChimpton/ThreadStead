@@ -122,16 +122,14 @@ describe('user CSS scoping (scopeCSSToProfile via public API)', () => {
     expect(media).not.toContain('!important')
   })
 
-  test('BUG PIN: @keyframes stops get profile-scoped, producing invalid CSS', () => {
-    // scopeCSSToProfile's selector regex treats keyframe stops (from/to/50%)
-    // as selectors and prefixes them with the profile id:
-    //   @keyframes spin {#profile-x from {...}#profile-x to {...}}
-    // That is invalid CSS — browsers drop the block, so USER ANIMATIONS
-    // SILENTLY NEVER RUN when defined in profile custom CSS.
-    // WHEN THIS IS FIXED: invert these assertions in the same commit.
+  test('FIXED (was BUG): @keyframes bodies pass through untouched', () => {
+    // The old regex scoped keyframe stops (from/to) into invalid CSS
+    // (@keyframes spin {#profile-x from {...}}), silently killing user
+    // animations. The statement-aware transform leaves keyframes intact.
     const out = gen('@keyframes spin { from { transform: rotate(0); } to { transform: rotate(1turn); } }')
     expect(out).toContain('@keyframes spin')
-    expect(out).toContain(`#${PROFILE_ID} from`)
+    expect(out).not.toContain(`#${PROFILE_ID} from`)
+    expect(out).toContain('from { transform: rotate(0); }')
   })
 })
 
@@ -197,17 +195,15 @@ describe('generateOptimizedCSS mode selection', () => {
   })
 })
 
-describe('BUG PIN: @import extraction corrupts semicolon-containing URLs', () => {
+describe('FIXED (was BUG): @import extraction preserves semicolon-containing URLs', () => {
   // Multi-weight Google Fonts URLs contain semicolons (wght@400;600;700).
-  // Both scopeCSSToProfile and forceUserCSSDominance extract imports with
-  // /@import\s+[^;]+;/ which truncates at the FIRST semicolon INSIDE the URL,
-  // hoisting a broken import and leaving URL shrapnel in the CSS body.
-  // Every shipped preset theme (e.g. Pixel Petals) uses such a URL, and the
-  // corrupted output below is exactly what production serves today.
-  // WHEN THIS IS FIXED: these assertions must be inverted in the same commit.
-  const PIXEL_PETALS_HEAD =
-    "@import url('https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;600;700&family=Quicksand:wght@400;500;600&display=swap');\n" +
-    '.thread-surface { background: pink; }'
+  // The old regex extraction truncated them at the first in-URL semicolon,
+  // corrupting every shipped preset theme (live-verified on production
+  // 2026-07-04). The statement-aware extraction keeps the URL intact, hoists
+  // the import to the top, and rules after it are scoped normally.
+  const FULL_IMPORT =
+    "@import url('https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;600;700&family=Quicksand:wght@400;500;600&display=swap');"
+  const PIXEL_PETALS_HEAD = FULL_IMPORT + '\n.thread-surface { background: pink; }'
 
   const out = generateLayeredCSS({
     cssMode: 'inherit',
@@ -216,25 +212,20 @@ describe('BUG PIN: @import extraction corrupts semicolon-containing URLs', () =>
     profileId: PROFILE_ID,
   })
 
-  test('the hoisted @import is truncated mid-URL (fonts cannot load)', () => {
-    expect(out).toContain("@import url('https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;")
-    expect(out).not.toContain("display=swap');\n@") // intact import never appears as a unit
+  test('the hoisted @import survives intact (fonts load)', () => {
+    expect(out).toContain(FULL_IMPORT)
   })
 
-  test('URL shrapnel remains in the rule body', () => {
-    expect(out).toContain('600;700&family=Quicksand')
+  test('no URL shrapnel in rule bodies', () => {
+    // The fragment can only legitimately appear inside the intact import URL
+    expect(out.split(FULL_IMPORT).join('')).not.toContain('600;700&family=Quicksand')
   })
 
-  test('rules FOLLOWING the mangled import escape profile scoping entirely', () => {
-    // .thread-surface should have been scoped to `#profile-abc123 .thread-surface`,
-    // but the shrapnel derails the selector regex, so it stays unscoped. In
-    // production this accident is the ONLY reason enhanced-mode CSS visibly
-    // applies at all (see phantom-anchor note below).
-    expect(out).not.toContain(`#${PROFILE_ID} .thread-surface`)
-    expect(out).toContain('.thread-surface {')
+  test('rules following the import are scoped normally', () => {
+    expect(out).toContain(`html body html body #${PROFILE_ID} .thread-surface { background: pink !important; }`)
   })
 
-  test('a semicolon-free @import survives intact (control case)', () => {
+  test('a semicolon-free @import also survives intact (control case)', () => {
     const clean = generateLayeredCSS({
       cssMode: 'inherit',
       templateMode: 'enhanced',

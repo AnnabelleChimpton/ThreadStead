@@ -1,6 +1,13 @@
 // CSS Layers utility for consistent cascade management
 // Replaces the !important nightmare with proper CSS layer ordering
 
+import {
+  extractImports,
+  mapSelectors,
+  mapRuleDeclarations,
+  splitTopLevelStatements,
+} from './css-transform';
+
 export type CSSMode = 'inherit' | 'override' | 'disable';
 export type TemplateMode = 'default' | 'enhanced' | 'advanced';
 
@@ -228,90 +235,51 @@ function transformBodyStyles(css: string, profileId: string): string {
 /**
  * NUCLEAR OPTION: Force user CSS to always win with maximum specificity and !important
  * User CSS must ALWAYS be the most important on their own page
+ *
+ * LOAD-BEARING: in the CSS cascade, unlayered styles (Tailwind utilities)
+ * beat all layered normal declarations, but !important inside a layer beats
+ * unlayered normal declarations. The !important added here is the ONLY reason
+ * layered user CSS can beat Tailwind — do not remove it without layering
+ * Tailwind first.
+ *
+ * Statement-aware (see css-transform.ts): @import statements are hoisted
+ * INTACT; @media/@supports/@keyframes/@font-face blocks stay in their
+ * original position and their contents are NOT nuclear-wrapped (matching the
+ * long-standing behavior pinned in the characterization tests).
  */
 export function forceUserCSSDominance(css: string, cssMode: CSSMode = 'inherit'): string {
   if (!css.trim()) return '';
-  
-  // Extract and preserve @import, @media, @keyframes etc. - don't process these
-  const atRules: string[] = [];
-  let workingCSS = css;
-  
-  // Extract @import statements first (they must be at the top)
-  workingCSS = workingCSS.replace(/@import\s+[^;]+;/g, (match) => {
-    atRules.push(match);
-    return '';
-  });
-  
-  // Extract other @rules like @media, @keyframes etc.
-  workingCSS = workingCSS.replace(/@[^{]+\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g, (match) => {
-    atRules.push(match);
-    return '';
-  });
 
-  // Clean up the remaining CSS (comments already removed in cleanUserCSS)
-  workingCSS = workingCSS
-    .replace(/^\s*\/\/.*$/gm, '') // Remove single-line comments (if any)
-    .replace(/\n\s*\n/g, '\n') // Remove extra blank lines
-    .trim();
-  
-  // Now process only regular CSS rules (not @rules)
-  const nuclearRules = workingCSS.replace(/([^{}]+)\{([^}]*)\}/g, (match, selector, rules) => {
-    const trimmedSelector = selector.trim();
-    
-    // Skip any remaining @-rules and empty selectors
-    if (trimmedSelector.startsWith('@') || !trimmedSelector) return match;
-    
-    // Force maximum specificity on all selectors
-    const nuclearSelectors = trimmedSelector.split(',')
-      .map((s: string) => {
-        // Normalize whitespace: trim and collapse internal whitespace to single space
-        const trimmed = s.trim().replace(/\s+/g, ' ');
-        
-        // Don't modify selectors that already have maximum specificity
-        if (trimmed.startsWith('html body')) {
-          return trimmed;
-        }
-        // Note: We removed the :root check - it needs to be wrapped normally after scoping
-        
-        // Special handling for Visual Builder classes in nuclear mode
-        if (trimmed.includes('.vb-')) {
-          // Check if this is already a scoped selector with profile ID
-          const hasProfileId = trimmed.includes('#profile-');
+  const { imports, rest } = extractImports(css);
 
-          if (hasProfileId) {
-            // Selector already scoped in scopeCSSToProfile - just apply nuclear specificity
-            return `html body html body ${trimmed}`;
-          }
+  // Prefix selectors of qualified rules only — at-rule blocks are untouched.
+  const prefixed = mapSelectors(rest, (trimmed: string) => {
+    // Don't modify selectors that already have maximum specificity
+    if (trimmed.startsWith('html body')) {
+      return trimmed;
+    }
 
-          // Pure Visual Builder class - will be handled by scopeCSSToProfile first
-          return `html body html body ${trimmed}`;
-        }
+    // Special handling for Visual Builder classes in nuclear mode
+    // (scoped or not, they get the standard double wrap)
+    if (trimmed.includes('.vb-')) {
+      return `html body html body ${trimmed}`;
+    }
 
-        // Force maximum nuclear specificity: extra layer for Visual Builder in disable mode
-        const isVisualBuilderDisable = cssMode === 'disable' && (trimmed.includes('.vb-') || trimmed.includes('--global-'));
-        return isVisualBuilderDisable
-          ? `html body html body html body ${trimmed}`
-          : `html body html body ${trimmed}`;
-      })
-      .join(', ');
-    
-    // Force !important on every CSS property that doesn't already have it
-    // Be careful with URLs and data URIs to avoid breaking them
-    const nuclearProps = rules.replace(/([^;{]+?):\s*([^;!]+?)(?!\s*!important)\s*;/g, (match: string, property: string, value: string) => {
-      // Clean property name and value to avoid spaces in URLs
-      const cleanProperty = property.trim();
-      const cleanValue = value.trim();
+    // Force maximum nuclear specificity: extra layer for Visual Builder in disable mode
+    const isVisualBuilderDisable = cssMode === 'disable' && trimmed.includes('--global-');
+    return isVisualBuilderDisable
+      ? `html body html body html body ${trimmed}`
+      : `html body html body ${trimmed}`;
+  }, { recurseGroups: false });
 
-      // Skip adding !important if value contains data: or url( to avoid breaking URLs
-      if (cleanValue.includes('data:') || cleanValue.includes('url(')) {
-        return `${cleanProperty}: ${cleanValue} !important;`;
-      }
-      return `${cleanProperty}: ${cleanValue} !important;`;
-    });
-      
-    return `${nuclearSelectors} { ${nuclearProps} }`;
-  });
-  
+  // Force !important on every declaration of qualified rules that doesn't
+  // already have it. @media/@keyframes/etc. contents are left untouched.
+  const nuclearRules = mapRuleDeclarations(prefixed, (decl: string) => {
+    if (!decl.includes(':')) return decl;
+    if (/!important\s*$/i.test(decl)) return decl;
+    return `${decl} !important`;
+  }, { recurseGroups: false });
+
   // Add extra Visual Builder overrides for disable mode
   let additionalOverrides = '';
   if (cssMode === 'disable' && css.includes('.vb-')) {
@@ -333,77 +301,66 @@ html body html body html body body {
 `;
   }
 
-  // Combine preserved @rules with nuclear regular rules and additional overrides
-  return (atRules.join('\n') + '\n' + nuclearRules + additionalOverrides).trim();
+  // Imports first (spec requires it), then rules in their ORIGINAL order.
+  // (The old implementation moved ALL at-rules to the top, reordering the
+  // user's cascade; statements now keep their relative positions.)
+  return (imports.join('\n') + '\n' + nuclearRules + additionalOverrides).trim();
 }
 
 /**
- * Scope CSS to a specific profile container
+ * Scope CSS to a specific profile container.
+ *
+ * Statement-aware (see css-transform.ts): @import statements are extracted
+ * INTACT (the old regex truncated Google-Fonts URLs at semicolons inside the
+ * URL, corrupting every preset theme), selectors inside @media/@supports are
+ * scoped, and @keyframes/@font-face bodies are left untouched (the old regex
+ * scoped keyframe stops into invalid CSS, killing user animations).
  */
 function scopeCSSToProfile(css: string, profileId: string): string {
   if (!css.trim()) return '';
-  
-  // First, extract and preserve @import statements (they can't be scoped)
-  const imports: string[] = [];
-  let workingCSS = css.replace(/@import\s+[^;]+;/g, (match) => {
-    imports.push(match);
-    return '/* IMPORT_PLACEHOLDER */';
+
+  const { imports, rest } = extractImports(css);
+
+  const scoped = mapSelectors(rest, (trimmed: string) => {
+    // Handle body selector specially - apply to profile container (now using unified wrapper class)
+    if (trimmed === 'body') {
+      return `.profile-template-root#${profileId}`;
+    } else if (trimmed.startsWith('body ')) {
+      return `.profile-template-root#${profileId}${trimmed.substring(4)}`;
+    } else if (trimmed.startsWith('body.')) {
+      // Handle body.class selectors (like body.vb-pattern-grid) -> .profile-template-root#profile.class
+      return `.profile-template-root#${profileId}${trimmed.substring(4)}`;
+    }
+
+    // Handle :root selector - must be transformed BEFORE catch-all (more forgiving check)
+    if (trimmed === ':root' || trimmed.includes(':root')) {
+      return `.profile-template-root#${profileId}`;
+    }
+
+    // Handle .profile-template-root specially - it IS the container (same as body)
+    // Handles all cases: exact match, with classes, combinators (>, +, ~), pseudo-selectors (:, ::), descendants
+    if (trimmed.startsWith('.profile-template-root')) {
+      return `.profile-template-root#${profileId}${trimmed.substring('.profile-template-root'.length)}`;
+    }
+
+    // Legacy compatibility: Support old advanced-template-container references
+    if (trimmed.includes('advanced-template-container')) {
+      const updated = trimmed.replace(/advanced-template-container/g, 'profile-template-root');
+      return `#${profileId} ${updated}`;
+    }
+
+    // Special handling for Visual Builder classes - they can be on the container itself
+    if (trimmed.startsWith('.vb-')) {
+      // Generate both direct targeting (for container) and descendant targeting (for children)
+      return `#${profileId}${trimmed}, #${profileId} ${trimmed}`;
+    }
+
+    // Scope all other selectors to the profile
+    return `#${profileId} ${trimmed}`;
   });
-  
-  // Now scope the rest of the CSS
-  workingCSS = workingCSS.replace(/([^{}]+){/g, (match, selector) => {
-    // Skip @-rules (media queries, keyframes, etc.)
-    if (selector.trim().startsWith('@')) return match;
-    
-    // Handle multiple selectors separated by commas
-    const scopedSelectors = selector.split(',')
-      .map((s: string) => {
-        // Normalize whitespace: trim and collapse internal whitespace to single space
-        const trimmed = s.trim().replace(/\s+/g, ' ');
 
-        // Handle body selector specially - apply to profile container (now using unified wrapper class)
-        if (trimmed === 'body') {
-          return `.profile-template-root#${profileId}`;
-        } else if (trimmed.startsWith('body ')) {
-          return `.profile-template-root#${profileId}${trimmed.substring(4)}`;
-        } else if (trimmed.startsWith('body.')) {
-          // Handle body.class selectors (like body.vb-pattern-grid) -> .profile-template-root#profile.class
-          return `.profile-template-root#${profileId}${trimmed.substring(4)}`;
-        }
-
-        // Handle :root selector - must be transformed BEFORE catch-all (more forgiving check)
-        if (trimmed === ':root' || trimmed.includes(':root')) {
-          return `.profile-template-root#${profileId}`;
-        }
-
-        // Handle .profile-template-root specially - it IS the container (same as body)
-        // Handles all cases: exact match, with classes, combinators (>, +, ~), pseudo-selectors (:, ::), descendants
-        if (trimmed.startsWith('.profile-template-root')) {
-          return `.profile-template-root#${profileId}${trimmed.substring('.profile-template-root'.length)}`;
-        }
-
-        // Legacy compatibility: Support old advanced-template-container references
-        if (trimmed.includes('advanced-template-container')) {
-          const updated = trimmed.replace(/advanced-template-container/g, 'profile-template-root');
-          return `#${profileId} ${updated}`;
-        }
-
-        // Special handling for Visual Builder classes - they can be on the container itself
-        if (trimmed.startsWith('.vb-')) {
-          // Generate both direct targeting (for container) and descendant targeting (for children)
-          return `#${profileId}${trimmed}, #${profileId} ${trimmed}`;
-        }
-
-        // Scope all other selectors to the profile
-        return `#${profileId} ${trimmed}`;
-      })
-      .join(', ');
-      
-    return `${scopedSelectors} {`;
-  });
-  
-  // Restore the @import statements at the beginning
-  return imports.join('\n') + (imports.length > 0 ? '\n' : '') + workingCSS.replace(/\/\* IMPORT_PLACEHOLDER \*\//g, '');
+  // Imports must precede all other rules per the CSS spec
+  return imports.join('\n') + (imports.length > 0 ? '\n' : '') + scoped;
 }
 
 /**
