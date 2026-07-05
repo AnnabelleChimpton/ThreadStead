@@ -26,6 +26,10 @@ export interface CompilationResult {
   ast: TemplateNode;
   islands: Island[];
   staticHTML: string;
+  // Diagnostics carried through the cache so repeat saves surface the same
+  // warnings/stripped-component reports as first compiles.
+  warnings?: string[];
+  strippedComponents?: Array<{ name: string; line?: number; reason?: string }>;
 }
 
 // In-memory cache with LRU eviction

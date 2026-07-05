@@ -220,6 +220,11 @@ export function validateAndCoerceProps(
         try {
           result[correctKey] = validateAndCoerceProp(correctedValue, schema);
         } catch (error) {
+          // Never swallow silently — the sibling catch below records the same
+          // condition, and a defaulted prop with no trace is exactly the kind
+          // of "component renders wrong with no explanation" flakiness the
+          // engine audit flagged.
+          warnings.push(`Invalid prop ${correctKey}: ${error}`);
           result[correctKey] = schema.default;
         }
         continue;

@@ -83,7 +83,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         const startTime = performance.now();
 
         // Use cached compilation wrapper - this will hit cache on repeat saves
-        const { ast, islands, staticHTML } = await getCompiledTemplateWithMetrics(
+        const { ast, islands, staticHTML, warnings, strippedComponents } = await getCompiledTemplateWithMetrics(
           cleanedTemplate,
           async () => {
             // This function only runs on cache MISS (first compilation).
@@ -93,7 +93,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
               return {
                 ast: artifacts.ast,
                 islands: artifacts.islands,
-                staticHTML: artifacts.staticHTML
+                staticHTML: artifacts.staticHTML,
+                warnings: artifacts.warnings,
+                strippedComponents: artifacts.strippedComponents
               };
             } catch (error) {
               if (error instanceof TemplateCompilationError) {
@@ -126,7 +128,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
           fallback: undefined,
           compiledAt: new Date(),
           errors: [],
-          warnings: [],
+          warnings: warnings ?? [],
+          strippedComponents: strippedComponents ?? [],
           // Keep additional data for compatibility
           ast: ast
         };
@@ -198,7 +201,13 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         }
       });
 
-      return res.status(200).json({ success: true });
+      // Anti-silent-failure contract: the editor must be able to tell the
+      // user what was stripped or warned about, not just "saved".
+      return res.status(200).json({
+        success: true,
+        warnings: compiledResult?.warnings ?? [],
+        strippedComponents: compiledResult?.strippedComponents ?? []
+      });
 
     } else if (req.method === 'DELETE') {
       // Remove template

@@ -138,7 +138,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           success: true,
           compiled,
           errors: [],
-          warnings: compiled.warnings
+          warnings: compiled.warnings,
+          strippedComponents: artifacts.strippedComponents
         };
 
       } catch (compileError) {

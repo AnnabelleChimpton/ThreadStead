@@ -17,11 +17,23 @@ import { identifyIslandsWithTransform } from './compiler/island-detector'
 import { generateStaticHTML } from './compiler/html-optimizer'
 import type { Island } from './compiler/types'
 
+export interface StrippedComponentReport {
+  name: string
+  line?: number
+  reason?: string
+}
+
 export interface CompiledTemplateArtifacts {
   ast: TemplateNode
   islands: Island[]
   staticHTML: string
   warnings: string[]
+  /**
+   * Elements removed during sanitization (unknown components, disallowed
+   * tags). Surfacing these is the anti-silent-failure contract: a user whose
+   * component vanished must be told, not left staring at a blank spot.
+   */
+  strippedComponents: StrippedComponentReport[]
 }
 
 export class TemplateCompilationError extends Error {
@@ -57,5 +69,7 @@ export function compileTemplateToArtifacts(template: string): CompiledTemplateAr
     islands,
     staticHTML,
     warnings: parsed.validation?.warnings ?? [],
+    strippedComponents:
+      (parsed as { strippedComponents?: StrippedComponentReport[] }).strippedComponents ?? [],
   }
 }
