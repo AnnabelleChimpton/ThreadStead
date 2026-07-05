@@ -1,526 +1,411 @@
-export const CHARCOAL_NIGHTS_TEMPLATE = `/* ===========================================
-   🖤 CHARCOAL NIGHTS - RETRO TERMINAL
-   =========================================== */
+export const CHARCOAL_NIGHTS_TEMPLATE = `/* ==============================================
+   CHARCOAL NIGHTS — ink & ember
+   charcoal #1a1816 / #232019 · text #ece7df
+   ember #e8853d · hairline #3a352e
+   ============================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Share+Tech+Mono&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap');
 
+/* ---------- page ground ---------- */
 
-/* Override thread-surface for dark terminal background */
 .thread-surface {
-  background: #0a0a0a !important;
+  background: #1a1816 !important;
+  color: #ece7df !important;
+  font-family: 'Inter', system-ui, sans-serif !important;
 }
 
-/* Terminal Navigation */
+/* ---------- header & navigation ---------- */
+
 .site-header {
-  background: #1a1a1a !important;
-  border-bottom: 1px solid #00ff00 !important;
+  background: #1a1816 !important;
+  border-bottom: 1px solid #3a352e !important;
+  box-shadow: none !important;
   backdrop-filter: none !important;
-  box-shadow: 0 0 20px rgba(0, 255, 0, 0.1) !important;
-  position: relative !important;
 }
 
-.site-header::before {
-  content: '[SYSTEM NAVIGATION]' !important;
-  position: absolute !important;
-  top: 0.5rem !important;
-  left: 1rem !important;
-  color: #00ff00 !important;
-  font-family: 'Space Mono', monospace !important;
-  font-size: 0.75rem !important;
-  opacity: 0.6 !important;
+.site-navigation {
+  background: transparent !important;
+  border: none !important;
 }
 
 .site-title {
-  color: #00ff00 !important;
-  font-family: 'Share Tech Mono', monospace !important;
-  text-shadow: 0 0 10px #00ff00 !important;
-  text-transform: uppercase !important;
-  letter-spacing: 1px !important;
-  animation: glow 2s ease-in-out infinite alternate !important;
+  font-family: 'Fraunces', Georgia, serif !important;
+  font-weight: 600 !important;
+  color: #ece7df !important;
+  letter-spacing: 0.01em !important;
+  text-shadow: none !important;
 }
 
 .site-tagline {
-  color: rgba(0, 255, 0, 0.8) !important;
-  font-family: 'Space Mono', monospace !important;
-  font-size: 0.75rem !important;
+  color: #a89e8f !important;
+  font-family: 'Inter', system-ui, sans-serif !important;
+  font-size: 0.8rem !important;
+  font-style: italic !important;
+  letter-spacing: 0.02em !important;
 }
 
 .nav-link {
-  color: #00ff00 !important;
-  font-family: 'Space Mono', monospace !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.5px !important;
-  border: 1px solid transparent !important;
-  padding: 0.5rem 1rem !important;
-  transition: all 0.3s ease !important;
+  color: #cfc8bc !important;
+  font-family: 'Inter', system-ui, sans-serif !important;
+  font-size: 0.9rem !important;
+  font-weight: 500 !important;
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 1px solid transparent !important;
+  border-radius: 0 !important;
+  padding: 0.35rem 0.1rem !important;
+  margin: 0 0.55rem !important;
+  text-decoration: none !important;
+  transition: color 160ms ease, border-color 160ms ease !important;
 }
 
 .nav-link:hover {
-  background: #00ff00 !important;
-  color: #000 !important;
-  border-color: #00ff00 !important;
-  box-shadow: 0 0 10px rgba(0, 255, 0, 0.5) !important;
+  color: #e8853d !important;
+  background: transparent !important;
+  border-bottom-color: #e8853d !important;
+  box-shadow: none !important;
   text-decoration: none !important;
 }
 
-/* Terminal footer */
+.nav-link[aria-current="page"],
+.nav-link.active {
+  color: #e8853d !important;
+  border-bottom-color: #e8853d !important;
+}
+
+/* ---------- mobile menu ---------- */
+
+#mobile-menu {
+  background: #232019 !important;
+  border: 1px solid #3a352e !important;
+  border-top: 2px solid #e8853d !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55) !important;
+  color: #ece7df !important;
+}
+
+#mobile-menu .nav-link {
+  display: block !important;
+  color: #ece7df !important;
+  border-bottom: 1px solid #2c2822 !important;
+  margin: 0 !important;
+  padding: 0.85rem 1rem !important;
+}
+
+#mobile-menu .nav-link:hover {
+  color: #e8853d !important;
+  background: #1a1816 !important;
+}
+
+/* ---------- footer ---------- */
+
 .site-footer {
-  background: #0a0a0a !important;
-  border-top: 1px solid #00ff00 !important;
-  color: #00ff00 !important;
+  background: #14120f !important;
+  border-top: 1px solid #3a352e !important;
+  color: #a89e8f !important;
+  padding: 2.5rem 1.25rem !important;
 }
 
 .footer-tagline {
-  color: #00ff00 !important;
-  font-family: 'Space Mono', monospace !important;
-  font-size: 0.75rem !important;
+  color: #cfc8bc !important;
+  font-family: 'Fraunces', Georgia, serif !important;
+  font-style: italic !important;
+  font-size: 0.95rem !important;
+  letter-spacing: 0.01em !important;
 }
 
-.footer-tagline::before {
-  content: '>' !important;
-  animation: blink 1s infinite !important;
-  margin-right: 0.5rem !important;
+.footer-copyright {
+  color: #7c7365 !important;
+  font-size: 0.78rem !important;
+  letter-spacing: 0.04em !important;
 }
 
-/* Terminal Interactive Buttons */
-.notification-button {
-  background: #000 !important;
-  color: #00ff00 !important;
-  border: 1px solid #00ff00 !important;
-  border-radius: 0 !important;
-  width: 40px !important;
-  height: 40px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  font-family: 'Space Mono', monospace !important;
-  font-size: 1rem !important;
-  position: relative !important;
-  overflow: hidden !important;
-  transition: all 0.3s ease !important;
+/* ---------- generic modules ---------- */
+
+.thread-module {
+  background: #232019 !important;
+  border: 1px solid #3a352e !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+  color: #ece7df !important;
 }
 
-.notification-button::before {
-  content: '' !important;
-  position: absolute !important;
-  top: 0 !important;
-  left: -100% !important;
-  width: 100% !important;
-  height: 100% !important;
-  background: #00ff00 !important;
-  transition: left 0.3s ease !important;
-}
+/* ---------- profile ---------- */
 
-.notification-button:hover::before {
-  left: 0 !important;
-}
-
-.notification-button:hover {
-  color: #000 !important;
-  box-shadow: 0 0 15px rgba(0, 255, 0, 0.5) !important;
-}
-
-.notification-button.has-notifications::after {
-  content: '!' !important;
-  position: absolute !important;
-  top: -5px !important;
-  right: -5px !important;
-  width: 15px !important;
-  height: 15px !important;
-  background: #ff0000 !important;
-  color: #fff !important;
-  font-size: 0.7rem !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  animation: blink 1s infinite !important;
-}
-
-.user-dropdown-trigger {
-  background: #000 !important;
-  color: #00ff00 !important;
-  border: 1px solid #00ff00 !important;
-  border-radius: 0 !important;
-  padding: 0.5rem 1rem !important;
-  font-family: 'Space Mono', monospace !important;
-  text-transform: uppercase !important;
-  letter-spacing: 1px !important;
-  font-size: 0.8rem !important;
-  display: flex !important;
-  align-items: center !important;
-  gap: 0.5rem !important;
-  position: relative !important;
-  overflow: hidden !important;
-  transition: all 0.3s ease !important;
-}
-
-.user-dropdown-trigger::before {
-  content: '' !important;
-  position: absolute !important;
-  top: 0 !important;
-  left: -100% !important;
-  width: 100% !important;
-  height: 100% !important;
-  background: #00ff00 !important;
-  transition: left 0.3s ease !important;
-}
-
-.user-dropdown-trigger:hover::before {
-  left: 0 !important;
-}
-
-.user-dropdown-trigger:hover {
-  color: #000 !important;
-  box-shadow: 0 0 15px rgba(0, 255, 0, 0.5) !important;
-}
-
-.new-post-button {
-  background: #000 !important;
-  color: #00ff00 !important;
-  border: 2px solid #00ff00 !important;
-  border-radius: 0 !important;
-  padding: 0.75rem 1.5rem !important;
-  font-family: 'Space Mono', monospace !important;
-  font-weight: 700 !important;
-  text-transform: uppercase !important;
-  letter-spacing: 1px !important;
-  font-size: 0.875rem !important;
-  position: relative !important;
-  overflow: hidden !important;
-  display: flex !important;
-  align-items: center !important;
-  gap: 0.75rem !important;
-  transition: all 0.3s ease !important;
-}
-
-.new-post-button::before {
-  content: '[NEW_POST]' !important;
-  position: relative !important;
-  z-index: 2 !important;
-}
-
-.new-post-button::after {
-  content: '' !important;
-  position: absolute !important;
-  top: 0 !important;
-  left: -100% !important;
-  width: 100% !important;
-  height: 100% !important;
-  background: #00ff00 !important;
-  transition: left 0.3s ease !important;
-  z-index: 1 !important;
-}
-
-.new-post-button:hover::after {
-  left: 0 !important;
-}
-
-.new-post-button:hover {
-  color: #000 !important;
-  box-shadow: 0 0 20px rgba(0, 255, 0, 0.5) !important;
-}
-
-/* Terminal screen effect */
 .ts-profile-container {
-  background: #0a0a0a !important;
-  border: 3px solid #333 !important;
+  background: #232019 !important;
+  border: 1px solid #3a352e !important;
   border-radius: 8px !important;
-  box-shadow: 
-    0 0 40px rgba(0, 255, 0, 0.1),
-    inset 0 0 60px rgba(0, 0, 0, 0.8) !important;
-  position: relative !important;
-  overflow: hidden !important;
+  box-shadow: none !important;
+  color: #ece7df !important;
+  animation: cn-settle 420ms ease-out both !important;
 }
 
-/* CRT scanlines */
-.ts-profile-container::before {
-  content: '' !important;
-  position: absolute !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  background: repeating-linear-gradient(
-    0deg,
-    rgba(0, 255, 0, 0.03),
-    rgba(0, 255, 0, 0.03) 1px,
-    transparent 1px,
-    transparent 2px
-  ) !important;
-  pointer-events: none !important;
-  z-index: 3 !important;
-  animation: scanlines 8s linear infinite !important;
-}
-
-@keyframes scanlines {
-  0% { transform: translateY(0); }
-  100% { transform: translateY(10px); }
-}
-
-/* Terminal flicker effect */
-.ts-profile-container::after {
-  content: '' !important;
-  position: absolute !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  background: rgba(18, 16, 16, 0.1) !important;
-  opacity: 0 !important;
-  z-index: 2 !important;
-  pointer-events: none !important;
-  animation: flicker 0.15s infinite !important;
-}
-
-@keyframes flicker {
-  0% { opacity: 0.27861; }
-  5% { opacity: 0.34769; }
-  10% { opacity: 0.23604; }
-  15% { opacity: 0.90626; }
-  20% { opacity: 0.18128; }
-  25% { opacity: 0.83891; }
-  30% { opacity: 0.65583; }
-  35% { opacity: 0.67807; }
-  40% { opacity: 0.26559; }
-  45% { opacity: 0.84693; }
-  50% { opacity: 0.96019; }
-  55% { opacity: 0.08594; }
-  60% { opacity: 0.20313; }
-  65% { opacity: 0.71988; }
-  70% { opacity: 0.53455; }
-  75% { opacity: 0.37288; }
-  80% { opacity: 0.71428; }
-  85% { opacity: 0.70419; }
-  90% { opacity: 0.7003; }
-  95% { opacity: 0.36108; }
-  100% { opacity: 0.24387; }
-}
-
-/* Terminal header */
 .ts-profile-header {
-  background: #1a1a1a !important;
-  border: 1px solid #00ff00 !important;
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 1px solid #3a352e !important;
   border-radius: 0 !important;
-  padding: 1.5rem !important;
-  margin-bottom: 1.5rem !important;
-  position: relative !important;
+  padding: 2.25rem 1.75rem 1.5rem !important;
+  margin-bottom: 1.25rem !important;
 }
 
-.ts-profile-header::before {
-  content: '[SYSTEM PROFILE]' !important;
-  position: absolute !important;
-  top: 0.5rem !important;
-  left: 1rem !important;
-  color: #00ff00 !important;
-  font-family: 'Space Mono', monospace !important;
-  font-size: 0.75rem !important;
-  opacity: 0.6 !important;
-}
-
-/* Terminal text styling */
 .ts-profile-display-name {
-  font-family: 'Share Tech Mono', monospace !important;
-  color: #00ff00 !important;
-  text-shadow: 
-    0 0 5px #00ff00,
-    0 0 10px #00ff00,
-    0 0 15px #00ff00 !important;
-  font-size: 2rem !important;
-  text-transform: uppercase !important;
-  letter-spacing: 2px !important;
-  animation: glow 2s ease-in-out infinite alternate !important;
+  font-family: 'Fraunces', Georgia, serif !important;
+  font-weight: 600 !important;
+  font-size: 2.1rem !important;
+  line-height: 1.15 !important;
+  color: #ece7df !important;
+  letter-spacing: 0.005em !important;
+  text-shadow: none !important;
+  animation: none !important;
 }
 
-@keyframes glow {
-  from { text-shadow: 0 0 5px #00ff00, 0 0 10px #00ff00, 0 0 15px #00ff00; }
-  to { text-shadow: 0 0 10px #00ff00, 0 0 20px #00ff00, 0 0 30px #00ff00; }
+.ts-profile-status {
+  color: #a89e8f !important;
+  font-size: 0.85rem !important;
+  font-style: italic !important;
+  letter-spacing: 0.02em !important;
 }
 
 .ts-profile-bio {
-  background: rgba(0, 0, 0, 0.8) !important;
-  border: 1px solid #00ff00 !important;
+  background: transparent !important;
+  border: none !important;
+  border-left: 2px solid #e8853d !important;
   border-radius: 0 !important;
-  padding: 1rem !important;
-  color: #00ff00 !important;
-  font-family: 'Space Mono', monospace !important;
-  font-size: 0.9rem !important;
-  line-height: 1.6 !important;
-  position: relative !important;
+  padding: 0.25rem 0 0.25rem 1rem !important;
+  margin-top: 0.9rem !important;
+  color: #cfc8bc !important;
+  font-family: 'Inter', system-ui, sans-serif !important;
+  font-size: 0.95rem !important;
+  line-height: 1.7 !important;
 }
 
-.ts-profile-bio::before {
-  content: '>' !important;
-  position: absolute !important;
-  left: 0.5rem !important;
-  color: #00ff00 !important;
-  animation: blink 1s infinite !important;
+.ts-profile-actions {
+  display: flex !important;
+  gap: 0.6rem !important;
+  margin-top: 1.4rem !important;
 }
 
-@keyframes blink {
-  0%, 50% { opacity: 1; }
-  51%, 100% { opacity: 0; }
+.ts-profile-button {
+  background: #1a1816 !important;
+  color: #ece7df !important;
+  border: 1px solid #3a352e !important;
+  border-radius: 4px !important;
+  padding: 0.5rem 1.1rem !important;
+  font-family: 'Inter', system-ui, sans-serif !important;
+  font-size: 0.85rem !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.02em !important;
+  box-shadow: none !important;
+  transition: border-color 160ms ease, color 160ms ease !important;
 }
 
-/* Terminal photo style */
-.ts-profile-photo-frame {
-  border: 2px solid #00ff00 !important;
-  filter: grayscale(100%) contrast(120%) !important;
-  box-shadow: 0 0 20px rgba(0, 255, 0, 0.3) !important;
+.ts-profile-button:hover {
+  border-color: #e8853d !important;
+  color: #e8853d !important;
+  background: #1a1816 !important;
+}
+
+/* ---------- profile photo ---------- */
+
+.profile-photo-wrapper {
+  background: transparent !important;
+  padding: 0 !important;
+}
+
+.profile-photo-frame {
+  background: #1a1816 !important;
+  border: 1px solid #3a352e !important;
+  border-radius: 6px !important;
+  padding: 4px !important;
+  box-shadow: none !important;
+  transition: border-color 200ms ease, box-shadow 200ms ease !important;
+}
+
+.profile-photo-frame:hover {
+  border-color: #e8853d !important;
+  /* the one permitted glow: a faint ember halo */
+  box-shadow: 0 0 18px rgba(232, 133, 61, 0.18) !important;
+}
+
+.profile-photo-image {
+  border-radius: 4px !important;
+  border: none !important;
+  filter: none !important;
+  display: block !important;
+}
+
+/* ---------- tabs ---------- */
+
+.profile-tab-list {
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 1px solid #3a352e !important;
   border-radius: 0 !important;
+  gap: 0.25rem !important;
+  padding: 0 0.5rem !important;
 }
 
-/* Terminal buttons */
-.thread-button {
-  background: #000 !important;
-  color: #00ff00 !important;
-  border: 1px solid #00ff00 !important;
+.profile-tab-list button,
+.profile-tab-list [role="tab"] {
+  background: transparent !important;
+  color: #a89e8f !important;
+  border: none !important;
+  border-bottom: 2px solid transparent !important;
   border-radius: 0 !important;
-  font-family: 'Space Mono', monospace !important;
-  font-weight: 700 !important;
-  text-transform: uppercase !important;
-  letter-spacing: 1px !important;
-  padding: 0.75rem 1.5rem !important;
-  position: relative !important;
-  overflow: hidden !important;
-  transition: all 0.3s ease !important;
+  font-family: 'Inter', system-ui, sans-serif !important;
+  font-size: 0.88rem !important;
+  font-weight: 500 !important;
+  padding: 0.6rem 0.9rem !important;
+  transition: color 160ms ease, border-color 160ms ease !important;
 }
 
-.thread-button::before {
-  content: '' !important;
-  position: absolute !important;
-  top: 0 !important;
-  left: -100% !important;
-  width: 100% !important;
-  height: 100% !important;
-  background: #00ff00 !important;
-  transition: left 0.3s ease !important;
+.profile-tab-list button:hover,
+.profile-tab-list [role="tab"]:hover {
+  color: #ece7df !important;
+  background: transparent !important;
 }
 
-.thread-button:hover::before {
-  left: 0 !important;
+.profile-tab-list button[aria-selected="true"],
+.profile-tab-list [role="tab"][aria-selected="true"] {
+  color: #e8853d !important;
+  border-bottom-color: #e8853d !important;
+  background: transparent !important;
+  font-weight: 600 !important;
 }
 
-.thread-button:hover {
-  color: #000 !important;
-  box-shadow: 0 0 20px rgba(0, 255, 0, 0.5) !important;
+.profile-tab-panel {
+  background: transparent !important;
+  border: none !important;
+  color: #ece7df !important;
+  padding-top: 1.5rem !important;
 }
 
-/* Tab styling */
-.profile-tab-button {
-  background: #000 !important;
-  color: #00ff00 !important;
-  border: 1px solid #333 !important;
-  border-radius: 0 !important;
-  font-family: 'Space Mono', monospace !important;
-  transition: all 0.2s ease !important;
+/* ---------- blog posts ---------- */
+
+.blog-post-card {
+  background: #232019 !important;
+  border: 1px solid #3a352e !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+  color: #ece7df !important;
+  padding: 1.6rem 1.75rem !important;
+  margin-bottom: 1.4rem !important;
+  transition: border-color 180ms ease !important;
 }
 
-.profile-tab-button:hover {
-  background: #111 !important;
-  border-color: #00ff00 !important;
-}
-
-.profile-tab-button[aria-selected="true"] {
-  background: #00ff00 !important;
-  color: #000 !important;
-  font-weight: 700 !important;
-}
-
-/* Content modules */
-.thread-module {
-  background: rgba(0, 0, 0, 0.9) !important;
-  border: 1px solid #333 !important;
-  border-radius: 0 !important;
-  color: #00ff00 !important;
-}
-
-/* Blog posts terminal style */
-.blog-post {
-  background: #0a0a0a !important;
-  border: 1px solid #00ff00 !important;
-  border-radius: 0 !important;
-  padding: 1rem !important;
-  color: #00ff00 !important;
-  font-family: 'Space Mono', monospace !important;
+.blog-post-card:hover {
+  border-color: #57503f !important;
 }
 
 .blog-post-header {
-  border-bottom: 1px dotted #00ff00 !important;
-  padding-bottom: 0.5rem !important;
-  margin-bottom: 0.5rem !important;
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 1px solid #2c2822 !important;
+  padding: 0 0 0.75rem 0 !important;
+  margin-bottom: 1rem !important;
 }
 
-/* Charcoal Nights Create New Post Button (Blog Tab) */
-.create-new-post-button {
-  background: linear-gradient(135deg, #1e1e1e 0%, #0f0f0f 100%) !important;
-  color: #00ff00 !important;
-  border: 2px solid #00ff00 !important;
-  border-radius: 4px !important;
-  padding: 0.6rem 1.2rem !important;
-  font-family: 'Courier New', monospace !important;
-  font-weight: 700 !important;
+.blog-post-title {
+  font-family: 'Fraunces', Georgia, serif !important;
+  font-weight: 600 !important;
+  font-size: 1.35rem !important;
+  line-height: 1.3 !important;
+  color: #ece7df !important;
+  letter-spacing: 0.005em !important;
+}
+
+.blog-post-title a {
+  color: inherit !important;
+  text-decoration: none !important;
+  transition: color 160ms ease !important;
+}
+
+.blog-post-title a:hover {
+  color: #e8853d !important;
+}
+
+.blog-post-date {
+  color: #7c7365 !important;
+  font-family: 'Inter', system-ui, sans-serif !important;
+  font-size: 0.75rem !important;
+  font-variant-numeric: tabular-nums !important;
+  letter-spacing: 0.08em !important;
   text-transform: uppercase !important;
-  letter-spacing: 1px !important;
-  font-size: 0.85rem !important;
-  transition: all 0.3s ease !important;
-  position: relative !important;
-  overflow: hidden !important;
-  box-shadow: 0 0 10px rgba(0, 255, 0, 0.3) !important;
 }
 
-.create-new-post-button::before {
-  content: '[NEW_POST]' !important;
-  position: absolute !important;
-  top: 0 !important;
-  left: -100% !important;
-  width: 100% !important;
-  height: 100% !important;
-  background: #00ff00 !important;
-  color: #000 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  transition: left 0.3s ease !important;
-  font-size: 0.85rem !important;
+.blog-post-content {
+  color: #cfc8bc !important;
+  font-family: 'Inter', system-ui, sans-serif !important;
+  font-size: 0.95rem !important;
+  line-height: 1.75 !important;
 }
 
-.create-new-post-button:hover::before {
-  left: 0 !important;
+.blog-post-content a {
+  color: #e8853d !important;
+  text-decoration: underline !important;
+  text-decoration-color: rgba(232, 133, 61, 0.4) !important;
+  text-underline-offset: 3px !important;
 }
 
-.create-new-post-button:hover {
-  color: transparent !important;
-  text-shadow: none !important;
-  box-shadow: 0 0 20px rgba(0, 255, 0, 0.6) !important;
+.blog-post-content a:hover {
+  text-decoration-color: #e8853d !important;
 }
 
-/* Responsive Button Styles for Charcoal Nights */
-@media (max-width: 1023px) {
-  .notification-button {
-    width: 36px !important;
-    height: 36px !important;
-    font-size: 1rem !important;
+.blog-post-content blockquote {
+  border-left: 2px solid #e8853d !important;
+  color: #a89e8f !important;
+  font-style: italic !important;
+  padding-left: 1rem !important;
+  margin: 1.1rem 0 !important;
+}
+
+.blog-post-content code {
+  background: #1a1816 !important;
+  border: 1px solid #2c2822 !important;
+  border-radius: 3px !important;
+  color: #ddb892 !important;
+  padding: 0.1em 0.35em !important;
+  font-size: 0.85em !important;
+}
+
+/* ---------- motion ---------- */
+
+@keyframes cn-settle {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ---------- phones ---------- */
+
+@media (max-width: 767px) {
+  .ts-profile-header {
+    padding: 1.5rem 1.1rem 1.1rem !important;
   }
-  
-  .user-dropdown-trigger {
-    padding: 0.4rem 0.7rem !important;
-    gap: 0.3rem !important;
-    font-size: 0.8rem !important;
+
+  .ts-profile-display-name {
+    font-size: 1.6rem !important;
   }
-  
-  .new-post-button {
-    padding: 0.6rem 1rem !important;
-    font-size: 0.8rem !important;
-    letter-spacing: 0.5px !important;
+
+  .ts-profile-actions {
+    flex-wrap: wrap !important;
   }
-  
-  .create-new-post-button {
-    padding: 0.5rem 1rem !important;
-    font-size: 0.75rem !important;
-    letter-spacing: 0.5px !important;
+
+  .blog-post-card {
+    padding: 1.15rem 1rem !important;
+    margin-bottom: 1rem !important;
   }
-  
-  .create-new-post-button::before {
-    font-size: 0.75rem !important;
+
+  .blog-post-title {
+    font-size: 1.15rem !important;
+  }
+
+  .profile-tab-list {
+    overflow-x: auto !important;
+    padding: 0 0.25rem !important;
+  }
+
+  .site-footer {
+    padding: 1.75rem 1rem !important;
   }
 }`;

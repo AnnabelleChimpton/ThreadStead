@@ -44,13 +44,16 @@ function MobileLoginStatus({ onAccountClick }: { onAccountClick: () => void }) {
   );
 }
 
-// Tracks whether the viewport is at the desktop breakpoint (md: 768px).
+// Tracks whether the viewport is at the desktop breakpoint (lg: 1024px).
+// The full nav (5 items + dropdowns + notifications + account) doesn't fit
+// between 768 and ~1050px, so the hamburger persists through tablet widths.
+// Must match the lg: classes on site-nav-container / the mobile toggle.
 // Returns null before hydration so exactly one branch renders after mount.
 function useIsDesktop() {
   const [isDesktop, setIsDesktop] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia("(min-width: 768px)");
+    const mediaQuery = window.matchMedia("(min-width: 1024px)");
     const update = () => setIsDesktop(mediaQuery.matches);
     update();
     mediaQuery.addEventListener("change", update);
@@ -362,8 +365,8 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
           </div>
           
           {/* Desktop Navigation */}
-          <div className="site-nav-container hidden md:flex items-center gap-8">
-            <div className="site-nav-links flex items-center gap-6">
+          <div className="site-nav-container hidden lg:flex items-center gap-4 xl:gap-8 min-w-0">
+            <div className="site-nav-links flex items-center gap-3 xl:gap-6">
               {/* Home link */}
               <Link
                 className="nav-link nav-link-underline text-thread-pine hover:text-thread-sunset font-medium underline hover:no-underline"
@@ -435,7 +438,7 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
                 ]}
               />
             </div>
-            <div className="site-nav-actions flex items-center gap-4">
+            <div className="site-nav-actions flex items-center gap-2 xl:gap-4">
               {isClient && me?.loggedIn ? (
                 <>
                   {isDesktop === true && <NotificationDropdown className="nav-link" />}
@@ -450,7 +453,7 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
           </div>
           
           {/* Mobile Navigation Controls */}
-          <div className="flex md:hidden items-center gap-2">
+          <div className="flex lg:hidden items-center gap-2">
             {isDesktop === false && <NotificationDropdown className="nav-link" />}
             <button
               id="hamburger-button"
@@ -475,7 +478,7 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
         {mobileMenuOpen && (
           <div
             id="mobile-menu"
-            className="md:hidden absolute left-0 right-0 top-full z-[9997] bg-thread-cream border-b border-thread-sage shadow-lg overflow-y-auto mobile-menu-animated"
+            className="lg:hidden absolute left-0 right-0 top-full z-[9997] bg-thread-cream border-b border-thread-sage shadow-lg overflow-y-auto mobile-menu-animated"
             style={{
               maxHeight: 'calc(100vh - 64px)',
               WebkitOverflowScrolling: 'touch'
@@ -697,7 +700,7 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
       </header>
 
       {/* Mobile Account Bottom Sheet - Hidden on desktop */}
-      <div className="md:hidden">
+      <div className="lg:hidden">
         <UserAccountBottomSheet
           isOpen={accountSheetOpen}
           onClose={() => setAccountSheetOpen(false)}

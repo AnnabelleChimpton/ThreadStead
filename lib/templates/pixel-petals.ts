@@ -1,487 +1,383 @@
-export const PIXEL_PETALS_TEMPLATE = `/* ===========================================
-   🌸 PIXEL PETALS - KAWAII GARDEN
-   =========================================== */
+export const PIXEL_PETALS_TEMPLATE = `@import url('https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Nunito:wght@400;600;700;800&display=swap');
 
-@import url('https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;600;700&family=Quicksand:wght@400;500;600&display=swap');
+/* ==============================================
+   PIXEL PETALS — a tidy little kawaii garden
+   ----------------------------------------------
+   palette:
+     cream page ......... #fff8fa
+     blossom light ...... #ffd4e8
+     blossom mid ........ #ff8fb8
+     deep rose (text) ... #c2477d
+     ink (body text) .... #53384a
+   fonts: Silkscreen (pixel headings), Nunito (body)
+   ============================================== */
 
-
-/* Override thread-surface for kawaii background */
+/* ---- page ground: flat cream with a faint
+        picnic-check texture, no gradient fades ---- */
 .thread-surface {
-  background: linear-gradient(135deg, #ffe0f0 0%, #ffd4e8 100%) !important;
+  background-color: #fff8fa !important;
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 143, 184, 0.06) 0px,
+      rgba(255, 143, 184, 0.06) 2px,
+      transparent 2px,
+      transparent 24px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 143, 184, 0.06) 0px,
+      rgba(255, 143, 184, 0.06) 2px,
+      transparent 2px,
+      transparent 24px
+    ) !important;
+  color: #53384a !important;
+  font-family: 'Nunito', sans-serif !important;
 }
 
-/* Kawaii Navigation */
+/* ---- header: flat blossom pink, hard pixel edge ---- */
 .site-header {
-  background: linear-gradient(135deg, #ff69b4 0%, #ffb6d9 50%, #ffc0cb 100%) !important;
-  border-bottom: 3px solid #ff69b4 !important;
+  background: #ffd4e8 !important;
+  border-bottom: 3px dotted #ff8fb8 !important;
+  box-shadow: 0 3px 0 rgba(255, 143, 184, 0.35) !important;
   backdrop-filter: none !important;
-  box-shadow: 0 4px 16px rgba(255, 105, 180, 0.3) !important;
-  position: relative !important;
-}
-
-.site-header::after {
-  content: '🌸' !important;
-  position: absolute !important;
-  top: 50% !important;
-  right: 2rem !important;
-  transform: translateY(-50%) !important;
-  font-size: 1.5rem !important;
-  animation: bounce 2s infinite !important;
 }
 
 .site-title {
-  color: #fff !important;
-  font-family: 'Comfortaa', cursive !important;
+  font-family: 'Silkscreen', monospace !important;
   font-weight: 700 !important;
-  text-shadow: 2px 2px 0 #ff69b4, 4px 4px 8px rgba(255, 105, 180, 0.3) !important;
+  font-size: 1.35rem !important;
+  letter-spacing: 0.5px !important;
+  color: #c2477d !important;
+  text-shadow: 2px 2px 0 #ffffff !important;
+}
+
+/* one of only two emoji in the whole sheet */
+.site-title::after {
+  content: ' 🌸' !important;
+  font-size: 0.9em !important;
+  display: inline-block !important;
+  animation: petal-bob 4s ease-in-out infinite !important;
 }
 
 .site-tagline {
-  color: rgba(255, 255, 255, 0.9) !important;
-  font-family: 'Quicksand', sans-serif !important;
-  font-weight: 500 !important;
-}
-
-.nav-link {
-  color: #fff !important;
-  font-family: 'Quicksand', sans-serif !important;
+  font-family: 'Nunito', sans-serif !important;
   font-weight: 600 !important;
-  background: rgba(255, 255, 255, 0.1) !important;
-  border-radius: 20px !important;
-  padding: 0.5rem 1rem !important;
-  transition: all 0.2s ease !important;
-  text-transform: lowercase !important;
+  font-style: normal !important;
+  color: #a04e74 !important;
+  letter-spacing: 0.3px !important;
 }
 
-.nav-link:hover {
-  background: rgba(255, 255, 255, 0.3) !important;
-  transform: translateY(-2px) !important;
-  box-shadow: 0 4px 8px rgba(255, 105, 180, 0.2) !important;
-  text-decoration: none !important;
-}
-
-/* Kawaii footer */
-.site-footer {
-  background: #fff !important;
-  border-top: 3px dashed #ffb6d9 !important;
-  position: relative !important;
-}
-
-.site-footer::before {
-  content: '💕' !important;
-  position: absolute !important;
-  top: -15px !important;
-  left: 50% !important;
-  transform: translateX(-50%) !important;
-  background: #fff !important;
-  padding: 0 1rem !important;
-  font-size: 1.5rem !important;
-}
-
-.footer-tagline {
-  color: #d63384 !important;
-  font-family: 'Quicksand', sans-serif !important;
-  font-weight: 500 !important;
-}
-
-/* Kawaii Interactive Buttons */
-.notification-button {
-  background: linear-gradient(135deg, #ff69b4 0%, #ffb6d9 100%) !important;
-  color: white !important;
-  border: 3px solid #fff !important;
-  border-radius: 50% !important;
-  width: 45px !important;
-  height: 45px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  font-size: 1.2rem !important;
-  box-shadow: 
-    0 4px 0 #d63384,
-    0 6px 12px rgba(255, 105, 180, 0.3) !important;
-  transition: all 0.2s ease !important;
-  position: relative !important;
-}
-
-.notification-button:hover {
-  transform: translateY(2px) !important;
-  box-shadow: 
-    0 2px 0 #d63384,
-    0 4px 8px rgba(255, 105, 180, 0.2) !important;
-}
-
-.notification-button.has-notifications::after {
-  content: '💕' !important;
-  position: absolute !important;
-  top: -8px !important;
-  right: -8px !important;
-  font-size: 1rem !important;
-  animation: bounce 1s infinite !important;
-}
-
-.user-dropdown-trigger {
-  background: linear-gradient(135deg, #ff69b4 0%, #ffb6d9 100%) !important;
-  color: white !important;
-  border: 3px solid #fff !important;
-  border-radius: 25px !important;
-  padding: 0.5rem 1.25rem !important;
-  font-family: 'Comfortaa', cursive !important;
-  font-weight: 600 !important;
-  text-transform: lowercase !important;
-  font-size: 0.9rem !important;
+.site-navigation {
   display: flex !important;
   align-items: center !important;
   gap: 0.5rem !important;
-  box-shadow: 
-    0 4px 0 #d63384,
-    0 6px 12px rgba(255, 105, 180, 0.3) !important;
-  transition: all 0.2s ease !important;
-  position: relative !important;
 }
 
-.user-dropdown-trigger::after {
-  content: '✨' !important;
+.nav-link {
+  font-family: 'Nunito', sans-serif !important;
+  font-weight: 700 !important;
   font-size: 0.9rem !important;
+  color: #c2477d !important;
+  background: #fff8fa !important;
+  border: 2px solid #ff8fb8 !important;
+  border-radius: 3px !important;
+  padding: 0.3rem 0.8rem !important;
+  box-shadow: 2px 2px 0 #ff8fb8 !important;
+  text-decoration: none !important;
+  transition: transform 0.15s ease, box-shadow 0.15s ease !important;
 }
 
-.user-dropdown-trigger:hover {
-  transform: translateY(2px) !important;
-  box-shadow: 
-    0 2px 0 #d63384,
-    0 4px 8px rgba(255, 105, 180, 0.2) !important;
+.nav-link:hover {
+  background: #ffffff !important;
+  color: #c2477d !important;
+  transform: translate(1px, 1px) !important;
+  box-shadow: 1px 1px 0 #ff8fb8 !important;
+  text-decoration: none !important;
 }
 
-.new-post-button {
-  background: linear-gradient(135deg, #ff69b4 0%, #ffb6d9 100%) !important;
-  color: white !important;
-  border: 4px solid #fff !important;
-  border-radius: 30px !important;
-  padding: 1rem 2rem !important;
-  font-family: 'Comfortaa', cursive !important;
-  font-weight: 700 !important;
-  text-transform: lowercase !important;
-  letter-spacing: 0.5px !important;
-  font-size: 1rem !important;
-  display: flex !important;
-  align-items: center !important;
-  gap: 0.75rem !important;
-  box-shadow: 
-    0 6px 0 #d63384,
-    0 8px 16px rgba(255, 105, 180, 0.3) !important;
-  transition: all 0.2s ease !important;
-  position: relative !important;
+/* ---- mobile menu: same garden, smaller pot ---- */
+#mobile-menu {
+  background: #fff8fa !important;
+  border: 2px solid #ff8fb8 !important;
+  border-radius: 3px 12px 3px 12px !important;
+  box-shadow: 3px 3px 0 #ffd4e8 !important;
+  padding: 0.75rem !important;
 }
 
-.new-post-button::before {
-  content: '📝' !important;
-  font-size: 1.2rem !important;
+#mobile-menu .nav-link {
+  display: block !important;
+  margin: 0.4rem 0 !important;
+  text-align: center !important;
 }
 
-.new-post-button::after {
-  content: '💖' !important;
-  font-size: 1rem !important;
+/* ---- footer: cream with an awning-stripe hem ---- */
+.site-footer {
+  background: #fff8fa !important;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgba(255, 212, 232, 0.4) 0px,
+    rgba(255, 212, 232, 0.4) 8px,
+    transparent 8px,
+    transparent 16px
+  ) !important;
+  border-top: 3px dotted #ff8fb8 !important;
+  color: #a04e74 !important;
 }
 
-.new-post-button:hover {
-  transform: translateY(3px) !important;
-  box-shadow: 
-    0 3px 0 #d63384,
-    0 5px 10px rgba(255, 105, 180, 0.2) !important;
-  animation: bounce 0.5s ease !important;
+.footer-tagline {
+  font-family: 'Silkscreen', monospace !important;
+  font-size: 0.8rem !important;
+  color: #c2477d !important;
 }
 
-/* Tiled pixel background */
+/* the second (and last) emoji in the sheet */
+.footer-tagline::after {
+  content: ' ✿' !important;
+  color: #ff8fb8 !important;
+}
+
+.footer-copyright {
+  font-family: 'Nunito', sans-serif !important;
+  font-weight: 600 !important;
+  font-size: 0.8rem !important;
+  color: #a04e74 !important;
+}
+
+/* ---- generic content modules ---- */
+.thread-module {
+  background: #ffffff !important;
+  border: 2px solid #ffd4e8 !important;
+  border-radius: 10px !important;
+  box-shadow: 3px 3px 0 #ffd4e8 !important;
+  color: #53384a !important;
+}
+
+/* ---- profile: the shrine centerpiece ---- */
 .ts-profile-container {
-  background: 
-    repeating-linear-gradient(
-      90deg,
-      #ffe0f0 0px,
-      #ffe0f0 20px,
-      #ffd4e8 20px,
-      #ffd4e8 40px
-    ),
-    repeating-linear-gradient(
-      0deg,
-      #ffe0f0 0px,
-      #ffe0f0 20px,
-      #ffd4e8 20px,
-      #ffd4e8 40px
-    ) !important;
-  background-size: 40px 40px !important;
-  border: 4px solid #ff69b4 !important;
-  border-radius: 20px !important;
-  box-shadow: 
-    0 8px 32px rgba(255, 105, 180, 0.2),
-    inset 0 0 0 2px #fff !important;
-  position: relative !important;
-  overflow: hidden !important;
+  background: #ffffff !important;
+  border: 3px dashed #ff8fb8 !important;
+  border-radius: 14px 4px 14px 4px !important;
+  box-shadow:
+    4px 4px 0 #ffd4e8,
+    0 0 0 6px #fff8fa !important;
+  padding: 1rem !important;
 }
 
-/* Floating petals animation */
-.ts-profile-container::before,
-.ts-profile-container::after {
-  content: '🌸' !important;
-  position: absolute !important;
-  font-size: 2rem !important;
-  animation: float 10s infinite ease-in-out !important;
-  pointer-events: none !important;
-  z-index: 1 !important;
-}
-
-.ts-profile-container::before {
-  top: 10% !important;
-  left: 5% !important;
-  animation-delay: 0s !important;
-}
-
-.ts-profile-container::after {
-  top: 60% !important;
-  right: 10% !important;
-  animation-delay: 5s !important;
-  content: '🌺' !important;
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  33% { transform: translateY(-20px) rotate(120deg); }
-  66% { transform: translateY(10px) rotate(240deg); }
-}
-
-/* Kawaii header */
+/* the single allowed gradient: a whisper of pink,
+   scallop-dotted along its bottom edge */
 .ts-profile-header {
-  background: linear-gradient(135deg, #ff69b4 0%, #ffb6d9 50%, #ffc0cb 100%) !important;
-  padding: 2rem !important;
-  border-radius: 16px !important;
-  margin-bottom: 1.5rem !important;
-  position: relative !important;
-  overflow: hidden !important;
+  background: linear-gradient(180deg, #fff0f6 0%, #ffd4e8 100%) !important;
+  border: none !important;
+  border-bottom: 3px dotted #ff8fb8 !important;
+  border-radius: 10px 10px 2px 2px !important;
+  padding: 1.75rem 1.5rem !important;
+  margin-bottom: 1.25rem !important;
 }
 
-/* Bubble decoration */
-.ts-profile-header::before {
-  content: '' !important;
-  position: absolute !important;
-  width: 100px !important;
-  height: 100px !important;
-  background: rgba(255, 255, 255, 0.3) !important;
-  border-radius: 50% !important;
-  top: -50px !important;
-  right: -30px !important;
-}
-
-.ts-profile-header::after {
-  content: '' !important;
-  position: absolute !important;
-  width: 60px !important;
-  height: 60px !important;
-  background: rgba(255, 255, 255, 0.2) !important;
-  border-radius: 50% !important;
-  bottom: -30px !important;
-  left: 20px !important;
-}
-
-/* Cute typography */
 .ts-profile-display-name {
-  font-family: 'Comfortaa', cursive !important;
+  font-family: 'Silkscreen', monospace !important;
   font-weight: 700 !important;
-  color: #fff !important;
-  text-shadow: 
-    2px 2px 0 #ff69b4,
-    4px 4px 8px rgba(255, 105, 180, 0.3) !important;
-  font-size: 2.5rem !important;
-  animation: bounce 2s infinite !important;
+  font-size: 1.9rem !important;
+  color: #c2477d !important;
+  text-shadow: 2px 2px 0 #ffffff, 4px 4px 0 #ffd4e8 !important;
+  letter-spacing: 0.5px !important;
 }
 
-@keyframes bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
+.ts-profile-status {
+  display: inline-block !important;
+  font-family: 'Nunito', sans-serif !important;
+  font-weight: 700 !important;
+  font-size: 0.8rem !important;
+  color: #c2477d !important;
+  background: #fff8fa !important;
+  border: 2px solid #ffd4e8 !important;
+  border-radius: 999px !important;
+  padding: 0.15rem 0.75rem !important;
 }
 
 .ts-profile-bio {
-  background: rgba(255, 255, 255, 0.9) !important;
-  border: 2px solid #ffb6d9 !important;
-  border-radius: 16px !important;
-  padding: 1.25rem !important;
-  color: #d63384 !important;
-  font-family: 'Quicksand', sans-serif !important;
-  font-weight: 500 !important;
-  line-height: 1.7 !important;
-  box-shadow: 0 4px 12px rgba(255, 105, 180, 0.1) !important;
-  position: relative !important;
-}
-
-/* Heart decoration */
-.ts-profile-bio::after {
-  content: '💕' !important;
-  position: absolute !important;
-  top: -10px !important;
-  right: 20px !important;
-  font-size: 1.5rem !important;
-}
-
-/* Polaroid-style photo */
-.ts-profile-photo-frame {
-  background: #fff !important;
-  border: 10px solid #fff !important;
-  box-shadow: 
-    0 4px 16px rgba(255, 105, 180, 0.2),
-    0 0 0 2px #ffb6d9 !important;
-  transform: rotate(-5deg) !important;
-  transition: all 0.3s ease !important;
-  border-radius: 8px !important;
-}
-
-.ts-profile-photo-section:hover .ts-profile-photo-frame {
-  transform: rotate(5deg) scale(1.1) !important;
-  box-shadow: 
-    0 8px 24px rgba(255, 105, 180, 0.3),
-    0 0 0 2px #ff69b4 !important;
-}
-
-/* Kawaii buttons */
-.thread-button {
-  background: linear-gradient(135deg, #ff69b4 0%, #ffb6d9 100%) !important;
-  color: white !important;
-  border: 3px solid #fff !important;
-  border-radius: 25px !important;
-  padding: 0.75rem 1.75rem !important;
-  font-family: 'Comfortaa', cursive !important;
+  background: #fff8fa !important;
+  border: 2px solid #ffd4e8 !important;
+  border-radius: 4px !important;
+  padding: 1.1rem 1.25rem !important;
+  color: #53384a !important;
+  font-family: 'Nunito', sans-serif !important;
   font-weight: 600 !important;
+  line-height: 1.7 !important;
+  box-shadow: 2px 2px 0 #ffd4e8 !important;
+}
+
+.ts-profile-actions {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 0.6rem !important;
+  margin-top: 0.75rem !important;
+}
+
+.ts-profile-button {
+  font-family: 'Nunito', sans-serif !important;
+  font-weight: 800 !important;
+  font-size: 0.85rem !important;
+  color: #c2477d !important;
+  background: #ffffff !important;
+  border: 2px solid #c2477d !important;
+  border-radius: 3px !important;
+  padding: 0.4rem 1rem !important;
+  box-shadow: 2px 2px 0 #ff8fb8 !important;
+  transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+.ts-profile-button:hover {
+  background: #ffd4e8 !important;
+  color: #c2477d !important;
+  transform: translate(1px, 1px) !important;
+  box-shadow: 1px 1px 0 #ff8fb8 !important;
+}
+
+/* ---- photo: a sticker-sheet polaroid ---- */
+.profile-photo-wrapper {
+  display: inline-block !important;
+  transform: rotate(-2deg) !important;
+  transition: transform 0.25s ease !important;
+}
+
+.profile-photo-wrapper:hover {
+  transform: rotate(1deg) !important;
+}
+
+.profile-photo-frame {
+  background: #ffffff !important;
+  border: 8px solid #ffffff !important;
+  border-radius: 2px !important;
+  box-shadow:
+    0 0 0 2px #ff8fb8,
+    5px 5px 0 #ffd4e8 !important;
+}
+
+.profile-photo-image {
+  border-radius: 1px !important;
+  image-rendering: pixelated !important;
+  display: block !important;
+}
+
+/* ---- blog posts: pressed-flower diary pages ---- */
+.blog-post-card {
+  background: #ffffff !important;
+  border: 2px dotted #ff8fb8 !important;
+  border-radius: 4px 16px 4px 16px !important;
+  box-shadow: 3px 3px 0 #ffd4e8 !important;
+  padding: 1.4rem 1.5rem !important;
+  margin-bottom: 1.25rem !important;
+}
+
+.blog-post-header {
+  border-bottom: 2px dotted #ffd4e8 !important;
+  padding-bottom: 0.6rem !important;
+  margin-bottom: 0.9rem !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: baseline !important;
+  gap: 0.5rem 1rem !important;
+}
+
+.blog-post-title {
+  font-family: 'Silkscreen', monospace !important;
+  font-weight: 700 !important;
+  font-size: 1.05rem !important;
+  color: #c2477d !important;
+  letter-spacing: 0.3px !important;
+}
+
+.blog-post-title a {
+  color: #c2477d !important;
+  text-decoration: none !important;
+}
+
+.blog-post-title a:hover {
+  text-decoration: underline dotted #ff8fb8 !important;
+}
+
+.blog-post-date {
+  font-family: 'Nunito', sans-serif !important;
+  font-weight: 700 !important;
+  font-size: 0.75rem !important;
   text-transform: lowercase !important;
   letter-spacing: 0.5px !important;
-  box-shadow: 
-    0 4px 0 #d63384,
-    0 6px 12px rgba(255, 105, 180, 0.3) !important;
-  transition: all 0.2s ease !important;
-  position: relative !important;
+  color: #a04e74 !important;
+  background: #fff8fa !important;
+  border: 1px solid #ffd4e8 !important;
+  border-radius: 999px !important;
+  padding: 0.1rem 0.6rem !important;
 }
 
-.thread-button:hover {
-  transform: translateY(2px) !important;
-  box-shadow: 
-    0 2px 0 #d63384,
-    0 4px 8px rgba(255, 105, 180, 0.2) !important;
+.blog-post-content {
+  font-family: 'Nunito', sans-serif !important;
+  font-weight: 500 !important;
+  color: #53384a !important;
+  line-height: 1.75 !important;
 }
 
-.thread-button::after {
-  content: '✨' !important;
-  position: absolute !important;
-  right: 1rem !important;
+/* ---- tabs: little seed-packet labels ---- */
+.profile-tab-list {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 0.4rem !important;
+  border-bottom: 3px dotted #ff8fb8 !important;
+  padding-bottom: 0 !important;
+  background: transparent !important;
 }
 
-/* Tab styling */
-.profile-tab-button {
-  background: #fff !important;
-  color: #ff69b4 !important;
-  border: 2px solid #ffb6d9 !important;
-  border-radius: 20px 20px 0 0 !important;
-  font-family: 'Quicksand', sans-serif !important;
-  font-weight: 600 !important;
-  transition: all 0.2s ease !important;
+.profile-tab-panel {
+  background: #ffffff !important;
+  border: 2px solid #ffd4e8 !important;
+  border-top: none !important;
+  border-radius: 0 0 10px 10px !important;
+  padding: 1.25rem !important;
+  color: #53384a !important;
 }
 
-.profile-tab-button:hover {
-  background: #ffe0f0 !important;
-  border-color: #ff69b4 !important;
+/* ---- the one gentle animation ---- */
+@keyframes petal-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
 }
 
-.profile-tab-button[aria-selected="true"] {
-  background: #ff69b4 !important;
-  color: #fff !important;
-  border-color: #ff69b4 !important;
-}
-
-/* Content cards */
-.thread-module {
-  background: rgba(255, 255, 255, 0.95) !important;
-  border: 2px solid #ffb6d9 !important;
-  border-radius: 16px !important;
-  box-shadow: 0 4px 12px rgba(255, 105, 180, 0.1) !important;
-}
-
-/* Blog posts */
-.blog-post {
-  background: #fff !important;
-  border: 2px dashed #ffb6d9 !important;
-  border-radius: 12px !important;
-  padding: 1.5rem !important;
-  position: relative !important;
-}
-
-.blog-post::before {
-  content: '📝' !important;
-  position: absolute !important;
-  top: -10px !important;
-  left: 20px !important;
-  background: #fff !important;
-  padding: 0 8px !important;
-  font-size: 1.25rem !important;
-}
-
-/* Pixel Petals Create New Post Button (Blog Tab) */
-.create-new-post-button {
-  background: linear-gradient(135deg, #ff69b4 0%, #ffb6d9 50%, #ffc0cb 100%) !important;
-  color: white !important;
-  border: 3px solid #fff !important;
-  border-radius: 25px !important;
-  padding: 0.6rem 1.2rem !important;
-  font-family: 'Comfortaa', cursive !important;
-  font-weight: 700 !important;
-  text-transform: lowercase !important;
-  letter-spacing: 0.3px !important;
-  font-size: 0.85rem !important;
-  transition: all 0.2s ease !important;
-  position: relative !important;
-  box-shadow: 
-    0 4px 0 #d63384,
-    0 6px 12px rgba(255, 105, 180, 0.3) !important;
-}
-
-.create-new-post-button::before {
-  content: '📝💖 ' !important;
-  font-size: 1rem !important;
-}
-
-.create-new-post-button:hover {
-  transform: translateY(-2px) scale(1.05) !important;
-  box-shadow: 
-    0 6px 0 #d63384,
-    0 8px 16px rgba(255, 105, 180, 0.4) !important;
-  animation: bounce 0.6s ease !important;
-}
-
-@keyframes bounce {
-  0%, 100% { transform: translateY(-2px) scale(1.05); }
-  50% { transform: translateY(-4px) scale(1.08); }
-}
-
-/* Responsive Button Styles for Pixel Petals */
-@media (max-width: 1023px) {
-  .notification-button {
-    width: 36px !important;
-    height: 36px !important;
-    font-size: 1rem !important;
+/* ---- phones: looser thumbs, tighter padding ---- */
+@media (max-width: 767px) {
+  .ts-profile-container {
+    padding: 0.6rem !important;
+    border-radius: 10px 3px 10px 3px !important;
   }
-  
-  .user-dropdown-trigger {
-    padding: 0.4rem 0.7rem !important;
-    gap: 0.3rem !important;
-    font-size: 0.8rem !important;
+
+  .ts-profile-header {
+    padding: 1.2rem 1rem !important;
   }
-  
-  .new-post-button {
-    padding: 0.5rem 1rem !important;
-    font-size: 0.75rem !important;
-    letter-spacing: 0.2px !important;
+
+  .ts-profile-display-name {
+    font-size: 1.4rem !important;
+    text-shadow: 2px 2px 0 #ffffff !important;
   }
-  
-  .create-new-post-button {
-    padding: 0.5rem 1rem !important;
-    font-size: 0.75rem !important;
-    letter-spacing: 0.2px !important;
+
+  .site-title {
+    font-size: 1.1rem !important;
   }
-  
-  .create-new-post-button::before {
-    font-size: 0.9rem !important;
+
+  .blog-post-card {
+    padding: 1rem !important;
+  }
+
+  .blog-post-title {
+    font-size: 0.95rem !important;
+  }
+
+  .nav-link,
+  .ts-profile-button {
+    padding: 0.45rem 0.9rem !important;
+    font-size: 0.85rem !important;
+  }
+
+  .profile-tab-panel {
+    padding: 0.9rem !important;
   }
 }`;
