@@ -812,11 +812,14 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   // scoped user CSS to '#profile-layout', an id no element carries, so it was
   // dead weight that only leaked accidental output while the raw copy did the
   // real work. One CSS source, one injection.
-  const shouldIncludeSiteCSS = props.includeSiteCSS && cssMode !== 'disable';
+  // Site CSS is NOT carried here: layered site CSS loses to unlayered
+  // Tailwind utilities and the admin panel's CSS visibly stopped applying.
+  // The single delivery point is _app.tsx#site-wide-css (raw, unlayered,
+  // SSR-primed via props.initialSiteCSS above).
   const preRenderedCSS = generateOptimizedCSS({
     cssMode,
     templateMode,
-    siteWideCSS: shouldIncludeSiteCSS ? siteWideCSS : '',
+    siteWideCSS: '',
     userCustomCSS: '',
     profileId: 'profile-layout'
   });

@@ -49,8 +49,10 @@ export function useSiteCSS(options: UseSiteCSSOptions = {}) {
           if (shouldInjectToDOM && typeof document !== 'undefined') {
             let styleElement = document.getElementById('site-wide-css');
             if (styleElement) {
-              const layeredCSS = siteCSS ? `@layer threadstead-site {\n${siteCSS}\n}` : '';
-              styleElement.innerHTML = layeredCSS;
+              // Raw, UNLAYERED — layered site CSS loses to unlayered Tailwind
+              // utilities and visibly stops applying (must match what
+              // _app.tsx renders for this element).
+              styleElement.innerHTML = siteCSS || '';
             }
           } else if (options.cssMode === 'disable' && typeof document !== 'undefined') {
             // For 'disable' mode, clear any existing site CSS injection

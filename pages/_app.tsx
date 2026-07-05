@@ -171,24 +171,24 @@ export default function MyApp({ Component, pageProps }: AppProps) {
                   }} />
                 )}
 
-                {/* Load site-wide CSS based on page type and user preference.
-                    Non-advanced profile pages get site CSS ONCE, via the
-                    SSR-prerendered layered stylesheet in ProfileLayout —
-                    rendering it here too delivered it twice. Advanced pages
-                    bypass ProfileLayout's injection, so they still need this
-                    copy. cssMode 'disable' now actually suppresses it (it
-                    previously only worked by cascade accident). */}
+                {/* Site-wide CSS (admin panel): rendered on every page except
+                    profiles whose cssMode is 'disable' (full user control).
+                    SSR-primed on profile pages via initialSiteCSS. */}
                 {(!isProfilePage ||
-                  (includeSiteCSS &&
-                    actualCSSMode !== 'disable' &&
-                    pageProps.templateMode === 'advanced')) && (
+                  (includeSiteCSS && actualCSSMode !== 'disable')) && (
                   <style
                     id="site-wide-css"
                     key="site-css"
                     dangerouslySetInnerHTML={{
-                      __html: css
-                        ? `@layer threadstead-site {\n${css}\n}`
-                        : '/* Site CSS loading... */'
+                      // DELIBERATELY UNLAYERED: admin site CSS overrides
+                      // elements that Tailwind utilities also style, and in
+                      // the cascade layered normal declarations LOSE to
+                      // unlayered ones. Wrapping this in @layer
+                      // threadstead-site made the admin panel's site CSS
+                      // silently stop applying. This tag is the ONE delivery
+                      // point for site CSS (SSR-primed via initialSiteCSS on
+                      // profile pages; ProfileLayout no longer carries it).
+                      __html: css || '/* Site CSS loading... */'
                     }}
                   />
                 )}

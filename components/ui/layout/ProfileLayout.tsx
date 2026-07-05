@@ -35,7 +35,9 @@ export default function ProfileLayout({
   // resolution the profile-page SSR uses, so server and client agree.
   const actualCSSMode = resolveCSSMode(cssMode, customCSS);
 
-  const { css: siteWideCSS } = useSiteCSS({
+  // Return value unused — the hook still manages #site-wide-css DOM behavior
+  // (e.g. clearing it in disable mode) on client-side navigations.
+  useSiteCSS({
     skipDOMInjection: templateMode === 'advanced', // Advanced templates manage their own CSS
     cssMode: actualCSSMode,
     initialCSS: initialSiteCSS // Pass SSR-fetched CSS to prevent hydration mismatch
@@ -47,11 +49,12 @@ export default function ProfileLayout({
   // _app.tsx#profile-page-styles; previews: their own raw <style>). The old
   // layered user copy was scoped to '#profile-layout', an id nothing renders,
   // so it never worked by design — only by accident.
-  const shouldIncludeSiteCSS = includeSiteCSS && actualCSSMode !== 'disable';
   const layeredCSS = preRenderedCSS ?? generateOptimizedCSS({
     cssMode: actualCSSMode,
     templateMode,
-    siteWideCSS: shouldIncludeSiteCSS ? siteWideCSS : '',
+    // Site CSS is delivered ONLY by _app.tsx#site-wide-css (raw/unlayered —
+    // layered site CSS loses to Tailwind utilities and stops applying).
+    siteWideCSS: '',
     userCustomCSS: '',
     profileId: 'profile-layout'
   });
