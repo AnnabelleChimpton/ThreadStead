@@ -66,6 +66,16 @@ export default function MidiPlayer({
   const activeNodesRef = useRef<Array<{ osc: OscillatorNode; gain: GainNode; endTime: number; id: string }>>([]); // Track active notes
   const autoplayTriggeredRef = useRef<boolean>(false);
   const playButtonClickedRef = useRef<boolean>(false);
+  // The progress interval's completion/loop check runs inside a closure
+  // captured when playback STARTED, so it can't read live `loop`/`isPlaying`
+  // state — it saw loop as its start-time value and isPlaying as false, which
+  // is why "loop continuously" never worked. This ref carries the live value.
+  const loopRef = useRef<boolean>(loop);
+  // Guards against a second play() firing while one is already starting up
+  // (the autoplay resume + a user click could both call play → doubled song).
+  const startingRef = useRef<boolean>(false);
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  useEffect(() => { loopRef.current = loop; }, [loop]);
   
   // Advanced performance optimization refs
   const nodePoolRef = useRef<Array<{ osc: OscillatorNode; gain: GainNode; available: boolean }>>([]);
@@ -1687,21 +1697,36 @@ export default function MidiPlayer({
       setIsLoading(true);
       setError(null);
 
-      // Fetch MIDI file
-      const response = await fetch(midiUrl);
+      // Fetch MIDI file (with a timeout — a hung R2 fetch shouldn't block
+      // the player forever with no feedback).
+      const response = await fetch(midiUrl, { signal: AbortSignal.timeout(15000) });
+      if (!response.ok) {
+        throw new Error(`Could not fetch the song (HTTP ${response.status})`);
+      }
       const arrayBuffer = await response.arrayBuffer();
 
       // Parse MIDI using @tonejs/midi
       const { Midi } = await import('@tonejs/midi');
       const midi = new Midi(arrayBuffer);
+      if (!midi.tracks?.length) {
+        throw new Error('This file has no playable tracks');
+      }
 
       midiDataRef.current = midi;
       setDuration(midi.duration);
-      
+
       setIsLoading(false);
 
     } catch (err) {
-      setError('Failed to load MIDI file');
+      // Surface a real reason instead of a generic silent failure — the old
+      // code always said "Failed to load MIDI file" and swallowed the cause.
+      const reason =
+        (err as any)?.name === 'TimeoutError'
+          ? "The song took too long to load"
+          : err instanceof Error
+            ? err.message
+            : 'Failed to load the song';
+      setError(reason);
       setIsLoading(false);
     }
   };
@@ -1912,7 +1937,12 @@ export default function MidiPlayer({
     // Optimized progress tracking with batched scheduling
     progressIntervalRef.current = setInterval(() => {
       const elapsed = (Date.now() - playbackStartTimeRef.current) / 1000;
-      const progressPercent = duration > 0 ? (elapsed / duration) * 100 : 0;
+      // Read duration LIVE from the parsed MIDI, not the `duration` state var:
+      // on the first manual play the state closure is still 0 (setDuration
+      // hasn't re-rendered yet), so progress froze at 0% and the song never
+      // "ended" — the button stuck on Stop and looping never fired.
+      const liveDuration = midiDataRef.current?.duration || duration;
+      const progressPercent = liveDuration > 0 ? (elapsed / liveDuration) * 100 : 0;
       
       // Schedule more notes as we progress
       scheduleNextBatch();
@@ -1963,10 +1993,15 @@ export default function MidiPlayer({
         // Clean up any remaining nodes
         activeNodesRef.current = [];
 
-        if (loop && isPlaying) {
+        // Loop if requested. Reaching 100% inside our own running interval
+        // means THIS playback finished legitimately — gate on loopRef (live),
+        // not the stale `isPlaying`/`loop` closure values that made
+        // "loop continuously" a no-op.
+        if (loopRef.current) {
+          setIsPlaying(true);
+          globalAudio.setProfileMidiPlaying(true);
           setTimeout(() => {
-            // Double-check that we're still supposed to be playing
-            if (isPlaying && loop) {
+            if (loopRef.current) {
               playMidi();
             }
           }, 100);
@@ -2110,11 +2145,22 @@ export default function MidiPlayer({
         progressIntervalRef.current = null;
       }
     } else {
-      // Resume playback from pause point or start from beginning
-      const startOffset = isPaused ? pausedAt : 0;
-      setIsPaused(false);
-      
-      await playMidi(startOffset);
+      // Guard against a start-while-starting: autoplay's resume() can be
+      // pending (suspended context) when the visitor clicks play, and both
+      // paths would call playMidi → the song scheduled twice, overlapped.
+      if (startingRef.current) {
+        return;
+      }
+      startingRef.current = true;
+      try {
+        // Resume playback from pause point or start from beginning
+        const startOffset = isPaused ? pausedAt : 0;
+        setIsPaused(false);
+
+        await playMidi(startOffset);
+      } finally {
+        startingRef.current = false;
+      }
     }
   };
 
@@ -2711,6 +2757,13 @@ export default function MidiPlayer({
       resetPauseState(); // Reset pause state when component unmounts
       // Reset click debounce
       playButtonClickedRef.current = false;
+      // Drop the parsed MIDI so a changed midiUrl (SPA nav between two music
+      // profiles reuses this component) can't play the PREVIOUS song. Without
+      // this, midiDataRef survived the url change and profile B played
+      // profile A's music.
+      midiDataRef.current = null;
+      autoplayTriggeredRef.current = false;
+      startingRef.current = false;
       // Clear profile MIDI playing flag
       globalAudio.setProfileMidiPlaying(false);
       // Cleanup worker
@@ -2718,21 +2771,43 @@ export default function MidiPlayer({
     };
   }, [midiUrl, autoplay]);
 
-  // Simple autoplay handling - only run once when MIDI is loaded
+  // Autoplay handling. Browsers block audio without a user gesture, so a
+  // bare play() on load silently fails on a fresh visit (the AudioContext
+  // stays suspended and resume() hangs). We try once — which succeeds if the
+  // visitor has already interacted with the site — and also arm a one-time
+  // "first gesture anywhere starts the music" listener, the way old homepages
+  // did it. The startingRef guard makes the two paths safe to both fire.
   useEffect(() => {
-    if (autoplay && midiDataRef.current && !isLoading && !isPlaying && !autoplayTriggeredRef.current) {
-      // Use setTimeout to avoid immediate execution conflicts
-      const timer = setTimeout(() => {
-        // Extra safety checks before autoplay
-        if (midiDataRef.current && !isPlaying && !autoplayTriggeredRef.current && !isLoading) {
-          autoplayTriggeredRef.current = true; // Mark autoplay as triggered
-          play();
-        } else {
-        }
-      }, 200); // Slightly longer delay to avoid conflicts
-      return () => clearTimeout(timer);
+    if (!autoplay || !midiDataRef.current || isLoading || isPlaying || autoplayTriggeredRef.current) {
+      return;
     }
-  }, [autoplay, isLoading, isPlaying]); // Restore isPlaying dependency but prevent multiple triggers
+
+    let cancelled = false;
+    const tryStart = () => {
+      if (cancelled || autoplayTriggeredRef.current || isPlaying || !midiDataRef.current) return;
+      autoplayTriggeredRef.current = true;
+      play();
+    };
+
+    const timer = setTimeout(tryStart, 200);
+
+    // Fallback: if the browser blocked the immediate attempt, the visitor's
+    // first tap/click/keypress kicks it off. Listener removes itself.
+    const onFirstGesture = () => {
+      if (autoplayTriggeredRef.current || isPlaying) return;
+      tryStart();
+    };
+    const opts = { once: true, capture: true } as AddEventListenerOptions;
+    window.addEventListener('pointerdown', onFirstGesture, opts);
+    window.addEventListener('keydown', onFirstGesture, opts);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      window.removeEventListener('pointerdown', onFirstGesture, opts);
+      window.removeEventListener('keydown', onFirstGesture, opts);
+    };
+  }, [autoplay, isLoading, isPlaying]);
 
   if (isLoading) {
     return (

@@ -51,22 +51,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ error: "File not found" });
     }
 
-    const buffer = await response.arrayBuffer();
-    
-    // Set appropriate headers
-    res.setHeader('Content-Type', media.mimeType || 'audio/midi');
-    res.setHeader('Content-Length', buffer.byteLength);
+    const bytes = Buffer.from(await response.arrayBuffer());
+
+    // Verify the bytes are actually a MIDI file (magic number "MThd").
+    // The upload path trusts the client-supplied MIME/extension, so a file
+    // named x.mid could hold HTML; serving that inline from our origin with
+    // its stored content-type would be stored XSS. Refuse anything that
+    // isn't a real MIDI.
+    if (bytes.length < 4 || bytes.toString('ascii', 0, 4) !== 'MThd') {
+      return res.status(415).json({ error: "File is not a valid MIDI file" });
+    }
+
+    // Content-Type is FORCED to audio/midi (never the stored mimeType) and
+    // the download name is sanitized so a crafted filename can't inject
+    // headers or a script content-type.
+    const safeName = (media.originalName || 'song.mid')
+      .replace(/[^a-zA-Z0-9._-]/g, '_')
+      .slice(0, 100);
+    res.setHeader('Content-Type', 'audio/midi');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Content-Length', bytes.byteLength);
     res.setHeader('Cache-Control', 'public, max-age=3600'); // 1 hour cache
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-    
-    if (media.originalName) {
-      res.setHeader('Content-Disposition', `inline; filename="${media.originalName}"`);
-    }
+    res.setHeader('Content-Disposition', `inline; filename="${safeName}"`);
 
     // Send the file
-    res.status(200).send(Buffer.from(buffer));
+    res.status(200).send(bytes);
 
   } catch (error) {
     console.error("Error serving MIDI file:", error);

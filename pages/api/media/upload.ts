@@ -304,6 +304,23 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       });
     }
 
+    // Content-based validation for anything treated as MIDI: the MIME type
+    // and extension are client-controlled, so require the real "MThd" magic
+    // bytes before storing. Without this a file named song.mid could hold
+    // HTML and later be served inline from our origin (stored XSS).
+    const treatedAsMidi = allowedMidiTypes.includes(file.mimetype) || isMidiByExtension;
+    if (treatedAsMidi && !allowedImageTypes.includes(file.mimetype)) {
+      const head = file.buffer as Buffer;
+      if (head.length < 4 || head.toString('ascii', 0, 4) !== 'MThd') {
+        return res.status(400).json({ error: "That doesn't look like a MIDI file." });
+      }
+      // Enforce the 1MB MIDI limit the client and docs promise (the multer
+      // cap is 25MB for camera photos).
+      if (head.length > 1024 * 1024) {
+        return res.status(400).json({ error: "MIDI files must be 1MB or smaller." });
+      }
+    }
+
     // Check capability
     const { cap, caption, title, context, ringSlug } = req.body;
     if (!cap) {
