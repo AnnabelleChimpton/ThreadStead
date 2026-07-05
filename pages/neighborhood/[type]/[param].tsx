@@ -374,7 +374,7 @@ export default function UnifiedNeighborhood({
                         <span className="flex-shrink-0"><PixelIcon name="paint-bucket" size={24} /></span>
                         <div className="flex-1 min-w-0">
                           <div className="font-semibold text-thread-pine text-xs md:text-sm truncate">New to Pixel Homes?</div>
-                          <div className="hidden md:block text-xs text-thread-sage">Try our interactive demo to see what you can build!</div>
+                          <div className="hidden md:block text-xs text-thread-sage">Poke around the demo and see what you could build.</div>
                         </div>
                         <Link
                           href="/home/demo"
@@ -397,7 +397,7 @@ export default function UnifiedNeighborhood({
                         ? 'bg-thread-sage text-thread-paper shadow-sm'
                         : 'text-thread-sage hover:text-thread-pine'
                         }`}
-                      title={isMobile ? "Street View - Swipe horizontally to explore" : "Street View - Immersive neighborhood experience"}
+                      title={isMobile ? "Street View - Swipe horizontally to explore" : "Street View - Stroll past the houses"}
                     >
                       <span className="md:hidden"><PixelIcon name="buildings" size={14} /></span>
                       <span className="hidden md:inline"><PixelIcon name="buildings" size={14} className="inline-block align-middle" /> Street</span>
@@ -410,9 +410,9 @@ export default function UnifiedNeighborhood({
                           ? 'bg-thread-sage text-thread-paper shadow-sm'
                           : 'text-thread-sage hover:text-thread-pine'
                           }`}
-                        title="Card View - Swipeable discovery"
+                        title="Card View - Swipe through homes"
                       >
-                        🃏
+                        <PixelIcon name="image" size={14} />
                       </button>
                     )}
                     <button
@@ -421,7 +421,7 @@ export default function UnifiedNeighborhood({
                         ? 'bg-thread-sage text-thread-paper shadow-sm'
                         : 'text-thread-sage hover:text-thread-pine'
                         }`}
-                      title="Grid View - Efficient browsing"
+                      title="Grid View - See everything at once"
                     >
                       <span className="md:hidden">⊞</span>
                       <span className="hidden md:inline">⊞ Grid</span>
@@ -432,7 +432,7 @@ export default function UnifiedNeighborhood({
                         ? 'bg-thread-sage text-thread-paper shadow-sm'
                         : 'text-thread-sage hover:text-thread-pine'
                         }`}
-                      title="Map View - Bird's eye perspective"
+                      title="Map View - The whole neighborhood from above"
                     >
                       <span className="md:hidden"><PixelIcon name="map" size={14} /></span>
                       <span className="hidden md:inline"><PixelIcon name="map" size={14} className="inline-block align-middle" /> Map</span>
@@ -484,10 +484,10 @@ export default function UnifiedNeighborhood({
                         className="w-full px-2 py-1.5 text-xs border border-thread-sage rounded-md bg-thread-paper text-thread-pine"
                       >
                         <option value="">All Styles</option>
-                        <option value="cottage_v1">🏠 Cottages</option>
-                        <option value="townhouse_v1">🏢 Townhouses</option>
-                        <option value="loft_v1">🏭 Lofts</option>
-                        <option value="cabin_v1">🏕️ Cabins</option>
+                        <option value="cottage_v1">Cottages</option>
+                        <option value="townhouse_v1">Townhouses</option>
+                        <option value="loft_v1">Lofts</option>
+                        <option value="cabin_v1">Cabins</option>
                       </select>
                     </div>
 
@@ -500,11 +500,11 @@ export default function UnifiedNeighborhood({
                         className="w-full px-2 py-1.5 text-xs border border-thread-sage rounded-md bg-thread-paper text-thread-pine"
                       >
                         <option value="">All Themes</option>
-                        <option value="thread_sage">🌿 Thread Sage</option>
-                        <option value="charcoal_nights">🌃 Charcoal Nights</option>
-                        <option value="pixel_petals">🌸 Pixel Petals</option>
-                        <option value="crt_glow">💻 CRT Glow</option>
-                        <option value="classic_linen">📜 Classic Linen</option>
+                        <option value="thread_sage">Thread Sage</option>
+                        <option value="charcoal_nights">Charcoal Nights</option>
+                        <option value="pixel_petals">Pixel Petals</option>
+                        <option value="crt_glow">CRT Glow</option>
+                        <option value="classic_linen">Classic Linen</option>
                       </select>
                     </div>
 
@@ -613,23 +613,23 @@ export default function UnifiedNeighborhood({
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
                     <div className="text-center p-4 bg-thread-cream rounded-lg border border-thread-sage">
                       <div className="mb-3 flex justify-center"><PixelIcon name="paint-bucket" size={24} /></div>
-                      <div className="font-medium text-thread-pine mb-2">Explore by Style</div>
+                      <div className="font-medium text-thread-pine mb-2">Change the View</div>
                       <div className="text-sm text-thread-sage leading-relaxed">
-                        Use the view mode toggle to see homes in Street, Grid, or Map view for different perspectives
+                        Switch between Street, Grid, and Map for a different angle on the same homes
                       </div>
                     </div>
                     <div className="text-center p-4 bg-thread-cream rounded-lg border border-thread-sage">
                       <div className="mb-3 flex justify-center"><PixelIcon name="link" size={24} /></div>
                       <div className="font-medium text-thread-pine mb-2">Find Connections</div>
                       <div className="text-sm text-thread-sage leading-relaxed">
-                        Discover mutual friends, ThreadRing members, or people in your extended network
+                        Look up mutual friends, ThreadRing members, and friends of friends
                       </div>
                     </div>
                     <div className="text-center p-4 bg-thread-cream rounded-lg border border-thread-sage">
                       <div className="mb-3 flex justify-center"><PixelIcon name="zap" size={24} /></div>
-                      <div className="font-medium text-thread-pine mb-2">Stay Current</div>
+                      <div className="font-medium text-thread-pine mb-2">See What&apos;s New</div>
                       <div className="text-sm text-thread-sage leading-relaxed">
-                        Visit recently updated homes or popular destinations to see what&apos;s trending
+                        Swing by recently updated and popular homes to see what folks are up to
                       </div>
                     </div>
                   </div>
@@ -639,16 +639,16 @@ export default function UnifiedNeighborhood({
                 {param !== 'random' && (
                   <div className="bg-thread-paper border border-thread-sage rounded-lg p-6 shadow-sm text-center mb-8">
                     <h3 className="text-lg font-headline font-medium text-thread-pine mb-4">
-                      <PixelIcon name="dice" size={16} className="inline-block align-middle" /> Feeling Adventurous?
+                      <PixelIcon name="dice" size={16} className="inline-block align-middle" /> Feeling adventurous?
                     </h3>
                     <p className="text-thread-sage mb-4 max-w-md mx-auto">
-                      Let serendipity guide you to unexpected connections and interesting homes
+                      Wander somewhere new — you never know whose porch you&apos;ll end up on
                     </p>
                     <Link
                       href="/neighborhood/explore/random"
                       className="inline-flex items-center gap-2 px-6 py-3 bg-thread-sage text-thread-paper rounded-md font-medium hover:bg-thread-pine transition-colors shadow-sm"
                     >
-                      <PixelIcon name="dice" size={16} /> Random Home Adventure
+                      <PixelIcon name="dice" size={16} /> Visit a random home
                     </Link>
                   </div>
                 )}
@@ -656,7 +656,7 @@ export default function UnifiedNeighborhood({
             ) : (
               <div className="bg-thread-paper border border-thread-sage rounded-lg p-6 text-center">
                 <h3 className="text-lg font-headline font-medium text-thread-pine mb-4">
-                  <PixelIcon name="search" size={16} className="inline-block align-middle" /> Discover More Neighborhoods
+                  <PixelIcon name="search" size={16} className="inline-block align-middle" /> More neighborhoods to wander
                 </h3>
                 <div className="flex flex-wrap justify-center gap-3">
                   <Link
@@ -895,8 +895,8 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
         if (!ring) return { notFound: true }
 
-        title = `🏘️ ${ring.name} Neighborhood`
-        description = ring.description || `Explore the homes of ${ring.name} ring members`
+        title = `${ring.name} Neighborhood`
+        description = ring.description || `The homes of ${ring.name} ring members`
         metadata = { ringName: ring.name, ringSlug: ring.slug }
 
         // For Ring Hub members, use the proper transformer to resolve local user accounts
@@ -1057,8 +1057,8 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
       case 'mutual': {
         // Fetch mutual friends neighborhood
-        title = `🤝 Mutual Friends with ${param}`
-        description = `Discover homes of people connected to ${param}`
+        title = `Mutual Friends with ${param}`
+        description = `Homes of people you both know through ${param}`
         metadata = { targetUsername: param }
 
         // Implementation would fetch mutual friends
@@ -1177,28 +1177,28 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
         switch (param) {
           case 'all':
-            title = 'Explore All Neighborhoods'
-            description = 'Discover pixel homes across all of ThreadStead'
+            title = 'All Neighborhoods'
+            description = 'Every pixel home in ThreadStead, all in one place'
             break
           case 'recent':
             title = 'Recently Updated Homes'
-            description = 'Explore homes that have been recently updated or customized'
+            description = 'Homes with fresh paint, new decorations, or a recent tidy-up'
             orderBy = { updatedAt: 'desc' }
             break
           case 'popular':
             title = 'Popular This Week'
-            description = 'Discover the most visited and active homes this week'
+            description = 'The most visited homes this week'
             orderBy = { updatedAt: 'desc' } // Could be enhanced with actual popularity metrics
             break
           case 'random':
-            title = '🎲 Random Home Adventure'
-            description = 'Let serendipity guide you to unexpected connections'
+            title = 'Random Homes'
+            description = 'A shuffled handful of homes to wander through'
             orderBy = { createdAt: 'desc' } // Will shuffle in memory
             take = 30
             break
           default:
-            title = 'Explore All Neighborhoods'
-            description = 'Discover pixel homes across all of ThreadStead'
+            title = 'All Neighborhoods'
+            description = 'Every pixel home in ThreadStead, all in one place'
         }
 
         const homeConfigs = await db.userHomeConfig.findMany({

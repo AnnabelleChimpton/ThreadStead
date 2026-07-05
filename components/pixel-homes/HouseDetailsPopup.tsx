@@ -397,7 +397,7 @@ export default function HouseDetailsPopup({ isOpen, onClose, member }: HouseDeta
         {(houseDescription || houseBoardText) && (
           <div className="bg-white border border-thread-sage rounded-sm p-4 mb-4 shadow-sm">
             <h4 className="text-sm font-semibold text-thread-pine mb-3 flex items-center gap-2">
-              <span>🏠</span>
+              <PixelIcon name="home" size={14} />
               <span>About This Home</span>
             </h4>
             {houseDescription && (
@@ -473,15 +473,15 @@ export default function HouseDetailsPopup({ isOpen, onClose, member }: HouseDeta
         <div className="flex flex-col sm:flex-row gap-3 pt-2">
           <button
             onClick={handleHouseClick}
-            className="flex-1 min-h-[48px] bg-thread-sage text-thread-paper px-6 py-3 rounded-sm font-bold uppercase border border-thread-sage shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all text-sm"
+            className="flex-1 min-h-[48px] bg-thread-sage text-thread-paper px-6 py-3 rounded-sm font-bold uppercase border border-thread-sage shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all text-sm inline-flex items-center justify-center gap-2"
           >
-            🏠 Visit Their Home
+            <PixelIcon name="home" size={16} /> Visit Their Home
           </button>
           <button
             onClick={handleProfileClick}
-            className="flex-1 min-h-[48px] bg-white text-thread-sage px-6 py-3 rounded-sm font-bold uppercase border border-thread-sage shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all text-sm"
+            className="flex-1 min-h-[48px] bg-white text-thread-sage px-6 py-3 rounded-sm font-bold uppercase border border-thread-sage shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all text-sm inline-flex items-center justify-center gap-2"
           >
-            👤 View Profile
+            <PixelIcon name="user" size={16} /> View Profile
           </button>
         </div>
       </div>

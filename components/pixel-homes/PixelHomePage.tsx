@@ -228,7 +228,7 @@ export default function PixelHomePage({
     return (
       <div className={`flex items-center justify-center py-16 ${className}`}>
         <div className="text-center space-y-4 max-w-md">
-          <div className="text-6xl">🏠</div>
+          <div className="flex justify-center"><PixelIcon name="home" size={48} /></div>
           <div className="text-xl font-headline text-thread-pine">Home Not Found</div>
           <div className="text-thread-sage">{error}</div>
           <button
@@ -251,7 +251,7 @@ export default function PixelHomePage({
             {nameToShow}&apos;s Pixel Home
           </h1>
           <div className="text-thread-sage text-lg mb-6 max-w-2xl mx-auto">
-            Welcome to the neighborhood! This is {nameToShow}&apos;s interactive pixel home.
+            Welcome to the neighborhood — this is {nameToShow}&apos;s pixel home.
           </div>
         </div>
 
@@ -320,14 +320,14 @@ export default function PixelHomePage({
                   onClick={handleDoorClick}
                   className="w-full flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-thread-sage to-thread-pine text-thread-paper hover:from-thread-pine hover:to-thread-sage transition-all duration-300 rounded-lg font-medium shadow-cozySm hover:shadow-cozy transform hover:-translate-y-0.5"
                 >
-                  <span>Enter & Explore Full Profile</span>
+                  <span>Step Inside — Visit Profile</span>
                 </button>
 
                 <button
                   onClick={handleMailboxClick}
                   className="w-full flex items-center gap-3 px-4 py-3 bg-thread-cream hover:bg-thread-sky hover:bg-opacity-20 text-thread-pine transition-all duration-300 rounded-lg font-medium shadow-cozySm hover:shadow-cozy transform hover:-translate-y-0.5 border border-thread-sage border-opacity-30"
                 >
-                  <span>Check Mailbox {hasUnreadGuestbook && '(New!)'}</span>
+                  <span>Check Mailbox {hasUnreadGuestbook && '(new)'}</span>
                   {hasUnreadGuestbook && <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>}
                 </button>
 
@@ -429,7 +429,7 @@ export default function PixelHomePage({
                 </div>
                 <div className="text-thread-sage max-w-lg mx-auto leading-relaxed">
                   {config.houseCustomizations?.houseDescription ||
-                    `This is ${nameToShow}'s pixel home - a personalized space for connection and discovery. Use the interactive menu on the left to explore their profile, leave messages, and learn more about their ThreadRing community.`}
+                    `This is ${nameToShow}'s pixel home. Use the menu on the left to visit their profile, leave a note in the mailbox, or see their ThreadRings.`}
                 </div>
               </div>
             </div>
@@ -448,16 +448,16 @@ export default function PixelHomePage({
       <Modal
         isOpen={showGuestbook}
         onClose={() => setShowGuestbook(false)}
-        title="📬 Pixel Home Mailbox"
+        title="Pixel Home Mailbox"
       >
         <div className="space-y-4">
           <div className="text-sm text-thread-sage bg-thread-cream bg-opacity-30 p-3 rounded-md border border-thread-sage border-opacity-20">
             <div className="flex items-center gap-2 mb-2">
-              <span className="text-lg">🏠</span>
+              <PixelIcon name="home" size={16} />
               <span className="font-medium">Writing from {nameToShow}&apos;s Pixel Home</span>
             </div>
             <div className="text-xs">
-              Messages posted here appear on their main profile guestbook too!
+              Messages posted here appear on their main profile guestbook too.
             </div>
           </div>
 

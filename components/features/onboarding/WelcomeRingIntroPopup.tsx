@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface WelcomeRingIntroPopupProps {
   onClose: () => void;
@@ -11,36 +12,36 @@ export default function WelcomeRingIntroPopup({ onClose, onStartTour }: WelcomeR
 
   const steps = [
     {
-      title: "Welcome to your first ThreadRing! 🎉",
+      title: "Welcome to your first ThreadRing!",
       content: (
         <div className="text-center">
-          <div className="text-4xl sm:text-5xl md:text-6xl mb-4 animate-bounce">🏠</div>
+          <div className="mb-4 flex justify-center animate-bounce"><PixelIcon name="home" size={48} /></div>
           <p className="text-base sm:text-lg mb-4 leading-relaxed">
             You&apos;ve just entered something special — think of this as your <strong>cozy corner of the internet</strong> where you&apos;ll learn how communities work here.
           </p>
           <div className="bg-blue-50 p-3 sm:p-4 rounded-lg border border-blue-200 text-xs sm:text-sm text-blue-800">
-            <strong>What&apos;s a ThreadRing?</strong> It&apos;s like a themed clubhouse where people with shared interests gather to chat, share, and connect!
+            <strong>What&apos;s a ThreadRing?</strong> It&apos;s like a themed clubhouse where people with shared interests hang out.
           </div>
         </div>
       )
     },
     {
-      title: "How ThreadRings Work ✨",
+      title: "How ThreadRings Work",
       content: (
         <div>
           <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6">
             <div className="text-center">
-              <div className="text-2xl sm:text-3xl mb-1 sm:mb-2">🔗</div>
+              <div className="mb-1 sm:mb-2 flex justify-center"><PixelIcon name="link" size={28} /></div>
               <div className="text-xs sm:text-sm font-semibold">Connected</div>
               <div className="text-xs text-gray-600 hidden sm:block">Like old-school WebRings but alive!</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl sm:text-3xl mb-1 sm:mb-2">🌱</div>
+              <div className="mb-1 sm:mb-2 flex justify-center"><PixelIcon name="chart" size={28} /></div>
               <div className="text-xs sm:text-sm font-semibold">Growing</div>
               <div className="text-xs text-gray-600 hidden sm:block">Communities can branch into new ones</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl sm:text-3xl mb-1 sm:mb-2">🎯</div>
+              <div className="mb-1 sm:mb-2 flex justify-center"><PixelIcon name="paint-bucket" size={28} /></div>
               <div className="text-xs sm:text-sm font-semibold">Themed</div>
               <div className="text-xs text-gray-600 hidden sm:block">Each Ring has its own personality</div>
             </div>
@@ -49,55 +50,51 @@ export default function WelcomeRingIntroPopup({ onClose, onStartTour }: WelcomeR
             Imagine if <strong>Discord servers</strong> could have babies with <strong>old-school forums</strong> and grew up in a <strong>cozy neighborhood</strong> where everyone knows each other. That&apos;s ThreadRings!
           </p>
           <div className="bg-green-50 p-3 rounded-lg border border-green-200 text-xs sm:text-sm text-green-800">
-            💡 <strong>Pro tip:</strong> Your posts live on your profile BUT also appear in any Rings you&apos;re part of!
+            <PixelIcon name="lightbulb" size={14} className="inline-block align-middle mr-1" /><strong>Pro tip:</strong> Your posts live on your profile BUT also appear in any Rings you&apos;re part of!
           </div>
         </div>
       )
     },
     {
-      title: "This Ring is Special 🌟",
+      title: "This Ring is Special",
       content: (
         <div>
           <div className="flex items-center justify-center mb-4">
-            <div className="relative">
-              <div className="text-3xl sm:text-4xl animate-pulse">🎓</div>
-              <div className="absolute -top-1 -right-1 text-lg sm:text-xl animate-bounce">✨</div>
-            </div>
+            <div className="animate-pulse"><PixelIcon name="trophy" size={40} /></div>
           </div>
           <p className="text-sm sm:text-base leading-relaxed mb-4">
             The <strong>Welcome Ring</strong> is your training ground! It&apos;s designed to teach you everything you need to know through <strong>gentle, fun activities</strong>.
           </p>
           <div className="space-y-2 sm:space-y-3 mb-4">
             <div className="flex items-center gap-2 sm:gap-3 p-2 bg-yellow-50 rounded-lg border border-yellow-200">
-              <div className="text-lg sm:text-xl">👀</div>
+              <div><PixelIcon name="eye" size={18} /></div>
               <div className="text-xs sm:text-sm">
                 <strong>Read posts</strong> to see how conversations work
               </div>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 p-2 bg-blue-50 rounded-lg border border-blue-200">
-              <div className="text-lg sm:text-xl">💬</div>
+              <div><PixelIcon name="chat" size={18} /></div>
               <div className="text-xs sm:text-sm">
                 <strong>Leave comments</strong> to join the conversation
               </div>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 p-2 bg-purple-50 rounded-lg border border-purple-200">
-              <div className="text-lg sm:text-xl">👋</div>
+              <div><PixelIcon name="users" size={18} /></div>
               <div className="text-xs sm:text-sm">
                 <strong>Visit profiles</strong> to discover interesting people
               </div>
             </div>
           </div>
           <div className="bg-gradient-to-r from-green-100 to-blue-100 p-3 rounded-lg border-2 border-dashed border-green-400 text-xs sm:text-sm text-green-800">
-            🎯 <strong>Your mission:</strong> Complete all the activities to become a ThreadRings graduate!
+            <strong>Your mission:</strong> Complete all the activities to become a ThreadRings graduate!
           </div>
         </div>
       )
     },
     {
-      title: "Ready to Start Your Journey? 🚀",
+      title: "Ready to get started?",
       content: (
         <div className="text-center">
-          <div className="text-4xl sm:text-5xl mb-4">🎪</div>
           <p className="text-base sm:text-lg mb-4 sm:mb-6 leading-relaxed">
             The Welcome Ring is <strong>full of friendly faces</strong> ready to help you learn. Take it at your own pace — there&apos;s no rush!
           </p>
@@ -117,7 +114,7 @@ export default function WelcomeRingIntroPopup({ onClose, onStartTour }: WelcomeR
             </div>
           </div>
           <p className="text-xs sm:text-sm text-gray-600 mb-4">
-            🎉 <strong>Bonus:</strong> You&apos;ll get celebrations and encouragement along the way!
+            <strong>Bonus:</strong> You&apos;ll get celebrations and encouragement along the way!
           </p>
         </div>
       )
@@ -161,11 +158,7 @@ export default function WelcomeRingIntroPopup({ onClose, onStartTour }: WelcomeR
           >
             ×
           </button>
-          
-          {/* Floating decorations - smaller on mobile */}
-          <div className="absolute top-1 left-2 sm:top-2 sm:left-4 text-lg sm:text-xl opacity-50 animate-pulse">⭐</div>
-          <div className="absolute bottom-1 right-8 sm:bottom-2 sm:right-12 text-base sm:text-lg opacity-40 animate-bounce" style={{ animationDelay: '0.5s' }}>🌟</div>
-          
+
           <h1 className={`text-lg sm:text-xl md:text-2xl font-bold text-purple-800 pr-8 sm:pr-12 transition-opacity duration-150 ${
             isAnimating ? 'opacity-50' : 'opacity-100'
           }`}>
@@ -231,7 +224,7 @@ export default function WelcomeRingIntroPopup({ onClose, onStartTour }: WelcomeR
                     onClick={handleStartTour}
                     className="bg-green-200 hover:bg-green-300 px-6 py-2 rounded-lg border-2 border-green-500 shadow-[2px_2px_0_#16a34a] font-bold text-green-800 transition-all hover:translate-y-[-1px] hover:shadow-[3px_3px_0_#16a34a] text-sm sm:text-base"
                   >
-                    Let&apos;s Go! 🚀
+                    Let&apos;s Go!
                   </button>
                 </div>
               )}

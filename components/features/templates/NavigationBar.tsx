@@ -3,6 +3,7 @@ import Link from "next/link";
 import UserDropdown from '@/components/features/auth/UserDropdown';
 import NotificationDropdown from '@/components/ui/feedback/NotificationDropdown';
 import LoginStatus from '@/components/features/auth/LoginStatus';
+import { PixelIcon, type PixelIconName } from '@/components/ui/PixelIcon';
 
 interface SiteConfig {
   site_name: string;
@@ -36,27 +37,28 @@ function DropdownMenu({ title, items, dropdownKey, activeDropdown, setActiveDrop
   const isOpen = activeDropdown === dropdownKey;
 
   // Icon mapping for navigation items
-  const getItemIcon = (label: string): string => {
-    const iconMap: { [key: string]: string } = {
+  const getItemIcon = (label: string): React.ReactNode => {
+    const iconMap: { [key: string]: PixelIconName } = {
       // Discover items
-      'Neighborhoods': '🏘️',
-      'Search': '🔍',
-      'Feed': '📰',
-      'Residents': '👥',
+      'Neighborhoods': 'buildings',
+      'Search': 'search',
+      'Feed': 'article',
+      'Residents': 'users',
 
       // Build items
-      'Templates': '🎨',
-      'Getting Started': '🚀',
+      'Templates': 'paint-bucket',
+      'Getting Started': 'zap',
 
       // ThreadRings items
-      'Browse Rings': '💍',
-      'The Spool': '🧵',
+      'Browse Rings': 'link',
+      'The Spool': 'archive',
 
       // Help items
-      'FAQ': '❓',
-      'Contact': '✉️',
+      'FAQ': 'info-box',
+      'Contact': 'mail',
     };
-    return iconMap[label] || '•';
+    const iconName = iconMap[label];
+    return iconName ? <PixelIcon name={iconName} size={16} /> : '•';
   };
 
   // Enhanced keyboard navigation
@@ -129,7 +131,7 @@ function DropdownMenu({ title, items, dropdownKey, activeDropdown, setActiveDrop
               role="menuitem"
               tabIndex={isOpen ? 0 : -1}
             >
-              <span className="text-sm" role="img" aria-hidden="true">
+              <span className="text-sm inline-flex items-center" aria-hidden="true">
                 {getItemIcon(item.label)}
               </span>
               <span>{item.label}</span>
@@ -375,8 +377,8 @@ export default function NavigationBar(props: NavigationBarProps) {
             {isPreviewMode ? (
               <div className="flex items-center gap-2 text-sm text-thread-sage">
                 <span className="hidden sm:inline">Preview Mode</span>
-                <div className="w-8 h-8 bg-thread-sage rounded-full flex items-center justify-center">
-                  <span className="text-white text-xs">👤</span>
+                <div className="w-8 h-8 bg-thread-sage rounded-full flex items-center justify-center text-white">
+                  <PixelIcon name="user" size={14} />
                 </div>
               </div>
             ) : (
@@ -465,7 +467,7 @@ export default function NavigationBar(props: NavigationBarProps) {
                   className="flex items-center gap-2 px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  <span>🏘️</span>
+                  <PixelIcon name="buildings" size={16} />
                   <span>Neighborhoods</span>
                 </Link>
                 <Link
@@ -473,7 +475,7 @@ export default function NavigationBar(props: NavigationBarProps) {
                   className="flex items-center gap-2 px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  <span>👥</span>
+                  <PixelIcon name="users" size={16} />
                   <span>Residents</span>
                 </Link>
                 <Link
@@ -481,7 +483,7 @@ export default function NavigationBar(props: NavigationBarProps) {
                   className="flex items-center gap-2 px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  <span>📰</span>
+                  <PixelIcon name="article" size={16} />
                   <span>Feed</span>
                 </Link>
                 <Link
@@ -489,7 +491,7 @@ export default function NavigationBar(props: NavigationBarProps) {
                   className="flex items-center gap-2 px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  <span>🔍</span>
+                  <PixelIcon name="search" size={16} />
                   <span>Search</span>
                 </Link>
               </div>
@@ -519,7 +521,7 @@ export default function NavigationBar(props: NavigationBarProps) {
                   className="flex items-center gap-2 px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  <span>🎨</span>
+                  <PixelIcon name="paint-bucket" size={16} />
                   <span>Templates</span>
                 </Link>
                 <Link
@@ -527,7 +529,7 @@ export default function NavigationBar(props: NavigationBarProps) {
                   className="flex items-center gap-2 px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  <span>🚀</span>
+                  <PixelIcon name="zap" size={16} />
                   <span>Getting Started</span>
                 </Link>
               </div>
@@ -557,7 +559,7 @@ export default function NavigationBar(props: NavigationBarProps) {
                   className="flex items-center gap-2 px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  <span>💍</span>
+                  <PixelIcon name="link" size={16} />
                   <span>Browse Rings</span>
                 </Link>
                 <Link
@@ -565,7 +567,7 @@ export default function NavigationBar(props: NavigationBarProps) {
                   className="flex items-center gap-2 px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  <span>🧵</span>
+                  <PixelIcon name="archive" size={16} />
                   <span>The Spool</span>
                 </Link>
               </div>
@@ -595,7 +597,7 @@ export default function NavigationBar(props: NavigationBarProps) {
                   className="flex items-center gap-2 px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  <span>❓</span>
+                  <PixelIcon name="info-box" size={16} />
                   <span>FAQ</span>
                 </Link>
                 <Link
@@ -603,7 +605,7 @@ export default function NavigationBar(props: NavigationBarProps) {
                   className="flex items-center gap-2 px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  <span>✉️</span>
+                  <PixelIcon name="mail" size={16} />
                   <span>Contact</span>
                 </Link>
               </div>

@@ -4,6 +4,7 @@ import { getTemplatePreviewStyle, TEMPLATE_PREVIEW_STYLES } from '@/lib/template
 import { ProfileTemplateType } from '@/lib/templates/default-profile-templates';
 import { useGlobalAudio } from '@/contexts/GlobalAudioContext';
 import dynamic from 'next/dynamic';
+import { PixelIcon, PixelIconName } from '@/components/ui/PixelIcon';
 
 // Dynamically import MidiPlayer to avoid SSR issues
 const MidiPlayer = dynamic(() => import('@/components/ui/media/MidiPlayer'), {
@@ -39,7 +40,7 @@ interface SignupFinaleAnimationProps {
 interface LoadingBox {
   id: string;
   message: string;
-  emoji: string;
+  icon: PixelIconName;
   completed: boolean;
   progress: number;
 }
@@ -61,18 +62,18 @@ export default function SignupFinaleAnimation({ username, selectedTheme, onCompl
   const terminalMessages = [
     '~ Weaving your digital threads...',
     '~ Building your corner of the internet...',
-    '~ Almost ready to step into your new world! ✨'
+    '~ Almost ready — opening the front door...'
   ];
 
-  const nostalgicLoadingTasks = [
-    { id: 'neighbors', message: 'Finding neighbors...', emoji: '👋', delay: 1200 },
-    { id: 'plumbing', message: 'Connecting plumbing...', emoji: '🔧', delay: 2000 },
-    { id: 'electricity', message: 'Hooking up electricity...', emoji: '⚡', delay: 2800 },
-    { id: 'mailbox', message: 'Installing mailbox...', emoji: '📬', delay: 3600 },
-    { id: 'garden', message: 'Planting digital garden...', emoji: '🌱', delay: 4500 },
-    { id: 'doorbell', message: 'Testing doorbell...', emoji: '🔔', delay: 5400 },
-    { id: 'windows', message: 'Polishing windows...', emoji: '🪟', delay: 6200 },
-    { id: 'welcome', message: 'Hanging welcome mat...', emoji: '🏠', delay: 7000 }
+  const nostalgicLoadingTasks: { id: string; message: string; icon: PixelIconName; delay: number }[] = [
+    { id: 'neighbors', message: 'Finding neighbors...', icon: 'users', delay: 1200 },
+    { id: 'plumbing', message: 'Connecting plumbing...', icon: 'drop', delay: 2000 },
+    { id: 'electricity', message: 'Hooking up electricity...', icon: 'zap', delay: 2800 },
+    { id: 'mailbox', message: 'Installing mailbox...', icon: 'mail', delay: 3600 },
+    { id: 'garden', message: 'Planting digital garden...', icon: 'sun', delay: 4500 },
+    { id: 'doorbell', message: 'Testing doorbell...', icon: 'notification', delay: 5400 },
+    { id: 'windows', message: 'Polishing windows...', icon: 'building', delay: 6200 },
+    { id: 'welcome', message: 'Hanging welcome mat...', icon: 'home', delay: 7000 }
   ];
 
   // Get theme colors for styling
@@ -146,7 +147,7 @@ export default function SignupFinaleAnimation({ username, selectedTheme, onCompl
         setLoadingBoxes(prev => [...prev, {
           id: task.id,
           message: task.message,
-          emoji: task.emoji,
+          icon: task.icon,
           completed: false,
           progress: 0
         }]);
@@ -332,7 +333,7 @@ export default function SignupFinaleAnimation({ username, selectedTheme, onCompl
                 <div 
                   className="flex-1 text-center text-sm sm:text-base font-medium text-gray-800"
                 >
-                  ✨ Building Your Digital Home ✨
+                  Building Your Digital Home
                 </div>
               </div>
 
@@ -351,8 +352,7 @@ export default function SignupFinaleAnimation({ username, selectedTheme, onCompl
                 </div>
                 
                 {/* Theme-colored sparkle effects */}
-                <div className="absolute top-4 right-4 sm:right-6 text-xl sm:text-2xl animate-bounce">✨</div>
-                <div className="absolute bottom-4 sm:bottom-6 left-4 sm:left-8 text-lg animate-pulse">🌟</div>
+                <div className="absolute top-4 right-4 sm:right-6 text-xl sm:text-2xl animate-bounce">✦</div>
                 <div className="absolute top-1/2 right-8 sm:right-12 text-sm animate-ping">✦</div>
                 
                 {/* Theme-colored floating particles */}
@@ -388,7 +388,7 @@ export default function SignupFinaleAnimation({ username, selectedTheme, onCompl
                   }}
                 >
                   <div className="flex items-center gap-2 sm:gap-3 mb-2">
-                    <span className="text-lg sm:text-xl">{box.emoji}</span>
+                    <span className="text-gray-800"><PixelIcon name={box.icon} size={18} /></span>
                     <span 
                       className="font-medium text-sm sm:text-base flex-1 text-gray-800"
                     >
@@ -445,7 +445,7 @@ export default function SignupFinaleAnimation({ username, selectedTheme, onCompl
                 className="w-10 h-10 flex items-center justify-center bg-gray-500 hover:bg-gray-600 text-white rounded-full transition-colors"
                 aria-label={isMuted ? 'Unmute Music' : 'Mute Music'}
               >
-                {isMuted ? '🔇' : '🔊'}
+                <PixelIcon name="speaker" size={20} className={isMuted ? 'opacity-40' : ''} />
               </button>
               <div className="flex-1">
                 <div className="text-sm font-medium">Welcome Music</div>

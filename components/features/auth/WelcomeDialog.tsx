@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { exportIdentityToken, getSeedPhrase, generateSeedPhrase, storeSeedPhrase } from "@/lib/api/did/did-client";
 import { useSiteConfig } from "@/hooks/useSiteConfig";
+import { PixelIcon } from "@/components/ui/PixelIcon";
 
 interface WelcomeDialogProps {
   username: string;
@@ -67,13 +68,13 @@ export default function WelcomeDialog({ username, onComplete, onSkip }: WelcomeD
           <div className="text-center">
             <h2 className="thread-headline text-xl mb-2">{config.welcome_dialog_title}</h2>
             <p className="text-thread-sage">
-              Your account <span className="font-medium text-thread-pine">@{username}</span> has been created successfully!
+              Your account <span className="font-medium text-thread-pine">@{username}</span> is ready.
             </p>
           </div>
           
           <div className="bg-thread-cream border border-thread-sage rounded p-4 space-y-3">
             <h3 className="thread-label text-base flex items-center gap-2">
-              <span>🔐</span>
+              <PixelIcon name="lock" size={16} />
               Important: Your Digital Identity
             </h3>
             <p className="text-sm text-thread-charcoal leading-relaxed">
@@ -81,7 +82,7 @@ export default function WelcomeDialog({ username, onComplete, onSkip }: WelcomeD
               If you lose this device or clear your browser data, you&apos;ll lose access to your account forever.
             </p>
             <p className="text-sm font-medium text-thread-pine">
-              Let&apos;s create a secure backup of your key right now!
+              Take a moment now to make a secure backup of your key.
             </p>
           </div>
 
@@ -90,7 +91,7 @@ export default function WelcomeDialog({ username, onComplete, onSkip }: WelcomeD
               onClick={handleCreateBackup}
               className="flex-1 thread-button text-sm py-3 flex items-center justify-center gap-2"
             >
-              <span>🛡️</span>
+              <PixelIcon name="shield" size={16} />
               Create Backup Now
             </button>
             <button
@@ -110,7 +111,7 @@ export default function WelcomeDialog({ username, onComplete, onSkip }: WelcomeD
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
         <div className="bg-thread-paper border-2 border-thread-sage rounded-lg max-w-4xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
           <div className="text-center">
-            <h2 className="thread-headline text-xl mb-2">🔑 Your Account Recovery Information</h2>
+            <h2 className="thread-headline text-xl mb-2">Your Account Recovery Information</h2>
             <p className="text-thread-sage">
               Save this information securely. You&apos;ll need it to recover your account if you lose access.
             </p>
@@ -119,7 +120,7 @@ export default function WelcomeDialog({ username, onComplete, onSkip }: WelcomeD
           <div className="space-y-6">
             <div className="bg-thread-cream border border-thread-sage rounded p-4">
               <h3 className="thread-label text-base mb-3 flex items-center gap-2">
-                <span>⚠️</span>
+                <PixelIcon name="warning-box" size={16} />
                 Security Guidelines
               </h3>
               <ul className="text-sm text-thread-charcoal space-y-2">
@@ -149,7 +150,7 @@ export default function WelcomeDialog({ username, onComplete, onSkip }: WelcomeD
             {seedPhrase && (
               <div className="bg-gradient-to-r from-thread-cream to-thread-paper border-2 border-thread-sage rounded-lg p-4">
                 <h3 className="thread-label text-base mb-3 flex items-center gap-2">
-                  <span>🔐</span>
+                  <PixelIcon name="lock" size={16} />
                   Recovery Seed Phrase (Recommended)
                 </h3>
                 <p className="text-sm text-thread-sage mb-3">
@@ -171,7 +172,7 @@ export default function WelcomeDialog({ username, onComplete, onSkip }: WelcomeD
             {backupToken && (
               <div className="bg-thread-paper border border-thread-sage rounded p-4">
                 <h3 className="thread-label text-base mb-3 flex items-center gap-2">
-                  <span>📄</span>
+                  <PixelIcon name="file" size={16} />
                   Legacy Backup Token
                 </h3>
                 <p className="text-sm text-thread-sage mb-3">
@@ -190,14 +191,14 @@ export default function WelcomeDialog({ username, onComplete, onSkip }: WelcomeD
                 onClick={copyToClipboard}
                 className="flex-1 px-4 py-3 text-sm bg-thread-cream border border-thread-sage hover:bg-thread-sage hover:text-thread-paper rounded transition-all flex items-center justify-center gap-2"
               >
-                <span>📋</span>
+                <PixelIcon name="clipboard" size={16} />
                 Copy Seed Phrase
               </button>
               <button
                 onClick={downloadAsFile}
                 className="flex-1 px-4 py-3 text-sm bg-thread-cream border border-thread-sage hover:bg-thread-sage hover:text-thread-paper rounded transition-all flex items-center justify-center gap-2"
               >
-                <span>💾</span>
+                <PixelIcon name="save" size={16} />
                 Download Backup
               </button>
             </div>
@@ -205,7 +206,7 @@ export default function WelcomeDialog({ username, onComplete, onSkip }: WelcomeD
             {hasBackedUp && (
               <div className="text-center">
                 <p className="text-sm text-green-600 font-medium mb-3">
-                  ✓ Great! You&apos;ve saved your recovery information.
+                  ✓ Recovery information saved — you&apos;re all set.
                 </p>
                 <button
                   onClick={onComplete}

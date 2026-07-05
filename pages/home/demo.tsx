@@ -4,6 +4,7 @@ import Link from 'next/link'
 import Layout from '../../components/ui/layout/Layout'
 import EnhancedHouseCanvas from '../../components/pixel-homes/EnhancedHouseCanvas'
 import { HouseTemplate, ColorPalette, HouseCustomizations } from '../../components/pixel-homes/HouseSVG'
+import { PixelIcon } from '@/components/ui/PixelIcon'
 
 /**
  * Demo Pixel Home Landing Page
@@ -31,7 +32,7 @@ export default function DemoPixelHome() {
       doorStyle: 'default',
       roofTrim: 'scalloped',
       houseTitle: 'Demo Pixel Home',
-      houseDescription: 'Welcome to a sample pixel home! Explore, customize, and build your own.',
+      houseDescription: 'A sample pixel home. Poke around, then go build your own.',
       houseBoardText: '~demo~'
     }
   }
@@ -75,8 +76,8 @@ export default function DemoPixelHome() {
     timeOfDay: isNight ? ('night' as const) : ('midday' as const)
   }
 
-  const pageTitle = 'Demo Pixel Home - Try Before You Build | ThreadStead'
-  const pageDescription = 'Explore a sample pixel home to see what you can create on ThreadStead. Customize your house style, colors, decorations, and atmosphere.'
+  const pageTitle = 'Demo Pixel Home | ThreadStead'
+  const pageDescription = 'A sample pixel home showing what you can build on ThreadStead: house styles, colors, decorations, and atmosphere.'
 
   return (
     <>
@@ -96,16 +97,16 @@ export default function DemoPixelHome() {
             {/* Header Banner */}
             <div className="text-center mb-8">
               <div className="inline-block bg-gradient-to-r from-thread-sage to-thread-pine text-thread-paper px-6 py-3 rounded-full shadow-cozy mb-4">
-                <span className="text-lg font-headline font-bold">
-                  🎨 Demo Pixel Home — try building your own soon!
+                <span className="text-lg font-headline font-bold inline-flex items-center gap-2">
+                  <PixelIcon name="paint-bucket" size={18} /> Demo Pixel Home — look around, then build your own
                 </span>
               </div>
               <h1 className="text-3xl md:text-4xl font-headline font-bold text-thread-pine mb-3">
-                Welcome to Your Pixel Home Preview
+                A Peek at a Pixel Home
               </h1>
               <p className="text-thread-sage text-lg max-w-2xl mx-auto leading-relaxed">
-                This is a sample of what you can create on ThreadStead. Customize every detail,
-                from house style to decorations, and make it uniquely yours.
+                This is a sample of what you can build on ThreadStead. Every detail here —
+                the house style, the colors, even the garden gnome — is up to you.
               </p>
             </div>
 
@@ -147,7 +148,7 @@ export default function DemoPixelHome() {
                           : 'bg-thread-cream text-thread-sage border border-thread-sage hover:bg-thread-sage hover:text-thread-paper'
                         }`}
                     >
-                      <span className="text-xl">☀️</span>
+                      <PixelIcon name="sun" size={20} />
                       Day
                     </button>
                     <button
@@ -157,7 +158,7 @@ export default function DemoPixelHome() {
                           : 'bg-thread-cream text-thread-sage border border-thread-sage hover:bg-thread-pine hover:text-thread-paper'
                         }`}
                     >
-                      <span className="text-xl">🌙</span>
+                      <PixelIcon name="moon" size={20} />
                       Night
                     </button>
                   </div>
@@ -168,11 +169,11 @@ export default function DemoPixelHome() {
             {/* What are Pixel Homes? */}
             <div className="bg-thread-paper border-2 border-thread-sage rounded-xl p-8 shadow-cozy mb-8">
               <h2 className="text-2xl font-headline font-bold text-thread-pine mb-6 text-center">
-                🏠 What are Pixel Homes?
+                <PixelIcon name="home" size={20} className="inline-block align-middle" /> What are Pixel Homes?
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
                 <div className="flex items-start gap-3">
-                  <span className="text-3xl flex-shrink-0">🏠</span>
+                  <span className="flex-shrink-0"><PixelIcon name="home" size={24} /></span>
                   <div>
                     <div className="font-semibold text-thread-pine mb-1">Choose Your House Style</div>
                     <div className="text-sm text-thread-sage leading-relaxed">
@@ -181,7 +182,7 @@ export default function DemoPixelHome() {
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
-                  <span className="text-3xl flex-shrink-0">🎨</span>
+                  <span className="flex-shrink-0"><PixelIcon name="paint-bucket" size={24} /></span>
                   <div>
                     <div className="font-semibold text-thread-pine mb-1">Customize Everything</div>
                     <div className="text-sm text-thread-sage leading-relaxed">
@@ -190,16 +191,16 @@ export default function DemoPixelHome() {
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
-                  <span className="text-3xl flex-shrink-0">☀️</span>
+                  <span className="flex-shrink-0"><PixelIcon name="cloud-sun" size={24} /></span>
                   <div>
                     <div className="font-semibold text-thread-pine mb-1">Set the Atmosphere</div>
                     <div className="text-sm text-thread-sage leading-relaxed">
-                      Choose sunny days, cloudy skies, stunning sunsets, or peaceful nights
+                      Pick sunny days, cloudy skies, sunsets, or quiet nights
                     </div>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
-                  <span className="text-3xl flex-shrink-0">📬</span>
+                  <span className="flex-shrink-0"><PixelIcon name="mail" size={24} /></span>
                   <div>
                     <div className="font-semibold text-thread-pine mb-1">Interactive Features</div>
                     <div className="text-sm text-thread-sage leading-relaxed">
@@ -217,21 +218,21 @@ export default function DemoPixelHome() {
                   Ready to Build Your Own?
                 </h3>
                 <p className="text-thread-sage mb-6 max-w-lg mx-auto">
-                  Join ThreadStead and create your personalized pixel home. Express yourself,
-                  connect with neighbors, and make your corner of the web truly yours.
+                  Join ThreadStead and set up a pixel home of your own — a little corner
+                  of the web to decorate, with neighbors right down the street.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Link
                     href="/signup"
                     className="px-8 py-4 bg-gradient-to-r from-thread-sage to-thread-pine text-thread-paper hover:from-thread-pine hover:to-thread-sage transition-all duration-300 rounded-lg font-medium shadow-cozy hover:shadow-thread transform hover:-translate-y-1 text-center"
                   >
-                    🏠 Create Your Home
+                    <span className="inline-flex items-center justify-center gap-2"><PixelIcon name="home" size={16} /> Create Your Home</span>
                   </Link>
                   <Link
                     href="/login"
                     className="px-8 py-4 bg-thread-cream hover:bg-thread-sky hover:bg-opacity-20 text-thread-pine transition-all duration-300 rounded-lg font-medium border-2 border-thread-sage shadow-cozySm hover:shadow-cozy transform hover:-translate-y-1 text-center"
                   >
-                    🔑 Sign In
+                    Sign In
                   </Link>
                 </div>
               </div>
@@ -242,14 +243,14 @@ export default function DemoPixelHome() {
                   Explore the Neighborhood
                 </h3>
                 <p className="text-thread-sage mb-6 max-w-lg mx-auto">
-                  See what other people have created. Get inspired by hundreds of unique pixel homes
-                  across ThreadStead.
+                  See what other folks have built — there are hundreds of pixel homes
+                  across ThreadStead to wander past.
                 </p>
                 <Link
                   href="/neighborhood/explore/all"
                   className="inline-flex items-center gap-2 px-8 py-4 bg-thread-cream hover:bg-thread-sky hover:bg-opacity-20 text-thread-pine transition-all duration-300 rounded-lg font-medium border-2 border-thread-sage shadow-cozySm hover:shadow-cozy transform hover:-translate-y-1"
                 >
-                  🏘️ Explore More Homes
+                  <PixelIcon name="buildings" size={16} /> Explore More Homes
                 </Link>
               </div>
             </div>

@@ -3,13 +3,14 @@ import Head from 'next/head';
 import Link from 'next/link';
 import Layout from '@/components/ui/layout/Layout';
 import RetroCard from '@/components/ui/layout/RetroCard';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 export default function CommunityGuidelines() {
   return (
     <>
       <Head>
         <title>Community Guidelines - Threadstead</title>
-        <meta name="description" content="Our community guidelines help ensure Threadstead remains a creative, welcoming, and safe space for everyone." />
+        <meta name="description" content="The house rules that keep Threadstead creative, welcoming, and safe for everyone." />
       </Head>
 
       <Layout>
@@ -18,13 +19,13 @@ export default function CommunityGuidelines() {
           {/* Header */}
           <RetroCard title="Community Guidelines">
             <div className="text-center py-4 space-y-4">
-              <div className="text-4xl">🤝</div>
+              <div className="flex justify-center"><PixelIcon name="users" size={40} /></div>
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-                Welcome to Our Community!
+                Welcome to the Neighborhood
               </h1>
               <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
-                Threadstead is a place for creativity, self-expression, and meaningful connections.
-                These guidelines help us maintain a positive environment for everyone.
+                Threadstead is a place to make things, be yourself, and get to know your neighbors.
+                These guidelines keep it that way for everyone.
               </p>
             </div>
           </RetroCard>
@@ -33,26 +34,26 @@ export default function CommunityGuidelines() {
           <RetroCard title="Our Core Values">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 py-4">
               <div className="text-center p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                <div className="text-3xl mb-2">🎨</div>
+                <div className="mb-2 flex justify-center"><PixelIcon name="paint-bucket" size={28} /></div>
                 <h3 className="font-bold text-base mb-2">Be Creative</h3>
                 <p className="text-sm text-gray-600">
-                  Express yourself authentically. Build unique pixel homes, share your art, and celebrate creativity in all forms.
+                  Build a pixel home that looks like you, share your art, and post whatever you&apos;re making.
                 </p>
               </div>
 
               <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
-                <div className="text-3xl mb-2">💚</div>
+                <div className="mb-2 flex justify-center"><PixelIcon name="heart" size={28} /></div>
                 <h3 className="font-bold text-base mb-2">Be Kind</h3>
                 <p className="text-sm text-gray-600">
-                  Treat others with respect and empathy. We&apos;re all here to have fun and connect with like-minded people.
+                  Treat people with care. We&apos;re all here to hang out and make things together.
                 </p>
               </div>
 
               <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <div className="text-3xl mb-2">🌟</div>
+                <div className="mb-2 flex justify-center"><PixelIcon name="mood-happy" size={28} /></div>
                 <h3 className="font-bold text-base mb-2">Be Yourself</h3>
                 <p className="text-sm text-gray-600">
-                  Your unique perspective makes our community special. Share your interests and passions freely.
+                  Nobody else sees things quite the way you do. Share what you&apos;re into.
                 </p>
               </div>
             </div>
@@ -62,7 +63,7 @@ export default function CommunityGuidelines() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-green-50 border-2 border-green-300 rounded-lg shadow-[4px_4px_0_#000] p-6">
               <div className="flex items-center gap-2 mb-4">
-                <span className="text-2xl">✅</span>
+                <PixelIcon name="check" size={22} className="text-green-800" />
                 <h3 className="text-xl font-bold text-green-800">Do&apos;s</h3>
               </div>
               <ul className="space-y-4">
@@ -98,7 +99,7 @@ export default function CommunityGuidelines() {
                   <span className="text-green-600 text-lg font-bold flex-shrink-0 mt-0.5">✓</span>
                   <div>
                     <div className="font-semibold text-green-900 mb-1">Have fun</div>
-                    <div className="text-sm text-green-700">Explore, experiment, and enjoy the community!</div>
+                    <div className="text-sm text-green-700">Explore, experiment, and enjoy yourself</div>
                   </div>
                 </li>
               </ul>
@@ -106,7 +107,7 @@ export default function CommunityGuidelines() {
 
             <div className="bg-red-50 border-2 border-red-300 rounded-lg shadow-[4px_4px_0_#000] p-6">
               <div className="flex items-center gap-2 mb-4">
-                <span className="text-2xl">❌</span>
+                <PixelIcon name="close" size={22} className="text-red-800" />
                 <h3 className="text-xl font-bold text-red-800">Don&apos;ts</h3>
               </div>
               <ul className="space-y-4">
@@ -168,26 +169,26 @@ export default function CommunityGuidelines() {
           <RetroCard title="Enforcement">
             <div className="space-y-4">
               <p className="text-sm sm:text-base text-gray-700">
-                We want everyone to have a great experience. Violations of these guidelines may result in:
+                We want everyone to have a good time here. Breaking these guidelines may result in:
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                  <div className="font-medium text-yellow-800 mb-1">⚠️ Warning</div>
+                  <div className="font-medium text-yellow-800 mb-1"><PixelIcon name="warning-box" size={14} className="inline-block align-middle" /> Warning</div>
                   <p className="text-xs text-gray-600">First-time or minor violations</p>
                 </div>
                 <div className="p-3 bg-orange-50 rounded-lg border border-orange-200">
-                  <div className="font-medium text-orange-800 mb-1">⏸️ Suspension</div>
+                  <div className="font-medium text-orange-800 mb-1"><PixelIcon name="pause" size={14} className="inline-block align-middle" /> Suspension</div>
                   <p className="text-xs text-gray-600">Repeated or serious violations</p>
                 </div>
                 <div className="p-3 bg-red-50 rounded-lg border border-red-200">
-                  <div className="font-medium text-red-800 mb-1">🚫 Ban</div>
+                  <div className="font-medium text-red-800 mb-1"><PixelIcon name="close" size={14} className="inline-block align-middle" /> Ban</div>
                   <p className="text-xs text-gray-600">Severe or repeated offenses</p>
                 </div>
               </div>
 
               <p className="text-sm text-gray-600">
-                Decisions are made on a case-by-case basis with the goal of maintaining a positive community for all.
+                Decisions are made case by case, with the aim of keeping this a good place to be.
               </p>
             </div>
           </RetroCard>
@@ -196,7 +197,7 @@ export default function CommunityGuidelines() {
           <RetroCard title="Need Help?">
             <div className="text-center space-y-4 py-4">
               <p className="text-sm sm:text-base text-gray-700">
-                Questions about the guidelines? Need to report something? We&apos;re here to help!
+                Questions about the guidelines, or something to report? Get in touch.
               </p>
 
               <div className="flex flex-wrap justify-center gap-3">
@@ -204,7 +205,7 @@ export default function CommunityGuidelines() {
                   href="/getting-started"
                   className="inline-flex items-center gap-2 px-4 py-2 bg-blue-200 hover:bg-blue-100 border border-black shadow-[2px_2px_0_#000] font-medium text-sm transition-colors"
                 >
-                  <span>📚</span>
+                  <PixelIcon name="article" size={16} />
                   <span>Getting Started Guide</span>
                 </Link>
 
@@ -212,7 +213,7 @@ export default function CommunityGuidelines() {
                   href="mailto:support@threadstead.com"
                   className="inline-flex items-center gap-2 px-4 py-2 bg-green-200 hover:bg-green-100 border border-black shadow-[2px_2px_0_#000] font-medium text-sm transition-colors"
                 >
-                  <span>📧</span>
+                  <PixelIcon name="mail" size={16} />
                   <span>Contact Support</span>
                 </a>
               </div>

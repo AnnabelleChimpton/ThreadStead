@@ -54,10 +54,9 @@ export default function ResetPasswordPage() {
                 <div className="max-w-md mx-auto mt-10 p-4">
                     <RetroCard title="Password Reset">
                         <div className="p-6 text-center space-y-4">
-                            <div className="text-4xl">🎉</div>
-                            <h3 className="text-xl font-bold font-pixel">Password Set!</h3>
+                            <h3 className="text-xl font-bold font-pixel">Password Set</h3>
                             <p className="text-gray-600">
-                                Your password has been successfully updated. You can now log in with your new password.
+                                Your password is updated. You can log in with it now.
                             </p>
                             <div className="pt-4">
                                 <Link href="/login" className="retro-btn retro-btn-primary block w-full text-center py-2">

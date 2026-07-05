@@ -622,7 +622,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                     return (
                       <div className="mt-2">
                         {usernameAvailable === true && (
-                          <p className="text-green-600 text-sm">✓ @{username} is available!</p>
+                          <p className="text-green-600 text-sm">✓ @{username} is available</p>
                         )}
                         {usernameAvailable === false && (
                           <p className="text-red-600 text-sm">✗ @{username} is taken</p>
@@ -676,7 +676,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
           {currentStep === 'auth-method' && (
             <div className="bg-white border border-black rounded-none p-4 sm:p-8 shadow-[2px_2px_0_#000] sm:shadow-[4px_4px_0_#000]">
               <div className="text-center mb-8">
-                <span className="text-6xl mb-4 block">🔑</span>
+                <span className="mb-4 flex justify-center"><PixelIcon name="lock" size={64} /></span>
                 <h2 className="text-3xl font-bold mb-2">Choose Your Security Method</h2>
                 <p className="text-gray-600">
                   How would you like to secure your @{username} account?
@@ -693,15 +693,15 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                       </span>
                     </div>
                     <div className="flex-grow">
-                      <h3 className="text-xl font-bold mb-2">🔐 Use a Password</h3>
+                      <h3 className="text-xl font-bold mb-2"><PixelIcon name="lock" className="inline-block align-middle mr-1" /> Use a Password</h3>
                       <p className="text-gray-700 mb-4">
-                        Familiar and easy! Sign in with a username and password, just like traditional apps.
+                        Sign in with a username and password, the way you&apos;re used to.
                       </p>
                       <ul className="text-sm text-gray-600 space-y-1 mb-4">
                         <li>✓ Easy to remember and use</li>
                         <li>✓ Change your password anytime</li>
                         <li>✓ Recovery phrase generated but hidden</li>
-                        <li>✓ Perfect for most users</li>
+                        <li>✓ A good fit for most people</li>
                       </ul>
                       <button
                         onClick={() => handleAuthMethodSelected('password')}
@@ -730,7 +730,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                         <li>✓ Most secure option</li>
                         <li>✓ Full control of your identity</li>
                         <li>✓ No password to remember or reset</li>
-                        <li>⚠️ Must safely store recovery phrase</li>
+                        <li><PixelIcon name="warning-box" size={14} className="inline-block align-middle mr-1" />Must safely store recovery phrase</li>
                       </ul>
                       <button
                         onClick={() => handleAuthMethodSelected('seedphrase')}
@@ -759,7 +759,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
           {currentStep === 'password-setup' && (
             <div className="bg-white border border-black rounded-none p-4 sm:p-8 shadow-[2px_2px_0_#000] sm:shadow-[4px_4px_0_#000]">
               <div className="text-center mb-8">
-                <span className="text-6xl mb-4 block">🔐</span>
+                <span className="mb-4 flex justify-center"><PixelIcon name="lock" size={64} /></span>
                 <h2 className="text-3xl font-bold mb-2">Create Your Password</h2>
                 <p className="text-gray-600">
                   Choose a strong password for your @{username} account
@@ -787,7 +787,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
                     >
-                      {showPassword ? '👁️' : '👁️‍🗨️'}
+                      {showPassword ? <PixelIcon name="eye" size={20} /> : <PixelIcon name="eye-closed" size={20} />}
                     </button>
                   </div>
                 </div>
@@ -850,7 +850,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
           {currentStep === 'seed-phrase' && generatedSeedPhrase && (
             <div className="bg-white border border-black rounded-none p-4 sm:p-8 shadow-[2px_2px_0_#000] sm:shadow-[4px_4px_0_#000]">
               <div className="text-center mb-8">
-                <span className="text-6xl mb-4 block">🛡️</span>
+                <span className="mb-4 flex justify-center"><PixelIcon name="shield" size={64} /></span>
                 <h2 className="text-3xl font-bold mb-2">Secure Your Account</h2>
                 <p className="text-gray-600 max-w-lg mx-auto">
                   <strong>Save these 12 words in order!</strong> This is your account recovery phrase. 
@@ -871,7 +871,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                 </div>
 
                 <div className="bg-red-50 border border-red-200 rounded p-4 mb-6">
-                  <h3 className="font-bold text-red-800 mb-2">⚠️ Important Security Notice</h3>
+                  <h3 className="font-bold text-red-800 mb-2"><PixelIcon name="warning-box" size={16} className="inline-block align-middle mr-1" />Keep these words safe</h3>
                   <ul className="text-red-700 text-sm space-y-1">
                     <li>• Anyone with these words can access your account</li>
                     <li>• Write them down on paper and store safely</li>
@@ -885,7 +885,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                     onClick={() => copyToClipboard(generatedSeedPhrase)}
                     className="flex-1 px-4 py-3 bg-green-100 hover:bg-green-200 border border-green-300 font-medium transition-all flex items-center justify-center gap-2"
                   >
-                    <span>📋</span>
+                    <PixelIcon name="clipboard" />
                     Copy Words
                   </button>
                   <button
@@ -911,7 +911,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
           {currentStep === 'email' && (
             <div className="bg-white border border-black rounded-none p-4 sm:p-8 shadow-[2px_2px_0_#000] sm:shadow-[4px_4px_0_#000]">
               <div className="text-center mb-8">
-                <span className="text-6xl mb-4 block">📧</span>
+                <span className="mb-4 flex justify-center"><PixelIcon name="mail" size={64} /></span>
                 <h2 className="text-3xl font-bold mb-2">Add Email (Optional)</h2>
                 <p className="text-gray-600 max-w-lg mx-auto">
                   Add your email address for magic link login. This makes it easier to access your account
@@ -974,11 +974,11 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
           {currentStep === 'template' && (
             <div className="bg-white border border-black rounded-none p-4 sm:p-8 shadow-[2px_2px_0_#000] sm:shadow-[4px_4px_0_#000]">
               <div className="text-center mb-8">
-                <span className="text-6xl mb-4 block">🎨</span>
+                <span className="mb-4 flex justify-center"><PixelIcon name="paint-bucket" size={64} /></span>
                 <h2 className="text-3xl font-bold mb-2">Choose Your Theme</h2>
                 <p className="text-gray-600 max-w-lg mx-auto">
-                  Select a profile template to personalize your {siteConfig.site_name} experience.
-                  You can change this anytime in your settings.
+                  Pick a template for your profile page.
+                  You can change it anytime in your settings.
                 </p>
               </div>
 
@@ -1091,7 +1091,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
           {currentStep === 'guidelines' && (
             <div className="bg-white border border-black rounded-none p-4 sm:p-8 shadow-[2px_2px_0_#000] sm:shadow-[4px_4px_0_#000]">
               <div className="text-center mb-8">
-                <span className="text-6xl mb-4 block">📋</span>
+                <span className="mb-4 flex justify-center"><PixelIcon name="clipboard" size={64} /></span>
                 <h2 className="text-3xl font-bold mb-2">Legal & Community Agreements</h2>
                 <p className="text-gray-600 max-w-lg mx-auto">
                   Before joining our community, please review and agree to our Terms of Service,
@@ -1104,15 +1104,12 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                 <h3 className="font-bold text-lg mb-3 text-gray-900">Our Core Values:</h3>
                 <div className="space-y-2 text-sm text-gray-700">
                   <div className="flex items-start gap-2">
-                    <span className="text-yellow-500">🎨</span>
                     <span className="text-gray-700"><strong className="text-gray-900">Be Creative:</strong> Express yourself authentically and celebrate creativity in all forms.</span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <span className="text-green-500">💚</span>
                     <span className="text-gray-700"><strong className="text-gray-900">Be Kind:</strong> Treat others with respect and empathy.</span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <span className="text-blue-500">🌟</span>
                     <span className="text-gray-700"><strong className="text-gray-900">Be Yourself:</strong> Your unique perspective makes our community special.</span>
                   </div>
                 </div>
@@ -1197,7 +1194,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
           {currentStep === 'profile' && (
             <div className="bg-white border border-black rounded-none p-4 sm:p-8 shadow-[2px_2px_0_#000] sm:shadow-[4px_4px_0_#000]">
               <div className="text-center mb-8">
-                <span className="text-6xl mb-4 block">📸</span>
+                <span className="mb-4 flex justify-center"><PixelIcon name="camera" size={64} /></span>
                 <h2 className="text-3xl font-bold mb-2">Set up your profile</h2>
                 <p className="text-gray-600">
                   Add a profile photo and bio to help others recognize you (optional)
@@ -1212,7 +1209,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                       {profilePhotoPreview ? (
                         <img src={profilePhotoPreview} alt="Profile preview" className="w-full h-full object-cover" />
                       ) : (
-                        <span className="text-2xl text-gray-400">👤</span>
+                        <span className="text-gray-400"><PixelIcon name="user" size={32} /></span>
                       )}
                     </div>
                     <div>
@@ -1269,7 +1266,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
 
                 {profileSaved && (
                   <div className="p-4 bg-green-50 border border-green-200 rounded text-sm text-green-700">
-                    <strong>✓ Success!</strong> Your profile has been saved.
+                    <strong>✓ Profile saved.</strong>
                   </div>
                 )}
                 

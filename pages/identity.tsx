@@ -105,7 +105,7 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
       const token = await exportIdentityToken();
       setExportToken(token);
       setShowExport(true);
-      setMessage({ type: 'success', text: 'Identity token exported successfully!' });
+      setMessage({ type: 'success', text: 'Backup token exported.' });
     } catch (e: unknown) {
       setMessage({ type: 'error', text: (e as Error).message || 'Failed to export identity' });
     }
@@ -119,12 +119,12 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
 
     try {
       setIsLoading(true);
-      setMessage({ type: 'success', text: 'Switching accounts... Logging out and logging in with new identity.' });
+      setMessage({ type: 'success', text: 'Switching accounts...' });
       await importIdentityToken(importToken.trim());
       await loadCurrentIdentity();
       setImportToken("");
       setShowImport(false);
-      setMessage({ type: 'success', text: 'Identity imported and logged in successfully!' });
+      setMessage({ type: 'success', text: 'Identity imported. You\'re logged in.' });
       setTimeout(() => window.location.reload(), 1500);
     } catch (e: unknown) {
       setMessage({ type: 'error', text: (e as Error).message || 'Failed to import identity' });
@@ -141,7 +141,7 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
       await updateIdentityWithSeedPhrase(newSeed, true); // Pass true to indicate this is a legacy user
       setSeedPhrase(newSeed);
       setShowSeedPhraseStep(true);
-      setMessage({ type: 'success', text: 'New recovery seed phrase generated and attached to your account! Please save it securely.' });
+      setMessage({ type: 'success', text: 'New recovery phrase generated and attached to your account. Save it somewhere safe.' });
       await loadCurrentIdentity();
     } catch (e: unknown) {
       setMessage({ type: 'error', text: (e as Error).message || 'Failed to generate or attach seed phrase' });
@@ -173,7 +173,7 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
       
       setSeedPhrase(newSeed);
       setShowSeedPhraseStep(true);
-      setMessage({ type: 'success', text: 'New recovery seed phrase generated! Please save it securely.' });
+      setMessage({ type: 'success', text: 'New recovery phrase generated. Save it somewhere safe.' });
       
       // Reload the current identity to reflect changes
       await loadCurrentIdentity();
@@ -202,7 +202,7 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
       await loadCurrentIdentity();
       setRecoveryPhrase("");
       setShowRecovery(false);
-      setMessage({ type: 'success', text: 'Account recovered successfully!' });
+      setMessage({ type: 'success', text: 'Account recovered.' });
       setTimeout(() => window.location.reload(), 1500);
     } catch (e: unknown) {
       setMessage({ type: 'error', text: (e as Error).message || 'Failed to recover from seed phrase' });
@@ -239,7 +239,7 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
 
   function copyToClipboard(text: string) {
     navigator.clipboard.writeText(text).then(() => {
-      setMessage({ type: 'success', text: 'Copied to clipboard!' });
+      setMessage({ type: 'success', text: 'Copied.' });
     }).catch(() => {
       setMessage({ type: 'error', text: 'Failed to copy to clipboard' });
     });
@@ -267,7 +267,7 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
       if (isNewAccountFlow) {
         setShowOptionalEmailStep(true);
       } else {
-        setMessage({ type: 'success', text: 'Seed phrase saved! Your account has been updated with the new recovery phrase.' });
+        setMessage({ type: 'success', text: 'Seed phrase saved. Your account now uses the new recovery phrase.' });
         // Stay on the identity page to show the logged-in state
         setTimeout(() => {
           setMessage(null);
@@ -316,7 +316,7 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
     setShowOptionalEmailStep(false);
     setNewAccountEmail('');
     setIsNewAccountFlow(false);
-    setMessage({ type: 'success', text: 'Account created successfully! Welcome to the community.' });
+    setMessage({ type: 'success', text: 'Account created. Welcome in.' });
     // Stay on the identity page to show the logged-in state
     // Don't reload immediately so users can see the email verification status
     setTimeout(() => {
@@ -353,7 +353,7 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
           setEmailVerifiedAt(null);
           setEmailInput('');
           setShowEmailSection(false);
-          setMessage({ type: 'success', text: 'Email updated successfully!' });
+          setMessage({ type: 'success', text: 'Email updated.' });
         }
       } else {
         const error = await response.json();
@@ -380,7 +380,7 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
       if (response.ok) {
         setUserEmail('');
         setEmailVerifiedAt(null);
-        setMessage({ type: 'success', text: 'Email removed successfully' });
+        setMessage({ type: 'success', text: 'Email removed.' });
       } else {
         const error = await response.json();
         setMessage({ type: 'error', text: error.error || 'Failed to remove email' });
@@ -438,7 +438,7 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
 
                 <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-6 mb-6">
                   <h3 className="font-bold text-blue-800 mb-3 flex items-center gap-2">
-                    <span>ℹ️</span>
+                    <PixelIcon name="info-box" size={16} />
                     Why add an email address?
                   </h3>
                   <ul className="text-blue-700 space-y-2 mb-4">
@@ -495,7 +495,6 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
                       disabled={isEmailLoading}
                       className="px-6 py-3 text-lg border-2 border-gray-400 bg-gray-100 hover:bg-gray-200 rounded-lg transition-all disabled:opacity-50 flex items-center gap-2"
                     >
-                      <span>⏭️</span>
                       Skip for now
                     </button>
                     <button
@@ -550,8 +549,8 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
 
               <div className="bg-gradient-to-r from-green-50 to-thread-cream border-2 border-green-300 rounded-lg p-8">
                 <div className="text-center mb-8">
-                  <h1 className="thread-headline text-3xl mb-4">🎉 Account Created Successfully!</h1>
-                  <h2 className="text-xl font-medium text-thread-pine mb-4">🔑 Your Recovery Seed Phrase</h2>
+                  <h1 className="thread-headline text-3xl mb-4">Your account is ready</h1>
+                  <h2 className="text-xl font-medium text-thread-pine mb-4">Your Recovery Seed Phrase</h2>
                   <p className="text-thread-charcoal text-lg leading-relaxed">
                     <strong>Critical Step:</strong> Save these 12 words in the exact order shown. 
                     You&apos;ll need them to recover your account if you lose access to this device.
@@ -573,12 +572,12 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
 
                 <div className="bg-red-50 border-2 border-red-200 rounded-lg p-6 mb-8">
                   <h3 className="font-bold text-red-800 mb-4 flex items-center gap-2 text-lg">
-                    <span>⚠️</span>
-                    Security Guidelines - READ CAREFULLY
+                    <PixelIcon name="warning-box" size={18} />
+                    Security Guidelines
                   </h3>
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
-                      <h4 className="font-medium text-green-800 mb-2">✅ DO:</h4>
+                      <h4 className="font-medium text-green-800 mb-2">✓ Do:</h4>
                       <ul className="text-sm text-green-700 space-y-1">
                         <li>• Write these words on paper</li>
                         <li>• Store in a secure location</li>
@@ -588,7 +587,7 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
                       </ul>
                     </div>
                     <div>
-                      <h4 className="font-medium text-red-800 mb-2">❌ DON&apos;T:</h4>
+                      <h4 className="font-medium text-red-800 mb-2">✗ Don&apos;t:</h4>
                       <ul className="text-sm text-red-700 space-y-1">
                         <li>• Share with anyone</li>
                         <li>• Store in plain text files</li>
@@ -605,14 +604,14 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
                     onClick={() => copyToClipboard(seedPhrase)}
                     className="flex-1 px-6 py-4 text-sm bg-thread-paper border-2 border-thread-sage hover:bg-thread-cream rounded-lg transition-all flex items-center justify-center gap-2 font-medium"
                   >
-                    <span>📋</span>
+                    <PixelIcon name="clipboard" />
                     Copy Words
                   </button>
                   <button
                     onClick={() => downloadSeedPhrase(seedPhrase)}
                     className="flex-1 px-6 py-4 text-sm bg-thread-paper border-2 border-thread-sage hover:bg-thread-cream rounded-lg transition-all flex items-center justify-center gap-2 font-medium"
                   >
-                    <span>💾</span>
+                    <PixelIcon name="save" />
                     Download Backup
                   </button>
                 </div>
@@ -672,7 +671,7 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
         {hasMismatch && (
           <div className="bg-amber-50 border-2 border-amber-300 rounded-lg p-6">
             <div className="flex items-start gap-3">
-              <span className="text-2xl">⚠️</span>
+              <PixelIcon name="warning-box" size={24} />
               <div className="flex-1">
                 <h3 className="font-bold text-amber-800 mb-2">Identity Sync Issue Detected</h3>
                 <p className="text-amber-700 mb-4">
@@ -710,7 +709,7 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
         {currentIdentity && (
           <div className="bg-thread-paper border border-thread-sage rounded-lg p-6">
             <h2 className="thread-label text-lg mb-4 flex items-center gap-2">
-              <span>🔐</span>
+              <PixelIcon name="lock" size={18} />
               Current Identity
             </h2>
             <div className="space-y-3">
@@ -749,7 +748,7 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
                 {currentSeedPhrase ? (
                   <span className="text-green-600 text-sm font-medium">✓ Enabled</span>
                 ) : (
-                  <span className="text-amber-600 text-sm font-medium">⚠ Not Set</span>
+                  <span className="text-amber-600 text-sm font-medium"><PixelIcon name="warning-box" size={14} className="inline-block align-middle mr-1" />Not Set</span>
                 )}
               </div>
             </div>
@@ -760,7 +759,7 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
           {/* Create New Account */}
           <div className="bg-thread-cream border border-thread-sage rounded-lg p-6">
             <h3 className="thread-label text-lg mb-3 flex items-center gap-2">
-              <span>🆕</span>
+              <PixelIcon name="user-plus" size={18} />
               New Account
             </h3>
             <p className="text-sm text-thread-sage mb-4 leading-relaxed">
@@ -772,7 +771,6 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
               disabled={isLoading}
               className="w-full thread-button text-sm px-4 py-3 flex items-center gap-2 justify-center disabled:opacity-50"
             >
-              <span>✨</span>
               Create New Account with Seed Phrase
             </button>
           </div>
@@ -780,7 +778,7 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
           {/* Recovery */}
           <div className="bg-thread-cream border border-thread-sage rounded-lg p-6">
             <h3 className="thread-label text-lg mb-3 flex items-center gap-2">
-              <span>🔄</span>
+              <PixelIcon name="reload" size={18} />
               Account Recovery
             </h3>
             <p className="text-sm text-thread-sage mb-4 leading-relaxed">
@@ -791,7 +789,6 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
               disabled={isLoading}
               className="w-full px-4 py-3 text-sm border border-thread-sage bg-thread-paper hover:bg-thread-cream rounded shadow-cozySm transition-all flex items-center gap-2 justify-center disabled:opacity-50"
             >
-              <span>🔑</span>
               Recover from Seed Phrase
             </button>
           </div>
@@ -799,7 +796,7 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
           {/* Legacy Token Import */}
           <div className="bg-thread-paper border border-thread-sage rounded-lg p-6">
             <h3 className="thread-label text-lg mb-3 flex items-center gap-2">
-              <span>📥</span>
+              <PixelIcon name="download" size={18} />
               Legacy Token Import
             </h3>
             <p className="text-sm text-thread-sage mb-4 leading-relaxed">
@@ -810,7 +807,6 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
               disabled={isLoading}
               className="w-full px-4 py-3 text-sm border border-thread-sage bg-thread-paper hover:bg-thread-cream rounded shadow-cozySm transition-all flex items-center gap-2 justify-center disabled:opacity-50"
             >
-              <span>📥</span>
               Import Legacy Token
             </button>
           </div>
@@ -942,13 +938,13 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
           {currentIdentity && (
             <div className="bg-thread-paper border border-thread-sage rounded-lg p-6">
               <h3 className="thread-label text-lg mb-3 flex items-center gap-2">
-                <span>🛡️</span>
+                <PixelIcon name="shield" size={18} />
                 Account Backup
               </h3>
               <div className="space-y-3">
                 {!currentSeedPhrase && (
                   <div className="bg-amber-50 border border-amber-200 p-3 rounded text-sm">
-                    <p className="text-amber-800 font-medium mb-2">⚠ No seed phrase recovery set</p>
+                    <p className="text-amber-800 font-medium mb-2"><PixelIcon name="warning-box" size={14} className="inline-block align-middle mr-1" />No seed phrase recovery set</p>
                     <button
                       onClick={handleGenerateSeedPhrase}
                       disabled={isLoading}
@@ -963,7 +959,7 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
                   <div className="bg-green-50 border border-green-200 p-3 rounded text-sm space-y-3">
                     <p className="text-green-800 font-medium">✓ Seed phrase recovery is enabled</p>
                     <div className="bg-yellow-50 border border-yellow-200 p-3 rounded">
-                      <p className="text-yellow-800 font-medium mb-2">🔄 Need a new recovery phrase?</p>
+                      <p className="text-yellow-800 font-medium mb-2">Need a new recovery phrase?</p>
                       <p className="text-yellow-700 text-xs mb-3">
                         Generate a completely new 12-word recovery phrase. This will replace your current one and log you back in with new credentials.
                       </p>
@@ -986,7 +982,7 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
                   disabled={isLoading}
                   className="w-full px-4 py-3 text-sm border border-thread-sage bg-thread-paper hover:bg-thread-cream rounded shadow-cozySm transition-all flex items-center gap-2 justify-center disabled:opacity-50"
                 >
-                  <span>📤</span>
+                  <PixelIcon name="upload" size={16} />
                   Export Legacy Token
                 </button>
               </div>
@@ -999,7 +995,7 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
         <Modal
           isOpen={showRecovery}
           onClose={() => setShowRecovery(false)}
-          title="🔑 Account Recovery"
+          title="Account Recovery"
           maxWidth="max-w-3xl"
         >
           <div className="space-y-4">
@@ -1020,7 +1016,7 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
                   disabled={isLoading || !recoveryPhrase.trim()}
                   className="thread-button text-sm px-6 py-2 disabled:opacity-50 flex items-center gap-2"
                 >
-                  {isLoading ? "Recovering..." : "🔄 Recover Account"}
+                  {isLoading ? "Recovering..." : "Recover Account"}
                 </button>
               </div>
             </div>
@@ -1031,7 +1027,7 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
         <Modal
           isOpen={showExport}
           onClose={() => setShowExport(false)}
-          title="📤 Legacy Backup Token"
+          title="Legacy Backup Token"
           maxWidth="max-w-3xl"
         >
           <div className="space-y-4">
@@ -1059,7 +1055,7 @@ export default function IdentityPage({ initialUser }: IdentityPageProps) {
         <Modal
           isOpen={showImport}
           onClose={() => setShowImport(false)}
-          title="📥 Import Legacy Token"
+          title="Import Legacy Token"
           maxWidth="max-w-3xl"
         >
           <div className="space-y-4">

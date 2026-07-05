@@ -5,6 +5,7 @@ import NeighborhoodGrid from '../../../components/pixel-homes/NeighborhoodGrid'
 import { HouseTemplate, ColorPalette } from '../../../components/pixel-homes/HouseSVG'
 import { db } from '../../../lib/config/database/connection'
 import Link from 'next/link'
+import { PixelIcon } from '@/components/ui/PixelIcon'
 
 interface MutualFriend {
   userId: string
@@ -64,13 +65,13 @@ export default function MutualFriendsNeighborhood({
   const displayName = targetDisplayName || targetUsername
   const totalConnections = mutualFriends.length + friendsOfFriends.length + mutualRingMembers.length
   
-  const pageTitle = currentUserIsOwner 
-    ? "🤝 Your Network Neighborhood - Connected Homes"
-    : `🤝 ${displayName}'s Network - Mutual Connections`
-    
+  const pageTitle = currentUserIsOwner
+    ? "Your Network Neighborhood"
+    : `${displayName}'s Network Neighborhood`
+
   const pageDescription = currentUserIsOwner
-    ? `Explore ${totalConnections} pixel homes in your extended network - mutual friends, friends of friends, and ThreadRing connections.`
-    : `Discover ${totalConnections} homes connected to ${displayName} through mutual friends and shared communities.`
+    ? `${totalConnections} pixel homes in your network - mutual friends, friends of friends, and ThreadRing connections.`
+    : `${totalConnections} homes connected to ${displayName} through mutual friends and shared communities.`
 
   return (
     <>
@@ -96,13 +97,13 @@ export default function MutualFriendsNeighborhood({
             </div>
             
             <h1 className="text-3xl font-headline font-bold text-thread-pine mb-3">
-              🤝 {currentUserIsOwner ? 'Your' : `${displayName}'s`} Network Neighborhood
+              {currentUserIsOwner ? 'Your' : `${displayName}'s`} Network Neighborhood
             </h1>
-            
+
             <p className="text-thread-sage max-w-2xl mx-auto mb-6">
-              {currentUserIsOwner 
-                ? "Discover homes of people in your extended network - friends, friends of friends, and ThreadRing connections."
-                : `Explore homes connected to ${displayName} through mutual relationships and shared communities.`
+              {currentUserIsOwner
+                ? "The homes of people in your orbit - friends, friends of friends, and ThreadRing connections."
+                : `Homes connected to ${displayName} through mutual friends and shared rings.`
               }
             </p>
             
@@ -126,43 +127,43 @@ export default function MutualFriendsNeighborhood({
           {/* Navigation Tabs */}
           <div className="flex justify-center mb-8">
             <div className="flex flex-wrap gap-2">
-              <button className="px-4 py-2 bg-thread-sage text-thread-paper rounded-full text-sm">
-                👥 All Connections
+              <button className="px-4 py-2 bg-thread-sage text-thread-paper rounded-full text-sm inline-flex items-center gap-1.5">
+                <PixelIcon name="users" size={14} /> All Connections
               </button>
-              <button className="px-4 py-2 border border-thread-sage text-thread-sage rounded-full text-sm hover:bg-thread-sage hover:text-thread-paper transition-colors">
-                🤝 Direct Friends
+              <button className="px-4 py-2 border border-thread-sage text-thread-sage rounded-full text-sm hover:bg-thread-sage hover:text-thread-paper transition-colors inline-flex items-center gap-1.5">
+                <PixelIcon name="heart" size={14} /> Direct Friends
               </button>
-              <button className="px-4 py-2 border border-thread-sage text-thread-sage rounded-full text-sm hover:bg-thread-sage hover:text-thread-paper transition-colors">
-                🔗 Ring Members
+              <button className="px-4 py-2 border border-thread-sage text-thread-sage rounded-full text-sm hover:bg-thread-sage hover:text-thread-paper transition-colors inline-flex items-center gap-1.5">
+                <PixelIcon name="link" size={14} /> Ring Members
               </button>
-              <button className="px-4 py-2 border border-thread-sage text-thread-sage rounded-full text-sm hover:bg-thread-sage hover:text-thread-paper transition-colors">
-                🌐 Extended Network
+              <button className="px-4 py-2 border border-thread-sage text-thread-sage rounded-full text-sm hover:bg-thread-sage hover:text-thread-paper transition-colors inline-flex items-center gap-1.5">
+                <PixelIcon name="gps" size={14} /> Extended Network
               </button>
             </div>
           </div>
 
           {totalConnections === 0 ? (
             <div className="text-center py-16">
-              <div className="text-6xl mb-4">🏘️</div>
-              <div className="text-xl font-headline text-thread-pine mb-2">No network connections found</div>
+              <div className="mb-4 flex justify-center"><PixelIcon name="home" size={48} /></div>
+              <div className="text-xl font-headline text-thread-pine mb-2">No connections here yet</div>
               <div className="text-thread-sage mb-6">
-                {currentUserIsOwner 
-                  ? "Start following people and joining ThreadRings to build your network!"
+                {currentUserIsOwner
+                  ? "Follow a few people or join a ThreadRing, and this street will start filling in."
                   : `${displayName} hasn't built their network yet, or you don't share any connections.`
                 }
               </div>
               <div className="flex justify-center gap-4">
                 <Link
                   href="/neighborhood/explore/all"
-                  className="px-4 py-2 bg-thread-sage text-thread-paper rounded-md hover:bg-thread-pine transition-colors"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-thread-sage text-thread-paper rounded-md hover:bg-thread-pine transition-colors"
                 >
-                  🌍 Explore All Homes
+                  <PixelIcon name="map" size={16} /> Explore All Homes
                 </Link>
                 <Link
                   href="/rings"
-                  className="px-4 py-2 border border-thread-sage text-thread-sage rounded-md hover:bg-thread-sage hover:text-thread-paper transition-colors"
+                  className="inline-flex items-center gap-2 px-4 py-2 border border-thread-sage text-thread-sage rounded-md hover:bg-thread-sage hover:text-thread-paper transition-colors"
                 >
-                  🔍 Browse ThreadRings
+                  <PixelIcon name="bookmark" size={16} /> Browse ThreadRings
                 </Link>
               </div>
             </div>
@@ -172,7 +173,7 @@ export default function MutualFriendsNeighborhood({
               {mutualFriends.length > 0 && (
                 <div className="mb-12">
                   <h2 className="text-xl font-headline font-medium text-thread-pine mb-4 flex items-center gap-2">
-                    🤝 Mutual Friends
+                    <PixelIcon name="heart" size={18} /> Mutual Friends
                     <span className="text-sm font-normal text-thread-sage">({mutualFriends.length})</span>
                   </h2>
                   <NeighborhoodGrid members={mutualFriends} ringSlug="mutual-friends" />
@@ -183,7 +184,7 @@ export default function MutualFriendsNeighborhood({
               {mutualRingMembers.length > 0 && (
                 <div className="mb-12">
                   <h2 className="text-xl font-headline font-medium text-thread-pine mb-4 flex items-center gap-2">
-                    🔗 Shared ThreadRing Members
+                    <PixelIcon name="link" size={18} /> Shared ThreadRing Members
                     <span className="text-sm font-normal text-thread-sage">({mutualRingMembers.length})</span>
                   </h2>
                   <NeighborhoodGrid members={mutualRingMembers} ringSlug="mutual-rings" />
@@ -194,11 +195,11 @@ export default function MutualFriendsNeighborhood({
               {friendsOfFriends.length > 0 && (
                 <div className="mb-12">
                   <h2 className="text-xl font-headline font-medium text-thread-pine mb-4 flex items-center gap-2">
-                    🌐 Extended Network
+                    <PixelIcon name="gps" size={18} /> Extended Network
                     <span className="text-sm font-normal text-thread-sage">({friendsOfFriends.length})</span>
                   </h2>
                   <p className="text-sm text-thread-sage mb-4">
-                    People connected through friends and broader network relationships
+                    Friends of friends - people one hop out from your circle
                   </p>
                   <NeighborhoodGrid members={friendsOfFriends} ringSlug="extended-network" />
                 </div>
@@ -209,26 +210,26 @@ export default function MutualFriendsNeighborhood({
           {/* Discovery Suggestions */}
           <div className="mt-12 pt-8 border-t border-thread-sage text-center">
             <h3 className="text-lg font-headline font-medium text-thread-pine mb-4">
-              🔍 Expand Your Network
+              <PixelIcon name="search" size={16} className="inline-block align-middle" /> Expand Your Network
             </h3>
             <div className="flex justify-center gap-4">
               <Link
                 href="/neighborhood/explore/popular"
-                className="px-4 py-2 bg-thread-cream border border-thread-sage text-thread-pine rounded-md hover:bg-thread-sage hover:text-thread-paper transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-thread-cream border border-thread-sage text-thread-pine rounded-md hover:bg-thread-sage hover:text-thread-paper transition-colors"
               >
-                🔥 Popular Homes
+                <PixelIcon name="trophy" size={16} /> Popular Homes
               </Link>
               <Link
                 href="/neighborhood/explore/random"
-                className="px-4 py-2 bg-thread-cream border border-thread-sage text-thread-pine rounded-md hover:bg-thread-sage hover:text-thread-paper transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-thread-cream border border-thread-sage text-thread-pine rounded-md hover:bg-thread-sage hover:text-thread-paper transition-colors"
               >
-                🎲 Random Discovery
+                <PixelIcon name="dice" size={16} /> Random Homes
               </Link>
               <Link
                 href="/rings"
-                className="px-4 py-2 bg-thread-cream border border-thread-sage text-thread-pine rounded-md hover:bg-thread-sage hover:text-thread-paper transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-thread-cream border border-thread-sage text-thread-pine rounded-md hover:bg-thread-sage hover:text-thread-paper transition-colors"
               >
-                🏛️ Browse ThreadRings
+                <PixelIcon name="bookmark" size={16} /> Browse ThreadRings
               </Link>
             </div>
           </div>

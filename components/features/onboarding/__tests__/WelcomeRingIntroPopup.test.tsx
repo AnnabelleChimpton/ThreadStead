@@ -1,6 +1,13 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
+
+// PixelIcon loads icons via next/dynamic, which jsdom can't resolve in this
+// config — stub it with a plain span carrying the icon name.
+jest.mock('@/components/ui/PixelIcon', () => ({
+  PixelIcon: ({ name }: { name: string }) => <span data-testid={`pixel-icon-${name}`} />,
+}));
+
 import WelcomeRingIntroPopup from '../WelcomeRingIntroPopup';
 
 describe('WelcomeRingIntroPopup', () => {
@@ -15,9 +22,9 @@ describe('WelcomeRingIntroPopup', () => {
     it('should render the popup with initial step', () => {
       render(<WelcomeRingIntroPopup onClose={mockOnClose} onStartTour={mockOnStartTour} />);
       
-      expect(screen.getByText('Welcome to your first ThreadRing! 🎉')).toBeInTheDocument();
+      expect(screen.getByText('Welcome to your first ThreadRing!')).toBeInTheDocument();
       expect(screen.getByText(/You've just entered something special/)).toBeInTheDocument();
-      expect(screen.getByText('🏠')).toBeInTheDocument();
+      expect(screen.getByTestId('pixel-icon-home')).toBeInTheDocument();
     });
 
     it('should render close button', () => {
@@ -42,27 +49,27 @@ describe('WelcomeRingIntroPopup', () => {
       render(<WelcomeRingIntroPopup onClose={mockOnClose} onStartTour={mockOnStartTour} />);
       
       // Step 1
-      expect(screen.getByText('Welcome to your first ThreadRing! 🎉')).toBeInTheDocument();
+      expect(screen.getByText('Welcome to your first ThreadRing!')).toBeInTheDocument();
       
       // Go to step 2
       fireEvent.click(screen.getByText('Next'));
       await waitFor(() => {
-        expect(screen.getByText('How ThreadRings Work ✨')).toBeInTheDocument();
+        expect(screen.getByText('How ThreadRings Work')).toBeInTheDocument();
         expect(screen.getByText(/Discord/)).toBeInTheDocument();
       }, { timeout: 3000 });
       
       // Go to step 3
       fireEvent.click(screen.getByText('Next'));
       await waitFor(() => {
-        expect(screen.getByText('This Ring is Special 🌟')).toBeInTheDocument();
+        expect(screen.getByText('This Ring is Special')).toBeInTheDocument();
         expect(screen.getByText(/training ground/)).toBeInTheDocument();
       }, { timeout: 3000 });
       
       // Go to step 4 (final step)
       fireEvent.click(screen.getByText('Next'));
       await waitFor(() => {
-        expect(screen.getByText('Ready to Start Your Journey? 🚀')).toBeInTheDocument();
-        expect(screen.getByText("Let's Go! 🚀")).toBeInTheDocument();
+        expect(screen.getByText('Ready to get started?')).toBeInTheDocument();
+        expect(screen.getByText("Let's Go!")).toBeInTheDocument();
       }, { timeout: 3000 });
     });
 
@@ -83,7 +90,7 @@ describe('WelcomeRingIntroPopup', () => {
       // Go back to step 1
       fireEvent.click(screen.getByText('Back'));
       await waitFor(() => {
-        expect(screen.getByText('Welcome to your first ThreadRing! 🎉')).toBeInTheDocument();
+        expect(screen.getByText('Welcome to your first ThreadRing!')).toBeInTheDocument();
       }, { timeout: 3000 });
     });
   });
@@ -94,18 +101,18 @@ describe('WelcomeRingIntroPopup', () => {
       
       // Navigate to final step
       fireEvent.click(screen.getByText('Next'));
-      await waitFor(() => screen.getByText('How ThreadRings Work ✨'));
+      await waitFor(() => screen.getByText('How ThreadRings Work'));
       
       fireEvent.click(screen.getByText('Next'));
-      await waitFor(() => screen.getByText('This Ring is Special 🌟'));
+      await waitFor(() => screen.getByText('This Ring is Special'));
       
       fireEvent.click(screen.getByText('Next'));
-      await waitFor(() => screen.getByText('Ready to Start Your Journey? 🚀'));
+      await waitFor(() => screen.getByText('Ready to get started?'));
     });
 
     it('should show final step action buttons', () => {
       expect(screen.getByText("I'll explore on my own")).toBeInTheDocument();
-      expect(screen.getByText("Let's Go! 🚀")).toBeInTheDocument();
+      expect(screen.getByText("Let's Go!")).toBeInTheDocument();
     });
 
     it('should call onClose when explore on my own is clicked', () => {
@@ -115,7 +122,7 @@ describe('WelcomeRingIntroPopup', () => {
     });
 
     it('should call both callbacks when start tour is clicked', () => {
-      fireEvent.click(screen.getByText("Let's Go! 🚀"));
+      fireEvent.click(screen.getByText("Let's Go!"));
       expect(mockOnStartTour).toHaveBeenCalled();
       expect(mockOnClose).toHaveBeenCalled();
     });
@@ -138,9 +145,9 @@ describe('WelcomeRingIntroPopup', () => {
       const popup = document.querySelector('.fixed.inset-0.bg-black\\/60');
       expect(popup).toBeInTheDocument();
       
-      // Check decorative elements
-      expect(screen.getByText('⭐')).toBeInTheDocument();
-      expect(screen.getByText('🌟')).toBeInTheDocument();
+      // Decorative floating emoji were removed in the copy rinse —
+      // the popup should render with no emoji at all.
+      expect(document.body.textContent).not.toMatch(/[\u{1F300}-\u{1FAFF}]/u);
     });
 
     it('should update progress indicators correctly', async () => {

@@ -5,6 +5,7 @@ import { useRouter } from "next/router";
 import Layout from "@/components/ui/layout/Layout";
 import UsernameSelector from "@/components/features/auth/UsernameSelector";
 import WelcomeRingOptIn from "@/components/features/onboarding/WelcomeRingOptIn";
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 type OnboardingStep = 'username' | 'welcome-ring' | 'complete';
 
@@ -17,9 +18,9 @@ export default function Onboarding() {
 
   // Progress tracking
   const stepInfo = {
-    username: { number: 1, title: 'Choose Username', icon: '👤' },
-    'welcome-ring': { number: 2, title: 'Join Community', icon: '💍' },
-    complete: { number: 3, title: 'Welcome!', icon: '🎉' }
+    username: { number: 1, title: 'Choose Username' },
+    'welcome-ring': { number: 2, title: 'Join Community' },
+    complete: { number: 3, title: 'Welcome!' }
   };
 
   const currentStepInfo = stepInfo[step];
@@ -87,7 +88,6 @@ export default function Onboarding() {
 
           {/* Current Step Info */}
           <div className="flex items-center gap-2 text-sm">
-            <span className="text-lg">{currentStepInfo.icon}</span>
             <span className="font-medium text-gray-900">{currentStepInfo.title}</span>
           </div>
         </div>
@@ -115,7 +115,7 @@ export default function Onboarding() {
         {err && (
           <div className="w-full max-w-md border border-red-400 bg-red-100 p-3 text-red-700 text-sm shadow-[2px_2px_0_#000] rounded">
             <div className="flex items-center gap-2">
-              <span>⚠️</span>
+              <PixelIcon name="alert" size={16} />
               <span>{err}</span>
             </div>
           </div>

@@ -16,6 +16,7 @@ import NavigationPreview from '@/components/features/templates/NavigationPreview
 import ValidationFeedbackPanel from './ValidationFeedbackPanel';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import { useRouter } from 'next/router';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 // Warning dialog for data loss prevention
 interface DataLossWarningProps {
@@ -59,7 +60,7 @@ function DataLossWarning({
               {/* Preserved Items */}
               <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                 <h4 className="text-sm font-semibold text-green-800 mb-2 flex items-center gap-2">
-                  ✅ Will be preserved
+                  <PixelIcon name="check" size={14} /> Will be preserved
                 </h4>
                 {preservedItems.length > 0 ? (
                   <ul className="text-sm text-green-700 space-y-1">
@@ -78,7 +79,7 @@ function DataLossWarning({
               {/* Cleared Items */}
               <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                 <h4 className="text-sm font-semibold text-red-800 mb-2 flex items-center gap-2">
-                  🗑️ Will be cleared
+                  <PixelIcon name="trash" size={14} /> Will be cleared
                 </h4>
                 <ul className="text-sm text-red-700 space-y-1">
                   {clearedItems.map((item, index) => (
@@ -170,15 +171,15 @@ function StandardLayoutPreview({
       {/* Helpful info for standard layout users */}
       {useStandardLayout && (
         <div className="p-3 bg-blue-50 border-b border-blue-200 text-sm text-blue-700">
-          <strong>Preview:</strong> This shows how your CSS will look with the standard layout including navigation and footer.
-          The layout structure cannot be modified, but your CSS styling is applied.
+          <strong>Preview:</strong> Your CSS on the standard layout, navigation and footer included.
+          The layout itself stays put — your styles do the decorating.
         </div>
       )}
       
       {/* Preview is now handled by popup window - no inline preview */}
       <div className="preview-placeholder bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
         <div className="text-gray-500">
-          <div className="text-xl mb-2">🔍</div>
+          <div className="mb-2 flex justify-center"><PixelIcon name="search" size={24} /></div>
           <div className="font-medium">Template Preview</div>
           <div className="text-sm mt-1">Use the &quot;Preview Pop Up&quot; button to see your template</div>
         </div>
@@ -360,7 +361,7 @@ export default function EnhancedTemplateEditor({
         // Get username from user prop
         const username = user.primaryHandle?.split('@')[0] || user.handles?.[0]?.handle?.split('@')[0];
         if (!username) {
-          setSaveMessage('❌ Could not determine username');
+          setSaveMessage('✗ Could not determine username');
           setTimeout(() => setSaveMessage(null), 3000);
           return;
         }
@@ -400,7 +401,7 @@ export default function EnhancedTemplateEditor({
           });
 
           setSaveState('saved');
-          setSaveMessage('✓ Reset to default template successfully!');
+          setSaveMessage('✓ Reset to default template');
 
           // Refresh page data to show updated mode without full reload
           setTimeout(() => {
@@ -408,7 +409,7 @@ export default function EnhancedTemplateEditor({
           }, 500);
         } catch (error) {
           setSaveState('error');
-          setSaveMessage('❌ Failed to reset to default');
+          setSaveMessage('✗ Failed to reset to default');
           setTimeout(() => setSaveMessage(null), 3000);
         }
       }
@@ -429,13 +430,13 @@ export default function EnhancedTemplateEditor({
           setTemplate(data.template);
           setCustomCSS(data.css);
           setCSSMode(data.cssMode || 'inherit');
-          setSaveMessage('✓ Editable default template loaded!');
+          setSaveMessage('✓ Editable default template loaded');
         } else {
-          setSaveMessage('❌ Failed to load default template');
+          setSaveMessage('✗ Failed to load default template');
         }
       } catch (error) {
         console.error('Failed to load default template:', error);
-        setSaveMessage('❌ Failed to load default template');
+        setSaveMessage('✗ Failed to load default template');
       } finally {
         setLoadingDefault(false);
         setTimeout(() => setSaveMessage(null), 3000);
@@ -724,7 +725,7 @@ export default function EnhancedTemplateEditor({
         }
       }, 1000);
     } else {
-      alert('Pop-up blocked! Please allow pop-ups for this site to use the preview feature.');
+      alert('Pop-up blocked — allow pop-ups for this site to use the preview.');
     }
   }, [previewWindow, residentData, useStandardLayout, template, compiledTemplate, sendPreviewData, compileTemplateForPreview]);
 
@@ -861,7 +862,7 @@ export default function EnhancedTemplateEditor({
         // For standard layout, we save with empty template to indicate using default layout
         // Standard layout always shows navigation (hideNavigation = false)
         await onSave('', previewCSS || '', undefined, previewCSSMode || 'inherit', false);
-        setSaveMessage('✓ Standard layout saved!');
+        setSaveMessage('✓ Standard layout saved');
       } else {
         // For advanced templates, we need compiled template data
         // Use existing compiled template or compile the preview template
@@ -874,12 +875,12 @@ export default function EnhancedTemplateEditor({
         }
         
         if (!templateToSave) {
-          setSaveMessage('⚠️ Please preview the template first, then save');
+          setSaveMessage('Preview the template first, then save');
           return;
         }
         
         await onSave(previewTemplate || '', previewCSS || '', templateToSave, previewCSSMode || 'inherit', previewHideNavigation !== undefined ? previewHideNavigation : false);
-        setSaveMessage('✓ Advanced template saved!');
+        setSaveMessage('✓ Advanced template saved');
       }
       
       setTimeout(() => setSaveMessage(null), 3000);
@@ -1127,7 +1128,7 @@ export default function EnhancedTemplateEditor({
       // Only show generic success message if there are no issues
       // Otherwise, keep the specific warning message that was already set
       if (!hasIssues) {
-        setSaveMessage('✓ Template saved successfully!');
+        setSaveMessage('✓ Template saved');
         setTimeout(() => setSaveMessage(null), 3000);
         setShowValidationPanel(false);
       }
@@ -1151,7 +1152,7 @@ export default function EnhancedTemplateEditor({
       setShowValidationPanel(true);
 
       // Also show toast for quick feedback
-      setSaveMessage('❌ Save failed - see details in validation panel');
+      setSaveMessage('✗ Save failed - see details in validation panel');
       setTimeout(() => setSaveMessage(null), 5000);
     }
   }, [onSave, template, customCSS, compiledTemplate, compileTemplateForPreview, cssMode, hideNavigation, validationResult]);
@@ -1164,7 +1165,7 @@ export default function EnhancedTemplateEditor({
     // If validation has errors, block save and show panel
     if (!validationInfo.isValid) {
       setShowValidationPanel(true);
-      setSaveMessage('⚠️ Cannot save: Please fix validation errors first');
+      setSaveMessage('Cannot save yet - fix the validation errors first');
       setTimeout(() => setSaveMessage(null), 5000);
       return;
     }
@@ -1175,9 +1176,9 @@ export default function EnhancedTemplateEditor({
 
       // Show appropriate message based on what was found
       if (validationInfo.hasStripped) {
-        setSaveMessage('ℹ️ Some components were removed - see details in panel');
+        setSaveMessage('Some components were removed - see details in panel');
       } else {
-        setSaveMessage('⚠️ Template saved with warnings - see details in panel');
+        setSaveMessage('Template saved with warnings - see details in panel');
       }
       setTimeout(() => setSaveMessage(null), 8000);
 
@@ -1416,7 +1417,7 @@ export default function EnhancedTemplateEditor({
                 className="px-2 py-1 text-xs rounded font-medium transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300"
                 title="Remove all customizations and return to site default"
               >
-                🔄 Reset to Default
+                <span className="inline-flex items-center gap-1"><PixelIcon name="reload" size={12} /> Reset to Default</span>
               </button>
 
               {/* Save State Indicator */}
@@ -1427,13 +1428,13 @@ export default function EnhancedTemplateEditor({
                 'bg-yellow-100 text-yellow-700'
               }`}>
                 {saveState === 'saved' && (
-                  <><span>✅</span><span>Saved</span></>
+                  <><PixelIcon name="check" size={12} /><span>Saved</span></>
                 )}
                 {saveState === 'saving' && (
-                  <><span className="animate-spin">⏳</span><span>Saving...</span></>
+                  <><span className="animate-spin"><PixelIcon name="reload" size={12} /></span><span>Saving...</span></>
                 )}
                 {saveState === 'error' && (
-                  <><span>❌</span><span>Error</span></>
+                  <><PixelIcon name="close" size={12} /><span>Error</span></>
                 )}
                 {saveState === 'pending' && (
                   <><span>●</span><span>Unsaved</span></>
@@ -1463,7 +1464,7 @@ export default function EnhancedTemplateEditor({
       {currentTemplateMode === 'default' && (
         <div className="mx-4 mt-3 mb-2 p-4 bg-blue-50 border-2 border-blue-200 rounded-xl">
           <div className="flex items-start gap-3">
-            <span className="text-2xl">ℹ️</span>
+            <PixelIcon name="info-box" size={24} />
             <div className="flex-1">
               <h4 className="font-semibold text-blue-900 mb-1">Profile in Default Mode</h4>
               <p className="text-sm text-blue-800 leading-relaxed">
@@ -1504,7 +1505,7 @@ export default function EnhancedTemplateEditor({
             onClick={openPopupPreview}
             className="px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors flex items-center gap-2 ml-auto"
           >
-            <span>🔍</span>
+            <PixelIcon name="search" size={16} />
             Open Preview
           </button>
         )}
@@ -1521,8 +1522,9 @@ export default function EnhancedTemplateEditor({
               {/* Template Gallery with Progressive Disclosure */}
               <details className="mb-4">
                 <summary className="cursor-pointer flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors">
+                  <PixelIcon name={useStandardLayout ? 'paint-bucket' : 'folder'} size={16} />
                   <span className="font-semibold text-thread-pine">
-                    {useStandardLayout ? '🎨 CSS Theme Gallery' : '📦 HTML Template Gallery'}
+                    {useStandardLayout ? 'CSS Theme Gallery' : 'HTML Template Gallery'}
                   </span>
                   <span className="text-xs text-gray-500 ml-auto">Click to expand</span>
                 </summary>
@@ -1553,11 +1555,11 @@ export default function EnhancedTemplateEditor({
                             className="text-sm px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50"
                           >
                             <option value="">Choose a CSS theme...</option>
-                            <option value="abstract-art">🎨 Abstract Art</option>
-                            <option value="charcoal-nights">🖤 Charcoal Nights</option>
-                            <option value="pixel-petals">🌸 Pixel Petals</option>
-                            <option value="retro-social">📱 Retro Social</option>
-                            <option value="classic-linen">🧵 Classic Linen</option>
+                            <option value="abstract-art">Abstract Art</option>
+                            <option value="charcoal-nights">Charcoal Nights</option>
+                            <option value="pixel-petals">Pixel Petals</option>
+                            <option value="retro-social">Retro Social</option>
+                            <option value="classic-linen">Classic Linen</option>
                           </select>
                         </div>
                       </div>
@@ -1643,7 +1645,7 @@ export default function EnhancedTemplateEditor({
 
                   <div className="mt-4 pt-4 border-t border-gray-300">
                     <p className="text-xs text-gray-600">
-                      💡 Templates provide starting points - customize them to match your style!
+                      Templates are starting points - customize them to match your style.
                     </p>
                   </div>
                 </div>
@@ -1657,7 +1659,7 @@ export default function EnhancedTemplateEditor({
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 px-3 py-2 bg-blue-100 text-blue-800 rounded-lg text-sm font-medium hover:bg-blue-200 transition-colors"
                 >
-                  📚 Design Guide
+                  <PixelIcon name="article" size={16} /> Design Guide
                 </a>
 
                 <div className="flex items-center gap-3">
@@ -1676,7 +1678,7 @@ export default function EnhancedTemplateEditor({
                     disabled={isSaving}
                     className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:bg-gray-400 transition-colors"
                   >
-                    {isSaving ? 'Saving...' : 'Save & Go Live!'}
+                    {isSaving ? 'Saving...' : 'Save & Go Live'}
                   </button>
                 </div>
               </div>
@@ -1815,7 +1817,7 @@ export default function EnhancedTemplateEditor({
                       onClick={() => setShowTemplateSelector(true)}
                       className="flex items-center gap-2 px-3 py-1.5 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors text-sm font-medium"
                     >
-                      <span>🎨</span>
+                      <PixelIcon name="paint-bucket" size={16} />
                       Choose Theme
                     </button>
                   ) : (
@@ -1838,12 +1840,12 @@ export default function EnhancedTemplateEditor({
                         className="text-xs px-2 py-1 border border-thread-sage rounded bg-thread-paper hover:bg-thread-cream"
                       >
                         <option value="">Load Template...</option>
-                        <option value="abstract-art">🎨 Abstract Art</option>
-                        <option value="charcoal-nights">🖤 Charcoal Nights</option>
-                        <option value="pixel-petals">🌸 Pixel Petals</option>
-                        <option value="retro-social">📱 Retro Social</option>
-                        <option value="classic-linen">🧵 Classic Linen</option>
-                        <option value="clear">🗑️ Clear CSS</option>
+                        <option value="abstract-art">Abstract Art</option>
+                        <option value="charcoal-nights">Charcoal Nights</option>
+                        <option value="pixel-petals">Pixel Petals</option>
+                        <option value="retro-social">Retro Social</option>
+                        <option value="classic-linen">Classic Linen</option>
+                        <option value="clear">Clear CSS</option>
                       </select>
                     </div>
                   )}
@@ -1918,9 +1920,9 @@ export default function EnhancedTemplateEditor({
                 }`}>
                   <div className="flex items-center gap-2 mb-2">
                     <span className="font-semibold text-base">
-                      {cssMode === 'inherit' && '✅ Inherit Mode'}
-                      {cssMode === 'override' && '⚠️ Override Mode'}
-                      {cssMode === 'disable' && '🚫 Disable Mode'}
+                      {cssMode === 'inherit' && 'Inherit Mode'}
+                      {cssMode === 'override' && 'Override Mode'}
+                      {cssMode === 'disable' && 'Disable Mode'}
                     </span>
                     <span className={`px-2 py-1 rounded text-xs font-medium ${
                       cssMode === 'inherit'
@@ -1957,7 +1959,7 @@ export default function EnhancedTemplateEditor({
                       <p><strong>Result:</strong> You must style buttons, navigation, layouts from scratch. Complete creative freedom but more work</p>
                       {useStandardLayout && (
                         <div className="bg-red-100 border border-red-200 rounded p-2 mt-2">
-                          <p className="text-red-900 font-medium">⚠️ Warning: Standard layout needs ThreadStead CSS to function properly. Consider switching to Custom Template mode instead.</p>
+                          <p className="text-red-900 font-medium">Warning: Standard layout needs ThreadStead CSS to function properly. Consider switching to Custom Template mode instead.</p>
                         </div>
                       )}
                     </div>

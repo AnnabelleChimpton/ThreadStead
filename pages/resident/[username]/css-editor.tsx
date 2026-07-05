@@ -110,9 +110,9 @@ export default function CSSEditorPage({
 
       // Show appropriate success message based on mode change
       if (currentTemplateMode === 'default') {
-        setSaveMessage('✓ CSS saved and enhanced mode activated!');
+        setSaveMessage('✓ CSS saved — enhanced mode is now on');
       } else {
-        setSaveMessage('✓ CSS saved successfully!');
+        setSaveMessage('✓ CSS saved');
       }
       setTimeout(() => setSaveMessage(null), 3000);
     } catch (error) {
@@ -204,7 +204,7 @@ export default function CSSEditorPage({
       setCurrentTemplateMode('default');
 
       // Show success toast
-      showSuccess('Reset to default successfully! Your profile now uses the site default template.');
+      showSuccess('Reset complete — your profile is back on the site default template.');
     } catch (error) {
       showError(error instanceof Error ? error.message : 'Failed to reset');
     } finally {
@@ -321,7 +321,7 @@ export default function CSSEditorPage({
         }
       }, 1000);
     } else {
-      alert('Pop-up blocked! Please allow pop-ups for this site to use the preview feature.');
+      alert('Pop-up blocked — allow pop-ups for this site to use the preview.');
     }
   }, [previewWindow, residentData, sendPreviewData]);
 
@@ -367,7 +367,7 @@ export default function CSSEditorPage({
         <div className="bg-white border-b border-gray-200 px-4 py-3 shadow-sm flex-shrink-0">
             <div className="flex items-center justify-between max-w-full mx-auto">
               <div className="flex items-center gap-3">
-                <h1 className="text-lg font-semibold">✨ Simple CSS Styling</h1>
+                <h1 className="text-lg font-semibold flex items-center gap-2"><PixelIcon name="paint-bucket" size={16} /> Simple CSS Styling</h1>
                 <span className="text-gray-600 text-sm">@{username}</span>
                 {currentTemplateMode === 'enhanced' && (
                   <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
@@ -439,7 +439,7 @@ export default function CSSEditorPage({
               <div className="flex items-center gap-3">
                 {currentTemplateMode === 'advanced' ? (
                   <>
-                    <span className="text-2xl">⚠️</span>
+                    <PixelIcon name="warning-box" size={24} />
                     <div className="flex-1">
                       <p className="text-sm text-purple-900 font-semibold">
                         You&apos;re currently using a custom template (Advanced Mode)
@@ -452,13 +452,13 @@ export default function CSSEditorPage({
                   </>
                 ) : currentTemplateMode === 'enhanced' ? (
                   <>
-                    <span className="text-2xl">✨</span>
+                    <PixelIcon name="zap" size={24} />
                     <div className="flex-1">
                       <p className="text-sm text-green-900 font-semibold">
-                        CSS Mode Active - Your styles are live on the default layout!
+                        CSS Mode Active - Your styles are live on the default layout
                       </p>
                       <p className="text-xs text-gray-700 mt-1">
-                        Click <strong className="text-blue-700">&quot;🔍 Open Preview&quot;</strong> to see changes live. •
+                        Click <strong className="text-blue-700">&quot;Preview&quot;</strong> to see changes live. •
                         Load a theme below for quick-start styles. •
                         Want custom layouts? Try <Link href="/templates" className="text-blue-600 hover:underline">Template Language</Link>.
                       </p>
@@ -466,15 +466,15 @@ export default function CSSEditorPage({
                   </>
                 ) : (
                   <>
-                    <span className="text-2xl">💡</span>
+                    <PixelIcon name="lightbulb" size={24} />
                     <div className="flex-1">
                       <p className="text-sm text-gray-700">
-                        <strong>Just styling your default layout!</strong> Start with a theme or write custom CSS to change colors, fonts, and spacing.
+                        <strong>Just styling your default layout.</strong> Start with a theme or write custom CSS to change colors, fonts, and spacing.
                       </p>
                       <p className="text-xs text-gray-600 mt-1">
-                        New to CSS? <strong className="text-green-700">Load a theme</strong> below (Pixel Petals, Abstract Art, etc.) then customize it! •
-                        Click <strong className="text-blue-700">&quot;🔍 Open Preview&quot;</strong> to see changes live. •
-                        Click <strong className="text-green-700">&quot;💾 Save CSS&quot;</strong> to activate your styles. •
+                        New to CSS? <strong className="text-green-700">Load a theme</strong> below (Pixel Petals, Abstract Art, etc.) then make it yours. •
+                        Click <strong className="text-blue-700">&quot;Preview&quot;</strong> to see changes live. •
+                        Click <strong className="text-green-700">&quot;Save CSS&quot;</strong> to put your styles live. •
                         Want custom layouts? Try <Link href="/templates" className="text-blue-600 hover:underline">Template Language</Link>.
                       </p>
                     </div>
@@ -517,12 +517,13 @@ export default function CSSEditorPage({
               {/* Theme Gallery */}
               <details className="bg-white border-b border-gray-200 px-4 py-3">
                 <summary className="cursor-pointer flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900">
-                  <span>🎨 Load a CSS Theme</span>
+                  <PixelIcon name="paint-bucket" size={16} />
+                  <span>Load a CSS Theme</span>
                   <span className="text-xs text-gray-500 ml-auto">Click to expand</span>
                 </summary>
                 <div className="mt-3 space-y-3">
                   <p className="text-xs text-gray-600">
-                    Quick-start with a pre-designed theme. You can customize it after loading!
+                    Quick-start with a pre-designed theme, then customize it to taste.
                   </p>
                   <div className="flex gap-2 items-center">
                     <select
@@ -538,15 +539,15 @@ export default function CSSEditorPage({
                       className="text-sm px-3 py-2 border border-gray-300 rounded bg-white hover:bg-gray-50 flex-1"
                     >
                       <option value="">Choose a theme...</option>
-                      <option value="abstract-art">🎨 Abstract Art - Colorful gallery aesthetic</option>
-                      <option value="charcoal-nights">🖤 Charcoal Nights - Dark terminal theme</option>
-                      <option value="pixel-petals">🌸 Pixel Petals - Kawaii paradise</option>
-                      <option value="retro-social">📱 Retro Social - MySpace 2005 vibes</option>
-                      <option value="classic-linen">🧵 Classic Linen - Vintage elegance</option>
+                      <option value="abstract-art">Abstract Art - Colorful gallery aesthetic</option>
+                      <option value="charcoal-nights">Charcoal Nights - Dark terminal theme</option>
+                      <option value="pixel-petals">Pixel Petals - Kawaii paradise</option>
+                      <option value="retro-social">Retro Social - MySpace 2005 vibes</option>
+                      <option value="classic-linen">Classic Linen - Vintage elegance</option>
                     </select>
                   </div>
                   <p className="text-xs text-gray-500 italic">
-                    💡 After loading, click &quot;🔍 Open Preview&quot; to see your theme in action!
+                    After loading, click &quot;Preview&quot; to see your theme in action.
                   </p>
                 </div>
               </details>
@@ -560,9 +561,9 @@ export default function CSSEditorPage({
                     onChange={(e) => setCSSMode(e.target.value as 'inherit' | 'override' | 'disable')}
                     className="text-sm px-3 py-1.5 border border-gray-300 rounded bg-white hover:bg-gray-50"
                   >
-                    <option value="inherit">✅ Inherit - Extend site styles</option>
-                    <option value="override">⚠️ Override - Priority over site</option>
-                    <option value="disable">🚫 Disable - Full control</option>
+                    <option value="inherit">Inherit - Extend site styles</option>
+                    <option value="override">Override - Priority over site</option>
+                    <option value="disable">Disable - Full control</option>
                   </select>
                 </div>
                 <div className={`mt-2 text-xs p-2 rounded ${
@@ -630,23 +631,23 @@ export default function CSSEditorPage({
                 <div className="flex border-b border-gray-200">
                   <button
                     onClick={() => setActiveTab('generators')}
-                    className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+                    className={`flex-1 px-4 py-3 text-sm font-medium transition-colors flex items-center justify-center gap-1 ${
                       activeTab === 'generators'
                         ? 'bg-white text-blue-600 border-b-2 border-blue-600'
                         : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
                     }`}
                   >
-                    🎨 Generators
+                    <PixelIcon name="paint-bucket" size={14} /> Generators
                   </button>
                   <button
                     onClick={() => setActiveTab('reference')}
-                    className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+                    className={`flex-1 px-4 py-3 text-sm font-medium transition-colors flex items-center justify-center gap-1 ${
                       activeTab === 'reference'
                         ? 'bg-white text-blue-600 border-b-2 border-blue-600'
                         : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
                     }`}
                   >
-                    📚 Reference
+                    <PixelIcon name="article" size={14} /> Reference
                   </button>
                 </div>
 
@@ -669,7 +670,7 @@ export default function CSSEditorPage({
           {/* Footer Help */}
           <div className="bg-gray-50 border-t border-gray-200 px-4 py-2 flex-shrink-0">
             <div className="max-w-full mx-auto flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-600">
-              <span>💡 Use 🎨 Generators to create CSS visually</span>
+              <span className="flex items-center gap-1"><PixelIcon name="lightbulb" size={12} /> Use Generators to create CSS visually</span>
               <span>•</span>
               <a href="/design-css-tutorial" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
                 CSS Tutorial
