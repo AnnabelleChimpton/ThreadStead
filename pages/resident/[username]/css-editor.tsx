@@ -281,7 +281,7 @@ export default function CSSEditorPage({
 
     // Open new preview window
     const newWindow = window.open(
-      '/preview-temp',
+      '/template-preview',
       'css-preview',
       'width=1200,height=800,scrollbars=yes,resizable=yes,status=yes,location=yes'
     );

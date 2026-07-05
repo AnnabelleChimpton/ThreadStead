@@ -79,7 +79,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
   //       // Only consider forcing refresh if navigation happened very quickly (likely browser back/forward)
   //       // and only for certain problematic routes that need full refresh
   //       if (lastTimestamp && (now - parseInt(lastTimestamp)) < 50) {
-  //         const problematicRoutes = ['/preview-temp', '/resident/'];
+  //         const problematicRoutes = ['/template-preview', '/resident/'];
   //         const needsRefresh = problematicRoutes.some(route => url.includes(route));
 
   //         if (needsRefresh) {
@@ -128,7 +128,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
   // Check if we're on a user profile page or preview page that might have custom CSS
   const isProfilePage = router.pathname === '/resident/[username]' ||
     router.pathname === '/resident/[username]/index' ||
-    router.pathname === '/preview-temp';
+    router.pathname === '/template-preview';
   const hasCustomCSS = pageProps.customCSS && pageProps.customCSS.trim() !== '';
 
   const actualCSSMode = cssMode;

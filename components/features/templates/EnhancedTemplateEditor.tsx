@@ -690,7 +690,7 @@ export default function EnhancedTemplateEditor({
 
     // Open new preview window
     const newWindow = window.open(
-      '/preview-temp',
+      '/template-preview',
       'template-preview',
       'width=1200,height=800,scrollbars=yes,resizable=yes,status=yes,location=yes'
     );
