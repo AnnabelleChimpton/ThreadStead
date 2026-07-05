@@ -171,28 +171,6 @@ export default function MyApp({ Component, pageProps }: AppProps) {
                   }} />
                 )}
 
-                {/* Site-wide CSS (admin panel): rendered on every page except
-                    profiles whose cssMode is 'disable' (full user control).
-                    SSR-primed on profile pages via initialSiteCSS. */}
-                {(!isProfilePage ||
-                  (includeSiteCSS && actualCSSMode !== 'disable')) && (
-                  <style
-                    id="site-wide-css"
-                    key="site-css"
-                    dangerouslySetInnerHTML={{
-                      // DELIBERATELY UNLAYERED: admin site CSS overrides
-                      // elements that Tailwind utilities also style, and in
-                      // the cascade layered normal declarations LOSE to
-                      // unlayered ones. Wrapping this in @layer
-                      // threadstead-site made the admin panel's site CSS
-                      // silently stop applying. This tag is the ONE delivery
-                      // point for site CSS (SSR-primed via initialSiteCSS on
-                      // profile pages; ProfileLayout no longer carries it).
-                      __html: css || '/* Site CSS loading... */'
-                    }}
-                  />
-                )}
-
                 {/* Advanced template CSS - inject with boosted specificity */}
                 {isProfilePage && hasCustomCSS && pageProps.templateMode === 'advanced' && (() => {
                   const customCSS = pageProps.customCSS || '';
@@ -280,6 +258,30 @@ ${rest}`
                 }`}
               >
                 <Component {...pageProps} />
+
+                {/* Site-wide CSS (admin panel): the ONE delivery point.
+                    DELIBERATELY UNLAYERED and rendered at the END OF BODY:
+                    the admin CSS shares specificity with rules in the
+                    compiled stylesheet (globals.css also styles
+                    .thread-surface etc.), so document ORDER decides the
+                    winner. In <head> this tag sat BEFORE the compiled CSS
+                    <link> and lost every tie — the admin panel's CSS was in
+                    the DOM but visually absent (live-diagnosed via the
+                    cascade on homepageagain.com). Last-in-body wins those
+                    ties. Also: never wrap this in @layer — layered normal
+                    declarations lose to Tailwind's unlayered utilities.
+                    SSR-primed via initialSiteCSS on profile pages; the
+                    useSiteCSS hook updates it by id on client fetches. */}
+                {(!isProfilePage ||
+                  (includeSiteCSS && actualCSSMode !== 'disable')) && (
+                  <style
+                    id="site-wide-css"
+                    key="site-css"
+                    dangerouslySetInnerHTML={{
+                      __html: css || '/* Site CSS loading... */'
+                    }}
+                  />
+                )}
 
                 {/* Cookie Consent Banner */}
                 <CookieConsentBanner userId={user?.id} />
