@@ -59,7 +59,9 @@ export default function VisitorTrail({ username, className = '' }: VisitorTrailP
   }
 
   return (
-    <div className={`visitor-trail absolute ${className}`}>
+    // Positioning is the CALLER's concern: pass `absolute top-4 right-4` to
+    // float it over something, or nothing to render in normal flow.
+    <div className={`visitor-trail ${className}`}>
       {/* Recent Visitors Container - positioned near the house */}
       <div className="flex flex-col items-end space-y-2">
         {/* Visitors Label */}

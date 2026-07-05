@@ -116,13 +116,12 @@ export default function PixelHomeScene({
           isUserOnline={isUserOnline}
         />
         
-        {/* Badge sparkles overlay */}
-        <BadgeSparkles badges={badges} />
-        
-        {/* Visitor trail - positioned on the right side of the house */}
+        {/* Visitor trail - positioned on the right side of the house.
+            (Badge sparkles overlay removed: badges belong in UI chrome,
+            not floating over the artwork.) */}
         <VisitorTrail 
           username={username}
-          className="top-4 right-4"
+          className="absolute top-4 right-4"
         />
         
         {/* Interactive hotspots */}

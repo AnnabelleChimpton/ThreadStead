@@ -409,67 +409,17 @@ export default function PixelHomePage({
                     className="w-full max-w-xl drop-shadow-2xl transform hover:scale-105 transition-transform duration-500"
                   />
 
-                  {/* Badge sparkles overlay - preserved for visual appeal */}
-                  {badges && badges.length > 0 && (
-                    <div className="absolute inset-0 pointer-events-none">
-                      {badges.slice(0, 3).map((badge, index) => (
-                        <div
-                          key={badge.id}
-                          className="absolute animate-pulse"
-                          style={{
-                            left: `${20 + (index * 25)}%`,
-                            top: `${30 + (index * 10)}%`,
-                            animationDelay: `${index * 0.5}s`,
-                            animationDuration: '2s'
-                          }}
-                        >
-                          <div
-                            className="w-4 h-4 shadow-lg border-2 border-white rounded-sm"
-                            title={`${badge.threadRing.name} badge`}
-                          >
-                            {badge.imageUrl ? (
-                              <img
-                                src={badge.imageUrl}
-                                alt={badge.title}
-                                className="w-full h-full object-contain"
-                                style={{ imageRendering: 'pixelated' }}
-                              />
-                            ) : (
-                              <div
-                                className="w-full h-full rounded-sm flex items-center justify-center text-[8px] font-bold"
-                                style={{
-                                  backgroundColor: badge.backgroundColor,
-                                  color: badge.textColor
-                                }}
-                              >
-                                {badge.title.charAt(0).toUpperCase()}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-
-                      {badges.length > 3 && (
-                        <div
-                          className="absolute text-sm font-bold text-thread-sage animate-bounce bg-white rounded-full w-8 h-8 flex items-center justify-center shadow-lg border-2 border-thread-sage"
-                          style={{
-                            right: '15%',
-                            top: '40%',
-                            animationDuration: '3s'
-                          }}
-                        >
-                          +{badges.length - 3}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Visitor trail - positioned on the right side */}
-                  <VisitorTrail
-                    username={username}
-                    className="top-4 right-4"
-                  />
+                  {/* NOTE: no overlays on the artwork. Badge sparkles + a
+                      bouncing "+N" counter and the visitor trail used to
+                      float at fixed percentages OVER the scene, landing on
+                      ponds/lawns like debris. Badges live in the sidebar
+                      card; the visitor trail sits below the canvas. */}
                 </div>
+              </div>
+
+              {/* Recent visitors — under the artwork, not on it */}
+              <div className="flex justify-center mt-3">
+                <VisitorTrail username={username} />
               </div>
 
               {/* House Description */}
