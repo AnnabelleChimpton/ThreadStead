@@ -66,6 +66,13 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
   // Community search state
   const [includeUnvalidated, setIncludeUnvalidated] = useState(false);
 
+  // Any change to what's being searched invalidates the current page number.
+  // (getUnifiedResults also clamps defensively — a stale page used to slice
+  // to an empty list while the header still showed the total count.)
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, searchTab, searchType, indieOnly, privacyOnly, noTrackers, includeUnvalidated]);
+
   // Auto-scroll to results when they populate
   useEffect(() => {
     if (!loading && searchQuery && (communityResults.length > 0 || localResults.length > 0 || externalResults?.results?.length > 0 || results.length > 0)) {
@@ -404,15 +411,22 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
     // Sort by unified score (descending)
     const sortedResults = unifiedResults.sort((a, b) => b.unifiedScore - a.unifiedScore);
 
-    // Calculate pagination
-    const startIndex = (currentPage - 1) * resultsPerPage;
+    // Calculate pagination. CLAMP the page to the actual result range: several
+    // paths (tab switches, filter toggles, late-arriving external results,
+    // the URL-param flow) change the result set without resetting
+    // currentPage, and an out-of-range page sliced to [] while the header
+    // still announced "N results found" — count with no items.
+    const totalPages = Math.max(1, Math.ceil(sortedResults.length / resultsPerPage));
+    const safePage = Math.min(Math.max(1, currentPage), totalPages);
+    const startIndex = (safePage - 1) * resultsPerPage;
     const endIndex = startIndex + resultsPerPage;
     const paginatedResults = sortedResults.slice(startIndex, endIndex);
 
     return {
       results: paginatedResults,
+      page: safePage,
       totalResults: sortedResults.length,
-      totalPages: Math.ceil(sortedResults.length / resultsPerPage),
+      totalPages,
       hasMore: endIndex < sortedResults.length
     };
   };
@@ -565,13 +579,13 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
                         <PixelIcon name="zap" size={20} /> Your Search Results
                       </h3>
                       <div className="text-xs text-gray-500">
-                        Page {currentPage} of {unifiedData.totalPages} • {unifiedData.totalResults} gems found
+                        Page {unifiedData.page} of {unifiedData.totalPages} • {unifiedData.totalResults} gems found
                       </div>
                     </div>
 
                     <div className="space-y-3">
                       {unifiedData.results.map((result, index) => {
-                        const globalIndex = (currentPage - 1) * resultsPerPage + index + 1;
+                        const globalIndex = (unifiedData.page - 1) * resultsPerPage + index + 1;
                         return (
                           <div
                             key={`${result.source}-${result.id || result.url || index}`}
