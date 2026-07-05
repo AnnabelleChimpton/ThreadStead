@@ -117,25 +117,27 @@ export default function PixelHomePage({
     try {
       setLoading(true)
 
-      // Load user badges, guestbook status, and decorations in parallel
-      const [badgeResponse, guestbookStatusResponse, decorationsResponse] = await Promise.all([
+      // Load user badges, guestbook status, and decorations in parallel.
+      // allSettled: one failing endpoint must not blank the whole home —
+      // Promise.all here meant a badges 500 hid the decorations too.
+      const [badgeResult, guestbookResult, decorationsResult] = await Promise.allSettled([
         fetch(`/api/users/${encodeURIComponent(username)}/badges`),
         fetch(`/api/users/${encodeURIComponent(username)}/guestbook-status`),
         fetch(`/api/home/decorations/load?username=${encodeURIComponent(username)}`)
       ])
 
-      if (badgeResponse.ok) {
-        const badgeData = await badgeResponse.json()
+      if (badgeResult.status === 'fulfilled' && badgeResult.value.ok) {
+        const badgeData = await badgeResult.value.json()
         setBadges(badgeData.badges || [])
       }
 
-      if (guestbookStatusResponse.ok) {
-        const guestbookData = await guestbookStatusResponse.json()
+      if (guestbookResult.status === 'fulfilled' && guestbookResult.value.ok) {
+        const guestbookData = await guestbookResult.value.json()
         setHasUnreadGuestbook(guestbookData.hasUnreadGuestbook || false)
       }
 
-      if (decorationsResponse.ok) {
-        const decorationData = await decorationsResponse.json()
+      if (decorationsResult.status === 'fulfilled' && decorationsResult.value.ok) {
+        const decorationData = await decorationsResult.value.json()
         setDecorations(decorationData.decorations || [])
         if (decorationData.atmosphere) {
           setAtmosphere(decorationData.atmosphere)

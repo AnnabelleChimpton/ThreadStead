@@ -1,6 +1,6 @@
 import { GetServerSideProps } from 'next'
 import Head from 'next/head'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Layout from '../../../components/ui/layout/Layout'
 import NeighborhoodStreetView from '../../../components/pixel-homes/NeighborhoodStreetView'
 import NeighborhoodGridView from '../../../components/pixel-homes/NeighborhoodGridView'
@@ -211,6 +211,21 @@ export default function UnifiedNeighborhood({
     setShowHouseDetails(true)
   }
 
+  // A stable shuffle order for sortBy=random: the old code called
+  // Math.random() inside the sort comparator, which (a) isn't a fair
+  // shuffle and (b) re-shuffled on EVERY re-render — houses visibly
+  // jumped around whenever any state changed (popup open, filter tap).
+  const shuffleOrder = useMemo(() => {
+    const order = new Map<string, number>()
+    const indices = members.map((_, i) => i)
+    for (let i = indices.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[indices[i], indices[j]] = [indices[j], indices[i]]
+    }
+    members.forEach((m, i) => order.set(m.username, indices[i]))
+    return order
+  }, [members])
+
   // Filter and sort members
   const processedMembers = members
     .filter(m => {
@@ -220,17 +235,17 @@ export default function UnifiedNeighborhood({
       // Advanced template filter
       if (templateFilter && m.homeConfig.houseTemplate !== templateFilter) return false
 
-      // Advanced palette filter  
+      // Advanced palette filter
       if (paletteFilter && m.homeConfig.palette !== paletteFilter) return false
 
       return true
     })
     .sort((a, b) => {
       if (sortBy === 'alphabetical') {
-        return a.username.localeCompare(b.username)
+        return (a.username || '').localeCompare(b.username || '')
       }
       if (sortBy === 'random') {
-        return Math.random() - 0.5
+        return (shuffleOrder.get(a.username) ?? 0) - (shuffleOrder.get(b.username) ?? 0)
       }
       // Default: recent (by joinedAt or activity)
       return (b.joinedAt || '').localeCompare(a.joinedAt || '')
@@ -1230,7 +1245,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
           decorationItems.map(item => [item.itemId, { renderSvg: item.renderSvg, pngUrl: item.pngUrl }])
         )
 
-        let processedMembers = homeConfigs
+        const processedMembers = homeConfigs
           .filter(config => config.user.handles.length > 0)
           .map(config => {
             const user = config.user
@@ -1299,9 +1314,13 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
           })
           .filter(m => m !== null)
 
-        // Apply randomization if needed
+        // Apply randomization if needed (Fisher-Yates — a Math.random sort
+        // comparator is biased and its behavior engine-dependent)
         if (param === 'random') {
-          processedMembers = processedMembers.sort(() => Math.random() - 0.5)
+          for (let i = processedMembers.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1))
+            ;[processedMembers[i], processedMembers[j]] = [processedMembers[j], processedMembers[i]]
+          }
         }
 
         members = processedMembers

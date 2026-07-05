@@ -246,20 +246,24 @@ export default function DecorationMode({
 
   // Load custom asset slots
   useEffect(() => {
+    let cancelled = false
     const loadCustomAssets = async () => {
       try {
         const response = await fetch('/api/home/custom-asset')
         if (response.ok) {
           const data = await response.json()
-          if (data.slots) {
+          if (data.slots && !cancelled) {
             setCustomAssetSlots(data.slots)
           }
         }
       } catch (error) {
-        console.error('Error loading custom assets:', error)
+        if (!cancelled) console.error('Error loading custom assets:', error)
       }
     }
     loadCustomAssets()
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   // Load available decorations from database

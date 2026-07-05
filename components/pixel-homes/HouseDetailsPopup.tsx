@@ -118,8 +118,15 @@ export default function HouseDetailsPopup({ isOpen, onClose, member }: HouseDeta
       // Use server-side decorations first if available
       if (member.homeConfig.decorations && member.homeConfig.decorations.length > 0) {
         setDecorations(member.homeConfig.decorations)
+      } else if (
+        member.homeConfig.hasDecorations === false ||
+        member.homeConfig.decorationCount === 0
+      ) {
+        // The house genuinely has no decorations — don't fire a pointless
+        // per-house API call (this used to fetch for EVERY undecorated home
+        // opened in a neighborhood).
       } else {
-        // Fallback to API only if no server data
+        // Decoration state unknown — fall back to the API
         loadDecorations()
       }
 

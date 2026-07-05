@@ -146,30 +146,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     });
 
-    // Clear existing decorations for this user
-    await db.userHomeDecoration.deleteMany({
-      where: { userId: me.id }
-    });
+    // Replace decorations atomically: the old code did deleteMany then
+    // createMany as SEPARATE statements, so a failure between them (or two
+    // concurrent saves interleaving) wiped the user's decorations entirely.
+    const decorationRecords = decorations.map(decoration => ({
+      userId: me.id,
+      decorationType: decoration.decorationType,
+      decorationId: decoration.decorationId,
+      zone: decoration.zone,
+      positionX: decoration.positionX,
+      positionY: decoration.positionY,
+      layer: decoration.layer || 1,
+      variant: decoration.variant || 'default',
+      size: decoration.size || 'medium',
+      data: decoration.data
+    }));
 
-    // Save new decorations
-    if (decorations.length > 0) {
-      const decorationRecords = decorations.map(decoration => ({
-        userId: me.id,
-        decorationType: decoration.decorationType,
-        decorationId: decoration.decorationId,
-        zone: decoration.zone,
-        positionX: decoration.positionX,
-        positionY: decoration.positionY,
-        layer: decoration.layer || 1,
-        variant: decoration.variant || 'default',
-        size: decoration.size || 'medium',
-        data: decoration.data
-      }));
-
-      await db.userHomeDecoration.createMany({
-        data: decorationRecords
-      });
-    }
+    await db.$transaction([
+      db.userHomeDecoration.deleteMany({ where: { userId: me.id } }),
+      ...(decorationRecords.length > 0
+        ? [db.userHomeDecoration.createMany({ data: decorationRecords })]
+        : [])
+    ]);
 
     return res.status(200).json({
       ok: true,
