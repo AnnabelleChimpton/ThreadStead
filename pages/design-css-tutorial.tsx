@@ -72,17 +72,17 @@ const cssData = {
 
 /* This simple CSS transforms your entire profile */
 .thread-surface {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  background: linear-gradient(135deg, #2E4B3F 0%, #4FAF6D 100%) !important;
 }
 
 .site-header {
   background: rgba(255, 255, 255, 0.95) !important;
   backdrop-filter: blur(10px) !important;
-  border-bottom: 3px solid #667eea !important;
+  border-bottom: 3px solid #2E4B3F !important;
 }
 
 .site-title {
-  background: linear-gradient(45deg, #667eea, #764ba2) !important;
+  background: linear-gradient(45deg, #2E4B3F, #4FAF6D) !important;
   -webkit-background-clip: text !important;
   -webkit-text-fill-color: transparent !important;
 }`,
@@ -307,7 +307,7 @@ const cssData = {
 .thread-surface {
   background: 
     url('your-image-url.jpg'), /* Add your image on top */
-    linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    linear-gradient(135deg, #2E4B3F 0%, #4FAF6D 100%) !important;
   background-size: cover, 100% 100% !important; /* Make image fill screen */
 }
 
@@ -432,7 +432,7 @@ const cssData = {
 /* inherit mode - Works WITH the base styles */
 .ts-profile-header {
   /* Enhances the existing header */
-  background: linear-gradient(135deg, #667eea, #764ba2) !important;
+  background: linear-gradient(135deg, #2E4B3F, #4FAF6D) !important;
   padding: 2rem !important;
 }
 
@@ -557,7 +557,7 @@ body {
 }
 
 .ts-profile-display-name {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  background: linear-gradient(135deg, #2E4B3F 0%, #4FAF6D 100%) !important;
   background-clip: text !important;
   -webkit-text-fill-color: transparent !important;
   font-size: 3rem !important;
@@ -620,7 +620,7 @@ body {
 }
 
 .profile-tab-content {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  background: linear-gradient(135deg, #2E4B3F 0%, #4FAF6D 100%) !important;
   border-radius: 0 15px 15px 15px !important;
   padding: 2rem !important;
   color: white !important;
@@ -673,7 +673,7 @@ body {
 }
 
 .blog-post-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  background: linear-gradient(135deg, #2E4B3F 0%, #4FAF6D 100%) !important;
   color: white !important;
   padding: 1.5rem !important;
   border-bottom: none !important;
@@ -825,7 +825,7 @@ body {
       ],
       example: `/* Custom ThreadRing page layout */
 .tr-page-container {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  background: linear-gradient(135deg, #2E4B3F 0%, #4FAF6D 100%) !important;
   min-height: 100vh !important;
   padding: 2rem !important;
 }
@@ -944,7 +944,7 @@ body {
 }
 
 .tr-member-status {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  background: linear-gradient(135deg, #2E4B3F 0%, #4FAF6D 100%) !important;
   color: white !important;
   border: none !important;
   box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4) !important;
@@ -1162,7 +1162,7 @@ body {
 }
 
 .ts-profile-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  background: linear-gradient(135deg, #2E4B3F 0%, #4FAF6D 100%) !important;
   color: white !important;
   border-radius: 15px !important;
   padding: 2rem !important;
@@ -1770,7 +1770,7 @@ body {
   width: 90vw !important;
   margin-left: calc(-45vw + 50%) !important;
   margin-right: calc(-45vw + 50%) !important;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  background: linear-gradient(135deg, #2E4B3F 0%, #4FAF6D 100%) !important;
   border-radius: 20px !important;
   box-shadow: 0 20px 40px rgba(0,0,0,0.1) !important;
 }
