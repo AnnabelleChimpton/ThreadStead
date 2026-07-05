@@ -66,6 +66,10 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
   // Community search state
   const [includeUnvalidated, setIncludeUnvalidated] = useState(false);
 
+  // Sources that failed during the last local search (/api/search reports
+  // per-source errors instead of silently returning fewer results).
+  const [degradedSources, setDegradedSources] = useState<Array<{ source: string; message: string }>>([]);
+
   // Any change to what's being searched invalidates the current page number.
   // (getUnifiedResults also clamps defensively — a stale page used to slice
   // to an empty list while the header still showed the total count.)
@@ -153,7 +157,7 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
           promises.push(
             fetch(`/api/search?q=${encodeURIComponent(queryParam)}&type=${finalType}`)
               .then(res => res.json())
-              .then(data => setLocalResults(data.results || []))
+              .then(data => { setLocalResults(data.results || []); setDegradedSources(data.errors || []); })
               .catch(error => {
                 console.error('Local search failed:', error);
                 setLocalResults([]);
@@ -260,6 +264,7 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
 
       // The search API returns results directly, not wrapped in success
       const searchResults = data.results || [];
+      setDegradedSources(data.errors || []);
       if (returnResults) {
         setLocalResults(searchResults);
       } else {
@@ -408,8 +413,21 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
       });
     }
 
+    // Dedupe by normalized URL BEFORE sorting: the same site can arrive from
+    // the community index AND external search, and scoring it per-source let
+    // one URL occupy multiple slots. Earlier sources win (community > site >
+    // external, matching push order above).
+    const seenUrls = new Set<string>();
+    const dedupedResults = unifiedResults.filter((r) => {
+      if (!r.url) return true;
+      const key = String(r.url).replace(/^https?:\/\/(www\.)?/, '').replace(/\/+$/, '').toLowerCase();
+      if (seenUrls.has(key)) return false;
+      seenUrls.add(key);
+      return true;
+    });
+
     // Sort by unified score (descending)
-    const sortedResults = unifiedResults.sort((a, b) => b.unifiedScore - a.unifiedScore);
+    const sortedResults = dedupedResults.sort((a, b) => b.unifiedScore - a.unifiedScore);
 
     // Calculate pagination. CLAMP the page to the actual result range: several
     // paths (tab switches, filter toggles, late-arriving external results,
@@ -443,6 +461,10 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
 
   const calculateSiteScore = (result: any) => {
     let score = 40; // Base score for site results
+    // /api/search now ranks by real relevance (exact/prefix/word match) —
+    // carry that through so an exact-match user/ring outranks keyword posts
+    // in the unified tab too.
+    score += (result.relevanceScore || 0) * 0.5;
     // Boost based on type
     if (result.type === 'threadring') score += 15;
     if (result.type === 'user') score += 10;
@@ -545,7 +567,7 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
               includeUnvalidated={includeUnvalidated}
               setIncludeUnvalidated={setIncludeUnvalidated}
               onSearch={handleSearch}
-              loading={searchTab === 'site' ? loading : extSearch.loading}
+              loading={searchTab === 'web' ? extSearch.loading : loading}
               extSearchEnabled={extSearchEnabled}
               className="mb-4"
             />
@@ -574,6 +596,12 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
 
                 return (
                   <>
+                    {degradedSources.length > 0 && (
+                      <div className="mb-4 px-3 py-2 bg-amber-50 border border-amber-300 rounded text-sm text-amber-800">
+                        Some results are unavailable right now
+                        ({degradedSources.map((s) => s.source).join(', ')} search failed) — showing what we could find.
+                      </div>
+                    )}
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
                       <h3 className="text-base sm:text-lg font-semibold text-gray-900 flex items-center gap-2">
                         <PixelIcon name="zap" size={20} /> Your Search Results

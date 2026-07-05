@@ -29,6 +29,18 @@ beforeAll(() => {
 })
 
 describe('ring discovery', () => {
+  test('listRings with search + sort finds the ring (the /api/search ring path)', async () => {
+    // This is the EXACT call pages/api/search.ts makes for ThreadRing search —
+    // in production it fails silently while the same query works unsigned.
+    const result = await client.listRings({
+      search: 'Integration',
+      limit: 7,
+      sort: 'members',
+      order: 'desc',
+    })
+    expect(result.rings.some((r) => r.slug === ringSlug)).toBe(true)
+  })
+
   test('getRing returns the seeded ring with the full descriptor shape', async () => {
     const ring = await client.getRing(ringSlug)
     expect(ring).not.toBeNull()

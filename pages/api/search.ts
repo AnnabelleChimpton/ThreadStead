@@ -5,6 +5,7 @@ import { SITE_NAME } from "@/lib/config/site/constants";
 import { withThreadRingSupport } from "@/lib/api/ringhub/ringhub-middleware";
 import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
 import { createAuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
+import { rankSearchResults } from "@/lib/search/relevance";
 
 interface SearchResult {
   type: 'threadring' | 'user' | 'post';
@@ -30,12 +31,25 @@ export default withThreadRingSupport(async function handler(
     const type = String(req.query.type || "all");
     const limit = Math.min(parseInt(String(req.query.limit || "20")), 50);
 
+    // Unknown types used to silently return [] (e.g. type=threadring,
+    // singular) — fail loudly instead.
+    const ALLOWED_TYPES = ["all", "threadrings", "users", "posts"];
+    if (!ALLOWED_TYPES.includes(type)) {
+      return res.status(400).json({
+        error: `Invalid type "${type}" — expected one of: ${ALLOWED_TYPES.join(", ")}`,
+      });
+    }
+
     if (!query) {
       return res.json({ results: [] });
     }
 
     const viewer = await getSessionUser(req);
     const results: SearchResult[] = [];
+    // Per-source failures are REPORTED, not swallowed: the old code caught
+    // Ring Hub errors silently, so ring search read as "no results" for
+    // months while every hub call failed.
+    const sourceErrors: Array<{ source: string; message: string }> = [];
 
     // Search ThreadRings
     if (type === 'all' || type === 'threadrings') {
@@ -53,10 +67,9 @@ export default withThreadRingSupport(async function handler(
 
         if (ringHubClient) {
           try {
-            const ringSearchLimit = Math.ceil(limit / (type === 'all' ? 3 : 1));
             const ringResult = await ringHubClient.listRings({
               search: query,
-              limit: ringSearchLimit,
+              limit,
               sort: 'members',
               order: 'desc'
             });
@@ -72,8 +85,17 @@ export default withThreadRingSupport(async function handler(
 
             results.push(...threadRingResults);
           } catch (error) {
-            console.error("Ring Hub search failed:", error);
+            const message = error instanceof Error ? error.message : String(error);
+            console.error("Ring Hub search failed:", {
+              error: message,
+              name: error instanceof Error ? error.name : undefined,
+              query,
+              authenticated: !!viewer,
+            });
+            sourceErrors.push({ source: "threadrings", message });
           }
+        } else {
+          sourceErrors.push({ source: "threadrings", message: "Ring Hub client not configured" });
         }
       } else {
         // Local ThreadRing search fallback
@@ -122,7 +144,7 @@ export default withThreadRingSupport(async function handler(
             { memberCount: "desc" },
             { postCount: "desc" }
           ],
-          take: Math.ceil(limit / (type === 'all' ? 3 : 1))
+          take: limit
         });
 
         results.push(...threadRings.map(ring => ({
@@ -195,7 +217,7 @@ export default withThreadRingSupport(async function handler(
         orderBy: [
           { createdAt: "desc" }
         ],
-        take: Math.ceil(limit / (type === 'all' ? 3 : 1))
+        take: limit
       });
 
       const transformedUsers = users
@@ -247,8 +269,11 @@ export default withThreadRingSupport(async function handler(
                   }
                 },
                 {
+                  // Prisma's `has` is exact + case-sensitive on array
+                  // elements; cover the common casings since stored tags
+                  // aren't guaranteed normalized.
                   tags: {
-                    has: query.toLowerCase()
+                    hasSome: Array.from(new Set([query, query.toLowerCase(), query.toUpperCase()]))
                   }
                 }
               ]
@@ -283,7 +308,7 @@ export default withThreadRingSupport(async function handler(
         orderBy: {
           createdAt: "desc"
         },
-        take: Math.ceil(limit / (type === 'all' ? 3 : 1))
+        take: limit
       });
 
       const transformedPosts = posts
@@ -365,19 +390,20 @@ export default withThreadRingSupport(async function handler(
       results.push(...transformedPosts);
     }
 
-    // Shuffle results if searching all types to mix them up
-    if (type === 'all') {
-      for (let i = results.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [results[i], results[j]] = [results[j], results[i]];
-      }
-    }
+    // Rank by relevance (the old code SHUFFLED type=all results, burying
+    // exact matches under keyword mentions). Exact title match first, then
+    // prefix/word/substring, with a small type weight (ring > user > post).
+    const ranked = rankSearchResults(results, query, limit);
 
     return res.json({
-      results: results.slice(0, limit),
+      results: ranked,
       query,
       type,
-      total: results.length
+      total: ranked.length,
+      // Sources that errored during this search — the UI shows a degraded
+      // notice instead of pretending "no results".
+      partial: sourceErrors.length > 0,
+      errors: sourceErrors
     });
 
     } catch (error) {
