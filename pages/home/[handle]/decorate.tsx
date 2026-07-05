@@ -6,6 +6,7 @@ import { getSessionUser } from '@/lib/auth/server'
 import { db } from '@/lib/config/database/connection'
 import Layout from '@/components/ui/layout/Layout'
 import DecorationMode from '@/components/pixel-homes/DecorationMode'
+import { useToastContext } from '@/lib/templates/state/ToastProvider'
 import { HouseTemplate, ColorPalette, HouseCustomizations, AtmosphereSettings } from '@/components/pixel-homes/HouseSVG'
 
 interface DecorationPageProps {
@@ -30,6 +31,7 @@ export default function DecoratePage({
   isOwnHome
 }: DecorationPageProps) {
   const router = useRouter()
+  const { showError } = useToastContext()
   const [isSaving, setIsSaving] = useState(false)
 
   // Redirect if not own home
@@ -91,7 +93,8 @@ export default function DecoratePage({
       router.push(`/home/${handle}`)
     } catch (error) {
       console.error('Error saving decorations:', error)
-      alert('Failed to save decorations. Please try again.')
+      // In-app toast instead of a blocking browser alert()
+      showError('Failed to save decorations — your changes are still here. Please try again.')
     } finally {
       setIsSaving(false)
     }

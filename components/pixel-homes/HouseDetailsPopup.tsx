@@ -81,6 +81,7 @@ export default function HouseDetailsPopup({ isOpen, onClose, member }: HouseDeta
   const router = useRouter()
   const isMobile = useIsMobile(768)
   const [decorations, setDecorations] = useState<HomeDecoration[]>([])
+  const [decorationsLoading, setDecorationsLoading] = useState(false)
   const [terrain, setTerrain] = useState<Record<string, string>>({})
   const [atmosphere, setAtmosphere] = useState({
     sky: 'sunny' as const,
@@ -143,6 +144,7 @@ export default function HouseDetailsPopup({ isOpen, onClose, member }: HouseDeta
   }, [isOpen, member?.userId])
 
   const loadDecorations = async () => {
+    setDecorationsLoading(true)
     try {
       const response = await fetch(`/api/home/decorations/load?username=${encodeURIComponent(member.username)}`)
       if (response.ok) {
@@ -167,6 +169,8 @@ export default function HouseDetailsPopup({ isOpen, onClose, member }: HouseDeta
       if (member.homeConfig.terrain) {
         setTerrain(member.homeConfig.terrain)
       }
+    } finally {
+      setDecorationsLoading(false)
     }
   }
 
@@ -355,7 +359,12 @@ export default function HouseDetailsPopup({ isOpen, onClose, member }: HouseDeta
       <div className="p-2 sm:p-6 bg-thread-cream">
         {/* House Canvas - Fits mobile screen width */}
         <div className="bg-white border-2 border-thread-sage rounded-sm p-2 sm:p-6 mb-4 shadow-md">
-          <div className="flex justify-center overflow-visible">
+          <div className="flex justify-center overflow-visible relative">
+            {decorationsLoading && (
+              <div className="absolute top-2 right-2 z-10 text-xs px-2 py-1 bg-thread-paper border border-thread-sage rounded text-thread-sage animate-pulse">
+                loading decorations…
+              </div>
+            )}
             <div className="w-full max-w-full sm:max-w-[500px]">
               <EnhancedHouseCanvas
                 template={member.homeConfig.houseTemplate as any}

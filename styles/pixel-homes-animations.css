@@ -775,6 +775,8 @@
 
 /* Reduced motion support for enhanced animations */
 @media (prefers-reduced-motion: reduce) {
+  /* Cover EVERY animation class in this file — the previous list covered 12
+     of 22 and the rest kept moving for reduced-motion users. */
   .animate-bounce-gentle,
   .animate-bounce-subtle,
   .animate-pulse-soft,
@@ -786,8 +788,19 @@
   .animate-float-up,
   .animate-twinkle,
   .animate-flicker,
-  .animate-spooky-glow {
-    animation: none;
+  .animate-spooky-glow,
+  .animate-error-shake,
+  .animate-explosion,
+  .animate-feedback-popup,
+  .animate-flash,
+  .animate-grid-snap,
+  .animate-magnetic-pull,
+  .animate-placement-success,
+  .animate-selection-ring,
+  .animate-smoke-puff,
+  .decoration-animated,
+  .decoration-animated * {
+    animation: none !important;
   }
 
   .decoration-hover-lift:hover {
