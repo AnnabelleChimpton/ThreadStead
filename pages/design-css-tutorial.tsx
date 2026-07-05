@@ -65,7 +65,7 @@ const cssData = {
       classes: [
         { name: 'Step 1', description: 'Choose a template that speaks to you' },
         { name: 'Step 2', description: 'Copy the CSS code and paste it into your profile editor' },
-        { name: 'Step 3', description: 'See the magic happen instantly!' },
+        { name: 'Step 3', description: 'Watch it change as you type.' },
         { name: 'Step 4', description: 'Tweak colors, fonts, and effects to make it yours' }
       ],
       example: `/* Getting Started - Copy this example! */

@@ -23,7 +23,7 @@ describe('WelcomeRingIntroPopup', () => {
       render(<WelcomeRingIntroPopup onClose={mockOnClose} onStartTour={mockOnStartTour} />);
       
       expect(screen.getByText('Welcome to your first ThreadRing!')).toBeInTheDocument();
-      expect(screen.getByText(/You've just entered something special/)).toBeInTheDocument();
+      expect(screen.getByText(/where every new neighbor starts/)).toBeInTheDocument();
       expect(screen.getByTestId('pixel-icon-home')).toBeInTheDocument();
     });
 
@@ -176,7 +176,7 @@ describe('WelcomeRingIntroPopup', () => {
       render(<WelcomeRingIntroPopup onClose={mockOnClose} onStartTour={mockOnStartTour} />);
       
       // Step 1 content
-      expect(screen.getByText(/cozy corner of the internet/)).toBeInTheDocument();
+      expect(screen.getByText(/try posting and see how rings work/)).toBeInTheDocument();
       expect(screen.getByText(/What's a ThreadRing?/)).toBeInTheDocument();
       
       // Step 2 content

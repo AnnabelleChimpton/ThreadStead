@@ -17,7 +17,7 @@ export default function WelcomeRingIntroPopup({ onClose, onStartTour }: WelcomeR
         <div className="text-center">
           <div className="mb-4 flex justify-center animate-bounce"><PixelIcon name="home" size={48} /></div>
           <p className="text-base sm:text-lg mb-4 leading-relaxed">
-            You&apos;ve just entered something special — think of this as your <strong>cozy corner of the internet</strong> where you&apos;ll learn how communities work here.
+            This ring is where every new neighbor starts — a place to try posting and see how rings work.
           </p>
           <div className="bg-blue-50 p-3 sm:p-4 rounded-lg border border-blue-200 text-xs sm:text-sm text-blue-800">
             <strong>What&apos;s a ThreadRing?</strong> It&apos;s like a themed clubhouse where people with shared interests hang out.

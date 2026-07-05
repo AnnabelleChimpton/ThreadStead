@@ -540,7 +540,7 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
               Explore the Neighborhood
             </h1>
             <p className="text-sm sm:text-base text-gray-600 mb-2 px-2">
-              Wander through our cozy corner of the internet - from community gems to hidden treasures of the world wide web
+              Search this site, the community index, and the wider small web — all in one place
             </p>
             <Link href="/discover/faq" className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800">
               <PixelIcon name="lightbulb" size={16} />

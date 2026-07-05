@@ -16,23 +16,23 @@ export default function FAQ({ siteConfig }: FAQProps) {
       questions: [
         {
           question: 'How is this different from Facebook, Twitter, or Instagram?',
-          answer: 'We\'re bringing back the creative, playful internet before it got corporate. Your pixel home and profile are YOUR space - not a cookie-cutter template designed to maximize ad revenue. No algorithm decides what you see; you follow people and join communities YOU choose. Your content lives on your profile forever, not buried by an algorithm. Plus, we don\'t track you, sell your data, or optimize for rage-bait and addiction. It\'s the internet when it was actually fun.'
+          answer: 'Your feed is just the people you follow and the rings you\'ve joined, newest first — nobody ranks it and nothing gets promoted into it. Your posts live on your page instead of scrolling away. You can restyle your whole profile with your own CSS. And there are no ads or trackers, so nothing here is designed to keep you scrolling.'
         },
         {
           question: 'What does "no algorithms" actually mean?',
-          answer: 'It means we don\'t use AI to decide what you see. Your feed shows posts from people you follow and ThreadRings you joined, in chronological order - newest first. We don\'t hide content, boost viral posts, or manipulate what appears based on "engagement." You control what you see by choosing who to follow and which communities to join.'
+          answer: 'Your feed is the posts from people you follow and rings you\'ve joined, in the order they were written, newest first. Nothing is hidden, boosted, or reordered. If your feed is boring, the fix is following different people — not fighting a recommendation engine.'
         },
         {
           question: 'What does "no tracking" mean? How do you make money?',
-          answer: 'We don\'t use analytics trackers, advertising pixels, or sell your data to third parties. We don\'t track your behavior across the web or build profiles to sell to advertisers. HomePageAgain is currently in beta and exploring sustainable funding models that actually respect your privacy - likely premium features or memberships, not advertising. Right now, this is a passion project built by one person who thinks the internet can be better.'
+          answer: 'No analytics trackers, no ad pixels, no selling data. Right now this is a one-person project run out of pocket; if it ever needs to pay for itself, the plan is optional memberships or premium features — not advertising.'
         },
         {
           question: 'Can I browse without signing up?',
-          answer: 'Yes! You can explore the community feed, browse pixel homes in the neighborhood, view public profiles, and check out ThreadRings without creating an account. Signing up lets you create your own pixel home, join communities, post content, and connect with others.'
+          answer: 'Yes. The feed, the neighborhoods, public profiles, and ThreadRings are all open to visitors. An account is only needed to get a home of your own, post, and join rings.'
         },
         {
           question: 'Why pixel homes? What\'s the point?',
-          answer: 'Pixel homes bring back the fun of personal expression that\'s been lost on modern social media. Instead of everyone having identical profile layouts, you get a unique visual representation you can customize and decorate. It\'s playful, creative, and makes browsing the community feel like exploring a neighborhood instead of scrolling an infinite feed. Plus, it\'s just fun!'
+          answer: 'Because a profile picture in a grid tells you nothing about a person, and a little house with a rose garden, a lava-red roof, and a MIDI song playing tells you a lot. Homes make browsing feel like walking a street; you notice a yard, knock, and end up reading someone\'s page.'
         }
       ]
     },
@@ -41,27 +41,27 @@ export default function FAQ({ siteConfig }: FAQProps) {
       questions: [
         {
           question: 'What is HomePageAgain?',
-          answer: 'HomePageAgain is a community-first social platform where you build your own pixel home, join ThreadRings (interest-based communities), and connect with real people. No algorithms deciding what you see, no tracking, no corporate BS. Think of it as a blend of classic GeoCities creativity, modern community features, and the joy of the internet when it was weird and fun. Your page, your way - actually yours, not rented space on someone else\'s platform.'
+          answer: 'A place to have a home page again. You get a pixel house on a shared street, a profile page you can restyle top to bottom, and ThreadRings — small communities that link to each other like the webrings of old. Posts, guestbooks, and MIDI included.'
         },
         {
           question: 'How do I create my profile?',
-          answer: 'Click the "Create Profile" button in the navigation bar to get started. You\'ll be guided through a simple setup process to create your account and customize your first page.'
+          answer: 'Click Sign Up in the navigation. The setup walks you through creating an account and your first page.'
         },
         {
           question: 'Is HomePageAgain free?',
-          answer: 'Yes! HomePageAgain is free to use. We believe everyone should have the opportunity to create their own space on the web.'
+          answer: 'Yes, free. If that ever changes for some premium extra, the basic home and page will stay free.'
         },
         {
           question: 'What happens after I sign up?',
-          answer: 'After signing up, you\'ll create your pixel home (choose a house template and customize it), set up your profile page, and can start exploring neighborhoods, joining ThreadRings, and connecting with the community. You\'ll also automatically join the Welcome Ring to help you get started!'
+          answer: 'You pick a house and colors, set up your profile page, and you\'re automatically added to the Welcome Ring so your street isn\'t empty on day one. From there: decorate, wander the neighborhoods, join a ring or two.'
         },
         {
           question: 'What should I do first?',
-          answer: 'We recommend: 1) Customize your pixel home (pick a house style and colors), 2) Set up your profile page with a bio and links, 3) Explore the neighborhood in Street View to see what others have created, and 4) Join a ThreadRing that interests you to start connecting with people.'
+          answer: 'Decorate your house, write a couple of lines of bio, then go walk the neighborhood in Street View — seeing other people\'s homes is the fastest way to figure out what yours could be. Join a ring when one catches your eye.'
         },
         {
           question: 'What\'s the difference between my profile and pixel home?',
-          answer: 'Your profile is your personal page with your bio, posts, links, and content. Your pixel home is the visual 8-bit house that represents you in the neighborhood view - it\'s what people see when they explore in Street, Grid, or Map view. Think of it like your house vs. your living room!'
+          answer: 'The pixel home is the house people see from the street; the profile is what\'s inside — your bio, posts, and links. Knocking on the door of a home takes you to the profile.'
         }
       ]
     },
@@ -70,35 +70,35 @@ export default function FAQ({ siteConfig }: FAQProps) {
       questions: [
         {
           question: 'What is a Pixel Home?',
-          answer: 'A Pixel Home is your unique 8-bit style house that represents you visually in our neighborhoods. You can choose from different house templates (cottages, townhouses, lofts, cabins), customize colors, add decorations like plants and paths, and set the atmosphere (weather, time of day). It\'s a fun, creative way to express your personality!'
+          answer: 'Your house on the street: pick a cottage, townhouse, loft, or cabin, paint the walls and roof, plant a garden, lay a path, and set the sky — sunset with light rain, if that\'s your mood.'
         },
         {
           question: 'How do I customize my pixel home?',
-          answer: 'Visit your settings or the Build section to access the pixel home customizer. You can change your house template, customize colors (walls, roof, trim, windows), choose door and window styles, add decorations, and adjust atmosphere settings like sky color and weather. All changes appear in real-time!'
+          answer: 'From your home page, open Decorate. You can change the house style, colors (walls, roof, trim, windows), doors and windows, decorations, terrain, and the weather overhead. Changes show as you make them.'
         },
         {
           question: 'What are the different house templates?',
-          answer: 'We offer four main house templates: Cottages (cozy and classic), Townhouses (urban and tall), Lofts (modern and industrial), and Cabins (rustic and woodland). Each has its own unique architecture and vibe. You can pick whichever matches your personality!'
+          answer: 'Four: cottage, townhouse, loft, and cabin. Different silhouettes, same yard to play with — and you can switch anytime without losing your decorations.'
         },
         {
           question: 'Can I add decorations? What kinds?',
-          answer: 'Yes! You can add: Plants (flowers, trees, bushes), Paths (walkways and garden paths), Features (mailboxes, fences, benches), and Seasonal items (holiday decorations). Decorations can be placed around your home in different sizes and positions to create your perfect yard!'
+          answer: 'Plants (flowers, trees, bushes), paths, features (mailboxes, fences, benches), and seasonal items. Place them anywhere in the yard, in a few sizes. There\'s a 100-decoration limit, which sounds like a lot until you start.'
         },
         {
           question: 'What is Street View vs Grid View vs Map View?',
-          answer: 'Street View: An immersive horizontal scroll through homes like strolling down a street. Grid View: Browse homes in a organized card grid for efficient browsing. Map View: A bird\'s eye perspective showing home locations spatially. Each view offers a different way to explore the neighborhood!'
+          answer: 'Street View scrolls past homes like walking a block. Grid View is a card layout for skimming. Map View is the bird\'s-eye version. Same houses, different pace.'
         },
         {
           question: 'How do I explore neighborhoods?',
-          answer: 'Go to Discover → Neighborhoods to explore! You can browse All Homes, see Recently Updated homes, check out Popular homes, or try Random Home Adventure for serendipitous discovery. Use filters to find homes by style, color theme, or decoration type. Switch between Street, Grid, and Map views anytime.'
+          answer: 'Discover → Neighborhoods. Browse all homes, recently updated ones, or hit the random button and see whose porch you land on. Filters narrow by house style or palette.'
         },
         {
           question: 'What does "Random Home Adventure" do?',
-          answer: 'It shows you a randomized selection of homes from across the community - perfect for discovering unexpected connections and interesting people you might not find otherwise. It\'s our serendipity feature for when you want to explore without a specific goal!'
+          answer: 'It deals you a shuffled street of homes from across the site. No goal, no ranking — just houses you\'d never have searched for.'
         },
         {
           question: 'Can I change my house template later?',
-          answer: 'Yes! You can change your house template, colors, decorations, and atmosphere at any time from your settings. Your customizations are always flexible - express yourself however you want, whenever you want.'
+          answer: 'Yes — template, colors, decorations, and weather can all change anytime. Nothing is locked in.'
         }
       ]
     },
@@ -107,35 +107,35 @@ export default function FAQ({ siteConfig }: FAQProps) {
       questions: [
         {
           question: 'What are ThreadRings?',
-          answer: 'ThreadRings are interest-based communities where people gather around shared topics, hobbies, or themes. Each ring has its own identity, members, and feed of posts. Think of them like clubs, forums, or Discord servers - but with a unique family tree structure and visual badges!'
+          answer: 'Small communities around a topic — writing, tabletop games, whatever. Each ring has members, a feed, and an 88x31 badge. Rings branch off other rings, so the whole thing forms a family tree.'
         },
         {
           question: 'What is The Spool?',
-          answer: 'The Spool is the ancestral root of all ThreadRings - the original ring from which all other rings can trace their genealogy. It doesn\'t host posts itself, but acts as the foundation of the ThreadRing family tree. All rings are ultimately descendants of The Spool, creating a connected genealogy of communities.'
+          answer: 'The first ring — every other ring descends from it. It doesn\'t host posts; it\'s the trunk the family tree grows from.'
         },
         {
           question: 'How is a ThreadRing different from a forum or Discord server?',
-          answer: 'ThreadRings have unique features: 1) Genealogy - rings can branch from parent rings, creating a family tree, 2) Visual identity - each ring has an 88x31 pixel badge, 3) Neighborhood view - see all ring members\' pixel homes together, 4) Cross-posting - your posts can appear in your profile AND the ring feed. It\'s more interconnected than traditional forums!'
+          answer: 'A few things: rings branch from parent rings, so related communities stay visibly related; every ring has an 88x31 badge you can put on your page; a ring\'s members show up as a neighborhood of houses; and a post can live on your page and in the ring feed at once.'
         },
         {
           question: 'What\'s ThreadRing genealogy?',
-          answer: 'Every ThreadRing (except The Spool) has a parent ring it branched from, creating a family tree of communities. You can view the genealogy to see how rings are related - like how "Book Lovers" might branch into "Sci-Fi Readers" and "Poetry Circle". This shows the evolution and relationships between communities over time.'
+          answer: 'Every ring (except The Spool) branched from a parent. "Book Lovers" might spawn "Sci-Fi Readers", which might spawn something stranger. The genealogy page shows the whole lineage.'
         },
         {
           question: 'How do I branch a new ring from an existing one?',
-          answer: 'If you\'re a member of a ring, you can create a new "child" ring that branches from it. This is perfect for creating more specific communities (like branching "Pixel Art" from "Digital Art") while maintaining the genealogical connection. The parent ring will show in the new ring\'s family tree!'
+          answer: 'Members of a ring can branch a child ring off it — say, "Pixel Art" out of "Digital Art". The new ring keeps its parent in the family tree.'
         },
         {
           question: 'What\'s the difference between Ring Host, Moderator, and Member?',
-          answer: 'Ring Host: Created the ring, has full control including deleting it and managing all settings. Moderator: Can manage members, moderate posts, and edit ring details. Member: Can post, comment, and participate but can\'t manage the ring. Hosts can promote members to moderators.'
+          answer: 'Hosts created the ring and control everything, including deleting it. Moderators manage members and posts. Members post and comment. Hosts can promote members to moderators.'
         },
         {
           question: 'What are Open, Invite, and Closed rings?',
-          answer: 'Open: Anyone can join immediately. Invite: You need an invitation from a ring member to join. Closed: The ring is not accepting new members at all. Ring hosts set the join type to manage their community\'s growth and exclusivity.'
+          answer: 'Open: anyone can join. Invite: a member has to invite you. Closed: not taking new members. The host picks.'
         },
         {
           question: 'What are 88x31 badges?',
-          answer: 'These are classic web-style pixel art badges (88 pixels wide by 31 pixels tall) that represent each ThreadRing visually. They\'re inspired by the button badges from the early web. You can see a ring\'s badge on its page, and rings can share badges for others to display on their profiles or websites!'
+          answer: 'The little button badges of the early web — 88 pixels wide, 31 tall. Every ring has one, members earn them by joining, and you can display yours on your page or anywhere else on the internet.'
         }
       ]
     },
@@ -144,29 +144,29 @@ export default function FAQ({ siteConfig }: FAQProps) {
       questions: [
         {
           question: 'Do I need coding skills to build my page?',
-          answer: 'No! Our visual builder makes it easy to create beautiful pages without any coding knowledge. However, if you do know how to code, you can use our template language for advanced customization.'
+          answer: 'No. Decorating your house is all point-and-click, and the CSS editor comes with five ready-made themes you can apply and tweak. If you do write code, there\'s custom CSS and a full template language waiting for you.'
         },
         {
           question: 'What\'s the difference between Visual Builder, CSS Editor, and Template Language?',
-          answer: 'Visual Builder: Drag-and-drop interface for creating layouts without code. CSS Editor: Write custom CSS to style your page with advanced control. Template Language: Use our powerful template syntax for dynamic content, variables, and logic. Start with Visual Builder, add CSS for styling tweaks, and use Template Language for advanced features!'
+          answer: 'The CSS editor restyles the standard page — colors, fonts, layout — and includes starter themes. The template language goes further: you write the page\'s HTML yourself with components for your posts, photos, and guestbook, plus variables and conditionals if you want them. Most people start with a CSS theme and go from there.'
         },
         {
           question: 'Can I switch between visual and code editing?',
-          answer: 'Yes! You can switch between Visual Builder and code editing (CSS/Template Language) at any time. Your changes are preserved when switching modes, so you can use whichever editing method feels most comfortable for each task.'
+          answer: 'Yes — you can move between plain CSS styling and full templates whenever you like, and switch back. Your CSS comes along with you.'
         },
         {
           question: 'Can I use my own domain?',
-          answer: 'Custom domains may be available depending on your account type. Check our documentation or contact us for more information about domain options.'
+          answer: 'Not yet. It\'s on the wishlist.'
         },
         {
           question: 'How do templates work?',
-          answer: 'Templates are pre-designed layouts that you can customize to match your style. Browse our template library, choose one you like, and make it your own using the visual builder.'
+          answer: 'Ready-made page layouts you can apply and then edit — swap the text, restyle with CSS, or open them in the template editor and rearrange the pieces.'
         },
         {
           question: 'How do I add music to my profile?',
           answer: (
             <>
-              You can add background music to your profile using MIDI files! Go to Settings → Music to upload a .mid or .midi file (max 1MB). Visitors will hear it when they view your page - it&apos;s a throwback to classic web homepages with a modern twist.{' '}
+              You can add background music to your page with a MIDI file. Go to Settings → Music to upload a .mid or .midi file (max 1MB). Visitors hear it when they open your page, just like the old days.{' '}
               <Link href="/help/music-guide" className="text-thread-sunset hover:underline font-medium">
                 Check out our complete music creator&apos;s guide
               </Link>{' '}
@@ -176,7 +176,7 @@ export default function FAQ({ siteConfig }: FAQProps) {
         },
         {
           question: 'What are guestbooks?',
-          answer: 'Guestbooks are a classic web feature where visitors can leave messages on your profile! It\'s like a comment wall where people can say hello, leave compliments, or share thoughts. Enable your guestbook in settings to let visitors sign it.'
+          answer: 'The classic kind: visitors leave a note on your page. Yours comes built in — people can sign it from your profile or your pixel home\'s mailbox.'
         }
       ]
     },
@@ -185,27 +185,27 @@ export default function FAQ({ siteConfig }: FAQProps) {
       questions: [
         {
           question: 'How do I find other people on HomePageAgain?',
-          answer: 'Explore the Discover section to browse the community directory, search for specific interests, or check out the feed to see what others are sharing.'
+          answer: 'Wander the neighborhoods, read the feed, or search — people turn up by their handles, names, and what they write about.'
         },
         {
           question: 'How do I make friends vs follow someone?',
-          answer: 'Following someone means you\'ll see their posts in your feed - it\'s a one-way connection. Making friends is a mutual connection where both people accept the friendship. Friends appear on each other\'s friend lists and may have special visibility permissions for certain content.'
+          answer: 'Following is one-way: their posts show up in your feed. Friendship is mutual — both people agree, you appear on each other\'s friend lists, and some content can be shared friends-only.'
         },
         {
           question: 'Where do my posts appear?',
-          answer: 'Your posts appear in multiple places: 1) Your profile page, 2) The feed of any ThreadRings you posted to, 3) The feeds of people following you, 4) The community-wide Recent Posts feed. This helps your content reach different audiences!'
+          answer: 'On your own page, in the feed of any ring you posted to, in your followers\' feeds, and in the site-wide recent feed.'
         },
         {
           question: 'Can I edit or delete posts?',
-          answer: 'Yes! You can edit or delete your posts at any time from your profile or the post itself. Deleted posts are permanently removed from all feeds and locations.'
+          answer: 'Yes, anytime. Deleting removes the post everywhere it appeared.'
         },
         {
           question: 'How do I report inappropriate content?',
-          answer: 'If you see content that violates our community guidelines, please use the report feature or contact us directly. We take all reports seriously and will investigate promptly.'
+          answer: 'Use the report button on the content, or contact us directly. Reports go to a human — there\'s only one of us back here, but every report gets read.'
         },
         {
           question: 'Can I block users?',
-          answer: 'Yes, you can block users from your account settings. Blocked users won\'t be able to see your content, comment on your posts, or interact with you on the platform.'
+          answer: 'Yes, from settings. Blocked users can\'t see your content, comment, or interact with you.'
         }
       ]
     },
@@ -214,23 +214,23 @@ export default function FAQ({ siteConfig }: FAQProps) {
       questions: [
         {
           question: 'Who can see my page?',
-          answer: 'By default, your page is publicly visible. You can adjust privacy settings in your profile to control who can view your content and interact with you.'
+          answer: 'Public by default — it\'s a homepage. Privacy settings let you limit who sees what and who can interact.'
         },
         {
           question: 'How is my data used?',
-          answer: 'We respect your privacy. Your data is used only to provide and improve our services. For detailed information, please read our Privacy Policy.'
+          answer: 'To run the site, and that\'s it. No ad profiles, no selling, no sharing with third parties. The Privacy Policy has the specifics.'
         },
         {
           question: 'Can I delete my account?',
-          answer: 'Yes, you can delete your account at any time from your account settings. This action is permanent and will remove all your data from our servers.'
+          answer: 'Yes, from account settings. It\'s permanent and removes your data from our servers.'
         },
         {
           question: 'What\'s a Decentralized Identifier (DID)?',
-          answer: 'A DID is a unique identifier you own and control, not tied to any single platform or company. When you sign up with a DID, your identity is portable and secure - you can use it across different services without creating separate accounts. It\'s part of our commitment to giving you ownership of your digital identity!'
+          answer: 'An identifier that belongs to you rather than to a platform. Yours is what lets your posts and ring memberships work across the federation — and it stays yours if you ever take it elsewhere.'
         },
         {
           question: 'How do seed phrases work for account recovery?',
-          answer: 'A seed phrase is a series of words that acts as a master key to your account. If you ever lose access, you can use your seed phrase to recover your account. IMPORTANT: Keep your seed phrase private and secure - anyone with it can access your account. We recommend writing it down and storing it somewhere safe (not digitally).'
+          answer: 'A list of words that works as the master key to your account — if you lose your login, the seed phrase gets you back in. Anyone who has it has your account, so write it down on actual paper and keep it somewhere safe.'
         }
       ]
     }
@@ -262,13 +262,13 @@ export default function FAQ({ siteConfig }: FAQProps) {
                 Frequently Asked Questions
               </h1>
               <p className="text-lg text-gray-700 mb-3">
-                Everything you need to know about Pixel Homes, ThreadRings, neighborhoods, and all our features.
+                How the houses, rings, and pages work — and what happens to your data (nothing).
               </p>
               <p className="text-base text-gray-700 mb-3">
-                <PixelIcon name="human-handsup" size={16} className="inline-block align-middle" /> <strong>First time here?</strong> This FAQ has all the details, but if you want the full story about why we&apos;re building HomePageAgain, check out our <Link href="/landing" className="text-thread-sunset hover:text-thread-pine underline font-medium">landing page</Link> - it&apos;s a personal note about creating a better internet.
+                <PixelIcon name="human-handsup" size={16} className="inline-block align-middle" /> <strong>First time here?</strong> The details live below; the story of why this site exists is on the <Link href="/landing" className="text-thread-sunset hover:text-thread-pine underline font-medium">landing page</Link>.
               </p>
               <p className="text-base text-thread-sage">
-                New to HomePageAgain? Start with &quot;Why HomePageAgain?&quot; and &quot;Getting Started&quot; below!
+                New here? Start with &quot;Getting Started&quot;.
               </p>
             </div>
           </div>
