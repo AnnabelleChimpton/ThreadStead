@@ -253,99 +253,142 @@ function detectSyntaxErrors(htmlString: string): { errors: string[]; warnings: s
   const warnings: string[] = [];
   const lines = htmlString.split('\n');
 
-  // Track quote state across the template
-  let inQuote = false;
-  let quoteChar = '';
-  let quoteStartLine = 0;
-
   // Track tag stack for matching opening/closing tags
   const tagStack: Array<{ name: string; line: number }> = [];
 
-  // Check each line for syntax issues
-  lines.forEach((line, lineIndex) => {
-    const lineNum = lineIndex + 1;
+  // Ranges of the input covered by well-formed tag matches — used to detect
+  // malformed tags / unterminated attribute quotes afterwards.
+  const coveredTagRanges: Array<[number, number]> = [];
 
-    // Check for unclosed tags (tags that don't end with > or />)
-    // Look for < followed by tag name and attributes, but no closing
-    const openTagMatch = line.match(/<([A-Z][a-zA-Z0-9]*)\s+[^>]*$/);
-    if (openTagMatch && !line.trim().endsWith('/>') && !line.trim().endsWith('>')) {
-      const tagName = openTagMatch[1];
+  // --- Tag structure validation (whole-string, in SOURCE ORDER) ---
+  // The previous implementation scanned per line and pushed ALL opening tags
+  // on a line before processing ANY of its closing tags, so perfectly valid
+  // one-line HTML like <div><h1>x</h1><p>y</p></div> produced bogus
+  // "Mismatched closing tag" errors — and opening tags whose attributes
+  // spanned multiple lines were missed entirely. Whether a template compiled
+  // depended on the author's LINE BREAKS. This scan walks tags in document
+  // order with quote-aware attribute matching.
+  const voidElements = new Set([
+    'img', 'br', 'hr', 'input', 'meta', 'link', 'area', 'base', 'col',
+    'embed', 'param', 'source', 'track', 'wbr',
+  ]);
+  // Quoted attribute values may contain '>' — the alternation consumes them
+  // as a unit so they can't terminate the tag early.
+  const tagScanRegex = /<(\/?)([a-zA-Z][a-zA-Z0-9-]*)((?:"[^"]*"|'[^']*'|[^>])*?)(\/?)>/g;
+  let scanMatch: RegExpExecArray | null;
+  // Matches arrive in ascending index order — count newlines incrementally.
+  let scanCursor = 0;
+  let scanLine = 1;
+  const lineAtIndex = (idx: number): number => {
+    for (let i = scanCursor; i < idx; i++) {
+      if (htmlString[i] === '\n') scanLine++;
+    }
+    scanCursor = idx;
+    return scanLine;
+  };
+
+  // A quote that opens inside a tag's attributes but never closes before the
+  // tag ends (class="oops>) — the scanner recovers like a browser would, but
+  // the author almost certainly wants an error, not silent garbage.
+  const hasUnbalancedQuote = (attrText: string): boolean => {
+    let i = 0;
+    while (i < attrText.length) {
+      const ch = attrText[i];
+      if (ch === '"' || ch === "'") {
+        const close = attrText.indexOf(ch, i + 1);
+        if (close === -1) return true;
+        i = close + 1;
+        continue;
+      }
+      i++;
+    }
+    return false;
+  };
+
+  while ((scanMatch = tagScanRegex.exec(htmlString)) !== null) {
+    const isClosing = scanMatch[1] === '/';
+    const tagName = scanMatch[2];
+    const attrText = scanMatch[3] || '';
+    const isSelfClosing = scanMatch[4] === '/';
+    const lineNum = lineAtIndex(scanMatch.index);
+    const lineText = (lines[lineNum - 1] || '').trim();
+    coveredTagRanges.push([scanMatch.index, scanMatch.index + scanMatch[0].length]);
+
+    if (hasUnbalancedQuote(attrText)) {
       errors.push(
-        `Unclosed tag on line ${lineNum}: <${tagName}...> is missing closing '>' or '/>'.\n` +
-        `  ${line.trim()}\n` +
-        `Tip: Self-closing tags must end with />`
+        `Line ${lineNum}: Unclosed quote in <${tagName}> attributes.\n` +
+        `  ${lineText}\n` +
+        `Tip: Make sure all attribute values have matching quotes`
       );
     }
 
-    // Track opening and closing tags for structure validation
-    // Match opening tags: <TagName ...> or <tagname ...> (but not self-closing />)
-    // Match both Components (uppercase) and HTML tags (lowercase)
-    const openingTagRegex = /<([a-zA-Z][a-zA-Z0-9]*)[^>]*>/g;
-    let match;
-    while ((match = openingTagRegex.exec(line)) !== null) {
-      const fullMatch = match[0];
-      const tagName = match[1];
-
-      // Skip void HTML elements that don't need closing tags
-      const voidElements = ['img', 'br', 'hr', 'input', 'meta', 'link', 'area', 'base', 'col', 'embed', 'param', 'source', 'track', 'wbr'];
-      if (voidElements.includes(tagName.toLowerCase())) {
-        continue;
-      }
-
-      // Check if it's self-closing (ends with />)
-      if (!fullMatch.trim().endsWith('/>')) {
-        tagStack.push({ name: tagName, line: lineNum });
-      }
+    if (voidElements.has(tagName.toLowerCase())) {
+      continue;
     }
 
-    // Match closing tags: </TagName> or </tagname>
-    const closingTagRegex = /<\/([a-zA-Z][a-zA-Z0-9]*)>/g;
-    while ((match = closingTagRegex.exec(line)) !== null) {
-      const closingTagName = match[1];
-
+    if (isClosing) {
       if (tagStack.length === 0) {
         errors.push(
-          `Line ${lineNum}: Unexpected closing tag </${closingTagName}>.\n` +
-          `  ${line.trim()}\n` +
+          `Line ${lineNum}: Unexpected closing tag </${tagName}>.\n` +
+          `  ${lineText}\n` +
           `Tip: This closing tag has no matching opening tag`
         );
       } else {
         const lastOpened = tagStack.pop()!;
-
-        // Check if closing tag matches the last opened tag
-        if (lastOpened.name !== closingTagName) {
+        if (lastOpened.name !== tagName) {
           errors.push(
-            `Line ${lineNum}: Mismatched closing tag </${closingTagName}>.\n` +
+            `Line ${lineNum}: Mismatched closing tag </${tagName}>.\n` +
             `  Expected </${lastOpened.name}> (opened on line ${lastOpened.line})\n` +
-            `  ${line.trim()}\n` +
+            `  ${lineText}\n` +
             `Tip: Closing tags must match their opening tags exactly`
           );
-
           // Put it back since we didn't find the right match
           tagStack.push(lastOpened);
         }
       }
+    } else if (!isSelfClosing) {
+      tagStack.push({ name: tagName, line: lineNum });
     }
+  }
 
-    // Check for mismatched quotes in attributes
-    // This properly handles nested quotes (e.g., when="{{ theme === 'dark' }}")
-    for (let i = 0; i < line.length; i++) {
-      const char = line[i];
-
-      // Skip escaped quotes
-      if (i > 0 && line[i - 1] === '\\') continue;
-
-      if ((char === '"' || char === "'") && !inQuote) {
-        // Opening quote
-        inQuote = true;
-        quoteChar = char;
-        quoteStartLine = lineNum;
-      } else if (char === quoteChar && inQuote) {
-        // Closing quote
-        inQuote = false;
-        quoteChar = '';
+  // --- Malformed tags / unterminated attribute quotes ---
+  // Anything that LOOKS like a tag start (<tag or </tag) but wasn't consumed
+  // by the quote-aware tag scan above is malformed — most commonly an
+  // attribute quote that never closes (class="oops>), which prevents the
+  // scanner from finding the tag's end.
+  //
+  // The previous implementation tracked quote characters across ALL text,
+  // so an apostrophe in ordinary prose ("aren't", "don't") produced a bogus
+  // "Unclosed quote" error — the shipped conditional-showcase template
+  // failed to compile because of the word "aren't".
+  {
+    const tagStartRegex = /<\/?[a-zA-Z]/g;
+    let startMatch: RegExpExecArray | null;
+    let rangeIdx = 0;
+    while ((startMatch = tagStartRegex.exec(htmlString)) !== null) {
+      const idx = startMatch.index;
+      while (rangeIdx < coveredTagRanges.length && coveredTagRanges[rangeIdx][1] <= idx) {
+        rangeIdx++;
+      }
+      const covered =
+        rangeIdx < coveredTagRanges.length &&
+        coveredTagRanges[rangeIdx][0] <= idx &&
+        idx < coveredTagRanges[rangeIdx][1];
+      if (!covered) {
+        const lineNum = htmlString.slice(0, idx).split('\n').length;
+        const lineText = (lines[lineNum - 1] || '').trim();
+        errors.push(
+          `Line ${lineNum}: Malformed tag — found '<' that never closes with '>'.\n` +
+          `  ${lineText}\n` +
+          `Tip: Check for a missing '>' or an attribute quote that never closes`
+        );
       }
     }
+  }
+
+  // Check each line for syntax issues
+  lines.forEach((line, lineIndex) => {
+    const lineNum = lineIndex + 1;
 
     // Check for invalid JSON in initial attributes
     const initialMatch = line.match(/initial=['"](\{[^'"]*\})['"]/);
@@ -362,14 +405,6 @@ function detectSyntaxErrors(htmlString: string): { errors: string[]; warnings: s
       }
     }
   });
-
-  // Check for unclosed quote at end of document
-  if (inQuote) {
-    errors.push(
-      `Unclosed quote starting on line ${quoteStartLine}.\n` +
-      `Tip: Make sure all attribute values have matching quotes`
-    );
-  }
 
   // Check for unclosed tags at end of document
   if (tagStack.length > 0) {
