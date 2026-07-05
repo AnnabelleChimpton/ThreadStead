@@ -380,4 +380,52 @@ export const PIXEL_PETALS_TEMPLATE = `@import url('https://fonts.googleapis.com/
   .profile-tab-panel {
     padding: 0.9rem !important;
   }
+}
+
+/* ---------- Tabs & blog list (profile page) ---------- */
+
+.profile-tab-button {
+  background: #fff8fa !important;
+  color: #b06a8a !important;
+  border-right: 1px dotted #ffb8d4 !important;
+  font-family: 'Nunito', sans-serif !important;
+  font-weight: 700 !important;
+}
+
+.profile-tab-button:hover {
+  background: #ffeef5 !important;
+  color: #c2477d !important;
+}
+
+.profile-tab-button.active {
+  background: #ffd4e8 !important;
+  color: #8f2f5a !important;
+  box-shadow: inset 0 -3px 0 #c2477d !important;
+}
+
+.blog-tab-content {
+  background: transparent !important;
+}
+
+.blog-posts-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 14px !important;
+}
+
+.post-item {
+  background: #fffdfe !important;
+  border: 2px solid #ffb8d4 !important;
+  border-radius: 4px 14px 4px 14px !important;
+  box-shadow: 3px 3px 0 #ffd4e8 !important;
+}
+
+.blog-post-content {
+  color: #4a3540 !important;
+  font-family: 'Nunito', sans-serif !important;
+}
+
+.blog-post-actions {
+  border-top: 1px dotted #ffb8d4 !important;
+  color: #b06a8a !important;
 }`;

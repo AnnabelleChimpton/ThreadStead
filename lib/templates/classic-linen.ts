@@ -395,4 +395,60 @@ export const CLASSIC_LINEN_TEMPLATE = `/* ======================================
   .site-title {
     font-size: 1.2rem !important;
   }
+}
+
+/* ---------- Tabs & blog list (profile page) ---------- */
+
+.profile-tab-button {
+  background: transparent !important;
+  color: #6e675c !important;
+  border-right: none !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 0.78rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.12em !important;
+}
+
+.profile-tab-button:hover {
+  color: #2b2925 !important;
+}
+
+.profile-tab-button.active {
+  background: transparent !important;
+  color: #2b2925 !important;
+  box-shadow: inset 0 -1px 0 #6b6a45 !important;
+}
+
+.blog-tab-content {
+  background: transparent !important;
+}
+
+.blog-posts-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0 !important;
+}
+
+.post-item {
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 1px solid #d8d0c0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding-top: 1.25rem !important;
+  padding-bottom: 1.25rem !important;
+}
+
+.blog-post-content {
+  color: #2b2925 !important;
+  font-family: 'Source Serif 4', Georgia, serif !important;
+  line-height: 1.7 !important;
+}
+
+.blog-post-actions {
+  border-top: none !important;
+  color: #6e675c !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 0.78rem !important;
+  letter-spacing: 0.06em !important;
 }`;

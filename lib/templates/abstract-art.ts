@@ -402,4 +402,63 @@ export const ABSTRACT_ART_TEMPLATE = `/* =======================================
     width: 56px !important;
     box-shadow: 56px 0 0 #2857c4, 112px 0 0 #e3a92c !important;
   }
+}
+
+/* ---------- Tabs & blog list (profile page) ---------- */
+
+.profile-tab-button {
+  background: #faf8f4 !important;
+  color: #22211f !important;
+  border-right: 3px solid #22211f !important;
+  font-family: 'Archivo', sans-serif !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  font-size: 0.8rem !important;
+}
+
+.profile-tab-button:hover {
+  background: #e3a92c !important;
+  color: #22211f !important;
+}
+
+.profile-tab-button.active {
+  background: #22211f !important;
+  color: #faf8f4 !important;
+}
+
+.blog-tab-content {
+  background: transparent !important;
+}
+
+.blog-posts-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 20px !important;
+}
+
+.post-item {
+  background: #ffffff !important;
+  border: 3px solid #22211f !important;
+  border-radius: 0 !important;
+  box-shadow: 6px 6px 0 #e0432f !important;
+}
+
+.post-item:nth-child(2n) {
+  box-shadow: 6px 6px 0 #2857c4 !important;
+}
+
+.post-item:nth-child(3n) {
+  box-shadow: 6px 6px 0 #e3a92c !important;
+}
+
+.blog-post-content {
+  color: #22211f !important;
+}
+
+.blog-post-actions {
+  border-top: 3px solid #22211f !important;
+  color: #55524c !important;
+  font-family: 'Space Mono', monospace !important;
+  font-size: 0.8rem !important;
 }`;

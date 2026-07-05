@@ -362,4 +362,55 @@ export const RETRO_SOCIAL_TEMPLATE = `@import url('https://fonts.googleapis.com/
     padding: 0.3rem 0.7rem !important;
     font-size: 0.7rem !important;
   }
+}
+
+/* ---------- Tabs & blog list (profile page) ---------- */
+
+.profile-tab-button {
+  background: #dfe6f5 !important;
+  color: #1c3f95 !important;
+  border-right: 2px solid !important;
+  border-color: #ffffff #9aa7c7 #9aa7c7 #ffffff !important;
+  font-family: Verdana, Tahoma, sans-serif !important;
+  font-weight: 700 !important;
+  font-size: 0.78rem !important;
+}
+
+.profile-tab-button:hover {
+  background: #eef2fb !important;
+}
+
+.profile-tab-button.active {
+  background: #ffffff !important;
+  color: #16327a !important;
+  border-color: #9aa7c7 #ffffff #ffffff #9aa7c7 !important;
+}
+
+.blog-tab-content {
+  background: transparent !important;
+}
+
+.blog-posts-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+}
+
+.post-item {
+  background: #ffffff !important;
+  border: 2px solid !important;
+  border-color: #ffffff #9aa7c7 #9aa7c7 #ffffff !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.blog-post-content {
+  color: #1f2532 !important;
+  font-family: Verdana, Tahoma, sans-serif !important;
+  font-size: 0.85rem !important;
+}
+
+.blog-post-actions {
+  border-top: 1px solid #c6cede !important;
+  color: #5a6a8c !important;
 }`;

@@ -408,4 +408,55 @@ export const CHARCOAL_NIGHTS_TEMPLATE = `/* ====================================
   .site-footer {
     padding: 1.75rem 1rem !important;
   }
+}
+
+/* ---------- Tabs & blog list (profile page) ---------- */
+
+.profile-tab-button {
+  background: #1a1816 !important;
+  color: #8f887c !important;
+  border-right: 1px solid #3a352e !important;
+  font-family: 'Inter', sans-serif !important;
+  letter-spacing: 0.02em !important;
+}
+
+.profile-tab-button:hover {
+  background: #232019 !important;
+  color: #ece7df !important;
+}
+
+.profile-tab-button.active {
+  background: #232019 !important;
+  color: #ece7df !important;
+  box-shadow: inset 0 -2px 0 #e8853d !important;
+}
+
+.blog-tab-content {
+  background: transparent !important;
+}
+
+.blog-posts-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1px !important;
+}
+
+.post-item {
+  background: #201d19 !important;
+  border: 1px solid #3a352e !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.post-item:hover {
+  border-color: #55503f !important;
+}
+
+.blog-post-content {
+  color: #d9d2c7 !important;
+}
+
+.blog-post-actions {
+  border-top: 1px solid #3a352e !important;
+  color: #8f887c !important;
 }`;
