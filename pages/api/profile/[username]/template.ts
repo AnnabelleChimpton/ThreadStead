@@ -2,9 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { getSessionUser } from '@/lib/auth/server';
 import { db } from "@/lib/config/database/connection";
 import { Prisma } from '@prisma/client';
-import { compileTemplate } from '@/lib/templates/compilation/template-parser';
-import { identifyIslandsWithTransform } from '@/lib/templates/compilation/compiler/island-detector';
-import { generateStaticHTML } from '@/lib/templates/compilation/compiler/html-optimizer';
+import { compileTemplateToArtifacts, TemplateCompilationError } from '@/lib/templates/compilation/compile-pipeline';
 import { stripNavigationFromTemplate } from '@/lib/templates/utils/navigation-stripper';
 import { parseTemplateError, formatTemplateErrorForAPI } from '@/lib/templates/errors/template-error-handler';
 import { getCompiledTemplateWithMetrics, getCacheStats } from '@/lib/templates/compilation/template-cache';
@@ -88,34 +86,26 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         const { ast, islands, staticHTML } = await getCompiledTemplateWithMetrics(
           cleanedTemplate,
           async () => {
-            // This function only runs on cache MISS (first compilation)
-
-            // Parse the template AST (using cleaned template)
-            const parseResult = compileTemplate(cleanedTemplate);
-
-            if (!parseResult.success) {
-              console.error('Template compilation failed:', parseResult.errors);
-
-              // Parse and format the error for users
-              const firstError = parseResult.errors?.[0] || 'Template compilation failed';
-              const templateError = parseTemplateError(firstError);
-              const formattedError = formatTemplateErrorForAPI(templateError);
-
-              // Throw error to prevent caching failed compilations
-              throw new Error(JSON.stringify(formattedError));
+            // This function only runs on cache MISS (first compilation).
+            // SINGLE compilation entry point — see compile-pipeline.ts.
+            try {
+              const artifacts = compileTemplateToArtifacts(cleanedTemplate);
+              return {
+                ast: artifacts.ast,
+                islands: artifacts.islands,
+                staticHTML: artifacts.staticHTML
+              };
+            } catch (error) {
+              if (error instanceof TemplateCompilationError) {
+                console.error('Template compilation failed:', error.errors);
+                // Parse and format the error for users
+                const templateError = parseTemplateError(error.errors[0] || error);
+                const formattedError = formatTemplateErrorForAPI(templateError);
+                // Throw error to prevent caching failed compilations
+                throw new Error(JSON.stringify(formattedError));
+              }
+              throw error;
             }
-
-            // Detect islands (components) in the template using the AST
-            const islandResult = identifyIslandsWithTransform(parseResult.ast!);
-
-            // Generate static HTML with component placeholders
-            const staticHTML = generateStaticHTML(islandResult.transformedAst, islandResult.islands);
-
-            return {
-              ast: islandResult.transformedAst,
-              islands: islandResult.islands,
-              staticHTML
-            };
           }
         );
 

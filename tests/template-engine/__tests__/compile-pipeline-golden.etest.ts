@@ -24,6 +24,10 @@ jest.mock('@noble/ed25519', () => ({
 }))
 
 import { defaultSchema } from 'rehype-sanitize'
+import {
+  compileTemplateToArtifacts,
+  TemplateCompilationError,
+} from '@/lib/templates/compilation/compile-pipeline'
 import { compileTemplate } from '@/lib/templates/compilation/template-parser'
 import { identifyIslandsWithTransform } from '@/lib/templates/compilation/compiler/island-detector'
 import { generateStaticHTML } from '@/lib/templates/compilation/compiler/html-optimizer'
@@ -187,5 +191,28 @@ describe('malformed input produces errors, not crashes', () => {
   test('empty template compiles to empty output without error', () => {
     const parsed = compileTemplate('')
     expect(typeof parsed.success).toBe('boolean')
+  })
+})
+
+describe('compileTemplateToArtifacts (the single entry point)', () => {
+  test('produces identical artifacts to hand-orchestrating the pipeline', () => {
+    const template = '<div><DisplayName /><p>hello</p></div>'
+    const artifacts = compileTemplateToArtifacts(template)
+    const manual = runPipeline(template)
+    expect(artifacts.staticHTML).toBe(manual.staticHTML)
+    expect(artifacts.islands.map((i) => i.component)).toEqual(
+      manual.islands!.map((i) => i.component)
+    )
+  })
+
+  test('throws TemplateCompilationError carrying ALL collected errors', () => {
+    expect(() => compileTemplateToArtifacts('<div class="unclosed><p>x</p></div>')).toThrow(
+      TemplateCompilationError
+    )
+    try {
+      compileTemplateToArtifacts('<div class="unclosed><p>x</p></div>')
+    } catch (e) {
+      expect((e as TemplateCompilationError).errors.length).toBeGreaterThan(0)
+    }
   })
 })

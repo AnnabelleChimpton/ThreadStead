@@ -116,48 +116,42 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     let result;
     
     if (mode === 'advanced' && customTemplate) {
-      // For advanced mode with custom template, use direct compilation like production
+      // For advanced mode with custom template, use the SINGLE compilation
+      // entry point (compile-pipeline.ts) — the same one the save path uses.
       try {
-        const { compileTemplate } = await import('@/lib/templates/compilation/template-parser');
-        const { identifyIslandsWithTransform } = await import('@/lib/templates/compilation/compiler/island-detector');
-        const { generateStaticHTML } = await import('@/lib/templates/compilation/compiler/html-optimizer');
-        
-        // Parse the template AST
-        const parseResult = compileTemplate(customTemplate);
-        
-        if (!parseResult.success) {
-          return res.status(400).json({
-            success: false,
-            errors: parseResult.errors,
-            warnings: parseResult.validation?.warnings || []
-          });
-        }
-        
-        // Detect islands (components) in the template using the AST
-        const islandResult = identifyIslandsWithTransform(parseResult.ast!);
-        
-        // Generate static HTML with component placeholders
-        const staticHTML = generateStaticHTML(islandResult.transformedAst, islandResult.islands);
-        
+        const { compileTemplateToArtifacts } = await import('@/lib/templates/compilation/compile-pipeline');
+
+        const artifacts = compileTemplateToArtifacts(customTemplate);
+
         // Create compiled result structure
         const compiled = {
           mode: 'advanced' as const,
-          staticHTML: staticHTML,
-          islands: islandResult.islands,
+          staticHTML: artifacts.staticHTML,
+          islands: artifacts.islands,
           fallback: undefined,
           compiledAt: new Date(),
           errors: [],
-          warnings: parseResult.validation?.warnings || []
+          warnings: artifacts.warnings
         };
-        
+
         result = {
           success: true,
           compiled,
           errors: [],
           warnings: compiled.warnings
         };
-        
+
       } catch (compileError) {
+        const { TemplateCompilationError } = await import('@/lib/templates/compilation/compile-pipeline');
+        if (compileError instanceof TemplateCompilationError) {
+          // Full error list, not a generic message — same contract as the
+          // save path, so the editor can show real diagnostics.
+          return res.status(400).json({
+            success: false,
+            errors: compileError.errors,
+            warnings: compileError.warnings
+          });
+        }
         console.error('Direct advanced template compilation failed:', compileError);
         return res.status(400).json({
           success: false,
