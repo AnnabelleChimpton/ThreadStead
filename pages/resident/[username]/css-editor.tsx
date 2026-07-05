@@ -2,7 +2,18 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { getInternalBaseUrl } from "@/lib/utils/api/internal-base-url";
 import type { GetServerSideProps, NextApiRequest } from 'next';
 import { useRouter } from 'next/router';
+import dynamic from 'next/dynamic';
+import { css as cssLang } from '@codemirror/lang-css';
 import Head from 'next/head';
+
+// CodeMirror is editor-page-only — loaded dynamically so it never lands in
+// the shared bundle (first-load JS is already heavy, see C2).
+const CodeMirror = dynamic(() => import('@uiw/react-codemirror'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full p-4 font-mono text-sm text-gray-400">Loading editor…</div>
+  ),
+});
 import Link from 'next/link';
 import Layout from '@/components/ui/layout/Layout';
 import CSSClassReference from '@/components/features/templates/CSSClassReference';
@@ -579,27 +590,34 @@ export default function CSSEditorPage({
                 </div>
               </div>
 
-              <div className="flex-1 overflow-hidden">
-                <textarea
+              <div className="flex-1 overflow-auto">
+                <CodeMirror
                   value={css}
-                  onChange={(e) => setCSS(e.target.value)}
-                  className="w-full h-full p-4 font-mono text-sm resize-none border-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="/* Add your custom CSS here */
+                  onChange={(value: string) => setCSS(value)}
+                  extensions={[cssLang()]}
+                  height="100%"
+                  style={{ height: '100%', fontSize: '13px' }}
+                  placeholder={`/* Add your custom CSS here */
 
-/* Example: Change site header background */
+/* Example: cozy pine-to-meadow header */
 .site-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-  color: white !important;
+  background: linear-gradient(135deg, #2E4B3F 0%, #4FAF6D 100%) !important;
+  color: #FCFAF7 !important;
 }
 
-/* Example: Style blog post cards */
+/* Example: paper blog post cards */
 .blog-post-card {
-  background: #f0f9ff !important;
-  border: 2px solid #3b82f6 !important;
+  background: #FCFAF7 !important;
+  border: 2px solid #A18463 !important;
   border-radius: 8px !important;
 }
-"
-                  spellCheck={false}
+`}
+                  basicSetup={{
+                    lineNumbers: true,
+                    foldGutter: true,
+                    autocompletion: true,
+                    highlightActiveLine: true,
+                  }}
                 />
               </div>
             </div>
