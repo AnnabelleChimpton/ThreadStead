@@ -16,18 +16,23 @@
 /* Skip to main content link */
 .skip-link {
   position: absolute;
-  top: -40px;
+  /* Park fully offscreen by the element's OWN height — the old fixed
+     top:-40px left the bottom edge poking into the page whenever anything
+     (admin site CSS line-height, font swaps) grew it past 40px. */
+  top: 0;
   left: 6px;
+  transform: translateY(-100%);
   background: #2E4B3F;
   color: white;
   padding: 8px;
   text-decoration: none;
   border-radius: 4px;
   z-index: 10000;
-  transition: top 0.3s;
+  transition: transform 0.3s;
 }
 
 .skip-link:focus {
+  transform: translateY(0);
   top: 6px;
 }
 
