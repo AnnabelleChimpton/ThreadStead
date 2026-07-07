@@ -72,13 +72,13 @@ export default function ThreadRingCard({
   const badgeImageUrl = threadRing.badge?.imageUrl || threadRing.badgeImageUrl;
 
   return (
-    <div className="border border-black p-4 bg-white shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-shadow">
+    <div className="border border-thread-sage p-4 bg-thread-paper rounded-cozy shadow-cozySm hover:shadow-cozy hover:-translate-y-0.5 transition-all duration-150">
       {/* Header */}
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex-1 min-w-0">
           <Link
             href={`/tr/${threadRing.slug}`}
-            className="text-lg font-bold text-black hover:text-blue-700 hover:underline block"
+            className="text-lg font-headline font-bold text-thread-pine hover:text-thread-sunset hover:underline block transition-colors"
           >
             {threadRing.name}
           </Link>
@@ -97,12 +97,12 @@ export default function ThreadRingCard({
             </div>
           )}
           {threadRing.curator && (
-            <div className="text-sm text-gray-600 mt-1">
+            <div className="text-sm text-thread-sage mt-1">
               hosted by{" "}
               <UserMention
                 username={threadRing.curator.handle.split('@')[0]}
                 displayName={threadRing.curator.displayName || threadRing.curator.handle.split('@')[0]}
-                className="font-medium text-gray-900"
+                className="font-medium text-thread-pine"
               />
             </div>
           )}
@@ -111,7 +111,7 @@ export default function ThreadRingCard({
         {/* Join Status / Button */}
         <div className="flex-shrink-0">
           {threadRing.viewerMembership ? (
-            <span className="text-xs bg-green-200 px-2 py-1 border border-black rounded">
+            <span className="text-xs bg-thread-meadow/20 text-thread-pine px-2.5 py-1 border border-thread-sage rounded-full font-medium">
               {threadRing.viewerMembership.role === "owner" || threadRing.viewerMembership.role === "curator"
                 ? "Ring Host"
                 : threadRing.viewerMembership.role === "moderator"
@@ -122,20 +122,20 @@ export default function ThreadRingCard({
             <button
               onClick={handleJoin}
               disabled={joining}
-              className="text-xs bg-yellow-200 hover:bg-yellow-300 border border-black px-3 py-1 shadow-[1px_1px_0_#000] hover:shadow-[2px_2px_0_#000] transition-all"
+              className="text-xs bg-thread-sunset text-thread-paper hover:bg-thread-sunset/90 border border-thread-pine px-3.5 py-1 rounded-full shadow-cozySm hover:shadow-cozy transition-all font-medium disabled:opacity-60"
             >
-              {joining ? "Joining..." : "Join"}
+              {joining ? "Joining…" : "Join"}
             </button>
           ) : threadRing.joinType === "application" ? (
-            <span className="text-xs bg-blue-200 px-2 py-1 border border-black rounded">
+            <span className="text-xs bg-thread-sky/25 text-thread-pine px-2.5 py-1 border border-thread-sage rounded-full font-medium">
               Apply to Join
             </span>
           ) : threadRing.joinType === "invite" ? (
-            <span className="text-xs bg-gray-200 px-2 py-1 border border-black rounded">
+            <span className="text-xs bg-thread-stone/25 text-thread-charcoal px-2.5 py-1 border border-thread-sage rounded-full font-medium">
               Invite Only
             </span>
           ) : threadRing.joinType === "closed" ? (
-            <span className="text-xs bg-red-200 px-2 py-1 border border-black rounded">
+            <span className="text-xs bg-thread-sunset/15 text-thread-pine px-2.5 py-1 border border-thread-sage rounded-full font-medium">
               Closed
             </span>
           ) : null}
@@ -144,13 +144,13 @@ export default function ThreadRingCard({
 
       {/* Description */}
       {threadRing.description && (
-        <p className="text-sm text-gray-700 mb-3 line-clamp-2">
+        <p className="text-sm text-thread-charcoal mb-3 line-clamp-2">
           {threadRing.description}
         </p>
       )}
 
       {/* Stats */}
-      <div className="flex items-center gap-4 text-xs text-gray-600">
+      <div className="flex items-center gap-4 text-xs text-thread-sage">
         <span>{threadRing.memberCount} member{threadRing.memberCount !== 1 ? 's' : ''}</span>
         <span>•</span>
         <span>{threadRing.postCount} post{threadRing.postCount !== 1 ? 's' : ''}</span>
@@ -163,7 +163,7 @@ export default function ThreadRingCard({
         {threadRing.visibility === "unlisted" && (
           <>
             <span>•</span>
-            <span className="text-orange-600">Unlisted</span>
+            <span className="text-thread-sunset font-medium">Unlisted</span>
           </>
         )}
       </div>
