@@ -58,48 +58,6 @@ export function cleanAndNormalizeHtml(input: string) {
   return normalizeLinks(cleanHtml(input));
 }
 
-function preserveCustomNumbering(text: string): string {
-  // Pattern to match lines that start with a number followed by a period (custom numbering)
-  // This prevents markdown from auto-renumbering intentional custom sequences
-  const customNumberPattern = /^(\d+)\.\s/gm;
-
-  return text.replace(customNumberPattern, (match, number) => {
-    // Escape the period to prevent markdown list processing
-    return `${number}\\. `;
-  });
-}
-
-function normalizeBulletLists(text: string): string {
-  // Ensure bullet lists have consistent spacing and formatting
-  const lines = text.split('\n');
-  const processedLines: string[] = [];
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const trimmedLine = line.trim();
-
-    // Check if this line is a bullet point
-    if (trimmedLine.match(/^[-*+]\s+/)) {
-      // Ensure there's a blank line before the list if the previous line isn't empty or a bullet
-      const prevLine = i > 0 ? lines[i - 1].trim() : '';
-      if (prevLine && !prevLine.match(/^[-*+]\s+/) && processedLines.length > 0) {
-        const lastProcessed = processedLines[processedLines.length - 1].trim();
-        if (lastProcessed && !lastProcessed.match(/^[-*+]\s+/)) {
-          processedLines.push(''); // Add blank line before list
-        }
-      }
-
-      // Normalize the bullet point (use consistent '-' and single space)
-      const content = trimmedLine.replace(/^[-*+]\s+/, '');
-      processedLines.push(`- ${content}`);
-    } else {
-      processedLines.push(line);
-    }
-  }
-
-  return processedLines.join('\n');
-}
-
 function autoLinkUrls(text: string): string {
   // Pattern to match URLs that aren't already in markdown link format
   const urlPattern = /(?<![\[(])(https?:\/\/[^\s\)]+)(?![\])])/gi;
@@ -168,14 +126,15 @@ function postProcessTaskLists(html: string): string {
 }
 
 export function markdownToSafeHtml(md: string) {
-  // First preserve custom numbering to prevent auto-renumbering
-  let processedMd = preserveCustomNumbering(md ?? "");
-
-  // Normalize bullet lists for consistent formatting
-  processedMd = normalizeBulletLists(processedMd);
+  // NOTE: the previous preserveCustomNumbering / normalizeBulletLists passes
+  // were removed — they broke standard markdown. preserveCustomNumbering
+  // escaped every "N. " line, so ordered lists never rendered as <ol>;
+  // normalizeBulletLists trimmed leading whitespace, flattening nested lists
+  // and destroying indentation (and code-block content). marked/GFM handles
+  // ordered lists, nested bullets, and indented code correctly on its own.
 
   // Process footnotes before markdown parsing
-  processedMd = processFootnotes(processedMd);
+  let processedMd = processFootnotes(md ?? "");
 
   // Then apply auto-linking to plain URLs
   processedMd = autoLinkUrls(processedMd);
