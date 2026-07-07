@@ -72,13 +72,13 @@ export default function ThreadRingCard({
   const badgeImageUrl = threadRing.badge?.imageUrl || threadRing.badgeImageUrl;
 
   return (
-    <div className="border border-thread-sage p-4 bg-thread-paper rounded-cozy shadow-cozySm hover:shadow-cozy hover:-translate-y-0.5 transition-all duration-150">
+    <div className="threadring-card border border-thread-sage p-4 bg-thread-paper rounded-cozy shadow-cozySm hover:shadow-cozy hover:-translate-y-0.5 transition-all duration-150">
       {/* Header */}
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex-1 min-w-0">
           <Link
             href={`/tr/${threadRing.slug}`}
-            className="text-lg font-headline font-bold text-thread-pine hover:text-thread-sunset hover:underline block transition-colors"
+            className="threadring-card-title text-lg font-headline font-bold text-thread-pine hover:text-thread-sunset hover:underline block transition-colors"
           >
             {threadRing.name}
           </Link>
@@ -111,7 +111,7 @@ export default function ThreadRingCard({
         {/* Join Status / Button */}
         <div className="flex-shrink-0">
           {threadRing.viewerMembership ? (
-            <span className="text-xs bg-thread-meadow/20 text-thread-pine px-2.5 py-1 border border-thread-sage rounded-full font-medium">
+            <span className="pill badge--lav text-xs bg-thread-meadow/20 text-thread-pine px-2.5 py-1 border border-thread-sage rounded-full font-medium">
               {threadRing.viewerMembership.role === "owner" || threadRing.viewerMembership.role === "curator"
                 ? "Ring Host"
                 : threadRing.viewerMembership.role === "moderator"
@@ -127,15 +127,15 @@ export default function ThreadRingCard({
               {joining ? "Joining…" : "Join"}
             </button>
           ) : threadRing.joinType === "application" ? (
-            <span className="text-xs bg-thread-sky/25 text-thread-pine px-2.5 py-1 border border-thread-sage rounded-full font-medium">
+            <span className="pill text-xs bg-thread-sky/25 text-thread-pine px-2.5 py-1 border border-thread-sage rounded-full font-medium">
               Apply to Join
             </span>
           ) : threadRing.joinType === "invite" ? (
-            <span className="text-xs bg-thread-stone/25 text-thread-charcoal px-2.5 py-1 border border-thread-sage rounded-full font-medium">
+            <span className="pill text-xs bg-thread-stone/25 text-thread-charcoal px-2.5 py-1 border border-thread-sage rounded-full font-medium">
               Invite Only
             </span>
           ) : threadRing.joinType === "closed" ? (
-            <span className="text-xs bg-thread-sunset/15 text-thread-pine px-2.5 py-1 border border-thread-sage rounded-full font-medium">
+            <span className="pill badge--rose text-xs bg-thread-sunset/15 text-thread-pine px-2.5 py-1 border border-thread-sage rounded-full font-medium">
               Closed
             </span>
           ) : null}
