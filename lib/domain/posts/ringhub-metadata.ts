@@ -59,10 +59,11 @@ export function generateTextPreview(bodyText?: string | null, bodyHtml?: string 
     return content;
   }
 
-  // Truncate at word boundary
-  const truncated = content.substring(0, 300);
+  // Truncate at a word boundary. Reserve 3 chars for the ellipsis so the result
+  // is never longer than 300 (the hub rejects metadata.textPreview over 300).
+  const truncated = content.substring(0, 297);
   const lastSpace = truncated.lastIndexOf(' ');
-  return lastSpace > 250 ? truncated.substring(0, lastSpace) + '...' : truncated + '...';
+  return (lastSpace > 250 ? truncated.substring(0, lastSpace) : truncated) + '...';
 }
 
 /**
@@ -92,8 +93,9 @@ export function generateExcerpt(bodyText?: string | null, bodyHtml?: string | nu
     return content;
   }
 
-  // Truncate at word boundary
-  const truncated = content.substring(0, 500);
+  // Truncate at a word boundary. Reserve 3 chars for the ellipsis so the result
+  // is never longer than 500 (the hub rejects metadata.excerpt over 500).
+  const truncated = content.substring(0, 497);
   const lastSpace = truncated.lastIndexOf(' ');
-  return lastSpace > 450 ? truncated.substring(0, lastSpace) + '...' : truncated + '...';
+  return (lastSpace > 450 ? truncated.substring(0, lastSpace) : truncated) + '...';
 }
