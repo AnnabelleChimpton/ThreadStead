@@ -74,7 +74,7 @@ const INTENT_OPTS: { v: PostIntent; label: string; description: string }[] = [
 
 const TOOLBAR_ITEMS = [
   { label: "Bold", icon: <span className="font-bold">B</span>, action: "bold", markdown: "**" },
-  { label: "Italic", icon: <span className="italic">I</span>, action: "italic", markdown: "_" },
+  { label: "Italic", icon: <span className="italic">I</span>, action: "italic", markdown: "*" },
   { label: "Heading 1", icon: "H1", action: "h1", markdown: "# " },
   { label: "Heading 2", icon: "H2", action: "h2", markdown: "## " },
   { label: "Heading 3", icon: "H3", action: "h3", markdown: "### " },
@@ -512,106 +512,122 @@ export default function PostEditor({
     }
   };
 
-  const insertMarkdown = useCallback((action: string, markdown: string) => {
+  const insertMarkdown = useCallback((action: string) => {
     const textarea = textareaRef.current;
     if (!textarea) return;
+    textarea.focus();
 
+    const value = textarea.value;
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
-    const value = textarea.value;
     const selectedText = value.substring(start, end);
 
-    let newValue = "";
-    let newCursorPos = start;
+    // Replace [from,to) with `text`, preserving native undo (execCommand), then
+    // select [selFrom,selTo). Falls back to a state splice if execCommand is
+    // unavailable. execCommand fires an input event, so React's onChange keeps
+    // `content` in sync.
+    const applyEdit = (from: number, to: number, text: string, selFrom: number, selTo: number) => {
+      textarea.setSelectionRange(from, to);
+      let ok = false;
+      try { ok = document.execCommand("insertText", false, text); } catch { ok = false; }
+      if (ok) {
+        textarea.setSelectionRange(selFrom, selTo);
+      } else {
+        const nv = textarea.value.substring(0, from) + text + textarea.value.substring(to);
+        setContent(nv);
+        requestAnimationFrame(() => textarea.setSelectionRange(selFrom, selTo));
+      }
+    };
+
+    // Wrap the selection with `marker` (e.g. ** ), or toggle it off if already
+    // wrapped. With no selection, insert `marker placeholder marker` and select
+    // the placeholder so the user can type over it.
+    const wrapInline = (marker: string, placeholder: string) => {
+      const m = marker.length;
+      if (value.substring(start - m, start) === marker && value.substring(end, end + m) === marker) {
+        applyEdit(start - m, end + m, selectedText, start - m, end - m); // markers just outside
+        return;
+      }
+      if (selectedText.length >= m * 2 && selectedText.startsWith(marker) && selectedText.endsWith(marker)) {
+        const inner = selectedText.slice(m, -m); // markers inside selection
+        applyEdit(start, end, inner, start, start + inner.length);
+        return;
+      }
+      const body = selectedText || placeholder;
+      applyEdit(start, end, marker + body + marker, start + m, start + m + body.length);
+    };
+
+    // Add `prefix` to every line touched by the selection, or remove it if every
+    // line already has it (toggle). Selects the affected block afterward.
+    const prefixLines = (prefix: string) => {
+      const lineStart = value.lastIndexOf("\n", start - 1) + 1;
+      const nlAfter = value.indexOf("\n", end);
+      const blockEnd = nlAfter === -1 ? value.length : nlAfter;
+      const lines = value.substring(lineStart, blockEnd).split("\n");
+      const allHave = lines.every((l) => l.startsWith(prefix));
+      const block = (allHave ? lines.map((l) => l.slice(prefix.length)) : lines.map((l) => prefix + l)).join("\n");
+      applyEdit(lineStart, blockEnd, block, lineStart, lineStart + block.length);
+    };
 
     switch (action) {
-      case "bold":
-      case "italic":
-      case "code":
-        const wrapper = markdown;
+      case "bold": return wrapInline("**", "text");
+      case "italic": return wrapInline("*", "text");
+      case "code": return wrapInline("`", "code");
+
+      case "h1": return prefixLines("# ");
+      case "h2": return prefixLines("## ");
+      case "h3": return prefixLines("### ");
+      case "quote": return prefixLines("> ");
+      case "ul": return prefixLines("- ");
+      case "ol": return prefixLines("1. ");
+      case "tasklist": return prefixLines("- [ ] ");
+
+      case "codeblock": {
+        const inner = selectedText || "code here";
+        const innerFrom = start + 5; // after "\n```\n"
+        return applyEdit(start, end, `\n\`\`\`\n${inner}\n\`\`\`\n`, innerFrom, innerFrom + inner.length);
+      }
+      case "link": {
         if (selectedText) {
-          newValue = value.substring(0, start) + wrapper + selectedText + wrapper + value.substring(end);
-          newCursorPos = end + wrapper.length * 2;
-        } else {
-          const placeholder = action === "code" ? "code" : "text";
-          newValue = value.substring(0, start) + wrapper + placeholder + wrapper + value.substring(end);
-          newCursorPos = start + wrapper.length;
+          const urlFrom = start + selectedText.length + 3; // after "[sel]("
+          return applyEdit(start, end, `[${selectedText}](url)`, urlFrom, urlFrom + 3); // select "url"
         }
-        break;
-
-      case "h1":
-      case "h2":
-      case "h3":
-      case "quote":
-      case "ul":
-      case "ol":
-        const lineStart = value.lastIndexOf("\n", start - 1) + 1;
-        const linePrefix = markdown;
-        newValue = value.substring(0, lineStart) + linePrefix + value.substring(lineStart);
-        newCursorPos = lineStart + linePrefix.length;
-        break;
-
-      case "codeblock":
-        const codeBlock = selectedText
-          ? `\n\`\`\`\n${selectedText}\n\`\`\`\n`
-          : "\n```\ncode here\n```\n";
-        newValue = value.substring(0, start) + codeBlock + value.substring(end);
-        newCursorPos = selectedText ? end + 8 : start + 4;
-        break;
-
-      case "link":
-        const linkText = selectedText || "link text";
-        newValue = value.substring(0, start) + `[${linkText}](url)` + value.substring(end);
-        newCursorPos = start + linkText.length + 3;
-        break;
-
+        return applyEdit(start, end, "[link text](url)", start + 1, start + 10); // select "link text"
+      }
       case "image":
-        newValue = value.substring(0, start) + "![alt text](image-url)" + value.substring(end);
-        newCursorPos = start + 2;
-        break;
+        return applyEdit(start, end, "![alt](url)", start + 2, start + 5); // select "alt"
 
-      case "tasklist":
-        const taskLineStart = value.lastIndexOf("\n", start - 1) + 1;
-        newValue = value.substring(0, taskLineStart) + "- [ ] " + value.substring(taskLineStart);
-        newCursorPos = taskLineStart + 6;
-        break;
-
-      case "table":
-        const tableMarkdown = "\n| Header 1 | Header 2 |\n|----------|----------|\n| Cell 1   | Cell 2   |\n";
-        newValue = value.substring(0, start) + tableMarkdown + value.substring(end);
-        newCursorPos = start + 11; // Position cursor after "| Header 1"
-        break;
-
-      case "footnote":
+      case "table": {
+        const h1From = start + 3; // after "\n| "
+        return applyEdit(start, end, "\n| Header 1 | Header 2 |\n|----------|----------|\n| Cell 1   | Cell 2   |\n", h1From, h1From + 8);
+      }
+      case "footnote": {
         if (selectedText) {
-          // If text is selected, create both reference and definition
-          const footnoteRef = `[^1]`;
-          const footnoteDefinition = `\n\n[^1]: ${selectedText}`;
-          newValue = value.substring(0, start) + footnoteRef + value.substring(end) + footnoteDefinition;
-          newCursorPos = start + footnoteRef.length;
-        } else {
-          // Just insert a footnote reference
-          newValue = value.substring(0, start) + "[^1]" + value.substring(end);
-          newCursorPos = start + 3; // Position cursor after "[^1"
+          applyEdit(start, end, "[^1]", start + 4, start + 4);
+          const len = textarea.value.length;
+          return applyEdit(len, len, `\n\n[^1]: ${selectedText}`, len + 6, len + 6);
         }
-        break;
-
-      case "hr":
-        newValue = value.substring(0, start) + "\n---\n" + value.substring(end);
-        newCursorPos = start + 5;
-        break;
-
+        return applyEdit(start, end, "[^1]", start + 2, start + 3); // select the "1" to rename
+      }
+      case "hr": {
+        const pos = start + 5;
+        return applyEdit(start, end, "\n---\n", pos, pos);
+      }
       default:
         return;
     }
-
-    setContent(newValue);
-
-    setTimeout(() => {
-      textarea.focus();
-      textarea.selectionStart = textarea.selectionEnd = newCursorPos;
-    }, 0);
   }, []);
+
+  // Cmd/Ctrl+B / I / K formatting shortcuts, then fall through to tab handling.
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if ((e.metaKey || e.ctrlKey) && !e.altKey) {
+      const k = e.key.toLowerCase();
+      if (k === "b") { e.preventDefault(); insertMarkdown("bold"); return; }
+      if (k === "i") { e.preventDefault(); insertMarkdown("italic"); return; }
+      if (k === "k") { e.preventDefault(); insertMarkdown("link"); return; }
+    }
+    handleTabKey(e);
+  }, [insertMarkdown]);
 
   const handleEmojiSelect = useCallback((emojiName: string) => {
     const textarea = textareaRef.current;
@@ -979,7 +995,7 @@ export default function PostEditor({
                     key={item.action}
                     type="button"
                     className="toolbar-button px-2 py-1.5 border border-transparent hover:border-black hover:bg-white rounded text-sm font-mono transition-all"
-                    onClick={() => insertMarkdown(item.action, item.markdown)}
+                    onClick={() => insertMarkdown(item.action)}
                     title={item.label}
                     disabled={busy || uploadingImage}
                   >
@@ -1054,7 +1070,7 @@ code block
 ![Image alt](image-url)"
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
-                  onKeyDown={handleTabKey}
+                  onKeyDown={handleKeyDown}
                   onDragOver={handleDragOver}
                   onDragEnter={handleDragEnter}
                   onDragLeave={handleDragLeave}
