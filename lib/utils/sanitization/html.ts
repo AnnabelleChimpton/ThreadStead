@@ -58,17 +58,6 @@ export function cleanAndNormalizeHtml(input: string) {
   return normalizeLinks(cleanHtml(input));
 }
 
-function autoLinkUrls(text: string): string {
-  // Pattern to match URLs that aren't already in markdown link format
-  const urlPattern = /(?<![\[(])(https?:\/\/[^\s\)]+)(?![\])])/gi;
-
-  return text.replace(urlPattern, (url) => {
-    // Remove trailing punctuation that's probably not part of the URL
-    const cleanUrl = url.replace(/[.,!?;:]+$/, '');
-    return `[${cleanUrl}](${cleanUrl})`;
-  });
-}
-
 function processFootnotes(text: string): string {
   // Process footnote references [^1] and footnote definitions [^1]: content
   let processedText = text;
@@ -133,11 +122,11 @@ export function markdownToSafeHtml(md: string) {
   // and destroying indentation (and code-block content). marked/GFM handles
   // ordered lists, nested bullets, and indented code correctly on its own.
 
-  // Process footnotes before markdown parsing
-  let processedMd = processFootnotes(md ?? "");
-
-  // Then apply auto-linking to plain URLs
-  processedMd = autoLinkUrls(processedMd);
+  // Process footnotes before markdown parsing. Bare-URL auto-linking is left
+  // to marked's native GFM autolinker (gfm: true), which correctly skips URLs
+  // inside inline/fenced code — unlike the old string-replace pass, which
+  // rewrote URLs inside code samples.
+  const processedMd = processFootnotes(md ?? "");
 
   const rawHtml = marked.parse(processedMd, { async: false }) as string;
   const cleanedHtml = cleanAndNormalizeHtml(rawHtml);
