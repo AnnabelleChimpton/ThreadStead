@@ -3,6 +3,8 @@ import { SOCIAL_MODERN_TEMPLATE } from './html/social-modern';
 import { CLASSIC_WEB1_TEMPLATE } from './html/classic-web1';
 import { SIMPLE_DEFAULT_TEMPLATE } from './html/simple-default';
 import { CONDITIONAL_SHOWCASE_TEMPLATE } from './html/conditional-showcase';
+import { QUIET_GARDEN_TEMPLATE } from './html/quiet-garden';
+import { STUDIO_NOCTURNE_TEMPLATE } from './html/studio-nocturne';
 
 // Template metadata for UI display
 export interface HTMLTemplateInfo {
@@ -16,6 +18,22 @@ export interface HTMLTemplateInfo {
 
 // Available HTML templates
 export const HTML_TEMPLATES: HTMLTemplateInfo[] = [
+  {
+    id: 'quiet-garden',
+    name: 'Quiet Garden',
+    description: 'A calm, editorial personal homepage — about, now, and a bed of links',
+    category: 'minimal',
+    template: QUIET_GARDEN_TEMPLATE,
+    preview: 'Serif typography on warm paper, anchor nav, link cards, no components at all'
+  },
+  {
+    id: 'studio-nocturne',
+    name: 'Studio Nocturne',
+    description: 'A bold dark one-pager — big type, project rows, one hot accent',
+    category: 'modern',
+    template: STUDIO_NOCTURNE_TEMPLATE,
+    preview: 'Portfolio-style single page in plain HTML: display headline, hover rows, contact pills'
+  },
   {
     id: 'simple-default',
     name: 'Personal Homepage',

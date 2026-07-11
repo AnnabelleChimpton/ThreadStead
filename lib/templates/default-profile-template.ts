@@ -140,9 +140,436 @@ export function migrateLegacyProfile(templateMode: string, customCSS?: string): 
 }
 
 /**
- * Template examples for user education
+ * Template examples for user education.
+ *
+ * `kind` groups the gallery: 'profile' redesigns (default when absent),
+ * 'scripted' pages that show the template language doing real work.
  */
 export const TEMPLATE_EXAMPLES = {
+  nightWindow: {
+    name: "The Night Window",
+    description: "A lamp you can switch, kudos that persist — the scripting language, cozy",
+    kind: 'scripted' as const,
+    template: `<div class="night-room">
+  <Var name="lampOn" type="boolean" initial="true" persist="true" />
+  <Var name="kudos" type="number" initial="0" persist="true" />
+
+  <div class="room-header">
+    <h1 class="room-title"><DisplayName as="span" /></h1>
+    <p class="room-sub">open late — come in quietly</p>
+    <Button className="lamp-switch">
+      <OnClick>
+        <Toggle var="lampOn" />
+      </OnClick>
+      flick the lamp
+    </Button>
+  </div>
+
+  <If data="$vars.lampOn">
+    <div class="scene scene-lamp">
+      <h2>the lamp is on</h2>
+      <p>Warm light spills across the desk. Stay a while.</p>
+      <Bio />
+    </div>
+  </If>
+  <If not="$vars.lampOn">
+    <div class="scene scene-moon">
+      <h2>lights out</h2>
+      <p>Just the moon through the window now. The desk keeps its secrets.</p>
+    </div>
+  </If>
+
+  <div class="kudos-row">
+    <Button className="kudos-button">
+      <OnClick>
+        <Increment var="kudos" />
+        <ShowToast message="thank you, night visitor" type="success" />
+      </OnClick>
+      ☾ leave a kudo
+    </Button>
+    <span class="kudos-count"><ShowVar name="kudos" /> kudos left on this sill</span>
+  </div>
+
+  <IfOwner>
+    <p class="aside-note">psst — this is your room. every word of it is editable.</p>
+  </IfOwner>
+  <IfVisitor>
+    <p class="aside-note">you're a guest here. the book below is for signing.</p>
+  </IfVisitor>
+
+  <div class="night-card">
+    <h2>pages from the notebook</h2>
+    <BlogPosts limit="3" />
+  </div>
+
+  <div class="night-card">
+    <h2>the guest book</h2>
+    <Guestbook />
+  </div>
+</div>`,
+    css: `/* The Night Window — a small room, late at night */
+
+body {
+  background: #0d1226;
+  margin: 0;
+  padding: 0;
+}
+
+.profile-template-root {
+  background: linear-gradient(180deg, #0d1226 0%, #131a35 100%);
+  color: #cfd6f2;
+  font-family: 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  min-height: 100vh;
+  padding: 3rem 1.25rem 4rem;
+}
+
+.night-room {
+  max-width: 620px;
+  margin: 0 auto;
+}
+
+.room-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.room-title {
+  font-size: 2.4rem;
+  font-weight: 400;
+  color: #f5e9c9;
+  margin-bottom: 0.25rem;
+}
+
+.room-sub {
+  color: #8a93bf;
+  font-style: italic;
+}
+
+.lamp-switch,
+.kudos-button {
+  background: transparent;
+  border: 1px solid #f5c96a;
+  border-radius: 999px;
+  color: #f5c96a;
+  padding: 0.5rem 1.25rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  margin-top: 0.75rem;
+}
+
+.lamp-switch:hover,
+.kudos-button:hover {
+  background: rgba(245, 201, 106, 0.15);
+  box-shadow: 0 0 24px rgba(245, 201, 106, 0.25);
+}
+
+/* The two states of the room */
+.scene {
+  border-radius: 14px;
+  padding: 1.75rem;
+  margin-bottom: 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.scene h2 {
+  font-size: 1.15rem;
+  font-style: italic;
+  font-weight: 400;
+  margin-bottom: 0.5rem;
+}
+
+.scene-lamp {
+  background: radial-gradient(420px 260px at 50% 0%, rgba(245, 201, 106, 0.22), transparent 70%), #1a2142;
+  border: 1px solid rgba(245, 201, 106, 0.35);
+  color: #efe6cd;
+}
+
+.scene-lamp h2 { color: #f5c96a; }
+
+.scene-moon {
+  background: radial-gradient(420px 260px at 80% 0%, rgba(160, 190, 255, 0.14), transparent 70%), #10152e;
+  border: 1px solid rgba(160, 190, 255, 0.25);
+  color: #a9b4d8;
+}
+
+.scene-moon h2 { color: #b9cdf7; }
+
+.kudos-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.kudos-count {
+  color: #8a93bf;
+  font-style: italic;
+}
+
+.aside-note {
+  color: #6f79a8;
+  font-size: 0.9rem;
+  font-style: italic;
+  margin-bottom: 1.5rem;
+}
+
+.night-card {
+  background: #161d3d;
+  border: 1px solid #2a335e;
+  border-radius: 14px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.night-card h2 {
+  color: #f5e9c9;
+  font-size: 1.1rem;
+  font-style: italic;
+  font-weight: 400;
+  margin-bottom: 0.75rem;
+}
+
+.blog-post-card,
+.guestbook-entry,
+.post-item {
+  background: #10152e;
+  border: 1px solid #2a335e;
+  border-radius: 10px;
+  color: #cfd6f2;
+}
+
+.post-item h3, .post-item h4, .post-item p, .post-item span {
+  color: #cfd6f2;
+}
+
+a {
+  color: #f5c96a;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}`,
+    cssMode: 'inherit' as const
+  },
+
+  fortuneBooth: {
+    name: "Fortune Booth",
+    description: "Draw a card, watch the state change — If/Else chains as a boardwalk toy",
+    kind: 'scripted' as const,
+    template: `<div class="booth">
+  <Var name="card" type="number" initial="0" />
+  <Var name="draws" type="number" initial="0" persist="true" />
+
+  <div class="booth-canopy"></div>
+  <h1 class="booth-title">Fortune Booth</h1>
+  <p class="booth-sub"><DisplayName as="span" /> reads the cards tonight</p>
+
+  <div class="booth-window">
+    <If data="$vars.card" equals="0">
+      <div class="fortune-card card-empty">
+        <p>The cards are face down.</p>
+        <p class="card-hint">Draw one, if you dare.</p>
+      </div>
+    </If>
+    <If data="$vars.card" equals="1">
+      <div class="fortune-card">
+        <span class="card-number">I</span>
+        <p>A stranger will sign your guestbook and become a friend.</p>
+      </div>
+    </If>
+    <If data="$vars.card" equals="2">
+      <div class="fortune-card">
+        <span class="card-number">II</span>
+        <p>The page you have been meaning to redesign will redesign itself. (It will not. Do it tonight.)</p>
+      </div>
+    </If>
+    <If data="$vars.card" equals="3">
+      <div class="fortune-card">
+        <span class="card-number">III</span>
+        <p>Good news arrives in a small envelope — or a notification. Same thing now.</p>
+      </div>
+    </If>
+    <If data="$vars.card" equals="4">
+      <div class="fortune-card">
+        <span class="card-number">IV</span>
+        <p>You will find exactly the CSS property you were missing.</p>
+      </div>
+    </If>
+    <If data="$vars.card" equals="5">
+      <div class="fortune-card">
+        <span class="card-number">V</span>
+        <p>An old bookmark resurfaces. It still works. Nothing gold stays — but some things do.</p>
+      </div>
+    </If>
+  </div>
+
+  <Button className="draw-button">
+    <OnClick>
+      <If condition="card >= 5">
+        <Set var="card" value="1" />
+      </If>
+      <Else>
+        <Increment var="card" />
+      </Else>
+      <Increment var="draws" />
+    </OnClick>
+    draw a card
+  </Button>
+
+  <p class="draws-line"><ShowVar name="draws" /> cards drawn at this booth</p>
+
+  <div class="booth-guestbook">
+    <h2>leave a prophecy of your own</h2>
+    <Guestbook />
+  </div>
+</div>`,
+    css: `/* Fortune Booth — boardwalk dusk, plum and gold */
+
+body {
+  background: #241432;
+  margin: 0;
+  padding: 0;
+}
+
+.profile-template-root {
+  background: linear-gradient(180deg, #241432 0%, #31174a 100%);
+  color: #ead9f5;
+  font-family: Georgia, 'Times New Roman', serif;
+  min-height: 100vh;
+  padding: 0 1.25rem 4rem;
+}
+
+.booth {
+  max-width: 560px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+/* Striped canopy along the top */
+.booth-canopy {
+  height: 26px;
+  margin: 0 -1.25rem 2.5rem;
+  background: repeating-linear-gradient(
+    90deg,
+    #d4a445 0 36px,
+    #31174a 36px 72px
+  );
+  border-bottom: 3px solid #d4a445;
+}
+
+.booth-title {
+  font-size: 2.6rem;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  color: #f0c75e;
+  text-shadow: 0 0 24px rgba(240, 199, 94, 0.35);
+  margin-bottom: 0.25rem;
+}
+
+.booth-sub {
+  color: #b79bd1;
+  font-style: italic;
+  margin-bottom: 2rem;
+}
+
+.booth-window {
+  margin-bottom: 1.5rem;
+}
+
+/* Ticket-stub fortune cards */
+.fortune-card {
+  background: #f7ecd7;
+  color: #4a3050;
+  border: 2px dashed #b0894a;
+  border-radius: 10px;
+  padding: 2rem 1.75rem;
+  font-size: 1.15rem;
+  line-height: 1.6;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.35);
+}
+
+.card-empty {
+  background: #2c1b42;
+  color: #b79bd1;
+  border-color: #6a4d85;
+  font-style: italic;
+}
+
+.card-hint {
+  font-size: 0.9rem;
+  color: #8a6ba8;
+}
+
+.card-number {
+  display: block;
+  font-size: 1.5rem;
+  color: #b0894a;
+  letter-spacing: 0.3em;
+  margin-bottom: 0.5rem;
+}
+
+.draw-button {
+  background: #f0c75e;
+  border: none;
+  border-radius: 999px;
+  color: #31174a;
+  font-family: inherit;
+  font-size: 1.05rem;
+  font-weight: bold;
+  letter-spacing: 0.04em;
+  padding: 0.75rem 2.25rem;
+  cursor: pointer;
+  box-shadow: 0 6px 0 #a87f2c;
+  transition: all 0.15s ease;
+}
+
+.draw-button:hover {
+  transform: translateY(2px);
+  box-shadow: 0 4px 0 #a87f2c;
+}
+
+.draws-line {
+  color: #8a6ba8;
+  font-style: italic;
+  font-size: 0.9rem;
+  margin-top: 1rem;
+}
+
+.booth-guestbook {
+  margin-top: 3rem;
+  text-align: left;
+}
+
+.booth-guestbook h2 {
+  color: #f0c75e;
+  font-size: 1.15rem;
+  font-weight: 400;
+  font-style: italic;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.guestbook-entry,
+.post-item {
+  background: #2c1b42;
+  border: 1px solid #6a4d85;
+  border-radius: 10px;
+  color: #ead9f5;
+}
+
+a {
+  color: #f0c75e;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}`,
+    cssMode: 'inherit' as const
+  },
+
   glassMorphism: {
     name: "Evening Glass",
     description: "Frosted glass cards floating on a deep dusk gradient",
