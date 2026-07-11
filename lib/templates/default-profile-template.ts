@@ -350,7 +350,49 @@ a {
 
 a:hover {
   text-decoration: underline;
-}`,
+}
+/* ThreadStead component chrome (guestbook, labels, dividers) on-theme */
+.thread-headline {
+  color: #f5e9c9;
+  text-shadow: none;
+  font-family: inherit;
+}
+
+.thread-label {
+  color: #8a93bf;
+}
+
+.thread-divider {
+  border-top-color: rgba(138, 147, 191, 0.35);
+}
+
+.profile-template-root textarea,
+.profile-template-root input,
+.profile-template-root select {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(138, 147, 191, 0.4);
+  border-radius: 10px;
+  color: #cfd6f2;
+}
+
+.profile-template-root ::placeholder {
+  color: rgba(138, 147, 191, 0.7);
+}
+
+.thread-button,
+.thread-button-outline {
+  background: transparent;
+  border: 1px solid #f5c96a;
+  border-radius: 999px;
+  color: #f5c96a;
+}
+
+.thread-button:hover,
+.thread-button-outline:hover {
+  background: rgba(245, 201, 106, 0.15);
+  box-shadow: 0 0 24px rgba(245, 201, 106, 0.25);
+}
+`,
     cssMode: 'inherit' as const
   },
 
@@ -566,7 +608,51 @@ a {
 
 a:hover {
   text-decoration: underline;
-}`,
+}
+/* ThreadStead component chrome (guestbook, labels, dividers) on-theme */
+.thread-headline {
+  color: #f0c75e;
+  text-shadow: none;
+  font-family: inherit;
+}
+
+.thread-label {
+  color: #b79bd1;
+}
+
+.thread-divider {
+  border-top-color: rgba(212, 164, 69, 0.45);
+}
+
+.profile-template-root textarea,
+.profile-template-root input,
+.profile-template-root select {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(183, 155, 209, 0.45);
+  border-radius: 10px;
+  color: #ead9f5;
+}
+
+.profile-template-root ::placeholder {
+  color: rgba(183, 155, 209, 0.7);
+}
+
+.thread-button,
+.thread-button-outline {
+  background: #f0c75e;
+  border: none;
+  border-radius: 999px;
+  color: #31174a;
+  font-weight: bold;
+  box-shadow: 0 3px 0 #d4a445;
+}
+
+.thread-button:hover,
+.thread-button-outline:hover {
+  background: #f5d47e;
+  transform: translateY(-1px);
+}
+`,
     cssMode: 'inherit' as const
   },
 
@@ -690,7 +776,35 @@ a:hover {
 .thread-button:hover,
 .thread-button-outline:hover {
   background: rgba(255, 255, 255, 0.22);
-}`,
+}
+/* ThreadStead component chrome (guestbook, labels, dividers) on-theme */
+.thread-headline {
+  color: #ffffff;
+  text-shadow: none;
+  font-family: inherit;
+}
+
+.thread-label {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.thread-divider {
+  border-top-color: rgba(255, 255, 255, 0.2);
+}
+
+.profile-template-root textarea,
+.profile-template-root input,
+.profile-template-root select {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 10px;
+  color: #ffffff;
+}
+
+.profile-template-root ::placeholder {
+  color: rgba(255, 255, 255, 0.45);
+}
+`,
     cssMode: 'inherit' as const
   },
   
@@ -834,7 +948,35 @@ a:hover {
 .thread-button-outline:hover {
   background: rgba(74, 222, 128, 0.12);
   box-shadow: 0 0 12px rgba(74, 222, 128, 0.3);
-}`,
+}
+/* ThreadStead component chrome (guestbook, labels, dividers) on-theme */
+.thread-headline {
+  color: #4ade80;
+  text-shadow: none;
+  font-family: inherit;
+}
+
+.thread-label {
+  color: #5f7a6d;
+}
+
+.thread-divider {
+  border-top-color: rgba(74, 222, 128, 0.3);
+}
+
+.profile-template-root textarea,
+.profile-template-root input,
+.profile-template-root select {
+  background: #081018;
+  border: 1px solid rgba(74, 222, 128, 0.35);
+  border-radius: 3px;
+  color: #b6c8bf;
+}
+
+.profile-template-root ::placeholder {
+  color: #4a6456;
+}
+`,
     cssMode: 'inherit' as const
   },
   
@@ -976,7 +1118,35 @@ a:hover {
 .thread-button-outline:hover {
   transform: translate(1px, 1px);
   box-shadow: 2px 2px 0 #2f2a25;
-}`,
+}
+/* ThreadStead component chrome (guestbook, labels, dividers) on-theme */
+.thread-headline {
+  color: #2f2a25;
+  text-shadow: none;
+  font-family: inherit;
+}
+
+.thread-label {
+  color: #a0563b;
+}
+
+.thread-divider {
+  border-top-color: rgba(214, 93, 77, 0.5);
+}
+
+.profile-template-root textarea,
+.profile-template-root input,
+.profile-template-root select {
+  background: #fffdf7;
+  border: 2px solid #2f2a25;
+  border-radius: 4px;
+  color: #4a3b2f;
+}
+
+.profile-template-root ::placeholder {
+  color: #a89b88;
+}
+`,
     cssMode: 'inherit' as const
   },
   
@@ -1117,7 +1287,35 @@ a {
 a:hover {
   color: #ffffff;
   text-shadow: 0 0 8px rgba(127, 215, 255, 0.8);
-}`,
+}
+/* ThreadStead component chrome (guestbook, labels, dividers) on-theme */
+.thread-headline {
+  color: #ffb3e6;
+  text-shadow: none;
+  font-family: inherit;
+}
+
+.thread-label {
+  color: #b9a8d6;
+}
+
+.thread-divider {
+  border-top-color: rgba(255, 110, 199, 0.4);
+}
+
+.profile-template-root textarea,
+.profile-template-root input,
+.profile-template-root select {
+  background: #221d45;
+  border: 1px solid rgba(255, 110, 199, 0.5);
+  border-radius: 8px;
+  color: #ffe8f7;
+}
+
+.profile-template-root ::placeholder {
+  color: #8d7fb3;
+}
+`,
     cssMode: 'inherit' as const
   },
 
@@ -1224,7 +1422,35 @@ a:hover {
 .thread-button-outline:hover {
   background: #26221c;
   color: #faf8f3;
-}`,
+}
+/* ThreadStead component chrome (guestbook, labels, dividers) on-theme */
+.thread-headline {
+  color: #26221c;
+  text-shadow: none;
+  font-family: inherit;
+}
+
+.thread-label {
+  color: #8a7f6a;
+}
+
+.thread-divider {
+  border-top-color: #ddd5c4;
+}
+
+.profile-template-root textarea,
+.profile-template-root input,
+.profile-template-root select {
+  background: transparent;
+  border: 1px solid #c9beab;
+  border-radius: 0;
+  color: #26221c;
+}
+
+.profile-template-root ::placeholder {
+  color: #a89b88;
+}
+`,
     cssMode: 'inherit' as const
   },
   
@@ -1361,7 +1587,35 @@ a:hover {
   background: #002fa7;
   border-color: #002fa7;
   color: #fffefb;
-}`,
+}
+/* ThreadStead component chrome (guestbook, labels, dividers) on-theme */
+.thread-headline {
+  color: #141414;
+  text-shadow: none;
+  font-family: inherit;
+}
+
+.thread-label {
+  color: #3d3a35;
+}
+
+.thread-divider {
+  border-top-color: #141414;
+}
+
+.profile-template-root textarea,
+.profile-template-root input,
+.profile-template-root select {
+  background: #fffefb;
+  border: 2px solid #141414;
+  border-radius: 0;
+  color: #141414;
+}
+
+.profile-template-root ::placeholder {
+  color: #8a867e;
+}
+`,
     cssMode: 'inherit' as const
   }
 };
