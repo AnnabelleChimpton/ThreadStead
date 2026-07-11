@@ -12,29 +12,41 @@ import { useTemplateStateWithDeps } from '@/lib/templates/state/TemplateStatePro
  * 1. Conditional Rendering - Show/hide content based on conditions
  * 2. Conditional Actions - Execute actions inside event handlers (OnClick, etc.)
  *
+ * IMPORTANT: `condition` (alias `data`/`when`) is a DATA PATH, not an
+ * expression. `condition="counter < 10"` will NEVER match — the evaluator
+ * looks up a value at that path and checks truthiness. Comparisons are
+ * expressed through operator props (`equals`, `greaterThan`, `lessThan`,
+ * `greater-than-or-equal`, ...) and template variables are addressed with
+ * the `$vars.` prefix. This applies in BOTH render and action contexts.
+ *
  * @example
  * ```xml
- * <!-- Conditional Rendering -->
- * <If condition="isLoggedIn">
+ * <!-- Conditional Rendering: truthy path check -->
+ * <If data="viewer.isFriend">
  *   <p>Welcome back!</p>
+ * </If>
+ *
+ * <!-- Conditional Rendering: template variable + operator prop -->
+ * <If data="$vars.score" greater-than-or-equal="10">
+ *   <p>High score!</p>
  * </If>
  *
  * <!-- Conditional Actions -->
  * <Button>
  *   <OnClick>
- *     <If condition="counter < 10">
+ *     <If data="$vars.counter" less-than="10">
  *       <Increment var="counter" />
  *     </If>
  *   </OnClick>
  * </Button>
  *
- * <!-- If/ElseIf/Else chains (actions only) -->
+ * <!-- If/ElseIf/Else chains (actions only; siblings, not nested) -->
  * <Button>
  *   <OnClick>
- *     <If condition="counter < 10">
+ *     <If data="$vars.counter" less-than="10">
  *       <Increment var="counter" />
  *     </If>
- *     <ElseIf condition="counter == 10">
+ *     <ElseIf data="$vars.counter" equals="10">
  *       <Set var="counter" value="0" />
  *     </ElseIf>
  *     <Else>

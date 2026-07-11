@@ -203,7 +203,7 @@ body {
         <div class="code-snippet">＜If data="posts.length" greater-than="5"＞</div>
 
         <div class="data-display">
-          <span class="data-label">Your post count:</span> <BlogPosts limit="1000" mode="count" />
+          <span class="data-label">Your post count:</span> <BlogPosts limit="20" mode="count" />
         </div>
 
         <div class="condition-check">
@@ -231,7 +231,7 @@ body {
         <div class="code-snippet">＜If data="posts.length" less-than="100"＞</div>
 
         <div class="data-display">
-          <span class="data-label">Your post count:</span> <BlogPosts limit="1000" mode="count" />
+          <span class="data-label">Your post count:</span> <BlogPosts limit="20" mode="count" />
         </div>
 
         <div class="condition-check">
@@ -259,7 +259,7 @@ body {
         <div class="code-snippet">＜If data="posts.length" equals="0"＞</div>
 
         <div class="data-display">
-          <span class="data-label">Your post count:</span> <BlogPosts limit="1000" mode="count" />
+          <span class="data-label">Your post count:</span> <BlogPosts limit="20" mode="count" />
         </div>
 
         <div class="condition-check">
@@ -287,7 +287,7 @@ body {
         <div class="code-snippet">＜If data="posts.length" not-equals="0"＞</div>
 
         <div class="data-display">
-          <span class="data-label">Your post count:</span> <BlogPosts limit="1000" mode="count" />
+          <span class="data-label">Your post count:</span> <BlogPosts limit="20" mode="count" />
         </div>
 
         <div class="condition-check">
@@ -504,7 +504,7 @@ body {
 &lt;/Choose&gt;</div>
 
         <div class="data-display">
-          <span class="data-label">Your post count:</span> <BlogPosts limit="1000" mode="count" />
+          <span class="data-label">Your post count:</span> <BlogPosts limit="20" mode="count" />
         </div>
 
         <div class="condition-check">

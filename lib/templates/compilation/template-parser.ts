@@ -121,9 +121,26 @@ function createCustomSchema() {
         schema.tagNames.push(lowerTagName);
       }
 
-      // Apply centralized allowed attributes list
-      schema.attributes[tagName] = allAttributes;
-      schema.attributes[lowerTagName] = allAttributes;
+      // Apply centralized allowed attributes list, PLUS every prop the
+      // registry declares for this component. The hand-maintained
+      // ATTRIBUTE_MAP drifts (BlogPosts mode="count" was silently stripped
+      // for months) — the registry is the source of truth for what a
+      // component accepts, so its prop names are always allowed through.
+      const registration = componentRegistry.get(tagName);
+      let attrs = allAttributes;
+      if (registration?.props) {
+        const propAttrs: string[] = [];
+        for (const propName of Object.keys(registration.props)) {
+          const lower = propName.toLowerCase();
+          const kebab = propName.replace(/[A-Z]/g, (c) => '-' + c.toLowerCase());
+          propAttrs.push(propName);
+          if (lower !== propName) propAttrs.push(lower);
+          if (kebab !== propName && kebab !== lower) propAttrs.push(kebab);
+        }
+        attrs = [...allAttributes, ...propAttrs];
+      }
+      schema.attributes[tagName] = attrs;
+      schema.attributes[lowerTagName] = attrs;
     }
   }
 

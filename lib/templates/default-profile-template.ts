@@ -187,7 +187,7 @@ export const TEMPLATE_EXAMPLES = {
       </OnClick>
       ☾ leave a kudo
     </Button>
-    <span class="kudos-count"><ShowVar name="kudos" /> kudos left on this sill</span>
+    <span class="kudos-count">you've left <ShowVar name="kudos" /> on this sill</span>
   </div>
 
   <IfOwner>
@@ -407,7 +407,7 @@ a:hover {
 
   <Button className="draw-button">
     <OnClick>
-      <If condition="card >= 5">
+      <If data="$vars.card" greater-than-or-equal="5">
         <Set var="card" value="1" />
       </If>
       <Else>
@@ -418,7 +418,7 @@ a:hover {
     draw a card
   </Button>
 
-  <p class="draws-line"><ShowVar name="draws" /> cards drawn at this booth</p>
+  <p class="draws-line">you've drawn <ShowVar name="draws" /> cards at this booth</p>
 
   <div class="booth-guestbook">
     <h2>leave a prophecy of your own</h2>

@@ -33,6 +33,7 @@ import { identifyIslandsWithTransform } from '@/lib/templates/compilation/compil
 import { generateStaticHTML } from '@/lib/templates/compilation/compiler/html-optimizer'
 import { HTML_TEMPLATES } from '@/lib/templates/default-html-templates'
 import { TEMPLATE_EXAMPLES } from '@/lib/templates/default-profile-template'
+import { componentRegistry } from '@/lib/templates/core/template-registry'
 
 describe('environment canary', () => {
   test('rehype-sanitize defaultSchema matches production (not a mangled interop stub)', () => {
@@ -201,6 +202,38 @@ describe('sanitization and stripping', () => {
   test('event-handler attributes are stripped', () => {
     const { staticHTML } = runPipeline('<div onclick="alert(1)"><p>hi</p></div>')
     expect(staticHTML).not.toContain('onclick')
+  })
+
+  test('BlogPosts mode="count" survives sanitization (regression)', () => {
+    // The hand-maintained ATTRIBUTE_MAP lacked 'mode', so the sanitizer
+    // silently stripped it and BlogPosts rendered the full list where the
+    // conditional-showcase wanted a bare number.
+    const result = compileTemplateToArtifacts('<div><BlogPosts limit="3" mode="count" /></div>')
+    const island = result.islands.find((i) => i.component === 'blogposts')
+    expect(island?.props).toMatchObject({ mode: 'count' })
+  })
+
+  test('every registered string prop survives sanitization (drift canary)', () => {
+    // The sanitize allowlist must track the registry, not a hand-list.
+    // For each registered component, its first string-typed prop is compiled
+    // through the pipeline and must come out the other side.
+    const failures: string[] = []
+    for (const name of componentRegistry.getAllowedTags()) {
+      const registration = componentRegistry.get(name)
+      const props = registration?.props ?? {}
+      const stringProp = Object.entries(props).find(
+        ([, def]) => (def as { type?: string }).type === 'string'
+      )?.[0]
+      if (!stringProp) continue
+      const result = compileTemplateToArtifacts(`<div><${name} ${stringProp}="canaryvalue" /></div>`)
+      const island = result.islands.find((i) => i.component === name.toLowerCase())
+      if (!island) continue // relationship components may not island standalone
+      const propKeys = Object.keys(island.props ?? {}).map((k) => k.toLowerCase())
+      if (!propKeys.includes(stringProp.toLowerCase())) {
+        failures.push(`${name}.${stringProp}`)
+      }
+    }
+    expect(failures).toEqual([])
   })
 })
 
