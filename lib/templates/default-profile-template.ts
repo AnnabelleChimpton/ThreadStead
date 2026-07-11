@@ -144,11 +144,11 @@ export function migrateLegacyProfile(templateMode: string, customCSS?: string): 
  */
 export const TEMPLATE_EXAMPLES = {
   glassMorphism: {
-    name: "Glass Morphism",
-    description: "Modern frosted glass design with hero banner and split layout",
+    name: "Evening Glass",
+    description: "Frosted glass cards floating on a deep dusk gradient",
     template: `<ProfileHero variant="plain" />
 
-<SplitLayout ratio="1:2" gap="md">
+<SplitLayout ratio="1:2" gap="lg">
   <RetroCard>
     <ProfilePhoto size="lg" />
     <DisplayName as="h3" />
@@ -160,76 +160,109 @@ export const TEMPLATE_EXAMPLES = {
     <Heading level="2" content="Latest Posts" />
     <BlogPosts limit="3" />
   </RetroCard>
+</SplitLayout>
 
-  <RetroCard>
-    <Heading level="2" content="Gallery" />
-    <MediaGrid />
-  </RetroCard>
-</SplitLayout>`,
-    css: `/* Glass Morphism Styling */
-/* Visual Builder Generated CSS - VB_GENERATED_CSS */
+<RetroCard>
+  <Heading level="2" content="Gallery" />
+  <MediaGrid />
+</RetroCard>
 
-:root {
-  --global-bg-color: #667eea;
-  --global-bg-gradient-end: #764ba2;
-  --global-font-family: 'Inter', system-ui, sans-serif;
-  --global-text-color: rgba(255, 255, 255, 0.95);
-}
+<RetroCard>
+  <Heading level="2" content="Guestbook" />
+  <Guestbook />
+</RetroCard>`,
+    css: `/* Evening Glass — frosted panels over a dusk sky */
 
 body {
-  background: #667eea;
+  background: #0f2027;
   margin: 0;
   padding: 0;
 }
 
 .profile-template-root {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  font-family: 'Inter', system-ui, sans-serif;
-  color: rgba(255, 255, 255, 0.95);
+  background:
+    radial-gradient(1100px 600px at 85% -10%, rgba(94, 234, 212, 0.25), transparent 60%),
+    radial-gradient(900px 700px at -10% 110%, rgba(56, 189, 248, 0.2), transparent 55%),
+    linear-gradient(160deg, #0f2027 0%, #16303c 55%, #1b4552 100%);
+  color: rgba(255, 255, 255, 0.92);
+  font-family: 'Avenir Next', 'Segoe UI', system-ui, sans-serif;
   min-height: 100vh;
+  padding: 3rem 1.25rem 4rem;
 }
 
-/* Center and constrain content width */
 .profile-template-root > * {
-  max-width: 800px;
-  margin-left: auto;
-  margin-right: auto;
-  padding: 1rem;
+  max-width: 860px;
+  margin: 0 auto 1.5rem;
 }
 
-/* Glass morphism effect on cards and modules */
-[class*="card"],
-[class*="module"],
-.profile-tabs,
-[class*="tab-"],
+/* The glass itself: blur, a lit top edge, deep soft shadow */
+.thread-module,
 .ts-profile-hero {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(16px);
-  border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-top-color: rgba(255, 255, 255, 0.38);
+  border-radius: 18px;
+  box-shadow: 0 20px 45px rgba(4, 20, 28, 0.35);
+  color: rgba(255, 255, 255, 0.92);
 }
 
-[class*="card"]:hover,
-[class*="module"]:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.12);
+.ts-profile-hero h1 {
+  color: #ffffff;
 }
 
-h1, h2, h3 {
-  color: rgba(255, 255, 255, 0.95);
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+.ts-profile-hero p {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+h1, h2, h3,
+.ts-profile-display-name,
+.blog-posts-title {
+  color: #ffffff;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.ts-profile-bio {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.blog-post-card,
+.guestbook-entry,
+.post-item {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.post-item h3, .post-item h4, .post-item p, .post-item span {
+  color: rgba(255, 255, 255, 0.9);
 }
 
 a {
-  color: rgba(255, 255, 255, 0.9);
-  transition: all 0.3s ease;
+  color: #7dd3fc;
+  text-decoration: none;
+  transition: color 0.2s ease;
 }
 
 a:hover {
   color: #ffffff;
-  text-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+  text-decoration: underline;
+}
+
+.thread-button,
+.thread-button-outline {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 999px;
+  color: #ffffff;
+}
+
+.thread-button:hover,
+.thread-button-outline:hover {
+  background: rgba(255, 255, 255, 0.22);
 }`,
     cssMode: 'inherit' as const
   },
@@ -266,95 +299,114 @@ a:hover {
     <Guestbook />
   </RetroCard>
 </FlexContainer>`,
-    css: `/* Neon Cyberspace Styling */
-/* Visual Builder Generated CSS - VB_GENERATED_CSS */
-
-:root {
-  --global-bg-color: #0a0a0a;
-  --global-font-family: 'Courier New', monospace;
-  --global-text-color: #00ff00;
-  --global-accent-color: #00ffff;
-  --global-neon-green: #00ff00;
-  --global-neon-cyan: #00ffff;
-  --global-neon-magenta: #ff00ff;
-}
+    css: `/* Neon Cyberspace — a terminal you'd actually want to read */
 
 body {
-  background: #000;
+  background: #05070d;
   margin: 0;
   padding: 0;
 }
 
 .profile-template-root {
-  background: radial-gradient(ellipse at center, #0a0a0a 0%, #000 70%);
-  color: #00ff00;
-  font-family: 'Courier New', monospace;
+  background: linear-gradient(180deg, #05070d 0%, #0a1020 100%);
+  color: #b6c8bf;
+  font-family: ui-monospace, 'SF Mono', 'Cascadia Code', 'Courier New', monospace;
   min-height: 100vh;
+  padding: 2.5rem 1.25rem 4rem;
+  position: relative;
 }
 
-/* Center and constrain content width */
+/* Faint scanlines over everything */
+.profile-template-root::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(255, 255, 255, 0.02) 0 1px,
+    transparent 1px 3px
+  );
+}
+
 .profile-template-root > * {
-  max-width: 900px;
-  margin-left: auto;
-  margin-right: auto;
-  padding: 1rem;
+  max-width: 880px;
+  margin: 0 auto 1.25rem;
 }
 
-/* Terminal styling on cards */
-[class*="card"],
-[class*="module"] {
-  background: #001100;
-  border: 2px solid #00ff00;
-  box-shadow: 0 0 20px #00ff00;
-  color: #00ff00;
+/* Dark panels with a phosphor edge */
+.thread-module {
+  background: #0a1420;
+  border: 1px solid rgba(74, 222, 128, 0.35);
+  border-radius: 6px;
+  box-shadow:
+    inset 0 0 30px rgba(34, 197, 94, 0.05),
+    0 0 14px rgba(34, 197, 94, 0.12);
+  color: #b6c8bf;
 }
 
-/* Terminal header glitch effect */
+h1, h2, h3,
+.ts-profile-display-name,
+.blog-posts-title {
+  color: #4ade80;
+  text-shadow: 0 0 12px rgba(74, 222, 128, 0.4);
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}
+
 .terminal-header {
-  color: #00ffff;
-  text-shadow: 0 0 15px #00ffff;
-  font-weight: bold;
-  animation: pulse-glow 3s ease-in-out infinite alternate;
-  font-family: 'Courier New', monospace;
-  letter-spacing: 2px;
+  color: #22d3ee;
+  text-shadow: 0 0 14px rgba(34, 211, 238, 0.5);
+  letter-spacing: 0.14em;
 }
 
-@keyframes pulse-glow {
-  0% { text-shadow: 0 0 15px #00ffff; }
-  100% { text-shadow: 0 0 25px #00ffff, 0 0 35px #00ffff; }
+.ts-profile-bio {
+  color: #8fa89d;
 }
 
-/* Tab styling */
-[role="tab"],
-[class*="tab-"] {
-  background: #000;
-  color: #00ff00;
-  border: 1px solid #00ff00;
-  text-shadow: 0 0 10px #00ff00;
+.blog-post-card,
+.guestbook-entry,
+.post-item {
+  background: #081018;
+  border: 1px solid rgba(74, 222, 128, 0.22);
+  border-radius: 4px;
 }
 
-[role="tab"][aria-selected="true"],
-[class*="tab-"].active {
-  background: #003300;
-  color: #00ffff;
-  text-shadow: 0 0 15px #00ffff;
+.post-item h3, .post-item h4, .post-item p, .post-item span {
+  color: #b6c8bf;
 }
 
-h1, h2, h3 {
-  color: #00ffff;
-  text-shadow: 0 0 15px #00ffff;
-  font-weight: bold;
+/* Cursor prompt before post titles */
+.blog-post-card h3::before,
+.blog-post-card h4::before {
+  content: '> ';
+  color: #22d3ee;
 }
 
 a {
-  color: #ff00ff;
-  text-shadow: 0 0 8px #ff00ff;
-  transition: all 0.3s ease;
+  color: #f472b6;
+  text-decoration: none;
 }
 
 a:hover {
-  color: #00ffff;
-  text-shadow: 0 0 15px #00ffff;
+  color: #22d3ee;
+  text-shadow: 0 0 10px rgba(34, 211, 238, 0.6);
+}
+
+.thread-button,
+.thread-button-outline {
+  background: transparent;
+  border: 1px solid #4ade80;
+  border-radius: 3px;
+  color: #4ade80;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.thread-button:hover,
+.thread-button-outline:hover {
+  background: rgba(74, 222, 128, 0.12);
+  box-shadow: 0 0 12px rgba(74, 222, 128, 0.3);
 }`,
     cssMode: 'inherit' as const
   },
@@ -396,100 +448,252 @@ a:hover {
     </RetroCard>
   </div>
 </Grid>`,
-    css: `/* Retro Memories Styling */
-/* Visual Builder Generated CSS - VB_GENERATED_CSS */
-
-:root {
-  --global-bg-color: #ffd700;
-  --global-font-family: 'Comic Sans MS', cursive, sans-serif;
-  --global-text-color: #8b0000;
-  --global-accent-color: #ff1493;
-}
+    css: `/* Retro Memories — a sunny scrapbook, not a strobe light */
 
 body {
-  background: #ffd700;
+  background: #fdf3d9;
   margin: 0;
   padding: 0;
 }
 
 .profile-template-root {
-  background: linear-gradient(45deg, #ffd700, #ff69b4, #00bfff, #90ee90);
-  background-size: 400% 400%;
-  animation: gradient-wave 15s ease infinite;
-  font-family: 'Comic Sans MS', cursive, sans-serif;
-  color: #8b0000;
+  background-color: #fdf3d9;
+  background-image:
+    linear-gradient(rgba(214, 93, 77, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(214, 93, 77, 0.07) 1px, transparent 1px);
+  background-size: 24px 24px;
+  font-family: 'Trebuchet MS', Verdana, sans-serif;
+  color: #4a3b2f;
+  min-height: 100vh;
+  padding: 2.5rem 1.25rem 4rem;
+}
+
+.profile-template-root > * {
+  max-width: 860px;
+  margin: 0 auto 1.5rem;
+}
+
+/* Sticker cards: chunky ink border, butter-yellow drop */
+.thread-module {
+  background: #fffdf7;
+  border: 3px solid #2f2a25;
+  border-radius: 6px;
+  box-shadow: 6px 6px 0 #e8b64c;
+  transform: rotate(-0.4deg);
+  transition: transform 0.2s ease;
+}
+
+.thread-module:nth-of-type(even) {
+  transform: rotate(0.5deg);
+}
+
+.thread-module:hover {
+  transform: rotate(0deg);
+}
+
+.wave-header {
+  font-size: 2rem;
+  text-align: center;
+  color: #d65d4d;
+  text-shadow: 2px 2px 0 #ffe28a;
+  border-bottom: 4px dashed #d65d4d;
+  padding-bottom: 0.75rem;
+}
+
+h1, h2, h3, h4,
+.ts-profile-display-name,
+.blog-posts-title {
+  color: #2f2a25;
+  font-weight: bold;
+}
+
+h3 {
+  color: #d65d4d;
+}
+
+.blog-post-card,
+.guestbook-entry,
+.post-item {
+  background: #fff8e7;
+  border: 2px solid #2f2a25;
+  border-radius: 4px;
+  box-shadow: 3px 3px 0 #7fb9a8;
+}
+
+/* The classic old-web link contract, kept on purpose */
+a {
+  color: #1d4ed8;
+  text-decoration: underline;
+}
+
+a:visited {
+  color: #7c3aed;
+}
+
+a:hover {
+  color: #2f2a25;
+  background: #ffe28a;
+}
+
+.thread-button,
+.thread-button-outline {
+  background: #7fb9a8;
+  border: 2px solid #2f2a25;
+  border-radius: 4px;
+  box-shadow: 3px 3px 0 #2f2a25;
+  color: #2f2a25;
+  font-weight: bold;
+}
+
+.thread-button:hover,
+.thread-button-outline:hover {
+  transform: translate(1px, 1px);
+  box-shadow: 2px 2px 0 #2f2a25;
+}`,
+    cssMode: 'inherit' as const
+  },
+  
+  retroToybox: {
+    name: "Retro Toybox",
+    description: "Neon sign, polaroids, sticky notes, a VHS tape, and tabs — the fun stuff",
+    template: `<NeonSign text="welcome to my corner" color="pink" animation="pulse" fontSize="large" />
+
+<RetroCard>
+  <ProfileHeader showPhoto="true" showBio="true" showActions="true" photoSize="md" />
+</RetroCard>
+
+<SplitLayout ratio="1:2" gap="lg">
+  <div>
+    <PolaroidFrame caption="me, basically" rotation="-4">
+      <ProfilePhoto size="lg" />
+    </PolaroidFrame>
+
+    <StickyNote color="pink" rotation="3">
+      <p>Sign the guestbook before you go — it's in the tabs!</p>
+    </StickyNote>
+
+    <VHSTape title="MY LIFE SO FAR" year="2026" genre="Comedy" duration="forever" labelStyle="homemade" />
+
+    <CRTMonitor content="> now playing: my little corner of the web" screenColor="green" />
+  </div>
+
+  <div>
+    <Tabs>
+      <Tab title="Blog">
+        <BlogPosts limit="5" />
+      </Tab>
+      <Tab title="Photos">
+        <MediaGrid />
+      </Tab>
+      <Tab title="Friends">
+        <FriendDisplay />
+        <WebsiteDisplay />
+      </Tab>
+      <Tab title="Guestbook">
+        <Guestbook />
+      </Tab>
+    </Tabs>
+  </div>
+</SplitLayout>
+
+<RetroTerminal variant="amber">
+  <p>thanks for stopping by. take a badge, leave a note, come back soon.</p>
+</RetroTerminal>`,
+    css: `/* Retro Toybox Styling */
+/* Visual Builder Generated CSS - VB_GENERATED_CSS */
+
+:root {
+  --global-bg-color: #1e1b3a;
+  --global-font-family: 'Trebuchet MS', 'Comic Sans MS', sans-serif;
+  --global-text-color: #ffe8f7;
+  --global-accent-color: #ff6ec7;
+}
+
+body {
+  background: #1e1b3a;
+  margin: 0;
+  padding: 0;
+}
+
+.profile-template-root {
+  background:
+    radial-gradient(circle at 20% 10%, rgba(255, 110, 199, 0.15), transparent 40%),
+    radial-gradient(circle at 80% 90%, rgba(80, 200, 255, 0.12), transparent 40%),
+    #1e1b3a;
+  font-family: 'Trebuchet MS', 'Comic Sans MS', sans-serif;
+  color: #ffe8f7;
   min-height: 100vh;
 }
 
-@keyframes gradient-wave {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-/* Center and constrain content */
+/* Center and constrain content width */
 .profile-template-root > * {
-  max-width: 800px;
+  max-width: 900px;
   margin-left: auto;
   margin-right: auto;
   padding: 1rem;
 }
 
-/* Polaroid-style cards with slight rotation */
-[class*="card"],
-[class*="module"] {
-  transform: rotate(1deg);
-  transition: transform 0.3s ease;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+/* Toybox cards: chunky borders, soft glow */
+.thread-module {
+  background: #2a2550;
+  border: 2px solid #ff6ec7;
+  border-radius: 12px;
+  box-shadow: 0 0 18px rgba(255, 110, 199, 0.25);
+  color: #ffe8f7;
 }
 
-[class*="card"]:hover,
-[class*="module"]:hover {
-  transform: rotate(0deg) scale(1.02);
+/* Tab styling to match */
+.profile-tab-button {
+  background: transparent;
+  color: #ffe8f7;
+  border-bottom: 2px solid transparent;
 }
 
-/* Wave header */
-.wave-header {
-  font-size: 2rem;
-  text-align: center;
-  animation: rainbow-blink 3s linear infinite;
-  text-shadow: 2px 2px 0px #ffffff, 4px 4px 0px #ff1493;
-  margin-bottom: 1rem;
+.profile-tab-button:hover {
+  color: #ff6ec7;
 }
 
-h1, h2, h3, h4 {
-  color: #8b0000;
+.profile-tab-button.active {
+  color: #ff6ec7;
+  border-bottom-color: #ff6ec7;
   font-weight: bold;
-  text-shadow: 2px 2px 0px #ffffff, 4px 4px 0px #ff1493;
 }
 
-@keyframes rainbow-blink {
-  0% { color: #ff0000; }
-  16% { color: #ff8000; }
-  33% { color: #ffff00; }
-  50% { color: #00ff00; }
-  66% { color: #0080ff; }
-  83% { color: #8000ff; }
-  100% { color: #ff0000; }
+.blog-post-card,
+.guestbook-entry,
+.post-item {
+  background: #221d45;
+  border: 1px solid rgba(255, 110, 199, 0.4);
+  border-radius: 8px;
+}
+
+.post-item h3, .post-item h4, .post-item p, .post-item span {
+  color: #ffe8f7;
+}
+
+h1, h2, h3,
+.ts-profile-display-name,
+.blog-posts-title {
+  color: #ffb3e6;
+  text-shadow: 0 0 12px rgba(255, 110, 199, 0.5);
+}
+
+.ts-profile-bio {
+  color: #d9c8ec;
 }
 
 a {
-  color: #0000ff;
-  text-decoration: underline;
-}
-
-a:visited {
-  color: #800080;
+  color: #7fd7ff;
+  transition: all 0.2s ease;
 }
 
 a:hover {
-  color: #ff1493;
-  background: #ffff00;
-  padding: 2px;
+  color: #ffffff;
+  text-shadow: 0 0 8px rgba(127, 215, 255, 0.8);
 }`,
     cssMode: 'inherit' as const
   },
-  
+
   minimalistZen: {
     name: "Minimalist Zen",
     description: "Clean single-column flow focused on content and readability",
@@ -503,82 +707,104 @@ a:hover {
 
 <Heading level="2" content="Visitor Thoughts" />
 <Guestbook />`,
-    css: `/* Minimalist Zen Styling */
-/* Visual Builder Generated CSS - VB_GENERATED_CSS */
-
-:root {
-  --global-bg-color: #fafafa;
-  --global-font-family: 'Georgia', 'Times New Roman', serif;
-  --global-text-color: #2c3e50;
-  --global-accent-color: #3498db;
-}
+    css: `/* Minimalist Zen — quiet paper, ink, and one warm accent */
 
 body {
-  background: #fafafa;
+  background: #faf8f3;
   margin: 0;
   padding: 0;
 }
 
 .profile-template-root {
-  background: linear-gradient(to bottom, #fafafa 0%, #f0f0f0 100%);
-  font-family: 'Georgia', 'Times New Roman', serif;
-  line-height: 1.8;
-  color: #2c3e50;
+  background: #faf8f3;
+  font-family: 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  line-height: 1.75;
+  color: #26221c;
   min-height: 100vh;
+  padding: 4rem 1.25rem 5rem;
 }
 
-/* Center and constrain content width */
 .profile-template-root > * {
-  max-width: 700px;
-  margin-left: auto;
-  margin-right: auto;
-  padding: 1rem;
+  max-width: 640px;
+  margin: 0 auto 2.5rem;
 }
 
-/* Clean minimal cards with subtle accent */
-[class*="card"],
-[class*="module"] {
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 2px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  border-left: 3px solid #3498db;
-  animation: gentle-fade 0.8s ease-out;
+/* No cards — just breathing room and a hairline between sections */
+.thread-module {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  border-top: 1px solid #ddd5c4;
+  padding-top: 2rem;
 }
 
-@keyframes gentle-fade {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+h1,
+.ts-profile-display-name {
+  font-size: 2.1rem;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  color: #26221c;
 }
 
-h1, h2, h3 {
-  color: #2c3e50;
-  font-weight: 300;
-  letter-spacing: -0.5px;
+h2,
+.blog-posts-title {
+  font-style: italic;
+  font-weight: 400;
+  font-size: 1.25rem;
+  color: #8a7f6a;
+}
+
+.ts-profile-bio {
+  color: #4c443a;
+}
+
+.blog-post-card,
+.guestbook-entry,
+.post-item {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  border-bottom: 1px dashed #ddd5c4;
+  padding-left: 0;
+  padding-right: 0;
 }
 
 a {
-  color: #3498db;
-  text-decoration: none;
-  border-bottom: 1px solid transparent;
-  transition: border-color 0.3s ease;
+  color: #26221c;
+  text-decoration: underline;
+  text-decoration-color: #c9beab;
+  text-underline-offset: 3px;
+  transition: all 0.2s ease;
 }
 
 a:hover {
-  border-bottom-color: #3498db;
+  color: #b3591f;
+  text-decoration-color: #b3591f;
+}
+
+.thread-button,
+.thread-button-outline {
+  background: transparent;
+  border: 1px solid #26221c;
+  border-radius: 0;
+  color: #26221c;
+  font-family: inherit;
+}
+
+.thread-button:hover,
+.thread-button-outline:hover {
+  background: #26221c;
+  color: #faf8f3;
 }`,
     cssMode: 'inherit' as const
   },
   
   creativePortfolio: {
     name: "Creative Portfolio",
-    description: "Artist portfolio with retro tape hero and grid showcase",
-    template: `<ProfileHero variant="tape" />
+    description: "White-wall gallery with ink borders and a Klein blue accent",
+    template: `<ProfileHero variant="plain" />
 
 <RetroCard>
   <ProfileHeader showPhoto="true" showBio="true" showActions="true" photoSize="xl" />
@@ -611,69 +837,103 @@ a:hover {
   <Heading level="2" content="Visitor Messages" />
   <Guestbook />
 </RetroCard>`,
-    css: `/* Creative Portfolio Styling */
-/* Visual Builder Generated CSS - VB_GENERATED_CSS */
-
-:root {
-  --global-bg-color: #f7f3f0;
-  --global-font-family: 'Georgia', serif;
-  --global-text-color: #3d3d3d;
-  --global-accent-color: #6b5b73;
-  --global-earth-tone: #8b7d6f;
-}
+    css: `/* Creative Portfolio — white walls, ink lines, one loud blue */
 
 body {
-  background: #f7f3f0;
+  background: #f4f1ec;
   margin: 0;
   padding: 0;
 }
 
 .profile-template-root {
-  background: linear-gradient(45deg, #f7f3f0, #ede7e0, #f2ebe4);
-  background-size: 300% 300%;
-  animation: subtle-shift 20s ease-in-out infinite;
-  font-family: 'Georgia', serif;
-  color: #3d3d3d;
+  background: #f4f1ec;
+  font-family: 'Futura', 'Avenir Next', 'Century Gothic', sans-serif;
+  color: #141414;
   min-height: 100vh;
+  padding: 3rem 1.25rem 4rem;
 }
 
-@keyframes subtle-shift {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-}
-
-/* Center and constrain content width */
 .profile-template-root > * {
   max-width: 900px;
-  margin-left: auto;
-  margin-right: auto;
-  padding: 1rem;
+  margin: 0 auto 2rem;
 }
 
-/* Earthy, artistic card styling */
-[class*="card"],
-[class*="module"] {
-  background: rgba(255, 255, 255, 0.8);
-  border: 1px solid rgba(139, 125, 111, 0.2);
-  box-shadow: 0 4px 15px rgba(139, 125, 111, 0.1);
+/* Riso-print cards: flat white, hard ink border, blue offset */
+.thread-module,
+.ts-profile-hero {
+  background: #fffefb;
+  border: 2px solid #141414;
+  border-radius: 0;
+  box-shadow: 8px 8px 0 #002fa7;
 }
 
-h1, h2, h3 {
-  color: #6b5b73;
-  font-weight: 300;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+.ts-profile-hero h1 {
+  color: #141414;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.ts-profile-hero p {
+  color: #3d3a35;
+}
+
+h1, h2, h3,
+.blog-posts-title {
+  color: #141414;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-weight: 700;
+}
+
+h2 { font-size: 1.1rem; }
+h3 { font-size: 0.95rem; }
+
+.ts-profile-display-name {
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.ts-profile-bio {
+  color: #3d3a35;
+}
+
+.blog-post-card,
+.guestbook-entry,
+.post-item {
+  background: #fffefb;
+  border: 1px solid #141414;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 a {
-  color: #9c8b7a;
-  border-bottom: 1px solid transparent;
-  transition: all 0.3s ease;
+  color: #002fa7;
   text-decoration: none;
+  border-bottom: 2px solid #002fa7;
+  transition: all 0.15s ease;
 }
 
 a:hover {
-  color: #6b5b73;
-  border-bottom-color: #6b5b73;
+  background: #002fa7;
+  color: #fffefb;
+}
+
+.thread-button,
+.thread-button-outline {
+  background: #fffefb;
+  border: 2px solid #141414;
+  border-radius: 0;
+  color: #141414;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 700;
+}
+
+.thread-button:hover,
+.thread-button-outline:hover {
+  background: #002fa7;
+  border-color: #002fa7;
+  color: #fffefb;
 }`,
     cssMode: 'inherit' as const
   }

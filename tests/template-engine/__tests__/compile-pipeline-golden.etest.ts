@@ -32,6 +32,7 @@ import { compileTemplate } from '@/lib/templates/compilation/template-parser'
 import { identifyIslandsWithTransform } from '@/lib/templates/compilation/compiler/island-detector'
 import { generateStaticHTML } from '@/lib/templates/compilation/compiler/html-optimizer'
 import { HTML_TEMPLATES } from '@/lib/templates/default-html-templates'
+import { TEMPLATE_EXAMPLES } from '@/lib/templates/default-profile-template'
 
 describe('environment canary', () => {
   test('rehype-sanitize defaultSchema matches production (not a mangled interop stub)', () => {
@@ -93,8 +94,35 @@ describe('shipped default templates compile end-to-end', () => {
     // through the registry's case-insensitive lookup).
     const components = new Set(islands!.map((i) => i.component))
     expect(components.has('choose')).toBe(true)
+    expect(components.has('if')).toBe(true)
     expect(components.has('displayname')).toBe(true)
   })
+
+  // A starter that loses components on load teaches users a broken API
+  // (conditional-showcase shipped with 26 stripped <Show> blocks before this
+  // was pinned). Every shipped starter must survive sanitization intact.
+  test.each(HTML_TEMPLATES.map((t) => [t.id, t.template] as const))(
+    '%s ships with zero stripped components',
+    (_id, template) => {
+      // Mirror the editor gallery loader: <style> moves to the CSS field.
+      const withoutStyles = template.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '').trim()
+      const result = compileTemplateToArtifacts(withoutStyles)
+      expect(result.strippedComponents).toEqual([])
+      expect(result.warnings).toEqual([])
+    }
+  )
+})
+
+describe('shipped starter examples (TEMPLATE_EXAMPLES) compile end-to-end', () => {
+  test.each(Object.entries(TEMPLATE_EXAMPLES).map(([key, t]) => [key, t.template] as const))(
+    '%s compiles with islands and zero stripped components',
+    (_key, template) => {
+      const result = compileTemplateToArtifacts(template)
+      expect(result.islands.length).toBeGreaterThan(0)
+      expect(result.strippedComponents).toEqual([])
+      expect(result.warnings).toEqual([])
+    }
+  )
 })
 
 describe('core language constructs produce islands', () => {
@@ -137,6 +165,19 @@ describe('core language constructs produce islands', () => {
 })
 
 describe('sanitization and stripping', () => {
+  test('semantic structural tags survive sanitization', () => {
+    // rehype's defaultSchema (GitHub-comment flavored) lacks these, and for a
+    // long time the "allowed tags" list only granted them ATTRIBUTES without
+    // adding them to tagNames — so pages written in ordinary semantic HTML
+    // silently lost their structure. Pinned here so it can't quietly return.
+    const tags = ['main', 'aside', 'header', 'footer', 'nav', 'article', 'section']
+    for (const tag of tags) {
+      const result = compileTemplateToArtifacts(`<${tag} class="x"><p>hi</p></${tag}>`)
+      expect(result.staticHTML).toContain(`<${tag}`)
+      expect(result.strippedComponents).toEqual([])
+    }
+  })
+
   test('script tags are stripped, never compiled', () => {
     const { parsed, staticHTML } = runPipeline(
       '<div><script>alert(1)</script><p>safe</p></div>'

@@ -200,7 +200,7 @@ body {
 
       <div class="example-item">
         <div class="example-label">Greater Than (&gt;)</div>
-        <div class="code-snippet">＜Show data="posts.length" greater-than="5"＞</div>
+        <div class="code-snippet">＜If data="posts.length" greater-than="5"＞</div>
 
         <div class="data-display">
           <span class="data-label">Your post count:</span> <BlogPosts limit="1000" mode="count" />
@@ -228,7 +228,7 @@ body {
 
       <div class="example-item">
         <div class="example-label">Less Than (&lt;)</div>
-        <div class="code-snippet">＜Show data="posts.length" less-than="100"＞</div>
+        <div class="code-snippet">＜If data="posts.length" less-than="100"＞</div>
 
         <div class="data-display">
           <span class="data-label">Your post count:</span> <BlogPosts limit="1000" mode="count" />
@@ -256,7 +256,7 @@ body {
 
       <div class="example-item">
         <div class="example-label">Equals (=)</div>
-        <div class="code-snippet">＜Show data="posts.length" equals="0"＞</div>
+        <div class="code-snippet">＜If data="posts.length" equals="0"＞</div>
 
         <div class="data-display">
           <span class="data-label">Your post count:</span> <BlogPosts limit="1000" mode="count" />
@@ -284,7 +284,7 @@ body {
 
       <div class="example-item">
         <div class="example-label">Not Equals (!=)</div>
-        <div class="code-snippet">＜Show data="posts.length" not-equals="0"＞</div>
+        <div class="code-snippet">＜If data="posts.length" not-equals="0"＞</div>
 
         <div class="data-display">
           <span class="data-label">Your post count:</span> <BlogPosts limit="1000" mode="count" />
@@ -317,7 +317,7 @@ body {
 
       <div class="example-item">
         <div class="example-label">Contains</div>
-        <div class="code-snippet">＜Show data="capabilities.bio" contains="developer"＞</div>
+        <div class="code-snippet">＜If data="capabilities.bio" contains="developer"＞</div>
 
         <div class="data-display">
           <span class="data-label">Your bio:</span> <Bio />
@@ -351,7 +351,7 @@ body {
 
       <div class="example-item">
         <div class="example-label">Starts With</div>
-        <div class="code-snippet">＜Show data="owner.handle" starts-with="admin"＞</div>
+        <div class="code-snippet">＜If data="owner.handle" starts-with="admin"＞</div>
 
         <div class="data-display">
           <span class="data-label">Your username:</span> <DisplayName />
@@ -361,13 +361,13 @@ body {
           <strong>Checking:</strong> Does username start with "admin"?
         </div>
 
-        <Show data="owner.handle" starts-with="admin">
+        <If data="owner.handle" starts-with="admin">
           <span class="result-badge result-true">✓ TRUE - Admin account detected</span>
           <div class="explanation">
             Your username starts with "admin" - you could show admin tools here!
           </div>
-        </Show>
-        <Show data="owner.handle">
+        </If>
+        <If data="owner.handle">
           <Choose>
             <When data="owner.handle" starts-with="admin"></When>
             <Otherwise>
@@ -377,12 +377,12 @@ body {
               </div>
             </Otherwise>
           </Choose>
-        </Show>
+        </If>
       </div>
 
       <div class="example-item">
         <div class="example-label">Ends With</div>
-        <div class="code-snippet">＜Show data="owner.handle" ends-with="_test"＞</div>
+        <div class="code-snippet">＜If data="owner.handle" ends-with="_test"＞</div>
 
         <div class="data-display">
           <span class="data-label">Your username:</span> <DisplayName />
@@ -392,13 +392,13 @@ body {
           <strong>Checking:</strong> Does username end with "_test"?
         </div>
 
-        <Show data="owner.handle" ends-with="_test">
+        <If data="owner.handle" ends-with="_test">
           <span class="result-badge result-true">✓ TRUE - Test account</span>
           <div class="explanation">
             This is a test account - you could show a warning banner!
           </div>
-        </Show>
-        <Show data="owner.handle">
+        </If>
+        <If data="owner.handle">
           <Choose>
             <When data="owner.handle" ends-with="_test"></When>
             <Otherwise>
@@ -408,7 +408,7 @@ body {
               </div>
             </Otherwise>
           </Choose>
-        </Show>
+        </If>
       </div>
     </div>
 
@@ -418,76 +418,76 @@ body {
 
       <div class="example-item">
         <div class="example-label">AND - All must be true</div>
-        <div class="code-snippet">&lt;Show and="posts,capabilities.bio"&gt;</div>
+        <div class="code-snippet">&lt;If and="posts,capabilities.bio"&gt;</div>
 
         <div class="data-display">
-          <span class="data-label">Has posts?</span> <Show data="posts"><span class="data-value">YES</span></Show><Show not="posts"><span class="data-value">NO</span></Show><br/>
-          <span class="data-label">Has bio?</span> <Show data="capabilities.bio"><span class="data-value">YES</span></Show><Show not="capabilities.bio"><span class="data-value">NO</span></Show>
+          <span class="data-label">Has posts?</span> <If data="posts"><span class="data-value">YES</span></If><If not="posts"><span class="data-value">NO</span></If><br/>
+          <span class="data-label">Has bio?</span> <If data="capabilities.bio"><span class="data-value">YES</span></If><If not="capabilities.bio"><span class="data-value">NO</span></If>
         </div>
 
         <div class="condition-check">
           <strong>Checking:</strong> Does user have BOTH posts AND bio?
         </div>
 
-        <Show and="posts,capabilities.bio">
+        <If and="posts,capabilities.bio">
           <span class="result-badge result-true">✓ TRUE - You have both posts AND bio</span>
           <div class="explanation">
             Both conditions are true! This is a complete profile.
           </div>
-        </Show>
-        <Show not="posts">
+        </If>
+        <If not="posts">
           <span class="result-badge result-false">✗ FALSE - Missing posts</span>
-        </Show>
-        <Show not="capabilities.bio">
+        </If>
+        <If not="capabilities.bio">
           <span class="result-badge result-false">✗ FALSE - Missing bio</span>
-        </Show>
+        </If>
       </div>
 
       <div class="example-item">
         <div class="example-label">OR - At least one true</div>
-        <div class="code-snippet">&lt;Show or="posts,guestbook"&gt;</div>
+        <div class="code-snippet">&lt;If or="posts,guestbook"&gt;</div>
 
         <div class="data-display">
-          <span class="data-label">Has posts?</span> <Show data="posts"><span class="data-value">YES</span></Show><Show not="posts"><span class="data-value">NO</span></Show><br/>
-          <span class="data-label">Has guestbook?</span> <Show data="guestbook"><span class="data-value">YES</span></Show><Show not="guestbook"><span class="data-value">NO</span></Show>
+          <span class="data-label">Has posts?</span> <If data="posts"><span class="data-value">YES</span></If><If not="posts"><span class="data-value">NO</span></If><br/>
+          <span class="data-label">Has guestbook?</span> <If data="guestbook"><span class="data-value">YES</span></If><If not="guestbook"><span class="data-value">NO</span></If>
         </div>
 
         <div class="condition-check">
           <strong>Checking:</strong> Does user have posts OR guestbook (or both)?
         </div>
 
-        <Show or="posts,guestbook">
+        <If or="posts,guestbook">
           <span class="result-badge result-true">✓ TRUE - Has posts OR guestbook (or both)</span>
           <div class="explanation">
             At least one condition is true! Your profile has some content.
           </div>
-        </Show>
+        </If>
       </div>
 
       <div class="example-item">
         <div class="example-label">NOT - Must be false</div>
-        <div class="code-snippet">&lt;Show not="featuredFriends"&gt;</div>
+        <div class="code-snippet">&lt;If not="featuredFriends"&gt;</div>
 
         <div class="data-display">
-          <span class="data-label">Has featured friends?</span> <Show data="featuredFriends"><span class="data-value">YES</span></Show><Show not="featuredFriends"><span class="data-value">NO</span></Show>
+          <span class="data-label">Has featured friends?</span> <If data="featuredFriends"><span class="data-value">YES</span></If><If not="featuredFriends"><span class="data-value">NO</span></If>
         </div>
 
         <div class="condition-check">
           <strong>Checking:</strong> Does user NOT have featured friends?
         </div>
 
-        <Show not="featuredFriends">
+        <If not="featuredFriends">
           <span class="result-badge result-true">✓ TRUE - No featured friends set</span>
           <div class="explanation">
             This shows when the condition is FALSE (no featured friends).
           </div>
-        </Show>
-        <Show data="featuredFriends">
+        </If>
+        <If data="featuredFriends">
           <span class="result-badge result-false">✗ FALSE - Has featured friends</span>
           <div class="explanation">
             You have featured friends set up!
           </div>
-        </Show>
+        </If>
       </div>
     </div>
 
@@ -613,14 +613,14 @@ body {
 
     <div class="example-item">
       <div class="example-label">Friend-Only Content</div>
-      <div class="code-snippet">&lt;Show data="viewer.isFriend"&gt;Secret friend content&lt;/Show&gt;</div>
+      <div class="code-snippet">&lt;If data="viewer.isFriend"&gt;Secret friend content&lt;/If&gt;</div>
 
       <div class="condition-check">
         <strong>Checking:</strong> Is the viewer a friend (mutual follows)?
       </div>
 
       <IfVisitor>
-        <Show data="viewer.isFriend">
+        <If data="viewer.isFriend">
           <div style="background: #d1fae5; padding: 15px; border-radius: 8px; border: 2px solid #10b981; margin: 10px 0;">
             <strong>💚 Friend Zone!</strong> You see this because we're friends!
           </div>
@@ -628,13 +628,13 @@ body {
           <div class="explanation">
             Use this to show exclusive content only to your friends: private photos, contact info, etc.
           </div>
-        </Show>
-        <Show not="viewer.isFriend">
+        </If>
+        <If not="viewer.isFriend">
           <span class="result-badge result-false">✗ FALSE - Not friends yet</span>
           <div class="explanation">
             This content is hidden because you're not friends with the profile owner.
           </div>
-        </Show>
+        </If>
       </IfVisitor>
       <IfOwner>
         <div style="background: #fef3c7; padding: 15px; border-radius: 8px; border: 2px solid #f59e0b; margin: 10px 0;">
@@ -645,14 +645,14 @@ body {
 
     <div class="example-item">
       <div class="example-label">Follower Content</div>
-      <div class="code-snippet">&lt;Show data="viewer.isFollowing"&gt;Thanks for following!&lt;/Show&gt;</div>
+      <div class="code-snippet">&lt;If data="viewer.isFollowing"&gt;Thanks for following!&lt;/If&gt;</div>
 
       <div class="condition-check">
         <strong>Checking:</strong> Is the viewer following this profile?
       </div>
 
       <IfVisitor>
-        <Show data="viewer.isFollowing">
+        <If data="viewer.isFollowing">
           <div style="background: #dbeafe; padding: 15px; border-radius: 8px; border: 2px solid #3b82f6; margin: 10px 0;">
             <strong>💙 Follower!</strong> Thanks for following!
           </div>
@@ -660,13 +660,13 @@ body {
           <div class="explanation">
             Show special content to followers: updates, early access, etc.
           </div>
-        </Show>
-        <Show not="viewer.isFollowing">
+        </If>
+        <If not="viewer.isFollowing">
           <span class="result-badge result-false">✗ FALSE - Not following</span>
           <div class="explanation">
             Could show a "Follow me!" button here for non-followers.
           </div>
-        </Show>
+        </If>
       </IfVisitor>
       <IfOwner>
         <div style="background: #fef3c7; padding: 15px; border-radius: 8px; border: 2px solid #f59e0b; margin: 10px 0;">
@@ -677,14 +677,14 @@ body {
 
     <div class="example-item">
       <div class="example-label">Non-Friend CTA</div>
-      <div class="code-snippet">&lt;IfVisitor&gt;&lt;Show not="viewer.isFriend"&gt;Add friend button&lt;/Show&gt;&lt;/IfVisitor&gt;</div>
+      <div class="code-snippet">&lt;IfVisitor&gt;&lt;If not="viewer.isFriend"&gt;Add friend button&lt;/If&gt;&lt;/IfVisitor&gt;</div>
 
       <div class="condition-check">
         <strong>Checking:</strong> Is viewer NOT a friend (to show "Add Friend" CTA)?
       </div>
 
       <IfVisitor>
-        <Show not="viewer.isFriend">
+        <If not="viewer.isFriend">
           <div style="background: #fef3c7; padding: 15px; border-radius: 8px; border: 2px solid #f59e0b; margin: 10px 0;">
             <strong>👋 Hey there!</strong> We're not friends yet. Want to add me?
           </div>
@@ -692,13 +692,13 @@ body {
           <div class="explanation">
             Perfect for showing "Add Friend" or "Follow" buttons only to non-friends.
           </div>
-        </Show>
-        <Show data="viewer.isFriend">
+        </If>
+        <If data="viewer.isFriend">
           <span class="result-badge result-false">✗ Already friends (CTA hidden)</span>
           <div class="explanation">
             No need to show "Add Friend" button since you're already friends!
           </div>
-        </Show>
+        </If>
       </IfVisitor>
       <IfOwner>
         <div style="background: #fef3c7; padding: 15px; border-radius: 8px; border: 2px solid #f59e0b; margin: 10px 0;">
@@ -717,23 +717,23 @@ body {
     <h2 style="font-size: 1.5rem; font-weight: 700; margin: 0 0 20px 0; border-bottom: 3px solid #667eea; padding-bottom: 10px;">📚 Quick Syntax Reference</h2>
 
     <h3 style="color: #4a5568; margin: 15px 0 10px 0;">Comparison Operators</h3>
-    <div class="code-snippet">＜Show data="posts.length" greater-than="10"＞...＜/Show＞
-＜Show data="posts.length" less-than="100"＞...＜/Show＞
-＜Show data="posts.length" greater-than-or-equal="5"＞...＜/Show＞
-＜Show data="posts.length" less-than-or-equal="50"＞...＜/Show＞
-＜Show data="posts.length" equals="5"＞...＜/Show＞
-＜Show data="posts.length" not-equals="0"＞...＜/Show＞</div>
+    <div class="code-snippet">＜If data="posts.length" greater-than="10"＞...＜/If＞
+＜If data="posts.length" less-than="100"＞...＜/If＞
+＜If data="posts.length" greater-than-or-equal="5"＞...＜/If＞
+＜If data="posts.length" less-than-or-equal="50"＞...＜/If＞
+＜If data="posts.length" equals="5"＞...＜/If＞
+＜If data="posts.length" not-equals="0"＞...＜/If＞</div>
 
     <h3 style="color: #4a5568; margin: 15px 0 10px 0;">String Operators</h3>
-    <div class="code-snippet">＜Show data="capabilities.bio" contains="developer"＞...＜/Show＞
-＜Show data="owner.handle" starts-with="admin"＞...＜/Show＞
-＜Show data="owner.handle" ends-with="_test"＞...＜/Show＞
-＜Show data="owner.handle" matches="user\d+"＞...＜/Show＞</div>
+    <div class="code-snippet">＜If data="capabilities.bio" contains="developer"＞...＜/If＞
+＜If data="owner.handle" starts-with="admin"＞...＜/If＞
+＜If data="owner.handle" ends-with="_test"＞...＜/If＞
+＜If data="owner.handle" matches="user\d+"＞...＜/If＞</div>
 
     <h3 style="color: #4a5568; margin: 15px 0 10px 0;">Logical Operators</h3>
-    <div class="code-snippet">＜Show and="posts,capabilities.bio"＞All must be true＜/Show＞
-＜Show or="posts,guestbook"＞At least one true＜/Show＞
-＜Show not="posts"＞Must be false＜/Show＞</div>
+    <div class="code-snippet">＜If and="posts,capabilities.bio"＞All must be true＜/If＞
+＜If or="posts,guestbook"＞At least one true＜/If＞
+＜If not="posts"＞Must be false＜/If＞</div>
 
     <h3 style="color: #4a5568; margin: 15px 0 10px 0;">Multi-Condition Branching</h3>
     <div class="code-snippet">＜Choose＞
@@ -747,10 +747,10 @@ body {
 ＜IfVisitor＞Only visitors see this＜/IfVisitor＞</div>
 
     <h3 style="color: #4a5568; margin: 15px 0 10px 0;">Relationship Status</h3>
-    <div class="code-snippet">＜Show data="viewer.isFriend"＞Friend-only content＜/Show＞
-＜Show data="viewer.isFollowing"＞Follower content＜/Show＞
-＜Show data="viewer.isFollower"＞They follow you＜/Show＞
-＜Show not="viewer.isFriend"＞Add friend CTA＜/Show＞</div>
+    <div class="code-snippet">＜If data="viewer.isFriend"＞Friend-only content＜/If＞
+＜If data="viewer.isFollowing"＞Follower content＜/If＞
+＜If data="viewer.isFollower"＞They follow you＜/If＞
+＜If not="viewer.isFriend"＞Add friend CTA＜/If＞</div>
   </div>
 
   <div style="background: white; border-radius: 12px; padding: 20px; text-align: center; margin-top: 30px; color: #718096;">

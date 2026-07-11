@@ -62,6 +62,15 @@ function createCustomSchema() {
   ];
 
   for (const tag of standardHTMLTags) {
+    // The tag itself must be in tagNames or rehype-sanitize drops it entirely.
+    // defaultSchema is GitHub-comment flavored and lacks main/aside/header/
+    // footer/nav/article/form/button/... — attribute entries alone don't
+    // allow a tag, so without this push the list above was partly cosmetic
+    // and semantic-HTML pages silently lost their structure.
+    if (!schema.tagNames.includes(tag)) {
+      schema.tagNames.push(tag);
+    }
+
     // Ensure the tag has an attributes array
     if (!schema.attributes[tag]) {
       schema.attributes[tag] = [];
