@@ -181,7 +181,7 @@ export function executeActions(
 
     // Get component name from actualChild (not child!)
     const componentName = typeof actualChild.type === 'function'
-      ? actualChild.type.name || (actualChild.type as any).displayName
+      ? (actualChild.type as any).displayName || actualChild.type.name
       : typeof actualChild.type === 'string'
         ? actualChild.type
         : '';

@@ -85,7 +85,7 @@ export default function Select(props: SelectProps) {
     }
 
     const componentName = typeof actualChild.type === 'function'
-      ? actualChild.type.name || (actualChild.type as any).displayName
+      ? (actualChild.type as any).displayName || actualChild.type.name
       : '';
 
     if (componentName === 'Option') {

@@ -86,17 +86,25 @@ export default function PreviewTemp() {
     }
   }, [previewData, isReady, hydrateProfile]);
 
+  // This effect must arm exactly ONCE. Its old deps ([isReady, previewData])
+  // re-ran it on every received message, and the unconditional PREVIEW_READY
+  // it posts turned the handshake into an infinite READY -> DATA -> READY
+  // ping-pong with the host — a full preview re-render per cycle, pegging a
+  // CPU core for as long as the editor stayed open. The retry reads state
+  // through a ref instead of the closure so it never needs deps.
+  const hasDataRef = useRef(false);
   useEffect(() => {
     // Listen for preview data from parent window
     const handleMessage = (event: MessageEvent) => {
       // Security: Only accept messages from same origin
       if (event.origin !== window.location.origin) return;
-      
+
       if (event.data.type === 'PREVIEW_DATA') {
+        hasDataRef.current = true;
         setPreviewData(event.data.payload);
         setIsReady(true);
       }
-      
+
       if (event.data.type === 'CSS_UPDATE') {
         setPreviewData(prev => prev ? {
           ...prev,
@@ -106,7 +114,7 @@ export default function PreviewTemp() {
     };
 
     window.addEventListener('message', handleMessage);
-    
+
     // Signal to the host (popup opener or iframe parent) that we're ready
     const requestData = () => {
       const host = getHostWindow();
@@ -118,21 +126,21 @@ export default function PreviewTemp() {
     // Initial request
     requestData();
 
-    // Retry every 2 seconds if we haven't received data yet
+    // Retry every 2 seconds until the first data arrives
     const retryInterval = setInterval(() => {
       const host = getHostWindow();
-      if (!isReady && !previewData && host) {
-        requestData();
-      } else if (isReady || !host) {
+      if (hasDataRef.current || !host) {
         clearInterval(retryInterval);
+        return;
       }
+      requestData();
     }, 2000);
 
     return () => {
       window.removeEventListener('message', handleMessage);
       clearInterval(retryInterval);
     };
-  }, [isReady, previewData]);
+  }, []);
 
   // Sanitize custom CSS to prevent XSS attacks (must be before early return)
   const sanitizedCSS = useMemo(() => {

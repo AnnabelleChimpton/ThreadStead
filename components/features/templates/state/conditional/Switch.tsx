@@ -202,7 +202,7 @@ export function executeSwitchActions(
     }
 
     const componentName = typeof actualChild.type === 'function'
-      ? actualChild.type.name || (actualChild.type as any).displayName
+      ? (actualChild.type as any).displayName || actualChild.type.name
       : '';
 
     // Handle Case component

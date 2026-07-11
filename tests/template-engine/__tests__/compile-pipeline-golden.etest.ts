@@ -237,6 +237,41 @@ describe('sanitization and stripping', () => {
   })
 })
 
+describe('production-minification safety', () => {
+  test('every registered component carries its canonical displayName', () => {
+    // The event/action system dispatches on component names. Minification
+    // renames component FUNCTIONS (If -> t) but not displayName, so every
+    // registered component must carry one — set automatically by
+    // ComponentRegistry.register(). Without this, all template
+    // interactivity dies in production builds only (homepageagain.com,
+    // 2026-07-11: every OnClick on every scripted page was silently dead).
+    const missing: string[] = []
+    for (const name of componentRegistry.getAllowedTags()) {
+      const reg = componentRegistry.get(name)
+      const comp = reg?.component as { displayName?: string } | undefined
+      if (comp && comp.displayName !== name) {
+        missing.push(`${name} (displayName: ${comp.displayName ?? 'none'})`)
+      }
+    }
+    expect(missing).toEqual([])
+  })
+
+  test('name-based dispatch survives function-name mangling', () => {
+    // Simulate the minifier: mangle If's function name; displayName-first
+    // derivation must still identify it.
+    const reg = componentRegistry.get('If')
+    const If = reg!.component as { displayName?: string; name: string }
+    const originalName = If.name
+    Object.defineProperty(If, 'name', { value: 't', configurable: true })
+    try {
+      const derived = (If as { displayName?: string }).displayName || If.name
+      expect(derived).toBe('If')
+    } finally {
+      Object.defineProperty(If, 'name', { value: originalName, configurable: true })
+    }
+  })
+})
+
 describe('malformed input produces errors, not crashes', () => {
   test('mismatched tags fail with a syntax error', () => {
     const parsed = compileTemplate('<div><p>oops</div></p>')

@@ -8,6 +8,10 @@ export class IslandErrorBoundary extends React.Component<
   { children: React.ReactNode; islandId: string },
   { hasError: boolean; error: Error | null }
 > {
+  // The action/event system unwraps this boundary by name; minified class
+  // names break that in production without an explicit displayName.
+  static displayName = 'IslandErrorBoundary';
+
   constructor(props: { children: React.ReactNode; islandId: string }) {
     super(props);
     this.state = { hasError: false, error: null };

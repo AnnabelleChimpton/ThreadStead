@@ -92,7 +92,7 @@ export function useOnChangeHandler(children: React.ReactNode): ((value?: any) =>
 
       // Check if this is OnChange component
       const componentName = typeof actualChild.type === 'function'
-        ? actualChild.type.name || (actualChild.type as any).displayName
+        ? (actualChild.type as any).displayName || actualChild.type.name
         : '';
 
       if (componentName === 'OnChange') {
@@ -167,7 +167,7 @@ export function filterOnChangeChildren(children: React.ReactNode): React.ReactNo
     }
 
     const componentName = typeof actualChild.type === 'function'
-      ? actualChild.type.name || (actualChild.type as any).displayName
+      ? (actualChild.type as any).displayName || actualChild.type.name
       : '';
 
     return componentName !== 'OnChange';

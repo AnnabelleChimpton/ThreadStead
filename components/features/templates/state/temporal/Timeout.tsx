@@ -109,7 +109,7 @@ export default function Timeout(props: TimeoutProps) {
 
         // Get component name
         const componentName = typeof actualChild.type === 'function'
-          ? actualChild.type.name || (actualChild.type as any).displayName
+          ? (actualChild.type as any).displayName || actualChild.type.name
           : '';
 
         // Execute OnTimeout actions

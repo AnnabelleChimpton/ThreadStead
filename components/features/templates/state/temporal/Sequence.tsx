@@ -156,7 +156,7 @@ export async function executeSequenceActions(
     if (!React.isValidElement(actualChild)) return false;
 
     const componentName = typeof actualChild.type === 'function'
-      ? actualChild.type.name || (actualChild.type as any).displayName
+      ? (actualChild.type as any).displayName || actualChild.type.name
       : '';
 
     return componentName === 'Step';
@@ -172,7 +172,7 @@ export async function executeSequenceActions(
       if (!React.isValidElement(actualChild)) continue;
 
       const componentName = typeof actualChild.type === 'function'
-        ? actualChild.type.name || (actualChild.type as any).displayName
+        ? (actualChild.type as any).displayName || actualChild.type.name
         : '';
 
       if (componentName === 'Step') {
@@ -214,7 +214,7 @@ export async function executeSequenceActions(
       if (!React.isValidElement(actualChild)) continue;
 
       const componentName = typeof actualChild.type === 'function'
-        ? actualChild.type.name || (actualChild.type as any).displayName
+        ? (actualChild.type as any).displayName || actualChild.type.name
         : '';
 
       // Handle Delay component specially - await the timeout

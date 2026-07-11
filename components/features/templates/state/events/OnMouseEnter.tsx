@@ -79,7 +79,7 @@ export function useOnMouseEnterHandler(children: React.ReactNode): (() => void) 
 
       // Check if this is OnMouseEnter component
       const componentName = typeof actualChild.type === 'function'
-        ? actualChild.type.name || (actualChild.type as any).displayName
+        ? (actualChild.type as any).displayName || actualChild.type.name
         : '';
 
       if (componentName === 'OnMouseEnter') {

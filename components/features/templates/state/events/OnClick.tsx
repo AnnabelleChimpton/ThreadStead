@@ -94,7 +94,7 @@ export function useOnClickHandler(children: React.ReactNode): (() => void) | nul
         return;
       }
 
-      const originalChildType = typeof child.type === 'function' ? (child.type.name || (child.type as any).displayName) : String(child.type);
+      const originalChildType = typeof child.type === 'function' ? ((child.type as any).displayName || child.type.name) : String(child.type);
 
       // P3.3 FIX: Unwrap IslandErrorBoundary if present (islands architecture)
       let actualChild = child;
@@ -119,7 +119,7 @@ export function useOnClickHandler(children: React.ReactNode): (() => void) | nul
 
       // Check if this is OnClick component
       const componentName = typeof actualChild.type === 'function'
-        ? actualChild.type.name || (actualChild.type as any).displayName
+        ? (actualChild.type as any).displayName || actualChild.type.name
         : '';
 
       if (componentName === 'OnClick') {
@@ -172,7 +172,7 @@ export function filterOnClickChildren(children: React.ReactNode): React.ReactNod
     }
 
     const componentName = typeof actualChild.type === 'function'
-      ? actualChild.type.name || (actualChild.type as any).displayName
+      ? (actualChild.type as any).displayName || actualChild.type.name
       : '';
 
     return componentName !== 'OnClick';

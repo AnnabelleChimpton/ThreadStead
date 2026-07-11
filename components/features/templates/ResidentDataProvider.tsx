@@ -88,6 +88,10 @@ export function ResidentDataProvider({ data, children }: ResidentDataProviderPro
   );
 }
 
+// The action/event system unwraps this provider by name; minified function
+// names break that in production without an explicit displayName.
+ResidentDataProvider.displayName = 'ResidentDataProvider';
+
 export function useResidentData(): ResidentData {
   const context = useContext(ResidentDataContext);
   if (!context) {

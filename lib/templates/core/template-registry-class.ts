@@ -17,6 +17,16 @@ export class ComponentRegistry {
   }
 
   register(registration: ComponentRegistration) {
+    // Pin the canonical name onto the component. Production minification
+    // renames component functions (If -> t), and the event/action system
+    // dispatches on component names — without displayName, every OnClick,
+    // Toggle, and Increment silently dies in production builds while
+    // working perfectly in dev. Registration is the one place that knows
+    // every component's real name.
+    const component = registration.component as { displayName?: string } | undefined;
+    if (component && !component.displayName) {
+      component.displayName = registration.name;
+    }
     this.components.set(registration.name, registration);
   }
 
@@ -24,6 +34,10 @@ export class ComponentRegistry {
    * NEW: Register standardized components using web-standard interfaces
    */
   registerStandardized<T extends StandardComponentProps>(registration: StandardizedComponentRegistration<T>) {
+    const component = registration.component as { displayName?: string } | undefined;
+    if (component && !component.displayName) {
+      component.displayName = registration.name;
+    }
     this.standardizedComponents.set(registration.name, registration);
   }
 

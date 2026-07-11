@@ -99,7 +99,7 @@ export default function EventDiv(props: EventDivProps) {
 
       // Check if this is an event handler component
       const componentName = typeof actualChild.type === 'function'
-        ? actualChild.type.name || (actualChild.type as any).displayName
+        ? (actualChild.type as any).displayName || actualChild.type.name
         : '';
 
       // Skip event handler components

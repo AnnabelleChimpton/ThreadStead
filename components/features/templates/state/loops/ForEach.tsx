@@ -461,7 +461,7 @@ function processForEachChildren(
       let providerElement: React.ReactElement | null = null;
 
       const childTypeName = typeof child.type === 'function'
-        ? (child.type.name || (child.type as any).displayName)
+        ? ((child.type as any).displayName || child.type.name)
         : String(child.type);
 
       // First, unwrap IslandErrorBoundary if present
@@ -490,7 +490,7 @@ function processForEachChildren(
         if (providerChildren.length > 0 && React.isValidElement(providerChildren[0])) {
           actualChild = providerChildren[0];
           const actualTypeName = typeof actualChild.type === 'function'
-            ? (actualChild.type.name || (actualChild.type as any).displayName)
+            ? ((actualChild.type as any).displayName || actualChild.type.name)
             : String(actualChild.type);
         }
       }
@@ -507,7 +507,7 @@ function processForEachChildren(
 
       // Process the actual component's props that might contain template placeholders
       const processedProps: any = {};
-      const componentName = typeof actualChild.type === 'function' ? actualChild.type.name : actualChild.type;
+      const componentName = typeof actualChild.type === 'function' ? ((actualChild.type as any).displayName || actualChild.type.name) : actualChild.type;
 
       Object.keys(actualChild.props as any).forEach((key) => {
         const propValue = (actualChild.props as any)[key];

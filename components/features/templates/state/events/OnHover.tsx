@@ -80,7 +80,7 @@ export function useOnHoverHandler(children: React.ReactNode): {
 
       // Check if this is OnHover component
       const componentName = typeof actualChild.type === 'function'
-        ? actualChild.type.name || (actualChild.type as any).displayName
+        ? (actualChild.type as any).displayName || actualChild.type.name
         : '';
 
       if (componentName === 'OnHover') {
@@ -151,7 +151,7 @@ export function filterOnHoverChildren(children: React.ReactNode): React.ReactNod
 
     // Check if this is OnHover component
     const componentName = typeof actualChild.type === 'function'
-      ? actualChild.type.name || (actualChild.type as any).displayName
+      ? (actualChild.type as any).displayName || actualChild.type.name
       : '';
 
     // Skip OnHover component

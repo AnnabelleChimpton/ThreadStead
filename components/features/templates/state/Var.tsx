@@ -112,7 +112,7 @@ export default function Var(props: VarProps) {
           }
 
           const componentName = typeof actualChild.type === 'function'
-            ? actualChild.type.name || (actualChild.type as any).displayName
+            ? (actualChild.type as any).displayName || actualChild.type.name
             : '';
 
           return componentName === 'Option';

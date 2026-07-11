@@ -79,7 +79,7 @@ export function useOnMouseLeaveHandler(children: React.ReactNode): ((event: Reac
 
       // Check if this is OnMouseLeave component
       const componentName = typeof actualChild.type === 'function'
-        ? actualChild.type.name || (actualChild.type as any).displayName
+        ? (actualChild.type as any).displayName || actualChild.type.name
         : '';
 
       if (componentName === 'OnMouseLeave') {
