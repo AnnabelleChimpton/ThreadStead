@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { getInternalBaseUrl } from "@/lib/utils/api/internal-base-url";
 import type { GetServerSideProps, NextApiRequest } from 'next';
 import { useRouter } from 'next/router';
@@ -20,10 +20,13 @@ import CSSClassReference from '@/components/features/templates/CSSClassReference
 import CSSGeneratorTools from '@/components/features/templates/CSSGeneratorTools';
 import { fetchResidentData } from '@/lib/templates/core/template-data';
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
-import { getDefaultProfileTemplate } from '@/lib/templates/default-profile-templates';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import { useToastContext } from '@/lib/templates/state/ToastProvider';
 import ConfirmModal from '@/components/ui/feedback/ConfirmModal';
+import DraftRestoreBanner from '@/components/ui/feedback/DraftRestoreBanner';
+import { useLocalDraft } from '@/hooks/useLocalDraft';
+import TemplateHistoryPanel, { type FullRevision } from '@/components/features/templates/TemplateHistoryPanel';
+import TemplatePanelSelector from '@/components/features/templates/TemplatePanelSelector';
 import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface CSSEditorPageProps {
@@ -48,8 +51,18 @@ export default function CSSEditorPage({
 }: CSSEditorPageProps) {
   const router = useRouter();
   const { showSuccess, showError } = useToastContext();
-  const [css, setCSS] = useState(initialCSS || '/* Add your custom CSS here */\n\n');
+  const emptyCSS = '/* Add your custom CSS here */\n\n';
+  const [css, setCSS] = useState(initialCSS || emptyCSS);
   const [cssMode, setCSSMode] = useState<'inherit' | 'override' | 'disable'>(initialCSSMode);
+  // What the server currently has — dirty means the editor differs from this.
+  const [savedSnapshot, setSavedSnapshot] = useState({ css: initialCSS || emptyCSS, cssMode: initialCSSMode });
+  const isDirty = css !== savedSnapshot.css || cssMode !== savedSnapshot.cssMode;
+  const draftData = useMemo(() => ({ css, cssMode }), [css, cssMode]);
+  const { pendingDraft, clearDraft } = useLocalDraft(
+    `threadstead:draft:css-editor:${username}`,
+    draftData,
+    isDirty
+  );
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [showReference, setShowReference] = useState(true);
@@ -59,6 +72,20 @@ export default function CSSEditorPage({
   const [loadingData, setLoadingData] = useState(true);
   const [currentTemplateMode, setCurrentTemplateMode] = useState<'default' | 'enhanced' | 'advanced'>(templateMode);
   const [showResetModal, setShowResetModal] = useState(false);
+  const [showHistoryPanel, setShowHistoryPanel] = useState(false);
+  const [showThemeGallery, setShowThemeGallery] = useState(false);
+
+  // Warn before navigating away with unsaved CSS.
+  useEffect(() => {
+    if (!isDirty) return;
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+      return e.returnValue;
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isDirty]);
 
   const handleSave = async () => {
     await performSave(css);
@@ -107,6 +134,8 @@ export default function CSSEditorPage({
       }
 
       setCurrentTemplateMode(newTemplateMode);
+      setSavedSnapshot({ css: cssToSave, cssMode });
+      clearDraft();
 
       // Show appropriate success message based on mode change
       if (currentTemplateMode === 'default') {
@@ -199,9 +228,11 @@ export default function CSSEditorPage({
       }
 
       // Update local state - stay on CSS editor with cleared CSS
-      setCSS('/* Add your custom CSS here */\n\n');
+      setCSS(emptyCSS);
       setCSSMode('inherit');
       setCurrentTemplateMode('default');
+      setSavedSnapshot({ css: emptyCSS, cssMode: 'inherit' });
+      clearDraft();
 
       // Show success toast
       showSuccess('Reset complete — your profile is back on the site default template.');
@@ -406,6 +437,13 @@ export default function CSSEditorPage({
                   {loadingData ? 'Load...' : 'Preview'}
                 </button>
                 <button
+                  onClick={() => setShowHistoryPanel(true)}
+                  className="text-sm px-2 py-1 bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded transition-colors flex items-center gap-1"
+                  title="Load an earlier version of your CSS"
+                >
+                  <PixelIcon name="clock" size={14} /> History
+                </button>
+                <button
                   onClick={() => setShowReference(!showReference)}
                   className="text-sm px-2 py-1 bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded transition-colors"
                 >
@@ -484,6 +522,19 @@ export default function CSSEditorPage({
             </div>
           </div>
 
+          {/* Draft recovery */}
+          {pendingDraft && (
+            <DraftRestoreBanner
+              savedAt={pendingDraft.savedAt}
+              onRestore={() => {
+                setCSS(pendingDraft.data.css);
+                setCSSMode(pendingDraft.data.cssMode);
+                clearDraft();
+              }}
+              onDiscard={clearDraft}
+            />
+          )}
+
           {/* Main Content */}
           <div className="flex-1 flex overflow-hidden min-h-0">
             {/* Editor Pane */}
@@ -515,42 +566,18 @@ export default function CSSEditorPage({
               </div>
 
               {/* Theme Gallery */}
-              <details className="bg-white border-b border-gray-200 px-4 py-3">
-                <summary className="cursor-pointer flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900">
+              <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3">
+                <button
+                  onClick={() => setShowThemeGallery(true)}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors text-sm font-medium"
+                >
                   <PixelIcon name="paint-bucket" size={16} />
-                  <span>Load a CSS Theme</span>
-                  <span className="text-xs text-gray-500 ml-auto">Click to expand</span>
-                </summary>
-                <div className="mt-3 space-y-3">
-                  <p className="text-xs text-gray-600">
-                    Quick-start with a pre-designed theme, then customize it to taste.
-                  </p>
-                  <div className="flex gap-2 items-center">
-                    <select
-                      onChange={(e) => {
-                        if (e.target.value === '') return;
-                        const themeName = e.target.options[e.target.selectedIndex].text;
-                        if (confirm(`Load "${themeName}"? This will replace your current CSS. Any unsaved changes will be lost.`)) {
-                          const themeCSS = getDefaultProfileTemplate(e.target.value as any);
-                          setCSS(themeCSS);
-                        }
-                        e.target.value = '';
-                      }}
-                      className="text-sm px-3 py-2 border border-gray-300 rounded bg-white hover:bg-gray-50 flex-1"
-                    >
-                      <option value="">Choose a theme...</option>
-                      <option value="abstract-art">Abstract Art - Colorful gallery aesthetic</option>
-                      <option value="charcoal-nights">Charcoal Nights - Dark terminal theme</option>
-                      <option value="pixel-petals">Pixel Petals - Kawaii paradise</option>
-                      <option value="retro-social">Retro Social - MySpace 2005 vibes</option>
-                      <option value="classic-linen">Classic Linen - Vintage elegance</option>
-                    </select>
-                  </div>
-                  <p className="text-xs text-gray-500 italic">
-                    After loading, click &quot;Preview&quot; to see your theme in action.
-                  </p>
-                </div>
-              </details>
+                  Browse Themes
+                </button>
+                <span className="text-xs text-gray-600">
+                  Start from a pre-designed theme, then make it yours.
+                </span>
+              </div>
 
               {/* CSS Mode Selector */}
               <div className="bg-white border-b border-gray-200 px-4 py-3">
@@ -679,6 +706,39 @@ export default function CSSEditorPage({
           </div>
         </div>
       </Layout>
+
+      {/* Theme Gallery Modal */}
+      {showThemeGallery && (
+        <TemplatePanelSelector
+          currentCSS={css}
+          onSelectTemplate={(themeCSS, themeName) => {
+            if (isDirty && !confirm(`Load "${themeName}"? This will replace your current CSS. Any unsaved changes will be lost.`)) {
+              return;
+            }
+            setCSS(themeCSS);
+            setShowThemeGallery(false);
+            showSuccess(`${themeName} loaded — save to put it live.`);
+          }}
+          onClose={() => setShowThemeGallery(false)}
+        />
+      )}
+
+      {/* Revision History Panel */}
+      {showHistoryPanel && (
+        <TemplateHistoryPanel
+          username={username}
+          onClose={() => setShowHistoryPanel(false)}
+          onLoadRevision={(rev: FullRevision) => {
+            if (isDirty && !confirm('Loading this version will replace your unsaved CSS. Continue?')) {
+              return;
+            }
+            setCSS(rev.customCSS || emptyCSS);
+            setCSSMode(rev.cssMode);
+            setShowHistoryPanel(false);
+            showSuccess('Version loaded — save to put it live.');
+          }}
+        />
+      )}
 
       {/* Reset Confirmation Modal */}
       <ConfirmModal

@@ -18,6 +18,7 @@ import FriendsWebsitesGrid from "@/components/core/profile/tabs/FriendsWebsitesG
 import ProfileBadgeDisplay from "@/components/core/profile/ProfileBadgeDisplay";
 import ProfileModeRenderer from "@/components/core/profile/ProfileModeRenderer";
 import type { ProfileUser } from "@/components/core/profile/ProfileModeRenderer";
+import ViewSourceBadge from "@/components/core/profile/ViewSourceBadge";
 import PrivateProfile from "@/components/core/profile/PrivateProfile";
 import type { ResidentData } from "@/components/features/templates/ResidentDataProvider";
 import type { TemplateNode } from "@/lib/templates/compilation/template-parser";
@@ -194,37 +195,44 @@ export default function ProfilePage({
                 }
                 />
               </main>
+              <ViewSourceBadge username={username} />
             </div>
           );
       } else {
         // Hide navigation and disable site CSS - no wrapper constraints
         return (
+          <>
+            <ProfileModeRenderer
+              user={profileUser}
+              residentData={residentData}
+              useIslands={true}
+              hideNavigation={true}
+              fallbackContent={
+                <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>
+                  <p>Template failed to load</p>
+                </div>
+              }
+            />
+            <ViewSourceBadge username={username} />
+          </>
+        );
+      }
+    } else {
+      // Show navigation for advanced templates - no wrapper styling, no constraints
+      return (
+        <>
           <ProfileModeRenderer
             user={profileUser}
             residentData={residentData}
             useIslands={true}
-            hideNavigation={true}
             fallbackContent={
               <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>
                 <p>Template failed to load</p>
               </div>
             }
           />
-        );
-      }
-    } else {
-      // Show navigation for advanced templates - no wrapper styling, no constraints
-      return (
-        <ProfileModeRenderer
-          user={profileUser}
-          residentData={residentData}
-          useIslands={true}
-          fallbackContent={
-            <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>
-              <p>Template failed to load</p>
-            </div>
-          }
-        />
+          <ViewSourceBadge username={username} />
+        </>
       );
     }
   }
@@ -344,6 +352,7 @@ export default function ProfilePage({
         />
       </Head>
 
+      <ViewSourceBadge username={username} />
       <ProfileLayout
         customCSS={customCSS}
         hideNavigation={hideNavigation}

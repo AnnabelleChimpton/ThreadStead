@@ -69,6 +69,7 @@ model User {
   signupAttempts            SignupAttempt[]               @relation("SignupAttempts")
   consents                  UserConsent[]                 @relation("UserConsents")
   consentLogs               ConsentLog[]                  @relation("ConsentLogs")
+  templateRevisions         ProfileTemplateRevision[]     @relation("ProfileTemplateRevisions")
   indexedSiteSubmissions    IndexedSite[]                 @relation("IndexedSiteSubmissions")
   indexedSiteVerifications  IndexedSite[]                 @relation("IndexedSiteVerifications")
   siteVotes                 SiteVote[]                    @relation("SiteVotes")
@@ -129,7 +130,28 @@ model Profile {
   compiledTemplate   Json?
   templateIslands    Json?
   templateCompiledAt DateTime?
+  // Neocities-style "view source": when true, anyone can read this profile's
+  // template + CSS at /resident/[username]/source.
+  showTemplateSource Boolean      @default(false)
   user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Point-in-time snapshot of a profile's customization, taken just before a
+// save overwrites it. Restore = load back into the editor, never straight to
+// the live profile (keeps the compile/validation pipeline in the loop).
+model ProfileTemplateRevision {
+  id             String       @id @default(cuid())
+  userId         String
+  customTemplate String?
+  customCSS      String?
+  cssMode        String       @default("inherit")
+  templateMode   TemplateMode @default(default)
+  hideNavigation Boolean      @default(false)
+  trigger        String // which action overwrote this state: 'template-save' | 'css-save' | 'reset'
+  createdAt      DateTime     @default(now())
+  user           User         @relation("ProfileTemplateRevisions", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
 }
 
 model UserHomeConfig {

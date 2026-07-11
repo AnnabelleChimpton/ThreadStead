@@ -10,6 +10,7 @@ import { getCompiledTemplateWithMetrics, getCacheStats } from '@/lib/templates/c
 import { SITE_NAME } from '@/lib/config/site/constants';
 import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
 import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
+import { snapshotProfileBeforeSave } from '@/lib/templates/revisions/template-revisions';
 
 
 
@@ -169,6 +170,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         return res.status(403).json({ error: 'Access denied' });
       }
 
+      // Keep a restore point of what this save is about to overwrite
+      await snapshotProfileBeforeSave(handle.user.id, 'template-save');
+
       // Update or create profile with compiled template and islands data
       await db.profile.upsert({
         where: { userId: handle.user.id },
@@ -229,6 +233,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       if (currentUsername !== username && user.id !== handle.user.id) {
         return res.status(403).json({ error: 'Access denied' });
       }
+
+      // Keep a restore point before wiping the template
+      await snapshotProfileBeforeSave(handle.user.id, 'reset');
 
       // Remove template and islands data from profile
       await db.profile.updateMany({

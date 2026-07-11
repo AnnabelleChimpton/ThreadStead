@@ -1,13 +1,22 @@
 // Enhanced template editor with islands support
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import dynamic from 'next/dynamic';
+import { html as htmlLang } from '@codemirror/lang-html';
+import { css as cssLang } from '@codemirror/lang-css';
+import type { EditorView } from '@codemirror/view';
+import {
+  fetchComponentSchemas,
+  buildExtraTags,
+  type ComponentSchema,
+} from '@/lib/templates/editor/component-autocomplete';
+import ComponentPalette from '@/components/features/templates/ComponentPalette';
 import { fetchResidentData } from '@/lib/templates/core/template-data';
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
 import type { CompiledTemplate } from '@/lib/templates/compilation/compiler';
 import { getDefaultProfileTemplate, DEFAULT_PROFILE_TEMPLATE_INFO } from '@/lib/templates/default-profile-templates';
 import TemplatePanelSelector from './TemplatePanelSelector';
-import { TEMPLATE_EXAMPLES } from '@/lib/templates/default-profile-template';
-import { HTML_TEMPLATES, getHTMLTemplate } from '@/lib/templates/default-html-templates';
+import StarterTemplateGallery from './StarterTemplateGallery';
 import Link from 'next/link';
 import { useSiteConfig } from '@/hooks/useSiteConfig';
 import { generatePreviewCSS, type CSSMode, type TemplateMode } from '@/lib/utils/css/layers';
@@ -17,6 +26,21 @@ import ValidationFeedbackPanel from './ValidationFeedbackPanel';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import { useRouter } from 'next/router';
 import { PixelIcon } from '@/components/ui/PixelIcon';
+import DraftRestoreBanner from '@/components/ui/feedback/DraftRestoreBanner';
+import { useLocalDraft } from '@/hooks/useLocalDraft';
+import TemplateHistoryPanel, { type FullRevision } from '@/components/features/templates/TemplateHistoryPanel';
+import ViewSourceToggle from '@/components/features/templates/ViewSourceToggle';
+
+// CodeMirror is editor-page-only — loaded dynamically so it never lands in
+// the shared bundle (same pattern as css-editor.tsx).
+const CodeMirror = dynamic(() => import('@uiw/react-codemirror'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full p-4 font-mono text-sm text-gray-400 border border-thread-sage rounded bg-thread-paper">
+      Loading editor…
+    </div>
+  ),
+});
 
 // Warning dialog for data loss prevention
 interface DataLossWarningProps {
@@ -107,81 +131,6 @@ function DataLossWarning({
           >
             {confirmText}
           </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Component to handle preview for both standard layout and custom template modes
-interface StandardLayoutPreviewProps {
-  user: any;
-  template: string;
-  customCSS: string;
-  cssMode: 'inherit' | 'override' | 'disable';
-  useStandardLayout: boolean;
-  hideNavigation: boolean;
-  residentData: ResidentData;
-  onCompile: (compiledTemplate: CompiledTemplate | null) => void;
-  onError: (error: string) => void;
-  defaultTemplate?: string | null;
-  loadingDefaultTemplate: boolean;
-  siteWideCSS?: string;
-}
-
-// REMOVED: PreviewNavBar - now handled inside Shadow DOM in TemplatePreview.tsx
-
-function StandardLayoutPreview({
-  user,
-  template,
-  customCSS,
-  cssMode,
-  useStandardLayout,
-  hideNavigation,
-  residentData,
-  onCompile,
-  onError,
-  defaultTemplate,
-  loadingDefaultTemplate,
-  siteWideCSS
-}: StandardLayoutPreviewProps) {
-  const { config } = useSiteConfig();
-  
-  // Use default template for standard layout, or user's template for custom mode
-  const previewTemplate = useStandardLayout && defaultTemplate ? defaultTemplate : template;
-
-  if (useStandardLayout && loadingDefaultTemplate) {
-    return (
-      <div className="p-4 text-center text-thread-sage">
-        Loading standard layout preview...
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      {/* Apply user CSS GLOBALLY for advanced templates like ProfileModeRenderer does */}
-      {!useStandardLayout && customCSS && (
-        <style dangerouslySetInnerHTML={{ __html: `
-          /* User CSS applied globally like ProfileModeRenderer does */
-          ${customCSS}
-        ` }} />
-      )}
-      
-      {/* Helpful info for standard layout users */}
-      {useStandardLayout && (
-        <div className="p-3 bg-blue-50 border-b border-blue-200 text-sm text-blue-700">
-          <strong>Preview:</strong> Your CSS on the standard layout, navigation and footer included.
-          The layout itself stays put — your styles do the decorating.
-        </div>
-      )}
-      
-      {/* Preview is now handled by popup window - no inline preview */}
-      <div className="preview-placeholder bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-        <div className="text-gray-500">
-          <div className="mb-2 flex justify-center"><PixelIcon name="search" size={24} /></div>
-          <div className="font-medium">Template Preview</div>
-          <div className="text-sm mt-1">Use the &quot;Preview Pop Up&quot; button to see your template</div>
         </div>
       </div>
     </div>
@@ -402,6 +351,13 @@ export default function EnhancedTemplateEditor({
 
           setSaveState('saved');
           setSaveMessage('✓ Reset to default template');
+          markSaved(JSON.stringify({
+            template: '',
+            customCSS: '',
+            cssMode: 'inherit',
+            useStandardLayout: true,
+            hideNavigation: false
+          }));
 
           // Refresh page data to show updated mode without full reload
           setTimeout(() => {
@@ -489,6 +445,7 @@ export default function EnhancedTemplateEditor({
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [loadingDefault, setLoadingDefault] = useState(false);
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
+  const [showHistoryPanel, setShowHistoryPanel] = useState(false);
   
   // Data loss warning state
   const [warningDialog, setWarningDialog] = useState<{
@@ -746,6 +703,85 @@ export default function EnhancedTemplateEditor({
     }
   }, [template, previewWindow, residentData, sendPreviewData]);
 
+  // ── Embedded live preview pane ──
+  const previewFrameRef = useRef<HTMLIFrameElement | null>(null);
+  const [showPreviewPane, setShowPreviewPane] = useState(false);
+  const [previewFrameReady, setPreviewFrameReady] = useState(false);
+
+  // Default the pane open on wide screens (decided after mount so SSR and
+  // first client render agree).
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth >= 1280) {
+      setShowPreviewPane(true);
+    }
+  }, []);
+
+  // Handshake: the iframe posts PREVIEW_READY when it can accept data.
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      const frameWin = previewFrameRef.current?.contentWindow;
+      if (!frameWin || event.source !== frameWin) return;
+      if (event.data.type === 'PREVIEW_READY') {
+        setPreviewFrameReady(true);
+        if (residentData) {
+          sendPreviewData(frameWin);
+        }
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [residentData, sendPreviewData]);
+
+  // Push editor state into the pane as it changes. Debounced: every push is a
+  // full re-render (and possible island hydration) inside the preview.
+  useEffect(() => {
+    if (!showPreviewPane || !previewFrameReady || !residentData) return;
+    const frameWin = previewFrameRef.current?.contentWindow;
+    if (!frameWin) return;
+    const timer = setTimeout(() => sendPreviewData(frameWin), 400);
+    return () => clearTimeout(timer);
+  }, [showPreviewPane, previewFrameReady, residentData, sendPreviewData]);
+
+  // The iframe unmounts when the pane closes; forget its readiness.
+  useEffect(() => {
+    if (!showPreviewPane) setPreviewFrameReady(false);
+  }, [showPreviewPane]);
+
+  // ── Component autocomplete + palette (registry-fed) ──
+  // Captured via onCreateEditor: next/dynamic doesn't forward refs, so a
+  // ref on the <CodeMirror> wrapper would stay null forever.
+  const templateViewRef = useRef<EditorView | null>(null);
+  const [componentSchemas, setComponentSchemas] = useState<ComponentSchema[] | null>(null);
+
+  useEffect(() => {
+    fetchComponentSchemas()
+      .then(setComponentSchemas)
+      .catch(() => {
+        // Autocomplete quietly degrades to plain HTML completion.
+      });
+  }, []);
+
+  const templateExtensions = React.useMemo(
+    () => [htmlLang(componentSchemas ? { extraTags: buildExtraTags(componentSchemas) } : {})],
+    [componentSchemas]
+  );
+
+  // Drop a snippet in at the cursor (or append if the editor isn't mounted).
+  const insertIntoTemplate = useCallback((snippet: string) => {
+    const view = templateViewRef.current;
+    if (view) {
+      const { from, to } = view.state.selection.main;
+      view.dispatch({
+        changes: { from, to, insert: snippet },
+        selection: { anchor: from + snippet.length },
+      });
+      view.focus();
+    } else {
+      handleTemplateChange(template ? `${template}\n${snippet}` : snippet);
+    }
+  }, [template]);
+
   // Feature flag for islands mode
   // Islands are always enabled - legacy mode removed
 
@@ -882,7 +918,14 @@ export default function EnhancedTemplateEditor({
         await onSave(previewTemplate || '', previewCSS || '', templateToSave, previewCSSMode || 'inherit', previewHideNavigation !== undefined ? previewHideNavigation : false);
         setSaveMessage('✓ Advanced template saved');
       }
-      
+
+      markSaved(JSON.stringify({
+        template: previewTemplate || '',
+        customCSS: previewCSS || '',
+        cssMode: previewCSSMode || 'inherit',
+        useStandardLayout: previewUseStandardLayout !== undefined ? previewUseStandardLayout : true,
+        hideNavigation: previewHideNavigation !== undefined ? previewHideNavigation : false
+      }));
       setTimeout(() => setSaveMessage(null), 3000);
     } catch (error) {
       setSaveMessage('✗ Failed to save template from preview');
@@ -959,20 +1002,58 @@ export default function EnhancedTemplateEditor({
     // Users should be able to manually navigate to CSS tab in advanced mode
   }, [useStandardLayout, activeTab]);
 
-  // Handle initial mode from URL parameter
+  // Handle initial mode from URL parameter — ONCE. loadDefaultTemplate is a
+  // plain function (new identity every render), so without the ref guard this
+  // effect fired on every render and looped the page: each call opened the
+  // data-loss dialog via setState, which re-rendered, which re-fired the
+  // effect ("Maximum update depth exceeded" + endless default-template
+  // fetches).
+  const initialModeHandledRef = useRef(false);
   useEffect(() => {
+    if (initialModeHandledRef.current) return;
     if (initialEditorMode === 'template' && useStandardLayout) {
+      initialModeHandledRef.current = true;
       // User wants Template Code but is in standard layout
       // Need to switch to advanced mode first
       loadDefaultTemplate();
     }
   }, [initialEditorMode, useStandardLayout, loadDefaultTemplate]);
 
-  // Track changes (manual save required now)
+  // Track changes against the last-saved snapshot (manual save required now).
+  // Comparing to a snapshot (instead of blindly marking dirty) keeps a fresh
+  // page, a just-saved page, and a just-reset page all reading as clean.
+  const currentSnapshot = JSON.stringify({ template, customCSS, cssMode, useStandardLayout, hideNavigation });
+  const savedSnapshotRef = useRef<string | null>(null);
   useEffect(() => {
-    setHasUnsavedChanges(true);
-    setSaveState('pending');
-  }, [template, customCSS, useStandardLayout, cssMode, hideNavigation]);
+    if (savedSnapshotRef.current === null) {
+      savedSnapshotRef.current = currentSnapshot;
+      return;
+    }
+    const dirty = currentSnapshot !== savedSnapshotRef.current;
+    setHasUnsavedChanges(dirty);
+    setSaveState(prev => {
+      if (prev === 'saving') return prev;
+      return dirty ? 'pending' : 'saved';
+    });
+  }, [currentSnapshot]);
+
+  // Crash/navigation recovery: mirror unsaved work into localStorage.
+  const draftData = React.useMemo(
+    () => ({ template, customCSS, cssMode, useStandardLayout, hideNavigation }),
+    [template, customCSS, cssMode, useStandardLayout, hideNavigation]
+  );
+  const { pendingDraft, clearDraft } = useLocalDraft(
+    `threadstead:draft:template-editor:${user?.id || 'anon'}`,
+    draftData,
+    hasUnsavedChanges
+  );
+
+  // Record the current editor contents as the saved state.
+  const markSaved = useCallback((snapshot?: string) => {
+    savedSnapshotRef.current = snapshot ?? JSON.stringify(draftData);
+    setHasUnsavedChanges(false);
+    clearDraft();
+  }, [draftData, clearDraft]);
 
   // Warn user about unsaved changes before leaving page
   useEffect(() => {
@@ -1111,6 +1192,7 @@ export default function EnhancedTemplateEditor({
       const compiledTemplateData = compiledTemplate || (await compileTemplateForPreview(true));
       await onSave(template, customCSS, compiledTemplateData || undefined, cssMode, hideNavigation);
       setSaveState('saved');
+      markSaved();
 
       // Update template mode - saving moves from 'default' to advanced/enhanced
       const newMode = useStandardLayout ? 'enhanced' : 'advanced';
@@ -1155,7 +1237,7 @@ export default function EnhancedTemplateEditor({
       setSaveMessage('✗ Save failed - see details in validation panel');
       setTimeout(() => setSaveMessage(null), 5000);
     }
-  }, [onSave, template, customCSS, compiledTemplate, compileTemplateForPreview, cssMode, hideNavigation, validationResult]);
+  }, [onSave, template, customCSS, compiledTemplate, compileTemplateForPreview, cssMode, hideNavigation, validationResult, markSaved]);
 
   // Main save handler with validation
   const handleSave = useCallback(async () => {
@@ -1282,72 +1364,65 @@ export default function EnhancedTemplateEditor({
     );
   }
 
-  // Enhanced keyboard handling for tab indentation
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>, contentType: 'template' | 'css') => {
-    if (e.key === 'Tab') {
-      e.preventDefault();
-      
-      const textarea = e.currentTarget;
-      const start = textarea.selectionStart;
-      const end = textarea.selectionEnd;
-      const currentValue = contentType === 'template' ? template : customCSS;
-      const setter = contentType === 'template' ? setTemplate : setCustomCSS;
-      
-      if (e.shiftKey) {
-        // Shift+Tab: Remove indentation
-        const lines = currentValue.split('\n');
-        const startLine = currentValue.substring(0, start).split('\n').length - 1;
-        const endLine = currentValue.substring(0, end).split('\n').length - 1;
-        
-        let removedChars = 0;
-        for (let i = startLine; i <= endLine; i++) {
-          if (lines[i].startsWith('  ')) {
-            lines[i] = lines[i].substring(2);
-            removedChars += 2;
-          } else if (lines[i].startsWith('\t')) {
-            lines[i] = lines[i].substring(1);
-            removedChars += 1;
-          }
+  // Template edits: extract pasted <style> blocks into the CSS field and
+  // auto-switch to advanced mode when HTML shows up in standard-layout mode.
+  const handleTemplateChange = (newValue: string) => {
+    // Check if the pasted/typed content has embedded style tags
+    const styleMatch = newValue.match(/<style[^>]*>([\s\S]*?)<\/style>/gi);
+    if (styleMatch) {
+      // Extract all CSS from style tags
+      let extractedCSS = '';
+      styleMatch.forEach(styleTag => {
+        const cssMatch = styleTag.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
+        if (cssMatch && cssMatch[1]) {
+          extractedCSS += cssMatch[1].trim() + '\n\n';
         }
-        
-        const newValue = lines.join('\n');
-        setter(newValue);
-        
-        // Restore selection
-        setTimeout(() => {
-          textarea.selectionStart = Math.max(0, start - (startLine === endLine ? Math.min(removedChars, 2) : 0));
-          textarea.selectionEnd = Math.max(0, end - removedChars);
-        });
-      } else {
-        // Tab: Add indentation
-        if (start === end) {
-          // No selection, just insert tab
-          const newValue = currentValue.substring(0, start) + '  ' + currentValue.substring(end);
-          setter(newValue);
-          
-          // Move cursor
-          setTimeout(() => {
-            textarea.selectionStart = textarea.selectionEnd = start + 2;
-          });
-        } else {
-          // Multiple lines selected, indent all
-          const lines = currentValue.split('\n');
-          const startLine = currentValue.substring(0, start).split('\n').length - 1;
-          const endLine = currentValue.substring(0, end).split('\n').length - 1;
-          
-          for (let i = startLine; i <= endLine; i++) {
-            lines[i] = '  ' + lines[i];
+      });
+
+      // Remove style tags from HTML
+      const cleanedHTML = newValue.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '').trim();
+
+      // Set the cleaned HTML
+      setTemplate(cleanedHTML);
+
+      // Append extracted CSS to existing CSS (don't overwrite)
+      if (extractedCSS) {
+        const existingCSS = customCSS || '';
+        const combinedCSS = existingCSS.trim()
+          ? `${existingCSS}\n\n/* Extracted from HTML */\n${extractedCSS.trim()}`
+          : extractedCSS.trim();
+        setCustomCSS(combinedCSS);
+        setSaveMessage('✓ Extracted CSS from <style> tags and moved to CSS tab');
+        setTimeout(() => setSaveMessage(null), 3000);
+      }
+
+      // Switch to advanced mode
+      if (useStandardLayout) {
+        setUseStandardLayout(false);
+        if (cssMode === 'inherit') {
+          setCSSMode('disable');
+        }
+      }
+    } else {
+      // No style tags, just set the template as-is
+      setTemplate(newValue);
+
+      // Auto-detect when user types HTML and switch to advanced mode
+      if (useStandardLayout && newValue.trim()) {
+        // Check if the user is typing HTML-like content
+        const hasHTMLTags = /<[^>]+>/.test(newValue);
+        const hasIslandTags = /\{\{[^}]+\}\}/.test(newValue);
+
+        if (hasHTMLTags || hasIslandTags) {
+          // User is typing HTML/template content, switch to advanced mode
+          // Match gallery behavior exactly
+          setUseStandardLayout(false);
+          // Set CSS mode to 'disable' for full control, like gallery templates
+          if (cssMode === 'inherit') {
+            setCSSMode('disable');
           }
-          
-          const newValue = lines.join('\n');
-          setter(newValue);
-          
-          // Restore selection
-          const addedChars = (endLine - startLine + 1) * 2;
-          setTimeout(() => {
-            textarea.selectionStart = start + 2;
-            textarea.selectionEnd = end + addedChars;
-          });
+          setSaveMessage('✓ Switched to Advanced Template mode');
+          setTimeout(() => setSaveMessage(null), 3000);
         }
       }
     }
@@ -1411,6 +1486,15 @@ export default function EnhancedTemplateEditor({
               Database: {initialTemplateMode} → {useStandardLayout ? 'enhanced' : 'advanced'}
             </span>
             <div className="flex items-center gap-2">
+              {/* History Button */}
+              <button
+                onClick={() => setShowHistoryPanel(true)}
+                className="px-2 py-1 text-xs rounded font-medium transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300"
+                title="Load an earlier version of your page"
+              >
+                <span className="inline-flex items-center gap-1"><PixelIcon name="clock" size={12} /> History</span>
+              </button>
+
               {/* Reset to Default Template Button */}
               <button
                 onClick={resetToDefaultTemplate}
@@ -1445,6 +1529,23 @@ export default function EnhancedTemplateEditor({
         </div>
       </div>
 
+      {/* Draft recovery */}
+      {pendingDraft && (
+        <DraftRestoreBanner
+          savedAt={pendingDraft.savedAt}
+          onRestore={() => {
+            const draft = pendingDraft.data;
+            setTemplate(draft.template);
+            setCustomCSS(draft.customCSS);
+            setCSSMode(draft.cssMode);
+            setUseStandardLayout(draft.useStandardLayout);
+            setHideNavigation(draft.hideNavigation);
+            clearDraft();
+          }}
+          onDiscard={clearDraft}
+        />
+      )}
+
       {/* Mode Selector */}
       <div className="flex justify-between items-center px-4 py-2 bg-thread-cream border-b border-thread-sage">
         <div className="flex gap-1">
@@ -1452,11 +1553,14 @@ export default function EnhancedTemplateEditor({
             {useStandardLayout ? 'CSS Editor' : 'Code Editor'}
           </span>
         </div>
-        <div className="text-xs text-thread-sage">
-          {useStandardLayout
-            ? 'Customize the standard layout with CSS'
-            : 'Direct HTML/CSS editing'
-          }
+        <div className="flex items-center gap-4">
+          <ViewSourceToggle username={user.primaryHandle?.split('@')[0] || user.handles?.[0]?.handle?.split('@')[0] || ''} />
+          <div className="text-xs text-thread-sage">
+            {useStandardLayout
+              ? 'Customize the standard layout with CSS'
+              : 'Direct HTML/CSS editing'
+            }
+          </div>
         </div>
       </div>
 
@@ -1499,17 +1603,28 @@ export default function EnhancedTemplateEditor({
         >
           {useStandardLayout ? 'CSS Styling' : 'CSS Styles'}
         </button>
-        {/* Only show preview button for standard layout (not custom templates) */}
-        {useStandardLayout && (
+        <div className="ml-auto flex items-center gap-2">
           <button
-            onClick={openPopupPreview}
-            className="px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors flex items-center gap-2 ml-auto"
+            onClick={() => setShowPreviewPane(v => !v)}
+            className="hidden lg:flex px-4 py-2 text-sm font-medium rounded-lg bg-thread-pine hover:opacity-90 text-white transition-opacity items-center gap-2"
           >
             <PixelIcon name="search" size={16} />
-            Open Preview
+            {showPreviewPane ? 'Hide Preview' : 'Show Preview'}
           </button>
-        )}
+          <button
+            onClick={openPopupPreview}
+            className="px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors flex items-center gap-2"
+            title="Open the preview in its own window"
+          >
+            <PixelIcon name="external-link" size={16} />
+            Pop Out
+          </button>
+        </div>
       </div>
+
+      {/* Editor + live preview split */}
+      <div className="flex items-stretch">
+      <div className="flex-1 min-w-0">
 
       {/* Tab Content */}
       <div className="flex-1">
@@ -1565,89 +1680,21 @@ export default function EnhancedTemplateEditor({
                       </div>
                     </div>
                   ) : (
-                    <div className="space-y-4">
-                      <div>
-                        <h5 className="font-medium text-thread-charcoal mb-2">Modern HTML Templates</h5>
-                        <p className="text-sm text-gray-600 mb-3">
-                          Complete templates with HTML structure and styling using ThreadStead components.
-                        </p>
-                        <select
-                          onChange={(e) => {
-                            const selectedTemplate = TEMPLATE_EXAMPLES[e.target.value as keyof typeof TEMPLATE_EXAMPLES];
-                            if (selectedTemplate) {
-                              showDataLossWarning(
-                                "Load Modern Template",
-                                `This will replace your current HTML and CSS with the "${selectedTemplate.name || e.target.value}" template. Any unsaved changes will be lost.`,
-                                () => {
-                                  setUseStandardLayout(false);
-                                  setTemplate(selectedTemplate.template);
-                                  setCustomCSS(selectedTemplate.css);
-                                  setCSSMode('disable');
-                                }
-                              );
-                              e.target.value = '';
-                            }
-                          }}
-                          className="text-sm px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 w-full"
-                          defaultValue=""
-                        >
-                          <option value="">Choose a modern template...</option>
-                          {Object.entries(TEMPLATE_EXAMPLES).map(([key, template]) => (
-                            <option key={key} value={key}>
-                              {template.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div>
-                        <h5 className="font-medium text-thread-charcoal mb-2">Classic HTML Templates</h5>
-                        <p className="text-sm text-gray-600 mb-3">
-                          Legacy templates with complete HTML and CSS for reference and starting points.
-                        </p>
-                        <select
-                          onChange={(e) => {
-                            const templateId = e.target.value;
-                            if (templateId) {
-                              const htmlTemplate = getHTMLTemplate(templateId);
-                              const templateName = HTML_TEMPLATES.find(t => t.id === templateId)?.name || templateId;
-
-                              showDataLossWarning(
-                                "Load Classic Template",
-                                `This will replace your current HTML and CSS with the "${templateName}" template. Any unsaved changes will be lost.`,
-                                () => {
-                                  const styleMatch = htmlTemplate.match(/<style[^>]*>([\s\S]*?)<\/style>/);
-                                  const css = styleMatch ? styleMatch[1] : '';
-                                  const html = htmlTemplate.replace(/<style[^>]*>[\s\S]*?<\/style>/, '').trim();
-
-                                  setUseStandardLayout(false);
-                                  setTemplate(html);
-                                  setCustomCSS(css);
-                                  setCSSMode('disable');
-                                }
-                              );
-                              e.target.value = '';
-                            }
-                          }}
-                          className="text-sm px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 w-full"
-                          defaultValue=""
-                        >
-                          <option value="">Choose a classic template...</option>
-                          {HTML_TEMPLATES.map(template => (
-                            <option key={template.id} value={template.id}>
-                            {template.name}
-                          </option>
-                        ))}
-                        </select>
-                      </div>
-                    </div>
+                    <StarterTemplateGallery
+                      onSelect={(starterTemplate, starterCSS, name) => {
+                        showDataLossWarning(
+                          "Load Starter",
+                          `This will replace your current HTML and CSS with "${name}". Any unsaved changes will be lost.`,
+                          () => {
+                            setUseStandardLayout(false);
+                            setTemplate(starterTemplate);
+                            setCustomCSS(starterCSS);
+                            setCSSMode('disable');
+                          }
+                        );
+                      }}
+                    />
                   )}
-
-                  <div className="mt-4 pt-4 border-t border-gray-300">
-                    <p className="text-xs text-gray-600">
-                      Templates are starting points - customize them to match your style.
-                    </p>
-                  </div>
                 </div>
               </details>
 
@@ -1691,9 +1738,9 @@ export default function EnhancedTemplateEditor({
                   <>
                     <label className="block mb-3">
                       <span className="thread-label text-lg">Custom Template HTML</span>
-                      <span className="text-sm text-thread-sage ml-2">Use Tab/Shift+Tab for indentation</span>
+                      <span className="text-sm text-thread-sage ml-2">Plain HTML plus ThreadStead components</span>
                     </label>
-                    
+
                     {/* Navigation Toggle */}
                     <div className="mb-3 flex items-center gap-2">
                       <input
@@ -1707,77 +1754,23 @@ export default function EnhancedTemplateEditor({
                         Show site navigation
                       </label>
                     </div>
-                    <textarea
-                      value={template}
-                      onChange={(e) => {
-                        const newValue = e.target.value;
-                        
-                        // Check if the pasted/typed content has embedded style tags
-                        const styleMatch = newValue.match(/<style[^>]*>([\s\S]*?)<\/style>/gi);
-                        if (styleMatch) {
-                          // Extract all CSS from style tags
-                          let extractedCSS = '';
-                          styleMatch.forEach(styleTag => {
-                            const cssMatch = styleTag.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
-                            if (cssMatch && cssMatch[1]) {
-                              extractedCSS += cssMatch[1].trim() + '\n\n';
-                            }
-                          });
-                          
-                          // Remove style tags from HTML
-                          const cleanedHTML = newValue.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '').trim();
-                          
-                          // Set the cleaned HTML
-                          setTemplate(cleanedHTML);
-                          
-                          // Append extracted CSS to existing CSS (don't overwrite)
-                          if (extractedCSS) {
-                            const existingCSS = customCSS || '';
-                            const combinedCSS = existingCSS.trim() 
-                              ? `${existingCSS}\n\n/* Extracted from HTML */\n${extractedCSS.trim()}`
-                              : extractedCSS.trim();
-                            setCustomCSS(combinedCSS);
-                            setSaveMessage('✓ Extracted CSS from <style> tags and moved to CSS tab');
-                            setTimeout(() => setSaveMessage(null), 3000);
-                          }
-                          
-                          // Switch to advanced mode
-                          if (useStandardLayout) {
-                            setUseStandardLayout(false);
-                            if (cssMode === 'inherit') {
-                              setCSSMode('disable');
-                            }
-                          }
-                        } else {
-                          // No style tags, just set the template as-is
-                          setTemplate(newValue);
-                          
-                          // Auto-detect when user types HTML and switch to advanced mode
-                          if (useStandardLayout && newValue.trim()) {
-                            // Check if the user is typing HTML-like content
-                            const hasHTMLTags = /<[^>]+>/.test(newValue);
-                            const hasIslandTags = /\{\{[^}]+\}\}/.test(newValue);
-                            
-                            if (hasHTMLTags || hasIslandTags) {
-                              // User is typing HTML/template content, switch to advanced mode
-                              // Match gallery behavior exactly
-                              setUseStandardLayout(false);
-                              // Set CSS mode to 'disable' for full control, like gallery templates
-                              if (cssMode === 'inherit') {
-                                setCSSMode('disable');
-                              }
-                              setSaveMessage('✓ Switched to Advanced Template mode');
-                              setTimeout(() => setSaveMessage(null), 3000);
-                            }
-                          }
-                        }
-                      }}
-                      onKeyDown={(e) => handleKeyDown(e, 'template')}
-                      className="code-editor-textarea w-full border border-thread-sage p-4 bg-thread-paper rounded font-mono text-sm resize-vertical focus:border-thread-pine focus:ring-1 focus:ring-thread-pine"
-                      placeholder="Enter your template HTML here..."
-                      spellCheck={false}
-                      rows={25}
-                    />
+                    <div className="border border-thread-sage rounded overflow-hidden focus-within:border-thread-pine focus-within:ring-1 focus-within:ring-thread-pine">
+                      <CodeMirror
+                        onCreateEditor={(view) => { templateViewRef.current = view; }}
+                        value={template}
+                        onChange={handleTemplateChange}
+                        extensions={templateExtensions}
+                        height="560px"
+                        style={{ fontSize: '13px' }}
+                        placeholder="Write your page here — plain HTML works, and so do components like <ProfilePhoto /> or <RetroCard>…</RetroCard>"
+                        basicSetup={{
+                          lineNumbers: true,
+                          foldGutter: true,
+                          autocompletion: true,
+                          highlightActiveLine: true,
+                        }}
+                      />
+                    </div>
                   </>
                 )}
               </div>
@@ -1884,7 +1877,6 @@ export default function EnhancedTemplateEditor({
                   <span className="thread-label text-lg">
                     {useStandardLayout ? 'Custom CSS for Standard Layout' : 'Template CSS'}
                   </span>
-                  <span className="text-sm text-thread-sage ml-2">Use Tab/Shift+Tab for indentation</span>
                   {useStandardLayout && customCSS && (() => {
                     // Detect current template
                     const templates: Array<{id: string, name: string}> = [
@@ -1965,16 +1957,18 @@ export default function EnhancedTemplateEditor({
                     </div>
                   )}
                 </div>
-                <textarea
-                  value={customCSS}
-                  onChange={(e) => setCustomCSS(e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(e, 'css')}
-                  className="code-editor-textarea w-full border border-thread-sage p-4 bg-thread-paper rounded font-mono text-sm resize-vertical focus:border-thread-pine focus:ring-1 focus:ring-thread-pine"
-                  placeholder={cssMode === 'inherit' ? 
-                    `/* Site styles will be inherited - extend them here */
+                <div className="border border-thread-sage rounded overflow-hidden focus-within:border-thread-pine focus-within:ring-1 focus-within:ring-thread-pine">
+                  <CodeMirror
+                    value={customCSS}
+                    onChange={(value: string) => setCustomCSS(value)}
+                    extensions={[cssLang()]}
+                    height="560px"
+                    style={{ fontSize: '13px' }}
+                    placeholder={cssMode === 'inherit' ?
+                      `/* Site styles will be inherited - extend them here */
 
-.profile-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+.site-header {
+  background: linear-gradient(135deg, #2E4B3F 0%, #4FAF6D 100%);
   padding: 2rem;
   border-radius: 8px;
 }
@@ -1982,8 +1976,8 @@ export default function EnhancedTemplateEditor({
 .blog-posts {
   margin-top: 2rem;
 }` :
-                    cssMode === 'override' ?
-                    `/* Your CSS will override site styles */
+                      cssMode === 'override' ?
+                      `/* Your CSS will override site styles */
 
 .profile-header {
   background: #ffffff !important;
@@ -1994,7 +1988,7 @@ export default function EnhancedTemplateEditor({
 .blog-posts {
   font-family: 'Courier New', monospace !important;
 }` :
-                    `/* Complete control - no site CSS loaded */
+                      `/* Complete control - no site CSS loaded */
 
 body {
   font-family: Georgia, serif;
@@ -2008,10 +2002,15 @@ body {
   border: 1px solid #ddd;
   margin-bottom: 2rem;
 }`
-                  }
-                  spellCheck={false}
-                  rows={25}
-                />
+                    }
+                    basicSetup={{
+                      lineNumbers: true,
+                      foldGutter: true,
+                      autocompletion: true,
+                      highlightActiveLine: true,
+                    }}
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -2020,24 +2019,45 @@ body {
 
       </div>
 
-      {/* Component reference - matching original footer */}
-      <div className="editor-footer bg-thread-cream border-t border-thread-sage/30 p-4">
-        <details className="text-sm">
-          <summary className="cursor-pointer font-medium mb-2">Available Components</summary>
-          <div className="grid grid-cols-4 gap-2 mt-2">
-            {[
-              'ProfilePhoto', 'DisplayName', 'Bio', 'BlogPosts', 'Guestbook',
-              'FollowButton', 'FriendDisplay', 'WebsiteDisplay', 'ProfileHero',
-              'Tabs', 'Tab', 'RetroTerminal', 'GradientBox', 'NeonBorder', 
-              'PolaroidFrame', 'StickyNote', 'FloatingBadge'
-            ].map(comp => (
-              <code key={comp} className="bg-thread-paper px-2 py-1 rounded text-xs border border-thread-sage/20">
-                &lt;{comp} /&gt;
-              </code>
-            ))}
+      {/* Component palette - registry-fed, insert at cursor */}
+      {activeTab === 'template' && !useStandardLayout && (
+        <div className="editor-footer bg-thread-cream border-t border-thread-sage/30 p-4">
+          <details className="text-sm" open>
+            <summary className="cursor-pointer font-medium mb-2 flex items-center gap-2">
+              <PixelIcon name="folder" size={14} /> Components
+              <span className="text-xs text-thread-sage font-normal">
+                — hover for props, autocomplete knows them too
+              </span>
+            </summary>
+            <div className="mt-2">
+              <ComponentPalette schemas={componentSchemas} onInsert={insertIntoTemplate} />
+            </div>
+          </details>
+        </div>
+      )}
+
+      </div>{/* end editor column */}
+
+      {/* Live preview pane */}
+      {showPreviewPane && (
+        <div className="hidden lg:flex flex-col w-[46%] flex-shrink-0 border-l-2 border-thread-sage bg-white sticky top-0 self-start h-screen">
+          <div className="flex items-center justify-between px-3 py-2 bg-thread-cream border-b border-thread-sage flex-shrink-0">
+            <span className="text-sm font-medium text-thread-charcoal flex items-center gap-2">
+              <PixelIcon name="search" size={14} /> Live preview
+            </span>
+            <span className="text-xs text-thread-sage">
+              {previewFrameReady ? 'Updates as you type' : 'Warming up…'}
+            </span>
           </div>
-        </details>
-      </div>
+          <iframe
+            ref={previewFrameRef}
+            src="/template-preview?embed=1"
+            title="Live preview of your page"
+            className="flex-1 w-full bg-white"
+          />
+        </div>
+      )}
+      </div>{/* end editor + preview split */}
 
       {/* Template Selector Modal - only for Standard Layout */}
       {showTemplateSelector && useStandardLayout && (
@@ -2069,6 +2089,30 @@ body {
         message={warningDialog.message}
       />
 
+
+      {/* Revision History Panel */}
+      {showHistoryPanel && (
+        <TemplateHistoryPanel
+          username={user.primaryHandle?.split('@')[0] || user.handles?.[0]?.handle?.split('@')[0] || ''}
+          onClose={() => setShowHistoryPanel(false)}
+          onLoadRevision={(rev: FullRevision) => {
+            showDataLossWarning(
+              "Load This Version",
+              "This will replace what's in the editor with the version you picked. Any unsaved changes will be lost — your live page stays as-is until you save.",
+              () => {
+                setTemplate(rev.customTemplate || '');
+                setCustomCSS(rev.customCSS || '');
+                setCSSMode(rev.cssMode);
+                setUseStandardLayout(rev.templateMode !== 'advanced');
+                setHideNavigation(rev.hideNavigation);
+                setShowHistoryPanel(false);
+                setSaveMessage('✓ Version loaded into the editor');
+                setTimeout(() => setSaveMessage(null), 3000);
+              }
+            );
+          }}
+        />
+      )}
 
       {/* Validation Feedback Panel */}
       {showValidationPanel && validationResult && (

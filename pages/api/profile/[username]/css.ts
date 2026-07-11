@@ -5,6 +5,7 @@ import { SITE_NAME } from "@/lib/config/site/constants";
 import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
 import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
 import { cleanCss } from "@/lib/utils/sanitization/css";
+import { snapshotProfileBeforeSave } from "@/lib/templates/revisions/template-revisions";
 
 async function handler(
   req: NextApiRequest,
@@ -56,6 +57,15 @@ async function handler(
     const updateData: { customCSS: string; cssMode?: string } = { customCSS: sanitizedCSS };
     if (cssMode !== undefined) {
       updateData.cssMode = cssMode;
+    }
+
+    // Keep a restore point of what this save is about to overwrite
+    const existing = handle.user.profile;
+    const changesContent =
+      (existing.customCSS || '') !== sanitizedCSS ||
+      (cssMode !== undefined && existing.cssMode !== cssMode);
+    if (changesContent) {
+      await snapshotProfileBeforeSave(handle.user.id, 'css-save');
     }
 
     // Update the CSS and optionally the CSS mode

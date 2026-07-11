@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { useRouter } from 'next/router';
 import ProfileModeRenderer, { ProfileUser } from '@/components/core/profile/ProfileModeRenderer';
 import ProfileLayout from '@/components/ui/layout/ProfileLayout';
@@ -28,29 +28,50 @@ interface PreviewData {
   cssMode?: string;
 }
 
+// The preview runs either as a popup (window.opener) or embedded in the
+// editor as an iframe (window.parent). Same protocol either way.
+function getHostWindow(): Window | null {
+  if (typeof window === 'undefined') return null;
+  if (window.opener && !window.opener.closed) return window.opener;
+  if (window.parent && window.parent !== window) return window.parent;
+  return null;
+}
+
 export default function PreviewTemp() {
   const router = useRouter();
   const [previewData, setPreviewData] = useState<PreviewData | null>(null);
   const [isReady, setIsReady] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  // Embedded in the editor's preview pane: the editor chrome already labels
+  // and saves things, so the banner would just be noise.
+  const isEmbedded = router.query.embed === '1';
   
   // Island hydration for interactive components
   const { hydrateProfile, status, isSupported } = useProfileIslandHydration();
 
-  // Hydrate islands when advanced mode template is rendered
+  // Hydrate islands when advanced mode template is rendered.
+  // Guarded by the compiled payload's content: hydration itself updates hook
+  // state, which re-renders and would otherwise re-run this effect and
+  // remount every island root (each remounted FollowButton refetches
+  // /api/rel/... — unguarded this hammered the API in a loop).
+  const lastHydratedRef = useRef<string | null>(null);
   useEffect(() => {
     if (previewData && previewData.user && previewData.residentData) {
       // Check if this is advanced mode
-      const hasCustomTemplate = previewData.user.profile?.customTemplate && 
+      const hasCustomTemplate = previewData.user.profile?.customTemplate &&
                                previewData.user.profile.customTemplate.trim() !== '';
       const isAdvancedMode = !previewData.useStandardLayout && hasCustomTemplate;
-      
+
       if (isAdvancedMode && isReady && previewData.user.profile?.compiledTemplate) {
+        const compiledTemplate = previewData.user.profile.compiledTemplate;
+        const hydrationKey = JSON.stringify((compiledTemplate as any).islands ?? null);
+        if (hydrationKey === lastHydratedRef.current) return;
+
         // Small delay to ensure DOM is ready after ProfileModeRenderer renders
         const timer = setTimeout(() => {
-          const compiledTemplate = previewData.user.profile?.compiledTemplate;
           if (compiledTemplate && (compiledTemplate as any).islands) {
+            lastHydratedRef.current = hydrationKey;
             hydrateProfile('preview-container', {
               residentData: previewData.residentData,
               profileMode: 'advanced',
@@ -86,21 +107,23 @@ export default function PreviewTemp() {
 
     window.addEventListener('message', handleMessage);
     
-    // Signal to parent that we're ready to receive data - with retry mechanism
+    // Signal to the host (popup opener or iframe parent) that we're ready
     const requestData = () => {
-      if (window.opener && !window.opener.closed) {
-        window.opener.postMessage({ type: 'PREVIEW_READY' }, window.location.origin);
+      const host = getHostWindow();
+      if (host) {
+        host.postMessage({ type: 'PREVIEW_READY' }, window.location.origin);
       }
     };
 
     // Initial request
     requestData();
-    
+
     // Retry every 2 seconds if we haven't received data yet
     const retryInterval = setInterval(() => {
-      if (!isReady && !previewData && window.opener && !window.opener.closed) {
+      const host = getHostWindow();
+      if (!isReady && !previewData && host) {
         requestData();
-      } else if (isReady || !window.opener || window.opener.closed) {
+      } else if (isReady || !host) {
         clearInterval(retryInterval);
       }
     }, 2000);
@@ -139,10 +162,11 @@ export default function PreviewTemp() {
   // Ensure cssMode is properly typed
   const typedCSSMode: 'inherit' | 'override' | 'disable' = (cssMode as 'inherit' | 'override' | 'disable') || 'inherit';
 
-  // Save function - communicates with parent window to trigger save
+  // Save function - communicates with the host window to trigger save
   const handleSave = async () => {
-    if (!window.opener || window.opener.closed) {
-      setSaveMessage('❌ Cannot save - parent window closed');
+    const host = getHostWindow();
+    if (!host) {
+      setSaveMessage('❌ Cannot save - editor window closed');
       return;
     }
 
@@ -150,8 +174,8 @@ export default function PreviewTemp() {
     setSaveMessage(null);
 
     try {
-      // Send save request to parent window
-      window.opener.postMessage({ 
+      // Send save request to the host window
+      host.postMessage({
         type: 'SAVE_REQUEST',
         data: {
           template: template || '',
@@ -269,30 +293,32 @@ export default function PreviewTemp() {
           <meta name="robots" content="noindex, nofollow" />
         </Head>
         
-        {/* Add preview indicator with save button - show mode clearly */}
-        <div 
-          className="fixed top-0 left-0 right-0 z-[10000] bg-blue-600 text-white text-center py-2 text-sm font-medium flex items-center justify-between px-4"
-          style={{ zIndex: 999999 }}
-        >
-          <div></div>
-          <span>🔍 STANDARD LAYOUT PREVIEW - CSS updates automatically</span>
-          <div>
-            {saveMessage && (
-              <span className="mr-3 text-xs">{saveMessage}</span>
-            )}
-            <button
-              onClick={handleSave}
-              disabled={isSaving}
-              className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-3 py-1 rounded text-xs font-semibold transition-colors"
-              style={{ fontSize: '11px' }}
-            >
-              {isSaving ? 'Saving...' : '💾 Save'}
-            </button>
+        {/* Add preview indicator with save button - hidden when embedded in the editor */}
+        {!isEmbedded && (
+          <div
+            className="fixed top-0 left-0 right-0 z-[10000] bg-blue-600 text-white text-center py-2 text-sm font-medium flex items-center justify-between px-4"
+            style={{ zIndex: 999999 }}
+          >
+            <div></div>
+            <span>🔍 STANDARD LAYOUT PREVIEW - CSS updates automatically</span>
+            <div>
+              {saveMessage && (
+                <span className="mr-3 text-xs">{saveMessage}</span>
+              )}
+              <button
+                onClick={handleSave}
+                disabled={isSaving}
+                className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-3 py-1 rounded text-xs font-semibold transition-colors"
+                style={{ fontSize: '11px' }}
+              >
+                {isSaving ? 'Saving...' : '💾 Save'}
+              </button>
+            </div>
           </div>
-        </div>
-        
+        )}
+
         {/* Add top padding to account for preview banner */}
-        <div style={{ paddingTop: '40px' }}>
+        <div style={{ paddingTop: isEmbedded ? 0 : '40px' }}>
           <ResidentDataProvider data={residentData}>
             <ProfileLayout 
               customCSS={customCSS}
@@ -344,9 +370,10 @@ export default function PreviewTemp() {
         `}</style>
       </Head>
       
-      {/* Preview indicator with save button - use inline styles to avoid any class conflicts */}
-      <div 
-        id="preview-banner" 
+      {/* Preview indicator with save button - hidden when embedded in the editor */}
+      {!isEmbedded && (
+      <div
+        id="preview-banner"
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -386,17 +413,18 @@ export default function PreviewTemp() {
           </button>
         </div>
       </div>
-      
+      )}
+
       {/* User content with optional navigation and ResidentDataProvider */}
-      <div style={{ paddingTop: showNavigation ? '120px' : '40px' }}>
+      <div style={{ paddingTop: isEmbedded ? (showNavigation ? '80px' : 0) : (showNavigation ? '120px' : '40px') }}>
         {/* Apply user's custom CSS FIRST - this is the ONLY styling that should affect the page */}
         {sanitizedCSS && (
           <style dangerouslySetInnerHTML={{ __html: sanitizedCSS }} />
         )}
-        
+
         {/* Show site navigation if toggle is enabled */}
         {showNavigation && (
-          <div style={{ position: 'fixed', top: '40px', left: 0, right: 0, zIndex: 999998, height: '80px' }}>
+          <div style={{ position: 'fixed', top: isEmbedded ? 0 : '40px', left: 0, right: 0, zIndex: 999998, height: '80px' }}>
             <NavigationPreview />
           </div>
         )}
