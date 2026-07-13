@@ -390,7 +390,7 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
       return;
     }
 
-    let body = messageInput.trim();
+    const body = messageInput.trim();
     if (body.length > 280) {
       setSystemNotice('Message too long (max 280 characters)');
       return;
