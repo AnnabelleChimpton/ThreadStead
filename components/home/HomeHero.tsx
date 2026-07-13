@@ -8,14 +8,24 @@ interface HomeHeroProps {
     userCount?: number;
 }
 
+// Inline pixel-art tiles so the hero has no image dependencies
+// (the /assets/patterns/*.png files this originally referenced never existed)
+const CLOUD_TILE = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='120'%3E%3Cg fill='%23ffffff' fill-opacity='0.9'%3E%3Crect x='16' y='28' width='72' height='20'/%3E%3Crect x='32' y='20' width='40' height='8'/%3E%3Crect x='44' y='12' width='16' height='8'/%3E%3Crect x='150' y='78' width='56' height='16'/%3E%3Crect x='162' y='70' width='28' height='8'/%3E%3C/g%3E%3C/svg%3E")`;
+
+const GRASS_TILE = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='24'%3E%3Crect y='12' width='16' height='12' fill='%234FAF6D'/%3E%3Crect x='2' y='6' width='3' height='6' fill='%234FAF6D'/%3E%3Crect x='8' y='4' width='3' height='8' fill='%234FAF6D'/%3E%3Crect x='13' y='8' width='3' height='4' fill='%234FAF6D'/%3E%3Crect x='4' y='16' width='2' height='2' fill='%232E4B3F'/%3E%3Crect x='11' y='18' width='2' height='2' fill='%232E4B3F'/%3E%3C/svg%3E")`;
+
 export default function HomeHero({ siteConfig, userCount }: HomeHeroProps) {
     // Use real user count if available, otherwise fallback to a default range for demo/loading
     const displayCount = userCount || 42;
 
     return (
         <div className="relative w-full overflow-hidden rounded-xl border-2 border-black shadow-[4px_4px_0_#000] mb-8 bg-[#87CEEB]">
-            {/* Animated Background Layers (CSS animations would be ideal here, using static for now with structure for anims) */}
-            <div className="absolute inset-0 bg-[url('/assets/patterns/clouds-pixel.png')] opacity-50 animate-slide-slow" style={{ backgroundSize: '200px' }}></div>
+            {/* Drifting pixel clouds */}
+            <div
+                className="absolute inset-0 opacity-50 hero-clouds"
+                style={{ backgroundImage: CLOUD_TILE, backgroundSize: '240px 120px' }}
+                aria-hidden="true"
+            ></div>
 
             {/* Hero Content Container */}
             <div className="relative z-10 flex flex-col items-center justify-center py-12 px-4 sm:px-8 text-center bg-gradient-to-b from-transparent via-white/20 to-white/80">
@@ -80,8 +90,27 @@ export default function HomeHero({ siteConfig, userCount }: HomeHeroProps) {
                 </div>
             </div>
 
-            {/* Decorative Bottom Border */}
-            <div className="absolute bottom-0 left-0 right-0 h-4 bg-[url('/assets/patterns/grass-pixel.png')] bg-repeat-x" style={{ backgroundSize: '32px' }}></div>
+            {/* Pixel grass strip */}
+            <div
+                className="absolute bottom-0 left-0 right-0 h-6 bg-repeat-x"
+                style={{ backgroundImage: GRASS_TILE, backgroundSize: '16px 24px', imageRendering: 'pixelated' }}
+                aria-hidden="true"
+            ></div>
+
+            <style jsx>{`
+                .hero-clouds {
+                    animation: hero-clouds-drift 60s linear infinite;
+                }
+                @keyframes hero-clouds-drift {
+                    from { background-position: 0 0; }
+                    to { background-position: -240px 0; }
+                }
+                @media (prefers-reduced-motion: reduce) {
+                    .hero-clouds {
+                        animation: none;
+                    }
+                }
+            `}</style>
         </div>
     );
 }

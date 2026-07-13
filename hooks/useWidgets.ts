@@ -56,7 +56,6 @@ export function useWidgets({
 
 export function useDefaultWidgets(user?: { role: string } | null) {
   const defaultWidgetIds = [
-    'welcome',
     'new-neighbors',
     // 'friend-activity', // Replaced by new-neighbors
     'pixel-homes-neighborhood',
