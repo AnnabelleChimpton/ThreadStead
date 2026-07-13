@@ -13,6 +13,45 @@
   border-radius: 4px;
 }
 
+/* Nav dropdown triggers are <button>s, and site-wide/user custom CSS often
+   themes bare `button` selectors (bevels, gradients, padding). Tailwind v4
+   utilities live in cascade layers, so any unlayered `button { display: ... }`
+   rule overrides them and the chevron wraps under the label. These unlayered
+   rules pin the layout; templates that intentionally theme .nav-link use
+   !important and still win. */
+.site-navigation button.nav-link {
+  display: inline-flex;
+  align-items: center;
+  background: none;
+  border: none;
+  border-radius: 0;
+  padding: 0.5rem 0;
+  box-shadow: none;
+  font-weight: 500;
+  text-shadow: none;
+  text-decoration: underline;
+}
+
+.site-navigation button.nav-link:hover {
+  text-decoration: none;
+  background: none;
+  box-shadow: none;
+  transform: none;
+}
+
+/* Same defense for the mobile drawer's section accordions */
+#mobile-menu button[aria-controls^="mobile-section-"] {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  background: none;
+  border: none;
+  box-shadow: none;
+  padding: 0.5rem 0.75rem;
+  text-shadow: none;
+}
+
 /* Skip to main content link */
 .skip-link {
   position: absolute;
