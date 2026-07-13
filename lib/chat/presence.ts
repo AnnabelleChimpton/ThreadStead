@@ -79,6 +79,11 @@ export function removeFromPresence(roomId: string, userId: string): void {
   const presence = roomPresence.get(roomId);
   if (presence) {
     presence.delete(userId);
+    // Drop the room's map once empty so long-lived servers don't accumulate
+    // an entry for every room ever visited.
+    if (presence.size === 0) {
+      roomPresence.delete(roomId);
+    }
   }
 }
 

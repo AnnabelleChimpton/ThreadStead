@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo, ReactNode } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { requestConversation } from '@/lib/chat/create-conversation';
 
 export interface User {
     id: string;
@@ -154,15 +155,7 @@ export function ConversationsProvider({ children }: { children: ReactNode }) {
     }, [user, refetchConversations]);
 
     const createConversation = useCallback(async (targetUserId: string) => {
-        const res = await fetch('/api/messages/conversations', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ targetUserId })
-        });
-        if (!res.ok) {
-            throw new Error(`Failed to create conversation (${res.status})`);
-        }
-        const data = await res.json();
+        const data = await requestConversation(targetUserId);
 
         // Refresh list
         const listRes = await fetch('/api/messages/conversations');

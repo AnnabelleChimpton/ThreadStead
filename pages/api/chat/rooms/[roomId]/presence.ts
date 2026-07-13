@@ -1,6 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '@/lib/config/database/connection';
-import { getSessionUser } from '@/lib/auth/server';
 
 // Import from TypeScript definitions (backed by presence.js for server.js compatibility)
 import { getRoomPresence } from '@/lib/chat/presence';
@@ -13,11 +12,8 @@ export default async function handler(
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Require authentication
-  const user = await getSessionUser(req);
-  if (!user) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
+  // Read-only-public, matching the live socket presence broadcast (which already
+  // reaches logged-out visitors) and the messages history endpoint.
 
   const { roomId } = req.query;
 

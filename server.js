@@ -52,11 +52,11 @@ const RATE_LIMIT = {
 // Evict idle rate-limit entries so the map doesn't grow with every user ever seen
 setInterval(() => {
   const now = Date.now();
-  for (const [userId, limits] of rateLimits) {
+  for (const [key, limits] of rateLimits) {
     limits.burst = limits.burst.filter(ts => now - ts < RATE_LIMIT.BURST_WINDOW);
     limits.sustained = limits.sustained.filter(ts => now - ts < RATE_LIMIT.SUSTAINED_WINDOW);
     if (limits.burst.length === 0 && limits.sustained.length === 0) {
-      rateLimits.delete(userId);
+      rateLimits.delete(key);
     }
   }
 }, 10 * 60 * 1000).unref();
@@ -94,15 +94,17 @@ async function validateSession(cookie) {
   }
 }
 
-// Check rate limit
-function checkRateLimit(userId) {
+// Check rate limit. `scope` separates independent channels (e.g. lounge vs
+// DMs) so heavy activity in one doesn't throttle the other.
+function checkRateLimit(userId, scope = 'chat') {
   const now = Date.now();
+  const key = `${userId}:${scope}`;
 
-  if (!rateLimits.has(userId)) {
-    rateLimits.set(userId, { burst: [], sustained: [] });
+  if (!rateLimits.has(key)) {
+    rateLimits.set(key, { burst: [], sustained: [] });
   }
 
-  const limits = rateLimits.get(userId);
+  const limits = rateLimits.get(key);
 
   // Clean old entries
   limits.burst = limits.burst.filter(ts => now - ts < RATE_LIMIT.BURST_WINDOW);
@@ -179,31 +181,35 @@ app.prepare().then(() => {
     },
   });
 
-  // Socket.io connection handler
-  io.on('connection', async (socket) => {
-    // Validate session
+  // Socket.io connection handler.
+  // NOTE: this callback is intentionally NOT async. Validating an authenticated
+  // session requires a DB round-trip, and if we awaited it before registering
+  // the event listeners below, a client's immediate `chat:join` (emitted on
+  // 'connect') could arrive before its listener exists and be silently dropped
+  // — leaving logged-in users unable to join. Instead we register listeners
+  // synchronously and expose `socket.sessionReady`; every handler awaits it
+  // before touching `socket.userData`.
+  io.on('connection', (socket) => {
     const cookie = socket.handshake.headers.cookie;
-    const sessionUser = await validateSession(cookie);
-
-    if (!sessionUser) {
-      log('Guest connected:', socket.id);
-      socket.userData = { id: 'guest-' + socket.id, isGuest: true };
-    } else {
-      log('Authenticated user connected:', sessionUser.primaryHandle || sessionUser.id, 'Socket:', socket.id);
-      socket.userData = sessionUser;
-    }
-
-    // Join personal room for whispers (and DMs)
-    if (!socket.userData.isGuest) {
-      socket.join(socket.userData.id); // Join personal room for whispers
-    }
 
     socket.currentRoom = null;
+    socket.sessionReady = validateSession(cookie).then((sessionUser) => {
+      if (!sessionUser) {
+        log('Guest connected:', socket.id);
+        socket.userData = { id: 'guest-' + socket.id, isGuest: true };
+      } else {
+        log('Authenticated user connected:', sessionUser.primaryHandle || sessionUser.id, 'Socket:', socket.id);
+        socket.userData = sessionUser;
+        // Join personal room for whispers (and DMs)
+        socket.join(socket.userData.id);
+      }
+      return socket.userData;
+    });
 
     // Handle chat:join
     socket.on('chat:join', async (data) => {
       const { roomId } = data || {};
-      const user = socket.userData;
+      const user = await socket.sessionReady;
 
       if (!roomId || typeof roomId !== 'string') {
         socket.emit('system:notice', {
@@ -213,11 +219,38 @@ app.prepare().then(() => {
         return;
       }
 
+      // Verify the room actually exists before joining, so users can't appear
+      // in presence (or whisper) inside made-up room namespaces.
+      let room;
+      try {
+        room = await prisma.chatRoom.findUnique({
+          where: { id: roomId }
+        });
+      } catch (error) {
+        console.error('Error looking up room:', error);
+        socket.emit('system:notice', {
+          message: 'Failed to join room',
+          type: 'error'
+        });
+        return;
+      }
+
+      if (!room) {
+        socket.emit('system:notice', {
+          message: 'That room does not exist',
+          type: 'error'
+        });
+        return;
+      }
+
       // Leave previous room if any
       if (socket.currentRoom) {
-        socket.leave(socket.currentRoom);
+        const previousRoom = socket.currentRoom;
+        socket.leave(previousRoom);
         if (!user.isGuest) {
-          removeFromPresence(socket.currentRoom, user.id);
+          removeFromPresence(previousRoom, user.id);
+          // Tell the old room we left so our avatar doesn't linger there.
+          io.to(previousRoom).emit('presence:update', { users: getRoomPresence(previousRoom) });
         }
       }
 
@@ -230,22 +263,13 @@ app.prepare().then(() => {
         addToPresence(roomId, user);
       }
 
-      // Fetch room data including topic
-      try {
-        const room = await prisma.chatRoom.findUnique({
-          where: { id: roomId }
+      // Send the room topic to the joining user
+      if (room.topic) {
+        socket.emit('chat:topic', {
+          topic: room.topic,
+          topicSetBy: room.topicSetBy,
+          topicSetAt: room.topicSetAt
         });
-
-        if (room && room.topic) {
-          // Send topic to the joining user
-          socket.emit('chat:topic', {
-            topic: room.topic,
-            topicSetBy: room.topicSetBy,
-            topicSetAt: room.topicSetAt
-          });
-        }
-      } catch (error) {
-        console.error('Error fetching room topic:', error);
       }
 
       // Broadcast presence update to room
@@ -258,7 +282,7 @@ app.prepare().then(() => {
     // Handle chat:message
     socket.on('chat:message', async (data) => {
       const { roomId, body } = data || {};
-      const user = socket.userData;
+      const user = await socket.sessionReady;
 
       if (!roomId || !socket.currentRoom || socket.currentRoom !== roomId) {
         socket.emit('system:notice', {
@@ -291,8 +315,21 @@ app.prepare().then(() => {
         return;
       }
 
+      // Resolve dice/coin server-side so results are fair and can't be spoofed
+      // by hand-typing "/me rolls 20".
+      let rawBody = typeof body === 'string' ? body.trim() : '';
+      if (rawBody === '/flip' || rawBody.startsWith('/flip ')) {
+        rawBody = `/me flips a coin: ${Math.random() < 0.5 ? 'Heads' : 'Tails'}`;
+      } else if (rawBody === '/roll' || rawBody.startsWith('/roll ')) {
+        let max = parseInt(rawBody.split(/\s+/)[1], 10);
+        if (!Number.isFinite(max) || max < 1) max = 100;
+        if (max > 1000000) max = 1000000;
+        const roll = Math.floor(Math.random() * max) + 1;
+        rawBody = `/me rolls ${roll} (1-${max})`;
+      }
+
       // Sanitize and validate message
-      const sanitized = sanitizeMessage(body);
+      const sanitized = sanitizeMessage(rawBody);
       if (!sanitized.text) {
         socket.emit('system:notice', {
           message: 'Message cannot be empty',
@@ -343,8 +380,8 @@ app.prepare().then(() => {
     });
 
     // Handle chat:leave
-    socket.on('chat:leave', () => {
-      const user = socket.userData;
+    socket.on('chat:leave', async () => {
+      const user = await socket.sessionReady;
       if (socket.currentRoom) {
         if (!user.isGuest) {
           removeFromPresence(socket.currentRoom, user.id);
@@ -360,10 +397,10 @@ app.prepare().then(() => {
     });
 
     // Handle typing indicators
-    socket.on('chat:typing', (data) => {
-      if (socket.userData.isGuest) return;
+    socket.on('chat:typing', async (data) => {
+      const user = await socket.sessionReady;
+      if (user.isGuest) return;
       const { roomId } = data || {};
-      const user = socket.userData;
       if (roomId && socket.currentRoom === roomId) {
         socket.to(roomId).emit('chat:typing', {
           userId: user.id,
@@ -373,21 +410,22 @@ app.prepare().then(() => {
       }
     });
 
-    socket.on('chat:stop_typing', (data) => {
-      if (socket.userData.isGuest) return;
+    socket.on('chat:stop_typing', async (data) => {
+      const user = await socket.sessionReady;
+      if (user.isGuest) return;
       const { roomId } = data || {};
       if (roomId && socket.currentRoom === roomId) {
         socket.to(roomId).emit('chat:stop_typing', {
-          userId: socket.userData.id
+          userId: user.id
         });
       }
     });
 
     // Handle chat:set_topic (admin only)
     socket.on('chat:set_topic', async (data) => {
-      if (socket.userData.isGuest) return;
+      const user = await socket.sessionReady;
+      if (user.isGuest) return;
       const { roomId, topic } = data || {};
-      const user = socket.userData;
 
       // Check if user is admin
       if (user.role !== 'admin') {
@@ -439,10 +477,10 @@ app.prepare().then(() => {
     });
 
     // Handle chat:status
-    socket.on('chat:status', (data) => {
-      if (socket.userData.isGuest) return;
+    socket.on('chat:status', async (data) => {
+      const user = await socket.sessionReady;
+      if (user.isGuest) return;
       const { roomId, status, message } = data || {};
-      const user = socket.userData;
 
       if (!roomId || roomId !== socket.currentRoom) return;
 
@@ -461,14 +499,29 @@ app.prepare().then(() => {
     });
 
     // Handle chat:whisper
-    socket.on('chat:whisper', (data) => {
-      if (socket.userData.isGuest) return;
+    socket.on('chat:whisper', async (data) => {
+      const user = await socket.sessionReady;
+      if (user.isGuest) return;
       const { roomId, targetHandle, message } = data || {};
-      const user = socket.userData;
 
       if (!roomId || roomId !== socket.currentRoom) return;
       if (typeof targetHandle !== 'string' || !targetHandle) return;
       if (typeof message !== 'string' || !message.trim()) return;
+
+      // Rate limit whispers alongside normal lounge messages so they can't be
+      // used as an unthrottled spam channel.
+      const rateCheck = checkRateLimit(user.id);
+      if (!rateCheck.allowed) {
+        const notice = rateCheck.reason === 'burst'
+          ? 'You\'re sending messages too quickly. Please slow down.'
+          : 'You\'ve sent too many messages. Please wait a moment.';
+        socket.emit('system:notice', { message: notice, type: 'warning' });
+        return;
+      }
+
+      // Sanitize + length-cap the body, same as public messages.
+      const sanitized = sanitizeMessage(message);
+      if (!sanitized.text) return;
 
       // Find target user in presence
       const presence = getRoomPresence(roomId);
@@ -485,6 +538,30 @@ app.prepare().then(() => {
         return;
       }
 
+      // Respect blocks: if the target has blocked the sender, a whisper must
+      // not become a way around it. Report the same "not found" message so the
+      // block isn't disclosed.
+      try {
+        const block = await prisma.userBlock.findUnique({
+          where: {
+            blockerId_blockedUserId: {
+              blockerId: targetUser.userId,
+              blockedUserId: user.id
+            }
+          }
+        });
+        if (block) {
+          socket.emit('system:notice', {
+            message: `User @${targetHandle} not found in this room`,
+            type: 'error'
+          });
+          return;
+        }
+      } catch (error) {
+        console.error('Error checking whisper block:', error);
+        return;
+      }
+
       const whisperData = {
         id: 'whisper-' + Date.now(),
         roomId,
@@ -492,7 +569,7 @@ app.prepare().then(() => {
         handle: user.primaryHandle,
         displayName: user.profile?.displayName,
         avatarUrl: user.profile?.avatarThumbnailUrl || user.profile?.avatarUrl,
-        body: message.trim(),
+        body: sanitized.text,
         createdAt: new Date().toISOString(),
         isWhisper: true,
         whisperTo: targetUser.handle,
@@ -507,18 +584,24 @@ app.prepare().then(() => {
 
     // Handle dm:send (Persistent Direct Messages)
     socket.on('dm:send', async (data) => {
-      if (socket.userData.isGuest) {
+      const user = await socket.sessionReady;
+      if (user.isGuest) {
         socket.emit('system:notice', { message: 'Guests cannot send DMs', type: 'error' });
         return;
       }
 
       const { targetUserId, body } = data || {};
-      const user = socket.userData;
 
       if (typeof targetUserId !== 'string' || !targetUserId || !body || typeof body !== 'string' || !body.trim()) return;
 
-      // Rate limit check
-      const rateCheck = checkRateLimit(user.id);
+      // Can't DM yourself
+      if (targetUserId === user.id) {
+        socket.emit('system:notice', { message: 'You cannot message yourself', type: 'error' });
+        return;
+      }
+
+      // Rate limit check (DMs get their own bucket, separate from the lounge)
+      const rateCheck = checkRateLimit(user.id, 'dm');
       if (!rateCheck.allowed) {
         socket.emit('system:notice', { message: 'You are sending messages too fast', type: 'warning' });
         return;
@@ -623,9 +706,9 @@ app.prepare().then(() => {
 
     // Handle dm:read
     socket.on('dm:read', async (data) => {
-      if (socket.userData.isGuest) return;
+      const user = await socket.sessionReady;
+      if (user.isGuest) return;
       const { conversationId } = data || {};
-      const user = socket.userData;
 
       if (typeof conversationId !== 'string' || !conversationId) return;
 
@@ -677,10 +760,10 @@ app.prepare().then(() => {
     });
 
     // Handle dm:typing
-    socket.on('dm:typing', (data) => {
-      if (socket.userData.isGuest) return;
+    socket.on('dm:typing', async (data) => {
+      const user = await socket.sessionReady;
+      if (user.isGuest) return;
       const { targetUserId } = data || {};
-      const user = socket.userData;
 
       if (typeof targetUserId !== 'string' || !targetUserId) return;
 
@@ -690,20 +773,23 @@ app.prepare().then(() => {
       });
     });
 
-    socket.on('dm:stop_typing', (data) => {
-      if (socket.userData.isGuest) return;
+    socket.on('dm:stop_typing', async (data) => {
+      const user = await socket.sessionReady;
+      if (user.isGuest) return;
       const { targetUserId } = data || {};
 
       if (typeof targetUserId !== 'string' || !targetUserId) return;
 
       io.to(targetUserId).emit('dm:stop_typing', {
-        userId: socket.userData.id
+        userId: user.id
       });
     });
 
     // Handle disconnect
     socket.on('disconnect', async () => {
-      const user = socket.userData;
+      // Await readiness so a disconnect that races session validation still
+      // resolves the real user (and cleans up presence correctly).
+      const user = await socket.sessionReady;
 
       if (socket.currentRoom && !user.isGuest) {
         // Check if user has other sockets in the room

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
 import { getGlobalToast } from '@/lib/templates/state/ToastProvider';
+import { requestConversation } from '@/lib/chat/create-conversation';
 
 interface ChatContextType {
   isChatOpen: boolean;
@@ -68,32 +69,14 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const openDM = useCallback(async (userId: string) => {
-    // We'll let the GlobalChatPopup handle the actual creation/selection
-    // by passing the target user ID via a custom event or shared state
-    // For now, we'll just open the chat and set a "pending" state
-    // But actually, since we have ConversationsContext, we can use that!
-    // However, ChatContext shouldn't depend on ConversationsContext to avoid circular deps if possible
-    // Instead, we'll expose the activeConversationId and let GlobalChatPopup react to it
-
-    // First, we need to create the conversation
+    // ChatProvider sits above ConversationsProvider, so it can't consume that
+    // context directly. It shares the request helper and exposes the resulting
+    // activeConversationId; GlobalChatPopup reacts to it to open the thread.
     try {
-      const res = await fetch('/api/messages/conversations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ targetUserId: userId })
-      });
-      if (!res.ok) {
-        throw new Error(`Failed to create conversation (${res.status})`);
-      }
-      const data = await res.json();
-
-      if (data.id) {
-        setActiveConversationId(data.id);
-        setIsChatOpen(true);
-        setChatMinimized(false);
-      } else {
-        throw new Error('Conversation response missing id');
-      }
+      const conversation = await requestConversation(userId);
+      setActiveConversationId(conversation.id);
+      setIsChatOpen(true);
+      setChatMinimized(false);
     } catch (error) {
       console.error('Failed to open DM:', error);
       // Surface the failure to the user instead of silently doing nothing

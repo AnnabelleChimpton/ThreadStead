@@ -1,6 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '@/lib/config/database/connection';
-import { getSessionUser } from '@/lib/auth/server';
 
 export default async function handler(
   req: NextApiRequest,
@@ -10,11 +9,9 @@ export default async function handler(
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Require authentication
-  const user = await getSessionUser(req);
-  if (!user) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
+  // Rooms are read-only-public: the socket server already streams live messages
+  // to logged-out visitors, so history is readable without auth to match. (Only
+  // sending — handled over the socket — requires a logged-in account.)
 
   const { roomId } = req.query;
   const limit = parseInt(req.query.limit as string) || 50;
@@ -34,18 +31,15 @@ export default async function handler(
       return res.status(404).json({ error: 'Room not found' });
     }
 
-    // Build query
-    const where: any = { roomId };
-
-    if (before) {
-      where.id = { lt: before };
-    }
-
-    // Fetch messages
+    // Fetch newest-first, then reverse for display. `before` is a message id
+    // used as a Prisma cursor so pagination follows the createdAt ordering
+    // exactly — ids are cuids and are NOT time-sortable, so an `id < before`
+    // comparison would skip or repeat messages.
     const messages = await db.chatMessage.findMany({
-      where,
+      where: { roomId },
       take: limit,
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      ...(before ? { cursor: { id: before }, skip: 1 } : {}),
       include: {
         user: {
           include: {

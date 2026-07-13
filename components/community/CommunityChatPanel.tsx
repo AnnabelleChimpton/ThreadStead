@@ -177,6 +177,13 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
   const messageListRef = useRef<HTMLDivElement>(null);
   const hasLoadedInitialMessages = useRef(false);
 
+  // Mirror muted/blocked sets into refs so the long-lived socket message
+  // handler can read the latest values without re-subscribing on every change.
+  const mutedUsersRef = useRef(mutedUsers);
+  const blockedUsersRef = useRef(blockedUsers);
+  useEffect(() => { mutedUsersRef.current = mutedUsers; }, [mutedUsers]);
+  useEffect(() => { blockedUsersRef.current = blockedUsers; }, [blockedUsers]);
+
   // Track every setTimeout so they are cleared on unmount, preventing
   // setState-after-unmount warnings/leaks from stray timers.
   const timeoutsRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
@@ -306,8 +313,17 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
         return next.length > MAX_MESSAGES ? next.slice(next.length - MAX_MESSAGES) : next;
       });
 
-      // Play SFX for all messages (sent or received)
-      retroSFX.playMessageOut();
+      // Sound: your own sends get the "out" blip; someone else's message gets
+      // the "in" blip. Stay silent for muted/blocked authors so they can't
+      // ping you.
+      const isOwnMessage = user && message.userId === user.id;
+      const isSilenced =
+        mutedUsersRef.current.has(message.userId) ||
+        blockedUsersRef.current.has(message.userId);
+      if (!isSilenced) {
+        if (isOwnMessage) retroSFX.playMessageOut();
+        else retroSFX.playMessageIn();
+      }
 
       setTrackedTimeout(scrollToBottom, 100);
     });
@@ -380,18 +396,10 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
       return;
     }
 
-    // Handle client-side commands
-    if (body.startsWith('/roll')) {
-      // /roll [max] or /roll
-      const parts = body.split(' ');
-      const max = parts[1] ? parseInt(parts[1], 10) : 100;
-      const validMax = isNaN(max) ? 100 : max;
-      const roll = Math.floor(Math.random() * validMax) + 1;
-      body = `/me rolls ${roll} (1-${validMax})`;
-    } else if (body.startsWith('/flip')) {
-      const isHeads = Math.random() > 0.5;
-      body = `/me flips a coin: ${isHeads ? 'Heads' : 'Tails'}`;
-    } else if (body.startsWith('/away')) {
+    // Handle client-side commands.
+    // Note: /roll and /flip are intentionally NOT handled here — they are sent
+    // as-is and resolved server-side so results can't be spoofed.
+    if (body.startsWith('/away')) {
       const message = body.substring(5).trim();
       socket.emit('chat:status', { roomId: ROOM_ID, status: 'away', message: message || 'Away' });
       setMessageInput('');
