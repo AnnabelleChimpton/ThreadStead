@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import LoginStatus from "../../features/auth/LoginStatus";
 import UserDropdown from "../../features/auth/UserDropdown";
 import AuthenticationDropdown from "../../features/auth/AuthenticationDropdown";
@@ -45,8 +46,8 @@ function MobileLoginStatus({ onAccountClick }: { onAccountClick: () => void }) {
 }
 
 // Tracks whether the viewport is at the desktop breakpoint (lg: 1024px).
-// The full nav (5 items + dropdowns + notifications + account) doesn't fit
-// between 768 and ~1050px, so the hamburger persists through tablet widths.
+// The full nav (6 items + auth) measures ~1090px and doesn't fit below that,
+// so the hamburger persists through tablet widths.
 // Must match the lg: classes on site-nav-container / the mobile toggle.
 // Returns null before hydration so exactly one branch renders after mount.
 function useIsDesktop() {
@@ -109,138 +110,155 @@ interface NavBarProps {
   advancedTemplate?: boolean;
 }
 
-interface DropdownMenuProps {
-  title: string;
-  items: { href: string; label: string }[];
-  dropdownKey: string;
-  activeDropdown: string | null;
-  setActiveDropdown: (key: string | null) => void;
-  href: string; // Link to the hub/landing page
+interface NavItem {
+  href: string;
+  label: string;
 }
 
-function DropdownMenu({ title, items, dropdownKey, activeDropdown, setActiveDropdown, href }: DropdownMenuProps) {
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const isOpen = activeDropdown === dropdownKey;
+interface NavSection {
+  key: string;
+  title: string;
+  hubHref: string;
+  hubLabel: string;
+  items: NavItem[];
+  // asPath prefixes that light this section up as active
+  activePrefixes: string[];
+  // prefixes that belong to another nav item and should NOT count (e.g. the
+  // top-level Feed link lives under /discover/*)
+  activeExclusions?: string[];
+}
 
-  // Enhanced keyboard navigation
-  const handleKeyDown = (event: React.KeyboardEvent) => {
+const navLinkClass = (active: boolean) =>
+  `nav-link nav-link-underline font-medium ${
+    active
+      ? "text-thread-sunset underline decoration-2 underline-offset-4"
+      : "text-thread-pine hover:text-thread-sunset underline hover:no-underline"
+  }`;
+
+interface DropdownMenuProps {
+  section: NavSection;
+  active: boolean;
+  activeDropdown: string | null;
+  setActiveDropdown: (key: string | null) => void;
+}
+
+// Disclosure-style nav menu: the whole item is one button that opens the
+// menu on click; the section's hub page is the first menu item.
+function DropdownMenu({ section, active, activeDropdown, setActiveDropdown }: DropdownMenuProps) {
+  const menuRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const isOpen = activeDropdown === section.key;
+
+  const focusItem = (index: number) => {
+    const links = menuRef.current?.querySelectorAll<HTMLAnchorElement>('a[role="menuitem"]');
+    if (!links || links.length === 0) return;
+    const clamped = ((index % links.length) + links.length) % links.length;
+    links[clamped].focus();
+  };
+
+  const openAndFocusFirst = () => {
+    setActiveDropdown(section.key);
+    // Menu renders on next tick
+    requestAnimationFrame(() => focusItem(0));
+  };
+
+  const handleButtonKeyDown = (event: React.KeyboardEvent) => {
     switch (event.key) {
-      case 'Enter':
-      case ' ':
+      case 'ArrowDown':
         event.preventDefault();
-        setActiveDropdown(isOpen ? null : dropdownKey);
+        openAndFocusFirst();
         break;
       case 'Escape':
         setActiveDropdown(null);
-        buttonRef.current?.focus();
-        break;
-      case 'ArrowDown':
-        if (!isOpen) {
-          event.preventDefault();
-          setActiveDropdown(dropdownKey);
-        }
         break;
     }
   };
 
-  // Icon mapping for navigation items
-  const getItemIcon = (label: string): string => {
-    const iconMap: { [key: string]: string } = {
-      // Discover items
-      'Neighborhoods': '',
-      'Search': '',
-      'Feed': '',
-      'Residents': '',
-      'All Homes': '',
-      'Recent Activity': '',
-      'Bookmarks': '',
-      'Demo Pixel Home': '',
-      'My Pixel Home': '',
-      'My Profile': '',
+  const handleMenuKeyDown = (event: React.KeyboardEvent) => {
+    const links = Array.from(
+      menuRef.current?.querySelectorAll<HTMLAnchorElement>('a[role="menuitem"]') ?? []
+    );
+    const currentIndex = links.findIndex((link) => link === document.activeElement);
 
-      // ThreadRings items
-      'ThreadRings': '',
-      'Browse Rings': '',
-      'All Rings': '',
-      'The Spool': '',
-      'My Rings': '',
-      'Create a Ring': '',
-
-      // Build items
-      'Templates': '',
-      'Getting Started': '',
-
-      // Help items
-      'FAQ': '',
-      'Music Guide': '',
-      'Guidelines': '',
-      'Privacy': '',
-      'Terms': '',
-      'Contact': '',
-
-      // Legacy items
-      'Directory': '',
-      'Genealogy': '',
-      'Community Index': '',
-      'Engagement': '',
-    };
-    return iconMap[label] || '';
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault();
+        focusItem(currentIndex + 1);
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        focusItem(currentIndex - 1);
+        break;
+      case 'Home':
+        event.preventDefault();
+        focusItem(0);
+        break;
+      case 'End':
+        event.preventDefault();
+        focusItem(links.length - 1);
+        break;
+      case 'Escape':
+        event.preventDefault();
+        setActiveDropdown(null);
+        buttonRef.current?.focus();
+        break;
+      case 'Tab':
+        // Let focus move on naturally, but close the menu behind it
+        setActiveDropdown(null);
+        break;
+    }
   };
 
   return (
-    <div className="relative" ref={dropdownRef} data-dropdown-container>
-      {/* Split button: Link to hub page + dropdown toggle */}
-      <div className="flex items-center">
-        {/* Left side: Link to hub/landing page */}
-        <Link
-          href={href}
-          className="nav-link nav-link-underline text-thread-pine hover:text-thread-sunset font-medium underline hover:no-underline focus:outline-none focus:ring-2 focus:ring-thread-sunset focus:ring-offset-2 pr-1"
+    <div className="relative" data-dropdown-container>
+      <button
+        ref={buttonRef}
+        className={`${navLinkClass(active)} inline-flex items-center gap-1 py-2 focus:outline-none focus:ring-2 focus:ring-thread-sunset focus:ring-offset-2`}
+        onClick={() => setActiveDropdown(isOpen ? null : section.key)}
+        onKeyDown={handleButtonKeyDown}
+        aria-expanded={isOpen}
+        aria-haspopup="menu"
+        id={`dropdown-button-${section.key}`}
+      >
+        {section.title}
+        <svg
+          className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
         >
-          {title}
-        </Link>
-
-        {/* Right side: Dropdown toggle button */}
-        <button
-          ref={buttonRef}
-          className="text-thread-pine hover:text-thread-sunset focus:outline-none focus:ring-2 focus:ring-thread-sunset focus:ring-offset-2 pl-1 border-l border-thread-sage/30"
-          onClick={() => setActiveDropdown(isOpen ? null : dropdownKey)}
-          onKeyDown={handleKeyDown}
-          aria-expanded={isOpen}
-          aria-haspopup="true"
-          aria-label={`${title} menu`}
-          id={`dropdown-button-${dropdownKey}`}
-        >
-          <svg
-            className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
-      </div>
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
 
       {isOpen && (
         <div
+          ref={menuRef}
           className="absolute top-full left-0 mt-2 w-56 bg-thread-paper rounded-lg shadow-lg border border-thread-sage py-2 z-[10000] dropdown-animated"
           role="menu"
-          aria-labelledby={`dropdown-button-${dropdownKey}`}
+          aria-labelledby={`dropdown-button-${section.key}`}
+          onKeyDown={handleMenuKeyDown}
         >
-          {items.map((item, index) => (
+          {/* Hub page first, visually separated from the section's children */}
+          <Link
+            href={section.hubHref}
+            className="flex items-center justify-between gap-3 px-4 py-2 font-medium text-thread-pine hover:bg-thread-background hover:text-thread-sunset transition-colors focus:outline-none focus:bg-thread-background focus:text-thread-sunset border-b border-thread-sage/40 mb-1"
+            role="menuitem"
+            onClick={() => setActiveDropdown(null)}
+          >
+            <span>{section.hubLabel}</span>
+            <span aria-hidden="true">→</span>
+          </Link>
+          {section.items.map((item) => (
             <Link
-              key={index}
+              key={item.href}
               href={item.href}
-              className="flex items-center gap-3 px-4 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset transition-colors focus:outline-none focus:bg-thread-background focus:text-thread-sunset"
+              className="block px-4 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset transition-colors focus:outline-none focus:bg-thread-background focus:text-thread-sunset"
               role="menuitem"
-              tabIndex={isOpen ? 0 : -1}
+              onClick={() => setActiveDropdown(null)}
             >
-              <span className="text-sm" role="img" aria-hidden="true">
-                {getItemIcon(item.label)}
-              </span>
-              <span>{item.label}</span>
+              {item.label}
             </Link>
           ))}
         </div>
@@ -253,6 +271,7 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
   const { config: hookConfig } = useSiteConfig();
   const { pages: navPages } = useNavPages();
   const { me } = useMe();
+  const router = useRouter();
   const config = siteConfig || hookConfig;
 
   // State to track which dropdown is open (only one at a time)
@@ -289,20 +308,93 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
     window.addEventListener('resize', updateNavHeight);
     return () => window.removeEventListener('resize', updateNavHeight);
   }, []);
-  
+
   // Add swipe gesture support
   const swipeHandlers = useSwipeGesture((direction) => {
     if (direction === 'left' && mobileMenuOpen) {
       setMobileMenuOpen(false);
     }
   });
-  
-  // Organize navigation pages by dropdown
+
+  // Admin-configured custom pages (settings/admin → "show in navigation")
   const topLevelPages = navPages.filter(page => !page.navDropdown);
   const discoveryPages = navPages.filter(page => page.navDropdown === 'discovery');
   const threadRingsPages = navPages.filter(page => page.navDropdown === 'threadrings');
   const helpPages = navPages.filter(page => page.navDropdown === 'help');
-  
+
+  const customPageItem = (page: { slug: string; title: string }): NavItem => ({
+    href: `/page/${page.slug}`,
+    label: page.title,
+  });
+
+  const sections: NavSection[] = [
+    {
+      key: 'discover',
+      title: 'Discover',
+      hubHref: '/discover',
+      hubLabel: 'Discover overview',
+      items: [
+        { href: '/neighborhood/explore/all', label: 'Neighborhoods' },
+        { href: '/explore/homes', label: 'All Homes' },
+        { href: '/discover/residents', label: 'Residents' },
+        { href: '/discover/search', label: 'Search' },
+        ...discoveryPages.map(customPageItem),
+      ],
+      activePrefixes: ['/discover', '/neighborhood', '/explore'],
+      activeExclusions: ['/discover/feed'],
+    },
+    {
+      key: 'threadrings',
+      title: 'ThreadRings',
+      hubHref: '/threadrings',
+      hubLabel: 'Browse Rings',
+      items: [
+        { href: '/tr/spool', label: 'The Spool' },
+        { href: '/threadrings/genealogy', label: 'Genealogy' },
+        ...threadRingsPages.map(customPageItem),
+      ],
+      activePrefixes: ['/threadrings', '/tr'],
+    },
+    {
+      key: 'build',
+      title: 'Build',
+      hubHref: '/build',
+      hubLabel: 'Build overview',
+      items: [
+        { href: '/build/templates', label: 'Templates' },
+        { href: '/build/getting-started', label: 'Getting Started' },
+      ],
+      activePrefixes: ['/build'],
+    },
+    {
+      key: 'help',
+      title: 'Help',
+      hubHref: '/help',
+      hubLabel: 'Help center',
+      items: [
+        { href: '/help/faq', label: 'FAQ' },
+        { href: '/help/music-guide', label: 'Music Guide' },
+        { href: '/help/contact', label: 'Contact' },
+        ...helpPages.map(customPageItem),
+      ],
+      activePrefixes: ['/help'],
+    },
+  ];
+
+  // Current path without query/hash, for active-state checks
+  const currentPath = router.asPath.split(/[?#]/)[0];
+
+  const pathStartsWith = (prefix: string) =>
+    currentPath === prefix || currentPath.startsWith(`${prefix}/`);
+
+  const isSectionActive = (section: NavSection) => {
+    if (section.activeExclusions?.some(pathStartsWith)) return false;
+    return section.activePrefixes.some(pathStartsWith);
+  };
+
+  const feedActive = pathStartsWith('/discover/feed');
+  const communityActive = pathStartsWith('/community') || pathStartsWith('/bulletin');
+
   // Close mobile menu when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -339,6 +431,13 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
     return () => document.removeEventListener('click', handleClickOutside);
   }, [activeDropdown]);
 
+  // Close any open dropdown after navigating
+  useEffect(() => {
+    setActiveDropdown(null);
+    setMobileMenuOpen(false);
+    setMobileDropdownOpen(null);
+  }, [currentPath]);
+
   // Advanced template mode: ZERO styling to avoid conflicts
   const headerClasses = advancedTemplate
     ? "" // Completely unstyled for advanced templates
@@ -348,98 +447,77 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
     ? "" // Completely unstyled for advanced templates
     : "site-navigation w-full px-2 sm:px-4 flex items-center justify-between"; // Always full-width
 
+  const mobileNavLinkClass = (active: boolean) =>
+    `block px-4 py-3 rounded font-medium ${
+      active
+        ? "bg-thread-background text-thread-sunset"
+        : "text-thread-pine hover:bg-thread-background hover:text-thread-sunset"
+    }`;
+
   return (
     <>
       <header ref={navRef} className={headerClasses}>
         <nav className={`${navClasses} mobile-nav-enhanced`}>
           <div className="site-branding flex-shrink-0">
-            <Link href="/" className="block hover:opacity-80 transition-opacity">
+            <Link href="/" className="block hover:opacity-80 transition-opacity" aria-label={`${config.site_name} home`}>
               <div className="flex items-center gap-2">
                 <h1 className="site-title thread-headline text-xl sm:text-2xl font-bold text-thread-pine">{config.site_name}</h1>
                 <span className="text-xs font-mono font-bold px-2 py-0.5 bg-thread-cream border border-thread-sage rounded text-thread-sage uppercase shadow-sm">
                   Beta
                 </span>
               </div>
-              <span className="site-tagline thread-label hidden sm:inline">{config.site_tagline}</span>
+              <span className="site-tagline thread-label hidden xl:inline">{config.site_tagline}</span>
             </Link>
           </div>
-          
+
           {/* Desktop Navigation */}
-          <div className="site-nav-container hidden lg:flex items-center gap-4 xl:gap-8 min-w-0">
-            <div className="site-nav-links flex items-center gap-3 xl:gap-6">
-              {/* Home link */}
+          <div className="site-nav-container hidden lg:flex items-center gap-3 lg:gap-4 xl:gap-8 min-w-0">
+            <div className="site-nav-links flex items-center gap-3 lg:gap-4 xl:gap-6">
+              {/* Feed - the most common destination gets a top-level spot */}
               <Link
-                className="nav-link nav-link-underline text-thread-pine hover:text-thread-sunset font-medium underline hover:no-underline"
-                href="/"
+                className={navLinkClass(feedActive)}
+                href="/discover/feed"
+                aria-current={feedActive ? 'page' : undefined}
               >
-                Home
+                Feed
               </Link>
 
               {/* Community Center link */}
               <Link
-                className="nav-link nav-link-underline text-thread-pine hover:text-thread-sunset font-medium underline hover:no-underline"
+                className={navLinkClass(communityActive)}
                 href="/community"
+                aria-current={communityActive ? 'page' : undefined}
               >
                 Community
               </Link>
 
-              {/* Discover dropdown - Neighborhoods as hero */}
-              <DropdownMenu
-                title="Discover"
-                dropdownKey="discover"
-                activeDropdown={activeDropdown}
-                setActiveDropdown={setActiveDropdown}
-                href="/discover"
-                items={[
-                  { href: "/neighborhood/explore/all", label: "Neighborhoods" },
-                  { href: "/discover/residents", label: "Residents" },
-                  { href: "/discover/feed", label: "Feed" },
-                  { href: "/discover/search", label: "Search" },
-                ]}
-              />
+              {sections.map((section) => (
+                <DropdownMenu
+                  key={section.key}
+                  section={section}
+                  active={isSectionActive(section)}
+                  activeDropdown={activeDropdown}
+                  setActiveDropdown={setActiveDropdown}
+                />
+              ))}
 
-              {/* Build dropdown */}
-              <DropdownMenu
-                title="Build"
-                dropdownKey="build"
-                activeDropdown={activeDropdown}
-                setActiveDropdown={setActiveDropdown}
-                href="/build"
-                items={[
-                  { href: "/build/templates", label: "Templates" },
-                  { href: "/build/getting-started", label: "Getting Started" }
-                ]}
-              />
-
-              {/* ThreadRings dropdown - STANDOUT FEATURE */}
-              <DropdownMenu
-                title="ThreadRings"
-                dropdownKey="threadrings"
-                activeDropdown={activeDropdown}
-                setActiveDropdown={setActiveDropdown}
-                href="/threadrings"
-                items={[
-                  { href: "/threadrings", label: "Browse Rings" },
-                  { href: "/tr/spool", label: "The Spool" },
-                ]}
-              />
-
-              {/* Help dropdown - REDUCED to core items */}
-              <DropdownMenu
-                title="Help"
-                dropdownKey="help"
-                activeDropdown={activeDropdown}
-                setActiveDropdown={setActiveDropdown}
-                href="/help"
-                items={[
-                  { href: "/help/faq", label: "FAQ" },
-                  { href: "/help/music-guide", label: "Music Guide" },
-                  { href: "/help/contact", label: "Contact" },
-                ]}
-              />
+              {/* Admin-configured top-level custom pages */}
+              {topLevelPages.map((page) => (
+                <Link
+                  key={page.id}
+                  className={navLinkClass(pathStartsWith(`/page/${page.slug}`))}
+                  href={`/page/${page.slug}`}
+                  aria-current={pathStartsWith(`/page/${page.slug}`) ? 'page' : undefined}
+                >
+                  {page.title}
+                </Link>
+              ))}
             </div>
             <div className="site-nav-actions flex items-center gap-2 xl:gap-4">
-              {isClient && me?.loggedIn ? (
+              {!isClient ? (
+                // Placeholder keeps layout stable until we know the auth state
+                <div className="w-24 h-8" aria-hidden="true" />
+              ) : me?.loggedIn ? (
                 <>
                   {isDesktop === true && <NotificationDropdown className="nav-link" />}
                   <UserDropdown />
@@ -451,7 +529,7 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
               )}
             </div>
           </div>
-          
+
           {/* Mobile Navigation Controls */}
           <div className="flex lg:hidden items-center gap-2">
             {isDesktop === false && <NotificationDropdown className="nav-link" />}
@@ -473,7 +551,7 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
             </button>
           </div>
         </nav>
-        
+
         {/* Mobile Menu Drawer */}
         {mobileMenuOpen && (
           <div
@@ -488,200 +566,93 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
             {...swipeHandlers}
           >
           <div className="px-4 py-2 pb-[calc(3rem+env(safe-area-inset-bottom))] space-y-2">
-            {/* Home link */}
+            {/* Common destinations stay one tap away */}
             <Link
-              href="/"
-              className="block px-4 py-3 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded font-medium"
+              href="/discover/feed"
+              className={mobileNavLinkClass(feedActive)}
+              aria-current={feedActive ? 'page' : undefined}
               onClick={() => setMobileMenuOpen(false)}
             >
-              Home
+              Feed
             </Link>
 
-            {/* Community Center link */}
             <Link
               href="/community"
-              className="block px-4 py-3 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded font-medium"
+              className={mobileNavLinkClass(communityActive)}
+              aria-current={communityActive ? 'page' : undefined}
               onClick={() => setMobileMenuOpen(false)}
             >
               Community
             </Link>
 
-            {/* Discover Section */}
-            <div>
-              <button
-                className="w-full px-3 py-2 text-left text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center justify-between font-medium"
-                onClick={() => setMobileDropdownOpen(mobileDropdownOpen === 'discover' ? null : 'discover')}
-                aria-expanded={mobileDropdownOpen === 'discover'}
-                aria-controls="mobile-section-discover"
-              >
-                <span>Discover</span>
-                <svg
-                  className={`w-4 h-4 transition-transform ${mobileDropdownOpen === 'discover' ? 'rotate-180' : ''}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              {mobileDropdownOpen === 'discover' && (
-                <div id="mobile-section-discover" className="ml-4 mt-2 space-y-1">
-                  <Link
-                    href="/neighborhood/explore/all"
-                    className="px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm block"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Neighborhoods
-                  </Link>
-                  <Link
-                    href="/discover/residents"
-                    className="px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm block"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Residents
-                  </Link>
-                  <Link
-                    href="/discover/feed"
-                    className="px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm block"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Feed
-                  </Link>
-                  <Link
-                    href="/discover/search"
-                    className="px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm block"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Search
-                  </Link>
-                </div>
-              )}
-            </div>
+            <Link
+              href="/discover/search"
+              className={mobileNavLinkClass(pathStartsWith('/discover/search'))}
+              aria-current={pathStartsWith('/discover/search') ? 'page' : undefined}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Search
+            </Link>
 
-            {/* Build Section */}
-            <div>
-              <button
-                className="w-full px-3 py-2 text-left text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center justify-between font-medium"
-                onClick={() => setMobileDropdownOpen(mobileDropdownOpen === 'build' ? null : 'build')}
-                aria-expanded={mobileDropdownOpen === 'build'}
-                aria-controls="mobile-section-build"
+            {/* Admin-configured top-level custom pages */}
+            {topLevelPages.map((page) => (
+              <Link
+                key={page.id}
+                href={`/page/${page.slug}`}
+                className={mobileNavLinkClass(pathStartsWith(`/page/${page.slug}`))}
+                onClick={() => setMobileMenuOpen(false)}
               >
-                <span>Build</span>
-                <svg
-                  className={`w-4 h-4 transition-transform ${mobileDropdownOpen === 'build' ? 'rotate-180' : ''}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              {mobileDropdownOpen === 'build' && (
-                <div id="mobile-section-build" className="ml-4 mt-2 space-y-1">
-                  <Link
-                    href="/build/templates"
-                    className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Templates
-                  </Link>
-                  <Link
-                    href="/build/getting-started"
-                    className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Getting Started
-                  </Link>
-                </div>
-              )}
-            </div>
+                {page.title}
+              </Link>
+            ))}
 
-            {/* ThreadRings Section - STANDOUT FEATURE */}
-            <div>
-              <button
-                className="w-full px-3 py-2 text-left text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center justify-between font-medium"
-                onClick={() => setMobileDropdownOpen(mobileDropdownOpen === 'threadrings' ? null : 'threadrings')}
-                aria-expanded={mobileDropdownOpen === 'threadrings'}
-                aria-controls="mobile-section-threadrings"
-              >
-                <span>ThreadRings</span>
-                <svg
-                  className={`w-4 h-4 transition-transform ${mobileDropdownOpen === 'threadrings' ? 'rotate-180' : ''}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
+            {/* Section accordions */}
+            {sections.map((section) => (
+              <div key={section.key}>
+                <button
+                  className={`w-full px-3 py-2 text-left rounded flex items-center justify-between font-medium ${
+                    isSectionActive(section)
+                      ? 'text-thread-sunset'
+                      : 'text-thread-pine hover:bg-thread-background hover:text-thread-sunset'
+                  }`}
+                  onClick={() => setMobileDropdownOpen(mobileDropdownOpen === section.key ? null : section.key)}
+                  aria-expanded={mobileDropdownOpen === section.key}
+                  aria-controls={`mobile-section-${section.key}`}
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              {mobileDropdownOpen === 'threadrings' && (
-                <div id="mobile-section-threadrings" className="ml-4 mt-2 space-y-1">
-                  <Link
-                    href="/threadrings"
-                    className="px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm block"
-                    onClick={() => setMobileMenuOpen(false)}
+                  <span>{section.title}</span>
+                  <svg
+                    className={`w-4 h-4 transition-transform ${mobileDropdownOpen === section.key ? 'rotate-180' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
                   >
-                    Browse Rings
-                  </Link>
-                  <Link
-                    href="/tr/spool"
-                    className="px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm block"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    The Spool
-                  </Link>
-                </div>
-              )}
-            </div>
-
-            {/* Help Section */}
-            <div>
-              <button
-                className="w-full px-3 py-2 text-left text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center justify-between font-medium"
-                onClick={() => setMobileDropdownOpen(mobileDropdownOpen === 'help' ? null : 'help')}
-                aria-expanded={mobileDropdownOpen === 'help'}
-                aria-controls="mobile-section-help"
-              >
-                <span>Help</span>
-                <svg
-                  className={`w-4 h-4 transition-transform ${mobileDropdownOpen === 'help' ? 'rotate-180' : ''}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              {mobileDropdownOpen === 'help' && (
-                <div id="mobile-section-help" className="ml-4 mt-2 space-y-1">
-                  <Link
-                    href="/help/faq"
-                    className="px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm block"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    FAQ
-                  </Link>
-                  <Link
-                    href="/help/music-guide"
-                    className="px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm block"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Music Guide
-                  </Link>
-                  <Link
-                    href="/help/contact"
-                    className="px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm block"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Contact
-                  </Link>
-                </div>
-              )}
-            </div>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {mobileDropdownOpen === section.key && (
+                  <div id={`mobile-section-${section.key}`} className="ml-4 mt-2 space-y-1">
+                    <Link
+                      href={section.hubHref}
+                      className="px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm font-medium block"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      {section.hubLabel} →
+                    </Link>
+                    {section.items.map((item) => (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className="px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded text-sm block"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        {item.label}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
 
             {/* Login Status */}
             <div className="border-t border-thread-sage pt-3 mt-3">

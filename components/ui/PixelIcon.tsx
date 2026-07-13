@@ -81,6 +81,7 @@ export type PixelIconName =
   | 'gift'
   | 'lock'
   | 'lock-open'
+  | 'logout'
   | 'shield'
   | 'sliders'
   | 'trash'

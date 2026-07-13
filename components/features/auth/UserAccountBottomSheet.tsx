@@ -114,15 +114,6 @@ export default function UserAccountBottomSheet({ isOpen, onClose }: UserAccountB
 
             {/* Settings & Account */}
             <Link
-              href="/me"
-              className="block px-3 py-3 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-3 min-h-[48px]"
-              onClick={onClose}
-            >
-              <PixelIcon name="file" size={20} />
-              <span className="font-medium">My Page</span>
-            </Link>
-
-            <Link
               href="/settings"
               className="block px-3 py-3 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-3 min-h-[48px]"
               onClick={onClose}
@@ -137,7 +128,7 @@ export default function UserAccountBottomSheet({ isOpen, onClose }: UserAccountB
                 className="block px-3 py-3 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-3 min-h-[48px]"
                 onClick={onClose}
               >
-                <PixelIcon name="sliders" size={20} />
+                <PixelIcon name="shield" size={20} />
                 <span className="font-medium">Admin Panel</span>
               </Link>
             )}
@@ -158,7 +149,7 @@ export default function UserAccountBottomSheet({ isOpen, onClose }: UserAccountB
             }}
             className="account-logout-button w-full px-3 py-3 bg-red-50 border-2 border-red-400 text-red-700 hover:bg-red-100 hover:border-red-500 rounded flex items-center justify-center gap-3 min-h-[48px] font-medium active:scale-[0.98] transition-transform"
           >
-            <PixelIcon name="external-link" size={20} />
+            <PixelIcon name="logout" size={20} />
             <span>Log Out</span>
           </button>
         </div>

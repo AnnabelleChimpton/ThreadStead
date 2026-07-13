@@ -108,15 +108,6 @@ export default function UserDropdown({ isMobile = false, onItemClick }: UserDrop
         <div className="border-t border-gray-200 my-1"></div>
 
         <Link
-          href="/me"
-          className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-2 min-h-[48px]"
-          onClick={onItemClick}
-        >
-          <PixelIcon name="file" />
-          My Page
-        </Link>
-
-        <Link
           href="/settings"
           className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-2 min-h-[48px]"
           onClick={onItemClick}
@@ -131,7 +122,7 @@ export default function UserDropdown({ isMobile = false, onItemClick }: UserDrop
             className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-2 min-h-[48px]"
             onClick={onItemClick}
           >
-            <PixelIcon name="sliders" />
+            <PixelIcon name="shield" />
             Admin Panel
           </Link>
         )}
@@ -145,7 +136,7 @@ export default function UserDropdown({ isMobile = false, onItemClick }: UserDrop
           }}
           className="block w-full px-3 py-2 text-left text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-2 min-h-[48px]"
         >
-          <PixelIcon name="external-link" />
+          <PixelIcon name="logout" />
           Log Out
         </button>
       </div>
@@ -215,15 +206,6 @@ export default function UserDropdown({ isMobile = false, onItemClick }: UserDrop
 
             {/* Settings & Account */}
             <Link
-              href="/me"
-              className="user-dropdown-item flex items-center gap-2 px-3 py-2 text-xs sm:text-sm text-thread-charcoal hover:bg-thread-cream"
-              onClick={() => setIsOpen(false)}
-            >
-              <PixelIcon name="file" />
-              My Page
-            </Link>
-
-            <Link
               href="/settings"
               className="user-dropdown-item flex items-center gap-2 px-3 py-2 text-xs sm:text-sm text-thread-charcoal hover:bg-thread-cream"
               onClick={() => setIsOpen(false)}
@@ -238,7 +220,7 @@ export default function UserDropdown({ isMobile = false, onItemClick }: UserDrop
                 className="user-dropdown-item flex items-center gap-2 px-3 py-2 text-xs sm:text-sm text-thread-charcoal hover:bg-thread-cream"
                 onClick={() => setIsOpen(false)}
               >
-                <PixelIcon name="sliders" />
+                <PixelIcon name="shield" />
                 Admin Panel
               </Link>
             )}
@@ -252,7 +234,7 @@ export default function UserDropdown({ isMobile = false, onItemClick }: UserDrop
               }}
               className="user-dropdown-item flex items-center gap-2 w-full px-3 py-2 text-xs sm:text-sm text-thread-charcoal hover:bg-thread-cream text-left"
             >
-              <PixelIcon name="external-link" />
+              <PixelIcon name="logout" />
               Log Out
             </button>
           </div>

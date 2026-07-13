@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MarkdownWithEmojis } from '@/lib/comment-markup';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface NewsItem {
   id: string;
@@ -83,8 +84,8 @@ export default function AnnouncementsPanel() {
 
   return (
     <div className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-3 sm:p-4 mb-3 sm:mb-4 w-full max-w-full overflow-hidden">
-      <h3 className="text-base sm:text-lg font-bold mb-2 sm:mb-3 text-[#2E4B3F] px-1">
-        📢 Announcements
+      <h3 className="text-base sm:text-lg font-bold mb-2 sm:mb-3 text-[#2E4B3F] px-1 flex items-center gap-2">
+        <PixelIcon name="speaker" size={18} className="inline-block" /> Announcements
       </h3>
 
       <div className="p-2 sm:p-3">
