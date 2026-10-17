@@ -1,0 +1,306 @@
+/* Bundled default site theme.
+   Served when SiteConfig "site_custom_css" has no row. Admin → Site CSS
+   overrides it; saving an empty value there turns site CSS off.
+   Read at runtime by lib/utils/css/site-css-server.ts (not compiled into
+   the Tailwind bundle), so it is delivered exactly like the admin CSS. */
+
+/* ================ 90s Cozy Notebook — v2 ================
+   Same look as v1. What changed:
+   - Buttons: the bevel is still the default for <button>, but it never sets
+     `display` (v1's inline-block beat Tailwind's `hidden`/`md:hidden`, so
+     "hidden" buttons showed), hover no longer moves anything (press only),
+     disabled buttons look disabled, and `.ts-tab` / `.ts-bare` /
+     `.threadring-tab` / nav-link buttons opt out instead of undoing it.
+   - `.btn--secondary` actually renders cream (v1's `a.btn` out-ranked it).
+   - Cards: one shared block for every framed surface; no empty ::before/::after.
+   - Readable accents: rose/lavender stay as fills; text and focus rings use
+     darker "-ink" versions (rose on cream was ~2:1).
+   - .template-card's lavender showcase look no longer hits RetroCard
+     (`thread-module template-card`), so settings and admin cards match the rest.
+   - Reduced motion: shortens animations instead of `* { … !important }`.
+   ========================================================== */
+
+/* ---------------- 1. Tokens ---------------- */
+:root {
+  --ha-surface:   #9dbfd3;  /* dusty sky blue */
+  --ha-header:    #f2c6a0;  /* peach parchment */
+  --ha-paper:     #fffaf5;  /* cream card background */
+
+  --ha-ink-dark:  #4a403d;  /* espresso ink: text, titles */
+  --ha-ink-mid:   #5c6e70;  /* gray-green ink: borders, meta (5.2:1 on cream) */
+
+  --ha-rose:      #d9a9b5;  /* dusty rose accent (fills, borders) */
+  --ha-lav:       #c0b7f9;  /* muted lavender accent (fills, borders) */
+  --ha-butter:    #f6e27f;  /* butter yellow accent (fills) */
+
+  /* Darker partners for text and focus rings on light grounds */
+  --ha-rose-ink:  #8c4a5b;  /* 6.3:1 on cream */
+  --ha-lav-ink:   #5a4fb3;  /* 6.3:1 on cream, 3.4:1 on the blue surface */
+
+  /* Peach bevel shades */
+  --ha-peach-hi:  #ffe7cf;
+  --ha-peach-lo:  #e1b489;
+  --ha-peach-edge:#cd9d70;
+  --ha-peach-hover:#fff1d0;
+  --ha-peach-press:#e7b88e;
+
+  --ha-card:      linear-gradient(to bottom, #fffefd, var(--ha-paper) 85%);
+  --ha-shadow:    3px 3px 0 var(--ha-ink-mid);
+  --ha-shadow-sm: 2px 2px 0 var(--ha-ink-mid);
+
+  --retro-pattern-opacity: 0.16; /* surface texture intensity */
+}
+
+/* ---------------- 2. Surface: soft stationery stripes on dusty blue ---------------- */
+.thread-surface {
+  background:
+    linear-gradient(45deg, rgba(255,255,255,var(--retro-pattern-opacity)) 25%, rgba(255,255,255,0) 25%) 0 0/10px 10px,
+    linear-gradient(45deg, rgba(0,0,0, calc(var(--retro-pattern-opacity) * 0.25)) 25%, rgba(0,0,0,0) 25%) 5px 5px/10px 10px,
+    radial-gradient(1200px 800px at 10% -10%, rgba(255,255,255,0.25), transparent 50%),
+    radial-gradient(1200px 800px at 110% 110%, rgba(255,255,255,0.15), transparent 50%),
+    var(--ha-surface);
+  color: var(--ha-ink-dark);
+}
+
+/* ---------------- 3. Header / footer: peach band with bevel ---------------- */
+.site-header, .site-footer {
+  background: linear-gradient(to bottom, #fbe2c9, var(--ha-header) 70%, var(--ha-peach-lo));
+  border-top: 2px solid #fff3e7;
+  border-bottom: 2px solid var(--ha-peach-edge);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 2px 0 rgba(0,0,0,0.06);
+  color: var(--ha-ink-dark);
+}
+.site-footer a { color: var(--ha-ink-dark); text-underline-offset: .15em; }
+
+/* ---------------- 4. Ink: headings, labels, links, rules ---------------- */
+.thread-headline { color: var(--ha-ink-dark); }
+.thread-label { color: var(--ha-ink-mid); }
+a { color: var(--ha-ink-dark); text-decoration-color: var(--ha-ink-mid); }
+a:hover { color: var(--ha-rose-ink); text-decoration-color: currentColor; }
+
+.thread-divider {
+  border: 0;
+  border-top: 3px dotted var(--ha-ink-mid);
+}
+.thread-divider::before { display: none; }
+
+/* ---------------- 5. Cards: double border + pixel shadow ---------------- */
+.thread-module,
+.widget-container,
+.home-hero,
+.threadring-hero {
+  position: relative;
+  background: var(--ha-card);
+  border: 2px solid var(--ha-ink-mid);
+  outline: 2px solid var(--ha-header);   /* peach inner ring */
+  outline-offset: -6px;
+  box-shadow: var(--ha-shadow), 6px 6px 0 rgba(0,0,0,0.08);
+  border-radius: 6px;
+  color: var(--ha-ink-dark);
+}
+.thread-module,
+.widget-container { padding: clamp(0.75rem, 1.5vw, 1rem); }
+
+/* Hero frames: a little roomier */
+.home-hero,
+.threadring-hero {
+  outline-offset: -8px;
+  box-shadow: 4px 4px 0 var(--ha-ink-mid);
+  border-radius: 8px;
+}
+.home-hero {
+  max-width: 68rem;
+  margin: 2.5rem auto;
+  padding: clamp(1rem, 3vw, 2rem);
+}
+.home-hero h1, .home-hero h2,
+.threadring-hero h1 { color: var(--ha-ink-dark); text-wrap: balance; }
+.threadring-hero p { color: var(--ha-ink-mid); }
+.home-hero .hero-ctas { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1rem; }
+
+/* Widget structure */
+.widget-header {
+  display: flex; align-items: center; gap: .5rem;
+  margin-bottom: .5rem; color: var(--ha-ink-dark); font-weight: 800;
+}
+.widget-header .widget-title { font-size: 1rem; line-height: 1.2; }
+.widget-header .widget-actions { margin-left: auto; display: flex; gap: .4rem; }
+.widget-body { color: var(--ha-ink-dark); }
+.widget-footer {
+  margin-top: .75rem; padding-top: .5rem;
+  border-top: 3px dotted var(--ha-ink-mid);
+  display: flex; gap: .5rem; flex-wrap: wrap;
+}
+.widget-container ul { margin: .25rem 0 .25rem 1.1rem; }
+.widget-container li + li { margin-top: .25rem; }
+
+/* Widget variants */
+.widget-container.widget--compact { padding: .6rem .7rem; box-shadow: var(--ha-shadow-sm); }
+.widget-container.widget--compact .widget-header { margin-bottom: .35rem; }
+.widget-container.widget--flat { outline: none; box-shadow: var(--ha-shadow-sm); }
+.widget-container.widget--ghost {
+  background: var(--ha-paper); outline: none; box-shadow: none;
+  border: 1px solid var(--ha-ink-mid);
+}
+.widget-grid { display: grid; gap: .75rem; }
+@media (min-width: 640px)  { .widget-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+@media (min-width: 1024px) { .widget-grid { grid-template-columns: repeat(3, minmax(0,1fr)); } }
+
+/* Small cards: getting-started steps, ring cards, template showcase */
+.step-card,
+.threadring-card,
+.template-card:not(.thread-module) {
+  background: var(--ha-card);
+  border: 2px solid var(--ha-ink-mid);
+  box-shadow: var(--ha-shadow-sm);
+  border-radius: 8px;
+  color: var(--ha-ink-dark);
+}
+.getting-steps h3 { margin-top: 1.25rem; }
+.getting-steps h3 + p, .getting-steps h3 + a { margin-top: .25rem; }
+.step-card { margin: .75rem 0; padding: .9rem 1rem; }
+.step-card .step-num {
+  display: inline-block; font-weight: 800; margin-right: .5rem;
+  background: var(--ha-butter); padding: .1rem .5rem; border-radius: 6px;
+  border: 1px solid #cabd57; color: #4a3f00;
+}
+.template-card:not(.thread-module) {
+  display: block; padding: .9rem 1rem; margin: .75rem 0; color: inherit; text-decoration: none;
+  background: linear-gradient(to bottom, #ffffff, #f4f2ff 85%);
+  border-color: var(--ha-lav);
+}
+.template-card .tag { margin-left: .5rem; }
+
+/* Hover: the border darkens; nothing moves */
+.threadring-card:hover,
+.template-card:not(.thread-module):hover { border-color: var(--ha-ink-dark); }
+.threadring-card-title { color: var(--ha-ink-dark); }
+.threadring-card:hover .threadring-card-title { color: var(--ha-rose-ink); }
+.threadring-card .text-thread-sage,
+.threadring-card .text-thread-charcoal { color: var(--ha-ink-mid); }
+
+/* ---------------- 6. Buttons: peach bevel, press to push ---------------- */
+/* Default for plain <button>s (specificity of `button`, so any class wins).
+   Opt out with .ts-tab / .ts-bare. Never sets `display`. */
+button:where(:not(.ts-tab, .ts-bare, .threadring-tab, .site-nav-links *)),
+.btn {
+  background: linear-gradient(to bottom, var(--ha-peach-hi), var(--ha-header));
+  border: 2px outset var(--ha-ink-mid);
+  color: var(--ha-ink-dark);
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-weight: 700;
+  line-height: 1.2;
+  cursor: pointer;
+  box-shadow: var(--ha-shadow-sm);
+  text-shadow: 0 1px 0 rgba(255,255,255,0.45);
+  text-decoration: none;
+  transition: transform 0.08s ease, box-shadow 0.08s ease, background-color 0.12s ease;
+}
+.btn { display: inline-block; }   /* links only; harmless for <button class="btn"> */
+.btn--secondary { background: linear-gradient(to bottom, #ffffff, var(--ha-paper)); }
+.btn--link {
+  border: 0; box-shadow: none; background: none; padding: 0;
+  color: var(--ha-ink-dark); text-decoration: underline; text-shadow: none;
+}
+
+button:where(:not(.ts-tab, .ts-bare, .threadring-tab, .site-nav-links *)):hover,
+.btn:hover {
+  background: linear-gradient(to bottom, var(--ha-peach-hover), #f6d2aa);
+  color: var(--ha-ink-dark);
+}
+.btn--secondary:hover { background: linear-gradient(to bottom, #ffffff, #fff1df); }
+.btn--link:hover { background: none; color: var(--ha-rose-ink); }
+
+button:where(:not(.ts-tab, .ts-bare, .threadring-tab, .site-nav-links *)):active,
+.btn:active {
+  border-style: inset;
+  background: var(--ha-peach-press);
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+.btn--link:active { background: none; transform: none; }
+
+button:where(:not(.ts-tab, .ts-bare, .threadring-tab, .site-nav-links *)):disabled,
+button:where(:not(.ts-tab, .ts-bare, .threadring-tab, .site-nav-links *)):disabled:hover {
+  opacity: .55;
+  cursor: not-allowed;
+  background: linear-gradient(to bottom, var(--ha-peach-hi), var(--ha-header));
+  transform: none;
+  box-shadow: var(--ha-shadow-sm);
+}
+
+/* ---------------- 7. Nav links: plain ink text ---------------- */
+.site-nav-links a,
+.site-nav-links button {
+  background: none; border: none; box-shadow: none; padding: 0;
+  margin: 0 0.75rem 0 0; border-radius: 0; font: inherit;
+  color: var(--ha-ink-dark); cursor: pointer; text-decoration: none;
+}
+.site-nav-links a:hover,
+.site-nav-links button:hover {
+  color: var(--ha-ink-dark);
+  text-decoration: underline;
+  text-underline-offset: .2em;
+}
+
+/* ---------------- 8. Tabs (ThreadRings index) ---------------- */
+.threadring-tab {
+  background: none; border: 0; border-bottom: 2px solid transparent; border-radius: 0;
+  padding: .5rem .75rem; color: var(--ha-ink-mid); font-weight: 600; cursor: pointer;
+}
+.threadring-tab:hover { color: var(--ha-ink-dark); }
+.threadring-tab.border-thread-pine {      /* active tab */
+  color: var(--ha-ink-dark);
+  border-bottom-color: var(--ha-ink-dark);
+}
+.threadring-hero input,
+.threadring-hero select {
+  background: #fffefd;
+  border: 2px solid var(--ha-ink-mid);
+  border-radius: 6px;
+  color: var(--ha-ink-dark);
+  box-shadow: none;
+}
+
+/* ---------------- 9. Badges, pills, tags ---------------- */
+.badge, .pill, .tag {
+  background: linear-gradient(to bottom, #ffffff, #fff8f0);
+  border: 1px solid var(--ha-ink-mid);
+  color: var(--ha-ink-dark);
+  border-radius: 999px;
+  padding: 0.125rem 0.5rem;
+  box-shadow: 1px 1px 0 var(--ha-ink-mid);
+}
+.badge--rose   { background: linear-gradient(to bottom, #fff, #fdeff3); border-color: var(--ha-rose); }
+.badge--lav    { background: linear-gradient(to bottom, #fff, #f4f2ff); border-color: var(--ha-lav); }
+.badge--butter { background: linear-gradient(to bottom, #fff, #fff6cc); border-color: #cabd57; }
+
+/* ---------------- 10. Focus rings ---------------- */
+:where(a, button, [role="button"], [role="tab"], input, select, textarea):focus-visible {
+  outline: 3px dashed var(--ha-lav-ink);
+  outline-offset: 2px;
+}
+
+/* ---------------- 11. Personal flourish: The Spool header wiggle ---------------- */
+.tr-spool-header .tr-spool-description { color: var(--ha-ink-dark); }
+@media (prefers-reduced-motion: no-preference) {
+  .tr-spool-header { animation: nb-wiggle 4s ease-in-out infinite alternate; }
+  @keyframes nb-wiggle {
+    from { transform: rotate(-0.6deg) translateY(0); }
+    to   { transform: rotate(0.6deg)  translateY(1px); }
+  }
+}
+
+/* ---------------- 12. Print / reduced motion ---------------- */
+@media print {
+  .thread-surface { background: #ffffff !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+    transition-duration: 0.01ms;
+    scroll-behavior: auto;
+  }
+}

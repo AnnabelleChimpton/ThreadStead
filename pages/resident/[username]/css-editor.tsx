@@ -655,24 +655,20 @@ export default function CSSEditorPage({
             {showReference && (
               <div style={{ width: '400px', flexShrink: 0 }} className="border-l border-gray-200 flex flex-col h-full overflow-hidden bg-white">
                 {/* Simple Tab Bar */}
-                <div className="flex border-b border-gray-200">
+                <div className="flex border-b border-gray-200" role="tablist">
                   <button
                     onClick={() => setActiveTab('generators')}
-                    className={`flex-1 px-4 py-3 text-sm font-medium transition-colors flex items-center justify-center gap-1 ${
-                      activeTab === 'generators'
-                        ? 'bg-white text-blue-600 border-b-2 border-blue-600'
-                        : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
-                    }`}
+                    role="tab"
+                    aria-selected={activeTab === 'generators'}
+                    className="ts-tab flex-1 inline-flex items-center justify-center gap-1 text-sm"
                   >
                     <PixelIcon name="paint-bucket" size={14} /> Generators
                   </button>
                   <button
                     onClick={() => setActiveTab('reference')}
-                    className={`flex-1 px-4 py-3 text-sm font-medium transition-colors flex items-center justify-center gap-1 ${
-                      activeTab === 'reference'
-                        ? 'bg-white text-blue-600 border-b-2 border-blue-600'
-                        : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
-                    }`}
+                    role="tab"
+                    aria-selected={activeTab === 'reference'}
+                    className="ts-tab flex-1 inline-flex items-center justify-center gap-1 text-sm"
                   >
                     <PixelIcon name="article" size={14} /> Reference
                   </button>

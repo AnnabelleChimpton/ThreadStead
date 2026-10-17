@@ -755,23 +755,21 @@ export default function PostEditor({
       <form onSubmit={handleSubmit} className="post-editor-container border border-black bg-white shadow-[4px_4px_0_#000] relative">
         {/* Tab Navigation */}
         <div className="border-b border-black bg-gray-50 p-3 flex items-center justify-between sticky top-0 z-20">
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2" role="tablist">
             <button
               type="button"
-              className={`px-4 py-2 border border-black text-sm font-medium shadow-[2px_2px_0_#000] transition-all flex items-center gap-2 ${activeTab === "write"
-                ? "bg-yellow-200 translate-y-0"
-                : "bg-white hover:bg-gray-100"
-                }`}
+              role="tab"
+              aria-selected={activeTab === "write"}
+              className="ts-tab inline-flex items-center gap-2 text-sm"
               onClick={() => setActiveTab("write")}
             >
               <PixelIcon name="edit" size={16} /> Write
             </button>
             <button
               type="button"
-              className={`px-4 py-2 border border-black text-sm font-medium shadow-[2px_2px_0_#000] transition-all flex items-center gap-2 ${activeTab === "preview"
-                ? "bg-yellow-200 translate-y-0"
-                : "bg-white hover:bg-gray-100"
-                }`}
+              role="tab"
+              aria-selected={activeTab === "preview"}
+              className="ts-tab inline-flex items-center gap-2 text-sm"
               onClick={() => setActiveTab("preview")}
             >
               <PixelIcon name="eye" size={16} /> Preview

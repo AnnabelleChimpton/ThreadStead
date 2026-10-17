@@ -5,9 +5,16 @@ type TabsProps = {
   tabs: TabSpec[];
   initialId?: string;   // from server
   syncWithUrl?: boolean;
+  /**
+   * "profile" (default): the profile-tab-* classes user templates restyle.
+   * "site": a notebook tab strip for site pages (feed, settings) that opts
+   * out of the site-wide button bevel. Never use "site" on profile pages —
+   * its unlayered .ts-tab rules would override users' template CSS.
+   */
+  variant?: "profile" | "site";
 };
 
-export default function Tabs({ tabs, initialId, syncWithUrl = true }: TabsProps) {
+export default function Tabs({ tabs, initialId, syncWithUrl = true, variant = "profile" }: TabsProps) {
   const firstId = tabs[0]?.id;
   // Initial state comes from server-provided initialId or first tab.
   const [active, setActive] = useState(initialId || firstId);
@@ -31,6 +38,34 @@ export default function Tabs({ tabs, initialId, syncWithUrl = true }: TabsProps)
     () => tabs.find(t => t.id === active)?.content,
     [tabs, active]
   );
+
+  if (variant === "site") {
+    return (
+      <div className="thread-module">
+        <div role="tablist" className="flex flex-wrap border-b-2 border-dotted border-nb-ink-mid/40 mb-4">
+          {tabs.map(t => {
+            const selected = t.id === active;
+            return (
+              <button
+                key={t.id}
+                role="tab"
+                aria-selected={selected}
+                aria-controls={`panel-${t.id}`}
+                id={`tab-${t.id}`}
+                onClick={() => setActive(t.id)}
+                className="ts-tab whitespace-nowrap text-sm sm:text-base [&_svg]:inline-block [&_svg]:align-[-3px] [&_svg]:mr-1"
+              >
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+        <div role="tabpanel" id={`panel-${active}`} aria-labelledby={`tab-${active}`}>
+          {activeContent}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="profile-tabs thread-module p-0 overflow-hidden">

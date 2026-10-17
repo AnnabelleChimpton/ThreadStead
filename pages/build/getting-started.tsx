@@ -27,15 +27,13 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
   }) => (
     <button
       onClick={() => setActiveTab(tabId)}
-      className={`px-3 py-2 text-sm border border-black font-medium transition-all ${
-        activeTab === tabId
-          ? "bg-yellow-200 text-black shadow-[3px_3px_0_#000]"
-          : "bg-white hover:bg-gray-50 text-gray-700 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000]"
-      }`}
+      role="tab"
+      aria-selected={activeTab === tabId}
+      aria-label={label}
+      className="ts-tab inline-flex items-center gap-1 text-sm"
     >
-      <span className="mr-1">{icon}</span>
+      <span aria-hidden="true">{icon}</span>
       <span className="hidden sm:inline">{label}</span>
-      <span className="sm:hidden">{icon}</span>
     </button>
   );
 
@@ -94,8 +92,8 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
         </RetroCard>
 
         {/* Navigation Tabs */}
-        <div className="bg-white border border-black shadow-[2px_2px_0_#000] p-4">
-          <div className="flex flex-wrap gap-2 justify-center">
+        <div className="thread-module">
+          <div className="flex flex-wrap gap-1 justify-center border-b-2 border-dotted border-nb-ink-mid/40" role="tablist">
             <TabButton tabId="overview" label="Quick Start" icon={<PixelIcon name="zap" size={14} />} />
             <TabButton tabId="threadrings" label="ThreadRings" icon={<PixelIcon name="link" size={14} />} />
             <TabButton tabId="profiles" label="Your Profile" icon={<PixelIcon name="user" size={14} />} />

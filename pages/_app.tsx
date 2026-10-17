@@ -1,6 +1,6 @@
-import type { AppProps } from "next/app";
+import App, { type AppContext, type AppProps } from "next/app";
 import Head from "next/head";
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import 'highlight.js/styles/github.css'; // Restore highlight.js for non-profile pages
 import "../styles/globals.css"; // Restore global CSS
 import "../styles/components.css"; // Component-specific styles (including bottom sheets)
@@ -35,7 +35,12 @@ import GlobalChatPopup from "@/components/chat/GlobalChatPopup";
 // Initialize ThreadRing reconciliation scheduler (server-side only)
 import "@/lib/domain/threadrings/reconciliation-bootstrap";
 
-export default function MyApp({ Component, pageProps }: AppProps) {
+type MyAppProps = AppProps & {
+  /** Site CSS fetched on the server for the first page load (see getInitialProps) */
+  appSiteCSS?: string;
+};
+
+export default function MyApp({ Component, pageProps, appSiteCSS }: MyAppProps) {
   const router = useRouter();
   const { user } = useCurrentUser();
 
@@ -46,10 +51,13 @@ export default function MyApp({ Component, pageProps }: AppProps) {
   // Conditionally load site CSS. Profile pages pre-fetch site CSS in SSR
   // (initialSiteCSS) — passing it through avoids the "Site CSS loading..."
   // placeholder flash on advanced pages, which render #site-wide-css below.
+  // The first load's server-rendered site CSS; kept across client navigations
+  // (getInitialProps only fetches it on the server).
+  const serverSiteCSS = useRef(appSiteCSS);
   const { css, loading } = useSiteCSS({
     skipDOMInjection: false,
     cssMode: cssMode,
-    initialCSS: pageProps.initialSiteCSS
+    initialCSS: pageProps.initialSiteCSS ?? serverSiteCSS.current
   });
 
   // Ensure Layout component is bundled to include its CSS dependencies
@@ -301,3 +309,16 @@ ${rest}`
     </GlobalAudioProvider>
   );
 }
+
+// Render the site CSS into the first HTML response so pages paint themed
+// instead of flashing the unthemed base styles until a client fetch lands.
+MyApp.getInitialProps = async (appContext: AppContext) => {
+  const appProps = await App.getInitialProps(appContext);
+  if (typeof window === "undefined") {
+    // Server-only: Next replaces `typeof window` at build time, so this
+    // import (and Prisma) never reaches the client bundle.
+    const { getSiteCSS } = await import("@/lib/utils/css/site-css-server");
+    return { ...appProps, appSiteCSS: await getSiteCSS() };
+  }
+  return appProps;
+};

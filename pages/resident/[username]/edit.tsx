@@ -621,7 +621,7 @@ export default function ProfileEditPage({
             </div>
           )}
 
-          <Tabs tabs={editTabs} initialId="profile" />
+          <Tabs tabs={editTabs} initialId="profile" variant="site" />
         </RetroCard>
       </Layout>
     </>

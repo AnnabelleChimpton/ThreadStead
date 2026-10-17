@@ -117,18 +117,24 @@ export default function GlobalChatPopup() {
       >
         {/* Header - compact on mobile */}
         <div className="bg-thread-cream border-b border-thread-sage px-2 py-2 flex items-center justify-between shrink-0 pointer-events-auto">
-          <div className="flex bg-thread-sage/10 rounded-lg p-1 gap-1">
+          <div className="flex gap-1" role="tablist">
             <button
               onClick={() => setActiveTab('lounge')}
-              className={`p-2 rounded ${activeTab === 'lounge' ? 'bg-white text-thread-pine shadow-sm' : 'text-thread-sage hover:text-thread-pine hover:bg-white/50'}`}
+              role="tab"
+              aria-selected={activeTab === 'lounge'}
+              className="ts-tab"
               title="Lounge"
+              aria-label="Lounge"
             >
               <PixelIcon name="chat" size={20} />
             </button>
             <button
               onClick={() => setActiveTab('messages')}
-              className={`p-2 rounded relative ${activeTab === 'messages' ? 'bg-white text-thread-pine shadow-sm' : 'text-thread-sage hover:text-thread-pine hover:bg-white/50'}`}
+              role="tab"
+              aria-selected={activeTab === 'messages'}
+              className="ts-tab relative"
               title="Messages"
+              aria-label="Messages"
             >
               <PixelIcon name="mail" size={20} />
               {totalUnreadCount > 0 && (

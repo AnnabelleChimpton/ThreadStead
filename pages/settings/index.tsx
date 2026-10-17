@@ -1832,7 +1832,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
             </div>
           )}
 
-          <Tabs tabs={settingsTabs} initialId={router.query.tab as string || "profile"} />
+          <Tabs tabs={settingsTabs} initialId={router.query.tab as string || "profile"} variant="site" />
         </RetroCard>
       </Layout>
     </>

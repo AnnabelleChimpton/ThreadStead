@@ -76,7 +76,7 @@ export default function FeedPage({ siteConfig }: FeedPageProps) {
         </div>
       </div>
 
-      <Tabs tabs={tabs} initialId="recent" />
+      <Tabs tabs={tabs} initialId="recent" variant="site" />
     </Layout>
   );
 }

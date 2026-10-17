@@ -1,3 +1,11 @@
+/* Cascade order (first declared = lowest priority). This must come before
+   the Tailwind import: Tailwind declares theme/base/components/utilities, and
+   any layer first named after that would out-rank every utility class.
+   Element defaults (browser/reset/global: headings, body, p margins) sit
+   below utilities so `text-base` or `mb-0` on an element actually applies;
+   site, template and user layers stay above so profile CSS can still win. */
+@layer theme, base, threadstead-browser, threadstead-reset, threadstead-global, components, utilities, threadstead-site, threadstead-components, threadstead-template, threadstead-user-base, threadstead-user-custom, threadstead-user-override, threadstead-user-nuclear;
+
 @import "tailwindcss";
 @config "../tailwind.config.js";
 

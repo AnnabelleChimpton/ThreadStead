@@ -190,7 +190,7 @@ export default function UsernameSelector({
 
   const getStatusIcon = () => {
     if (!username || !isValidFormat) return null;
-    if (isChecking) return <span className="text-gray-500"><PixelIcon name="clock" /></span>;
+    if (isChecking) return <span className="text-nb-ink-mid"><PixelIcon name="clock" /></span>;
     if (isAvailable === true) return <span className="text-green-600"><PixelIcon name="check" /></span>;
     if (isAvailable === false) return <span className="text-red-600"><PixelIcon name="close" /></span>;
     return null;
@@ -199,7 +199,7 @@ export default function UsernameSelector({
   const getStatusMessage = () => {
     if (!username) return null;
     if (!isValidFormat) return <span className="text-red-600 text-xs">Use 3–32 chars: start with letter, then a–z, 0–9, - _</span>;
-    if (isChecking) return <span className="text-gray-500 text-xs">Checking availability...</span>;
+    if (isChecking) return <span className="text-nb-ink-mid text-xs">Checking availability...</span>;
     if (error) return <span className="text-red-600 text-xs">{error}</span>;
     if (isAvailable === true) return <span className="text-green-600 text-xs">Username is available!</span>;
     return null;
@@ -211,10 +211,10 @@ export default function UsernameSelector({
 
   if (step === 'username') {
     return (
-      <div className="border border-black bg-white p-4 shadow-[4px_4px_0_#000] space-y-4 max-w-md">
+      <div className="widget-container bg-thread-paper border border-thread-sage rounded-cozy shadow-cozy p-4 sm:p-5 w-full space-y-4 max-w-md">
         <div>
-          <h3 className="text-lg font-bold">{title}</h3>
-          <p className="text-sm text-gray-600 mt-1">{subtitle}</p>
+          <h3 className="thread-headline text-lg font-bold">{title}</h3>
+          <p className="text-sm text-nb-ink-mid mt-1">{subtitle}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3">
@@ -226,7 +226,7 @@ export default function UsernameSelector({
                 value={username}
                 onChange={(e) => setUsername(e.target.value.toLowerCase())}
                 placeholder="yourname"
-                className="border border-black p-2 bg-white w-full pr-8"
+                className="border-2 border-nb-ink-mid/60 rounded-md p-2 bg-white w-full pr-8 focus:outline-none focus:border-nb-ink-mid"
                 disabled={isLoading}
                 maxLength={32}
               />
@@ -234,7 +234,7 @@ export default function UsernameSelector({
                 {getStatusIcon()}
               </div>
             </div>
-            <div className="text-xs text-gray-500 mt-1">@{process.env.NEXT_PUBLIC_SITE_HANDLE_DOMAIN || "YourSiteHere"}</div>
+            <div className="text-xs text-nb-ink-mid mt-1">@{process.env.NEXT_PUBLIC_SITE_HANDLE_DOMAIN || "YourSiteHere"}</div>
             <div className="mt-1">{getStatusMessage()}</div>
           </div>
 
@@ -242,11 +242,7 @@ export default function UsernameSelector({
             <button
               type="submit"
               disabled={!canConfirmUsername}
-              className={`border border-black px-4 py-2 shadow-[2px_2px_0_#000] transition-colors ${
-                canConfirmUsername 
-                  ? 'bg-green-200 hover:bg-green-100 cursor-pointer' 
-                  : 'bg-gray-200 text-gray-500 cursor-not-allowed opacity-50'
-              }`}
+              className="thread-button btn btn--primary disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Next
             </button>
@@ -255,7 +251,7 @@ export default function UsernameSelector({
               type="button"
               onClick={onCancel}
               disabled={isLoading}
-              className="border border-black px-4 py-2 bg-white hover:bg-gray-100 shadow-[2px_2px_0_#000]"
+              className="thread-button-secondary btn btn--secondary"
             >
               Cancel
             </button>
@@ -268,25 +264,25 @@ export default function UsernameSelector({
   // Policies step
   if (step === 'policies') {
     return (
-      <div className="border border-black bg-white p-4 shadow-[4px_4px_0_#000] space-y-4 max-w-2xl">
+      <div className="widget-container bg-thread-paper border border-thread-sage rounded-cozy shadow-cozy p-4 sm:p-5 w-full space-y-4 max-w-2xl">
         <div>
-          <h3 className="text-lg font-bold">Terms & Privacy Agreement</h3>
-          <p className="text-sm text-gray-600 mt-1">
+          <h3 className="thread-headline text-lg font-bold">Terms & Privacy Agreement</h3>
+          <p className="text-sm text-nb-ink-mid mt-1">
             Username: <span className="font-medium">@{username}</span>
           </p>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-nb-ink-mid">
             Please review and agree to our terms and privacy policy to continue.
           </p>
         </div>
 
         {loadingPolicies ? (
           <div className="text-center py-4">
-            <span className="text-gray-500">Loading policies...</span>
+            <span className="text-nb-ink-mid">Loading policies...</span>
           </div>
         ) : policies ? (
           <div className="space-y-4">
             {/* Terms Agreement */}
-            <div className="border border-gray-300 rounded p-3 bg-gray-50">
+            <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-3">
               <div className="flex items-start gap-3">
                 <input
                   type="checkbox"
@@ -299,18 +295,18 @@ export default function UsernameSelector({
                   <label htmlFor="agree-terms" className="font-medium text-sm cursor-pointer">
                     I agree to the Terms of Service
                   </label>
-                  <div className="text-xs text-gray-600 mt-2 p-2 bg-white border border-gray-200 rounded">
+                  <div className="text-xs text-nb-ink-mid mt-2 p-2 bg-white border border-nb-ink-mid/30 rounded">
                     {policies.terms_simple}
                   </div>
                   <button
                     type="button"
                     onClick={() => setShowFullTerms(!showFullTerms)}
-                    className="text-xs text-blue-600 hover:text-blue-800 underline mt-2"
+                    className="ts-bare text-xs underline mt-2"
                   >
                     {showFullTerms ? "Hide" : "Read"} full Terms of Service
                   </button>
                   {showFullTerms && (
-                    <div className="text-xs text-gray-700 mt-2 p-3 bg-white border border-gray-300 rounded max-h-40 overflow-y-auto">
+                    <div className="text-xs text-nb-ink mt-2 p-3 bg-white border border-nb-ink-mid/40 rounded max-h-40 overflow-y-auto">
                       <pre className="whitespace-pre-wrap font-sans">{policies.terms_full}</pre>
                     </div>
                   )}
@@ -319,7 +315,7 @@ export default function UsernameSelector({
             </div>
 
             {/* Privacy Agreement */}
-            <div className="border border-gray-300 rounded p-3 bg-gray-50">
+            <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-3">
               <div className="flex items-start gap-3">
                 <input
                   type="checkbox"
@@ -332,18 +328,18 @@ export default function UsernameSelector({
                   <label htmlFor="agree-privacy" className="font-medium text-sm cursor-pointer">
                     I agree to the Privacy Policy
                   </label>
-                  <div className="text-xs text-gray-600 mt-2 p-2 bg-white border border-gray-200 rounded">
+                  <div className="text-xs text-nb-ink-mid mt-2 p-2 bg-white border border-nb-ink-mid/30 rounded">
                     {policies.privacy_simple}
                   </div>
                   <button
                     type="button"
                     onClick={() => setShowFullPrivacy(!showFullPrivacy)}
-                    className="text-xs text-blue-600 hover:text-blue-800 underline mt-2"
+                    className="ts-bare text-xs underline mt-2"
                   >
                     {showFullPrivacy ? "Hide" : "Read"} full Privacy Policy
                   </button>
                   {showFullPrivacy && (
-                    <div className="text-xs text-gray-700 mt-2 p-3 bg-white border border-gray-300 rounded max-h-40 overflow-y-auto">
+                    <div className="text-xs text-nb-ink mt-2 p-3 bg-white border border-nb-ink-mid/40 rounded max-h-40 overflow-y-auto">
                       <pre className="whitespace-pre-wrap font-sans">{policies.privacy_full}</pre>
                     </div>
                   )}
@@ -362,11 +358,7 @@ export default function UsernameSelector({
             <button
               type="submit"
               disabled={!canConfirmPolicies}
-              className={`border border-black px-4 py-2 shadow-[2px_2px_0_#000] transition-colors ${
-                canConfirmPolicies 
-                  ? 'bg-green-200 hover:bg-green-100 cursor-pointer' 
-                  : 'bg-gray-200 text-gray-500 cursor-not-allowed opacity-50'
-              }`}
+              className="thread-button btn btn--primary disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isBetaEnabled ? "Next" : (isLoading ? "Creating..." : confirmButtonText)}
             </button>
@@ -375,7 +367,7 @@ export default function UsernameSelector({
               type="button"
               onClick={() => setStep('username')}
               disabled={isLoading}
-              className="border border-black px-4 py-2 bg-white hover:bg-gray-100 shadow-[2px_2px_0_#000]"
+              className="thread-button-secondary btn btn--secondary"
             >
               Back
             </button>
@@ -384,7 +376,7 @@ export default function UsernameSelector({
               type="button"
               onClick={onCancel}
               disabled={isLoading}
-              className="border border-black px-4 py-2 bg-white hover:bg-gray-100 shadow-[2px_2px_0_#000]"
+              className="thread-button-secondary btn btn--secondary"
             >
               Cancel
             </button>
@@ -396,19 +388,19 @@ export default function UsernameSelector({
 
   // Beta key step
   return (
-    <div className="border border-black bg-white p-4 shadow-[4px_4px_0_#000] space-y-4 max-w-md">
+    <div className="widget-container bg-thread-paper border border-thread-sage rounded-cozy shadow-cozy p-4 sm:p-5 w-full space-y-4 max-w-md">
       <div>
-        <h3 className="text-lg font-bold">Beta Access Required</h3>
-        <p className="text-sm text-gray-600 mt-1">
+        <h3 className="thread-headline text-lg font-bold">Beta Access Required</h3>
+        <p className="text-sm text-nb-ink-mid mt-1">
           Username: <span className="font-medium">@{username}</span>
         </p>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-nb-ink-mid">
           Enter your beta key to create this account.
         </p>
       </div>
 
       {betaStatusError && (
-        <div className="p-3 rounded text-sm bg-yellow-100 border border-yellow-300 text-yellow-800">
+        <div className="p-3 rounded-md text-sm border-2 border-dotted border-nb-ink-mid/60 bg-nb-paper text-nb-ink">
           <div className="flex items-center justify-between">
             <span>Failed to load beta status: {betaStatusError}</span>
             <button
@@ -416,7 +408,7 @@ export default function UsernameSelector({
                 setBetaStatusRetryCount(0);
                 checkBetaStatus();
               }}
-              className="ml-2 text-xs px-2 py-1 bg-yellow-200 hover:bg-yellow-300 rounded"
+              className="ml-2 thread-button-secondary btn btn--secondary text-xs"
             >
               Retry
             </button>
@@ -432,7 +424,7 @@ export default function UsernameSelector({
             value={betaKey}
             onChange={(e) => setBetaKey(e.target.value.toUpperCase())}
             placeholder="BETA-XXXX-XXXX-XXXX"
-            className="username-input border border-black p-2 bg-white w-full font-mono text-sm"
+            className="username-input border-2 border-nb-ink-mid/60 rounded-md p-2 bg-white w-full font-mono text-sm focus:outline-none focus:border-nb-ink-mid"
             disabled={isLoading}
           />
           {betaKey && (
@@ -449,11 +441,7 @@ export default function UsernameSelector({
           <button
             type="submit"
             disabled={!canConfirmBeta}
-            className={`border border-black px-4 py-2 shadow-[2px_2px_0_#000] transition-colors ${
-              canConfirmBeta 
-                ? 'bg-green-200 hover:bg-green-100 cursor-pointer' 
-                : 'bg-gray-200 text-gray-500 cursor-not-allowed opacity-50'
-            }`}
+            className="thread-button btn btn--primary disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? "Creating..." : confirmButtonText}
           </button>
@@ -462,7 +450,7 @@ export default function UsernameSelector({
             type="button"
             onClick={handleBackFromBeta}
             disabled={isLoading}
-            className="border border-black px-4 py-2 bg-white hover:bg-gray-100 shadow-[2px_2px_0_#000]"
+            className="thread-button-secondary btn btn--secondary"
           >
             Back
           </button>
@@ -471,7 +459,7 @@ export default function UsernameSelector({
             type="button"
             onClick={onCancel}
             disabled={isLoading}
-            className="border border-black px-4 py-2 bg-white hover:bg-gray-100 shadow-[2px_2px_0_#000]"
+            className="thread-button-secondary btn btn--secondary"
           >
             Cancel
           </button>

@@ -1,5 +1,6 @@
 import { db } from "@/lib/config/database/connection";
 import { apiHandler } from "@/lib/api/handler";
+import { getDefaultSiteCSS, invalidateSiteCSSCache } from "@/lib/utils/css/site-css-server";
 
 const SITE_CSS_KEY = "site_custom_css";
 
@@ -12,7 +13,8 @@ export default apiHandler(
           where: { key: SITE_CSS_KEY }
         });
 
-        res.json({ css: config?.value || "" });
+        // No saved row yet: show the bundled default, since that is what's live
+        res.json(config ? { css: config.value ?? "", isDefault: false } : { css: getDefaultSiteCSS(), isDefault: true });
       } catch (error) {
         console.error("Error fetching site CSS:", error);
         res.status(500).json({ error: "Failed to fetch site CSS" });
@@ -37,9 +39,10 @@ export default apiHandler(
           create: { key: SITE_CSS_KEY, value: sanitizedCSS },
         });
 
-        res.json({ 
-          success: true, 
-          css: config.value 
+        invalidateSiteCSSCache();
+        res.json({
+          success: true,
+          css: config.value
         });
       } catch (error) {
         console.error("Error updating site CSS:", error);
