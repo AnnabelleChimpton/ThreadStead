@@ -105,7 +105,8 @@ export class AuthenticatedRingHubClient {
     try {
       console.log('Ensuring user DID for userId:', this.userId);
       const userDIDMapping = await getOrCreateUserDID(this.userId);
-      console.log('User DID mapping:', userDIDMapping);
+      // Log the DID only: the mapping object carries the user's secret key.
+      console.log('User DID:', userDIDMapping.did);
       return userDIDMapping.did;
     } catch (error) {
       console.error('Failed to ensure user DID:', error);
