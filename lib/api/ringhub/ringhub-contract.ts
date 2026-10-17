@@ -212,6 +212,55 @@ export const RingFeedResponseSchema = z.object({
   hasMore: z.boolean(),
 })
 
+/**
+ * One post in GET /trp/my/feed and GET /trp/trending/feed (rings.ts formattedPosts).
+ * The hub derives `notificationType` from the RAW stored metadata before
+ * serializing, so a non-null `notificationType` with no `metadata.type` can
+ * only mean the response schema stripped `metadata` (it once declared it as a
+ * bare `type: 'object'`, which serialized every post's metadata to `{}`).
+ */
+const AggregatedFeedPostSchema = z
+  .object({
+    id: z.string(),
+    ringId: z.string(),
+    ringSlug: z.string(),
+    ringName: z.string(),
+    actorDid: z.string(),
+    actorName: z.string().nullish(),
+    uri: z.string(),
+    digest: z.string(),
+    submittedAt: z.string(),
+    submittedBy: z.string(),
+    status: z.string(),
+    metadata: z.unknown(),
+    pinned: z.boolean(),
+    isNotification: z.boolean(),
+    notificationType: z.string().nullish(),
+  })
+  .refine(
+    (p) => !p.notificationType || (p.metadata as { type?: unknown } | null)?.type === p.notificationType,
+    { message: 'feed metadata lost its fields — hub response-schema stripping regression' }
+  )
+
+/** GET /trp/my/feed → 200 (rings.ts). */
+export const MyFeedResponseSchema = z.object({
+  posts: z.array(AggregatedFeedPostSchema),
+  pagination: z.object({
+    total: z.number(),
+    limit: z.number(),
+    offset: z.number(),
+    hasMore: z.boolean(),
+  }),
+  generatedAt: z.string(),
+})
+
+/** GET /trp/trending/feed → 200 (rings.ts). */
+export const TrendingFeedResponseSchema = z.object({
+  posts: z.array(AggregatedFeedPostSchema),
+  timeWindow: z.string(),
+  generatedAt: z.string(),
+})
+
 /** POST /trp/curate → 200 (content.ts; author and moderator paths share this core). */
 export const CuratePostResponseSchema = z.object({
   post: PostRefSchema,

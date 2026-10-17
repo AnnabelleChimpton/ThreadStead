@@ -350,6 +350,24 @@ export class AuthenticatedRingHubClient {
   }
 
   /**
+   * Change a member's role as this user. The hub authorizes by the CALLER's
+   * own membership (manage_members), so this must be signed as the ring
+   * owner — the server DID isn't a member of user-owned rings.
+   */
+  async updateMemberRole(slug: string, memberDid: string, role: 'member' | 'moderator') {
+    const userClient = await this.getUserClient()
+    return await userClient.updateMemberRole(slug, memberDid, role)
+  }
+
+  /**
+   * Remove a member as this user (the hub requires the caller to hold the owner role).
+   */
+  async removeMember(slug: string, memberDid: string) {
+    const userClient = await this.getUserClient()
+    return await userClient.removeMember(slug, memberDid)
+  }
+
+  /**
    * Curate/moderate a post as this user (requires curator/moderator permissions)
    */
   async curatePost(postId: string, action: 'accept' | 'reject' | 'pin' | 'unpin' | 'remove', options?: {

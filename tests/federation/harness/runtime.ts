@@ -17,6 +17,10 @@ export interface FederationRuntime {
   privateKeyBase64Url: string
   publicKeyBase64: string
   publicKeyMultibase: string
+  secondActorDid: string
+  secondPrivateKeyBase64Url: string
+  unresolvableActorDid: string
+  unresolvablePrivateKeyBase64Url: string
   ringSlug: string
   hubLogPath: string
 }

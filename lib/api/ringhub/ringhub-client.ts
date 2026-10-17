@@ -18,6 +18,8 @@ import {
   RingFeedResponseSchema,
   CuratePostResponseSchema,
   ActorBadgesResponseSchema,
+  MyFeedResponseSchema,
+  TrendingFeedResponseSchema,
 } from './ringhub-contract'
 
 // Types for Ring Hub API compatibility
@@ -351,12 +353,13 @@ export class RingHubClient {
     memberships: Array<{
       ringSlug: string
       ringName: string
-      ringDescription?: string
+      // null when unset; hubs before the 0.5 schema fix sent "" instead
+      ringDescription?: string | null
       ringVisibility: 'PUBLIC' | 'UNLISTED' | 'PRIVATE'
       status: 'ACTIVE' | 'PENDING' | 'REVOKED'
-      role: 'owner' | 'moderator' | 'member'
-      joinedAt: string
-      badgeId?: string
+      role: 'owner' | 'moderator' | 'member' | null
+      joinedAt: string | null
+      badgeId?: string | null
     }>
     total: number
     limit: number
@@ -453,14 +456,16 @@ export class RingHubClient {
    * Update a member's role
    */
   async updateMemberRole(slug: string, actorDid: string, role: 'member' | 'moderator'): Promise<{
-    success: boolean
+    message: string
     member: {
       actorDid: string
       role: string
       updatedAt: string
     }
   }> {
-    return this.put(`/trp/rings/${slug}/members/${actorDid}`, { role })
+    // Encode the DID: the hub decodes path params, so a did:web with a
+    // percent-encoded port (did:web:host%3A3000) would otherwise not match.
+    return this.put(`/trp/rings/${slug}/members/${encodeURIComponent(actorDid)}`, { role })
   }
 
   /**
@@ -470,7 +475,7 @@ export class RingHubClient {
     success: boolean
     message: string
   }> {
-    return this.delete(`/trp/rings/${slug}/members/${actorDid}`)
+    return this.delete(`/trp/rings/${slug}/members/${encodeURIComponent(actorDid)}`)
   }
 
   // Content Operations
@@ -715,7 +720,8 @@ export class RingHubClient {
     if (options?.sort) params.append('sort', options.sort);
 
     const queryString = params.toString();
-    return this.get(`/trp/my/feed${queryString ? `?${queryString}` : ''}`);
+    const response = await this.get(`/trp/my/feed${queryString ? `?${queryString}` : ''}`);
+    return validateRingHubResponse('GET /trp/my/feed', MyFeedResponseSchema, response);
   }
 
   /**
@@ -756,7 +762,8 @@ export class RingHubClient {
     }
 
     const queryString = params.toString();
-    return this.get(`/trp/trending/feed${queryString ? `?${queryString}` : ''}`);
+    const response = await this.get(`/trp/trending/feed${queryString ? `?${queryString}` : ''}`);
+    return validateRingHubResponse('GET /trp/trending/feed', TrendingFeedResponseSchema, response);
   }
 
   // HTTP Helper Methods with Signature Authentication
@@ -859,8 +866,10 @@ export class RingHubClient {
       // endpoint degraded gracefully. Swallowing it (old behavior: console.warn only) hid
       // stale-key breakage as a normal empty response. Surface it as a typed auth error so
       // callers can distinguish "auth broken" from "no data".
+      // The public client never signs, so the hub always reports "Missing signature
+      // header" to it — that's expected, not an auth failure.
       const authError = response.headers.get('X-RingHub-Auth-Error')
-      if (authError) {
+      if (authError && !isPublicClient) {
         console.warn(`⚠️ RingHub Authentication Failed Silently: ${authError}`)
         throw new RingHubAuthError(`RingHub authentication failed: ${authError}`, {
           code: 'X-RingHub-Auth-Error',

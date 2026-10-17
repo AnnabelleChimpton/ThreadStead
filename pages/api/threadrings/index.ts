@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/config/database/connection";
 import { getSessionUser } from "@/lib/auth/server";
 import { withThreadRingSupport } from "@/lib/api/ringhub/ringhub-middleware";
-import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
+import { getPublicRingHubClient } from "@/lib/api/ringhub/ringhub-client";
 import { createAuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
 import { cached } from "@/lib/api/ringhub/ringhub-cache";
 import { RingHubAuthError, RingHubUnavailableError } from "@/lib/api/ringhub/ringhub-errors";
@@ -28,12 +28,15 @@ export default withThreadRingSupport(async function handler(
 
     // Use Ring Hub if enabled
     if (system === 'ringhub') {
-      // Use authenticated client if user is logged in for membership info
+      // Logged-in viewers get a user-signed client (for currentUserMembership).
+      // Anonymous viewers get the UNSIGNED public client: signing as the instance
+      // DID gains nothing here, and when the hub can't resolve that key it turns
+      // every listing into an auth error (the 2026-10-17 directory outage).
       let ringHubClient;
       if (viewer) {
         ringHubClient = createAuthenticatedRingHubClient(viewer.id);
       } else {
-        ringHubClient = getRingHubClient();
+        ringHubClient = getPublicRingHubClient();
         if (!ringHubClient) {
           return res.status(500).json({ error: "Ring Hub client not configured" });
         }
@@ -81,8 +84,10 @@ export default withThreadRingSupport(async function handler(
 
       let result;
       try {
+        // Signed responses carry the signer's currentUserMembership, so they must
+        // never be shared across viewers.
         result = await cached(
-          `list-rings:${JSON.stringify(ringHubOptions)}`,
+          `list-rings:${viewer ? `viewer:${viewer.id}` : 'anon'}:${JSON.stringify(ringHubOptions)}`,
           30_000,
           5 * 60_000,
           () => ringHubClient.listRings(ringHubOptions)
@@ -110,7 +115,7 @@ export default withThreadRingSupport(async function handler(
             );
             membershipsResult.memberships.forEach(membership => {
               viewerMemberships.set(membership.ringSlug, {
-                role: membership.role.toLowerCase(),
+                role: (membership.role ?? '').toLowerCase(),
                 joinedAt: membership.joinedAt
               });
             });
@@ -131,7 +136,7 @@ export default withThreadRingSupport(async function handler(
       let transformedRings = result.rings.map((descriptor: any) => {
         // Use new API data if available, otherwise fallback to old API data
         let viewerMembership = null;
-        if (descriptor.currentUserMembership) {
+        if (viewer && descriptor.currentUserMembership) {
           // New API has membership data with updated structure
           if (descriptor.currentUserMembership.status === 'ACTIVE') {
             viewerMembership = {

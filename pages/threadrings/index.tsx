@@ -118,6 +118,10 @@ export default function ThreadRingsPage({ siteConfig }: ThreadRingsPageProps) {
       const response = await fetch(`/api/threadrings?${params}`);
       
       if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        if (body?.degraded) {
+          throw new Error("We can't reach the ThreadRing hub right now. Try again in a minute.");
+        }
         throw new Error("Failed to fetch ThreadRings");
       }
 

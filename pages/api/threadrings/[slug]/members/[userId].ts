@@ -3,7 +3,9 @@ import { db } from "@/lib/config/database/connection";
 import { getSessionUser } from "@/lib/auth/server";
 import { SITE_NAME } from "@/lib/config/site/constants";
 import { featureFlags } from "@/lib/utils/features/feature-flags";
-import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
+import { getPublicRingHubClient, RingHubClientError } from "@/lib/api/ringhub/ringhub-client";
+import { createAuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
+import { RingHubAuthError, RingHubUnavailableError } from "@/lib/api/ringhub/ringhub-errors";
 import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
 import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
 
@@ -27,14 +29,20 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
     // Try RingHub first if enabled
     if (featureFlags.ringhub()) {
-      const client = getRingHubClient();
-      if (client) {
+      const publicClient = getPublicRingHubClient();
+      if (publicClient) {
+        let ring = null;
         try {
-          const ring = await client.getRing(slug);
+          ring = await publicClient.getRing(slug);
+        } catch (lookupError) {
+          // Can't tell whether this is a hub ring; keep the old local fallback.
+          console.error("RingHub ring lookup failed in member management:", lookupError);
+        }
 
-          if (ring) {
-            // This is a RingHub ring - use RingHub API
-
+        if (ring) {
+          // This is a hub ring: the hub owns its memberships and roles, so a
+          // hub failure is reported as-is — never written to the local mirror.
+          try {
             // Check if viewer owns this ring locally
             const ownership = await db.ringHubOwnership.findUnique({
               where: { ringSlug: slug }
@@ -54,7 +62,15 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
               return res.status(404).json({ error: "User not found" });
             }
 
-            const targetDid = targetUser.did;
+            // The hub knows members by their federation DID (UserDID), which can
+            // differ from User.did (e.g. a migrated did:key).
+            const userDid = await db.userDID.findUnique({
+              where: { userId: targetUser.id },
+              select: { did: true }
+            });
+            const targetDid = userDid?.did ?? targetUser.did;
+            // Signed as the ring owner: the hub authorizes by the caller's membership.
+            const ownerClient = createAuthenticatedRingHubClient(viewer.id);
 
             if (req.method === "PUT") {
               // Update role
@@ -64,7 +80,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 return res.status(400).json({ error: "Invalid role. Must be 'member' or 'moderator'" });
               }
 
-              await client.updateMemberRole(slug, targetDid, role as 'member' | 'moderator');
+              await ownerClient.updateMemberRole(slug, targetDid, role as 'member' | 'moderator');
 
               const memberHandle = targetUser.handles.find(h => h.host === SITE_NAME)?.handle ||
                 targetUser.handles[0]?.handle ||
@@ -78,7 +94,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
             } else {
               // Remove member (DELETE)
-              await client.removeMember(slug, targetDid);
+              await ownerClient.removeMember(slug, targetDid);
 
               const memberHandle = targetUser.handles.find(h => h.host === SITE_NAME)?.handle ||
                 targetUser.handles[0]?.handle ||
@@ -89,10 +105,27 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 message: `${memberHandle} has been removed from the ThreadRing`
               });
             }
+          } catch (ringHubError) {
+            console.error("RingHub error in member management:", ringHubError);
+            // A 401 here means the hub rejected the owner's signing key — a hub-side
+            // auth problem, not a logged-out viewer.
+            if (
+              ringHubError instanceof RingHubAuthError ||
+              ringHubError instanceof RingHubUnavailableError ||
+              (ringHubError instanceof RingHubClientError && ringHubError.status === 401)
+            ) {
+              return res.status(503).json({
+                error: "We can't reach the ThreadRing hub right now. Try again in a minute.",
+                degraded: true
+              });
+            }
+            if (ringHubError instanceof RingHubClientError && ringHubError.status && ringHubError.status < 500) {
+              return res.status(ringHubError.status).json({
+                error: ringHubError.data?.message || ringHubError.message
+              });
+            }
+            return res.status(502).json({ error: "The ThreadRing hub couldn't make that change. Try again in a minute." });
           }
-        } catch (ringHubError) {
-          console.error("RingHub error in member management:", ringHubError);
-          // Fall through to local database
         }
       }
     }

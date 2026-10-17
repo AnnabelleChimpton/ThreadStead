@@ -11,7 +11,8 @@
  * Run with: npm run test:federation
  */
 import { RingHubClient, RingHubClientError } from '@/lib/api/ringhub/ringhub-client'
-import { makeTestClient, getRuntime } from './harness/test-client'
+import { RingHubAuthError } from '@/lib/api/ringhub/ringhub-errors'
+import { makeTestClient, makePublicTestClient, getRuntime } from './harness/test-client'
 
 // One membership lifecycle threads through this whole file, in order.
 let client: RingHubClient
@@ -20,6 +21,9 @@ let actorDid: string
 
 const POST_URI = 'https://threadstead-itest.invalid/posts/itest-post-1'
 const POST_DIGEST = 'sha256:itest-digest-1'
+// Owned by the main actor; forked in the 0.5 block, managed in the 0.8 block
+// (the hub's fork quality gate allows one empty fork per actor).
+const FORK_SLUG = 'itest-fork-nodesc'
 
 beforeAll(() => {
   const rt = getRuntime()
@@ -52,6 +56,22 @@ describe('ring discovery', () => {
 
   test('getRing returns null for a missing ring', async () => {
     await expect(client.getRing('does-not-exist')).resolves.toBeNull()
+  })
+})
+
+describe('anonymous ring listing (2026-10-17 outage)', () => {
+  test('a signer the hub cannot resolve gets an auth error even on public listings', async () => {
+    // Prod failure mode: "Unknown key: did:web:homepageagain.com#key-1". The
+    // hub still answers 200 but flags X-RingHub-Auth-Error, which the client
+    // raises — so signing an anonymous listing makes it depend on key health.
+    await expect(makeTestClient('unresolvable').listRings({ limit: 5 })).rejects.toBeInstanceOf(RingHubAuthError)
+  })
+
+  test('the public client lists rings unsigned and ignores the expected auth header', async () => {
+    const result = await makePublicTestClient().listRings({ sort: 'created', order: 'desc', limit: 20 })
+    expect(result.rings.some((r) => r.slug === ringSlug)).toBe(true)
+    // Unsigned, so no viewer membership can leak into a shared response.
+    expect(result.rings.every((r: any) => r.currentUserMembership === undefined)).toBe(true)
   })
 })
 
@@ -111,6 +131,103 @@ describe('post submission (the `{}` regression)', () => {
     const post = feed.posts.find((p) => p.uri === POST_URI)
     expect(post).toBeDefined()
     expect(post!.status).toBe('ACCEPTED')
+  })
+})
+
+describe('aggregated feeds + memberships (audit 0.5: stripped metadata, null → "")', () => {
+  // Same metadata pages/api/threadrings/[slug]/fork.ts submits to the parent ring.
+  const FORK_NOTE_URI = 'threadring://threadstead-itest.invalid/rings/itest-fork-note'
+  const forkNoteMetadata = {
+    type: 'fork_notification',
+    title: 'A new ring forked from this one',
+    forkedRing: { id: 'itest-fork-id', slug: 'itest-forked', name: 'Forked Ring', description: null },
+  }
+
+  test('submitPost keeps metadata keys outside the declared whitelist', async () => {
+    const result = await client.submitPost(ringSlug, {
+      uri: FORK_NOTE_URI,
+      digest: 'sha256:itest-fork-note',
+      metadata: forkNoteMetadata,
+    })
+    expect(result.metadata).toMatchObject(forkNoteMetadata)
+  })
+
+  test('getMyFeed returns full post metadata, not {}', async () => {
+    const feed = await client.getMyFeed({ limit: 50 })
+    const post = feed.posts.find((p) => p.uri === POST_URI)
+    expect(post?.metadata).toMatchObject({ title: 'Integration test post', tags: ['itest'] })
+
+    const note = feed.posts.find((p) => p.uri === FORK_NOTE_URI)
+    expect(note?.isNotification).toBe(true)
+    expect(note?.notificationType).toBe('fork_notification')
+    // RingHubFeed.tsx renders fork notifications only when BOTH agree.
+    expect(note?.metadata).toMatchObject(forkNoteMetadata)
+  })
+
+  test('getTrendingFeed returns full post metadata, not {}', async () => {
+    const feed = await client.getTrendingFeed({ timeWindow: 'hour', limit: 50 })
+    const post = feed.posts.find((p) => p.uri === POST_URI)
+    expect(post?.metadata).toMatchObject({ title: 'Integration test post' })
+    expect(feed.posts.find((p) => p.uri === FORK_NOTE_URI)?.metadata).toMatchObject(forkNoteMetadata)
+  })
+
+  test('getMyMemberships sends real values and null — never "" for missing ones', async () => {
+    // A ring with no description, owned by the test actor (rings are created
+    // by forking the spool, as ringhub-user-operations.createRing does).
+    await client.forkRing('spool', { name: 'Fork Without Description', slug: FORK_SLUG })
+
+    const result = await client.getMyMemberships({ status: 'ACTIVE' })
+    const joined = result.memberships.find((m) => m.ringSlug === ringSlug)
+    expect(joined?.ringDescription).toBe('Ring used by the federation integration suite')
+    expect(joined?.role).toBe('member')
+    expect(typeof joined?.badgeId).toBe('string')
+    expect(joined?.badgeId).not.toBe('')
+    expect(Number.isNaN(Date.parse(joined!.joinedAt!))).toBe(false)
+
+    const owned = result.memberships.find((m) => m.ringSlug === FORK_SLUG)
+    expect(owned?.role).toBe('owner')
+    // fast-json-stringify coerces null to "" unless the field is nullable.
+    expect(owned?.ringDescription).toBeNull()
+  })
+})
+
+describe('owner member management (audit 0.8)', () => {
+  let second: RingHubClient
+  let secondDid: string
+
+  beforeAll(() => {
+    second = makeTestClient('second')
+    secondDid = getRuntime().secondActorDid
+  })
+
+  test('a non-member cannot change roles (why server-DID-signed calls failed)', async () => {
+    // pages/api/threadrings/[slug]/members/[userId].ts used to sign as the
+    // server DID, which is not a member of user-owned rings.
+    await expect(second.updateMemberRole(FORK_SLUG, actorDid, 'member')).rejects.toMatchObject({ status: 403 })
+  })
+
+  test('the owner can promote a member to moderator on an API-created ring', async () => {
+    await second.joinRing(FORK_SLUG)
+    // Rings from /trp/fork used to get only owner + member → 400 "Role not found".
+    const result = await client.updateMemberRole(FORK_SLUG, secondDid, 'moderator')
+    expect(result.member.role).toBe('moderator')
+
+    const memberships = await second.getMyMemberships({ status: 'ACTIVE' })
+    expect(memberships.memberships.find((m) => m.ringSlug === FORK_SLUG)?.role).toBe('moderator')
+  })
+
+  test('a moderator cannot assign roles (moderator lacks manage_members)', async () => {
+    await expect(second.updateMemberRole(FORK_SLUG, actorDid, 'member')).rejects.toMatchObject({ status: 403 })
+  })
+
+  test('the owner can demote and then remove a member', async () => {
+    const demoted = await client.updateMemberRole(FORK_SLUG, secondDid, 'member')
+    expect(demoted.member.role).toBe('member')
+
+    const removed = await client.removeMember(FORK_SLUG, secondDid)
+    expect(removed.success).toBe(true)
+    const memberships = await second.getMyMemberships({ status: 'ACTIVE' })
+    expect(memberships.memberships.find((m) => m.ringSlug === FORK_SLUG)).toBeUndefined()
   })
 })
 

@@ -112,43 +112,48 @@ export default async function globalSetup(): Promise<void> {
     env: { ...process.env, DATABASE_URL: databaseUrl },
   })
 
-  // 3. Serve a REAL DID document for the test actor, exactly as ThreadStead
-  //    serves user DIDs in production. The hub resolves it during /trp/join
-  //    (loopback did:web resolves over plain http).
-  const keys = generateTestKeys()
+  // 3. Serve REAL DID documents for the test actors, exactly as ThreadStead
+  //    serves user DIDs in production. The hub resolves them during /trp/join
+  //    (loopback did:web resolves over plain http). itest1 is the main actor;
+  //    itest2 is a second member for owner-side member management.
   const didPort = await freePort()
-  const testActorDid = `did:web:localhost%3A${didPort}:users:itest1`
-  const didDocument = {
-    '@context': [
-      'https://www.w3.org/ns/did/v1',
-      'https://w3id.org/security/suites/ed25519-2020/v1',
-    ],
-    id: testActorDid,
-    verificationMethod: [
-      {
-        id: `${testActorDid}#key-1`,
-        type: 'Ed25519VerificationKey2020',
-        controller: testActorDid,
-        publicKeyBase64: keys.publicKeyBase64,
-      },
-    ],
-    authentication: [`${testActorDid}#key-1`],
-    assertionMethod: [`${testActorDid}#key-1`],
-    service: [
-      {
-        id: `${testActorDid}#profile`,
-        type: 'Profile',
-        serviceEndpoint: `http://localhost:${didPort}/users/itest1/profile`,
-      },
-    ],
-  }
+  const actors = ['itest1', 'itest2'].map((name) => {
+    const keys = generateTestKeys()
+    const did = `did:web:localhost%3A${didPort}:users:${name}`
+    const document = {
+      '@context': [
+        'https://www.w3.org/ns/did/v1',
+        'https://w3id.org/security/suites/ed25519-2020/v1',
+      ],
+      id: did,
+      verificationMethod: [
+        {
+          id: `${did}#key-1`,
+          type: 'Ed25519VerificationKey2020',
+          controller: did,
+          publicKeyBase64: keys.publicKeyBase64,
+        },
+      ],
+      authentication: [`${did}#key-1`],
+      assertionMethod: [`${did}#key-1`],
+      service: [
+        {
+          id: `${did}#profile`,
+          type: 'Profile',
+          serviceEndpoint: `http://localhost:${didPort}/users/${name}/profile`,
+        },
+      ],
+    }
+    return { name, did, keys, document }
+  })
   const didServer = http.createServer((req, res) => {
-    if (req.url === '/users/itest1/did.json') {
+    const actor = actors.find((a) => req.url === `/users/${a.name}/did.json` || req.url === `/users/${a.name}/profile`)
+    if (actor && req.url!.endsWith('/did.json')) {
       res.setHeader('content-type', 'application/json')
-      res.end(JSON.stringify(didDocument))
-    } else if (req.url === '/users/itest1/profile') {
+      res.end(JSON.stringify(actor.document))
+    } else if (actor) {
       res.setHeader('content-type', 'application/json')
-      res.end(JSON.stringify({ actorName: 'Integration Test Actor' }))
+      res.end(JSON.stringify({ actorName: `Integration Test Actor ${actor.name}` }))
     } else {
       res.statusCode = 404
       res.end('not found')
@@ -156,18 +161,25 @@ export default async function globalSetup(): Promise<void> {
   })
   await new Promise<void>((resolve) => didServer.listen(didPort, '127.0.0.1', resolve))
 
-  // 4. Seed: test ring + pre-verified actor + cached signing key.
+  // 4. Seed: test ring + pre-verified actors + cached signing keys.
   const ringSlug = 'itest-ring'
-  sh('npx tsx scripts/seed-integration.ts', {
-    cwd: hubApiDir,
-    env: {
-      ...process.env,
-      DATABASE_URL: databaseUrl,
-      TEST_ACTOR_DID: testActorDid,
-      TEST_ACTOR_PUBKEY_B64: keys.publicKeyBase64,
-      TEST_RING_SLUG: ringSlug,
-    },
-  })
+  for (const actor of actors) {
+    sh('npx tsx scripts/seed-integration.ts', {
+      cwd: hubApiDir,
+      env: {
+        ...process.env,
+        DATABASE_URL: databaseUrl,
+        TEST_ACTOR_DID: actor.did,
+        TEST_ACTOR_PUBKEY_B64: actor.keys.publicKeyBase64,
+        TEST_RING_SLUG: ringSlug,
+      },
+    })
+  }
+  const [mainActor, secondActor] = actors
+
+  // A signer the hub can NEVER resolve: not seeded, and its did:web host
+  // doesn't exist — reproduces the prod "Unknown key" failure.
+  const unresolvableKeys = generateTestKeys()
 
   // 5. Boot the hub.
   const port = await freePort()
@@ -204,9 +216,13 @@ export default async function globalSetup(): Promise<void> {
     hubUrl,
     hubPid: hub.pid!,
     databaseUrl,
-    testActorDid,
-    privateKeyBase64Url: keys.privateKeyBase64Url,
-    publicKeyBase64: keys.publicKeyBase64,
+    testActorDid: mainActor.did,
+    privateKeyBase64Url: mainActor.keys.privateKeyBase64Url,
+    publicKeyBase64: mainActor.keys.publicKeyBase64,
+    secondActorDid: secondActor.did,
+    secondPrivateKeyBase64Url: secondActor.keys.privateKeyBase64Url,
+    unresolvableActorDid: 'did:web:unresolvable.invalid:users:ghost',
+    unresolvablePrivateKeyBase64Url: unresolvableKeys.privateKeyBase64Url,
     // The client requires SOME multibase value but never uses it for signing.
     publicKeyMultibase: 'z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK',
     ringSlug,
