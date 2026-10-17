@@ -2,6 +2,7 @@ import { getSiteBaseUrl } from '@/lib/config/site-url';
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { db } from "@/lib/config/database/connection";
 import { SITE_NAME } from "@/lib/config/site/constants";
+import { apiHandler } from '@/lib/api/handler';
 
 /**
  * Users API Endpoint
@@ -10,12 +11,7 @@ import { SITE_NAME } from "@/lib/config/site/constants";
  * - GET /users?format=did -> DID mappings directory (legacy)
  * - GET /users?sort=active -> Active users for discover page
  */
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'GET') {
-    res.setHeader('Allow', ['GET'])
-    return res.status(405).json({ error: 'Method Not Allowed' })
-  }
-
+export default apiHandler({ methods: ['GET'], auth: 'none' }, async (req, res) => {
   try {
     const format = req.query.format as string;
     const sort = req.query.sort as string;
@@ -35,7 +31,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       message: 'Failed to process request'
     })
   }
-}
+})
 
 async function handleDIDDirectory(req: NextApiRequest, res: NextApiResponse) {
   // Load all user DID mappings from the authoritative UserDID table

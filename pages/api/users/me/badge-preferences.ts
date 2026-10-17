@@ -1,11 +1,10 @@
 // pages/api/users/me/badge-preferences.ts
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { getSessionUser } from '@/lib/auth/server'
+import { apiHandler } from '@/lib/api/handler'
 import { db } from '@/lib/config/database/connection'
 import { featureFlags } from '@/lib/utils/features/feature-flags'
 import { getPublicRingHubClient } from '@/lib/api/ringhub/ringhub-client'
 import { getUserDID } from '@/lib/api/did/server-did-client'
-import { withCsrfProtection } from '@/lib/api/middleware/withCsrfProtection'
 
 export type UserBadgePreferences = {
   selectedBadges: Array<{
@@ -23,21 +22,17 @@ export type UserBadgePreferences = {
   showBadgesOnProfile: boolean
 }
 
-async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const user = await getSessionUser(req)
-  if (!user) {
-    return res.status(401).json({ error: 'Authentication required' })
+export default apiHandler(
+  { methods: ['GET', 'PUT'], auth: 'user' },
+  async (req, res, { user }) => {
+    switch (req.method) {
+      case 'GET':
+        return getBadgePreferences(req, res, user.id)
+      case 'PUT':
+        return updateBadgePreferences(req, res, user.id)
+    }
   }
-
-  switch (req.method) {
-    case 'GET':
-      return getBadgePreferences(req, res, user.id)
-    case 'PUT':
-      return updateBadgePreferences(req, res, user.id)
-    default:
-      return res.status(405).json({ error: 'Method not allowed' })
-  }
-}
+)
 
 async function getBadgePreferences(req: NextApiRequest, res: NextApiResponse, userId: string) {
   try {
@@ -225,5 +220,3 @@ async function updateBadgePreferences(req: NextApiRequest, res: NextApiResponse,
     return res.status(500).json({ error: 'Failed to update badge preferences' })
   }
 }
-
-export default withCsrfProtection(handler);

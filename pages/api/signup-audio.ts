@@ -1,6 +1,6 @@
-import { NextApiRequest, NextApiResponse } from 'next';
 import fs from 'fs';
 import path from 'path';
+import { apiHandler } from '@/lib/api/handler';
 
 const AUDIO_CONFIG_FILE = path.join(process.cwd(), 'data', 'signup-audio-config.json');
 
@@ -23,27 +23,26 @@ function getAudioConfig(): AudioConfig {
   return { enabled: false, volume: 0.7 };
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  const config = getAudioConfig();
+export default apiHandler(
+  { methods: ['GET'], auth: 'none' },
+  async (_req, res) => {
+    const config = getAudioConfig();
   
-  if (!config.enabled || !config.filename) {
-    return res.json({ enabled: false });
-  }
+    if (!config.enabled || !config.filename) {
+      return res.json({ enabled: false });
+    }
 
-  // Check if file exists
-  const filePath = path.join(process.cwd(), 'public', 'uploads', 'admin', config.filename);
-  if (!fs.existsSync(filePath)) {
-    return res.json({ enabled: false });
-  }
+    // Check if file exists
+    const filePath = path.join(process.cwd(), 'public', 'uploads', 'admin', config.filename);
+    if (!fs.existsSync(filePath)) {
+      return res.json({ enabled: false });
+    }
 
-  return res.json({
-    enabled: true,
-    url: `/uploads/admin/${config.filename}`,
-    volume: config.volume || 0.7,
-    originalName: config.originalName,
-  });
-}
+    return res.json({
+      enabled: true,
+      url: `/uploads/admin/${config.filename}`,
+      volume: config.volume || 0.7,
+      originalName: config.originalName,
+    });
+  }
+);

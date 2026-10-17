@@ -2,14 +2,12 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/config/database/connection";
 import type { UploadContext } from "@prisma/client";
 
-import { getSessionUser } from "@/lib/auth/server";
 import { requireAction } from "@/lib/domain/users/capabilities";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import sharp from "sharp";
 import multer from "multer";
 import { promisify } from "util";
-import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
-import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
+import { apiHandler } from "@/lib/api/handler";
 
 
 
@@ -253,170 +251,164 @@ async function processAndUploadMedia(
   };
 }
 
-async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method Not Allowed" });
-  }
-
-  const me = await getSessionUser(req);
-  if (!me) {
-    return res.status(401).json({ error: "Not logged in" });
-  }
-
-  // Check rate limiting
-  if (!checkRateLimit(me.id)) {
-    return res.status(429).json({ 
-      error: "Rate limit exceeded. Maximum 30 uploads per day." 
-    });
-  }
-
-  // Check user quota
-  if (!(await checkUserQuota(me.id))) {
-    return res.status(413).json({ 
-      error: "Monthly upload quota exceeded (50 images per month)" 
-    });
-  }
-
-  try {
-    // Handle file upload
-    await uploadSingle(req as any, res as any);
-    const file = (req as any).file;
-    
-    if (!file) {
-      return res.status(400).json({ error: "No file uploaded" });
-    }
-
-    // Validate file type and size (HEIC removed - handled by client-side compression)
-    const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-    const allowedMidiTypes = ['audio/midi', 'audio/x-midi', 'application/x-midi', 'audio/mid'];
-    const allowedTypes = [...allowedImageTypes, ...allowedMidiTypes];
-
-    // Check by MIME type first
-    const isAllowedByMime = allowedTypes.includes(file.mimetype);
-
-    // For MIDI files, also check by extension as fallback
-    const isMidiByExtension = file.originalname.toLowerCase().endsWith('.mid') ||
-                              file.originalname.toLowerCase().endsWith('.midi');
-
-    if (!isAllowedByMime && !isMidiByExtension) {
-      return res.status(400).json({
-        error: "Invalid file type. Only JPEG, PNG, WebP, GIF, and MIDI files are allowed. (HEIC files are automatically converted on upload)"
+export default apiHandler(
+  { methods: ['POST'], auth: 'user', rateLimit: 'uploads' },
+  async (req, res, { user: me }) => {
+    // Check rate limiting
+    if (!checkRateLimit(me.id)) {
+      return res.status(429).json({ 
+        error: "Rate limit exceeded. Maximum 30 uploads per day." 
       });
     }
 
-    // Content-based validation for anything treated as MIDI: the MIME type
-    // and extension are client-controlled, so require the real "MThd" magic
-    // bytes before storing. Without this a file named song.mid could hold
-    // HTML and later be served inline from our origin (stored XSS).
-    const treatedAsMidi = allowedMidiTypes.includes(file.mimetype) || isMidiByExtension;
-    if (treatedAsMidi && !allowedImageTypes.includes(file.mimetype)) {
-      const head = file.buffer as Buffer;
-      if (head.length < 4 || head.toString('ascii', 0, 4) !== 'MThd') {
-        return res.status(400).json({ error: "That doesn't look like a MIDI file." });
+    // Check user quota
+    if (!(await checkUserQuota(me.id))) {
+      return res.status(413).json({ 
+        error: "Monthly upload quota exceeded (50 images per month)" 
+      });
+    }
+
+    try {
+      // Handle file upload
+      await uploadSingle(req as any, res as any);
+      const file = (req as any).file;
+    
+      if (!file) {
+        return res.status(400).json({ error: "No file uploaded" });
       }
-      // Enforce the 1MB MIDI limit the client and docs promise (the multer
-      // cap is 25MB for camera photos).
-      if (head.length > 1024 * 1024) {
-        return res.status(400).json({ error: "MIDI files must be 1MB or smaller." });
+
+      // Validate file type and size (HEIC removed - handled by client-side compression)
+      const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+      const allowedMidiTypes = ['audio/midi', 'audio/x-midi', 'application/x-midi', 'audio/mid'];
+      const allowedTypes = [...allowedImageTypes, ...allowedMidiTypes];
+
+      // Check by MIME type first
+      const isAllowedByMime = allowedTypes.includes(file.mimetype);
+
+      // For MIDI files, also check by extension as fallback
+      const isMidiByExtension = file.originalname.toLowerCase().endsWith('.mid') ||
+                                file.originalname.toLowerCase().endsWith('.midi');
+
+      if (!isAllowedByMime && !isMidiByExtension) {
+        return res.status(400).json({
+          error: "Invalid file type. Only JPEG, PNG, WebP, GIF, and MIDI files are allowed. (HEIC files are automatically converted on upload)"
+        });
       }
-    }
 
-    // Check capability
-    const { cap, caption, title, context, ringSlug } = req.body;
-    if (!cap) {
-      return res.status(401).json({ error: "Capability required" });
-    }
+      // Content-based validation for anything treated as MIDI: the MIME type
+      // and extension are client-controlled, so require the real "MThd" magic
+      // bytes before storing. Without this a file named song.mid could hold
+      // HTML and later be served inline from our origin (stored XSS).
+      const treatedAsMidi = allowedMidiTypes.includes(file.mimetype) || isMidiByExtension;
+      if (treatedAsMidi && !allowedImageTypes.includes(file.mimetype)) {
+        const head = file.buffer as Buffer;
+        if (head.length < 4 || head.toString('ascii', 0, 4) !== 'MThd') {
+          return res.status(400).json({ error: "That doesn't look like a MIDI file." });
+        }
+        // Enforce the 1MB MIDI limit the client and docs promise (the multer
+        // cap is 25MB for camera photos).
+        if (head.length > 1024 * 1024) {
+          return res.status(400).json({ error: "MIDI files must be 1MB or smaller." });
+        }
+      }
 
-    const resource = `user:${me.id}/media`;
-    const ok = await requireAction("write:media", (resStr) => resStr === resource)(cap).catch(() => null);
-    if (!ok) {
-      return res.status(403).json({ error: "Invalid capability" });
-    }
+      // Check capability
+      const { cap, caption, title, context, ringSlug } = req.body;
+      if (!cap) {
+        return res.status(401).json({ error: "Capability required" });
+      }
 
-    // Determine upload context and gallery visibility
-    const uploadContext: UploadContext =
-      context === 'post_embed' ? 'post_embed' :
-      context === 'threadring_badge' ? 'threadring_badge' :
-      'media_collection';
-    const isGalleryItem = uploadContext === 'media_collection';
+      const resource = `user:${me.id}/media`;
+      const ok = await requireAction("write:media", (resStr) => resStr === resource)(cap).catch(() => null);
+      if (!ok) {
+        return res.status(403).json({ error: "Invalid capability" });
+      }
 
-    // Process and upload media
-    const { thumbnailUrl, mediumUrl, fullUrl, metadata, mediaType } = await processAndUploadMedia(
-      file.buffer,
-      me.id,
-      file.mimetype,
-      file.originalname,
-      uploadContext
-    );
+      // Determine upload context and gallery visibility
+      const uploadContext: UploadContext =
+        context === 'post_embed' ? 'post_embed' :
+        context === 'threadring_badge' ? 'threadring_badge' :
+        'media_collection';
+      const isGalleryItem = uploadContext === 'media_collection';
 
-    // Check if this should be featured (only for gallery items)
-    let shouldFeature = false;
-    let featuredOrder = null;
+      // Process and upload media
+      const { thumbnailUrl, mediumUrl, fullUrl, metadata, mediaType } = await processAndUploadMedia(
+        file.buffer,
+        me.id,
+        file.mimetype,
+        file.originalname,
+        uploadContext
+      );
 
-    if (isGalleryItem) {
-      const featuredCount = await db.media.count({
-        where: { userId: me.id, featured: true }
+      // Check if this should be featured (only for gallery items)
+      let shouldFeature = false;
+      let featuredOrder = null;
+
+      if (isGalleryItem) {
+        const featuredCount = await db.media.count({
+          where: { userId: me.id, featured: true }
+        });
+
+        shouldFeature = featuredCount < 6;
+        featuredOrder = shouldFeature ? featuredCount + 1 : null;
+      }
+
+      // Save media record to database
+      const mediaRecord = await db.media.create({
+        data: {
+          userId: me.id,
+          caption: caption?.trim() || null,
+          title: title?.trim() || null,
+          thumbnailUrl,
+          mediumUrl,
+          fullUrl,
+          originalName: file.originalname,
+          fileSize: metadata.fileSize,
+          mimeType: file.mimetype,
+          mediaType,
+          width: metadata.width || null,
+          height: metadata.height || null,
+          featured: shouldFeature,
+          featuredOrder,
+          uploadContext,
+          isGalleryItem,
+        },
       });
 
-      shouldFeature = featuredCount < 6;
-      featuredOrder = shouldFeature ? featuredCount + 1 : null;
-    }
+      return res.status(200).json({
+        success: true,
+        media: {
+          id: mediaRecord.id,
+          caption: mediaRecord.caption,
+          title: mediaRecord.title,
+          thumbnailUrl: mediaRecord.thumbnailUrl,
+          mediumUrl: mediaRecord.mediumUrl,
+          fullUrl: mediaRecord.fullUrl,
+          featured: mediaRecord.featured,
+          mediaType: mediaRecord.mediaType,
+          createdAt: mediaRecord.createdAt,
+        },
+        message: shouldFeature 
+          ? "Image uploaded and added to your featured media!" 
+          : "Image uploaded successfully!"
+      });
 
-    // Save media record to database
-    const mediaRecord = await db.media.create({
-      data: {
-        userId: me.id,
-        caption: caption?.trim() || null,
-        title: title?.trim() || null,
-        thumbnailUrl,
-        mediumUrl,
-        fullUrl,
-        originalName: file.originalname,
-        fileSize: metadata.fileSize,
-        mimeType: file.mimetype,
-        mediaType,
-        width: metadata.width || null,
-        height: metadata.height || null,
-        featured: shouldFeature,
-        featuredOrder,
-        uploadContext,
-        isGalleryItem,
-      },
-    });
-
-    return res.status(200).json({
-      success: true,
-      media: {
-        id: mediaRecord.id,
-        caption: mediaRecord.caption,
-        title: mediaRecord.title,
-        thumbnailUrl: mediaRecord.thumbnailUrl,
-        mediumUrl: mediaRecord.mediumUrl,
-        fullUrl: mediaRecord.fullUrl,
-        featured: mediaRecord.featured,
-        mediaType: mediaRecord.mediaType,
-        createdAt: mediaRecord.createdAt,
-      },
-      message: shouldFeature 
-        ? "Image uploaded and added to your featured media!" 
-        : "Image uploaded successfully!"
-    });
-
-  } catch (error) {
-    console.error("Media upload error:", error);
+    } catch (error) {
+      console.error("Media upload error:", error);
     
-    if (error instanceof Error) {
-      if (error.message === 'Only image, HEIC, and MIDI files are allowed') {
-        return res.status(400).json({ error: error.message });
+      if (error instanceof Error) {
+        if (error.message === 'Only image, HEIC, and MIDI files are allowed') {
+          return res.status(400).json({ error: error.message });
+        }
+        if (error.message.includes('File too large')) {
+          return res.status(413).json({ error: "File too large. Maximum size is 25MB." });
+        }
       }
-      if (error.message.includes('File too large')) {
-        return res.status(413).json({ error: "File too large. Maximum size is 25MB." });
-      }
-    }
     
-    return res.status(500).json({ error: "Internal server error" });
+      return res.status(500).json({ error: "Internal server error" });
+    }
   }
-}
+);
 
 // Disable Next.js body parser for multer
 export const config = {
@@ -424,6 +416,3 @@ export const config = {
     bodyParser: false,
   },
 };
-
-// Apply CSRF protection and rate limiting
-export default withRateLimit('uploads')(withCsrfProtection(handler));

@@ -1,5 +1,4 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
-import { getSessionUser } from '@/lib/auth/server';
+import { apiHandler } from '@/lib/api/handler';
 import { db } from '@/lib/config/database/connection';
 
 /**
@@ -8,32 +7,31 @@ import { db } from '@/lib/config/database/connection';
  * Replaces superficial voting with actual usage patterns
  */
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
+export default apiHandler(
+  { methods: ['GET'], auth: 'none' },
+  async (req, res) => {
+    try {
+      const { period = '30d', limit = '20' } = req.query;
+
+      // Calculate engagement metrics for sites
+      const metrics = await calculateEngagementMetrics(period as string, parseInt(limit as string));
+
+      return res.json({
+        success: true,
+        period,
+        metrics,
+        description: 'Sites ranked by actual user engagement rather than votes'
+      });
+
+    } catch (error) {
+      console.error('Engagement metrics error:', error);
+      return res.status(500).json({
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
   }
-
-  try {
-    const { period = '30d', limit = '20' } = req.query;
-
-    // Calculate engagement metrics for sites
-    const metrics = await calculateEngagementMetrics(period as string, parseInt(limit as string));
-
-    return res.json({
-      success: true,
-      period,
-      metrics,
-      description: 'Sites ranked by actual user engagement rather than votes'
-    });
-
-  } catch (error) {
-    console.error('Engagement metrics error:', error);
-    return res.status(500).json({
-      error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-}
+);
 
 async function calculateEngagementMetrics(period: string, limit: number) {
   // Calculate date range

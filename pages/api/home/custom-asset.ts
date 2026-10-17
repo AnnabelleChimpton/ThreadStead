@@ -1,6 +1,5 @@
-import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/config/database/connection";
-import { getSessionUser } from "@/lib/auth/server";
+import { apiHandler } from "@/lib/api/handler";
 import {
   uploadCustomPixelArt,
   deleteCustomPixelArt,
@@ -65,114 +64,111 @@ async function saveCustomAssetSlots(userId: string, slots: CustomAssetSlot[]): P
   });
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const me = await getSessionUser(req);
-  if (!me) {
-    return res.status(401).json({ error: "Not logged in" });
-  }
-
-  // GET - Retrieve all custom asset slots
-  if (req.method === "GET") {
-    try {
-      const slots = await getCustomAssetSlots(me.id);
-      return res.status(200).json({ slots });
-    } catch (error) {
-      console.error('Error fetching custom assets:', error);
-      return res.status(500).json({ error: "Failed to fetch custom assets" });
-    }
-  }
-
-  // POST - Upload to a specific slot
-  if (req.method === "POST") {
-    const { slot, imageDataUrl } = req.body as { slot: number; imageDataUrl: string };
-
-    // Validate slot number
-    if (typeof slot !== 'number' || slot < 0 || slot >= MAX_SLOTS) {
-      return res.status(400).json({ error: `Invalid slot number. Must be 0-${MAX_SLOTS - 1}` });
+export default apiHandler(
+  // no CSRF today: components/pixel-homes/DecorationMode.tsx POSTs/DELETEs with plain fetch
+  { methods: ["GET", "POST", "DELETE"], auth: "user", csrf: false },
+  async (req, res, { user: me }) => {
+    // GET - Retrieve all custom asset slots
+    if (req.method === "GET") {
+      try {
+        const slots = await getCustomAssetSlots(me.id);
+        return res.status(200).json({ slots });
+      } catch (error) {
+        console.error('Error fetching custom assets:', error);
+        return res.status(500).json({ error: "Failed to fetch custom assets" });
+      }
     }
 
-    if (!imageDataUrl) {
-      return res.status(400).json({ error: "No image data provided" });
-    }
+    // POST - Upload to a specific slot
+    if (req.method === "POST") {
+      const { slot, imageDataUrl } = req.body as { slot: number; imageDataUrl: string };
 
-    // Validate the image data
-    const validation = validateCustomAssetDataUrl(imageDataUrl);
-    if (!validation.valid) {
-      return res.status(400).json({ error: validation.error });
-    }
-
-    try {
-      // Get current slots
-      const slots = await getCustomAssetSlots(me.id);
-
-      // Delete old asset in this slot if it exists
-      if (slots[slot].url) {
-        try {
-          await deleteCustomPixelArt(slots[slot].url!);
-        } catch (e) {
-          console.error('Error deleting old asset:', e);
-          // Continue anyway - the old file might already be gone
-        }
+      // Validate slot number
+      if (typeof slot !== 'number' || slot < 0 || slot >= MAX_SLOTS) {
+        return res.status(400).json({ error: `Invalid slot number. Must be 0-${MAX_SLOTS - 1}` });
       }
 
-      // Upload new custom asset
-      const { customAssetUrl } = await uploadCustomPixelArt(imageDataUrl, me.id);
+      if (!imageDataUrl) {
+        return res.status(400).json({ error: "No image data provided" });
+      }
 
-      // Update the slot
-      slots[slot].url = customAssetUrl;
+      // Validate the image data
+      const validation = validateCustomAssetDataUrl(imageDataUrl);
+      if (!validation.valid) {
+        return res.status(400).json({ error: validation.error });
+      }
 
-      // Save to database
-      await saveCustomAssetSlots(me.id, slots);
+      try {
+        // Get current slots
+        const slots = await getCustomAssetSlots(me.id);
 
-      return res.status(200).json({
-        ok: true,
-        slot,
-        url: customAssetUrl,
-        slots
-      });
-    } catch (error) {
-      console.error('Error uploading custom asset:', error);
-      return res.status(500).json({
-        error: error instanceof Error ? error.message : "Failed to upload custom asset"
-      });
-    }
-  }
-
-  // DELETE - Remove from a specific slot
-  if (req.method === "DELETE") {
-    const { slot } = req.body as { slot: number };
-
-    // Validate slot number
-    if (typeof slot !== 'number' || slot < 0 || slot >= MAX_SLOTS) {
-      return res.status(400).json({ error: `Invalid slot number. Must be 0-${MAX_SLOTS - 1}` });
-    }
-
-    try {
-      // Get current slots
-      const slots = await getCustomAssetSlots(me.id);
-
-      // Delete asset from storage if it exists
-      if (slots[slot].url) {
-        try {
-          await deleteCustomPixelArt(slots[slot].url!);
-        } catch (e) {
-          console.error('Error deleting asset from storage:', e);
-          // Continue anyway
+        // Delete old asset in this slot if it exists
+        if (slots[slot].url) {
+          try {
+            await deleteCustomPixelArt(slots[slot].url!);
+          } catch (e) {
+            console.error('Error deleting old asset:', e);
+            // Continue anyway - the old file might already be gone
+          }
         }
 
-        // Clear the slot
-        slots[slot].url = null;
+        // Upload new custom asset
+        const { customAssetUrl } = await uploadCustomPixelArt(imageDataUrl, me.id);
+
+        // Update the slot
+        slots[slot].url = customAssetUrl;
 
         // Save to database
         await saveCustomAssetSlots(me.id, slots);
+
+        return res.status(200).json({
+          ok: true,
+          slot,
+          url: customAssetUrl,
+          slots
+        });
+      } catch (error) {
+        console.error('Error uploading custom asset:', error);
+        return res.status(500).json({
+          error: error instanceof Error ? error.message : "Failed to upload custom asset"
+        });
+      }
+    }
+
+    // DELETE - Remove from a specific slot
+    if (req.method === "DELETE") {
+      const { slot } = req.body as { slot: number };
+
+      // Validate slot number
+      if (typeof slot !== 'number' || slot < 0 || slot >= MAX_SLOTS) {
+        return res.status(400).json({ error: `Invalid slot number. Must be 0-${MAX_SLOTS - 1}` });
       }
 
-      return res.status(200).json({ ok: true, slot, slots });
-    } catch (error) {
-      console.error('Error deleting custom asset:', error);
-      return res.status(500).json({ error: "Failed to delete custom asset" });
+      try {
+        // Get current slots
+        const slots = await getCustomAssetSlots(me.id);
+
+        // Delete asset from storage if it exists
+        if (slots[slot].url) {
+          try {
+            await deleteCustomPixelArt(slots[slot].url!);
+          } catch (e) {
+            console.error('Error deleting asset from storage:', e);
+            // Continue anyway
+          }
+
+          // Clear the slot
+          slots[slot].url = null;
+
+          // Save to database
+          await saveCustomAssetSlots(me.id, slots);
+        }
+
+        return res.status(200).json({ ok: true, slot, slots });
+      } catch (error) {
+        console.error('Error deleting custom asset:', error);
+        return res.status(500).json({ error: "Failed to delete custom asset" });
+      }
     }
   }
-
-  return res.status(405).json({ error: "Method not allowed" });
-}
+);

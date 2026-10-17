@@ -3,68 +3,73 @@
  * Automatically approves/rejects sites based on quality scores
  */
 
-import type { NextApiRequest, NextApiResponse } from 'next';
+import { apiHandler } from '@/lib/api/handler';
 import { db } from '@/lib/config/database/connection';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+export default apiHandler(
+  {
+    methods: ['POST'],
+    auth: 'none',
+    // no CSRF today: called server-side by lib/community-index/seeding/seeder.ts
+    // and scripts/run-auto-validation.ts via plain fetch (no cookies)
+    csrf: false,
+  },
+  async (req, res) => {
+    try {
+      const { force = false } = req.body;
 
-  try {
-    const { force = false } = req.body;
+      // Get all pending crawler submissions
+      const pendingSites = await db.indexedSite.findMany({
+        where: {
+          discoveryMethod: 'api_seeding',
+          communityValidated: false
+        },
+        orderBy: {
+          discoveredAt: 'asc'
+        }
+      });
 
-    // Get all pending crawler submissions
-    const pendingSites = await db.indexedSite.findMany({
-      where: {
-        discoveryMethod: 'api_seeding',
-        communityValidated: false
-      },
-      orderBy: {
-        discoveredAt: 'asc'
+      console.log(`Found ${pendingSites.length} pending crawler submissions`);
+
+      let approved = 0;
+      let rejected = 0;
+      let skipped = 0;
+
+      for (const site of pendingSites) {
+        const result = await autoValidateSite(site, force);
+
+        switch (result.action) {
+          case 'approve':
+            approved++;
+            break;
+          case 'reject':
+            rejected++;
+            break;
+          case 'skip':
+            skipped++;
+            break;
+        }
       }
-    });
 
-    console.log(`Found ${pendingSites.length} pending crawler submissions`);
+      return res.json({
+        success: true,
+        processed: pendingSites.length,
+        results: {
+          approved,
+          rejected,
+          skipped
+        }
+      });
 
-    let approved = 0;
-    let rejected = 0;
-    let skipped = 0;
-
-    for (const site of pendingSites) {
-      const result = await autoValidateSite(site, force);
-
-      switch (result.action) {
-        case 'approve':
-          approved++;
-          break;
-        case 'reject':
-          rejected++;
-          break;
-        case 'skip':
-          skipped++;
-          break;
-      }
+    } catch (error) {
+      console.error('Auto-validation error:', error);
+      return res.status(500).json({
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
-
-    return res.json({
-      success: true,
-      processed: pendingSites.length,
-      results: {
-        approved,
-        rejected,
-        skipped
-      }
-    });
-
-  } catch (error) {
-    console.error('Auto-validation error:', error);
-    return res.status(500).json({
-      error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    });
   }
-}
+);
 
 async function autoValidateSite(site: any, force: boolean) {
   const score = site.seedingScore || 0;

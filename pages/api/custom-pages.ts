@@ -1,11 +1,12 @@
-import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/config/database/connection";
+import { apiHandler } from "@/lib/api/handler";
 
 
 
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method === "GET") {
+export default apiHandler(
+  { methods: ["GET"], auth: "none" },
+  async (_req, res) => {
     try {
       const pages = await db.customPage.findMany({
         where: { published: true },
@@ -28,7 +29,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.error("Error fetching custom pages:", error);
       res.status(500).json({ error: "Failed to fetch custom pages" });
     }
-  } else {
-    res.status(405).json({ error: "Method not allowed" });
   }
-}
+);

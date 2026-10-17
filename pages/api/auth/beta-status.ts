@@ -1,12 +1,11 @@
-import type { NextApiRequest, NextApiResponse } from "next";
+import { apiHandler } from "@/lib/api/handler";
 import { isBetaKeysEnabled } from "../../../lib/config/beta-keys";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" });
+export default apiHandler(
+  { methods: ["GET"], auth: "none" },
+  async (req, res) => {
+    const betaEnabled = isBetaKeysEnabled();
+
+    res.json({ enabled: betaEnabled });
   }
-
-  const betaEnabled = isBetaKeysEnabled();
-
-  res.json({ enabled: betaEnabled });
-}
+);

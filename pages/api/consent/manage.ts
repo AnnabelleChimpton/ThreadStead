@@ -1,4 +1,5 @@
-import { NextApiRequest, NextApiResponse } from 'next';
+import type { NextApiRequest, NextApiResponse } from 'next';
+import { apiHandler } from '@/lib/api/handler';
 import { db } from '../../../lib/config/database/connection';
 import { ConsentType, ConsentAction } from '@prisma/client';
 
@@ -19,19 +20,16 @@ interface ConsentResponse {
   error?: string;
 }
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse<ConsentResponse>
-) {
-  if (req.method === 'GET') {
-    return getConsents(req, res);
-  } else if (req.method === 'POST') {
+export default apiHandler(
+  // no CSRF today: CookieConsentBanner and ConsentManager call it with plain fetch
+  { methods: ['GET', 'POST'], auth: 'none', csrf: false },
+  async (req, res: NextApiResponse<ConsentResponse>) => {
+    if (req.method === 'GET') {
+      return getConsents(req, res);
+    }
     return updateConsents(req, res);
-  } else {
-    res.setHeader('Allow', ['GET', 'POST']);
-    return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
-}
+);
 
 async function getConsents(req: NextApiRequest, res: NextApiResponse<ConsentResponse>) {
   try {

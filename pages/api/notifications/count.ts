@@ -1,25 +1,21 @@
-import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/config/database/connection";
 
-import { getSessionUser } from "@/lib/auth/server";
+import { apiHandler } from "@/lib/api/handler";
 
 
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "GET") {
-    res.setHeader("Allow", ["GET"]);
-    return res.status(405).json({ error: "Method Not Allowed" });
+// Polled by NotificationIndicator/NotificationDropdown/NotificationBell; they
+// treat 401 as "signed out", so keep auth: "user".
+export default apiHandler(
+  { methods: ["GET"], auth: "user" },
+  async (req, res, { user }) => {
+    const unreadCount = await db.notification.count({
+      where: {
+        recipientId: user.id,
+        status: "unread",
+      },
+    });
+
+    return res.json({ count: unreadCount });
   }
-
-  const user = await getSessionUser(req);
-  if (!user) return res.status(401).json({ error: "not logged in" });
-
-  const unreadCount = await db.notification.count({
-    where: {
-      recipientId: user.id,
-      status: "unread",
-    },
-  });
-
-  return res.json({ count: unreadCount });
-}
+);

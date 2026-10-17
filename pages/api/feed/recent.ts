@@ -1,102 +1,100 @@
-import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/config/database/connection";
 
 import { SITE_NAME } from "@/lib/config/site/constants";
+import { apiHandler } from "@/lib/api/handler";
 
 
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "GET") {
-    res.setHeader("Allow", ["GET"]);
-    return res.status(405).json({ error: "Method Not Allowed" });
-  }
+export default apiHandler(
+  { methods: ["GET"], auth: "none" },
+  async (req, res) => {
+    try {
+      const limit = Math.min(Math.max(parseInt(String(req.query.limit || "20"), 10) || 20, 1), 50);
+      const offset = Math.max(parseInt(String(req.query.offset || "0"), 10) || 0, 0);
 
-  try {
-    const limit = Math.min(Math.max(parseInt(String(req.query.limit || "20"), 10) || 20, 1), 50);
-    const offset = Math.max(parseInt(String(req.query.offset || "0"), 10) || 0, 0);
-
-    const posts = await db.post.findMany({
-      where: {
-        visibility: "public"
-      },
-      include: {
-        author: {
-          include: {
-            handles: {
-              where: { host: SITE_NAME },
-              take: 1
-            },
-            profile: {
-              select: {
-                displayName: true,
-                avatarUrl: true
+      const posts = await db.post.findMany({
+        where: {
+          visibility: "public"
+        },
+        include: {
+          author: {
+            include: {
+              handles: {
+                where: { host: SITE_NAME },
+                take: 1
+              },
+              profile: {
+                select: {
+                  displayName: true,
+                  avatarUrl: true
+                }
               }
             }
-          }
-        },
-        _count: {
-          select: {
-            comments: {
-              where: {
-                status: "visible"
+          },
+          _count: {
+            select: {
+              comments: {
+                where: {
+                  status: "visible"
+                }
               }
             }
-          }
-        },
-        threadRings: {
-          include: {
-            threadRing: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
+          },
+          threadRings: {
+            include: {
+              threadRing: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                },
               },
             },
-          },
-        }
-      },
-      orderBy: [
-        {
-          createdAt: "desc"
+          }
         },
-        {
-          id: "asc" // Stable ordering: ensures consistent results across paginated queries
-        }
-      ],
-      take: limit,
-      skip: offset
-    });
+        orderBy: [
+          {
+            createdAt: "desc"
+          },
+          {
+            id: "asc" // Stable ordering: ensures consistent results across paginated queries
+          }
+        ],
+        take: limit,
+        skip: offset
+      });
 
-    // Transform posts to include username and comment count
-    const transformedPosts = posts.map(post => ({
-      id: post.id,
-      authorId: post.authorId,
-      authorUsername: post.author.handles[0]?.handle || null,
-      authorDisplayName: post.author.profile?.displayName || null,
-      authorAvatarUrl: post.author.profile?.avatarUrl || null,
-      title: post.title,
-      intent: post.intent,
-      createdAt: post.createdAt.toISOString(),
-      updatedAt: post.updatedAt?.toISOString() || post.createdAt.toISOString(),
-      bodyHtml: post.bodyHtml,
-      bodyText: post.bodyText,
-      bodyMarkdown: post.bodyMarkdown,
-      media: post.media,
-      tags: post.tags,
-      commentCount: post._count.comments,
-      threadRings: post.threadRings,
-      isSpoiler: post.isSpoiler,
-      contentWarning: post.contentWarning,
-      metadata: post.metadata
-    }));
+      // Transform posts to include username and comment count
+      const transformedPosts = posts.map(post => ({
+        id: post.id,
+        authorId: post.authorId,
+        authorUsername: post.author.handles[0]?.handle || null,
+        authorDisplayName: post.author.profile?.displayName || null,
+        authorAvatarUrl: post.author.profile?.avatarUrl || null,
+        title: post.title,
+        intent: post.intent,
+        createdAt: post.createdAt.toISOString(),
+        updatedAt: post.updatedAt?.toISOString() || post.createdAt.toISOString(),
+        bodyHtml: post.bodyHtml,
+        bodyText: post.bodyText,
+        bodyMarkdown: post.bodyMarkdown,
+        media: post.media,
+        tags: post.tags,
+        commentCount: post._count.comments,
+        threadRings: post.threadRings,
+        isSpoiler: post.isSpoiler,
+        contentWarning: post.contentWarning,
+        metadata: post.metadata
+      }));
 
-    return res.json({
-      posts: transformedPosts,
-      hasMore: posts.length === limit
-    });
+      return res.json({
+        posts: transformedPosts,
+        hasMore: posts.length === limit
+      });
 
-  } catch (error) {
-    console.error("Error fetching recent posts:", error);
-    return res.status(500).json({ error: "Internal server error" });
+    } catch (error) {
+      console.error("Error fetching recent posts:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
   }
-}
+);

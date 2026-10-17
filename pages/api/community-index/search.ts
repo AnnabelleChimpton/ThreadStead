@@ -4,44 +4,41 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { apiHandler } from '@/lib/api/handler';
 import { AdvancedSearchEngine, SearchFilters } from '@/lib/community-index/search/advanced-search';
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+export default apiHandler(
+  { methods: ['GET'], auth: 'none' },
+  async (req, res) => {
+    try {
+      const searchEngine = new AdvancedSearchEngine();
+      const { action = 'search' } = req.query;
 
-  try {
-    const searchEngine = new AdvancedSearchEngine();
-    const { action = 'search' } = req.query;
+      switch (action) {
+        case 'search':
+          return await handleSearch(req, res, searchEngine);
 
-    switch (action) {
-      case 'search':
-        return await handleSearch(req, res, searchEngine);
+        case 'suggest':
+          return await handleSuggestions(req, res, searchEngine);
 
-      case 'suggest':
-        return await handleSuggestions(req, res, searchEngine);
+        case 'popular':
+          return await handlePopularSearches(req, res, searchEngine);
 
-      case 'popular':
-        return await handlePopularSearches(req, res, searchEngine);
+        default:
+          return res.status(400).json({
+            error: 'Invalid action. Use: search, suggest, or popular'
+          });
+      }
 
-      default:
-        return res.status(400).json({
-          error: 'Invalid action. Use: search, suggest, or popular'
-        });
+    } catch (error) {
+      console.error('Search API error:', error);
+      return res.status(500).json({
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
-
-  } catch (error) {
-    console.error('Search API error:', error);
-    return res.status(500).json({
-      error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    });
   }
-}
+);
 
 /**
  * Handle main search requests

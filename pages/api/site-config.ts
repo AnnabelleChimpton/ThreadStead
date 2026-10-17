@@ -1,5 +1,5 @@
-import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/config/database/connection";
+import { apiHandler } from "@/lib/api/handler";
 
 
 
@@ -23,34 +23,33 @@ const DEFAULT_CONFIG = {
   require_post_titles: "true",
 };
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" });
+export default apiHandler(
+  { methods: ["GET"], auth: "none" },
+  async (_req, res) => {
+    try {
+      // Get all site config values
+      const configs = await db.siteConfig.findMany({
+        select: {
+          key: true,
+          value: true,
+        },
+      });
+
+      // Convert to key-value object and merge with defaults
+      const configObj = configs.reduce((acc, config) => {
+        acc[config.key] = config.value;
+        return acc;
+      }, {} as Record<string, string>);
+
+      // Merge with defaults for any missing values
+      const fullConfig = { ...DEFAULT_CONFIG, ...configObj };
+
+      // Cache for 5 minutes
+      res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=60');
+      res.json({ config: fullConfig });
+    } catch (error) {
+      console.error("Error fetching site config:", error);
+      res.status(500).json({ error: "Failed to fetch site configuration" });
+    }
   }
-
-  try {
-    // Get all site config values
-    const configs = await db.siteConfig.findMany({
-      select: {
-        key: true,
-        value: true,
-      },
-    });
-
-    // Convert to key-value object and merge with defaults
-    const configObj = configs.reduce((acc, config) => {
-      acc[config.key] = config.value;
-      return acc;
-    }, {} as Record<string, string>);
-
-    // Merge with defaults for any missing values
-    const fullConfig = { ...DEFAULT_CONFIG, ...configObj };
-
-    // Cache for 5 minutes
-    res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=60');
-    res.json({ config: fullConfig });
-  } catch (error) {
-    console.error("Error fetching site config:", error);
-    res.status(500).json({ error: "Failed to fetch site configuration" });
-  }
-}
+);

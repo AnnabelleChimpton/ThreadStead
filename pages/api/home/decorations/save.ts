@@ -1,6 +1,5 @@
-import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/config/database/connection";
-import { getSessionUser } from "@/lib/auth/server";
+import { apiHandler } from "@/lib/api/handler";
 
 interface DecorationData {
   decorationType: string;
@@ -42,140 +41,135 @@ interface HouseCustomizations {
   windowTreatments?: string;
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method Not Allowed" });
-  }
+export default apiHandler(
+  // no CSRF today: pages/home/[handle]/decorate.tsx POSTs with plain fetch
+  { methods: ["POST"], auth: "user", csrf: false },
+  async (req, res, { user: me }) => {
+    const { decorations, atmosphere, houseCustomizations, template, palette, terrain } = req.body as {
+      decorations: DecorationData[],
+      atmosphere?: AtmosphereSettings,
+      houseCustomizations?: HouseCustomizations,
+      template?: string,
+      palette?: string,
+      terrain?: Record<string, string>
+    };
 
-  const me = await getSessionUser(req);
-  if (!me) {
-    return res.status(401).json({ error: "Not logged in" });
-  }
-
-  const { decorations, atmosphere, houseCustomizations, template, palette, terrain } = req.body as {
-    decorations: DecorationData[],
-    atmosphere?: AtmosphereSettings,
-    houseCustomizations?: HouseCustomizations,
-    template?: string,
-    palette?: string,
-    terrain?: Record<string, string>
-  };
-
-  if (!Array.isArray(decorations)) {
-    return res.status(400).json({ error: "Decorations must be an array" });
-  }
-
-  const MAX_DECORATIONS = 100;
-  if (decorations.length > MAX_DECORATIONS) {
-    return res.status(400).json({
-      error: `Too many decorations. Maximum is ${MAX_DECORATIONS}.`
-    });
-  }
-
-  try {
-    // Ensure UserHomeConfig exists first (required for foreign key relationship)
-    const configUpdate: any = {};
-    if (atmosphere) {
-      configUpdate.atmosphereSky = atmosphere.sky;
-      configUpdate.atmosphereWeather = atmosphere.weather;
-      configUpdate.atmosphereTimeOfDay = atmosphere.timeOfDay;
-    }
-    if (template) {
-      configUpdate.houseTemplate = template;
-    }
-    if (palette) {
-      configUpdate.palette = palette;
-    }
-    if (houseCustomizations) {
-      configUpdate.windowStyle = houseCustomizations.windowStyle;
-      configUpdate.doorStyle = houseCustomizations.doorStyle;
-      configUpdate.roofTrim = houseCustomizations.roofTrim;
-      configUpdate.wallColor = houseCustomizations.wallColor;
-      configUpdate.roofColor = houseCustomizations.roofColor;
-      configUpdate.trimColor = houseCustomizations.trimColor;
-      configUpdate.windowColor = houseCustomizations.windowColor;
-      configUpdate.detailColor = houseCustomizations.detailColor;
-      configUpdate.houseTitle = houseCustomizations.houseTitle;
-      configUpdate.houseDescription = houseCustomizations.houseDescription;
-      configUpdate.houseBoardText = houseCustomizations.houseBoardText;
-      configUpdate.houseNumber = houseCustomizations.houseNumber;
-      configUpdate.houseNumberStyle = houseCustomizations.houseNumberStyle;
-      configUpdate.welcomeMat = houseCustomizations.welcomeMat;
-      configUpdate.welcomeMatText = houseCustomizations.welcomeMatText;
-      configUpdate.welcomeMatColor = houseCustomizations.welcomeMatColor;
-      configUpdate.chimneyStyle = houseCustomizations.chimneyStyle;
-      configUpdate.exteriorLights = houseCustomizations.exteriorLights;
-      configUpdate.windowTreatments = houseCustomizations.windowTreatments;
-    }
-    if (terrain) {
-      configUpdate.terrain = terrain;
+    if (!Array.isArray(decorations)) {
+      return res.status(400).json({ error: "Decorations must be an array" });
     }
 
-    await db.userHomeConfig.upsert({
-      where: { userId: me.id },
-      update: configUpdate, // Update atmosphere if provided
-      create: {
-        userId: me.id,
-        houseTemplate: template || 'cottage_v1',
-        palette: palette || 'thread_sage',
-        seasonalOptIn: false,
-        preferPixelHome: true,
-        atmosphereSky: atmosphere?.sky || 'sunny',
-        atmosphereWeather: atmosphere?.weather || 'clear',
-        atmosphereTimeOfDay: atmosphere?.timeOfDay || 'midday',
-        windowStyle: houseCustomizations?.windowStyle || 'default',
-        doorStyle: houseCustomizations?.doorStyle || 'default',
-        roofTrim: houseCustomizations?.roofTrim || 'default',
-        wallColor: houseCustomizations?.wallColor,
-        roofColor: houseCustomizations?.roofColor,
-        trimColor: houseCustomizations?.trimColor,
-        windowColor: houseCustomizations?.windowColor,
-        detailColor: houseCustomizations?.detailColor,
-        houseTitle: houseCustomizations?.houseTitle,
-        houseDescription: houseCustomizations?.houseDescription,
-        houseBoardText: houseCustomizations?.houseBoardText,
-        houseNumber: houseCustomizations?.houseNumber,
-        houseNumberStyle: houseCustomizations?.houseNumberStyle,
-        welcomeMat: houseCustomizations?.welcomeMat,
-        welcomeMatText: houseCustomizations?.welcomeMatText,
-        welcomeMatColor: houseCustomizations?.welcomeMatColor,
-        chimneyStyle: houseCustomizations?.chimneyStyle,
-        exteriorLights: houseCustomizations?.exteriorLights,
-        windowTreatments: houseCustomizations?.windowTreatments,
-        terrain: terrain || {}
+    const MAX_DECORATIONS = 100;
+    if (decorations.length > MAX_DECORATIONS) {
+      return res.status(400).json({
+        error: `Too many decorations. Maximum is ${MAX_DECORATIONS}.`
+      });
+    }
+
+    try {
+      // Ensure UserHomeConfig exists first (required for foreign key relationship)
+      const configUpdate: any = {};
+      if (atmosphere) {
+        configUpdate.atmosphereSky = atmosphere.sky;
+        configUpdate.atmosphereWeather = atmosphere.weather;
+        configUpdate.atmosphereTimeOfDay = atmosphere.timeOfDay;
       }
-    });
+      if (template) {
+        configUpdate.houseTemplate = template;
+      }
+      if (palette) {
+        configUpdate.palette = palette;
+      }
+      if (houseCustomizations) {
+        configUpdate.windowStyle = houseCustomizations.windowStyle;
+        configUpdate.doorStyle = houseCustomizations.doorStyle;
+        configUpdate.roofTrim = houseCustomizations.roofTrim;
+        configUpdate.wallColor = houseCustomizations.wallColor;
+        configUpdate.roofColor = houseCustomizations.roofColor;
+        configUpdate.trimColor = houseCustomizations.trimColor;
+        configUpdate.windowColor = houseCustomizations.windowColor;
+        configUpdate.detailColor = houseCustomizations.detailColor;
+        configUpdate.houseTitle = houseCustomizations.houseTitle;
+        configUpdate.houseDescription = houseCustomizations.houseDescription;
+        configUpdate.houseBoardText = houseCustomizations.houseBoardText;
+        configUpdate.houseNumber = houseCustomizations.houseNumber;
+        configUpdate.houseNumberStyle = houseCustomizations.houseNumberStyle;
+        configUpdate.welcomeMat = houseCustomizations.welcomeMat;
+        configUpdate.welcomeMatText = houseCustomizations.welcomeMatText;
+        configUpdate.welcomeMatColor = houseCustomizations.welcomeMatColor;
+        configUpdate.chimneyStyle = houseCustomizations.chimneyStyle;
+        configUpdate.exteriorLights = houseCustomizations.exteriorLights;
+        configUpdate.windowTreatments = houseCustomizations.windowTreatments;
+      }
+      if (terrain) {
+        configUpdate.terrain = terrain;
+      }
 
-    // Replace decorations atomically: the old code did deleteMany then
-    // createMany as SEPARATE statements, so a failure between them (or two
-    // concurrent saves interleaving) wiped the user's decorations entirely.
-    const decorationRecords = decorations.map(decoration => ({
-      userId: me.id,
-      decorationType: decoration.decorationType,
-      decorationId: decoration.decorationId,
-      zone: decoration.zone,
-      positionX: decoration.positionX,
-      positionY: decoration.positionY,
-      layer: decoration.layer || 1,
-      variant: decoration.variant || 'default',
-      size: decoration.size || 'medium',
-      data: decoration.data
-    }));
+      await db.userHomeConfig.upsert({
+        where: { userId: me.id },
+        update: configUpdate, // Update atmosphere if provided
+        create: {
+          userId: me.id,
+          houseTemplate: template || 'cottage_v1',
+          palette: palette || 'thread_sage',
+          seasonalOptIn: false,
+          preferPixelHome: true,
+          atmosphereSky: atmosphere?.sky || 'sunny',
+          atmosphereWeather: atmosphere?.weather || 'clear',
+          atmosphereTimeOfDay: atmosphere?.timeOfDay || 'midday',
+          windowStyle: houseCustomizations?.windowStyle || 'default',
+          doorStyle: houseCustomizations?.doorStyle || 'default',
+          roofTrim: houseCustomizations?.roofTrim || 'default',
+          wallColor: houseCustomizations?.wallColor,
+          roofColor: houseCustomizations?.roofColor,
+          trimColor: houseCustomizations?.trimColor,
+          windowColor: houseCustomizations?.windowColor,
+          detailColor: houseCustomizations?.detailColor,
+          houseTitle: houseCustomizations?.houseTitle,
+          houseDescription: houseCustomizations?.houseDescription,
+          houseBoardText: houseCustomizations?.houseBoardText,
+          houseNumber: houseCustomizations?.houseNumber,
+          houseNumberStyle: houseCustomizations?.houseNumberStyle,
+          welcomeMat: houseCustomizations?.welcomeMat,
+          welcomeMatText: houseCustomizations?.welcomeMatText,
+          welcomeMatColor: houseCustomizations?.welcomeMatColor,
+          chimneyStyle: houseCustomizations?.chimneyStyle,
+          exteriorLights: houseCustomizations?.exteriorLights,
+          windowTreatments: houseCustomizations?.windowTreatments,
+          terrain: terrain || {}
+        }
+      });
 
-    await db.$transaction([
-      db.userHomeDecoration.deleteMany({ where: { userId: me.id } }),
-      ...(decorationRecords.length > 0
-        ? [db.userHomeDecoration.createMany({ data: decorationRecords })]
-        : [])
-    ]);
+      // Replace decorations atomically: the old code did deleteMany then
+      // createMany as SEPARATE statements, so a failure between them (or two
+      // concurrent saves interleaving) wiped the user's decorations entirely.
+      const decorationRecords = decorations.map(decoration => ({
+        userId: me.id,
+        decorationType: decoration.decorationType,
+        decorationId: decoration.decorationId,
+        zone: decoration.zone,
+        positionX: decoration.positionX,
+        positionY: decoration.positionY,
+        layer: decoration.layer || 1,
+        variant: decoration.variant || 'default',
+        size: decoration.size || 'medium',
+        data: decoration.data
+      }));
 
-    return res.status(200).json({
-      ok: true,
-      saved: decorations.length
-    });
+      await db.$transaction([
+        db.userHomeDecoration.deleteMany({ where: { userId: me.id } }),
+        ...(decorationRecords.length > 0
+          ? [db.userHomeDecoration.createMany({ data: decorationRecords })]
+          : [])
+      ]);
 
-  } catch (error) {
-    console.error('Error saving decorations:', error);
-    return res.status(500).json({ error: "Failed to save decorations" });
+      return res.status(200).json({
+        ok: true,
+        saved: decorations.length
+      });
+
+    } catch (error) {
+      console.error('Error saving decorations:', error);
+      return res.status(500).json({ error: "Failed to save decorations" });
+    }
   }
-}
+);

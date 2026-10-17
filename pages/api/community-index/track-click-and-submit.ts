@@ -3,151 +3,150 @@
  * This creates organic growth by adding clicked sites to our index
  */
 
-import type { NextApiRequest, NextApiResponse } from 'next';
-import { getSessionUser } from '@/lib/auth/server';
+import { apiHandler } from '@/lib/api/handler';
 import { db } from '@/lib/config/database/connection';
 import { DiscoveryPathTracker } from '@/lib/community-index/discovery/path-tracker';
 import { SeedingFilter } from '@/lib/community-index/seeding/quality-filter';
 import type { ExtSearchResultItem } from '@/lib/extsearch/types';
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+export default apiHandler(
+  {
+    methods: ['POST'],
+    auth: 'optional',
+    // no CSRF today: anonymous visitors, plain fetch from ExtSearchResults/AutoIndexer
+    csrf: false,
+  },
+  async (req, res, { user }) => {
+    try {
+      // Check authentication (optional - allow anonymous tracking)
+      const userId = user?.id || `anonymous_${req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown'}`;
 
-  try {
-    // Check authentication (optional - allow anonymous tracking)
-    const user = await getSessionUser(req as any);
-    const userId = user?.id || `anonymous_${req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown'}`;
-
-    const {
-      result, // The ExtSearchResultItem that was clicked
-      searchQuery,
-      searchTab,
-      sessionId
-    } = req.body;
-
-    // Validate required fields
-    if (!result?.url) {
-      return res.status(400).json({
-        error: 'result.url is required'
-      });
-    }
-
-    // Track the click discovery
-    const tracker = new DiscoveryPathTracker();
-    await tracker.trackDiscovery({
-      fromSite: req.headers.origin || 'threadstead',
-      toSite: result.url,
-      discoveredBy: userId,
-      discoveryMethod: 'search_result',
-      sessionId,
-      metadata: {
+      const {
+        result, // The ExtSearchResultItem that was clicked
         searchQuery,
         searchTab,
-        engine: result.engine,
-        isIndieWeb: result.isIndieWeb,
-        privacyScore: result.privacyScore
+        sessionId
+      } = req.body;
+
+      // Validate required fields
+      if (!result?.url) {
+        return res.status(400).json({
+          error: 'result.url is required'
+        });
       }
-    });
 
-    // Check if site is already indexed
-    const existingSite = await db.indexedSite.findUnique({
-      where: { url: result.url }
-    });
+      // Track the click discovery
+      const tracker = new DiscoveryPathTracker();
+      await tracker.trackDiscovery({
+        fromSite: req.headers.origin || 'threadstead',
+        toSite: result.url,
+        discoveredBy: userId,
+        discoveryMethod: 'search_result',
+        sessionId,
+        metadata: {
+          searchQuery,
+          searchTab,
+          engine: result.engine,
+          isIndieWeb: result.isIndieWeb,
+          privacyScore: result.privacyScore
+        }
+      });
 
-    let submissionResult = null;
+      // Check if site is already indexed
+      const existingSite = await db.indexedSite.findUnique({
+        where: { url: result.url }
+      });
 
-    if (!existingSite) {
-      // Site not in index - evaluate and potentially add it
-      const filter = new SeedingFilter();
-      const evaluation = await filter.evaluateSite(result);
+      let submissionResult = null;
 
-      // Only submit sites that meet basic quality threshold
-      if (evaluation.shouldSeed && evaluation.score >= 35) {
-        // Determine auto-validation based on same logic as seeding
-        const shouldAutoValidate = shouldAutoValidateClickedSite(evaluation, result);
-        const initialCommunityScore = shouldAutoValidate ? Math.floor(evaluation.score / 10) : 0;
+      if (!existingSite) {
+        // Site not in index - evaluate and potentially add it
+        const filter = new SeedingFilter();
+        const evaluation = await filter.evaluateSite(result);
 
-        // Extract keywords from title and snippet
-        const keywords = extractKeywords(result);
+        // Only submit sites that meet basic quality threshold
+        if (evaluation.shouldSeed && evaluation.score >= 35) {
+          // Determine auto-validation based on same logic as seeding
+          const shouldAutoValidate = shouldAutoValidateClickedSite(evaluation, result);
+          const initialCommunityScore = shouldAutoValidate ? Math.floor(evaluation.score / 10) : 0;
 
-        try {
-          // Add to community index
-          const indexedSite = await db.indexedSite.create({
-            data: {
-              url: result.url,
-              title: result.title,
-              description: result.snippet || `Discovered through search: "${searchQuery}"`,
-              discoveryMethod: 'user_click',
-              discoveryContext: searchQuery || 'search',
-              siteType: evaluation.suggestedCategory,
-              seedingScore: evaluation.score,
-              seedingReasons: evaluation.reasons,
-              communityValidated: shouldAutoValidate,
-              communityScore: initialCommunityScore,
-              extractedKeywords: keywords,
-              sslEnabled: result.url.startsWith('https://'),
-              crawlStatus: 'pending',
-              submittedBy: user?.id // Track who clicked it if logged in
-            }
-          });
+          // Extract keywords from title and snippet
+          const keywords = extractKeywords(result);
 
-          // Add to crawl queue for full analysis
-          await db.crawlQueue.create({
-            data: {
-              url: result.url,
-              priority: evaluation.priority,
-              scheduledFor: new Date()
-            }
-          });
+          try {
+            // Add to community index
+            const indexedSite = await db.indexedSite.create({
+              data: {
+                url: result.url,
+                title: result.title,
+                description: result.snippet || `Discovered through search: "${searchQuery}"`,
+                discoveryMethod: 'user_click',
+                discoveryContext: searchQuery || 'search',
+                siteType: evaluation.suggestedCategory,
+                seedingScore: evaluation.score,
+                seedingReasons: evaluation.reasons,
+                communityValidated: shouldAutoValidate,
+                communityScore: initialCommunityScore,
+                extractedKeywords: keywords,
+                sslEnabled: result.url.startsWith('https://'),
+                crawlStatus: 'pending',
+                submittedBy: user?.id // Track who clicked it if logged in
+              }
+            });
 
+            // Add to crawl queue for full analysis
+            await db.crawlQueue.create({
+              data: {
+                url: result.url,
+                priority: evaluation.priority,
+                scheduledFor: new Date()
+              }
+            });
+
+            submissionResult = {
+              action: 'submitted',
+              siteId: indexedSite.id,
+              score: evaluation.score,
+              autoValidated: shouldAutoValidate,
+              reasons: evaluation.reasons
+            };
+          } catch (error) {
+            console.error('Failed to auto-submit clicked site:', error);
+            submissionResult = {
+              action: 'failed',
+              error: error instanceof Error ? error.message : 'Unknown error'
+            };
+          }
+        } else {
           submissionResult = {
-            action: 'submitted',
-            siteId: indexedSite.id,
+            action: 'skipped',
+            reason: 'Quality threshold not met',
             score: evaluation.score,
-            autoValidated: shouldAutoValidate,
-            reasons: evaluation.reasons
-          };
-        } catch (error) {
-          console.error('Failed to auto-submit clicked site:', error);
-          submissionResult = {
-            action: 'failed',
-            error: error instanceof Error ? error.message : 'Unknown error'
+            shouldSeed: evaluation.shouldSeed
           };
         }
       } else {
         submissionResult = {
-          action: 'skipped',
-          reason: 'Quality threshold not met',
-          score: evaluation.score,
-          shouldSeed: evaluation.shouldSeed
+          action: 'already_indexed',
+          siteId: existingSite.id
         };
       }
-    } else {
-      submissionResult = {
-        action: 'already_indexed',
-        siteId: existingSite.id
-      };
+
+      return res.json({
+        success: true,
+        message: 'Click tracked successfully',
+        submission: submissionResult
+      });
+
+    } catch (error) {
+      console.error('Click tracking and submission error:', error);
+      return res.status(500).json({
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
-
-    return res.json({
-      success: true,
-      message: 'Click tracked successfully',
-      submission: submissionResult
-    });
-
-  } catch (error) {
-    console.error('Click tracking and submission error:', error);
-    return res.status(500).json({
-      error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    });
   }
-}
+);
 
 /**
  * Determine if a clicked site should be auto-validated

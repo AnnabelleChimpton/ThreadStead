@@ -1,53 +1,34 @@
-import type { NextApiRequest, NextApiResponse } from "next";
+import { apiHandler } from "@/lib/api/handler";
 import { db } from "@/lib/config/database/connection";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
+export default apiHandler(
+  { methods: ["GET"], auth: "none" },
+  async (req, res) => {
+    const { username } = req.query;
 
-  const { username } = req.query;
+    if (!username || typeof username !== "string") {
+      return res.status(400).json({ error: "Username is required" });
+    }
 
-  if (!username || typeof username !== "string") {
-    return res.status(400).json({ error: "Username is required" });
-  }
-
-  try {
-    // Find user by username (handle) - check both primaryHandle and handles table
-    let user = await db.user.findFirst({
-      where: {
-        OR: [
-          // Check handles table
-          {
-            handles: {
-              some: {
-                handle: username.toLowerCase(),
-                host: process.env.SITE_HANDLE_DOMAIN || "localhost:3000"
-              }
-            }
-          },
-          // Check primaryHandle (format: username@domain)
-          {
-            primaryHandle: `${username.toLowerCase()}@${process.env.SITE_HANDLE_DOMAIN || "localhost:3000"}`
-          }
-        ],
-        encryptedSeedPhrase: { not: null }
-      },
-      select: {
-        encryptedSeedPhrase: true,
-        authMethod: true
-      }
-    });
-
-    // If not found, try with any host (for development flexibility)
-    if (!user) {
-      user = await db.user.findFirst({
+    try {
+      // Find user by username (handle) - check both primaryHandle and handles table
+      let user = await db.user.findFirst({
         where: {
-          handles: {
-            some: {
-              handle: username.toLowerCase()
+          OR: [
+            // Check handles table
+            {
+              handles: {
+                some: {
+                  handle: username.toLowerCase(),
+                  host: process.env.SITE_HANDLE_DOMAIN || "localhost:3000"
+                }
+              }
+            },
+            // Check primaryHandle (format: username@domain)
+            {
+              primaryHandle: `${username.toLowerCase()}@${process.env.SITE_HANDLE_DOMAIN || "localhost:3000"}`
             }
-          },
+          ],
           encryptedSeedPhrase: { not: null }
         },
         select: {
@@ -55,15 +36,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           authMethod: true
         }
       });
-    }
 
-    if (!user) {
-      return res.status(404).json({ error: "User not found or password authentication not enabled" });
-    }
+      // If not found, try with any host (for development flexibility)
+      if (!user) {
+        user = await db.user.findFirst({
+          where: {
+            handles: {
+              some: {
+                handle: username.toLowerCase()
+              }
+            },
+            encryptedSeedPhrase: { not: null }
+          },
+          select: {
+            encryptedSeedPhrase: true,
+            authMethod: true
+          }
+        });
+      }
 
-    res.json({ encryptedSeedPhrase: user.encryptedSeedPhrase });
-  } catch (error) {
-    console.error("Failed to get encrypted seed:", error);
-    res.status(500).json({ error: "Failed to retrieve user data" });
+      if (!user) {
+        return res.status(404).json({ error: "User not found or password authentication not enabled" });
+      }
+
+      res.json({ encryptedSeedPhrase: user.encryptedSeedPhrase });
+    } catch (error) {
+      console.error("Failed to get encrypted seed:", error);
+      res.status(500).json({ error: "Failed to retrieve user data" });
+    }
   }
-}
+);

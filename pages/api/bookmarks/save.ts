@@ -1,7 +1,5 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
-import { getSessionUser } from '@/lib/auth/server';
 import { db } from '@/lib/config/database/connection';
-import { withCsrfProtection } from '@/lib/api/middleware/withCsrfProtection';
+import { apiHandler } from '@/lib/api/handler';
 
 interface SaveRequest {
   url: string;
@@ -14,116 +12,110 @@ interface SaveRequest {
   notes?: string;
 }
 
-async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  try {
-    const user = await getSessionUser(req as any);
-    if (!user) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-
-    const {
-      url,
-      title,
-      description,
-      sourceType,
-      sourceMetadata,
-      collectionId,
-      tags = [],
-      notes
-    }: SaveRequest = req.body;
-
-    // Validate required fields
-    if (!url || !title || !sourceType) {
-      return res.status(400).json({ error: 'Missing required fields: url, title, sourceType' });
-    }
-
-    // Check if already bookmarked
-    const existing = await db.userBookmark.findFirst({
-      where: {
-        userId: user.id,
-        url: url
-      }
-    });
-
-    if (existing) {
-      return res.status(409).json({
-        error: 'Already bookmarked',
-        bookmarkId: existing.id
-      });
-    }
-
-    // Get or create default collection if none specified
-    let targetCollectionId = collectionId;
-    if (!collectionId) {
-      let defaultCollection = await db.userCollection.findFirst({
-        where: {
-          userId: user.id,
-          isDefault: true
-        }
-      });
-
-      if (!defaultCollection) {
-        defaultCollection = await db.userCollection.create({
-          data: {
-            userId: user.id,
-            name: 'Saved Sites',
-            description: 'Your saved sites from search results',
-            isDefault: true,
-            visibility: 'private'
-          }
-        });
-      }
-
-      targetCollectionId = defaultCollection.id;
-    }
-
-    // Create bookmark
-    const bookmark = await db.userBookmark.create({
-      data: {
-        userId: user.id,
-        collectionId: targetCollectionId,
+export default apiHandler(
+  { methods: ['POST'], auth: 'user' },
+  async (req, res, { user }) => {
+    try {
+      const {
         url,
         title,
         description,
         sourceType,
         sourceMetadata,
-        tags,
+        collectionId,
+        tags = [],
         notes
-      },
-      include: {
-        collection: true
-      }
-    });
+      }: SaveRequest = req.body;
 
-    // Auto-submit to community index if from external search
-    if (sourceType === 'external_search') {
-      await autoSubmitToCommunityIndex(bookmark, user);
+      // Validate required fields
+      if (!url || !title || !sourceType) {
+        return res.status(400).json({ error: 'Missing required fields: url, title, sourceType' });
+      }
+
+      // Check if already bookmarked
+      const existing = await db.userBookmark.findFirst({
+        where: {
+          userId: user.id,
+          url: url
+        }
+      });
+
+      if (existing) {
+        return res.status(409).json({
+          error: 'Already bookmarked',
+          bookmarkId: existing.id
+        });
+      }
+
+      // Get or create default collection if none specified
+      let targetCollectionId = collectionId;
+      if (!collectionId) {
+        let defaultCollection = await db.userCollection.findFirst({
+          where: {
+            userId: user.id,
+            isDefault: true
+          }
+        });
+
+        if (!defaultCollection) {
+          defaultCollection = await db.userCollection.create({
+            data: {
+              userId: user.id,
+              name: 'Saved Sites',
+              description: 'Your saved sites from search results',
+              isDefault: true,
+              visibility: 'private'
+            }
+          });
+        }
+
+        targetCollectionId = defaultCollection.id;
+      }
+
+      // Create bookmark
+      const bookmark = await db.userBookmark.create({
+        data: {
+          userId: user.id,
+          collectionId: targetCollectionId,
+          url,
+          title,
+          description,
+          sourceType,
+          sourceMetadata,
+          tags,
+          notes
+        },
+        include: {
+          collection: true
+        }
+      });
+
+      // Auto-submit to community index if from external search
+      if (sourceType === 'external_search') {
+        await autoSubmitToCommunityIndex(bookmark, user);
+      }
+
+      return res.json({
+        success: true,
+        bookmark: {
+          id: bookmark.id,
+          url: bookmark.url,
+          title: bookmark.title,
+          description: bookmark.description,
+          collectionName: bookmark.collection?.name,
+          createdAt: bookmark.createdAt
+        }
+      });
+
+    } catch (error) {
+      console.error('Save bookmark error:', error);
+      return res.status(500).json({
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
-
-    return res.json({
-      success: true,
-      bookmark: {
-        id: bookmark.id,
-        url: bookmark.url,
-        title: bookmark.title,
-        description: bookmark.description,
-        collectionName: bookmark.collection?.name,
-        createdAt: bookmark.createdAt
-      }
-    });
-
-  } catch (error) {
-    console.error('Save bookmark error:', error);
-    return res.status(500).json({
-      error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    });
   }
-}
+);
 
 async function autoSubmitToCommunityIndex(bookmark: any, user: any) {
   try {
@@ -212,5 +204,3 @@ function inferSiteType(metadata: any): string {
 
   return 'other';
 }
-
-export default withCsrfProtection(handler);

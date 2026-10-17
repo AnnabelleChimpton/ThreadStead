@@ -1,28 +1,21 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
-import { getSessionUser } from '@/lib/auth/server';
 import { db } from "@/lib/config/database/connection";
 
 import { SITE_NAME } from '@/lib/config/site/constants';
-import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
-import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
+import { apiHandler } from "@/lib/api/handler";
 
 
 
-async function handler(req: NextApiRequest, res: NextApiResponse) {
-  try {
-    const { username } = req.query;
+export default apiHandler(
+  { methods: ['POST'], auth: 'user', rateLimit: 'profile_toggles' },
+  async (req, res, { user }) => {
+    try {
+      const { username } = req.query;
     
-    if (typeof username !== 'string') {
-      return res.status(400).json({ error: 'Invalid username' });
-    }
-
-    if (req.method === 'POST') {
-      // Toggle template enabled status
-      const user = await getSessionUser(req);
-      if (!user) {
-        return res.status(401).json({ error: 'Not authenticated' });
+      if (typeof username !== 'string') {
+        return res.status(400).json({ error: 'Invalid username' });
       }
 
+      // Toggle template enabled status
       const { enabled } = req.body;
 
       if (typeof enabled !== 'boolean') {
@@ -56,16 +49,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
       return res.status(200).json({ success: true, enabled });
 
-    } else {
-      res.setHeader('Allow', ['POST']);
-      return res.status(405).json({ error: 'Method not allowed' });
+    } catch (error) {
+      console.error('Template toggle API error:', error);
+      return res.status(500).json({ error: 'Internal server error' });
     }
-
-  } catch (error) {
-    console.error('Template toggle API error:', error);
-    return res.status(500).json({ error: 'Internal server error' });
   }
-}
-
-// Apply CSRF protection and rate limiting
-export default withRateLimit('profile_toggles')(withCsrfProtection(handler));
+);

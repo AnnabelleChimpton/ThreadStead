@@ -1,34 +1,29 @@
-import { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '@/lib/config/database/connection';
-import { getSessionUser } from '../../../lib/auth/server';
+import { apiHandler } from '@/lib/api/handler';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    const user = await getSessionUser(req);
-    if (!user) {
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
+export default apiHandler(
+    { methods: ['GET'], auth: 'user' },
+    async (req, res, { user }) => {
+        const { conversationId } = req.query;
 
-    const { conversationId } = req.query;
-
-    if (!conversationId || typeof conversationId !== 'string') {
-        return res.status(400).json({ error: 'Invalid conversation ID' });
-    }
-
-    // Verify participation
-    const participant = await db.conversationParticipant.findUnique({
-        where: {
-            conversationId_userId: {
-                conversationId,
-                userId: user.id
-            }
+        if (!conversationId || typeof conversationId !== 'string') {
+            return res.status(400).json({ error: 'Invalid conversation ID' });
         }
-    });
 
-    if (!participant) {
-        return res.status(403).json({ error: 'Forbidden' });
-    }
+        // Verify participation
+        const participant = await db.conversationParticipant.findUnique({
+            where: {
+                conversationId_userId: {
+                    conversationId,
+                    userId: user.id
+                }
+            }
+        });
 
-    if (req.method === 'GET') {
+        if (!participant) {
+            return res.status(403).json({ error: 'Forbidden' });
+        }
+
         try {
             const messages = await db.directMessage.findMany({
                 where: { conversationId },
@@ -57,6 +52,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(500).json({ error: 'Internal Server Error' });
         }
     }
-
-    return res.status(405).json({ error: 'Method not allowed' });
-}
+);

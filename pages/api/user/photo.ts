@@ -1,6 +1,5 @@
-import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/config/database/connection";
-import { getSessionUser } from "@/lib/auth/server";
+import { apiHandler } from "@/lib/api/handler";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import sharp from "sharp";
 import multer from "multer";
@@ -114,75 +113,74 @@ async function processAndUploadImage(
   };
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method Not Allowed" });
-  }
+export default apiHandler(
+  {
+    methods: ["POST"],
+    auth: "user",
+    // no CSRF today: signup.tsx uploads with plain fetch (multipart FormData)
+    csrf: false,
+  },
+  async (req, res, { user }) => {
+    try {
+      // Handle file upload
+      await uploadSingle(req as any, res as any);
+      const file = (req as any).file;
+      
+      if (!file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
 
-  try {
-    const user = await getSessionUser(req);
-    if (!user) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
+      // Validate file type and size (GIFs blocked for avatars - use media uploads instead)
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+      if (!allowedTypes.includes(file.mimetype)) {
+        return res.status(400).json({
+          error: "Invalid file type. Only JPEG, PNG, and WebP are allowed. For animated GIFs, use media uploads."
+        });
+      }
 
-    // Handle file upload
-    await uploadSingle(req as any, res as any);
-    const file = (req as any).file;
-    
-    if (!file) {
-      return res.status(400).json({ error: "No file uploaded" });
-    }
+      // Process and upload image
+      const urls = await processAndUploadImage(file.buffer, user.id);
 
-    // Validate file type and size (GIFs blocked for avatars - use media uploads instead)
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!allowedTypes.includes(file.mimetype)) {
-      return res.status(400).json({
-        error: "Invalid file type. Only JPEG, PNG, and WebP are allowed. For animated GIFs, use media uploads."
+      // Update user profile with new avatar URLs
+      await db.profile.upsert({
+        where: { userId: user.id },
+        update: { 
+          avatarUrl: urls.mediumUrl,
+          avatarThumbnailUrl: urls.thumbnailUrl,
+          avatarMediumUrl: urls.mediumUrl,
+          avatarFullUrl: urls.fullUrl,
+        },
+        create: { 
+          userId: user.id, 
+          avatarUrl: urls.mediumUrl,
+          avatarThumbnailUrl: urls.thumbnailUrl,
+          avatarMediumUrl: urls.mediumUrl,
+          avatarFullUrl: urls.fullUrl,
+        },
       });
-    }
 
-    // Process and upload image
-    const urls = await processAndUploadImage(file.buffer, user.id);
+      return res.status(200).json({
+        success: true,
+        urls,
+        message: "Profile photo uploaded successfully"
+      });
 
-    // Update user profile with new avatar URLs
-    await db.profile.upsert({
-      where: { userId: user.id },
-      update: { 
-        avatarUrl: urls.mediumUrl,
-        avatarThumbnailUrl: urls.thumbnailUrl,
-        avatarMediumUrl: urls.mediumUrl,
-        avatarFullUrl: urls.fullUrl,
-      },
-      create: { 
-        userId: user.id, 
-        avatarUrl: urls.mediumUrl,
-        avatarThumbnailUrl: urls.thumbnailUrl,
-        avatarMediumUrl: urls.mediumUrl,
-        avatarFullUrl: urls.fullUrl,
-      },
-    });
-
-    return res.status(200).json({
-      success: true,
-      urls,
-      message: "Profile photo uploaded successfully"
-    });
-
-  } catch (error) {
-    console.error("Upload error:", error);
-    
-    if (error instanceof Error) {
-      if (error.message === 'Only image files are allowed') {
-        return res.status(400).json({ error: error.message });
+    } catch (error) {
+      console.error("Upload error:", error);
+      
+      if (error instanceof Error) {
+        if (error.message === 'Only image files are allowed') {
+          return res.status(400).json({ error: error.message });
+        }
+        if (error.message.includes('File too large')) {
+          return res.status(413).json({ error: "File too large. Maximum size is 20MB." });
+        }
       }
-      if (error.message.includes('File too large')) {
-        return res.status(413).json({ error: "File too large. Maximum size is 20MB." });
-      }
+      
+      return res.status(500).json({ error: "Failed to upload photo" });
     }
-    
-    return res.status(500).json({ error: "Failed to upload photo" });
   }
-}
+);
 
 // Disable Next.js body parser for multer
 export const config = {

@@ -1,5 +1,4 @@
-import { NextApiRequest, NextApiResponse } from 'next';
-import { getSessionUser } from '@/lib/auth/server';
+import { apiHandler } from '@/lib/api/handler';
 import { db } from '@/lib/config/database/connection';
 
 interface ExportMetadata {
@@ -41,50 +40,40 @@ interface UserDataExport {
   };
 }
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+export default apiHandler(
+  { methods: ['GET'], auth: 'user' },
+  async (req, res, { user }) => {
+    try {
+      // Rate limiting check - only allow 1 export per hour
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+      const recentExportCheck = await db.user.findFirst({
+        where: {
+          id: user.id,
+          // You could add an exportLog table to track this properly
+          // For now we'll just allow the export
+        }
+      });
 
-  try {
-    // Authenticate user
-    const user = await getSessionUser(req);
-    if (!user) {
-      return res.status(401).json({ error: 'Unauthorized' });
+      // Gather all user data
+      const exportData = await generateUserExport(user.id);
+
+      // Set response headers for download
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="threadstead-data-export-${Date.now()}.json"`
+      );
+
+      return res.status(200).json(exportData);
+    } catch (error) {
+      console.error('Error generating user data export:', error);
+      return res.status(500).json({
+        error: 'Failed to generate data export',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
-
-    // Rate limiting check - only allow 1 export per hour
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-    const recentExportCheck = await db.user.findFirst({
-      where: {
-        id: user.id,
-        // You could add an exportLog table to track this properly
-        // For now we'll just allow the export
-      }
-    });
-
-    // Gather all user data
-    const exportData = await generateUserExport(user.id);
-
-    // Set response headers for download
-    res.setHeader('Content-Type', 'application/json');
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename="threadstead-data-export-${Date.now()}.json"`
-    );
-
-    return res.status(200).json(exportData);
-  } catch (error) {
-    console.error('Error generating user data export:', error);
-    return res.status(500).json({
-      error: 'Failed to generate data export',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    });
   }
-}
+);
 
 async function generateUserExport(userId: string): Promise<UserDataExport> {
   // Fetch user with all related data

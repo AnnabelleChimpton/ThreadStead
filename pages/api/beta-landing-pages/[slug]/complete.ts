@@ -1,5 +1,6 @@
-import type { NextApiRequest, NextApiResponse } from "next";
+import type { NextApiRequest } from "next";
 import { db } from "@/lib/config/database/connection";
+import { apiHandler } from "@/lib/api/handler";
 
 function getClientIP(req: NextApiRequest): string {
   const forwarded = req.headers['x-forwarded-for'];
@@ -7,101 +8,101 @@ function getClientIP(req: NextApiRequest): string {
   return ip.trim();
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
+export default apiHandler(
+  // no CSRF today: anonymous signup flow, pages/signup.tsx POSTs with plain fetch
+  { methods: ["POST"], auth: "none", csrf: false },
+  async (req, res) => {
+    const { slug } = req.query;
+    const { signupId, userId, betaCode } = req.body;
 
-  const { slug } = req.query;
-  const { signupId, userId, betaCode } = req.body;
-
-  if (typeof slug !== "string") {
-    return res.status(400).json({ error: "Invalid landing page slug" });
-  }
-
-  if (!signupId || !userId) {
-    return res.status(400).json({ error: "Signup ID and user ID are required" });
-  }
-
-  try {
-    const landingPage = await db.betaLandingPage.findUnique({
-      where: { slug },
-      select: {
-        id: true,
-        signupLimit: true,
-        signupCount: true
-      }
-    });
-
-    if (!landingPage) {
-      return res.status(404).json({ error: "Landing page not found" });
+    if (typeof slug !== "string") {
+      return res.status(400).json({ error: "Invalid landing page slug" });
     }
 
-    const ipAddress = getClientIP(req);
+    if (!signupId || !userId) {
+      return res.status(400).json({ error: "Signup ID and user ID are required" });
+    }
 
-    // Update the signup record
-    const updatedSignup = await db.betaLandingSignup.update({
-      where: { id: signupId },
-      data: {
-        userId,
-        betaCode,
-        signupCompletedAt: new Date(),
-        status: 'completed'
-      }
-    });
-
-    // Update signup attempt record
-    await db.signupAttempt.updateMany({
-      where: {
-        ipAddress,
-        landingPageId: landingPage.id,
-        success: false,
-        attemptedAt: {
-          gte: new Date(Date.now() - 30 * 60 * 1000) // Last 30 minutes
+    try {
+      const landingPage = await db.betaLandingPage.findUnique({
+        where: { slug },
+        select: {
+          id: true,
+          signupLimit: true,
+          signupCount: true
         }
-      },
-      data: {
-        success: true,
-        userId
+      });
+
+      if (!landingPage) {
+        return res.status(404).json({ error: "Landing page not found" });
       }
-    });
 
-    // Update IP tracking
-    await db.ipSignupTracking.update({
-      where: { ipAddress },
-      data: {
-        successfulSignups: { increment: 1 },
-        lastAttemptAt: new Date()
-      }
-    });
+      const ipAddress = getClientIP(req);
 
-    // Get updated signup count
-    const completedSignupsCount = await db.betaLandingSignup.count({
-      where: {
-        landingPageId: landingPage.id,
-        status: 'completed'
-      }
-    });
+      // Update the signup record
+      const updatedSignup = await db.betaLandingSignup.update({
+        where: { id: signupId },
+        data: {
+          userId,
+          betaCode,
+          signupCompletedAt: new Date(),
+          status: 'completed'
+        }
+      });
 
-    // Check if limit is reached and update landing page
-    const limitReached = completedSignupsCount >= landingPage.signupLimit;
+      // Update signup attempt record
+      await db.signupAttempt.updateMany({
+        where: {
+          ipAddress,
+          landingPageId: landingPage.id,
+          success: false,
+          attemptedAt: {
+            gte: new Date(Date.now() - 30 * 60 * 1000) // Last 30 minutes
+          }
+        },
+        data: {
+          success: true,
+          userId
+        }
+      });
 
-    await db.betaLandingPage.update({
-      where: { id: landingPage.id },
-      data: {
-        signupCount: completedSignupsCount,
-        limitReached
-      }
-    });
+      // Update IP tracking
+      await db.ipSignupTracking.update({
+        where: { ipAddress },
+        data: {
+          successfulSignups: { increment: 1 },
+          lastAttemptAt: new Date()
+        }
+      });
 
-    return res.json({
-      signup: updatedSignup,
-      totalSignups: completedSignupsCount,
-      limitReached,
-      message: "Signup completed successfully"
-    });
-  } catch (error) {
-    console.error("Error completing beta landing page signup:", error);
-    return res.status(500).json({ error: "Failed to complete signup tracking" });
+      // Get updated signup count
+      const completedSignupsCount = await db.betaLandingSignup.count({
+        where: {
+          landingPageId: landingPage.id,
+          status: 'completed'
+        }
+      });
+
+      // Check if limit is reached and update landing page
+      const limitReached = completedSignupsCount >= landingPage.signupLimit;
+
+      await db.betaLandingPage.update({
+        where: { id: landingPage.id },
+        data: {
+          signupCount: completedSignupsCount,
+          limitReached
+        }
+      });
+
+      return res.json({
+        signup: updatedSignup,
+        totalSignups: completedSignupsCount,
+        limitReached,
+        message: "Signup completed successfully"
+      });
+    } catch (error) {
+      console.error("Error completing beta landing page signup:", error);
+      return res.status(500).json({ error: "Failed to complete signup tracking" });
+    }
   }
-}
+);

@@ -1,11 +1,12 @@
-import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/config/database/connection";
+import { apiHandler } from "@/lib/api/handler";
 
 
 
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method === "GET") {
+export default apiHandler(
+  { methods: ["GET"], auth: "none" },
+  async (req, res) => {
     const { slug } = req.query;
     
     if (typeof slug !== "string") {
@@ -37,7 +38,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.error("Error fetching custom page:", error);
       res.status(500).json({ error: "Failed to fetch custom page" });
     }
-  } else {
-    res.status(405).json({ error: "Method not allowed" });
   }
-}
+);

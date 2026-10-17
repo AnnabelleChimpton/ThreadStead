@@ -1,35 +1,30 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { getSessionUser } from '@/lib/auth/server';
 import { db } from '@/lib/config/database/connection';
-import { withCsrfProtection } from '@/lib/api/middleware/withCsrfProtection';
+import { apiHandler } from '@/lib/api/handler';
 
-async function handler(req: NextApiRequest, res: NextApiResponse) {
-  try {
-    const user = await getSessionUser(req as any);
-    if (!user) {
-      return res.status(401).json({ error: 'Authentication required' });
+export default apiHandler(
+  { methods: ['GET', 'POST', 'PUT', 'DELETE'], auth: 'user' },
+  async (req, res, { user }) => {
+    try {
+      switch (req.method) {
+        case 'GET':
+          return await getCollections(req, res, user.id);
+        case 'POST':
+          return await createCollection(req, res, user.id);
+        case 'PUT':
+          return await updateCollection(req, res, user.id);
+        case 'DELETE':
+          return await deleteCollection(req, res, user.id);
+      }
+    } catch (error) {
+      console.error('Collections API error:', error);
+      return res.status(500).json({
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
-
-    switch (req.method) {
-      case 'GET':
-        return await getCollections(req, res, user.id);
-      case 'POST':
-        return await createCollection(req, res, user.id);
-      case 'PUT':
-        return await updateCollection(req, res, user.id);
-      case 'DELETE':
-        return await deleteCollection(req, res, user.id);
-      default:
-        return res.status(405).json({ error: 'Method not allowed' });
-    }
-  } catch (error) {
-    console.error('Collections API error:', error);
-    return res.status(500).json({
-      error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    });
   }
-}
+);
 
 async function getCollections(req: NextApiRequest, res: NextApiResponse, userId: string) {
   const collections = await db.userCollection.findMany({
@@ -194,5 +189,3 @@ async function deleteCollection(req: NextApiRequest, res: NextApiResponse, userI
 
   return res.json({ success: true });
 }
-
-export default withCsrfProtection(handler);

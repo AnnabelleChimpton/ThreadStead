@@ -3,149 +3,97 @@
  * Allows community members to vote on seeded sites
  */
 
-import type { NextApiRequest, NextApiResponse } from 'next';
-import { getSessionUser } from '@/lib/auth/server';
+import { apiHandler } from '@/lib/api/handler';
 import { db } from '@/lib/config/database/connection';
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
-  try {
-    // Check authentication
-    const user = await getSessionUser(req as any);
-    if (!user) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
+export default apiHandler(
+  {
+    methods: ['GET', 'POST'],
+    auth: 'user',
+    // no CSRF today: pages/community-index/validate.tsx posts votes with plain fetch
+    csrf: false,
+  },
+  async (req, res, { user }) => {
+    try {
+      if (req.method === 'GET') {
+        // Get sites pending validation
+        const page = parseInt(req.query.page as string) || 0;
+        const limit = parseInt(req.query.limit as string) || 10;
+        const category = req.query.category as string;
+        const showInteracted = req.query.showInteracted === 'true';
+        const sortMethod = req.query.sort as string || 'balanced';
 
-    if (req.method === 'GET') {
-      // Get sites pending validation
-      const page = parseInt(req.query.page as string) || 0;
-      const limit = parseInt(req.query.limit as string) || 10;
-      const category = req.query.category as string;
-      const showInteracted = req.query.showInteracted === 'true';
-      const sortMethod = req.query.sort as string || 'balanced';
-
-      // PHASE 2: Only show human submissions for community validation
-      const where: any = {
-        discoveryMethod: {
-          in: ['user_bookmark', 'manual_submit', 'manual'] // Include all manual submission methods
-        },
-        communityValidated: false
-      };
-
-      if (category && category !== 'all') {
-        where.siteType = category;
-      }
-
-      // Filter out sites user has already interacted with (unless explicitly requested)
-      if (!showInteracted) {
-        // Exclude sites where user has voted
-        where.votes = {
-          none: {
-            userId: user.id
-          }
+        // PHASE 2: Only show human submissions for community validation
+        const where: any = {
+          discoveryMethod: {
+            in: ['user_bookmark', 'manual_submit', 'manual'] // Include all manual submission methods
+          },
+          communityValidated: false
         };
-      } else {
-        // Only show sites where user has interacted
-        where.votes = {
-          some: {
-            userId: user.id
-          }
-        };
-      }
 
-      // Determine ordering strategy to reduce bias
-      let orderBy: any[] = [];
+        if (category && category !== 'all') {
+          where.siteType = category;
+        }
 
-      switch (sortMethod) {
-        case 'newest':
-          orderBy = [{ discoveredAt: 'desc' }];
-          break;
-        case 'oldest':
-          orderBy = [{ discoveredAt: 'asc' }];
-          break;
-        case 'highest_score':
-          orderBy = [{ seedingScore: 'desc' }, { discoveredAt: 'desc' }];
-          break;
-        case 'lowest_score':
-          orderBy = [{ seedingScore: 'asc' }, { discoveredAt: 'asc' }];
-          break;
-        case 'most_votes':
-          orderBy = [{ totalVotes: 'desc' }, { discoveredAt: 'desc' }];
-          break;
-        case 'least_votes':
-          orderBy = [{ totalVotes: 'asc' }, { discoveredAt: 'asc' }];
-          break;
-        case 'balanced':
-        default:
-          // Get sites separately to prioritize human submissions
-          // We'll handle the sorting in JavaScript since Prisma doesn't support custom enum ordering
-          orderBy = [
-            { totalVotes: 'asc' },        // Prioritize unvoted sites
-            { seedingScore: 'desc' },     // Then quality
-            { discoveredAt: 'desc' }      // Then recency
-          ];
-          break;
-      }
+        // Filter out sites user has already interacted with (unless explicitly requested)
+        if (!showInteracted) {
+          // Exclude sites where user has voted
+          where.votes = {
+            none: {
+              userId: user.id
+            }
+          };
+        } else {
+          // Only show sites where user has interacted
+          where.votes = {
+            some: {
+              userId: user.id
+            }
+          };
+        }
 
-      let sites;
-      let total;
+        // Determine ordering strategy to reduce bias
+        let orderBy: any[] = [];
 
-      if (sortMethod === 'balanced' || !sortMethod) {
-        // For balanced sorting, we need to implement human-priority sorting manually
-        // Get all sites and sort them by priority, then paginate
-        const allSites = await db.indexedSite.findMany({
-          where,
-          include: {
-            votes: {
-              include: {
-                user: {
-                  select: {
-                    id: true,
-                    primaryHandle: true
-                  }
-                }
-              }
-            },
-          }
-        });
+        switch (sortMethod) {
+          case 'newest':
+            orderBy = [{ discoveredAt: 'desc' }];
+            break;
+          case 'oldest':
+            orderBy = [{ discoveredAt: 'asc' }];
+            break;
+          case 'highest_score':
+            orderBy = [{ seedingScore: 'desc' }, { discoveredAt: 'desc' }];
+            break;
+          case 'lowest_score':
+            orderBy = [{ seedingScore: 'asc' }, { discoveredAt: 'asc' }];
+            break;
+          case 'most_votes':
+            orderBy = [{ totalVotes: 'desc' }, { discoveredAt: 'desc' }];
+            break;
+          case 'least_votes':
+            orderBy = [{ totalVotes: 'asc' }, { discoveredAt: 'asc' }];
+            break;
+          case 'balanced':
+          default:
+            // Get sites separately to prioritize human submissions
+            // We'll handle the sorting in JavaScript since Prisma doesn't support custom enum ordering
+            orderBy = [
+              { totalVotes: 'asc' },        // Prioritize unvoted sites
+              { seedingScore: 'desc' },     // Then quality
+              { discoveredAt: 'desc' }      // Then recency
+            ];
+            break;
+        }
 
-        // Sort by priority: human submissions first, then by votes/quality/recency
-        const sortedSites = allSites.sort((a, b) => {
-          // Priority 1: Human submissions (user_bookmark, manual_submit) before crawler (api_seeding)
-          const aPriority = ['user_bookmark', 'manual_submit'].includes(a.discoveryMethod) ? 0 : 1;
-          const bPriority = ['user_bookmark', 'manual_submit'].includes(b.discoveryMethod) ? 0 : 1;
+        let sites;
+        let total;
 
-          if (aPriority !== bPriority) {
-            return aPriority - bPriority;
-          }
-
-          // Priority 2: Fewer votes first (unvoted sites get priority)
-          if (a.totalVotes !== b.totalVotes) {
-            return a.totalVotes - b.totalVotes;
-          }
-
-          // Priority 3: Higher seeding score
-          if ((a.seedingScore || 0) !== (b.seedingScore || 0)) {
-            return (b.seedingScore || 0) - (a.seedingScore || 0);
-          }
-
-          // Priority 4: More recent discovery
-          return new Date(b.discoveredAt).getTime() - new Date(a.discoveredAt).getTime();
-        });
-
-        // Apply pagination
-        total = sortedSites.length;
-        sites = sortedSites.slice(page * limit, (page + 1) * limit);
-      } else {
-        // For other sort methods, use database sorting
-        [sites, total] = await Promise.all([
-          db.indexedSite.findMany({
+        if (sortMethod === 'balanced' || !sortMethod) {
+          // For balanced sorting, we need to implement human-priority sorting manually
+          // Get all sites and sort them by priority, then paginate
+          const allSites = await db.indexedSite.findMany({
             where,
-            orderBy,
-            skip: page * limit,
-            take: limit,
             include: {
               votes: {
                 include: {
@@ -156,129 +104,177 @@ export default async function handler(
                     }
                   }
                 }
-              }
-            },
-          }),
-          db.indexedSite.count({ where })
-        ]);
-      }
-
-      // Calculate user's existing votes
-      const sitesWithUserVotes = await Promise.all(
-        sites.map(async (site) => {
-          const userVote = await db.siteVote.findFirst({
-            where: {
-              siteId: site.id,
-              userId: user.id
+              },
             }
           });
 
-          return {
-            ...site,
-            userVote: userVote?.voteType || null,
-            votesSummary: {
-              approve: site.votes.filter(v => v.voteType === 'approve').length,
-              reject: site.votes.filter(v => v.voteType === 'reject').length,
-              improve: site.votes.filter(v => v.voteType === 'improve').length,
-              quality: site.votes.filter(v => v.voteType === 'quality').length,
-              interesting: site.votes.filter(v => v.voteType === 'interesting').length,
-              helpful: site.votes.filter(v => v.voteType === 'helpful').length,
-              creative: site.votes.filter(v => v.voteType === 'creative').length,
-              broken: site.votes.filter(v => v.voteType === 'broken').length,
-              spam: site.votes.filter(v => v.voteType === 'spam').length,
-              outdated: site.votes.filter(v => v.voteType === 'outdated').length
+          // Sort by priority: human submissions first, then by votes/quality/recency
+          const sortedSites = allSites.sort((a, b) => {
+            // Priority 1: Human submissions (user_bookmark, manual_submit) before crawler (api_seeding)
+            const aPriority = ['user_bookmark', 'manual_submit'].includes(a.discoveryMethod) ? 0 : 1;
+            const bPriority = ['user_bookmark', 'manual_submit'].includes(b.discoveryMethod) ? 0 : 1;
+
+            if (aPriority !== bPriority) {
+              return aPriority - bPriority;
             }
-          };
-        })
-      );
 
-      return res.json({
-        success: true,
-        sites: sitesWithUserVotes,
-        pagination: {
-          page,
-          limit,
-          total,
-          pages: Math.ceil(total / limit)
+            // Priority 2: Fewer votes first (unvoted sites get priority)
+            if (a.totalVotes !== b.totalVotes) {
+              return a.totalVotes - b.totalVotes;
+            }
+
+            // Priority 3: Higher seeding score
+            if ((a.seedingScore || 0) !== (b.seedingScore || 0)) {
+              return (b.seedingScore || 0) - (a.seedingScore || 0);
+            }
+
+            // Priority 4: More recent discovery
+            return new Date(b.discoveredAt).getTime() - new Date(a.discoveredAt).getTime();
+          });
+
+          // Apply pagination
+          total = sortedSites.length;
+          sites = sortedSites.slice(page * limit, (page + 1) * limit);
+        } else {
+          // For other sort methods, use database sorting
+          [sites, total] = await Promise.all([
+            db.indexedSite.findMany({
+              where,
+              orderBy,
+              skip: page * limit,
+              take: limit,
+              include: {
+                votes: {
+                  include: {
+                    user: {
+                      select: {
+                        id: true,
+                        primaryHandle: true
+                      }
+                    }
+                  }
+                }
+              },
+            }),
+            db.indexedSite.count({ where })
+          ]);
         }
-      });
-    }
 
-    if (req.method === 'POST') {
-      // Submit a validation vote
-      const { siteId, action, comment } = req.body;
+        // Calculate user's existing votes
+        const sitesWithUserVotes = await Promise.all(
+          sites.map(async (site) => {
+            const userVote = await db.siteVote.findFirst({
+              where: {
+                siteId: site.id,
+                userId: user.id
+              }
+            });
 
-      if (!siteId || !action) {
-        return res.status(400).json({ error: 'Site ID and action are required' });
-      }
+            return {
+              ...site,
+              userVote: userVote?.voteType || null,
+              votesSummary: {
+                approve: site.votes.filter(v => v.voteType === 'approve').length,
+                reject: site.votes.filter(v => v.voteType === 'reject').length,
+                improve: site.votes.filter(v => v.voteType === 'improve').length,
+                quality: site.votes.filter(v => v.voteType === 'quality').length,
+                interesting: site.votes.filter(v => v.voteType === 'interesting').length,
+                helpful: site.votes.filter(v => v.voteType === 'helpful').length,
+                creative: site.votes.filter(v => v.voteType === 'creative').length,
+                broken: site.votes.filter(v => v.voteType === 'broken').length,
+                spam: site.votes.filter(v => v.voteType === 'spam').length,
+                outdated: site.votes.filter(v => v.voteType === 'outdated').length
+              }
+            };
+          })
+        );
 
-      // Enhanced vote types from Phase 2
-      const validVoteTypes = [
-        'approve', 'reject', 'improve',
-        'quality', 'interesting', 'helpful', 'creative',
-        'broken', 'spam', 'outdated'
-      ];
-
-      if (!validVoteTypes.includes(action)) {
-        return res.status(400).json({ error: 'Invalid vote type' });
-      }
-
-      // Check if site exists
-      const site = await db.indexedSite.findUnique({
-        where: { id: siteId }
-      });
-
-      if (!site) {
-        return res.status(404).json({ error: 'Site not found' });
-      }
-
-      // Check if user already voted
-      const existingVote = await db.siteVote.findFirst({
-        where: {
-          siteId,
-          userId: user.id
-        }
-      });
-
-      if (existingVote) {
-        // Update existing vote
-        await db.siteVote.update({
-          where: { id: existingVote.id },
-          data: {
-            voteType: action,
-            comment: comment || null
+        return res.json({
+          success: true,
+          sites: sitesWithUserVotes,
+          pagination: {
+            page,
+            limit,
+            total,
+            pages: Math.ceil(total / limit)
           }
         });
-      } else {
-        // Create new vote
-        await db.siteVote.create({
-          data: {
+      }
+
+      if (req.method === 'POST') {
+        // Submit a validation vote
+        const { siteId, action, comment } = req.body;
+
+        if (!siteId || !action) {
+          return res.status(400).json({ error: 'Site ID and action are required' });
+        }
+
+        // Enhanced vote types from Phase 2
+        const validVoteTypes = [
+          'approve', 'reject', 'improve',
+          'quality', 'interesting', 'helpful', 'creative',
+          'broken', 'spam', 'outdated'
+        ];
+
+        if (!validVoteTypes.includes(action)) {
+          return res.status(400).json({ error: 'Invalid vote type' });
+        }
+
+        // Check if site exists
+        const site = await db.indexedSite.findUnique({
+          where: { id: siteId }
+        });
+
+        if (!site) {
+          return res.status(404).json({ error: 'Site not found' });
+        }
+
+        // Check if user already voted
+        const existingVote = await db.siteVote.findFirst({
+          where: {
             siteId,
-            userId: user.id,
-            voteType: action,
-            comment: comment || null
+            userId: user.id
           }
         });
+
+        if (existingVote) {
+          // Update existing vote
+          await db.siteVote.update({
+            where: { id: existingVote.id },
+            data: {
+              voteType: action,
+              comment: comment || null
+            }
+          });
+        } else {
+          // Create new vote
+          await db.siteVote.create({
+            data: {
+              siteId,
+              userId: user.id,
+              voteType: action,
+              comment: comment || null
+            }
+          });
+        }
+
+        // Update validation status if enough votes
+        await updateValidationStatus(siteId);
+
+        return res.json({
+          success: true,
+          message: 'Vote recorded successfully'
+        });
       }
-
-      // Update validation status if enough votes
-      await updateValidationStatus(siteId);
-
-      return res.json({
-        success: true,
-        message: 'Vote recorded successfully'
+    } catch (error) {
+      console.error('Validation API error:', error);
+      return res.status(500).json({
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
-
-    return res.status(405).json({ error: 'Method not allowed' });
-  } catch (error) {
-    console.error('Validation API error:', error);
-    return res.status(500).json({
-      error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    });
   }
-}
+);
 
 /**
  * Update validation status based on enhanced community votes

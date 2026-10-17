@@ -1,13 +1,14 @@
-import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/config/database/connection";
+import { apiHandler } from "@/lib/api/handler";
 
 
 
 
 const SITE_CSS_KEY = "site_custom_css";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method === "GET") {
+export default apiHandler(
+  { methods: ["GET"], auth: "none" },
+  async (_req, res) => {
     try {
       const config = await db.siteConfig.findUnique({
         where: { key: SITE_CSS_KEY }
@@ -18,7 +19,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.error("Error fetching site CSS:", error);
       res.status(500).json({ error: "Failed to fetch site CSS" });
     }
-  } else {
-    res.status(405).json({ error: "Method not allowed" });
   }
-}
+);

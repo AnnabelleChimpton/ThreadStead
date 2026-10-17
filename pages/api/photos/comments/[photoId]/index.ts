@@ -1,27 +1,27 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/config/database/connection";
 
-import { getSessionUser } from "@/lib/auth/server";
 import { requireAction } from "@/lib/domain/users/capabilities";
 import { createNotification } from "@/lib/domain/notifications";
-import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
-import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
+import { apiHandler, type SessionUser } from "@/lib/api/handler";
+import { sendUnauthenticated } from "@/lib/api/errors";
 
-async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const photoId = String(req.query.photoId || "");
-  
-  if (!photoId) {
-    return res.status(400).json({ error: "Photo ID required" });
-  }
+// GET is public; POST checks the session itself (CSRF only applies to POST)
+export default apiHandler(
+  { methods: ["GET", "POST"], auth: "optional", rateLimit: "comments" },
+  async (req, res, { user }) => {
+    const photoId = String(req.query.photoId || "");
+    
+    if (!photoId) {
+      return res.status(400).json({ error: "Photo ID required" });
+    }
 
-  if (req.method === "GET") {
-    return handleGetComments(req, res, photoId);
-  } else if (req.method === "POST") {
-    return handleCreateComment(req, res, photoId);
-  } else {
-    return res.status(405).json({ error: "Method Not Allowed" });
+    if (req.method === "GET") {
+      return handleGetComments(req, res, photoId);
+    }
+    return handleCreateComment(req, res, photoId, user);
   }
-}
+);
 
 async function handleGetComments(req: NextApiRequest, res: NextApiResponse, photoId: string) {
   try {
@@ -92,10 +92,9 @@ async function handleGetComments(req: NextApiRequest, res: NextApiResponse, phot
   }
 }
 
-async function handleCreateComment(req: NextApiRequest, res: NextApiResponse, photoId: string) {
-  const me = await getSessionUser(req);
+async function handleCreateComment(req: NextApiRequest, res: NextApiResponse, photoId: string, me: SessionUser | null) {
   if (!me) {
-    return res.status(401).json({ error: "Not logged in" });
+    return sendUnauthenticated(res);
   }
 
   const { content, parentId, cap } = req.body;
@@ -211,6 +210,3 @@ async function handleCreateComment(req: NextApiRequest, res: NextApiResponse, ph
     return res.status(500).json({ error: "Internal server error" });
   }
 }
-
-// Apply CSRF protection and rate limiting (CSRF skips GET automatically)
-export default withRateLimit('comments')(withCsrfProtection(handler));

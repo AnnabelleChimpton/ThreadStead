@@ -1,8 +1,7 @@
-import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/config/database/connection";
-import { getSessionUser } from "@/lib/auth/server";
 import { SITE_NAME } from "@/lib/config/site/constants";
 import { getUserBlockedIds, addBlockFiltersToWhere } from "@/lib/domain/users/blocks";
+import { apiHandler } from "@/lib/api/handler";
 
 /**
  * Calculate trending score using the algorithm:
@@ -48,155 +47,147 @@ function calculateTrendingScore(metrics: {
   return Math.max(0, score); // Ensure non-negative
 }
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
-  if (req.method !== "GET") {
-    res.setHeader("Allow", ["GET"]);
-    return res.status(405).json({ error: "Method Not Allowed" });
-  }
+export default apiHandler(
+  { methods: ["GET"], auth: "optional" },
+  async (req, res, { user: viewer }) => {
+    try {
+      const limit = Math.min(parseInt(String(req.query.limit || "20")), 50);
+      const timeWindow = String(req.query.timeWindow || "week");
+      const minViews = parseInt(String(req.query.minViews || "5"));
 
-  try {
-    const limit = Math.min(parseInt(String(req.query.limit || "20")), 50);
-    const timeWindow = String(req.query.timeWindow || "week");
-    const minViews = parseInt(String(req.query.minViews || "5"));
-
-    // Calculate time window for recent posts
-    let timeWindowHours: number;
-    switch (timeWindow) {
-      case "hour": timeWindowHours = 1; break;
-      case "day": timeWindowHours = 24; break;
-      case "week": timeWindowHours = 168; break;
-      default: timeWindowHours = 168; // Default to week
-    }
-
-    const timeWindowStart = new Date(Date.now() - timeWindowHours * 60 * 60 * 1000);
-
-    // Get viewer for permission filtering
-    const viewer = await getSessionUser(req);
-
-    // Build permission filters
-    const allowedVisibilities = ["public"];
-    let blockedUserIds: string[] = [];
-    let blockedThreadRingIds: string[] = [];
-
-    if (viewer) {
-      // Get blocked users/ThreadRings for the viewer
-      const blockData = await getUserBlockedIds(viewer.id);
-      blockedUserIds = blockData.blockedUserIds;
-      blockedThreadRingIds = blockData.blockedThreadRingIds;
-    }
-
-    // Build base where clause
-    let whereClause: any = {
-      visibility: { in: allowedVisibilities },
-      createdAt: { gte: timeWindowStart },
-    };
-
-    // Apply block filters if viewer is logged in
-    if (viewer) {
-      whereClause = addBlockFiltersToWhere(whereClause, blockedUserIds, blockedThreadRingIds);
-    }
-
-    // Get posts with metrics and calculate trending scores
-    const posts = await db.post.findMany({
-      where: whereClause,
-      include: {
-        author: {
-          include: {
-            handles: {
-              where: { host: SITE_NAME },
-              take: 1,
-            },
-            profile: {
-              select: {
-                displayName: true,
-                avatarUrl: true,
-              },
-            },
-          },
-        },
-        metrics: true,
-        threadRings: {
-          include: {
-            threadRing: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-              },
-            },
-          },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-      take: limit * 3, // Get more posts to filter and rank
-    });
-
-    // Calculate trending scores and filter by minimum views
-    const postsWithScores = posts
-      .map(post => {
-        // Use metrics if available, otherwise use default values
-        const metrics = post.metrics || {
-          viewCount: 0,
-          commentCount: 0, // Will be populated by the metrics if they exist
-          recentViews: 0,
-        };
-
-        const score = calculateTrendingScore({
-          viewCount: metrics.viewCount,
-          commentCount: metrics.commentCount,
-          recentViews: metrics.recentViews,
-          createdAt: post.createdAt,
-        });
-
-        return {
-          ...post,
-          trendingScore: score,
-          metrics,
-        };
-      })
-      .filter(post => post.metrics.viewCount >= minViews) // Filter by minimum views
-      .sort((a, b) => b.trendingScore - a.trendingScore) // Sort by trending score
-      .slice(0, limit); // Take only the requested amount
-
-    // Transform to match widget format
-    const transformedPosts = postsWithScores.map(post => ({
-      id: post.id,
-      authorId: post.authorId,
-      authorUsername: post.author.handles[0]?.handle || null,
-      authorDisplayName: post.author.profile?.displayName || null,
-      authorAvatarUrl: post.author.profile?.avatarUrl || null,
-      title: post.title,
-      intent: post.intent,
-      createdAt: post.createdAt.toISOString(),
-      bodyText: post.bodyText,
-      commentCount: post.metrics.commentCount,
-      viewCount: post.metrics.viewCount,
-      trendingScore: post.trendingScore,
-      threadRings: post.threadRings,
-      isSpoiler: post.isSpoiler,
-      contentWarning: post.contentWarning,
-    }));
-
-    return res.json({
-      posts: transformedPosts,
-      hasMore: posts.length === limit * 3, // Might have more if we hit the fetch limit
-      source: "local_trending",
-      algorithm: {
-        timeWindow,
-        minViews,
-        totalCandidates: posts.length,
-        returned: transformedPosts.length,
+      // Calculate time window for recent posts
+      let timeWindowHours: number;
+      switch (timeWindow) {
+        case "hour": timeWindowHours = 1; break;
+        case "day": timeWindowHours = 24; break;
+        case "week": timeWindowHours = 168; break;
+        default: timeWindowHours = 168; // Default to week
       }
-    });
 
-  } catch (error) {
-    console.error("Error calculating local trending:", error);
-    return res.status(500).json({
-      error: "Internal server error",
-      message: "Failed to calculate trending posts"
-    });
+      const timeWindowStart = new Date(Date.now() - timeWindowHours * 60 * 60 * 1000);
+
+      // Build permission filters
+      const allowedVisibilities = ["public"];
+      let blockedUserIds: string[] = [];
+      let blockedThreadRingIds: string[] = [];
+
+      if (viewer) {
+        // Get blocked users/ThreadRings for the viewer
+        const blockData = await getUserBlockedIds(viewer.id);
+        blockedUserIds = blockData.blockedUserIds;
+        blockedThreadRingIds = blockData.blockedThreadRingIds;
+      }
+
+      // Build base where clause
+      let whereClause: any = {
+        visibility: { in: allowedVisibilities },
+        createdAt: { gte: timeWindowStart },
+      };
+
+      // Apply block filters if viewer is logged in
+      if (viewer) {
+        whereClause = addBlockFiltersToWhere(whereClause, blockedUserIds, blockedThreadRingIds);
+      }
+
+      // Get posts with metrics and calculate trending scores
+      const posts = await db.post.findMany({
+        where: whereClause,
+        include: {
+          author: {
+            include: {
+              handles: {
+                where: { host: SITE_NAME },
+                take: 1,
+              },
+              profile: {
+                select: {
+                  displayName: true,
+                  avatarUrl: true,
+                },
+              },
+            },
+          },
+          metrics: true,
+          threadRings: {
+            include: {
+              threadRing: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+        take: limit * 3, // Get more posts to filter and rank
+      });
+
+      // Calculate trending scores and filter by minimum views
+      const postsWithScores = posts
+        .map(post => {
+          // Use metrics if available, otherwise use default values
+          const metrics = post.metrics || {
+            viewCount: 0,
+            commentCount: 0, // Will be populated by the metrics if they exist
+            recentViews: 0,
+          };
+
+          const score = calculateTrendingScore({
+            viewCount: metrics.viewCount,
+            commentCount: metrics.commentCount,
+            recentViews: metrics.recentViews,
+            createdAt: post.createdAt,
+          });
+
+          return {
+            ...post,
+            trendingScore: score,
+            metrics,
+          };
+        })
+        .filter(post => post.metrics.viewCount >= minViews) // Filter by minimum views
+        .sort((a, b) => b.trendingScore - a.trendingScore) // Sort by trending score
+        .slice(0, limit); // Take only the requested amount
+
+      // Transform to match widget format
+      const transformedPosts = postsWithScores.map(post => ({
+        id: post.id,
+        authorId: post.authorId,
+        authorUsername: post.author.handles[0]?.handle || null,
+        authorDisplayName: post.author.profile?.displayName || null,
+        authorAvatarUrl: post.author.profile?.avatarUrl || null,
+        title: post.title,
+        intent: post.intent,
+        createdAt: post.createdAt.toISOString(),
+        bodyText: post.bodyText,
+        commentCount: post.metrics.commentCount,
+        viewCount: post.metrics.viewCount,
+        trendingScore: post.trendingScore,
+        threadRings: post.threadRings,
+        isSpoiler: post.isSpoiler,
+        contentWarning: post.contentWarning,
+      }));
+
+      return res.json({
+        posts: transformedPosts,
+        hasMore: posts.length === limit * 3, // Might have more if we hit the fetch limit
+        source: "local_trending",
+        algorithm: {
+          timeWindow,
+          minViews,
+          totalCandidates: posts.length,
+          returned: transformedPosts.length,
+        }
+      });
+
+    } catch (error) {
+      console.error("Error calculating local trending:", error);
+      return res.status(500).json({
+        error: "Internal server error",
+        message: "Failed to calculate trending posts"
+      });
+    }
   }
-}
+);
