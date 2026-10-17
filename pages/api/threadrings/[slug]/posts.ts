@@ -1,34 +1,14 @@
-import { getSiteBaseUrl } from '@/lib/config/site-url';
 import { NextApiRequest, NextApiResponse } from 'next';
 import { getSessionUser } from '@/lib/auth/server';
 import { createAuthenticatedRingHubClient } from '@/lib/api/ringhub/ringhub-user-operations';
 import { featureFlags } from '@/lib/utils/features/feature-flags';
 import { getRingHubClient } from '@/lib/api/ringhub/ringhub-client';
 import { db } from '@/lib/config/database/connection';
-
-/**
- * Extract post ID from ThreadStead post URI
- */
-function extractPostIdFromUri(uri: string): string | null {
-  // Expected format: https://domain.com/resident/username/post/POST_ID
-  const match = uri.match(/\/post\/([a-zA-Z0-9_-]+)$/);
-  return match ? match[1] : null;
-}
-
-/**
- * Check if URI belongs to our ThreadStead instance
- */
-function isOurThreadSteadInstance(uri: string): boolean {
-  const baseUrl = getSiteBaseUrl();
-  const ourDomain = baseUrl.replace(/https?:\/\//, '');
-
-  try {
-    const url = new URL(uri);
-    return url.host === ourDomain || url.hostname === ourDomain;
-  } catch {
-    return false;
-  }
-}
+import {
+  extractPostIdFromUri,
+  isOurThreadSteadInstance,
+  noteMissingLocalPost,
+} from '@/lib/domain/threadrings/orphan-postrefs';
 
 /**
  * Resolve Ring Hub post references to actual ThreadStead post objects
@@ -157,7 +137,9 @@ async function resolveRingHubPosts(ringHubPosts: any[], _viewer: any) {
 
         resolvedPosts.push(transformedPost);
       } else {
-        console.warn('Post not found in ThreadStead database:', postId);
+        // Deleted locally, but the hub PostRef outlived it (deletions before
+        // 2026-07 never reached the hub). Skip it; log once per post ID.
+        noteMissingLocalPost(postId, ringHubPost);
       }
     } catch (error) {
       console.error('Error resolving Ring Hub post:', ringHubPost.uri, error);

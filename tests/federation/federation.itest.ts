@@ -13,6 +13,11 @@
 import { RingHubClient, RingHubClientError } from '@/lib/api/ringhub/ringhub-client'
 import { RingHubAuthError } from '@/lib/api/ringhub/ringhub-errors'
 import { makeTestClient, makePublicTestClient, getRuntime } from './harness/test-client'
+import {
+  executeOrphanRemoval,
+  planOrphanRemoval,
+  scanForOrphanPostRefs,
+} from '@/lib/domain/threadrings/orphan-postrefs'
 import * as ringHubClientModule from '@/lib/api/ringhub/ringhub-client'
 import { createAuthenticatedRingHubClient } from '@/lib/api/ringhub/ringhub-user-operations'
 import { removePostFromRingHub } from '@/lib/domain/posts/ringhub-removal'
@@ -239,6 +244,62 @@ describe('owner member management (audit 0.8)', () => {
     expect(removed.success).toBe(true)
     const memberships = await second.getMyMemberships({ status: 'ACTIVE' })
     expect(memberships.memberships.find((m) => m.ringSlug === FORK_SLUG)).toBeUndefined()
+  })
+})
+
+describe('orphaned PostRefs reconcile (A3)', () => {
+  // URIs on a host the scan treats as "this instance"; the local DB is
+  // stubbed by existingPostIds. Everything hub-side is real.
+  const OUR_HOST = 'https://threadstead-itest.invalid'
+  const isOurUri = (uri: string) => uri.startsWith(OUR_HOST)
+  const LIVE_URI = `${OUR_HOST}/resident/itest/post/a3-live`
+  const ORPHAN_URI = `${OUR_HOST}/resident/itest/post/a3-gone`
+  const FOREIGN_ORPHAN_URI = `${OUR_HOST}/resident/someone/post/a3-gone-foreign`
+  const existingPostIds = async (ids: string[]) => new Set(ids.filter((id) => id === 'a3-live'))
+  const scan = () =>
+    scanForOrphanPostRefs({ hub: client, ringSlugs: [ringSlug, FORK_SLUG], existingPostIds, isOurUri })
+  let second: RingHubClient
+
+  beforeAll(async () => {
+    second = makeTestClient('second')
+    await client.submitPost(ringSlug, { uri: LIVE_URI, digest: 'sha256:a3-live' })
+    // The same deleted post in two rings: one author call must remove both.
+    await client.submitPost(ringSlug, { uri: ORPHAN_URI, digest: 'sha256:a3-gone' })
+    await client.submitPost(FORK_SLUG, { uri: ORPHAN_URI, digest: 'sha256:a3-gone' })
+    // Authored by an actor with no key "here" (deleted account) in a ring the main actor owns.
+    await second.submitPost(FORK_SLUG, { uri: FOREIGN_ORPHAN_URI, digest: 'sha256:a3-foreign' })
+  })
+
+  test('the scan finds exactly the refs whose local post is gone', async () => {
+    const result = await scan()
+    expect(result.ringsFailed).toEqual([])
+    expect(result.orphans.map((o) => [o.ringSlug, o.postId]).sort()).toEqual([
+      [FORK_SLUG, 'a3-gone'],
+      [FORK_SLUG, 'a3-gone-foreign'],
+      [ringSlug, 'a3-gone'],
+    ].sort())
+  })
+
+  test('--apply: author removal clears every ring; owner fallback clears the rest; the live post stays', async () => {
+    const { orphans } = await scan()
+    const ringOwners = new Map([[FORK_SLUG, actorDid]])
+    const plan = await planOrphanRemoval(orphans, {
+      localUsersByDid: async (dids) => new Map(dids.filter((d) => d === actorDid).map((d) => [d, 'main'])),
+      ringOwners,
+      ownerFallback: true,
+    })
+    expect(plan.filter((p) => p.signer?.kind === 'author')).toHaveLength(1)
+    expect(plan.filter((p) => p.coveredBy)).toHaveLength(1)
+    expect(plan.filter((p) => p.signer?.kind === 'owner').map((p) => p.orphan.postId)).toEqual(['a3-gone-foreign'])
+
+    const outcomes = await executeOrphanRemoval(plan, { curateAs: () => client })
+    expect(outcomes.every((o) => o.ok)).toBe(true)
+    expect(outcomes.map((o) => o.totalRemoved).sort()).toEqual([1, 2])
+
+    const after = await scan()
+    expect(after.orphans).toEqual([])
+    const feed = await client.getRingFeed(ringSlug)
+    expect(feed.posts.find((p) => p.uri === LIVE_URI)).toBeDefined()
   })
 })
 
