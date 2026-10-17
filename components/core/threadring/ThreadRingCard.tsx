@@ -72,7 +72,7 @@ export default function ThreadRingCard({
   const badgeImageUrl = threadRing.badge?.imageUrl || threadRing.badgeImageUrl;
 
   return (
-    <div className="threadring-card border border-thread-sage p-4 bg-thread-paper rounded-cozy shadow-cozySm hover:shadow-cozy hover:-translate-y-0.5 transition-all duration-150">
+    <div className="threadring-card border border-thread-sage p-4 bg-thread-paper rounded-cozy shadow-cozy-sm hover:shadow-cozy hover:-translate-y-0.5 transition-all duration-150">
       {/* Header */}
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex-1 min-w-0">
@@ -122,7 +122,7 @@ export default function ThreadRingCard({
             <button
               onClick={handleJoin}
               disabled={joining}
-              className="text-xs bg-thread-sunset text-thread-paper hover:bg-thread-sunset/90 border border-thread-pine px-3.5 py-1 rounded-full shadow-cozySm hover:shadow-cozy transition-all font-medium disabled:opacity-60"
+              className="text-xs bg-thread-sunset text-thread-paper hover:bg-thread-sunset/90 border border-thread-pine px-3.5 py-1 rounded-full shadow-cozy-sm hover:shadow-cozy transition-all font-medium disabled:opacity-60"
             >
               {joining ? "Joining…" : "Join"}
             </button>

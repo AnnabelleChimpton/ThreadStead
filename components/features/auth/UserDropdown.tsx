@@ -149,7 +149,7 @@ export default function UserDropdown({ isMobile = false, onItemClick }: UserDrop
       <button
         ref={buttonRef}
         onClick={() => setIsOpen(!isOpen)}
-        className="user-dropdown-trigger flex items-center gap-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm border border-thread-sage bg-thread-paper hover:bg-thread-cream rounded shadow-cozySm text-thread-charcoal"
+        className="user-dropdown-trigger flex items-center gap-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm border border-thread-sage bg-thread-paper hover:bg-thread-cream rounded shadow-cozy-sm text-thread-charcoal"
       >
         <span className="thread-label">{username}</span>
         <span className="text-xs text-thread-sage">

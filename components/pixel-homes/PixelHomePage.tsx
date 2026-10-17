@@ -318,14 +318,14 @@ export default function PixelHomePage({
               <div className="space-y-3">
                 <button
                   onClick={handleDoorClick}
-                  className="w-full flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-thread-sage to-thread-pine text-thread-paper hover:from-thread-pine hover:to-thread-sage transition-all duration-300 rounded-lg font-medium shadow-cozySm hover:shadow-cozy transform hover:-translate-y-0.5"
+                  className="w-full flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-thread-sage to-thread-pine text-thread-paper hover:from-thread-pine hover:to-thread-sage transition-all duration-300 rounded-lg font-medium shadow-cozy-sm hover:shadow-cozy transform hover:-translate-y-0.5"
                 >
                   <span>Step Inside — Visit Profile</span>
                 </button>
 
                 <button
                   onClick={handleMailboxClick}
-                  className="w-full flex items-center gap-3 px-4 py-3 bg-thread-cream hover:bg-thread-sky hover:bg-opacity-20 text-thread-pine transition-all duration-300 rounded-lg font-medium shadow-cozySm hover:shadow-cozy transform hover:-translate-y-0.5 border border-thread-sage border-opacity-30"
+                  className="w-full flex items-center gap-3 px-4 py-3 bg-thread-cream hover:bg-thread-sky hover:bg-opacity-20 text-thread-pine transition-all duration-300 rounded-lg font-medium shadow-cozy-sm hover:shadow-cozy transform hover:-translate-y-0.5 border border-thread-sage border-opacity-30"
                 >
                   <span>Check Mailbox {hasUnreadGuestbook && '(new)'}</span>
                   {hasUnreadGuestbook && <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>}
@@ -333,14 +333,14 @@ export default function PixelHomePage({
 
                 <button
                   onClick={handleThreadbookClick}
-                  className="w-full flex items-center gap-3 px-4 py-3 bg-thread-cream hover:bg-thread-sky hover:bg-opacity-20 text-thread-pine transition-all duration-300 rounded-lg font-medium shadow-cozySm hover:shadow-cozy transform hover:-translate-y-0.5 border border-thread-sage border-opacity-30"
+                  className="w-full flex items-center gap-3 px-4 py-3 bg-thread-cream hover:bg-thread-sky hover:bg-opacity-20 text-thread-pine transition-all duration-300 rounded-lg font-medium shadow-cozy-sm hover:shadow-cozy transform hover:-translate-y-0.5 border border-thread-sage border-opacity-30"
                 >
                   <span>View ThreadRing Lineage</span>
                 </button>
 
                 <button
                   onClick={() => router.push(`/resident/${username}?tab=rings`)}
-                  className="w-full flex items-center gap-3 px-4 py-3 bg-thread-cream hover:bg-thread-sky hover:bg-opacity-20 text-thread-pine transition-all duration-300 rounded-lg font-medium shadow-cozySm hover:shadow-cozy transform hover:-translate-y-0.5 border border-thread-sage border-opacity-30"
+                  className="w-full flex items-center gap-3 px-4 py-3 bg-thread-cream hover:bg-thread-sky hover:bg-opacity-20 text-thread-pine transition-all duration-300 rounded-lg font-medium shadow-cozy-sm hover:shadow-cozy transform hover:-translate-y-0.5 border border-thread-sage border-opacity-30"
                 >
                   <span>View Ring Memberships</span>
                 </button>
@@ -356,13 +356,13 @@ export default function PixelHomePage({
                 <div className="space-y-3">
                   <button
                     onClick={handleDecorationMode}
-                    className="w-full flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600 transition-all duration-300 rounded-lg font-medium shadow-cozySm hover:shadow-cozy transform hover:-translate-y-0.5"
+                    className="w-full flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600 transition-all duration-300 rounded-lg font-medium shadow-cozy-sm hover:shadow-cozy transform hover:-translate-y-0.5"
                   >
                     <span>Decorate Home</span>
                   </button>
                   <button
                     onClick={() => setShowShareModal(true)}
-                    className="w-full flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:from-blue-600 hover:to-cyan-600 transition-all duration-300 rounded-lg font-medium shadow-cozySm hover:shadow-cozy transform hover:-translate-y-0.5"
+                    className="w-full flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:from-blue-600 hover:to-cyan-600 transition-all duration-300 rounded-lg font-medium shadow-cozy-sm hover:shadow-cozy transform hover:-translate-y-0.5"
                   >
                     <span>Share Home</span>
                   </button>
@@ -378,14 +378,14 @@ export default function PixelHomePage({
               <div className="space-y-3">
                 <button
                   onClick={() => router.push('/neighborhood/explore/all')}
-                  className="w-full flex items-center gap-3 px-4 py-3 bg-thread-cream hover:bg-thread-sky hover:bg-opacity-20 text-thread-pine transition-all duration-300 rounded-lg font-medium shadow-cozySm hover:shadow-cozy transform hover:-translate-y-0.5 border border-thread-sage border-opacity-30"
+                  className="w-full flex items-center gap-3 px-4 py-3 bg-thread-cream hover:bg-thread-sky hover:bg-opacity-20 text-thread-pine transition-all duration-300 rounded-lg font-medium shadow-cozy-sm hover:shadow-cozy transform hover:-translate-y-0.5 border border-thread-sage border-opacity-30"
                 >
                   <span>Explore More Homes</span>
                 </button>
 
                 <button
                   onClick={() => router.push('/')}
-                  className="w-full flex items-center gap-3 px-4 py-3 bg-thread-cream hover:bg-thread-sky hover:bg-opacity-20 text-thread-pine transition-all duration-300 rounded-lg font-medium shadow-cozySm hover:shadow-cozy transform hover:-translate-y-0.5 border border-thread-sage border-opacity-30"
+                  className="w-full flex items-center gap-3 px-4 py-3 bg-thread-cream hover:bg-thread-sky hover:bg-opacity-20 text-thread-pine transition-all duration-300 rounded-lg font-medium shadow-cozy-sm hover:shadow-cozy transform hover:-translate-y-0.5 border border-thread-sage border-opacity-30"
                 >
                   <span>Back to ThreadStead</span>
                 </button>

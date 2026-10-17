@@ -7,7 +7,7 @@ import Skeleton, { SkeletonAvatar, SkeletonText, SkeletonTag, SkeletonButton } f
  */
 export default function PostSkeleton() {
   return (
-    <article className="bg-thread-paper border border-thread-sage/30 p-6 mb-4 rounded-cozy shadow-cozySm">
+    <article className="bg-thread-paper border border-thread-sage/30 p-6 mb-4 rounded-cozy shadow-cozy-sm">
       {/* Author Info Header */}
       <header className="flex items-center gap-3 mb-4">
         <SkeletonAvatar size="md" />

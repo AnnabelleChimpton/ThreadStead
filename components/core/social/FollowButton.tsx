@@ -77,7 +77,7 @@ export default function FollowButton({
         <button
           onClick={unfollow}
           disabled={busy}
-          className="px-3 py-1 text-sm border border-thread-sage bg-thread-paper hover:bg-thread-cream text-thread-charcoal rounded shadow-cozySm transition-all disabled:opacity-50"
+          className="px-3 py-1 text-sm border border-thread-sage bg-thread-paper hover:bg-thread-cream text-thread-charcoal rounded shadow-cozy-sm transition-all disabled:opacity-50"
           aria-label="Unfollow"
         >
           {busy ? "Working…" : "Unfollow"}

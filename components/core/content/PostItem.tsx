@@ -394,7 +394,7 @@ export default function PostItem({
     <article
       ref={viewportRef}
       id={`post-${post.id.slice(-6)}`}
-      className={`post-item bg-thread-paper border-y sm:border border-thread-sage/30 p-5 sm:p-8 mb-6 sm:rounded-cozy shadow-cozySm hover:shadow-cozy transition-all duration-300 ${post.isPinned ? 'border-yellow-500 border-2' : ''}`}
+      className={`post-item bg-thread-paper border-y sm:border border-thread-sage/30 p-5 sm:p-8 mb-6 sm:rounded-cozy shadow-cozy-sm hover:shadow-cozy transition-all duration-300 ${post.isPinned ? 'border-yellow-500 border-2' : ''}`}
       data-post-id={post.id.slice(-6)}
     >
       {/* Author Info & Header */}

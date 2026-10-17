@@ -270,7 +270,7 @@ export default function UserQuickView({ username, isOpen, onClose }: UserQuickVi
                 <button
                   onClick={handleUnfollow}
                   disabled={followBusy}
-                  className="px-3 py-1 text-sm border border-thread-sage bg-thread-paper hover:bg-thread-cream text-thread-charcoal rounded shadow-cozySm transition-all disabled:opacity-50 flex-1"
+                  className="px-3 py-1 text-sm border border-thread-sage bg-thread-paper hover:bg-thread-cream text-thread-charcoal rounded shadow-cozy-sm transition-all disabled:opacity-50 flex-1"
                 >
                   {followBusy ? "Working…" : "Unfollow"}
                 </button>
@@ -280,7 +280,7 @@ export default function UserQuickView({ username, isOpen, onClose }: UserQuickVi
                   openDM(data.userId);
                   onClose();
                 }}
-                className="px-3 py-1 text-sm border border-thread-sage bg-thread-paper hover:bg-thread-cream text-thread-charcoal rounded shadow-cozySm transition-all flex-1"
+                className="px-3 py-1 text-sm border border-thread-sage bg-thread-paper hover:bg-thread-cream text-thread-charcoal rounded shadow-cozy-sm transition-all flex-1"
               >
                 Message
               </button>
@@ -300,14 +300,14 @@ export default function UserQuickView({ username, isOpen, onClose }: UserQuickVi
         <div className="flex gap-2">
           <Link
             href={`/resident/${data.username}`}
-            className="flex-1 text-center px-3 py-2 text-sm border border-thread-sage bg-white hover:bg-thread-cream text-thread-charcoal rounded shadow-cozySm transition-all"
+            className="flex-1 text-center px-3 py-2 text-sm border border-thread-sage bg-white hover:bg-thread-cream text-thread-charcoal rounded shadow-cozy-sm transition-all"
           >
             View Full Profile
           </Link>
           {data.hasCustomPixelHome && (
             <Link
               href={`/home/${data.username}`}
-              className="flex-1 text-center px-3 py-2 text-sm border border-thread-sage bg-white hover:bg-thread-cream text-thread-charcoal rounded shadow-cozySm transition-all"
+              className="flex-1 text-center px-3 py-2 text-sm border border-thread-sage bg-white hover:bg-thread-cream text-thread-charcoal rounded shadow-cozy-sm transition-all"
             >
               Visit Pixel Home
             </Link>

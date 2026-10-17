@@ -18,7 +18,7 @@ export default function NotificationsPage({ user }: NotificationsPageProps) {
     return (
       <Layout>
         <div className="max-w-2xl mx-auto">
-          <div className="bg-thread-paper border border-thread-sage/30 p-8 rounded-cozy shadow-cozySm text-center">
+          <div className="bg-thread-paper border border-thread-sage/30 p-8 rounded-cozy shadow-cozy-sm text-center">
             <h1 className="text-2xl font-bold text-thread-pine mb-4">Access Denied</h1>
             <p className="text-thread-sage mb-6">You need to be logged in to view notifications.</p>
             <Link
@@ -36,7 +36,7 @@ export default function NotificationsPage({ user }: NotificationsPageProps) {
   return (
     <Layout>
       <div className="max-w-4xl mx-auto">
-        <div className="bg-thread-paper border border-thread-sage/30 p-6 rounded-cozy shadow-cozySm">
+        <div className="bg-thread-paper border border-thread-sage/30 p-6 rounded-cozy shadow-cozy-sm">
           {/* NotificationList updates its own state optimistically on
               mark-as-read; remounting via a key caused a full refetch and
               scroll reset on every update. */}

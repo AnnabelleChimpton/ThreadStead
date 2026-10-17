@@ -136,7 +136,7 @@ export default function DemoPixelHome() {
 
               {/* Day/Night Toggle */}
               <div className="mt-6 flex justify-center">
-                <div className="bg-thread-paper border-2 border-thread-sage rounded-lg p-4 shadow-cozySm">
+                <div className="bg-thread-paper border-2 border-thread-sage rounded-lg p-4 shadow-cozy-sm">
                   <div className="text-sm font-medium text-thread-pine mb-3 text-center">
                     Try the atmosphere toggle:
                   </div>
@@ -230,7 +230,7 @@ export default function DemoPixelHome() {
                   </Link>
                   <Link
                     href="/login"
-                    className="px-8 py-4 bg-thread-cream hover:bg-thread-sky hover:bg-opacity-20 text-thread-pine transition-all duration-300 rounded-lg font-medium border-2 border-thread-sage shadow-cozySm hover:shadow-cozy transform hover:-translate-y-1 text-center"
+                    className="px-8 py-4 bg-thread-cream hover:bg-thread-sky hover:bg-opacity-20 text-thread-pine transition-all duration-300 rounded-lg font-medium border-2 border-thread-sage shadow-cozy-sm hover:shadow-cozy transform hover:-translate-y-1 text-center"
                   >
                     Sign In
                   </Link>
@@ -248,7 +248,7 @@ export default function DemoPixelHome() {
                 </p>
                 <Link
                   href="/neighborhood/explore/all"
-                  className="inline-flex items-center gap-2 px-8 py-4 bg-thread-cream hover:bg-thread-sky hover:bg-opacity-20 text-thread-pine transition-all duration-300 rounded-lg font-medium border-2 border-thread-sage shadow-cozySm hover:shadow-cozy transform hover:-translate-y-1"
+                  className="inline-flex items-center gap-2 px-8 py-4 bg-thread-cream hover:bg-thread-sky hover:bg-opacity-20 text-thread-pine transition-all duration-300 rounded-lg font-medium border-2 border-thread-sage shadow-cozy-sm hover:shadow-cozy transform hover:-translate-y-1"
                 >
                   <PixelIcon name="buildings" size={16} /> Explore More Homes
                 </Link>
@@ -257,7 +257,7 @@ export default function DemoPixelHome() {
 
             {/* Demo Note */}
             <div className="mt-8 text-center">
-              <div className="inline-block bg-thread-cream border border-thread-sage rounded-lg px-6 py-3 shadow-cozySm">
+              <div className="inline-block bg-thread-cream border border-thread-sage rounded-lg px-6 py-3 shadow-cozy-sm">
                 <p className="text-sm text-thread-sage">
                   <span className="font-medium text-thread-pine">Note:</span> This is a static demo.
                   Sign up to create your own fully customizable pixel home with saved decorations,

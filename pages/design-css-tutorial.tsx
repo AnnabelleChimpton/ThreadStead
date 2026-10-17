@@ -1615,10 +1615,10 @@ body {
       description: 'Custom shadow styles for ThreadStead design',
       classes: [
         { name: 'shadow-cozy', description: 'Warm sage shadow (3px 3px 0 #A18463)' },
-        { name: 'shadow-cozySm', description: 'Small warm shadow (2px 2px 0 #A18463)' },
+        { name: 'shadow-cozy-sm', description: 'Small warm shadow (2px 2px 0 #A18463)' },
         { name: 'shadow-thread', description: 'Soft pine shadow with blur' },
         { name: 'shadow-retro', description: 'Retro box shadow (4px 4px 0 #A18463)' },
-        { name: 'shadow-retroSm', description: 'Small retro shadow (2px 2px 0 #A18463)' }
+        { name: 'shadow-retro-sm', description: 'Small retro shadow (2px 2px 0 #A18463)' }
       ],
       example: `/* Creative shadow combinations */
 .floating-card {

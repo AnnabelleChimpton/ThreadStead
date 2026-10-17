@@ -7,7 +7,7 @@ import Skeleton, { SkeletonAvatar, SkeletonButton } from './Skeleton';
  */
 export default function UserCardSkeleton() {
   return (
-    <div className="user-card bg-thread-paper border border-thread-sage/30 p-5 rounded-cozy shadow-cozySm h-full flex flex-col">
+    <div className="user-card bg-thread-paper border border-thread-sage/30 p-5 rounded-cozy shadow-cozy-sm h-full flex flex-col">
       {/* Header with Avatar and Name */}
       <div className="flex items-start gap-4 mb-4">
         <SkeletonAvatar size="md" />

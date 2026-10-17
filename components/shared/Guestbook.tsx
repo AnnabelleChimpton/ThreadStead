@@ -226,7 +226,7 @@ export default function Guestbook({ username, bio }: { username: string; bio?: s
           <span className="thread-label">{entries.length} messages</span>
           <ul className="space-y-3">
             {entries.map((e) => (
-              <li key={e.id} className="guestbook-entry bg-thread-paper border border-thread-sage/30 p-4 rounded-cozy shadow-cozySm">
+              <li key={e.id} className="guestbook-entry bg-thread-paper border border-thread-sage/30 p-4 rounded-cozy shadow-cozy-sm">
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
                     <div className="thread-label mb-2">
@@ -305,14 +305,14 @@ export default function Guestbook({ username, bio }: { username: string; bio?: s
             <div className="flex gap-3 justify-end">
               <button
                 onClick={cancelDelete}
-                className="px-4 py-2 text-sm border border-thread-sage bg-thread-paper hover:bg-thread-cream text-thread-charcoal rounded shadow-cozySm transition-all"
+                className="px-4 py-2 text-sm border border-thread-sage bg-thread-paper hover:bg-thread-cream text-thread-charcoal rounded shadow-cozy-sm transition-all"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmDeleteEntry}
                 disabled={deletingId === confirmDelete.entryId}
-                className="px-4 py-2 text-sm border border-thread-sunset bg-thread-sunset/20 hover:bg-thread-sunset/30 text-thread-sunset rounded shadow-cozySm disabled:opacity-50 transition-all"
+                className="px-4 py-2 text-sm border border-thread-sunset bg-thread-sunset/20 hover:bg-thread-sunset/30 text-thread-sunset rounded shadow-cozy-sm disabled:opacity-50 transition-all"
               >
                 {deletingId === confirmDelete.entryId ? "Deleting..." : "Delete"}
               </button>

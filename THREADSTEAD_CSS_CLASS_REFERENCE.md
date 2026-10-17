@@ -226,10 +226,10 @@ This comprehensive guide contains every CSS class from the ThreadStead design sy
 **Custom shadow styles for ThreadStead design**
 
 - `shadow-cozy` - Warm sage shadow (3px 3px 0 #A18463)
-- `shadow-cozySm` - Small warm shadow (2px 2px 0 #A18463)
+- `shadow-cozy-sm` - Small warm shadow (2px 2px 0 #A18463)
 - `shadow-thread` - Soft pine shadow with blur
 - `shadow-retro` - Retro box shadow (4px 4px 0 #A18463)
-- `shadow-retroSm` - Small retro shadow (2px 2px 0 #A18463)
+- `shadow-retro-sm` - Small retro shadow (2px 2px 0 #A18463)
 
 ### Border Radius
 **Consistent border radius utilities**

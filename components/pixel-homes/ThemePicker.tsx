@@ -234,7 +234,7 @@ export default function ThemePicker({
               hover:bg-thread-pine 
               transition-colors duration-200 
               rounded-md font-medium
-              shadow-cozy hover:shadow-cozySm
+              shadow-cozy hover:shadow-cozy-sm
             "
           >
             Set Up My Pixel Home <PixelIcon name="home" size={16} className="inline-block ml-1 align-middle" />

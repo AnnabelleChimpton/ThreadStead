@@ -238,13 +238,13 @@ export default function ThreadRingsPage({ siteConfig }: ThreadRingsPageProps) {
               <div className="flex flex-col sm:flex-row gap-2">
                 <Link
                   href="/threadrings/genealogy"
-                  className="btn btn--secondary border border-thread-sage px-3 py-2 text-sm md:px-4 md:text-base bg-thread-paper hover:bg-thread-cream text-thread-pine rounded-cozy shadow-cozySm hover:shadow-cozy transition-all font-medium text-center"
+                  className="btn btn--secondary border border-thread-sage px-3 py-2 text-sm md:px-4 md:text-base bg-thread-paper hover:bg-thread-cream text-thread-pine rounded-cozy shadow-cozy-sm hover:shadow-cozy transition-all font-medium text-center"
                 >
                   🌳 Genealogy
                 </Link>
                 <Link
                   href="/tr/spool/fork"
-                  className="btn btn--primary border border-thread-pine px-3 py-2 text-sm md:px-4 md:text-base bg-thread-sunset text-thread-paper hover:bg-thread-sunset/90 rounded-cozy shadow-cozySm hover:shadow-cozy transition-all font-medium text-center"
+                  className="btn btn--primary border border-thread-pine px-3 py-2 text-sm md:px-4 md:text-base bg-thread-sunset text-thread-paper hover:bg-thread-sunset/90 rounded-cozy shadow-cozy-sm hover:shadow-cozy transition-all font-medium text-center"
                 >
                   Branch <span className="hidden md:inline">from The Spool</span>
                 </Link>
@@ -283,7 +283,7 @@ export default function ThreadRingsPage({ siteConfig }: ThreadRingsPageProps) {
                 placeholder={`Search ${activeTab === 'mine' ? 'my' : ''} ThreadRings...`}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full border border-thread-sage px-3 py-2 bg-thread-paper rounded-cozy focus:outline-none focus:border-thread-sunset focus:shadow-cozySm transition-all"
+                className="w-full border border-thread-sage px-3 py-2 bg-thread-paper rounded-cozy focus:outline-none focus:border-thread-sunset focus:shadow-cozy-sm transition-all"
               />
             </div>
             <select
@@ -311,7 +311,7 @@ export default function ThreadRingsPage({ siteConfig }: ThreadRingsPageProps) {
             <div className="text-thread-sunset mb-4">{error}</div>
             <button
               onClick={() => fetchThreadRings(true)}
-              className="border border-thread-sage px-4 py-2 bg-thread-paper hover:bg-thread-cream text-thread-pine rounded-cozy shadow-cozySm hover:shadow-cozy transition-all"
+              className="border border-thread-sage px-4 py-2 bg-thread-paper hover:bg-thread-cream text-thread-pine rounded-cozy shadow-cozy-sm hover:shadow-cozy transition-all"
             >
               Try Again
             </button>
@@ -339,7 +339,7 @@ export default function ThreadRingsPage({ siteConfig }: ThreadRingsPageProps) {
                   {activeTab === 'mine' ? (
                     <button
                       onClick={() => setActiveTab('discover')}
-                      className="border border-thread-sage px-4 py-2 bg-thread-sky/25 hover:bg-thread-sky/40 text-thread-pine rounded-cozy shadow-cozySm hover:shadow-cozy transition-all inline-block"
+                      className="border border-thread-sage px-4 py-2 bg-thread-sky/25 hover:bg-thread-sky/40 text-thread-pine rounded-cozy shadow-cozy-sm hover:shadow-cozy transition-all inline-block"
                     >
                       Discover ThreadRings
                     </button>
@@ -351,7 +351,7 @@ export default function ThreadRingsPage({ siteConfig }: ThreadRingsPageProps) {
                     >
                       <Link
                         href="/tr/spool/fork"
-                        className="btn btn--primary border border-thread-pine px-4 py-2 bg-thread-sunset text-thread-paper hover:bg-thread-sunset/90 rounded-cozy shadow-cozySm hover:shadow-cozy transition-all inline-block"
+                        className="btn btn--primary border border-thread-pine px-4 py-2 bg-thread-sunset text-thread-paper hover:bg-thread-sunset/90 rounded-cozy shadow-cozy-sm hover:shadow-cozy transition-all inline-block"
                       >
                         Branch from The Spool
                       </Link>
@@ -381,7 +381,7 @@ export default function ThreadRingsPage({ siteConfig }: ThreadRingsPageProps) {
                 <button
                   onClick={handleLoadMore}
                   disabled={loadingMore}
-                  className="border border-thread-sage px-6 py-3 bg-thread-paper hover:bg-thread-cream text-thread-pine rounded-cozy shadow-cozySm hover:shadow-cozy transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="border border-thread-sage px-6 py-3 bg-thread-paper hover:bg-thread-cream text-thread-pine rounded-cozy shadow-cozy-sm hover:shadow-cozy transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loadingMore ? "Loading…" : "Load More ThreadRings"}
                 </button>

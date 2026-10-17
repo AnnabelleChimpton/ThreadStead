@@ -308,7 +308,7 @@ export default function PollsPanel() {
             <button
               onClick={() => currentSelection && handleVote(poll.id, currentSelection)}
               disabled={!currentSelection || voting === poll.id}
-              className={`w-full border border-[#A18463] px-4 py-2 rounded shadow-cozySm transition-all mb-3 ${
+              className={`w-full border border-[#A18463] px-4 py-2 rounded shadow-cozy-sm transition-all mb-3 ${
                 currentSelection && voting !== poll.id
                   ? 'bg-thread-cream hover:bg-thread-sage/10 active:translate-x-[1px] active:translate-y-[1px]'
                   : 'bg-gray-100 cursor-not-allowed opacity-50'

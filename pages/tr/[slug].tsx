@@ -1075,7 +1075,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                   {hasMore && (
                     <div className="text-center pt-6 mt-6">
                       <button
-                        className="bg-thread-paper border border-thread-sage/30 px-6 py-2 rounded-cozy shadow-cozySm hover:shadow-cozy transition-all text-sm font-medium"
+                        className="bg-thread-paper border border-thread-sage/30 px-6 py-2 rounded-cozy shadow-cozy-sm hover:shadow-cozy transition-all text-sm font-medium"
                         onClick={() => {
                           // TODO: Implement load more functionality
                           // Loading more posts
@@ -1099,7 +1099,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
               curatorNote={ring.curatorNote}
             />
             {/* Primary Actions - Always Visible */}
-            <div className="tr-sidebar-section tr-primary-actions bg-thread-paper rounded-cozy shadow-cozySm border border-thread-sage/30 p-3 sm:p-4">
+            <div className="tr-sidebar-section tr-primary-actions bg-thread-paper rounded-cozy shadow-cozy-sm border border-thread-sage/30 p-3 sm:p-4">
               {isMember ? (
                 <div className="space-y-3">
                   {/* Member Status */}
@@ -1198,7 +1198,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
 
             {/* Official ThreadRing Badge - Always Visible */}
             {ring.badge && ring.badge.isActive && (
-              <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-cozy shadow-cozySm border border-thread-sage/30 p-4">
+              <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-cozy shadow-cozy-sm border border-thread-sage/30 p-4">
                 <div className="flex items-center justify-center mb-3">
                   {ring.badge.imageUrl ? (
                     <div
@@ -1263,7 +1263,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
             )}
 
             {/* Member Preview - Always Visible */}
-            <div className="bg-thread-paper rounded-cozy shadow-cozySm border border-thread-sage/30 p-4">
+            <div className="bg-thread-paper rounded-cozy shadow-cozy-sm border border-thread-sage/30 p-4">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-bold text-sm flex items-center gap-1"><PixelIcon name="users" size={14} /> Members ({ring.memberCount})</h3>
                 {isMember && currentUserRole === "curator" && (
@@ -1382,7 +1382,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
             )}
 
             {/* Ring Info & Insights - Tabbed Interface */}
-            <div className="bg-thread-paper rounded-cozy shadow-cozySm border border-thread-sage/30 overflow-hidden">
+            <div className="bg-thread-paper rounded-cozy shadow-cozy-sm border border-thread-sage/30 overflow-hidden">
               {/* Tab Navigation */}
               <div className="flex border-b border-gray-300">
                 <button
@@ -1445,7 +1445,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
             </div>
 
             {/* Quick Info - Always Visible */}
-            <div className="bg-gray-50 rounded-cozy shadow-cozySm border border-thread-sage/30 p-3 text-xs space-y-1">
+            <div className="bg-gray-50 rounded-cozy shadow-cozy-sm border border-thread-sage/30 p-3 text-xs space-y-1">
               <div className="flex justify-between">
                 <span className="text-gray-600">Created:</span>
                 <span className="font-medium">{new Date(ring.createdAt).toLocaleDateString()}</span>
@@ -1496,7 +1496,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
             <div className="bottom-sheet-content">
               <div className="p-4 pb-6 space-y-4 bottom-sheet-safe-area">
                 {/* Primary Actions */}
-                <div className="tr-sidebar-section tr-primary-actions bg-thread-paper rounded-cozy shadow-cozySm border border-thread-sage/30 p-3 sm:p-4">
+                <div className="tr-sidebar-section tr-primary-actions bg-thread-paper rounded-cozy shadow-cozy-sm border border-thread-sage/30 p-3 sm:p-4">
                   {isMember ? (
                     <div className="space-y-3">
                       {/* Member Status */}
@@ -1509,7 +1509,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                       {/* Create Post Button */}
                       <Link
                         href={`/resident/${currentUser?.primaryHandle}/create?ring=${ring.slug}`}
-                        className="tr-create-post-button block w-full text-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-cozy shadow-cozySm hover:shadow-cozy transition-all"
+                        className="tr-create-post-button block w-full text-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-cozy shadow-cozy-sm hover:shadow-cozy transition-all"
                       >
                         + New Post
                       </Link>
@@ -1531,7 +1531,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                       <button
                         onClick={handleJoin}
                         disabled={joining}
-                        className="tr-join-button w-full px-4 py-3 bg-green-600 hover:bg-green-700 text-white font-bold text-lg rounded-cozy shadow-cozySm hover:shadow-cozy transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="tr-join-button w-full px-4 py-3 bg-green-600 hover:bg-green-700 text-white font-bold text-lg rounded-cozy shadow-cozy-sm hover:shadow-cozy transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {joining ? 'Joining...' : '+ Join Ring'}
                       </button>
@@ -1593,7 +1593,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                 </div>
 
                 {/* Tabbed Content */}
-                <div className="tr-sidebar-section bg-thread-paper rounded-cozy shadow-cozySm border border-thread-sage/30 overflow-hidden">
+                <div className="tr-sidebar-section bg-thread-paper rounded-cozy shadow-cozy-sm border border-thread-sage/30 overflow-hidden">
                   {/* Tab Navigation */}
                   <div className="flex border-b border-gray-300">
                     <button
@@ -1656,7 +1656,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                 </div>
 
                 {/* Quick Info */}
-                <div className="bg-gray-50 rounded-cozy shadow-cozySm border border-thread-sage/30 p-3 text-xs space-y-1">
+                <div className="bg-gray-50 rounded-cozy shadow-cozy-sm border border-thread-sage/30 p-3 text-xs space-y-1">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Created:</span>
                     <span className="font-medium text-gray-900">{new Date(ring.createdAt).toLocaleDateString()}</span>
