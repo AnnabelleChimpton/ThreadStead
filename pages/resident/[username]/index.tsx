@@ -1,4 +1,5 @@
 // pages/resident/[username]/index.tsx
+import { getSiteBaseUrl } from '@/lib/config/site-url';
 import React from "react";
 import { getInternalBaseUrl } from "@/lib/utils/api/internal-base-url";
 import type { GetServerSideProps } from "next";
@@ -287,7 +288,7 @@ export default function ProfilePage({
           <meta name="keywords" content={profileMetadata.keywords.join(', ')} />
         )}
         <meta name="author" content={displayName || username} />
-        <link rel="canonical" href={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'}${profileMetadata.url}`} />
+        <link rel="canonical" href={`${getSiteBaseUrl()}${profileMetadata.url}`} />
         <meta name="robots" content="index, follow" />
 
         {/* OpenGraph meta tags */}
@@ -296,7 +297,7 @@ export default function ProfilePage({
         <meta property="og:type" content="profile" />
         <meta property="og:image" content={photoUrl} />
         <meta property="og:image:alt" content={profileMetadata.imageAlt} />
-        <meta property="og:url" content={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'}${profileMetadata.url}`} />
+        <meta property="og:url" content={`${getSiteBaseUrl()}${profileMetadata.url}`} />
         <meta property="og:site_name" content="ThreadStead" />
         <meta property="og:locale" content="en_US" />
 

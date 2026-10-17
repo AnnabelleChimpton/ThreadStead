@@ -1,3 +1,4 @@
+import { getSiteBaseUrl } from '@/lib/config/site-url';
 import { GetServerSideProps } from 'next';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -19,13 +20,13 @@ export default function BuildHub({ siteConfig }: BuildHubProps) {
       <Head>
         <title>HomePageAgain — Build</title>
         <meta name="description" content="Build your presence with our visual template builder and get started creating your unique home on the web." />
-        <link rel="canonical" href={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'}/build`} />
+        <link rel="canonical" href={`${getSiteBaseUrl()}/build`} />
         <meta name="robots" content="index, follow" />
 
         <meta property="og:title" content="HomePageAgain — Build" />
         <meta property="og:description" content="Build your presence with our visual template builder and get started creating your unique home on the web." />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'}/build`} />
+        <meta property="og:url" content={`${getSiteBaseUrl()}/build`} />
       </Head>
 
       <Layout siteConfig={siteConfig}>

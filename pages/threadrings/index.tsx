@@ -1,3 +1,4 @@
+import { getSiteBaseUrl } from '@/lib/config/site-url';
 import { useState, useEffect } from "react";
 import Head from "next/head";
 import Layout from "../../components/ui/layout/Layout";
@@ -51,7 +52,7 @@ interface ThreadRing {
 
 export default function ThreadRingsPage({ siteConfig }: ThreadRingsPageProps) {
   // Generate metadata for ThreadRings page
-  const metadataGenerator = new MetadataGenerator(process.env.NEXT_PUBLIC_BASE_URL, siteConfig);
+  const metadataGenerator = new MetadataGenerator(getSiteBaseUrl(), siteConfig);
   const threadRingsMetadata = {
     title: 'ThreadRings',
     description: 'Discover and join ThreadRing communities on ThreadStead. Find themed communities organized around shared interests, like modern WebRings or digital clubhouses.',
@@ -186,14 +187,14 @@ export default function ThreadRingsPage({ siteConfig }: ThreadRingsPageProps) {
         <title>{threadRingsMetadata.title} | ThreadStead</title>
         <meta name="description" content={threadRingsMetadata.description} />
         <meta name="keywords" content={threadRingsMetadata.keywords.join(', ')} />
-        <link rel="canonical" href={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'}${threadRingsMetadata.url}`} />
+        <link rel="canonical" href={`${getSiteBaseUrl()}${threadRingsMetadata.url}`} />
         <meta name="robots" content="index, follow" />
 
         {/* OpenGraph meta tags */}
         <meta property="og:title" content={`${threadRingsMetadata.title} | ThreadStead`} />
         <meta property="og:description" content={threadRingsMetadata.description} />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'}${threadRingsMetadata.url}`} />
+        <meta property="og:url" content={`${getSiteBaseUrl()}${threadRingsMetadata.url}`} />
         <meta property="og:site_name" content="ThreadStead" />
         <meta property="og:locale" content="en_US" />
 
@@ -211,7 +212,7 @@ export default function ThreadRingsPage({ siteConfig }: ThreadRingsPageProps) {
               '@type': 'CollectionPage',
               name: threadRingsMetadata.title,
               description: threadRingsMetadata.description,
-              url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'}${threadRingsMetadata.url}`,
+              url: `${getSiteBaseUrl()}${threadRingsMetadata.url}`,
               mainEntity: {
                 '@type': 'ItemList',
                 name: 'ThreadRings',

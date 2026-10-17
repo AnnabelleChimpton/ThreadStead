@@ -1,3 +1,4 @@
+import { getSiteBaseUrl } from '@/lib/config/site-url';
 import { randomBytes } from 'crypto';
 import { db } from './config/database/connection';
 import { encryptEmail, findUsersByEmail } from './utils/security/email-encryption';
@@ -201,7 +202,7 @@ export async function verifyPasswordResetToken(token: string): Promise<{ userId:
  * Send login email with magic link
  */
 export async function sendLoginEmail(email: string, users: EmailLoginUser[], token: string): Promise<void> {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+  const baseUrl = getSiteBaseUrl();
   const loginUrl = `${baseUrl}/auth/email-verify?token=${token}`;
 
   const fromEmail = process.env.RESEND_FROM_EMAIL;
@@ -322,7 +323,7 @@ export async function sendLoginEmail(email: string, users: EmailLoginUser[], tok
  * Send email verification email
  */
 export async function sendVerificationEmail(email: string, userName: string, token: string): Promise<void> {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+  const baseUrl = getSiteBaseUrl();
   const verifyUrl = `${baseUrl}/auth/verify-email?token=${token}`;
 
   const fromEmail = process.env.RESEND_FROM_EMAIL;
@@ -376,7 +377,7 @@ export async function sendVerificationEmail(email: string, userName: string, tok
  * Send password reset email
  */
 export async function sendPasswordResetEmail(email: string, userName: string, token: string): Promise<void> {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+  const baseUrl = getSiteBaseUrl();
   const resetUrl = `${baseUrl}/auth/reset-password?token=${token}`;
 
   const fromEmail = process.env.RESEND_FROM_EMAIL;

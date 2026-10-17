@@ -1,10 +1,14 @@
 /**
  * ThreadStead Monitoring Status Endpoint
  * 
- * Provides comprehensive status information for monitoring and observability
+ * Provides comprehensive status information for monitoring and observability.
+ * Admin-only: it exposes configuration (hub URL, instance DID, key state).
+ * Uptime probes should use the unauthenticated /api/monitoring/health.
  */
 
-import { NextApiRequest, NextApiResponse } from 'next'
+import { apiHandler } from '@/lib/api/handler'
+import { getServerEnv } from '@/lib/config/env'
+import { RingHubClient } from '@/lib/api/ringhub/ringhub-client'
 import { getKeyRotationStatus } from '@/lib/utils/scheduling/key-rotation'
 import { ringHubRateLimiter } from '@/lib/config/rate-limiting/limits'
 import { testRingHubConnection, validateRingHubConfig } from '@/lib/api/ringhub/ringhub-test-utils'
@@ -47,9 +51,7 @@ interface MonitoringStatus {
     instanceDid: string
     environment: string
     timeouts: {
-      ringHubTimeout: number
-      retries: number
-      retryDelay: number
+      ringHubTimeoutMs: number
     }
   }
   health: {
@@ -58,11 +60,8 @@ interface MonitoringStatus {
   }
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse<MonitoringStatus>) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' } as any)
-  }
-
+export default apiHandler({ methods: ['GET'], auth: 'admin' }, async (_req, res) => {
+  const env = getServerEnv()
   const issues: string[] = []
   const warnings: string[] = []
 
@@ -84,9 +83,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 
     // Check DID document accessibility
     let didDocumentAccessible = false
-    if (process.env.NEXT_PUBLIC_BASE_URL && serverKeypair) {
+    if (env.NEXT_PUBLIC_BASE_URL && serverKeypair) {
       try {
-        const didDocUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/.well-known/did.json`
+        const didDocUrl = `${env.NEXT_PUBLIC_BASE_URL}/.well-known/did.json`
         const response = await fetch(didDocUrl, { 
           signal: AbortSignal.timeout(5000) 
         })
@@ -160,19 +159,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
           }
         },
         features: {
-          ringHubEnabled: process.env.NEXT_PUBLIC_USE_RING_HUB === 'true',
-          threadRingsEnabled: process.env.NEXT_PUBLIC_THREADRINGS_ENABLED === 'true',
-          encryptionEnabled: !!process.env.THREADSTEAD_KEY_ENCRYPTION_KEY
+          ringHubEnabled: env.NEXT_PUBLIC_USE_RING_HUB,
+          threadRingsEnabled: env.NEXT_PUBLIC_THREADRINGS_ENABLED,
+          encryptionEnabled: !!env.THREADSTEAD_KEY_ENCRYPTION_KEY
         }
       },
       configuration: {
-        ringHubUrl: process.env.RING_HUB_URL || 'not-configured',
-        instanceDid: process.env.THREADSTEAD_DID || 'not-configured',
+        ringHubUrl: env.RING_HUB_URL || 'not-configured',
+        instanceDid: env.THREADSTEAD_DID || 'not-configured',
         environment: process.env.NODE_ENV || 'development',
+        // The timeout RingHubClient actually uses (RING_HUB_TIMEOUT_MS). The
+        // old RING_HUB_TIMEOUT/RETRIES/RETRY_DELAY were never read by the
+        // client, which does not retry.
         timeouts: {
-          ringHubTimeout: parseInt(process.env.RING_HUB_TIMEOUT || '30000'),
-          retries: parseInt(process.env.RING_HUB_RETRIES || '3'),
-          retryDelay: parseInt(process.env.RING_HUB_RETRY_DELAY || '1000')
+          ringHubTimeoutMs: RingHubClient.REQUEST_TIMEOUT_MS
         }
       },
       health: {
@@ -225,9 +225,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
         instanceDid: 'unknown',
         environment: process.env.NODE_ENV || 'development',
         timeouts: {
-          ringHubTimeout: 0,
-          retries: 0,
-          retryDelay: 0
+          ringHubTimeoutMs: 0
         }
       },
       health: {
@@ -238,4 +236,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 
     res.status(503).json(errorStatus)
   }
-}
+})

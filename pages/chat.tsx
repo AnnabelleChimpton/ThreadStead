@@ -1,3 +1,4 @@
+import { getSiteBaseUrl } from '@/lib/config/site-url';
 import { GetServerSideProps } from 'next';
 import Head from 'next/head';
 import Layout from '@/components/ui/layout/Layout';
@@ -21,14 +22,14 @@ export default function ChatPage({ siteConfig, user }: ChatPageProps) {
       <Head>
         <title>Chat Lounge - {siteConfig.site_name}</title>
         <meta name="description" content="Join the community chat lounge for real-time conversations with your neighbors." />
-        <link rel="canonical" href={`${process.env.NEXT_PUBLIC_BASE_URL}/chat`} />
+        <link rel="canonical" href={`${getSiteBaseUrl()}/chat`} />
         <meta name="robots" content="index, follow" />
 
         {/* OpenGraph meta tags */}
         <meta property="og:title" content={`Chat Lounge - ${siteConfig.site_name}`} />
         <meta property="og:description" content="Join the community chat lounge for real-time conversations with your neighbors." />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content={`${process.env.NEXT_PUBLIC_BASE_URL}/chat`} />
+        <meta property="og:url" content={`${getSiteBaseUrl()}/chat`} />
 
         {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />

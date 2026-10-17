@@ -1,3 +1,4 @@
+import { getSiteBaseUrl } from '@/lib/config/site-url';
 import { GetServerSideProps } from 'next'
 import { db } from '@/lib/config/database/connection'
 import Head from 'next/head'
@@ -69,7 +70,7 @@ export default function PixelHome({
         <meta property="og:title" content={pageTitle} />
         <meta property="og:description" content={pageDescription} />
         <meta property="og:type" content="profile" />
-        <meta property="og:url" content={`${process.env.NEXT_PUBLIC_BASE_URL}/home/${username}`} />
+        <meta property="og:url" content={`${getSiteBaseUrl()}/home/${username}`} />
 
         {/* Pixel Home specific meta tags */}
         <meta name="pixel-home:template" content={homeConfig.houseTemplate} />
@@ -87,8 +88,8 @@ export default function PixelHome({
                 name: userDisplayName || `@${username}`,
                 alternateName: `@${username}`,
                 description: userBio || `${username}'s profile on ThreadStead`,
-                url: `${process.env.NEXT_PUBLIC_BASE_URL}/resident/${username}`,
-                sameAs: `${process.env.NEXT_PUBLIC_BASE_URL}/home/${username}`
+                url: `${getSiteBaseUrl()}/resident/${username}`,
+                sameAs: `${getSiteBaseUrl()}/home/${username}`
               }
             })
           }}

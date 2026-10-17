@@ -1,8 +1,5 @@
-import { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '@/lib/config/database/connection';
-import { getSessionUser } from '@/lib/auth/server';
-import { withCsrfProtection } from '@/lib/api/middleware/withCsrfProtection';
-import { withRateLimit } from '@/lib/api/middleware/withRateLimit';
+import { apiHandler } from '@/lib/api/handler';
 import { z } from 'zod';
 
 const createPollSchema = z.object({
@@ -14,14 +11,9 @@ const createPollSchema = z.object({
   endsAt: z.string().optional().nullable()
 });
 
-async function handler(req: NextApiRequest, res: NextApiResponse) {
-  try {
-    const user = await getSessionUser(req);
-
-    if (!user || user.role !== 'admin') {
-      return res.status(403).json({ error: 'Admin access required' });
-    }
-
+export default apiHandler(
+  { methods: ['GET', 'POST'], auth: 'admin', rateLimit: 'admin', schema: createPollSchema },
+  async (req, res, { user, body }) => {
     if (req.method === 'GET') {
       // List all polls for admin view
       const limit = Math.min(parseInt(req.query.limit as string) || 20, 50);
@@ -58,87 +50,66 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       });
     }
 
-    if (req.method === 'POST') {
-      // Create new poll
-      const validatedData = createPollSchema.parse(req.body);
-      const { question, description, options, endsAt } = validatedData;
+    // POST: create a new poll (body already validated by createPollSchema)
+    const { question, description, options, endsAt } = body;
 
-      // Validate and parse endsAt if provided
-      let parsedEndsAt: Date | null = null;
-      if (endsAt) {
-        parsedEndsAt = new Date(endsAt);
-        if (isNaN(parsedEndsAt.getTime())) {
-          return res.status(400).json({ error: 'Invalid date format for endsAt' });
-        }
-        if (parsedEndsAt <= new Date()) {
-          return res.status(400).json({ error: 'End date must be in the future' });
-        }
+    // Validate and parse endsAt if provided
+    let parsedEndsAt: Date | null = null;
+    if (endsAt) {
+      parsedEndsAt = new Date(endsAt);
+      if (isNaN(parsedEndsAt.getTime())) {
+        return res.status(400).json({ error: 'Invalid date format for endsAt' });
       }
-
-      // Trim and deduplicate options
-      const trimmedOptions = [...new Set(options.map(opt => opt.trim()))].filter(opt => opt.length > 0);
-
-      if (trimmedOptions.length < 2) {
-        return res.status(400).json({ error: 'At least 2 unique options required' });
+      if (parsedEndsAt <= new Date()) {
+        return res.status(400).json({ error: 'End date must be in the future' });
       }
+    }
 
-      // Deactivate all existing polls before creating new one
-      await db.poll.updateMany({
-        where: { isActive: true },
-        data: { isActive: false }
-      });
+    // Trim and deduplicate options
+    const trimmedOptions = [...new Set(options.map(opt => opt.trim()))].filter(opt => opt.length > 0);
 
-      // Create poll with options
-      const poll = await db.poll.create({
-        data: {
-          question: question.trim(),
-          description: description?.trim() || null,
-          endsAt: parsedEndsAt,
-          isActive: true,
-          createdBy: user.id,
-          options: {
-            create: trimmedOptions.map((text, index) => ({
-              text,
-              order: index
-            }))
-          }
+    if (trimmedOptions.length < 2) {
+      return res.status(400).json({ error: 'At least 2 unique options required' });
+    }
+
+    // Deactivate all existing polls before creating new one
+    await db.poll.updateMany({
+      where: { isActive: true },
+      data: { isActive: false }
+    });
+
+    // Create poll with options
+    const poll = await db.poll.create({
+      data: {
+        question: question.trim(),
+        description: description?.trim() || null,
+        endsAt: parsedEndsAt,
+        isActive: true,
+        createdBy: user.id,
+        options: {
+          create: trimmedOptions.map((text, index) => ({
+            text,
+            order: index
+          }))
+        }
+      },
+      include: {
+        options: {
+          orderBy: { order: 'asc' }
         },
-        include: {
-          options: {
-            orderBy: { order: 'asc' }
-          },
-          creator: {
-            select: {
-              id: true,
-              primaryHandle: true,
-              role: true
-            }
+        creator: {
+          select: {
+            id: true,
+            primaryHandle: true,
+            role: true
           }
         }
-      });
+      }
+    });
 
-      return res.status(201).json({
-        message: 'Poll created successfully',
-        poll
-      });
-    }
-
-    return res.status(405).json({ error: 'Method not allowed' });
-  } catch (error) {
-    console.error('Admin polls API error:', error);
-
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({
-        error: 'Validation error',
-        details: error.issues
-      });
-    }
-
-    return res.status(500).json({
-      error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
+    return res.status(201).json({
+      message: 'Poll created successfully',
+      poll
     });
   }
-}
-
-export default withRateLimit('admin')(withCsrfProtection(handler));
+);

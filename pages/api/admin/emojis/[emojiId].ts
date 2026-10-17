@@ -1,109 +1,98 @@
-import { NextApiRequest, NextApiResponse } from "next";
-import { getSessionUser } from "@/lib/auth/server";
 import { db } from "@/lib/config/database/connection";
-import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
-import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
+import { apiHandler } from "@/lib/api/handler";
 
 
-async function handler(req: NextApiRequest, res: NextApiResponse) {
-  try {
-    const user = await getSessionUser(req);
-    
-    if (!user || user.role !== "admin") {
-      return res.status(403).json({ error: "Admin access required" });
-    }
+export default apiHandler(
+  { methods: ["PUT", "DELETE"], auth: "admin", rateLimit: "admin" },
+  async (req, res) => {
+    try {
+      const { emojiId } = req.query;
 
-    const { emojiId } = req.query;
-
-    if (typeof emojiId !== "string") {
-      return res.status(400).json({ error: "Invalid emoji ID" });
-    }
-
-    if (req.method === "PUT") {
-      // Update emoji
-      const { name, imageUrl } = req.body;
-
-      if (!name || !imageUrl) {
-        return res.status(400).json({ error: "Name and image URL are required" });
+      if (typeof emojiId !== "string") {
+        return res.status(400).json({ error: "Invalid emoji ID" });
       }
 
-      // Validate emoji name
-      if (!/^[a-zA-Z0-9_-]+$/.test(name)) {
-        return res.status(400).json({ error: "Emoji name can only contain letters, numbers, underscores, and hyphens" });
-      }
+      if (req.method === "PUT") {
+        // Update emoji
+        const { name, imageUrl } = req.body;
 
-      // Check if emoji exists
-      const existingEmoji = await db.emoji.findUnique({
-        where: { id: emojiId }
-      });
+        if (!name || !imageUrl) {
+          return res.status(400).json({ error: "Name and image URL are required" });
+        }
 
-      if (!existingEmoji) {
-        return res.status(404).json({ error: "Emoji not found" });
-      }
+        // Validate emoji name
+        if (!/^[a-zA-Z0-9_-]+$/.test(name)) {
+          return res.status(400).json({ error: "Emoji name can only contain letters, numbers, underscores, and hyphens" });
+        }
 
-      // Check if new name conflicts with another emoji
-      if (name !== existingEmoji.name) {
-        const nameConflict = await db.emoji.findUnique({
-          where: { name }
+        // Check if emoji exists
+        const existingEmoji = await db.emoji.findUnique({
+          where: { id: emojiId }
         });
 
-        if (nameConflict) {
-          return res.status(409).json({ error: "Emoji name already exists" });
+        if (!existingEmoji) {
+          return res.status(404).json({ error: "Emoji not found" });
         }
-      }
 
-      const updatedEmoji = await db.emoji.update({
-        where: { id: emojiId },
-        data: {
-          name,
-          imageUrl
-        },
-        include: {
-          creator: {
-            select: {
-              id: true,
-              profile: {
-                select: {
-                  displayName: true
-                }
-              },
-              handles: {
-                select: {
-                  handle: true
+        // Check if new name conflicts with another emoji
+        if (name !== existingEmoji.name) {
+          const nameConflict = await db.emoji.findUnique({
+            where: { name }
+          });
+
+          if (nameConflict) {
+            return res.status(409).json({ error: "Emoji name already exists" });
+          }
+        }
+
+        const updatedEmoji = await db.emoji.update({
+          where: { id: emojiId },
+          data: {
+            name,
+            imageUrl
+          },
+          include: {
+            creator: {
+              select: {
+                id: true,
+                profile: {
+                  select: {
+                    displayName: true
+                  }
                 },
-                take: 1
+                handles: {
+                  select: {
+                    handle: true
+                  },
+                  take: 1
+                }
               }
             }
           }
-        }
-      });
+        });
 
-      return res.status(200).json({ emoji: updatedEmoji });
-    }
-
-    if (req.method === "DELETE") {
-      // Delete emoji
-      const emoji = await db.emoji.findUnique({
-        where: { id: emojiId }
-      });
-
-      if (!emoji) {
-        return res.status(404).json({ error: "Emoji not found" });
+        return res.status(200).json({ emoji: updatedEmoji });
       }
 
-      await db.emoji.delete({
-        where: { id: emojiId }
-      });
+      if (req.method === "DELETE") {
+        // Delete emoji
+        const emoji = await db.emoji.findUnique({
+          where: { id: emojiId }
+        });
 
-      return res.status(200).json({ message: "Emoji deleted successfully" });
+        if (!emoji) {
+          return res.status(404).json({ error: "Emoji not found" });
+        }
+
+        await db.emoji.delete({
+          where: { id: emojiId }
+        });
+
+        return res.status(200).json({ message: "Emoji deleted successfully" });
+      }
+    } catch (error) {
+      console.error("Admin emoji API error:", error);
+      return res.status(500).json({ error: "Internal server error" });
     }
-
-    return res.status(405).json({ error: "Method not allowed" });
-  } catch (error) {
-    console.error("Admin emoji API error:", error);
-    return res.status(500).json({ error: "Internal server error" });
   }
-}
-
-// Apply CSRF protection and rate limiting
-export default withRateLimit('admin')(withCsrfProtection(handler));
+);

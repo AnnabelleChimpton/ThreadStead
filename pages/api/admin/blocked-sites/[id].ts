@@ -1,8 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '@/lib/config/database/connection';
-import { getSessionUser } from '@/lib/auth/server';
-import { withCsrfProtection } from '@/lib/api/middleware/withCsrfProtection';
-import { withRateLimit } from '@/lib/api/middleware/withRateLimit';
+import { apiHandler } from '@/lib/api/handler';
 
 /**
  * API endpoint for managing individual blocked sites
@@ -42,20 +40,9 @@ async function handleDelete(
   }
 }
 
-async function handler(req: NextApiRequest, res: NextApiResponse) {
-  // Require admin authentication
-  const user = await getSessionUser(req);
-  if (!user || user.role !== 'admin') {
-    return res.status(403).json({ error: 'Admin access required' });
-  }
-
-  if (req.method === 'DELETE') {
+export default apiHandler(
+  { methods: ['DELETE'], auth: 'admin', rateLimit: 'admin' },
+  async (req, res) => {
     return handleDelete(req, res);
-  } else {
-    res.setHeader('Allow', ['DELETE']);
-    res.status(405).json({ error: `Method ${req.method} Not Allowed` });
   }
-}
-
-// Apply CSRF protection and rate limiting
-export default withRateLimit('admin')(withCsrfProtection(handler));
+);

@@ -1,5 +1,6 @@
 import { GetServerSideProps } from 'next'
 import Head from 'next/head'
+import { getSiteBaseUrl } from '@/lib/config/site-url'
 import Layout from '../../../components/ui/layout/Layout'
 import NeighborhoodGrid from '../../../components/pixel-homes/NeighborhoodGrid'
 import { HouseTemplate, ColorPalette } from '../../../components/pixel-homes/HouseSVG'
@@ -81,7 +82,7 @@ export default function MutualFriendsNeighborhood({
         <meta property="og:title" content={pageTitle} />
         <meta property="og:description" content={pageDescription} />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content={`${process.env.NEXT_PUBLIC_BASE_URL}/neighborhood/mutual-friends/${targetUsername}`} />
+        <meta property="og:url" content={`${getSiteBaseUrl()}/neighborhood/mutual-friends/${targetUsername}`} />
       </Head>
 
       <Layout>

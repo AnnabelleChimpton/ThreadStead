@@ -1,3 +1,4 @@
+import { getSiteBaseUrl } from '@/lib/config/site-url';
 import { GetServerSideProps } from 'next';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -15,13 +16,13 @@ export default function Contact({ siteConfig }: ContactProps) {
       <Head>
         <title>HomePageAgain — Help: Contact</title>
         <meta name="description" content="Get in touch with the HomePageAgain team. We're here to help with questions, feedback, and support." />
-        <link rel="canonical" href={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'}/help/contact`} />
+        <link rel="canonical" href={`${getSiteBaseUrl()}/help/contact`} />
         <meta name="robots" content="index, follow" />
 
         <meta property="og:title" content="HomePageAgain — Help: Contact" />
         <meta property="og:description" content="Get in touch with the HomePageAgain team" />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'}/help/contact`} />
+        <meta property="og:url" content={`${getSiteBaseUrl()}/help/contact`} />
       </Head>
 
       <Layout siteConfig={siteConfig}>

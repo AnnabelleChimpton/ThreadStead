@@ -1,10 +1,5 @@
-import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/config/database/connection";
-import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
-import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
-
-
-import { requireAdmin } from "@/lib/auth/server";
+import { apiHandler } from "@/lib/api/handler";
 import crypto from "crypto";
 
 
@@ -19,28 +14,19 @@ function generateBetaKey(): string {
   return `BETA-${parts.join('-')}`;
 }
 
-async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+export default apiHandler(
+  { methods: ["POST"], auth: "admin", rateLimit: "admin" },
+  async (req, res) => {
+    try {
+      const key = generateBetaKey();
+      const betaKey = await db.betaKey.create({
+        data: { key },
+      });
+
+      res.json({ key: betaKey.key });
+    } catch (error) {
+      console.error("Error generating beta key:", error);
+      res.status(500).json({ error: "Failed to generate beta key" });
+    }
   }
-
-  const adminUser = await requireAdmin(req);
-  if (!adminUser) {
-    return res.status(403).json({ error: "Admin access required" });
-  }
-
-  try {
-    const key = generateBetaKey();
-    const betaKey = await db.betaKey.create({
-      data: { key },
-    });
-
-    res.json({ key: betaKey.key });
-  } catch (error) {
-    console.error("Error generating beta key:", error);
-    res.status(500).json({ error: "Failed to generate beta key" });
-  }
-}
-
-// Apply CSRF protection and rate limiting
-export default withRateLimit('admin')(withCsrfProtection(handler));
+);

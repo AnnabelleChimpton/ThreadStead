@@ -1,10 +1,12 @@
 /**
  * Metrics Endpoint for Monitoring
  * 
- * Provides operational metrics in a format suitable for monitoring systems
+ * Provides operational metrics in a format suitable for monitoring systems.
+ * Admin-only: it exposes configuration and key-rotation state.
  */
 
-import { NextApiRequest, NextApiResponse } from 'next'
+import { apiHandler } from '@/lib/api/handler'
+import { getServerEnv } from '@/lib/config/env'
 import { ringHubRateLimiter } from '@/lib/config/rate-limiting/limits'
 import { getKeyRotationStatus } from '@/lib/utils/scheduling/key-rotation'
 
@@ -43,11 +45,7 @@ const metricsStore = {
   didDocumentFailures: 0
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse<Metrics>) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' } as any)
-  }
-
+export default apiHandler({ methods: ['GET'], auth: 'admin' }, async (_req, res) => {
   try {
     // Get rate limiting status
     const rateLimitStatus = ringHubRateLimiter.getStatus()
@@ -68,6 +66,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     const cpuUsage = process.cpuUsage()
     const cpuPercent = Math.round((cpuUsage.user + cpuUsage.system) / 1000000) // Simplified
 
+    const env = getServerEnv()
     const metrics: Metrics = {
       timestamp: new Date().toISOString(),
       uptime_seconds: Math.floor(process.uptime()),
@@ -85,9 +84,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
         did_document_failures: metricsStore.didDocumentFailures
       },
       features: {
-        ring_hub_enabled: process.env.NEXT_PUBLIC_USE_RING_HUB === 'true',
-        threadrings_enabled: process.env.NEXT_PUBLIC_THREADRINGS_ENABLED === 'true',
-        encryption_enabled: !!process.env.THREADSTEAD_KEY_ENCRYPTION_KEY
+        ring_hub_enabled: env.NEXT_PUBLIC_USE_RING_HUB,
+        threadrings_enabled: env.NEXT_PUBLIC_THREADRINGS_ENABLED,
+        encryption_enabled: !!env.THREADSTEAD_KEY_ENCRYPTION_KEY
       },
       performance: {
         memory_usage_mb: memoryUsageMB,
@@ -103,9 +102,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 
   } catch (error) {
     console.error('Metrics collection failed:', error)
-    res.status(500).json({ error: 'Failed to collect metrics' } as any)
+    res.status(500).json({ error: 'Failed to collect metrics' })
   }
-}
+})
 
 // Helper functions to update metrics (call these from other parts of the app)
 export function incrementConnectionAttempts(): void {

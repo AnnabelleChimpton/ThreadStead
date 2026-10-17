@@ -1,3 +1,4 @@
+import { getSiteBaseUrl } from "@/lib/config/site-url";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getSessionUser } from "@/lib/auth/server";
 import { featureFlags } from "@/lib/utils/features/feature-flags";
@@ -207,7 +208,7 @@ export default async function handler(
         user: {
           include: {
             handles: {
-              where: { host: process.env.NEXT_PUBLIC_BASE_URL?.replace(/https?:\/\//, '') || 'localhost:3000' },
+              where: { host: getSiteBaseUrl().replace(/https?:\/\//, '') },
               take: 1
             },
             profile: true

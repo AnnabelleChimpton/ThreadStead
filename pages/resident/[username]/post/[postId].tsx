@@ -1,3 +1,4 @@
+import { getSiteBaseUrl } from "@/lib/config/site-url";
 import React, { useState, useEffect } from "react";
 import { getInternalBaseUrl } from "@/lib/utils/api/internal-base-url";
 import type { GetServerSideProps } from "next";
@@ -78,7 +79,7 @@ export default function PostPage({ username, post, authorDisplayName, initialCom
           <meta name="keywords" content={postMetadata.keywords.join(', ')} />
         )}
         <meta name="author" content={postMetadata.author} />
-        <link rel="canonical" href={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'}${postMetadata.url}`} />
+        <link rel="canonical" href={`${getSiteBaseUrl()}${postMetadata.url}`} />
         <meta name="robots" content="index, follow" />
 
         {/* OpenGraph meta tags */}
@@ -87,7 +88,7 @@ export default function PostPage({ username, post, authorDisplayName, initialCom
         <meta property="og:type" content="article" />
         <meta property="og:image" content={adaptedPost.author.avatarUrl || '/assets/default-avatar.gif'} />
         <meta property="og:image:alt" content={postMetadata.imageAlt} />
-        <meta property="og:url" content={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'}${postMetadata.url}`} />
+        <meta property="og:url" content={`${getSiteBaseUrl()}${postMetadata.url}`} />
         <meta property="og:site_name" content="ThreadStead" />
         <meta property="og:locale" content="en_US" />
         <meta property="article:author" content={postMetadata.author} />

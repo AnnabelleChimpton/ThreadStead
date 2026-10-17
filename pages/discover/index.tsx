@@ -1,3 +1,4 @@
+import { getSiteBaseUrl } from '@/lib/config/site-url';
 import { GetServerSideProps } from 'next';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -15,13 +16,13 @@ export default function DiscoverHub({ siteConfig }: DiscoverHubProps) {
       <Head>
         <title>HomePageAgain — Discover</title>
         <meta name="description" content="Explore pixel homes in street view, meet neighbors, and discover what's new in our vibrant community." />
-        <link rel="canonical" href={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'}/discover`} />
+        <link rel="canonical" href={`${getSiteBaseUrl()}/discover`} />
         <meta name="robots" content="index, follow" />
 
         <meta property="og:title" content="HomePageAgain — Discover" />
         <meta property="og:description" content="Explore pixel homes in street view, meet neighbors, and discover what's new in our vibrant community." />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'}/discover`} />
+        <meta property="og:url" content={`${getSiteBaseUrl()}/discover`} />
       </Head>
 
       <Layout siteConfig={siteConfig}>

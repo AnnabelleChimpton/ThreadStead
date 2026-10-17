@@ -3,6 +3,7 @@
  * Provides consistent, SEO-optimized metadata across all pages
  */
 
+import { getSiteBaseUrl } from "@/lib/config/site-url";
 import { serializeJsonLd } from "../sanitization/json-ld";
 
 export interface MetadataConfig {
@@ -37,7 +38,7 @@ export class MetadataGenerator {
   protected defaultImage: string;
 
   constructor(
-    baseUrl: string = process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000',
+    baseUrl: string = getSiteBaseUrl(),
     siteConfig?: SiteConfig
   ) {
     this.baseUrl = baseUrl.replace(/\/$/, ''); // Remove trailing slash

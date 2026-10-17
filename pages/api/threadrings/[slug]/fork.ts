@@ -1,3 +1,4 @@
+import { getSiteBaseUrl } from "@/lib/config/site-url";
 import type { NextApiRequest, NextApiResponse } from "next";
 import crypto from "crypto";
 import { db } from "@/lib/config/database/connection";
@@ -342,7 +343,7 @@ export default withRateLimit('threadring_operations')(
           joinType,
           visibility,
           curatorId: viewer.id,
-          uri: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/threadrings/${finalSlug}`,
+          uri: `${getSiteBaseUrl()}/threadrings/${finalSlug}`,
           memberCount: 1, // Curator is automatically a member
           // Hierarchical fields
           parentId: originalRing.id,

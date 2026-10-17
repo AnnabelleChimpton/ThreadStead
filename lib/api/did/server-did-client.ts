@@ -14,6 +14,7 @@ import { join } from 'path';
 import { createHash, randomBytes, createCipheriv, createDecipheriv } from 'crypto';
 import bs58 from 'bs58';
 import { db } from '@/lib/config/database/connection';
+import { publicEnv } from '@/lib/config/public-env';
 
 // Configure @noble/ed25519 with SHA-512 (required)
 ed.etc.sha512Sync = (...m) => sha512(ed.etc.concatBytes(...m));
@@ -761,9 +762,9 @@ function getDomainFromEnvironment(): string {
     return process.env.THREADSTEAD_DID.replace('did:web:', '').replace(/%3A/g, ':');
   }
   
-  // Extract from NEXT_PUBLIC_BASE_URL
-  if (process.env.NEXT_PUBLIC_BASE_URL) {
-    const url = new URL(process.env.NEXT_PUBLIC_BASE_URL);
+  // Extract from NEXT_PUBLIC_BASE_URL (only when explicitly set)
+  if (publicEnv.NEXT_PUBLIC_BASE_URL) {
+    const url = new URL(publicEnv.NEXT_PUBLIC_BASE_URL);
     return url.host;
   }
   

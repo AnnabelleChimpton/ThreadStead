@@ -1,64 +1,56 @@
-import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/config/database/connection";
+import { apiHandler } from "@/lib/api/handler";
 
-import { requireAdmin } from "@/lib/auth/server";
-
-
-
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const adminUser = await requireAdmin(req);
-  if (!adminUser) {
-    return res.status(403).json({ error: "Admin access required" });
-  }
-
-  if (req.method === "GET") {
-    try {
-      const users = await db.user.findMany({
-        include: {
-          handles: true,
-          profile: {
-            select: {
-              displayName: true,
+export default apiHandler(
+  { methods: ["GET"], auth: "admin" },
+  async (req, res) => {
+    if (req.method === "GET") {
+      try {
+        const users = await db.user.findMany({
+          include: {
+            handles: true,
+            profile: {
+              select: {
+                displayName: true,
+              },
             },
-          },
-          _count: {
-            select: {
-              posts: true,
-              comments: {
-                where: {
-                  status: "visible"
-                }
+            _count: {
+              select: {
+                posts: true,
+                comments: {
+                  where: {
+                    status: "visible"
+                  }
+                },
               },
             },
           },
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-      });
+          orderBy: {
+            createdAt: "desc",
+          },
+        });
 
-      const formattedUsers = users.map(user => ({
-        id: user.id,
-        did: user.did,
-        role: user.role,
-        createdAt: user.createdAt,
-        displayName: user.profile?.displayName || null,
-        primaryHandle: user.primaryHandle,
-        handles: user.handles.map(h => `${h.handle}@${h.host}`),
-        postCount: user._count.posts,
-        commentCount: user._count.comments,
+        const formattedUsers = users.map(user => ({
+          id: user.id,
+          did: user.did,
+          role: user.role,
+          createdAt: user.createdAt,
+          displayName: user.profile?.displayName || null,
+          primaryHandle: user.primaryHandle,
+          handles: user.handles.map(h => `${h.handle}@${h.host}`),
+          postCount: user._count.posts,
+          commentCount: user._count.comments,
 
-        emailVerifiedAt: user.emailVerifiedAt,
+          emailVerifiedAt: user.emailVerifiedAt,
 
-        hasEmail: !!user.encryptedEmail,
-      }));
+          hasEmail: !!user.encryptedEmail,
+        }));
 
-      res.json({ users: formattedUsers });
-    } catch (error) {
-      console.error("Error fetching users:", error);
-      res.status(500).json({ error: "Failed to fetch users" });
+        res.json({ users: formattedUsers });
+      } catch (error) {
+        console.error("Error fetching users:", error);
+        res.status(500).json({ error: "Failed to fetch users" });
+      }
     }
-  } else {
-    res.status(405).json({ error: "Method not allowed" });
   }
-}
+);

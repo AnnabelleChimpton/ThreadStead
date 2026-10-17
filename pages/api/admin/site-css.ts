@@ -1,64 +1,50 @@
-import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/config/database/connection";
-import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
-import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
-
-
-import { requireAdmin } from "@/lib/auth/server";
-
-
+import { apiHandler } from "@/lib/api/handler";
 
 const SITE_CSS_KEY = "site_custom_css";
 
-async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const adminUser = await requireAdmin(req);
-  if (!adminUser) {
-    return res.status(403).json({ error: "Admin access required" });
-  }
+export default apiHandler(
+  { methods: ["GET", "PUT"], auth: "admin", rateLimit: "admin" },
+  async (req, res) => {
+    if (req.method === "GET") {
+      try {
+        const config = await db.siteConfig.findUnique({
+          where: { key: SITE_CSS_KEY }
+        });
 
-  if (req.method === "GET") {
-    try {
-      const config = await db.siteConfig.findUnique({
-        where: { key: SITE_CSS_KEY }
-      });
-
-      res.json({ css: config?.value || "" });
-    } catch (error) {
-      console.error("Error fetching site CSS:", error);
-      res.status(500).json({ error: "Failed to fetch site CSS" });
-    }
-  } else if (req.method === "PUT") {
-    try {
-      const { css } = req.body;
-      
-      if (typeof css !== "string") {
-        return res.status(400).json({ error: "CSS must be a string" });
+        res.json({ css: config?.value || "" });
+      } catch (error) {
+        console.error("Error fetching site CSS:", error);
+        res.status(500).json({ error: "Failed to fetch site CSS" });
       }
+    } else if (req.method === "PUT") {
+      try {
+        const { css } = req.body;
 
-      // Basic CSS validation - ensure no script tags or javascript
-      const sanitizedCSS = css
-        .replace(/<script[^>]*>.*?<\/script>/gi, "")
-        .replace(/javascript:/gi, "")
-        .replace(/expression\s*\(/gi, "");
+        if (typeof css !== "string") {
+          return res.status(400).json({ error: "CSS must be a string" });
+        }
 
-      const config = await db.siteConfig.upsert({
-        where: { key: SITE_CSS_KEY },
-        update: { value: sanitizedCSS },
-        create: { key: SITE_CSS_KEY, value: sanitizedCSS },
-      });
+        // Basic CSS validation - ensure no script tags or javascript
+        const sanitizedCSS = css
+          .replace(/<script[^>]*>.*?<\/script>/gi, "")
+          .replace(/javascript:/gi, "")
+          .replace(/expression\s*\(/gi, "");
 
-      res.json({ 
-        success: true, 
-        css: config.value 
-      });
-    } catch (error) {
-      console.error("Error updating site CSS:", error);
-      res.status(500).json({ error: "Failed to update site CSS" });
+        const config = await db.siteConfig.upsert({
+          where: { key: SITE_CSS_KEY },
+          update: { value: sanitizedCSS },
+          create: { key: SITE_CSS_KEY, value: sanitizedCSS },
+        });
+
+        res.json({ 
+          success: true, 
+          css: config.value 
+        });
+      } catch (error) {
+        console.error("Error updating site CSS:", error);
+        res.status(500).json({ error: "Failed to update site CSS" });
+      }
     }
-  } else {
-    res.status(405).json({ error: "Method not allowed" });
   }
-}
-
-// Apply CSRF protection and rate limiting
-export default withRateLimit('admin')(withCsrfProtection(handler));
+);

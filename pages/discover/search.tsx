@@ -1,3 +1,4 @@
+import { getSiteBaseUrl } from '@/lib/config/site-url';
 import { useState, useEffect, useRef } from 'react';
 import { GetServerSideProps } from 'next';
 import Head from 'next/head';
@@ -509,14 +510,14 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
         {discoverMetadata.keywords && (
           <meta name="keywords" content={discoverMetadata.keywords.join(', ')} />
         )}
-        <link rel="canonical" href={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'}${discoverMetadata.url}`} />
+        <link rel="canonical" href={`${getSiteBaseUrl()}${discoverMetadata.url}`} />
         <meta name="robots" content="index, follow" />
 
         {/* OpenGraph meta tags */}
         <meta property="og:title" content={discoverMetadata.title} />
         <meta property="og:description" content={discoverMetadata.description} />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'}${discoverMetadata.url}`} />
+        <meta property="og:url" content={`${getSiteBaseUrl()}${discoverMetadata.url}`} />
         <meta property="og:site_name" content="ThreadStead" />
         <meta property="og:locale" content="en_US" />
 

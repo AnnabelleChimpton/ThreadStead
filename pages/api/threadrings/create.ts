@@ -1,3 +1,4 @@
+import { getSiteBaseUrl } from "@/lib/config/site-url";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/config/database/connection";
 import { getSessionUser } from "@/lib/auth/server";
@@ -148,8 +149,8 @@ export default withRateLimit('threadring_operations')(
           description: description?.trim() || undefined,
           joinPolicy: joinPolicyMap[validJoinType] as 'OPEN' | 'APPLICATION' | 'INVITATION' | 'CLOSED',
           visibility: validVisibility.toUpperCase() as 'PUBLIC' | 'UNLISTED' | 'PRIVATE',
-          uri: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/threadrings/${finalSlug}`,
-          spoolUri: process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000',
+          uri: `${getSiteBaseUrl()}/threadrings/${finalSlug}`,
+          spoolUri: getSiteBaseUrl(),
           lineageDepth: 1, // Ring Hub will handle genealogy
           memberCount: 1,
           postCount: 0,
@@ -210,7 +211,7 @@ export default withRateLimit('threadring_operations')(
             joinType: validJoinType as any, // Cast to avoid type issues
             visibility: validVisibility as any, // Cast to avoid type issues
             curatorId: viewer.id,
-            uri: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/threadrings/${finalSlug}`,
+            uri: `${getSiteBaseUrl()}/threadrings/${finalSlug}`,
             memberCount: 1, // Curator is automatically a member
             // Hierarchical fields
             parentId: spool.id,

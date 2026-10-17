@@ -1,3 +1,4 @@
+import { getSiteBaseUrl } from '@/lib/config/site-url';
 import { GetServerSideProps } from 'next';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -24,13 +25,13 @@ export default function HelpHub({ siteConfig }: HelpHubProps) {
       <Head>
         <title>HomePageAgain — Help</title>
         <meta name="description" content="Find answers to your questions, learn about our community guidelines, and get support." />
-        <link rel="canonical" href={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'}/help`} />
+        <link rel="canonical" href={`${getSiteBaseUrl()}/help`} />
         <meta name="robots" content="index, follow" />
 
         <meta property="og:title" content="HomePageAgain — Help" />
         <meta property="og:description" content="Find answers to your questions, learn about our community guidelines, and get support." />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'}/help`} />
+        <meta property="og:url" content={`${getSiteBaseUrl()}/help`} />
       </Head>
 
       <Layout siteConfig={siteConfig}>

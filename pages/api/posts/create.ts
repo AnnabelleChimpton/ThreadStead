@@ -118,12 +118,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         // Dev mode workaround: If responding to a prompt and no memberships found, 
         // assume the user can post (since all users share the server DID in dev)
         let validSlugs: string[];
-        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
-        const isLocalhost = baseUrl?.includes('localhost') ||
-          baseUrl?.includes('127.0.0.1') ||
-          !baseUrl ||
-          baseUrl?.includes('localhost:3000') ||
-          baseUrl?.includes('localhost:3001');
+        const baseUrl = getSiteBaseUrl();
+        // Unset falls back to http://localhost:3000, so it counts as localhost
+        const isLocalhost = baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1');
 
         // Normal validation: Filter to only rings the user is actually a member of
         validSlugs = ringSlugs.filter(slug =>

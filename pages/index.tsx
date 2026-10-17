@@ -1,3 +1,4 @@
+import { getSiteBaseUrl } from '@/lib/config/site-url';
 import Layout from "../components/ui/layout/Layout";
 import CustomPageLayout from "../components/ui/layout/CustomPageLayout";
 import Head from "next/head";
@@ -255,15 +256,15 @@ function LandingPage({ siteConfig, ogImageUrl }: { siteConfig: SiteConfig; ogIma
         {homepageMetadata.keywords && (
           <meta name="keywords" content={homepageMetadata.keywords.join(', ')} />
         )}
-        <link rel="canonical" href={process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'} />
+        <link rel="canonical" href={getSiteBaseUrl()} />
         <meta name="robots" content="index, follow" />
 
         {/* OpenGraph meta tags */}
         <meta property="og:title" content={homepageMetadata.title} />
         <meta property="og:description" content={homepageMetadata.description} />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content={process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'} />
-        <meta property="og:image" content={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'}${ogImageUrl}`} />
+        <meta property="og:url" content={getSiteBaseUrl()} />
+        <meta property="og:image" content={`${getSiteBaseUrl()}${ogImageUrl}`} />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
         <meta property="og:image:alt" content={`${siteConfig.site_name} - Your page, your way`} />
@@ -274,7 +275,7 @@ function LandingPage({ siteConfig, ogImageUrl }: { siteConfig: SiteConfig; ogIma
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={homepageMetadata.title} />
         <meta name="twitter:description" content={homepageMetadata.description} />
-        <meta name="twitter:image" content={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'}${ogImageUrl}`} />
+        <meta name="twitter:image" content={`${getSiteBaseUrl()}${ogImageUrl}`} />
 
         {/* Structured data */}
         <script
@@ -547,15 +548,15 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
         {homepageMetadata.keywords && (
           <meta name="keywords" content={homepageMetadata.keywords.join(', ')} />
         )}
-        <link rel="canonical" href={process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'} />
+        <link rel="canonical" href={getSiteBaseUrl()} />
         <meta name="robots" content="index, follow" />
 
         {/* OpenGraph meta tags */}
         <meta property="og:title" content={homepageMetadata.title} />
         <meta property="og:description" content={homepageMetadata.description} />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content={process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'} />
-        <meta property="og:image" content={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'}${ogImageUrl}`} />
+        <meta property="og:url" content={getSiteBaseUrl()} />
+        <meta property="og:image" content={`${getSiteBaseUrl()}${ogImageUrl}`} />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
         <meta property="og:image:alt" content={`${siteConfig.site_name} - Your page, your way`} />
@@ -566,7 +567,7 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={homepageMetadata.title} />
         <meta name="twitter:description" content={homepageMetadata.description} />
-        <meta name="twitter:image" content={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'}${ogImageUrl}`} />
+        <meta name="twitter:image" content={`${getSiteBaseUrl()}${ogImageUrl}`} />
 
         {/* Structured data */}
         <script
@@ -813,15 +814,15 @@ function UnifiedHomepage({ siteConfig, ogImageUrl, userCount }: { siteConfig: Si
         {homepageMetadata.keywords && (
           <meta name="keywords" content={homepageMetadata.keywords.join(', ')} />
         )}
-        <link rel="canonical" href={process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'} />
+        <link rel="canonical" href={getSiteBaseUrl()} />
         <meta name="robots" content="index, follow" />
 
         {/* OpenGraph meta tags */}
         <meta property="og:title" content={homepageMetadata.title} />
         <meta property="og:description" content={homepageMetadata.description} />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content={process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'} />
-        <meta property="og:image" content={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'}${ogImageUrl}`} />
+        <meta property="og:url" content={getSiteBaseUrl()} />
+        <meta property="og:image" content={`${getSiteBaseUrl()}${ogImageUrl}`} />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
         <meta property="og:image:alt" content={`${siteConfig.site_name} - Your page, your way`} />
@@ -832,7 +833,7 @@ function UnifiedHomepage({ siteConfig, ogImageUrl, userCount }: { siteConfig: Si
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={homepageMetadata.title} />
         <meta name="twitter:description" content={homepageMetadata.description} />
-        <meta name="twitter:image" content={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'}${ogImageUrl}`} />
+        <meta name="twitter:image" content={`${getSiteBaseUrl()}${ogImageUrl}`} />
 
         {/* Structured data */}
         <script

@@ -1,3 +1,4 @@
+import { getSiteBaseUrl } from '@/lib/config/site-url';
 import { NextApiRequest, NextApiResponse } from 'next';
 import { getSessionUser } from '@/lib/auth/server';
 import { createAuthenticatedRingHubClient } from '@/lib/api/ringhub/ringhub-user-operations';
@@ -18,7 +19,7 @@ function extractPostIdFromUri(uri: string): string | null {
  * Check if URI belongs to our ThreadStead instance
  */
 function isOurThreadSteadInstance(uri: string): boolean {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+  const baseUrl = getSiteBaseUrl();
   const ourDomain = baseUrl.replace(/https?:\/\//, '');
 
   try {

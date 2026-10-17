@@ -1,3 +1,4 @@
+import { getSiteBaseUrl } from '@/lib/config/site-url';
 import { GetServerSideProps } from 'next';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -241,13 +242,13 @@ export default function FAQ({ siteConfig }: FAQProps) {
       <Head>
         <title>HomePageAgain — Help: FAQ</title>
         <meta name="description" content="Comprehensive FAQ about HomePageAgain - learn about Pixel Homes, ThreadRings, The Spool, neighborhood exploration, customization tools, and more. Everything you need to get started!" />
-        <link rel="canonical" href={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'}/help/faq`} />
+        <link rel="canonical" href={`${getSiteBaseUrl()}/help/faq`} />
         <meta name="robots" content="index, follow" />
 
         <meta property="og:title" content="HomePageAgain — Help: FAQ" />
         <meta property="og:description" content="Comprehensive FAQ covering Pixel Homes, ThreadRings, neighborhoods, and all platform features" />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'}/help/faq`} />
+        <meta property="og:url" content={`${getSiteBaseUrl()}/help/faq`} />
       </Head>
 
       <Layout siteConfig={siteConfig}>

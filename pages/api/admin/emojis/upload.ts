@@ -1,12 +1,9 @@
-import type { NextApiRequest, NextApiResponse } from "next";
-import { getSessionUser } from "@/lib/auth/server";
 import { db } from "@/lib/config/database/connection";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import sharp from "sharp";
 import multer from "multer";
 import { promisify } from "util";
-import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
-import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
+import { apiHandler } from "@/lib/api/handler";
 
 
 // Configure S3 client for R2 (with lazy initialization)
@@ -81,109 +78,103 @@ async function processAndUploadEmoji(
   return `${baseUrl}/${key}`;
 }
 
-async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method Not Allowed" });
-  }
-
-  const user = await getSessionUser(req);
-  if (!user || user.role !== "admin") {
-    return res.status(403).json({ error: "Admin access required" });
-  }
-
-  try {
-    // Handle file upload
-    await uploadSingle(req as any, res as any);
-    const file = (req as any).file;
+export default apiHandler(
+  { methods: ["POST"], auth: "admin", rateLimit: "admin" },
+  async (req, res, { user }) => {
+    try {
+      // Handle file upload
+      await uploadSingle(req as any, res as any);
+      const file = (req as any).file;
     
-    if (!file) {
-      return res.status(400).json({ error: "No file uploaded" });
-    }
+      if (!file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
 
-    // Validate file type and size
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml'];
-    if (!allowedTypes.includes(file.mimetype)) {
-      return res.status(400).json({ 
-        error: "Invalid file type. Only JPEG, PNG, WebP, GIF, and SVG are allowed." 
+      // Validate file type and size
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml'];
+      if (!allowedTypes.includes(file.mimetype)) {
+        return res.status(400).json({ 
+          error: "Invalid file type. Only JPEG, PNG, WebP, GIF, and SVG are allowed." 
+        });
+      }
+
+      // Get emoji name from request body
+      const { name } = req.body;
+      if (!name || !name.trim()) {
+        return res.status(400).json({ error: "Emoji name is required" });
+      }
+
+      const emojiName = name.trim();
+
+      // Validate emoji name (alphanumeric, underscore, hyphen only)
+      if (!/^[a-zA-Z0-9_-]+$/.test(emojiName)) {
+        return res.status(400).json({ error: "Emoji name can only contain letters, numbers, underscores, and hyphens" });
+      }
+
+      // Check if emoji name already exists
+      const existingEmoji = await db.emoji.findUnique({
+        where: { name: emojiName }
       });
-    }
 
-    // Get emoji name from request body
-    const { name } = req.body;
-    if (!name || !name.trim()) {
-      return res.status(400).json({ error: "Emoji name is required" });
-    }
+      if (existingEmoji) {
+        return res.status(409).json({ error: "Emoji name already exists" });
+      }
 
-    const emojiName = name.trim();
+      // Process and upload emoji
+      const imageUrl = await processAndUploadEmoji(file.buffer, emojiName);
 
-    // Validate emoji name (alphanumeric, underscore, hyphen only)
-    if (!/^[a-zA-Z0-9_-]+$/.test(emojiName)) {
-      return res.status(400).json({ error: "Emoji name can only contain letters, numbers, underscores, and hyphens" });
-    }
-
-    // Check if emoji name already exists
-    const existingEmoji = await db.emoji.findUnique({
-      where: { name: emojiName }
-    });
-
-    if (existingEmoji) {
-      return res.status(409).json({ error: "Emoji name already exists" });
-    }
-
-    // Process and upload emoji
-    const imageUrl = await processAndUploadEmoji(file.buffer, emojiName);
-
-    // Create emoji record in database
-    const emoji = await db.emoji.create({
-      data: {
-        name: emojiName,
-        imageUrl,
-        createdBy: user.id
-      },
-      include: {
-        creator: {
-          select: {
-            id: true,
-            profile: {
-              select: {
-                displayName: true
-              }
-            },
-            handles: {
-              select: {
-                handle: true
+      // Create emoji record in database
+      const emoji = await db.emoji.create({
+        data: {
+          name: emojiName,
+          imageUrl,
+          createdBy: user.id
+        },
+        include: {
+          creator: {
+            select: {
+              id: true,
+              profile: {
+                select: {
+                  displayName: true
+                }
               },
-              take: 1
+              handles: {
+                select: {
+                  handle: true
+                },
+                take: 1
+              }
             }
           }
         }
-      }
-    });
+      });
 
-    return res.status(201).json({
-      success: true,
-      emoji,
-      message: "Emoji uploaded successfully!"
-    });
+      return res.status(201).json({
+        success: true,
+        emoji,
+        message: "Emoji uploaded successfully!"
+      });
 
-  } catch (error) {
-    console.error("Emoji upload error:", error);
+    } catch (error) {
+      console.error("Emoji upload error:", error);
     
-    if (error instanceof Error) {
-      if (error.message === 'Only image files are allowed') {
-        return res.status(400).json({ error: error.message });
+      if (error instanceof Error) {
+        if (error.message === 'Only image files are allowed') {
+          return res.status(400).json({ error: error.message });
+        }
+        if (error.message.includes('File too large')) {
+          return res.status(413).json({ error: "File too large. Maximum size is 2MB." });
+        }
+        if (error.message.includes('Missing required environment variable')) {
+          return res.status(500).json({ error: "Server configuration error" });
+        }
       }
-      if (error.message.includes('File too large')) {
-        return res.status(413).json({ error: "File too large. Maximum size is 2MB." });
-      }
-      if (error.message.includes('Missing required environment variable')) {
-        return res.status(500).json({ error: "Server configuration error" });
-      }
+    
+      return res.status(500).json({ error: "Internal server error" });
     }
-    
-    return res.status(500).json({ error: "Internal server error" });
   }
-}
+);
 
 // Disable Next.js body parser for multer
 export const config = {
@@ -191,6 +182,3 @@ export const config = {
     bodyParser: false,
   },
 };
-
-// Apply CSRF protection and rate limiting
-export default withRateLimit('admin')(withCsrfProtection(handler));

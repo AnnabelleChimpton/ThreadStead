@@ -1,12 +1,5 @@
-import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/config/database/connection";
-import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
-import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
-
-
-import { requireAdmin } from "@/lib/auth/server";
-
-
+import { apiHandler } from "@/lib/api/handler";
 
 // Default site configuration values
 const DEFAULT_CONFIG = {
@@ -32,91 +25,84 @@ const DEFAULT_CONFIG = {
   founders_note: "",
 };
 
-async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const adminUser = await requireAdmin(req);
-  if (!adminUser) {
-    return res.status(403).json({ error: "Admin access required" });
-  }
-
-  if (req.method === "GET") {
-    try {
-      // Get all site config values
-      const configs = await db.siteConfig.findMany({
-        select: {
-          key: true,
-          value: true,
-        },
-      });
-
-      // Convert to key-value object and merge with defaults
-      const configObj = configs.reduce((acc, config) => {
-        acc[config.key] = config.value;
-        return acc;
-      }, {} as Record<string, string>);
-
-      // Merge with defaults for any missing values
-      const fullConfig = { ...DEFAULT_CONFIG, ...configObj };
-
-      res.json({ config: fullConfig });
-    } catch (error) {
-      console.error("Error fetching site config:", error);
-      res.status(500).json({ error: "Failed to fetch site configuration" });
-    }
-  } else if (req.method === "PUT") {
-    try {
-      const { config } = req.body;
-      
-      if (!config || typeof config !== "object") {
-        return res.status(400).json({ error: "Invalid configuration data" });
-      }
-
-      // Validate that all keys are expected
-      const validKeys = Object.keys(DEFAULT_CONFIG);
-      const providedKeys = Object.keys(config);
-      const invalidKeys = providedKeys.filter(key => !validKeys.includes(key));
-      
-      if (invalidKeys.length > 0) {
-        return res.status(400).json({ 
-          error: `Invalid configuration keys: ${invalidKeys.join(", ")}`,
-          validKeys 
+export default apiHandler(
+  { methods: ["GET", "PUT"], auth: "admin", rateLimit: "admin" },
+  async (req, res) => {
+    if (req.method === "GET") {
+      try {
+        // Get all site config values
+        const configs = await db.siteConfig.findMany({
+          select: {
+            key: true,
+            value: true,
+          },
         });
+
+        // Convert to key-value object and merge with defaults
+        const configObj = configs.reduce((acc, config) => {
+          acc[config.key] = config.value;
+          return acc;
+        }, {} as Record<string, string>);
+
+        // Merge with defaults for any missing values
+        const fullConfig = { ...DEFAULT_CONFIG, ...configObj };
+
+        res.json({ config: fullConfig });
+      } catch (error) {
+        console.error("Error fetching site config:", error);
+        res.status(500).json({ error: "Failed to fetch site configuration" });
       }
+    } else if (req.method === "PUT") {
+      try {
+        const { config } = req.body;
 
-      // Update or create each config value
-      const updates = await Promise.all(
-        providedKeys.map(async (key) => {
-          const value = String(config[key] || "").trim();
-          
-          return db.siteConfig.upsert({
-            where: { key },
-            update: { value },
-            create: { key, value },
-            select: { key: true, value: true },
+        if (!config || typeof config !== "object") {
+          return res.status(400).json({ error: "Invalid configuration data" });
+        }
+
+        // Validate that all keys are expected
+        const validKeys = Object.keys(DEFAULT_CONFIG);
+        const providedKeys = Object.keys(config);
+        const invalidKeys = providedKeys.filter(key => !validKeys.includes(key));
+
+        if (invalidKeys.length > 0) {
+          return res.status(400).json({ 
+            error: `Invalid configuration keys: ${invalidKeys.join(", ")}`,
+            validKeys 
           });
-        })
-      );
+        }
 
-      const updatedConfig = updates.reduce((acc, config) => {
-        acc[config.key] = config.value;
-        return acc;
-      }, {} as Record<string, string>);
+        // Update or create each config value
+        const updates = await Promise.all(
+          providedKeys.map(async (key) => {
+            const value = String(config[key] || "").trim();
 
-      // Merge with defaults for complete response
-      const fullConfig = { ...DEFAULT_CONFIG, ...updatedConfig };
+            return db.siteConfig.upsert({
+              where: { key },
+              update: { value },
+              create: { key, value },
+              select: { key: true, value: true },
+            });
+          })
+        );
 
-      res.json({ 
-        success: true, 
-        config: fullConfig,
-        updated: updates.length 
-      });
-    } catch (error) {
-      console.error("Error updating site config:", error);
-      res.status(500).json({ error: "Failed to update site configuration" });
+        const updatedConfig = updates.reduce((acc, config) => {
+          acc[config.key] = config.value;
+          return acc;
+        }, {} as Record<string, string>);
+
+        // Merge with defaults for complete response
+        const fullConfig = { ...DEFAULT_CONFIG, ...updatedConfig };
+
+        res.json({ 
+          success: true, 
+          config: fullConfig,
+          updated: updates.length 
+        });
+      } catch (error) {
+        console.error("Error updating site config:", error);
+        res.status(500).json({ error: "Failed to update site configuration" });
+      }
     }
-  } else {
-    res.status(405).json({ error: "Method not allowed" });
   }
-}
-
-// Apply CSRF protection and rate limiting
-export default withRateLimit('admin')(withCsrfProtection(handler));
+);

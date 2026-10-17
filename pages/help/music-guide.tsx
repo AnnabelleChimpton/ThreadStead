@@ -1,3 +1,4 @@
+import { getSiteBaseUrl } from '@/lib/config/site-url';
 import { GetServerSideProps } from 'next';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -14,13 +15,13 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
       <Head>
         <title>HomePageAgain — Music Creator&apos;s Guide</title>
         <meta name="description" content="Complete guide for music creators on HomePageAgain - learn about MIDI support, technical specifications, composition tips, and how to create the perfect background music for your profile." />
-        <link rel="canonical" href={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'}/help/music-guide`} />
+        <link rel="canonical" href={`${getSiteBaseUrl()}/help/music-guide`} />
         <meta name="robots" content="index, follow" />
 
         <meta property="og:title" content="HomePageAgain — Music Creator&apos;s Guide" />
         <meta property="og:description" content="Complete guide for creating and uploading MIDI music on HomePageAgain" />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'}/help/music-guide`} />
+        <meta property="og:url" content={`${getSiteBaseUrl()}/help/music-guide`} />
       </Head>
 
       <Layout siteConfig={siteConfig}>

@@ -1,3 +1,4 @@
+import { getSiteBaseUrl } from '@/lib/config/site-url';
 import { useRouter } from "next/router";
 import { useState, useEffect } from "react";
 import Link from "next/link";
@@ -206,7 +207,7 @@ function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: 
                       <div className="flex justify-center gap-2 mb-2">
                         <button
                           onClick={() => {
-                            const badgeHtml = `<a href="${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/tr/${ring.slug}" target="_blank" rel="noopener"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==" alt="${ring.badge?.title || ring.name}" width="88" height="31" style="border: 1px solid #ccc;" /></a>`;
+                            const badgeHtml = `<a href="${getSiteBaseUrl()}/tr/${ring.slug}" target="_blank" rel="noopener"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==" alt="${ring.badge?.title || ring.name}" width="88" height="31" style="border: 1px solid #ccc;" /></a>`;
                             navigator.clipboard.writeText(badgeHtml);
                             showSuccess('Spool badge HTML copied to clipboard!');
                           }}
@@ -216,7 +217,7 @@ function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: 
                         </button>
                         <button
                           onClick={() => {
-                            const badgeUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/tr/${ring.slug}`;
+                            const badgeUrl = `${getSiteBaseUrl()}/tr/${ring.slug}`;
                             navigator.clipboard.writeText(badgeUrl);
                             showSuccess('Spool URL copied to clipboard!');
                           }}
@@ -909,14 +910,14 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
             {ringMetadata.keywords && (
               <meta name="keywords" content={ringMetadata.keywords.join(', ')} />
             )}
-            <link rel="canonical" href={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'}${ringMetadata.url}`} />
+            <link rel="canonical" href={`${getSiteBaseUrl()}${ringMetadata.url}`} />
             <meta name="robots" content="index, follow" />
 
             {/* OpenGraph meta tags */}
             <meta property="og:title" content={ringMetadata.title} />
             <meta property="og:description" content={ringMetadata.description} />
             <meta property="og:type" content="website" />
-            <meta property="og:url" content={`${process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:3000'}${ringMetadata.url}`} />
+            <meta property="og:url" content={`${getSiteBaseUrl()}${ringMetadata.url}`} />
             <meta property="og:site_name" content="ThreadStead" />
             <meta property="og:locale" content="en_US" />
 
@@ -1233,7 +1234,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                   <div className="animate-in slide-in-from-top duration-200 space-y-2 mt-3">
                     <button
                       onClick={() => {
-                        const badgeHtml = `<a href="${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/tr/${ring.slug}" target="_blank" rel="noopener"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==" alt="${ring.badge?.title || ring.name}" width="88" height="31" style="border: 1px solid #ccc;" /></a>`;
+                        const badgeHtml = `<a href="${getSiteBaseUrl()}/tr/${ring.slug}" target="_blank" rel="noopener"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==" alt="${ring.badge?.title || ring.name}" width="88" height="31" style="border: 1px solid #ccc;" /></a>`;
                         navigator.clipboard.writeText(badgeHtml);
                         showSuccess('Badge HTML copied!');
                       }}
@@ -1243,7 +1244,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                     </button>
                     <button
                       onClick={() => {
-                        const badgeUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/tr/${ring.slug}`;
+                        const badgeUrl = `${getSiteBaseUrl()}/tr/${ring.slug}`;
                         navigator.clipboard.writeText(badgeUrl);
                         showSuccess('URL copied!');
                       }}

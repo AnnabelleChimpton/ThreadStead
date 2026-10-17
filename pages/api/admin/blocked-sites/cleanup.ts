@@ -1,8 +1,5 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '@/lib/config/database/connection';
-import { getSessionUser } from '@/lib/auth/server';
-import { withCsrfProtection } from '@/lib/api/middleware/withCsrfProtection';
-import { withRateLimit } from '@/lib/api/middleware/withRateLimit';
+import { apiHandler } from '@/lib/api/handler';
 
 /**
  * API endpoint for cleaning up blocked sites from the index
@@ -184,35 +181,21 @@ async function performCleanup(dryRun: boolean = true): Promise<CleanupReport> {
   return report;
 }
 
-async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse<CleanupReport | { error: string }>
-) {
-  // Require admin authentication
-  const user = await getSessionUser(req);
-  if (!user || user.role !== 'admin') {
-    return res.status(403).json({ error: 'Admin access required' });
+export default apiHandler(
+  { methods: ['POST'], auth: 'admin', rateLimit: 'admin' },
+  async (req, res) => {
+    try {
+      // Check for dryRun query parameter (default to true for safety)
+      const dryRun = req.query.dryRun !== 'false';
+
+      console.log(`\n🧹 Cleanup request received (dryRun=${dryRun})`);
+
+      const report = await performCleanup(dryRun);
+
+      res.status(200).json(report);
+    } catch (error) {
+      console.error('Error during cleanup:', error);
+      res.status(500).json({ error: 'Failed to perform cleanup' });
+    }
   }
-
-  if (req.method !== 'POST') {
-    res.setHeader('Allow', ['POST']);
-    return res.status(405).json({ error: `Method ${req.method} Not Allowed` });
-  }
-
-  try {
-    // Check for dryRun query parameter (default to true for safety)
-    const dryRun = req.query.dryRun !== 'false';
-
-    console.log(`\n🧹 Cleanup request received (dryRun=${dryRun})`);
-
-    const report = await performCleanup(dryRun);
-
-    res.status(200).json(report);
-  } catch (error) {
-    console.error('Error during cleanup:', error);
-    res.status(500).json({ error: 'Failed to perform cleanup' });
-  }
-}
-
-// Apply CSRF protection and rate limiting
-export default withRateLimit('admin')(withCsrfProtection(handler));
+);

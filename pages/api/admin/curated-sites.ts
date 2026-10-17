@@ -4,7 +4,7 @@
 
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '@/lib/config/database/connection';
-import { getSessionUser } from '@/lib/auth/server';
+import { apiHandler } from '@/lib/api/handler';
 
 // Initial default sites to seed the database
 const DEFAULT_SITES = [
@@ -106,29 +106,21 @@ const DEFAULT_SITES = [
   }
 ];
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
-  // Check admin auth
-  const user = await getSessionUser(req);
-  if (!user || user.role !== 'admin') {
-    return res.status(403).json({ error: 'Admin access required' });
+export default apiHandler(
+  { methods: ['GET', 'POST', 'PUT', 'DELETE'], auth: 'admin' },
+  async (req, res, { user }) => {
+    switch (req.method) {
+      case 'GET':
+        return handleGet(req, res, user);
+      case 'POST':
+        return handlePost(req, res, user);
+      case 'PUT':
+        return handlePut(req, res, user);
+      case 'DELETE':
+        return handleDelete(req, res, user);
+    }
   }
-
-  switch (req.method) {
-    case 'GET':
-      return handleGet(req, res, user);
-    case 'POST':
-      return handlePost(req, res, user);
-    case 'PUT':
-      return handlePut(req, res, user);
-    case 'DELETE':
-      return handleDelete(req, res, user);
-    default:
-      return res.status(405).json({ error: 'Method not allowed' });
-  }
-}
+);
 
 async function handleGet(req: NextApiRequest, res: NextApiResponse, user: any) {
   try {

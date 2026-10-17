@@ -1,52 +1,40 @@
-import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/config/database/connection";
-import { requireAdmin } from "@/lib/auth/server";
-import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
-import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
+import { apiHandler } from "@/lib/api/handler";
 
-async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "DELETE") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
-
-  const adminUser = await requireAdmin(req);
-  if (!adminUser) {
-    return res.status(403).json({ error: "Admin access required" });
-  }
-
-  const { userId } = req.body;
-  if (!userId) {
-    return res.status(400).json({ error: "User ID is required" });
-  }
-
-  if (userId === adminUser.id) {
-    return res.status(400).json({ error: "Cannot delete your own account" });
-  }
-
-  try {
-    const userToDelete = await db.user.findUnique({
-      where: { id: userId },
-      select: { role: true },
-    });
-
-    if (!userToDelete) {
-      return res.status(404).json({ error: "User not found" });
+export default apiHandler(
+  { methods: ["DELETE"], auth: "admin", rateLimit: "admin" },
+  async (req, res, { user: adminUser }) => {
+    const { userId } = req.body;
+    if (!userId) {
+      return res.status(400).json({ error: "User ID is required" });
     }
 
-    if (userToDelete.role === "admin") {
-      return res.status(400).json({ error: "Cannot delete another admin account" });
+    if (userId === adminUser.id) {
+      return res.status(400).json({ error: "Cannot delete your own account" });
     }
 
-    await db.user.delete({
-      where: { id: userId },
-    });
+    try {
+      const userToDelete = await db.user.findUnique({
+        where: { id: userId },
+        select: { role: true },
+      });
 
-    res.json({ success: true });
-  } catch (error) {
-    console.error("Error deleting user:", error);
-    res.status(500).json({ error: "Failed to delete user" });
+      if (!userToDelete) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      if (userToDelete.role === "admin") {
+        return res.status(400).json({ error: "Cannot delete another admin account" });
+      }
+
+      await db.user.delete({
+        where: { id: userId },
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      res.status(500).json({ error: "Failed to delete user" });
+    }
   }
-}
-
-// Apply CSRF protection and rate limiting
-export default withRateLimit('admin')(withCsrfProtection(handler));
+);

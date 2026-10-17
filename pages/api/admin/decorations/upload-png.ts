@@ -1,8 +1,5 @@
-import type { NextApiRequest, NextApiResponse } from "next";
-import { getSessionUser } from "@/lib/auth/server";
 import { db } from "@/lib/config/database/connection";
-import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
-import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
+import { apiHandler } from "@/lib/api/handler";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import sharp from "sharp";
 
@@ -51,120 +48,110 @@ interface UploadPngRequest {
   palette?: string; // For house templates: thread_sage, crt_glow, etc.
 }
 
-async function handler(req: NextApiRequest, res: NextApiResponse) {
-  try {
-    const user = await getSessionUser(req);
-    if (!user) {
-      return res.status(401).json({ error: "Authentication required" });
-    }
+export default apiHandler(
+  { methods: ["POST"], auth: "admin", rateLimit: "admin" },
+  async (req, res) => {
+    try {
+      const { itemId, imageData, isHouseTemplate, template, palette }: UploadPngRequest = req.body;
 
-    if (user.role !== 'admin') {
-      return res.status(403).json({ error: "Admin access required" });
-    }
+      // Validate input
+      if (!imageData || !imageData.startsWith('data:image/')) {
+        return res.status(400).json({ error: "Invalid image data URL" });
+      }
 
-    if (req.method !== 'POST') {
-      return res.status(405).json({ error: "Method not allowed" });
-    }
+      if (isHouseTemplate) {
+        if (!template || !palette) {
+          return res.status(400).json({
+            error: "template and palette are required for house template uploads"
+          });
+        }
+      } else {
+        if (!itemId) {
+          return res.status(400).json({ error: "itemId is required" });
+        }
+      }
 
-    const { itemId, imageData, isHouseTemplate, template, palette }: UploadPngRequest = req.body;
+      // Extract base64 data
+      const matches = imageData.match(/^data:image\/([a-zA-Z]*);base64,(.*)$/);
+      if (!matches) {
+        return res.status(400).json({ error: "Invalid image data URL format" });
+      }
 
-    // Validate input
-    if (!imageData || !imageData.startsWith('data:image/')) {
-      return res.status(400).json({ error: "Invalid image data URL" });
-    }
+      const [, imageFormat, base64Data] = matches;
+      const imageBuffer = Buffer.from(base64Data, 'base64');
 
-    if (isHouseTemplate) {
-      if (!template || !palette) {
+      // Validate file size
+      if (imageBuffer.length > MAX_FILE_SIZE) {
         return res.status(400).json({
-          error: "template and palette are required for house template uploads"
+          error: `Image too large. Maximum size is ${MAX_FILE_SIZE / 1024}KB`
         });
       }
-    } else {
-      if (!itemId) {
-        return res.status(400).json({ error: "itemId is required" });
+
+      // Get image metadata and validate dimensions
+      const metadata = await sharp(imageBuffer).metadata();
+      const { width, height } = metadata;
+
+      if (!width || !height) {
+        return res.status(400).json({ error: "Could not read image dimensions" });
       }
-    }
 
-    // Extract base64 data
-    const matches = imageData.match(/^data:image\/([a-zA-Z]*);base64,(.*)$/);
-    if (!matches) {
-      return res.status(400).json({ error: "Invalid image data URL format" });
-    }
+      if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+        return res.status(400).json({
+          error: `Image too large. Maximum dimensions are ${MAX_DIMENSION}x${MAX_DIMENSION} pixels`
+        });
+      }
 
-    const [, imageFormat, base64Data] = matches;
-    const imageBuffer = Buffer.from(base64Data, 'base64');
+      // Process image - convert to optimized PNG
+      const processedBuffer = await sharp(imageBuffer)
+        .png({
+          compressionLevel: 9,
+          palette: true
+        })
+        .toBuffer();
 
-    // Validate file size
-    if (imageBuffer.length > MAX_FILE_SIZE) {
-      return res.status(400).json({
-        error: `Image too large. Maximum size is ${MAX_FILE_SIZE / 1024}KB`
+      // Determine R2 key
+      let r2Key: string;
+      if (isHouseTemplate) {
+        r2Key = `${R2_PATH_PREFIX}/houses/${template}_${palette}.png`;
+      } else {
+        r2Key = `${R2_PATH_PREFIX}/${itemId}.png`;
+      }
+
+      // Upload to R2
+      const client = getS3Client();
+      await client.send(new PutObjectCommand({
+        Bucket: getBucketName(),
+        Key: r2Key,
+        Body: processedBuffer,
+        ContentType: 'image/png',
+        CacheControl: 'public, max-age=31536000', // 1 year cache
+      }));
+
+      const pngUrl = `${getCdnUrl()}/${r2Key}?v=${Date.now()}`;
+
+      // Update database if this is a decoration item (not house template)
+      if (!isHouseTemplate && itemId) {
+        await db.decorationItem.updateMany({
+          where: { itemId },
+          data: { pngUrl }
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        pngUrl,
+        dimensions: { width, height },
+        size: processedBuffer.length
+      });
+
+    } catch (error) {
+      console.error('Upload PNG error:', error);
+      return res.status(500).json({
+        error: error instanceof Error ? error.message : "Internal server error"
       });
     }
-
-    // Get image metadata and validate dimensions
-    const metadata = await sharp(imageBuffer).metadata();
-    const { width, height } = metadata;
-
-    if (!width || !height) {
-      return res.status(400).json({ error: "Could not read image dimensions" });
-    }
-
-    if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
-      return res.status(400).json({
-        error: `Image too large. Maximum dimensions are ${MAX_DIMENSION}x${MAX_DIMENSION} pixels`
-      });
-    }
-
-    // Process image - convert to optimized PNG
-    const processedBuffer = await sharp(imageBuffer)
-      .png({
-        compressionLevel: 9,
-        palette: true
-      })
-      .toBuffer();
-
-    // Determine R2 key
-    let r2Key: string;
-    if (isHouseTemplate) {
-      r2Key = `${R2_PATH_PREFIX}/houses/${template}_${palette}.png`;
-    } else {
-      r2Key = `${R2_PATH_PREFIX}/${itemId}.png`;
-    }
-
-    // Upload to R2
-    const client = getS3Client();
-    await client.send(new PutObjectCommand({
-      Bucket: getBucketName(),
-      Key: r2Key,
-      Body: processedBuffer,
-      ContentType: 'image/png',
-      CacheControl: 'public, max-age=31536000', // 1 year cache
-    }));
-
-    const pngUrl = `${getCdnUrl()}/${r2Key}?v=${Date.now()}`;
-
-    // Update database if this is a decoration item (not house template)
-    if (!isHouseTemplate && itemId) {
-      await db.decorationItem.updateMany({
-        where: { itemId },
-        data: { pngUrl }
-      });
-    }
-
-    return res.status(200).json({
-      success: true,
-      pngUrl,
-      dimensions: { width, height },
-      size: processedBuffer.length
-    });
-
-  } catch (error) {
-    console.error('Upload PNG error:', error);
-    return res.status(500).json({
-      error: error instanceof Error ? error.message : "Internal server error"
-    });
   }
-}
+);
 
 // Increase body size limit for image uploads
 export const config = {
@@ -174,5 +161,3 @@ export const config = {
     }
   }
 };
-
-export default withRateLimit('admin')(withCsrfProtection(handler));

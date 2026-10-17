@@ -1,3 +1,4 @@
+import { getSiteBaseUrl } from '@/lib/config/site-url';
 import { GetServerSideProps } from 'next';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -34,14 +35,14 @@ export default function Community({ siteConfig, user }: CommunityProps) {
       <Head>
         <title>Community Center - {siteConfig.site_name}</title>
         <meta name="description" content="A central hub for community announcements, bulletin board, polls, and chat on HomePageAgain." />
-        <link rel="canonical" href={`${process.env.NEXT_PUBLIC_BASE_URL}/community`} />
+        <link rel="canonical" href={`${getSiteBaseUrl()}/community`} />
         <meta name="robots" content="index, follow" />
 
         {/* OpenGraph meta tags */}
         <meta property="og:title" content={`Community Center - ${siteConfig.site_name}`} />
         <meta property="og:description" content="A central hub for community announcements, bulletin board, polls, and chat on HomePageAgain." />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content={`${process.env.NEXT_PUBLIC_BASE_URL}/community`} />
+        <meta property="og:url" content={`${getSiteBaseUrl()}/community`} />
 
         {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />

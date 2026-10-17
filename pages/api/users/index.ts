@@ -1,3 +1,4 @@
+import { getSiteBaseUrl } from '@/lib/config/site-url';
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { db } from "@/lib/config/database/connection";
 import { SITE_NAME } from "@/lib/config/site/constants";
@@ -48,7 +49,7 @@ async function handleDIDDirectory(req: NextApiRequest, res: NextApiResponse) {
     hash: mapping.userHash,
     did: mapping.did,
     created: mapping.createdAt.toISOString(),
-    didDocument: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/users/${mapping.userHash}/did.json`
+    didDocument: `${getSiteBaseUrl()}/users/${mapping.userHash}/did.json`
   }))
 
   res.setHeader('Content-Type', 'application/json')

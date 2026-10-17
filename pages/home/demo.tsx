@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import Head from 'next/head'
+import { getSiteBaseUrl } from '@/lib/config/site-url'
 import Link from 'next/link'
 import Layout from '../../components/ui/layout/Layout'
 import EnhancedHouseCanvas from '../../components/pixel-homes/EnhancedHouseCanvas'
@@ -87,7 +88,7 @@ export default function DemoPixelHome() {
         <meta property="og:title" content={pageTitle} />
         <meta property="og:description" content={pageDescription} />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content={`${process.env.NEXT_PUBLIC_BASE_URL}/home/demo`} />
+        <meta property="og:url" content={`${getSiteBaseUrl()}/home/demo`} />
       </Head>
 
       <Layout>

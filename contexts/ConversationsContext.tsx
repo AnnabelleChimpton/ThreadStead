@@ -1,3 +1,4 @@
+import { publicEnv } from '@/lib/config/public-env';
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo, ReactNode } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
@@ -89,7 +90,7 @@ export function ConversationsProvider({ children }: { children: ReactNode }) {
         let cancelled = false;
 
         // Connect socket
-        const newSocket = io(process.env.NEXT_PUBLIC_BASE_URL || '', {
+        const newSocket = io(publicEnv.NEXT_PUBLIC_BASE_URL ?? '', {
             withCredentials: true,
         });
 
