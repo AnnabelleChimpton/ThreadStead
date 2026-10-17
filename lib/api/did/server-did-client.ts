@@ -240,7 +240,9 @@ export async function getOrCreateUserDID(userId: string): Promise<UserDIDMapping
 
   const userHash = computeUserHash(userId);
   const domain = getDomainFromEnvironment();
-  const did = `did:web:${domain}:users:${userHash}`;
+  // did:web requires the port separator percent-encoded (localhost%3A3000);
+  // a raw ":" would make the port part of the path.
+  const did = `did:web:${domain.replace(/:/g, '%3A')}:users:${userHash}`;
 
   try {
     const saved = await db.userDID.upsert({

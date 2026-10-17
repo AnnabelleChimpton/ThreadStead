@@ -11,6 +11,7 @@
   "scripts": {
     "setup": "tsx scripts/initial-setup.ts",
     "dev": "node server.js",
+    "dev:hub": "bash scripts/dev-hub.sh",
     "build": "next build",
     "start": "NODE_ENV=production node server.js",
     "lint": "next lint",
