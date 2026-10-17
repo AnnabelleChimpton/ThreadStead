@@ -38,6 +38,12 @@ function formatTimeAgo(date: Date): string {
 
 type Visibility = "public" | "followers" | "friends" | "private";
 
+const VISIBILITY_LABELS: Record<Exclude<Visibility, "public">, string> = {
+  private: "Only you",
+  followers: "Followers",
+  friends: "Friends",
+};
+
 type PostIntent = "sharing" | "asking" | "feeling" | "announcing" | "showing" | "teaching" | "looking" | "celebrating" | "recommending";
 
 export type Post = {
@@ -428,9 +434,19 @@ export default function PostItem({
             )}
             <span className="text-thread-sage text-sm">•</span>
             <span className="text-thread-sage text-sm font-medium">{postDate}</span>
+            {isOwner && post.visibility && post.visibility !== "public" && (
+              <span
+                className="inline-flex items-center gap-1 text-xs text-thread-sage"
+                title="Who can see this post"
+              >
+                <PixelIcon name={post.visibility === "private" ? "lock" : "users"} size={12} />
+                {VISIBILITY_LABELS[post.visibility]}
+              </span>
+            )}
             {post.isPinned && (
-              <span className="text-xs bg-yellow-200 px-2 py-1 border border-black rounded ml-2">
-                📌 Pinned
+              <span className="inline-flex items-center gap-1 text-xs bg-thread-cream text-thread-pine px-2 py-1 border border-thread-sage/50 rounded ml-2">
+                <PixelIcon name="pin" size={12} />
+                Pinned
               </span>
             )}
           </div>

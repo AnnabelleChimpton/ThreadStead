@@ -2,6 +2,7 @@ import { getSiteBaseUrl } from '@/lib/config/site-url';
 import { useState, useEffect, useRef } from 'react';
 import { GetServerSideProps } from 'next';
 import Head from 'next/head';
+import { useRouter } from 'next/router';
 import Layout from '@/components/ui/layout/Layout';
 import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
 import { getSessionUser } from '@/lib/auth/server';
@@ -40,6 +41,7 @@ interface SearchResult {
 }
 
 export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: DiscoverProps) {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const resultsRef = useRef<HTMLDivElement>(null);
 
@@ -109,6 +111,20 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
   useEffect(() => {
     loadInitialData();
   }, []);
+
+  // A tab in the URL with no query (e.g. "Browse →" to ?tab=indie) just opens
+  // that tab. Keyed on the router so same-page links, which don't remount, work too.
+  // (Reads asPath rather than router.query, which stays empty on this
+  // statically optimised page until the router is ready.)
+  useEffect(() => {
+    const params = new URLSearchParams(router.asPath.split('?')[1] || '');
+    const rawTab = params.get('tab');
+    if (params.get('q') || !rawTab) return;
+    const tab = rawTab === 'community' ? 'indie' : rawTab;
+    if (tab === 'all' || tab === 'indie' || tab === 'site' || tab === 'web') {
+      setSearchTab(tab);
+    }
+  }, [router.asPath]);
 
   // Check for search query in URL parameters and auto-search
   useEffect(() => {
@@ -860,8 +876,8 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-bold text-[#2E4B3F]">Neighborhood Favorites</h2>
                   <Link
-                    href="/community-index/discover"
-                    className="text-sm text-blue-600 hover:text-blue-800"
+                    href="/discover/search?tab=indie"
+                    className="text-sm text-thread-pine hover:text-thread-sunset underline"
                   >
                     Browse →
                   </Link>

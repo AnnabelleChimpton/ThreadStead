@@ -77,6 +77,7 @@ export type PixelIconName =
   | 'clock'
   | 'notification'
   | 'bookmark'
+  | 'pin'
   | 'flag'
   | 'gift'
   | 'lock'

@@ -10,10 +10,13 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePostView } from "@/hooks/usePostView";
 import { contentMetadataGenerator } from "@/lib/utils/metadata/content-metadata";
 import { serializeJsonLd } from "@/lib/utils/sanitization/json-ld";
+import Layout from "@/components/ui/layout/Layout";
+import { PixelIcon } from "@/components/ui/PixelIcon";
 
 type PostPageProps = {
   username: string;
   post: PostType;
+  isPrivatePost?: false;
   authorDisplayName?: string;
   initialCommentsOpen?: boolean;
   highlightCommentId?: string | null;
@@ -22,7 +25,44 @@ type PostPageProps = {
   includeSiteCSS?: boolean;
 };
 
-export default function PostPage({ username, post, authorDisplayName, initialCommentsOpen = true, highlightCommentId, customCSS, hideNavigation = false, includeSiteCSS = true }: PostPageProps) {
+type PrivatePostPageProps = {
+  username: string;
+  isPrivatePost: true;
+};
+
+function PrivatePostPage({ username }: { username: string }) {
+  return (
+    <>
+      <Head>
+        <title>Private post | ThreadStead</title>
+        <meta name="robots" content="noindex, nofollow" />
+      </Head>
+      <Layout>
+        <div className="max-w-2xl mx-auto px-4 py-8">
+          <RetroCard>
+            <div className="flex flex-col items-center text-center p-8 text-thread-pine">
+              <PixelIcon name="lock" size={32} className="text-thread-sage mb-4" />
+              <h1 className="text-lg font-semibold mb-2">This post is private.</h1>
+              <p className="text-thread-sage mb-6">Only people its author has shared it with can see it.</p>
+              <a href={`/resident/${encodeURIComponent(username)}`} className="underline text-thread-pine hover:text-thread-sunset">
+                Visit @{username}&apos;s page
+              </a>
+            </div>
+          </RetroCard>
+        </div>
+      </Layout>
+    </>
+  );
+}
+
+export default function PostPageRoute(props: PostPageProps | PrivatePostPageProps) {
+  if (props.isPrivatePost) {
+    return <PrivatePostPage username={props.username} />;
+  }
+  return <PostPage {...props} />;
+}
+
+function PostPage({ username, post, authorDisplayName, initialCommentsOpen = true, highlightCommentId, customCSS, hideNavigation = false, includeSiteCSS = true }: PostPageProps) {
   // Generate metadata for this post
   const adaptedPost = {
     ...post,
@@ -136,7 +176,7 @@ export default function PostPage({ username, post, authorDisplayName, initialCom
   );
 }
 
-export const getServerSideProps: GetServerSideProps<PostPageProps> = async ({ params, query, req }) => {
+export const getServerSideProps: GetServerSideProps<PostPageProps | PrivatePostPageProps> = async ({ params, query, req }) => {
   const username = String(params?.username || "");
   const postId = String(params?.postId || "");
   
@@ -154,9 +194,19 @@ export const getServerSideProps: GetServerSideProps<PostPageProps> = async ({ pa
   const base = getInternalBaseUrl();
 
   try {
+    // Forward the viewer's cookie so the API can apply visibility rules
+    // (without it, every non-public post 403s — even for its author).
+    const forwardHeaders = { cookie: req.headers.cookie || "" };
+
     // Fetch the specific post
-    const postRes = await fetch(`${base}/api/posts/single/${encodeURIComponent(postId)}`);
-    
+    const postRes = await fetch(`${base}/api/posts/single/${encodeURIComponent(postId)}`, {
+      headers: forwardHeaders,
+    });
+
+    if (postRes.status === 403) {
+      return { props: { username, isPrivatePost: true } };
+    }
+
     if (!postRes.ok) {
       return { notFound: true };
     }
@@ -174,7 +224,9 @@ export const getServerSideProps: GetServerSideProps<PostPageProps> = async ({ pa
     // Fetch the author's profile for custom CSS and other styling
     // Use the clean username (strip @sitename) for the profile API
     const authorUsername = post.author?.primaryHandle?.split('@')[0] || username;
-    const profileRes = await fetch(`${base}/api/profile/${encodeURIComponent(authorUsername)}`);
+    const profileRes = await fetch(`${base}/api/profile/${encodeURIComponent(authorUsername)}`, {
+      headers: forwardHeaders,
+    });
     let authorProfile = null;
     if (profileRes.ok) {
       authorProfile = await profileRes.json();

@@ -8,6 +8,8 @@ import ProfileLayout from "@/components/ui/layout/ProfileLayout";
 import RetroCard from "@/components/ui/layout/RetroCard";
 import MediaUpload from "@/components/ui/media/MediaUpload";
 import PhotoComments from "@/components/core/content/PhotoComments";
+import { PixelIcon } from "@/components/ui/PixelIcon";
+import { csrfFetch } from "@/lib/api/client/csrf-fetch";
 
 interface MediaItem {
   id: string;
@@ -51,6 +53,99 @@ export default function MediaGalleryPage({
   const [showUpload, setShowUpload] = useState(false);
   const [selectedImage, setSelectedImage] = useState<MediaItem | null>(null);
   const [showComments, setShowComments] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editCaption, setEditCaption] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const closeLightbox = () => {
+    setSelectedImage(null);
+    setShowComments(false);
+    setEditing(false);
+    setActionError(null);
+    router.replace(`/resident/${username}/media`, undefined, { shallow: true });
+  };
+
+  // Media writes need a short-lived capability token, same as uploads.
+  const getMediaCap = async (): Promise<string | null> => {
+    const capRes = await csrfFetch("/api/cap/media", { method: "POST" });
+    if (!capRes.ok) {
+      setActionError(capRes.status === 401 ? "Please log in again." : "Couldn't check your permissions. Try again.");
+      return null;
+    }
+    const { token } = await capRes.json();
+    return token;
+  };
+
+  const startEditing = (item: MediaItem) => {
+    setEditTitle(item.title || "");
+    setEditCaption(item.caption || "");
+    setActionError(null);
+    setEditing(true);
+    setShowComments(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!selectedImage) return;
+    setBusy(true);
+    setActionError(null);
+    try {
+      const cap = await getMediaCap();
+      if (!cap) return;
+      const res = await csrfFetch(`/api/media/${selectedImage.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cap, title: editTitle, caption: editCaption }),
+      });
+      if (!res.ok) {
+        setActionError("Couldn't save your changes. Try again.");
+        return;
+      }
+      const { media: updated } = await res.json();
+      const patch = { title: updated.title ?? undefined, caption: updated.caption ?? undefined };
+      setMedia(prev => prev.map(m => (m.id === updated.id ? { ...m, ...patch } : m)));
+      setSelectedImage(prev => (prev && prev.id === updated.id ? { ...prev, ...patch } : prev));
+      setEditing(false);
+    } catch (error) {
+      console.error("Failed to update media:", error);
+      setActionError("Couldn't save your changes. Try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedImage) return;
+    const ok = window.confirm(
+      "Delete this image for good? Anywhere it's been linked or embedded — posts, comments, other sites — will show a broken image."
+    );
+    if (!ok) return;
+    setBusy(true);
+    setActionError(null);
+    try {
+      const cap = await getMediaCap();
+      if (!cap) return;
+      const res = await csrfFetch(`/api/media/${selectedImage.id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cap }),
+      });
+      if (!res.ok) {
+        setActionError("Couldn't delete this image. Try again.");
+        return;
+      }
+      const deletedId = selectedImage.id;
+      setMedia(prev => prev.filter(m => m.id !== deletedId));
+      setPagination(prev => ({ ...prev, totalCount: Math.max(0, prev.totalCount - 1) }));
+      closeLightbox();
+    } catch (error) {
+      console.error("Failed to delete media:", error);
+      setActionError("Couldn't delete this image. Try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const loadPage = async (page: number) => {
     setLoading(true);
@@ -98,11 +193,8 @@ export default function MediaGalleryPage({
   // Handle keyboard shortcuts for modal
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && selectedImage) {
-        setSelectedImage(null);
-        setShowComments(false);
-        // Clear URL parameters
-        router.replace(`/resident/${username}/media`, undefined, { shallow: true });
+      if (event.key === 'Escape' && selectedImage && !busy) {
+        closeLightbox();
       }
     };
 
@@ -116,7 +208,7 @@ export default function MediaGalleryPage({
       document.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = 'unset';
     };
-  }, [selectedImage, router, username]);
+  }, [selectedImage, router, username, busy]);
 
   const formatFileSize = (bytes?: number) => {
     if (!bytes) return '';
@@ -312,11 +404,7 @@ export default function MediaGalleryPage({
         {selectedImage && (
           <div 
             className="modal-overlay-high fixed inset-0 bg-black/80 flex items-center justify-center p-4 pt-20"
-            onClick={() => {
-              setSelectedImage(null);
-              setShowComments(false);
-              router.replace(`/resident/${username}/media`, undefined, { shallow: true });
-            }}
+            onClick={() => { if (!busy) closeLightbox(); }}
           >
             <div 
               className="max-w-6xl max-h-full bg-white rounded-lg overflow-hidden shadow-2xl flex"
@@ -330,24 +418,49 @@ export default function MediaGalleryPage({
                   className="w-full h-full max-h-[80vh] object-contain"
                 />
                 <button
-                  onClick={() => {
-                    setSelectedImage(null);
-                    setShowComments(false);
-                    router.replace(`/resident/${username}/media`, undefined, { shallow: true });
-                  }}
+                  onClick={closeLightbox}
                   className="absolute top-2 right-2 bg-black/70 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-black/90 transition-colors"
                   title="Close"
                 >
                   ×
                 </button>
                 
+                {actionError && !showComments && (
+                  <p className="absolute top-2 left-2 right-12 bg-thread-paper text-thread-sunset text-sm px-3 py-2 rounded" role="alert">
+                    {actionError}
+                  </p>
+                )}
+
+                {/* Owner actions */}
+                {isOwner && !editing && (
+                  <div className="absolute bottom-4 left-4 flex gap-2">
+                    <button
+                      onClick={() => startEditing(selectedImage)}
+                      disabled={busy}
+                      className="inline-flex items-center gap-1 bg-black/70 text-white px-3 py-2 rounded hover:bg-black/90 transition-colors text-sm disabled:opacity-50"
+                    >
+                      <PixelIcon name="edit" size={16} />
+                      Edit
+                    </button>
+                    <button
+                      onClick={handleDelete}
+                      disabled={busy}
+                      className="inline-flex items-center gap-1 bg-black/70 text-white px-3 py-2 rounded hover:bg-thread-sunset transition-colors text-sm disabled:opacity-50"
+                    >
+                      <PixelIcon name="trash" size={16} />
+                      {busy ? "Deleting..." : "Delete"}
+                    </button>
+                  </div>
+                )}
+
                 {/* Comments toggle button */}
                 <button
                   onClick={() => setShowComments(!showComments)}
-                  className="absolute bottom-4 right-4 bg-black/70 text-white px-3 py-2 rounded hover:bg-black/90 transition-colors text-sm"
+                  className="absolute bottom-4 right-4 inline-flex items-center gap-1 bg-black/70 text-white px-3 py-2 rounded hover:bg-black/90 transition-colors text-sm"
                   title={showComments ? "Hide comments" : "Show comments"}
                 >
-                  💬 {showComments ? "Hide" : "Comments"}
+                  <PixelIcon name="chat" size={16} />
+                  {showComments ? "Hide" : "Comments"}
                 </button>
               </div>
 
@@ -356,15 +469,64 @@ export default function MediaGalleryPage({
                 <div className="w-96 border-l border-thread-sage bg-white flex flex-col max-h-[80vh]">
                   {/* Photo info header */}
                   <div className="p-4 border-b border-thread-sage">
-                    {selectedImage.title && (
-                      <h3 className="font-medium text-thread-pine mb-2">
-                        {selectedImage.title}
-                      </h3>
+                    {editing ? (
+                      <form
+                        className="space-y-2 mb-2"
+                        onSubmit={(e) => { e.preventDefault(); handleSaveEdit(); }}
+                      >
+                        <label className="block text-xs text-thread-sage">
+                          Title
+                          <input
+                            type="text"
+                            value={editTitle}
+                            onChange={(e) => setEditTitle(e.target.value)}
+                            maxLength={100}
+                            disabled={busy}
+                            autoFocus
+                            className="mt-1 w-full border border-thread-sage p-2 bg-thread-paper text-thread-pine text-sm rounded focus:border-thread-pine focus:ring-1 focus:ring-thread-pine"
+                          />
+                        </label>
+                        <label className="block text-xs text-thread-sage">
+                          Caption
+                          <textarea
+                            value={editCaption}
+                            onChange={(e) => setEditCaption(e.target.value)}
+                            maxLength={500}
+                            rows={3}
+                            disabled={busy}
+                            className="mt-1 w-full border border-thread-sage p-2 bg-thread-paper text-thread-pine text-sm rounded focus:border-thread-pine focus:ring-1 focus:ring-thread-pine"
+                          />
+                        </label>
+                        <div className="flex gap-2">
+                          <button type="submit" disabled={busy} className="thread-button text-sm disabled:opacity-50">
+                            {busy ? "Saving..." : "Save"}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => { setEditing(false); setActionError(null); }}
+                            className="thread-button-secondary text-sm"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </form>
+                    ) : (
+                      <>
+                        {selectedImage.title && (
+                          <h3 className="font-medium text-thread-pine mb-2">
+                            {selectedImage.title}
+                          </h3>
+                        )}
+                        {selectedImage.caption && (
+                          <p className="text-thread-sage text-sm mb-2">
+                            {selectedImage.caption}
+                          </p>
+                        )}
+                      </>
                     )}
-                    {selectedImage.caption && (
-                      <p className="text-thread-sage text-sm mb-2">
-                        {selectedImage.caption}
-                      </p>
+                    {actionError && (
+                      <p className="text-thread-sunset text-sm mb-2" role="alert">{actionError}</p>
                     )}
                     <div className="flex justify-between items-center text-xs text-thread-sage">
                       <span>{formatDate(selectedImage.createdAt)}</span>

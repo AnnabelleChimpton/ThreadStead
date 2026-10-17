@@ -70,6 +70,12 @@ const nextConfig: NextConfig = {
         destination: '/discover/residents',
         permanent: true,
       },
+      {
+        // Never existed as a page; old "Browse →" link pointed here
+        source: '/community-index/discover',
+        destination: '/discover/search?tab=indie',
+        permanent: true,
+      },
 
       // Navigation refactor redirects - Build hub
       {
