@@ -42,6 +42,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         user: user ? {
           ...user,
           createdAt: user.createdAt?.toISOString() || null,
+          emailVerifiedAt: user.emailVerifiedAt?.toISOString() || null,
         } : null,
       },
     };

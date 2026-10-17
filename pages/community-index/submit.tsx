@@ -338,6 +338,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       user: user ? {
         ...user,
         createdAt: user.createdAt?.toISOString() || null,
+        emailVerifiedAt: user.emailVerifiedAt?.toISOString() || null,
         betaKey: user.betaKey ? {
           ...user.betaKey,
           createdAt: user.betaKey.createdAt?.toISOString() || null,

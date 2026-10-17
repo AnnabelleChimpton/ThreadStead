@@ -321,7 +321,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     return {
       props: {
         siteConfig,
-        user: user || null,
+        user: user ? { id: user.id, role: user.role } : null,
       },
     };
   } catch (error) {
