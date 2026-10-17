@@ -5,11 +5,6 @@ export default function TemplatesHero() {
   return (
     <div className="bg-gradient-to-br from-purple-100 via-pink-100 to-yellow-100 border-4 border-black shadow-[8px_8px_0_#000] p-8 sm:p-12 rounded-none">
       <div className="text-center">
-        {/* Icon/Emoji */}
-        <div className="text-6xl sm:text-8xl mb-6 animate-bounce">
-          📝
-        </div>
-
         {/* Title */}
         <h1 className="text-4xl sm:text-5xl md:text-6xl font-black mb-4 text-gray-900 tracking-tight">
           Template Components
@@ -26,16 +21,16 @@ export default function TemplatesHero() {
         {/* Feature Pills */}
         <div className="flex flex-wrap justify-center gap-3 mb-8">
           <span className="px-4 py-2 bg-white border-2 border-black shadow-[3px_3px_0_#000] text-sm font-medium">
-            ⚡ 72+ Components
+            72+ Components
           </span>
           <span className="px-4 py-2 bg-white border-2 border-black shadow-[3px_3px_0_#000] text-sm font-medium">
-            🎨 No Coding Required
+            No Coding Required
           </span>
           <span className="px-4 py-2 bg-white border-2 border-black shadow-[3px_3px_0_#000] text-sm font-medium">
-            🚀 Instant Preview
+            Instant Preview
           </span>
           <span className="px-4 py-2 bg-white border-2 border-black shadow-[3px_3px_0_#000] text-sm font-medium">
-            📱 Mobile Friendly
+            Mobile Friendly
           </span>
         </div>
 
@@ -45,13 +40,13 @@ export default function TemplatesHero() {
             href="/templates/tutorials/your-first-template"
             className="inline-block border-3 border-black px-8 py-4 bg-green-300 hover:bg-green-200 shadow-[4px_4px_0_#000] hover:shadow-[6px_6px_0_#000] transition-all font-black text-lg"
           >
-            🎓 Start Tutorial
+            Start Tutorial
           </Link>
           <Link
             href="/templates/components"
             className="inline-block border-3 border-black px-8 py-4 bg-cyan-300 hover:bg-cyan-200 shadow-[4px_4px_0_#000] hover:shadow-[6px_6px_0_#000] transition-all font-black text-lg"
           >
-            📚 Browse Components
+            Browse Components
           </Link>
         </div>
 

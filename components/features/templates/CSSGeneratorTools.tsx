@@ -22,42 +22,36 @@ export default function CSSGeneratorTools({ onInsertCSS }: CSSGeneratorToolsProp
   const generators = [
     {
       id: 'color' as GeneratorId,
-      icon: '🎨',
       title: 'Color Palette',
       description: 'Pick colors for backgrounds, text, and borders',
       component: <ColorPaletteGenerator onInsertCSS={onInsertCSS} />,
     },
     {
       id: 'typography' as GeneratorId,
-      icon: '✏️',
       title: 'Typography',
       description: 'Customize fonts, sizes, and text styles',
       component: <TypographyGenerator onInsertCSS={onInsertCSS} />,
     },
     {
       id: 'spacing' as GeneratorId,
-      icon: '📐',
       title: 'Spacing & Borders',
       description: 'Adjust padding, margins, borders, and corners',
       component: <SpacingBorderGenerator onInsertCSS={onInsertCSS} />,
     },
     {
       id: 'gradient' as GeneratorId,
-      icon: '🌈',
       title: 'Gradient Builder',
       description: 'Create beautiful linear and radial gradients',
       component: <GradientGenerator onInsertCSS={onInsertCSS} />,
     },
     {
       id: 'shadow' as GeneratorId,
-      icon: '💫',
       title: 'Shadow Generator',
       description: 'Add depth with box and text shadows',
       component: <ShadowGenerator onInsertCSS={onInsertCSS} />,
     },
     {
       id: 'quick' as GeneratorId,
-      icon: '🎯',
       title: 'Quick Styles',
       description: 'Opacity, transforms, display, position, and more',
       component: <QuickStylesGenerator onInsertCSS={onInsertCSS} />,
@@ -84,7 +78,6 @@ export default function CSSGeneratorTools({ onInsertCSS }: CSSGeneratorToolsProp
               className="w-full py-2.5 flex items-center justify-between hover:bg-gray-50 transition-colors text-left"
             >
               <div className="flex items-center gap-2">
-                <span className="text-xl">{generator.icon}</span>
                 <div className="min-w-0 flex-1">
                   <h4 className="font-semibold text-sm break-words">{generator.title}</h4>
                   <p className="text-xs text-gray-600 break-words">{generator.description}</p>

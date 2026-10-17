@@ -174,7 +174,7 @@ export default function PreviewTemp() {
   const handleSave = async () => {
     const host = getHostWindow();
     if (!host) {
-      setSaveMessage('❌ Cannot save - editor window closed');
+      setSaveMessage("Can't save — the editor window is closed");
       return;
     }
 
@@ -195,12 +195,12 @@ export default function PreviewTemp() {
       }, window.location.origin);
 
       // Show success message
-      setSaveMessage('✅ Save request sent!');
+      setSaveMessage('✓ Save request sent');
       
       // Clear message after 3 seconds
       setTimeout(() => setSaveMessage(null), 3000);
     } catch (error) {
-      setSaveMessage('❌ Failed to save');
+      setSaveMessage("Couldn't save");
       console.error('Save error:', error);
     } finally {
       setIsSaving(false);
@@ -308,7 +308,7 @@ export default function PreviewTemp() {
             style={{ zIndex: 999999 }}
           >
             <div></div>
-            <span>🔍 STANDARD LAYOUT PREVIEW - CSS updates automatically</span>
+            <span>STANDARD LAYOUT PREVIEW - CSS updates automatically</span>
             <div>
               {saveMessage && (
                 <span className="mr-3 text-xs">{saveMessage}</span>
@@ -319,7 +319,7 @@ export default function PreviewTemp() {
                 className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-3 py-1 rounded text-xs font-semibold transition-colors"
                 style={{ fontSize: '11px' }}
               >
-                {isSaving ? 'Saving...' : '💾 Save'}
+                {isSaving ? 'Saving...' : 'Save'}
               </button>
             </div>
           </div>
@@ -391,7 +391,7 @@ export default function PreviewTemp() {
         }}
       >
         <div></div>
-        <span>🎨 ADVANCED TEMPLATE PREVIEW - Live CSS Updates</span>
+        <span>ADVANCED TEMPLATE PREVIEW - Live CSS Updates</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           {saveMessage && (
             <span style={{ fontSize: '11px', opacity: 0.9 }}>{saveMessage}</span>
@@ -417,7 +417,7 @@ export default function PreviewTemp() {
               if (!isSaving) e.currentTarget.style.backgroundColor = '#059669';
             }}
           >
-            {isSaving ? 'Saving...' : '💾 Save'}
+            {isSaving ? 'Saving...' : 'Save'}
           </button>
         </div>
       </div>

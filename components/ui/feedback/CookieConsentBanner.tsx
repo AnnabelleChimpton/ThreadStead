@@ -82,7 +82,7 @@ export default function CookieConsentBanner({
       <div className="max-w-6xl mx-auto p-4">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex-1">
-            <h3 className="font-bold text-lg mb-2">🍪 Cookie Notice</h3>
+            <h3 className="font-bold text-lg mb-2">Cookie Notice</h3>
             <p className="text-sm text-gray-700">
               We only use cookies for authentication to keep you logged in and secure.
               We do not use any tracking, analytics, or marketing cookies.

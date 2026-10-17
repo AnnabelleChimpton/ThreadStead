@@ -238,7 +238,6 @@ export default function PromptResponsesPage({
         {/* Prompt Header */}
         <div className="mb-8 p-6 bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-400 rounded-lg">
           <div className="flex items-start gap-4">
-            <span className="text-3xl">💭</span>
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
                 <h1 className="text-2xl font-bold text-gray-900">{prompt.title}</h1>
@@ -249,7 +248,7 @@ export default function PromptResponsesPage({
                 )}
                 {prompt.isPinned && (
                   <span className="px-3 py-1 bg-yellow-500 text-white text-sm rounded-full">
-                    📌 Pinned
+                    Pinned
                   </span>
                 )}
                 {isExpired && (
@@ -270,7 +269,7 @@ export default function PromptResponsesPage({
                 </span>
                 {prompt.endsAt && !isExpired && (
                   <span className="text-orange-600 font-medium">
-                    ⏰ Ends {formatDistanceToNow(new Date(prompt.endsAt), { addSuffix: true })}
+                    Ends {formatDistanceToNow(new Date(prompt.endsAt), { addSuffix: true })}
                   </span>
                 )}
               </div>
@@ -356,11 +355,11 @@ export default function PromptResponsesPage({
                   {/* Post Footer */}
                   <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                     <div className="flex items-center gap-4 text-sm text-gray-500">
-                      <span>💬 {response.post._count.comments} comments</span>
+                      <span>{response.post._count.comments} comments</span>
                       
                       {response.post.threadRings && response.post.threadRings.length > 0 && (
                         <div className="flex items-center gap-1">
-                          <span>📍</span>
+                          <PixelIcon name="pin" size={12} />
                           {response.post.threadRings
                             .filter((tr) => tr && tr.threadRing && tr.threadRing.id)
                             .map((tr, idx) => (

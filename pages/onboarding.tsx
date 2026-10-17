@@ -98,7 +98,7 @@ export default function Onboarding() {
             onUsernameConfirmed={handleUsernameConfirmed}
             onCancel={handleCancel}
             title="Claim your username"
-            subtitle="Choose a username for your profile — this will be your unique identity on Threadstead"
+            subtitle="This is your handle and your page address. Pick something you'll be happy to keep."
             confirmButtonText="Continue to Communities"
             isLoading={busy}
           />

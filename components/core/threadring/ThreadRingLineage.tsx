@@ -107,7 +107,7 @@ export default function ThreadRingLineage({
             href={`/tr/${ring.slug}`}
             className="font-medium text-black hover:text-blue-700 hover:underline block"
           >
-            {isParent ? "🌱" : "🍴"} {ring.name}
+            {ring.name}
           </Link>
           {ring.description && (
             <p className="text-xs text-gray-700 mt-1 line-clamp-2">

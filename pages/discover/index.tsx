@@ -14,13 +14,13 @@ export default function DiscoverHub({ siteConfig }: DiscoverHubProps) {
   return (
     <>
       <Head>
-        <title>HomePageAgain — Discover</title>
-        <meta name="description" content="Explore pixel homes in street view, meet neighbors, and discover what's new in our vibrant community." />
+        <title>{`${siteConfig.site_name} — Discover`}</title>
+        <meta name="description" content="Walk the streets of pixel houses, look people up, read the feed, or let the dice pick a house." />
         <link rel="canonical" href={`${getSiteBaseUrl()}/discover`} />
         <meta name="robots" content="index, follow" />
 
-        <meta property="og:title" content="HomePageAgain — Discover" />
-        <meta property="og:description" content="Explore pixel homes in street view, meet neighbors, and discover what's new in our vibrant community." />
+        <meta property="og:title" content={`${siteConfig.site_name} — Discover`} />
+        <meta property="og:description" content="Walk the streets of pixel houses, look people up, read the feed, or let the dice pick a house." />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={`${getSiteBaseUrl()}/discover`} />
       </Head>
@@ -31,13 +31,13 @@ export default function DiscoverHub({ siteConfig }: DiscoverHubProps) {
           <div className="mb-6 sm:mb-8">
             <div className="bg-gradient-to-br from-cyan-100 via-teal-50 to-emerald-100 border-2 border-black rounded-lg shadow-[4px_4px_0_#000] p-6 sm:p-8 text-center">
               <h1 className="text-4xl sm:text-5xl font-bold text-thread-pine mb-4">
-                Explore the Neighborhood
+                Around the neighborhood
               </h1>
               <p className="text-xl sm:text-2xl text-thread-sage max-w-3xl mx-auto mb-3">
-                Stroll through pixel homes, meet your neighbors, and discover what makes our community special
+                Walk the streets, look people up, read the feed, or let the dice pick a house.
               </p>
               <p className="text-base text-gray-600 max-w-2xl mx-auto">
-                From immersive street views to random discoveries, find your own path through the neighborhood
+                Everyone who lives here gets a house. Click one to visit.
               </p>
             </div>
           </div>
@@ -53,7 +53,7 @@ export default function DiscoverHub({ siteConfig }: DiscoverHubProps) {
                   Pixel Home Neighborhoods
                 </h2>
                 <p className="text-lg text-thread-sage max-w-2xl mx-auto mb-6">
-                  Experience our unique visual neighborhoods with street, grid, and map views
+                  The same houses three ways: a street, a grid, or a map.
                 </p>
               </div>
 
@@ -67,7 +67,7 @@ export default function DiscoverHub({ siteConfig }: DiscoverHubProps) {
                     <PixelIcon name="home" size={32} />
                   </div>
                   <div className="font-bold text-thread-pine mb-1">Street View</div>
-                  <div className="text-sm text-thread-sage">Immersive stroll</div>
+                  <div className="text-sm text-thread-sage">Walk past each house</div>
                 </Link>
 
                 <Link
@@ -76,7 +76,7 @@ export default function DiscoverHub({ siteConfig }: DiscoverHubProps) {
                 >
                   <div className="text-3xl mb-2">⊞</div>
                   <div className="font-bold text-thread-pine mb-1">Grid View</div>
-                  <div className="text-sm text-thread-sage">Browse all homes</div>
+                  <div className="text-sm text-thread-sage">Every house at once</div>
                 </Link>
 
                 <Link
@@ -94,7 +94,7 @@ export default function DiscoverHub({ siteConfig }: DiscoverHubProps) {
                 >
                   <div className="mb-2 flex justify-center"><PixelIcon name="dice" size={32} /></div>
                   <div className="font-bold text-thread-pine mb-1">Random</div>
-                  <div className="text-sm text-purple-700">Adventure mode!</div>
+                  <div className="text-sm text-purple-700">Any house, at random</div>
                 </Link>
               </div>
 
@@ -104,7 +104,7 @@ export default function DiscoverHub({ siteConfig }: DiscoverHubProps) {
                   href="/neighborhood/explore/all"
                   className="inline-flex items-center gap-2 px-8 py-4 bg-thread-sage !text-white text-lg font-bold rounded-lg hover:bg-thread-pine transition-colors shadow-md hover:shadow-lg"
                 >
-                  <PixelIcon name="home" size={16} className="inline-block align-middle" /> Explore Pixel Homes
+                  <PixelIcon name="home" size={16} className="inline-block align-middle" /> Walk the neighborhood
                 </Link>
               </div>
             </div>
@@ -113,7 +113,7 @@ export default function DiscoverHub({ siteConfig }: DiscoverHubProps) {
           {/* Secondary Exploration Modes */}
           <div className="mb-12">
             <h2 className="text-2xl sm:text-3xl font-bold text-thread-pine mb-6 text-center">
-              Other Ways to Discover
+              Other ways in
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Residents */}
@@ -128,7 +128,7 @@ export default function DiscoverHub({ siteConfig }: DiscoverHubProps) {
                   Meet Residents
                 </h3>
                 <p className="text-thread-sage mb-4">
-                  Discover community members and connect with neighbors
+                  Everyone who lives here. Search by name, handle, or bio.
                 </p>
                 <div className="text-thread-sunset font-medium">
                   Browse Profiles →
@@ -147,7 +147,7 @@ export default function DiscoverHub({ siteConfig }: DiscoverHubProps) {
                   Community Feed
                 </h3>
                 <p className="text-thread-sage mb-4">
-                  See what&apos;s new with latest posts and discussions
+                  Recent posts and active threads from everyone here.
                 </p>
                 <div className="text-thread-sunset font-medium">
                   View Feed →
@@ -166,7 +166,7 @@ export default function DiscoverHub({ siteConfig }: DiscoverHubProps) {
                   Search
                 </h3>
                 <p className="text-thread-sage mb-4">
-                  Find specific content across the indie web
+                  Search posts, people and rings here, or the indie web index.
                 </p>
                 <div className="text-thread-sunset font-medium">
                   Start Searching →
@@ -181,16 +181,16 @@ export default function DiscoverHub({ siteConfig }: DiscoverHubProps) {
               <PixelIcon name="dice" size={48} />
             </div>
             <h3 className="text-2xl font-bold text-thread-pine mb-3">
-              Feeling Adventurous?
+              Can&apos;t decide?
             </h3>
             <p className="text-lg text-thread-sage mb-6 max-w-2xl mx-auto">
-              Let serendipity guide you to unexpected connections and delightful discoveries
+              Roll the dice. You never know whose porch you&apos;ll end up on.
             </p>
             <Link
               href="/neighborhood/explore/random"
               className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 !text-white rounded-lg font-bold hover:bg-purple-700 transition-colors shadow-md hover:shadow-lg"
             >
-              <PixelIcon name="dice" size={20} /> Random Home Adventure
+              <PixelIcon name="dice" size={20} /> Visit a random house
             </Link>
           </div>
         </div>

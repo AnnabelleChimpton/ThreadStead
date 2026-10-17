@@ -264,7 +264,7 @@ const cssData = {
             </div>
           </div>
           <div className="text-sm text-blue-400 font-medium text-center">
-            💖 Pure 2005 MySpace nostalgia with CSS magic!
+            2005 MySpace, done in plain CSS.
           </div>
         </div>
       )
@@ -958,7 +958,7 @@ body {
             <div className="p-2 space-y-1 text-xs">
               <div>Created: Oct 15, 2024</div>
               <div className="bg-gradient-to-r from-purple-500 to-blue-500 text-white px-2 py-1 rounded-full text-center">
-                👑 Curator
+                Curator
               </div>
             </div>
           </div>
@@ -1071,7 +1071,6 @@ body {
       preview: (
         <div className="bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 p-4 rounded-xl text-white">
           <div className="flex items-center gap-2 mb-2">
-            <span>💭</span>
             <span className="text-xs bg-blue-600 px-2 py-1 rounded-full animate-pulse">Active</span>
           </div>
           <div className="font-bold mb-1">Weekly Challenge</div>

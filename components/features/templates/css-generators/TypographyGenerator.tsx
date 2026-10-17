@@ -76,7 +76,6 @@ export default function TypographyGenerator({ onInsertCSS }: TypographyGenerator
   return (
     <div className="space-y-2.5 overflow-x-hidden">
       <div className="flex items-center gap-2 mb-2">
-        <span className="text-xl">✏️</span>
         <h3 className="font-bold text-sm">Typography Designer</h3>
       </div>
 

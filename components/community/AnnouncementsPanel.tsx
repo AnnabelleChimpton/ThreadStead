@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MarkdownWithEmojis } from '@/lib/comment-markup';
-import { PixelIcon } from '@/components/ui/PixelIcon';
+import { PixelIcon, PixelIconName } from '@/components/ui/PixelIcon';
 
 interface NewsItem {
   id: string;
@@ -72,13 +72,13 @@ export default function AnnouncementsPanel() {
     }
   };
 
-  const getTypeEmoji = (type: string) => {
+  const getTypeIcon = (type: string): PixelIconName => {
     switch (type) {
-      case 'announcement': return '📢';
-      case 'feature': return '✨';
-      case 'maintenance': return '🔧';
-      case 'community': return '🌟';
-      default: return '📰';
+      case 'announcement': return 'speaker';
+      case 'feature': return 'lightbulb';
+      case 'maintenance': return 'sliders';
+      case 'community': return 'users';
+      default: return 'article';
     }
   };
 
@@ -130,8 +130,8 @@ export default function AnnouncementsPanel() {
                       title={`${announcement.priority} priority`}
                     />
                     {/* Type Badge */}
-                    <span className="text-xs bg-[#E8DFC8] px-1.5 py-0.5 rounded border border-[#A18463]">
-                      {getTypeEmoji(announcement.type)}
+                    <span className="text-xs bg-[#E8DFC8] px-1.5 py-0.5 rounded border border-[#A18463] inline-flex items-center" title={announcement.type} aria-label={announcement.type}>
+                      <PixelIcon name={getTypeIcon(announcement.type)} size={12} />
                     </span>
                   </div>
                 </div>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 import Link from 'next/link';
 import { getTemplatePreviewStyle, TEMPLATE_PREVIEW_STYLES } from '@/lib/templates/rendering/template-preview-styles';
 import { ProfileTemplateType } from '@/lib/templates/default-profile-templates';
@@ -130,7 +131,7 @@ export default function WelcomeHomeOverlay({
                       className="text-sm font-semibold mb-2 flex items-center justify-center gap-2 text-gray-900"
                       style={{ color: primaryColor }}
                     >
-                      <span>💌</span> A Note from the Founder
+                      A Note from the Founder
                     </h3>
                     <p
                       className="text-sm leading-snug text-center text-gray-700"
@@ -153,7 +154,7 @@ export default function WelcomeHomeOverlay({
                     className="text-sm font-bold mb-2 text-center flex items-center justify-center gap-2 text-gray-900"
                     style={{ color: secondaryColor }}
                   >
-                    <span>✨</span> Your First Steps
+                    First steps
                   </h3>
 
                   <div className="grid grid-cols-2 gap-2">
@@ -167,8 +168,8 @@ export default function WelcomeHomeOverlay({
                       }}
                       onClick={handleClose}
                     >
-                      <span className="text-lg">📝</span>
-                      <div className="text-sm font-medium text-gray-900">Make Your First Post</div>
+                      <PixelIcon name="edit" size={18} />
+                      <div className="text-sm font-medium text-gray-900">Write a first post</div>
                     </Link>
 
                     <Link
@@ -181,8 +182,8 @@ export default function WelcomeHomeOverlay({
                       }}
                       onClick={handleClose}
                     >
-                      <span className="text-lg">🏘️</span>
-                      <div className="text-sm font-medium text-gray-900">Explore Homes</div>
+                      <PixelIcon name="buildings" size={18} />
+                      <div className="text-sm font-medium text-gray-900">Walk the neighborhood</div>
                     </Link>
 
                     <Link
@@ -195,7 +196,7 @@ export default function WelcomeHomeOverlay({
                       }}
                       onClick={handleClose}
                     >
-                      <span className="text-lg">💍</span>
+                      <PixelIcon name="link" size={18} />
                       <div className="text-sm font-medium text-gray-900">Join a ThreadRing</div>
                     </Link>
 
@@ -209,8 +210,8 @@ export default function WelcomeHomeOverlay({
                       }}
                       onClick={handleClose}
                     >
-                      <span className="text-lg">🎨</span>
-                      <div className="text-sm font-medium text-gray-900">Customize Home</div>
+                      <PixelIcon name="paint-bucket" size={18} />
+                      <div className="text-sm font-medium text-gray-900">Decorate your house</div>
                     </Link>
                   </div>
                 </div>
@@ -225,7 +226,6 @@ export default function WelcomeHomeOverlay({
                 }}
               >
                 <div className="flex items-center gap-1">
-                  <span className="text-sm">🎓</span>
                   <span
                     className="text-sm font-semibold text-gray-900"
                     style={{ color: primaryColor }}
@@ -242,7 +242,7 @@ export default function WelcomeHomeOverlay({
                     border: 'none'
                   }}
                 >
-                  Start Tutorial
+                  Start the tour
                 </button>
                 <button
                   onClick={() => window.location.href = '/threadrings'}
@@ -259,9 +259,6 @@ export default function WelcomeHomeOverlay({
             </div>
             
             {/* Sparkle effects around the text */}
-            <div className="absolute -top-2 -right-2 text-lg animate-bounce">✨</div>
-            <div className="absolute -bottom-1 -left-2 text-base animate-pulse">🏡</div>
-            <div className="absolute top-1/2 -right-4 text-sm animate-ping">🌟</div>
             <div className="absolute bottom-1/4 -left-4 text-xs animate-bounce" style={{ animationDelay: '0.5s' }}>✦</div>
             
             {/* Floating theme-colored particles */}

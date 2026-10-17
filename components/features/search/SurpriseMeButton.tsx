@@ -4,6 +4,7 @@
  */
 
 import { useState } from 'react';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface SurpriseMeButtonProps {
   className?: string;
@@ -46,9 +47,6 @@ export default function SurpriseMeButton({
     }
   };
 
-  // Fixed button text
-  const buttonText = '🎲 Surprise Me!';
-
   return (
     <div className={`inline-block ${className}`}>
       <button
@@ -71,11 +69,14 @@ export default function SurpriseMeButton({
         <span className="flex items-center gap-2">
           {isLoading ? (
             <>
-              <span className="animate-spin">🎲</span>
+              <span className="animate-spin inline-flex"><PixelIcon name="dice" size={16} /></span>
               <span>Finding something cool...</span>
             </>
           ) : (
-            buttonText
+            <>
+              <PixelIcon name="dice" size={16} />
+              <span>Surprise me</span>
+            </>
           )}
         </span>
       </button>
@@ -205,7 +206,10 @@ export function SurpriseMeButtonCompact({
       `}
       title={getTooltip()}
     >
-      {isLoading ? '🎲' : '✨'} Surprise!
+      <span className="inline-flex items-center gap-1">
+        <span className={isLoading ? 'animate-spin inline-flex' : 'inline-flex'}><PixelIcon name="dice" size={14} /></span>
+        Surprise me
+      </span>
     </button>
   );
 }

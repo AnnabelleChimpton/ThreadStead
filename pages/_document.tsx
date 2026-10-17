@@ -14,7 +14,7 @@ export default function Document() {
         <meta property="og:image" content="/og-image.png?v=2" />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
-        <meta property="og:image:alt" content="HomePageAgain - The homepage of the internet is officially back. Your page, your way." />
+        <meta property="og:image:alt" content="HomePageAgain: The internet doesn't have to suck. A pixel-art house with a pink roof and door." />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:image" content="/og-image.png?v=2" />
       </Head>

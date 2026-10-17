@@ -93,7 +93,7 @@ export default function NeighborhoodMapView({
         {/* Map header */}
         <div className="p-6 border-b border-thread-sage">
           <h3 className="text-lg font-headline font-medium text-thread-pine mb-2">
-            🗺️ Neighborhood Map
+            Neighborhood Map
           </h3>
           <p className="text-sm text-thread-sage">
             Bird&apos;s eye view • Click any house to visit • Scroll to explore

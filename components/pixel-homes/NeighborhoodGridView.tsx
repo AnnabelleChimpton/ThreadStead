@@ -174,7 +174,7 @@ export default function NeighborhoodGridView({ members, ringSlug }: Neighborhood
                 {/* Decoration indicator */}
                 {(member.homeConfig.decorationCount || 0) > 0 && (
                   <div className="absolute top-2 right-8">
-                    <div className="text-sm" title={`${member.homeConfig.decorationCount} decorations`}>🌻</div>
+                    <div className="text-sm" title={`${member.homeConfig.decorationCount} decorations`} aria-label={`${member.homeConfig.decorationCount} decorations`}>✦</div>
                   </div>
                 )}
                 

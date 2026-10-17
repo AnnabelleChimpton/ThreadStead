@@ -37,7 +37,6 @@ export default function PromptItem({ post }: PromptItemProps) {
       {/* Prompt Header */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
-          <span className="text-3xl">💭</span>
           <div>
             <div className="flex items-center gap-2 mb-1">
               <h3 className="font-bold text-lg text-gray-900">ThreadRing Challenge</h3>
@@ -53,7 +52,7 @@ export default function PromptItem({ post }: PromptItemProps) {
               )}
               {post.pinned && (
                 <span className="px-2 py-1 bg-yellow-500 text-white text-xs rounded-full">
-                  📌 Pinned
+                  Pinned
                 </span>
               )}
             </div>
@@ -86,12 +85,12 @@ export default function PromptItem({ post }: PromptItemProps) {
         <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
           {prompt.endsAt && !isExpired && (
             <span className="text-orange-600 font-medium">
-              ⏰ Ends {formatDistanceToNow(new Date(prompt.endsAt), { addSuffix: true })}
+              Ends {formatDistanceToNow(new Date(prompt.endsAt), { addSuffix: true })}
             </span>
           )}
           
           <span className="text-purple-600 font-medium">
-            📝 {prompt.responseCount} {prompt.responseCount === 1 ? 'response' : 'responses'}
+            {prompt.responseCount} {prompt.responseCount === 1 ? 'response' : 'responses'}
           </span>
 
           {prompt.tags && prompt.tags.length > 0 && (
@@ -115,7 +114,7 @@ export default function PromptItem({ post }: PromptItemProps) {
             href={`/tr/${post.ringSlug}/prompts/${prompt.promptId}/responses`}
             className="tr-prompt-host-purple inline-flex items-center px-3 py-2 text-sm bg-white border-2 border-purple-600 font-medium rounded-lg hover:bg-purple-50 transition-colors shadow-sm no-underline hover:no-underline"
           >
-            📝 View Responses
+            View Responses
           </Link>
           
           {isActive && (
@@ -123,7 +122,7 @@ export default function PromptItem({ post }: PromptItemProps) {
               href={`/post/new?promptId=${prompt.promptId}&threadRing=${post.ringSlug}&promptTitle=${encodeURIComponent(prompt.title)}`}
               className="tr-prompt-button-white inline-flex items-center px-3 py-2 text-sm bg-purple-600 font-medium rounded-lg hover:bg-purple-700 transition-colors shadow-sm no-underline hover:no-underline"
             >
-              ✍️ Respond
+              Respond
             </Link>
           )}
         </div>

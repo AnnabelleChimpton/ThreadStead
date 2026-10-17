@@ -245,7 +245,7 @@ export default function ThreadRingsPage({ siteConfig }: ThreadRingsPageProps) {
                   href="/threadrings/genealogy"
                   className="btn btn--secondary border border-thread-sage px-3 py-2 text-sm md:px-4 md:text-base bg-thread-paper hover:bg-thread-cream text-thread-pine rounded-cozy shadow-cozy-sm hover:shadow-cozy transition-all font-medium text-center"
                 >
-                  🌳 Genealogy
+                  Genealogy
                 </Link>
                 <Link
                   href="/tr/spool/fork"

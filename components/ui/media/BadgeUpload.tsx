@@ -166,7 +166,6 @@ export default function BadgeUpload({ onUploadSuccess, disabled = false, ringSlu
           </div>
         ) : (
           <div>
-            <div className="text-4xl mb-2">🎨</div>
             <p className="text-thread-pine font-medium mb-2">
               Drop your badge image here or click to browse
             </p>
@@ -199,13 +198,13 @@ export default function BadgeUpload({ onUploadSuccess, disabled = false, ringSlu
       {/* Error Display */}
       {error && (
         <div className="p-3 bg-red-100 border border-red-300 text-red-800 text-sm">
-          ⚠️ {error}
+          {error}
         </div>
       )}
 
       {/* Info */}
       <div className="bg-blue-50 border border-blue-200 p-4 text-sm">
-        <h5 className="font-bold text-blue-900 mb-2">🎯 Badge Guidelines</h5>
+        <h5 className="font-bold text-blue-900 mb-2">Badge Guidelines</h5>
         <ul className="text-blue-800 space-y-1">
           <li>• <strong>Size</strong>: 88x31 pixels recommended (will be resized if needed)</li>
           <li>• <strong>Format</strong>: PNG recommended for best quality</li>

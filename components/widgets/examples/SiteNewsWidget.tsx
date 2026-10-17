@@ -58,7 +58,7 @@ function SiteNewsWidget({ data, isLoading, error }: WidgetProps & { data?: SiteN
   if (error) {
     return (
       <div className="text-center py-4 text-gray-500">
-        <p className="text-sm">Unable to load site news</p>
+        <p className="text-sm">Couldn&apos;t load news.</p>
       </div>
     );
   }
@@ -66,7 +66,7 @@ function SiteNewsWidget({ data, isLoading, error }: WidgetProps & { data?: SiteN
   if (!data || data.news.length === 0) {
     return (
       <div className="text-center py-4 text-gray-500">
-        <p className="text-sm">No news updates available</p>
+        <p className="text-sm">No news yet.</p>
       </div>
     );
   }
@@ -90,15 +90,15 @@ function SiteNewsWidget({ data, isLoading, error }: WidgetProps & { data?: SiteN
   const getTypeInfo = (type: NewsItem['type']) => {
     switch (type) {
       case 'announcement':
-        return { emoji: '📢', color: 'text-blue-600', bgColor: 'bg-blue-50' };
+        return { color: 'text-blue-600', bgColor: 'bg-blue-50' };
       case 'feature':
-        return { emoji: '✨', color: 'text-purple-600', bgColor: 'bg-purple-50' };
+        return { color: 'text-purple-600', bgColor: 'bg-purple-50' };
       case 'maintenance':
-        return { emoji: '🔧', color: 'text-orange-600', bgColor: 'bg-orange-50' };
+        return { color: 'text-orange-600', bgColor: 'bg-orange-50' };
       case 'community':
-        return { emoji: '🏘️', color: 'text-green-600', bgColor: 'bg-green-50' };
+        return { color: 'text-green-600', bgColor: 'bg-green-50' };
       default:
-        return { emoji: '📰', color: 'text-gray-600', bgColor: 'bg-gray-50' };
+        return { color: 'text-gray-600', bgColor: 'bg-gray-50' };
     }
   };
 
@@ -127,7 +127,6 @@ function SiteNewsWidget({ data, isLoading, error }: WidgetProps & { data?: SiteN
                 {getPriorityIndicator(item.priority)}
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-1">
-                    <span className="text-sm">{typeInfo.emoji}</span>
                     <span className={`text-xs font-medium px-2 py-0.5 sm:px-2.5 rounded ${typeInfo.bgColor} ${typeInfo.color}`}>
                       {item.type}
                     </span>
@@ -187,7 +186,7 @@ export const siteNewsWidget = {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch site news');
+        throw new Error(`Site news request failed: ${response.status}`);
       }
 
       const data = await response.json();
@@ -195,35 +194,7 @@ export const siteNewsWidget = {
 
     } catch (error) {
       console.error('Error fetching site news:', error);
-
-      // Fallback to mock data if API fails
-      const mockNews: NewsItem[] = [
-        {
-          id: '1',
-          title: 'Widget System Launch',
-          summary: 'Customize your homepage with widgets! Choose from weather, friend activity, and community updates.',
-          url: '/news/widget-system-launch',
-          publishedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-          type: 'announcement',
-          priority: 'medium',
-          author: 'Product Team'
-        },
-        {
-          id: '2',
-          title: 'New Pixel Home Templates Available',
-          summary: 'Introducing the Loft and Cabin templates with enhanced customization options.',
-          url: '/news/new-pixel-home-templates',
-          publishedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-          type: 'feature',
-          priority: 'medium',
-          author: 'Threadstead Team'
-        }
-      ];
-
-      return {
-        news: mockNews,
-        hasMore: false
-      };
+      throw new Error("Couldn't load news.");
     }
   }
 };

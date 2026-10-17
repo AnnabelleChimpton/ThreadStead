@@ -128,15 +128,6 @@ export default function ThreadRingBlockManager({ threadRingSlug }: ThreadRingBlo
     }
   }
 
-  const getBlockTypeIcon = (blockType: string) => {
-    switch (blockType) {
-      case 'user': return '👤'
-      case 'instance': return '🌐'
-      case 'actor': return '🔗'
-      default: return '❓'
-    }
-  }
-
   if (loading) {
     return (
       <div className="p-6 border border-gray-200 rounded-lg">
@@ -154,7 +145,7 @@ export default function ThreadRingBlockManager({ threadRingSlug }: ThreadRingBlo
           onClick={() => setShowAddForm(true)}
           className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
         >
-          🚫 Add Block
+          Add Block
         </button>
       </div>
 
@@ -242,7 +233,6 @@ export default function ThreadRingBlockManager({ threadRingSlug }: ThreadRingBlo
       {/* Blocks List */}
       {blocks.length === 0 ? (
         <div className="text-center py-8 text-gray-500">
-          <span className="text-4xl mb-4 block">🛡️</span>
           <p className="text-lg">No blocks yet.</p>
           <p className="text-sm mt-2">Use blocks to prevent spam and keep your community safe.</p>
         </div>
@@ -252,7 +242,6 @@ export default function ThreadRingBlockManager({ threadRingSlug }: ThreadRingBlo
             <div key={block.id} className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-lg">{getBlockTypeIcon(block.blockType)}</span>
                   <span className="font-medium text-gray-900">
                     {formatBlockTarget(block)}
                   </span>

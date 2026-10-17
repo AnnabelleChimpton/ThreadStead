@@ -159,7 +159,6 @@ export default function DecorationSVG({
       return (
         <svg width={16 * scale} height={16 * scale} viewBox="0 0 16 16" className={className} shapeRendering="crispEdges">
           <rect x="2" y="2" width="12" height="12" fill="#A18463" rx="2" />
-          <text x="8" y="11" textAnchor="middle" fontSize="6" fill="white">🏠</text>
         </svg>
       )
   }

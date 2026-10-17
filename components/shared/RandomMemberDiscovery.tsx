@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface RandomMember {
   id: string;
@@ -100,7 +101,7 @@ export default function RandomMemberDiscovery({
               : 'bg-gray-100 hover:bg-gray-200'
           } ${loading ? 'cursor-not-allowed opacity-50' : 'hover:shadow-[3px_3px_0_#000]'}`}
         >
-          {loading && scope === 'ring' ? '🎲' : '👥'} This Ring
+          This Ring
         </button>
         
         {enableLineageDiscovery && (
@@ -113,7 +114,7 @@ export default function RandomMemberDiscovery({
                 : 'bg-gray-100 hover:bg-gray-200'
             } ${loading ? 'cursor-not-allowed opacity-50' : 'hover:shadow-[3px_3px_0_#000]'}`}
           >
-            {loading && scope === 'lineage' ? '🎲' : '🌳'} Family Tree
+            Family Tree
           </button>
         )}
       </div>
@@ -142,7 +143,7 @@ export default function RandomMemberDiscovery({
                 />
               ) : (
                 <div className="w-12 h-12 rounded-full border-2 border-black bg-gray-300 flex items-center justify-center">
-                  <span className="text-xl">👤</span>
+                  <PixelIcon name="user" size={24} className="text-gray-600" />
                 </div>
               )}
             </div>
@@ -217,7 +218,7 @@ export default function RandomMemberDiscovery({
           onClick={() => discoverRandomMember('ring')}
           className="w-full px-4 py-3 bg-blue-100 hover:bg-blue-200 text-thread-pine font-medium border border-black shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all"
         >
-          🎲 Discover Random Member
+          Pick a random member
         </button>
       )}
 
@@ -227,14 +228,14 @@ export default function RandomMemberDiscovery({
           onClick={() => discoverRandomMember(scope)}
           className="w-full px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-thread-sage font-medium border border-black shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all"
         >
-          🎲 Discover Another
+          Pick another
         </button>
       )}
 
       {/* Loading State */}
       {loading && (
         <div className="text-center py-4">
-          <div className="inline-block animate-spin text-2xl">🎲</div>
+          <div className="inline-block animate-spin"><PixelIcon name="dice" size={24} /></div>
           <p className="text-sm text-gray-600 mt-2">Finding a random member...</p>
         </div>
       )}

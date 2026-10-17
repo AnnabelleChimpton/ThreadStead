@@ -220,7 +220,7 @@ describe('NewUserTooltip Component', () => {
       render(<NewUserTooltip feature="creating posts" />);
       
       const button = screen.getByRole('button');
-      expect(button).toHaveAttribute('title', 'Join a few Rings first, then you can use creating posts!');
+      expect(button).toHaveAttribute('title', 'Join a few rings first, then you can use creating posts.');
     });
 
     it('should have correct accessibility attributes', () => {
@@ -255,7 +255,7 @@ describe('NewUserTooltip Component', () => {
     it('should have tooltip element', () => {
       render(<NewUserTooltip />);
       
-      const tooltip = screen.getByText('🌱 Join a few Rings first!');
+      const tooltip = screen.getByText('Join a few rings first.');
       expect(tooltip).toBeInTheDocument();
       expect(tooltip).toHaveClass(
         'absolute',
@@ -301,7 +301,7 @@ describe('NewUserTooltip Component', () => {
       render(<NewUserTooltip feature="" />);
       
       const button = screen.getByRole('button');
-      expect(button).toHaveAttribute('title', 'Join a few Rings first, then you can use !');
+      expect(button).toHaveAttribute('title', 'Join a few rings first, then you can use .');
     });
 
     it('should handle long feature names', () => {
@@ -334,14 +334,14 @@ describe('NewUserTooltip Component', () => {
       
       const button = screen.getByRole('button');
       const title = button.getAttribute('title');
-      expect(title).toContain('Join a few Rings first');
+      expect(title).toContain('Join a few rings first');
       expect(title).toContain('test feature');
     });
 
     it('should have visible tooltip text', () => {
       render(<NewUserTooltip />);
       
-      const tooltipText = screen.getByText('🌱 Join a few Rings first!');
+      const tooltipText = screen.getByText('Join a few rings first.');
       expect(tooltipText).toBeVisible();
     });
 

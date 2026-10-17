@@ -20,8 +20,8 @@ export default function Bio(props: BioProps) {
     ? customClassName.join(' ')
     : customClassName;
 
-  // Get bio from capabilities or use a default
-  const bio = capabilities?.bio || "Welcome to my profile!";
+  const bio = capabilities?.bio;
+  if (!bio) return null;
 
   // Grid-adaptive styling
   const gridAdaptiveClasses = isInGrid ? 'w-full h-full overflow-y-auto' : '';

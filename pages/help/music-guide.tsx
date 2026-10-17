@@ -13,13 +13,13 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
   return (
     <>
       <Head>
-        <title>HomePageAgain — Music Creator&apos;s Guide</title>
-        <meta name="description" content="Complete guide for music creators on HomePageAgain - learn about MIDI support, technical specifications, composition tips, and how to create the perfect background music for your profile." />
+        <title>{`${siteConfig.site_name} — Music Creator's Guide`}</title>
+        <meta name="description" content="Making and uploading MIDI music for your page: what the player supports, file limits, composition tips and licensing." />
         <link rel="canonical" href={`${getSiteBaseUrl()}/help/music-guide`} />
         <meta name="robots" content="index, follow" />
 
-        <meta property="og:title" content="HomePageAgain — Music Creator&apos;s Guide" />
-        <meta property="og:description" content="Complete guide for creating and uploading MIDI music on HomePageAgain" />
+        <meta property="og:title" content={`${siteConfig.site_name} — Music Creator's Guide`} />
+        <meta property="og:description" content="Making and uploading MIDI music for your page: what the player supports, file limits, composition tips and licensing." />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={`${getSiteBaseUrl()}/help/music-guide`} />
       </Head>
@@ -95,7 +95,7 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
                 </ul>
 
                 <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mt-4">
-                  <p className="font-semibold text-blue-900 mb-2">🎵 What is MIDI?</p>
+                  <p className="font-semibold text-blue-900 mb-2">What is MIDI?</p>
                   <p className="text-blue-800">
                     MIDI isn&apos;t audio - it&apos;s digital sheet music! Instead of recording sound waves, MIDI files contain instructions: &quot;play middle C for half a second on a piano sound.&quot; Your browser then generates the actual audio in real-time using our custom synthesizer.
                   </p>
@@ -183,7 +183,7 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
                   </div>
 
                   <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 mt-4">
-                    <p className="font-semibold text-yellow-900 mb-2">💡 Composition Tip</p>
+                    <p className="font-semibold text-yellow-900 mb-2">Composition Tip</p>
                     <p className="text-yellow-800">
                       While all MIDI notes will play, staying within these optimized ranges ensures the best sound quality. Notes outside these ranges use simpler oscillator synthesis.
                     </p>
@@ -319,7 +319,7 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
                   <h3 className="text-xl font-semibold text-gray-900 mb-3">Converting Existing Music to MIDI</h3>
 
                   <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 mb-3">
-                    <p className="font-semibold text-yellow-900 mb-2">⚠️ Important Note About Conversion</p>
+                    <p className="font-semibold text-yellow-900 mb-2">Important Note About Conversion</p>
                     <p className="text-yellow-800">
                       Converting audio (MP3, WAV) to MIDI is challenging and results are often not usable. Audio-to-MIDI tools struggle with polyphonic music (multiple instruments/notes). For best results, create MIDI from scratch or find existing MIDI files.
                     </p>
@@ -378,7 +378,7 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
                   </ul>
 
                   <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mt-4">
-                    <p className="font-semibold text-blue-900 mb-2">💡 Complexity Warning</p>
+                    <p className="font-semibold text-blue-900 mb-2">Complexity Warning</p>
                     <p className="text-blue-800">
                       When you upload a MIDI file, we&apos;ll analyze it and warn you if it exceeds ~2000 notes. High complexity can cause performance issues on slower devices.
                     </p>
@@ -485,7 +485,7 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
                   </ul>
 
                   <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 mt-4">
-                    <p className="font-semibold text-yellow-900 mb-2">📜 Copyright Notice</p>
+                    <p className="font-semibold text-yellow-900 mb-2">Copyright Notice</p>
                     <p className="text-yellow-800">
                       MIDI files can still be subject to copyright if they represent copyrighted musical compositions. Make sure you have the right to use any MIDI files you upload, especially arrangements of popular songs.
                     </p>
@@ -610,7 +610,7 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
                   </ul>
 
                   <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 mt-4">
-                    <p className="font-semibold text-yellow-900 mb-2">⚠️ Licensing Reminder</p>
+                    <p className="font-semibold text-yellow-900 mb-2">Licensing Reminder</p>
                     <p className="text-yellow-800">
                       Free doesn&apos;t always mean copyright-free. Check the license for each MIDI file and give proper attribution when required.
                     </p>
@@ -685,10 +685,10 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
           {/* Call to Action */}
           <div className="mt-12 bg-gradient-to-br from-purple-100 via-pink-100 to-orange-100 border-2 border-black rounded-lg shadow-[3px_3px_0_#000] p-6 sm:p-8 text-center">
             <h2 className="text-2xl sm:text-3xl font-bold text-thread-pine mb-4">
-              Ready to Add Music to Your Profile?
+              Add music to your page
             </h2>
             <p className="text-lg text-gray-700 mb-6">
-              Head to your settings and upload your first MIDI track!
+              Upload a .mid file in Settings.
             </p>
             <Link
               href="/settings"

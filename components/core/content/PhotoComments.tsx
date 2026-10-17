@@ -303,7 +303,6 @@ export default function PhotoComments({ photoId, highlightCommentId }: PhotoComm
         </div>
       ) : (
         <div className="text-center py-8 text-thread-sage">
-          <div className="text-2xl mb-2">💬</div>
           <p className="text-sm">Be the first to comment on this photo!</p>
         </div>
       )}

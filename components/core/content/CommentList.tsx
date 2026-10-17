@@ -379,7 +379,7 @@ export default function CommentList({
                   aria-busy={removing === comment.id}
                   title="Admin: Delete comment"
                 >
-                  {removing === comment.id ? "Deleting…" : "🛡️ Delete"}
+                  {removing === comment.id ? "Deleting…" : "Admin delete"}
                 </button>
               )}
 
@@ -427,7 +427,7 @@ export default function CommentList({
                       aria-busy={removing === comment.id}
                       title="Admin: Delete comment"
                     >
-                      {removing === comment.id ? "Deleting…" : "🛡️ Delete"}
+                      {removing === comment.id ? "Deleting…" : "Admin delete"}
                     </button>
                   )}
 

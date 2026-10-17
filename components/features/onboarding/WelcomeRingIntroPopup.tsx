@@ -20,7 +20,7 @@ export default function WelcomeRingIntroPopup({ onClose, onStartTour }: WelcomeR
             This ring is where every new neighbor starts — a place to try posting and see how rings work.
           </p>
           <div className="bg-blue-50 p-3 sm:p-4 rounded-lg border border-blue-200 text-xs sm:text-sm text-blue-800">
-            <strong>What&apos;s a ThreadRing?</strong> It&apos;s like a themed clubhouse where people with shared interests hang out.
+            <strong>What&apos;s a ThreadRing?</strong> A small group around one topic, with its own feed, members and 88×31 badge.
           </div>
         </div>
       )
@@ -33,74 +33,74 @@ export default function WelcomeRingIntroPopup({ onClose, onStartTour }: WelcomeR
             <div className="text-center">
               <div className="mb-1 sm:mb-2 flex justify-center"><PixelIcon name="link" size={28} /></div>
               <div className="text-xs sm:text-sm font-semibold">Connected</div>
-              <div className="text-xs text-gray-600 hidden sm:block">Like old-school WebRings but alive!</div>
+              <div className="text-xs text-gray-600 hidden sm:block">Like an old webring, with a shared feed</div>
             </div>
             <div className="text-center">
               <div className="mb-1 sm:mb-2 flex justify-center"><PixelIcon name="chart" size={28} /></div>
               <div className="text-xs sm:text-sm font-semibold">Growing</div>
-              <div className="text-xs text-gray-600 hidden sm:block">Communities can branch into new ones</div>
+              <div className="text-xs text-gray-600 hidden sm:block">Any ring can be forked into a new one</div>
             </div>
             <div className="text-center">
               <div className="mb-1 sm:mb-2 flex justify-center"><PixelIcon name="paint-bucket" size={28} /></div>
               <div className="text-xs sm:text-sm font-semibold">Themed</div>
-              <div className="text-xs text-gray-600 hidden sm:block">Each Ring has its own personality</div>
+              <div className="text-xs text-gray-600 hidden sm:block">Each one has a topic and a host</div>
             </div>
           </div>
           <p className="text-sm sm:text-base leading-relaxed mb-4">
-            Imagine if <strong>Discord servers</strong> could have babies with <strong>old-school forums</strong> and grew up in a <strong>cozy neighborhood</strong> where everyone knows each other. That&apos;s ThreadRings!
+            Somewhere between a <strong>Discord</strong> channel and an <strong>old forum</strong>: members post, everyone in the ring sees it in the ring&apos;s feed, and anyone can reply.
           </p>
           <div className="bg-green-50 p-3 rounded-lg border border-green-200 text-xs sm:text-sm text-green-800">
-            <PixelIcon name="lightbulb" size={14} className="inline-block align-middle mr-1" /><strong>Pro tip:</strong> Your posts live on your profile BUT also appear in any Rings you&apos;re part of!
+            <PixelIcon name="lightbulb" size={14} className="inline-block align-middle mr-1" /><strong>Tip:</strong> A post lives on your page, and also shows up in any ring you share it to.
           </div>
         </div>
       )
     },
     {
-      title: "This Ring is Special",
+      title: "About this ring",
       content: (
         <div>
           <div className="flex items-center justify-center mb-4">
             <div className="animate-pulse"><PixelIcon name="trophy" size={40} /></div>
           </div>
           <p className="text-sm sm:text-base leading-relaxed mb-4">
-            The <strong>Welcome Ring</strong> is your training ground! It&apos;s designed to teach you everything you need to know through <strong>gentle, fun activities</strong>.
+            The <strong>Welcome Ring</strong> is a training ground. A short tour at the top of the page walks you through five things:
           </p>
           <div className="space-y-2 sm:space-y-3 mb-4">
             <div className="flex items-center gap-2 sm:gap-3 p-2 bg-yellow-50 rounded-lg border border-yellow-200">
               <div><PixelIcon name="eye" size={18} /></div>
               <div className="text-xs sm:text-sm">
-                <strong>Read posts</strong> to see how conversations work
+                <strong>Read posts</strong> and open the replies
               </div>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 p-2 bg-blue-50 rounded-lg border border-blue-200">
               <div><PixelIcon name="chat" size={18} /></div>
               <div className="text-xs sm:text-sm">
-                <strong>Leave comments</strong> to join the conversation
+                <strong>Leave comments</strong> on the Introduce Yourself post, or anywhere
               </div>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 p-2 bg-purple-50 rounded-lg border border-purple-200">
               <div><PixelIcon name="users" size={18} /></div>
               <div className="text-xs sm:text-sm">
-                <strong>Visit profiles</strong> to discover interesting people
+                <strong>Visit profiles</strong> by clicking a username
               </div>
             </div>
           </div>
           <div className="bg-gradient-to-r from-green-100 to-blue-100 p-3 rounded-lg border-2 border-dashed border-green-400 text-xs sm:text-sm text-green-800">
-            <strong>Your mission:</strong> Complete all the activities to become a ThreadRings graduate!
+            Then browse the other rings. That&apos;s the whole tour.
           </div>
         </div>
       )
     },
     {
-      title: "Ready to get started?",
+      title: "Before you go in",
       content: (
         <div className="text-center">
           <p className="text-base sm:text-lg mb-4 sm:mb-6 leading-relaxed">
-            The Welcome Ring is <strong>full of friendly faces</strong> ready to help you learn. Take it at your own pace — there&apos;s no rush!
+            Everyone here started in this ring too. Take your time — the tour waits for you.
           </p>
           <div className="bg-gradient-to-r from-purple-100 via-blue-100 to-green-100 p-3 sm:p-4 rounded-xl border-2 border-purple-300 mb-4 sm:mb-6">
             <div className="flex flex-col sm:flex-row items-center justify-center gap-2 mb-2">
-              <span className="text-xs sm:text-sm font-bold">Your Progress Will Be Tracked</span>
+              <span className="text-xs sm:text-sm font-bold">Your progress</span>
               <div className="flex gap-1">
                 <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
                 <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
@@ -110,11 +110,11 @@ export default function WelcomeRingIntroPopup({ onClose, onStartTour }: WelcomeR
               </div>
             </div>
             <div className="text-xs text-purple-700">
-              Watch the dots fill up as you complete each activity!
+              One dot fills in for each step you finish.
             </div>
           </div>
           <p className="text-xs sm:text-sm text-gray-600 mb-4">
-            <strong>Bonus:</strong> You&apos;ll get celebrations and encouragement along the way!
+            You can minimize the tour bar any time.
           </p>
         </div>
       )
@@ -224,7 +224,7 @@ export default function WelcomeRingIntroPopup({ onClose, onStartTour }: WelcomeR
                     onClick={handleStartTour}
                     className="bg-green-200 hover:bg-green-300 px-6 py-2 rounded-lg border-2 border-green-500 shadow-[2px_2px_0_#16a34a] font-bold text-green-800 transition-all hover:translate-y-[-1px] hover:shadow-[3px_3px_0_#16a34a] text-sm sm:text-base"
                   >
-                    Let&apos;s Go!
+                    Start the tour
                   </button>
                 </div>
               )}

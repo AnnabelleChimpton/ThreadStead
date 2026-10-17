@@ -230,7 +230,6 @@ export async function sendLoginEmail(email: string, users: EmailLoginUser[], tok
         <h2 style="color: #007cba;">Sign in to ${siteName}</h2>
         <p>We received a request to sign in to your account, but we couldn't find any verified accounts associated with this email address.</p>
         <p>If you believe this is an error, please check that you're using the correct email address and that your email is verified.</p>
-        <p style="color: #666; font-size: 14px;">This email will expire in 15 minutes.</p>
       </body>
       </html>
     `;
@@ -263,7 +262,7 @@ export async function sendLoginEmail(email: string, users: EmailLoginUser[], tok
       <div style="border-top: 1px solid #eee; margin-top: 30px; padding-top: 20px; color: #666; font-size: 14px;">
         <p><strong>Security note:</strong> This link will expire in 15 minutes.</p>
         <p>If you didn't request this login, you can safely ignore this email.</p>
-        <p>Best regards,<br>The ${siteName} Team</p>
+        <p>— ${siteName}</p>
       </div>
     </body>
     </html>
@@ -304,7 +303,7 @@ export async function sendLoginEmail(email: string, users: EmailLoginUser[], tok
       <div style="border-top: 1px solid #eee; margin-top: 30px; padding-top: 20px; color: #666; font-size: 14px;">
         <p><strong>Security note:</strong> This link will expire in 15 minutes.</p>
         <p>If you didn't request this login, you can safely ignore this email.</p>
-        <p>Best regards,<br>The ${siteName} Team</p>
+        <p>— ${siteName}</p>
       </div>
     </body>
     </html>
@@ -359,7 +358,7 @@ export async function sendVerificationEmail(email: string, userName: string, tok
       <div style="border-top: 1px solid #eee; margin-top: 30px; padding-top: 20px; color: #666; font-size: 14px;">
         <p><strong>Security note:</strong> This verification link will expire in 24 hours.</p>
         <p>If you didn't add this email address to your account, you can safely ignore this email.</p>
-        <p>Best regards,<br>The ${siteName} Team</p>
+        <p>— ${siteName}</p>
       </div>
     </body>
     </html>
@@ -413,7 +412,7 @@ export async function sendPasswordResetEmail(email: string, userName: string, to
       <div style="border-top: 1px solid #eee; margin-top: 30px; padding-top: 20px; color: #666; font-size: 14px;">
         <p><strong>Security note:</strong> This link will expire in 1 hour.</p>
         <p>If you didn't request a password reset, you can safely ignore this email.</p>
-        <p>Best regards,<br>The ${siteName} Team</p>
+        <p>— ${siteName}</p>
       </div>
     </body>
     </html>

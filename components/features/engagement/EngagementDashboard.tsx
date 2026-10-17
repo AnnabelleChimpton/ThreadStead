@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { PixelIcon, PixelIconName } from '@/components/ui/PixelIcon';
 
 interface EngagementMetric {
   id: string;
@@ -70,15 +71,6 @@ export default function EngagementDashboard({ className = '' }: EngagementDashbo
     }
   };
 
-  const getDiscoveryMethodIcon = (method: string): string => {
-    switch (method) {
-      case 'user_bookmark': return '👤';
-      case 'manual_submit': return '📝';
-      case 'api_seeding': return '🤖';
-      default: return '🔍';
-    }
-  };
-
   const getDiscoveryMethodLabel = (method: string): string => {
     switch (method) {
       case 'user_bookmark': return 'User Save';
@@ -88,15 +80,15 @@ export default function EngagementDashboard({ className = '' }: EngagementDashbo
     }
   };
 
-  const getSiteTypeIcon = (type?: string): string => {
+  const getSiteTypeIcon = (type?: string): PixelIconName => {
     switch (type) {
-      case 'blog': return '📝';
-      case 'personal': return '👤';
-      case 'portfolio': return '🎨';
-      case 'documentation': return '📚';
-      case 'tool': return '🔧';
-      case 'resource': return '📦';
-      default: return '🌐';
+      case 'blog': return 'article';
+      case 'personal': return 'user';
+      case 'portfolio': return 'image';
+      case 'documentation': return 'file';
+      case 'tool': return 'sliders';
+      case 'resource': return 'archive';
+      default: return 'link';
     }
   };
 
@@ -117,7 +109,7 @@ export default function EngagementDashboard({ className = '' }: EngagementDashbo
     return (
       <div className={`bg-red-50 border border-red-200 rounded-lg p-6 ${className}`}>
         <div className="flex items-center space-x-3">
-          <span className="text-red-500 text-xl">⚠️</span>
+          <span className="text-red-500"><PixelIcon name="warning-box" size={20} /></span>
           <div>
             <h3 className="text-red-900 font-medium">Error Loading Metrics</h3>
             <p className="text-red-700 text-sm">{error}</p>
@@ -171,7 +163,6 @@ export default function EngagementDashboard({ className = '' }: EngagementDashbo
       {/* Metrics */}
       {metrics.length === 0 ? (
         <div className="text-center py-12">
-          <span className="text-4xl mb-3 block">📊</span>
           <h3 className="text-gray-900 font-medium mb-1">No engagement data yet</h3>
           <p className="text-gray-600 text-sm">
             Engagement metrics will appear as users bookmark and visit sites
@@ -189,7 +180,9 @@ export default function EngagementDashboard({ className = '' }: EngagementDashbo
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-lg font-bold text-gray-400">#{index + 1}</span>
-                    <span className="text-lg">{getSiteTypeIcon(site.siteType)}</span>
+                    <span className="text-gray-500 flex-shrink-0" title={site.siteType || 'site'}>
+                      <PixelIcon name={getSiteTypeIcon(site.siteType)} size={16} />
+                    </span>
                     <h3 className="font-medium text-gray-900 truncate">
                       {site.title}
                     </h3>
@@ -243,7 +236,6 @@ export default function EngagementDashboard({ className = '' }: EngagementDashbo
                     engagement score
                   </div>
                   <div className="flex items-center gap-1 text-xs">
-                    <span>{getDiscoveryMethodIcon(site.discoveryMethod)}</span>
                     <span className="text-gray-600">
                       {getDiscoveryMethodLabel(site.discoveryMethod)}
                     </span>
@@ -257,7 +249,7 @@ export default function EngagementDashboard({ className = '' }: EngagementDashbo
 
       {/* Methodology note */}
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm">
-        <h4 className="font-medium text-gray-900 mb-2">📊 How Engagement is Calculated</h4>
+        <h4 className="font-medium text-gray-900 mb-2">How Engagement is Calculated</h4>
         <div className="text-gray-600 space-y-1">
           <div>• <strong>Bookmarks:</strong> 10 points each (shows intent to return)</div>
           <div>• <strong>Visits:</strong> 2 points each (shows actual usage)</div>

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useGlobalAudio } from '@/contexts/GlobalAudioContext';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 type PlayerMode = 'compact' | 'hybrid' | 'full';
 
@@ -2813,8 +2814,7 @@ export default function MidiPlayer({
     return (
       <div className={`bg-white rounded-lg shadow-lg border-2 border-black p-6 ${className}`}>
         <div className="flex items-center justify-center">
-          <span className="animate-spin">⏳</span>
-          <span className="ml-2">Loading MIDI...</span>
+          <span>Loading MIDI...</span>
         </div>
       </div>
     );
@@ -2824,7 +2824,7 @@ export default function MidiPlayer({
     return (
       <div className={`bg-white rounded-lg shadow-lg border-2 border-black p-6 ${className}`}>
         <div className="p-3 bg-red-100 text-red-700 rounded-lg text-sm">
-          ❌ {error}
+          {error}
         </div>
       </div>
     );
@@ -2842,7 +2842,7 @@ export default function MidiPlayer({
             className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center bg-blue-500 hover:bg-blue-600 text-white rounded-full transition-colors flex-shrink-0"
             aria-label={isPlaying ? 'Stop' : 'Play'}
           >
-            {isPlaying ? '⏸' : '▶'}
+            <PixelIcon name={isPlaying ? 'pause' : 'play'} size={16} />
           </button>
           
           <div className="flex-1 min-w-0">
@@ -2863,7 +2863,7 @@ export default function MidiPlayer({
               className="text-gray-600 hover:text-gray-800"
               aria-label="Volume"
             >
-              🔊
+              <PixelIcon name="volume" size={16} />
             </button>
             
             {showVolumeSlider && (
@@ -2891,8 +2891,9 @@ export default function MidiPlayer({
             }}
             className="text-gray-600 hover:text-gray-800 text-sm"
             title="Expand player"
+            aria-label="Expand player"
           >
-            ⬜
+            <PixelIcon name="expand" size={16} />
           </button>
         </div>
       </div>
@@ -2906,14 +2907,15 @@ export default function MidiPlayer({
         sm:right-4 sm:left-auto sm:max-w-[400px]
         max-sm:left-1/2 max-sm:transform max-sm:-translate-x-1/2 max-sm:max-w-[calc(100vw-2rem)] max-sm:w-full max-sm:mx-4`}>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-bold">🎵 {title}</h3>
+          <h3 className="text-sm font-bold">{title}</h3>
           <div className="flex gap-1">
             <button
               onClick={() => setPlayerMode('compact')}
               className="text-gray-600 hover:text-gray-800 text-xs"
               title="Minimize"
+              aria-label="Minimize"
             >
-              ➖
+              <PixelIcon name="minus" size={14} />
             </button>
             <button
               onClick={() => {
@@ -2925,8 +2927,9 @@ export default function MidiPlayer({
               }}
               className="text-gray-600 hover:text-gray-800 text-xs"
               title="Full mode"
+              aria-label="Full mode"
             >
-              ⬜
+              <PixelIcon name="expand" size={14} />
             </button>
           </div>
         </div>
@@ -2941,7 +2944,7 @@ export default function MidiPlayer({
           </button>
           
           {loop && (
-            <span className="text-xs text-gray-600">🔁</span>
+            <span className="text-gray-600" title="Loop on" aria-label="Loop on"><PixelIcon name="repeat" size={14} /></span>
           )}
         </div>
         
@@ -2961,7 +2964,7 @@ export default function MidiPlayer({
         )}
         
         <div className="flex items-center gap-2 sm:gap-3">
-          <span className="text-sm flex-shrink-0">🔊</span>
+          <span className="flex-shrink-0 text-gray-600"><PixelIcon name="volume" size={16} /></span>
           <input
             type="range"
             min="0"
@@ -2985,8 +2988,9 @@ export default function MidiPlayer({
               }}
               className="px-2 py-1 bg-purple-500 hover:bg-purple-600 text-white text-sm rounded transition-colors flex-shrink-0"
               title="Toggle retro visualizer"
+              aria-label="Toggle retro visualizer"
             >
-              📺
+              <PixelIcon name="chart" size={14} />
             </button>
             <button
               onClick={() => togglePianoSustain(!pianoSustainRef.current.enabled)}
@@ -2996,8 +3000,10 @@ export default function MidiPlayer({
                   : 'bg-gray-300 hover:bg-gray-400 text-gray-700'
               }`}
               title="Piano sustain pedal"
+              aria-label="Piano sustain pedal"
+              aria-pressed={pianoSustainRef.current.enabled}
             >
-              🎹
+              <PixelIcon name="music" size={14} />
             </button>
           </div>
         </div>
@@ -3128,13 +3134,14 @@ export default function MidiPlayer({
   return (
     <div className={`bg-white rounded-lg shadow-lg border-2 border-black p-4 sm:p-6 ${className}`}>
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-base sm:text-lg font-bold truncate flex-1">🎵 {title}</h3>
+        <h3 className="text-base sm:text-lg font-bold truncate flex-1">{title}</h3>
         <button
           onClick={() => setPlayerMode('compact')}
           className="text-gray-600 hover:text-gray-800 text-sm flex-shrink-0 ml-2"
           title="Minimize to compact mode"
+          aria-label="Minimize to compact mode"
         >
-          ➖
+          <PixelIcon name="minus" size={16} />
         </button>
       </div>
       
@@ -3148,7 +3155,7 @@ export default function MidiPlayer({
           </button>
           
           {loop && (
-            <span className="text-sm text-gray-600">🔁 Loop enabled</span>
+            <span className="text-sm text-gray-600">Loop enabled</span>
           )}
         </div>
         
@@ -3168,7 +3175,7 @@ export default function MidiPlayer({
         )}
         
         <div className="flex items-center gap-2 sm:gap-3">
-          <span className="text-sm flex-shrink-0">🔊</span>
+          <span className="flex-shrink-0 text-gray-600"><PixelIcon name="volume" size={16} /></span>
           <input
             type="range"
             min="0"
@@ -3192,8 +3199,9 @@ export default function MidiPlayer({
               }}
               className="px-2 py-1 bg-purple-500 hover:bg-purple-600 text-white text-sm rounded transition-colors flex-shrink-0"
               title="Toggle retro visualizer"
+              aria-label="Toggle retro visualizer"
             >
-              📺
+              <PixelIcon name="chart" size={14} />
             </button>
             <button
               onClick={() => togglePianoSustain(!pianoSustainRef.current.enabled)}
@@ -3203,8 +3211,10 @@ export default function MidiPlayer({
                   : 'bg-gray-300 hover:bg-gray-400 text-gray-700'
               }`}
               title="Piano sustain pedal"
+              aria-label="Piano sustain pedal"
+              aria-pressed={pianoSustainRef.current.enabled}
             >
-              🎹
+              <PixelIcon name="music" size={14} />
             </button>
           </div>
         </div>

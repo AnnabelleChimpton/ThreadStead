@@ -30,6 +30,7 @@ export default function MidiManager({ username }: MidiManagerProps) {
   const [midiFiles, setMidiFiles] = useState<MidiFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [selectedMidi, setSelectedMidi] = useState<string | null>(null);
   const [autoplayEnabled, setAutoplayEnabled] = useState(false);
   const [loopEnabled, setLoopEnabled] = useState(false);
@@ -139,7 +140,7 @@ export default function MidiManager({ username }: MidiManagerProps) {
 
       if (response.ok) {
         setSelectedMidi(id);
-        alert('Profile MIDI updated successfully!');
+        alert('Profile music updated.');
       } else {
         setError('Failed to update profile MIDI');
       }
@@ -170,8 +171,8 @@ export default function MidiManager({ username }: MidiManagerProps) {
 
       if (response.ok) {
         // Show a brief success message
-        setError('Settings saved successfully!');
-        setTimeout(() => setError(null), 2000);
+        setSuccess('Settings saved.');
+        setTimeout(() => setSuccess(null), 2000);
       } else {
         setError('Failed to save settings');
       }
@@ -484,6 +485,12 @@ export default function MidiManager({ username }: MidiManagerProps) {
       {error && (
         <div className="p-3 bg-red-100 text-red-700 border border-red-300 rounded text-sm">
           {error}
+        </div>
+      )}
+
+      {success && (
+        <div className="p-3 bg-green-50 text-green-700 border border-green-200 rounded text-sm">
+          {success}
         </div>
       )}
 

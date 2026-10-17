@@ -84,7 +84,6 @@ export default function UserBadgesPage({
           <div className="p-6">
             {hubUnavailable ? (
               <div className="text-center py-12">
-                <div className="text-6xl mb-4">⚠️</div>
                 <h2 className="text-xl font-semibold text-gray-800 mb-2">Badges temporarily unavailable</h2>
                 <p className="text-gray-600">
                   We couldn&apos;t reach the badge service right now. Please try again in a moment.
@@ -92,7 +91,6 @@ export default function UserBadgesPage({
               </div>
             ) : badges.length === 0 ? (
               <div className="text-center py-12">
-                <div className="text-6xl mb-4">🏷️</div>
                 <h2 className="text-xl font-semibold text-gray-800 mb-2">No badges to display</h2>
                 <p className="text-gray-600">
                   {username} hasn&apos;t selected any badges to display publicly, or they&apos;re not a member of any ThreadRings with badges yet.

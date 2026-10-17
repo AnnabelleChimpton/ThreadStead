@@ -66,7 +66,7 @@ export default function VisitorTrail({ username, className = '' }: VisitorTrailP
       <div className="flex flex-col items-end space-y-2">
         {/* Visitors Label */}
         <div className="text-xs text-thread-sage bg-thread-paper bg-opacity-95 px-3 py-1.5 rounded-lg shadow-md border border-thread-sage border-opacity-20">
-          👥 Recent visitors
+          Recent visitors
         </div>
 
         {/* Visitor Avatars */}

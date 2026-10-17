@@ -621,7 +621,7 @@ export default function NeighborhoodStreetView({
                         {/* Decoration indicator - only show if there are decorations not visible in street view */}
                         {(member.homeConfig.decorationCount || 0) > visibleDecorations.length && (
                           <div className="absolute top-2 right-2 z-20">
-                            <div className="text-lg" title={`${member.homeConfig.decorationCount} total decorations`}>🌻</div>
+                            <div className="text-lg" title={`${member.homeConfig.decorationCount} total decorations`} aria-label={`${member.homeConfig.decorationCount} total decorations`}>✦</div>
                           </div>
                         )}
                       </div>

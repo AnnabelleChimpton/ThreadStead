@@ -80,7 +80,7 @@ export default function ProfileHeader({
               title="View Pixel Home"
               onClick={() => trackNavigation('profile', 'pixel_home', username)}
             >
-              🏠 Pixel Home
+              Pixel Home
             </Link>
             {relStatus === "owner" && (
               <Link

@@ -5,6 +5,7 @@ import ImprovedBadgeDisplay from "./ImprovedBadgeDisplay";
 import { CommentMarkupWithEmojis } from "@/lib/comment-markup";
 import UserMention from "@/components/ui/navigation/UserMention";
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 type Entry = {
   id: string;
@@ -277,8 +278,9 @@ export default function Guestbook({ username, bio }: { username: string; bio?: s
                         disabled={deletingId === e.id}
                         className="px-2 py-1 text-xs border border-red-600/60 bg-red-200/50 hover:bg-red-200/80 text-red-700 rounded shadow-sm disabled:opacity-50 transition-all"
                         title="Admin: Delete this entry"
+                        aria-label="Admin: Delete this entry"
                       >
-                        {deletingId === e.id ? "..." : "🛡️×"}
+                        {deletingId === e.id ? "..." : <><PixelIcon name="shield" size={12} className="inline-block align-middle" />×</>}
                       </button>
                     )}
                   </div>

@@ -188,7 +188,7 @@ describe('Welcome Ring Integration Flow', () => {
       
       // Should show step 1 (Join the Welcome Ring)
       expect(screen.getByText('Join the Welcome Ring')).toBeInTheDocument();
-      expect(screen.getByText('Click "Join Ring" to become a member and get started!')).toBeInTheDocument();
+      expect(screen.getByText('Click "Join Ring" at the top of this page.')).toBeInTheDocument();
       
       // Should show progress dots (5 total)
       const progressDots = document.querySelectorAll('.w-3.h-3.rounded-full');
@@ -245,28 +245,28 @@ describe('Welcome Ring Integration Flow', () => {
       await notifyProgressUpdate();
 
       // Should now show step 2
-      expect(screen.getByText('Check out the discussion')).toBeInTheDocument();
+      expect(screen.getByText('Open a thread')).toBeInTheDocument();
 
       // Step 2: Read first post (click comments)
       currentProgress = { ...currentProgress, readFirstPost: true };
       await notifyProgressUpdate();
 
       // Should now show step 3
-      expect(screen.getByText('Join the conversation')).toBeInTheDocument();
+      expect(screen.getByText('Leave a comment')).toBeInTheDocument();
 
       // Step 3: Leave first comment
       currentProgress = { ...currentProgress, leftFirstComment: true };
       await notifyProgressUpdate();
 
       // Should now show step 4
-      expect(screen.getByText('Visit a member profile')).toBeInTheDocument();
+      expect(screen.getByText("Visit someone's page")).toBeInTheDocument();
 
       // Step 4: Visit profile
       currentProgress = { ...currentProgress, visitedProfile: true };
       await notifyProgressUpdate();
 
       // Should now show step 5
-      expect(screen.getByText('Discover more Rings')).toBeInTheDocument();
+      expect(screen.getByText('Browse the rings')).toBeInTheDocument();
       expect(screen.getByText('Browse Rings')).toBeInTheDocument();
 
       // Step 5: Browse rings (auto-completes)
@@ -278,8 +278,8 @@ describe('Welcome Ring Integration Flow', () => {
       await notifyProgressUpdate();
 
       // Should show completion state (PixelIcon trophy replaced the 🎓 emoji)
-      expect(screen.getByText('Welcome Ring Graduate!')).toBeInTheDocument();
-      expect(screen.getByText("You've completed the welcome tour!")).toBeInTheDocument();
+      expect(screen.getByText('Welcome Ring graduate')).toBeInTheDocument();
+      expect(screen.getByText("You finished the tour.")).toBeInTheDocument();
     });
   });
 
@@ -380,7 +380,7 @@ describe('Welcome Ring Integration Flow', () => {
       
       // Should update to next step
       await waitFor(() => {
-        expect(screen.getByText('Check out the discussion')).toBeInTheDocument();
+        expect(screen.getByText('Open a thread')).toBeInTheDocument();
       });
     });
 
@@ -398,7 +398,7 @@ describe('Welcome Ring Integration Flow', () => {
       const { rerender } = render(<WelcomeRingPageSimulation />);
       
       // Should be on step 4
-      expect(screen.getByText('Visit a member profile')).toBeInTheDocument();
+      expect(screen.getByText("Visit someone's page")).toBeInTheDocument();
       
       // Simulate progress reset
       mockGetWelcomeProgress.mockReturnValue({
@@ -437,8 +437,8 @@ describe('Welcome Ring Integration Flow', () => {
       render(<WelcomeRingPageSimulation />);
 
       // The badge now renders a PixelIcon trophy instead of the 🎓 emoji
-      expect(screen.getByText('Welcome Ring Graduate!')).toBeInTheDocument();
-      expect(screen.getByText("You've completed the welcome tour!")).toBeInTheDocument();
+      expect(screen.getByText('Welcome Ring graduate')).toBeInTheDocument();
+      expect(screen.getByText("You finished the tour.")).toBeInTheDocument();
     });
 
     it('should not show guide for non-welcome rings', async () => {

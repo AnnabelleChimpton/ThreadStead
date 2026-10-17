@@ -24,12 +24,12 @@ describe('ProfileHero Component', () => {
       expect(screen.getByText('John Doe')).toBeInTheDocument();
     });
 
-    it('should render welcome message', () => {
-      renderWithTemplateContext(
+    it('should render only the name, with no tagline', () => {
+      const { container } = renderWithTemplateContext(
         <ProfileHero />
       );
-      
-      expect(screen.getByText('Welcome to my corner of the internet')).toBeInTheDocument();
+
+      expect(container.querySelector('.ts-profile-hero p')).toBeNull();
     });
 
     it('should have proper heading structure', () => {
@@ -99,7 +99,6 @@ describe('ProfileHero Component', () => {
       // Should not crash and maintain basic structure
       const hero = container.querySelector('.ts-profile-hero');
       expect(hero).toBeInTheDocument();
-      expect(screen.getByText('Welcome to my corner of the internet')).toBeInTheDocument();
     });
   });
 
@@ -174,15 +173,6 @@ describe('ProfileHero Component', () => {
       expect(heading).toHaveClass('text-4xl', 'font-bold', 'text-thread-pine', 'mb-2');
     });
 
-    it('should apply correct paragraph styles', () => {
-      const { container } = renderWithTemplateContext(
-        <ProfileHero />
-      );
-      
-      const paragraph = container.querySelector('p');
-      expect(paragraph).toHaveClass('text-thread-charcoal', 'opacity-80');
-    });
-
     it('should maintain text center alignment', () => {
       const { container } = renderWithTemplateContext(
         <ProfileHero />
@@ -201,10 +191,8 @@ describe('ProfileHero Component', () => {
         );
         
         const heading = container.querySelector('h1');
-        const paragraph = container.querySelector('p');
-        
+
         expect(heading).toHaveClass('text-4xl', 'font-bold', 'text-thread-pine');
-        expect(paragraph).toHaveClass('text-thread-charcoal', 'opacity-80');
       });
     });
   });
@@ -217,7 +205,6 @@ describe('ProfileHero Component', () => {
       );
       
       expect(screen.getByText('Creative User')).toBeInTheDocument();
-      expect(screen.getByText('Welcome to my corner of the internet')).toBeInTheDocument();
     });
 
     it('should work with plain variant and long name', () => {
@@ -293,10 +280,8 @@ describe('ProfileHero Component', () => {
       );
       
       const heading = screen.getByRole('heading');
-      const paragraph = screen.getByText('Welcome to my corner of the internet');
-      
+
       expect(heading).toHaveClass('text-thread-pine');
-      expect(paragraph).toHaveClass('text-thread-charcoal');
     });
 
     it('should maintain text readability with tape variant', () => {
@@ -306,7 +291,6 @@ describe('ProfileHero Component', () => {
       );
       
       expect(screen.getByText('Accessible Name')).toBeInTheDocument();
-      expect(screen.getByText('Welcome to my corner of the internet')).toBeInTheDocument();
     });
   });
 
@@ -318,7 +302,7 @@ describe('ProfileHero Component', () => {
       );
       
       // Should not crash
-      expect(screen.getByText('Welcome to my corner of the internet')).toBeInTheDocument();
+      expect(screen.getByRole('heading')).toBeInTheDocument();
     });
 
     it('should handle undefined owner data', () => {
@@ -328,7 +312,7 @@ describe('ProfileHero Component', () => {
       );
       
       // Should not crash
-      expect(screen.getByText('Welcome to my corner of the internet')).toBeInTheDocument();
+      expect(screen.getByRole('heading')).toBeInTheDocument();
     });
 
     it('should handle displayName with only spaces', () => {
@@ -370,13 +354,13 @@ describe('ProfileHero Component', () => {
         <ProfileHero variant="plain" />
       );
       
-      expect(screen.getByText('Welcome to my corner of the internet')).toBeInTheDocument();
+      expect(screen.getByRole('heading')).toBeInTheDocument();
       
       rerender(<ProfileHero variant="tape" />);
-      expect(screen.getByText('Welcome to my corner of the internet')).toBeInTheDocument();
+      expect(screen.getByRole('heading')).toBeInTheDocument();
       
       rerender(<ProfileHero variant="plain" />);
-      expect(screen.getByText('Welcome to my corner of the internet')).toBeInTheDocument();
+      expect(screen.getByRole('heading')).toBeInTheDocument();
     });
   });
 });

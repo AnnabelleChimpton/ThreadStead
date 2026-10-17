@@ -93,7 +93,6 @@ export default function ThreadRingActivePrompt({
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center gap-3">
-          <span className="tr-prompt-icon text-2xl">💭</span>
           <div>
             <h3 className="tr-prompt-type text-lg font-bold text-gray-900">
               {activePrompt.isActive ? 'Current Challenge' : 'Featured Prompt'}
@@ -117,7 +116,7 @@ export default function ThreadRingActivePrompt({
         {/* Expand/Collapse Icon */}
         <div className="flex items-center gap-2">
           <span className="text-purple-600 text-sm font-medium">
-            📝 {activePrompt.responseCount} {activePrompt.responseCount === 1 ? 'response' : 'responses'}
+            {activePrompt.responseCount} {activePrompt.responseCount === 1 ? 'response' : 'responses'}
           </span>
           <span className={`text-gray-400 text-lg transition-transform duration-200 ${
             isExpanded ? 'rotate-180' : ''
@@ -141,7 +140,7 @@ export default function ThreadRingActivePrompt({
             
             {activePrompt.endsAt && !isExpired && (
               <span className="text-orange-600 font-medium">
-                ⏰ Ends {formatDistanceToNow(new Date(activePrompt.endsAt), { addSuffix: true })}
+                Ends {formatDistanceToNow(new Date(activePrompt.endsAt), { addSuffix: true })}
               </span>
             )}
             
@@ -149,7 +148,7 @@ export default function ThreadRingActivePrompt({
               href={`/threadrings/${threadRingSlug}/prompts/${activePrompt.id}/responses`}
               className="tr-prompt-link-purple font-medium hover:text-purple-800 hover:underline"
             >
-              📝 {activePrompt.responseCount} {activePrompt.responseCount === 1 ? 'response' : 'responses'}
+              {activePrompt.responseCount} {activePrompt.responseCount === 1 ? 'response' : 'responses'}
             </Link>
           </div>
           
@@ -160,7 +159,6 @@ export default function ThreadRingActivePrompt({
                   href={`/post/new?promptId=${activePrompt.id}&threadRing=${threadRingSlug}&promptTitle=${encodeURIComponent(activePrompt.title)}`}
                   className="tr-prompt-button-white inline-flex items-center px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors no-underline hover:no-underline"
                 >
-                  <span className="mr-2">✍️</span>
                   Respond to Challenge
                 </Link>
               )}

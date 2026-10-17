@@ -7,6 +7,7 @@ import Head from "next/head";
 
 import Layout from "@/components/ui/layout/Layout";
 import RetroCard from "@/components/ui/layout/RetroCard";
+import { PixelIcon } from "@/components/ui/PixelIcon";
 import Guestbook from "@/components/shared/Guestbook";
 import Tabs, { TabSpec } from "@/components/ui/navigation/Tabs";
 import { Website } from "@/components/shared/WebsiteManager";
@@ -374,7 +375,7 @@ export default function ProfilePage({
                   className="w-10 h-10 flex items-center justify-center bg-gray-500 hover:bg-gray-600 text-white rounded-full transition-colors"
                   aria-label={isMuted ? 'Unmute Music' : 'Mute Music'}
                 >
-                  {isMuted ? '🔇' : '🔊'}
+                  <PixelIcon name={isMuted ? 'volume-x' : 'volume'} size={20} />
                 </button>
                 <div className="flex-1">
                   <div className="text-sm font-medium">Welcome Music</div>

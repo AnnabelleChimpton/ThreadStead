@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react'
 import Modal from '../ui/feedback/Modal'
-import { PixelIcon } from '@/components/ui/PixelIcon'
 
 interface ThreadRingLineage {
   id: string
@@ -39,7 +38,7 @@ const generateASCIITree = (rings: ThreadRingLineage[]): string => {
     return new Date(a.joinedAt).getTime() - new Date(b.joinedAt).getTime()
   })
 
-  let ascii = '🌳 ThreadRing Lineage Tree\n\n'
+  let ascii = 'ThreadRing Lineage Tree\n\n'
   
   // Group by depth
   const ringsByDepth: { [depth: number]: ThreadRingLineage[] } = {}
@@ -56,21 +55,21 @@ const generateASCIITree = (rings: ThreadRingLineage[]): string => {
     const ringsAtDepth = ringsByDepth[depth]
     
     if (depth === 0) {
-      ascii += '🌱 Root Rings:\n'
+      ascii += 'Root Rings:\n'
     } else {
-      ascii += `${'  '.repeat(depth)}🌿 Generation ${depth}:\n`
+      ascii += `${'  '.repeat(depth)}Generation ${depth}:\n`
     }
     
     ringsAtDepth.forEach((ring, ringIndex) => {
       const indent = '  '.repeat(depth + 1)
       const connector = ringIndex === ringsAtDepth.length - 1 ? '└─' : '├─'
-      const roleIcon = ring.role === 'curator' ? '👑' : ring.role === 'moderator' ? '🛡️' : '👤'
+      const roleLabel = ring.role === 'curator' ? ' (curator)' : ring.role === 'moderator' ? ' (moderator)' : ''
       
-      ascii += `${indent}${connector} ${roleIcon} ${ring.name}\n`
+      ascii += `${indent}${connector} ${ring.name}${roleLabel}\n`
       ascii += `${indent}${ringIndex === ringsAtDepth.length - 1 ? '   ' : '│  '}   /tr/${ring.slug}\n`
       
       const joinDate = new Date(ring.joinedAt).toLocaleDateString()
-      ascii += `${indent}${ringIndex === ringsAtDepth.length - 1 ? '   ' : '│  '}   📅 Joined ${joinDate}\n`
+      ascii += `${indent}${ringIndex === ringsAtDepth.length - 1 ? '   ' : '│  '}   Joined ${joinDate}\n`
       
       if (ringIndex < ringsAtDepth.length - 1) {
         ascii += `${indent}│\n`
@@ -83,9 +82,9 @@ const generateASCIITree = (rings: ThreadRingLineage[]): string => {
   })
 
   ascii += '\n═══════════════════════════════════\n'
-  ascii += `📊 Total Rings: ${rings.length}\n`
-  ascii += `🏆 Leadership Roles: ${rings.filter(r => r.role !== 'member').length}\n`
-  ascii += `🌍 Max Depth: ${Math.max(...rings.map(r => r.lineageDepth))}\n`
+  ascii += `Total Rings: ${rings.length}\n`
+  ascii += `Leadership Roles: ${rings.filter(r => r.role !== 'member').length}\n`
+  ascii += `Max Depth: ${Math.max(...rings.map(r => r.lineageDepth))}\n`
 
   return ascii
 }
@@ -151,22 +150,6 @@ export default function ThreadbookModal({ isOpen, onClose, username }: Threadboo
             <div className="bg-thread-paper border border-thread-sage rounded-lg p-4 font-mono text-sm leading-relaxed whitespace-pre-wrap overflow-x-auto">
               {asciiTree}
             </div>
-            
-            {lineage.length > 0 && (
-              <div className="text-xs text-thread-sage space-y-1">
-                <div><strong>Legend:</strong></div>
-                <div className="flex items-center gap-3 flex-wrap">
-                  <span className="flex items-center gap-1"><PixelIcon name="trophy" size={12} /> Curator</span>
-                  <span className="flex items-center gap-1"><PixelIcon name="shield" size={12} /> Moderator</span>
-                  <span className="flex items-center gap-1"><PixelIcon name="user" size={12} /> Member</span>
-                </div>
-                <div className="flex items-center gap-3 flex-wrap">
-                  <span className="flex items-center gap-1"><PixelIcon name="drop" size={12} /> Root ring</span>
-                  <span className="flex items-center gap-1"><PixelIcon name="drop" size={12} /> Child ring</span>
-                  <span className="flex items-center gap-1"><PixelIcon name="clock" size={12} /> Join date</span>
-                </div>
-              </div>
-            )}
           </div>
         )}
 

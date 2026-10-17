@@ -71,22 +71,22 @@ const NeighborhoodFilterSheet: React.FC<NeighborhoodFilterSheetProps> = ({
 
   // Template display names
   const templateNames: Record<string, string> = {
-    'cozy-cottage': '🏡 Cottage',
-    'modern-minimalist': '🏠 Modern',
-    'victorian-manor': '🏛️ Victorian',
-    'cabin-retreat': '🛖 Cabin',
-    'beach-house': '🏖️ Beach',
-    'treehouse': '🌳 Treehouse',
+    'cozy-cottage': 'Cottage',
+    'modern-minimalist': 'Modern',
+    'victorian-manor': 'Victorian',
+    'cabin-retreat': 'Cabin',
+    'beach-house': 'Beach',
+    'treehouse': 'Treehouse',
   };
 
   // Palette display names and colors
   const paletteInfo: Record<string, { name: string; colors: string[] }> = {
-    'warm-autumn': { name: '🍂 Autumn', colors: ['#D97543', '#C85A3A', '#8B4513'] },
-    'cool-winter': { name: '❄️ Winter', colors: ['#5B9BD5', '#7CB9E8', '#4682B4'] },
-    'fresh-spring': { name: '🌸 Spring', colors: ['#90EE90', '#98D8C8', '#77DD77'] },
-    'bright-summer': { name: '☀️ Summer', colors: ['#FFD700', '#FFA500', '#FF6347'] },
-    'pastel-dream': { name: '🌈 Pastel', colors: ['#FFB3BA', '#BAFFC9', '#BAE1FF'] },
-    'earth-tones': { name: '🌍 Earth', colors: ['#8B7355', '#A0826D', '#C4A57B'] },
+    'warm-autumn': { name: 'Autumn', colors: ['#D97543', '#C85A3A', '#8B4513'] },
+    'cool-winter': { name: 'Winter', colors: ['#5B9BD5', '#7CB9E8', '#4682B4'] },
+    'fresh-spring': { name: 'Spring', colors: ['#90EE90', '#98D8C8', '#77DD77'] },
+    'bright-summer': { name: 'Summer', colors: ['#FFD700', '#FFA500', '#FF6347'] },
+    'pastel-dream': { name: 'Pastel', colors: ['#FFB3BA', '#BAFFC9', '#BAE1FF'] },
+    'earth-tones': { name: 'Earth', colors: ['#8B7355', '#A0826D', '#C4A57B'] },
   };
 
   return (

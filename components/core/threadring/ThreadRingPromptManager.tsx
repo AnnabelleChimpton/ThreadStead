@@ -279,7 +279,7 @@ export default function ThreadRingPromptManager({
                     )}
                     {prompt.isPinned && (
                       <span className="px-2 py-1 bg-yellow-500 text-white text-xs rounded-full">
-                        📌 Pinned
+                        Pinned
                       </span>
                     )}
                   </div>

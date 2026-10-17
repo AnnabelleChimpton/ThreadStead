@@ -12,24 +12,24 @@ interface HelpHubProps {
 
 export default function HelpHub({ siteConfig }: HelpHubProps) {
   const tabs = [
-    { href: '/help/faq', label: 'FAQ', icon: '❓', description: 'Frequently asked questions' },
-    { href: '/help/music-guide', label: 'Music Guide', icon: <PixelIcon name="music" />, description: 'Complete guide for creating and uploading MIDI music' },
-    { href: '/help/guidelines', label: 'Guidelines', icon: <PixelIcon name="clipboard" />, description: 'Community standards and expectations' },
-    { href: '/help/privacy', label: 'Privacy', icon: '🔒', description: 'How we protect your data' },
-    { href: '/help/terms', label: 'Terms', icon: '📜', description: 'Terms of service' },
-    { href: '/help/contact', label: 'Contact', icon: <PixelIcon name="mail" />, description: 'Get in touch with us' },
+    { href: '/help/faq', label: 'FAQ', icon: <PixelIcon name="info-box" />, description: 'Answers to the usual questions' },
+    { href: '/help/music-guide', label: 'Music Guide', icon: <PixelIcon name="music" />, description: 'Finding, making and uploading MIDI music' },
+    { href: '/help/guidelines', label: 'Guidelines', icon: <PixelIcon name="clipboard" />, description: 'The house rules' },
+    { href: '/help/privacy', label: 'Privacy', icon: <PixelIcon name="lock" />, description: 'What gets stored and who sees it' },
+    { href: '/help/terms', label: 'Terms', icon: <PixelIcon name="script" />, description: 'Terms of service' },
+    { href: '/help/contact', label: 'Contact', icon: <PixelIcon name="mail" />, description: 'Bugs, ideas, reports' },
   ];
 
   return (
     <>
       <Head>
-        <title>HomePageAgain — Help</title>
-        <meta name="description" content="Find answers to your questions, learn about our community guidelines, and get support." />
+        <title>{`${siteConfig.site_name} — Help`}</title>
+        <meta name="description" content="The FAQ covers most things. Still stuck? Write in — a person reads every message." />
         <link rel="canonical" href={`${getSiteBaseUrl()}/help`} />
         <meta name="robots" content="index, follow" />
 
-        <meta property="og:title" content="HomePageAgain — Help" />
-        <meta property="og:description" content="Find answers to your questions, learn about our community guidelines, and get support." />
+        <meta property="og:title" content={`${siteConfig.site_name} — Help`} />
+        <meta property="og:description" content="The FAQ covers most things. Still stuck? Write in — a person reads every message." />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={`${getSiteBaseUrl()}/help`} />
       </Head>
@@ -40,13 +40,13 @@ export default function HelpHub({ siteConfig }: HelpHubProps) {
           <div className="mb-6 sm:mb-8">
             <div className="bg-gradient-to-br from-blue-100 via-sky-50 to-purple-100 border-2 border-black rounded-lg shadow-[4px_4px_0_#000] p-6 sm:p-8 text-center">
               <h1 className="text-3xl sm:text-4xl font-bold text-thread-pine mb-4">
-                How Can We Help?
+                Help
               </h1>
               <p className="text-lg sm:text-xl text-gray-700 max-w-3xl mx-auto mb-2">
-                Find answers, learn about our community, and get the support you need.
+                The FAQ covers most things. Still stuck? Write in — a person reads every message.
               </p>
               <p className="text-base text-gray-600 max-w-2xl mx-auto">
-                From FAQs to our privacy policy, everything you need to know is here.
+                House rules, privacy and terms are here too.
               </p>
             </div>
           </div>
@@ -91,10 +91,10 @@ export default function HelpHub({ siteConfig }: HelpHubProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="p-6 bg-green-50 border border-green-200 rounded-lg">
               <h3 className="text-lg font-semibold text-green-900 mb-2">
-                New to HomePageAgain?
+                New to {siteConfig.site_name}?
               </h3>
               <p className="text-green-800 mb-4">
-                Check out our FAQ to get answers to common questions about getting started.
+                The FAQ starts with the getting-started questions.
               </p>
               <Link
                 href="/help/faq"
@@ -106,10 +106,10 @@ export default function HelpHub({ siteConfig }: HelpHubProps) {
 
             <div className="p-6 bg-purple-50 border border-purple-200 rounded-lg">
               <h3 className="text-lg font-semibold text-purple-900 mb-2">
-                Need to reach us?
+                Need a person?
               </h3>
               <p className="text-purple-800 mb-4">
-                Have a question that isn&apos;t covered? Get in touch with our team.
+                If the FAQ doesn&apos;t cover it, write in. The person who runs the site reads every message.
               </p>
               <Link
                 href="/help/contact"

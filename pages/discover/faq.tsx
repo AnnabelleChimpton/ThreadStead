@@ -616,11 +616,11 @@ export default function SearchFAQ({ siteConfig }: FAQProps) {
           {/* Call to Action */}
           <section className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg shadow-[2px_2px_0_#1F2937] p-8 text-center">
             <h2 className="text-2xl font-bold mb-4">
-              Ready to Help Build the Future of Search?
+              Help build the index
             </h2>
             <p className="text-lg mb-6">
-              Join us in creating a search engine that celebrates creativity,
-              independence, and the human side of the web.
+              Know a personal site, a weird hobby page, or a blog worth finding?
+              Submit it and it goes into the index.
             </p>
             <div className="flex justify-center gap-4">
               <Link

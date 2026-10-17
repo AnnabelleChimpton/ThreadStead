@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { PixelIcon } from '@/components/ui/PixelIcon'
 import { formatDistanceToNow } from 'date-fns'
 import ImprovedBadgeDisplay from '../../shared/ImprovedBadgeDisplay'
 import UserMention from '@/components/ui/navigation/UserMention'
@@ -187,12 +188,12 @@ export default function ThreadRingPromptResponses({
                 </Link>
                 
                 <span>
-                  💬 {response.post._count.comments} comments
+                  {response.post._count.comments} comments
                 </span>
                 
                 {response.post.threadRings && response.post.threadRings.length > 0 && (
                   <div className="flex items-center gap-1">
-                    <span>📍</span>
+                    <PixelIcon name="pin" size={12} />
                     {response.post.threadRings
                       .filter((tr) => tr && tr.threadRing && tr.threadRing.id)
                       .map((tr, idx) => (

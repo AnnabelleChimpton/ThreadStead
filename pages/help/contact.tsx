@@ -14,13 +14,13 @@ export default function Contact({ siteConfig }: ContactProps) {
   return (
     <>
       <Head>
-        <title>HomePageAgain — Help: Contact</title>
-        <meta name="description" content="Get in touch with the HomePageAgain team. We're here to help with questions, feedback, and support." />
+        <title>{`${siteConfig.site_name} — Help: Contact`}</title>
+        <meta name="description" content="Questions, bugs, ideas or reports. One person runs the site and reads every message." />
         <link rel="canonical" href={`${getSiteBaseUrl()}/help/contact`} />
         <meta name="robots" content="index, follow" />
 
-        <meta property="og:title" content="HomePageAgain — Help: Contact" />
-        <meta property="og:description" content="Get in touch with the HomePageAgain team" />
+        <meta property="og:title" content={`${siteConfig.site_name} — Help: Contact`} />
+        <meta property="og:description" content="Questions, bugs, ideas or reports. One person runs the site and reads every message." />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={`${getSiteBaseUrl()}/help/contact`} />
       </Head>
@@ -34,10 +34,10 @@ export default function Contact({ siteConfig }: ContactProps) {
             </Link>
             <div className="bg-gradient-to-br from-purple-100 via-indigo-50 to-blue-100 border-2 border-black rounded-lg shadow-[4px_4px_0_#000] p-6 sm:p-8 text-center">
               <h1 className="text-3xl sm:text-4xl font-bold text-thread-pine mb-4">
-                Contact Us
+                Contact
               </h1>
               <p className="text-lg text-gray-700">
-                We&apos;re here to help! Get in touch with our team.
+                One person runs this site and reads every message.
               </p>
             </div>
           </div>
@@ -52,55 +52,61 @@ export default function Contact({ siteConfig }: ContactProps) {
                 General Inquiries
               </h2>
               <p className="text-gray-700 mb-4">
-                Have a question about HomePageAgain? Want to learn more about our platform?
+                A question about how something works, or about {siteConfig.site_name} itself.
               </p>
               <a
                 href="mailto:hello@homepageagain.com"
                 className="inline-block px-4 py-2 bg-thread-pine !text-thread-cream rounded hover:bg-thread-sunset transition-colors font-medium"
               >
-                Email Us
+                Send an email
               </a>
             </div>
 
             <div className="bg-thread-cream border border-thread-sage rounded-lg shadow-[2px_2px_0_#A18463] p-6">
-              <div className="text-4xl mb-4">🐛</div>
+              <div className="mb-4 flex justify-center">
+                <PixelIcon name="debug" size={32} />
+              </div>
               <h2 className="text-2xl font-bold text-thread-pine mb-3">
                 Report a Bug
               </h2>
               <p className="text-gray-700 mb-4">
-                Found something not working quite right? Let us know so we can fix it.
+                Something broken? Say what you clicked and what happened.
               </p>
               <a
                 href="mailto:support@homepageagain.com"
                 className="inline-block px-4 py-2 bg-thread-pine !text-thread-cream rounded hover:bg-thread-sunset transition-colors font-medium"
               >
-                Report Issue
+                Report a bug
               </a>
             </div>
 
             <div className="bg-thread-cream border border-thread-sage rounded-lg shadow-[2px_2px_0_#A18463] p-6">
-              <div className="text-4xl mb-4">💡</div>
+              <div className="mb-4 flex justify-center">
+                <PixelIcon name="lightbulb" size={32} />
+              </div>
               <h2 className="text-2xl font-bold text-thread-pine mb-3">
                 Feature Requests
               </h2>
               <p className="text-gray-700 mb-4">
-                Have an idea to make HomePageAgain better? We&apos;d love to hear it!
+                An idea for the site? Send it over.
               </p>
               <a
                 href="mailto:feedback@homepageagain.com"
                 className="inline-block px-4 py-2 bg-thread-pine !text-thread-cream rounded hover:bg-thread-sunset transition-colors font-medium"
               >
-                Share Your Idea
+                Send an idea
               </a>
             </div>
 
             <div className="bg-thread-cream border border-thread-sage rounded-lg shadow-[2px_2px_0_#A18463] p-6">
-              <div className="text-4xl mb-4">🚨</div>
+              <div className="mb-4 flex justify-center">
+                <PixelIcon name="flag" size={32} />
+              </div>
               <h2 className="text-2xl font-bold text-thread-pine mb-3">
                 Report Abuse
               </h2>
               <p className="text-gray-700 mb-4">
-                See something that violates our community guidelines?
+                Something that breaks the house rules? You can also use the Report button on any post.
               </p>
               <a
                 href="mailto:abuse@homepageagain.com"
@@ -114,23 +120,23 @@ export default function Contact({ siteConfig }: ContactProps) {
           {/* FAQ Link */}
           <div className="p-6 bg-blue-50 border border-blue-200 rounded-lg text-center">
             <h3 className="text-xl font-semibold text-blue-900 mb-2">
-              Looking for quick answers?
+              Quick answers
             </h3>
             <p className="text-blue-800 mb-4">
-              Many common questions are answered in our FAQ.
+              The FAQ covers the usual questions.
             </p>
             <Link
               href="/help/faq"
               className="inline-block px-6 py-3 bg-blue-600 !text-white rounded hover:bg-blue-700 transition-colors font-medium"
             >
-              Visit FAQ
+              Read the FAQ
             </Link>
           </div>
 
           {/* Response Time Notice */}
           <div className="mt-8 p-4 bg-gray-50 border border-gray-200 rounded-lg">
             <p className="text-sm text-gray-600 text-center">
-              We typically respond to inquiries within 1-2 business days. For urgent matters, please indicate &quot;URGENT&quot; in your subject line.
+              Replies usually take a day or two. Put &quot;URGENT&quot; in the subject line if it can&apos;t wait.
             </p>
           </div>
         </div>

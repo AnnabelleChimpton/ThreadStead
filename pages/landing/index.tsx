@@ -120,7 +120,7 @@ export default function LandingPage({ siteConfig }: LandingPageProps) {
               <div className="feature-card p-4 rounded">
                 <h3 className="font-bold text-lg mb-2">Actually Customize Everything</h3>
                 <p className="text-gray-600 text-sm">
-                  Use our drag-and-drop visual builder (no coding needed) or write custom CSS and dive into our template language. Want a '90s shrine? A minimalist portfolio? A chaotic art project? Go wild. Your page, your rules.
+                  Pick a ready-made theme and tweak it, write your own CSS, or write the whole page in the template language. Want a '90s shrine? A minimalist portfolio? A chaotic art project? Go wild. Your page, your rules.
                 </p>
               </div>
 
@@ -204,9 +204,9 @@ export default function LandingPage({ siteConfig }: LandingPageProps) {
 
           {/* Getting Started Section */}
           <section className="thread-module p-6 mb-8">
-            <h2 className="thread-headline text-2xl font-bold mb-4 text-center">Ready to Get Started?</h2>
+            <h2 className="thread-headline text-2xl font-bold mb-4 text-center">Getting started</h2>
             <p className="text-gray-700 text-center mb-6">
-              We've got guides to help you build your corner of the indie web.
+              Two guides: one for the site, one for the template language.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/build/getting-started" className="retro-button bg-blue-200 hover:bg-blue-100 px-6 py-3 font-medium text-center">

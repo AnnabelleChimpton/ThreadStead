@@ -198,7 +198,6 @@ export default function ProfilePhotoUpload({
             </div>
           ) : (
             <div className="space-y-2">
-              <div className="text-thread-sage text-4xl">📸</div>
               <p className="text-thread-sage">
                 {dragOver 
                   ? 'Drop your photo here!' 

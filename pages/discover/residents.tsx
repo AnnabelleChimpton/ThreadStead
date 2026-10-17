@@ -98,8 +98,7 @@ export default function Directory() {
         <div className="mb-4">
           <h1 className="thread-headline text-3xl font-bold mb-2">{config.directory_title}</h1>
           <p className="text-thread-sage leading-relaxed">
-            Meet your neighbors in this cozy corner of the web. Discover new friends, 
-            interesting conversations, and kindred spirits.
+            Everyone who lives here, newest first. Search by name, handle, or bio.
           </p>
         </div>
         <div className="thread-divider"></div>
@@ -190,7 +189,7 @@ export default function Directory() {
           {!hasMore && users.length > 0 && (
             <div className="text-center py-6">
               <span className="thread-label">
-                That&apos;s everyone in the neighborhood! 🏡
+                That&apos;s everyone.
               </span>
             </div>
           )}

@@ -538,7 +538,7 @@ export const componentData: Record<string, Component[]> = {
       examples: [
         {
           title: 'Success message',
-          code: '<ShowToast message="Saved successfully!" type="success" />',
+          code: '<ShowToast message="Saved." type="success" />',
         },
       ],
       useCases: ['User feedback', 'Confirmations', 'Errors', 'Notifications'],

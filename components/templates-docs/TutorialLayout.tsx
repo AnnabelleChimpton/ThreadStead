@@ -49,7 +49,7 @@ export default function TutorialLayout({ currentTutorial, children }: TutorialLa
         {/* Mode Banner */}
         <div className="mb-4 p-3 bg-blue-50 border-2 border-blue-300 rounded flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold">Template Language Mode</span>
+            <span className="text-sm font-semibold">Template language tutorial</span>
           </div>
           <Link
             href="/templates"
@@ -136,7 +136,7 @@ export default function TutorialLayout({ currentTutorial, children }: TutorialLa
                         <span className={`px-3 py-1 border-2 border-black ${getDifficultyColor(currentTutorial.difficulty)} text-sm font-bold`}>
                           {currentTutorial.difficulty}
                         </span>
-                        <span className="text-sm text-gray-600">⏱️ {currentTutorial.estimatedTime}</span>
+                        <span className="text-sm text-gray-600">{currentTutorial.estimatedTime}</span>
                       </div>
                     </div>
                   </div>

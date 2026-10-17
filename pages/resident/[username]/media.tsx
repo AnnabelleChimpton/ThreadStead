@@ -278,7 +278,7 @@ export default function MediaGalleryPage({
                       {/* Featured Badge */}
                       {item.featured && (
                         <div className="absolute top-2 left-2 z-10 bg-thread-pine text-white text-xs px-2 py-1 rounded">
-                          ⭐ Featured
+                          Featured
                         </div>
                       )}
                       
@@ -363,7 +363,6 @@ export default function MediaGalleryPage({
               <div className="text-center py-16">
                 {isOwner ? (
                   <div>
-                    <div className="text-6xl mb-4">📸</div>
                     <h3 className="text-lg font-medium text-thread-pine mb-2">
                       Your gallery is waiting for its first story
                     </h3>
@@ -379,7 +378,6 @@ export default function MediaGalleryPage({
                   </div>
                 ) : (
                   <div>
-                    <div className="text-6xl mb-4">🖼️</div>
                     <h3 className="text-lg font-medium text-thread-pine mb-2">
                       No photos shared yet
                     </h3>

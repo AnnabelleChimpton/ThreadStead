@@ -135,7 +135,7 @@ export default function ProfileEditPage({
       });
 
       if (response.ok) {
-        setSaveMessage("Template saved successfully!");
+        setSaveMessage("Template saved.");
         setTimeout(() => setSaveMessage(null), 3000);
       } else {
         const errorData = await response.json();
@@ -227,11 +227,11 @@ export default function ProfileEditPage({
       
       let successMessage = '';
       if (layoutMode === 'default') {
-        successMessage = 'Layout set to default successfully!';
+        successMessage = 'Layout set to default.';
       } else if (layoutMode === 'custom-css') {
-        successMessage = 'Layout set to default + custom CSS successfully!';
+        successMessage = 'Layout set to default + custom CSS.';
       } else if (layoutMode === 'template') {
-        successMessage = 'Layout set to advanced template successfully!';
+        successMessage = 'Layout set to advanced template.';
       }
       
       setSaveMessage(
@@ -263,7 +263,7 @@ export default function ProfileEditPage({
 
       if (response.ok) {
         setIsNavigationHidden(!isNavigationHidden);
-        setSaveMessage(`Navigation ${!isNavigationHidden ? 'hidden' : 'shown'} successfully!`);
+        setSaveMessage(`Navigation ${!isNavigationHidden ? 'hidden' : 'shown'}.`);
         setTimeout(() => setSaveMessage(null), 3000);
       } else {
         const errorData = await response.json();
@@ -283,7 +283,7 @@ export default function ProfileEditPage({
   const handlePhotoUploadSuccess = (urls: { thumbnailUrl: string; mediumUrl: string; fullUrl: string }) => {
     // Update the avatar URL to use the medium size
     setAvatarUrl(urls.mediumUrl);
-    setSaveMessage("Profile photo uploaded successfully!");
+    setSaveMessage("Photo updated.");
     setTimeout(() => setSaveMessage(null), 3000);
   };
 
@@ -330,7 +330,7 @@ export default function ProfileEditPage({
       });
 
       if (response.ok) {
-        setSaveMessage("Profile saved successfully!");
+        setSaveMessage("Saved.");
         setTimeout(() => setSaveMessage(null), 3000);
       } else {
         const errorData = await response.json();
@@ -512,7 +512,7 @@ export default function ProfileEditPage({
                       </div>
                     ) : (
                       <div className="text-xs text-orange-600 mt-2">
-                        ⚠ No template - create one first
+                        No template - create one first
                       </div>
                     )}
                   </div>
@@ -577,7 +577,7 @@ export default function ProfileEditPage({
         <div className="space-y-6">
           <ProfileBadgeSelector 
             onSave={(preferences) => {
-              setSaveMessage("Badge preferences saved successfully!");
+              setSaveMessage("Badge settings saved.");
               setTimeout(() => setSaveMessage(null), 3000);
             }}
           />

@@ -61,21 +61,21 @@ export default function QuickStartExample() {
               onClick={() => setCount(count + 1)}
               className="px-6 py-3 bg-green-300 border-2 border-black shadow-[3px_3px_0_#000] hover:shadow-[4px_4px_0_#000] hover:bg-green-200 transition-all font-bold"
             >
-              ➕ Increment
+              Increment
             </button>
 
             <button
               onClick={() => setCount(count - 1)}
               className="px-6 py-3 bg-red-300 border-2 border-black shadow-[3px_3px_0_#000] hover:shadow-[4px_4px_0_#000] hover:bg-red-200 transition-all font-bold"
             >
-              ➖ Decrement
+              Decrement
             </button>
 
             <button
               onClick={() => setCount(0)}
               className="px-6 py-3 bg-yellow-300 border-2 border-black shadow-[3px_3px_0_#000] hover:shadow-[4px_4px_0_#000] hover:bg-yellow-200 transition-all font-bold"
             >
-              🔄 Reset
+              Reset
             </button>
           </div>
         </div>
@@ -102,7 +102,6 @@ export default function QuickStartExample() {
       {showCode && (
         <div className="bg-blue-50 border-2 border-blue-300 p-6">
           <h3 className="font-bold mb-3 flex items-center gap-2">
-            <span className="text-2xl">💡</span>
             <span>How it works:</span>
           </h3>
           <ul className="space-y-2 text-sm text-gray-700">

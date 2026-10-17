@@ -28,7 +28,7 @@ function FAQWidget({ user }: WidgetProps) {
 
         <div>
           <p className="font-semibold text-gray-900 mb-1">Do I need to code?</p>
-          <p className="text-gray-600">Nope! Use our visual builder.</p>
+          <p className="text-gray-600">No. Decorating your house is point-and-click, and the CSS editor has ready-made themes.</p>
         </div>
 
         <div>

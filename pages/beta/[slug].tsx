@@ -166,7 +166,7 @@ export default function BetaLandingPage() {
               {status.available ? (
                 <div className="space-y-4">
                   <h3 className="text-2xl font-bold text-green-800">
-                    🎉 Join the Beta!
+                    Join the Beta
                   </h3>
                   <p className="text-gray-700">
                     Get early access to {config.site_name} and be part of our growing community.
@@ -195,13 +195,13 @@ export default function BetaLandingPage() {
                     onClick={handleSignupClick}
                     className="inline-block border-2 border-black px-8 py-4 bg-green-200 hover:bg-green-100 shadow-[4px_4px_0_#000] font-bold text-lg transition-all hover:translate-y-[-2px] hover:shadow-[6px_6px_0_#000]"
                   >
-                    🔑 Claim Beta Key and Sign Up!
+                    Claim Beta Key and Sign Up
                   </button>
                 </div>
               ) : (
                 <div className="space-y-4">
                   <h3 className="text-2xl font-bold text-red-800">
-                    😔 Campaign Unavailable
+                    Campaign Unavailable
                   </h3>
                   {status.message && (
                     <p className="text-gray-700">{status.message}</p>
@@ -239,7 +239,7 @@ export default function BetaLandingPage() {
             <div className="grid md:grid-cols-2 gap-4">
               <div className="border border-black p-4 bg-blue-50">
                 <h4 className="font-bold mb-2 flex items-center gap-2">
-                  ✨ Early Access Features
+                  Early Access Features
                 </h4>
                 <ul className="text-sm space-y-1">
                   <li>• Be among the first to join the community</li>
@@ -251,7 +251,7 @@ export default function BetaLandingPage() {
 
               <div className="border border-black p-4 bg-green-50">
                 <h4 className="font-bold mb-2 flex items-center gap-2">
-                  🎯 What to Expect
+                  What to Expect
                 </h4>
                 <ul className="text-sm space-y-1">
                   <li>• Thoughtful conversations and connections</li>

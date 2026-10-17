@@ -1139,7 +1139,6 @@ code block
                 {respondingToPrompt && (
                   <div className="mb-3 p-3 bg-green-50 border border-green-200 rounded-lg">
                     <div className="flex items-center gap-2">
-                      <span className="text-green-600 font-medium">📍</span>
                       <span className="text-sm text-green-800">
                         This post will be shared to <strong>{respondingToPrompt.threadRingSlug}</strong> as a prompt response
                       </span>

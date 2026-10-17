@@ -110,10 +110,10 @@ export default function PostModerationActions({
 
         {currentStatus === 'ACCEPTED' && (
           <>
-            {getActionButton('remove', '🗑️ Remove', 'bg-red-100 text-red-700 border border-red-300', true)}
+            {getActionButton('remove', 'Remove', 'bg-red-100 text-red-700 border border-red-300', true)}
             {isPinned 
-              ? getActionButton('unpin', '📌 Unpin', 'bg-gray-100 text-gray-700 border border-gray-300')
-              : getActionButton('pin', '📌 Pin', 'bg-blue-100 text-blue-700 border border-blue-300')
+              ? getActionButton('unpin', 'Unpin', 'bg-gray-100 text-gray-700 border border-gray-300')
+              : getActionButton('pin', 'Pin', 'bg-blue-100 text-blue-700 border border-blue-300')
             }
           </>
         )}
@@ -139,7 +139,7 @@ export default function PostModerationActions({
         </span>
         {isPinned && (
           <span className="text-xs px-2 py-1 rounded-full font-medium bg-blue-100 text-blue-700">
-            📌 pinned
+            pinned
           </span>
         )}
       </div>

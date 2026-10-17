@@ -40,7 +40,7 @@ export default function WidgetCard({
         <div className="widget-content">
           {error ? (
             <div className="text-center py-4">
-              <div className="text-red-600 text-sm mb-2">⚠️ {error}</div>
+              <div className="text-red-600 text-sm mb-2">{error}</div>
               {onRefresh && (
                 <button
                   onClick={onRefresh}

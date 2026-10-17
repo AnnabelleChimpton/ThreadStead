@@ -272,7 +272,6 @@ export default function MediaUpload({ onUploadSuccess, disabled = false }: Media
           />
           
           <div className="space-y-3">
-            <div className="text-thread-sage text-5xl">📷</div>
             <div>
               <p className="text-thread-pine font-medium mb-1">
                 {dragOver ? 'Drop your file here!' : currentButtonText}
@@ -289,7 +288,6 @@ export default function MediaUpload({ onUploadSuccess, disabled = false }: Media
           <div className="relative">
             {previewUrl === 'midi-placeholder' ? (
               <div className="w-full max-w-md mx-auto rounded-lg shadow-sm border border-thread-sage bg-thread-paper p-8 text-center">
-                <div className="text-6xl mb-2">🎵</div>
                 <p className="text-thread-pine font-medium">MIDI File</p>
                 <p className="text-sm text-thread-sage mt-1">Ready to upload</p>
               </div>

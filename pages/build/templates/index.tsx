@@ -29,14 +29,14 @@ export default function TemplatesIndex({ siteConfig, username }: TemplatesIndexP
             </p>
           </div>
 
-          {/* New to Threadstead? */}
+          {/* New here? */}
           <div className="mb-12">
             <RetroCard>
               <div className="bg-gradient-to-r from-yellow-100 to-orange-100 border-3 border-yellow-400 p-6">
                 <div className="flex items-start gap-4">
                   <div className="text-4xl"><PixelIcon name="human-handsup" size={32} /></div>
                   <div className="flex-1">
-                    <h2 className="text-2xl font-black mb-2">New to Threadstead?</h2>
+                    <h2 className="text-2xl font-black mb-2">New to {siteConfig.site_name}?</h2>
                     <p className="text-gray-700 mb-3">
                       Start with <strong>CSS Styling</strong> if you just want to change colors and fonts on your profile.
                       It&apos;s the simplest way to customize!

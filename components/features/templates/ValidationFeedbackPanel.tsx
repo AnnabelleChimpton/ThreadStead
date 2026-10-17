@@ -1,5 +1,6 @@
 // Validation feedback panel for template editor
 import React, { useState } from 'react';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 export interface ValidationFeedbackProps {
   validationResult: {
@@ -63,19 +64,19 @@ export default function ValidationFeedbackPanel({
         <div className="space-y-1">
           {hasErrors && (
             <div className="text-red-700 font-medium flex items-center gap-2">
-              <span className="text-xl">❌</span>
+              <span className="text-xl">✗</span>
               <span>{validationResult.errors.length} Error{validationResult.errors.length !== 1 ? 's' : ''} (Must Fix)</span>
             </div>
           )}
           {hasWarnings && (
             <div className="text-yellow-700 font-medium flex items-center gap-2">
-              <span className="text-xl">⚠️</span>
+              <PixelIcon name="warning-box" size={20} />
               <span>{validationResult.warnings.length} Warning{validationResult.warnings.length !== 1 ? 's' : ''}</span>
             </div>
           )}
           {hasStripped && (
             <div className="text-orange-700 font-medium flex items-center gap-2">
-              <span className="text-xl">🗑️</span>
+              <PixelIcon name="trash" size={20} />
               <span>{validationResult.strippedComponents?.length} Component{(validationResult.strippedComponents?.length || 0) !== 1 ? 's' : ''} Stripped</span>
             </div>
           )}
@@ -98,7 +99,6 @@ export default function ValidationFeedbackPanel({
               className="w-full px-4 py-3 bg-red-50 hover:bg-red-100 transition-colors text-left flex items-center justify-between"
             >
               <span className="font-semibold text-red-800 flex items-center gap-2">
-                <span>🔴</span>
                 <span>Errors ({validationResult.errors.length})</span>
               </span>
               <span className="text-red-600">{expandedSections.errors ? '▼' : '▶'}</span>
@@ -123,7 +123,6 @@ export default function ValidationFeedbackPanel({
               className="w-full px-4 py-3 bg-yellow-50 hover:bg-yellow-100 transition-colors text-left flex items-center justify-between"
             >
               <span className="font-semibold text-yellow-800 flex items-center gap-2">
-                <span>🟡</span>
                 <span>Warnings ({validationResult.warnings.length})</span>
               </span>
               <span className="text-yellow-600">{expandedSections.warnings ? '▼' : '▶'}</span>
@@ -148,7 +147,6 @@ export default function ValidationFeedbackPanel({
               className="w-full px-4 py-3 bg-orange-50 hover:bg-orange-100 transition-colors text-left flex items-center justify-between"
             >
               <span className="font-semibold text-orange-800 flex items-center gap-2">
-                <span>🟠</span>
                 <span>Stripped Components ({validationResult.strippedComponents?.length})</span>
               </span>
               <span className="text-orange-600">{expandedSections.stripped ? '▼' : '▶'}</span>
@@ -183,7 +181,6 @@ export default function ValidationFeedbackPanel({
               className="w-full px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors text-left flex items-center justify-between"
             >
               <span className="font-semibold text-gray-800 flex items-center gap-2">
-                <span>📊</span>
                 <span>Template Stats</span>
               </span>
               <span className="text-gray-600">{expandedSections.stats ? '▼' : '▶'}</span>

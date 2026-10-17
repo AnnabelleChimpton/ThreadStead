@@ -67,35 +67,35 @@ export default function WelcomeRingGuide({ ringSlug, viewer, ring }: WelcomeRing
     {
       id: 'joinedRing',
       title: 'Join the Welcome Ring',
-      description: 'Click "Join Ring" to become a member and get started!',
+      description: 'Click "Join Ring" at the top of this page.',
       target: '.join-button',
       completed: progress.joinedRing
     },
     {
       id: 'readFirstPost',
-      title: 'Check out the discussion',
-      description: 'Click "View Comments" on any post to see the conversation',
+      title: 'Open a thread',
+      description: 'Click the comment count under any post to read the replies.',
       target: '.comment-button',
       completed: progress.readFirstPost
     },
     {
       id: 'leftFirstComment', 
-      title: 'Join the conversation',
-      description: 'Share your thoughts! Try commenting on the "Introduce Yourself" post',
+      title: 'Leave a comment',
+      description: 'Say hello on the "Introduce Yourself" post, or reply to anything.',
       target: '.comment-button',
       completed: progress.leftFirstComment
     },
     {
       id: 'visitedProfile',
-      title: 'Visit a member profile',
-      description: 'Click on any username to see their profile and discover their style',
+      title: 'Visit someone\'s page',
+      description: 'Click any username to see their page.',
       target: '.user-link',
       completed: progress.visitedProfile
     },
     {
       id: 'browseRings',
-      title: 'Discover more Rings', 
-      description: 'Browse other communities and find ones that match your interests',
+      title: 'Browse the rings',
+      description: 'Each ring is a small group around one topic. Join any that fit.',
       target: '.browse-rings-link',
       completed: progress.browseRings
     }
@@ -130,7 +130,7 @@ export default function WelcomeRingGuide({ ringSlug, viewer, ring }: WelcomeRing
       // Show appropriate toast message
       if (isRingHost) {
         // Special message for the Ring Host
-        showSuccess("Welcome back! As the Ring Host, you're automatically part of this community! 👑");
+        showSuccess("You host this ring, so you're already a member.");
       }
     }
   }, [isClient, progress, viewer, ring]);
@@ -154,7 +154,7 @@ export default function WelcomeRingGuide({ ringSlug, viewer, ring }: WelcomeRing
     // Show welcome toast for existing members
     if (viewer?.threadRingMemberships?.some(m => m.threadRingId === 'welcome')) {
       setTimeout(() => {
-        showSuccess("Welcome back to the Welcome Ring! You're already a member, so we've marked that step complete.");
+        showSuccess("You're already a member, so that step is checked off.");
       }, 500);
     }
   };
@@ -165,7 +165,7 @@ export default function WelcomeRingGuide({ ringSlug, viewer, ring }: WelcomeRing
     // Show welcome toast for existing members
     if (viewer?.threadRingMemberships?.some(m => m.threadRingId === 'welcome')) {
       setTimeout(() => {
-        showSuccess("Welcome back to the Welcome Ring! You're already a member, so we've marked that step complete.");
+        showSuccess("You're already a member, so that step is checked off.");
       }, 500);
     }
   };
@@ -183,8 +183,8 @@ export default function WelcomeRingGuide({ ringSlug, viewer, ring }: WelcomeRing
     return (
       <div className="bg-gradient-to-r from-green-100 to-blue-100 border-b-2 border-green-400 p-3">
         <div className="text-center">
-          <span className="text-green-700 font-bold"><PixelIcon name="trophy" className="inline-block align-middle mr-1" /> Welcome Ring Graduate!</span>
-          <span className="ml-2 text-green-600 text-sm">You&apos;ve completed the welcome tour!</span>
+          <span className="text-green-700 font-bold"><PixelIcon name="trophy" className="inline-block align-middle mr-1" /> Welcome Ring graduate</span>
+          <span className="ml-2 text-green-600 text-sm">You finished the tour.</span>
         </div>
       </div>
     );
@@ -267,13 +267,6 @@ export default function WelcomeRingGuide({ ringSlug, viewer, ring }: WelcomeRing
         {currentStep && (
           <div className="flex items-center justify-between bg-white/80 rounded-lg px-4 py-2 border-2 border-black shadow-[2px_2px_0_#000]">
             <div className="flex items-center gap-3">
-              <div className="text-2xl">
-                {currentStepIndex === 0 && '🎯'}
-                {currentStepIndex === 1 && '💬'}
-                {currentStepIndex === 2 && '✍️'}
-                {currentStepIndex === 3 && '👤'}
-                {currentStepIndex === 4 && '🧵'}
-              </div>
               <div>
                 <div className="font-medium text-gray-800">{currentStep.title}</div>
                 <div className="text-sm text-gray-600">{currentStep.description}</div>
@@ -298,7 +291,7 @@ export default function WelcomeRingGuide({ ringSlug, viewer, ring }: WelcomeRing
         {/* Completion message */}
         {completedCount === steps.length && (
           <div className="mt-3 text-center">
-            <span className="text-green-600 font-bold">Almost there! Complete all steps to graduate!</span>
+            <span className="text-green-600 font-bold">That&apos;s every step.</span>
           </div>
         )}
       </div>

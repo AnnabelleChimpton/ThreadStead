@@ -95,10 +95,10 @@ export default function VisitorPixelHome() {
       {/* Explainer Text */}
       <div className="text-center mb-4 pb-3 border-b border-white/30 relative z-10">
         <p className="text-sm text-gray-800 font-medium mb-1">
-          Your pixel home is <strong>YOUR space</strong> on the web
+          This could be your house. Everyone on the street gets one.
         </p>
         <p className="text-xs text-gray-700">
-          Like GeoCities, but modern. Decorate it, customize it, make it yours.
+          Pick a house, paint it, plant a garden.
         </p>
       </div>
 
@@ -133,7 +133,8 @@ export default function VisitorPixelHome() {
           onClick={() => setIsNight(!isNight)}
           className="px-3 py-1.5 bg-white border-2 border-black shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] hover:translate-y-[-1px] transition-all rounded text-xs font-bold flex items-center gap-2"
         >
-          <span>{isNight ? '☀️ Day' : '🌙 Night'}</span>
+          <PixelIcon name={isNight ? 'sun' : 'moon'} size={12} />
+          <span>{isNight ? 'Day' : 'Night'}</span>
         </button>
         <button
           onClick={cycleStyle}
@@ -153,7 +154,7 @@ export default function VisitorPixelHome() {
           <PixelIcon name="home" /> Create This Home
         </Link>
         <div className="mt-2 text-xs text-gray-600 font-medium">
-          (It&apos;s free and takes 30 seconds!)
+          Free, and you can repaint it any time.
         </div>
       </div>
     </div>

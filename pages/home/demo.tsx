@@ -216,11 +216,11 @@ export default function DemoPixelHome() {
             <div className="space-y-4">
               <div className="bg-thread-paper border-2 border-thread-sage rounded-xl p-6 shadow-cozy text-center">
                 <h3 className="text-xl font-headline font-semibold text-thread-pine mb-3">
-                  Ready to Build Your Own?
+                  Want one?
                 </h3>
                 <p className="text-thread-sage mb-6 max-w-lg mx-auto">
-                  Join ThreadStead and set up a pixel home of your own — a little corner
-                  of the web to decorate, with neighbors right down the street.
+                  Sign up and you get a house like this to decorate, with neighbors
+                  right down the street.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Link

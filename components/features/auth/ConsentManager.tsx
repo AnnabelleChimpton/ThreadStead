@@ -86,7 +86,7 @@ export default function ConsentManager({ userId }: ConsentManagerProps) {
       const data = await response.json()
 
       if (data.success) {
-        setMessage({ type: 'success', text: 'Consent preferences updated successfully' })
+        setMessage({ type: 'success', text: 'Consent preferences saved.' })
         setConsents(data.consents || consents)
       } else {
         setMessage({ type: 'error', text: data.error || 'Failed to update preferences' })

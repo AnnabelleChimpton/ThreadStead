@@ -1543,7 +1543,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
                       className="w-full border border-black p-2 bg-white text-sm"
                       value={siteConfig.welcome_dialog_title}
                       onChange={(e) => updateConfigField("welcome_dialog_title", e.target.value)}
-                      placeholder="🎉 Welcome to Retro Social!"
+                      placeholder="Welcome to ThreadStead"
                     />
                     <p className="text-xs text-gray-500 mt-1">Title for first-time user dialog</p>
                   </div>

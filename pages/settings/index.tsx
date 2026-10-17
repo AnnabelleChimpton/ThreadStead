@@ -124,7 +124,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
       });
 
       if (response.ok) {
-        setSaveMessage("Pixel Home updated successfully!");
+        setSaveMessage("House saved.");
         setTimeout(() => setSaveMessage(null), 3000);
       } else {
         throw new Error('Failed to update pixel home');
@@ -191,7 +191,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
 
   const handlePhotoUploadSuccess = (urls: { thumbnailUrl: string; mediumUrl: string; fullUrl: string }) => {
     setAvatarUrl(urls.mediumUrl);
-    setSaveMessage("Profile photo uploaded successfully!");
+    setSaveMessage("Photo updated.");
     setTimeout(() => setSaveMessage(null), 3000);
   };
 
@@ -236,7 +236,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
       });
 
       if (response.ok) {
-        setSaveMessage("Profile saved successfully!");
+        setSaveMessage("Saved.");
         setTimeout(() => setSaveMessage(null), 3000);
       } else {
         const errorData = await response.json();
@@ -418,7 +418,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
       setShowRecovery(false);
       setSaveMessage(passwordSyncFailed
         ? "Error: Account recovered, but password login could not be updated. You may need to re-add password authentication."
-        : "Account recovered successfully!");
+        : "Account recovered.");
       setTimeout(() => window.location.reload(), 1500);
     } catch (e: unknown) {
       setSaveMessage(`Error: ${(e as Error).message || 'Failed to recover from seed phrase'}`);
@@ -449,7 +449,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
       setConfirmNewPassword('');
       setShowPasswordSection(false);
       setHasPasswordAuth(true); // Update state immediately
-      setSaveMessage("Password authentication added successfully! You can now sign in with either your password or seed phrase.");
+      setSaveMessage("Password added. You can sign in with either your password or your seed phrase.");
     } catch (e: unknown) {
       setSaveMessage(`Error: ${(e as Error).message || 'Failed to add password authentication'}`);
     } finally {
@@ -484,7 +484,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
       setShowPasswordChangeSection(false);
       setChangePasswordErrors([]);
 
-      setSaveMessage("Password changed successfully!");
+      setSaveMessage("Password changed.");
     } catch (e: unknown) {
       setSaveMessage(`Error: ${(e as Error).message || 'Failed to change password'}`);
     } finally {
@@ -520,7 +520,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
           setEmailVerifiedAt(null);
           setEmailInput('');
           setShowEmailSection(false);
-          setSaveMessage("Email updated successfully!");
+          setSaveMessage("Email updated.");
         }
       } else {
         const error = await response.json();
@@ -547,7 +547,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
       if (response.ok) {
         setUserEmail('');
         setEmailVerifiedAt(null);
-        setSaveMessage("Email address removed successfully!");
+        setSaveMessage("Email removed.");
       } else {
         const error = await response.json();
         setSaveMessage(`Error: ${error.error || 'Failed to remove email'}`);
@@ -862,7 +862,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                 });
 
                 if (cssResponse.ok && templateResponse.ok && layoutResponse.ok) {
-                  showSuccess('Reset to default successfully!');
+                  showSuccess('Reset to default.');
                   setTimeout(() => {
                     window.location.href = `/resident/${username}`;
                   }, 1000);
@@ -1349,7 +1349,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                                     }
 
                                     // Success!
-                                    setSaveMessage("Password reset successfully! You can now login with your new password.");
+                                    setSaveMessage("Password reset. Sign in with the new one from now on.");
                                     setShowPasswordChangeSection(false);
                                     setShowForgotPassword(false);
                                     setResetSeedPhrase('');
@@ -1644,7 +1644,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
 
           <ProfileBadgeSelector
             onSave={(preferences) => {
-              setSaveMessage("Badge preferences saved successfully!");
+              setSaveMessage("Badge settings saved.");
               setTimeout(() => setSaveMessage(null), 3000);
             }}
           />
@@ -1720,7 +1720,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                   document.body.removeChild(a);
                   window.URL.revokeObjectURL(url);
 
-                  setSaveMessage("Data export downloaded successfully!");
+                  setSaveMessage("Export downloaded.");
                   setTimeout(() => setSaveMessage(null), 3000);
                 } catch (error) {
                   setSaveMessage(`Error: ${error instanceof Error ? error.message : 'Failed to export data'}`);

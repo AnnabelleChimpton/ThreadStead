@@ -301,7 +301,6 @@ export default function FeedPost({ post, showActivity = false }: FeedPostProps) 
       {post.isSpoiler && !spoilerRevealed && (
         <div className="mb-6 p-6 spoiler-warning rounded-xl border-2 border-dashed border-thread-sage/40 bg-thread-cream/30">
           <div className="flex items-center gap-3 mb-3">
-            <span className="text-2xl">⚠️</span>
             <h3 className="font-bold text-xl text-thread-pine">Content Warning</h3>
           </div>
           {post.contentWarning && (
@@ -311,7 +310,7 @@ export default function FeedPost({ post, showActivity = false }: FeedPostProps) 
             onClick={() => setSpoilerRevealed(true)}
             className="px-6 py-2.5 bg-white text-black font-bold border-2 border-black hover:bg-yellow-200 shadow-[4px_4px_0_#000] hover:shadow-[2px_2px_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] transition-all rounded-lg"
           >
-            👁️ Reveal Content
+            Reveal Content
           </button>
         </div>
       )}

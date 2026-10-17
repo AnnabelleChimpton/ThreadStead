@@ -155,7 +155,7 @@ export default function BookmarksPage({ siteConfig, user }: BookmarksProps) {
     switch (sourceType) {
       case 'community_index': return <PixelIcon name="bookmark" className="inline-block" />;
       case 'site_content': return <PixelIcon name="home" className="inline-block" />;
-      case 'external_search': return '🌐';
+      case 'external_search': return <PixelIcon name="search" className="inline-block" />;
       case 'manual': return <PixelIcon name="file" className="inline-block" />;
       default: return <PixelIcon name="link" className="inline-block" />;
     }
@@ -176,7 +176,7 @@ export default function BookmarksPage({ siteConfig, user }: BookmarksProps) {
       <div className="w-full max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
         <div className="mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-[#2E4B3F] mb-2">
-            📚 My Bookmarks
+            My Bookmarks
           </h1>
           <p className="text-sm sm:text-base text-gray-600">
             Manage your saved sites and collections
@@ -248,7 +248,7 @@ export default function BookmarksPage({ siteConfig, user }: BookmarksProps) {
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span>📚 All Bookmarks</span>
+                    <span>All Bookmarks</span>
                     <span className="text-xs text-gray-500">
                       {collections.reduce((sum, c) => sum + c.bookmarkCount, 0)}
                     </span>
@@ -266,7 +266,7 @@ export default function BookmarksPage({ siteConfig, user }: BookmarksProps) {
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <span>{collection.isDefault ? '⭐' : '📁'} {collection.name}</span>
+                      <span>{collection.isDefault ? '★ ' : ''}{collection.name}</span>
                       <span className="text-xs text-gray-500">{collection.bookmarkCount}</span>
                     </div>
                     {collection.description && (

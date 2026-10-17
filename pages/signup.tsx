@@ -588,7 +588,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                 <div className="text-6xl mb-4 flex justify-center"><PixelIcon name="human-handsup" size={64} /></div>
                 <h1 className="text-3xl font-bold mb-2">Welcome to {siteConfig.site_name}!</h1>
                 <p className="text-gray-600">
-                  Let&apos;s create your decentralized identity. You&apos;ll own your account completely.
+                  Pick a username and a way to sign in. Your account gets its own decentralized ID (DID).
                 </p>
               </div>
 
@@ -1101,20 +1101,12 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
 
               {/* TODO: Make community guidelines content configurable via admin portal */}
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-6 max-h-64 overflow-y-auto">
-                <h3 className="font-bold text-lg mb-3 text-gray-900">Our Core Values:</h3>
+                <h3 className="font-bold text-lg mb-3 text-gray-900">House rules, short version:</h3>
                 <div className="space-y-2 text-sm text-gray-700">
-                  <div className="flex items-start gap-2">
-                    <span className="text-gray-700"><strong className="text-gray-900">Be Creative:</strong> Express yourself authentically and celebrate creativity in all forms.</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-gray-700"><strong className="text-gray-900">Be Kind:</strong> Treat others with respect and empathy.</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-gray-700"><strong className="text-gray-900">Be Yourself:</strong> Your unique perspective makes our community special.</span>
-                  </div>
+                  <p>Be kind, post your own stuff, no harassment or hate, keep it all-ages.</p>
                 </div>
 
-                <h3 className="font-bold text-lg mt-4 mb-3 text-gray-900">Key Rules:</h3>
+                <h3 className="font-bold text-lg mt-4 mb-3 text-gray-900">In practice:</h3>
                 <div className="space-y-1 text-sm text-gray-700">
                   <div>• No harassment, bullying, or hate speech</div>
                   <div>• Share original content and respect others&apos; work</div>

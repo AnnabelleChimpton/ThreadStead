@@ -99,7 +99,6 @@ export default function EmailVerifyPage() {
       <Layout>
         <div className="max-w-2xl mx-auto p-6 text-center">
           <div className="space-y-4">
-            <div className="text-4xl">🔐</div>
             <h1 className="thread-headline text-2xl">Verifying Login Link...</h1>
             <p className="text-thread-sage">Please wait while we verify your email login link.</p>
           </div>
@@ -113,7 +112,6 @@ export default function EmailVerifyPage() {
       <Layout>
         <div className="max-w-2xl mx-auto p-6 text-center">
           <div className="space-y-4">
-            <div className="text-4xl">✅</div>
             <h1 className="thread-headline text-2xl text-green-600">Successfully Logged In!</h1>
             <p className="text-thread-sage">Redirecting you to your homepage...</p>
           </div>
@@ -127,7 +125,6 @@ export default function EmailVerifyPage() {
       <Layout>
         <div className="max-w-2xl mx-auto p-6 text-center">
           <div className="space-y-4">
-            <div className="text-4xl">❌</div>
             <h1 className="thread-headline text-2xl text-red-600">Login Failed</h1>
             <p className="text-red-700">{error}</p>
             <div className="pt-4">
@@ -149,7 +146,6 @@ export default function EmailVerifyPage() {
       <Layout>
         <div className="max-w-2xl mx-auto p-6">
           <div className="text-center mb-8">
-            <div className="text-4xl mb-4">🔐</div>
             <h1 className="thread-headline text-2xl mb-2">Choose Account</h1>
             <p className="text-thread-sage">
               We found multiple accounts associated with your email address. 

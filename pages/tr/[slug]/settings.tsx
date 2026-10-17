@@ -415,7 +415,7 @@ export default function ThreadRingSettingsPage({
               {saveSuccess && (
                 <div className="text-green-600 text-sm font-medium flex items-center gap-2">
                   <PixelIcon name="check" className="w-4 h-4" />
-                  Settings saved successfully!
+                  Settings saved.
                 </div>
               )}
             </div>

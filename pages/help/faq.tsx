@@ -148,11 +148,11 @@ export default function FAQ({ siteConfig }: FAQProps) {
           answer: 'No. Decorating your house is all point-and-click, and the CSS editor comes with five ready-made themes you can apply and tweak. If you do write code, there\'s custom CSS and a full template language waiting for you.'
         },
         {
-          question: 'What\'s the difference between Visual Builder, CSS Editor, and Template Language?',
+          question: 'What\'s the difference between the CSS editor and the template language?',
           answer: 'The CSS editor restyles the standard page — colors, fonts, layout — and includes starter themes. The template language goes further: you write the page\'s HTML yourself with components for your posts, photos, and guestbook, plus variables and conditionals if you want them. Most people start with a CSS theme and go from there.'
         },
         {
-          question: 'Can I switch between visual and code editing?',
+          question: 'Can I switch between CSS and a template?',
           answer: 'Yes — you can move between plain CSS styling and full templates whenever you like, and switch back. Your CSS comes along with you.'
         },
         {

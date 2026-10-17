@@ -197,7 +197,7 @@ describe('WelcomeRingGuide', () => {
       );
 
       // The badge now renders a PixelIcon trophy instead of the 🎓 emoji
-      expect(screen.getByText('Welcome Ring Graduate!')).toBeInTheDocument();
+      expect(screen.getByText('Welcome Ring graduate')).toBeInTheDocument();
     });
   });
 });

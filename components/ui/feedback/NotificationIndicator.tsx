@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { PixelIcon } from "@/components/ui/PixelIcon";
 
 interface NotificationIndicatorProps {
   className?: string;
@@ -50,9 +51,10 @@ export default function NotificationIndicator({
       href="/notifications"
       className={`relative inline-flex items-center gap-2 ${className}`}
       title={`${unreadCount} unread notifications`}
+      aria-label={`${unreadCount} unread notifications`}
     >
       <div className="relative">
-        <span className="text-xl">🔔</span>
+        <PixelIcon name="notification" size={20} />
         {unreadCount > 0 && (
           <div className="absolute -top-1 -right-1 bg-thread-sunset text-white text-xs rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 border border-black shadow-[1px_1px_0_#000]">
             {unreadCount > 99 ? "99+" : unreadCount}

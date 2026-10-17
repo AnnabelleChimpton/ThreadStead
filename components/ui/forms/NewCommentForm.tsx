@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
 import EmojiPicker from "../feedback/EmojiPicker";
+import { PixelIcon } from "@/components/ui/PixelIcon";
 import { csrfFetch, getCsrfToken } from '@/lib/api/client/csrf-fetch';
 import imageCompression from 'browser-image-compression';
 
@@ -92,7 +93,7 @@ export default function NewCommentForm({ postId, parentId, onCommentAdded, place
     },
     {
       label: 'Link',
-      icon: '🔗',
+      icon: <PixelIcon name="link" size={12} />,
       action: () => insertAtCursor('[', '](https://example.com)'),
       title: 'Add link ([text](url))'
     },
@@ -399,7 +400,7 @@ export default function NewCommentForm({ postId, parentId, onCommentAdded, place
             disabled={uploadingImage || loading}
             className="formatting-button px-2 py-1 text-xs border border-gray-400 bg-white hover:bg-gray-100 rounded font-mono disabled:opacity-50"
           >
-            {uploadingImage ? `${uploadProgress}%` : '📷'}
+            {uploadingImage ? `${uploadProgress}%` : <PixelIcon name="camera" size={12} />}
           </button>
 
           {showImagePicker && (
@@ -439,7 +440,6 @@ export default function NewCommentForm({ postId, parentId, onCommentAdded, place
                   }}
                   className="w-full text-xs px-2 py-2 bg-gray-100 hover:bg-gray-200 rounded text-left flex items-center gap-2"
                 >
-                  <span>📤</span>
                   <span>Upload from device</span>
                 </button>
               </div>
@@ -480,7 +480,7 @@ export default function NewCommentForm({ postId, parentId, onCommentAdded, place
             <div><code>1. numbered</code> → 1. numbered</div>
           </div>
           <div className="mt-2 text-gray-600">
-            Tip: Drag & drop images or click 📷 to upload
+            Tip: Drag & drop images or use the camera button to upload
           </div>
         </div>
       )}

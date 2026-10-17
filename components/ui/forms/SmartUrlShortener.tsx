@@ -143,9 +143,6 @@ export default function SmartUrlShortener({ content, onContentChange, className 
       {autoShortenedUrls.size > 0 && (
         <div className="bg-green-50 border border-green-200 rounded-lg p-3 shadow-sm">
           <div className="flex items-start gap-3">
-            <div className="text-green-600 mt-0.5">
-              ✅
-            </div>
             <div className="flex-1">
               <div className="text-sm font-medium text-green-900 mb-1">
                 URLs automatically shortened
@@ -174,9 +171,6 @@ export default function SmartUrlShortener({ content, onContentChange, className 
           className="bg-blue-50 border border-blue-200 rounded-lg p-3 shadow-sm"
         >
           <div className="flex items-start gap-3">
-            <div className="text-blue-600 mt-0.5">
-              🔗
-            </div>
             <div className="flex-1 min-w-0">
               <div className="text-sm font-medium text-blue-900 mb-1">
                 {suggestion.originalUrl.length > 500 ? 'Very long URL auto-shortening...' : 'Long URL detected'}

@@ -190,7 +190,6 @@ export default function TemplatePanelSelector({
               
               <div className="relative z-10">
                 <div className="flex items-start gap-2 mb-2">
-                  <span className="text-2xl">🎨</span>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-sm font-bold mb-1 text-gray-700">
                       Start Fresh

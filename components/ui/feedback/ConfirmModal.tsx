@@ -1,5 +1,6 @@
 import React from "react";
 import { createPortal } from "react-dom";
+import { PixelIcon, type PixelIconName } from "@/components/ui/PixelIcon";
 
 interface ConfirmModalProps {
   isOpen: boolean;
@@ -30,7 +31,7 @@ export default function ConfirmModal({
         bg: 'bg-red-50',
         text: 'text-red-900',
         titleText: 'text-red-900',
-        icon: '🚨',
+        icon: 'alert' as PixelIconName,
         iconColor: 'text-red-600',
         confirmBg: 'bg-red-600 hover:bg-red-700',
         confirmText: 'text-white'
@@ -40,7 +41,7 @@ export default function ConfirmModal({
         bg: 'bg-yellow-50',
         text: 'text-yellow-900',
         titleText: 'text-yellow-900',
-        icon: '⚠️',
+        icon: 'warning-box' as PixelIconName,
         iconColor: 'text-yellow-600',
         confirmBg: 'bg-yellow-600 hover:bg-yellow-700',
         confirmText: 'text-white'
@@ -57,7 +58,7 @@ export default function ConfirmModal({
           {/* Header */}
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-3">
-              <span className={`text-2xl ${colors.iconColor}`}>{colors.icon}</span>
+              <span className={colors.iconColor}><PixelIcon name={colors.icon} size={24} /></span>
               <h3 className="text-lg font-semibold">{title}</h3>
             </div>
           </div>

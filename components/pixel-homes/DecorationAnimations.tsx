@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import DecorationSVG from './DecorationSVG'
+import { PixelIcon, PixelIconName } from '@/components/ui/PixelIcon'
 
 interface AnimatedDecorationProps {
   decorationType: string
@@ -375,12 +376,12 @@ export function ActionFeedback({
     }
   }
 
-  const getIcon = () => {
+  const getIcon = (): PixelIconName => {
     switch (type) {
-      case 'success': return '✓'
-      case 'error': return '✕'
-      case 'warning': return '⚠'
-      case 'info': return 'ℹ'
+      case 'success': return 'check'
+      case 'error': return 'close'
+      case 'warning': return 'warning-box'
+      case 'info': return 'info-box'
     }
   }
 
@@ -390,7 +391,7 @@ export function ActionFeedback({
       style={{ left: position.x, top: position.y - 30 }}
     >
       <div className={`px-3 py-2 rounded-lg shadow-lg ${getColorClasses()} flex items-center space-x-2`}>
-        <span className="text-sm font-medium">{getIcon()}</span>
+        <PixelIcon name={getIcon()} size={14} />
         <span className="text-sm font-medium">{message}</span>
       </div>
     </div>

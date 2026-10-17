@@ -8,12 +8,12 @@ interface ColorPaletteGeneratorProps {
 }
 
 const COLOR_PRESETS: Preset[] = [
-  { id: 'blue', label: 'Blue', icon: '🔵' },
-  { id: 'purple', label: 'Purple', icon: '🟣' },
-  { id: 'pink', label: 'Pink', icon: '🩷' },
-  { id: 'green', label: 'Green', icon: '🟢' },
-  { id: 'orange', label: 'Orange', icon: '🟠' },
-  { id: 'red', label: 'Red', icon: '🔴' },
+  { id: 'blue', label: 'Blue' },
+  { id: 'purple', label: 'Purple' },
+  { id: 'pink', label: 'Pink' },
+  { id: 'green', label: 'Green' },
+  { id: 'orange', label: 'Orange' },
+  { id: 'red', label: 'Red' },
 ];
 
 const PRESET_COLORS: Record<string, string> = {
@@ -70,7 +70,6 @@ export default function ColorPaletteGenerator({ onInsertCSS }: ColorPaletteGener
   return (
     <div className="space-y-2.5 overflow-x-hidden">
       <div className="flex items-center gap-2 mb-2">
-        <span className="text-xl">🎨</span>
         <h3 className="font-bold text-sm">Color Palette Manager</h3>
       </div>
 

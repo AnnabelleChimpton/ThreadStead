@@ -293,9 +293,9 @@ function LandingPage({ siteConfig, ogImageUrl }: { siteConfig: SiteConfig; ogIma
               <div className="text-4xl sm:text-5xl mb-4"><PixelIcon name="home" size={48} className="inline-block" /><PixelIcon name="bookmark" size={48} className="inline-block" /></div>
               <h1 className="text-xl sm:text-2xl font-bold mb-4 px-2">{siteConfig.welcome_message}</h1>
               <p className="text-sm sm:text-base lg:text-lg text-gray-700 mb-4 px-2">
-                <strong>Create your pixel home, join ThreadRings (themed communities), and connect with creative people in a retro-inspired social platform on {siteConfig.site_name}.</strong>
+                <strong>A pixel house on a street of real people. Decorate the yard, keep your page behind the front door, join a ring or two.</strong>
               </p>
-              <p className="text-sm sm:text-base text-gray-600 mb-6 px-2">Build your unique space, discover amazing communities, and share your creativity with the world.</p>
+              <p className="text-sm sm:text-base text-gray-600 mb-6 px-2">Your feed is the people you follow, newest first — nobody ranks it.</p>
 
               {/* Single primary CTA */}
               <div className="mb-4">
@@ -862,7 +862,7 @@ function UnifiedHomepage({ siteConfig, ogImageUrl, userCount }: { siteConfig: Si
                       <p className="text-xs sm:text-sm text-gray-600">Posts belong to your profile but also appear in Ring feeds you&apos;ve joined</p>
                     </div>
                     <div className="border border-gray-300 p-3 bg-green-50 rounded">
-                      <h3 className="font-bold mb-1 text-sm sm:text-base">🌳 Rich Family Trees</h3>
+                      <h3 className="font-bold mb-1 text-sm sm:text-base">Rich Family Trees</h3>
                       <p className="text-xs sm:text-sm text-gray-600">Rings can branch into new communities while maintaining their connections</p>
                     </div>
                     <div className="border border-gray-300 p-3 bg-purple-50 rounded sm:col-span-2 md:col-span-1">
@@ -885,7 +885,7 @@ function UnifiedHomepage({ siteConfig, ogImageUrl, userCount }: { siteConfig: Si
             <div className="lg:col-span-4 lg:order-2 space-y-4">
               <SimpleCard title="Join the Neighborhood">
                 <div className="text-center py-2">
-                  <p className="mb-4 text-sm text-gray-600">Ready to claim your plot?</p>
+                  <p className="mb-4 text-sm text-gray-600">Every resident gets a plot on the street.</p>
                   <Link
                     href="/signup"
                     className="block w-full py-3 bg-yellow-200 hover:bg-yellow-100 border-2 border-black shadow-[3px_3px_0_#000] font-bold text-center transition-transform hover:-translate-y-0.5"

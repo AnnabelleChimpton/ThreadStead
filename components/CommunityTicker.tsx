@@ -5,19 +5,17 @@ import { PixelIcon } from '@/components/ui/PixelIcon';
 interface TickerItem {
   id: string;
   text: string;
-  type: 'poll' | 'bulletin' | 'announcement' | 'fun';
-  icon: 'chart' | 'chat' | 'speaker' | 'users' | 'lightbulb' | 'gift' | 'heart';
+  type: 'poll' | 'bulletin' | 'announcement' | 'empty';
+  icon: 'chart' | 'chat' | 'speaker' | 'pin';
 }
 
-// Fun random phrases to mix in
-const funPhrases: Array<{ text: string; icon: TickerItem['icon'] }> = [
-  { text: "Wondering what the neighbors are saying?", icon: 'users' },
-  { text: "Your community is buzzing with activity!", icon: 'chat' },
-  { text: "Check out what's happening in the neighborhood", icon: 'lightbulb' },
-  { text: "See what your neighbors are up to today", icon: 'heart' },
-  { text: "Fresh community activity just for you", icon: 'gift' },
-  { text: "The bulletin board has new notes!", icon: 'chat' },
-];
+// Shown when there are no polls, bulletins or announcements to scroll
+const EMPTY_ITEM: TickerItem = {
+  id: 'empty',
+  text: 'Quiet on the street. Pin a note to the bulletin board →',
+  type: 'empty',
+  icon: 'pin'
+};
 
 export default function CommunityTicker() {
   const [items, setItems] = useState<TickerItem[]>([]);
@@ -86,17 +84,10 @@ export default function CommunityTicker() {
           });
         }
 
-        // Mix in 2-3 random fun phrases
-        const numFunPhrases = Math.min(2 + Math.floor(Math.random() * 2), funPhrases.length);
-        const shuffledFun = [...funPhrases].sort(() => Math.random() - 0.5).slice(0, numFunPhrases);
-        shuffledFun.forEach((phrase, idx) => {
-          tickerItems.push({
-            id: `fun-${idx}`,
-            text: phrase.text,
-            type: 'fun',
-            icon: phrase.icon
-          });
-        });
+        if (tickerItems.length === 0) {
+          setItems([EMPTY_ITEM]);
+          return;
+        }
 
         // Shuffle all items for variety
         const shuffled = tickerItems.sort(() => Math.random() - 0.5);
@@ -126,7 +117,7 @@ export default function CommunityTicker() {
   };
 
   const handleClick = () => {
-    router.push('/community');
+    router.push(items[0]?.type === 'empty' ? '/bulletin' : '/community');
   };
 
   // Don't render during SSR to avoid hydration issues

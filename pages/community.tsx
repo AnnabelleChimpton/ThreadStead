@@ -34,20 +34,20 @@ export default function Community({ siteConfig, user }: CommunityProps) {
     <>
       <Head>
         <title>Community Center - {siteConfig.site_name}</title>
-        <meta name="description" content="A central hub for community announcements, bulletin board, polls, and chat on HomePageAgain." />
+        <meta name="description" content={`Announcements, the bulletin board, polls and chat on ${siteConfig.site_name}.`} />
         <link rel="canonical" href={`${getSiteBaseUrl()}/community`} />
         <meta name="robots" content="index, follow" />
 
         {/* OpenGraph meta tags */}
         <meta property="og:title" content={`Community Center - ${siteConfig.site_name}`} />
-        <meta property="og:description" content="A central hub for community announcements, bulletin board, polls, and chat on HomePageAgain." />
+        <meta property="og:description" content={`Announcements, the bulletin board, polls and chat on ${siteConfig.site_name}.`} />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={`${getSiteBaseUrl()}/community`} />
 
         {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={`Community Center - ${siteConfig.site_name}`} />
-        <meta name="twitter:description" content="A central hub for community announcements, bulletin board, polls, and chat on HomePageAgain." />
+        <meta name="twitter:description" content={`Announcements, the bulletin board, polls and chat on ${siteConfig.site_name}.`} />
       </Head>
 
       <Layout siteConfig={siteConfig} fullWidth={true}>

@@ -115,7 +115,12 @@ export type PixelIconName =
   | 'drag-and-drop'
   | 'sort'
   | 'human-handsup'
-  | 'mood-happy';
+  | 'mood-happy'
+  | 'volume'
+  | 'repeat'
+  | 'expand'
+  | 'volume-x'
+  | 'git-branch';
 
 export interface PixelIconProps extends SVGProps<SVGSVGElement> {
   /** The name of the Pixelarticon */

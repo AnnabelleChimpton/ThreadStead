@@ -209,7 +209,7 @@ export default function BadgeManagerPage({ ring, user, canManage, hubUnavailable
         setCurrentBadge(finalBadge as BadgeDesign);
         setIsEditing(false);
         const updatedCount = result.badgesUpdated?.updated || 0;
-        setSuccess(`Badge updated successfully! ${updatedCount > 0 ? `(${updatedCount} member badges regenerated)` : ''}`);
+        setSuccess(`Badge updated.${updatedCount > 0 ? ` ${updatedCount} member badges regenerated.` : ''}`);
       } else {
         const errorData = await ringHubResponse.json();
         setError(errorData.error || 'Failed to update RingHub badge');
@@ -267,7 +267,6 @@ export default function BadgeManagerPage({ ring, user, canManage, hubUnavailable
         <Layout>
           <RetroCard>
             <div className="text-center py-12">
-              <div className="text-6xl mb-4">⚠️</div>
               <h1 className="text-2xl font-bold mb-4">Badge service temporarily unavailable</h1>
               <p className="text-gray-600 mb-6">
                 We couldn&apos;t reach the ring service right now. Please try again in a moment.
@@ -288,7 +287,6 @@ export default function BadgeManagerPage({ ring, user, canManage, hubUnavailable
         <Layout>
           <RetroCard>
             <div className="text-center py-12">
-              <div className="text-6xl mb-4">🚫</div>
               <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
               <p className="text-gray-600 mb-6">
                 Only ThreadRing owners and Ring Hosts can manage badge designs.
@@ -316,7 +314,7 @@ export default function BadgeManagerPage({ ring, user, canManage, hubUnavailable
           <div className="mb-6">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-2xl font-bold">🏆 Badge Manager</h1>
+                <h1 className="text-2xl font-bold">Badge Manager</h1>
                 <p className="text-gray-600">
                   Manage the badge design for <strong>{ring.name}</strong> ThreadRing
                 </p>
@@ -345,7 +343,7 @@ export default function BadgeManagerPage({ ring, user, canManage, hubUnavailable
           <div className="bg-white border border-black rounded-none shadow-[3px_3px_0_#000]">
             {/* Header */}
             <div className="border-b border-black p-6 bg-yellow-50">
-              <h3 className="text-xl font-bold text-black mb-2">🎨 ThreadRing Badge Designer</h3>
+              <h3 className="text-xl font-bold text-black mb-2">ThreadRing Badge Designer</h3>
               <p className="text-gray-700">
                 Design your ThreadRing badge using templates, custom colors, or upload your own image.
                 The badge will be uploaded to our servers and sent to RingHub to update all member badges.
@@ -378,7 +376,7 @@ export default function BadgeManagerPage({ ring, user, canManage, hubUnavailable
                       onClick={() => setIsEditing(true)}
                       className="px-4 py-2 border border-black bg-blue-100 hover:bg-blue-200 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000]"
                     >
-                      ✏️ Edit Badge Design
+                      Edit Badge Design
                     </button>
                   </div>
                 </div>
@@ -404,7 +402,7 @@ export default function BadgeManagerPage({ ring, user, canManage, hubUnavailable
                           : 'bg-white hover:bg-gray-100'
                           }`}
                       >
-                        📄 Use Template
+                        Use Template
                       </button>
                       <button
                         onClick={() => setPreviewMode('custom')}
@@ -413,7 +411,7 @@ export default function BadgeManagerPage({ ring, user, canManage, hubUnavailable
                           : 'bg-white hover:bg-gray-100'
                           }`}
                       >
-                        🎨 Custom Colors
+                        Custom Colors
                       </button>
                       <button
                         onClick={() => setPreviewMode('upload')}
@@ -422,7 +420,7 @@ export default function BadgeManagerPage({ ring, user, canManage, hubUnavailable
                           : 'bg-white hover:bg-gray-100'
                           }`}
                       >
-                        🖼️ Upload Image
+                        Upload Image
                       </button>
                     </div>
                   </div>
@@ -501,7 +499,7 @@ export default function BadgeManagerPage({ ring, user, canManage, hubUnavailable
                             customImageHighResUrl: badgeUrls.badgeImageHighResUrl,
                             templateId: undefined
                           });
-                          setSuccess('Badge image uploaded successfully!');
+                          setSuccess('Badge image uploaded.');
                         }}
                         disabled={isLoading}
                       />
@@ -599,7 +597,7 @@ export default function BadgeManagerPage({ ring, user, canManage, hubUnavailable
                       disabled={isLoading}
                       className="px-6 py-2 border border-black bg-green-200 hover:bg-green-100 shadow-[2px_2px_0_#000] font-bold transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] disabled:opacity-50 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[2px_2px_0_#000]"
                     >
-                      {isLoading ? '🔄 Generating & Uploading...' : '🚀 Generate & Update Badge'}
+                      {isLoading ? 'Generating & Uploading...' : 'Generate & Update Badge'}
                     </button>
                     {isEditing && (
                       <button
@@ -621,7 +619,7 @@ export default function BadgeManagerPage({ ring, user, canManage, hubUnavailable
             {/* Information */}
             <div className="border-t border-gray-200 pt-6">
               <div className="bg-blue-50 border border-blue-200 rounded p-4">
-                <h5 className="font-bold text-blue-900 mb-2">🚀 How It Works</h5>
+                <h5 className="font-bold text-blue-900 mb-2">How It Works</h5>
                 <ul className="text-sm text-blue-800 space-y-1">
                   <li>• <strong>Design</strong>: Choose a template, set custom colors, or upload your own image</li>
                   <li>• <strong>Generate</strong>: We create an 88x31 badge image and upload it to our S3 storage</li>

@@ -48,7 +48,6 @@ export default function VerifyEmailPage() {
       <Layout>
         <div className="max-w-2xl mx-auto p-6 text-center">
           <div className="space-y-4">
-            <div className="text-4xl">📧</div>
             <h1 className="thread-headline text-2xl">Verifying Email...</h1>
             <p className="text-thread-sage">Please wait while we verify your email address.</p>
           </div>
@@ -62,11 +61,10 @@ export default function VerifyEmailPage() {
       <Layout>
         <div className="max-w-2xl mx-auto p-6 text-center">
           <div className="space-y-6">
-            <div className="text-4xl">✅</div>
             <h1 className="thread-headline text-2xl text-green-600">Email Verified!</h1>
             <div className="bg-green-50 border border-green-200 rounded-lg p-6">
               <p className="text-green-800 mb-4">
-                Your email address <strong>{verifiedEmail}</strong> has been successfully verified.
+                Your email address <strong>{verifiedEmail}</strong> is verified.
               </p>
               <p className="text-green-700 text-sm">
                 You can now use this email address to sign in to your account using magic links.
@@ -99,7 +97,6 @@ export default function VerifyEmailPage() {
       <Layout>
         <div className="max-w-2xl mx-auto p-6 text-center">
           <div className="space-y-6">
-            <div className="text-4xl">❌</div>
             <h1 className="thread-headline text-2xl text-red-600">Verification Failed</h1>
             <div className="bg-red-50 border border-red-200 rounded-lg p-6">
               <p className="text-red-700">{error}</p>

@@ -61,15 +61,15 @@ describe('WelcomeRingIntroPopup', () => {
       // Go to step 3
       fireEvent.click(screen.getByText('Next'));
       await waitFor(() => {
-        expect(screen.getByText('This Ring is Special')).toBeInTheDocument();
+        expect(screen.getByText('About this ring')).toBeInTheDocument();
         expect(screen.getByText(/training ground/)).toBeInTheDocument();
       }, { timeout: 3000 });
       
       // Go to step 4 (final step)
       fireEvent.click(screen.getByText('Next'));
       await waitFor(() => {
-        expect(screen.getByText('Ready to get started?')).toBeInTheDocument();
-        expect(screen.getByText("Let's Go!")).toBeInTheDocument();
+        expect(screen.getByText('Before you go in')).toBeInTheDocument();
+        expect(screen.getByText("Start the tour")).toBeInTheDocument();
       }, { timeout: 3000 });
     });
 
@@ -104,15 +104,15 @@ describe('WelcomeRingIntroPopup', () => {
       await waitFor(() => screen.getByText('How ThreadRings Work'));
       
       fireEvent.click(screen.getByText('Next'));
-      await waitFor(() => screen.getByText('This Ring is Special'));
+      await waitFor(() => screen.getByText('About this ring'));
       
       fireEvent.click(screen.getByText('Next'));
-      await waitFor(() => screen.getByText('Ready to get started?'));
+      await waitFor(() => screen.getByText('Before you go in'));
     });
 
     it('should show final step action buttons', () => {
       expect(screen.getByText("I'll explore on my own")).toBeInTheDocument();
-      expect(screen.getByText("Let's Go!")).toBeInTheDocument();
+      expect(screen.getByText("Start the tour")).toBeInTheDocument();
     });
 
     it('should call onClose when explore on my own is clicked', () => {
@@ -122,7 +122,7 @@ describe('WelcomeRingIntroPopup', () => {
     });
 
     it('should call both callbacks when start tour is clicked', () => {
-      fireEvent.click(screen.getByText("Let's Go!"));
+      fireEvent.click(screen.getByText("Start the tour"));
       expect(mockOnStartTour).toHaveBeenCalled();
       expect(mockOnClose).toHaveBeenCalled();
     });
@@ -199,8 +199,8 @@ describe('WelcomeRingIntroPopup', () => {
       // Step 4 content
       fireEvent.click(screen.getByText('Next'));
       await waitFor(() => {
-        expect(screen.getByText(/full of friendly faces/)).toBeInTheDocument();
-        expect(screen.getByText(/Your Progress Will Be Tracked/)).toBeInTheDocument();
+        expect(screen.getByText(/Everyone here started in this ring too/)).toBeInTheDocument();
+        expect(screen.getByText(/Your progress/)).toBeInTheDocument();
       });
     });
   });

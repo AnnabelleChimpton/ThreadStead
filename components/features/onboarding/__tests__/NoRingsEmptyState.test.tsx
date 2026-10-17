@@ -15,9 +15,8 @@ describe('NoRingsEmptyState Component', () => {
     it('should render main heading and description', () => {
       render(<NoRingsEmptyState />);
       
-      expect(screen.getByText('Your Ring neighborhood is empty!')).toBeInTheDocument();
-      expect(screen.getByText(/ThreadRings are like cozy corners of the internet/)).toBeInTheDocument();
-      expect(screen.getByText(/Ready to find your people?/)).toBeInTheDocument();
+      expect(screen.getByText("You haven't joined any rings yet.")).toBeInTheDocument();
+      expect(screen.getByText(/A ring is a small group around one topic/)).toBeInTheDocument();
     });
 
     it('should render main house icon', () => {
@@ -28,12 +27,6 @@ describe('NoRingsEmptyState Component', () => {
       expect(houseIcon).toHaveClass('text-6xl');
     });
 
-    it('should render decorative floating elements', () => {
-      render(<NoRingsEmptyState />);
-      
-      expect(screen.getByText('✨')).toBeInTheDocument();
-      expect(screen.getByText('🌟')).toBeInTheDocument();
-    });
   });
 
   describe('Action Buttons', () => {
@@ -115,38 +108,6 @@ describe('NoRingsEmptyState Component', () => {
       );
     });
 
-    it('should position decorative elements correctly', () => {
-      const { container } = render(<NoRingsEmptyState />);
-      
-      const sparkle = container.querySelector('.absolute.top-4.right-4');
-      expect(sparkle).toBeInTheDocument();
-      expect(sparkle).toHaveTextContent('✨');
-      expect(sparkle).toHaveClass('animate-pulse');
-      
-      const star = container.querySelector('.absolute.bottom-4.left-4');
-      expect(star).toBeInTheDocument();
-      expect(star).toHaveTextContent('🌟');
-      expect(star).toHaveClass('animate-bounce');
-    });
-  });
-
-  describe('Interactive Behavior', () => {
-    it('should handle house icon hover interactions', () => {
-      render(<NoRingsEmptyState />);
-      
-      const houseIcon = screen.getByText('⌂');
-      expect(houseIcon).toHaveClass('transition-transform', 'duration-300');
-      
-      // Test hover state (styles applied via CSS)
-      fireEvent.mouseEnter(houseIcon);
-      // Note: Testing CSS hover states requires more complex setup
-      // This mainly tests that the element is interactive
-      expect(houseIcon).toBeInTheDocument();
-      
-      fireEvent.mouseLeave(houseIcon);
-      expect(houseIcon).toBeInTheDocument();
-    });
-
     it('should be accessible for keyboard navigation', () => {
       render(<NoRingsEmptyState />);
       
@@ -163,25 +124,6 @@ describe('NoRingsEmptyState Component', () => {
   });
 
   describe('Animation Classes', () => {
-    it('should have animation classes on decorative elements', () => {
-      const { container } = render(<NoRingsEmptyState />);
-      
-      const sparkle = container.querySelector('.animate-pulse');
-      expect(sparkle).toBeInTheDocument();
-      expect(sparkle).toHaveTextContent('✨');
-      
-      const star = container.querySelector('.animate-bounce');
-      expect(star).toBeInTheDocument();
-      expect(star).toHaveTextContent('🌟');
-    });
-
-    it('should have staggered animation delay on star', () => {
-      const { container } = render(<NoRingsEmptyState />);
-      
-      const star = container.querySelector('.animate-bounce');
-      expect(star).toHaveStyle({ animationDelay: '0.5s' });
-    });
-
     it('should have transition classes on house icon', () => {
       render(<NoRingsEmptyState />);
       
@@ -195,12 +137,12 @@ describe('NoRingsEmptyState Component', () => {
       render(<NoRingsEmptyState />);
       
       // Main heading should be an h3 (or similar heading)
-      const heading = screen.getByText('Your Ring neighborhood is empty!');
+      const heading = screen.getByText("You haven't joined any rings yet.");
       expect(heading.tagName).toBe('H3');
       expect(heading).toHaveClass('text-xl', 'font-bold');
       
       // Description should be readable
-      const description = screen.getByText(/ThreadRings are like cozy corners/);
+      const description = screen.getByText(/A ring is a small group around one topic/);
       expect(description.tagName).toBe('P');
     });
 
@@ -223,8 +165,8 @@ describe('NoRingsEmptyState Component', () => {
       render(<NoRingsEmptyState />);
       
       // Content should be available to screen readers
-      expect(screen.getByText('Your Ring neighborhood is empty!')).toBeVisible();
-      expect(screen.getByText(/ThreadRings are like cozy corners/)).toBeVisible();
+      expect(screen.getByText("You haven't joined any rings yet.")).toBeVisible();
+      expect(screen.getByText(/A ring is a small group around one topic/)).toBeVisible();
       expect(screen.getByText('Start with Welcome Ring')).toBeVisible();
       expect(screen.getByText('Browse All Rings')).toBeVisible();
     });
@@ -234,10 +176,10 @@ describe('NoRingsEmptyState Component', () => {
     it('should use consistent purple theme colors', () => {
       render(<NoRingsEmptyState />);
       
-      const heading = screen.getByText('Your Ring neighborhood is empty!');
+      const heading = screen.getByText("You haven't joined any rings yet.");
       expect(heading).toHaveClass('text-purple-800');
       
-      const description = screen.getByText(/ThreadRings are like cozy corners/);
+      const description = screen.getByText(/A ring is a small group around one topic/);
       expect(description).toHaveClass('text-purple-600');
       
       const separator = screen.getByText('or');
@@ -271,7 +213,7 @@ describe('NoRingsEmptyState Component', () => {
     it('should handle different screen sizes', () => {
       render(<NoRingsEmptyState />);
       
-      const description = screen.getByText(/ThreadRings are like cozy corners/);
+      const description = screen.getByText(/A ring is a small group around one topic/);
       expect(description).toHaveClass('max-w-md', 'mx-auto');
       
       // Buttons should be in a vertical stack. The mocked Link renders a bare
@@ -286,7 +228,7 @@ describe('NoRingsEmptyState Component', () => {
       const mainContainer = container.firstChild as HTMLElement;
       expect(mainContainer).toHaveClass('text-center');
       
-      const description = screen.getByText(/ThreadRings are like cozy corners/);
+      const description = screen.getByText(/A ring is a small group around one topic/);
       expect(description).toHaveClass('mx-auto');
     });
   });
@@ -300,11 +242,11 @@ describe('NoRingsEmptyState Component', () => {
       expect(icon).toHaveClass('text-6xl');
       
       // Heading should be prominent
-      const heading = screen.getByText('Your Ring neighborhood is empty!');
+      const heading = screen.getByText("You haven't joined any rings yet.");
       expect(heading).toHaveClass('text-xl', 'font-bold');
       
       // Description should be readable but secondary
-      const description = screen.getByText(/ThreadRings are like cozy corners/);
+      const description = screen.getByText(/A ring is a small group around one topic/);
       expect(description).toHaveClass('text-purple-600'); // Lighter color than heading
     });
 
@@ -314,10 +256,10 @@ describe('NoRingsEmptyState Component', () => {
       const icon = screen.getByText('⌂');
       expect(icon).toHaveClass('mb-4');
       
-      const heading = screen.getByText('Your Ring neighborhood is empty!');
+      const heading = screen.getByText("You haven't joined any rings yet.");
       expect(heading).toHaveClass('mb-2');
       
-      const description = screen.getByText(/ThreadRings are like cozy corners/);
+      const description = screen.getByText(/A ring is a small group around one topic/);
       expect(description).toHaveClass('mb-6');
     });
   });

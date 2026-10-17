@@ -509,7 +509,7 @@ export default function PostItem({
               <div className="border border-black bg-white p-3 sm:p-4 shadow-[2px_2px_0_#000]">
                 <div className="flex flex-col sm:flex-row items-start gap-2 sm:gap-3">
                   <div className="flex-shrink-0 w-6 h-6 sm:w-8 sm:h-8 bg-yellow-200 border border-black rounded-full flex items-center justify-center">
-                    <span className="text-xs sm:text-sm">🍴</span>
+                    <PixelIcon name="git-branch" size={14} />
                   </div>
                   <div className="flex-1 w-full sm:min-w-0">
                     <div className="mb-2 text-sm sm:text-base break-words">
@@ -572,7 +572,6 @@ export default function PostItem({
               {isSpoilerPost() && !spoilerRevealed && (
                 <div className="mb-6 p-6 spoiler-warning rounded-xl border-2 border-dashed border-thread-sage/40 bg-thread-cream/30">
                   <div className="flex items-center gap-3 mb-3">
-                    <span className="text-2xl">⚠️</span>
                     <h3 className="font-bold text-xl text-thread-pine">Content Warning</h3>
                   </div>
                   {getSpoilerWarning() && (
@@ -582,7 +581,7 @@ export default function PostItem({
                     onClick={() => setSpoilerRevealed(true)}
                     className="px-6 py-2.5 bg-white text-black font-bold border-2 border-black hover:bg-yellow-200 shadow-[4px_4px_0_#000] hover:shadow-[2px_2px_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] transition-all rounded-lg"
                   >
-                    👁️ Reveal Content
+                    Reveal Content
                   </button>
                 </div>
               )}

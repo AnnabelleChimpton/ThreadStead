@@ -75,7 +75,7 @@ export function HydrationDebugInfo({
         onClick={() => setIsExpanded(!isExpanded)}
         className="debug-toggle"
       >
-        🏝️ Islands Debug ({loadedIslands.size}/{totalIslands})
+        Islands Debug ({loadedIslands.size}/{totalIslands})
       </button>
 
       {isExpanded && (
@@ -84,7 +84,7 @@ export function HydrationDebugInfo({
             <div>Total Islands: {totalIslands}</div>
             <div>Loaded: {loadedIslands.size}</div>
             <div>Failed: {failedIslands.size}</div>
-            <div>Hydrated: {isHydrated ? '✅' : '⏳'}</div>
+            <div>Hydrated: {isHydrated ? 'yes' : 'pending'}</div>
           </div>
 
           {failedIslands.size > 0 && (
@@ -102,7 +102,7 @@ export function HydrationDebugInfo({
             <h4>Loaded Islands:</h4>
             {Array.from(loadedIslands).map(islandId => (
               <div key={islandId} className="debug-loaded-item">
-                ✅ {islandId}
+                ✓ {islandId}
               </div>
             ))}
           </div>

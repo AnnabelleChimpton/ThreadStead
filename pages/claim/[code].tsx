@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import { GetServerSideProps } from 'next';
 import { getSessionUser } from '@/lib/auth/server';
 import Link from 'next/link';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface DecorationInfo {
   itemId: string;
@@ -111,7 +112,6 @@ export default function ClaimPage({ isAuthenticated, userId }: ClaimPageProps) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
-          <div className="text-6xl mb-4">❌</div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Invalid Claim Code</h1>
           <p className="text-gray-600 mb-6">{error}</p>
           <Link href="/">
@@ -135,8 +135,8 @@ export default function ClaimPage({ isAuthenticated, userId }: ClaimPageProps) {
         <div className="bg-white rounded-xl shadow-xl overflow-hidden">
           {/* Header */}
           <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-8 text-white text-center">
-            <h1 className="text-3xl font-bold mb-2">🎁 Exclusive Decoration</h1>
-            <p className="text-blue-100">Claim your special item!</p>
+            <h1 className="text-3xl font-bold mb-2">Exclusive Decoration</h1>
+            <p className="text-blue-100">One decoration for your house.</p>
           </div>
 
           {/* Decoration Info */}
@@ -150,7 +150,7 @@ export default function ClaimPage({ isAuthenticated, userId }: ClaimPageProps) {
                 />
               ) : (
                 <div className="w-24 h-24 mx-auto mb-4 bg-gray-200 rounded-lg flex items-center justify-center">
-                  <span className="text-4xl">🎨</span>
+                  <PixelIcon name="image" size={40} className="text-gray-400" />
                 </div>
               )}
 
@@ -208,12 +208,11 @@ export default function ClaimPage({ isAuthenticated, userId }: ClaimPageProps) {
             {/* Success Message */}
             {success && (
               <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 text-center">
-                <div className="text-4xl mb-2">🎉</div>
                 <h3 className="text-lg font-semibold text-green-900 mb-1">
-                  Successfully Claimed!
+                  Claimed.
                 </h3>
                 <p className="text-green-700">
-                  {decoration.name} has been added to your collection
+                  {decoration.name} is yours now.
                 </p>
               </div>
             )}
@@ -265,8 +264,7 @@ export default function ClaimPage({ isAuthenticated, userId }: ClaimPageProps) {
         {/* Footer Info */}
         <div className="mt-8 text-center text-gray-600 text-sm">
           <p>Claim codes are exclusive decorations for your Pixel Home</p>
-          <p>Share the love - tell your friends about Threadstead!</p>
-        </div>
+                  </div>
       </div>
     </div>
   );

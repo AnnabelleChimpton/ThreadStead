@@ -72,7 +72,7 @@ describe('Bio Component', () => {
       expect(bioText).toBeInTheDocument();
     });
 
-    it('should display default bio when capabilities.bio is empty', () => {
+    it('should render nothing when capabilities.bio is empty', () => {
       const emptyBioData = createMockResidentData({
         capabilities: {
           bio: ''
@@ -81,11 +81,10 @@ describe('Bio Component', () => {
 
       renderWithTemplateContext(<Bio />, { residentData: emptyBioData });
       
-      const defaultBio = screen.getByText('Welcome to my profile!');
-      expect(defaultBio).toBeInTheDocument();
+      expect(screen.queryByText('About Me')).not.toBeInTheDocument();
     });
 
-    it('should display default bio when capabilities.bio is undefined', () => {
+    it('should render nothing when capabilities.bio is undefined', () => {
       const noBioData = createMockResidentData({
         capabilities: {
           bio: undefined as any
@@ -94,19 +93,17 @@ describe('Bio Component', () => {
 
       renderWithTemplateContext(<Bio />, { residentData: noBioData });
       
-      const defaultBio = screen.getByText('Welcome to my profile!');
-      expect(defaultBio).toBeInTheDocument();
+      expect(screen.queryByText('About Me')).not.toBeInTheDocument();
     });
 
-    it('should display default bio when capabilities is null', () => {
+    it('should render nothing when capabilities is null', () => {
       const noCapabilitiesData = createMockResidentData({
         capabilities: null as any
       });
 
       renderWithTemplateContext(<Bio />, { residentData: noCapabilitiesData });
       
-      const defaultBio = screen.getByText('Welcome to my profile!');
-      expect(defaultBio).toBeInTheDocument();
+      expect(screen.queryByText('About Me')).not.toBeInTheDocument();
     });
 
     it('should handle long bio content', () => {
@@ -262,8 +259,7 @@ describe('Bio Component', () => {
         renderWithTemplateContext(<Bio />, { residentData: noCapabilitiesData });
       }).not.toThrow();
       
-      const defaultBio = screen.getByText('Welcome to my profile!');
-      expect(defaultBio).toBeInTheDocument();
+      expect(screen.queryByText('About Me')).not.toBeInTheDocument();
     });
 
     it('should handle null capabilities gracefully', () => {
@@ -283,8 +279,7 @@ describe('Bio Component', () => {
 
       renderWithTemplateContext(<Bio />, { residentData: emptyCapabilitiesData });
       
-      const defaultBio = screen.getByText('Welcome to my profile!');
-      expect(defaultBio).toBeInTheDocument();
+      expect(screen.queryByText('About Me')).not.toBeInTheDocument();
     });
   });
 
@@ -341,18 +336,17 @@ describe('Bio Component', () => {
   });
 
   describe('Default Behavior', () => {
-    it('should show default message when no bio is provided', () => {
+    it('should render nothing when no bio is provided', () => {
       const noBioData = createMockResidentData({
         capabilities: { bio: '' }
       });
 
       renderWithTemplateContext(<Bio />, { residentData: noBioData });
       
-      const defaultMessage = screen.getByText('Welcome to my profile!');
-      expect(defaultMessage).toBeInTheDocument();
+      expect(screen.queryByText('About Me')).not.toBeInTheDocument();
     });
 
-    it('should use consistent default message', () => {
+    it('should render nothing for null or missing bio', () => {
       const emptyBioData1 = createMockResidentData({
         capabilities: { bio: null as any }
       });
@@ -363,11 +357,10 @@ describe('Bio Component', () => {
 
       // Test first case
       const { rerender } = renderWithTemplateContext(<Bio />, { residentData: emptyBioData1 });
-      expect(screen.getByText('Welcome to my profile!')).toBeInTheDocument();
+      expect(screen.queryByText('About Me')).not.toBeInTheDocument();
 
-      // Both should show same default
       rerender(<Bio />);
-      expect(screen.getByText('Welcome to my profile!')).toBeInTheDocument();
+      expect(screen.queryByText('About Me')).not.toBeInTheDocument();
     });
   });
 });

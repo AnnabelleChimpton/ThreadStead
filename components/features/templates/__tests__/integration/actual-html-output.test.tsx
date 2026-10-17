@@ -70,7 +70,7 @@ describe('Component HTML Output Verification', () => {
       console.log('Bio HTML output:', container.innerHTML);
     });
 
-    it('should render default bio when none provided', () => {
+    it('should render nothing when no bio is provided', () => {
       const mockData = createMockResidentData({
         capabilities: {} // No bio
       });
@@ -80,9 +80,7 @@ describe('Component HTML Output Verification', () => {
         { residentData: mockData }
       );
 
-      const bioText = container.textContent;
-      expect(bioText).toContain('Welcome to my profile!');
-      expect(bioText).toContain('About Me');
+      expect(container.textContent).toBe('');
     });
   });
 

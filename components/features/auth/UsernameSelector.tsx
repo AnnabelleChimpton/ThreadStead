@@ -410,7 +410,7 @@ export default function UsernameSelector({
       {betaStatusError && (
         <div className="p-3 rounded text-sm bg-yellow-100 border border-yellow-300 text-yellow-800">
           <div className="flex items-center justify-between">
-            <span>⚠️ Failed to load beta status: {betaStatusError}</span>
+            <span>Failed to load beta status: {betaStatusError}</span>
             <button
               onClick={() => {
                 setBetaStatusRetryCount(0);
@@ -439,7 +439,7 @@ export default function UsernameSelector({
             <div className={`text-xs mt-1 ${isValidBetaKeyFormat(betaKey) ? 'text-green-600' : 'text-red-600'}`}>
               {isValidBetaKeyFormat(betaKey) 
                 ? "✓ Valid beta key format"
-                : "⚠️ Invalid format. Should be: BETA-XXXX-XXXX-XXXX"
+                : "✗ Invalid format. Should be: BETA-XXXX-XXXX-XXXX"
               }
             </div>
           )}

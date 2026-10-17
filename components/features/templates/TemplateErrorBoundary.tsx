@@ -121,7 +121,6 @@ export default class TemplateErrorBoundary extends Component<
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-            <span style={{ fontSize: '28px' }}>🚨</span>
             <div>
               <h3 style={{ margin: '0', fontSize: '18px', fontWeight: '700' }}>
                 Template Error
@@ -189,7 +188,7 @@ export default class TemplateErrorBoundary extends Component<
                   color: '#dc2626',
                 }}
               >
-                🔍 Error Details (Development Only)
+                Error Details (Development Only)
               </summary>
               <div
                 style={{
@@ -256,7 +255,7 @@ export default class TemplateErrorBoundary extends Component<
                 e.currentTarget.style.backgroundColor = '#dc2626';
               }}
             >
-              🔄 Try Again
+              Try Again
             </button>
 
             <span style={{ fontSize: '12px', opacity: 0.7 }}>

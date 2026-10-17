@@ -20,6 +20,7 @@ export type ReportReason =
   | "copyright"
   | "other";
 import Modal from "@/components/ui/feedback/Modal";
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface ReportButtonProps {
   reportType: ReportType;
@@ -119,7 +120,7 @@ export default function ReportButton({
         className={`${buttonClasses} transition-colors ${className}`}
         title="Report this content"
       >
-        <span>🚩</span>
+        <PixelIcon name="flag" size={14} className="inline-block align-middle" />
         <span className="hidden md:inline">{size !== "dropdown" ? " Report" : "Report"}</span>
       </button>
 
@@ -131,10 +132,9 @@ export default function ReportButton({
         >
           {submitted ? (
             <div className="text-center py-8">
-              <div className="text-green-600 mb-2 text-lg">✅</div>
-              <p className="font-semibold text-green-700">Report submitted successfully</p>
+              <p className="font-semibold text-green-700">Report sent.</p>
               <p className="text-sm text-gray-600 mt-2">
-                Thank you for helping keep our community safe. Our moderators will review this report.
+                Every report gets read by a person.
               </p>
             </div>
           ) : (
@@ -195,7 +195,7 @@ export default function ReportButton({
                   onChange={(e) => setDescription(e.target.value)}
                   className="w-full border border-gray-300 rounded p-2 text-sm"
                   rows={3}
-                  placeholder="Provide any additional context that might help moderators understand the issue..."
+                  placeholder="Provide any additional context that might help explain the problem..."
                   maxLength={500}
                 />
                 <div className="text-xs text-gray-500 mt-1">

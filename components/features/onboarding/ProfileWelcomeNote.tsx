@@ -2,6 +2,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { isNewUser } from '@/lib/welcome/user-status';
 import { PixelIcon } from '@/components/ui/PixelIcon';
+import { useSiteConfig } from '@/hooks/useSiteConfig';
 
 interface ProfileWelcomeNoteProps {
   user?: any;
@@ -15,6 +16,7 @@ export default function ProfileWelcomeNote({
   onDismiss 
 }: ProfileWelcomeNoteProps) {
   const [isDismissed, setIsDismissed] = useState(false);
+  const { config } = useSiteConfig();
 
   // Only show for new users on their own profile
   if (!isOwnProfile || !isNewUser(user) || isDismissed) {
@@ -47,20 +49,20 @@ export default function ProfileWelcomeNote({
       <div className="text-center">
         <div className="text-5xl mb-4 flex justify-center"><PixelIcon name="human-handsup" size={48} /></div>
         <h3 className="text-xl font-bold text-gray-800 mb-3">
-          Welcome to Threadstead, {user?.primaryHandle?.split('@')[0] || 'friend'}!
+          Welcome to {config.site_name}, {user?.primaryHandle?.split('@')[0] || 'friend'}!
         </h3>
         <p className="text-gray-700 mb-4 leading-relaxed">
-          Your profile is all set up! Ready to explore?<br/>
-          <strong>The Welcome Ring has a fun tutorial to get you started with ThreadRings.</strong>
+          Your page is set up.<br/>
+          <strong>The Welcome Ring has a short tour of how rings work.</strong>
         </p>
 
         <div className="bg-white/80 border border-purple-200 rounded-lg p-4 mb-4 mx-auto max-w-md">
           <h4 className="font-bold text-purple-800 mb-2"><PixelIcon name="trophy" className="inline-block align-middle mr-1" /> Learn the basics:</h4>
           <div className="text-sm text-purple-700 space-y-1">
-            <div>• How communities work</div>
-            <div>• Posting and commenting</div>
-            <div>• Finding your people</div>
-            <div>• The Ring family tree</div>
+            <div>• Reading ring posts</div>
+            <div>• Leaving a comment</div>
+            <div>• Visiting someone&apos;s page</div>
+            <div>• Browsing the other rings</div>
           </div>
         </div>
 
@@ -83,7 +85,7 @@ export default function ProfileWelcomeNote({
         </div>
 
         <p className="text-xs text-gray-500 mt-3 italic">
-          This tutorial takes about 5 minutes and you&apos;ll get a graduate badge! <PixelIcon name="trophy" className="inline-block align-middle" />
+          About 5 minutes.
         </p>
       </div>
     </div>

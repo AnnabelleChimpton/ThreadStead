@@ -11,15 +11,15 @@ export function setCelebrationToastHandler(handler: (message: string) => void) {
   showSuccessToast = handler;
 }
 
-// Gentle celebration messages
+// Toasts for Welcome Ring tour steps
 const CELEBRATION_MESSAGES = {
-  joinedRing: "Welcome to the Welcome Ring! Let's get started! 🎉",
-  firstPost: "Nice! You've joined the conversation! 💬",
-  firstComment: "Great comment! You're helping build the community! 💬",
-  visitedProfile: "Profile explored! You're discovering what makes Threadstead special! ✨",
-  browseRings: "Ring explorer activated! So many communities to discover! 🧵",
-  completedWelcome: "You're a ThreadRings pro now! Time to explore more Rings! 🎓",
-  default: "Nice work! Keep exploring! 🌟"
+  joinedRing: "You joined the Welcome Ring.",
+  firstPost: "Step done: opened a thread.",
+  firstComment: "Comment posted.",
+  visitedProfile: "Step done: visited a neighbor's page.",
+  browseRings: "Step done: browsed the rings.",
+  completedWelcome: "That's all five. You've graduated.",
+  default: "Step done."
 };
 
 export function celebrateAction(action: keyof typeof CELEBRATION_MESSAGES | 'default'): void {
@@ -35,7 +35,7 @@ export function celebrateAction(action: keyof typeof CELEBRATION_MESSAGES | 'def
         showSuccessToast(message);
       } else {
         // Fallback to console if no toast handler is set after waiting
-        console.log('🎉 ' + message);
+        console.log(message);
       }
     }, 100);
   }
@@ -108,15 +108,4 @@ function createConfettiParticle(color: string): void {
   };
 
   requestAnimationFrame(animate);
-}
-
-// Encouraging messages for different contexts
-export function getEncouragingMessage(context: 'empty' | 'locked' | 'progress'): string {
-  const messages = {
-    empty: "Your Ring neighborhood is empty! Let's fix that 🏠",
-    locked: "Join a few Rings first, then you can start your own! 🌱",
-    progress: "You're doing great! Keep exploring! ⭐"
-  };
-  
-  return messages[context];
 }
