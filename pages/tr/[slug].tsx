@@ -29,6 +29,7 @@ import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import { useWelcomeRingTracking } from "../../hooks/useWelcomeRingTracking";
 import { contentMetadataGenerator } from "@/lib/utils/metadata/content-metadata";
 import { PixelIcon } from '@/components/ui/PixelIcon';
+import { serializeJsonLd } from "@/lib/utils/sanitization/json-ld";
 
 // Helper function to count total descendants recursively
 function countTotalDescendants(descendants: any[]): number {
@@ -928,7 +929,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
             <script
               type="application/ld+json"
               dangerouslySetInnerHTML={{
-                __html: JSON.stringify(ringMetadata.structuredData, null, 0)
+                __html: serializeJsonLd(ringMetadata.structuredData)
               }}
             />
           </>

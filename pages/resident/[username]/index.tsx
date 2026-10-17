@@ -31,6 +31,7 @@ import { contentMetadataGenerator } from "@/lib/utils/metadata/content-metadata"
 import { getSiteCSS } from "@/lib/utils/css/site-css-server";
 import { generateOptimizedCSS } from "@/lib/utils/css/layers";
 import { resolveCSSMode } from "@/lib/utils/css/css-mode";
+import { serializeJsonLd } from "@/lib/utils/sanitization/json-ld";
 
 
 // Dynamically import components to avoid SSR issues
@@ -347,7 +348,7 @@ export default function ProfilePage({
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify(profileMetadata.structuredData, null, 0)
+            __html: serializeJsonLd(profileMetadata.structuredData)
           }}
         />
       </Head>

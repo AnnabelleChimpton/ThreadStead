@@ -8,6 +8,7 @@ import ProfileLayout from "@/components/ui/layout/ProfileLayout";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePostView } from "@/hooks/usePostView";
 import { contentMetadataGenerator } from "@/lib/utils/metadata/content-metadata";
+import { serializeJsonLd } from "@/lib/utils/sanitization/json-ld";
 
 type PostPageProps = {
   username: string;
@@ -105,7 +106,7 @@ export default function PostPage({ username, post, authorDisplayName, initialCom
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify(postMetadata.structuredData, null, 0)
+            __html: serializeJsonLd(postMetadata.structuredData)
           }}
         />
       </Head>

@@ -3,6 +3,8 @@
  * Provides consistent, SEO-optimized metadata across all pages
  */
 
+import { serializeJsonLd } from "../sanitization/json-ld";
+
 export interface MetadataConfig {
   title: string;
   description?: string;
@@ -119,7 +121,7 @@ export class MetadataGenerator {
 
     // Structured data (JSON-LD)
     if (config.structuredData) {
-      const jsonLd = JSON.stringify(config.structuredData, null, 0);
+      const jsonLd = serializeJsonLd(config.structuredData);
       html += `<script type="application/ld+json">${jsonLd}</script>\n`;
     }
 

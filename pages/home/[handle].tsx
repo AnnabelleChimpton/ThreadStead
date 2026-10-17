@@ -4,6 +4,7 @@ import Head from 'next/head'
 import Layout from '../../components/ui/layout/Layout'
 import PixelHomePage from '../../components/pixel-homes/PixelHomePage'
 import { HouseTemplate, ColorPalette } from '../../components/pixel-homes/HouseSVG'
+import { serializeJsonLd } from "@/lib/utils/sanitization/json-ld";
 
 interface UserHomeConfig {
   houseTemplate: HouseTemplate
@@ -78,7 +79,7 @@ export default function PixelHome({
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
+            __html: serializeJsonLd({
               '@context': 'https://schema.org',
               '@type': 'ProfilePage',
               mainEntity: {

@@ -16,6 +16,7 @@ import { contentMetadataGenerator } from '@/lib/utils/metadata/content-metadata'
 import UserMention from '@/components/ui/navigation/UserMention';
 import { PixelIcon } from '@/components/ui/PixelIcon';
 import { QuickSubmitWidget } from '@/components/features/search/QuickSubmitWidget';
+import { serializeJsonLd } from "@/lib/utils/sanitization/json-ld";
 
 interface DiscoverProps {
   siteConfig: SiteConfig;
@@ -528,7 +529,7 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify(discoverMetadata.structuredData, null, 0)
+            __html: serializeJsonLd(discoverMetadata.structuredData)
           }}
         />
       </Head>

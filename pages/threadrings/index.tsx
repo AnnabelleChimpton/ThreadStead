@@ -10,6 +10,7 @@ import FeatureGate, { NewUserTooltip } from "../../components/features/onboardin
 import { useCurrentUser } from "../../hooks/useCurrentUser";
 import { MetadataGenerator } from "@/lib/utils/metadata/metadata-generator";
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+import { serializeJsonLd } from "@/lib/utils/sanitization/json-ld";
 
 interface ThreadRingsPageProps {
   siteConfig: SiteConfig;
@@ -205,7 +206,7 @@ export default function ThreadRingsPage({ siteConfig }: ThreadRingsPageProps) {
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
+            __html: serializeJsonLd({
               '@context': 'https://schema.org',
               '@type': 'CollectionPage',
               name: threadRingsMetadata.title,
@@ -216,7 +217,7 @@ export default function ThreadRingsPage({ siteConfig }: ThreadRingsPageProps) {
                 name: 'ThreadRings',
                 description: 'Community-driven ThreadRings on ThreadStead'
               }
-            }, null, 0)
+            })
           }}
         />
       </Head>

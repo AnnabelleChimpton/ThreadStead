@@ -20,6 +20,7 @@ import { getOgImageUrl } from "@/lib/utils/og-image-url";
 import { PixelIcon } from '@/components/ui/PixelIcon';
 import CommunityTicker from "@/components/CommunityTicker";
 import HomeHero from "@/components/home/HomeHero";
+import { serializeJsonLd } from "@/lib/utils/sanitization/json-ld";
 
 interface HomeProps {
   siteConfig: SiteConfig;
@@ -279,7 +280,7 @@ function LandingPage({ siteConfig, ogImageUrl }: { siteConfig: SiteConfig; ogIma
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify(homepageMetadata.structuredData, null, 0)
+            __html: serializeJsonLd(homepageMetadata.structuredData)
           }}
         />
       </Head>
@@ -571,7 +572,7 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify(homepageMetadata.structuredData, null, 0)
+            __html: serializeJsonLd(homepageMetadata.structuredData)
           }}
         />
       </Head>
@@ -837,7 +838,7 @@ function UnifiedHomepage({ siteConfig, ogImageUrl, userCount }: { siteConfig: Si
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify(homepageMetadata.structuredData, null, 0)
+            __html: serializeJsonLd(homepageMetadata.structuredData)
           }}
         />
       </Head>
