@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+# Deploy ThreadStead on the production server.
+#
+#   ./scripts/deploy.sh
+#
+# Stops at the first failing step, and checks the env BEFORE building or
+# restarting, so a bad deploy leaves the running site untouched. Prints the
+# previous commit so you can roll back.
+#
+# The server's checkout carries one commit of its own (9d7b631, untracks
+# files that hold live data), so pulls are merges — hence --no-edit.
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+PM2_APP="${PM2_APP:-threadstead}"
+PORT="$(grep -E '^PORT=' .env 2>/dev/null | tail -1 | cut -d= -f2 | tr -d "\"'" || true)"
+PORT="${PORT:-3000}"
+
+step() { printf '\n==> %s\n' "$*"; }
+
+PREV="$(git rev-parse --short HEAD)"
+step "Deploying from $(pwd) (currently $PREV)"
+
+step "Pulling origin/main"
+git pull --no-edit origin main
+NEW="$(git rev-parse --short HEAD)"
+ROLLBACK="git reset --hard $PREV && npm ci --no-audit --no-fund && npx prisma generate && npm run build && pm2 restart $PM2_APP --update-env"
+if [ "$NEW" = "$PREV" ]; then
+  echo "Already up to date — continuing anyway (rebuild + restart)."
+fi
+
+step "Installing dependencies (npm ci: exact lockfile, never rewrites it)"
+npm ci --no-audit --no-fund
+
+step "Generating Prisma client"
+npx prisma generate >/dev/null
+
+step "Checking environment (the new build refuses to start on a bad value)"
+npm run --silent env:check
+
+step "Applying database migrations"
+npx prisma migrate deploy
+
+step "Building"
+npm run build
+
+step "Restarting $PM2_APP"
+pm2 restart "$PM2_APP" --update-env >/dev/null
+
+step "Waiting for the site on port $PORT"
+ok=""
+for _ in $(seq 1 30); do
+  if curl -sf -o /dev/null "http://127.0.0.1:$PORT/"; then ok=1; break; fi
+  sleep 2
+done
+if [ -z "$ok" ]; then
+  echo "Site did not answer on port $PORT within 60s. Recent errors:"
+  pm2 logs "$PM2_APP" --err --lines 30 --nostream || true
+  echo
+  echo "Roll back with:"
+  echo "  $ROLLBACK"
+  exit 1
+fi
+echo "Site is up."
+
+step "RingHub connection"
+if curl -sf "http://127.0.0.1:$PORT/api/ringhub/health-check" | grep -q '"authenticated":true'; then
+  echo "RingHub: authenticated."
+else
+  echo "WARNING: RingHub is not authenticating. Check:"
+  echo "  curl -s http://127.0.0.1:$PORT/api/ringhub/health-check"
+fi
+
+step "Done: $PREV -> $NEW"
+echo "Roll back with:"
+echo "  $ROLLBACK"
+echo "(Database migrations are not undone by a rollback.)"
