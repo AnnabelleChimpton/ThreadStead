@@ -88,6 +88,9 @@ model User {
   conversations             ConversationParticipant[]
   messagesSent              DirectMessage[]
   userDID                   UserDID?
+
+  // Resolved on nearly every profile/pixel-home/API path that takes a username.
+  @@index([primaryHandle])
 }
 
 model Handle {
@@ -121,10 +124,10 @@ model Profile {
   hideNavigation     Boolean      @default(false)
   templateEnabled    Boolean      @default(false)
   templateMode       TemplateMode @default(default)
-  badgePreferences    Json?
-  includeSiteCSS      Boolean      @default(true)
-  cssMode             String       @default("inherit") // 'inherit' | 'override' | 'disable'
-  profileMidiId       String?
+  badgePreferences   Json?
+  includeSiteCSS     Boolean      @default(true)
+  cssMode            String       @default("inherit") // 'inherit' | 'override' | 'disable'
+  profileMidiId      String?
   midiAutoplay       Boolean      @default(false)
   midiLoop           Boolean      @default(false)
   compiledTemplate   Json?
@@ -179,17 +182,17 @@ model UserHomeConfig {
   houseDescription    String? // Custom description text shown below house (max 200 characters)
   houseBoardText      String? // Custom text shown on house board/sign (max 30 characters)
   // House accessory customizations
-  houseNumber         String?  // House number text (e.g. "42")
-  houseNumberStyle    String?  // classic, modern, rustic
-  welcomeMat          String?  // simple, ornate, seasonal
-  welcomeMatText      String?  // Custom welcome mat text
-  welcomeMatColor     String?  // Welcome mat color
-  chimneyStyle        String?  // none, brick, stone
-  exteriorLights      String?  // none, lantern, string
-  windowTreatments    String?  // none, curtains, shutters
-  terrain             Json?   // Grid-based terrain map { "x,y": "terrainId" }
+  houseNumber         String? // House number text (e.g. "42")
+  houseNumberStyle    String? // classic, modern, rustic
+  welcomeMat          String? // simple, ornate, seasonal
+  welcomeMatText      String? // Custom welcome mat text
+  welcomeMatColor     String? // Welcome mat color
+  chimneyStyle        String? // none, brick, stone
+  exteriorLights      String? // none, lantern, string
+  windowTreatments    String? // none, curtains, shutters
+  terrain             Json? // Grid-based terrain map { "x,y": "terrainId" }
   // Custom pixel art assets (user-uploaded)
-  customAssets        Json?   // Array of {slot: 0-4, url: string} for up to 5 custom pixel art images
+  customAssets        Json? // Array of {slot: 0-4, url: string} for up to 5 custom pixel art images
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
@@ -208,7 +211,7 @@ model UserHomeDecoration {
   layer          Int      @default(1) // Z-layer for rendering order
   variant        String? // color variant, size, etc.
   size           String?  @default("medium") // small, medium, large
-  data           Json?    // Flexible storage for custom data (e.g. sign text)
+  data           Json? // Flexible storage for custom data (e.g. sign text)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -251,7 +254,7 @@ model Post {
   textPreview       String?
   contentWarning    String? // Custom spoiler warning text
   isSpoiler         Boolean          @default(false) // Quick flag for filtering
-  metadata          Json?            // Journal metadata (mood, listening to, etc.)
+  metadata          Json? // Journal metadata (mood, listening to, etc.)
   threadRingPostIds Json? // Store ThreadRing database UUIDs mapped by ring slug
   comments          Comment[]        @relation("PostComments")
   author            User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
@@ -261,6 +264,8 @@ model Post {
 
   // Search performance indexes
   @@index([visibility, createdAt])
+  // Profile feeds filter by author newest-first; also covers the authorId FK.
+  @@index([authorId, createdAt])
 }
 
 model PostMetrics {
@@ -314,6 +319,13 @@ model Comment {
   parent    Comment?      @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies   Comment[]     @relation("CommentReplies")
   post      Post          @relation("PostComments", fields: [postId], references: [id], onDelete: Cascade)
+
+  // Thread loads filter by post + status and order by createdAt; the counts on
+  // post views hit (postId, status) too. Without these every comment render is
+  // a seq scan of the whole table.
+  @@index([postId, status, createdAt])
+  @@index([authorId])
+  @@index([parentId])
 }
 
 model GuestbookEntry {
@@ -325,6 +337,9 @@ model GuestbookEntry {
   status       String   @default("visible")
   signature    String?
   owner        User     @relation("EntriesToOwner", fields: [profileOwner], references: [id], onDelete: Cascade)
+
+  // Every profile view reads this owner's entries newest-first.
+  @@index([profileOwner, status, createdAt])
 }
 
 model PluginInstall {
@@ -383,6 +398,9 @@ model Follow {
   follower   User     @relation("follows_follower", fields: [followerId], references: [id], onDelete: Cascade)
 
   @@id([followerId, followeeId])
+  // The PK covers followerId-prefixed lookups ("who does X follow"). Follower
+  // counts filter on followeeId alone, which the PK cannot serve.
+  @@index([followeeId, status])
 }
 
 model BetaKey {
@@ -1469,8 +1487,8 @@ model BookmarkCommunitySubmission {
 // ========================================
 
 model DecorationItem {
-  id       String @id @default(cuid())
-  itemId   String @unique // roses_red, stone_path, etc.
+  id       String  @id @default(cuid())
+  itemId   String  @unique // roses_red, stone_path, etc.
   name     String // "Red Roses"
   type     String // plant, furniture, etc.
   category String // plants, paths, etc.
@@ -1549,8 +1567,8 @@ enum ClaimMethod {
 // Rate limiting table for database-backed rate limiting
 model RateLimit {
   id           String   @id @default(cuid())
-  identifier   String   // userId or IP address
-  category     String   // endpoint category (e.g., "posts", "comments", "uploads")
+  identifier   String // userId or IP address
+  category     String // endpoint category (e.g., "posts", "comments", "uploads")
   requestCount Int      @default(1)
   windowStart  DateTime @default(now())
   expiresAt    DateTime
@@ -1565,14 +1583,14 @@ model RateLimit {
 // ========================================
 
 model Poll {
-  id          String       @id @default(cuid())
+  id          String    @id @default(cuid())
   question    String
   description String?
   createdBy   String
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   endsAt      DateTime?
-  isActive    Boolean      @default(true)
+  isActive    Boolean   @default(true)
 
   creator User         @relation("PollsCreated", fields: [createdBy], references: [id], onDelete: Cascade)
   options PollOption[]
@@ -1584,11 +1602,11 @@ model Poll {
 }
 
 model PollOption {
-  id        String     @id @default(cuid())
+  id        String   @id @default(cuid())
   pollId    String
   text      String
   order     Int
-  createdAt DateTime   @default(now())
+  createdAt DateTime @default(now())
 
   poll  Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
   votes PollVote[]
@@ -1651,9 +1669,9 @@ model ChatRoom {
   id         String        @id // e.g. "lounge", "dev", "offtopic"
   name       String
   createdAt  DateTime      @default(now())
-  topic      String?       // Room topic/MOTD
-  topicSetBy String?       // User ID who set the topic
-  topicSetAt DateTime?     // When topic was set
+  topic      String? // Room topic/MOTD
+  topicSetBy String? // User ID who set the topic
+  topicSetAt DateTime? // When topic was set
   messages   ChatMessage[]
 }
 
@@ -1662,7 +1680,7 @@ model ChatMessage {
   createdAt DateTime @default(now())
   roomId    String
   userId    String
-  body      String   // 280 chars max enforced at API level
+  body      String // 280 chars max enforced at API level
   isAction  Boolean  @default(false) // True for /me action messages
 
   room ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
@@ -1693,7 +1711,7 @@ model Conversation {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   participants ConversationParticipant[]
   messages     DirectMessage[]
 
@@ -1701,29 +1719,29 @@ model Conversation {
 }
 
 model ConversationParticipant {
-  id             String       @id @default(cuid())
+  id             String    @id @default(cuid())
   conversationId String
   userId         String
-  joinedAt       DateTime     @default(now())
+  joinedAt       DateTime  @default(now())
   lastReadAt     DateTime?
-  
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([conversationId, userId])
   @@index([userId])
 }
 
 model DirectMessage {
-  id             String       @id @default(cuid())
+  id             String   @id @default(cuid())
   conversationId String
   senderId       String
-  body           String       @db.Text
-  createdAt      DateTime     @default(now())
-  isRead         Boolean      @default(false)
-  
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  body           String   @db.Text
+  createdAt      DateTime @default(now())
+  isRead         Boolean  @default(false)
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
 
   @@index([conversationId, createdAt])
   @@index([senderId])
