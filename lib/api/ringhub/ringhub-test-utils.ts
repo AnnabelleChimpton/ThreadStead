@@ -114,36 +114,23 @@ export async function testRingHubAuth(): Promise<ConnectionTestResult> {
   const startTime = Date.now()
   
   try {
-    // Try to create a test ring to verify authentication
-    const testRing = {
-      name: 'Connection Test Ring',
-      slug: `test-ring-${Date.now()}`,
-      description: 'Temporary ring for testing Ring Hub connection',
-      visibility: 'PRIVATE' as const,
-      joinPolicy: 'CLOSED' as const,
-      postPolicy: 'CLOSED' as const
-    }
-    
-    await client.forkRing('spool', testRing)
-    
-    // Clean up by deleting the test ring
-    try {
-      await client.deleteRing(testRing.slug)
-    } catch {
-      // Ignore cleanup errors
-    }
-    
+    // A signed read of an auth-required endpoint proves the hub accepts our
+    // signature. This used to fork (and then try to delete) a real ring on
+    // every call — from a public endpoint, against production — which spent
+    // the instance's fork rate limit and could leave test rings behind.
+    await client.getMyMemberships({ limit: 1 })
+
     return {
       success: true,
       responseTime: Date.now() - startTime,
-      endpoint: '/trp/rings (authenticated)'
+      endpoint: '/trp/my/memberships (authenticated)'
     }
   } catch (error) {
     return {
       success: false,
       error: error instanceof Error ? error.message : String(error),
       responseTime: Date.now() - startTime,
-      endpoint: '/trp/rings (authenticated)'
+      endpoint: '/trp/my/memberships (authenticated)'
     }
   }
 }
