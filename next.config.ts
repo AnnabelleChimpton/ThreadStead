@@ -105,6 +105,13 @@ const nextConfig: NextConfig = {
         permanent: true,
       },
 
+      // Old ring-neighborhood URL
+      {
+        source: '/rings/:slug/neighborhood',
+        destination: '/neighborhood/ring/:slug',
+        permanent: true,
+      },
+
       // Threadrings redirects
       {
         source: '/threadrings/create',

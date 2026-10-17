@@ -276,44 +276,6 @@ export default function ProfilePage({
     },
   ];
 
-  // plugin tabs (unused currently)
-  /*
-  const _pluginTabs: TabSpec[] = installed.map((p) => {
-    if (p.mode === "trusted" && p.load) {
-      const LazyPlugin = React.lazy<React.ComponentType<PluginContext>>(() =>
-        p.load!().then((plugin) => ({
-          default: plugin.default as React.ComponentType<PluginContext>,
-        }))
-      );
-      return {
-        id: p.id,
-        label: p.label || p.id,
-        content: (
-          <React.Suspense fallback={<div>Loading plugin…</div>}>
-            <LazyPlugin username={username} />
-          </React.Suspense>
-        ),
-      };
-    }
-    if (p.mode === "iframe" && p.iframeUrl) {
-      return {
-        id: p.id,
-        label: p.label || p.id,
-        content: (
-          <iframe
-            title={p.label || p.id}
-            src={`${p.iframeUrl}?username=${encodeURIComponent(username)}`}
-            className="w-full h-[60vh] border-0"
-            sandbox="allow-same-origin allow-scripts"
-          />
-        ),
-      };
-    }
-    return { id: p.id, label: p.label || p.id, content: <div>Plugin unavailable.</div> };
-  });
-  */
-
-  // const tabs: TabSpec[] = [...baseTabs, ...pluginTabs];
   const tabs: TabSpec[] = baseTabs;
 
   return (

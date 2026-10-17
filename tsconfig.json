@@ -17,9 +17,6 @@
       "@/components/*": [
         "components/*"
       ],
-      "@/plugins/*": [
-        "plugins/*"
-      ],
       "@/types/*": [
         "types/*"
       ]
@@ -40,7 +37,6 @@
   ],
   "exclude": [
     "node_modules",
-    ".next",
-    "scripts/archive"
+    ".next"
   ]
 }

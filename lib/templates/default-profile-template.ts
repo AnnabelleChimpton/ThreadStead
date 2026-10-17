@@ -33,10 +33,7 @@ export function generateDefaultProfileTemplate(options: DefaultProfileTemplateOp
     cssMode = 'inherit'
   } = options;
 
-  // For CSS disabled mode, include NavigationBar to provide site navigation
-  const navigationHeader = cssMode === 'disable' ? '<NavigationBar />\n\n' : '';
-  
-  const template = `${navigationHeader}<RetroCard>
+  const template = `<RetroCard>
   <ProfileHeader showPhoto="true" showBio="true" showActions="true" photoSize="md" />
 </RetroCard>
 
