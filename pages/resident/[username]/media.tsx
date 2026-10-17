@@ -180,7 +180,7 @@ export default function MediaGalleryPage({
                   {media.map((item) => (
                     <div
                       key={item.id}
-                      className="group relative border border-thread-sage rounded-lg overflow-hidden bg-thread-paper shadow-cozy hover:shadow-cozyLg transition-all cursor-pointer"
+                      className="group relative border border-thread-sage rounded-lg overflow-hidden bg-thread-paper shadow-cozy hover:shadow-cozy-lg transition-all cursor-pointer"
                       onClick={() => setSelectedImage(item)}
                     >
                       {/* Featured Badge */}

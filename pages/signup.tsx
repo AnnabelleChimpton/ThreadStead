@@ -1227,7 +1227,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                       >
                         Choose Photo
                       </label>
-                      <p className="text-xs text-gray-500 mt-1">JPG, PNG up to 5MB</p>
+                      <p className="text-xs text-gray-500 mt-1">JPG, PNG up to 20MB</p>
                     </div>
                   </div>
                 </div>

@@ -260,7 +260,7 @@ export const getServerSideProps: GetServerSideProps<TemplateEditorPageProps> = a
     if (!currentUser) {
       return {
         redirect: {
-          destination: `/identity?redirect=${encodeURIComponent(`/resident/${username}/template-editor`)}`,
+          destination: '/login',
           permanent: false,
         },
       };

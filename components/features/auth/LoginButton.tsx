@@ -21,9 +21,9 @@ export default function LoginButton({ onToggleIdentity, isIdentityOpen }: LoginB
       return;
     }
 
-    // Check if DID exists, if not redirect to identity page
+    // Check if DID exists, if not redirect to login
     if (!hasExistingDid()) {
-      window.location.href = '/identity';
+      window.location.href = '/login';
       return;
     }
 
@@ -32,15 +32,15 @@ export default function LoginButton({ onToggleIdentity, isIdentityOpen }: LoginB
       setErr(null);
       const kp = getExistingDid();
       if (!kp) {
-        // Redirect to identity page instead of showing error
-        window.location.href = '/identity';
+        // Redirect to login instead of showing error
+        window.location.href = '/login';
         return;
       }
       await performLogin(kp);
     } catch {
-      // If login fails (bad DID, deleted account, etc.), redirect to identity page
+      // If login fails (bad DID, deleted account, etc.), redirect to login
       // instead of showing confusing error messages
-      window.location.href = '/identity';
+      window.location.href = '/login';
     } finally {
       setBusy(false);
     }

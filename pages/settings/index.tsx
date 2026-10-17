@@ -1846,7 +1846,7 @@ export const getServerSideProps: GetServerSideProps<UserSettingsProps> = async (
   if (!user) {
     return {
       redirect: {
-        destination: '/identity',
+        destination: '/login',
         permanent: false,
       },
     };
@@ -1866,7 +1866,7 @@ export const getServerSideProps: GetServerSideProps<UserSettingsProps> = async (
     if (!userData) {
       return {
         redirect: {
-          destination: '/identity',
+          destination: '/login',
           permanent: false,
         },
       };

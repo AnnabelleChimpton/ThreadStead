@@ -107,7 +107,7 @@ export default function MediaGrid({ username, isOwner = false }: MediaGridProps)
     return sortedPhotos.slice(0, 6).map(photo => (
       <div
         key={photo.id}
-        className="ts-media-item border border-thread-sage bg-thread-paper shadow-cozy aspect-square overflow-hidden group relative cursor-pointer hover:shadow-cozyLg transition-all"
+        className="ts-media-item border border-thread-sage bg-thread-paper shadow-cozy aspect-square overflow-hidden group relative cursor-pointer hover:shadow-cozy-lg transition-all"
         onClick={() => setSelectedImage(photo)}
       >
         <img 

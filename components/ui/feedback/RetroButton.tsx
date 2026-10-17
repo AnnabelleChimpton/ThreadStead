@@ -5,7 +5,7 @@ export default function RetroButton({ loading, children, className = "", ...rest
   return (
     <button
       className={
-        "border border-retro-border bg-retro.sun px-3 py-1 shadow-retroSm active:translate-x-[1px] active:translate-y-[1px] " +
+        "border border-retro-border bg-retro-sun px-3 py-1 shadow-retro-sm active:translate-x-[1px] active:translate-y-[1px] " +
         "hover:brightness-95 focus-visible:outline-none " + className
       }
       {...rest}

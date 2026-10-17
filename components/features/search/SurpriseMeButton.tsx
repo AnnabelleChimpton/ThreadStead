@@ -120,7 +120,7 @@ export function SurpriseMeButtonCompact({
             const data = await response.json();
             if (data.threadrings && data.threadrings.length > 0) {
               const randomRing = data.threadrings[Math.floor(Math.random() * data.threadrings.length)];
-              window.open(`/rings/${randomRing.slug}`, '_blank');
+              window.open(`/tr/${randomRing.slug}`, '_blank');
             }
           }
         } else if (surpriseType < 0.66) {

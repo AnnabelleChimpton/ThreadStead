@@ -782,7 +782,7 @@ export const getServerSideProps: GetServerSideProps<CSSEditorPageProps> = async 
     if (!currentUser) {
       return {
         redirect: {
-          destination: `/identity?redirect=${encodeURIComponent(`/resident/${username}/css-editor`)}`,
+          destination: '/login',
           permanent: false,
         },
       };

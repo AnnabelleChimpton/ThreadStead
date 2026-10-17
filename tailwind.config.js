@@ -69,9 +69,11 @@ module.exports = {
           accent: "#8EC5E8",
         },
       },
+      // Tailwind v4 kebab-cases these keys: cozySm → shadow-cozy-sm
       boxShadow: {
         cozy: "3px 3px 0 #A18463",      // warm sage shadow
         cozySm: "2px 2px 0 #A18463",    // small warm shadow
+        cozyLg: "5px 5px 0 #A18463",    // hover lift for cozy cards
         thread: "4px 4px 8px rgba(46, 75, 63, 0.15)", // soft pine shadow
         retro: "4px 4px 0 #A18463",     // updated retro shadow
         retroSm: "2px 2px 0 #A18463",

@@ -645,7 +645,7 @@ export const getServerSideProps: GetServerSideProps<ProfileEditProps> = async ({
     if (!currentUser) {
       return {
         redirect: {
-          destination: `/identity?redirect=${encodeURIComponent(`/resident/${username}/edit`)}`,
+          destination: '/login',
           permanent: false,
         },
       };

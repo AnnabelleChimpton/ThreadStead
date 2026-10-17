@@ -154,7 +154,7 @@ export default function WelcomeRingGuide({ ringSlug, viewer, ring }: WelcomeRing
     // Show welcome toast for existing members
     if (viewer?.threadRingMemberships?.some(m => m.threadRingId === 'welcome')) {
       setTimeout(() => {
-        showSuccess('Welcome back to the Welcome Ring! 🎉 You&apos;re already a member, so we&apos;ve marked that step complete.');
+        showSuccess("Welcome back to the Welcome Ring! You're already a member, so we've marked that step complete.");
       }, 500);
     }
   };
@@ -165,7 +165,7 @@ export default function WelcomeRingGuide({ ringSlug, viewer, ring }: WelcomeRing
     // Show welcome toast for existing members
     if (viewer?.threadRingMemberships?.some(m => m.threadRingId === 'welcome')) {
       setTimeout(() => {
-        showSuccess('Welcome back to the Welcome Ring! 🎉 You&apos;re already a member, so we&apos;ve marked that step complete.');
+        showSuccess("Welcome back to the Welcome Ring! You're already a member, so we've marked that step complete.");
       }, 500);
     }
   };

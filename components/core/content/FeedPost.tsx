@@ -167,7 +167,7 @@ export default function FeedPost({ post, showActivity = false }: FeedPostProps) 
   function handleEdit() {
     // Navigate to edit page
     if (post.authorUsername) {
-      router.push(`/ resident / ${post.authorUsername} /post/${post.id}/edit`);
+      router.push(`/resident/${post.authorUsername}/post/${post.id}/edit`);
     }
   }
 

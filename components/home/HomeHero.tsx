@@ -15,9 +15,6 @@ const CLOUD_TILE = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000
 const GRASS_TILE = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='24'%3E%3Crect y='12' width='16' height='12' fill='%234FAF6D'/%3E%3Crect x='2' y='6' width='3' height='6' fill='%234FAF6D'/%3E%3Crect x='8' y='4' width='3' height='8' fill='%234FAF6D'/%3E%3Crect x='13' y='8' width='3' height='4' fill='%234FAF6D'/%3E%3Crect x='4' y='16' width='2' height='2' fill='%232E4B3F'/%3E%3Crect x='11' y='18' width='2' height='2' fill='%232E4B3F'/%3E%3C/svg%3E")`;
 
 export default function HomeHero({ siteConfig, userCount }: HomeHeroProps) {
-    // Use real user count if available, otherwise fallback to a default range for demo/loading
-    const displayCount = userCount || 42;
-
     return (
         <div className="relative w-full overflow-hidden rounded-xl border-2 border-black shadow-[4px_4px_0_#000] mb-8 bg-[#87CEEB]">
             {/* Drifting pixel clouds */}
@@ -78,16 +75,18 @@ export default function HomeHero({ siteConfig, userCount }: HomeHeroProps) {
                     </Link>
                 </div>
 
-                {/* Live Stats Badge */}
-                <div className="mt-8 inline-flex items-center gap-2 bg-black/80 text-white px-4 py-2 rounded-full border-2 border-white/50 backdrop-blur-sm shadow-lg">
-                    <span className="relative flex h-3 w-3">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-                    </span>
-                    <span className="font-mono text-sm font-bold tracking-wide">
-                        {displayCount} neighbors have moved in
-                    </span>
-                </div>
+                {/* Live Stats Badge (hidden until we have a real count) */}
+                {userCount ? (
+                    <div className="mt-8 inline-flex items-center gap-2 bg-black/80 text-white px-4 py-2 rounded-full border-2 border-white/50 backdrop-blur-sm shadow-lg">
+                        <span className="relative flex h-3 w-3">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                        </span>
+                        <span className="font-mono text-sm font-bold tracking-wide">
+                            {userCount} neighbors have moved in
+                        </span>
+                    </div>
+                ) : null}
             </div>
 
             {/* Pixel grass strip */}

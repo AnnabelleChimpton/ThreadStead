@@ -104,19 +104,19 @@ export default function ExploreHomes({
                 <div className="flex justify-center">
                   <div className="flex flex-wrap gap-3">
                     <Link
-                      href="/explore/homes"
+                      href="/neighborhood/explore/all"
                       className="px-4 py-2 bg-thread-sage text-thread-paper rounded-md text-sm font-medium hover:bg-thread-pine transition-colors shadow-sm"
                     >
                       🌍 All Homes
                     </Link>
                     <Link
-                      href="/explore/homes/recent"
+                      href="/neighborhood/explore/recent"
                       className="px-4 py-2 bg-thread-paper border border-thread-sage text-thread-sage rounded-md text-sm font-medium hover:bg-thread-sage hover:text-thread-paper transition-colors"
                     >
                       ⚡ Recently Updated
                     </Link>
                     <Link
-                      href="/explore/homes/popular"
+                      href="/neighborhood/explore/popular"
                       className="px-4 py-2 bg-thread-paper border border-thread-sage text-thread-sage rounded-md text-sm font-medium hover:bg-thread-sage hover:text-thread-paper transition-colors"
                     >
                       🔥 Popular This Week

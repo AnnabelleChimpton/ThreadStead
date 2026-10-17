@@ -644,7 +644,7 @@ export const getServerSideProps: GetServerSideProps<BadgeManagerPageProps> = asy
   if (!user) {
     return {
       redirect: {
-        destination: '/identity',
+        destination: '/login',
         permanent: false,
       },
     };
