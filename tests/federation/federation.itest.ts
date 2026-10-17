@@ -13,6 +13,17 @@
 import { RingHubClient, RingHubClientError } from '@/lib/api/ringhub/ringhub-client'
 import { RingHubAuthError } from '@/lib/api/ringhub/ringhub-errors'
 import { makeTestClient, makePublicTestClient, getRuntime } from './harness/test-client'
+import * as ringHubClientModule from '@/lib/api/ringhub/ringhub-client'
+import { createAuthenticatedRingHubClient } from '@/lib/api/ringhub/ringhub-user-operations'
+import { removePostFromRingHub } from '@/lib/domain/posts/ringhub-removal'
+import { buildPostUri } from '@/lib/domain/posts/ringhub-metadata'
+
+// removePostFromRingHub signs as the post's author through this factory, which
+// in the app maps a ThreadStead user id to their DID keypair (DB-backed).
+// Here the "user id" names a harness actor; the hub side stays real.
+jest.mock('@/lib/api/ringhub/ringhub-user-operations', () => ({
+  createAuthenticatedRingHubClient: jest.fn(),
+}))
 
 // One membership lifecycle threads through this whole file, in order.
 let client: RingHubClient
@@ -228,6 +239,75 @@ describe('owner member management (audit 0.8)', () => {
     expect(removed.success).toBe(true)
     const memberships = await second.getMyMemberships({ status: 'ACTIVE' })
     expect(memberships.memberships.find((m) => m.ringSlug === FORK_SLUG)).toBeUndefined()
+  })
+})
+
+describe('post deletion removes hub PostRefs (admin delete-post)', () => {
+  // pages/api/admin/delete-post.ts used to curate with the LOCAL post id signed
+  // as the server DID. Both routes now share removePostFromRingHub.
+  const STORED_POST_ID = 'del-stored'
+  const LEGACY_POST_ID = 'del-legacy'
+  const storedUri = buildPostUri('itest', STORED_POST_ID)
+  const legacyUri = buildPostUri('itest', LEGACY_POST_ID)
+  let storedRefId: string
+  let second: RingHubClient
+  let gate: jest.SpyInstance
+
+  const asPost = (id: string, threadRingPostIds: Record<string, string> | null, slugs: string[]) => ({
+    id,
+    authorId: 'main',
+    author: { primaryHandle: 'itest@threadstead-itest.invalid' },
+    threadRingPostIds,
+    threadRings: slugs.map((slug) => ({ threadRing: { slug } })),
+  })
+
+  beforeAll(async () => {
+    second = makeTestClient('second')
+    gate = jest.spyOn(ringHubClientModule, 'shouldUseRingHub').mockReturnValue(true)
+    ;(createAuthenticatedRingHubClient as jest.Mock).mockImplementation((userId: 'main' | 'second') =>
+      userId === 'main' ? client : makeTestClient(userId)
+    )
+    // The same post in two rings, as create.ts submits it (signed as the author).
+    storedRefId = (await client.submitPost(ringSlug, { uri: storedUri, digest: 'sha256:del-stored' })).id
+    await client.submitPost(FORK_SLUG, { uri: storedUri, digest: 'sha256:del-stored' })
+    // A post from before threadRingPostIds existed: found only by its URI.
+    await client.submitPost(ringSlug, { uri: legacyUri, digest: 'sha256:del-legacy' })
+  })
+
+  afterAll(() => {
+    gate.mockRestore()
+  })
+
+  test('the old call shape could never work: a local post id 404s, a non-author signer 403s', async () => {
+    await expect(client.curatePost(STORED_POST_ID, 'remove')).rejects.toMatchObject({ status: 404 })
+    await expect(second.curatePost(storedRefId, 'remove')).rejects.toMatchObject({ status: 403 })
+  })
+
+  test('one author-signed removal by the stored PostRef id clears every ring', async () => {
+    const curate = jest.spyOn(client, 'curatePost')
+    try {
+      const result = await removePostFromRingHub(
+        asPost(STORED_POST_ID, { [ringSlug]: storedRefId }, [ringSlug, FORK_SLUG]),
+        'Post deleted by admin: itest'
+      )
+      expect(result.synced).toBe(true)
+      expect(result.affectedRings.sort()).toEqual([FORK_SLUG, ringSlug].sort())
+      expect(curate).toHaveBeenCalledTimes(1)
+    } finally {
+      curate.mockRestore()
+    }
+
+    for (const slug of [ringSlug, FORK_SLUG]) {
+      const feed = await client.getRingFeed(slug, { limit: 100 })
+      expect(feed.posts.find((p) => p.uri === storedUri)).toBeUndefined()
+    }
+  })
+
+  test('without a stored id, the canonical URI in the ring feed is matched and removed', async () => {
+    const result = await removePostFromRingHub(asPost(LEGACY_POST_ID, null, [ringSlug]), 'itest')
+    expect(result).toEqual({ synced: true, affectedRings: [ringSlug] })
+    const feed = await client.getRingFeed(ringSlug, { limit: 100 })
+    expect(feed.posts.find((p) => p.uri === legacyUri)).toBeUndefined()
   })
 })
 

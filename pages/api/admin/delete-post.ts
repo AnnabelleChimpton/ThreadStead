@@ -1,5 +1,5 @@
 import { db } from "@/lib/config/database/connection";
-import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
+import { removePostFromRingHub } from "@/lib/domain/posts/ringhub-removal";
 import { apiHandler } from "@/lib/api/handler";
 
 export default apiHandler(
@@ -16,6 +16,7 @@ export default apiHandler(
         include: {
           author: {
             select: {
+              id: true,
               primaryHandle: true,
               profile: {
                 select: {
@@ -42,42 +43,22 @@ export default apiHandler(
         return res.status(404).json({ error: "Post not found" });
       }
 
-      // If post is associated with ThreadRings, notify RingHub about the removal
-      if (post.threadRings.length > 0) {
-        const ringHubClient = getRingHubClient();
-      
-        if (ringHubClient) {
-          try {
-            // Use the global author removal endpoint
-            // This will remove the post from ALL rings where it exists
-            const ringHubResponse = await ringHubClient.curatePost(
-              postId, 
-              'remove',
-              {
-                reason: `Post deleted by admin: ${adminUser.primaryHandle || adminUser.id}`
-              }
-            );
-          } catch (ringHubError: any) {
-            // Log the error but continue with local deletion
-            // We don't want to block local deletion if RingHub is unavailable
-            console.error("Failed to remove post from RingHub:", {
-              postId: postId,
-              error: ringHubError.message,
-              status: ringHubError.status,
-              fullError: ringHubError
-            });
-            console.error("Continuing with local deletion despite RingHub sync failure for post:", postId);
-          }
-        }
-      }
+      // Remove the hub PostRefs before the local post goes. The hub only lets
+      // the author (or a ring moderator) curate a PostRef, so this is signed as
+      // the post's author, not the admin or the server. Never blocks deletion.
+      const { synced: ringHubSynced } = await removePostFromRingHub(
+        post,
+        `Post deleted by admin: ${adminUser.primaryHandle || adminUser.id}`
+      );
 
       // Delete the post from local database (cascade will handle PostThreadRing associations)
       await db.post.delete({
         where: { id: postId },
       });
 
-      res.json({ 
+      res.json({
         success: true,
+        ringHubSynced,
         deletedPost: {
           id: post.id,
           author: post.author.profile?.displayName || post.author.primaryHandle || "Unknown",

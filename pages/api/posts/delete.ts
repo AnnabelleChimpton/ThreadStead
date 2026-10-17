@@ -1,9 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/config/database/connection";
-import { createAuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
 import { getSessionUser } from "@/lib/auth/server";
 import { requireAction } from "@/lib/domain/users/capabilities";
-import { buildPostUri } from "@/lib/domain/posts/ringhub-metadata";
+import { removePostFromRingHub } from "@/lib/domain/posts/ringhub-removal";
 import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
 import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
 
@@ -46,104 +45,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   
   if (!post || post.authorId !== me.id) return res.status(404).json({ error: "not found" });
 
-  // If post is associated with ThreadRings, notify RingHub about the author removal
-  let ringHubSynced = false;
-  let affectedRingsResult: string[] = [];
-  
-  if (post.threadRings.length > 0) {
-    try {
-      // Use user-authenticated client for author deletion
-      const authenticatedClient = createAuthenticatedRingHubClient(me.id);
-      
-      let totalRemovedCount = 0;
-      const affectedRings: string[] = [];
-      
-      // Check if we have stored ThreadRing post IDs
-      const threadRingPostIds = post.threadRingPostIds as Record<string, string> || {};
-      
-      for (const threadRingAssociation of post.threadRings) {
-        try {
-          const ringSlug = threadRingAssociation.threadRing.slug;
-          const threadRingPostId = threadRingPostIds[ringSlug];
-          
-          if (threadRingPostId) {
-            
-            const ringHubResponse = await authenticatedClient.curatePost(
-              threadRingPostId, 
-              'remove',
-              {
-                reason: reason || "Author removed their own content"
-              }
-            );
-            
-            totalRemovedCount++;
-            affectedRings.push(ringSlug);
-          } else {
-            // Fallback to old URI matching method for posts created before this fix
-            console.warn(`❌ No stored ThreadRing post ID for ring ${ringSlug}, falling back to URI matching`);
-            
-            // Build the SAME canonical URI create.ts submits (local handle part,
-            // i.e. primaryHandle.split('@')[0]) so this fallback actually matches
-            // the hub PostRef. Using the full primaryHandle here never matched.
-            const postUri = buildPostUri(post.author.primaryHandle, id);
-            
-            const ringPosts = await authenticatedClient.getRingFeed(ringSlug);
-            const matchingPostRef = ringPosts.posts.find((postRef: any) => 
-              postRef.uri === postUri
-            );
-            
-            if (matchingPostRef && matchingPostRef.id) {
-              const ringHubResponse = await authenticatedClient.curatePost(
-                matchingPostRef.id, 
-                'remove',
-                {
-                  reason: reason || "Author removed their own content"
-                }
-              );
-              
-              totalRemovedCount++;
-              affectedRings.push(ringSlug);
-            } else {
-              console.warn(`❌ Could not find PostRef for post ${id} in ring ${ringSlug}`);
-            }
-          }
-        } catch (ringError: any) {
-          console.error(`Failed to remove post from ring ${threadRingAssociation.threadRing.slug}:`, {
-            error: ringError.message,
-            status: ringError.status
-          });
-        }
-      }
-      
-      ringHubSynced = totalRemovedCount > 0;
-      affectedRingsResult = affectedRings;
-      
-    } catch (ringHubError: any) {
-      // Check if it's a permission error (author can only remove their own posts)
-      if (ringHubError.status === 403) {
-        console.error("RingHub rejected author removal - may not be the original author on RingHub:", {
-          postId: id,
-          error: ringHubError.message,
-          status: ringHubError.status
-        });
-      } else if (ringHubError.status === 404) {
-        console.error("RingHub could not find post for removal:", {
-          postId: id,
-          error: ringHubError.message,
-          status: ringHubError.status
-        });
-      } else {
-        console.error("Failed to remove post from RingHub:", {
-          postId: id,
-          error: ringHubError.message,
-          status: ringHubError.status,
-          fullError: ringHubError
-        });
-      }
-      // Continue with local deletion even if RingHub sync fails
-      console.error("Continuing with local deletion despite RingHub sync failure for post:", id);
-    }
-  }
+  // Remove the hub PostRefs as the author (never blocks local deletion).
+  const { synced: ringHubSynced, affectedRings: affectedRingsResult } =
+    await removePostFromRingHub(post, reason || "Author removed their own content");
 
   // Delete the post from local database (cascade will handle all associations).
   // The cascade removes PostThreadRing rows but does NOT adjust ThreadRing.postCount,
