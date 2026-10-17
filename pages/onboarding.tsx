@@ -70,26 +70,28 @@ export default function Onboarding() {
     <Layout>
       <div className="flex flex-col items-center space-y-6">
         {/* Progress Indicator */}
-        <div className="w-full max-w-md bg-white border border-gray-300 rounded-lg shadow-[2px_2px_0_#000] p-4">
+        <div className="w-full max-w-md">
+        <div className="thread-module">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-bold text-gray-900">Getting Started</h2>
-            <span className="text-sm text-gray-600">
+            <h2 className="thread-headline text-lg font-bold">Getting Started</h2>
+            <span className="thread-label">
               Step {currentStepInfo.number} of {totalSteps}
             </span>
           </div>
 
           {/* Progress Bar */}
-          <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
+          <div className="w-full bg-nb-ink-mid/15 rounded-full h-2 mb-3">
             <div
-              className="bg-yellow-400 h-2 rounded-full transition-all duration-300"
+              className="bg-nb-ink-mid h-2 rounded-full transition-[width] duration-300 motion-reduce:transition-none"
               style={{ width: `${(currentStepInfo.number / totalSteps) * 100}%` }}
             />
           </div>
 
           {/* Current Step Info */}
           <div className="flex items-center gap-2 text-sm">
-            <span className="font-medium text-gray-900">{currentStepInfo.title}</span>
+            <span className="font-medium text-nb-ink">{currentStepInfo.title}</span>
           </div>
+        </div>
         </div>
 
         {/* Step Content */}
@@ -122,8 +124,8 @@ export default function Onboarding() {
         )}
 
         {/* Help Text */}
-        <div className="text-center text-sm text-gray-500 max-w-md">
-          <p>Need help? Check out our <Link href="/getting-started" className="text-blue-600 hover:underline">Getting Started guide</Link></p>
+        <div className="text-center text-sm text-nb-ink max-w-md">
+          <p>Need help? Check out our <Link href="/getting-started">Getting Started guide</Link></p>
         </div>
       </div>
     </Layout>

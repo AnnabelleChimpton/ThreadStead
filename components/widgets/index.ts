@@ -1,5 +1,5 @@
 // Core widget system exports
-export { default as BaseWidget } from './core/BaseWidget';
+export { default as BaseWidget, widgetFrameClassName } from './core/BaseWidget';
 export { default as WidgetCard } from './core/WidgetCard';
 export { default as WidgetContainer } from './core/WidgetContainer';
 

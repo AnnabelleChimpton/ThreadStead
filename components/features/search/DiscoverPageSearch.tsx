@@ -107,79 +107,59 @@ export default function DiscoverPageSearch({
   const context = getSearchContext();
 
   return (
-    <div className={`bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] ${className}`}>
+    <div className={`widget-container widget--flat bg-thread-paper border border-thread-sage rounded-cozy shadow-cozy-sm ${className}`}>
       {/* Integrated Tab Bar */}
-      <div className="border-b border-[#A18463]/20">
-        <div className="flex overflow-x-auto scrollbar-thin">
+      <div className="border-b border-nb-ink-mid/30">
+        <div className="flex overflow-x-auto scrollbar-thin" role="tablist">
           <button
             type="button"
             onClick={() => setSearchTab('all')}
-            className={`flex-1 min-w-[80px] px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-colors relative whitespace-nowrap ${
-              searchTab === 'all'
-                ? 'text-blue-600 bg-blue-50'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-            }`}
+            role="tab"
+            aria-selected={searchTab === 'all'}
+            className="ts-tab flex-1 min-w-[80px] text-xs sm:text-sm whitespace-nowrap"
           >
             <span className="flex items-center justify-center gap-1">
               <span className="hidden sm:inline"><PixelIcon name="search" /></span>
               <span>All</span>
             </span>
-            {searchTab === 'all' && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600" />
-            )}
           </button>
           <button
             type="button"
             onClick={() => setSearchTab('indie')}
-            className={`flex-1 min-w-[80px] px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-colors relative whitespace-nowrap ${
-              searchTab === 'indie'
-                ? 'text-purple-600 bg-purple-50'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-            }`}
+            role="tab"
+            aria-selected={searchTab === 'indie'}
+            className="ts-tab flex-1 min-w-[80px] text-xs sm:text-sm whitespace-nowrap"
           >
             <span className="flex items-center justify-center gap-1">
               <span className="hidden sm:inline"><PixelIcon name="map" /></span>
               <span className="hidden sm:inline">Indie Index</span>
               <span className="sm:hidden">Indie</span>
             </span>
-            {searchTab === 'indie' && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-600" />
-            )}
           </button>
           <button
             type="button"
             onClick={() => setSearchTab('site')}
-            className={`flex-1 min-w-[80px] px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-colors relative whitespace-nowrap ${
-              searchTab === 'site'
-                ? 'text-green-600 bg-green-50'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-            }`}
+            role="tab"
+            aria-selected={searchTab === 'site'}
+            className="ts-tab flex-1 min-w-[80px] text-xs sm:text-sm whitespace-nowrap"
           >
             <span className="flex items-center justify-center gap-1">
               <span className="hidden sm:inline"><PixelIcon name="home" /></span>
               <span>Site</span>
             </span>
-            {searchTab === 'site' && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-green-600" />
-            )}
           </button>
           {extSearchEnabled && (
             <button
               type="button"
               onClick={() => setSearchTab('web')}
-              className={`flex-1 min-w-[80px] px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-colors relative whitespace-nowrap ${
-                searchTab === 'web'
-                  ? 'text-pink-600 bg-pink-50'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-              }`}
+              role="tab"
+            aria-selected={searchTab === 'web'}
+            className="ts-tab flex-1 min-w-[80px] text-xs sm:text-sm whitespace-nowrap"
             >
               <span className="flex items-center justify-center gap-1">
                 <span className="hidden sm:inline"><PixelIcon name="map" /></span>
                 <span>Web</span>
               </span>
-              {searchTab === 'web' && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-pink-600" />
-              )}
             </button>
           )}
         </div>
@@ -265,7 +245,7 @@ export default function DiscoverPageSearch({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={getSearchPlaceholder()}
-              className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              className="w-full px-3 py-2 text-sm sm:text-base bg-white border-2 border-nb-ink-mid/60 rounded-md focus:outline-none focus:border-nb-ink-mid"
               autoComplete="off"
             />
           </div>
@@ -276,7 +256,7 @@ export default function DiscoverPageSearch({
               <select
                 value={searchType}
                 onChange={(e) => setSearchType(e.target.value as any)}
-                className="px-2 sm:px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm"
+                className="px-2 sm:px-3 py-2 bg-white border-2 border-nb-ink-mid/60 rounded-md focus:outline-none focus:border-nb-ink-mid text-xs sm:text-sm"
               >
                 <option value="all">All</option>
                 <option value="threadrings">Rings</option>
@@ -288,7 +268,7 @@ export default function DiscoverPageSearch({
             <button
               type="submit"
               disabled={loading || !searchQuery.trim()}
-              className="px-3 sm:px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm sm:text-base transition-colors shadow-[2px_2px_0_#2563eb] flex-1 sm:flex-none"
+              className="thread-button btn btn--primary disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base flex-1 sm:flex-none"
             >
               {loading ? '...' : 'Search'}
             </button>
@@ -318,7 +298,7 @@ export default function DiscoverPageSearch({
                 console.error('Surprise failed:', error);
               }
             }}
-            className="px-2 sm:px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 font-medium text-sm sm:text-base transition-colors shadow-[2px_2px_0_#8b5cf6] hover:shadow-[1px_1px_0_#8b5cf6] hover:translate-x-[1px] hover:translate-y-[1px]"
+            className="thread-button-secondary btn btn--secondary text-sm sm:text-base"
             title="Surprise me with something interesting!"
           >
             <span className="flex items-center gap-1">

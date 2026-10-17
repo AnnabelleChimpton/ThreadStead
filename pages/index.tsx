@@ -7,9 +7,9 @@ import { GetServerSideProps } from "next";
 import { db } from "@/lib/config/database/connection";
 import { getSessionUser } from "@/lib/auth/server";
 import Link from "next/link";
-import { WidgetContainer } from "@/components/widgets";
+import { WidgetContainer, widgetFrameClassName } from "@/components/widgets";
 import { useDefaultWidgets, useWidgets } from "@/hooks/useWidgets";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import EnhancedHouseCanvas from "../components/pixel-homes/EnhancedHouseCanvas";
 import { HouseTemplate, ColorPalette, HouseCustomizations, AtmosphereSettings } from "../components/pixel-homes/HouseSVG";
 import { DecorationItem } from "@/lib/pixel-homes/decoration-data";
@@ -25,7 +25,7 @@ import { serializeJsonLd } from "@/lib/utils/sanitization/json-ld";
 
 interface HomeProps {
   siteConfig: SiteConfig;
-  pageType: 'custom' | 'landing' | 'homepage' | 'unified';
+  pageType: 'custom' | 'homepage' | 'unified';
   ogImageUrl: string;
   user?: {
     id: string;
@@ -61,11 +61,15 @@ interface UserHomeConfig {
   terrain?: Record<string, string>;
 }
 
-// Simple card component for homepage (avoids thread-module min-width issues)
+// Same frame and header as the homepage widgets, so the center column matches
 function SimpleCard({ title, children }: { title?: string; children: React.ReactNode }) {
   return (
-    <div className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-3 sm:p-4 mb-3 sm:mb-4 w-full max-w-full overflow-hidden">
-      {title && <h3 className="text-base sm:text-lg font-bold mb-2 sm:mb-3 text-[#2E4B3F] px-1">{title}</h3>}
+    <div className={`${widgetFrameClassName} mb-4 w-full max-w-full overflow-hidden`}>
+      {title && (
+        <div className="widget-header mb-2">
+          <h3 className="widget-title font-headline text-base font-bold leading-tight text-nb-ink">{title}</h3>
+        </div>
+      )}
       {children}
     </div>
   );
@@ -177,11 +181,10 @@ function UserPixelHome({ user }: { user: any }) {
 
   if (loading) {
     return (
-      <div className="bg-gradient-to-b from-blue-200 to-green-200 rounded-lg p-4 sm:p-8 text-center min-h-[250px] sm:min-h-[300px] flex items-center justify-center">
-        <div className="space-y-3">
-          <div className="animate-spin text-2xl"><PixelIcon name="home" size={24} className="inline-block" /></div>
-          <div className="text-gray-600 text-sm sm:text-base">Building your pixel home...</div>
-          <div className="text-xs text-gray-500">This might take a moment</div>
+      <div className="p-4 sm:p-8 text-center min-h-[250px] sm:min-h-[300px] flex items-center justify-center">
+        <div className="space-y-2">
+          <div className="text-nb-ink text-sm sm:text-base">Building your pixel home...</div>
+          <div className="thread-label">This might take a moment</div>
         </div>
       </div>
     );
@@ -189,19 +192,16 @@ function UserPixelHome({ user }: { user: any }) {
 
   if (!homeConfig) {
     return (
-      <div className="bg-gradient-to-b from-blue-200 to-green-200 rounded-lg p-4 sm:p-8 text-center min-h-[250px] sm:min-h-[300px] flex items-center justify-center">
-        <div className="space-y-3 sm:space-y-4">
-          <div className="text-4xl sm:text-6xl"><PixelIcon name="building" size={48} /></div>
-          <div>
-            <p className="text-gray-700 text-sm sm:text-base font-medium mb-2">Your home isn&apos;t ready yet</p>
-            <p className="text-gray-600 text-xs sm:text-sm mb-3">Don&apos;t worry, let&apos;s get you set up!</p>
-            <Link
-              href={`/home/${user?.primaryHandle?.split('@')[0] || 'setup'}`}
-              className="inline-block px-3 py-2 bg-yellow-200 hover:bg-yellow-100 border border-black shadow-[2px_2px_0_#000] text-xs sm:text-sm font-medium transition-colors"
-            >
-              <PixelIcon name="paint-bucket" size={16} className="inline-block align-middle" /> Customize Your Home
-            </Link>
-          </div>
+      <div className="p-4 sm:p-8 text-center min-h-[250px] sm:min-h-[300px] flex items-center justify-center">
+        <div>
+          <p className="text-nb-ink text-sm sm:text-base font-medium mb-2">Your home isn&apos;t ready yet</p>
+          <p className="text-nb-ink-mid text-xs sm:text-sm mb-3">Don&apos;t worry, let&apos;s get you set up!</p>
+          <Link
+            href={`/home/${user?.primaryHandle?.split('@')[0] || 'setup'}`}
+            className="btn btn--primary inline-block px-3 py-2 text-xs sm:text-sm no-underline bg-thread-cream text-thread-pine border-2 border-thread-sage rounded-md shadow-cozy-sm"
+          >
+            Customize Your Home
+          </Link>
         </div>
       </div>
     );
@@ -224,10 +224,10 @@ function UserPixelHome({ user }: { user: any }) {
   };
 
   return (
-    <div className="bg-gradient-to-b from-blue-200 to-green-200 rounded-lg p-2 sm:p-4 min-h-[250px] sm:min-h-[300px] flex items-center justify-center">
+    <div className="p-2 sm:p-4 min-h-[250px] sm:min-h-[300px] flex items-center justify-center">
       <div className="w-full max-w-md flex justify-center">
         <div
-          className="transform scale-90 sm:scale-75 origin-center cursor-pointer hover:scale-95 sm:hover:scale-80 transition-transform duration-200"
+          className="transform scale-90 sm:scale-75 origin-center cursor-pointer"
           onClick={() => window.location.href = `/resident/${user.primaryHandle?.split('@')[0]}`}
         >
           <EnhancedHouseCanvas
@@ -241,224 +241,6 @@ function UserPixelHome({ user }: { user: any }) {
         </div>
       </div>
     </div>
-  );
-}
-
-function LandingPage({ siteConfig, ogImageUrl }: { siteConfig: SiteConfig; ogImageUrl: string }) {
-  // Generate metadata for landing page
-  const homepageMetadata = contentMetadataGenerator.generateHomepageMetadata(siteConfig);
-
-  return (
-    <>
-      <Head>
-        <title>{homepageMetadata.title}</title>
-        <meta name="description" content={homepageMetadata.description} />
-        {homepageMetadata.keywords && (
-          <meta name="keywords" content={homepageMetadata.keywords.join(', ')} />
-        )}
-        <link rel="canonical" href={getSiteBaseUrl()} />
-        <meta name="robots" content="index, follow" />
-
-        {/* OpenGraph meta tags */}
-        <meta property="og:title" content={homepageMetadata.title} />
-        <meta property="og:description" content={homepageMetadata.description} />
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content={getSiteBaseUrl()} />
-        <meta property="og:image" content={`${getSiteBaseUrl()}${ogImageUrl}`} />
-        <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="630" />
-        <meta property="og:image:alt" content={`${siteConfig.site_name} - Your page, your way`} />
-        <meta property="og:site_name" content={siteConfig.site_name} />
-        <meta property="og:locale" content="en_US" />
-
-        {/* Social media card meta tags */}
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={homepageMetadata.title} />
-        <meta name="twitter:description" content={homepageMetadata.description} />
-        <meta name="twitter:image" content={`${getSiteBaseUrl()}${ogImageUrl}`} />
-
-        {/* Structured data */}
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: serializeJsonLd(homepageMetadata.structuredData)
-          }}
-        />
-      </Head>
-
-      <Layout siteConfig={siteConfig}>
-        <div className="w-full max-w-full sm:max-w-4xl mx-auto px-0 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
-          <SimpleCard title={`Welcome to ${siteConfig.site_name}`}>
-            <div className="text-center py-4 sm:py-6">
-              <div className="text-4xl sm:text-5xl mb-4"><PixelIcon name="home" size={48} className="inline-block" /><PixelIcon name="bookmark" size={48} className="inline-block" /></div>
-              <h1 className="text-xl sm:text-2xl font-bold mb-4 px-2">{siteConfig.welcome_message}</h1>
-              <p className="text-sm sm:text-base lg:text-lg text-gray-700 mb-4 px-2">
-                <strong>A pixel house on a street of real people. Decorate the yard, keep your page behind the front door, join a ring or two.</strong>
-              </p>
-              <p className="text-sm sm:text-base text-gray-600 mb-6 px-2">Your feed is the people you follow, newest first — nobody ranks it.</p>
-
-              {/* Single primary CTA */}
-              <div className="mb-4">
-                <Link
-                  href="/signup"
-                  className="border border-black px-6 sm:px-8 py-3 sm:py-4 bg-yellow-200 hover:bg-yellow-100 shadow-[3px_3px_0_#000] hover:shadow-[4px_4px_0_#000] inline-block text-lg sm:text-xl font-bold transition-all transform hover:-translate-y-0.5"
-                >
-                  <PixelIcon name="zap" size={20} className="inline-block align-middle" /> Start Your Journey
-                </Link>
-              </div>
-
-              {/* Secondary actions - More prominent */}
-              <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 px-2 mb-4">
-                <Link
-                  href="/feed"
-                  className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-white hover:bg-gray-50 border border-black shadow-[2px_2px_0_#000] font-medium text-sm transition-colors"
-                >
-                  <PixelIcon name="eye" size={16} />
-                  <span>Browse as Guest</span>
-                </Link>
-                <Link
-                  href="/getting-started"
-                  className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-white hover:bg-gray-50 border border-black shadow-[2px_2px_0_#000] font-medium text-sm transition-colors"
-                >
-                  <PixelIcon name="article" size={16} />
-                  <span>Learn More</span>
-                </Link>
-              </div>
-
-              {/* Login link for existing users */}
-              <div className="text-sm">
-                <span className="text-gray-500">Already a member?</span>{' '}
-                <Link
-                  href="/login"
-                  className="text-thread-pine hover:text-thread-sunset underline font-medium"
-                >
-                  Sign in here
-                </Link>
-              </div>
-            </div>
-          </SimpleCard>
-
-          <SimpleCard title={`How ${siteConfig.site_name} Works`}>
-            <div className="space-y-4">
-              <div className="text-center mb-4">
-                <p className="text-sm sm:text-base text-gray-700 px-1">
-                  Modern communities inspired by the early web&apos;s <strong>WebRings</strong> — but better!
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-                <div className="border border-gray-300 p-4 bg-blue-50 rounded text-center">
-                  <div className="text-2xl mb-2"><PixelIcon name="home" size={32} /></div>
-                  <h3 className="font-bold mb-2 text-sm sm:text-base">Create Your Space</h3>
-                  <p className="text-xs sm:text-sm text-gray-600">Build a unique pixel home and customize your profile</p>
-                </div>
-                <div className="border border-gray-300 p-4 bg-green-50 rounded text-center">
-                  <div className="text-2xl mb-2"><PixelIcon name="link" size={32} /></div>
-                  <h3 className="font-bold mb-2 text-sm sm:text-base">Join ThreadRings</h3>
-                  <p className="text-xs sm:text-sm text-gray-600">Find communities around your interests and hobbies</p>
-                </div>
-                <div className="border border-gray-300 p-4 bg-purple-50 rounded text-center">
-                  <div className="text-2xl mb-2"><PixelIcon name="bookmark" size={32} /></div>
-                  <h3 className="font-bold mb-2 text-sm sm:text-base">Share & Connect</h3>
-                  <p className="text-xs sm:text-sm text-gray-600">Post content that appears on your profile and in Ring feeds</p>
-                </div>
-              </div>
-
-              <div className="text-center pt-4">
-                <Link
-                  href="/threadrings"
-                  className="border border-black px-4 py-2 bg-blue-200 hover:bg-blue-100 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] inline-block font-medium text-sm sm:text-base transition-all transform hover:-translate-y-0.5"
-                >
-                  <PixelIcon name="link" size={16} className="inline-block align-middle" /> Explore Communities
-                </Link>
-              </div>
-            </div>
-          </SimpleCard>
-
-          {/* NEW: Quick Explore Section - Make key features immediately accessible */}
-          <SimpleCard title="Explore Right Now">
-            <div className="space-y-4">
-              <p className="text-sm sm:text-base text-gray-600 text-center px-1 mb-4">
-                Jump right in! No account needed to explore.
-              </p>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <Link
-                  href="/home/demo"
-                  className="flex items-center gap-3 p-4 bg-pink-50 hover:bg-pink-100 border-2 border-pink-300 rounded-lg transition-colors group shadow-sm hover:shadow-md"
-                >
-                  <span className="text-2xl flex-shrink-0"><PixelIcon name="paint-bucket" size={32} /></span>
-                  <div>
-                    <h3 className="font-bold text-sm sm:text-base mb-1 group-hover:text-thread-sunset">Try Pixel Home Demo</h3>
-                    <p className="text-xs sm:text-sm text-gray-600">See what you can build - interactive preview!</p>
-                  </div>
-                </Link>
-
-                <Link
-                  href="/feed"
-                  className="flex items-center gap-3 p-4 bg-green-50 hover:bg-green-100 border border-gray-300 rounded-lg transition-colors group"
-                >
-                  <span className="text-2xl flex-shrink-0"><PixelIcon name="article" size={32} /></span>
-                  <div>
-                    <h3 className="font-bold text-sm sm:text-base mb-1 group-hover:text-thread-sunset">Community Feed</h3>
-                    <p className="text-xs sm:text-sm text-gray-600">See what everyone is posting and sharing</p>
-                  </div>
-                </Link>
-
-                <Link
-                  href="/neighborhood/explore/all"
-                  className="flex items-center gap-3 p-4 bg-blue-50 hover:bg-blue-100 border border-gray-300 rounded-lg transition-colors group"
-                >
-                  <span className="text-2xl flex-shrink-0"><PixelIcon name="home" size={32} /></span>
-                  <div>
-                    <h3 className="font-bold text-sm sm:text-base mb-1 group-hover:text-thread-sunset">Browse Homes</h3>
-                    <p className="text-xs sm:text-sm text-gray-600">Visit member pixel homes and profiles</p>
-                  </div>
-                </Link>
-
-                <Link
-                  href="/threadrings"
-                  className="flex items-center gap-3 p-4 bg-purple-50 hover:bg-purple-100 border border-gray-300 rounded-lg transition-colors group"
-                >
-                  <span className="text-2xl flex-shrink-0"><PixelIcon name="link" size={32} /></span>
-                  <div>
-                    <h3 className="font-bold text-sm sm:text-base mb-1 group-hover:text-thread-sunset">ThreadRings</h3>
-                    <p className="text-xs sm:text-sm text-gray-600">Discover themed communities to join</p>
-                  </div>
-                </Link>
-
-                <Link
-                  href="/directory"
-                  className="flex items-center gap-3 p-4 bg-yellow-50 hover:bg-yellow-100 border border-gray-300 rounded-lg transition-colors group"
-                >
-                  <span className="text-2xl flex-shrink-0"><PixelIcon name="archive" size={32} /></span>
-                  <div>
-                    <h3 className="font-bold text-sm sm:text-base mb-1 group-hover:text-thread-sunset">Member Directory</h3>
-                    <p className="text-xs sm:text-sm text-gray-600">Find and connect with community members</p>
-                  </div>
-                </Link>
-              </div>
-            </div>
-          </SimpleCard>
-
-          <SimpleCard title="Community Highlights">
-            <div className="text-center py-4">
-              <p className="text-sm sm:text-base text-gray-600 mb-4 px-1">Join our growing community of creative individuals</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
-                <div className="bg-green-50 p-3 border border-gray-200 rounded">
-                  <div className="font-bold text-green-800 text-sm sm:text-base">Active Members</div>
-                  <div className="text-gray-600">Building connections daily</div>
-                </div>
-                <div className="bg-purple-50 p-3 border border-gray-200 rounded">
-                  <div className="font-bold text-purple-800 text-sm sm:text-base">ThreadRings</div>
-                  <div className="text-gray-600">Communities to explore</div>
-                </div>
-              </div>
-            </div>
-          </SimpleCard>
-        </div>
-      </Layout>
-    </>
   );
 }
 
@@ -477,27 +259,6 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
   const [noTrackers, setNoTrackers] = useState(false);
   const [includeUnvalidated, setIncludeUnvalidated] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
-
-  // Mobile dropdown state
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsDropdownOpen(false);
-      }
-    };
-
-    if (isDropdownOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isDropdownOpen]);
 
   // Handle search
   const handleSearch = (e: React.FormEvent) => {
@@ -585,140 +346,37 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
             <HomeHero siteConfig={siteConfig} userCount={userCount} />
           )}
 
-          {/* Quick Action Buttons - For Logged-in Users Only */}
+          {/* Quick links - for logged-in users. One primary action, the rest plain links. */}
           {user && (
-            <div className="text-center mb-6 sm:mb-8">
-              <div className="hidden md:flex flex-wrap justify-center gap-3 mb-4">
-                <Link
-                  href="/feed"
-                  className="flex items-center gap-2 px-4 py-2 bg-green-200 hover:bg-green-100 border-2 border-black shadow-[3px_3px_0_#000] hover:shadow-[4px_4px_0_#000] font-medium text-sm sm:text-base transition-all transform hover:-translate-y-0.5"
-                >
-                  <PixelIcon name="article" size={20} className="inline-block" />
-                  <span>Browse Feed</span>
-                </Link>
-
-                {user?.primaryHandle && (
-                  <Link
-                    href={`/resident/${user.primaryHandle.split('@')[0]}`}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-200 hover:bg-blue-100 border-2 border-black shadow-[3px_3px_0_#000] hover:shadow-[4px_4px_0_#000] font-medium text-sm sm:text-base transition-all transform hover:-translate-y-0.5"
-                  >
-                    <PixelIcon name="user" size={20} className="inline-block" />
-                    <span>My Profile</span>
-                  </Link>
-                )}
-
-                <Link
-                  href="/post/new"
-                  className="flex items-center gap-2 px-4 py-2 bg-yellow-200 hover:bg-yellow-100 border-2 border-black shadow-[3px_3px_0_#000] hover:shadow-[4px_4px_0_#000] font-medium text-sm sm:text-base transition-all transform hover:-translate-y-0.5"
-                >
-                  <PixelIcon name="edit" size={20} className="inline-block" />
-                  <span>Create Post</span>
-                </Link>
-
-                <Link
-                  href="/neighborhood/explore/all"
-                  className="flex items-center gap-2 px-4 py-2 bg-purple-200 hover:bg-purple-100 border-2 border-black shadow-[3px_3px_0_#000] hover:shadow-[4px_4px_0_#000] font-medium text-sm sm:text-base transition-all transform hover:-translate-y-0.5"
-                >
-                  <PixelIcon name="home" size={20} className="inline-block" />
-                  <span>Explore Homes</span>
-                </Link>
-
-                <Link
-                  href="/community"
-                  className="flex items-center gap-2 px-4 py-2 bg-pink-200 hover:bg-pink-100 border-2 border-black shadow-[3px_3px_0_#000] hover:shadow-[4px_4px_0_#000] font-medium text-sm sm:text-base transition-all transform hover:-translate-y-0.5"
-                >
-                  <PixelIcon name="building" size={20} className="inline-block" />
-                  <span>Community</span>
-                </Link>
-
-                <Link
-                  href="/help/faq"
-                  className="flex items-center gap-2 px-4 py-2 bg-orange-200 hover:bg-orange-100 border-2 border-black shadow-[3px_3px_0_#000] hover:shadow-[4px_4px_0_#000] font-medium text-sm sm:text-base transition-all transform hover:-translate-y-0.5"
-                >
-                  <PixelIcon name="info-box" size={20} className="inline-block" />
-                  <span>FAQ</span>
-                </Link>
-              </div>
-
-              {/* Mobile Dropdown Menu */}
-              <div className="md:hidden relative mb-4" ref={dropdownRef}>
-                <button
-                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-200 hover:bg-blue-100 border-2 border-black shadow-[3px_3px_0_#000] font-medium text-sm transition-all mx-auto"
-                >
-                  <PixelIcon name="zap" size={18} />
-                  <span>Quick Actions</span>
-                  <span className={`text-sm transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}>▼</span>
-                </button>
-
-                {isDropdownOpen && (
-                  <div className="absolute left-1/2 transform -translate-x-1/2 mt-2 w-64 bg-white border-2 border-black shadow-[4px_4px_0_#000] z-50">
-                    <Link
-                      href="/feed"
-                      onClick={() => setIsDropdownOpen(false)}
-                      className="flex items-center gap-3 px-4 py-3 hover:bg-green-50 border-b border-gray-300 transition-colors"
-                    >
-                      <PixelIcon name="article" size={20} className="inline-block" />
-                      <span className="font-medium text-sm">Browse Feed</span>
-                    </Link>
-
-                    {user?.primaryHandle && (
-                      <Link
-                        href={`/resident/${user.primaryHandle.split('@')[0]}`}
-                        onClick={() => setIsDropdownOpen(false)}
-                        className="flex items-center gap-3 px-4 py-3 hover:bg-blue-50 border-b border-gray-300 transition-colors"
-                      >
-                        <PixelIcon name="user" size={20} className="inline-block" />
-                        <span className="font-medium text-sm">My Profile</span>
-                      </Link>
-                    )}
-
-                    <Link
-                      href="/post/new"
-                      onClick={() => setIsDropdownOpen(false)}
-                      className="flex items-center gap-3 px-4 py-3 hover:bg-yellow-50 border-b border-gray-300 transition-colors"
-                    >
-                      <PixelIcon name="edit" size={20} className="inline-block" />
-                      <span className="font-medium text-sm">Create Post</span>
-                    </Link>
-
-                    <Link
-                      href="/neighborhood/explore/all"
-                      onClick={() => setIsDropdownOpen(false)}
-                      className="flex items-center gap-3 px-4 py-3 hover:bg-purple-50 border-b border-gray-300 transition-colors"
-                    >
-                      <PixelIcon name="home" size={20} className="inline-block" />
-                      <span className="font-medium text-sm">Explore Homes</span>
-                    </Link>
-
-                    <Link
-                      href="/community"
-                      onClick={() => setIsDropdownOpen(false)}
-                      className="flex items-center gap-3 px-4 py-3 hover:bg-pink-50 border-b border-gray-300 transition-colors"
-                    >
-                      <PixelIcon name="building" size={20} className="inline-block" />
-                      <span className="font-medium text-sm">Community</span>
-                    </Link>
-
-                    <Link
-                      href="/help/faq"
-                      onClick={() => setIsDropdownOpen(false)}
-                      className="flex items-center gap-3 px-4 py-3 hover:bg-orange-50 transition-colors"
-                    >
-                      <PixelIcon name="info-box" size={20} className="inline-block" />
-                      <span className="font-medium text-sm">FAQ</span>
-                    </Link>
-                  </div>
-                )}
-              </div>
-            </div>
+            <nav aria-label="Quick links" className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 mb-6 text-sm font-semibold text-nb-ink">
+              <Link
+                href="/post/new"
+                className="btn btn--primary inline-block px-3 py-1.5 no-underline bg-thread-cream text-thread-pine border-2 border-thread-sage rounded-md shadow-cozy-sm"
+              >
+                <PixelIcon name="edit" size={16} className="inline-block align-[-3px] mr-1.5" />
+                <span>Create Post</span>
+              </Link>
+              <Link href="/feed">Browse Feed</Link>
+              <span aria-hidden="true">·</span>
+              {user?.primaryHandle && (
+                <>
+                  <Link href={`/resident/${user.primaryHandle.split('@')[0]}`}>My Profile</Link>
+                  <span aria-hidden="true">·</span>
+                </>
+              )}
+              <Link href="/neighborhood/explore/all">Explore Homes</Link>
+              <span aria-hidden="true">·</span>
+              <Link href="/community">Community</Link>
+              <span aria-hidden="true">·</span>
+              <Link href="/help/faq">FAQ</Link>
+            </nav>
           )}
 
           {/* Enhanced Global Search Bar */}
           {!user && (
             <div className="text-center mb-3">
-              <p className="text-xs sm:text-sm text-gray-600">
-                <PixelIcon name="search" size={16} className="inline-block align-middle" /> Search the indie web, not the corporate web
+              <p className="text-xs sm:text-sm text-nb-ink">
+                Search the indie web, not the corporate web
               </p>
             </div>
           )}
@@ -756,8 +414,8 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
                 {user ? (
                   <>
                     <UserPixelHome user={user} />
-                    <div className="text-center mt-3 text-xs text-gray-500">
-                      <span><PixelIcon name="lightbulb" size={16} className="inline-block align-middle" /> Click your home to visit your profile page</span>
+                    <div className="text-center mt-2 text-xs text-nb-ink-mid">
+                      Click your home to visit your profile page
                     </div>
                   </>
                 ) : (
@@ -802,106 +460,6 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
   );
 }
 
-function UnifiedHomepage({ siteConfig, ogImageUrl, userCount }: { siteConfig: SiteConfig; ogImageUrl: string; userCount?: number }) {
-  // Generate metadata for unified homepage
-  const homepageMetadata = contentMetadataGenerator.generateHomepageMetadata(siteConfig);
-
-  return (
-    <>
-      <Head>
-        <title>{homepageMetadata.title}</title>
-        <meta name="description" content={homepageMetadata.description} />
-        {homepageMetadata.keywords && (
-          <meta name="keywords" content={homepageMetadata.keywords.join(', ')} />
-        )}
-        <link rel="canonical" href={getSiteBaseUrl()} />
-        <meta name="robots" content="index, follow" />
-
-        {/* OpenGraph meta tags */}
-        <meta property="og:title" content={homepageMetadata.title} />
-        <meta property="og:description" content={homepageMetadata.description} />
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content={getSiteBaseUrl()} />
-        <meta property="og:image" content={`${getSiteBaseUrl()}${ogImageUrl}`} />
-        <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="630" />
-        <meta property="og:image:alt" content={`${siteConfig.site_name} - Your page, your way`} />
-        <meta property="og:site_name" content={siteConfig.site_name} />
-        <meta property="og:locale" content="en_US" />
-
-        {/* Social media card meta tags */}
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={homepageMetadata.title} />
-        <meta name="twitter:description" content={homepageMetadata.description} />
-        <meta name="twitter:image" content={`${getSiteBaseUrl()}${ogImageUrl}`} />
-
-        {/* Structured data */}
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: serializeJsonLd(homepageMetadata.structuredData)
-          }}
-        />
-      </Head>
-
-      <Layout siteConfig={siteConfig} fullWidth={true}>
-        <div className="w-full max-w-full sm:max-w-7xl mx-auto px-0 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
-          <HomeHero siteConfig={siteConfig} userCount={userCount} />
-
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6">
-            <div className="lg:col-span-8 lg:order-1">
-              <SimpleCard title="What are ThreadRings?">
-                <div className="space-y-4">
-                  <p className="text-sm sm:text-base text-gray-700 px-1">
-                    ThreadRings bring back the spirit of the early web&apos;s WebRings — interconnected communities organized around shared interests.
-                    Each Ring is a themed community where members can share posts, have discussions, and build connections.
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
-                    <div className="border border-gray-300 p-3 bg-blue-50 rounded">
-                      <h3 className="font-bold mb-1 text-sm sm:text-base"><PixelIcon name="home" size={16} className="inline-block align-middle" /> Your Content Lives with You</h3>
-                      <p className="text-xs sm:text-sm text-gray-600">Posts belong to your profile but also appear in Ring feeds you&apos;ve joined</p>
-                    </div>
-                    <div className="border border-gray-300 p-3 bg-green-50 rounded">
-                      <h3 className="font-bold mb-1 text-sm sm:text-base">Rich Family Trees</h3>
-                      <p className="text-xs sm:text-sm text-gray-600">Rings can branch into new communities while maintaining their connections</p>
-                    </div>
-                    <div className="border border-gray-300 p-3 bg-purple-50 rounded sm:col-span-2 md:col-span-1">
-                      <h3 className="font-bold mb-1 text-sm sm:text-base"><PixelIcon name="bookmark" size={16} className="inline-block align-middle" /> Community-Focused</h3>
-                      <p className="text-xs sm:text-sm text-gray-600">Each Ring has its own culture, rules, and personality shaped by members</p>
-                    </div>
-                  </div>
-                  <div className="text-center pt-4">
-                    <Link
-                      href="/threadrings"
-                      className="border border-black px-4 py-2 bg-blue-200 hover:bg-blue-100 shadow-[2px_2px_0_#000] inline-block font-medium text-sm sm:text-base transition-colors"
-                    >
-                      Browse ThreadRings
-                    </Link>
-                  </div>
-                </div>
-              </SimpleCard>
-            </div>
-
-            <div className="lg:col-span-4 lg:order-2 space-y-4">
-              <SimpleCard title="Join the Neighborhood">
-                <div className="text-center py-2">
-                  <p className="mb-4 text-sm text-gray-600">Every resident gets a plot on the street.</p>
-                  <Link
-                    href="/signup"
-                    className="block w-full py-3 bg-yellow-200 hover:bg-yellow-100 border-2 border-black shadow-[3px_3px_0_#000] font-bold text-center transition-transform hover:-translate-y-0.5"
-                  >
-                    Sign Up Now
-                  </Link>
-                </div>
-              </SimpleCard>
-            </div>
-          </div>
-        </div>
-      </Layout>
-    </>
-  );
-}
-
 export default function Home({ siteConfig, pageType, user, customPage, customLandingPageSlug, ogImageUrl, userCount }: HomeProps & { userCount?: number }) {
   // Route to appropriate component based on pageType
   switch (pageType) {
@@ -914,13 +472,11 @@ export default function Home({ siteConfig, pageType, user, customPage, customLan
           />
         </CustomPageLayout>
       );
-    case 'landing':
-      return <LandingPage siteConfig={siteConfig} ogImageUrl={ogImageUrl} />;
     case 'homepage':
-      return <PersonalizedHomepage siteConfig={siteConfig} user={user} customLandingPageSlug={customLandingPageSlug} ogImageUrl={ogImageUrl} userCount={userCount} />;
     case 'unified':
     default:
-      return <UnifiedHomepage siteConfig={siteConfig} ogImageUrl={ogImageUrl} userCount={userCount} />;
+      // 'unified' is the error fallback from getServerSideProps: the visitor homepage
+      return <PersonalizedHomepage siteConfig={siteConfig} user={user} customLandingPageSlug={customLandingPageSlug} ogImageUrl={ogImageUrl} userCount={userCount} />;
   }
 }
 

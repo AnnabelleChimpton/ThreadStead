@@ -124,9 +124,9 @@ export default function CommunityTicker() {
   if (!isClient) {
     return (
       <div className="w-full mb-6">
-        <div className="bg-[#E8F5E9] border-2 border-[#A18463] rounded-lg shadow-[3px_3px_0_#A18463] p-3">
-          <div className="text-sm text-[#2E4B3F] flex items-center gap-2">
-            <PixelIcon name="clock" size={16} className="text-thread-meadow" />
+        <div className="bg-nb-paper border-2 border-nb-ink-mid rounded-cozy shadow-nb-sm p-3">
+          <div className="text-sm text-nb-ink flex items-center gap-2">
+            <PixelIcon name="clock" size={16} className="text-nb-ink-mid" />
             <span>Loading community activity...</span>
           </div>
         </div>
@@ -145,7 +145,7 @@ export default function CommunityTicker() {
   return (
     <div className="w-full mb-6">
       <div
-        className="bg-[#E8F5E9] border-2 border-[#A18463] rounded-lg shadow-[3px_3px_0_#A18463] overflow-hidden cursor-pointer hover:shadow-[4px_4px_0_#A18463] hover:translate-x-[-1px] hover:translate-y-[-1px] transition-all duration-200 ticker-shell"
+        className="bg-nb-paper border-2 border-nb-ink-mid rounded-cozy shadow-nb-sm overflow-hidden cursor-pointer ticker-shell"
         onClick={handleClick}
         role="button"
         tabIndex={0}
@@ -158,12 +158,12 @@ export default function CommunityTicker() {
       >
         <div className="relative py-3 px-4 overflow-hidden">
           <div
-            className="flex items-center gap-64 whitespace-nowrap text-sm text-[#2E4B3F] animate-scroll"
+            className="flex items-center gap-64 whitespace-nowrap text-sm text-nb-ink animate-scroll"
             style={{ animationDuration: `${scrollDuration}s` }}
           >
             {displayItems.map((item, index) => (
               <div key={`${item.id}-${index}`} className="flex items-center gap-2">
-                <PixelIcon name={item.icon} size={16} className="text-thread-meadow flex-shrink-0" />
+                <PixelIcon name={item.icon} size={16} className="text-nb-ink-mid flex-shrink-0" />
                 <span className="font-medium">{item.text}</span>
               </div>
             ))}

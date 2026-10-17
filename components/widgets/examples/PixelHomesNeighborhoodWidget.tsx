@@ -130,20 +130,20 @@ function PixelHomesNeighborhoodWidget({
   if (isLoading && !data) {
     return (
       <div className="text-center py-8">
-        <div className="w-full h-48 mx-auto bg-gray-200 rounded-lg animate-pulse mb-4"></div>
+        <div className="w-full h-48 mx-auto bg-nb-ink-mid/15 rounded-lg animate-pulse mb-4"></div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="text-center py-8 text-gray-500">
+      <div className="text-center py-8 text-nb-ink-mid">
         <div className="text-4xl mb-2"><PixelIcon name="home" size={32} /></div>
         <p className="text-sm mb-3">Unable to load neighborhood</p>
         {onRefresh && (
           <button
             onClick={handleShuffle}
-            className="text-xs text-blue-600 hover:text-blue-800 transition-colors"
+            className="text-xs"
           >
             Try again
           </button>
@@ -154,13 +154,13 @@ function PixelHomesNeighborhoodWidget({
 
   if (!data || !data.home) {
     return (
-      <div className="text-center py-8 text-gray-500">
+      <div className="text-center py-8 text-nb-ink-mid">
         <div className="text-4xl mb-2"><PixelIcon name="home" size={32} /></div>
         <p className="text-sm mb-3">No homes to explore</p>
         <div className="mt-2">
           <Link
             href="/explore/homes"
-            className="text-xs text-blue-600 hover:text-blue-800 transition-colors"
+            className="text-xs"
           >
             Browse all homes →
           </Link>
@@ -175,7 +175,7 @@ function PixelHomesNeighborhoodWidget({
     <div className="space-y-4">
       {/* Card View Container */}
       <div
-        className="relative w-full h-[300px] sm:h-[350px] rounded-lg overflow-hidden cursor-pointer group shadow-sm hover:shadow-md transition-all border border-gray-200"
+        className="relative w-full h-[300px] sm:h-[350px] rounded-lg overflow-hidden cursor-pointer group shadow-sm hover:shadow-md transition-all border border-nb-ink-mid/30"
         onClick={() => setShowDetails(true)}
       >
         {/* Sky Background */}
@@ -249,7 +249,7 @@ function PixelHomesNeighborhoodWidget({
         <button
           onClick={handleShuffle}
           disabled={isShuffling}
-          className="absolute top-3 right-3 z-40 w-8 h-8 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-lg border-2 border-transparent hover:border-yellow-400 text-gray-700 transition-all transform hover:scale-105"
+          className="absolute top-3 right-3 z-40 w-8 h-8 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-lg border-2 border-transparent hover:border-yellow-400 text-nb-ink transition-all transform hover:scale-105"
           title="Find another random home"
         >
           <span className={`${isShuffling ? 'animate-spin' : ''}`}>

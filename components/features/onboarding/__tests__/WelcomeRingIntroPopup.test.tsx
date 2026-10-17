@@ -24,7 +24,7 @@ describe('WelcomeRingIntroPopup', () => {
       
       expect(screen.getByText('Welcome to your first ThreadRing!')).toBeInTheDocument();
       expect(screen.getByText(/where every new neighbor starts/)).toBeInTheDocument();
-      expect(screen.getByTestId('pixel-icon-home')).toBeInTheDocument();
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
     });
 
     it('should render close button', () => {
@@ -32,7 +32,7 @@ describe('WelcomeRingIntroPopup', () => {
       
       const closeButton = screen.getByLabelText('Close popup');
       expect(closeButton).toBeInTheDocument();
-      expect(closeButton).toHaveTextContent('×');
+      expect(screen.getByTestId('pixel-icon-close')).toBeInTheDocument();
     });
 
     it('should render progress indicators', () => {
@@ -138,12 +138,12 @@ describe('WelcomeRingIntroPopup', () => {
   });
 
   describe('Visual Elements', () => {
-    it('should have proper styling and animations', () => {
+    it('should render as a modal dialog without emoji', () => {
       render(<WelcomeRingIntroPopup onClose={mockOnClose} onStartTour={mockOnStartTour} />);
       
-      // Check main container styling
-      const popup = document.querySelector('.fixed.inset-0.bg-black\\/60');
-      expect(popup).toBeInTheDocument();
+      // Renders as a labelled modal dialog
+      const popup = screen.getByRole('dialog');
+      expect(popup).toHaveAttribute('aria-modal', 'true');
       
       // Decorative floating emoji were removed in the copy rinse —
       // the popup should render with no emoji at all.
@@ -156,8 +156,9 @@ describe('WelcomeRingIntroPopup', () => {
       let progressDots = document.querySelectorAll('.w-3.h-3.rounded-full');
       
       // First dot should be active (current step)
-      expect(progressDots[0]).toHaveClass('bg-purple-500', 'scale-125');
-      expect(progressDots[1]).toHaveClass('bg-gray-300');
+      expect(progressDots[0]).toHaveAttribute('data-state', 'current');
+      expect(progressDots[0]).toHaveAttribute('aria-current', 'step');
+      expect(progressDots[1]).toHaveAttribute('data-state', 'upcoming');
       
       // Navigate to step 2
       fireEvent.click(screen.getByText('Next'));
@@ -165,8 +166,8 @@ describe('WelcomeRingIntroPopup', () => {
       // Wait for animation and re-query elements
       await waitFor(() => {
         progressDots = document.querySelectorAll('.w-3.h-3.rounded-full');
-        expect(progressDots[0]).toHaveClass('bg-green-500');
-        expect(progressDots[1]).toHaveClass('bg-purple-500', 'scale-125');
+        expect(progressDots[0]).toHaveAttribute('data-state', 'done');
+        expect(progressDots[1]).toHaveAttribute('data-state', 'current');
       });
     });
   });

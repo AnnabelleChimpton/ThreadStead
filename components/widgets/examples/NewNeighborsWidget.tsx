@@ -44,10 +44,10 @@ function NewNeighborsWidget({ data, isLoading, error }: WidgetProps & { data?: N
       <div className="space-y-3">
         {[...Array(3)].map((_, i) => (
           <div key={i} className="flex items-center space-x-3 animate-pulse">
-            <div className="w-10 h-10 bg-gray-200 rounded-full"></div>
+            <div className="w-10 h-10 bg-nb-ink-mid/15 rounded-full"></div>
             <div className="flex-1">
-              <div className="h-4 bg-gray-200 rounded w-24 mb-1"></div>
-              <div className="h-3 bg-gray-200 rounded w-16"></div>
+              <div className="h-4 bg-nb-ink-mid/15 rounded w-24 mb-1"></div>
+              <div className="h-3 bg-nb-ink-mid/15 rounded w-16"></div>
             </div>
           </div>
         ))}
@@ -57,7 +57,7 @@ function NewNeighborsWidget({ data, isLoading, error }: WidgetProps & { data?: N
 
   if (error) {
     return (
-      <div className="text-center py-4 text-gray-500">
+      <div className="text-center py-4 text-nb-ink-mid">
         <p className="text-sm">Unable to load new neighbors</p>
       </div>
     );
@@ -65,7 +65,7 @@ function NewNeighborsWidget({ data, isLoading, error }: WidgetProps & { data?: N
 
   if (!data || data.users.length === 0) {
     return (
-      <div className="text-center py-4 text-gray-500">
+      <div className="text-center py-4 text-nb-ink-mid">
         <p className="text-sm">No new neighbors yet</p>
       </div>
     );
@@ -89,8 +89,8 @@ function NewNeighborsWidget({ data, isLoading, error }: WidgetProps & { data?: N
   return (
     <div className="space-y-3">
       {data.users.slice(0, 3).map((user) => (
-        <div key={user.id} className="flex items-center space-x-3 hover:bg-gray-50 p-2 rounded-lg transition-colors">
-          <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
+        <div key={user.id} className="flex items-center space-x-3 hover:bg-nb-ink-mid/10 p-2 rounded-lg transition-colors">
+          <div className="w-10 h-10 bg-nb-ink-mid/15 rounded-full flex items-center justify-center overflow-hidden">
             {user.avatarUrl ? (
               <img
                 src={user.avatarUrl}
@@ -98,7 +98,7 @@ function NewNeighborsWidget({ data, isLoading, error }: WidgetProps & { data?: N
                 className="w-full h-full object-cover"
               />
             ) : (
-              <span className="text-gray-500 text-xs font-medium">
+              <span className="text-nb-ink-mid text-xs font-medium">
                 {(user.displayName || user.username || '?')[0].toUpperCase()}
               </span>
             )}
@@ -110,12 +110,12 @@ function NewNeighborsWidget({ data, isLoading, error }: WidgetProps & { data?: N
                 <UserMention
                   username={user.username}
                   displayName={user.displayName || user.username}
-                  className="text-xs text-blue-600 transition-colors"
+                  className="text-xs"
                 />
               )}
             </div>
 
-            <div className="flex items-center space-x-3 text-xs text-gray-500">
+            <div className="flex items-center space-x-3 text-xs text-nb-ink-mid">
               <span>Joined {formatJoinDate(user.createdAt)}</span>
               {user.postCount > 0 && (
                 <span>{user.postCount} post{user.postCount !== 1 ? 's' : ''}</span>
@@ -123,7 +123,7 @@ function NewNeighborsWidget({ data, isLoading, error }: WidgetProps & { data?: N
             </div>
 
             {user.bio && (
-              <p className="text-xs text-gray-600 mt-1 truncate">
+              <p className="text-xs text-nb-ink-mid mt-1 truncate">
                 {user.bio}
               </p>
             )}
@@ -132,10 +132,10 @@ function NewNeighborsWidget({ data, isLoading, error }: WidgetProps & { data?: N
       ))}
 
       {data.users.length > 3 && (
-        <div className="text-center pt-2 border-t border-gray-100">
+        <div className="text-center pt-2 border-t border-nb-ink-mid/30">
           <Link
             href="/directory"
-            className="text-sm text-blue-600 hover:text-blue-800 transition-colors"
+            className="text-sm"
           >
             View all {data.total} neighbors →
           </Link>

@@ -136,6 +136,71 @@ a:hover {
   background: #F5E9D4;
 }
 
+/* The admin site CSS bevels EVERY <button>. These two opt-outs are
+   unlayered and out-rank `button` / `button:hover` on specificity, which
+   Tailwind utilities (layered) cannot do. */
+
+/* The site CSS's own `a.btn` rule out-ranks its `.btn--secondary`, so
+   secondary links rendered peach like primary ones. Restore the intent. */
+.btn.btn--secondary {
+  background: linear-gradient(to bottom, #ffffff, var(--ha-paper, #FCFAF7));
+}
+
+/* Text button: no bevel at all (for "Skip for now"-style actions) */
+.ts-bare,
+.ts-bare:hover,
+.ts-bare:active {
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  text-shadow: none;
+  transform: none;
+  filter: none;
+  padding: 0;
+  min-height: 0;
+  min-width: 0;
+  font-weight: 500;
+  color: inherit;
+}
+
+/* Large CTA size for .btn (the site CSS fixes .btn padding) */
+.btn.btn--lg {
+  padding: 0.75rem 1.5rem;
+}
+
+/* Compact icon button: keeps the site bevel, drops the text-button padding */
+.ts-icon-button {
+  padding: 0.25rem;
+  min-height: 0;
+  min-width: 0;
+  line-height: 1;
+}
+
+/* Tab strip button: no bevel, ink underline when selected */
+.ts-tab,
+.ts-tab:hover,
+.ts-tab:active,
+.ts-tab:focus-visible {
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  box-shadow: none;
+  text-shadow: none;
+  transform: none;
+  filter: none;
+  padding: 0.5rem 0.75rem;
+  min-height: 0;
+  color: var(--ha-ink-mid, #7A6248);
+  font-weight: 600;
+}
+.ts-tab:hover { color: var(--ha-ink-dark, #2E4B3F); }
+.ts-tab[aria-selected="true"] {
+  color: var(--ha-ink-dark, #2E4B3F);
+  border-bottom-color: var(--ha-ink-dark, #2E4B3F);
+}
+
 /* Enhanced visual rhythm */
 .thread-content {
   line-height: 1.7;

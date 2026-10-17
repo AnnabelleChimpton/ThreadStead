@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { PixelIcon } from '@/components/ui/PixelIcon';
 import { SiteConfig } from '@/lib/config/site/dynamic';
-import { useState, useEffect } from 'react';
 
 interface HomeHeroProps {
     siteConfig: SiteConfig;
@@ -16,7 +15,7 @@ const GRASS_TILE = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000
 
 export default function HomeHero({ siteConfig, userCount }: HomeHeroProps) {
     return (
-        <div className="relative w-full overflow-hidden rounded-xl border-2 border-black shadow-[4px_4px_0_#000] mb-8 bg-[#87CEEB]">
+        <div className="relative w-full overflow-hidden rounded-cozy border-2 border-nb-ink-mid shadow-nb mb-8 bg-thread-sky">
             {/* Drifting pixel clouds */}
             <div
                 className="absolute inset-0 opacity-50 hero-clouds"
@@ -25,66 +24,50 @@ export default function HomeHero({ siteConfig, userCount }: HomeHeroProps) {
             ></div>
 
             {/* Hero Content Container */}
-            <div className="relative z-10 flex flex-col items-center justify-center py-12 px-4 sm:px-8 text-center bg-gradient-to-b from-transparent via-white/20 to-white/80">
+            <div className="relative z-10 flex flex-col items-center justify-center pt-12 pb-14 px-4 sm:px-8 text-center">
 
-                {/* Main Headline with Pixel Shadow */}
-                <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-[#2E4B3F] mb-4 drop-shadow-[2px_2px_0_rgba(255,255,255,0.8)] tracking-tight">
+                <h1 className="font-headline text-4xl sm:text-5xl md:text-6xl font-black text-nb-ink mb-4 drop-shadow-[2px_2px_0_rgba(255,255,255,0.8)] tracking-tight">
                     Have a home page <br className="sm:hidden" /> again.
                 </h1>
 
-                {/* Subheadline */}
-                <p className="text-lg sm:text-xl md:text-2xl text-gray-900 font-bold mb-8 max-w-2xl leading-relaxed drop-shadow-sm">
+                <p className="text-lg sm:text-xl text-nb-ink font-semibold mb-8 max-w-2xl leading-relaxed">
                     A little pixel house on a street of real people. <br className="hidden sm:block" />
                     Decorate the yard, keep your page behind the front door, sign your neighbors&apos; guestbooks.
                 </p>
 
-                {/* Primary CTA */}
-                <div className="flex flex-col sm:flex-row gap-4 items-center animate-bounce-subtle">
+                {/* Primary CTA — .btn hooks take the site theme; utilities are the fallback */}
+                <div className="flex flex-col sm:flex-row gap-3 items-center">
                     <Link
                         href="/signup"
-                        className="group relative inline-flex items-center justify-center px-8 py-4 bg-[#FFD700] hover:bg-[#FFED4A] text-black border-2 border-black shadow-[4px_4px_0_#000] hover:shadow-[6px_6px_0_#000] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all font-black text-xl rounded-lg"
+                        className="btn btn--primary btn--lg inline-block px-6 py-3 text-lg font-bold no-underline bg-thread-cream text-thread-pine border-2 border-thread-sage rounded-md shadow-cozy-sm active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
                     >
-                        <PixelIcon name="home" size={24} className="mr-3" />
+                        <PixelIcon name="home" size={20} className="inline-block align-[-3px] mr-2" />
                         <span>Claim your plot</span>
                     </Link>
 
                     <Link
                         href="/feed"
-                        className="inline-flex items-center justify-center px-8 py-4 bg-white hover:bg-gray-50 text-black border-2 border-black shadow-[4px_4px_0_#000] hover:shadow-[6px_6px_0_#000] hover:translate-x-[-2px] hover:translate-y-[-2px] transition-all font-bold text-lg rounded-lg"
+                        className="btn btn--secondary btn--lg inline-block px-6 py-3 text-lg font-bold no-underline bg-thread-paper text-thread-pine border-2 border-thread-sage rounded-md shadow-cozy-sm active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
                     >
-                        <PixelIcon name="eye" size={24} className="mr-3" />
                         <span>Have a look around</span>
                     </Link>
                 </div>
 
-                <p className="mt-3 text-sm text-gray-700">It&apos;s free. Bring a lawn chair.</p>
+                <p className="mt-3 text-sm text-nb-ink">It&apos;s free. Bring a lawn chair.</p>
 
-                {/* Secondary Quick Links */}
-                <div className="mt-6 flex flex-wrap justify-center gap-4 sm:gap-6 text-sm sm:text-base font-bold text-[#2E4B3F]">
-                    <Link href="/landing" className="hover:text-[#1a2e26] hover:underline inline-flex items-center gap-2 py-2 transition-colors">
-                        <PixelIcon name="script" size={16} />
-                        How it works
-                    </Link>
-                    <Link href="/help/faq" className="hover:text-[#1a2e26] hover:underline inline-flex items-center gap-2 py-2 transition-colors">
-                        <PixelIcon name="info-box" size={16} />
-                        FAQ
-                    </Link>
-                    <Link href="/neighborhood/explore/all" className="hover:text-[#1a2e26] hover:underline inline-flex items-center gap-2 py-2 transition-colors">
-                        <PixelIcon name="home" size={16} />
-                        Walk the neighborhoods
-                    </Link>
+                {/* Secondary links */}
+                <div className="mt-5 flex flex-wrap justify-center items-center gap-x-2 gap-y-1 text-sm font-semibold text-nb-ink">
+                    <Link href="/landing" className="py-1">How it works</Link>
+                    <span aria-hidden="true">·</span>
+                    <Link href="/help/faq" className="py-1">FAQ</Link>
+                    <span aria-hidden="true">·</span>
+                    <Link href="/neighborhood/explore/all" className="py-1">Walk the neighborhoods</Link>
                 </div>
 
-                {/* Live Stats Badge (hidden until we have a real count) */}
+                {/* Real resident count (hidden when zero) */}
                 {userCount ? (
-                    <div className="mt-8 inline-flex items-center gap-2 bg-black/80 text-white px-4 py-2 rounded-full border-2 border-white/50 backdrop-blur-sm shadow-lg">
-                        <span className="relative flex h-3 w-3">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-                        </span>
-                        <span className="font-mono text-sm font-bold tracking-wide">
-                            {userCount} neighbors have moved in
-                        </span>
+                    <div className="badge mt-6 inline-block bg-thread-paper border border-thread-sage rounded-full px-3 py-0.5 font-mono text-xs font-bold tracking-wide">
+                        {userCount} neighbors have moved in
                     </div>
                 ) : null}
             </div>

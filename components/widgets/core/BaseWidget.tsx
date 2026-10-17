@@ -12,6 +12,11 @@ interface BaseWidgetProps extends WidgetProps {
   }) => React.ReactNode;
 }
 
+// .widget-container is the site theme's card hook; the utilities are the
+// fallback look when no site CSS is loaded (the site CSS overrides them).
+export const widgetFrameClassName =
+  'widget-container bg-thread-paper border border-thread-sage rounded-cozy shadow-cozy p-3 sm:p-4';
+
 export default function BaseWidget({
   config,
   user,
@@ -70,7 +75,7 @@ export default function BaseWidget({
   }, [isClient, config.refreshInterval, isLoading]);
 
   return (
-    <div className="widget-container">
+    <div className={widgetFrameClassName}>
       {children({ data, isLoading, error, refresh })}
     </div>
   );

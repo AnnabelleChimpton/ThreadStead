@@ -82,12 +82,12 @@ function WeatherWidget({ data, isLoading, error }: WidgetProps & { data?: Weathe
     return (
       <div className="animate-pulse">
         <div className="flex items-center justify-between mb-3">
-          <div className="h-6 bg-gray-200 rounded w-24"></div>
-          <div className="h-8 bg-gray-200 rounded w-16"></div>
+          <div className="h-6 bg-nb-ink-mid/15 rounded w-24"></div>
+          <div className="h-8 bg-nb-ink-mid/15 rounded w-16"></div>
         </div>
         <div className="space-y-2">
-          <div className="h-4 bg-gray-200 rounded w-full"></div>
-          <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+          <div className="h-4 bg-nb-ink-mid/15 rounded w-full"></div>
+          <div className="h-4 bg-nb-ink-mid/15 rounded w-3/4"></div>
         </div>
       </div>
     );
@@ -95,7 +95,7 @@ function WeatherWidget({ data, isLoading, error }: WidgetProps & { data?: Weathe
 
   if (error) {
     return (
-      <div className="text-center py-4 text-gray-500">
+      <div className="text-center py-4 text-nb-ink-mid">
         <p className="text-sm">Unable to load weather</p>
       </div>
     );
@@ -106,10 +106,10 @@ function WeatherWidget({ data, isLoading, error }: WidgetProps & { data?: Weathe
       {/* Current Weather */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <h3 className="text-sm font-medium text-gray-600">{weatherData.location}</h3>
+          <p className="text-sm font-medium text-nb-ink-mid">{weatherData.location}</p>
           <button
             onClick={() => setUseMetric(!useMetric)}
-            className="text-xs text-blue-600 hover:text-blue-800 transition-colors px-2 py-1"
+            className="ts-icon-button text-xs"
           >
             {useMetric ? '°F' : '°C'}
           </button>
@@ -119,16 +119,16 @@ function WeatherWidget({ data, isLoading, error }: WidgetProps & { data?: Weathe
           <div className="flex items-center space-x-3">
             <PixelIcon name={weatherData.icon} size={32} />
             <div>
-              <div className="text-2xl font-bold text-gray-900">
+              <div className="text-2xl font-bold text-nb-ink">
                 {convertTemp(weatherData.temperature)}
               </div>
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-nb-ink-mid">
                 {weatherData.condition}
               </div>
             </div>
           </div>
 
-          <div className="text-right text-xs text-gray-500">
+          <div className="text-right text-xs text-nb-ink-mid">
             <div>H: {convertTemp(weatherData.high)}</div>
             <div>L: {convertTemp(weatherData.low)}</div>
           </div>
@@ -136,7 +136,7 @@ function WeatherWidget({ data, isLoading, error }: WidgetProps & { data?: Weathe
       </div>
 
       {/* Details */}
-      <div className="flex flex-wrap justify-between gap-2 text-xs text-gray-600 py-2 border-t border-gray-100">
+      <div className="flex flex-wrap justify-between gap-2 text-xs text-nb-ink-mid py-2 border-t border-nb-ink-mid/30">
         <div className="flex items-center space-x-1">
           <PixelIcon name="drop" />
           <span>{weatherData.humidity}%</span>
@@ -148,17 +148,17 @@ function WeatherWidget({ data, isLoading, error }: WidgetProps & { data?: Weathe
       </div>
 
       {/* Mini Forecast */}
-      <div className="space-y-2 pt-2 border-t border-gray-100">
+      <div className="space-y-2 pt-2 border-t border-nb-ink-mid/30">
         {weatherData.forecast.map((day, index) => (
           <div key={index} className="flex items-center justify-between text-xs">
             <div className="flex items-center space-x-2">
               <PixelIcon name={day.icon} size={16} className="flex-shrink-0" />
-              <span className="text-gray-700 font-medium">{day.day}</span>
+              <span className="text-nb-ink font-medium">{day.day}</span>
             </div>
-            <div className="flex items-center space-x-1 text-gray-600">
+            <div className="flex items-center space-x-1 text-nb-ink-mid">
               <span>{convertTemp(day.high)}</span>
-              <span className="text-gray-400">/</span>
-              <span className="text-gray-500">{convertTemp(day.low)}</span>
+              <span className="text-nb-ink-mid">/</span>
+              <span className="text-nb-ink-mid">{convertTemp(day.low)}</span>
             </div>
           </div>
         ))}

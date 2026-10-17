@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
-import { getTemplatePreviewStyle, TEMPLATE_PREVIEW_STYLES } from '@/lib/templates/rendering/template-preview-styles';
 import { ProfileTemplateType } from '@/lib/templates/default-profile-templates';
 import { useGlobalAudio } from '@/contexts/GlobalAudioContext';
 import dynamic from 'next/dynamic';
-import { PixelIcon, PixelIconName } from '@/components/ui/PixelIcon';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 // Dynamically import MidiPlayer to avoid SSR issues
 const MidiPlayer = dynamic(() => import('@/components/ui/media/MidiPlayer'), {
@@ -12,46 +11,18 @@ const MidiPlayer = dynamic(() => import('@/components/ui/media/MidiPlayer'), {
   loading: () => <div className="hidden" />
 });
 
-// Custom animations for floating particles
-const floatingAnimations = `
-  @keyframes animate-float {
-    0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 0.7; }
-    50% { transform: translateY(-20px) rotate(180deg); opacity: 1; }
-  }
-  @keyframes animate-float-delay {
-    0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 0.5; }
-    50% { transform: translateY(-15px) rotate(-180deg); opacity: 1; }
-  }
-  @keyframes animate-float-slow {
-    0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 0.8; }
-    50% { transform: translateY(-10px) rotate(90deg); opacity: 0.3; }
-  }
-  .animate-float { animation: animate-float 3s ease-in-out infinite; }
-  .animate-float-delay { animation: animate-float-delay 4s ease-in-out infinite 1s; }
-  .animate-float-slow { animation: animate-float-slow 5s ease-in-out infinite 2s; }
-`;
-
 interface SignupFinaleAnimationProps {
   username: string;
   selectedTheme?: ProfileTemplateType;
   onComplete?: () => void;
 }
 
-interface LoadingBox {
-  id: string;
-  message: string;
-  icon: PixelIconName;
-  completed: boolean;
-  progress: number;
-}
-
-export default function SignupFinaleAnimation({ username, selectedTheme, onComplete }: SignupFinaleAnimationProps) {
+export default function SignupFinaleAnimation({ username, onComplete }: SignupFinaleAnimationProps) {
   const router = useRouter();
   const audioRef = useRef<HTMLAudioElement>(null);
   const [currentStep, setCurrentStep] = useState<'fadeOut' | 'terminal' | 'fadeIn'>('fadeOut');
   const [terminalText, setTerminalText] = useState('');
   const [showCursor, setShowCursor] = useState(true);
-  const [loadingBoxes, setLoadingBoxes] = useState<LoadingBox[]>([]);
   const [showMidiPlayer, setShowMidiPlayer] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [previousVolume, setPreviousVolume] = useState(0.7);
@@ -65,24 +36,6 @@ export default function SignupFinaleAnimation({ username, selectedTheme, onCompl
     '~ Almost ready — opening the front door...'
   ];
 
-  const nostalgicLoadingTasks: { id: string; message: string; icon: PixelIconName; delay: number }[] = [
-    { id: 'neighbors', message: 'Finding neighbors...', icon: 'users', delay: 1200 },
-    { id: 'plumbing', message: 'Connecting plumbing...', icon: 'drop', delay: 2000 },
-    { id: 'electricity', message: 'Hooking up electricity...', icon: 'zap', delay: 2800 },
-    { id: 'mailbox', message: 'Installing mailbox...', icon: 'mail', delay: 3600 },
-    { id: 'garden', message: 'Planting digital garden...', icon: 'sun', delay: 4500 },
-    { id: 'doorbell', message: 'Testing doorbell...', icon: 'notification', delay: 5400 },
-    { id: 'windows', message: 'Polishing windows...', icon: 'building', delay: 6200 },
-    { id: 'welcome', message: 'Hanging welcome mat...', icon: 'home', delay: 7000 }
-  ];
-
-  // Get theme colors for styling
-  const themeColors = selectedTheme ? TEMPLATE_PREVIEW_STYLES[selectedTheme] : null;
-  const primaryColor = themeColors?.primaryColor || '#8B5CF6';
-  const secondaryColor = themeColors?.secondaryColor || '#EC4899';
-  const backgroundColor = themeColors?.backgroundColor || '#F8FAFC';
-
-
   // Typewriter effect
   useEffect(() => {
     if (currentStep !== 'terminal') return;
@@ -93,10 +46,10 @@ export default function SignupFinaleAnimation({ username, selectedTheme, onCompl
 
     const typeNextChar = () => {
       if (messageIndex >= terminalMessages.length) {
-        // Finished typing, start fade to user page after a longer pause to watch loading boxes
+        // Finished typing: a short pause, then fade to the user's page
         setTimeout(() => {
           setCurrentStep('fadeIn');
-        }, 2000);
+        }, 1000);
         return;
       }
 
@@ -136,48 +89,6 @@ export default function SignupFinaleAnimation({ username, selectedTheme, onCompl
     
     return () => clearInterval(interval);
   }, []);
-
-  // Loading boxes animation
-  useEffect(() => {
-    if (currentStep !== 'terminal') return;
-
-    // Start loading boxes after a brief delay
-    const boxTimers = nostalgicLoadingTasks.map(task => 
-      setTimeout(() => {
-        setLoadingBoxes(prev => [...prev, {
-          id: task.id,
-          message: task.message,
-          icon: task.icon,
-          completed: false,
-          progress: 0
-        }]);
-
-        // Animate progress and complete the task
-        let progress = 0;
-        const progressTimer = setInterval(() => {
-          progress += Math.random() * 20 + 8; // Slightly slower random progress increments
-          if (progress >= 100) {
-            progress = 100;
-            setLoadingBoxes(prev => prev.map(box => 
-              box.id === task.id 
-                ? { ...box, progress: 100, completed: true }
-                : box
-            ));
-            clearInterval(progressTimer);
-          } else {
-            setLoadingBoxes(prev => prev.map(box => 
-              box.id === task.id 
-                ? { ...box, progress }
-                : box
-            ));
-          }
-        }, 180); // Slightly slower interval
-
-      }, task.delay)
-    );
-
-    return () => boxTimers.forEach(timer => clearTimeout(timer));
-  }, [currentStep]);
 
   // Audio effects using global audio context
   useEffect(() => {
@@ -244,214 +155,53 @@ export default function SignupFinaleAnimation({ username, selectedTheme, onCompl
   }, [currentStep, username, router, onComplete]);
 
   return (
-    <div className="fixed inset-0 z-[9999] pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
-      {/* Inject custom animations */}
-      <style dangerouslySetInnerHTML={{ __html: floatingAnimations }} />
-      {/* Enhanced background with pattern and animation */}
-      <div 
-        className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
-          currentStep === 'fadeOut' ? 'opacity-100' : 
-          currentStep === 'terminal' ? 'opacity-100' : 
-          'opacity-100'  // Keep overlay visible during fadeIn/navigation
-        }`}
-        style={{
-          background: themeColors 
-            ? `
-              radial-gradient(circle at 25% 25%, ${primaryColor}25 0%, transparent 50%),
-              radial-gradient(circle at 75% 75%, ${secondaryColor}25 0%, transparent 50%),
-              linear-gradient(135deg, ${primaryColor}15 0%, ${secondaryColor}15 50%, ${backgroundColor} 100%)
-            `
-            : `
-              radial-gradient(circle at 25% 25%, rgba(102, 126, 234, 0.25) 0%, transparent 50%),
-              radial-gradient(circle at 75% 75%, rgba(118, 75, 162, 0.25) 0%, transparent 50%),
-              linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)
-            `
-        }}
-      />
-      
-      {/* Animated background particles */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div 
-          className="absolute w-96 h-96 rounded-full blur-3xl opacity-20 animate-float-slow"
-          style={{
-            background: `radial-gradient(circle, ${primaryColor}40, transparent)`,
-            top: '10%',
-            left: '10%',
-            animationDuration: '15s'
-          }}
-        ></div>
-        <div 
-          className="absolute w-64 h-64 rounded-full blur-2xl opacity-15 animate-float-delay"
-          style={{
-            background: `radial-gradient(circle, ${secondaryColor}40, transparent)`,
-            top: '60%',
-            right: '15%',
-            animationDuration: '20s'
-          }}
-        ></div>
-        <div 
-          className="absolute w-80 h-80 rounded-full blur-3xl opacity-10 animate-float"
-          style={{
-            background: `radial-gradient(circle, ${primaryColor}30, transparent)`,
-            bottom: '20%',
-            left: '30%',
-            animationDuration: '25s'
-          }}
-        ></div>
-      </div>
-
-      {/* Whimsical retro interface */}
+    <div className="thread-surface fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-8 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
       {(currentStep === 'terminal' || currentStep === 'fadeIn') && (
-        <div 
-          className={`absolute inset-0 flex flex-col items-center justify-center p-4 sm:p-8 overflow-y-auto transition-opacity duration-700 ${
+        <div
+          className={`w-full max-w-xl transition-opacity duration-700 motion-reduce:transition-none ${
             currentStep === 'fadeIn' ? 'opacity-0' : 'opacity-100'
           }`}
+          role="status"
+          aria-live="polite"
         >
-          <div className="max-w-2xl w-full space-y-4">
-            {/* Main cozy window */}
-            <div 
-              className="rounded-xl shadow-2xl border-2 overflow-hidden backdrop-blur-sm"
-              style={{
-                background: `linear-gradient(to right, ${primaryColor}20, ${secondaryColor}20), rgba(255, 255, 255, 0.9)`,
-                backgroundBlendMode: 'overlay',
-                borderColor: primaryColor + '40'
-              }}
-            >
-              {/* Window header */}
-              <div 
-                className="px-4 py-3 flex items-center gap-2 border-b-2"
-                style={{
-                  background: `linear-gradient(to right, ${primaryColor}20, ${secondaryColor}20)`,
-                  borderBottomColor: primaryColor + '40'
-                }}
-              >
-                <div className="flex gap-2">
-                  <div className="w-3 h-3 rounded-full bg-gradient-to-br from-red-300 to-red-400 shadow-sm"></div>
-                  <div className="w-3 h-3 rounded-full bg-gradient-to-br from-yellow-300 to-yellow-400 shadow-sm"></div>
-                  <div className="w-3 h-3 rounded-full bg-gradient-to-br from-green-300 to-green-400 shadow-sm"></div>
-                </div>
-                <div 
-                  className="flex-1 text-center text-sm sm:text-base font-medium text-gray-800"
-                >
-                  Building Your Digital Home
-                </div>
-              </div>
-
-              {/* Content area */}
-              <div className="p-4 sm:p-8 min-h-[150px] sm:min-h-[200px] relative">
-                <div 
-                  className="whitespace-pre-wrap text-lg sm:text-xl leading-relaxed font-medium text-gray-800"
-                >
-                  {terminalText}
-                  {showCursor && (
-                    <span 
-                      className="text-white px-1 rounded-sm animate-pulse"
-                      style={{ backgroundColor: primaryColor }}
-                    >_</span>
-                  )}
-                </div>
-                
-                {/* Theme-colored sparkle effects */}
-                <div className="absolute top-4 right-4 sm:right-6 text-xl sm:text-2xl animate-bounce">✦</div>
-                <div className="absolute top-1/2 right-8 sm:right-12 text-sm animate-ping">✦</div>
-                
-                {/* Theme-colored floating particles */}
-                <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                  <div 
-                    className="absolute top-1/4 left-1/4 w-2 h-2 rounded-full animate-float"
-                    style={{ backgroundColor: primaryColor + '60' }}
-                  ></div>
-                  <div 
-                    className="absolute top-3/4 right-1/3 w-1 h-1 rounded-full animate-float-delay"
-                    style={{ backgroundColor: secondaryColor + '60' }}
-                  ></div>
-                  <div 
-                    className="absolute bottom-1/3 left-1/2 w-1.5 h-1.5 rounded-full animate-float-slow"
-                    style={{ backgroundColor: primaryColor + '40' }}
-                  ></div>
-                </div>
-              </div>
-            </div>
-
-            {/* Nostalgic loading boxes - mobile responsive grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-              {loadingBoxes.map(box => (
-                <div 
-                  key={box.id}
-                  className="p-3 sm:p-4 rounded-lg shadow-lg border transition-all duration-500"
-                  style={{
-                    background: box.completed 
-                      ? `linear-gradient(to right, ${primaryColor}30, ${secondaryColor}30), rgba(255, 255, 255, 0.9)`
-                      : 'rgba(255, 255, 255, 0.85)',
-                    backgroundBlendMode: box.completed ? 'overlay' : 'normal',
-                    borderColor: box.completed ? primaryColor + '80' : primaryColor + '50'
-                  }}
-                >
-                  <div className="flex items-center gap-2 sm:gap-3 mb-2">
-                    <span className="text-gray-800"><PixelIcon name={box.icon} size={18} /></span>
-                    <span 
-                      className="font-medium text-sm sm:text-base flex-1 text-gray-800"
-                    >
-                      {box.message}
-                    </span>
-                    {box.completed && (
-                      <span className="text-green-500 text-lg">✓</span>
-                    )}
-                  </div>
-                  
-                  {/* Progress bar */}
-                  <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                    <div 
-                      className="h-2 rounded-full transition-all duration-300 ease-out"
-                      style={{
-                        width: `${box.progress}%`,
-                        background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})`
-                      }}
-                    ></div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Soft glowing effect around main window */}
-            <div 
-              className="absolute top-0 left-1/2 transform -translate-x-1/2 w-full max-w-2xl h-64 rounded-xl blur-2xl -z-10 opacity-30"
-              style={{
-                background: `radial-gradient(circle, ${primaryColor}40, ${secondaryColor}20, transparent)`
-              }}
-            ></div>
+          <div className="thread-module">
+          <p className="thread-label pb-2 mb-4 border-b-2 border-dotted border-nb-ink-mid/40">
+            Building Your Digital Home
+          </p>
+          <div className="whitespace-pre-wrap font-mono text-base sm:text-lg leading-relaxed text-nb-ink min-h-[6.5rem]">
+            {terminalText}
+            <span aria-hidden="true" className={showCursor ? 'opacity-100' : 'opacity-0 motion-reduce:opacity-100'}>_</span>
+          </div>
           </div>
         </div>
       )}
 
-      {/* MidiPlayer for audio control during animation */}
+      {/* Mute control for the welcome music */}
       {showMidiPlayer && (
         <div className="fixed right-4 z-[10000]" style={{ bottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}>
-          <div className="bg-white rounded-lg shadow-lg border-2 border-black p-3">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => {
-                  if (isMuted) {
-                    // Unmute: restore previous volume
-                    globalAudio.setVolume(previousVolume);
-                    setIsMuted(false);
-                  } else {
-                    // Mute: save current volume and set to 0
-                    setPreviousVolume(globalAudio.state.volume);
-                    globalAudio.setVolume(0);
-                    setIsMuted(true);
-                  }
-                }}
-                className="w-10 h-10 flex items-center justify-center bg-gray-500 hover:bg-gray-600 text-white rounded-full transition-colors"
-                aria-label={isMuted ? 'Unmute Music' : 'Mute Music'}
-              >
-                <PixelIcon name="speaker" size={20} className={isMuted ? 'opacity-40' : ''} />
-              </button>
-              <div className="flex-1">
-                <div className="text-sm font-medium">Welcome Music</div>
-                <div className="text-xs text-gray-500">
-                  {isMuted ? 'Click to unmute' : 'Click to mute'}
-                </div>
+          <div className="flex items-center gap-3 p-3 bg-nb-paper border-2 border-nb-ink-mid rounded-cozy shadow-nb-sm">
+            <button
+              onClick={() => {
+                if (isMuted) {
+                  // Unmute: restore previous volume
+                  globalAudio.setVolume(previousVolume);
+                  setIsMuted(false);
+                } else {
+                  // Mute: save current volume and set to 0
+                  setPreviousVolume(globalAudio.state.volume);
+                  globalAudio.setVolume(0);
+                  setIsMuted(true);
+                }
+              }}
+              className="ts-icon-button"
+              aria-label={isMuted ? 'Unmute Music' : 'Mute Music'}
+            >
+              <PixelIcon name="speaker" size={20} className={isMuted ? 'opacity-40' : ''} />
+            </button>
+            <div>
+              <div className="text-sm font-medium text-nb-ink">Welcome Music</div>
+              <div className="text-xs text-nb-ink-mid">
+                {isMuted ? 'Click to unmute' : 'Click to mute'}
               </div>
             </div>
           </div>

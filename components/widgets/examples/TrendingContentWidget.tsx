@@ -52,11 +52,11 @@ function TrendingContentWidget({ data, isLoading, error }: WidgetProps & { data?
         {[...Array(3)].map((_, i) => (
           <div key={i} className="animate-pulse">
             <div className="flex items-start space-x-3">
-              <div className="w-8 h-8 bg-gray-200 rounded-full"></div>
+              <div className="w-8 h-8 bg-nb-ink-mid/15 rounded-full"></div>
               <div className="flex-1">
-                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                <div className="h-3 bg-gray-200 rounded w-1/2 mb-1"></div>
-                <div className="h-3 bg-gray-200 rounded w-full"></div>
+                <div className="h-4 bg-nb-ink-mid/15 rounded w-3/4 mb-2"></div>
+                <div className="h-3 bg-nb-ink-mid/15 rounded w-1/2 mb-1"></div>
+                <div className="h-3 bg-nb-ink-mid/15 rounded w-full"></div>
               </div>
             </div>
           </div>
@@ -67,7 +67,7 @@ function TrendingContentWidget({ data, isLoading, error }: WidgetProps & { data?
 
   if (error) {
     return (
-      <div className="text-center py-4 text-gray-500">
+      <div className="text-center py-4 text-nb-ink-mid">
         <p className="text-sm">Unable to load trending content</p>
       </div>
     );
@@ -75,12 +75,12 @@ function TrendingContentWidget({ data, isLoading, error }: WidgetProps & { data?
 
   if (!data || data.posts.length === 0) {
     return (
-      <div className="text-center py-4 text-gray-500">
+      <div className="text-center py-4 text-nb-ink-mid">
         <p className="text-sm">No trending content available</p>
         <div className="mt-2">
           <Link
             href="/feed"
-            className="text-xs text-blue-600 hover:text-blue-800 transition-colors"
+            className="text-xs"
           >
             Explore community feed →
           </Link>
@@ -110,45 +110,27 @@ function TrendingContentWidget({ data, isLoading, error }: WidgetProps & { data?
     return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
   };
 
-  const getTrendingIcon = (): React.ReactNode => {
-    switch (data.source) {
-      case 'local_trending':
-        return <PixelIcon name="zap" />; // 🔥
-      case 'ringhub_trending':
-        return <PixelIcon name="map" />; // 🌐
-      case 'trending':
-        return <PixelIcon name="zap" />; // 🔥
-      default:
-        return <PixelIcon name="chart" />; // 📈
-    }
-  };
-
   return (
     <div className="space-y-4">
-      {/* Widget Header with trending indicator */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <span className="text-lg">{getTrendingIcon()}</span>
-          <span className="text-sm font-medium text-gray-600">
-            {data.source === 'local_trending' ? 'Trending Now' :
-              data.source === 'ringhub_trending' ? 'Ring Hub Trending' :
-                data.source === 'trending' ? 'Trending Now' : 'Popular Recent'}
-          </span>
-        </div>
+      {/* Where the list came from */}
+      <div className="thread-label">
+        {data.source === 'local_trending' ? 'Trending Now' :
+          data.source === 'ringhub_trending' ? 'Ring Hub Trending' :
+            data.source === 'trending' ? 'Trending Now' : 'Popular Recent'}
       </div>
 
       {/* Trending Posts */}
       <div className="space-y-3">
         {data.posts.slice(0, 3).map((post, index) => (
-          <div key={post.id} className="border-b border-gray-100 pb-3 last:border-b-0 last:pb-0">
+          <div key={post.id} className="border-b border-dotted border-nb-ink-mid/50 pb-3 last:border-b-0 last:pb-0">
             <div className="flex items-start space-x-3">
               {/* Trending Rank */}
-              <div className="flex-shrink-0 w-6 h-6 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center text-xs font-bold">
+              <div className="flex-shrink-0 w-4 pt-2 font-mono text-xs font-bold text-nb-ink-mid text-right">
                 {index + 1}
               </div>
 
               {/* Author Avatar */}
-              <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
+              <div className="w-8 h-8 bg-thread-cream border border-nb-ink-mid/40 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
                 {post.authorAvatarUrl ? (
                   <img
                     src={post.authorAvatarUrl}
@@ -156,7 +138,7 @@ function TrendingContentWidget({ data, isLoading, error }: WidgetProps & { data?
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <span className="text-gray-500 text-xs font-medium">
+                  <span className="text-nb-ink-mid text-xs font-medium">
                     {(post.authorDisplayName || post.authorUsername || '?')[0].toUpperCase()}
                   </span>
                 )}
@@ -169,15 +151,15 @@ function TrendingContentWidget({ data, isLoading, error }: WidgetProps & { data?
                     <UserMention
                       username={post.authorUsername}
                       displayName={post.authorDisplayName || post.authorUsername}
-                      className="text-sm font-medium text-gray-900 transition-colors truncate"
+                      className="text-sm font-medium text-nb-ink transition-colors truncate"
                     />
                   ) : (
-                    <span className="text-sm font-medium text-gray-700 truncate">
+                    <span className="text-sm font-medium text-nb-ink truncate">
                       {post.authorDisplayName || 'External User'}
-                      {post.isRingHubPost && <span className="text-xs text-gray-500 ml-1">(Ring Hub)</span>}
+                      {post.isRingHubPost && <span className="text-xs text-nb-ink-mid ml-1">(Ring Hub)</span>}
                     </span>
                   )}
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-nb-ink-mid">
                     {formatTimeAgo(post.createdAt)}
                   </span>
                 </div>
@@ -185,7 +167,7 @@ function TrendingContentWidget({ data, isLoading, error }: WidgetProps & { data?
                 {/* Content Warning */}
                 {post.isSpoiler && post.contentWarning && (
                   <div className="mb-2">
-                    <span className="inline-flex items-center px-2 py-1 rounded text-xs bg-yellow-100 text-yellow-800 border border-yellow-200">
+                    <span className="badge badge--butter inline-flex items-center gap-1 text-xs">
                       <PixelIcon name="alert" className="inline-block align-middle" /> {post.contentWarning}
                     </span>
                   </div>
@@ -197,32 +179,32 @@ function TrendingContentWidget({ data, isLoading, error }: WidgetProps & { data?
                     : post.authorUsername
                       ? `/resident/${post.authorUsername}/post/${post.id}`
                       : '#'}
-                  className="block hover:text-blue-600 transition-colors"
+                  className="block no-underline"
                 >
                   {post.title && (
-                    <h4 className="text-sm font-medium text-gray-900 mb-1 line-clamp-1">
+                    <h4 className="text-sm font-semibold text-nb-ink mb-1 line-clamp-1 underline decoration-nb-ink-mid/50 underline-offset-2">
                       {post.title}
                     </h4>
                   )}
                   {post.bodyText && !post.isSpoiler && (
-                    <p className="text-xs text-gray-600 line-clamp-2">
+                    <p className="text-xs text-nb-ink-mid line-clamp-2">
                       {truncateText(post.bodyText)}
                     </p>
                   )}
                   {post.isSpoiler && (
-                    <p className="text-xs text-gray-500 italic">
+                    <p className="text-xs text-nb-ink-mid italic">
                       Content hidden due to spoiler warning
                     </p>
                   )}
                 </Link>
 
                 {/* Post Metadata */}
-                <div className="flex items-center space-x-3 mt-2 text-xs text-gray-500">
+                <div className="flex items-center space-x-3 mt-2 text-xs text-nb-ink-mid">
                   {post.commentCount > 0 && (
                     <span><PixelIcon name="chat" className="inline-block align-middle" /> {post.commentCount}</span>
                   )}
                   {post.intent && (
-                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-gray-100 text-gray-700">
+                    <span className="tag text-xs">
                       {post.intent}
                     </span>
                   )}
@@ -240,7 +222,7 @@ function TrendingContentWidget({ data, isLoading, error }: WidgetProps & { data?
       <div className="text-center pt-2">
         <Link
           href="/feed"
-          className="text-sm text-blue-600 hover:text-blue-800 transition-colors"
+          className="text-sm"
         >
           View all community content →
         </Link>

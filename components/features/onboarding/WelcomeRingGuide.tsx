@@ -7,7 +7,6 @@ import { useToast } from '@/hooks/useToast';
 import Toast from '@/components/ui/feedback/Toast';
 import { useWelcomeRingIntro } from '@/hooks/useWelcomeRingIntro';
 import WelcomeRingIntroPopup from './WelcomeRingIntroPopup';
-import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface WelcomeRingGuideProps {
   ringSlug: string;
@@ -181,10 +180,10 @@ export default function WelcomeRingGuide({ ringSlug, viewer, ring }: WelcomeRing
   // Don't show if already completed
   if (progress.completedWelcome) {
     return (
-      <div className="bg-gradient-to-r from-green-100 to-blue-100 border-b-2 border-green-400 p-3">
-        <div className="text-center">
-          <span className="text-green-700 font-bold"><PixelIcon name="trophy" className="inline-block align-middle mr-1" /> Welcome Ring graduate</span>
-          <span className="ml-2 text-green-600 text-sm">You finished the tour.</span>
+      <div className="bg-nb-paper border-b-2 border-nb-ink-mid p-3">
+        <div className="text-center text-nb-ink">
+          <span className="font-bold">Welcome Ring graduate</span>
+          <span className="ml-2 text-sm text-nb-ink-mid">You finished the tour.</span>
         </div>
       </div>
     );
@@ -197,10 +196,10 @@ export default function WelcomeRingGuide({ ringSlug, viewer, ring }: WelcomeRing
 
   if (isMinimized) {
     return (
-      <div className="sticky top-0 z-40 bg-yellow-100 border-b-2 border-yellow-400 p-2">
+      <div className="sticky top-0 z-40 bg-nb-paper border-b-2 border-nb-ink-mid px-4 py-2">
         <button
           onClick={() => setIsMinimized(false)}
-          className="text-sm text-yellow-700 hover:text-yellow-900 font-medium"
+          className="ts-bare text-sm font-semibold underline"
         >
           → Show Welcome Tour ({steps.filter(s => s.completed).length}/{steps.length} complete)
         </button>
@@ -222,11 +221,11 @@ export default function WelcomeRingGuide({ ringSlug, viewer, ring }: WelcomeRing
         />
       )}
 
-      <div className="sticky top-0 z-40 bg-gradient-to-r from-green-100 via-blue-100 to-purple-100 border-b-4 border-dashed border-black">
+      <div className="sticky top-0 z-40 bg-nb-paper text-nb-ink border-b-2 border-nb-ink-mid shadow-nb-sm">
         {/* Progress bar */}
-        <div className="h-2 bg-white/50">
-          <div 
-            className="h-full bg-gradient-to-r from-green-400 to-blue-400 transition-all duration-500 ease-out"
+        <div className="h-1.5 bg-nb-ink-mid/15">
+          <div
+            className="h-full bg-nb-ink-mid transition-[width] duration-500 ease-out motion-reduce:transition-none"
             style={{ width: `${progressPercentage}%` }}
           />
         </div>
@@ -235,19 +234,20 @@ export default function WelcomeRingGuide({ ringSlug, viewer, ring }: WelcomeRing
         {/* Header */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
-            <span className="text-lg font-bold text-gray-700">Welcome Tour</span>
+            <span className="thread-headline text-lg font-bold">Welcome Tour</span>
             
             {/* Progress dots */}
             <div className="flex gap-2">
               {steps.map((step, idx) => (
                 <div
                   key={step.id}
-                  className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                    step.completed 
-                      ? 'bg-green-500 shadow-lg scale-110' 
+                  data-state={step.completed ? 'done' : currentStepIndex === idx ? 'current' : 'upcoming'}
+                  className={`w-3 h-3 rounded-full border-2 ${
+                    step.completed
+                      ? 'bg-nb-ink-mid border-nb-ink-mid'
                       : currentStepIndex === idx
-                      ? 'bg-blue-400 animate-pulse'
-                      : 'bg-gray-300'
+                      ? 'bg-nb-ink border-nb-ink'
+                      : 'border-nb-ink-mid'
                   }`}
                   title={step.title}
                 />
@@ -257,7 +257,7 @@ export default function WelcomeRingGuide({ ringSlug, viewer, ring }: WelcomeRing
 
           <button
             onClick={() => setIsMinimized(true)}
-            className="text-gray-500 hover:text-gray-700 text-sm"
+            className="ts-bare text-sm underline"
           >
             Minimize
           </button>
@@ -265,25 +265,25 @@ export default function WelcomeRingGuide({ ringSlug, viewer, ring }: WelcomeRing
 
         {/* Current step */}
         {currentStep && (
-          <div className="flex items-center justify-between bg-white/80 rounded-lg px-4 py-2 border-2 border-black shadow-[2px_2px_0_#000]">
+          <div className="flex items-center justify-between gap-3 bg-white/70 rounded-md px-4 py-2 border-2 border-dotted border-nb-ink-mid/60">
             <div className="flex items-center gap-3">
               <div>
-                <div className="font-medium text-gray-800">{currentStep.title}</div>
-                <div className="text-sm text-gray-600">{currentStep.description}</div>
+                <div className="font-semibold">{currentStep.title}</div>
+                <div className="text-sm text-nb-ink-mid">{currentStep.description}</div>
               </div>
             </div>
             
             {currentStepIndex === 4 && (
               <Link
                 href="/threadrings"
-                className="text-sm bg-blue-200 hover:bg-blue-300 px-3 py-1 rounded border border-black shadow-[1px_1px_0_#000] font-medium"
+                className="btn btn--secondary inline-block text-sm px-3 py-1 font-semibold no-underline bg-thread-paper text-thread-pine border-2 border-thread-sage rounded-md shadow-cozy-sm"
               >
                 Browse Rings
               </Link>
             )}
             
             {!currentStep.completed && (
-              <span className="animate-bounce text-blue-500 text-xl">→</span>
+              <span aria-hidden="true" className="text-nb-ink-mid text-xl">→</span>
             )}
           </div>
         )}
@@ -291,7 +291,7 @@ export default function WelcomeRingGuide({ ringSlug, viewer, ring }: WelcomeRing
         {/* Completion message */}
         {completedCount === steps.length && (
           <div className="mt-3 text-center">
-            <span className="text-green-600 font-bold">That&apos;s every step.</span>
+            <span className="font-bold">That&apos;s every step.</span>
           </div>
         )}
       </div>

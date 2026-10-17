@@ -63,11 +63,11 @@ function ThreadRingActivityWidget({ data, isLoading, error }: WidgetProps & { da
         {[...Array(3)].map((_, i) => (
           <div key={i} className="animate-pulse">
             <div className="flex items-start space-x-3">
-              <div className="w-8 h-8 bg-gray-200 rounded-full"></div>
+              <div className="w-8 h-8 bg-nb-ink-mid/15 rounded-full"></div>
               <div className="flex-1">
-                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                <div className="h-3 bg-gray-200 rounded w-1/2 mb-1"></div>
-                <div className="h-3 bg-gray-200 rounded w-full"></div>
+                <div className="h-4 bg-nb-ink-mid/15 rounded w-3/4 mb-2"></div>
+                <div className="h-3 bg-nb-ink-mid/15 rounded w-1/2 mb-1"></div>
+                <div className="h-3 bg-nb-ink-mid/15 rounded w-full"></div>
               </div>
             </div>
           </div>
@@ -78,7 +78,7 @@ function ThreadRingActivityWidget({ data, isLoading, error }: WidgetProps & { da
 
   if (error) {
     return (
-      <div className="text-center py-4 text-gray-500">
+      <div className="text-center py-4 text-nb-ink-mid">
         <p className="text-sm">Unable to load ThreadRing activity</p>
       </div>
     );
@@ -86,12 +86,12 @@ function ThreadRingActivityWidget({ data, isLoading, error }: WidgetProps & { da
 
   if (!data || data.posts.length === 0) {
     return (
-      <div className="text-center py-4 text-gray-500">
+      <div className="text-center py-4 text-nb-ink-mid">
         <p className="text-sm">No ThreadRing activity yet</p>
         <div className="mt-2">
           <Link
             href="/threadrings"
-            className="text-xs text-blue-600 hover:text-blue-800 transition-colors"
+            className="text-xs"
           >
             Explore ThreadRings →
           </Link>
@@ -126,12 +126,12 @@ function ThreadRingActivityWidget({ data, isLoading, error }: WidgetProps & { da
 
   if (threadRingPosts.length === 0) {
     return (
-      <div className="text-center py-4 text-gray-500">
+      <div className="text-center py-4 text-nb-ink-mid">
         <p className="text-sm">No ThreadRing posts yet</p>
         <div className="mt-2">
           <Link
             href="/threadrings"
-            className="text-xs text-blue-600 hover:text-blue-800 transition-colors"
+            className="text-xs"
           >
             Explore ThreadRings →
           </Link>
@@ -143,9 +143,9 @@ function ThreadRingActivityWidget({ data, isLoading, error }: WidgetProps & { da
   return (
     <div className="space-y-4">
       {threadRingPosts.slice(0, 3).map((post) => (
-        <div key={post.id} className="border-b border-gray-100 pb-3 last:border-b-0 last:pb-0">
+        <div key={post.id} className="border-b border-nb-ink-mid/30 pb-3 last:border-b-0 last:pb-0">
           <div className="flex items-start space-x-3">
-            <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
+            <div className="w-8 h-8 bg-nb-ink-mid/15 rounded-full flex items-center justify-center overflow-hidden">
               {post.authorAvatarUrl ? (
                 <img
                   src={post.authorAvatarUrl}
@@ -153,7 +153,7 @@ function ThreadRingActivityWidget({ data, isLoading, error }: WidgetProps & { da
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <span className="text-gray-500 text-xs font-medium">
+                <span className="text-nb-ink-mid text-xs font-medium">
                   {(post.authorDisplayName || post.authorUsername || '?')[0].toUpperCase()}
                 </span>
               )}
@@ -165,12 +165,12 @@ function ThreadRingActivityWidget({ data, isLoading, error }: WidgetProps & { da
                   <UserMention
                     username={post.authorUsername}
                     displayName={post.authorDisplayName || post.authorUsername}
-                    className="text-sm font-medium text-gray-900 truncate"
+                    className="text-sm font-medium text-nb-ink truncate"
                   />
                 ) : (
-                  <span className="text-sm font-medium text-gray-900 truncate">Anonymous</span>
+                  <span className="text-sm font-medium text-nb-ink truncate">Anonymous</span>
                 )}
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-nb-ink-mid">
                   {formatTimeAgo(post.createdAt)}
                 </span>
               </div>
@@ -181,13 +181,13 @@ function ThreadRingActivityWidget({ data, isLoading, error }: WidgetProps & { da
                     <Link
                       key={membership.threadRing.id}
                       href={`/threadrings/${membership.threadRing.slug}`}
-                      className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800 hover:bg-blue-200 transition-colors"
+                      className="badge badge--lav text-xs no-underline"
                     >
                       {membership.threadRing.name}
                     </Link>
                   ))}
                   {post.threadRings.length > 2 && (
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600">
+                    <span className="badge text-xs">
                       +{post.threadRings.length - 2} more
                     </span>
                   )}
@@ -196,26 +196,26 @@ function ThreadRingActivityWidget({ data, isLoading, error }: WidgetProps & { da
 
               <Link
                 href={`/resident/${post.authorUsername}/post/${post.id}`}
-                className="block hover:text-blue-600 transition-colors"
+                className="block"
               >
                 {post.title && (
-                  <h4 className="text-sm font-medium text-gray-900 mb-1 line-clamp-1">
+                  <h4 className="text-sm font-medium text-nb-ink mb-1 line-clamp-1">
                     {post.title}
                   </h4>
                 )}
                 {post.bodyText && (
-                  <p className="text-xs text-gray-600 line-clamp-2">
+                  <p className="text-xs text-nb-ink-mid line-clamp-2">
                     {truncateText(post.bodyText)}
                   </p>
                 )}
               </Link>
 
-              <div className="flex items-center space-x-3 mt-2 text-xs text-gray-500">
+              <div className="flex items-center space-x-3 mt-2 text-xs text-nb-ink-mid">
                 {post.commentCount > 0 && (
                   <span>{post.commentCount} comment{post.commentCount !== 1 ? 's' : ''}</span>
                 )}
                 {post.intent && (
-                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-gray-100 text-gray-700">
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-nb-ink-mid/15 text-nb-ink">
                     {post.intent}
                   </span>
                 )}
@@ -228,7 +228,7 @@ function ThreadRingActivityWidget({ data, isLoading, error }: WidgetProps & { da
       <div className="text-center pt-2">
         <Link
           href="/feed"
-          className="text-sm text-blue-600 hover:text-blue-800 transition-colors"
+          className="text-sm"
         >
           View all activity →
         </Link>

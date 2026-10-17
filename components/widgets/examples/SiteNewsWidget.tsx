@@ -42,11 +42,11 @@ function SiteNewsWidget({ data, isLoading, error }: WidgetProps & { data?: SiteN
         {[...Array(3)].map((_, i) => (
           <div key={i} className="animate-pulse">
             <div className="flex items-start space-x-3">
-              <div className="w-2 h-2 bg-gray-200 rounded-full mt-2"></div>
+              <div className="w-2 h-2 bg-nb-ink-mid/15 rounded-full mt-2"></div>
               <div className="flex-1">
-                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                <div className="h-3 bg-gray-200 rounded w-full mb-1"></div>
-                <div className="h-3 bg-gray-200 rounded w-1/3"></div>
+                <div className="h-4 bg-nb-ink-mid/15 rounded w-3/4 mb-2"></div>
+                <div className="h-3 bg-nb-ink-mid/15 rounded w-full mb-1"></div>
+                <div className="h-3 bg-nb-ink-mid/15 rounded w-1/3"></div>
               </div>
             </div>
           </div>
@@ -57,7 +57,7 @@ function SiteNewsWidget({ data, isLoading, error }: WidgetProps & { data?: SiteN
 
   if (error) {
     return (
-      <div className="text-center py-4 text-gray-500">
+      <div className="text-center py-4 text-nb-ink-mid">
         <p className="text-sm">Couldn&apos;t load news.</p>
       </div>
     );
@@ -65,7 +65,7 @@ function SiteNewsWidget({ data, isLoading, error }: WidgetProps & { data?: SiteN
 
   if (!data || data.news.length === 0) {
     return (
-      <div className="text-center py-4 text-gray-500">
+      <div className="text-center py-4 text-nb-ink-mid">
         <p className="text-sm">No news yet.</p>
       </div>
     );
@@ -98,7 +98,7 @@ function SiteNewsWidget({ data, isLoading, error }: WidgetProps & { data?: SiteN
       case 'community':
         return { color: 'text-green-600', bgColor: 'bg-green-50' };
       default:
-        return { color: 'text-gray-600', bgColor: 'bg-gray-50' };
+        return { color: 'text-nb-ink-mid', bgColor: 'bg-nb-ink-mid/10' };
     }
   };
 
@@ -122,7 +122,7 @@ function SiteNewsWidget({ data, isLoading, error }: WidgetProps & { data?: SiteN
           const typeInfo = getTypeInfo(item.type);
 
           return (
-            <div key={item.id} className="border-b border-gray-100 pb-2.5 sm:pb-3 last:border-b-0 last:pb-0">
+            <div key={item.id} className="border-b border-nb-ink-mid/30 pb-2.5 sm:pb-3 last:border-b-0 last:pb-0">
               <div className="flex items-start space-x-2 sm:space-x-3">
                 {getPriorityIndicator(item.priority)}
                 <div className="flex-1 min-w-0">
@@ -130,26 +130,26 @@ function SiteNewsWidget({ data, isLoading, error }: WidgetProps & { data?: SiteN
                     <span className={`text-xs font-medium px-2 py-0.5 sm:px-2.5 rounded ${typeInfo.bgColor} ${typeInfo.color}`}>
                       {item.type}
                     </span>
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-nb-ink-mid">
                       {formatTimeAgo(item.publishedAt)}
                     </span>
                   </div>
 
                   <Link
                     href={item.url}
-                    className="block hover:text-blue-600 transition-colors"
+                    className="block"
                   >
-                    <h4 className="text-sm font-medium text-gray-900 mb-1 line-clamp-2">
+                    <h4 className="text-sm font-medium text-nb-ink mb-1 line-clamp-2">
                       {item.title}
                     </h4>
-                    <p className="text-xs text-gray-600 line-clamp-2">
+                    <p className="text-xs text-nb-ink-mid line-clamp-2">
                       {item.summary}
                     </p>
                   </Link>
 
                   {item.author && (
                     <div className="flex items-center mt-1">
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-nb-ink-mid">
                         by {item.author}
                       </span>
                     </div>
@@ -163,10 +163,10 @@ function SiteNewsWidget({ data, isLoading, error }: WidgetProps & { data?: SiteN
 
       {/* View More Link */}
       {data.hasMore && (
-        <div className="pt-2 border-t border-gray-100">
+        <div className="pt-2 border-t border-nb-ink-mid/30">
           <Link
             href="/news"
-            className="text-xs text-blue-600 hover:text-blue-800 transition-colors flex items-center justify-center"
+            className="text-xs flex items-center justify-center"
           >
             View all news →
           </Link>

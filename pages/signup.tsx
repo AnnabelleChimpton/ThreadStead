@@ -467,15 +467,15 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
 
           /* Preserve selected state shadow */
           .signup-theme-cards-protected button.theme-card.selected {
-            box-shadow: 4px 4px 0 #3B82F6 !important;
+            box-shadow: 4px 4px 0 var(--ha-ink-dark, #2E4B3F) !important;
           }
 
           .signup-theme-cards-protected button.theme-card.unselected {
-            box-shadow: 2px 2px 0 #000 !important;
+            box-shadow: 2px 2px 0 var(--ha-ink-mid, #A18463) !important;
           }
 
           .signup-theme-cards-protected button.theme-card.unselected:hover {
-            box-shadow: 1px 1px 0 #000 !important;
+            box-shadow: 1px 1px 0 var(--ha-ink-mid, #A18463) !important;
           }
 
           /* Protect preview elements inside cards */
@@ -491,7 +491,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
             position: absolute !important;
             top: 0.5rem !important;
             right: 0.5rem !important;
-            background-color: #3B82F6 !important;
+            background-color: var(--ha-ink-dark, #2E4B3F) !important;
             color: white !important;
             padding: 0.25rem 0.5rem !important;
             border-radius: 0.25rem !important;
@@ -503,91 +503,51 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
       </Head>
       <Layout siteConfig={siteConfig}>
         <div className="max-w-full sm:max-w-2xl mx-auto px-0 sm:px-6 py-6">
-          {/* Progress Indicator */}
-          <div className="mb-8">
-            {/* Mobile: Compact progress bar */}
-            <div className="flex sm:hidden flex-col items-center gap-3 px-4">
-              <span className="text-sm font-medium text-gray-700">
-                Step {(() => {
-                  const steps: SignupStep[] = ['welcome', 'auth-method', 'password-setup', 'seed-phrase', 'email', 'guidelines', 'profile', 'template', 'finale'];
-                  const currentIndex = steps.indexOf(currentStep);
-                  return currentIndex !== -1 ? currentIndex + 1 : 1;
-                })()} of 9
-              </span>
-              <div className="w-full max-w-xs bg-gray-200 h-2 rounded-full overflow-hidden">
-                <div
-                  className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                  style={{
-                    width: `${(() => {
-                      const steps: SignupStep[] = ['welcome', 'auth-method', 'password-setup', 'seed-phrase', 'email', 'guidelines', 'profile', 'template', 'finale'];
-                      const currentIndex = steps.indexOf(currentStep);
-                      return currentIndex !== -1 ? ((currentIndex + 1) / 9) * 100 : 0;
-                    })()}%`
-                  }}
-                ></div>
+          {currentStep !== 'finale' && (
+          <div className="thread-module">
+          <div className="sm:px-4 sm:pb-2">
+          {/* Progress: steps before the current one are done */}
+          {(() => {
+            const labels = ['Username', 'Backup', 'Email', 'Agreements', 'Profile', 'Template', 'Done'];
+            const stepIndex: Record<SignupStep, number> = {
+              'welcome': 0, 'auth-method': 1, 'password-setup': 1, 'seed-phrase': 1,
+              'email': 2, 'guidelines': 3, 'profile': 4, 'template': 5, 'finale': 6,
+            };
+            const current = stepIndex[currentStep] ?? 0;
+            return (
+              <div className="mb-6 pb-4 border-b-2 border-dotted border-nb-ink-mid/40">
+                <p className="sm:hidden thread-label text-center">
+                  Step {current + 1} of {labels.length} · {labels[current]}
+                </p>
+                <ol className="hidden sm:flex flex-wrap items-center justify-center gap-y-2 text-[11px] font-mono uppercase">
+                  {labels.map((label, i) => (
+                    <li key={label} className="flex items-center gap-1">
+                      {i > 0 && <span aria-hidden="true" className="text-nb-ink-mid px-0.5">·</span>}
+                      <span
+                        aria-current={i === current ? 'step' : undefined}
+                        className={
+                          i === current
+                            ? 'badge badge--butter font-bold text-nb-ink'
+                            : i < current
+                              ? 'text-nb-ink'
+                              : 'text-nb-ink-mid'
+                        }
+                      >
+                        {i < current ? '✓ ' : ''}{label}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
               </div>
-            </div>
-
-            {/* Desktop: Full stepper */}
-            <div className="hidden sm:flex items-center justify-center gap-2 text-sm">
-              <div className={`flex items-center gap-2 ${currentStep === 'welcome' ? 'text-blue-600 font-medium' : ['seed-phrase', 'email', 'guidelines', 'profile', 'finale'].includes(currentStep) ? 'text-green-600' : 'text-gray-400'}`}>
-                <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${currentStep === 'welcome' ? 'bg-blue-100' : ['seed-phrase', 'email', 'guidelines', 'profile', 'finale'].includes(currentStep) ? 'bg-green-100' : 'bg-gray-100'}`}>
-                  1
-                </span>
-                Username
-              </div>
-              <div className="w-6 h-px bg-gray-300"></div>
-              <div className={`flex items-center gap-2 ${currentStep === 'seed-phrase' ? 'text-blue-600 font-medium' : ['email', 'guidelines', 'profile', 'finale'].includes(currentStep) ? 'text-green-600' : 'text-gray-400'}`}>
-                <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${currentStep === 'seed-phrase' ? 'bg-blue-100' : ['email', 'guidelines', 'profile', 'finale'].includes(currentStep) ? 'bg-green-100' : 'bg-gray-100'}`}>
-                  2
-                </span>
-                Backup
-              </div>
-              <div className="w-6 h-px bg-gray-300"></div>
-              <div className={`flex items-center gap-2 ${currentStep === 'email' ? 'text-blue-600 font-medium' : ['guidelines', 'profile', 'finale'].includes(currentStep) ? 'text-green-600' : 'text-gray-400'}`}>
-                <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${currentStep === 'email' ? 'bg-blue-100' : ['guidelines', 'profile', 'finale'].includes(currentStep) ? 'bg-green-100' : 'bg-gray-100'}`}>
-                  3
-                </span>
-                Email
-              </div>
-              <div className="w-6 h-px bg-gray-300"></div>
-              <div className={`flex items-center gap-2 ${currentStep === 'guidelines' ? 'text-blue-600 font-medium' : ['profile', 'finale'].includes(currentStep) ? 'text-green-600' : 'text-gray-400'}`}>
-                <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${currentStep === 'guidelines' ? 'bg-blue-100' : ['profile', 'finale'].includes(currentStep) ? 'bg-green-100' : 'bg-gray-100'}`}>
-                  4
-                </span>
-                Agreements
-              </div>
-              <div className="w-6 h-px bg-gray-300"></div>
-              <div className={`flex items-center gap-2 ${currentStep === 'profile' ? 'text-blue-600 font-medium' : ['template', 'finale'].includes(currentStep) ? 'text-green-600' : 'text-gray-400'}`}>
-                <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${currentStep === 'profile' ? 'bg-blue-100' : ['template', 'finale'].includes(currentStep) ? 'bg-green-100' : 'bg-gray-100'}`}>
-                  5
-                </span>
-                Profile
-              </div>
-              <div className="w-6 h-px bg-gray-300"></div>
-              <div className={`flex items-center gap-2 ${currentStep === 'template' ? 'text-blue-600 font-medium' : currentStep === 'finale' ? 'text-green-600' : 'text-gray-400'}`}>
-                <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${currentStep === 'template' ? 'bg-blue-100' : currentStep === 'finale' ? 'bg-green-100' : 'bg-gray-100'}`}>
-                  6
-                </span>
-                Template
-              </div>
-              <div className="w-6 h-px bg-gray-300"></div>
-              <div className={`flex items-center gap-2 ${currentStep === 'finale' ? 'text-green-600 font-medium' : 'text-gray-400'}`}>
-                <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${currentStep === 'finale' ? 'bg-green-100' : 'bg-gray-100'}`}>
-                  ✓
-                </span>
-                Done
-              </div>
-            </div>
-          </div>
+            );
+          })()}
 
           {/* Step 1: Welcome & Username */}
           {currentStep === 'welcome' && (
-            <div className="bg-white border border-black rounded-none p-4 sm:p-8 shadow-[2px_2px_0_#000] sm:shadow-[4px_4px_0_#000]">
+            <div>
               <div className="text-center mb-8">
-                <div className="text-6xl mb-4 flex justify-center"><PixelIcon name="human-handsup" size={64} /></div>
-                <h1 className="text-3xl font-bold mb-2">Welcome to {siteConfig.site_name}!</h1>
-                <p className="text-gray-600">
+                <h1 className="thread-headline text-3xl font-bold mb-2">Welcome to {siteConfig.site_name}!</h1>
+                <p className="text-nb-ink-mid">
                   Pick a username and a way to sign in. Your account gets its own decentralized ID (DID).
                 </p>
               </div>
@@ -596,7 +556,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                 <div>
                   <label className="block text-sm font-bold mb-2">Choose Your Username</label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">@</span>
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-nb-ink-mid">@</span>
                     <input
                       type="text"
                       value={username}
@@ -605,7 +565,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                         setUsername(value);
                       }}
                       placeholder="alice"
-                      className="w-full pl-8 pr-4 py-3 text-lg border border-black rounded-none bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full pl-8 pr-4 py-3 text-lg border-2 border-nb-ink-mid/60 rounded-md bg-white focus:outline-none focus:border-nb-ink-mid"
                       disabled={isLoading}
                       maxLength={20}
                     />
@@ -628,7 +588,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                           <p className="text-red-600 text-sm">✗ @{username} is taken</p>
                         )}
                         {usernameAvailable === null && username.length >= 3 && (
-                          <p className="text-gray-500 text-sm">Checking availability...</p>
+                          <p className="text-nb-ink-mid text-sm">Checking availability...</p>
                         )}
                       </div>
                     );
@@ -646,10 +606,10 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                       value={betaKey}
                       onChange={(e) => setBetaKey(e.target.value.toUpperCase())}
                       placeholder="BETA-XXXX-XXXX-XXXX"
-                      className="w-full px-4 py-3 text-lg border border-black rounded-none bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                      className="w-full px-4 py-3 text-lg border-2 border-nb-ink-mid/60 rounded-md bg-white focus:outline-none focus:border-nb-ink-mid font-mono"
                       disabled={isLoading}
                     />
-                    <p className="text-xs text-gray-600 mt-1">
+                    <p className="text-xs text-nb-ink-mid mt-1">
                       Required during beta. Get one from a friend or contact support.
                     </p>
                   </div>
@@ -658,7 +618,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                 <button
                   onClick={handleCreateAccount}
                   disabled={isLoading || !username || usernameAvailable !== true || (isBetaEnabled && !betaKey)}
-                  className="w-full px-6 py-4 text-lg bg-yellow-200 hover:bg-yellow-100 border border-black shadow-[3px_3px_0_#000] font-bold transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_#000] disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
+                  className="w-full thread-button btn btn--primary btn--lg text-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
                 >
                   {isLoading ? "Creating Account..." : "Create My Account"}
                 </button>
@@ -674,30 +634,29 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
 
           {/* Step 2: Auth Method Selection */}
           {currentStep === 'auth-method' && (
-            <div className="bg-white border border-black rounded-none p-4 sm:p-8 shadow-[2px_2px_0_#000] sm:shadow-[4px_4px_0_#000]">
+            <div>
               <div className="text-center mb-8">
-                <span className="mb-4 flex justify-center"><PixelIcon name="lock" size={64} /></span>
-                <h2 className="text-3xl font-bold mb-2">Choose Your Security Method</h2>
-                <p className="text-gray-600">
+                <h2 className="thread-headline text-3xl font-bold mb-2">Choose Your Security Method</h2>
+                <p className="text-nb-ink-mid">
                   How would you like to secure your @{username} account?
                 </p>
               </div>
 
               <div className="max-w-2xl mx-auto space-y-4">
                 {/* Password Option (Recommended) */}
-                <div className="border-2 border-green-500 rounded-lg p-6 bg-green-50">
+                <div className="border-2 border-nb-ink-mid rounded-cozy p-5 sm:p-6 bg-nb-paper shadow-nb-sm">
                   <div className="flex items-start gap-4">
                     <div className="flex-shrink-0">
-                      <span className="inline-block px-3 py-1 bg-green-200 text-green-800 text-xs font-bold rounded">
+                      <span className="badge badge--butter inline-block text-xs font-bold font-mono">
                         RECOMMENDED
                       </span>
                     </div>
                     <div className="flex-grow">
-                      <h3 className="text-xl font-bold mb-2"><PixelIcon name="lock" className="inline-block align-middle mr-1" /> Use a Password</h3>
-                      <p className="text-gray-700 mb-4">
+                      <h3 className="thread-headline text-xl font-bold mb-2">Use a Password</h3>
+                      <p className="text-nb-ink mb-4">
                         Sign in with a username and password, the way you&apos;re used to.
                       </p>
-                      <ul className="text-sm text-gray-600 space-y-1 mb-4">
+                      <ul className="text-sm text-nb-ink-mid space-y-1 mb-4">
                         <li>✓ Easy to remember and use</li>
                         <li>✓ Change your password anytime</li>
                         <li>✓ Recovery phrase generated but hidden</li>
@@ -705,7 +664,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                       </ul>
                       <button
                         onClick={() => handleAuthMethodSelected('password')}
-                        className="w-full px-6 py-3 bg-green-200 hover:bg-green-100 border border-black shadow-[2px_2px_0_#000] font-bold transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] min-h-[48px]"
+                        className="w-full thread-button btn btn--primary btn--lg font-bold min-h-[48px]"
                       >
                         Continue with Password →
                       </button>
@@ -714,19 +673,19 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                 </div>
 
                 {/* Seed Phrase Option (Advanced) */}
-                <div className="border border-gray-300 rounded-lg p-6 bg-gray-50">
+                <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-cozy p-5 sm:p-6">
                   <div className="flex items-start gap-4">
                     <div className="flex-shrink-0">
-                      <span className="inline-block px-3 py-1 bg-gray-200 text-gray-700 text-xs font-bold rounded">
+                      <span className="badge inline-block text-xs font-bold font-mono">
                         ADVANCED
                       </span>
                     </div>
                     <div className="flex-grow">
-                      <h3 className="text-xl font-bold mb-2"><PixelIcon name="drop" className="inline-block align-middle mr-1" /> Passwordless Keypair</h3>
-                      <p className="text-gray-700 mb-4">
+                      <h3 className="thread-headline text-xl font-bold mb-2">Passwordless Keypair</h3>
+                      <p className="text-nb-ink mb-4">
                         Maximum security with a 12-word recovery phrase. No passwords needed.
                       </p>
-                      <ul className="text-sm text-gray-600 space-y-1 mb-4">
+                      <ul className="text-sm text-nb-ink-mid space-y-1 mb-4">
                         <li>✓ Most secure option</li>
                         <li>✓ Full control of your identity</li>
                         <li>✓ No password to remember or reset</li>
@@ -734,7 +693,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                       </ul>
                       <button
                         onClick={() => handleAuthMethodSelected('seedphrase')}
-                        className="w-full px-6 py-3 bg-gray-200 hover:bg-gray-100 border border-black shadow-[2px_2px_0_#000] font-bold transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] min-h-[48px]"
+                        className="w-full thread-button-secondary btn btn--secondary btn--lg font-bold min-h-[48px]"
                       >
                         Continue with Seed Phrase →
                       </button>
@@ -742,7 +701,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                   </div>
                 </div>
 
-                <div className="text-center text-sm text-gray-500 mt-6">
+                <div className="text-center text-sm text-nb-ink-mid mt-6">
                   <p>You can switch between methods later in your account settings.</p>
                 </div>
               </div>
@@ -757,11 +716,10 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
 
           {/* Step 2b: Password Setup */}
           {currentStep === 'password-setup' && (
-            <div className="bg-white border border-black rounded-none p-4 sm:p-8 shadow-[2px_2px_0_#000] sm:shadow-[4px_4px_0_#000]">
+            <div>
               <div className="text-center mb-8">
-                <span className="mb-4 flex justify-center"><PixelIcon name="lock" size={64} /></span>
-                <h2 className="text-3xl font-bold mb-2">Create Your Password</h2>
-                <p className="text-gray-600">
+                <h2 className="thread-headline text-3xl font-bold mb-2">Create Your Password</h2>
+                <p className="text-nb-ink-mid">
                   Choose a strong password for your @{username} account
                 </p>
               </div>
@@ -779,13 +737,14 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                         setPasswordErrors(validation.errors);
                       }}
                       placeholder="Enter a strong password"
-                      className="w-full px-4 py-3 text-lg border border-black rounded-none bg-white focus:outline-none focus:ring-2 focus:ring-green-500 pr-12"
+                      className="w-full px-4 py-3 text-lg border-2 border-nb-ink-mid/60 rounded-md bg-white focus:outline-none focus:border-nb-ink-mid pr-12"
                       disabled={isLoading}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                      className="ts-icon-button absolute right-2 top-1/2 -translate-y-1/2"
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
                     >
                       {showPassword ? <PixelIcon name="eye" size={20} /> : <PixelIcon name="eye-closed" size={20} />}
                     </button>
@@ -799,25 +758,25 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Enter password again"
-                    className="w-full px-4 py-3 text-lg border border-black rounded-none bg-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full px-4 py-3 text-lg border-2 border-nb-ink-mid/60 rounded-md bg-white focus:outline-none focus:border-nb-ink-mid"
                     disabled={isLoading}
                   />
                 </div>
 
                 {/* Password Requirements */}
-                <div className="bg-gray-50 border border-gray-200 rounded p-4">
-                  <p className="text-sm font-bold text-gray-700 mb-2">Password Requirements:</p>
+                <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-4">
+                  <p className="text-sm font-bold text-nb-ink mb-2">Password Requirements:</p>
                   <ul className="text-sm space-y-1">
-                    <li className={password.length >= 8 ? "text-green-600" : "text-gray-500"}>
+                    <li className={password.length >= 8 ? "text-nb-ink font-medium" : "text-nb-ink-mid"}>
                       {password.length >= 8 ? "✓" : "○"} At least 8 characters
                     </li>
-                    <li className={/[a-z]/.test(password) ? "text-green-600" : "text-gray-500"}>
+                    <li className={/[a-z]/.test(password) ? "text-nb-ink font-medium" : "text-nb-ink-mid"}>
                       {/[a-z]/.test(password) ? "✓" : "○"} One lowercase letter
                     </li>
-                    <li className={/[A-Z]/.test(password) ? "text-green-600" : "text-gray-500"}>
+                    <li className={/[A-Z]/.test(password) ? "text-nb-ink font-medium" : "text-nb-ink-mid"}>
                       {/[A-Z]/.test(password) ? "✓" : "○"} One uppercase letter
                     </li>
-                    <li className={/[0-9]/.test(password) ? "text-green-600" : "text-gray-500"}>
+                    <li className={/[0-9]/.test(password) ? "text-nb-ink font-medium" : "text-nb-ink-mid"}>
                       {/[0-9]/.test(password) ? "✓" : "○"} One number
                     </li>
                   </ul>
@@ -826,7 +785,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                 <button
                   onClick={handlePasswordSetup}
                   disabled={isLoading || !password || !confirmPassword || passwordErrors.length > 0}
-                  className="w-full px-6 py-4 text-lg bg-green-200 hover:bg-green-100 border border-black shadow-[3px_3px_0_#000] font-bold transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_#000] disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
+                  className="w-full thread-button btn btn--primary btn--lg text-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
                 >
                   {isLoading ? "Creating Account..." : "Create Account with Password"}
                 </button>
@@ -848,31 +807,30 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
 
           {/* Step 3: Seed Phrase */}
           {currentStep === 'seed-phrase' && generatedSeedPhrase && (
-            <div className="bg-white border border-black rounded-none p-4 sm:p-8 shadow-[2px_2px_0_#000] sm:shadow-[4px_4px_0_#000]">
+            <div>
               <div className="text-center mb-8">
-                <span className="mb-4 flex justify-center"><PixelIcon name="shield" size={64} /></span>
-                <h2 className="text-3xl font-bold mb-2">Secure Your Account</h2>
-                <p className="text-gray-600 max-w-lg mx-auto">
+                <h2 className="thread-headline text-3xl font-bold mb-2">Secure Your Account</h2>
+                <p className="text-nb-ink-mid max-w-lg mx-auto">
                   <strong>Save these 12 words in order!</strong> This is your account recovery phrase. 
                   You&apos;ll need it if you lose access to this device.
                 </p>
               </div>
 
               <div className="max-w-2xl mx-auto">
-                <div className="bg-blue-50 border border-blue-200 rounded p-6 mb-6">
+                <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-cozy p-4 sm:p-6 mb-6">
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     {generatedSeedPhrase.split(' ').map((word, index) => (
-                      <div key={index} className="flex items-center gap-3 p-3 bg-white rounded border border-blue-300">
-                        <span className="text-sm font-bold text-blue-600 min-w-[24px]">{index + 1}.</span>
-                        <span className="font-mono font-medium text-gray-900">{word}</span>
+                      <div key={index} className="flex items-center gap-3 p-3 bg-white rounded-md border border-nb-ink-mid/50">
+                        <span className="text-sm font-bold text-nb-ink-mid min-w-[24px] font-mono">{index + 1}.</span>
+                        <span className="font-mono font-medium text-nb-ink">{word}</span>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                <div className="bg-red-50 border border-red-200 rounded p-4 mb-6">
-                  <h3 className="font-bold text-red-800 mb-2"><PixelIcon name="warning-box" size={16} className="inline-block align-middle mr-1" />Keep these words safe</h3>
-                  <ul className="text-red-700 text-sm space-y-1">
+                <div className="border-2 border-nb-rose bg-nb-paper rounded-md p-4 mb-6">
+                  <h3 className="font-bold text-nb-rose-ink mb-2"><PixelIcon name="warning-box" size={16} className="inline-block align-middle mr-1" />Keep these words safe</h3>
+                  <ul className="text-nb-ink text-sm space-y-1">
                     <li>• Anyone with these words can access your account</li>
                     <li>• Write them down on paper and store safely</li>
                     <li>• Never share them with anyone</li>
@@ -883,23 +841,23 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                 <div className="flex flex-col sm:flex-row gap-4 mb-6">
                   <button
                     onClick={() => copyToClipboard(generatedSeedPhrase)}
-                    className="flex-1 px-4 py-3 bg-green-100 hover:bg-green-200 border border-green-300 font-medium transition-all flex items-center justify-center gap-2"
+                    className="thread-button-secondary btn btn--secondary flex-1"
                   >
-                    <PixelIcon name="clipboard" />
+                    <PixelIcon name="clipboard" className="inline-block align-[-3px] mr-1.5" />
                     Copy Words
                   </button>
                   <button
                     onClick={() => downloadSeedPhrase(generatedSeedPhrase)}
-                    className="flex-1 px-4 py-3 bg-blue-100 hover:bg-blue-200 border border-blue-300 font-medium transition-all flex items-center justify-center gap-2"
+                    className="thread-button-secondary btn btn--secondary flex-1"
                   >
-                    <PixelIcon name="save" />
+                    <PixelIcon name="save" className="inline-block align-[-3px] mr-1.5" />
                     Download Backup
                   </button>
                 </div>
 
                 <button
                   onClick={handleSeedPhraseSaved}
-                  className="w-full px-6 py-4 text-lg bg-green-200 hover:bg-green-100 border border-black shadow-[3px_3px_0_#000] font-bold transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_#000] min-h-[48px]"
+                  className="w-full thread-button btn btn--primary btn--lg text-lg font-bold min-h-[48px]"
                 >
                   ✓ I&apos;ve Safely Saved My Recovery Phrase
                 </button>
@@ -909,20 +867,19 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
 
           {/* Step 3: Email (Optional) */}
           {currentStep === 'email' && (
-            <div className="bg-white border border-black rounded-none p-4 sm:p-8 shadow-[2px_2px_0_#000] sm:shadow-[4px_4px_0_#000]">
+            <div>
               <div className="text-center mb-8">
-                <span className="mb-4 flex justify-center"><PixelIcon name="mail" size={64} /></span>
-                <h2 className="text-3xl font-bold mb-2">Add Email (Optional)</h2>
-                <p className="text-gray-600 max-w-lg mx-auto">
+                <h2 className="thread-headline text-3xl font-bold mb-2">Add Email (Optional)</h2>
+                <p className="text-nb-ink-mid max-w-lg mx-auto">
                   Add your email address for magic link login. This makes it easier to access your account
                   from different devices.
                 </p>
               </div>
 
               <div className="max-w-md mx-auto space-y-6">
-                <div className="bg-blue-50 border border-blue-200 rounded p-4">
-                  <h3 className="font-bold text-blue-800 mb-2">Why add an email?</h3>
-                  <ul className="text-blue-700 text-sm space-y-1">
+                <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-4">
+                  <p className="font-bold text-nb-ink mb-2">Why add an email?</p>
+                  <ul className="text-nb-ink text-sm space-y-1">
                     <li>• Sign in without your recovery phrase</li>
                     <li>• Access your account from any device</li>
                     <li>• Additional account recovery option</li>
@@ -937,7 +894,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="alice@example.com"
-                    className="w-full px-4 py-3 text-lg border border-black rounded-none bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 text-lg border-2 border-nb-ink-mid/60 rounded-md bg-white focus:outline-none focus:border-nb-ink-mid"
                     disabled={isLoading}
                   />
                 </div>
@@ -946,7 +903,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                   <button
                     onClick={handleEmailSetup}
                     disabled={isLoading}
-                    className="w-full px-6 py-3 bg-blue-200 hover:bg-blue-100 border border-black shadow-[3px_3px_0_#000] font-bold transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_#000] disabled:opacity-50 min-h-[48px]"
+                    className="w-full thread-button btn btn--primary btn--lg font-bold disabled:opacity-50 min-h-[48px]"
                   >
                     {isLoading ? "Setting up..." : email.trim() ? "Add Email & Continue" : "Skip Email Setup"}
                   </button>
@@ -954,7 +911,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                   {email.trim() && (
                     <button
                       onClick={() => setCurrentStep('guidelines')}
-                      className="w-full sm:w-auto px-4 py-2 sm:py-0 text-sm text-gray-600 hover:text-gray-800 underline sm:no-underline border sm:border-0 border-gray-300 rounded sm:rounded-none min-h-[48px] sm:min-h-0"
+                      className="ts-bare text-sm underline self-center"
                     >
                       Skip for now
                     </button>
@@ -972,11 +929,10 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
 
           {/* Step 4: Template Selection */}
           {currentStep === 'template' && (
-            <div className="bg-white border border-black rounded-none p-4 sm:p-8 shadow-[2px_2px_0_#000] sm:shadow-[4px_4px_0_#000]">
+            <div>
               <div className="text-center mb-8">
-                <span className="mb-4 flex justify-center"><PixelIcon name="paint-bucket" size={64} /></span>
-                <h2 className="text-3xl font-bold mb-2">Choose Your Theme</h2>
-                <p className="text-gray-600 max-w-lg mx-auto">
+                <h2 className="thread-headline text-3xl font-bold mb-2">Choose Your Theme</h2>
+                <p className="text-nb-ink-mid max-w-lg mx-auto">
                   Pick a template for your profile page.
                   You can change it anytime in your settings.
                 </p>
@@ -992,10 +948,10 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                     <button
                       key={templateType}
                       onClick={() => setSelectedTemplate(templateType)}
-                      className={`theme-card ${isSelected ? 'selected' : 'unselected'} relative border-2 ${isSelected ? 'border-blue-500 shadow-[4px_4px_0_#3B82F6]' : 'border-black shadow-[2px_2px_0_#000]'} rounded-lg p-4 transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] active:scale-[0.98] text-left overflow-hidden`}
+                      className={`theme-card ${isSelected ? 'selected' : 'unselected'} relative border-2 rounded-lg p-4 text-left overflow-hidden`}
                       style={{
                         ...previewStyle,
-                        borderColor: isSelected ? '#3B82F6' : '#000'
+                        borderColor: isSelected ? 'var(--ha-ink-dark, #2E4B3F)' : 'var(--ha-ink-mid, #A18463)'
                       }}
                     >
                       {/* Gradient Overlay */}
@@ -1003,7 +959,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                       
                       {/* Selection Badge */}
                       {isSelected && (
-                        <div className="selection-badge absolute top-2 right-2 bg-blue-500 text-white px-2 py-1 rounded text-xs font-bold z-10">
+                        <div className="selection-badge absolute top-2 right-2 text-xs font-bold z-10">
                           Selected
                         </div>
                       )}
@@ -1073,7 +1029,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                 <button
                   onClick={handleTemplateSelected}
                   disabled={!selectedTemplate || isLoading}
-                  className="w-full px-6 py-4 text-lg bg-blue-200 hover:bg-blue-100 border border-black shadow-[3px_3px_0_#000] font-bold transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_#000] disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
+                  className="w-full thread-button btn btn--primary btn--lg text-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
                 >
                   {isLoading ? 'Saving Template...' : `Continue with ${DEFAULT_PROFILE_TEMPLATE_INFO[selectedTemplate]?.name || 'Template'} →`}
                 </button>
@@ -1089,25 +1045,24 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
 
           {/* Step 4: Community Guidelines Agreement */}
           {currentStep === 'guidelines' && (
-            <div className="bg-white border border-black rounded-none p-4 sm:p-8 shadow-[2px_2px_0_#000] sm:shadow-[4px_4px_0_#000]">
+            <div>
               <div className="text-center mb-8">
-                <span className="mb-4 flex justify-center"><PixelIcon name="clipboard" size={64} /></span>
-                <h2 className="text-3xl font-bold mb-2">Legal & Community Agreements</h2>
-                <p className="text-gray-600 max-w-lg mx-auto">
+                <h2 className="thread-headline text-3xl font-bold mb-2">Legal & Community Agreements</h2>
+                <p className="text-nb-ink-mid max-w-lg mx-auto">
                   Before joining our community, please review and agree to our Terms of Service,
                   Privacy Policy, and Community Guidelines.
                 </p>
               </div>
 
               {/* TODO: Make community guidelines content configurable via admin portal */}
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-6 max-h-64 overflow-y-auto">
-                <h3 className="font-bold text-lg mb-3 text-gray-900">House rules, short version:</h3>
-                <div className="space-y-2 text-sm text-gray-700">
+              <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-cozy p-5 mb-6 max-h-64 overflow-y-auto">
+                <h3 className="font-bold text-lg mb-3 text-nb-ink">House rules, short version:</h3>
+                <div className="space-y-2 text-sm text-nb-ink">
                   <p>Be kind, post your own stuff, no harassment or hate, keep it all-ages.</p>
                 </div>
 
-                <h3 className="font-bold text-lg mt-4 mb-3 text-gray-900">In practice:</h3>
-                <div className="space-y-1 text-sm text-gray-700">
+                <h3 className="font-bold text-lg mt-4 mb-3 text-nb-ink">In practice:</h3>
+                <div className="space-y-1 text-sm text-nb-ink">
                   <div>• No harassment, bullying, or hate speech</div>
                   <div>• Share original content and respect others&apos; work</div>
                   <div>• Keep content appropriate for all ages</div>
@@ -1119,7 +1074,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                     href="/community-guidelines"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-600 hover:text-blue-800 underline text-sm"
+                    className="underline text-sm"
                   >
                     Read Full Guidelines →
                   </a>
@@ -1132,15 +1087,15 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                     type="checkbox"
                     checked={agreedToGuidelines}
                     onChange={(e) => setAgreedToGuidelines(e.target.checked)}
-                    className="mt-1 w-6 h-6 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    className="mt-1 w-5 h-5 accent-nb-ink"
                   />
-                  <span className="text-sm text-gray-700">
+                  <span className="text-sm text-nb-ink">
                     I have read and agree to the{' '}
                     <a
                       href="/terms"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-600 hover:text-blue-800 underline"
+                      className="underline"
                     >
                       Terms of Service
                     </a>
@@ -1149,7 +1104,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                       href="/privacy"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-600 hover:text-blue-800 underline"
+                      className="underline"
                     >
                       Privacy Policy
                     </a>
@@ -1158,7 +1113,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                       href="/community-guidelines"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-600 hover:text-blue-800 underline"
+                      className="underline"
                     >
                       Community Guidelines
                     </a>
@@ -1168,7 +1123,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                 <button
                   onClick={handleGuidelinesAgreement}
                   disabled={!agreedToGuidelines}
-                  className="w-full px-6 py-3 bg-green-200 hover:bg-green-100 border border-black shadow-[3px_3px_0_#000] font-bold transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_#000] disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
+                  className="w-full thread-button btn btn--primary btn--lg font-bold disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
                 >
                   {agreedToGuidelines ? "Continue to Profile Setup" : "Please agree to all terms to continue"}
                 </button>
@@ -1184,24 +1139,23 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
 
           {/* Step 5: Profile Setup (Optional) */}
           {currentStep === 'profile' && (
-            <div className="bg-white border border-black rounded-none p-4 sm:p-8 shadow-[2px_2px_0_#000] sm:shadow-[4px_4px_0_#000]">
+            <div>
               <div className="text-center mb-8">
-                <span className="mb-4 flex justify-center"><PixelIcon name="camera" size={64} /></span>
-                <h2 className="text-3xl font-bold mb-2">Set up your profile</h2>
-                <p className="text-gray-600">
+                <h2 className="thread-headline text-3xl font-bold mb-2">Set up your profile</h2>
+                <p className="text-nb-ink-mid">
                   Add a profile photo and bio to help others recognize you (optional)
                 </p>
               </div>
 
               <div className="space-y-6 max-w-md mx-auto">
                 <div>
-                  <label className="block text-sm font-bold mb-3 text-gray-900">Profile Photo</label>
+                  <label className="block text-sm font-bold mb-3 text-nb-ink">Profile Photo</label>
                   <div className="flex items-center gap-4">
-                    <div className="w-20 h-20 rounded-full border-2 border-black bg-gray-100 flex items-center justify-center overflow-hidden">
+                    <div className="w-20 h-20 rounded-full border-2 border-nb-ink-mid bg-thread-cream flex items-center justify-center overflow-hidden">
                       {profilePhotoPreview ? (
                         <img src={profilePhotoPreview} alt="Profile preview" className="w-full h-full object-cover" />
                       ) : (
-                        <span className="text-gray-400"><PixelIcon name="user" size={32} /></span>
+                        <span className="text-nb-ink-mid"><PixelIcon name="user" size={32} /></span>
                       )}
                     </div>
                     <div>
@@ -1215,34 +1169,34 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                       />
                       <label
                         htmlFor="profile-photo"
-                        className="cursor-pointer inline-block px-4 py-2 bg-gray-200 hover:bg-gray-100 border border-black font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_#000] shadow-[3px_3px_0_#000] text-gray-900"
+                        className="thread-button-secondary btn btn--secondary cursor-pointer inline-block"
                       >
                         Choose Photo
                       </label>
-                      <p className="text-xs text-gray-500 mt-1">JPG, PNG up to 20MB</p>
+                      <p className="text-xs text-nb-ink-mid mt-1">JPG, PNG up to 20MB</p>
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold mb-2 text-gray-900">Bio</label>
+                  <label className="block text-sm font-bold mb-2 text-nb-ink">Bio</label>
                   <textarea
                     value={bio}
                     onChange={(e) => setBio(e.target.value)}
                     placeholder="Tell others about yourself..."
-                    className="w-full px-4 py-3 text-lg border border-black rounded-none bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    className="w-full px-4 py-3 text-lg border-2 border-nb-ink-mid/60 rounded-md bg-white focus:outline-none focus:border-nb-ink-mid resize-none"
                     disabled={isLoading}
                     rows={3}
                     maxLength={200}
                   />
-                  <p className="text-xs text-gray-500 mt-1">{bio.length}/200 characters</p>
+                  <p className="text-xs text-nb-ink-mid mt-1">{bio.length}/200 characters</p>
                 </div>
 
                 <div className="flex flex-col gap-3">
                   <button
                     onClick={handleProfileSetup}
                     disabled={isLoading || (!profilePhoto && !bio.trim())}
-                    className="w-full px-6 py-3 bg-green-200 hover:bg-green-100 border border-black shadow-[3px_3px_0_#000] font-bold transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_#000] disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
+                    className="w-full thread-button btn btn--primary btn--lg font-bold disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
                   >
                     {isLoading ? "Saving..." : "Save Profile & Continue"}
                   </button>
@@ -1250,7 +1204,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                   <button
                     onClick={() => setCurrentStep('template')}
                     disabled={isLoading}
-                    className="text-sm text-gray-600 hover:text-gray-800 underline disabled:opacity-50"
+                    className="ts-bare text-sm underline self-center disabled:opacity-50"
                   >
                     Skip for now
                   </button>
@@ -1274,6 +1228,9 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
             </div>
           )}
 
+          </div>
+          </div>
+          )}
 
           {/* Finale Animation */}
           {currentStep === 'finale' && (
