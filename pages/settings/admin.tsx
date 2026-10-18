@@ -233,7 +233,7 @@ function PageForm({
               />
               <span className="text-sm font-bold text-green-700"><PixelIcon name="bookmark" className="inline-block align-middle" /> Use as Landing Page</span>
             </label>
-            <p className="text-xs text-gray-500">Override the default landing page for visitors</p>
+            <p className="text-xs text-gray-500">Shown at /landing (the homepage&apos;s &quot;How it works&quot; link) instead of the built-in page</p>
           </div>
 
           <div>

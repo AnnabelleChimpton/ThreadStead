@@ -7,14 +7,46 @@ import Head from "next/head";
 import { contentMetadataGenerator } from "@/lib/utils/metadata/content-metadata";
 import Image from "next/image";
 import { PixelIcon } from "@/components/ui/PixelIcon";
+import CustomPageLayout from "@/components/ui/layout/CustomPageLayout";
+import { db } from "@/lib/config/database/connection";
+
+interface CustomLanding {
+  title: string;
+  content: string;
+  hideNavbar: boolean;
+}
 
 interface LandingPageProps {
   siteConfig: SiteConfig;
+  /** The published custom page marked "Use as Landing Page" in Admin, if any. */
+  customLanding: CustomLanding | null;
 }
 
-export default function LandingPage({ siteConfig }: LandingPageProps) {
+export default function LandingPage({ siteConfig, customLanding }: LandingPageProps) {
   // Generate metadata for landing page
   const homepageMetadata = contentMetadataGenerator.generateHomepageMetadata(siteConfig);
+
+  if (customLanding) {
+    return (
+      <>
+        <Head>
+          <title>{homepageMetadata.title}</title>
+          <meta name="description" content={homepageMetadata.description} />
+          <meta property="og:title" content={homepageMetadata.title} />
+          <meta property="og:description" content={homepageMetadata.description} />
+          {homepageMetadata.image && (
+            <meta property="og:image" content={homepageMetadata.image} />
+          )}
+        </Head>
+        <CustomPageLayout siteConfig={siteConfig} hideNavbar={customLanding.hideNavbar}>
+          <div
+            className="custom-page-content flex-1"
+            dangerouslySetInnerHTML={{ __html: customLanding.content }}
+          />
+        </CustomPageLayout>
+      </>
+    );
+  }
 
   return (
     <>
@@ -279,9 +311,21 @@ export default function LandingPage({ siteConfig }: LandingPageProps) {
 export const getServerSideProps: GetServerSideProps<LandingPageProps> = async () => {
   const siteConfig = await getSiteConfig();
 
+  // Admin → Custom Pages → "Use as Landing Page" replaces this built-in page.
+  let customLanding: CustomLanding | null = null;
+  try {
+    customLanding = await db.customPage.findFirst({
+      where: { published: true, isLandingPage: true },
+      select: { title: true, content: true, hideNavbar: true },
+    });
+  } catch (error) {
+    console.error("Failed to load custom landing page, using the built-in one:", error);
+  }
+
   return {
     props: {
       siteConfig,
+      customLanding,
     },
   };
 };
