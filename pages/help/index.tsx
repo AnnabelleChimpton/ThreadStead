@@ -26,12 +26,12 @@ export default function HelpHub({ siteConfig }: HelpHubProps) {
     <>
       <Head>
         <title>{`${siteConfig.site_name} — Help`}</title>
-        <meta name="description" content="The FAQ covers most things. Still stuck? Write in — a person reads every message." />
+        <meta name="description" content="Most of the usual questions are answered in the FAQ. If yours isn't, write to me! I read every message." />
         <link rel="canonical" href={`${getSiteBaseUrl()}/help`} />
         <meta name="robots" content="index, follow" />
 
         <meta property="og:title" content={`${siteConfig.site_name} — Help`} />
-        <meta property="og:description" content="The FAQ covers most things. Still stuck? Write in — a person reads every message." />
+        <meta property="og:description" content="Most of the usual questions are answered in the FAQ. If yours isn't, write to me! I read every message." />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={`${getSiteBaseUrl()}/help`} />
       </Head>
@@ -39,8 +39,8 @@ export default function HelpHub({ siteConfig }: HelpHubProps) {
       <Layout siteConfig={siteConfig}>
         <div className="w-full max-w-6xl mx-auto px-3 sm:px-4 py-8 sm:py-12">
           <PageHeader title="Help">
-            <p>The FAQ covers most things. Still stuck? Write in — a person reads every message.</p>
-            <p className="text-base text-nb-ink-mid">House rules, privacy and terms are here too.</p>
+            <p>Most of the usual questions are answered in the FAQ. If yours isn&apos;t, write to me! I read every message.</p>
+            <p className="text-base text-nb-ink-mid">The house rules, privacy policy and terms are here too.</p>
           </PageHeader>
 
           {/* Help Topics Grid */}
@@ -64,16 +64,16 @@ export default function HelpHub({ siteConfig }: HelpHubProps) {
           {/* Quick Links */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Callout variant="framed" title={`New to ${siteConfig.site_name}?`}>
-              <p>The FAQ starts with the getting-started questions.</p>
+              <p>The FAQ starts with what people usually ask when they first get here.</p>
               <p>
-                <ButtonLink href="/help/faq">Read FAQ</ButtonLink>
+                <ButtonLink href="/help/faq">Read the FAQ</ButtonLink>
               </p>
             </Callout>
 
-            <Callout variant="framed" title="Need a person?">
-              <p>If the FAQ doesn&apos;t cover it, write in. The person who runs the site reads every message.</p>
+            <Callout variant="framed" title="Want to ask me directly?">
+              <p>I run the site by myself, so anything you send comes straight to me.</p>
               <p>
-                <ButtonLink href="/help/contact" variant="secondary">Contact Us</ButtonLink>
+                <ButtonLink href="/help/contact" variant="secondary">Contact me</ButtonLink>
               </p>
             </Callout>
           </div>

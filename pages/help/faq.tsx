@@ -13,227 +13,244 @@ interface FAQProps {
 }
 
 export default function FAQ({ siteConfig }: FAQProps) {
+  const link = 'text-thread-sunset hover:underline font-medium';
   const faqs = [
     {
-      category: 'Why HomePageAgain?',
-      questions: [
-        {
-          question: 'How is this different from Facebook, Twitter, or Instagram?',
-          answer: 'Your feed is just the people you follow and the rings you\'ve joined, newest first — nobody ranks it and nothing gets promoted into it. Your posts live on your page instead of scrolling away. You can restyle your whole profile with your own CSS. And there are no ads or trackers, so nothing here is designed to keep you scrolling.'
-        },
-        {
-          question: 'What does "no algorithms" actually mean?',
-          answer: 'Your feed is the posts from people you follow and rings you\'ve joined, in the order they were written, newest first. Nothing is hidden, boosted, or reordered. If your feed is boring, the fix is following different people — not fighting a recommendation engine.'
-        },
-        {
-          question: 'What does "no tracking" mean? How do you make money?',
-          answer: 'No analytics trackers, no ad pixels, no selling data. Right now this is a one-person project run out of pocket; if it ever needs to pay for itself, the plan is optional memberships or premium features — not advertising.'
-        },
-        {
-          question: 'Can I browse without signing up?',
-          answer: 'Yes. The feed, the neighborhoods, public profiles, and ThreadRings are all open to visitors. An account is only needed to get a home of your own, post, and join rings.'
-        },
-        {
-          question: 'Why pixel homes? What\'s the point?',
-          answer: 'Because a profile picture in a grid tells you nothing about a person, and a little house with a rose garden, a lava-red roof, and a MIDI song playing tells you a lot. Homes make browsing feel like walking a street; you notice a yard, knock, and end up reading someone\'s page.'
-        }
-      ]
-    },
-    {
-      category: 'Getting Started',
+      category: 'Getting started',
       questions: [
         {
           question: 'What is HomePageAgain?',
-          answer: 'A place to have a home page again. You get a pixel house on a shared street, a profile page you can restyle top to bottom, and ThreadRings — small communities that link to each other like the webrings of old. Posts, guestbooks, and MIDI included.'
+          answer: 'It\'s a little neighborhood of pixel houses. You get a house on the street and a page you can make look however you want, and you can join small groups about whatever you\'re into. I wanted a place online that felt like the old personal home page internet, so I made one.'
         },
         {
-          question: 'How do I create my profile?',
-          answer: 'Click Sign Up in the navigation. The setup walks you through creating an account and your first page.'
+          question: 'Is it free?',
+          answer: 'Yes! There are no ads, and I don\'t sell anything about you or put trackers on the site. I pay for it myself right now. If that ever stops working, I\'d rather do optional memberships than ads.'
         },
         {
-          question: 'Is HomePageAgain free?',
-          answer: 'Yes, free. If that ever changes for some premium extra, the basic home and page will stay free.'
+          question: 'Can I look around before I sign up?',
+          answer: 'Of course! The street, people\'s pages, Recent Posts and the rings are all open to everyone. You only need an account once you want a house of your own.'
         },
         {
-          question: 'What happens after I sign up?',
-          answer: 'You pick a house and colors, set up your profile page, and you\'re automatically added to the Welcome Ring so your street isn\'t empty on day one. From there: decorate, wander the neighborhoods, join a ring or two.'
+          question: 'How do I sign up?',
+          answer: 'Hit Sign Up and pick a username. Then you choose how you\'ll sign in, either with a password or with a 12-word seed phrase if you\'d rather not have one. Adding an email is optional, but it means you can get sign-in links and reset your password. After the house rules you set up your profile and pick your house and its colors. If sign-ups are invite-only when you get here, you\'ll need a beta key too.'
         },
         {
           question: 'What should I do first?',
-          answer: 'Decorate your house, write a couple of lines of bio, then go walk the neighborhood in Street View — seeing other people\'s homes is the fastest way to figure out what yours could be. Join a ring when one catches your eye.'
+          answer: 'For your first couple of months, the main page shows a little list when you\'re signed in: pick your house, put something in your yard, write a post, sign someone\'s guestbook and join a ring. You don\'t have to do them in order. Walking the street and looking at other people\'s houses is honestly the best way to figure out what you want yours to look like.'
         },
         {
-          question: 'What\'s the difference between my profile and pixel home?',
-          answer: 'The pixel home is the house people see from the street; the profile is what\'s inside — your bio, posts, and links. Knocking on the door of a home takes you to the profile.'
+          question: 'Is there a tour?',
+          answer: (
+            <>
+              Sort of! The <Link href="/tr/welcome" className={link}>Welcome Ring</Link> walks you through how rings work in five small steps, like reading a post and leaving your first comment. It&apos;s optional, so you only end up in it if you join.
+            </>
+          )
+        },
+        {
+          question: 'What\'s the difference between my house and my page?',
+          answer: 'The house is what people see from the street. Your page is what\'s inside it, so your bio and posts and guestbook and whatever else you put there. Click the front door of someone\'s house and you end up on their page.'
         }
       ]
     },
     {
-      category: 'Pixel Homes & Neighborhoods',
+      category: 'Why it\'s different',
       questions: [
         {
-          question: 'What is a Pixel Home?',
-          answer: 'Your house on the street: pick a cottage, townhouse, loft, or cabin, paint the walls and roof, plant a garden, lay a path, and set the sky — sunset with light rain, if that\'s your mood.'
+          question: 'How is this different from Facebook, Twitter or Instagram?',
+          answer: 'Your Following feed is the people you follow, newest first. I don\'t rank it or decide what you see. Your posts stay on your page instead of scrolling away, and that page is yours to restyle with your own CSS. There are no ads here either, so nothing is trying to keep you scrolling.'
         },
         {
-          question: 'How do I customize my pixel home?',
-          answer: 'From your home page, open Decorate. You can change the house style, colors (walls, roof, trim, windows), doors and windows, decorations, terrain, and the weather overhead. Changes show as you make them.'
+          question: 'What does "no algorithms" actually mean?',
+          answer: 'The Following tab shows posts from the people you follow in the order they were written, and nothing gets hidden or boosted. There is an Active Discussions tab that puts posts with recent comments near the top, but you have to go click on it. If Following feels quiet, follow a few more people!'
         },
         {
-          question: 'What are the different house templates?',
-          answer: 'Four: cottage, townhouse, loft, and cabin. Different silhouettes, same yard to play with — and you can switch anytime without losing your decorations.'
+          question: 'Do you track me? How do you pay for it?',
+          answer: (
+            <>
+              There are no ad pixels or third-party trackers, and I don&apos;t sell your data. The site keeps what it needs to run, and the <Link href="/help/privacy" className={link}>privacy page</Link> has the details. As for money, I pay for it myself right now (see &quot;Is it free?&quot; up top).
+            </>
+          )
         },
         {
-          question: 'Can I add decorations? What kinds?',
-          answer: 'Plants (flowers, trees, bushes), paths, features (mailboxes, fences, benches), and seasonal items. Place them anywhere in the yard, in a few sizes. There\'s a 100-decoration limit, which sounds like a lot until you start.'
-        },
-        {
-          question: 'What is Street View vs Grid View vs Map View?',
-          answer: 'Street View scrolls past homes like walking a block. Grid View is a card layout for skimming. Map View is the bird\'s-eye version. Same houses, different pace.'
-        },
-        {
-          question: 'How do I explore neighborhoods?',
-          answer: 'Discover → Neighborhoods. Browse all homes, recently updated ones, or hit the random button and see whose porch you land on. Filters narrow by house style or palette.'
-        },
-        {
-          question: 'What does "Random Home Adventure" do?',
-          answer: 'It deals you a shuffled street of homes from across the site. No goal, no ranking — just houses you\'d never have searched for.'
-        },
-        {
-          question: 'Can I change my house template later?',
-          answer: 'Yes — template, colors, decorations, and weather can all change anytime. Nothing is locked in.'
+          question: 'Why pixel houses?',
+          answer: 'A little house tells you way more about someone than a profile picture in a grid does. One neighbor has a cabin at night with a pond out front, someone else has a pink cottage with a garden path, and after a while you start recognizing people by their houses. You notice a yard you like, click, and suddenly you\'re reading their page.'
         }
       ]
     },
     {
-      category: 'ThreadRings & The Spool',
+      category: 'Houses and the neighborhood',
+      questions: [
+        {
+          question: 'How do I decorate my house?',
+          answer: 'Go to your house and click Decorate Home (it\'s in Settings → Pixel Home too). Themes is where you pick your house, out of the Cozy Cottage, Urban Townhouse, Creative Loft and Rustic Cabin, and a palette. Colors lets you change the wall, roof, trim, window and detail colors one by one. The House tab has doors, windows, roof trim and the little stuff like the chimney, welcome mat, house number and lights. Nothing saves until you hit Save, so play around!'
+        },
+        {
+          question: 'What can I put in the yard?',
+          answer: 'The Decor tab has plants, furniture, lighting, water, structures, paths and a few other features, and Terrain lets you paint the ground with things like grass, sand, a stone path or a wood deck. You can also upload your own pixel art under My Art (up to 100KB per image). There\'s a 100-decoration limit, which sounds like a lot until you start.'
+        },
+        {
+          question: 'Can I change the sky or the weather?',
+          answer: 'The sky, yes. In the Sky tab you can pick sunny, cloudy, sunset or night. Weather isn\'t something you can choose yet.'
+        },
+        {
+          question: 'Can I change my house later?',
+          answer: 'Anytime. Switching to a different house or palette keeps all your decorations where they are.'
+        },
+        {
+          question: 'How do I explore the neighborhood?',
+          answer: (
+            <>
+              The <Link href="/neighborhood/explore/all" className={link}>neighborhood page</Link> lets you browse All, Recent, Popular or Random houses, and under More you can filter by house style or color theme. You can see everyone as a street you scroll along, a grid, or a map. On a phone it starts out as cards.
+            </>
+          )
+        },
+        {
+          question: 'Can I visit a random house?',
+          answer: 'Yep! There\'s a Visit a random house button on Discover, and the Random tab on the neighborhood page shuffles the whole street. It\'s a nice way to find people you\'d never have searched for.'
+        }
+      ]
+    },
+    {
+      category: 'ThreadRings',
       questions: [
         {
           question: 'What are ThreadRings?',
-          answer: 'Small communities around a topic — writing, tabletop games, whatever. Each ring has members, a feed, and an 88x31 badge. Rings branch off other rings, so the whole thing forms a family tree.'
+          answer: (
+            <>
+              Small groups around one topic, kind of like the old webrings. Each one has its own feed and a little 88×31 badge you can put on your page. Rings can branch off into new rings, and you can follow any ring back through its <Link href="/threadrings/genealogy" className={link}>family tree</Link>.
+            </>
+          )
+        },
+        {
+          question: 'How is a ring different from a forum or a Discord server?',
+          answer: 'It\'s tied into the rest of the site. When you post to a ring, the post lives on your page and shows up in the ring\'s feed at the same time. The members of a ring get their own little neighborhood of houses you can walk through. And since rings branch off each other, related groups stay connected in one tree instead of being scattered around.'
         },
         {
           question: 'What is The Spool?',
-          answer: 'The first ring — every other ring descends from it. It doesn\'t host posts; it\'s the trunk the family tree grows from.'
+          answer: 'The very first ring. Every other ring branches off it somewhere up the tree. It doesn\'t have a feed of its own. Its page is more like the front door to the family tree, and it\'s where new rings start.'
         },
         {
-          question: 'How is a ThreadRing different from a forum or Discord server?',
-          answer: 'A few things: rings branch from parent rings, so related communities stay visibly related; every ring has an 88x31 badge you can put on your page; a ring\'s members show up as a neighborhood of houses; and a post can live on your page and in the ring feed at once.'
+          question: 'How do I start a ring, or branch one off?',
+          answer: 'Every ring\'s page has a Branch This Ring button, and anyone with an account can use it. You don\'t have to be a member, unless the ring is private. Your new ring keeps its parent in the family tree, so "Pixel Art" can branch off "Digital Art". A brand new ring is just a branch off The Spool.'
         },
         {
-          question: 'What\'s ThreadRing genealogy?',
-          answer: 'Every ring (except The Spool) branched from a parent. "Book Lovers" might spawn "Sci-Fi Readers", which might spawn something stranger. The genealogy page shows the whole lineage.'
+          question: 'Who runs a ring?',
+          answer: 'Whoever starts a ring is its host (some pages call that the curator). The host can make members into moderators to help look after the ring, and can hand the whole ring over to someone else. Deleting a ring isn\'t possible yet.'
         },
         {
-          question: 'How do I branch a new ring from an existing one?',
-          answer: 'Members of a ring can branch a child ring off it — say, "Pixel Art" out of "Digital Art". The new ring keeps its parent in the family tree.'
+          question: 'What are Open, Invite and Closed rings?',
+          answer: 'It\'s how a ring takes new people, and the host picks. Anyone can join an open ring right away. For an invite-only ring, the host or a moderator has to invite you. Closed rings aren\'t taking anyone new.'
         },
         {
-          question: 'What\'s the difference between Ring Host, Moderator, and Member?',
-          answer: 'Hosts created the ring and control everything, including deleting it. Moderators manage members and posts. Members post and comment. Hosts can promote members to moderators.'
-        },
-        {
-          question: 'What are Open, Invite, and Closed rings?',
-          answer: 'Open: anyone can join. Invite: a member has to invite you. Closed: not taking new members. The host picks.'
-        },
-        {
-          question: 'What are 88x31 badges?',
-          answer: 'The little button badges of the early web — 88 pixels wide, 31 tall. Every ring has one, members earn them by joining, and you can display yours on your page or anywhere else on the internet.'
+          question: 'What are 88×31 badges?',
+          answer: 'The tiny buttons old websites used to link to each other, 88 pixels wide and 31 tall. A ring gets one when it\'s made. Once you\'re in a ring you can show its badge on your page from Settings → Badges, and they collect on the Badges tab of your page.'
         }
       ]
     },
     {
-      category: 'Building & Customization',
+      category: 'Your page',
       questions: [
         {
-          question: 'Do I need coding skills to build my page?',
-          answer: 'No. Decorating your house is all point-and-click, and the CSS editor comes with five ready-made themes you can apply and tweak. If you do write code, there\'s custom CSS and a full template language waiting for you.'
+          question: 'Do I need to know how to code?',
+          answer: 'Nope! The house is all point and click. For your page, the CSS editor has five themes you can use as they are: Abstract Art, Charcoal Nights, Pixel Petals, Retro Social and Classic Linen. If you do want to write code, you can change any of the CSS, or write the whole page yourself with a template.'
         },
         {
-          question: 'What\'s the difference between the CSS editor and the template language?',
-          answer: 'The CSS editor restyles the standard page — colors, fonts, layout — and includes starter themes. The template language goes further: you write the page\'s HTML yourself with components for your posts, photos, and guestbook, plus variables and conditionals if you want them. Most people start with a CSS theme and go from there.'
+          question: 'What\'s the difference between the CSS editor and templates?',
+          answer: 'You\'ll find both in Settings → Appearance. CSS Styling changes how the normal page looks, from colors and fonts to the whole layout. Template Code lets you write the page\'s HTML yourself, with components for things like your posts, photos and guestbook. There are variables and if/else logic in there too, if you\'re into that. I\'d start with CSS and see how far it gets you.'
         },
         {
           question: 'Can I switch between CSS and a template?',
-          answer: 'Yes — you can move between plain CSS styling and full templates whenever you like, and switch back. Your CSS comes along with you.'
-        },
-        {
-          question: 'Can I use my own domain?',
-          answer: 'Not yet. It\'s on the wishlist.'
+          answer: 'Yes. Your CSS comes with you into the template editor, and if you save an empty template you\'re back on the normal page with your CSS still on it. Reset to Default Template wipes both, so be careful with that one.'
         },
         {
           question: 'How do templates work?',
-          answer: 'Ready-made page layouts you can apply and then edit — swap the text, restyle with CSS, or open them in the template editor and rearrange the pieces.'
-        },
-        {
-          question: 'How do I add music to my profile?',
           answer: (
             <>
-              You can add background music to your page with a MIDI file. Go to Settings → Music to upload a .mid or .midi file (max 1MB). Visitors hear it when they open your page, just like the old days.{' '}
-              <Link href="/help/music-guide" className="text-thread-sunset hover:underline font-medium">
-                Check out our complete music creator&apos;s guide
-              </Link>{' '}
-              for technical specs, composition tips, software recommendations, and more.
+              The template editor comes with six starter templates. Load one and start changing things. The <Link href="/build/templates" className={link}>template guide</Link> lists every component you can use.
+            </>
+          )
+        },
+        {
+          question: 'Can I use my own domain?',
+          answer: 'Not yet.'
+        },
+        {
+          question: 'How do I add music to my page?',
+          answer: (
+            <>
+              Go to Settings → Music and upload a MIDI file (.mid or .midi, up to 1MB). Autoplay is off unless you turn it on, and even then most browsers wait until a visitor clicks something before music can start. If you need a MIDI, the <Link href="/help/music-guide" className={link}>music guide</Link> has places to find them and tips for making your own.
             </>
           )
         },
         {
           question: 'What are guestbooks?',
-          answer: 'The classic kind: visitors leave a note on your page. Yours comes built in — people can sign it from your profile or your pixel home\'s mailbox.'
+          answer: 'Just like the old ones! Visitors leave you a note on the Guestbook tab of your page. Your mailbox out front opens the same guestbook, so neighbors walking by can sign it too.'
         }
       ]
     },
     {
-      category: 'Community & Social',
+      category: 'People and posts',
       questions: [
         {
-          question: 'How do I find other people on HomePageAgain?',
-          answer: 'Wander the neighborhoods, read the feed, or search — people turn up by their handles, names, and what they write about.'
+          question: 'How do I find people?',
+          answer: 'Walk around the neighborhood, read Recent Posts, or use search. Search finds people by username or display name, and posts by what\'s in them.'
         },
         {
-          question: 'How do I make friends vs follow someone?',
-          answer: 'Following is one-way: their posts show up in your feed. Friendship is mutual — both people agree, you appear on each other\'s friend lists, and some content can be shared friends-only.'
+          question: 'What\'s the difference between following and friends?',
+          answer: 'Following is one way. Their posts show up in your Following feed, and they don\'t have to follow you back. If you both follow each other, you\'re friends, which means you can see each other\'s friends-only posts.'
         },
         {
-          question: 'Where do my posts appear?',
-          answer: 'On your own page, in the feed of any ring you posted to, in your followers\' feeds, and in the site-wide recent feed.'
+          question: 'Who sees my posts?',
+          answer: 'You pick for each post: Public, Followers, Friends or Only me. Every post goes on your page for whoever\'s allowed to see it. Your followers see it in their Following feed, and public posts also show up in Recent Posts for everyone. If you tick a ring when you post, it goes into that ring\'s feed too.'
         },
         {
           question: 'Can I edit or delete posts?',
-          answer: 'Yes, anytime. Deleting removes the post everywhere it appeared.'
+          answer: 'Yes, anytime. Deleting a post takes it off your page and out of any rings you sent it to.'
         },
         {
-          question: 'How do I report inappropriate content?',
-          answer: 'Use the report button on the content, or contact us directly. Reports go to a human — there\'s only one of us back here, but every report gets read.'
+          question: 'How do I report something?',
+          answer: (
+            <>
+              Posts and comments have a Report button. For anything else, like a profile or a guestbook note, <Link href="/help/contact" className={link}>email me</Link>. Every report comes straight to me and I read all of them.
+            </>
+          )
         },
         {
-          question: 'Can I block users?',
-          answer: 'Yes, from settings. Blocked users can\'t see your content, comment, or interact with you.'
+          question: 'Can I block someone?',
+          answer: 'Yes. Right now the Block option is on someone\'s name in the Chat Lounge, and you can see or undo your blocks from Settings → Privacy & Consent. Once you block someone, their posts disappear from your Following feed and search, and they can\'t send you messages or whispers.'
         }
       ]
     },
     {
-      category: 'Privacy & Security',
+      category: 'Privacy and your account',
       questions: [
         {
           question: 'Who can see my page?',
-          answer: 'Public by default — it\'s a homepage. Privacy settings let you limit who sees what and who can interact.'
+          answer: 'Everyone, unless you change it. Settings → Profile has Profile Visibility, where you can pick Public, Followers Only, Friends Only or Private.'
         },
         {
           question: 'How is my data used?',
-          answer: 'To run the site, and that\'s it. No ad profiles, no selling, no sharing with third parties. The Privacy Policy has the specifics.'
+          answer: (
+            <>
+              To run the site, and that&apos;s it. I don&apos;t build ad profiles and I don&apos;t sell or share it with anyone. The <Link href="/help/privacy" className={link}>privacy policy</Link> has the specifics, and you can download a copy of your data from Settings → Privacy &amp; Consent.
+            </>
+          )
         },
         {
           question: 'Can I delete my account?',
-          answer: 'Yes, from account settings. It\'s permanent and removes your data from our servers.'
+          answer: (
+            <>
+              You can&apos;t do it yourself yet, sorry! <Link href="/help/contact" className={link}>Email me</Link> and I&apos;ll delete it for you.
+            </>
+          )
         },
         {
-          question: 'What\'s a Decentralized Identifier (DID)?',
-          answer: 'An identifier that belongs to you rather than to a platform. Yours is what lets your posts and ring memberships work across the federation — and it stays yours if you ever take it elsewhere.'
+          question: 'What\'s a decentralized identifier (DID)?',
+          answer: 'It\'s an ID that belongs to you instead of to the site. Every account gets one, and it\'s how your posts and ring memberships work with the ring hub, which is its own separate service.'
         },
         {
-          question: 'How do seed phrases work for account recovery?',
-          answer: 'A list of words that works as the master key to your account — if you lose your login, the seed phrase gets you back in. Anyone who has it has your account, so write it down on actual paper and keep it somewhere safe.'
+          question: 'How do seed phrases work?',
+          answer: 'A seed phrase is 12 words that work like a master key to your account. You get one at sign-up if you pick it there, and you can make one (or a new one) in Settings → Account & Security. If you\'re ever locked out, go to Login → Sign in with Seed Phrase. Anyone with those words has your account, so write them down on actual paper and keep them somewhere safe.'
         }
       ]
     }
@@ -243,22 +260,21 @@ export default function FAQ({ siteConfig }: FAQProps) {
     <>
       <Head>
         <title>HomePageAgain — Help: FAQ</title>
-        <meta name="description" content="Comprehensive FAQ about HomePageAgain - learn about Pixel Homes, ThreadRings, The Spool, neighborhood exploration, customization tools, and more. Everything you need to get started!" />
+        <meta name="description" content="How the houses, rings and pages on HomePageAgain work, and what happens with your data." />
         <link rel="canonical" href={`${getSiteBaseUrl()}/help/faq`} />
         <meta name="robots" content="index, follow" />
 
         <meta property="og:title" content="HomePageAgain — Help: FAQ" />
-        <meta property="og:description" content="Comprehensive FAQ covering Pixel Homes, ThreadRings, neighborhoods, and all platform features" />
+        <meta property="og:description" content="How the houses, rings and pages on HomePageAgain work, and what happens with your data." />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={`${getSiteBaseUrl()}/help/faq`} />
       </Head>
 
       <Layout siteConfig={siteConfig}>
         <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-8 sm:py-12">
-          <PageHeader title="Frequently Asked Questions" back={{ href: '/help', label: 'Back to Help' }}>
-            <p>How the houses, rings, and pages work — and what happens to your data (nothing).</p>
-            <p className="text-base"><strong>First time here?</strong> The details live below; the story of why this site exists is on the <Link href="/landing">landing page</Link>.</p>
-            <p className="text-base text-nb-ink-mid">New here? Start with &quot;Getting Started&quot;.</p>
+          <PageHeader title="Questions people ask me" back={{ href: '/help', label: 'Back to Help' }}>
+            <p>Here&apos;s how the houses, rings and pages work, and what happens with your data.</p>
+            <p className="text-base">If you&apos;re brand new, start with the first section. The <Link href="/landing">landing page</Link> has the short version.</p>
           </PageHeader>
 
           {/* FAQ Sections */}
@@ -284,26 +300,18 @@ export default function FAQ({ siteConfig }: FAQProps) {
             ))}
           </div>
 
-          {/* Founder's Personal Note */}
-          <Callout variant="framed" title="A Personal Note from the Founder" className="mt-12">
+          <Callout variant="framed" title="A note from me" className="mt-12">
             <p className="leading-relaxed">
-              I&apos;m building this alone, in every spare moment, because I genuinely believe we can have a social internet that doesn&apos;t suck. One that&apos;s creative, playful, and human-centered instead of optimized for engagement and profit.
+              Hi, I&apos;m Annabelle! I&apos;m building HomePageAgain by myself in my spare time. It&apos;s still in beta, so some things are rough. If something breaks or confuses you, please tell me through the{' '}
+              <a href="https://forms.gle/cNJssqoKs9yJTspG6" target="_blank" rel="noopener noreferrer" className={link}>feedback form</a>{' '}
+              (it&apos;s anonymous, and I read every one).
             </p>
-            <p className="leading-relaxed">
-              <strong>This is beta software built by one person who cares.</strong> It&apos;s rough around the edges, but it&apos;s honest. Your feedback helps me make this better—not for shareholders, but for actual people who just want a fun place to hang out online.
-            </p>
-            <p className="leading-relaxed">
-              Thank you for being here. Let&apos;s build something good together.
-            </p>
-            <p className="pt-2">
-              <ButtonLink href="/landing" variant="secondary">Read the complete landing page →</ButtonLink>
-            </p>
+            <p className="leading-relaxed">Thanks for stopping by &lt;3</p>
           </Callout>
 
-          {/* Still have questions? */}
-          <Callout title="Still have questions?" className="mt-8">
-            <p>Can&apos;t find what you&apos;re looking for? We&apos;re here to help!</p>
-            <p><ButtonLink href="/help/contact">Contact Us</ButtonLink></p>
+          <Callout title="Still stuck?" className="mt-8">
+            <p>If your question isn&apos;t here, just ask me.</p>
+            <p><ButtonLink href="/help/contact">Contact me</ButtonLink></p>
           </Callout>
         </div>
       </Layout>
