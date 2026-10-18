@@ -15,9 +15,8 @@ export default apiHandler(
   },
   async (req, res, { user }) => {
     try {
-      // Check authentication (optional - track anonymous users too)
-      // Allow anonymous tracking with fallback
-      const userId = user?.id || `anonymous_${req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown'}`;
+      // Logged-out visitors are allowed, but only signed-in clicks get a path record
+      const userId = user?.id ?? null;
 
       const {
         fromSite,

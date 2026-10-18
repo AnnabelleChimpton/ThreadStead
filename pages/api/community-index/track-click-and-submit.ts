@@ -1,6 +1,10 @@
 /**
  * API endpoint for tracking clicks on external search results and auto-submitting to community index
  * This creates organic growth by adding clicked sites to our index
+ *
+ * Privacy: only the clicked site is recorded. The search words are never
+ * accepted or stored (IndexedSite rows are public in the Indie Index browse
+ * and validation queue), and a `searchQuery` sent by an old client is ignored.
  */
 
 import { apiHandler } from '@/lib/api/handler';
@@ -18,12 +22,11 @@ export default apiHandler(
   },
   async (req, res, { user }) => {
     try {
-      // Check authentication (optional - allow anonymous tracking)
-      const userId = user?.id || `anonymous_${req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown'}`;
+      // Logged-out visitors are allowed, but only signed-in clicks get a path record
+      const userId = user?.id ?? null;
 
       const {
         result, // The ExtSearchResultItem that was clicked
-        searchQuery,
         searchTab,
         sessionId
       } = req.body;
@@ -44,7 +47,6 @@ export default apiHandler(
         discoveryMethod: 'search_result',
         sessionId,
         metadata: {
-          searchQuery,
           searchTab,
           engine: result.engine,
           isIndieWeb: result.isIndieWeb,
@@ -79,9 +81,9 @@ export default apiHandler(
               data: {
                 url: result.url,
                 title: result.title,
-                description: result.snippet || `Discovered through search: "${searchQuery}"`,
+                description: result.snippet || null,
                 discoveryMethod: 'user_click',
-                discoveryContext: searchQuery || 'search',
+                discoveryContext: 'search_click',
                 siteType: evaluation.suggestedCategory,
                 seedingScore: evaluation.score,
                 seedingReasons: evaluation.reasons,

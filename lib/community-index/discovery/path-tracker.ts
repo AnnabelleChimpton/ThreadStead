@@ -8,7 +8,7 @@ import { db } from '@/lib/config/database/connection';
 export interface DiscoveryEvent {
   fromSite?: string;     // URL or special values like "search", "surprise", "home"
   toSite: string;        // URL from IndexedSite
-  discoveredBy: string;  // User ID
+  discoveredBy: string | null;  // User ID; null for logged-out visitors (not recorded)
   discoveryMethod: string; // link_click, search_result, webring, random, surprise, validation
   sessionId?: string;    // Optional session tracking
   metadata?: Record<string, any>; // Additional context
@@ -19,6 +19,12 @@ export class DiscoveryPathTracker {
    * Track a discovery event when user navigates to an indexed site
    */
   async trackDiscovery(event: DiscoveryEvent): Promise<void> {
+    // discoveredBy is a foreign key to User, so there is nothing to record for
+    // logged-out visitors. (This used to write `anonymous_<IP>`, which failed
+    // the FK and would have stored an IP if it hadn't.)
+    if (!event.discoveredBy) return;
+    const discoveredBy = event.discoveredBy;
+
     try {
       // Validate that the destination site exists in our index
       const indexedSite = await db.indexedSite.findUnique({
@@ -36,7 +42,7 @@ export class DiscoveryPathTracker {
         data: {
           fromSite: event.fromSite || null,
           toSite: event.toSite,
-          discoveredBy: event.discoveredBy,
+          discoveredBy,
           discoveryMethod: event.discoveryMethod,
           sessionId: event.sessionId || null
         }
