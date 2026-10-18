@@ -107,15 +107,6 @@ export const SERVER_ENV_SPECS = [
       'AES-256-GCM key for stored email addresses: 64 hex characters (`openssl rand -hex 32`). Email features throw without it.',
   },
   {
-    name: 'CRAWLER_API_KEY',
-    kind: 'string',
-    scope: 'server',
-    group: 'Auth & security',
-    secret: true,
-    description:
-      'Bearer token that lets scripts/run-crawler.sh call /api/admin/crawler/* without an admin session.',
-  },
-  {
     name: 'CRON_SECRET',
     kind: 'string',
     scope: 'server',
@@ -350,31 +341,6 @@ export const SERVER_ENV_SPECS = [
     default: '0',
     description: 'Percentage of users in the template-islands rollout.',
   },
-
-  // ── External search ─────────────────────────────────────────────────────
-  {
-    name: 'BRAVE_API_KEY',
-    kind: 'string',
-    scope: 'server',
-    group: 'External search',
-    secret: true,
-    description: 'Brave Search API key (needs NEXT_PUBLIC_ENABLE_EXTSEARCH=true).',
-  },
-  {
-    name: 'MOJEEK_API_KEY',
-    kind: 'string',
-    scope: 'server',
-    group: 'External search',
-    secret: true,
-    description: 'Mojeek API key.',
-  },
-  {
-    name: 'SEARXNG_INSTANCE_URL',
-    kind: 'url',
-    scope: 'server',
-    group: 'External search',
-    description: 'SearXNG instance. Defaults to a public instance.',
-  },
 ] as const satisfies readonly EnvVarSpec[];
 
 /** Read only by scripts/, prisma/seed.ts or the test harness — not validated at app boot. */
@@ -485,6 +451,11 @@ export const OBSOLETE_ENV_VARS: ReadonlyArray<{ name: string; note: string }> = 
   { name: 'RING_HUB_TIMEOUT', note: 'Never read (the monitoring page used to echo it). Use RING_HUB_TIMEOUT_MS.' },
   { name: 'RING_HUB_RETRIES', note: 'Never read; RingHubClient does not retry.' },
   { name: 'RING_HUB_RETRY_DELAY', note: 'Never read; RingHubClient does not retry.' },
+  { name: 'BRAVE_API_KEY', note: 'Brave web search was removed 2026-10 (SEARCH_PLAN.md §3.4). Delete it and revoke the key.' },
+  { name: 'MOJEEK_API_KEY', note: 'The external search engines were removed 2026-10 (SEARCH_PLAN.md §3.4).' },
+  { name: 'SEARXNG_INSTANCE_URL', note: 'The external search engines were removed 2026-10 (SEARCH_PLAN.md §3.4).' },
+  { name: 'NEXT_PUBLIC_ENABLE_EXTSEARCH', note: 'The wider web is plain links to other engines now (SEARCH_PLAN.md §3.4).' },
+  { name: 'CRAWLER_API_KEY', note: 'The crawler was removed 2026-10; the Indie Index refresher runs under pm2 (SEARCH_PLAN.md §3.5).' },
 ];
 
 const BOOT_SPECS = [...PUBLIC_ENV_SPECS, ...SERVER_ENV_SPECS] as const;

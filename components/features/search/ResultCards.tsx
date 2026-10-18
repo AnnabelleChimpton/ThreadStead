@@ -2,24 +2,22 @@ import Link from 'next/link'
 import HouseSVG, { type ColorPalette, type HouseCustomizations, type HouseTemplate } from '@/components/pixel-homes/HouseSVG'
 import { PixelIcon } from '@/components/ui/PixelIcon'
 import type { HouseThumb, SearchResult } from '@/lib/search/types'
-import type { SiteResult } from '@/lib/search/sites'
-import { trackOffsiteClick } from './track'
 
 /**
- * One card shape per result type on /search. Every card is a real link:
- * on-site results open in the same tab, off-site ones in a new tab.
+ * One card shape per on-site result type on /search. Every card is a real
+ * link that opens in the same tab. Indie Index sites: IndieSiteCard.
  */
 
-const ROW = 'ts-card-link flex items-start gap-3 p-3 rounded-cozy text-nb-ink hover:bg-nb-surface/60 focus-visible:bg-nb-surface/60'
-const TITLE = 'font-bold text-nb-ink underline decoration-nb-ink-mid/50 underline-offset-2 break-words'
-const META = 'text-sm text-nb-ink-mid'
-const BLURB = 'text-sm text-nb-ink mt-0.5 line-clamp-2 break-words'
+export const ROW = 'ts-card-link flex items-start gap-3 p-3 rounded-cozy text-nb-ink hover:bg-nb-surface/60 focus-visible:bg-nb-surface/60'
+export const TITLE = 'font-bold text-nb-ink underline decoration-nb-ink-mid/50 underline-offset-2 break-words'
+export const META = 'text-sm text-nb-ink-mid'
+export const BLURB = 'text-sm text-nb-ink mt-0.5 line-clamp-2 break-words'
 
 function plural(n: number, word: string) {
   return `${n} ${n === 1 ? word : `${word}s`}`
 }
 
-function shortDate(iso: string) {
+export function shortDate(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
@@ -150,34 +148,4 @@ export function ResultCard({ result }: { result: SearchResult }) {
     default:
       return <PlaceCard result={result} />
   }
-}
-
-/**
- * Indie Index and wider-web rows: leave the site, so a new tab.
- * `query` is accepted but deliberately not sent with the click beacon.
- */
-export function SiteCard({ site, source }: { site: SiteResult; source: 'web' | 'indie_index'; query?: string }) {
-  const track = () => trackOffsiteClick(site, source)
-  return (
-    <a
-      href={site.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      onClick={track}
-      onAuxClick={(e) => {
-        if (e.button === 1) track()
-      }}
-      className={ROW}
-    >
-      <span className="min-w-0 flex-1">
-        <span className={TITLE}>{site.title}</span>
-        <span className={`${META} flex items-center gap-1`}>
-          <span className="truncate">{site.domain}</span>
-          <PixelIcon name="external-link" size={12} className="shrink-0" aria-hidden="true" />
-          <span className="sr-only">(opens in a new tab)</span>
-        </span>
-        {site.snippet && <span className={`${BLURB} block`}>{site.snippet}</span>}
-      </span>
-    </a>
-  )
 }

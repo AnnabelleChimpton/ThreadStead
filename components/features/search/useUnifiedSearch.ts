@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { SearchResult, SearchSection } from '@/lib/search/types'
-import { toSiteResults, type SiteResult } from '@/lib/search/sites'
-import { shouldAutoLoadWeb, SCOPE_API_TYPES, type SearchScope } from '@/lib/search/url-state'
+import type { IndieSite } from '@/lib/search/indie'
+import { SCOPE_API_TYPES, type SearchScope } from '@/lib/search/url-state'
 
 /**
  * Data for /search. Each group loads on its own request, so the fast local
  * groups render while the hub (rings) and the Indie Index are still working.
- * The wider web loads only when asked, or by itself when everything else
- * together found fewer than 5 things — never while typing.
+ * The wider web is plain links to other engines (SearchElsewhere), so
+ * nothing here fetches it.
  */
 
 export type Status = 'idle' | 'loading' | 'done' | 'error'
@@ -28,7 +28,6 @@ export type LocalKey = 'users' | 'threadrings' | 'posts' | 'places'
 
 export const GROUP_SIZE = 5
 const PAGE_SIZE = 20
-const INDIE_FETCH = 20
 
 async function getJson(url: string, signal: AbortSignal) {
   const res = await fetch(url, { signal })
@@ -59,8 +58,7 @@ export interface GroupedState {
   threadrings: Group<SearchResult>
   posts: Group<SearchResult>
   places: Group<SearchResult>
-  indie: Group<SiteResult>
-  web: Group<SiteResult>
+  indie: Group<IndieSite>
   /** On-site groups that degraded (e.g. the hub was down). */
   partial: string[]
 }
@@ -71,34 +69,11 @@ const initialGrouped = (status: Status): GroupedState => ({
   posts: empty(status),
   places: empty(status),
   indie: empty(status),
-  web: empty(),
   partial: [],
 })
 
-export function useGroupedSearch(q: string, enabled: boolean, webEnabled: boolean) {
+export function useGroupedSearch(q: string, enabled: boolean) {
   const [state, setState] = useState<GroupedState>(() => initialGrouped(enabled && q ? 'loading' : 'idle'))
-  const webController = useRef<AbortController | null>(null)
-
-  const loadWeb = useCallback(
-    (query: string) => {
-      if (!webEnabled || !query) return
-      webController.current?.abort()
-      const controller = new AbortController()
-      webController.current = controller
-      setState((s) => ({ ...s, web: empty('loading') }))
-      getJson(`/api/extsearch?q=${encodeURIComponent(query)}&page=0&perPage=10`, controller.signal)
-        .then((body) => {
-          const items = toSiteResults(body.results ?? [])
-          setState((s) => ({ ...s, web: { status: 'done', items: items.slice(0, GROUP_SIZE), total: items.length, more: items.length > GROUP_SIZE } }))
-        })
-        .catch((e) => {
-          if (controller.signal.aborted) return
-          console.error('Wider web search failed:', e)
-          setState((s) => ({ ...s, web: empty('error') }))
-        })
-    },
-    [webEnabled]
-  )
 
   useEffect(() => {
     if (!enabled || !q) {
@@ -109,32 +84,22 @@ export function useGroupedSearch(q: string, enabled: boolean, webEnabled: boolea
     const { signal } = controller
     setState(initialGrouped('loading'))
     const term = encodeURIComponent(q)
-    const settled = { local: -1, rings: -1, indie: -1 }
-    const maybeAutoWeb = () => {
-      if (settled.local < 0 || settled.rings < 0 || settled.indie < 0 || signal.aborted) return
-      if (shouldAutoLoadWeb(q, settled.local + settled.rings + settled.indie, webEnabled)) loadWeb(q)
-    }
 
     getJson(`/api/search?q=${term}&view=grouped&type=users,posts,pages,homes&per=${GROUP_SIZE}`, signal)
       .then((body) => {
         const s = body.sections ?? {}
-        const next = { users: section(s, 'users'), posts: section(s, 'posts'), places: section(s, 'homes', 'pages') }
-        settled.local = next.users.total + next.posts.total + next.places.total
-        setState((prev) => ({ ...prev, ...next }))
+        setState((prev) => ({ ...prev, users: section(s, 'users'), posts: section(s, 'posts'), places: section(s, 'homes', 'pages') }))
       })
       .catch((e) => {
         if (signal.aborted) return
-        settled.local = 0
         console.error('Search failed:', e)
         const failed = empty<SearchResult>('error')
         setState((prev) => ({ ...prev, users: failed, posts: failed, places: failed }))
       })
-      .finally(maybeAutoWeb)
 
     getJson(`/api/search?q=${term}&view=grouped&type=threadrings&per=${GROUP_SIZE}`, signal)
       .then((body) => {
         const rings = section(body.sections ?? {}, 'threadrings')
-        settled.rings = rings.total
         setState((prev) => ({
           ...prev,
           threadrings: body.partial ? { ...rings, status: 'error', error: 'Rings aren’t answering right now. Try again in a minute.' } : rings,
@@ -143,42 +108,27 @@ export function useGroupedSearch(q: string, enabled: boolean, webEnabled: boolea
       })
       .catch((e) => {
         if (signal.aborted) return
-        settled.rings = 0
         console.error('Ring search failed:', e)
         setState((prev) => ({ ...prev, threadrings: empty('error') }))
       })
-      .finally(maybeAutoWeb)
 
-    // Validated sites only (the endpoint's default), one row per domain.
-    getJson(`/api/community-index/search?q=${term}&limit=${INDIE_FETCH}`, signal)
+    getJson(`/api/search/indie?q=${term}&limit=${GROUP_SIZE}`, signal)
       .then((body) => {
-        const sites = toSiteResults(body.results ?? [])
-        settled.indie = sites.length
         setState((prev) => ({
           ...prev,
-          indie: {
-            status: 'done',
-            items: sites.slice(0, GROUP_SIZE),
-            total: sites.length,
-            more: (body.pagination?.total ?? 0) > INDIE_FETCH,
-          },
+          indie: { status: 'done', items: body.results ?? [], total: body.total ?? 0, more: !!body.capped },
         }))
       })
       .catch((e) => {
         if (signal.aborted) return
-        settled.indie = 0
         console.error('Indie Index search failed:', e)
         setState((prev) => ({ ...prev, indie: empty('error') }))
       })
-      .finally(maybeAutoWeb)
 
-    return () => {
-      controller.abort()
-      webController.current?.abort()
-    }
-  }, [q, enabled, webEnabled, loadWeb])
+    return () => controller.abort()
+  }, [q, enabled])
 
-  return { state, loadWeb: () => loadWeb(q) }
+  return { state }
 }
 
 // -------------------------------------------------------- One scope (list) --
@@ -192,15 +142,18 @@ export interface ListState<T> {
   error?: string
 }
 
-type ListItem = SearchResult | SiteResult
+type ListItem = SearchResult | IndieSite
 
-/** The full list for one scope, with "Show more". */
-export function useScopedSearch(q: string, scope: SearchScope, webEnabled: boolean) {
+/**
+ * The full list for one scope, with "Show more". The Indie Index scope also
+ * works with no query: it browses the listed sites, newest post first.
+ */
+export function useScopedSearch(q: string, scope: SearchScope) {
   const [state, setState] = useState<ListState<ListItem>>({ status: 'idle', items: [], loadingMore: false, hasMore: false })
-  const next = useRef<{ cursor?: string | null; offset?: number; page?: number }>({})
+  const next = useRef<{ cursor?: string | null; offset?: number }>({})
   const controllerRef = useRef<AbortController | null>(null)
 
-  const active = !!q && scope !== 'all' && (scope !== 'web' || webEnabled)
+  const active = scope !== 'all' && (!!q || scope === 'indie')
 
   const fetchPage = useCallback(
     async (signal: AbortSignal, first: boolean): Promise<{ items: ListItem[]; hasMore: boolean }> => {
@@ -212,19 +165,12 @@ export function useScopedSearch(q: string, scope: SearchScope, webEnabled: boole
         next.current.cursor = body.nextCursor
         return { items: body.results ?? [], hasMore: !!body.nextCursor }
       }
-      if (scope === 'indie') {
-        const offset = first ? 0 : next.current.offset ?? 0
-        const body = await getJson(`/api/community-index/search?q=${term}&limit=${PAGE_SIZE}&offset=${offset}`, signal)
-        const rows = body.results ?? []
-        next.current.offset = offset + rows.length
-        return { items: toSiteResults(rows), hasMore: offset + rows.length < (body.pagination?.total ?? 0) }
-      }
-      // web: the API pages 0..9
-      const page = first ? 0 : next.current.page ?? 0
-      const body = await getJson(`/api/extsearch?q=${term}&page=${page}&perPage=${PAGE_SIZE}`, signal)
-      const rows = body.results ?? []
-      next.current.page = page + 1
-      return { items: toSiteResults(rows), hasMore: rows.length >= PAGE_SIZE && page < 9 }
+      // The Indie Index: offset paging (it ranks in one pass).
+      const offset = first ? 0 : next.current.offset ?? 0
+      const params = q ? `q=${term}` : 'view=browse'
+      const body = await getJson(`/api/search/indie?${params}&limit=${PAGE_SIZE}&offset=${offset}`, signal)
+      next.current.offset = body.nextOffset ?? offset
+      return { items: body.results ?? [], hasMore: body.nextOffset != null }
     },
     [q, scope]
   )
@@ -255,9 +201,9 @@ export function useScopedSearch(q: string, scope: SearchScope, webEnabled: boole
     fetchPage(controller.signal, false)
       .then(({ items, hasMore }) =>
         setState((s) => {
-          // Sites can repeat across pages (one per domain is per page).
-          const seen = new Set(s.items.map((i) => ('id' in i ? `${i.type}:${i.id}` : i.url)))
-          const fresh = items.filter((i) => !seen.has('id' in i ? `${i.type}:${i.id}` : i.url))
+          const keyOf = (i: ListItem) => ('type' in i ? `${i.type}:${i.id}` : `site:${i.id}`)
+          const seen = new Set(s.items.map(keyOf))
+          const fresh = items.filter((i) => !seen.has(keyOf(i)))
           return { status: 'done', items: [...s.items, ...fresh], loadingMore: false, hasMore }
         })
       )

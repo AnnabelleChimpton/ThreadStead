@@ -1898,35 +1898,19 @@ We collect information you provide when creating an account..."
         <CollapsibleSection title="Site Content Management" defaultOpen={false} icon="article">
           <SiteNewsSection />
 
-          {/* Community Index Management */}
+          {/* Indie Index */}
           <div className="border border-gray-300 rounded p-4 bg-gray-50 mt-4">
             <h3 className="font-bold mb-3 flex items-center gap-2">
-              <PixelIcon name="buildings" /> Community Index Seeding
+              <PixelIcon name="buildings" /> Indie Index
             </h3>
             <p className="text-sm text-gray-600 mb-4">
-              Manage community index data and seeding processes. Configure neighborhood data, user assignments, and community structure.
+              The nightly feed runs, sites by tier, hide or show a site, opt-outs, and the big platforms the index never takes.
             </p>
             <Link
-              href="/admin/community-index"
+              href="/admin/indie"
               className="inline-block border border-black px-4 py-2 bg-green-200 hover:bg-green-100 shadow-[2px_2px_0_#000] text-sm font-medium"
             >
-              <PixelIcon name="drop" className="inline-block align-middle" /> Manage Community Index
-            </Link>
-          </div>
-
-          {/* Curated Sites Management */}
-          <div className="border border-gray-300 rounded p-4 bg-gray-50 mt-4">
-            <h3 className="font-bold mb-3 flex items-center gap-2">
-              <PixelIcon name="map" /> Curated Sites Management
-            </h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Manage curated external sites and links. Add, edit, or remove featured websites and resources for the community.
-            </p>
-            <Link
-              href="/admin/curated-sites"
-              className="inline-block border border-black px-4 py-2 bg-purple-200 hover:bg-purple-100 shadow-[2px_2px_0_#000] text-sm font-medium"
-            >
-              <PixelIcon name="link" className="inline-block align-middle" /> Manage Curated Sites
+              Open the Indie Index
             </Link>
           </div>
         </CollapsibleSection>
@@ -1936,37 +1920,6 @@ We collect information you provide when creating an account..."
           <ReportsSection />
           <PostsSection />
 
-          {/* Auto-Validation Settings */}
-          <div className="border border-gray-300 rounded p-4 bg-gray-50 mt-4">
-            <h3 className="font-bold mb-3 flex items-center gap-2">
-              <PixelIcon name="debug" /> Auto-Validation Settings
-            </h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Configure automated content validation rules and moderation settings. Set up filters, thresholds, and automatic actions for content review.
-            </p>
-            <Link
-              href="/admin/auto-validation"
-              className="inline-block border border-black px-4 py-2 bg-orange-200 hover:bg-orange-100 shadow-[2px_2px_0_#000] text-sm font-medium"
-            >
-              <PixelIcon name="sliders" className="inline-block align-middle" /> Manage Auto-Validation
-            </Link>
-          </div>
-
-          {/* Webcrawler Management */}
-          <div className="border border-gray-300 rounded p-4 bg-gray-50">
-            <h3 className="font-bold mb-3 flex items-center gap-2">
-              <PixelIcon name="search" /> Webcrawler Management
-            </h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Monitor and manage the automated webcrawler. View crawl queue, add sites to crawl, check logs, and manually trigger crawler runs.
-            </p>
-            <Link
-              href="/admin/crawler"
-              className="inline-block border border-black px-4 py-2 bg-cyan-200 hover:bg-cyan-100 shadow-[2px_2px_0_#000] text-sm font-medium"
-            >
-              <PixelIcon name="search" className="inline-block align-middle" /> Manage Webcrawler
-            </Link>
-          </div>
         </CollapsibleSection>
 
         {/* USER & ACCESS MANAGEMENT */}

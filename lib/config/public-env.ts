@@ -79,14 +79,6 @@ export const PUBLIC_ENV_SPECS = [
     default: 'false',
     description: 'Reported by the monitoring endpoints only; nothing else reads it.',
   },
-  {
-    name: 'NEXT_PUBLIC_ENABLE_EXTSEARCH',
-    kind: 'flag',
-    scope: 'public',
-    group: 'Feature flags',
-    default: 'false',
-    description: 'Enable external web search (Brave/Mojeek/SearXNG) on the discover page and /api/extsearch.',
-  },
 ] as const satisfies readonly EnvVarSpec[];
 
 // Literal reads — see the header comment.
@@ -99,7 +91,6 @@ const rawPublicEnv: Record<string, string | undefined> = {
   NEXT_PUBLIC_PNG_AUTO_LOAD: process.env.NEXT_PUBLIC_PNG_AUTO_LOAD,
   NEXT_PUBLIC_USE_RING_HUB: process.env.NEXT_PUBLIC_USE_RING_HUB,
   NEXT_PUBLIC_THREADRINGS_ENABLED: process.env.NEXT_PUBLIC_THREADRINGS_ENABLED,
-  NEXT_PUBLIC_ENABLE_EXTSEARCH: process.env.NEXT_PUBLIC_ENABLE_EXTSEARCH,
 };
 
 /**

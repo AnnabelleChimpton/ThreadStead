@@ -2,9 +2,9 @@
  * db test project — global setup.
  *
  * Builds a fresh Postgres database from schema.prisma, then applies the
- * hand-written search migration on top (extensions, functions, triggers,
- * backfill) — which also proves that migration is safe to re-run over a
- * schema that already has its columns and indexes.
+ * hand-written migrations on top (search: extensions, functions, triggers,
+ * backfill; Indie Index: its triggers) — which also proves they are safe to
+ * re-run over a schema that already has their tables, columns and indexes.
  *
  * Needs a local Postgres (Homebrew default works; CI uses a service
  * container). Override the target with DBTEST_DATABASE_URL.
@@ -15,6 +15,8 @@ import { PrismaClient } from '@prisma/client'
 import { adminDatabaseUrl, testDatabaseUrl } from './config'
 
 const SEARCH_MIGRATION = 'prisma/migrations/20261017000000_add_search_fts/migration.sql'
+// Needs the search migration's functions, so it runs second.
+const INDIE_INDEX_MIGRATION = 'prisma/migrations/20261019000000_add_indie_index/migration.sql'
 
 export default async function globalSetup(): Promise<void> {
   const root = path.resolve(__dirname, '..', '..')
@@ -44,4 +46,5 @@ export default async function globalSetup(): Promise<void> {
   const run = (cmd: string) => execSync(cmd, { cwd: root, env, stdio: ['ignore', 'pipe', 'pipe'] })
   run('npx prisma db push --skip-generate --accept-data-loss')
   run(`npx prisma db execute --schema prisma/schema.prisma --file ${SEARCH_MIGRATION}`)
+  run(`npx prisma db execute --schema prisma/schema.prisma --file ${INDIE_INDEX_MIGRATION}`)
 }

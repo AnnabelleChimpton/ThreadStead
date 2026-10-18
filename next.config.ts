@@ -78,6 +78,23 @@ const nextConfig: NextConfig = {
         destination: '/search?scope=indie',
         permanent: true,
       },
+      // The old community index pages became /indie (SEARCH_PLAN.md §3.5).
+      // Not permanent: browsers cache 308s, and these paths might be reused.
+      {
+        source: '/community-index/:page(submit|validate|analytics)',
+        destination: '/indie',
+        permanent: false,
+      },
+      {
+        source: '/community-index',
+        destination: '/indie',
+        permanent: false,
+      },
+      {
+        source: '/admin/:page(community-index|crawler|auto-validation|curated-sites)',
+        destination: '/admin/indie',
+        permanent: false,
+      },
 
       // Navigation refactor redirects - Build hub
       {

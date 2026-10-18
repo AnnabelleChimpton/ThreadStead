@@ -1,6 +1,6 @@
 /**
- * SSRF guard for server-side fetches of user-supplied URLs (community-index
- * submit, the crawler, robots.txt).
+ * SSRF guard for server-side fetches of user-supplied URLs (the Indie Index
+ * bot: feeds, front pages, robots.txt).
  *
  * Refuses anything that isn't http(s) to a public address: the hostname is
  * resolved and EVERY address it resolves to must be public (not loopback,

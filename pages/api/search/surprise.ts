@@ -8,8 +8,7 @@ const KINDS: SurprisePick["kind"][] = ["home", "ring", "site"];
  * GET /api/search/surprise?kind=home|ring|site
  *
  * One random home, ring or indie site for the Surprise Me preview card on
- * /search — shown before anyone leaves the site. Unlike
- * /api/extsearch/surprise it never runs a paid web search.
+ * /search — shown before anyone leaves the site.
  */
 export default apiHandler(
   { methods: ["GET"], auth: "optional", rateLimit: "search" },

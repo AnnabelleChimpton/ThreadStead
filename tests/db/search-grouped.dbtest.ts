@@ -24,7 +24,7 @@ import { clearCache } from '@/lib/api/ringhub/ringhub-cache'
 // ------------------------------------------------------------- fixtures --
 
 async function reset() {
-  await db.$executeRawUnsafe('TRUNCATE "User", "CustomPage", "ThreadRing", "CuratedSite", "IndexedSite" RESTART IDENTITY CASCADE')
+  await db.$executeRawUnsafe('TRUNCATE "User", "CustomPage", "ThreadRing", "Site" RESTART IDENTITY CASCADE')
 }
 
 let seq = 0
@@ -296,7 +296,8 @@ describe('surprise', () => {
 
   test('returns a home, ring or site preview without leaving the site unasked', async () => {
     hubClient.listRings.mockResolvedValue({ rings: [{ id: 'r', slug: 'only', name: 'Only ring', memberCount: 3, postCount: 1 }], total: 1 })
-    await db.curatedSite.create({ data: { url: 'https://sadgrl.online/', title: 'Sadgrl', description: 'web revival', tags: [] } })
+    // A site residents picked (the Indie Index, SEARCH_PLAN.md §3.5).
+    await db.site.create({ data: { key: 'sadgrl.online', host: 'sadgrl.online', url: 'https://sadgrl.online/', title: 'Sadgrl', description: 'web revival', tier: 'community', grandfathered: true } })
     const kinds = new Set<string>()
     for (let i = 0; i < 12; i++) {
       const { body } = await call(surpriseHandler, {})

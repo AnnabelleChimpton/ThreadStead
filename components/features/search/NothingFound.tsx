@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { buttonClasses } from '@/components/ui/ButtonLink'
-import { PixelIcon } from '@/components/ui/PixelIcon'
 import type { SearchResult } from '@/lib/search/types'
-import { MIN_WEB_QUERY_LENGTH } from '@/lib/search/url-state'
 import { HouseThumbnail, RingCard } from './ResultCards'
 import { LIST_RESET } from './ResultGroup'
+import SearchElsewhere from './SearchElsewhere'
 
 interface Fallbacks {
   rings: SearchResult[]
@@ -14,21 +13,10 @@ interface Fallbacks {
 }
 
 /**
- * A search that found nothing on the site: nearby rings, a few homes from
- * the street, and ways to look further.
+ * A search that found nothing on the site: other engines, nearby rings and
+ * a few homes from the street.
  */
-export default function NothingFound({
-  q,
-  webEnabled,
-  webLoaded,
-  onSearchWeb,
-}: {
-  q: string
-  webEnabled: boolean
-  /** The web tier already ran (or is running) for this query. */
-  webLoaded: boolean
-  onSearchWeb: () => void
-}) {
+export default function NothingFound({ q }: { q: string }) {
   const [data, setData] = useState<Fallbacks | null>(null)
 
   useEffect(() => {
@@ -41,25 +29,19 @@ export default function NothingFound({
     return () => controller.abort()
   }, [q])
 
-  const canSearchWeb = webEnabled && !webLoaded && q.length >= MIN_WEB_QUERY_LENGTH
-
   return (
     <div className="space-y-4">
       <div className="thread-module p-4 sm:p-6">
         <h2 className="thread-headline text-xl font-bold mb-1">Nothing here matches “{q}”</h2>
-        <p className="text-nb-ink">Try fewer or different words, or look further:</p>
+        <p className="text-nb-ink">Try fewer or different words, or look further.</p>
         <div className="flex flex-wrap gap-2 mt-3">
-          {canSearchWeb && (
-            <button type="button" onClick={onSearchWeb} className={`${buttonClasses('primary')} inline-flex items-center gap-1.5`}>
-              <PixelIcon name="search" size={16} />
-              <span>Search the wider web for this</span>
-            </button>
-          )}
-          <Link href="/community-index/submit" className={buttonClasses('secondary')}>
-            Know a site? Feed the Spider
+          <Link href="/indie#add" className={buttonClasses('secondary')}>
+            Know a site? Add it to the index
           </Link>
         </div>
       </div>
+
+      <SearchElsewhere q={q} />
 
       {data && data.rings.length > 0 && (
         <section aria-labelledby="nf-rings" className="thread-module p-3 sm:p-4">

@@ -11,99 +11,12 @@
  */
 
 import { db } from '@/lib/config/database/connection';
+import { DEFAULT_BLOCKED_SITES, type BlockedSiteData } from '@/lib/indie-index/blocklist';
 
-interface BlockedSiteData {
-  domain: string;
-  category: string;
-  reason?: string;
-}
 
-// Comprehensive list of domains to block, organized by category
-const BLOCKED_SITES: BlockedSiteData[] = [
-  // Social Media Giants
-  { domain: 'facebook.com', category: 'social_media', reason: 'Large corporate social media platform antithetical to indie web values' },
-  { domain: 'twitter.com', category: 'social_media', reason: 'Large corporate social media platform antithetical to indie web values' },
-  { domain: 'x.com', category: 'social_media', reason: 'Large corporate social media platform antithetical to indie web values' },
-  { domain: 'instagram.com', category: 'social_media', reason: 'Large corporate social media platform antithetical to indie web values' },
-  { domain: 'tiktok.com', category: 'social_media', reason: 'Large corporate social media platform antithetical to indie web values' },
-  { domain: 'reddit.com', category: 'social_media', reason: 'Large corporate social media platform antithetical to indie web values' },
-  { domain: 'pinterest.com', category: 'social_media', reason: 'Large corporate social media platform antithetical to indie web values' },
-  { domain: 'linkedin.com', category: 'social_media', reason: 'Large corporate social media platform antithetical to indie web values' },
-  { domain: 'snapchat.com', category: 'social_media', reason: 'Large corporate social media platform antithetical to indie web values' },
-  { domain: 'threads.net', category: 'social_media', reason: 'Large corporate social media platform antithetical to indie web values' },
-  { domain: 'bsky.app', category: 'social_media', reason: 'Large corporate social media platform antithetical to indie web values' },
-
-  // Google/Alphabet Properties
-  { domain: 'google.com', category: 'big_tech', reason: 'Major tech corporation antithetical to indie web values' },
-  { domain: 'youtube.com', category: 'big_tech', reason: 'Major tech corporation antithetical to indie web values' },
-  { domain: 'gmail.com', category: 'big_tech', reason: 'Major tech corporation antithetical to indie web values' },
-  { domain: 'googleblog.com', category: 'big_tech', reason: 'Major tech corporation antithetical to indie web values' },
-  { domain: 'googleadservices.com', category: 'big_tech', reason: 'Major tech corporation antithetical to indie web values' },
-  { domain: 'googlesyndication.com', category: 'big_tech', reason: 'Major tech corporation antithetical to indie web values' },
-  { domain: 'doubleclick.net', category: 'big_tech', reason: 'Major tech corporation antithetical to indie web values' },
-  { domain: 'googleusercontent.com', category: 'big_tech', reason: 'Major tech corporation antithetical to indie web values' },
-  { domain: 'gstatic.com', category: 'big_tech', reason: 'Major tech corporation antithetical to indie web values' },
-  { domain: 'googleapis.com', category: 'big_tech', reason: 'Major tech corporation antithetical to indie web values' },
-
-  // Other Big Tech
-  { domain: 'microsoft.com', category: 'big_tech', reason: 'Major tech corporation antithetical to indie web values' },
-  { domain: 'apple.com', category: 'big_tech', reason: 'Major tech corporation antithetical to indie web values' },
-  { domain: 'adobe.com', category: 'big_tech', reason: 'Major tech corporation antithetical to indie web values' },
-  { domain: 'amazon.com', category: 'big_tech', reason: 'Major tech corporation antithetical to indie web values' },
-
-  // E-commerce Giants
-  { domain: 'ebay.com', category: 'ecommerce', reason: 'Large corporate e-commerce platform' },
-  { domain: 'walmart.com', category: 'ecommerce', reason: 'Large corporate e-commerce platform' },
-  { domain: 'target.com', category: 'ecommerce', reason: 'Large corporate e-commerce platform' },
-  { domain: 'alibaba.com', category: 'ecommerce', reason: 'Large corporate e-commerce platform' },
-
-  // Wikipedia/Wikimedia (institutional knowledge bases, not indie)
-  { domain: 'wikipedia.org', category: 'knowledge_base', reason: 'Institutional knowledge base, not indie web content' },
-  { domain: 'wikimedia.org', category: 'knowledge_base', reason: 'Institutional knowledge base, not indie web content' },
-  { domain: 'wikidata.org', category: 'knowledge_base', reason: 'Institutional knowledge base, not indie web content' },
-  { domain: 'wikiquote.org', category: 'knowledge_base', reason: 'Institutional knowledge base, not indie web content' },
-  { domain: 'wiktionary.org', category: 'knowledge_base', reason: 'Institutional knowledge base, not indie web content' },
-  { domain: 'wikinews.org', category: 'knowledge_base', reason: 'Institutional knowledge base, not indie web content' },
-  { domain: 'commons.wikimedia.org', category: 'knowledge_base', reason: 'Institutional knowledge base, not indie web content' },
-  { domain: 'meta.wikimedia.org', category: 'knowledge_base', reason: 'Institutional knowledge base, not indie web content' },
-
-  // Major News/Media Corporations
-  { domain: 'cnn.com', category: 'news_media', reason: 'Corporate news media outlet' },
-  { domain: 'bbc.com', category: 'news_media', reason: 'Corporate news media outlet' },
-  { domain: 'nytimes.com', category: 'news_media', reason: 'Corporate news media outlet' },
-  { domain: 'washingtonpost.com', category: 'news_media', reason: 'Corporate news media outlet' },
-  { domain: 'theguardian.com', category: 'news_media', reason: 'Corporate news media outlet' },
-  { domain: 'reuters.com', category: 'news_media', reason: 'Corporate news media outlet' },
-  { domain: 'ap.org', category: 'news_media', reason: 'Corporate news media outlet' },
-  { domain: 'wsj.com', category: 'news_media', reason: 'Corporate news media outlet' },
-  { domain: 'npr.org', category: 'news_media', reason: 'Corporate news media outlet' },
-  { domain: 'cbs.com', category: 'news_media', reason: 'Corporate news media outlet' },
-  { domain: 'nbc.com', category: 'news_media', reason: 'Corporate news media outlet' },
-  { domain: 'abc.com', category: 'news_media', reason: 'Corporate news media outlet' },
-  { domain: 'fox.com', category: 'news_media', reason: 'Corporate news media outlet' },
-  { domain: 'foxnews.com', category: 'news_media', reason: 'Corporate news media outlet' },
-  { domain: 'msnbc.com', category: 'news_media', reason: 'Corporate news media outlet' },
-  { domain: 'bloomberg.com', category: 'news_media', reason: 'Corporate news media outlet' },
-
-  // Stack Exchange Network (corporate Q&A platforms)
-  { domain: 'stackoverflow.com', category: 'knowledge_base', reason: 'Corporate Q&A platform' },
-  { domain: 'stackexchange.com', category: 'knowledge_base', reason: 'Corporate Q&A platform' },
-  { domain: 'serverfault.com', category: 'knowledge_base', reason: 'Corporate Q&A platform' },
-  { domain: 'superuser.com', category: 'knowledge_base', reason: 'Corporate Q&A platform' },
-  { domain: 'askubuntu.com', category: 'knowledge_base', reason: 'Corporate Q&A platform' },
-  { domain: 'mathoverflow.net', category: 'knowledge_base', reason: 'Corporate Q&A platform' },
-
-  // Major Streaming/Entertainment Platforms
-  { domain: 'netflix.com', category: 'entertainment', reason: 'Corporate streaming platform' },
-  { domain: 'hulu.com', category: 'entertainment', reason: 'Corporate streaming platform' },
-  { domain: 'disneyplus.com', category: 'entertainment', reason: 'Corporate streaming platform' },
-  { domain: 'hbomax.com', category: 'entertainment', reason: 'Corporate streaming platform' },
-  { domain: 'paramount.com', category: 'entertainment', reason: 'Corporate streaming platform' },
-  { domain: 'peacocktv.com', category: 'entertainment', reason: 'Corporate streaming platform' },
-  { domain: 'crunchyroll.com', category: 'entertainment', reason: 'Corporate streaming platform' },
-  { domain: 'twitch.tv', category: 'entertainment', reason: 'Corporate streaming platform' },
-  { domain: 'imdb.com', category: 'entertainment', reason: 'Corporate entertainment database' },
-];
+// The list lives in lib/indie-index/blocklist.ts (the Indie Index uses it
+// as a baseline even when this table is empty).
+const BLOCKED_SITES: BlockedSiteData[] = DEFAULT_BLOCKED_SITES;
 
 async function seedBlockedSites(force: boolean = false): Promise<void> {
   console.log('🌱 Seeding BlockedSite table...\n');

@@ -9,7 +9,7 @@
  * redirect keeps them working.
  */
 
-export const SCOPES = ['all', 'people', 'rings', 'posts', 'places', 'indie', 'web'] as const
+export const SCOPES = ['all', 'people', 'rings', 'posts', 'places', 'indie'] as const
 export type SearchScope = (typeof SCOPES)[number]
 
 /** Tab labels. "Indie Index" is the one name for the community index. */
@@ -20,7 +20,6 @@ export const SCOPE_LABELS: Record<SearchScope, string> = {
   posts: 'Posts',
   places: 'Homes & pages',
   indie: 'Indie Index',
-  web: 'Wider web',
 }
 
 /** The /api/search `type` value(s) behind each on-site scope. */
@@ -30,12 +29,6 @@ export const SCOPE_API_TYPES: Partial<Record<SearchScope, string>> = {
   posts: 'posts',
   places: 'homes,pages',
 }
-
-/** Queries this short never reach the paid web tier. */
-export const MIN_WEB_QUERY_LENGTH = 3
-
-/** With fewer on-site results than this, the web tier loads by itself. */
-export const AUTO_WEB_BELOW = 5
 
 export interface SearchState {
   q: string
@@ -53,7 +46,8 @@ const LEGACY_TABS: Record<string, SearchScope> = {
   site: 'all',
   indie: 'indie',
   community: 'indie',
-  web: 'web',
+  // The wider web is links to other engines now, under every search.
+  web: 'all',
 }
 
 const LEGACY_TYPES: Record<string, SearchScope> = {
@@ -72,6 +66,8 @@ export function parseSearchState(query: RawQuery): SearchState {
   const q = first(query.q ?? query.query).trim().slice(0, 200)
   const rawScope = first(query.scope)
   if (isScope(rawScope)) return { q, scope: rawScope }
+  // Old /search?scope=web links: the wider web is links under "Everything" now.
+  if (rawScope === 'web') return { q, scope: 'all' }
 
   // /discover/search?tab=…&type=…
   const type = LEGACY_TYPES[first(query.type)]
@@ -92,9 +88,4 @@ export function searchHref({ q, scope }: Partial<SearchState>): string {
 /** /discover/search → /search, keeping the query and the tab/type it asked for. */
 export function legacyRedirectHref(query: RawQuery): string {
   return searchHref(parseSearchState(query))
-}
-
-/** Whether the "All" view should load the web tier without being asked. */
-export function shouldAutoLoadWeb(q: string, onSiteCount: number, enabled: boolean): boolean {
-  return enabled && q.trim().length >= MIN_WEB_QUERY_LENGTH && onSiteCount < AUTO_WEB_BELOW
 }

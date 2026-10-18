@@ -90,10 +90,8 @@ export default apiHandler(
         }
       });
 
-      // Auto-submit to community index if from external search
-      if (sourceType === 'external_search') {
-        await autoSubmitToCommunityIndex(bookmark, user);
-      }
+      // Bookmarks stay private: saving one no longer adds the site to the
+      // Indie Index. Vouching does that (SEARCH_PLAN.md §3.5).
 
       return res.json({
         success: true,
@@ -116,91 +114,3 @@ export default apiHandler(
     }
   }
 );
-
-async function autoSubmitToCommunityIndex(bookmark: any, user: any) {
-  try {
-    // Check if URL already exists in index
-    const existingSite = await db.indexedSite.findUnique({
-      where: { url: bookmark.url }
-    });
-
-    if (existingSite) {
-      // Link bookmark to existing site
-      await db.bookmarkCommunitySubmission.create({
-        data: {
-          bookmarkId: bookmark.id,
-          indexedSiteId: existingSite.id,
-          submissionReason: 'user_bookmark',
-          submissionScore: calculateUserScore(user),
-          status: 'validated' // Already in index
-        }
-      });
-      return;
-    }
-
-    // Create new submission for validation
-    await db.bookmarkCommunitySubmission.create({
-      data: {
-        bookmarkId: bookmark.id,
-        submissionReason: 'user_bookmark',
-        submissionScore: calculateUserScore(user),
-        status: 'pending'
-      }
-    });
-
-    // Create indexed site entry (unvalidated)
-    await db.indexedSite.create({
-      data: {
-        url: bookmark.url,
-        title: bookmark.title,
-        description: bookmark.description,
-        submittedBy: user.id,
-        discoveryMethod: 'user_bookmark',
-        discoveryContext: `Bookmarked from ${bookmark.sourceMetadata?.engine || 'search'}`,
-        siteType: inferSiteType(bookmark.sourceMetadata),
-        communityValidated: false,
-        seedingScore: calculateBookmarkScore(bookmark),
-        seedingReasons: ['user_bookmarked', 'external_search']
-      }
-    });
-
-  } catch (error) {
-    console.error('Auto-submission failed:', error);
-    // Don't fail the bookmark creation if auto-submission fails
-  }
-}
-
-function calculateUserScore(user: any): number {
-  // TODO: Implement user reputation scoring
-  // For now, return a base score
-  return 50;
-}
-
-function calculateBookmarkScore(bookmark: any): number {
-  let score = 30; // Base score for user bookmarks
-
-  const metadata = bookmark.sourceMetadata || {};
-
-  // Boost for indie web indicators
-  if (metadata.is_indie_web) score += 20;
-  if (metadata.privacy_score > 0.7) score += 15;
-  if (metadata.engine === 'searchmysite') score += 10;
-
-  return Math.min(score, 100);
-}
-
-function inferSiteType(metadata: any): string {
-  // Simple heuristics to infer site type
-  if (!metadata) return 'unknown';
-
-  if (metadata.content_type) {
-    switch (metadata.content_type) {
-      case 'blog': return 'personal_blog';
-      case 'personal': return 'portfolio';
-      case 'wiki': return 'reference';
-      default: return 'other';
-    }
-  }
-
-  return 'other';
-}

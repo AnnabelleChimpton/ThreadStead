@@ -86,7 +86,8 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
       id: item.id || index.toString(),
       label: item.label || "",
       url: item.url || "",
-      blurb: item.blurb || ""
+      blurb: item.blurb || "",
+      mine: item.mine === true
     })) || []
   );
   const [featuredFriends, setFeaturedFriends] = useState<SelectedFriend[]>(
@@ -212,7 +213,8 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
         id: w.id,
         label: w.label,
         url: w.url,
-        blurb: w.blurb || ""
+        blurb: w.blurb || "",
+        ...(w.mine ? { mine: true } : {})
       }));
 
       const featuredFriendsData = featuredFriends.map(f => ({

@@ -1,7 +1,8 @@
 /**
  * Things to show when a search finds nothing, and the Surprise Me pick.
- * None of this spends paid web-search quota: homes and rings are ours, and
- * indie sites come from the curated list and the validated Indie Index.
+ * Homes and rings are ours; indie sites come from the Indie Index
+ * (SEARCH_PLAN.md §3.5): sites residents chose, or a Kagi Small Web pool
+ * site that posted in the last 90 days.
  */
 import { Prisma } from '@prisma/client'
 import { db } from '@/lib/config/database/connection'
@@ -9,7 +10,7 @@ import { cached } from '@/lib/api/ringhub/ringhub-cache'
 import { hydrateHomes } from './local'
 import { fetchRings, ringResult, type RingRow } from './rings'
 import { queryTerms } from './relevance'
-import { domainOf, isWebUrl, cleanText } from './sites'
+import { isWebUrl, cleanText } from './sites'
 import { houseThumb, type SearchResult } from './types'
 
 type Card = Omit<SearchResult, 'relevanceScore'>
@@ -104,28 +105,30 @@ export interface SurprisePick {
   ring?: Card['ring']
 }
 
+/** Sites residents chose (their own and vouched ones twice as likely), else a lively pool site. */
 async function randomSite(): Promise<SurprisePick | null> {
-  const curated = await db.curatedSite.findMany({
-    where: { active: true },
-    select: { url: true, title: true, description: true, weight: true },
-  })
-  const indexed = await db.indexedSite.findMany({
-    where: { communityValidated: true, communityScore: { gte: 1 } },
-    select: { url: true, title: true, description: true },
-    orderBy: { communityScore: 'desc' },
-    take: 50,
-  })
-  const pool = [...curated, ...indexed].filter((s) => isWebUrl(s.url))
-  if (pool.length === 0) return null
-  const site = pool[Math.floor(Math.random() * pool.length)]
-  const domain = domainOf(site.url)
+  const community = await db.$queryRaw<Array<{ url: string; key: string; title: string | null; description: string | null; tier: string }>>`
+    SELECT "url", "key", "title", "description", "tier"::text AS "tier" FROM "Site"
+    WHERE "tier" IN ('resident', 'vouched', 'community') AND "status" = 'active'
+    ORDER BY random() LIMIT 50
+  `
+  const weighted = community.flatMap((s) => (s.tier === 'community' ? [s] : [s, s]))
+  let site = weighted.length ? weighted[Math.floor(Math.random() * weighted.length)] : null
+  if (!site) {
+    ;[site] = await db.$queryRaw<typeof community>`
+      SELECT "url", "key", "title", "description", "tier"::text AS "tier" FROM "Site"
+      WHERE "tier" = 'pool' AND "status" = 'active' AND "lastPostAt" > (now() AT TIME ZONE 'UTC') - interval '90 days'
+      ORDER BY random() LIMIT 1
+    `
+  }
+  if (!site || !isWebUrl(site.url)) return null
   return {
     kind: 'site',
-    title: cleanText(site.title) || domain,
+    title: cleanText(site.title) || site.key,
     description: cleanText(site.description) || undefined,
     url: site.url,
     external: true,
-    domain,
+    domain: site.key,
   }
 }
 

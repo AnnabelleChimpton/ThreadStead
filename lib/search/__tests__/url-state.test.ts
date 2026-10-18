@@ -1,10 +1,4 @@
-import {
-  AUTO_WEB_BELOW,
-  legacyRedirectHref,
-  parseSearchState,
-  searchHref,
-  shouldAutoLoadWeb,
-} from '../url-state'
+import { legacyRedirectHref, parseSearchState, searchHref } from '../url-state'
 
 describe('parseSearchState', () => {
   it('reads q and scope', () => {
@@ -31,7 +25,9 @@ describe('parseSearchState', () => {
   it('maps old /discover/search params onto a scope', () => {
     expect(parseSearchState({ q: 'x', tab: 'indie' }).scope).toBe('indie')
     expect(parseSearchState({ q: 'x', tab: 'community' }).scope).toBe('indie')
-    expect(parseSearchState({ q: 'x', tab: 'web' }).scope).toBe('web')
+    // The wider web is links under "Everything" now (SEARCH_PLAN.md §3.4).
+    expect(parseSearchState({ q: 'x', tab: 'web' }).scope).toBe('all')
+    expect(parseSearchState({ q: 'x', scope: 'web' }).scope).toBe('all')
     expect(parseSearchState({ q: 'x', tab: 'site' }).scope).toBe('all')
     expect(parseSearchState({ q: 'x', tab: 'all', type: 'users' }).scope).toBe('people')
     expect(parseSearchState({ q: 'x', type: 'threadrings' }).scope).toBe('rings')
@@ -60,7 +56,7 @@ describe('searchHref', () => {
     for (const state of [
       { q: 'weekend imrul', scope: 'people' as const },
       { q: '-spam "exact phrase"', scope: 'all' as const },
-      { q: 'café', scope: 'web' as const },
+      { q: 'café', scope: 'indie' as const },
     ]) {
       const params = Object.fromEntries(new URLSearchParams(searchHref(state).split('?')[1]))
       expect(parseSearchState(params)).toEqual(state)
@@ -76,19 +72,5 @@ describe('legacyRedirectHref', () => {
     expect(legacyRedirectHref({ q: 'cats', tab: 'all', type: 'all' })).toBe('/search?q=cats')
     expect(legacyRedirectHref({ tab: 'indie' })).toBe('/search?scope=indie')
     expect(legacyRedirectHref({})).toBe('/search')
-  })
-})
-
-describe('shouldAutoLoadWeb', () => {
-  it('loads the web only when on-site results are thin', () => {
-    expect(shouldAutoLoadWeb('cats', 0, true)).toBe(true)
-    expect(shouldAutoLoadWeb('cats', AUTO_WEB_BELOW - 1, true)).toBe(true)
-    expect(shouldAutoLoadWeb('cats', AUTO_WEB_BELOW, true)).toBe(false)
-  })
-
-  it('never when the web tier is off or the query is short', () => {
-    expect(shouldAutoLoadWeb('cats', 0, false)).toBe(false)
-    expect(shouldAutoLoadWeb('ca', 0, true)).toBe(false)
-    expect(shouldAutoLoadWeb('  ca  ', 0, true)).toBe(false)
   })
 })

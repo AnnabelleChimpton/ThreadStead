@@ -62,7 +62,7 @@ export interface ApiHandlerOptions {
   schema?: ZodType;
   /**
    * Lets a machine caller in with `Authorization: Bearer <key>` instead of a
-   * session (e.g. CRAWLER_API_KEY). A getter, so env is read per request; an
+   * session (a key for a scripted caller). A getter, so env is read per request; an
    * unset key disables this path. Such requests skip CSRF (it only defends
    * cookie auth) and the auth check, and get ctx.user = null.
    */

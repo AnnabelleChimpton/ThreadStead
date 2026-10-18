@@ -5,6 +5,8 @@ export interface Website {
   label: string;
   url: string;
   blurb?: string;
+  /** "This is my site": the Indie Index lists it as this resident's own. */
+  mine?: boolean;
 }
 
 interface WebsiteManagerProps {
@@ -134,6 +136,20 @@ export default function WebsiteManager({
                       {(website.blurb || "").length}/200 characters
                     </div>
                   </div>
+                  <label className="flex items-start gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={!!website.mine}
+                      onChange={(e) => updateWebsite(website.id, { mine: e.target.checked })}
+                      className="mt-1"
+                    />
+                    <span>
+                      This is my site
+                      <span className="block text-xs text-nb-ink-mid">
+                        It goes in the Indie Index as yours, and search can find your posts there.
+                      </span>
+                    </span>
+                  </label>
                   <div className="flex gap-2">
                     <button
                       onClick={() => setEditingId(null)}
@@ -167,6 +183,9 @@ export default function WebsiteManager({
                       <span className="text-xs text-nb-ink-mid">
                         {website.url}
                       </span>
+                      {website.mine && (
+                        <span className="text-xs font-semibold text-nb-ink border border-nb-ink-mid/50 rounded px-1">My site</span>
+                      )}
                     </div>
                     {website.blurb && (
                       <p className="text-sm text-nb-ink">{website.blurb}</p>

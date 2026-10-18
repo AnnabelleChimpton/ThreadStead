@@ -53,7 +53,6 @@ Unset, the branding falls back to "YourSiteHere". Set `SITE_HANDLE_DOMAIN` and `
 | `CAP_AUDIENCE` | — | `retro.local` | JWT audience for capability tokens. Set to your production domain. |
 | `BETA_KEYS_ENABLED` | — | `false` | Require a beta key to sign up. Accepts true/false/1/0/yes/no; anything else means disabled. |
 | `EMAIL_ENCRYPTION_KEY` 🔒 | — | — | AES-256-GCM key for stored email addresses: 64 hex characters (`openssl rand -hex 32`). Email features throw without it. |
-| `CRAWLER_API_KEY` 🔒 | — | — | Bearer token that lets scripts/run-crawler.sh call /api/admin/crawler/* without an admin session. |
 | `CRON_SECRET` 🔒 | — | — | Bearer token for /api/cron/cleanup-rate-limits. Required in production for that job to run. |
 | `VERCEL_CRON_SECRET` 🔒 | — | — | Fallback for CRON_SECRET (Vercel-style name). |
 
@@ -108,18 +107,9 @@ Unset, the branding falls back to "YourSiteHere". Set `SITE_HANDLE_DOMAIN` and `
 | `NEXT_PUBLIC_PNG_AUTO_LOAD` | — | `false` | Load pixel-home decoration PNGs from the CDN automatically instead of SVG fallbacks. `true`/`false`. |
 | `NEXT_PUBLIC_USE_RING_HUB` | — | `false` | Route ThreadRing operations through Ring Hub (featureFlags.ringhub()). `true`/`false`. |
 | `NEXT_PUBLIC_THREADRINGS_ENABLED` | — | `false` | Reported by the monitoring endpoints only; nothing else reads it. `true`/`false`. |
-| `NEXT_PUBLIC_ENABLE_EXTSEARCH` | — | `false` | Enable external web search (Brave/Mojeek/SearXNG) on the discover page and /api/extsearch. `true`/`false`. |
 | `ENABLE_TEMPLATE_ISLANDS` | — | `false` | featureFlags.templateIslands() — currently read by nothing else. `true`/`false`. |
 | `ENABLE_TEMPLATE_COMPILATION` | — | `false` | featureFlags.templateCompilation() — currently read by nothing else. `true`/`false`. |
 | `TEMPLATE_ISLAND_ROLLOUT_PERCENT` | — | `0` | Percentage of users in the template-islands rollout. Integer. |
-
-## External search
-
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `BRAVE_API_KEY` 🔒 | — | — | Brave Search API key (needs NEXT_PUBLIC_ENABLE_EXTSEARCH=true). |
-| `MOJEEK_API_KEY` 🔒 | — | — | Mojeek API key. |
-| `SEARXNG_INSTANCE_URL` | — | — | SearXNG instance. Defaults to a public instance. |
 
 ## Scripts and tests
 
@@ -158,6 +148,11 @@ These appear in older docs or `.env` files. Setting them does nothing.
 | `RING_HUB_TIMEOUT` | Never read (the monitoring page used to echo it). Use RING_HUB_TIMEOUT_MS. |
 | `RING_HUB_RETRIES` | Never read; RingHubClient does not retry. |
 | `RING_HUB_RETRY_DELAY` | Never read; RingHubClient does not retry. |
+| `BRAVE_API_KEY` | Brave web search was removed 2026-10 (SEARCH_PLAN.md §3.4). Delete it and revoke the key. |
+| `MOJEEK_API_KEY` | The external search engines were removed 2026-10 (SEARCH_PLAN.md §3.4). |
+| `SEARXNG_INSTANCE_URL` | The external search engines were removed 2026-10 (SEARCH_PLAN.md §3.4). |
+| `NEXT_PUBLIC_ENABLE_EXTSEARCH` | The wider web is plain links to other engines now (SEARCH_PLAN.md §3.4). |
+| `CRAWLER_API_KEY` | The crawler was removed 2026-10; the Indie Index refresher runs under pm2 (SEARCH_PLAN.md §3.5). |
 
 ## Example: a small community
 

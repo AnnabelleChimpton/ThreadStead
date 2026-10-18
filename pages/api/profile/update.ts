@@ -75,7 +75,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
           id: String(obj.id || Date.now()),
           label: String(obj.label).trim().slice(0, 50),
           url: String(obj.url).trim().slice(0, 500),
-          blurb: String(obj.blurb || "").trim().slice(0, 200)
+          blurb: String(obj.blurb || "").trim().slice(0, 200),
+          // "This is my site": the Indie Index lists it as this resident's own.
+          ...(obj.mine === true ? { mine: true } : {})
         };
       });
     data.blogroll = sanitizedBlogroll;

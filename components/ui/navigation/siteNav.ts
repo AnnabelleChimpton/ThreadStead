@@ -88,15 +88,12 @@ export const COMMUNITY_TABS: { key: CommunityTabKey; href: string; label: string
   { key: "polls", href: "/community/polls", label: "Polls" },
 ];
 
-export type AdminPageKey = "dashboard" | "index" | "crawler" | "curated" | "validation" | "decorations";
+export type AdminPageKey = "dashboard" | "index" | "decorations";
 
 /** Every admin page lives under /admin; AdminHeader shows them as tabs */
 export const ADMIN_PAGES: { key: AdminPageKey; href: string; label: string; title: string }[] = [
   { key: "dashboard", href: "/admin", label: "Dashboard", title: "Dashboard" },
-  { key: "index", href: "/admin/community-index", label: "Indie Index", title: "Indie Index" },
-  { key: "crawler", href: "/admin/crawler", label: "Crawler", title: "Crawler" },
-  { key: "curated", href: "/admin/curated-sites", label: "Curated sites", title: "Curated sites" },
-  { key: "validation", href: "/admin/auto-validation", label: "Auto-validation", title: "Auto-validation" },
+  { key: "index", href: "/admin/indie", label: "Indie Index", title: "Indie Index" },
   { key: "decorations", href: "/admin/decorations", label: "Decorations", title: "Decorations" },
 ];
 

@@ -6,19 +6,18 @@ import Layout from '@/components/ui/layout/Layout'
 import { buttonClasses } from '@/components/ui/ButtonLink'
 import EmptyState from '@/components/ui/feedback/EmptyState'
 import ErrorDisplay from '@/components/ui/feedback/ErrorDisplay'
-import { PixelIcon } from '@/components/ui/PixelIcon'
-import { publicEnv } from '@/lib/config/public-env'
 import SearchBox from '@/components/features/search/SearchBox'
 import ResultGroup, { LIST_RESET, SkeletonRows } from '@/components/features/search/ResultGroup'
-import { ResultCard, SiteCard } from '@/components/features/search/ResultCards'
+import { ResultCard } from '@/components/features/search/ResultCards'
+import IndieSiteCard from '@/components/features/search/IndieSiteCard'
+import SearchElsewhere from '@/components/features/search/SearchElsewhere'
 import NothingFound from '@/components/features/search/NothingFound'
 import SurpriseCard from '@/components/features/search/SurpriseCard'
-import EnhancedCommunityBrowser from '@/components/features/search/EnhancedCommunityBrowser'
 import { useGroupedSearch, useScopedSearch } from '@/components/features/search/useUnifiedSearch'
+import { useCurrentUser } from '@/hooks/useCurrentUser'
 import type { SearchResult } from '@/lib/search/types'
-import type { SiteResult } from '@/lib/search/sites'
+import type { IndieSite } from '@/lib/search/indie'
 import {
-  MIN_WEB_QUERY_LENGTH,
   SCOPES,
   SCOPE_LABELS,
   parseSearchState,
@@ -26,22 +25,16 @@ import {
   type SearchScope,
 } from '@/lib/search/url-state'
 
-interface SearchPageProps {
-  /** Web tier on/off (NEXT_PUBLIC_ENABLE_EXTSEARCH, same check as /api/extsearch). */
-  extSearchEnabled: boolean
-}
-
 /**
  * /search — the one search page. Query and scope live in the URL
  * (lib/search/url-state.ts); /discover/search redirects here.
  */
-export default function SearchPage({ extSearchEnabled }: SearchPageProps) {
+export default function SearchPage() {
   const router = useRouter()
   // gSSP makes router.query complete on the first render, and every change
   // to q/scope is a navigation, so the URL is the only state.
   const { q, scope } = parseSearchState(router.query)
-  const scopes = SCOPES.filter((s) => s !== 'web' || extSearchEnabled)
-  const current: SearchScope = scopes.includes(scope) ? scope : 'all'
+  const current: SearchScope = SCOPES.includes(scope) ? scope : 'all'
 
   const title = q ? `${q} – Search` : 'Search'
 
@@ -58,11 +51,11 @@ export default function SearchPage({ extSearchEnabled }: SearchPageProps) {
           <SearchBox defaultValue={q} scope={current === 'all' ? undefined : current} size="lg" autoFocus={!q} />
         </div>
 
-        {q && <ScopeTabs q={q} current={current} scopes={scopes} />}
+        {q && <ScopeTabs q={q} current={current} scopes={[...SCOPES]} />}
 
         {!q && <Start scope={current} />}
-        {q && current === 'all' && <AllResults q={q} webEnabled={extSearchEnabled} />}
-        {q && current !== 'all' && <ScopedResults q={q} scope={current} webEnabled={extSearchEnabled} />}
+        {q && current === 'all' && <AllResults q={q} />}
+        {q && current !== 'all' && <ScopedResults q={q} scope={current} />}
       </div>
     </Layout>
   )
@@ -100,10 +93,13 @@ function Start({ scope }: { scope: SearchScope }) {
     return (
       <div className="space-y-4">
         <p className="text-nb-ink">
-          The Indie Index is a list of personal and small sites that residents found and checked. Search it above, or
-          browse it here.
+          The Indie Index is personal sites that people here link to and vouch for, plus a starting pool from Kagi Small
+          Web. Search it above, or browse the ones residents picked, newest post first.{' '}
+          <Link href="/indie" className="underline underline-offset-2">
+            How sites get in
+          </Link>
         </p>
-        <EnhancedCommunityBrowser query="" includeUnvalidated={false} />
+        <ScopedResults q="" scope="indie" />
       </div>
     )
   }
@@ -145,10 +141,10 @@ function rows(items: SearchResult[]) {
   ))
 }
 
-function siteRows(items: SiteResult[], source: 'web' | 'indie_index', q: string) {
+function siteRows(items: IndieSite[], canVouch: boolean) {
   return items.map((s) => (
-    <li key={s.url}>
-      <SiteCard site={s} source={source} query={q} />
+    <li key={s.id}>
+      <IndieSiteCard site={s} canVouch={canVouch} />
     </li>
   ))
 }
@@ -158,16 +154,15 @@ function countLabel(n: number, more: boolean) {
 }
 
 /** "Everything": a few of each kind, in a fixed order. */
-function AllResults({ q, webEnabled }: { q: string; webEnabled: boolean }) {
-  const { state, loadWeb } = useGroupedSearch(q, true, webEnabled)
-  const { users, threadrings, posts, places, indie, web } = state
+function AllResults({ q }: { q: string }) {
+  const { state } = useGroupedSearch(q, true)
+  const { loggedIn } = useCurrentUser()
+  const { users, threadrings, posts, places, indie } = state
 
   const onSite = [users, threadrings, posts, places, indie]
   const allSettled = onSite.every((g) => g.status === 'done' || g.status === 'error')
   const found = onSite.reduce((n, g) => n + g.items.length, 0)
   const nothing = allSettled && found === 0
-  const webAsked = web.status !== 'idle'
-  const canAskWeb = webEnabled && !webAsked && q.length >= MIN_WEB_QUERY_LENGTH
 
   const group = (
     key: 'users' | 'threadrings' | 'posts' | 'places',
@@ -194,9 +189,7 @@ function AllResults({ q, webEnabled }: { q: string; webEnabled: boolean }) {
 
   return (
     <div className="space-y-4">
-      {nothing && (
-        <NothingFound q={q} webEnabled={webEnabled} webLoaded={webAsked} onSearchWeb={loadWeb} />
-      )}
+      {nothing && <NothingFound q={q} />}
 
       {group('users', 'People', 'people')}
       {group('threadrings', 'Rings', 'rings')}
@@ -206,51 +199,27 @@ function AllResults({ q, webEnabled }: { q: string; webEnabled: boolean }) {
       <ResultGroup
         id="group-indie"
         title="From the indie web"
-        note="Sites from the Indie Index, checked by residents."
+        note="Personal sites people here link to and vouch for, and a pool from Kagi Small Web. They open in a new tab."
         status={indie.status}
         count={indie.total}
         media={false}
         seeAllHref={indie.total > indie.items.length || indie.more ? searchHref({ q, scope: 'indie' }) : undefined}
         seeAllLabel={countLabel(indie.total, indie.more)}
       >
-        {siteRows(indie.items, 'indie_index', q)}
+        {siteRows(indie.items, loggedIn)}
       </ResultGroup>
 
-      {webEnabled && (
-        <ResultGroup
-          id="group-web"
-          title="From the wider web"
-          note="From other search engines. These open in a new tab."
-          status={web.status}
-          count={web.total}
-          media={false}
-          seeAllHref={searchHref({ q, scope: 'web' })}
-          seeAllLabel="See more"
-        >
-          {siteRows(web.items, 'web', q)}
-        </ResultGroup>
-      )}
+      {!nothing && allSettled && <SearchElsewhere q={q} />}
 
-      {webEnabled && web.status === 'done' && web.total === 0 && (
-        <p role="status" className="text-sm text-nb-ink-mid">The wider web had nothing for this either.</p>
-      )}
-
-      {canAskWeb && !nothing && allSettled && (
-        <div className="text-center pt-2">
-          <button type="button" onClick={loadWeb} className={`${buttonClasses('secondary')} inline-flex items-center gap-1.5`}>
-            <PixelIcon name="search" size={16} />
-            <span>Search the wider small web</span>
-          </button>
-        </div>
-      )}
     </div>
   )
 }
 
 /** One scope, the full list with "Show more". */
-function ScopedResults({ q, scope, webEnabled }: { q: string; scope: SearchScope; webEnabled: boolean }) {
-  const { state, loadMore } = useScopedSearch(q, scope, webEnabled)
-  const offsite = scope === 'indie' || scope === 'web'
+function ScopedResults({ q, scope }: { q: string; scope: SearchScope }) {
+  const { state, loadMore } = useScopedSearch(q, scope)
+  const { loggedIn } = useCurrentUser()
+  const offsite = scope === 'indie'
 
   if (state.status === 'loading' || state.status === 'idle') {
     return (
@@ -264,6 +233,9 @@ function ScopedResults({ q, scope, webEnabled }: { q: string; scope: SearchScope
       <ErrorDisplay title="Search didn’t load. Try again in a minute." />
     )
   }
+  if (state.items.length === 0 && !q) {
+    return <EmptyState as="p" className="text-left" title="No sites in the index yet." actionLabel="Add one" actionHref="/indie#add" />
+  }
   if (state.items.length === 0) {
     return (
       <EmptyState
@@ -276,8 +248,8 @@ function ScopedResults({ q, scope, webEnabled }: { q: string; scope: SearchScope
               Search everything instead
             </Link>
             {scope === 'indie' && (
-              <Link href="/community-index/submit" className={buttonClasses('secondary', 'sm')}>
-                Know a site? Feed the Spider
+              <Link href="/indie#add" className={buttonClasses('secondary', 'sm')}>
+                Know a site? Add it to the index
               </Link>
             )}
           </>
@@ -288,12 +260,9 @@ function ScopedResults({ q, scope, webEnabled }: { q: string; scope: SearchScope
 
   return (
     <div className="space-y-3">
-      {scope === 'web' && <p className="text-sm text-nb-ink-mid">From other search engines. These open in a new tab.</p>}
       <div className="thread-module p-3 sm:p-4">
         <ul className="divide-y divide-dotted divide-nb-ink-mid/40" style={LIST_RESET}>
-          {offsite
-            ? siteRows(state.items as SiteResult[], scope === 'web' ? 'web' : 'indie_index', q)
-            : rows(state.items as SearchResult[])}
+          {offsite ? siteRows(state.items as IndieSite[], loggedIn) : rows(state.items as SearchResult[])}
         </ul>
       </div>
       {state.error && <p role="status" className="text-sm text-nb-ink-mid">{state.error}</p>}
@@ -308,7 +277,7 @@ function ScopedResults({ q, scope, webEnabled }: { q: string; scope: SearchScope
   )
 }
 
-export const getServerSideProps: GetServerSideProps<SearchPageProps> = async (context) => {
+export const getServerSideProps: GetServerSideProps = async (context) => {
   // Old-style params (?query=, ?tab=, ?type=) → the canonical URL.
   const state = parseSearchState(context.query)
   const canonical = searchHref(state)
@@ -316,11 +285,5 @@ export const getServerSideProps: GetServerSideProps<SearchPageProps> = async (co
   if (['query', 'tab', 'type'].some((k) => k in context.query) && canonical !== asked) {
     return { redirect: { destination: canonical, permanent: false } }
   }
-  return {
-    props: {
-      // A real prop again: e312d77 (Nov 2025) dropped the old page's gSSP,
-      // so the flag was always undefined and the Web tab never showed.
-      extSearchEnabled: publicEnv.NEXT_PUBLIC_ENABLE_EXTSEARCH === true,
-    },
-  }
+  return { props: {} }
 }

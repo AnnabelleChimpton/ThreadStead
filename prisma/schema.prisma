@@ -79,6 +79,9 @@ model User {
   userCollections           UserCollection[]              @relation("UserCollections")
   userBookmarks             UserBookmark[]                @relation("UserBookmarks")
   bookmarkValidations       BookmarkCommunitySubmission[] @relation("BookmarkValidations")
+  indieSitesOwned           Site[]                        @relation("SiteOwner")
+  indieVouches              Vouch[]                       @relation("UserVouches")
+  indieSiteSignals          SiteSignal[]                  @relation("UserSiteSignals")
   pollsCreated              Poll[]                        @relation("PollsCreated")
   pollVotes                 PollVote[]                    @relation("PollVotes")
   bulletins                 Bulletin[]                    @relation("UserBulletins")
@@ -1366,6 +1369,191 @@ model SiteReview {
   @@index([userId])
   @@index([helpful])
   @@index([rating])
+}
+
+// Indie Index (SEARCH_PLAN.md §3.5): a community-built index of personal
+// sites, refreshed from their RSS/Atom feeds by a nightly job. Replaces
+// IndexedSite and the crawler. Hand-written migration:
+// 20261019000000_add_indie_index (search_tsv columns are trigger-maintained).
+
+enum SiteSource {
+  community // came in through residents
+  pool // Kagi Small Web starting pool
+}
+
+enum SiteTier {
+  resident // a resident's own site
+  vouched // 2+ residents, at least one vouch
+  community // 2+ residents, or moved over from IndexedSite
+  pool // Kagi Small Web only
+  candidate // not searchable yet
+}
+
+enum SiteStatus {
+  active
+  stale // failing for a while, still searchable
+  dead // out of search, retried weekly
+  hidden // hidden by an admin
+}
+
+enum SiteSignalKind {
+  own // "This is my site" ticked on a Websites entry
+  backlink // the site's homepage links to the resident's profile
+  blogroll // Profile.blogroll (the Websites list)
+  home_link // a link in the profile template or bio
+  home_button // an 88x31 button in the profile template
+  page_link // a link on a published CustomPage (the admin's signal)
+}
+
+enum SiteOptOutVia {
+  robots
+  meta
+  owner
+  admin
+}
+
+model Site {
+  id                String                   @id @default(cuid())
+  // Host, or host/~user on tilde servers (lib/indie-index/site-key.ts).
+  key               String                   @unique
+  // Hostname without www., for one-per-domain, robots.txt and politeness.
+  host              String
+  url               String
+  title             String?
+  description       String?
+  feedUrl           String?
+  buttonUrl         String?
+  source            SiteSource               @default(community)
+  tier              SiteTier                 @default(candidate)
+  status            SiteStatus               @default(active)
+  ownerId           String?
+  // Moved over from IndexedSite: listed even with a single signal.
+  grandfathered     Boolean                  @default(false)
+  residentSignals   Int                      @default(0)
+  vouchCount        Int                      @default(0)
+  linkedFromSites   Int                      @default(0)
+  lastPostAt        DateTime?
+  postsLast90d      Int                      @default(0)
+  // Feed fetch state (conditional GET).
+  feedEtag          String?
+  feedLastModified  String?
+  nextFetchAt       DateTime                 @default(now())
+  lastFetchedAt     DateTime?
+  homepageCheckedAt DateTime?
+  lastOkAt          DateTime?
+  failCount         Int                      @default(0)
+  lastError         String?
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+  // Full-text search: title (A) + key (A) + description (B).
+  searchTsv         Unsupported("tsvector")? @map("search_tsv")
+
+  owner    User?        @relation("SiteOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  items    SiteItem[]
+  vouches  Vouch[]
+  signals  SiteSignal[]
+  linksOut SiteLink[]   @relation("SiteLinksOut")
+  linksIn  SiteLink[]   @relation("SiteLinksIn")
+
+  @@index([host])
+  @@index([status, tier])
+  @@index([source, nextFetchAt])
+  @@index([ownerId])
+  @@index([searchTsv], type: Gin, map: "Site_search_tsv_idx")
+  @@index([title(ops: raw("gin_trgm_ops"))], type: Gin, map: "Site_title_trgm_idx")
+  @@index([key(ops: raw("gin_trgm_ops"))], type: Gin, map: "Site_key_trgm_idx")
+}
+
+// One feed entry.
+model SiteItem {
+  id          String                   @id @default(cuid())
+  siteId      String
+  url         String
+  title       String?
+  excerpt     String?
+  publishedAt DateTime?
+  fetchedAt   DateTime                 @default(now())
+  // Full-text search: title (A) + excerpt (C).
+  searchTsv   Unsupported("tsvector")? @map("search_tsv")
+
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@unique([siteId, url])
+  @@index([siteId, publishedAt(sort: Desc)])
+  @@index([searchTsv], type: Gin, map: "SiteItem_search_tsv_idx")
+}
+
+// A resident saying "this belongs in the index". Made by people, never harvested.
+model Vouch {
+  id        String   @id @default(cuid())
+  siteId    String
+  userId    String
+  note      String?
+  createdAt DateTime @default(now())
+
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  user User @relation("UserVouches", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([siteId, userId])
+  @@index([userId])
+}
+
+// A resident pointing at a site from their home or Websites list. Harvested
+// nightly; rows whose source disappears are deleted.
+model SiteSignal {
+  id          String         @id @default(cuid())
+  siteId      String
+  userId      String
+  kind        SiteSignalKind
+  firstSeenAt DateTime       @default(now())
+  lastSeenAt  DateTime       @default(now())
+
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  user User @relation("UserSiteSignals", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([siteId, userId, kind])
+  @@index([userId])
+}
+
+// Site-to-site links found on listed sites. Feeds discovery candidates and
+// ranking; never lists a site by itself.
+model SiteLink {
+  id          String   @id @default(cuid())
+  fromSiteId  String
+  toKey       String
+  toSiteId    String?
+  firstSeenAt DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+
+  fromSite Site  @relation("SiteLinksOut", fields: [fromSiteId], references: [id], onDelete: Cascade)
+  toSite   Site? @relation("SiteLinksIn", fields: [toSiteId], references: [id], onDelete: SetNull)
+
+  @@unique([fromSiteId, toKey])
+  @@index([toKey])
+  @@index([toSiteId])
+}
+
+// Tombstone: an opted-out site is deleted and can't come back. A bare host
+// (from robots.txt) covers every key under it.
+model SiteOptOut {
+  key       String        @id
+  via       SiteOptOutVia
+  createdAt DateTime      @default(now())
+}
+
+// One row per nightly refresh or import, for the admin page.
+model IndexRun {
+  id          String    @id @default(cuid())
+  kind        String    @default("nightly") // nightly | kagi_import
+  startedAt   DateTime  @default(now())
+  finishedAt  DateTime?
+  fetched     Int       @default(0)
+  notModified Int       @default(0)
+  failed      Int       @default(0)
+  itemsAdded  Int       @default(0)
+  error       String?
+
+  @@index([startedAt(sort: Desc)])
 }
 
 model ConsentLog {
