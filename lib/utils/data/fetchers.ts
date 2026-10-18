@@ -4,6 +4,7 @@
 import { db } from "../../config/database/connection";
 import { SITE_NAME } from "../../config/site/constants";
 import { getAllowedVisibilities } from "../../domain/posts/visibility";
+import { getUserBlockedIds, addBlockFiltersToWhere } from "../../domain/users/blocks";
 
 export async function getPostsForUser(username: string, viewerId?: string) {
   const handle = await db.handle.findFirst({
@@ -14,10 +15,20 @@ export async function getPostsForUser(username: string, viewerId?: string) {
 
   const authorId = handle.user.id;
 
+  // Same rules as /api/posts/[username]: a viewer who blocked this person
+  // sees none of their posts (and is told why), and posts in rings they
+  // blocked stay hidden.
+  const { blockedUserIds, blockedThreadRingIds } = viewerId
+    ? await getUserBlockedIds(viewerId)
+    : { blockedUserIds: [], blockedThreadRingIds: [] };
+  if (blockedUserIds.includes(authorId)) {
+    return { posts: [], blocked: true };
+  }
+
   const allowed = await getAllowedVisibilities(viewerId, authorId);
 
   const posts = await db.post.findMany({
-    where: { authorId, visibility: { in: allowed } },
+    where: addBlockFiltersToWhere({ authorId, visibility: { in: allowed } }, [], blockedThreadRingIds),
     orderBy: { createdAt: "desc" },
     take: 20,
     include: {
@@ -35,7 +46,7 @@ export async function getPostsForUser(username: string, viewerId?: string) {
     },
   });
 
-  return { posts };
+  return { posts, blocked: false };
 }
 
 export async function getGuestbookForUser(username: string) {

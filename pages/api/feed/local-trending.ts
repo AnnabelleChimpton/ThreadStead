@@ -1,6 +1,6 @@
 import { db } from "@/lib/config/database/connection";
 import { SITE_NAME } from "@/lib/config/site/constants";
-import { getUserBlockedIds, addBlockFiltersToWhere } from "@/lib/domain/users/blocks";
+import { getUserBlockedIds, addBlockFiltersToWhere, countHiddenComments, visibleCommentCount } from "@/lib/domain/users/blocks";
 import { apiHandler } from "@/lib/api/handler";
 import { parseLimit } from "@/lib/server/http/pagination";
 
@@ -125,14 +125,21 @@ export default apiHandler(
         take: limit * 3, // Get more posts to filter and rank
       });
 
+      // The stored comment count includes comments the viewer won't see
+      const hiddenComments = await countHiddenComments(posts.map(p => p.id), blockedUserIds);
+
       // Calculate trending scores and filter by minimum views
       const postsWithScores = posts
         .map(post => {
           // Use metrics if available, otherwise use default values
-          const metrics = post.metrics || {
+          const stored = post.metrics || {
             viewCount: 0,
             commentCount: 0, // Will be populated by the metrics if they exist
             recentViews: 0,
+          };
+          const metrics = {
+            ...stored,
+            commentCount: visibleCommentCount(post.id, stored.commentCount, hiddenComments),
           };
 
           const score = calculateTrendingScore({

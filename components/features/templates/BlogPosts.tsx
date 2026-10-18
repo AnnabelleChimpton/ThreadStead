@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 import { useResidentData } from './ResidentDataProvider';
 import PostItem, { Post as PostType } from '../../core/content/PostItem';
 import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
@@ -14,7 +15,7 @@ export default function BlogPosts(props: BlogPostsProps) {
   const { cssProps, componentProps } = separateCSSProps(props);
   const { limit = 5, className: customClassName, mode = 'full' } = componentProps;
 
-  const { posts, owner } = useResidentData();
+  const { posts, owner, viewer } = useResidentData();
 
   // Defensive programming: ensure posts is an array and filter out invalid posts
   const safePosts = Array.isArray(posts) ? posts.filter(post => post && post.id) : [];
@@ -35,7 +36,14 @@ export default function BlogPosts(props: BlogPostsProps) {
 
     return (
       <div className={emptyClassName} style={appliedStyles}>
-        No posts yet.
+        {viewer?.blockedOwner ? (
+          <>
+            You blocked {owner.handle}, so their posts are hidden from you. You can undo that from{" "}
+            <Link href="/settings/blocks" className="underline">your block list</Link>.
+          </>
+        ) : (
+          "No posts yet."
+        )}
       </div>
     );
   }

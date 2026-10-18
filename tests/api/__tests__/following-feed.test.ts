@@ -51,6 +51,8 @@ jest.mock('@/lib/config/database/connection', () => ({
     userBlock: {
       findMany: jest.fn(async ({ where }: any) => state.blocks.filter((b) => b.blockerId === where.blockerId)),
     },
+    comment: { findMany: jest.fn(async () => []) },
+    user: { findMany: jest.fn(async () => []) },
     post: {
       findMany: jest.fn(async ({ where, take }: any) =>
         state.posts

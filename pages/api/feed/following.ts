@@ -2,7 +2,7 @@ import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/config/database/connection";
 import { SITE_NAME } from "@/lib/config/site/constants";
 import { apiHandler } from "@/lib/api/handler";
-import { getUserBlockedIds, addBlockFiltersToWhere } from "@/lib/domain/users/blocks";
+import { getUserBlockedIds, addBlockFiltersToWhere, countHiddenComments, visibleCommentCount } from "@/lib/domain/users/blocks";
 import { followingPostsWhere, getFollowGraph } from "@/lib/domain/posts/visibility";
 import { parseLimit } from "@/lib/server/http/pagination";
 
@@ -74,6 +74,7 @@ export default apiHandler(
     const hasMore = rows.length > limit;
     const page = hasMore ? rows.slice(0, limit) : rows;
     const last = page[page.length - 1];
+    const hiddenComments = await countHiddenComments(page.map((post) => post.id), blockedUserIds);
 
     return res.json({
       posts: page.map((post) => ({
@@ -92,7 +93,7 @@ export default apiHandler(
         bodyMarkdown: post.bodyMarkdown,
         media: post.media,
         tags: post.tags,
-        commentCount: post._count.comments,
+        commentCount: visibleCommentCount(post.id, post._count.comments, hiddenComments),
         threadRings: post.threadRings,
         isSpoiler: post.isSpoiler,
         contentWarning: post.contentWarning,

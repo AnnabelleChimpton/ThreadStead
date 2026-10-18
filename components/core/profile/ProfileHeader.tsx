@@ -2,6 +2,7 @@ import React from "react";
 import Link from "next/link";
 import ProfilePhoto from "./ProfilePhoto";
 import FollowButton from "../social/FollowButton";
+import BlockButton from "../social/BlockButton";
 import FriendBadge from "../social/FriendBadge";
 import MutualFriends from "../social/MutualFriends";
 import { useSiteConfig } from "@/hooks/useSiteConfig";
@@ -96,6 +97,7 @@ export default function ProfileHeader({
                 Edit Profile
               </Link>
             )}
+            {ownerUserId && <BlockButton userId={ownerUserId} name={nameToShow} />}
           </div>
         </div>
       </div>

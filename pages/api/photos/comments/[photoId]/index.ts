@@ -5,6 +5,7 @@ import { requireAction } from "@/lib/domain/users/capabilities";
 import { createNotification } from "@/lib/domain/notifications";
 import { apiHandler, type SessionUser } from "@/lib/api/handler";
 import { sendUnauthenticated } from "@/lib/api/errors";
+import { getUserBlockedIds, filterBlockedComments } from "@/lib/domain/users/blocks";
 
 // GET is public; POST checks the session itself (CSRF only applies to POST)
 export default apiHandler(
@@ -17,13 +18,13 @@ export default apiHandler(
     }
 
     if (req.method === "GET") {
-      return handleGetComments(req, res, photoId);
+      return handleGetComments(req, res, photoId, user);
     }
     return handleCreateComment(req, res, photoId, user);
   }
 );
 
-async function handleGetComments(req: NextApiRequest, res: NextApiResponse, photoId: string) {
+async function handleGetComments(req: NextApiRequest, res: NextApiResponse, photoId: string, viewer: SessionUser | null) {
   try {
     // Get the media item to check if it exists and is public
     const media = await db.media.findUnique({
@@ -81,9 +82,13 @@ async function handleGetComments(req: NextApiRequest, res: NextApiResponse, phot
       orderBy: { createdAt: "desc" }
     });
 
+    // Hide comments (and replies under them) from people the viewer blocked
+    const { blockedUserIds } = viewer ? await getUserBlockedIds(viewer.id) : { blockedUserIds: [] };
+    const visible = filterBlockedComments(comments, blockedUserIds);
+
     return res.status(200).json({
-      comments,
-      count: comments.length
+      comments: visible,
+      count: visible.length
     });
 
   } catch (error) {

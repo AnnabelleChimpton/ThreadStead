@@ -123,8 +123,8 @@ export default function BlocksPage() {
         </div>
         <RetroCard title="Blocked Users & Communities">
           <p className="mb-4 text-gray-600">
-            Manage the users and ThreadRings you&apos;ve blocked. Blocked users&apos; posts and comments won&apos;t appear in your feeds, 
-            and blocked ThreadRings won&apos;t show up in your content.
+            The people and ThreadRings you&apos;ve blocked. You won&apos;t see their posts or comments,
+            and people you&apos;ve blocked can&apos;t message you.
           </p>
 
           {loading ? (
@@ -132,7 +132,7 @@ export default function BlocksPage() {
           ) : blocks.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <p className="mb-2"><PixelIcon name="trophy" className="inline-block align-middle" /> You haven&apos;t blocked anyone yet!</p>
-              <p className="text-sm">When you block users or ThreadRings, they&apos;ll appear here and you can manage them.</p>
+              <p className="text-sm">To block someone, use the Block button on their page or click their name in the Chat Lounge.</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -191,24 +191,24 @@ export default function BlocksPage() {
             <div>
               <strong><PixelIcon name="close" className="inline-block align-middle" /> When you block a user:</strong>
               <ul className="list-disc list-inside ml-4 mt-1">
-                <li>Their posts won&apos;t appear in your feeds</li>
-                <li>Their comments won&apos;t be visible to you</li>
-                <li>They can still see your public content</li>
+                <li>Their posts don&apos;t show up in your feeds, in search or on their page</li>
+                <li>Their comments are hidden from you, along with the replies under them</li>
+                <li>They can&apos;t send you messages or whispers, and their Chat Lounge messages are hidden</li>
+                <li>They aren&apos;t told. They can still see your public page and comment on your posts, and other people will see those comments</li>
               </ul>
             </div>
 
             <div>
               <strong><PixelIcon name="link" className="inline-block align-middle" /> When you block a ThreadRing:</strong>
               <ul className="list-disc list-inside ml-4 mt-1">
-                <li>Posts from that ThreadRing won&apos;t appear in your feeds</li>
-                <li>You won&apos;t see notifications from that ThreadRing</li>
-                <li>The ThreadRing remains publicly accessible</li>
+                <li>Posts from that ThreadRing don&apos;t show up in your feeds or in search</li>
+                <li>The ThreadRing stays public, and you can still visit it</li>
               </ul>
             </div>
 
             <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded">
-              <strong><PixelIcon name="lightbulb" className="inline-block align-middle" /> Tip:</strong> You can block users and ThreadRings by clicking the <PixelIcon name="flag" className="inline-block align-middle" /> Report button
-              on their content, or use the block buttons on profiles and ThreadRing pages.
+              <strong><PixelIcon name="lightbulb" className="inline-block align-middle" /> Tip:</strong> You can block someone from the Block button on their page,
+              or by clicking their name in the Chat Lounge. If someone is bothering you, <Link href="/help/contact">tell me</Link> too.
             </div>
           </div>
         </RetroCard>

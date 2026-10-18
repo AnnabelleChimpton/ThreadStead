@@ -624,7 +624,8 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
           id: viewerId || null,
           isFriend,
           isFollowing,
-          isFollower
+          isFollower,
+          blockedOwner: postsData.status === 'fulfilled' && postsData.value?.blocked === true
         },
         posts,
         guestbook,

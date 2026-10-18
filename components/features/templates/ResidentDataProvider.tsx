@@ -13,6 +13,8 @@ export interface ResidentData {
     isFriend?: boolean;
     isFollowing?: boolean;
     isFollower?: boolean;
+    /** The viewer blocked the owner, so `posts` is empty on purpose. */
+    blockedOwner?: boolean;
   };
   posts: Array<{
     id: string;

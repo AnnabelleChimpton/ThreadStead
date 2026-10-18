@@ -123,6 +123,24 @@ describe('BlogPosts Component', () => {
       expect(emptyDiv).toHaveClass('py-4');
     });
 
+    it('says plainly when the viewer blocked the owner', () => {
+      const mockData = createMockResidentData({
+        owner: { id: 'troll', handle: 'troll', displayName: 'Troll', avatarUrl: '/t.jpg' },
+        viewer: { id: 'me', blockedOwner: true },
+        posts: []
+      });
+
+      renderWithTemplateContext(
+        <BlogPosts />,
+        { residentData: mockData }
+      );
+
+      const message = screen.getByText(/You blocked troll, so their posts are hidden from you/);
+      expect(message).toHaveClass('blog-posts-empty');
+      expect(screen.getByRole('link', { name: 'your block list' })).toHaveAttribute('href', '/settings/blocks');
+      expect(screen.queryByText('No posts yet.')).not.toBeInTheDocument();
+    });
+
     it('should apply custom className to empty state', () => {
       const mockData = createMockResidentData({
         posts: []

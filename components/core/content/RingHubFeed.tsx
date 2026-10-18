@@ -34,6 +34,8 @@ interface RingHubFeedResponse {
   };
   timeWindow?: string;
   generatedAt: string;
+  // Where the next page starts in the hub's list (my-rings drops blocked people's items)
+  nextOffset?: number;
 }
 
 type RingHubFeedProps = {
@@ -56,7 +58,9 @@ export default function RingHubFeed({
   const [resolvedUsernames, setResolvedUsernames] = useState<Map<string, string>>(new Map());
   // Batch-fetched comment counts keyed by PostItem id (see loadPosts)
   const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
-  const postsCountRef = useRef(0);
+  // Offset into the hub's list for the next page. Counts what the API read,
+  // not what's rendered, so dropped items don't make pages repeat.
+  const nextOffsetRef = useRef(0);
   // Mirror of resolvedUsernames for reads inside loadPosts. The callback's
   // deps intentionally omit the state, so reading the state directly would
   // always see the initial empty Map and re-resolve the same DIDs every page.
@@ -76,7 +80,7 @@ export default function RingHubFeed({
     setError(null);
 
     try {
-      const offset = isInitial ? 0 : postsCountRef.current;
+      const offset = isInitial ? 0 : nextOffsetRef.current;
       let url = `${endpoint}?limit=20&offset=${offset}&includeNotifications=${includeNotifications}`;
       
       if (type === "trending") {
@@ -172,12 +176,11 @@ export default function RingHubFeed({
 
       if (isStale()) return;
 
+      nextOffsetRef.current = data.nextOffset ?? offset + data.posts.length;
       if (isInitial) {
         setPosts(validPosts);
-        postsCountRef.current = validPosts.length;
       } else {
         setPosts(prev => [...prev, ...validPosts]);
-        postsCountRef.current += validPosts.length;
       }
       
       // Resolve DIDs to usernames for posts we don't have resolved yet.
@@ -223,14 +226,7 @@ export default function RingHubFeed({
         // Use original data.posts length, not filtered length, to avoid infinite loops
         setHasMore(data.posts.length === 20);
       }
-      
-      // Safety check: if we filtered out all posts but RingHub thinks there are more,
-      // we might be in an infinite loop scenario. Set hasMore to false if we have no valid posts
-      // but received posts from the API (meaning they were all filtered out)
-      if (validPosts.length === 0 && data.posts.length > 0 && isInitial) {
-        console.warn('All posts were filtered out (likely orphaned), stopping pagination to prevent infinite loop');
-        setHasMore(false);
-      }
+
     } catch (err) {
       console.error("RingHub feed error:", err);
       if (!isStale()) {
@@ -253,7 +249,7 @@ export default function RingHubFeed({
     setLoadingMore(false);
     setError(null);
     setPosts([]);
-    postsCountRef.current = 0;
+    nextOffsetRef.current = 0;
     loadPosts(true);
   }, [type, timeWindow, includeNotifications]);
 

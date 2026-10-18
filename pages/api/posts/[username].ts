@@ -1,7 +1,7 @@
 import { db } from "@/lib/config/database/connection";
 
 import { SITE_NAME } from "@/lib/config/site/constants";
-import { getUserBlockedIds, addBlockFiltersToWhere } from "@/lib/domain/users/blocks";
+import { getUserBlockedIds, addBlockFiltersToWhere, countHiddenComments, visibleCommentCount } from "@/lib/domain/users/blocks";
 import { apiHandler } from "@/lib/api/handler";
 import { getAllowedVisibilities } from "@/lib/domain/posts/visibility";
 
@@ -29,6 +29,11 @@ export default apiHandler(
       const blockData = await getUserBlockedIds(viewer.id);
       blockedUserIds = blockData.blockedUserIds;
       blockedThreadRingIds = blockData.blockedThreadRingIds;
+    }
+
+    // Say so rather than look like an empty blog
+    if (blockedUserIds.includes(authorId)) {
+      return res.json({ posts: [], blocked: true });
     }
 
     // Build the where clause with block filters
@@ -85,6 +90,8 @@ export default apiHandler(
       },
     });
 
+    const hiddenComments = await countHiddenComments(posts.map(post => post.id), blockedUserIds);
+
     // Transform posts to include proper author structure for PostItem component
     const transformedPosts = posts.map(post => ({
       id: post.id,
@@ -115,7 +122,7 @@ export default apiHandler(
       authorUsername: post.author.handles[0]?.handle || null,
       authorDisplayName: post.author.profile?.displayName || null,
       authorAvatarUrl: post.author.profile?.avatarUrl || null,
-      commentCount: post._count.comments,
+      commentCount: visibleCommentCount(post.id, post._count.comments, hiddenComments),
     }));
 
     res.json({ posts: transformedPosts });

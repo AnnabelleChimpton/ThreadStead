@@ -3,10 +3,11 @@ import { featureFlags } from "@/lib/utils/features/feature-flags";
 import { RingHubAuthError, RingHubUnavailableError } from "@/lib/api/ringhub/ringhub-errors";
 import { apiHandler } from "@/lib/api/handler";
 import { parseLimit } from "@/lib/server/http/pagination";
+import { getUserBlockedIds, filterBlockedRingHubItems } from "@/lib/domain/users/blocks";
 
 export default apiHandler(
-  { methods: ["GET"], auth: "none" },
-  async (req, res) => {
+  { methods: ["GET"], auth: "optional" },
+  async (req, res, { user: viewer }) => {
     // Check if RingHub is enabled
     if (!featureFlags.ringhub()) {
       return res.status(503).json({ 
@@ -44,7 +45,13 @@ export default apiHandler(
         includeNotifications: includeNotifications === "true" ? true : undefined
       });
 
-      return res.json(feedResponse);
+      // Signed-in viewers don't see posts from people they blocked
+      if (!viewer) return res.json(feedResponse);
+      const { blockedUserIds } = await getUserBlockedIds(viewer.id);
+      return res.json({
+        ...feedResponse,
+        posts: await filterBlockedRingHubItems(feedResponse.posts ?? [], blockedUserIds),
+      });
     
     } catch (error: any) {
       console.error("Trending feed error:", error);

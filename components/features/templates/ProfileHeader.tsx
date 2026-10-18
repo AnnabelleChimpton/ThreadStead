@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useResidentData } from './ResidentDataProvider';
 import ProfilePhoto from './ProfilePhoto';
 import FollowButton from './FollowButton';
+import BlockButton from '../../core/social/BlockButton';
 import FriendBadge from './FriendBadge';
 import MutualFriends from './MutualFriends';
 import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
@@ -78,6 +79,7 @@ export default function ProfileHeader(props: ProfileHeaderProps) {
               >
                 Contact
               </Link>
+              <BlockButton userId={owner.id} name={owner.displayName || owner.handle} />
             </div>
           )}
         </div>

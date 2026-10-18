@@ -6,6 +6,8 @@ import { db } from "@/lib/config/database/connection";
 import { withCsrfProtection } from "@/lib/server/http/csrf";
 import { withRateLimit } from "@/lib/server/http/rate-limit";
 import { updateCommentCount } from "@/lib/domain/posts/updateCommentCount";
+import { getSessionUser } from "@/lib/auth/server";
+import { getUserBlockedIds, filterBlockedComments } from "@/lib/domain/users/blocks";
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
   const postId = String(req.query.postId || "");
@@ -41,7 +43,11 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       },
     });
 
-    const wire = comments.map((c) => ({
+    // Hide comments (and the threads under them) from people the viewer blocked
+    const viewer = await getSessionUser(req, { select: { id: true } });
+    const { blockedUserIds } = viewer ? await getUserBlockedIds(viewer.id) : { blockedUserIds: [] };
+
+    const wire = filterBlockedComments(comments, blockedUserIds).map((c) => ({
       id: c.id,
       content: c.content,
       createdAt: c.createdAt,

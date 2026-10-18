@@ -1,13 +1,15 @@
+import type { Prisma } from "@prisma/client";
 
 import { db } from "@/lib/config/database/connection";
 import { SITE_NAME } from "@/lib/config/site/constants";
 import { calculateHotScore } from "@/lib/feed/ranking";
 import { apiHandler } from "@/lib/api/handler";
 import { parseOffsetPagination } from "@/lib/server/http/pagination";
+import { getUserBlockedIds, addBlockFiltersToWhere, countHiddenComments, visibleCommentCount } from "@/lib/domain/users/blocks";
 
 export default apiHandler(
-  { methods: ["GET"], auth: "none" },
-  async (req, res) => {
+  { methods: ["GET"], auth: "optional" },
+  async (req, res, { user: viewer }) => {
     try {
       const { limit, offset } = parseOffsetPagination(req.query, { defaultLimit: 20, maxLimit: 50 });
 
@@ -15,14 +17,24 @@ export default apiHandler(
 
       // Fetch a larger pool of candidates to rank
       // We look for posts that are either recent OR have recent comments
+      // Signed-in viewers don't see people or rings they've blocked
+      const { blockedUserIds, blockedThreadRingIds } = viewer
+        ? await getUserBlockedIds(viewer.id)
+        : { blockedUserIds: [], blockedThreadRingIds: [] };
+      // ...and a blocked person's comment doesn't count as the latest activity
+      const visibleComment: Prisma.CommentWhereInput = {
+        status: "visible",
+        ...(blockedUserIds.length > 0 ? { authorId: { notIn: blockedUserIds } } : {}),
+      };
+
       const candidates = await db.post.findMany({
-        where: {
+        where: addBlockFiltersToWhere({
           visibility: "public",
           OR: [
             { createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } }, // Posted in last 7 days
-            { comments: { some: { createdAt: { gte: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000) }, status: "visible" } } } // Commented in last 3 days
+            { comments: { some: { createdAt: { gte: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000) }, ...visibleComment } } } // Commented in last 3 days
           ]
-        },
+        }, blockedUserIds, blockedThreadRingIds),
         include: {
           author: {
             include: {
@@ -39,9 +51,7 @@ export default apiHandler(
             }
           },
           comments: {
-            where: {
-              status: "visible"
-            },
+            where: visibleComment,
             orderBy: {
               createdAt: "desc"
             },
@@ -81,16 +91,20 @@ export default apiHandler(
         take: 500 // Fetch enough candidates to get a good ranking
       });
 
+      // Comments the viewer won't see don't count, for ranking or display
+      const hiddenComments = await countHiddenComments(candidates.map(p => p.id), blockedUserIds);
+
       // Calculate score for each post
       const scoredPosts = candidates.map(post => {
+        const commentCount = visibleCommentCount(post.id, post._count.comments, hiddenComments);
         const score = calculateHotScore({
           id: post.id,
           createdAt: post.createdAt,
-          commentCount: post._count.comments,
+          commentCount,
           lastCommentAt: post.comments[0]?.createdAt
         });
 
-        return { ...post, score };
+        return { ...post, commentCount, score };
       });
 
       // Sort by score descending
@@ -115,7 +129,7 @@ export default apiHandler(
         bodyMarkdown: post.bodyMarkdown,
         media: post.media,
         tags: post.tags,
-        commentCount: post._count.comments,
+        commentCount: post.commentCount,
         lastCommentAt: post.comments[0]?.createdAt || null,
         lastCommenterUsername: post.comments[0]?.author?.handles[0]?.handle || null,
         threadRings: post.threadRings,

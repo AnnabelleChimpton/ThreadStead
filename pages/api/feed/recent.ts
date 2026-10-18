@@ -3,19 +3,23 @@ import { db } from "@/lib/config/database/connection";
 import { SITE_NAME } from "@/lib/config/site/constants";
 import { apiHandler } from "@/lib/api/handler";
 import { parseOffsetPagination } from "@/lib/server/http/pagination";
+import { getUserBlockedIds, addBlockFiltersToWhere, countHiddenComments, visibleCommentCount } from "@/lib/domain/users/blocks";
 
 
 
 export default apiHandler(
-  { methods: ["GET"], auth: "none" },
-  async (req, res) => {
+  { methods: ["GET"], auth: "optional" },
+  async (req, res, { user: viewer }) => {
     try {
       const { limit, offset } = parseOffsetPagination(req.query, { defaultLimit: 20, maxLimit: 50 });
 
+      // Signed-in viewers don't see people or rings they've blocked
+      const { blockedUserIds, blockedThreadRingIds } = viewer
+        ? await getUserBlockedIds(viewer.id)
+        : { blockedUserIds: [], blockedThreadRingIds: [] };
+
       const posts = await db.post.findMany({
-        where: {
-          visibility: "public"
-        },
+        where: addBlockFiltersToWhere({ visibility: "public" }, blockedUserIds, blockedThreadRingIds),
         include: {
           author: {
             include: {
@@ -64,6 +68,9 @@ export default apiHandler(
         skip: offset
       });
 
+      // Counts leave out comments the viewer won't see
+      const hiddenComments = await countHiddenComments(posts.map(p => p.id), blockedUserIds);
+
       // Transform posts to include username and comment count
       const transformedPosts = posts.map(post => ({
         id: post.id,
@@ -80,7 +87,7 @@ export default apiHandler(
         bodyMarkdown: post.bodyMarkdown,
         media: post.media,
         tags: post.tags,
-        commentCount: post._count.comments,
+        commentCount: visibleCommentCount(post.id, post._count.comments, hiddenComments),
         threadRings: post.threadRings,
         isSpoiler: post.isSpoiler,
         contentWarning: post.contentWarning,

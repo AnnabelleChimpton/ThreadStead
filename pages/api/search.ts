@@ -26,6 +26,7 @@ import {
   hydratePages,
   hydrateHomes,
 } from "@/lib/search/local";
+import { getUserBlockedIds, countHiddenComments, visibleCommentCount } from "@/lib/domain/users/blocks";
 
 /**
  * GET /api/search?q&type=all|threadrings|users|posts|pages|homes&limit&cursor
@@ -126,7 +127,7 @@ export default apiHandler(
       if (view === "grouped") {
         const byType: Record<ApiType, RelevanceSignals[]> = { threadrings: rings, users, posts, pages, homes };
         const picked = [...types].map((t) => ({ t, ranked: rankBySignals(byType[t], now).slice(0, per) }));
-        const display = await hydrate(picked.flatMap((p) => p.ranked), query, ringDisplay);
+        const display = await hydrate(picked.flatMap((p) => p.ranked), query, ringDisplay, viewerId);
         const sections: Partial<Record<ApiType, SearchSection>> = {};
         for (const { t, ranked } of picked) {
           const cap = t === "threadrings" ? RING_CANDIDATES : CANDIDATES_PER_TYPE;
@@ -141,7 +142,7 @@ export default apiHandler(
 
       const ranked = rankBySignals<RelevanceSignals>([...rings, ...users, ...posts, ...pages, ...homes], now);
       const { page, nextCursor } = pageAfter(ranked, cursor, limit, now);
-      const results = withScores(page, await hydrate(page, query, ringDisplay));
+      const results = withScores(page, await hydrate(page, query, ringDisplay, viewerId));
 
       return res.json({
         results,
@@ -177,7 +178,8 @@ function withScores(ranked: Ranked<RelevanceSignals>[], display: Map<string, Dis
 async function hydrate(
   ranked: Ranked<RelevanceSignals>[],
   query: string,
-  ringDisplay: Map<string, Display>
+  ringDisplay: Map<string, Display>,
+  viewerId: string | null
 ): Promise<Map<string, Display>> {
   const idsOf = (t: SearchResultType) => ranked.filter((r) => r.item.type === t).map((r) => r.item.id);
   const [userRows, postRows, pageRows, homeRows] = await Promise.all([
@@ -186,6 +188,9 @@ async function hydrate(
     hydratePages(idsOf("page")),
     hydrateHomes(idsOf("home")),
   ]);
+  // Comment counts leave out people the viewer blocked (and replies under them)
+  const blockedUserIds = viewerId && postRows.length > 0 ? (await getUserBlockedIds(viewerId)).blockedUserIds : [];
+  const hiddenComments = await countHiddenComments(postRows.map((p) => p.id), blockedUserIds);
 
   const display = new Map(ringDisplay);
   for (const u of userRows) {
@@ -215,19 +220,20 @@ async function hydrate(
     // bodyText is what's indexed (derived from the body when null); fall
     // back to the stored body for display, cleaned of markup.
     const source = p.bodyText || p.bodyMarkdown || p.bodyHtml || "";
+    const commentCount = visibleCommentCount(p.id, p._count.comments, hiddenComments);
     display.set(`post:${p.id}`, {
       type: "post",
       id: p.id,
       title: p.title || "Untitled Post",
       description: buildExcerpt(source, query),
       url: `/resident/${handle}/post/${p.id}`,
-      meta: `by ${authorName} • ${new Date(p.createdAt).toLocaleDateString()} • ${p._count.comments} comments`,
+      meta: `by ${authorName} • ${new Date(p.createdAt).toLocaleDateString()} • ${commentCount} comments`,
       post: {
         authorHandle: handle,
         authorName,
         createdAt: new Date(p.createdAt).toISOString(),
         ring: ring ? { name: ring.name, slug: ring.slug } : null,
-        commentCount: p._count.comments,
+        commentCount,
       },
     });
   }

@@ -28,6 +28,7 @@ jest.mock('@/lib/config/database/connection', () => ({
       const v = String(where.id).replace('p-', '')
       return VISIBILITIES.includes(v) ? localPost(v) : null
     }) },
+    userBlock: { findMany: jest.fn(async () => []) },
     follow: { findUnique: jest.fn(async ({ where }: any) => {
       const { followerId, followeeId } = where.followerId_followeeId
       return follows.find((f) => f.followerId === followerId && f.followeeId === followeeId) ?? null

@@ -4,6 +4,7 @@ import { RingHubAuthError, RingHubUnavailableError } from "@/lib/api/ringhub/rin
 import { apiHandler } from "@/lib/api/handler";
 import { sendUnauthenticated } from "@/lib/api/errors";
 import { parseOffsetPagination } from "@/lib/server/http/pagination";
+import { getUserBlockedIds, filterBlockedRingHubItems } from "@/lib/domain/users/blocks";
 
 export default apiHandler(
   // optional, not 'user': the RingHub-disabled 503 below must still win over the signed-out 401
@@ -53,7 +54,16 @@ export default apiHandler(
         sort: sortValue
       });
 
-      return res.json(feedResponse);
+      // Leave out posts and activity from people the viewer blocked. Paging
+      // follows the hub's items, so the next page starts at nextOffset.
+      const { blockedUserIds } = await getUserBlockedIds(user.id);
+      const posts = await filterBlockedRingHubItems(feedResponse.posts ?? [], blockedUserIds);
+
+      return res.json({
+        ...feedResponse,
+        posts,
+        nextOffset: offsetNum + (feedResponse.posts?.length ?? 0),
+      });
     
     } catch (error: any) {
       console.error("My Rings feed error:", error);

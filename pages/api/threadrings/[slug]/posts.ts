@@ -11,17 +11,20 @@ import {
 } from '@/lib/domain/threadrings/orphan-postrefs';
 import { canViewPost, getViewerRelationship, type ViewerRelationship } from '@/lib/domain/posts/visibility';
 import { parseOffsetPagination } from '@/lib/server/http/pagination';
+import { getUserBlockedIds, getBlockedUserDids } from '@/lib/domain/users/blocks';
 
 /**
  * Resolve Ring Hub post references to actual ThreadStead post objects.
  *
- * A local post the viewer may not read (followers, friends or private) is
- * left out entirely: no title, body or placeholder. `hidden` counts them so
- * the response total can be adjusted.
+ * A local post the viewer may not read (followers, friends or private), or
+ * one by someone the viewer blocked, is left out entirely: no title, body or
+ * placeholder. `hidden` counts them so the response total can be adjusted.
  */
 async function resolveRingHubPosts(ringHubPosts: any[], viewer: { id: string } | null) {
   const resolvedPosts = [];
   let hidden = 0;
+  const blockedUserIds = viewer ? (await getUserBlockedIds(viewer.id)).blockedUserIds : [];
+  const blockedDids = await getBlockedUserDids(blockedUserIds);
   // One relationship lookup per author, not per post
   const relationships = new Map<string, Promise<ViewerRelationship>>();
   const relationshipTo = (authorId: string) => {
@@ -31,6 +34,11 @@ async function resolveRingHubPosts(ringHubPosts: any[], viewer: { id: string } |
 
   for (const ringHubPost of ringHubPosts) {
     try {
+      if (blockedDids.has(ringHubPost.actorDid) || blockedDids.has(ringHubPost.submittedBy)) {
+        hidden++;
+        continue;
+      }
+
       // Check if this post is from our ThreadStead instance
       if (!isOurThreadSteadInstance(ringHubPost.uri)) {
         // External post - create a link-only representation
@@ -104,7 +112,9 @@ async function resolveRingHubPosts(ringHubPosts: any[], viewer: { id: string } |
         }
       });
 
-      if (post && post.visibility !== 'public' && !canViewPost(post.visibility, await relationshipTo(post.authorId))) {
+      if (post && blockedUserIds.includes(post.authorId)) {
+        hidden++;
+      } else if (post && post.visibility !== 'public' && !canViewPost(post.visibility, await relationshipTo(post.authorId))) {
         hidden++;
       } else if (post) {
         // Transform to the format expected by the frontend

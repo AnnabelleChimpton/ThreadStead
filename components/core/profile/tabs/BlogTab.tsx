@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import PostItem, { Post as PostType } from "../../content/PostItem";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { BLOCK_CHANGED_EVENT } from "../../social/BlockButton";
 
 interface BlogTabProps {
   username: string;
@@ -11,6 +12,7 @@ interface BlogTabProps {
 export default function BlogTab({ username, ownerUserId }: BlogTabProps) {
   const [loading, setLoading] = useState(true);
   const [posts, setPosts] = useState<PostType[]>([]);
+  const [blocked, setBlocked] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const { user: currentUser } = useCurrentUser();
@@ -19,12 +21,22 @@ export default function BlogTab({ username, ownerUserId }: BlogTabProps) {
     const res = await fetch(`/api/posts/${encodeURIComponent(username)}`);
     const data = res.ok ? await res.json() : { posts: [] };
     setPosts(Array.isArray(data.posts) ? data.posts : []);
+    setBlocked(data.blocked === true);
   };
 
   useEffect(() => { 
     setLoading(true); 
     refresh().finally(() => setLoading(false)); 
   }, [username]);
+
+  // Blocking or unblocking from the profile header shows or hides the posts
+  useEffect(() => {
+    const onBlockChanged = (event: Event) => {
+      if ((event as CustomEvent<{ userId?: string }>).detail?.userId === ownerUserId) refresh();
+    };
+    window.addEventListener(BLOCK_CHANGED_EVENT, onBlockChanged);
+    return () => window.removeEventListener(BLOCK_CHANGED_EVENT, onBlockChanged);
+  }, [ownerUserId, username]);
 
   useEffect(() => {
     let alive = true;
@@ -59,7 +71,12 @@ export default function BlogTab({ username, ownerUserId }: BlogTabProps) {
         </div>
       )}
       <div className="ts-blog-posts-list">
-        {posts.length === 0 ? (
+        {blocked ? (
+          <div className="ts-no-posts-message ts-blocked-posts-message italic opacity-70">
+            You blocked {username}, so their posts are hidden from you. You can undo that from{" "}
+            <Link href="/settings/blocks" className="underline">your block list</Link>.
+          </div>
+        ) : posts.length === 0 ? (
           <div className="ts-no-posts-message italic opacity-70">
             No posts yet.
           </div>
