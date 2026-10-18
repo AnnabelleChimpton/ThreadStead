@@ -151,7 +151,7 @@ export default function ProfileBadgeSelector({ onSave, className = '' }: Profile
   if (loading) {
     return (
       <div className={`bg-white border-2 border-gray-300 rounded-lg p-6 ${className}`}>
-        <div className="text-center text-gray-600">Loading badge preferences...</div>
+        <div className="text-center text-nb-ink-mid">Loading badge preferences...</div>
       </div>
     )
   }
@@ -160,28 +160,28 @@ export default function ProfileBadgeSelector({ onSave, className = '' }: Profile
     return (
       <div className={`bg-white border-2 border-gray-300 rounded-lg p-6 ${className}`}>
         <div className="text-center text-red-600">Failed to load badge preferences</div>
-        {error && <div className="text-sm text-gray-600 mt-2">{error}</div>}
+        {error && <div className="text-sm text-nb-ink-mid mt-2">{error}</div>}
       </div>
     )
   }
 
   return (
-    <div className={`bg-white border border-black rounded-none shadow-[3px_3px_0_#000] ${className}`}>
+    <div className={`bg-white border border-nb-ink-mid rounded-none shadow-nb-sm ${className}`}>
       {/* Header */}
-      <div className="border-b border-black p-6 bg-yellow-50">
+      <div className="border-b border-nb-ink-mid p-6 border-2 border-dotted border-nb-ink-mid/60 rounded-md">
         <h3 className="text-xl font-bold text-black mb-2"><PixelIcon name="trophy" className="inline-block align-middle" /> Your ThreadRing Badges</h3>
-        <p className="text-gray-700 mb-3">
+        <p className="text-nb-ink mb-3">
           You have <strong>{availableBadges.length}</strong> badge{availableBadges.length !== 1 ? 's' : ''} from ThreadRings you&apos;ve joined.
         </p>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-nb-ink-mid">
           Choose which badges to display and where they should appear.
         </p>
       </div>
 
       <div className="p-6 space-y-8">
         {/* Global Settings */}
-        <div className="bg-blue-50 border border-blue-200 p-4 rounded space-y-4">
-          <h4 className="text-lg font-bold text-blue-900 flex items-center gap-2">
+        <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-4 rounded space-y-4">
+          <h4 className="text-lg font-bold text-nb-ink flex items-center gap-2">
             <PixelIcon name="sliders" />
             Display Settings
           </h4>
@@ -195,21 +195,21 @@ export default function ProfileBadgeSelector({ onSave, className = '' }: Profile
                   ...preferences,
                   showBadgesOnProfile: e.target.checked
                 })}
-                className="w-4 h-4 border border-blue-300 rounded focus:ring-2 focus:ring-blue-500"
+                className="w-4 h-4 border border-nb-ink-mid/50 rounded focus:ring-2 focus:ring-nb-lav"
               />
               <span className="text-sm font-medium">Show badges on my profile page</span>
             </label>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
               <div>
-                <label className="block text-sm font-bold text-gray-800 mb-2">Max badges on posts</label>
+                <label className="block text-sm font-bold text-nb-ink mb-2">Max badges on posts</label>
                 <select
                   value={preferences.maxBadgesOnPosts}
                   onChange={(e) => setPreferences({
                     ...preferences,
                     maxBadgesOnPosts: parseInt(e.target.value)
                   })}
-                  className="w-full border border-black p-2 bg-white rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border-2 border-nb-ink-mid p-2 bg-white rounded-none focus:outline-none focus:ring-2 focus:ring-nb-lav"
                 >
                   <option value={0}>None</option>
                   <option value={1}>1 badge</option>
@@ -219,14 +219,14 @@ export default function ProfileBadgeSelector({ onSave, className = '' }: Profile
               </div>
               
               <div>
-                <label className="block text-sm font-bold text-gray-800 mb-2">Max badges on comments</label>
+                <label className="block text-sm font-bold text-nb-ink mb-2">Max badges on comments</label>
                 <select
                   value={preferences.maxBadgesOnComments}
                   onChange={(e) => setPreferences({
                     ...preferences,
                     maxBadgesOnComments: parseInt(e.target.value)
                   })}
-                  className="w-full border border-black p-2 bg-white rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border-2 border-nb-ink-mid p-2 bg-white rounded-none focus:outline-none focus:ring-2 focus:ring-nb-lav"
                 >
                   <option value={0}>None</option>
                   <option value={1}>1 badge</option>
@@ -240,22 +240,22 @@ export default function ProfileBadgeSelector({ onSave, className = '' }: Profile
         {/* All Your Badges */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h4 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+            <h4 className="text-lg font-bold text-nb-ink flex items-center gap-2">
               <PixelIcon name="trophy" />
               All Your Badges ({availableBadges.length})
             </h4>
-            <div className="text-sm text-gray-600">
-              <span className="font-medium text-green-700">
+            <div className="text-sm text-nb-ink-mid">
+              <span className="font-medium text-nb-ink">
                 {preferences.selectedBadges.filter(b => b.showOnProfile).length}
               </span> showing on profile
             </div>
           </div>
           
           {availableBadges.length === 0 ? (
-            <div className="text-center py-12 bg-gray-50 border border-gray-200 rounded">
+            <div className="text-center py-12 bg-nb-ink-mid/5 border border-nb-ink-mid/40 rounded">
               <div className="mb-4"><PixelIcon name="trophy" size={64} /></div>
-              <p className="text-lg font-medium text-gray-700 mb-2">No badges yet!</p>
-              <p className="text-gray-500">Join Rings to collect badges and show them off here.</p>
+              <p className="text-lg font-medium text-nb-ink mb-2">No badges yet!</p>
+              <p className="text-nb-ink-mid">Join Rings to collect badges and show them off here.</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -266,8 +266,8 @@ export default function ProfileBadgeSelector({ onSave, className = '' }: Profile
                 return (
                   <div
                     key={badge.badgeId}
-                    className={`border-2 border-black rounded-none p-4 transition-all shadow-[2px_2px_0_#000] ${
-                      isSelected ? 'bg-green-50 border-green-600' : 'bg-white hover:bg-gray-50'
+                    className={`border-2 border-nb-ink-mid rounded-none p-4 transition-all shadow-nb-sm ${
+                      isSelected ? 'border-2 border-dotted border-nb-ink-mid/60 rounded-md border-green-600' : 'bg-white hover:bg-gray-50'
                     }`}
                   >
                     <div className="flex items-center justify-between mb-4">
@@ -282,23 +282,23 @@ export default function ProfileBadgeSelector({ onSave, className = '' }: Profile
                           className="flex-shrink-0"
                         />
                         <div className="flex-1 min-w-0">
-                          <h5 className="font-bold text-gray-900 text-lg">{badge.threadRingName}</h5>
-                          <p className="text-sm text-gray-600">{badge.badge.title}</p>
+                          <h5 className="font-bold text-nb-ink text-lg">{badge.threadRingName}</h5>
+                          <p className="text-sm text-nb-ink-mid">{badge.badge.title}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
                         {isSelected && (
-                          <div className="text-green-700 text-sm font-medium flex items-center gap-1">
+                          <div className="text-nb-ink text-sm font-medium flex items-center gap-1">
                             <PixelIcon name="check" size={14} />
                             Selected
                           </div>
                         )}
                         <button
                           onClick={() => toggleBadgeSelection(badge)}
-                          className={`px-4 py-2 border border-black font-medium transition-all shadow-[1px_1px_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none ${
+                          className={`px-4 py-2 border border-nb-ink-mid font-medium transition-all shadow-nb-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none ${
                             isSelected
                               ? 'bg-red-100 text-red-800 hover:bg-red-200'
-                              : 'bg-blue-100 text-blue-800 hover:bg-blue-200'
+                              : 'bg-nb-paper text-nb-ink hover:bg-nb-paper'
                           }`}
                         >
                           {isSelected ? 'Hide Badge' : 'Show Badge'}
@@ -307,21 +307,21 @@ export default function ProfileBadgeSelector({ onSave, className = '' }: Profile
                     </div>
 
                     {isSelected && selectedBadge && (
-                      <div className="bg-white border border-gray-200 rounded p-4 space-y-4">
+                      <div className="bg-white border border-nb-ink-mid/40 rounded p-4 space-y-4">
                         <div className="flex items-center justify-between">
-                          <span className="font-medium text-gray-800">Display Order:</span>
+                          <span className="font-medium text-nb-ink">Display Order:</span>
                           <div className="flex space-x-2">
                             <button
                               onClick={() => moveBadge(badge.badgeId, 'up')}
                               disabled={selectedBadge.displayOrder === 0}
-                              className="px-3 py-1 text-sm border border-black bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:hover:bg-gray-100 font-medium shadow-[1px_1px_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[1px_1px_0_#000]"
+                              className="thread-button-secondary btn btn--secondary text-sm disabled:opacity-50"
                             >
                               ↑ Move Up
                             </button>
                             <button
                               onClick={() => moveBadge(badge.badgeId, 'down')}
                               disabled={selectedBadge.displayOrder === preferences.selectedBadges.length - 1}
-                              className="px-3 py-1 text-sm border border-black bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:hover:bg-gray-100 font-medium shadow-[1px_1px_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[1px_1px_0_#000]"
+                              className="thread-button-secondary btn btn--secondary text-sm disabled:opacity-50"
                             >
                               ↓ Move Down
                             </button>
@@ -329,34 +329,34 @@ export default function ProfileBadgeSelector({ onSave, className = '' }: Profile
                         </div>
                         
                         <div className="space-y-3">
-                          <h6 className="font-medium text-gray-800 mb-2">Where should this badge appear?</h6>
+                          <h6 className="font-medium text-nb-ink mb-2">Where should this badge appear?</h6>
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                            <label className="flex items-center space-x-3 p-2 border border-gray-200 rounded hover:bg-gray-50">
+                            <label className="flex items-center space-x-3 p-2 border border-nb-ink-mid/40 rounded hover:bg-nb-ink-mid/5">
                               <input
                                 type="checkbox"
                                 checked={selectedBadge.showOnProfile}
                                 onChange={(e) => updateBadgeDisplaySettings(badge.badgeId, 'showOnProfile', e.target.checked)}
-                                className="w-4 h-4 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                                className="w-4 h-4 border border-nb-ink-mid/40 rounded focus:ring-2 focus:ring-nb-lav"
                               />
                               <span className="text-sm font-medium"><PixelIcon name="user" size={14} className="inline-block align-middle" /> Profile</span>
                             </label>
                             
-                            <label className="flex items-center space-x-3 p-2 border border-gray-200 rounded hover:bg-gray-50">
+                            <label className="flex items-center space-x-3 p-2 border border-nb-ink-mid/40 rounded hover:bg-nb-ink-mid/5">
                               <input
                                 type="checkbox"
                                 checked={selectedBadge.showOnPosts}
                                 onChange={(e) => updateBadgeDisplaySettings(badge.badgeId, 'showOnPosts', e.target.checked)}
-                                className="w-4 h-4 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                                className="w-4 h-4 border border-nb-ink-mid/40 rounded focus:ring-2 focus:ring-nb-lav"
                               />
                               <span className="text-sm font-medium"><PixelIcon name="edit" size={14} className="inline-block align-middle" /> Posts</span>
                             </label>
                             
-                            <label className="flex items-center space-x-3 p-2 border border-gray-200 rounded hover:bg-gray-50">
+                            <label className="flex items-center space-x-3 p-2 border border-nb-ink-mid/40 rounded hover:bg-nb-ink-mid/5">
                               <input
                                 type="checkbox"
                                 checked={selectedBadge.showOnComments}
                                 onChange={(e) => updateBadgeDisplaySettings(badge.badgeId, 'showOnComments', e.target.checked)}
-                                className="w-4 h-4 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                                className="w-4 h-4 border border-nb-ink-mid/40 rounded focus:ring-2 focus:ring-nb-lav"
                               />
                               <span className="text-sm font-medium"><PixelIcon name="chat" size={14} className="inline-block align-middle" /> Comments</span>
                             </label>
@@ -372,11 +372,11 @@ export default function ProfileBadgeSelector({ onSave, className = '' }: Profile
         </div>
 
         {/* Save Button */}
-        <div className="flex justify-center pt-6 border-t border-black">
+        <div className="flex justify-center pt-6 border-t border-nb-ink-mid">
           <button
             onClick={saveBadgePreferences}
             disabled={saving}
-            className="px-8 py-3 border border-black bg-yellow-200 hover:bg-yellow-100 shadow-[3px_3px_0_#000] font-bold text-lg transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_#000] disabled:opacity-50 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[3px_3px_0_#000]"
+            className="thread-button btn btn--primary disabled:opacity-50"
           >
             {saving ? <><PixelIcon name="save" className="inline-block align-middle" /> Saving...</> : <><PixelIcon name="save" className="inline-block align-middle" /> Save Badge Preferences</>}
           </button>

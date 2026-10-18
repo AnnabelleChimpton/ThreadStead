@@ -83,7 +83,7 @@ export default function ThreadRingLineage({
   if (loading) {
     return (
       <div className={`bg-white p-4 ${className}`}>
-        <div className="text-sm text-gray-600">Loading ring family tree...</div>
+        <div className="text-sm text-nb-ink-mid">Loading ring family tree...</div>
       </div>
     );
   }
@@ -99,7 +99,7 @@ export default function ThreadRingLineage({
   const renderRing = (ring: RingDescriptor, isParent: boolean = false) => (
     <div 
       key={ring.id} 
-      className="border border-gray-300 p-3 bg-gray-50 hover:bg-gray-100 transition-colors"
+      className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-3 hover:border-solid hover:border-nb-ink-mid"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
@@ -110,11 +110,11 @@ export default function ThreadRingLineage({
             {ring.name}
           </Link>
           {ring.description && (
-            <p className="text-xs text-gray-700 mt-1 line-clamp-2">
+            <p className="text-xs text-nb-ink mt-1 line-clamp-2">
               {ring.description}
             </p>
           )}
-          <div className="text-xs text-gray-600 mt-2 flex items-center gap-3">
+          <div className="text-xs text-nb-ink-mid mt-2 flex items-center gap-3">
             <span>
               {isParent ? "Original" : "Branched Ring"}
             </span>
@@ -125,7 +125,7 @@ export default function ThreadRingLineage({
           </div>
         </div>
         
-        <div className="text-xs text-gray-600 text-right">
+        <div className="text-xs text-nb-ink-mid text-right">
           <div>{ring.memberCount || 0} members</div>
           <div>{ring.postCount || 0} posts</div>
         </div>
@@ -136,14 +136,14 @@ export default function ThreadRingLineage({
   return (
     <div className={`bg-white p-4 ${className}`}>
       {(lineageData?.directChildrenCount || 0) === 0 && (lineageData?.lineageDepth || 0) === 0 ? (
-        <div className="text-sm text-gray-600">
+        <div className="text-sm text-nb-ink-mid">
           No fork relationships yet. This ThreadRing can be forked to create derivative communities!
         </div>
       ) : (
         <div className="space-y-4">
           {/* Lineage Overview */}
-          <div className="bg-gray-50 border border-gray-200 p-3 rounded">
-            <div className="text-sm text-gray-700 space-y-1">
+          <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-3">
+            <div className="text-sm text-nb-ink space-y-1">
               <div><strong>Lineage Depth:</strong> {lineageData?.lineageDepth || 0} levels from root</div>
               <div><strong>Direct Descendants:</strong> {lineageData?.directChildrenCount || 0}</div>
               <div><strong>Total Descendants:</strong> {lineageData?.totalDescendantsCount || 0}</div>
@@ -156,7 +156,7 @@ export default function ThreadRingLineage({
           {/* Parent (immediate ancestor) */}
           {lineageData?.parents && lineageData.parents.length > 0 && (
             <div>
-              <p className="text-sm text-gray-600 mb-2">
+              <p className="text-sm text-nb-ink-mid mb-2">
                 <strong>{ringName}</strong> was forked from:
               </p>
               {renderRing(lineageData.parents[0], true)}
@@ -167,7 +167,7 @@ export default function ThreadRingLineage({
           {lineageData?.children && lineageData.children.length > 0 && (
             <div>
               {lineageData.parents && lineageData.parents.length > 0 && <div className="border-t border-gray-300 pt-4"></div>}
-              <p className="text-sm text-gray-600 mb-2">
+              <p className="text-sm text-nb-ink-mid mb-2">
                 ThreadRings forked from <strong>{ringName}</strong>:
               </p>
               <div className="space-y-2">
@@ -180,10 +180,10 @@ export default function ThreadRingLineage({
           {lineageData?.ancestors && lineageData.ancestors.length > 0 && (
             <div>
               <div className="border-t border-gray-300 pt-4"></div>
-              <p className="text-sm text-gray-600 mb-2">
+              <p className="text-sm text-nb-ink-mid mb-2">
                 Full ancestry chain:
               </p>
-              <div className="text-xs text-gray-600 bg-gray-50 p-2 rounded">
+              <div className="text-xs text-nb-ink-mid p-2 border-2 border-dotted border-nb-ink-mid/60 rounded-md">
                 {lineageData.ancestors.map((ancestor, index) => (
                   <span key={ancestor.id}>
                     <Link href={`/tr/${ancestor.slug}`} className="text-blue-600 hover:underline">
@@ -201,7 +201,7 @@ export default function ThreadRingLineage({
           {/* Footer */}
           {((lineageData?.lineageDepth || 0) > 0 || (lineageData?.directChildrenCount || 0) > 0) && (
             <div className="pt-2 border-t border-gray-300">
-              <p className="text-xs text-gray-500 italic">
+              <p className="text-xs text-nb-ink-mid italic">
                 Fork genealogy helps track the evolution of communities and ideas across ThreadRings.
               </p>
             </div>

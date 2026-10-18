@@ -36,7 +36,7 @@ export default function ThreadRing88x31Badge({
     return (
       <BadgeElement
         {...props}
-        className={`inline-block cursor-pointer transition-transform hover:scale-105 ${className}`}
+        className={`inline-block cursor-pointer ${className}`}
         onClick={onClick}
         style={{ width: '88px', height: '31px' }}
       >
@@ -122,7 +122,7 @@ export default function ThreadRing88x31Badge({
     <BadgeElement
       {...linkProps}
       style={badgeStyle}
-      className={`inline-block cursor-pointer transition-all duration-200 hover:opacity-90 hover:scale-105 ${className}`}
+      className={`inline-block cursor-pointer transition-all duration-200 hover:opacity-90 ${className}`}
       onClick={onClick}
     >
       <div 

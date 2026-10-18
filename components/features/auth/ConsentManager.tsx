@@ -148,7 +148,7 @@ export default function ConsentManager({ userId }: ConsentManagerProps) {
 
   if (loading) {
     return (
-      <div className="bg-white border-2 border-black p-6">
+      <div className="bg-white border-2 border-nb-ink-mid p-6">
         <h3 className="text-xl font-bold mb-4">Cookie & Consent Preferences</h3>
         <p>Loading...</p>
       </div>
@@ -156,16 +156,16 @@ export default function ConsentManager({ userId }: ConsentManagerProps) {
   }
 
   return (
-    <div className="bg-white border-2 border-black p-6">
+    <div className="bg-white border-2 border-nb-ink-mid p-6">
       <h3 className="text-xl font-bold mb-4">Cookie & Consent Preferences</h3>
 
-      <p className="text-gray-700 mb-6">
+      <p className="text-nb-ink mb-6">
         We only use cookies for authentication. No other cookies are used.
       </p>
 
       {message && (
         <div className={`p-4 mb-6 border-2 ${message.type === 'success'
-            ? 'border-green-500 bg-green-50 text-green-800'
+            ? 'border-green-500 border-2 border-dotted border-nb-ink-mid/60 rounded-md text-nb-ink'
             : 'border-red-500 bg-red-50 text-red-800'
           }`}>
           {message.text}
@@ -173,13 +173,13 @@ export default function ConsentManager({ userId }: ConsentManagerProps) {
       )}
 
       <div className="space-y-6">
-        <div className="border border-gray-200 p-4 rounded">
+        <div className="border border-nb-ink-mid/40 p-4 rounded">
           <div className="flex items-start justify-between mb-2">
             <div className="flex items-center gap-2">
               <span>{getConsentIcon(ConsentType.ESSENTIAL)}</span>
               <h4 className="font-semibold capitalize flex items-center gap-2">
                 Authentication Cookies
-                <span className="text-xs bg-gray-200 px-2 py-1 rounded">Required</span>
+                <span className="thread-button-secondary btn btn--secondary text-xs">Required</span>
               </h4>
             </div>
             <div className="flex items-center gap-2">
@@ -197,7 +197,7 @@ export default function ConsentManager({ userId }: ConsentManagerProps) {
             </div>
           </div>
 
-          <p className="text-sm text-gray-600 mb-2">
+          <p className="text-sm text-nb-ink-mid mb-2">
             {getConsentDescription(ConsentType.ESSENTIAL)}
           </p>
         </div>

@@ -197,7 +197,7 @@ button:where(:not(.ts-tab, .ts-bare, .threadring-tab, .site-nav-links *)),
   text-decoration: none;
   transition: transform 0.08s ease, box-shadow 0.08s ease, background-color 0.12s ease;
 }
-.btn { display: inline-block; }   /* links only; harmless for <button class="btn"> */
+a.btn { display: inline-block; }   /* links only: buttons keep their own display (flex, hidden…) */
 .btn--secondary { background: linear-gradient(to bottom, #ffffff, var(--ha-paper)); }
 .btn--link {
   border: 0; box-shadow: none; background: none; padding: 0;

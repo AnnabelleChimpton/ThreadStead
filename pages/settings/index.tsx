@@ -589,7 +589,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
         <div className="space-y-6 px-4 sm:px-0">
           <div className="mb-6">
             <h2 className="text-xl font-bold mb-2">Profile Information</h2>
-            <p className="text-gray-600 mb-6">
+            <p className="text-nb-ink-mid mb-6">
               Manage your public profile, photo, and personal information.
             </p>
           </div>
@@ -603,7 +603,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                 type="text"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                className="w-full max-w-md border border-black p-3 bg-white rounded-none focus:outline-none focus:ring-2 focus:ring-black"
+                className="w-full max-w-md border-2 border-nb-ink-mid/60 rounded-md p-3 bg-white focus:outline-none focus:border-nb-ink-mid"
                 placeholder="Your display name"
               />
             </div>
@@ -616,7 +616,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
                 rows={4}
-                className="w-full max-w-xl border border-black p-3 bg-white rounded-none focus:outline-none focus:ring-2 focus:ring-black"
+                className="w-full max-w-xl border-2 border-nb-ink-mid/60 rounded-md p-3 bg-white focus:outline-none focus:border-nb-ink-mid"
                 placeholder="Tell people about yourself..."
               />
             </div>
@@ -625,11 +625,11 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
               <label className="block mb-2">
                 <span className="font-bold text-black">Profile Visibility</span>
               </label>
-              <p className="text-sm text-gray-600 mb-3">
+              <p className="text-sm text-nb-ink-mid mb-3">
                 Control who can see your profile and how your information appears in federated ThreadRings.
               </p>
               <div className="space-y-2">
-                <label className="flex items-center p-3 border-2 border-black cursor-pointer hover:bg-yellow-50 transition-colors">
+                <label className="flex items-center p-3 border-2 border-nb-ink-mid/60 rounded-md cursor-pointer hover:border-nb-ink-mid">
                   <input
                     type="radio"
                     name="visibility"
@@ -639,13 +639,13 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                     className="mr-3 w-5 h-5"
                   />
                   <div>
-                    <div className="font-bold text-gray-900"><PixelIcon name="map" className="inline-block align-middle" /> Public</div>
-                    <div className="text-sm text-gray-600">
+                    <div className="font-bold text-nb-ink"><PixelIcon name="map" className="inline-block align-middle" /> Public</div>
+                    <div className="text-sm text-nb-ink-mid">
                       Anyone can see your profile. Your name and avatar will be shared with federated instances.
                     </div>
                   </div>
                 </label>
-                <label className="flex items-center p-3 border-2 border-black cursor-pointer hover:bg-yellow-50 transition-colors">
+                <label className="flex items-center p-3 border-2 border-nb-ink-mid/60 rounded-md cursor-pointer hover:border-nb-ink-mid">
                   <input
                     type="radio"
                     name="visibility"
@@ -655,13 +655,13 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                     className="mr-3 w-5 h-5"
                   />
                   <div>
-                    <div className="font-bold text-gray-900"><PixelIcon name="users" /> Followers Only</div>
-                    <div className="text-sm text-gray-600">
+                    <div className="font-bold text-nb-ink"><PixelIcon name="users" /> Followers Only</div>
+                    <div className="text-sm text-nb-ink-mid">
                       Only people who follow you can see your profile. Limited federated sharing.
                     </div>
                   </div>
                 </label>
-                <label className="flex items-center p-3 border-2 border-black cursor-pointer hover:bg-yellow-50 transition-colors">
+                <label className="flex items-center p-3 border-2 border-nb-ink-mid/60 rounded-md cursor-pointer hover:border-nb-ink-mid">
                   <input
                     type="radio"
                     name="visibility"
@@ -671,13 +671,13 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                     className="mr-3 w-5 h-5"
                   />
                   <div>
-                    <div className="font-bold text-gray-900"><PixelIcon name="users" className="inline-block align-middle" /> Friends Only</div>
-                    <div className="text-sm text-gray-600">
+                    <div className="font-bold text-nb-ink"><PixelIcon name="users" className="inline-block align-middle" /> Friends Only</div>
+                    <div className="text-sm text-nb-ink-mid">
                       Only mutual friends can see your profile. Limited federated sharing.
                     </div>
                   </div>
                 </label>
-                <label className="flex items-center p-3 border-2 border-black cursor-pointer hover:bg-yellow-50 transition-colors">
+                <label className="flex items-center p-3 border-2 border-nb-ink-mid/60 rounded-md cursor-pointer hover:border-nb-ink-mid">
                   <input
                     type="radio"
                     name="visibility"
@@ -687,20 +687,20 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                     className="mr-3 w-5 h-5"
                   />
                   <div>
-                    <div className="font-bold text-gray-900"><PixelIcon name="lock" className="inline-block align-middle" /> Private</div>
-                    <div className="text-sm text-gray-600">
+                    <div className="font-bold text-nb-ink"><PixelIcon name="lock" className="inline-block align-middle" /> Private</div>
+                    <div className="text-sm text-nb-ink-mid">
                       Only you can see your profile. Minimal federated sharing (profile link only).
                     </div>
                   </div>
                 </label>
               </div>
-              <div className="mt-3 p-3 bg-blue-50 border border-blue-200 text-sm text-gray-700">
+              <div className="mt-3 p-3 border-2 border-dotted border-nb-ink-mid/60 rounded-md text-sm text-nb-ink">
                 <strong>Federated ThreadRings:</strong> Your profile link is always shared when you join federated rings.
                 If set to Public, your name and avatar will also be shared. Other visibility settings share only the link.
               </div>
             </div>
 
-            <div className="border-t border-black pt-6">
+            <div className="border-t-2 border-dotted border-nb-ink-mid/40 pt-6">
               <ProfilePhotoUpload
                 currentAvatarUrl={avatarUrl}
                 onUploadSuccess={handlePhotoUploadSuccess}
@@ -708,7 +708,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
               />
             </div>
 
-            <div className="border-t border-black pt-6">
+            <div className="border-t-2 border-dotted border-nb-ink-mid/40 pt-6">
               <WebsiteManager
                 websites={websites}
                 onChange={setWebsites}
@@ -716,7 +716,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
               />
             </div>
 
-            <div className="border-t border-black pt-6">
+            <div className="border-t-2 border-dotted border-nb-ink-mid/40 pt-6">
               <FriendManager
                 selectedFriends={featuredFriends}
                 onChange={setFeaturedFriends}
@@ -727,7 +727,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
             <button
               onClick={handleSaveProfile}
               disabled={saving}
-              className="px-4 py-3 border border-black bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] disabled:opacity-50 min-h-[48px]"
+              className="thread-button btn btn--primary disabled:opacity-50 min-h-[48px]"
             >
               {saving ? "Saving..." : "Save Profile"}
             </button>
@@ -741,77 +741,77 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
       content: (
         <div className="space-y-6 px-4 sm:px-0">
           <div className="mb-6">
-            <h2 className="text-xl font-bold mb-2 text-gray-900">Profile Customization</h2>
-            <p className="text-gray-600 mb-6">
+            <h2 className="text-xl font-bold mb-2 text-nb-ink">Profile Customization</h2>
+            <p className="text-nb-ink-mid mb-6">
               Choose how you want to customize your profile - from simple styling to advanced layouts.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             {/* CSS Styling - Simplest */}
-            <div className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-400 rounded-lg p-6 text-center shadow-md relative">
-              <div className="absolute top-2 right-2 bg-green-500 text-white text-sm px-2 py-1 rounded font-bold">
+            <div className="thread-module text-center relative">
+              <div className="absolute top-3 right-3 badge badge--butter text-xs font-bold">
                 SIMPLEST
               </div>
               <div className="mb-3">
                 <PixelIcon name="bookmark" size={32} />
               </div>
-              <h3 className="text-lg font-bold mb-2 text-gray-900">CSS Styling</h3>
-              <p className="text-sm text-gray-700 mb-4">
+              <h3 className="text-lg font-bold mb-2 text-nb-ink">CSS Styling</h3>
+              <p className="text-sm text-nb-ink mb-4">
                 Change colors, fonts, and spacing on your default layout. Perfect for quick customization.
               </p>
               <a
                 href={`/resident/${username}/css-editor`}
-                className="px-4 py-3 bg-green-500 hover:bg-green-600 !text-white font-medium rounded shadow-md transition-all inline-block no-underline text-sm min-h-[48px] flex items-center justify-center"
+                className="btn btn--primary bg-thread-cream inline-block text-thread-pine border-2 border-thread-sage rounded-md shadow-cozy-sm font-semibold text-sm min-h-[48px]"
               >
                 Open CSS Editor →
               </a>
-              <p className="text-sm text-gray-600 mt-2">5 minutes</p>
+              <p className="text-sm text-nb-ink-mid mt-2">5 minutes</p>
             </div>
 
             {/* Template Language */}
-            <div className="bg-white border-2 border-blue-300 rounded-lg p-6 text-center shadow-md">
+            <div className="thread-module text-center">
               <div className="mb-3">
                 <PixelIcon name="code" size={48} />
               </div>
-              <h3 className="text-lg font-bold mb-2 text-gray-900">Template Code</h3>
-              <p className="text-sm text-gray-700 mb-4">
+              <h3 className="text-lg font-bold mb-2 text-nb-ink">Template Code</h3>
+              <p className="text-sm text-nb-ink mb-4">
                 Code dynamic features with variables, loops, and conditionals. For developers.
               </p>
               <a
                 href={`/resident/${username}/template-editor?mode=template`}
-                className="px-4 py-3 bg-blue-500 hover:bg-blue-600 !text-white font-medium rounded shadow-md transition-all inline-block no-underline text-sm min-h-[48px] flex items-center justify-center"
+                className="btn btn--secondary bg-thread-paper inline-block text-thread-pine border-2 border-thread-sage rounded-md shadow-cozy-sm font-semibold text-sm min-h-[48px]"
               >
                 Open Code Editor →
               </a>
-              <p className="text-sm text-gray-600 mt-2">1+ hour</p>
+              <p className="text-sm text-nb-ink-mid mt-2">1+ hour</p>
             </div>
           </div>
 
           {/* Help Section */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h4 className="font-semibold text-blue-900 mb-2">Not sure which to choose?</h4>
-            <ul className="text-sm text-blue-800 space-y-1">
+          <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-4">
+            <h4 className="font-semibold text-nb-ink mb-2">Not sure which to choose?</h4>
+            <ul className="text-sm text-nb-ink space-y-1">
               <li>• <strong>Just want to change colors?</strong> Start with CSS Styling</li>
               <li>• <strong>Need dynamic features?</strong> Use Template Code</li>
             </ul>
             <Link
               href="/templates"
-              className="text-sm text-blue-600 hover:underline mt-2 inline-block"
+              className="text-sm mt-2 inline-block"
             >
               Learn more about customization options →
             </Link>
           </div>
 
           {/* Reset Section */}
-          <div className="bg-gray-50 border border-gray-300 rounded-lg p-4">
-            <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2"><PixelIcon name="reload" /> Reset to Default</h4>
-            <p className="text-sm text-gray-700 mb-3">
+          <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-4">
+            <h4 className="font-semibold text-nb-ink mb-2 flex items-center gap-2"><PixelIcon name="reload" /> Reset to Default</h4>
+            <p className="text-sm text-nb-ink mb-3">
               Want to start fresh? Remove all your customizations and return your profile to the site&apos;s default appearance.
             </p>
             <button
               onClick={() => setShowResetModal(true)}
-              className="px-4 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded border border-gray-400 transition-colors text-sm min-h-[48px] flex items-center gap-2"
+              className="thread-button-secondary btn btn--secondary text-sm min-h-[48px]"
             >
               <PixelIcon name="reload" /> Reset to Default Template
             </button>
@@ -823,13 +823,13 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
             title="Reset to Default Template?"
             message={
               <div className="space-y-3">
-                <p className="text-gray-700">This will:</p>
-                <ul className="list-disc list-inside text-gray-700 space-y-1 ml-2">
+                <p className="text-nb-ink">This will:</p>
+                <ul className="list-disc list-inside text-nb-ink space-y-1 ml-2">
                   <li>Remove all your custom CSS</li>
                   <li>Remove any custom HTML templates</li>
                   <li>Return your profile to the site&apos;s default appearance</li>
                 </ul>
-                <p className="text-gray-900 font-semibold mt-4">This action cannot be undone.</p>
+                <p className="text-nb-ink font-semibold mt-4">This action cannot be undone.</p>
               </div>
             }
             confirmText="Yes, Reset to Default"
@@ -884,8 +884,8 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
       content: (
         <div className="space-y-6 px-4 sm:px-0">
           <div className="mb-6">
-            <h2 className="text-xl font-bold mb-2 text-gray-900">Pixel Home Customization</h2>
-            <p className="text-gray-600 mb-6">
+            <h2 className="text-xl font-bold mb-2 text-nb-ink">Pixel Home Customization</h2>
+            <p className="text-nb-ink-mid mb-6">
               Customize your interactive Pixel Home - choose your house style and color palette to create your unique digital front door.
             </p>
           </div>
@@ -931,19 +931,19 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
       content: (
         <div className="space-y-6 px-4 sm:px-0">
           <div className="mb-6">
-            <h2 className="text-xl font-bold mb-2 text-gray-900">Profile Music</h2>
-            <p className="text-gray-600 mb-6">
+            <h2 className="text-xl font-bold mb-2 text-nb-ink">Profile Music</h2>
+            <p className="text-nb-ink-mid mb-6">
               Add background music to your profile with MIDI files. Create the perfect soundtrack for your digital home.
             </p>
           </div>
 
           {/* Enhanced MIDI Manager */}
-          <div className="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-6">
+          <div className="thread-module">
             <div className="flex items-center gap-3 mb-4">
               <PixelIcon name="music" size={32} />
               <div>
-                <h3 className="text-lg font-semibold text-purple-800">MIDI Music Manager</h3>
-                <p className="text-sm text-purple-600">Upload and manage your profile&apos;s background music</p>
+                <h3 className="text-lg font-semibold text-nb-ink">MIDI Music Manager</h3>
+                <p className="text-sm text-nb-ink-mid">Upload and manage your profile&apos;s background music</p>
               </div>
             </div>
 
@@ -951,22 +951,22 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
           </div>
 
           {/* Music Tips */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-4">
             <div className="flex items-start justify-between mb-2">
-              <h4 className="font-semibold text-blue-800"><PixelIcon name="lightbulb" className="inline-block align-middle" /> Music Tips</h4>
+              <h4 className="font-semibold text-nb-ink"><PixelIcon name="lightbulb" className="inline-block align-middle" /> Music Tips</h4>
               <Link
                 href="/help/music-guide"
-                className="text-xs text-blue-600 hover:text-blue-800 hover:underline font-medium"
+                className="text-xs"
               >
                 Full Guide →
               </Link>
             </div>
-            <div className="text-sm text-blue-700 space-y-2">
+            <div className="text-sm text-nb-ink space-y-2">
               <p>• <strong>MIDI files are perfect</strong> for profile music - they&apos;re tiny, load instantly, and create a nostalgic web atmosphere</p>
               <p>• <strong>Keep it subtle</strong> - background music should enhance, not distract from your content</p>
               <p>• <strong>Consider your visitors</strong> - some prefer browsing without sound, so make music easy to control</p>
               <p>• <strong>Shorter loops work best</strong> - 30-60 second tracks that loop seamlessly are ideal</p>
-              <p>• <strong>Need help getting started?</strong> Check our <Link href="/help/music-guide" className="underline hover:text-blue-900">complete music creator&apos;s guide</Link> for technical specs, composition tips, and software recommendations</p>
+              <p>• <strong>Need help getting started?</strong> Check our <Link href="/help/music-guide" className="underline hover:text-nb-ink">complete music creator&apos;s guide</Link> for technical specs, composition tips, and software recommendations</p>
             </div>
           </div>
         </div>
@@ -979,18 +979,18 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
         <div className="space-y-6 px-4 sm:px-0">
           <div className="mb-6">
             <h2 className="text-xl font-bold mb-2">Account & Security</h2>
-            <p className="text-gray-600 mb-6">
+            <p className="text-nb-ink-mid mb-6">
               Manage your identity, keys, email, and account security.
             </p>
           </div>
 
           {/* Seed Phrase Management */}
-          <div className="bg-white border border-black rounded-none p-6 shadow-[3px_3px_0_#000]">
-            <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-gray-900">
+          <div className="thread-module">
+            <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-nb-ink">
               <PixelIcon name="drop" />
               Recovery Seed Phrase
             </h3>
-            <p className="text-gray-600 mb-4">
+            <p className="text-nb-ink-mid mb-4">
               Your seed phrase is a 12-word backup that can recover your account if you lose access.
             </p>
 
@@ -1003,23 +1003,23 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                 <button
                   onClick={handleGenerateSeedPhrase}
                   disabled={isLoading}
-                  className="px-4 py-3 border border-black bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] disabled:opacity-50 min-h-[48px]"
+                  className="thread-button btn btn--primary disabled:opacity-50 min-h-[48px]"
                 >
                   {isLoading ? "Generating..." : "Generate Seed Phrase"}
                 </button>
               </div>
             ) : (
-              <div className="bg-green-50 border border-green-200 p-4 rounded mb-4">
-                <p className="text-green-800 font-medium mb-2"><PixelIcon name="check" className="inline-block align-middle" /> Seed phrase recovery is enabled</p>
-                <div className="bg-yellow-50 border border-yellow-200 p-3 rounded mb-3">
-                  <p className="text-yellow-800 font-medium mb-2"><PixelIcon name="reload" className="inline-block align-middle" /> Need a new recovery phrase?</p>
-                  <p className="text-yellow-700 text-sm mb-3">
+              <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-4 mb-4">
+                <p className="text-nb-ink font-medium mb-2"><PixelIcon name="check" className="inline-block align-middle" /> Seed phrase recovery is enabled</p>
+                <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-3 mb-3">
+                  <p className="text-nb-ink font-medium mb-2"><PixelIcon name="reload" className="inline-block align-middle" /> Need a new recovery phrase?</p>
+                  <p className="text-nb-ink text-sm mb-3">
                     Generate a completely new 12-word recovery phrase. This will replace your current one and log you back in with new credentials.
                   </p>
                   <button
                     onClick={handleRegenerateSeedPhrase}
                     disabled={isLoading}
-                    className="px-3 py-3 text-sm bg-yellow-100 hover:bg-yellow-200 border border-yellow-300 font-medium transition-all disabled:opacity-50 min-h-[48px]"
+                    className="thread-button btn btn--primary text-sm disabled:opacity-50 min-h-[48px]"
                   >
                     {isLoading ? "Regenerating..." : "Regenerate Seed Phrase"}
                   </button>
@@ -1029,17 +1029,17 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
 
             {/* Show seed phrase if just generated */}
             {seedPhrase && (
-              <div className="bg-blue-50 border border-blue-200 p-4 rounded mb-4">
-                <p className="text-blue-800 font-medium mb-2"><PixelIcon name="save" /> Your Recovery Seed Phrase</p>
-                <p className="text-blue-700 text-sm mb-3">
+              <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-4 mb-4">
+                <p className="text-nb-ink font-medium mb-2"><PixelIcon name="save" /> Your Recovery Seed Phrase</p>
+                <p className="text-nb-ink text-sm mb-3">
                   <strong>Save these 12 words in order!</strong> You&apos;ll need them to recover your account.
                 </p>
-                <div className="bg-white border border-blue-300 p-3 rounded mb-3">
+                <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-3 mb-3">
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                     {seedPhrase.split(' ').map((word, index) => (
-                      <div key={index} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
-                        <span className="text-sm font-bold text-blue-600 w-6">{index + 1}.</span>
-                        <span className="font-mono text-gray-900">{word}</span>
+                      <div key={index} className="flex items-center gap-2 p-2 bg-white rounded-md border border-nb-ink-mid/40">
+                        <span className="text-sm font-bold text-nb-ink-mid w-6 font-mono">{index + 1}.</span>
+                        <span className="font-mono text-nb-ink">{word}</span>
                       </div>
                     ))}
                   </div>
@@ -1047,19 +1047,19 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                 <div className="flex gap-2 flex-wrap">
                   <button
                     onClick={() => copyToClipboard(seedPhrase)}
-                    className="px-3 py-3 text-sm bg-blue-100 hover:bg-blue-200 border border-blue-300 font-medium transition-all min-h-[48px]"
+                    className="thread-button-secondary btn btn--secondary text-sm min-h-[48px]"
                   >
                     <PixelIcon name="clipboard" /> Copy
                   </button>
                   <button
                     onClick={() => downloadSeedPhrase(seedPhrase)}
-                    className="px-3 py-3 text-sm bg-blue-100 hover:bg-blue-200 border border-blue-300 font-medium transition-all min-h-[48px]"
+                    className="thread-button-secondary btn btn--secondary text-sm min-h-[48px]"
                   >
                     <PixelIcon name="save" /> Download
                   </button>
                   <button
                     onClick={() => setSeedPhrase("")}
-                    className="px-3 py-3 text-sm bg-gray-100 hover:bg-gray-200 border border-gray-300 font-medium transition-all min-h-[48px]"
+                    className="thread-button-secondary btn btn--secondary text-sm min-h-[48px]"
                   >
                     <PixelIcon name="check" className="inline-block align-middle" /> I&apos;ve Saved It
                   </button>
@@ -1068,37 +1068,37 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
             )}
 
             {/* Account Recovery */}
-            <div className="border-t border-gray-200 pt-4">
+            <div className="border-t border-nb-ink-mid/30 pt-4">
               <button
                 onClick={() => setShowRecovery(!showRecovery)}
-                className="px-4 py-3 text-sm bg-white hover:bg-gray-100 border border-black shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] min-h-[48px]"
+                className="thread-button-secondary btn btn--secondary text-sm min-h-[48px]"
               >
                 <PixelIcon name="reload" /> Recover Account from Seed Phrase
               </button>
 
               {showRecovery && (
-                <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded">
-                  <p className="text-sm text-gray-600 mb-3">
+                <div className="mt-4 p-4 border-2 border-dotted border-nb-ink-mid/60 rounded-md">
+                  <p className="text-sm text-nb-ink-mid mb-3">
                     Enter your 12-word recovery phrase to restore your account. This will replace your current identity.
                   </p>
                   <textarea
                     value={recoveryPhrase}
                     onChange={(e) => setRecoveryPhrase(e.target.value)}
                     placeholder="Enter your 12-word recovery phrase separated by spaces..."
-                    className="w-full h-24 text-sm border border-gray-300 p-3 resize-none bg-white rounded"
+                    className="w-full h-24 text-sm border border-nb-ink-mid/40 p-3 resize-none bg-white rounded"
                     disabled={isLoading}
                   />
                   <div className="mt-3 flex gap-2 flex-wrap">
                     <button
                       onClick={handleRecoverFromSeed}
                       disabled={isLoading || !recoveryPhrase.trim()}
-                      className="px-4 py-3 text-sm bg-blue-200 hover:bg-blue-100 border border-black font-medium transition-all disabled:opacity-50 min-h-[48px]"
+                      className="thread-button-secondary btn btn--secondary text-sm disabled:opacity-50 min-h-[48px]"
                     >
                       {isLoading ? "Recovering..." : "Recover Account"}
                     </button>
                     <button
                       onClick={() => setShowRecovery(false)}
-                      className="px-4 py-3 text-sm bg-gray-100 hover:bg-gray-200 border border-gray-300 font-medium transition-all min-h-[48px]"
+                      className="thread-button-secondary btn btn--secondary text-sm min-h-[48px]"
                     >
                       Cancel
                     </button>
@@ -1109,26 +1109,26 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
           </div>
 
           {/* Password Authentication */}
-          <div className="bg-white border border-black rounded-none p-6 shadow-[3px_3px_0_#000]">
-            <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-gray-900">
+          <div className="thread-module">
+            <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-nb-ink">
               <PixelIcon name="lock" />
               Password Authentication
             </h3>
-            <p className="text-gray-600 mb-4">
+            <p className="text-nb-ink-mid mb-4">
               Add password login as an alternative to your seed phrase. You&apos;ll be able to sign in with either method.
             </p>
 
             {!hasPasswordAuth || !mounted ? (
-              <div className="bg-blue-50 border border-blue-200 p-4 rounded mb-4">
-                <p className="text-blue-800 font-medium mb-2"><PixelIcon name="lightbulb" /> Enable password login</p>
-                <p className="text-blue-700 text-sm mb-3">
+              <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-4 mb-4">
+                <p className="text-nb-ink font-medium mb-2"><PixelIcon name="lightbulb" /> Enable password login</p>
+                <p className="text-nb-ink text-sm mb-3">
                   Add a password to your account for easier login. Your seed phrase will still work and remains the most secure option.
                 </p>
 
                 {!showPasswordSection ? (
                   <button
                     onClick={() => setShowPasswordSection(true)}
-                    className="px-4 py-3 border border-black bg-blue-200 hover:bg-blue-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] min-h-[48px]"
+                    className="thread-button-secondary btn btn--secondary min-h-[48px]"
                   >
                     Add Password Login
                   </button>
@@ -1145,7 +1145,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                           setPasswordErrors(validation.errors);
                         }}
                         placeholder="Enter a strong password"
-                        className="w-full px-3 py-2 border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 border border-nb-ink-mid/40 rounded bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                         disabled={isLoading}
                       />
                     </div>
@@ -1157,25 +1157,25 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                         value={confirmNewPassword}
                         onChange={(e) => setConfirmNewPassword(e.target.value)}
                         placeholder="Enter password again"
-                        className="w-full px-3 py-2 border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 border border-nb-ink-mid/40 rounded bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                         disabled={isLoading}
                       />
                     </div>
 
                     {/* Password Requirements */}
-                    <div className="bg-gray-50 border border-gray-200 rounded p-3">
-                      <p className="text-sm font-bold text-gray-700 mb-2">Password Requirements:</p>
+                    <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-3">
+                      <p className="text-sm font-bold text-nb-ink mb-2">Password Requirements:</p>
                       <ul className="text-sm space-y-1">
-                        <li className={newPassword.length >= 8 ? "text-green-600" : "text-gray-500"}>
+                        <li className={newPassword.length >= 8 ? "text-nb-ink font-medium" : "text-nb-ink-mid"}>
                           {newPassword.length >= 8 ? "✓" : "○"} At least 8 characters
                         </li>
-                        <li className={/[a-z]/.test(newPassword) ? "text-green-600" : "text-gray-500"}>
+                        <li className={/[a-z]/.test(newPassword) ? "text-nb-ink font-medium" : "text-nb-ink-mid"}>
                           {/[a-z]/.test(newPassword) ? "✓" : "○"} One lowercase letter
                         </li>
-                        <li className={/[A-Z]/.test(newPassword) ? "text-green-600" : "text-gray-500"}>
+                        <li className={/[A-Z]/.test(newPassword) ? "text-nb-ink font-medium" : "text-nb-ink-mid"}>
                           {/[A-Z]/.test(newPassword) ? "✓" : "○"} One uppercase letter
                         </li>
-                        <li className={/[0-9]/.test(newPassword) ? "text-green-600" : "text-gray-500"}>
+                        <li className={/[0-9]/.test(newPassword) ? "text-nb-ink font-medium" : "text-nb-ink-mid"}>
                           {/[0-9]/.test(newPassword) ? "✓" : "○"} One number
                         </li>
                       </ul>
@@ -1185,7 +1185,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                       <button
                         onClick={handleAddPassword}
                         disabled={isLoading || !newPassword || !confirmNewPassword || passwordErrors.length > 0}
-                        className="px-4 py-3 bg-green-200 hover:bg-green-100 border border-black shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] disabled:opacity-50 min-h-[48px]"
+                        className="thread-button btn btn--primary disabled:opacity-50 min-h-[48px]"
                       >
                         {isLoading ? "Adding..." : "Add Password"}
                       </button>
@@ -1197,7 +1197,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                           setPasswordErrors([]);
                         }}
                         disabled={isLoading}
-                        className="px-4 py-3 text-sm bg-gray-100 hover:bg-gray-200 border border-gray-300 font-medium transition-all disabled:opacity-50 min-h-[48px]"
+                        className="thread-button-secondary btn btn--secondary text-sm disabled:opacity-50 min-h-[48px]"
                       >
                         Cancel
                       </button>
@@ -1206,9 +1206,9 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                 )}
               </div>
             ) : (
-              <div className="bg-green-50 border border-green-200 p-4 rounded mb-4">
-                <p className="text-green-800 font-medium mb-2"><PixelIcon name="check" className="inline-block align-middle" /> Password authentication is enabled</p>
-                <p className="text-green-700 text-sm mb-4">
+              <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-4 mb-4">
+                <p className="text-nb-ink font-medium mb-2"><PixelIcon name="check" className="inline-block align-middle" /> Password authentication is enabled</p>
+                <p className="text-nb-ink text-sm mb-4">
                   You can now sign in using either your password or your seed phrase.
                 </p>
 
@@ -1216,27 +1216,27 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                 {!showPasswordChangeSection ? (
                   <button
                     onClick={() => setShowPasswordChangeSection(true)}
-                    className="px-4 py-3 text-sm bg-blue-100 hover:bg-blue-200 border border-blue-300 font-medium transition-all min-h-[48px]"
+                    className="thread-button-secondary btn btn--secondary text-sm min-h-[48px]"
                   >
                     Change Password
                   </button>
                 ) : (
-                  <div className="bg-white border border-gray-200 rounded p-4 space-y-4">
+                  <div className="bg-white border border-nb-ink-mid/30 rounded p-4 space-y-4">
                     <div className="flex justify-between items-center">
-                      <h4 className="font-bold text-gray-800 text-gray-900">
+                      <h4 className="font-bold text-nb-ink text-nb-ink">
                         {showForgotPassword ? "Reset Password with Seed Phrase" : "Change Password"}
                       </h4>
                       {!showForgotPassword ? (
                         <button
                           onClick={() => setShowForgotPassword(true)}
-                          className="text-xs text-blue-600 hover:underline"
+                          className="text-xs"
                         >
                           Forgot Password?
                         </button>
                       ) : (
                         <button
                           onClick={() => setShowForgotPassword(false)}
-                          className="text-xs text-blue-600 hover:underline"
+                          className="text-xs"
                         >
                           Back to Change Password
                         </button>
@@ -1246,15 +1246,15 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                     {showForgotPassword ? (
                       // RESET PASSWORD FORM
                       <>
-                        <div className="flex gap-4 mb-4 border-b border-gray-200">
+                        <div className="flex gap-4 mb-4 border-b border-nb-ink-mid/30">
                           <button
-                            className={`px-3 py-2 ${resetMode === 'seed' ? 'font-bold border-b-2 border-blue-500 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+                            className={`px-3 py-2 ${resetMode === 'seed' ? 'font-bold border-b-2 border-nb-ink text-nb-ink' : 'text-nb-ink-mid hover:text-nb-ink'}`}
                             onClick={() => setResetMode('seed')}
                           >
                             Use Seed Phrase
                           </button>
                           <button
-                            className={`px-3 py-2 ${resetMode === 'email' ? 'font-bold border-b-2 border-blue-500 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+                            className={`px-3 py-2 ${resetMode === 'email' ? 'font-bold border-b-2 border-nb-ink text-nb-ink' : 'text-nb-ink-mid hover:text-nb-ink'}`}
                             onClick={() => setResetMode('email')}
                           >
                             Use Email
@@ -1275,7 +1275,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                                 value={resetSeedPhrase}
                                 onChange={(e) => setResetSeedPhrase(e.target.value)}
                                 placeholder="alert angry ... (12 words)"
-                                className="w-full px-3 py-2 border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 h-24 font-mono text-sm"
+                                className="w-full px-3 py-2 border border-nb-ink-mid/40 rounded bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 h-24 font-mono text-sm"
                                 disabled={isLoading}
                               />
                             </div>
@@ -1291,7 +1291,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                                   setChangePasswordErrors(validation.errors);
                                 }}
                                 placeholder="Enter new password"
-                                className="w-full px-3 py-2 border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="w-full px-3 py-2 border border-nb-ink-mid/40 rounded bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 disabled={isLoading}
                               />
                             </div>
@@ -1303,26 +1303,26 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                                 value={confirmNewPasswordChange}
                                 onChange={(e) => setConfirmNewPasswordChange(e.target.value)}
                                 placeholder="Confirm new password"
-                                className="w-full px-3 py-2 border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="w-full px-3 py-2 border border-nb-ink-mid/40 rounded bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 disabled={isLoading}
                               />
                             </div>
 
                             {/* Reusing existing password requirements display logic */}
                             {newPasswordChange && (
-                              <div className="bg-gray-50 border border-gray-200 rounded p-3">
-                                <p className="text-sm font-bold text-gray-700 mb-2">Password Requirements:</p>
+                              <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-3">
+                                <p className="text-sm font-bold text-nb-ink mb-2">Password Requirements:</p>
                                 <ul className="text-sm space-y-1">
-                                  <li className={newPasswordChange.length >= 8 ? "text-green-600" : "text-gray-500"}>
+                                  <li className={newPasswordChange.length >= 8 ? "text-nb-ink font-medium" : "text-nb-ink-mid"}>
                                     {newPasswordChange.length >= 8 ? "✓" : "○"} At least 8 characters
                                   </li>
-                                  <li className={/[a-z]/.test(newPasswordChange) ? "text-green-600" : "text-gray-500"}>
+                                  <li className={/[a-z]/.test(newPasswordChange) ? "text-nb-ink font-medium" : "text-nb-ink-mid"}>
                                     {/[a-z]/.test(newPasswordChange) ? "✓" : "○"} One lowercase letter
                                   </li>
-                                  <li className={/[A-Z]/.test(newPasswordChange) ? "text-green-600" : "text-gray-500"}>
+                                  <li className={/[A-Z]/.test(newPasswordChange) ? "text-nb-ink font-medium" : "text-nb-ink-mid"}>
                                     {/[A-Z]/.test(newPasswordChange) ? "✓" : "○"} One uppercase letter
                                   </li>
-                                  <li className={/[0-9]/.test(newPasswordChange) ? "text-green-600" : "text-gray-500"}>
+                                  <li className={/[0-9]/.test(newPasswordChange) ? "text-nb-ink font-medium" : "text-nb-ink-mid"}>
                                     {/[0-9]/.test(newPasswordChange) ? "✓" : "○"} One number
                                   </li>
                                 </ul>
@@ -1367,7 +1367,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                                   }
                                 }}
                                 disabled={isLoading || !resetSeedPhrase || !newPasswordChange || !confirmNewPasswordChange || changePasswordErrors.length > 0}
-                                className="px-4 py-3 bg-green-200 hover:bg-green-100 border border-black shadow-[2px_2px_0_#000] font-medium transition-all disabled:opacity-50 min-h-[48px]"
+                                className="thread-button btn btn--primary disabled:opacity-50 min-h-[48px]"
                               >
                                 {isLoading ? "Resetting..." : "Reset Password"}
                               </button>
@@ -1377,7 +1377,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                                   setShowForgotPassword(false);
                                 }}
                                 disabled={isLoading}
-                                className="px-4 py-3 text-sm bg-gray-100 hover:bg-gray-200 border border-gray-300 font-medium transition-all"
+                                className="thread-button-secondary btn btn--secondary text-sm"
                               >
                                 Cancel
                               </button>
@@ -1386,16 +1386,16 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                         ) : (
                           // EMAIL FORM
                           <div className="space-y-4 pt-2">
-                            <div className="bg-blue-50 border border-blue-200 p-3 rounded text-sm text-blue-800">
+                            <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-3 text-sm text-nb-ink">
                               <PixelIcon name="mail" className="inline-block mr-1" />
                               Enter your verified email address. We&apos;ll send you a link to reset your password.
                             </div>
 
                             {emailResetStatus === 'sent' ? (
-                              <div className="text-center p-4 bg-green-50 rounded border border-green-200">
-                                <p className="text-green-700 font-bold mb-2">Email Sent!</p>
+                              <div className="text-center p-4 border-2 border-dotted border-nb-ink-mid/60 rounded-md">
+                                <p className="text-nb-ink font-bold mb-2">Email Sent!</p>
                                 <p className="text-sm">Check {resetEmail} for the reset link.</p>
-                                <button onClick={() => { setEmailResetStatus('idle'); setResetMode('seed'); setShowForgotPassword(false); setShowPasswordChangeSection(false); }} className="mt-4 text-blue-600 hover:underline text-sm">Close</button>
+                                <button onClick={() => { setEmailResetStatus('idle'); setResetMode('seed'); setShowForgotPassword(false); setShowPasswordChangeSection(false); }} className="mt-4 text-nb-ink-mid hover:underline text-sm">Close</button>
                               </div>
                             ) : (
                               <>
@@ -1406,7 +1406,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                                     value={resetEmail}
                                     onChange={(e) => setResetEmail(e.target.value)}
                                     placeholder="name@example.com"
-                                    className="w-full px-3 py-2 border border-gray-300 rounded"
+                                    className="w-full px-3 py-2 border border-nb-ink-mid/40 rounded"
                                     disabled={emailResetStatus === 'sending'}
                                   />
                                 </div>
@@ -1417,7 +1417,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                                   <button
                                     onClick={handleRequestEmailReset}
                                     disabled={!resetEmail || emailResetStatus === 'sending'}
-                                    className="px-4 py-3 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 font-medium min-h-[48px]"
+                                    className="thread-button-secondary btn btn--secondary disabled:opacity-50 min-h-[48px]"
                                   >
                                     {emailResetStatus === 'sending' ? "Sending..." : "Send Reset Link"}
                                   </button>
@@ -1427,7 +1427,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                                       setShowForgotPassword(false);
                                     }}
                                     disabled={emailResetStatus === 'sending'}
-                                    className="px-4 py-3 text-sm bg-gray-100 hover:bg-gray-200 border border-gray-300 font-medium transition-all"
+                                    className="thread-button-secondary btn btn--secondary text-sm"
                                   >
                                     Cancel
                                   </button>
@@ -1447,7 +1447,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                             value={currentPassword}
                             onChange={(e) => setCurrentPassword(e.target.value)}
                             placeholder="Enter current password"
-                            className="w-full px-3 py-2 border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 border border-nb-ink-mid/40 rounded bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                             disabled={isLoading}
                           />
                         </div>
@@ -1463,7 +1463,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                               setChangePasswordErrors(validation.errors);
                             }}
                             placeholder="Enter new password"
-                            className="w-full px-3 py-2 border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 border border-nb-ink-mid/40 rounded bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                             disabled={isLoading}
                           />
                         </div>
@@ -1475,26 +1475,26 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                             value={confirmNewPasswordChange}
                             onChange={(e) => setConfirmNewPasswordChange(e.target.value)}
                             placeholder="Confirm new password"
-                            className="w-full px-3 py-2 border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 border border-nb-ink-mid/40 rounded bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                             disabled={isLoading}
                           />
                         </div>
 
                         {/* Password Requirements for Change */}
                         {newPasswordChange && (
-                          <div className="bg-gray-50 border border-gray-200 rounded p-3">
-                            <p className="text-sm font-bold text-gray-700 mb-2">Password Requirements:</p>
+                          <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-3">
+                            <p className="text-sm font-bold text-nb-ink mb-2">Password Requirements:</p>
                             <ul className="text-sm space-y-1">
-                              <li className={newPasswordChange.length >= 8 ? "text-green-600" : "text-gray-500"}>
+                              <li className={newPasswordChange.length >= 8 ? "text-nb-ink font-medium" : "text-nb-ink-mid"}>
                                 {newPasswordChange.length >= 8 ? "✓" : "○"} At least 8 characters
                               </li>
-                              <li className={/[a-z]/.test(newPasswordChange) ? "text-green-600" : "text-gray-500"}>
+                              <li className={/[a-z]/.test(newPasswordChange) ? "text-nb-ink font-medium" : "text-nb-ink-mid"}>
                                 {/[a-z]/.test(newPasswordChange) ? "✓" : "○"} One lowercase letter
                               </li>
-                              <li className={/[A-Z]/.test(newPasswordChange) ? "text-green-600" : "text-gray-500"}>
+                              <li className={/[A-Z]/.test(newPasswordChange) ? "text-nb-ink font-medium" : "text-nb-ink-mid"}>
                                 {/[A-Z]/.test(newPasswordChange) ? "✓" : "○"} One uppercase letter
                               </li>
-                              <li className={/[0-9]/.test(newPasswordChange) ? "text-green-600" : "text-gray-500"}>
+                              <li className={/[0-9]/.test(newPasswordChange) ? "text-nb-ink font-medium" : "text-nb-ink-mid"}>
                                 {/[0-9]/.test(newPasswordChange) ? "✓" : "○"} One number
                               </li>
                             </ul>
@@ -1505,7 +1505,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                           <button
                             onClick={handleChangePassword}
                             disabled={isLoading || !currentPassword || !newPasswordChange || !confirmNewPasswordChange || changePasswordErrors.length > 0}
-                            className="px-4 py-3 bg-blue-200 hover:bg-blue-100 border border-black shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] disabled:opacity-50 min-h-[48px]"
+                            className="thread-button-secondary btn btn--secondary disabled:opacity-50 min-h-[48px]"
                           >
                             {isLoading ? "Changing..." : "Change Password"}
                           </button>
@@ -1518,7 +1518,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                               setChangePasswordErrors([]);
                             }}
                             disabled={isLoading}
-                            className="px-4 py-3 text-sm bg-gray-100 hover:bg-gray-200 border border-gray-300 font-medium transition-all disabled:opacity-50 min-h-[48px]"
+                            className="thread-button-secondary btn btn--secondary text-sm disabled:opacity-50 min-h-[48px]"
                           >
                             Cancel
                           </button>
@@ -1532,12 +1532,12 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
           </div>
 
           {/* Email Management */}
-          <div className="bg-white border border-black rounded-none p-6 shadow-[3px_3px_0_#000]">
-            <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-gray-900">
+          <div className="thread-module">
+            <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-nb-ink">
               <PixelIcon name="mail" />
               Email Login
             </h3>
-            <p className="text-gray-600 mb-4">
+            <p className="text-nb-ink-mid mb-4">
               Add an email address for magic link login and account recovery.
             </p>
 
@@ -1546,24 +1546,24 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                 <div className="flex items-center gap-2">
                   {emailVerifiedAt ? (
                     <>
-                      <span className="text-green-600 text-sm font-medium"><PixelIcon name="check" className="inline-block align-middle" /> {userEmail}</span>
-                      <span className="text-sm text-gray-500">(verified)</span>
+                      <span className="text-nb-ink text-sm font-medium">✓ {userEmail}</span>
+                      <span className="text-sm text-nb-ink-mid">(verified)</span>
                     </>
                   ) : (
                     <>
                       <span className="text-amber-600 text-sm font-medium"><PixelIcon name="clock" /> {userEmail}</span>
-                      <span className="text-sm text-gray-500">(pending verification)</span>
+                      <span className="text-sm text-nb-ink-mid">(pending verification)</span>
                     </>
                   )}
                 </div>
               ) : (
-                <p className="text-gray-800 font-medium mb-2"><PixelIcon name="mail" className="inline-block align-middle" /> Email login not set</p>
+                <p className="text-nb-ink font-medium mb-2"><PixelIcon name="mail" className="inline-block align-middle" /> Email login not set</p>
               )}
 
               {userEmail ? (
                 <div className="flex gap-2">
                   {emailVerifiedAt ? (
-                    <p className="text-green-700 text-sm">
+                    <p className="text-nb-ink text-sm">
                       You can now login using magic links sent to this email address.
                     </p>
                   ) : (
@@ -1573,7 +1573,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                   )}
                 </div>
               ) : (
-                <p className="text-gray-700 text-sm mb-3">
+                <p className="text-nb-ink text-sm mb-3">
                   Add an email address to enable magic link login as an alternative to your DID key.
                 </p>
               )}
@@ -1581,7 +1581,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
               <div className="flex gap-2 flex-wrap">
                 <button
                   onClick={() => setShowEmailSection(!showEmailSection)}
-                  className="px-3 py-3 text-sm bg-blue-100 hover:bg-blue-200 border border-blue-300 font-medium transition-all min-h-[48px]"
+                  className="thread-button-secondary btn btn--secondary text-sm min-h-[48px]"
                 >
                   {userEmail ? "Change Email" : "Add Email"}
                 </button>
@@ -1589,7 +1589,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                   <button
                     onClick={handleRemoveEmail}
                     disabled={isEmailLoading}
-                    className="px-3 py-3 text-sm bg-red-100 hover:bg-red-200 border border-red-300 font-medium transition-all disabled:opacity-50 min-h-[48px]"
+                    className="thread-button-secondary btn btn--secondary text-sm disabled:opacity-50 min-h-[48px]"
                   >
                     Remove Email
                   </button>
@@ -1597,27 +1597,27 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
               </div>
 
               {showEmailSection && (
-                <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded">
-                  <h4 className="text-sm font-medium text-gray-800 mb-2">Set Email Address</h4>
+                <div className="mt-4 p-4 border-2 border-dotted border-nb-ink-mid/60 rounded-md">
+                  <h4 className="text-sm font-medium text-nb-ink mb-2">Set Email Address</h4>
                   <input
                     type="email"
                     value={emailInput}
                     onChange={(e) => setEmailInput(e.target.value)}
                     placeholder="your@email.com"
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-white"
+                    className="w-full px-3 py-2 text-sm border border-nb-ink-mid/40 rounded bg-white"
                     disabled={isEmailLoading}
                   />
                   <div className="mt-3 flex gap-2">
                     <button
                       onClick={handleSetEmail}
                       disabled={isEmailLoading || !emailInput.trim()}
-                      className="px-4 py-2 text-sm bg-blue-200 hover:bg-blue-100 border border-black font-medium transition-all disabled:opacity-50"
+                      className="thread-button-secondary btn btn--secondary text-sm disabled:opacity-50"
                     >
                       {isEmailLoading ? "Setting..." : "Set Email"}
                     </button>
                     <button
                       onClick={() => setShowEmailSection(false)}
-                      className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 border border-gray-300 font-medium transition-all"
+                      className="thread-button-secondary btn btn--secondary text-sm"
                     >
                       Cancel
                     </button>
@@ -1637,7 +1637,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
         <div className="space-y-6">
           <div className="mb-6">
             <h2 className="text-xl font-bold mb-2">ThreadRing Badges</h2>
-            <p className="text-gray-600 mb-6">
+            <p className="text-nb-ink-mid mb-6">
               Manage which badges from your ThreadRings are displayed on your profile and posts.
             </p>
           </div>
@@ -1658,7 +1658,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
         <div className="space-y-6 px-4 sm:px-0">
           <div className="mb-6">
             <h2 className="text-xl font-bold mb-2">Privacy & Consent</h2>
-            <p className="text-gray-600 mb-6">
+            <p className="text-nb-ink-mid mb-6">
               Manage your privacy settings, data consent preferences, and blocked users.
             </p>
           </div>
@@ -1667,18 +1667,18 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
           <ConsentManager userId={initialUser.id} />
 
           {/* Data Export */}
-          <div className="bg-white border border-black rounded-none p-6 shadow-[3px_3px_0_#000]">
+          <div className="thread-module">
             <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
               <PixelIcon name="archive" />
               Export Your Data
             </h3>
-            <p className="text-gray-600 mb-4">
+            <p className="text-nb-ink-mid mb-4">
               Download a complete copy of all your data in machine-readable JSON format. This includes posts, ThreadRing memberships, comments, media, profile data, and social connections.
             </p>
 
-            <div className="bg-blue-50 border border-blue-200 p-4 rounded mb-4">
-              <h4 className="font-semibold text-blue-800 mb-2"><PixelIcon name="clipboard" className="inline-block align-middle" /> What&apos;s Included:</h4>
-              <ul className="text-sm text-blue-700 space-y-1">
+            <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-4 mb-4">
+              <h4 className="font-semibold text-nb-ink mb-2"><PixelIcon name="clipboard" className="inline-block align-middle" /> What&apos;s Included:</h4>
+              <ul className="text-sm text-nb-ink space-y-1">
                 <li><PixelIcon name="check" size={16} className="inline-block align-middle" /> All posts and content</li>
                 <li><PixelIcon name="check" size={16} className="inline-block align-middle" /> ThreadRing memberships and badges</li>
                 <li><PixelIcon name="check" size={16} className="inline-block align-middle" /> Comments and interactions</li>
@@ -1726,27 +1726,27 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                   setSaveMessage(`Error: ${error instanceof Error ? error.message : 'Failed to export data'}`);
                 }
               }}
-              className="px-4 py-3 border border-black bg-green-200 hover:bg-green-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] min-h-[48px]"
+              className="thread-button btn btn--primary min-h-[48px]"
             >
               <PixelIcon name="download" className="inline-block align-middle" /> Export All My Data
             </button>
 
-            <div className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded">
-              <p className="text-sm text-gray-600">
+            <div className="mt-4 p-3 bg-gray-50 border border-nb-ink-mid/30 rounded">
+              <p className="text-sm text-nb-ink-mid">
                 <strong>GDPR Compliance:</strong> This export provides your personal data in a structured, commonly used, and machine-readable format as required by data protection regulations.
               </p>
             </div>
           </div>
 
           {/* Blocking Management */}
-          <div className="bg-blue-50 border border-black rounded-none p-4 shadow-[2px_2px_0_#000]">
-            <h3 className="text-lg font-bold mb-2 text-gray-900">User & Community Blocking</h3>
-            <p className="text-sm text-gray-700 mb-3">
+          <div className="widget-container widget--flat bg-thread-paper border border-thread-sage rounded-cozy shadow-cozy-sm p-4">
+            <h3 className="text-lg font-bold mb-2 text-nb-ink">User & Community Blocking</h3>
+            <p className="text-sm text-nb-ink mb-3">
               <strong>Blocked users and communities are managed separately.</strong>
             </p>
             <Link
               href="/settings/blocks"
-              className="px-4 py-2 border border-black bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] inline-block no-underline text-sm"
+              className="btn btn--primary bg-thread-cream inline-block text-thread-pine border-2 border-thread-sage rounded-md shadow-cozy-sm font-semibold text-sm"
             >
               Manage Blocked Users & Communities →
             </Link>
@@ -1761,7 +1761,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
         <div className="space-y-6 px-4 sm:px-0">
           <div className="mb-6">
             <h2 className="text-xl font-bold mb-2">Beta Invite Codes</h2>
-            <p className="text-gray-600 mb-6">
+            <p className="text-nb-ink-mid mb-6">
               Share beta access with friends using your personal invite codes.
             </p>
           </div>
@@ -1781,18 +1781,18 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
         <div className="space-y-6 px-4 sm:px-0">
           <div className="mb-6">
             <h2 className="text-xl font-bold mb-2">Admin Panel</h2>
-            <p className="text-gray-600 mb-6">
+            <p className="text-nb-ink-mid mb-6">
               Administrative tools and site management.
             </p>
           </div>
 
-          <div className="bg-orange-50 border border-black rounded-none p-4 shadow-[2px_2px_0_#000]">
-            <p className="text-sm text-gray-700 mb-2">
+          <div className="widget-container widget--flat bg-thread-paper border border-thread-sage rounded-cozy shadow-cozy-sm p-4">
+            <p className="text-sm text-nb-ink mb-2">
               <strong>Admin features are available in the dedicated admin panel.</strong>
             </p>
             <Link
               href="/settings/admin"
-              className="px-4 py-3 border border-black bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] inline-block no-underline text-sm min-h-[48px] flex items-center"
+              className="btn btn--primary bg-thread-cream inline-block text-thread-pine border-2 border-thread-sage rounded-md shadow-cozy-sm font-semibold text-sm min-h-[48px]"
             >
               Open Admin Panel →
             </Link>
@@ -1816,7 +1816,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
             <div className="flex gap-2">
               <a
                 href={`/resident/${username}`}
-                className="px-4 py-3 border border-black bg-white hover:bg-gray-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] no-underline min-h-[48px] flex items-center"
+                className="btn btn--secondary bg-thread-paper inline-block text-thread-pine border-2 border-thread-sage rounded-md shadow-cozy-sm font-semibold min-h-[48px]"
               >
                 View Profile
               </a>
@@ -1825,8 +1825,8 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
 
           {saveMessage && (
             <div className={`mb-4 p-3 rounded mx-4 sm:mx-0 ${saveMessage.includes("Error")
-              ? "bg-red-100 text-red-700 border border-red-300"
-              : "bg-green-100 text-green-700 border border-green-300"
+              ? "bg-red-100 text-nb-ink border border-red-300"
+              : "bg-green-100 text-nb-ink border border-green-300"
               }`}>
               {saveMessage}
             </div>

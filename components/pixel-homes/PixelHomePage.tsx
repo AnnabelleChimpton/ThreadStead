@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
+import Link from 'next/link'
+import PageHeader from '@/components/ui/layout/PageHeader'
+import Callout from '@/components/ui/feedback/Callout'
+import ThreadRing88x31Badge from '@/components/core/threadring/ThreadRing88x31Badge'
 import PixelHomeScene from './PixelHomeScene'
 import EnhancedHouseCanvas from './EnhancedHouseCanvas'
 import HouseSVG from './HouseSVG'
@@ -233,7 +237,7 @@ export default function PixelHomePage({
           <div className="text-thread-sage">{error}</div>
           <button
             onClick={() => router.push('/')}
-            className="px-4 py-2 bg-thread-sage text-thread-paper rounded-md hover:bg-thread-pine transition-colors"
+            className="thread-button btn btn--primary"
           >
             Return to ThreadStead
           </button>
@@ -243,104 +247,79 @@ export default function PixelHomePage({
   }
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-thread-paper via-thread-cream to-thread-sky bg-opacity-10 ${className}`}>
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-3xl font-headline font-bold text-thread-pine mb-3 flex items-center justify-center gap-3">
-            {nameToShow}&apos;s Pixel Home
-          </h1>
-          <div className="text-thread-sage text-lg mb-6 max-w-2xl mx-auto">
-            Welcome to the neighborhood — this is {nameToShow}&apos;s pixel home.
-          </div>
-        </div>
+    <div className={className}>
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
+        <PageHeader title={`${nameToShow}'s Pixel Home`}>
+          <p>Welcome to the neighborhood — this is {nameToShow}&apos;s pixel home.</p>
+        </PageHeader>
 
         {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Side - Interactive Menu */}
-          <div className="lg:col-span-1 space-y-6">
-            {/* User Info Card */}
-            <div className="bg-thread-paper border-2 border-thread-sage rounded-xl p-6 shadow-cozy">
-              <div className="text-center space-y-4">
-                <div className="text-2xl font-headline font-bold text-thread-pine">
-                  {nameToShow}
-                </div>
+          <div className="lg:col-span-1 space-y-4 lg:order-1 order-2">
+            {/* User Info Card — the owner's real ThreadRing badges at full 88×31 size */}
+            <div className="widget-container bg-thread-paper border border-thread-sage rounded-cozy shadow-cozy p-4 sm:p-5">
+              <div className="widget-header mb-3">
+                <h2 className="widget-title font-headline text-lg font-bold text-nb-ink mb-0">{nameToShow}</h2>
                 {badges.length > 0 && (
-                  <div className="flex justify-center">
-                    <div className="bg-thread-sky bg-opacity-20 px-3 py-1 rounded-full text-sm text-thread-pine font-medium">
-                      {badges.length} ThreadRing Badge{badges.length !== 1 ? 's' : ''}
-                    </div>
-                  </div>
-                )}
-                {badges.length > 0 && (
-                  <div className="flex flex-wrap gap-2 justify-center">
-                    {badges.slice(0, 6).map((badge) => (
-                      <div
-                        key={badge.id}
-                        className="w-8 h-8 shadow-sm border-2 border-white rounded-sm hover:scale-110 transition-transform"
-                        title={`${badge.threadRing.name}: ${badge.title}`}
-                      >
-                        {badge.imageUrl ? (
-                          <img
-                            src={badge.imageUrl}
-                            alt={badge.title}
-                            className="w-full h-full object-contain"
-                            style={{ imageRendering: 'pixelated' }}
-                          />
-                        ) : (
-                          <div
-                            className="w-full h-full rounded-sm flex items-center justify-center text-xs font-bold"
-                            style={{
-                              backgroundColor: badge.backgroundColor,
-                              color: badge.textColor
-                            }}
-                          >
-                            {badge.title.charAt(0).toUpperCase()}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                    {badges.length > 6 && (
-                      <div className="w-8 h-8 rounded-sm bg-thread-sage text-white text-xs font-bold flex items-center justify-center border-2 border-white shadow-sm">
-                        +{badges.length - 6}
-                      </div>
-                    )}
-                  </div>
+                  <span className="widget-actions ml-auto badge text-xs">
+                    {badges.length} ThreadRing Badge{badges.length !== 1 ? 's' : ''}
+                  </span>
                 )}
               </div>
+              {badges.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {badges.slice(0, 6).map((badge) => (
+                    <Link
+                      key={badge.id}
+                      href={`/tr/${badge.threadRing.slug}`}
+                      title={`${badge.threadRing.name}: ${badge.title}`}
+                      className="ts-card-link block"
+                    >
+                      <ThreadRing88x31Badge
+                        title={badge.title}
+                        backgroundColor={badge.backgroundColor}
+                        textColor={badge.textColor}
+                        imageUrl={badge.imageUrl}
+                      />
+                    </Link>
+                  ))}
+                  {badges.length > 6 && (
+                    <span className="thread-label self-center">+{badges.length - 6} more</span>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Interactive Actions */}
-            <div className="bg-thread-paper border-2 border-thread-sage rounded-xl p-6 shadow-cozy">
-              <h3 className="text-lg font-headline font-semibold text-thread-pine mb-4 text-center">
-                Explore & Connect
-              </h3>
-              <div className="space-y-3">
+            <div className="widget-container bg-thread-paper border border-thread-sage rounded-cozy shadow-cozy p-4 sm:p-5">
+              <div className="widget-header mb-3"><h3 className="widget-title font-headline text-base font-bold text-nb-ink mb-0">Explore & Connect</h3></div>
+              <div className="space-y-2">
                 <button
                   onClick={handleDoorClick}
-                  className="w-full flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-thread-sage to-thread-pine text-thread-paper hover:from-thread-pine hover:to-thread-sage transition-all duration-300 rounded-lg font-medium shadow-cozy-sm hover:shadow-cozy transform hover:-translate-y-0.5"
+                  className="thread-button btn btn--primary w-full text-left"
                 >
                   <span>Step Inside — Visit Profile</span>
                 </button>
 
                 <button
                   onClick={handleMailboxClick}
-                  className="w-full flex items-center gap-3 px-4 py-3 bg-thread-cream hover:bg-thread-sky hover:bg-opacity-20 text-thread-pine transition-all duration-300 rounded-lg font-medium shadow-cozy-sm hover:shadow-cozy transform hover:-translate-y-0.5 border border-thread-sage border-opacity-30"
+                  className="thread-button-secondary btn btn--secondary w-full text-left"
                 >
                   <span>Check Mailbox {hasUnreadGuestbook && '(new)'}</span>
-                  {hasUnreadGuestbook && <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>}
+                  {hasUnreadGuestbook && <span aria-hidden="true" className="inline-block w-2 h-2 ml-2 bg-nb-rose rounded-full align-middle"></span>}
                 </button>
 
                 <button
                   onClick={handleThreadbookClick}
-                  className="w-full flex items-center gap-3 px-4 py-3 bg-thread-cream hover:bg-thread-sky hover:bg-opacity-20 text-thread-pine transition-all duration-300 rounded-lg font-medium shadow-cozy-sm hover:shadow-cozy transform hover:-translate-y-0.5 border border-thread-sage border-opacity-30"
+                  className="thread-button-secondary btn btn--secondary w-full text-left"
                 >
                   <span>View ThreadRing Lineage</span>
                 </button>
 
                 <button
                   onClick={() => router.push(`/resident/${username}?tab=rings`)}
-                  className="w-full flex items-center gap-3 px-4 py-3 bg-thread-cream hover:bg-thread-sky hover:bg-opacity-20 text-thread-pine transition-all duration-300 rounded-lg font-medium shadow-cozy-sm hover:shadow-cozy transform hover:-translate-y-0.5 border border-thread-sage border-opacity-30"
+                  className="thread-button-secondary btn btn--secondary w-full text-left"
                 >
                   <span>View Ring Memberships</span>
                 </button>
@@ -349,20 +328,18 @@ export default function PixelHomePage({
 
             {/* Owner Actions */}
             {isOwner && (
-              <div className="bg-thread-paper border-2 border-thread-sage rounded-xl p-6 shadow-cozy">
-                <h3 className="text-lg font-headline font-semibold text-thread-pine mb-4 text-center">
-                  Customize Your Home
-                </h3>
-                <div className="space-y-3">
+              <div className="widget-container bg-thread-paper border border-thread-sage rounded-cozy shadow-cozy p-4 sm:p-5">
+                <div className="widget-header mb-3"><h3 className="widget-title font-headline text-base font-bold text-nb-ink mb-0">Customize Your Home</h3></div>
+                <div className="space-y-2">
                   <button
                     onClick={handleDecorationMode}
-                    className="w-full flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600 transition-all duration-300 rounded-lg font-medium shadow-cozy-sm hover:shadow-cozy transform hover:-translate-y-0.5"
+                    className="thread-button btn btn--primary w-full text-left"
                   >
                     <span>Decorate Home</span>
                   </button>
                   <button
                     onClick={() => setShowShareModal(true)}
-                    className="w-full flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:from-blue-600 hover:to-cyan-600 transition-all duration-300 rounded-lg font-medium shadow-cozy-sm hover:shadow-cozy transform hover:-translate-y-0.5"
+                    className="thread-button-secondary btn btn--secondary w-full text-left"
                   >
                     <span>Share Home</span>
                   </button>
@@ -371,21 +348,19 @@ export default function PixelHomePage({
             )}
 
             {/* Navigation */}
-            <div className="bg-thread-paper border-2 border-thread-sage rounded-xl p-6 shadow-cozy">
-              <h3 className="text-lg font-headline font-semibold text-thread-pine mb-4 text-center">
-                Neighborhood
-              </h3>
-              <div className="space-y-3">
+            <div className="widget-container bg-thread-paper border border-thread-sage rounded-cozy shadow-cozy p-4 sm:p-5">
+              <div className="widget-header mb-3"><h3 className="widget-title font-headline text-base font-bold text-nb-ink mb-0">Neighborhood</h3></div>
+              <div className="space-y-2">
                 <button
                   onClick={() => router.push('/neighborhood/explore/all')}
-                  className="w-full flex items-center gap-3 px-4 py-3 bg-thread-cream hover:bg-thread-sky hover:bg-opacity-20 text-thread-pine transition-all duration-300 rounded-lg font-medium shadow-cozy-sm hover:shadow-cozy transform hover:-translate-y-0.5 border border-thread-sage border-opacity-30"
+                  className="thread-button-secondary btn btn--secondary w-full text-left"
                 >
                   <span>Explore More Homes</span>
                 </button>
 
                 <button
                   onClick={() => router.push('/')}
-                  className="w-full flex items-center gap-3 px-4 py-3 bg-thread-cream hover:bg-thread-sky hover:bg-opacity-20 text-thread-pine transition-all duration-300 rounded-lg font-medium shadow-cozy-sm hover:shadow-cozy transform hover:-translate-y-0.5 border border-thread-sage border-opacity-30"
+                  className="thread-button-secondary btn btn--secondary w-full text-left"
                 >
                   <span>Back to ThreadStead</span>
                 </button>
@@ -394,8 +369,8 @@ export default function PixelHomePage({
           </div>
 
           {/* Center - Main House Display */}
-          <div className="lg:col-span-2 flex flex-col items-center justify-start">
-            <div className="bg-gradient-to-br from-thread-sky from-opacity-10 to-thread-cream rounded-3xl p-8 shadow-2xl border-4 border-thread-sage border-opacity-30 max-w-2xl w-full">
+          <div className="lg:col-span-2 lg:order-2 order-1">
+            <div className="thread-module">
               {/* Pure House Display - Always show house */}
               <div className="flex justify-center">
                 <div className="relative">
@@ -406,7 +381,7 @@ export default function PixelHomePage({
                     houseCustomizations={config.houseCustomizations as HouseCustomizations}
                     atmosphere={atmosphere}
                     terrain={terrain}
-                    className="w-full max-w-xl drop-shadow-2xl transform hover:scale-105 transition-transform duration-500"
+                    className="w-full max-w-xl"
                   />
 
                   {/* NOTE: no overlays on the artwork. Badge sparkles + a
@@ -424,10 +399,10 @@ export default function PixelHomePage({
 
               {/* House Description */}
               <div className="text-center mt-6 space-y-3">
-                <div className="text-xl font-headline font-semibold text-thread-pine">
+                <div className="text-xl font-headline font-semibold text-nb-ink">
                   {config.houseCustomizations?.houseTitle || "A Cozy Corner of ThreadStead"}
                 </div>
-                <div className="text-thread-sage max-w-lg mx-auto leading-relaxed">
+                <div className="text-nb-ink-mid max-w-lg mx-auto leading-relaxed">
                   {config.houseCustomizations?.houseDescription ||
                     `This is ${nameToShow}'s pixel home. Use the menu on the left to visit their profile, leave a note in the mailbox, or see their ThreadRings.`}
                 </div>
@@ -451,15 +426,9 @@ export default function PixelHomePage({
         title="Pixel Home Mailbox"
       >
         <div className="space-y-4">
-          <div className="text-sm text-thread-sage bg-thread-cream bg-opacity-30 p-3 rounded-md border border-thread-sage border-opacity-20">
-            <div className="flex items-center gap-2 mb-2">
-              <PixelIcon name="home" size={16} />
-              <span className="font-medium">Writing from {nameToShow}&apos;s Pixel Home</span>
-            </div>
-            <div className="text-xs">
-              Messages posted here appear on their main profile guestbook too.
-            </div>
-          </div>
+          <Callout title={`Writing from ${nameToShow}'s Pixel Home`}>
+            <p className="text-xs">Messages posted here appear on their main profile guestbook too.</p>
+          </Callout>
 
           <div className="max-h-96 overflow-y-auto">
             <Guestbook username={username} />

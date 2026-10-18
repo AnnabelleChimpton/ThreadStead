@@ -162,21 +162,20 @@ function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: 
         {/* Hero Section */}
         <div className="tr-spool-hero text-center py-12 mb-12">
           <div className="tr-spool-header mb-6">
-            <div className="tr-spool-icon text-6xl mb-4"><PixelIcon name="link" size={64} /></div>
-            <h1 className="tr-spool-title text-5xl font-bold text-thread-pine mb-4">{ring.name}</h1>
+                        <h1 className="tr-spool-title text-5xl font-bold text-thread-pine mb-4">{ring.name}</h1>
             <p className="tr-spool-description text-xl text-thread-sage max-w-2xl mx-auto leading-relaxed mb-6">
               {ring.description}
             </p>
 
             {/* Prominent Spool Badge */}
             {ring.badge && ring.badge.isActive && (
-              <div className="tr-spool-badge-container bg-white border-2 border-thread-pine shadow-lg rounded-lg p-6 max-w-md mx-auto">
+              <div className="tr-spool-badge-container thread-module max-w-md mx-auto">
                 <div className="tr-spool-badge-content text-center">
                   <div className="flex justify-center mb-3">
                     {ring.badge.imageUrl ? (
                       <div
                         onClick={() => setShowSpoolBadgeOptions(!showSpoolBadgeOptions)}
-                        className="cursor-pointer transform transition-transform hover:scale-105"
+                        className="cursor-pointer"
                         title="Click to show copy options"
                       >
                         <ThreadRing88x31Badge
@@ -189,7 +188,7 @@ function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: 
                         />
                       </div>
                     ) : (
-                      <div className="flex items-center justify-center w-[88px] h-[31px] bg-gray-100 border border-gray-400 text-gray-600 text-xs">
+                      <div className="flex items-center justify-center w-[88px] h-[31px] border border-dotted border-nb-ink-mid text-nb-ink-mid text-xs">
                         No badge
                       </div>
                     )}
@@ -203,7 +202,7 @@ function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: 
                   </p>
 
                   {showSpoolBadgeOptions ? (
-                    <div className="animate-in slide-in-from-top duration-200 bg-gray-50 rounded-lg p-3 mb-3">
+                    <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-3 mb-3">
                       <div className="flex justify-center gap-2 mb-2">
                         <button
                           onClick={() => {
@@ -211,7 +210,7 @@ function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: 
                             navigator.clipboard.writeText(badgeHtml);
                             showSuccess('Spool badge HTML copied to clipboard!');
                           }}
-                          className="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition-colors flex items-center gap-1"
+                          className="thread-button-secondary btn btn--secondary text-xs flex items-center justify-center gap-1"
                         >
                           <PixelIcon name="clipboard" size={12} /> Copy HTML
                         </button>
@@ -221,13 +220,13 @@ function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: 
                             navigator.clipboard.writeText(badgeUrl);
                             showSuccess('Spool URL copied to clipboard!');
                           }}
-                          className="text-xs bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition-colors flex items-center gap-1"
+                          className="thread-button-secondary btn btn--secondary text-xs flex items-center justify-center gap-1"
                         >
                           <PixelIcon name="link" size={12} /> Copy Link
                         </button>
                         <button
                           onClick={() => setShowSpoolBadgeOptions(false)}
-                          className="text-xs bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600 transition-colors flex items-center gap-1"
+                          className="thread-button-secondary btn btn--secondary text-xs flex items-center justify-center gap-1"
                         >
                           <PixelIcon name="close" size={12} /> Close
                         </button>
@@ -244,8 +243,8 @@ function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: 
         </div>
 
         {/* Stats Section */}
-        <div className="tr-spool-stats grid md:grid-cols-3 gap-6 mb-12">
-          <div className="border border-black bg-thread-cream shadow-[4px_4px_0_#000] p-6 text-center">
+        <div className="tr-spool-stats grid md:grid-cols-2 gap-6 mb-12">
+          <div className="thread-module text-center">
             <div className="text-3xl font-bold text-thread-pine mb-2">
               {lineageData.totalDescendantsCount || ring.totalDescendantsCount || 0}
             </div>
@@ -255,7 +254,7 @@ function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: 
             </div>
           </div>
 
-          <div className="border border-black bg-thread-cream shadow-[4px_4px_0_#000] p-6 text-center">
+          <div className="thread-module text-center">
             <div className="text-3xl font-bold text-thread-pine mb-2">
               {lineageData.directChildrenCount || ring.directChildrenCount || 0}
             </div>
@@ -264,23 +263,15 @@ function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: 
               Communities born from The Spool
             </div>
           </div>
-
-          <div className="border border-black bg-thread-cream shadow-[4px_4px_0_#000] p-6 text-center">
-            <div className="text-3xl font-bold text-thread-pine mb-2">∞</div>
-            <div className="text-thread-sage font-medium">Lineage Depth</div>
-            <div className="text-sm text-thread-sage mt-1">
-              The root of all genealogy
-            </div>
-          </div>
         </div>
 
         {/* Ring Host&apos;s Note / Welcome Message */}
         {(ring.curatorNote || ring.currentPrompt) && (
-          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-6 mb-12">
+          <div className="border-l-4 border-nb-lav pl-4 py-2 mb-12">
             <div className="flex items-start">
               <div>
-                <p className="font-medium text-yellow-800 mb-2">Welcome to The Spool</p>
-                <p className="text-yellow-700 leading-relaxed">
+                <p className="font-medium text-nb-ink mb-2">Welcome to The Spool</p>
+                <p className="text-nb-ink leading-relaxed">
                   {ring.curatorNote || ring.currentPrompt}
                 </p>
               </div>
@@ -291,34 +282,24 @@ function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: 
         {/* Genealogy Section */}
         <div className="grid md:grid-cols-2 gap-8 mb-12">
           {/* Genealogy Explorer */}
-          <div className="border border-black bg-white shadow-[4px_4px_0_#000] p-6">
-            <h2 className="text-2xl font-bold text-thread-pine mb-4 flex items-center">
-              <span className="mr-2"><PixelIcon name="archive" size={24} /></span>
-              Genealogy Explorer
+          <div className="thread-module">
+            <h2 className="thread-headline text-2xl font-bold mb-4">Genealogy Explorer
             </h2>
             <p className="text-thread-sage mb-6">
               Explore the complete family tree of all ThreadRing communities. See how every ring traces its lineage back to The Spool.
             </p>
 
-            <div className="bg-gradient-to-br from-green-50 to-blue-50 border border-green-200 rounded-lg p-6 text-center mb-4">
-              <div className="text-4xl mb-2 flex justify-center"><PixelIcon name="archive" size={48} /></div>
-              <p className="text-gray-700 font-medium">Interactive genealogy tree is now available!</p>
-              <p className="text-sm text-gray-600 mt-1">Visualize the entire ThreadRing ecosystem</p>
-            </div>
-
             <Link
               href="/threadrings/genealogy"
-              className="block w-full text-center border border-black px-4 py-2 bg-green-100 hover:bg-green-200 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all font-medium flex items-center justify-center gap-2"
+              className="thread-button btn btn--primary w-full flex items-center justify-center gap-2"
             >
-              <PixelIcon name="archive" size={16} /> Explore Family Tree
+              Explore Family Tree
             </Link>
           </div>
 
           {/* Community Discovery */}
-          <div className="border border-black bg-white shadow-[4px_4px_0_#000] p-6">
-            <h2 className="text-2xl font-bold text-thread-pine mb-4 flex items-center">
-              <span className="mr-2"><PixelIcon name="search" size={24} /></span>
-              Discover Communities
+          <div className="thread-module">
+            <h2 className="thread-headline text-2xl font-bold mb-4">Discover Communities
             </h2>
             <p className="text-thread-sage mb-6">
               Browse all ThreadRing communities that have grown from The Spool. Find your people and join the conversation.
@@ -327,14 +308,14 @@ function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: 
             <div className="space-y-3">
               <button
                 onClick={() => window.location.href = '/threadrings'}
-                className="w-full border border-black px-4 py-2 bg-blue-100 hover:bg-blue-200 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all font-medium flex items-center justify-center gap-2"
+                className="thread-button-secondary btn btn--secondary w-full flex items-center justify-center gap-2"
               >
                 <PixelIcon name="gps" size={16} /> Discover Communities
               </button>
 
               <button
                 onClick={() => window.location.href = '/tr/spool/fork'}
-                className="w-full border border-black px-4 py-2 bg-green-100 hover:bg-green-200 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all font-medium flex items-center justify-center gap-2"
+                className="thread-button btn btn--primary w-full flex items-center justify-center gap-2"
               >
                 <PixelIcon name="plus" size={16} /> Create New Community
               </button>
@@ -343,7 +324,7 @@ function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: 
         </div>
 
         {/* About The Spool */}
-        <div className="border border-black bg-thread-paper shadow-[4px_4px_0_#000] p-8 mb-12">
+        <div className="thread-module mb-12">
           <h2 className="text-2xl font-bold text-thread-pine mb-4 text-center">
             About The Spool
           </h2>
@@ -366,7 +347,7 @@ function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: 
         </div>
 
         {/* Technical Info (for admins/curious users) */}
-        <div className="border border-gray-300 bg-gray-50 p-4 text-sm text-gray-600">
+        <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-4 text-sm text-nb-ink">
           <div className="grid md:grid-cols-2 gap-4">
             <div>
               <strong>System Information:</strong>
@@ -965,7 +946,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
           <div className="tr-main-content col-span-1 lg:col-span-2">
             <div className="tr-header-card bg-thread-paper rounded-cozy shadow-cozy border border-thread-sage/30 overflow-hidden">
               {ring.bannerUrl && (
-                <div className="w-full h-32 sm:h-48 relative bg-gray-100 border-b border-thread-sage/20">
+                <div className="w-full h-32 sm:h-48 relative bg-thread-cream border-b border-thread-sage/20">
                   <img
                     src={ring.bannerUrl}
                     alt={`${ring.name} banner`}
@@ -994,25 +975,25 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
 
 
 
-                <div className="tr-meta-info flex flex-wrap items-center gap-3 text-sm text-gray-600">
+                <div className="tr-meta-info flex flex-wrap items-center gap-3 text-sm text-nb-ink-mid">
                   {ring.curator && (
                     <>
                       <span className="tr-curator-info font-medium">Hosted by @{curatorHandle}</span>
-                      <span className="text-gray-400">•</span>
+                      <span className="text-nb-ink-mid">•</span>
                     </>
                   )}
                   <span className="tr-member-count">{ring.memberCount} member{ring.memberCount !== 1 ? 's' : ''}</span>
-                  <span className="text-gray-400">•</span>
+                  <span className="text-nb-ink-mid">•</span>
                   <span className="tr-post-count">{ring.postCount} post{ring.postCount !== 1 ? 's' : ''}</span>
-                  <span className="text-gray-400">•</span>
+                  <span className="text-nb-ink-mid">•</span>
                   <span className="tr-join-type capitalize">{ring.joinType} joining</span>
                 </div>
               </div>
 
 
 
-              <div className="tr-footer px-3 sm:px-6 py-3 bg-gray-50">
-                <span className="tr-slug text-xs text-gray-500 font-mono">threadring/{ring.slug}</span>
+              <div className="tr-footer px-3 sm:px-6 py-3 border-t-2 border-dotted border-nb-ink-mid/30">
+                <span className="tr-slug text-xs text-nb-ink-mid font-mono">threadring/{ring.slug}</span>
               </div>
             </div>
 
@@ -1041,7 +1022,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
             <div className="mt-6">
 
               {postsLoading ? (
-                <div className="tr-posts-loading text-gray-600 text-center py-8 px-3">
+                <div className="tr-posts-loading text-nb-ink-mid text-center py-8 px-3">
                   Loading posts...
                 </div>
               ) : loadError ? (
@@ -1049,7 +1030,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                   {loadError}
                 </div>
               ) : posts.length === 0 ? (
-                <div className="tr-posts-empty text-gray-600 text-center py-12 px-3">
+                <div className="tr-posts-empty text-nb-ink-mid text-center py-12 px-3">
                   <div className="mb-3 flex justify-center">
                     <PixelIcon name="file" size={32} />
                   </div>
@@ -1104,8 +1085,8 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
               {isMember ? (
                 <div className="space-y-3">
                   {/* Member Status */}
-                  <div className="tr-member-status bg-green-50 px-3 py-2 border border-green-300 text-center">
-                    <span className="tr-role-indicator font-semibold text-green-800 flex items-center justify-center gap-1">
+                  <div className="tr-member-status badge badge--butter block px-3 py-2 text-center">
+                    <span className="tr-role-indicator font-semibold text-nb-ink flex items-center justify-center gap-1">
                       {currentUserRole === "curator" ? <><PixelIcon name="trophy" size={14} /> Ring Host</> :
                         currentUserRole === "moderator" ? <><PixelIcon name="shield" size={14} /> Moderator</> : <><PixelIcon name="user" size={14} /> Member</>}
                     </span>
@@ -1114,7 +1095,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                   {/* Primary Action Buttons */}
                   <button
                     onClick={() => router.push(`/neighborhood/ring/${ring.slug}`)}
-                    className="w-full border border-black px-4 py-2.5 bg-yellow-200 hover:bg-yellow-300 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all font-medium flex items-center justify-center gap-2"
+                    className="thread-button btn btn--primary w-full flex items-center justify-center gap-2"
                     title="Explore member homes in Ring Streets"
                   >
                     <PixelIcon name="buildings" size={16} /> Ring Neighborhood
@@ -1124,17 +1105,17 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                   {currentUserRole === "curator" && (
                     <button
                       onClick={() => router.push(`/tr/${ring.slug}/settings`)}
-                      className="w-full border border-black px-4 py-2 bg-blue-100 hover:bg-blue-200 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all flex items-center justify-center gap-2"
+                      className="thread-button-secondary btn btn--secondary w-full flex items-center justify-center gap-2"
                     >
                       <PixelIcon name="sliders" size={16} /> Manage Settings
                     </button>
                   )}
 
                   {/* Secondary Actions */}
-                  <div className="pt-2 border-t border-gray-200 space-y-2">
+                  <div className="pt-2 border-t-2 border-dotted border-nb-ink-mid/30 space-y-2">
                     <button
                       onClick={() => router.push(`/tr/${ring.slug}/fork`)}
-                      className="w-full text-sm border border-black px-3 py-2 bg-white hover:bg-purple-50 shadow-[1px_1px_0_#000] hover:shadow-[2px_2px_0_#000] transition-all flex items-center justify-center gap-1"
+                      className="thread-button-secondary btn btn--secondary w-full flex items-center justify-center gap-2"
                     >
                       <PixelIcon name="external-link" size={14} /> Branch This Ring
                     </button>
@@ -1142,7 +1123,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                     <button
                       onClick={handleLeave}
                       disabled={joining}
-                      className="w-full text-sm border border-black px-3 py-2 bg-white hover:bg-red-50 shadow-[1px_1px_0_#000] hover:shadow-[2px_2px_0_#000] transition-all disabled:opacity-50 disabled:cursor-not-allowed text-gray-700"
+                      className="thread-button-secondary btn btn--secondary w-full flex items-center justify-center gap-2"
                       title={currentUserRole === "curator"
                         ? "As Ring Host, you must transfer ownership first (unless you're the only member)"
                         : "Leave this Ring"}
@@ -1158,26 +1139,26 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                     <button
                       onClick={handleJoin}
                       disabled={joining}
-                      className="w-full border border-black px-4 py-3 bg-yellow-200 hover:bg-yellow-300 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all disabled:opacity-50 disabled:cursor-not-allowed font-bold text-lg join-button"
+                      className="thread-button btn btn--primary w-full flex items-center justify-center gap-2"
                     >
                       {joining ? "Joining..." : "Join Ring"}
                     </button>
                   ) : ring.joinType === "invite" ? (
-                    <div className="bg-gray-100 px-4 py-3 border border-gray-400 text-center font-medium flex items-center justify-center gap-2">
+                    <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md px-4 py-3 text-center font-medium flex items-center justify-center gap-2">
                       <PixelIcon name="lock" size={16} /> Invite Only
                     </div>
                   ) : ring.joinType === "closed" ? (
-                    <div className="bg-red-100 px-4 py-3 border border-red-400 text-center font-medium flex items-center justify-center gap-2">
+                    <div className="border-2 border-nb-rose rounded-md px-4 py-3 text-center font-medium text-nb-rose-ink flex items-center justify-center gap-2">
                       <PixelIcon name="alert" size={16} /> Closed to New Members
                     </div>
                   ) : null}
 
                   {/* Secondary Actions for Non-Members */}
-                  <div className="pt-2 border-t border-gray-200 space-y-2">
+                  <div className="pt-2 border-t-2 border-dotted border-nb-ink-mid/30 space-y-2">
                     {ring.visibility !== "private" && (
                       <button
                         onClick={() => router.push(`/neighborhood/ring/${ring.slug}`)}
-                        className="w-full text-sm border border-black px-3 py-2 bg-white hover:bg-yellow-50 shadow-[1px_1px_0_#000] hover:shadow-[2px_2px_0_#000] transition-all flex items-center justify-center gap-1"
+                        className="thread-button-secondary btn btn--secondary w-full flex items-center justify-center gap-2"
                         title="Explore member homes in Ring Streets"
                       >
                         <PixelIcon name="buildings" size={14} /> Explore Homes
@@ -1187,7 +1168,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                     {ring.visibility !== "private" && (
                       <button
                         onClick={() => router.push(`/tr/${ring.slug}/fork`)}
-                        className="w-full text-sm border border-black px-3 py-2 bg-white hover:bg-purple-50 shadow-[1px_1px_0_#000] hover:shadow-[2px_2px_0_#000] transition-all flex items-center justify-center gap-1"
+                        className="thread-button-secondary btn btn--secondary w-full flex items-center justify-center gap-2"
                       >
                         <PixelIcon name="external-link" size={14} /> Branch This Ring
                       </button>
@@ -1199,12 +1180,12 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
 
             {/* Official ThreadRing Badge - Always Visible */}
             {ring.badge && ring.badge.isActive && (
-              <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-cozy shadow-cozy-sm border border-thread-sage/30 p-4">
+              <div className="widget-container bg-thread-paper border border-thread-sage rounded-cozy shadow-cozy-sm p-4">
                 <div className="flex items-center justify-center mb-3">
                   {ring.badge.imageUrl ? (
                     <div
                       onClick={() => setShowBadgeOptions(!showBadgeOptions)}
-                      className="cursor-pointer transform transition-transform hover:scale-110"
+                      className="cursor-pointer"
                       title="Click for embed code"
                     >
                       <ThreadRing88x31Badge
@@ -1217,28 +1198,28 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                       />
                     </div>
                   ) : (
-                    <div className="flex items-center justify-center w-[88px] h-[31px] bg-gray-100 border border-gray-400 text-gray-600 text-xs">
+                    <div className="flex items-center justify-center w-[88px] h-[31px] border border-dotted border-nb-ink-mid text-nb-ink-mid text-xs">
                       No badge
                     </div>
                   )}
                 </div>
 
                 <div className="text-center mb-2">
-                  <div className="text-xs font-bold text-gray-700 mb-1 flex items-center justify-center gap-1"><PixelIcon name="map" size={12} /> Official Badge</div>
-                  <p className="text-xs text-gray-600">
+                  <div className="text-xs font-bold text-nb-ink mb-1 flex items-center justify-center gap-1"><PixelIcon name="map" size={12} /> Official Badge</div>
+                  <p className="text-xs text-nb-ink-mid">
                     {showBadgeOptions ? "Classic webring badge" : "Click for embed code"}
                   </p>
                 </div>
 
                 {showBadgeOptions && (
-                  <div className="animate-in slide-in-from-top duration-200 space-y-2 mt-3">
+                  <div className="space-y-2 mt-3">
                     <button
                       onClick={() => {
                         const badgeHtml = `<a href="${getSiteBaseUrl()}/tr/${ring.slug}" target="_blank" rel="noopener"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==" alt="${ring.badge?.title || ring.name}" width="88" height="31" style="border: 1px solid #ccc;" /></a>`;
                         navigator.clipboard.writeText(badgeHtml);
                         showSuccess('Badge HTML copied!');
                       }}
-                      className="w-full text-xs bg-blue-600 text-white px-3 py-2 border border-black shadow-[1px_1px_0_#000] hover:bg-blue-700 transition-colors font-medium flex items-center justify-center gap-1"
+                      className="thread-button-secondary btn btn--secondary text-xs w-full flex items-center justify-center gap-1"
                     >
                       <PixelIcon name="clipboard" size={12} /> Copy HTML
                     </button>
@@ -1248,13 +1229,13 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                         navigator.clipboard.writeText(badgeUrl);
                         showSuccess('URL copied!');
                       }}
-                      className="w-full text-xs bg-green-600 text-white px-3 py-2 border border-black shadow-[1px_1px_0_#000] hover:bg-green-700 transition-colors font-medium flex items-center justify-center gap-1"
+                      className="thread-button-secondary btn btn--secondary text-xs w-full flex items-center justify-center gap-1"
                     >
                       <PixelIcon name="link" size={12} /> Copy Link
                     </button>
                     <button
                       onClick={() => setShowBadgeOptions(false)}
-                      className="w-full text-xs bg-white px-3 py-2 border border-black shadow-[1px_1px_0_#000] hover:bg-gray-100 transition-colors flex items-center justify-center gap-1"
+                      className="thread-button-secondary btn btn--secondary text-xs w-full flex items-center justify-center gap-1"
                     >
                       <PixelIcon name="close" size={12} /> Close
                     </button>
@@ -1270,7 +1251,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                 {isMember && currentUserRole === "curator" && (
                   <button
                     onClick={() => router.push(`/tr/${ring.slug}/members`)}
-                    className="text-xs text-blue-600 hover:underline"
+                    className="text-xs"
                   >
                     Manage
                   </button>
@@ -1278,7 +1259,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
               </div>
 
               {membersLoading ? (
-                <div className="text-xs text-gray-500">Loading...</div>
+                <div className="text-xs text-nb-ink-mid">Loading...</div>
               ) : (
                 <>
                   {/* Avatar Grid - First 8 members */}
@@ -1323,10 +1304,10 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                             <img
                               src={member.user.profile.avatarUrl}
                               alt={displayName}
-                              className="w-full aspect-square rounded border border-gray-300 hover:border-black transition-colors"
+                              className="w-full aspect-square rounded-md border border-nb-ink-mid/40 hover:border-nb-ink-mid"
                             />
                           ) : (
-                            <div className="w-full aspect-square rounded border border-gray-300 bg-gray-100 flex items-center justify-center text-xs">
+                            <div className="w-full aspect-square rounded-md border border-nb-ink-mid/40 bg-thread-cream flex items-center justify-center text-xs">
                               {displayName[0]?.toUpperCase()}
                             </div>
                           )}
@@ -1339,13 +1320,13 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                   </div>
 
                   {ring.memberCount > 8 && (
-                    <div className="text-xs text-gray-600 text-center">
+                    <div className="text-xs text-nb-ink-mid text-center">
                       +{ring.memberCount - 8} more members
                     </div>
                   )}
 
                   {isPublicMemberInfo && (
-                    <div className="text-xs text-gray-500 mt-2 p-2 bg-gray-50 border border-gray-200">
+                    <div className="text-xs text-nb-ink-mid mt-2 p-2 border-2 border-dotted border-nb-ink-mid/60 rounded-md">
                       Join to see all members
                     </div>
                   )}
@@ -1383,33 +1364,30 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
             )}
 
             {/* Ring Info & Insights - Tabbed Interface */}
-            <div className="bg-thread-paper rounded-cozy shadow-cozy-sm border border-thread-sage/30 overflow-hidden">
+            <div className="widget-container bg-thread-paper border border-thread-sage rounded-cozy shadow-cozy-sm p-0 overflow-hidden">
               {/* Tab Navigation */}
-              <div className="flex border-b border-gray-300">
+              <div className="flex border-b-2 border-dotted border-nb-ink-mid/40" role="tablist">
                 <button
                   onClick={() => setSidebarTab('stats')}
-                  className={`flex-1 px-3 py-2 text-sm font-medium border-r border-gray-300 transition-colors flex items-center justify-center gap-1 ${sidebarTab === 'stats'
-                    ? 'bg-yellow-100 text-black'
-                    : 'bg-white text-gray-600 hover:bg-gray-50'
-                    }`}
+                  role="tab"
+                  aria-selected={sidebarTab === 'stats'}
+                  className="ts-tab flex-1 text-sm inline-flex items-center justify-center gap-1"
                 >
                   <PixelIcon name="chart" size={14} /> Stats
                 </button>
                 <button
                   onClick={() => setSidebarTab('lineage')}
-                  className={`flex-1 px-3 py-2 text-sm font-medium border-r border-gray-300 transition-colors flex items-center justify-center gap-1 ${sidebarTab === 'lineage'
-                    ? 'bg-yellow-100 text-black'
-                    : 'bg-white text-gray-600 hover:bg-gray-50'
-                    }`}
+                  role="tab"
+                  aria-selected={sidebarTab === 'lineage'}
+                  className="ts-tab flex-1 text-sm inline-flex items-center justify-center gap-1"
                 >
                   <PixelIcon name="archive" size={14} /> Tree
                 </button>
                 <button
                   onClick={() => setSidebarTab('discovery')}
-                  className={`flex-1 px-3 py-2 text-sm font-medium transition-colors flex items-center justify-center gap-1 ${sidebarTab === 'discovery'
-                    ? 'bg-yellow-100 text-black'
-                    : 'bg-white text-gray-600 hover:bg-gray-50'
-                    }`}
+                  role="tab"
+                  aria-selected={sidebarTab === 'discovery'}
+                  className="ts-tab flex-1 text-sm inline-flex items-center justify-center gap-1"
                 >
                   <PixelIcon name="dice" size={14} /> Discover
                 </button>
@@ -1446,17 +1424,17 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
             </div>
 
             {/* Quick Info - Always Visible */}
-            <div className="bg-gray-50 rounded-cozy shadow-cozy-sm border border-thread-sage/30 p-3 text-xs space-y-1">
+            <div className="widget-container widget--flat bg-thread-paper border border-thread-sage rounded-cozy p-3 text-xs space-y-1">
               <div className="flex justify-between">
-                <span className="text-gray-600">Created:</span>
+                <span className="text-nb-ink-mid">Created:</span>
                 <span className="font-medium">{new Date(ring.createdAt).toLocaleDateString()}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Visibility:</span>
+                <span className="text-nb-ink-mid">Visibility:</span>
                 <span className="font-medium capitalize">{ring.visibility}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Join Type:</span>
+                <span className="text-nb-ink-mid">Join Type:</span>
                 <span className="font-medium capitalize">{ring.joinType}</span>
               </div>
             </div>
@@ -1501,8 +1479,8 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                   {isMember ? (
                     <div className="space-y-3">
                       {/* Member Status */}
-                      <div className="tr-member-status bg-green-50 px-3 py-2 border border-green-300 text-center">
-                        <span className="tr-role-indicator font-semibold text-green-800 flex items-center justify-center gap-1">
+                      <div className="tr-member-status badge badge--butter block px-3 py-2 text-center">
+                        <span className="tr-role-indicator font-semibold text-nb-ink flex items-center justify-center gap-1">
                           {currentUserRole === 'CURATOR' ? <><PixelIcon name="trophy" size={14} /> Ring Host</> : <><PixelIcon name="check" size={14} /> Member</>}
                         </span>
                       </div>
@@ -1510,7 +1488,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                       {/* Create Post Button */}
                       <Link
                         href={`/resident/${currentUser?.primaryHandle}/create?ring=${ring.slug}`}
-                        className="tr-create-post-button block w-full text-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-cozy shadow-cozy-sm hover:shadow-cozy transition-all"
+                        className="tr-create-post-button btn btn--primary w-full text-center font-semibold bg-thread-cream text-thread-pine border-2 border-thread-sage rounded-md shadow-cozy-sm"
                       >
                         + New Post
                       </Link>
@@ -1520,7 +1498,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                         <button
                           onClick={handleLeave}
                           disabled={joining}
-                          className="tr-leave-button w-full px-4 py-2 bg-red-50 hover:bg-red-100 text-red-700 border border-red-300 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="tr-leave-button thread-button-secondary btn btn--secondary w-full font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {joining ? 'Leaving...' : 'Leave Ring'}
                         </button>
@@ -1532,15 +1510,15 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                       <button
                         onClick={handleJoin}
                         disabled={joining}
-                        className="tr-join-button w-full px-4 py-3 bg-green-600 hover:bg-green-700 text-white font-bold text-lg rounded-cozy shadow-cozy-sm hover:shadow-cozy transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="tr-join-button thread-button btn btn--primary btn--lg w-full font-bold"
                       >
                         {joining ? 'Joining...' : '+ Join Ring'}
                       </button>
 
                       {/* Badge Preview */}
                       {ring.badge && ring.badge.isActive && (
-                        <div className="tr-badge-preview-section bg-gray-50 p-3 border border-gray-200 text-center">
-                          <div className="tr-badge-preview-label text-xs text-gray-600 mb-2">
+                        <div className="tr-badge-preview-section border-2 border-dotted border-nb-ink-mid/60 rounded-md p-3 text-center">
+                          <div className="tr-badge-preview-label text-xs text-nb-ink-mid mb-2">
                             Badge Preview
                           </div>
                           <div className="tr-badge-preview-image-container flex justify-center">
@@ -1556,7 +1534,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                         </div>
                       )}
 
-                      <div className="text-xs text-gray-600 text-center">
+                      <div className="text-xs text-nb-ink-mid text-center">
                         Join to post and earn this ring&apos;s badge
                       </div>
                     </div>
@@ -1564,10 +1542,10 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
 
                   {/* Badge Management - Ring Hosts Only */}
                   {currentUserRole === 'CURATOR' && ring.badge && (
-                    <div className="mt-3 pt-3 border-t border-gray-200">
+                    <div className="mt-3 pt-3 border-t-2 border-dotted border-nb-ink-mid/30">
                       <button
                         onClick={() => setShowBadgeOptions(!showBadgeOptions)}
-                        className="w-full text-sm text-gray-700 hover:text-black font-medium flex items-center justify-between"
+                        className="w-full text-sm text-nb-ink hover:text-black font-medium flex items-center justify-between"
                       >
                         <span className="flex items-center gap-1"><PixelIcon name="sliders" size={14} /> Badge Options</span>
                         <span>{showBadgeOptions ? <PixelIcon name="chevron-down" size={12} /> : <PixelIcon name="chevron-right" size={12} />}</span>
@@ -1577,13 +1555,13 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                         <div className="mt-2 space-y-2">
                           <Link
                             href={`/threadrings/${ring.slug}/badge/design`}
-                            className="block text-sm px-3 py-2 bg-gray-50 hover:bg-gray-100 border border-gray-300 text-center"
+                            className="thread-button-secondary btn btn--secondary block w-full text-sm text-center"
                           >
                             Edit Badge Design
                           </Link>
                           <Link
                             href={`/threadrings/${ring.slug}/badge/manage`}
-                            className="block text-sm px-3 py-2 bg-gray-50 hover:bg-gray-100 border border-gray-300 text-center"
+                            className="thread-button-secondary btn btn--secondary block w-full text-sm text-center"
                           >
                             Manage Badges
                           </Link>
@@ -1596,31 +1574,28 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                 {/* Tabbed Content */}
                 <div className="tr-sidebar-section bg-thread-paper rounded-cozy shadow-cozy-sm border border-thread-sage/30 overflow-hidden">
                   {/* Tab Navigation */}
-                  <div className="flex border-b border-gray-300">
+                  <div className="flex border-b-2 border-dotted border-nb-ink-mid/40" role="tablist">
                     <button
                       onClick={() => setSidebarTab('stats')}
-                      className={`flex-1 px-3 py-3 min-h-[48px] text-sm font-medium border-r border-gray-300 transition-colors flex items-center justify-center gap-1 ${sidebarTab === 'stats'
-                        ? 'bg-yellow-100 text-black'
-                        : 'bg-white text-gray-600 hover:bg-gray-50'
-                        }`}
+                      role="tab"
+                      aria-selected={sidebarTab === 'stats'}
+                      className="ts-tab flex-1 min-h-[48px] text-sm inline-flex items-center justify-center gap-1"
                     >
                       <PixelIcon name="chart" size={14} /> Stats
                     </button>
                     <button
                       onClick={() => setSidebarTab('lineage')}
-                      className={`flex-1 px-3 py-3 min-h-[48px] text-sm font-medium border-r border-gray-300 transition-colors flex items-center justify-center gap-1 ${sidebarTab === 'lineage'
-                        ? 'bg-yellow-100 text-black'
-                        : 'bg-white text-gray-600 hover:bg-gray-50'
-                        }`}
+                      role="tab"
+                      aria-selected={sidebarTab === 'lineage'}
+                      className="ts-tab flex-1 min-h-[48px] text-sm inline-flex items-center justify-center gap-1"
                     >
                       <PixelIcon name="archive" size={14} /> Tree
                     </button>
                     <button
                       onClick={() => setSidebarTab('discovery')}
-                      className={`flex-1 px-3 py-3 min-h-[48px] text-sm font-medium transition-colors flex items-center justify-center gap-1 ${sidebarTab === 'discovery'
-                        ? 'bg-yellow-100 text-black'
-                        : 'bg-white text-gray-600 hover:bg-gray-50'
-                        }`}
+                      role="tab"
+                      aria-selected={sidebarTab === 'discovery'}
+                      className="ts-tab flex-1 min-h-[48px] text-sm inline-flex items-center justify-center gap-1"
                     >
                       <PixelIcon name="dice" size={14} /> Discover
                     </button>
@@ -1657,18 +1632,18 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                 </div>
 
                 {/* Quick Info */}
-                <div className="bg-gray-50 rounded-cozy shadow-cozy-sm border border-thread-sage/30 p-3 text-xs space-y-1">
+                <div className="widget-container widget--flat bg-thread-paper border border-thread-sage rounded-cozy p-3 text-xs space-y-1">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Created:</span>
-                    <span className="font-medium text-gray-900">{new Date(ring.createdAt).toLocaleDateString()}</span>
+                    <span className="text-nb-ink-mid">Created:</span>
+                    <span className="font-medium text-nb-ink">{new Date(ring.createdAt).toLocaleDateString()}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Visibility:</span>
-                    <span className="font-medium text-gray-900 capitalize">{ring.visibility}</span>
+                    <span className="text-nb-ink-mid">Visibility:</span>
+                    <span className="font-medium text-nb-ink capitalize">{ring.visibility}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Join Type:</span>
-                    <span className="font-medium text-gray-900 capitalize">{ring.joinType}</span>
+                    <span className="text-nb-ink-mid">Join Type:</span>
+                    <span className="font-medium text-nb-ink capitalize">{ring.joinType}</span>
                   </div>
                 </div>
               </div>

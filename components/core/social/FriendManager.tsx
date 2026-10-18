@@ -85,7 +85,7 @@ export default function FriendManager({
     return (
       <div className="space-y-4">
         <h3 className="text-lg font-bold">Featured Friends</h3>
-        <div className="text-center py-8 text-gray-500">
+        <div className="text-center py-8 text-nb-ink-mid">
           Loading friends...
         </div>
       </div>
@@ -101,7 +101,7 @@ export default function FriendManager({
           <br />
           <button 
             onClick={loadFriends}
-            className="mt-2 border border-black px-3 py-1 bg-white hover:bg-gray-100 shadow-[2px_2px_0_#000] text-sm"
+            className="thread-button-secondary btn btn--secondary text-sm"
           >
             Retry
           </button>
@@ -114,7 +114,7 @@ export default function FriendManager({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-bold">Featured Friends</h3>
-        <span className="text-sm text-gray-600">
+        <span className="text-sm text-nb-ink-mid">
           {selectedFriends.length}/{maxFriends} selected
         </span>
       </div>
@@ -127,7 +127,7 @@ export default function FriendManager({
             {selectedFriends.map((friend, index) => (
               <div
                 key={friend.id}
-                className="flex items-center justify-between bg-green-50 border border-green-300 p-3 shadow-[2px_2px_0_#000]"
+                className="flex items-center justify-between border-2 border-dotted border-nb-ink-mid/60 rounded-md p-3 shadow-nb-sm"
               >
                 <div className="flex items-center gap-3">
                   <Image
@@ -135,19 +135,19 @@ export default function FriendManager({
                     alt={friend.displayName}
                     width={32}
                     height={32}
-                    className="w-8 h-8 border border-black object-cover"
+                    className="w-8 h-8 border-2 border-nb-ink-mid object-cover"
                     unoptimized={friend.avatarUrl?.endsWith('.gif')}
                   />
                   <div>
                     <div className="font-medium">{friend.displayName}</div>
-                    <div className="text-sm text-gray-600">@{friend.handle}</div>
+                    <div className="text-sm text-nb-ink-mid">@{friend.handle}</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => moveUp(index)}
                     disabled={index === 0}
-                    className="border border-black px-2 py-1 bg-gray-200 hover:bg-gray-100 shadow-[1px_1px_0_#000] text-xs disabled:opacity-50"
+                    className="thread-button-secondary btn btn--secondary text-xs disabled:opacity-50"
                     title="Move up"
                   >
                     ↑
@@ -155,14 +155,14 @@ export default function FriendManager({
                   <button
                     onClick={() => moveDown(index)}
                     disabled={index === selectedFriends.length - 1}
-                    className="border border-black px-2 py-1 bg-gray-200 hover:bg-gray-100 shadow-[1px_1px_0_#000] text-xs disabled:opacity-50"
+                    className="thread-button-secondary btn btn--secondary text-xs disabled:opacity-50"
                     title="Move down"
                   >
                     ↓
                   </button>
                   <button
                     onClick={() => removeFriend(friend.id)}
-                    className="border border-black px-2 py-1 bg-red-200 hover:bg-red-100 shadow-[1px_1px_0_#000] text-xs"
+                    className="thread-button-secondary btn btn--secondary text-xs"
                     title="Remove"
                   >
                     ×
@@ -178,12 +178,12 @@ export default function FriendManager({
       <div className="space-y-2">
         <h4 className="font-semibold text-sm">Select from your friends:</h4>
         {allFriends.length === 0 ? (
-          <div className="text-center py-8 text-gray-500 border border-gray-300 bg-gray-50">
+          <div className="text-center py-8 text-nb-ink-mid border border-nb-ink-mid/40 bg-nb-ink-mid/5">
             <p>No friends yet!</p>
             <p className="text-sm">Start following people and they follow you back to become friends.</p>
           </div>
         ) : (
-          <div className="grid gap-2 max-h-96 overflow-y-auto border border-gray-300 p-3 bg-gray-50">
+          <div className="grid gap-2 max-h-96 overflow-y-auto border border-nb-ink-mid/40 p-3 bg-nb-ink-mid/5">
             {allFriends.map((friend) => {
               const isSelected = selectedFriends.some(f => f.id === friend.id);
               const canSelect = !isSelected && selectedFriends.length < maxFriends;
@@ -191,7 +191,7 @@ export default function FriendManager({
               return (
                 <div
                   key={friend.id}
-                  className={`flex items-center justify-between p-2 border border-black shadow-[1px_1px_0_#000] cursor-pointer transition-colors ${
+                  className={`flex items-center justify-between p-2 border border-nb-ink-mid shadow-nb-sm cursor-pointer transition-colors ${
                     isSelected 
                       ? 'bg-green-200' 
                       : canSelect 
@@ -206,21 +206,21 @@ export default function FriendManager({
                       alt={friend.displayName}
                       width={32}
                       height={32}
-                      className="w-8 h-8 border border-black object-cover"
+                      className="w-8 h-8 border-2 border-nb-ink-mid object-cover"
                       unoptimized={friend.avatarUrl?.endsWith('.gif')}
                     />
                     <div>
                       <div className="font-medium text-sm">{friend.displayName}</div>
-                      <div className="text-xs text-gray-600">@{friend.handle}</div>
+                      <div className="text-xs text-nb-ink-mid">@{friend.handle}</div>
                     </div>
                   </div>
                   <div className="text-sm">
                     {isSelected ? (
-                      <span className="text-green-700 font-medium"><PixelIcon name="check" /> Selected</span>
+                      <span className="text-nb-ink font-medium"><PixelIcon name="check" /> Selected</span>
                     ) : canSelect ? (
-                      <span className="text-gray-600">Click to add</span>
+                      <span className="text-nb-ink-mid">Click to add</span>
                     ) : (
-                      <span className="text-gray-400">Limit reached</span>
+                      <span className="text-nb-ink-mid">Limit reached</span>
                     )}
                   </div>
                 </div>
@@ -230,7 +230,7 @@ export default function FriendManager({
         )}
       </div>
 
-      <div className="text-xs text-gray-600">
+      <div className="text-xs text-nb-ink-mid">
         <p>• Select up to {maxFriends} friends to feature on your profile</p>
         <p>• Use ↑↓ buttons to change the order they appear</p>
         <p>• Only mutual friends (people who follow you back) can be featured</p>

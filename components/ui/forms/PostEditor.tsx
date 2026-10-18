@@ -732,18 +732,18 @@ export default function PostEditor({
     <div className="w-full">
       {/* Prompt Response Banner */}
       {respondingToPrompt && (
-        <div className="w-full bg-gradient-to-r from-blue-50 to-purple-50 border-b-2 border-blue-400 p-4 mb-6">
+        <div className="w-full bg-nb-paper border-b-2 border-nb-ink-mid/50 p-4 mb-6">
           <div className="max-w-4xl mx-auto">
             <div className="flex items-center gap-3">
-              <PixelIcon name="chat" size={24} className="text-blue-600" />
+              <PixelIcon name="chat" size={24} className="text-nb-ink" />
               <div>
-                <h3 className="text-lg font-bold text-gray-900 mb-1">
+                <h3 className="text-lg font-bold text-nb-ink mb-1">
                   Responding to Challenge
                 </h3>
-                <p className="text-blue-700 font-medium">
+                <p className="text-nb-ink font-medium">
                   &quot;{respondingToPrompt.title}&quot;
                 </p>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-nb-ink-mid">
                   Your post will be automatically linked to this prompt in the {respondingToPrompt.threadRingSlug} ThreadRing
                 </p>
               </div>
@@ -752,9 +752,9 @@ export default function PostEditor({
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="post-editor-container border border-black bg-white shadow-[4px_4px_0_#000] relative">
+      <form onSubmit={handleSubmit} className="post-editor-container border-2 border-nb-ink-mid bg-white shadow-nb-sm relative">
         {/* Tab Navigation */}
-        <div className="border-b border-black bg-gray-50 p-3 flex items-center justify-between sticky top-0 z-20">
+        <div className="border-b border-nb-ink-mid bg-nb-ink-mid/5 p-3 flex items-center justify-between sticky top-0 z-20">
           <div className="flex items-center gap-2" role="tablist">
             <button
               type="button"
@@ -787,7 +787,7 @@ export default function PostEditor({
             <div className="flex items-center gap-2">
               <label className="text-sm font-medium">Visibility:</label>
               <select
-                className="form-select border border-black bg-white px-3 py-1 text-sm"
+                className="thread-button-secondary btn btn--secondary text-sm"
                 value={visibility}
                 onChange={(e) => setVisibility(e.target.value as Visibility)}
                 disabled={busy}
@@ -808,9 +808,9 @@ export default function PostEditor({
           < div className="mb-6 space-y-4" >
             {intentStampsEnabled && (
               <div className="flex items-center gap-3">
-                <span className="text-base text-gray-600 font-medium">I am</span>
+                <span className="text-base text-nb-ink-mid font-medium">I am</span>
                 <select
-                  className="form-select border border-black bg-white px-4 py-2 text-base rounded shadow-sm focus:ring-2 focus:ring-yellow-200 outline-none"
+                  className="thread-button-secondary btn btn--secondary"
                   value={intent || ""}
                   onChange={(e) => setIntent(e.target.value as PostIntent || null)}
                   disabled={busy}
@@ -830,7 +830,7 @@ export default function PostEditor({
             <div>
               <input
                 type="text"
-                className={`form-input w-full border-b-2 bg-transparent p-2 text-3xl font-bold placeholder-gray-300 focus:border-black focus:outline-none transition-colors ${titleError ? 'border-red-500' : 'border-gray-200'
+                className={`form-input w-full border-b-2 bg-transparent p-2 text-3xl font-bold placeholder-gray-300 focus:border-nb-ink-mid focus:outline-none transition-colors ${titleError ? 'border-red-500' : 'border-nb-ink-mid/40'
                   }`}
                 placeholder={postTitlesRequired ? "Give your post a title..." : "Post title (optional)"}
                 value={title}
@@ -848,8 +848,8 @@ export default function PostEditor({
           {/* Spoiler/Content Warning Section */}
           <div className="mb-6 border border-dashed border-thread-sage/40 p-4 bg-thread-cream/30 rounded-lg">
             <div className="flex items-center gap-2 mb-2">
-              <PixelIcon name="alert" size={20} className="text-orange-600" />
-              <h3 className="text-sm font-bold text-gray-800">Content Warning</h3>
+              <PixelIcon name="alert" size={20} className="text-nb-ink" />
+              <h3 className="text-sm font-bold text-nb-ink">Content Warning</h3>
             </div>
 
             <div className="space-y-3">
@@ -864,9 +864,9 @@ export default function PostEditor({
                     }
                   }}
                   disabled={busy}
-                  className="w-4 h-4 text-orange-600 rounded focus:ring-orange-500"
+                  className="w-4 h-4 text-nb-ink rounded focus:ring-orange-500"
                 />
-                <span className="text-sm text-gray-800 font-medium">
+                <span className="text-sm text-nb-ink font-medium">
                   Mark this post as containing spoilers
                 </span>
               </label>
@@ -875,14 +875,14 @@ export default function PostEditor({
                 <div className="mt-2 animate-in slide-in-from-top-2">
                   <input
                     type="text"
-                    className="form-input w-full border border-black p-2 text-sm rounded shadow-sm"
+                    className="form-input w-full border-2 border-nb-ink-mid p-2 text-sm rounded shadow-sm"
                     placeholder="Warning description (e.g. Episode 5 spoilers, Season 2 finale)"
                     value={contentWarning}
                     onChange={(e) => setContentWarning(e.target.value)}
                     disabled={busy}
                     maxLength={100}
                   />
-                  <div className="text-xs text-gray-600 mt-1">
+                  <div className="text-xs text-nb-ink-mid mt-1">
                     This will blur the post content until readers choose to reveal it
                   </div>
                 </div>
@@ -891,15 +891,15 @@ export default function PostEditor({
           </div>
 
           {/* Journal Metadata Section */}
-          <div className="mb-6 border border-black bg-white shadow-[4px_4px_0_#000]">
+          <div className="mb-6 border-2 border-nb-ink-mid bg-white shadow-nb-sm">
             <button
               type="button"
               onClick={() => setIsMetadataOpen(!isMetadataOpen)}
-              className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+              className="w-full flex items-center justify-between p-4 hover:bg-nb-ink-mid/5 transition-colors"
             >
               <div className="flex items-center gap-2">
                 <PixelIcon name="script" size={20} />
-                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Journal Metadata</h3>
+                <h3 className="text-sm font-bold text-nb-ink uppercase tracking-wider">Journal Metadata</h3>
               </div>
               <PixelIcon name={isMetadataOpen ? "chevron-up" : "chevron-down"} size={16} />
             </button>
@@ -907,9 +907,9 @@ export default function PostEditor({
             {isMetadataOpen && (
               <div className="p-4 border-t border-gray-100 grid grid-cols-1 sm:grid-cols-2 gap-4 animate-in slide-in-from-top-2">
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Mood</label>
-                  <div className="flex items-center gap-2 border-b-2 border-gray-200 focus-within:border-black transition-colors">
-                    <PixelIcon name="heart" size={16} className="text-gray-400" />
+                  <label className="block text-xs font-bold text-nb-ink-mid uppercase mb-1">Mood</label>
+                  <div className="flex items-center gap-2 border-b-2 border-nb-ink-mid/40 focus-within:border-nb-ink-mid transition-colors">
+                    <PixelIcon name="heart" size={16} className="text-nb-ink-mid" />
                     <input
                       type="text"
                       className="w-full py-1 bg-transparent outline-none text-sm"
@@ -922,9 +922,9 @@ export default function PostEditor({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Listening To</label>
-                  <div className="flex items-center gap-2 border-b-2 border-gray-200 focus-within:border-black transition-colors">
-                    <PixelIcon name="music" size={16} className="text-gray-400" />
+                  <label className="block text-xs font-bold text-nb-ink-mid uppercase mb-1">Listening To</label>
+                  <div className="flex items-center gap-2 border-b-2 border-nb-ink-mid/40 focus-within:border-nb-ink-mid transition-colors">
+                    <PixelIcon name="music" size={16} className="text-nb-ink-mid" />
                     <input
                       type="text"
                       className="w-full py-1 bg-transparent outline-none text-sm"
@@ -937,9 +937,9 @@ export default function PostEditor({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Reading</label>
-                  <div className="flex items-center gap-2 border-b-2 border-gray-200 focus-within:border-black transition-colors">
-                    <PixelIcon name="article" size={16} className="text-gray-400" />
+                  <label className="block text-xs font-bold text-nb-ink-mid uppercase mb-1">Reading</label>
+                  <div className="flex items-center gap-2 border-b-2 border-nb-ink-mid/40 focus-within:border-nb-ink-mid transition-colors">
+                    <PixelIcon name="article" size={16} className="text-nb-ink-mid" />
                     <input
                       type="text"
                       className="w-full py-1 bg-transparent outline-none text-sm"
@@ -952,9 +952,9 @@ export default function PostEditor({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Drinking</label>
-                  <div className="flex items-center gap-2 border-b-2 border-gray-200 focus-within:border-black transition-colors">
-                    <PixelIcon name="drop" size={16} className="text-gray-400" />
+                  <label className="block text-xs font-bold text-nb-ink-mid uppercase mb-1">Drinking</label>
+                  <div className="flex items-center gap-2 border-b-2 border-nb-ink-mid/40 focus-within:border-nb-ink-mid transition-colors">
+                    <PixelIcon name="drop" size={16} className="text-nb-ink-mid" />
                     <input
                       type="text"
                       className="w-full py-1 bg-transparent outline-none text-sm"
@@ -967,9 +967,9 @@ export default function PostEditor({
                 </div>
 
                 <div className="sm:col-span-2">
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Location</label>
-                  <div className="flex items-center gap-2 border-b-2 border-gray-200 focus-within:border-black transition-colors">
-                    <PixelIcon name="map" size={16} className="text-gray-400" />
+                  <label className="block text-xs font-bold text-nb-ink-mid uppercase mb-1">Location</label>
+                  <div className="flex items-center gap-2 border-b-2 border-nb-ink-mid/40 focus-within:border-nb-ink-mid transition-colors">
+                    <PixelIcon name="map" size={16} className="text-nb-ink-mid" />
                     <input
                       type="text"
                       className="w-full py-1 bg-transparent outline-none text-sm"
@@ -987,12 +987,12 @@ export default function PostEditor({
           {activeTab === "write" ? (
             <>
               {/* Markdown Toolbar */}
-              <div className="sticky top-[60px] z-10 border border-black bg-gray-50 p-2 mb-4 flex flex-wrap gap-1 items-center shadow-md rounded-lg mx-[-8px]">
+              <div className="sticky top-[60px] z-10 border-2 border-nb-ink-mid bg-nb-ink-mid/5 p-2 mb-4 flex flex-wrap gap-1 items-center shadow-md rounded-lg mx-[-8px]">
                 {TOOLBAR_ITEMS.map((item) => (
                   <button
                     key={item.action}
                     type="button"
-                    className="toolbar-button px-2 py-1.5 border border-transparent hover:border-black hover:bg-white rounded text-sm font-mono transition-all"
+                    className="toolbar-button px-2 py-1.5 border border-transparent hover:border-nb-ink-mid hover:bg-white rounded text-sm font-mono transition-all"
                     onClick={() => insertMarkdown(item.action)}
                     title={item.label}
                     disabled={busy || uploadingImage}
@@ -1003,10 +1003,10 @@ export default function PostEditor({
 
                 <EmojiPicker onEmojiSelect={handleEmojiSelect} />
 
-                <div className="ml-2 border-l border-black pl-2">
+                <div className="ml-2 border-l border-nb-ink-mid pl-2">
                   <button
                     type="button"
-                    className="toolbar-button px-3 py-1 border border-black bg-white hover:bg-green-100 text-sm font-medium shadow-[1px_1px_0_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="thread-button-secondary btn btn--secondary text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                     onClick={() => fileInputRef.current?.click()}
                     title="Upload Image"
                     disabled={busy || uploadingImage}
@@ -1040,7 +1040,7 @@ export default function PostEditor({
               <div className="relative">
                 <textarea
                   ref={textareaRef}
-                  className={`w-full border border-black p-3 font-mono text-sm leading-relaxed resize-vertical ${isDragging ? 'border-green-500 bg-green-50' : ''
+                  className={`w-full border border-nb-ink-mid p-3 font-mono text-sm leading-relaxed resize-vertical ${isDragging ? 'border-green-500 border-2 border-dotted border-nb-ink-mid/60 rounded-md' : ''
                     }`}
                   rows={20}
                   placeholder="Write your post in Markdown format...
@@ -1079,16 +1079,16 @@ code block
                 {isDragging && (
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <div className="bg-green-100 border-2 border-green-500 rounded-lg p-4 shadow-lg flex items-center gap-2">
-                      <PixelIcon name="camera" size={24} className="text-green-800" />
-                      <p className="text-green-800 font-medium">Drop image to upload</p>
+                      <PixelIcon name="camera" size={24} className="text-nb-ink" />
+                      <p className="text-nb-ink font-medium">Drop image to upload</p>
                     </div>
                   </div>
                 )}
 
                 {uploadingImage && (
-                  <div className="absolute bottom-4 right-4 bg-white border-2 border-black rounded-lg p-3 shadow-lg">
+                  <div className="absolute bottom-4 right-4 bg-white border-2 border-nb-ink-mid rounded-lg p-3 shadow-lg">
                     <div className="flex items-center gap-2">
-                      <div className="animate-spin h-4 w-4 border-2 border-gray-300 border-t-black rounded-full"></div>
+                      <div className="animate-spin h-4 w-4 border-2 border-nb-ink-mid/40 border-t-black rounded-full"></div>
                       <span className="text-sm font-medium">Uploading... {uploadProgress}%</span>
                     </div>
                     <div className="mt-2 w-48 bg-gray-200 rounded-full h-2">
@@ -1101,14 +1101,14 @@ code block
                 )}
               </div>
 
-              <div className="text-xs text-gray-600 mt-2 flex items-center gap-1">
+              <div className="text-xs text-nb-ink-mid mt-2 flex items-center gap-1">
                 <PixelIcon name="lightbulb" size={14} /> Tips: Use Tab to indent, Shift+Tab to outdent. Drag & drop or click Upload Image to add pictures.
               </div>
             </>
           ) : (
-            <div className="border border-black p-4 min-h-[400px] bg-white">
+            <div className="border-2 border-nb-ink-mid p-4 min-h-[400px] bg-white">
               {title && (
-                <h1 className="text-2xl font-bold mb-4 pb-2 border-b border-gray-300">
+                <h1 className="text-2xl font-bold mb-4 pb-2 border-b border-nb-ink-mid/40">
                   {title}
                 </h1>
               )}
@@ -1119,39 +1119,39 @@ code block
           {/* ThreadRing Selection - only available during post creation */}
           {
             mode === "create" && (
-              <div className="mt-6 border border-black p-4 bg-gradient-to-r from-blue-50 to-purple-50">
+              <div className="mt-6 border-2 border-nb-ink-mid p-4 bg-nb-paper">
                 <div className="flex items-center gap-2 mb-3">
                   <PixelIcon name="link" size={20} />
-                  <h3 className="text-base font-semibold text-gray-800">Share to ThreadRings</h3>
+                  <h3 className="text-base font-semibold text-nb-ink">Share to ThreadRings</h3>
                   {respondingToPrompt ? (
-                    <span className="ml-auto text-xs bg-green-200 px-2 py-1 rounded-full font-medium">
+                    <span className="thread-button btn btn--primary text-xs">
                       Auto-selected
                     </span>
                   ) : selectedRings.length > 0 && (
-                    <span className="ml-auto text-xs bg-blue-200 px-2 py-1 rounded-full font-medium">
+                    <span className="thread-button-secondary btn btn--secondary text-xs">
                       {selectedRings.length} selected
                     </span>
                   )}
                 </div>
 
                 {respondingToPrompt && (
-                  <div className="mb-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="mb-3 p-3 border-2 border-dotted border-nb-ink-mid/60 rounded-md rounded-lg">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm text-green-800">
+                      <span className="text-sm text-nb-ink">
                         This post will be shared to <strong>{respondingToPrompt.threadRingSlug}</strong> as a prompt response
                       </span>
                     </div>
                   </div>
                 )}
 
-                <div className="border border-black p-3 bg-white rounded max-h-40 overflow-y-auto">
+                <div className="border-2 border-nb-ink-mid p-3 bg-white rounded max-h-40 overflow-y-auto">
                   {ringsLoading ? (
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
-                      <div className="animate-spin h-4 w-4 border-2 border-gray-300 border-t-blue-500 rounded-full"></div>
+                    <div className="flex items-center gap-2 text-sm text-nb-ink-mid">
+                      <div className="animate-spin h-4 w-4 border-2 border-nb-ink-mid/40 border-t-blue-500 rounded-full"></div>
                       Loading your ThreadRings...
                     </div>
                   ) : threadRings.length === 0 ? (
-                    <div className="text-sm text-gray-500 italic">
+                    <div className="text-sm text-nb-ink-mid italic">
                       You&apos;re not a member of any ThreadRings yet
                     </div>
                   ) : (
@@ -1160,7 +1160,7 @@ code block
                         <label
                           key={ring.id}
                           className={`checkbox - label flex items - center gap - 3 p - 2 rounded cursor - pointer transition - all ${selectedRings.includes(ring.slug)
-                            ? 'bg-blue-100 border border-blue-300'
+                            ? 'bg-nb-paper border border-nb-ink-mid/50'
                             : 'hover:bg-gray-50 border border-transparent'
                             }`}
                         >
@@ -1179,24 +1179,24 @@ code block
                               }`}
                           />
                           <div className="flex-1">
-                            <span className="font-medium text-gray-900">{ring.name}</span>
+                            <span className="font-medium text-nb-ink">{ring.name}</span>
                             {ring.visibility && (
-                              <span className="ml-2 text-xs text-gray-500">({ring.visibility})</span>
+                              <span className="ml-2 text-xs text-nb-ink-mid">({ring.visibility})</span>
                             )}
                           </div>
                           <div className="flex gap-1">
                             {ring.role === "curator" && (
-                              <span className="text-xs bg-yellow-200 text-yellow-800 px-2 py-1 rounded-full font-medium">
+                              <span className="thread-button btn btn--primary text-xs">
                                 Curator
                               </span>
                             )}
                             {ring.role === "moderator" && (
-                              <span className="text-xs bg-blue-200 text-blue-800 px-2 py-1 rounded-full font-medium">
+                              <span className="thread-button-secondary btn btn--secondary text-xs">
                                 Moderator
                               </span>
                             )}
                             {ring.role === "member" && (
-                              <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded-full">
+                              <span className="thread-button-secondary btn btn--secondary text-xs">
                                 Member
                               </span>
                             )}
@@ -1208,8 +1208,8 @@ code block
                 </div>
 
                 {selectedRings.length > 0 && (
-                  <div className="mt-3 p-2 bg-blue-100 border border-blue-200 rounded text-sm">
-                    <div className="flex items-center gap-1 text-blue-800">
+                  <div className="mt-3 p-2 bg-nb-paper border border-nb-ink-mid/50 rounded text-sm">
+                    <div className="flex items-center gap-1 text-nb-ink">
                       <PixelIcon name="check" size={16} />
                       <span>This post will be shared to <strong>{selectedRings.length}</strong> ThreadRing{selectedRings.length !== 1 ? 's' : ''}</span>
                     </div>
@@ -1218,12 +1218,12 @@ code block
 
                 {threadRings.length === 0 && !ringsLoading && (
                   <div className="text-center py-4">
-                    <div className="text-gray-500 text-sm mb-2">
+                    <div className="text-nb-ink-mid text-sm mb-2">
                       Join Rings to share your posts with communities
                     </div>
                     <Link
                       href="/threadrings"
-                      className="text-blue-600 hover:text-blue-800 text-sm font-medium underline"
+                      className="text-nb-ink hover:text-nb-ink text-sm font-medium underline"
                     >
                       Browse ThreadRings →
                     </Link>
@@ -1235,10 +1235,10 @@ code block
         </div >
 
         {/* Action Buttons */}
-        < div className="border-t border-black bg-gray-50 p-4 flex items-center justify-between" >
+        < div className="border-t border-nb-ink-mid bg-nb-ink-mid/5 p-4 flex items-center justify-between" >
           <button
             type="button"
-            className="border border-black px-4 py-2 bg-white hover:bg-gray-100 shadow-[2px_2px_0_#000]"
+            className="thread-button-secondary btn btn--secondary"
             onClick={handleCancel}
             disabled={busy}
           >
@@ -1247,13 +1247,13 @@ code block
 
           <div className="flex items-center gap-3">
             {uploadingImage && (
-              <span className="text-sm text-gray-600" role="status">
+              <span className="text-sm text-nb-ink-mid" role="status">
                 Uploading image… please wait
               </span>
             )}
             <button
               type="submit"
-              className="border border-black px-6 py-2 bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000] font-medium disabled:opacity-50"
+              className="thread-button btn btn--primary disabled:opacity-50"
               disabled={busy || uploadingImage || !content.trim()}
             >
               {busy ? `${mode === "edit" ? "Updating" : "Publishing"}…` : (submitLabel || `${mode === "edit" ? "Update" : "Publish"} Post`)}
@@ -1262,7 +1262,7 @@ code block
         </div >
 
         {error && (
-          <div className="border-t border-black bg-red-50 p-3">
+          <div className="border-t border-nb-ink-mid bg-red-50 p-3">
             <div className="text-red-700 text-sm">{error}</div>
           </div>
         )}

@@ -73,10 +73,10 @@ export default function ThreadRingFeedScope({
   }
 
   return (
-    <div className="tr-feed-scope tr-widget border border-black bg-white shadow-[2px_2px_0_#000] p-3 mb-4">
+    <div className="tr-feed-scope tr-widget widget-container widget--flat bg-thread-paper border border-thread-sage rounded-cozy shadow-cozy-sm p-3 mb-4">
       <div className="tr-feed-scope-header flex items-center justify-between mb-2">
         <h3 className="tr-feed-scope-title font-bold text-sm">Feed:</h3>
-        <span className="tr-current-scope text-xs text-gray-600">
+        <span className="tr-current-scope text-xs text-nb-ink-mid">
           <span className="tr-scope-icon">{getScopeIcon(scope)}</span> <span className="tr-scope-label">{getScopeLabel(scope)}</span>
         </span>
       </div>
@@ -85,10 +85,10 @@ export default function ThreadRingFeedScope({
         {availableScopes.map((scopeOption) => (
           <label
             key={scopeOption}
-            className={`tr-scope-option flex items-center gap-1 px-2 py-1 rounded text-xs cursor-pointer transition-colors border ${
+            className={`tr-scope-option flex items-center gap-1 text-xs cursor-pointer ${
               scope === scopeOption
-                ? 'tr-scope-active bg-blue-100 border-blue-300 text-blue-800'
-                : 'tr-scope-inactive bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                ? 'tr-scope-active badge badge--butter font-semibold'
+                : 'tr-scope-inactive tag hover:border-nb-ink'
             }`}
           >
             <input
@@ -106,7 +106,7 @@ export default function ThreadRingFeedScope({
       </div>
 
       {/* Show description for current selection */}
-      <div className="tr-scope-description mt-2 text-xs text-gray-600">
+      <div className="tr-scope-description mt-2 text-xs text-nb-ink-mid">
         {getScopeDescription(scope)}
       </div>
     </div>

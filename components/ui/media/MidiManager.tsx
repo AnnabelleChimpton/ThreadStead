@@ -7,7 +7,7 @@ import { PixelIcon } from '@/components/ui/PixelIcon';
 // Dynamic import of MidiPlayer to avoid SSR issues
 const MidiPlayer = dynamic(() => import('@/components/ui/media/MidiPlayer'), {
   ssr: false,
-  loading: () => <div className="text-sm text-gray-500">Loading player...</div>
+  loading: () => <div className="text-sm text-nb-ink-mid">Loading player...</div>
 });
 
 interface MidiFile {
@@ -287,14 +287,14 @@ export default function MidiManager({ username }: MidiManagerProps) {
   return (
     <div className="space-y-4">
       {/* Current Profile Music Status - Most Important Info First */}
-      <div className="bg-white border border-gray-200 rounded-lg p-4">
+      <div className="bg-white border border-nb-ink-mid/40 rounded-lg p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <PixelIcon name="music" size={32} />
             <div>
               <h3 className="font-semibold">Profile Music</h3>
               {selectedMidi ? (
-                <p className="text-sm text-green-600">
+                <p className="text-sm text-nb-ink">
                   <PixelIcon name="check" size={16} className="inline-block align-middle" /> Background music is active ({midiFiles.find(f => f.id === selectedMidi)?.title || 'Unnamed Track'})
                 </p>
               ) : midiFiles.length > 0 ? (
@@ -302,7 +302,7 @@ export default function MidiManager({ username }: MidiManagerProps) {
                   <PixelIcon name="alert" size={16} className="inline-block align-middle" /> You have {midiFiles.length} track{midiFiles.length === 1 ? '' : 's'} but none selected for your profile
                 </p>
               ) : (
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-nb-ink-mid">
                   No background music set up yet
                 </p>
               )}
@@ -324,8 +324,8 @@ export default function MidiManager({ username }: MidiManagerProps) {
               disabled={uploading}
               className={`px-3 py-1.5 text-sm border font-medium rounded transition-all ${
                 uploading 
-                  ? 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed' 
-                  : 'border-purple-300 bg-purple-50 text-purple-700 hover:bg-purple-100'
+                  ? 'border-nb-ink-mid/40 bg-nb-ink-mid/5 text-nb-ink-mid cursor-not-allowed' 
+                  : 'border-nb-ink-mid/50 border-2 border-dotted border-nb-ink-mid/60 rounded-md text-nb-ink hover:bg-nb-paper'
               }`}
             >
               {uploading ? (
@@ -349,12 +349,12 @@ export default function MidiManager({ username }: MidiManagerProps) {
 
         {/* Playback Settings - Compact version, only show if there are files */}
         {midiFiles.length > 0 && (
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+          <div className="bg-nb-ink-mid/5 border border-nb-ink-mid/40 rounded-lg p-3">
             <div className="flex items-center justify-between">
-              <h4 className="font-medium text-sm text-gray-700">Playback Settings</h4>
+              <h4 className="font-medium text-sm text-nb-ink">Playback Settings</h4>
               <button
                 onClick={saveGlobalSettings}
-                className="px-2 py-1 text-xs border border-gray-300 bg-white hover:bg-gray-50 rounded font-medium transition-colors"
+                className="thread-button-secondary btn btn--secondary text-xs"
               >
                 <PixelIcon name="save" size={12} className="inline-block align-middle" /> Save
               </button>
@@ -365,18 +365,18 @@ export default function MidiManager({ username }: MidiManagerProps) {
                   type="checkbox"
                   checked={autoplayEnabled}
                   onChange={(e) => setAutoplayEnabled(e.target.checked)}
-                  className="w-3 h-3 text-purple-600 focus:ring-purple-500"
+                  className="w-3 h-3 text-nb-ink focus:ring-nb-lav"
                 />
-                <span className="text-xs text-gray-600">Autoplay when visitors arrive</span>
+                <span className="text-xs text-nb-ink-mid">Autoplay when visitors arrive</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={loopEnabled}
                   onChange={(e) => setLoopEnabled(e.target.checked)}
-                  className="w-3 h-3 text-purple-600 focus:ring-purple-500"
+                  className="w-3 h-3 text-nb-ink focus:ring-nb-lav"
                 />
-                <span className="text-xs text-gray-600">Loop continuously</span>
+                <span className="text-xs text-nb-ink-mid">Loop continuously</span>
               </label>
             </div>
           </div>
@@ -388,7 +388,7 @@ export default function MidiManager({ username }: MidiManagerProps) {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h4 className="font-semibold">Your MIDI Files</h4>
-            <span className="text-sm text-gray-500">
+            <span className="text-sm text-nb-ink-mid">
               {selectedMidi ? <><PixelIcon name="check" size={14} className="inline-block align-middle" /> Profile music selected</> : 'Select a file to set as profile music'}
             </span>
           </div>
@@ -397,8 +397,8 @@ export default function MidiManager({ username }: MidiManagerProps) {
               key={file.id}
               className={`border-2 rounded-lg p-4 transition-all ${
                 selectedMidi === file.id 
-                  ? 'border-purple-400 bg-gradient-to-r from-purple-50 to-pink-50 shadow-md' 
-                  : 'border-gray-200 bg-white hover:border-purple-200 hover:shadow-sm'
+                  ? 'border-nb-ink-mid/50 bg-nb-paper shadow-md' 
+                  : 'border-nb-ink-mid/40 bg-white hover:border-nb-ink-mid/50 hover:shadow-sm'
               }`}
             >
               <div className="flex items-start justify-between gap-4">
@@ -407,18 +407,18 @@ export default function MidiManager({ username }: MidiManagerProps) {
                     <PixelIcon name="music" size={32} />
                   </div>
                   <div className="flex-1">
-                    <h5 className="font-semibold text-gray-900">
+                    <h5 className="font-semibold text-nb-ink">
                       {file.title || file.originalName || 'Untitled MIDI'}
                       {selectedMidi === file.id && (
-                        <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                        <span className="thread-button-secondary btn btn--secondary inline-flex items-center text-xs">
                           Active
                         </span>
                       )}
                     </h5>
                     {file.caption && (
-                      <p className="text-sm text-gray-600 mt-1">{file.caption}</p>
+                      <p className="text-sm text-nb-ink-mid mt-1">{file.caption}</p>
                     )}
-                    <div className="flex items-center gap-3 text-xs text-gray-500 mt-2">
+                    <div className="flex items-center gap-3 text-xs text-nb-ink-mid mt-2">
                       <span className="flex items-center gap-1">
                         <PixelIcon name="folder" size={12} /> {formatFileSize(file.fileSize)}
                       </span>
@@ -437,14 +437,14 @@ export default function MidiManager({ username }: MidiManagerProps) {
                   {selectedMidi !== file.id ? (
                     <button
                       onClick={() => handleSetAsProfile(file.id)}
-                      className="px-3 py-1.5 text-sm border border-purple-300 bg-purple-100 hover:bg-purple-200 rounded font-medium transition-colors"
+                      className="thread-button-secondary btn btn--secondary text-sm"
                     >
                       Set as Profile
                     </button>
                   ) : (
                     <button
                       disabled
-                      className="px-3 py-1.5 text-sm border border-green-300 bg-green-100 rounded font-medium text-green-700 cursor-not-allowed"
+                      className="thread-button btn btn--primary text-sm"
                     >
                       <PixelIcon name="check" size={14} className="inline-block align-middle" /> Active
                     </button>
@@ -453,8 +453,8 @@ export default function MidiManager({ username }: MidiManagerProps) {
                     onClick={() => setPreviewingMidi(previewingMidi === file.id ? null : file.id)}
                     className={`px-3 py-1.5 text-sm border rounded transition-colors ${
                       previewingMidi === file.id
-                        ? 'border-blue-300 bg-blue-100 hover:bg-blue-200 text-blue-800'
-                        : 'border-gray-300 bg-white hover:bg-gray-50'
+                        ? 'border-nb-ink-mid/50 bg-nb-paper hover:bg-nb-paper text-nb-ink'
+                        : 'border-nb-ink-mid/40 bg-white hover:bg-nb-ink-mid/5'
                     }`}
                     title={previewingMidi === file.id ? 'Close preview' : 'Preview MIDI'}
                   >
@@ -462,14 +462,14 @@ export default function MidiManager({ username }: MidiManagerProps) {
                   </button>
                   <button
                     onClick={() => window.open(file.fullUrl, '_blank')}
-                    className="px-3 py-1.5 text-sm border border-gray-300 bg-white hover:bg-gray-50 rounded transition-colors"
+                    className="thread-button-secondary btn btn--secondary text-sm"
                     title="Download MIDI file"
                   >
                     <PixelIcon name="download" size={14} className="inline-block align-middle" /> Download
                   </button>
                   <button
                     onClick={() => handleDelete(file.id)}
-                    className="px-3 py-1.5 text-sm border border-red-200 bg-white hover:bg-red-50 rounded text-red-600 hover:text-red-700 transition-colors"
+                    className="thread-button-secondary btn btn--secondary text-sm"
                     title="Delete this file"
                   >
                     <PixelIcon name="trash" size={14} className="inline-block align-middle" /> Delete
@@ -489,21 +489,21 @@ export default function MidiManager({ username }: MidiManagerProps) {
       )}
 
       {success && (
-        <div className="p-3 bg-green-50 text-green-700 border border-green-200 rounded text-sm">
+        <div className="p-3 border-2 border-dotted border-nb-ink-mid/60 rounded-md text-nb-ink border border-nb-ink-mid/50 rounded text-sm">
           {success}
         </div>
       )}
 
       {/* Fixed MIDI Player in bottom right - using portal to render at body level */}
       {isMounted && previewingMidi && createPortal(
-        <div className="fixed bottom-4 right-4 z-50 shadow-2xl rounded-lg bg-white border-2 border-purple-300">
-          <div className="flex items-center justify-between px-3 py-2 bg-purple-50 border-b border-purple-200 rounded-t-lg">
-            <span className="text-sm font-medium text-gray-700">
+        <div className="fixed bottom-4 right-4 z-50 shadow-2xl rounded-lg bg-white border-2 border-nb-ink-mid/50">
+          <div className="thread-button-secondary btn btn--secondary flex items-center">
+            <span className="text-sm font-medium text-nb-ink">
               {midiFiles.find(f => f.id === previewingMidi)?.title || 'Preview'}
             </span>
             <button
               onClick={() => setPreviewingMidi(null)}
-              className="text-gray-500 hover:text-gray-700 transition-colors"
+              className="text-nb-ink-mid hover:text-nb-ink transition-colors"
               title="Close preview"
             >
               <PixelIcon name="close" size={16} />
