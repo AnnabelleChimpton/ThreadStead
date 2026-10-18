@@ -23,7 +23,7 @@ interface PreviewData {
   residentData: ResidentData;
   customCSS: string;
   useStandardLayout: boolean;
-  showNavigation: boolean;
+  hideNavigation?: boolean;
   template?: string; // For advanced templates
   cssMode?: string;
 }
@@ -165,7 +165,8 @@ export default function PreviewTemp() {
     );
   }
 
-  const { user, residentData, customCSS, showNavigation = false, template, cssMode } = previewData;
+  const { user, residentData, customCSS, hideNavigation = false, template, cssMode } = previewData;
+  const showNavigation = !hideNavigation;
 
   // Ensure cssMode is properly typed
   const typedCSSMode: 'inherit' | 'override' | 'disable' = (cssMode as 'inherit' | 'override' | 'disable') || 'inherit';
@@ -189,7 +190,7 @@ export default function PreviewTemp() {
           template: template || '',
           customCSS: customCSS || '',
           cssMode: typedCSSMode,
-          showNavigation: showNavigation || false,
+          hideNavigation,
           useStandardLayout: previewData.useStandardLayout
         }
       }, window.location.origin);

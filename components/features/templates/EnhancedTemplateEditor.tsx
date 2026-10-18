@@ -217,8 +217,10 @@ export default function EnhancedTemplateEditor({
   const [cssMode, setCSSMode] = useState<'inherit' | 'override' | 'disable'>(initialCSSMode);
   const [currentTemplateMode, setCurrentTemplateMode] = useState<'default' | 'enhanced' | 'advanced'>(initialTemplateMode);
 
-  // Pop-up preview window management
+  // Pop-up preview window management. The ref is what the message listener
+  // checks event.source against (see the popup listener effect below).
   const [previewWindow, setPreviewWindow] = useState<Window | null>(null);
+  const popupWindowRef = useRef<Window | null>(null);
   
   // Get site-wide CSS without triggering DOM updates (read-only)
   const [siteWideCSS, setSiteWideCSS] = useState<string>('');
@@ -642,37 +644,21 @@ export default function EnhancedTemplateEditor({
     );
 
     if (newWindow) {
+      popupWindowRef.current = newWindow;
       setPreviewWindow(newWindow);
-      
-      // Listen for messages from preview window
-      const handleMessage = (event: MessageEvent) => {
-        if (event.origin !== window.location.origin) return;
-        
-        if (event.data.type === 'PREVIEW_READY') {
-          // Send initial preview data
-          sendPreviewData(newWindow);
-        }
-        
-        if (event.data.type === 'SAVE_REQUEST') {
-          // Handle save request from preview window
-          handleSaveFromPreview(event.data.data);
-        }
-      };
-      
-      window.addEventListener('message', handleMessage);
-      
+
       // Cleanup when window closes
       const checkClosed = setInterval(() => {
         if (newWindow.closed) {
+          if (popupWindowRef.current === newWindow) popupWindowRef.current = null;
           setPreviewWindow(null);
           clearInterval(checkClosed);
-          window.removeEventListener('message', handleMessage);
         }
       }, 1000);
     } else {
       showError('Pop-up blocked — allow pop-ups for this site to use the preview.');
     }
-  }, [previewWindow, residentData, useStandardLayout, template, compiledTemplate, sendPreviewData, compileTemplateForPreview, showError, showInfo]);
+  }, [previewWindow, residentData, useStandardLayout, template, compiledTemplate, compileTemplateForPreview, showError, showInfo]);
 
   // Send CSS updates to preview window when CSS changes
   useEffect(() => {
@@ -872,13 +858,19 @@ export default function EnhancedTemplateEditor({
     setSaveMessage(null);
     
     try {
-      const { template: previewTemplate, customCSS: previewCSS, cssMode: previewCSSMode, hideNavigation: previewHideNavigation, useStandardLayout: previewUseStandardLayout } = saveData;
+      const { template: previewTemplate, customCSS: previewCSS, cssMode: previewCSSMode, useStandardLayout: previewUseStandardLayout } = saveData;
+      // Popups from before the hideNavigation fix send `showNavigation`
+      // instead, and it was always false (they never received the setting),
+      // so its value means nothing: keep the editor's own setting for them.
+      // The fallback can go once no popup that old can still be open.
+      const previewHideNavigation: boolean =
+        typeof saveData.hideNavigation === 'boolean' ? saveData.hideNavigation : hideNavigation;
 
       // Update local state to match what's being saved
       setTemplate(previewTemplate || '');
       setCustomCSS(previewCSS || '');
       setCSSMode(previewCSSMode || 'inherit');
-      setHideNavigation(previewHideNavigation !== undefined ? previewHideNavigation : false);
+      setHideNavigation(previewHideNavigation);
       setUseStandardLayout(previewUseStandardLayout !== undefined ? previewUseStandardLayout : true);
 
       // Handle standard layout mode differently
@@ -903,7 +895,7 @@ export default function EnhancedTemplateEditor({
           return;
         }
         
-        await onSave(previewTemplate || '', previewCSS || '', templateToSave, previewCSSMode || 'inherit', previewHideNavigation !== undefined ? previewHideNavigation : false);
+        await onSave(previewTemplate || '', previewCSS || '', templateToSave, previewCSSMode || 'inherit', previewHideNavigation);
         setSaveMessage('✓ Advanced template saved');
       }
 
@@ -912,7 +904,7 @@ export default function EnhancedTemplateEditor({
         customCSS: previewCSS || '',
         cssMode: previewCSSMode || 'inherit',
         useStandardLayout: previewUseStandardLayout !== undefined ? previewUseStandardLayout : true,
-        hideNavigation: previewHideNavigation !== undefined ? previewHideNavigation : false
+        hideNavigation: previewHideNavigation
       }));
       setTimeout(() => setSaveMessage(null), 3000);
     } catch (error) {
@@ -922,6 +914,30 @@ export default function EnhancedTemplateEditor({
       setIsSaving(false);
     }
   };
+
+  // Messages from the pop-out preview. Attached once; the handlers are read
+  // through a ref so a save always sees the latest editor state. (They used
+  // to be captured when the popup opened, so saving from the popup could
+  // save stale content.) Only the editor's own popup is listened to.
+  const popupHandlersRef = useRef({ sendPreviewData, handleSaveFromPreview });
+  popupHandlersRef.current = { sendPreviewData, handleSaveFromPreview };
+
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      const popup = popupWindowRef.current;
+      if (!popup || event.source !== popup) return;
+
+      if (event.data?.type === 'PREVIEW_READY') {
+        popupHandlersRef.current.sendPreviewData(popup);
+      }
+      if (event.data?.type === 'SAVE_REQUEST') {
+        popupHandlersRef.current.handleSaveFromPreview(event.data.data);
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
 
   // Stable callback for template compilation
   const handleCompile = useCallback((compiled: CompiledTemplate | null) => {

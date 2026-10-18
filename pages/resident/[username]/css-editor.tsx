@@ -320,7 +320,7 @@ export default function CSSEditorPage({
       residentData: residentData,
       customCSS: css,
       useStandardLayout: true, // Always true for CSS editor
-      showNavigation: false
+      hideNavigation: true
     };
 
     targetWindow.postMessage({
