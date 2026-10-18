@@ -627,8 +627,8 @@ export default function CSSEditorPage({
                   style={{ height: '100%', fontSize: '13px' }}
                   placeholder={`/* Add your custom CSS here */
 
-/* Example: cozy pine-to-meadow header */
-.site-header {
+/* Example: cozy pine-to-meadow profile header */
+.ts-profile-header {
   background: linear-gradient(135deg, #2E4B3F 0%, #4FAF6D 100%) !important;
   color: #FCFAF7 !important;
 }

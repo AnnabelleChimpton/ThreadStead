@@ -30,110 +30,6 @@ export const CLASSIC_LINEN_TEMPLATE = `/* ======================================
   line-height: 1.75 !important;
 }
 
-/* ---------- Header ---------- */
-
-.site-header {
-  background: transparent !important;
-  border-bottom: 1px solid #d8d0c0 !important;
-  box-shadow: none !important;
-  backdrop-filter: none !important;
-  padding-top: 1.25rem !important;
-  padding-bottom: 1.25rem !important;
-}
-
-.site-navigation {
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-}
-
-.site-title {
-  font-family: 'Source Serif 4', Georgia, serif !important;
-  font-weight: 600 !important;
-  font-size: 1.4rem !important;
-  letter-spacing: 0.01em !important;
-  color: #2b2925 !important;
-  text-shadow: none !important;
-}
-
-.site-tagline {
-  font-family: 'Source Serif 4', Georgia, serif !important;
-  font-style: italic !important;
-  font-weight: 400 !important;
-  font-size: 0.95rem !important;
-  color: #6e675c !important;
-  letter-spacing: 0.01em !important;
-}
-
-.nav-link {
-  font-family: 'Inter', 'Helvetica Neue', sans-serif !important;
-  font-weight: 500 !important;
-  font-size: 0.75rem !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.14em !important;
-  color: #6e675c !important;
-  background: transparent !important;
-  border: none !important;
-  border-bottom: 1px solid transparent !important;
-  border-radius: 0 !important;
-  padding: 0.25rem 0 !important;
-  box-shadow: none !important;
-  text-decoration: none !important;
-  transition: color 0.2s ease, border-color 0.2s ease !important;
-}
-
-.nav-link:hover,
-.nav-link:focus {
-  color: #6b6a45 !important;
-  border-bottom-color: #6b6a45 !important;
-  background: transparent !important;
-  text-decoration: none !important;
-}
-
-#mobile-menu {
-  background: #f4efe6 !important;
-  border: none !important;
-  border-top: 1px solid #d8d0c0 !important;
-  border-bottom: 1px solid #d8d0c0 !important;
-  border-radius: 0 !important;
-  box-shadow: 0 1px 2px rgba(43, 41, 37, 0.06) !important;
-  padding: 1rem 1.25rem !important;
-}
-
-#mobile-menu .nav-link {
-  display: block !important;
-  padding: 0.6rem 0 !important;
-  border-bottom: 1px solid #e6dfd2 !important;
-}
-
-/* ---------- Footer: the colophon ---------- */
-
-.site-footer {
-  background: transparent !important;
-  border-top: 1px solid #d8d0c0 !important;
-  box-shadow: none !important;
-  padding-top: 2rem !important;
-  padding-bottom: 2.5rem !important;
-  text-align: center !important;
-}
-
-.footer-tagline {
-  font-family: 'Source Serif 4', Georgia, serif !important;
-  font-style: italic !important;
-  font-size: 0.95rem !important;
-  color: #6e675c !important;
-  letter-spacing: 0.01em !important;
-}
-
-.footer-copyright {
-  font-family: 'Inter', 'Helvetica Neue', sans-serif !important;
-  font-size: 0.7rem !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.16em !important;
-  color: #6e675c !important;
-  margin-top: 0.5rem !important;
-}
-
 /* ---------- Modules: rules, not boxes ---------- */
 
 .thread-module {
@@ -389,10 +285,6 @@ export const CLASSIC_LINEN_TEMPLATE = `/* ======================================
   }
 
   .blog-post-title {
-    font-size: 1.2rem !important;
-  }
-
-  .site-title {
     font-size: 1.2rem !important;
   }
 }

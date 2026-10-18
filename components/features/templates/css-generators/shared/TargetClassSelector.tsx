@@ -2,9 +2,9 @@ import React from 'react';
 
 // Common CSS classes users might want to style
 const COMMON_CLASSES = [
-  { value: '.site-header', label: 'Site Header', category: 'Structure' },
+  { value: '.thread-surface', label: 'Page Background', category: 'Structure' },
   { value: '.site-main', label: 'Main Content', category: 'Structure' },
-  { value: '.site-footer', label: 'Site Footer', category: 'Structure' },
+  { value: '.ts-profile-container', label: 'Profile Box', category: 'Structure' },
 
   { value: '.ts-profile-header', label: 'Profile Header', category: 'Profile' },
   { value: '.ts-profile-photo-image', label: 'Profile Photo', category: 'Profile' },

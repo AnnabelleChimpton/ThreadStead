@@ -75,13 +75,13 @@ const cssData = {
   background: linear-gradient(135deg, #2E4B3F 0%, #4FAF6D 100%) !important;
 }
 
-.site-header {
+.ts-profile-header {
   background: rgba(255, 255, 255, 0.95) !important;
   backdrop-filter: blur(10px) !important;
   border-bottom: 3px solid #2E4B3F !important;
 }
 
-.site-title {
+.ts-profile-display-name {
   background: linear-gradient(45deg, #2E4B3F, #4FAF6D) !important;
   -webkit-background-clip: text !important;
   -webkit-text-fill-color: transparent !important;
@@ -93,7 +93,7 @@ const cssData = {
           </div>
           <div className="bg-white/95 backdrop-blur border-b-4 border-indigo-500 p-2 rounded text-center">
             <span className="bg-gradient-to-r from-indigo-500 to-purple-600 bg-clip-text text-transparent font-bold">
-              Your Site Title
+              Your name
             </span>
           </div>
           <div className="text-sm text-gray-600 text-center flex items-center justify-center gap-1">
@@ -107,9 +107,8 @@ const cssData = {
       description: 'See how our Abstract Art template transforms a profile into a modern art gallery. Every element is styled with purpose!',
       classes: [
         { name: '.thread-surface', description: 'Canvas background with paint splatters' },
-        { name: '.site-header', description: 'Clean gallery navigation with track lighting' },
-        { name: '.site-title', description: 'Animated gradient text like a gallery sign' },
-        { name: '.nav-link', description: 'Professional gallery-style navigation' }
+        { name: '.ts-profile-header', description: 'A white gallery wall with a strip of track lights' },
+        { name: '.ts-profile-display-name', description: 'Your name in slowly shifting paint colors' }
       ],
       example: `/* Abstract Art Gallery Template - Full Power of CSS! */
 
@@ -123,15 +122,16 @@ const cssData = {
   background-size: 100% 100%, 300px 200px, 250px 180px, 280px 220px !important;
 }
 
-/* Gallery-style navigation header */
-.site-header {
+/* Your header as a gallery wall */
+.ts-profile-header {
+  position: relative !important;
   background: linear-gradient(180deg, #fefefe 0%, #fdfdfd 100%) !important;
   border-bottom: 6px solid #2c3e50 !important;
   box-shadow: 0 4px 20px rgba(44, 62, 80, 0.15) !important;
 }
 
 /* Gallery track lighting effect */
-.site-header::before {
+.ts-profile-header::before {
   content: '' !important;
   position: absolute !important;
   top: 0 !important;
@@ -148,8 +148,8 @@ const cssData = {
   animation: galleryLights 8s ease-in-out infinite !important;
 }
 
-/* Animated gallery title */
-.site-title {
+/* Your name, painted */
+.ts-profile-display-name {
   color: #2c3e50 !important;
   font-family: 'Righteous', cursive !important;
   background: linear-gradient(135deg, #e74c3c 0%, #f39c12 25%, #3498db 50%, #9b59b6 75%, #2ecc71 100%) !important;
@@ -189,8 +189,8 @@ const cssData = {
       description: 'Travel back to 2005 with authentic MySpace styling! See how CSS can completely change the vibe of your profile.',
       classes: [
         { name: '.thread-surface', description: 'Classic black background with twinkling stars' },
-        { name: '.site-header', description: 'Authentic MySpace blue gradient navigation' },
-        { name: '.site-title', description: 'Classic MySpace styling with heart animations' },
+        { name: '.ts-profile-header', description: 'MySpace blue behind your photo and name' },
+        { name: '.ts-profile-display-name', description: 'White name, pink drop shadow, a beating heart' },
         { name: '::before elements', description: 'Decorative elements like "★ Online Now ★"' }
       ],
       example: `/* MySpace 2005 Template - Nostalgic Social Media! */
@@ -207,15 +207,16 @@ const cssData = {
   animation: myspaceStars 30s linear infinite !important;
 }
 
-/* Classic MySpace blue navigation */
-.site-header {
+/* MySpace blue profile box */
+.ts-profile-header {
+  position: relative !important;
   background: linear-gradient(180deg, #4477cc 0%, #336699 50%, #225588 100%) !important;
   border-bottom: 3px solid #114477 !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5) !important;
 }
 
 /* MySpace "Online Now" indicator */
-.site-header::before {
+.ts-profile-header::before {
   content: '★ Online Now ★' !important;
   position: absolute !important;
   top: 50% !important;
@@ -229,8 +230,8 @@ const cssData = {
   animation: myspaceBlink 1.5s ease-in-out infinite !important;
 }
 
-/* Classic MySpace title with heart */
-.site-title {
+/* Classic MySpace name with heart */
+.ts-profile-display-name {
   color: #ffffff !important;
   font-family: 'Comic Neue', cursive !important;
   font-weight: 700 !important;
@@ -239,7 +240,7 @@ const cssData = {
   text-decoration-color: #ff1493 !important;
 }
 
-.site-title::after {
+.ts-profile-display-name::after {
   content: ' ♥' !important;
   color: #ff1493 !important;
   animation: heartBeat 1s ease-in-out infinite !important;
@@ -282,23 +283,23 @@ const cssData = {
 
 /* CHANGE COLORS - Replace these hex codes */
 /* Find: #ff1493 (hot pink) Replace with: #your-color */
-.site-header {
+.ts-profile-header {
   background: linear-gradient(180deg, #4477cc 0%, #336699 100%) !important;
   /*                           ^^^^^ Change this blue to any color! */
   border-bottom: 3px solid #your-favorite-color !important;
 }
 
-/* ✏️ CHANGE FONTS - Swap the Google Font import */
+/* CHANGE FONTS - Swap the Google Font import */
 @import url('https://fonts.googleapis.com/css2?family=Righteous:wght@400&display=swap');
 /*                                                    ^^^^^^^^^ Try: Fredoka, Comfortaa, Righteous */
 
-.site-title {
+.ts-profile-display-name {
   font-family: 'Righteous', cursive !important;
   /*           ^^^^^^^^^^ Use your new font here */
 }
 
-/* ⚡ ADJUST ANIMATIONS - Control the speed */
-.site-header::before {
+/* ADJUST ANIMATIONS - Control the speed */
+.ts-profile-header::before {
   animation: galleryLights 8s ease-in-out infinite !important;
   /*                       ^^ Try: 2s (faster) or 15s (slower) */
 }
@@ -313,7 +314,7 @@ const cssData = {
 
 /* REMOVE ANIMATIONS - Just delete or comment out */
 /* 
-.site-title {
+.ts-profile-display-name {
   animation: paintBrush 6s ease infinite !important; <-- Delete this line
 }
 */`,
@@ -347,7 +348,7 @@ const cssData = {
       name: 'Next Steps: Beyond Templates',
       description: 'Ready to go beyond templates? Learn the key concepts that will help you create completely custom designs!',
       classes: [
-        { name: 'CSS Selectors', description: 'Target specific parts of your profile (.site-header, .nav-link, etc.)' },
+        { name: 'CSS Selectors', description: 'Pick which part of your profile to style, like .ts-profile-header or .profile-tab-button' },
         { name: 'CSS Properties', description: 'What each style does (background, color, font-family, etc.)' },
         { name: '!important', description: 'Makes your styles take priority over defaults' },
         { name: 'Animations', description: 'Add movement and life to your profile (@keyframes)' }
@@ -355,7 +356,7 @@ const cssData = {
       example: `/* Understanding CSS Structure */
 
 /* SELECTOR - What you're styling */
-.site-title {
+.ts-profile-display-name {
   /* PROPERTIES - How you're styling it */
   color: #ffffff !important;        /* Text color: white */
   font-size: 2rem !important;       /* Size: 2x normal */
@@ -378,7 +379,7 @@ const cssData = {
 
 /* RESPONSIVE: Different styles on mobile */
 @media (max-width: 768px) {
-  .site-title {
+  .ts-profile-display-name {
     font-size: 1.5rem !important;  /* Smaller on mobile */
   }
 }
@@ -1210,13 +1211,9 @@ body {
       )
     },
     {
-      name: 'Navigation & Tabs',
-      description: 'Site navigation and profile tab system',
+      name: 'Profile Tabs',
+      description: 'The tabs on your profile. The site\'s header and menu look the same on every page, so profile CSS leaves them alone.',
       classes: [
-        { name: '.site-header', description: 'Main site header bar' },
-        { name: '.site-title', description: 'Site title/logo text' },
-        { name: '.site-tagline', description: 'Site tagline/subtitle' },
-        { name: '.nav-link', description: 'Navigation menu links' },
         { name: '.profile-tabs-wrapper', description: 'Container for tab system' },
         { name: '.profile-tab-button', description: 'Individual tab button' },
         { name: '.profile-tab-button[aria-selected="true"]', description: 'Currently active tab' },
@@ -1356,24 +1353,22 @@ body {
         { name: '.line-clamp-3', description: 'Clamp text to 3 lines with ellipsis' },
         { name: '.site-layout', description: 'Overall page container' },
         { name: '.site-main', description: 'Main content area' },
-        { name: '.site-header', description: 'Site header with consistent background' },
-        { name: '.site-footer', description: 'Site footer with consistent background' },
-        { name: '.footer-tagline', description: 'Footer tagline text' },
-        { name: '.footer-copyright', description: 'Copyright text' }
+        { name: '.thread-surface', description: 'The page background behind your profile' },
+        { name: '.ts-profile-container', description: 'The box your whole profile sits in' }
       ],
       example: `/* Matrix/terminal theme */
-.site-layout {
+.thread-surface {
   background: #000 !important;
   color: #00ff00 !important;
   font-family: "Courier New", monospace !important;
 }
 
-.site-header {
+.ts-profile-container {
   background: #000 !important;
-  border-bottom: 2px solid #00ff00 !important;
+  border: 2px solid #00ff00 !important;
 }
 
-.site-title {
+.ts-profile-display-name {
   color: #00ff00 !important;
   text-shadow: 0 0 10px #00ff00 !important;
   animation: glow 2s ease-in-out infinite alternate !important;
@@ -1744,7 +1739,6 @@ body {
       name: 'Component Utilities',
       description: 'CSS classes for specific UI components and functionality',
       classes: [
-        { name: '.nav-link-underline', description: 'Navigation link underline styling' },
         { name: '.post-editor-container', description: 'Wide container for post editor' },
         { name: '.tr-header-min-width', description: 'ThreadRing header minimum width' },
         { name: '.tr-prompt-link-purple', description: 'Purple link styling for prompts' },

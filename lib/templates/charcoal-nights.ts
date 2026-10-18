@@ -14,111 +14,6 @@ export const CHARCOAL_NIGHTS_TEMPLATE = `/* ====================================
   font-family: 'Inter', system-ui, sans-serif !important;
 }
 
-/* ---------- header & navigation ---------- */
-
-.site-header {
-  background: #1a1816 !important;
-  border-bottom: 1px solid #3a352e !important;
-  box-shadow: none !important;
-  backdrop-filter: none !important;
-}
-
-.site-navigation {
-  background: transparent !important;
-  border: none !important;
-}
-
-.site-title {
-  font-family: 'Fraunces', Georgia, serif !important;
-  font-weight: 600 !important;
-  color: #ece7df !important;
-  letter-spacing: 0.01em !important;
-  text-shadow: none !important;
-}
-
-.site-tagline {
-  color: #a89e8f !important;
-  font-family: 'Inter', system-ui, sans-serif !important;
-  font-size: 0.8rem !important;
-  font-style: italic !important;
-  letter-spacing: 0.02em !important;
-}
-
-.nav-link {
-  color: #cfc8bc !important;
-  font-family: 'Inter', system-ui, sans-serif !important;
-  font-size: 0.9rem !important;
-  font-weight: 500 !important;
-  background: transparent !important;
-  border: none !important;
-  border-bottom: 1px solid transparent !important;
-  border-radius: 0 !important;
-  padding: 0.35rem 0.1rem !important;
-  margin: 0 0.55rem !important;
-  text-decoration: none !important;
-  transition: color 160ms ease, border-color 160ms ease !important;
-}
-
-.nav-link:hover {
-  color: #e8853d !important;
-  background: transparent !important;
-  border-bottom-color: #e8853d !important;
-  box-shadow: none !important;
-  text-decoration: none !important;
-}
-
-.nav-link[aria-current="page"],
-.nav-link.active {
-  color: #e8853d !important;
-  border-bottom-color: #e8853d !important;
-}
-
-/* ---------- mobile menu ---------- */
-
-#mobile-menu {
-  background: #232019 !important;
-  border: 1px solid #3a352e !important;
-  border-top: 2px solid #e8853d !important;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55) !important;
-  color: #ece7df !important;
-}
-
-#mobile-menu .nav-link {
-  display: block !important;
-  color: #ece7df !important;
-  border-bottom: 1px solid #2c2822 !important;
-  margin: 0 !important;
-  padding: 0.85rem 1rem !important;
-}
-
-#mobile-menu .nav-link:hover {
-  color: #e8853d !important;
-  background: #1a1816 !important;
-}
-
-/* ---------- footer ---------- */
-
-.site-footer {
-  background: #14120f !important;
-  border-top: 1px solid #3a352e !important;
-  color: #a89e8f !important;
-  padding: 2.5rem 1.25rem !important;
-}
-
-.footer-tagline {
-  color: #cfc8bc !important;
-  font-family: 'Fraunces', Georgia, serif !important;
-  font-style: italic !important;
-  font-size: 0.95rem !important;
-  letter-spacing: 0.01em !important;
-}
-
-.footer-copyright {
-  color: #7c7365 !important;
-  font-size: 0.78rem !important;
-  letter-spacing: 0.04em !important;
-}
-
 /* ---------- generic modules ---------- */
 
 .thread-module {
@@ -403,10 +298,6 @@ export const CHARCOAL_NIGHTS_TEMPLATE = `/* ====================================
   .profile-tab-list {
     overflow-x: auto !important;
     padding: 0 0.25rem !important;
-  }
-
-  .site-footer {
-    padding: 1.75rem 1rem !important;
   }
 }
 

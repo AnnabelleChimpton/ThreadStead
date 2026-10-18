@@ -1967,7 +1967,7 @@ export default function EnhancedTemplateEditor({
                     placeholder={cssMode === 'inherit' ?
                       `/* Site styles will be inherited - extend them here */
 
-.site-header {
+.ts-profile-header {
   background: linear-gradient(135deg, #2E4B3F 0%, #4FAF6D 100%);
   padding: 2rem;
   border-radius: 8px;

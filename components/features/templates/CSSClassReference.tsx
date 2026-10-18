@@ -145,14 +145,10 @@ ${className}:hover {
 
 // CSS Class data organized by category
 const cssClassData = {
-  'Site Structure': [
+  'Page': [
     { name: '.site-layout', description: 'Overall page container' },
     { name: '.site-main', description: 'Main content area' },
-    { name: '.site-header', description: 'Site header with consistent background' },
-    { name: '.site-footer', description: 'Site footer with consistent background' },
-    { name: '.site-title', description: 'Site title/logo text' },
-    { name: '.site-tagline', description: 'Site tagline/subtitle' },
-    { name: '.nav-link', description: 'Navigation menu links' },
+    { name: '.ts-profile-container', description: 'The box your whole profile sits in' },
   ],
   'Profile Header': [
     { name: '.ts-profile-header', description: 'Main profile header container' },
@@ -226,7 +222,7 @@ interface CSSClassReferenceProps {
 
 export default function CSSClassReference({ onClassSelect }: CSSClassReferenceProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [expandedCategories, setExpandedCategories] = useState<string[]>(['Site Structure']);
+  const [expandedCategories, setExpandedCategories] = useState<string[]>(['Page']);
   const [copiedClass, setCopiedClass] = useState<string | null>(null);
 
   const toggleCategory = (category: string) => {

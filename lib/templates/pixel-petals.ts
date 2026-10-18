@@ -35,115 +35,6 @@ export const PIXEL_PETALS_TEMPLATE = `@import url('https://fonts.googleapis.com/
   font-family: 'Nunito', sans-serif !important;
 }
 
-/* ---- header: flat blossom pink, hard pixel edge ---- */
-.site-header {
-  background: #ffd4e8 !important;
-  border-bottom: 3px dotted #ff8fb8 !important;
-  box-shadow: 0 3px 0 rgba(255, 143, 184, 0.35) !important;
-  backdrop-filter: none !important;
-}
-
-.site-title {
-  font-family: 'Silkscreen', monospace !important;
-  font-weight: 700 !important;
-  font-size: 1.35rem !important;
-  letter-spacing: 0.5px !important;
-  color: #c2477d !important;
-  text-shadow: 2px 2px 0 #ffffff !important;
-}
-
-/* one of only two emoji in the whole sheet */
-.site-title::after {
-  content: ' 🌸' !important;
-  font-size: 0.9em !important;
-  display: inline-block !important;
-  animation: petal-bob 4s ease-in-out infinite !important;
-}
-
-.site-tagline {
-  font-family: 'Nunito', sans-serif !important;
-  font-weight: 600 !important;
-  font-style: normal !important;
-  color: #a04e74 !important;
-  letter-spacing: 0.3px !important;
-}
-
-.site-navigation {
-  display: flex !important;
-  align-items: center !important;
-  gap: 0.5rem !important;
-}
-
-.nav-link {
-  font-family: 'Nunito', sans-serif !important;
-  font-weight: 700 !important;
-  font-size: 0.9rem !important;
-  color: #c2477d !important;
-  background: #fff8fa !important;
-  border: 2px solid #ff8fb8 !important;
-  border-radius: 3px !important;
-  padding: 0.3rem 0.8rem !important;
-  box-shadow: 2px 2px 0 #ff8fb8 !important;
-  text-decoration: none !important;
-  transition: transform 0.15s ease, box-shadow 0.15s ease !important;
-}
-
-.nav-link:hover {
-  background: #ffffff !important;
-  color: #c2477d !important;
-  transform: translate(1px, 1px) !important;
-  box-shadow: 1px 1px 0 #ff8fb8 !important;
-  text-decoration: none !important;
-}
-
-/* ---- mobile menu: same garden, smaller pot ---- */
-#mobile-menu {
-  background: #fff8fa !important;
-  border: 2px solid #ff8fb8 !important;
-  border-radius: 3px 12px 3px 12px !important;
-  box-shadow: 3px 3px 0 #ffd4e8 !important;
-  padding: 0.75rem !important;
-}
-
-#mobile-menu .nav-link {
-  display: block !important;
-  margin: 0.4rem 0 !important;
-  text-align: center !important;
-}
-
-/* ---- footer: cream with an awning-stripe hem ---- */
-.site-footer {
-  background: #fff8fa !important;
-  background-image: repeating-linear-gradient(
-    -45deg,
-    rgba(255, 212, 232, 0.4) 0px,
-    rgba(255, 212, 232, 0.4) 8px,
-    transparent 8px,
-    transparent 16px
-  ) !important;
-  border-top: 3px dotted #ff8fb8 !important;
-  color: #a04e74 !important;
-}
-
-.footer-tagline {
-  font-family: 'Silkscreen', monospace !important;
-  font-size: 0.8rem !important;
-  color: #c2477d !important;
-}
-
-/* the second (and last) emoji in the sheet */
-.footer-tagline::after {
-  content: ' ✿' !important;
-  color: #ff8fb8 !important;
-}
-
-.footer-copyright {
-  font-family: 'Nunito', sans-serif !important;
-  font-weight: 600 !important;
-  font-size: 0.8rem !important;
-  color: #a04e74 !important;
-}
-
 /* ---- generic content modules ---- */
 .thread-module {
   background: #ffffff !important;
@@ -337,12 +228,6 @@ export const PIXEL_PETALS_TEMPLATE = `@import url('https://fonts.googleapis.com/
   color: #53384a !important;
 }
 
-/* ---- the one gentle animation ---- */
-@keyframes petal-bob {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-3px); }
-}
-
 /* ---- phones: looser thumbs, tighter padding ---- */
 @media (max-width: 767px) {
   .ts-profile-container {
@@ -359,10 +244,6 @@ export const PIXEL_PETALS_TEMPLATE = `@import url('https://fonts.googleapis.com/
     text-shadow: 2px 2px 0 #ffffff !important;
   }
 
-  .site-title {
-    font-size: 1.1rem !important;
-  }
-
   .blog-post-card {
     padding: 1rem !important;
   }
@@ -371,7 +252,6 @@ export const PIXEL_PETALS_TEMPLATE = `@import url('https://fonts.googleapis.com/
     font-size: 0.95rem !important;
   }
 
-  .nav-link,
   .ts-profile-button {
     padding: 0.45rem 0.9rem !important;
     font-size: 0.85rem !important;

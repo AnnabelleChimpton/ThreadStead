@@ -69,3 +69,16 @@ describe('every shipped preset survives the pipeline in every mode', () => {
     }
   })
 })
+
+describe('presets leave the site chrome alone', () => {
+  // Profile CSS is scoped away from the site header and footer
+  // (scopeAwayFromSiteChrome), so rules aimed at them can never apply.
+  const CHROME = /(\.site-header|\.site-title|\.site-tagline|\.site-navigation|\.nav-link|#mobile-menu|\.site-footer|\.footer-[\w-]+)(?![\w-])/
+
+  test.each(
+    getAvailableTemplateTypes().filter((t): t is ProfileTemplateType => t !== 'clear')
+  )('%s has no header, nav or footer rules', (type) => {
+    const css = getDefaultProfileTemplate(type).replace(/\/\*[\s\S]*?\*\//g, '')
+    expect(css).not.toMatch(CHROME)
+  })
+})

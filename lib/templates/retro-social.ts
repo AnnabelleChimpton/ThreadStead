@@ -2,7 +2,7 @@ export const RETRO_SOCIAL_TEMPLATE = `@import url('https://fonts.googleapis.com/
 
 /* ===========================================
    RETRO SOCIAL — mid-2000s profile-page chic
-   Palette: #1c3f95 (header blue) / #16327a (deep blue)
+   Palette: #1c3f95 (accent blue) / #16327a (deep blue)
             #e9edf6 (page) / #ffffff (panels)
             #7d8db3 (bevel dark) / #551a8b (visited)
    =========================================== */
@@ -16,85 +16,6 @@ export const RETRO_SOCIAL_TEMPLATE = `@import url('https://fonts.googleapis.com/
   background-size: 24px 24px, 24px 24px !important;
   color: #222222 !important;
   font-family: Verdana, Tahoma, Geneva, sans-serif !important;
-}
-
-/* ---- Two-tone header bar ---- */
-.site-header {
-  background: #1c3f95 !important;
-  border-bottom: 4px solid #16327a !important;
-  box-shadow: none !important;
-  border-radius: 0 !important;
-}
-
-.site-navigation {
-  background: #16327a !important;
-  border-top: 1px solid #4a67b5 !important;
-  border-bottom: 1px solid #0d2158 !important;
-  padding: 0.25rem 1rem !important;
-}
-
-.site-title {
-  font-family: 'Righteous', Verdana, Tahoma, sans-serif !important;
-  font-weight: 400 !important;
-  font-size: 1.75rem !important;
-  letter-spacing: 0.5px !important;
-  color: #ffffff !important;
-  text-shadow: 1px 1px 0 #0d2158 !important;
-  text-decoration: none !important;
-}
-
-.site-tagline {
-  font-family: Verdana, Tahoma, Geneva, sans-serif !important;
-  font-size: 0.7rem !important;
-  color: #c7d3f0 !important;
-  letter-spacing: 0.5px !important;
-  text-transform: uppercase !important;
-}
-
-/* ---- Chunky classic nav links ---- */
-.nav-link {
-  font-family: Verdana, Tahoma, Geneva, sans-serif !important;
-  font-size: 0.8rem !important;
-  font-weight: 700 !important;
-  color: #ffffff !important;
-  text-decoration: underline !important;
-  background: transparent !important;
-  border: 1px solid transparent !important;
-  border-radius: 0 !important;
-  padding: 0.25rem 0.6rem !important;
-  box-shadow: none !important;
-}
-
-.nav-link:hover {
-  color: #ffffff !important;
-  background: #2a52b8 !important;
-  border-top: 1px solid #5d7cc9 !important;
-  border-left: 1px solid #5d7cc9 !important;
-  border-right: 1px solid #0d2158 !important;
-  border-bottom: 1px solid #0d2158 !important;
-  text-decoration: underline !important;
-}
-
-/* ---- Footer: same family as the header ---- */
-.site-footer {
-  background: #1c3f95 !important;
-  border-top: 4px solid #16327a !important;
-  color: #ffffff !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-}
-
-.footer-tagline {
-  font-family: Verdana, Tahoma, Geneva, sans-serif !important;
-  font-size: 0.8rem !important;
-  font-weight: 700 !important;
-  color: #ffffff !important;
-}
-
-.footer-copyright {
-  font-family: Verdana, Tahoma, Geneva, sans-serif !important;
-  font-size: 0.7rem !important;
-  color: #c7d3f0 !important;
 }
 
 /* ---- Beveled module boxes (the load-bearing kitsch) ---- */
@@ -313,32 +234,8 @@ export const RETRO_SOCIAL_TEMPLATE = `@import url('https://fonts.googleapis.com/
   font-family: Verdana, Tahoma, Geneva, sans-serif !important;
 }
 
-/* ---- Mobile menu: solid header blue, no bleed-through ---- */
-#mobile-menu {
-  background: #1c3f95 !important;
-  border-top: 1px solid #4a67b5 !important;
-  border-bottom: 3px solid #16327a !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-}
-
-#mobile-menu .nav-link {
-  display: block !important;
-  color: #ffffff !important;
-  border-bottom: 1px solid #2a52b8 !important;
-  padding: 0.6rem 1rem !important;
-}
-
 /* ---- Small screens: tighter chrome, same charm ---- */
 @media (max-width: 767px) {
-  .site-title {
-    font-size: 1.35rem !important;
-  }
-
-  .site-tagline {
-    font-size: 0.6rem !important;
-  }
-
   .ts-profile-display-name {
     font-size: 1.25rem !important;
   }
