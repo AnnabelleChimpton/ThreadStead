@@ -2,6 +2,14 @@ import { db } from "@/lib/config/database/connection";
 
 import { apiHandler } from "@/lib/api/handler";
 
+const EXCERPT_LENGTH = 120;
+
+/** First line-ish of a guestbook note, plain text, for the notification row. */
+function excerpt(message: string): string {
+  const text = message.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+  return text.length > EXCERPT_LENGTH ? `${text.slice(0, EXCERPT_LENGTH).trimEnd()}…` : text;
+}
+
 
 
 export default apiHandler(
@@ -45,11 +53,27 @@ export default apiHandler(
         take: Math.min(Math.max(parseInt(String(limit), 10) || 20, 1), 100),
       });
 
+      // "X signed your guestbook" shows the note itself. Read it live so a
+      // deleted or hidden entry never lingers in the bell.
+      const entryIds = notifications
+        .map((n) => (n.type === "guestbook" ? (n.data as { guestbookEntryId?: unknown } | null)?.guestbookEntryId : null))
+        .filter((id): id is string => typeof id === "string");
+      const entries = entryIds.length
+        ? await db.guestbookEntry.findMany({
+            where: { id: { in: entryIds }, profileOwner: user.id, status: "visible" },
+            select: { id: true, message: true },
+          })
+        : [];
+      const excerpts = new Map(entries.map((e) => [e.id, excerpt(e.message)]));
+
       const transformedNotifications = notifications.map((n) => ({
         id: n.id,
         type: n.type,
         status: n.status,
-        data: n.data,
+        data:
+          n.type === "guestbook" && n.data && typeof n.data === "object" && !Array.isArray(n.data)
+            ? { ...n.data, excerpt: excerpts.get(String((n.data as { guestbookEntryId?: unknown }).guestbookEntryId)) ?? null }
+            : n.data,
         createdAt: n.createdAt,
         readAt: n.readAt,
         actor: {

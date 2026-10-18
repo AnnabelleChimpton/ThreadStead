@@ -150,8 +150,13 @@ export default function UserDropdown({ isMobile = false, onItemClick }: UserDrop
         ref={buttonRef}
         onClick={() => setIsOpen(!isOpen)}
         className="user-dropdown-trigger flex items-center gap-2 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm border border-thread-sage bg-thread-paper hover:bg-thread-cream rounded shadow-cozy-sm text-thread-charcoal"
+        title={username}
+        aria-label={`Account menu for ${username}`}
+        aria-expanded={isOpen}
       >
-        <span className="thread-label">{username}</span>
+        {/* Icon until xl, handle from xl up (long handles truncate), so the nav bar fits at 1024 and 1280px */}
+        <PixelIcon name="user" size={16} className="xl:hidden" aria-hidden="true" />
+        <span className="thread-label hidden xl:inline-block max-w-[8rem] 2xl:max-w-[14rem] truncate align-bottom">{username}</span>
         <span className="text-xs text-thread-sage">
           {isOpen ? "▲" : "▼"}
         </span>

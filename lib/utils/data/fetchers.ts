@@ -3,6 +3,7 @@
 
 import { db } from "../../config/database/connection";
 import { SITE_NAME } from "../../config/site/constants";
+import { getAllowedVisibilities } from "../../domain/posts/visibility";
 
 export async function getPostsForUser(username: string, viewerId?: string) {
   const handle = await db.handle.findFirst({
@@ -13,32 +14,10 @@ export async function getPostsForUser(username: string, viewerId?: string) {
 
   const authorId = handle.user.id;
 
-  // default: public only
-  let allowed = new Set(["public"]);
-
-  if (viewerId === authorId) {
-    // author sees everything
-    allowed = new Set(["public", "followers", "friends", "private"]);
-  } else if (viewerId) {
-    // check relationships
-    const [viewerFollowsAuthor, authorFollowsViewer] = await Promise.all([
-      db.follow.findUnique({
-        where: { followerId_followeeId: { followerId: viewerId, followeeId: authorId } },
-      }),
-      db.follow.findUnique({
-        where: { followerId_followeeId: { followerId: authorId, followeeId: viewerId } },
-      }),
-    ]);
-
-    const isFollower = viewerFollowsAuthor?.status === "accepted";
-    const isFriend = isFollower && authorFollowsViewer?.status === "accepted";
-
-    if (isFollower) allowed.add("followers");
-    if (isFriend) allowed.add("friends");
-  }
+  const allowed = await getAllowedVisibilities(viewerId, authorId);
 
   const posts = await db.post.findMany({
-    where: { authorId, visibility: { in: Array.from(allowed) as any } },
+    where: { authorId, visibility: { in: allowed } },
     orderBy: { createdAt: "desc" },
     take: 20,
     include: {

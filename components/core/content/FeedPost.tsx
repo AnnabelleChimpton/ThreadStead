@@ -16,6 +16,7 @@ import ImprovedBadgeDisplay from "../../shared/ImprovedBadgeDisplay";
 import { useMe } from "@/hooks/useMe";
 import UserMention from "@/components/ui/navigation/UserMention";
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+import VisibilityBadge, { type PostVisibility } from "./VisibilityBadge";
 
 type PostIntent = "sharing" | "asking" | "feeling" | "announcing" | "showing" | "teaching" | "looking" | "celebrating" | "recommending";
 
@@ -34,6 +35,8 @@ export type FeedPostData = {
   bodyMarkdown: string | null;
   media: unknown;
   tags: string[];
+  /** Sent by the Following feed; the public feeds only carry public posts */
+  visibility?: PostVisibility;
   commentCount: number;
   lastCommentAt?: string | null;
   lastCommenterUsername?: string | null;
@@ -58,9 +61,11 @@ export type FeedPostData = {
 type FeedPostProps = {
   post: FeedPostData;
   showActivity?: boolean;
+  /** Show who can see non-public posts (Following feed) */
+  showVisibility?: boolean;
 };
 
-export default function FeedPost({ post, showActivity = false }: FeedPostProps) {
+export default function FeedPost({ post, showActivity = false, showVisibility = false }: FeedPostProps) {
   const { me } = useMe();
   const router = useRouter();
   const [commentsOpen, setCommentsOpen] = useState(false);
@@ -257,6 +262,7 @@ export default function FeedPost({ post, showActivity = false }: FeedPostProps) 
             )}
             <span className="text-thread-sage text-sm">•</span>
             <span className="text-thread-sage text-sm font-medium">{postDate}</span>
+            {showVisibility && <VisibilityBadge visibility={post.visibility} />}
           </div>
           {/* User badges */}
           <div className="mt-0.5">

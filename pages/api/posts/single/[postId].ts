@@ -1,5 +1,6 @@
 import { db } from "@/lib/config/database/connection";
 import { apiHandler } from "@/lib/api/handler";
+import { canViewPost, getViewerRelationship } from "@/lib/domain/posts/visibility";
 
 
 
@@ -50,49 +51,9 @@ export default apiHandler(
       const authorId = post.authorId;
 
       // Check visibility permissions
-      let canView = false;
-
-      if (post.visibility === "public") {
-        canView = true;
-      } else if (viewer?.id === authorId) {
-        // Author can always see their own posts
-        canView = true;
-      } else if (viewer && post.visibility === "followers") {
-        // Check if viewer follows author
-        const followRelation = await db.follow.findUnique({
-          where: { 
-            followerId_followeeId: { 
-              followerId: viewer.id, 
-              followeeId: authorId 
-            } 
-          },
-        });
-        canView = followRelation?.status === "accepted";
-      } else if (viewer && post.visibility === "friends") {
-        // Check if they are mutual friends
-        const [viewerFollowsAuthor, authorFollowsViewer] = await Promise.all([
-          db.follow.findUnique({
-            where: { 
-              followerId_followeeId: { 
-                followerId: viewer.id, 
-                followeeId: authorId 
-              } 
-            },
-          }),
-          db.follow.findUnique({
-            where: { 
-              followerId_followeeId: { 
-                followerId: authorId, 
-                followeeId: viewer.id 
-              } 
-            },
-          }),
-        ]);
-
-        const isFollower = viewerFollowsAuthor?.status === "accepted";
-        const isFriend = isFollower && authorFollowsViewer?.status === "accepted";
-        canView = isFriend;
-      }
+      const canView =
+        post.visibility === "public" ||
+        canViewPost(post.visibility, await getViewerRelationship(viewer?.id, authorId));
 
       if (!canView) {
         return res.status(403).json({ error: "Access denied" });

@@ -9,12 +9,24 @@ import {
   isOurThreadSteadInstance,
   noteMissingLocalPost,
 } from '@/lib/domain/threadrings/orphan-postrefs';
+import { canViewPost, getViewerRelationship, type ViewerRelationship } from '@/lib/domain/posts/visibility';
 
 /**
- * Resolve Ring Hub post references to actual ThreadStead post objects
+ * Resolve Ring Hub post references to actual ThreadStead post objects.
+ *
+ * A local post the viewer may not read (followers, friends or private) is
+ * left out entirely: no title, body or placeholder. `hidden` counts them so
+ * the response total can be adjusted.
  */
-async function resolveRingHubPosts(ringHubPosts: any[], _viewer: any) {
+async function resolveRingHubPosts(ringHubPosts: any[], viewer: { id: string } | null) {
   const resolvedPosts = [];
+  let hidden = 0;
+  // One relationship lookup per author, not per post
+  const relationships = new Map<string, Promise<ViewerRelationship>>();
+  const relationshipTo = (authorId: string) => {
+    if (!relationships.has(authorId)) relationships.set(authorId, getViewerRelationship(viewer?.id, authorId));
+    return relationships.get(authorId)!;
+  };
 
   for (const ringHubPost of ringHubPosts) {
     try {
@@ -91,7 +103,9 @@ async function resolveRingHubPosts(ringHubPosts: any[], _viewer: any) {
         }
       });
 
-      if (post) {
+      if (post && post.visibility !== 'public' && !canViewPost(post.visibility, await relationshipTo(post.authorId))) {
+        hidden++;
+      } else if (post) {
         // Transform to the format expected by the frontend
         const transformedPost = {
           id: post.id,
@@ -146,7 +160,7 @@ async function resolveRingHubPosts(ringHubPosts: any[], _viewer: any) {
     }
   }
 
-  return resolvedPosts;
+  return { posts: resolvedPosts, hidden };
 }
 
 /**
@@ -225,18 +239,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       ) || [];
 
       // Resolve Ring Hub post references to actual ThreadStead post objects
-      const resolvedPosts = await resolveRingHubPosts(nonPromptPosts, viewer);
+      const { posts: resolvedPosts, hidden } = await resolveRingHubPosts(nonPromptPosts, viewer);
 
-      // Calculate hasMore based on returned data (accounting for filtered prompts)
+      // Pagination follows the hub's PostRefs, so filtering (prompts, posts
+      // this viewer can't read) never skips or repeats a page: the next page
+      // starts at nextOffset. `total` drops what this page hid; hidden posts
+      // on other pages are only known once those pages are read.
       const currentOffset = parseInt(offset as string);
       const currentLimit = parseInt(limit as string);
-      const hasMore = (posts?.total || 0) > (currentOffset + (posts?.posts?.length || 0));
+      const rawCount = posts?.posts?.length || 0;
+      const hasMore = (posts?.total || 0) > (currentOffset + rawCount);
 
       return res.json({
         posts: resolvedPosts,
-        total: posts?.total || 0,
+        total: Math.max((posts?.total || 0) - hidden, 0),
         limit: currentLimit,
         offset: currentOffset,
+        nextOffset: currentOffset + rawCount,
         hasMore,
         scope,
         authenticated: !!viewer,

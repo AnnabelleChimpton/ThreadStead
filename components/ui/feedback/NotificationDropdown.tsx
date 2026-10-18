@@ -323,6 +323,11 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
                       <div className="text-sm leading-relaxed">
                         {getNotificationMessage(notification)}
                       </div>
+                      {notification.type === "guestbook" && notification.data?.excerpt && (
+                        <p className="text-sm text-nb-ink italic mt-0.5 mb-0 line-clamp-2">
+                          &ldquo;{notification.data.excerpt}&rdquo;
+                        </p>
+                      )}
                       <div className="text-xs text-thread-sage mt-1">
                         {new Date(notification.createdAt).toLocaleDateString()}
                       </div>

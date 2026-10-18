@@ -4,20 +4,28 @@ import Feed from "@/components/core/content/Feed";
 import RingHubFeed from "@/components/core/content/RingHubFeed";
 import TrendingFeedTab from "@/components/core/content/TrendingFeedTab";
 import { getSiteConfig, SiteConfig } from "@/lib/config/site/dynamic";
-import { GetServerSideProps } from "next";
+import { GetServerSideProps, NextApiRequest } from "next";
+import { getSessionUser } from "@/lib/auth/server";
 import { featureFlags } from "@/lib/utils/features/feature-flags";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import Link from "next/link";
 
 interface FeedPageProps {
   siteConfig: SiteConfig;
+  signedIn: boolean;
+  initialTab: string;
 }
 
-export default function FeedPage({ siteConfig }: FeedPageProps) {
+const TAB_IDS = ["following", "recent", "active", "my-rings", "trending"];
+
+export default function FeedPage({ siteConfig, signedIn, initialTab }: FeedPageProps) {
   const { user: currentUser } = useCurrentUser();
-  
+
   // Base tabs that are always available
   const baseTabs: TabSpec[] = [
+    ...(signedIn || currentUser
+      ? [{ id: "following", label: "Following", content: <Feed type="following" /> }]
+      : []),
     {
       id: "recent",
       label: "Recent Posts",
@@ -76,17 +84,29 @@ export default function FeedPage({ siteConfig }: FeedPageProps) {
         </div>
       </div>
 
-      <Tabs tabs={tabs} initialId="recent" variant="site" />
+      <Tabs tabs={tabs} initialId={initialTab} variant="site" />
     </Layout>
   );
 }
 
-export const getServerSideProps: GetServerSideProps<FeedPageProps> = async () => {
-  const siteConfig = await getSiteConfig();
-  
+export const getServerSideProps: GetServerSideProps<FeedPageProps> = async ({ req, query }) => {
+  const [siteConfig, user] = await Promise.all([
+    getSiteConfig(),
+    getSessionUser(req as NextApiRequest),
+  ]);
+  const signedIn = !!user;
+
+  const requested = typeof query.tab === "string" ? query.tab : "";
+  const initialTab =
+    TAB_IDS.includes(requested) && (signedIn || requested !== "following")
+      ? requested
+      : signedIn ? "following" : "recent";
+
   return {
     props: {
       siteConfig,
+      signedIn,
+      initialTab,
     },
   };
 };

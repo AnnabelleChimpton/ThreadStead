@@ -1013,6 +1013,17 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
               </div>
             )}
 
+            {isMember && (
+              <div className="mt-6 lg:hidden">
+                <Link
+                  href={`/post/new?threadRing=${encodeURIComponent(ring.slug)}`}
+                  className="thread-button btn btn--primary w-full block text-center no-underline"
+                >
+                  <PixelIcon name="edit" size={16} className="inline-block align-[-3px] mr-1.5" />Write in this ring
+                </Link>
+              </div>
+            )}
+
             <div className="mt-6">
 
               {postsLoading ? (
@@ -1029,7 +1040,13 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                     <PixelIcon name="file" size={32} />
                   </div>
                   <p className="font-medium">No posts yet</p>
-                  <p className="text-sm mt-1">Posts from members will appear here</p>
+                  {isMember ? (
+                    <p className="text-sm mt-1">
+                      <Link href={`/post/new?threadRing=${encodeURIComponent(ring.slug)}`}>Write the first one</Link>
+                    </p>
+                  ) : (
+                    <p className="text-sm mt-1">Posts from members will appear here</p>
+                  )}
                 </div>
               ) : (
                 <div className="tr-posts-list space-y-6">
@@ -1087,9 +1104,16 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                   </div>
 
                   {/* Primary Action Buttons */}
+                  <Link
+                    href={`/post/new?threadRing=${encodeURIComponent(ring.slug)}`}
+                    className="thread-button btn btn--primary w-full block text-center no-underline"
+                  >
+                    <PixelIcon name="edit" size={16} className="inline-block align-[-3px] mr-1.5" />Write in this ring
+                  </Link>
+
                   <button
                     onClick={() => router.push(`/neighborhood/ring/${ring.slug}`)}
-                    className="thread-button btn btn--primary w-full flex items-center justify-center gap-2"
+                    className="thread-button-secondary btn btn--secondary w-full flex items-center justify-center gap-2"
                     title="Explore member homes in Ring Streets"
                   >
                     <PixelIcon name="buildings" size={16} /> Ring Neighborhood
@@ -1469,20 +1493,20 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                       {/* Member Status */}
                       <div className="tr-member-status badge badge--butter block px-3 py-2 text-center">
                         <span className="tr-role-indicator font-semibold text-nb-ink flex items-center justify-center gap-1">
-                          {currentUserRole === 'CURATOR' ? <><PixelIcon name="trophy" size={14} /> Ring Host</> : <><PixelIcon name="check" size={14} /> Member</>}
+                          {currentUserRole === 'curator' ? <><PixelIcon name="trophy" size={14} /> Ring Host</> : <><PixelIcon name="check" size={14} /> Member</>}
                         </span>
                       </div>
 
                       {/* Create Post Button */}
                       <Link
-                        href={`/resident/${currentUser?.primaryHandle}/create?ring=${ring.slug}`}
-                        className="tr-create-post-button btn btn--primary w-full text-center font-semibold bg-thread-cream text-thread-pine border-2 border-thread-sage rounded-md shadow-cozy-sm"
+                        href={`/post/new?threadRing=${encodeURIComponent(ring.slug)}`}
+                        className="tr-create-post-button btn btn--primary w-full block text-center font-semibold bg-thread-cream text-thread-pine border-2 border-thread-sage rounded-md shadow-cozy-sm no-underline"
                       >
-                        + New Post
+                        <PixelIcon name="edit" size={16} className="inline-block align-[-3px] mr-1.5" />Write in this ring
                       </Link>
 
                       {/* Leave Button */}
-                      {currentUserRole !== 'CURATOR' && (
+                      {currentUserRole !== 'curator' && (
                         <button
                           onClick={handleLeave}
                           disabled={joining}
@@ -1529,7 +1553,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                   )}
 
                   {/* Badge Management - Ring Hosts Only */}
-                  {currentUserRole === 'CURATOR' && ring.badge && (
+                  {currentUserRole === 'curator' && ring.badge && (
                     <div className="mt-3 pt-3 border-t-2 border-dotted border-nb-ink-mid/30">
                       <button
                         onClick={() => setShowBadgeOptions(!showBadgeOptions)}

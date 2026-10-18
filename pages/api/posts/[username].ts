@@ -3,6 +3,7 @@ import { db } from "@/lib/config/database/connection";
 import { SITE_NAME } from "@/lib/config/site/constants";
 import { getUserBlockedIds, addBlockFiltersToWhere } from "@/lib/domain/users/blocks";
 import { apiHandler } from "@/lib/api/handler";
+import { getAllowedVisibilities } from "@/lib/domain/posts/visibility";
 
 
 
@@ -18,29 +19,7 @@ export default apiHandler(
 
     const authorId = handle.user.id;
 
-    // default: public only
-    let allowed = new Set(["public"]);
-
-    if (viewer?.id === authorId) {
-      // author sees everything
-      allowed = new Set(["public", "followers", "friends", "private"]);
-    } else if (viewer) {
-      // check relationships
-      const [viewerFollowsAuthor, authorFollowsViewer] = await Promise.all([
-        db.follow.findUnique({
-          where: { followerId_followeeId: { followerId: viewer.id, followeeId: authorId } },
-        }),
-        db.follow.findUnique({
-          where: { followerId_followeeId: { followerId: authorId, followeeId: viewer.id } },
-        }),
-      ]);
-
-      const isFollower = viewerFollowsAuthor?.status === "accepted";
-      const isFriend = isFollower && authorFollowsViewer?.status === "accepted";
-
-      if (isFollower) allowed.add("followers");
-      if (isFriend) allowed.add("friends");
-    }
+    const allowed = await getAllowedVisibilities(viewer?.id, authorId);
 
     // Get blocked users/ThreadRings for the viewer (if logged in)
     let blockedUserIds: string[] = [];
@@ -55,7 +34,7 @@ export default apiHandler(
     // Build the where clause with block filters
     let whereClause: any = { 
       authorId, 
-      visibility: { in: Array.from(allowed) as any } 
+      visibility: { in: allowed } 
     };
 
     // Apply block filters if viewer is logged in

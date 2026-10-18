@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useSiteConfig } from "@/hooks/useSiteConfig";
 import ImprovedBadgeDisplay from "./ImprovedBadgeDisplay";
 import { CommentMarkupWithEmojis } from "@/lib/comment-markup";
-import UserMention from "@/components/ui/navigation/UserMention";
+import Link from "next/link";
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import { PixelIcon } from '@/components/ui/PixelIcon';
 
@@ -18,7 +18,14 @@ type Entry = {
   signature?: string | null;
 };
 
-export default function Guestbook({ username, bio }: { username: string; bio?: string }) {
+interface GuestbookProps {
+  username: string;
+  bio?: string;
+  /** Where a signer's name links, so you can visit them back: their profile (default) or their pixel home */
+  signerLink?: "profile" | "home";
+}
+
+export default function Guestbook({ username, bio, signerLink = "profile" }: GuestbookProps) {
   const { config } = useSiteConfig();
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -241,7 +248,14 @@ export default function Guestbook({ username, bio }: { username: string; bio?: s
                       {e.authorUsername ? (
                         <>
                           {" · by "}
-                          <UserMention username={e.authorUsername} />
+                          <Link
+                            href={signerLink === "home"
+                              ? `/home/${encodeURIComponent(e.authorUsername)}`
+                              : `/resident/${encodeURIComponent(e.authorUsername)}`}
+                            title={signerLink === "home" ? `Visit ${e.authorUsername}'s home` : `Visit ${e.authorUsername}'s page`}
+                          >
+                            {e.authorUsername}
+                          </Link>
                         </>
                       ) : " · anonymous visitor"}
                     </div>

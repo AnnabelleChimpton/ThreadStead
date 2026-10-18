@@ -431,7 +431,7 @@ export default function PixelHomePage({
           </Callout>
 
           <div className="max-h-96 overflow-y-auto">
-            <Guestbook username={username} />
+            <Guestbook username={username} signerLink="home" />
           </div>
         </div>
       </Modal>

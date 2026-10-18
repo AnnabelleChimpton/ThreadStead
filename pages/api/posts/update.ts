@@ -150,7 +150,11 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   //
   // Best-effort per ring, non-fatal on failure (log, don't 500), mirroring
   // create.ts's submit loop.
-  if (featureFlags.ringhub()) {
+  //
+  // Only public posts are refreshed: hub PostRef metadata (title, preview) is
+  // served to anyone, so an edit to a followers/friends/private post must not
+  // reach it. The ring page hides such posts (see /api/threadrings/[slug]/posts).
+  if (featureFlags.ringhub() && updated.visibility === "public") {
     try {
       const threadRingPostIds = (updated.threadRingPostIds as Record<string, string>) || {};
       const ringSlugs = updated.threadRings

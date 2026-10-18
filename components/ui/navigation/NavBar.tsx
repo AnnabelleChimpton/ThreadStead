@@ -10,6 +10,7 @@ import { useSiteConfig, SiteConfig } from "@/hooks/useSiteConfig";
 import { useNavPages } from "@/hooks/useNavPages";
 import { useMe } from "@/hooks/useMe";
 import { PixelIcon } from "@/components/ui/PixelIcon";
+import ButtonLink from "@/components/ui/ButtonLink";
 
 // Mobile-specific login status component
 function MobileLoginStatus({ onAccountClick }: { onAccountClick: () => void }) {
@@ -398,6 +399,7 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
   };
 
   const feedActive = pathStartsWith('/discover/feed');
+  const writeActive = pathStartsWith('/post/new');
   const communityActive = pathStartsWith('/community') || pathStartsWith('/bulletin');
 
   // Close mobile menu when clicking outside
@@ -450,7 +452,7 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
 
   const navClasses = advancedTemplate
     ? "" // Completely unstyled for advanced templates
-    : "site-navigation w-full px-2 sm:px-4 flex items-center justify-between"; // Always full-width
+    : "site-navigation w-full px-2 sm:px-4 lg:px-0 xl:px-4 flex items-center justify-between"; // Always full-width
 
   const mobileNavLinkClass = (active: boolean) =>
     `block px-4 py-3 rounded font-medium ${
@@ -476,8 +478,8 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
           </div>
 
           {/* Desktop Navigation */}
-          <div className="site-nav-container hidden lg:flex items-center gap-3 lg:gap-4 xl:gap-8 min-w-0">
-            <div className="site-nav-links flex items-center gap-3 lg:gap-4 xl:gap-6">
+          <div className="site-nav-container hidden lg:flex items-center gap-3 xl:gap-8 min-w-0">
+            <div className="site-nav-links flex items-center gap-3 xl:gap-6">
               {/* Feed - the most common destination gets a top-level spot */}
               <Link
                 className={navLinkClass(feedActive)}
@@ -524,6 +526,18 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
                 <div className="w-24 h-8" aria-hidden="true" />
               ) : me?.loggedIn ? (
                 <>
+                  {/* Icon-only until xl so the bar fits at 1024px */}
+                  <ButtonLink
+                    href="/post/new"
+                    size="sm"
+                    className="whitespace-nowrap"
+                    aria-current={writeActive ? 'page' : undefined}
+                    aria-label="Write a post"
+                    title="Write a post"
+                  >
+                    <PixelIcon name="edit" size={14} className="inline-block align-[-2px] xl:mr-1" />
+                    <span className="hidden xl:inline">Write</span>
+                  </ButtonLink>
                   {isDesktop === true && <NotificationDropdown className="nav-link" />}
                   <UserDropdown />
                 </>
@@ -580,6 +594,18 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
             >
               Feed
             </Link>
+
+            {me?.loggedIn && (
+              <Link
+                href="/post/new"
+                className={mobileNavLinkClass(writeActive)}
+                aria-current={writeActive ? 'page' : undefined}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <PixelIcon name="edit" size={16} className="inline-block align-[-3px] mr-2" />
+                Write
+              </Link>
+            )}
 
             <Link
               href="/community"

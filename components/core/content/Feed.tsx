@@ -2,8 +2,15 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import FeedPost, { FeedPostData } from "./FeedPost";
 import { PostSkeletonList } from "./PostSkeleton";
 import { useSiteConfig } from "@/hooks/useSiteConfig";
+import ButtonLink from "@/components/ui/ButtonLink";
 
-type FeedType = "recent" | "active";
+type FeedType = "recent" | "active" | "following";
+
+const ENDPOINTS: Record<FeedType, string> = {
+  recent: "/api/feed/recent",
+  active: "/api/feed/active",
+  following: "/api/feed/following",
+};
 
 type FeedProps = {
   type: FeedType;
@@ -12,6 +19,10 @@ type FeedProps = {
 type FeedResponse = {
   posts: FeedPostData[];
   hasMore: boolean;
+  /** Following feed only: keyset cursor for the next page */
+  nextCursor?: string | null;
+  /** Following feed only: how many people the viewer follows */
+  followingCount?: number;
 };
 
 export default function Feed({ type }: FeedProps) {
@@ -22,20 +33,27 @@ export default function Feed({ type }: FeedProps) {
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [newPostsCount, setNewPostsCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState<number | null>(null);
 
   const postsCountRef = useRef(0);
   const observerTarget = useRef<HTMLDivElement>(null);
   const latestPostIdRef = useRef<string | null>(null);
+  const cursorRef = useRef<string | null>(null);
 
-  const endpoint = type === "recent" ? "/api/feed/recent" : "/api/feed/active";
+  const endpoint = ENDPOINTS[type];
 
   const loadPosts = useCallback(async (isInitial = false) => {
     if (!isInitial) setLoadingMore(true);
     setError(null);
 
     try {
-      const offset = isInitial ? 0 : postsCountRef.current;
-      const res = await fetch(`${endpoint}?limit=10&offset=${offset}`);
+      let query = "limit=10";
+      if (type === "following") {
+        if (!isInitial && cursorRef.current) query += `&cursor=${encodeURIComponent(cursorRef.current)}`;
+      } else {
+        query += `&offset=${isInitial ? 0 : postsCountRef.current}`;
+      }
+      const res = await fetch(`${endpoint}?${query}`);
 
       if (!res.ok) {
         throw new Error(`Failed to load posts: ${res.status}`);
@@ -55,6 +73,8 @@ export default function Feed({ type }: FeedProps) {
         postsCountRef.current += data.posts.length;
       }
 
+      cursorRef.current = data.nextCursor ?? null;
+      if (typeof data.followingCount === "number") setFollowingCount(data.followingCount);
       setHasMore(data.hasMore);
     } catch (err) {
       setError((err as Error)?.message || "Failed to load posts");
@@ -62,11 +82,12 @@ export default function Feed({ type }: FeedProps) {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [endpoint]);
+  }, [endpoint, type]);
 
   // Load initial posts
   useEffect(() => {
     postsCountRef.current = 0;
+    cursorRef.current = null;
     setLoading(true);
     loadPosts(true);
   }, [type, loadPosts]);
@@ -93,9 +114,9 @@ export default function Feed({ type }: FeedProps) {
     };
   }, [hasMore, loadingMore, loading, loadPosts]);
 
-  // Poll for new posts (only for "recent" feed)
+  // Poll for new posts (newest-first feeds only)
   useEffect(() => {
-    if (type !== "recent") return;
+    if (type === "active") return;
 
     const interval = setInterval(async () => {
       try {
@@ -152,6 +173,26 @@ export default function Feed({ type }: FeedProps) {
     );
   }
 
+  if (posts.length === 0 && type === "following") {
+    const followsNobody = followingCount === 0;
+    return (
+      <div className="thread-module p-4 sm:p-6 md:p-8 text-center">
+        <h3 className="thread-headline text-lg mb-2">
+          {followsNobody ? "You\u2019re not following anyone yet" : "Nothing new from the people you follow"}
+        </h3>
+        <p className="text-nb-ink mb-4">
+          {followsNobody
+            ? "Follow a few neighbors and their posts will show up here."
+            : "When they post, you\u2019ll see it here."}
+        </p>
+        <div className="flex flex-wrap justify-center gap-2">
+          <ButtonLink href="/neighborhood/explore/all">Walk down the street</ButtonLink>
+          <ButtonLink href="/discover/residents" variant="secondary">Browse residents</ButtonLink>
+        </div>
+      </div>
+    );
+  }
+
   if (posts.length === 0) {
     return (
       <div className="thread-module p-4 sm:p-6 md:p-8 text-center">
@@ -184,6 +225,7 @@ export default function Feed({ type }: FeedProps) {
           key={post.id}
           post={post}
           showActivity={type === "active"}
+          showVisibility={type === "following"}
         />
       ))}
 

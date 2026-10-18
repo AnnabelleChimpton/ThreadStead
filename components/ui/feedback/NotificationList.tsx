@@ -19,6 +19,8 @@ export type NotificationData = {
     mediaId?: string;
     mediaTitle?: string;
     mediaOwnerHandle?: string;
+    /** Guestbook notes: the start of the note, added by GET /api/notifications */
+    excerpt?: string | null;
   };
   createdAt: string;
   readAt?: string | null;
@@ -342,6 +344,11 @@ export default function NotificationList({
                     <div className="text-sm leading-relaxed">
                       {getNotificationMessage(notification)}
                     </div>
+                    {notification.type === "guestbook" && notification.data?.excerpt && (
+                      <p className="text-sm text-nb-ink italic mt-1 mb-0 line-clamp-2">
+                        &ldquo;{notification.data.excerpt}&rdquo;
+                      </p>
+                    )}
                     
                     {/* User badges */}
                     <div className="mt-1 mb-1">

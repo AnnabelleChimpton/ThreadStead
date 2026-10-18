@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // A second dev server in this checkout (e.g. a preview on another port)
+  // must not share .next with the first, or each rebuild breaks the other.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   reactStrictMode: true,
   poweredByHeader: false,
 

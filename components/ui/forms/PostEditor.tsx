@@ -10,6 +10,7 @@ import Link from "next/link";
 import { getCsrfToken } from '@/lib/api/client/csrf-fetch';
 import imageCompression from 'browser-image-compression';
 import { PixelIcon } from '@/components/ui/PixelIcon';
+import { VISIBILITY_LABELS, VISIBILITY_HINTS } from "@/components/core/content/VisibilityBadge";
 
 type Visibility = "public" | "followers" | "friends" | "private";
 type PostIntent = "sharing" | "asking" | "feeling" | "announcing" | "showing" | "teaching" | "looking" | "celebrating" | "recommending";
@@ -53,12 +54,7 @@ interface PostEditorProps {
   } | null;
 }
 
-const VIS_OPTS: { v: Visibility; label: string }[] = [
-  { v: "public", label: "Public" },
-  { v: "followers", label: "Followers" },
-  { v: "friends", label: "Friends" },
-  { v: "private", label: "Only Me" },
-];
+const VIS_OPTS: Visibility[] = ["public", "followers", "friends", "private"];
 
 const INTENT_OPTS: { v: PostIntent; label: string; description: string }[] = [
   { v: "sharing", label: "sharing", description: "Share something interesting" },
@@ -128,6 +124,8 @@ export default function PostEditor({
 
   const [threadRings, setThreadRings] = useState<ThreadRingMembership[]>([]);
   const [selectedRings, setSelectedRings] = useState<string[]>(initialData?.selectedRings || []);
+  // "Only me" and a ring pull in opposite directions; say so where both choices are made
+  const privateWithRing = mode === "create" && visibility === "private" && selectedRings.length > 0;
   const [ringsLoading, setRingsLoading] = useState(false);
 
   // Journal Metadata State
@@ -787,20 +785,27 @@ export default function PostEditor({
           </div >
 
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-medium">Visibility:</label>
-              <select
-                className="thread-button-secondary btn btn--secondary text-sm"
-                value={visibility}
-                onChange={(e) => setVisibility(e.target.value as Visibility)}
-                disabled={busy}
-              >
-                {VIS_OPTS.map((o) => (
-                  <option key={o.v} value={o.v}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
+            <div className="flex flex-col items-end gap-1">
+              <div className="flex items-center gap-2">
+                <label htmlFor="post-visibility" className="text-sm font-medium">Visibility:</label>
+                <select
+                  id="post-visibility"
+                  aria-describedby="post-visibility-hint"
+                  className="thread-button-secondary btn btn--secondary text-sm"
+                  value={visibility}
+                  onChange={(e) => setVisibility(e.target.value as Visibility)}
+                  disabled={busy}
+                >
+                  {VIS_OPTS.map((v) => (
+                    <option key={v} value={v}>
+                      {VISIBILITY_LABELS[v]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <p id="post-visibility-hint" className="text-xs text-nb-ink m-0">
+                {privateWithRing ? "Just you, but a ring is ticked below." : VISIBILITY_HINTS[visibility]}
+              </p>
             </div>
           </div>
         </div >
@@ -1144,6 +1149,16 @@ code block
                         This post will be shared to <strong>{respondingToPrompt.threadRingSlug}</strong> as a prompt response
                       </span>
                     </div>
+                  </div>
+                )}
+
+                {privateWithRing && (
+                  <div role="status" className="mb-3 flex items-start gap-2 border-2 border-dotted border-nb-ink-mid/60 rounded-md p-3 text-sm text-nb-ink">
+                    <PixelIcon name="alert" size={16} className="mt-0.5 flex-shrink-0" />
+                    <span>
+                      This post is set to <strong>Only me</strong>, but rings are shared with their members.
+                      Change who can see it, or untick the ring.
+                    </span>
                   </div>
                 )}
 
