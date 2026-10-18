@@ -336,11 +336,11 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
               <span aria-hidden="true">·</span>
               {user?.primaryHandle && (
                 <>
-                  <Link href={`/resident/${user.primaryHandle.split('@')[0]}`}>My Profile</Link>
+                  <Link href={`/resident/${user.primaryHandle.split('@')[0]}`}>My page</Link>
                   <span aria-hidden="true">·</span>
                 </>
               )}
-              <Link href="/neighborhood/explore/all">Explore Homes</Link>
+              <Link href="/neighborhood">The street</Link>
               <span aria-hidden="true">·</span>
               <Link href="/community">Community</Link>
               <span aria-hidden="true">·</span>

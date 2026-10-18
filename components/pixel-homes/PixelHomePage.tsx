@@ -352,7 +352,7 @@ export default function PixelHomePage({
               <div className="widget-header mb-3"><h3 className="widget-title font-headline text-base font-bold text-nb-ink mb-0">Neighborhood</h3></div>
               <div className="space-y-2">
                 <button
-                  onClick={() => router.push('/neighborhood/explore/all')}
+                  onClick={() => router.push('/neighborhood')}
                   className="thread-button-secondary btn btn--secondary w-full text-left"
                 >
                   <span>Explore More Homes</span>

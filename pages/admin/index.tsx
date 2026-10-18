@@ -3,6 +3,7 @@ import type { GetServerSideProps } from "next";
 import Link from "next/link";
 import Layout from "@/components/ui/layout/Layout";
 import RetroCard from "@/components/ui/layout/RetroCard";
+import AdminHeader from "@/components/ui/navigation/AdminHeader";
 import { useMe } from "@/hooks/useMe";
 import { PixelIcon } from "@/components/ui/PixelIcon";
 import SiteCSSSection from "@/components/features/admin/SiteCSSSection";
@@ -1085,9 +1086,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
   return (
     <Layout>
       <div className="space-y-4">
-        <RetroCard title="Admin Dashboard">
-          <p>Welcome to the admin panel. Manage your site&apos;s content, appearance, and users with the organized sections below.</p>
-        </RetroCard>
+        <AdminHeader current="dashboard" />
 
         {/* CONTENT MANAGEMENT */}
         <CollapsibleSection title="Content Management" defaultOpen={false} icon="edit">

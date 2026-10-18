@@ -1,15 +1,13 @@
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useMe } from "@/hooks/useMe";
+import { useRouter } from "next/router";
 import { PixelIcon } from '@/components/ui/PixelIcon';
+import { accountMenuItems, isCurrentHref, pathOnly } from '@/components/ui/navigation/siteNav';
 
-interface UserDropdownProps {
-  isMobile?: boolean;
-  onItemClick?: () => void;
-}
-
-export default function UserDropdown({ isMobile = false, onItemClick }: UserDropdownProps) {
+export default function UserDropdown() {
   const { me } = useMe();
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -66,82 +64,7 @@ export default function UserDropdown({ isMobile = false, onItemClick }: UserDrop
 
   const username = me.user?.primaryHandle?.split("@")[0] || "User";
   const isAdmin = me.user?.role === "admin";
-
-  // Mobile inline view - renders as menu items instead of dropdown
-  if (isMobile) {
-    return (
-      <div className="space-y-1">
-        {/* User info header */}
-        <div className="px-3 py-2 bg-thread-cream/50 rounded">
-          <div className="text-xs text-gray-500">signed in as</div>
-          <div className="font-medium text-thread-pine text-sm">{username}</div>
-        </div>
-
-        {/* User menu items - Personal Navigation */}
-        <Link
-          href={`/home/${username}`}
-          className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-2 min-h-[48px]"
-          onClick={onItemClick}
-        >
-          <PixelIcon name="home" />
-          My Pixel Home
-        </Link>
-
-        <Link
-          href={`/resident/${username}`}
-          className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-2 min-h-[48px]"
-          onClick={onItemClick}
-        >
-          <PixelIcon name="user" />
-          My Profile
-        </Link>
-
-        <Link
-          href="/bookmarks"
-          className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-2 min-h-[48px]"
-          onClick={onItemClick}
-        >
-          <PixelIcon name="bookmark" />
-          Bookmarks
-        </Link>
-
-        <div className="border-t border-gray-200 my-1"></div>
-
-        <Link
-          href="/settings"
-          className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-2 min-h-[48px]"
-          onClick={onItemClick}
-        >
-          <PixelIcon name="sliders" />
-          Settings
-        </Link>
-
-        {isAdmin && (
-          <Link
-            href="/settings/admin"
-            className="block px-3 py-2 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-2 min-h-[48px]"
-            onClick={onItemClick}
-          >
-            <PixelIcon name="shield" />
-            Admin Panel
-          </Link>
-        )}
-
-        <div className="border-t border-gray-200 my-1"></div>
-
-        <button
-          onClick={() => {
-            onItemClick?.();
-            logout();
-          }}
-          className="block w-full px-3 py-2 text-left text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-2 min-h-[48px]"
-        >
-          <PixelIcon name="logout" />
-          Log Out
-        </button>
-      </div>
-    );
-  }
+  const currentPath = pathOnly(router.asPath);
 
   // Desktop dropdown view
   return (
@@ -179,57 +102,24 @@ export default function UserDropdown({ isMobile = false, onItemClick }: UserDrop
           </div>
           
           <div className="py-1">
-            {/* Personal Navigation */}
-            <Link
-              href={`/home/${username}`}
-              className="user-dropdown-item flex items-center gap-2 px-3 py-2 text-xs sm:text-sm text-thread-charcoal hover:bg-thread-cream"
-              onClick={() => setIsOpen(false)}
-            >
-              <PixelIcon name="home" />
-              My Pixel Home
-            </Link>
+            {accountMenuItems(username, isAdmin).map((item) => {
+              const current = isCurrentHref(item.href, currentPath);
+              return (
+                <React.Fragment key={item.key}>
+                  {item.groupStart && <div className="border-t border-thread-sage my-1"></div>}
+                  <Link
+                    href={item.href}
+                    className={`user-dropdown-item flex items-center gap-2 px-3 py-2 text-xs sm:text-sm hover:bg-thread-cream ${current ? "text-thread-sunset font-medium" : "text-thread-charcoal"}`}
+                    aria-current={current ? "page" : undefined}
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <PixelIcon name={item.icon} />
+                    {item.label}
+                  </Link>
+                </React.Fragment>
+              );
+            })}
 
-            <Link
-              href={`/resident/${username}`}
-              className="user-dropdown-item flex items-center gap-2 px-3 py-2 text-xs sm:text-sm text-thread-charcoal hover:bg-thread-cream"
-              onClick={() => setIsOpen(false)}
-            >
-              <PixelIcon name="user" />
-              My Profile
-            </Link>
-
-            <Link
-              href="/bookmarks"
-              className="user-dropdown-item flex items-center gap-2 px-3 py-2 text-xs sm:text-sm text-thread-charcoal hover:bg-thread-cream"
-              onClick={() => setIsOpen(false)}
-            >
-              <PixelIcon name="bookmark" />
-              Bookmarks
-            </Link>
-
-            <div className="border-t border-thread-sage my-1"></div>
-
-            {/* Settings & Account */}
-            <Link
-              href="/settings"
-              className="user-dropdown-item flex items-center gap-2 px-3 py-2 text-xs sm:text-sm text-thread-charcoal hover:bg-thread-cream"
-              onClick={() => setIsOpen(false)}
-            >
-              <PixelIcon name="sliders" />
-              Settings
-            </Link>
-
-            {isAdmin && (
-              <Link
-                href="/settings/admin"
-                className="user-dropdown-item flex items-center gap-2 px-3 py-2 text-xs sm:text-sm text-thread-charcoal hover:bg-thread-cream"
-                onClick={() => setIsOpen(false)}
-              >
-                <PixelIcon name="shield" />
-                Admin Panel
-              </Link>
-            )}
-            
             <div className="border-t border-thread-sage my-1"></div>
             
             <button
@@ -240,7 +130,7 @@ export default function UserDropdown({ isMobile = false, onItemClick }: UserDrop
               className="user-dropdown-item flex items-center gap-2 w-full px-3 py-2 text-xs sm:text-sm text-thread-charcoal hover:bg-thread-cream text-left"
             >
               <PixelIcon name="logout" />
-              Log Out
+              Log out
             </button>
           </div>
         </div>

@@ -165,7 +165,6 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
   const [emailResetStatus, setEmailResetStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
   const [emailResetMessage, setEmailResetMessage] = useState('');
 
-  const isAdmin = initialUser.role === "admin";
   const username = React.useMemo(() => initialUser.primaryHandle?.split("@")[0] || "", [initialUser.primaryHandle]);
 
   const handleRequestEmailReset = async () => {
@@ -1772,37 +1771,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
     }] : [])
   ];
 
-  // Add admin tab for admins
-  if (isAdmin) {
-    settingsTabs.push({
-      id: "admin",
-      label: <><PixelIcon name="sliders" /> Admin</>,
-      content: (
-        <div className="space-y-6 px-4 sm:px-0">
-          <div className="mb-6">
-            <h2 className="text-xl font-bold mb-2">Admin Panel</h2>
-            <p className="text-nb-ink-mid mb-6">
-              Administrative tools and site management.
-            </p>
-          </div>
-
-          <div className="widget-container widget--flat bg-thread-paper border border-thread-sage rounded-cozy shadow-cozy-sm p-4">
-            <p className="text-sm text-nb-ink mb-2">
-              <strong>Admin features are available in the dedicated admin panel.</strong>
-            </p>
-            <Link
-              href="/settings/admin"
-              className="btn btn--primary bg-thread-cream inline-block text-thread-pine border-2 border-thread-sage rounded-md shadow-cozy-sm font-semibold text-sm min-h-[48px]"
-            >
-              Open Admin Panel →
-            </Link>
-          </div>
-        </div>
-      )
-    });
-  }
-
-
+  // Admin tools live at /admin (the account menu links there for admins)
 
   return (
     <>

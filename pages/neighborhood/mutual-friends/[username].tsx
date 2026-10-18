@@ -90,8 +90,8 @@ export default function MutualFriendsNeighborhood({
           {/* Header */}
           <div className="text-center mb-8">
             <div className="inline-flex items-center gap-2 text-sm text-thread-sage mb-2">
-              <Link href="/neighborhood/explore/all" className="hover:text-thread-pine transition-colors">
-                Explore Homes
+              <Link href="/neighborhood" className="hover:text-thread-pine transition-colors">
+                The street
               </Link>
               <span>→</span>
               <span>Network Connections</span>
@@ -155,16 +155,16 @@ export default function MutualFriendsNeighborhood({
               </div>
               <div className="flex justify-center gap-4">
                 <Link
-                  href="/neighborhood/explore/all"
+                  href="/neighborhood"
                   className="inline-flex items-center gap-2 px-4 py-2 bg-thread-sage text-thread-paper rounded-md hover:bg-thread-pine transition-colors"
                 >
-                  <PixelIcon name="map" size={16} /> Explore All Homes
+                  <PixelIcon name="map" size={16} /> The street
                 </Link>
                 <Link
-                  href="/rings"
+                  href="/threadrings"
                   className="inline-flex items-center gap-2 px-4 py-2 border border-thread-sage text-thread-sage rounded-md hover:bg-thread-sage hover:text-thread-paper transition-colors"
                 >
-                  <PixelIcon name="bookmark" size={16} /> Browse ThreadRings
+                  <PixelIcon name="bookmark" size={16} /> All rings
                 </Link>
               </div>
             </div>
@@ -215,22 +215,22 @@ export default function MutualFriendsNeighborhood({
             </h3>
             <div className="flex justify-center gap-4">
               <Link
-                href="/neighborhood/explore/popular"
+                href="/neighborhood"
                 className="inline-flex items-center gap-2 px-4 py-2 bg-thread-cream border border-thread-sage text-thread-pine rounded-md hover:bg-thread-sage hover:text-thread-paper transition-colors"
               >
-                <PixelIcon name="trophy" size={16} /> Popular Homes
+                <PixelIcon name="map" size={16} /> The street
               </Link>
               <Link
-                href="/neighborhood/explore/random"
+                href="/neighborhood/random"
                 className="inline-flex items-center gap-2 px-4 py-2 bg-thread-cream border border-thread-sage text-thread-pine rounded-md hover:bg-thread-sage hover:text-thread-paper transition-colors"
               >
-                <PixelIcon name="dice" size={16} /> Random Homes
+                <PixelIcon name="dice" size={16} /> A random house
               </Link>
               <Link
-                href="/rings"
+                href="/threadrings"
                 className="inline-flex items-center gap-2 px-4 py-2 bg-thread-cream border border-thread-sage text-thread-pine rounded-md hover:bg-thread-sage hover:text-thread-paper transition-colors"
               >
-                <PixelIcon name="bookmark" size={16} /> Browse ThreadRings
+                <PixelIcon name="bookmark" size={16} /> All rings
               </Link>
             </div>
           </div>

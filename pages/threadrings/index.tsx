@@ -6,6 +6,7 @@ import ThreadRingCard from "../../components/core/threadring/ThreadRingCard";
 import { getSiteConfig, SiteConfig } from "@/lib/config/site/dynamic";
 import { GetServerSideProps } from "next";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import NoRingsEmptyState from "../../components/features/onboarding/NoRingsEmptyState";
 import FeatureGate, { NewUserTooltip } from "../../components/features/onboarding/FeatureGate";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
@@ -13,8 +14,12 @@ import { MetadataGenerator } from "@/lib/utils/metadata/metadata-generator";
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import { serializeJsonLd } from "@/lib/utils/sanitization/json-ld";
 
+type RingsTab = 'discover' | 'mine';
+
 interface ThreadRingsPageProps {
   siteConfig: SiteConfig;
+  /** From ?tab=mine, so "My rings" in the nav is a real link */
+  initialTab: RingsTab;
 }
 
 interface ThreadRing {
@@ -50,7 +55,8 @@ interface ThreadRing {
   badgeImageHighResUrl?: string | null;
 }
 
-export default function ThreadRingsPage({ siteConfig }: ThreadRingsPageProps) {
+export default function ThreadRingsPage({ siteConfig, initialTab }: ThreadRingsPageProps) {
+  const router = useRouter();
   // Generate metadata for ThreadRings page
   const metadataGenerator = new MetadataGenerator(getSiteBaseUrl(), siteConfig);
   const threadRingsMetadata = {
@@ -70,7 +76,17 @@ export default function ThreadRingsPage({ siteConfig }: ThreadRingsPageProps) {
   const { user } = useCurrentUser();
 
   // Tab state
-  const [activeTab, setActiveTab] = useState<'discover' | 'mine'>('discover');
+  const [activeTab, setActiveTab] = useState<RingsTab>(initialTab);
+
+  // Follow the URL when the nav's "My rings" / "All rings" links change ?tab
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
+
+  const selectTab = (tab: RingsTab) => {
+    setActiveTab(tab);
+    router.replace(tab === 'mine' ? '/threadrings?tab=mine' : '/threadrings', undefined, { shallow: true, scroll: false });
+  };
 
   // Filters
   const [search, setSearch] = useState("");
@@ -236,8 +252,9 @@ export default function ThreadRingsPage({ siteConfig }: ThreadRingsPageProps) {
               <div>
                 <h1 className="text-3xl font-headline font-bold text-thread-pine">ThreadRings</h1>
                 <p className="text-thread-sage mt-1">
-                  {activeTab === 'mine' ? 'Your ThreadRing memberships' : 'Discover communities and join the conversation'}
-                  {total !== null && ` • ${total} total rings`}
+                  {activeTab === 'mine' && 'Rings you belong to'}
+                  {activeTab === 'mine' && total !== null && ' · '}
+                  {total !== null && `${total} ${total === 1 ? 'ring' : 'rings'}`}
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row gap-2">
@@ -245,13 +262,13 @@ export default function ThreadRingsPage({ siteConfig }: ThreadRingsPageProps) {
                   href="/threadrings/genealogy"
                   className="btn btn--secondary border border-thread-sage px-3 py-2 text-sm md:px-4 md:text-base bg-thread-paper hover:bg-thread-cream text-thread-pine rounded-cozy shadow-cozy-sm hover:shadow-cozy transition-all font-medium text-center"
                 >
-                  Genealogy
+                  Family tree
                 </Link>
                 <Link
                   href="/tr/spool/fork"
                   className="btn btn--primary border border-thread-pine px-3 py-2 text-sm md:px-4 md:text-base bg-thread-sunset text-thread-paper hover:bg-thread-sunset/90 rounded-cozy shadow-cozy-sm hover:shadow-cozy transition-all font-medium text-center"
                 >
-                  Branch <span className="hidden md:inline">from The Spool</span>
+                  Start a ring
                 </Link>
               </div>
             </div>
@@ -259,24 +276,26 @@ export default function ThreadRingsPage({ siteConfig }: ThreadRingsPageProps) {
           {/* Tabs */}
           <div className="flex border-b border-thread-sage/40 mb-4">
             <button
-              onClick={() => setActiveTab('discover')}
+              onClick={() => selectTab('discover')}
+              aria-pressed={activeTab === 'discover'}
               className={`threadring-tab px-4 py-2 font-medium border-b-2 transition-colors ${
                 activeTab === 'discover'
                   ? 'border-thread-pine text-thread-pine'
                   : 'border-transparent text-thread-sage hover:text-thread-pine hover:border-thread-sage/50'
               }`}
             >
-              Discover ThreadRings
+              All rings
             </button>
             <button
-              onClick={() => setActiveTab('mine')}
+              onClick={() => selectTab('mine')}
+              aria-pressed={activeTab === 'mine'}
               className={`threadring-tab px-4 py-2 font-medium border-b-2 transition-colors ${
                 activeTab === 'mine'
                   ? 'border-thread-pine text-thread-pine'
                   : 'border-transparent text-thread-sage hover:text-thread-pine hover:border-thread-sage/50'
               }`}
             >
-              My ThreadRings
+              My rings
             </button>
           </div>
 
@@ -343,10 +362,10 @@ export default function ThreadRingsPage({ siteConfig }: ThreadRingsPageProps) {
                 <div className="flex gap-2 justify-center flex-wrap">
                   {activeTab === 'mine' ? (
                     <button
-                      onClick={() => setActiveTab('discover')}
+                      onClick={() => selectTab('discover')}
                       className="border border-thread-sage px-4 py-2 bg-thread-sky/25 hover:bg-thread-sky/40 text-thread-pine rounded-cozy shadow-cozy-sm hover:shadow-cozy transition-all inline-block"
                     >
-                      Discover ThreadRings
+                      All rings
                     </button>
                   ) : (
                     <FeatureGate 
@@ -402,10 +421,11 @@ export default function ThreadRingsPage({ siteConfig }: ThreadRingsPageProps) {
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const siteConfig = await getSiteConfig();
-  
+
   return {
     props: {
       siteConfig,
+      initialTab: context.query.tab === 'mine' ? 'mine' : 'discover',
     },
   };
 };

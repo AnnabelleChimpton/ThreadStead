@@ -186,8 +186,8 @@ export default function Feed({ type }: FeedProps) {
             : "When they post, you\u2019ll see it here."}
         </p>
         <div className="flex flex-wrap justify-center gap-2">
-          <ButtonLink href="/neighborhood/explore/all">Walk down the street</ButtonLink>
-          <ButtonLink href="/discover/residents" variant="secondary">Browse residents</ButtonLink>
+          <ButtonLink href="/neighborhood">Walk down the street</ButtonLink>
+          <ButtonLink href="/neighborhood/residents" variant="secondary">Browse residents</ButtonLink>
         </div>
       </div>
     );

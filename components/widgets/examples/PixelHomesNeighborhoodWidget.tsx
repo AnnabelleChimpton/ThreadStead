@@ -159,7 +159,7 @@ function PixelHomesNeighborhoodWidget({
         <p className="text-sm mb-3">No homes to explore</p>
         <div className="mt-2">
           <Link
-            href="/explore/homes"
+            href="/neighborhood"
             className="text-xs"
           >
             Browse all homes →

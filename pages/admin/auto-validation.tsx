@@ -3,6 +3,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import AdminHeader from '@/components/ui/navigation/AdminHeader';
 import { GetServerSideProps } from 'next';
 import Layout from '@/components/ui/layout/Layout';
 import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
@@ -130,12 +131,9 @@ export default function AutoValidationDashboard({ siteConfig, user }: Props) {
   return (
     <Layout siteConfig={siteConfig}>
       <div className="max-w-6xl mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">🤖 Auto-Validation Dashboard</h1>
-          <p className="text-gray-600">
-            Monitor and control the automatic validation system for crawler-discovered sites
-          </p>
-        </div>
+        <AdminHeader current="validation">
+          <p>Monitor and control the automatic validation system for crawler-discovered sites</p>
+        </AdminHeader>
 
         {/* Control Panel */}
         <div className="bg-white border border-gray-200 rounded-lg p-6 mb-8">

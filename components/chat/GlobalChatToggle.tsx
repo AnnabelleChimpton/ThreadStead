@@ -13,7 +13,7 @@ export default function GlobalChatToggle() {
   const unreadCount = conversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
 
   // Don't show toggle button on the /chat page
-  if (pathname === '/chat') {
+  if (pathname === '/community/chat') {
     return null;
   }
 

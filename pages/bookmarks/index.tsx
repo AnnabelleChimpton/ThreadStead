@@ -302,8 +302,8 @@ export default function BookmarksPage({ siteConfig, user }: BookmarksProps) {
             ) : bookmarks.length === 0 ? (
               <div className="text-center py-12 text-gray-500">
                 <p className="mb-4">No bookmarks found.</p>
-                <Link href="/discover" className="text-blue-600 hover:text-blue-800">
-                  Discover and save some sites →
+                <Link href="/search" className="text-blue-600 hover:text-blue-800">
+                  Search for sites to save →
                 </Link>
               </div>
             ) : (

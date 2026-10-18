@@ -100,7 +100,7 @@ export default function GlobalChatPopup() {
   }, [isChatOpen, closeChat]);
 
   // Don't show popup on the /chat page or when closed
-  if (pathname === '/chat' || !isChatOpen) return null;
+  if (pathname === '/community/chat' || !isChatOpen) return null;
 
   // Calculate unread count from conversations context
   const totalUnreadCount = conversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
@@ -164,7 +164,7 @@ export default function GlobalChatPopup() {
               <PixelIcon name="speaker" size={20} />
             </button>
             <Link
-              href="/chat"
+              href="/community/chat"
               className="text-thread-sage hover:text-thread-pine transition-colors p-2"
               title="Open in fullscreen"
             >
@@ -231,7 +231,7 @@ export default function GlobalChatPopup() {
               <PixelIcon name="speaker" size={16} />
             </button>
             <Link
-              href="/chat"
+              href="/community/chat"
               className="text-thread-sage hover:text-thread-pine transition-colors p-1.5 rounded hover:bg-thread-sage/10"
               title="Open in fullscreen"
             >

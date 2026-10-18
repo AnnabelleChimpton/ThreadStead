@@ -1,3 +1,5 @@
+import { HOUSE_TEMPLATES, HOUSE_PALETTES } from '@/lib/pixel-homes/house-choice';
+import { PALETTE_COLORS } from './HouseSVG';
 import React, { useEffect, useState } from 'react';
 import { PixelIcon } from '@/components/ui/PixelIcon';
 
@@ -5,7 +7,7 @@ export interface FilterState {
   activeOnly: boolean;
   templates: string[];
   palettes: string[];
-  sortBy: 'recent' | 'alphabetical' | 'random';
+  sortBy: 'recent' | 'alphabetical';
 }
 
 interface NeighborhoodFilterSheetProps {
@@ -69,25 +71,14 @@ const NeighborhoodFilterSheet: React.FC<NeighborhoodFilterSheetProps> = ({
     }));
   };
 
-  // Template display names
-  const templateNames: Record<string, string> = {
-    'cozy-cottage': 'Cottage',
-    'modern-minimalist': 'Modern',
-    'victorian-manor': 'Victorian',
-    'cabin-retreat': 'Cabin',
-    'beach-house': 'Beach',
-    'treehouse': 'Treehouse',
-  };
-
-  // Palette display names and colors
-  const paletteInfo: Record<string, { name: string; colors: string[] }> = {
-    'warm-autumn': { name: 'Autumn', colors: ['#D97543', '#C85A3A', '#8B4513'] },
-    'cool-winter': { name: 'Winter', colors: ['#5B9BD5', '#7CB9E8', '#4682B4'] },
-    'fresh-spring': { name: 'Spring', colors: ['#90EE90', '#98D8C8', '#77DD77'] },
-    'bright-summer': { name: 'Summer', colors: ['#FFD700', '#FFA500', '#FF6347'] },
-    'pastel-dream': { name: 'Pastel', colors: ['#FFB3BA', '#BAFFC9', '#BAE1FF'] },
-    'earth-tones': { name: 'Earth', colors: ['#8B7355', '#A0826D', '#C4A57B'] },
-  };
+  // Names people know, not stored ids (cottage_v1, charcoal_nights)
+  const templateNames: Record<string, string> = Object.fromEntries(HOUSE_TEMPLATES.map(t => [t.id, t.name]));
+  const paletteInfo: Record<string, { name: string; colors: string[] }> = Object.fromEntries(
+    HOUSE_PALETTES.map(p => {
+      const c = PALETTE_COLORS[p.id];
+      return [p.id, { name: p.name, colors: [c.primary, c.secondary, c.accent] }];
+    })
+  );
 
   return (
     <>
@@ -106,7 +97,7 @@ const NeighborhoodFilterSheet: React.FC<NeighborhoodFilterSheetProps> = ({
         {/* Header */}
         <div className="px-4 py-3 border-b border-gray-200 flex-shrink-0">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-900">Filters & Sorting</h3>
+            <h3 className="text-lg font-semibold text-gray-900">Filters</h3>
             <button
               onClick={onClose}
               className="min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-500 hover:text-gray-700 -mr-2"
@@ -126,7 +117,7 @@ const NeighborhoodFilterSheet: React.FC<NeighborhoodFilterSheetProps> = ({
             {/* Activity Filter */}
             <div className="space-y-2">
               <label className="flex items-center justify-between min-h-[48px] cursor-pointer">
-                <span className="text-base font-medium text-gray-900">Active users only</span>
+                <span className="text-base font-medium text-gray-900">Active this week</span>
                 <div className="relative">
                   <input
                     type="checkbox"
@@ -138,22 +129,23 @@ const NeighborhoodFilterSheet: React.FC<NeighborhoodFilterSheetProps> = ({
                 </div>
               </label>
               <p className="text-xs text-gray-600">
-                Only show houses of users who have been active in the past 7 days
+                Only houses whose owner signed in during the last 7 days
               </p>
             </div>
 
             {/* Templates */}
             <div className="space-y-3">
-              <h4 className="text-sm font-semibold text-gray-900">House Templates</h4>
+              <h4 className="text-sm font-semibold text-gray-900">House style</h4>
               <div className="grid grid-cols-2 gap-2">
                 {availableTemplates.map(template => (
                   <button
                     key={template}
                     onClick={() => toggleTemplate(template)}
-                    className={`min-h-[48px] px-3 py-2 rounded-lg border-2 text-sm font-medium transition-all
+                    aria-pressed={localFilters.templates.includes(template)}
+                    className={`min-h-[48px] px-3 py-2 ts-chip rounded-lg border-2 text-sm font-medium transition-all
                       ${localFilters.templates.includes(template)
-                        ? 'bg-thread-pine text-white border-thread-pine'
-                        : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-thread-pine'
+                        ? 'bg-thread-sage text-thread-paper border-thread-sage'
+                        : 'bg-thread-paper text-thread-pine border-thread-sage/50 hover:border-thread-sage'
                       }`}
                   >
                     {templateNames[template] || template}
@@ -164,7 +156,7 @@ const NeighborhoodFilterSheet: React.FC<NeighborhoodFilterSheetProps> = ({
 
             {/* Palettes */}
             <div className="space-y-3">
-              <h4 className="text-sm font-semibold text-gray-900">Color Palettes</h4>
+              <h4 className="text-sm font-semibold text-gray-900">Colors</h4>
               <div className="grid grid-cols-2 gap-2">
                 {availablePalettes.map(palette => {
                   const info = paletteInfo[palette];
@@ -172,10 +164,11 @@ const NeighborhoodFilterSheet: React.FC<NeighborhoodFilterSheetProps> = ({
                     <button
                       key={palette}
                       onClick={() => togglePalette(palette)}
-                      className={`min-h-[48px] px-3 py-2 rounded-lg border-2 text-sm font-medium transition-all
+                    aria-pressed={localFilters.palettes.includes(palette)}
+                      className={`min-h-[48px] px-3 py-2 ts-chip rounded-lg border-2 text-sm font-medium transition-all
                         ${localFilters.palettes.includes(palette)
-                          ? 'bg-thread-pine text-white border-thread-pine'
-                          : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-thread-pine'
+                          ? 'bg-thread-sage text-thread-paper border-thread-sage'
+                          : 'bg-thread-paper text-thread-pine border-thread-sage/50 hover:border-thread-sage'
                         }`}
                     >
                       <div className="flex items-center justify-between gap-2">
@@ -200,12 +193,11 @@ const NeighborhoodFilterSheet: React.FC<NeighborhoodFilterSheetProps> = ({
 
             {/* Sorting */}
             <div className="space-y-3">
-              <h4 className="text-sm font-semibold text-gray-900">Sort By</h4>
+              <h4 className="text-sm font-semibold text-gray-900">Order</h4>
               <div className="space-y-2">
                 {[
-                  { value: 'recent' as const, label: 'Recently Active', icon: 'clock' as const, desc: 'Most recently active users first' },
-                  { value: 'alphabetical' as const, label: 'Alphabetical', icon: 'sort' as const, desc: 'Sorted by username A-Z' },
-                  { value: 'random' as const, label: 'Random', icon: 'dice' as const, desc: 'Shuffle order each time' },
+                  { value: 'recent' as const, label: 'Recently updated', icon: 'clock' as const, desc: 'Houses changed most recently come first' },
+                  { value: 'alphabetical' as const, label: 'A–Z', icon: 'sort' as const, desc: 'By username' },
                 ].map(option => (
                   <label
                     key={option.value}
@@ -251,7 +243,7 @@ const NeighborhoodFilterSheet: React.FC<NeighborhoodFilterSheetProps> = ({
             onClick={handleApply}
             className="flex-1 min-h-[48px] px-4 py-2 bg-thread-pine text-white font-semibold rounded-lg hover:bg-opacity-90 transition-colors"
           >
-            Apply Filters
+            Show houses
           </button>
         </div>
       </div>

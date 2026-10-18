@@ -575,7 +575,7 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
             )}
             {!fullscreen && (
               <a
-                href="/chat"
+                href="/community/chat"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-thread-sage hover:text-thread-pine transition-colors p-1"

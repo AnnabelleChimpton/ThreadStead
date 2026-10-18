@@ -29,14 +29,54 @@
   box-shadow: none;
   font-weight: 500;
   text-shadow: none;
-  text-decoration: underline;
 }
 
 .site-navigation button.nav-link:hover {
-  text-decoration: none;
   background: none;
   box-shadow: none;
   transform: none;
+}
+
+/* The current section: data-active on any page inside it, aria-current on its own page.
+   Unlayered and (0,3,0) so it beats the site theme's `.site-nav-links a`. */
+.site-nav-links .nav-link[aria-current="page"],
+.site-nav-links .nav-link[data-active="true"] {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.3em;
+}
+
+/* Section menus sit inside .site-nav-links, whose theme rule zeroes link
+   padding; give the menu rows their padding and hover back. */
+.site-nav-links [role="menu"] a {
+  display: flex;
+  margin: 0;
+  padding: 0.5rem 1rem;
+}
+.site-nav-links [role="menu"] a:hover,
+.site-nav-links [role="menu"] a:focus-visible {
+  background: var(--ha-card, #F5E9D4);
+  text-decoration: none;
+}
+.site-nav-links [role="menu"] a[aria-current="page"] {
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.3em;
+}
+
+/* Phone drawer: links and section buttons read the same; current page underlined */
+#mobile-menu a.mobile-nav-item {
+  text-decoration: none;
+}
+.user-dropdown-menu a[aria-current="page"],
+.mobile-bottom-sheet a[aria-current="page"],
+#mobile-menu a.mobile-nav-item[aria-current="page"],
+#mobile-menu a.mobile-nav-item[data-active="true"] {
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.3em;
 }
 
 /* Same defense for the mobile drawer's section accordions */
@@ -48,7 +88,8 @@
   background: none;
   border: none;
   box-shadow: none;
-  padding: 0.5rem 0.75rem;
+  padding: 0.75rem 1rem; /* same as the drawer's links (px-4 py-3) */
+  font-weight: 500;
   text-shadow: none;
 }
 

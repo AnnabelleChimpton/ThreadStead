@@ -248,7 +248,7 @@ export default function DemoPixelHome() {
                   across ThreadStead to wander past.
                 </p>
                 <Link
-                  href="/neighborhood/explore/all"
+                  href="/neighborhood"
                   className="inline-flex items-center gap-2 px-8 py-4 bg-thread-cream hover:bg-thread-sky hover:bg-opacity-20 text-thread-pine transition-all duration-300 rounded-lg font-medium border-2 border-thread-sage shadow-cozy-sm hover:shadow-cozy transform hover:-translate-y-1"
                 >
                   <PixelIcon name="buildings" size={16} /> Explore More Homes

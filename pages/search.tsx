@@ -118,9 +118,9 @@ function Start({ scope }: { scope: SearchScope }) {
         </h2>
         <ul className="flex flex-wrap gap-2" style={LIST_RESET}>
           {[
-            { href: '/discover/residents', label: 'Residents' },
+            { href: '/neighborhood/residents', label: 'Residents' },
             { href: '/threadrings', label: 'Rings' },
-            { href: '/neighborhood/explore/all', label: 'The street' },
+            { href: '/neighborhood', label: 'The street' },
             { href: searchHref({ scope: 'indie' }), label: 'Indie Index' },
           ].map((l) => (
             <li key={l.href}>

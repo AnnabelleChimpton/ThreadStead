@@ -297,7 +297,7 @@ export default function LandingPage({ siteConfig, customLanding }: LandingPagePr
               <Link href="/signup" className="retro-button bg-yellow-200 hover:bg-yellow-100 px-8 py-4 font-bold text-lg">
                 Build Your Pixel Home
               </Link>
-              <Link href="/discover/feed" className="retro-button bg-orange-200 hover:bg-orange-100 px-8 py-4 font-bold text-lg">
+              <Link href="/feed" className="retro-button bg-orange-200 hover:bg-orange-100 px-8 py-4 font-bold text-lg">
                 Explore the Community
               </Link>
             </div>

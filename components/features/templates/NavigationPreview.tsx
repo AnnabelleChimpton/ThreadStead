@@ -5,6 +5,8 @@ import { UniversalCSSProps, separateCSSProps, applyCSSProps } from '@/lib/templa
 import UserDropdown from '@/components/features/auth/UserDropdown';
 import NotificationDropdown from '@/components/ui/feedback/NotificationDropdown';
 import { useSiteConfig } from '@/hooks/useSiteConfig';
+import { useNavPages } from '@/hooks/useNavPages';
+import { NAV_SECTIONS } from '@/components/ui/navigation/siteNav';
 
 interface NavigationPreviewProps extends UniversalCSSProps {
   // Visual Builder styling props
@@ -52,23 +54,6 @@ function UnstyledDropdown({
   const [buttonRect, setButtonRect] = React.useState<DOMRect | null>(null);
   const dropdownRef = React.useRef<HTMLDivElement>(null);
   const splitButtonRef = React.useRef<HTMLDivElement>(null);
-
-  // Icon mapping for navigation items
-  const getItemIcon = (label: string): string => {
-    const iconMap: { [key: string]: string } = {
-      'Neighborhoods': '🏘️',
-      'Search': '🔍',
-      'Feed': '📰',
-      'Residents': '👥',
-      'Templates': '🎨',
-      'Getting Started': '🚀',
-      'Browse Rings': '💍',
-      'The Spool': '🧵',
-      'FAQ': '❓',
-      'Contact': '✉️',
-    };
-    return iconMap[label] || '•';
-  };
 
   // Handle outside click
   React.useEffect(() => {
@@ -130,7 +115,10 @@ function UnstyledDropdown({
 
         {/* Right side: Dropdown toggle */}
         <button
+          type="button"
           style={buttonStyle}
+          aria-label={`${title} menu`}
+          aria-expanded={isOpen}
           onClick={() => {
             if (splitButtonRef.current) {
               const rect = splitButtonRef.current.getBoundingClientRect();
@@ -171,22 +159,22 @@ function UnstyledDropdown({
             zIndex: 999999, // Very high z-index since it's now in document.body
           }}
         >
-          {items.map((item, index) => (
+          {items.map((item) => (
             <Link
-              key={index}
+              key={item.href}
               href={item.href}
               style={itemStyle}
+              onClick={() => setIsOpen(false)}
               onMouseEnter={(e) => {
-                (e.target as HTMLElement).style.backgroundColor = dropdownHoverColor;
-                (e.target as HTMLElement).style.color = textColor;
+                e.currentTarget.style.backgroundColor = dropdownHoverColor;
+                e.currentTarget.style.color = textColor;
               }}
               onMouseLeave={(e) => {
-                (e.target as HTMLElement).style.backgroundColor = 'transparent';
-                (e.target as HTMLElement).style.color = dropdownTextColor;
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = dropdownTextColor;
               }}
             >
-              <span style={{ fontSize: '0.875rem' }}>{getItemIcon(item.label)}</span>
-              <span>{item.label}</span>
+              {item.label}
             </Link>
           ))}
         </div>,
@@ -318,6 +306,16 @@ function NavigationContent({
 }) {
   const [me, setMe] = React.useState<{ loggedIn: boolean; user?: { primaryHandle?: string } }>({ loggedIn: false });
   const { config } = useSiteConfig();
+  const { pages: navPages } = useNavPages();
+
+  // Admin-configured custom pages, placed the same way the site header places them
+  const topLevelPages = navPages.filter((page) => !page.navDropdown);
+  const customPageItems = (key?: string) =>
+    key
+      ? navPages
+          .filter((page) => page.navDropdown === key)
+          .map((page) => ({ href: `/page/${page.slug}`, label: page.title }))
+      : [];
 
   React.useEffect(() => {
     let alive = true;
@@ -397,69 +395,33 @@ function NavigationContent({
       <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
         {/* Main Navigation Links with Dropdowns */}
         <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-          <Link href="/" style={linkStyle}>Home</Link>
+          {/* Same sections as the site header (siteNav.ts) */}
+          {NAV_SECTIONS.map((section) => {
+            const items = [
+              ...(section.items ?? []).filter((item) => me.loggedIn || !item.signedInOnly),
+              ...customPageItems(section.customPagesKey),
+            ];
+            if (!section.hubLabel) {
+              return <Link key={section.key} href={section.href} style={linkStyle}>{section.title}</Link>;
+            }
+            return (
+              <UnstyledDropdown
+                key={section.key}
+                title={section.title}
+                href={section.href}
+                textColor={textColor === 'inherit' ? 'inherit' : textColor}
+                dropdownBackgroundColor={dropdownBackgroundColor}
+                dropdownTextColor={dropdownTextColor}
+                dropdownBorderColor={dropdownBorderColor}
+                dropdownHoverColor={dropdownHoverColor}
+                items={[{ href: section.href, label: section.hubLabel }, ...items]}
+              />
+            );
+          })}
 
-          {/* Discover dropdown - Neighborhoods as hero */}
-          <UnstyledDropdown
-            title="Discover"
-            href="/discover"
-            textColor={textColor === 'inherit' ? 'inherit' : textColor}
-            dropdownBackgroundColor={dropdownBackgroundColor}
-            dropdownTextColor={dropdownTextColor}
-            dropdownBorderColor={dropdownBorderColor}
-            dropdownHoverColor={dropdownHoverColor}
-            items={[
-              { href: "/neighborhood/explore/all", label: "Neighborhoods" },
-              { href: "/discover/residents", label: "Residents" },
-              { href: "/discover/feed", label: "Feed" },
-              { href: "/discover/search", label: "Search" },
-            ]}
-          />
-
-          {/* Build dropdown */}
-          <UnstyledDropdown
-            title="Build"
-            href="/build"
-            textColor={textColor === 'inherit' ? 'inherit' : textColor}
-            dropdownBackgroundColor={dropdownBackgroundColor}
-            dropdownTextColor={dropdownTextColor}
-            dropdownBorderColor={dropdownBorderColor}
-            dropdownHoverColor={dropdownHoverColor}
-            items={[
-              { href: "/build/templates", label: "Templates" },
-              { href: "/build/getting-started", label: "Getting Started" }
-            ]}
-          />
-
-          {/* ThreadRings dropdown */}
-          <UnstyledDropdown
-            title="ThreadRings"
-            href="/threadrings"
-            textColor={textColor === 'inherit' ? 'inherit' : textColor}
-            dropdownBackgroundColor={dropdownBackgroundColor}
-            dropdownTextColor={dropdownTextColor}
-            dropdownBorderColor={dropdownBorderColor}
-            dropdownHoverColor={dropdownHoverColor}
-            items={[
-              { href: "/threadrings", label: "Browse Rings" },
-              { href: "/tr/spool", label: "The Spool" },
-            ]}
-          />
-
-          {/* Help dropdown */}
-          <UnstyledDropdown
-            title="Help"
-            href="/help"
-            textColor={textColor === 'inherit' ? 'inherit' : textColor}
-            dropdownBackgroundColor={dropdownBackgroundColor}
-            dropdownTextColor={dropdownTextColor}
-            dropdownBorderColor={dropdownBorderColor}
-            dropdownHoverColor={dropdownHoverColor}
-            items={[
-              { href: "/help/faq", label: "FAQ" },
-              { href: "/help/contact", label: "Contact" },
-            ]}
-          />
+          {topLevelPages.map((page) => (
+            <Link key={page.id} href={`/page/${page.slug}`} style={linkStyle}>{page.title}</Link>
+          ))}
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>

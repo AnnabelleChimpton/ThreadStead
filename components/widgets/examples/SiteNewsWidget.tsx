@@ -165,7 +165,7 @@ function SiteNewsWidget({ data, isLoading, error }: WidgetProps & { data?: SiteN
       {data.hasMore && (
         <div className="pt-2 border-t border-nb-ink-mid/30">
           <Link
-            href="/news"
+            href="/community/news"
             className="text-xs flex items-center justify-center"
           >
             View all news →

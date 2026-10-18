@@ -4,6 +4,8 @@ import { GetServerSideProps } from 'next';
 import { getSessionUser } from '@/lib/auth/server';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import { PixelIcon } from '@/components/ui/PixelIcon';
+import Layout from '@/components/ui/layout/Layout';
+import AdminHeader from '@/components/ui/navigation/AdminHeader';
 
 interface Decoration {
   id: string;
@@ -340,24 +342,20 @@ export default function AdminDecorationsPage({ isAdmin, userId }: AdminDecoratio
   }, [searchQuery, filterType]);
 
   if (!isAdmin) {
-    return <div className="p-8">Unauthorized - Admin access required</div>;
+    return <Layout><div className="p-8">This page needs admin access.</div></Layout>;
   }
 
   if (loading) {
-    return <div className="p-8">Loading...</div>;
+    return <Layout><div className="p-8">Loading…</div></Layout>;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
+    <Layout fullWidth>
+    <div className="p-4 sm:p-8">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            🎨 Decoration Management System
-          </h1>
-          <p className="text-gray-600">
-            Manage decorations, create releases, and generate claim codes
-          </p>
-        </div>
+        <AdminHeader current="decorations">
+          <p>Manage decorations, create releases, and generate claim codes.</p>
+        </AdminHeader>
 
         {/* Controls Bar */}
         <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
@@ -872,6 +870,7 @@ export default function AdminDecorationsPage({ isAdmin, userId }: AdminDecoratio
         </div>
       </div>
     </div>
+    </Layout>
   );
 }
 

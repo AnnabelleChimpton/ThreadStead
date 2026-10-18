@@ -37,7 +37,7 @@ export default function FirstStepsChecklist({ username, steps, foundersNote }: F
     { done: steps.house, label: 'Pick your house', href: `/home/${username}/decorate` },
     { done: steps.yard, label: 'Decorate your yard', href: `/home/${username}/decorate` },
     { done: steps.post, label: 'Write a first post', href: '/post/new' },
-    { done: steps.guestbook, label: "Sign a neighbor's guestbook", href: '/neighborhood/explore/all' },
+    { done: steps.guestbook, label: "Sign a neighbor's guestbook", href: '/neighborhood' },
     { done: inRing === true, label: 'Join a ring', href: '/threadrings' },
   ];
   const doneCount = items.filter((i) => i.done).length;

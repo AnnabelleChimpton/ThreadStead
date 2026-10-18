@@ -65,12 +65,12 @@ function QuickActionsWidget({ user, isLoading, error }: WidgetProps) {
       description: 'View your feed'
     },
     {
-      id: 'discover',
-      label: 'Discover',
-      href: '/discover',
-      icon: 'search',
+      id: 'neighborhood',
+      label: 'Neighborhood',
+      href: '/neighborhood',
+      icon: 'map',
       color: 'bg-indigo-500 hover:bg-indigo-600',
-      description: 'Discover new content'
+      description: 'Walk down the street'
     }
   ];
 

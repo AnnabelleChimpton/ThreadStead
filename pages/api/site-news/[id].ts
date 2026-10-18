@@ -51,7 +51,7 @@ export default apiHandler(
         title: news.title,
         summary: news.summary,
         content: news.content,
-        url: news.url || `/news/${news.id}`,
+        url: news.url || `/community/news/${news.id}`,
         publishedAt: news.publishedAt.toISOString(),
         type: news.type,
         priority: news.priority,

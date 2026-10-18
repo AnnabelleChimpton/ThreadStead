@@ -117,7 +117,7 @@ export default function CommunityTicker() {
   };
 
   const handleClick = () => {
-    router.push(items[0]?.type === 'empty' ? '/bulletin' : '/community');
+    router.push('/community');
   };
 
   // Don't render during SSR to avoid hydration issues

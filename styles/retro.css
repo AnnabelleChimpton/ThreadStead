@@ -193,6 +193,17 @@ a.widget-container {
   line-height: 1;
 }
 
+/* Toggle chip: keeps the theme's button look; the pressed one is inked in.
+   Unlayered, so it beats the site theme's bare `button` rule. */
+.ts-chip[aria-pressed="true"],
+.ts-chip[aria-pressed="true"]:hover {
+  background: var(--ha-ink-dark, #2E4B3F);
+  border-color: var(--ha-ink-dark, #2E4B3F);
+  color: var(--ha-paper, #FCFAF7);
+  box-shadow: none;
+  transform: none;
+}
+
 /* Tab strip button: no bevel, ink underline when selected */
 .ts-tab,
 .ts-tab:hover,
@@ -210,9 +221,11 @@ a.widget-container {
   min-height: 0;
   color: var(--ha-ink-mid, #7A6248);
   font-weight: 600;
+  text-decoration: none; /* tabs can be links */
 }
 .ts-tab:hover { color: var(--ha-ink-dark, #2E4B3F); }
-.ts-tab[aria-selected="true"] {
+.ts-tab[aria-selected="true"],
+.ts-tab[aria-current="page"] {
   color: var(--ha-ink-dark, #2E4B3F);
   border-bottom-color: var(--ha-ink-dark, #2E4B3F);
 }
@@ -679,9 +692,10 @@ textarea:focus {
     padding: 0.75rem 1rem;
   }
   
+  /* One row on phones: logo left, bell and menu right */
   .site-navigation {
-    flex-direction: column;
-    gap: 1rem;
+    flex-direction: row;
+    gap: 0.5rem;
   }
   
   .site-nav-links {
@@ -692,7 +706,6 @@ textarea:focus {
   
   .site-title {
     font-size: 1.5rem;
-    text-align: center;
   }
   
   /* Content container adjustments */

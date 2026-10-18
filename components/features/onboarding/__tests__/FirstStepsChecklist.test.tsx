@@ -43,7 +43,7 @@ describe('FirstStepsChecklist', () => {
     expect(screen.getByText('Pick your house').closest('a')).toHaveAttribute('href', '/home/newbie/decorate');
     expect(screen.getByText('Decorate your yard').closest('a')).toHaveAttribute('href', '/home/newbie/decorate');
     expect(screen.getByText('Write a first post').closest('a')).toHaveAttribute('href', '/post/new');
-    expect(screen.getByText("Sign a neighbor's guestbook").closest('a')).toHaveAttribute('href', '/neighborhood/explore/all');
+    expect(screen.getByText("Sign a neighbor's guestbook").closest('a')).toHaveAttribute('href', '/neighborhood');
     expect(screen.getByText('Join a ring').closest('a')).toHaveAttribute('href', '/threadrings');
     expect(screen.queryByText('Hide this list')).not.toBeInTheDocument();
   });

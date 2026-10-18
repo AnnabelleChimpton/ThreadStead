@@ -1,7 +1,9 @@
 import React, { useEffect } from "react";
 import Link from "next/link";
 import { useMe } from "@/hooks/useMe";
+import { useRouter } from "next/router";
 import { PixelIcon } from "@/components/ui/PixelIcon";
+import { accountMenuItems, isCurrentHref, pathOnly } from "@/components/ui/navigation/siteNav";
 
 interface UserAccountBottomSheetProps {
   isOpen: boolean;
@@ -10,6 +12,7 @@ interface UserAccountBottomSheetProps {
 
 export default function UserAccountBottomSheet({ isOpen, onClose }: UserAccountBottomSheetProps) {
   const { me } = useMe();
+  const router = useRouter();
 
   // Lock body scroll when sheet is open
   useEffect(() => {
@@ -34,6 +37,7 @@ export default function UserAccountBottomSheet({ isOpen, onClose }: UserAccountB
 
   const username = me.user?.primaryHandle?.split("@")[0] || "User";
   const isAdmin = me.user?.role === "admin";
+  const currentPath = pathOnly(router.asPath);
 
   return (
     <>
@@ -82,56 +86,23 @@ export default function UserAccountBottomSheet({ isOpen, onClose }: UserAccountB
           }}
         >
           <div className="px-4 py-3 space-y-1">
-            {/* Personal Navigation */}
-            <Link
-              href={`/home/${username}`}
-              className="block px-3 py-3 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-3 min-h-[48px]"
-              onClick={onClose}
-            >
-              <PixelIcon name="home" size={20} />
-              <span className="font-medium">My Pixel Home</span>
-            </Link>
-
-            <Link
-              href={`/resident/${username}`}
-              className="block px-3 py-3 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-3 min-h-[48px]"
-              onClick={onClose}
-            >
-              <PixelIcon name="user" size={20} />
-              <span className="font-medium">My Profile</span>
-            </Link>
-
-            <Link
-              href="/bookmarks"
-              className="block px-3 py-3 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-3 min-h-[48px]"
-              onClick={onClose}
-            >
-              <PixelIcon name="bookmark" size={20} />
-              <span className="font-medium">Bookmarks</span>
-            </Link>
-
-            <div className="border-t border-gray-200 my-2"></div>
-
-            {/* Settings & Account */}
-            <Link
-              href="/settings"
-              className="block px-3 py-3 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-3 min-h-[48px]"
-              onClick={onClose}
-            >
-              <PixelIcon name="sliders" size={20} />
-              <span className="font-medium">Settings</span>
-            </Link>
-
-            {isAdmin && (
-              <Link
-                href="/settings/admin"
-                className="block px-3 py-3 text-thread-pine hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-3 min-h-[48px]"
-                onClick={onClose}
-              >
-                <PixelIcon name="shield" size={20} />
-                <span className="font-medium">Admin Panel</span>
-              </Link>
-            )}
+            {accountMenuItems(username, isAdmin).map((item) => {
+              const current = isCurrentHref(item.href, currentPath);
+              return (
+                <React.Fragment key={item.key}>
+                  {item.groupStart && <div className="border-t border-thread-sage/40 my-2"></div>}
+                  <Link
+                    href={item.href}
+                    className={`block px-3 py-3 hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-3 min-h-[48px] ${current ? "bg-thread-background text-thread-sunset" : "text-thread-pine"}`}
+                    aria-current={current ? "page" : undefined}
+                    onClick={onClose}
+                  >
+                    <PixelIcon name={item.icon} size={20} />
+                    <span className="font-medium">{item.label}</span>
+                  </Link>
+                </React.Fragment>
+              );
+            })}
           </div>
         </div>
 
@@ -147,10 +118,10 @@ export default function UserAccountBottomSheet({ isOpen, onClose }: UserAccountB
               onClose();
               logout();
             }}
-            className="account-logout-button w-full px-3 py-3 bg-red-50 border-2 border-red-400 text-red-700 hover:bg-red-100 hover:border-red-500 rounded flex items-center justify-center gap-3 min-h-[48px] font-medium active:scale-[0.98] transition-transform"
+            className="account-logout-button w-full px-3 py-3 bg-thread-paper border-2 border-thread-sage text-thread-pine hover:bg-thread-cream rounded flex items-center justify-center gap-3 min-h-[48px] font-medium active:scale-[0.98] transition-transform"
           >
             <PixelIcon name="logout" size={20} />
-            <span>Log Out</span>
+            <span>Log out</span>
           </button>
         </div>
       </div>

@@ -4,7 +4,9 @@ import Head from 'next/head';
 import Layout from '@/components/ui/layout/Layout';
 import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
 import { getSessionUser } from '@/lib/auth/server';
-import { PixelIcon } from '@/components/ui/PixelIcon';
+import CommunityHeader from '@/components/ui/navigation/CommunityHeader';
+import { getSiteBaseUrl } from '@/lib/config/site-url';
+import { buttonClasses } from '@/components/ui/ButtonLink';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { csrfFetchJson } from '@/lib/api/client/csrf-fetch';
 import UserQuickView from '@/components/ui/feedback/UserQuickView';
@@ -165,33 +167,23 @@ export default function BulletinBoard({ siteConfig, user }: BulletinPageProps) {
   return (
     <>
       <Head>
-        <title>Bulletin Board - {siteConfig.site_name}</title>
+        <title>{`${siteConfig.site_name} — Community`}</title>
         <meta
           name="description"
-          content="A shared corkboard for quick notes, requests, and invitations from neighbors."
+          content={`The board, chat, site news and polls on ${siteConfig.site_name}.`}
         />
+        <link rel="canonical" href={`${getSiteBaseUrl()}/community`} />
       </Head>
 
       <Layout siteConfig={siteConfig} fullWidth={true}>
         <div className="w-full max-w-full sm:max-w-7xl mx-auto px-0 sm:px-4 py-4 sm:py-6">
-          {/* Page Header */}
-          <div className="thread-module p-4 sm:p-5 md:p-6 mb-4 sm:mb-5 md:mb-6">
-            <div className="flex items-center gap-3 mb-2">
-              <PixelIcon name="article" size={32} className="text-thread-sage" />
-              <h1 className="thread-headline text-2xl sm:text-3xl md:text-4xl font-bold">
-                Bulletin Board
-              </h1>
-            </div>
-            <p className="text-thread-sage leading-relaxed text-sm sm:text-base">
-              A shared corkboard for quick notes, requests, and invitations from neighbors.
-            </p>
-          </div>
+          <CommunityHeader current="board" />
 
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-5 md:gap-6">
             {/* Your Note Section (Sidebar on large screens) */}
             <div className="lg:col-span-1">
               <div className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-4 sticky top-4">
-                <h2 className="text-lg font-bold text-[#2E4B3F] mb-3">Your Note</h2>
+                <h2 className="text-lg font-bold text-[#2E4B3F] mb-3">Your note</h2>
 
                 {!loggedIn ? (
                   <p className="text-sm text-[#5A5A5A]">
@@ -289,9 +281,9 @@ export default function BulletinBoard({ siteConfig, user }: BulletinPageProps) {
                       <button
                         type="submit"
                         disabled={submitting}
-                        className="flex-1 text-sm px-4 py-2 border border-[#A18463] rounded bg-[#4FAF6D] text-white hover:bg-[#3d9159] transition-colors shadow-[2px_2px_0_#A18463] active:translate-x-[1px] active:translate-y-[1px] disabled:opacity-50"
+                        className={`${buttonClasses('primary', 'sm')} flex-1 disabled:opacity-50`}
                       >
-                        {submitting ? 'Posting...' : userBulletin ? 'Replace Note' : 'Post Note'}
+                        {submitting ? 'Posting…' : userBulletin ? 'Replace note' : 'Post note'}
                       </button>
                       {userBulletin && (
                         <button

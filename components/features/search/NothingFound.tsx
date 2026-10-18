@@ -80,7 +80,7 @@ export default function NothingFound({
         <section aria-labelledby="nf-homes" className="thread-module p-3 sm:p-4">
           <div className="flex items-baseline justify-between gap-3 px-3 pt-1">
             <h2 id="nf-homes" className="thread-headline text-xl font-bold">A few homes on the street</h2>
-            <Link href="/neighborhood/explore/all" className="text-sm font-semibold text-nb-ink underline underline-offset-2 shrink-0">
+            <Link href="/neighborhood" className="text-sm font-semibold text-nb-ink underline underline-offset-2 shrink-0">
               Walk the street
             </Link>
           </div>

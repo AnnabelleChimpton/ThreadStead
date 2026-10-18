@@ -6,6 +6,7 @@
 /* eslint-disable react/no-unescaped-entities */
 
 import { useState, useEffect } from 'react';
+import AdminHeader from '@/components/ui/navigation/AdminHeader';
 import { GetServerSideProps } from 'next';
 import Layout from '@/components/ui/layout/Layout';
 import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
@@ -625,12 +626,9 @@ export default function CrawlerAdmin({ siteConfig }: Props) {
   return (
     <Layout siteConfig={siteConfig}>
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">🕷️ Webcrawler Dashboard</h1>
-          <p className="text-gray-600">
-            Monitor and manage the automated site crawler and queue
-          </p>
-        </div>
+        <AdminHeader current="crawler">
+          <p>Monitor and manage the automated site crawler and queue</p>
+        </AdminHeader>
 
         {loading ? (
           <div className="text-center py-8">Loading...</div>

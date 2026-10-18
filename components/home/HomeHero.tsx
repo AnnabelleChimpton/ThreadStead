@@ -46,7 +46,7 @@ export default function HomeHero({ siteConfig, userCount }: HomeHeroProps) {
                     </Link>
 
                     <Link
-                        href="/neighborhood/explore/all"
+                        href="/neighborhood"
                         className="btn btn--secondary btn--lg inline-block px-6 py-3 text-lg font-bold no-underline bg-thread-paper text-thread-pine border-2 border-thread-sage rounded-md shadow-cozy-sm active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
                     >
                         <span>Have a look around</span>

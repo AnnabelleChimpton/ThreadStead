@@ -56,7 +56,7 @@ export default apiHandler(
         id: item.id,
         title: item.title,
         summary: item.summary,
-        url: item.url || `/news/${item.id}`,
+        url: item.url || `/community/news/${item.id}`,
         publishedAt: item.publishedAt.toISOString(),
         type: item.type,
         priority: item.priority,

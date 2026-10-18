@@ -63,20 +63,19 @@ const nextConfig: NextConfig = {
       },
 
       // Navigation refactor redirects - Discover hub
-      {
-        source: '/feed',
-        destination: '/discover/feed',
-        permanent: true,
-      },
+      // /feed is the real page (PRODUCT_UX_AUDIT §4). /discover/feed is NOT
+      // redirected: production sent a permanent /feed → /discover/feed,
+      // browsers cache 308s, and a redirect back would loop for them.
+      // pages/discover/feed.tsx serves the same page with a /feed canonical.
       {
         source: '/directory',
-        destination: '/discover/residents',
+        destination: '/neighborhood/residents',
         permanent: true,
       },
       {
         // Never existed as a page; old "Browse →" link pointed here
         source: '/community-index/discover',
-        destination: '/discover/search?tab=indie',
+        destination: '/search?scope=indie',
         permanent: true,
       },
 
@@ -112,6 +111,78 @@ const nextConfig: NextConfig = {
         source: '/terms',
         destination: '/help/terms',
         permanent: true,
+      },
+
+      // Community is one place with tabs (PRODUCT_UX_AUDIT §4)
+      {
+        source: '/bulletin',
+        destination: '/community',
+        permanent: true,
+      },
+      {
+        source: '/chat',
+        destination: '/community/chat',
+        permanent: true,
+      },
+      {
+        source: '/news',
+        destination: '/community/news',
+        permanent: true,
+      },
+      {
+        source: '/news/:id',
+        destination: '/community/news/:id',
+        permanent: true,
+      },
+
+      // One street at /neighborhood (PRODUCT_UX_AUDIT §4). Discover's items
+      // became top-level, so /discover itself goes to the street; an old
+      // search link (/discover?q=…) goes to search.
+      {
+        source: '/discover',
+        has: [{ type: 'query', key: 'q' }],
+        destination: '/search',
+        permanent: false,
+      },
+      {
+        source: '/discover',
+        destination: '/neighborhood',
+        permanent: true,
+      },
+      {
+        source: '/discover/residents',
+        destination: '/neighborhood/residents',
+        permanent: true,
+      },
+      {
+        // All / Recent / Popular were the same list in the same order
+        source: '/neighborhood/explore/random',
+        destination: '/neighborhood/random',
+        permanent: true,
+      },
+      {
+        source: '/neighborhood/explore/:sort',
+        destination: '/neighborhood',
+        permanent: true,
+      },
+      {
+        // ?template=, ?palette= and ?activeOnly= carry over as filters
+        source: '/explore/homes',
+        destination: '/neighborhood',
+        permanent: true,
+      },
+
+      // Every admin page lives under /admin
+      {
+        source: '/settings/admin',
+        destination: '/admin',
+        permanent: true,
+      },
+      {
+        source: '/settings',
+        has: [{ type: 'query', key: 'tab', value: 'admin' }],
+        destination: '/admin',
+        permanent: false,
       },
 
       // Old ring-neighborhood URL

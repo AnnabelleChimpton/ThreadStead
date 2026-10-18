@@ -1,6 +1,7 @@
 import { GetServerSideProps } from 'next'
 import Head from 'next/head'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/router'
 import Layout from '../../../components/ui/layout/Layout'
 import NeighborhoodStreetView from '../../../components/pixel-homes/NeighborhoodStreetView'
 import NeighborhoodGridView from '../../../components/pixel-homes/NeighborhoodGridView'
@@ -11,6 +12,7 @@ import NeighborhoodFilterSheet, { FilterState } from '../../../components/pixel-
 import HouseDetailsPopup from '../../../components/pixel-homes/HouseDetailsPopup'
 import { HouseTemplate, ColorPalette } from '../../../components/pixel-homes/HouseSVG'
 import { db } from '../../../lib/config/database/connection'
+import { HOUSE_TEMPLATES, HOUSE_PALETTES, isHouseTemplate, isColorPalette } from '@/lib/pixel-homes/house-choice'
 import Link from 'next/link'
 import { PixelIcon } from '@/components/ui/PixelIcon'
 import { featureFlags } from '@/lib/utils/features/feature-flags'
@@ -133,7 +135,7 @@ export default function UnifiedNeighborhood({
   const isMobile = useIsMobile(768)
   const [viewMode, setViewMode] = useState<ViewMode>('street')
   const [filterActive, setFilterActive] = useState(false)
-  const [sortBy, setSortBy] = useState<'recent' | 'alphabetical' | 'random'>('recent')
+  const [sortBy, setSortBy] = useState<'recent' | 'alphabetical'>('recent')
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
   const [templateFilter, setTemplateFilter] = useState<string>('')
   const [paletteFilter, setPaletteFilter] = useState<string>('')
@@ -143,6 +145,18 @@ export default function UnifiedNeighborhood({
   const [selectedMember, setSelectedMember] = useState<NeighborhoodMember | null>(null)
   const [showHouseDetails, setShowHouseDetails] = useState(false)
   const [showViewModeSelector, setShowViewModeSelector] = useState(false)
+
+  // Filters can come from the URL (?template=, ?palette=, ?activeOnly=true),
+  // so old /explore/homes?template=… links keep their filter
+  const router = useRouter()
+  useEffect(() => {
+    if (!router.isReady) return
+    const { template, palette, activeOnly } = router.query
+    if (isHouseTemplate(template)) setTemplateFilter(template)
+    if (isColorPalette(palette)) setPaletteFilter(palette)
+    if (activeOnly === 'true') setFilterActive(true)
+    if (isHouseTemplate(template) || isColorPalette(palette) || activeOnly === 'true') setShowAdvancedFilters(true)
+  }, [router.isReady, router.query])
 
   // Load user's preferred view mode from localStorage and auto-select card on mobile
   useEffect(() => {
@@ -211,21 +225,6 @@ export default function UnifiedNeighborhood({
     setShowHouseDetails(true)
   }
 
-  // A stable shuffle order for sortBy=random: the old code called
-  // Math.random() inside the sort comparator, which (a) isn't a fair
-  // shuffle and (b) re-shuffled on EVERY re-render — houses visibly
-  // jumped around whenever any state changed (popup open, filter tap).
-  const shuffleOrder = useMemo(() => {
-    const order = new Map<string, number>()
-    const indices = members.map((_, i) => i)
-    for (let i = indices.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1))
-      ;[indices[i], indices[j]] = [indices[j], indices[i]]
-    }
-    members.forEach((m, i) => order.set(m.username, indices[i]))
-    return order
-  }, [members])
-
   // Filter and sort members
   const processedMembers = members
     .filter(m => {
@@ -244,14 +243,13 @@ export default function UnifiedNeighborhood({
       if (sortBy === 'alphabetical') {
         return (a.username || '').localeCompare(b.username || '')
       }
-      if (sortBy === 'random') {
-        return (shuffleOrder.get(a.username) ?? 0) - (shuffleOrder.get(b.username) ?? 0)
-      }
       // Default: recent (by joinedAt or activity)
       return (b.joinedAt || '').localeCompare(a.joinedAt || '')
     })
 
-  const pageTitle = `${title} - ThreadStead Neighborhoods`
+  const filterCount = (filterActive ? 1 : 0) + (templateFilter ? 1 : 0) + (paletteFilter ? 1 : 0)
+
+  const pageTitle = `${title} - ThreadStead`
   const activeCount = members.filter(m => m.stats.isActive).length
 
   return (
@@ -281,257 +279,138 @@ export default function UnifiedNeighborhood({
             </div>
           )}
 
-          {/* Header - more compact for street view, hidden in card view on mobile */}
+          {/* Header - compact, hidden in card view on mobile */}
           <div className={`bg-thread-paper border-b border-thread-sage sticky top-0 z-40 ${viewMode === 'card' && isMobile ? 'hidden' : ''}`}>
-            <div className="container mx-auto px-3 md:px-4 py-1.5 md:py-2">
-              {/* Breadcrumb - hidden on mobile to save space */}
-              <div className="hidden md:flex items-center gap-2 text-sm text-thread-sage mb-2">
-                <Link href="/" className="hover:text-thread-pine transition-colors">
-                  Home
-                </Link>
-                <span>→</span>
-                <Link href="/neighborhood/explore/all" className="hover:text-thread-pine transition-colors">
-                  Explore
-                </Link>
-                <span>→</span>
-                <span className="text-thread-pine font-medium">{title}</span>
-              </div>
-
-              {/* Unified header with flex layout */}
-              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-2">
-                <div className="flex-1">
-                  <h1 className="text-base md:text-xl font-headline font-bold text-thread-pine mb-1">
+            <div className="container mx-auto px-3 md:px-4 py-2 md:py-3">
+              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-2 md:gap-4">
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-lg md:text-2xl font-headline font-bold text-thread-pine mb-1">
                     {title}
                   </h1>
-                  <p className="hidden md:block text-thread-sage max-w-2xl mb-2 text-sm">
+                  <p className="hidden md:block text-thread-sage max-w-2xl mb-1 text-sm">
                     {description}
                   </p>
 
-                  {/* Stats */}
-                  <div className="flex items-center gap-4 text-xs">
-                    <div className="flex items-center gap-1">
-                      <span className="font-medium text-thread-pine">{processedMembers.length}</span>
-                      <span className="text-thread-sage">homes</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span className="text-thread-sage">{activeCount} active</span>
-                    </div>
-                    {type === 'explore' && (
-                      <div className="flex items-center gap-1">
-                        <span className="font-medium text-thread-pine">{processedMembers.filter(m => m.connections?.mutualRings && m.connections.mutualRings > 0).length}</span>
-                        <span className="text-thread-sage">connected</span>
-                      </div>
-                    )}
-                  </div>
+                  <p className="text-xs text-thread-sage mb-0">
+                    <span className="font-medium text-thread-pine">{processedMembers.length}</span>
+                    {processedMembers.length === totalCount ? ' homes' : ` of ${totalCount} homes`}
+                    {' · '}
+                    <span className="font-medium text-thread-pine">{activeCount}</span> active this week
+                  </p>
 
-                  {/* Compact navigation for explore - horizontal scroll on mobile */}
                   {type === 'explore' && (
-                    <div className="flex gap-1.5 md:gap-2 mt-2 md:mt-3 overflow-x-auto pb-1 -mx-3 px-3 md:mx-0 md:px-0 scrollbar-hide">
-                      <Link
-                        href="/neighborhood/explore/all"
-                        className={`px-2.5 md:px-3 py-1 md:py-1.5 text-xs rounded-md font-medium transition-colors whitespace-nowrap ${param === 'all'
-                          ? 'bg-thread-sage text-thread-paper'
-                          : 'bg-thread-cream text-thread-sage hover:bg-thread-sage hover:text-thread-paper'
-                          }`}
-                      >
-                        <PixelIcon name="map" size={12} className="inline-block align-middle" /> All
-                      </Link>
-                      <Link
-                        href="/neighborhood/explore/recent"
-                        className={`px-2.5 md:px-3 py-1 md:py-1.5 text-xs rounded-md font-medium transition-colors whitespace-nowrap ${param === 'recent'
-                          ? 'bg-thread-sage text-thread-paper'
-                          : 'bg-thread-cream text-thread-sage hover:bg-thread-sage hover:text-thread-paper'
-                          }`}
-                      >
-                        <span className="flex items-center gap-1"><PixelIcon name="zap" size={12} /> Recent</span>
-                      </Link>
-                      <Link
-                        href="/neighborhood/explore/popular"
-                        className={`px-2.5 md:px-3 py-1 md:py-1.5 text-xs rounded-md font-medium transition-colors whitespace-nowrap ${param === 'popular'
-                          ? 'bg-thread-sage text-thread-paper'
-                          : 'bg-thread-cream text-thread-sage hover:bg-thread-sage hover:text-thread-paper'
-                          }`}
-                      >
-                        <PixelIcon name="trophy" size={12} className="inline-block align-middle" /> Popular
-                      </Link>
-                      <Link
-                        href="/neighborhood/explore/random"
-                        className={`px-2.5 md:px-3 py-1 md:py-1.5 text-xs rounded-md font-medium transition-colors whitespace-nowrap ${param === 'random'
-                          ? 'bg-thread-sage text-thread-paper'
-                          : 'bg-thread-cream text-thread-sage hover:bg-thread-sage hover:text-thread-paper'
-                          }`}
-                      >
-                        <PixelIcon name="dice" size={12} className="inline-block align-middle" /> Random
-                      </Link>
-                    </div>
-                  )}
-
-                  {/* Demo Banner for visitors exploring pixel homes - compact on mobile */}
-                  {type === 'explore' && !currentUserId && (
-                    <div className="mt-2 md:mt-3 bg-gradient-to-r from-pink-50 to-purple-50 border border-pink-300 md:border-2 rounded-lg p-2 md:p-3">
-                      <div className="flex items-center gap-2 md:gap-3">
-                        <span className="flex-shrink-0"><PixelIcon name="paint-bucket" size={24} /></span>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-thread-pine text-xs md:text-sm truncate">New to Pixel Homes?</div>
-                          <div className="hidden md:block text-xs text-thread-sage">Poke around the demo and see what you could build.</div>
-                        </div>
-                        <Link
-                          href="/home/demo"
-                          className="px-2.5 md:px-4 py-1.5 md:py-2 bg-pink-200 hover:bg-pink-300 border border-pink-400 rounded-md text-xs md:text-sm font-medium transition-colors shadow-sm hover:shadow-md flex-shrink-0"
-                        >
-                          Demo
-                        </Link>
-                      </div>
-                    </div>
+                    <p className="text-sm mt-1.5 mb-0 flex flex-wrap gap-x-4 gap-y-1">
+                      <Link href="/neighborhood/residents">Residents</Link>
+                      <Link href="/neighborhood/random">A random house</Link>
+                      {!currentUserId && <Link href="/home/demo">The demo house</Link>}
+                    </p>
                   )}
                 </div>
 
-                {/* View Controls */}
-                <div className="flex flex-col gap-2 md:gap-3">
-                  {/* View Mode Toggle - icon only on mobile */}
-                  <div className="flex bg-thread-cream border border-thread-sage rounded-lg p-0.5 md:p-1">
-                    <button
-                      onClick={() => handleViewModeChange('street')}
-                      className={`px-2 md:px-3 py-1 md:py-1.5 rounded-md text-xs md:text-sm font-medium transition-all ${viewMode === 'street'
-                        ? 'bg-thread-sage text-thread-paper shadow-sm'
-                        : 'text-thread-sage hover:text-thread-pine'
-                        }`}
-                      title={isMobile ? "Street View - Swipe horizontally to explore" : "Street View - Stroll past the houses"}
-                    >
-                      <span className="md:hidden"><PixelIcon name="buildings" size={14} /></span>
-                      <span className="hidden md:inline"><PixelIcon name="buildings" size={14} className="inline-block align-middle" /> Street</span>
-                    </button>
-                    {/* Card View - Mobile Only */}
-                    {isMobile && (
+                {/* View, order and filters */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex bg-thread-cream border border-thread-sage rounded-lg p-0.5 md:p-1" role="group" aria-label="View">
+                    {([
+                      { mode: 'street', label: 'Street', icon: 'buildings' },
+                      ...(isMobile ? [{ mode: 'card', label: 'Cards', icon: 'image' }] : []),
+                      { mode: 'grid', label: 'Grid', icon: 'drag-and-drop' },
+                      { mode: 'map', label: 'Map', icon: 'map' },
+                    ] as { mode: ViewMode; label: string; icon: 'buildings' | 'image' | 'drag-and-drop' | 'map' }[]).map(({ mode, label, icon }) => (
                       <button
-                        onClick={() => handleViewModeChange('card')}
-                        className={`px-2 py-1 rounded-md text-xs font-medium transition-all ${viewMode === 'card'
+                        key={mode}
+                        onClick={() => handleViewModeChange(mode)}
+                        aria-pressed={viewMode === mode}
+                        className={`ts-chip px-2 md:px-3 py-1 md:py-1.5 rounded-md text-xs md:text-sm font-medium transition-all ${viewMode === mode
                           ? 'bg-thread-sage text-thread-paper shadow-sm'
                           : 'text-thread-sage hover:text-thread-pine'
                           }`}
-                        title="Card View - Swipe through homes"
+                        title={label}
                       >
-                        <PixelIcon name="image" size={14} />
+                        <PixelIcon name={icon} size={14} className="inline-block align-middle" />
+                        <span className="hidden md:inline ml-1">{label}</span>
+                        <span className="sr-only md:hidden">{label}</span>
                       </button>
-                    )}
-                    <button
-                      onClick={() => handleViewModeChange('grid')}
-                      className={`px-2 md:px-3 py-1 md:py-1.5 rounded-md text-xs md:text-sm font-medium transition-all ${viewMode === 'grid'
-                        ? 'bg-thread-sage text-thread-paper shadow-sm'
-                        : 'text-thread-sage hover:text-thread-pine'
-                        }`}
-                      title="Grid View - See everything at once"
-                    >
-                      <span className="md:hidden">⊞</span>
-                      <span className="hidden md:inline">⊞ Grid</span>
-                    </button>
-                    <button
-                      onClick={() => handleViewModeChange('map')}
-                      className={`px-2 md:px-3 py-1 md:py-1.5 rounded-md text-xs md:text-sm font-medium transition-all ${viewMode === 'map'
-                        ? 'bg-thread-sage text-thread-paper shadow-sm'
-                        : 'text-thread-sage hover:text-thread-pine'
-                        }`}
-                      title="Map View - The whole neighborhood from above"
-                    >
-                      <span className="md:hidden"><PixelIcon name="map" size={14} /></span>
-                      <span className="hidden md:inline"><PixelIcon name="map" size={14} className="inline-block align-middle" /> Map</span>
-                    </button>
+                    ))}
                   </div>
 
-                  {/* Filter Options - more compact on mobile */}
-                  <div className="flex gap-1.5 md:gap-2">
-                    <button
-                      onClick={() => setFilterActive(!filterActive)}
-                      className={`px-2 md:px-3 py-1 md:py-1.5 text-xs md:text-sm rounded-md border transition-all ${filterActive
-                        ? 'bg-green-100 border-green-300 text-green-700'
-                        : 'bg-thread-paper border-thread-sage text-thread-sage hover:bg-thread-cream'
-                        }`}
-                    >
-                      <span className="md:hidden">{filterActive ? '✓' : '○'}</span>
-                      <span className="hidden md:inline">{filterActive ? '✓ Active Only' : '○ Active Only'}</span>
-                    </button>
+                  <label className="flex items-center gap-1.5 text-xs md:text-sm text-thread-sage">
+                    <span className="hidden md:inline">Order</span>
                     <select
                       value={sortBy}
-                      onChange={(e) => setSortBy(e.target.value as any)}
+                      onChange={(e) => setSortBy(e.target.value as 'recent' | 'alphabetical')}
                       className="px-2 md:px-3 py-1 md:py-1.5 text-xs md:text-sm rounded-md border border-thread-sage bg-thread-paper text-thread-pine"
+                      aria-label="Order"
                     >
-                      <option value="recent">Recent</option>
-                      <option value="alphabetical">A-Z</option>
-                      <option value="random">Random</option>
+                      <option value="recent">Recently updated</option>
+                      <option value="alphabetical">A–Z</option>
                     </select>
-                    <button
-                      onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                      className="px-2 md:px-3 py-1 md:py-1.5 text-xs md:text-sm rounded-md border border-thread-sage text-thread-sage hover:bg-thread-cream transition-colors"
-                      title="Advanced filtering options"
-                    >
-                      <PixelIcon name="search" size={12} className="inline-block align-middle" /> <span className="hidden md:inline">{showAdvancedFilters ? 'Less' : 'More'}</span>
-                    </button>
-                  </div>
+                  </label>
+
+                  <button
+                    onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                    aria-expanded={showAdvancedFilters}
+                    aria-controls="neighborhood-filters"
+                    className="px-2 md:px-3 py-1 md:py-1.5 text-xs md:text-sm rounded-md border border-thread-sage text-thread-pine hover:bg-thread-cream transition-colors"
+                  >
+                    Filters{filterCount > 0 ? ` (${filterCount})` : ''}
+                  </button>
                 </div>
               </div>
 
-              {/* Advanced Filters - Collapsible */}
+              {/* Filters - collapsed until asked for */}
               {showAdvancedFilters && (
-                <div className="mt-3 bg-thread-cream border border-thread-sage rounded-lg p-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* House Style Filter */}
-                    <div>
-                      <label className="block text-xs font-medium text-thread-pine mb-2"><PixelIcon name="home" size={12} className="inline-block align-middle" /> House Style</label>
+                <div id="neighborhood-filters" className="mt-3 bg-thread-cream border border-thread-sage rounded-lg p-3 md:p-4">
+                  <div className="flex flex-wrap items-end gap-4">
+                    <label className="flex items-center gap-2 text-sm text-thread-pine">
+                      <input
+                        type="checkbox"
+                        checked={filterActive}
+                        onChange={(e) => setFilterActive(e.target.checked)}
+                      />
+                      Active this week
+                    </label>
+
+                    <label className="text-xs font-medium text-thread-pine">
+                      <span className="block mb-1">House style</span>
                       <select
                         value={templateFilter}
                         onChange={(e) => setTemplateFilter(e.target.value)}
-                        className="w-full px-2 py-1.5 text-xs border border-thread-sage rounded-md bg-thread-paper text-thread-pine"
+                        className="px-2 py-1.5 text-sm border border-thread-sage rounded-md bg-thread-paper text-thread-pine"
                       >
-                        <option value="">All Styles</option>
-                        <option value="cottage_v1">Cottages</option>
-                        <option value="townhouse_v1">Townhouses</option>
-                        <option value="loft_v1">Lofts</option>
-                        <option value="cabin_v1">Cabins</option>
+                        <option value="">Any</option>
+                        {HOUSE_TEMPLATES.map((t) => (
+                          <option key={t.id} value={t.id}>{t.name}</option>
+                        ))}
                       </select>
-                    </div>
+                    </label>
 
-                    {/* Color Theme Filter */}
-                    <div>
-                      <label className="block text-xs font-medium text-thread-pine mb-2"><PixelIcon name="paint-bucket" size={12} className="inline-block align-middle" /> Color Theme</label>
+                    <label className="text-xs font-medium text-thread-pine">
+                      <span className="block mb-1">Colors</span>
                       <select
                         value={paletteFilter}
                         onChange={(e) => setPaletteFilter(e.target.value)}
-                        className="w-full px-2 py-1.5 text-xs border border-thread-sage rounded-md bg-thread-paper text-thread-pine"
+                        className="px-2 py-1.5 text-sm border border-thread-sage rounded-md bg-thread-paper text-thread-pine"
                       >
-                        <option value="">All Themes</option>
-                        <option value="thread_sage">Thread Sage</option>
-                        <option value="charcoal_nights">Charcoal Nights</option>
-                        <option value="pixel_petals">Pixel Petals</option>
-                        <option value="crt_glow">CRT Glow</option>
-                        <option value="classic_linen">Classic Linen</option>
+                        <option value="">Any</option>
+                        {HOUSE_PALETTES.map((p) => (
+                          <option key={p.id} value={p.id}>{p.name}</option>
+                        ))}
                       </select>
-                    </div>
+                    </label>
 
-                    {/* Results Counter */}
-                    <div className="flex items-end">
-                      <div className="text-xs text-thread-sage">
-                        <div className="font-medium text-thread-pine">{processedMembers.length} of {totalCount}</div>
-                        <div>homes match filters</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Clear Filters */}
-                  {(templateFilter || paletteFilter || filterActive) && (
-                    <div className="mt-3 pt-3 border-t border-thread-sage">
+                    {filterCount > 0 && (
                       <button
                         onClick={() => {
                           setTemplateFilter('')
                           setPaletteFilter('')
                           setFilterActive(false)
                         }}
-                        className="text-xs text-thread-sage hover:text-thread-pine transition-colors"
+                        className="text-sm text-thread-sage hover:text-thread-pine underline"
                       >
-                        ✕ Clear all filters
+                        Clear filters
                       </button>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -603,67 +482,17 @@ export default function UnifiedNeighborhood({
 
           {/* Footer Actions */}
           <div className="container mx-auto px-4 py-8">
-            {type === 'explore' ? (
-              <>
-                {/* Discovery Tips for explore pages */}
-                <div className="bg-thread-paper border border-thread-sage rounded-lg p-8 shadow-sm mb-8">
-                  <h3 className="text-lg font-headline font-medium text-thread-pine text-center mb-6">
-                    <PixelIcon name="lightbulb" size={16} className="inline-block align-middle" /> Discovery Tips
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-                    <div className="text-center p-4 bg-thread-cream rounded-lg border border-thread-sage">
-                      <div className="mb-3 flex justify-center"><PixelIcon name="paint-bucket" size={24} /></div>
-                      <div className="font-medium text-thread-pine mb-2">Change the View</div>
-                      <div className="text-sm text-thread-sage leading-relaxed">
-                        Switch between Street, Grid, and Map for a different angle on the same homes
-                      </div>
-                    </div>
-                    <div className="text-center p-4 bg-thread-cream rounded-lg border border-thread-sage">
-                      <div className="mb-3 flex justify-center"><PixelIcon name="link" size={24} /></div>
-                      <div className="font-medium text-thread-pine mb-2">Find Connections</div>
-                      <div className="text-sm text-thread-sage leading-relaxed">
-                        Look up mutual friends, ThreadRing members, and friends of friends
-                      </div>
-                    </div>
-                    <div className="text-center p-4 bg-thread-cream rounded-lg border border-thread-sage">
-                      <div className="mb-3 flex justify-center"><PixelIcon name="zap" size={24} /></div>
-                      <div className="font-medium text-thread-pine mb-2">See What&apos;s New</div>
-                      <div className="text-sm text-thread-sage leading-relaxed">
-                        Swing by recently updated and popular homes to see what folks are up to
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Random Discovery */}
-                {param !== 'random' && (
-                  <div className="bg-thread-paper border border-thread-sage rounded-lg p-6 shadow-sm text-center mb-8">
-                    <h3 className="text-lg font-headline font-medium text-thread-pine mb-4">
-                      <PixelIcon name="dice" size={16} className="inline-block align-middle" /> Feeling adventurous?
-                    </h3>
-                    <p className="text-thread-sage mb-4 max-w-md mx-auto">
-                      Wander somewhere new — you never know whose porch you&apos;ll end up on
-                    </p>
-                    <Link
-                      href="/neighborhood/explore/random"
-                      className="inline-flex items-center gap-2 px-6 py-3 bg-thread-sage text-thread-paper rounded-md font-medium hover:bg-thread-pine transition-colors shadow-sm"
-                    >
-                      <PixelIcon name="dice" size={16} /> Visit a random home
-                    </Link>
-                  </div>
-                )}
-              </>
-            ) : (
+            {type !== 'explore' && (
               <div className="bg-thread-paper border border-thread-sage rounded-lg p-6 text-center">
                 <h3 className="text-lg font-headline font-medium text-thread-pine mb-4">
                   <PixelIcon name="search" size={16} className="inline-block align-middle" /> More neighborhoods to wander
                 </h3>
                 <div className="flex flex-wrap justify-center gap-3">
                   <Link
-                    href="/neighborhood/explore/all"
+                    href="/neighborhood"
                     className="inline-flex items-center gap-2 px-4 py-2 bg-thread-sage text-thread-paper rounded-md hover:bg-thread-pine transition-colors"
                   >
-                    <PixelIcon name="map" size={16} /> Explore All Homes
+                    <PixelIcon name="map" size={16} /> The street
                   </Link>
                   {type !== 'ring' && metadata.ringSlug && (
                     <Link
@@ -674,10 +503,10 @@ export default function UnifiedNeighborhood({
                     </Link>
                   )}
                   <Link
-                    href="/rings"
+                    href="/threadrings"
                     className="inline-flex items-center gap-2 px-4 py-2 border border-thread-sage text-thread-sage rounded-md hover:bg-thread-sage hover:text-thread-paper transition-colors"
                   >
-                    <PixelIcon name="bookmark" size={16} /> Browse ThreadRings
+                    <PixelIcon name="bookmark" size={16} /> All rings
                   </Link>
                 </div>
               </div>
@@ -690,13 +519,8 @@ export default function UnifiedNeighborhood({
               onFilterClick={() => setShowFilterSheet(true)}
               onRandomClick={handleRandomJump}
               onViewModeClick={() => setShowViewModeSelector(true)}
-              filterActive={filterActive || templateFilter !== '' || paletteFilter !== ''}
-              filterCount={
-                (filterActive ? 1 : 0) +
-                (templateFilter !== '' ? 1 : 0) +
-                (paletteFilter !== '' ? 1 : 0) +
-                (sortBy !== 'recent' ? 1 : 0)
-              }
+              filterActive={filterCount > 0}
+              filterCount={filterCount + (sortBy !== 'recent' ? 1 : 0)}
             />
           )}
 
@@ -1171,35 +995,13 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       }
 
       case 'explore': {
-        // Enhanced exploration with different sub-categories
-        let orderBy: any = { updatedAt: 'desc' } // default
-        let take = 60
+        const orderBy = { updatedAt: 'desc' as const }
+        const take = 60
 
-        switch (param) {
-          case 'all':
-            title = 'All Neighborhoods'
-            description = 'Every pixel home in ThreadStead, all in one place'
-            break
-          case 'recent':
-            title = 'Recently Updated Homes'
-            description = 'Homes with fresh paint, new decorations, or a recent tidy-up'
-            orderBy = { updatedAt: 'desc' }
-            break
-          case 'popular':
-            title = 'Popular This Week'
-            description = 'The most visited homes this week'
-            orderBy = { updatedAt: 'desc' } // Could be enhanced with actual popularity metrics
-            break
-          case 'random':
-            title = 'Random Homes'
-            description = 'A shuffled handful of homes to wander through'
-            orderBy = { createdAt: 'desc' } // Will shuffle in memory
-            take = 30
-            break
-          default:
-            title = 'All Neighborhoods'
-            description = 'Every pixel home in ThreadStead, all in one place'
-        }
+        // One street: every home, most recently updated first. The old
+        // all/recent/popular/random params redirect to /neighborhood.
+        title = 'The street'
+        description = 'Pixel homes, most recently updated first.'
 
         const homeConfigs = await db.userHomeConfig.findMany({
           include: {
@@ -1313,15 +1115,6 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
             }
           })
           .filter(m => m !== null)
-
-        // Apply randomization if needed (Fisher-Yates — a Math.random sort
-        // comparator is biased and its behavior engine-dependent)
-        if (param === 'random') {
-          for (let i = processedMembers.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1))
-            ;[processedMembers[i], processedMembers[j]] = [processedMembers[j], processedMembers[i]]
-          }
-        }
 
         members = processedMembers
         break

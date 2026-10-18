@@ -62,8 +62,8 @@ export function useDefaultWidgets(user?: { role: string } | null) {
     'community-activity',
     'trending-content',
     'threadring-activity',
-    'weather',
-    'site-news'
+    'weather'
+    // 'site-news' — news lives at /community/news now (PRODUCT_UX_AUDIT §4)
   ];
 
   return useWidgets({
