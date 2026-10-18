@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 interface SmartUrlShortenerProps {
   content: string;
@@ -48,6 +48,12 @@ export default function SmartUrlShortener({ content, onContentChange, className 
   const [suggestions, setSuggestions] = useState<UrlSuggestion[]>([]);
   const [dismissedUrls, setDismissedUrls] = useState<Set<string>>(new Set());
   const [autoShortenedUrls, setAutoShortenedUrls] = useState<Set<string>>(new Set());
+  // The shorten request is async: replace into the content as it is when the
+  // response lands (not as it was when it started), and don't re-request a URL
+  // on every keystroke while it's in flight.
+  const contentRef = useRef(content);
+  contentRef.current = content;
+  const inFlightRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     const longUrls = detectLongUrls(content);
@@ -69,6 +75,9 @@ export default function SmartUrlShortener({ content, onContentChange, className 
   }, [content, dismissedUrls]);
 
   const handleShortenUrl = async (suggestion: UrlSuggestion) => {
+    if (inFlightRef.current.has(suggestion.originalUrl)) return;
+    inFlightRef.current.add(suggestion.originalUrl);
+
     // Mark as loading
     setSuggestions(prev => prev.map(s =>
       s.originalUrl === suggestion.originalUrl
@@ -81,7 +90,7 @@ export default function SmartUrlShortener({ content, onContentChange, className 
 
       if (shortened !== suggestion.originalUrl) {
         // Replace in content
-        const newContent = content.replace(suggestion.originalUrl, shortened);
+        const newContent = contentRef.current.replace(suggestion.originalUrl, shortened);
         onContentChange(newContent);
 
         // Track auto-shortened URLs for success message
@@ -106,6 +115,8 @@ export default function SmartUrlShortener({ content, onContentChange, className 
           ? { ...s, isLoading: false }
           : s
       ));
+    } finally {
+      inFlightRef.current.delete(suggestion.originalUrl);
     }
   };
 

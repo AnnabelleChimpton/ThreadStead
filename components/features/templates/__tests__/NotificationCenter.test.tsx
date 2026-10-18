@@ -15,18 +15,18 @@ jest.mock('next/router', () => ({
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
 
-// Mock sample notification data
+// Mock sample notification data. Handles are user@host, as the API sends them.
 const mockNotifications = [
   {
     id: '1',
     type: 'comment',
     actor: {
-      handle: '@johndoe',
+      handle: 'johndoe@local',
       displayName: 'John Doe',
       avatarUrl: '/avatar1.jpg'
     },
     data: {
-      postAuthorHandle: '@alice',
+      postAuthorHandle: 'alice@local',
       postId: 'post123',
       commentId: 'comment456'
     },
@@ -36,7 +36,7 @@ const mockNotifications = [
     id: '2',
     type: 'follow',
     actor: {
-      handle: '@janedoe',
+      handle: 'janedoe@local',
       displayName: 'Jane Doe',
       avatarUrl: null
     },
@@ -53,7 +53,7 @@ const mockNotifications = [
     },
     data: {
       mediaId: 'media123',
-      mediaOwnerHandle: '@alice',
+      mediaOwnerHandle: 'alice@local',
       mediaTitle: 'Sunset Photo',
       commentId: 'comment789'
     },
@@ -61,7 +61,7 @@ const mockNotifications = [
   }
 ];
 
-describe.skip('NotificationCenter Component (complex async/mock timing)', () => {
+describe('NotificationCenter Component', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     
@@ -190,10 +190,7 @@ describe.skip('NotificationCenter Component (complex async/mock timing)', () => 
     it('should open dropdown when bell is clicked', async () => {
       render(<NotificationCenter />);
       
-      await waitFor(() => {
-        const bellButton = screen.getByRole('button');
-        fireEvent.click(bellButton);
-      });
+      fireEvent.click(await screen.findByRole('button'));
 
       await waitFor(() => {
         expect(screen.getByText('Notifications')).toBeInTheDocument();
@@ -204,10 +201,7 @@ describe.skip('NotificationCenter Component (complex async/mock timing)', () => 
     it('should close dropdown when clicking outside', async () => {
       render(<NotificationCenter />);
       
-      await waitFor(() => {
-        const bellButton = screen.getByRole('button');
-        fireEvent.click(bellButton);
-      });
+      fireEvent.click(await screen.findByRole('button'));
 
       await waitFor(() => {
         expect(screen.getByText('Notifications')).toBeInTheDocument();
@@ -231,8 +225,7 @@ describe.skip('NotificationCenter Component (complex async/mock timing)', () => 
 
       mockFetch.mockClear();
 
-      const bellButton = screen.getByRole('button');
-      fireEvent.click(bellButton);
+      fireEvent.click(await screen.findByRole('button'));
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith('/api/notifications?limit=5');
@@ -245,10 +238,7 @@ describe.skip('NotificationCenter Component (complex async/mock timing)', () => 
     beforeEach(async () => {
       render(<NotificationCenter />);
       
-      await waitFor(() => {
-        const bellButton = screen.getByRole('button');
-        fireEvent.click(bellButton);
-      });
+      fireEvent.click(await screen.findByRole('button'));
     });
 
     it('should display notification messages correctly', async () => {
@@ -277,6 +267,10 @@ describe.skip('NotificationCenter Component (complex async/mock timing)', () => 
       });
     });
 
+  });
+
+  // These mock their own fetch responses, so they render on their own.
+  describe('Loading and empty states', () => {
     it('should show loading state', async () => {
       // Mock slow response
       mockFetch.mockImplementation((url: string) => {
@@ -294,10 +288,7 @@ describe.skip('NotificationCenter Component (complex async/mock timing)', () => 
 
       render(<NotificationCenter />);
       
-      await waitFor(() => {
-        const bellButton = screen.getByRole('button');
-        fireEvent.click(bellButton);
-      });
+      fireEvent.click(await screen.findByRole('button'));
 
       await waitFor(() => {
         expect(screen.getByText('Loading...')).toBeInTheDocument();
@@ -329,10 +320,7 @@ describe.skip('NotificationCenter Component (complex async/mock timing)', () => 
 
       render(<NotificationCenter />);
       
-      await waitFor(() => {
-        const bellButton = screen.getByRole('button');
-        fireEvent.click(bellButton);
-      });
+      fireEvent.click(await screen.findByRole('button'));
 
       await waitFor(() => {
         expect(screen.getByText('No notifications')).toBeInTheDocument();
@@ -344,17 +332,11 @@ describe.skip('NotificationCenter Component (complex async/mock timing)', () => 
     beforeEach(async () => {
       render(<NotificationCenter />);
       
-      await waitFor(() => {
-        const bellButton = screen.getByRole('button');
-        fireEvent.click(bellButton);
-      });
+      fireEvent.click(await screen.findByRole('button'));
     });
 
     it('should navigate to post comment when clicked', async () => {
-      await waitFor(() => {
-        const commentNotification = screen.getByText('John Doe commented on your post');
-        fireEvent.click(commentNotification.closest('.cursor-pointer')!);
-      });
+      fireEvent.click((await screen.findByText('John Doe commented on your post')).closest('.cursor-pointer')!);
 
       expect(mockPush).toHaveBeenCalledWith(
         '/resident/alice/post/post123?comments=open&highlight=comment456'
@@ -362,19 +344,13 @@ describe.skip('NotificationCenter Component (complex async/mock timing)', () => 
     });
 
     it('should navigate to user profile for follow notifications', async () => {
-      await waitFor(() => {
-        const followNotification = screen.getByText('Jane Doe started following you');
-        fireEvent.click(followNotification.closest('.cursor-pointer')!);
-      });
+      fireEvent.click((await screen.findByText('Jane Doe started following you')).closest('.cursor-pointer')!);
 
       expect(mockPush).toHaveBeenCalledWith('/resident/janedoe');
     });
 
     it('should navigate to media page for photo comments', async () => {
-      await waitFor(() => {
-        const photoNotification = screen.getByText('@bob commented on your photo "Sunset Photo"');
-        fireEvent.click(photoNotification.closest('.cursor-pointer')!);
-      });
+      fireEvent.click((await screen.findByText('@bob commented on your photo "Sunset Photo"')).closest('.cursor-pointer')!);
 
       expect(mockPush).toHaveBeenCalledWith(
         '/resident/alice/media?photo=media123&comment=comment789'
@@ -382,10 +358,7 @@ describe.skip('NotificationCenter Component (complex async/mock timing)', () => 
     });
 
     it('should close dropdown after navigation', async () => {
-      await waitFor(() => {
-        const commentNotification = screen.getByText('John Doe commented on your post');
-        fireEvent.click(commentNotification.closest('.cursor-pointer')!);
-      });
+      fireEvent.click((await screen.findByText('John Doe commented on your post')).closest('.cursor-pointer')!);
 
       await waitFor(() => {
         expect(screen.queryByText('Notifications')).not.toBeInTheDocument();
@@ -488,10 +461,7 @@ describe.skip('NotificationCenter Component (complex async/mock timing)', () => 
 
         render(<NotificationCenter />);
         
-        await waitFor(() => {
-          const bellButton = screen.getByRole('button');
-          fireEvent.click(bellButton);
-        });
+        fireEvent.click(await screen.findByRole('button'));
 
         await waitFor(() => {
           expect(screen.getByText(expected)).toBeInTheDocument();
@@ -532,10 +502,7 @@ describe.skip('NotificationCenter Component (complex async/mock timing)', () => 
 
       render(<NotificationCenter />);
       
-      await waitFor(() => {
-        const bellButton = screen.getByRole('button');
-        fireEvent.click(bellButton);
-      });
+      fireEvent.click(await screen.findByRole('button'));
 
       // Should not crash and should show loading/empty state
       await waitFor(() => {
@@ -578,10 +545,7 @@ describe.skip('NotificationCenter Component (complex async/mock timing)', () => 
 
       render(<NotificationCenter />);
       
-      await waitFor(() => {
-        const bellButton = screen.getByRole('button');
-        fireEvent.click(bellButton);
-      });
+      fireEvent.click(await screen.findByRole('button'));
 
       // Should not crash
       await waitFor(() => {
@@ -603,26 +567,20 @@ describe.skip('NotificationCenter Component (complex async/mock timing)', () => 
     it('should be keyboard accessible', async () => {
       render(<NotificationCenter />);
       
-      await waitFor(() => {
-        const button = screen.getByRole('button');
-        button.focus();
-        expect(button).toHaveFocus();
-        
-        fireEvent.keyDown(button, { key: 'Enter' });
-      });
+      const button = await screen.findByRole('button');
+      button.focus();
+      expect(button).toHaveFocus();
+      // A native <button>: browsers turn Enter/Space into a click (jsdom doesn't)
+      expect(button.tagName).toBe('BUTTON');
+      fireEvent.click(button);
 
-      await waitFor(() => {
-        expect(screen.getByText('Notifications')).toBeInTheDocument();
-      });
+      expect(await screen.findByText('Notifications')).toBeInTheDocument();
     });
 
     it('should have proper heading structure', async () => {
       render(<NotificationCenter />);
       
-      await waitFor(() => {
-        const bellButton = screen.getByRole('button');
-        fireEvent.click(bellButton);
-      });
+      fireEvent.click(await screen.findByRole('button'));
 
       await waitFor(() => {
         const heading = screen.getByRole('heading', { name: 'Notifications' });

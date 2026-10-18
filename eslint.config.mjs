@@ -12,10 +12,20 @@ const compat = new FlatCompat({
 const eslintConfig = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
   {
+    // Lint ratchet (TECH_DEBT_AUDIT §5.4): these three were "off". They are
+    // warnings, not errors, so the backlog doesn't block CI — but new code
+    // shows up in review. Ratchet a directory to "error" once it hits zero.
+    // exhaustive-deps: fix only with a demonstrated stale closure or loop
+    // (and a test) — adding deps blindly is how July's infinite loops started.
     rules: {
-      "@typescript-eslint/no-explicit-any": "off",
-      "@typescript-eslint/no-unused-vars": "off",
-      "react-hooks/exhaustive-deps": "off",
+      "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/no-unused-vars": ["warn", {
+        argsIgnorePattern: "^_",
+        varsIgnorePattern: "^_",
+        caughtErrorsIgnorePattern: "^_",
+        ignoreRestSiblings: true
+      }],
+      "react-hooks/exhaustive-deps": "warn",
       "@next/next/no-img-element": "off"
     }
   },

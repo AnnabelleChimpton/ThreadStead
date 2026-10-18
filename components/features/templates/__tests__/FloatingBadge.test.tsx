@@ -3,19 +3,23 @@ import { screen } from '@testing-library/react';
 import FloatingBadge from '../FloatingBadge';
 import { renderWithTemplateContext } from './test-utils';
 
+// styled-jsx injects its <style> into document.head, not the render container.
+const floatStyles = () =>
+  Array.from(document.head.querySelectorAll('style')).filter((el) =>
+    el.textContent?.includes('@keyframes float')
+  );
+
 describe('FloatingBadge Component', () => {
   describe('Basic Rendering', () => {
-    it.skip('should render with default props (styled-jsx limitation)', () => {
+    it('should render with default props', () => {
       const { container } = renderWithTemplateContext(
         <FloatingBadge>5</FloatingBadge>
       );
       
       expect(screen.getByText('5')).toBeInTheDocument();
       
-      // Check for styled-jsx style tag
-      const style = container.querySelector('style');
-      expect(style).toBeInTheDocument();
-      expect(style?.textContent).toContain('@keyframes float');
+      expect(container).toBeInTheDocument();
+      expect(floatStyles().length).toBeGreaterThan(0);
     });
 
     it('should render children content', () => {
@@ -264,21 +268,20 @@ describe('FloatingBadge Component', () => {
   });
 
   describe('Styled-JSX Integration', () => {
-    it.skip('should include float keyframes in style tag (styled-jsx limitation)', () => {
+    it('should include float keyframes in style tag', () => {
       const { container } = renderWithTemplateContext(
         <FloatingBadge>Animated</FloatingBadge>
       );
       
-      const style = container.querySelector('style');
-      expect(style).toBeInTheDocument();
-      
-      const styleContent = style?.textContent || '';
+      expect(container).toBeInTheDocument();
+      const styleContent = floatStyles()[0]?.textContent || '';
       expect(styleContent).toContain('@keyframes float');
-      expect(styleContent).toContain('0%, 100% { transform: translateY(0px); }');
-      expect(styleContent).toContain('50% { transform: translateY(-6px); }');
+      // styled-jsx minifies (and lowercases) the CSS it injects
+      expect(styleContent).toContain('0%,100%{transform:translatey(0px)}');
+      expect(styleContent).toContain('50%{transform:translatey(-6px)}');
     });
 
-    it.skip('should include style tag for all animation types (styled-jsx limitation)', () => {
+    it('should include style tag for all animation types', () => {
       const animations = ['float', 'bounce', 'pulse', 'none'] as const;
       
       animations.forEach(animation => {
@@ -286,8 +289,8 @@ describe('FloatingBadge Component', () => {
           <FloatingBadge animation={animation}>Test {animation}</FloatingBadge>
         );
         
-        const style = container.querySelector('style');
-        expect(style).toBeInTheDocument();
+        expect(container).toBeInTheDocument();
+        expect(floatStyles().length).toBeGreaterThan(0);
       });
     });
   });
@@ -627,17 +630,18 @@ describe('FloatingBadge Component', () => {
       expect(screen.getByText('Final')).toBeInTheDocument();
     });
 
-    it.skip('should handle style tag management efficiently (styled-jsx limitation)', () => {
+    it('should handle style tag management efficiently', () => {
       const { container, rerender } = renderWithTemplateContext(
         <FloatingBadge>Initial</FloatingBadge>
       );
       
-      // Should have one style tag
-      expect(container.querySelectorAll('style')).toHaveLength(1);
-      
+      expect(container).toBeInTheDocument();
+      const before = floatStyles().length;
+      expect(before).toBeGreaterThan(0);
+
       // Rerender should not create additional style tags
       rerender(<FloatingBadge badgeColor="red">Updated</FloatingBadge>);
-      expect(container.querySelectorAll('style')).toHaveLength(1);
+      expect(floatStyles()).toHaveLength(before);
     });
   });
 });

@@ -52,7 +52,8 @@ export default function WaveText(props: WaveTextProps) {
         }
       `}</style>
       <span className={customClassName} style={mergedStyle}>
-        {text.split('').map((letter, index) => (
+        {/* Array.from splits by code point; split('') broke emoji into halves */}
+        {Array.from(text).map((letter, index) => (
           <span
             key={index}
             className="wave-letter"

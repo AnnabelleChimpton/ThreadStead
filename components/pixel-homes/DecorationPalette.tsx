@@ -805,7 +805,6 @@ export default function DecorationPalette({
                         onClick={() => onItemSelect(item)}
                         className="absolute inset-0 flex items-center justify-center p-2 cursor-pointer"
                       >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={item.customAssetUrl}
                           alt={item.name}

@@ -75,7 +75,6 @@ export default function MidiPlayer({
   // Guards against a second play() firing while one is already starting up
   // (the autoplay resume + a user click could both call play → doubled song).
   const startingRef = useRef<boolean>(false);
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => { loopRef.current = loop; }, [loop]);
   
   // Advanced performance optimization refs

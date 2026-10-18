@@ -3,7 +3,6 @@
  * Revamped for "Fun" & "Central" experience
  */
 
-/* eslint-disable react/no-unescaped-entities */
 
 import { useState, useEffect } from 'react';
 import { GetServerSideProps } from 'next';

@@ -32,7 +32,6 @@ export interface ComponentRelationship {
   childrenLabel?: string;            // UI label for children section in PropertyPanel
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface ComponentRegistration {
   name: string;
   component: React.ComponentType<any>; // Components have varying prop types

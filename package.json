@@ -14,7 +14,7 @@
     "dev:hub": "bash scripts/dev-hub.sh",
     "build": "next build",
     "start": "NODE_ENV=production node server.js",
-    "lint": "next lint",
+    "lint": "eslint --cache --cache-location .next/cache/eslint/ pages components lib",
     "typecheck": "tsc --noEmit",
     "env:docs": "tsx scripts/generate-env-docs.ts",
     "env:check": "tsx scripts/check-env.ts",

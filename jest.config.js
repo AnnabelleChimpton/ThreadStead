@@ -2,14 +2,11 @@
  * One Jest config, three projects:
  *
  *  - unit        jsdom + next/jest. All *.test / *.spec files. `npm test`.
- *  - engine      Template-engine golden suite (*.etest.ts). A PLAIN config (no
- *                next/jest wrapper) because next/jest force-ignores all of
- *                node_modules from transformation — under it,
- *                rehype-sanitize's defaultSchema resolves to a mangled 6-tag
- *                stub and the sanitizer strips ALL plain HTML, behavior
- *                production never has. This project transforms the whole
- *                unified dependency tree so tests see PRODUCTION parsing
- *                behavior — verified by the schema canary test.
+ *                Runs the REAL unified/rehype/marked/DOMPurify — there are no
+ *                global sanitizer mocks, so XSS tests test production code.
+ *                Mock per test only when a test genuinely needs it.
+ *  - engine      Template-engine golden suite (*.etest.ts) in a node
+ *                environment, transforming the same ESM dependency tree.
  *  - federation  Real RingHubClient against a real, harness-booted RingHub
  *                (*.itest.ts). Needs local Postgres + the ThreadRingHub
  *                checkout (see tests/federation/harness/global-setup.ts).
@@ -27,6 +24,13 @@ const nextJest = require('next/jest')
 // Loads next.config + .env and supplies the CSS/image mocks for the unit project.
 const createJestConfig = nextJest({ dir: './' })
 
+// The unified/rehype ecosystem (and marked) ships ESM-only .js. Jest runs
+// CommonJS, so these packages must be transformed or tests can't load the real
+// sanitizer. Shared by unit and engine.
+const ESM_PACKAGES =
+  'unified|rehype.*|hast.*|mdast.*|micromark.*|vfile.*|unist.*|bail|is-plain-obj|trough|property-information|space-separated-tokens|comma-separated-tokens|web-namespaces|zwitch|html-void-elements|ccount|character-entities.*|character-reference.*|stringify-entities|devlop|estree.*|@noble|@tonejs|marked|jose'
+const transformEsmPackages = [`node_modules/(?!(${ESM_PACKAGES})/)`]
+
 /** @type {import('jest').Config} */
 const unit = {
   displayName: 'unit',
@@ -35,9 +39,9 @@ const unit = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
   },
-  transformIgnorePatterns: [
-    'node_modules/(?!(unified|rehype-parse|rehype-sanitize|@noble|@tonejs|marked))',
-  ],
+  // next/jest prepends its own "ignore all of node_modules" pattern; it is
+  // stripped after resolution (see below) so this one decides.
+  transformIgnorePatterns: transformEsmPackages,
   testMatch: [
     '**/__tests__/**/*.test.(ts|tsx|js)',
     '**/__tests__/**/*.spec.(ts|tsx|js)',
@@ -67,9 +71,7 @@ const engine = {
     // REAL rehype-sanitize defaultSchema loads (see canary test).
     '^.+\\.(js|jsx|mjs)$': ['babel-jest', { presets: ['next/babel'] }],
   },
-  transformIgnorePatterns: [
-    'node_modules/(?!(unified|rehype.*|hast.*|mdast.*|micromark.*|vfile.*|unist.*|bail|is-plain-obj|trough|property-information|space-separated-tokens|comma-separated-tokens|web-namespaces|zwitch|html-void-elements|ccount|character-entities.*|character-reference.*|stringify-entities|devlop|estree.*|@noble|@tonejs|marked)/)',
-  ],
+  transformIgnorePatterns: transformEsmPackages,
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'mjs'],
   testTimeout: 20000,
 }
@@ -123,6 +125,13 @@ module.exports = async () => {
     if (!(key in envBefore)) delete process.env[key]
   }
   Object.assign(process.env, envBefore)
+
+  // next/jest force-ignores ALL of node_modules ("/node_modules/(?!.pnpm)…").
+  // Under that, rehype-sanitize's defaultSchema used to need a global stub, and
+  // every sanitizer test tested the stub. Keep only our ESM allow-list.
+  unitResolved.transformIgnorePatterns = unitResolved.transformIgnorePatterns.filter(
+    (pattern) => !pattern.startsWith('/node_modules/')
+  )
 
   return {
     projects: [unitResolved, engine, federation, dbProject],

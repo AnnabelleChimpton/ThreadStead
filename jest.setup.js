@@ -37,41 +37,9 @@ process.env.ENABLE_TEMPLATE_ISLANDS = 'false'
 process.env.ENABLE_TEMPLATE_COMPILATION = 'true'
 process.env.TEMPLATE_ISLAND_ROLLOUT_PERCENT = '0'
 
-// Mock unified and rehype modules
-jest.mock('unified', () => ({
-  unified: jest.fn(() => ({
-    use: jest.fn().mockReturnThis(),
-    parse: jest.fn().mockReturnValue({
-      type: 'root',
-      children: []
-    }),
-    runSync: jest.fn().mockReturnValue({
-      type: 'root', 
-      children: []
-    })
-  }))
-}))
-
-jest.mock('rehype-parse', () => jest.fn())
-jest.mock('rehype-sanitize', () => ({
-  __esModule: true,
-  default: jest.fn(),
-  defaultSchema: {
-    tagNames: ['div', 'p', 'span', 'h1', 'h2', 'h3'],
-    attributes: {}
-  }
-}))
-
-// Mock marked markdown parser
-const markedMock = jest.fn().mockImplementation((input) => `<p>${input}</p>`)
-markedMock.setOptions = jest.fn()
-markedMock.parse = jest.fn().mockImplementation((input) => `<p>${input}</p>`)
-
-jest.mock('marked', () => ({
-  __esModule: true,
-  marked: markedMock,
-  default: markedMock
-}))
+// NOTE: unified / rehype-* / marked / DOMPurify are deliberately NOT mocked.
+// Sanitizer and XSS tests must exercise the real pipeline. If one test needs
+// a stub, jest.mock it in that test file.
 
 // Suppress console warnings in tests unless we're debugging
 const originalConsoleWarn = console.warn

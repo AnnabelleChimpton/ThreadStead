@@ -81,7 +81,6 @@ export default function OnInterval(props: OnIntervalProps) {
         intervalIdRef.current = null;
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [intervalMs]);
   // Note: We use refs for children/templateState/residentData to avoid recreating interval
   // but still access current values

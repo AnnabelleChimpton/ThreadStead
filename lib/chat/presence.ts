@@ -32,7 +32,6 @@ export interface PresenceUser {
 }
 
 declare global {
-  // eslint-disable-next-line no-var
   var __threadsteadRoomPresence: Map<string, Map<string, UserPresence>> | undefined;
 }
 

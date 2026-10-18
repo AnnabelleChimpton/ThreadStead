@@ -3,7 +3,6 @@
  */
 
 /* eslint-disable @next/next/no-html-link-for-pages */
-/* eslint-disable react/no-unescaped-entities */
 
 import { useState, useEffect } from 'react';
 import AdminHeader from '@/components/ui/navigation/AdminHeader';

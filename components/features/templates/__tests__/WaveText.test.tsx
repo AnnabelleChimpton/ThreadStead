@@ -3,14 +3,7 @@ import { screen } from '@testing-library/react';
 import WaveText from '../WaveText';
 import { renderWithTemplateContext } from './test-utils';
 
-// Mock styled-jsx to avoid CSS parsing issues in tests
-jest.mock('styled-jsx/style', () => {
-  return function MockStyle({ children }: any) {
-    return null;
-  };
-});
-
-describe.skip('WaveText Component (styled-jsx dynamic CSS limitation)', () => {
+describe('WaveText Component', () => {
   describe('Basic Rendering', () => {
     it('should render with required text prop', () => {
       renderWithTemplateContext(
@@ -27,7 +20,7 @@ describe.skip('WaveText Component (styled-jsx dynamic CSS limitation)', () => {
       expect(screen.getByText('d')).toBeInTheDocument();
     });
 
-    it.skip('should render each character in a separate span (styled-jsx limitation)', () => {
+    it('should render each character in a separate span', () => {
       const { container } = renderWithTemplateContext(
         <WaveText text="Test" />
       );
@@ -36,7 +29,7 @@ describe.skip('WaveText Component (styled-jsx dynamic CSS limitation)', () => {
       expect(letterSpans).toHaveLength(4);
     });
 
-    it.skip('should include styled-jsx style tag (styled-jsx limitation)', () => {
+    it('should include styled-jsx style tag', () => {
       const { container } = renderWithTemplateContext(
         <WaveText text="Wave" />
       );
@@ -123,7 +116,9 @@ describe.skip('WaveText Component (styled-jsx dynamic CSS limitation)', () => {
       );
       
       const letterSpans = container.querySelectorAll('.wave-letter');
-      expect(letterSpans).toHaveLength(unicodeText.length);
+      // One span per code point: the emoji must not split into two halves
+      expect(letterSpans).toHaveLength(Array.from(unicodeText).length);
+      expect(letterSpans[0].textContent).toBe('🎉');
     });
 
     it('should handle numbers', () => {
@@ -480,7 +475,7 @@ describe.skip('WaveText Component (styled-jsx dynamic CSS limitation)', () => {
 
     it('should handle text with line breaks', () => {
       const { container } = renderWithTemplateContext(
-        <WaveText text="Line\nBreak" />
+        <WaveText text={"Line\nBreak"} />
       );
       
       const letterSpans = container.querySelectorAll('.wave-letter');
@@ -489,7 +484,7 @@ describe.skip('WaveText Component (styled-jsx dynamic CSS limitation)', () => {
 
     it('should handle text with tabs', () => {
       const { container } = renderWithTemplateContext(
-        <WaveText text="Tab\tHere" />
+        <WaveText text={"Tab\tHere"} />
       );
       
       const letterSpans = container.querySelectorAll('.wave-letter');

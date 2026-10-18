@@ -23,9 +23,10 @@ export default function Tabs(props: TabsProps) {
   // Handle both direct Tab components and children from Islands rendering
   const childArray = React.Children.toArray(children);
   
-  // Memoize tabs calculation with stable key to prevent infinite re-renders
+  // Keyed on children (not their count): same-count re-renders must still
+  // pick up new titles and content. Nothing here sets state, so it cannot loop.
   const tabs = React.useMemo(() => {
-    return childArray.map((child, index) => {
+    return React.Children.toArray(children).map((child, index) => {
       if (React.isValidElement(child)) {
         // P3.3 FIX: Unwrap IslandErrorBoundary and ResidentDataProvider to find Tab components
         let actualChild = child;
@@ -81,7 +82,7 @@ export default function Tabs(props: TabsProps) {
       }
       return null;
   }).filter(Boolean) as Array<{ title: string; content: React.ReactNode }>;
-  }, [childArray.length]);
+  }, [children]);
 
   const [activeIndex, setActiveIndex] = useState(0);
 

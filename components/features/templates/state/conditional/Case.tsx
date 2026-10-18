@@ -140,7 +140,6 @@ export function evaluateCaseCondition(
   // Option 1: Direct value comparison
   if (value !== undefined) {
     // Use loose equality to allow "1" === 1
-    // eslint-disable-next-line eqeqeq
     return switchContext.switchValue == value;
   }
 

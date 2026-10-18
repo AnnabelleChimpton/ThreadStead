@@ -81,7 +81,6 @@ export default function DecorationSVG({
     const dimensions = getDecorationDimensions(decorationId, decorationType, size)
 
     return (
-      // eslint-disable-next-line @next/next/no-img-element
       <img
         src={resolvedPngUrl}
         alt=""
@@ -135,7 +134,6 @@ export default function DecorationSVG({
               justifyContent: 'center'
             }}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={customAssetUrl}
               alt="Custom pixel art"

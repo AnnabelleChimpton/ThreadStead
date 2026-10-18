@@ -255,20 +255,3 @@ export const waitForComponent = async (getByTestId: (testId: string) => HTMLElem
     check();
   });
 };
-
-export default {
-  createMockResidentData,
-  TemplateTestWrapper,
-  renderWithTemplateContext,
-  getRegisteredComponent,
-  createMockComponentRegistration,
-  createTestTemplateAST,
-  createTestTextNode,
-  expectValidTemplate,
-  expectInvalidTemplate,
-  createTestShadowDOM,
-  testComponentProps,
-  testTemplateRendering,
-  mockFetch,
-  waitForComponent
-};
