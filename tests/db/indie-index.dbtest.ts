@@ -1,19 +1,17 @@
 /**
  * Indie Index stage 2 against a real Postgres (SEARCH_PLAN.md §3.5): the
  * 20261019000000_add_indie_index migration's triggers and cascades, the
- * listing rule and tiers (lib/indie-index/tiers.ts), and moving old
- * IndexedSite rows over (lib/indie-index/legacy.ts).
+ * listing rule and tiers (lib/indie-index/tiers.ts).
  */
 import { db } from '@/lib/config/database/connection'
 import { recomputeSites, RESIDENT_MIN_AGE_DAYS } from '@/lib/indie-index/tiers'
-import { applyLegacyMove, planLegacyMove } from '@/lib/indie-index/legacy'
 
 const DAY = 24 * 60 * 60 * 1000
 const NOW = new Date('2026-10-19T12:00:00Z')
 
 async function reset() {
   await db.$executeRawUnsafe(
-    'TRUNCATE "User", "Site", "SiteOptOut", "IndexRun", "IndexedSite", "BlockedSite" RESTART IDENTITY CASCADE'
+    'TRUNCATE "User", "Site", "SiteOptOut", "IndexRun", "BlockedSite" RESTART IDENTITY CASCADE'
   )
 }
 
@@ -237,126 +235,5 @@ describe('recomputeSites', () => {
       status: 'hidden',
       tier: 'community',
     })
-  })
-})
-
-// ---------------------------------------------------------- legacy move --
-
-async function indexed(url: string, data: Partial<{ title: string; description: string; submittedBy: string; verifiedBy: string; discoveryMethod: string; communityValidated: boolean; crawlStatus: string }> = {}) {
-  return db.indexedSite.create({ data: { url, title: data.title ?? url, ...data } })
-}
-
-describe('moving IndexedSite rows over', () => {
-  it('moves only what a person submitted or verified, never seeded rows marked validated', async () => {
-    const ada = await resident('ada')
-    const mod = await resident('mod')
-    await indexed('https://ada-picked.example.org/', { submittedBy: ada, discoveryMethod: 'manual' })
-    await indexed('https://mod-checked.example.org/', { verifiedBy: mod })
-    await indexed('https://seeded.example.org/', { discoveryMethod: 'api_seeding', communityValidated: true, crawlStatus: 'success' })
-    await indexed('https://crawled.example.org/', { discoveryMethod: 'crawler_auto_submit', communityValidated: true })
-
-    const plan = await planLegacyMove(db)
-    expect(plan.considered).toBe(2)
-    expect(plan.sites.map((s) => s.key).sort()).toEqual(['ada-picked.example.org', 'mod-checked.example.org'])
-  })
-
-  it('merges rows for the same site, prefers the homepage text, and keeps tilde neighbours apart', async () => {
-    const [ada, bo] = [await resident('ada'), await resident('bo')]
-    await indexed('https://jvns.ca/blog/some-post/', { submittedBy: ada, title: 'Some post', description: 'A post' })
-    await indexed('https://www.jvns.ca/', { submittedBy: bo, title: 'Julia Evans', description: 'Zines and blog' })
-    await indexed('https://tilde.club/~anna/', { submittedBy: ada, title: 'Anna' })
-    await indexed('https://tilde.club/~bo/', { submittedBy: bo, title: 'Bo' })
-
-    const plan = await planLegacyMove(db)
-    const jvns = plan.sites.find((s) => s.key === 'jvns.ca')!
-    expect(jvns).toMatchObject({ title: 'Julia Evans', description: 'Zines and blog', url: 'https://jvns.ca/' })
-    expect(jvns.voucherIds.sort()).toEqual([ada, bo].sort())
-    expect(jvns.fromUrls).toHaveLength(2)
-    expect(plan.sites.map((s) => s.key).sort()).toEqual(['jvns.ca', 'tilde.club/~anna', 'tilde.club/~bo'])
-  })
-
-  it('skips blocked hosts (subdomains too), opted-out sites and non-site urls', async () => {
-    const ada = await resident('ada')
-    await db.blockedSite.create({ data: { domain: 'youtube.com', category: 'video' } })
-    await db.siteOptOut.create({ data: { key: 'tilde.club', via: 'robots' } })
-    await indexed('https://m.youtube.com/channel/ada', { submittedBy: ada })
-    await indexed('https://tilde.club/~anna/', { submittedBy: ada })
-    await indexed('http://localhost:3000/', { submittedBy: ada })
-    await indexed('https://ok.example.org/', { submittedBy: ada })
-
-    const plan = await planLegacyMove(db)
-    expect(plan.sites.map((s) => s.key)).toEqual(['ok.example.org'])
-    expect(plan.skipped.map((s) => s.reason).sort()).toEqual(['blocked host', 'not a site url', 'opted out'])
-  })
-
-  it('treats a profile on a platform (/@name) as not a site, and blocks big platforms even with an empty BlockedSite table', async () => {
-    const ada = await resident('ada')
-    await indexed('https://mastodon.social/@ada', { submittedBy: ada })
-    await indexed('https://www.instagram.com/ada/', { submittedBy: ada })
-    await indexed('https://ada.tumblr.com/', { submittedBy: ada })
-    const plan = await planLegacyMove(db)
-    expect(plan.sites.map((s) => s.key)).toEqual(['ada.tumblr.com'])
-    expect(plan.skipped.map((s) => s.reason).sort()).toEqual(['blocked host', 'not a site url'])
-  })
-
-  it('turns the submitter, verifier and up-voters into vouches, ignoring broken/spam votes', async () => {
-    const [ada, bo, cy, dee] = [await resident('ada'), await resident('bo'), await resident('cy'), await resident('dee')]
-    const row = await indexed('https://liked.example.org/', { submittedBy: ada, verifiedBy: bo })
-    await db.siteVote.createMany({
-      data: [
-        { siteId: row.id, userId: cy, voteType: 'interesting' },
-        { siteId: row.id, userId: cy, voteType: 'quality' },
-        { siteId: row.id, userId: dee, voteType: 'spam' },
-      ],
-    })
-    const plan = await planLegacyMove(db)
-    expect(plan.sites[0].voucherIds.sort()).toEqual([ada, bo, cy].sort())
-  })
-
-  it('applies: grandfathered sites with vouches and tiers, and running it twice changes nothing', async () => {
-    const [ada, bo] = [await resident('ada'), await resident('bo')]
-    const liked = await indexed('https://liked.example.org/', { submittedBy: ada, title: 'Liked', description: 'Two people like it' })
-    await db.siteVote.create({ data: { siteId: liked.id, userId: bo, voteType: 'upvote' } })
-    await indexed('https://solo.example.org/', { submittedBy: ada, title: 'Solo' })
-
-    const first = await applyLegacyMove(db, await planLegacyMove(db))
-    expect(first).toEqual({ sitesCreated: 2, sitesUpdated: 0, vouchesCreated: 3 })
-
-    const sites = await db.site.findMany({
-      orderBy: { key: 'asc' },
-      select: { key: true, url: true, title: true, description: true, source: true, tier: true, grandfathered: true, vouchCount: true, residentSignals: true, status: true },
-    })
-    expect(sites).toEqual([
-      { key: 'liked.example.org', url: 'https://liked.example.org/', title: 'Liked', description: 'Two people like it', source: 'community', tier: 'vouched', grandfathered: true, vouchCount: 2, residentSignals: 2, status: 'active' },
-      { key: 'solo.example.org', url: 'https://solo.example.org/', title: 'Solo', description: null, source: 'community', tier: 'community', grandfathered: true, vouchCount: 1, residentSignals: 1, status: 'active' },
-    ])
-    expect(await matches('Site', 'liked')).toEqual(['liked.example.org'])
-
-    const second = await applyLegacyMove(db, await planLegacyMove(db))
-    expect(second).toEqual({ sitesCreated: 0, sitesUpdated: 2, vouchesCreated: 0 })
-    expect(await db.site.count()).toBe(2)
-    expect(await db.vouch.count()).toBe(3)
-  })
-
-  it("keeps an existing site's own text and promotes a pool site it matches", async () => {
-    const ada = await resident('ada')
-    await site('kagi.example.org', { source: 'pool', title: 'From the feed' })
-    await indexed('https://kagi.example.org/', { submittedBy: ada, title: 'Old title' })
-
-    await applyLegacyMove(db, await planLegacyMove(db))
-    expect(await db.site.findUniqueOrThrow({ where: { key: 'kagi.example.org' }, select: { title: true, source: true, tier: true, grandfathered: true } })).toEqual({
-      title: 'From the feed',
-      source: 'community',
-      tier: 'community',
-      grandfathered: true,
-    })
-  })
-
-  it('reads nothing but IndexedSite, BlockedSite and SiteOptOut when planning', async () => {
-    const ada = await resident('ada')
-    await indexed('https://ok.example.org/', { submittedBy: ada })
-    await planLegacyMove(db)
-    expect(await db.site.count()).toBe(0)
-    expect(await db.vouch.count()).toBe(0)
   })
 })

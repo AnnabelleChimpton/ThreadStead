@@ -8,86 +8,79 @@ datasource db {
 }
 
 model User {
-  id                        String                        @id @default(cuid())
-  did                       String                        @unique
-  originalDid               String?                       @unique // Original did:key (Seed Phrase) if migrated to did:web
-  createdAt                 DateTime                      @default(now())
+  id                        String                    @id @default(cuid())
+  did                       String                    @unique
+  originalDid               String?                   @unique // Original did:key (Seed Phrase) if migrated to did:web
+  createdAt                 DateTime                  @default(now())
   primaryHandle             String?
   publicBaseUrl             String?
   sharedBaseUrl             String?
   privateBaseUrl            String?
-  role                      UserRole                      @default(member)
+  role                      UserRole                  @default(member)
   emailVerifiedAt           DateTime?
   encryptedEmail            String?
   passwordHash              String? // For password-based auth
   encryptedSeedPhrase       String? // Encrypted with user's password
-  authMethod                AuthMethod                    @default(SEED_PHRASE)
+  authMethod                AuthMethod                @default(SEED_PHRASE)
   betaKey                   BetaKey?
   capabilities              CapabilityGrant[]
-  comments                  Comment[]                     @relation("UserComments")
-  followers                 Follow[]                      @relation("follows_followee")
-  following                 Follow[]                      @relation("follows_follower")
-  guestbook                 GuestbookEntry[]              @relation("EntriesToOwner")
+  comments                  Comment[]                 @relation("UserComments")
+  followers                 Follow[]                  @relation("follows_followee")
+  following                 Follow[]                  @relation("follows_follower")
+  guestbook                 GuestbookEntry[]          @relation("EntriesToOwner")
   handles                   Handle[]
   media                     Media[]
-  notificationsActedOn      Notification[]                @relation("NotificationActor")
-  notificationsReceived     Notification[]                @relation("NotificationRecipient")
-  photoComments             PhotoComment[]                @relation("PhotoCommentAuthor")
+  notificationsActedOn      Notification[]            @relation("NotificationActor")
+  notificationsReceived     Notification[]            @relation("NotificationRecipient")
+  photoComments             PhotoComment[]            @relation("PhotoCommentAuthor")
   installs                  PluginInstall[]
   posts                     Post[]
-  postViews                 PostView[]                    @relation("PostViews")
-  postThreadRingAdditions   PostThreadRing[]              @relation("PostThreadRingAdditions")
+  postViews                 PostView[]                @relation("PostViews")
+  postThreadRingAdditions   PostThreadRing[]          @relation("PostThreadRingAdditions")
   profile                   Profile?
   homeConfig                UserHomeConfig?
-  ringHubOwnerships         RingHubOwnership[]            @relation("RingHubOwnerships")
+  ringHubOwnerships         RingHubOwnership[]        @relation("RingHubOwnerships")
   sessions                  Session[]
-  curatedThreadRings        ThreadRing[]                  @relation("ThreadRingCurator")
-  threadRingBlocksReceived  ThreadRingBlock[]             @relation("ThreadRingBlockedUsers")
-  threadRingBlocksCreated   ThreadRingBlock[]             @relation("ThreadRingBlockCreators")
-  threadRingForks           ThreadRingFork[]              @relation("ThreadRingForks")
-  threadRingInvitesReceived ThreadRingInvite[]            @relation("ThreadRingInvitationsReceived")
-  threadRingInvitesSent     ThreadRingInvite[]            @relation("ThreadRingInvitationsSent")
-  threadRingMemberships     ThreadRingMember[]            @relation("ThreadRingMemberships")
-  reportsCreated            UserReport[]                  @relation("UserReportsCreated")
-  reportsReceived           UserReport[]                  @relation("UserReportsReceived")
-  reportsReviewed           UserReport[]                  @relation("UserReportsReviewed")
-  blocksCreated             UserBlock[]                   @relation("UserBlocksCreated")
-  blocksReceived            UserBlock[]                   @relation("UserBlocksReceived")
-  pixelHomeVisitors         PixelHomeVisitor[]            @relation("PixelHomeOwner")
-  pixelHomeVisits           PixelHomeVisitor[]            @relation("PixelHomeVisitor")
-  betaInviteCodesGenerated  BetaInviteCode[]              @relation("BetaInviteCodesGenerated")
-  betaInviteCodesUsed       BetaInviteCode[]              @relation("BetaInviteCodesUsed")
-  betaInviteShares          BetaInviteShare[]             @relation("BetaInviteShares")
-  emojisCreated             Emoji[]                       @relation("EmojiCreator")
-  decorationItemsCreated    DecorationItem[]              @relation("DecorationItemsCreated")
-  decorationClaims          UserDecorationClaim[]         @relation("UserDecorationClaims")
-  siteNewsCreated           SiteNews[]                    @relation("SiteNewsAuthor")
-  betaLandingPagesCreated   BetaLandingPage[]             @relation("BetaLandingPagesCreated")
-  betaLandingPagesEnded     BetaLandingPage[]             @relation("BetaLandingPagesEnded")
-  betaLandingSignups        BetaLandingSignup[]           @relation("BetaLandingSignups")
-  ipBlocksCreated           IpSignupTracking[]            @relation("IpBlocksCreated")
-  signupAttempts            SignupAttempt[]               @relation("SignupAttempts")
-  consents                  UserConsent[]                 @relation("UserConsents")
-  consentLogs               ConsentLog[]                  @relation("ConsentLogs")
-  templateRevisions         ProfileTemplateRevision[]     @relation("ProfileTemplateRevisions")
-  indexedSiteSubmissions    IndexedSite[]                 @relation("IndexedSiteSubmissions")
-  indexedSiteVerifications  IndexedSite[]                 @relation("IndexedSiteVerifications")
-  siteVotes                 SiteVote[]                    @relation("SiteVotes")
-  siteTagSuggestions        SiteTag[]                     @relation("SiteTagSuggestions")
-  discoveryPaths            DiscoveryPath[]               @relation("DiscoveryPaths")
-  siteReviews               SiteReview[]                  @relation("SiteReviews")
-  userCollections           UserCollection[]              @relation("UserCollections")
-  userBookmarks             UserBookmark[]                @relation("UserBookmarks")
-  bookmarkValidations       BookmarkCommunitySubmission[] @relation("BookmarkValidations")
-  indieSitesOwned           Site[]                        @relation("SiteOwner")
-  indieVouches              Vouch[]                       @relation("UserVouches")
-  indieSiteSignals          SiteSignal[]                  @relation("UserSiteSignals")
-  pollsCreated              Poll[]                        @relation("PollsCreated")
-  pollVotes                 PollVote[]                    @relation("PollVotes")
-  bulletins                 Bulletin[]                    @relation("UserBulletins")
-  chatMessages              ChatMessage[]                 @relation("UserChatMessages")
-  chatMutes                 ChatMute[]                    @relation("UserMutes")
-  chatMutedBy               ChatMute[]                    @relation("UserMutedBy")
+  curatedThreadRings        ThreadRing[]              @relation("ThreadRingCurator")
+  threadRingBlocksReceived  ThreadRingBlock[]         @relation("ThreadRingBlockedUsers")
+  threadRingBlocksCreated   ThreadRingBlock[]         @relation("ThreadRingBlockCreators")
+  threadRingForks           ThreadRingFork[]          @relation("ThreadRingForks")
+  threadRingInvitesReceived ThreadRingInvite[]        @relation("ThreadRingInvitationsReceived")
+  threadRingInvitesSent     ThreadRingInvite[]        @relation("ThreadRingInvitationsSent")
+  threadRingMemberships     ThreadRingMember[]        @relation("ThreadRingMemberships")
+  reportsCreated            UserReport[]              @relation("UserReportsCreated")
+  reportsReceived           UserReport[]              @relation("UserReportsReceived")
+  reportsReviewed           UserReport[]              @relation("UserReportsReviewed")
+  blocksCreated             UserBlock[]               @relation("UserBlocksCreated")
+  blocksReceived            UserBlock[]               @relation("UserBlocksReceived")
+  pixelHomeVisitors         PixelHomeVisitor[]        @relation("PixelHomeOwner")
+  pixelHomeVisits           PixelHomeVisitor[]        @relation("PixelHomeVisitor")
+  betaInviteCodesGenerated  BetaInviteCode[]          @relation("BetaInviteCodesGenerated")
+  betaInviteCodesUsed       BetaInviteCode[]          @relation("BetaInviteCodesUsed")
+  betaInviteShares          BetaInviteShare[]         @relation("BetaInviteShares")
+  emojisCreated             Emoji[]                   @relation("EmojiCreator")
+  decorationItemsCreated    DecorationItem[]          @relation("DecorationItemsCreated")
+  decorationClaims          UserDecorationClaim[]     @relation("UserDecorationClaims")
+  siteNewsCreated           SiteNews[]                @relation("SiteNewsAuthor")
+  betaLandingPagesCreated   BetaLandingPage[]         @relation("BetaLandingPagesCreated")
+  betaLandingPagesEnded     BetaLandingPage[]         @relation("BetaLandingPagesEnded")
+  betaLandingSignups        BetaLandingSignup[]       @relation("BetaLandingSignups")
+  ipBlocksCreated           IpSignupTracking[]        @relation("IpBlocksCreated")
+  signupAttempts            SignupAttempt[]           @relation("SignupAttempts")
+  consents                  UserConsent[]             @relation("UserConsents")
+  consentLogs               ConsentLog[]              @relation("ConsentLogs")
+  templateRevisions         ProfileTemplateRevision[] @relation("ProfileTemplateRevisions")
+  userCollections           UserCollection[]          @relation("UserCollections")
+  userBookmarks             UserBookmark[]            @relation("UserBookmarks")
+  indieSitesOwned           Site[]                    @relation("SiteOwner")
+  indieVouches              Vouch[]                   @relation("UserVouches")
+  indieSiteSignals          SiteSignal[]              @relation("UserSiteSignals")
+  pollsCreated              Poll[]                    @relation("PollsCreated")
+  pollVotes                 PollVote[]                @relation("PollVotes")
+  bulletins                 Bulletin[]                @relation("UserBulletins")
+  chatMessages              ChatMessage[]             @relation("UserChatMessages")
+  chatMutes                 ChatMute[]                @relation("UserMutes")
+  chatMutedBy               ChatMute[]                @relation("UserMutedBy")
   conversations             ConversationParticipant[]
   messagesSent              DirectMessage[]
   userDID                   UserDID?
@@ -493,25 +486,6 @@ model CustomPage {
   @@index([isHomepage])
   @@index([isLandingPage])
   @@index([navDropdown])
-}
-
-model CuratedSite {
-  id          String    @id @default(cuid())
-  url         String    @unique
-  title       String
-  description String
-  tags        String[] // Array of tags like ['indie', 'blog', 'creative']
-  active      Boolean   @default(true)
-  weight      Int       @default(1) // For weighted random selection (higher = more likely)
-  addedBy     String? // Track who added it
-  lastChecked DateTime? // For future health checking
-  clickCount  Int       @default(0) // Track popularity
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  @@index([active])
-  @@index([tags])
-  @@index([weight])
 }
 
 model Media {
@@ -1116,168 +1090,6 @@ model UserConsent {
   @@index([granted, timestamp])
 }
 
-// Community Index Models
-model IndexedSite {
-  id          String  @id @default(cuid())
-  url         String  @unique
-  title       String
-  description String?
-
-  // Discovery metadata
-  submittedBy      String? // User ID who submitted
-  discoveredAt     DateTime @default(now())
-  discoveryMethod  String   @default("manual") // search, webring, link, manual, api_seeding
-  discoveryContext String? // source URL or context
-
-  // Content analysis
-  contentSample     String? // First ~500 chars of content
-  extractedKeywords String[] @default([])
-  detectedLanguage  String? // ISO 2-letter code
-  siteType          String? // blog, portfolio, project, etc.
-
-  // Technical metadata
-  lastCrawled    DateTime?
-  crawlStatus    String    @default("pending") // success, failed, pending, blocked
-  contentHash    String? // Detect content changes
-  sslEnabled     Boolean?
-  responseTimeMs Int?
-  lastModified   DateTime?
-
-  // Community curation
-  communityScore Int     @default(0)
-  totalVotes     Int     @default(0)
-  verifiedBy     String? // Moderator verification user ID
-  featured       Boolean @default(false)
-
-  // Seeding specific fields
-  seedingScore       Int? // Auto-evaluation score 0-100
-  seedingReasons     String[] @default([]) // Why this was seeded
-  communityValidated Boolean  @default(false)
-  validationVotes    Int      @default(0)
-
-  // Auto-validation fields (Phase 2)
-  autoValidated       Boolean? // Was this auto-validated by system?
-  autoValidatedAt     DateTime? // When was it auto-validated?
-  autoValidationScore Int? // Final score used for auto-validation
-
-  // Corporate profile filtering fields
-  indexingPurpose     String?  @default("full_index") // full_index, link_extraction, pending_review, rejected
-  platformType        String?  @default("unknown") // independent, indie_platform, corporate_profile, unknown
-  extractedLinks      String[] @default([]) // Links extracted from corporate profiles
-  extractionCompleted Boolean  @default(false) // Has link extraction been completed?
-  parentProfileUrl    String? // URL of corporate profile this was discovered from
-
-  // Connectivity
-  outboundLinks String[] @default([]) // Sites this links to
-  inboundLinks  String[] @default([]) // Sites linking to this
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  submitter           User?                         @relation("IndexedSiteSubmissions", fields: [submittedBy], references: [id], onDelete: SetNull)
-  verifier            User?                         @relation("IndexedSiteVerifications", fields: [verifiedBy], references: [id], onDelete: SetNull)
-  votes               SiteVote[]
-  tags                SiteTag[]
-  reviews             SiteReview[]
-  bookmarkSubmissions BookmarkCommunitySubmission[] @relation("BookmarkIndexedSites")
-
-  @@index([url])
-  @@index([discoveryMethod])
-  @@index([crawlStatus])
-  @@index([communityScore])
-  @@index([communityValidated])
-  @@index([seedingScore])
-  @@index([featured])
-  @@index([siteType])
-  @@index([submittedBy])
-  @@index([verifiedBy])
-}
-
-model SiteVote {
-  id        String   @id @default(cuid())
-  siteId    String
-  userId    String
-  voteType  String // upvote, quality, interesting, helpful, creative, broken, spam
-  comment   String?
-  createdAt DateTime @default(now())
-
-  site IndexedSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  user User        @relation("SiteVotes", fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([siteId, userId, voteType])
-  @@index([siteId])
-  @@index([userId])
-  @@index([voteType])
-}
-
-model SiteTag {
-  id          String   @id @default(cuid())
-  siteId      String
-  tag         String
-  suggestedBy String
-  votes       Int      @default(1)
-  createdAt   DateTime @default(now())
-
-  site      IndexedSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  suggester User        @relation("SiteTagSuggestions", fields: [suggestedBy], references: [id], onDelete: Cascade)
-
-  @@unique([siteId, tag])
-  @@index([siteId])
-  @@index([tag])
-  @@index([suggestedBy])
-}
-
-model DiscoveryPath {
-  id              String   @id @default(cuid())
-  fromSite        String? // URL or "search" or "surprise"
-  toSite          String // URL from IndexedSite
-  discoveredBy    String // User ID
-  discoveryMethod String // link_click, search_result, webring, random
-  sessionId       String?
-  createdAt       DateTime @default(now())
-
-  discoverer User @relation("DiscoveryPaths", fields: [discoveredBy], references: [id], onDelete: Cascade)
-
-  @@index([toSite])
-  @@index([discoveredBy])
-  @@index([discoveryMethod])
-  @@index([sessionId])
-  @@index([createdAt])
-}
-
-model SiteRelationship {
-  id               String   @id @default(cuid())
-  siteA            String // URL
-  siteB            String // URL
-  relationshipType String // links_to, same_author, webring_member, similar_content
-  strength         Int      @default(1) // How many people discovered this connection
-  discoveredBy     String[] @default([]) // User IDs who found this relationship
-  createdAt        DateTime @default(now())
-
-  @@unique([siteA, siteB, relationshipType])
-  @@index([siteA])
-  @@index([siteB])
-  @@index([relationshipType])
-}
-
-model CrawlQueue {
-  id              String    @id @default(cuid())
-  url             String
-  priority        Int       @default(1) // 1=low, 5=high
-  scheduledFor    DateTime  @default(now())
-  attempts        Int       @default(0)
-  lastAttempt     DateTime?
-  status          String    @default("pending") // pending, processing, completed, failed
-  errorMessage    String?
-  extractAllLinks Boolean   @default(false) // Extract all links (for webring/directory pages)
-  createdAt       DateTime  @default(now())
-
-  @@index([status, scheduledFor])
-  @@index([priority, scheduledFor])
-  @@index([url])
-}
-
 model BlockedSite {
   id        String   @id @default(cuid())
   domain    String   @unique
@@ -1288,87 +1100,6 @@ model BlockedSite {
 
   @@index([category])
   @@index([domain])
-}
-
-model DiscoveryLink {
-  id             String   @id @default(cuid())
-  sourceUrl      String // Corporate profile URL
-  sourcePlatform String // youtube, twitter, etc.
-  targetUrl      String // Discovered indie site
-  linkLocation   String // Where link was found (bio, description, etc.)
-  discoveredAt   DateTime @default(now())
-  confidence     Float    @default(0.5) // How confident we are this is their site
-  processed      Boolean  @default(false) // Has this been added to crawl queue?
-
-  @@index([sourceUrl])
-  @@index([targetUrl])
-  @@index([sourcePlatform])
-  @@index([processed])
-}
-
-model DiscoveredSite {
-  id          String  @id @default(cuid())
-  url         String  @unique
-  title       String
-  description String?
-
-  // Discovery metadata
-  discoveredAt     DateTime @default(now())
-  discoveryMethod  String   @default("crawler_auto_submit")
-  discoveryContext String?
-  discoveredFrom   String? // URL that linked to this site
-
-  // Quality assessment
-  qualityScore      Int
-  qualityReasons    String[]
-  suggestedCategory String?
-
-  // Content analysis
-  contentSample     String?
-  extractedKeywords String[]  @default([])
-  detectedLanguage  String?
-  lastCrawled       DateTime?
-  crawlStatus       String    @default("success")
-  contentHash       String?
-  sslEnabled        Boolean?
-  responseTimeMs    Int?
-  outboundLinks     String[]  @default([])
-
-  // Review status
-  reviewStatus String    @default("pending") // pending, approved, rejected, needs_review
-  reviewedBy   String? // User ID who reviewed
-  reviewedAt   DateTime?
-  reviewNotes  String?
-
-  // Promotion to main index
-  promotedToIndex Boolean   @default(false)
-  promotedAt      DateTime?
-  indexedSiteId   String? // Reference to IndexedSite if promoted
-
-  @@index([reviewStatus, qualityScore])
-  @@index([discoveredAt])
-  @@index([qualityScore(sort: Desc)])
-}
-
-model SiteReview {
-  id        String   @id @default(cuid())
-  siteId    String
-  userId    String
-  title     String?
-  content   String
-  rating    Int? // 1-5 star rating (optional)
-  helpful   Int      @default(0) // How many found this review helpful
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  site IndexedSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  user User        @relation("SiteReviews", fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([siteId, userId]) // One review per user per site
-  @@index([siteId])
-  @@index([userId])
-  @@index([helpful])
-  @@index([rating])
 }
 
 // Indie Index (SEARCH_PLAN.md §3.5): a community-built index of personal
@@ -1602,19 +1333,6 @@ enum CollectionVisibility {
   shared
 }
 
-enum BookmarkSubmissionReason {
-  user_bookmark
-  multiple_bookmarks
-  high_engagement
-}
-
-enum BookmarkSubmissionStatus {
-  pending
-  validated
-  rejected
-  duplicate
-}
-
 model UserCollection {
   id          String               @id @default(cuid())
   userId      String
@@ -1660,32 +1378,10 @@ model UserBookmark {
   updatedAt DateTime @updatedAt
 
   // Relations
-  user                User                         @relation("UserBookmarks", fields: [userId], references: [id], onDelete: Cascade)
-  collection          UserCollection?              @relation("CollectionBookmarks", fields: [collectionId], references: [id], onDelete: SetNull)
-  communitySubmission BookmarkCommunitySubmission? @relation("BookmarkSubmissions")
+  user       User            @relation("UserBookmarks", fields: [userId], references: [id], onDelete: Cascade)
+  collection UserCollection? @relation("CollectionBookmarks", fields: [collectionId], references: [id], onDelete: SetNull)
 
   @@unique([userId, url])
-}
-
-model BookmarkCommunitySubmission {
-  id            String  @id @default(cuid())
-  bookmarkId    String  @unique
-  indexedSiteId String? // NULL until validated and indexed
-
-  // Auto-submission details
-  submissionReason BookmarkSubmissionReason
-  submissionScore  Int                      @default(0) // Based on user reputation, engagement, etc.
-
-  status      BookmarkSubmissionStatus @default(pending)
-  validatedAt DateTime?
-  validatedBy String?
-
-  createdAt DateTime @default(now())
-
-  // Relations
-  bookmark    UserBookmark @relation("BookmarkSubmissions", fields: [bookmarkId], references: [id], onDelete: Cascade)
-  indexedSite IndexedSite? @relation("BookmarkIndexedSites", fields: [indexedSiteId], references: [id], onDelete: SetNull)
-  validator   User?        @relation("BookmarkValidations", fields: [validatedBy], references: [id], onDelete: SetNull)
 }
 
 // ========================================
