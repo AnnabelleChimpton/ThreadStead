@@ -95,11 +95,19 @@ describe('hub ring search through the real client', () => {
     expect(slugsOf(await anonymous.listRings({ search: '50% off' }))).toEqual(['srch-sale'])
   })
 
-  it('keeps visibility as before: public only when unsigned, everything when signed', async () => {
+  it('shows private and unlisted rings only to their members', async () => {
     expect(slugsOf(await anonymous.listRings({ search: 'quilters' }))).toEqual([])
-    expect(new Set(slugsOf(await signed.listRings({ search: 'quilters' })))).toEqual(
-      new Set(['srch-hidden', 'srch-unlisted'])
-    )
+    // A valid signature alone used to reveal every private ring.
+    expect(slugsOf(await signed.listRings({ search: 'quilters' }))).toEqual([])
+    const signer = literal(getRuntime().testActorDid)
+    hubSql(`INSERT INTO "Membership" (id, "ringId", "actorDid", status, "updatedAt")
+      SELECT gen_random_uuid()::text, id, ${signer}, 'ACTIVE', now() FROM "Ring" WHERE slug = 'srch-hidden';`)
+    try {
+      expect(slugsOf(await signed.listRings({ search: 'quilters' }))).toEqual(['srch-hidden'])
+    } finally {
+      hubSql(`DELETE FROM "Membership" WHERE "actorDid" = ${signer}
+        AND "ringId" IN (SELECT id FROM "Ring" WHERE slug = 'srch-hidden');`)
+    }
   })
 
   it('sort=members now orders by member count', async () => {
@@ -123,7 +131,8 @@ describe('lib/search/rings.ts reading the hub live', () => {
     const anon = await search('sourdough')
     expect(anon[0]).toMatchObject({ slug: 'srch-sourdough', name: 'Sourdough Starters', memberCount: 0 })
     expect(anon[0].relevance?.textRank).toBeGreaterThan(0)
-    expect((await search('hidden quilters', 'viewer-1')).map((r) => r.slug)).toContain('srch-hidden')
+    // Signed in or not, a private ring stays hidden from non-members.
+    expect((await search('hidden quilters', 'viewer-1')).map((r) => r.slug)).not.toContain('srch-hidden')
     expect((await search('hidden quilters')).map((r) => r.slug)).not.toContain('srch-hidden')
   })
 
