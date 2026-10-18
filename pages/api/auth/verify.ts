@@ -7,18 +7,14 @@ import * as ed from "@noble/ed25519";
 import { fromBase64Url } from "@/lib/utils/encoding/base64url";
 import { isBetaKeysEnabled } from "@/lib/config/beta-keys";
 import { createSession, readCookie } from "@/lib/auth/server";
+import { getClientIp } from "@/lib/server/http/client-ip";
+import { recordSignup, SignupLimitError } from "@/lib/domain/users/signup-limits";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") return res.status(405).end();
 
   // Every sign-in and signup lands here; cap attempts per IP
   if (!(await rateLimitCheck(req, res, "auth"))) return;
-
-  // Apply rate limiting for new account creation attempts
-  const rateLimitPassed = await signupLimitCheck(req, res);
-  if (!rateLimitPassed) {
-    return; // Response already sent by middleware
-  }
 
   const { did, publicKey, signature, betaKey, authMethod } = (req.body || {}) as {
     did?: string; publicKey?: string; signature?: string; betaKey?: string; authMethod?: string;
@@ -71,6 +67,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
   // If creating a new user, check beta key requirements
   else if (!user) {
+    // Per-IP signup caps; sign-ins above don't count against them
+    if (!(await signupLimitCheck(req, res))) return;
+
     // Import beta invite code utilities
     const { checkBetaAccess, generateUserBetaInviteCodes } = await import("@/lib/utils/invites/beta-codes");
 
@@ -114,6 +113,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           }
         }
 
+        // Counts against this IP's signup caps; over one, the User rolls back
+        await recordSignup(tx, {
+          ipAddress: getClientIp(req) ?? "unknown",
+          userAgent: req.headers["user-agent"] ?? null,
+          userId: newUser.id,
+          betaKey,
+        });
+
         return newUser;
       });
 
@@ -155,6 +162,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
     } catch (error: unknown) {
+      if (error instanceof SignupLimitError) return res.status(429).json({ error: error.message });
       const errorMessage = (error as Error).message;
       return res.status(400).json({ error: errorMessage });
     }

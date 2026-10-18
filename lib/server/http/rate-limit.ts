@@ -381,6 +381,13 @@ export const IP_LIMITS = {
   ]
 };
 
+/** What a visitor sees when an IP_LIMITS signup cap stops them. */
+export const SIGNUP_LIMIT_MESSAGES = {
+  hour: "A couple of accounts were just made from this connection. Try again in an hour.",
+  day: "A few accounts were made from this connection today. Try again tomorrow.",
+  lifetime: "This connection has made as many accounts as it can here.",
+};
+
 export async function checkIPBlocked(ipAddress: string): Promise<{ isBlocked: boolean; reason?: string }> {
   try {
     const tracking = await db.ipSignupTracking.findUnique({
@@ -464,7 +471,7 @@ export async function validateSignupLimits(
     if (dailySuccessfulSignups >= IP_LIMITS.MAX_SIGNUPS_PER_IP_PER_DAY) {
       return {
         valid: false,
-        reason: `Daily signup limit exceeded (${IP_LIMITS.MAX_SIGNUPS_PER_IP_PER_DAY} per day)`
+        reason: SIGNUP_LIMIT_MESSAGES.day
       };
     }
 
@@ -480,7 +487,7 @@ export async function validateSignupLimits(
     if (hourlySuccessfulSignups >= IP_LIMITS.MAX_SIGNUPS_PER_IP_PER_HOUR) {
       return {
         valid: false,
-        reason: `Hourly signup limit exceeded (${IP_LIMITS.MAX_SIGNUPS_PER_IP_PER_HOUR} per hour)`
+        reason: SIGNUP_LIMIT_MESSAGES.hour
       };
     }
 
@@ -529,7 +536,7 @@ export async function validateSignupLimits(
     if (lifetimeSignups >= IP_LIMITS.MAX_SIGNUPS_PER_IP_LIFETIME) {
       return {
         valid: false,
-        reason: "Maximum number of accounts reached for this IP address"
+        reason: SIGNUP_LIMIT_MESSAGES.lifetime
       };
     }
 
@@ -671,6 +678,7 @@ export async function signupLimitCheck(
   // Check rate limits
   const validation = await validateSignupLimits(ipAddress, options.landingPageId);
   if (!validation.valid) {
+    // Sign-up forms show `error`
     res.status(429).json({
       error: validation.reason ?? "Too many signups from here. Try again later.",
       message: validation.reason

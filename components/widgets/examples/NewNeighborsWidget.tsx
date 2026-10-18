@@ -150,7 +150,7 @@ export const newNeighborsWidget = {
   component: NewNeighborsWidget as React.ComponentType<WidgetProps & { data?: any }>,
   fetchData: async () => {
     try {
-      const response = await fetch('/api/directory?limit=10&sortBy=recent');
+      const response = await fetch('/api/directory?limit=10&sortBy=recent&settled=1');
       if (!response.ok) {
         throw new Error('Failed to fetch new neighbors');
       }

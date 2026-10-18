@@ -4,6 +4,7 @@ import { db } from "@/lib/config/database/connection";
 import { SITE_NAME } from "@/lib/config/site/constants";
 import { escapeLike, parseIntParam } from "@/lib/search/query";
 import { visibleResidentWhere } from "@/lib/domain/users/profile-access";
+import { settledResidentIds } from "@/lib/domain/users/new-neighbors";
 
 const SORTS = ["recent", "alphabetical", "posts", "random"];
 
@@ -82,6 +83,14 @@ export default apiHandler(
         ];
       }
 
+      // The homepage's New Neighbors asks for settled=1: only newcomers who
+      // have been here a while and done something. `total` still counts
+      // everyone, for its "View all" link.
+      const settled = req.query.settled === "1";
+      const listWhere = settled
+        ? { AND: [whereClause, { id: { in: await settledResidentIds() } }] }
+        : whereClause;
+
       // Build order clause
       let orderBy: any = { createdAt: "desc" }; // default: recent
 
@@ -103,12 +112,12 @@ export default apiHandler(
       // ids from the matching set (a few hundred rows of ids — cheap).
       let randomIds: string[] | null = null;
       if (sortBy === "random") {
-        const ids = await db.user.findMany({ where: whereClause, select: { id: true } });
+        const ids = await db.user.findMany({ where: listWhere, select: { id: true } });
         randomIds = shuffle(ids.map((u) => u.id)).slice(0, limit);
       }
 
       const users = await db.user.findMany({
-        where: randomIds ? { id: { in: randomIds } } : whereClause,
+        where: randomIds ? { id: { in: randomIds } } : listWhere,
         include: {
           handles: {
             where: { host: SITE_NAME },
@@ -173,7 +182,7 @@ export default apiHandler(
 
       return res.json({
         users: transformedUsers,
-        hasMore: randomIds ? false : offset + transformedUsers.length < totalUsers,
+        hasMore: randomIds || settled ? false : offset + transformedUsers.length < totalUsers,
         total: totalUsers
       });
 
