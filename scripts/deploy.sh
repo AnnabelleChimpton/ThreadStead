@@ -25,7 +25,7 @@ step "Deploying from $(pwd) (currently $PREV)"
 step "Pulling origin/main"
 git pull --no-edit origin main
 NEW="$(git rev-parse --short HEAD)"
-ROLLBACK="git reset --hard $PREV && npm ci --no-audit --no-fund && npx prisma generate && npm run build && pm2 restart $PM2_APP --update-env"
+ROLLBACK="git reset --hard $PREV && npm ci --no-audit --no-fund && npx prisma generate && npm run build && NODE_ENV=production pm2 restart $PM2_APP --update-env && pm2 save"
 if [ "$NEW" = "$PREV" ]; then
   echo "Already up to date — continuing anyway (rebuild + restart)."
 fi
@@ -46,7 +46,15 @@ step "Building"
 npm run build
 
 step "Restarting $PM2_APP"
-pm2 restart "$PM2_APP" --update-env >/dev/null
+# --update-env replaces the process's environment with this shell's, so set
+# NODE_ENV here: without it server.ts starts Next in dev mode, which serves
+# 500s and rewrites .next under the next build (2026-10-18 outage).
+NODE_ENV=production pm2 restart "$PM2_APP" --update-env >/dev/null
+pm2 save >/dev/null
+
+if [ "$(pm2 env "$(pm2 id "$PM2_APP" | tr -dc '0-9' | head -c 4)" 2>/dev/null | grep -i '^node_env' | awk '{print $2}')" != "production" ]; then
+  echo "WARNING: pm2 doesn't show NODE_ENV=production for $PM2_APP; check with: pm2 env <id>"
+fi
 
 step "Waiting for the site on port $PORT"
 ok=""
