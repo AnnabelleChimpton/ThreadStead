@@ -45,6 +45,7 @@ import handler from '@/pages/api/search'
 import { getSessionUser } from '@/lib/auth/server'
 import { getPublicRingHubClient } from '@/lib/api/ringhub/ringhub-client'
 import { createAuthenticatedRingHubClient } from '@/lib/api/ringhub/ringhub-user-operations'
+import { clearCache } from '@/lib/api/ringhub/ringhub-cache'
 
 async function call(query: Record<string, string>, viewer: string | null = null) {
   ;(getSessionUser as jest.Mock).mockResolvedValue(viewer ? { id: viewer, role: 'member' } : null)
@@ -66,6 +67,7 @@ beforeEach(() => {
   state.blocks = []
   state.rings = []
   jest.clearAllMocks()
+  clearCache() // anonymous ring searches are cached for 60 s
 })
 
 describe('rings', () => {
@@ -93,6 +95,36 @@ describe('rings', () => {
     const res = await call({ q: 'catnip', type: 'threadrings' })
     expect(ids(res)[0]).toBe('hub-catnip')
     expect(res.body.results[0].relevanceScore).toBeGreaterThanOrEqual(100)
+  })
+
+  test('a search asks the hub for best matches (no sort); an older hub just ignores that', async () => {
+    await call({ q: 'cat', type: 'threadrings' })
+    expect(publicClient.listRings).toHaveBeenCalledWith({ search: 'cat', limit: 50 })
+  })
+
+  test('anonymous ring searches are cached for a minute, signed ones are not', async () => {
+    await call({ q: 'cat', type: 'threadrings' })
+    await call({ q: 'cat', type: 'threadrings' })
+    expect(publicClient.listRings).toHaveBeenCalledTimes(1)
+    await call({ q: 'cats', type: 'threadrings' })
+    expect(publicClient.listRings).toHaveBeenCalledTimes(2)
+
+    await call({ q: 'cat', type: 'threadrings' }, 'me')
+    await call({ q: 'cat', type: 'threadrings' }, 'me')
+    expect(userClient.listRings).toHaveBeenCalledTimes(2)
+  })
+
+  test("uses the hub's relevance signals when it sends them", async () => {
+    // Estimated here, neither ring matches "kitties" and the tie goes to
+    // hub-cats; the hub's scores say Felines, and the blend uses those.
+    publicClient.listRings.mockResolvedValueOnce({
+      rings: [
+        { ...hubRings[0], name: 'Cats', relevance: { textRank: 0, trigram: 0.1 } },
+        { id: 'hub-felines', slug: 'felines', name: 'Felines', description: 'all about cats', memberCount: 1, postCount: 0, relevance: { textRank: 1, trigram: 0.3 } },
+      ],
+    } as any)
+    const res = await call({ q: 'kitties', type: 'threadrings' })
+    expect(ids(res)).toEqual(['hub-felines', 'hub-cats'])
   })
 
   test('a hub failure is reported as partial, not as "no results"', async () => {

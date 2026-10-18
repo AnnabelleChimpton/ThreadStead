@@ -138,7 +138,8 @@ export const RingDescriptorSchema = z.object({
   policies: z.unknown(),
   memberCount: z.number(),
   postCount: z.number(),
-  // Conditionally attached by the hub (lineage/children query flags, auth):
+  // Conditionally attached by the hub (lineage/children query flags, auth,
+  // search — `relevance` only on GET /trp/rings?search= since hub 2026-10-18):
   lineage: z.array(z.object({ id: z.string(), slug: z.string(), name: z.string() })).optional(),
   children: z
     .array(z.object({ id: z.string(), slug: z.string(), name: z.string(), memberCount: z.number() }))
@@ -151,11 +152,21 @@ export const RingDescriptorSchema = z.object({
       badgeId: z.string().nullish(),
     })
     .optional(),
+  relevance: z.object({ textRank: z.number(), trigram: z.number() }).optional(),
 })
 
 // ---------------------------------------------------------------------------
 // Endpoint response contracts (core federation flows)
 // ---------------------------------------------------------------------------
+
+/** GET /trp/rings → 200 (rings.ts; list and search). */
+export const RingListResponseSchema = z.object({
+  rings: z.array(RingDescriptorSchema),
+  total: z.number(),
+  limit: z.number(),
+  offset: z.number(),
+  hasMore: z.boolean(),
+})
 
 /** POST /trp/submit → 201. The PostRef arrives WRAPPED under `post`. */
 export const SubmitPostResponseSchema = z.object({

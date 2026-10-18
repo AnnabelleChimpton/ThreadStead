@@ -27,6 +27,9 @@ import { writeRuntime } from './runtime'
 
 const DB_NAME = 'ringhub_itest'
 
+/** Hub migrations with triggers/functions that `prisma db push` can't create. */
+const HAND_WRITTEN_HUB_MIGRATIONS = ['20261018000000_add_ring_search_fts']
+
 function sh(cmd: string, opts: { cwd?: string; env?: NodeJS.ProcessEnv } = {}): string {
   return execSync(cmd, {
     cwd: opts.cwd,
@@ -107,10 +110,23 @@ export default async function globalSetup(): Promise<void> {
   sh(`psql -d postgres -v ON_ERROR_STOP=1 -c 'DROP DATABASE IF EXISTS ${DB_NAME}' -c 'CREATE DATABASE ${DB_NAME}'`)
 
   // 2. Push the hub's schema (avoids migration history entirely for tests).
+  //    The schema's trigram index needs pg_trgm first; a hub checkout from
+  //    before ring search (2026-10-18) just ignores both extensions.
+  sh(`psql "${databaseUrl}" -v ON_ERROR_STOP=1 -qc 'CREATE EXTENSION IF NOT EXISTS pg_trgm' -c 'CREATE EXTENSION IF NOT EXISTS unaccent'`)
   sh('npx prisma db push --skip-generate', {
     cwd: hubApiDir,
     env: { ...process.env, DATABASE_URL: databaseUrl },
   })
+  //    db push creates columns and indexes but not functions or triggers, so
+  //    hand-written migrations that add them run on top (all are re-runnable).
+  for (const migration of HAND_WRITTEN_HUB_MIGRATIONS) {
+    const file = path.join(hubApiDir, 'prisma', 'migrations', migration, 'migration.sql')
+    if (!fs.existsSync(file)) continue
+    sh(`npx prisma db execute --schema prisma/schema.prisma --file ${JSON.stringify(file)}`, {
+      cwd: hubApiDir,
+      env: { ...process.env, DATABASE_URL: databaseUrl },
+    })
+  }
 
   // 3. Serve REAL DID documents for the test actors, exactly as ThreadStead
   //    serves user DIDs in production. The hub resolves them during /trp/join

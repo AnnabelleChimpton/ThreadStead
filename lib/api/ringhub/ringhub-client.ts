@@ -11,6 +11,7 @@ import { RingHubAuthError } from './ringhub-errors'
 import {
   validateRingHubResponse,
   RingDescriptorSchema,
+  RingListResponseSchema,
   SubmitPostResponseSchema,
   JoinRingResponseSchema,
   LeaveRingResponseSchema,
@@ -68,6 +69,13 @@ export interface RingDescriptor {
     role: string | null
     joinedAt: string | null  // ISO timestamp
     badgeId: string | null
+  }
+
+  // Search signals: only on listRings({ search }) from a hub with full-text
+  // ring search (2026-10-18+). Raw ts_rank_cd and pg_trgm word_similarity.
+  relevance?: {
+    textRank: number
+    trigram: number
   }
 
   // Legacy/compatibility fields for ThreadStead
@@ -294,7 +302,11 @@ export class RingHubClient {
   }
 
   /**
-   * Search/list rings
+   * Search/list rings.
+   *
+   * With `search`, leave `sort` unset to get best matches first from a hub
+   * with full-text ring search (an older hub orders those by creation date).
+   * Don't send sort: 'relevance' — older hubs reject it with a 400.
    */
   async listRings(options?: {
     search?: string
@@ -314,7 +326,8 @@ export class RingHubClient {
     if (options?.offset) params.append('offset', options.offset.toString())
     if (options?.memberDid) params.append('memberDid', options.memberDid)
 
-    return this.get(`/trp/rings?${params.toString()}`)
+    const response = await this.get(`/trp/rings?${params.toString()}`)
+    return validateRingHubResponse('GET /trp/rings', RingListResponseSchema, response)
   }
 
   /**

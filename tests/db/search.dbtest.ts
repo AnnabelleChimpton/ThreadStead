@@ -20,6 +20,7 @@ jest.mock('@/lib/api/ringhub/ringhub-user-operations', () => ({
 
 import handler from '@/pages/api/search'
 import { getSessionUser } from '@/lib/auth/server'
+import { clearCache } from '@/lib/api/ringhub/ringhub-cache'
 
 // ------------------------------------------------------------- fixtures --
 
@@ -108,6 +109,7 @@ async function ids(query: Record<string, string>, viewer: string | null = null) 
 
 beforeEach(() => {
   hubClient.listRings.mockClear()
+  clearCache() // anonymous ring searches are cached for 60 s
 })
 
 afterAll(async () => {

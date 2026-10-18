@@ -20,7 +20,10 @@ npm run test:federation
 
 ## How it works (harness/global-setup.ts)
 
-1. Fresh `ringhub_itest` database; hub schema applied via `prisma db push`.
+1. Fresh `ringhub_itest` database; `pg_trgm` + `unaccent`, then the hub schema
+   via `prisma db push`, then the hub's hand-written migrations that add
+   functions and triggers `db push` can't create (ring search's `search_tsv`
+   trigger; listed in `HAND_WRITTEN_HUB_MIGRATIONS`).
 2. Generates an Ed25519 keypair and serves a real `did:web` DID document from
    a local HTTP server — the hub resolves it during `/trp/join`, exactly like
    it resolves ThreadStead user DIDs in production.

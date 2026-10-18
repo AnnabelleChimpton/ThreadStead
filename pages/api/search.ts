@@ -265,8 +265,8 @@ async function hydrate(
 }
 
 /**
- * Rings stay hub-owned (SEARCH_PLAN.md §2): the hub filters, this scores the
- * results on the same scale as the Postgres candidates.
+ * Rings stay hub-owned (SEARCH_PLAN.md §2): the hub filters and scores them,
+ * and they're blended on the same scale as the Postgres candidates.
  */
 async function ringCandidates(
   query: string,
@@ -292,8 +292,10 @@ async function ringCandidates(
   return rings.map((ring) => ({
     type: "threadring" as const,
     id: ring.id,
-    textRank: ringTextRank(query, ring),
-    trigram: Math.max(wordSimilarity(query, ring.name), wordSimilarity(query, ring.slug)),
+    // A full-text hub sends the same ts_rank_cd / word_similarity signals
+    // Postgres gives posts and people; an older hub sends none, so estimate.
+    textRank: ring.relevance?.textRank ?? ringTextRank(query, ring),
+    trigram: ring.relevance?.trigram ?? Math.max(wordSimilarity(query, ring.name), wordSimilarity(query, ring.slug)),
     exact: isExactName(query, ring.name, ring.slug),
     activityAt: null,
     follows: false,
