@@ -30,6 +30,7 @@ export type RateLimitCategory =
   | "guestbook"
   | "polls" // Poll voting
   | "search" // External (paid) web search
+  | "password_checks" // Current-password checks before a password change
   | "admin"
   | "auth" // Sign-in and token routes, per IP
   | "email_send" // Routes that email an address the caller typed, per user or IP
@@ -63,6 +64,7 @@ export const RATE_LIMIT_CONFIGS: Record<RateLimitCategory, RateLimitConfig> = {
   guestbook: { limit: 50 * DEV_MULTIPLIER, windowMs: 60 * 60 * 1000 }, // 50 per hour (500 in dev)
   polls: { limit: 30 * DEV_MULTIPLIER, windowMs: 60 * 1000 }, // 30 per minute (300 in dev)
   search: { limit: 20 * DEV_MULTIPLIER, windowMs: 60 * 1000 }, // 20 per minute (200 in dev)
+  password_checks: { limit: 5 * DEV_MULTIPLIER, windowMs: 15 * 60 * 1000 }, // 5 per 15 minutes (50 in dev)
   admin: { limit: 100 * DEV_MULTIPLIER, windowMs: 60 * 1000 }, // 100 per minute (1000 in dev)
   // A password login spends 2 (seed lookup + verify), an email link 1–2
   auth: { limit: 30 * DEV_MULTIPLIER, windowMs: 15 * 60 * 1000 }, // 30 per 15 minutes (300 in dev)

@@ -348,7 +348,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
             const response = await fetch('/api/auth/update-encrypted-seed', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ encryptedSeedPhrase: newEncryptedSeed })
+              body: JSON.stringify({ encryptedSeedPhrase: newEncryptedSeed, currentPassword: userPassword })
             });
 
             if (!response.ok) {
@@ -401,7 +401,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
             const response = await fetch('/api/auth/update-encrypted-seed', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ encryptedSeedPhrase: newEncryptedSeed })
+              body: JSON.stringify({ encryptedSeedPhrase: newEncryptedSeed, currentPassword: userPassword })
             });
 
             if (response.ok) {

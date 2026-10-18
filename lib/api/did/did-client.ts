@@ -597,10 +597,8 @@ export function isPasswordAuth(): boolean {
  * Get decrypted seed phrase (for export/display to user)
  */
 export async function getDecryptedSeedPhrase(password: string): Promise<string> {
-  if (!isPasswordAuth()) {
-    throw new Error('Not using password authentication');
-  }
-  
+  // No isPasswordAuth() gate: seed-phrase accounts that added a password
+  // keep that auth method but have the encrypted seed here too
   const encryptedSeed = localStorage.getItem(ENCRYPTED_SEED_STORAGE);
   if (!encryptedSeed) {
     throw new Error('No encrypted seed phrase found');
@@ -611,18 +609,21 @@ export async function getDecryptedSeedPhrase(password: string): Promise<string> 
 }
 
 /**
- * Change password for existing password-auth user
+ * Change password for any account with one (password signup or added later)
  */
 export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
   // Get and decrypt current seed phrase
-  const seedPhrase = await getDecryptedSeedPhrase(currentPassword);
+  const seedPhrase = await getDecryptedSeedPhrase(currentPassword).catch((error) => {
+    // A wrong password fails decryption with a cryptic cipher error
+    if (localStorage.getItem(ENCRYPTED_SEED_STORAGE)) {
+      throw new Error('Current password is incorrect');
+    }
+    throw error;
+  });
   
   // Re-encrypt with new password
   const { encryptSeedPhraseWithPassword } = await import('../../auth/password');
   const newEncryptedSeed = encryptSeedPhraseWithPassword(seedPhrase, newPassword);
-  
-  // Update local storage
-  localStorage.setItem(ENCRYPTED_SEED_STORAGE, newEncryptedSeed);
   
   // Update on server
   const res = await fetch('/api/auth/change-password', {
@@ -635,9 +636,16 @@ export async function changePassword(currentPassword: string, newPassword: strin
     })
   });
   
-  if (!res.ok) {
-    throw new Error('Failed to change password');
+  if (res.status === 429) {
+    throw new Error('Too many tries. Wait a few minutes and try again.');
   }
+  if (!res.ok) {
+    const data = await res.json().catch(() => null);
+    throw new Error(data?.error || 'Failed to change password');
+  }
+
+  // Only now: if the server refused, the old password still works here too
+  localStorage.setItem(ENCRYPTED_SEED_STORAGE, newEncryptedSeed);
 }
 
 /**

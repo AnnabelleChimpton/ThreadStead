@@ -1,15 +1,25 @@
 import { apiHandler } from "@/lib/api/handler";
 import { db } from "@/lib/config/database/connection";
 import { hashPassword } from "@/lib/auth/password";
+import { checkCurrentPassword, signedInRecently } from "@/lib/auth/current-password";
 
 export default apiHandler(
   // no CSRF today: did-client signup flow calls it with plain fetch right after /api/auth/verify
   { methods: ["POST"], auth: "user", csrf: false },
   async (req, res, { user }) => {
-    const { password, encryptedSeedPhrase } = req.body;
+    const { password, encryptedSeedPhrase, currentPassword } = req.body;
 
-    if (!password) {
+    if (!password || typeof password !== "string") {
       return res.status(400).json({ error: "Password is required" });
+    }
+
+    if (user.passwordHash || user.encryptedSeedPhrase) {
+      // Replacing a password: prove you know the current one
+      if (!(await checkCurrentPassword(req, res, user, currentPassword))) return;
+    } else if (!(await signedInRecently(req))) {
+      // A first password is part of signup, right after sign-in. Older
+      // sessions add one from settings with the seed phrase instead.
+      return res.status(403).json({ error: "Sign in again to set a password" });
     }
 
     try {
