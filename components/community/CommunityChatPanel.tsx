@@ -165,12 +165,18 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
     setShowMobilePresence(prev => !prev);
   }, []);
 
+  // Like their messages, people you blocked don't show in the online list
+  const filteredPresence = useMemo(
+    () => presence.filter(p => !blockedUsers.has(p.userId)),
+    [presence, blockedUsers]
+  );
+
   // Expose presence info to parent
   useEffect(() => {
     if (onPresenceChange) {
-      onPresenceChange(presence, showMobilePresence, toggleMobilePresence);
+      onPresenceChange(filteredPresence, showMobilePresence, toggleMobilePresence);
     }
-  }, [presence, showMobilePresence, toggleMobilePresence, onPresenceChange]);
+  }, [filteredPresence, showMobilePresence, toggleMobilePresence, onPresenceChange]);
   // Default to expanded on fullscreen (/chat page), collapsed in popup
   const [presenceCollapsed, setPresenceCollapsed] = useState(!fullscreen);
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
@@ -502,7 +508,6 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
   // Don't filter muted users - show them with mute indicator instead
   // But DO filter blocked users completely
   const filteredMessages = messages.filter(msg => !blockedUsers.has(msg.userId));
-  const filteredPresence = presence;
 
   const getDisplayName = (msg: ChatMessage) => {
     return msg.displayName || msg.handle || 'Anonymous';

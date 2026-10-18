@@ -1,5 +1,6 @@
 import { db } from "@/lib/config/database/connection";
 import { apiHandler } from "@/lib/api/handler";
+import { forgetChatBlocks } from "@/lib/chat/block-cache";
 
 export default apiHandler(
   {
@@ -120,6 +121,7 @@ export default apiHandler(
             }
           }
         });
+        forgetChatBlocks(user.id, blockedUserId);
 
         res.status(201).json({ 
           message: "Block created successfully",
@@ -152,6 +154,7 @@ export default apiHandler(
         if (deletedBlock.count === 0) {
           return res.status(404).json({ error: "Block not found" });
         }
+        forgetChatBlocks(user.id, blockedUserId);
 
         res.status(200).json({ message: "Block removed successfully" });
 

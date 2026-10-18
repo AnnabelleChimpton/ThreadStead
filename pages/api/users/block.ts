@@ -1,5 +1,6 @@
 import { apiHandler } from '@/lib/api/handler';
 import { db as prisma } from '@/lib/config/database/connection';
+import { forgetChatBlocks } from '@/lib/chat/block-cache';
 
 // CSRF protection (apiHandler default) skips safe methods (GET/HEAD/OPTIONS) and validates POST
 export default apiHandler(
@@ -41,6 +42,7 @@ export default apiHandler(
                         },
                     });
                 }
+                forgetChatBlocks(userId, targetUserId);
 
                 return res.status(200).json({ success: true });
             } catch (error) {

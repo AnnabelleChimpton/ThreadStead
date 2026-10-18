@@ -20,13 +20,14 @@ jest.mock('@/lib/config/database/connection', () => ({
   },
 }));
 jest.mock('@/lib/auth/server', () => ({ getSessionUser: jest.fn() }));
-jest.mock('@/lib/domain/users/blocks', () => ({ isUserBlocked: jest.fn() }));
+jest.mock('@/lib/domain/users/blocks', () => ({ isUserBlocked: jest.fn(), getUsersBlockedEitherWay: jest.fn() }));
 
 import { db } from '@/lib/config/database/connection';
 import { getSessionUser } from '@/lib/auth/server';
-import { isUserBlocked } from '@/lib/domain/users/blocks';
+import { getUsersBlockedEitherWay, isUserBlocked } from '@/lib/domain/users/blocks';
 import { attachChatServer } from '../socket-server';
 import { getRoomPresence } from '../presence';
+import { forgetChatBlocks } from '../block-cache';
 
 const mockDb = db as unknown as {
   chatRoom: { findUnique: jest.Mock; update: jest.Mock };
@@ -37,6 +38,7 @@ const mockDb = db as unknown as {
 };
 const mockGetSessionUser = getSessionUser as jest.Mock;
 const mockIsUserBlocked = isUserBlocked as jest.Mock;
+const mockBlockedEitherWay = getUsersBlockedEitherWay as jest.Mock;
 
 const ROOM = 'lounge';
 
@@ -119,6 +121,7 @@ const tick = (ms = 50) => new Promise((r) => setTimeout(r, ms));
 beforeEach(async () => {
   jest.clearAllMocks();
   globalThis.__threadsteadRoomPresence?.clear();
+  globalThis.__threadsteadChatBlockCache?.clear();
 
   mockGetSessionUser.mockImplementation(async (req: { headers: { cookie?: string } }) => sessionFromCookie(req.headers.cookie));
   mockDb.chatRoom.findUnique.mockImplementation(async ({ where }: { where: { id: string } }) =>
@@ -129,6 +132,7 @@ beforeEach(async () => {
     return { id: 'm-' + Math.random(), ...data, createdAt: new Date(), user };
   });
   mockIsUserBlocked.mockResolvedValue(false);
+  mockBlockedEitherWay.mockResolvedValue([]);
 
   httpServer = createServer();
   ioServer = new Server(httpServer);
@@ -376,6 +380,133 @@ describe('whispers', () => {
   });
 });
 
+describe('typing', () => {
+  /** Alice blocked Bob. Typing is cut both ways; the admin sees everyone. */
+  const aliceBlockedBob = async (userId: string) =>
+    userId === 'u-alice' ? ['u-bob'] : userId === 'u-bob' ? ['u-alice'] : [];
+
+  async function lounge() {
+    const alice = await connect('alice');
+    const bob = await connect('bob');
+    const admin = await connect('admin');
+    await join(alice, ['alice@threadstead']);
+    await join(bob, ['alice@threadstead', 'bob@threadstead']);
+    await join(admin, ['admin@threadstead', 'alice@threadstead', 'bob@threadstead']);
+    return { alice, bob, admin };
+  }
+
+  it('reaches everyone else in the room', async () => {
+    const { alice, bob, admin } = await lounge();
+    const bobSees = next(bob, 'chat:typing');
+    const adminSees = next(admin, 'chat:typing');
+    const aliceOwn = record(alice, 'chat:typing');
+    alice.emit('chat:typing', { roomId: ROOM });
+    expect(await bobSees).toEqual({ userId: 'u-alice', handle: 'alice@threadstead', displayName: 'Alice' });
+    await adminSees;
+    await tick();
+    expect(aliceOwn).toEqual([]);
+  });
+
+  it('never passes between two people when one blocked the other, either way round', async () => {
+    mockBlockedEitherWay.mockImplementation(aliceBlockedBob);
+    const { alice, bob, admin } = await lounge();
+    const bobTyping = record(bob, 'chat:typing');
+    const bobStops = record(bob, 'chat:stop_typing');
+    const aliceTyping = record(alice, 'chat:typing');
+    const aliceStops = record(alice, 'chat:stop_typing');
+
+    // Alice (the blocker) types: the admin sees it, Bob doesn't
+    const adminSeesAlice = next<{ userId: string }>(admin, 'chat:typing', (d) => d.userId === 'u-alice');
+    alice.emit('chat:typing', { roomId: ROOM });
+    await adminSeesAlice;
+    const adminSeesAliceStop = next<{ userId: string }>(admin, 'chat:stop_typing', (d) => d.userId === 'u-alice');
+    alice.emit('chat:stop_typing', { roomId: ROOM });
+    await adminSeesAliceStop;
+
+    // Bob (the blocked one) types: the admin sees it, Alice doesn't
+    const adminSeesBob = next<{ userId: string }>(admin, 'chat:typing', (d) => d.userId === 'u-bob');
+    bob.emit('chat:typing', { roomId: ROOM });
+    await adminSeesBob;
+    const adminSeesBobStop = next<{ userId: string }>(admin, 'chat:stop_typing', (d) => d.userId === 'u-bob');
+    bob.emit('chat:stop_typing', { roomId: ROOM });
+    await adminSeesBobStop;
+
+    await tick();
+    expect(bobTyping).toEqual([]);
+    expect(bobStops).toEqual([]);
+    expect(aliceTyping).toEqual([]);
+    expect(aliceStops).toEqual([]);
+  });
+
+  it('keeps it from every tab of the blocked person', async () => {
+    mockBlockedEitherWay.mockImplementation(aliceBlockedBob);
+    const { alice, admin } = await lounge();
+    const bobTab2 = await connect('bob');
+    await join(bobTab2);
+    const tab2Typing = record(bobTab2, 'chat:typing');
+
+    const adminSees = next(admin, 'chat:typing');
+    alice.emit('chat:typing', { roomId: ROOM });
+    await adminSees;
+    await tick();
+    expect(tab2Typing).toEqual([]);
+  });
+
+  it('looks up blocks once per user, not once per keystroke', async () => {
+    const { alice, admin } = await lounge();
+    const seen = record(admin, 'chat:typing');
+    for (let i = 0; i < 5; i++) alice.emit('chat:typing', { roomId: ROOM });
+    await until(() => seen.length === 5);
+    expect(mockBlockedEitherWay.mock.calls.filter(([id]) => id === 'u-alice')).toHaveLength(1);
+  });
+
+  it('picks up a block made mid-session once the cache is cleared', async () => {
+    const { alice, bob, admin } = await lounge();
+    const bobFirst = next(bob, 'chat:typing');
+    alice.emit('chat:typing', { roomId: ROOM });
+    await bobFirst;
+
+    // What the block API routes do after writing the block
+    mockBlockedEitherWay.mockImplementation(aliceBlockedBob);
+    forgetChatBlocks('u-alice', 'u-bob');
+
+    const bobTyping = record(bob, 'chat:typing');
+    const adminSees = next(admin, 'chat:typing');
+    alice.emit('chat:typing', { roomId: ROOM });
+    await adminSees;
+    await tick();
+    expect(bobTyping).toEqual([]);
+  });
+
+  it('sends nothing if the block lookup fails, and tries again next time', async () => {
+    const { alice, admin } = await lounge();
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    mockBlockedEitherWay.mockRejectedValueOnce(new Error('db down'));
+    const seen = record(admin, 'chat:typing');
+
+    alice.emit('chat:typing', { roomId: ROOM });
+    await until(() => errorSpy.mock.calls.length === 1);
+    await tick();
+    expect(seen).toEqual([]);
+
+    alice.emit('chat:typing', { roomId: ROOM });
+    await until(() => seen.length === 1);
+    errorSpy.mockRestore();
+  });
+
+  it('ignores typing from guests and from outside the room', async () => {
+    const { bob } = await lounge();
+    const guest = await connect();
+    await join(guest);
+    const outsider = await connect('admin');
+    const seen = record(bob, 'chat:typing');
+    guest.emit('chat:typing', { roomId: ROOM });
+    outsider.emit('chat:typing', { roomId: ROOM });
+    await tick(100);
+    expect(seen).toEqual([]);
+  });
+});
+
 describe('topic', () => {
   it('only admins can set it', async () => {
     const alice = await connect('alice');
@@ -442,6 +573,41 @@ describe('direct messages', () => {
     expect(await notice).toEqual({ message: 'You cannot send messages to this user.', type: 'error' });
     expect(mockIsUserBlocked).toHaveBeenCalledWith('u-bob', 'u-alice');
     expect(mockDb.directMessage.create).not.toHaveBeenCalled();
+  });
+
+  it('sends DM typing to the other person, unless one of them blocked the other', async () => {
+    const alice = await connect('alice');
+    const bob = await connect('bob');
+    const admin = await connect('admin');
+    await tick();
+
+    const bobSees = next(bob, 'dm:typing');
+    alice.emit('dm:typing', { targetUserId: 'u-bob' });
+    expect(await bobSees).toEqual({ userId: 'u-alice', handle: 'alice@threadstead' });
+
+    mockBlockedEitherWay.mockImplementation(async (userId: string) =>
+      userId === 'u-alice' ? ['u-bob'] : userId === 'u-bob' ? ['u-alice'] : []
+    );
+    forgetChatBlocks('u-alice', 'u-bob');
+    const bobTyping = record(bob, 'dm:typing');
+    const bobStops = record(bob, 'dm:stop_typing');
+    const aliceTyping = record(alice, 'dm:typing');
+    const aliceStops = record(alice, 'dm:stop_typing');
+
+    alice.emit('dm:typing', { targetUserId: 'u-bob' });
+    alice.emit('dm:stop_typing', { targetUserId: 'u-bob' });
+    bob.emit('dm:typing', { targetUserId: 'u-alice' });
+    bob.emit('dm:stop_typing', { targetUserId: 'u-alice' });
+    // The admin is unaffected, and their event marks when the others are done
+    const adminSees = next(admin, 'dm:typing');
+    alice.emit('dm:typing', { targetUserId: 'u-admin' });
+    await adminSees;
+    await tick();
+
+    expect(bobTyping).toEqual([]);
+    expect(bobStops).toEqual([]);
+    expect(aliceTyping).toEqual([]);
+    expect(aliceStops).toEqual([]);
   });
 
   it('refuses guests and messages to yourself', async () => {

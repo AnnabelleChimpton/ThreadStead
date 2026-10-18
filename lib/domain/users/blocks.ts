@@ -42,6 +42,28 @@ export async function isUserBlocked(blockerId: string, targetUserId: string): Pr
 }
 
 /**
+ * Everyone on either side of a block with this user: people they blocked and
+ * people who blocked them. For things that go both ways, like chat typing.
+ */
+export async function getUsersBlockedEitherWay(userId: string): Promise<string[]> {
+  const blocks = await db.userBlock.findMany({
+    where: {
+      OR: [
+        { blockerId: userId, blockedUserId: { not: null } },
+        { blockedUserId: userId },
+      ],
+    },
+    select: { blockerId: true, blockedUserId: true },
+  });
+
+  const ids = new Set<string>();
+  for (const block of blocks) {
+    ids.add(block.blockerId === userId ? block.blockedUserId! : block.blockerId);
+  }
+  return [...ids];
+}
+
+/**
  * Check if a user has blocked a ThreadRing
  */
 export async function isThreadRingBlocked(blockerId: string, threadRingId: string): Promise<boolean> {

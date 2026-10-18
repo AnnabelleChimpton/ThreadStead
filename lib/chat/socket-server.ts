@@ -16,6 +16,7 @@ import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/config/database/connection";
 import { getSessionUser } from "@/lib/auth/server";
 import { isUserBlocked } from "@/lib/domain/users/blocks";
+import { getChatBlockedIds } from "./block-cache";
 import { createMemoryRateLimiter } from "@/lib/server/http/rate-limit";
 import { findOrCreateDM } from "./direct-messages";
 import { resolveDiceCommands, sanitizeMessage } from "./message-text";
@@ -79,6 +80,21 @@ export function attachChatServer(io: ChatServer, { log = () => {} }: ChatServerO
 
   const broadcastPresence = (roomId: string) => {
     io.to(roomId).emit("presence:update", { users: getRoomPresence(roomId) });
+  };
+
+  /**
+   * Who must not get this user's typing events: anyone they blocked or who
+   * blocked them (each member's sockets share a room named by their id).
+   * Cached, so a keystroke doesn't cost a query. Null if the lookup failed,
+   * in which case the caller sends nothing.
+   */
+  const typingExclusions = async (userId: string): Promise<string[] | null> => {
+    try {
+      return [...(await getChatBlockedIds(userId))];
+    } catch (error) {
+      console.error("Error checking typing blocks:", error);
+      return null;
+    }
   };
 
   // NOTE: this callback is intentionally NOT async. Validating an authenticated
@@ -245,8 +261,11 @@ export function attachChatServer(io: ChatServer, { log = () => {} }: ChatServerO
       const user = await sessionReady;
       if (user.isGuest) return;
       const { roomId } = data || {};
-      if (roomId && socket.data.currentRoom === roomId) {
-        socket.to(roomId).emit("chat:typing", {
+      if (!roomId || socket.data.currentRoom !== roomId) return;
+      const excluded = await typingExclusions(user.id);
+      // Re-check: the socket may have moved rooms during the lookup
+      if (excluded && socket.data.currentRoom === roomId) {
+        socket.to(roomId).except(excluded).emit("chat:typing", {
           userId: user.id,
           handle: user.primaryHandle,
           displayName: user.profile?.displayName,
@@ -258,8 +277,10 @@ export function attachChatServer(io: ChatServer, { log = () => {} }: ChatServerO
       const user = await sessionReady;
       if (user.isGuest) return;
       const { roomId } = data || {};
-      if (roomId && socket.data.currentRoom === roomId) {
-        socket.to(roomId).emit("chat:stop_typing", { userId: user.id });
+      if (!roomId || socket.data.currentRoom !== roomId) return;
+      const excluded = await typingExclusions(user.id);
+      if (excluded && socket.data.currentRoom === roomId) {
+        socket.to(roomId).except(excluded).emit("chat:stop_typing", { userId: user.id });
       }
     });
 
@@ -514,6 +535,8 @@ export function attachChatServer(io: ChatServer, { log = () => {} }: ChatServerO
       const { targetUserId } = data || {};
 
       if (typeof targetUserId !== "string" || !targetUserId) return;
+      const excluded = await typingExclusions(user.id);
+      if (!excluded || excluded.includes(targetUserId)) return;
 
       io.to(targetUserId).emit("dm:typing", {
         userId: user.id,
@@ -527,6 +550,8 @@ export function attachChatServer(io: ChatServer, { log = () => {} }: ChatServerO
       const { targetUserId } = data || {};
 
       if (typeof targetUserId !== "string" || !targetUserId) return;
+      const excluded = await typingExclusions(user.id);
+      if (!excluded || excluded.includes(targetUserId)) return;
 
       io.to(targetUserId).emit("dm:stop_typing", { userId: user.id });
     });
