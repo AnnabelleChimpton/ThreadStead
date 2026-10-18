@@ -19,10 +19,13 @@ import { featureFlags } from "@/lib/utils/features/feature-flags";
 import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
 import { raceHubCall, HUB_TIMEOUT } from "@/lib/api/ringhub/ringhub-ssr";
 import { transformRingDescriptorToThreadRing } from "@/lib/api/ringhub/ringhub-transformers";
-import Toast from "../../components/ui/feedback/Toast";
 import UserQuickView from "../../components/ui/feedback/UserQuickView";
 import ExternalUserPopup from "../../components/ui/feedback/ExternalUserPopup";
-import { useToast } from "../../hooks/useToast";
+import { useToast } from "@/contexts/ToastContext";
+import { useConfirm } from "@/contexts/ConfirmContext";
+import LoadingSpinner from "@/components/ui/feedback/LoadingSpinner";
+import EmptyState from "@/components/ui/feedback/EmptyState";
+import ErrorDisplay from "@/components/ui/feedback/ErrorDisplay";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
 import WelcomeRingGuide from "../../components/features/onboarding/WelcomeRingGuide";
 import { useWelcomeTracking } from "../../hooks/useWelcomeTracking";
@@ -30,6 +33,7 @@ import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import { useWelcomeRingTracking } from "../../hooks/useWelcomeRingTracking";
 import { contentMetadataGenerator } from "@/lib/utils/metadata/content-metadata";
 import { PixelIcon } from '@/components/ui/PixelIcon';
+import Button from '@/components/ui/Button';
 import { serializeJsonLd } from "@/lib/utils/sanitization/json-ld";
 
 // Helper function to count total descendants recursively
@@ -120,7 +124,7 @@ function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: 
   const [lineageLoading, setLineageLoading] = useState(false);
 
   // Toast notifications
-  const { toasts, showSuccess, hideToast } = useToast();
+  const { showSuccess } = useToast();
 
   // Fetch stats data for The Spool using Ring Hub stats endpoint
   useEffect(() => {
@@ -198,32 +202,35 @@ function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: 
                   {showSpoolBadgeOptions ? (
                     <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-3 mb-3">
                       <div className="flex justify-center gap-2 mb-2">
-                        <button
+                        <Button
+                          variant="secondary"
                           onClick={() => {
                             const badgeHtml = `<a href="${getSiteBaseUrl()}/tr/${ring.slug}" target="_blank" rel="noopener"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==" alt="${ring.badge?.title || ring.name}" width="88" height="31" style="border: 1px solid #ccc;" /></a>`;
                             navigator.clipboard.writeText(badgeHtml);
                             showSuccess('Spool badge HTML copied to clipboard!');
                           }}
-                          className="thread-button-secondary btn btn--secondary text-xs flex items-center justify-center gap-1"
+                          className="thread-button-secondary text-xs flex items-center justify-center gap-1"
                         >
                           <PixelIcon name="clipboard" size={12} /> Copy HTML
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                          variant="secondary"
                           onClick={() => {
                             const badgeUrl = `${getSiteBaseUrl()}/tr/${ring.slug}`;
                             navigator.clipboard.writeText(badgeUrl);
                             showSuccess('Spool URL copied to clipboard!');
                           }}
-                          className="thread-button-secondary btn btn--secondary text-xs flex items-center justify-center gap-1"
+                          className="thread-button-secondary text-xs flex items-center justify-center gap-1"
                         >
                           <PixelIcon name="link" size={12} /> Copy Link
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                          variant="secondary"
                           onClick={() => setShowSpoolBadgeOptions(false)}
-                          className="thread-button-secondary btn btn--secondary text-xs flex items-center justify-center gap-1"
+                          className="thread-button-secondary text-xs flex items-center justify-center gap-1"
                         >
                           <PixelIcon name="close" size={12} /> Close
-                        </button>
+                        </Button>
                       </div>
                       <p className="text-xs text-thread-sage">
                         Share The Spool&apos;s genesis badge on your website
@@ -300,19 +307,20 @@ function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: 
             </p>
 
             <div className="space-y-3">
-              <button
+              <Button
+                variant="secondary"
                 onClick={() => window.location.href = '/threadrings'}
-                className="thread-button-secondary btn btn--secondary w-full flex items-center justify-center gap-2"
+                className="thread-button-secondary w-full flex items-center justify-center gap-2"
               >
                 <PixelIcon name="gps" size={16} /> Discover Communities
-              </button>
+              </Button>
 
-              <button
+              <Button
                 onClick={() => window.location.href = '/tr/spool/fork'}
-                className="thread-button btn btn--primary w-full flex items-center justify-center gap-2"
+                className="thread-button w-full flex items-center justify-center gap-2"
               >
                 <PixelIcon name="plus" size={16} /> Create New Community
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -362,17 +370,6 @@ function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: 
           </div>
         </div>
       </div>
-
-      {/* Toast Notifications */}
-      {toasts.map(toast => (
-        <Toast
-          key={toast.id}
-          message={toast.message}
-          type={toast.type}
-          duration={toast.duration}
-          onClose={() => hideToast(toast.id)}
-        />
-      ))}
     </Layout>
   );
 }
@@ -441,7 +438,8 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
   const { user: currentUser } = useCurrentUser();
 
   // Toast notifications
-  const { toasts, showError, showSuccess, showWarning, hideToast } = useToast();
+  const { showError, showSuccess, showWarning } = useToast();
+  const confirm = useConfirm();
 
   // Detect if viewport is mobile (< 1024px)
   useEffect(() => {
@@ -785,11 +783,15 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
   const handleLeave = async () => {
     if (!ring) return;
 
-    const confirmMessage = currentUserRole === "curator"
-      ? "As Ring Host, you can only leave if you're the last member. Are you sure you want to leave this ThreadRing?"
-      : "Are you sure you want to leave this ThreadRing? Your posts will remain associated with it.";
-
-    if (!confirm(confirmMessage)) return;
+    const ok = await confirm({
+      title: "Leave this ThreadRing?",
+      message: currentUserRole === "curator"
+        ? "As Ring Host, you can only leave if you're the last member."
+        : "Your posts will remain associated with it.",
+      confirmText: "Leave ring",
+      variant: "danger",
+    });
+    if (!ok) return;
 
     try {
       setJoining(true); // Reuse the loading state
@@ -858,8 +860,8 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
           <meta name="robots" content="noindex, nofollow" />
         </Head>
         <Layout siteConfig={siteConfig} fullWidth={true}>
-          <div className="text-center py-8 text-red-600">
-            {error || "ThreadRing not found"}
+          <div className="max-w-2xl mx-auto py-8 px-4">
+            <ErrorDisplay title={error || "ThreadRing not found"} actionLabel="Browse rings" actionHref="/threadrings" />
           </div>
         </Layout>
       </>
@@ -1027,27 +1029,20 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
             <div className="mt-6">
 
               {postsLoading ? (
-                <div className="tr-posts-loading text-nb-ink-mid text-center py-8 px-3">
-                  Loading posts...
-                </div>
+                <LoadingSpinner message="Loading posts..." className="tr-posts-loading py-8 px-3" />
               ) : loadError ? (
-                <div className="tr-posts-error text-red-600 text-center py-8 px-3">
-                  {loadError}
-                </div>
+                <ErrorDisplay title={loadError} className="tr-posts-error" />
               ) : posts.length === 0 ? (
-                <div className="tr-posts-empty text-nb-ink-mid text-center py-12 px-3">
-                  <div className="mb-3 flex justify-center">
-                    <PixelIcon name="file" size={32} />
-                  </div>
-                  <p className="font-medium">No posts yet</p>
-                  {isMember ? (
-                    <p className="text-sm mt-1">
-                      <Link href={`/post/new?threadRing=${encodeURIComponent(ring.slug)}`}>Write the first one</Link>
-                    </p>
+                <EmptyState
+                  variant="plain"
+                  className="tr-posts-empty py-12 px-3"
+                  title="No posts yet"
+                  description={isMember ? (
+                    <Link href={`/post/new?threadRing=${encodeURIComponent(ring.slug)}`}>Write the first one</Link>
                   ) : (
-                    <p className="text-sm mt-1">Posts from members will appear here</p>
+                    "Posts from members will appear here"
                   )}
-                </div>
+                />
               ) : (
                 <div className="tr-posts-list space-y-6">
                   {posts.map((post, index) => (
@@ -1111,56 +1106,60 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                     <PixelIcon name="edit" size={16} className="inline-block align-[-3px] mr-1.5" />Write in this ring
                   </Link>
 
-                  <button
+                  <Button
+                    variant="secondary"
                     onClick={() => router.push(`/neighborhood/ring/${ring.slug}`)}
-                    className="thread-button-secondary btn btn--secondary w-full flex items-center justify-center gap-2"
+                    className="thread-button-secondary w-full flex items-center justify-center gap-2"
                     title="Explore member homes in Ring Streets"
                   >
                     <PixelIcon name="buildings" size={16} /> Ring Neighborhood
-                  </button>
+                  </Button>
 
                   {/* Ring Host Settings Button */}
                   {currentUserRole === "curator" && (
-                    <button
+                    <Button
+                      variant="secondary"
                       onClick={() => router.push(`/tr/${ring.slug}/settings`)}
-                      className="thread-button-secondary btn btn--secondary w-full flex items-center justify-center gap-2"
+                      className="thread-button-secondary w-full flex items-center justify-center gap-2"
                     >
                       <PixelIcon name="sliders" size={16} /> Manage Settings
-                    </button>
+                    </Button>
                   )}
 
                   {/* Secondary Actions */}
                   <div className="pt-2 border-t-2 border-dotted border-nb-ink-mid/30 space-y-2">
-                    <button
+                    <Button
+                      variant="secondary"
                       onClick={() => router.push(`/tr/${ring.slug}/fork`)}
-                      className="thread-button-secondary btn btn--secondary w-full flex items-center justify-center gap-2"
+                      className="thread-button-secondary w-full flex items-center justify-center gap-2"
                     >
                       <PixelIcon name="external-link" size={14} /> Branch This Ring
-                    </button>
+                    </Button>
 
-                    <button
+                    <Button
+                      variant="secondary"
                       onClick={handleLeave}
                       disabled={joining}
-                      className="thread-button-secondary btn btn--secondary w-full flex items-center justify-center gap-2"
+                      className="thread-button-secondary w-full flex items-center justify-center gap-2"
                       title={currentUserRole === "curator"
                         ? "As Ring Host, you must transfer ownership first (unless you're the only member)"
                         : "Leave this Ring"}
                     >
                       {joining ? "Leaving..." : "Leave Ring"}
-                    </button>
+                    </Button>
                   </div>
                 </div>
               ) : (
                 <div className="space-y-3">
                   {/* Join Button for Non-Members */}
                   {ring.joinType === "open" ? (
-                    <button
+                    <Button
                       onClick={handleJoin}
                       disabled={joining}
-                      className="thread-button btn btn--primary w-full flex items-center justify-center gap-2"
+                      className="thread-button w-full flex items-center justify-center gap-2"
                     >
                       {joining ? "Joining..." : "Join Ring"}
-                    </button>
+                    </Button>
                   ) : ring.joinType === "invite" ? (
                     <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md px-4 py-3 text-center font-medium flex items-center justify-center gap-2">
                       <PixelIcon name="lock" size={16} /> Invite Only
@@ -1174,22 +1173,24 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                   {/* Secondary Actions for Non-Members */}
                   <div className="pt-2 border-t-2 border-dotted border-nb-ink-mid/30 space-y-2">
                     {ring.visibility !== "private" && (
-                      <button
+                      <Button
+                        variant="secondary"
                         onClick={() => router.push(`/neighborhood/ring/${ring.slug}`)}
-                        className="thread-button-secondary btn btn--secondary w-full flex items-center justify-center gap-2"
+                        className="thread-button-secondary w-full flex items-center justify-center gap-2"
                         title="Explore member homes in Ring Streets"
                       >
                         <PixelIcon name="buildings" size={14} /> Explore Homes
-                      </button>
+                      </Button>
                     )}
 
                     {ring.visibility !== "private" && (
-                      <button
+                      <Button
+                        variant="secondary"
                         onClick={() => router.push(`/tr/${ring.slug}/fork`)}
-                        className="thread-button-secondary btn btn--secondary w-full flex items-center justify-center gap-2"
+                        className="thread-button-secondary w-full flex items-center justify-center gap-2"
                       >
                         <PixelIcon name="external-link" size={14} /> Branch This Ring
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -1225,32 +1226,35 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
 
                 {showBadgeOptions && (
                   <div className="space-y-2 mt-3">
-                    <button
+                    <Button
+                      variant="secondary"
                       onClick={() => {
                         const badgeHtml = `<a href="${getSiteBaseUrl()}/tr/${ring.slug}" target="_blank" rel="noopener"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==" alt="${ring.badge?.title || ring.name}" width="88" height="31" style="border: 1px solid #ccc;" /></a>`;
                         navigator.clipboard.writeText(badgeHtml);
                         showSuccess('Badge HTML copied!');
                       }}
-                      className="thread-button-secondary btn btn--secondary text-xs w-full flex items-center justify-center gap-1"
+                      className="thread-button-secondary text-xs w-full flex items-center justify-center gap-1"
                     >
                       <PixelIcon name="clipboard" size={12} /> Copy HTML
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant="secondary"
                       onClick={() => {
                         const badgeUrl = `${getSiteBaseUrl()}/tr/${ring.slug}`;
                         navigator.clipboard.writeText(badgeUrl);
                         showSuccess('URL copied!');
                       }}
-                      className="thread-button-secondary btn btn--secondary text-xs w-full flex items-center justify-center gap-1"
+                      className="thread-button-secondary text-xs w-full flex items-center justify-center gap-1"
                     >
                       <PixelIcon name="link" size={12} /> Copy Link
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant="secondary"
                       onClick={() => setShowBadgeOptions(false)}
-                      className="thread-button-secondary btn btn--secondary text-xs w-full flex items-center justify-center gap-1"
+                      className="thread-button-secondary text-xs w-full flex items-center justify-center gap-1"
                     >
                       <PixelIcon name="close" size={12} /> Close
-                    </button>
+                    </Button>
                   </div>
                 )}
               </div>
@@ -1271,7 +1275,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
               </div>
 
               {membersLoading ? (
-                <div className="text-xs text-nb-ink-mid">Loading...</div>
+                <LoadingSpinner size="sm" layout="row" className="justify-start" />
               ) : (
                 <>
                   {/* Avatar Grid - First 8 members */}
@@ -1507,25 +1511,26 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
 
                       {/* Leave Button */}
                       {currentUserRole !== 'curator' && (
-                        <button
+                        <Button
+                          variant="secondary"
                           onClick={handleLeave}
                           disabled={joining}
-                          className="tr-leave-button thread-button-secondary btn btn--secondary w-full font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="tr-leave-button thread-button-secondary w-full font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {joining ? 'Leaving...' : 'Leave Ring'}
-                        </button>
+                        </Button>
                       )}
                     </div>
                   ) : (
                     <div className="space-y-3">
                       {/* Join Button */}
-                      <button
+                      <Button
                         onClick={handleJoin}
                         disabled={joining}
-                        className="tr-join-button thread-button btn btn--primary btn--lg w-full font-bold"
+                        className="tr-join-button thread-button btn--lg w-full font-bold"
                       >
                         {joining ? 'Joining...' : '+ Join Ring'}
-                      </button>
+                      </Button>
 
                       {/* Badge Preview */}
                       {ring.badge && ring.badge.isActive && (
@@ -1662,17 +1667,6 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
             </div>
           </div>
         )}
-
-        {/* Toast Notifications */}
-        {toasts.map(toast => (
-          <Toast
-            key={toast.id}
-            message={toast.message}
-            type={toast.type}
-            duration={toast.duration}
-            onClose={() => hideToast(toast.id)}
-          />
-        ))}
       </Layout>
     </>
   );

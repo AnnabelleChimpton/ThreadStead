@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
-import { getGlobalToast } from '@/lib/templates/state/ToastProvider';
+import { getGlobalToast } from '@/contexts/ToastContext';
 import { requestConversation } from '@/lib/chat/create-conversation';
 
 interface ChatContextType {

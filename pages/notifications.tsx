@@ -1,7 +1,8 @@
 import React from "react";
-import Link from "next/link";
+import Head from "next/head";
 import Layout from "../components/ui/layout/Layout";
 import NotificationList from "../components/ui/feedback/NotificationList";
+import ErrorDisplay from "../components/ui/feedback/ErrorDisplay";
 import { getSessionUser } from "@/lib/auth/server";
 import type { GetServerSideProps, NextApiRequest } from "next";
 
@@ -17,17 +18,18 @@ export default function NotificationsPage({ user }: NotificationsPageProps) {
   if (!user) {
     return (
       <Layout>
+        <Head>
+          <title>Notifications | ThreadStead</title>
+        </Head>
         <div className="max-w-2xl mx-auto">
-          <div className="bg-thread-paper border border-thread-sage/30 p-8 rounded-cozy shadow-cozy-sm text-center">
-            <h1 className="text-2xl font-bold text-thread-pine mb-4">Access Denied</h1>
-            <p className="text-thread-sage mb-6">You need to be logged in to view notifications.</p>
-            <Link
-              href="/auth/login"
-              className="inline-block px-6 py-2 bg-thread-sunset text-white border border-black shadow-[2px_2px_0_#000] hover:bg-thread-pine transition-colors"
-            >
-              Log In
-            </Link>
-          </div>
+          <ErrorDisplay
+            variant="notice"
+            icon="lock"
+            title="Access Denied"
+            message="You need to be logged in to view notifications."
+            actionLabel="Log In"
+            actionHref="/login"
+          />
         </div>
       </Layout>
     );
@@ -35,8 +37,11 @@ export default function NotificationsPage({ user }: NotificationsPageProps) {
 
   return (
     <Layout>
+      <Head>
+        <title>Notifications | ThreadStead</title>
+      </Head>
       <div className="max-w-4xl mx-auto">
-        <div className="bg-thread-paper border border-thread-sage/30 p-6 rounded-cozy shadow-cozy-sm">
+        <div className="thread-module p-4 sm:p-6">
           {/* NotificationList updates its own state optimistically on
               mark-as-read; remounting via a key caused a full refetch and
               scroll reset on every update. */}

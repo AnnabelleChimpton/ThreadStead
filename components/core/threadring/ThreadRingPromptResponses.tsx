@@ -4,6 +4,9 @@ import { PixelIcon } from '@/components/ui/PixelIcon'
 import { formatDistanceToNow } from 'date-fns'
 import ImprovedBadgeDisplay from '../../shared/ImprovedBadgeDisplay'
 import UserMention from '@/components/ui/navigation/UserMention'
+import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner'
+import EmptyState from '@/components/ui/feedback/EmptyState'
+import ErrorDisplay from '@/components/ui/feedback/ErrorDisplay'
 
 interface PromptResponse {
   id: string
@@ -92,26 +95,20 @@ export default function ThreadRingPromptResponses({
   }
 
   if (loading && page === 1) {
-    return (
-      <div className="p-4 text-center text-gray-600">
-        Loading responses...
-      </div>
-    )
+    return <LoadingSpinner message="Loading responses..." className="p-4" />
   }
 
   if (error) {
-    return (
-      <div className="p-4 text-center text-red-600">
-        Error: {error}
-      </div>
-    )
+    return <ErrorDisplay title="Error" message={error} />
   }
 
   if (responses.length === 0) {
     return (
-      <div className="p-4 text-center text-gray-500">
-        No responses yet. Be the first to respond to this prompt!
-      </div>
+      <EmptyState
+        variant="plain"
+        title="No responses yet."
+        description="Be the first to respond to this prompt!"
+      />
     )
   }
 

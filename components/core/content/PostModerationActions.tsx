@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { PostModerationAction, PostModerationStatus } from '@/types/threadrings';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+import { useToast } from '@/contexts/ToastContext';
+import Modal from '@/components/ui/feedback/Modal';
+import Button from '@/components/ui/Button';
 
 interface PostModerationActionsProps {
   postId: string;
@@ -20,10 +23,16 @@ export default function PostModerationActions({
   const [isProcessing, setIsProcessing] = useState(false);
   const [showReasonDialog, setShowReasonDialog] = useState<PostModerationAction | null>(null);
   const [reason, setReason] = useState('');
+  const { showError } = useToast();
 
   if (!canModerate) {
     return null;
   }
+
+  const closeReasonDialog = () => {
+    setShowReasonDialog(null);
+    setReason('');
+  };
 
   const handleAction = async (action: PostModerationAction, requiresReason = false) => {
     if (requiresReason) {
@@ -64,7 +73,7 @@ export default function PostModerationActions({
       
     } catch (error) {
       console.error('Moderation action failed:', error);
-      alert(error instanceof Error ? error.message : 'Failed to moderate post');
+      showError(error instanceof Error ? error.message : 'Failed to moderate post');
     } finally {
       setIsProcessing(false);
     }
@@ -146,52 +155,40 @@ export default function PostModerationActions({
 
       {/* Reason dialog */}
       {showReasonDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold mb-4">
-              {showReasonDialog === 'reject' ? 'Reject Post' : 'Remove Post'}
-            </h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Please provide a reason for this action (optional):
-            </p>
-            <textarea
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="Enter reason..."
-              maxLength={500}
-              className="w-full p-3 border border-gray-300 rounded-md resize-none"
-              rows={3}
-            />
-            <div className="text-xs text-gray-500 mb-4">
-              {reason.length}/500 characters
-            </div>
-            
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => {
-                  setShowReasonDialog(null);
-                  setReason('');
-                }}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
-                disabled={isProcessing}
-              >
+        <Modal
+          isOpen
+          onClose={closeReasonDialog}
+          title={showReasonDialog === 'reject' ? 'Reject Post' : 'Remove Post'}
+          maxWidth="max-w-md"
+          closeOnBackdrop={false}
+          footer={
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button variant="secondary" onClick={closeReasonDialog} disabled={isProcessing}>
                 Cancel
-              </button>
-              <button
-                onClick={handleReasonSubmit}
-                disabled={isProcessing}
-                className={`px-4 py-2 text-sm font-medium text-white rounded-md ${
-                  showReasonDialog === 'reject' 
-                    ? 'bg-red-600 hover:bg-red-700' 
-                    : 'bg-red-600 hover:bg-red-700'
-                } ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                {isProcessing ? 'Processing...' : 
+              </Button>
+              <Button variant="danger" onClick={handleReasonSubmit} disabled={isProcessing}>
+                {isProcessing ? 'Processing...' :
                  showReasonDialog === 'reject' ? 'Reject Post' : 'Remove Post'}
-              </button>
+              </Button>
             </div>
+          }
+        >
+          <p className="text-sm text-nb-ink-mid mb-4">
+            Please provide a reason for this action (optional):
+          </p>
+          <textarea
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="Enter reason..."
+            maxLength={500}
+            aria-label="Reason"
+            className="w-full p-3 border border-nb-ink-mid rounded-md resize-none bg-nb-paper text-nb-ink"
+            rows={3}
+          />
+          <div className="text-xs text-nb-ink-mid">
+            {reason.length}/500 characters
           </div>
-        </div>
+        </Modal>
       )}
     </>
   );

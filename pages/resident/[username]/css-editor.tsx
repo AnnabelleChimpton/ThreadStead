@@ -21,8 +21,8 @@ import CSSGeneratorTools from '@/components/features/templates/CSSGeneratorTools
 import { fetchResidentData } from '@/lib/templates/core/template-data';
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
-import { useToastContext } from '@/lib/templates/state/ToastProvider';
-import ConfirmModal from '@/components/ui/feedback/ConfirmModal';
+import { useToast } from '@/contexts/ToastContext';
+import { useConfirm } from '@/contexts/ConfirmContext';
 import DraftRestoreBanner from '@/components/ui/feedback/DraftRestoreBanner';
 import { useLocalDraft } from '@/hooks/useLocalDraft';
 import TemplateHistoryPanel, { type FullRevision } from '@/components/features/templates/TemplateHistoryPanel';
@@ -50,7 +50,8 @@ export default function CSSEditorPage({
   currentUser
 }: CSSEditorPageProps) {
   const router = useRouter();
-  const { showSuccess, showError } = useToastContext();
+  const { showSuccess, showError, showInfo } = useToast();
+  const confirm = useConfirm();
   const emptyCSS = '/* Add your custom CSS here */\n\n';
   const [css, setCSS] = useState(initialCSS || emptyCSS);
   const [cssMode, setCSSMode] = useState<'inherit' | 'override' | 'disable'>(initialCSSMode);
@@ -71,7 +72,6 @@ export default function CSSEditorPage({
   const [residentData, setResidentData] = useState<ResidentData | null>(null);
   const [loadingData, setLoadingData] = useState(true);
   const [currentTemplateMode, setCurrentTemplateMode] = useState<'default' | 'enhanced' | 'advanced'>(templateMode);
-  const [showResetModal, setShowResetModal] = useState(false);
   const [showHistoryPanel, setShowHistoryPanel] = useState(false);
   const [showThemeGallery, setShowThemeGallery] = useState(false);
 
@@ -176,6 +176,26 @@ export default function CSSEditorPage({
       }, 0);
     }
   }, [css]);
+
+  const confirmReset = async () => {
+    const ok = await confirm({
+      title: "Reset to Default Template?",
+      message: (
+        <div className="space-y-3">
+          <p>This will:</p>
+          <ul className="list-disc list-inside space-y-1 ml-2">
+            <li>Remove all your custom CSS</li>
+            <li>Remove any custom HTML templates</li>
+            <li>Return your profile to the site&apos;s default appearance</li>
+          </ul>
+          <p className="font-semibold mt-4">This action cannot be undone.</p>
+        </div>
+      ),
+      confirmText: "Yes, Reset to Default",
+      variant: "danger",
+    });
+    if (ok) await handleResetToDefault();
+  };
 
   const handleResetToDefault = async () => {
     setSaving(true);
@@ -312,7 +332,7 @@ export default function CSSEditorPage({
   // Open popup preview
   const openPreview = useCallback(() => {
     if (!residentData) {
-      alert('Loading preview data... Please wait a moment and try again.');
+      showInfo('Loading preview data... Please wait a moment and try again.');
       return;
     }
 
@@ -352,9 +372,9 @@ export default function CSSEditorPage({
         }
       }, 1000);
     } else {
-      alert('Pop-up blocked — allow pop-ups for this site to use the preview.');
+      showError('Pop-up blocked — allow pop-ups for this site to use the preview.');
     }
-  }, [previewWindow, residentData, sendPreviewData]);
+  }, [previewWindow, residentData, sendPreviewData, showError, showInfo]);
 
   // Send CSS updates to preview window when CSS changes
   useEffect(() => {
@@ -548,7 +568,7 @@ export default function CSSEditorPage({
                     </span>
                   )}
                   <button
-                    onClick={() => setShowResetModal(true)}
+                    onClick={confirmReset}
                     disabled={saving}
                     className="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded font-medium transition-colors disabled:opacity-50 text-sm border border-gray-300 flex items-center gap-1"
                     title="Remove all customizations and return to site default"
@@ -707,8 +727,8 @@ export default function CSSEditorPage({
       {showThemeGallery && (
         <TemplatePanelSelector
           currentCSS={css}
-          onSelectTemplate={(themeCSS, themeName) => {
-            if (isDirty && !confirm(`Load "${themeName}"? This will replace your current CSS. Any unsaved changes will be lost.`)) {
+          onSelectTemplate={async (themeCSS, themeName) => {
+            if (isDirty && !(await confirm({ title: `Load "${themeName}"?`, message: 'This will replace your current CSS. Any unsaved changes will be lost.', confirmText: 'Load theme' }))) {
               return;
             }
             setCSS(themeCSS);
@@ -724,8 +744,8 @@ export default function CSSEditorPage({
         <TemplateHistoryPanel
           username={username}
           onClose={() => setShowHistoryPanel(false)}
-          onLoadRevision={(rev: FullRevision) => {
-            if (isDirty && !confirm('Loading this version will replace your unsaved CSS. Continue?')) {
+          onLoadRevision={async (rev: FullRevision) => {
+            if (isDirty && !(await confirm({ title: 'Load this version?', message: 'Loading this version will replace your unsaved CSS.', confirmText: 'Load version' }))) {
               return;
             }
             setCSS(rev.customCSS || emptyCSS);
@@ -736,27 +756,6 @@ export default function CSSEditorPage({
         />
       )}
 
-      {/* Reset Confirmation Modal */}
-      <ConfirmModal
-        isOpen={showResetModal}
-        title="Reset to Default Template?"
-        message={
-          <div className="space-y-3">
-            <p className="text-gray-700">This will:</p>
-            <ul className="list-disc list-inside text-gray-700 space-y-1 ml-2">
-              <li>Remove all your custom CSS</li>
-              <li>Remove any custom HTML templates</li>
-              <li>Return your profile to the site&apos;s default appearance</li>
-            </ul>
-            <p className="text-gray-900 font-semibold mt-4">This action cannot be undone.</p>
-          </div>
-        }
-        confirmText="Yes, Reset to Default"
-        cancelText="Cancel"
-        variant="danger"
-        onConfirm={handleResetToDefault}
-        onCancel={() => setShowResetModal(false)}
-      />
     </>
   );
 }

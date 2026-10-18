@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+import { useToast } from "@/contexts/ToastContext";
+import { useConfirm } from "@/contexts/ConfirmContext";
+import LoadingSpinner from "@/components/ui/feedback/LoadingSpinner";
+import EmptyState from "@/components/ui/feedback/EmptyState";
 
 interface Report {
   id: string;
@@ -37,6 +41,8 @@ interface ReportsResponse {
 }
 
 export default function ReportsSection() {
+  const { showSuccess, showError, showWarning } = useToast();
+  const confirm = useConfirm();
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(false);
   const [updating, setUpdating] = useState<string | null>(null);
@@ -91,11 +97,11 @@ export default function ReportsSection() {
       if (res.ok) {
         await loadReports(); // Refresh the list
       } else {
-        alert("Failed to update report");
+        showError("Failed to update report");
       }
     } catch (error) {
       console.error("Failed to update report:", error);
-      alert("Failed to update report");
+      showError("Failed to update report");
     } finally {
       setUpdating(null);
     }
@@ -106,12 +112,16 @@ export default function ReportsSection() {
     const targetId = report.targetContent?.id;
     
     if (!targetId) {
-      alert("Content ID not available");
+      showError("Content ID not available");
       return;
     }
 
-    const confirmMessage = `Are you sure you want to permanently delete this ${contentType}? This action cannot be undone.`;
-    if (!confirm(confirmMessage)) return;
+    if (!(await confirm({
+      title: `Permanently delete this ${contentType}?`,
+      message: "This action cannot be undone.",
+      confirmText: "Delete",
+      variant: "danger",
+    }))) return;
 
     setUpdating(report.id);
     try {
@@ -132,7 +142,7 @@ export default function ReportsSection() {
           deletePayload = { entryId: targetId };
           break;
         default:
-          alert(`Deleting ${contentType} is not supported yet`);
+          showWarning(`Deleting ${contentType} is not supported yet`);
           return;
       }
 
@@ -145,14 +155,14 @@ export default function ReportsSection() {
       if (res.ok) {
         // Automatically resolve the report since we deleted the content
         await updateReportStatus(report.id, "resolved", `Content deleted by admin`);
-        alert(`${contentType} deleted successfully`);
+        showSuccess(`${contentType} deleted.`);
       } else {
         const error = await res.json();
-        alert(error.error || `Failed to delete ${contentType}`);
+        showError(error.error || `Failed to delete ${contentType}`);
       }
     } catch (error) {
       console.error(`Failed to delete ${contentType}:`, error);
-      alert(`Failed to delete ${contentType}`);
+      showError(`Failed to delete ${contentType}`);
     } finally {
       setUpdating(null);
     }
@@ -251,9 +261,9 @@ export default function ReportsSection() {
       {/* Reports List */}
       <div className="space-y-3">
         {loading && reports.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">Loading reports...</div>
+          <LoadingSpinner message="Loading reports..." className="py-8" />
         ) : reports.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">No reports found</div>
+          <EmptyState variant="plain" title="No reports found" />
         ) : (
           reports.map((report) => (
             <div key={report.id} className="bg-white border border-gray-300 rounded p-4">

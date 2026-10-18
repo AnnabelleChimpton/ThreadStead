@@ -3,6 +3,10 @@ import { formatDistanceToNow } from 'date-fns'
 import Link from 'next/link'
 import ThreadRingPromptResponses from './ThreadRingPromptResponses'
 import { csrfFetch } from '@/lib/api/client/csrf-fetch'
+import { useConfirm } from '@/contexts/ConfirmContext'
+import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner'
+import EmptyState from '@/components/ui/feedback/EmptyState'
+import ErrorDisplay from '@/components/ui/feedback/ErrorDisplay'
 
 interface ThreadRingPrompt {
   id: string
@@ -49,6 +53,7 @@ export default function ThreadRingPromptManager({
     isActive: false,
     isPinned: false
   })
+  const confirm = useConfirm()
 
   useEffect(() => {
     fetchPrompts()
@@ -98,7 +103,12 @@ export default function ThreadRingPromptManager({
   }
 
   const handleDelete = async (promptId: string) => {
-    if (!confirm('Are you sure you want to delete this prompt? This will also remove all responses.')) {
+    if (!(await confirm({
+      title: 'Delete this prompt?',
+      message: 'This will also remove all responses.',
+      confirmText: 'Delete',
+      variant: 'danger'
+    }))) {
       return
     }
 
@@ -146,8 +156,8 @@ export default function ThreadRingPromptManager({
     setExpandedPromptId(expandedPromptId === promptId ? null : promptId)
   }
 
-  if (loading) return <div className="p-4">Loading prompts...</div>
-  if (error) return <div className="p-4 text-red-600">Error: {error}</div>
+  if (loading) return <LoadingSpinner message="Loading prompts..." className="p-4" />
+  if (error) return <ErrorDisplay title="Error" message={error} onRetry={() => { setError(null); fetchPrompts() }} />
 
   return (
     <div className="space-y-6">
@@ -257,9 +267,10 @@ export default function ThreadRingPromptManager({
       {/* Prompts List */}
       <div className="space-y-4">
         {prompts.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            No prompts yet. {canManage && "Create your first prompt to engage your community!"}
-          </div>
+          <EmptyState
+            title="No prompts yet."
+            description={canManage ? "Create your first prompt to engage your community!" : undefined}
+          />
         ) : (
           prompts.map((prompt) => (
             <div

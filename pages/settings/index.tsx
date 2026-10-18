@@ -8,8 +8,8 @@ import Tabs, { TabSpec } from "@/components/ui/navigation/Tabs";
 import { getSessionUser } from "@/lib/auth/server";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
-import { useToastContext } from '@/lib/templates/state/ToastProvider';
-import ConfirmModal from '@/components/ui/feedback/ConfirmModal';
+import { useToast } from '@/contexts/ToastContext';
+import { useConfirm } from '@/contexts/ConfirmContext';
 import { PixelIcon } from '@/components/ui/PixelIcon';
 
 // Import existing components
@@ -36,6 +36,7 @@ import {
 } from "@/lib/api/did/did-client";
 import { validatePasswordStrength } from "@/lib/auth/password";
 import Link from "next/link";
+import Button from "@/components/ui/Button";
 
 // We'll need to extract blocks functionality into a component
 interface UserSettingsProps {
@@ -64,10 +65,14 @@ interface UserSettingsProps {
 export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: UserSettingsProps) {
   const router = useRouter();
   const { user: currentUser } = useCurrentUser();
-  const { showSuccess, showError } = useToastContext();
+  const { showSuccess, showError, showWarning, showInfo } = useToast();
+  const confirm = useConfirm();
   const [saving, setSaving] = useState(false);
-  const [saveMessage, setSaveMessage] = useState<string | null>(null);
-  const [showResetModal, setShowResetModal] = useState(false);
+  // Results from the forms below: "Error: …" / "Failed …" show as error toasts
+  const notify = (message: string) => {
+    if (/^(Error|Failed)/.test(message)) showError(message.replace(/^Error:\s*/, ""));
+    else showSuccess(message);
+  };
 
   // Profile state
   const [displayName, setDisplayName] = useState(initialUser.profile?.displayName || "");
@@ -124,14 +129,12 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
       });
 
       if (response.ok) {
-        setSaveMessage("House saved.");
-        setTimeout(() => setSaveMessage(null), 3000);
+        notify("House saved.");
       } else {
         throw new Error('Failed to update pixel home');
       }
     } catch (error) {
-      setSaveMessage("Failed to update pixel home. Please try again.");
-      setTimeout(() => setSaveMessage(null), 3000);
+      notify("Failed to update pixel home. Please try again.");
     } finally {
       setPixelHomeLoading(false);
     }
@@ -190,18 +193,16 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
 
   const handlePhotoUploadSuccess = (urls: { thumbnailUrl: string; mediumUrl: string; fullUrl: string }) => {
     setAvatarUrl(urls.mediumUrl);
-    setSaveMessage("Photo updated.");
-    setTimeout(() => setSaveMessage(null), 3000);
+    notify("Photo updated.");
   };
 
   const handleSaveProfile = async () => {
     setSaving(true);
-    setSaveMessage(null);
 
     try {
       const capRes = await fetch("/api/cap/profile", { method: "POST" });
       if (capRes.status === 401) {
-        setSaveMessage("Error: Please log in.");
+        notify("Error: Please log in.");
         setSaving(false);
         return;
       }
@@ -235,14 +236,13 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
       });
 
       if (response.ok) {
-        setSaveMessage("Saved.");
-        setTimeout(() => setSaveMessage(null), 3000);
+        notify("Saved.");
       } else {
         const errorData = await response.json();
-        setSaveMessage(`Error: ${errorData.error || "Failed to save profile"}`);
+        notify(`Error: ${errorData.error || "Failed to save profile"}`);
       }
     } catch (error) {
-      setSaveMessage(`Error: ${error}`);
+      notify(`Error: ${error}`);
     } finally {
       setSaving(false);
     }
@@ -281,7 +281,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
       }
     } catch (error) {
       console.error('Failed to load user email:', error);
-      setSaveMessage("Error: Failed to load your email address. Email settings may be out of date.");
+      notify("Error: Failed to load your email address. Email settings may be out of date.");
     }
   }
 
@@ -296,10 +296,10 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
       const newSeed = await generateSeedPhrase();
       await updateIdentityWithSeedPhrase(newSeed, true);
       setSeedPhrase(newSeed);
-      setSaveMessage("New recovery seed phrase generated! Please save it securely.");
+      notify("New recovery seed phrase generated! Please save it securely.");
       await loadCurrentIdentity();
     } catch (e: unknown) {
-      setSaveMessage(`Error: ${(e as Error).message || 'Failed to generate seed phrase'}`);
+      notify(`Error: ${(e as Error).message || 'Failed to generate seed phrase'}`);
     } finally {
       setIsLoading(false);
     }
@@ -309,22 +309,25 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
     const passwordWarning = (hasPasswordAuth || isPasswordAuth()) ?
       '• You\'ll be asked for your password to keep password login working\n' : '';
 
-    const confirmed = confirm(
-      'Are you sure you want to generate a new seed phrase?\n\n' +
+    const confirmed = await confirm({
+      title: 'Generate a new seed phrase?',
+      message:
       'This will:\n' +
       '• Create a completely new 12-word recovery phrase\n' +
       '• Replace your current recovery phrase (if any)\n' +
       '• Log you out and back in with new credentials\n' +
       '• Require you to save the new phrase securely\n' +
       passwordWarning +
-      '\nYour old recovery phrase will no longer work. Continue?'
-    );
+      '\nYour old recovery phrase will no longer work.',
+      confirmText: 'Generate new phrase',
+      variant: 'danger',
+    });
 
     if (!confirmed) return;
 
     try {
       setIsLoading(true);
-      setSaveMessage("Generating new seed phrase and updating your account...");
+      showInfo("Generating new seed phrase and updating your account...");
 
       const newSeed = await generateSeedPhrase();
       await updateIdentityWithSeedPhrase(newSeed, true);
@@ -361,12 +364,12 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
       }
 
       setSeedPhrase(newSeed);
-      setSaveMessage(passwordSyncFailed
+      notify(passwordSyncFailed
         ? "Error: New seed phrase generated, but password login could not be updated. Please save the new phrase securely and re-add password authentication if needed."
         : "New recovery seed phrase generated! Please save it securely.");
       await loadCurrentIdentity();
     } catch (e: unknown) {
-      setSaveMessage(`Error: ${(e as Error).message || 'Failed to generate new seed phrase'}`);
+      notify(`Error: ${(e as Error).message || 'Failed to generate new seed phrase'}`);
     } finally {
       setIsLoading(false);
     }
@@ -374,13 +377,13 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
 
   async function handleRecoverFromSeed() {
     if (!recoveryPhrase.trim()) {
-      setSaveMessage("Please enter your recovery phrase");
+      showWarning("Please enter your recovery phrase");
       return;
     }
 
     try {
       setIsLoading(true);
-      setSaveMessage("Recovering account from seed phrase...");
+      showInfo("Recovering account from seed phrase...");
       await recoverFromSeedPhrase(recoveryPhrase.trim());
 
       // If user has password auth, we need to update their encrypted seed phrase too
@@ -415,12 +418,12 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
       await loadCurrentIdentity();
       setRecoveryPhrase("");
       setShowRecovery(false);
-      setSaveMessage(passwordSyncFailed
+      notify(passwordSyncFailed
         ? "Error: Account recovered, but password login could not be updated. You may need to re-add password authentication."
         : "Account recovered.");
       setTimeout(() => window.location.reload(), 1500);
     } catch (e: unknown) {
-      setSaveMessage(`Error: ${(e as Error).message || 'Failed to recover from seed phrase'}`);
+      notify(`Error: ${(e as Error).message || 'Failed to recover from seed phrase'}`);
     } finally {
       setIsLoading(false);
     }
@@ -429,28 +432,28 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
   // Password management functions
   async function handleAddPassword() {
     if (newPassword !== confirmNewPassword) {
-      setSaveMessage("Passwords do not match");
+      showWarning("Passwords do not match");
       return;
     }
 
     const validation = validatePasswordStrength(newPassword);
     if (!validation.valid) {
-      setSaveMessage(validation.errors[0]);
+      showWarning(validation.errors[0]);
       return;
     }
 
     try {
       setIsLoading(true);
-      setSaveMessage("Adding password authentication...");
+      showInfo("Adding password authentication...");
       await addPasswordToAccount(newPassword);
       await loadCurrentIdentity();
       setNewPassword('');
       setConfirmNewPassword('');
       setShowPasswordSection(false);
       setHasPasswordAuth(true); // Update state immediately
-      setSaveMessage("Password added. You can sign in with either your password or your seed phrase.");
+      notify("Password added. You can sign in with either your password or your seed phrase.");
     } catch (e: unknown) {
-      setSaveMessage(`Error: ${(e as Error).message || 'Failed to add password authentication'}`);
+      notify(`Error: ${(e as Error).message || 'Failed to add password authentication'}`);
     } finally {
       setIsLoading(false);
     }
@@ -458,19 +461,19 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
 
   async function handleChangePassword() {
     if (newPasswordChange !== confirmNewPasswordChange) {
-      setSaveMessage("New passwords do not match");
+      showWarning("New passwords do not match");
       return;
     }
 
     const validation = validatePasswordStrength(newPasswordChange);
     if (!validation.valid) {
-      setSaveMessage(validation.errors[0]);
+      showWarning(validation.errors[0]);
       return;
     }
 
     try {
       setIsLoading(true);
-      setSaveMessage("Changing password...");
+      showInfo("Changing password...");
 
       // Import and use the changePassword function from did-client
       const { changePassword } = await import('@/lib/api/did/did-client');
@@ -483,9 +486,9 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
       setShowPasswordChangeSection(false);
       setChangePasswordErrors([]);
 
-      setSaveMessage("Password changed.");
+      notify("Password changed.");
     } catch (e: unknown) {
-      setSaveMessage(`Error: ${(e as Error).message || 'Failed to change password'}`);
+      notify(`Error: ${(e as Error).message || 'Failed to change password'}`);
     } finally {
       setIsLoading(false);
     }
@@ -494,7 +497,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
   // Email management functions
   async function handleSetEmail() {
     if (!emailInput.trim()) {
-      setSaveMessage("Please enter an email address");
+      showWarning("Please enter an email address");
       return;
     }
 
@@ -513,27 +516,89 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
           setEmailVerifiedAt(null);
           setEmailInput('');
           setShowEmailSection(false);
-          setSaveMessage(data.message);
+          notify(data.message);
         } else {
           setUserEmail(emailInput.trim());
           setEmailVerifiedAt(null);
           setEmailInput('');
           setShowEmailSection(false);
-          setSaveMessage("Email updated.");
+          notify("Email updated.");
         }
       } else {
         const error = await response.json();
-        setSaveMessage(`Error: ${error.error || 'Failed to update email'}`);
+        notify(`Error: ${error.error || 'Failed to update email'}`);
       }
     } catch {
-      setSaveMessage("Failed to update email. Please try again.");
+      notify("Failed to update email. Please try again.");
     } finally {
       setIsEmailLoading(false);
     }
   }
 
+  async function handleResetToDefault() {
+    const ok = await confirm({
+      title: "Reset to Default Template?",
+      message: (
+        <div className="space-y-3">
+          <p>This will:</p>
+          <ul className="list-disc list-inside space-y-1 ml-2">
+            <li>Remove all your custom CSS</li>
+            <li>Remove any custom HTML templates</li>
+            <li>Return your profile to the site&apos;s default appearance</li>
+          </ul>
+          <p className="font-semibold mt-4">This action cannot be undone.</p>
+        </div>
+      ),
+      confirmText: "Yes, Reset to Default",
+      variant: "danger",
+    });
+    if (!ok) return;
+
+    try {
+      // Clear CSS
+      const cssResponse = await csrfFetch(`/api/profile/${username}/css`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customCSS: '', cssMode: 'inherit' }),
+      });
+
+      // Clear template
+      const templateResponse = await csrfFetch(`/api/profile/${username}/template`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ template: '', customCSS: '' }),
+      });
+
+      // Set mode to default
+      const capRes = await csrfFetch("/api/cap/profile", { method: "POST" });
+      const { token } = await capRes.json();
+
+      const layoutResponse = await csrfFetch("/api/profile/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ templateMode: 'default', cap: token }),
+      });
+
+      if (cssResponse.ok && templateResponse.ok && layoutResponse.ok) {
+        showSuccess('Reset to default.');
+        setTimeout(() => {
+          window.location.href = `/resident/${username}`;
+        }, 1000);
+      } else {
+        showError('Failed to reset. Please try again.');
+      }
+    } catch (error) {
+      showError(error instanceof Error ? error.message : 'Failed to reset');
+    }
+  }
+
   async function handleRemoveEmail() {
-    if (!confirm('Are you sure you want to remove your email address? You will no longer be able to use email login.')) {
+    if (!(await confirm({
+      title: 'Remove your email address?',
+      message: 'You will no longer be able to use email login.',
+      confirmText: 'Remove email',
+      variant: 'danger',
+    }))) {
       return;
     }
 
@@ -546,13 +611,13 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
       if (response.ok) {
         setUserEmail('');
         setEmailVerifiedAt(null);
-        setSaveMessage("Email removed.");
+        notify("Email removed.");
       } else {
         const error = await response.json();
-        setSaveMessage(`Error: ${error.error || 'Failed to remove email'}`);
+        notify(`Error: ${error.error || 'Failed to remove email'}`);
       }
     } catch {
-      setSaveMessage("Failed to remove email. Please try again.");
+      notify("Failed to remove email. Please try again.");
     } finally {
       setIsEmailLoading(false);
     }
@@ -560,10 +625,9 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
 
   function copyToClipboard(text: string) {
     navigator.clipboard.writeText(text).then(() => {
-      setSaveMessage("Copied to clipboard!");
-      setTimeout(() => setSaveMessage(null), 2000);
+      notify("Copied to clipboard.");
     }).catch(() => {
-      setSaveMessage("Failed to copy to clipboard");
+      notify("Failed to copy to clipboard.");
     });
   }
 
@@ -723,13 +787,13 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
               />
             </div>
 
-            <button
+            <Button
               onClick={handleSaveProfile}
               disabled={saving}
-              className="thread-button btn btn--primary disabled:opacity-50 min-h-[48px]"
+              className="thread-button disabled:opacity-50 min-h-[48px]"
             >
               {saving ? "Saving..." : "Save Profile"}
-            </button>
+            </Button>
           </div>
         </div>
       )
@@ -808,72 +872,16 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
             <p className="text-sm text-nb-ink mb-3">
               Want to start fresh? Remove all your customizations and return your profile to the site&apos;s default appearance.
             </p>
-            <button
-              onClick={() => setShowResetModal(true)}
-              className="thread-button-secondary btn btn--secondary text-sm min-h-[48px]"
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleResetToDefault}
+              className="thread-button-secondary min-h-[48px]"
             >
               <PixelIcon name="reload" /> Reset to Default Template
-            </button>
+            </Button>
           </div>
 
-          {/* Reset Confirmation Modal */}
-          <ConfirmModal
-            isOpen={showResetModal}
-            title="Reset to Default Template?"
-            message={
-              <div className="space-y-3">
-                <p className="text-nb-ink">This will:</p>
-                <ul className="list-disc list-inside text-nb-ink space-y-1 ml-2">
-                  <li>Remove all your custom CSS</li>
-                  <li>Remove any custom HTML templates</li>
-                  <li>Return your profile to the site&apos;s default appearance</li>
-                </ul>
-                <p className="text-nb-ink font-semibold mt-4">This action cannot be undone.</p>
-              </div>
-            }
-            confirmText="Yes, Reset to Default"
-            cancelText="Cancel"
-            variant="danger"
-            onConfirm={async () => {
-              try {
-                // Clear CSS
-                const cssResponse = await csrfFetch(`/api/profile/${username}/css`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ customCSS: '', cssMode: 'inherit' }),
-                });
-
-                // Clear template
-                const templateResponse = await csrfFetch(`/api/profile/${username}/template`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ template: '', customCSS: '' }),
-                });
-
-                // Set mode to default
-                const capRes = await csrfFetch("/api/cap/profile", { method: "POST" });
-                const { token } = await capRes.json();
-
-                const layoutResponse = await csrfFetch("/api/profile/update", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ templateMode: 'default', cap: token }),
-                });
-
-                if (cssResponse.ok && templateResponse.ok && layoutResponse.ok) {
-                  showSuccess('Reset to default.');
-                  setTimeout(() => {
-                    window.location.href = `/resident/${username}`;
-                  }, 1000);
-                } else {
-                  showError('Failed to reset. Please try again.');
-                }
-              } catch (error) {
-                showError(error instanceof Error ? error.message : 'Failed to reset');
-              }
-            }}
-            onCancel={() => setShowResetModal(false)}
-          />
         </div>
       )
     },
@@ -999,13 +1007,13 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                 <p className="text-amber-700 text-sm mb-3">
                   Generate a seed phrase to enable account recovery. This is highly recommended for account security.
                 </p>
-                <button
+                <Button
                   onClick={handleGenerateSeedPhrase}
                   disabled={isLoading}
-                  className="thread-button btn btn--primary disabled:opacity-50 min-h-[48px]"
+                  className="thread-button disabled:opacity-50 min-h-[48px]"
                 >
                   {isLoading ? "Generating..." : "Generate Seed Phrase"}
-                </button>
+                </Button>
               </div>
             ) : (
               <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-4 mb-4">
@@ -1015,13 +1023,14 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                   <p className="text-nb-ink text-sm mb-3">
                     Generate a completely new 12-word recovery phrase. This will replace your current one and log you back in with new credentials.
                   </p>
-                  <button
+                  <Button
+                    size="sm"
                     onClick={handleRegenerateSeedPhrase}
                     disabled={isLoading}
-                    className="thread-button btn btn--primary text-sm disabled:opacity-50 min-h-[48px]"
+                    className="thread-button disabled:opacity-50 min-h-[48px]"
                   >
                     {isLoading ? "Regenerating..." : "Regenerate Seed Phrase"}
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
@@ -1044,36 +1053,44 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                   </div>
                 </div>
                 <div className="flex gap-2 flex-wrap">
-                  <button
+                  <Button
+                    variant="secondary"
+                    size="sm"
                     onClick={() => copyToClipboard(seedPhrase)}
-                    className="thread-button-secondary btn btn--secondary text-sm min-h-[48px]"
+                    className="thread-button-secondary min-h-[48px]"
                   >
                     <PixelIcon name="clipboard" /> Copy
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
                     onClick={() => downloadSeedPhrase(seedPhrase)}
-                    className="thread-button-secondary btn btn--secondary text-sm min-h-[48px]"
+                    className="thread-button-secondary min-h-[48px]"
                   >
                     <PixelIcon name="save" /> Download
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
                     onClick={() => setSeedPhrase("")}
-                    className="thread-button-secondary btn btn--secondary text-sm min-h-[48px]"
+                    className="thread-button-secondary min-h-[48px]"
                   >
                     <PixelIcon name="check" className="inline-block align-middle" /> I&apos;ve Saved It
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
 
             {/* Account Recovery */}
             <div className="border-t border-nb-ink-mid/30 pt-4">
-              <button
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={() => setShowRecovery(!showRecovery)}
-                className="thread-button-secondary btn btn--secondary text-sm min-h-[48px]"
+                className="thread-button-secondary min-h-[48px]"
               >
                 <PixelIcon name="reload" /> Recover Account from Seed Phrase
-              </button>
+              </Button>
 
               {showRecovery && (
                 <div className="mt-4 p-4 border-2 border-dotted border-nb-ink-mid/60 rounded-md">
@@ -1088,19 +1105,23 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                     disabled={isLoading}
                   />
                   <div className="mt-3 flex gap-2 flex-wrap">
-                    <button
+                    <Button
+                      variant="secondary"
+                      size="sm"
                       onClick={handleRecoverFromSeed}
                       disabled={isLoading || !recoveryPhrase.trim()}
-                      className="thread-button-secondary btn btn--secondary text-sm disabled:opacity-50 min-h-[48px]"
+                      className="thread-button-secondary disabled:opacity-50 min-h-[48px]"
                     >
                       {isLoading ? "Recovering..." : "Recover Account"}
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
                       onClick={() => setShowRecovery(false)}
-                      className="thread-button-secondary btn btn--secondary text-sm min-h-[48px]"
+                      className="thread-button-secondary min-h-[48px]"
                     >
                       Cancel
-                    </button>
+                    </Button>
                   </div>
                 </div>
               )}
@@ -1125,12 +1146,13 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                 </p>
 
                 {!showPasswordSection ? (
-                  <button
+                  <Button
+                    variant="secondary"
                     onClick={() => setShowPasswordSection(true)}
-                    className="thread-button-secondary btn btn--secondary min-h-[48px]"
+                    className="thread-button-secondary min-h-[48px]"
                   >
                     Add Password Login
-                  </button>
+                  </Button>
                 ) : (
                   <div className="space-y-4">
                     <div>
@@ -1181,14 +1203,16 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                     </div>
 
                     <div className="flex gap-3 flex-wrap">
-                      <button
+                      <Button
                         onClick={handleAddPassword}
                         disabled={isLoading || !newPassword || !confirmNewPassword || passwordErrors.length > 0}
-                        className="thread-button btn btn--primary disabled:opacity-50 min-h-[48px]"
+                        className="thread-button disabled:opacity-50 min-h-[48px]"
                       >
                         {isLoading ? "Adding..." : "Add Password"}
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
                         onClick={() => {
                           setShowPasswordSection(false);
                           setNewPassword('');
@@ -1196,10 +1220,10 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                           setPasswordErrors([]);
                         }}
                         disabled={isLoading}
-                        className="thread-button-secondary btn btn--secondary text-sm disabled:opacity-50 min-h-[48px]"
+                        className="thread-button-secondary disabled:opacity-50 min-h-[48px]"
                       >
                         Cancel
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 )}
@@ -1213,12 +1237,14 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
 
                 {/* Change Password Section */}
                 {!showPasswordChangeSection ? (
-                  <button
+                  <Button
+                    variant="secondary"
+                    size="sm"
                     onClick={() => setShowPasswordChangeSection(true)}
-                    className="thread-button-secondary btn btn--secondary text-sm min-h-[48px]"
+                    className="thread-button-secondary min-h-[48px]"
                   >
                     Change Password
-                  </button>
+                  </Button>
                 ) : (
                   <div className="bg-white border border-nb-ink-mid/30 rounded p-4 space-y-4">
                     <div className="flex justify-between items-center">
@@ -1329,7 +1355,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                             )}
 
                             <div className="flex gap-3 flex-wrap">
-                              <button
+                              <Button
                                 onClick={async () => {
                                   setIsLoading(true);
                                   try {
@@ -1341,45 +1367,43 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                                         seedPhrase: resetSeedPhrase
                                       })
                                     });
-
                                     if (!res.ok) {
                                       const data = await res.json();
                                       throw new Error(data.error || 'Failed to reset password');
                                     }
-
                                     // Success!
-                                    setSaveMessage("Password reset. Sign in with the new one from now on.");
+                                    notify("Password reset. Sign in with the new one from now on.");
                                     setShowPasswordChangeSection(false);
                                     setShowForgotPassword(false);
                                     setResetSeedPhrase('');
                                     setNewPasswordChange('');
                                     setConfirmNewPasswordChange('');
-
                                     // Reload identity to ensure local state is consistent if needed
                                     // (Actually, we should probably update local storage encrypted seed too, 
                                     // but for now, the server state is correct, and next login will sync)
-
                                   } catch (err) {
-                                    setSaveMessage(`Error: ${err instanceof Error ? err.message : 'Failed to reset password'}`);
+                                    notify(`Error: ${err instanceof Error ? err.message : 'Failed to reset password'}`);
                                   } finally {
                                     setIsLoading(false);
                                   }
                                 }}
                                 disabled={isLoading || !resetSeedPhrase || !newPasswordChange || !confirmNewPasswordChange || changePasswordErrors.length > 0}
-                                className="thread-button btn btn--primary disabled:opacity-50 min-h-[48px]"
+                                className="thread-button disabled:opacity-50 min-h-[48px]"
                               >
                                 {isLoading ? "Resetting..." : "Reset Password"}
-                              </button>
-                              <button
+                              </Button>
+                              <Button
+                                variant="secondary"
+                                size="sm"
                                 onClick={() => {
                                   setShowPasswordChangeSection(false);
                                   setShowForgotPassword(false);
                                 }}
                                 disabled={isLoading}
-                                className="thread-button-secondary btn btn--secondary text-sm"
+                                className="thread-button-secondary"
                               >
                                 Cancel
-                              </button>
+                              </Button>
                             </div>
                           </>
                         ) : (
@@ -1413,23 +1437,26 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                                   <div className="text-red-500 text-sm mb-2">Error: {emailResetMessage}</div>
                                 )}
                                 <div className="flex gap-3">
-                                  <button
+                                  <Button
+                                    variant="secondary"
                                     onClick={handleRequestEmailReset}
                                     disabled={!resetEmail || emailResetStatus === 'sending'}
-                                    className="thread-button-secondary btn btn--secondary disabled:opacity-50 min-h-[48px]"
+                                    className="thread-button-secondary disabled:opacity-50 min-h-[48px]"
                                   >
                                     {emailResetStatus === 'sending' ? "Sending..." : "Send Reset Link"}
-                                  </button>
-                                  <button
+                                  </Button>
+                                  <Button
+                                    variant="secondary"
+                                    size="sm"
                                     onClick={() => {
                                       setShowPasswordChangeSection(false);
                                       setShowForgotPassword(false);
                                     }}
                                     disabled={emailResetStatus === 'sending'}
-                                    className="thread-button-secondary btn btn--secondary text-sm"
+                                    className="thread-button-secondary"
                                   >
                                     Cancel
-                                  </button>
+                                  </Button>
                                 </div>
                               </>
                             )}
@@ -1501,14 +1528,17 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                         )}
 
                         <div className="flex gap-3 flex-wrap">
-                          <button
+                          <Button
+                            variant="secondary"
                             onClick={handleChangePassword}
                             disabled={isLoading || !currentPassword || !newPasswordChange || !confirmNewPasswordChange || changePasswordErrors.length > 0}
-                            className="thread-button-secondary btn btn--secondary disabled:opacity-50 min-h-[48px]"
+                            className="thread-button-secondary disabled:opacity-50 min-h-[48px]"
                           >
                             {isLoading ? "Changing..." : "Change Password"}
-                          </button>
-                          <button
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            size="sm"
                             onClick={() => {
                               setShowPasswordChangeSection(false);
                               setCurrentPassword('');
@@ -1517,10 +1547,10 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                               setChangePasswordErrors([]);
                             }}
                             disabled={isLoading}
-                            className="thread-button-secondary btn btn--secondary text-sm disabled:opacity-50 min-h-[48px]"
+                            className="thread-button-secondary disabled:opacity-50 min-h-[48px]"
                           >
                             Cancel
-                          </button>
+                          </Button>
                         </div>
                       </>
                     )}
@@ -1578,20 +1608,24 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
               )}
 
               <div className="flex gap-2 flex-wrap">
-                <button
+                <Button
+                  variant="secondary"
+                  size="sm"
                   onClick={() => setShowEmailSection(!showEmailSection)}
-                  className="thread-button-secondary btn btn--secondary text-sm min-h-[48px]"
+                  className="thread-button-secondary min-h-[48px]"
                 >
                   {userEmail ? "Change Email" : "Add Email"}
-                </button>
+                </Button>
                 {userEmail && (
-                  <button
+                  <Button
+                    variant="secondary"
+                    size="sm"
                     onClick={handleRemoveEmail}
                     disabled={isEmailLoading}
-                    className="thread-button-secondary btn btn--secondary text-sm disabled:opacity-50 min-h-[48px]"
+                    className="thread-button-secondary disabled:opacity-50 min-h-[48px]"
                   >
                     Remove Email
-                  </button>
+                  </Button>
                 )}
               </div>
 
@@ -1607,19 +1641,23 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                     disabled={isEmailLoading}
                   />
                   <div className="mt-3 flex gap-2">
-                    <button
+                    <Button
+                      variant="secondary"
+                      size="sm"
                       onClick={handleSetEmail}
                       disabled={isEmailLoading || !emailInput.trim()}
-                      className="thread-button-secondary btn btn--secondary text-sm disabled:opacity-50"
+                      className="thread-button-secondary disabled:opacity-50"
                     >
                       {isEmailLoading ? "Setting..." : "Set Email"}
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
                       onClick={() => setShowEmailSection(false)}
-                      className="thread-button-secondary btn btn--secondary text-sm"
+                      className="thread-button-secondary"
                     >
                       Cancel
-                    </button>
+                    </Button>
                   </div>
                 </div>
               )}
@@ -1643,8 +1681,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
 
           <ProfileBadgeSelector
             onSave={(preferences) => {
-              setSaveMessage("Badge settings saved.");
-              setTimeout(() => setSaveMessage(null), 3000);
+              notify("Badge settings saved.");
             }}
           />
         </div>
@@ -1694,21 +1731,18 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
               </p>
             </div>
 
-            <button
+            <Button
               onClick={async () => {
                 try {
-                  setSaveMessage("Generating your data export...");
+                  showInfo("Generating your data export...");
                   const response = await fetch('/api/user/export/data');
-
                   if (!response.ok) {
                     const error = await response.json();
-                    setSaveMessage(`Error: ${error.error || 'Failed to export data'}`);
+                    notify(`Error: ${error.error || 'Failed to export data'}`);
                     return;
                   }
-
                   // Get the JSON data
                   const blob = await response.blob();
-
                   // Create download link
                   const url = window.URL.createObjectURL(blob);
                   const a = document.createElement('a');
@@ -1718,17 +1752,15 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                   a.click();
                   document.body.removeChild(a);
                   window.URL.revokeObjectURL(url);
-
-                  setSaveMessage("Export downloaded.");
-                  setTimeout(() => setSaveMessage(null), 3000);
+                  notify("Export downloaded.");
                 } catch (error) {
-                  setSaveMessage(`Error: ${error instanceof Error ? error.message : 'Failed to export data'}`);
+                  notify(`Error: ${error instanceof Error ? error.message : 'Failed to export data'}`);
                 }
               }}
-              className="thread-button btn btn--primary min-h-[48px]"
+              className="thread-button min-h-[48px]"
             >
               <PixelIcon name="download" className="inline-block align-middle" /> Export All My Data
-            </button>
+            </Button>
 
             <div className="mt-4 p-3 bg-gray-50 border border-nb-ink-mid/30 rounded">
               <p className="text-sm text-nb-ink-mid">
@@ -1791,15 +1823,6 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
               </a>
             </div>
           </div>
-
-          {saveMessage && (
-            <div className={`mb-4 p-3 rounded mx-4 sm:mx-0 ${saveMessage.includes("Error")
-              ? "bg-red-100 text-nb-ink border border-red-300"
-              : "bg-green-100 text-nb-ink border border-green-300"
-              }`}>
-              {saveMessage}
-            </div>
-          )}
 
           <Tabs tabs={settingsTabs} initialId={router.query.tab as string || "profile"} variant="site" />
         </RetroCard>

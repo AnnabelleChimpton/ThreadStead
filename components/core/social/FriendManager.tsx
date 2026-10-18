@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { PixelIcon } from '@/components/ui/PixelIcon';
+import LoadingSpinner from "@/components/ui/feedback/LoadingSpinner";
+import EmptyState from "@/components/ui/feedback/EmptyState";
+import ErrorDisplay from "@/components/ui/feedback/ErrorDisplay";
 
 export interface SelectedFriend {
   id: string;
@@ -85,9 +88,7 @@ export default function FriendManager({
     return (
       <div className="space-y-4">
         <h3 className="text-lg font-bold">Featured Friends</h3>
-        <div className="text-center py-8 text-nb-ink-mid">
-          Loading friends...
-        </div>
+        <LoadingSpinner message="Loading friends..." className="py-8" />
       </div>
     );
   }
@@ -96,16 +97,7 @@ export default function FriendManager({
     return (
       <div className="space-y-4">
         <h3 className="text-lg font-bold">Featured Friends</h3>
-        <div className="text-center py-8 text-red-600 border border-red-300 bg-red-50">
-          Error: {error}
-          <br />
-          <button 
-            onClick={loadFriends}
-            className="thread-button-secondary btn btn--secondary text-sm"
-          >
-            Retry
-          </button>
-        </div>
+        <ErrorDisplay title="Error" message={error} onRetry={loadFriends} retryLabel="Retry" />
       </div>
     );
   }
@@ -178,10 +170,10 @@ export default function FriendManager({
       <div className="space-y-2">
         <h4 className="font-semibold text-sm">Select from your friends:</h4>
         {allFriends.length === 0 ? (
-          <div className="text-center py-8 text-nb-ink-mid border border-nb-ink-mid/40 bg-nb-ink-mid/5">
-            <p>No friends yet!</p>
-            <p className="text-sm">Start following people and they follow you back to become friends.</p>
-          </div>
+          <EmptyState
+            title="No friends yet!"
+            description="Start following people and they follow you back to become friends."
+          />
         ) : (
           <div className="grid gap-2 max-h-96 overflow-y-auto border border-nb-ink-mid/40 p-3 bg-nb-ink-mid/5">
             {allFriends.map((friend) => {

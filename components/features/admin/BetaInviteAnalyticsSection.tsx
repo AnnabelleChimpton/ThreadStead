@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner';
+import EmptyState from '@/components/ui/feedback/EmptyState';
+import ErrorDisplay from '@/components/ui/feedback/ErrorDisplay';
 
 interface ShareAnalytics {
   totalShares: number;
@@ -93,9 +96,7 @@ export default function BetaInviteAnalyticsSection() {
         <h3 className="font-bold mb-3 flex items-center gap-2">
           📊 Beta Invite Sharing Analytics
         </h3>
-        <div className="text-center py-8 text-gray-500">
-          Loading analytics...
-        </div>
+        <LoadingSpinner message="Loading analytics..." className="py-8" />
       </div>
     );
   }
@@ -106,15 +107,7 @@ export default function BetaInviteAnalyticsSection() {
         <h3 className="font-bold mb-3 flex items-center gap-2">
           📊 Beta Invite Sharing Analytics
         </h3>
-        <div className="text-center py-8 text-red-600">
-          Error: {error}
-          <button
-            onClick={loadAnalytics}
-            className="block mx-auto mt-2 px-4 py-2 border border-black bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000]"
-          >
-            Retry
-          </button>
-        </div>
+        <ErrorDisplay title="Error" message={error} onRetry={loadAnalytics} retryLabel="Retry" />
       </div>
     );
   }
@@ -272,11 +265,12 @@ export default function BetaInviteAnalyticsSection() {
 
         {/* Empty State */}
         {analytics.totalShares === 0 && (
-          <div className="text-center py-8 text-gray-500">
-            <span className="text-4xl mb-4 block">📊</span>
-            <p>No invite sharing activity yet.</p>
-            <p className="text-sm mt-2">Analytics will appear here once users start sharing their beta invite codes.</p>
-          </div>
+          <EmptyState
+            variant="plain"
+            icon="chart"
+            title="No invite sharing activity yet."
+            description="Analytics will appear here once users start sharing their beta invite codes."
+          />
         )}
       </div>
     </div>

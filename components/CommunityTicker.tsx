@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { PixelIcon } from '@/components/ui/PixelIcon';
+import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner';
 
 interface TickerItem {
   id: string;
@@ -125,10 +126,7 @@ export default function CommunityTicker() {
     return (
       <div className="w-full mb-6">
         <div className="bg-nb-paper border-2 border-nb-ink-mid rounded-cozy shadow-nb-sm p-3">
-          <div className="text-sm text-nb-ink flex items-center gap-2">
-            <PixelIcon name="clock" size={16} className="text-nb-ink-mid" />
-            <span>Loading community activity...</span>
-          </div>
+          <LoadingSpinner layout="row" message="Loading community activity..." className="justify-start" />
         </div>
       </div>
     );

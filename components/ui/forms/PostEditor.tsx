@@ -11,6 +11,7 @@ import { getCsrfToken } from '@/lib/api/client/csrf-fetch';
 import imageCompression from 'browser-image-compression';
 import { PixelIcon } from '@/components/ui/PixelIcon';
 import { VISIBILITY_LABELS, VISIBILITY_HINTS } from "@/components/core/content/VisibilityBadge";
+import LoadingSpinner from "@/components/ui/feedback/LoadingSpinner";
 
 type Visibility = "public" | "followers" | "friends" | "private";
 type PostIntent = "sharing" | "asking" | "feeling" | "announcing" | "showing" | "teaching" | "looking" | "celebrating" | "recommending";
@@ -1164,10 +1165,7 @@ code block
 
                 <div className="border-2 border-nb-ink-mid p-3 bg-white rounded max-h-40 overflow-y-auto">
                   {ringsLoading ? (
-                    <div className="flex items-center gap-2 text-sm text-nb-ink-mid">
-                      <div className="animate-spin h-4 w-4 border-2 border-nb-ink-mid/40 border-t-blue-500 rounded-full"></div>
-                      Loading your ThreadRings...
-                    </div>
+                    <LoadingSpinner layout="row" message="Loading your ThreadRings..." className="justify-start" />
                   ) : threadRings.length === 0 ? (
                     <div className="text-sm text-nb-ink-mid italic">
                       You&apos;re not a member of any ThreadRings yet

@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+import { useToast } from '@/contexts/ToastContext';
+import { useConfirm } from '@/contexts/ConfirmContext';
+import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner';
+import EmptyState from '@/components/ui/feedback/EmptyState';
 
 interface SiteNewsItem {
   id: string;
@@ -28,6 +32,8 @@ interface NewNewsItem {
 }
 
 export default function SiteNewsSection() {
+  const { showError } = useToast();
+  const confirm = useConfirm();
   const [news, setNews] = useState<SiteNewsItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingItem, setEditingItem] = useState<SiteNewsItem | null>(null);
@@ -94,11 +100,11 @@ export default function SiteNewsSection() {
         });
       } else {
         const error = await response.json();
-        alert(`Error: ${error.error}`);
+        showError(`Error: ${error.error}`);
       }
     } catch (error) {
       console.error('Error creating news item:', error);
-      alert('Failed to create news item');
+      showError('Failed to create news item');
     }
   };
 
@@ -127,16 +133,16 @@ export default function SiteNewsSection() {
         setEditingItem(null);
       } else {
         const error = await response.json();
-        alert(`Error: ${error.error}`);
+        showError(`Error: ${error.error}`);
       }
     } catch (error) {
       console.error('Error updating news item:', error);
-      alert('Failed to update news item');
+      showError('Failed to update news item');
     }
   };
 
   const deleteNewsItem = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this news item?')) {
+    if (!(await confirm({ title: 'Delete this news item?', confirmText: 'Delete', variant: 'danger' }))) {
       return;
     }
 
@@ -150,11 +156,11 @@ export default function SiteNewsSection() {
         await fetchNews();
       } else {
         const error = await response.json();
-        alert(`Error: ${error.error}`);
+        showError(`Error: ${error.error}`);
       }
     } catch (error) {
       console.error('Error deleting news item:', error);
-      alert('Failed to delete news item');
+      showError('Failed to delete news item');
     }
   };
 
@@ -178,7 +184,7 @@ export default function SiteNewsSection() {
   };
 
   if (loading) {
-    return <div className="text-center">Loading site news...</div>;
+    return <LoadingSpinner message="Loading site news..." className="py-8" />;
   }
 
   return (
@@ -387,9 +393,11 @@ export default function SiteNewsSection() {
         ))}
 
         {news.length === 0 && (
-          <div className="text-center text-gray-500 py-8">
-            No news items found. Create your first news item to get started.
-          </div>
+          <EmptyState
+            variant="plain"
+            title="No news items found."
+            description="Create your first news item to get started."
+          />
         )}
       </div>
     </div>

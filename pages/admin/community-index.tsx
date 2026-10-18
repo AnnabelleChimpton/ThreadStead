@@ -12,6 +12,9 @@ import Layout from '@/components/ui/layout/Layout';
 import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
 import { getSessionUser } from '@/lib/auth/server';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+import { useToast } from '@/contexts/ToastContext';
+import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner';
+import EmptyState from '@/components/ui/feedback/EmptyState';
 
 interface SeedingStats {
   totalSeeded: number;
@@ -34,6 +37,7 @@ interface Props {
 }
 
 export default function CommunityIndexAdmin({ siteConfig }: Props) {
+  const { showError } = useToast();
   const [stats, setStats] = useState<SeedingStats | null>(null);
   const [health, setHealth] = useState<SeedingHealth | null>(null);
   const [loading, setLoading] = useState(true);
@@ -84,11 +88,11 @@ export default function CommunityIndexAdmin({ siteConfig }: Props) {
         await fetchStats(); // Refresh stats
       } else {
         const error = await response.json();
-        alert(error.error || 'Seeding failed');
+        showError(error.error || 'Seeding failed');
       }
     } catch (error) {
       console.error('Seeding failed:', error);
-      alert('Seeding failed');
+      showError('Seeding failed');
     } finally {
       setSeeding(false);
     }
@@ -113,7 +117,7 @@ export default function CommunityIndexAdmin({ siteConfig }: Props) {
         </AdminHeader>
 
         {loading ? (
-          <div className="text-center py-8">Loading...</div>
+          <LoadingSpinner className="py-8" />
         ) : (
           <div className="space-y-8">
             {/* Stats Overview */}
@@ -192,7 +196,7 @@ export default function CommunityIndexAdmin({ siteConfig }: Props) {
                     </div>
                   ))
                 ) : (
-                  <p className="text-gray-500">No categories yet</p>
+                  <EmptyState variant="plain" as="p" title="No categories yet" />
                 )}
               </div>
             </div>

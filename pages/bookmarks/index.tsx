@@ -3,9 +3,11 @@ import { GetServerSideProps } from 'next';
 import Layout from '@/components/ui/layout/Layout';
 import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
 import { getSessionUser } from '@/lib/auth/server';
-import Link from 'next/link';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import { PixelIcon } from '@/components/ui/PixelIcon';
+import { useToast } from '@/contexts/ToastContext';
+import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner';
+import EmptyState from '@/components/ui/feedback/EmptyState';
 
 interface BookmarksProps {
   siteConfig: SiteConfig;
@@ -54,6 +56,7 @@ export default function BookmarksPage({ siteConfig, user }: BookmarksProps) {
   const [showNewCollectionForm, setShowNewCollectionForm] = useState(false);
   const [newCollectionName, setNewCollectionName] = useState('');
   const [newCollectionDescription, setNewCollectionDescription] = useState('');
+  const { showError } = useToast();
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -131,11 +134,11 @@ export default function BookmarksPage({ siteConfig, user }: BookmarksProps) {
         setNewCollectionDescription('');
         setShowNewCollectionForm(false);
       } else {
-        alert(data.error || 'Failed to create collection');
+        showError(data.error || 'Failed to create collection');
       }
     } catch (error) {
       console.error('Failed to create collection:', error);
-      alert('Failed to create collection');
+      showError('Failed to create collection');
     }
   };
 
@@ -295,17 +298,13 @@ export default function BookmarksPage({ siteConfig, user }: BookmarksProps) {
 
             {/* Bookmarks Grid */}
             {loading ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                <p className="mt-2 text-gray-600">Loading bookmarks...</p>
-              </div>
+              <LoadingSpinner message="Loading bookmarks..." className="py-8" />
             ) : bookmarks.length === 0 ? (
-              <div className="text-center py-12 text-gray-500">
-                <p className="mb-4">No bookmarks found.</p>
-                <Link href="/search" className="text-blue-600 hover:text-blue-800">
-                  Search for sites to save →
-                </Link>
-              </div>
+              <EmptyState
+                title="No bookmarks found."
+                actionLabel="Search for sites to save →"
+                actionHref="/search"
+              />
             ) : (
               <>
                 <div className="grid gap-4">

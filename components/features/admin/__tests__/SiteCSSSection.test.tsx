@@ -4,6 +4,8 @@ import '@testing-library/jest-dom';
 
 jest.mock('@/lib/api/client/csrf-fetch', () => ({ csrfFetch: jest.fn() }));
 jest.mock('@/components/ui/PixelIcon', () => ({ PixelIcon: () => null }));
+const mockConfirm = jest.fn();
+jest.mock('@/contexts/ConfirmContext', () => ({ useConfirm: () => mockConfirm }));
 
 import SiteCSSSection, { EMPTY_SAVE_PROMPT } from '../SiteCSSSection';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
@@ -118,9 +120,8 @@ test('non-empty CSS saves without asking', async () => {
 
 test('switching from custom CSS to the default asks to confirm', async () => {
   await renderLoaded({ css: 'body{color:red}', isDefault: false });
-  const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(false);
+  mockConfirm.mockResolvedValue(false);
   fireEvent.click(screen.getByRole('button', { name: /Use the default theme/ }));
-  expect(confirmSpy).toHaveBeenCalled();
+  await waitFor(() => expect(mockConfirm).toHaveBeenCalled());
   expect(mockCsrfFetch).not.toHaveBeenCalled();
-  confirmSpy.mockRestore();
 });

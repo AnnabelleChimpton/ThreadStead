@@ -1,6 +1,8 @@
 import React, { useState, useRef, useCallback } from 'react';
 import ReactCrop, { Crop, PixelCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
+import Modal from '@/components/ui/feedback/Modal';
+import Button from '@/components/ui/Button';
 
 interface ImageCropperProps {
   imageUrl: string;
@@ -100,75 +102,65 @@ export default function ImageCropper({
   };
 
   return (
-    <div className="modal-overlay-high fixed inset-0 bg-black/80 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg max-w-4xl max-h-[90vh] overflow-auto p-6">
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-thread-pine">Crop Your Profile Photo</h3>
-            <button
-              onClick={onCancel}
-              className="text-thread-sage hover:text-thread-charcoal"
-            >
-              ✕
-            </button>
-          </div>
-          
-          <div className="space-y-4">
-            <p className="text-sm text-thread-sage">
-              Drag to reposition and resize the crop area. The selected area will be saved as your profile photo.
-            </p>
-            
-            <div className="flex justify-center">
-              <ReactCrop
-                crop={crop}
-                onChange={(c) => setCrop(c)}
-                onComplete={(c) => setCompletedCrop(c)}
-                aspect={aspectRatio}
-                minWidth={50}
-                minHeight={50}
-                keepSelection
-                className="max-w-full max-h-[400px]"
-              >
-                <img
-                  ref={imgRef}
-                  alt="Crop preview"
-                  src={imageUrl}
-                  onLoad={onImageLoad}
-                  className="max-w-full max-h-[400px] object-contain"
-                />
-              </ReactCrop>
-            </div>
-            
-            <div className="flex justify-end gap-3 pt-4 border-t border-thread-sage">
-              <button
-                onClick={onCancel}
-                className="thread-button-secondary"
-                disabled={processing}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleApplyCrop}
-                disabled={!completedCrop || processing}
-                className="thread-button disabled:opacity-50"
-              >
-                {processing ? 'Processing...' : 'Apply Crop'}
-              </button>
-            </div>
-            
-            <div className="text-xs text-thread-sage">
-              <p>• Square images work best for profile photos</p>
-              <p>• We&apos;ll automatically create thumbnail, medium, and full-size versions</p>
-            </div>
-          </div>
+    <Modal
+      isOpen
+      onClose={() => { if (!processing) onCancel(); }}
+      title="Crop Your Profile Photo"
+      maxWidth="max-w-4xl"
+      closeOnBackdrop={false}
+      backdropClassName="modal-overlay-high bg-black/80"
+      footer={
+        <div className="flex justify-end gap-3">
+          <Button variant="secondary" onClick={onCancel} disabled={processing}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleApplyCrop}
+            disabled={!completedCrop || processing}
+            className="disabled:opacity-50"
+          >
+            {processing ? 'Processing...' : 'Apply Crop'}
+          </Button>
+        </div>
+      }
+    >
+      <div className="space-y-4">
+        <p className="text-sm text-nb-ink-mid">
+          Drag to reposition and resize the crop area. The selected area will be saved as your profile photo.
+        </p>
+
+        <div className="flex justify-center">
+          <ReactCrop
+            crop={crop}
+            onChange={(c) => setCrop(c)}
+            onComplete={(c) => setCompletedCrop(c)}
+            aspect={aspectRatio}
+            minWidth={50}
+            minHeight={50}
+            keepSelection
+            className="max-w-full max-h-[400px]"
+          >
+            <img
+              ref={imgRef}
+              alt="Crop preview"
+              src={imageUrl}
+              onLoad={onImageLoad}
+              className="max-w-full max-h-[400px] object-contain"
+            />
+          </ReactCrop>
+        </div>
+
+        <div className="text-xs text-nb-ink-mid">
+          <p>• Square images work best for profile photos</p>
+          <p>• We&apos;ll automatically create thumbnail, medium, and full-size versions</p>
         </div>
       </div>
-      
+
       {/* Hidden canvas for cropping */}
       <canvas
         ref={canvasRef}
         style={{ display: 'none' }}
       />
-    </div>
+    </Modal>
   );
 }

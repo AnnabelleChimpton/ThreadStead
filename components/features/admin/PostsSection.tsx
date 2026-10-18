@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from "react";
 import ImprovedBadgeDisplay from "../../shared/ImprovedBadgeDisplay";
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+import { useToast } from "@/contexts/ToastContext";
+import { useConfirm } from "@/contexts/ConfirmContext";
+import LoadingSpinner from "@/components/ui/feedback/LoadingSpinner";
+import EmptyState from "@/components/ui/feedback/EmptyState";
 
 interface Post {
   id: string;
@@ -40,6 +44,8 @@ interface PostsResponse {
 }
 
 export default function PostsSection() {
+  const { showSuccess, showError } = useToast();
+  const confirm = useConfirm();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -88,8 +94,12 @@ export default function PostsSection() {
     const authorName = post.author.profile?.displayName || post.author.primaryHandle || "Unknown";
     const postTitle = post.title || post.bodyText?.substring(0, 50) + "..." || "Untitled post";
     
-    const confirmMessage = `Are you sure you want to delete this post?\n\nPost: "${postTitle}"\nAuthor: ${authorName}\n\nThis action cannot be undone.`;
-    if (!confirm(confirmMessage)) return;
+    if (!(await confirm({
+      title: "Delete this post?",
+      message: `Post: "${postTitle}"\nAuthor: ${authorName}\n\nThis action cannot be undone.`,
+      confirmText: "Delete",
+      variant: "danger",
+    }))) return;
 
     setDeleting(post.id);
     try {
@@ -101,14 +111,14 @@ export default function PostsSection() {
 
       if (res.ok) {
         await loadPosts(); // Refresh the list
-        alert("Post deleted successfully");
+        showSuccess("Post deleted.");
       } else {
         const error = await res.json();
-        alert(error.error || "Failed to delete post");
+        showError(error.error || "Failed to delete post");
       }
     } catch (error) {
       console.error("Failed to delete post:", error);
-      alert("Failed to delete post");
+      showError("Failed to delete post");
     } finally {
       setDeleting(null);
     }
@@ -202,9 +212,9 @@ export default function PostsSection() {
       {/* Posts List */}
       <div className="space-y-3">
         {loading && posts.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">Loading posts...</div>
+          <LoadingSpinner message="Loading posts..." className="py-8" />
         ) : posts.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">No posts found</div>
+          <EmptyState variant="plain" title="No posts found" />
         ) : (
           posts.map((post) => (
             <div key={post.id} className="bg-white border border-gray-300 rounded p-4">

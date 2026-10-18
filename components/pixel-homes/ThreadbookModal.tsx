@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import Modal from '../ui/feedback/Modal'
+import LoadingSpinner from '../ui/feedback/LoadingSpinner'
+import ErrorDisplay from '../ui/feedback/ErrorDisplay'
 
 interface ThreadRingLineage {
   id: string
@@ -127,18 +129,11 @@ export default function ThreadbookModal({ isOpen, onClose, username }: Threadboo
     <Modal isOpen={isOpen} onClose={onClose} title="ThreadRing Lineage">
       <div className="max-w-2xl">
         {loading && (
-          <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-thread-sage"></div>
-            <span className="ml-3 text-thread-sage">Loading lineage...</span>
-          </div>
+          <LoadingSpinner message="Loading lineage..." layout="row" className="py-8" />
         )}
 
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-md p-4">
-            <div className="text-red-800 text-sm">
-              <strong>Error:</strong> {error}
-            </div>
-          </div>
+          <ErrorDisplay title="Error" message={error} />
         )}
 
         {!loading && !error && (

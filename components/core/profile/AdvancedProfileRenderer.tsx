@@ -5,7 +5,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { ProfileUser } from './ProfileModeRenderer';
 import type { CompiledTemplate, Island } from '@/lib/templates/compilation/compiler';
 import { GlobalTemplateStateProvider } from '@/lib/templates/state/TemplateStateProvider';
-import { ToastProvider } from '@/lib/templates/state/ToastProvider';
+import { ToastProvider } from '@/contexts/ToastContext';
 import TemplateErrorBoundary from '@/components/features/templates/TemplateErrorBoundary';
 import { useIslandManager } from '@/components/islands/ProfileIslandWrapper';
 import { ResidentDataProvider } from '@/components/features/templates/ResidentDataProvider';

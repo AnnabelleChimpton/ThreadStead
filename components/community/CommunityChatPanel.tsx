@@ -10,6 +10,8 @@ import { PixelIcon } from '@/components/ui/PixelIcon';
 import RetroButton from '@/components/ui/feedback/RetroButton';
 import UserQuickView from '@/components/ui/feedback/UserQuickView';
 import EmojiPicker from '@/components/ui/feedback/EmojiPicker';
+import EmptyState from '@/components/ui/feedback/EmptyState';
+import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner';
 import { useEmojis, Emoji } from '@/hooks/useEmojis';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 
@@ -511,20 +513,8 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
     return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
   };
 
-  if (userLoading) {
-    return (
-      <div className="p-4 text-center text-thread-sage">
-        Loading...
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className="p-4 text-center text-thread-sage">
-        Loading chat...
-      </div>
-    );
+  if (userLoading || loading) {
+    return <LoadingSpinner message="Loading chat..." className="p-6" />;
   }
 
   const chatHeight = popupMode
@@ -671,6 +661,14 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
               }
             }}
           >
+            {filteredMessages.length === 0 && (
+              <EmptyState
+                variant="plain"
+                title="No messages yet"
+                description={user ? "Say hello below." : "Log in to message."}
+                className="mt-8"
+              />
+            )}
             {filteredMessages.map((msg, idx) => {
               const isOwnMessage = user && msg.userId === user.id;
               const isMuted = mutedUsers.has(msg.userId);

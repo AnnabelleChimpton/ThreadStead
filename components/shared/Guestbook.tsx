@@ -1,11 +1,12 @@
 // components/Guestbook.tsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useId, useRef, useState } from "react";
 import { useSiteConfig } from "@/hooks/useSiteConfig";
 import ImprovedBadgeDisplay from "./ImprovedBadgeDisplay";
 import { CommentMarkupWithEmojis } from "@/lib/comment-markup";
 import Link from "next/link";
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import { PixelIcon } from '@/components/ui/PixelIcon';
+import Modal from '@/components/ui/feedback/Modal';
 
 type Entry = {
   id: string;
@@ -35,6 +36,8 @@ export default function Guestbook({ username, bio, signerLink = "profile" }: Gue
   const [currentUser, setCurrentUser] = useState<{ id: string; isProfileOwner: boolean; isAdmin: boolean } | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ entryId: string; message: string; isAdmin?: boolean } | null>(null);
+  const confirmDescId = useId();
+  const cancelDeleteRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     let alive = true;
@@ -306,36 +309,49 @@ export default function Guestbook({ username, bio, signerLink = "profile" }: Gue
       )}
 
       {/* Confirmation Dialog */}
-      {confirmDelete && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
-          <div className="thread-module p-5 w-80 pointer-events-auto">
-            <h4 className="thread-headline text-lg mb-2">Delete Entry?</h4>
-            <p className="mb-4 text-sm text-thread-sage">
+      <Modal
+        isOpen={!!confirmDelete}
+        onClose={cancelDelete}
+        title="Delete Entry?"
+        role="alertdialog"
+        maxWidth="max-w-md"
+        closeLabel="Cancel"
+        describedBy={confirmDescId}
+        initialFocusRef={cancelDeleteRef}
+        footer={
+          <div className="flex flex-wrap gap-2 justify-end">
+            <button
+              ref={cancelDeleteRef}
+              type="button"
+              onClick={cancelDelete}
+              className="btn btn--secondary"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={confirmDeleteEntry}
+              disabled={!!confirmDelete && deletingId === confirmDelete.entryId}
+              className="btn btn--primary ts-btn-danger disabled:opacity-50"
+            >
+              {confirmDelete && deletingId === confirmDelete.entryId ? "Deleting..." : "Delete"}
+            </button>
+          </div>
+        }
+      >
+        {confirmDelete && (
+          <div id={confirmDescId}>
+            <p className="mb-4 text-sm text-nb-ink-mid">
               This action cannot be undone.
             </p>
-            <div className="bg-thread-cream/50 border border-thread-sage/30 p-3 mb-4 rounded text-xs italic">
+            <div className="border border-dotted border-nb-ink-mid/40 p-3 rounded text-xs italic">
               &quot;{confirmDelete.message.length > 80 
                 ? confirmDelete.message.substring(0, 80) + "..." 
                 : confirmDelete.message}&quot;
             </div>
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={cancelDelete}
-                className="px-4 py-2 text-sm border border-thread-sage bg-thread-paper hover:bg-thread-cream text-thread-charcoal rounded shadow-cozy-sm transition-all"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmDeleteEntry}
-                disabled={deletingId === confirmDelete.entryId}
-                className="px-4 py-2 text-sm border border-thread-sunset bg-thread-sunset/20 hover:bg-thread-sunset/30 text-thread-sunset rounded shadow-cozy-sm disabled:opacity-50 transition-all"
-              >
-                {deletingId === confirmDelete.entryId ? "Deleting..." : "Delete"}
-              </button>
-            </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   );
 }

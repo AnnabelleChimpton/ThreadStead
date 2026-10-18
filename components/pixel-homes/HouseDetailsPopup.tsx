@@ -7,6 +7,7 @@ import { trackNavigation } from '../../lib/analytics/pixel-homes'
 import UserMention from '@/components/ui/navigation/UserMention'
 import useIsMobile from '../../hooks/useIsMobile'
 import { PixelIcon } from '@/components/ui/PixelIcon'
+import Modal from '@/components/ui/feedback/Modal'
 
 interface HomeDecoration {
   id: string
@@ -488,47 +489,48 @@ export default function HouseDetailsPopup({ isOpen, onClose, member }: HouseDeta
     </>
   )
 
-  // Render mobile bottom sheet or desktop modal
+  // Desktop: the shared dialog
+  if (!isMobile) {
+    return (
+      <Modal
+        isOpen={isOpen}
+        onClose={onClose}
+        title={houseTitle || displayName}
+        hideTitle
+        bodyClassName=""
+        className="overflow-hidden"
+      >
+        <ContentSection />
+      </Modal>
+    )
+  }
+
+  // Phones: a draggable bottom sheet
   return createPortal(
     <>
       {/* Backdrop */}
       <div
-        className={`${isMobile ? 'bottom-sheet-backdrop' : 'fixed inset-0 bg-thread-cream/30 backdrop-blur-sm z-[99999] flex items-center justify-center p-2 sm:p-4'} ${isOpen ? 'visible' : ''}`}
+        className={`bottom-sheet-backdrop ${isOpen ? 'visible' : ''}`}
         onClick={handleBackdropClick}
       />
 
-      {/* Modal/Bottom Sheet Container */}
-      {isMobile ? (
-        <div
-          className={`mobile-bottom-sheet ${isOpen ? 'open' : ''} ${isDragging ? 'dragging' : ''}`}
-          style={{
-            transform: dragCurrentY !== null && dragCurrentY > 0
-              ? `translateY(${dragCurrentY}px)`
-              : undefined,
-            transition: isDragging ? 'none' : undefined
-          }}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-        >
-          <div className="bottom-sheet-handle drag-handle-area" />
-          <div className="bottom-sheet-content">
-            <ContentSection />
-          </div>
+      <div
+        className={`mobile-bottom-sheet ${isOpen ? 'open' : ''} ${isDragging ? 'dragging' : ''}`}
+        style={{
+          transform: dragCurrentY !== null && dragCurrentY > 0
+            ? `translateY(${dragCurrentY}px)`
+            : undefined,
+          transition: isDragging ? 'none' : undefined
+        }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        <div className="bottom-sheet-handle drag-handle-area" />
+        <div className="bottom-sheet-content">
+          <ContentSection />
         </div>
-      ) : (
-        <div
-          className="fixed inset-0 z-[99999] flex items-center justify-center p-2 sm:p-4 pointer-events-none"
-          onClick={handleBackdropClick}
-        >
-          <div
-            className="bg-thread-paper rounded-sm shadow-xl border-2 border-thread-sage max-w-full sm:max-w-2xl w-full max-h-[85vh] sm:max-h-[90vh] overflow-y-auto pointer-events-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <ContentSection />
-          </div>
-        </div>
-      )}
+      </div>
     </>,
     document.body
   )

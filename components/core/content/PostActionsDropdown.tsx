@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import ReportButton from "../../ui/feedback/ReportButton";
 import { PixelIcon } from '@/components/ui/PixelIcon';
+import { useToast } from "@/contexts/ToastContext";
 
 interface PostActionsDropdownProps {
   post: {
@@ -40,6 +41,7 @@ export default function PostActionsDropdown({
 }: PostActionsDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { showSuccess } = useToast();
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -60,7 +62,7 @@ export default function PostActionsDropdown({
       : `${window.location.origin}/post/${post.id}`;
     try {
       await navigator.clipboard.writeText(postUrl);
-      alert("Link copied to clipboard!");
+      showSuccess("Link copied to clipboard.");
     } catch (error) {
       // Fallback for older browsers
       const textArea = document.createElement("textarea");
@@ -69,7 +71,7 @@ export default function PostActionsDropdown({
       textArea.select();
       document.execCommand("copy");
       document.body.removeChild(textArea);
-      alert("Link copied to clipboard!");
+      showSuccess("Link copied to clipboard.");
     }
     setIsOpen(false);
   };

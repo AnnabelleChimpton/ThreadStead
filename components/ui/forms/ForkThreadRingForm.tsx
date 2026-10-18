@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/router";
 import BadgeSelector from "../../shared/BadgeSelector";
-import Toast from "../feedback/Toast";
-import { useToast } from "@/hooks/useToast";
+import { useToast } from "@/contexts/ToastContext";
 import { validateThreadRingName } from "@/lib/domain/validation";
 import { csrfFetch } from "@/lib/api/client/csrf-fetch";
 
@@ -48,7 +47,7 @@ export default function ForkThreadRingForm({
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
   
   // Toast notifications
-  const { toasts, showError, showWarning, hideToast } = useToast();
+  const { showError, showWarning } = useToast();
 
   // Helper function to format rate limit error messages
   const formatRateLimitError = useCallback((errorData: any) => {
@@ -492,17 +491,6 @@ export default function ForkThreadRingForm({
           <li>• The connection is tracked in the Ring Family Tree</li>
         </ul>
       </div>
-      
-      {/* Toast Notifications */}
-      {toasts.map(toast => (
-        <Toast
-          key={toast.id}
-          message={toast.message}
-          type={toast.type}
-          duration={toast.duration}
-          onClose={() => hideToast(toast.id)}
-        />
-      ))}
     </div>
   );
 }

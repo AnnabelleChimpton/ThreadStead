@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react'
 import { getUserDisplayName } from '@/lib/domain/threadrings/blocks'
 import { csrfFetch } from '@/lib/api/client/csrf-fetch'
+import { useToast } from '@/contexts/ToastContext'
+import { useConfirm } from '@/contexts/ConfirmContext'
+import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner'
+import EmptyState from '@/components/ui/feedback/EmptyState'
 
 interface ThreadRingBlock {
   id: string
@@ -36,6 +40,8 @@ export default function ThreadRingBlockManager({ threadRingSlug }: ThreadRingBlo
     reason: ''
   })
   const [submitting, setSubmitting] = useState(false)
+  const { showError } = useToast()
+  const confirm = useConfirm()
 
   useEffect(() => {
     loadBlocks()
@@ -84,18 +90,22 @@ export default function ThreadRingBlockManager({ threadRingSlug }: ThreadRingBlo
         setAddForm({ blockType: 'user', target: '', reason: '' })
       } else {
         const error = await response.json()
-        alert(error.error || 'Failed to create block')
+        showError(error.error || 'Failed to create block')
       }
     } catch (error) {
       console.error('Error creating block:', error)
-      alert('Failed to create block')
+      showError('Failed to create block')
     } finally {
       setSubmitting(false)
     }
   }
 
   const handleRemoveBlock = async (blockId: string) => {
-    if (!confirm('Are you sure you want to remove this block?')) return
+    if (!(await confirm({
+      title: 'Remove this block?',
+      confirmText: 'Remove',
+      variant: 'danger'
+    }))) return
 
     try {
       const response = await csrfFetch(`/api/threadrings/${threadRingSlug}/blocks/${blockId}`, {
@@ -105,11 +115,11 @@ export default function ThreadRingBlockManager({ threadRingSlug }: ThreadRingBlo
       if (response.ok) {
         setBlocks(prev => prev.filter(block => block.id !== blockId))
       } else {
-        alert('Failed to remove block')
+        showError('Failed to remove block')
       }
     } catch (error) {
       console.error('Error removing block:', error)
-      alert('Failed to remove block')
+      showError('Failed to remove block')
     }
   }
 
@@ -132,7 +142,7 @@ export default function ThreadRingBlockManager({ threadRingSlug }: ThreadRingBlo
     return (
       <div className="p-6 border border-gray-200 rounded-lg">
         <h3 className="text-lg font-semibold mb-4">Block Management</h3>
-        <div className="text-gray-500">Loading blocks...</div>
+        <LoadingSpinner message="Loading blocks..." className="py-4" />
       </div>
     )
   }
@@ -232,10 +242,11 @@ export default function ThreadRingBlockManager({ threadRingSlug }: ThreadRingBlo
 
       {/* Blocks List */}
       {blocks.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">
-          <p className="text-lg">No blocks yet.</p>
-          <p className="text-sm mt-2">Use blocks to prevent spam and keep your community safe.</p>
-        </div>
+        <EmptyState
+          variant="plain"
+          title="No blocks yet."
+          description="Use blocks to prevent spam and keep your community safe."
+        />
       ) : (
         <div className="space-y-3">
           {blocks.map((block) => (

@@ -5,6 +5,11 @@ import ImprovedBadgeDisplay from "../../shared/ImprovedBadgeDisplay";
 import UserMention from "@/components/ui/navigation/UserMention";
 import { csrfFetch } from "@/lib/api/client/csrf-fetch";
 import { PixelIcon, type PixelIconName } from '@/components/ui/PixelIcon';
+import { useToast } from "@/contexts/ToastContext";
+import LoadingSpinner from "./LoadingSpinner";
+import EmptyState from "./EmptyState";
+import ErrorDisplay from "./ErrorDisplay";
+import Button from "@/components/ui/Button";
 
 export type NotificationData = {
   id: string;
@@ -45,6 +50,8 @@ export default function NotificationList({
 }: NotificationListProps) {
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const { showError } = useToast();
   const [filter, setFilter] = useState<"all" | "unread">("all");
 
   const loadNotifications = useCallback(async () => {
@@ -54,13 +61,13 @@ export default function NotificationList({
         status: filter,
       });
       const res = await fetch(`/api/notifications?${params}`);
-      if (res.ok) {
-        const data = await res.json();
-        setNotifications(data.notifications || []);
-      }
+      if (!res.ok) throw new Error(`Failed to load notifications: ${res.status}`);
+      const data = await res.json();
+      setNotifications(data.notifications || []);
+      setLoadError(false);
     } catch (error) {
       console.error('Failed to load notifications:', error);
-      // Could optionally show error state to user
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -93,7 +100,6 @@ export default function NotificationList({
       }
     } catch (error) {
       console.error('Failed to mark notifications as read:', error);
-      // Could optionally show error toast to user
     }
   };
 
@@ -103,19 +109,18 @@ export default function NotificationList({
         method: "POST",
       });
 
-      if (res.ok) {
-        setNotifications(prev =>
-          prev.map(n => ({
-            ...n,
-            status: "read" as const,
-            readAt: new Date().toISOString()
-          }))
-        );
-        onNotificationUpdate?.();
-      }
+      if (!res.ok) throw new Error(`Failed to mark all read: ${res.status}`);
+      setNotifications(prev =>
+        prev.map(n => ({
+          ...n,
+          status: "read" as const,
+          readAt: new Date().toISOString()
+        }))
+      );
+      onNotificationUpdate?.();
     } catch (error) {
       console.error('Failed to mark all notifications as read:', error);
-      // Could optionally show error toast to user
+      showError("Couldn't mark them read. Try again.");
     }
   };
 
@@ -254,11 +259,7 @@ export default function NotificationList({
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <div className="text-thread-sage">Loading notifications...</div>
-      </div>
-    );
+    return <LoadingSpinner message="Loading notifications..." className="py-8" />;
   }
 
   const unreadCount = notifications.filter(n => n.status === "unread").length;
@@ -267,45 +268,43 @@ export default function NotificationList({
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-thread-pine">Notifications</h2>
+        <h2 className="thread-headline text-xl font-bold">Notifications</h2>
         <div className="flex items-center gap-2">
           {showStatus && (
             <div className="flex gap-1">
               <button
                 onClick={() => setFilter("all")}
-                className={`px-3 py-1 text-sm border border-black shadow-[2px_2px_0_#000] ${
-                  filter === "all" ? "bg-thread-sunset text-white" : "bg-white hover:bg-thread-cream"
-                }`}
+                aria-pressed={filter === "all"}
+                className="ts-chip text-sm"
               >
                 All
               </button>
               <button
                 onClick={() => setFilter("unread")}
-                className={`px-3 py-1 text-sm border border-black shadow-[2px_2px_0_#000] ${
-                  filter === "unread" ? "bg-thread-sunset text-white" : "bg-white hover:bg-thread-cream"
-                }`}
+                aria-pressed={filter === "unread"}
+                className="ts-chip text-sm"
               >
                 Unread ({unreadCount})
               </button>
             </div>
           )}
           {unreadCount > 0 && (
-            <button
-              onClick={markAllAsRead}
-              className="px-3 py-1 text-sm border border-black bg-white hover:bg-thread-cream shadow-[2px_2px_0_#000]"
-            >
+            <Button variant="secondary" size="sm" onClick={markAllAsRead}>
               Mark all read
-            </button>
+            </Button>
           )}
         </div>
       </div>
 
       {/* Notifications */}
       <div className="space-y-2">
-        {notifications.length === 0 ? (
-          <div className="text-center py-8 text-thread-sage">
-            {filter === "unread" ? "No unread notifications" : "No notifications yet"}
-          </div>
+        {loadError ? (
+          <ErrorDisplay title="Failed to load notifications" onRetry={() => { setLoading(true); loadNotifications(); }} />
+        ) : notifications.length === 0 ? (
+          <EmptyState
+            variant="plain"
+            title={filter === "unread" ? "No unread notifications" : "No notifications yet"}
+          />
         ) : (
           notifications.map((notification) => {
             const link = getNotificationLink(notification);
@@ -313,10 +312,10 @@ export default function NotificationList({
 
             const content = (
               <div
-                className={`p-4 border border-black shadow-[2px_2px_0_#000] rounded-cozy cursor-pointer transition-colors ${
-                  isUnread 
-                    ? "bg-thread-cream border-thread-sunset" 
-                    : "bg-white hover:bg-thread-cream"
+                className={`p-4 border-2 rounded-cozy cursor-pointer transition-colors text-nb-ink ${
+                  isUnread
+                    ? "bg-thread-cream border-nb-ink-mid border-l-8 border-l-thread-sunset"
+                    : "bg-nb-paper border-nb-ink-mid/40 hover:border-nb-ink-mid"
                 }`}
                 onClick={() => {
                   if (isUnread) {
@@ -359,7 +358,7 @@ export default function NotificationList({
                       />
                     </div>
                     
-                    <div className="text-xs text-thread-sage">
+                    <div className="text-xs text-nb-ink-mid">
                       {new Date(notification.createdAt).toLocaleString()}
                     </div>
                   </div>

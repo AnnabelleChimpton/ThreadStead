@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { PixelIcon } from '@/components/ui/PixelIcon';
+import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner';
+import EmptyState from '@/components/ui/feedback/EmptyState';
+import ErrorDisplay from '@/components/ui/feedback/ErrorDisplay';
 
 export interface RevisionSummary {
   id: string;
@@ -96,16 +99,17 @@ export default function TemplateHistoryPanel({ username, onLoadRevision, onClose
 
       <div className="flex-1 overflow-y-auto">
         {error && (
-          <p className="p-4 text-sm text-red-700">{error}</p>
+          <ErrorDisplay title={error} className="m-4" />
         )}
         {!error && revisions === null && (
-          <p className="p-4 text-sm text-thread-sage">Loading…</p>
+          <LoadingSpinner message="Loading…" className="p-4" />
         )}
         {!error && revisions !== null && revisions.length === 0 && (
-          <p className="p-4 text-sm text-thread-sage">
-            Nothing here yet. Once you save a change, the version it replaced
-            will show up here.
-          </p>
+          <EmptyState
+            variant="plain"
+            title="Nothing here yet."
+            description="Once you save a change, the version it replaced will show up here."
+          />
         )}
         {!error && revisions !== null && revisions.map((rev) => (
           <div key={rev.id} className="px-4 py-3 border-b border-thread-sage/20 flex items-center gap-3">

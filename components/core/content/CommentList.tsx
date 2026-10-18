@@ -3,11 +3,13 @@ import Image from "next/image";
 import NewCommentForm from "../../ui/forms/NewCommentForm";
 import ImprovedBadgeDisplay from "../../shared/ImprovedBadgeDisplay";
 import ReportButton from "../../ui/feedback/ReportButton";
-import ConfirmModal from "../../ui/feedback/ConfirmModal";
+import { useConfirm } from "@/contexts/ConfirmContext";
 import { CommentMarkupWithEmojis } from "@/lib/comment-markup";
 import UserMention from "@/components/ui/navigation/UserMention";
 import { csrfFetch } from "@/lib/api/client/csrf-fetch";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import LoadingSpinner from "@/components/ui/feedback/LoadingSpinner";
+import EmptyState from "@/components/ui/feedback/EmptyState";
 
 // Helper function to format time ago
 function formatTimeAgo(date: Date): string {
@@ -60,7 +62,7 @@ export default function CommentList({
   const viewerId = viewer?.id ?? null;
   const [removing, setRemoving] = useState<string | null>(null);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
-  const [confirmDelete, setConfirmDelete] = useState<{ id: string; useAdminEndpoint: boolean } | null>(null);
+  const confirm = useConfirm();
   const [collapsedThreads, setCollapsedThreads] = useState<Set<string>>(new Set());
 
   // Helper to toggle collapsed state
@@ -187,8 +189,14 @@ export default function CommentList({
     setReplyingTo(null);
   };
 
-  const initiateDelete = (id: string, useAdminEndpoint = false) => {
-    setConfirmDelete({ id, useAdminEndpoint });
+  const initiateDelete = async (id: string, useAdminEndpoint = false) => {
+    const ok = await confirm({
+      title: "Delete Comment?",
+      message: "Are you sure you want to delete this comment? This action cannot be undone.",
+      confirmText: "Delete",
+      variant: "danger",
+    });
+    if (ok) await handleRemove(id, useAdminEndpoint);
   };
 
   const handleRemove = async (id: string, useAdminEndpoint = false) => {
@@ -234,8 +242,8 @@ export default function CommentList({
     }
   };
 
-  if (loading && commentTree.length === 0) return <div className="text-sm opacity-70 px-1">Loading comments…</div>;
-  if (commentTree.length === 0) return <div className="text-sm opacity-70 px-1">Be the first to comment.</div>;
+  if (loading && commentTree.length === 0) return <LoadingSpinner layout="row" tone="inherit" message="Loading comments…" className="justify-start opacity-70 px-1" />;
+  if (commentTree.length === 0) return <EmptyState variant="plain" as="p" title="Be the first to comment." className="opacity-70" />;
 
   const renderComment = (comment: CommentWire, depth = 0, parentAuthor?: string): React.ReactNode => {
     const isDeleted = comment.status === 'hidden';
@@ -503,21 +511,6 @@ export default function CommentList({
       <div className="space-y-3">
         {commentTree.map(comment => renderComment(comment))}
       </div>
-
-      <ConfirmModal
-        isOpen={confirmDelete !== null}
-        title="Delete Comment?"
-        message="Are you sure you want to delete this comment? This action cannot be undone."
-        confirmText="Delete"
-        cancelText="Cancel"
-        variant="danger"
-        onConfirm={async () => {
-          if (confirmDelete) {
-            await handleRemove(confirmDelete.id, confirmDelete.useAdminEndpoint);
-          }
-        }}
-        onCancel={() => setConfirmDelete(null)}
-      />
     </>
   );
 }

@@ -10,6 +10,9 @@ import Layout from '@/components/ui/layout/Layout';
 import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
 import { getSessionUser } from '@/lib/auth/server';
 import { PixelIcon } from '@/components/ui/PixelIcon';
+import { useToast } from '@/contexts/ToastContext';
+import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner';
+import EmptyState from '@/components/ui/feedback/EmptyState';
 
 // Enhanced Voting Buttons Component
 function VotingButtons({
@@ -138,6 +141,7 @@ export default function CommunityValidation({ siteConfig, user }: Props) {
   const [changingVote, setChangingVote] = useState<string | null>(null);
   const [showInteracted, setShowInteracted] = useState(false);
   const [sortMethod, setSortMethod] = useState('balanced');
+  const { showError } = useToast();
 
   useEffect(() => {
     fetchSites();
@@ -173,11 +177,11 @@ export default function CommunityValidation({ siteConfig, user }: Props) {
         setChangingVote(null); // Reset changing vote state
       } else {
         const error = await response.json();
-        alert(error.error || 'Failed to submit vote');
+        showError(error.error || 'Failed to submit vote');
       }
     } catch (error) {
       console.error('Failed to vote:', error);
-      alert('Failed to submit vote');
+      showError('Failed to submit vote');
     } finally {
       setSubmitting(null);
     }
@@ -298,31 +302,21 @@ export default function CommunityValidation({ siteConfig, user }: Props) {
         {/* Site List */}
         <div className="space-y-6">
           {loading ? (
-            <div className="text-center py-8">Loading sites for validation...</div>
+            <LoadingSpinner message="Loading sites for validation..." className="py-8" />
           ) : sites.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              {showInteracted ? (
-                <div>
-                  <p>You haven't voted on any sites in this category yet.</p>
-                  <button
-                    onClick={() => setShowInteracted(false)}
-                    className="mt-2 text-blue-600 hover:underline"
-                  >
-                    View sites that need validation →
-                  </button>
-                </div>
-              ) : (
-                <div>
-                  <p>No new sites pending validation in this category.</p>
-                  <button
-                    onClick={() => setShowInteracted(true)}
-                    className="mt-2 text-blue-600 hover:underline"
-                  >
-                    View sites you've already voted on →
-                  </button>
-                </div>
-              )}
-            </div>
+            showInteracted ? (
+              <EmptyState
+                title="You haven't voted on any sites in this category yet."
+                actionLabel="View sites that need validation →"
+                onAction={() => setShowInteracted(false)}
+              />
+            ) : (
+              <EmptyState
+                title="No new sites pending validation in this category."
+                actionLabel="View sites you've already voted on →"
+                onAction={() => setShowInteracted(true)}
+              />
+            )
           ) : (
             sites.map(site => (
               <div

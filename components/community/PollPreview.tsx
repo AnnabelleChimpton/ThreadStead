@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { csrfFetchJson } from '@/lib/api/client/csrf-fetch';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useToast } from '@/contexts/ToastContext';
 
 interface PollOption {
   id: string;
@@ -26,6 +27,7 @@ interface PollPreviewProps {
 export default function PollPreview({ poll, onVoted }: PollPreviewProps) {
   const [voting, setVoting] = useState(false);
   const [selectedOption, setSelectedOption] = useState<string | null>(poll.userVote);
+  const { showError } = useToast();
   const { loggedIn } = useCurrentUser();
 
   const handleVote = async () => {
@@ -43,7 +45,7 @@ export default function PollPreview({ poll, onVoted }: PollPreviewProps) {
       }
     } catch (err: any) {
       console.error('Error voting:', err);
-      alert(err.message || 'Failed to record vote');
+      showError(err.message || 'Failed to record vote');
     } finally {
       setVoting(false);
     }

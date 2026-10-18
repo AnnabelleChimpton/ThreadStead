@@ -6,7 +6,7 @@ import { getSessionUser } from '@/lib/auth/server'
 import { db } from '@/lib/config/database/connection'
 import Layout from '@/components/ui/layout/Layout'
 import DecorationMode from '@/components/pixel-homes/DecorationMode'
-import { useToastContext } from '@/lib/templates/state/ToastProvider'
+import { useToast } from '@/contexts/ToastContext'
 import { HouseTemplate, ColorPalette, HouseCustomizations, AtmosphereSettings } from '@/components/pixel-homes/HouseSVG'
 
 interface DecorationPageProps {
@@ -31,7 +31,7 @@ export default function DecoratePage({
   isOwnHome
 }: DecorationPageProps) {
   const router = useRouter()
-  const { showError } = useToastContext()
+  const { showError } = useToast()
   const [isSaving, setIsSaving] = useState(false)
 
   // Redirect if not own home

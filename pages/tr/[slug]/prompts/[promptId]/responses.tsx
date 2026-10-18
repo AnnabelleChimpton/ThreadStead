@@ -10,6 +10,9 @@ import { featureFlags } from '@/lib/utils/features/feature-flags'
 import { getRingHubClient } from '@/lib/api/ringhub/ringhub-client'
 import { raceHubCall, HUB_TIMEOUT } from '@/lib/api/ringhub/ringhub-ssr'
 import { PixelIcon } from '@/components/ui/PixelIcon'
+import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner'
+import EmptyState from '@/components/ui/feedback/EmptyState'
+import ErrorDisplay from '@/components/ui/feedback/ErrorDisplay'
 
 interface PromptResponse {
   id: string
@@ -168,14 +171,11 @@ export default function PromptResponsesPage({
     return (
       <Layout siteConfig={siteConfig}>
         <div className="max-w-4xl mx-auto py-8 px-4">
-          <div className="text-center text-red-600">
-            {error || 'You do not have permission to view this prompt.'}
-          </div>
-          <div className="text-center mt-4">
-            <Link href="/threadrings" className="text-blue-600 hover:underline">
-              ← Back to ThreadRings
-            </Link>
-          </div>
+          <ErrorDisplay
+            title={error || 'You do not have permission to view this prompt.'}
+            actionLabel="← Back to ThreadRings"
+            actionHref="/threadrings"
+          />
         </div>
       </Layout>
     )
@@ -185,9 +185,7 @@ export default function PromptResponsesPage({
     return (
       <Layout siteConfig={siteConfig}>
         <div className="max-w-4xl mx-auto py-8 px-4">
-          <div className="text-center text-gray-600">
-            ThreadRing not found.
-          </div>
+          <ErrorDisplay variant="notice" title="ThreadRing not found." />
         </div>
       </Layout>
     )
@@ -197,9 +195,7 @@ export default function PromptResponsesPage({
     return (
       <Layout siteConfig={siteConfig}>
         <div className="max-w-4xl mx-auto py-8 px-4">
-          <div className="text-center text-gray-600">
-            Loading prompt data...
-          </div>
+          <LoadingSpinner message="Loading prompt data..." className="py-8" />
         </div>
       </Layout>
     )
@@ -209,9 +205,7 @@ export default function PromptResponsesPage({
     return (
       <Layout siteConfig={siteConfig}>
         <div className="max-w-4xl mx-auto py-8 px-4">
-          <div className="text-center text-gray-600">
-            Prompt not found.
-          </div>
+          <ErrorDisplay variant="notice" title="Prompt not found." />
         </div>
       </Layout>
     )
@@ -284,13 +278,11 @@ export default function PromptResponsesPage({
           </h2>
 
           {responses.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <span className="mb-4 block flex justify-center">
-                <PixelIcon name="file" size={32} />
-              </span>
-              <p className="text-lg">No responses yet.</p>
-              <p className="text-sm mt-2">Be the first to respond to this challenge!</p>
-            </div>
+            <EmptyState
+              icon="file"
+              title="No responses yet."
+              description="Be the first to respond to this challenge!"
+            />
           ) : (
             <div className="space-y-4">
               {responses.map((response) => (

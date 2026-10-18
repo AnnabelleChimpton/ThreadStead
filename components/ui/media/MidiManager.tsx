@@ -3,11 +3,15 @@ import { createPortal } from 'react-dom';
 import dynamic from 'next/dynamic';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import { PixelIcon } from '@/components/ui/PixelIcon';
+import { useToast } from '@/contexts/ToastContext';
+import { useConfirm } from '@/contexts/ConfirmContext';
+import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner';
+import ErrorDisplay from '@/components/ui/feedback/ErrorDisplay';
 
 // Dynamic import of MidiPlayer to avoid SSR issues
 const MidiPlayer = dynamic(() => import('@/components/ui/media/MidiPlayer'), {
   ssr: false,
-  loading: () => <div className="text-sm text-nb-ink-mid">Loading player...</div>
+  loading: () => <LoadingSpinner layout="row" message="Loading player..." className="justify-start" />
 });
 
 interface MidiFile {
@@ -27,6 +31,8 @@ interface MidiManagerProps {
 }
 
 export default function MidiManager({ username }: MidiManagerProps) {
+  const { showSuccess } = useToast();
+  const confirm = useConfirm();
   const [midiFiles, setMidiFiles] = useState<MidiFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -92,7 +98,7 @@ export default function MidiManager({ username }: MidiManagerProps) {
 
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this MIDI file?')) return;
+    if (!(await confirm({ title: 'Delete this MIDI file?', message: "This can't be undone.", confirmText: 'Delete', variant: 'danger' }))) return;
 
     try {
       const capRes = await fetch('/api/cap/media', { method: 'POST' });
@@ -140,7 +146,7 @@ export default function MidiManager({ username }: MidiManagerProps) {
 
       if (response.ok) {
         setSelectedMidi(id);
-        alert('Profile music updated.');
+        showSuccess('Profile music updated.');
       } else {
         setError('Failed to update profile MIDI');
       }
@@ -276,12 +282,7 @@ export default function MidiManager({ username }: MidiManagerProps) {
   };
 
   if (loading) {
-    return (
-      <div className="text-center py-8">
-        <div className="animate-spin w-8 h-8 border-2 border-thread-pine border-t-transparent rounded-full mx-auto mb-2"></div>
-        <p className="text-thread-sage">Loading MIDI files...</p>
-      </div>
-    );
+    return <LoadingSpinner message="Loading MIDI files..." className="py-8" />;
   }
 
   return (
@@ -483,9 +484,7 @@ export default function MidiManager({ username }: MidiManagerProps) {
 
 
       {error && (
-        <div className="p-3 bg-red-100 text-red-700 border border-red-300 rounded text-sm">
-          {error}
-        </div>
+        <ErrorDisplay title={error} />
       )}
 
       {success && (

@@ -12,6 +12,9 @@ import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
 import { getSessionUser } from '@/lib/auth/server';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import { PixelIcon } from '@/components/ui/PixelIcon';
+import Modal from '@/components/ui/feedback/Modal';
+import { useToast } from '@/contexts/ToastContext';
+import { useConfirm } from '@/contexts/ConfirmContext';
 
 interface QueueStats {
   pending: number;
@@ -91,6 +94,8 @@ interface Props {
 }
 
 export default function CrawlerAdmin({ siteConfig }: Props) {
+  const { showSuccess, showError } = useToast();
+  const confirm = useConfirm();
   const [stats, setStats] = useState<QueueStats | null>(null);
   const [health, setHealth] = useState<HealthStats | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([]);
@@ -234,11 +239,11 @@ export default function CrawlerAdmin({ siteConfig }: Props) {
         await fetchData();
       } else {
         const error = await response.json();
-        alert(error.error || 'Crawler run failed');
+        showError(error.error || 'Crawler run failed');
       }
     } catch (error) {
       console.error('Failed to run crawler:', error);
-      alert('Failed to run crawler');
+      showError('Failed to run crawler');
     } finally {
       setRunning(false);
     }
@@ -260,11 +265,11 @@ export default function CrawlerAdmin({ siteConfig }: Props) {
         setSelectedResult(data.result);
       } else {
         const error = await response.json();
-        alert(error.error || 'Test crawl failed');
+        showError(error.error || 'Test crawl failed');
       }
     } catch (error) {
       console.error('Failed to test crawl:', error);
-      alert('Failed to test crawl');
+      showError('Failed to test crawl');
     } finally {
       setTesting(false);
     }
@@ -289,11 +294,11 @@ export default function CrawlerAdmin({ siteConfig }: Props) {
         await fetchData();
       } else {
         const error = await response.json();
-        alert(error.error || 'Failed to run item');
+        showError(error.error || 'Failed to run item');
       }
     } catch (error) {
       console.error('Failed to run queue item:', error);
-      alert('Failed to run item');
+      showError('Failed to run item');
     } finally {
       setRunningItemId(null);
     }
@@ -315,25 +320,25 @@ export default function CrawlerAdmin({ siteConfig }: Props) {
       });
 
       if (response.ok) {
-        alert('URL added to queue successfully');
+        showSuccess('URL added to queue.');
         setNewUrl('');
         setNewPriority(3);
         setExtractAllLinks(false);
         await fetchData();
       } else {
         const error = await response.json();
-        alert(error.error || 'Failed to add URL');
+        showError(error.error || 'Failed to add URL');
       }
     } catch (error) {
       console.error('Failed to add URL:', error);
-      alert('Failed to add URL');
+      showError('Failed to add URL');
     } finally {
       setAddingUrl(false);
     }
   };
 
   const retryFailed = async () => {
-    if (!confirm('Retry all failed items?')) return;
+    if (!(await confirm({ title: 'Retry all failed items?', confirmText: 'Retry' }))) return;
 
     try {
       const response = await csrfFetch('/api/admin/crawler/retry', {
@@ -343,19 +348,19 @@ export default function CrawlerAdmin({ siteConfig }: Props) {
 
       if (response.ok) {
         const data = await response.json();
-        alert(`Reset ${data.retriedCount} failed items to pending`);
+        showSuccess(`Reset ${data.retriedCount} failed items to pending`);
         await fetchData();
       } else {
-        alert('Failed to retry items');
+        showError('Failed to retry items');
       }
     } catch (error) {
       console.error('Failed to retry:', error);
-      alert('Failed to retry items');
+      showError('Failed to retry items');
     }
   };
 
   const cleanupOld = async () => {
-    if (!confirm('Clean up completed items older than 30 days?')) return;
+    if (!(await confirm({ title: 'Clean up completed items older than 30 days?', confirmText: 'Clean up', variant: 'danger' }))) return;
 
     try {
       const response = await csrfFetch('/api/admin/crawler/cleanup', {
@@ -366,14 +371,14 @@ export default function CrawlerAdmin({ siteConfig }: Props) {
 
       if (response.ok) {
         const data = await response.json();
-        alert(`Cleaned up ${data.deletedCount} old items`);
+        showSuccess(`Cleaned up ${data.deletedCount} old items`);
         await fetchData();
       } else {
-        alert('Failed to cleanup items');
+        showError('Failed to cleanup items');
       }
     } catch (error) {
       console.error('Failed to cleanup:', error);
-      alert('Failed to cleanup items');
+      showError('Failed to cleanup items');
     }
   };
 
@@ -411,25 +416,25 @@ export default function CrawlerAdmin({ siteConfig }: Props) {
       });
 
       if (response.ok) {
-        alert('Blocked site added successfully');
+        showSuccess('Blocked site added.');
         setNewBlockedDomain('');
         setNewBlockedCategory('social_media');
         setNewBlockedReason('');
         await fetchBlockedSites();
       } else {
         const error = await response.json();
-        alert(error.error || 'Failed to add blocked site');
+        showError(error.error || 'Failed to add blocked site');
       }
     } catch (error) {
       console.error('Failed to add blocked site:', error);
-      alert('Failed to add blocked site');
+      showError('Failed to add blocked site');
     } finally {
       setAddingBlockedSite(false);
     }
   };
 
   const deleteBlockedSite = async (id: string, domain: string) => {
-    if (!confirm(`Remove ${domain} from blocked list?`)) return;
+    if (!(await confirm({ title: `Remove ${domain} from blocked list?`, confirmText: 'Remove', variant: 'danger' }))) return;
 
     try {
       const response = await csrfFetch(`/api/admin/blocked-sites/${id}`, {
@@ -437,14 +442,14 @@ export default function CrawlerAdmin({ siteConfig }: Props) {
       });
 
       if (response.ok) {
-        alert('Blocked site removed successfully');
+        showSuccess('Blocked site removed.');
         await fetchBlockedSites();
       } else {
-        alert('Failed to remove blocked site');
+        showError('Failed to remove blocked site');
       }
     } catch (error) {
       console.error('Failed to delete blocked site:', error);
-      alert('Failed to delete blocked site');
+      showError('Failed to delete blocked site');
     }
   };
 
@@ -460,18 +465,18 @@ export default function CrawlerAdmin({ siteConfig }: Props) {
         setCleanupReport(data);
         setShowCleanupModal(true);
       } else {
-        alert('Failed to preview cleanup');
+        showError('Failed to preview cleanup');
       }
     } catch (error) {
       console.error('Failed to preview cleanup:', error);
-      alert('Failed to preview cleanup');
+      showError('Failed to preview cleanup');
     } finally {
       setCleaningUp(false);
     }
   };
 
   const executeCleanup = async () => {
-    if (!confirm('Execute cleanup? This will mark affected sites as rejected and remove them from the crawl queue.')) return;
+    if (!(await confirm({ title: 'Execute cleanup?', message: 'This will mark affected sites as rejected and remove them from the crawl queue.', confirmText: 'Run cleanup', variant: 'danger' }))) return;
 
     try {
       setCleaningUp(true);
@@ -482,15 +487,15 @@ export default function CrawlerAdmin({ siteConfig }: Props) {
       if (response.ok) {
         const data = await response.json();
         setCleanupReport(data);
-        alert(`Cleanup completed! Updated ${data.totalAffected.indexedSites} indexed sites and removed ${data.totalAffected.crawlQueue} queue items.`);
+        showSuccess(`Cleanup done. Updated ${data.totalAffected.indexedSites} indexed sites and removed ${data.totalAffected.crawlQueue} queue items.`);
         setShowCleanupModal(false);
         await fetchData();
       } else {
-        alert('Failed to execute cleanup');
+        showError('Failed to execute cleanup');
       }
     } catch (error) {
       console.error('Failed to execute cleanup:', error);
-      alert('Failed to execute cleanup');
+      showError('Failed to execute cleanup');
     } finally {
       setCleaningUp(false);
     }
@@ -1127,66 +1132,70 @@ export default function CrawlerAdmin({ siteConfig }: Props) {
 
               {/* Cleanup Modal */}
               {showCleanupModal && cleanupReport && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                  <div className="bg-white rounded-lg p-6 max-w-4xl max-h-[90vh] overflow-y-auto">
-                    <h3 className="text-xl font-bold mb-4">Cleanup Preview</h3>
-
-                    <div className="mb-4 grid grid-cols-2 gap-4">
-                      <div className="bg-blue-50 p-3 rounded">
-                        <div className="text-sm text-gray-600">Indexed Sites Affected</div>
-                        <div className="text-2xl font-bold">{cleanupReport.totalAffected.indexedSites}</div>
-                      </div>
-                      <div className="bg-purple-50 p-3 rounded">
-                        <div className="text-sm text-gray-600">Queue Items to Remove</div>
-                        <div className="text-2xl font-bold">{cleanupReport.totalAffected.crawlQueue}</div>
-                      </div>
-                    </div>
-
-                    <div className="mb-4">
-                      <h4 className="font-semibold mb-2">Breakdown by Category:</h4>
-                      {Object.entries(cleanupReport.summary).map(([category, counts]: [string, any]) => (
-                        <div key={category} className="flex justify-between py-1 text-sm">
-                          <span className="font-mono">{category.replace(/_/g, ' ')}</span>
-                          <span>
-                            IndexedSites: {counts.indexedSites}, Queue: {counts.crawlQueue}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="mb-4">
-                      <h4 className="font-semibold mb-2">Sample Affected Sites:</h4>
-                      <div className="max-h-48 overflow-y-auto border rounded p-2 bg-gray-50">
-                        {cleanupReport.affectedSites.indexedSites.slice(0, 10).map((site: any, idx: number) => (
-                          <div key={idx} className="text-xs py-1">
-                            <span className="font-mono">{site.url}</span> - {site.title}
-                          </div>
-                        ))}
-                        {cleanupReport.affectedSites.indexedSites.length > 10 && (
-                          <div className="text-xs text-gray-500 py-1">
-                            ... and {cleanupReport.affectedSites.indexedSites.length - 10} more
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex gap-3 justify-end">
+                <Modal
+                  isOpen
+                  onClose={() => setShowCleanupModal(false)}
+                  title="Cleanup Preview"
+                  maxWidth="max-w-4xl"
+                  footer={
+                    <div className="flex flex-wrap justify-end gap-2">
                       <button
+                        type="button"
                         onClick={() => setShowCleanupModal(false)}
-                        className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                        className="btn btn--secondary"
                       >
                         Cancel
                       </button>
                       <button
+                        type="button"
                         onClick={executeCleanup}
                         disabled={cleaningUp}
-                        className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50"
+                        className="btn btn--primary ts-btn-danger"
                       >
-                        {cleaningUp ? '⏳ Cleaning...' : '🚀 Execute Cleanup'}
+                        {cleaningUp ? 'Cleaning...' : 'Execute Cleanup'}
                       </button>
                     </div>
+                  }
+                >
+                  <div className="mb-4 grid grid-cols-2 gap-4">
+                    <div className="bg-blue-50 p-3 rounded">
+                      <div className="text-sm text-gray-600">Indexed Sites Affected</div>
+                      <div className="text-2xl font-bold">{cleanupReport.totalAffected.indexedSites}</div>
+                    </div>
+                    <div className="bg-purple-50 p-3 rounded">
+                      <div className="text-sm text-gray-600">Queue Items to Remove</div>
+                      <div className="text-2xl font-bold">{cleanupReport.totalAffected.crawlQueue}</div>
+                    </div>
                   </div>
-                </div>
+
+                  <div className="mb-4">
+                    <h4 className="font-semibold mb-2">Breakdown by Category:</h4>
+                    {Object.entries(cleanupReport.summary).map(([category, counts]: [string, any]) => (
+                      <div key={category} className="flex justify-between py-1 text-sm">
+                        <span className="font-mono">{category.replace(/_/g, ' ')}</span>
+                        <span>
+                          IndexedSites: {counts.indexedSites}, Queue: {counts.crawlQueue}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold mb-2">Sample Affected Sites:</h4>
+                    <div className="max-h-48 overflow-y-auto border rounded p-2 bg-gray-50">
+                      {cleanupReport.affectedSites.indexedSites.slice(0, 10).map((site: any, idx: number) => (
+                        <div key={idx} className="text-xs py-1">
+                          <span className="font-mono">{site.url}</span> - {site.title}
+                        </div>
+                      ))}
+                      {cleanupReport.affectedSites.indexedSites.length > 10 && (
+                        <div className="text-xs text-gray-500 py-1">
+                          ... and {cleanupReport.affectedSites.indexedSites.length - 10} more
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </Modal>
               )}
             </div>
 

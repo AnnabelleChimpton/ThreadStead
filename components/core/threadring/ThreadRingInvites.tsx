@@ -2,6 +2,9 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import UserMention from "@/components/ui/navigation/UserMention";
 import { csrfFetch } from "@/lib/api/client/csrf-fetch";
+import { useToast } from "@/contexts/ToastContext";
+import LoadingSpinner from "@/components/ui/feedback/LoadingSpinner";
+import ErrorDisplay from "@/components/ui/feedback/ErrorDisplay";
 
 interface ThreadRingInvite {
   id: string;
@@ -35,6 +38,7 @@ export default function ThreadRingInvites({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [responding, setResponding] = useState<string | null>(null);
+  const { showError } = useToast();
 
   useEffect(() => {
     fetchInvites();
@@ -93,26 +97,18 @@ export default function ThreadRingInvites({
       
     } catch (error: any) {
       console.error("Error responding to invite:", error);
-      alert(error.message || "Failed to respond to invite");
+      showError(error.message || "Failed to respond to invite");
     } finally {
       setResponding(null);
     }
   };
 
   if (loading) {
-    return (
-      <div className="text-sm text-gray-600">
-        Loading invites...
-      </div>
-    );
+    return <LoadingSpinner layout="row" message="Loading invites..." className="justify-start" />;
   }
 
   if (error) {
-    return (
-      <div className="text-sm text-red-600">
-        Error loading invites: {error}
-      </div>
-    );
+    return <ErrorDisplay title="Error loading invites" message={error} onRetry={fetchInvites} />;
   }
 
   if (invites.length === 0) {

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useToast } from '@/contexts/ToastContext';
 import ColorInput from './shared/ColorInput';
 import SliderInput from './shared/SliderInput';
 import TargetClassSelector from './shared/TargetClassSelector';
@@ -11,6 +12,7 @@ const SHADOW_TYPES = ['box', 'text'] as const;
 type ShadowType = typeof SHADOW_TYPES[number];
 
 export default function ShadowGenerator({ onInsertCSS }: ShadowGeneratorProps) {
+  const { showWarning } = useToast();
   const [shadowType, setShadowType] = useState<ShadowType>('box');
   const [offsetX, setOffsetX] = useState(0);
   const [offsetY, setOffsetY] = useState(4);
@@ -21,7 +23,7 @@ export default function ShadowGenerator({ onInsertCSS }: ShadowGeneratorProps) {
 
   const handleInsert = () => {
     if (!targetClass) {
-      alert('Please select a target element first!');
+      showWarning('Please select a target element first.');
       return;
     }
 

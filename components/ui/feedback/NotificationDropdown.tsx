@@ -5,6 +5,8 @@ import { useRouter } from "next/router";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import type { NotificationData } from "./NotificationList";
 import { PixelIcon, type PixelIconName } from '@/components/ui/PixelIcon';
+import LoadingSpinner from "@/components/ui/feedback/LoadingSpinner";
+import EmptyState from "@/components/ui/feedback/EmptyState";
 
 interface NotificationDropdownProps {
   className?: string;
@@ -276,13 +278,9 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
 
           <div className="max-h-80 overflow-y-auto">
             {loading ? (
-              <div className="notification-dropdown-item text-center text-thread-sage">
-                Loading...
-              </div>
+              <LoadingSpinner className="notification-dropdown-item" />
             ) : notifications.length === 0 ? (
-              <div className="notification-dropdown-item text-center text-thread-sage">
-                No notifications yet
-              </div>
+              <EmptyState variant="plain" as="p" title="No notifications yet" className="notification-dropdown-item" />
             ) : (
               notifications.map((notification) => (
                 <div

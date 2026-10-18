@@ -4,6 +4,8 @@ import Layout from '@/components/ui/layout/Layout';
 import RetroCard from '@/components/ui/layout/RetroCard';
 import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
 import { GetServerSideProps } from 'next';
+import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner';
+import ErrorDisplay from '@/components/ui/feedback/ErrorDisplay';
 
 interface PolicyData {
   privacy_full: string;
@@ -42,11 +44,11 @@ export default function PrivacyPolicyPage({ siteConfig }: PrivacyPolicyPageProps
 
   const renderContent = () => {
     if (loading) {
-      return <p>Loading privacy policy...</p>;
+      return <LoadingSpinner message="Loading privacy policy..." className="py-8" />;
     }
 
     if (error) {
-      return <p className="text-red-600">{error}</p>;
+      return <ErrorDisplay title={error} />;
     }
 
     // Check if content looks like markdown

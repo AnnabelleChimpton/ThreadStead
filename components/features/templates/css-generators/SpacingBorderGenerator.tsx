@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useToast } from '@/contexts/ToastContext';
 import ColorInput from './shared/ColorInput';
 import SliderInput from './shared/SliderInput';
 import UnitInput from './shared/UnitInput';
@@ -12,6 +13,7 @@ const BORDER_STYLES = ['solid', 'dashed', 'dotted', 'double', 'none'];
 const UNITS = ['px', 'rem', 'em', '%'];
 
 export default function SpacingBorderGenerator({ onInsertCSS }: SpacingBorderGeneratorProps) {
+  const { showWarning } = useToast();
   const [paddingValue, setPaddingValue] = useState(20);
   const [paddingUnit, setPaddingUnit] = useState('px');
   const [marginValue, setMarginValue] = useState(16);
@@ -24,7 +26,7 @@ export default function SpacingBorderGenerator({ onInsertCSS }: SpacingBorderGen
 
   const handleInsert = () => {
     if (!targetClass) {
-      alert('Please select a target element first!');
+      showWarning('Please select a target element first.');
       return;
     }
 

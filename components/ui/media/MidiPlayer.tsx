@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useGlobalAudio } from '@/contexts/GlobalAudioContext';
+import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner';
 import { PixelIcon } from '@/components/ui/PixelIcon';
 
 type PlayerMode = 'compact' | 'hybrid' | 'full';
@@ -2811,18 +2812,16 @@ export default function MidiPlayer({
 
   if (isLoading) {
     return (
-      <div className={`bg-white rounded-lg shadow-lg border-2 border-black p-6 ${className}`}>
-        <div className="flex items-center justify-center">
-          <span>Loading MIDI...</span>
-        </div>
+      <div className={`bg-nb-paper text-nb-ink rounded-cozy shadow-nb border-2 border-nb-ink-mid p-6 ${className}`}>
+        <LoadingSpinner message="Loading MIDI..." />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className={`bg-white rounded-lg shadow-lg border-2 border-black p-6 ${className}`}>
-        <div className="p-3 bg-red-100 text-red-700 rounded-lg text-sm">
+      <div className={`bg-nb-paper text-nb-ink rounded-cozy shadow-nb border-2 border-nb-ink-mid p-6 ${className}`}>
+        <div className="text-sm text-nb-rose-ink">
           {error}
         </div>
       </div>
@@ -2832,13 +2831,13 @@ export default function MidiPlayer({
   // Compact mode (minimal floating player)
   if (playerMode === 'compact') {
     return (
-      <div className={`fixed bottom-4 z-50 bg-white rounded-lg shadow-lg border-2 border-black p-3 ${className}
+      <div className={`fixed bottom-4 z-50 bg-nb-paper text-nb-ink rounded-cozy shadow-nb border-2 border-nb-ink-mid p-3 ${className}
         sm:right-4 sm:left-auto
         max-sm:left-1/2 max-sm:transform max-sm:-translate-x-1/2 max-sm:max-w-[calc(100vw-2rem)]`}>
         <div className="flex items-center gap-2 sm:gap-3">
           <button
             onClick={play}
-            className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center bg-blue-500 hover:bg-blue-600 text-white rounded-full transition-colors flex-shrink-0"
+            className="btn btn--primary !p-0 w-11 h-11 sm:w-10 sm:h-10 flex items-center justify-center flex-shrink-0"
             aria-label={isPlaying ? 'Stop' : 'Play'}
           >
             <PixelIcon name={isPlaying ? 'pause' : 'play'} size={16} />
@@ -2847,9 +2846,9 @@ export default function MidiPlayer({
           <div className="flex-1 min-w-0">
             <div className="text-xs sm:text-sm font-medium truncate">{title}</div>
             {isPlaying && (
-              <div className="w-full bg-gray-200 rounded-full h-1 mt-1">
+              <div className="w-full bg-nb-ink-mid/20 rounded-full h-1 mt-1">
                 <div 
-                  className="bg-blue-500 h-1 rounded-full transition-all"
+                  className="bg-nb-ink h-1 rounded-full"
                   style={{ width: `${progress}%` }}
                 />
               </div>
@@ -2859,14 +2858,14 @@ export default function MidiPlayer({
           <div className="relative">
             <button
               onClick={() => setShowVolumeSlider(!showVolumeSlider)}
-              className="text-gray-600 hover:text-gray-800"
+              className="text-nb-ink-mid hover:text-nb-ink"
               aria-label="Volume"
             >
               <PixelIcon name="volume" size={16} />
             </button>
             
             {showVolumeSlider && (
-              <div className="absolute bottom-full right-0 mb-2 p-2 bg-white border-2 border-black rounded shadow-lg">
+              <div className="absolute bottom-full right-0 mb-2 p-2 bg-nb-paper border-2 border-nb-ink-mid rounded-cozy shadow-nb-sm">
                 <input
                   type="range"
                   min="0"
@@ -2888,7 +2887,7 @@ export default function MidiPlayer({
                 startVisualization();
               }
             }}
-            className="text-gray-600 hover:text-gray-800 text-sm"
+            className="text-nb-ink-mid hover:text-nb-ink text-sm"
             title="Expand player"
             aria-label="Expand player"
           >
@@ -2902,7 +2901,7 @@ export default function MidiPlayer({
   // Hybrid mode (floating with visualizer)
   if (playerMode === 'hybrid') {
     return (
-      <div className={`fixed bottom-4 z-50 bg-white rounded-lg shadow-lg border-2 border-black p-4 ${className} 
+      <div className={`fixed bottom-4 z-50 bg-nb-paper text-nb-ink rounded-cozy shadow-nb border-2 border-nb-ink-mid p-4 ${className} 
         sm:right-4 sm:left-auto sm:max-w-[400px]
         max-sm:left-1/2 max-sm:transform max-sm:-translate-x-1/2 max-sm:max-w-[calc(100vw-2rem)] max-sm:w-full max-sm:mx-4`}>
         <div className="flex items-center justify-between mb-3">
@@ -2910,7 +2909,7 @@ export default function MidiPlayer({
           <div className="flex gap-1">
             <button
               onClick={() => setPlayerMode('compact')}
-              className="text-gray-600 hover:text-gray-800 text-xs"
+              className="text-nb-ink-mid hover:text-nb-ink text-xs"
               title="Minimize"
               aria-label="Minimize"
             >
@@ -2924,7 +2923,7 @@ export default function MidiPlayer({
                   startVisualization();
                 }
               }}
-              className="text-gray-600 hover:text-gray-800 text-xs"
+              className="text-nb-ink-mid hover:text-nb-ink text-xs"
               title="Full mode"
               aria-label="Full mode"
             >
@@ -2937,25 +2936,25 @@ export default function MidiPlayer({
         <div className="flex items-center gap-2">
           <button
             onClick={play}
-            className="px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium text-sm transition-colors flex-shrink-0"
+            className="btn btn--primary min-h-[44px] sm:min-h-0 text-sm flex-shrink-0"
           >
             {isPlaying ? 'Stop' : 'Play'}
           </button>
           
           {loop && (
-            <span className="text-gray-600" title="Loop on" aria-label="Loop on"><PixelIcon name="repeat" size={14} /></span>
+            <span className="text-nb-ink-mid" title="Loop on" aria-label="Loop on"><PixelIcon name="repeat" size={14} /></span>
           )}
         </div>
         
         {duration > 0 && (
           <div>
-            <div className="flex justify-between text-sm text-gray-600 mb-1">
+            <div className="flex justify-between text-sm text-nb-ink-mid mb-1">
               <span>{formatTime((progress / 100) * duration)}</span>
               <span>{formatTime(duration)}</span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="w-full bg-nb-ink-mid/20 rounded-full h-2">
               <div 
-                className="bg-blue-500 h-2 rounded-full transition-all"
+                className="bg-nb-ink h-2 rounded-full"
                 style={{ width: `${progress}%` }}
               />
             </div>
@@ -2963,7 +2962,7 @@ export default function MidiPlayer({
         )}
         
         <div className="flex items-center gap-2 sm:gap-3">
-          <span className="flex-shrink-0 text-gray-600"><PixelIcon name="volume" size={16} /></span>
+          <span className="flex-shrink-0 text-nb-ink-mid"><PixelIcon name="volume" size={16} /></span>
           <input
             type="range"
             min="0"
@@ -2973,7 +2972,7 @@ export default function MidiPlayer({
             className="flex-1 min-w-0"
             aria-label="Volume"
           />
-          <span className="text-xs sm:text-sm text-gray-600 flex-shrink-0">{volume}%</span>
+          <span className="text-xs sm:text-sm text-nb-ink-mid flex-shrink-0">{volume}%</span>
           <div className="flex gap-1">
             <button
               onClick={() => {
@@ -2985,7 +2984,7 @@ export default function MidiPlayer({
                   stopVisualization();
                 }
               }}
-              className="px-2 py-1 bg-purple-500 hover:bg-purple-600 text-white text-sm rounded transition-colors flex-shrink-0"
+              className="btn btn--secondary ts-icon-button !p-1.5 flex-shrink-0"
               title="Toggle retro visualizer"
               aria-label="Toggle retro visualizer"
             >
@@ -2993,11 +2992,7 @@ export default function MidiPlayer({
             </button>
             <button
               onClick={() => togglePianoSustain(!pianoSustainRef.current.enabled)}
-              className={`px-2 py-1 text-sm rounded transition-colors flex-shrink-0 ${
-                pianoSustainRef.current.enabled 
-                  ? 'bg-yellow-500 hover:bg-yellow-600 text-white' 
-                  : 'bg-gray-300 hover:bg-gray-400 text-gray-700'
-              }`}
+              className={"ts-chip ts-icon-button !p-1.5 flex-shrink-0"}
               title="Piano sustain pedal"
               aria-label="Piano sustain pedal"
               aria-pressed={pianoSustainRef.current.enabled}
@@ -3131,12 +3126,12 @@ export default function MidiPlayer({
 
   // Full mode (large, non-floating)
   return (
-    <div className={`bg-white rounded-lg shadow-lg border-2 border-black p-4 sm:p-6 ${className}`}>
+    <div className={`bg-nb-paper text-nb-ink rounded-cozy shadow-nb border-2 border-nb-ink-mid p-4 sm:p-6 ${className}`}>
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-base sm:text-lg font-bold truncate flex-1">{title}</h3>
         <button
           onClick={() => setPlayerMode('compact')}
-          className="text-gray-600 hover:text-gray-800 text-sm flex-shrink-0 ml-2"
+          className="text-nb-ink-mid hover:text-nb-ink text-sm flex-shrink-0 ml-2"
           title="Minimize to compact mode"
           aria-label="Minimize to compact mode"
         >
@@ -3148,25 +3143,25 @@ export default function MidiPlayer({
         <div className="flex items-center gap-2 sm:gap-4">
           <button
             onClick={play}
-            className="px-4 py-2 sm:px-6 sm:py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors flex-shrink-0"
+            className="btn btn--primary btn--lg min-h-[44px] flex-shrink-0"
           >
             {isPlaying ? 'Stop' : 'Play'}
           </button>
           
           {loop && (
-            <span className="text-sm text-gray-600">Loop enabled</span>
+            <span className="text-sm text-nb-ink-mid">Loop enabled</span>
           )}
         </div>
         
         {duration > 0 && (
           <div>
-            <div className="flex justify-between text-sm text-gray-600 mb-1">
+            <div className="flex justify-between text-sm text-nb-ink-mid mb-1">
               <span>{formatTime((progress / 100) * duration)}</span>
               <span>{formatTime(duration)}</span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="w-full bg-nb-ink-mid/20 rounded-full h-2">
               <div 
-                className="bg-blue-500 h-2 rounded-full transition-all"
+                className="bg-nb-ink h-2 rounded-full"
                 style={{ width: `${progress}%` }}
               />
             </div>
@@ -3174,7 +3169,7 @@ export default function MidiPlayer({
         )}
         
         <div className="flex items-center gap-2 sm:gap-3">
-          <span className="flex-shrink-0 text-gray-600"><PixelIcon name="volume" size={16} /></span>
+          <span className="flex-shrink-0 text-nb-ink-mid"><PixelIcon name="volume" size={16} /></span>
           <input
             type="range"
             min="0"
@@ -3184,7 +3179,7 @@ export default function MidiPlayer({
             className="flex-1 min-w-0"
             aria-label="Volume"
           />
-          <span className="text-xs sm:text-sm text-gray-600 flex-shrink-0">{volume}%</span>
+          <span className="text-xs sm:text-sm text-nb-ink-mid flex-shrink-0">{volume}%</span>
           <div className="flex gap-1">
             <button
               onClick={() => {
@@ -3196,7 +3191,7 @@ export default function MidiPlayer({
                   stopVisualization();
                 }
               }}
-              className="px-2 py-1 bg-purple-500 hover:bg-purple-600 text-white text-sm rounded transition-colors flex-shrink-0"
+              className="btn btn--secondary ts-icon-button !p-1.5 flex-shrink-0"
               title="Toggle retro visualizer"
               aria-label="Toggle retro visualizer"
             >
@@ -3204,11 +3199,7 @@ export default function MidiPlayer({
             </button>
             <button
               onClick={() => togglePianoSustain(!pianoSustainRef.current.enabled)}
-              className={`px-2 py-1 text-sm rounded transition-colors flex-shrink-0 ${
-                pianoSustainRef.current.enabled 
-                  ? 'bg-yellow-500 hover:bg-yellow-600 text-white' 
-                  : 'bg-gray-300 hover:bg-gray-400 text-gray-700'
-              }`}
+              className={"ts-chip ts-icon-button !p-1.5 flex-shrink-0"}
               title="Piano sustain pedal"
               aria-label="Piano sustain pedal"
               aria-pressed={pianoSustainRef.current.enabled}

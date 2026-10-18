@@ -14,6 +14,7 @@ import { PixelIcon } from '../ui/PixelIcon'
 // import DecorationMode from './DecorationMode' // Now handled by dedicated page
 import { HouseTemplate, ColorPalette, HouseCustomizations } from './HouseSVG'
 import Modal from '../ui/feedback/Modal'
+import LoadingSpinner from '../ui/feedback/LoadingSpinner'
 import Guestbook from '../shared/Guestbook'
 import { trackNavigation, trackModalOpen } from '../../lib/analytics/pixel-homes'
 
@@ -217,17 +218,6 @@ export default function PixelHomePage({
 
   // handleCancelDecorations now handled by dedicated page
 
-  if (loading) {
-    return (
-      <div className={`flex items-center justify-center py-16 ${className}`}>
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-thread-sage mx-auto"></div>
-          <div className="text-thread-sage">Loading Pixel Home...</div>
-        </div>
-      </div>
-    )
-  }
-
   if (error) {
     return (
       <div className={`flex items-center justify-center py-16 ${className}`}>
@@ -373,6 +363,13 @@ export default function PixelHomePage({
             <div className="thread-module">
               {/* Pure House Display - Always show house */}
               <div className="flex justify-center">
+                {loading ? (
+                  <LoadingSpinner
+                    size="lg"
+                    message="Loading Pixel Home..."
+                    className="w-full max-w-xl min-h-[300px] border-2 border-dotted border-nb-ink-mid/40 rounded-cozy"
+                  />
+                ) : (
                 <div className="relative">
                   <EnhancedHouseCanvas
                     template={config.houseTemplate}
@@ -390,6 +387,7 @@ export default function PixelHomePage({
                       ponds/lawns like debris. Badges live in the sidebar
                       card; the visitor trail sits below the canvas. */}
                 </div>
+                )}
               </div>
 
               {/* Recent visitors — under the artwork, not on it */}

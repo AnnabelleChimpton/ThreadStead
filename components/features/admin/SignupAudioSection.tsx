@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+import { useConfirm } from '@/contexts/ConfirmContext';
 
 interface AudioConfig {
   enabled: boolean;
@@ -9,6 +10,7 @@ interface AudioConfig {
 }
 
 export default function SignupAudioSection() {
+  const confirm = useConfirm();
   const [config, setConfig] = useState<AudioConfig>({ enabled: false });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -100,7 +102,7 @@ export default function SignupAudioSection() {
   };
 
   const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete the signup audio?')) return;
+    if (!(await confirm({ title: 'Delete the signup audio?', confirmText: 'Delete', variant: 'danger' }))) return;
 
     setLoading(true);
     try {

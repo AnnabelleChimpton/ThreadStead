@@ -6,6 +6,7 @@ import RetroCard from "@/components/ui/layout/RetroCard";
 import AdminHeader from "@/components/ui/navigation/AdminHeader";
 import { useMe } from "@/hooks/useMe";
 import { PixelIcon } from "@/components/ui/PixelIcon";
+import Modal from "@/components/ui/feedback/Modal";
 import SiteCSSSection from "@/components/features/admin/SiteCSSSection";
 import { getDefaultProfileTemplate, DEFAULT_PROFILE_TEMPLATE_INFO, type ProfileTemplateType } from "@/lib/templates/default-profile-templates";
 import ReportsSection from "@/components/features/admin/ReportsSection";
@@ -18,6 +19,8 @@ import IpManagementSection from "@/components/features/admin/IpManagementSection
 import BetaInviteAnalyticsSection from "@/components/features/admin/BetaInviteAnalyticsSection";
 import PollsSection from "@/components/features/admin/PollsSection";
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+import { useToast } from "@/contexts/ToastContext";
+import { useConfirm } from "@/contexts/ConfirmContext";
 
 // Collapsible Section Component
 function CollapsibleSection({
@@ -67,6 +70,7 @@ function PageForm({
   onCancel: () => void;
   saving?: boolean;
 }) {
+  const { showWarning } = useToast();
   const [formData, setFormData] = useState({
     slug: page?.slug || "",
     title: page?.title || "",
@@ -99,7 +103,7 @@ function PageForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.slug || !formData.title) {
-      alert("Slug and title are required");
+      showWarning("Slug and title are required");
       return;
     }
     onSave(formData);
@@ -345,6 +349,8 @@ interface AdminPageProps {
 
 export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
   const { me, isLoading } = useMe();
+  const { showSuccess, showError } = useToast();
+  const confirm = useConfirm();
   const [users, setUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [generatedKey, setGeneratedKey] = useState<string | null>(null);
@@ -448,19 +454,23 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
         const data = await res.json();
         setGeneratedKey(data.key);
       } else {
-        alert("Failed to generate beta key");
+        showError("Failed to generate beta key");
       }
     } catch (error) {
       console.error("Failed to generate beta key:", error);
-      alert("Failed to generate beta key");
+      showError("Failed to generate beta key");
     } finally {
       setGeneratingKey(false);
     }
   }
 
   async function deleteUser(userId: string, displayName: string | null) {
-    const confirmMessage = `Are you sure you want to delete user "${displayName || 'Unknown'}"? This action cannot be undone.`;
-    if (!confirm(confirmMessage)) return;
+    if (!(await confirm({
+      title: `Delete user "${displayName || 'Unknown'}"?`,
+      message: "This action cannot be undone.",
+      confirmText: "Delete",
+      variant: "danger",
+    }))) return;
 
     setDeletingUserId(userId);
     try {
@@ -472,21 +482,21 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
 
       if (res.ok) {
         setUsers(users.filter(u => u.id !== userId));
-        alert("User deleted successfully");
+        showSuccess("User deleted.");
       } else {
         const error = await res.json();
-        alert(error.error || "Failed to delete user");
+        showError(error.error || "Failed to delete user");
       }
     } catch (error) {
       console.error("Failed to delete user:", error);
-      alert("Failed to delete user");
+      showError("Failed to delete user");
     } finally {
       setDeletingUserId(null);
     }
   }
 
   async function resendVerification(userId: string, displayName: string | null) {
-    if (!confirm(`Are you sure you want to resend the verification email to "${displayName || 'Unknown'}"?`)) return;
+    if (!(await confirm({ title: `Resend the verification email to "${displayName || 'Unknown'}"?`, confirmText: "Resend" }))) return;
 
     setResendingEmailUserId(userId);
     try {
@@ -497,15 +507,15 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
       });
 
       if (res.ok) {
-        alert("Verification email sent successfully");
+        showSuccess("Verification email sent.");
         // Optionally refresh users to update status if backend updated it immediately (likely not changed until user verifies)
       } else {
         const error = await res.json();
-        alert(error.error || "Failed to send verification email");
+        showError(error.error || "Failed to send verification email");
       }
     } catch (error) {
       console.error("Failed to send verification email:", error);
-      alert("Failed to send verification email");
+      showError("Failed to send verification email");
     } finally {
       setResendingEmailUserId(null);
     }
@@ -529,17 +539,17 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
       });
 
       if (res.ok) {
-        alert("Email updated successfully");
+        showSuccess("Email updated.");
         setEmailModalUser(null);
         setEmailInput("");
         loadUsers();
       } else {
         const error = await res.json();
-        alert(error.error || "Failed to set email");
+        showError(error.error || "Failed to set email");
       }
     } catch (error) {
       console.error("Failed to set email:", error);
-      alert("Failed to set email");
+      showError("Failed to set email");
     } finally {
       setSettingEmail(false);
     }
@@ -646,7 +656,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
         await loadCustomPages();
         setEditingPage(null);
         setShowPageForm(false);
-        alert(editingPage ? "Page updated successfully" : "Page created successfully");
+        showSuccess(editingPage ? "Page updated." : "Page created.");
       } else {
         let errorMessage;
         try {
@@ -657,18 +667,18 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
           errorMessage = `Failed to save page (${res.status}): ${errorText || 'Unknown error'}`;
         }
         console.error("Save failed with error:", errorMessage);
-        alert(errorMessage);
+        showError(errorMessage);
       }
     } catch (error) {
       console.error("Failed to save page:", error);
-      alert(`Failed to save page: ${error instanceof Error ? error.message : 'Network or connection error'}`);
+      showError(`Failed to save page: ${error instanceof Error ? error.message : 'Network or connection error'}`);
     } finally {
       setSavingPage(false);
     }
   }
 
   async function deleteCustomPage(pageId: string, title: string) {
-    if (!confirm(`Are you sure you want to delete the page "${title}"? This action cannot be undone.`)) {
+    if (!(await confirm({ title: `Delete the page "${title}"?`, message: "This action cannot be undone.", confirmText: "Delete", variant: "danger" }))) {
       return;
     }
 
@@ -679,14 +689,14 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
 
       if (res.ok) {
         await loadCustomPages();
-        alert("Page deleted successfully");
+        showSuccess("Page deleted.");
       } else {
         const error = await res.json();
-        alert(error.error || "Failed to delete page");
+        showError(error.error || "Failed to delete page");
       }
     } catch (error) {
       console.error("Failed to delete page:", error);
-      alert("Failed to delete page");
+      showError("Failed to delete page");
     }
   }
 
@@ -876,11 +886,11 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
       } else {
         const error = await res.json();
         // API error response received
-        alert(error.error || "Failed to generate seed phrase");
+        showError(error.error || "Failed to generate seed phrase");
       }
     } catch (error) {
       console.error("Failed to generate seed phrase:", error);
-      alert("Failed to generate seed phrase");
+      showError("Failed to generate seed phrase");
     } finally {
       setGeneratingSeed(null);
     }
@@ -1026,7 +1036,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
   }
 
   async function deleteEmoji(emojiId: string, emojiName: string) {
-    if (!confirm(`Are you sure you want to delete the emoji ":${emojiName}:"? This action cannot be undone.`)) {
+    if (!(await confirm({ title: `Delete the emoji ":${emojiName}:"?`, message: "This action cannot be undone.", confirmText: "Delete", variant: "danger" }))) {
       return;
     }
 
@@ -1051,9 +1061,9 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
 
   function copyToClipboard(text: string) {
     navigator.clipboard.writeText(text).then(() => {
-      alert("Copied to clipboard!");
+      showSuccess("Copied to clipboard.");
     }).catch(() => {
-      alert("Failed to copy to clipboard");
+      showError("Failed to copy to clipboard");
     });
   }
 
@@ -2124,14 +2134,34 @@ We collect information you provide when creating an account..."
 
         {/* Seed Phrase Modal */}
         {generatedSeedPhrase && generatedSeedUser && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white border-2 border-black rounded-lg max-w-4xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
-              <div className="text-center">
-                <h2 className="font-bold text-xl mb-2"><PixelIcon name="lock" className="inline-block align-middle" /> Generated Seed Phrase</h2>
-                <p className="text-gray-600">
-                  Recovery seed phrase for user: <strong>{generatedSeedUser.displayName || generatedSeedUser.primaryHandle || 'Unknown User'}</strong>
-                </p>
+          <Modal
+            isOpen
+            onClose={() => {
+              setGeneratedSeedPhrase(null);
+              setGeneratedSeedUser(null);
+            }}
+            title="Generated Seed Phrase"
+            maxWidth="max-w-4xl"
+            closeOnBackdrop={false}
+            footer={
+              <div className="flex flex-wrap justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setGeneratedSeedPhrase(null);
+                    setGeneratedSeedUser(null);
+                  }}
+                  className="btn btn--secondary"
+                >
+                  Close
+                </button>
               </div>
+            }
+          >
+            <div className="space-y-4">
+              <p className="text-nb-ink-mid">
+                Recovery seed phrase for user: <strong>{generatedSeedUser.displayName || generatedSeedUser.primaryHandle || 'Unknown User'}</strong>
+              </p>
 
               <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4">
                 <h3 className="font-bold text-red-800 mb-2 flex items-center gap-2">
@@ -2167,7 +2197,7 @@ We collect information you provide when creating an account..."
                   </div>
                 </div>
 
-                <div className="flex gap-3 mb-4">
+                <div className="flex gap-3">
                   <button
                     onClick={() => copyToClipboard(generatedSeedPhrase)}
                     className="flex-1 px-4 py-2 text-sm bg-blue-200 border border-black hover:bg-blue-100 rounded shadow-[2px_2px_0_#000] transition-all flex items-center justify-center gap-2"
@@ -2183,42 +2213,56 @@ We collect information you provide when creating an account..."
                     Download Backup
                   </button>
                 </div>
-
-                <div className="text-center">
-                  <button
-                    onClick={() => {
-                      setGeneratedSeedPhrase(null);
-                      setGeneratedSeedUser(null);
-                    }}
-                    className="bg-gray-300 hover:bg-gray-200 border border-black px-6 py-2 rounded shadow-[2px_2px_0_#000] transition-all"
-                  >
-                    Close
-                  </button>
-                </div>
               </div>
             </div>
-          </div>
+          </Modal>
         )}
 
         {/* Set Email Modal */}
         {emailModalUser && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white border-2 border-black rounded-lg max-w-md w-full p-6 space-y-4">
-              <div className="text-center">
-                <h2 className="font-bold text-xl mb-2"><PixelIcon name="mail" className="inline-block align-middle" /> Set User Email</h2>
-                <p className="text-gray-600 text-sm">
-                  Setting email for: <strong>{emailModalUser.name}</strong>
-                </p>
+          <Modal
+            isOpen
+            onClose={() => {
+              if (!settingEmail) setEmailModalUser(null);
+            }}
+            title="Set User Email"
+            maxWidth="max-w-md"
+            closeOnBackdrop={false}
+            footer={
+              <div className="flex flex-wrap justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEmailModalUser(null)}
+                  disabled={settingEmail}
+                  className="btn btn--secondary"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSetEmail}
+                  disabled={settingEmail || !emailInput}
+                  className="btn btn--primary"
+                >
+                  {settingEmail ? "Saving..." : "Save Email"}
+                </button>
               </div>
+            }
+          >
+            <div className="space-y-4">
+              <p className="text-nb-ink-mid text-sm">
+                Setting email for: <strong>{emailModalUser.name}</strong>
+              </p>
 
               <div>
-                <label className="block text-sm font-bold mb-1">New Email Address</label>
+                <label htmlFor="admin-set-email" className="block text-sm font-bold mb-1">New Email Address</label>
                 <input
+                  id="admin-set-email"
                   type="email"
                   value={emailInput}
                   onChange={(e) => setEmailInput(e.target.value)}
                   placeholder="user@example.com"
-                  className="w-full border border-black p-2 bg-white"
+                  className="w-full border border-nb-ink-mid p-2 bg-nb-paper"
                 />
               </div>
 
@@ -2233,25 +2277,8 @@ We collect information you provide when creating an account..."
                   Send verification email
                 </label>
               </div>
-
-              <div className="flex gap-3 pt-2">
-                <button
-                  onClick={handleSetEmail}
-                  disabled={settingEmail || !emailInput}
-                  className="flex-1 px-4 py-2 bg-green-200 hover:bg-green-100 border border-black shadow-[2px_2px_0_#000] font-medium disabled:opacity-50"
-                >
-                  {settingEmail ? "Saving..." : "Save Email"}
-                </button>
-                <button
-                  onClick={() => setEmailModalUser(null)}
-                  disabled={settingEmail}
-                  className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 border border-black font-medium"
-                >
-                  Cancel
-                </button>
-              </div>
             </div>
-          </div>
+          </Modal>
         )}
       </div>
     </Layout>

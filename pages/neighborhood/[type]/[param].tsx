@@ -21,6 +21,7 @@ import { raceHubCall, HUB_TIMEOUT } from '@/lib/api/ringhub/ringhub-ssr'
 import { transformRingDescriptorToThreadRing, transformRingMembersBatchWithUserResolution } from '@/lib/api/ringhub/ringhub-transformers'
 import { weatherWidget } from '@/components/widgets/examples/WeatherWidget'
 import useIsMobile from '../../../hooks/useIsMobile'
+import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner'
 
 // Helper to format temperature with correct unit based on country
 const formatTemperature = (temp: number, countryCode?: string): string => {
@@ -423,10 +424,7 @@ export default function UnifiedNeighborhood({
               <div className="absolute top-4 left-4 z-30">
                 <div className="bg-thread-paper bg-opacity-95 border border-thread-sage rounded-lg px-3 py-2 shadow-lg">
                   {weatherLoading ? (
-                    <div className="flex items-center gap-2 text-xs text-thread-sage">
-                      <div className="animate-spin rounded-full h-3 w-3 border-b border-thread-sage"></div>
-                      <span>Loading weather...</span>
-                    </div>
+                    <LoadingSpinner size="sm" layout="row" message="Loading weather..." className="justify-start" />
                   ) : weatherData ? (
                     <div className="text-xs text-thread-pine">
                       <span>It&apos;s {/^[aeiou]/.test(weatherData.condition.toLowerCase()) ? 'an' : 'a'} {weatherData.condition.toLowerCase()} {formatTemperature(weatherData.temperature, weatherData.countryCode)} day in the neighborhood</span>

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Modal from '@/components/ui/feedback/Modal';
 import { DEFAULT_PROFILE_TEMPLATE_INFO, ProfileTemplateType, getDefaultProfileTemplate } from '@/lib/templates/default-profile-templates';
 import { getTemplatePreviewStyle, getTemplateGradientOverlay, TEMPLATE_PREVIEW_STYLES } from '@/lib/templates/rendering/template-preview-styles';
 
@@ -45,32 +46,31 @@ export default function TemplatePanelSelector({
     }
   };
   
+  const footer = (
+    <div className="flex flex-wrap justify-end gap-2">
+      <button type="button" onClick={onClose} className="btn btn--secondary text-sm">
+        Cancel
+      </button>
+      <button
+        type="button"
+        onClick={handleApplyTemplate}
+        disabled={!selectedTemplate}
+        className="btn btn--primary text-sm"
+      >
+        {selectedTemplate === 'clear' ? 'Clear CSS' : 'Apply Template'}
+      </button>
+    </div>
+  );
+
   return (
-    <div className="fixed inset-0 bg-transparent flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-2xl max-w-4xl w-full max-h-[80vh] overflow-y-auto">
-        {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-5 py-3 flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-bold text-gray-900">Choose a Theme</h2>
-            <p className="text-xs text-gray-600 mt-0.5">
-              Select a pre-designed theme to style your profile
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-            aria-label="Close"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-        
+    <Modal isOpen onClose={onClose} title="Choose a Theme" maxWidth="max-w-4xl" footer={footer} bodyClassName="">
+        <p className="text-xs text-nb-ink-mid px-4 sm:px-6 pt-3">
+          Select a pre-designed theme to style your profile
+        </p>
         {/* Template Grid */}
         <div className="p-4">
           {currentTemplate && (
-            <div className="mb-3 p-2 bg-green-50 border border-green-200 rounded text-xs text-green-700">
+            <div className="mb-3 p-2 border-2 border-dotted border-nb-ink-mid/40 rounded-md text-xs text-nb-ink">
               <strong>Current Theme:</strong> {DEFAULT_PROFILE_TEMPLATE_INFO[currentTemplate].name}
             </div>
           )}
@@ -87,7 +87,7 @@ export default function TemplatePanelSelector({
                   key={templateType}
                   onClick={() => setSelectedTemplate(templateType)}
                   className={`relative border-2 ${
-                    isSelected ? 'border-blue-500 shadow-lg scale-[1.02]' : 
+                    isSelected ? 'border-nb-ink shadow-nb-sm' : 
                     isCurrent ? 'border-green-500' : 
                     'border-gray-300 hover:border-gray-400'
                   } rounded-lg p-3 transition-all text-left overflow-hidden group`}
@@ -101,7 +101,7 @@ export default function TemplatePanelSelector({
                   
                   {/* Selection/Current Badges */}
                   {isSelected && (
-                    <div className="absolute top-2 right-2 bg-blue-500 text-white px-2 py-1 rounded text-xs font-bold z-10">
+                    <div className="absolute top-2 right-2 bg-nb-ink text-nb-paper px-2 py-1 rounded text-xs font-bold z-10">
                       Selected
                     </div>
                   )}
@@ -178,12 +178,12 @@ export default function TemplatePanelSelector({
             <button
               onClick={() => setSelectedTemplate('clear')}
               className={`relative border-2 ${
-                selectedTemplate === 'clear' ? 'border-blue-500 shadow-lg scale-[1.02]' : 
+                selectedTemplate === 'clear' ? 'border-nb-ink shadow-nb-sm' : 
                 'border-gray-300 hover:border-gray-400'
               } rounded-lg p-3 transition-all text-left bg-gray-50 group`}
             >
               {selectedTemplate === 'clear' && (
-                <div className="absolute top-2 right-2 bg-blue-500 text-white px-2 py-1 rounded text-xs font-bold z-10">
+                <div className="absolute top-2 right-2 bg-nb-ink text-nb-paper px-2 py-1 rounded text-xs font-bold z-10">
                   Selected
                 </div>
               )}
@@ -210,24 +210,7 @@ export default function TemplatePanelSelector({
             </button>
           </div>
           
-          {/* Action Buttons */}
-          <div className="flex justify-end gap-2 pt-3 border-t border-gray-200">
-            <button
-              onClick={onClose}
-              className="px-3 py-1.5 text-sm text-gray-600 border border-gray-300 rounded hover:bg-gray-50 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleApplyTemplate}
-              disabled={!selectedTemplate}
-              className="px-4 py-1.5 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium"
-            >
-              {selectedTemplate === 'clear' ? 'Clear CSS' : 'Apply Template'}
-            </button>
-          </div>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

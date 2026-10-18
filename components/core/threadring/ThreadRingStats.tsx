@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import UserMention from "@/components/ui/navigation/UserMention";
+import LoadingSpinner from "@/components/ui/feedback/LoadingSpinner";
 
 interface ThreadRingStatsProps {
   threadRingSlug: string;
@@ -76,7 +77,7 @@ export default function ThreadRingStats({
   if (loading) {
     return (
       <div className={`bg-white p-4 ${className}`}>
-        <div className="text-sm text-nb-ink-mid">Loading statistics...</div>
+        <LoadingSpinner message="Loading statistics..." className="py-4" />
       </div>
     );
   }

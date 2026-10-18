@@ -4,6 +4,8 @@ import { useRouter } from 'next/router'
 import type { GetServerSideProps } from 'next'
 import Layout from '@/components/ui/layout/Layout'
 import { buttonClasses } from '@/components/ui/ButtonLink'
+import EmptyState from '@/components/ui/feedback/EmptyState'
+import ErrorDisplay from '@/components/ui/feedback/ErrorDisplay'
 import { PixelIcon } from '@/components/ui/PixelIcon'
 import { publicEnv } from '@/lib/config/public-env'
 import SearchBox from '@/components/features/search/SearchBox'
@@ -259,28 +261,28 @@ function ScopedResults({ q, scope, webEnabled }: { q: string; scope: SearchScope
   }
   if (state.status === 'error') {
     return (
-      <p role="status" className="thread-module p-4 text-nb-ink">
-        Search didn’t load. Try again in a minute.
-      </p>
+      <ErrorDisplay title="Search didn’t load. Try again in a minute." />
     )
   }
   if (state.items.length === 0) {
     return (
-      <div className="thread-module p-4 sm:p-6 space-y-3">
-        <p className="text-nb-ink">
-          No {SCOPE_LABELS[scope].toLowerCase()} match “{q}”.
-        </p>
-        <div className="flex flex-wrap gap-2">
-          <Link href={searchHref({ q })} className={buttonClasses('secondary', 'sm')}>
-            Search everything instead
-          </Link>
-          {scope === 'indie' && (
-            <Link href="/community-index/submit" className={buttonClasses('secondary', 'sm')}>
-              Know a site? Feed the Spider
+      <EmptyState
+        as="p"
+        className="text-left"
+        title={<>No {SCOPE_LABELS[scope].toLowerCase()} match “{q}”.</>}
+        actions={
+          <>
+            <Link href={searchHref({ q })} className={buttonClasses('secondary', 'sm')}>
+              Search everything instead
             </Link>
-          )}
-        </div>
-      </div>
+            {scope === 'indie' && (
+              <Link href="/community-index/submit" className={buttonClasses('secondary', 'sm')}>
+                Know a site? Feed the Spider
+              </Link>
+            )}
+          </>
+        }
+      />
     )
   }
 

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
-import { PixelIcon } from '@/components/ui/PixelIcon';
+import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner';
+import EmptyState from '@/components/ui/feedback/EmptyState';
+import ErrorDisplay from '@/components/ui/feedback/ErrorDisplay';
 
 interface BetaInviteCode {
   id: string;
@@ -123,9 +125,7 @@ export default function BetaInviteCodesManager({ className = '' }: BetaInviteCod
           <span className="text-2xl">🎫</span>
           <h2 className="text-xl font-bold">Beta Invite Codes</h2>
         </div>
-        <div className="text-center py-8 text-gray-500">
-          Loading your beta invite codes...
-        </div>
+        <LoadingSpinner message="Loading your beta invite codes..." className="py-8" />
       </div>
     );
   }
@@ -137,15 +137,12 @@ export default function BetaInviteCodesManager({ className = '' }: BetaInviteCod
           <span className="text-2xl">🎫</span>
           <h2 className="text-xl font-bold">Beta Invite Codes</h2>
         </div>
-        <div className="text-center py-8 text-red-600">
-          Error: {error}
-          <button 
-            onClick={fetchBetaInviteCodes}
-            className="block mx-auto mt-2 px-4 py-2 border border-black bg-yellow-200 hover:bg-yellow-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000]"
-          >
-            Retry
-          </button>
-        </div>
+        <ErrorDisplay
+          title="Error"
+          message={error}
+          onRetry={() => { setError(null); fetchBetaInviteCodes(); }}
+          retryLabel="Retry"
+        />
       </div>
     );
   }
@@ -258,13 +255,12 @@ export default function BetaInviteCodesManager({ className = '' }: BetaInviteCod
       )}
 
       {codes.length === 0 && (
-        <div className="text-center py-8 text-gray-500">
-          <span className="mb-4 block flex justify-center">
-            <PixelIcon name="mail" size={32} />
-          </span>
-          <p>No beta invite codes found.</p>
-          <p className="text-sm mt-2">Beta invite codes are generated automatically when you create your account.</p>
-        </div>
+        <EmptyState
+          variant="plain"
+          icon="mail"
+          title="No beta invite codes found."
+          description="Beta invite codes are generated automatically when you create your account."
+        />
       )}
     </div>
   );

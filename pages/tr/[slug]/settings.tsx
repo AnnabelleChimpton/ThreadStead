@@ -13,6 +13,7 @@ import ThreadRingPromptManager from "../../../components/core/threadring/ThreadR
 import ThreadRingBlockManager from "../../../components/core/threadring/ThreadRingBlockManager";
 import { csrfFetch } from "@/lib/api/client/csrf-fetch";
 import { PixelIcon } from "../../../components/ui/PixelIcon";
+import { useConfirm } from "@/contexts/ConfirmContext";
 
 interface ThreadRingSettingsPageProps {
   siteConfig: SiteConfig;
@@ -56,6 +57,7 @@ export default function ThreadRingSettingsPage({
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const confirm = useConfirm();
 
   if (error || !ring) {
     return (
@@ -466,8 +468,13 @@ export default function ThreadRingSettingsPage({
               </p>
               <button
                 className="w-full border border-red-300 px-4 py-2 bg-white text-red-700 hover:bg-red-100 flex items-center justify-center gap-2"
-                onClick={() => {
-                  if (confirm("Are you sure you want to delete this ThreadRing? This action cannot be undone.")) {
+                onClick={async () => {
+                  if (await confirm({
+                    title: "Delete this ThreadRing?",
+                    message: "This action cannot be undone.",
+                    confirmText: "Delete",
+                    variant: "danger",
+                  })) {
                     // TODO: Implement delete
                     // TODO: Implement delete functionality
                   }

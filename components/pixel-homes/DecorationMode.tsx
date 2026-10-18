@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import EnhancedHouseCanvas from './EnhancedHouseCanvas'
 import DecorationPalette from './DecorationPalette'
 import { DecorationItem, TERRAIN_TILES } from '../../lib/pixel-homes/decoration-data'
@@ -18,6 +18,8 @@ import useDecorationSnapping from '../../hooks/pixel-homes/useDecorationSnapping
 import { DEFAULT_DECORATION_GRID, getDecorationGridSize, pixelToGrid, isValidGridPosition } from '../../lib/pixel-homes/decoration-grid-utils'
 import { getDecorationDimensions } from '../../lib/pixel-homes/decoration-dimensions'
 import { PixelIcon } from '../ui/PixelIcon'
+import { useToast } from '@/contexts/ToastContext'
+import { useConfirm } from '@/contexts/ConfirmContext'
 import useIsMobile, { useIsTouch } from '../../hooks/useIsMobile'
 import { retroSFX } from '../../lib/audio/retro-sfx'
 
@@ -49,6 +51,9 @@ export default function DecorationMode({
   initialTerrain = {},
   isSaving = false
 }: DecorationModeProps) {
+  const appToast = useToast()
+  const confirm = useConfirm()
+
   // Mobile detection
   const isMobile = useIsMobile(768)
   const isTouch = useIsTouch()
@@ -85,20 +90,6 @@ export default function DecorationMode({
   const [isDeleting, setIsDeleting] = useState(false)
   const [currentTemplate, setCurrentTemplate] = useState<HouseTemplate>(initialTemplate)
   const [currentPalette, setCurrentPalette] = useState<ColorPalette>(initialPalette)
-
-  // Toast notification state
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' | 'info' } | null>(null)
-  const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-
-  const showToast = useCallback((message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info') => {
-    if (toastTimeoutRef.current) {
-      clearTimeout(toastTimeoutRef.current)
-    }
-    setToast({ message, type })
-    toastTimeoutRef.current = setTimeout(() => {
-      setToast(null)
-    }, 3000)
-  }, [])
 
   // House & Atmosphere State
   const [atmosphere, setAtmosphere] = useState<AtmosphereSettings>(
@@ -318,13 +309,13 @@ export default function DecorationMode({
   const handleCustomSlotUpload = async (slot: number, file: File) => {
     // Validate file type
     if (!['image/png', 'image/gif', 'image/webp'].includes(file.type)) {
-      alert('Please upload a PNG, GIF, or WebP image')
+      appToast.showWarning('Please upload a PNG, GIF, or WebP image')
       return
     }
 
     // Validate file size (100KB max)
     if (file.size > 100 * 1024) {
-      alert('Image too large. Maximum size is 100KB')
+      appToast.showWarning('Image too large. Maximum size is 100KB')
       return
     }
 
@@ -373,7 +364,7 @@ export default function DecorationMode({
 
     } catch (error) {
       console.error('Error uploading custom asset:', error)
-      alert(error instanceof Error ? error.message : 'Failed to upload image')
+      appToast.showError(error instanceof Error ? error.message : 'Failed to upload image')
     } finally {
       setUploadingSlot(null)
     }
@@ -381,7 +372,7 @@ export default function DecorationMode({
 
   // Delete custom asset from a specific slot
   const handleCustomSlotDelete = async (slot: number) => {
-    if (!confirm('Remove this custom pixel art?')) return
+    if (!(await confirm({ title: 'Remove this custom pixel art?', confirmText: 'Remove', variant: 'danger' }))) return
 
     try {
       const response = await fetch('/api/home/custom-asset', {
@@ -644,7 +635,7 @@ export default function DecorationMode({
     } else {
       // Check decoration limit before adding
       if (placedDecorations.length >= MAX_DECORATIONS) {
-        showToast(`Decoration limit reached (${MAX_DECORATIONS} max)`, 'warning')
+        appToast.showWarning(`Decoration limit reached (${MAX_DECORATIONS} max)`)
         retroSFX.playError()
         return
       }
@@ -830,18 +821,6 @@ export default function DecorationMode({
       className="fixed left-0 right-0 bottom-0 z-50 bg-white flex flex-col"
       style={{ top: 'var(--nav-height, 64px)' }}
     >
-      {/* Toast Notification */}
-      {toast && (
-        <div className={`fixed top-20 left-1/2 -translate-x-1/2 z-[100] px-4 py-2 rounded-lg shadow-lg transition-all duration-300 animate-in fade-in slide-in-from-top-2 ${
-          toast.type === 'success' ? 'bg-green-100 text-green-800 border border-green-300' :
-          toast.type === 'error' ? 'bg-red-100 text-red-800 border border-red-300' :
-          toast.type === 'warning' ? 'bg-amber-100 text-amber-800 border border-amber-300' :
-          'bg-blue-100 text-blue-800 border border-blue-300'
-        }`}>
-          <span className="text-sm font-medium">{toast.message}</span>
-        </div>
-      )}
-
       {/* Header */}
       <div className="h-14 border-b border-thread-sage/30 flex items-center justify-between px-4 bg-thread-paper shrink-0">
         <div className="flex items-center gap-3">
@@ -891,8 +870,8 @@ export default function DecorationMode({
           </button>
           <div className="w-px h-6 bg-thread-sage/40 mx-1" />
           <button
-            onClick={() => {
-              if (canUndo && !confirm('You have unsaved changes. Are you sure you want to leave?')) {
+            onClick={async () => {
+              if (canUndo && !(await confirm({ title: 'Leave without saving?', message: 'You have unsaved changes.', confirmText: 'Leave', variant: 'danger' }))) {
                 return
               }
               onCancel()

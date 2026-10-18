@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useToast } from '@/contexts/ToastContext';
 import ColorInput from './shared/ColorInput';
 import SliderInput from './shared/SliderInput';
 import TargetClassSelector from './shared/TargetClassSelector';
@@ -31,6 +32,7 @@ const TEXT_ALIGNS = ['left', 'center', 'right', 'justify'];
 const TEXT_TRANSFORMS = ['none', 'uppercase', 'lowercase', 'capitalize'];
 
 export default function TypographyGenerator({ onInsertCSS }: TypographyGeneratorProps) {
+  const { showWarning } = useToast();
   const [fontFamily, setFontFamily] = useState('Arial, sans-serif');
   const [fontSize, setFontSize] = useState(16);
   const [fontWeight, setFontWeight] = useState('400');
@@ -43,7 +45,7 @@ export default function TypographyGenerator({ onInsertCSS }: TypographyGenerator
 
   const handleInsert = () => {
     if (!targetClass) {
-      alert('Please select a target element first!');
+      showWarning('Please select a target element first.');
       return;
     }
 

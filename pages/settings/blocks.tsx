@@ -4,6 +4,9 @@ import RetroCard from "@/components/ui/layout/RetroCard";
 import { useMe } from "@/hooks/useMe";
 import Link from "next/link";
 import { PixelIcon } from "@/components/ui/PixelIcon";
+import { useToast } from "@/contexts/ToastContext";
+import LoadingSpinner from "@/components/ui/feedback/LoadingSpinner";
+import EmptyState from "@/components/ui/feedback/EmptyState";
 
 interface BlockedUser {
   id: string;
@@ -39,6 +42,7 @@ export default function BlocksPage() {
   const [blocks, setBlocks] = useState<(BlockedUser | BlockedThreadRing)[]>([]);
   const [loading, setLoading] = useState(true);
   const [unblocking, setUnblocking] = useState<string | null>(null);
+  const { showError } = useToast();
 
   useEffect(() => {
     if (me?.loggedIn) {
@@ -82,11 +86,11 @@ export default function BlocksPage() {
         setBlocks(blocks.filter(b => b.id !== block.id));
       } else {
         const errorData = await response.json();
-        alert(errorData.error || "Failed to unblock");
+        showError(errorData.error || "Failed to unblock");
       }
     } catch (error) {
       console.error("Error unblocking:", error);
-      alert("Failed to unblock");
+      showError("Failed to unblock");
     } finally {
       setUnblocking(null);
     }
@@ -97,7 +101,7 @@ export default function BlocksPage() {
   }
 
   if (isLoading) {
-    return <Layout><div>Loading...</div></Layout>;
+    return <Layout><LoadingSpinner className="py-8" /></Layout>;
   }
 
   if (!me?.loggedIn) {
@@ -128,12 +132,14 @@ export default function BlocksPage() {
           </p>
 
           {loading ? (
-            <div className="text-center py-8">Loading your blocked list...</div>
+            <LoadingSpinner message="Loading your blocked list..." className="py-8" />
           ) : blocks.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <p className="mb-2"><PixelIcon name="trophy" className="inline-block align-middle" /> You haven&apos;t blocked anyone yet!</p>
-              <p className="text-sm">To block someone, use the Block button on their page or click their name in the Chat Lounge.</p>
-            </div>
+            <EmptyState
+              variant="plain"
+              icon="trophy"
+              title="You haven't blocked anyone yet!"
+              description="To block someone, use the Block button on their page or click their name in the Chat Lounge."
+            />
           ) : (
             <div className="space-y-3">
               {blocks.map((block) => (

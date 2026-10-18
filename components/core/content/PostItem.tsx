@@ -19,6 +19,7 @@ import { useViewportTracking, trackEngagement } from "@/hooks/usePostView";
 import { csrfFetch } from "@/lib/api/client/csrf-fetch";
 import { PixelIcon } from "@/components/ui/PixelIcon";
 import VisibilityBadge from "./VisibilityBadge";
+import { useConfirm } from "@/contexts/ConfirmContext";
 
 import Image from "next/image";
 import { formatDistanceToNow } from "date-fns";
@@ -168,6 +169,7 @@ export default function PostItem({
   const [optimistic, setOptimistic] = useState<CommentWireList[]>([]);
   const [spoilerRevealed, setSpoilerRevealed] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const confirm = useConfirm();
 
   // Enable truncation for feed/list views, disable for individual post pages
   // When viewContext is undefined, we're on an individual post page (no truncation)
@@ -293,7 +295,7 @@ export default function PostItem({
   }
 
   async function remove() {
-    if (!confirm("Delete this post?")) return;
+    if (!(await confirm({ title: "Delete this post?", confirmText: "Delete", variant: "danger" }))) return;
     setBusy(true);
     setErr(null);
     try {
@@ -315,7 +317,12 @@ export default function PostItem({
   }
 
   async function adminDelete() {
-    if (!confirm("Admin delete this post? This action cannot be undone.")) return;
+    if (!(await confirm({
+      title: "Admin delete this post?",
+      message: "This action cannot be undone.",
+      confirmText: "Delete",
+      variant: "danger",
+    }))) return;
     setBusy(true);
     setErr(null);
     try {
@@ -359,7 +366,11 @@ export default function PostItem({
 
   async function handleRemoveFromRing() {
     if (!threadRingContext || !canModerateRing) return;
-    if (!confirm(`Remove this post from ${threadRingContext.name}?`)) return;
+    if (!(await confirm({
+      title: `Remove this post from ${threadRingContext.name}?`,
+      confirmText: "Remove",
+      variant: "danger",
+    }))) return;
 
     setBusy(true);
     setErr(null);

@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
+import Modal from "@/components/ui/feedback/Modal";
+import { PixelIcon } from "@/components/ui/PixelIcon";
 import Link from "next/link";
 import type { UserQuickViewData } from "@/types/user-quick-view";
 import ImprovedBadgeDisplay from "@/components/shared/ImprovedBadgeDisplay";
@@ -52,18 +53,6 @@ export default function UserQuickView({ username, isOpen, onClose }: UserQuickVi
     fetchUserData();
   }, [username, isOpen]);
 
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onClose();
-      }
-    };
-
-    document.addEventListener("keydown", handleEscape);
-    return () => document.removeEventListener("keydown", handleEscape);
-  }, [isOpen, onClose]);
 
   const handleFollow = async () => {
     setFollowBusy(true);
@@ -136,7 +125,6 @@ export default function UserQuickView({ username, isOpen, onClose }: UserQuickVi
   };
 
   if (!isOpen) return null;
-  if (typeof document === "undefined") return null;
 
   const renderContent = () => {
     if (loading) {
@@ -163,7 +151,7 @@ export default function UserQuickView({ username, isOpen, onClose }: UserQuickVi
     if (error || !data) {
       return (
         <div className="p-6">
-          <p className="text-red-700 mb-4">{error || "Failed to load user data"}</p>
+          <p className="text-nb-rose-ink mb-4">{error || "Failed to load user data"}</p>
           <button onClick={onClose} className="thread-button">
             Close
           </button>
@@ -321,33 +309,26 @@ export default function UserQuickView({ username, isOpen, onClose }: UserQuickVi
     );
   };
 
-  return createPortal(
-    <>
-      {/* Invisible backdrop for click-outside-to-close */}
-      <div
-        className="fixed inset-0"
-        style={{ zIndex: 60000 }}
+  return (
+    <Modal
+      isOpen
+      onClose={onClose}
+      title={data?.displayName || username}
+      hideTitle
+      maxWidth="max-w-md"
+      bodyClassName=""
+      className="relative"
+    >
+      <button
+        type="button"
         onClick={onClose}
-      />
-
-      {/* Modal */}
-      <div
-        className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-thread-paper border-2 border-thread-sage rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto"
-        style={{ zIndex: 60001 }}
-        onClick={(e) => e.stopPropagation()}
+        className="ts-icon-button absolute top-2 right-2"
+        aria-label="Close"
       >
-        {/* Close button */}
-        <button
-          onClick={onClose}
-          className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center text-thread-charcoal hover:bg-thread-cream rounded-full transition-colors"
-          aria-label="Close"
-        >
-          ×
-        </button>
+        <PixelIcon name="close" size={16} />
+      </button>
 
-        {renderContent()}
-      </div>
-    </>,
-    document.body
+      {renderContent()}
+    </Modal>
   );
 }

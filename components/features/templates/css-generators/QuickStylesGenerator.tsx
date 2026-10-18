@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useToast } from '@/contexts/ToastContext';
 import SliderInput from './shared/SliderInput';
 import TargetClassSelector from './shared/TargetClassSelector';
 
@@ -10,6 +11,7 @@ const DISPLAY_VALUES = ['block', 'inline-block', 'flex', 'grid', 'none'];
 const POSITION_VALUES = ['static', 'relative', 'absolute', 'fixed', 'sticky'];
 
 export default function QuickStylesGenerator({ onInsertCSS }: QuickStylesGeneratorProps) {
+  const { showWarning } = useToast();
   const [opacity, setOpacity] = useState(1);
   const [rotate, setRotate] = useState(0);
   const [scale, setScale] = useState(1);
@@ -20,7 +22,7 @@ export default function QuickStylesGenerator({ onInsertCSS }: QuickStylesGenerat
 
   const handleInsert = () => {
     if (!targetClass) {
-      alert('Please select a target element first!');
+      showWarning('Please select a target element first.');
       return;
     }
 
@@ -38,7 +40,7 @@ export default function QuickStylesGenerator({ onInsertCSS }: QuickStylesGenerat
     if (zIndex !== 0) styles.push(`z-index: ${zIndex};`);
 
     if (styles.length === 0) {
-      alert('Please adjust at least one property!');
+      showWarning('Please adjust at least one property.');
       return;
     }
 

@@ -18,6 +18,8 @@ import { useMe } from "@/hooks/useMe";
 import UserMention from "@/components/ui/navigation/UserMention";
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import VisibilityBadge, { type PostVisibility } from "./VisibilityBadge";
+import { useToast } from "@/contexts/ToastContext";
+import { useConfirm } from "@/contexts/ConfirmContext";
 
 type PostIntent = "sharing" | "asking" | "feeling" | "announcing" | "showing" | "teaching" | "looking" | "celebrating" | "recommending";
 
@@ -75,6 +77,8 @@ export default function FeedPost({ post, showActivity = false, showVisibility = 
   const [optimistic, setOptimistic] = useState<CommentWire[]>([]);
   const [spoilerRevealed, setSpoilerRevealed] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const { showError } = useToast();
+  const confirm = useConfirm();
 
   // Determine the content to display
   const [content, setContent] = React.useState("");
@@ -186,7 +190,12 @@ export default function FeedPost({ post, showActivity = false, showVisibility = 
   }
 
   async function deletePost() {
-    if (!confirm("Delete this post? This action cannot be undone.")) return;
+    if (!(await confirm({
+      title: "Delete this post?",
+      message: "This action cannot be undone.",
+      confirmText: "Delete",
+      variant: "danger",
+    }))) return;
 
     try {
       const token = await mintPostCap();
@@ -200,16 +209,21 @@ export default function FeedPost({ post, showActivity = false, showVisibility = 
         // Refresh the page to remove the deleted post from feed
         window.location.reload();
       } else {
-        alert("Failed to delete post");
+        showError("Failed to delete post");
       }
     } catch (error) {
       console.error("Failed to delete post:", error);
-      alert("Failed to delete post");
+      showError("Failed to delete post");
     }
   }
 
   async function adminDeletePost() {
-    if (!confirm("Admin delete this post? This action cannot be undone.")) return;
+    if (!(await confirm({
+      title: "Admin delete this post?",
+      message: "This action cannot be undone.",
+      confirmText: "Delete",
+      variant: "danger",
+    }))) return;
 
     try {
       const res = await csrfFetch("/api/admin/delete-post", {
@@ -222,11 +236,11 @@ export default function FeedPost({ post, showActivity = false, showVisibility = 
         // Refresh the page to remove the deleted post from feed
         window.location.reload();
       } else {
-        alert("Failed to delete post");
+        showError("Failed to delete post");
       }
     } catch (error) {
       console.error("Failed to delete post:", error);
-      alert("Failed to delete post");
+      showError("Failed to delete post");
     }
   }
 

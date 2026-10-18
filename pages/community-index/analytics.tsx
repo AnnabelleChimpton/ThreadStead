@@ -8,6 +8,7 @@ import { GetServerSideProps } from 'next';
 import { getSessionUser } from '@/lib/auth/server';
 import { AnalyticsMetrics, TimeSeriesData } from '@/lib/community-index/analytics/community-analytics';
 import Layout from '@/components/ui/layout/Layout';
+import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner';
 
 interface AnalyticsPageProps {
   user: any;
@@ -89,10 +90,7 @@ export default function AnalyticsPage({ user, initialMetrics }: AnalyticsPagePro
         </div>
 
         {loading && (
-          <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-2 text-gray-600">Loading analytics...</p>
-          </div>
+          <LoadingSpinner message="Loading analytics..." className="py-8" />
         )}
 
         {/* Overview Cards */}

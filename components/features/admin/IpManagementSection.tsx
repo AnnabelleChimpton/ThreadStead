@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner';
+import EmptyState from '@/components/ui/feedback/EmptyState';
 
 interface IpTracking {
   id: string;
@@ -353,11 +355,12 @@ export default function IpManagementSection() {
 
       {/* IP Tracking Table */}
       {loading ? (
-        <div className="text-center py-8">Loading IP tracking data...</div>
+        <LoadingSpinner message="Loading IP tracking data..." className="py-8" />
       ) : ipTracking.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">
-          {showBlocked ? 'No blocked IP addresses found.' : 'No IP tracking data found.'}
-        </div>
+        <EmptyState
+          variant="plain"
+          title={showBlocked ? 'No blocked IP addresses found.' : 'No IP tracking data found.'}
+        />
       ) : (
         <>
           <div className="overflow-x-auto">

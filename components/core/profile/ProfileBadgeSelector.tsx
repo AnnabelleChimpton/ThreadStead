@@ -4,6 +4,9 @@ import ThreadRing88x31Badge from '../threadring/ThreadRing88x31Badge'
 import { UserBadgePreferences } from '@/pages/api/users/me/badge-preferences'
 import { csrfFetch } from '@/lib/api/client/csrf-fetch'
 import { PixelIcon } from '@/components/ui/PixelIcon'
+import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner'
+import EmptyState from '@/components/ui/feedback/EmptyState'
+import ErrorDisplay from '@/components/ui/feedback/ErrorDisplay'
 
 interface AvailableBadge {
   threadRingId: string
@@ -151,17 +154,19 @@ export default function ProfileBadgeSelector({ onSave, className = '' }: Profile
   if (loading) {
     return (
       <div className={`bg-white border-2 border-gray-300 rounded-lg p-6 ${className}`}>
-        <div className="text-center text-nb-ink-mid">Loading badge preferences...</div>
+        <LoadingSpinner message="Loading badge preferences..." />
       </div>
     )
   }
 
   if (!preferences) {
     return (
-      <div className={`bg-white border-2 border-gray-300 rounded-lg p-6 ${className}`}>
-        <div className="text-center text-red-600">Failed to load badge preferences</div>
-        {error && <div className="text-sm text-nb-ink-mid mt-2">{error}</div>}
-      </div>
+      <ErrorDisplay
+        title="Failed to load badge preferences"
+        message={error}
+        onRetry={() => { setError(null); loadBadgePreferences() }}
+        className={className}
+      />
     )
   }
 
@@ -252,11 +257,12 @@ export default function ProfileBadgeSelector({ onSave, className = '' }: Profile
           </div>
           
           {availableBadges.length === 0 ? (
-            <div className="text-center py-12 bg-nb-ink-mid/5 border border-nb-ink-mid/40 rounded">
-              <div className="mb-4"><PixelIcon name="trophy" size={64} /></div>
-              <p className="text-lg font-medium text-nb-ink mb-2">No badges yet!</p>
-              <p className="text-nb-ink-mid">Join Rings to collect badges and show them off here.</p>
-            </div>
+            <EmptyState
+              variant="plain"
+              icon="trophy"
+              title="No badges yet!"
+              description="Join Rings to collect badges and show them off here."
+            />
           ) : (
             <div className="space-y-3">
               {availableBadges.map((badge) => {
@@ -383,9 +389,7 @@ export default function ProfileBadgeSelector({ onSave, className = '' }: Profile
         </div>
 
         {error && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
-            {error}
-          </div>
+          <ErrorDisplay title={error} />
         )}
       </div>
     </div>

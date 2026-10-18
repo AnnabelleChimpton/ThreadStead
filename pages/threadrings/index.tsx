@@ -13,6 +13,10 @@ import { useCurrentUser } from "../../hooks/useCurrentUser";
 import { MetadataGenerator } from "@/lib/utils/metadata/metadata-generator";
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import { serializeJsonLd } from "@/lib/utils/sanitization/json-ld";
+import { useToast } from "@/contexts/ToastContext";
+import LoadingSpinner from "@/components/ui/feedback/LoadingSpinner";
+import EmptyState from "@/components/ui/feedback/EmptyState";
+import ErrorDisplay from "@/components/ui/feedback/ErrorDisplay";
 
 type RingsTab = 'discover' | 'mine';
 
@@ -74,6 +78,7 @@ export default function ThreadRingsPage({ siteConfig, initialTab }: ThreadRingsP
   const [total, setTotal] = useState<number | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const { user } = useCurrentUser();
+  const { showError } = useToast();
 
   // Tab state
   const [activeTab, setActiveTab] = useState<RingsTab>(initialTab);
@@ -183,7 +188,7 @@ export default function ThreadRingsPage({ siteConfig, initialTab }: ThreadRingsP
       
     } catch (error: any) {
       console.error("Error joining ThreadRing:", error);
-      alert(error.message || "Failed to join ThreadRing");
+      showError(error.message || "Failed to join ThreadRing");
     }
   };
 
@@ -327,39 +332,27 @@ export default function ThreadRingsPage({ siteConfig, initialTab }: ThreadRingsP
 
         {/* Content */}
         {loading ? (
-          <div className="text-center py-8">
-            <div className="text-thread-sage animate-pulse">Loading ThreadRings…</div>
-          </div>
+          <LoadingSpinner message="Loading ThreadRings…" className="py-8" />
         ) : error ? (
-          <div className="text-center py-8">
-            <div className="text-thread-sunset mb-4">{error}</div>
-            <button
-              onClick={() => fetchThreadRings(true)}
-              className="border border-thread-sage px-4 py-2 bg-thread-paper hover:bg-thread-cream text-thread-pine rounded-cozy shadow-cozy-sm hover:shadow-cozy transition-all"
-            >
-              Try Again
-            </button>
-          </div>
+          <ErrorDisplay title={error} onRetry={() => fetchThreadRings(true)} retryLabel="Try Again" />
         ) : threadRings.length === 0 ? (
           activeTab === 'mine' && !searchQuery ? (
             // Use playful empty state for "My ThreadRings" when not searching
             <NoRingsEmptyState />
           ) : (
             // Standard empty state for search results or discovery tab
-            <div className="text-center py-8">
-              <div className="text-thread-sage mb-4">
-                {searchQuery ? (
-                  activeTab === 'mine' 
-                    ? `No ThreadRing memberships found for "${searchQuery}"`
-                    : `No ThreadRings found for "${searchQuery}"`
-                ) : (
-                  activeTab === 'mine'
-                    ? "You haven't joined any ThreadRings yet"
-                    : "No ThreadRings found"
-                )}
-              </div>
-              {!searchQuery && (
-                <div className="flex gap-2 justify-center flex-wrap">
+            <EmptyState
+              title={searchQuery ? (
+                activeTab === 'mine'
+                  ? `No ThreadRing memberships found for "${searchQuery}"`
+                  : `No ThreadRings found for "${searchQuery}"`
+              ) : (
+                activeTab === 'mine'
+                  ? "You haven't joined any ThreadRings yet"
+                  : "No ThreadRings found"
+              )}
+              actions={!searchQuery ? (
+                <>
                   {activeTab === 'mine' ? (
                     <button
                       onClick={() => selectTab('discover')}
@@ -381,9 +374,9 @@ export default function ThreadRingsPage({ siteConfig, initialTab }: ThreadRingsP
                       </Link>
                     </FeatureGate>
                   )}
-                </div>
-              )}
-            </div>
+                </>
+              ) : undefined}
+            />
           )
         ) : (
           <>

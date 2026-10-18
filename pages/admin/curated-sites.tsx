@@ -10,6 +10,10 @@ import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
 import { getSessionUser } from '@/lib/auth/server';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import { PixelIcon } from '@/components/ui/PixelIcon';
+import { useToast } from '@/contexts/ToastContext';
+import { useConfirm } from '@/contexts/ConfirmContext';
+import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner';
+import EmptyState from '@/components/ui/feedback/EmptyState';
 
 interface CuratedSite {
   id: string;
@@ -30,6 +34,8 @@ interface Props {
 }
 
 export default function CuratedSitesAdmin({ siteConfig }: Props) {
+  const { showSuccess, showError } = useToast();
+  const confirm = useConfirm();
   const [sites, setSites] = useState<CuratedSite[]>([]);
   const [allTags, setAllTags] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,7 +74,7 @@ export default function CuratedSitesAdmin({ siteConfig }: Props) {
   };
 
   const seedDatabase = async () => {
-    if (!confirm('This will add the default curated sites to the database. Continue?')) {
+    if (!(await confirm({ title: 'Seed curated sites?', message: 'This will add the default curated sites to the database.', confirmText: 'Seed' }))) {
       return;
     }
 
@@ -76,12 +82,12 @@ export default function CuratedSitesAdmin({ siteConfig }: Props) {
       const response = await fetch('/api/admin/curated-sites?seed=true');
       if (response.ok) {
         const data = await response.json();
-        alert(data.message);
+        showSuccess(data.message);
         fetchSites();
       }
     } catch (error) {
       console.error('Failed to seed database:', error);
-      alert('Failed to seed database');
+      showError('Failed to seed database');
     }
   };
 
@@ -105,11 +111,11 @@ export default function CuratedSitesAdmin({ siteConfig }: Props) {
         resetForm();
       } else {
         const error = await response.json();
-        alert(error.error || 'Failed to save site');
+        showError(error.error || 'Failed to save site');
       }
     } catch (error) {
       console.error('Failed to save site:', error);
-      alert('Failed to save site');
+      showError('Failed to save site');
     }
   };
 
@@ -127,7 +133,7 @@ export default function CuratedSitesAdmin({ siteConfig }: Props) {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this site?')) {
+    if (!(await confirm({ title: 'Delete this site?', confirmText: 'Delete', variant: 'danger' }))) {
       return;
     }
 
@@ -141,7 +147,7 @@ export default function CuratedSitesAdmin({ siteConfig }: Props) {
       }
     } catch (error) {
       console.error('Failed to delete site:', error);
-      alert('Failed to delete site');
+      showError('Failed to delete site');
     }
   };
 
@@ -364,11 +370,12 @@ export default function CuratedSitesAdmin({ siteConfig }: Props) {
         {/* Sites List */}
         <div className="space-y-4">
           {loading ? (
-            <div className="text-center py-8">Loading...</div>
+            <LoadingSpinner className="py-8" />
           ) : filteredSites.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              No sites found. {sites.length === 0 && 'Click "Seed Default Sites" to get started.'}
-            </div>
+            <EmptyState
+              title="No sites found."
+              description={sites.length === 0 ? 'Click "Seed Default Sites" to get started.' : undefined}
+            />
           ) : (
             filteredSites.map(site => (
               <div

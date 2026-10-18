@@ -4,60 +4,52 @@ import { PixelIcon } from '@/components/ui/PixelIcon';
 interface LoadingSpinnerProps {
   size?: 'sm' | 'md' | 'lg';
   message?: string;
+  /** "row" puts the icon beside the text (inline in lists and buttons) */
+  layout?: 'stack' | 'row';
+  /** "inherit" takes the surrounding text colour (profile pages, where the owner's CSS sets it) */
+  tone?: 'muted' | 'inherit';
   className?: string;
 }
 
+const ICON_SIZES = { sm: 12, md: 16, lg: 24 };
+const TEXT_SIZES = { sm: 'text-xs', md: 'text-sm', lg: 'text-base' };
+
+/**
+ * The one loading indicator: a pixel reload icon (it only turns when the
+ * visitor allows motion) and the page's own words. Announced politely.
+ */
 export default function LoadingSpinner({
   size = 'md',
   message = 'Loading...',
+  layout = 'stack',
+  tone = 'muted',
   className = ''
 }: LoadingSpinnerProps) {
-  const iconSizes = {
-    sm: 16,
-    md: 24,
-    lg: 32
-  };
-
-  const messageSizeClasses = {
-    sm: 'text-xs',
-    md: 'text-sm',
-    lg: 'text-base'
-  };
-
+  const arrangement = layout === 'row' ? 'flex-row gap-2' : 'flex-col gap-2';
   return (
-    <div className={`flex flex-col items-center justify-center space-y-2 ${className}`}>
-      <div className="animate-spin">
-        <PixelIcon name="reload" size={iconSizes[size]} />
-      </div>
-      <div className={`text-gray-600 ${messageSizeClasses[size]} font-medium`}>
-        {message}
-      </div>
+    <div
+      role="status"
+      aria-live="polite"
+      className={`ts-loading flex items-center justify-center ${tone === 'muted' ? 'text-nb-ink-mid' : ''} ${arrangement} ${className}`}
+    >
+      <span className="motion-safe:animate-spin inline-flex" aria-hidden="true">
+        <PixelIcon name="reload" size={ICON_SIZES[size]} />
+      </span>
+      <span className={TEXT_SIZES[size]}>{message}</span>
     </div>
   );
 }
 
-// Specialized loading components for common use cases
-export function PageLoading({ message = 'Loading page...' }: { message?: string }) {
-  return (
-    <div className="min-h-[50vh] flex items-center justify-center">
-      <LoadingSpinner size="lg" message={message} />
-    </div>
-  );
+/** A loading block that holds roughly the space of what's coming */
+export function PageLoading({ message = 'Loading...' }: { message?: string }) {
+  return <LoadingSpinner size="lg" message={message} className="min-h-[40vh] py-12" />;
 }
 
-export function ButtonLoading({ message = 'Processing...' }: { message?: string }) {
+/** In-card loading: a notebook card with the indicator centred */
+export function CardLoading({ message = 'Loading...', className = '' }: { message?: string; className?: string }) {
   return (
-    <LoadingSpinner size="sm" message={message} className="px-2 py-1" />
-  );
-}
-
-export function HomeLoading({ message = 'Building your pixel home...' }: { message?: string }) {
-  return (
-    <div className="bg-gradient-to-b from-blue-200 to-green-200 rounded-lg p-4 sm:p-8 text-center min-h-[250px] sm:min-h-[300px] flex items-center justify-center">
-      <div className="space-y-3">
-        <LoadingSpinner size="lg" message={message} />
-        <div className="text-xs text-gray-500">This might take a moment</div>
-      </div>
+    <div className={`thread-module ${className}`}>
+      <LoadingSpinner message={message} className="py-8" />
     </div>
   );
 }

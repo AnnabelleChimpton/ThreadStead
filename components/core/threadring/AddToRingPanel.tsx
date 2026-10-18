@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import type { RingPostResult } from "@/lib/domain/posts/ring-submission";
 import RingResultsList, { sendExistingPostToRings } from "./RingResultsList";
+import LoadingSpinner from "@/components/ui/feedback/LoadingSpinner";
+import ErrorDisplay from "@/components/ui/feedback/ErrorDisplay";
 
 interface MyRing {
   slug: string;
@@ -92,11 +94,11 @@ export default function AddToRingPanel({
         </>
       ) : loadError ? (
         <>
-          <p>{loadError}</p>
+          <ErrorDisplay title={loadError} />
           <button type="button" className="thread-button-secondary" onClick={() => onClose(false)}>Close</button>
         </>
       ) : rings === null ? (
-        <p className="text-thread-sage">Loading your rings…</p>
+        <LoadingSpinner layout="row" message="Loading your rings…" className="justify-start" />
       ) : available.length === 0 ? (
         <>
           <p>

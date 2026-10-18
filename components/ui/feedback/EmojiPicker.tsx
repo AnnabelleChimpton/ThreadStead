@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { PixelIcon } from '@/components/ui/PixelIcon';
+import LoadingSpinner from "@/components/ui/feedback/LoadingSpinner";
+import EmptyState from "@/components/ui/feedback/EmptyState";
 
 type Emoji = {
   id: string;
@@ -135,12 +137,14 @@ export default function EmojiPicker({ onEmojiSelect, className = "" }: EmojiPick
           }}
         >
           {loading ? (
-            <div className="p-3 text-center text-sm text-gray-500">Loading emojis...</div>
+            <LoadingSpinner message="Loading emojis..." className="p-3" />
           ) : emojis.length === 0 ? (
-            <div className="p-3 text-center text-sm text-gray-500">
-              No custom emojis available
-              <div className="text-xs mt-1">Ask an admin to add some!</div>
-            </div>
+            <EmptyState
+              variant="plain"
+              as="p"
+              title="No custom emojis available"
+              description="Ask an admin to add some!"
+            />
           ) : (
             <>
               <div className="p-2 border-b border-gray-200 bg-gray-50 text-xs font-bold sticky top-0 z-10">

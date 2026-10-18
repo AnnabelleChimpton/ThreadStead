@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { csrfFetchJson } from '@/lib/api/client/csrf-fetch';
 import { PixelIcon } from '@/components/ui/PixelIcon';
+import { useToast } from '@/contexts/ToastContext';
+import { useConfirm } from '@/contexts/ConfirmContext';
+import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner';
+import EmptyState from '@/components/ui/feedback/EmptyState';
 
 interface PollOption {
   id: string;
@@ -37,6 +41,8 @@ interface CreatePollForm {
 }
 
 export default function PollsSection() {
+  const { showSuccess, showError, showWarning } = useToast();
+  const confirm = useConfirm();
   const [polls, setPolls] = useState<Poll[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -76,7 +82,7 @@ export default function PollsSection() {
       const validOptions = createForm.options.filter(opt => opt.trim().length > 0);
 
       if (validOptions.length < 2) {
-        alert('Please provide at least 2 options');
+        showWarning('Please provide at least 2 options');
         setSubmitting(false);
         return;
       }
@@ -91,7 +97,7 @@ export default function PollsSection() {
         }
       });
 
-      alert('Poll created successfully!');
+      showSuccess('Poll created.');
       setShowCreateForm(false);
       setCreateForm({
         question: '',
@@ -102,14 +108,14 @@ export default function PollsSection() {
       fetchPolls();
     } catch (error: any) {
       console.error('Failed to create poll:', error);
-      alert(error.message || 'Failed to create poll');
+      showError(error.message || 'Failed to create poll');
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleToggleActive = async (pollId: string, currentStatus: boolean) => {
-    if (!confirm(`Are you sure you want to ${currentStatus ? 'close' : 'activate'} this poll?`)) {
+    if (!(await confirm({ title: `${currentStatus ? 'Close' : 'Activate'} this poll?`, confirmText: currentStatus ? 'Close' : 'Activate' }))) {
       return;
     }
 
@@ -119,16 +125,16 @@ export default function PollsSection() {
         body: { isActive: !currentStatus }
       });
 
-      alert('Poll updated successfully!');
+      showSuccess('Poll updated.');
       fetchPolls();
     } catch (error: any) {
       console.error('Failed to update poll:', error);
-      alert(error.message || 'Failed to update poll');
+      showError(error.message || 'Failed to update poll');
     }
   };
 
   const handleDeletePoll = async (pollId: string) => {
-    if (!confirm('Are you sure you want to delete this poll? This action cannot be undone.')) {
+    if (!(await confirm({ title: 'Delete this poll?', message: 'This action cannot be undone.', confirmText: 'Delete', variant: 'danger' }))) {
       return;
     }
 
@@ -137,11 +143,11 @@ export default function PollsSection() {
         method: 'DELETE'
       });
 
-      alert('Poll deleted successfully!');
+      showSuccess('Poll deleted.');
       fetchPolls();
     } catch (error: any) {
       console.error('Failed to delete poll:', error);
-      alert(error.message || 'Failed to delete poll');
+      showError(error.message || 'Failed to delete poll');
     }
   };
 
@@ -311,12 +317,9 @@ export default function PollsSection() {
         <h4 className="font-bold mb-3">All Polls</h4>
 
         {loading ? (
-          <div className="text-center py-8 text-gray-500">Loading polls...</div>
+          <LoadingSpinner message="Loading polls..." className="py-8" />
         ) : polls.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            <PixelIcon name="chart" size={32} className="mx-auto mb-2 opacity-30" />
-            <p>No polls yet. Create your first poll!</p>
-          </div>
+          <EmptyState variant="plain" icon="chart" title="No polls yet." description="Create your first poll!" />
         ) : (
           <div className="space-y-3">
             {polls.map((poll) => (

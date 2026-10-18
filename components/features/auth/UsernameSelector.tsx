@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { PixelIcon } from '@/components/ui/PixelIcon';
+import LoadingSpinner from "@/components/ui/feedback/LoadingSpinner";
 
 type PolicyDocuments = {
   terms_simple: string;
@@ -276,9 +277,7 @@ export default function UsernameSelector({
         </div>
 
         {loadingPolicies ? (
-          <div className="text-center py-4">
-            <span className="text-nb-ink-mid">Loading policies...</span>
-          </div>
+          <LoadingSpinner message="Loading policies..." className="py-4" />
         ) : policies ? (
           <div className="space-y-4">
             {/* Terms Agreement */}

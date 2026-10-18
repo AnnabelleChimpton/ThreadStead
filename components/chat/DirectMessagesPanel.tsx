@@ -8,6 +8,7 @@ import RetroButton from '@/components/ui/feedback/RetroButton';
 import EmojiPicker from '@/components/ui/feedback/EmojiPicker';
 import { useEmojis, Emoji } from '@/hooks/useEmojis';
 import { cleanAndNormalizeHtml } from '@/lib/utils/sanitization/html';
+import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner';
 
 interface DirectMessagesPanelProps {
     onClose?: () => void;
@@ -61,7 +62,7 @@ export default function DirectMessagesPanel({ onClose, initialConversationId }: 
 
             <div className="flex-1 overflow-y-auto">
                 {listLoading ? (
-                    <div className="p-4 text-center text-thread-sage text-xs">Loading...</div>
+                    <LoadingSpinner size="sm" className="p-4" />
                 ) : conversations.length === 0 ? (
                     <div className="p-8 text-center text-thread-sage text-xs">
                         No conversations yet.
@@ -199,7 +200,7 @@ function DirectMessageChat({ conversationId, onBack, conversations }: { conversa
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-2 space-y-1 retro-scrollbar overscroll-y-contain" style={{ scrollbarWidth: 'auto' }}>
-                {loading && <div className="text-center text-xs text-thread-sage">Loading...</div>}
+                {loading && <LoadingSpinner size="sm" />}
                 {messages.map((msg, i) => {
                     const isMe = msg.senderId === user?.id;
                     const showDateSeparator = i === 0 || new Date(msg.createdAt).getDate() !== new Date(messages[i - 1].createdAt).getDate();

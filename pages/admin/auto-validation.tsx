@@ -9,6 +9,7 @@ import Layout from '@/components/ui/layout/Layout';
 import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
 import { getSessionUser } from '@/lib/auth/server';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+import { useToast } from '@/contexts/ToastContext';
 
 interface AutoValidationStats {
   pending: {
@@ -45,6 +46,7 @@ interface Props {
 }
 
 export default function AutoValidationDashboard({ siteConfig, user }: Props) {
+  const { showSuccess, showError } = useToast();
   const [stats, setStats] = useState<AutoValidationStats | null>(null);
   const [recentValidations, setRecentValidations] = useState<RecentAutoValidation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -88,13 +90,13 @@ export default function AutoValidationDashboard({ siteConfig, user }: Props) {
 
       const result = await response.json();
       if (result.success) {
-        alert(`Auto-validation completed!\nApproved: ${result.results.approved}\nRejected: ${result.results.rejected}\nSkipped: ${result.results.skipped}`);
+        showSuccess(`Auto-validation done. Approved: ${result.results.approved}, rejected: ${result.results.rejected}, skipped: ${result.results.skipped}.`);
         await loadDashboardData(); // Refresh data
       } else {
-        alert(`Error: ${result.error}`);
+        showError(`Error: ${result.error}`);
       }
     } catch (error) {
-      alert(`Failed to run auto-validation: ${error}`);
+      showError(`Failed to run auto-validation: ${error}`);
     } finally {
       setRunning(false);
     }

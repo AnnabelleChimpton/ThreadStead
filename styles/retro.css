@@ -193,6 +193,13 @@ a.widget-container {
   line-height: 1;
 }
 
+/* Destructive confirm button (delete, remove…): same bevel, rose ink */
+.btn.ts-btn-danger,
+.btn.ts-btn-danger:hover {
+  color: var(--ha-rose-ink, #9B3B2A);
+  border-color: var(--ha-rose-ink, #9B3B2A);
+}
+
 /* Toggle chip: keeps the theme's button look; the pressed one is inked in.
    Unlayered, so it beats the site theme's bare `button` rule. */
 .ts-chip[aria-pressed="true"],

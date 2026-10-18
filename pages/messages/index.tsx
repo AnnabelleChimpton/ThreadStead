@@ -7,6 +7,7 @@ import { PixelIcon } from '@/components/ui/PixelIcon';
 import { formatDistanceToNow } from 'date-fns';
 import { useConversations } from '@/hooks/useConversations';
 import { useDirectMessages } from '@/hooks/useDirectMessages';
+import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner';
 
 export default function MessagesPage() {
     const router = useRouter();
@@ -30,7 +31,7 @@ export default function MessagesPage() {
 
     const selectedConversation = conversations.find(c => c.id === selectedConversationId);
 
-    if (userLoading) return <div className="p-8 text-center">Loading...</div>;
+    if (userLoading) return <Layout><LoadingSpinner className="p-8" /></Layout>;
     if (!user) return <div className="p-8 text-center">Please log in to view messages.</div>;
 
     return (
@@ -52,7 +53,7 @@ export default function MessagesPage() {
                         </div>
                         <div className="flex-1 overflow-y-auto">
                             {listLoading ? (
-                                <div className="p-8 text-center text-thread-sage text-sm">Loading conversations...</div>
+                                <LoadingSpinner message="Loading conversations..." className="p-8" />
                             ) : conversations.length === 0 ? (
                                 <div className="p-8 text-center text-thread-sage text-sm">
                                     No conversations yet.
@@ -167,7 +168,7 @@ function ChatArea({ conversationId, otherUser, onBack }: { conversationId: strin
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-thread-paper">
                 {loading ? (
-                    <div className="p-8 text-center text-thread-sage text-sm">Loading messages...</div>
+                    <LoadingSpinner message="Loading messages..." className="p-8" />
                 ) : messages.map((msg, i) => {
                     const isMe = msg.senderId === user?.id;
                     const showAvatar = !isMe && (i === 0 || messages[i - 1].senderId !== msg.senderId);

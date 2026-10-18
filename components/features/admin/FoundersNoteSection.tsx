@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+import { useToast } from '@/contexts/ToastContext';
+import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner';
 
 export default function FoundersNoteSection() {
+  const { showError } = useToast();
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -38,14 +41,14 @@ export default function FoundersNoteSection() {
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (error) {
       console.error('Failed to save founders note:', error);
-      alert('Failed to save founders note');
+      showError('Failed to save founders note');
     } finally {
       setSaving(false);
     }
   };
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <LoadingSpinner className="py-8" />;
   }
 
   return (

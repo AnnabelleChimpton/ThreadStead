@@ -4,6 +4,8 @@ import { GetServerSideProps } from 'next';
 import { getSessionUser } from '@/lib/auth/server';
 import Link from 'next/link';
 import { PixelIcon } from '@/components/ui/PixelIcon';
+import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner';
+import ErrorDisplay from '@/components/ui/feedback/ErrorDisplay';
 
 interface DecorationInfo {
   itemId: string;
@@ -100,10 +102,7 @@ export default function ClaimPage({ isAuthenticated, userId }: ClaimPageProps) {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading claim information...</p>
-        </div>
+        <LoadingSpinner size="lg" message="Loading claim information..." />
       </div>
     );
   }
@@ -111,15 +110,13 @@ export default function ClaimPage({ isAuthenticated, userId }: ClaimPageProps) {
   if (error && !claimInfo) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Invalid Claim Code</h1>
-          <p className="text-gray-600 mb-6">{error}</p>
-          <Link href="/">
-            <a className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-              Go to Home
-            </a>
-          </Link>
-        </div>
+        <ErrorDisplay
+          title="Invalid Claim Code"
+          message={error}
+          actionLabel="Go to Home"
+          actionHref="/"
+          className="max-w-md w-full"
+        />
       </div>
     );
   }
@@ -219,9 +216,7 @@ export default function ClaimPage({ isAuthenticated, userId }: ClaimPageProps) {
 
             {/* Error Message */}
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-                <p className="text-red-700">{error}</p>
-              </div>
+              <ErrorDisplay title={error} className="mb-6" />
             )}
 
             {/* Action Buttons */}

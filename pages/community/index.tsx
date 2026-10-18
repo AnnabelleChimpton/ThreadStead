@@ -10,6 +10,8 @@ import { buttonClasses } from '@/components/ui/ButtonLink';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { csrfFetchJson } from '@/lib/api/client/csrf-fetch';
 import UserQuickView from '@/components/ui/feedback/UserQuickView';
+import { useToast } from '@/contexts/ToastContext';
+import { useConfirm } from '@/contexts/ConfirmContext';
 import {
   getBulletinColor,
   getUserBulletinCategories,
@@ -50,6 +52,8 @@ export default function BulletinBoard({ siteConfig, user }: BulletinPageProps) {
   const [submitting, setSubmitting] = useState(false);
   const [selectedUsername, setSelectedUsername] = useState<string | null>(null);
   const { loggedIn } = useCurrentUser();
+  const { showError, showWarning } = useToast();
+  const confirm = useConfirm();
 
   const [formData, setFormData] = useState({
     category: 'LOOKING_FOR' as BulletinCategory,
@@ -92,7 +96,7 @@ export default function BulletinBoard({ siteConfig, user }: BulletinPageProps) {
     e.preventDefault();
 
     if (!formData.text.trim() || formData.text.length > 200) {
-      alert('Please enter text between 1 and 200 characters');
+      showWarning('Please enter text between 1 and 200 characters');
       return;
     }
 
@@ -114,14 +118,18 @@ export default function BulletinBoard({ siteConfig, user }: BulletinPageProps) {
       await fetchBulletins();
     } catch (err: any) {
       console.error('Error posting bulletin:', err);
-      alert(err.message || 'Failed to post bulletin');
+      showError(err.message || 'Failed to post bulletin');
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Remove this note from the bulletin board?')) return;
+    if (!(await confirm({
+      title: 'Remove this note from the bulletin board?',
+      confirmText: 'Remove',
+      variant: 'danger',
+    }))) return;
 
     try {
       await csrfFetchJson(`/api/bulletin/${id}`, {
@@ -131,7 +139,7 @@ export default function BulletinBoard({ siteConfig, user }: BulletinPageProps) {
       await fetchBulletins();
     } catch (err: any) {
       console.error('Error deleting bulletin:', err);
-      alert(err.message || 'Failed to delete bulletin');
+      showError(err.message || 'Failed to delete bulletin');
     }
   };
 

@@ -3,6 +3,9 @@ import ImprovedBadgeDisplay from '../../shared/ImprovedBadgeDisplay';
 import { CommentMarkupWithEmojis } from '@/lib/comment-markup';
 import UserMention from '@/components/ui/navigation/UserMention';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner';
+import EmptyState from '@/components/ui/feedback/EmptyState';
+import ErrorDisplay from '@/components/ui/feedback/ErrorDisplay';
 
 interface PhotoComment {
   id: string;
@@ -252,12 +255,7 @@ export default function PhotoComments({ photoId, highlightCommentId }: PhotoComm
   };
 
   if (loading) {
-    return (
-      <div className="p-4 text-center">
-        <div className="animate-spin w-6 h-6 border-2 border-thread-pine border-t-transparent rounded-full mx-auto mb-2"></div>
-        <p className="text-thread-sage text-sm">Loading comments...</p>
-      </div>
-    );
+    return <LoadingSpinner message="Loading comments..." className="p-4" />;
   }
 
   return (
@@ -287,9 +285,7 @@ export default function PhotoComments({ photoId, highlightCommentId }: PhotoComm
       </div>
 
       {error && (
-        <div className="p-3 bg-red-100 text-red-700 border border-red-300 rounded text-sm">
-          {error}
-        </div>
+        <ErrorDisplay title={error} />
       )}
 
       {/* Comments list */}
@@ -303,9 +299,7 @@ export default function PhotoComments({ photoId, highlightCommentId }: PhotoComm
           </div>
         </div>
       ) : (
-        <div className="text-center py-8 text-thread-sage">
-          <p className="text-sm">Be the first to comment on this photo!</p>
-        </div>
+        <EmptyState variant="plain" title="Be the first to comment on this photo!" />
       )}
     </div>
   );

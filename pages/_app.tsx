@@ -23,8 +23,9 @@ import { GlobalAudioProvider } from "@/contexts/GlobalAudioContext";
 // Import Cookie Consent Banner
 import CookieConsentBanner from "@/components/ui/feedback/CookieConsentBanner";
 
-// Import Toast Provider
-import { ToastProvider } from "@/lib/templates/state/ToastProvider";
+// Toasts and confirm dialogs for the whole app
+import { ToastProvider } from "@/contexts/ToastContext";
+import { ConfirmProvider } from "@/contexts/ConfirmContext";
 
 // Import Chat Provider and global chat components
 import { ChatProvider } from "@/contexts/ChatContext";
@@ -144,6 +145,7 @@ export default function MyApp({ Component, pageProps, appSiteCSS }: MyAppProps) 
   return (
     <GlobalAudioProvider>
       <ToastProvider>
+       <ConfirmProvider>
         <ChatProvider>
           <ConversationsProvider>
             <CSSModeProvider
@@ -307,6 +309,7 @@ ${rest}`
             </CSSModeProvider>
           </ConversationsProvider>
         </ChatProvider>
+       </ConfirmProvider>
       </ToastProvider>
     </GlobalAudioProvider>
   );

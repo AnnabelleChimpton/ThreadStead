@@ -4,6 +4,9 @@ import type { GetServerSideProps } from 'next';
 import Layout from '@/components/ui/layout/Layout';
 import RetroCard from '@/components/ui/layout/RetroCard';
 import { useSiteConfig } from '@/hooks/useSiteConfig';
+import { useToast } from '@/contexts/ToastContext';
+import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner';
+import ErrorDisplay from '@/components/ui/feedback/ErrorDisplay';
 
 interface LandingPageStatus {
   landingPage: {
@@ -31,6 +34,7 @@ export default function BetaLandingPage() {
   const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [trackingId, setTrackingId] = useState<string | null>(null);
+  const { showError } = useToast();
 
   useEffect(() => {
     if (!slug || typeof slug !== 'string') return;
@@ -78,7 +82,7 @@ export default function BetaLandingPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        alert(errorData.error || 'Failed to start signup process');
+        showError(errorData.error || 'Failed to start signup process');
         return;
       }
 
@@ -95,7 +99,7 @@ export default function BetaLandingPage() {
       window.location.href = signupUrl.toString();
     } catch (err) {
       console.error('Error tracking signup:', err);
-      alert('Failed to start signup process');
+      showError('Failed to start signup process');
     }
   };
 
@@ -103,9 +107,7 @@ export default function BetaLandingPage() {
     return (
       <Layout>
         <RetroCard title="Loading...">
-          <div className="text-center py-8">
-            <p>Loading beta landing page...</p>
-          </div>
+          <LoadingSpinner message="Loading beta landing page..." className="py-8" />
         </RetroCard>
       </Layout>
     );
@@ -114,17 +116,7 @@ export default function BetaLandingPage() {
   if (error) {
     return (
       <Layout>
-        <RetroCard title="Error">
-          <div className="text-center py-8">
-            <p className="text-red-600 mb-4">{error}</p>
-            <button
-              onClick={() => router.push('/')}
-              className="border border-black px-4 py-2 bg-blue-200 hover:bg-blue-100 shadow-[2px_2px_0_#000]"
-            >
-              Go Home
-            </button>
-          </div>
-        </RetroCard>
+        <ErrorDisplay title="Error" message={error} actionLabel="Go Home" actionHref="/" />
       </Layout>
     );
   }
@@ -132,11 +124,7 @@ export default function BetaLandingPage() {
   if (!status) {
     return (
       <Layout>
-        <RetroCard title="Not Found">
-          <div className="text-center py-8">
-            <p>Landing page not found.</p>
-          </div>
-        </RetroCard>
+        <ErrorDisplay variant="notice" title="Not Found" message="Landing page not found." />
       </Layout>
     );
   }

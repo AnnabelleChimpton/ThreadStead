@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useToast } from '@/contexts/ToastContext';
 import ColorInput from './shared/ColorInput';
 import TargetClassSelector from './shared/TargetClassSelector';
 import PresetGallery, { type Preset } from './shared/PresetGallery';
@@ -32,6 +33,7 @@ const COLOR_PROPERTIES = [
 ];
 
 export default function ColorPaletteGenerator({ onInsertCSS }: ColorPaletteGeneratorProps) {
+  const { showWarning } = useToast();
   const [color, setColor] = useState('#3b82f6');
   const [targetClass, setTargetClass] = useState('');
   const [property, setProperty] = useState('background-color');
@@ -59,7 +61,7 @@ export default function ColorPaletteGenerator({ onInsertCSS }: ColorPaletteGener
 
   const handleInsert = () => {
     if (!targetClass) {
-      alert('Please select a target element first!');
+      showWarning('Please select a target element first.');
       return;
     }
 

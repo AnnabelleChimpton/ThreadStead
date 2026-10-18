@@ -1,7 +1,9 @@
 "use client";
 
-import React, { useEffect } from "react";
-import { createPortal } from "react-dom";
+import React from "react";
+import Modal from "@/components/ui/feedback/Modal";
+import { PixelIcon } from "@/components/ui/PixelIcon";
+import { buttonClasses } from "@/components/ui/ButtonLink";
 
 interface ExternalUserPopupProps {
   displayName: string;
@@ -24,21 +26,7 @@ export default function ExternalUserPopup({
   isOpen,
   onClose,
 }: ExternalUserPopupProps) {
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onClose();
-      }
-    };
-
-    document.addEventListener("keydown", handleEscape);
-    return () => document.removeEventListener("keydown", handleEscape);
-  }, [isOpen, onClose]);
-
   if (!isOpen) return null;
-  if (typeof document === "undefined") return null;
 
   // Format DID for display - show last part or handle format if parseable
   const formatDID = (did: string): string => {
@@ -71,44 +59,39 @@ export default function ExternalUserPopup({
   const getRoleDisplay = (memberRole: string) => {
     switch (memberRole) {
       case "curator":
-        return { label: "Ring Host", color: "bg-yellow-200" };
+        return { label: "Ring Host", color: "badge--butter" };
       case "moderator":
-        return { label: "Moderator", color: "bg-blue-200" };
+        return { label: "Moderator", color: "badge--lav" };
       default:
-        return { label: "Member", color: "bg-gray-200" };
+        return { label: "Member", color: "" };
     }
   };
 
   const roleInfo = getRoleDisplay(role);
 
-  return createPortal(
-    <>
-      {/* Invisible backdrop for click-outside-to-close */}
-      <div
-        className="fixed inset-0"
-        style={{ zIndex: 60000 }}
-        onClick={onClose}
-      />
-
-      {/* Modal */}
-      <div
-        className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-thread-paper border-2 border-thread-sage rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto"
-        style={{ zIndex: 60001 }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Close button */}
+  return (
+    <Modal
+      isOpen
+      onClose={onClose}
+      title={displayName}
+      hideTitle
+      maxWidth="max-w-md"
+      bodyClassName=""
+      className="relative"
+    >
         <button
+          type="button"
           onClick={onClose}
-          className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center text-thread-charcoal hover:bg-thread-cream rounded-full transition-colors"
+          className="ts-icon-button absolute top-2 right-2"
           aria-label="Close"
         >
-          ×
+          <PixelIcon name="close" size={16} />
         </button>
 
         <div className="p-6">
           {/* External User Badge */}
           <div className="mb-4 text-center">
-            <span className="inline-block px-3 py-1 bg-orange-100 border border-orange-300 text-orange-800 text-xs rounded-full font-medium">
+            <span className="badge text-xs">
               External User
             </span>
           </div>
@@ -151,7 +134,7 @@ export default function ExternalUserPopup({
           {/* Role Badge */}
           <div className="mb-6 flex justify-center">
             <span
-              className={`inline-block px-4 py-2 ${roleInfo.color} border border-black text-sm font-medium rounded shadow-sm`}
+              className={`badge ${roleInfo.color} text-sm`}
             >
               {roleInfo.label}
             </span>
@@ -175,7 +158,7 @@ export default function ExternalUserPopup({
           </div>
 
           {/* Info Message */}
-          <div className="text-xs text-thread-charcoal opacity-70 text-center p-3 bg-blue-50 border border-blue-200 rounded">
+          <div className="text-xs text-nb-ink-mid text-center p-3 border-2 border-dotted border-nb-ink-mid/40 rounded-md">
             This user is from another site in the federated network. Limited
             profile information is available.
           </div>
@@ -186,14 +169,12 @@ export default function ExternalUserPopup({
               href={profileUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="block w-full mt-4 px-4 py-3 bg-blue-600 hover:bg-blue-700 !text-white text-center font-bold border-2 border-black shadow-[3px_3px_0_#000] hover:shadow-[2px_2px_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
+              className={`${buttonClasses("primary")} w-full mt-4 text-center`}
             >
               View Full Profile →
             </a>
           )}
         </div>
-      </div>
-    </>,
-    document.body
+    </Modal>
   );
 }

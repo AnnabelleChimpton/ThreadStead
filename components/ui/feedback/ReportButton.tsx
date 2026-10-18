@@ -21,6 +21,7 @@ export type ReportReason =
   | "other";
 import Modal from "@/components/ui/feedback/Modal";
 import { PixelIcon } from '@/components/ui/PixelIcon';
+import { useToast } from "@/contexts/ToastContext";
 
 interface ReportButtonProps {
   reportType: ReportType;
@@ -56,17 +57,18 @@ export default function ReportButton({
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const { showError, showWarning } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!selectedReason) {
-      alert("Please select a reason for reporting");
+      showWarning("Please select a reason for reporting");
       return;
     }
 
     if (selectedReason === "other" && !customReason.trim()) {
-      alert("Please specify a custom reason");
+      showWarning("Please specify a custom reason");
       return;
     }
 
@@ -97,11 +99,11 @@ export default function ReportButton({
         }, 2000);
       } else {
         const errorData = await response.json();
-        alert(errorData.error || "Failed to submit report");
+        showError(errorData.error || "Failed to submit report");
       }
     } catch (error) {
       console.error("Error submitting report:", error);
-      alert("Failed to submit report");
+      showError("Failed to submit report");
     } finally {
       setSubmitting(false);
     }

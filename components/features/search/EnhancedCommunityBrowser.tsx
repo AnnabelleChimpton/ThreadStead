@@ -7,6 +7,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useBookmarks } from '@/hooks/useBookmarks';
 import { PixelIcon } from '@/components/ui/PixelIcon';
+import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner';
+import EmptyState from '@/components/ui/feedback/EmptyState';
 
 interface Communitysite {
   id: string;
@@ -368,12 +370,10 @@ export default function EnhancedCommunityBrowser({
 
       {/* Results */}
       {loading ? (
-        <div className="text-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">
-            {mode === 'search' ? 'Searching community sites...' : 'Loading community sites...'}
-          </p>
-        </div>
+        <LoadingSpinner
+          message={mode === 'search' ? 'Searching community sites...' : 'Loading community sites...'}
+          className="py-8"
+        />
       ) : (
         <>
           {sites.length > 0 ? (
@@ -437,25 +437,19 @@ export default function EnhancedCommunityBrowser({
               )}
             </>
           ) : (
-            <div className="text-center py-8 text-gray-500">
-              {mode === 'search' ? (
-                query ? (
-                  <>
-                    <p className="mb-4">No community sites found matching &quot;{query}&quot;.</p>
-                    <button
-                      onClick={() => setMode('browse')}
-                      className="text-blue-600 hover:text-blue-700"
-                    >
-                      Browse all community sites instead
-                    </button>
-                  </>
-                ) : (
-                  <p>Enter a search query to find community sites.</p>
-                )
+            mode === 'search' ? (
+              query ? (
+                <EmptyState
+                  title={`No community sites found matching "${query}".`}
+                  actionLabel="Browse all community sites instead"
+                  onAction={() => setMode('browse')}
+                />
               ) : (
-                <p>No sites found for the selected category and filters.</p>
-              )}
-            </div>
+                <EmptyState title="Enter a search query to find community sites." />
+              )
+            ) : (
+              <EmptyState title="No sites found for the selected category and filters." />
+            )
           )}
         </>
       )}

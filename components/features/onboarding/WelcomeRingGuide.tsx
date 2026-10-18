@@ -3,8 +3,7 @@ import Link from 'next/link';
 import { WelcomeProgress, WelcomeStep } from '@/lib/welcome/types';
 import { getWelcomeProgress, updateWelcomeProgress } from '@/lib/welcome/progress';
 import { celebrateAction, setCelebrationToastHandler } from '@/lib/welcome/celebrations';
-import { useToast } from '@/hooks/useToast';
-import Toast from '@/components/ui/feedback/Toast';
+import { useToast } from "@/contexts/ToastContext";
 import { useWelcomeRingIntro } from '@/hooks/useWelcomeRingIntro';
 import WelcomeRingIntroPopup from './WelcomeRingIntroPopup';
 
@@ -27,7 +26,7 @@ export default function WelcomeRingGuide({ ringSlug, viewer, ring }: WelcomeRing
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [isMinimized, setIsMinimized] = useState(false);
   const [isClient, setIsClient] = useState(false);
-  const { toasts, showSuccess, hideToast } = useToast();
+  const { showSuccess } = useToast();
   const { shouldShowIntro, isLoading: introLoading, markIntroAsSeen } = useWelcomeRingIntro(ringSlug);
 
   // Hydration fix - only render progress-dependent content on client
@@ -295,17 +294,6 @@ export default function WelcomeRingGuide({ ringSlug, viewer, ring }: WelcomeRing
           </div>
         )}
       </div>
-      
-        {/* Toast Notifications for Welcome Ring celebrations */}
-        {toasts.map(toast => (
-          <Toast
-            key={toast.id}
-            message={toast.message}
-            type={toast.type}
-            duration={toast.duration}
-            onClose={() => hideToast(toast.id)}
-          />
-        ))}
       </div>
     </>
   );

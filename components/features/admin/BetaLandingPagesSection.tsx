@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+import { useConfirm } from '@/contexts/ConfirmContext';
+import Modal from '@/components/ui/feedback/Modal';
 
 interface BetaLandingPage {
   id: string;
@@ -70,6 +72,7 @@ interface Analytics {
 }
 
 export default function BetaLandingPagesSection() {
+  const confirm = useConfirm();
   const [landingPages, setLandingPages] = useState<BetaLandingPage[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -243,7 +246,7 @@ export default function BetaLandingPagesSection() {
   };
 
   const handleDelete = async (pageId: string, name: string) => {
-    if (!confirm(`Are you sure you want to delete the landing page "${name}"? This action cannot be undone.`)) {
+    if (!(await confirm({ title: `Delete the landing page "${name}"?`, message: 'This action cannot be undone.', confirmText: 'Delete', variant: 'danger' }))) {
       return;
     }
 
@@ -297,6 +300,11 @@ export default function BetaLandingPagesSection() {
   const viewAnalytics = (pageId: string) => {
     setViewingAnalytics(pageId);
     loadAnalytics(pageId);
+  };
+
+  const closeAnalytics = () => {
+    setViewingAnalytics(null);
+    setAnalytics(null);
   };
 
   const getStatusBadge = (page: BetaLandingPage) => {
@@ -474,21 +482,20 @@ export default function BetaLandingPagesSection() {
 
       {/* Analytics Modal */}
       {viewingAnalytics && analytics && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white border-2 border-black rounded-lg max-w-4xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center">
-              <h2 className="font-bold text-xl">📊 Campaign Analytics</h2>
-              <button
-                onClick={() => {
-                  setViewingAnalytics(null);
-                  setAnalytics(null);
-                }}
-                className="text-gray-500 hover:text-gray-700 text-xl"
-              >
-                ×
+        <Modal
+          isOpen
+          onClose={closeAnalytics}
+          title="Campaign Analytics"
+          maxWidth="max-w-4xl"
+          footer={
+            <div className="flex flex-wrap justify-end gap-2">
+              <button type="button" onClick={closeAnalytics} className="btn btn--secondary">
+                Close
               </button>
             </div>
-
+          }
+        >
+          <div className="space-y-4">
             <div className="border border-gray-200 p-4 bg-gray-50 rounded">
               <h3 className="font-bold mb-2">{analytics.landingPage.name}</h3>
               <p className="text-sm text-gray-600">Campaign: {analytics.landingPage.title}</p>
@@ -530,20 +537,8 @@ export default function BetaLandingPagesSection() {
                 </div>
               </div>
             )}
-
-            <div className="flex justify-center">
-              <button
-                onClick={() => {
-                  setViewingAnalytics(null);
-                  setAnalytics(null);
-                }}
-                className="border border-black px-6 py-2 bg-gray-200 hover:bg-gray-100 shadow-[2px_2px_0_#000]"
-              >
-                Close
-              </button>
-            </div>
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* Landing Pages List */}

@@ -6,7 +6,7 @@ import WelcomeRingGuide from '../WelcomeRingGuide';
 // Mock modules with auto mocks
 jest.mock('@/lib/welcome/progress');
 jest.mock('@/lib/welcome/celebrations');
-jest.mock('@/hooks/useToast');
+jest.mock('@/contexts/ToastContext');
 jest.mock('@/hooks/useWelcomeRingIntro');
 jest.mock('next/link', () => {
   return function MockLink({ children, href }: { children: React.ReactNode; href: string }) {
@@ -25,7 +25,7 @@ jest.mock('@/components/ui/PixelIcon', () => ({
 // Import mocked modules after mocking
 import * as welcomeProgress from '@/lib/welcome/progress';
 import * as welcomeCelebrations from '@/lib/welcome/celebrations';
-import * as useToast from '@/hooks/useToast';
+import * as useToast from '@/contexts/ToastContext';
 import * as useWelcomeRingIntro from '@/hooks/useWelcomeRingIntro';
 
 // Type the mocks
@@ -69,9 +69,7 @@ describe('WelcomeRingGuide', () => {
     }));
     
     mockUseToast.mockReturnValue({
-      toasts: [],
       showToast: jest.fn(),
-      hideToast: jest.fn(),
       showSuccess: jest.fn(),
       showError: jest.fn(),
       showWarning: jest.fn(),

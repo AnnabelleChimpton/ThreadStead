@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useTemplateState } from '@/lib/templates/state/TemplateStateProvider';
-import { getGlobalToast } from '@/lib/templates/state/ToastProvider';
+import { getGlobalToast } from '@/contexts/ToastContext';
 
 /**
  * ShowToast Component - Action to show a toast notification

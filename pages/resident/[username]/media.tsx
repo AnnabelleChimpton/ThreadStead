@@ -10,6 +10,8 @@ import MediaUpload from "@/components/ui/media/MediaUpload";
 import PhotoComments from "@/components/core/content/PhotoComments";
 import { PixelIcon } from "@/components/ui/PixelIcon";
 import { csrfFetch } from "@/lib/api/client/csrf-fetch";
+import { useConfirm } from "@/contexts/ConfirmContext";
+import Modal from "@/components/ui/feedback/Modal";
 
 interface MediaItem {
   id: string;
@@ -47,6 +49,7 @@ export default function MediaGalleryPage({
   pagination: initialPagination
 }: MediaGalleryProps) {
   const router = useRouter();
+  const confirm = useConfirm();
   const [media, setMedia] = useState<MediaItem[]>(initialMedia);
   const [pagination, setPagination] = useState(initialPagination);
   const [loading, setLoading] = useState(false);
@@ -117,9 +120,12 @@ export default function MediaGalleryPage({
 
   const handleDelete = async () => {
     if (!selectedImage) return;
-    const ok = window.confirm(
-      "Delete this image for good? Anywhere it's been linked or embedded — posts, comments, other sites — will show a broken image."
-    );
+    const ok = await confirm({
+      title: "Delete this image for good?",
+      message: "Anywhere it's been linked or embedded — posts, comments, other sites — will show a broken image.",
+      confirmText: "Delete",
+      variant: "danger",
+    });
     if (!ok) return;
     setBusy(true);
     setActionError(null);
@@ -189,26 +195,6 @@ export default function MediaGalleryPage({
       }
     }
   }, [router.query, media]);
-
-  // Handle keyboard shortcuts for modal
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && selectedImage && !busy) {
-        closeLightbox();
-      }
-    };
-
-    if (selectedImage) {
-      document.addEventListener('keydown', handleKeyDown);
-      // Prevent body scroll when modal is open
-      document.body.style.overflow = 'hidden';
-    }
-
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = 'unset';
-    };
-  }, [selectedImage, router, username, busy]);
 
   const formatFileSize = (bytes?: number) => {
     if (!bytes) return '';
@@ -399,15 +385,18 @@ export default function MediaGalleryPage({
         </RetroCard>
 
         {/* Full Size Image Modal */}
-        {selectedImage && (
-          <div 
-            className="modal-overlay-high fixed inset-0 bg-black/80 flex items-center justify-center p-4 pt-20"
-            onClick={() => { if (!busy) closeLightbox(); }}
-          >
-            <div 
-              className="max-w-6xl max-h-full bg-white rounded-lg overflow-hidden shadow-2xl flex"
-              onClick={(e) => e.stopPropagation()}
-            >
+        <Modal
+          isOpen={!!selectedImage}
+          onClose={() => { if (!busy) closeLightbox(); }}
+          title={selectedImage?.title || selectedImage?.caption || "Photo"}
+          hideTitle
+          maxWidth="max-w-6xl"
+          className="overflow-hidden md:w-auto"
+          bodyClassName="flex"
+          backdropClassName="modal-overlay-high bg-black/80"
+        >
+          {selectedImage && (
+            <>
               {/* Image section */}
               <div className="flex-1 relative">
                 <img 
@@ -419,8 +408,9 @@ export default function MediaGalleryPage({
                   onClick={closeLightbox}
                   className="absolute top-2 right-2 bg-black/70 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-black/90 transition-colors"
                   title="Close"
+                  aria-label="Close"
                 >
-                  ×
+                  <PixelIcon name="close" size={16} />
                 </button>
                 
                 {actionError && !showComments && (
@@ -464,7 +454,7 @@ export default function MediaGalleryPage({
 
               {/* Comments sidebar */}
               {showComments && (
-                <div className="w-96 border-l border-thread-sage bg-white flex flex-col max-h-[80vh]">
+                <div className="w-96 border-l border-thread-sage flex flex-col max-h-[80vh]">
                   {/* Photo info header */}
                   <div className="p-4 border-b border-thread-sage">
                     {editing ? (
@@ -543,9 +533,9 @@ export default function MediaGalleryPage({
                   </div>
                 </div>
               )}
-            </div>
-          </div>
-        )}
+            </>
+          )}
+        </Modal>
       </ProfileLayout>
     </>
   );

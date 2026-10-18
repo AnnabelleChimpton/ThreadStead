@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import Button from '@/components/ui/Button'
 // import { ConsentType } from '@prisma/client' // Use local definition to avoid import issues
 
 // Define enum types to match Prisma schema
@@ -87,13 +88,14 @@ export default function CookieConsentBanner({
         <p className="flex-1 m-0 text-xs sm:text-sm text-nb-ink">
           We only use cookies to keep you logged in. No tracking, analytics or marketing.
         </p>
-        <button
+        <Button
+          variant="secondary"
           onClick={handleUnderstand}
-          className="btn btn--secondary shrink-0 text-xs"
+          className="shrink-0 text-xs"
           disabled={loading}
         >
           {loading ? 'Saving…' : 'Got it'}
-        </button>
+        </Button>
       </div>
     </div>
   )

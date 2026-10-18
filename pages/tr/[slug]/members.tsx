@@ -11,6 +11,8 @@ import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
 import { raceHubCall, HUB_TIMEOUT } from "@/lib/api/ringhub/ringhub-ssr";
 import UserMention from "@/components/ui/navigation/UserMention";
 import { csrfFetch } from "@/lib/api/client/csrf-fetch";
+import { useToast } from "@/contexts/ToastContext";
+import { useConfirm } from "@/contexts/ConfirmContext";
 
 interface Member {
   id: string;
@@ -51,6 +53,8 @@ export default function ThreadRingMembersPage({
   const router = useRouter();
   const [members, setMembers] = useState<Member[]>(initialMembers);
   const [managing, setManaging] = useState<string | null>(null);
+  const { showSuccess, showError } = useToast();
+  const confirm = useConfirm();
 
   if (error || !ring) {
     return (
@@ -89,10 +93,10 @@ export default function ThreadRingMembersPage({
           : member
       ));
 
-      alert(data.message);
+      showSuccess(data.message);
     } catch (error: any) {
       console.error("Error updating role:", error);
-      alert(error.message || "Failed to update role");
+      showError(error.message || "Failed to update role");
     } finally {
       setManaging(null);
     }
@@ -106,7 +110,11 @@ export default function ThreadRingMembersPage({
       member.user.handles[0]?.handle ||
       "unknown";
 
-    if (!confirm(`Remove ${memberHandle} from ${ring.name}?`)) return;
+    if (!(await confirm({
+      title: `Remove ${memberHandle} from ${ring.name}?`,
+      confirmText: "Remove",
+      variant: "danger",
+    }))) return;
 
     setManaging(userId);
 
@@ -127,10 +135,10 @@ export default function ThreadRingMembersPage({
       // Update local state
       setMembers(prev => prev.filter(member => member.user.id !== userId));
 
-      alert(data.message);
+      showSuccess(data.message);
     } catch (error: any) {
       console.error("Error removing member:", error);
-      alert(error.message || "Failed to remove member");
+      showError(error.message || "Failed to remove member");
     } finally {
       setManaging(null);
     }

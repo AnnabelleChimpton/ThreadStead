@@ -4,8 +4,11 @@ import { GetServerSideProps } from 'next';
 import { getSessionUser } from '@/lib/auth/server';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import { PixelIcon } from '@/components/ui/PixelIcon';
+import Modal from '@/components/ui/feedback/Modal';
 import Layout from '@/components/ui/layout/Layout';
 import AdminHeader from '@/components/ui/navigation/AdminHeader';
+import { useToast } from '@/contexts/ToastContext';
+import { useConfirm } from '@/contexts/ConfirmContext';
 
 interface Decoration {
   id: string;
@@ -54,6 +57,8 @@ interface AdminDecorationsPageProps {
 
 export default function AdminDecorationsPage({ isAdmin, userId }: AdminDecorationsPageProps) {
   const router = useRouter();
+  const { showSuccess, showError } = useToast();
+  const confirm = useConfirm();
 
   const [decorations, setDecorations] = useState<Decoration[]>([]);
   const [loading, setLoading] = useState(true);
@@ -170,7 +175,7 @@ export default function AdminDecorationsPage({ isAdmin, userId }: AdminDecoratio
         fetchDecorations();
       } else {
         const data = await response.json();
-        alert(`Update failed: ${data.error}`);
+        showError(`Update failed: ${data.error}`);
       }
     } catch (error) {
       console.error('Failed to update decoration:', error);
@@ -178,7 +183,7 @@ export default function AdminDecorationsPage({ isAdmin, userId }: AdminDecoratio
   };
 
   const handleDeleteDecoration = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this decoration?')) return;
+    if (!(await confirm({ title: 'Delete this decoration?', confirmText: 'Delete', variant: 'danger' }))) return;
 
     try {
       const response = await csrfFetch(`/api/admin/decorations/${id}`, {
@@ -207,14 +212,14 @@ export default function AdminDecorationsPage({ isAdmin, userId }: AdminDecoratio
       const data = await response.json();
 
       if (response.ok) {
-        alert(`Migration complete! Created: ${data.results?.created ?? 0}, Skipped: ${data.results?.skipped ?? 0}`);
+        showSuccess(`Migration complete. Created: ${data.results?.created ?? 0}, Skipped: ${data.results?.skipped ?? 0}`);
         fetchDecorations();
       } else {
-        alert(`Migration failed: ${data.error}`);
+        showError(`Migration failed: ${data.error}`);
       }
     } catch (error) {
       console.error('Migration failed:', error);
-      alert('Migration failed - check console');
+      showError('Migration failed - check console');
     } finally {
       setMigrating(false);
     }
@@ -237,7 +242,7 @@ export default function AdminDecorationsPage({ isAdmin, userId }: AdminDecoratio
       const data = await response.json();
 
       if (response.ok) {
-        alert(`Claim code generated: ${data.claimCode}\nShare URL: ${window.location.origin}/claim/${data.claimCode}`);
+        showSuccess(`Claim code generated: ${data.claimCode} (share URL: ${window.location.origin}/claim/${data.claimCode})`);
         fetchDecorations();
       }
     } catch (error) {
@@ -259,7 +264,7 @@ export default function AdminDecorationsPage({ isAdmin, userId }: AdminDecoratio
       });
 
       if (response.ok) {
-        alert('Access granted successfully');
+        showSuccess('Access granted.');
         fetchDecorations();
       }
     } catch (error) {
@@ -293,14 +298,14 @@ export default function AdminDecorationsPage({ isAdmin, userId }: AdminDecoratio
       const data = await response.json();
 
       if (response.ok) {
-        alert(`PNG uploaded successfully!\nURL: ${data.pngUrl}\nSize: ${data.dimensions.width}x${data.dimensions.height}`);
+        showSuccess(`PNG uploaded (${data.dimensions.width}x${data.dimensions.height}): ${data.pngUrl}`);
         fetchDecorations();
       } else {
-        alert(`Upload failed: ${data.error}`);
+        showError(`Upload failed: ${data.error}`);
       }
     } catch (error) {
       console.error('PNG upload failed:', error);
-      alert('PNG upload failed - check console');
+      showError('PNG upload failed - check console');
     } finally {
       setUploadingPng(null);
     }
@@ -401,362 +406,368 @@ export default function AdminDecorationsPage({ isAdmin, userId }: AdminDecoratio
 
         {/* Create Form Modal */}
         {showCreateForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <h2 className="text-2xl font-bold mb-4">Create New Decoration</h2>
-
-              <form onSubmit={handleCreateDecoration}>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Item ID</label>
-                    <input
-                      type="text"
-                      value={createForm.itemId}
-                      onChange={(e) => setCreateForm({...createForm, itemId: e.target.value})}
-                      className="w-full px-3 py-2 border rounded-lg"
-                      placeholder="roses_red"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Name</label>
-                    <input
-                      type="text"
-                      value={createForm.name}
-                      onChange={(e) => setCreateForm({...createForm, name: e.target.value})}
-                      className="w-full px-3 py-2 border rounded-lg"
-                      placeholder="Red Roses"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Type</label>
-                    <select
-                      value={createForm.type}
-                      onChange={(e) => setCreateForm({...createForm, type: e.target.value})}
-                      className="w-full px-3 py-2 border rounded-lg"
-                    >
-                      <option value="plant">Plant</option>
-                      <option value="furniture">Furniture</option>
-                      <option value="path">Path</option>
-                      <option value="feature">Feature</option>
-                      <option value="lighting">Lighting</option>
-                      <option value="water">Water</option>
-                      <option value="structure">Structure</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Category</label>
-                    <input
-                      type="text"
-                      value={createForm.category}
-                      onChange={(e) => setCreateForm({...createForm, category: e.target.value})}
-                      className="w-full px-3 py-2 border rounded-lg"
-                      placeholder="plants"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Zone</label>
-                    <select
-                      value={createForm.zone}
-                      onChange={(e) => setCreateForm({...createForm, zone: e.target.value})}
-                      className="w-full px-3 py-2 border rounded-lg"
-                    >
-                      <option value="front_yard">Front Yard</option>
-                      <option value="house_facade">House Facade</option>
-                      <option value="background">Background</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Release Type</label>
-                    <select
-                      value={createForm.releaseType}
-                      onChange={(e) => setCreateForm({...createForm, releaseType: e.target.value})}
-                      className="w-full px-3 py-2 border rounded-lg"
-                    >
-                      <option value="DEFAULT">Default (Always Available)</option>
-                      <option value="PUBLIC">Public</option>
-                      <option value="BETA_USERS">Beta Users</option>
-                      <option value="LIMITED_TIME">Limited Time</option>
-                      <option value="CLAIM_CODE">Claim Code</option>
-                      <option value="ADMIN_ONLY">Admin Only</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Grid Width</label>
-                    <input
-                      type="number"
-                      value={createForm.gridWidth}
-                      onChange={(e) => setCreateForm({...createForm, gridWidth: parseInt(e.target.value)})}
-                      className="w-full px-3 py-2 border rounded-lg"
-                      min="1"
-                      max="10"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Grid Height</label>
-                    <input
-                      type="number"
-                      value={createForm.gridHeight}
-                      onChange={(e) => setCreateForm({...createForm, gridHeight: parseInt(e.target.value)})}
-                      className="w-full px-3 py-2 border rounded-lg"
-                      min="1"
-                      max="10"
-                    />
-                  </div>
-                </div>
-
-                <div className="mt-4">
-                  <label className="block text-sm font-medium mb-1">Description</label>
-                  <textarea
-                    value={createForm.description}
-                    onChange={(e) => setCreateForm({...createForm, description: e.target.value})}
+          <Modal
+            isOpen
+            onClose={() => setShowCreateForm(false)}
+            title="Create New Decoration"
+            closeOnBackdrop={false}
+            footer={
+              <div className="flex flex-wrap justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateForm(false)}
+                  className="btn btn--secondary"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  form="create-decoration-form"
+                  className="btn btn--primary"
+                >
+                  Create Decoration
+                </button>
+              </div>
+            }
+          >
+            <form id="create-decoration-form" onSubmit={handleCreateDecoration}>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Item ID</label>
+                  <input
+                    type="text"
+                    value={createForm.itemId}
+                    onChange={(e) => setCreateForm({...createForm, itemId: e.target.value})}
                     className="w-full px-3 py-2 border rounded-lg"
-                    rows={3}
-                    placeholder="Optional description"
+                    placeholder="roses_red"
+                    required
                   />
                 </div>
 
-                <div className="mt-4">
-                  <label className="block text-sm font-medium mb-1">Icon SVG</label>
-                  <div className="flex gap-2">
-                    <textarea
-                      value={createForm.iconSvg}
-                      onChange={(e) => setCreateForm({...createForm, iconSvg: e.target.value})}
-                      className="flex-1 px-3 py-2 border rounded-lg font-mono text-xs"
-                      rows={3}
-                      placeholder="<svg>...</svg>"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setCreateForm({...createForm, iconSvg: generateBasicSvgIcon()})}
-                      className="px-3 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
-                    >
-                      Generate
-                    </button>
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Name</label>
+                  <input
+                    type="text"
+                    value={createForm.name}
+                    onChange={(e) => setCreateForm({...createForm, name: e.target.value})}
+                    className="w-full px-3 py-2 border rounded-lg"
+                    placeholder="Red Roses"
+                    required
+                  />
                 </div>
 
-                <div className="mt-4">
-                  <label className="block text-sm font-medium mb-1">Render SVG</label>
-                  <div className="flex gap-2">
-                    <textarea
-                      value={createForm.renderSvg}
-                      onChange={(e) => setCreateForm({...createForm, renderSvg: e.target.value})}
-                      className="flex-1 px-3 py-2 border rounded-lg font-mono text-xs"
-                      rows={3}
-                      placeholder="<svg>...</svg>"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setCreateForm({...createForm, renderSvg: generateBasicSvgRender()})}
-                      className="px-3 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
-                    >
-                      Generate
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex gap-4 mt-6">
-                  <button
-                    type="submit"
-                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                <div>
+                  <label className="block text-sm font-medium mb-1">Type</label>
+                  <select
+                    value={createForm.type}
+                    onChange={(e) => setCreateForm({...createForm, type: e.target.value})}
+                    className="w-full px-3 py-2 border rounded-lg"
                   >
-                    Create Decoration
-                  </button>
+                    <option value="plant">Plant</option>
+                    <option value="furniture">Furniture</option>
+                    <option value="path">Path</option>
+                    <option value="feature">Feature</option>
+                    <option value="lighting">Lighting</option>
+                    <option value="water">Water</option>
+                    <option value="structure">Structure</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Category</label>
+                  <input
+                    type="text"
+                    value={createForm.category}
+                    onChange={(e) => setCreateForm({...createForm, category: e.target.value})}
+                    className="w-full px-3 py-2 border rounded-lg"
+                    placeholder="plants"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Zone</label>
+                  <select
+                    value={createForm.zone}
+                    onChange={(e) => setCreateForm({...createForm, zone: e.target.value})}
+                    className="w-full px-3 py-2 border rounded-lg"
+                  >
+                    <option value="front_yard">Front Yard</option>
+                    <option value="house_facade">House Facade</option>
+                    <option value="background">Background</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Release Type</label>
+                  <select
+                    value={createForm.releaseType}
+                    onChange={(e) => setCreateForm({...createForm, releaseType: e.target.value})}
+                    className="w-full px-3 py-2 border rounded-lg"
+                  >
+                    <option value="DEFAULT">Default (Always Available)</option>
+                    <option value="PUBLIC">Public</option>
+                    <option value="BETA_USERS">Beta Users</option>
+                    <option value="LIMITED_TIME">Limited Time</option>
+                    <option value="CLAIM_CODE">Claim Code</option>
+                    <option value="ADMIN_ONLY">Admin Only</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Grid Width</label>
+                  <input
+                    type="number"
+                    value={createForm.gridWidth}
+                    onChange={(e) => setCreateForm({...createForm, gridWidth: parseInt(e.target.value)})}
+                    className="w-full px-3 py-2 border rounded-lg"
+                    min="1"
+                    max="10"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Grid Height</label>
+                  <input
+                    type="number"
+                    value={createForm.gridHeight}
+                    onChange={(e) => setCreateForm({...createForm, gridHeight: parseInt(e.target.value)})}
+                    className="w-full px-3 py-2 border rounded-lg"
+                    min="1"
+                    max="10"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <label className="block text-sm font-medium mb-1">Description</label>
+                <textarea
+                  value={createForm.description}
+                  onChange={(e) => setCreateForm({...createForm, description: e.target.value})}
+                  className="w-full px-3 py-2 border rounded-lg"
+                  rows={3}
+                  placeholder="Optional description"
+                />
+              </div>
+
+              <div className="mt-4">
+                <label className="block text-sm font-medium mb-1">Icon SVG</label>
+                <div className="flex gap-2">
+                  <textarea
+                    value={createForm.iconSvg}
+                    onChange={(e) => setCreateForm({...createForm, iconSvg: e.target.value})}
+                    className="flex-1 px-3 py-2 border rounded-lg font-mono text-xs"
+                    rows={3}
+                    placeholder="<svg>...</svg>"
+                  />
                   <button
                     type="button"
-                    onClick={() => setShowCreateForm(false)}
-                    className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
+                    onClick={() => setCreateForm({...createForm, iconSvg: generateBasicSvgIcon()})}
+                    className="px-3 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
                   >
-                    Cancel
+                    Generate
                   </button>
                 </div>
-              </form>
-            </div>
-          </div>
+              </div>
+
+              <div className="mt-4">
+                <label className="block text-sm font-medium mb-1">Render SVG</label>
+                <div className="flex gap-2">
+                  <textarea
+                    value={createForm.renderSvg}
+                    onChange={(e) => setCreateForm({...createForm, renderSvg: e.target.value})}
+                    className="flex-1 px-3 py-2 border rounded-lg font-mono text-xs"
+                    rows={3}
+                    placeholder="<svg>...</svg>"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setCreateForm({...createForm, renderSvg: generateBasicSvgRender()})}
+                    className="px-3 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
+                  >
+                    Generate
+                  </button>
+                </div>
+              </div>
+            </form>
+          </Modal>
         )}
 
         {/* Edit Form Modal */}
         {editingDecoration && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <h2 className="text-2xl font-bold mb-4">Edit Decoration: {editingDecoration.itemId}</h2>
-
-              <form onSubmit={handleEditDecoration}>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Item ID (readonly)</label>
-                    <input
-                      type="text"
-                      value={editForm.itemId}
-                      disabled
-                      className="w-full px-3 py-2 border rounded-lg bg-gray-100"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Name</label>
-                    <input
-                      type="text"
-                      value={editForm.name}
-                      onChange={(e) => setEditForm({...editForm, name: e.target.value})}
-                      className="w-full px-3 py-2 border rounded-lg"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Type</label>
-                    <select
-                      value={editForm.type}
-                      onChange={(e) => setEditForm({...editForm, type: e.target.value})}
-                      className="w-full px-3 py-2 border rounded-lg"
-                    >
-                      <option value="plant">Plant</option>
-                      <option value="furniture">Furniture</option>
-                      <option value="path">Path</option>
-                      <option value="feature">Feature</option>
-                      <option value="lighting">Lighting</option>
-                      <option value="water">Water</option>
-                      <option value="structure">Structure</option>
-                      <option value="house_custom">House Custom</option>
-                      <option value="sky">Sky/Atmosphere</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Category</label>
-                    <input
-                      type="text"
-                      value={editForm.category}
-                      onChange={(e) => setEditForm({...editForm, category: e.target.value})}
-                      className="w-full px-3 py-2 border rounded-lg"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Zone</label>
-                    <select
-                      value={editForm.zone}
-                      onChange={(e) => setEditForm({...editForm, zone: e.target.value})}
-                      className="w-full px-3 py-2 border rounded-lg"
-                    >
-                      <option value="front_yard">Front Yard</option>
-                      <option value="house_facade">House Facade</option>
-                      <option value="background">Background</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Section (for house items)</label>
-                    <select
-                      value={editForm.section}
-                      onChange={(e) => setEditForm({...editForm, section: e.target.value})}
-                      className="w-full px-3 py-2 border rounded-lg"
-                    >
-                      <option value="">None</option>
-                      <option value="doors">Doors</option>
-                      <option value="windows">Windows</option>
-                      <option value="window_treatments">Window Treatments</option>
-                      <option value="roof">Roof/Trim</option>
-                      <option value="chimney">Chimney</option>
-                      <option value="welcome_mat">Welcome Mat</option>
-                      <option value="house_number">House Number</option>
-                      <option value="exterior_lights">Exterior Lights</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Release Type</label>
-                    <select
-                      value={editForm.releaseType}
-                      onChange={(e) => setEditForm({...editForm, releaseType: e.target.value})}
-                      className="w-full px-3 py-2 border rounded-lg"
-                    >
-                      <option value="DEFAULT">Default (Always Available)</option>
-                      <option value="PUBLIC">Public</option>
-                      <option value="BETA_USERS">Beta Users</option>
-                      <option value="LIMITED_TIME">Limited Time</option>
-                      <option value="CLAIM_CODE">Claim Code</option>
-                      <option value="ADMIN_ONLY">Admin Only</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Grid Width</label>
-                    <input
-                      type="number"
-                      value={editForm.gridWidth}
-                      onChange={(e) => setEditForm({...editForm, gridWidth: parseInt(e.target.value)})}
-                      className="w-full px-3 py-2 border rounded-lg"
-                      min="1"
-                      max="10"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Grid Height</label>
-                    <input
-                      type="number"
-                      value={editForm.gridHeight}
-                      onChange={(e) => setEditForm({...editForm, gridHeight: parseInt(e.target.value)})}
-                      className="w-full px-3 py-2 border rounded-lg"
-                      min="1"
-                      max="10"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Active</label>
-                    <select
-                      value={editForm.isActive ? 'true' : 'false'}
-                      onChange={(e) => setEditForm({...editForm, isActive: e.target.value === 'true'})}
-                      className="w-full px-3 py-2 border rounded-lg"
-                    >
-                      <option value="true">Active</option>
-                      <option value="false">Inactive</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="mt-4">
-                  <label className="block text-sm font-medium mb-1">Description</label>
-                  <textarea
-                    value={editForm.description}
-                    onChange={(e) => setEditForm({...editForm, description: e.target.value})}
-                    className="w-full px-3 py-2 border rounded-lg"
-                    rows={3}
+          <Modal
+            isOpen
+            onClose={() => setEditingDecoration(null)}
+            title={`Edit Decoration: ${editingDecoration.itemId}`}
+            closeOnBackdrop={false}
+            footer={
+              <div className="flex flex-wrap justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingDecoration(null)}
+                  className="btn btn--secondary"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  form="edit-decoration-form"
+                  className="btn btn--primary"
+                >
+                  Save Changes
+                </button>
+              </div>
+            }
+          >
+            <form id="edit-decoration-form" onSubmit={handleEditDecoration}>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Item ID (readonly)</label>
+                  <input
+                    type="text"
+                    value={editForm.itemId}
+                    disabled
+                    className="w-full px-3 py-2 border rounded-lg bg-gray-100"
                   />
                 </div>
 
-                <div className="flex gap-4 mt-6">
-                  <button
-                    type="submit"
-                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                  >
-                    Save Changes
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEditingDecoration(null)}
-                    className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
-                  >
-                    Cancel
-                  </button>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Name</label>
+                  <input
+                    type="text"
+                    value={editForm.name}
+                    onChange={(e) => setEditForm({...editForm, name: e.target.value})}
+                    className="w-full px-3 py-2 border rounded-lg"
+                    required
+                  />
                 </div>
-              </form>
-            </div>
-          </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Type</label>
+                  <select
+                    value={editForm.type}
+                    onChange={(e) => setEditForm({...editForm, type: e.target.value})}
+                    className="w-full px-3 py-2 border rounded-lg"
+                  >
+                    <option value="plant">Plant</option>
+                    <option value="furniture">Furniture</option>
+                    <option value="path">Path</option>
+                    <option value="feature">Feature</option>
+                    <option value="lighting">Lighting</option>
+                    <option value="water">Water</option>
+                    <option value="structure">Structure</option>
+                    <option value="house_custom">House Custom</option>
+                    <option value="sky">Sky/Atmosphere</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Category</label>
+                  <input
+                    type="text"
+                    value={editForm.category}
+                    onChange={(e) => setEditForm({...editForm, category: e.target.value})}
+                    className="w-full px-3 py-2 border rounded-lg"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Zone</label>
+                  <select
+                    value={editForm.zone}
+                    onChange={(e) => setEditForm({...editForm, zone: e.target.value})}
+                    className="w-full px-3 py-2 border rounded-lg"
+                  >
+                    <option value="front_yard">Front Yard</option>
+                    <option value="house_facade">House Facade</option>
+                    <option value="background">Background</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Section (for house items)</label>
+                  <select
+                    value={editForm.section}
+                    onChange={(e) => setEditForm({...editForm, section: e.target.value})}
+                    className="w-full px-3 py-2 border rounded-lg"
+                  >
+                    <option value="">None</option>
+                    <option value="doors">Doors</option>
+                    <option value="windows">Windows</option>
+                    <option value="window_treatments">Window Treatments</option>
+                    <option value="roof">Roof/Trim</option>
+                    <option value="chimney">Chimney</option>
+                    <option value="welcome_mat">Welcome Mat</option>
+                    <option value="house_number">House Number</option>
+                    <option value="exterior_lights">Exterior Lights</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Release Type</label>
+                  <select
+                    value={editForm.releaseType}
+                    onChange={(e) => setEditForm({...editForm, releaseType: e.target.value})}
+                    className="w-full px-3 py-2 border rounded-lg"
+                  >
+                    <option value="DEFAULT">Default (Always Available)</option>
+                    <option value="PUBLIC">Public</option>
+                    <option value="BETA_USERS">Beta Users</option>
+                    <option value="LIMITED_TIME">Limited Time</option>
+                    <option value="CLAIM_CODE">Claim Code</option>
+                    <option value="ADMIN_ONLY">Admin Only</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Grid Width</label>
+                  <input
+                    type="number"
+                    value={editForm.gridWidth}
+                    onChange={(e) => setEditForm({...editForm, gridWidth: parseInt(e.target.value)})}
+                    className="w-full px-3 py-2 border rounded-lg"
+                    min="1"
+                    max="10"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Grid Height</label>
+                  <input
+                    type="number"
+                    value={editForm.gridHeight}
+                    onChange={(e) => setEditForm({...editForm, gridHeight: parseInt(e.target.value)})}
+                    className="w-full px-3 py-2 border rounded-lg"
+                    min="1"
+                    max="10"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Active</label>
+                  <select
+                    value={editForm.isActive ? 'true' : 'false'}
+                    onChange={(e) => setEditForm({...editForm, isActive: e.target.value === 'true'})}
+                    className="w-full px-3 py-2 border rounded-lg"
+                  >
+                    <option value="true">Active</option>
+                    <option value="false">Inactive</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <label className="block text-sm font-medium mb-1">Description</label>
+                <textarea
+                  value={editForm.description}
+                  onChange={(e) => setEditForm({...editForm, description: e.target.value})}
+                  className="w-full px-3 py-2 border rounded-lg"
+                  rows={3}
+                />
+              </div>
+            </form>
+          </Modal>
         )}
 
         {/* Decorations Table */}

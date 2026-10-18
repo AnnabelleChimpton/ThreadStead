@@ -3,6 +3,8 @@ import Link from "next/link";
 import MediaUpload from "@/components/ui/media/MediaUpload";
 import PhotoComments from "@/components/core/content/PhotoComments";
 import { PixelIcon } from '@/components/ui/PixelIcon';
+import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner';
+import Modal from '@/components/ui/feedback/Modal';
 
 interface PhotoItem {
   id: string;
@@ -53,26 +55,10 @@ export default function MediaGrid({ username, isOwner = false }: MediaGridProps)
     loadFeaturedPhotos();
   }, [username]);
 
-  // Handle keyboard shortcuts for modal
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && selectedImage) {
-        setSelectedImage(null);
-        setShowComments(false);
-      }
-    };
-
-    if (selectedImage) {
-      document.addEventListener('keydown', handleKeyDown);
-      // Prevent body scroll when modal is open
-      document.body.style.overflow = 'hidden';
-    }
-
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = 'unset';
-    };
-  }, [selectedImage]);
+  const closeLightbox = () => {
+    setSelectedImage(null);
+    setShowComments(false);
+  };
 
   const handleUploadSuccess = (newPhoto: any) => {
     // Add to featured photos if it was marked as featured and is an image
@@ -133,10 +119,7 @@ export default function MediaGrid({ username, isOwner = false }: MediaGridProps)
   if (loading) {
     return (
       <div className="ts-media-tab-content profile-tab-content">
-        <div className="text-center py-8">
-          <div className="animate-spin w-8 h-8 border-2 border-thread-pine border-t-transparent rounded-full mx-auto mb-2"></div>
-          <p className="text-thread-sage">Loading media...</p>
-        </div>
+        <LoadingSpinner message="Loading media..." tone="inherit" className="py-8" />
       </div>
     );
   }
@@ -235,18 +218,18 @@ export default function MediaGrid({ username, isOwner = false }: MediaGridProps)
       )}
 
       {/* Full Size Image Modal */}
-      {selectedImage && (
-        <div 
-          className="media-modal-overlay bg-black/80 flex items-center justify-center p-4"
-          onClick={() => {
-            setSelectedImage(null);
-            setShowComments(false);
-          }}
-        >
-          <div 
-            className="max-w-6xl max-h-full bg-white rounded-lg overflow-hidden shadow-2xl flex"
-            onClick={(e) => e.stopPropagation()}
-          >
+      <Modal
+        isOpen={!!selectedImage}
+        onClose={closeLightbox}
+        title={selectedImage?.title || selectedImage?.caption || "Photo"}
+        hideTitle
+        maxWidth="max-w-6xl"
+        className="overflow-hidden md:w-auto"
+        bodyClassName="flex bg-white"
+        backdropClassName="media-modal-overlay bg-black/80"
+      >
+        {selectedImage && (
+          <>
             {/* Image section */}
             <div className="flex-1 relative">
               <img 
@@ -255,12 +238,10 @@ export default function MediaGrid({ username, isOwner = false }: MediaGridProps)
                 className="w-full h-full max-h-[80vh] object-contain"
               />
               <button
-                onClick={() => {
-                  setSelectedImage(null);
-                  setShowComments(false);
-                }}
+                onClick={closeLightbox}
                 className="absolute top-2 right-2 bg-black/70 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-black/90 transition-colors"
                 title="Close"
+                aria-label="Close"
               >
                 ×
               </button>
@@ -306,9 +287,9 @@ export default function MediaGrid({ username, isOwner = false }: MediaGridProps)
                 </div>
               </div>
             )}
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </Modal>
     </div>
   );
 }

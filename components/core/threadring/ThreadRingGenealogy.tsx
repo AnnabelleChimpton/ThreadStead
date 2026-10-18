@@ -1,6 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { useRouter } from 'next/router';
+import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner';
+import EmptyState from '@/components/ui/feedback/EmptyState';
+import ErrorDisplay from '@/components/ui/feedback/ErrorDisplay';
 
 interface ThreadRingNode {
   id: string;
@@ -256,7 +259,7 @@ export default function ThreadRingGenealogy({
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <div className="text-gray-500">Loading genealogy tree...</div>
+        <LoadingSpinner message="Loading genealogy tree..." />
       </div>
     );
   }
@@ -264,7 +267,7 @@ export default function ThreadRingGenealogy({
   if (error) {
     return (
       <div className="flex items-center justify-center h-96">
-        <div className="text-red-500">Error: {error}</div>
+        <ErrorDisplay title="Error" message={error} />
       </div>
     );
   }
@@ -272,7 +275,7 @@ export default function ThreadRingGenealogy({
   if (!data) {
     return (
       <div className="flex items-center justify-center h-96">
-        <div className="text-gray-500">No genealogy data available</div>
+        <EmptyState variant="plain" title="No genealogy data available" />
       </div>
     );
   }

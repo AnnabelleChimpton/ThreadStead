@@ -10,7 +10,7 @@ jest.mock('next/router', () => ({
   useRouter: jest.fn()
 }));
 
-jest.mock('@/hooks/useToast', () => ({
+jest.mock('@/contexts/ToastContext', () => ({
   useToast: jest.fn()
 }));
 
@@ -41,7 +41,7 @@ jest.mock('@/components/ui/PixelIcon', () => ({
 }));
 
 import { useRouter } from 'next/router';
-import { useToast } from '@/hooks/useToast';
+import { useToast } from '@/contexts/ToastContext';
 import { useWelcomeRingIntro } from '@/hooks/useWelcomeRingIntro';
 import { getWelcomeProgress, updateWelcomeProgress, clearWelcomeProgress } from '@/lib/welcome/progress';
 import { celebrateAction, setCelebrationToastHandler } from '@/lib/welcome/celebrations';
@@ -142,11 +142,8 @@ describe('Welcome Ring Integration Flow', () => {
     
     // Setup toast mock
     const mockShowSuccess = jest.fn();
-    const mockHideToast = jest.fn();
     mockUseToast.mockReturnValue({
-      toasts: [],
       showToast: jest.fn(),
-      hideToast: mockHideToast,
       showSuccess: mockShowSuccess,
       showError: jest.fn(),
       showWarning: jest.fn(),

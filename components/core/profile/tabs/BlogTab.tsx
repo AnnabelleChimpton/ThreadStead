@@ -3,6 +3,7 @@ import Link from "next/link";
 import PostItem, { Post as PostType } from "../../content/PostItem";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { BLOCK_CHANGED_EVENT } from "../../social/BlockButton";
+import LoadingSpinner from "@/components/ui/feedback/LoadingSpinner";
 
 interface BlogTabProps {
   username: string;
@@ -53,7 +54,7 @@ export default function BlogTab({ username, ownerUserId }: BlogTabProps) {
   if (loading) {
     return (
       <div className="ts-blog-loading" data-component="blog-tab">
-        Loading posts…
+        <LoadingSpinner message="Loading posts…" tone="inherit" className="py-6" />
       </div>
     );
   }

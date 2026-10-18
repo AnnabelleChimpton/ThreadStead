@@ -26,8 +26,10 @@ import ValidationFeedbackPanel from './ValidationFeedbackPanel';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import { useRouter } from 'next/router';
 import { PixelIcon } from '@/components/ui/PixelIcon';
+import Modal from '@/components/ui/feedback/Modal';
 import DraftRestoreBanner from '@/components/ui/feedback/DraftRestoreBanner';
 import { useLocalDraft } from '@/hooks/useLocalDraft';
+import { useToast } from '@/contexts/ToastContext';
 import TemplateHistoryPanel, { type FullRevision } from '@/components/features/templates/TemplateHistoryPanel';
 import ViewSourceToggle from '@/components/features/templates/ViewSourceToggle';
 
@@ -65,75 +67,60 @@ function DataLossWarning({
   preservedItems,
   clearedItems
 }: DataLossWarningProps) {
-  if (!isOpen) return null;
-
   const hasConversionDetails = preservedItems && clearedItems;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-[10000]">
-      <div className="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 p-6 border-2 border-gray-200">
-        <div className="flex items-center gap-3 mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-        </div>
-
-        <div className="mb-6">
-          <p className="text-gray-700 leading-relaxed mb-4">{message}</p>
-
-          {hasConversionDetails && (
-            <div className="space-y-4">
-              {/* Preserved Items */}
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <h4 className="text-sm font-semibold text-green-800 mb-2 flex items-center gap-2">
-                  <PixelIcon name="check" size={14} /> Will be preserved
-                </h4>
-                {preservedItems.length > 0 ? (
-                  <ul className="text-sm text-green-700 space-y-1">
-                    {preservedItems.map((item, index) => (
-                      <li key={index} className="flex items-center gap-2">
-                        <span className="w-1 h-1 bg-green-600 rounded-full"></span>
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-sm text-green-700 italic">No convertible styles found</p>
-                )}
-              </div>
-
-              {/* Cleared Items */}
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <h4 className="text-sm font-semibold text-red-800 mb-2 flex items-center gap-2">
-                  <PixelIcon name="trash" size={14} /> Will be cleared
-                </h4>
-                <ul className="text-sm text-red-700 space-y-1">
-                  {clearedItems.map((item, index) => (
-                    <li key={index} className="flex items-center gap-2">
-                      <span className="w-1 h-1 bg-red-600 rounded-full"></span>
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="flex gap-3 justify-end">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-gray-600 border border-gray-300 rounded hover:bg-gray-50 transition-colors"
-          >
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={title}
+      role="alertdialog"
+      maxWidth="max-w-lg"
+      footer={
+        <div className="flex flex-wrap gap-2 justify-end">
+          <button type="button" onClick={onClose} className="btn btn--secondary">
             Cancel
           </button>
-          <button
-            onClick={onConfirm}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-          >
+          <button type="button" onClick={onConfirm} className="btn btn--primary">
             {confirmText}
           </button>
         </div>
-      </div>
-    </div>
+      }
+    >
+      <p className="text-nb-ink leading-relaxed mb-4">{message}</p>
+
+      {hasConversionDetails && (
+        <div className="space-y-4">
+          {/* Preserved Items */}
+          <div className="border-2 border-nb-ink-mid/40 border-l-8 border-l-thread-meadow rounded-md p-4">
+            <h4 className="text-sm font-semibold text-nb-ink mb-2 flex items-center gap-2">
+              <PixelIcon name="check" size={14} /> Will be preserved
+            </h4>
+            {preservedItems.length > 0 ? (
+              <ul className="text-sm text-nb-ink list-disc pl-5 space-y-1">
+                {preservedItems.map((item, index) => (
+                  <li key={index}>{item}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-nb-ink-mid italic">No convertible styles found</p>
+            )}
+          </div>
+
+          {/* Cleared Items */}
+          <div className="border-2 border-nb-ink-mid/40 border-l-8 border-l-thread-sunset rounded-md p-4">
+            <h4 className="text-sm font-semibold text-nb-ink mb-2 flex items-center gap-2">
+              <PixelIcon name="trash" size={14} /> Will be cleared
+            </h4>
+            <ul className="text-sm text-nb-ink list-disc pl-5 space-y-1">
+              {clearedItems.map((item, index) => (
+                <li key={index}>{item}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
+    </Modal>
   );
 }
 
@@ -159,6 +146,7 @@ export default function EnhancedTemplateEditor({
   onSave
 }: EnhancedTemplateEditorProps) {
   const router = useRouter();
+  const { showError, showInfo } = useToast();
 
   // AUTO-FIX: Detect and unwrap flow templates that were incorrectly wrapped
   // This fixes templates corrupted by the previous auto-wrap bug
@@ -625,7 +613,7 @@ export default function EnhancedTemplateEditor({
   const openPopupPreview = useCallback(async () => {
     // Check if essential data is available
     if (!residentData) {
-      alert('Preview data is still loading. Please wait a moment and try again.');
+      showInfo('Preview data is still loading. Please wait a moment and try again.');
       return;
     }
 
@@ -635,7 +623,7 @@ export default function EnhancedTemplateEditor({
         // Compile the template before opening preview
         const compiled = await compileTemplateForPreview();
         if (!compiled) {
-          alert('Failed to compile template. Please check your template syntax.');
+          showError('Failed to compile template. Please check your template syntax.');
           return;
         }
       }
@@ -682,9 +670,9 @@ export default function EnhancedTemplateEditor({
         }
       }, 1000);
     } else {
-      alert('Pop-up blocked — allow pop-ups for this site to use the preview.');
+      showError('Pop-up blocked — allow pop-ups for this site to use the preview.');
     }
-  }, [previewWindow, residentData, useStandardLayout, template, compiledTemplate, sendPreviewData, compileTemplateForPreview]);
+  }, [previewWindow, residentData, useStandardLayout, template, compiledTemplate, sendPreviewData, compileTemplateForPreview, showError, showInfo]);
 
   // Send CSS updates to preview window when CSS changes
   useEffect(() => {

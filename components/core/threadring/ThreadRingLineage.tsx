@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import LoadingSpinner from "@/components/ui/feedback/LoadingSpinner";
+import EmptyState from "@/components/ui/feedback/EmptyState";
+import ErrorDisplay from "@/components/ui/feedback/ErrorDisplay";
 
 interface RingDescriptor {
   id: string;
@@ -83,7 +86,7 @@ export default function ThreadRingLineage({
   if (loading) {
     return (
       <div className={`bg-white p-4 ${className}`}>
-        <div className="text-sm text-nb-ink-mid">Loading ring family tree...</div>
+        <LoadingSpinner message="Loading ring family tree..." className="py-4" />
       </div>
     );
   }
@@ -91,7 +94,7 @@ export default function ThreadRingLineage({
   if (error) {
     return (
       <div className={`bg-white p-4 ${className}`}>
-        <div className="text-sm text-red-600">{error}</div>
+        <ErrorDisplay title={error} onRetry={fetchLineage} />
       </div>
     );
   }
@@ -136,9 +139,11 @@ export default function ThreadRingLineage({
   return (
     <div className={`bg-white p-4 ${className}`}>
       {(lineageData?.directChildrenCount || 0) === 0 && (lineageData?.lineageDepth || 0) === 0 ? (
-        <div className="text-sm text-nb-ink-mid">
-          No fork relationships yet. This ThreadRing can be forked to create derivative communities!
-        </div>
+        <EmptyState
+          variant="plain"
+          title="No fork relationships yet."
+          description="This ThreadRing can be forked to create derivative communities!"
+        />
       ) : (
         <div className="space-y-4">
           {/* Lineage Overview */}

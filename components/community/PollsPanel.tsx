@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { PixelIcon } from '@/components/ui/PixelIcon';
 import { csrfFetchJson } from '@/lib/api/client/csrf-fetch';
+import { useToast } from '@/contexts/ToastContext';
 
 interface PollOption {
   id: string;
@@ -39,6 +40,7 @@ export default function PollsPanel() {
   const [voting, setVoting] = useState<string | null>(null);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   const [expandedPolls, setExpandedPolls] = useState<Set<string>>(new Set());
+  const { showError } = useToast();
   const { user, loggedIn } = useCurrentUser();
 
   useEffect(() => {
@@ -77,7 +79,7 @@ export default function PollsPanel() {
       await fetchPolls();
     } catch (err: any) {
       console.error('Error voting:', err);
-      alert(err.message || 'Failed to record vote');
+      showError(err.message || 'Failed to record vote');
     } finally {
       setVoting(null);
     }

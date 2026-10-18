@@ -3,6 +3,8 @@ import FeedPost, { FeedPostData } from "./FeedPost";
 import { PostSkeletonList } from "./PostSkeleton";
 import { useSiteConfig } from "@/hooks/useSiteConfig";
 import ButtonLink from "@/components/ui/ButtonLink";
+import EmptyState from "@/components/ui/feedback/EmptyState";
+import ErrorDisplay from "@/components/ui/feedback/ErrorDisplay";
 
 type FeedType = "recent" | "active" | "following";
 
@@ -56,7 +58,7 @@ export default function Feed({ type }: FeedProps) {
       const res = await fetch(`${endpoint}?${query}`);
 
       if (!res.ok) {
-        throw new Error(`Failed to load posts: ${res.status}`);
+        throw new Error("Failed to load posts");
       }
 
       const data: FeedResponse = await res.json();
@@ -157,52 +159,33 @@ export default function Feed({ type }: FeedProps) {
   }
 
   if (error) {
-    return (
-      <div className="thread-module p-4 sm:p-5 md:p-6">
-        <div className="text-thread-sunset bg-red-50 border border-red-200 p-3 rounded-cozy">
-          <span className="thread-label">error</span>
-          <p className="mt-1">{error}</p>
-          <button
-            onClick={() => loadPosts(true)}
-            className="mt-2 text-sm underline hover:no-underline"
-          >
-            Try again
-          </button>
-        </div>
-      </div>
-    );
+    return <ErrorDisplay title={error} onRetry={() => loadPosts(true)} />;
   }
 
   if (posts.length === 0 && type === "following") {
     const followsNobody = followingCount === 0;
     return (
-      <div className="thread-module p-4 sm:p-6 md:p-8 text-center">
-        <h3 className="thread-headline text-lg mb-2">
-          {followsNobody ? "You\u2019re not following anyone yet" : "Nothing new from the people you follow"}
-        </h3>
-        <p className="text-nb-ink mb-4">
-          {followsNobody
-            ? "Follow a few neighbors and their posts will show up here."
-            : "When they post, you\u2019ll see it here."}
-        </p>
-        <div className="flex flex-wrap justify-center gap-2">
-          <ButtonLink href="/neighborhood">Walk down the street</ButtonLink>
-          <ButtonLink href="/neighborhood/residents" variant="secondary">Browse residents</ButtonLink>
-        </div>
-      </div>
+      <EmptyState
+        title={followsNobody ? "You\u2019re not following anyone yet" : "Nothing new from the people you follow"}
+        description={followsNobody
+          ? "Follow a few neighbors and their posts will show up here."
+          : "When they post, you\u2019ll see it here."}
+        actions={
+          <>
+            <ButtonLink href="/neighborhood">Walk down the street</ButtonLink>
+            <ButtonLink href="/neighborhood/residents" variant="secondary">Browse residents</ButtonLink>
+          </>
+        }
+      />
     );
   }
 
   if (posts.length === 0) {
     return (
-      <div className="thread-module p-4 sm:p-6 md:p-8 text-center">
-        <h3 className="thread-headline text-lg mb-2">No posts yet</h3>
-        <p className="text-thread-sage">
-          {type === "recent"
-            ? config.feed_empty_message
-            : "No posts with recent activity found."}
-        </p>
-      </div>
+      <EmptyState
+        title="No posts yet"
+        description={type === "recent" ? config.feed_empty_message : "No posts with recent activity found."}
+      />
     );
   }
 

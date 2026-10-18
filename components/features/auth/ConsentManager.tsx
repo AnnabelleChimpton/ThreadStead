@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react'
 import { PixelIcon } from '@/components/ui/PixelIcon'
+import { useConfirm } from '@/contexts/ConfirmContext'
+import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner'
 
 // Define enum types to match Prisma schema
 enum ConsentType {
@@ -29,6 +31,7 @@ interface ConsentManagerProps {
 }
 
 export default function ConsentManager({ userId }: ConsentManagerProps) {
+  const confirm = useConfirm()
   const [consents, setConsents] = useState<ConsentRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -99,7 +102,7 @@ export default function ConsentManager({ userId }: ConsentManagerProps) {
   }
 
   const withdrawAllConsents = async () => {
-    if (!confirm('Are you sure you want to withdraw all non-essential consents? This may limit site functionality.')) {
+    if (!(await confirm({ title: 'Withdraw all non-essential consents?', message: 'This may limit site functionality.', confirmText: 'Withdraw' }))) {
       return
     }
 
@@ -150,7 +153,7 @@ export default function ConsentManager({ userId }: ConsentManagerProps) {
     return (
       <div className="bg-white border-2 border-nb-ink-mid p-6">
         <h3 className="text-xl font-bold mb-4">Cookie & Consent Preferences</h3>
-        <p>Loading...</p>
+        <LoadingSpinner className="py-4" />
       </div>
     )
   }

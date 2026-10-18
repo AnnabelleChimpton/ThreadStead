@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { PixelIcon } from "@/components/ui/PixelIcon";
 import { csrfFetch } from "@/lib/api/client/csrf-fetch";
+import { useConfirm } from "@/contexts/ConfirmContext";
 import { getSiteTemplate, SITE_TEMPLATE_INFO } from "@/lib/templates/site-css-templates";
+import LoadingSpinner from "@/components/ui/feedback/LoadingSpinner";
 
 type SiteTemplateType = keyof typeof SITE_TEMPLATE_INFO;
 
@@ -38,6 +40,7 @@ export default function SiteCSSSection({
   /** Runs after a change is stored. Reloads so the new theme renders. */
   onApplied?: () => void;
 }) {
+  const confirm = useConfirm();
   const [css, setCSS] = useState("");
   const [mode, setMode] = useState<SiteThemeMode | null>(null);
   const [loading, setLoading] = useState(true);
@@ -103,8 +106,13 @@ export default function SiteCSSSection({
     send("PUT", value, "Saved.");
   }
 
-  function switchToDefault() {
-    if (mode === "custom" && !window.confirm("Switch to the default theme? Your custom CSS will be removed.")) {
+  async function switchToDefault() {
+    if (mode === "custom" && !(await confirm({
+      title: "Switch to the default theme?",
+      message: "Your custom CSS will be removed.",
+      confirmText: "Switch",
+      variant: "danger",
+    }))) {
       return;
     }
     send("DELETE", null, "Switched to the default theme.");
@@ -178,7 +186,7 @@ export default function SiteCSSSection({
       )}
 
       {loading ? (
-        <div className="mt-3">Loading CSS…</div>
+        <LoadingSpinner message="Loading CSS…" className="mt-3 py-4" />
       ) : (
         <div className="space-y-3 mt-3">
           <div className="relative">
