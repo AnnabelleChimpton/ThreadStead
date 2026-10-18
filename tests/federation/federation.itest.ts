@@ -22,6 +22,7 @@ import * as ringHubClientModule from '@/lib/api/ringhub/ringhub-client'
 import { createAuthenticatedRingHubClient } from '@/lib/api/ringhub/ringhub-user-operations'
 import { removePostFromRingHub } from '@/lib/domain/posts/ringhub-removal'
 import { buildPostUri } from '@/lib/domain/posts/ringhub-metadata'
+import { NOT_A_MEMBER_REASON, PUBLIC_ONLY_REASON, postToRings } from '@/lib/domain/posts/ring-submission'
 
 // removePostFromRingHub signs as the post's author through this factory, which
 // in the app maps a ThreadStead user id to their DID keypair (DB-backed).
@@ -147,6 +148,79 @@ describe('post submission (the `{}` regression)', () => {
     const post = feed.posts.find((p) => p.uri === POST_URI)
     expect(post).toBeDefined()
     expect(post!.status).toBe('ACCEPTED')
+  })
+})
+
+describe('posting into rings from the composer (create.ts → postToRings)', () => {
+  // A host the A3 orphan scan below ignores, so these refs can't skew it.
+  const HOST = 'https://ring-posting-itest.invalid'
+  const submission = (id: string) => ({
+    uri: `${HOST}/resident/itest/post/${id}`,
+    digest: `sha256:${id}`,
+    metadata: { title: `Ring posting ${id}`, textPreview: 'hello', publishedAt: new Date().toISOString(), platform: 'blog' },
+  })
+  const postedRefIds: string[] = []
+
+  afterAll(async () => {
+    for (const id of postedRefIds) await client.curatePost(id, 'remove')
+  })
+
+  test('a member posts: the ring gets it, a ring they never joined is reported, not dropped', async () => {
+    const results = await postToRings(client, [ringSlug, 'itest-never-joined'], {
+      visibility: 'public',
+      buildSubmission: () => submission('composer-1'),
+    })
+    expect(results).toHaveLength(2)
+    expect(results[0]).toMatchObject({ slug: ringSlug, status: 'posted' })
+    expect(typeof results[0].hubPostId).toBe('string')
+    expect(results[1]).toMatchObject({ slug: 'itest-never-joined', status: 'failed', reason: NOT_A_MEMBER_REASON })
+    postedRefIds.push(results[0].hubPostId!)
+
+    const feed = await client.getRingFeed(ringSlug)
+    expect(feed.posts.find((p) => p.id === results[0].hubPostId)?.uri).toBe(`${HOST}/resident/itest/post/composer-1`)
+  })
+
+  test('a non-public post never reaches the hub', async () => {
+    const results = await postToRings(client, [ringSlug], {
+      visibility: 'friends',
+      buildSubmission: () => submission('composer-friends-only'),
+    })
+    expect(results).toEqual([{ slug: ringSlug, name: ringSlug, status: 'failed', reason: PUBLIC_ONLY_REASON }])
+    const feed = await client.getRingFeed(ringSlug)
+    expect(feed.posts.some((p) => p.uri.endsWith('/composer-friends-only'))).toBe(false)
+  })
+
+  test('the hub refuses a non-member, and the reason says so', async () => {
+    // Skipping our own membership check sends it anyway, so the hub decides.
+    const [result] = await postToRings(makeTestClient('second'), [ringSlug], {
+      visibility: 'public',
+      buildSubmission: () => submission('composer-stranger'),
+      skipMembershipCheck: true,
+    })
+    expect(result).toMatchObject({ status: 'failed', reason: NOT_A_MEMBER_REASON })
+  })
+
+  test('a malformed post URI (local .env with a stray `;`, 2026-10-17) comes back with the hub reason', async () => {
+    const [result] = await postToRings(client, [ringSlug], {
+      visibility: 'public',
+      buildSubmission: () => ({ ...submission('composer-bad-uri'), uri: '"http://localhost:3000";/resident/itest/post/x' }),
+    })
+    expect(result.status).toBe('failed')
+    expect(result.reason).toContain('must match format "uri"')
+  })
+
+  test('an unreachable hub fails every ring with a reason instead of throwing', async () => {
+    const rt = getRuntime()
+    const offline = new RingHubClient({
+      baseUrl: 'http://127.0.0.1:9',
+      instanceDID: rt.testActorDid,
+      privateKeyBase64Url: rt.privateKeyBase64Url,
+      publicKeyMultibase: rt.publicKeyMultibase,
+    })
+    const results = await postToRings(offline, [ringSlug], { visibility: 'public', buildSubmission: () => submission('composer-offline') })
+    expect(results).toEqual([
+      { slug: ringSlug, name: ringSlug, status: 'failed', reason: "Ring Hub didn't respond. Try again later." },
+    ])
   })
 })
 

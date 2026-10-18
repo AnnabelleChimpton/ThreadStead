@@ -6,12 +6,16 @@ import { getSiteConfig, SiteConfig } from "@/lib/config/site/dynamic";
 import PostEditor from "@/components/ui/forms/PostEditor";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+import Link from "next/link";
+import type { RingPostResult } from "@/lib/domain/posts/ring-submission";
 
 interface PostEditorPageProps {
   siteConfig: SiteConfig;
+  /** ?threadRing=<slug> without a prompt: "Write in this ring" from a ring page */
+  ringSlug: string | null;
 }
 
-export default function PostEditorPage({ siteConfig }: PostEditorPageProps) {
+export default function PostEditorPage({ siteConfig, ringSlug }: PostEditorPageProps) {
   const router = useRouter();
   const { user: currentUser } = useCurrentUser();
 
@@ -21,6 +25,9 @@ export default function PostEditorPage({ siteConfig }: PostEditorPageProps) {
     title: string;
     threadRingSlug: string;
   } | null>(null);
+
+  // Set when the post was created but didn't reach every ring it was meant for
+  const [ringOutcome, setRingOutcome] = useState<{ postUrl: string; rings: RingPostResult[] } | null>(null);
 
   // Site config for intent stamps
   const [intentStampsEnabled, setIntentStampsEnabled] = useState(true);
@@ -80,8 +87,15 @@ export default function PostEditorPage({ siteConfig }: PostEditorPageProps) {
 
       if (!res.ok) throw new Error(`create failed: ${res.status}`);
 
-      const { post } = await res.json();
-      router.push(`/resident/${post.authorUsername}/post/${post.id}`);
+      const { post, rings } = await res.json() as { post: any; rings?: RingPostResult[] };
+      const postUrl = `/resident/${post.authorUsername}/post/${post.id}`;
+
+      // Stay here when a ring didn't take the post, so the user sees which and why.
+      if (rings && rings.some(r => r.status !== 'posted')) {
+        setRingOutcome({ postUrl, rings });
+        return;
+      }
+      router.push(postUrl);
     } catch (error) {
       throw error; // Let PostEditor handle the error display
     }
@@ -95,6 +109,9 @@ export default function PostEditorPage({ siteConfig }: PostEditorPageProps) {
           <p className="text-[#A18463]">Write your post using Markdown formatting</p>
         </div>
 
+        {ringOutcome ? (
+          <RingOutcomePanel {...ringOutcome} />
+        ) : (
         <PostEditor
           mode="create"
           onSubmit={handleSubmit}
@@ -102,18 +119,58 @@ export default function PostEditorPage({ siteConfig }: PostEditorPageProps) {
           intentStampsEnabled={intentStampsEnabled}
           postTitlesRequired={postTitlesRequired}
           respondingToPrompt={respondingToPrompt}
+          initialData={ringSlug ? { selectedRings: [ringSlug] } : undefined}
         />
+        )}
       </div>
     </Layout>
   );
 }
 
-export const getServerSideProps: GetServerSideProps<PostEditorPageProps> = async () => {
+function RingOutcomePanel({ postUrl, rings }: { postUrl: string; rings: RingPostResult[] }) {
+  const posted = rings.filter(r => r.status === 'posted');
+  const pending = rings.filter(r => r.status === 'pending');
+  const failed = rings.filter(r => r.status === 'failed');
+
+  const ringLinks = (list: RingPostResult[]) =>
+    list.map((r, i) => (
+      <React.Fragment key={r.slug}>
+        {i > 0 && ', '}
+        <Link href={`/tr/${r.slug}`} className="underline">{r.name}</Link>
+      </React.Fragment>
+    ));
+
+  return (
+    <div role="status" className="p-6 bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[3px_3px_0_#A18463] space-y-3">
+      <h2 className="thread-headline text-xl font-bold">Your post is up</h2>
+      {posted.length > 0 && <p>Posted to: {ringLinks(posted)}</p>}
+      {pending.length > 0 && <p>Waiting for a moderator in: {ringLinks(pending)}</p>}
+      {failed.length > 0 && (
+        <div>
+          <p>Not posted to:</p>
+          <ul className="list-disc pl-6 mt-1 space-y-1">
+            {failed.map(r => (
+              <li key={r.slug}>
+                <strong>{r.name}</strong> — {r.reason || "Ring Hub didn't respond. Try again later."}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      <Link href={postUrl} className="thread-button inline-block">View your post</Link>
+    </div>
+  );
+}
+
+export const getServerSideProps: GetServerSideProps<PostEditorPageProps> = async ({ query }) => {
   const siteConfig = await getSiteConfig();
+  const ring = typeof query.threadRing === "string" ? query.threadRing : "";
+  const ringSlug = ring && !query.promptId && /^[\w-]+$/.test(ring) ? ring : null;
 
   return {
     props: {
       siteConfig,
+      ringSlug,
     },
   };
 };

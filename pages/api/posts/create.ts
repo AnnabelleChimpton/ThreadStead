@@ -11,6 +11,7 @@ import { getSiteBaseUrl } from "@/lib/config/site-url";
 import { buildPostUri, generateTextPreview, generateExcerpt } from "@/lib/domain/posts/ringhub-metadata";
 import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
 import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
+import { postToRings, refuseNonPublicPost, NOT_A_MEMBER_REASON, type RingPostResult } from "@/lib/domain/posts/ring-submission";
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
@@ -100,8 +101,14 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     },
   });
 
-  // Associate post with ThreadRings if provided
-  if (threadRingIds && threadRingIds.length > 0) {
+  // Associate post with ThreadRings if provided. Every requested ring gets a
+  // result so the composer can say where the post landed and where it didn't.
+  let ringResults: RingPostResult[] = [];
+  // Rings are public spaces: a non-public post goes to none of them (hub or local).
+  const nonPublicRefusal = threadRingIds && threadRingIds.length > 0 ? refuseNonPublicPost(threadRingIds, vis) : null;
+  if (nonPublicRefusal) {
+    ringResults = nonPublicRefusal;
+  } else if (threadRingIds && threadRingIds.length > 0) {
     try {
       if (featureFlags.ringhub()) {
         // Ring Hub integration for post association
@@ -110,45 +117,20 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         // When Ring Hub is enabled, threadRingIds are actually slugs, not database IDs
         const ringSlugs = threadRingIds;
 
-        // Validate user membership by fetching from Ring Hub
-        const userMemberships = await authenticatedClient.getMyMemberships({
-          status: 'ACTIVE'
-        });
-
-        // Dev mode workaround: If responding to a prompt and no memberships found, 
-        // assume the user can post (since all users share the server DID in dev)
-        let validSlugs: string[];
         const baseUrl = getSiteBaseUrl();
         // Unset falls back to http://localhost:3000, so it counts as localhost
         const isLocalhost = baseUrl.includes('localhost') || baseUrl.includes('127.0.0.1');
 
-        // Normal validation: Filter to only rings the user is actually a member of
-        validSlugs = ringSlugs.filter(slug =>
-          userMemberships.memberships.some(membership =>
-            membership.ringSlug === slug && membership.status === 'ACTIVE'
-          )
-        );
+        // Prompt details per ring, filled in while building each submission and
+        // reused after the hub accepts it.
+        const promptDetailsBySlug = new Map<string, any>();
 
-        // Dev mode workaround: If responding to a prompt but not a member of the ring,
-        // allow submission anyway (since all users share the server DID in dev)
-        if (isLocalhost && promptId && validSlugs.length === 0 && ringSlugs.length > 0) {
-          validSlugs = ringSlugs; // Allow all requested rings in dev mode for prompt responses
-        }
-
-        // Accumulate RingHub post IDs across all rings so earlier entries aren't overwritten
-        const accumulatedThreadRingPostIds: Record<string, string> =
-          (post.threadRingPostIds as Record<string, string>) || {};
-
-        // Only rings the hub actually accepted get local associations below —
-        // otherwise the UI shows the post in rings it never reached.
-        const submittedSlugs: string[] = [];
-
-        // Submit post to each Ring Hub ring using the correct Ring Hub API format
-        for (const slug of validSlugs) {
-          try {
-            // Find the ring membership data to get the name
-            const membership = userMemberships.memberships.find(m => m.ringSlug === slug);
-
+        ringResults = await postToRings(authenticatedClient, ringSlugs, {
+          visibility: post.visibility,
+          // Dev mode workaround: a prompt response may target a ring the user
+          // hasn't joined (all users used to share the server DID in dev).
+          skipMembershipCheck: isLocalhost && !!promptId,
+          buildSubmission: async ({ slug, name: ringName }) => {
             // Generate Ring Hub metadata following the new schema
             const textPreview = generateTextPreview(post.bodyText, post.bodyHtml, post.bodyMarkdown);
             const excerpt = generateExcerpt(post.bodyText, post.bodyHtml, post.bodyMarkdown);
@@ -194,6 +176,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             let metadata;
 
             if (isPromptResponse && promptDetails) {
+              promptDetailsBySlug.set(slug, promptDetails);
               // This is a prompt response - use prompt response metadata
               metadata = {
                 type: 'prompt_response',
@@ -212,7 +195,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 publishedAt: new Date().toISOString(),
                 platform: "blog",
                 threadRingSlug: slug,
-                threadRingName: membership?.ringName || slug,
+                threadRingName: ringName,
                 // Add user identification for dev mode workaround
                 threadsteadUserId: viewer.id,
                 authorHandle: postWithAuthor?.author?.primaryHandle,
@@ -231,7 +214,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 publishedAt: new Date().toISOString(),
                 platform: "blog",
                 threadRingSlug: slug,
-                threadRingName: membership?.ringName || slug,
+                threadRingName: ringName,
                 // Add user identification for dev mode workaround
                 threadsteadUserId: viewer.id,
                 authorHandle: postWithAuthor?.author?.primaryHandle,
@@ -243,56 +226,52 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
               };
             }
 
-            // Create the post submission with the appropriate metadata
-            const postSubmission = {
+            return {
               uri: buildPostUri(postWithAuthor?.author?.primaryHandle, post.id),
               digest: `sha256:${post.id}`,
               metadata: metadata
             };
+          },
+        });
 
-            const result = await authenticatedClient.submitPost(slug, postSubmission);
-
-            // Mirror locally unless the hub EXPLICITLY says the post is PENDING
-            // (curated/moderated rings). A successful submit that returns no
-            // status — some hub versions reply with an empty body — is treated
-            // as accepted, matching the pre-existing behavior; gating strictly on
-            // 'ACCEPTED' silently dropped every attachment when the body was empty.
-            if (result?.status !== 'PENDING') {
-              submittedSlugs.push(slug);
-            }
-
-            // Store the ThreadRing database UUID from the response
-            if (result.id) {
-              accumulatedThreadRingPostIds[slug] = result.id;
-
-              // Update the post with the merged ThreadRing post ID map
-              await db.post.update({
-                where: { id: post.id },
-                data: { threadRingPostIds: accumulatedThreadRingPostIds }
-              });
-            }
-
-            // If this was a prompt response, update the response count
-            if (isPromptResponse && promptDetails) {
-              try {
-                const { createPromptService } = await import('@/lib/utils/data/prompt-service');
-                const promptService = createPromptService(slug);
-                await promptService.associatePostWithPrompt(
-                  viewer.id,
-                  postSubmission.uri,
-                  promptId!,
-                  promptDetails.prompt.title
-                );
-              } catch (countError) {
-                console.error(`⚠️ Failed to update response count for prompt ${promptId} in ring ${slug}:`, countError);
-              }
-            }
-
-          } catch (ringHubError) {
-            console.error(`❌ Failed to submit post to Ring Hub ring ${slug}:`, ringHubError);
-            // Continue with other rings
+        // Save the local→hub PostRef id map (used to remove the post from rings later)
+        const threadRingPostIds: Record<string, string> = {};
+        for (const r of ringResults) {
+          if (r.hubPostId) threadRingPostIds[r.slug] = r.hubPostId;
+        }
+        if (Object.keys(threadRingPostIds).length > 0) {
+          try {
+            await db.post.update({
+              where: { id: post.id },
+              data: { threadRingPostIds }
+            });
+          } catch (idMapError) {
+            console.error("Failed to save Ring Hub post ids:", idMapError);
           }
         }
+
+        // If this was a prompt response, update the response count
+        for (const r of ringResults) {
+          const promptDetails = promptDetailsBySlug.get(r.slug);
+          if (r.status === 'failed' || !promptDetails) continue;
+          try {
+            const { createPromptService } = await import('@/lib/utils/data/prompt-service');
+            const promptService = createPromptService(r.slug);
+            await promptService.associatePostWithPrompt(
+              viewer.id,
+              buildPostUri(postWithAuthor?.author?.primaryHandle, post.id),
+              promptId!,
+              promptDetails.prompt.title
+            );
+          } catch (countError) {
+            console.error(`⚠️ Failed to update response count for prompt ${promptId} in ring ${r.slug}:`, countError);
+          }
+        }
+
+        // Only rings the hub accepted get local associations below —
+        // otherwise the UI shows the post in rings it never reached.
+        const submittedSlugs = ringResults.filter(r => r.status === 'posted').map(r => r.slug);
+        const ringNameBySlug = new Map(ringResults.map(r => [r.slug, r.name]));
 
         // Create local PostThreadRing associations for feed display
         // even when using Ring Hub (maintains compatibility with existing feed APIs).
@@ -316,9 +295,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
             for (const slug of missingRingSlugs) {
               try {
-                // Find the membership data to get the ring name
-                const membership = userMemberships.memberships.find(m => m.ringSlug === slug);
-                const ringName = membership?.ringName || slug;
+                const ringName = ringNameBySlug.get(slug) || slug;
 
                 // Generate a unique URI for the RingHub ThreadRing
                 const ringUri = `${getSiteBaseUrl()}/tr/${slug}`;
@@ -367,22 +344,27 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
               ]);
             }
           } catch (localAssocError) {
+            // The hub has the post, so the ring feed shows it; only the local
+            // "Posted to" mirror is missing. Don't fail post creation over it.
             console.error("Failed to create local PostThreadRing associations:", localAssocError);
-            // Don't fail post creation if this fails
           }
         }
       } else {
-        // Original local-only logic
-        // 1. Validate user is member of all specified ThreadRings
+        // Original local-only logic. The composer sends slugs (it selects by
+        // ring.slug), so match on either id or slug.
         const userMemberships = await db.threadRingMember.findMany({
           where: {
             userId: viewer.id,
-            threadRingId: { in: threadRingIds }
+            OR: [
+              { threadRingId: { in: threadRingIds } },
+              { threadRing: { slug: { in: threadRingIds } } }
+            ]
           },
-          select: { threadRingId: true }
+          select: { threadRing: { select: { id: true, slug: true, name: true } } }
         });
 
-        const validRingIds = userMemberships.map(m => m.threadRingId);
+        const memberRings = userMemberships.map(m => m.threadRing);
+        const validRingIds = memberRings.map(r => r.id);
 
         if (validRingIds.length > 0) {
           // 2. Create PostThreadRing associations
@@ -400,20 +382,37 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             data: { postCount: { increment: 1 } }
           });
         }
+
+        ringResults = Array.from(new Set(threadRingIds)).map(requested => {
+          const ring = memberRings.find(r => r.id === requested || r.slug === requested);
+          return ring
+            ? { slug: ring.slug, name: ring.name, status: 'posted' as const }
+            : { slug: requested, name: requested, status: 'failed' as const, reason: NOT_A_MEMBER_REASON };
+        });
       }
     } catch (ringError) {
       console.error("ThreadRing association error:", ringError);
-      // Don't fail the entire post creation if ThreadRing association fails
+      // Don't fail the post itself; report the rings we couldn't finish.
+      const reported = new Set(ringResults.map(r => r.slug));
+      ringResults = [
+        ...ringResults,
+        ...Array.from(new Set(threadRingIds))
+          .filter(slug => !reported.has(slug))
+          .map(slug => ({ slug, name: slug, status: 'failed' as const, reason: "Something went wrong on our end. Try again later." }))
+      ];
     }
   }
 
   // Note: Prompt response logic is now integrated into the main Ring Hub submission loop above
 
+  // 201 because the post exists; `rings` says where it landed. A ring with
+  // status 'failed' did NOT get the post, and `reason` says why.
   res.status(201).json({
     post: {
       ...post,
       authorUsername: postWithAuthor?.author?.primaryHandle?.split('@')[0],
-    }
+    },
+    rings: ringResults,
   });
 }
 
