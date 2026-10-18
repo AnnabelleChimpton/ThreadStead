@@ -22,8 +22,8 @@ describe('WelcomeRingIntroPopup', () => {
     it('should render the popup with initial step', () => {
       render(<WelcomeRingIntroPopup onClose={mockOnClose} onStartTour={mockOnStartTour} />);
       
-      expect(screen.getByText('Welcome to your first ThreadRing!')).toBeInTheDocument();
-      expect(screen.getByText(/where every new neighbor starts/)).toBeInTheDocument();
+      expect(screen.getByText('Hi, welcome in!')).toBeInTheDocument();
+      expect(screen.getByText(/a place to try posting/)).toBeInTheDocument();
       expect(screen.getByRole('dialog')).toBeInTheDocument();
     });
 
@@ -49,20 +49,20 @@ describe('WelcomeRingIntroPopup', () => {
       render(<WelcomeRingIntroPopup onClose={mockOnClose} onStartTour={mockOnStartTour} />);
       
       // Step 1
-      expect(screen.getByText('Welcome to your first ThreadRing!')).toBeInTheDocument();
+      expect(screen.getByText('Hi, welcome in!')).toBeInTheDocument();
       
       // Go to step 2
       fireEvent.click(screen.getByText('Next'));
       await waitFor(() => {
-        expect(screen.getByText('How ThreadRings Work')).toBeInTheDocument();
-        expect(screen.getByText(/Discord/)).toBeInTheDocument();
+        expect(screen.getByText('How rings work')).toBeInTheDocument();
+        expect(screen.getByText(/kind of like an old webring/)).toBeInTheDocument();
       }, { timeout: 3000 });
       
       // Go to step 3
       fireEvent.click(screen.getByText('Next'));
       await waitFor(() => {
         expect(screen.getByText('About this ring')).toBeInTheDocument();
-        expect(screen.getByText(/training ground/)).toBeInTheDocument();
+        expect(screen.getByText(/has five steps/)).toBeInTheDocument();
       }, { timeout: 3000 });
       
       // Go to step 4 (final step)
@@ -90,7 +90,7 @@ describe('WelcomeRingIntroPopup', () => {
       // Go back to step 1
       fireEvent.click(screen.getByText('Back'));
       await waitFor(() => {
-        expect(screen.getByText('Welcome to your first ThreadRing!')).toBeInTheDocument();
+        expect(screen.getByText('Hi, welcome in!')).toBeInTheDocument();
       }, { timeout: 3000 });
     });
   });
@@ -101,7 +101,7 @@ describe('WelcomeRingIntroPopup', () => {
       
       // Navigate to final step
       fireEvent.click(screen.getByText('Next'));
-      await waitFor(() => screen.getByText('How ThreadRings Work'));
+      await waitFor(() => screen.getByText('How rings work'));
       
       fireEvent.click(screen.getByText('Next'));
       await waitFor(() => screen.getByText('About this ring'));
@@ -183,24 +183,22 @@ describe('WelcomeRingIntroPopup', () => {
       // Step 2 content
       fireEvent.click(screen.getByText('Next'));
       await waitFor(() => {
-        expect(screen.getByText('Connected')).toBeInTheDocument();
-        expect(screen.getByText('Growing')).toBeInTheDocument();
-        expect(screen.getByText('Themed')).toBeInTheDocument();
+        expect(screen.getByText(/any ring can\s+branch off into a new one/)).toBeInTheDocument();
+        expect(screen.getByText(/A post lives on your page/)).toBeInTheDocument();
       });
       
       // Step 3 content
       fireEvent.click(screen.getByText('Next'));
       await waitFor(() => {
-        expect(screen.getByText(/training ground/)).toBeInTheDocument();
-        expect(screen.getByText('Read posts')).toBeInTheDocument();
-        expect(screen.getByText('Leave comments')).toBeInTheDocument();
-        expect(screen.getByText('Visit profiles')).toBeInTheDocument();
+        expect(screen.getByText(/has five steps/)).toBeInTheDocument();
+        expect(screen.getByText(/Introduce Yourself post/)).toBeInTheDocument();
+        expect(screen.getByText(/visit their page/)).toBeInTheDocument();
       });
       
       // Step 4 content
       fireEvent.click(screen.getByText('Next'));
       await waitFor(() => {
-        expect(screen.getByText(/Everyone here started in this ring too/)).toBeInTheDocument();
+        expect(screen.getByText(/the tour will wait for you/)).toBeInTheDocument();
         expect(screen.getByText(/Your progress/)).toBeInTheDocument();
       });
     });

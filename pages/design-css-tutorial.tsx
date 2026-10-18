@@ -1899,8 +1899,8 @@ export default function DesignCSSTutorialPage() {
             <div className="max-w-4xl mx-auto">
               <div className="bg-yellow-100 border-4 border-black shadow-[6px_6px_0_#000] p-6 transform rotate-1">
                 <p className="text-xl text-gray-800 font-medium leading-relaxed">
-                  Master ThreadStead styling with our comprehensive CSS class reference! 
-                  Target these classes to completely customize your profile page design.
+                  These are all the CSS classes on your page, grouped by what they style. Find the part you want to change, copy
+                  the class into the CSS editor, and go from there.
                 </p>
               </div>
             </div>
@@ -1925,7 +1925,7 @@ export default function DesignCSSTutorialPage() {
           {/* Navigation */}
           <div className="bg-blue-300 border-4 border-black shadow-[8px_8px_0_#000] p-6 mb-8">
             <h2 className="font-bold text-black text-lg mb-4 text-center">
-              Choose Your CSS Category
+              Pick a section
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {cssCategories.map((category) => (

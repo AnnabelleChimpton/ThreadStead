@@ -14,11 +14,11 @@ export default function WelcomeRingIntroPopup({ onClose, onStartTour }: WelcomeR
 
   const steps = [
     {
-      title: "Welcome to your first ThreadRing!",
+      title: "Hi, welcome in!",
       content: (
         <div>
           <p className="text-base sm:text-lg mb-4 leading-relaxed">
-            This ring is where every new neighbor starts — a place to try posting and see how rings work.
+            This is a practice ring, a place to try posting and see how rings work before you go join others.
           </p>
           <div className={noteClass}>
             <strong>What&apos;s a ThreadRing?</strong> A small group around one topic, with its own feed, members and 88×31 badge.
@@ -27,25 +27,13 @@ export default function WelcomeRingIntroPopup({ onClose, onStartTour }: WelcomeR
       )
     },
     {
-      title: "How ThreadRings Work",
+      title: "How rings work",
       content: (
         <div>
-          <dl className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4 sm:mb-6 text-sm">
-            <div>
-              <dt className="font-semibold">Connected</dt>
-              <dd className="text-nb-ink-mid">Like an old webring, with a shared feed</dd>
-            </div>
-            <div>
-              <dt className="font-semibold">Growing</dt>
-              <dd className="text-nb-ink-mid">Any ring can be forked into a new one</dd>
-            </div>
-            <div>
-              <dt className="font-semibold">Themed</dt>
-              <dd className="text-nb-ink-mid">Each one has a topic and a host</dd>
-            </div>
-          </dl>
           <p className="text-sm sm:text-base leading-relaxed mb-4">
-            Somewhere between a <strong>Discord</strong> channel and an <strong>old forum</strong>: members post, everyone in the ring sees it in the ring&apos;s feed, and anyone can reply.
+            A ring is kind of like an old webring with a shared feed. Each one has a topic and a host, and any ring can
+            branch off into a new one. When a member posts, it shows up in the ring&apos;s feed and anyone in the ring
+            can reply.
           </p>
           <div className={noteClass}>
             <strong>Tip:</strong> A post lives on your page, and also shows up in any ring you share it to.
@@ -57,17 +45,12 @@ export default function WelcomeRingIntroPopup({ onClose, onStartTour }: WelcomeR
       title: "About this ring",
       content: (
         <div>
-          <p className="text-sm sm:text-base leading-relaxed mb-4">
-            The <strong>Welcome Ring</strong> is a training ground. A short tour at the top of the page walks you through five things:
+          <p className="text-sm sm:text-base leading-relaxed">
+            The tour at the top of the page has five steps. First you join the ring, if you haven&apos;t yet. Then you
+            open a post and read the replies, leave a comment (the Introduce Yourself post is a good place to say hi),
+            and click someone&apos;s username to visit their page. Last, go look around the other rings. That&apos;s the
+            whole tour!
           </p>
-          <ul className="list-disc pl-5 space-y-1.5 mb-4 text-xs sm:text-sm">
-            <li><strong>Read posts</strong> and open the replies</li>
-            <li><strong>Leave comments</strong> on the Introduce Yourself post, or anywhere</li>
-            <li><strong>Visit profiles</strong> by clicking a username</li>
-          </ul>
-          <div className={noteClass}>
-            Then browse the other rings. That&apos;s the whole tour.
-          </div>
         </div>
       )
     },
@@ -76,7 +59,7 @@ export default function WelcomeRingIntroPopup({ onClose, onStartTour }: WelcomeR
       content: (
         <div>
           <p className="text-base sm:text-lg mb-4 leading-relaxed">
-            Everyone here started in this ring too. Take your time — the tour waits for you.
+            Take your time, the tour will wait for you.
           </p>
           <div className={`${noteClass} mb-4`}>
             <div className="flex items-center gap-2 mb-1">

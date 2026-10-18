@@ -16,12 +16,12 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
   return (
     <>
       <Head>
-        <title>{`${siteConfig.site_name} — Music Creator's Guide`}</title>
+        <title>{`${siteConfig.site_name} — Making music for your page`}</title>
         <meta name="description" content="Making and uploading MIDI music for your page: what the player supports, file limits, composition tips and licensing." />
         <link rel="canonical" href={`${getSiteBaseUrl()}/help/music-guide`} />
         <meta name="robots" content="index, follow" />
 
-        <meta property="og:title" content={`${siteConfig.site_name} — Music Creator's Guide`} />
+        <meta property="og:title" content={`${siteConfig.site_name} — Making music for your page`} />
         <meta property="og:description" content="Making and uploading MIDI music for your page: what the player supports, file limits, composition tips and licensing." />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={`${getSiteBaseUrl()}/help/music-guide`} />
@@ -29,9 +29,8 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
 
       <Layout siteConfig={siteConfig}>
         <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-8 sm:py-12">
-          <PageHeader title="Music Creator's Guide" back={{ href: '/help', label: 'Back to Help' }}>
-            <p>Everything you need to know about creating, uploading, and optimizing MIDI music for your profile.</p>
-            <p className="text-base text-nb-ink-mid">Whether you&apos;re a seasoned composer or just getting started, this guide will help you create the perfect background music!</p>
+          <PageHeader title="Making music for your page" back={{ href: '/help', label: 'Back to Help' }}>
+            <p>This is everything I know about getting MIDI music onto your page, from finding or making a file to uploading it. You don&apos;t need to be a composer, plenty of people just find a MIDI they love.</p>
           </PageHeader>
 
           {/* Quick Start */}
@@ -40,11 +39,10 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
               Quick Start
             </h2>
             <ol className="list-decimal list-inside space-y-2 text-nb-ink">
-              <li>Create or export a MIDI file (.mid or .midi)</li>
+              <li>Make or find a MIDI file (.mid or .midi)</li>
               <li>Go to <Link href="/settings">Settings → Music</Link></li>
-              <li>Upload your MIDI file (max 1MB)</li>
-              <li>Add a title and optional description</li>
-              <li>Set as your profile music and configure autoplay/loop settings</li>
+              <li>Upload it (up to 1MB). It gets its title from the file name.</li>
+              <li>Click Set as Profile, then turn on autoplay or looping if you want them</li>
             </ol>
           </div>
 
@@ -74,20 +72,17 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
               </h2>
               <div className="space-y-4 text-nb-ink">
                 <p>
-                  MIDI (Musical Instrument Digital Interface) files are perfect for profile background music because:
+                  MIDI files are tiny, usually somewhere between 1 and 50KB, where an MP3 of the same song would be a few
+                  megabytes. That means your page doesn&apos;t get slow. And they just sound like the old web! If you were
+                  around for GeoCities or MySpace, you know the sound. The player on your page is a little synthesizer I
+                  built that runs in the browser, so visitors don&apos;t need any MIDI sounds installed on their computer.
+                  If you write your own MIDI, it&apos;s yours.
                 </p>
-                <ul className="list-disc list-inside space-y-2 ml-4">
-                  <li><strong>Tiny file sizes</strong> - MIDI files are typically 1-50KB, compared to 3-5MB for MP3s</li>
-                  <li><strong>Instant loading</strong> - No buffering or delays, music starts immediately</li>
-                  <li><strong>Classic web nostalgia</strong> - Remember GeoCities and MySpace? MIDI brings back that creative, playful internet vibe</li>
-                  <li><strong>Browser-native playback</strong> - Uses Web Audio API for smooth, reliable playback on all modern browsers</li>
-                  <li><strong>No copyright concerns</strong> - Your original MIDI compositions are completely yours</li>
-                </ul>
 
                 <div className="border-l-4 border-nb-lav pl-4 py-1 mt-4">
                   <p className="font-semibold text-nb-ink mb-2">What is MIDI?</p>
                   <p className="text-nb-ink">
-                    MIDI isn&apos;t audio - it&apos;s digital sheet music! Instead of recording sound waves, MIDI files contain instructions: &quot;play middle C for half a second on a piano sound.&quot; Your browser then generates the actual audio in real-time using our custom synthesizer.
+                    MIDI isn&apos;t audio - it&apos;s digital sheet music! Instead of recording sound waves, MIDI files contain instructions: &quot;play middle C for half a second on a piano sound.&quot; Your browser then makes the actual sound as it plays, using the site&apos;s built-in synthesizer.
                   </p>
                 </div>
               </div>

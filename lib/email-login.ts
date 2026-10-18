@@ -228,8 +228,9 @@ export async function sendLoginEmail(email: string, users: EmailLoginUser[], tok
       </head>
       <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
         <h2 style="color: #007cba;">Sign in to ${siteName}</h2>
-        <p>We received a request to sign in to your account, but we couldn't find any verified accounts associated with this email address.</p>
-        <p>If you believe this is an error, please check that you're using the correct email address and that your email is verified.</p>
+        <p>Someone (hopefully you!) asked to sign in to ${siteName} with this email address, but I couldn't find an account where it's been verified.</p>
+        <p>If you do have an account, check that this is the address you added, and that you clicked the link in the verification email. If you didn't ask to sign in, you can ignore this.</p>
+        <p>- Annabelle</p>
       </body>
       </html>
     `;
@@ -247,29 +248,28 @@ export async function sendLoginEmail(email: string, users: EmailLoginUser[], tok
     </head>
     <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
       <h2 style="color: #007cba;">Sign in to ${siteName}</h2>
-      <p>Hi <strong>${displayName}</strong>,</p>
-      <p>You requested to sign in to your ${siteName} account. Click the button below to sign in:</p>
+      <p>Hi <strong>${displayName}</strong>!</p>
+      <p>Here's your link to sign in to ${siteName}.</p>
       
       <div style="text-align: center; margin: 30px 0;">
-        <a href="${loginUrl}" style="background-color: #007cba; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold; font-size: 16px;">Sign In to ${siteName}</a>
+        <a href="${loginUrl}" style="background-color: #007cba; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold; font-size: 16px;">Sign in</a>
       </div>
       
-      <p>Or copy and paste this link into your browser:</p>
+      <p>If the button doesn't work, copy this link into your browser:</p>
       <p style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; word-break: break-all; font-family: monospace; border: 1px solid #ddd;">
         <a href="${loginUrl}" style="color: #007cba;">${loginUrl}</a>
       </p>
       
       <div style="border-top: 1px solid #eee; margin-top: 30px; padding-top: 20px; color: #666; font-size: 14px;">
-        <p><strong>Security note:</strong> This link will expire in 15 minutes.</p>
-        <p>If you didn't request this login, you can safely ignore this email.</p>
-        <p>— ${siteName}</p>
+        <p>The link stops working after 15 minutes. If you didn't ask to sign in, you can ignore this email and nothing will happen.</p>
+        <p>- Annabelle</p>
       </div>
     </body>
     </html>
     `;
   } else {
     // Multiple accounts
-    subject = `Choose account to sign in to ${siteName}`;
+    subject = `Pick an account to sign in to ${siteName}`;
     const accountList = users.map(user => {
       const displayName = user.displayName || user.handle || 'Unnamed Account';
       return `<li><strong>${displayName}</strong> (@${user.handle || 'no-handle'})</li>`;
@@ -281,29 +281,28 @@ export async function sendLoginEmail(email: string, users: EmailLoginUser[], tok
     <head>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Choose account - ${siteName}</title>
+      <title>Pick an account - ${siteName}</title>
     </head>
     <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <h2 style="color: #007cba;">Choose account to sign in to ${siteName}</h2>
-      <p>We found multiple verified accounts associated with this email address:</p>
+      <h2 style="color: #007cba;">Pick an account to sign in to ${siteName}</h2>
+      <p>This email address is verified on more than one account:</p>
       <ul style="background-color: #f9f9f9; padding: 20px; border-radius: 5px; border-left: 4px solid #007cba;">
         ${accountList}
       </ul>
-      <p>Click the button below to choose which account to sign in to:</p>
+      <p>Pick the one you want to sign in to:</p>
       
       <div style="text-align: center; margin: 30px 0;">
-        <a href="${loginUrl}" style="background-color: #007cba; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold; font-size: 16px;">Choose Account</a>
+        <a href="${loginUrl}" style="background-color: #007cba; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold; font-size: 16px;">Choose account</a>
       </div>
       
-      <p>Or copy and paste this link into your browser:</p>
+      <p>If the button doesn't work, copy this link into your browser:</p>
       <p style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; word-break: break-all; font-family: monospace; border: 1px solid #ddd;">
         <a href="${loginUrl}" style="color: #007cba;">${loginUrl}</a>
       </p>
       
       <div style="border-top: 1px solid #eee; margin-top: 30px; padding-top: 20px; color: #666; font-size: 14px;">
-        <p><strong>Security note:</strong> This link will expire in 15 minutes.</p>
-        <p>If you didn't request this login, you can safely ignore this email.</p>
-        <p>— ${siteName}</p>
+        <p>The link stops working after 15 minutes. If you didn't ask to sign in, you can ignore this email and nothing will happen.</p>
+        <p>- Annabelle</p>
       </div>
     </body>
     </html>
@@ -332,33 +331,32 @@ export async function sendVerificationEmail(email: string, userName: string, tok
 
   const siteName = process.env.NEXT_PUBLIC_SITE_NAME || 'Threadstead';
 
-  const subject = `Verify your email address for ${siteName}`;
+  const subject = `Confirm your email for ${siteName}`;
   const htmlContent = `
     <!DOCTYPE html>
     <html>
     <head>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Verify your email - ${siteName}</title>
+      <title>Confirm your email - ${siteName}</title>
     </head>
     <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <h2 style="color: #007cba;">Verify your email address</h2>
-      <p>Hi <strong>${userName}</strong>,</p>
-      <p>You recently added this email address to your ${siteName} account. To complete the setup and enable email login, please verify your email address:</p>
+      <h2 style="color: #007cba;">Confirm your email</h2>
+      <p>Hi <strong>${userName}</strong>!</p>
+      <p>You added this email address to your ${siteName} account. Click below to confirm it's yours, and then you'll be able to sign in with an email link.</p>
       
       <div style="text-align: center; margin: 30px 0;">
-        <a href="${verifyUrl}" style="background-color: #007cba; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold; font-size: 16px;">Verify Email Address</a>
+        <a href="${verifyUrl}" style="background-color: #007cba; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold; font-size: 16px;">Confirm email</a>
       </div>
       
-      <p>Or copy and paste this link into your browser:</p>
+      <p>If the button doesn't work, copy this link into your browser:</p>
       <p style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; word-break: break-all; font-family: monospace; border: 1px solid #ddd;">
         <a href="${verifyUrl}" style="color: #007cba;">${verifyUrl}</a>
       </p>
       
       <div style="border-top: 1px solid #eee; margin-top: 30px; padding-top: 20px; color: #666; font-size: 14px;">
-        <p><strong>Security note:</strong> This verification link will expire in 24 hours.</p>
-        <p>If you didn't add this email address to your account, you can safely ignore this email.</p>
-        <p>— ${siteName}</p>
+        <p>The link stops working after 24 hours. If you didn't add this address, you can ignore this email.</p>
+        <p>- Annabelle</p>
       </div>
     </body>
     </html>
@@ -397,22 +395,21 @@ export async function sendPasswordResetEmail(email: string, userName: string, to
     </head>
     <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
       <h2 style="color: #007cba;">Reset your password</h2>
-      <p>Hi <strong>${userName}</strong>,</p>
-      <p>You requested to reset your password for your ${siteName} account. Click the button below to set a new password:</p>
+      <p>Hi <strong>${userName}</strong>!</p>
+      <p>Someone asked to reset the password on your ${siteName} account. If that was you, click below to pick a new one.</p>
       
       <div style="text-align: center; margin: 30px 0;">
-        <a href="${resetUrl}" style="background-color: #007cba; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold; font-size: 16px;">Reset Password</a>
+        <a href="${resetUrl}" style="background-color: #007cba; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold; font-size: 16px;">Reset password</a>
       </div>
       
-      <p>Or copy and paste this link into your browser:</p>
+      <p>If the button doesn't work, copy this link into your browser:</p>
       <p style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; word-break: break-all; font-family: monospace; border: 1px solid #ddd;">
         <a href="${resetUrl}" style="color: #007cba;">${resetUrl}</a>
       </p>
       
       <div style="border-top: 1px solid #eee; margin-top: 30px; padding-top: 20px; color: #666; font-size: 14px;">
-        <p><strong>Security note:</strong> This link will expire in 1 hour.</p>
-        <p>If you didn't request a password reset, you can safely ignore this email.</p>
-        <p>— ${siteName}</p>
+        <p>The link stops working after an hour. If you didn't ask for this, you can ignore this email and your password won't change.</p>
+        <p>- Annabelle</p>
       </div>
     </body>
     </html>

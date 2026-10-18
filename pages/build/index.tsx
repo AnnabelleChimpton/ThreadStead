@@ -19,12 +19,12 @@ export default function BuildHub({ siteConfig }: BuildHubProps) {
     <>
       <Head>
         <title>{`${siteConfig.site_name} — Build`}</title>
-        <meta name="description" content="The CSS editor restyles your page; the template language lets you write its HTML yourself." />
+        <meta name="description" content="There are two ways to change how your page looks: the CSS editor, or a template you write yourself." />
         <link rel="canonical" href={`${getSiteBaseUrl()}/build`} />
         <meta name="robots" content="index, follow" />
 
         <meta property="og:title" content={`${siteConfig.site_name} — Build`} />
-        <meta property="og:description" content="The CSS editor restyles your page; the template language lets you write its HTML yourself." />
+        <meta property="og:description" content="There are two ways to change how your page looks: the CSS editor, or a template you write yourself." />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={`${getSiteBaseUrl()}/build`} />
       </Head>
@@ -38,10 +38,9 @@ export default function BuildHub({ siteConfig }: BuildHubProps) {
                 Build your page
               </h1>
               <p className="text-lg sm:text-xl text-gray-700 max-w-3xl mx-auto mb-2">
-                Two tools: the CSS editor restyles the standard page; the template language lets you write the page&apos;s HTML yourself.
-              </p>
-              <p className="text-base text-gray-600 max-w-2xl mx-auto">
-                Start with CSS. Move to templates when you want a different layout.
+                There are two ways to change how your page looks. The CSS editor restyles the normal page, and templates
+                let you write the whole page&apos;s HTML yourself. I&apos;d start with CSS and only reach for a template when
+                you want a completely different layout.
               </p>
             </div>
           </div>
@@ -83,10 +82,10 @@ export default function BuildHub({ siteConfig }: BuildHubProps) {
           {/* Additional Info */}
           <div className="mt-12 p-6 bg-blue-50 border border-blue-200 rounded-lg">
             <h3 className="text-lg font-semibold text-blue-900 mb-2">
-              New to building on the web?
+              New to this?
             </h3>
             <p className="text-blue-800 mb-4">
-              The Getting Started guide walks through rings, your page, your house and posting. No code needed for any of it.
+              The getting started guide covers rings, your page, your house and posting. You don&apos;t need any code for it.
             </p>
             <Link
               href="/build/getting-started"

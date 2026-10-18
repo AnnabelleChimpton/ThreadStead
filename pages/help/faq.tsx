@@ -100,13 +100,13 @@ export default function FAQ({ siteConfig }: FAQProps) {
           question: 'How do I explore the neighborhood?',
           answer: (
             <>
-              The <Link href="/neighborhood/explore/all" className={link}>neighborhood page</Link> lets you browse All, Recent, Popular or Random houses, and under More you can filter by house style or color theme. You can see everyone as a street you scroll along, a grid, or a map. On a phone it starts out as cards.
+              <Link href="/neighborhood" className={link}>The street</Link> is every house on the site. You can sort it by recently updated or A to Z, and under Filters you can narrow it down by house style or colors. You can walk it as a street, skim it as a grid, or look at it as a map. On a phone it starts out as cards.
             </>
           )
         },
         {
           question: 'Can I visit a random house?',
-          answer: 'Yep! There\'s a Visit a random house button on Discover, and the Random tab on the neighborhood page shuffles the whole street. It\'s a nice way to find people you\'d never have searched for.'
+          answer: 'Yep! Under Neighborhood there\'s an "A random house" link that drops you on someone\'s porch. It\'s a nice way to find people you\'d never have searched for.'
         }
       ]
     },
@@ -217,7 +217,11 @@ export default function FAQ({ siteConfig }: FAQProps) {
         },
         {
           question: 'Can I block someone?',
-          answer: 'Yes. Right now the Block option is on someone\'s name in the Chat Lounge, and you can see or undo your blocks from Settings → Privacy & Consent. Once you block someone, their posts disappear from your Following feed and search, and they can\'t send you messages or whispers.'
+          answer: (
+            <>
+              Yes. There&apos;s a Block button on people&apos;s pages, and you can also click their name in the Chat Lounge. Once you block someone, their posts stop showing up in your feeds, in search and on their page, their comments are hidden from you, and they can&apos;t send you messages or whispers. They don&apos;t get told. They can still see your public page though, so if someone is really bothering you, <Link href="/help/contact" className={link}>email me</Link> as well. You can see and undo your blocks from Settings → Privacy & Consent.
+            </>
+          )
         }
       ]
     },

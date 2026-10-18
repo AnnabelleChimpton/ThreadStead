@@ -33,7 +33,7 @@ export default function WelcomeRingOptIn({
           Welcome, {username}!
         </h2>
         <p className="text-nb-ink-mid">
-          That username is yours.
+          It&apos;s all yours!
         </p>
       </div>
 
@@ -43,31 +43,10 @@ export default function WelcomeRingOptIn({
           <h3 className="thread-headline text-xl font-bold mb-3">
             Want a guided tour?
           </h3>
-          <p className="text-nb-ink mb-4 leading-relaxed">
-            <strong>The Welcome Ring is a practice ring.</strong><br/>
-            A five-step tour at the top of the page shows you how rings work.
-          </p>
-          
-          <div className="mb-4">
-            <h4 className="font-bold text-base text-nb-ink mb-2">What you&apos;ll learn:</h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-nb-ink">
-              <div className="flex items-center gap-2">
-                <span>Reading ring posts</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span>Leaving a comment</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span>Visiting someone&apos;s page</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span>Browsing the other rings</span>
-              </div>
-            </div>
-          </div>
-
-          <p className="thread-label">
-            About 5 minutes · Leave any time
+          <p className="text-nb-ink mb-0 leading-relaxed">
+            The Welcome Ring is a little practice ring. Once you&apos;re in, a tour at the top of the page walks you
+            through reading a post, leaving a comment, visiting someone&apos;s page and looking around the other rings.
+            It takes about five minutes, and you can leave whenever you want.
           </p>
         </div>
       </div>

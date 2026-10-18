@@ -164,7 +164,7 @@ export default function SignupFinaleAnimation({ onComplete }: SignupFinaleAnimat
         >
           <div className="thread-module">
           <p className="thread-label pb-2 mb-4 border-b-2 border-dotted border-nb-ink-mid/40">
-            Building Your Digital Home
+            Moving you in…
           </p>
           <div className="whitespace-pre-wrap font-mono text-base sm:text-lg leading-relaxed text-nb-ink min-h-[6.5rem]">
             {terminalText}

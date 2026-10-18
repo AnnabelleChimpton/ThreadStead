@@ -48,17 +48,17 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
           {!user ? (
             <>
               <p>
-                You get a page you can restyle, a pixel house on a shared street, and a way into small topic groups called <strong>ThreadRings</strong>.
+                Everyone here gets a pixel house on the street and a page you can make look however you want, and you can join little groups called <strong>ThreadRings</strong>. This page walks through all of it.
               </p>
               <p className="flex flex-wrap gap-3 pt-2">
-                <ButtonLink href="/onboarding">Create Your Profile</ButtonLink>
+                <ButtonLink href="/onboarding">Make an account</ButtonLink>
                 <ButtonLink href="/threadrings" variant="secondary">Browse Rings</ButtonLink>
               </p>
             </>
           ) : (
             <>
               <p>
-                Each tab below covers one part of the site: rings, your page, your house, the social bits, and posting.
+                Each tab covers one part of the site, so jump to whatever you&apos;re curious about.
               </p>
               <p className="flex flex-wrap gap-3 pt-2">
                 {welcomeRingMissing ? (
@@ -95,8 +95,8 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                     <div className="flex items-center gap-3 border-l-4 border-nb-lav pl-3 py-1">
                       <div className="text-2xl"><PixelIcon name="user" size={24} /></div>
                       <div className="flex-1">
-                        <h3 className="font-bold mb-1">1. Create Your Profile</h3>
-                        <p className="text-sm text-nb-ink-mid">Pick a username. You get a page and a house.</p>
+                        <h3 className="font-bold mb-1">1. Make an account</h3>
+                        <p className="text-sm text-nb-ink-mid">Pick a username and you get a page and a house.</p>
                       </div>
                       <Link 
                         href="/onboarding" 
@@ -123,8 +123,8 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                     <div className="flex items-center gap-3 border-l-4 border-nb-lav pl-3 py-1">
                       <div className="text-2xl"><PixelIcon name="chat" size={24} /></div>
                       <div className="flex-1">
-                        <h3 className="font-bold mb-1">3. Say something</h3>
-                        <p className="text-sm text-nb-ink-mid">Write a post, leave a comment, sign a guestbook.</p>
+                        <h3 className="font-bold mb-1">3. Say hi</h3>
+                        <p className="text-sm text-nb-ink-mid">Write a post or sign someone&apos;s guestbook.</p>
                       </div>
                     </div>
                   </div>
@@ -170,7 +170,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                           className="ts-card-link block p-3 border-2 border-dotted border-nb-ink-mid/60 rounded-md hover:border-solid hover:border-nb-ink-mid"
                         >
                           <div className="font-medium">Profile Settings</div>
-                          <div className="text-sm text-nb-ink-mid">Name, bio, avatar, theme, music</div>
+                          <div className="text-sm text-nb-ink-mid">Name, bio, photo, friends and links</div>
                         </Link>
                         {user ? (
                           <Link 
@@ -203,74 +203,33 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
               )}
 
               <RetroCard title="What&apos;s here">
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="flex items-start gap-3">
-                    <div className="text-2xl flex-shrink-0"><PixelIcon name="paint-bucket" size={24} /></div>
-                    <div>
-                      <h3 className="font-bold mb-1">Your own CSS</h3>
-                      <p className="text-sm text-nb-ink-mid">Restyle your page with CSS, or write its HTML with the template language.</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start gap-3">
-                    <div className="text-2xl flex-shrink-0"><PixelIcon name="home" size={24} /></div>
-                    <div>
-                      <h3 className="font-bold mb-1">Pixel Homes</h3>
-                      <p className="text-sm text-nb-ink-mid">An 8-bit house on a street with everyone else&apos;s. Paint it, plant a garden, set the sky.</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start gap-3">
-                    <div className="text-2xl flex-shrink-0"><PixelIcon name="link" size={24} /></div>
-                    <div>
-                      <h3 className="font-bold mb-1">Rings with family trees</h3>
-                      <p className="text-sm text-nb-ink-mid">Any ring can be forked into a new one, and the site keeps track of who came from whom.</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start gap-3">
-                    <div className="text-2xl flex-shrink-0"><PixelIcon name="lock" size={24} /></div>
-                    <div>
-                      <h3 className="font-bold mb-1">Sign in your way</h3>
-                      <p className="text-sm text-nb-ink-mid">Password, email link, or a 12-word seed phrase.</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start gap-3">
-                    <div className="text-2xl flex-shrink-0"><PixelIcon name="script" size={24} /></div>
-                    <div>
-                      <h3 className="font-bold mb-1">Old-web parts</h3>
-                      <p className="text-sm text-nb-ink-mid">Guestbooks, MIDI music, 88×31 badges.</p>
-                    </div>
-                  </div>
-                </div>
+                <p className="text-nb-ink leading-relaxed">
+                  Your house sits on a street with everyone else&apos;s, and you can paint it and fill up the yard however
+                  you like. Behind the front door is your page, which you can restyle with CSS or write from scratch with a
+                  template. Rings are small groups around one topic, and any ring can branch into a new one, so they all
+                  fit in one big family tree. There&apos;s the old-web stuff too, like guestbooks, MIDI music and 88×31 badges.
+                </p>
               </RetroCard>
             </div>
           )}
 
           {activeTab === "threadrings" && (
             <div className="space-y-6">
-                <RetroCard title="Understanding ThreadRings">
+                <RetroCard title="How rings work">
                   <div className="space-y-4">
                     <p className="text-nb-ink leading-relaxed">
-                      A ThreadRing is a small group around one topic. Members post to it, the ring has its own feed,
-                      and anyone in it can reply. Rings also have parents and children: see the family tree below.
+                      A ThreadRing is a small group around one topic. Members post to it, the posts show up in the
+                      ring&apos;s feed, and everyone can reply. If you want a narrower version of a ring, you can branch it.
+                      The new ring has its own host and members, but it stays linked to the ring it came from. Anyone with
+                      an account can branch a ring, unless it&apos;s private.
                     </p>
-                    
-                    <div className="border-l-4 border-nb-lav pl-4 py-1">
-                      <h3 className="font-bold text-nb-ink mb-2">Forking</h3>
-                      <p className="text-sm text-nb-ink">
-                        When a ring wants to split off a narrower topic, someone forks it. The new ring runs on its
-                        own, with its own host and members, but stays linked to the ring it came from.
-                      </p>
-                    </div>
 
                     <div className="grid md:grid-cols-2 gap-4 mt-6">
                       <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-4">
                         <h4 className="font-bold mb-2">Join Types</h4>
                         <ul className="text-sm space-y-1">
                           <li><strong>Open:</strong> Anyone can join instantly</li>
-                          <li><strong>Invite:</strong> Members must be invited</li>
+                          <li><strong>Invite:</strong> The host or a moderator invites you</li>
                           <li><strong>Closed:</strong> No new members accepted</li>
                         </ul>
                       </div>
@@ -287,11 +246,11 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                   </div>
                 </RetroCard>
                 
-                <RetroCard title="The Genealogy System">
+                <RetroCard title="The family tree">
                   <div className="space-y-4">
                     <p className="text-nb-ink">
-                      Every ring traces back to &quot;The Spool&quot;, the first ring. Fork a ring and yours becomes its child
-                      in the tree.
+                      Every ring traces back to The Spool, the very first one. Branch a ring and yours shows up as its
+                      child in the tree.
                     </p>
                     
                     <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-4">
@@ -336,7 +295,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
 
                     <div>
                       <h4 className="font-bold mb-2">3. Start your own</h4>
-                      <p className="text-nb-ink-mid mb-2">A new ring starts as a fork of The Spool.</p>
+                      <p className="text-nb-ink-mid mb-2">A brand new ring is a branch off The Spool.</p>
                       <FeatureGate 
                         requiresRegularUser 
                         user={user} 
@@ -352,8 +311,8 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                     </div>
 
                     <div>
-                      <h4 className="font-bold mb-2">4. Or fork an existing one</h4>
-                      <p className="text-nb-ink-mid">Fork any ring to make a narrower one. It shows up as its child in the tree.</p>
+                      <h4 className="font-bold mb-2">4. Or branch an existing one</h4>
+                      <p className="text-nb-ink-mid">Use Branch This Ring on any ring&apos;s page to make a narrower one.</p>
                     </div>
                   </div>
                 </RetroCard>
@@ -365,8 +324,8 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                       88x31 Badge
                     </div>
                     <p className="text-sm text-nb-ink-mid">
-                      Each ring can have an 88×31 badge, the little buttons old sites linked each other with.
-                      Put your ring&apos;s badge on your page or your own website.
+                      Each ring has an 88×31 badge, the tiny buttons old sites used to link to each other. You can show
+                      the badges of rings you&apos;re in on your page from Settings → Badges.
                     </p>
                   </div>
                 </RetroCard>
@@ -379,7 +338,9 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
               <RetroCard title="Your page">
                 <div className="space-y-4">
                   <p className="text-nb-ink leading-relaxed">
-                    Your page is the one behind your house&apos;s front door. You decide how it looks and what goes on it.
+                    Your page is what&apos;s behind your house&apos;s front door, and it&apos;s yours to do whatever you want with.
+                    It has tabs for your posts, your photos, your friends and favorite websites, your ring badges and your
+                    guestbook.
                   </p>
 
                   <div className="border-l-4 border-nb-lav pl-4 py-1">
@@ -397,19 +358,6 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                         <div className="text-nb-ink">Write the page&apos;s HTML yourself</div>
                       </div>
                     </div>
-                  </div>
-
-                  <div className="border-l-4 border-nb-lav pl-4 py-1">
-                    <h3 className="font-bold text-nb-ink mb-2">Profile Features</h3>
-                    <ul className="text-sm text-nb-ink space-y-1">
-                      <li>• <strong>Custom Styling:</strong> CSS editor and template language</li>
-                      <li>• <strong>Photo Gallery:</strong> Upload photos to a gallery on your page</li>
-                      <li>• <strong>Music Player:</strong> Add a MIDI file that plays on your page</li>
-                      <li>• <strong>Guestbook:</strong> Visitors can sign it</li>
-                      <li>• <strong>Blog Posts:</strong> Your posts, newest first</li>
-                      <li>• <strong>Friend Lists:</strong> Show the people you&apos;re friends with</li>
-                      <li>• <strong>Website Links:</strong> Link to your other sites</li>
-                    </ul>
                   </div>
 
                   <div className="space-y-3">
@@ -447,7 +395,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                         <div className="text-xs text-nb-ink-mid mt-1">A blank page</div>
                       </div>
                     </div>
-                    <p className="text-xs text-nb-ink-mid">You pick one at signup and can change it any time in settings.</p>
+                    <p className="text-xs text-nb-ink-mid">When you sign up, your page colors are matched to the house you pick. You can switch to any of these later with Browse Themes in the CSS editor.</p>
                   </div>
                 </div>
               </RetroCard>
@@ -460,8 +408,8 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                       <h3 className="font-bold">CSS styling: start here</h3>
                     </div>
                     <p className="text-sm mb-3">
-                      Want different colors and fonts? Write a little CSS against the standard layout. The class
-                      reference lists every element you can target.
+                      If you want different colors and fonts, a little CSS on the normal layout goes a long way. The
+                      class reference lists every part of the page you can style.
                     </p>
                     <div className="text-xs text-nb-ink">
                       Good for: colors, fonts, spacing, a first try
@@ -512,7 +460,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                         Edit Profile Settings
                       </Link>
                       <p className="text-nb-ink-mid text-xs">
-                        Display name, bio, avatar, theme, and a MIDI file for background music.
+                        Your display name, bio, photo, featured friends and website links.
                       </p>
                     </div>
                   </div>
@@ -520,93 +468,23 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
               </RetroCard>
 
               <RetroCard title="Profile Music with MIDI">
-                <div className="space-y-4">
-                  <div className="border-l-4 border-nb-lav pl-4 py-1">
-                    <h3 className="font-bold text-nb-ink mb-2">Background music</h3>
-                    <p className="text-sm text-nb-ink">
-                      Upload a MIDI file and it plays when someone visits your page. The music guide in Help
-                      covers where to find files and how to make your own.
-                    </p>
-                  </div>
-
-                  <div>
-                    <h4 className="font-bold mb-2">How it works</h4>
-                    <ul className="text-sm text-nb-ink-mid space-y-1">
-                      <li>• <strong>MIDI Support:</strong> Upload .mid files</li>
-                      <li>• <strong>Play controls:</strong> Visitors can play or pause it</li>
-                      <li>• <strong>Volume:</strong> Visitors set their own</li>
-                      <li>• <strong>Player:</strong> A small player sits on your page</li>
-                    </ul>
-                  </div>
-
-                  <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-3">
-                    <p className="text-xs text-nb-ink">
-                      <strong>Tip:</strong> Old game soundtracks and your own compositions both work.
-                    </p>
-                  </div>
-                </div>
+                <p className="text-nb-ink leading-relaxed">
+                  Upload a MIDI file in Settings → Music and you get a little player in the corner of your page. Visitors
+                  can start and stop it and change the volume. It only starts by itself if you turn on autoplay, and even
+                  then most browsers wait until the visitor clicks something. The{' '}
+                  <Link href="/help/music-guide" className="underline">music guide</Link> has places to find MIDIs and tips
+                  for making your own.
+                </p>
               </RetroCard>
 
               <RetroCard title="Signing in">
                 <div className="space-y-4">
-                  <div className="border-l-4 border-nb-lav pl-4 py-1">
-                    <h3 className="font-bold text-nb-ink mb-2">Three ways in</h3>
-                    <p className="text-sm text-nb-ink">
-                      Pick one when you sign up.
-                    </p>
-                  </div>
-
-                  <div className="grid md:grid-cols-3 gap-4">
-                    <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-3">
-                      <h4 className="font-bold text-nb-ink mb-2">Password</h4>
-                      <p className="text-xs text-nb-ink">
-                        Username and password.
-                      </p>
-                      <div className="mt-2 text-xs text-nb-ink-mid">
-                        - Familiar<br/>
-                        - Can be changed<br/>
-                        - Recommended
-                      </div>
-                    </div>
-                    
-                    <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-3">
-                      <h4 className="font-bold text-nb-ink mb-2">Email Login</h4>
-                      <p className="text-xs text-nb-ink">
-                        You get a sign-in link by email.
-                      </p>
-                      <div className="mt-2 text-xs text-nb-ink-mid">
-                        - No password to remember<br/>
-                        - Needs a verified email
-                      </div>
-                    </div>
-                    
-                    <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-3">
-                      <h4 className="font-bold text-nb-ink mb-2">Seed Phrase</h4>
-                      <p className="text-xs text-nb-ink">
-                        A 12-word phrase that is your key.
-                      </p>
-                      <div className="mt-2 text-xs text-nb-ink-mid">
-                        - Nothing stored but the key<br/>
-                        - Keep the words somewhere safe<br/>
-                        - For people who like that trade
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="border-l-4 border-nb-lav pl-4 py-1">
-                    <p className="text-xs text-nb-ink">
-                      <strong>Note:</strong> Every account has a decentralized identifier (DID) underneath, whichever way
-                      you sign in.
-                    </p>
-                  </div>
-
-                  <div>
-                    <h4 className="font-bold mb-2">Why three</h4>
-                    <ul className="text-sm text-nb-ink-mid space-y-1">
-                      <li>• <strong>Your choice:</strong> Familiar password, no password, or a key only you hold</li>
-                      <li>• <strong>Little stored:</strong> A seed-phrase account doesn&apos;t even need an email</li>
-                    </ul>
-                  </div>
+                  <p className="text-nb-ink leading-relaxed">
+                    When you sign up you choose between a password and a 12-word seed phrase. If you add an email and
+                    verify it, you can also sign in with a link sent to your inbox. A seed phrase account can add a password
+                    later in Settings → Account &amp; Security, and you don&apos;t need to give an email at all. Whichever you
+                    pick, every account has a decentralized identifier (DID) underneath.
+                  </p>
 
                   <div className="border-t pt-4">
                     <Link 
@@ -619,16 +497,16 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                 </div>
               </RetroCard>
 
-              <RetroCard title="Profile URL Structure">
+              <RetroCard title="Your address">
                 <div className="space-y-3">
                   <p className="text-sm text-nb-ink">
-                    Your page&apos;s address:
+                    Your page lives at:
                   </p>
                   <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-3 font-mono text-sm text-center">
                     /resident/<strong>username</strong>
                   </div>
                   <p className="text-xs text-nb-ink-mid">
-                    It stays the same as long as your username does.
+                    Usernames can&apos;t be changed right now, so it won&apos;t move.
                   </p>
                 </div>
               </RetroCard>
@@ -644,139 +522,23 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                     and clicking the door takes them to your page.
                   </p>
 
-                  <div className="border-l-4 border-nb-lav pl-4 py-1">
-                    <h3 className="font-bold text-nb-ink mb-2">What you can change</h3>
-                    <ul className="text-sm text-nb-ink space-y-1">
-                      <li>• <strong>House type:</strong> Cottage, townhouse, loft or log cabin</li>
-                      <li>• <strong>The house itself:</strong> Colors, door, windows, roof trim</li>
-                      <li>• <strong>The yard:</strong> Plants, paths, seasonal pieces, odds and ends</li>
-                      <li>• <strong>The sky:</strong> Sky, weather and time of day</li>
-                      <li>• <strong>A sign:</strong> Your own words out front</li>
-                      <li>• <strong>Things that do something:</strong> Mailbox, guestbook, music</li>
-                    </ul>
-                  </div>
-
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-4">
-                      <h4 className="font-bold text-nb-ink mb-2">House Templates</h4>
-                      <ul className="text-sm text-nb-ink space-y-1">
-                        <li><strong>Cottage:</strong> Pitched roof, front porch</li>
-                        <li><strong>Townhouse:</strong> Flat roof, taller</li>
-                        <li><strong>Loft:</strong> Angular, big windows</li>
-                        <li><strong>Log cabin:</strong> Wood all the way round</li>
-                      </ul>
-                    </div>
-                    
-                    <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-4">
-                      <h4 className="font-bold text-nb-ink mb-2">Customization Options</h4>
-                      <ul className="text-sm text-nb-ink space-y-1">
-                        <li><strong>Colors:</strong> Walls, roof, trim, windows, details</li>
-                        <li><strong>Doors:</strong> Default, arched, double, cottage styles</li>
-                        <li><strong>Windows:</strong> Round, arched, bay window options</li>
-                        <li><strong>Roof Trim:</strong> Simple, ornate, or gabled styles</li>
-                      </ul>
-                    </div>
-                  </div>
+                  <p className="text-nb-ink leading-relaxed">
+                    You can pick one of four houses (a cottage, townhouse, loft or log cabin), change its colors, door,
+                    windows and roof trim, and add things like a chimney, welcome mat, lights and a house number. The Text
+                    tab lets you give your house a title and paint a short sign on it.
+                  </p>
                 </div>
               </RetroCard>
 
-              <RetroCard title="Decorating Your Pixel Home">
-                <div className="space-y-4">
-                  <div className="border-l-4 border-nb-lav pl-4 py-1">
-                    <h3 className="font-bold text-nb-ink mb-2">Garden & Yard Decorations</h3>
-                    <p className="text-sm text-nb-ink mb-3">
-                      Drag pieces into the front yard. There&apos;s a 100-decoration limit, which sounds like a lot until you start.
-                    </p>
-                    <div className="grid md:grid-cols-3 gap-3 text-xs">
-                      <div>
-                        <strong className="text-nb-ink">Plants:</strong>
-                        <div className="text-nb-ink">Trees, flowers, bushes, succulents, herb gardens</div>
-                      </div>
-                      <div>
-                        <strong className="text-nb-ink">Paths:</strong>
-                        <div className="text-nb-ink">Stone walkways, brick paths, wooden planks</div>
-                      </div>
-                      <div>
-                        <strong className="text-nb-ink">Features:</strong>
-                        <div className="text-nb-ink">Fountains, benches, lanterns, garden gnomes</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="border-l-4 border-nb-lav pl-4 py-1">
-                    <h3 className="font-bold text-nb-ink mb-2">Seasonal Decorations</h3>
-                    <p className="text-sm text-nb-ink">
-                      The decoration picker has a seasonal section. Put things up for a holiday and take them down
-                      after, or leave them up all year.
-                    </p>
-                  </div>
-
-                  <div className="border-l-4 border-nb-lav pl-4 py-1">
-                    <h3 className="font-bold text-nb-ink mb-2">Sky and weather</h3>
-                    <p className="text-sm text-nb-ink mb-2">
-                      Set what&apos;s going on above the roof:
-                    </p>
-                    <div className="grid md:grid-cols-3 gap-3 text-xs">
-                      <div>
-                        <strong className="text-nb-ink">Sky Types:</strong>
-                        <div className="text-nb-ink">Sunny, cloudy, sunset, night</div>
-                      </div>
-                      <div>
-                        <strong className="text-nb-ink">Weather:</strong>
-                        <div className="text-nb-ink">Clear, rain, snow</div>
-                      </div>
-                      <div>
-                        <strong className="text-nb-ink">Time of Day:</strong>
-                        <div className="text-nb-ink">Morning, midday, evening, night</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </RetroCard>
-
-              <RetroCard title="Setting up your house">
-                <div className="space-y-4">
-                  <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-4">
-                    <h3 className="font-bold text-nb-ink mb-2">In order</h3>
-                    <div className="space-y-3 text-sm">
-                      <div className="flex items-start gap-3">
-                        <span className="bg-nb-ink text-nb-paper rounded-full w-6 h-6 flex-shrink-0 flex items-center justify-center text-xs font-bold">1</span>
-                        <div>
-                          <strong className="text-nb-ink">Visit Your Home:</strong>
-                          <p className="text-nb-ink">Go to your house and click &quot;Decorate&quot; to open the editor</p>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <span className="bg-nb-ink text-nb-paper rounded-full w-6 h-6 flex-shrink-0 flex items-center justify-center text-xs font-bold">2</span>
-                        <div>
-                          <strong className="text-nb-ink">Choose a Template:</strong>
-                          <p className="text-nb-ink">Cottage, townhouse, loft or cabin</p>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <span className="bg-nb-ink text-nb-paper rounded-full w-6 h-6 flex-shrink-0 flex items-center justify-center text-xs font-bold">3</span>
-                        <div>
-                          <strong className="text-nb-ink">Customize Your House:</strong>
-                          <p className="text-nb-ink">Colors, door, windows, roof trim</p>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <span className="bg-nb-ink text-nb-paper rounded-full w-6 h-6 flex-shrink-0 flex items-center justify-center text-xs font-bold">4</span>
-                        <div>
-                          <strong className="text-nb-ink">Decorate the Yard:</strong>
-                          <p className="text-nb-ink">Drag plants, paths and the rest into the yard</p>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <span className="bg-nb-ink text-nb-paper rounded-full w-6 h-6 flex-shrink-0 flex items-center justify-center text-xs font-bold">5</span>
-                        <div>
-                          <strong className="text-nb-ink">Set the Scene:</strong>
-                          <p className="text-nb-ink">Pick the sky, weather and time of day</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
+              <RetroCard title="The yard">
+                <p className="text-nb-ink leading-relaxed">
+                  Drag pieces into the yard from the Decor tab. There are roses and sunflowers and little trees, garden
+                  benches and lanterns, ponds and fountains, a wishing well, and yes, garden gnomes. Terrain lets you paint
+                  the ground itself, from grass to cobblestone, and My Art is for uploading your own pixel art. The sky can
+                  be sunny, cloudy, sunset or night. There&apos;s a 100-decoration limit, which sounds like a lot until you
+                  start.
+                </p>
+                <div className="mt-4">
                   {user ? (
                     <div className="text-center">
                       <Link 
@@ -801,40 +563,14 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
 
               <RetroCard title="Who sees it">
                 <div className="space-y-4">
-                  <p className="text-nb-ink">
-                    Anyone walking the neighborhood sees your house, and it&apos;s the front door to your page.
+                  <p className="text-nb-ink leading-relaxed">
+                    Anyone walking the neighborhood sees your house. It shows up in the street, grid and map views, people
+                    can filter for it by house style and palette, and it might come up when someone hits Random.
                   </p>
-
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-4">
-                      <h4 className="font-bold text-nb-ink mb-2">What visitors notice</h4>
-                      <ul className="text-sm text-nb-ink space-y-1">
-                        <li>• Small details change when you&apos;ve been active lately</li>
-                        <li>• Mailbox indicates guestbook messages</li>
-                        <li>• Music notes appear when profile music plays</li>
-                        <li>• Rain, snow and night skies if you set them</li>
-                      </ul>
-                    </div>
-                    
-                    <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-4">
-                      <h4 className="font-bold text-nb-ink mb-2">In the neighborhood</h4>
-                      <ul className="text-sm text-nb-ink space-y-1">
-                        <li>• Shows up in street, grid and map views</li>
-                        <li>• Turns up when someone hits the random button</li>
-                        <li>• Filterable by house type and palette</li>
-                      </ul>
-                    </div>
-                  </div>
-
-                  <div className="border-l-4 border-nb-lav pl-4 py-1">
-                    <h3 className="font-bold text-nb-ink mb-2">Tips</h3>
-                    <ul className="text-sm text-nb-ink space-y-1">
-                      <li>• <strong>Seasons:</strong> Swap decorations when the weather turns</li>
-                      <li>• <strong>Match:</strong> Paint the house like your page</li>
-                      <li>• <strong>Try things:</strong> Nothing is permanent</li>
-                      <li>• <strong>Leave some grass:</strong> A few pieces can beat a crowded yard</li>
-                    </ul>
-                  </div>
+                  <p className="text-nb-ink leading-relaxed">
+                    A tip: painting your house to match your page is a nice touch, and a few pieces can look better than a
+                    crowded yard. Nothing is permanent, so try things!
+                  </p>
                 </div>
               </RetroCard>
             </div>
@@ -843,34 +579,11 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
           {activeTab === "social" && (
             <div className="space-y-6">
               <RetroCard title="Other people">
-                <div className="space-y-4">
-                  <p className="text-nb-ink">
-                    The ways people find and talk to each other here:
-                  </p>
-
-                  <div className="grid gap-4">
-                    <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-3">
-                      <h4 className="font-bold text-nb-ink mb-1">Following and friends</h4>
-                      <p className="text-sm text-nb-ink">
-                        Follow someone and their posts land in your feed.
-                      </p>
-                    </div>
-
-                    <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-3">
-                      <h4 className="font-bold text-nb-ink mb-1">Guestbooks</h4>
-                      <p className="text-sm text-nb-ink">
-                        Every page has a guestbook. Sign your neighbors&apos; — it&apos;s the old-web way to say hi.
-                      </p>
-                    </div>
-
-                    <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-3">
-                      <h4 className="font-bold text-nb-ink mb-1">Comments</h4>
-                      <p className="text-sm text-nb-ink">
-                        Comments are threaded, so you can reply to a reply.
-                      </p>
-                    </div>
-                  </div>
-                </div>
+                <p className="text-nb-ink leading-relaxed">
+                  Follow someone and their posts land in your Following feed. If they follow you back, you&apos;re friends.
+                  Every page has a guestbook, and signing your neighbors&apos; is the old-web way to say hi. Comments on
+                  posts are threaded, so you can reply to a reply.
+                </p>
               </RetroCard>
 
               <RetroCard title="Keeping up">
@@ -878,15 +591,16 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                   <div className="border-l-4 border-nb-lav pl-4 py-1">
                     <h3 className="font-bold text-nb-ink mb-2">Notifications</h3>
                     <p className="text-sm text-nb-ink">
-                      You get a notification when someone comments or replies, signs your guestbook,
-                      follows you, or joins or forks a ring you host.
+                      You get a notification when someone comments on your post or replies to you, signs your
+                      guestbook, follows you, or invites you to a ring.
                     </p>
                   </div>
 
                   <div>
                     <h4 className="font-bold mb-2">Your feed</h4>
                     <p className="text-sm text-nb-ink-mid mb-3">
-                      Posts from people you follow and rings you&apos;ve joined, newest first. Nobody ranks it.
+                      The Following tab has posts from people you follow, newest first, and I don&apos;t rank it.
+                      Recent has everyone&apos;s public posts.
                     </p>
                     <Link 
                       href="/feed" 
@@ -899,13 +613,13 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                   <div>
                     <h4 className="font-bold mb-2">Residents</h4>
                     <p className="text-sm text-nb-ink-mid mb-3">
-                      Everyone who lives here, searchable by name, handle or bio.
+                      Everyone here with a public page. You can search by name, username or bio.
                     </p>
                     <Link 
                       href="/directory" 
                       className={`${buttonClasses("primary", "sm")} block text-center`}
                     >
-                      Browse Users
+                      Browse residents
                     </Link>
                   </div>
                 </div>
@@ -974,8 +688,9 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
               <RetroCard title="Posting">
                   <div className="space-y-4">
                     <p className="text-nb-ink">
-                      Posts are written in markdown and can include images. A post lives on your page, and you can
-                      also share it to any ring you&apos;re in.
+                      You write posts in Markdown, and there&apos;s a toolbar if you don&apos;t know it, plus a preview.
+                      To add a picture, click Upload Image or drag it into the post. Every post lives on your page, and you
+                      can send it to any rings you&apos;re in too.
                     </p>
 
                     <div className="border-l-4 border-nb-lav pl-4 py-1">
@@ -993,7 +708,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                       </div>
                     </div>
 
-                    <div className="grid md:grid-cols-2 gap-4">
+                    <div>
                       <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-4">
                         <h4 className="font-bold text-nb-ink mb-2">Images</h4>
                         <p className="text-sm text-nb-ink">
@@ -1008,34 +723,6 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                           as well as on your page.
                         </p>
                       </div>
-                    </div>
-                  </div>
-                </RetroCard>
-
-                <RetroCard title="Ideas">
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <h4 className="font-bold mb-3">Post Ideas</h4>
-                      <ul className="space-y-2 text-sm">
-                        <li>• <strong>Show &amp; Tell:</strong> Share projects you&apos;re working on</li>
-                        <li>• <strong>Questions:</strong> Ask for advice or start discussions</li>
-                        <li>• <strong>Resources:</strong> Share useful links and tools</li>
-                        <li>• <strong>Stories:</strong> Tell personal experiences</li>
-                        <li>• <strong>Updates:</strong> What you&apos;ve been up to</li>
-                        <li>• <strong>Photos:</strong> With a line about where they&apos;re from</li>
-                      </ul>
-                    </div>
-
-                    <div>
-                      <h4 className="font-bold mb-3">On your page</h4>
-                      <ul className="space-y-2 text-sm">
-                        <li>• <strong>Bio:</strong> A few lines about you</li>
-                        <li>• <strong>Photo gallery:</strong> Your pictures</li>
-                        <li>• <strong>Posts:</strong> Short or long</li>
-                        <li>• <strong>Friends:</strong> Who you&apos;re friends with</li>
-                        <li>• <strong>Links:</strong> Your other sites</li>
-                        <li>• <strong>Your design:</strong> CSS or a template</li>
-                      </ul>
                     </div>
                   </div>
                 </RetroCard>
@@ -1055,62 +742,34 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
 
                     <div>
                       <h4 className="font-bold mb-2">Upload Media</h4>
-                      <p className="text-nb-ink-mid mb-2">Add images and MIDI files to your profile.</p>
-                      <div className="text-center text-nb-ink-mid text-xs border-2 border-dotted border-nb-ink-mid/60 rounded-md px-3 py-2">
-                        Upload via Profile Settings
-                      </div>
-                    </div>
-
-                    <div>
-                      <h4 className="font-bold mb-2">Writing Tips</h4>
-                      <ul className="text-nb-ink-mid space-y-1 text-xs">
-                        <li>&bull; Use descriptive titles</li>
-                        <li>&bull; Break up long text with headers</li>
-                        <li>&bull; Include relevant images</li>
-                        <li>&bull; Reply to the comments you get</li>
-                        <li>&bull; Come back now and then</li>
-                      </ul>
+                      <p className="text-nb-ink-mid mb-0">Photos go on the Media tab of your page, and MIDI goes in Settings → Music.</p>
                     </div>
                   </div>
                 </RetroCard>
 
               <RetroCard title="Getting replies">
-                  <div className="space-y-3 text-sm">
-                    <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-3">
-                      <h4 className="font-bold text-nb-ink mb-1">No algorithm</h4>
-                      <p className="text-nb-ink text-xs">
-                        Feeds are newest first, so nothing gets boosted. Posts that ask a question tend to get answers.
-                      </p>
-                    </div>
-
-                    <div>
-                      <h4 className="font-bold mb-2">What helps</h4>
-                      <ul className="text-nb-ink-mid space-y-1 text-xs">
-                        <li>• Comment on other people&apos;s posts</li>
-                        <li>• Answer questions you know the answer to</li>
-                        <li>• Sign guestbooks</li>
-                        <li>• Join a ring or two and post there</li>
-                      </ul>
-                    </div>
-                  </div>
+                  <p className="text-nb-ink leading-relaxed">
+                    Following and Recent are newest first, so nothing gets boosted. Honestly the easiest way to get
+                    replies is to reply to other people, and posting in a ring or two helps a lot.
+                  </p>
                 </RetroCard>
             </div>
           )}
         </div>
 
-        {/* Call to Action */}
+        {!user && (
         <RetroCard title="">
           <div className="text-center py-4">
             <h2 className="text-xl font-bold mb-3">Not signed up yet?</h2>
             <p className="text-nb-ink-mid mb-4">
-              It&apos;s free. Bring a lawn chair.
+              It&apos;s free! Grab a tea and come meet the neighbors &lt;3
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
               <Link 
                 href="/onboarding" 
                 className={buttonClasses("primary")}
               >
-                Create Your Profile
+                Make an account
               </Link>
               <Link 
                 href="/feed" 
@@ -1121,6 +780,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
             </div>
           </div>
         </RetroCard>
+        )}
       </div>
     </Layout>
   );
