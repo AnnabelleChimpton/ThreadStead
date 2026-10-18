@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import Button from '@/components/ui/Button'
+import { csrfFetch } from '@/lib/api/client/csrf-fetch'
 // import { ConsentType } from '@prisma/client' // Use local definition to avoid import issues
 
 // Define enum types to match Prisma schema
@@ -44,8 +45,9 @@ export default function CookieConsentBanner({
 
     try {
       if (userId) {
-        // Save to database for logged-in users
-        const response = await fetch(`/api/consent/manage?userId=${userId}`, {
+        // Save to database for logged-in users (the route takes the user
+        // from the session). Signed-out visitors only get localStorage.
+        const response = await csrfFetch('/api/consent/manage', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

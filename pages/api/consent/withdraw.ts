@@ -1,5 +1,5 @@
 import type { NextApiResponse } from 'next';
-import { apiHandler } from '@/lib/api/handler';
+import { apiHandler, ApiError } from '@/lib/api/handler';
 import { db } from '../../../lib/config/database/connection';
 import { ConsentType, ConsentAction } from '@prisma/client';
 import { getClientIp } from '@/lib/server/http/client-ip';
@@ -14,17 +14,17 @@ interface WithdrawResponse {
   error?: string;
 }
 
+/** Withdraws the signed-in user's own consents; see consent/manage.ts. */
 export default apiHandler(
-  // no CSRF today: ConsentManager calls it with plain fetch
-  { methods: ['POST'], auth: 'none', csrf: false },
-  async (req, res: NextApiResponse<WithdrawResponse>) => {
-    try {
-      const { userId } = req.query;
-      const { type }: WithdrawRequest = req.body;
+  { methods: ['POST'], auth: 'user' },
+  async (req, res: NextApiResponse<WithdrawResponse>, { user }) => {
+    if (req.query.userId !== undefined && req.query.userId !== user.id) {
+      throw new ApiError(403, 'You can only manage your own consent');
+    }
+    const userId = user.id;
 
-      if (!userId || typeof userId !== 'string') {
-        return res.status(400).json({ success: false, error: 'User ID required' });
-      }
+    try {
+      const { type }: WithdrawRequest = req.body ?? {};
 
       // Get client IP and user agent for audit trail
       const ipAddress = getClientIp(req);

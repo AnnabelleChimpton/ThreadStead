@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { PixelIcon } from '@/components/ui/PixelIcon'
 import { useConfirm } from '@/contexts/ConfirmContext'
 import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner'
+import { csrfFetch } from '@/lib/api/client/csrf-fetch'
 
 // Define enum types to match Prisma schema
 enum ConsentType {
@@ -27,6 +28,7 @@ interface ConsentRecord {
 }
 
 interface ConsentManagerProps {
+  /** Only reloads on account switch; the consent routes use the session user. */
   userId: string
 }
 
@@ -43,7 +45,7 @@ export default function ConsentManager({ userId }: ConsentManagerProps) {
 
   const loadConsents = async () => {
     try {
-      const response = await fetch(`/api/consent/manage?userId=${userId}`)
+      const response = await fetch('/api/consent/manage')
       const data = await response.json()
 
       if (data.success) {
@@ -75,7 +77,7 @@ export default function ConsentManager({ userId }: ConsentManagerProps) {
     setMessage(null)
 
     try {
-      const response = await fetch(`/api/consent/manage?userId=${userId}`, {
+      const response = await csrfFetch('/api/consent/manage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -110,7 +112,7 @@ export default function ConsentManager({ userId }: ConsentManagerProps) {
     setMessage(null)
 
     try {
-      const response = await fetch(`/api/consent/withdraw?userId=${userId}`, {
+      const response = await csrfFetch('/api/consent/withdraw', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({})

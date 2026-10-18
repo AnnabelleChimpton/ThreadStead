@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { apiHandler } from '@/lib/api/handler';
+import { apiHandler, ApiError } from '@/lib/api/handler';
 import { db } from '../../../lib/config/database/connection';
 import { ConsentType, ConsentAction } from '@prisma/client';
 import { getClientIp } from '@/lib/server/http/client-ip';
@@ -21,25 +21,29 @@ interface ConsentResponse {
   error?: string;
 }
 
+/**
+ * A signed-in user's own consent records. The user always comes from the
+ * session; a leftover ?userId naming anyone else is refused. Signed-out
+ * visitors have no records here (UserConsent belongs to a User) — the cookie
+ * banner keeps their choice in localStorage.
+ */
 export default apiHandler(
-  // no CSRF today: CookieConsentBanner and ConsentManager call it with plain fetch
-  { methods: ['GET', 'POST'], auth: 'none', csrf: false },
-  async (req, res: NextApiResponse<ConsentResponse>) => {
-    if (req.method === 'GET') {
-      return getConsents(req, res);
+  { methods: ['GET', 'POST'], auth: 'user' },
+  async (req, res: NextApiResponse<ConsentResponse>, { user }) => {
+    const { userId } = req.query;
+    if (userId !== undefined && userId !== user.id) {
+      throw new ApiError(403, 'You can only manage your own consent');
     }
-    return updateConsents(req, res);
+
+    if (req.method === 'GET') {
+      return getConsents(user.id, res);
+    }
+    return updateConsents(user.id, req, res);
   }
 );
 
-async function getConsents(req: NextApiRequest, res: NextApiResponse<ConsentResponse>) {
+async function getConsents(userId: string, res: NextApiResponse<ConsentResponse>) {
   try {
-    const { userId } = req.query;
-
-    if (!userId || typeof userId !== 'string') {
-      return res.status(400).json({ success: false, error: 'User ID required' });
-    }
-
     const consents = await db.userConsent.findMany({
       where: { userId },
       select: {
@@ -69,14 +73,13 @@ async function getConsents(req: NextApiRequest, res: NextApiResponse<ConsentResp
   }
 }
 
-async function updateConsents(req: NextApiRequest, res: NextApiResponse<ConsentResponse>) {
+async function updateConsents(
+  userId: string,
+  req: NextApiRequest,
+  res: NextApiResponse<ConsentResponse>
+) {
   try {
-    const { userId } = req.query;
     const { consents }: ConsentRequest = req.body;
-
-    if (!userId || typeof userId !== 'string') {
-      return res.status(400).json({ success: false, error: 'User ID required' });
-    }
 
     if (!consents || !Array.isArray(consents)) {
       return res.status(400).json({ success: false, error: 'Consents array required' });
@@ -148,7 +151,7 @@ async function updateConsents(req: NextApiRequest, res: NextApiResponse<ConsentR
     });
 
     // Return updated consents
-    return getConsents(req, res);
+    return getConsents(userId, res);
   } catch (error) {
     console.error('Error updating consents:', error);
     return res.status(500).json({ success: false, error: 'Internal server error' });
