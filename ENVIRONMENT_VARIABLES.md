@@ -49,6 +49,7 @@ Unset, the branding falls back to "YourSiteHere". Set `SITE_HANDLE_DOMAIN` and `
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
+| `TRUSTED_PROXY_HOPS` | — | `1` | How many proxies in front of the app append a trusted entry to X-Forwarded-For. The client IP used for rate limits and signup checks is the entry this many from the right (lib/server/http/client-ip.ts). Production is 1: nginx resolves the real visitor from CF-Connecting-IP (real_ip, Cloudflare ranges only) and appends that, so Cloudflare's own entry is not counted. Too low and every caller shares the proxy's bucket; too high and callers can spoof their IP. 0 ignores the proxy headers and uses the socket address. Integer. |
 | `CAP_JWT_SECRET` 🔒 | required in production | — | HMAC secret for capability tokens. Production refuses to mint/verify with it unset or set to 'devsecret'. Generate with `openssl rand -base64 32`. |
 | `CAP_AUDIENCE` | — | `retro.local` | JWT audience for capability tokens. Set to your production domain. |
 | `BETA_KEYS_ENABLED` | — | `false` | Require a beta key to sign up. Accepts true/false/1/0/yes/no; anything else means disabled. |

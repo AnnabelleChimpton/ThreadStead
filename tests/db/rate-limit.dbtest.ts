@@ -13,6 +13,7 @@ import {
   checkRateLimit,
   cleanupExpiredRateLimits,
   rateLimitCheck,
+  signupLimitCheck,
   withRateLimit,
 } from '@/lib/server/http/rate-limit'
 import { getSessionUser } from '@/lib/auth/server'
@@ -128,9 +129,33 @@ describe('rateLimitCheck / withRateLimit', () => {
     expect(await db.rateLimit.count({ where: { identifier: 'user:u1' } })).toBe(1)
   })
 
-  it('limits anonymous callers per first X-Forwarded-For hop', async () => {
-    await rateLimitCheck(fakeReq('203.0.113.9, 10.0.0.1'), fakeRes() as unknown as NextApiResponse, 'uploads')
-    expect(await db.rateLimit.count({ where: { identifier: 'ip:203.0.113.9' } })).toBe(1)
+  it('limits anonymous callers by the client entry, not the spoofable first one', async () => {
+    // Production (TRUSTED_PROXY_HOPS=1): Cloudflare appends the visitor, then nginx
+    // appends the visitor it resolved from CF-Connecting-IP: "<junk>, <client>, <client>".
+    for (let i = 0; i < UPLOADS.limit; i++) {
+      await rateLimitCheck(fakeReq(`6.6.6.${i}, 203.0.113.9, 203.0.113.9`), fakeRes() as unknown as NextApiResponse, 'uploads')
+    }
+    const res = fakeRes()
+    await rateLimitCheck(fakeReq('6.6.6.99, 203.0.113.9'), res as unknown as NextApiResponse, 'uploads')
+    expect(res.statusCode).toBe(429)
+    expect((await db.rateLimit.findMany()).map((r) => r.identifier)).toEqual(['ip:203.0.113.9'])
+  })
+})
+
+describe('signupLimitCheck', () => {
+  afterEach(async () => {
+    await db.signupAttempt.deleteMany({ where: { ipAddress: '203.0.113.50' } })
+    await db.ipSignupTracking.deleteMany({ where: { ipAddress: '203.0.113.50' } })
+  })
+
+  it('keeps a blocked IP blocked whatever the client prepends to X-Forwarded-For', async () => {
+    await db.ipSignupTracking.create({ data: { ipAddress: '203.0.113.50', isBlocked: true, blockedReason: 'test block' } })
+    for (const spoof of ['', '6.6.6.6, ', '1.1.1.1, 2.2.2.2, ']) {
+      const res = fakeRes()
+      const ok = await signupLimitCheck(fakeReq(`${spoof}203.0.113.50`), res as unknown as NextApiResponse)
+      expect(ok).toBe(false)
+      expect(res.statusCode).toBe(429)
+    }
   })
 })
 

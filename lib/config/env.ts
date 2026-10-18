@@ -72,6 +72,15 @@ export const SERVER_ENV_SPECS = [
 
   // ── Auth & security ─────────────────────────────────────────────────────
   {
+    name: 'TRUSTED_PROXY_HOPS',
+    kind: 'int',
+    scope: 'server',
+    group: 'Auth & security',
+    default: '1',
+    description:
+      'How many proxies in front of the app append a trusted entry to X-Forwarded-For. The client IP used for rate limits and signup checks is the entry this many from the right (lib/server/http/client-ip.ts). Production is 1: nginx resolves the real visitor from CF-Connecting-IP (real_ip, Cloudflare ranges only) and appends that, so Cloudflare\'s own entry is not counted. Too low and every caller shares the proxy\'s bucket; too high and callers can spoof their IP. 0 ignores the proxy headers and uses the socket address.',
+  },
+  {
     name: 'CAP_JWT_SECRET',
     kind: 'string',
     scope: 'server',
