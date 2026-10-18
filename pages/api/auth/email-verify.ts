@@ -1,8 +1,7 @@
 import { apiHandler } from "@/lib/api/handler";
 import { db } from "@/lib/config/database/connection";
 import { checkEmailLoginToken, verifyEmailLoginToken } from "@/lib/email-login";
-import crypto from "crypto";
-import { generateCsrfToken, createCsrfCookie, getCookieSecureFlag } from "@/lib/middleware/csrf";
+import { createSession } from "@/lib/auth/server";
 
 export default apiHandler(
   // no CSRF today: anonymous visitors following an emailed login link; plain fetch
@@ -75,29 +74,8 @@ export default apiHandler(
         });
       }
     
-      // Create session (similar to verify.ts)
-      const secret = crypto.randomBytes(32).toString('hex');
-      const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7); // 7 days
-    
-      await db.session.create({
-        data: {
-          userId: selectedUser.id,
-          secret,
-          expiresAt
-        }
-      });
-
-      // Generate CSRF token
-      const csrfToken = generateCsrfToken();
-
-      // Set both session and CSRF cookies
-      res.setHeader(
-        "Set-Cookie",
-        [
-          `retro_session=${selectedUser.id}.${secret}; HttpOnly; ${getCookieSecureFlag()}Path=/; Max-Age=604800; SameSite=Strict`,
-          createCsrfCookie(csrfToken, 604800)
-        ]
-      );
+      // Session + CSRF cookies
+      await createSession(res, selectedUser.id);
     
       res.json({ 
         success: true, 

@@ -1,13 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/config/database/connection";
 import { hashPassword } from "@/lib/auth/password";
-import { getSeedPhrase } from "@/lib/api/did/did-client";
-
-function readCookie(req: NextApiRequest, name: string) {
-  const cookie = req.headers.cookie || "";
-  const m = cookie.match(new RegExp(`${name}=([^;]+)`));
-  return m ? decodeURIComponent(m[1]) : null;
-}
+import { getSessionUser } from "@/lib/auth/server";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
@@ -21,37 +15,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   // Get current user session
-  const sessionCookie = readCookie(req, "retro_session");
-  if (!sessionCookie) {
-    return res.status(401).json({ error: "Not authenticated" });
-  }
-
-  const [userId, secret] = sessionCookie.split(".");
-  if (!userId || !secret) {
-    return res.status(401).json({ error: "Invalid session" });
-  }
-
-  // Verify session and get user
-  const session = await db.session.findFirst({
-    where: { userId, secret, expiresAt: { gt: new Date() } },
-    include: {
-      user: {
-        select: {
-          id: true,
-          authMethod: true,
-          encryptedSeedPhrase: true,
-          did: true,
-          originalDid: true
-        }
-      }
+  const user = await getSessionUser(req, {
+    select: {
+      id: true,
+      authMethod: true,
+      encryptedSeedPhrase: true,
+      did: true,
+      originalDid: true
     }
   });
 
-  if (!session) {
-    return res.status(401).json({ error: "Session expired or invalid" });
+  if (!user) {
+    return res.status(401).json({ error: "Not authenticated" });
   }
-
-  const user = session.user;
 
   // Check if we are in "Overwrite/Reset" mode
   const isResetMode = user.authMethod === 'PASSWORD' || !!user.encryptedSeedPhrase;
@@ -105,7 +81,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Update user to have both auth methods available
     await db.user.update({
-      where: { id: userId },
+      where: { id: user.id },
       data: {
         passwordHash,
         encryptedSeedPhrase,

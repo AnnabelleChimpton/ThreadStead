@@ -72,8 +72,8 @@ Unset, the branding falls back to "YourSiteHere". Set `SITE_HANDLE_DOMAIN` and `
 | `R2_ACCESS_KEY_ID` 🔒 | — | — | R2 access key ID. |
 | `R2_SECRET_ACCESS_KEY` 🔒 | — | — | R2 secret access key. |
 | `R2_BUCKET_NAME` | — | `threadstead-media` | Bucket for uploads. Some upload routes have no fallback, so set it explicitly. |
-| `R2_PUBLIC_URL` | — | — | Despite the name, this is the S3 API endpoint (https://<account>.r2.cloudflarestorage.com) passed to every S3Client. Also the last-resort public URL when R2_CDN_URL is unset. |
-| `R2_CDN_URL` | — | — | Public origin uploaded files are served from (custom domain or r2.dev). |
+| `R2_PUBLIC_URL` | — | — | Despite the name, this is the S3 API endpoint (https://<account>.r2.cloudflarestorage.com) used by lib/storage/r2.ts. Also the last-resort public URL when neither R2_CDN_URL nor NEXT_PUBLIC_R2_CDN_URL is set. |
+| `R2_CDN_URL` | — | — | Public origin uploaded files are served from (custom domain or r2.dev). First choice for upload URLs (lib/storage/r2.ts publicUrl). |
 
 ## Ring Hub & DID
 

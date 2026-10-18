@@ -181,14 +181,14 @@ export const SERVER_ENV_SPECS = [
     scope: 'server',
     group: 'Storage (Cloudflare R2)',
     description:
-      'Despite the name, this is the S3 API endpoint (https://<account>.r2.cloudflarestorage.com) passed to every S3Client. Also the last-resort public URL when R2_CDN_URL is unset.',
+      'Despite the name, this is the S3 API endpoint (https://<account>.r2.cloudflarestorage.com) used by lib/storage/r2.ts. Also the last-resort public URL when neither R2_CDN_URL nor NEXT_PUBLIC_R2_CDN_URL is set.',
   },
   {
     name: 'R2_CDN_URL',
     kind: 'url',
     scope: 'server',
     group: 'Storage (Cloudflare R2)',
-    description: 'Public origin uploaded files are served from (custom domain or r2.dev).',
+    description: 'Public origin uploaded files are served from (custom domain or r2.dev). First choice for upload URLs (lib/storage/r2.ts publicUrl).',
   },
 
   // ── Ring Hub & DID ──────────────────────────────────────────────────────

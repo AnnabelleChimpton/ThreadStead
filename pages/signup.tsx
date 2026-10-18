@@ -19,6 +19,7 @@ interface SignupPageProps {
   betaKey?: string | null;
   siteConfig: SiteConfig;
 }
+import { csrfFetch } from "@/lib/api/client/csrf-fetch";
 
 type SignupStep = 'welcome' | 'auth-method' | 'password-setup' | 'seed-phrase' | 'email' | 'guidelines' | 'profile' | 'template' | 'finale';
 type AuthMethod = 'password' | 'seedphrase';
@@ -431,8 +432,10 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
       if (profilePhoto) {
         const formData = new FormData();
         formData.append('photo', profilePhoto);
-        
-        const photoResponse = await fetch('/api/user/photo', {
+        const capRes = await csrfFetch('/api/cap/profile', { method: 'POST' });
+        if (capRes.ok) formData.append('cap', (await capRes.json()).token);
+
+        const photoResponse = await csrfFetch('/api/profile/upload-photo', {
           method: 'POST',
           body: formData,
           credentials: 'include' // Ensure cookies are sent

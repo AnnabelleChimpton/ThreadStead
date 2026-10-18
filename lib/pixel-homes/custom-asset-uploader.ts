@@ -5,34 +5,9 @@
  * Limited to one custom asset per user, max 64x64 pixels
  */
 
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
-import sharp from "sharp";
 import crypto from "crypto";
-
-// Configure S3 client for R2 (with lazy initialization)
-let s3Client: S3Client | null = null;
-
-function getS3Client(): S3Client {
-  if (!s3Client) {
-    const requiredEnvVars = ['R2_PUBLIC_URL', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY'];
-    for (const envVar of requiredEnvVars) {
-      if (!process.env[envVar]) {
-        throw new Error(`Missing required environment variable: ${envVar}`);
-      }
-    }
-
-    s3Client = new S3Client({
-      region: "auto",
-      endpoint: process.env.R2_PUBLIC_URL!,
-      credentials: {
-        accessKeyId: process.env.R2_ACCESS_KEY_ID!,
-        secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
-      },
-      forcePathStyle: false,
-    });
-  }
-  return s3Client;
-}
+import { deleteObjects, keyFromPublicUrl, putObject } from "@/lib/storage/r2";
+import { decodeImageDataUrl, preparePixelArtPng } from "@/lib/media/image";
 
 interface CustomAssetUploadResult {
   customAssetUrl: string;
@@ -55,60 +30,30 @@ export async function uploadCustomPixelArt(
 
   try {
     // Extract image data from data URL
-    const matches = imageDataUrl.match(/^data:image\/([a-zA-Z]*);base64,(.*)$/);
-    if (!matches) {
+    const decoded = decodeImageDataUrl(imageDataUrl);
+    if (!decoded) {
       throw new Error('Invalid image data URL format');
     }
+    const imageBuffer = decoded.buffer;
 
-    const [, , base64Data] = matches;
-    const imageBuffer = Buffer.from(base64Data, 'base64');
-
-    // Check file size
-    if (imageBuffer.length > MAX_FILE_SIZE) {
-      throw new Error(`Image too large. Maximum size is ${MAX_FILE_SIZE / 1024}KB`);
-    }
-
-    // Get image metadata
-    const metadata = await sharp(imageBuffer).metadata();
-    const { width, height } = metadata;
-
-    if (!width || !height) {
-      throw new Error('Could not read image dimensions');
-    }
-
-    // Validate dimensions (must be within 64x64)
-    if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
-      throw new Error(`Image too large. Maximum dimensions are ${MAX_DIMENSION}x${MAX_DIMENSION} pixels`);
-    }
-
-    // Process image - preserve pixel art with nearest neighbor resampling
-    // Keep original size but optimize for web
-    const processedBuffer = await sharp(imageBuffer)
-      .png({
-        compressionLevel: 9,
-        palette: true // Use palette for smaller file size
-      })
-      .toBuffer();
+    // Enforce size and 64x64 dimensions, then optimize as a palette PNG at
+    // the original size (keeps pixel art crisp)
+    const { buffer: processedBuffer } = await preparePixelArtPng(imageBuffer, {
+      maxBytes: MAX_FILE_SIZE,
+      maxDimension: MAX_DIMENSION,
+    });
 
     // Generate unique filename
     const hash = crypto.createHash('md5').update(imageBuffer).digest('hex').substring(0, 8);
     const timestamp = Date.now();
     const filename = `pixel-homes/custom/${userId}-${timestamp}-${hash}.png`;
 
-    const client = getS3Client();
-    const bucketName = process.env.R2_BUCKET_NAME || 'threadstead-media';
-    const publicUrl = (process.env.R2_CDN_URL || process.env.R2_PUBLIC_URL)?.replace(/\/$/, '') || '';
-
     // Upload to R2
-    await client.send(new PutObjectCommand({
-      Bucket: bucketName,
-      Key: filename,
-      Body: processedBuffer,
-      ContentType: 'image/png',
-      CacheControl: 'public, max-age=31536000', // Cache for 1 year
-    }));
-
-    const customAssetUrl = `${publicUrl}/${filename}`;
+    const customAssetUrl = await putObject({
+      key: filename,
+      body: processedBuffer,
+      contentType: 'image/png',
+    });
 
     return { customAssetUrl };
 
@@ -122,25 +67,13 @@ export async function uploadCustomPixelArt(
  * Delete a custom pixel art asset from R2
  */
 export async function deleteCustomPixelArt(assetUrl: string): Promise<void> {
-  try {
-    const publicUrl = (process.env.R2_CDN_URL || process.env.R2_PUBLIC_URL)?.replace(/\/$/, '') || '';
-    const key = assetUrl.replace(`${publicUrl}/`, '');
-
-    if (!key.startsWith('pixel-homes/custom/')) {
-      throw new Error('Invalid asset URL');
-    }
-
-    const client = getS3Client();
-    const bucketName = process.env.R2_BUCKET_NAME || 'threadstead-media';
-
-    await client.send(new DeleteObjectCommand({
-      Bucket: bucketName,
-      Key: key,
-    }));
-  } catch (error) {
-    console.error('Error deleting custom pixel art:', error);
-    // Don't throw - deletion failures shouldn't block the user
+  const key = keyFromPublicUrl(assetUrl);
+  if (!key || !key.startsWith('pixel-homes/custom/')) {
+    console.error(`Not deleting custom pixel art ${assetUrl}: not a custom asset URL`);
+    return;
   }
+  // Logs failures; deletion failures shouldn't block the user
+  await deleteObjects([key], { context: 'pixel-homes:custom-asset' });
 }
 
 /**

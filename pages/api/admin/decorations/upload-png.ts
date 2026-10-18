@@ -1,44 +1,11 @@
 import { db } from "@/lib/config/database/connection";
 import { apiHandler } from "@/lib/api/handler";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-import sharp from "sharp";
+import { putObject } from "@/lib/storage/r2";
+import { decodeImageDataUrl, ImageValidationError, preparePixelArtPng } from "@/lib/media/image";
 
 const R2_PATH_PREFIX = "pixel-homes/decorations";
 const MAX_FILE_SIZE = 500 * 1024; // 500KB max for decoration PNGs
 const MAX_DIMENSION = 256; // Max width/height for decoration PNGs
-
-// Configure S3 client for R2
-let s3Client: S3Client | null = null;
-
-function getS3Client(): S3Client {
-  if (!s3Client) {
-    const requiredEnvVars = ['R2_PUBLIC_URL', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY'];
-    for (const envVar of requiredEnvVars) {
-      if (!process.env[envVar]) {
-        throw new Error(`Missing required environment variable: ${envVar}`);
-      }
-    }
-
-    s3Client = new S3Client({
-      region: "auto",
-      endpoint: process.env.R2_PUBLIC_URL!,
-      credentials: {
-        accessKeyId: process.env.R2_ACCESS_KEY_ID!,
-        secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
-      },
-      forcePathStyle: false,
-    });
-  }
-  return s3Client;
-}
-
-function getCdnUrl(): string {
-  return (process.env.R2_CDN_URL || process.env.R2_PUBLIC_URL || "").replace(/\/$/, "");
-}
-
-function getBucketName(): string {
-  return process.env.R2_BUCKET_NAME || "threadstead-media";
-}
 
 interface UploadPngRequest {
   itemId: string;
@@ -72,42 +39,25 @@ export default apiHandler(
       }
 
       // Extract base64 data
-      const matches = imageData.match(/^data:image\/([a-zA-Z]*);base64,(.*)$/);
-      if (!matches) {
+      const decoded = decodeImageDataUrl(imageData);
+      if (!decoded) {
         return res.status(400).json({ error: "Invalid image data URL format" });
       }
 
-      const [, imageFormat, base64Data] = matches;
-      const imageBuffer = Buffer.from(base64Data, 'base64');
-
-      // Validate file size
-      if (imageBuffer.length > MAX_FILE_SIZE) {
-        return res.status(400).json({
-          error: `Image too large. Maximum size is ${MAX_FILE_SIZE / 1024}KB`
+      // Validate size and dimensions, then convert to optimized PNG
+      let prepared;
+      try {
+        prepared = await preparePixelArtPng(decoded.buffer, {
+          maxBytes: MAX_FILE_SIZE,
+          maxDimension: MAX_DIMENSION,
         });
+      } catch (error) {
+        if (error instanceof ImageValidationError) {
+          return res.status(400).json({ error: error.message });
+        }
+        throw error;
       }
-
-      // Get image metadata and validate dimensions
-      const metadata = await sharp(imageBuffer).metadata();
-      const { width, height } = metadata;
-
-      if (!width || !height) {
-        return res.status(400).json({ error: "Could not read image dimensions" });
-      }
-
-      if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
-        return res.status(400).json({
-          error: `Image too large. Maximum dimensions are ${MAX_DIMENSION}x${MAX_DIMENSION} pixels`
-        });
-      }
-
-      // Process image - convert to optimized PNG
-      const processedBuffer = await sharp(imageBuffer)
-        .png({
-          compressionLevel: 9,
-          palette: true
-        })
-        .toBuffer();
+      const { buffer: processedBuffer, width, height } = prepared;
 
       // Determine R2 key
       let r2Key: string;
@@ -118,16 +68,7 @@ export default apiHandler(
       }
 
       // Upload to R2
-      const client = getS3Client();
-      await client.send(new PutObjectCommand({
-        Bucket: getBucketName(),
-        Key: r2Key,
-        Body: processedBuffer,
-        ContentType: 'image/png',
-        CacheControl: 'public, max-age=31536000', // 1 year cache
-      }));
-
-      const pngUrl = `${getCdnUrl()}/${r2Key}?v=${Date.now()}`;
+      const pngUrl = `${await putObject({ key: r2Key, body: processedBuffer, contentType: 'image/png' })}?v=${Date.now()}`;
 
       // Update database if this is a decoration item (not house template)
       if (!isHouseTemplate && itemId) {

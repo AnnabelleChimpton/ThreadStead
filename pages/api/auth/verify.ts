@@ -2,20 +2,11 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/config/database/connection";
 import { rateLimitMiddleware } from "@/lib/middleware/rateLimiting";
-import crypto from "crypto";
 
 import * as ed from "@noble/ed25519";
 import { fromBase64Url } from "@/lib/utils/encoding/base64url";
-import { generateCsrfToken, createCsrfCookie, getCookieSecureFlag } from "@/lib/middleware/csrf";
 import { isBetaKeysEnabled } from "@/lib/config/beta-keys";
-
-
-
-function readCookie(req: NextApiRequest, name: string) {
-  const cookie = req.headers.cookie || "";
-  const m = cookie.match(new RegExp(`${name}=([^;]+)`));
-  return m ? decodeURIComponent(m[1]) : null;
-}
+import { createSession, readCookie } from "@/lib/auth/server";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") return res.status(405).end();
@@ -166,20 +157,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
   }
 
-  const secret = crypto.randomBytes(32).toString('hex');
-  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7);
-  await db.session.create({ data: { userId: user.id, secret, expiresAt } });
-
-  // Generate CSRF token
-  const csrfToken = generateCsrfToken();
-
-  // Set both session and CSRF cookies
-  res.setHeader(
-    "Set-Cookie",
-    [
-      `retro_session=${user.id}.${secret}; HttpOnly; ${getCookieSecureFlag()}Path=/; Max-Age=604800; SameSite=Strict`,
-      createCsrfCookie(csrfToken, 604800)
-    ]
-  );
+  // Session + CSRF cookies
+  await createSession(res, user.id);
   res.json({ ok: true, userId: user.id });
 }

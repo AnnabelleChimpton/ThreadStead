@@ -1,40 +1,12 @@
-import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/config/database/connection";
 import type { UploadContext } from "@prisma/client";
 
 import { requireAction } from "@/lib/domain/users/capabilities";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-import sharp from "sharp";
 import multer from "multer";
 import { promisify } from "util";
 import { apiHandler } from "@/lib/api/handler";
-
-
-
-// Configure S3 client for R2 (with lazy initialization)
-let s3Client: S3Client | null = null;
-
-function getS3Client(): S3Client {
-  if (!s3Client) {
-    const requiredEnvVars = ['R2_PUBLIC_URL', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY'];
-    for (const envVar of requiredEnvVars) {
-      if (!process.env[envVar]) {
-        throw new Error(`Missing required environment variable: ${envVar}`);
-      }
-    }
-    
-    s3Client = new S3Client({
-      region: "auto",
-      endpoint: process.env.R2_PUBLIC_URL!,
-      credentials: {
-        accessKeyId: process.env.R2_ACCESS_KEY_ID!,
-        secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
-      },
-      forcePathStyle: false,
-    });
-  }
-  return s3Client;
-}
+import { putObject } from "@/lib/storage/r2";
+import { BADGE_HD_SIZE, BADGE_SIZE, containPng, imageDimensions, renderMediaSizes } from "@/lib/media/image";
 
 // Configure multer for memory storage
 const upload = multer({
@@ -165,45 +137,19 @@ async function processAndUploadMedia(
     metadata = { fileSize: buffer.length };
   } else {
     // Get image metadata
-    const imageInfo = await sharp(buffer).metadata();
-    const originalWidth = imageInfo.width || 0;
-    const originalHeight = imageInfo.height || 0;
+    const { width: originalWidth = 0, height: originalHeight = 0 } = await imageDimensions(buffer);
 
     // Process images in different sizes based on context
     let thumbnail: Buffer, medium: Buffer, full: Buffer;
 
     if (uploadContext === 'threadring_badge') {
       // Badge-specific processing
-      thumbnail = await sharp(buffer)
-        .resize(88, 31, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } })
-        .png({ quality: 100 })
-        .toBuffer();
-
-      medium = await sharp(buffer)
-        .resize(88, 31, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } })
-        .png({ quality: 100 })
-        .toBuffer();
-
-      full = await sharp(buffer)
-        .resize(352, 124, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } })
-        .png({ quality: 100 })
-        .toBuffer();
+      thumbnail = await containPng(buffer, BADGE_SIZE.width, BADGE_SIZE.height, { quality: 100 });
+      medium = await containPng(buffer, BADGE_SIZE.width, BADGE_SIZE.height, { quality: 100 });
+      full = await containPng(buffer, BADGE_HD_SIZE.width, BADGE_HD_SIZE.height, { quality: 100 });
     } else {
       // Standard image processing
-      thumbnail = await sharp(buffer)
-        .resize(150, 150, { fit: 'cover' })
-        .jpeg({ quality: 80 })
-        .toBuffer();
-
-      medium = await sharp(buffer)
-        .resize(600, 600, { fit: 'inside', withoutEnlargement: true })
-        .jpeg({ quality: 85 })
-        .toBuffer();
-
-      full = await sharp(buffer)
-        .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
-        .jpeg({ quality: 90 })
-        .toBuffer();
+      ({ thumbnail, medium, full } = await renderMediaSizes(buffer));
     }
 
     const fileExtension = uploadContext === 'threadring_badge' ? 'png' : 'jpg';
@@ -227,19 +173,7 @@ async function processAndUploadMedia(
                         isGif ? 'image/gif' :
                         uploadContext === 'threadring_badge' ? 'image/png' :
                         'image/jpeg';
-    await getS3Client().send(
-      new PutObjectCommand({
-        Bucket: process.env.R2_BUCKET_NAME!,
-        Key: key,
-        Body: imageBuffer,
-        ContentType: contentType,
-        CacheControl: 'public, max-age=31536000', // 1 year cache
-      })
-    );
-    
-    // Use CDN URL for public access if available, otherwise fallback to R2 public URL
-    const baseUrl = process.env.R2_CDN_URL || process.env.R2_PUBLIC_URL;
-    urls[`${size}Url`] = `${baseUrl}/${key}`;
+    urls[`${size}Url`] = await putObject({ key, body: imageBuffer, contentType });
   }
 
   return {

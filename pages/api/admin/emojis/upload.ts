@@ -1,35 +1,9 @@
 import { db } from "@/lib/config/database/connection";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-import sharp from "sharp";
 import multer from "multer";
 import { promisify } from "util";
 import { apiHandler } from "@/lib/api/handler";
-
-
-// Configure S3 client for R2 (with lazy initialization)
-let s3Client: S3Client | null = null;
-
-function getS3Client(): S3Client {
-  if (!s3Client) {
-    const requiredEnvVars = ['R2_PUBLIC_URL', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY'];
-    for (const envVar of requiredEnvVars) {
-      if (!process.env[envVar]) {
-        throw new Error(`Missing required environment variable: ${envVar}`);
-      }
-    }
-    
-    s3Client = new S3Client({
-      region: "auto",
-      endpoint: process.env.R2_PUBLIC_URL!,
-      credentials: {
-        accessKeyId: process.env.R2_ACCESS_KEY_ID!,
-        secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
-      },
-      forcePathStyle: false,
-    });
-  }
-  return s3Client;
-}
+import { putObject } from "@/lib/storage/r2";
+import { renderEmoji } from "@/lib/media/image";
 
 // Configure multer for memory storage
 const upload = multer({
@@ -57,25 +31,9 @@ async function processAndUploadEmoji(
   const key = `emojis/${emojiName}_${timestamp}.png`;
   
   // Process emoji image - resize to standard emoji size and convert to PNG
-  const processedBuffer = await sharp(buffer)
-    .resize(64, 64, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
-    .png({ quality: 90 })
-    .toBuffer();
+  const processedBuffer = await renderEmoji(buffer);
 
-  // Upload to R2
-  await getS3Client().send(
-    new PutObjectCommand({
-      Bucket: process.env.R2_BUCKET_NAME!,
-      Key: key,
-      Body: processedBuffer,
-      ContentType: 'image/png',
-      CacheControl: 'public, max-age=31536000', // 1 year cache
-    })
-  );
-  
-  // Use CDN URL for public access if available, otherwise fallback to R2 public URL
-  const baseUrl = process.env.R2_CDN_URL || process.env.R2_PUBLIC_URL;
-  return `${baseUrl}/${key}`;
+  return putObject({ key, body: processedBuffer, contentType: 'image/png' });
 }
 
 export default apiHandler(

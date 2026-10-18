@@ -1,8 +1,8 @@
 import { db } from "@/lib/config/database/connection";
 import { requireAction } from "@/lib/domain/users/capabilities";
-import { S3Client, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { z } from "zod";
 import { apiHandler } from "@/lib/api/handler";
+import { deleteObjects, keyFromPublicUrl } from "@/lib/storage/r2";
 
 // Title/caption limits match the upload form (MediaUpload.tsx).
 const updateMediaSchema = z.object({
@@ -10,24 +10,6 @@ const updateMediaSchema = z.object({
   title: z.string().trim().max(100).nullable().optional(),
   caption: z.string().trim().max(500).nullable().optional(),
 });
-
-// Configure S3 client for R2
-let s3Client: S3Client | null = null;
-
-function getS3Client(): S3Client {
-  if (!s3Client) {
-    s3Client = new S3Client({
-      region: "auto",
-      endpoint: process.env.R2_PUBLIC_URL!,
-      credentials: {
-        accessKeyId: process.env.R2_ACCESS_KEY_ID!,
-        secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
-      },
-      forcePathStyle: false,
-    });
-  }
-  return s3Client;
-}
 
 export default apiHandler(
   { methods: ['DELETE', 'PATCH'], auth: 'user', rateLimit: 'uploads' },
@@ -83,37 +65,22 @@ export default apiHandler(
       }
 
       // Extract keys from URLs to delete from R2
-      const baseUrl = process.env.R2_CDN_URL || process.env.R2_PUBLIC_URL;
       const keysToDelete: string[] = [];
 
       for (const url of [media.thumbnailUrl, media.mediumUrl, media.fullUrl]) {
         if (!url) continue;
-        if (!baseUrl || !url.startsWith(`${baseUrl}/`)) {
+        const key = keyFromPublicUrl(url);
+        if (!key) {
           // Can't derive a bucket key — the object will be orphaned in R2.
-          console.error(`[media:${mediaId}] Not deleting ${url} from R2: URL is not under ${baseUrl ?? "(no R2 base URL)"}`);
+          console.error(`[media:${mediaId}] Not deleting ${url} from R2: URL is not under a configured R2 public URL`);
           continue;
         }
-        keysToDelete.push(url.slice(baseUrl.length + 1));
+        keysToDelete.push(key);
       }
 
       // Delete from R2. A failure here leaves an orphaned object but shouldn't
-      // block removing the record, so log each one loudly and carry on.
-      const s3 = getS3Client();
-      const failedKeys: string[] = [];
-      for (const key of keysToDelete) {
-        try {
-          await s3.send(new DeleteObjectCommand({
-            Bucket: process.env.R2_BUCKET_NAME!,
-            Key: key,
-          }));
-        } catch (err) {
-          failedKeys.push(key);
-          console.error(`[media:${mediaId}] Failed to delete ${key} from R2:`, err);
-        }
-      }
-      if (failedKeys.length > 0) {
-        console.error(`[media:${mediaId}] ${failedKeys.length}/${keysToDelete.length} R2 objects orphaned: ${failedKeys.join(", ")}`);
-      }
+      // block removing the record; deleteObjects logs each one loudly.
+      await deleteObjects(keysToDelete, { context: `media:${mediaId}` });
 
       // Delete from database
       await db.media.delete({
