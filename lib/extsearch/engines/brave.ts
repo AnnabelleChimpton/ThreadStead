@@ -13,6 +13,34 @@ import type {
 } from '../types';
 import { analyzeIndieWeb, estimatePrivacyScore } from '../merge';
 
+// Most searches that may wait for a rate-limit slot; at 1/s this is ~5s of backlog
+const MAX_QUEUED = 5;
+
+interface SlotWaiter {
+  resolve: () => void;
+  signal?: AbortSignal;
+  onAbort?: () => void;
+}
+
+/** setTimeout as a promise that rejects as soon as `signal` aborts. */
+function delay(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(signal.reason ?? new Error('Aborted'));
+      return;
+    }
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(signal!.reason ?? new Error('Aborted'));
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort);
+      resolve();
+    }, ms);
+    signal?.addEventListener('abort', onAbort, { once: true });
+  });
+}
+
 interface BraveSearchResult {
   title: string;
   url: string;
@@ -81,7 +109,8 @@ export class BraveSearchEngine implements ExtSearchEngine {
   private apiKey: string | undefined;
   private baseUrl: string;
   private lastRequestTime: number = 0;
-  private pendingRequest: Promise<void> = Promise.resolve();
+  private waiters: SlotWaiter[] = [];
+  private releaseTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(config?: {
     apiKey?: string;
@@ -96,36 +125,51 @@ export class BraveSearchEngine implements ExtSearchEngine {
   }
 
   /**
-   * Enforce rate limit with proper queueing to prevent race conditions
-   * Free tier allows 1 request per second (60 per minute)
-   * Uses promise chaining to ensure requests are truly serialized
+   * Wait for this request's turn under the 1 request/second free-tier limit.
+   *
+   * The engine is a process-wide singleton, so under load more searches
+   * arrive than the limit lets out. Chaining them all grew the backlog without
+   * bound, and searches that had already timed out still waited their turn.
+   * Now at most MAX_QUEUED wait (the rest fail fast), and an aborted search
+   * leaves the queue at once without using up a slot.
    */
-  private async enforceRateLimit(): Promise<void> {
-    // Chain onto the previous request's promise
-    const previousRequest = this.pendingRequest;
-
-    // Create a new promise for this request
-    let resolveThis: () => void;
-    this.pendingRequest = new Promise<void>(resolve => {
-      resolveThis = resolve;
-    });
-
-    // Wait for previous request to complete its rate limit delay
-    await previousRequest;
-
-    // Now calculate wait time based on when the last request actually completed
-    const now = Date.now();
-    const timeSinceLastRequest = now - this.lastRequestTime;
-    const minInterval = 60000 / this.rateLimit.requestsPerMinute; // 60000ms per minute / 60 = 1000ms
-
-    if (timeSinceLastRequest < minInterval) {
-      const waitTime = minInterval - timeSinceLastRequest;
-      await new Promise(resolve => setTimeout(resolve, waitTime));
+  private enforceRateLimit(signal?: AbortSignal): Promise<void> {
+    if (signal?.aborted) {
+      return Promise.reject(signal.reason ?? new Error('Aborted'));
     }
+    if (this.waiters.length >= MAX_QUEUED) {
+      return Promise.reject(new Error('Brave Search is busy - too many searches queued'));
+    }
+    return new Promise((resolve, reject) => {
+      const waiter: SlotWaiter = { resolve, signal };
+      if (signal) {
+        waiter.onAbort = () => {
+          const i = this.waiters.indexOf(waiter);
+          if (i !== -1) this.waiters.splice(i, 1);
+          reject(signal.reason ?? new Error('Aborted'));
+        };
+        signal.addEventListener('abort', waiter.onAbort, { once: true });
+      }
+      this.waiters.push(waiter);
+      this.scheduleRelease();
+    });
+  }
 
-    // Update timestamp and signal that this request's rate limit check is complete
-    this.lastRequestTime = Date.now();
-    resolveThis!();
+  /** Let the next waiter go once a full interval has passed since the last request. */
+  private scheduleRelease(): void {
+    if (this.releaseTimer || this.waiters.length === 0) return;
+    const minInterval = 60000 / this.rateLimit.requestsPerMinute; // 1000ms on the free tier
+    const wait = Math.max(0, this.lastRequestTime + minInterval - Date.now());
+    this.releaseTimer = setTimeout(() => {
+      this.releaseTimer = null;
+      const next = this.waiters.shift();
+      if (next) {
+        if (next.onAbort) next.signal?.removeEventListener('abort', next.onAbort);
+        this.lastRequestTime = Date.now();
+        next.resolve();
+      }
+      this.scheduleRelease();
+    }, wait);
   }
 
   /**
@@ -135,7 +179,8 @@ export class BraveSearchEngine implements ExtSearchEngine {
    */
   private async retryWithBackoff<T>(
     fn: () => Promise<T>,
-    maxRetries: number = 5
+    maxRetries: number = 5,
+    signal?: AbortSignal
   ): Promise<T> {
     let lastError: Error | undefined;
 
@@ -144,6 +189,11 @@ export class BraveSearchEngine implements ExtSearchEngine {
         return await fn();
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
+
+        // The caller gave up; retrying would only spend quota on a dead request
+        if (signal?.aborted) {
+          throw lastError;
+        }
 
         // Check if it's a rate limit error (429)
         const is429 = lastError.message.includes('429') ||
@@ -168,7 +218,7 @@ export class BraveSearchEngine implements ExtSearchEngine {
           console.log(`Brave Search rate limited, retry ${attempt + 1}/${maxRetries + 1} in ${Math.round(backoffDelay)}ms`);
         }
 
-        await new Promise(resolve => setTimeout(resolve, backoffDelay));
+        await delay(backoffDelay, signal);
       }
     }
 
@@ -186,10 +236,10 @@ export class BraveSearchEngine implements ExtSearchEngine {
     // Wrap the entire search logic in retry with backoff
     return await this.retryWithBackoff(async () => {
       // Enforce rate limit before making request
-      await this.enforceRateLimit();
+      await this.enforceRateLimit(signal);
 
       return await this.performSearch(query, signal);
-    });
+    }, 5, signal);
   }
 
   /**

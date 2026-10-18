@@ -1,6 +1,7 @@
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+// The app's shared client. This module is also imported by the running server
+// (scheduler + admin API); a client of its own was re-created on every module
+// re-evaluation and never released.
+import { db as prisma } from '@/lib/config/database/connection'
 
 interface ReconciliationResult {
   ringId: string
@@ -180,17 +181,18 @@ async function reconcileThreadRingCounters() {
   } catch (error) {
     console.error('❌ Reconciliation failed:', error)
     throw error
-  } finally {
-    await prisma.$disconnect()
   }
 }
 
-// Handle command line execution
+// Handle command line execution. Only the CLI disconnects: inside the server
+// the client is shared, and disconnecting it would cut off other requests.
 if (require.main === module) {
-  reconcileThreadRingCounters().catch((error) => {
-    console.error('Reconciliation script failed:', error)
-    process.exit(1)
-  })
+  reconcileThreadRingCounters()
+    .catch((error) => {
+      console.error('Reconciliation script failed:', error)
+      process.exitCode = 1
+    })
+    .finally(() => prisma.$disconnect())
 }
 
 export { reconcileThreadRingCounters }

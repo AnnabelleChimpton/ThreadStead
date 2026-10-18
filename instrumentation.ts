@@ -14,5 +14,10 @@ export async function register() {
     // Validate beta keys configuration on startup
     const { validateBetaKeysConfig } = await import('./lib/config/beta-keys');
     validateBetaKeysConfig();
+
+    // ThreadRing counter reconciliation (production only; see the bootstrap).
+    // Started here, once per process, rather than from _app, whose module
+    // graph is evaluated once per page bundle in dev.
+    await import('./lib/domain/threadrings/reconciliation-bootstrap');
   }
 }

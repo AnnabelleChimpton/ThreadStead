@@ -32,9 +32,6 @@ import { ConversationsProvider } from "@/contexts/ConversationsContext";
 import GlobalChatToggle from "@/components/chat/GlobalChatToggle";
 import GlobalChatPopup from "@/components/chat/GlobalChatPopup";
 
-// Initialize ThreadRing reconciliation scheduler (server-side only)
-import "@/lib/domain/threadrings/reconciliation-bootstrap";
-
 type MyAppProps = AppProps & {
   /** Site CSS fetched on the server for the first page load (see getInitialProps) */
   appSiteCSS?: string;
