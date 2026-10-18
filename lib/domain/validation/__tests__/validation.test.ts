@@ -76,7 +76,14 @@ describe('validatePostTitle', () => {
   });
 
   it('does not excuse look-alike spellings of the excused words', () => {
-    expect(validatePostTitle('gr4pe')).toMatchObject({ code: 'obscene' });
+    expect(validateUsername('gr4pe')).toMatchObject({ code: 'obscene' });
+    expect(validatePostTitle('gr4pe f*ck'.replace('*', 'u'))).toMatchObject({ code: 'obscene' });
+  });
+
+  it('lets people write about rape in a title, but not use it in a name', () => {
+    expect(validatePostTitle('What surviving rape taught me')).toMatchObject({ ok: true });
+    expect(validateUsername('rapefan')).toMatchObject({ code: 'obscene' });
+    expect(validateThreadRingName('Rape jokes')).toMatchObject({ code: 'obscene' });
   });
 });
 

@@ -20,6 +20,12 @@ export type ContentValidationConfig = {
   allowDoublePunctuation?: boolean;
   allowTrailingPunctuation?: boolean;
   checkObscenity?: boolean;
+  /**
+   * Words that name a subject people need to be able to write about, and are
+   * only refused in names (usernames, ring names). Set for prose like post
+   * titles.
+   */
+  allowSubjectWords?: boolean;
   reservedWords?: string[];
   customNormalizer?: (input: string) => string;
   contextName?: string; // For better error messages
@@ -38,7 +44,10 @@ const OBSCENE_PATTERNS: RegExp[] = [
   /r[e3][t7][a4@]rded/i,
   // F-word variations - catches embedded
   /f[uµ][cçk]+/i,
-  // Rape variations - simple pattern (accepting some false positives for security)
+];
+
+// Refused in names, but allowed in prose: people write about surviving it.
+const NAME_ONLY_PATTERNS: RegExp[] = [
   /r[a4@]p[e3]/i,
 ];
 
@@ -64,9 +73,10 @@ const INNOCENT_WORDS: string[] = [
 ];
 const INNOCENT_WORDS_RX = new RegExp(INNOCENT_WORDS.join("|"), "g");
 
-function containsObscenity(text: string): boolean {
+function containsObscenity(text: string, allowSubjectWords = false): boolean {
   const normalized = text.toLowerCase().replace(INNOCENT_WORDS_RX, " ");
-  return OBSCENE_PATTERNS.some((rx) => rx.test(normalized));
+  const patterns = allowSubjectWords ? OBSCENE_PATTERNS : [...OBSCENE_PATTERNS, ...NAME_ONLY_PATTERNS];
+  return patterns.some((rx) => rx.test(normalized));
 }
 
 function normalizeForReserveCompare(text: string): string {
@@ -158,7 +168,7 @@ export function validateContent(raw: string, config: ContentValidationConfig): V
   }
 
   // Obscenity check
-  if (config.checkObscenity !== false && containsObscenity(content)) {
+  if (config.checkObscenity !== false && containsObscenity(content, config.allowSubjectWords)) {
     return { 
       ok: false, 
       code: "obscene", 

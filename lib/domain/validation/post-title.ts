@@ -22,6 +22,7 @@ export function validatePostTitle(raw: string): ValidationResult {
     allowDoublePunctuation: true, // Allow punctuation in titles
     allowTrailingPunctuation: true, // Allow trailing punctuation in titles
     checkObscenity: true,
+    allowSubjectWords: true,
     reservedWords: FLAGGED_TERMS,
     customNormalizer: normalizePostTitle,
     contextName: "Post title"
