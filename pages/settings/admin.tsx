@@ -5,7 +5,7 @@ import Layout from "@/components/ui/layout/Layout";
 import RetroCard from "@/components/ui/layout/RetroCard";
 import { useMe } from "@/hooks/useMe";
 import { PixelIcon } from "@/components/ui/PixelIcon";
-import { getSiteTemplate, SITE_TEMPLATE_INFO } from "@/lib/templates/site-css-templates";
+import SiteCSSSection from "@/components/features/admin/SiteCSSSection";
 import { getDefaultProfileTemplate, DEFAULT_PROFILE_TEMPLATE_INFO, type ProfileTemplateType } from "@/lib/templates/default-profile-templates";
 import ReportsSection from "@/components/features/admin/ReportsSection";
 import PostsSection from "@/components/features/admin/PostsSection";
@@ -362,13 +362,6 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
   const [showPageForm, setShowPageForm] = useState(false);
   const [savingPage, setSavingPage] = useState(false);
 
-  // Site CSS state
-  const [siteCSS, setSiteCSS] = useState("");
-  const [loadingCSS, setLoadingCSS] = useState(false);
-  const [savingCSS, setSavingCSS] = useState(false);
-  const [cssMessage, setCSSMessage] = useState<string | null>(null);
-  const [showCSSTemplates, setShowCSSTemplates] = useState(false);
-
   // Default homepage state
   const [disableDefaultHome, setDisableDefaultHome] = useState(false);
   const [loadingHomeSetting, setLoadingHomeSetting] = useState(false);
@@ -422,7 +415,6 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
       loadUsers();
       loadSiteConfig();
       loadCustomPages();
-      loadSiteCSS();
       loadHomeSetting();
       loadDefaultProfileCSS();
       loadPolicies();
@@ -694,125 +686,6 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
     } catch (error) {
       console.error("Failed to delete page:", error);
       alert("Failed to delete page");
-    }
-  }
-
-  async function loadSiteCSS() {
-    setLoadingCSS(true);
-    try {
-      const res = await fetch("/api/admin/site-css");
-      if (res.ok) {
-        const data = await res.json();
-        setSiteCSS(data.css);
-      }
-    } catch (error) {
-      console.error("Failed to load site CSS:", error);
-      setCSSMessage("Failed to load site CSS");
-    } finally {
-      setLoadingCSS(false);
-    }
-  }
-
-  async function saveSiteCSS() {
-    setSavingCSS(true);
-    setCSSMessage(null);
-    try {
-      const res = await csrfFetch("/api/admin/site-css", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ css: siteCSS }),
-      });
-
-      if (res.ok) {
-        setCSSMessage("Site CSS saved successfully! Refreshing...");
-        // Auto-refresh the page to show the new styles immediately
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
-      } else {
-        const error = await res.json();
-        setCSSMessage(`Error: ${error.error || "Failed to save CSS"}`);
-        setSavingCSS(false);
-      }
-    } catch (error) {
-      console.error("Failed to save site CSS:", error);
-      setCSSMessage("Error: Failed to save site CSS");
-      setSavingCSS(false);
-    }
-    // Note: Don't set setSavingCSS(false) on success since we're refreshing
-  }
-
-  async function handleSiteTemplateSelect(type: 'default' | 'minimal' | 'dark' | 'colorful' | 'clear') {
-    let newCSS = '';
-    if (type !== 'clear') {
-      newCSS = getSiteTemplate(type);
-    }
-
-    setSiteCSS(newCSS);
-    setShowCSSTemplates(false);
-
-    // Auto-save the template and refresh
-    setSavingCSS(true);
-    setCSSMessage("Applying template...");
-
-    try {
-      const res = await csrfFetch("/api/admin/site-css", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ css: newCSS }),
-      });
-
-      if (res.ok) {
-        setCSSMessage("Template applied successfully! Refreshing...");
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
-      } else {
-        const error = await res.json();
-        setCSSMessage(`Error: ${error.error || "Failed to apply template"}`);
-        setSavingCSS(false);
-      }
-    } catch (error) {
-      console.error("Failed to apply template:", error);
-      setCSSMessage("Error: Failed to apply template");
-      setSavingCSS(false);
-    }
-  }
-
-  async function handleRestoreSiteDefault() {
-    const confirmed = window.confirm(
-      'This will replace your current CSS with the default template and refresh the page. Are you sure?'
-    );
-    if (confirmed) {
-      const defaultCSS = getSiteTemplate('default');
-      setSiteCSS(defaultCSS);
-
-      // Auto-save and refresh
-      setSavingCSS(true);
-      setCSSMessage("Restoring default template...");
-
-      try {
-        const res = await csrfFetch("/api/admin/site-css", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ css: defaultCSS }),
-        });
-
-        if (res.ok) {
-          setCSSMessage("Default template restored! Refreshing...");
-          setTimeout(() => {
-            window.location.reload();
-          }, 1000);
-        } else {
-          const error = await res.json();
-          setCSSMessage(`Error: ${error.error || "Failed to restore default"}`);
-          setSavingCSS(false);
-        }
-      } catch (error) {
-        console.error("Failed to restore default:", error);
-        setCSSMessage("Error: Failed to restore default");
-        setSavingCSS(false);
-      }
     }
   }
 
@@ -1904,105 +1777,7 @@ We collect information you provide when creating an account..."
 
         {/* APPEARANCE & STYLING */}
         <CollapsibleSection title="Appearance & Styling" defaultOpen={false} icon="paint-bucket">
-          <div className="border border-gray-300 rounded p-4 bg-gray-50">
-            <h3 className="font-bold mb-3 flex items-center gap-2">
-              <PixelIcon name="paint-bucket" /> Site-wide CSS
-            </h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Add custom CSS that will be applied across the entire site. Use this to customize the look and feel beyond the built-in themes.
-            </p>
-
-            {/* Header with controls */}
-            <div className="flex items-center justify-between">
-              <label className="block text-sm font-medium">
-                <PixelIcon name="paint-bucket" className="inline-block align-middle" /> Site CSS Editor
-              </label>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setShowCSSTemplates(!showCSSTemplates)}
-                  className="px-3 py-1 text-xs border border-black bg-blue-200 hover:bg-blue-100 rounded shadow-[1px_1px_0_#000] transition-all"
-                >
-                  <PixelIcon name="script" className="inline-block align-middle" /> Templates
-                </button>
-                <button
-                  onClick={handleRestoreSiteDefault}
-                  disabled={savingCSS}
-                  className="px-3 py-1 text-xs border border-black bg-yellow-200 hover:bg-yellow-100 rounded shadow-[1px_1px_0_#000] transition-all disabled:opacity-50"
-                >
-                  <PixelIcon name="reload" className="inline-block align-middle" /> Restore Default
-                </button>
-              </div>
-            </div>
-
-            {/* Templates dropdown */}
-            {showCSSTemplates && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
-                <h3 className="text-sm font-medium">Choose a starting template:</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                  {Object.entries(SITE_TEMPLATE_INFO).map(([key, info]) => (
-                    <button
-                      key={key}
-                      onClick={() => handleSiteTemplateSelect(key as any)}
-                      className="p-3 text-xs border border-gray-300 bg-white hover:bg-gray-50 rounded transition-all text-left"
-                    >
-                      <div className="font-semibold text-gray-800">{info.name}</div>
-                      <div className="text-gray-600 mt-1">{info.description}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {loadingCSS ? (
-              <div>Loading CSS...</div>
-            ) : (
-              <div className="space-y-3">
-                <div className="relative">
-                  <textarea
-                    className="w-full border border-black p-3 bg-white text-sm font-mono"
-                    rows={12}
-                    value={siteCSS}
-                    onChange={(e) => setSiteCSS(e.target.value)}
-                    placeholder="/* Add your custom CSS here or use a template above! */
-.custom-header {
-  background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
-}
-
-.retro-button:hover {
-  transform: translateY(-1px);
-}"
-                  />
-                  {/* Character count */}
-                  <div className="absolute bottom-2 right-2 text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                    {siteCSS.length} characters
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={saveSiteCSS}
-                    disabled={savingCSS}
-                    className="border border-black px-4 py-2 bg-green-200 hover:bg-green-100 shadow-[2px_2px_0_#000] disabled:opacity-50"
-                  >
-                    {savingCSS ? "Saving..." : "Save CSS"}
-                  </button>
-                  {cssMessage && (
-                    <span className="text-sm">{cssMessage}</span>
-                  )}
-                </div>
-
-                <div className="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded p-3">
-                  <div className="flex items-start gap-2">
-                    <PixelIcon name="lightbulb" />
-                    <div>
-                      <strong>Preview your changes:</strong> Save your CSS and refresh any page to see changes applied site-wide.
-                      Changes take effect immediately after saving.
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+          <SiteCSSSection />
 
           {/* Default Profile CSS */}
           <div className="border border-gray-300 rounded p-4 bg-gray-50">

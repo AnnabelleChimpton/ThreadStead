@@ -1,6 +1,8 @@
 /* Bundled default site theme.
-   Served when SiteConfig "site_custom_css" has no row. Admin → Site CSS
-   overrides it; saving an empty value there turns site CSS off.
+   Served when SiteConfig "site_custom_css" has no row. Saving CSS in
+   Admin → Site CSS overrides it; "Use the default theme" there deletes the
+   row to come back here. A saved empty value means no site CSS at all, and
+   the admin UI asks before saving one.
    Read at runtime by lib/utils/css/site-css-server.ts (not compiled into
    the Tailwind bundle), so it is delivered exactly like the admin CSS. */
 

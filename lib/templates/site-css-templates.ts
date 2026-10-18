@@ -32,23 +32,23 @@ export function getSiteTemplate(type: 'default' | 'minimal' | 'dark' | 'colorful
 // Template metadata for UI display
 export const SITE_TEMPLATE_INFO = {
   default: {
-    name: '📋 Default',
-    description: 'Clean baseline with examples'
+    name: 'Starter',
+    description: 'A small baseline with examples'
   },
   minimal: {
-    name: '✨ Minimal',
+    name: 'Minimal',
     description: 'Subtle enhancements only'
   },
   dark: {
-    name: '🌙 Dark Mode',
+    name: 'Dark',
     description: 'Modern dark theme'
   },
   colorful: {
-    name: '🌈 Vibrant',
+    name: 'Vibrant',
     description: 'Colorful gradient theme'
   },
   clear: {
-    name: '🗑️ Clear All',
-    description: 'Start from scratch'
+    name: 'Empty',
+    description: 'No site CSS. Turns the theme off'
   }
 } as const;

@@ -25,7 +25,8 @@ export function getDefaultSiteCSS(): string {
 /**
  * Site CSS as served to pages: the admin's saved CSS, or the bundled
  * default when nothing has been saved. An explicitly saved empty value
- * (Admin → Site CSS → Clear) means no site CSS.
+ * (Admin → Site CSS → "Turn the theme off") means no site CSS.
+ * DELETE /api/admin/site-css removes the row to go back to the default.
  */
 export async function getSiteCSSWithSource(): Promise<{ css: string; isDefault: boolean }> {
   if (cached && Date.now() - cached.at < CACHE_TTL_MS) {

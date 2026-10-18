@@ -5,7 +5,7 @@ import { getDefaultSiteCSS, invalidateSiteCSSCache } from "@/lib/utils/css/site-
 const SITE_CSS_KEY = "site_custom_css";
 
 export default apiHandler(
-  { methods: ["GET", "PUT"], auth: "admin", rateLimit: "admin" },
+  { methods: ["GET", "PUT", "DELETE"], auth: "admin", rateLimit: "admin" },
   async (req, res) => {
     if (req.method === "GET") {
       try {
@@ -42,11 +42,23 @@ export default apiHandler(
         invalidateSiteCSSCache();
         res.json({
           success: true,
-          css: config.value
+          css: config.value,
+          isDefault: false
         });
       } catch (error) {
         console.error("Error updating site CSS:", error);
         res.status(500).json({ error: "Failed to update site CSS" });
+      }
+    } else if (req.method === "DELETE") {
+      // Back to the bundled default theme. deleteMany so it's a no-op
+      // (not a P2025) when there's no saved row.
+      try {
+        await db.siteConfig.deleteMany({ where: { key: SITE_CSS_KEY } });
+        invalidateSiteCSSCache();
+        res.json({ success: true, css: getDefaultSiteCSS(), isDefault: true });
+      } catch (error) {
+        console.error("Error resetting site CSS:", error);
+        res.status(500).json({ error: "Failed to reset site CSS" });
       }
     }
   }
