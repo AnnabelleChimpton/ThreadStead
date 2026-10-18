@@ -364,7 +364,8 @@ describe('ranking', () => {
     expect(Object.keys(res.body).sort()).toEqual(['errors', 'nextCursor', 'partial', 'query', 'results', 'total', 'type'])
     // As sent over the wire (an undefined description is dropped).
     const [first] = JSON.parse(JSON.stringify(res.body.results))
-    expect(Object.keys(first).sort()).toEqual(['id', 'meta', 'relevanceScore', 'title', 'type', 'url'])
+    // `post` is the card's own fields (Phase 2); `meta` stays for older callers.
+    expect(Object.keys(first).sort()).toEqual(['id', 'meta', 'post', 'relevanceScore', 'title', 'type', 'url'])
     expect(res.body.results[0].url).toBe('/resident/author/post/old_exact')
   })
 })

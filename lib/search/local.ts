@@ -260,8 +260,66 @@ export async function pageCandidates(query: string, take = CANDIDATES_PER_TYPE) 
   return toSignals('page', rows)
 }
 
+// ------------------------------------------------------------------ homes --
+// Pixel homes by their own words: title, sign board and description. Owner
+// names are left to People, which shows the house too. No stored tsvector:
+// one row per resident, three short fields, so it's computed per query (add a
+// trigger-maintained column like Post's if this table ever gets big).
+
+export async function homeCandidates(query: string, viewer: Viewer, take = CANDIDATES_PER_TYPE) {
+  const { fuzzy, similarTo, excluded } = splitQuery(query)
+  const tsv = Prisma.sql`(
+    setweight(to_tsvector('english', public.immutable_unaccent(COALESCE(h."houseTitle", ''))), 'A') ||
+    setweight(to_tsvector('english', public.immutable_unaccent(COALESCE(h."houseBoardText", ''))), 'B') ||
+    setweight(to_tsvector('english', public.immutable_unaccent(COALESCE(h."houseDescription", ''))), 'C')
+  )`
+  const rows = await db.$queryRaw<RawRow[]>`
+    WITH input AS (
+      SELECT websearch_to_tsquery('english', public.immutable_unaccent(${query})) AS tsq,
+             lower(public.immutable_unaccent(${query})) AS raw,
+             lower(public.immutable_unaccent(${fuzzy})) AS fuzzy,
+             lower(public.immutable_unaccent(${similarTo})) AS sim
+    ),
+    matched AS (
+      SELECT h."userId" AS id, h."updatedAt" AS "activityAt",
+             COALESCE(ts_rank_cd(${tsv}, input.tsq), 0)::float8 AS "textRank",
+             GREATEST(
+               COALESCE(word_similarity(input.sim, h."houseTitle"), 0),
+               COALESCE(word_similarity(input.sim, h."houseBoardText"), 0)
+             )::float8 AS trigram,
+             COALESCE(lower(public.immutable_unaccent(h."houseTitle")) = input.raw, false) AS exact
+      FROM "UserHomeConfig" h
+      CROSS JOIN input
+      LEFT JOIN "Profile" pr ON pr."userId" = h."userId"
+      WHERE COALESCE(h."houseTitle", h."houseBoardText", h."houseDescription") IS NOT NULL
+        AND (${tsv} @@ input.tsq
+             OR (input.fuzzy <> '' AND (input.fuzzy <% h."houseTitle" OR input.fuzzy <% h."houseBoardText")))
+        ${excluding(tsv, 'english', excluded)}
+        AND (pr.id IS NULL OR ${visibleTo(viewer, Prisma.sql`pr.visibility`, Prisma.sql`h."userId"`)})
+        AND ${notBlockedEitherWay(viewer, Prisma.sql`h."userId"`)}
+        AND EXISTS (SELECT 1 FROM "Handle" hd WHERE hd."userId" = h."userId")
+    )
+    SELECT * FROM matched ORDER BY ${PRE_ORDER}, id LIMIT ${take}
+  `
+  return toSignals('home', rows)
+}
+
 // -------------------------------------------------------------- hydration --
 // Display fields for the page of results only.
+
+/** What a house thumbnail needs (components/pixel-homes/HouseSVG). */
+export const HOUSE_SELECT = {
+  houseTemplate: true,
+  palette: true,
+  wallColor: true,
+  roofColor: true,
+  trimColor: true,
+  windowColor: true,
+  detailColor: true,
+  windowStyle: true,
+  doorStyle: true,
+  roofTrim: true,
+} as const
 
 export function hydratePosts(ids: string[]) {
   if (ids.length === 0) return Promise.resolve([])
@@ -281,6 +339,11 @@ export function hydratePosts(ids: string[]) {
         },
       },
       _count: { select: { comments: { where: { status: 'visible' } } } },
+      threadRings: {
+        take: 1,
+        orderBy: { addedAt: 'asc' },
+        select: { threadRing: { select: { name: true, slug: true } } },
+      },
     },
   })
 }
@@ -292,7 +355,8 @@ export function hydrateUsers(ids: string[]) {
     select: {
       id: true,
       handles: { take: 1, orderBy: { handle: 'asc' }, select: { handle: true } },
-      profile: { select: { displayName: true, bio: true } },
+      profile: { select: { displayName: true, bio: true, avatarThumbnailUrl: true, avatarUrl: true } },
+      homeConfig: { select: HOUSE_SELECT },
       _count: { select: { posts: { where: { visibility: 'public' } }, followers: true } },
     },
   })
@@ -303,5 +367,25 @@ export function hydratePages(ids: string[]) {
   return db.customPage.findMany({
     where: { id: { in: ids }, published: true },
     select: { id: true, slug: true, title: true, content: true },
+  })
+}
+
+export function hydrateHomes(ids: string[]) {
+  if (ids.length === 0) return Promise.resolve([])
+  return db.userHomeConfig.findMany({
+    where: { userId: { in: ids } },
+    select: {
+      ...HOUSE_SELECT,
+      userId: true,
+      houseTitle: true,
+      houseBoardText: true,
+      houseDescription: true,
+      user: {
+        select: {
+          handles: { take: 1, orderBy: { handle: 'asc' }, select: { handle: true } },
+          profile: { select: { displayName: true } },
+        },
+      },
+    },
   })
 }

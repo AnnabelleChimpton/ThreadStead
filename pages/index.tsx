@@ -13,8 +13,7 @@ import { useState, useEffect } from "react";
 import EnhancedHouseCanvas from "../components/pixel-homes/EnhancedHouseCanvas";
 import { HouseTemplate, ColorPalette, HouseCustomizations, AtmosphereSettings } from "../components/pixel-homes/HouseSVG";
 import { DecorationItem } from "@/lib/pixel-homes/decoration-data";
-import DiscoverPageSearch from "../components/features/search/DiscoverPageSearch";
-import { useRouter } from "next/router";
+import SearchBox from "@/components/features/search/SearchBox";
 import { contentMetadataGenerator } from "@/lib/utils/metadata/content-metadata";
 import VisitorPixelHome from "@/components/home/VisitorPixelHome";
 import { getOgImageUrl } from "@/lib/utils/og-image-url";
@@ -252,39 +251,9 @@ function UserPixelHome({ user }: { user: any }) {
 }
 
 function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImageUrl, userCount, firstSteps, foundersNote }: { siteConfig: SiteConfig; user?: any; customLandingPageSlug?: string; ogImageUrl: string; userCount?: number; firstSteps?: FirstSteps | null; foundersNote?: string | null }) {
-  const router = useRouter();
 
   // Generate metadata for personalized homepage
   const homepageMetadata = contentMetadataGenerator.generateHomepageMetadata(siteConfig);
-
-  // Search state for enhanced search
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchTab, setSearchTab] = useState<'all' | 'indie' | 'site' | 'web'>('all');
-  const [searchType, setSearchType] = useState<'all' | 'threadrings' | 'users' | 'posts'>('all');
-  const [indieOnly, setIndieOnly] = useState(false);
-  const [privacyOnly, setPrivacyOnly] = useState(false);
-  const [noTrackers, setNoTrackers] = useState(false);
-  const [includeUnvalidated, setIncludeUnvalidated] = useState(false);
-  const [searchLoading, setSearchLoading] = useState(false);
-
-  // Handle search
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!searchQuery.trim()) return;
-
-    // Navigate to discover-enhanced with search params
-    const params = new URLSearchParams({
-      q: searchQuery,
-      tab: searchTab,
-      type: searchType,
-      ...(indieOnly && { indie: 'true' }),
-      ...(privacyOnly && { privacy: 'true' }),
-      ...(noTrackers && { noTrackers: 'true' }),
-      ...(includeUnvalidated && { includeUnvalidated: 'true' })
-    });
-
-    router.push(`/discover/search?${params.toString()}`);
-  };
 
   // Load widgets in specified order
   const { widgets: allWidgets } = useDefaultWidgets(user);
@@ -379,7 +348,7 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
             </nav>
           )}
 
-          {/* Enhanced Global Search Bar */}
+          {/* Search: a plain box that goes to /search */}
           {!user && (
             <div className="text-center mb-3">
               <p className="text-xs sm:text-sm text-nb-ink">
@@ -387,26 +356,10 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
               </p>
             </div>
           )}
-          <DiscoverPageSearch
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            searchTab={searchTab}
-            setSearchTab={setSearchTab}
-            searchType={searchType}
-            setSearchType={setSearchType}
-            indieOnly={indieOnly}
-            setIndieOnly={setIndieOnly}
-            privacyOnly={privacyOnly}
-            setPrivacyOnly={setPrivacyOnly}
-            noTrackers={noTrackers}
-            setNoTrackers={setNoTrackers}
-            includeUnvalidated={includeUnvalidated}
-            setIncludeUnvalidated={setIncludeUnvalidated}
-            onSearch={handleSearch}
-            loading={searchLoading}
-            extSearchEnabled={true}
-            showCommunityHelper={false}
-            className="mb-6 sm:mb-8"
+          <SearchBox
+            size="lg"
+            label="Search ThreadStead"
+            className="max-w-3xl mx-auto mb-6 sm:mb-8"
           />
 
           {/* Community Ticker - Typewriter Style */}

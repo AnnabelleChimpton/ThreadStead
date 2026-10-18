@@ -12,7 +12,7 @@
  * from click logs later, not by guessing more terms in.
  */
 
-export type SearchResultType = 'threadring' | 'user' | 'post' | 'page'
+export type SearchResultType = 'threadring' | 'user' | 'post' | 'page' | 'home'
 
 export interface RelevanceSignals {
   type: SearchResultType
