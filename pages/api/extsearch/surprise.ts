@@ -6,7 +6,7 @@
 
 import { apiHandler } from '@/lib/api/handler';
 import { db } from '@/lib/config/database/connection';
-import { runExtSearch } from '@/lib/extsearch/registry';
+import { cachedExtSearch } from '@/lib/extsearch/cache';
 
 // Fallback curated list (used only if database is empty)
 const FALLBACK_GEMS = [
@@ -133,7 +133,8 @@ const DISCOVERY_QUERIES = [
 ];
 
 export default apiHandler(
-  { methods: ['GET'], auth: 'none' },
+  // Its search fallback spends the same paid quota as /api/extsearch.
+  { methods: ['GET'], auth: 'none', rateLimit: 'search' },
   async (req, res) => {
     try {
       const mode = req.query.mode as string || 'mixed'; // 'search', 'curated', 'community', or 'mixed'
@@ -290,7 +291,7 @@ export default apiHandler(
         const randomQuery = DISCOVERY_QUERIES[Math.floor(Math.random() * DISCOVERY_QUERIES.length)];
 
         // Run a search with the random query
-        const searchResults = await runExtSearch({
+        const searchResults = await cachedExtSearch({
           q: randomQuery,
           page: Math.floor(Math.random() * 3), // Random page for variety
           perPage: 20

@@ -2,25 +2,49 @@ import { apiHandler } from "@/lib/api/handler";
 import { db } from "@/lib/config/database/connection";
 
 import { SITE_NAME } from "@/lib/config/site/constants";
+import { escapeLike, parseIntParam } from "@/lib/search/query";
 
+const SORTS = ["recent", "alphabetical", "posts", "random"];
 
+function shuffle<T>(items: T[]): T[] {
+  for (let i = items.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [items[i], items[j]] = [items[j], items[i]];
+  }
+  return items;
+}
 
 export default apiHandler(
   { methods: ["GET"], auth: "none" },
   async (req, res) => {
-    try {
-      const limit = Math.min(parseInt(String(req.query.limit || "20")), 50);
-      const offset = parseInt(String(req.query.offset || "0"));
-      const search = String(req.query.search || "").trim();
-      const sortBy = String(req.query.sortBy || "recent"); // recent, alphabetical, posts
+    // Bad numbers are a 400 (thrown ApiError), not NaN → 500 or a negative skip.
+    const limit = parseIntParam(req.query.limit, "limit", { fallback: 20, min: 1, max: 50 });
+    const offset = parseIntParam(req.query.offset, "offset", { fallback: 0, min: 0 });
+    const sortBy = String(req.query.sortBy || "recent");
+    if (!SORTS.includes(sortBy)) {
+      return res.status(400).json({ error: `Invalid sortBy "${sortBy}" — expected one of: ${SORTS.join(", ")}` });
+    }
 
-      // Build where clause for search
+    try {
+      // Prisma sends `contains` as ILIKE without escaping: `%` listed everyone.
+      const search = escapeLike(String(req.query.search || "").trim());
+
+      // Profiles that aren't public 403 on view, so they don't belong in a
+      // public directory (with their bio). No profile row means public.
       const whereClause: any = {
         handles: {
           some: {
             host: SITE_NAME
           }
-        }
+        },
+        AND: [
+          {
+            OR: [
+              { profile: { is: null } },
+              { profile: { is: { visibility: "public" } } },
+            ],
+          },
+        ],
       };
 
       if (search) {
@@ -72,8 +96,16 @@ export default apiHandler(
         };
       }
 
+      // sortBy=random used to fall through to "recent". Pick `limit` random
+      // ids from the matching set (a few hundred rows of ids — cheap).
+      let randomIds: string[] | null = null;
+      if (sortBy === "random") {
+        const ids = await db.user.findMany({ where: whereClause, select: { id: true } });
+        randomIds = shuffle(ids.map((u) => u.id)).slice(0, limit);
+      }
+
       const users = await db.user.findMany({
-        where: whereClause,
+        where: randomIds ? { id: { in: randomIds } } : whereClause,
         include: {
           handles: {
             where: { host: SITE_NAME },
@@ -99,9 +131,7 @@ export default apiHandler(
             }
           }
         },
-        orderBy,
-        take: limit,
-        skip: offset
+        ...(randomIds ? {} : { orderBy, take: limit, skip: offset })
       });
 
       // Transform and filter users who have local handles
@@ -128,6 +158,11 @@ export default apiHandler(
         });
       }
 
+      if (randomIds) {
+        const order = new Map(randomIds.map((id, i) => [id, i]));
+        transformedUsers.sort((a, b) => order.get(a.id)! - order.get(b.id)!);
+      }
+
       // Get total count for pagination
       const totalUsers = await db.user.count({
         where: whereClause
@@ -135,7 +170,7 @@ export default apiHandler(
 
       return res.json({
         users: transformedUsers,
-        hasMore: offset + transformedUsers.length < totalUsers,
+        hasMore: randomIds ? false : offset + transformedUsers.length < totalUsers,
         total: totalUsers
       });
 

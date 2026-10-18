@@ -1,10 +1,12 @@
 import { db } from "@/lib/config/database/connection";
 import { apiHandler } from "@/lib/api/handler";
-import { SITE_NAME } from "@/lib/config/site/constants";
 import { getThreadRingSystem } from "@/lib/api/ringhub/ringhub-middleware";
-import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
+import { getPublicRingHubClient } from "@/lib/api/ringhub/ringhub-client";
 import { createAuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
+import { getUserBlockedIds, addBlockFiltersToWhere } from "@/lib/domain/users/blocks";
 import { rankSearchResults } from "@/lib/search/relevance";
+import { escapeLike, parseIntParam } from "@/lib/search/query";
+import { buildExcerpt } from "@/lib/search/excerpt";
 
 interface SearchResult {
   type: 'threadring' | 'user' | 'post';
@@ -13,6 +15,21 @@ interface SearchResult {
   description?: string;
   url: string;
   meta?: string;
+  /** Extra names the ranker treats as the title (a user's handle). Not sent. */
+  keys?: string[];
+}
+
+/**
+ * Each source is read newest-first, so taking only `limit` rows per source
+ * dropped exact matches that were older than the newest `limit` substring
+ * hits ("love", "home" on prod). Read a wider candidate pool, plus a separate
+ * exact-match query, and let the ranker pick.
+ */
+const CANDIDATES_PER_SOURCE = 100;
+
+function dedupeById<T extends { id: string }>(rows: T[]): T[] {
+  const seen = new Set<string>();
+  return rows.filter((row) => (seen.has(row.id) ? false : (seen.add(row.id), true)));
 }
 
 export default apiHandler(
@@ -25,10 +42,12 @@ export default apiHandler(
       return res.status(404).json({ error: "ThreadRing features not available" });
     }
 
+    // Bad numbers are a 400 (thrown ApiError), not a NaN that 500s.
+    const limit = parseIntParam(req.query.limit, "limit", { fallback: 20, min: 1, max: 50 });
+
     try {
       const query = String(req.query.q || "").trim();
       const type = String(req.query.type || "all");
-      const limit = Math.min(parseInt(String(req.query.limit || "20")), 50);
 
       // Unknown types used to silently return [] (e.g. type=threadring,
       // singular) — fail loudly instead.
@@ -43,6 +62,13 @@ export default apiHandler(
         return res.json({ results: [] });
       }
 
+      // Prisma sends `contains` AND insensitive `equals` as ILIKE without
+      // escaping, so `%` used to match every row.
+      const pattern = escapeLike(query);
+      const { blockedUserIds, blockedThreadRingIds } = viewer
+        ? await getUserBlockedIds(viewer.id)
+        : { blockedUserIds: [] as string[], blockedThreadRingIds: [] as string[] };
+
       const results: SearchResult[] = [];
       // Per-source failures are REPORTED, not swallowed: the old code caught
       // Ring Hub errors silently, so ring search read as "no results" for
@@ -52,16 +78,12 @@ export default apiHandler(
       // Search ThreadRings
       if (type === 'all' || type === 'threadrings') {
         if (system === 'ringhub') {
-          // Use Ring Hub for ThreadRing search
-          let ringHubClient;
-          if (viewer) {
-            ringHubClient = createAuthenticatedRingHubClient(viewer.id);
-          } else {
-            ringHubClient = getRingHubClient();
-            if (!ringHubClient) {
-              console.warn("Ring Hub client not configured, skipping ThreadRing search");
-            }
-          }
+          // Signed-in viewers get a user-signed client; anonymous ones the
+          // UNSIGNED public client (signing as the instance DID gains nothing
+          // here and fails every call when the hub can't resolve that key).
+          const ringHubClient = viewer
+            ? createAuthenticatedRingHubClient(viewer.id)
+            : getPublicRingHubClient();
 
           if (ringHubClient) {
             try {
@@ -72,14 +94,28 @@ export default apiHandler(
                 order: 'desc'
               });
 
-              const threadRingResults = ringResult.rings.map((descriptor: any) => ({
-                type: 'threadring' as const,
-                id: descriptor.id,
-                title: descriptor.name,
-                description: descriptor.description || undefined,
-                url: `/rings/${descriptor.slug}`,
-                meta: `${descriptor.memberCount || 0} members • ${descriptor.postCount || 0} posts`
-              }));
+              // UserBlock points at the local ThreadRing row; hub descriptors
+              // carry the hub's id, so match blocked rings by slug.
+              const blockedSlugs = new Set(
+                blockedThreadRingIds.length > 0
+                  ? (await db.threadRing.findMany({
+                      where: { id: { in: blockedThreadRingIds } },
+                      select: { slug: true },
+                    })).map((ring) => ring.slug)
+                  : []
+              );
+
+              const threadRingResults = ringResult.rings
+                .filter((descriptor: any) => !blockedSlugs.has(descriptor.slug))
+                .map((descriptor: any) => ({
+                  type: 'threadring' as const,
+                  id: descriptor.id,
+                  title: descriptor.name,
+                  description: descriptor.description || undefined,
+                  url: `/tr/${descriptor.slug}`,
+                  meta: `${descriptor.memberCount || 0} members • ${descriptor.postCount || 0} posts`,
+                  keys: [descriptor.slug],
+                }));
 
               results.push(...threadRingResults);
             } catch (error) {
@@ -93,6 +129,7 @@ export default apiHandler(
               sourceErrors.push({ source: "threadrings", message });
             }
           } else {
+            console.warn("Ring Hub client not configured, skipping ThreadRing search");
             sourceErrors.push({ source: "threadrings", message: "Ring Hub client not configured" });
           }
         } else {
@@ -100,31 +137,13 @@ export default apiHandler(
           const threadRings = await db.threadRing.findMany({
             where: {
               AND: [
-                {
-                  visibility: {
-                    in: ["public", "unlisted"]
-                  }
-                },
+                { visibility: { in: ["public", "unlisted"] } },
+                ...(blockedThreadRingIds.length > 0 ? [{ id: { notIn: blockedThreadRingIds } }] : []),
                 {
                   OR: [
-                    {
-                      name: {
-                        contains: query,
-                        mode: "insensitive"
-                      }
-                    },
-                    {
-                      description: {
-                        contains: query,
-                        mode: "insensitive"
-                      }
-                    },
-                    {
-                      slug: {
-                        contains: query,
-                        mode: "insensitive"
-                      }
-                    }
+                    { name: { contains: pattern, mode: "insensitive" } },
+                    { description: { contains: pattern, mode: "insensitive" } },
+                    { slug: { contains: pattern, mode: "insensitive" } },
                   ]
                 }
               ]
@@ -142,7 +161,7 @@ export default apiHandler(
               { memberCount: "desc" },
               { postCount: "desc" }
             ],
-            take: limit
+            take: CANDIDATES_PER_SOURCE
           });
 
           results.push(...threadRings.map(ring => ({
@@ -150,75 +169,89 @@ export default apiHandler(
             id: ring.id,
             title: ring.name,
             description: ring.description || undefined,
-            url: `/rings/${ring.slug}`,
-            meta: `${ring.memberCount} members • ${ring.postCount} posts`
+            url: `/tr/${ring.slug}`,
+            meta: `${ring.memberCount} members • ${ring.postCount} posts`,
+            keys: [ring.slug],
           })));
         }
       }
 
       // Search Users
       if (type === 'all' || type === 'users') {
-        const users = await db.user.findMany({
-          where: {
-            OR: [
-              {
-                handles: {
-                  some: {
-                    handle: {
-                      contains: query,
-                      mode: "insensitive"
-                    }
-                  }
-                }
-              },
-              {
-                profile: {
-                  displayName: {
-                    contains: query,
-                    mode: "insensitive"
-                  }
-                }
-              },
-              {
-                profile: {
-                  bio: {
-                    contains: query,
-                    mode: "insensitive"
-                  }
-                }
-              }
-            ]
+        // Profiles that aren't public 403 on view — they mustn't show up here
+        // with their bio. No profile row means public (as on the profile page).
+        const visibleUser = {
+          OR: [
+            { profile: { is: null } },
+            { profile: { is: { visibility: "public" as const } } },
+            ...(viewer ? [{ id: viewer.id }] : []),
+          ],
+        };
+        const notBlocked = blockedUserIds.length > 0 ? [{ id: { notIn: blockedUserIds } }] : [];
+        const userInclude = {
+          handles: {
+            take: 1,
+            orderBy: { handle: "asc" as const }
           },
-          include: {
-            handles: {
-              take: 1,
-              orderBy: { handle: "asc" }
-            },
-            profile: {
-              select: {
-                displayName: true,
-                bio: true,
-                avatarUrl: true
-              }
-            },
-            _count: {
-              select: {
-                posts: {
-                  where: {
-                    visibility: "public"
-                  }
-                },
-                followers: true
-              }
+          profile: {
+            select: {
+              displayName: true,
+              bio: true,
+              avatarUrl: true
             }
           },
-          orderBy: [
-            { createdAt: "desc" }
-          ],
-          take: limit
-        });
+          _count: {
+            select: {
+              posts: {
+                where: {
+                  visibility: "public" as const
+                }
+              },
+              followers: true
+            }
+          }
+        };
 
-        const transformedUsers = users
+        const [exactUsers, candidateUsers] = await Promise.all([
+          db.user.findMany({
+            where: {
+              AND: [
+                visibleUser,
+                ...notBlocked,
+                {
+                  OR: [
+                    { handles: { some: { handle: { equals: pattern, mode: "insensitive" } } } },
+                    { profile: { is: { displayName: { equals: pattern, mode: "insensitive" } } } },
+                  ]
+                }
+              ]
+            },
+            include: userInclude,
+            take: limit
+          }),
+          db.user.findMany({
+            where: {
+              AND: [
+                visibleUser,
+                ...notBlocked,
+                {
+                  OR: [
+                    { handles: { some: { handle: { contains: pattern, mode: "insensitive" } } } },
+                    { profile: { is: { displayName: { contains: pattern, mode: "insensitive" } } } },
+                    { profile: { is: { bio: { contains: pattern, mode: "insensitive" } } } },
+                  ]
+                }
+              ]
+            },
+            include: userInclude,
+            orderBy: [
+              { createdAt: "desc" }
+            ],
+            take: CANDIDATES_PER_SOURCE
+          }),
+        ]);
+
+        const transformedUsers = dedupeById([...exactUsers, ...candidateUsers])
           .filter(user => user.handles.length > 0)
           .map(user => ({
             type: 'user' as const,
@@ -226,7 +259,8 @@ export default apiHandler(
             title: user.profile?.displayName || user.handles[0]?.handle || 'Unknown User',
             description: user.profile?.bio || undefined,
             url: `/resident/${user.handles[0]?.handle}`,
-            meta: `@${user.handles[0]?.handle} • ${user._count.posts} posts • ${user._count.followers} followers`
+            meta: `@${user.handles[0]?.handle} • ${user._count.posts} posts • ${user._count.followers} followers`,
+            keys: [user.handles[0].handle],
           }));
 
         results.push(...transformedUsers);
@@ -234,152 +268,83 @@ export default apiHandler(
 
       // Search Posts
       if (type === 'all' || type === 'posts') {
-        const posts = await db.post.findMany({
-          where: {
-            AND: [
-              {
-                visibility: "public"
+        // Only title, plain text and tags: matching bodyHtml/bodyMarkdown made
+        // "href" and "nbsp" hit every post with a link or a space.
+        const postWhere = (match: object) =>
+          addBlockFiltersToWhere(
+            { AND: [{ visibility: "public" }, match] },
+            blockedUserIds,
+            blockedThreadRingIds
+          );
+        const postInclude = {
+          author: {
+            include: {
+              handles: {
+                take: 1,
+                orderBy: { handle: "asc" as const }
               },
-              {
-                OR: [
-                  {
-                    title: {
-                      contains: query,
-                      mode: "insensitive"
-                    }
-                  },
-                  {
-                    bodyText: {
-                      contains: query,
-                      mode: "insensitive"
-                    }
-                  },
-                  {
-                    bodyMarkdown: {
-                      contains: query,
-                      mode: "insensitive"
-                    }
-                  },
-                  {
-                    bodyHtml: {
-                      contains: query,
-                      mode: "insensitive"
-                    }
-                  },
-                  {
-                    // Prisma's `has` is exact + case-sensitive on array
-                    // elements; cover the common casings since stored tags
-                    // aren't guaranteed normalized.
-                    tags: {
-                      hasSome: Array.from(new Set([query, query.toLowerCase(), query.toUpperCase()]))
-                    }
-                  }
-                ]
-              }
-            ]
-          },
-          include: {
-            author: {
-              include: {
-                handles: {
-                  take: 1,
-                  orderBy: { handle: "asc" }
-                },
-                profile: {
-                  select: {
-                    displayName: true,
-                    avatarUrl: true
-                  }
-                }
-              }
-            },
-            _count: {
-              select: {
-                comments: {
-                  where: {
-                    status: "visible"
-                  }
+              profile: {
+                select: {
+                  displayName: true,
+                  avatarUrl: true
                 }
               }
             }
           },
-          orderBy: {
-            createdAt: "desc"
-          },
-          take: limit
-        });
+          _count: {
+            select: {
+              comments: {
+                where: {
+                  status: "visible" as const
+                }
+              }
+            }
+          }
+        };
 
-        const transformedPosts = posts
+        const [exactPosts, candidatePosts] = await Promise.all([
+          db.post.findMany({
+            where: postWhere({ title: { equals: pattern, mode: "insensitive" } }),
+            include: postInclude,
+            orderBy: { createdAt: "desc" },
+            take: limit
+          }),
+          db.post.findMany({
+            where: postWhere({
+              OR: [
+                { title: { contains: pattern, mode: "insensitive" } },
+                { bodyText: { contains: pattern, mode: "insensitive" } },
+                {
+                  // Prisma's `has` is exact + case-sensitive on array
+                  // elements; cover the common casings since stored tags
+                  // aren't guaranteed normalized.
+                  tags: {
+                    hasSome: Array.from(new Set([query, query.toLowerCase(), query.toUpperCase()]))
+                  }
+                }
+              ]
+            }),
+            include: postInclude,
+            orderBy: { createdAt: "desc" },
+            take: CANDIDATES_PER_SOURCE
+          }),
+        ]);
+
+        const transformedPosts = dedupeById([...exactPosts, ...candidatePosts])
           .filter(post => post.author.handles.length > 0)
           .map(post => {
             const authorHandle = post.author.handles[0]?.handle;
             const authorName = post.author.profile?.displayName || authorHandle;
-
-            // Enhanced excerpt generation with context
-            const generateExcerpt = (post: any, query: string): string | undefined => {
-              // Combine all content fields, prioritizing bodyText
-              const contents = [
-                post.bodyText,
-                post.bodyMarkdown,
-                post.bodyHtml
-              ].filter(Boolean);
-
-              if (contents.length === 0) return undefined;
-
-              let bestContent = contents[0];
-
-              // Find the best content field that contains the query
-              for (const content of contents) {
-                if (content.toLowerCase().includes(query.toLowerCase())) {
-                  bestContent = content;
-                  break;
-                }
-              }
-
-              // Strip HTML tags if content is HTML
-              let cleanContent = bestContent;
-              if (post.bodyHtml && bestContent === post.bodyHtml) {
-                cleanContent = bestContent.replace(/<[^>]*>/g, '');
-              }
-
-              // Strip markdown formatting if content is markdown
-              if (post.bodyMarkdown && bestContent === post.bodyMarkdown) {
-                cleanContent = bestContent
-                  .replace(/#{1,6}\s+/g, '') // Remove headers
-                  .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold
-                  .replace(/\*(.*?)\*/g, '$1') // Remove italic
-                  .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Remove links, keep text
-                  .replace(/`([^`]+)`/g, '$1'); // Remove inline code
-              }
-
-              // Try to find context around the search term
-              const queryIndex = cleanContent.toLowerCase().indexOf(query.toLowerCase());
-              if (queryIndex !== -1 && cleanContent.length > 150) {
-                // Extract context around the match
-                const start = Math.max(0, queryIndex - 75);
-                const end = Math.min(cleanContent.length, queryIndex + query.length + 75);
-                let excerpt = cleanContent.substring(start, end);
-
-                // Add ellipsis if we truncated
-                if (start > 0) excerpt = '...' + excerpt;
-                if (end < cleanContent.length) excerpt = excerpt + '...';
-
-                return excerpt;
-              }
-
-              // Fallback to simple truncation
-              return cleanContent.length > 150
-                ? cleanContent.substring(0, 150) + '...'
-                : cleanContent;
-            };
-
+            // bodyText is the match field; fall back to the stored body for
+            // display only, cleaned of tags, entities and image remnants.
+            const source = post.bodyText || post.bodyMarkdown || post.bodyHtml || "";
             const timeAgo = new Date(post.createdAt).toLocaleDateString();
 
             return {
               type: 'post' as const,
               id: post.id,
               title: post.title || 'Untitled Post',
-              description: generateExcerpt(post, query) || undefined,
+              description: buildExcerpt(source, query),
               url: `/resident/${authorHandle}/post/${post.id}`,
               meta: `by ${authorName} • ${timeAgo} • ${post._count.comments} comments`
             };
@@ -391,7 +356,7 @@ export default apiHandler(
       // Rank by relevance (the old code SHUFFLED type=all results, burying
       // exact matches under keyword mentions). Exact title match first, then
       // prefix/word/substring, with a small type weight (ring > user > post).
-      const ranked = rankSearchResults(results, query, limit);
+      const ranked = rankSearchResults(results, query, limit).map(({ keys: _keys, ...result }) => result);
 
       return res.json({
         results: ranked,

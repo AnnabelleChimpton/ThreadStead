@@ -5,6 +5,7 @@
 
 import { db } from '@/lib/config/database/connection';
 import { runExtSearch } from '@/lib/extsearch/registry';
+import { runAutoValidation } from '@/lib/community-index/validation/auto-validate';
 import { SeedingFilter, type SiteEvaluation } from './quality-filter';
 import { selectDailyQueries, type SeedingQuery, SiteType } from './discovery-queries';
 import type { ExtSearchResultItem } from '@/lib/extsearch/types';
@@ -545,23 +546,13 @@ export class CommunityIndexSeeder {
    * Trigger Phase 2 auto-validation for pending sites
    */
   private async triggerAutoValidation(): Promise<void> {
+    // Direct call — the HTTP route is admin/CRAWLER_API_KEY only (it
+    // hard-deletes rows), so the old unauthenticated localhost fetch would 401.
     try {
-      const response = await fetch('http://localhost:3000/api/community-index/auto-validate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ force: false }),
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        console.log(`✅ Auto-validation completed: ${result.results.approved} approved, ${result.results.rejected} rejected, ${result.results.skipped} skipped`);
-      } else {
-        console.log(`❌ Auto-validation API failed: ${response.status}`);
-      }
+      const { results } = await runAutoValidation({ force: false });
+      console.log(`✅ Auto-validation completed: ${results.approved} approved, ${results.rejected} rejected, ${results.skipped} skipped`);
     } catch (error) {
-      console.log(`❌ Auto-validation request failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.log(`❌ Auto-validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 }

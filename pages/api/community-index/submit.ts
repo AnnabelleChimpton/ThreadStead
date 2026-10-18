@@ -7,6 +7,7 @@ import { db } from '@/lib/config/database/connection';
 import { SiteType } from '@/lib/community-index/seeding/discovery-queries';
 import { QualityAssessor } from '@/lib/crawler/quality-assessor';
 import { ContentExtractor } from '@/lib/crawler/content-extractor';
+import { assertPublicUrl, safeFetch, UnsafeUrlError } from '@/lib/utils/security/ssrf';
 
 const assessor = new QualityAssessor();
 const extractor = new ContentExtractor();
@@ -44,6 +45,17 @@ export default apiHandler(
           return res.status(400).json({ error: 'Invalid URL format' });
         }
 
+        // We fetch this URL right below and the crawler fetches it later:
+        // refuse localhost, private and link-local (cloud metadata) addresses.
+        try {
+          await assertPublicUrl(url);
+        } catch (error) {
+          if (error instanceof UnsafeUrlError) {
+            return res.status(400).json({ error: `That URL can't be indexed: ${error.message}` });
+          }
+          throw error;
+        }
+
         // Check for duplicates
         const existing = await db.indexedSite.findUnique({
           where: { url }
@@ -70,7 +82,7 @@ export default apiHandler(
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
 
-          const response = await fetch(url, {
+          const response = await safeFetch(url, {
             signal: controller.signal,
             headers: {
               'User-Agent': 'ThreadStead-QualityCheck/1.0'

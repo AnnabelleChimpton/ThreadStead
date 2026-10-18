@@ -4,6 +4,7 @@
  */
 
 import { db } from '@/lib/config/database/connection';
+import { runAutoValidation } from '@/lib/community-index/validation/auto-validate';
 
 async function main() {
   const force = process.argv.includes('--force');
@@ -12,27 +13,16 @@ async function main() {
   console.log(`Force mode: ${force ? 'ON' : 'OFF'}`);
 
   try {
-    const response = await fetch(`http://localhost:3000/api/community-index/auto-validate`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ force }),
-    });
+    // Direct call: the HTTP route is admin/CRAWLER_API_KEY only now, and
+    // this used to need the dev server running on :3000 anyway.
+    const result = await runAutoValidation({ force });
 
-    const result = await response.json();
-
-    if (result.success) {
-      console.log('\n✅ Auto-validation completed successfully!');
-      console.log(`📊 Results:`);
-      console.log(`   • Processed: ${result.processed} sites`);
-      console.log(`   • Approved: ${result.results.approved} sites`);
-      console.log(`   • Rejected: ${result.results.rejected} sites`);
-      console.log(`   • Skipped: ${result.results.skipped} sites`);
-    } else {
-      console.error('❌ Auto-validation failed:', result.error);
-      process.exit(1);
-    }
+    console.log('\n✅ Auto-validation completed successfully!');
+    console.log(`📊 Results:`);
+    console.log(`   • Processed: ${result.processed} sites`);
+    console.log(`   • Approved: ${result.results.approved} sites`);
+    console.log(`   • Rejected: ${result.results.rejected} sites`);
+    console.log(`   • Skipped: ${result.results.skipped} sites`);
   } catch (error) {
     console.error('❌ Script error:', error);
     process.exit(1);

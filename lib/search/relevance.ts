@@ -14,6 +14,8 @@ export interface ScorableResult {
   type: 'threadring' | 'user' | 'post'
   title: string
   description?: string
+  /** Other names that count as the title, e.g. a user's @handle. */
+  keys?: string[]
 }
 
 const TYPE_WEIGHT: Record<ScorableResult['type'], number> = {
@@ -26,19 +28,11 @@ export function scoreSearchResult(item: ScorableResult, rawQuery: string): numbe
   const query = rawQuery.trim().toLowerCase()
   if (!query) return 0
 
-  const title = (item.title || '').toLowerCase()
   const description = (item.description || '').toLowerCase()
   let score = TYPE_WEIGHT[item.type] ?? 0
 
-  if (title === query) {
-    score += 100
-  } else if (title.startsWith(query)) {
-    score += 60
-  } else if (new RegExp(`\\b${escapeRegExp(query)}`).test(title)) {
-    score += 40
-  } else if (title.includes(query)) {
-    score += 30
-  }
+  const names = [item.title, ...(item.keys ?? [])].map((n) => (n || '').toLowerCase())
+  score += Math.max(...names.map((name) => titleScore(name, query)))
 
   if (description.includes(query)) {
     score += 10
@@ -57,6 +51,14 @@ export function rankSearchResults<T extends ScorableResult>(
     .map((item) => ({ ...item, relevanceScore: scoreSearchResult(item, query) }))
     .sort((a, b) => b.relevanceScore - a.relevanceScore)
     .slice(0, limit)
+}
+
+function titleScore(title: string, query: string): number {
+  if (title === query) return 100
+  if (title.startsWith(query)) return 60
+  if (new RegExp(`\\b${escapeRegExp(query)}`).test(title)) return 40
+  if (title.includes(query)) return 30
+  return 0
 }
 
 function escapeRegExp(s: string): string {

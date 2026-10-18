@@ -19,6 +19,7 @@ export type RateLimitCategory =
   | "threadring_operations"
   | "guestbook"
   | "polls" // Poll voting
+  | "search" // External (paid) web search
   | "admin"
   | "default";
 
@@ -47,6 +48,7 @@ const RATE_LIMIT_CONFIGS: Record<RateLimitCategory, RateLimitConfig> = {
   threadring_operations: { limit: 200 * DEV_MULTIPLIER, windowMs: 60 * 60 * 1000 }, // 20 per hour (200 in dev)
   guestbook: { limit: 50 * DEV_MULTIPLIER, windowMs: 60 * 60 * 1000 }, // 50 per hour (500 in dev)
   polls: { limit: 30 * DEV_MULTIPLIER, windowMs: 60 * 1000 }, // 30 per minute (300 in dev)
+  search: { limit: 20 * DEV_MULTIPLIER, windowMs: 60 * 1000 }, // 20 per minute (200 in dev) — each miss can spend paid Brave quota
   admin: { limit: 100 * DEV_MULTIPLIER, windowMs: 60 * 1000 }, // 100 per minute (1000 in dev)
   default: { limit: 60 * DEV_MULTIPLIER, windowMs: 60 * 1000 }, // 60 per minute (600 in dev)
 };

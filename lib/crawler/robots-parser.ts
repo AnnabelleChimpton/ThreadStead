@@ -3,6 +3,8 @@
  * Respects crawl delays and disallowed paths
  */
 
+import { safeFetch } from '@/lib/utils/security/ssrf';
+
 export interface RobotsRules {
   isAllowed: boolean;
   crawlDelay?: number;
@@ -24,7 +26,7 @@ export class RobotsParser {
     }
 
     try {
-      const response = await fetch(robotsUrl, {
+      const response = await safeFetch(robotsUrl, {
         headers: { 'User-Agent': userAgent },
         signal: AbortSignal.timeout(5000) // 5 second timeout
       });

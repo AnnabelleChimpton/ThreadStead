@@ -131,7 +131,7 @@ export function SurpriseMeButtonCompact({
             const data = await response.json();
             if (data.users && data.users.length > 0) {
               const randomUser = data.users[Math.floor(Math.random() * data.users.length)];
-              window.open(`/resident/${randomUser.handle}`, '_blank');
+              window.open(`/resident/${randomUser.username}`, '_blank');
             }
           }
         } else {

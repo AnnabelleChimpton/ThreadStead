@@ -4,6 +4,7 @@
 
 import { RobotsParser, type RobotsRules } from './robots-parser';
 import { ContentExtractor, type ExtractedContent } from './content-extractor';
+import { safeFetch, UnsafeUrlError } from '@/lib/utils/security/ssrf';
 
 export interface CrawlResult {
   url: string;
@@ -118,7 +119,9 @@ export class SiteCrawler {
 
     while (attempt < this.options.maxRetries) {
       try {
-        const response = await fetch(url, {
+        // safeFetch: queued URLs come from users and discovered links, so
+        // refuse loopback/private/metadata addresses (and redirects to them).
+        const response = await safeFetch(url, {
           headers: {
             'User-Agent': this.options.userAgent,
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -176,6 +179,9 @@ export class SiteCrawler {
         };
 
       } catch (error) {
+        if (error instanceof UnsafeUrlError) {
+          return { url, success: false, error: `Refused: ${error.message}` };
+        }
         lastError = error instanceof Error ? error : new Error('Unknown error');
         attempt++;
 

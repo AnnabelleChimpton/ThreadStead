@@ -271,7 +271,7 @@ export default function DiscoverPageSearch({
                 if (response.ok) {
                   const data = await response.json();
                   if (mode === 'threadstead' && data.users?.[0]) {
-                    window.open(`/resident/${data.users[0].handle}`, '_blank');
+                    window.open(`/resident/${data.users[0].username}`, '_blank');
                   } else if (data.surprise?.url) {
                     window.open(data.surprise.url, '_blank');
                   }

@@ -232,7 +232,9 @@ export class QualityAssessor {
    */
   private hasIndividualScale(content: ExtractedContent): boolean {
     // Avoid corporate language patterns - CHECK THIS FIRST!
-    const corporateTerms = /(enterprise|corporation|company|business|team|staff|employees|solutions|services|pricing|plans|demo|book a call|schedule|consulting|agency|firm|ltd|inc|llc|partners|clients|careers|jobs|investors|shareholders|global leader|innovative strategies|cutting-edge solutions|mission statement|core values|leadership team|board of directors)/i;
+    // \b on both sides: without them "since" matched "inc", "confirm" "firm",
+    // "steam" "team", "explains" "plans" — rejecting genuine personal sites.
+    const corporateTerms = /\b(enterprise|corporation|company|business|team|staff|employees|solutions|services|pricing|plans|demo|book a call|schedule|consulting|agency|firm|ltd|inc|llc|partners|clients|careers|jobs|investors|shareholders|global leader|innovative strategies|cutting-edge solutions|mission statement|core values|leadership team|board of directors)\b/i;
     const allText = content.title + ' ' + content.description + ' ' + content.snippet;
 
     if (corporateTerms.test(allText)) {

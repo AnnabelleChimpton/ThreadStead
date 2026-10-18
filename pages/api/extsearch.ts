@@ -3,15 +3,19 @@
  * Provides meta-search across privacy-focused indie search engines
  */
 
-import { apiHandler } from '@/lib/api/handler';
-import { runExtSearch, getEngineStatus } from '@/lib/extsearch/registry';
-import type { ExtSearchQuery, ExtSearchResponse } from '@/lib/extsearch/types';
+import { apiHandler, ApiError } from '@/lib/api/handler';
+import { getEngineStatus } from '@/lib/extsearch/registry';
+import { cachedExtSearch } from '@/lib/extsearch/cache';
+import type { ExtSearchQuery } from '@/lib/extsearch/types';
+import { parseIntParam } from '@/lib/search/query';
 
 // Cache control headers for CDN caching
 const CACHE_CONTROL_HEADER = 'public, s-maxage=60, stale-while-revalidate=300';
 
 export default apiHandler(
-  { methods: ['GET'], auth: 'none' },
+  // Public, and a cache miss can spend paid Brave quota: rate-limit per IP
+  // (per user when signed in) and serve repeats from the in-process cache.
+  { methods: ['GET'], auth: 'none', rateLimit: 'search' },
   async (req, res) => {
     // Check if feature is enabled
     const isEnabled = process.env.NEXT_PUBLIC_ENABLE_EXTSEARCH === 'true';
@@ -39,8 +43,9 @@ export default apiHandler(
       }
 
       // Parse pagination parameters
-      const page = Math.max(0, parseInt(String(req.query.page || '0')));
-      const perPage = Math.min(50, Math.max(1, parseInt(String(req.query.perPage || '20'))));
+      // (NaN used to flow through to the engines and into the cache key)
+      const page = parseIntParam(req.query.page, 'page', { fallback: 0, min: 0, max: 9 });
+      const perPage = parseIntParam(req.query.perPage, 'perPage', { fallback: 20, min: 1, max: 50 });
 
       // Parse optional parameters
       const category = req.query.category as 'general' | 'blogs' | 'indie' | 'news' | undefined;
@@ -82,8 +87,8 @@ export default apiHandler(
         contentTypes
       } : undefined;
 
-      // Run the search with timeout
-      const searchResponse = await runExtSearch(searchQuery, {
+      // Run the search with timeout (cached; meta.cacheHit says which)
+      const searchResponse = await cachedExtSearch(searchQuery, {
         timeout: 4000, // 4 second timeout for API route
         enabledEngines,
         filters,
@@ -101,6 +106,8 @@ export default apiHandler(
       return res.status(200).json(searchResponse);
 
     } catch (error) {
+      // Bad page/perPage → apiHandler's 400
+      if (error instanceof ApiError) throw error;
       console.error('External search error:', error);
 
       // Don't cache errors
