@@ -1,13 +1,7 @@
-import type { NextApiRequest } from "next";
 import { db } from "@/lib/config/database/connection";
 import crypto from "crypto";
 import { apiHandler } from "@/lib/api/handler";
-
-function getClientIP(req: NextApiRequest): string {
-  const forwarded = req.headers['x-forwarded-for'];
-  const ip = (typeof forwarded === 'string' ? forwarded.split(',')[0] : req.socket.remoteAddress) || 'unknown';
-  return ip.trim();
-}
+import { getClientIp } from "@/lib/server/http/client-ip";
 
 function generateBetaKey(): string {
   // Generate a readable beta key: BETA-XXXX-XXXX-XXXX
@@ -50,7 +44,7 @@ export default apiHandler(
         return res.status(400).json({ error: "Landing page is not available for signups" });
       }
 
-      const ipAddress = getClientIP(req);
+      const ipAddress = (getClientIp(req) ?? 'unknown');
       const userAgent = req.headers['user-agent'] || '';
 
       // Generate a unique beta key for this signup

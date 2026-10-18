@@ -1,7 +1,7 @@
-import type { NextApiRequest } from "next";
 import { db } from "@/lib/config/database/connection";
 import crypto from "crypto";
 import { apiHandler } from "@/lib/api/handler";
+import { getClientIp } from "@/lib/server/http/client-ip";
 
 // View type weights for trending calculation
 const VIEW_TYPE_WEIGHTS = {
@@ -22,15 +22,6 @@ function hashIP(ip: string | undefined): string | null {
   return crypto.createHash('sha256').update(ip).digest('hex').substring(0, 16);
 }
 
-// Get client IP from request
-function getClientIP(req: NextApiRequest): string | undefined {
-  const forwarded = req.headers['x-forwarded-for'];
-  if (typeof forwarded === 'string') {
-    return forwarded.split(',')[0].trim();
-  }
-  return req.socket.remoteAddress;
-}
-
 export default apiHandler(
   // no CSRF today: anonymous visitors record views too
   { methods: ['POST'], auth: 'optional', csrf: false },
@@ -47,7 +38,7 @@ export default apiHandler(
       const userId = user?.id || null;
 
       // Get IP hash for anonymous users
-      const clientIP = getClientIP(req);
+      const clientIP = getClientIp(req) ?? undefined;
       const ipHash = userId ? null : hashIP(clientIP);
 
       // Check for recent view (within 1 hour) to prevent spam

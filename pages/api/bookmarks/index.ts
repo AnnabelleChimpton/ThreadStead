@@ -1,15 +1,13 @@
 import { db } from '@/lib/config/database/connection';
 import { apiHandler } from '@/lib/api/handler';
+import { parsePagePagination } from '@/lib/server/http/pagination';
 
 export default apiHandler(
   { methods: ['GET'], auth: 'user' },
   async (req, res, { user }) => {
     try {
-      const { collectionId, page = '1', limit = '20', search } = req.query;
-
-      const pageNum = parseInt(page as string) || 1;
-      const limitNum = parseInt(limit as string) || 20;
-      const offset = (pageNum - 1) * limitNum;
+      const { collectionId, search } = req.query;
+      const { page: pageNum, limit: limitNum, skip: offset } = parsePagePagination(req.query, { defaultLimit: 20, maxLimit: 100 });
 
       // Build where clause
       const where: any = { userId: user.id };

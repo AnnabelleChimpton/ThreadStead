@@ -6,7 +6,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 
 jest.mock('@/lib/auth/server', () => ({ getSessionUser: jest.fn() }))
-jest.mock('@/lib/middleware/generalRateLimiting', () => ({ rateLimitCheck: jest.fn(async () => true) }))
+jest.mock('@/lib/server/http/rate-limit', () => ({ rateLimitCheck: jest.fn(async () => true) }))
 jest.mock('@/lib/community-index/validation/auto-validate', () => ({
   runAutoValidation: jest.fn(async () => ({ processed: 2, results: { approved: 1, rejected: 1, skipped: 0 } })),
 }))

@@ -3,8 +3,8 @@ import { getSessionUser } from '@/lib/auth/server'
 import { generateBadge } from '@/lib/badge-generator'
 import { uploadBadgeImage } from '@/lib/badge-uploader'
 import { db } from '@/lib/config/database/connection'
-import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
-import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
+import { withCsrfProtection } from "@/lib/server/http/csrf";
+import { withRateLimit } from "@/lib/server/http/rate-limit";
 
 interface BadgeGenerationRequest {
   title: string;

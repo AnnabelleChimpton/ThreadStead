@@ -1,5 +1,6 @@
 import { db } from "@/lib/config/database/connection";
 import { apiHandler } from "@/lib/api/handler";
+import { parsePagePagination } from "@/lib/server/http/pagination";
 
 interface CreateDecorationRequest {
   itemId: string;
@@ -26,8 +27,7 @@ export default apiHandler(
     try {
       if (req.method === 'GET') {
         // List all decorations with pagination
-        const page = parseInt(req.query.page as string) || 1;
-        const limit = parseInt(req.query.limit as string) || 20;
+        const { page, limit } = parsePagePagination(req.query, { defaultLimit: 20, maxLimit: 100 });
         const search = req.query.search as string;
         const releaseType = req.query.releaseType as string;
 

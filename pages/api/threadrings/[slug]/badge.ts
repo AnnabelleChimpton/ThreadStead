@@ -6,8 +6,8 @@ import { BADGE_TEMPLATES } from "@/lib/domain/threadrings/badges";
 import { withThreadRingSupport } from "@/lib/api/ringhub/ringhub-middleware";
 import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
 import { createAuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
-import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
-import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
+import { withCsrfProtection } from "@/lib/server/http/csrf";
+import { withRateLimit } from "@/lib/server/http/rate-limit";
 
 // Apply CSRF protection and rate limiting
 export default withRateLimit('threadring_operations')(

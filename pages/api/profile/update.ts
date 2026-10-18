@@ -5,8 +5,8 @@ import { getSessionUser } from "@/lib/auth/server";
 import { requireAction } from "@/lib/domain/users/capabilities";
 import { cleanCss } from "@/lib/utils/sanitization/css";
 import { notifyRingHubIfMember } from "@/lib/api/ringhub/ringhub-profile-sync";
-import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
-import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
+import { withCsrfProtection } from "@/lib/server/http/csrf";
+import { withRateLimit } from "@/lib/server/http/rate-limit";
 
 
 

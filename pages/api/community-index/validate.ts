@@ -5,6 +5,7 @@
 
 import { apiHandler } from '@/lib/api/handler';
 import { db } from '@/lib/config/database/connection';
+import { intParam, parseLimit } from '@/lib/server/http/pagination';
 
 export default apiHandler(
   {
@@ -17,8 +18,8 @@ export default apiHandler(
     try {
       if (req.method === 'GET') {
         // Get sites pending validation
-        const page = parseInt(req.query.page as string) || 0;
-        const limit = parseInt(req.query.limit as string) || 10;
+        const page = intParam(req.query.page, { fallback: 0, min: 0 }); // 0-based
+        const limit = parseLimit(req.query.limit, { fallback: 10, max: 50 });
         const category = req.query.category as string;
         const showInteracted = req.query.showInteracted === 'true';
         const sortMethod = req.query.sort as string || 'balanced';

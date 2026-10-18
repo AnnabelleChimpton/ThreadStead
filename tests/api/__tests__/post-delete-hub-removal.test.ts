@@ -18,12 +18,14 @@ jest.mock('@/lib/config/database/connection', () => ({
   },
 }))
 jest.mock('@/lib/auth/server', () => ({ getSessionUser: jest.fn() }))
-jest.mock('@/lib/middleware/csrf', () => ({ csrfProtection: jest.fn().mockResolvedValue(true) }))
-jest.mock('@/lib/middleware/generalRateLimiting', () => ({
-  rateLimitCheck: jest.fn().mockResolvedValue(true),
+jest.mock('@/lib/server/http/csrf', () => ({
+  csrfProtection: jest.fn().mockResolvedValue(true),
+  withCsrfProtection: (h: any) => h,
 }))
-jest.mock('@/lib/api/middleware/withCsrfProtection', () => ({ withCsrfProtection: (h: any) => h }))
-jest.mock('@/lib/api/middleware/withRateLimit', () => ({ withRateLimit: () => (h: any) => h }))
+jest.mock('@/lib/server/http/rate-limit', () => ({
+  rateLimitCheck: jest.fn().mockResolvedValue(true),
+  withRateLimit: () => (h: any) => h,
+}))
 jest.mock('@/lib/domain/users/capabilities', () => ({
   requireAction: () => async () => ({ ok: true }),
 }))

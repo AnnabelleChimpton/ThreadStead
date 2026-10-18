@@ -1,7 +1,5 @@
 import { db } from '@/lib/config/database/connection';
 import { apiHandler } from '@/lib/api/handler';
-
-// Import from TypeScript definitions (backed by presence.js for server.js compatibility)
 import { getRoomPresence } from '@/lib/chat/presence';
 
 export default apiHandler(

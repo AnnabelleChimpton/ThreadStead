@@ -1,5 +1,6 @@
 import { db } from '@/lib/config/database/connection';
 import { apiHandler } from '@/lib/api/handler';
+import { parseLimit } from '@/lib/server/http/pagination';
 
 export default apiHandler(
   { methods: ['GET'], auth: 'none' },
@@ -9,7 +10,7 @@ export default apiHandler(
     // sending — handled over the socket — requires a logged-in account.)
 
     const { roomId } = req.query;
-    const limit = parseInt(req.query.limit as string) || 50;
+    const limit = parseLimit(req.query.limit, { fallback: 50, max: 100 });
     const before = req.query.before as string | undefined;
 
     if (typeof roomId !== 'string') {

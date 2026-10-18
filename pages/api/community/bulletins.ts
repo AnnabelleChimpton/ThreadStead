@@ -1,5 +1,6 @@
 import { db } from '@/lib/config/database/connection';
 import { apiHandler } from '@/lib/api/handler';
+import { parseLimit } from '@/lib/server/http/pagination';
 
 /**
  * GET /api/community/bulletins
@@ -11,7 +12,7 @@ export default apiHandler(
   { methods: ['GET'], auth: 'none' },
   async (req, res) => {
     try {
-      const limit = parseInt(req.query.limit as string) || 5;
+      const limit = parseLimit(req.query.limit, { fallback: 5, max: 50 });
       const now = new Date();
 
       const bulletins = await db.bulletin.findMany({

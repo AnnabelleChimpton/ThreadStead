@@ -10,6 +10,7 @@ import {
   noteMissingLocalPost,
 } from '@/lib/domain/threadrings/orphan-postrefs';
 import { canViewPost, getViewerRelationship, type ViewerRelationship } from '@/lib/domain/posts/visibility';
+import { parseOffsetPagination } from '@/lib/server/http/pagination';
 
 /**
  * Resolve Ring Hub post references to actual ThreadStead post objects.
@@ -175,7 +176,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const { slug } = req.query;
-  const { scope = 'current', limit = '20', offset = '0' } = req.query;
+  const { scope = 'current' } = req.query;
+  const { limit, offset } = parseOffsetPagination(req.query, { defaultLimit: 20 });
 
   if (typeof slug !== 'string') {
     return res.status(400).json({ error: 'Invalid slug parameter' });
@@ -190,8 +192,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(200).json({
         posts: [],
         total: 0,
-        limit: parseInt(limit as string),
-        offset: parseInt(offset as string),
+        limit,
+        offset,
         hasMore: false
       });
     }
@@ -213,8 +215,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       };
 
       const feedOptions = {
-        limit: parseInt(limit as string),
-        offset: parseInt(offset as string),
+        limit,
+        offset,
         scope: mapScope(scope as string) as 'ring' | 'parent' | 'children' | 'siblings' | 'family'
       };
 
@@ -245,8 +247,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // this viewer can't read) never skips or repeats a page: the next page
       // starts at nextOffset. `total` drops what this page hid; hidden posts
       // on other pages are only known once those pages are read.
-      const currentOffset = parseInt(offset as string);
-      const currentLimit = parseInt(limit as string);
+      const currentOffset = offset;
+      const currentLimit = limit;
       const rawCount = posts?.posts?.length || 0;
       const hasMore = (posts?.total || 0) > (currentOffset + rawCount);
 

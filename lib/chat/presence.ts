@@ -1,27 +1,31 @@
-// Shared presence tracking module
-// Used by both server.js (which requires the sibling presence.js) and API routes
-// (which import this file and get a separate webpack-bundled module instance).
-// Both instances share one store via globalThis — without that, the API routes
-// would read an always-empty map and presence endpoints would return nothing.
+// Who is in which chat room, in memory.
+// The socket server (server.ts → lib/chat/socket-server.ts, loaded by Node) and
+// the API routes (webpack bundles) each get their own instance of this module,
+// so the store itself lives on globalThis — otherwise the presence endpoint
+// would read an always-empty map.
 
-interface UserPresence {
+/** What addToPresence needs from a signed-in user. */
+export interface PresenceInput {
   id: string;
-  primaryHandle: string;
+  primaryHandle: string | null;
   profile?: {
-    displayName?: string;
-    avatarUrl?: string;
-    avatarThumbnailUrl?: string;
-  };
+    displayName?: string | null;
+    avatarUrl?: string | null;
+    avatarThumbnailUrl?: string | null;
+  } | null;
+}
+
+interface UserPresence extends PresenceInput {
   lastActiveAt: string;
   status?: string;
   statusMessage?: string | null;
 }
 
-interface PresenceUser {
+export interface PresenceUser {
   userId: string;
-  handle: string;
-  displayName?: string;
-  avatarUrl?: string;
+  handle: string | null;
+  displayName?: string | null;
+  avatarUrl?: string | null;
   lastActiveAt: string;
   status: string;
   statusMessage: string | null;
@@ -58,7 +62,7 @@ export function getRoomPresence(roomId: string): PresenceUser[] {
 /**
  * Add user to room presence
  */
-export function addToPresence(roomId: string, user: UserPresence): void {
+export function addToPresence(roomId: string, user: PresenceInput): void {
   if (!roomPresence.has(roomId)) {
     roomPresence.set(roomId, new Map());
   }

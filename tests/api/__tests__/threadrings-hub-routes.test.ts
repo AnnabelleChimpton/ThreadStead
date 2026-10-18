@@ -22,8 +22,8 @@ jest.mock('@/lib/auth/server', () => ({ getSessionUser: jest.fn() }))
 jest.mock('@/lib/api/ringhub/ringhub-middleware', () => ({
   withThreadRingSupport: (handler: any) => (req: any, res: any) => handler(req, res, 'ringhub'),
 }))
-jest.mock('@/lib/api/middleware/withCsrfProtection', () => ({ withCsrfProtection: (h: any) => h }))
-jest.mock('@/lib/api/middleware/withRateLimit', () => ({ withRateLimit: () => (h: any) => h }))
+jest.mock('@/lib/server/http/csrf', () => ({ withCsrfProtection: (h: any) => h }))
+jest.mock('@/lib/server/http/rate-limit', () => ({ withRateLimit: () => (h: any) => h }))
 jest.mock('@/lib/api/ringhub/ringhub-client', () => ({
   ...jest.requireActual('@/lib/api/ringhub/ringhub-client'),
   getPublicRingHubClient: jest.fn(),

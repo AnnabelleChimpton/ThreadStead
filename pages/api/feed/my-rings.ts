@@ -3,6 +3,7 @@ import { featureFlags } from "@/lib/utils/features/feature-flags";
 import { RingHubAuthError, RingHubUnavailableError } from "@/lib/api/ringhub/ringhub-errors";
 import { apiHandler } from "@/lib/api/handler";
 import { sendUnauthenticated } from "@/lib/api/errors";
+import { parseOffsetPagination } from "@/lib/server/http/pagination";
 
 export default apiHandler(
   // optional, not 'user': the RingHub-disabled 503 below must still win over the signed-out 401
@@ -21,8 +22,6 @@ export default apiHandler(
 
       // Parse query parameters
       const {
-        limit = "20",
-        offset = "0", 
         since,
         until,
         includeNotifications = "true",
@@ -31,8 +30,7 @@ export default apiHandler(
       } = req.query;
 
       // Validate parameters
-      const limitNum = Math.min(Math.max(parseInt(String(limit), 10) || 20, 1), 100);
-      const offsetNum = Math.max(parseInt(String(offset), 10) || 0, 0);
+      const { limit: limitNum, offset: offsetNum } = parseOffsetPagination(req.query, { defaultLimit: 20, maxLimit: 100 });
       const sortValue = sort === "oldest" ? "oldest" : "newest";
 
       // Create authenticated RingHub client

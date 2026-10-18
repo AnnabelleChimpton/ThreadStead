@@ -1,13 +1,12 @@
 import { db } from "@/lib/config/database/connection";
 import { apiHandler } from "@/lib/api/handler";
+import { parsePagePagination } from "@/lib/server/http/pagination";
 
 export default apiHandler(
   { methods: ["GET"], auth: "admin" },
   async (req, res) => {
     try {
-      const page = parseInt(String(req.query.page || "1"));
-      const limit = Math.min(parseInt(String(req.query.limit || "20")), 100);
-      const offset = (page - 1) * limit;
+      const { page, limit, skip: offset } = parsePagePagination(req.query, { defaultLimit: 20, maxLimit: 100 });
 
       const visibility = String(req.query.visibility || "all");
       const search = String(req.query.search || "").trim();

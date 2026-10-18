@@ -1,12 +1,6 @@
-import type { NextApiRequest } from "next";
 import { db } from "@/lib/config/database/connection";
 import { apiHandler } from "@/lib/api/handler";
-
-function getClientIP(req: NextApiRequest): string {
-  const forwarded = req.headers['x-forwarded-for'];
-  const ip = (typeof forwarded === 'string' ? forwarded.split(',')[0] : req.socket.remoteAddress) || 'unknown';
-  return ip.trim();
-}
+import { getClientIp } from "@/lib/server/http/client-ip";
 
 export default apiHandler(
   { methods: ["POST"], auth: "user" },
@@ -35,7 +29,7 @@ export default apiHandler(
         return res.status(404).json({ error: "Beta invite code not found or you don't have permission to track shares for this code" });
       }
 
-      const ipAddress = getClientIP(req);
+      const ipAddress = (getClientIp(req) ?? 'unknown');
       const userAgent = req.headers['user-agent'] || '';
 
       // Create the share tracking record

@@ -9,11 +9,11 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { z } from 'zod';
 
 jest.mock('@/lib/auth/server', () => ({ getSessionUser: jest.fn() }));
-jest.mock('@/lib/middleware/generalRateLimiting', () => ({ rateLimitCheck: jest.fn() }));
+jest.mock('@/lib/server/http/rate-limit', () => ({ rateLimitCheck: jest.fn() }));
 
 import { apiHandler, ApiError } from '@/lib/api/handler';
 import { getSessionUser } from '@/lib/auth/server';
-import { rateLimitCheck } from '@/lib/middleware/generalRateLimiting';
+import { rateLimitCheck } from '@/lib/server/http/rate-limit';
 
 const mockSession = getSessionUser as jest.Mock;
 const mockRateLimit = rateLimitCheck as jest.Mock;

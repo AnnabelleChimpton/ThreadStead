@@ -3,8 +3,8 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { requireAction, classifyExternalPostId } from "@/lib/domain/users/capabilities";
 import { createCommentNotification, createReplyNotification } from "@/lib/domain/notifications";
 import { db } from "@/lib/config/database/connection";
-import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
-import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
+import { withCsrfProtection } from "@/lib/server/http/csrf";
+import { withRateLimit } from "@/lib/server/http/rate-limit";
 import { updateCommentCount } from "@/lib/domain/posts/updateCommentCount";
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {

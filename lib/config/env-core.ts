@@ -26,7 +26,7 @@ export type EnvScope =
   | 'server'
   /** NEXT_PUBLIC_*: inlined into the client bundle at build time. */
   | 'public'
-  /** Only read by scripts/, prisma/seed.ts or server.js. */
+  /** Only read by scripts/, prisma/seed.ts or server.ts. */
   | 'script'
   /** Only read by the test harness. */
   | 'test';

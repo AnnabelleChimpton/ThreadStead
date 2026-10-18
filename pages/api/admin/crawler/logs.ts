@@ -6,6 +6,7 @@
 import { CrawlerWorker } from '@/lib/crawler/crawler-worker';
 import { apiHandler } from '@/lib/api/handler';
 import { getServerEnv } from '@/lib/config/env';
+import { parseLimit } from '@/lib/server/http/pagination';
 
 export default apiHandler(
   {
@@ -15,11 +16,11 @@ export default apiHandler(
   },
   async (req, res) => {
     try {
-      const { limit = '50', status } = req.query;
+      const { status } = req.query;
 
       const worker = new CrawlerWorker({ enableLogging: false });
       const logs = await worker.getRecentActivity(
-        parseInt(limit as string),
+        parseLimit(req.query.limit, { fallback: 50, max: 200 }),
         status as string | undefined
       );
 

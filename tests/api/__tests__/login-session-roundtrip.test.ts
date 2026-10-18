@@ -56,7 +56,7 @@ jest.mock('@noble/ed25519', () => {
       ),
   };
 });
-jest.mock('@/lib/middleware/rateLimiting', () => ({ rateLimitMiddleware: jest.fn().mockResolvedValue(true) }));
+jest.mock('@/lib/server/http/rate-limit', () => ({ signupLimitCheck: jest.fn().mockResolvedValue(true) }));
 
 import emailVerify from '@/pages/api/auth/email-verify';
 import verify from '@/pages/api/auth/verify';

@@ -7,8 +7,8 @@ import { cleanAndNormalizeHtml, markdownToSafeHtml } from "@/lib/utils/sanitizat
 import { featureFlags } from "@/lib/utils/features/feature-flags";
 import { createAuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
 import { buildPostUri, generateTextPreview, generateExcerpt } from "@/lib/domain/posts/ringhub-metadata";
-import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
-import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
+import { withCsrfProtection } from "@/lib/server/http/csrf";
+import { withRateLimit } from "@/lib/server/http/rate-limit";
 
 type PostIntent = "sharing" | "asking" | "feeling" | "announcing" | "showing" | "teaching" | "looking" | "celebrating" | "recommending";
 

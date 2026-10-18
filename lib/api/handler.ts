@@ -28,8 +28,8 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { ZodError, type ZodType, type z } from 'zod';
 import { UserRole } from '@prisma/client';
 import { getSessionUser, type SessionUser } from '@/lib/auth/server';
-import { csrfProtection } from '@/lib/middleware/csrf';
-import { rateLimitCheck, type RateLimitCategory } from '@/lib/middleware/generalRateLimiting';
+import { csrfProtection } from '@/lib/server/http/csrf';
+import { rateLimitCheck, type RateLimitCategory } from '@/lib/server/http/rate-limit';
 import {
   API_ERRORS,
   ApiError,

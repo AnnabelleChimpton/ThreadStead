@@ -1,12 +1,12 @@
 import { db } from '../../lib/config/database/connection';
 import { apiHandler } from '@/lib/api/handler';
+import { parseOffsetPagination } from '@/lib/server/http/pagination';
 
 export default apiHandler(
   { methods: ['GET'], auth: 'none' },
   async (req, res) => {
     try {
-      const limit = Math.min(parseInt(req.query.limit as string) || 10, 20);
-      const offset = Math.max(parseInt(req.query.offset as string) || 0, 0);
+      const { limit, offset } = parseOffsetPagination(req.query, { defaultLimit: 10, maxLimit: 20 });
 
       // Get total count for hasMore calculation
       const total = await db.siteNews.count({

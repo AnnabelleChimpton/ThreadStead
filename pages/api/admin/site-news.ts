@@ -1,6 +1,7 @@
 import { db } from '../../../lib/config/database/connection';
 import { z } from 'zod';
 import { apiHandler } from '@/lib/api/handler';
+import { parsePagePagination } from '@/lib/server/http/pagination';
 
 const createNewsSchema = z.object({
   title: z.string().min(1).max(255),
@@ -21,9 +22,7 @@ export default apiHandler(
     try {
       if (req.method === 'GET') {
         // Get all site news with pagination
-        const page = parseInt(req.query.page as string) || 1;
-        const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
-        const offset = (page - 1) * limit;
+        const { page, limit, skip: offset } = parsePagePagination(req.query, { defaultLimit: 20, maxLimit: 100 });
 
         const [news, totalCount] = await Promise.all([
           db.siteNews.findMany({

@@ -1,14 +1,14 @@
 import { apiHandler } from "@/lib/api/handler";
 import { findUsersByEmail } from "@/lib/utils/security/email-encryption";
 import { createPasswordResetToken, sendPasswordResetEmail } from "@/lib/email-login";
-import { rateLimitMiddleware } from "@/lib/middleware/rateLimiting";
+import { signupLimitCheck } from "@/lib/server/http/rate-limit";
 
 export default apiHandler(
   // no CSRF today: settings page calls it with plain fetch; the route never reads the session
   { methods: ["POST"], auth: "none", csrf: false },
   async (req, res) => {
       // Rate limiting (important for email endpoints)
-      const rateLimitPassed = await rateLimitMiddleware(req, res);
+      const rateLimitPassed = await signupLimitCheck(req, res);
       if (!rateLimitPassed) {
           return; // Response already sent
       }

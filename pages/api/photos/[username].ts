@@ -2,6 +2,7 @@ import { apiHandler } from "@/lib/api/handler";
 import { db } from "@/lib/config/database/connection";
 
 import { SITE_NAME } from "@/lib/config/site/constants";
+import { parsePagePagination } from "@/lib/server/http/pagination";
 
 
 
@@ -9,8 +10,7 @@ export default apiHandler(
   { methods: ["GET"], auth: "none" },
   async (req, res) => {
     const username = String(req.query.username || "");
-    const page = parseInt(String(req.query.page || "1"));
-    const limit = parseInt(String(req.query.limit || "20"));
+    const { page, limit } = parsePagePagination(req.query, { defaultLimit: 20, maxLimit: 100 });
   
     if (!username) {
       return res.status(400).json({ error: "Username required" });

@@ -103,7 +103,7 @@ MOBILE_TESTING="true"
 NEXT_PUBLIC_BASE_URL="https://10.0.0.61:3000"
 ```
 
-**How it works:** The `MOBILE_TESTING` environment variable automatically configures server.js to:
+**How it works:** The `MOBILE_TESTING` environment variable automatically configures the server (`server.ts`, started by `node server.js`) to:
 - Create an HTTPS server using `localhost+1.pem` and `localhost+1-key.pem`
 - Listen on `0.0.0.0` (all network interfaces) instead of just `localhost`
 - Configure Socket.io CORS to use the `NEXT_PUBLIC_BASE_URL` value
@@ -269,7 +269,7 @@ If you only need to test UI/layout without authentication, you can use HTTP mode
 
 4. **Access via:** `http://10.0.0.61:3000`
 
-**Note:** With HTTP mode, server.js will still listen on `localhost` by default. You may need to modify server.js line 17 to use `'0.0.0.0'` instead of checking the `MOBILE_TESTING` variable.
+**Note:** With HTTP mode, the server will still listen on `127.0.0.1` by default. You may need to change the `hostname` line near the top of `server.ts` to use `'0.0.0.0'` instead of checking the `MOBILE_TESTING` variable.
 
 ---
 

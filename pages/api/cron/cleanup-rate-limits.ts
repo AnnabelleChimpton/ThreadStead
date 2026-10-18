@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { cleanupExpiredRateLimits } from "@/lib/middleware/generalRateLimiting";
+import { cleanupExpiredRateLimits } from "@/lib/server/http/rate-limit";
 
 /**
  * Cron job to clean up expired rate limit entries

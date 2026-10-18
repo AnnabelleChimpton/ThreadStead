@@ -181,7 +181,7 @@ describe('specs', () => {
         if (!read.has(m[1])) read.set(m[1], path.slice(ROOT.length + 1));
       }
     };
-    for (const p of ['lib', 'pages', 'components', 'hooks', 'contexts', 'prisma', 'scripts', 'server.js', 'instrumentation.ts', 'tests/federation']) {
+    for (const p of ['lib', 'pages', 'components', 'hooks', 'contexts', 'prisma', 'scripts', 'server.ts', 'instrumentation.ts', 'tests/federation']) {
       scan(join(ROOT, p));
     }
     const undeclared = [...read].filter(([name]) => !declared.has(name)).map(([n, f]) => `${n} (${f})`);

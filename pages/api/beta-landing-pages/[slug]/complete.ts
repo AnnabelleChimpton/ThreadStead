@@ -1,12 +1,6 @@
-import type { NextApiRequest } from "next";
 import { db } from "@/lib/config/database/connection";
 import { apiHandler } from "@/lib/api/handler";
-
-function getClientIP(req: NextApiRequest): string {
-  const forwarded = req.headers['x-forwarded-for'];
-  const ip = (typeof forwarded === 'string' ? forwarded.split(',')[0] : req.socket.remoteAddress) || 'unknown';
-  return ip.trim();
-}
+import { getClientIp } from "@/lib/server/http/client-ip";
 
 export default apiHandler(
   // no CSRF today: anonymous signup flow, pages/signup.tsx POSTs with plain fetch
@@ -37,7 +31,7 @@ export default apiHandler(
         return res.status(404).json({ error: "Landing page not found" });
       }
 
-      const ipAddress = getClientIP(req);
+      const ipAddress = (getClientIp(req) ?? 'unknown');
 
       // Update the signup record
       const updatedSignup = await db.betaLandingSignup.update({

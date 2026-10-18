@@ -2,6 +2,7 @@ import { getPublicRingHubClient } from "@/lib/api/ringhub/ringhub-client";
 import { featureFlags } from "@/lib/utils/features/feature-flags";
 import { RingHubAuthError, RingHubUnavailableError } from "@/lib/api/ringhub/ringhub-errors";
 import { apiHandler } from "@/lib/api/handler";
+import { parseLimit } from "@/lib/server/http/pagination";
 
 export default apiHandler(
   { methods: ["GET"], auth: "none" },
@@ -17,13 +18,12 @@ export default apiHandler(
     try {
       // Parse query parameters
       const {
-        limit = "20",
         timeWindow = "day",
         includeNotifications = "true"
       } = req.query;
 
       // Validate parameters
-      const limitNum = Math.min(Math.max(parseInt(String(limit), 10) || 20, 1), 50);
+      const limitNum = parseLimit(req.query.limit, { fallback: 20, max: 50 });
       const timeWindowValue = ["hour", "day", "week"].includes(String(timeWindow)) 
         ? String(timeWindow) as "hour" | "day" | "week"
         : "day";

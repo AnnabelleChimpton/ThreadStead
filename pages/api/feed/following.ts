@@ -4,6 +4,7 @@ import { SITE_NAME } from "@/lib/config/site/constants";
 import { apiHandler } from "@/lib/api/handler";
 import { getUserBlockedIds, addBlockFiltersToWhere } from "@/lib/domain/users/blocks";
 import { followingPostsWhere, getFollowGraph } from "@/lib/domain/posts/visibility";
+import { parseLimit } from "@/lib/server/http/pagination";
 
 /**
  * Posts from the people the viewer follows, newest first, filtered by the
@@ -24,7 +25,7 @@ function parseCursor(raw: unknown): { createdAt: Date; id: string } | null {
 export default apiHandler(
   { methods: ["GET"], auth: "user" },
   async (req, res, { user }) => {
-    const limit = Math.min(Math.max(parseInt(String(req.query.limit || "20"), 10) || 20, 1), 50);
+    const limit = parseLimit(req.query.limit, { fallback: 20, max: 50 });
     const cursor = parseCursor(req.query.cursor);
 
     const [{ followeeIds, friendIds }, { blockedUserIds, blockedThreadRingIds }] = await Promise.all([

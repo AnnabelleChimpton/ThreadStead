@@ -1,6 +1,7 @@
 import { db } from '@/lib/config/database/connection';
 import { apiHandler } from '@/lib/api/handler';
 import { z } from 'zod';
+import { parseOffsetPagination } from '@/lib/server/http/pagination';
 
 const createPollSchema = z.object({
   question: z.string().min(1, 'Question is required').max(500, 'Question too long'),
@@ -16,8 +17,7 @@ export default apiHandler(
   async (req, res, { user, body }) => {
     if (req.method === 'GET') {
       // List all polls for admin view
-      const limit = Math.min(parseInt(req.query.limit as string) || 20, 50);
-      const offset = Math.max(parseInt(req.query.offset as string) || 0, 0);
+      const { limit, offset } = parseOffsetPagination(req.query, { defaultLimit: 20, maxLimit: 50 });
 
       const [polls, total] = await Promise.all([
         db.poll.findMany({

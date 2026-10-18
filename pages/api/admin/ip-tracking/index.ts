@@ -1,5 +1,6 @@
 import { db } from "@/lib/config/database/connection";
 import { apiHandler } from "@/lib/api/handler";
+import { parsePagePagination } from "@/lib/server/http/pagination";
 
 
 export default apiHandler(
@@ -7,9 +8,8 @@ export default apiHandler(
   async (req, res, { user: adminUser }) => {
     if (req.method === "GET") {
       try {
-        const { page = "1", limit = "50", blocked = "false" } = req.query;
-        const pageNum = Math.max(1, parseInt(page as string));
-        const limitNum = Math.min(100, Math.max(1, parseInt(limit as string)));
+        const { blocked = "false" } = req.query;
+        const { page: pageNum, limit: limitNum } = parsePagePagination(req.query, { defaultLimit: 50, maxLimit: 100 });
         const showBlocked = blocked === "true";
 
         const where = showBlocked ? { isBlocked: true } : {};

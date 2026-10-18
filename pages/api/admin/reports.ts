@@ -1,17 +1,16 @@
 import { db } from "@/lib/config/database/connection";
 import { apiHandler } from "@/lib/api/handler";
 import { ReportStatus } from "@prisma/client";
+import { parsePagePagination } from "@/lib/server/http/pagination";
 
 export default apiHandler(
   { methods: ["GET", "PATCH"], auth: "admin" },
   async (req, res, { user }) => {
     if (req.method === "GET") {
       try {
-        const { status, page = "1", limit = "20", type } = req.query;
+        const { status, type } = req.query;
 
-        const pageNum = parseInt(page as string);
-        const limitNum = parseInt(limit as string);
-        const skip = (pageNum - 1) * limitNum;
+        const { page: pageNum, limit: limitNum, skip } = parsePagePagination(req.query, { defaultLimit: 20, maxLimit: 100 });
 
         const where: any = {};
 

@@ -1,5 +1,5 @@
 import { apiHandler } from "@/lib/api/handler";
-import { generateCsrfToken, createCsrfCookie } from "@/lib/middleware/csrf";
+import { generateCsrfToken, createCsrfCookie } from "@/lib/server/http/csrf";
 
 /**
  * CSRF Token Auto-Generation Endpoint

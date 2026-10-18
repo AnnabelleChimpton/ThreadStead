@@ -6,6 +6,7 @@
 import { apiHandler } from '@/lib/api/handler';
 import { sendUnauthenticated } from '@/lib/api/errors';
 import { DiscoveryFeedsManager } from '@/lib/community-index/feeds/discovery-feeds';
+import { parseLimit } from '@/lib/server/http/pagination';
 
 export default apiHandler(
   { methods: ['GET'], auth: 'optional' },
@@ -17,11 +18,10 @@ export default apiHandler(
       const feedsManager = new DiscoveryFeedsManager();
       const {
         type = 'all',
-        category = 'all',
-        limit = '15'
+        category = 'all'
       } = req.query;
 
-      const limitNum = parseInt(limit as string) || 15;
+      const limitNum = parseLimit(req.query.limit, { fallback: 15, max: 100 });
       const categoryFilter = category === 'all' ? undefined : category as string;
 
       switch (type) {

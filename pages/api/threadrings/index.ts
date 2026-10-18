@@ -6,6 +6,7 @@ import { getPublicRingHubClient } from "@/lib/api/ringhub/ringhub-client";
 import { createAuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
 import { cached } from "@/lib/api/ringhub/ringhub-cache";
 import { RingHubAuthError, RingHubUnavailableError } from "@/lib/api/ringhub/ringhub-errors";
+import { parseOffsetPagination } from "@/lib/server/http/pagination";
 
 export default withThreadRingSupport(async function handler(
   req: NextApiRequest,
@@ -18,8 +19,7 @@ export default withThreadRingSupport(async function handler(
   }
 
   try {
-    const limit = Math.min(parseInt(String(req.query.limit || "20")), 50);
-    const offset = parseInt(String(req.query.offset || "0"));
+    const { limit, offset } = parseOffsetPagination(req.query, { defaultLimit: 20, maxLimit: 50 });
     const search = String(req.query.search || "").trim();
     const sort = String(req.query.sort || "trending"); // trending, newest, members, posts, alphabetical
     const membership = String(req.query.membership || "").trim() === "true"; // Filter to only user's memberships

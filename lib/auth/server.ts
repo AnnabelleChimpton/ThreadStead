@@ -3,7 +3,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { Prisma, UserRole } from "@prisma/client";
 import { db } from "../config/database/connection";
 import { sendForbiddenAdmin, sendUnauthenticated } from "../api/errors";
-import { createCsrfCookie, generateCsrfToken, getCookieSecureFlag } from "../middleware/csrf";
+import { createCsrfCookie, generateCsrfToken, getCookieSecureFlag } from "../server/http/csrf";
 
 /**
  * Sessions: a `Session` row plus an HttpOnly cookie `retro_session=<userId>.<secret>`.
@@ -62,13 +62,13 @@ export type SessionUser = Prisma.UserGetPayload<{ include: typeof DEFAULT_USER_I
  * By default the full user with `betaKey`; pass `select` to load only some
  * fields.
  */
-export async function getSessionUser(req: NextApiRequest): Promise<SessionUser | null>;
+export async function getSessionUser(req: Pick<NextApiRequest, "headers">): Promise<SessionUser | null>;
 export async function getSessionUser<S extends Prisma.UserSelect>(
-  req: NextApiRequest,
+  req: Pick<NextApiRequest, "headers">,
   options: { select: S }
 ): Promise<Prisma.UserGetPayload<{ select: S }> | null>;
 export async function getSessionUser(
-  req: NextApiRequest,
+  req: Pick<NextApiRequest, "headers">,
   options?: { select: Prisma.UserSelect }
 ): Promise<unknown> {
   const value = readCookie(req, SESSION_COOKIE);

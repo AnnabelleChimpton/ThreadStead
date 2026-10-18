@@ -3,6 +3,7 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 import { db } from "@/lib/config/database/connection";
 import { SITE_NAME } from "@/lib/config/site/constants";
 import { apiHandler } from '@/lib/api/handler';
+import { parseOffsetPagination } from '@/lib/server/http/pagination';
 
 /**
  * Users API Endpoint
@@ -59,8 +60,7 @@ async function handleDIDDirectory(req: NextApiRequest, res: NextApiResponse) {
 }
 
 async function handleUserListing(req: NextApiRequest, res: NextApiResponse) {
-  const limit = Math.min(parseInt(String(req.query.limit || "20")), 50);
-  const offset = parseInt(String(req.query.offset || "0"));
+  const { limit, offset } = parseOffsetPagination(req.query, { defaultLimit: 20, maxLimit: 50 });
   const sort = String(req.query.sort || "recent"); // recent, active, alphabetical
 
   // Build order clause based on sort parameter

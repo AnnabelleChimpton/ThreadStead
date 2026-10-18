@@ -1,5 +1,6 @@
 import { db as prisma } from '@/lib/config/database/connection';
 import { apiHandler } from '@/lib/api/handler';
+import { findOrCreateDM } from '@/lib/chat/direct-messages';
 
 // CSRF protection skips safe methods (GET/HEAD/OPTIONS) and validates POST
 export default apiHandler(
@@ -80,38 +81,13 @@ export default apiHandler(
 
         // POST: Start a conversation
         const { targetUserId } = req.body;
-        if (!targetUserId) return res.status(400).json({ error: 'Target user required' });
+        if (!targetUserId || typeof targetUserId !== 'string') return res.status(400).json({ error: 'Target user required' });
+        // Without this, the lookup below matched any DM of yours
+        if (targetUserId === userId) return res.status(400).json({ error: 'You cannot message yourself' });
 
         try {
-            // Check existing
-            const existingConversations = await prisma.conversation.findMany({
-                where: {
-                    AND: [
-                        { participants: { some: { userId } } },
-                        { participants: { some: { userId: targetUserId } } }
-                    ]
-                },
-                include: { participants: true }
-            });
-
-            const existing = existingConversations.find(c => c.participants.length === 2);
-
-            if (existing) {
-                return res.status(200).json({ id: existing.id });
-            }
-
-            const conversation = await prisma.conversation.create({
-                data: {
-                    participants: {
-                        create: [
-                            { userId },
-                            { userId: targetUserId }
-                        ]
-                    }
-                }
-            });
-
-            return res.status(201).json({ id: conversation.id });
+            const conversation = await findOrCreateDM(userId, targetUserId);
+            return res.status(conversation.created ? 201 : 200).json({ id: conversation.id });
         } catch (error) {
             console.error('Error creating conversation:', error);
             return res.status(500).json({ error: 'Internal Server Error' });

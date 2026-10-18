@@ -4,8 +4,8 @@ import { getSessionUser } from "@/lib/auth/server";
 import { isUserBlockedFromThreadRing } from "@/lib/domain/threadrings/blocks";
 import { withThreadRingSupport } from "@/lib/api/ringhub/ringhub-middleware";
 import { AuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
-import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
-import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
+import { withCsrfProtection } from "@/lib/server/http/csrf";
+import { withRateLimit } from "@/lib/server/http/rate-limit";
 import { retryWithBackoff } from "@/lib/api/ringhub/ringhub-retry";
 
 // Apply CSRF protection and rate limiting

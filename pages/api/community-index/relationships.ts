@@ -5,13 +5,14 @@
 
 import { apiHandler } from '@/lib/api/handler';
 import { SiteRelationshipMapper } from '@/lib/community-index/discovery/relationship-mapper';
+import { parseLimit } from '@/lib/server/http/pagination';
 
 export default apiHandler(
   { methods: ['GET'], auth: 'none' },
   async (req, res) => {
     try {
       const mapper = new SiteRelationshipMapper();
-      const { action, site, limit } = req.query;
+      const { action, site } = req.query;
 
       switch (action) {
         case 'insights':
@@ -21,7 +22,7 @@ export default apiHandler(
 
           const insights = await mapper.getSiteRelationships(
             site as string,
-            parseInt(limit as string) || 20
+            parseLimit(req.query.limit, { fallback: 20, max: 50 })
           );
 
           return res.json({
@@ -36,7 +37,7 @@ export default apiHandler(
 
           const similarSites = await mapper.findSimilarSites(
             site as string,
-            parseInt(limit as string) || 10
+            parseLimit(req.query.limit, { fallback: 10, max: 50 })
           );
 
           return res.json({

@@ -1,19 +1,19 @@
 import { DiscoveryFeedsManager } from '@/lib/community-index/feeds/discovery-feeds';
 import { apiHandler } from '@/lib/api/handler';
+import { parsePagePagination } from '@/lib/server/http/pagination';
 
 export default apiHandler(
   { methods: ['GET'], auth: 'optional' },
   async (req, res, { user }) => {
     try {
-      const { category, sortBy, page = '1', limit = '15', validationStatus = 'validated' } = req.query;
+      const { category, sortBy, validationStatus = 'validated' } = req.query;
 
       // Get user for personalized feeds
       const userId = user?.id;
 
       const feedsManager = new DiscoveryFeedsManager();
-      const limitNum = parseInt(limit as string) || 15;
+      const { page: pageNum, limit: limitNum } = parsePagePagination(req.query, { defaultLimit: 15, maxLimit: 100 });
       const categoryFilter = category === 'all' ? undefined : category as string;
-      const pageNum = parseInt(page as string) || 1;
 
       // Determine which feed to fetch based on sortBy
       let feedData;

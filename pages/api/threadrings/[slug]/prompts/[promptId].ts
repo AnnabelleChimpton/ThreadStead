@@ -2,8 +2,8 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 import { getSessionUser } from '@/lib/auth/server'
 import { createPromptService } from '@/lib/utils/data/prompt-service'
 import { withThreadRingSupport } from '@/lib/api/ringhub/ringhub-middleware'
-import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
-import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
+import { withCsrfProtection } from "@/lib/server/http/csrf";
+import { withRateLimit } from "@/lib/server/http/rate-limit";
 
 export default withRateLimit('threadring_operations')(
   withCsrfProtection(

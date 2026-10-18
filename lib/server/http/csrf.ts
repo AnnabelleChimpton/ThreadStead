@@ -2,7 +2,8 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import crypto from "crypto";
 
 /**
- * CSRF Protection Middleware (Double-Submit Cookie Pattern)
+ * CSRF protection (double-submit cookie). The browser half is
+ * lib/api/client/csrf-fetch.ts, which copies the cookie into the header.
  *
  * How it works:
  * 1. Generate a random CSRF token when user authenticates
@@ -121,4 +122,20 @@ export async function csrfProtection(
  */
 export function getCsrfToken(req: NextApiRequest): string | null {
   return getCsrfTokenFromCookie(req);
+}
+
+type Handler = (req: NextApiRequest, res: NextApiResponse) => Promise<void | NextApiResponse>;
+
+/**
+ * Wrap a hand-written route with CSRF protection. Routes on apiHandler get
+ * this from its `csrf` option (on by default) instead.
+ *
+ *   export default withRateLimit('posts')(withCsrfProtection(handler));
+ */
+export function withCsrfProtection(handler: Handler) {
+  return async (req: NextApiRequest, res: NextApiResponse) => {
+    // On failure the 403 has already been sent
+    if (!(await csrfProtection(req, res))) return;
+    return handler(req, res);
+  };
 }

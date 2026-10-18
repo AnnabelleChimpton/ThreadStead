@@ -56,8 +56,8 @@ jest.mock('@/lib/config/database/connection', () => ({
   },
 }))
 jest.mock('@/lib/auth/server', () => ({ getSessionUser: jest.fn() }))
-jest.mock('@/lib/middleware/csrf', () => ({ csrfProtection: jest.fn().mockResolvedValue(true) }))
-jest.mock('@/lib/middleware/generalRateLimiting', () => ({
+jest.mock('@/lib/server/http/csrf', () => ({ csrfProtection: jest.fn().mockResolvedValue(true) }))
+jest.mock('@/lib/server/http/rate-limit', () => ({
   rateLimitCheck: jest.fn().mockResolvedValue(true),
 }))
 jest.mock('@/lib/utils/features/feature-flags', () => ({ featureFlags: { ringhub: () => true } }))

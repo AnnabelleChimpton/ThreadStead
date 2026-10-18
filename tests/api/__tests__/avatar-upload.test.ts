@@ -20,7 +20,7 @@ jest.mock('@/lib/config/database/connection', () => ({
   db: { profile: { upsert: jest.fn().mockResolvedValue({}) } },
 }));
 jest.mock('@/lib/auth/server', () => ({ getSessionUser: jest.fn() }));
-jest.mock('@/lib/middleware/generalRateLimiting', () => ({ rateLimitCheck: jest.fn().mockResolvedValue(true) }));
+jest.mock('@/lib/server/http/rate-limit', () => ({ rateLimitCheck: jest.fn().mockResolvedValue(true) }));
 jest.mock('@/lib/domain/users/capabilities', () => ({
   requireAction: jest.fn(() => async (token: string) => {
     if (token !== 'good-cap') throw new Error('cap: bad');

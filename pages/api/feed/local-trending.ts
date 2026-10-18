@@ -2,6 +2,7 @@ import { db } from "@/lib/config/database/connection";
 import { SITE_NAME } from "@/lib/config/site/constants";
 import { getUserBlockedIds, addBlockFiltersToWhere } from "@/lib/domain/users/blocks";
 import { apiHandler } from "@/lib/api/handler";
+import { parseLimit } from "@/lib/server/http/pagination";
 
 /**
  * Calculate trending score using the algorithm:
@@ -51,7 +52,7 @@ export default apiHandler(
   { methods: ["GET"], auth: "optional" },
   async (req, res, { user: viewer }) => {
     try {
-      const limit = Math.min(parseInt(String(req.query.limit || "20")), 50);
+      const limit = parseLimit(req.query.limit, { fallback: 20, max: 50 });
       const timeWindow = String(req.query.timeWindow || "week");
       const minViews = parseInt(String(req.query.minViews || "5"));
 

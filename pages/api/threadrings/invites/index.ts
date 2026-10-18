@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/config/database/connection";
 import { getSessionUser } from "@/lib/auth/server";
+import { parseOffsetPagination } from "@/lib/server/http/pagination";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
@@ -14,8 +15,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(401).json({ error: "Authentication required" });
     }
 
-    const limit = Math.min(parseInt(String(req.query.limit || "20")), 50);
-    const offset = parseInt(String(req.query.offset || "0"));
+    const { limit, offset } = parseOffsetPagination(req.query, { defaultLimit: 20, maxLimit: 50 });
     const status = String(req.query.status || "pending");
 
     // Validate status

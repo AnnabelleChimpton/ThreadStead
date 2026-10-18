@@ -7,24 +7,22 @@
 
 import { apiHandler } from '@/lib/api/handler'
 import { getServerEnv } from '@/lib/config/env'
-import { ringHubRateLimiter } from '@/lib/config/rate-limiting/limits'
+import { getRateLimitStats } from '@/lib/server/http/rate-limit'
 import { getKeyRotationStatus } from '@/lib/utils/scheduling/key-rotation'
 
 interface Metrics {
   timestamp: string
   uptime_seconds: number
-  ring_hub: {
-    requests_per_minute: number
-    requests_per_hour: number
-    rate_limit_allowed: boolean
-    connection_attempts: number
-    connection_failures: number
-  }
+  /** API rate limits per category, live from the RateLimit table. */
+  rate_limits: Record<string, {
+    limit: number
+    window_seconds: number
+    active_callers: number
+    limited_callers: number
+  }>
   authentication: {
     server_key_age_days: number
     server_key_rotation_overdue: boolean
-    did_document_checks: number
-    did_document_failures: number
   }
   features: {
     ring_hub_enabled: boolean
@@ -37,18 +35,9 @@ interface Metrics {
   }
 }
 
-// Simple metrics store (in production, use Redis or similar)
-const metricsStore = {
-  connectionAttempts: 0,
-  connectionFailures: 0,
-  didDocumentChecks: 0,
-  didDocumentFailures: 0
-}
-
 export default apiHandler({ methods: ['GET'], auth: 'admin' }, async (_req, res) => {
   try {
-    // Get rate limiting status
-    const rateLimitStatus = ringHubRateLimiter.getStatus()
+    const rateLimits = await getRateLimitStats()
     
     // Get key rotation status
     let keyRotationStatus
@@ -70,18 +59,17 @@ export default apiHandler({ methods: ['GET'], auth: 'admin' }, async (_req, res)
     const metrics: Metrics = {
       timestamp: new Date().toISOString(),
       uptime_seconds: Math.floor(process.uptime()),
-      ring_hub: {
-        requests_per_minute: rateLimitStatus.requestsInLastMinute,
-        requests_per_hour: rateLimitStatus.requestsInLastHour,
-        rate_limit_allowed: rateLimitStatus.allowed,
-        connection_attempts: metricsStore.connectionAttempts,
-        connection_failures: metricsStore.connectionFailures
-      },
+      rate_limits: Object.fromEntries(
+        Object.entries(rateLimits).map(([category, r]) => [category, {
+          limit: r.limit,
+          window_seconds: r.windowSeconds,
+          active_callers: r.activeCallers,
+          limited_callers: r.limitedCallers
+        }])
+      ),
       authentication: {
         server_key_age_days: keyRotationStatus?.server.keyAge || 0,
-        server_key_rotation_overdue: keyRotationStatus?.server.needsRotation || false,
-        did_document_checks: metricsStore.didDocumentChecks,
-        did_document_failures: metricsStore.didDocumentFailures
+        server_key_rotation_overdue: keyRotationStatus?.server.needsRotation || false
       },
       features: {
         ring_hub_enabled: env.NEXT_PUBLIC_USE_RING_HUB,
@@ -106,19 +94,3 @@ export default apiHandler({ methods: ['GET'], auth: 'admin' }, async (_req, res)
   }
 })
 
-// Helper functions to update metrics (call these from other parts of the app)
-export function incrementConnectionAttempts(): void {
-  metricsStore.connectionAttempts++
-}
-
-export function incrementConnectionFailures(): void {
-  metricsStore.connectionFailures++
-}
-
-export function incrementDIDDocumentChecks(): void {
-  metricsStore.didDocumentChecks++
-}
-
-export function incrementDIDDocumentFailures(): void {
-  metricsStore.didDocumentFailures++
-}

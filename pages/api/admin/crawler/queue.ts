@@ -7,6 +7,7 @@
 import { CrawlerWorker } from '@/lib/crawler/crawler-worker';
 import { apiHandler } from '@/lib/api/handler';
 import { getServerEnv } from '@/lib/config/env';
+import { parsePagePagination } from '@/lib/server/http/pagination';
 
 export default apiHandler(
   {
@@ -23,17 +24,16 @@ export default apiHandler(
         // Get queue items with pagination and filters
         const {
           status,
-          page = '1',
-          limit = '50',
           search,
           sortBy = 'scheduledFor',
           sortOrder = 'asc'
         } = req.query;
 
+        const { page, limit } = parsePagePagination(req.query, { defaultLimit: 50, maxLimit: 200 });
         const result = await worker.getQueueItems({
           status: status as string | undefined,
-          page: parseInt(page as string),
-          limit: parseInt(limit as string),
+          page,
+          limit,
           search: search as string | undefined,
           sortBy: sortBy as 'priority' | 'scheduledFor' | 'attempts',
           sortOrder: sortOrder as 'asc' | 'desc'

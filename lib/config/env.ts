@@ -42,7 +42,7 @@ export const SERVER_ENV_SPECS = [
     scope: 'server',
     group: 'Core',
     default: '3000',
-    description: 'Port server.js listens on; also used for SSR self-fetches (getInternalBaseUrl).',
+    description: 'Port server.ts listens on; also used for SSR self-fetches (getInternalBaseUrl).',
   },
   {
     name: 'INTERNAL_BASE_URL',
@@ -58,7 +58,7 @@ export const SERVER_ENV_SPECS = [
     scope: 'server',
     group: 'Core',
     default: 'false',
-    description: 'server.js: serve HTTPS on 0.0.0.0 for testing from a phone on the LAN.',
+    description: 'server.ts: serve HTTPS on 0.0.0.0 for testing from a phone on the LAN.',
   },
   {
     name: 'SITE_HANDLE_DOMAIN',
@@ -298,29 +298,6 @@ export const SERVER_ENV_SPECS = [
     default: '24',
     description: 'How often the key-rotation check runs.',
   },
-
-  // ── Rate limits (lib/config/rate-limiting/limits.ts) ────────────────────
-  ...(
-    [
-      ['RING_HUB_RATE_LIMIT_PER_MINUTE', '60', 'Ring Hub requests per minute.'],
-      ['RING_HUB_RATE_LIMIT_PER_HOUR', '1800', 'Ring Hub requests per hour.'],
-      ['RING_HUB_BURST_LIMIT', '10', 'Ring Hub burst size.'],
-      ['DID_CREATIONS_PER_HOUR', '100', 'DID creations per hour.'],
-      ['DID_ROTATIONS_PER_DAY', '5', 'DID key rotations per day.'],
-      ['WEBHOOK_RATE_LIMIT_PER_MINUTE', '30', 'Webhook requests per minute.'],
-      ['WEBHOOK_MAX_PAYLOAD_SIZE', '1048576', 'Max webhook payload, bytes.'],
-      ['USER_JOIN_REQUESTS_PER_HOUR', '20', 'Ring join requests per user per hour.'],
-      ['USER_POST_SUBMISSIONS_PER_MINUTE', '10', 'Ring post submissions per user per minute.'],
-      ['USER_SEARCH_REQUESTS_PER_MINUTE', '30', 'Searches per user per minute.'],
-    ] as const
-  ).map(([name, def, description]) => ({
-    name,
-    kind: 'int' as const,
-    scope: 'server' as const,
-    group: 'Rate limits',
-    default: def,
-    description,
-  })),
 
   // ── ThreadRing reconciliation ───────────────────────────────────────────
   {

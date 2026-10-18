@@ -3,13 +3,13 @@ import { db } from "@/lib/config/database/connection";
 import { SITE_NAME } from "@/lib/config/site/constants";
 import { calculateHotScore } from "@/lib/feed/ranking";
 import { apiHandler } from "@/lib/api/handler";
+import { parseOffsetPagination } from "@/lib/server/http/pagination";
 
 export default apiHandler(
   { methods: ["GET"], auth: "none" },
   async (req, res) => {
     try {
-      const limit = Math.min(parseInt(String(req.query.limit || "20")), 50);
-      const offset = parseInt(String(req.query.offset || "0"));
+      const { limit, offset } = parseOffsetPagination(req.query, { defaultLimit: 20, maxLimit: 50 });
 
       // Algorithm constants
 

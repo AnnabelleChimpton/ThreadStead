@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { createPromptService } from '@/lib/utils/data/prompt-service'
 import { withThreadRingSupport } from '@/lib/api/ringhub/ringhub-middleware'
+import { parsePagePagination } from '@/lib/server/http/pagination';
 
 export default withThreadRingSupport(async function handler(
   req: NextApiRequest,
@@ -27,9 +28,7 @@ export default withThreadRingSupport(async function handler(
         }
 
         // Pagination parameters
-        const page = parseInt(req.query.page as string) || 1
-        const limit = Math.min(parseInt(req.query.limit as string) || 20, 50)
-        const skip = (page - 1) * limit
+        const { page, limit, skip } = parsePagePagination(req.query, { defaultLimit: 20, maxLimit: 50 })
 
         // Get responses from Ring Hub
         const responses = await promptService.getPromptResponses(promptId)

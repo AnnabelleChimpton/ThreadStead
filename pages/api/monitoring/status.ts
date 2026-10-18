@@ -10,7 +10,7 @@ import { apiHandler } from '@/lib/api/handler'
 import { getServerEnv } from '@/lib/config/env'
 import { RingHubClient } from '@/lib/api/ringhub/ringhub-client'
 import { getKeyRotationStatus } from '@/lib/utils/scheduling/key-rotation'
-import { ringHubRateLimiter } from '@/lib/config/rate-limiting/limits'
+import { getRateLimitStats, type RateLimitCategory, type RateLimitCategoryStats } from '@/lib/server/http/rate-limit'
 import { testRingHubConnection, validateRingHubConfig } from '@/lib/api/ringhub/ringhub-test-utils'
 import { getOrCreateServerKeypair } from '@/lib/api/did/server-did-client'
 
@@ -33,13 +33,8 @@ interface MonitoringStatus {
       keyAge: number
       keyRotationDue: string
     }
-    rateLimiting: {
-      ringHubRequests: {
-        requestsInLastMinute: number
-        requestsInLastHour: number
-        allowed: boolean
-      }
-    }
+    /** API rate limits per category, live from the RateLimit table (null if unreadable). */
+    rateLimiting: Record<RateLimitCategory, RateLimitCategoryStats> | null
     features: {
       ringHubEnabled: boolean
       threadRingsEnabled: boolean
@@ -106,8 +101,12 @@ export default apiHandler({ methods: ['GET'], auth: 'admin' }, async (_req, res)
       warnings.push(...configValidation.warnings)
     }
 
-    // Get rate limiting status
-    const rateLimitStatus = ringHubRateLimiter.getStatus()
+    let rateLimiting: MonitoringStatus['services']['rateLimiting'] = null
+    try {
+      rateLimiting = await getRateLimitStats()
+    } catch {
+      warnings.push('Rate limit stats unavailable')
+    }
 
     // Check for issues that affect health status
     if (!ringHubTest.success) {
@@ -151,13 +150,7 @@ export default apiHandler({ methods: ['GET'], auth: 'admin' }, async (_req, res)
           keyAge: keyRotationStatus?.server.keyAge || 0,
           keyRotationDue: keyRotationStatus?.server.nextRotationDue || new Date().toISOString()
         },
-        rateLimiting: {
-          ringHubRequests: {
-            requestsInLastMinute: rateLimitStatus.requestsInLastMinute,
-            requestsInLastHour: rateLimitStatus.requestsInLastHour,
-            allowed: rateLimitStatus.allowed
-          }
-        },
+        rateLimiting,
         features: {
           ringHubEnabled: env.NEXT_PUBLIC_USE_RING_HUB,
           threadRingsEnabled: env.NEXT_PUBLIC_THREADRINGS_ENABLED,
@@ -207,13 +200,7 @@ export default apiHandler({ methods: ['GET'], auth: 'admin' }, async (_req, res)
           keyAge: 0,
           keyRotationDue: new Date().toISOString()
         },
-        rateLimiting: {
-          ringHubRequests: {
-            requestsInLastMinute: 0,
-            requestsInLastHour: 0,
-            allowed: true
-          }
-        },
+        rateLimiting: null,
         features: {
           ringHubEnabled: false,
           threadRingsEnabled: false,

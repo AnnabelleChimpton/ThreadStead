@@ -1,6 +1,7 @@
 import { db } from "@/lib/config/database/connection";
 
 import { apiHandler } from "@/lib/api/handler";
+import { parseLimit } from "@/lib/server/http/pagination";
 
 const EXCERPT_LENGTH = 120;
 
@@ -21,7 +22,7 @@ export default apiHandler(
   },
   async (req, res, { user }) => {
     if (req.method === "GET") {
-      const { limit = "20", status } = req.query;
+      const { status } = req.query;
 
       const whereClause: any = {
         recipientId: user.id,
@@ -50,7 +51,7 @@ export default apiHandler(
         orderBy: {
           createdAt: "desc",
         },
-        take: Math.min(Math.max(parseInt(String(limit), 10) || 20, 1), 100),
+        take: parseLimit(req.query.limit, { fallback: 20, max: 100 }),
       });
 
       // "X signed your guestbook" shows the note itself. Read it live so a

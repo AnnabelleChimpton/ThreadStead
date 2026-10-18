@@ -2,6 +2,7 @@ import { db } from "@/lib/config/database/connection";
 
 import { SITE_NAME } from "@/lib/config/site/constants";
 import { apiHandler } from "@/lib/api/handler";
+import { parseOffsetPagination } from "@/lib/server/http/pagination";
 
 
 
@@ -9,8 +10,7 @@ export default apiHandler(
   { methods: ["GET"], auth: "none" },
   async (req, res) => {
     try {
-      const limit = Math.min(Math.max(parseInt(String(req.query.limit || "20"), 10) || 20, 1), 50);
-      const offset = Math.max(parseInt(String(req.query.offset || "0"), 10) || 0, 0);
+      const { limit, offset } = parseOffsetPagination(req.query, { defaultLimit: 20, maxLimit: 50 });
 
       const posts = await db.post.findMany({
         where: {

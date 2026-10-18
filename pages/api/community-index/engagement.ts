@@ -1,5 +1,6 @@
 import { apiHandler } from '@/lib/api/handler';
 import { db } from '@/lib/config/database/connection';
+import { parseLimit } from '@/lib/server/http/pagination';
 
 /**
  * Engagement Metrics API
@@ -11,10 +12,10 @@ export default apiHandler(
   { methods: ['GET'], auth: 'none' },
   async (req, res) => {
     try {
-      const { period = '30d', limit = '20' } = req.query;
+      const { period = '30d' } = req.query;
 
       // Calculate engagement metrics for sites
-      const metrics = await calculateEngagementMetrics(period as string, parseInt(limit as string));
+      const metrics = await calculateEngagementMetrics(period as string, parseLimit(req.query.limit, { fallback: 20, max: 100 }));
 
       return res.json({
         success: true,

@@ -2,6 +2,7 @@ import type { NextApiResponse } from 'next';
 import { apiHandler } from '@/lib/api/handler';
 import { db } from '../../../lib/config/database/connection';
 import { ConsentType, ConsentAction } from '@prisma/client';
+import { getClientIp } from '@/lib/server/http/client-ip';
 
 interface WithdrawRequest {
   type?: ConsentType; // If not provided, withdraws all non-essential consents
@@ -26,9 +27,7 @@ export default apiHandler(
       }
 
       // Get client IP and user agent for audit trail
-      const ipAddress = (req.headers['x-forwarded-for'] as string)?.split(',')[0] ||
-                       req.connection.remoteAddress ||
-                       null;
+      const ipAddress = getClientIp(req);
       const userAgent = req.headers['user-agent'] || null;
 
       await db.$transaction(async (tx) => {

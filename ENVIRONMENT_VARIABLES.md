@@ -31,9 +31,9 @@ Unset, the branding falls back to "YourSiteHere". Set `SITE_HANDLE_DOMAIN` and `
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `DATABASE_URL` 🔒 | required | — | PostgreSQL connection string. Pool settings are appended by lib/config/database/connection.ts. |
-| `PORT` | — | `3000` | Port server.js listens on; also used for SSR self-fetches (getInternalBaseUrl). Integer. |
+| `PORT` | — | `3000` | Port server.ts listens on; also used for SSR self-fetches (getInternalBaseUrl). Integer. |
 | `INTERNAL_BASE_URL` | — | — | Override for SSR self-fetches. Default http://127.0.0.1:$PORT. Only needed when the app does not listen on loopback (e.g. MOBILE_TESTING HTTPS mode). |
-| `MOBILE_TESTING` | — | `false` | server.js: serve HTTPS on 0.0.0.0 for testing from a phone on the LAN. `true`/`false`. |
+| `MOBILE_TESTING` | — | `false` | server.ts: serve HTTPS on 0.0.0.0 for testing from a phone on the LAN. `true`/`false`. |
 
 ## Site
 
@@ -92,21 +92,6 @@ Unset, the branding falls back to "YourSiteHere". Set `SITE_HANDLE_DOMAIN` and `
 | `THREADSTEAD_SERVER_KEY_ROTATION_DAYS` | — | `365` | Server key age (days) before rotation is reported as due. Integer. |
 | `THREADSTEAD_USER_KEY_ROTATION_DAYS` | — | `730` | User key age (days) before rotation is due. Integer. |
 | `THREADSTEAD_KEY_CHECK_INTERVAL_HOURS` | — | `24` | How often the key-rotation check runs. Integer. |
-
-## Rate limits
-
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `RING_HUB_RATE_LIMIT_PER_MINUTE` | — | `60` | Ring Hub requests per minute. Integer. |
-| `RING_HUB_RATE_LIMIT_PER_HOUR` | — | `1800` | Ring Hub requests per hour. Integer. |
-| `RING_HUB_BURST_LIMIT` | — | `10` | Ring Hub burst size. Integer. |
-| `DID_CREATIONS_PER_HOUR` | — | `100` | DID creations per hour. Integer. |
-| `DID_ROTATIONS_PER_DAY` | — | `5` | DID key rotations per day. Integer. |
-| `WEBHOOK_RATE_LIMIT_PER_MINUTE` | — | `30` | Webhook requests per minute. Integer. |
-| `WEBHOOK_MAX_PAYLOAD_SIZE` | — | `1048576` | Max webhook payload, bytes. Integer. |
-| `USER_JOIN_REQUESTS_PER_HOUR` | — | `20` | Ring join requests per user per hour. Integer. |
-| `USER_POST_SUBMISSIONS_PER_MINUTE` | — | `10` | Ring post submissions per user per minute. Integer. |
-| `USER_SEARCH_REQUESTS_PER_MINUTE` | — | `30` | Searches per user per minute. Integer. |
 
 ## ThreadRing reconciliation
 

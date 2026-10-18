@@ -6,8 +6,8 @@ import { getSessionUser } from "@/lib/auth/server";
 import { cleanAndNormalizeHtml, markdownToSafeHtml } from "@/lib/utils/sanitization/html";
 import { validatePostTitle } from "@/lib/domain/validation";
 import { generateTextPreview, generateExcerpt } from "@/lib/domain/posts/ringhub-metadata";
-import { withCsrfProtection } from "@/lib/api/middleware/withCsrfProtection";
-import { withRateLimit } from "@/lib/api/middleware/withRateLimit";
+import { withCsrfProtection } from "@/lib/server/http/csrf";
+import { withRateLimit } from "@/lib/server/http/rate-limit";
 import type { RingPostResult } from "@/lib/domain/posts/ring-submission";
 import { sendPostToRings } from "@/lib/domain/posts/send-to-rings";
 
