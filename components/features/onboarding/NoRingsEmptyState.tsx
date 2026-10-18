@@ -1,8 +1,10 @@
 import Link from 'next/link';
 import { useState } from 'react';
+import { useWelcomeRingMissing, WELCOME_RING_PATH } from './useWelcomeRing';
 
 export default function NoRingsEmptyState() {
   const [isHovering, setIsHovering] = useState(false);
+  const welcomeRingMissing = useWelcomeRingMissing();
 
   return (
     <div className="text-center py-12 bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl border-2 border-dashed border-purple-200 relative overflow-hidden">
@@ -24,13 +26,17 @@ export default function NoRingsEmptyState() {
       </p>
       
       <div className="space-y-3">
-        <Link href="/tr/welcome">
-          <button className="bg-purple-200 hover:bg-purple-300 px-6 py-3 rounded-lg border-2 border-purple-400 shadow-[3px_3px_0_#7c3aed] font-bold transition-all hover:translate-y-[-2px] hover:shadow-[4px_4px_0_#7c3aed] transform">
-            Start with Welcome Ring
-          </button>
-        </Link>
-        
-        <div className="text-purple-500">or</div>
+        {!welcomeRingMissing && (
+          <>
+            <Link href={WELCOME_RING_PATH}>
+              <button className="bg-purple-200 hover:bg-purple-300 px-6 py-3 rounded-lg border-2 border-purple-400 shadow-[3px_3px_0_#7c3aed] font-bold transition-all hover:translate-y-[-2px] hover:shadow-[4px_4px_0_#7c3aed] transform">
+                Start with Welcome Ring
+              </button>
+            </Link>
+
+            <div className="text-purple-500">or</div>
+          </>
+        )}
         
         <Link href="/threadrings">
           <button className="bg-white hover:bg-gray-50 px-6 py-3 rounded-lg border-2 border-purple-200 shadow-[2px_2px_0_#e5e7eb] transition-all hover:translate-y-[-1px]">

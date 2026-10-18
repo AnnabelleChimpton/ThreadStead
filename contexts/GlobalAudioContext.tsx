@@ -544,18 +544,21 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
     setState(prev => ({ ...prev, profileMidiPlaying: playing }));
   }, []);
 
-  // Stop signup audio when navigating away from profile page (but not during signup flow)
+  // Stop signup audio when navigating away from the page signup lands on
+  // (the logged-in home's welcome view, or a profile), but not during signup
   useEffect(() => {
+    const isWelcomeLanding = (path: string) => path.includes('/resident/') || path.startsWith('/?welcome=1');
+
     const handleRouteChangeStart = (url: string) => {
       // Only handle cleanup if audio is playing
       if (state.isPlaying) {
         const currentPath = router.asPath;
 
         // Check if we're currently on a profile page
-        const isCurrentlyOnProfile = currentPath.includes('/resident/');
+        const isCurrentlyOnProfile = isWelcomeLanding(currentPath);
 
         // Check if we're navigating to a profile page
-        const isNavigatingToProfile = url.includes('/resident/');
+        const isNavigatingToProfile = isWelcomeLanding(url);
 
         // Check if we're coming from signup (signup page would be in the path)
         const isComingFromSignup = currentPath.includes('/signup');

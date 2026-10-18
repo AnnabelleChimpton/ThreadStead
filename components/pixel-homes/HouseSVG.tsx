@@ -52,7 +52,7 @@ export interface AtmosphereSettings {
   timeOfDay: 'morning' | 'midday' | 'evening' | 'night'
 }
 
-const PALETTE_COLORS = {
+export const PALETTE_COLORS = {
   thread_sage: { primary: '#A18463', secondary: '#2E4B3F', accent: '#8EC5E8', base: '#F5E9D4', detail: '#4FAF6D' },
   charcoal_nights: { primary: '#2F2F2F', secondary: '#B8B8B8', accent: '#E27D60', base: '#FCFAF7', detail: '#A18463' },
   pixel_petals: { primary: '#E27D60', secondary: '#4FAF6D', accent: '#8EC5E8', base: '#F5E9D4', detail: '#2E4B3F' },

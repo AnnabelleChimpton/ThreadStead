@@ -46,7 +46,7 @@ export default function HomeHero({ siteConfig, userCount }: HomeHeroProps) {
                     </Link>
 
                     <Link
-                        href="/feed"
+                        href="/neighborhood/explore/all"
                         className="btn btn--secondary btn--lg inline-block px-6 py-3 text-lg font-bold no-underline bg-thread-paper text-thread-pine border-2 border-thread-sage rounded-md shadow-cozy-sm active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
                     >
                         <span>Have a look around</span>
@@ -61,7 +61,7 @@ export default function HomeHero({ siteConfig, userCount }: HomeHeroProps) {
                     <span aria-hidden="true">·</span>
                     <Link href="/help/faq" className="py-1">FAQ</Link>
                     <span aria-hidden="true">·</span>
-                    <Link href="/neighborhood/explore/all" className="py-1">Walk the neighborhoods</Link>
+                    <Link href="/feed" className="py-1">Read the feed</Link>
                 </div>
 
                 {/* Real resident count (hidden when zero) */}

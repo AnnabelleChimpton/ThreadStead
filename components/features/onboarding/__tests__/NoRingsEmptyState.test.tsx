@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import NoRingsEmptyState from '../NoRingsEmptyState';
 
@@ -261,6 +261,26 @@ describe('NoRingsEmptyState Component', () => {
       
       const description = screen.getByText(/A ring is a small group around one topic/);
       expect(description).toHaveClass('mb-6');
+    });
+  });
+
+  describe('Welcome Ring missing', () => {
+    const realFetch = global.fetch;
+    afterEach(() => { global.fetch = realFetch; });
+
+    it('drops the Welcome Ring link when the ring does not exist', async () => {
+      global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 404 }) as any;
+      render(<NoRingsEmptyState />);
+      await waitFor(() => expect(screen.queryByText('Start with Welcome Ring')).not.toBeInTheDocument());
+      expect(screen.queryByText('or')).not.toBeInTheDocument();
+      expect(screen.getByText('Browse All Rings').closest('a')).toHaveAttribute('href', '/threadrings');
+    });
+
+    it('keeps the link when the hub is just unreachable', async () => {
+      global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 503 }) as any;
+      render(<NoRingsEmptyState />);
+      await waitFor(() => expect(global.fetch).toHaveBeenCalledWith('/api/threadrings/welcome'));
+      expect(screen.getByText('Start with Welcome Ring')).toBeInTheDocument();
     });
   });
 });

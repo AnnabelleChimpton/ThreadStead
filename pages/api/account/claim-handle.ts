@@ -51,7 +51,7 @@ export default apiHandler(
           data: {
             userId: user.id,
             displayName: handle,
-            bio: `Hi, I'm ${handle}! Welcome to my retro page.`,
+            // No placeholder bio: the owner writes their own (or leaves it blank)
             avatarUrl: "/assets/default-avatar.gif",
             visibility: "public",
           },

@@ -5,6 +5,7 @@ import { useRouter } from "next/router";
 import Layout from "@/components/ui/layout/Layout";
 import UsernameSelector from "@/components/features/auth/UsernameSelector";
 import WelcomeRingOptIn from "@/components/features/onboarding/WelcomeRingOptIn";
+import { welcomeRingExists, WELCOME_RING_PATH } from "@/components/features/onboarding/useWelcomeRing";
 import { PixelIcon } from '@/components/ui/PixelIcon';
 
 type OnboardingStep = 'username' | 'welcome-ring' | 'complete';
@@ -53,9 +54,8 @@ export default function Onboarding() {
     setErr(null);
     
     if (joinWelcomeRing) {
-      // If they want to join, redirect directly to Welcome Ring
-      // This will let them join manually if needed, or see the ring if it exists
-      router.push(`/tr/welcome`);
+      // Straight to the Welcome Ring, or to all rings if this site has none
+      router.push((await welcomeRingExists()) === false ? '/threadrings' : WELCOME_RING_PATH);
     } else {
       // If they skip, go to their profile
       router.push(`/resident/${username}`);

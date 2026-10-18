@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
-import { ProfileTemplateType } from '@/lib/templates/default-profile-templates';
 import { useGlobalAudio } from '@/contexts/GlobalAudioContext';
 import dynamic from 'next/dynamic';
 import { PixelIcon } from '@/components/ui/PixelIcon';
@@ -13,11 +12,10 @@ const MidiPlayer = dynamic(() => import('@/components/ui/media/MidiPlayer'), {
 
 interface SignupFinaleAnimationProps {
   username: string;
-  selectedTheme?: ProfileTemplateType;
   onComplete?: () => void;
 }
 
-export default function SignupFinaleAnimation({ username, onComplete }: SignupFinaleAnimationProps) {
+export default function SignupFinaleAnimation({ onComplete }: SignupFinaleAnimationProps) {
   const router = useRouter();
   const audioRef = useRef<HTMLAudioElement>(null);
   const [currentStep, setCurrentStep] = useState<'fadeOut' | 'terminal' | 'fadeIn'>('fadeOut');
@@ -145,14 +143,14 @@ export default function SignupFinaleAnimation({ username, onComplete }: SignupFi
     } else if (currentStep === 'fadeIn') {
       // Give fade animation a moment to start, then navigate for seamless transition
       const timer = setTimeout(() => {
-        // Audio will continue seamlessly via global context - no need for sessionStorage!
-        
-        router.push(`/resident/${username}?welcomeHome=true`);
+        // Land on the logged-in home: the new house and the first-steps list.
+        // The welcome music keeps playing via the global audio context.
+        router.push('/?welcome=1');
         onComplete?.();
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [currentStep, username, router, onComplete]);
+  }, [currentStep, router, onComplete]);
 
   return (
     <div className="thread-surface fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-8 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">

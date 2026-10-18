@@ -7,7 +7,6 @@ import Head from "next/head";
 
 import Layout from "@/components/ui/layout/Layout";
 import RetroCard from "@/components/ui/layout/RetroCard";
-import { PixelIcon } from "@/components/ui/PixelIcon";
 import Guestbook from "@/components/shared/Guestbook";
 import Tabs, { TabSpec } from "@/components/ui/navigation/Tabs";
 import { Website } from "@/components/shared/WebsiteManager";
@@ -26,9 +25,8 @@ import type { ResidentData } from "@/components/features/templates/ResidentDataP
 import type { TemplateNode } from "@/lib/templates/compilation/template-parser";
 import { mapProfileCSSModeToComponentMode } from "@/lib/utils/css/css-mode-mapper";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useRouter } from "next/router";
 import dynamic from 'next/dynamic';
-import { useGlobalAudio } from "@/contexts/GlobalAudioContext";
+import WelcomeMusicControl from "@/components/features/onboarding/WelcomeMusicControl";
 import { contentMetadataGenerator } from "@/lib/utils/metadata/content-metadata";
 import { getSiteCSS } from "@/lib/utils/css/site-css-server";
 import { generateOptimizedCSS } from "@/lib/utils/css/layers";
@@ -37,10 +35,6 @@ import { serializeJsonLd } from "@/lib/utils/sanitization/json-ld";
 
 
 // Dynamically import components to avoid SSR issues
-const WelcomeHomeOverlay = dynamic(() => import('@/components/features/onboarding/WelcomeHomeOverlay'), {
-  ssr: false
-});
-
 const MidiPlayer = dynamic(() => import('@/components/ui/media/MidiPlayer'), {
   ssr: false,
   loading: () => <div className="hidden" />
@@ -120,24 +114,8 @@ export default function ProfilePage({
     avatarUrl: photoUrl,
     joinedAt: userJoinedAt,
   });
-  const router = useRouter();
   const [relStatus, setRelStatus] = React.useState<string>("loading");
-  const [showWelcomeHome, setShowWelcomeHome] = React.useState(false);
-  const [isFirstVisit, setIsFirstVisit] = React.useState(false);
-  const [isMuted, setIsMuted] = React.useState(false);
-  const [previousVolume, setPreviousVolume] = React.useState(0.7);
-
-  // Check for welcomeHome parameter from signup animation
-  React.useEffect(() => {
-    if (router.query.welcomeHome === 'true') {
-      setShowWelcomeHome(true);
-      setIsFirstVisit(true); // Track that this is the first visit
-      // Clean up URL without causing re-render
-      router.replace(`/resident/${username}`, undefined, { shallow: true });
-    }
-  }, [router, username]);
   const { user: currentUser } = useCurrentUser();
-  const globalAudio = useGlobalAudio();
 
   const isOwner = currentUser?.id === ownerUserId;
 
@@ -354,47 +332,8 @@ export default function ProfilePage({
           />
         )}
 
-        {/* Global Audio Player - Shows when global audio is playing on first visit only */}
-        {globalAudio.state.isPlaying && !profileMidi && isFirstVisit && (
-          <div className="fixed bottom-4 right-4 z-50">
-            <div className="bg-white rounded-lg shadow-lg border-2 border-black p-3">
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => {
-                    if (isMuted) {
-                      // Unmute: restore previous volume
-                      globalAudio.setVolume(previousVolume);
-                      setIsMuted(false);
-                    } else {
-                      // Mute: save current volume and set to 0
-                      setPreviousVolume(globalAudio.state.volume);
-                      globalAudio.setVolume(0);
-                      setIsMuted(true);
-                    }
-                  }}
-                  className="w-10 h-10 flex items-center justify-center bg-gray-500 hover:bg-gray-600 text-white rounded-full transition-colors"
-                  aria-label={isMuted ? 'Unmute Music' : 'Mute Music'}
-                >
-                  <PixelIcon name={isMuted ? 'volume-x' : 'volume'} size={20} />
-                </button>
-                <div className="flex-1">
-                  <div className="text-sm font-medium">Welcome Music</div>
-                  <div className="text-xs text-gray-500">
-                    {isMuted ? 'Click to unmute' : 'Click to mute'}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Welcome Home overlay for new users */}
-        {showWelcomeHome && (
-          <WelcomeHomeOverlay
-            username={username}
-            onComplete={() => setShowWelcomeHome(false)}
-          />
-        )}
+        {/* Signup's welcome music, if it followed the new resident here */}
+        {!profileMidi && <WelcomeMusicControl />}
       </ProfileLayout>
     </>
   );

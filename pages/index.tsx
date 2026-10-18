@@ -22,6 +22,9 @@ import { PixelIcon } from '@/components/ui/PixelIcon';
 import CommunityTicker from "@/components/CommunityTicker";
 import HomeHero from "@/components/home/HomeHero";
 import { serializeJsonLd } from "@/lib/utils/sanitization/json-ld";
+import FirstStepsChecklist, { FIRST_STEPS_HIDDEN_COOKIE } from "@/components/features/onboarding/FirstStepsChecklist";
+import WelcomeMusicControl from "@/components/features/onboarding/WelcomeMusicControl";
+import { getFirstSteps, FirstSteps } from "@/lib/domain/users/first-steps";
 
 interface HomeProps {
   siteConfig: SiteConfig;
@@ -44,6 +47,10 @@ interface HomeProps {
   };
   customLandingPageSlug?: string;
   userCount?: number;
+  // Logged-in newcomers: their first-steps list (null once the account is older)
+  firstSteps?: FirstSteps | null;
+  // Shown with the list when arriving from signup
+  foundersNote?: string | null;
 }
 
 interface UserHomeConfig {
@@ -244,7 +251,7 @@ function UserPixelHome({ user }: { user: any }) {
   );
 }
 
-function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImageUrl, userCount }: { siteConfig: SiteConfig; user?: any; customLandingPageSlug?: string; ogImageUrl: string; userCount?: number }) {
+function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImageUrl, userCount, firstSteps, foundersNote }: { siteConfig: SiteConfig; user?: any; customLandingPageSlug?: string; ogImageUrl: string; userCount?: number; firstSteps?: FirstSteps | null; foundersNote?: string | null }) {
   const router = useRouter();
 
   // Generate metadata for personalized homepage
@@ -410,6 +417,13 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
 
             {/* Center - Pixel Home (First on mobile for prominence) */}
             <div className="lg:col-span-6 lg:order-2">
+              {user?.primaryHandle && firstSteps && (
+                <FirstStepsChecklist
+                  username={user.primaryHandle.split('@')[0]}
+                  steps={firstSteps}
+                  foundersNote={foundersNote || undefined}
+                />
+              )}
               <SimpleCard title={user ? "Your Pixel Home" : "Demo Pixel Home"}>
                 {user ? (
                   <>
@@ -455,12 +469,13 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
             </div>
           </div>
         </div>
+        {user && <WelcomeMusicControl />}
       </Layout>
     </>
   );
 }
 
-export default function Home({ siteConfig, pageType, user, customPage, customLandingPageSlug, ogImageUrl, userCount }: HomeProps & { userCount?: number }) {
+export default function Home({ siteConfig, pageType, user, customPage, customLandingPageSlug, ogImageUrl, userCount, firstSteps, foundersNote }: HomeProps) {
   // Route to appropriate component based on pageType
   switch (pageType) {
     case 'custom':
@@ -476,7 +491,7 @@ export default function Home({ siteConfig, pageType, user, customPage, customLan
     case 'unified':
     default:
       // 'unified' is the error fallback from getServerSideProps: the visitor homepage
-      return <PersonalizedHomepage siteConfig={siteConfig} user={user} customLandingPageSlug={customLandingPageSlug} ogImageUrl={ogImageUrl} userCount={userCount} />;
+      return <PersonalizedHomepage siteConfig={siteConfig} user={user} customLandingPageSlug={customLandingPageSlug} ogImageUrl={ogImageUrl} userCount={userCount} firstSteps={firstSteps} foundersNote={foundersNote} />;
   }
 }
 
@@ -533,11 +548,24 @@ export const getServerSideProps: GetServerSideProps<HomeProps> = async (context)
       }
 
       // 3. Default: Logged-in user gets personalized homepage
+      const handle = user.primaryHandle?.split('@')[0];
+      const listHidden = !!handle && context.req.cookies?.[FIRST_STEPS_HIDDEN_COOKIE] === handle;
+      const firstSteps = listHidden ? null : await getFirstSteps(user.id).catch((err) => {
+        console.error('First steps lookup failed:', err);
+        return null;
+      });
+      // Arriving from signup: the founder's note rides along with the list
+      const foundersNote = firstSteps && context.query.welcome === '1'
+        ? (await db.siteConfig.findUnique({ where: { key: 'founders_note' } }).catch(() => null))?.value || null
+        : null;
+
       return {
         props: {
           siteConfig,
           pageType: 'homepage' as const,
           ogImageUrl,
+          firstSteps,
+          foundersNote,
           user: {
             id: user.id,
             did: user.did,

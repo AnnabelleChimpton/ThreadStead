@@ -9,6 +9,7 @@ import Link from "next/link";
 import FeatureGate, { NewUserTooltip } from "@/components/features/onboarding/FeatureGate";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { PixelIcon } from "@/components/ui/PixelIcon";
+import { useWelcomeRingMissing, WELCOME_RING_PATH } from "@/components/features/onboarding/useWelcomeRing";
 
 interface GettingStartedProps {
   siteConfig: SiteConfig;
@@ -17,6 +18,7 @@ interface GettingStartedProps {
 export default function GettingStarted({ siteConfig }: GettingStartedProps) {
   const [activeTab, setActiveTab] = useState<"overview" | "threadrings" | "profiles" | "pixel-homes" | "social" | "content">("overview");
   const { user } = useCurrentUser();
+  const welcomeRingMissing = useWelcomeRingMissing();
 
   const TabButton = ({
     tabId,
@@ -59,7 +61,11 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                 Each tab below covers one part of the site: rings, your page, your house, the social bits, and posting.
               </p>
               <p className="flex flex-wrap gap-3 pt-2">
-                <ButtonLink href="/tr/welcome">Start with Welcome Ring</ButtonLink>
+                {welcomeRingMissing ? (
+                  <ButtonLink href="/threadrings">Browse Rings</ButtonLink>
+                ) : (
+                  <ButtonLink href={WELCOME_RING_PATH}>Start with Welcome Ring</ButtonLink>
+                )}
                 <ButtonLink href="/settings/profile" variant="secondary">Customize Profile</ButtonLink>
               </p>
             </>
@@ -130,13 +136,15 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                     <div className="space-y-3">
                       <h3 className="font-bold text-lg">Quick Actions</h3>
                       <div className="space-y-2">
-                        <Link 
-                          href="/tr/welcome" 
-                          className="ts-card-link block p-3 border-2 border-dotted border-nb-ink-mid/60 rounded-md hover:border-solid hover:border-nb-ink-mid"
-                        >
-                          <div className="font-medium">Try Welcome Ring</div>
-                          <div className="text-sm text-nb-ink-mid">A five-step tour of how rings work</div>
-                        </Link>
+                        {!welcomeRingMissing && (
+                          <Link
+                            href={WELCOME_RING_PATH}
+                            className="ts-card-link block p-3 border-2 border-dotted border-nb-ink-mid/60 rounded-md hover:border-solid hover:border-nb-ink-mid"
+                          >
+                            <div className="font-medium">Try Welcome Ring</div>
+                            <div className="text-sm text-nb-ink-mid">A five-step tour of how rings work</div>
+                          </Link>
+                        )}
                         <Link 
                           href="/post/new" 
                           className="ts-card-link block p-3 border-2 border-dotted border-nb-ink-mid/60 rounded-md hover:border-solid hover:border-nb-ink-mid"

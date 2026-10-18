@@ -35,6 +35,7 @@ export default function ProfileHeader({
   const { openDM } = useChat();
 
   const showMessageButton = currentUser && ownerUserId && currentUser.id !== ownerUserId;
+  const isOwner = !!currentUser && !!ownerUserId && currentUser.id === ownerUserId;
 
   return (
     <div className="ts-profile-header" data-component="profile-header">
@@ -51,12 +52,17 @@ export default function ProfileHeader({
               {config.user_status_text}
             </span>
           </div>
-          {bio && (
+          {bio ? (
             <div className="ts-profile-bio-section mb-4">
               <p className="ts-profile-bio text-thread-charcoal leading-relaxed">
                 {bio}
               </p>
             </div>
+          ) : isOwner && (
+            // Only the owner sees this; visitors just see no bio
+            <p className="ts-profile-bio-prompt mb-4 text-sm">
+              <Link href="/settings">Add a bio</Link>
+            </p>
           )}
           <div className="ts-profile-actions flex items-center gap-3 flex-wrap">
             {relStatus === "friends" && <FriendBadge />}

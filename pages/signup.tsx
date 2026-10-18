@@ -8,37 +8,46 @@ import { PixelIcon } from '@/components/ui/PixelIcon';
 import { validatePasswordStrength } from "@/lib/auth/password";
 import { validateUsername } from "@/lib/domain/validation/username";
 import { DEFAULT_PROFILE_TEMPLATE_INFO, ProfileTemplateType } from "@/lib/templates/default-profile-templates";
-import { getTemplatePreviewStyle, getTemplateGradientOverlay, TEMPLATE_PREVIEW_STYLES } from "@/lib/templates/rendering/template-preview-styles";
 import SignupFinaleAnimation from "@/components/features/onboarding/SignupFinaleAnimation";
 import { useGlobalAudio } from "@/contexts/GlobalAudioContext";
 import { getSiteConfig, SiteConfig } from "@/lib/config/site/dynamic";
+import { isBetaKeysEnabled } from "@/lib/config/beta-keys";
+import HousePicker from "@/components/home/HousePicker";
+import {
+  DEFAULT_HOUSE_CHOICE, HouseChoice, PAGE_THEME_FOR_PALETTE,
+  parseHouseChoice, readHouseChoice, saveHouseChoice, clearHouseChoice,
+} from "@/lib/pixel-homes/house-choice";
 import imageCompression from 'browser-image-compression';
 import { fetchAuthMe } from "@/hooks/useCurrentUser";
+import { csrfFetch } from "@/lib/api/client/csrf-fetch";
 
 interface SignupPageProps {
   betaKey?: string | null;
+  betaRequired: boolean;
   siteConfig: SiteConfig;
 }
-import { csrfFetch } from "@/lib/api/client/csrf-fetch";
 
-type SignupStep = 'welcome' | 'auth-method' | 'password-setup' | 'seed-phrase' | 'email' | 'guidelines' | 'profile' | 'template' | 'finale';
+type SignupStep = 'welcome' | 'auth-method' | 'password-setup' | 'seed-phrase' | 'email' | 'guidelines' | 'profile' | 'house' | 'finale';
 type AuthMethod = 'password' | 'seedphrase';
 
 // Steps after the account exists. Progress through them is remembered so a
 // reload (or a return visit while signed in) resumes instead of restarting.
-const RESUMABLE_STEPS: SignupStep[] = ['email', 'guidelines', 'profile', 'template'];
+const RESUMABLE_STEPS: SignupStep[] = ['email', 'guidelines', 'profile', 'house'];
 const PROGRESS_KEY = 'ts-signup-progress';
 
 function readSavedStep(username: string): SignupStep | null {
   try {
     const saved = JSON.parse(localStorage.getItem(PROGRESS_KEY) || 'null');
-    return saved?.username === username && RESUMABLE_STEPS.includes(saved.step) ? saved.step : null;
+    if (saved?.username !== username) return null;
+    // 'template' was this step's name before the house picker
+    const step = saved.step === 'template' ? 'house' : saved.step;
+    return RESUMABLE_STEPS.includes(step) ? step : null;
   } catch {
     return null;
   }
 }
 
-export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPageProps) {
+export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEnabled, siteConfig }: SignupPageProps) {
   const router = useRouter();
   const globalAudio = useGlobalAudio();
   const [currentStep, setCurrentStep] = useState<SignupStep>('welcome');
@@ -55,7 +64,6 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
   const [username, setUsername] = useState('');
   const [betaKey, setBetaKey] = useState(urlBetaKey || '');
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
-  const [isBetaEnabled, setIsBetaEnabled] = useState<boolean>(true); // Default to true for safe fallback
 
   // Step 2: Password Setup (if password auth)
   const [password, setPassword] = useState('');
@@ -71,8 +79,11 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
   const [email, setEmail] = useState('');
   const [skipEmail, setSkipEmail] = useState(false);
 
-  // Step 4: Template Selection
-  const [selectedTemplate, setSelectedTemplate] = useState<ProfileTemplateType>('abstract-art');
+  // House step: the house (maybe picked on the homepage demo) and, quietly,
+  // the profile page theme, which matches the house unless changed
+  const [houseChoice, setHouseChoice] = useState<HouseChoice>(DEFAULT_HOUSE_CHOICE);
+  const [pageTheme, setPageTheme] = useState<ProfileTemplateType | null>(null);
+  const selectedTemplate = pageTheme ?? PAGE_THEME_FOR_PALETTE[houseChoice.palette];
 
   // Step 5: Profile Setup (Optional)
   const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
@@ -102,7 +113,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
           .catch(() => null);
         if (!alive) return;
         if (template?.templateEnabled) {
-          router.replace(`/resident/${handle}`);
+          router.replace('/');
           return;
         }
         setUsername(handle);
@@ -145,17 +156,17 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
     if (source) setSignupSource(source);
     if (landing) setLandingSlug(landing);
     if (tracking) setTrackingId(tracking);
-
-    // Check if beta keys are enabled
-    fetch('/api/auth/beta-status')
-      .then((res) => res.json())
-      .then((data) => setIsBetaEnabled(data.enabled))
-      .catch((err) => {
-        console.error('Failed to fetch beta status:', err);
-        // Default to true (safe fallback - require beta key if unsure)
-        setIsBetaEnabled(true);
-      });
   }, [urlBetaKey, betaKey, router.query]);
+
+  // The house picked on the homepage demo: from the link, else from earlier
+  // in this browser session (signup can be reloaded or resumed)
+  useEffect(() => {
+    if (!router.isReady) return;
+    const fromLink = parseHouseChoice(router.query.house, router.query.palette);
+    if (fromLink) saveHouseChoice(fromLink);
+    const choice = fromLink ?? readHouseChoice();
+    if (choice) setHouseChoice(choice);
+  }, [router.isReady, router.query.house, router.query.palette]);
 
   useEffect(() => {
     // Scroll to top when step changes
@@ -354,28 +365,37 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
     }
   }
 
-  async function handleTemplateSelected() {
+  async function handleHouseSelected() {
     setIsLoading(true);
     setError(null);
 
     try {
-      // Save the selected template immediately
-      if (selectedTemplate) {
-        const templateResponse = await fetch('/api/user/profile-template', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ template: selectedTemplate }),
-          credentials: 'include'
-        });
-
-        if (!templateResponse.ok) {
-          const errorData = await templateResponse.json().catch(() => ({ error: 'Failed to set template' }));
-          setError(errorData.error || 'Failed to save template. Please try again.');
-          return;
-        }
+      const houseResponse = await fetch(`/api/home/${encodeURIComponent(username)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ houseTemplate: houseChoice.template, palette: houseChoice.palette }),
+        credentials: 'include'
+      });
+      if (!houseResponse.ok) {
+        setError("Couldn't save your house. Please try again.");
+        return;
       }
-      
-      // Start music when theme is selected (only if not already playing)
+
+      // The page theme goes last: it's what marks signup as finished
+      const templateResponse = await fetch('/api/user/profile-template', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ template: selectedTemplate }),
+        credentials: 'include'
+      });
+      if (!templateResponse.ok) {
+        const errorData = await templateResponse.json().catch(() => ({}));
+        setError(errorData.error || "Couldn't save your page colors. Please try again.");
+        return;
+      }
+      clearHouseChoice();
+
+      // Start the welcome music (only if not already playing)
       if (!globalAudio.state.isPlaying) {
         try {
           await globalAudio.startSignupAudio();
@@ -414,8 +434,8 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
       // Move to finale animation
       setCurrentStep('finale');
     } catch (err) {
-      setError('Failed to save template. Please try again.');
-      console.error('Template selection error:', err);
+      setError("Couldn't save your house. Please try again.");
+      console.error('House step error:', err);
     } finally {
       setIsLoading(false);
     }
@@ -467,8 +487,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
       // Only proceed if either operation was attempted and successful
       if (profileUpdated || (!profilePhoto && !bio.trim())) {
         setProfileSaved(true);
-        // Go to template selection
-        setTimeout(() => setCurrentStep('template'), 1500);
+        setTimeout(() => setCurrentStep('house'), 1500);
       } else {
         throw new Error('No profile data to save');
       }
@@ -504,65 +523,6 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
     <>
       <Head>
         <title>Create Your Account | {siteConfig.site_name}</title>
-        <style>{`
-          /* Protect signup theme cards from global site CSS overrides */
-          .signup-theme-cards-protected button.theme-card {
-            /* Reset unwanted admin button styles (use !important only for resets) */
-            background-image: none !important;
-            text-shadow: none !important;
-            text-decoration: none !important;
-            filter: none !important;
-
-            /* Apply theme card layout styles (these don't conflict with inline styles) */
-            border-width: 2px !important;
-            border-radius: 0.5rem !important;
-            padding: 1rem !important;
-            transition: all 0.2s !important;
-            text-align: left !important;
-            cursor: pointer !important;
-            font-weight: normal !important;
-          }
-
-          /* Preserve hover effects */
-          .signup-theme-cards-protected button.theme-card:hover {
-            transform: translate(1px, 1px) !important;
-          }
-
-          /* Preserve selected state shadow */
-          .signup-theme-cards-protected button.theme-card.selected {
-            box-shadow: 4px 4px 0 var(--ha-ink-dark, #2E4B3F) !important;
-          }
-
-          .signup-theme-cards-protected button.theme-card.unselected {
-            box-shadow: 2px 2px 0 var(--ha-ink-mid, #A18463) !important;
-          }
-
-          .signup-theme-cards-protected button.theme-card.unselected:hover {
-            box-shadow: 1px 1px 0 var(--ha-ink-mid, #A18463) !important;
-          }
-
-          /* Protect preview elements inside cards */
-          .signup-theme-cards-protected button.theme-card .preview-element {
-            padding: 0.25rem 0.5rem !important;
-            font-size: 0.75rem !important;
-            font-weight: 500 !important;
-            border-radius: 0.25rem !important;
-          }
-
-          /* Protect selection badge */
-          .signup-theme-cards-protected button.theme-card .selection-badge {
-            position: absolute !important;
-            top: 0.5rem !important;
-            right: 0.5rem !important;
-            background-color: var(--ha-ink-dark, #2E4B3F) !important;
-            color: white !important;
-            padding: 0.25rem 0.5rem !important;
-            border-radius: 0.25rem !important;
-            font-size: 0.75rem !important;
-            font-weight: bold !important;
-            z-index: 10 !important;
-          }
-        `}</style>
       </Head>
       <Layout siteConfig={siteConfig}>
         <div className="max-w-full sm:max-w-2xl mx-auto px-0 sm:px-6 py-6">
@@ -571,10 +531,10 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
           <div className="sm:px-4 sm:pb-2">
           {/* Progress: steps before the current one are done */}
           {(() => {
-            const labels = ['Username', 'Backup', 'Email', 'Agreements', 'Profile', 'Template', 'Done'];
+            const labels = ['Username', 'Backup', 'Email', 'Agreements', 'Profile', 'House', 'Done'];
             const stepIndex: Record<SignupStep, number> = {
               'welcome': 0, 'auth-method': 1, 'password-setup': 1, 'seed-phrase': 1,
-              'email': 2, 'guidelines': 3, 'profile': 4, 'template': 5, 'finale': 6,
+              'email': 2, 'guidelines': 3, 'profile': 4, 'house': 5, 'finale': 6,
             };
             const current = stepIndex[currentStep] ?? 0;
             return (
@@ -612,7 +572,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
               <div className="text-center mb-8">
                 <h1 className="thread-headline text-3xl font-bold mb-2">Welcome to {siteConfig.site_name}!</h1>
                 <p className="text-nb-ink-mid">
-                  Pick a username and a way to sign in. Your account gets its own decentralized ID (DID).
+                  Pick a username and a way to sign in.
                 </p>
               </div>
 
@@ -681,7 +641,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
 
                 <button
                   onClick={handleCreateAccount}
-                  disabled={isLoading || !username || usernameAvailable !== true || (isBetaEnabled && !betaKey)}
+                  disabled={isLoading || !username || usernameAvailable !== true || (isBetaEnabled && !betaKey.trim())}
                   className="w-full thread-button btn btn--primary btn--lg text-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
                 >
                   {isLoading ? "Creating Account..." : "Create My Account"}
@@ -991,113 +951,53 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
             </div>
           )}
 
-          {/* Step 4: Template Selection */}
-          {currentStep === 'template' && (
+          {/* House step */}
+          {currentStep === 'house' && (
             <div>
-              <div className="text-center mb-8">
-                <h2 className="thread-headline text-3xl font-bold mb-2">Choose Your Theme</h2>
+              <div className="text-center mb-6">
+                <h2 className="thread-headline text-3xl font-bold mb-2">Pick your house</h2>
                 <p className="text-nb-ink-mid max-w-lg mx-auto">
-                  Pick a template for your profile page.
-                  You can change it anytime in your settings.
+                  This is the house your neighbors see on the street. You can repaint it any time.
                 </p>
               </div>
 
-              <div className="signup-theme-cards-protected grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto mb-6">
-                {(['abstract-art', 'charcoal-nights', 'pixel-petals', 'retro-social', 'classic-linen'] as ProfileTemplateType[]).map((templateType) => {
-                  const templateInfo = DEFAULT_PROFILE_TEMPLATE_INFO[templateType];
-                  const previewStyle = getTemplatePreviewStyle(templateType);
-                  const isSelected = selectedTemplate === templateType;
-
-                  return (
-                    <button
-                      key={templateType}
-                      onClick={() => setSelectedTemplate(templateType)}
-                      className={`theme-card ${isSelected ? 'selected' : 'unselected'} relative border-2 rounded-lg p-4 text-left overflow-hidden`}
-                      style={{
-                        ...previewStyle,
-                        borderColor: isSelected ? 'var(--ha-ink-dark, #2E4B3F)' : 'var(--ha-ink-mid, #A18463)'
-                      }}
-                    >
-                      {/* Gradient Overlay */}
-                      <div style={getTemplateGradientOverlay(templateType)} />
-                      
-                      {/* Selection Badge */}
-                      {isSelected && (
-                        <div className="selection-badge absolute top-2 right-2 text-xs font-bold z-10">
-                          Selected
-                        </div>
-                      )}
-                      
-                      {/* Template Content */}
-                      <div className="relative z-10">
-                        <div className="flex items-start gap-3 mb-3">
-                          <span className="text-3xl">{templateInfo.emoji}</span>
-                          <div className="flex-1">
-                            <h3 className="text-lg font-bold mb-1" style={{ color: TEMPLATE_PREVIEW_STYLES[templateType]?.primaryColor }}>
-                              {templateInfo.name}
-                            </h3>
-                            <p className="text-sm opacity-80" style={{ color: TEMPLATE_PREVIEW_STYLES[templateType]?.secondaryColor }}>
-                              {templateInfo.description}
-                            </p>
-                          </div>
-                        </div>
-                        
-                        {/* Preview Elements */}
-                        <div className="mt-3 flex gap-2">
-                          <div
-                            className="preview-element px-2 py-1 text-xs font-medium rounded"
-                            style={{
-                              backgroundColor: TEMPLATE_PREVIEW_STYLES[templateType]?.primaryColor + '20',
-                              color: TEMPLATE_PREVIEW_STYLES[templateType]?.primaryColor,
-                              borderStyle: TEMPLATE_PREVIEW_STYLES[templateType]?.borderStyle,
-                              borderWidth: '1px',
-                              borderColor: TEMPLATE_PREVIEW_STYLES[templateType]?.primaryColor
-                            }}
-                          >
-                            Button
-                          </div>
-                          <div
-                            className="preview-element px-2 py-1 text-xs font-medium rounded"
-                            style={{
-                              backgroundColor: TEMPLATE_PREVIEW_STYLES[templateType]?.secondaryColor + '20',
-                              color: TEMPLATE_PREVIEW_STYLES[templateType]?.secondaryColor,
-                              borderStyle: TEMPLATE_PREVIEW_STYLES[templateType]?.borderStyle,
-                              borderWidth: '1px',
-                              borderColor: TEMPLATE_PREVIEW_STYLES[templateType]?.secondaryColor
-                            }}
-                          >
-                            Link
-                          </div>
-                          {TEMPLATE_PREVIEW_STYLES[templateType]?.accentColor && (
-                            <div
-                              className="preview-element px-2 py-1 text-xs font-medium rounded"
-                              style={{
-                                backgroundColor: TEMPLATE_PREVIEW_STYLES[templateType].accentColor + '20',
-                                color: TEMPLATE_PREVIEW_STYLES[templateType].accentColor,
-                                borderStyle: TEMPLATE_PREVIEW_STYLES[templateType]?.borderStyle,
-                                borderWidth: '1px',
-                                borderColor: TEMPLATE_PREVIEW_STYLES[templateType].accentColor
-                              }}
-                            >
-                              Accent
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
+              <div className="max-w-xl mx-auto mb-6">
+                <HousePicker value={houseChoice} onChange={setHouseChoice} />
               </div>
 
               <div className="max-w-md mx-auto">
                 <button
-                  onClick={handleTemplateSelected}
-                  disabled={!selectedTemplate || isLoading}
+                  onClick={handleHouseSelected}
+                  disabled={isLoading}
                   className="w-full thread-button btn btn--primary btn--lg text-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
                 >
-                  {isLoading ? 'Saving Template...' : `Continue with ${DEFAULT_PROFILE_TEMPLATE_INFO[selectedTemplate]?.name || 'Template'} →`}
+                  {isLoading ? 'Moving in...' : 'Move in'}
                 </button>
-                
+
+                {/* Profile page colors: quiet, and they follow the house unless changed */}
+                <details className="mt-4 text-sm text-nb-ink">
+                  <summary className="cursor-pointer text-center text-nb-ink-mid">
+                    Your page will use {DEFAULT_PROFILE_TEMPLATE_INFO[selectedTemplate].name} colors{pageTheme ? '' : ' to match'}
+                  </summary>
+                  <fieldset className="mt-3">
+                    <legend className="sr-only">Page colors</legend>
+                    <div className="flex flex-wrap justify-center gap-x-4 gap-y-2">
+                      {(['classic-linen', 'charcoal-nights', 'pixel-petals', 'retro-social', 'abstract-art'] as ProfileTemplateType[]).map((t) => (
+                        <label key={t} className="flex items-center gap-1.5 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="page-theme"
+                            checked={selectedTemplate === t}
+                            onChange={() => setPageTheme(t)}
+                            className="accent-nb-ink"
+                          />
+                          {DEFAULT_PROFILE_TEMPLATE_INFO[t].name}
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+                </details>
+
                 {error && (
                   <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded text-sm text-red-700">
                     {error}
@@ -1266,7 +1166,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
                   </button>
                   
                   <button
-                    onClick={() => setCurrentStep('template')}
+                    onClick={() => setCurrentStep('house')}
                     disabled={isLoading}
                     className="ts-bare text-sm underline self-center disabled:opacity-50"
                   >
@@ -1298,14 +1198,7 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
 
           {/* Finale Animation */}
           {currentStep === 'finale' && (
-            <SignupFinaleAnimation
-              username={username}
-              selectedTheme={selectedTemplate}
-              onComplete={() => {
-                // Fallback navigation if animation fails
-                router.push(`/resident/${username}`);
-              }}
-            />
+            <SignupFinaleAnimation username={username} />
           )}
         </div>
       </Layout>
@@ -1321,6 +1214,7 @@ export const getServerSideProps: GetServerSideProps<SignupPageProps> = async ({ 
   return {
     props: {
       betaKey,
+      betaRequired: isBetaKeysEnabled(),
       siteConfig,
     },
   };
