@@ -2,6 +2,7 @@ import { apiHandler } from '@/lib/api/handler'
 import { sendUnauthenticated } from '@/lib/api/errors'
 import { getNewUserHomeConfig } from '../../../lib/pixel-homes/randomization'
 import { db } from '../../../lib/config/database/connection'
+import { residentAccess, sendPrivateProfile } from '@/lib/domain/users/profile-access'
 import { z } from 'zod'
 
 const updateConfigSchema = z.object({
@@ -36,6 +37,9 @@ export default apiHandler(
       const user = userHandle.user
 
       if (req.method === 'GET') {
+        const access = await residentAccess(currentUser, user.id)
+        if (!access.visible) return sendPrivateProfile(res, access.visibility)
+
         // Get user home configuration
         let homeConfig = await db.userHomeConfig.findUnique({
           where: { userId: user.id }

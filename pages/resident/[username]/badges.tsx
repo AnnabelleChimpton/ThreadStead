@@ -12,6 +12,8 @@ import { getSessionUser } from '@/lib/auth/server'
 import { getPublicRingHubClient } from '@/lib/api/ringhub/ringhub-client'
 import { raceHubCall, HUB_TIMEOUT } from '@/lib/api/ringhub/ringhub-ssr'
 import { getUserDID } from '@/lib/api/did/server-did-client'
+import PrivateProfile from '@/components/core/profile/PrivateProfile'
+import { residentAccess } from '@/lib/domain/users/profile-access'
 
 interface BadgeWithThreadRing {
   id: string
@@ -43,7 +45,24 @@ interface UserBadgesPageProps {
   hubUnavailable?: boolean
 }
 
-export default function UserBadgesPage({
+/** Badges of a profile the viewer may not see show the private-profile page. */
+interface HiddenBadgesProps {
+  privateProfile: {
+    username: string
+    displayName: string
+    avatarUrl: string
+    visibility: 'private' | 'followers' | 'friends'
+  }
+}
+
+export default function UserBadgesRoute(props: UserBadgesPageProps | HiddenBadgesProps) {
+  if ('privateProfile' in props) {
+    return <PrivateProfile {...props.privateProfile} />
+  }
+  return <UserBadgesPage {...props} />
+}
+
+function UserBadgesPage({
   username,
   displayName,
   badges,
@@ -199,8 +218,7 @@ export default function UserBadgesPage({
   )
 }
 
-export const getServerSideProps: GetServerSideProps<UserBadgesPageProps> = async ({ params, req }) => {
-  // Get current user to check if they're an admin
+export const getServerSideProps: GetServerSideProps<UserBadgesPageProps | HiddenBadgesProps> = async ({ params, req }) => {
   const currentUser = await getSessionUser(req as any)
   
   // ThreadRings are now always enabled
@@ -224,6 +242,8 @@ export const getServerSideProps: GetServerSideProps<UserBadgesPageProps> = async
             profile: {
               select: {
                 displayName: true,
+                avatarUrl: true,
+                visibility: true,
                 badgePreferences: true
               }
             }
@@ -238,6 +258,21 @@ export const getServerSideProps: GetServerSideProps<UserBadgesPageProps> = async
 
     const userId = handle.user.id
     const displayName = handle.user.profile?.displayName || null
+
+    // The profile's visibility rules, checked before asking the hub
+    const access = await residentAccess(currentUser, userId, handle.user.profile?.visibility ?? null)
+    if (!access.visible) {
+      return {
+        props: {
+          privateProfile: {
+            username: usernameParam,
+            displayName: displayName || usernameParam,
+            avatarUrl: handle.user.profile?.avatarUrl || '/assets/default-avatar.gif',
+            visibility: access.visibility
+          }
+        }
+      }
+    }
 
     // Use Ring Hub if enabled
     if (featureFlags.ringhub()) {

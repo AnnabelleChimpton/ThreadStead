@@ -210,36 +210,40 @@ export default function UserQuickView({ username, isOpen, onClose }: UserQuickVi
           </div>
         )}
 
-        {/* Stats */}
-        <div className="flex gap-4 mb-4 text-sm text-thread-charcoal">
-          <div>
-            <span className="font-bold">{data.stats.followers}</span>{" "}
-            <span className="opacity-70">Followers</span>
-          </div>
-          <div>
-            <span className="font-bold">{data.stats.following}</span>{" "}
-            <span className="opacity-70">Following</span>
-          </div>
-          <div>
-            <span className="font-bold">{data.stats.posts}</span>{" "}
-            <span className="opacity-70">Posts</span>
-          </div>
-          {data.stats.mutualFriends > 0 && (
-            <div>
-              <span className="font-bold">{data.stats.mutualFriends}</span>{" "}
-              <span className="opacity-70">Mutual</span>
+        {/* Stats and badges: not for a profile the viewer can't see */}
+        {data.stats && (
+          <>
+            <div className="flex gap-4 mb-4 text-sm text-thread-charcoal">
+              <div>
+                <span className="font-bold">{data.stats.followers}</span>{" "}
+                <span className="opacity-70">Followers</span>
+              </div>
+              <div>
+                <span className="font-bold">{data.stats.following}</span>{" "}
+                <span className="opacity-70">Following</span>
+              </div>
+              <div>
+                <span className="font-bold">{data.stats.posts}</span>{" "}
+                <span className="opacity-70">Posts</span>
+              </div>
+              {data.stats.mutualFriends > 0 && (
+                <div>
+                  <span className="font-bold">{data.stats.mutualFriends}</span>{" "}
+                  <span className="opacity-70">Mutual</span>
+                </div>
+              )}
             </div>
-          )}
-        </div>
 
-        {/* Badges */}
-        <div className="mb-4">
-          <ImprovedBadgeDisplay
-            userId={data.userId}
-            context="comments"
-            layout="compact"
-          />
-        </div>
+            {/* Badges */}
+            <div className="mb-4">
+              <ImprovedBadgeDisplay
+                userId={data.userId}
+                context="comments"
+                layout="compact"
+              />
+            </div>
+          </>
+        )}
 
         {/* Action Buttons */}
         <div className="flex gap-2 mb-4">

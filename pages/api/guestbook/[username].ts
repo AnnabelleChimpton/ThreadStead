@@ -4,13 +4,14 @@ import { apiHandler } from "@/lib/api/handler";
 import { requireAction } from "@/lib/domain/users/capabilities";
 import { createGuestbookNotification } from "@/lib/domain/notifications";
 import { SITE_NAME } from "@/lib/config/site/constants";
+import { residentAccess, sendPrivateProfile } from "@/lib/domain/users/profile-access";
 
 
 export default apiHandler(
-  // GET is public; POST is gated by the write:guestbook capability below,
-  // not by the session (ctx.user is unused here).
+  // GET follows the profile's visibility; POST is gated by the
+  // write:guestbook capability below, not by the session.
   { methods: ["GET", "POST"], auth: "optional", rateLimit: "guestbook" },
-  async (req, res) => {
+  async (req, res, { user: viewer }) => {
     const username = String(req.query.username || "");
     if (!username) return res.status(400).json({ error: "username required" });
 
@@ -21,6 +22,14 @@ export default apiHandler(
     if (!ownerHandle) return res.status(404).json({ error: "not found" });
 
     if (req.method === "GET") {
+      const access = await residentAccess(viewer, ownerHandle.user.id);
+      if (!access.visible) {
+        // The profile page still shows across a block (its posts API answers
+        // with an empty list), so the guestbook does the same there.
+        if (access.blocked) return res.json({ entries: [] });
+        return sendPrivateProfile(res, access.visibility);
+      }
+
       const entries = await db.guestbookEntry.findMany({
         where: { profileOwner: ownerHandle.user.id, status: "visible" },
         orderBy: { createdAt: "desc" },
@@ -70,6 +79,10 @@ export default apiHandler(
     const ok = await requireAction("write:guestbook", (resStr) => resStr === resource)(cap)
       .catch(() => null);
     if (!ok) return res.status(403).json({ error: "invalid capability" });
+
+    // Nobody signs a guestbook they can't see, or across a block
+    const access = await residentAccess({ id: ok.sub }, ownerHandle.user.id);
+    if (!access.visible) return sendPrivateProfile(res, access.visibility);
 
     const entry = await db.guestbookEntry.create({
       data: {

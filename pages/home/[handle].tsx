@@ -6,6 +6,8 @@ import Layout from '../../components/ui/layout/Layout'
 import PixelHomePage from '../../components/pixel-homes/PixelHomePage'
 import { HouseTemplate, ColorPalette } from '../../components/pixel-homes/HouseSVG'
 import { serializeJsonLd } from "@/lib/utils/sanitization/json-ld";
+import PrivateProfile from '@/components/core/profile/PrivateProfile'
+import { residentAccess } from '@/lib/domain/users/profile-access'
 
 interface UserHomeConfig {
   houseTemplate: HouseTemplate
@@ -50,7 +52,24 @@ interface PixelHomeProps {
   userBio?: string
 }
 
-export default function PixelHome({
+/** A home the viewer may not see shows the same page as the private profile. */
+interface HiddenHomeProps {
+  privateProfile: {
+    username: string
+    displayName: string
+    avatarUrl: string
+    visibility: 'private' | 'followers' | 'friends'
+  }
+}
+
+export default function PixelHomeRoute(props: PixelHomeProps | HiddenHomeProps) {
+  if ('privateProfile' in props) {
+    return <PrivateProfile {...props.privateProfile} />
+  }
+  return <PixelHome {...props} />
+}
+
+function PixelHome({
   username,
   homeConfig,
   isOwner,
@@ -141,6 +160,21 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     const { getSessionUser } = await import('../../lib/auth/server')
     const currentUser = await getSessionUser(context.req as any)
     const isOwner = currentUser?.id === user.id
+
+    // The profile's visibility rules, checked before anything is loaded
+    const access = await residentAccess(currentUser, user.id, user.profile?.visibility ?? null)
+    if (!access.visible) {
+      return {
+        props: {
+          privateProfile: {
+            username: cleanHandle,
+            displayName: user.profile?.displayName || cleanHandle,
+            avatarUrl: user.profile?.avatarUrl || '/assets/default-avatar.gif',
+            visibility: access.visibility
+          }
+        }
+      }
+    }
 
     // Get or create home configuration
     let homeConfig = await db.userHomeConfig.findUnique({

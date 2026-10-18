@@ -1,7 +1,7 @@
 import { db } from "@/lib/config/database/connection";
-import { isAdmin } from "@/lib/auth/server";
 import { SITE_NAME } from "@/lib/config/site/constants";
 import { apiHandler } from "@/lib/api/handler";
+import { residentAccess } from "@/lib/domain/users/profile-access";
 
 
 export default apiHandler(
@@ -27,87 +27,19 @@ export default apiHandler(
 
     const u = handle.user;
 
-    // Check profile visibility and enforce access control
-    const visibility = u.profile?.visibility || 'public';
-    const profileOwnerId = u.id;
-
-    // Get current viewer (if logged in)
-    const viewerId = viewer?.id;
-    const viewerIsAdmin = isAdmin(viewer);
-
-    // Admins can always view all profiles
-    // Public profiles are accessible to everyone
-    if (visibility !== 'public' && !viewerIsAdmin) {
-      // If not logged in and profile is not public, deny access
-      if (!viewerId) {
-        return res.status(403).json({
-          error: "private_profile",
-          visibility,
-          username,
-          displayName: u.profile?.displayName || username,
-          avatarUrl: u.profile?.avatarUrl || null
-        });
-      }
-
-      // Profile owner can always view their own profile
-      if (viewerId !== profileOwnerId) {
-        // Check relationship for non-public profiles
-        if (visibility === 'private') {
-          // Private profiles are only visible to the owner
-          return res.status(403).json({
-            error: "private_profile",
-            visibility,
-            username,
-            displayName: u.profile?.displayName || username,
-            avatarUrl: u.profile?.avatarUrl || null
-          });
-        }
-
-        // Check follow relationships for 'followers' and 'friends' visibility
-        const [viewerFollowsOwner, ownerFollowsViewer] = await Promise.all([
-          db.follow.findUnique({
-            where: {
-              followerId_followeeId: {
-                followerId: viewerId,
-                followeeId: profileOwnerId
-              }
-            }
-          }),
-          db.follow.findUnique({
-            where: {
-              followerId_followeeId: {
-                followerId: profileOwnerId,
-                followeeId: viewerId
-              }
-            }
-          })
-        ]);
-
-        const isFollower = viewerFollowsOwner?.status === 'accepted';
-        const isFriend = isFollower && ownerFollowsViewer?.status === 'accepted';
-
-        if (visibility === 'followers' && !isFollower) {
-          return res.status(403).json({
-            error: "private_profile",
-            visibility,
-            username,
-            displayName: u.profile?.displayName || username,
-            avatarUrl: u.profile?.avatarUrl || null
-          });
-        }
-
-        if (visibility === 'friends' && !isFriend) {
-          return res.status(403).json({
-            error: "private_profile",
-            visibility,
-            username,
-            displayName: u.profile?.displayName || username,
-            avatarUrl: u.profile?.avatarUrl || null
-          });
-        }
-      }
+    // Visibility and blocks (either way), the same rules as the pixel home.
+    // A block reads as "private" so nobody learns they were blocked.
+    const access = await residentAccess(viewer, u.id, u.profile?.visibility ?? null);
+    if (!access.visible) {
+      return res.status(403).json({
+        error: "private_profile",
+        visibility: access.visibility,
+        username,
+        displayName: u.profile?.displayName || username,
+        avatarUrl: u.profile?.avatarUrl || null
+      });
     }
-  
+
     // Get profile MIDI if set
     let profileMidi = null;
     if (u.profile?.profileMidiId) {

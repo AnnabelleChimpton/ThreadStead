@@ -3,12 +3,13 @@ import { db } from "@/lib/config/database/connection";
 
 import { SITE_NAME } from "@/lib/config/site/constants";
 import { parsePagePagination } from "@/lib/server/http/pagination";
+import { residentAccess, sendPrivateProfile } from "@/lib/domain/users/profile-access";
 
 
 
 export default apiHandler(
-  { methods: ["GET"], auth: "none" },
-  async (req, res) => {
+  { methods: ["GET"], auth: "optional" },
+  async (req, res, { user: viewer }) => {
     const username = String(req.query.username || "");
     const { page, limit } = parsePagePagination(req.query, { defaultLimit: 20, maxLimit: 100 });
   
@@ -30,6 +31,12 @@ export default apiHandler(
 
       if (!handle) {
         return res.status(404).json({ error: "User not found" });
+      }
+
+      // Public photos still follow the profile's visibility and blocks
+      const access = await residentAccess(viewer, handle.user.id);
+      if (!access.visible) {
+        return sendPrivateProfile(res, access.visibility);
       }
 
       // Calculate offset for pagination

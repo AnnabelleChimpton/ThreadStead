@@ -12,6 +12,7 @@ import NeighborhoodFilterSheet, { FilterState } from '../../../components/pixel-
 import HouseDetailsPopup from '../../../components/pixel-homes/HouseDetailsPopup'
 import { HouseTemplate, ColorPalette } from '../../../components/pixel-homes/HouseSVG'
 import { db } from '../../../lib/config/database/connection'
+import { visibleResidentWhere } from '@/lib/domain/users/profile-access'
 import { HOUSE_TEMPLATES, HOUSE_PALETTES, isHouseTemplate, isColorPalette } from '@/lib/pixel-homes/house-choice'
 import Link from 'next/link'
 import { PixelIcon } from '@/components/ui/PixelIcon'
@@ -657,6 +658,8 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     // Get current user for personalization
     const { getSessionUser } = await import('../../../lib/auth/server')
     const currentUser = await getSessionUser(context.req as any)
+    // Homes the viewer may not see (profile visibility, blocks) are left off
+    const visibleOwners = visibleResidentWhere(currentUser?.id)
 
     let title = ''
     let description = ''
@@ -757,7 +760,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         // Get home configs for resolved members
         const memberUserIds = resolvedMembers.map(m => m.userId || m.user?.id).filter(Boolean)
         const homeConfigs = await db.userHomeConfig.findMany({
-          where: { userId: { in: memberUserIds } },
+          where: { userId: { in: memberUserIds }, user: visibleOwners },
           include: {
             decorations: true
           }
@@ -886,6 +889,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         // Implementation would fetch mutual friends
         // For now, using explore as fallback
         const homeConfigs = await db.userHomeConfig.findMany({
+          where: { user: visibleOwners },
           include: {
             user: {
               include: {
@@ -1018,6 +1022,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
             },
             decorations: true
           },
+          where: { user: visibleOwners },
           orderBy,
           take
         })

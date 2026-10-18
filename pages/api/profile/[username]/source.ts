@@ -2,10 +2,11 @@ import { db } from "@/lib/config/database/connection";
 import { SITE_NAME } from "@/lib/config/site/constants";
 import { apiHandler } from "@/lib/api/handler";
 import { sendUnauthenticated } from "@/lib/api/errors";
+import { residentAccess, sendPrivateProfile } from "@/lib/domain/users/profile-access";
 
 // Neocities-style view source.
-// GET  -> the profile's template + CSS, readable by ANYONE while the owner
-//         has sharing on (owners always see their own).
+// GET  -> the profile's template + CSS, readable by anyone who may see the
+//         profile while the owner has sharing on (owners always see their own).
 // POST -> owner-only toggle: { enabled: boolean }
 export default apiHandler(
   { methods: ['GET', 'POST'], auth: 'optional', rateLimit: 'template_editing' },
@@ -24,6 +25,11 @@ export default apiHandler(
 
       if (req.method === "GET") {
         const isOwner = currentUser?.id === handle.user.id;
+
+        const access = await residentAccess(currentUser, handle.user.id, profile.visibility);
+        if (!access.visible) {
+          return sendPrivateProfile(res, access.visibility);
+        }
 
         if (!profile.showTemplateSource && !isOwner) {
           return res.status(403).json({ error: "This resident hasn't shared their source" });

@@ -1,9 +1,10 @@
 import { db } from '@/lib/config/database/connection'
 import { apiHandler } from '@/lib/api/handler'
+import { residentAccess, sendPrivateProfile } from '@/lib/domain/users/profile-access'
 
 export default apiHandler(
-  { methods: ['GET'], auth: 'none' },
-  async (req, res) => {
+  { methods: ['GET'], auth: 'optional' },
+  async (req, res, { user: viewer }) => {
     const { username } = req.query
 
     if (typeof username !== 'string') {
@@ -22,6 +23,10 @@ export default apiHandler(
       }
 
       const user = userHandle.user
+
+      // The threadbook in a pixel home: hidden with the home
+      const access = await residentAccess(viewer, user.id)
+      if (!access.visible) return sendPrivateProfile(res, access.visibility)
 
       // Get user's ThreadRing memberships with lineage information
       const memberships = await db.threadRingMember.findMany({

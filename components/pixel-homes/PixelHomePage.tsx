@@ -125,9 +125,12 @@ export default function PixelHomePage({
       // Load user badges, guestbook status, and decorations in parallel.
       // allSettled: one failing endpoint must not blank the whole home —
       // Promise.all here meant a badges 500 hid the decorations too.
+      // Guestbook status is owner-only, so visitors don't ask.
       const [badgeResult, guestbookResult, decorationsResult] = await Promise.allSettled([
         fetch(`/api/users/${encodeURIComponent(username)}/badges`),
-        fetch(`/api/users/${encodeURIComponent(username)}/guestbook-status`),
+        isOwner
+          ? fetch(`/api/users/${encodeURIComponent(username)}/guestbook-status`)
+          : Promise.resolve(null),
         fetch(`/api/home/decorations/load?username=${encodeURIComponent(username)}`)
       ])
 
@@ -136,7 +139,7 @@ export default function PixelHomePage({
         setBadges(badgeData.badges || [])
       }
 
-      if (guestbookResult.status === 'fulfilled' && guestbookResult.value.ok) {
+      if (guestbookResult.status === 'fulfilled' && guestbookResult.value?.ok) {
         const guestbookData = await guestbookResult.value.json()
         setHasUnreadGuestbook(guestbookData.hasUnreadGuestbook || false)
       }

@@ -4,11 +4,12 @@ import { apiHandler } from "@/lib/api/handler";
 
 /**
  * API endpoint to check if a user has unread guestbook entries
- * Returns: { hasUnreadGuestbook: boolean }
+ * Only the owner can ask: it's their notification state.
+ * Returns: { hasUnreadGuestbook: boolean, unreadCount: number }
  */
 export default apiHandler(
-  { methods: ["GET"], auth: "none" },
-  async (req, res) => {
+  { methods: ["GET"], auth: "user" },
+  async (req, res, { user: currentUser }) => {
     const username = String(req.query.username || "");
     if (!username) {
       return res.status(400).json({ error: "username required" });
@@ -23,6 +24,10 @@ export default apiHandler(
 
       if (!userHandle) {
         return res.status(404).json({ error: "User not found" });
+      }
+
+      if (currentUser.id !== userHandle.user.id) {
+        return res.status(403).json({ error: "Can only check your own guestbook" });
       }
 
       // Check for unread guestbook notifications

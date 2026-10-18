@@ -356,6 +356,15 @@ const sanitizeCustomizations = (customizations: any): HouseCustomizations | unde
   };
 };
 
+/** The fields of an /api/directory row this widget uses. */
+interface DirectoryUser {
+  id: string;
+  username: string;
+  displayName: string | null;
+  avatarUrl: string | null;
+  followerCount: number;
+}
+
 export const pixelHomesNeighborhoodWidget = {
   config: pixelHomesNeighborhoodConfig,
   component: PixelHomesNeighborhoodWidget as React.ComponentType<WidgetProps & { data?: any }>,
@@ -368,20 +377,32 @@ export const pixelHomesNeighborhoodWidget = {
       }
 
       const data = await response.json();
-      const users = data.users || [];
+      const users: DirectoryUser[] = data.users || [];
 
       if (users.length === 0) {
         throw new Error('No users found');
       }
 
-      // Pick a random user
-      const randomUser = users[Math.floor(Math.random() * users.length)];
+      // Pick a random user. A home the viewer may not see (403) is skipped
+      // for someone else rather than drawn as a made-up cottage.
+      const candidates = [...users];
+      let randomUser: DirectoryUser = users[0];
+      let homeResponse: Response | undefined;
+      let decorationsResponse: Response | undefined;
+      for (let attempt = 0; attempt < 5 && candidates.length > 0; attempt++) {
+        randomUser = candidates.splice(Math.floor(Math.random() * candidates.length), 1)[0];
 
-      // Fetch both home config and decorations in parallel
-      const [homeResponse, decorationsResponse] = await Promise.all([
-        fetch(`/api/home/${randomUser.username}`),
-        fetch(`/api/home/decorations/load?username=${randomUser.username}`)
-      ]);
+        // Fetch both home config and decorations in parallel
+        [homeResponse, decorationsResponse] = await Promise.all([
+          fetch(`/api/home/${randomUser.username}`),
+          fetch(`/api/home/decorations/load?username=${randomUser.username}`)
+        ]);
+        if (homeResponse.status !== 403) break;
+      }
+
+      if (!homeResponse || !decorationsResponse || homeResponse.status === 403) {
+        throw new Error('No homes to show');
+      }
 
       if (!homeResponse.ok) {
         // If home config fails, create a basic one

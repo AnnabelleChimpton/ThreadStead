@@ -3,6 +3,7 @@ import { db } from "@/lib/config/database/connection";
 
 import { SITE_NAME } from "@/lib/config/site/constants";
 import { escapeLike, parseIntParam } from "@/lib/search/query";
+import { visibleResidentWhere } from "@/lib/domain/users/profile-access";
 
 const SORTS = ["recent", "alphabetical", "posts", "random"];
 
@@ -15,8 +16,8 @@ function shuffle<T>(items: T[]): T[] {
 }
 
 export default apiHandler(
-  { methods: ["GET"], auth: "none" },
-  async (req, res) => {
+  { methods: ["GET"], auth: "optional" },
+  async (req, res, { user: viewer }) => {
     // Bad numbers are a 400 (thrown ApiError), not NaN → 500 or a negative skip.
     const limit = parseIntParam(req.query.limit, "limit", { fallback: 20, min: 1, max: 50 });
     const offset = parseIntParam(req.query.offset, "offset", { fallback: 0, min: 0 });
@@ -31,6 +32,7 @@ export default apiHandler(
 
       // Profiles that aren't public 403 on view, so they don't belong in a
       // public directory (with their bio). No profile row means public.
+      // A block either way leaves the person out too (visibleResidentWhere).
       const whereClause: any = {
         handles: {
           some: {
@@ -44,6 +46,7 @@ export default apiHandler(
               { profile: { is: { visibility: "public" } } },
             ],
           },
+          visibleResidentWhere(viewer?.id),
         ],
       };
 

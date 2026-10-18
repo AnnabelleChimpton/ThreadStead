@@ -1,6 +1,7 @@
 import { db } from "@/lib/config/database/connection";
 import { apiHandler } from "@/lib/api/handler";
 import { sendUnauthenticated } from "@/lib/api/errors";
+import { residentAccess, sendPrivateProfile } from "@/lib/domain/users/profile-access";
 
 export default apiHandler(
   // no CSRF today: components/pixel-homes/VisitorTrail.tsx POSTs with plain fetch
@@ -27,6 +28,10 @@ export default apiHandler(
       }
 
       const homeOwnerId = userHandle.user.id;
+
+      // No visits to, or visitor lists of, a home the viewer can't see
+      const access = await residentAccess(visitor, homeOwnerId);
+      if (!access.visible) return sendPrivateProfile(res, access.visibility);
 
       if (req.method === "POST") {
         // Record a visitor

@@ -12,6 +12,7 @@ import { PixelIcon } from "@/components/ui/PixelIcon";
 import { csrfFetch } from "@/lib/api/client/csrf-fetch";
 import { useConfirm } from "@/contexts/ConfirmContext";
 import Modal from "@/components/ui/feedback/Modal";
+import PrivateProfile from "@/components/core/profile/PrivateProfile";
 
 interface MediaItem {
   id: string;
@@ -42,7 +43,24 @@ interface MediaGalleryProps {
   };
 }
 
-export default function MediaGalleryPage({
+/** The gallery of a profile the viewer may not see shows the private-profile page. */
+interface HiddenMediaProps {
+  privateProfile: {
+    username: string;
+    displayName: string;
+    avatarUrl: string;
+    visibility: 'private' | 'followers' | 'friends';
+  };
+}
+
+export default function MediaGalleryRoute(props: MediaGalleryProps | HiddenMediaProps) {
+  if ('privateProfile' in props) {
+    return <PrivateProfile {...props.privateProfile} />;
+  }
+  return <MediaGalleryPage {...props} />;
+}
+
+function MediaGalleryPage({
   username,
   isOwner,
   initialMedia,
@@ -541,7 +559,7 @@ export default function MediaGalleryPage({
   );
 }
 
-export const getServerSideProps: GetServerSideProps<MediaGalleryProps> = async ({ 
+export const getServerSideProps: GetServerSideProps<MediaGalleryProps | HiddenMediaProps> = async ({ 
   params, 
   query,
   req 
@@ -558,16 +576,33 @@ export const getServerSideProps: GetServerSideProps<MediaGalleryProps> = async (
     const { getSessionUser } = await import('@/lib/auth/server');
     const currentUser = await getSessionUser(req as any);
 
-    // Get profile data to verify user exists and get user ID
-    const profileRes = await fetch(`${base}/api/profile/${encodeURIComponent(username)}`);
+    // Get profile data to verify user exists and get user ID. Forward the
+    // cookie so the profile's visibility is checked against this viewer.
+    const headers = { cookie: req.headers.cookie || '' };
+    const profileRes = await fetch(`${base}/api/profile/${encodeURIComponent(username)}`, { headers });
     if (profileRes.status === 404) return { notFound: true };
+    if (profileRes.status === 403) {
+      const hidden = await profileRes.json();
+      if (hidden.error === 'private_profile') {
+        return {
+          props: {
+            privateProfile: {
+              username: hidden.username || username,
+              displayName: hidden.displayName || username,
+              avatarUrl: hidden.avatarUrl || '/assets/default-avatar.gif',
+              visibility: hidden.visibility,
+            },
+          },
+        };
+      }
+    }
     if (!profileRes.ok) return { notFound: true };
 
     const profileData = await profileRes.json();
     const isOwner = currentUser?.id === profileData.userId;
 
     // Get media data
-    const mediaRes = await fetch(`${base}/api/photos/${encodeURIComponent(username)}?page=${page}&limit=20`);
+    const mediaRes = await fetch(`${base}/api/photos/${encodeURIComponent(username)}?page=${page}&limit=20`, { headers });
     if (!mediaRes.ok) {
       return {
         props: {

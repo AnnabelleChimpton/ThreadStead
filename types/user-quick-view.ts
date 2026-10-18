@@ -27,9 +27,12 @@ export interface UserQuickViewData {
   avatarUrl: string | null;
   bio: string | null;
   relationship: RelationshipStatus;
-  stats: UserQuickViewStats;
+  /** null when the viewer can't see the profile */
+  stats: UserQuickViewStats | null;
   badges: UserQuickViewBadge[];
   hasCustomPixelHome: boolean;
+  /** Set when the viewer can't see the profile (a block reads as private) */
+  visibility?: 'private' | 'followers' | 'friends';
 }
 
 export interface UserQuickViewResponse {

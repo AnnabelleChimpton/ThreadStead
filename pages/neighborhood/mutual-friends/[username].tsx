@@ -5,6 +5,7 @@ import Layout from '../../../components/ui/layout/Layout'
 import NeighborhoodGrid from '../../../components/pixel-homes/NeighborhoodGrid'
 import { HouseTemplate, ColorPalette } from '../../../components/pixel-homes/HouseSVG'
 import { db } from '../../../lib/config/database/connection'
+import { residentAccess, visibleResidentWhere } from '@/lib/domain/users/profile-access'
 import Link from 'next/link'
 import { PixelIcon } from '@/components/ui/PixelIcon'
 
@@ -280,6 +281,13 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     const targetUser = targetUserHandle.user
     const currentUserIsOwner = currentUser.id === targetUser.id
 
+    // Whose friends someone has is part of their profile; the home page
+    // shows the private-profile page when the viewer can't see it.
+    const access = await residentAccess(currentUser, targetUser.id)
+    if (!access.visible) {
+      return { redirect: { destination: `/home/${encodeURIComponent(username)}`, permanent: false } }
+    }
+
     // Get mutual friends (bidirectional follows)
     const mutualFriendsQuery = await db.follow.findMany({
       where: {
@@ -314,7 +322,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     // Get home configs for mutual friends
     const mutualFriendUserIds = mutualFriendsQuery.map(f => f.followee.id)
     const mutualFriendHomeConfigs = await db.userHomeConfig.findMany({
-      where: { userId: { in: mutualFriendUserIds } },
+      where: { userId: { in: mutualFriendUserIds }, user: visibleResidentWhere(currentUser.id) },
       include: {
         user: {
           include: {

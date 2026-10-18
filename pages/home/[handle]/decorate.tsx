@@ -160,6 +160,12 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     // Check if this is the user's own home
     const isOwnHome = viewer?.id === user.id
 
+    // Send everyone else to the home page before loading anything: the props
+    // would otherwise carry the whole home, private or not.
+    if (!isOwnHome) {
+      return { redirect: { destination: `/home/${encodeURIComponent(cleanHandle)}`, permanent: false } }
+    }
+
     // Get home configuration
     const homeConfig = await db.userHomeConfig.findUnique({
       where: { userId: user.id },

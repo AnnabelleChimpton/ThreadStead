@@ -1,6 +1,7 @@
 import { apiHandler } from "@/lib/api/handler";
 import { db } from "@/lib/config/database/connection";
 import { getDecorationDimensions } from "@/lib/pixel-homes/decoration-dimensions";
+import { residentAccess, sendPrivateProfile } from "@/lib/domain/users/profile-access";
 
 interface DecorationItem {
   id: string;
@@ -18,8 +19,8 @@ interface DecorationItem {
 }
 
 export default apiHandler(
-  { methods: ["GET"], auth: "none" },
-  async (req, res) => {
+  { methods: ["GET"], auth: "optional" },
+  async (req, res, { user: viewer }) => {
     const { username } = req.query;
 
     if (!username || typeof username !== 'string') {
@@ -46,6 +47,9 @@ export default apiHandler(
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
+
+      const access = await residentAccess(viewer, user.id);
+      if (!access.visible) return sendPrivateProfile(res, access.visibility);
 
       // Load decorations and home config for this user
       const [decorations, homeConfig] = await Promise.all([

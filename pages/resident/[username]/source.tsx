@@ -6,6 +6,8 @@ import Layout from '@/components/ui/layout/Layout';
 import { PixelIcon } from '@/components/ui/PixelIcon';
 import { db } from '@/lib/config/database/connection';
 import { SITE_NAME } from '@/lib/config/site/constants';
+import PrivateProfile from '@/components/core/profile/PrivateProfile';
+import { residentAccess } from '@/lib/domain/users/profile-access';
 
 interface SourcePageProps {
   username: string;
@@ -15,6 +17,16 @@ interface SourcePageProps {
   cssMode: string;
   customTemplate: string;
   customCSS: string;
+}
+
+/** The source of a profile the viewer may not see shows the private-profile page. */
+interface HiddenSourceProps {
+  privateProfile: {
+    username: string;
+    displayName: string;
+    avatarUrl: string;
+    visibility: 'private' | 'followers' | 'friends';
+  };
 }
 
 function CopyButton({ text, label }: { text: string; label: string }) {
@@ -35,8 +47,15 @@ function CopyButton({ text, label }: { text: string; label: string }) {
   );
 }
 
+export default function ViewSourceRoute(props: SourcePageProps | HiddenSourceProps) {
+  if ('privateProfile' in props) {
+    return <PrivateProfile {...props.privateProfile} />;
+  }
+  return <ViewSourcePage {...props} />;
+}
+
 // The old-web learning loop: see a page you love, view its source, remix it.
-export default function ViewSourcePage({
+function ViewSourcePage({
   username,
   sharing,
   isOwner,
@@ -124,7 +143,7 @@ export default function ViewSourcePage({
   );
 }
 
-export const getServerSideProps: GetServerSideProps<SourcePageProps> = async ({ params, req }) => {
+export const getServerSideProps: GetServerSideProps<SourcePageProps | HiddenSourceProps> = async ({ params, req }) => {
   const username = Array.isArray(params?.username) ? params.username[0] : String(params?.username || '');
   if (!username) return { notFound: true };
 
@@ -138,6 +157,20 @@ export const getServerSideProps: GetServerSideProps<SourcePageProps> = async ({ 
   const { getSessionUser } = await import('@/lib/auth/server');
   const currentUser = await getSessionUser(req as Parameters<typeof getSessionUser>[0]);
   const isOwner = currentUser?.id === handle.user.id;
+
+  const access = await residentAccess(currentUser, handle.user.id, profile.visibility);
+  if (!access.visible) {
+    return {
+      props: {
+        privateProfile: {
+          username,
+          displayName: profile.displayName || username,
+          avatarUrl: profile.avatarUrl || '/assets/default-avatar.gif',
+          visibility: access.visibility,
+        },
+      },
+    };
+  }
 
   const canSee = profile.showTemplateSource || isOwner;
 

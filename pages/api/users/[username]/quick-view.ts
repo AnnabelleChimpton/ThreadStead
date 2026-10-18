@@ -4,6 +4,8 @@ import { db } from "@/lib/config/database/connection";
 import { apiHandler } from "@/lib/api/handler";
 import { SITE_NAME } from "@/lib/config/site/constants";
 import type { UserQuickViewResponse, RelationshipStatus } from "@/types/user-quick-view";
+import { residentAccess } from "@/lib/domain/users/profile-access";
+import { allowedVisibilities } from "@/lib/domain/posts/visibility";
 
 export default apiHandler(
   { methods: ["GET"], auth: "optional" },
@@ -35,8 +37,14 @@ export default apiHandler(
       const targetUser = handle.user;
       const profile = targetUser.profile;
 
+      // Extract username from primary handle
+      const extractedUsername = targetUser.primaryHandle?.split("@")[0] || username;
+      const displayName = profile?.displayName || extractedUsername;
+
       // Determine relationship status
       let relationship: RelationshipStatus = "none";
+      let viewerFollowsTarget = false;
+      let targetFollowsViewer = false;
       if (viewer) {
         const isOwner = viewer.id === targetUser.id;
         if (isOwner) {
@@ -63,6 +71,8 @@ export default apiHandler(
 
           const vf = viewerFollows?.status === "accepted";
           const tf = targetFollows?.status === "accepted";
+          viewerFollowsTarget = vf;
+          targetFollowsViewer = tf;
 
           if (vf && tf) {
             relationship = "friends";
@@ -72,6 +82,32 @@ export default apiHandler(
             relationship = "followed_by";
           }
         }
+      }
+
+      const identity = {
+        userId: targetUser.id,
+        username: extractedUsername,
+        displayName,
+        primaryHandle: targetUser.primaryHandle || `${extractedUsername}@${SITE_NAME}`,
+        avatarUrl: profile?.avatarUrl || null,
+        relationship,
+      };
+
+      // A profile the viewer can't see shows who it is (as its private page
+      // does, so they can still follow), but not its bio, counts or home.
+      const access = await residentAccess(viewer, targetUser.id, profile?.visibility ?? null);
+      if (!access.visible) {
+        return res.status(200).json({
+          success: true,
+          data: {
+            ...identity,
+            bio: null,
+            stats: null,
+            badges: [],
+            hasCustomPixelHome: false,
+            visibility: access.visibility,
+          },
+        });
       }
 
       // Fetch stats in parallel
@@ -92,10 +128,17 @@ export default apiHandler(
           },
         }),
 
-        // Post count
+        // Post count: only posts this viewer may see
         db.post.count({
           where: {
             authorId: targetUser.id,
+            visibility: {
+              in: allowedVisibilities({
+                isAuthor: relationship === "owner",
+                isFollower: viewerFollowsTarget,
+                isFriend: viewerFollowsTarget && targetFollowsViewer,
+              }),
+            },
           },
         }),
 
@@ -151,21 +194,12 @@ export default apiHandler(
 
       const hasCustomPixelHome = !!(homeConfig?.houseTemplate || homeConfig?.preferPixelHome);
 
-      // Extract username from primary handle
-      const extractedUsername = targetUser.primaryHandle?.split("@")[0] || username;
-      const displayName = profile?.displayName || extractedUsername;
-
       // Format response
       return res.status(200).json({
         success: true,
         data: {
-          userId: targetUser.id,
-          username: extractedUsername,
-          displayName,
-          primaryHandle: targetUser.primaryHandle || `${extractedUsername}@${SITE_NAME}`,
-          avatarUrl: profile?.avatarUrl || null,
+          ...identity,
           bio: profile?.bio || null,
-          relationship,
           stats: {
             followers: followerCount,
             following: followingCount,

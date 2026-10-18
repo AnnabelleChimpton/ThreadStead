@@ -6,10 +6,11 @@ import { getUserDID } from '@/lib/api/did/server-did-client'
 import { cached } from '@/lib/api/ringhub/ringhub-cache'
 import { RingHubAuthError, RingHubUnavailableError } from '@/lib/api/ringhub/ringhub-errors'
 import { apiHandler } from '@/lib/api/handler'
+import { residentAccess, sendPrivateProfile } from '@/lib/domain/users/profile-access'
 
 export default apiHandler(
-  { methods: ['GET'], auth: 'none' },
-  async (req, res) => {
+  { methods: ['GET'], auth: 'optional' },
+  async (req, res, { user: viewer }) => {
     const { username } = req.query
 
     if (typeof username !== 'string') {
@@ -23,7 +24,7 @@ export default apiHandler(
           handle: username.toLowerCase(),
           host: process.env.SITE_HANDLE_DOMAIN || 'HomePageAgain'
         },
-        include: { user: true }
+        include: { user: { include: { profile: { select: { visibility: true } } } } }
       })
 
       if (!handle?.user) {
@@ -31,6 +32,10 @@ export default apiHandler(
       }
 
       const userId = handle.user.id
+
+      // Ring badges are part of the profile: same visibility and blocks
+      const access = await residentAccess(viewer, userId, handle.user.profile?.visibility ?? null)
+      if (!access.visible) return sendPrivateProfile(res, access.visibility)
 
       // Use Ring Hub only (no local fallback)
       if (!featureFlags.ringhub()) {

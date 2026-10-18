@@ -96,7 +96,7 @@ export default function HouseDetailsPopup({ isOpen, onClose, member }: HouseDeta
       following: number
       posts: number
       mutualFriends: number
-    }
+    } | null
   } | null>(null)
   const [profileLoading, setProfileLoading] = useState(false)
   const [dragStartY, setDragStartY] = useState<number | null>(null)
@@ -427,7 +427,7 @@ export default function HouseDetailsPopup({ isOpen, onClose, member }: HouseDeta
         )}
 
         {/* User Stats */}
-        {profileData && !profileLoading && (
+        {profileData?.stats && !profileLoading && (
           <div className="bg-white border border-thread-sage rounded-sm p-4 mb-4 shadow-sm">
             <h4 className="text-sm font-semibold text-gray-900 mb-3">Profile Stats</h4>
             <div className="grid grid-cols-2 gap-3 text-sm">
