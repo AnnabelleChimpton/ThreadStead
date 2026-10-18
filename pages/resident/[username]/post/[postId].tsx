@@ -164,6 +164,7 @@ function PostPage({ username, post, authorDisplayName, initialCommentsOpen = tru
               post={post}
               isOwner={isOwner}
               isAdmin={isAdmin}
+              canAddToRing
               onChanged={() => window.location.reload()}
               initialCommentsOpen={initialCommentsOpen}
               highlightCommentId={highlightCommentId}

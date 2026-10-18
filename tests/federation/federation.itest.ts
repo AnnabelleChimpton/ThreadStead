@@ -22,13 +22,46 @@ import * as ringHubClientModule from '@/lib/api/ringhub/ringhub-client'
 import { createAuthenticatedRingHubClient } from '@/lib/api/ringhub/ringhub-user-operations'
 import { removePostFromRingHub } from '@/lib/domain/posts/ringhub-removal'
 import { buildPostUri } from '@/lib/domain/posts/ringhub-metadata'
-import { NOT_A_MEMBER_REASON, PUBLIC_ONLY_REASON, postToRings } from '@/lib/domain/posts/ring-submission'
+import { NOT_A_MEMBER_REASON, PUBLIC_ONLY_REASON, REMOVED_BEFORE_REASON, postToRings } from '@/lib/domain/posts/ring-submission'
+import { sendPostToRings } from '@/lib/domain/posts/send-to-rings'
 
 // removePostFromRingHub signs as the post's author through this factory, which
 // in the app maps a ThreadStead user id to their DID keypair (DB-backed).
 // Here the "user id" names a harness actor; the hub side stays real.
 jest.mock('@/lib/api/ringhub/ringhub-user-operations', () => ({
   createAuthenticatedRingHubClient: jest.fn(),
+}))
+
+// sendPostToRings also writes ThreadStead's mirrors (Post.threadRingPostIds,
+// PostThreadRing). This in-memory stand-in records them; the hub stays real.
+const mockLocalDb = {
+  postRingIds: new Map<string, Record<string, string>>(),
+  rings: [] as { id: string; slug: string; name: string }[],
+  links: [] as { postId: string; threadRingId: string }[],
+}
+jest.mock('@/lib/config/database/connection', () => ({
+  db: {
+    post: {
+      findUnique: jest.fn(async ({ where }: any) => ({ threadRingPostIds: mockLocalDb.postRingIds.get(where.id) ?? null })),
+      update: jest.fn(async ({ where, data }: any) => mockLocalDb.postRingIds.set(where.id, data.threadRingPostIds)),
+    },
+    threadRing: {
+      findMany: jest.fn(async ({ where }: any) => mockLocalDb.rings.filter((r) => where.slug.in.includes(r.slug))),
+      create: jest.fn(async ({ data }: any) => {
+        const ring = { id: `local-${data.slug}`, slug: data.slug, name: data.name }
+        mockLocalDb.rings.push(ring)
+        return ring
+      }),
+      updateMany: jest.fn(async () => ({ count: 1 })),
+    },
+    postThreadRing: {
+      findMany: jest.fn(async ({ where }: any) =>
+        mockLocalDb.links.filter((l) => l.postId === where.postId && where.threadRingId.in.includes(l.threadRingId))
+      ),
+      createMany: jest.fn(async ({ data }: any) => mockLocalDb.links.push(...data)),
+    },
+    $transaction: jest.fn(async (ops: Promise<unknown>[]) => Promise.all(ops)),
+  },
 }))
 
 // One membership lifecycle threads through this whole file, in order.
@@ -220,6 +253,75 @@ describe('posting into rings from the composer (create.ts → postToRings)', () 
     const results = await postToRings(offline, [ringSlug], { visibility: 'public', buildSubmission: () => submission('composer-offline') })
     expect(results).toEqual([
       { slug: ringSlug, name: ringSlug, status: 'failed', reason: "Ring Hub didn't respond. Try again later." },
+    ])
+  })
+})
+
+describe('sending an existing post to a ring it missed (POST /api/posts/rings → sendPostToRings)', () => {
+  // Signed as the second actor, who isn't in the ring yet: the post misses it,
+  // they join, "Try again" lands it, and a second retry changes nothing.
+  const post = {
+    id: 'retry-1',
+    title: 'A post that missed its ring',
+    bodyText: 'second try',
+    bodyHtml: null,
+    bodyMarkdown: null,
+    visibility: 'public',
+    isSpoiler: false,
+    contentWarning: null,
+    metadata: null,
+    publishedAt: new Date('2026-10-17T12:00:00Z'),
+  }
+  const send = () =>
+    sendPostToRings({ post, authorHandle: 'itest2@threadstead-itest.invalid', userId: 'second', ringSlugs: [ringSlug] })
+  let second: RingHubClient
+  let hubPostId: string
+
+  beforeAll(() => {
+    second = makeTestClient('second')
+    ;(createAuthenticatedRingHubClient as jest.Mock).mockImplementation((userId: 'main' | 'second') =>
+      userId === 'main' ? client : makeTestClient(userId)
+    )
+  })
+
+  afterAll(async () => {
+    await second.leaveRing(ringSlug).catch(() => {})
+  })
+
+  test('not a member yet: the ring is reported as missed and nothing is mirrored', async () => {
+    expect(await send()).toEqual([{ slug: ringSlug, name: ringSlug, status: 'failed', reason: NOT_A_MEMBER_REASON }])
+    expect(mockLocalDb.postRingIds.get(post.id)).toBeUndefined()
+    expect(mockLocalDb.links).toEqual([])
+  })
+
+  test('after joining, trying again posts it and writes both mirrors', async () => {
+    await second.joinRing(ringSlug)
+    const [result] = await send()
+    expect(result).toMatchObject({ slug: ringSlug, status: 'posted' })
+    hubPostId = result.hubPostId!
+    expect(typeof hubPostId).toBe('string')
+
+    expect(mockLocalDb.postRingIds.get(post.id)).toEqual({ [ringSlug]: hubPostId })
+    expect(mockLocalDb.links).toEqual([expect.objectContaining({ postId: post.id, threadRingId: `local-${ringSlug}` })])
+
+    // The ring feed shows it with the metadata built from the post.
+    const feed = await client.getRingFeed(ringSlug)
+    const ref = feed.posts.find((p) => p.id === hubPostId)
+    expect(ref?.uri).toMatch(/\/resident\/itest2\/post\/retry-1$/)
+    expect(ref?.metadata).toMatchObject({ title: post.title, publishedAt: '2026-10-17T12:00:00.000Z' })
+  })
+
+  test('trying again once it is in the ring returns the same PostRef and adds nothing', async () => {
+    expect(await send()).toEqual([
+      expect.objectContaining({ slug: ringSlug, status: 'posted', hubPostId }),
+    ])
+    expect(mockLocalDb.links).toHaveLength(1)
+  })
+
+  test('once taken out of the ring, it can\'t be sent back, and the reason says so', async () => {
+    await second.curatePost(hubPostId, 'remove')
+    expect(await send()).toEqual([
+      expect.objectContaining({ slug: ringSlug, status: 'failed', reason: REMOVED_BEFORE_REASON }),
     ])
   })
 })

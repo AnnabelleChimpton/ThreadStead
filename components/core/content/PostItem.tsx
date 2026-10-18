@@ -7,6 +7,7 @@ import { truncateText, truncateHtml, needsTruncation } from "@/lib/utils/text-tr
 import CommentList, { CommentWire as CommentWireList } from "./CommentList";
 import NewCommentForm, { CommentWire as CommentWireForm } from "../../ui/forms/NewCommentForm";
 import ThreadRingBadge from "../threadring/ThreadRingBadge";
+import AddToRingPanel from "../threadring/AddToRingPanel";
 import { UserWithRole } from "@/lib/utils/features/feature-flags";
 import PostModerationActions from "./PostModerationActions";
 import { useModerationPermissions } from "@/hooks/useModerationPermissions";
@@ -123,6 +124,7 @@ export default function PostItem({
   isUserMember = false,
   viewContext,
   commentCount: initialCommentCount,
+  canAddToRing = false,
 }: {
   post: Post;
   isOwner: boolean;
@@ -138,6 +140,8 @@ export default function PostItem({
   viewContext?: 'feed' | 'profile' | 'ring' | 'widget';
   /** Comment count provided by a list-level batch fetch; when set, the per-post count fetch is skipped. */
   commentCount?: number;
+  /** Offer the owner "Add to a ring" (the post page). */
+  canAddToRing?: boolean;
 }) {
   const router = useRouter();
 
@@ -154,6 +158,7 @@ export default function PostItem({
   };
 
   const [busy, setBusy] = useState(false);
+  const [addingToRing, setAddingToRing] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [commentsOpen, setCommentsOpen] = useState(initialCommentsOpen);
   const [commentsVersion, setCommentsVersion] = useState(0);
@@ -479,6 +484,8 @@ export default function PostItem({
                 onAdminDelete={adminDelete}
                 onPinToggle={handlePinToggle}
                 onRemoveFromRing={handleRemoveFromRing}
+                // Rings are public, so only a public post can be added to one.
+                onAddToRing={isOwner && canAddToRing && post.visibility === "public" ? () => setAddingToRing(true) : undefined}
               />
             );
           })()}
@@ -734,6 +741,17 @@ export default function PostItem({
                       ))}
                   </div>
                 </div>
+              )}
+
+              {addingToRing && (
+                <AddToRingPanel
+                  postId={post.id}
+                  alreadyIn={(post.threadRings || []).map((association) => association?.threadRing?.slug).filter(Boolean)}
+                  onClose={async (added) => {
+                    setAddingToRing(false);
+                    if (added) await onChanged?.();
+                  }}
+                />
               )}
 
               {/* Ring Hub moderation actions */}

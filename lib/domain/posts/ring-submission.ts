@@ -62,6 +62,7 @@ export async function getAllActiveMemberships(client: RingPostingClient): Promis
 
 export const NOT_A_MEMBER_REASON = "You're not a member of this ring."
 export const PUBLIC_ONLY_REASON = 'Only public posts can go to a ring.'
+export const REMOVED_BEFORE_REASON = "This post was taken out of this ring, so it can't go back in."
 
 /**
  * Rings are public: a hub PostRef carries the title and a text preview, and
@@ -161,7 +162,13 @@ export async function postToRings(
       const existing = (error as { status?: number; data?: { existingPost?: { id?: string; status?: string } } })
       if (existing?.status === 409 && existing.data?.existingPost) {
         // Already in the ring (a retried request): that's the outcome the user wanted.
+        // Unless it was taken out: the hub keeps the removed ref and won't take
+        // the same post URI again.
         const prior = existing.data.existingPost
+        if (prior.status === 'REMOVED' || prior.status === 'REJECTED') {
+          results.push({ slug, name, status: 'failed', reason: REMOVED_BEFORE_REASON })
+          continue
+        }
         results.push({
           slug,
           name,

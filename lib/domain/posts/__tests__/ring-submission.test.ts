@@ -5,6 +5,7 @@ import {
   getAllActiveMemberships,
   NOT_A_MEMBER_REASON,
   PUBLIC_ONLY_REASON,
+  REMOVED_BEFORE_REASON,
   postToRings,
   type RingPostingClient,
 } from '../ring-submission'
@@ -86,6 +87,19 @@ describe('postToRings', () => {
     })
     const results = await postToRings(client, ['ok'], { visibility: 'public', buildSubmission: build })
     expect(results).toEqual([{ slug: 'ok', name: 'Ring ok', status: 'posted', hubPostId: 'ref-existing' }])
+  })
+
+  test('a 409 for a ref that was taken out of the ring fails, since the hub will not take it back', async () => {
+    for (const status of ['REMOVED', 'REJECTED']) {
+      const client = fakeClient(['ok'], async () => {
+        throw new RingHubClientError('Duplicate submission', 409, undefined, {
+          error: 'Duplicate submission',
+          existingPost: { id: 'ref-old', status },
+        })
+      })
+      const results = await postToRings(client, ['ok'], { visibility: 'public', buildSubmission: build })
+      expect(results).toEqual([{ slug: 'ok', name: 'Ring ok', status: 'failed', reason: REMOVED_BEFORE_REASON }])
+    }
   })
 
   test('if memberships cannot be read, every ring fails with the reason', async () => {

@@ -20,6 +20,8 @@ interface PostActionsDropdownProps {
   onAdminDelete?: () => void;
   onPinToggle?: () => void;
   onRemoveFromRing?: () => void;
+  /** Owner only; omit to hide "Add to a ring". */
+  onAddToRing?: () => void;
 }
 
 export default function PostActionsDropdown({
@@ -34,6 +36,7 @@ export default function PostActionsDropdown({
   onAdminDelete,
   onPinToggle,
   onRemoveFromRing,
+  onAddToRing,
 }: PostActionsDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -115,6 +118,16 @@ export default function PostActionsDropdown({
                   <PixelIcon name="edit" />
                   Edit
                 </button>
+                {onAddToRing && (
+                  <button
+                    onClick={() => handleAction(onAddToRing)}
+                    disabled={busy}
+                    className="flex items-center gap-2 w-full px-3 py-2 text-sm text-left hover:bg-gray-100 disabled:opacity-50"
+                  >
+                    <PixelIcon name="plus" />
+                    Add to a ring
+                  </button>
+                )}
                 <button
                   onClick={() => handleAction(onDelete!)}
                   disabled={busy}

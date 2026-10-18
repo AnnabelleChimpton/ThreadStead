@@ -8,6 +8,14 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import Link from "next/link";
 import type { RingPostResult } from "@/lib/domain/posts/ring-submission";
+import RingResultsList from "@/components/core/threadring/RingResultsList";
+
+interface RingOutcome {
+  postId: string;
+  postUrl: string;
+  rings: RingPostResult[];
+  promptId?: string;
+}
 
 interface PostEditorPageProps {
   siteConfig: SiteConfig;
@@ -27,7 +35,7 @@ export default function PostEditorPage({ siteConfig, ringSlug }: PostEditorPageP
   } | null>(null);
 
   // Set when the post was created but didn't reach every ring it was meant for
-  const [ringOutcome, setRingOutcome] = useState<{ postUrl: string; rings: RingPostResult[] } | null>(null);
+  const [ringOutcome, setRingOutcome] = useState<RingOutcome | null>(null);
 
   // Site config for intent stamps
   const [intentStampsEnabled, setIntentStampsEnabled] = useState(true);
@@ -92,7 +100,7 @@ export default function PostEditorPage({ siteConfig, ringSlug }: PostEditorPageP
 
       // Stay here when a ring didn't take the post, so the user sees which and why.
       if (rings && rings.some(r => r.status !== 'posted')) {
-        setRingOutcome({ postUrl, rings });
+        setRingOutcome({ postId: post.id, postUrl, rings, promptId: respondingToPrompt?.id });
         return;
       }
       router.push(postUrl);
@@ -110,7 +118,7 @@ export default function PostEditorPage({ siteConfig, ringSlug }: PostEditorPageP
         </div>
 
         {ringOutcome ? (
-          <RingOutcomePanel {...ringOutcome} />
+          <RingOutcomePanel outcome={ringOutcome} onChange={setRingOutcome} />
         ) : (
         <PostEditor
           mode="create"
@@ -127,37 +135,17 @@ export default function PostEditorPage({ siteConfig, ringSlug }: PostEditorPageP
   );
 }
 
-function RingOutcomePanel({ postUrl, rings }: { postUrl: string; rings: RingPostResult[] }) {
-  const posted = rings.filter(r => r.status === 'posted');
-  const pending = rings.filter(r => r.status === 'pending');
-  const failed = rings.filter(r => r.status === 'failed');
-
-  const ringLinks = (list: RingPostResult[]) =>
-    list.map((r, i) => (
-      <React.Fragment key={r.slug}>
-        {i > 0 && ', '}
-        <Link href={`/tr/${r.slug}`} className="underline">{r.name}</Link>
-      </React.Fragment>
-    ));
-
+function RingOutcomePanel({ outcome, onChange }: { outcome: RingOutcome; onChange: (outcome: RingOutcome) => void }) {
   return (
     <div role="status" className="p-6 bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[3px_3px_0_#A18463] space-y-3">
       <h2 className="thread-headline text-xl font-bold">Your post is up</h2>
-      {posted.length > 0 && <p>Posted to: {ringLinks(posted)}</p>}
-      {pending.length > 0 && <p>Waiting for a moderator in: {ringLinks(pending)}</p>}
-      {failed.length > 0 && (
-        <div>
-          <p>Not posted to:</p>
-          <ul className="list-disc pl-6 mt-1 space-y-1">
-            {failed.map(r => (
-              <li key={r.slug}>
-                <strong>{r.name}</strong> — {r.reason || "Ring Hub didn't respond. Try again later."}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-      <Link href={postUrl} className="thread-button inline-block">View your post</Link>
+      <RingResultsList
+        postId={outcome.postId}
+        rings={outcome.rings}
+        promptId={outcome.promptId}
+        onChange={(rings) => onChange({ ...outcome, rings })}
+      />
+      <Link href={outcome.postUrl} className="thread-button inline-block">View your post</Link>
     </div>
   );
 }
