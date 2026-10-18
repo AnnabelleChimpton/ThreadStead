@@ -103,7 +103,7 @@ function PageForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.slug || !formData.title) {
-      showWarning("Slug and title are required");
+      showWarning("Add a slug and a title first.");
       return;
     }
     onSave(formData);
@@ -454,11 +454,11 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
         const data = await res.json();
         setGeneratedKey(data.key);
       } else {
-        showError("Failed to generate beta key");
+        showError("Couldn't make a beta key. Try again.");
       }
     } catch (error) {
       console.error("Failed to generate beta key:", error);
-      showError("Failed to generate beta key");
+      showError("Couldn't make a beta key. Try again.");
     } finally {
       setGeneratingKey(false);
     }
@@ -485,11 +485,11 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
         showSuccess("User deleted.");
       } else {
         const error = await res.json();
-        showError(error.error || "Failed to delete user");
+        showError(error.error || "Couldn't delete the user. Try again.");
       }
     } catch (error) {
       console.error("Failed to delete user:", error);
-      showError("Failed to delete user");
+      showError("Couldn't delete the user. Try again.");
     } finally {
       setDeletingUserId(null);
     }
@@ -511,11 +511,11 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
         // Optionally refresh users to update status if backend updated it immediately (likely not changed until user verifies)
       } else {
         const error = await res.json();
-        showError(error.error || "Failed to send verification email");
+        showError(error.error || "Couldn't send the verification email. Try again.");
       }
     } catch (error) {
       console.error("Failed to send verification email:", error);
-      showError("Failed to send verification email");
+      showError("Couldn't send the verification email. Try again.");
     } finally {
       setResendingEmailUserId(null);
     }
@@ -545,11 +545,11 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
         loadUsers();
       } else {
         const error = await res.json();
-        showError(error.error || "Failed to set email");
+        showError(error.error || "Couldn't update the email. Try again.");
       }
     } catch (error) {
       console.error("Failed to set email:", error);
-      showError("Failed to set email");
+      showError("Couldn't update the email. Try again.");
     } finally {
       setSettingEmail(false);
     }
@@ -565,7 +565,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
       }
     } catch (error) {
       console.error("Failed to load site config:", error);
-      setConfigMessage("Failed to load site configuration");
+      setConfigMessage("Couldn't load the site settings. Refresh to try again.");
     } finally {
       setLoadingConfig(false);
     }
@@ -586,15 +586,15 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
       if (res.ok) {
         const data = await res.json();
         setSiteConfig(data.config);
-        setConfigMessage("Site configuration saved successfully!");
+        setConfigMessage("Site settings saved.");
         setTimeout(() => setConfigMessage(null), 3000);
       } else {
         const error = await res.json();
-        setConfigMessage(`Error: ${error.error || "Failed to save configuration"}`);
+        setConfigMessage(error.error || "Couldn't save the site settings. Try again.");
       }
     } catch (error) {
       console.error("Failed to save site config:", error);
-      setConfigMessage("Error: Failed to save site configuration");
+      setConfigMessage("Couldn't save the site settings. Try again.");
     } finally {
       setSavingConfig(false);
     }
@@ -661,17 +661,17 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
         let errorMessage;
         try {
           const error = await res.json();
-          errorMessage = error.error || `Failed to save page (${res.status})`;
+          errorMessage = error.error || `Couldn't save the page (${res.status}). Try again.`;
         } catch (jsonError) {
           const errorText = await res.text();
-          errorMessage = `Failed to save page (${res.status}): ${errorText || 'Unknown error'}`;
+          errorMessage = `Couldn't save the page (${res.status})${errorText ? `: ${errorText}` : '. Try again.'}`;
         }
         console.error("Save failed with error:", errorMessage);
         showError(errorMessage);
       }
     } catch (error) {
       console.error("Failed to save page:", error);
-      showError(`Failed to save page: ${error instanceof Error ? error.message : 'Network or connection error'}`);
+      showError("Couldn't save the page. Check your connection and try again.");
     } finally {
       setSavingPage(false);
     }
@@ -692,11 +692,11 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
         showSuccess("Page deleted.");
       } else {
         const error = await res.json();
-        showError(error.error || "Failed to delete page");
+        showError(error.error || "Couldn't delete the page. Try again.");
       }
     } catch (error) {
       console.error("Failed to delete page:", error);
-      showError("Failed to delete page");
+      showError("Couldn't delete the page. Try again.");
     }
   }
 
@@ -730,15 +730,15 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
       });
 
       if (res.ok) {
-        setHomeMessage("Homepage setting saved successfully!");
+        setHomeMessage("Homepage setting saved.");
         setTimeout(() => setHomeMessage(null), 3000);
       } else {
         const error = await res.json();
-        setHomeMessage(`Error: ${error.error || "Failed to save setting"}`);
+        setHomeMessage(error.error || "Couldn't save the homepage setting. Try again.");
       }
     } catch (error) {
       console.error("Failed to save home setting:", error);
-      setHomeMessage("Error: Failed to save homepage setting");
+      setHomeMessage("Couldn't save the homepage setting. Try again.");
     } finally {
       setSavingHomeSetting(false);
     }
@@ -773,15 +773,15 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
         }),
       });
       if (res.ok) {
-        setLandingMessage("Landing page setting saved successfully!");
+        setLandingMessage("Landing page setting saved.");
         setTimeout(() => setLandingMessage(null), 3000);
       } else {
         const error = await res.json();
-        setLandingMessage(`Error: ${error.error || "Failed to save setting"}`);
+        setLandingMessage(error.error || "Couldn't save the landing page setting. Try again.");
       }
     } catch (error) {
       console.error("Failed to save landing setting:", error);
-      setLandingMessage("Error: Failed to save landing setting");
+      setLandingMessage("Couldn't save the landing page setting. Try again.");
     } finally {
       setSavingLandingSetting(false);
     }
@@ -817,15 +817,15 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
       });
 
       if (res.ok) {
-        setDefaultProfileMessage("Default profile CSS saved successfully!");
+        setDefaultProfileMessage("Default profile CSS saved.");
         setTimeout(() => setDefaultProfileMessage(null), 3000);
       } else {
         const error = await res.json();
-        setDefaultProfileMessage(`Error: ${error.error || "Failed to save CSS"}`);
+        setDefaultProfileMessage(error.error || "Couldn't save the default profile CSS. Try again.");
       }
     } catch (error) {
       console.error("Failed to save default profile CSS:", error);
-      setDefaultProfileMessage("Error: Failed to save default profile CSS");
+      setDefaultProfileMessage("Couldn't save the default profile CSS. Try again.");
     } finally {
       setSavingDefaultProfileCSS(false);
     }
@@ -838,7 +838,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
 
     // Auto-save the template
     setSavingDefaultProfileCSS(true);
-    setDefaultProfileMessage("Applying template...");
+    setDefaultProfileMessage("Applying template…");
 
     try {
       const res = await csrfFetch("/api/admin/site-config", {
@@ -852,15 +852,15 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
       });
 
       if (res.ok) {
-        setDefaultProfileMessage("Template applied successfully!");
+        setDefaultProfileMessage("Template applied.");
         setTimeout(() => setDefaultProfileMessage(null), 3000);
       } else {
         const error = await res.json();
-        setDefaultProfileMessage(`Error: ${error.error || "Failed to apply template"}`);
+        setDefaultProfileMessage(error.error || "Couldn't apply the template. Try again.");
       }
     } catch (error) {
       console.error("Failed to apply template:", error);
-      setDefaultProfileMessage("Error: Failed to apply template");
+      setDefaultProfileMessage("Couldn't apply the template. Try again.");
     } finally {
       setSavingDefaultProfileCSS(false);
     }
@@ -886,11 +886,11 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
       } else {
         const error = await res.json();
         // API error response received
-        showError(error.error || "Failed to generate seed phrase");
+        showError(error.error || "Couldn't make a seed phrase. Try again.");
       }
     } catch (error) {
       console.error("Failed to generate seed phrase:", error);
-      showError("Failed to generate seed phrase");
+      showError("Couldn't make a seed phrase. Try again.");
     } finally {
       setGeneratingSeed(null);
     }
@@ -906,7 +906,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
       }
     } catch (error) {
       console.error("Failed to load policies:", error);
-      setPolicyMessage("Failed to load policy documents");
+      setPolicyMessage("Couldn't load the policies. Refresh to try again.");
     } finally {
       setLoadingPolicies(false);
     }
@@ -925,15 +925,15 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
       });
 
       if (res.ok) {
-        setPolicyMessage("Policy documents saved successfully!");
+        setPolicyMessage("Policies saved.");
         setTimeout(() => setPolicyMessage(null), 3000);
       } else {
         const error = await res.json();
-        setPolicyMessage(`Error: ${error.error || "Failed to save policies"}`);
+        setPolicyMessage(error.error || "Couldn't save the policies. Try again.");
       }
     } catch (error) {
       console.error("Failed to save policies:", error);
-      setPolicyMessage("Error: Failed to save policy documents");
+      setPolicyMessage("Couldn't save the policies. Try again.");
     } finally {
       setSavingPolicies(false);
     }
@@ -957,7 +957,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
       }
     } catch (error) {
       console.error("Failed to load emojis:", error);
-      setEmojiMessage("Failed to load emojis");
+      setEmojiMessage("Couldn't load the emojis. Refresh to try again.");
     } finally {
       setLoadingEmojis(false);
     }
@@ -965,7 +965,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
 
   async function createEmoji() {
     if (!newEmojiName.trim() || !newEmojiUrl.trim()) {
-      setEmojiMessage("Error: Name and image URL are required");
+      setEmojiMessage("Add a name and an image URL first.");
       return;
     }
 
@@ -985,15 +985,15 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
         await loadEmojis();
         setNewEmojiName("");
         setNewEmojiUrl("");
-        setEmojiMessage("Emoji created successfully!");
+        setEmojiMessage("Emoji added.");
         setTimeout(() => setEmojiMessage(null), 3000);
       } else {
         const error = await res.json();
-        setEmojiMessage(`Error: ${error.error || "Failed to create emoji"}`);
+        setEmojiMessage(error.error || "Couldn't add the emoji. Try again.");
       }
     } catch (error) {
       console.error("Failed to create emoji:", error);
-      setEmojiMessage("Error: Failed to create emoji");
+      setEmojiMessage("Couldn't add the emoji. Try again.");
     } finally {
       setSavingEmoji(false);
     }
@@ -1001,7 +1001,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
 
   async function uploadEmojiFile() {
     if (!selectedFile || !newEmojiName.trim()) {
-      setEmojiMessage("Error: Name and image file are required");
+      setEmojiMessage("Add a name and pick an image file first.");
       return;
     }
 
@@ -1021,15 +1021,15 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
         await loadEmojis();
         setNewEmojiName("");
         setSelectedFile(null);
-        setEmojiMessage("Emoji uploaded successfully!");
+        setEmojiMessage("Emoji uploaded.");
         setTimeout(() => setEmojiMessage(null), 3000);
       } else {
         const error = await res.json();
-        setEmojiMessage(`Error: ${error.error || "Failed to upload emoji"}`);
+        setEmojiMessage(error.error || "Couldn't upload the emoji. Try again.");
       }
     } catch (error) {
       console.error("Failed to upload emoji:", error);
-      setEmojiMessage("Error: Failed to upload emoji");
+      setEmojiMessage("Couldn't upload the emoji. Try again.");
     } finally {
       setUploadingEmoji(false);
     }
@@ -1047,15 +1047,15 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
 
       if (res.ok) {
         await loadEmojis();
-        setEmojiMessage("Emoji deleted successfully!");
+        setEmojiMessage("Emoji deleted.");
         setTimeout(() => setEmojiMessage(null), 3000);
       } else {
         const error = await res.json();
-        setEmojiMessage(`Error: ${error.error || "Failed to delete emoji"}`);
+        setEmojiMessage(error.error || "Couldn't delete the emoji. Try again.");
       }
     } catch (error) {
       console.error("Failed to delete emoji:", error);
-      setEmojiMessage("Error: Failed to delete emoji");
+      setEmojiMessage("Couldn't delete the emoji. Try again.");
     }
   }
 
@@ -1063,7 +1063,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
     navigator.clipboard.writeText(text).then(() => {
       showSuccess("Copied to clipboard.");
     }).catch(() => {
-      showError("Failed to copy to clipboard");
+      showError("Couldn't copy that. Select it and copy by hand.");
     });
   }
 

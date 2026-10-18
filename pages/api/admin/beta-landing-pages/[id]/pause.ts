@@ -40,7 +40,7 @@ export default apiHandler(
 
       return res.json({
         landingPage: updatedLandingPage,
-        message: "Campaign paused successfully"
+        message: "Campaign paused."
       });
     } catch (error) {
       console.error("Error pausing beta landing page:", error);

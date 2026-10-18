@@ -219,7 +219,7 @@ export default function AdminDecorationsPage({ isAdmin, userId }: AdminDecoratio
       }
     } catch (error) {
       console.error('Migration failed:', error);
-      showError('Migration failed - check console');
+      showError("The migration didn't finish. The browser console has the details.");
     } finally {
       setMigrating(false);
     }
@@ -305,7 +305,7 @@ export default function AdminDecorationsPage({ isAdmin, userId }: AdminDecoratio
       }
     } catch (error) {
       console.error('PNG upload failed:', error);
-      showError('PNG upload failed - check console');
+      showError("Couldn't upload the PNG. The browser console has the details.");
     } finally {
       setUploadingPng(null);
     }

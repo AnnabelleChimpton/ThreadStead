@@ -39,6 +39,7 @@ export default function IpManagementSection() {
   const [ipTracking, setIpTracking] = useState<IpTracking[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [pagination, setPagination] = useState<PaginationInfo>({
     page: 1,
     limit: 20,
@@ -73,10 +74,10 @@ export default function IpManagementSection() {
         setIpTracking(data.ipTracking);
         setPagination(data.pagination);
       } else {
-        setError('Failed to load IP tracking data');
+        setError("Couldn't load the IP list. Refresh to try again.");
       }
     } catch (err) {
-      setError('Failed to load IP tracking data');
+      setError("Couldn't load the IP list. Refresh to try again.");
       console.error('Error loading IP tracking:', err);
     } finally {
       setLoading(false);
@@ -93,14 +94,14 @@ export default function IpManagementSection() {
 
       if (response.ok) {
         await loadIpTracking();
-        setError(`✅ IP address ${ipAddress} has been blocked`);
-        setTimeout(() => setError(null), 3000);
+        setNotice(`Blocked ${ipAddress}.`);
+        setTimeout(() => setNotice(null), 3000);
       } else {
         const errorData = await response.json();
-        setError(errorData.error || 'Failed to block IP address');
+        setError(errorData.error || "Couldn't block that IP. Try again.");
       }
     } catch (err) {
-      setError('Failed to block IP address');
+      setError("Couldn't block that IP. Try again.");
       console.error('Error blocking IP:', err);
     }
   };
@@ -113,14 +114,14 @@ export default function IpManagementSection() {
 
       if (response.ok) {
         await loadIpTracking();
-        setError(`✅ IP address ${ipAddress} has been unblocked`);
-        setTimeout(() => setError(null), 3000);
+        setNotice(`Unblocked ${ipAddress}.`);
+        setTimeout(() => setNotice(null), 3000);
       } else {
         const errorData = await response.json();
-        setError(errorData.error || 'Failed to unblock IP address');
+        setError(errorData.error || "Couldn't unblock that IP. Try again.");
       }
     } catch (err) {
-      setError('Failed to unblock IP address');
+      setError("Couldn't unblock that IP. Try again.");
       console.error('Error unblocking IP:', err);
     }
   };
@@ -128,7 +129,7 @@ export default function IpManagementSection() {
   const handleBulkBlock = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!bulkIpList.trim()) {
-      setError('Please enter IP addresses to block');
+      setError('Add at least one IP address, one per line.');
       return;
     }
 
@@ -142,7 +143,7 @@ export default function IpManagementSection() {
         .filter(ip => ip.length > 0);
 
       if (ipAddresses.length === 0) {
-        setError('No valid IP addresses found');
+        setError('No IP addresses in that list. Put one per line.');
         return;
       }
 
@@ -161,14 +162,14 @@ export default function IpManagementSection() {
         setShowBulkBlock(false);
         setBulkIpList('');
         setBulkBlockReason('Manual bulk block');
-        setError(`✅ ${data.message}`);
-        setTimeout(() => setError(null), 5000);
+        setNotice(data.message);
+        setTimeout(() => setNotice(null), 5000);
       } else {
         const errorData = await response.json();
-        setError(errorData.error || 'Failed to block IP addresses');
+        setError(errorData.error || "Couldn't block those IPs. Try again.");
       }
     } catch (err) {
-      setError('Failed to block IP addresses');
+      setError("Couldn't block those IPs. Try again.");
       console.error('Error bulk blocking IPs:', err);
     } finally {
       setBulkLoading(false);
@@ -233,12 +234,13 @@ export default function IpManagementSection() {
       </p>
 
       {error && (
-        <div className={`mb-4 p-3 border rounded ${
-          error.startsWith('✅')
-            ? 'bg-green-50 border-green-200 text-green-800'
-            : 'bg-red-50 border-red-200 text-red-800'
-        }`}>
+        <div className="mb-4 p-3 border rounded bg-red-50 border-red-200 text-red-800">
           {error}
+        </div>
+      )}
+      {notice && (
+        <div className="mb-4 p-3 border rounded bg-green-50 border-green-200 text-green-800">
+          {notice}
         </div>
       )}
 

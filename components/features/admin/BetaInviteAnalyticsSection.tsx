@@ -51,13 +51,13 @@ export default function BetaInviteAnalyticsSection() {
       const response = await fetch('/api/admin/beta-invite-analytics');
 
       if (!response.ok) {
-        throw new Error('Failed to fetch invite analytics');
+        throw new Error("Couldn't load the invite numbers.");
       }
 
       const data = await response.json();
       setAnalytics(data.analytics);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : 'Something went wrong.');
     } finally {
       setLoading(false);
     }

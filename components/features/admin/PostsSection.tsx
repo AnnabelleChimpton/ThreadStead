@@ -114,11 +114,11 @@ export default function PostsSection() {
         showSuccess("Post deleted.");
       } else {
         const error = await res.json();
-        showError(error.error || "Failed to delete post");
+        showError(error.error || "Couldn't delete the post. Try again.");
       }
     } catch (error) {
       console.error("Failed to delete post:", error);
-      showError("Failed to delete post");
+      showError("Couldn't delete the post. Try again.");
     } finally {
       setDeleting(null);
     }

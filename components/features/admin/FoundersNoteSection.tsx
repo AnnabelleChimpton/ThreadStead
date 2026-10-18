@@ -41,7 +41,7 @@ export default function FoundersNoteSection() {
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (error) {
       console.error('Failed to save founders note:', error);
-      showError('Failed to save founders note');
+      showError("Couldn't save the founder's note. Try again.");
     } finally {
       setSaving(false);
     }

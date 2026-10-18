@@ -36,13 +36,13 @@ export default function BetaInviteCodesManager({ className = '' }: BetaInviteCod
       const response = await fetch('/api/beta-invite-codes');
       
       if (!response.ok) {
-        throw new Error('Failed to fetch beta invite codes');
+        throw new Error("Couldn't load the invite codes.");
       }
       
       const data = await response.json();
       setCodes(data.codes);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : 'Something went wrong.');
     } finally {
       setLoading(false);
     }

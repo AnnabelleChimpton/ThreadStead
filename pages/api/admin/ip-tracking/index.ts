@@ -122,7 +122,7 @@ export default apiHandler(
 
         return res.json({
           blockedIPs,
-          message: `Successfully blocked ${blockedIPs.length} IP addresses`
+          message: `Blocked ${blockedIPs.length} IP ${blockedIPs.length === 1 ? 'address' : 'addresses'}.`
         });
       } catch (error) {
         console.error("Error blocking IP addresses:", error);

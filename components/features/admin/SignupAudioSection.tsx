@@ -14,6 +14,11 @@ export default function SignupAudioSection() {
   const [config, setConfig] = useState<AudioConfig>({ enabled: false });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [messageIsError, setMessageIsError] = useState(false);
+  const say = (text: string, isError = false) => {
+    setMessage(text);
+    setMessageIsError(isError);
+  };
   const [isPlaying, setIsPlaying] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -51,16 +56,16 @@ export default function SignupAudioSection() {
 
       const result = await response.json();
       if (result.success) {
-        setMessage('Audio uploaded successfully!');
+        say('Audio uploaded.');
         await fetchConfig();
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
       } else {
-        setMessage(`Upload failed: ${result.error}`);
+        say(`Couldn't upload that: ${result.error}`, true);
       }
     } catch (error) {
-      setMessage('Upload failed. Please try again.');
+      say("Couldn't upload the audio. Try again.", true);
       console.error('Upload error:', error);
     } finally {
       setLoading(false);
@@ -78,9 +83,9 @@ export default function SignupAudioSection() {
 
       const result = await response.json();
       setConfig(result);
-      setMessage(config.enabled ? 'Signup audio disabled' : 'Signup audio enabled');
+      say(config.enabled ? 'Signup audio is off.' : 'Signup audio is on.');
     } catch (error) {
-      setMessage('Failed to update setting');
+      say("Couldn't change that setting. Try again.", true);
     } finally {
       setLoading(false);
     }
@@ -111,13 +116,13 @@ export default function SignupAudioSection() {
       });
 
       if (response.ok) {
-        setMessage('Audio deleted successfully');
+        say('Audio deleted.');
         await fetchConfig();
       } else {
-        setMessage('Failed to delete audio');
+        say("Couldn't delete the audio. Try again.", true);
       }
     } catch (error) {
-      setMessage('Failed to delete audio');
+      say("Couldn't delete the audio. Try again.", true);
     } finally {
       setLoading(false);
     }
@@ -159,9 +164,7 @@ export default function SignupAudioSection() {
 
       {message && (
         <div className={`p-2 rounded mb-4 text-sm ${
-          message.includes('successfully') || message.includes('enabled') 
-            ? 'bg-green-100 text-green-700' 
-            : 'bg-red-100 text-red-700'
+          messageIsError ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
         }`}>
           {message}
         </div>

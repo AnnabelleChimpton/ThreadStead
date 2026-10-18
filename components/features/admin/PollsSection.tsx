@@ -82,7 +82,7 @@ export default function PollsSection() {
       const validOptions = createForm.options.filter(opt => opt.trim().length > 0);
 
       if (validOptions.length < 2) {
-        showWarning('Please provide at least 2 options');
+        showWarning('Add at least two options.');
         setSubmitting(false);
         return;
       }
@@ -108,7 +108,7 @@ export default function PollsSection() {
       fetchPolls();
     } catch (error: any) {
       console.error('Failed to create poll:', error);
-      showError(error.message || 'Failed to create poll');
+      showError(error.message || "Couldn't create the poll. Try again.");
     } finally {
       setSubmitting(false);
     }
@@ -129,7 +129,7 @@ export default function PollsSection() {
       fetchPolls();
     } catch (error: any) {
       console.error('Failed to update poll:', error);
-      showError(error.message || 'Failed to update poll');
+      showError(error.message || "Couldn't update the poll. Try again.");
     }
   };
 
@@ -147,7 +147,7 @@ export default function PollsSection() {
       fetchPolls();
     } catch (error: any) {
       console.error('Failed to delete poll:', error);
-      showError(error.message || 'Failed to delete poll');
+      showError(error.message || "Couldn't delete the poll. Try again.");
     }
   };
 
@@ -319,7 +319,7 @@ export default function PollsSection() {
         {loading ? (
           <LoadingSpinner message="Loading polls..." className="py-8" />
         ) : polls.length === 0 ? (
-          <EmptyState variant="plain" icon="chart" title="No polls yet." description="Create your first poll!" />
+          <EmptyState variant="plain" icon="chart" title="No polls yet." description="Use Create Poll above to make one." />
         ) : (
           <div className="space-y-3">
             {polls.map((poll) => (

@@ -100,11 +100,11 @@ export default function SiteNewsSection() {
         });
       } else {
         const error = await response.json();
-        showError(`Error: ${error.error}`);
+        showError(error.error || "Couldn't add the news item. Try again.");
       }
     } catch (error) {
       console.error('Error creating news item:', error);
-      showError('Failed to create news item');
+      showError("Couldn't add the news item. Try again.");
     }
   };
 
@@ -133,11 +133,11 @@ export default function SiteNewsSection() {
         setEditingItem(null);
       } else {
         const error = await response.json();
-        showError(`Error: ${error.error}`);
+        showError(error.error || "Couldn't update the news item. Try again.");
       }
     } catch (error) {
       console.error('Error updating news item:', error);
-      showError('Failed to update news item');
+      showError("Couldn't update the news item. Try again.");
     }
   };
 
@@ -156,11 +156,11 @@ export default function SiteNewsSection() {
         await fetchNews();
       } else {
         const error = await response.json();
-        showError(`Error: ${error.error}`);
+        showError(error.error || "Couldn't delete the news item. Try again.");
       }
     } catch (error) {
       console.error('Error deleting news item:', error);
-      showError('Failed to delete news item');
+      showError("Couldn't delete the news item. Try again.");
     }
   };
 

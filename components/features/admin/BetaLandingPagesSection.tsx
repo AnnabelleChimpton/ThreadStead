@@ -76,6 +76,7 @@ export default function BetaLandingPagesSection() {
   const [landingPages, setLandingPages] = useState<BetaLandingPage[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingPage, setEditingPage] = useState<BetaLandingPage | null>(null);
   const [viewingAnalytics, setViewingAnalytics] = useState<string | null>(null);
@@ -106,10 +107,10 @@ export default function BetaLandingPagesSection() {
         const data = await response.json();
         setLandingPages(data.landingPages);
       } else {
-        setError('Failed to load landing pages');
+        setError("Couldn't load the landing pages. Refresh to try again.");
       }
     } catch (err) {
-      setError('Failed to load landing pages');
+      setError("Couldn't load the landing pages. Refresh to try again.");
       console.error('Error loading landing pages:', err);
     } finally {
       setLoading(false);
@@ -124,10 +125,10 @@ export default function BetaLandingPagesSection() {
         const data = await response.json();
         setAnalytics(data.analytics);
       } else {
-        setError('Failed to load analytics');
+        setError("Couldn't load the analytics. Try again.");
       }
     } catch (err) {
-      setError('Failed to load analytics');
+      setError("Couldn't load the analytics. Try again.");
       console.error('Error loading analytics:', err);
     } finally {
       setLoadingAnalytics(false);
@@ -137,7 +138,7 @@ export default function BetaLandingPagesSection() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.slug || !formData.title) {
-      setError('Name, slug, and title are required');
+      setError('Add a name, slug and title first.');
       return;
     }
 
@@ -156,10 +157,10 @@ export default function BetaLandingPagesSection() {
         resetForm();
       } else {
         const errorData = await response.json();
-        setError(errorData.error || 'Failed to create landing page');
+        setError(errorData.error || "Couldn't create the landing page. Try again.");
       }
     } catch (err) {
-      setError('Failed to create landing page');
+      setError("Couldn't create the landing page. Try again.");
       console.error('Error creating landing page:', err);
     } finally {
       setFormLoading(false);
@@ -169,7 +170,7 @@ export default function BetaLandingPagesSection() {
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingPage || !formData.name || !formData.slug || !formData.title) {
-      setError('Name, slug, and title are required');
+      setError('Add a name, slug and title first.');
       return;
     }
 
@@ -188,10 +189,10 @@ export default function BetaLandingPagesSection() {
         resetForm();
       } else {
         const errorData = await response.json();
-        setError(errorData.error || 'Failed to update landing page');
+        setError(errorData.error || "Couldn't update the landing page. Try again.");
       }
     } catch (err) {
-      setError('Failed to update landing page');
+      setError("Couldn't update the landing page. Try again.");
       console.error('Error updating landing page:', err);
     } finally {
       setFormLoading(false);
@@ -208,16 +209,14 @@ export default function BetaLandingPagesSection() {
         await loadLandingPages();
         const data = await response.json();
         setError(null);
-        // Show success message briefly
-        const successMessage = data.message;
-        setError(`✅ ${successMessage}`);
-        setTimeout(() => setError(null), 3000);
+        setNotice(data.message);
+        setTimeout(() => setNotice(null), 3000);
       } else {
         const errorData = await response.json();
-        setError(errorData.error || `Failed to ${action} campaign`);
+        setError(errorData.error || `Couldn't ${action} the campaign. Try again.`);
       }
     } catch (err) {
-      setError(`Failed to ${action} campaign`);
+      setError(`Couldn't ${action} the campaign. Try again.`);
       console.error(`Error ${action}ing campaign:`, err);
     }
   };
@@ -233,14 +232,14 @@ export default function BetaLandingPagesSection() {
       if (response.ok) {
         await loadLandingPages();
         const data = await response.json();
-        setError(`✅ ${data.message}`);
-        setTimeout(() => setError(null), 3000);
+        setNotice(data.message);
+        setTimeout(() => setNotice(null), 3000);
       } else {
         const errorData = await response.json();
-        setError(errorData.error || 'Failed to update limit');
+        setError(errorData.error || "Couldn't change the signup limit. Try again.");
       }
     } catch (err) {
-      setError('Failed to update limit');
+      setError("Couldn't change the signup limit. Try again.");
       console.error('Error updating limit:', err);
     }
   };
@@ -259,10 +258,10 @@ export default function BetaLandingPagesSection() {
         await loadLandingPages();
       } else {
         const errorData = await response.json();
-        setError(errorData.error || 'Failed to delete landing page');
+        setError(errorData.error || "Couldn't delete the landing page. Try again.");
       }
     } catch (err) {
-      setError('Failed to delete landing page');
+      setError("Couldn't delete the landing page. Try again.");
       console.error('Error deleting landing page:', err);
     }
   };
@@ -337,12 +336,13 @@ export default function BetaLandingPagesSection() {
       </p>
 
       {error && (
-        <div className={`mb-4 p-3 border rounded ${
-          error.startsWith('✅')
-            ? 'bg-green-50 border-green-200 text-green-800'
-            : 'bg-red-50 border-red-200 text-red-800'
-        }`}>
+        <div className="mb-4 p-3 border rounded bg-red-50 border-red-200 text-red-800">
           {error}
+        </div>
+      )}
+      {notice && (
+        <div className="mb-4 p-3 border rounded bg-green-50 border-green-200 text-green-800">
+          {notice}
         </div>
       )}
 

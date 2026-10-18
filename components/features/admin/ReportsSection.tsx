@@ -97,11 +97,11 @@ export default function ReportsSection() {
       if (res.ok) {
         await loadReports(); // Refresh the list
       } else {
-        showError("Failed to update report");
+        showError("Couldn't update the report. Try again.");
       }
     } catch (error) {
       console.error("Failed to update report:", error);
-      showError("Failed to update report");
+      showError("Couldn't update the report. Try again.");
     } finally {
       setUpdating(null);
     }
@@ -112,7 +112,7 @@ export default function ReportsSection() {
     const targetId = report.targetContent?.id;
     
     if (!targetId) {
-      showError("Content ID not available");
+      showError("This report doesn't point at any content, so there's nothing to delete.");
       return;
     }
 
@@ -142,7 +142,7 @@ export default function ReportsSection() {
           deletePayload = { entryId: targetId };
           break;
         default:
-          showWarning(`Deleting ${contentType} is not supported yet`);
+          showWarning(`Can't delete a ${contentType} from here yet.`);
           return;
       }
 
@@ -158,11 +158,11 @@ export default function ReportsSection() {
         showSuccess(`${contentType} deleted.`);
       } else {
         const error = await res.json();
-        showError(error.error || `Failed to delete ${contentType}`);
+        showError(error.error || `Couldn't delete the ${contentType}. Try again.`);
       }
     } catch (error) {
       console.error(`Failed to delete ${contentType}:`, error);
-      showError(`Failed to delete ${contentType}`);
+      showError(`Couldn't delete the ${contentType}. Try again.`);
     } finally {
       setUpdating(null);
     }

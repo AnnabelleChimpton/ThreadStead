@@ -56,7 +56,7 @@ export default apiHandler(
 
       return res.json({
         landingPage: updatedLandingPage,
-        message: `Signup limit updated to ${signupLimit}`,
+        message: `Signup limit set to ${signupLimit}.`,
         currentSignups: currentSignupCount
       });
     } catch (error) {

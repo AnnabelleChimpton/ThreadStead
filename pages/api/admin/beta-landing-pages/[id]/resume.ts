@@ -44,7 +44,7 @@ export default apiHandler(
 
       return res.json({
         landingPage: updatedLandingPage,
-        message: "Campaign resumed successfully"
+        message: "Campaign resumed."
       });
     } catch (error) {
       console.error("Error resuming beta landing page:", error);

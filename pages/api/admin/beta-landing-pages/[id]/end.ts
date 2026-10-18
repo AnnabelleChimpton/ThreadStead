@@ -52,7 +52,7 @@ export default apiHandler(
 
       return res.json({
         landingPage: updatedLandingPage,
-        message: "Campaign ended successfully"
+        message: "Campaign ended."
       });
     } catch (error) {
       console.error("Error ending beta landing page:", error);
