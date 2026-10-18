@@ -61,16 +61,23 @@ describe('validatePostTitle', () => {
     }
   });
 
-  // Known false positives (found 2026-10-18, NOT fixed — product call): the
-  // obscenity patterns match inside ordinary words, so these titles are
-  // refused with "contains disallowed language". The patterns need word
-  // boundaries or an allow-list.
-  it.failing.each(['Grape jam recipe', 'Fuchsia flowers', 'Trip to Fukuoka', 'Scraped knees', 'Draper family'])(
+  it.each(['Grape jam recipe', 'Fuchsia flowers', 'Trip to Fukuoka', 'Scraped knees', 'Draper family',
+    'Skyscraper photos', 'Therapeutic walks', 'Scunthorpe United', 'Fire retardant', 'Niggles and snags'])(
     'accepts the ordinary title %p',
     (title) => {
       expect(validatePostTitle(title)).toMatchObject({ ok: true });
     }
   );
+
+  it('still refuses a slur sitting next to an excused word', () => {
+    for (const title of ['grapefuck', 'Fuchsia c*nt'.replace('*', 'u'), 'scrape r3tard']) {
+      expect(validatePostTitle(title)).toMatchObject({ code: 'obscene' });
+    }
+  });
+
+  it('does not excuse look-alike spellings of the excused words', () => {
+    expect(validatePostTitle('gr4pe')).toMatchObject({ code: 'obscene' });
+  });
 });
 
 describe('validateThreadRingName', () => {
@@ -85,12 +92,11 @@ describe('validateThreadRingName', () => {
     expect(validateThreadRingName('!!!')).toMatchObject({ ok: false, code: 'invalid_format' });
   });
 
-  // Known bug (found 2026-10-18, NOT fixed): reserved entries containing a
-  // hyphen ("the-spool") are compared against input with separators already
-  // folded away ("thespool"), so they never match. "The Spool" passes and
-  // slugs to the reserved "the-spool".
-  it.failing('rejects a name whose slug is a reserved hyphenated name', () => {
-    expect(validateThreadRingName('The Spool')).toMatchObject({ ok: false, code: 'reserved' });
+  it('rejects a name whose slug is a reserved hyphenated name', () => {
+    for (const name of ['The Spool', 'the_spool', 'THE-SPOOL', 'Th3 Spool']) {
+      expect(validateThreadRingName(name)).toMatchObject({ ok: false, code: 'reserved', matched: 'the-spool' });
+    }
+    expect(validateThreadRingName('The Spoolers')).toMatchObject({ ok: true });
   });
 });
 

@@ -45,8 +45,27 @@ const OBSCENE_PATTERNS: RegExp[] = [
 const DOUBLE_PUNCTUATION = /[_-]{2,}/;
 const TRAILING_PUNCT = /[_-]$/;
 
+// Ordinary words the patterns above match inside (the Scunthorpe problem).
+// They're cut out before matching, so a slur hidden next to one of them is
+// still caught ("grapefuck" is refused, "grapefruit" is fine). Spelled-out
+// look-alikes ("gr@pe") aren't excused: those are deliberate.
+const INNOCENT_WORDS: string[] = [
+  // r[a4@]p[e3]
+  "grape", "drape", "scrape", "crape", "trapez", "therapeut", "parapet",
+  "rapeseed", "serape", "sarape",
+  // f[uµ][cçk]+
+  "fuchs", "fucus", "fukuoka", "fukushima", "fukui",
+  // c[uµ]n+t
+  "scunthorpe",
+  // n[1i!l][g9q]{2}
+  "niggle", "snigger",
+  // r[e3][t7][a4@]rd
+  "retardant",
+];
+const INNOCENT_WORDS_RX = new RegExp(INNOCENT_WORDS.join("|"), "g");
+
 function containsObscenity(text: string): boolean {
-  const normalized = text.toLowerCase();
+  const normalized = text.toLowerCase().replace(INNOCENT_WORDS_RX, " ");
   return OBSCENE_PATTERNS.some((rx) => rx.test(normalized));
 }
 
@@ -66,16 +85,18 @@ function normalizeForReserveCompare(text: string): string {
 
 function conflictsWithReserved(text: string, reservedWords: string[]): string | null {
   const reservedSet = new Set(reservedWords.map((s) => s.toLowerCase()));
-  const folded = normalizeForReserveCompare(text);
-  
+
   // Direct check
   if (reservedSet.has(text.toLowerCase())) return text.toLowerCase();
-  
-  // Folded check (catches 0fficial -> official)
+
+  // Folded check, both sides folded the same way: catches 0fficial ->
+  // official, and "The Spool" -> the-spool (input loses its separators, so
+  // a reserved word with a hyphen has to lose its own too).
+  const folded = normalizeForReserveCompare(text);
   for (const reserved of reservedSet) {
-    if (folded === reserved) return reserved;
+    if (folded === normalizeForReserveCompare(reserved)) return reserved;
   }
-  
+
   return null;
 }
 
