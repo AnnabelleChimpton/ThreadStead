@@ -13,6 +13,20 @@ jobs:
   check:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # For the db test project (raw-SQL routes like search). The official
+    # image ships pg_trgm and unaccent.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
 
@@ -36,3 +50,9 @@ jobs:
       # and a ThreadRingHub checkout, so it stays a local `npm run test:federation`.
       - name: Test
         run: npm run test:ci
+
+      # Route tests against a throwaway Postgres database (tests/db).
+      - name: DB tests
+        run: npm run test:db -- --ci
+        env:
+          DBTEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/threadstead_dbtest

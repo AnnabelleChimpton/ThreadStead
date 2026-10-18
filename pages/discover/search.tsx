@@ -33,7 +33,7 @@ interface DiscoverProps {
 }
 
 interface SearchResult {
-  type: 'threadring' | 'user' | 'post';
+  type: 'threadring' | 'user' | 'post' | 'page';
   id: string;
   title: string;
   description?: string;
@@ -526,6 +526,7 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
       case 'threadring': return <PixelIcon name="link" size={16} />;
       case 'user': return <PixelIcon name="user" size={16} />;
       case 'post': return <PixelIcon name="edit" size={16} />;
+      case 'page': return <PixelIcon name="file" size={16} />;
       default: return <PixelIcon name="search" size={16} />;
     }
   };

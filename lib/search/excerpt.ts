@@ -62,16 +62,32 @@ export function toPlainText(input: string): string {
     .trim();
 }
 
+/**
+ * Where the excerpt should centre: the whole query if it appears, else the
+ * first query word that does (quotes and `-excluded` words ignored).
+ */
+function findMatch(lower: string, query: string): { at: number; length: number } {
+  const whole = query.toLowerCase().replace(/"/g, '').trim();
+  const at = whole ? lower.indexOf(whole) : -1;
+  if (at !== -1) return { at, length: whole.length };
+  for (const term of whole.split(/\s+/)) {
+    if (term.length < 2 || term.startsWith('-') || term === 'or') continue;
+    const i = lower.indexOf(term);
+    if (i !== -1) return { at: i, length: term.length };
+  }
+  return { at: -1, length: 0 };
+}
+
 /** ~150 chars of context around the first match of `query`, else the start. */
 export function buildExcerpt(text: string, query: string, radius = 75): string | undefined {
   const clean = toPlainText(text);
   if (!clean) return undefined;
 
   const max = radius * 2;
-  const at = clean.toLowerCase().indexOf(query.toLowerCase());
+  const { at, length } = findMatch(clean.toLowerCase(), query);
   if (at !== -1 && clean.length > max) {
     const start = Math.max(0, at - radius);
-    const end = Math.min(clean.length, at + query.length + radius);
+    const end = Math.min(clean.length, at + length + radius);
     return (start > 0 ? '…' : '') + clean.slice(start, end).trim() + (end < clean.length ? '…' : '');
   }
   return clean.length > max ? clean.slice(0, max).trim() + '…' : clean;

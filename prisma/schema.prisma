@@ -102,41 +102,49 @@ model Handle {
   user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([handle, host])
+  // Typo/partial handle search (pg_trgm, see 20261017000000_add_search_fts).
+  @@index([handle(ops: raw("gin_trgm_ops"))], type: Gin, map: "Handle_handle_trgm_idx")
 }
 
 model Profile {
-  id                 String       @id @default(cuid())
-  userId             String       @unique
+  id                 String                   @id @default(cuid())
+  userId             String                   @unique
   displayName        String?
   bio                String?
   avatarUrl          String?
   bannerUrl          String?
   customCSS          String?
   blogroll           Json?
-  visibility         Visibility   @default(public)
-  updatedAt          DateTime     @updatedAt
+  visibility         Visibility               @default(public)
+  updatedAt          DateTime                 @updatedAt
   featuredFriends    Json?
   avatarFullUrl      String?
   avatarMediumUrl    String?
   avatarThumbnailUrl String?
   customTemplate     String?
   customTemplateAst  String?
-  hideNavigation     Boolean      @default(false)
-  templateEnabled    Boolean      @default(false)
-  templateMode       TemplateMode @default(default)
+  hideNavigation     Boolean                  @default(false)
+  templateEnabled    Boolean                  @default(false)
+  templateMode       TemplateMode             @default(default)
   badgePreferences   Json?
-  includeSiteCSS     Boolean      @default(true)
-  cssMode            String       @default("inherit") // 'inherit' | 'override' | 'disable'
+  includeSiteCSS     Boolean                  @default(true)
+  cssMode            String                   @default("inherit") // 'inherit' | 'override' | 'disable'
   profileMidiId      String?
-  midiAutoplay       Boolean      @default(false)
-  midiLoop           Boolean      @default(false)
+  midiAutoplay       Boolean                  @default(false)
+  midiLoop           Boolean                  @default(false)
   compiledTemplate   Json?
   templateIslands    Json?
   templateCompiledAt DateTime?
   // Neocities-style "view source": when true, anyone can read this profile's
   // template + CSS at /resident/[username]/source.
-  showTemplateSource Boolean      @default(false)
-  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  showTemplateSource Boolean                  @default(false)
+  // Full-text search: displayName (A) + bio (B), `simple` config. Maintained
+  // by a trigger (20261017000000_add_search_fts) — never write it from Prisma.
+  searchTsv          Unsupported("tsvector")? @map("search_tsv")
+  user               User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([searchTsv], type: Gin, map: "Profile_search_tsv_idx")
+  @@index([displayName(ops: raw("gin_trgm_ops"))], type: Gin, map: "Profile_displayName_trgm_idx")
 }
 
 // Point-in-time snapshot of a profile's customization, taken just before a
@@ -236,34 +244,40 @@ model PixelHomeVisitor {
 }
 
 model Post {
-  id                String           @id @default(cuid())
+  id                String                   @id @default(cuid())
   authorId          String
-  createdAt         DateTime         @default(now())
+  createdAt         DateTime                 @default(now())
   updatedAt         DateTime?
   bodyHtml          String?
   bodyText          String?
   media             Json?
   tags              String[]
-  visibility        Visibility       @default(public)
+  visibility        Visibility               @default(public)
   bodyMarkdown      String?
-  title             String           @default("Untitled Post")
+  title             String                   @default("Untitled Post")
   intent            PostIntent?
   excerpt           String?
-  platform          String?          @default("blog")
+  platform          String?                  @default("blog")
   publishedAt       DateTime?
   textPreview       String?
   contentWarning    String? // Custom spoiler warning text
-  isSpoiler         Boolean          @default(false) // Quick flag for filtering
+  isSpoiler         Boolean                  @default(false) // Quick flag for filtering
   metadata          Json? // Journal metadata (mood, listening to, etc.)
   threadRingPostIds Json? // Store ThreadRing database UUIDs mapped by ring slug
-  comments          Comment[]        @relation("PostComments")
-  author            User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  threadRings       PostThreadRing[] @relation("PostThreadRings")
-  metrics           PostMetrics?     @relation("PostMetrics")
-  views             PostView[]       @relation("PostViews")
+  comments          Comment[]                @relation("PostComments")
+  author            User                     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  threadRings       PostThreadRing[]         @relation("PostThreadRings")
+  metrics           PostMetrics?             @relation("PostMetrics")
+  views             PostView[]               @relation("PostViews")
+  // Full-text search: title (A) + tags (B) + plain bodyText (C). Maintained by
+  // a trigger that also derives bodyText when it's null
+  // (20261017000000_add_search_fts) — never write it from Prisma.
+  searchTsv         Unsupported("tsvector")? @map("search_tsv")
 
   // Search performance indexes
   @@index([visibility, createdAt])
+  @@index([searchTsv], type: Gin, map: "Post_search_tsv_idx")
+  @@index([title(ops: raw("gin_trgm_ops"))], type: Gin, map: "Post_title_trgm_idx")
   // Profile feeds filter by author newest-first; also covers the authorId FK.
   @@index([authorId, createdAt])
 }
@@ -454,21 +468,25 @@ model SiteConfig {
 }
 
 model CustomPage {
-  id            String   @id @default(cuid())
-  slug          String   @unique
+  id            String                   @id @default(cuid())
+  slug          String                   @unique
   title         String
   content       String
-  published     Boolean  @default(false)
-  showInNav     Boolean  @default(false)
-  navOrder      Int      @default(0)
+  published     Boolean                  @default(false)
+  showInNav     Boolean                  @default(false)
+  navOrder      Int                      @default(0)
   navDropdown   String? // Which dropdown menu (e.g., "discovery", "help", null for top-level)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  hideNavbar    Boolean  @default(false)
-  isHomepage    Boolean  @default(false)
-  isLandingPage Boolean  @default(false)
+  createdAt     DateTime                 @default(now())
+  updatedAt     DateTime                 @updatedAt
+  hideNavbar    Boolean                  @default(false)
+  isHomepage    Boolean                  @default(false)
+  isLandingPage Boolean                  @default(false)
+  // Full-text search: title (A) + plain content (C), published pages only
+  // (null otherwise). Trigger-maintained (20261017000000_add_search_fts).
+  searchTsv     Unsupported("tsvector")? @map("search_tsv")
 
   @@index([published, showInNav, navOrder])
+  @@index([searchTsv], type: Gin, map: "CustomPage_search_tsv_idx")
   @@index([isHomepage])
   @@index([isLandingPage])
   @@index([navDropdown])

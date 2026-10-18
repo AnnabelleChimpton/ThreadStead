@@ -15,6 +15,9 @@
  *                checkout (see tests/federation/harness/global-setup.ts).
  *                Its globalSetup only fires when one of its tests is selected,
  *                so `npm test` never boots the hub.
+ *  - db          Route tests against a real, throwaway Postgres database
+ *                (*.dbtest.ts) — for code that runs raw SQL (search). Needs
+ *                local Postgres (see tests/db/global-setup.ts). `npm run test:db`.
  *
  * Pick projects with --selectProjects (see package.json scripts). Coverage is
  * just `--coverage` on top of any selection.
@@ -92,6 +95,23 @@ const federation = {
   // so `npm run test:federation` passes --runInBand instead.
 }
 
+/** @type {import('jest').Config} */
+const dbProject = {
+  displayName: 'db',
+  testEnvironment: 'node',
+  testMatch: ['<rootDir>/tests/db/**/*.dbtest.ts'],
+  globalSetup: '<rootDir>/tests/db/global-setup.ts',
+  setupFiles: ['<rootDir>/tests/db/setup-env.ts'],
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/$1',
+  },
+  transform: {
+    '^.+\\.(ts|tsx)$': ['ts-jest', { tsconfig: 'tsconfig.jest.json' }],
+  },
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
+  testTimeout: 30000,
+}
+
 module.exports = async () => {
   // next/jest loads ThreadStead's .env into this process, and the federation
   // harness spawns the hub with process.env — ThreadStead's vars then shadow
@@ -105,7 +125,7 @@ module.exports = async () => {
   Object.assign(process.env, envBefore)
 
   return {
-    projects: [unitResolved, engine, federation],
+    projects: [unitResolved, engine, federation, dbProject],
 
     // Coverage is opt-in via --coverage; these only scope what gets reported.
     collectCoverageFrom: [
