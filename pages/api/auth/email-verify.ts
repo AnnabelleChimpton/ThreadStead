@@ -5,7 +5,7 @@ import { createSession } from "@/lib/auth/server";
 
 export default apiHandler(
   // no CSRF today: anonymous visitors following an emailed login link; plain fetch
-  { methods: ["POST"], auth: "none", csrf: false },
+  { methods: ["POST"], auth: "none", csrf: false, rateLimit: "auth" },
   async (req, res) => {
     try {
       const { token, selectedUserId } = req.body as { 

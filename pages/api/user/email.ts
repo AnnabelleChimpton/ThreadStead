@@ -2,6 +2,7 @@ import { db } from "@/lib/config/database/connection";
 import { encryptEmail, decryptEmail } from "@/lib/utils/security/email-encryption";
 import { createEmailVerificationToken, sendVerificationEmail } from "@/lib/email-login";
 import { apiHandler } from "@/lib/api/handler";
+import { emailSendLimitCheck } from "@/lib/server/http/rate-limit";
 
 export default apiHandler(
   {
@@ -42,6 +43,9 @@ export default apiHandler(
         if (!emailRegex.test(email)) {
           return res.status(400).json({ error: "Invalid email format" });
         }
+
+        // Each POST emails a confirmation link to whatever address was typed
+        if (!(await emailSendLimitCheck(req, res, email, user.id))) return;
         
         // Get user's display name or handle for verification email
         const userWithProfile = await db.user.findUnique({

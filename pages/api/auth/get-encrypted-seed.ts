@@ -2,7 +2,8 @@ import { apiHandler } from "@/lib/api/handler";
 import { db } from "@/lib/config/database/connection";
 
 export default apiHandler(
-  { methods: ["GET"], auth: "none" },
+  // Hands out the password-encrypted seed for any handle, so cap lookups per IP
+  { methods: ["GET"], auth: "none", rateLimit: "auth" },
   async (req, res) => {
     const { username } = req.query;
 

@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/config/database/connection";
 import { getSessionUser } from "@/lib/auth/server";
 import { getClientIp } from "./client-ip";
+import { emailLimiterKey } from "@/lib/utils/security/email-encryption";
 import { randomUUID } from "crypto";
 
 /**
@@ -30,6 +31,10 @@ export type RateLimitCategory =
   | "polls" // Poll voting
   | "search" // External (paid) web search
   | "admin"
+  | "auth" // Sign-in and token routes, per IP
+  | "email_send" // Routes that email an address the caller typed, per user or IP
+  | "email_recipient" // The same, per recipient address (short window)
+  | "email_recipient_daily" // The same, per recipient address (one day)
   | "default";
 
 interface RateLimitConfig {
@@ -59,6 +64,13 @@ export const RATE_LIMIT_CONFIGS: Record<RateLimitCategory, RateLimitConfig> = {
   polls: { limit: 30 * DEV_MULTIPLIER, windowMs: 60 * 1000 }, // 30 per minute (300 in dev)
   search: { limit: 20 * DEV_MULTIPLIER, windowMs: 60 * 1000 }, // 20 per minute (200 in dev)
   admin: { limit: 100 * DEV_MULTIPLIER, windowMs: 60 * 1000 }, // 100 per minute (1000 in dev)
+  // A password login spends 2 (seed lookup + verify), an email link 1–2
+  auth: { limit: 30 * DEV_MULTIPLIER, windowMs: 15 * 60 * 1000 }, // 30 per 15 minutes (300 in dev)
+  email_send: { limit: 10 * DEV_MULTIPLIER, windowMs: 60 * 60 * 1000 }, // 10 per hour (100 in dev)
+  // Shared by login links, password resets and address confirmations, so one
+  // inbox can't be flooded from the site's domain by many IPs
+  email_recipient: { limit: 5 * DEV_MULTIPLIER, windowMs: 15 * 60 * 1000 }, // 5 per 15 minutes (50 in dev)
+  email_recipient_daily: { limit: 15 * DEV_MULTIPLIER, windowMs: 24 * 60 * 60 * 1000 }, // 15 per day (150 in dev)
   default: { limit: 60 * DEV_MULTIPLIER, windowMs: 60 * 1000 }, // 60 per minute (600 in dev)
 };
 
@@ -140,7 +152,20 @@ export async function rateLimitCheck(
   category: RateLimitCategory,
   userId?: string
 ): Promise<boolean> {
-  const identifier = getIdentifier(req, userId);
+  return limitIdentifier(res, getIdentifier(req, userId), category);
+}
+
+/**
+ * rateLimitCheck for an identifier the route picks (a username, a hashed
+ * email). Sends the 429 and returns false when over; `error` replaces the
+ * generic "Too many requests".
+ */
+export async function limitIdentifier(
+  res: NextApiResponse,
+  identifier: string,
+  category: RateLimitCategory,
+  error?: (retryAfterSeconds: number) => string
+): Promise<boolean> {
   const result = await checkRateLimit(identifier, category);
 
   // Add rate limit headers
@@ -153,7 +178,7 @@ export async function rateLimitCheck(
     res.setHeader("Retry-After", retryAfter.toString());
 
     res.status(429).json({
-      error: "Too many requests",
+      error: error ? error(retryAfter) : "Too many requests",
       message: `Rate limit exceeded. Please try again in ${retryAfter} seconds.`,
       retryAfter,
       resetTime: result.resetTime.toISOString(),
@@ -162,6 +187,44 @@ export async function rateLimitCheck(
   }
 
   return true;
+}
+
+function minutes(seconds: number): string {
+  const m = Math.max(1, Math.ceil(seconds / 60));
+  return m === 1 ? "a minute" : `${m} minutes`;
+}
+
+/**
+ * Gate for routes that send mail to an address the caller typed (login
+ * links, password resets, address confirmations). Counts the caller (user
+ * when signed in, else IP), then the recipient over 15 minutes and over a
+ * day. The recipient is counted by emailLimiterKey, never the address
+ * itself.
+ *
+ * Call it before looking up accounts: the outcome then depends only on the
+ * caller and the address, so a 429 says nothing about whether an account
+ * exists. Returns false when the 429 has been sent.
+ */
+export async function emailSendLimitCheck(
+  req: NextApiRequest,
+  res: NextApiResponse,
+  email: string,
+  userId?: string
+): Promise<boolean> {
+  if (
+    !(await limitIdentifier(res, getIdentifier(req, userId), "email_send", (s) =>
+      `That's a lot of emails in a row. Try again in ${minutes(s)}.`
+    ))
+  ) {
+    return false;
+  }
+  const recipient = `email:${emailLimiterKey(email)}`;
+  const tooMany = (s: number) =>
+    `That address has had a few emails from here already. Try again in ${minutes(s)}.`;
+  return (
+    (await limitIdentifier(res, recipient, "email_recipient", tooMany)) &&
+    (await limitIdentifier(res, recipient, "email_recipient_daily", tooMany))
+  );
 }
 
 type Handler = (req: NextApiRequest, res: NextApiResponse) => Promise<void | NextApiResponse>;
@@ -607,7 +670,7 @@ export async function signupLimitCheck(
   const validation = await validateSignupLimits(ipAddress, options.landingPageId);
   if (!validation.valid) {
     res.status(429).json({
-      error: "Rate limit exceeded",
+      error: validation.reason ?? "Too many signups from here. Try again later.",
       message: validation.reason
     });
     return false;

@@ -1,4 +1,4 @@
-import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
+import { createCipheriv, createDecipheriv, createHmac, randomBytes } from 'crypto';
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 16; // For GCM, this is always 16 bytes
@@ -72,6 +72,29 @@ export function decryptEmail(encryptedEmail: string): string {
   } catch (error) {
     throw new Error(`Email decryption failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
+}
+
+/**
+ * A stable, keyed stand-in for an email address, for counting things per
+ * address (rate limits) without ever storing the address. HMAC-SHA256 under
+ * EMAIL_ENCRYPTION_KEY, so it can't be reversed or brute-forced from a
+ * dictionary of addresses without the key.
+ *
+ * It folds together addresses that land in the same inbox (case, `+tags`,
+ * and dots in Gmail local parts), so `a.b+1@gmail.com` and `ab@gmail.com`
+ * share one count. This is only for counting; logins still match the exact
+ * address.
+ */
+export function emailLimiterKey(email: string): string {
+  const normalized = email.toLowerCase().trim();
+  const at = normalized.lastIndexOf('@');
+  let local = at > 0 ? normalized.slice(0, at) : normalized;
+  let domain = at > 0 ? normalized.slice(at + 1) : '';
+  local = local.split('+')[0];
+  if (domain === 'googlemail.com') domain = 'gmail.com';
+  if (domain === 'gmail.com') local = local.replace(/\./g, '');
+  const key = Buffer.from(getEncryptionKey(), 'hex');
+  return createHmac('sha256', key).update(`rate-limit:${local}@${domain}`).digest('hex');
 }
 
 /**

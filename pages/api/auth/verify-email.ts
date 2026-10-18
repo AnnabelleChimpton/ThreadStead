@@ -3,7 +3,7 @@ import { verifyEmailVerificationToken } from "@/lib/email-login";
 
 export default apiHandler(
   // no CSRF today: opened from an emailed link, possibly signed out; plain fetch
-  { methods: ["POST"], auth: "none", csrf: false },
+  { methods: ["POST"], auth: "none", csrf: false, rateLimit: "auth" },
   async (req, res) => {
     try {
       const { token } = req.body as { token?: string };

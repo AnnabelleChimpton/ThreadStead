@@ -1,6 +1,7 @@
 import { apiHandler } from "@/lib/api/handler";
 import { findUsersByEmail } from "@/lib/utils/security/email-encryption";
 import { createEmailLoginToken, sendLoginEmail, cleanupExpiredTokens } from "@/lib/email-login";
+import { emailSendLimitCheck } from "@/lib/server/http/rate-limit";
 
 export default apiHandler(
   // no CSRF today: anonymous visitors (login page) with plain fetch
@@ -22,6 +23,10 @@ export default apiHandler(
       if (!emailRegex.test(email)) {
         return res.status(400).json({ error: "Invalid email format" });
       }
+
+      // Every call emails `email`, so cap it per IP and per address. This
+      // runs before any account lookup, so a 429 can't reveal accounts.
+      if (!(await emailSendLimitCheck(req, res, email))) return;
     
       // Clean up expired tokens occasionally
       if (Math.random() < 0.1) { // 10% chance

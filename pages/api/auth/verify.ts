@@ -1,7 +1,7 @@
 // pages/api/auth/verify.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/config/database/connection";
-import { signupLimitCheck } from "@/lib/server/http/rate-limit";
+import { rateLimitCheck, signupLimitCheck } from "@/lib/server/http/rate-limit";
 
 import * as ed from "@noble/ed25519";
 import { fromBase64Url } from "@/lib/utils/encoding/base64url";
@@ -10,6 +10,9 @@ import { createSession, readCookie } from "@/lib/auth/server";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") return res.status(405).end();
+
+  // Every sign-in and signup lands here; cap attempts per IP
+  if (!(await rateLimitCheck(req, res, "auth"))) return;
 
   // Apply rate limiting for new account creation attempts
   const rateLimitPassed = await signupLimitCheck(req, res);

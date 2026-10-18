@@ -8,7 +8,7 @@ import { toBase64Url } from "@/lib/utils/encoding/base64url";
 
 export default apiHandler(
   // no CSRF today: anonymous visitors following an emailed reset link; plain fetch
-  { methods: ["POST"], auth: "none", csrf: false },
+  { methods: ["POST"], auth: "none", csrf: false, rateLimit: "auth" },
   async (req, res) => {
       const { token, newPassword } = req.body;
 
