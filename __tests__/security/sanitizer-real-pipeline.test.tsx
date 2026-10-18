@@ -148,6 +148,15 @@ describe('cleanHtml (DOMPurify, real)', () => {
     expectInert(cleanAndNormalizeHtml(input));
   });
 
+  // cleanHtml allows no <form>/<button> and no action/formaction attribute
+  // at all — pinned so widening ALLOWED_TAGS/ATTR has to revisit this.
+  it('drops forms and form actions entirely', () => {
+    const out = cleanHtml(
+      '<form action="/x"><input type="image" formaction="javascript:alert(1)"><button formaction="/y">go</button></form>'
+    );
+    expect(out).not.toMatch(/<form|<button|action=/i);
+  });
+
   it('keeps ordinary formatting, links and images', () => {
     const out = cleanHtml(
       '<p><strong>hi</strong> <a href="https://example.com">x</a> <img src="https://example.com/a.png" alt="a"></p>'
@@ -246,6 +255,9 @@ describe('comment markup (renderCommentMarkup)', () => {
 // Template parser — user profile templates (unified + rehype-sanitize, real)
 // ---------------------------------------------------------------------------
 
+/** Lowercased hast property names that hold a URL. */
+const TEMPLATE_URL_PROPS = ['href', 'src', 'xlinkhref', 'action', 'formaction', 'poster', 'background', 'ping', 'srcdoc'];
+
 type HastNode = { type: string; tagName?: string; properties?: Record<string, unknown>; children?: HastNode[] };
 
 function templateProblems(html: string): string[] {
@@ -259,10 +271,10 @@ function templateProblems(html: string): string[] {
     for (const [key, value] of Object.entries(node.properties || {})) {
       const name = key.toLowerCase();
       if (name.startsWith('on')) problems.push(`${tag}[${name}]`);
-      if (['href', 'src', 'xlinkhref', 'formaction', 'srcdoc'].includes(name)) {
+      if (TEMPLATE_URL_PROPS.includes(name)) {
         const v = String(value).replace(/[\u0000- ]/g, '').toLowerCase();
         if (v.startsWith('javascript:') || v.startsWith('vbscript:')) problems.push(`${tag}[${name}=${value}]`);
-        if (name === 'href' && v.startsWith('data:')) problems.push(`${tag}[href=${value}]`);
+        if (name !== 'src' && v.startsWith('data:')) problems.push(`${tag}[${name}=${value}]`);
       }
     }
     node.children?.forEach(walk);
@@ -272,7 +284,7 @@ function templateProblems(html: string): string[] {
 }
 
 describe('template parser (compileTemplate)', () => {
-  it.each(HTML_VECTORS.filter(([name]) => !name.startsWith('style') && name !== 'form action'))(
+  it.each(HTML_VECTORS.filter(([name]) => !name.startsWith('style')))(
     'neutralizes %s',
     (_name, input) => {
       expect(templateProblems(`<div>${input}</div>`)).toEqual([]);
@@ -297,15 +309,37 @@ describe('template parser (compileTemplate)', () => {
     expect(json).toContain('color:red');
   });
 
-  // Hardening gap: defaultSchema allows `action` on every tag and only
-  // protocol-checks href/src/cite/longDesc, so a javascript: action survives
-  // into the AST. Not exploitable today because React 19 replaces javascript:
-  // URLs at render (asserted below); add `action` to schema.protocols to close.
-  it('keeps form action in the AST, but React blocks javascript: at render', () => {
-    const json = JSON.stringify(compileTemplate('<form action="javascript:alert(1)"><button>go</button></form>').ast);
-    expect(json).toContain('javascript:alert(1)');
-    const rendered = renderToStaticMarkup(<form action={'javascript:alert(1)'}><button>go</button></form>);
-    expect(rendered).not.toContain('alert(1)');
+  // defaultSchema allows `action` on every tag but only protocol-checks
+  // href/src/cite/longDesc; the parser adds the other URL properties so a
+  // javascript: action never reaches the AST, whatever React does at render.
+  it.each([
+    ['javascript:', 'javascript:alert(1)'],
+    ['javascript:, mixed case', 'JaVaScRiPt:alert(1)'],
+    ['javascript:, tab entity', 'jav&#x09;ascript:alert(1)'],
+    ['vbscript:', 'vbscript:msgbox(1)'],
+    ['data:text/html', 'data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg=='],
+  ])('strips a %s form action and button formaction', (_name, url) => {
+    const html = `<div><form action="${url}"><button formaction="${url}">go</button></form></div>`;
+    expect(templateProblems(html)).toEqual([]);
+    const json = JSON.stringify(compileTemplate(html).ast);
+    expect(json).not.toMatch(/"(action|formAction)"/);
+  });
+
+  it.each([
+    ['relative path', '/guestbook/sign'],
+    ['relative, no slash', 'sign?x=1'],
+    ['https', 'https://example.com/form'],
+  ])('keeps a %s form action', (_name, url) => {
+    const json = JSON.stringify(compileTemplate(`<form action="${url}" method="post"><button>go</button></form>`).ast);
+    expect(json).toContain(`"action":"${url}"`);
+  });
+
+  // Protocol keys apply to every tag, including component props that reuse a
+  // URL attribute's name (NeonSign's boolean `background`): still checked,
+  // and ordinary values pass.
+  it('protocol-checks URL-named component props too', () => {
+    expect(templateProblems('<NeonSign background="javascript:alert(1)">hi</NeonSign>')).toEqual([]);
+    expect(JSON.stringify(compileTemplate('<NeonSign background="true">hi</NeonSign>').ast)).toContain('"background":"true"');
   });
 });
 

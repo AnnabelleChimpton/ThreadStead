@@ -39,6 +39,19 @@ function createCustomSchema() {
   schema.protocols.src = ['http', 'https', 'mailto', 'tel', 'data', '#'];
   schema.protocols.href = ['http', 'https', 'mailto', 'tel', '#'];
 
+  // defaultSchema only protocol-checks href/src/cite/longDesc, but allows
+  // `action` on every tag, so `<form action="javascript:…">` used to survive
+  // into the AST (React 19 blocks it at render; we shouldn't rely on that).
+  // Keys are hast property names, and a key here applies to every tag.
+  // Relative URLs pass (no scheme); javascript:/vbscript:/data: don't.
+  // Not listed: `data` and `icon` — the If/When/UserImage `data` and icon
+  // props reuse those names for non-URL values, and the elements where they
+  // are URLs (object, command) aren't allowed tags.
+  for (const key of ['action', 'formAction', 'poster', 'background', 'ping', 'xLinkHref', 'codeBase', 'manifest', 'profile', 'archive']) {
+    schema.protocols[key] = schema.protocols.href;
+  }
+  schema.protocols.srcSet = schema.protocols.src;
+
   // Add class to wildcard attributes so ALL tags can have classes
   if (schema.attributes['*']) {
     const wildcardAttrs = schema.attributes['*'];
