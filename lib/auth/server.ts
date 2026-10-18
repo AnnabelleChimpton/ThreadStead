@@ -48,9 +48,35 @@ export async function createSession(res: NextApiResponse, userId: string): Promi
   ]);
 }
 
-/** Expire the session cookie. (The Session row is left to expire on its own.) */
-export function clearSession(res: NextApiResponse): void {
+/** The `[userId, secret]` halves of the session cookie, or null. */
+function readSessionCookie(req: Pick<NextApiRequest, "headers">): [string, string] | null {
+  const value = readCookie(req, SESSION_COOKIE);
+  if (!value) return null;
+  const [userId, secret] = value.split(".");
+  return userId && secret ? [userId, secret] : null;
+}
+
+/**
+ * Log out: delete the request's Session row, so a copied cookie stops
+ * working too, and expire the session cookie on `res`.
+ */
+export async function clearSession(req: Pick<NextApiRequest, "headers">, res: NextApiResponse): Promise<void> {
+  // cookie first, so the browser is signed out even if the delete fails
   res.setHeader("Set-Cookie", sessionCookie("", 0));
+  const cookie = readSessionCookie(req);
+  if (cookie) {
+    const [userId, secret] = cookie;
+    await db.session.deleteMany({ where: { userId, secret } });
+  }
+}
+
+/**
+ * Delete every Session row of `userId` except the one this request is
+ * signed in with, e.g. after a password change.
+ */
+export async function endOtherSessions(req: Pick<NextApiRequest, "headers">, userId: string): Promise<void> {
+  const secret = readSessionCookie(req)?.[1];
+  await db.session.deleteMany({ where: { userId, ...(secret ? { NOT: { secret } } : {}) } });
 }
 
 const DEFAULT_USER_INCLUDE = { betaKey: true } as const;
@@ -71,10 +97,9 @@ export async function getSessionUser(
   req: Pick<NextApiRequest, "headers">,
   options?: { select: Prisma.UserSelect }
 ): Promise<unknown> {
-  const value = readCookie(req, SESSION_COOKIE);
-  if (!value) return null;
-  const [userId, secret] = value.split(".");
-  if (!userId || !secret) return null;
+  const cookie = readSessionCookie(req);
+  if (!cookie) return null;
+  const [userId, secret] = cookie;
 
   // secret is @unique; the userId half of the cookie must still match.
   const session = await db.session.findUnique({

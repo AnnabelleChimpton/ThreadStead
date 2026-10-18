@@ -4,7 +4,8 @@
  * Login → Set-Cookie → /api/auth/me → logout, through the real routes and
  * the real session helpers (TECH_DEBT_AUDIT §2.4), with an in-memory Session
  * table. Covers both login paths: the emailed link (email-verify) and the
- * key signature used by seed-phrase and password login (verify).
+ * key signature used by seed-phrase and password login (verify), and that
+ * logout and password change end sessions server-side, not just the cookie.
  */
 import type { NextApiRequest, NextApiResponse } from 'next';
 import crypto from 'crypto';
@@ -25,6 +26,16 @@ jest.mock('@/lib/config/database/connection', () => ({
       findUnique: jest.fn(async ({ where }: { where: { secret: string } }) => {
         const row = sessions.find((s) => s.secret === where.secret);
         return row ? { userId: row.userId, expiresAt: row.expiresAt, user: USERS[row.userId] } : null;
+      }),
+      deleteMany: jest.fn(async ({ where }: { where: { userId: string; secret?: string; NOT?: { secret: string } } }) => {
+        const doomed = sessions.filter(
+          (s) =>
+            s.userId === where.userId &&
+            (where.secret === undefined || s.secret === where.secret) &&
+            (where.NOT === undefined || s.secret !== where.NOT.secret)
+        );
+        for (const row of doomed) sessions.splice(sessions.indexOf(row), 1);
+        return { count: doomed.length };
       }),
     },
     user: {
@@ -56,12 +67,21 @@ jest.mock('@noble/ed25519', () => {
       ),
   };
 });
-jest.mock('@/lib/server/http/rate-limit', () => ({ signupLimitCheck: jest.fn().mockResolvedValue(true) }));
+// bcrypt at 12 rounds is slow and not what's under test here
+jest.mock('@/lib/auth/password', () => ({
+  hashPassword: jest.fn(async (pw: string) => `hashed:${pw}`),
+  verifyPassword: jest.fn(async (pw: string, hash: string) => hash === `hashed:${pw}`),
+}));
+jest.mock('@/lib/server/http/rate-limit', () => ({
+  signupLimitCheck: jest.fn().mockResolvedValue(true),
+  rateLimitCheck: jest.fn().mockResolvedValue(true),
+}));
 
 import emailVerify from '@/pages/api/auth/email-verify';
 import verify from '@/pages/api/auth/verify';
 import me from '@/pages/api/auth/me';
 import logout from '@/pages/api/auth/logout';
+import changePassword from '@/pages/api/auth/change-password';
 import { checkEmailLoginToken, verifyEmailLoginToken } from '@/lib/email-login';
 import { toBase64Url } from '@/lib/utils/encoding/base64url';
 
@@ -138,6 +158,55 @@ test('email link login → cookie → /me → logout', async () => {
   const out = await call(logout, { method: 'POST', cookie });
   expect(out.headers['set-cookie']).toMatch(/^retro_session=; HttpOnly; (Secure; )?Path=\/; Max-Age=0; SameSite=Strict$/);
   expect((await call(me, { cookie: cookieJar(out.headers['set-cookie']) })).body).toEqual({ loggedIn: false });
+
+  // a copy of the old cookie no longer works either
+  expect(sessions).toHaveLength(0);
+  expect((await call(me, { cookie })).body).toEqual({ loggedIn: false });
+});
+
+async function emailLogin(): Promise<string> {
+  const emailUser = { id: 'user-1', emailVerifiedAt: new Date() };
+  (checkEmailLoginToken as jest.Mock).mockResolvedValue([emailUser]);
+  (verifyEmailLoginToken as jest.Mock).mockResolvedValue([emailUser]);
+  const login = await call(emailVerify, { method: 'POST', body: { token: 'tok' } });
+  return cookieJar(login.headers['set-cookie']);
+}
+
+test('logout ends only its own session', async () => {
+  const laptop = await emailLogin();
+  const phone = await emailLogin();
+
+  await call(logout, { cookie: laptop });
+  expect((await call(me, { cookie: laptop })).body).toEqual({ loggedIn: false });
+  expect((await call(me, { cookie: phone })).body).toMatchObject({ loggedIn: true });
+});
+
+test('password change keeps this session and ends the others', async () => {
+  USERS['user-1'] = { ...USERS['user-1'], authMethod: 'PASSWORD', passwordHash: 'hashed:old-password' };
+  try {
+    const laptop = await emailLogin();
+    const phone = await emailLogin();
+
+    const wrong = await call(changePassword, {
+      method: 'POST',
+      cookie: laptop,
+      body: { currentPassword: 'nope', newPassword: 'new-password' },
+    });
+    expect(wrong.statusCode).toBe(400);
+    expect(sessions).toHaveLength(2);
+
+    const changed = await call(changePassword, {
+      method: 'POST',
+      cookie: laptop,
+      body: { currentPassword: 'old-password', newPassword: 'new-password' },
+    });
+    expect(changed.body).toEqual({ success: true });
+    expect((await call(me, { cookie: laptop })).body).toMatchObject({ loggedIn: true });
+    expect((await call(me, { cookie: phone })).body).toEqual({ loggedIn: false });
+  } finally {
+    const { authMethod: _a, passwordHash: _p, ...rest } = USERS['user-1'];
+    USERS['user-1'] = rest;
+  }
 });
 
 test('signature login (seed phrase / password) → cookie → /me', async () => {

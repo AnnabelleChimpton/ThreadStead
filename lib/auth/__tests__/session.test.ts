@@ -8,13 +8,14 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 jest.mock('@/lib/config/database/connection', () => ({
-  db: { session: { create: jest.fn(), findUnique: jest.fn() } },
+  db: { session: { create: jest.fn(), findUnique: jest.fn(), deleteMany: jest.fn() } },
 }));
 
 import {
   SESSION_TTL_SECONDS,
   clearSession,
   createSession,
+  endOtherSessions,
   getSessionUser,
   readCookie,
 } from '@/lib/auth/server';
@@ -22,6 +23,7 @@ import { db } from '@/lib/config/database/connection';
 
 const create = (db as any).session.create as jest.Mock;
 const findUnique = (db as any).session.findUnique as jest.Mock;
+const deleteMany = (db as any).session.deleteMany as jest.Mock;
 
 function req(cookie?: string) {
   return { headers: cookie === undefined ? {} : { cookie } } as unknown as NextApiRequest;
@@ -46,6 +48,7 @@ function setNodeEnv(value: string | undefined) {
 beforeEach(() => {
   create.mockReset().mockResolvedValue({});
   findUnique.mockReset();
+  deleteMany.mockReset().mockResolvedValue({ count: 0 });
 });
 afterEach(() => setNodeEnv(ORIGINAL_NODE_ENV));
 
@@ -88,11 +91,43 @@ describe('createSession', () => {
 });
 
 describe('clearSession', () => {
-  test('expires the session cookie with the same flags', () => {
+  test('expires the session cookie with the same flags', async () => {
     setNodeEnv('development');
     const r = res();
-    clearSession(r);
+    await clearSession(req('retro_session=u1.s3cret'), r);
     expect(r.headers['set-cookie']).toBe('retro_session=; HttpOnly; Path=/; Max-Age=0; SameSite=Strict');
+  });
+
+  test("deletes the request's Session row", async () => {
+    await clearSession(req('retro_session=u1.s3cret'), res());
+    expect(deleteMany).toHaveBeenCalledWith({ where: { userId: 'u1', secret: 's3cret' } });
+  });
+
+  test('without a session cookie it only expires the cookie', async () => {
+    const r = res();
+    await clearSession(req('retro_session=nodot'), r);
+    await clearSession(req(), r);
+    expect(deleteMany).not.toHaveBeenCalled();
+    expect(r.headers['set-cookie']).toMatch(/^retro_session=; /);
+  });
+
+  test('still expires the cookie when the delete fails', async () => {
+    deleteMany.mockRejectedValue(new Error('db down'));
+    const r = res();
+    await expect(clearSession(req('retro_session=u1.s'), r)).rejects.toThrow('db down');
+    expect(r.headers['set-cookie']).toMatch(/^retro_session=; /);
+  });
+});
+
+describe('endOtherSessions', () => {
+  test("deletes the user's sessions except this request's", async () => {
+    await endOtherSessions(req('retro_session=u1.mine'), 'u1');
+    expect(deleteMany).toHaveBeenCalledWith({ where: { userId: 'u1', NOT: { secret: 'mine' } } });
+  });
+
+  test('without a session cookie it deletes them all', async () => {
+    await endOtherSessions(req(), 'u1');
+    expect(deleteMany).toHaveBeenCalledWith({ where: { userId: 'u1' } });
   });
 });
 
