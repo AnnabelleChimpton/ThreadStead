@@ -3,8 +3,10 @@ import { GetServerSideProps } from 'next';
 import Head from 'next/head';
 import Link from 'next/link';
 import Layout from '@/components/ui/layout/Layout';
+import PageHeader from '@/components/ui/layout/PageHeader';
+import Callout from '@/components/ui/feedback/Callout';
+import ButtonLink from '@/components/ui/ButtonLink';
 import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
-import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface FAQProps {
   siteConfig: SiteConfig;
@@ -253,41 +255,26 @@ export default function FAQ({ siteConfig }: FAQProps) {
 
       <Layout siteConfig={siteConfig}>
         <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-8 sm:py-12">
-          {/* Header */}
-          <div className="mb-6 sm:mb-8">
-            <Link href="/help" className="text-sm text-thread-sunset hover:underline mb-3 inline-block">
-              ← Back to Help
-            </Link>
-            <div className="bg-gradient-to-br from-blue-100 via-sky-50 to-purple-100 border-2 border-black rounded-lg shadow-[4px_4px_0_#000] p-6 sm:p-8 text-center">
-              <h1 className="text-3xl sm:text-4xl font-bold text-thread-pine mb-4">
-                Frequently Asked Questions
-              </h1>
-              <p className="text-lg text-gray-700 mb-3">
-                How the houses, rings, and pages work — and what happens to your data (nothing).
-              </p>
-              <p className="text-base text-gray-700 mb-3">
-                <PixelIcon name="human-handsup" size={16} className="inline-block align-middle" /> <strong>First time here?</strong> The details live below; the story of why this site exists is on the <Link href="/landing" className="text-thread-sunset hover:text-thread-pine underline font-medium">landing page</Link>.
-              </p>
-              <p className="text-base text-thread-sage">
-                New here? Start with &quot;Getting Started&quot;.
-              </p>
-            </div>
-          </div>
+          <PageHeader title="Frequently Asked Questions" back={{ href: '/help', label: 'Back to Help' }}>
+            <p>How the houses, rings, and pages work — and what happens to your data (nothing).</p>
+            <p className="text-base"><strong>First time here?</strong> The details live below; the story of why this site exists is on the <Link href="/landing">landing page</Link>.</p>
+            <p className="text-base text-nb-ink-mid">New here? Start with &quot;Getting Started&quot;.</p>
+          </PageHeader>
 
           {/* FAQ Sections */}
           <div className="space-y-8">
             {faqs.map((section, sectionIndex) => (
-              <div key={sectionIndex} className="bg-thread-cream border border-thread-sage rounded-lg p-6">
-                <h2 className="text-2xl font-bold text-thread-pine mb-4">
+              <div key={sectionIndex} className="thread-module">
+                <h2 className="thread-headline text-2xl font-bold mb-4">
                   {section.category}
                 </h2>
                 <div className="space-y-6">
                   {section.questions.map((faq, faqIndex) => (
-                    <div key={faqIndex} className="border-l-4 border-thread-sunset pl-4">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    <div key={faqIndex} className="border-l-4 border-nb-rose pl-4">
+                      <h3 className="text-lg font-semibold text-nb-ink mb-2">
                         {faq.question}
                       </h3>
-                      <p className="text-gray-700">
+                      <p className="text-nb-ink mb-0">
                         {faq.answer}
                       </p>
                     </div>
@@ -298,46 +285,26 @@ export default function FAQ({ siteConfig }: FAQProps) {
           </div>
 
           {/* Founder's Personal Note */}
-          <div className="mt-12 mb-8 p-6 sm:p-8 bg-gradient-to-br from-yellow-100 via-orange-100 to-pink-100 border-2 border-black rounded-lg shadow-[3px_3px_0_#000]">
-            <h2 className="text-2xl sm:text-3xl font-bold text-thread-pine mb-4 text-center">
-              A Personal Note from the Founder
-            </h2>
-            <div className="max-w-3xl mx-auto space-y-4">
-              <p className="text-base text-gray-800 leading-relaxed">
-                I&apos;m building this alone, in every spare moment, because I genuinely believe we can have a social internet that doesn&apos;t suck. One that&apos;s creative, playful, and human-centered instead of optimized for engagement and profit.
-              </p>
-              <p className="text-base text-gray-800 leading-relaxed">
-                <strong>This is beta software built by one person who cares.</strong> It&apos;s rough around the edges, but it&apos;s honest. Your feedback helps me make this better—not for shareholders, but for actual people who just want a fun place to hang out online.
-              </p>
-              <p className="text-base text-gray-800 leading-relaxed">
-                Thank you for being here. Let&apos;s build something good together.
-              </p>
-            </div>
-            <div className="text-center mt-6">
-              <Link
-                href="/landing"
-                className="inline-block px-6 py-3 bg-white hover:bg-gray-50 border-2 border-black shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] font-medium transition-all transform hover:-translate-y-0.5"
-              >
-                Read the complete landing page →
-              </Link>
-            </div>
-          </div>
+          <Callout variant="framed" title="A Personal Note from the Founder" className="mt-12">
+            <p className="leading-relaxed">
+              I&apos;m building this alone, in every spare moment, because I genuinely believe we can have a social internet that doesn&apos;t suck. One that&apos;s creative, playful, and human-centered instead of optimized for engagement and profit.
+            </p>
+            <p className="leading-relaxed">
+              <strong>This is beta software built by one person who cares.</strong> It&apos;s rough around the edges, but it&apos;s honest. Your feedback helps me make this better—not for shareholders, but for actual people who just want a fun place to hang out online.
+            </p>
+            <p className="leading-relaxed">
+              Thank you for being here. Let&apos;s build something good together.
+            </p>
+            <p className="pt-2">
+              <ButtonLink href="/landing" variant="secondary">Read the complete landing page →</ButtonLink>
+            </p>
+          </Callout>
 
           {/* Still have questions? */}
-          <div className="mt-12 p-6 bg-blue-50 border border-blue-200 rounded-lg text-center">
-            <h3 className="text-xl font-semibold text-blue-900 mb-2">
-              Still have questions?
-            </h3>
-            <p className="text-blue-800 mb-4">
-              Can&apos;t find what you&apos;re looking for? We&apos;re here to help!
-            </p>
-            <Link
-              href="/help/contact"
-              className="inline-block px-6 py-3 bg-blue-600 !text-white rounded hover:bg-blue-700 transition-colors font-medium"
-            >
-              Contact Us
-            </Link>
-          </div>
+          <Callout title="Still have questions?" className="mt-8">
+            <p>Can&apos;t find what you&apos;re looking for? We&apos;re here to help!</p>
+            <p><ButtonLink href="/help/contact">Contact Us</ButtonLink></p>
+          </Callout>
         </div>
       </Layout>
     </>

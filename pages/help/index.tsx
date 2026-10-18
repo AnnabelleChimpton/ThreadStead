@@ -4,7 +4,9 @@ import Head from 'next/head';
 import Link from 'next/link';
 import Layout from '@/components/ui/layout/Layout';
 import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
-import { PixelIcon } from '@/components/ui/PixelIcon';
+import PageHeader from '@/components/ui/layout/PageHeader';
+import Callout from '@/components/ui/feedback/Callout';
+import ButtonLink from '@/components/ui/ButtonLink';
 
 interface HelpHubProps {
   siteConfig: SiteConfig;
@@ -12,12 +14,12 @@ interface HelpHubProps {
 
 export default function HelpHub({ siteConfig }: HelpHubProps) {
   const tabs = [
-    { href: '/help/faq', label: 'FAQ', icon: <PixelIcon name="info-box" />, description: 'Answers to the usual questions' },
-    { href: '/help/music-guide', label: 'Music Guide', icon: <PixelIcon name="music" />, description: 'Finding, making and uploading MIDI music' },
-    { href: '/help/guidelines', label: 'Guidelines', icon: <PixelIcon name="clipboard" />, description: 'The house rules' },
-    { href: '/help/privacy', label: 'Privacy', icon: <PixelIcon name="lock" />, description: 'What gets stored and who sees it' },
-    { href: '/help/terms', label: 'Terms', icon: <PixelIcon name="script" />, description: 'Terms of service' },
-    { href: '/help/contact', label: 'Contact', icon: <PixelIcon name="mail" />, description: 'Bugs, ideas, reports' },
+    { href: '/help/faq', label: 'FAQ', description: 'Answers to the usual questions' },
+    { href: '/help/music-guide', label: 'Music Guide', description: 'Finding, making and uploading MIDI music' },
+    { href: '/help/guidelines', label: 'Guidelines', description: 'The house rules' },
+    { href: '/help/privacy', label: 'Privacy', description: 'What gets stored and who sees it' },
+    { href: '/help/terms', label: 'Terms', description: 'Terms of service' },
+    { href: '/help/contact', label: 'Contact', description: 'Bugs, ideas, reports' },
   ];
 
   return (
@@ -36,34 +38,10 @@ export default function HelpHub({ siteConfig }: HelpHubProps) {
 
       <Layout siteConfig={siteConfig}>
         <div className="w-full max-w-6xl mx-auto px-3 sm:px-4 py-8 sm:py-12">
-          {/* Hero Section */}
-          <div className="mb-6 sm:mb-8">
-            <div className="bg-gradient-to-br from-blue-100 via-sky-50 to-purple-100 border-2 border-black rounded-lg shadow-[4px_4px_0_#000] p-6 sm:p-8 text-center">
-              <h1 className="text-3xl sm:text-4xl font-bold text-thread-pine mb-4">
-                Help
-              </h1>
-              <p className="text-lg sm:text-xl text-gray-700 max-w-3xl mx-auto mb-2">
-                The FAQ covers most things. Still stuck? Write in — a person reads every message.
-              </p>
-              <p className="text-base text-gray-600 max-w-2xl mx-auto">
-                House rules, privacy and terms are here too.
-              </p>
-            </div>
-          </div>
-
-          {/* Sub-navigation Tabs */}
-          <div className="flex flex-wrap justify-center gap-3 sm:gap-4 mb-8 border-b border-gray-200 pb-4">
-            {tabs.map(tab => (
-              <Link
-                key={tab.href}
-                href={tab.href}
-                className="px-3 sm:px-4 py-2 text-sm sm:text-base text-thread-pine hover:text-thread-sunset font-medium border-b-2 border-transparent hover:border-thread-sunset transition-colors"
-              >
-                <span className="sm:hidden">{tab.icon}</span>
-                <span className="hidden sm:inline">{tab.label}</span>
-              </Link>
-            ))}
-          </div>
+          <PageHeader title="Help">
+            <p>The FAQ covers most things. Still stuck? Write in — a person reads every message.</p>
+            <p className="text-base text-nb-ink-mid">House rules, privacy and terms are here too.</p>
+          </PageHeader>
 
           {/* Help Topics Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-12">
@@ -71,53 +49,33 @@ export default function HelpHub({ siteConfig }: HelpHubProps) {
               <Link
                 key={tab.href}
                 href={tab.href}
-                className="bg-thread-cream border border-thread-sage rounded-lg shadow-[2px_2px_0_#A18463] p-5 hover:shadow-[4px_4px_0_#A18463] transition-shadow"
+                className="thread-module ts-card-link block"
               >
-                <div className="text-3xl mb-3">{tab.icon}</div>
-                <h2 className="text-xl font-bold text-thread-pine mb-2">
+                <h2 className="thread-headline text-xl font-bold mb-1 underline decoration-nb-ink-mid/50 underline-offset-2">
                   {tab.label}
                 </h2>
-                <p className="text-gray-700 text-sm">
+                <p className="text-nb-ink-mid text-sm mb-0">
                   {tab.description}
                 </p>
-                <div className="mt-3 text-thread-sunset font-medium text-sm">
-                  Learn more →
-                </div>
               </Link>
             ))}
           </div>
 
           {/* Quick Links */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="p-6 bg-green-50 border border-green-200 rounded-lg">
-              <h3 className="text-lg font-semibold text-green-900 mb-2">
-                New to {siteConfig.site_name}?
-              </h3>
-              <p className="text-green-800 mb-4">
-                The FAQ starts with the getting-started questions.
+            <Callout variant="framed" title={`New to ${siteConfig.site_name}?`}>
+              <p>The FAQ starts with the getting-started questions.</p>
+              <p>
+                <ButtonLink href="/help/faq">Read FAQ</ButtonLink>
               </p>
-              <Link
-                href="/help/faq"
-                className="inline-block px-4 py-2 bg-green-600 !text-white rounded hover:bg-green-700 transition-colors font-medium"
-              >
-                Read FAQ
-              </Link>
-            </div>
+            </Callout>
 
-            <div className="p-6 bg-purple-50 border border-purple-200 rounded-lg">
-              <h3 className="text-lg font-semibold text-purple-900 mb-2">
-                Need a person?
-              </h3>
-              <p className="text-purple-800 mb-4">
-                If the FAQ doesn&apos;t cover it, write in. The person who runs the site reads every message.
+            <Callout variant="framed" title="Need a person?">
+              <p>If the FAQ doesn&apos;t cover it, write in. The person who runs the site reads every message.</p>
+              <p>
+                <ButtonLink href="/help/contact" variant="secondary">Contact Us</ButtonLink>
               </p>
-              <Link
-                href="/help/contact"
-                className="inline-block px-4 py-2 bg-purple-600 !text-white rounded hover:bg-purple-700 transition-colors font-medium"
-              >
-                Contact Us
-              </Link>
-            </div>
+            </Callout>
           </div>
         </div>
       </Layout>

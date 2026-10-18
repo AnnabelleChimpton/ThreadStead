@@ -33,13 +33,13 @@ export const QuickSubmitWidget = () => {
     };
 
     return (
-        <div className="bg-white border-2 border-gray-900 rounded-lg p-3 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-4">
+        <div className="widget-container widget--flat bg-thread-paper border border-thread-sage rounded-cozy shadow-cozy-sm p-3 flex flex-wrap items-center gap-x-4 gap-y-1">
             <div className="flex items-center gap-2 flex-shrink-0">
-                <div className="bg-yellow-400 p-1.5 rounded border border-gray-900">
+                <div className="text-nb-ink">
                     <PixelIcon name="search" size={16} />
                 </div>
                 <div className="hidden sm:block">
-                    <h3 className="font-bold text-sm leading-tight">Feed the Spider</h3>
+                    <h3 className="thread-headline font-bold text-sm leading-tight mb-0">Feed the Spider</h3>
                 </div>
             </div>
 
@@ -54,11 +54,11 @@ export const QuickSubmitWidget = () => {
                             setMessage('');
                         }}
                         placeholder="Paste a URL to add to the index..."
-                        className="w-full pl-3 pr-8 py-1.5 bg-gray-50 border border-gray-300 rounded focus:border-blue-500 focus:ring-0 outline-none transition-all font-mono text-xs"
+                        className="w-full pl-3 pr-8 py-1.5 bg-white border-2 border-nb-ink-mid/60 rounded-md focus:border-nb-ink-mid outline-none font-mono text-xs"
                         disabled={status === 'scanning'}
                     />
                     {status === 'error' && (
-                        <div className="absolute right-2 top-1/2 -translate-y-1/2 text-red-500">
+                        <div className="absolute right-2 top-1/2 -translate-y-1/2 text-nb-rose-ink">
                             <PixelIcon name="alert" size={12} />
                         </div>
                     )}
@@ -67,8 +67,8 @@ export const QuickSubmitWidget = () => {
                 <button
                     type="submit"
                     disabled={status === 'scanning' || !url}
-                    className={`p-1.5 rounded border border-gray-900 transition-all flex-shrink-0 ${url ? 'bg-blue-500 text-white hover:bg-blue-600 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]' : 'bg-gray-100 text-gray-400'
-                        }`}
+                    className="ts-icon-button flex-shrink-0 disabled:opacity-50"
+                    aria-label="Add URL to the index"
                 >
                     {status === 'scanning' ? (
                         <div className="animate-spin">
@@ -80,8 +80,7 @@ export const QuickSubmitWidget = () => {
                 </button>
             </form>
 
-            <div className="text-xs text-gray-500 mt-1 flex items-center gap-1">
-                <PixelIcon name="info-box" size={12} />
+            <div className="text-xs text-nb-ink-mid basis-full sm:basis-auto">
                 <span>Help grow the indie web index</span>
             </div>
         </div>

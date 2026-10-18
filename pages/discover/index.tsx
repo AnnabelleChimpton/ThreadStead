@@ -4,7 +4,9 @@ import Head from 'next/head';
 import Link from 'next/link';
 import Layout from '@/components/ui/layout/Layout';
 import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
-import { PixelIcon } from '@/components/ui/PixelIcon';
+import PageHeader from '@/components/ui/layout/PageHeader';
+import Callout from '@/components/ui/feedback/Callout';
+import ButtonLink from '@/components/ui/ButtonLink';
 
 interface DiscoverHubProps {
   siteConfig: SiteConfig;
@@ -27,172 +29,62 @@ export default function DiscoverHub({ siteConfig }: DiscoverHubProps) {
 
       <Layout siteConfig={siteConfig}>
         <div className="w-full max-w-6xl mx-auto px-3 sm:px-4 py-8 sm:py-12">
-          {/* Hero Section */}
-          <div className="mb-6 sm:mb-8">
-            <div className="bg-gradient-to-br from-cyan-100 via-teal-50 to-emerald-100 border-2 border-black rounded-lg shadow-[4px_4px_0_#000] p-6 sm:p-8 text-center">
-              <h1 className="text-4xl sm:text-5xl font-bold text-thread-pine mb-4">
-                Around the neighborhood
-              </h1>
-              <p className="text-xl sm:text-2xl text-thread-sage max-w-3xl mx-auto mb-3">
-                Walk the streets, look people up, read the feed, or let the dice pick a house.
-              </p>
-              <p className="text-base text-gray-600 max-w-2xl mx-auto">
-                Everyone who lives here gets a house. Click one to visit.
-              </p>
+          <PageHeader title="Around the neighborhood">
+            <p>Walk the streets, look people up, read the feed, or let the dice pick a house.</p>
+            <p className="text-base text-nb-ink-mid">Everyone who lives here gets a house. Click one to visit.</p>
+          </PageHeader>
+
+          {/* Neighborhoods */}
+          <section className="thread-module mb-10">
+            <div className="sm:p-2">
+              <h2 className="thread-headline text-2xl sm:text-3xl font-bold mb-1">Pixel Home Neighborhoods</h2>
+              <p className="text-nb-ink-mid mb-5">The same houses three ways: a street, a grid, or a map.</p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+                {[
+                  { href: '/neighborhood/explore/all', title: 'Street View', blurb: 'Walk past each house' },
+                  { href: '/neighborhood/explore/all', title: 'Grid View', blurb: 'Every house at once' },
+                  { href: '/neighborhood/explore/all', title: 'Map View', blurb: "Bird's eye" },
+                  { href: '/neighborhood/explore/random', title: 'Random', blurb: 'Any house, at random' },
+                ].map(option => (
+                  <Link
+                    key={option.title}
+                    href={option.href}
+                    className="ts-card-link block border-2 border-dotted border-nb-ink-mid/60 rounded-md p-4 hover:border-solid hover:border-nb-ink-mid"
+                  >
+                    <div className="font-bold text-nb-ink underline decoration-nb-ink-mid/50 underline-offset-2">{option.title}</div>
+                    <div className="text-sm text-nb-ink-mid">{option.blurb}</div>
+                  </Link>
+                ))}
+              </div>
+
+              <ButtonLink href="/neighborhood/explore/all" size="lg">Walk the neighborhood</ButtonLink>
             </div>
-          </div>
+          </section>
 
-          {/* HERO FEATURE: Neighborhoods */}
-          <div className="mb-12">
-            <div className="bg-gradient-to-br from-thread-cream via-thread-paper to-pink-50 border-2 border-thread-sage rounded-lg shadow-[4px_4px_0_#A18463] p-8 sm:p-10 hover:shadow-[6px_6px_0_#A18463] transition-shadow">
-              <div className="text-center mb-8">
-                <div className="mb-4 flex justify-center">
-                  <PixelIcon name="home" size={48} />
-                </div>
-                <h2 className="text-3xl sm:text-4xl font-bold text-thread-pine mb-3">
-                  Pixel Home Neighborhoods
-                </h2>
-                <p className="text-lg text-thread-sage max-w-2xl mx-auto mb-6">
-                  The same houses three ways: a street, a grid, or a map.
-                </p>
-              </div>
-
-              {/* Neighborhood Exploration Options */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                <Link
-                  href="/neighborhood/explore/all"
-                  className="bg-white border-2 border-thread-sage rounded-lg p-5 hover:bg-thread-cream transition-colors shadow-sm hover:shadow-md text-center"
-                >
-                  <div className="mb-2 flex justify-center">
-                    <PixelIcon name="home" size={32} />
-                  </div>
-                  <div className="font-bold text-thread-pine mb-1">Street View</div>
-                  <div className="text-sm text-thread-sage">Walk past each house</div>
-                </Link>
-
-                <Link
-                  href="/neighborhood/explore/all"
-                  className="bg-white border-2 border-thread-sage rounded-lg p-5 hover:bg-thread-cream transition-colors shadow-sm hover:shadow-md text-center"
-                >
-                  <div className="text-3xl mb-2">⊞</div>
-                  <div className="font-bold text-thread-pine mb-1">Grid View</div>
-                  <div className="text-sm text-thread-sage">Every house at once</div>
-                </Link>
-
-                <Link
-                  href="/neighborhood/explore/all"
-                  className="bg-white border-2 border-thread-sage rounded-lg p-5 hover:bg-thread-cream transition-colors shadow-sm hover:shadow-md text-center"
-                >
-                  <div className="mb-2 flex justify-center"><PixelIcon name="map" size={32} /></div>
-                  <div className="font-bold text-thread-pine mb-1">Map View</div>
-                  <div className="text-sm text-thread-sage">Bird&apos;s eye</div>
-                </Link>
-
-                <Link
-                  href="/neighborhood/explore/random"
-                  className="bg-gradient-to-br from-pink-100 to-purple-100 border-2 border-pink-300 rounded-lg p-5 hover:from-pink-200 hover:to-purple-200 transition-colors shadow-sm hover:shadow-md text-center"
-                >
-                  <div className="mb-2 flex justify-center"><PixelIcon name="dice" size={32} /></div>
-                  <div className="font-bold text-thread-pine mb-1">Random</div>
-                  <div className="text-sm text-purple-700">Any house, at random</div>
-                </Link>
-              </div>
-
-              {/* Primary CTA */}
-              <div className="text-center">
-                <Link
-                  href="/neighborhood/explore/all"
-                  className="inline-flex items-center gap-2 px-8 py-4 bg-thread-sage !text-white text-lg font-bold rounded-lg hover:bg-thread-pine transition-colors shadow-md hover:shadow-lg"
-                >
-                  <PixelIcon name="home" size={16} className="inline-block align-middle" /> Walk the neighborhood
-                </Link>
-              </div>
-            </div>
-          </div>
-
-          {/* Secondary Exploration Modes */}
-          <div className="mb-12">
-            <h2 className="text-2xl sm:text-3xl font-bold text-thread-pine mb-6 text-center">
-              Other ways in
-            </h2>
+          {/* Other ways in */}
+          <section className="mb-10">
+            <h2 className="thread-headline text-2xl font-bold mb-4">Other ways in</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Residents */}
-              <Link
-                href="/discover/residents"
-                className="bg-thread-cream border border-thread-sage rounded-lg shadow-[2px_2px_0_#A18463] p-6 hover:shadow-[4px_4px_0_#A18463] transition-shadow"
-              >
-                <div className="mb-4 flex justify-center">
-                  <PixelIcon name="users" size={32} />
-                </div>
-                <h3 className="text-xl font-bold text-thread-pine mb-2">
-                  Meet Residents
-                </h3>
-                <p className="text-thread-sage mb-4">
-                  Everyone who lives here. Search by name, handle, or bio.
-                </p>
-                <div className="text-thread-sunset font-medium">
-                  Browse Profiles →
-                </div>
-              </Link>
-
-              {/* Feed */}
-              <Link
-                href="/discover/feed"
-                className="bg-thread-cream border border-thread-sage rounded-lg shadow-[2px_2px_0_#A18463] p-6 hover:shadow-[4px_4px_0_#A18463] transition-shadow"
-              >
-                <div className="mb-4 flex justify-center">
-                  <PixelIcon name="article" size={32} />
-                </div>
-                <h3 className="text-xl font-bold text-thread-pine mb-2">
-                  Community Feed
-                </h3>
-                <p className="text-thread-sage mb-4">
-                  Recent posts and active threads from everyone here.
-                </p>
-                <div className="text-thread-sunset font-medium">
-                  View Feed →
-                </div>
-              </Link>
-
-              {/* Search */}
-              <Link
-                href="/discover/search"
-                className="bg-thread-cream border border-thread-sage rounded-lg shadow-[2px_2px_0_#A18463] p-6 hover:shadow-[4px_4px_0_#A18463] transition-shadow"
-              >
-                <div className="mb-4 flex justify-center">
-                  <PixelIcon name="search" size={32} />
-                </div>
-                <h3 className="text-xl font-bold text-thread-pine mb-2">
-                  Search
-                </h3>
-                <p className="text-thread-sage mb-4">
-                  Search posts, people and rings here, or the indie web index.
-                </p>
-                <div className="text-thread-sunset font-medium">
-                  Start Searching →
-                </div>
-              </Link>
+              {[
+                { href: '/discover/residents', title: 'Meet Residents', blurb: 'Everyone who lives here. Search by name, handle, or bio.', cta: 'Browse Profiles →' },
+                { href: '/discover/feed', title: 'Community Feed', blurb: 'Recent posts and active threads from everyone here.', cta: 'View Feed →' },
+                { href: '/discover/search', title: 'Search', blurb: 'Search posts, people and rings here, or the indie web index.', cta: 'Start Searching →' },
+              ].map(card => (
+                <Link key={card.href} href={card.href} className="thread-module ts-card-link block">
+                  <h3 className="thread-headline text-xl font-bold mb-1">{card.title}</h3>
+                  <p className="text-nb-ink-mid mb-3">{card.blurb}</p>
+                  <span className="font-semibold text-nb-ink underline underline-offset-2">{card.cta}</span>
+                </Link>
+              ))}
             </div>
-          </div>
+          </section>
 
-          {/* Serendipity Section */}
-          <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-300 rounded-lg p-8 text-center">
-            <div className="mb-4 flex justify-center">
-              <PixelIcon name="dice" size={48} />
-            </div>
-            <h3 className="text-2xl font-bold text-thread-pine mb-3">
-              Can&apos;t decide?
-            </h3>
-            <p className="text-lg text-thread-sage mb-6 max-w-2xl mx-auto">
-              Roll the dice. You never know whose porch you&apos;ll end up on.
-            </p>
-            <Link
-              href="/neighborhood/explore/random"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 !text-white rounded-lg font-bold hover:bg-purple-700 transition-colors shadow-md hover:shadow-lg"
-            >
-              <PixelIcon name="dice" size={20} /> Visit a random house
-            </Link>
-          </div>
+          {/* Serendipity */}
+          <Callout variant="framed" title="Can't decide?">
+            <p>Roll the dice. You never know whose porch you&apos;ll end up on.</p>
+            <p><ButtonLink href="/neighborhood/explore/random" variant="secondary">Visit a random house</ButtonLink></p>
+          </Callout>
         </div>
       </Layout>
     </>

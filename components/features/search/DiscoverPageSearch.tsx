@@ -167,16 +167,9 @@ export default function DiscoverPageSearch({
 
       {/* Indie Index Helper - Shows on Indie Index and All tabs */}
       {showCommunityHelper && (searchTab === 'indie' || searchTab === 'all') && (
-        <div className={`border-b px-2 sm:px-3 py-2 ${
-          searchTab === 'indie'
-            ? 'bg-purple-50 border-purple-200/50'
-            : 'bg-blue-50/50 border-blue-200/30'
-        }`}>
+        <div className="border-b-2 border-dotted border-nb-ink-mid/40 px-2 sm:px-3 py-2">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs">
-            <div className={`flex items-center gap-1 sm:gap-2 ${
-              searchTab === 'indie' ? 'text-purple-700' : 'text-blue-700'
-            }`}>
-              <span className="text-sm sm:text-base"><PixelIcon name="bookmark" /></span>
+            <div className="flex items-center gap-1 sm:gap-2 text-nb-ink">
               <span className="font-medium text-[10px] sm:text-xs">
                 {searchTab === 'indie'
                   ? 'Help build our indie index!'
@@ -188,7 +181,8 @@ export default function DiscoverPageSearch({
                 onClick={() => {
                   window.open('/discover/faq#' + (searchTab === 'indie' ? 'indie-index' : 'unified-search'), '_blank');
                 }}
-                className="text-gray-500 hover:text-gray-700 ml-1 touch-manipulation"
+                className="ts-icon-button ml-1 touch-manipulation"
+                aria-label="Learn more about how this works"
                 title="Learn more about how this works"
               >
                 <PixelIcon name="info-box" size={12} className="inline-block" />
@@ -197,11 +191,7 @@ export default function DiscoverPageSearch({
             <div className="flex items-center gap-2 sm:gap-3">
               <Link
                 href="/community-index/submit"
-                className={`hover:underline flex items-center gap-1 ${
-                  searchTab === 'indie'
-                    ? 'text-purple-600 hover:text-purple-800'
-                    : 'text-blue-600 hover:text-blue-800'
-                }`}
+                className="flex items-center gap-1"
                 title="Submit your favorite indie sites to our indie index"
               >
                 <PixelIcon name="plus" />
@@ -209,11 +199,7 @@ export default function DiscoverPageSearch({
               </Link>
               <Link
                 href="/community-index/validate"
-                className={`hover:underline flex items-center gap-1 ${
-                  searchTab === 'indie'
-                    ? 'text-purple-600 hover:text-purple-800'
-                    : 'text-blue-600 hover:text-blue-800'
-                }`}
+                className="flex items-center gap-1"
                 title="Help review and validate indie sites"
               >
                 <PixelIcon name="check" />
@@ -221,11 +207,7 @@ export default function DiscoverPageSearch({
               </Link>
               <Link
                 href="/community-index/analytics"
-                className={`hover:underline flex items-center gap-1 ${
-                  searchTab === 'indie'
-                    ? 'text-purple-600 hover:text-purple-800'
-                    : 'text-blue-600 hover:text-blue-800'
-                }`}
+                className="flex items-center gap-1"
                 title="See how our community index is growing"
               >
                 <PixelIcon name="chart" />

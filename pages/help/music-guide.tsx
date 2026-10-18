@@ -3,6 +3,9 @@ import { GetServerSideProps } from 'next';
 import Head from 'next/head';
 import Link from 'next/link';
 import Layout from '@/components/ui/layout/Layout';
+import PageHeader from '@/components/ui/layout/PageHeader';
+import Callout from '@/components/ui/feedback/Callout';
+import ButtonLink from '@/components/ui/ButtonLink';
 import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
 
 interface MusicGuideProps {
@@ -26,32 +29,19 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
 
       <Layout siteConfig={siteConfig}>
         <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-8 sm:py-12">
-          {/* Header */}
-          <div className="mb-6 sm:mb-8">
-            <Link href="/help" className="text-sm text-thread-sunset hover:underline mb-3 inline-block">
-              ← Back to Help
-            </Link>
-            <div className="bg-gradient-to-br from-purple-100 via-pink-50 to-blue-100 border-2 border-black rounded-lg shadow-[4px_4px_0_#000] p-6 sm:p-8 text-center">
-              <h1 className="text-3xl sm:text-4xl font-bold text-thread-pine mb-4">
-                Music Creator&apos;s Guide
-              </h1>
-              <p className="text-lg text-gray-700 mb-3">
-                Everything you need to know about creating, uploading, and optimizing MIDI music for your profile.
-              </p>
-              <p className="text-base text-thread-sage">
-                Whether you&apos;re a seasoned composer or just getting started, this guide will help you create the perfect background music!
-              </p>
-            </div>
-          </div>
+          <PageHeader title="Music Creator's Guide" back={{ href: '/help', label: 'Back to Help' }}>
+            <p>Everything you need to know about creating, uploading, and optimizing MIDI music for your profile.</p>
+            <p className="text-base text-nb-ink-mid">Whether you&apos;re a seasoned composer or just getting started, this guide will help you create the perfect background music!</p>
+          </PageHeader>
 
           {/* Quick Start */}
-          <div className="bg-green-50 border-2 border-green-600 rounded-lg p-6 mb-8">
-            <h2 className="text-2xl font-bold text-green-900 mb-4">
+          <div className="thread-module mb-8">
+            <h2 className="thread-headline text-2xl font-bold mb-4">
               Quick Start
             </h2>
-            <ol className="list-decimal list-inside space-y-2 text-gray-800">
+            <ol className="list-decimal list-inside space-y-2 text-nb-ink">
               <li>Create or export a MIDI file (.mid or .midi)</li>
-              <li>Go to <Link href="/settings" className="text-thread-sunset hover:underline font-medium">Settings → Music</Link></li>
+              <li>Go to <Link href="/settings">Settings → Music</Link></li>
               <li>Upload your MIDI file (max 1MB)</li>
               <li>Add a title and optional description</li>
               <li>Set as your profile music and configure autoplay/loop settings</li>
@@ -59,7 +49,7 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
           </div>
 
           {/* Table of Contents */}
-          <div className="bg-thread-cream border border-thread-sage rounded-lg p-6 mb-8">
+          <div className="thread-module mb-8">
             <h2 className="text-xl font-bold text-thread-pine mb-3">
               Jump to Section
             </h2>
@@ -78,11 +68,11 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
           <div className="space-y-8">
 
             {/* Why MIDI */}
-            <section id="why-midi" className="bg-thread-cream border border-thread-sage rounded-lg p-6">
+            <section id="why-midi" className="thread-module">
               <h2 className="text-2xl font-bold text-thread-pine mb-4">
                 Why MIDI?
               </h2>
-              <div className="space-y-4 text-gray-700">
+              <div className="space-y-4 text-nb-ink">
                 <p>
                   MIDI (Musical Instrument Digital Interface) files are perfect for profile background music because:
                 </p>
@@ -94,9 +84,9 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
                   <li><strong>No copyright concerns</strong> - Your original MIDI compositions are completely yours</li>
                 </ul>
 
-                <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mt-4">
-                  <p className="font-semibold text-blue-900 mb-2">What is MIDI?</p>
-                  <p className="text-blue-800">
+                <div className="border-l-4 border-nb-lav pl-4 py-1 mt-4">
+                  <p className="font-semibold text-nb-ink mb-2">What is MIDI?</p>
+                  <p className="text-nb-ink">
                     MIDI isn&apos;t audio - it&apos;s digital sheet music! Instead of recording sound waves, MIDI files contain instructions: &quot;play middle C for half a second on a piano sound.&quot; Your browser then generates the actual audio in real-time using our custom synthesizer.
                   </p>
                 </div>
@@ -104,7 +94,7 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
             </section>
 
             {/* Technical Specifications */}
-            <section id="technical-specs" className="bg-thread-cream border border-thread-sage rounded-lg p-6">
+            <section id="technical-specs" className="thread-module">
               <h2 className="text-2xl font-bold text-thread-pine mb-4">
                 Technical Specifications
               </h2>
@@ -112,8 +102,8 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
               <div className="space-y-6">
                 {/* File Requirements */}
                 <div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-3">File Requirements</h3>
-                  <ul className="space-y-2 text-gray-700">
+                  <h3 className="text-xl font-semibold text-nb-ink mb-3">File Requirements</h3>
+                  <ul className="space-y-2 text-nb-ink">
                     <li><strong>Format:</strong> .mid or .midi files</li>
                     <li><strong>Max file size:</strong> 1MB</li>
                     <li><strong>Complexity limit:</strong> Approximately 2000 notes (you&apos;ll see a warning if exceeded)</li>
@@ -124,11 +114,11 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
 
                 {/* Custom Synthesis Engine */}
                 <div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-3">How Our Synthesis Works</h3>
-                  <p className="text-gray-700 mb-3">
+                  <h3 className="text-xl font-semibold text-nb-ink mb-3">How Our Synthesis Works</h3>
+                  <p className="text-nb-ink mb-3">
                     HomePageAgain uses a <strong>custom Web Audio synthesis engine</strong> instead of traditional sound fonts. This means:
                   </p>
-                  <ul className="list-disc list-inside space-y-2 ml-4 text-gray-700">
+                  <ul className="list-disc list-inside space-y-2 ml-4 text-nb-ink">
                     <li>No external sound font files (.sf2/.sf3) are needed or used</li>
                     <li>All instrument sounds are generated programmatically in real-time</li>
                     <li>Lightweight and fast - no large sound font downloads</li>
@@ -138,14 +128,14 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
 
                 {/* Supported Note Ranges */}
                 <div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-3">Supported Instrument Ranges</h3>
-                  <p className="text-gray-700 mb-3">
+                  <h3 className="text-xl font-semibold text-nb-ink mb-3">Supported Instrument Ranges</h3>
+                  <p className="text-nb-ink mb-3">
                     Our synthesis engine has optimized ranges for different instrument families:
                   </p>
 
                   <div className="overflow-x-auto">
-                    <table className="min-w-full bg-white border border-gray-300 text-sm">
-                      <thead className="bg-gray-100">
+                    <table className="min-w-full bg-white border border-nb-ink-mid/40 text-sm">
+                      <thead className="bg-nb-peach/40">
                         <tr>
                           <th className="px-4 py-2 border-b text-left font-semibold">Instrument Family</th>
                           <th className="px-4 py-2 border-b text-left font-semibold">Note Range</th>
@@ -160,7 +150,7 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
                           <td className="px-4 py-2 border-b">48-84</td>
                           <td className="px-4 py-2 border-b">Melody, chords, accompaniment</td>
                         </tr>
-                        <tr className="bg-gray-50">
+                        <tr className="bg-nb-ink-mid/5">
                           <td className="px-4 py-2 border-b font-medium">Strings</td>
                           <td className="px-4 py-2 border-b">G3 to E7</td>
                           <td className="px-4 py-2 border-b">55-88</td>
@@ -172,7 +162,7 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
                           <td className="px-4 py-2 border-b">46-82</td>
                           <td className="px-4 py-2 border-b">Fanfares, bold melodies</td>
                         </tr>
-                        <tr className="bg-gray-50">
+                        <tr className="bg-nb-ink-mid/5">
                           <td className="px-4 py-2 border-b font-medium">Other Instruments</td>
                           <td className="px-4 py-2 border-b">Full MIDI range</td>
                           <td className="px-4 py-2 border-b">0-127</td>
@@ -182,9 +172,9 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
                     </table>
                   </div>
 
-                  <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 mt-4">
-                    <p className="font-semibold text-yellow-900 mb-2">Composition Tip</p>
-                    <p className="text-yellow-800">
+                  <div className="border-l-4 border-nb-lav pl-4 py-1 mt-4">
+                    <p className="font-semibold text-nb-ink mb-2">Composition Tip</p>
+                    <p className="text-nb-ink">
                       While all MIDI notes will play, staying within these optimized ranges ensures the best sound quality. Notes outside these ranges use simpler oscillator synthesis.
                     </p>
                   </div>
@@ -192,11 +182,11 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
 
                 {/* General MIDI Support */}
                 <div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-3">General MIDI (GM) Support</h3>
-                  <p className="text-gray-700 mb-2">
+                  <h3 className="text-xl font-semibold text-nb-ink mb-3">General MIDI (GM) Support</h3>
+                  <p className="text-nb-ink mb-2">
                     We support the standard General MIDI instrument map, which includes:
                   </p>
-                  <ul className="list-disc list-inside space-y-1 ml-4 text-gray-700">
+                  <ul className="list-disc list-inside space-y-1 ml-4 text-nb-ink">
                     <li>Piano family (Acoustic Piano, Electric Piano, Harpsichord, etc.)</li>
                     <li>Chromatic Percussion (Vibraphone, Marimba, Xylophone, etc.)</li>
                     <li>Organ family (Pipe Organ, Rock Organ, Church Organ, etc.)</li>
@@ -207,18 +197,18 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
                     <li>Reed instruments (Saxophone, Oboe, Clarinet, etc.)</li>
                     <li>Synth instruments and sound effects</li>
                   </ul>
-                  <p className="text-gray-700 mt-3">
+                  <p className="text-nb-ink mt-3">
                     All 128 standard GM instruments are recognized and will be synthesized appropriately by our audio engine.
                   </p>
                 </div>
 
                 {/* Browser Compatibility */}
                 <div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-3">Browser Compatibility</h3>
-                  <p className="text-gray-700">
+                  <h3 className="text-xl font-semibold text-nb-ink mb-3">Browser Compatibility</h3>
+                  <p className="text-nb-ink">
                     Our MIDI player works on all modern browsers that support Web Audio API:
                   </p>
-                  <ul className="list-disc list-inside space-y-1 ml-4 text-gray-700 mt-2">
+                  <ul className="list-disc list-inside space-y-1 ml-4 text-nb-ink mt-2">
                     <li>Chrome/Edge (version 14+)</li>
                     <li>Firefox (version 25+)</li>
                     <li>Safari (version 6+)</li>
@@ -229,7 +219,7 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
             </section>
 
             {/* Creating MIDI Files */}
-            <section id="creating-midi" className="bg-thread-cream border border-thread-sage rounded-lg p-6">
+            <section id="creating-midi" className="thread-module">
               <h2 className="text-2xl font-bold text-thread-pine mb-4">
                 Creating MIDI Files
               </h2>
@@ -237,12 +227,12 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
               <div className="space-y-6">
                 {/* Software Options */}
                 <div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-3">Recommended Software</h3>
+                  <h3 className="text-xl font-semibold text-nb-ink mb-3">Recommended Software</h3>
 
                   <div className="space-y-4">
-                    <div className="border-l-4 border-green-500 pl-4">
-                      <h4 className="font-semibold text-gray-900">Free Options</h4>
-                      <ul className="space-y-2 mt-2 text-gray-700">
+                    <div className="border-l-4 border-nb-rose pl-4">
+                      <h4 className="font-semibold text-nb-ink">Free Options</h4>
+                      <ul className="space-y-2 mt-2 text-nb-ink">
                         <li>
                           <strong>MuseScore</strong> (Windows, Mac, Linux) - Full-featured music notation software with MIDI export. Perfect for beginners and professionals.
                         </li>
@@ -261,9 +251,9 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
                       </ul>
                     </div>
 
-                    <div className="border-l-4 border-blue-500 pl-4">
-                      <h4 className="font-semibold text-gray-900">Paid Options</h4>
-                      <ul className="space-y-2 mt-2 text-gray-700">
+                    <div className="border-l-4 border-nb-rose pl-4">
+                      <h4 className="font-semibold text-nb-ink">Paid Options</h4>
+                      <ul className="space-y-2 mt-2 text-nb-ink">
                         <li>
                           <strong>FL Studio</strong> - Popular DAW with excellent MIDI workflow.
                         </li>
@@ -279,9 +269,9 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
                       </ul>
                     </div>
 
-                    <div className="border-l-4 border-purple-500 pl-4">
-                      <h4 className="font-semibold text-gray-900">Online Tools</h4>
-                      <ul className="space-y-2 mt-2 text-gray-700">
+                    <div className="border-l-4 border-nb-rose pl-4">
+                      <h4 className="font-semibold text-nb-ink">Online Tools</h4>
+                      <ul className="space-y-2 mt-2 text-nb-ink">
                         <li>
                           <strong>Flat.io</strong> - Web-based music notation with MIDI export.
                         </li>
@@ -298,13 +288,13 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
 
                 {/* Export Settings */}
                 <div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-3">Export Settings Guide</h3>
-                  <p className="text-gray-700 mb-3">
+                  <h3 className="text-xl font-semibold text-nb-ink mb-3">Export Settings Guide</h3>
+                  <p className="text-nb-ink mb-3">
                     When exporting your MIDI file, use these settings for best results:
                   </p>
 
-                  <div className="bg-gray-50 border border-gray-300 rounded p-4">
-                    <ul className="space-y-2 text-gray-700">
+                  <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-4">
+                    <ul className="space-y-2 text-nb-ink">
                       <li><strong>Format:</strong> MIDI Type 0 or Type 1 (both supported)</li>
                       <li><strong>Resolution:</strong> 480 PPQ (Pulses Per Quarter note) recommended</li>
                       <li><strong>Tempo:</strong> 80-140 BPM works well for background music</li>
@@ -316,17 +306,17 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
 
                 {/* Converting Existing Music */}
                 <div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-3">Converting Existing Music to MIDI</h3>
+                  <h3 className="text-xl font-semibold text-nb-ink mb-3">Converting Existing Music to MIDI</h3>
 
-                  <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 mb-3">
-                    <p className="font-semibold text-yellow-900 mb-2">Important Note About Conversion</p>
-                    <p className="text-yellow-800">
+                  <div className="border-l-4 border-nb-lav pl-4 py-1 mb-3">
+                    <p className="font-semibold text-nb-ink mb-2">Important Note About Conversion</p>
+                    <p className="text-nb-ink">
                       Converting audio (MP3, WAV) to MIDI is challenging and results are often not usable. Audio-to-MIDI tools struggle with polyphonic music (multiple instruments/notes). For best results, create MIDI from scratch or find existing MIDI files.
                     </p>
                   </div>
 
-                  <p className="text-gray-700 mb-2">If you want to convert audio to MIDI, these tools can help (with limitations):</p>
-                  <ul className="list-disc list-inside space-y-1 ml-4 text-gray-700">
+                  <p className="text-nb-ink mb-2">If you want to convert audio to MIDI, these tools can help (with limitations):</p>
+                  <ul className="list-disc list-inside space-y-1 ml-4 text-nb-ink">
                     <li>AnthemScore - AI-powered audio to MIDI conversion</li>
                     <li>Logic Pro&apos;s &quot;Flex Pitch to MIDI&quot; (for monophonic melodies)</li>
                     <li>Ableton Live&apos;s &quot;Convert Melody to MIDI&quot;</li>
@@ -337,15 +327,15 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
             </section>
 
             {/* Composition Best Practices */}
-            <section id="composition-tips" className="bg-thread-cream border border-thread-sage rounded-lg p-6">
+            <section id="composition-tips" className="thread-module">
               <h2 className="text-2xl font-bold text-thread-pine mb-4">
                 Composition Best Practices
               </h2>
 
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-3">For Profile Background Music</h3>
-                  <ul className="space-y-3 text-gray-700">
+                  <h3 className="text-xl font-semibold text-nb-ink mb-3">For Profile Background Music</h3>
+                  <ul className="space-y-3 text-nb-ink">
                     <li>
                       <strong>Keep it short and loopable</strong> - 30-60 seconds works best. Make sure the end flows naturally back to the beginning.
                     </li>
@@ -365,11 +355,11 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
                 </div>
 
                 <div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-3">Optimizing File Complexity</h3>
-                  <p className="text-gray-700 mb-3">
+                  <h3 className="text-xl font-semibold text-nb-ink mb-3">Optimizing File Complexity</h3>
+                  <p className="text-nb-ink mb-3">
                     To keep your MIDI file under the ~2000 note complexity limit:
                   </p>
-                  <ul className="space-y-2 text-gray-700">
+                  <ul className="space-y-2 text-nb-ink">
                     <li><strong>Simplify percussion</strong> - Drums can add hundreds of notes quickly. Use simpler drum patterns.</li>
                     <li><strong>Reduce voice count</strong> - Use 2-4 instruments instead of 8-10.</li>
                     <li><strong>Shorter duration</strong> - A 30-second loop is much lighter than a 2-minute piece.</li>
@@ -377,20 +367,20 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
                     <li><strong>Thin out rapid passages</strong> - Fast runs and arpeggios add up quickly.</li>
                   </ul>
 
-                  <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mt-4">
-                    <p className="font-semibold text-blue-900 mb-2">Complexity Warning</p>
-                    <p className="text-blue-800">
+                  <div className="border-l-4 border-nb-lav pl-4 py-1 mt-4">
+                    <p className="font-semibold text-nb-ink mb-2">Complexity Warning</p>
+                    <p className="text-nb-ink">
                       When you upload a MIDI file, we&apos;ll analyze it and warn you if it exceeds ~2000 notes. High complexity can cause performance issues on slower devices.
                     </p>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-3">Musical Style Suggestions</h3>
-                  <p className="text-gray-700 mb-3">
+                  <h3 className="text-xl font-semibold text-nb-ink mb-3">Musical Style Suggestions</h3>
+                  <p className="text-nb-ink mb-3">
                     These styles work particularly well for profile background music:
                   </p>
-                  <ul className="list-disc list-inside space-y-2 ml-4 text-gray-700">
+                  <ul className="list-disc list-inside space-y-2 ml-4 text-nb-ink">
                     <li><strong>Lo-fi beats</strong> - Chill, relaxed, easy to loop</li>
                     <li><strong>Ambient/atmospheric</strong> - Gentle, unobtrusive soundscapes</li>
                     <li><strong>Chiptune/8-bit</strong> - Nostalgic, web-native vibe</li>
@@ -402,11 +392,11 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
                 </div>
 
                 <div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-3">Instrument Selection Tips</h3>
-                  <p className="text-gray-700 mb-3">
+                  <h3 className="text-xl font-semibold text-nb-ink mb-3">Instrument Selection Tips</h3>
+                  <p className="text-nb-ink mb-3">
                     Our synthesis engine excels with these instrument choices:
                   </p>
-                  <ul className="space-y-2 text-gray-700">
+                  <ul className="space-y-2 text-nb-ink">
                     <li><strong>Piano-based tracks</strong> - Use MIDI notes 48-84 (C3-C6) for best quality with our procedurally generated piano samples.</li>
                     <li><strong>String sections</strong> - Great for ambient pads and melodies, optimized for notes 55-88 (G3-E7).</li>
                     <li><strong>Brass accents</strong> - Perfect for fanfares or bold statements, best in range 46-82 (Bb2-Bb6).</li>
@@ -417,15 +407,15 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
             </section>
 
             {/* Uploading & Managing */}
-            <section id="uploading" className="bg-thread-cream border border-thread-sage rounded-lg p-6">
+            <section id="uploading" className="thread-module">
               <h2 className="text-2xl font-bold text-thread-pine mb-4">
                 Uploading & Managing Your Music
               </h2>
 
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-3">Step-by-Step Upload Process</h3>
-                  <ol className="list-decimal list-inside space-y-3 text-gray-700">
+                  <h3 className="text-xl font-semibold text-nb-ink mb-3">Step-by-Step Upload Process</h3>
+                  <ol className="list-decimal list-inside space-y-3 text-nb-ink">
                     <li>
                       <strong>Navigate to Settings</strong> - Go to <Link href="/settings" className="text-thread-sunset hover:underline">Settings → Music tab</Link>
                     </li>
@@ -459,11 +449,11 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
                 </div>
 
                 <div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-3">Managing Your MIDI Library</h3>
-                  <p className="text-gray-700 mb-3">
+                  <h3 className="text-xl font-semibold text-nb-ink mb-3">Managing Your MIDI Library</h3>
+                  <p className="text-nb-ink mb-3">
                     You can upload multiple MIDI files and switch between them:
                   </p>
-                  <ul className="space-y-2 text-gray-700">
+                  <ul className="space-y-2 text-nb-ink">
                     <li><strong>View all tracks</strong> - See all your uploaded MIDI files with title, size, and upload date</li>
                     <li><strong>Switch active track</strong> - Click &quot;Set as Profile&quot; on any track to make it your active music</li>
                     <li><strong>Download files</strong> - Download any of your uploaded MIDI files to your device</li>
@@ -473,20 +463,20 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
                 </div>
 
                 <div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-3">Attribution & Licensing</h3>
-                  <p className="text-gray-700 mb-3">
+                  <h3 className="text-xl font-semibold text-nb-ink mb-3">Attribution & Licensing</h3>
+                  <p className="text-nb-ink mb-3">
                     If you&apos;re using MIDI files created by others, it&apos;s important to give proper credit:
                   </p>
-                  <ul className="space-y-2 text-gray-700">
+                  <ul className="space-y-2 text-nb-ink">
                     <li>Use the Description field to credit the original composer</li>
                     <li>If the MIDI is under Creative Commons or other licenses, mention this in the description</li>
                     <li>For your original compositions, you can add &quot;Original composition by [your name]&quot;</li>
                     <li>Link to the source if you found the MIDI file online</li>
                   </ul>
 
-                  <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 mt-4">
-                    <p className="font-semibold text-yellow-900 mb-2">Copyright Notice</p>
-                    <p className="text-yellow-800">
+                  <div className="border-l-4 border-nb-lav pl-4 py-1 mt-4">
+                    <p className="font-semibold text-nb-ink mb-2">Copyright Notice</p>
+                    <p className="text-nb-ink">
                       MIDI files can still be subject to copyright if they represent copyrighted musical compositions. Make sure you have the right to use any MIDI files you upload, especially arrangements of popular songs.
                     </p>
                   </div>
@@ -495,19 +485,19 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
             </section>
 
             {/* Troubleshooting */}
-            <section id="troubleshooting" className="bg-thread-cream border border-thread-sage rounded-lg p-6">
+            <section id="troubleshooting" className="thread-module">
               <h2 className="text-2xl font-bold text-thread-pine mb-4">
                 Troubleshooting
               </h2>
 
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-3">Common Issues & Solutions</h3>
+                  <h3 className="text-xl font-semibold text-nb-ink mb-3">Common Issues & Solutions</h3>
 
                   <div className="space-y-4">
-                    <div className="border-l-4 border-red-500 pl-4">
-                      <h4 className="font-semibold text-gray-900">Music doesn&apos;t play</h4>
-                      <ul className="list-disc list-inside mt-2 space-y-1 text-gray-700">
+                    <div className="border-l-4 border-nb-rose pl-4">
+                      <h4 className="font-semibold text-nb-ink">Music doesn&apos;t play</h4>
+                      <ul className="list-disc list-inside mt-2 space-y-1 text-nb-ink">
                         <li>Check that autoplay is enabled in your music settings</li>
                         <li>Verify the track is set as your profile music (green &quot;Active&quot; indicator)</li>
                         <li>Try a different browser (Chrome, Firefox, Safari all supported)</li>
@@ -516,12 +506,12 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
                       </ul>
                     </div>
 
-                    <div className="border-l-4 border-orange-500 pl-4">
-                      <h4 className="font-semibold text-gray-900">Complexity warning appears</h4>
-                      <p className="text-gray-700 mt-2">
+                    <div className="border-l-4 border-nb-rose pl-4">
+                      <h4 className="font-semibold text-nb-ink">Complexity warning appears</h4>
+                      <p className="text-nb-ink mt-2">
                         Your MIDI file has more than ~2000 notes, which may cause performance issues. To fix:
                       </p>
-                      <ul className="list-disc list-inside mt-2 space-y-1 text-gray-700">
+                      <ul className="list-disc list-inside mt-2 space-y-1 text-nb-ink">
                         <li>Simplify percussion/drum tracks (they often have hundreds of notes)</li>
                         <li>Remove unnecessary instrument tracks</li>
                         <li>Shorten the duration of your piece</li>
@@ -530,9 +520,9 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
                       </ul>
                     </div>
 
-                    <div className="border-l-4 border-blue-500 pl-4">
-                      <h4 className="font-semibold text-gray-900">File upload fails</h4>
-                      <ul className="list-disc list-inside mt-2 space-y-1 text-gray-700">
+                    <div className="border-l-4 border-nb-rose pl-4">
+                      <h4 className="font-semibold text-nb-ink">File upload fails</h4>
+                      <ul className="list-disc list-inside mt-2 space-y-1 text-nb-ink">
                         <li>Check file size is under 1MB</li>
                         <li>Verify file format is .mid or .midi (not .mp3, .wav, or other audio formats)</li>
                         <li>Make sure the file isn&apos;t corrupted - try opening it in your MIDI software first</li>
@@ -540,12 +530,12 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
                       </ul>
                     </div>
 
-                    <div className="border-l-4 border-purple-500 pl-4">
-                      <h4 className="font-semibold text-gray-900">Music sounds different than expected</h4>
-                      <p className="text-gray-700 mt-2">
+                    <div className="border-l-4 border-nb-rose pl-4">
+                      <h4 className="font-semibold text-nb-ink">Music sounds different than expected</h4>
+                      <p className="text-nb-ink mt-2">
                         Remember, we use custom Web Audio synthesis, not traditional sound fonts:
                       </p>
-                      <ul className="list-disc list-inside mt-2 space-y-1 text-gray-700">
+                      <ul className="list-disc list-inside mt-2 space-y-1 text-nb-ink">
                         <li>Instruments will sound different than in your DAW or notation software</li>
                         <li>Some advanced MIDI features (pitch bend, modulation) may sound different</li>
                         <li>Drum sounds use General MIDI mapping but our custom synthesis</li>
@@ -553,9 +543,9 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
                       </ul>
                     </div>
 
-                    <div className="border-l-4 border-green-500 pl-4">
-                      <h4 className="font-semibold text-gray-900">Loop doesn&apos;t sound smooth</h4>
-                      <ul className="list-disc list-inside mt-2 space-y-1 text-gray-700">
+                    <div className="border-l-4 border-nb-rose pl-4">
+                      <h4 className="font-semibold text-nb-ink">Loop doesn&apos;t sound smooth</h4>
+                      <ul className="list-disc list-inside mt-2 space-y-1 text-nb-ink">
                         <li>Make sure your MIDI file ends on the same note/chord it begins with</li>
                         <li>Check for trailing notes that extend past the end</li>
                         <li>Use a fade-out or natural ending point that flows back to the beginning</li>
@@ -566,11 +556,11 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
                 </div>
 
                 <div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-3">Still Having Issues?</h3>
-                  <p className="text-gray-700 mb-3">
+                  <h3 className="text-xl font-semibold text-nb-ink mb-3">Still Having Issues?</h3>
+                  <p className="text-nb-ink mb-3">
                     If you&apos;re experiencing problems not covered here:
                   </p>
-                  <ul className="space-y-2 text-gray-700">
+                  <ul className="space-y-2 text-nb-ink">
                     <li>Check the <Link href="/help/faq" className="text-thread-sunset hover:underline">FAQ page</Link> for general platform questions</li>
                     <li><Link href="/help/contact" className="text-thread-sunset hover:underline">Contact support</Link> with details about your issue</li>
                     <li>Include your browser type, device, and a description of what&apos;s not working</li>
@@ -580,18 +570,18 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
             </section>
 
             {/* Resources */}
-            <section id="resources" className="bg-thread-cream border border-thread-sage rounded-lg p-6">
+            <section id="resources" className="thread-module">
               <h2 className="text-2xl font-bold text-thread-pine mb-4">
                 Resources & Tools
               </h2>
 
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-3">Free MIDI File Collections</h3>
-                  <p className="text-gray-700 mb-3">
+                  <h3 className="text-xl font-semibold text-nb-ink mb-3">Free MIDI File Collections</h3>
+                  <p className="text-nb-ink mb-3">
                     Looking for inspiration or starting points? These sites offer free MIDI files:
                   </p>
-                  <ul className="space-y-2 text-gray-700">
+                  <ul className="space-y-2 text-nb-ink">
                     <li>
                       <strong>FreeMIDI.org</strong> - Large collection of classical music MIDI files
                     </li>
@@ -609,20 +599,20 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
                     </li>
                   </ul>
 
-                  <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 mt-4">
-                    <p className="font-semibold text-yellow-900 mb-2">Licensing Reminder</p>
-                    <p className="text-yellow-800">
+                  <div className="border-l-4 border-nb-lav pl-4 py-1 mt-4">
+                    <p className="font-semibold text-nb-ink mb-2">Licensing Reminder</p>
+                    <p className="text-nb-ink">
                       Free doesn&apos;t always mean copyright-free. Check the license for each MIDI file and give proper attribution when required.
                     </p>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-3">Sound Font Reference (For External Use)</h3>
-                  <p className="text-gray-700 mb-3">
+                  <h3 className="text-xl font-semibold text-nb-ink mb-3">Sound Font Reference (For External Use)</h3>
+                  <p className="text-nb-ink mb-3">
                     While HomePageAgain doesn&apos;t use traditional sound fonts, if you want to preview how your MIDI will sound with different sound fonts on your own computer, these are popular free options:
                   </p>
-                  <ul className="space-y-2 text-gray-700">
+                  <ul className="space-y-2 text-nb-ink">
                     <li>
                       <strong>FluidR3_GM.sf2</strong> (141 MB) - High-quality General MIDI sound font, widely used standard
                     </li>
@@ -637,14 +627,14 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
                     </li>
                   </ul>
 
-                  <p className="text-gray-700 mt-3">
+                  <p className="text-nb-ink mt-3">
                     <strong>Note:</strong> These sound fonts are for testing your MIDI files in external software like MuseScore, VLC, or MIDI players. HomePageAgain uses its own custom synthesis, so your music will sound different on the platform.
                   </p>
                 </div>
 
                 <div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-3">Learning Resources</h3>
-                  <ul className="space-y-2 text-gray-700">
+                  <h3 className="text-xl font-semibold text-nb-ink mb-3">Learning Resources</h3>
+                  <ul className="space-y-2 text-nb-ink">
                     <li>
                       <strong>MIDI Association</strong> - Official MIDI specifications and learning materials
                     </li>
@@ -661,11 +651,11 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
                 </div>
 
                 <div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-3">MIDI File Analysis Tools</h3>
-                  <p className="text-gray-700 mb-3">
+                  <h3 className="text-xl font-semibold text-nb-ink mb-3">MIDI File Analysis Tools</h3>
+                  <p className="text-nb-ink mb-3">
                     These tools help you analyze and optimize MIDI files:
                   </p>
-                  <ul className="space-y-2 text-gray-700">
+                  <ul className="space-y-2 text-nb-ink">
                     <li>
                       <strong>MIDI Trail</strong> (Windows) - Visualize and analyze MIDI file structure
                     </li>
@@ -683,30 +673,15 @@ export default function MusicGuide({ siteConfig }: MusicGuideProps) {
           </div>
 
           {/* Call to Action */}
-          <div className="mt-12 bg-gradient-to-br from-purple-100 via-pink-100 to-orange-100 border-2 border-black rounded-lg shadow-[3px_3px_0_#000] p-6 sm:p-8 text-center">
-            <h2 className="text-2xl sm:text-3xl font-bold text-thread-pine mb-4">
-              Add music to your page
-            </h2>
-            <p className="text-lg text-gray-700 mb-6">
-              Upload a .mid file in Settings.
-            </p>
-            <Link
-              href="/settings"
-              className="inline-block px-6 py-3 bg-white hover:bg-gray-50 border-2 border-black shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] font-medium transition-all transform hover:-translate-y-0.5"
-            >
-              Go to Music Settings →
-            </Link>
-          </div>
+          <Callout variant="framed" title="Add music to your page" className="mt-12">
+            <p>Upload a .mid file in Settings.</p>
+            <p><ButtonLink href="/settings">Go to Music Settings →</ButtonLink></p>
+          </Callout>
 
           {/* Still have questions? */}
-          <div className="mt-8 p-6 bg-blue-50 border border-blue-200 rounded-lg text-center">
-            <h3 className="text-xl font-semibold text-blue-900 mb-2">
-              Still have questions?
-            </h3>
-            <p className="text-blue-800 mb-4">
-              Check out our <Link href="/help/faq" className="text-thread-sunset hover:underline font-medium">FAQ</Link> or <Link href="/help/contact" className="text-thread-sunset hover:underline font-medium">contact us</Link> for help!
-            </p>
-          </div>
+          <Callout title="Still have questions?" className="mt-8">
+            <p>Check out our <Link href="/help/faq">FAQ</Link> or <Link href="/help/contact">contact us</Link> for help!</p>
+          </Callout>
         </div>
       </Layout>
     </>

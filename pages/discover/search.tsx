@@ -4,6 +4,7 @@ import { GetServerSideProps } from 'next';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import Layout from '@/components/ui/layout/Layout';
+import PageHeader from '@/components/ui/layout/PageHeader';
 import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
 import { getSessionUser } from '@/lib/auth/server';
 import Link from 'next/link';
@@ -553,19 +554,10 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
 
       <Layout siteConfig={siteConfig}>
         <div className="w-full max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
-          <div className="text-center mb-4 sm:mb-8">
-            <h1 className="text-2xl sm:text-3xl font-bold text-[#2E4B3F] mb-2">
-              Explore the Neighborhood
-            </h1>
-            <p className="text-sm sm:text-base text-gray-600 mb-2 px-2">
-              Search this site, the community index, and the wider small web — all in one place
-            </p>
-            <Link href="/discover/faq" className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800">
-              <PixelIcon name="lightbulb" size={16} />
-              <span>Discover how our community is mapping the indie web together</span>
-              <span>→</span>
-            </Link>
-          </div>
+          <PageHeader title="Explore the Neighborhood">
+            <p>Search this site, the community index, and the wider small web — all in one place</p>
+            <p className="text-base"><Link href="/discover/faq">Discover how our community is mapping the indie web together →</Link></p>
+          </PageHeader>
 
           {/* Enhanced Search Interface */}
           <div className="mb-6">
@@ -606,7 +598,7 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
 
                 if (unifiedData.totalResults === 0 && !loading) {
                   return (
-                    <div className="text-center py-8 text-gray-500">
+                    <div className="text-center py-8 text-nb-ink">
                       Hmm, nothing turned up. Maybe try different keywords or explore our community picks below?
                     </div>
                   );
@@ -615,16 +607,16 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
                 return (
                   <>
                     {degradedSources.length > 0 && (
-                      <div className="mb-4 px-3 py-2 bg-amber-50 border border-amber-300 rounded text-sm text-amber-800">
+                      <div className="mb-4 px-3 py-2 border-2 border-dotted border-nb-ink-mid/60 rounded-md text-sm text-nb-ink">
                         Some results are unavailable right now
                         ({degradedSources.map((s) => s.source).join(', ')} search failed) — showing what we could find.
                       </div>
                     )}
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
-                      <h3 className="text-base sm:text-lg font-semibold text-gray-900 flex items-center gap-2">
-                        <PixelIcon name="zap" size={20} /> Your Search Results
+                      <h3 className="thread-headline text-base sm:text-lg font-semibold mb-0">
+                        Your Search Results
                       </h3>
-                      <div className="text-xs text-gray-500">
+                      <div className="text-xs text-nb-ink-mid">
                         Page {unifiedData.page} of {unifiedData.totalPages} • {unifiedData.totalResults} gems found
                       </div>
                     </div>
@@ -635,35 +627,35 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
                         return (
                           <div
                             key={`${result.source}-${result.id || result.url || index}`}
-                            className="p-3 sm:p-4 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
+                            className="p-3 sm:p-4 bg-nb-paper border-2 border-nb-ink-mid/40 rounded-md hover:border-nb-ink-mid"
                           >
                             <div className="flex items-start justify-between">
                               <div className="flex-1 cursor-pointer" onClick={result.clickHandler}>
                                 <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-1">
-                                  <h4 className="font-medium text-gray-900 break-words">
+                                  <h4 className="font-medium text-nb-ink break-words">
                                     {result.title}
                                   </h4>
-                                  <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded inline-flex items-center gap-1 self-start sm:self-auto flex-shrink-0">
+                                  <span className="tag text-xs inline-flex items-center gap-1 self-start sm:self-auto flex-shrink-0">
                                     <PixelIcon name={result.sourceIconName} size={12} /> {result.source === 'community' ? 'Neighborhood' : result.source === 'site' ? 'Our Site' : result.source === 'external' ? 'Wild Web' : result.sourceLabel}
                                   </span>
                                 </div>
 
                                 {(result.description || result.snippet) && (
-                                  <p className="text-xs sm:text-sm text-gray-600 mt-1 line-clamp-2 sm:line-clamp-3 break-words">
+                                  <p className="text-xs sm:text-sm text-nb-ink-mid mt-1 line-clamp-2 sm:line-clamp-3 break-words">
                                     {result.description || result.snippet}
                                   </p>
                                 )}
 
-                                <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-2 text-xs text-gray-500">
+                                <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-2 text-xs text-nb-ink-mid">
                                   <span>#{globalIndex}</span>
                                   {result.source === 'community' && (
                                     <>
                                       <span>Score: {result.communityScore}</span>
                                       <span>{result.siteType?.replace('_', ' ')}</span>
-                                      {result.communityValidated && <span className="text-green-600 flex items-center gap-1"><PixelIcon name="check" size={12} /> Community approved</span>}
+                                      {result.communityValidated && <span>✓ Community approved</span>}
                                       {result.discoveredBy && (
-                                        <span className="text-blue-600 flex items-center gap-1 font-medium bg-blue-50 px-1.5 py-0.5 rounded">
-                                          <PixelIcon name="user" size={10} /> Discovered by @{result.discoveredBy.handle}
+                                        <span className="badge badge--lav">
+                                          Discovered by @{result.discoveredBy.handle}
                                         </span>
                                       )}
                                     </>
@@ -676,7 +668,7 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
                                   {result.source === 'external' && (
                                     <>
                                       <span>via {result.engine}</span>
-                                      {result.isIndieWeb && <span className="text-purple-600 flex items-center gap-1"><PixelIcon name="drop" size={12} /> Indie spirit</span>}
+                                      {result.isIndieWeb && <span>Indie spirit</span>}
                                     </>
                                   )}
                                 </div>
@@ -698,13 +690,13 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
                                       }
                                     }}
                                     disabled={saving}
-                                    className="px-2 py-1 text-[10px] sm:text-xs bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 transition-colors"
+                                    className="thread-button-secondary btn btn--secondary text-[10px] sm:text-xs disabled:opacity-50"
                                     title="Save to your bookmarks"
                                   >
                                     {saving ? '...' : <PixelIcon name="save" size={12} />}
                                   </button>
                                 )}
-                                <div className="text-xs text-gray-400 hidden sm:block">
+                                <div className="text-xs text-nb-ink-mid hidden sm:block">
                                   {Math.round(result.unifiedScore)}
                                 </div>
                               </div>
@@ -720,7 +712,7 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
                         <button
                           onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                           disabled={currentPage === 1}
-                          className="px-3 py-2 text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                          className="thread-button-secondary btn btn--secondary text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           ← Back
                         </button>
@@ -742,8 +734,8 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
                               <button
                                 key={pageNum}
                                 onClick={() => setCurrentPage(pageNum)}
-                                className={`px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 ${currentPage === pageNum ? 'bg-blue-500 text-white border-blue-500' : ''
-                                  }`}
+                                aria-current={currentPage === pageNum ? 'page' : undefined}
+                                className={`text-sm ${currentPage === pageNum ? 'thread-button btn btn--primary' : 'thread-button-secondary btn btn--secondary'}`}
                               >
                                 {pageNum}
                               </button>
@@ -754,7 +746,7 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
                         <button
                           onClick={() => setCurrentPage(Math.min(unifiedData.totalPages, currentPage + 1))}
                           disabled={currentPage === unifiedData.totalPages}
-                          className="px-3 py-2 text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                          className="thread-button-secondary btn btn--secondary text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           More →
                         </button>
@@ -762,24 +754,24 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
                     )}
 
                     {/* Source breakdown */}
-                    <div className="mt-6 p-3 bg-gray-50 rounded-lg">
-                      <div className="text-xs text-gray-600 flex flex-wrap items-center gap-2 sm:gap-4">
+                    <div className="mt-6 p-3 border-2 border-dotted border-nb-ink-mid/60 rounded-md">
+                      <div className="text-xs text-nb-ink-mid flex flex-wrap items-center gap-2 sm:gap-4">
                         <span>Found in:</span>
                         {communityResults.length > 0 && (
-                          <span className="flex items-center gap-1"><PixelIcon name="bookmark" size={12} /> {communityResults.length} neighborhood</span>
+                          <span>{communityResults.length} neighborhood</span>
                         )}
                         {localResults.length > 0 && (
-                          <span className="flex items-center gap-1"><PixelIcon name="home" size={12} /> {localResults.length} our site</span>
+                          <span>{localResults.length} our site</span>
                         )}
                         {externalResults?.results?.length > 0 && (
-                          <span className="flex items-center gap-1"><PixelIcon name="map" size={12} /> {externalResults.results.length} wild web</span>
+                          <span>{externalResults.results.length} wild web</span>
                         )}
                         <button
                           type="button"
                           onClick={() => {
                             window.open('/discover/faq#how-search-works', '_blank');
                           }}
-                          className="text-xs text-blue-600 hover:text-blue-800 hover:underline sm:ml-auto flex items-center gap-1 touch-manipulation"
+                          className="ts-bare text-xs underline sm:ml-auto inline-flex items-center gap-1 touch-manipulation"
                           title="Curious how we find and rank all this stuff?"
                         >
                           <PixelIcon name="lightbulb" size={12} />
@@ -804,26 +796,26 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
 
           {/* Site Search Results */}
           {searchTab === 'site' && results.length > 0 && (
-            <div className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-6 mb-8">
-              <h2 className="text-xl font-bold mb-4 text-[#2E4B3F]">From Our Site</h2>
+            <div className="thread-module mb-8">
+              <h2 className="thread-headline text-xl font-bold mb-4">From Our Site</h2>
               <div className="space-y-3">
                 {results.map((result) => (
                   <Link
                     key={`${result.type}-${result.id}`}
                     href={result.url}
-                    className="block p-4 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                    className="ts-card-link block p-4 bg-nb-paper border-2 border-nb-ink-mid/40 rounded-md hover:border-nb-ink-mid"
                   >
                     <div className="flex items-start space-x-3">
                       <span className="text-xl">{getResultIcon(result.type)}</span>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center space-x-2">
-                          <h3 className="font-medium text-gray-900 truncate">{result.title}</h3>
-                          <span className="text-xs bg-gray-100 px-2 py-1 rounded capitalize">
+                          <h3 className="font-medium text-nb-ink truncate">{result.title}</h3>
+                          <span className="tag text-xs capitalize">
                             {result.type}
                           </span>
                         </div>
                         {result.description && (
-                          <p className="text-sm text-gray-600 mt-1 line-clamp-2">{result.description}</p>
+                          <p className="text-sm text-nb-ink-mid mt-1 line-clamp-2">{result.description}</p>
                         )}
                       </div>
                     </div>
@@ -835,11 +827,11 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
 
           {/* External Search Results with Auto-indexing */}
           {searchTab === 'web' && searchQuery && (
-            <div className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-6 mb-8">
-              <h2 className="text-xl font-bold mb-4 text-[#2E4B3F]">From the Wild Web</h2>
-              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-xs text-blue-700 flex items-center gap-1">
-                  <PixelIcon name="drop" size={12} /> Found something interesting? Clicking will help us grow our community index together
+            <div className="thread-module mb-8">
+              <h2 className="thread-headline text-xl font-bold mb-4">From the Wild Web</h2>
+              <div className="mb-4 p-3 border-2 border-dotted border-nb-ink-mid/60 rounded-md">
+                <p className="text-xs text-nb-ink mb-0">
+                  Found something interesting? Clicking will help us grow our community index together
                 </p>
               </div>
               <div onClick={(e) => {
@@ -872,12 +864,12 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
           {!searchQuery && searchTab === 'all' && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {/* Community Index Highlights */}
-              <div className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-4 sm:p-6">
+              <div className="thread-module">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-bold text-[#2E4B3F]">Neighborhood Favorites</h2>
+                  <h2 className="thread-headline text-lg font-bold mb-0">Neighborhood Favorites</h2>
                   <Link
                     href="/discover/search?tab=indie"
-                    className="text-sm text-thread-pine hover:text-thread-sunset underline"
+                    className="text-sm"
                   >
                     Browse →
                   </Link>
@@ -886,12 +878,12 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
               </div>
 
               {/* Recent ThreadRings */}
-              <div className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-4 sm:p-6">
+              <div className="thread-module">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-bold text-[#2E4B3F]">Recent Rings</h2>
+                  <h2 className="thread-headline text-lg font-bold mb-0">Recent Rings</h2>
                   <Link
                     href="/threadrings"
-                    className="text-sm text-blue-600 hover:text-blue-800"
+                    className="text-sm"
                   >
                     View All →
                   </Link>
@@ -901,14 +893,11 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
                     <Link
                       key={ring.id}
                       href={`/tr/${ring.slug}`}
-                      className="flex items-center gap-3 p-2 hover:bg-white rounded-lg transition-colors"
+                      className="ts-card-link block p-2 rounded-md hover:bg-nb-ink-mid/10"
                     >
-                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
-                        <PixelIcon name="link" size={16} />
-                      </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-gray-900 truncate">{ring.name}</h3>
-                        <p className="text-xs text-gray-500 truncate">{ring.description}</p>
+                        <h3 className="font-medium text-nb-ink truncate">{ring.name}</h3>
+                        <p className="text-xs text-nb-ink-mid truncate">{ring.description}</p>
                       </div>
                     </Link>
                   ))}
@@ -916,19 +905,19 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
               </div>
 
               {/* Active Users */}
-              <div className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-4 sm:p-6">
+              <div className="thread-module">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-bold text-[#2E4B3F]">Active Neighbors</h2>
+                  <h2 className="thread-headline text-lg font-bold mb-0">Active Neighbors</h2>
                   <Link
                     href="/directory"
-                    className="text-sm text-blue-600 hover:text-blue-800"
+                    className="text-sm"
                   >
                     Directory →
                   </Link>
                 </div>
                 <div className="space-y-3">
                   {activeUsers.map((u) => (
-                    <div key={u.id} className="flex items-center gap-3 p-2 hover:bg-white rounded-lg transition-colors">
+                    <div key={u.id} className="flex items-center gap-3 p-2 rounded-md hover:bg-nb-ink-mid/10">
                       <UserMention
                         username={u.primaryHandle || 'user'}
                         showBadge={true}
