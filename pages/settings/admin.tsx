@@ -627,7 +627,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
-      const res = await fetch(url, {
+      const res = await csrfFetch(url, {
         method,
         headers: {
           "Content-Type": "application/json",
@@ -672,7 +672,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
     }
 
     try {
-      const res = await fetch(`/api/admin/custom-pages/${pageId}`, {
+      const res = await csrfFetch(`/api/admin/custom-pages/${pageId}`, {
         method: "DELETE",
       });
 

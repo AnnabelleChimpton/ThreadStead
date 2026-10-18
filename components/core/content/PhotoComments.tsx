@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ImprovedBadgeDisplay from '../../shared/ImprovedBadgeDisplay';
 import { CommentMarkupWithEmojis } from '@/lib/comment-markup';
 import UserMention from '@/components/ui/navigation/UserMention';
+import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 
 interface PhotoComment {
   id: string;
@@ -89,7 +90,7 @@ export default function PhotoComments({ photoId, highlightCommentId }: PhotoComm
       const { token } = await capRes.json();
 
       // Submit comment
-      const response = await fetch(`/api/photos/comments/${photoId}`, {
+      const response = await csrfFetch(`/api/photos/comments/${photoId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

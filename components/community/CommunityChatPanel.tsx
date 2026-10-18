@@ -11,6 +11,7 @@ import RetroButton from '@/components/ui/feedback/RetroButton';
 import UserQuickView from '@/components/ui/feedback/UserQuickView';
 import EmojiPicker from '@/components/ui/feedback/EmojiPicker';
 import { useEmojis, Emoji } from '@/hooks/useEmojis';
+import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 
 interface ChatMessage {
   id: string;
@@ -479,7 +480,7 @@ export default function CommunityChatPanel({ fullscreen = false, popupMode = fal
 
   const handleBlockUser = async (userId: string) => {
     try {
-      const res = await fetch('/api/users/block', {
+      const res = await csrfFetch('/api/users/block', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ targetUserId: userId, action: 'block' })

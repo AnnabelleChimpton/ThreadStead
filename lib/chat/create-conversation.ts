@@ -3,13 +3,15 @@
 // Conversation) and provider nesting prevents one from consuming the other, so
 // they share this helper instead of duplicating the fetch shape.
 
+import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+
 export interface ConversationResult {
   id: string;
   [key: string]: unknown;
 }
 
 export async function requestConversation(targetUserId: string): Promise<ConversationResult> {
-  const res = await fetch('/api/messages/conversations', {
+  const res = await csrfFetch('/api/messages/conversations', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ targetUserId }),

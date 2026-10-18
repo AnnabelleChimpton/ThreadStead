@@ -193,7 +193,7 @@ export default function ProfileEditPage({
         templateModeValue = 'advanced';
       }
 
-      const layoutResponse = await fetch("/api/profile/update", {
+      const layoutResponse = await csrfFetch("/api/profile/update", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
@@ -316,7 +316,7 @@ export default function ProfileEditPage({
         avatarUrl: f.avatarUrl
       }));
 
-      const response = await fetch("/api/profile/update", {
+      const response = await csrfFetch("/api/profile/update", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 

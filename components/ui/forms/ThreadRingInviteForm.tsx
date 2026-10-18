@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 
 interface ThreadRingInviteFormProps {
   threadRingSlug: string;
@@ -29,7 +30,7 @@ export default function ThreadRingInviteForm({
       setSending(true);
       setMessage(null);
       
-      const response = await fetch(`/api/threadrings/${threadRingSlug}/invite`, {
+      const response = await csrfFetch(`/api/threadrings/${threadRingSlug}/invite`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
