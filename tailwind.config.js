@@ -8,7 +8,9 @@ module.exports = {
         thread: {
           // Base colors
           cream: "#F5E9D4",      // warm base
-          sage: "#A18463",       // muted sage
+          // Follows the notebook's gray-green ink (5.2:1 on cream); the old tan
+          // #A18463 (3.4:1) is only the fallback when no site CSS is loaded.
+          sage: "var(--ha-ink-mid, #A18463)",
           pine: "#2E4B3F",       // deep pine
           // Accent colors  
           sky: "#8EC5E8",        // soft sky blue
@@ -86,12 +88,12 @@ module.exports = {
       },
       // Tailwind v4 kebab-cases these keys: cozySm → shadow-cozy-sm
       boxShadow: {
-        cozy: "3px 3px 0 #A18463",      // warm sage shadow
-        cozySm: "2px 2px 0 #A18463",    // small warm shadow
-        cozyLg: "5px 5px 0 #A18463",    // hover lift for cozy cards
+        cozy: "3px 3px 0 var(--ha-ink-mid, #A18463)",      // warm sage shadow
+        cozySm: "2px 2px 0 var(--ha-ink-mid, #A18463)",    // small warm shadow
+        cozyLg: "5px 5px 0 var(--ha-ink-mid, #A18463)",    // hover lift for cozy cards
         thread: "4px 4px 8px rgba(46, 75, 63, 0.15)", // soft pine shadow
-        retro: "4px 4px 0 #A18463",     // updated retro shadow
-        retroSm: "2px 2px 0 #A18463",
+        retro: "4px 4px 0 var(--ha-ink-mid, #A18463)",     // updated retro shadow
+        retroSm: "2px 2px 0 var(--ha-ink-mid, #A18463)",
         nb: "3px 3px 0 var(--ha-ink-mid, #A18463)",
         nbSm: "2px 2px 0 var(--ha-ink-mid, #A18463)",
       },

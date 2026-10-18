@@ -603,11 +603,12 @@ export class RingHubClient {
    */
   async getRingMembershipInfo(slug: string): Promise<{
     memberCount: number
+    // null when the ring has no owner membership
     owner: {
       actorDid: string
       actorName: string | null
       joinedAt: string
-    }
+    } | null
     moderators: Array<{
       actorDid: string
       actorName: string | null

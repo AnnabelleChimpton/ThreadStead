@@ -78,26 +78,22 @@ export default function CookieConsentBanner({
   if (!isVisible) return null
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t-2 border-black shadow-lg">
-      <div className="max-w-6xl mx-auto p-4">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex-1">
-            <h3 className="font-bold text-lg mb-2">Cookie Notice</h3>
-            <p className="text-sm text-gray-700">
-              We only use cookies for authentication to keep you logged in and secure.
-              We do not use any tracking, analytics, or marketing cookies.
-            </p>
-          </div>
-          <div className="flex-shrink-0">
-            <button
-              onClick={handleUnderstand}
-              className="px-6 py-2 bg-black text-white hover:bg-gray-800 transition-colors text-sm font-medium rounded-md"
-              disabled={loading}
-            >
-              {loading ? 'Saving...' : 'I Understand'}
-            </button>
-          </div>
-        </div>
+    <div
+      role="region"
+      aria-label="Cookie notice"
+      className="fixed bottom-0 left-0 right-0 z-50 bg-nb-paper border-t-2 border-nb-ink-mid"
+    >
+      <div className="max-w-6xl mx-auto px-4 py-2 flex items-center gap-3">
+        <p className="flex-1 m-0 text-xs sm:text-sm text-nb-ink">
+          We only use cookies to keep you logged in. No tracking, analytics or marketing.
+        </p>
+        <button
+          onClick={handleUnderstand}
+          className="btn btn--secondary shrink-0 text-xs"
+          disabled={loading}
+        >
+          {loading ? 'Saving…' : 'Got it'}
+        </button>
       </div>
     </div>
   )

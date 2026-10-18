@@ -87,14 +87,15 @@ export default withThreadRingSupport(async function handler(
         topPosters: [], // Not available from Ring Hub
         membershipTrend: [], // Not available from Ring Hub
         // Include membership info for non-members
+        // The hub can report no owner (e.g. an ownerless ring) — don't 500 on it
         membershipInfo: membershipInfo ? {
-          owner: {
+          owner: membershipInfo.owner ? {
             ...membershipInfo.owner,
-            displayName: membershipInfo.owner.actorName || membershipInfo.owner.actorDid.split(':').pop() || 'Owner'
-          },
-          moderators: membershipInfo.moderators.map(mod => ({
+            displayName: membershipInfo.owner.actorName || membershipInfo.owner.actorDid?.split(':').pop() || 'Owner'
+          } : null,
+          moderators: (membershipInfo.moderators || []).map(mod => ({
             ...mod,
-            displayName: mod.actorName || mod.actorDid.split(':').pop() || 'Moderator'
+            displayName: mod.actorName || mod.actorDid?.split(':').pop() || 'Moderator'
           }))
         } : null
       };

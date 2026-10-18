@@ -108,11 +108,16 @@ export default function PostEditor({
   const [title, setTitle] = useState(initialData?.title || "");
   const [content, setContent] = useState(initialData?.content || "");
   const [visibility, setVisibility] = useState<Visibility>(initialData?.visibility || "public");
-  const [intent, setIntent] = useState<PostIntent | null>(initialData?.intent || null);
+  // New posts start on the most general intent, so it never blocks publishing
+  const [intent, setIntent] = useState<PostIntent | null>(
+    initialData?.intent || (mode === "create" ? "sharing" : null)
+  );
   const [activeTab, setActiveTab] = useState<"write" | "preview">("write");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [titleError, setTitleError] = useState<string | null>(null);
+  // Field errors show only after the first submit attempt, then update live
+  const [submitAttempted, setSubmitAttempted] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -158,7 +163,8 @@ export default function PostEditor({
   useEffect(() => {
     if (mode === "create" && !initialData) {
       const timeout = setTimeout(() => {
-        if (title || content || intent) {
+        // Intent alone isn't a draft — it has a default
+        if (title || content) {
           localStorage.setItem(DRAFT_KEY, JSON.stringify({ title, content, intent }));
           setDraftSaved(true);
           setTimeout(() => setDraftSaved(false), 2000);
@@ -201,10 +207,10 @@ export default function PostEditor({
     return null;
   };
 
-  // Validate title when it changes
+  // Re-validate the title as it changes, once the user has tried to submit
   useEffect(() => {
-    setTitleError(validateTitle(title));
-  }, [title, postTitlesRequired]);
+    if (submitAttempted) setTitleError(validateTitle(title));
+  }, [title, postTitlesRequired, submitAttempted]);
 
   // Update preview when content changes
   useEffect(() => {
@@ -656,13 +662,10 @@ export default function PostEditor({
       return;
     }
 
-    if (postTitlesRequired && !title.trim()) {
-      setError("Post title is required");
-      return;
-    }
-
-    if (intentStampsEnabled && !intent) {
-      setError("Please select an intent for your post");
+    setSubmitAttempted(true);
+    const titleProblem = validateTitle(title.trim());
+    setTitleError(titleProblem);
+    if (titleProblem) {
       return;
     }
 
@@ -752,7 +755,7 @@ export default function PostEditor({
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="post-editor-container border-2 border-nb-ink-mid bg-white shadow-nb-sm relative">
+      <form onSubmit={handleSubmit} noValidate className="post-editor-container border-2 border-nb-ink-mid bg-white shadow-nb-sm relative">
         {/* Tab Navigation */}
         <div className="border-b border-nb-ink-mid bg-nb-ink-mid/5 p-3 flex items-center justify-between sticky top-0 z-20">
           <div className="flex items-center gap-2" role="tablist">
@@ -814,7 +817,6 @@ export default function PostEditor({
                   value={intent || ""}
                   onChange={(e) => setIntent(e.target.value as PostIntent || null)}
                   disabled={busy}
-                  required={intentStampsEnabled}
                 >
                   <option value="">choose an intent...</option>
                   {INTENT_OPTS.map((o) => (
@@ -836,11 +838,12 @@ export default function PostEditor({
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 disabled={busy}
-                required={postTitlesRequired}
                 maxLength={200}
+                aria-invalid={!!titleError}
+                aria-describedby={titleError ? "post-title-error" : undefined}
               />
               {titleError && (
-                <div className="text-red-600 text-sm mt-1 font-medium">{titleError}</div>
+                <div id="post-title-error" className="text-red-600 text-sm mt-1 font-medium">{titleError}</div>
               )}
             </div>
           </div >

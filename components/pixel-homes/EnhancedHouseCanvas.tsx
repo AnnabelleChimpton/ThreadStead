@@ -552,12 +552,6 @@ export default function EnhancedHouseCanvas({
         </div>
       </div>
 
-      {/* Canvas Info (for development) */}
-      {isDecorationMode && (
-        <div className="mt-2 text-xs text-gray-500">
-          Canvas: {CANVAS_WIDTH}×{CANVAS_HEIGHT} • House: {HOUSE_POSITION.x},{HOUSE_POSITION.y}
-        </div>
-      )}
     </div>
   )
 }

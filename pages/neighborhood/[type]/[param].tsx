@@ -550,7 +550,7 @@ export default function UnifiedNeighborhood({
                     </div>
                   ) : weatherData ? (
                     <div className="text-xs text-thread-pine">
-                      <span>It&apos;s a {weatherData.condition.toLowerCase()} {formatTemperature(weatherData.temperature, weatherData.countryCode)} day in the neighborhood</span>
+                      <span>It&apos;s {/^[aeiou]/.test(weatherData.condition.toLowerCase()) ? 'an' : 'a'} {weatherData.condition.toLowerCase()} {formatTemperature(weatherData.temperature, weatherData.countryCode)} day in the neighborhood</span>
                       <span className="ml-2">{weatherData.emoji}</span>
                     </div>
                   ) : (

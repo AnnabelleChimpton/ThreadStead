@@ -53,6 +53,26 @@ html, body { height: 100%; }
 
   /* Cozy paragraph spacing */
   p { margin-bottom: 1rem; }
+
+  /* Site chrome sets its own type and ink instead of inheriting from the
+     page, so a profile's body/.thread-surface styles can't restyle the
+     header or footer. Profile CSS itself is scoped away from these elements
+     (scopeAwayFromSiteChrome in lib/utils/css/css-transform.ts); the admin
+     site CSS is unlayered and still themes them. */
+  .site-header, .site-footer, [data-site-chrome] {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 16px;
+    font-weight: 400;
+    font-style: normal;
+    line-height: 1.6;
+    letter-spacing: normal;
+    word-spacing: normal;
+    text-transform: none;
+    text-shadow: none;
+    text-align: start;
+    color: var(--ha-ink-dark, #2F2F2F);
+    -webkit-text-fill-color: currentColor;
+  }
 }
 
 @layer threadstead-global {

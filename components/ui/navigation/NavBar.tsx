@@ -13,7 +13,12 @@ import { PixelIcon } from "@/components/ui/PixelIcon";
 
 // Mobile-specific login status component
 function MobileLoginStatus({ onAccountClick }: { onAccountClick: () => void }) {
-  const { me } = useMe();
+  const { me, isLoading } = useMe();
+
+  if (isLoading) {
+    // Hold the space until /api/auth/me answers, so signed-in users never see "visitor mode"
+    return <div className="h-12" aria-hidden="true" />;
+  }
 
   if (!me?.loggedIn) {
     return (
@@ -270,7 +275,7 @@ function DropdownMenu({ section, active, activeDropdown, setActiveDropdown }: Dr
 export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate = false }: NavBarProps) {
   const { config: hookConfig } = useSiteConfig();
   const { pages: navPages } = useNavPages();
-  const { me } = useMe();
+  const { me, isLoading: meLoading } = useMe();
   const router = useRouter();
   const config = siteConfig || hookConfig;
 
@@ -514,7 +519,7 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
               ))}
             </div>
             <div className="site-nav-actions flex items-center gap-2 xl:gap-4">
-              {!isClient ? (
+              {!isClient || meLoading ? (
                 // Placeholder keeps layout stable until we know the auth state
                 <div className="w-24 h-8" aria-hidden="true" />
               ) : me?.loggedIn ? (

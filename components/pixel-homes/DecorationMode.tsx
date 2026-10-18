@@ -1044,6 +1044,7 @@ export default function DecorationMode({
         <div className="w-[500px] border-l border-thread-sage/30 bg-thread-paper flex flex-col shrink-0">
           <DecorationPalette
             items={decorationsWithCustom}
+            itemsLoading={decorationsLoading}
             onItemSelect={handleItemSelect}
             selectedItem={selectedItem}
             houseCustomizations={houseCustomizations}

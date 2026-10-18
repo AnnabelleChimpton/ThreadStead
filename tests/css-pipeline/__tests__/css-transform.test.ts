@@ -11,6 +11,8 @@ import {
   splitDeclarations,
   splitSelectorList,
   stripComments,
+  scopeAwayFromSiteChrome,
+  SITE_CHROME_SELECTOR,
 } from '@/lib/utils/css/css-transform'
 
 const GOOGLE_FONTS_IMPORT =
@@ -152,5 +154,43 @@ describe('stripComments', () => {
     expect(stripComments('/* x */ .a { content: "/* keep */"; }')).toBe(
       ' .a { content: "/* keep */"; }'
     )
+  })
+})
+
+describe('scopeAwayFromSiteChrome', () => {
+  const css = `${GOOGLE_FONTS_IMPORT}
+@font-face { font-family: X; src: url(x.woff2); }
+:root { --accent: red; }
+html body .thread-surface, body { color: #222; }
+.site-header { background: black !important; }
+@media (max-width: 600px) { :root .x { margin: 0; } }
+@keyframes spin { from { transform: rotate(0); } to { transform: rotate(1turn); } }`
+
+  const out = scopeAwayFromSiteChrome(css)
+
+  test('wraps rules in a donut scope that excludes the site chrome', () => {
+    expect(out).toContain(`@scope (html) to (${SITE_CHROME_SELECTOR}) {`)
+    expect(out).toContain('.site-header { background: black !important; }')
+    expect(out.indexOf('.site-header {')).toBeGreaterThan(out.indexOf('@scope'))
+  })
+
+  test('hoists @import, @font-face and @keyframes above the scope, imports first', () => {
+    const scopeAt = out.indexOf('@scope')
+    expect(out.startsWith(GOOGLE_FONTS_IMPORT)).toBe(true)
+    expect(out.indexOf('@font-face')).toBeLessThan(scopeAt)
+    expect(out.indexOf('@keyframes spin')).toBeLessThan(scopeAt)
+    expect(out).toContain('from { transform: rotate(0); }')
+  })
+
+  test('rewrites root selectors to :scope, inside @media too', () => {
+    expect(out).toContain(':scope { --accent: red; }')
+    expect(out).toContain(':scope body .thread-surface, body')
+    expect(out).toContain(':scope .x { margin: 0; }')
+    expect(out).not.toMatch(/(^|[\s,{]):root/)
+  })
+
+  test('leaves html-prefixed class names alone and handles empty input', () => {
+    expect(scopeAwayFromSiteChrome('.html-box { color: red; }')).toContain('.html-box {')
+    expect(scopeAwayFromSiteChrome('   ')).toBe('')
   })
 })

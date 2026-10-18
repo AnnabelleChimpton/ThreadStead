@@ -1,21 +1,15 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import AuthenticationDropdown from "@/components/features/auth/AuthenticationDropdown";
 import UserDropdown from "@/components/features/auth/UserDropdown";
-
-type Me = { loggedIn: boolean; user?: { id: string; did: string; primaryHandle: string | null } };
+import { useMe } from "@/hooks/useMe";
 
 export default function LoginStatus() {
-  const [me, setMe] = useState<Me>({ loggedIn: false });
+  const { me, isLoading } = useMe();
 
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      const res = await fetch("/api/auth/me");
-      const data = await res.json();
-      if (alive) setMe(data);
-    })();
-    return () => { alive = false; };
-  }, []);
+  if (isLoading) {
+    // Hold the space until /api/auth/me answers, so signed-in users never see "visitor mode"
+    return <div className="w-24 h-8" aria-hidden="true" />;
+  }
 
   if (!me.loggedIn) {
     return (

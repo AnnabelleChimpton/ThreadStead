@@ -13,6 +13,7 @@ import SignupFinaleAnimation from "@/components/features/onboarding/SignupFinale
 import { useGlobalAudio } from "@/contexts/GlobalAudioContext";
 import { getSiteConfig, SiteConfig } from "@/lib/config/site/dynamic";
 import imageCompression from 'browser-image-compression';
+import { fetchAuthMe } from "@/hooks/useCurrentUser";
 
 interface SignupPageProps {
   betaKey?: string | null;
@@ -21,6 +22,20 @@ interface SignupPageProps {
 
 type SignupStep = 'welcome' | 'auth-method' | 'password-setup' | 'seed-phrase' | 'email' | 'guidelines' | 'profile' | 'template' | 'finale';
 type AuthMethod = 'password' | 'seedphrase';
+
+// Steps after the account exists. Progress through them is remembered so a
+// reload (or a return visit while signed in) resumes instead of restarting.
+const RESUMABLE_STEPS: SignupStep[] = ['email', 'guidelines', 'profile', 'template'];
+const PROGRESS_KEY = 'ts-signup-progress';
+
+function readSavedStep(username: string): SignupStep | null {
+  try {
+    const saved = JSON.parse(localStorage.getItem(PROGRESS_KEY) || 'null');
+    return saved?.username === username && RESUMABLE_STEPS.includes(saved.step) ? saved.step : null;
+  } catch {
+    return null;
+  }
+}
 
 export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPageProps) {
   const router = useRouter();
@@ -69,6 +84,51 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
 
   // Step 5: Complete
   const [accountCreated, setAccountCreated] = useState(false);
+  // False until we know whether a signed-in user should resume mid-wizard
+  const [resumeChecked, setResumeChecked] = useState(false);
+
+  // Signed in already? Resume at the first step not yet done; if the template
+  // is chosen, signup is finished and there's nothing to resume.
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const me = await fetchAuthMe();
+        const handle = me?.loggedIn ? me.user?.primaryHandle?.split('@')[0] : null;
+        if (!alive || !handle) return;
+        const template = await fetch('/api/user/profile-template')
+          .then((res) => (res.ok ? res.json() : null))
+          .catch(() => null);
+        if (!alive) return;
+        if (template?.templateEnabled) {
+          router.replace(`/resident/${handle}`);
+          return;
+        }
+        setUsername(handle);
+        setAccountCreated(true);
+        setCurrentStep(readSavedStep(handle) ?? 'email');
+      } catch {
+        // Couldn't tell — start from the beginning as before
+      } finally {
+        if (alive) setResumeChecked(true);
+      }
+    })();
+    return () => { alive = false; };
+  }, []); // Runs once on mount
+
+  // Remember progress once the account exists; forget it when signup ends
+  useEffect(() => {
+    if (!accountCreated || !username) return;
+    try {
+      if (RESUMABLE_STEPS.includes(currentStep)) {
+        localStorage.setItem(PROGRESS_KEY, JSON.stringify({ username, step: currentStep }));
+      } else if (currentStep === 'finale') {
+        localStorage.removeItem(PROGRESS_KEY);
+      }
+    } catch {
+      // Storage unavailable — resume falls back to the first post-account step
+    }
+  }, [accountCreated, username, currentStep]);
 
   useEffect(() => {
     // Auto-populate beta key from URL
@@ -543,7 +603,8 @@ export default function SignupPage({ betaKey: urlBetaKey, siteConfig }: SignupPa
           })()}
 
           {/* Step 1: Welcome & Username */}
-          {currentStep === 'welcome' && (
+          {currentStep === 'welcome' && !resumeChecked && <div className="min-h-[320px]" aria-busy="true" />}
+          {currentStep === 'welcome' && resumeChecked && (
             <div>
               <div className="text-center mb-8">
                 <h1 className="thread-headline text-3xl font-bold mb-2">Welcome to {siteConfig.site_name}!</h1>

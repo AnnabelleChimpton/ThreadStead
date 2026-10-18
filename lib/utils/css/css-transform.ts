@@ -199,6 +199,50 @@ export function extractImports(css: string): { imports: string[]; rest: string }
 }
 
 /**
+ * The site chrome profile CSS must never reach: header (with its nav and
+ * menus), footer, and anything else marked data-site-chrome (cookie notice,
+ * chat). Used as the exclusive lower boundary of the profile @scope below.
+ */
+export const SITE_CHROME_SELECTOR = '.site-header, .site-footer, [data-site-chrome]'
+
+// At-rules that are invalid or global inside @scope — hoisted above the block.
+const GLOBAL_AT_RULES = new Set([
+  'import', 'charset', 'namespace', 'font-face', 'keyframes', '-webkit-keyframes',
+  '-moz-keyframes', 'property', 'page', 'counter-style', 'font-feature-values',
+  'font-palette-values',
+])
+
+/**
+ * Wrap whole-page profile CSS in a donut scope — `@scope (html) to (chrome)` —
+ * so it styles the profile but cannot match the site header, footer or other
+ * chrome. Without this, presets that restyle `.nav-link` / `.site-footer`
+ * pushed the user menu off-screen and left footer links unreadable.
+ *
+ * Selectors that name the root (`:root`, `html …`) become `:scope …`: inside
+ * @scope, plain selectors only match descendants of the scope root.
+ * Inherited properties (font, color) still flow into the chrome from body —
+ * the chrome roots reset those themselves (styles/retro.css).
+ */
+export function scopeAwayFromSiteChrome(css: string): string {
+  if (!css.trim()) return ''
+  const hoisted: CSSStatement[] = []
+  const scoped: CSSStatement[] = []
+  for (const s of splitTopLevelStatements(css)) {
+    const isGlobal = s.kind === 'at' && (GLOBAL_AT_RULES.has(s.atName || '') || s.body === undefined)
+    ;(isGlobal ? hoisted : scoped).push(s)
+  }
+  if (scoped.length === 0) return serializeStatements(hoisted)
+
+  const inner = mapSelectors(serializeStatements(scoped), (sel) =>
+    sel
+      .replace(/^html(?![\w-])/, ':scope')
+      .replace(/:root(?![\w-])/g, ':scope')
+  )
+  const head = serializeStatements(hoisted)
+  return `${head}${head ? '\n' : ''}@scope (html) to (${SITE_CHROME_SELECTOR}) {\n${inner}\n}`
+}
+
+/**
  * Transform every qualified rule's selector list, recursing into conditional
  * group at-rules (@media, @supports, @container, @layer blocks) and leaving
  * everything else (@keyframes, @font-face, @page, statement at-rules)

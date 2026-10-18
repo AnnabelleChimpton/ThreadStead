@@ -436,10 +436,21 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
     // the community index AND external search, and scoring it per-source let
     // one URL occupy multiple slots. Earlier sources win (community > site >
     // external, matching push order above).
+    // Our own pages arrive relative from site search ("/resident/…") but
+    // absolute from the index and the web, so same-origin URLs key by path.
+    const urlKey = (url: string) => {
+      try {
+        const u = new URL(url, window.location.origin);
+        const host = u.origin === window.location.origin ? '' : u.host.replace(/^www\./, '');
+        return `${host}${u.pathname.replace(/\/+$/, '')}${u.search}`.toLowerCase();
+      } catch {
+        return url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/+$/, '').toLowerCase();
+      }
+    };
     const seenUrls = new Set<string>();
     const dedupedResults = unifiedResults.filter((r) => {
       if (!r.url) return true;
-      const key = String(r.url).replace(/^https?:\/\/(www\.)?/, '').replace(/\/+$/, '').toLowerCase();
+      const key = urlKey(String(r.url));
       if (seenUrls.has(key)) return false;
       seenUrls.add(key);
       return true;
@@ -696,9 +707,6 @@ export default function DiscoverPage({ siteConfig, user, extSearchEnabled }: Dis
                                     {saving ? '...' : <PixelIcon name="save" size={12} />}
                                   </button>
                                 )}
-                                <div className="text-xs text-nb-ink-mid hidden sm:block">
-                                  {Math.round(result.unifiedScore)}
-                                </div>
                               </div>
                             </div>
                           </div>

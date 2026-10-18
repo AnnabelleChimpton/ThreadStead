@@ -30,7 +30,7 @@ interface StatsData {
       actorName: string | null;
       displayName: string;
       joinedAt: string;
-    };
+    } | null;
     moderators: Array<{
       actorDid: string;
       actorName: string | null;
@@ -82,11 +82,10 @@ export default function ThreadRingStats({
   }
 
   if (error || !stats) {
+    // Stats are a nice-to-have — degrade quietly, no red error
     return (
       <div className={`bg-white p-4 ${className}`}>
-        <div className="text-sm text-red-600">
-          {error || "Failed to load statistics"}
-        </div>
+        <div className="text-sm text-nb-ink-mid">Stats aren&apos;t available right now.</div>
       </div>
     );
   }
@@ -174,22 +173,24 @@ export default function ThreadRingStats({
         )}
 
         {/* Membership Info (for non-members) */}
-        {stats.membershipInfo && (
+        {stats.membershipInfo && (stats.membershipInfo.owner || stats.membershipInfo.moderators.length > 0) && (
           <div>
             <h4 className="font-medium text-nb-ink mb-2">Leadership</h4>
             <div className="space-y-2 text-xs text-nb-ink">
-              <div>
-                <div className="font-medium text-nb-ink">Owner</div>
-                <div className="pl-2">
-                  <UserMention
-                    username={stats.membershipInfo.owner.actorName || stats.membershipInfo.owner.displayName}
-                    displayName={stats.membershipInfo.owner.displayName}
-                  />
-                  <span className="text-nb-ink-mid ml-1">
-                    (joined {new Date(stats.membershipInfo.owner.joinedAt).toLocaleDateString()})
-                  </span>
+              {stats.membershipInfo.owner && (
+                <div>
+                  <div className="font-medium text-nb-ink">Owner</div>
+                  <div className="pl-2">
+                    <UserMention
+                      username={stats.membershipInfo.owner.actorName || stats.membershipInfo.owner.displayName}
+                      displayName={stats.membershipInfo.owner.displayName}
+                    />
+                    <span className="text-nb-ink-mid ml-1">
+                      (joined {new Date(stats.membershipInfo.owner.joinedAt).toLocaleDateString()})
+                    </span>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {stats.membershipInfo.moderators.length > 0 && (
                 <div>

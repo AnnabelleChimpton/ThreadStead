@@ -172,26 +172,20 @@ function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: 
               <div className="tr-spool-badge-container thread-module max-w-md mx-auto">
                 <div className="tr-spool-badge-content text-center">
                   <div className="flex justify-center mb-3">
-                    {ring.badge.imageUrl ? (
-                      <div
-                        onClick={() => setShowSpoolBadgeOptions(!showSpoolBadgeOptions)}
-                        className="cursor-pointer"
-                        title="Click to show copy options"
-                      >
-                        <ThreadRing88x31Badge
-                          templateId={ring.badge.templateId}
-                          title={ring.badge.title}
-                          subtitle={ring.badge.subtitle}
-                          backgroundColor={ring.badge.backgroundColor}
-                          textColor={ring.badge.textColor}
-                          imageUrl={ring.badge.imageUrl}
-                        />
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-center w-[88px] h-[31px] border border-dotted border-nb-ink-mid text-nb-ink-mid text-xs">
-                        No badge
-                      </div>
-                    )}
+                    <div
+                      onClick={() => setShowSpoolBadgeOptions(!showSpoolBadgeOptions)}
+                      className="cursor-pointer"
+                      title="Click to show copy options"
+                    >
+                      <ThreadRing88x31Badge
+                        templateId={ring.badge.templateId}
+                        title={ring.badge.title}
+                        subtitle={ring.badge.subtitle}
+                        backgroundColor={ring.badge.backgroundColor}
+                        textColor={ring.badge.textColor}
+                        imageUrl={ring.badge.imageUrl}
+                      />
+                    </div>
                   </div>
                   <div className="text-sm font-bold text-thread-pine mb-2 flex items-center justify-center gap-1"><PixelIcon name="map" size={16} /> The Spool Official Badge</div>
                   <p className="text-xs text-thread-sage mb-3">
@@ -1182,26 +1176,20 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
             {ring.badge && ring.badge.isActive && (
               <div className="widget-container bg-thread-paper border border-thread-sage rounded-cozy shadow-cozy-sm p-4">
                 <div className="flex items-center justify-center mb-3">
-                  {ring.badge.imageUrl ? (
-                    <div
-                      onClick={() => setShowBadgeOptions(!showBadgeOptions)}
-                      className="cursor-pointer"
-                      title="Click for embed code"
-                    >
-                      <ThreadRing88x31Badge
-                        templateId={ring.badge.templateId}
-                        title={ring.badge.title}
-                        subtitle={ring.badge.subtitle}
-                        backgroundColor={ring.badge.backgroundColor}
-                        textColor={ring.badge.textColor}
-                        imageUrl={ring.badge.imageUrl}
-                      />
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-center w-[88px] h-[31px] border border-dotted border-nb-ink-mid text-nb-ink-mid text-xs">
-                      No badge
-                    </div>
-                  )}
+                  <div
+                    onClick={() => setShowBadgeOptions(!showBadgeOptions)}
+                    className="cursor-pointer"
+                    title="Click for embed code"
+                  >
+                    <ThreadRing88x31Badge
+                      templateId={ring.badge.templateId}
+                      title={ring.badge.title}
+                      subtitle={ring.badge.subtitle}
+                      backgroundColor={ring.badge.backgroundColor}
+                      textColor={ring.badge.textColor}
+                      imageUrl={ring.badge.imageUrl}
+                    />
+                  </div>
                 </div>
 
                 <div className="text-center mb-2">

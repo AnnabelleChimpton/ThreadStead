@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react'
+import React, { useState, useMemo, useRef, useEffect } from 'react'
 import DecorationIcon from './DecorationIcon'
 import ThemePicker from './ThemePicker'
 import { HouseCustomizations, HouseTemplate, ColorPalette } from './HouseSVG'
@@ -212,6 +212,8 @@ function TerrainTileIcon({ tileId, size = 32 }: { tileId: string; size?: number 
 
 interface DecorationPaletteProps {
   items: Record<string, DecorationItem[]>
+  // While true, the palette waits before picking which tab to open on
+  itemsLoading?: boolean
   selectedItem: DecorationItem | null
   onItemSelect: (item: DecorationItem | null) => void
   className?: string
@@ -293,6 +295,7 @@ const PRIMARY_CATEGORIES: Record<string, {
 
 export default function DecorationPalette({
   items,
+  itemsLoading = false,
   selectedItem,
   onItemSelect,
   className = '',
@@ -315,6 +318,27 @@ export default function DecorationPalette({
   const [searchQuery, setSearchQuery] = useState('')
   const [pendingUploadSlot, setPendingUploadSlot] = useState<number | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const userPickedTab = useRef(false)
+
+  // Open on a tab that has something in it: the first stocked Decor tab
+  // (never the empty-until-uploaded "My Art"), else House, else Themes.
+  useEffect(() => {
+    if (itemsLoading || userPickedTab.current) return
+    const hasItems = (key: string) => (items[key]?.length ?? 0) > 0
+    const decorTab = Object.keys(PRIMARY_CATEGORIES.decorations.subcategories)
+      .find(key => key !== 'custom' && hasItems(key))
+    if (decorTab) {
+      setPrimaryCategory('decorations')
+      setSecondaryCategory(decorTab)
+    } else if (hasItems('house')) {
+      const houseTab = Object.keys(PRIMARY_CATEGORIES.house.subcategories)
+        .find(key => items.house.some(item => item.section === key))
+      setPrimaryCategory('house')
+      if (houseTab) setSecondaryCategory(houseTab)
+    } else {
+      setPrimaryCategory('themes')
+    }
+  }, [items, itemsLoading])
 
   // Handle file input change for custom slot uploads
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -425,14 +449,16 @@ export default function DecorationPalette({
   const hasSecondaryCategories = Object.keys(secondaryCategories).length > 0
 
   const handlePrimaryChange = (category: string) => {
+    userPickedTab.current = true
     setPrimaryCategory(category)
     setSearchQuery('')
     retroSFX.playModeChange()
 
-    // Set default secondary category
+    // Set default secondary category — skip "My Art", which is empty until the user uploads
     const subcategories = PRIMARY_CATEGORIES[category as keyof typeof PRIMARY_CATEGORIES]?.subcategories
-    if (subcategories && Object.keys(subcategories).length > 0) {
-      setSecondaryCategory(Object.keys(subcategories)[0])
+    const keys = Object.keys(subcategories || {})
+    if (keys.length > 0) {
+      setSecondaryCategory(keys.find(key => key !== 'custom') ?? keys[0])
     }
   }
 
@@ -968,6 +994,7 @@ export default function DecorationPalette({
               <button
                 key={key}
                 onClick={() => {
+                  userPickedTab.current = true
                   setSecondaryCategory(key)
                   retroSFX.playSelectItem()
                 }}

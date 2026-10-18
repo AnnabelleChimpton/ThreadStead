@@ -18,6 +18,14 @@
   background-color: #F5E9D4; /* thread-cream color - users can override this */
 }
 
+/* Paper text on a sage fill. Unlayered on purpose: the site CSS's
+   `a { color }` is unlayered too and otherwise beats the text-thread-paper
+   utility, leaving dark ink on the gray-green fill. Buttons are left out:
+   the site CSS paints them peach, where dark ink is right. */
+.bg-thread-sage.text-thread-paper:not(button, .btn) {
+  color: var(--ha-paper, #FCFAF7);
+}
+
 /* Stitched divider pattern */
 .thread-divider {
   border-top: 2px dashed #A18463;
@@ -660,10 +668,10 @@ textarea:focus {
     margin-right: 0 !important;
   }
   
-  /* But keep some padding for readability */
+  /* 16px side gutter so cards' borders and offset shadows aren't clipped */
   .site-main {
-    padding-left: 0 !important;
-    padding-right: 0 !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
   }
   
   /* Header navigation adjustments */
@@ -689,7 +697,8 @@ textarea:focus {
   
   /* Content container adjustments */
   .site-main {
-    padding: 0;
+    padding-top: 0;
+    padding-bottom: 0;
   }
   
   /* Profile layout mobile optimizations */

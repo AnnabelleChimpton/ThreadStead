@@ -143,8 +143,11 @@ export default function ProfileLayout({
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: layeredCSS || '' }} />
-      <div className="ts-profile-container" data-component="profile-layout">
-        <Layout>
+      <Layout>
+        {/* Inside Layout, not around it: templates style .ts-profile-container
+            as the profile's card (width, border, background), and wrapping
+            the site header/footer in it squeezed the nav out of its box. */}
+        <div className="ts-profile-container" data-component="profile-layout">
           <div className="ts-profile-content-wrapper">
             <div className="ts-profile-main-content">
               {children}
@@ -166,8 +169,8 @@ export default function ProfileLayout({
               </div>
             </div>
           </div>
-        </Layout>
-      </div>
+        </div>
+      </Layout>
     </>
   );
 }

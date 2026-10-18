@@ -12,7 +12,7 @@ import { useSiteCSS } from "@/hooks/useSiteCSS";
 import { useRouter } from "next/router";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { CSSModeProvider } from "@/contexts/CSSModeContext";
-import { extractImports, mapSelectors } from "@/lib/utils/css/css-transform";
+import { extractImports, mapSelectors, scopeAwayFromSiteChrome } from "@/lib/utils/css/css-transform";
 
 // Import Layout to ensure CSS dependencies are always available
 import Layout from "@/components/ui/layout/Layout";
@@ -204,7 +204,9 @@ export default function MyApp({ Component, pageProps, appSiteCSS }: MyAppProps) 
                   // spec, browsers IGNORE @import statements that appear after
                   // any other rule — with the preamble first, users' Google
                   // Fonts imports silently never loaded.
-                  const { imports, rest } = extractImports(pageProps.customCSS || '');
+                  // Scoped away from the site header/footer: profile CSS styles
+                  // the profile, never the site chrome around it.
+                  const { imports, rest } = extractImports(scopeAwayFromSiteChrome(pageProps.customCSS || ''));
                   return (
                   <style
                     id="profile-page-styles"
@@ -288,16 +290,19 @@ ${rest}`
                   />
                 )}
 
-                {/* Cookie Consent Banner */}
-                <CookieConsentBanner userId={user?.id} />
+                {/* Site chrome: profile CSS is scoped away from data-site-chrome */}
+                <div data-site-chrome style={{ display: 'contents' }}>
+                  {/* Cookie Consent Banner */}
+                  <CookieConsentBanner userId={user?.id} />
 
-                {/* Global Chat - Only show for authenticated users */}
-                {user && (
-                  <>
-                    <GlobalChatToggle />
-                    <GlobalChatPopup />
-                  </>
-                )}
+                  {/* Global Chat - Only show for authenticated users */}
+                  {user && (
+                    <>
+                      <GlobalChatToggle />
+                      <GlobalChatPopup />
+                    </>
+                  )}
+                </div>
               </div>
             </CSSModeProvider>
           </ConversationsProvider>

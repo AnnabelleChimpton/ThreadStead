@@ -204,7 +204,10 @@ export const getServerSideProps: GetServerSideProps<EditPostPageProps> = async (
 
   try {
     // Fetch the specific post
-    const postRes = await fetch(`${base}/api/posts/single/${encodeURIComponent(postId)}`);
+    // Forward the viewer's cookie so the API can apply visibility rules
+    const postRes = await fetch(`${base}/api/posts/single/${encodeURIComponent(postId)}`, {
+      headers: { cookie: req.headers.cookie || "" },
+    });
 
     if (!postRes.ok) {
       return { notFound: true };
