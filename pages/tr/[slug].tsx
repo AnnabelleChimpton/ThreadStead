@@ -399,18 +399,22 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
   const [loadError, setLoadError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [joining, setJoining] = useState(false);
-  const [isMember, setIsMember] = useState(false);
 
   // Track welcome progress
   useWelcomeTracking();
   const { trackCommentCreated } = useWelcomeRingTracking(ring?.slug);
-  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const [showBadgeOptions, setShowBadgeOptions] = useState(false);
   const [feedScope, setFeedScope] = useState<'current' | 'parent' | 'children' | 'siblings' | 'family'>('current');
   const [sidebarTab, setSidebarTab] = useState<'stats' | 'lineage' | 'discovery'>('stats');
   const [showSidebarModal, setShowSidebarModal] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [members, setMembers] = useState<any[]>([]);
+  // Which ring `members` came from, so a previous ring's list can't set the viewer's role here.
+  const [membersSlug, setMembersSlug] = useState<string | null>(null);
+  // Curator access from the access check (admin, ring owner, local curator), tagged with its ring.
+  const [curatorAccessSlug, setCuratorAccessSlug] = useState<string | null>(null);
+  // Set by join/leave until the page reloads.
+  const [membershipOverride, setMembershipOverride] = useState<{ slug: string; role: string | null } | null>(null);
   const [membersLoading, setMembersLoading] = useState(false);
   const [isPublicMemberInfo, setIsPublicMemberInfo] = useState(false);
   const [selectedMemberUsername, setSelectedMemberUsername] = useState<string | null>(null);
@@ -436,6 +440,19 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
   });
   const [lineageLoading, setLineageLoading] = useState(false);
   const { user: currentUser } = useCurrentUser();
+
+  // The viewer's role is derived, never stored: the access check and the members
+  // list are separate inputs, so whichever request lands last can't overwrite the other.
+  const listedMember = currentUser && ring && membersSlug === ring.slug
+    ? members.find(member => member.userId === currentUser.id)
+    : undefined;
+  const currentUserRole: string | null =
+    ring && membershipOverride?.slug === ring.slug
+      ? membershipOverride.role
+      : ring && curatorAccessSlug === ring.slug
+        ? "curator"
+        : listedMember?.role ?? null;
+  const isMember = currentUserRole !== null;
 
   // Toast notifications
   const { showError, showSuccess, showWarning } = useToast();
@@ -553,6 +570,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
   // Fetch members using user-authenticated API
   useEffect(() => {
     if (!ring) return;
+    let cancelled = false;
 
     const fetchMembers = async () => {
       try {
@@ -561,7 +579,9 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
 
         if (response.ok) {
           const data = await response.json();
+          if (cancelled) return;
           setMembers(data.members);
+          setMembersSlug(ring.slug);
           setIsPublicMemberInfo(data.isPublicInfo || false);
           // Members data loaded successfully
         } else {
@@ -572,7 +592,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
         console.error('Error fetching members:', error);
         // Keep existing members if fetch fails
       } finally {
-        setMembersLoading(false);
+        if (!cancelled) setMembersLoading(false);
       }
     };
 
@@ -582,30 +602,11 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
     } else if (ring.members && ring.members.length > 0) {
       // For non-Ring Hub rings, use the server-side members
       setMembers(ring.members);
+      setMembersSlug(ring.slug);
     }
+
+    return () => { cancelled = true; };
   }, [ring]);
-
-  // Update membership status when members data or current user changes
-  useEffect(() => {
-    if (!currentUser || !members) {
-      setIsMember(false);
-      setCurrentUserRole(null);
-      return;
-    }
-
-    // Find current user in members list
-    const userMembership = members.find(member => member.userId === currentUser.id);
-
-    if (userMembership) {
-      setIsMember(true);
-      setCurrentUserRole(userMembership.role);
-      // User membership confirmed
-    } else {
-      setIsMember(false);
-      setCurrentUserRole(null);
-      // User is not a member
-    }
-  }, [members, currentUser, ring?.slug]);
 
   // Fetch lineage data using user-authenticated API
   useEffect(() => {
@@ -673,63 +674,52 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
     }
   }, [ring, feedScope]);
 
-  // Check membership and ownership when ring loads
+  // Check curator access (admin, ring owner, local curator) when ring loads.
+  // Plain membership roles come from the members list above.
   useEffect(() => {
     if (!ring) return;
-    checkMembership();
-  }, [ring]);
+    let cancelled = false;
 
-  const checkMembership = async () => {
-    try {
-      const response = await fetch('/api/auth/me');
-      if (response.ok) {
+    const checkCuratorAccess = async () => {
+      try {
+        const response = await fetch('/api/auth/me');
+        if (!response.ok) return;
         const authData = await response.json();
-        if (authData.loggedIn && authData.user && ring) {
-          const userId = authData.user.id;
+        if (cancelled || !authData.loggedIn || !authData.user) return;
 
-          // Check if admin
-          if (authData.user.role === 'admin') {
-            setIsMember(true);
-            setCurrentUserRole("curator"); // Treat admin as curator for UI purposes
-            return;
-          }
-
-          // Check Ring Hub ownership first (for rings that were forked/created via Ring Hub)
-          try {
-            const ownershipResponse = await fetch(`/api/threadrings/${ring.slug}/ownership`);
-            if (ownershipResponse.ok) {
-              const ownershipData = await ownershipResponse.json();
-              if (ownershipData.isOwner || ownershipData.isCurator) {
-                setIsMember(true);
-                setCurrentUserRole("curator");
-                // User ownership confirmed
-                return;
-              }
-            }
-          } catch (ownershipError) {
-            console.warn('Error checking Ring Hub ownership:', ownershipError);
-          }
-
-          // Check if user is the local curator
-          if (ring.curator && userId === ring.curator.id) {
-            setIsMember(true);
-            setCurrentUserRole("curator");
-            return;
-          }
-
-          // Check if user is a member of this ring
-          const member = members.find(m => m.user.id === userId);
-
-          if (member) {
-            setIsMember(true);
-            setCurrentUserRole(member.role);
-          }
+        // Treat admin as curator for UI purposes
+        if (authData.user.role === 'admin') {
+          setCuratorAccessSlug(ring.slug);
+          return;
         }
+
+        // Check Ring Hub ownership first (for rings that were forked/created via Ring Hub)
+        try {
+          const ownershipResponse = await fetch(`/api/threadrings/${ring.slug}/ownership`);
+          if (ownershipResponse.ok) {
+            const ownershipData = await ownershipResponse.json();
+            if (cancelled) return;
+            if (ownershipData.isOwner || ownershipData.isCurator) {
+              setCuratorAccessSlug(ring.slug);
+              return;
+            }
+          }
+        } catch (ownershipError) {
+          console.warn('Error checking Ring Hub ownership:', ownershipError);
+        }
+
+        // Check if user is the local curator
+        if (!cancelled && ring.curator && authData.user.id === ring.curator.id) {
+          setCuratorAccessSlug(ring.slug);
+        }
+      } catch (error) {
+        console.error("Error checking membership:", error);
       }
-    } catch (error) {
-      console.error("Error checking membership:", error);
-    }
-  };
+    };
+
+    checkCuratorAccess();
+    return () => { cancelled = true; };
+  }, [ring]);
 
   const handleJoin = async () => {
     if (!ring) return;
@@ -753,8 +743,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
       }
 
       // Update local state
-      setIsMember(true);
-      setCurrentUserRole("member");
+      setMembershipOverride({ slug: ring.slug, role: "member" });
 
       // Track joining for Welcome Ring progress
       if (ring.slug === 'welcome') {
@@ -812,8 +801,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
       }
 
       // Update local state
-      setIsMember(false);
-      setCurrentUserRole(null);
+      setMembershipOverride({ slug: ring.slug, role: null });
 
       // Show success message and reload
       showSuccess(data.message);
