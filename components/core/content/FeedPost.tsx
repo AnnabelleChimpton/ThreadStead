@@ -6,6 +6,7 @@ import { formatDistanceToNow } from "date-fns";
 import { PixelIcon } from "@/components/ui/PixelIcon";
 import { useRouter } from "next/router";
 import { cleanAndNormalizeHtml, markdownToSafeHtml } from "@/lib/utils/sanitization/html";
+import { plainTextToHtml } from "@/lib/utils/sanitization/escape";
 import { markdownToSafeHtmlWithEmojis, processHtmlWithEmojis, loadEmojiMap } from "@/lib/comment-markup";
 import { truncateText, truncateHtml, needsTruncation } from "@/lib/utils/text-truncation";
 import CommentList, { CommentWire } from "./CommentList";
@@ -92,7 +93,7 @@ export default function FeedPost({ post, showActivity = false, showVisibility = 
           await loadEmojiMap();
           html = processHtmlWithEmojis(html);
         } else if (post.bodyText) {
-          html = post.bodyText.replace(/\n/g, "<br>");
+          html = plainTextToHtml(post.bodyText);
           await loadEmojiMap();
           html = processHtmlWithEmojis(html);
         } else {
@@ -115,7 +116,7 @@ export default function FeedPost({ post, showActivity = false, showVisibility = 
           } else if (post.bodyHtml) {
             fallbackHtml = cleanAndNormalizeHtml(post.bodyHtml);
           } else if (post.bodyText) {
-            fallbackHtml = post.bodyText.replace(/\n/g, "<br>");
+            fallbackHtml = plainTextToHtml(post.bodyText);
           } else {
             fallbackHtml = "";
           }

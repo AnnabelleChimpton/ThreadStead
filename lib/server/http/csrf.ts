@@ -51,8 +51,16 @@ export function createCsrfCookie(token: string, maxAge: number = 604800): string
  */
 function getCsrfTokenFromCookie(req: NextApiRequest): string | null {
   const cookie = req.headers.cookie || "";
-  const match = cookie.match(new RegExp(`${CSRF_COOKIE_NAME}=([^;]+)`));
-  return match ? decodeURIComponent(match[1]) : null;
+  // Anchor on a cookie boundary so a cookie like `x_csrf_token` can't be
+  // read in place of ours.
+  const match = cookie.match(new RegExp(`(?:^|;\\s*)${CSRF_COOKIE_NAME}=([^;]+)`));
+  if (!match) return null;
+  try {
+    return decodeURIComponent(match[1]);
+  } catch {
+    // Malformed %-escape: treat as missing (403), not a 500
+    return null;
+  }
 }
 
 /**

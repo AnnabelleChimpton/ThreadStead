@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/config/database/connection";
 import { getSessionUser } from "@/lib/auth/server";
 import { getClientIp } from "./client-ip";
+import { randomUUID } from "crypto";
 
 /**
  * Every rate limiter in the app lives here:
@@ -70,8 +71,13 @@ function getIdentifier(req: NextApiRequest, userId?: string): string {
 }
 
 /**
- * Check and increment rate limit
- * Returns { allowed: boolean, remaining: number, resetTime: Date }
+ * Count this request and report whether it's within the limit.
+ *
+ * One INSERT … ON CONFLICT statement does the read, the window reset and the
+ * increment together, under the row lock Postgres takes for the upsert. A
+ * read-then-write version let parallel requests all see the same count and
+ * all pass. The count stops at limit + 1 so a hammering caller can't grow it
+ * forever.
  */
 export async function checkRateLimit(
   identifier: string,
@@ -80,86 +86,38 @@ export async function checkRateLimit(
   const config = RATE_LIMIT_CONFIGS[category];
   const now = new Date();
   const windowStart = new Date(now.getTime() - config.windowMs);
+  const expiresAt = new Date(now.getTime() + config.windowMs + 24 * 60 * 60 * 1000); // +24h for cleanup
+
+  // Timestamps go in as ISO text cast to `timestamp` and come back as epoch
+  // ms: the columns hold UTC wall time without a zone (Prisma's convention),
+  // and raw Date params/results would get shifted by the session time zone.
+  const nowTs = now.toISOString();
+  const windowStartTs = windowStart.toISOString();
+  const expiresTs = expiresAt.toISOString();
 
   try {
-    // Use a transaction to atomically check and increment
-    const result = await db.$transaction(async (tx) => {
-      // Find or create rate limit entry
-      const existing = await tx.rateLimit.findUnique({
-        where: {
-          identifier_category: {
-            identifier,
-            category,
-          },
-        },
-      });
+    const rows = await db.$queryRaw<{ requestCount: number; windowStartMs: number }[]>`
+      INSERT INTO "RateLimit" ("id", "identifier", "category", "requestCount", "windowStart", "expiresAt")
+      VALUES (${randomUUID()}, ${identifier}, ${category}, 1, ${nowTs}::timestamp, ${expiresTs}::timestamp)
+      ON CONFLICT ("identifier", "category") DO UPDATE SET
+        "requestCount" = CASE WHEN "RateLimit"."windowStart" > ${windowStartTs}::timestamp
+          THEN LEAST("RateLimit"."requestCount" + 1, ${config.limit + 1}::int)
+          ELSE 1 END,
+        "windowStart" = CASE WHEN "RateLimit"."windowStart" > ${windowStartTs}::timestamp
+          THEN "RateLimit"."windowStart" ELSE ${nowTs}::timestamp END,
+        "expiresAt" = CASE WHEN "RateLimit"."windowStart" > ${windowStartTs}::timestamp
+          THEN "RateLimit"."expiresAt" ELSE ${expiresTs}::timestamp END
+      RETURNING "requestCount", (EXTRACT(EPOCH FROM "windowStart") * 1000)::float8 AS "windowStartMs"
+    `;
+    const { requestCount, windowStartMs } = rows[0];
+    const allowed = requestCount <= config.limit;
 
-      // If entry exists and window is still valid
-      if (existing && existing.windowStart > windowStart) {
-        // Check if limit exceeded
-        if (existing.requestCount >= config.limit) {
-          return {
-            allowed: false,
-            remaining: 0,
-            resetTime: new Date(existing.windowStart.getTime() + config.windowMs),
-            total: config.limit,
-          };
-        }
-
-        // Increment count
-        const updated = await tx.rateLimit.update({
-          where: {
-            identifier_category: {
-              identifier,
-              category,
-            },
-          },
-          data: {
-            requestCount: {
-              increment: 1,
-            },
-          },
-        });
-
-        return {
-          allowed: true,
-          remaining: config.limit - updated.requestCount,
-          resetTime: new Date(updated.windowStart.getTime() + config.windowMs),
-          total: config.limit,
-        };
-      }
-
-      // Entry doesn't exist or window expired - create new window
-      const newEntry = await tx.rateLimit.upsert({
-        where: {
-          identifier_category: {
-            identifier,
-            category,
-          },
-        },
-        create: {
-          identifier,
-          category,
-          requestCount: 1,
-          windowStart: now,
-          expiresAt: new Date(now.getTime() + config.windowMs + 24 * 60 * 60 * 1000), // +24h for cleanup
-        },
-        update: {
-          requestCount: 1,
-          windowStart: now,
-          expiresAt: new Date(now.getTime() + config.windowMs + 24 * 60 * 60 * 1000),
-        },
-      });
-
-      return {
-        allowed: true,
-        remaining: config.limit - 1,
-        resetTime: new Date(newEntry.windowStart.getTime() + config.windowMs),
-        total: config.limit,
-      };
-    });
-
-    return result;
+    return {
+      allowed,
+      remaining: allowed ? config.limit - requestCount : 0,
+      resetTime: new Date(windowStartMs + config.windowMs),
+      total: config.limit,
+    };
   } catch (error) {
     // If database error, log and allow request (fail open for availability)
     console.error("Rate limit check failed:", error);

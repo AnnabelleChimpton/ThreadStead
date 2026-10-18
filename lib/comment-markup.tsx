@@ -1,4 +1,5 @@
 import React from 'react';
+import { cleanHtml } from '@/lib/utils/sanitization/html';
 
 /**
  * Simple markup parser for comments
@@ -314,18 +315,24 @@ export function MarkdownWithEmojis({ markdown }: { markdown: string }): React.Re
 export function processHtmlWithEmojis(html: string): string {
   // First load emojis if needed
   if (!emojiMapLoaded) {
-    return html; // Return original if emojis not loaded
+    return cleanHtml(html);
   }
 
-  return html.replace(/:([a-zA-Z0-9_-]+):/g, (match, emojiName) => {
+  const replaced = html.replace(/:([a-zA-Z0-9_-]+):/g, (match, emojiName) => {
     const emojiUrl = emojiMap.get(emojiName);
     if (emojiUrl && isValidImageUrl(emojiUrl)) {
       // Escape the URL to prevent attribute injection attacks
       const escapedUrl = escapeHtml(emojiUrl);
-      return `<img src="${escapedUrl}" alt="${escapeHtml(match)}" title="${escapeHtml(match)}" class="inline-block mx-1 align-text-bottom" style="display: inline-block; width: 20px; height: 20px; margin: 0 0.25rem; vertical-align: text-bottom; object-fit: contain; image-rendering: -webkit-optimize-contrast; -webkit-backface-visibility: hidden; transform: translateZ(0); filter: contrast(1.05);" />`;
+      return `<img src="${escapedUrl}" alt="${escapeHtml(match)}" title="${escapeHtml(match)}" class="ts-emoji" />`;
     }
     return match;
   });
+
+  // The regex also matches inside attribute values, where the inserted <img>
+  // can close the tag and turn attacker text into real markup. Sanitize the
+  // result again so the output is safe wherever a match landed. (Sizing lives
+  // in the .ts-emoji class because the sanitizer drops style attributes.)
+  return cleanHtml(replaced);
 }
 
 // Enhanced markdown processor with emoji support
@@ -683,7 +690,7 @@ export function HtmlWithEmojis({ html }: { html: string }): React.ReactNode {
       } catch (error) {
         console.error('Failed to process HTML emojis:', error);
         if (!cancelled) {
-          setProcessedHtml(html);
+          setProcessedHtml(cleanHtml(html));
           setIsLoading(false);
         }
       }

@@ -1500,3 +1500,19 @@
 }
 
 /* Pixelated arrow icons for scrollbar buttons would be ideal, but solid blocks work for now */
+/* Custom emoji images inserted into post/comment HTML. This used to be an
+   inline style, but the sanitizer strips style attributes, so it lives here.
+   !important keeps it ahead of `.thread-content img` the way the inline
+   style did. */
+img.ts-emoji {
+  display: inline-block !important;
+  width: 20px !important;
+  height: 20px !important;
+  margin: 0 0.25rem !important;
+  vertical-align: text-bottom;
+  object-fit: contain;
+  image-rendering: -webkit-optimize-contrast;
+  -webkit-backface-visibility: hidden;
+  transform: translateZ(0);
+  filter: contrast(1.05);
+}

@@ -3,6 +3,8 @@ import { randomBytes } from 'crypto';
 import { db } from './config/database/connection';
 import { encryptEmail, findUsersByEmail } from './utils/security/email-encryption';
 import { Resend } from 'resend';
+import { escapeHtml } from './utils/sanitization/escape';
+import type { EmailTokenType } from '@prisma/client';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -90,6 +92,19 @@ export async function checkEmailLoginToken(token: string): Promise<EmailLoginUse
 }
 
 /**
+ * Mark a token as used, atomically. Two requests racing with the same link
+ * both pass the read-only checks above, but only one of them can flip usedAt
+ * from null here; the other gets count 0 and is refused.
+ */
+async function claimToken(token: string, type: EmailTokenType): Promise<boolean> {
+  const { count } = await db.emailLoginToken.updateMany({
+    where: { token, type, usedAt: null, expiresAt: { gt: new Date() } },
+    data: { usedAt: new Date() }
+  });
+  return count === 1;
+}
+
+/**
  * Verify an email login token and return associated users (marks token as used)
  */
 export async function verifyEmailLoginToken(token: string): Promise<EmailLoginUser[]> {
@@ -97,10 +112,9 @@ export async function verifyEmailLoginToken(token: string): Promise<EmailLoginUs
   const users = await checkEmailLoginToken(token);
 
   // If valid, mark token as used
-  await db.emailLoginToken.update({
-    where: { token },
-    data: { usedAt: new Date() }
-  });
+  if (!(await claimToken(token, 'login'))) {
+    throw new Error('Token has already been used');
+  }
 
   return users;
 }
@@ -134,10 +148,9 @@ export async function verifyEmailVerificationToken(token: string): Promise<{ use
   }
 
   // Mark token as used
-  await db.emailLoginToken.update({
-    where: { token },
-    data: { usedAt: new Date() }
-  });
+  if (!(await claimToken(token, 'verification'))) {
+    throw new Error('Verification token has already been used');
+  }
 
   // Verify the email for the user (email should already be set, just mark as verified)
   await db.user.update({
@@ -185,10 +198,9 @@ export async function verifyPasswordResetToken(token: string): Promise<{ userId:
   }
 
   // Mark token as used
-  await db.emailLoginToken.update({
-    where: { token },
-    data: { usedAt: new Date() }
-  });
+  if (!(await claimToken(token, 'password_reset'))) {
+    throw new Error('Reset token has already been used');
+  }
 
   // Return decrypted email for confirmation
   const email = await import('./utils/security/email-encryption').then(mod =>
@@ -236,7 +248,7 @@ export async function sendLoginEmail(email: string, users: EmailLoginUser[], tok
     `;
   } else if (users.length === 1) {
     const user = users[0];
-    const displayName = user.displayName || user.handle || 'your account';
+    const displayName = escapeHtml(user.displayName || user.handle || 'your account');
     subject = `Sign in to ${siteName}`;
     htmlContent = `
     <!DOCTYPE html>
@@ -271,8 +283,8 @@ export async function sendLoginEmail(email: string, users: EmailLoginUser[], tok
     // Multiple accounts
     subject = `Pick an account to sign in to ${siteName}`;
     const accountList = users.map(user => {
-      const displayName = user.displayName || user.handle || 'Unnamed Account';
-      return `<li><strong>${displayName}</strong> (@${user.handle || 'no-handle'})</li>`;
+      const displayName = escapeHtml(user.displayName || user.handle || 'Unnamed Account');
+      return `<li><strong>${displayName}</strong> (@${escapeHtml(user.handle || 'no-handle')})</li>`;
     }).join('');
 
     htmlContent = `
@@ -342,7 +354,7 @@ export async function sendVerificationEmail(email: string, userName: string, tok
     </head>
     <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
       <h2 style="color: #007cba;">Confirm your email</h2>
-      <p>Hi <strong>${userName}</strong>!</p>
+      <p>Hi <strong>${escapeHtml(userName)}</strong>!</p>
       <p>You added this email address to your ${siteName} account. Click below to confirm it's yours, and then you'll be able to sign in with an email link.</p>
       
       <div style="text-align: center; margin: 30px 0;">
@@ -395,7 +407,7 @@ export async function sendPasswordResetEmail(email: string, userName: string, to
     </head>
     <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
       <h2 style="color: #007cba;">Reset your password</h2>
-      <p>Hi <strong>${userName}</strong>!</p>
+      <p>Hi <strong>${escapeHtml(userName)}</strong>!</p>
       <p>Someone asked to reset the password on your ${siteName} account. If that was you, click below to pick a new one.</p>
       
       <div style="text-align: center; margin: 30px 0;">

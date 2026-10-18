@@ -8,32 +8,28 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import type { ExtSearchResponse } from '@/lib/extsearch/types'
 
-const rateRows = new Map<string, { identifier: string; category: string; requestCount: number; windowStart: Date }>()
-const key = (w: any) => `${w.identifier_category.identifier}|${w.identifier_category.category}`
+const rateRows = new Map<string, { requestCount: number; windowStart: number }>()
 
-jest.mock('@/lib/config/database/connection', () => {
-  const rateLimit = {
-    findUnique: jest.fn(async ({ where }: any) => rateRows.get(key(where)) ?? null),
-    update: jest.fn(async ({ where }: any) => {
-      const row = rateRows.get(key(where))!
-      row.requestCount += 1
-      return row
+jest.mock('@/lib/config/database/connection', () => ({
+  db: {
+    // checkRateLimit's single upsert, replayed in memory. Arguments are the
+    // template values in the order the SQL uses them.
+    $queryRaw: jest.fn(async (_sql: TemplateStringsArray, _id: string, identifier: string, category: string,
+      nowTs: string, _expiresTs: string, windowStartTs: string, cap: number) => {
+      const k = `${identifier}|${category}`
+      const row = rateRows.get(k)
+      if (row && row.windowStart > Date.parse(windowStartTs)) {
+        row.requestCount = Math.min(row.requestCount + 1, cap)
+      } else {
+        rateRows.set(k, { requestCount: 1, windowStart: Date.parse(nowTs) })
+      }
+      const { requestCount, windowStart } = rateRows.get(k)!
+      return [{ requestCount, windowStartMs: windowStart }]
     }),
-    upsert: jest.fn(async ({ where, create }: any) => {
-      const row = { ...create }
-      rateRows.set(key(where), row)
-      return row
-    }),
-  }
-  return {
-    db: {
-      rateLimit,
-      $transaction: jest.fn(async (fn: any) => fn({ rateLimit })),
-      curatedSite: { findMany: jest.fn(async () => []), findFirst: jest.fn(async () => null), update: jest.fn() },
-      indexedSite: { findMany: jest.fn(async () => []) },
-    },
-  }
-})
+    curatedSite: { findMany: jest.fn(async () => []), findFirst: jest.fn(async () => null), update: jest.fn() },
+    indexedSite: { findMany: jest.fn(async () => []) },
+  },
+}))
 jest.mock('@/lib/auth/server', () => ({ getSessionUser: jest.fn(async () => null) }))
 
 function response(q: string, opts: { partial?: boolean; ok?: boolean } = {}): ExtSearchResponse {
