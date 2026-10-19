@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react'
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import EnhancedHouseCanvas from './EnhancedHouseCanvas'
 import DecorationPalette from './DecorationPalette'
 import { DecorationItem, TERRAIN_TILES } from '../../lib/pixel-homes/decoration-data'
@@ -13,7 +13,7 @@ const HOUSE_COLOR_ITEMS: DecorationItem[] = [
   { id: 'detail_color', name: 'Detail Color', type: 'house_color', zone: 'house_facade', color: '#4FAF6D' }
 ]
 import { HouseCustomizations, HouseTemplate, ColorPalette, AtmosphereSettings } from './HouseSVG'
-import { useDecorationState } from '../../hooks/useDecorationState'
+import { useEditorDoc } from '../../hooks/pixel-homes/useEditorDoc'
 import useDecorationSnapping from '../../hooks/pixel-homes/useDecorationSnapping'
 import { DEFAULT_DECORATION_GRID, getDecorationGridSize, pixelToGrid, isValidGridPosition } from '../../lib/pixel-homes/decoration-grid-utils'
 import { getDecorationDimensions } from '../../lib/pixel-homes/decoration-dimensions'
@@ -24,7 +24,7 @@ import useIsMobile, { useIsTouch } from '../../hooks/useIsMobile'
 import { useUnsavedChangesGuard } from '../../hooks/useUnsavedChangesGuard'
 import { retroSFX } from '../../lib/audio/retro-sfx'
 import { MAX_DECORATIONS } from '../../lib/pixel-homes/decoration-save-rules'
-import { editorSnapshot } from '../../lib/pixel-homes/editor-snapshot'
+import { docFromProps, newPlacement, toSavePayload, type SavePayload } from '../../lib/pixel-homes/editor-doc'
 
 /** Screen pixels the pointer must travel before pressing a decoration becomes a drag. */
 const DRAG_THRESHOLD_PX = 4
@@ -33,8 +33,8 @@ interface DecorationModeProps {
   template: HouseTemplate
   palette: ColorPalette
   username: string
-  /** Resolves true once saved; the editor then calls onExit. */
-  onSave: (data: any) => Promise<boolean>
+  /** Sends the save API's body; resolves true once saved, and the editor then calls onExit. */
+  onSave: (payload: SavePayload) => Promise<boolean>
   /** Leave the editor (after Cancel, or after a save). */
   onExit: () => void
   initialDecorations?: DecorationItem[]
@@ -63,75 +63,60 @@ export default function DecorationMode({
   const isMobile = useIsMobile(768)
   const isTouch = useIsTouch()
 
-  // Normalize initial decorations to ensure text is available for editing
-  const normalizedInitialDecorations = useMemo(() => {
-    return initialDecorations.map(d => ({
-      ...d,
-      text: d.text || d.data?.text
-    }))
-  }, [initialDecorations])
-
-  // Core State (using custom hook)
+  // The home being edited: one document with full undo (lib/pixel-homes/editor-doc.ts)
+  const [initialDoc] = useState(() => docFromProps({
+    template: initialTemplate,
+    palette: initialPalette,
+    decorations: initialDecorations,
+    house: initialHouseCustomizations,
+    atmosphere: initialAtmosphere,
+    terrain: initialTerrain
+  }))
+  const { doc, dispatch, canUndo, canRedo, isDirty, presentKey } = useEditorDoc(initialDoc)
   const {
     decorations: placedDecorations,
-    setDecorations: setPlacedDecorations,
-    selectedDecorations,
-    addDecoration,
-    removeDecorations,
-    updateDecoration,
-    selectDecoration,
-    clearSelection,
-    undo,
-    redo,
-    canUndo,
-    canRedo
-  } = useDecorationState(normalizedInitialDecorations)
+    house: houseCustomizations,
+    atmosphere,
+    terrain,
+    template: currentTemplate,
+    palette: currentPalette
+  } = doc
+  const presentKeyRef = useRef(presentKey)
+  presentKeyRef.current = presentKey
+  const { confirmLeave, allowLeave } = useUnsavedChangesGuard(isDirty)
+
+  const undo = useCallback(() => dispatch({ type: 'undo' }), [dispatch])
+  const redo = useCallback(() => dispatch({ type: 'redo' }), [dispatch])
+
+  // Selection is not part of the document; ids that undo removed drop out
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
+  const selectedDecorations = useMemo(() => {
+    const present = new Set(placedDecorations.map(d => d.id))
+    const kept = [...selectedIds].filter(id => present.has(id))
+    return kept.length === selectedIds.size ? selectedIds : new Set(kept)
+  }, [selectedIds, placedDecorations])
+  const selectDecoration = (id: string) => setSelectedIds(new Set([id]))
+  const clearSelection = useCallback(() => setSelectedIds(prev => (prev.size === 0 ? prev : new Set())), [])
+  const removeDecorations = useCallback((ids: Set<string>) => {
+    dispatch({ type: 'remove', ids })
+    clearSelection()
+  }, [dispatch, clearSelection])
 
   // UI State
   const [availableDecorations, setAvailableDecorations] = useState<Record<string, DecorationItem[]>>({})
   const [decorationsLoading, setDecorationsLoading] = useState(true)
-  const [selectedItem, setSelectedItem] = useState<DecorationItem | null>(null)
+  const [selectedItemState, setSelectedItem] = useState<DecorationItem | null>(null)
+  // A placed decoration shown in the palette (sign text) follows the document, undo included
+  const selectedItem = useMemo(
+    () => (selectedItemState && placedDecorations.find(d => d.id === selectedItemState.id)) || selectedItemState,
+    [selectedItemState, placedDecorations]
+  )
   const [isPlacing, setIsPlacing] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
-  const [currentTemplate, setCurrentTemplate] = useState<HouseTemplate>(initialTemplate)
-  const [currentPalette, setCurrentPalette] = useState<ColorPalette>(initialPalette)
 
-  // House & Atmosphere State
-  const [atmosphere, setAtmosphere] = useState<AtmosphereSettings>(
-    initialAtmosphere || {
-      sky: 'sunny',
-      weather: 'clear',
-      timeOfDay: 'midday'
-    }
-  )
-  const [houseCustomizations, setHouseCustomizations] = useState<HouseCustomizations>(
-    initialHouseCustomizations || {
-      windowStyle: 'default',
-      doorStyle: 'default',
-      roofTrim: 'default'
-    }
-  )
-
-  // Terrain State
-  const [terrain, setTerrain] = useState<Record<string, string>>(initialTerrain)
   // paintBrush: undefined = not in terrain mode, null = eraser mode, string = painting terrain
   const [paintBrush, setPaintBrush] = useState<string | null | undefined>(undefined)
   const [isPainting, setIsPainting] = useState(false)
-
-  // Unsaved changes: the editor's current state against the last saved one
-  const snapshot = useMemo(() => editorSnapshot({
-    decorations: placedDecorations,
-    houseCustomizations,
-    atmosphere,
-    template: currentTemplate,
-    palette: currentPalette,
-    terrain
-  }), [placedDecorations, houseCustomizations, atmosphere, currentTemplate, currentPalette, terrain])
-  const [savedSnapshot, setSavedSnapshot] = useState(snapshot)
-  const isDirty = snapshot !== savedSnapshot
-  const snapshotRef = useRef(snapshot)
-  snapshotRef.current = snapshot
-  const { confirmLeave, allowLeave } = useUnsavedChangesGuard(isDirty)
 
   // Dragging State
   const [isDragging, setIsDragging] = useState(false)
@@ -455,19 +440,7 @@ export default function DecorationMode({
         item.id === 'cloudy_sky' ? 'cloudy' :
           item.id === 'sunset_sky' ? 'sunset' :
             item.id === 'night_sky' ? 'night' : 'sunny'
-      setAtmosphere((prev: AtmosphereSettings) => ({ ...prev, sky: newSky as AtmosphereSettings['sky'] }))
-      return
-    }
-
-    if (item.type === 'house_template') {
-      setCurrentTemplate(item.id as HouseTemplate)
-      setHouseCustomizations({
-        windowStyle: 'default',
-        doorStyle: 'default',
-        roofTrim: 'default'
-      })
-      setSelectedItem(item)
-      setIsPlacing(false)
+      dispatch({ type: 'setAtmosphere', changes: { sky: newSky as AtmosphereSettings['sky'] } })
       return
     }
 
@@ -540,7 +513,7 @@ export default function DecorationMode({
       else if (item.id === 'string_exterior_lights') customizationUpdate.exteriorLights = 'string_lights'
       else if (item.id === 'no_exterior_lights') customizationUpdate.exteriorLights = 'none'
 
-      setHouseCustomizations(prev => ({ ...prev, ...customizationUpdate }))
+      dispatch({ type: 'setHouse', changes: customizationUpdate })
       setSelectedItem(item)
       setIsPlacing(false)
       retroSFX.playModeChange()
@@ -568,12 +541,18 @@ export default function DecorationMode({
     clearSelection()
   }
 
+  // Typing in a decoration's field (sign text) is one undo step
   const handleDecorationUpdate = (id: string, updates: Partial<DecorationItem>) => {
-    updateDecoration(id, updates)
-    // Also update selected item if it's the one being updated
-    if (selectedItem?.id === id) {
-      setSelectedItem(prev => prev ? { ...prev, ...updates } : null)
-    }
+    dispatch({ type: 'updateDecoration', id, changes: updates, mergeKey: `decoration:${id}:${Object.keys(updates).sort().join()}` })
+  }
+
+  // Typing a house's text or dragging a colour is one undo step; a reset or a style pick is its own
+  const handleHouseChange = (updates: Partial<HouseCustomizations>) => {
+    const values = Object.values(updates)
+    const mergeKey = values.length > 0 && values.every(v => typeof v === 'string')
+      ? `house:${Object.keys(updates).sort().join()}`
+      : undefined
+    dispatch({ type: 'setHouse', changes: updates, mergeKey })
   }
 
   // Where an item lands for a given top-left: snapped, with its depth layer
@@ -631,13 +610,7 @@ export default function DecorationMode({
       y - (size.height * gridConfig.cellSize) / 2
     )
 
-    addDecoration({
-      ...selectedItem,
-      id: `${selectedItem.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      position,
-      variant: selectedItem.variant || 'default',
-      size: selectedItem.size || 'medium'
-    })
+    dispatch({ type: 'place', decoration: newPlacement(selectedItem, position) })
     retroSFX.playPlaceItem()
     // Don't clear selection or placement mode to allow rapid placement
   }
@@ -661,12 +634,15 @@ export default function DecorationMode({
   // Window mouseup: ends painting and any press or drag, wherever the pointer is
   const handleGlobalMouseUp = () => {
     setIsPainting(false)
+    dispatch({ type: 'endStroke' }) // a whole stroke is one undo step
     pressRef.current = null
     if (!isDragging || !draggedItem) return
 
     const pointer = pointerRef.current
     if (pointer) {
-      handleDecorationUpdate(draggedItem.id, {
+      dispatch({
+        type: 'move',
+        id: draggedItem.id,
         position: placementFor(draggedItem, pointer.x - dragOffset.x, pointer.y - dragOffset.y)
       })
       retroSFX.playPlaceItem()
@@ -700,23 +676,13 @@ export default function DecorationMode({
     // paintBrush is a string when painting, null when erasing, undefined when not in terrain mode
     if (paintBrush !== undefined) {
       setIsPainting(true)
+      dispatch({ type: 'beginStroke' })
       const gridPos = pixelToGrid(x, y, DEFAULT_DECORATION_GRID)
       // Only allow terrain in front yard zone (gridY >= 6, i.e. y >= 96px)
       if (isValidGridPosition(gridPos.gridX, gridPos.gridY, { width: 1, height: 1 }) && gridPos.gridY >= TERRAIN_MIN_GRID_Y) {
-        const key = `${gridPos.gridX},${gridPos.gridY}`
-        if (paintBrush === null) {
-          // Eraser mode - remove the terrain tile
-          setTerrain(prev => {
-            const next = { ...prev }
-            delete next[key]
-            return next
-          })
-          retroSFX.playTerrainPaint()
-        } else {
-          // Paint mode - set the terrain tile
-          setTerrain(prev => ({ ...prev, [key]: paintBrush }))
-          retroSFX.playTerrainPaint()
-        }
+        // paintBrush null is the eraser
+        dispatch({ type: 'paintCell', key: `${gridPos.gridX},${gridPos.gridY}`, tile: paintBrush })
+        retroSFX.playTerrainPaint()
       }
       return
     }
@@ -747,20 +713,7 @@ export default function DecorationMode({
       const gridPos = pixelToGrid(x, y, DEFAULT_DECORATION_GRID)
       // Only allow terrain in front yard zone (gridY >= 6, i.e. y >= 96px)
       if (isValidGridPosition(gridPos.gridX, gridPos.gridY, { width: 1, height: 1 }) && gridPos.gridY >= TERRAIN_MIN_GRID_Y) {
-        const key = `${gridPos.gridX},${gridPos.gridY}`
-        if (paintBrush === null) {
-          // Eraser mode - remove the terrain tile if it exists
-          if (terrain[key]) {
-            setTerrain(prev => {
-              const next = { ...prev }
-              delete next[key]
-              return next
-            })
-          }
-        } else if (terrain[key] !== paintBrush) {
-          // Paint mode - set the terrain tile
-          setTerrain(prev => ({ ...prev, [key]: paintBrush }))
-        }
+        dispatch({ type: 'paintCell', key: `${gridPos.gridX},${gridPos.gridY}`, tile: paintBrush })
       }
       return // Skip other logic if painting/erasing
     }
@@ -794,42 +747,12 @@ export default function DecorationMode({
     if (isSaving) return
     retroSFX.playSave()
 
-    // Map decorations to include data field with appropriate content
-    const decorationsToSave = placedDecorations.map(d => {
-      // For custom type decorations, include customAssetUrl and slot in data
-      if (d.type === 'custom') {
-        return {
-          ...d,
-          data: { customAssetUrl: d.customAssetUrl, slot: d.slot }
-        }
-      }
-      // For text-based decorations, include text in data
-      return {
-        ...d,
-        data: d.text ? { text: d.text } : d.data
-      }
-    })
-
-    // Send cleared fields as null: a missing key leaves the stored value alone,
-    // so a reset colour or a removed house number would never stick.
-    const houseCustomizationsToSave = Object.fromEntries(
-      Object.entries(houseCustomizations).map(([key, value]) => [key, value ?? null])
-    )
-
-    const payload = {
-      decorations: decorationsToSave,
-      houseCustomizations: houseCustomizationsToSave,
-      atmosphere,
-      template: currentTemplate,
-      palette: currentPalette,
-      terrain
-    }
-
-    const snapshotBeingSaved = snapshot
-    if (!(await onSave(payload))) return
-    setSavedSnapshot(snapshotBeingSaved)
+    const docBeingSaved = doc
+    const keyBeingSaved = presentKey
+    if (!(await onSave(toSavePayload(docBeingSaved)))) return
+    dispatch({ type: 'saved', doc: docBeingSaved })
     // Stay if something changed while the save was in flight
-    if (snapshotRef.current === snapshotBeingSaved) {
+    if (presentKeyRef.current === keyBeingSaved) {
       allowLeave()
       onExit()
     }
@@ -1060,11 +983,8 @@ export default function DecorationMode({
             onItemSelect={handleItemSelect}
             selectedItem={selectedItem}
             houseCustomizations={houseCustomizations}
-            onHouseCustomizationChange={(updates) => setHouseCustomizations(prev => ({ ...prev, ...updates }))}
-            onThemeChange={(template, palette) => {
-              setCurrentTemplate(template)
-              setCurrentPalette(palette)
-            }}
+            onHouseCustomizationChange={handleHouseChange}
+            onThemeChange={(template, palette) => dispatch({ type: 'setTheme', template, palette })}
             currentTemplate={currentTemplate}
             currentPalette={currentPalette}
             onDecorationUpdate={handleDecorationUpdate}

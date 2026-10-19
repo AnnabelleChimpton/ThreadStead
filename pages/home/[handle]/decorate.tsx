@@ -9,6 +9,7 @@ import DecorationMode from '@/components/pixel-homes/DecorationMode'
 import { useToast } from '@/contexts/ToastContext'
 import { HouseTemplate, ColorPalette, HouseCustomizations, AtmosphereSettings } from '@/components/pixel-homes/HouseSVG'
 import { normalizeDecorationRow, normalizeHomeConfig } from '@/lib/pixel-homes/decoration-save-rules'
+import type { SavePayload } from '@/lib/pixel-homes/editor-doc'
 
 interface DecorationPageProps {
   handle: string
@@ -47,37 +48,9 @@ export default function DecoratePage({
   }
 
   // Resolves true once the home is saved; DecorationMode then leaves the editor.
-  const handleSave = async (data: any): Promise<boolean> => {
+  const handleSave = async (payload: SavePayload): Promise<boolean> => {
     setIsSaving(true)
     try {
-      // Transform decorations to match API expected format
-      const formattedDecorations = data.decorations.map((d: any) => {
-        // Extract base ID from complex ID (e.g. tree_pine_123 -> tree_pine)
-        // If d.decorationId exists (from DB), use it. Otherwise strip suffix from d.id
-        const baseId = d.decorationId || d.id.replace(/_(\d+)_[a-z0-9]+$|_\d+$/, '')
-
-        return {
-          decorationType: d.type,
-          decorationId: baseId,
-          zone: d.zone || 'front_yard',
-          positionX: Math.round(d.position.x),
-          positionY: Math.round(d.position.y),
-          layer: d.position.layer || 1,
-          variant: d.variant || 'default',
-          size: d.size || 'medium',
-          data: d.data
-        }
-      })
-
-      const payload = {
-        decorations: formattedDecorations,
-        houseCustomizations: data.houseCustomizations,
-        atmosphere: data.atmosphere,
-        template: data.template,
-        palette: data.palette,
-        terrain: data.terrain
-      }
-
       const response = await fetch('/api/home/decorations/save', {
         method: 'POST',
         headers: {
@@ -210,12 +183,12 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     }
 
     // Transform decorations to match component interface
-    const transformedDecorations = homeConfig.decorations?.map((decoration, i) => {
+    const transformedDecorations = homeConfig.decorations?.map((decoration) => {
       // Get pngUrl and renderSvg from lookup map
       const decorationData = pngUrlMap.get(decoration.decorationId)
 
       const baseDecoration = {
-        id: `${decoration.decorationId}_${Date.now()}_${i}`,
+        id: `${decoration.decorationId}_${decoration.id}`,
         decorationId: decoration.decorationId,
         name: 'Decoration', // Placeholder name as we don't fetch it yet
         type: decoration.decorationType,

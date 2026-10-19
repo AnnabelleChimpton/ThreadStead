@@ -40,6 +40,7 @@ jest.mock('@/lib/auth/server', () => ({ getSessionUser: jest.fn(async () => ({ i
 
 import { getServerSideProps } from '@/pages/home/[handle]/decorate'
 import { saveHomeSchema } from '@/lib/pixel-homes/decoration-save-rules'
+import { docFromProps, toSavePayload } from '@/lib/pixel-homes/editor-doc'
 
 async function props() {
   const result: any = await getServerSideProps({ params: { handle: 'oldtimer' }, req: { headers: {} } } as any)
@@ -71,25 +72,15 @@ test('odd stored values open as something the editor can show', async () => {
 
 test('the same home saved again unchanged passes the save schema', async () => {
   const p = await props()
-  // what decorate.tsx's handleSave sends for each decoration
-  const decorations = p.initialDecorations.map((d: any) => ({
-    decorationType: d.type,
-    decorationId: d.decorationId,
-    zone: d.zone,
-    positionX: Math.round(d.position.x),
-    positionY: Math.round(d.position.y),
-    layer: d.position.layer || 1,
-    variant: d.variant,
-    size: d.size,
-    data: d.data,
-  }))
-  const parsed = saveHomeSchema.safeParse({
-    decorations,
+  // exactly what the editor sends for the home it opened
+  const doc = docFromProps({
     template: p.template,
     palette: p.palette,
+    decorations: p.initialDecorations,
+    house: p.initialHouseCustomizations,
     atmosphere: p.initialAtmosphere,
-    houseCustomizations: p.initialHouseCustomizations,
     terrain: p.initialTerrain,
   })
+  const parsed = saveHomeSchema.safeParse(toSavePayload(doc))
   expect(parsed.error?.issues).toBeUndefined()
 })

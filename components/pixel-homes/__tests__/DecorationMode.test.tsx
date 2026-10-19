@@ -259,3 +259,85 @@ describe('0.5 unsaved changes', () => {
     expect(() => routeChangeStart()('/feed')).toThrow()
   })
 })
+
+describe('Phase 3.1 one history for the whole home', () => {
+  const undoKey = () => step(() => fireEvent.keyDown(window, { key: 'z', ctrlKey: true, metaKey: true }))
+  const redoKey = () => step(() => fireEvent.keyDown(window, { key: 'z', shiftKey: true, ctrlKey: true, metaKey: true }))
+
+  test('a terrain stroke is one undo step', () => {
+    setup()
+    step(() => paletteProps.onTerrainSelect('stone_path'))
+    step(() => canvasProps.onMouseDown(100, 200, ev()))
+    for (const x of [116, 132, 148, 164]) moveTo(x, 200)
+    release()
+    expect(Object.keys(canvasProps.terrain)).toHaveLength(5)
+
+    undoKey()
+    expect(canvasProps.terrain).toEqual({})
+    redoKey()
+    expect(Object.keys(canvasProps.terrain)).toHaveLength(5)
+  })
+
+  test('typing sign text is one undo step, and the palette follows undo', () => {
+    setup()
+    step(() => canvasProps.onDecorationClick(ROSE.id, ev()))
+    for (const text of ['H', 'HI', 'HI!']) step(() => paletteProps.onDecorationUpdate(ROSE.id, { text }))
+    expect(paletteProps.selectedItem.text).toBe('HI!')
+
+    undoKey()
+    expect(canvasProps.decorations[0].text).toBeUndefined()
+    expect(paletteProps.selectedItem.text).toBeUndefined()
+  })
+
+  test('theme, sky, house parts and colours undo in order', () => {
+    setup()
+    step(() => paletteProps.onThemeChange('cabin_v1', 'crt_glow'))
+    step(() => paletteProps.onItemSelect({ id: 'night_sky', name: 'Night', type: 'sky' }))
+    step(() => paletteProps.onItemSelect({ id: 'arched_door', name: 'Arched door', type: 'house_custom' }))
+    step(() => paletteProps.onHouseCustomizationChange({ wallColor: '#111111' }))
+    step(() => paletteProps.onHouseCustomizationChange({ wallColor: '#222222' }))
+    expect(canvasProps).toMatchObject({ template: 'cabin_v1', palette: 'crt_glow', atmosphere: { sky: 'night' } })
+    expect(canvasProps.houseCustomizations).toMatchObject({ doorStyle: 'arched', wallColor: '#222222' })
+
+    undoKey() // both colour picks, as one drag
+    expect(canvasProps.houseCustomizations.wallColor).toBeUndefined()
+    undoKey()
+    expect(canvasProps.houseCustomizations.doorStyle).toBe('default')
+    undoKey()
+    expect(canvasProps.atmosphere.sky).toBe('sunny')
+    undoKey()
+    expect(canvasProps).toMatchObject({ template: 'cottage_v1', palette: 'thread_sage' })
+    expect(() => routeChangeStart()('/feed')).not.toThrow()
+  })
+
+  test('a decoration removed by undo drops out of the selection', () => {
+    setup()
+    step(() => paletteProps.onItemSelect({ id: 'tree_pine', name: 'Pine', type: 'plant' }))
+    step(() => canvasProps.onClick(200, 200, ev()))
+    step(() => paletteProps.onItemSelect(null))
+    const pine = canvasProps.decorations[1]
+    expect(pine.decorationId).toBe('tree_pine')
+    step(() => canvasProps.onDecorationClick(pine.id, ev()))
+    expect(canvasProps.selectedDecorations.has(pine.id)).toBe(true)
+
+    undoKey()
+    expect(canvasProps.decorations).toHaveLength(1)
+    expect(canvasProps.selectedDecorations.size).toBe(0)
+  })
+
+  test('deleting and moving are undoable', () => {
+    setup()
+    step(() => canvasProps.onDecorationClick(ROSE.id, ev()))
+    step(() => fireEvent.keyDown(window, { key: 'Delete' }))
+    expect(canvasProps.decorations).toHaveLength(0)
+    undoKey()
+    expect(rosePosition()).toMatchObject({ x: 64, y: 240 })
+
+    pressRose(70, 250)
+    moveTo(200, 300)
+    release()
+    expect(rosePosition().x).not.toBe(64)
+    undoKey()
+    expect(rosePosition()).toMatchObject({ x: 64, y: 240 })
+  })
+})
