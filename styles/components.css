@@ -93,6 +93,15 @@
   text-shadow: none;
 }
 
+/* The nav stays still under your thumb: no press shrink or bevel nudge on
+   anything in the header or the phone menu (the mobile button rule below
+   scales buttons to 0.98 on :active, and the site theme nudges them 2px).
+   Specificity beats both, and admin site CSS's bare button:active too. */
+.site-header :is(a, button, .btn):active,
+#mobile-menu :is(a, button, .btn):active {
+  transform: none;
+}
+
 /* Skip to main content link */
 .skip-link {
   position: absolute;

@@ -47,7 +47,7 @@ function MobileLoginStatus({ onAccountClick }: { onAccountClick: () => void }) {
   return (
     <button
       onClick={onAccountClick}
-      className="w-full px-3 py-3 bg-thread-pine text-thread-paper hover:bg-thread-sunset rounded flex items-center justify-between min-h-[48px] font-medium active:scale-[0.98] transition-transform"
+      className="w-full px-3 py-3 bg-thread-pine text-thread-paper hover:bg-thread-sunset rounded flex items-center justify-between min-h-[48px] font-medium"
     >
       <div className="flex items-center gap-3">
         <PixelIcon name="user" size={20} />
