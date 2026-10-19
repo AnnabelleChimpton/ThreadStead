@@ -187,7 +187,7 @@ describe('0.6 click versus drag', () => {
 })
 
 describe('0.5 unsaved changes', () => {
-  const clickCancel = () => fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+  const clickCancel = () => fireEvent.click(screen.getByRole('button', { name: 'Back to my house' }))
 
   test('a clean editor leaves without asking', async () => {
     const { onExit } = setup()
@@ -450,5 +450,70 @@ describe('Phase 3.2 pointer states', () => {
     step(() => paletteProps.onItemSelect(pine))
     clickLawn(200, 200)
     expect(canvasProps.onScenePointer).toBe(first)
+  })
+})
+
+describe('Phase 3.3 keyboard and the action bar', () => {
+  const pine = { id: 'tree_pine', name: 'Pine', type: 'plant' as const }
+  const key = (k: string, extra: Record<string, unknown> = {}) =>
+    step(() => canvasProps.sceneProps.onKeyDown({ key: k, preventDefault: jest.fn(), ...extra }))
+
+  test('the scene takes focus and has a label', () => {
+    setup()
+    expect(canvasProps.sceneProps.tabIndex).toBe(0)
+    expect(canvasProps.sceneProps['aria-label']).toMatch(/Your yard/)
+  })
+
+  test('arrows move the cursor, Enter plants the armed item there', () => {
+    setup()
+    step(() => paletteProps.onItemSelect(pine))
+    key('ArrowRight', { shiftKey: true }) // 4 cells right of the start cell (15, 15)
+    key('ArrowDown')
+    key('Enter')
+    const planted = canvasProps.decorations[1]
+    expect(planted.decorationId).toBe('tree_pine')
+    // centred on cell (19, 16): x 304..320, y 256..272
+    const { x, y } = planted.position
+    expect(Math.abs(x + 8 - 312)).toBeLessThanOrEqual(16)
+    expect(Math.abs(y + 8 - 264)).toBeLessThanOrEqual(16)
+    expect(screen.getByText(/Pine planted, row 17, column 20/)).toBeInTheDocument()
+  })
+
+  test('Enter on a decoration selects it, arrows nudge it a cell, Delete removes it', () => {
+    setup()
+    // the rose is at (64, 240): cell (4, 15)
+    key('ArrowLeft', { shiftKey: true }) // 11
+    key('ArrowLeft', { shiftKey: true }) // 7
+    key('ArrowLeft', { shiftKey: true }) // 3
+    key('ArrowRight') // 4
+    key('Enter')
+    expect(canvasProps.selectedDecorations.has(ROSE.id)).toBe(true)
+
+    key('ArrowRight')
+    expect(rosePosition()).toMatchObject({ x: 80, y: 240 })
+    key('ArrowUp', { shiftKey: true })
+    expect(rosePosition()).toMatchObject({ x: 80, y: 176 })
+
+    step(() => fireEvent.keyDown(window, { key: 'Delete' }))
+    expect(canvasProps.decorations).toHaveLength(0)
+  })
+
+  test('Enter paints one cell with a terrain brush, as one undo step', () => {
+    setup()
+    step(() => paletteProps.onTerrainSelect('dirt'))
+    key('Enter')
+    expect(canvasProps.terrain).toEqual({ '15,15': 'dirt' })
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }))
+    expect(canvasProps.terrain).toEqual({})
+  })
+
+  test('the bar says what is happening and Done ends it', () => {
+    setup()
+    step(() => paletteProps.onItemSelect(pine))
+    expect(screen.getByText('Planting Pine')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
+    expect(screen.queryByText('Planting Pine')).not.toBeInTheDocument()
+    clickLawn(200, 200)
+    expect(canvasProps.decorations).toHaveLength(1)
   })
 })

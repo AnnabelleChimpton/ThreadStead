@@ -4,7 +4,6 @@ import { GetServerSideProps } from 'next'
 import Head from 'next/head'
 import { getSessionUser } from '@/lib/auth/server'
 import { db } from '@/lib/config/database/connection'
-import Layout from '@/components/ui/layout/Layout'
 import DecorationMode from '@/components/pixel-homes/DecorationMode'
 import { useToast } from '@/contexts/ToastContext'
 import { HouseTemplate, ColorPalette, HouseCustomizations, AtmosphereSettings } from '@/components/pixel-homes/HouseSVG'
@@ -89,22 +88,22 @@ export default function DecoratePage({
         <meta name="robots" content="noindex" />
       </Head>
 
-      <Layout>
-        <div className="bg-thread-paper">
-          <DecorationMode
-            template={template}
-            palette={palette}
-            username={handle}
-            onSave={handleSave}
-            onExit={handleExit}
-            initialDecorations={initialDecorations}
-            initialHouseCustomizations={initialHouseCustomizations}
-            initialAtmosphere={initialAtmosphere}
-            initialTerrain={initialTerrain}
-            isSaving={isSaving}
-          />
-        </div>
-      </Layout>
+      {/* No site layout: the editor has its own slim header, so the site's
+          nav can't be clicked by accident or tabbed through underneath */}
+      <main id="main-content">
+        <DecorationMode
+          template={template}
+          palette={palette}
+          username={handle}
+          onSave={handleSave}
+          onExit={handleExit}
+          initialDecorations={initialDecorations}
+          initialHouseCustomizations={initialHouseCustomizations}
+          initialAtmosphere={initialAtmosphere}
+          initialTerrain={initialTerrain}
+          isSaving={isSaving}
+        />
+      </main>
     </>
   )
 }

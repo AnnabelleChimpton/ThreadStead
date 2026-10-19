@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import EnhancedHouseCanvas, { type ScenePointerKind } from './EnhancedHouseCanvas'
+import { pickPixelScale } from '../../lib/pixel-homes/pixel-scale'
 import PlacementGhost, { type PlacementGhostHandle } from './PlacementGhost'
+import EditorSheet, { type SheetSnap } from './EditorSheet'
+import { useViewportSize } from '../../hooks/pixel-homes/useViewportSize'
 import DecorationPalette from './DecorationPalette'
 import { DecorationItem, TERRAIN_TILES } from '../../lib/pixel-homes/decoration-data'
 
@@ -21,7 +24,7 @@ import { getDecorationDimensions } from '../../lib/pixel-homes/decoration-dimens
 import { PixelIcon } from '../ui/PixelIcon'
 import { useToast } from '@/contexts/ToastContext'
 import { useConfirm } from '@/contexts/ConfirmContext'
-import useIsMobile, { useIsTouch } from '../../hooks/useIsMobile'
+import useIsMobile from '../../hooks/useIsMobile'
 import { useUnsavedChangesGuard } from '../../hooks/useUnsavedChangesGuard'
 import { retroSFX } from '../../lib/audio/retro-sfx'
 import { MAX_DECORATIONS } from '../../lib/pixel-homes/decoration-save-rules'
@@ -37,6 +40,15 @@ import {
 
 // Terrain stays in the front yard: rows from y = 96 (grid row 6) down
 const TERRAIN_MIN_GRID_Y = 6
+const GRID_COLUMNS = 32
+const GRID_ROWS = 22
+
+// Fixed heights, so the phone sheet's snap points can be worked out
+const HEADER_HEIGHT = 44
+const BAR_HEIGHT = 48
+const SCENE_PADDING = 8
+/** The phone sheet at its smallest: the handle, the tabs and a row of tiles. */
+const SHEET_PEEK = 168
 
 interface DecorationModeProps {
   template: HouseTemplate
@@ -67,10 +79,6 @@ export default function DecorationMode({
 }: DecorationModeProps) {
   const appToast = useToast()
   const confirm = useConfirm()
-
-  // Mobile detection
-  const isMobile = useIsMobile(768)
-  const isTouch = useIsTouch()
 
   // The home being edited: one document with full undo (lib/pixel-homes/editor-doc.ts)
   const [initialDoc] = useState(() => docFromProps({
@@ -129,6 +137,11 @@ export default function DecorationMode({
   const paintBrush = interaction.kind === 'painting' ? interaction.brush : undefined
   const ghostRef = useRef<PlacementGhostHandle>(null)
   const gridConfig = DEFAULT_DECORATION_GRID
+  // The keyboard's cursor cell, shown while the scene has keyboard focus
+  const [cursor, setCursor] = useState({ gx: 15, gy: 15 })
+  const [keyboardCursor, setKeyboardCursor] = useState(false)
+  // Read out by screen readers after a keyboard action
+  const [announcement, setAnnouncement] = useState('')
 
   // SFX State - persisted to localStorage
   const [sfxMuted, setSfxMuted] = useState(() => {
@@ -371,6 +384,13 @@ export default function DecorationMode({
       console.error('Error deleting custom asset:', error)
     }
   }
+
+  // Catalog names by item id, for the status line (placed copies loaded with the page have none)
+  const catalogNames = useMemo(() => {
+    const names = new Map<string, string>()
+    for (const list of Object.values(availableDecorations)) for (const item of list) names.set(item.id, item.name)
+    return names
+  }, [availableDecorations])
 
   // Merge custom asset slots into available decorations
   const decorationsWithCustom = useMemo(() => {
@@ -667,170 +687,244 @@ export default function DecorationMode({
     }
   }
 
-  return (
-    <div
-      className="fixed left-0 right-0 bottom-0 z-50 bg-white flex flex-col"
-      style={{ top: 'var(--nav-height, 64px)' }}
+  // ---------------------------------------------------------- keyboard --
+  // The scene takes focus. Arrows move a dotted cursor cell (or nudge the
+  // selected decoration), Enter plants, paints or selects at the cursor.
+
+  const itemName = (d: DecorationItem) =>
+    catalogNames.get(catalogId(d)) || (d.name && d.name !== 'Decoration' ? d.name : humanize(catalogId(d)))
+
+  /** The front-most decoration covering the middle of a cursor cell. */
+  const decorationAt = (cell: { gx: number, gy: number }) => {
+    const px = cell.gx * gridConfig.cellSize + gridConfig.cellSize / 2
+    const py = cell.gy * gridConfig.cellSize + gridConfig.cellSize / 2
+    let best: DecorationItem | undefined
+    for (const d of placedDecorations) {
+      const { width, height } = getDecorationDimensions(catalogId(d), d.type, d.size || 'medium')
+      const x = d.position?.x ?? 0
+      const y = d.position?.y ?? 0
+      if (px >= x && px < x + width && py >= y && py < y + height) {
+        if (!best || (d.position?.layer ?? 0) >= (best.position?.layer ?? 0)) best = d
+      }
+    }
+    return best
+  }
+
+  const cellLabel = (cell: { gx: number, gy: number }) => `row ${cell.gy + 1}, column ${cell.gx + 1}`
+  const cellCentre = (cell: { gx: number, gy: number }) => ({
+    x: cell.gx * gridConfig.cellSize + gridConfig.cellSize / 2,
+    y: cell.gy * gridConfig.cellSize + gridConfig.cellSize / 2
+  })
+
+  const showCursorGhost = (cell: { gx: number, gy: number }) => {
+    const state = interactionRef.current
+    if (state.kind === 'armed') applyEffect({ type: 'ghostItem', item: state.item, at: cellCentre(cell) })
+  }
+
+  const handleSceneKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const arrows: Record<string, [number, number]> = {
+      ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1]
+    }
+    const state = interactionRef.current
+    if (e.key in arrows) {
+      e.preventDefault()
+      const step = e.shiftKey ? 4 : 1
+      const [dx, dy] = arrows[e.key]
+      const selected = selectedDecorations.size === 1 && state.kind === 'idle'
+        ? placedDecorations.find(d => selectedDecorations.has(d.id))
+        : undefined
+      if (selected) {
+        // Nudge by whole cells
+        const x = (selected.position?.x ?? 0) + dx * step * gridConfig.cellSize
+        const y = (selected.position?.y ?? 0) + dy * step * gridConfig.cellSize
+        dispatch({ type: 'move', id: selected.id, position: placementFor(selected, x, y) })
+        setAnnouncement(`${itemName(selected)} moved`)
+      }
+      const next = {
+        gx: Math.min(GRID_COLUMNS - 1, Math.max(0, cursor.gx + dx * step)),
+        gy: Math.min(GRID_ROWS - 1, Math.max(0, cursor.gy + dy * step))
+      }
+      setCursor(next)
+      showCursorGhost(next)
+      if (!selected) setAnnouncement(cellLabel(next))
+      return
+    }
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      const at = cellCentre(cursor)
+      if (state.kind === 'armed') {
+        const before = placedDecorations.length
+        applyEffect({ type: 'place', item: state.item, at })
+        if (before < MAX_DECORATIONS) setAnnouncement(`${itemName(state.item)} planted, ${cellLabel(cursor)}`)
+      } else if (state.kind === 'painting') {
+        applyEffect({ type: 'beginStroke' })
+        applyEffect({ type: 'paint', brush: state.brush, at })
+        applyEffect({ type: 'endStroke' })
+      } else if (state.kind === 'erasing') {
+        const hit = decorationAt(cursor)
+        if (hit) {
+          applyEffect({ type: 'remove', id: hit.id })
+          setAnnouncement(`${itemName(hit)} removed`)
+        }
+      } else {
+        const hit = decorationAt(cursor)
+        if (hit) {
+          applyEffect({ type: 'select', id: hit.id })
+          setAnnouncement(`${itemName(hit)} selected. Arrow keys move it, Delete removes it.`)
+        } else {
+          applyEffect({ type: 'deselect' })
+        }
+      }
+    }
+  }
+
+  // ------------------------------------------------------------ layout --
+  // Desktop: the scene and its bar on the left, the palette docked right.
+  // Below lg: scene, bar, then the palette as a sheet that trades height
+  // with the scene (the scene steps down a size, it is never covered).
+
+  const isNarrow = useIsMobile(1024)
+  const viewport = useViewportSize()
+  const [sheetSnap, setSheetSnap] = useState<SheetSnap>('fit')
+  const sheetHeights = useMemo(() => {
+    const { width, height, devicePixelRatio } = viewport
+    const roomForScene = height - HEADER_HEIGHT - BAR_HEIGHT
+    const sceneHeight = (k: number) => Math.ceil(352 * k) + 2 * SCENE_PADDING
+    const widthFit = pickPixelScale(width - 2 * SCENE_PADDING, devicePixelRatio, Infinity, { allowBelowOne: true })
+    const smallest = pickPixelScale(width - 2 * SCENE_PADDING, devicePixelRatio, 0, { allowBelowOne: true })
+    const full = Math.max(SHEET_PEEK, roomForScene - sceneHeight(smallest))
+    const fit = Math.min(full, Math.max(SHEET_PEEK, roomForScene - sceneHeight(widthFit)))
+    return { peek: SHEET_PEEK, fit, full }
+  }, [viewport])
+
+  const muteButton = (
+    <button
+      type="button"
+      onClick={() => setSfxMuted(!sfxMuted)}
+      className="ts-bare ts-icon-button p-2 rounded hover:bg-thread-cream text-thread-pine"
+      title={sfxMuted ? 'Sounds off' : 'Sounds on'}
+      aria-label="Sounds"
+      aria-pressed={!sfxMuted}
     >
-      {/* Header */}
-      <div className="h-14 border-b border-thread-sage/30 flex items-center justify-between px-4 bg-thread-paper shrink-0">
-        <div className="flex items-center gap-3">
-          <span className="font-headline font-bold text-lg text-thread-pine">Decorate Home</span>
-          <span className={`text-sm px-2 py-0.5 rounded ${
-            placedDecorations.length >= MAX_DECORATIONS
-              ? 'bg-thread-sunset/20 text-thread-sunset'
-              : 'bg-thread-sage/20 text-thread-sage'
-          }`}>
-            {placedDecorations.length}/{MAX_DECORATIONS}
-          </span>
-        </div>
-        <div className="flex gap-2">
+      <PixelIcon name={sfxMuted ? 'volume-x' : 'volume'} size={18} />
+    </button>
+  )
+
+  const iconButton = (label: string, icon: React.ComponentProps<typeof PixelIcon>['name'], onClick: () => void, disabled = false, pressed?: boolean) => (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={label}
+      aria-label={label}
+      aria-pressed={pressed}
+      className={`ts-bare ts-icon-button p-2 rounded text-thread-pine ${pressed ? 'bg-thread-sunset/15' : 'hover:bg-thread-cream'} ${disabled ? 'opacity-30 cursor-not-allowed' : ''}`}
+    >
+      <PixelIcon name={icon} size={18} />
+    </button>
+  )
+
+  const brushName = paintBrush ? (TERRAIN_TILES.find(t => t.id === paintBrush)?.name ?? 'terrain') : null
+  const selectedOne = selectedDecorations.size === 1 ? placedDecorations.find(d => selectedDecorations.has(d.id)) : undefined
+  const status =
+    interaction.kind === 'armed' ? `Planting ${itemName(interaction.item)}`
+      : interaction.kind === 'painting' ? (brushName ? `Painting ${brushName}` : 'Erasing terrain')
+        : interaction.kind === 'erasing' ? 'Pick things to remove'
+          : selectedOne ? `${itemName(selectedOne)} selected`
+            : ''
+  const inMode = interaction.kind === 'armed' || interaction.kind === 'painting' || interaction.kind === 'erasing'
+
+  const actionBar = (
+    <div
+      className="flex items-center gap-1 px-2 border-t border-thread-sage/30 bg-thread-paper shrink-0"
+      style={{ height: BAR_HEIGHT }}
+    >
+      {iconButton('Undo', 'undo', () => { undo(); retroSFX.playUndo() }, !canUndo)}
+      {iconButton('Redo', 'redo', () => { redo(); retroSFX.playRedo() }, !canRedo)}
+      {iconButton('Delete items', 'trash', () => {
+        runInteraction({ type: 'toggleErase' })
+        setSelectedItem(null)
+        retroSFX.playModeChange()
+      }, false, isDeleting)}
+      <div className="min-w-0 flex-1 flex items-center gap-2 px-1 text-sm text-thread-charcoal">
+        <span className="truncate">{status}</span>
+        {inMode && (
           <button
+            type="button"
             onClick={() => {
-              if (canUndo) {
-                undo()
-                retroSFX.playUndo()
-              }
+              runInteraction({ type: 'reset' })
+              setSelectedItem(null)
             }}
-            disabled={!canUndo}
-            className={`p-2 rounded hover:bg-thread-cream ${!canUndo ? 'opacity-30 cursor-not-allowed' : ''}`}
-            title="Undo (Ctrl+Z)"
+            className="ts-bare ts-text-button shrink-0 text-sm"
           >
-            <PixelIcon name="arrow-left" className="w-5 h-5" />
+            Done
           </button>
-          <button
-            onClick={() => {
-              if (canRedo) {
-                redo()
-                retroSFX.playRedo()
-              }
-            }}
-            disabled={!canRedo}
-            className={`p-2 rounded hover:bg-thread-cream ${!canRedo ? 'opacity-30 cursor-not-allowed' : ''}`}
-            title="Redo (Ctrl+Shift+Z)"
-          >
-            <PixelIcon name="arrow-right" className="w-5 h-5" />
-          </button>
-          <button
-            onClick={() => setSfxMuted(!sfxMuted)}
-            className={`p-2 rounded hover:bg-thread-cream flex items-center gap-1 ${sfxMuted ? 'text-thread-sage/50' : 'text-thread-pine'}`}
-            title={sfxMuted ? 'Unmute sounds' : 'Mute sounds'}
-          >
-            <PixelIcon name="speaker" className="w-5 h-5" />
-            {sfxMuted && <span className="text-xs line-through">SFX</span>}
-          </button>
-          <div className="w-px h-6 bg-thread-sage/40 mx-1" />
-          <button
-            onClick={async () => {
-              if (!(await confirmLeave())) return
-              allowLeave()
-              onExit()
-            }}
-            className="px-4 py-1.5 text-sm font-medium text-thread-sage hover:bg-thread-cream rounded"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className={`px-4 py-1.5 text-sm font-medium bg-thread-pine text-white rounded shadow-cozy flex items-center gap-2 ${
-              isSaving ? 'opacity-70 cursor-not-allowed' : 'hover:bg-thread-pine/90'
-            }`}
-          >
-            {isSaving ? (
-              <>
-                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
-                Saving...
-              </>
-            ) : (
-              'Save Changes'
-            )}
-          </button>
-        </div>
+        )}
       </div>
+      <span
+        className={`text-xs tabular-nums shrink-0 ${placedDecorations.length >= MAX_DECORATIONS ? 'text-thread-sunset font-bold' : 'text-thread-sage'}`}
+        title={`${placedDecorations.length} of ${MAX_DECORATIONS} decorations`}
+      >
+        {placedDecorations.length}/{MAX_DECORATIONS}
+      </span>
+      <button
+        type="button"
+        onClick={handleSave}
+        disabled={isSaving}
+        className={`btn btn--primary shrink-0 ml-1 px-4 py-1.5 text-sm ${isSaving ? 'opacity-70 cursor-not-allowed' : ''}`}
+      >
+        {isSaving ? 'Saving…' : 'Save'}
+      </button>
+    </div>
+  )
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Canvas Area */}
-        <div className="flex-1 bg-thread-cream/50 overflow-hidden flex flex-col relative">
-          {/* Toolbar */}
-          <div className="absolute top-4 left-4 right-4 flex justify-between z-10 pointer-events-none">
-            <div className="flex gap-2 pointer-events-auto">
-              {/* Tools like Grid Toggle could go here */}
-              <button
-                className={`p-2 rounded shadow-sm border ${isDeleting ? 'bg-thread-sunset/10 border-thread-sunset/50 text-thread-sunset' : 'bg-thread-paper border-thread-sage/50 hover:bg-thread-cream'}`}
-                title="Delete items"
-                aria-label="Delete items"
-                aria-pressed={isDeleting}
-                onClick={() => {
-                  runInteraction({ type: 'toggleErase' })
-                  setSelectedItem(null)
-                  retroSFX.playModeChange()
-                }}
-              >
-                <PixelIcon name="trash" className="w-5 h-5" />
-              </button>
-            </div>
+  const palette = (
+    <DecorationPalette
+      items={decorationsWithCustom}
+      itemsLoading={decorationsLoading}
+      onItemSelect={handleItemSelect}
+      selectedItem={selectedItem}
+      isMobile={isNarrow}
+      houseCustomizations={houseCustomizations}
+      onHouseCustomizationChange={handleHouseChange}
+      onThemeChange={(template, palette) => dispatch({ type: 'setTheme', template, palette })}
+      currentTemplate={currentTemplate}
+      currentPalette={currentPalette}
+      onDecorationUpdate={handleDecorationUpdate}
+      onTerrainSelect={handleTerrainSelect}
+      selectedTerrainId={paintBrush}
+      onCustomSlotUpload={handleCustomSlotUpload}
+      onCustomSlotDelete={handleCustomSlotDelete}
+      uploadingSlot={uploadingSlot}
+    />
+  )
 
-            {/* Mode Indicators */}
-            <div className="flex gap-2 pointer-events-auto">
-              {/* Delete Mode Indicator */}
-              {isDeleting && (
-                <div className="flex items-center gap-2 px-4 py-2.5 bg-red-100 border-2 border-red-400 rounded-lg shadow-lg animate-pulse">
-                  <PixelIcon name="trash" size={20} className="text-red-600" />
-                  <span className="text-sm font-bold text-red-700">Click items to delete</span>
-                  <button
-                    onClick={() => runInteraction({ type: 'reset' })}
-                    className="ml-2 p-1 hover:bg-red-200 rounded transition-colors"
-                    title="Exit delete mode (Esc)"
-                  >
-                    <PixelIcon name="close" size={16} className="text-red-500" />
-                  </button>
-                </div>
-              )}
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col bg-thread-paper" style={{ height: '100dvh' }}>
+      {/* A slim header instead of the site's: no stray nav clicks while editing */}
+      <header
+        className="flex items-center gap-2 px-2 border-b border-thread-sage/30 bg-thread-paper shrink-0"
+        style={{ height: HEADER_HEIGHT }}
+      >
+        <button
+          type="button"
+          onClick={async () => {
+            if (!(await confirmLeave())) return
+            allowLeave()
+            onExit()
+          }}
+          className="ts-bare ts-text-button flex items-center gap-1 text-sm font-medium"
+        >
+          <PixelIcon name="arrow-left" size={16} />
+          Back to my house
+        </button>
+        <span className="ml-auto lg:ml-4 text-base font-headline font-bold text-thread-pine">Decorating</span>
+        <div className="lg:ml-auto">{muteButton}</div>
+      </header>
 
-              {/* Terrain Mode Indicator */}
-              {paintBrush !== undefined && (
-                <>
-                  {paintBrush === null ? (
-                    <div className="flex items-center gap-2 px-3 py-2 bg-orange-50 border-2 border-orange-300 rounded-lg shadow-sm">
-                      <PixelIcon name="trash" size={18} className="text-orange-500" />
-                      <span className="text-sm font-medium text-orange-700">Terrain Eraser</span>
-                      <button
-                        onClick={() => runInteraction({ type: 'reset' })}
-                        className="ml-1 p-0.5 hover:bg-orange-100 rounded"
-                        title="Exit terrain mode"
-                      >
-                        <PixelIcon name="close" size={14} className="text-orange-400" />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2 px-3 py-2 bg-thread-sky/20 border-2 border-thread-sky rounded-lg shadow-sm">
-                      <div
-                        className="w-5 h-5 rounded border-2 border-thread-sky shadow-inner"
-                        style={{ backgroundColor: TERRAIN_TILES.find(t => t.id === paintBrush)?.color || '#ccc' }}
-                      />
-                      <span className="text-sm font-medium text-thread-pine">
-                        {TERRAIN_TILES.find(t => t.id === paintBrush)?.name || 'Terrain'}
-                      </span>
-                      <button
-                        onClick={() => runInteraction({ type: 'reset' })}
-                        className="ml-1 p-0.5 hover:bg-thread-sky/30 rounded"
-                        title="Exit terrain mode"
-                      >
-                        <PixelIcon name="close" size={14} className="text-thread-sky" />
-                      </button>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-
-          <div className="flex-1 relative flex items-center justify-center p-4 overflow-auto">
+      <div className="flex-1 min-h-0 flex flex-col lg:flex-row">
+        <section className="flex-1 min-h-0 flex flex-col bg-thread-cream/50" aria-label="Your yard">
+          <div className="flex-1 min-h-0" style={{ padding: SCENE_PADDING }}>
             <EnhancedHouseCanvas
               template={currentTemplate}
               palette={currentPalette}
@@ -840,36 +934,66 @@ export default function DecorationMode({
               terrain={terrain}
               isDecorationMode={true}
               isDeleting={isDeleting}
+              pixelPerfect
+              fitBox
+              className="h-full w-full"
               onScenePointer={handleScenePointer}
-              overlay={<PlacementGhost ref={ghostRef} />}
               selectedDecorations={selectedDecorations}
+              sceneProps={{
+                tabIndex: 0,
+                role: 'application',
+                'aria-label': 'Your yard. Arrow keys move the cursor, Enter plants or picks.',
+                'aria-describedby': 'decorate-status',
+                onKeyDown: handleSceneKeyDown,
+                onFocus: (e) => {
+                  if (e.currentTarget.matches(':focus-visible')) {
+                    setKeyboardCursor(true)
+                    showCursorGhost(cursor)
+                  }
+                },
+                onBlur: () => setKeyboardCursor(false),
+                onPointerDownCapture: () => setKeyboardCursor(false)
+              }}
+              overlay={
+                <>
+                  <PlacementGhost ref={ghostRef} />
+                  {keyboardCursor && (
+                    <div
+                      aria-hidden="true"
+                      className="absolute pointer-events-none"
+                      style={{
+                        left: cursor.gx * gridConfig.cellSize,
+                        top: cursor.gy * gridConfig.cellSize,
+                        width: gridConfig.cellSize,
+                        height: gridConfig.cellSize,
+                        outline: '1px dotted #4a403d',
+                        zIndex: 10_000_000
+                      }}
+                    />
+                  )}
+                </>
+              }
             />
-
-
           </div>
-        </div>
+          {actionBar}
+          <p id="decorate-status" className="sr-only" aria-live="polite">{announcement}</p>
+        </section>
 
-        {/* Sidebar / Palette */}
-        <div className="w-[500px] border-l border-thread-sage/30 bg-thread-paper flex flex-col shrink-0">
-          <DecorationPalette
-            items={decorationsWithCustom}
-            itemsLoading={decorationsLoading}
-            onItemSelect={handleItemSelect}
-            selectedItem={selectedItem}
-            houseCustomizations={houseCustomizations}
-            onHouseCustomizationChange={handleHouseChange}
-            onThemeChange={(template, palette) => dispatch({ type: 'setTheme', template, palette })}
-            currentTemplate={currentTemplate}
-            currentPalette={currentPalette}
-            onDecorationUpdate={handleDecorationUpdate}
-            onTerrainSelect={handleTerrainSelect}
-            selectedTerrainId={paintBrush}
-            onCustomSlotUpload={handleCustomSlotUpload}
-            onCustomSlotDelete={handleCustomSlotDelete}
-            uploadingSlot={uploadingSlot}
-          />
-        </div>
+        {isNarrow ? (
+          <EditorSheet heights={sheetHeights} snap={sheetSnap} onSnapChange={setSheetSnap}>
+            {palette}
+          </EditorSheet>
+        ) : (
+          <aside className="w-[360px] xl:w-[400px] shrink-0 border-l border-thread-sage/30 bg-thread-paper flex flex-col min-h-0" aria-label="Palette">
+            {palette}
+          </aside>
+        )}
       </div>
     </div>
   )
+}
+
+function humanize(id: string): string {
+  const words = id.replace(/_/g, ' ')
+  return words.charAt(0).toUpperCase() + words.slice(1)
 }

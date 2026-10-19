@@ -7,6 +7,7 @@ import { DecorationItem, TERRAIN_TILES } from '@/lib/pixel-homes/decoration-data
 import { DEFAULT_DECORATION_GRID } from '@/lib/pixel-homes/decoration-grid-utils'
 import { getDecorationDimensions } from '@/lib/pixel-homes/decoration-dimensions'
 import type { ScenePointer } from '@/lib/pixel-homes/editor-interaction'
+import { pickPixelScale } from '@/lib/pixel-homes/pixel-scale'
 
 /** A pointer event over the scene, in scene coordinates (see lib/pixel-homes/editor-interaction.ts). */
 export type ScenePointerKind = 'down' | 'move' | 'up' | 'cancel' | 'leave'
@@ -39,6 +40,14 @@ interface EnhancedHouseCanvasProps {
    * Off by default: the editor and small previews still fit to their box.
    */
   pixelPerfect?: boolean
+  /**
+   * With pixelPerfect: fit the scene inside the parent's box (width and
+   * height), centred, instead of the page's width. The parent must have a
+   * definite height. Used by the editor, which also allows scales under 1x.
+   */
+  fitBox?: boolean
+  /** Extra attributes for the scene element (keyboard focus, labels). */
+  sceneProps?: React.HTMLAttributes<HTMLDivElement>
   /** Makes the drawn front door a link (the way inside). */
   door?: { href: string; label: string }
   /** Makes a placed mailbox decoration open the guestbook. */
@@ -68,24 +77,7 @@ const DECORATION_ZONES = {
   }
 }
 
-// CSS scales tried for pixelPerfect, largest first. A scale only counts when
-// scale x devicePixelRatio is a whole number, so art pixels map to device pixels.
-const PIXEL_SCALES = [3, 2, 1.5, 1]
-
-export function pickPixelScale(
-  availableWidth: number,
-  devicePixelRatio: number,
-  availableHeight: number = Infinity
-): number {
-  for (const k of PIXEL_SCALES) {
-    if (
-      CANVAS_WIDTH * k <= availableWidth &&
-      CANVAS_HEIGHT * k <= availableHeight &&
-      Number.isInteger(k * devicePixelRatio)
-    ) return k
-  }
-  return 1
-}
+export { pickPixelScale }
 
 // Room kept below the scene for the page header and the row of actions, so
 // a big scene doesn't push them off a laptop screen
@@ -390,6 +382,8 @@ export default function EnhancedHouseCanvas({
   overlay,
   onScaleChange,
   pixelPerfect = false,
+  fitBox = false,
+  sceneProps,
   door,
   onMailboxClick
 }: EnhancedHouseCanvasProps) {
@@ -405,17 +399,19 @@ export default function EnhancedHouseCanvas({
   useEffect(() => {
     if (!pixelPerfect || !frameRef.current) return
     const frame = frameRef.current
-    const update = (width: number) => {
-      const k = pickPixelScale(width, window.devicePixelRatio || 1, window.innerHeight - SCENE_HEIGHT_RESERVE)
+    const update = (width: number, height: number) => {
+      const k = fitBox
+        ? pickPixelScale(width, window.devicePixelRatio || 1, height, { allowBelowOne: true })
+        : pickPixelScale(width, window.devicePixelRatio || 1, window.innerHeight - SCENE_HEIGHT_RESERVE)
       setScale(k)
       onScaleChange?.(k)
     }
     const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) update(entry.contentRect.width)
+      for (const entry of entries) update(entry.contentRect.width, entry.contentRect.height)
     })
     observer.observe(frame)
     return () => observer.disconnect()
-  }, [pixelPerfect, onScaleChange])
+  }, [pixelPerfect, fitBox, onScaleChange])
 
   // ResizeObserver to calculate scale based on container width
   useEffect(() => {
@@ -471,7 +467,8 @@ export default function EnhancedHouseCanvas({
         // Left-aligned when it fits; when the frame is narrower, a negative
         // margin centres it, so the house (at the scene's centre) stays in view.
         // Pure CSS, so it's right before any measuring runs.
-        marginLeft: `min(0px, calc((100% - ${CANVAS_WIDTH * scale}px) / 2))`,
+        marginLeft: fitBox ? undefined : `min(0px, calc((100% - ${CANVAS_WIDTH * scale}px) / 2))`,
+        flexShrink: 0,
         imageRendering: 'pixelated',
         background: '#f0f8ff'
       }
@@ -485,10 +482,11 @@ export default function EnhancedHouseCanvas({
   return (
     <div
       ref={frameRef}
-      className={`relative ${className}`}
+      className={`relative ${pixelPerfect && fitBox ? 'flex items-center justify-center' : ''} ${className}`}
       style={pixelPerfect ? { overflow: 'hidden' } : undefined}
     >
       <div
+        {...sceneProps}
         ref={containerRef}
         data-scene=""
         // An editing surface: touch drags edit instead of scrolling, and nothing gets text-selected

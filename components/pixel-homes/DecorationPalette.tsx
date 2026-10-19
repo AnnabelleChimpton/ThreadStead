@@ -1020,7 +1020,7 @@ export default function DecorationPalette({
               key={key}
               onClick={() => handlePrimaryChange(key)}
               className={`
-                flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all touch-manipulation
+                shrink-0 flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all touch-manipulation
                 ${primaryCategory === key
                   ? 'bg-thread-sky/30 text-thread-pine shadow-sm ring-1 ring-thread-sky/50'
                   : 'bg-thread-cream/50 text-thread-sage hover:bg-thread-cream hover:text-thread-pine'
@@ -1047,7 +1047,7 @@ export default function DecorationPalette({
                   retroSFX.playSelectItem()
                 }}
                 className={`
-                  flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all touch-manipulation
+                  shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all touch-manipulation
                   ${secondaryCategory === key
                     ? 'bg-white text-thread-pine shadow-sm ring-1 ring-thread-sky/30'
                     : 'text-thread-sage hover:bg-white/70 hover:text-thread-pine'

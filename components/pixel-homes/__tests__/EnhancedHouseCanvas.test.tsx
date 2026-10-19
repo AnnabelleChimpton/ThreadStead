@@ -24,6 +24,7 @@ jest.mock('../DecorationSVG', () => ({
 }))
 
 import EnhancedHouseCanvas from '../EnhancedHouseCanvas'
+import { installPointerEvents } from './pointer-events'
 import { getDecorationDimensions, DECORATION_DIMENSIONS } from '@/lib/pixel-homes/decoration-dimensions'
 
 beforeAll(() => {
@@ -32,21 +33,7 @@ beforeAll(() => {
     disconnect() {}
   }
   ;(global as any).ResizeObserver = NoopObserver
-  // jsdom has no PointerEvent, so fireEvent.pointer* would drop clientX, button and isPrimary
-  if (!(global as any).PointerEvent) {
-    class PointerEventPolyfill extends MouseEvent {
-      pointerId: number
-      isPrimary: boolean
-      pointerType: string
-      constructor(type: string, init: PointerEventInit = {}) {
-        super(type, init)
-        this.pointerId = init.pointerId ?? 1
-        this.isPrimary = init.isPrimary ?? true
-        this.pointerType = init.pointerType ?? 'mouse'
-      }
-    }
-    ;(global as any).PointerEvent = PointerEventPolyfill
-  }
+  installPointerEvents()
 })
 
 const decorations: DecorationItem[] = Array.from({ length: 100 }, (_, i) => ({
