@@ -13,6 +13,7 @@ import { useRouter } from "next/router";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { CSSModeProvider } from "@/contexts/CSSModeContext";
 import { extractImports, mapSelectors, scopeAwayFromSiteChrome } from "@/lib/utils/css/css-transform";
+import { escapeCssForStyleTag } from "@/lib/utils/sanitization/css";
 
 // Import Layout to ensure CSS dependencies are always available
 import Layout from "@/components/ui/layout/Layout";
@@ -205,7 +206,7 @@ export default function MyApp({ Component, pageProps, appSiteCSS }: MyAppProps) 
                   return (
                     <style
                       id="advanced-template-css"
-                      dangerouslySetInnerHTML={{ __html: boostedCSS }}
+                      dangerouslySetInnerHTML={{ __html: escapeCssForStyleTag(boostedCSS) }}
                     />
                   );
                 })()}
@@ -222,7 +223,7 @@ export default function MyApp({ Component, pageProps, appSiteCSS }: MyAppProps) 
                   <style
                     id="profile-page-styles"
                     dangerouslySetInnerHTML={{
-                      __html: `${imports.join('\n')}
+                      __html: escapeCssForStyleTag(`${imports.join('\n')}
 /* Profile page - Clean canvas for user customization */
 .profile-container {
   margin-top: 0;
@@ -263,7 +264,7 @@ body, body * {
 ` : ''}
 
 /* Custom CSS - User or Admin Default (imports hoisted above) */
-${rest}`
+${rest}`)
                     }}
                   />
                   );
@@ -296,7 +297,7 @@ ${rest}`
                     id="site-wide-css"
                     key="site-css"
                     dangerouslySetInnerHTML={{
-                      __html: css || '/* Site CSS loading... */'
+                      __html: escapeCssForStyleTag(css) || '/* Site CSS loading... */'
                     }}
                   />
                 )}

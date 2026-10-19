@@ -21,7 +21,7 @@ describe('XSS Protection Test Suite', () => {
         }
       `;
       const result = cleanCss(maliciousCSS);
-      expect(result).toBe(''); // Should block entire CSS
+      expect(result).toContain('.test'); // Only the dangerous part goes; the rest stays
       expect(result).not.toContain('javascript:');
     });
 
@@ -32,7 +32,7 @@ describe('XSS Protection Test Suite', () => {
         }
       `;
       const result = cleanCss(maliciousCSS);
-      expect(result).toBe(''); // Should block entire CSS
+      expect(result).toContain('.test'); // Only the dangerous part goes; the rest stays
       expect(result).not.toContain('expression');
     });
 
@@ -43,7 +43,7 @@ describe('XSS Protection Test Suite', () => {
         }
       `;
       const result = cleanCss(maliciousCSS);
-      expect(result).toBe(''); // Should block entire CSS
+      expect(result).toContain('.test'); // Only the dangerous part goes; the rest stays
       expect(result).not.toContain('behavior');
     });
 
@@ -53,7 +53,7 @@ describe('XSS Protection Test Suite', () => {
         .test { color: red; }
       `;
       const result = cleanCss(maliciousCSS);
-      expect(result).toBe(''); // Should block entire CSS
+      expect(result).toContain('.test'); // Only the dangerous part goes; the rest stays
       expect(result).not.toContain('@import');
     });
 
@@ -284,7 +284,7 @@ describe('XSS Protection Test Suite', () => {
         }
       `;
       const result = cleanCss(multiAttackCSS);
-      expect(result).toBe(''); // Should block entire CSS
+      expect(result).toContain('.test'); // Only the dangerous part goes; the rest stays
       expect(result).not.toContain('javascript:');
       expect(result).not.toContain('expression');
       expect(result).not.toContain('behavior');

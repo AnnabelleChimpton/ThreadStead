@@ -15,7 +15,7 @@ import MediaGrid from '@/components/core/profile/tabs/MediaGrid';
 import FriendsWebsitesGrid from '@/components/core/profile/tabs/FriendsWebsitesGrid';
 import ProfileBadgeDisplay from '@/components/core/profile/ProfileBadgeDisplay';
 import Guestbook from '@/components/shared/Guestbook';
-import { cleanCss } from '@/lib/utils/sanitization/css';
+import { cleanCss, escapeCssForStyleTag } from '@/lib/utils/sanitization/css';
 // Removed unused imports - now using ProfileModeRenderer like production
 
 interface PreviewData {
@@ -145,7 +145,8 @@ export default function PreviewTemp() {
   // Sanitize custom CSS to prevent XSS attacks (must be before early return)
   const sanitizedCSS = useMemo(() => {
     if (!previewData?.customCSS) return '';
-    return cleanCss(previewData.customCSS);
+    // Sanitized like a save, then escaped for the <style> tags below
+    return escapeCssForStyleTag(cleanCss(previewData.customCSS));
   }, [previewData?.customCSS]);
 
   if (!isReady || !previewData) {

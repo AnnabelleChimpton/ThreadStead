@@ -1,6 +1,7 @@
 import { db } from "@/lib/config/database/connection";
 import { apiHandler } from "@/lib/api/handler";
 import { getDefaultProfileTemplate, ProfileTemplateType } from "@/lib/templates/default-profile-templates";
+import { cleanCss } from "@/lib/utils/sanitization/css";
 
 const VALID_TEMPLATES: ProfileTemplateType[] = ['abstract-art', 'charcoal-nights', 'pixel-petals', 'retro-social', 'classic-linen'];
 
@@ -22,7 +23,8 @@ export default apiHandler(
         }
         
         // Get the template CSS content
-        const templateContent = getDefaultProfileTemplate(template as ProfileTemplateType);
+        // Our own presets, but saved through the same sanitizer as everyone's CSS
+        const templateContent = cleanCss(getDefaultProfileTemplate(template as ProfileTemplateType));
         
         // Update or create profile with template
         await db.profile.upsert({

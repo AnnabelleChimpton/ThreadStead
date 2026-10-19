@@ -47,18 +47,19 @@ export function useSiteCSS(options: UseSiteCSSOptions = {}) {
                                   options.cssMode !== 'disable';
 
           if (shouldInjectToDOM && typeof document !== 'undefined') {
-            let styleElement = document.getElementById('site-wide-css');
+            const styleElement = document.getElementById('site-wide-css');
             if (styleElement) {
               // Raw, UNLAYERED — layered site CSS loses to unlayered Tailwind
               // utilities and visibly stops applying (must match what
               // _app.tsx renders for this element).
-              styleElement.innerHTML = siteCSS || '';
+              // textContent, not innerHTML: CSS is text, never markup
+              styleElement.textContent = siteCSS || '';
             }
           } else if (options.cssMode === 'disable' && typeof document !== 'undefined') {
             // For 'disable' mode, clear any existing site CSS injection
-            let styleElement = document.getElementById('site-wide-css');
+            const styleElement = document.getElementById('site-wide-css');
             if (styleElement) {
-              styleElement.innerHTML = '';
+              styleElement.textContent = '';
             }
           }
 

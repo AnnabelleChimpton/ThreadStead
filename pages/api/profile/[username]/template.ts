@@ -8,6 +8,7 @@ import { getCompiledTemplateWithMetrics, getCacheStats } from '@/lib/templates/c
 import { SITE_NAME } from '@/lib/config/site/constants';
 import { snapshotProfileBeforeSave } from '@/lib/templates/revisions/template-revisions';
 import { apiHandler } from '@/lib/api/handler';
+import { cleanCss } from '@/lib/utils/sanitization/css';
 
 
 
@@ -56,6 +57,11 @@ export default apiHandler(
         if (typeof template !== 'string') {
           return res.status(400).json({ error: 'Invalid template data' });
         }
+        if (customCSS !== undefined && typeof customCSS !== 'string') {
+          return res.status(400).json({ error: 'Invalid CSS' });
+        }
+        // Same sanitizer as every other CSS save
+        const safeCSS = customCSS === undefined ? undefined : cleanCss(customCSS);
 
         // Strip navigation components from template - they're NOT stored in HTML
         const cleanedTemplate = stripNavigationFromTemplate(template);
@@ -172,7 +178,7 @@ export default apiHandler(
             compiledTemplate: JSON.parse(JSON.stringify(compiledResult)),
             templateIslands: JSON.parse(JSON.stringify(compiledResult.islands || null)),
             templateCompiledAt: new Date(),
-            ...(customCSS !== undefined && { customCSS }),
+            ...(safeCSS !== undefined && { customCSS: safeCSS }),
             ...(cssMode !== undefined && {
               cssMode,
               includeSiteCSS: cssMode !== 'disable'
@@ -186,7 +192,7 @@ export default apiHandler(
             compiledTemplate: JSON.parse(JSON.stringify(compiledResult)),
             templateIslands: JSON.parse(JSON.stringify(compiledResult.islands || null)),
             templateCompiledAt: new Date(),
-            ...(customCSS !== undefined && { customCSS }),
+            ...(safeCSS !== undefined && { customCSS: safeCSS }),
             ...(cssMode !== undefined && {
               cssMode,
               includeSiteCSS: cssMode !== 'disable'

@@ -5,6 +5,7 @@ import AdvancedNavFrame from "@/components/core/profile/AdvancedNavFrame";
 import { generateOptimizedCSS, type CSSMode, type TemplateMode } from "@/lib/utils/css/layers";
 import { resolveCSSMode } from "@/lib/utils/css/css-mode";
 import { useSiteCSS } from "@/hooks/useSiteCSS";
+import { escapeCssForStyleTag } from "@/lib/utils/sanitization/css";
 
 interface ProfileLayoutProps {
   children: React.ReactNode;
@@ -98,7 +99,7 @@ export default function ProfileLayout({
     if (actualCSSMode === 'disable') {
       return (
         <>
-          <style dangerouslySetInnerHTML={{ __html: layeredCSS || '' }} />
+          <style dangerouslySetInnerHTML={{ __html: escapeCssForStyleTag(layeredCSS) }} />
           {afterNav}
           {/* No wrapper styling when CSS is disabled */}
           {children}
@@ -109,7 +110,7 @@ export default function ProfileLayout({
     // Render without Layout wrapper when hiding navigation but keeping site CSS (NON-advanced templates only)
     return (
       <>
-        <style dangerouslySetInnerHTML={{ __html: layeredCSS || '' }} />
+        <style dangerouslySetInnerHTML={{ __html: escapeCssForStyleTag(layeredCSS) }} />
         {/* Hide nav/footer but keep responsive structure */}
         <div className="min-h-screen thread-surface flex flex-col">
           {afterNav}
@@ -145,7 +146,7 @@ export default function ProfileLayout({
 
   return (
     <>
-      <style dangerouslySetInnerHTML={{ __html: layeredCSS || '' }} />
+      <style dangerouslySetInnerHTML={{ __html: escapeCssForStyleTag(layeredCSS) }} />
       <Layout afterNav={afterNav}>
         {/* Inside Layout, not around it: templates style .ts-profile-container
             as the profile's card (width, border, background), and wrapping

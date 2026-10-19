@@ -9,7 +9,7 @@ import type {
 import { compileTemplate } from '@/lib/templates/compilation/template-parser';
 import { identifyIslandsWithTransform } from './island-detector';
 import { generateStaticHTML } from './html-optimizer';
-import { cleanCss } from '@/lib/utils/sanitization/css';
+import { cleanCss, escapeCssForStyleTag } from '@/lib/utils/sanitization/css';
 
 // Main profile template compilation function
 export async function compileProfileTemplate(
@@ -82,7 +82,7 @@ async function compileEnhancedMode(
   // Inject custom CSS if provided (sanitize as defensive measure)
   if (customCSS) {
     const sanitizedCSS = cleanCss(customCSS);
-    const styleTag = `<style type="text/css">${sanitizedCSS}</style>`;
+    const styleTag = `<style type="text/css">${escapeCssForStyleTag(sanitizedCSS)}</style>`;
     staticHTML = injectCSS(staticHTML, styleTag);
   }
   
