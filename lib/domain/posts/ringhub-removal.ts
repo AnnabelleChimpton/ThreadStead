@@ -43,8 +43,8 @@ type HubClient = ReturnType<typeof createAuthenticatedRingHubClient>;
  * create.ts recorded it, otherwise match the canonical URI in the ring feed
  * (posts created before threadRingPostIds existed).
  */
-async function resolvePostRefId(
-  client: HubClient,
+export async function resolvePostRefId(
+  client: Pick<HubClient, "getRingFeed">,
   post: RingHubRemovablePost,
   ringSlug: string
 ): Promise<string | null> {

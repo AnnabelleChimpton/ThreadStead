@@ -21,6 +21,7 @@ import {
 import * as ringHubClientModule from '@/lib/api/ringhub/ringhub-client'
 import { createAuthenticatedRingHubClient } from '@/lib/api/ringhub/ringhub-user-operations'
 import { removePostFromRingHub } from '@/lib/domain/posts/ringhub-removal'
+import { removeUserPostsFromRingHub } from '@/lib/domain/users/account-removal'
 import { buildPostUri } from '@/lib/domain/posts/ringhub-metadata'
 import { NOT_A_MEMBER_REASON, PUBLIC_ONLY_REASON, REMOVED_BEFORE_REASON, postToRings } from '@/lib/domain/posts/ring-submission'
 import { sendPostToRings } from '@/lib/domain/posts/send-to-rings'
@@ -47,7 +48,11 @@ jest.mock('@/lib/config/database/connection', () => ({
     post: {
       findUnique: jest.fn(async ({ where }: any) => ({ threadRingPostIds: mockLocalDb.postRingIds.get(where.id) ?? null })),
       update: jest.fn(async ({ where, data }: any) => mockLocalDb.postRingIds.set(where.id, data.threadRingPostIds)),
+      // removeUserPostsFromRingHub: the deleted account's ring posts (set per test)
+      findMany: jest.fn(async () => []),
     },
+    // who still has a signing key here, by user id or DID (set per test)
+    userDID: { findUnique: jest.fn(async () => null) },
     threadRing: {
       findMany: jest.fn(async ({ where }: any) => mockLocalDb.rings.filter((r) => where.slug.in.includes(r.slug))),
       create: jest.fn(async ({ data }: any) => {
@@ -576,6 +581,75 @@ describe('post deletion removes hub PostRefs (admin delete-post)', () => {
     expect(result).toEqual({ synced: true, affectedRings: [ringSlug] })
     const feed = await client.getRingFeed(ringSlug, { limit: 100 })
     expect(feed.posts.find((p) => p.uri === legacyUri)).toBeUndefined()
+  })
+})
+
+describe('deleting an account takes its ring posts off the hub (S-2)', () => {
+  // lib/domain/users/account-removal.ts against the real hub. 'second' is the
+  // account being deleted; the main actor owns FORK_SLUG. The local DB is the
+  // in-memory stub above: which posts the account has, and whose keys exist.
+  const { db: localDb } = jest.requireMock('@/lib/config/database/connection')
+  const asPost = (id: string, rings: Record<string, string | null>) => ({
+    id,
+    authorId: 'second',
+    author: { primaryHandle: 'spam@threadstead-itest.invalid' },
+    threadRingPostIds: Object.fromEntries(Object.entries(rings).filter(([, ref]) => ref)),
+    threadRings: Object.keys(rings).map((slug) => ({ threadRing: { slug } })),
+  })
+  const uri = (id: string) => buildPostUri('spam', id)
+  const inFeed = async (slug: string, postUri: string) =>
+    !!(await client.getRingFeed(slug, { limit: 100 })).posts.find((p) => p.uri === postUri)
+  let second: RingHubClient
+  let gate: jest.SpyInstance
+
+  beforeAll(() => {
+    makePublicTestClient() // points the app's public client at the harness hub
+    second = makeTestClient('second')
+    gate = jest.spyOn(ringHubClientModule, 'shouldUseRingHub').mockReturnValue(true)
+    ;(createAuthenticatedRingHubClient as jest.Mock).mockImplementation((userId: 'main' | 'second') =>
+      userId === 'main' ? client : makeTestClient(userId)
+    )
+  })
+
+  afterAll(() => gate.mockRestore())
+
+  test('with the key still here: removed as the author', async () => {
+    await second.joinRing(ringSlug).catch(() => {}) // may still be a member from an earlier block
+    const stored = (await second.submitPost(ringSlug, { uri: uri('u-stored'), digest: 'sha256:u-stored' })).id
+    await second.submitPost(ringSlug, { uri: uri('u-legacy'), digest: 'sha256:u-legacy' })
+    localDb.post.findMany.mockResolvedValueOnce([asPost('u-stored', { [ringSlug]: stored }), asPost('u-legacy', { [ringSlug]: null })])
+    localDb.userDID.findUnique.mockImplementation(async ({ where }: any) => (where.userId === 'second' ? { userId: 'second' } : null))
+
+    const result = await removeUserPostsFromRingHub('second', 'Account removed by an admin: itest')
+
+    expect(result.failed).toEqual([])
+    expect(result.removals.map((r) => [r.postId, r.outcome, r.signer])).toEqual([
+      ['u-stored', 'removed', 'author'],
+      ['u-legacy', 'removed', 'author'],
+    ])
+    expect(await inFeed(ringSlug, uri('u-stored'))).toBe(false)
+    expect(await inFeed(ringSlug, uri('u-legacy'))).toBe(false)
+  })
+
+  test('with the key gone: removed by the ring owner instead', async () => {
+    const ref = (await second.submitPost(FORK_SLUG, { uri: uri('u-nokey'), digest: 'sha256:u-nokey' })).id
+    expect(await inFeed(FORK_SLUG, uri('u-nokey'))).toBe(true)
+    localDb.post.findMany.mockResolvedValueOnce([asPost('u-nokey', { [FORK_SLUG]: ref })])
+    // 'second' has no key; the owner (main actor) does
+    localDb.userDID.findUnique.mockImplementation(async ({ where }: any) => (where.did === actorDid ? { userId: 'main' } : null))
+
+    const result = await removeUserPostsFromRingHub('second', 'Account removed by an admin: itest')
+
+    expect(result.hadKey).toBe(false)
+    expect(result.removals).toEqual([{ postId: 'u-nokey', ringSlug: FORK_SLUG, outcome: 'removed', signer: 'owner' }])
+    expect(await inFeed(FORK_SLUG, uri('u-nokey'))).toBe(false)
+  })
+
+  test('a post the hub no longer serves is reported, not failed', async () => {
+    localDb.post.findMany.mockResolvedValueOnce([asPost('u-stored', { [ringSlug]: null })])
+    localDb.userDID.findUnique.mockImplementation(async () => ({ userId: 'second' }))
+    const result = await removeUserPostsFromRingHub('second', 'itest')
+    expect(result.removals).toEqual([{ postId: 'u-stored', ringSlug, outcome: 'not_on_hub' }])
   })
 })
 

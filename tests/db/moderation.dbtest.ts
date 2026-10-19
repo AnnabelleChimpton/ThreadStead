@@ -4,7 +4,7 @@
  * (session and capability-token routes), and the account dropping out of
  * every list while its own pages read as gone. Sessions are real cookies
  * through the real getSessionUser; only CSRF, rate limits and Ring Hub are
- * mocked.
+ * mocked. Hub cleanup on delete is in lib/domain/users/__tests__/account-removal.test.ts.
  */
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { db } from '@/lib/config/database/connection'
@@ -41,6 +41,7 @@ import { getHiddenIds } from '@/lib/domain/users/blocks'
 import { homeCandidates, postCandidates, userCandidates } from '@/lib/search/local'
 import moderationRoute from '@/pages/api/admin/moderation'
 import reportsRoute from '@/pages/api/admin/reports'
+import deleteUserRoute from '@/pages/api/admin/delete-user'
 import usersRoute from '@/pages/api/admin/users'
 import meRoute from '@/pages/api/auth/me'
 import bulletinRoute from '@/pages/api/bulletin/index'
@@ -382,5 +383,25 @@ describe('admin routes', () => {
       moderateUser({ action: 'ban', reason: 'x' }, { actorId: ADMIN, userId: SPAMMER, reportId: report.id })
     ).rejects.toMatchObject({ status: 400 })
     expect((await db.user.findUniqueOrThrow({ where: { id: SPAMMER } })).moderationStatus).toBe('active')
+  })
+
+  it('DELETE /api/admin/delete-user needs a ban first, then deletes and keeps the audit trail', async () => {
+    const early = await call(deleteUserRoute, { method: 'DELETE', cookie: adminCookie, body: { userId: SPAMMER } })
+    expect(early.statusCode).toBe(409)
+    expect(early.body.error).toBe('Ban the account first. Deleting is the second step.')
+    expect(await db.user.count({ where: { id: SPAMMER } })).toBe(1)
+
+    await ban(SPAMMER, 'spam')
+    const res = await call(deleteUserRoute, { method: 'DELETE', cookie: adminCookie, body: { userId: SPAMMER, reason: 'spam' } })
+    expect(res.statusCode).toBe(200)
+    expect(res.body).toMatchObject({ success: true, removed: 0, failed: [] })
+    expect(await db.user.count({ where: { id: SPAMMER } })).toBe(0)
+    expect(await db.post.count({ where: { authorId: SPAMMER } })).toBe(0)
+
+    const log = await db.moderationAction.findMany({ orderBy: { createdAt: 'asc' } })
+    expect(log.map((a) => [a.action, a.userId, a.userHandle])).toEqual([
+      ['ban', null, `spammer@${SITE_NAME}`],
+      ['delete', null, `spammer@${SITE_NAME}`],
+    ])
   })
 })
