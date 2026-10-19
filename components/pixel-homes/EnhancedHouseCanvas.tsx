@@ -34,6 +34,18 @@ interface EnhancedHouseCanvasProps {
   onMouseMove?: (x: number, y: number, event: React.MouseEvent) => void
   onMouseLeave?: () => void
   onScaleChange?: (scale: number) => void
+  /**
+   * Show the scene at a whole number of device pixels per art pixel (2x, 1.5x,
+   * 1x…) so hand-drawn sprites stay crisp. When even 1x doesn't fit, the scene
+   * keeps 1x and crops evenly on both sides (the house is at its centre)
+   * instead of shrinking.
+   * Off by default: the editor and small previews still fit to their box.
+   */
+  pixelPerfect?: boolean
+  /** Makes the drawn front door a link (the way inside). */
+  door?: { href: string; label: string }
+  /** Makes a placed mailbox decoration open the guestbook. */
+  onMailboxClick?: () => void
 }
 
 // Enhanced canvas dimensions - grid-aligned (divisible by 16px cell size)
@@ -57,6 +69,37 @@ const DECORATION_ZONES = {
     width: 200, height: 120, // House area
     label: 'House'
   }
+}
+
+// CSS scales tried for pixelPerfect, largest first. A scale only counts when
+// scale x devicePixelRatio is a whole number, so art pixels map to device pixels.
+const PIXEL_SCALES = [3, 2, 1.5, 1]
+
+export function pickPixelScale(
+  availableWidth: number,
+  devicePixelRatio: number,
+  availableHeight: number = Infinity
+): number {
+  for (const k of PIXEL_SCALES) {
+    if (
+      CANVAS_WIDTH * k <= availableWidth &&
+      CANVAS_HEIGHT * k <= availableHeight &&
+      Number.isInteger(k * devicePixelRatio)
+    ) return k
+  }
+  return 1
+}
+
+// Room kept below the scene for the page header and the row of actions, so
+// a big scene doesn't push them off a laptop screen
+const SCENE_HEIGHT_RESERVE = 240
+
+// The front door of each template, in house coordinates (HouseSVG's 200x180 viewBox)
+const DOOR_RECTS: Record<string, { x: number; y: number; width: number; height: number }> = {
+  cottage_v1: { x: 90, y: 135, width: 20, height: 35 },
+  townhouse_v1: { x: 90, y: 135, width: 20, height: 35 },
+  loft_v1: { x: 90, y: 140, width: 20, height: 30 },
+  cabin_v1: { x: 90, y: 120, width: 20, height: 30 },
 }
 
 // House positioning within the larger canvas (centered for 512px width)
@@ -90,17 +133,38 @@ export default function EnhancedHouseCanvas({
   onMouseDown,
   onMouseMove,
   onMouseLeave,
-  onScaleChange
+  onScaleChange,
+  pixelPerfect = false,
+  door,
+  onMailboxClick
 }: EnhancedHouseCanvasProps) {
   // Refs and state for responsive scaling
   const containerRef = useRef<HTMLDivElement>(null)
+  const frameRef = useRef<HTMLDivElement>(null)
   const [scale, setScale] = useState(1)
+
   // Scopes this canvas's sky, ground and terrain pattern ids (several canvases can share a page)
   const idPrefix = useSvgIdPrefix()
 
+  // pixelPerfect: pick a whole-number scale from the frame's width
+  useEffect(() => {
+    if (!pixelPerfect || !frameRef.current) return
+    const frame = frameRef.current
+    const update = (width: number) => {
+      const k = pickPixelScale(width, window.devicePixelRatio || 1, window.innerHeight - SCENE_HEIGHT_RESERVE)
+      setScale(k)
+      onScaleChange?.(k)
+    }
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) update(entry.contentRect.width)
+    })
+    observer.observe(frame)
+    return () => observer.disconnect()
+  }, [pixelPerfect, onScaleChange])
+
   // ResizeObserver to calculate scale based on container width
   useEffect(() => {
-    if (!containerRef.current) return
+    if (pixelPerfect || !containerRef.current) return
 
     const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
@@ -114,7 +178,7 @@ export default function EnhancedHouseCanvas({
     resizeObserver.observe(containerRef.current)
 
     return () => resizeObserver.disconnect()
-  }, [onScaleChange])
+  }, [onScaleChange, pixelPerfect])
 
   const handleInteraction = (
     event: React.MouseEvent,
@@ -364,6 +428,34 @@ export default function EnhancedHouseCanvas({
             )
           }
 
+          const decorationKey = item.decorationId || item.id.replace(/_(\d+)_[a-z0-9]+$|_\d+$/, '')
+
+          // A placed mailbox is the guestbook, for visitors
+          if (onMailboxClick && !isDecorationMode && decorationKey === 'mailbox') {
+            return (
+              <div key={item.id} className="absolute" style={wrapperStyle}>
+                <button
+                  type="button"
+                  onClick={onMailboxClick}
+                  aria-label="Mailbox (guestbook)"
+                  className="ts-bare ts-scene-hotspot pointer-events-auto block cursor-pointer bg-transparent p-0 border-0"
+                >
+                  <DecorationSVG
+                    decorationType={item.type}
+                    decorationId={decorationKey}
+                    variant={item.variant}
+                    size={item.size}
+                    className="block max-w-none"
+                    renderSvg={item.renderSvg}
+                    text={item.text || item.data?.text}
+                    customAssetUrl={item.customAssetUrl}
+                    pngUrl={item.pngUrl}
+                  />
+                </button>
+              </div>
+            )
+          }
+
           // Use static decoration for non-animated items
           return (
             <div
@@ -395,17 +487,35 @@ export default function EnhancedHouseCanvas({
     )
   }
 
+  const sceneStyle: React.CSSProperties = pixelPerfect
+    ? {
+        // Exactly 512k x 352k, nothing inside the box to shave a pixel off
+        width: CANVAS_WIDTH * scale,
+        height: CANVAS_HEIGHT * scale,
+        // Left-aligned when it fits; when the frame is narrower, a negative
+        // margin centres it, so the house (at the scene's centre) stays in view.
+        // Pure CSS, so it's right before any measuring runs.
+        marginLeft: `min(0px, calc((100% - ${CANVAS_WIDTH * scale}px) / 2))`,
+        imageRendering: 'pixelated',
+        background: '#f0f8ff'
+      }
+    : {
+        width: '100%',
+        maxWidth: CANVAS_WIDTH,
+        aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}`,
+        background: '#f0f8ff' // Light sky blue base
+      }
+
   return (
-    <div className={`relative ${className}`}>
+    <div
+      ref={frameRef}
+      className={`relative ${className}`}
+      style={pixelPerfect ? { overflow: 'hidden' } : undefined}
+    >
       <div
         ref={containerRef}
-        className="relative border-2 border-gray-300 rounded-lg overflow-hidden"
-        style={{
-          width: '100%',
-          maxWidth: CANVAS_WIDTH,
-          aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}`,
-          background: '#f0f8ff' // Light sky blue base
-        }}
+        className={pixelPerfect ? 'relative overflow-hidden' : 'relative border-2 border-gray-300 rounded-lg overflow-hidden'}
+        style={sceneStyle}
         onClick={(e) => handleInteraction(e, onClick)}
         onMouseDown={(e) => handleInteraction(e, onMouseDown)}
         onMouseMove={(e) => handleInteraction(e, onMouseMove)}
@@ -451,6 +561,27 @@ export default function EnhancedHouseCanvas({
               className="w-full h-full drop-shadow-lg"
             />
           </div>
+
+          {/* The drawn front door is the way inside. No visible chrome: the
+              cursor changes, and keyboard focus gets a dotted ring. */}
+          {door && !isDecorationMode && (() => {
+            const rect = DOOR_RECTS[template] ?? DOOR_RECTS.cottage_v1
+            return (
+              <a
+                href={door.href}
+                aria-label={door.label}
+                title={door.label}
+                className="ts-scene-hotspot absolute block cursor-pointer"
+                style={{
+                  left: HOUSE_POSITION.x + rect.x,
+                  top: HOUSE_POSITION.y + rect.y,
+                  width: rect.width,
+                  height: rect.height,
+                  zIndex: 6
+                }}
+              />
+            )
+          })()}
 
           {/* Preview Item (Ghost) */}
           {previewPosition && previewItem && (

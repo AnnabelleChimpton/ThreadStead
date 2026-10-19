@@ -1516,3 +1516,32 @@ img.ts-emoji {
   transform: translateZ(0);
   filter: contrast(1.05);
 }
+
+/* Clickable parts of a pixel-home scene (the door, a mailbox). Nothing is
+   drawn over the art: the cursor changes, and keyboard focus gets a dotted
+   ink ring in art pixels. */
+.ts-scene-hotspot {
+  outline: none;
+}
+.ts-scene-hotspot:focus-visible {
+  outline: 1px dotted #4a403d;
+  outline-offset: 1px;
+}
+
+/* A button that reads as a link, for inline rows of actions. Pair with
+   .ts-bare so the theme's bevelled button style stays off it. */
+.ts-text-button {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--ha-ink-dark, #4a403d);
+  text-decoration: underline;
+  text-decoration-color: var(--ha-ink-mid, #7a6c64);
+  text-underline-offset: 0.15em;
+  cursor: pointer;
+}
+.ts-text-button:hover {
+  color: var(--ha-rose-ink, #9b3b2a);
+  text-decoration-color: currentColor;
+}

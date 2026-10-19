@@ -1,20 +1,17 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
-import PageHeader from '@/components/ui/layout/PageHeader'
 import Callout from '@/components/ui/feedback/Callout'
 import ThreadRing88x31Badge from '@/components/core/threadring/ThreadRing88x31Badge'
-import PixelHomeScene from './PixelHomeScene'
 import EnhancedHouseCanvas from './EnhancedHouseCanvas'
-import HouseSVG from './HouseSVG'
 import VisitorTrail from './VisitorTrail'
-import ThreadbookModal from './ThreadbookModal'
 import SharePixelHomeModal from './SharePixelHomeModal'
-// import DecorationMode from './DecorationMode' // Now handled by dedicated page
 import { HouseTemplate, ColorPalette, HouseCustomizations, AtmosphereSettings } from './HouseSVG'
 import Modal from '../ui/feedback/Modal'
 import Guestbook from '../shared/Guestbook'
 import { trackNavigation, trackModalOpen } from '../../lib/analytics/pixel-homes'
+import { useToast } from '@/contexts/ToastContext'
+import type { HomeNeighbors } from '@/lib/pixel-homes/neighbors'
 
 interface UserHomeConfig {
   houseTemplate: HouseTemplate
@@ -70,6 +67,8 @@ interface PixelHomePageProps {
   isOwner?: boolean
   /** The viewer is signed in (from SSR), so their visit can be recorded */
   isSignedIn?: boolean
+  /** The houses on either side, for the next-door links */
+  neighbors?: HomeNeighbors
   className?: string
 }
 
@@ -79,13 +78,14 @@ export default function PixelHomePage({
   homeConfig,
   isOwner = false,
   isSignedIn = false,
+  neighbors = { previous: null, next: null },
   className = ''
 }: PixelHomePageProps) {
   const nameToShow = displayName || username
   const router = useRouter()
+  const { showSuccess, showError } = useToast()
   const [showShareModal, setShowShareModal] = useState(false)
   const [badges, setBadges] = useState<ProfileBadge[]>([])
-  const [showThreadbook, setShowThreadbook] = useState(false)
   const [showGuestbook, setShowGuestbook] = useState(false)
   const [hasUnreadGuestbook, setHasUnreadGuestbook] = useState(false)
   // const [showDecorationMode, setShowDecorationMode] = useState(false) // Now handled by dedicated page
@@ -161,11 +161,17 @@ export default function PixelHomePage({
     }
   }
 
-  const handleDoorClick = () => {
-    // Track navigation from pixel home to profile
-    trackNavigation('pixel_home', 'profile', username)
-    // Navigate to main profile page
-    router.push(`/resident/${username}`)
+  const insideHref = `/resident/${encodeURIComponent(username)}`
+  const handleGoInside = () => trackNavigation('pixel_home', 'profile', username)
+
+  const handleCopyLink = async () => {
+    const url = `${window.location.origin}/home/${encodeURIComponent(username)}`
+    try {
+      await navigator.clipboard.writeText(url)
+      showSuccess('Link copied.')
+    } catch {
+      showError(`Couldn't copy. The link is ${url}`)
+    }
   }
 
   const handleMailboxClick = async () => {
@@ -183,11 +189,6 @@ export default function PixelHomePage({
         console.error('Failed to mark guestbook as read:', error)
       }
     }
-  }
-
-  const handleThreadbookClick = () => {
-    trackModalOpen('threadbook', username)
-    setShowThreadbook(true)
   }
 
   const handleDecorationMode = () => {
@@ -219,183 +220,112 @@ export default function PixelHomePage({
 
   // handleCancelDecorations now handled by dedicated page
 
+  const houseTitle = config.houseCustomizations?.houseTitle?.trim()
+  const houseDescription = config.houseCustomizations?.houseDescription?.trim()
+  const neighborName = (n: { username: string; displayName: string | null }) => n.displayName || n.username
+
   return (
     <div className={className}>
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
-        <PageHeader title={`${nameToShow}'s Pixel Home`}>
-          <p>Welcome to the neighborhood — this is {nameToShow}&apos;s pixel home.</p>
-        </PageHeader>
+      <div className="max-w-6xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
+        <h1 className="thread-headline text-2xl sm:text-3xl font-bold mb-3">
+          {isOwner ? 'Your house' : `${nameToShow}'s house`}
+        </h1>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Side - Interactive Menu */}
-          <div className="lg:col-span-1 space-y-4 lg:order-1 order-2">
-            {/* User Info Card — the owner's real ThreadRing badges at full 88×31 size */}
-            <div className="widget-container bg-thread-paper border border-thread-sage rounded-cozy shadow-cozy p-4 sm:p-5">
-              <div className="widget-header mb-3">
-                <h2 className="widget-title font-headline text-lg font-bold text-nb-ink mb-0">{nameToShow}</h2>
-                {badges.length > 0 && (
-                  <span className="widget-actions ml-auto badge text-xs">
-                    {badges.length} ThreadRing Badge{badges.length !== 1 ? 's' : ''}
-                  </span>
-                )}
-              </div>
-              {badges.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {badges.slice(0, 6).map((badge) => (
-                    <Link
-                      key={badge.id}
-                      href={`/tr/${badge.threadRing.slug}`}
-                      title={`${badge.threadRing.name}: ${badge.title}`}
-                      className="ts-card-link block"
-                    >
-                      <ThreadRing88x31Badge
-                        title={badge.title}
-                        backgroundColor={badge.backgroundColor}
-                        textColor={badge.textColor}
-                        imageUrl={badge.imageUrl}
-                      />
-                    </Link>
-                  ))}
-                  {badges.length > 6 && (
-                    <span className="thread-label self-center">+{badges.length - 6} more</span>
-                  )}
-                </div>
-              )}
-            </div>
+        {/* The scene comes first and is the page. The door goes inside, and a
+            placed mailbox opens the guestbook; nothing is drawn over the art. */}
+        <EnhancedHouseCanvas
+          template={config.houseTemplate}
+          palette={config.palette}
+          decorations={decorations}
+          houseCustomizations={config.houseCustomizations as HouseCustomizations}
+          atmosphere={atmosphere}
+          terrain={terrain}
+          pixelPerfect
+          door={{ href: insideHref, label: isOwner ? 'Go inside to your page' : `Go inside to ${nameToShow}'s page` }}
+          onMailboxClick={handleMailboxClick}
+          className="w-full"
+        />
 
-            {/* Interactive Actions */}
-            <div className="widget-container bg-thread-paper border border-thread-sage rounded-cozy shadow-cozy p-4 sm:p-5">
-              <div className="widget-header mb-3"><h3 className="widget-title font-headline text-base font-bold text-nb-ink mb-0">Explore & Connect</h3></div>
-              <div className="space-y-2">
-                <button
-                  onClick={handleDoorClick}
-                  className="thread-button btn btn--primary w-full text-left"
-                >
-                  <span>Step Inside — Visit Profile</span>
-                </button>
+        {/* What you can do here, as one plain row under the art */}
+        <nav aria-label="This house" className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm sm:text-base">
+          <Link href={insideHref} onClick={handleGoInside} className="font-semibold">Go inside</Link>
+          <span aria-hidden="true">·</span>
+          <button type="button" onClick={handleMailboxClick} className="ts-bare ts-text-button">
+            Mailbox{hasUnreadGuestbook ? ' (new)' : ''}
+          </button>
+          {badges.length > 0 && (
+            <>
+              <span aria-hidden="true">·</span>
+              <Link href={`${insideHref}?tab=rings`}>
+                {badges.length} ring{badges.length !== 1 ? 's' : ''}
+              </Link>
+            </>
+          )}
+          <span aria-hidden="true">·</span>
+          <button type="button" onClick={handleCopyLink} className="ts-bare ts-text-button">Copy link</button>
+          {isOwner && (
+            <>
+              <span aria-hidden="true">·</span>
+              <button type="button" onClick={handleDecorationMode} className="ts-bare ts-text-button font-semibold">Decorate</button>
+              <span aria-hidden="true">·</span>
+              <button type="button" onClick={() => setShowShareModal(true)} className="ts-bare ts-text-button">Save an image</button>
+            </>
+          )}
+        </nav>
 
-                <button
-                  onClick={handleMailboxClick}
-                  className="thread-button-secondary btn btn--secondary w-full text-left"
-                >
-                  <span>Check Mailbox {hasUnreadGuestbook && '(new)'}</span>
-                  {hasUnreadGuestbook && <span aria-hidden="true" className="inline-block w-2 h-2 ml-2 bg-nb-rose rounded-full align-middle"></span>}
-                </button>
+        {/* Only what the owner wrote: no stand-in title or description */}
+        {(houseTitle || houseDescription) && (
+          <div className="mt-6 max-w-2xl">
+            {houseTitle && <h2 className="font-headline text-xl font-semibold text-nb-ink mb-1">{houseTitle}</h2>}
+            {houseDescription && <p className="text-nb-ink-mid leading-relaxed whitespace-pre-line">{houseDescription}</p>}
+          </div>
+        )}
 
-                <button
-                  onClick={handleThreadbookClick}
-                  className="thread-button-secondary btn btn--secondary w-full text-left"
-                >
-                  <span>View ThreadRing Lineage</span>
-                </button>
-
-                <button
-                  onClick={() => router.push(`/resident/${username}?tab=rings`)}
-                  className="thread-button-secondary btn btn--secondary w-full text-left"
-                >
-                  <span>View Ring Memberships</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Owner Actions */}
-            {isOwner && (
-              <div className="widget-container bg-thread-paper border border-thread-sage rounded-cozy shadow-cozy p-4 sm:p-5">
-                <div className="widget-header mb-3"><h3 className="widget-title font-headline text-base font-bold text-nb-ink mb-0">Customize Your Home</h3></div>
-                <div className="space-y-2">
-                  <button
-                    onClick={handleDecorationMode}
-                    className="thread-button btn btn--primary w-full text-left"
-                  >
-                    <span>Decorate Home</span>
-                  </button>
-                  <button
-                    onClick={() => setShowShareModal(true)}
-                    className="thread-button-secondary btn btn--secondary w-full text-left"
-                  >
-                    <span>Share Home</span>
-                  </button>
-                </div>
-              </div>
+        {/* Their real ThreadRing badges, at full 88×31 */}
+        {badges.length > 0 && (
+          <div className="mt-6 flex flex-wrap gap-2" aria-label="ThreadRing badges">
+            {badges.slice(0, 12).map((badge) => (
+              <Link
+                key={badge.id}
+                href={`/tr/${badge.threadRing.slug}`}
+                title={`${badge.threadRing.name}: ${badge.title}`}
+                className="ts-card-link block"
+              >
+                <ThreadRing88x31Badge
+                  title={badge.title}
+                  backgroundColor={badge.backgroundColor}
+                  textColor={badge.textColor}
+                  imageUrl={badge.imageUrl}
+                />
+              </Link>
+            ))}
+            {badges.length > 12 && (
+              <Link href={`${insideHref}?tab=rings`} className="thread-label self-center">+{badges.length - 12} more</Link>
             )}
-
-            {/* Navigation */}
-            <div className="widget-container bg-thread-paper border border-thread-sage rounded-cozy shadow-cozy p-4 sm:p-5">
-              <div className="widget-header mb-3"><h3 className="widget-title font-headline text-base font-bold text-nb-ink mb-0">Neighborhood</h3></div>
-              <div className="space-y-2">
-                <button
-                  onClick={() => router.push('/neighborhood')}
-                  className="thread-button-secondary btn btn--secondary w-full text-left"
-                >
-                  <span>Explore More Homes</span>
-                </button>
-
-                <button
-                  onClick={() => router.push('/')}
-                  className="thread-button-secondary btn btn--secondary w-full text-left"
-                >
-                  <span>Back to ThreadStead</span>
-                </button>
-              </div>
-            </div>
           </div>
+        )}
 
-          {/* Center - Main House Display */}
-          <div className="lg:col-span-2 lg:order-2 order-1">
-            <div className="thread-module">
-              {/* The house renders from the SSR config straight away;
-                  decorations fill in when their request lands. */}
-              <div className="flex justify-center">
-                {/* w-full: as a shrink-to-fit flex item this took the
-                    canvas's 512px min-content width and overflowed phones.
-                    512 is EnhancedHouseCanvas's own max width. */}
-                <div className="relative w-full max-w-[512px]">
-                  <EnhancedHouseCanvas
-                    template={config.houseTemplate}
-                    palette={config.palette}
-                    decorations={decorations}
-                    houseCustomizations={config.houseCustomizations as HouseCustomizations}
-                    atmosphere={atmosphere}
-                    terrain={terrain}
-                    className="w-full"
-                  />
-
-                  {/* NOTE: no overlays on the artwork. Badge sparkles + a
-                      bouncing "+N" counter and the visitor trail used to
-                      float at fixed percentages OVER the scene, landing on
-                      ponds/lawns like debris. Badges live in the sidebar
-                      card; the visitor trail sits below the canvas. */}
-                </div>
-              </div>
-
-              {/* Recent visitors — under the artwork, not on it */}
-              <div className="flex justify-center mt-3">
-                <VisitorTrail username={username} recordVisit={isSignedIn && !isOwner} />
-              </div>
-
-              {/* House Description */}
-              <div className="text-center mt-6 space-y-3">
-                <div className="text-xl font-headline font-semibold text-nb-ink">
-                  {config.houseCustomizations?.houseTitle || "A Cozy Corner of ThreadStead"}
-                </div>
-                <div className="text-nb-ink-mid max-w-lg mx-auto leading-relaxed">
-                  {config.houseCustomizations?.houseDescription ||
-                    `This is ${nameToShow}'s pixel home. Use the menu on the left to visit their profile, leave a note in the mailbox, or see their ThreadRings.`}
-                </div>
-              </div>
-            </div>
-          </div>
+        <div className="mt-4 flex justify-start">
+          <VisitorTrail username={username} recordVisit={isSignedIn && !isOwner} />
         </div>
+
+        {/* Keep walking: the houses either side, or back out to the street */}
+        <nav aria-label="Neighbors" className="mt-8 pt-4 border-t border-thread-sage/40 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 text-sm sm:text-base">
+          {neighbors.previous ? (
+            <Link href={`/home/${encodeURIComponent(neighbors.previous.username)}`}>
+              ← {neighborName(neighbors.previous)}&apos;s house
+            </Link>
+          ) : <span />}
+          <Link href="/neighborhood">Back to the street</Link>
+          {neighbors.next ? (
+            <Link href={`/home/${encodeURIComponent(neighbors.next.username)}`}>
+              {neighborName(neighbors.next)}&apos;s house →
+            </Link>
+          ) : <span />}
+        </nav>
       </div>
 
       {/* Modals */}
-      <ThreadbookModal
-        isOpen={showThreadbook}
-        onClose={() => setShowThreadbook(false)}
-        username={username}
-      />
-
       {/* Guestbook Modal - Using existing Guestbook component */}
       <Modal
         isOpen={showGuestbook}

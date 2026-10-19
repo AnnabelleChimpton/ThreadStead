@@ -8,6 +8,8 @@ import { HouseTemplate, ColorPalette } from '../../components/pixel-homes/HouseS
 import { serializeJsonLd } from "@/lib/utils/sanitization/json-ld";
 import PrivateProfile from '@/components/core/profile/PrivateProfile'
 import { residentAccess } from '@/lib/domain/users/profile-access'
+import { getHomeNeighbors, type HomeNeighbors } from '@/lib/pixel-homes/neighbors'
+import { SITE_NAME } from '@/lib/config/site/constants'
 
 interface UserHomeConfig {
   houseTemplate: HouseTemplate
@@ -51,6 +53,7 @@ interface PixelHomeProps {
   isSignedIn: boolean
   userDisplayName?: string
   userBio?: string
+  neighbors: HomeNeighbors
 }
 
 /** A home the viewer may not see shows the same page as the private profile. */
@@ -76,7 +79,8 @@ function PixelHome({
   isOwner,
   isSignedIn,
   userDisplayName,
-  userBio
+  userBio,
+  neighbors
 }: PixelHomeProps) {
   const pageTitle = `${userDisplayName || `@${username}`}'s Pixel Home`
   const pageDescription = userBio
@@ -124,6 +128,7 @@ function PixelHome({
           homeConfig={homeConfig}
           isOwner={isOwner}
           isSignedIn={isSignedIn}
+          neighbors={neighbors}
         />
       </Layout>
     </>
@@ -203,9 +208,12 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       })
     }
 
+    const neighbors = await getHomeNeighbors(db, user, { viewerId: currentUser?.id, host: SITE_NAME })
+
     return {
       props: {
         username: cleanHandle,
+        neighbors,
         homeConfig: {
           houseTemplate: homeConfig.houseTemplate as HouseTemplate,
           palette: homeConfig.palette as ColorPalette,
