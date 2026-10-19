@@ -1,13 +1,13 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { getSessionUser } from '@/lib/auth/server';
-import { db } from '@/lib/config/database/connection';
-import { mapDIDToUserId, getUserDID } from '@/lib/api/did/server-did-client';
+import { getUserDID } from '@/lib/api/did/server-did-client';
+import { ringOwnerSource, RingOwnerSource } from '@/lib/domain/threadrings/ring-owner';
 
 /**
  * Check ThreadRing Ownership
  * 
  * Determines if the current user has ownership/curator rights for a ThreadRing
- * This includes both local ownership and Ring Hub ownership
+ * This includes both local ownership (Ring Hub off) and Ring Hub ownership
  */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
@@ -27,47 +27,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    let isOwner = false;
-    let isCurator = false;
-    let ownershipSource = null;
-
-    // Check local ThreadRing ownership first
-    const localRing = await db.threadRing.findUnique({
-      where: { slug },
-      include: { curator: true }
-    });
-
-    if (localRing) {
-      if (localRing.curatorId === viewer.id) {
-        isCurator = true;
-        isOwner = true;
-        ownershipSource = 'local_threadring';
-      }
+    // With Ring Hub on, only the hub's owner counts; a mirror row's local
+    // curatorId is just whoever posted there first (see ring-owner.ts).
+    let ownershipSource: RingOwnerSource | null = null;
+    try {
+      ownershipSource = await ringOwnerSource(slug, viewer.id);
+    } catch (error) {
+      console.warn('Error checking ring ownership:', error);
     }
-
-    // Check Ring Hub ownership
-    if (!isOwner) {
-      try {
-        // Check if user owns this ring in Ring Hub via our ownership tracking
-        const ringHubOwnership = await db.ringHubOwnership.findUnique({
-          where: { ringSlug: slug }
-        });
-
-        if (ringHubOwnership && ringHubOwnership.ownerUserId === viewer.id) {
-          isOwner = true;
-          ownershipSource = 'ringhub_ownership';
-        } else if (ringHubOwnership) {
-          // Check if the Ring Hub owner DID maps to this user
-          const ringHubOwnerUserId = await mapDIDToUserId(ringHubOwnership.serverDID);
-          if (ringHubOwnerUserId === viewer.id) {
-            isOwner = true;
-            ownershipSource = 'ringhub_did_mapping';
-          }
-        }
-      } catch (error) {
-        console.warn('Error checking Ring Hub ownership:', error);
-      }
-    }
+    const isOwner = ownershipSource !== null;
+    const isCurator = ownershipSource === 'local_threadring';
 
     // Get user's DID for additional context
     let userDID = null;

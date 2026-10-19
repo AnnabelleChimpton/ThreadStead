@@ -7,6 +7,7 @@ import { db } from "@/lib/config/database/connection";
 import { getSessionUser } from "@/lib/auth/server";
 import { SITE_NAME } from "@/lib/config/site/constants";
 import { featureFlags } from "@/lib/utils/features/feature-flags";
+import { ringOwnerSource } from "@/lib/domain/threadrings/ring-owner";
 import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
 import { raceHubCall, HUB_TIMEOUT } from "@/lib/api/ringhub/ringhub-ssr";
 import { readAllRingMembers } from "@/lib/api/ringhub/ring-members";
@@ -489,8 +490,10 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       };
     }
 
-    // Check if viewer can manage (curator only or admin)
-    const canManage = viewer?.id === ring.curatorId || viewer?.role === 'admin';
+    // Curator (Ring Hub off) or the hub's owner (Ring Hub on and the hub
+    // didn't answer), or an admin. See ring-owner.ts.
+    const canManage = viewer?.role === 'admin' ||
+      (!!viewer && (await ringOwnerSource(slug as string, viewer.id)) !== null);
 
     // Serialize the data
     const serializedMembers = ring.members.map(member => ({

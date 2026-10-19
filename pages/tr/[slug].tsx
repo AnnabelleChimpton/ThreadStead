@@ -736,8 +736,9 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
           console.warn('Error checking Ring Hub ownership:', ownershipError);
         }
 
-        // Check if user is the local curator
-        if (!cancelled && ring.curator && authData.user.id === ring.curator.id) {
+        // Local curator, Ring Hub off only: a hub ring's local row names
+        // whoever posted there first, not its owner.
+        if (!cancelled && !featureFlags.ringhub() && ring.curator && authData.user.id === ring.curator.id) {
           setCuratorAccessSlug(ring.slug);
         }
       } catch (error) {

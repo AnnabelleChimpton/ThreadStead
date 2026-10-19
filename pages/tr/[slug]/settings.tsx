@@ -6,6 +6,7 @@ import { GetServerSideProps } from "next";
 import { db } from "@/lib/config/database/connection";
 import { getSessionUser } from "@/lib/auth/server";
 import { featureFlags } from "@/lib/utils/features/feature-flags";
+import { ringOwnerSource } from "@/lib/domain/threadrings/ring-owner";
 import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
 import { raceHubCall, HUB_TIMEOUT } from "@/lib/api/ringhub/ringhub-ssr";
 import ThreadRingInviteForm from "../../../components/ui/forms/ThreadRingInviteForm";
@@ -631,7 +632,10 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       };
     }
 
-    const canManage = viewer?.id === ring.curatorId || viewer?.role === 'admin';
+    // Curator (Ring Hub off) or the hub's owner (Ring Hub on and the hub
+    // didn't answer), or an admin. See ring-owner.ts.
+    const canManage = viewer?.role === 'admin' ||
+      (!!viewer && (await ringOwnerSource(slug as string, viewer.id)) !== null);
 
     return {
       props: {
