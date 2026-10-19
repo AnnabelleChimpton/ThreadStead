@@ -8,8 +8,6 @@ import Tabs, { TabSpec } from "@/components/ui/navigation/Tabs";
 import { getSessionUser } from "@/lib/auth/server";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
-// TEMPORARY mount (profile-editing Phase 2): the Appearance tab is being rebuilt
-import WidgetSlotPicker from "@/components/features/profile/WidgetSlotPicker";
 import { useToast } from '@/contexts/ToastContext';
 import { useConfirm } from '@/contexts/ConfirmContext';
 import { PixelIcon } from '@/components/ui/PixelIcon';
@@ -39,6 +37,7 @@ import {
 import { validatePasswordStrength } from "@/lib/auth/password";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
+import YourPage from "@/components/features/profile/YourPage";
 
 // We'll need to extract blocks functionality into a component
 interface UserSettingsProps {
@@ -104,6 +103,21 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
       avatarUrl: item.avatarUrl || "/assets/default-avatar.gif"
     })) || []
   );
+
+  // What the profile form holds vs what's saved, for the save bar and the
+  // leave-the-page guard (the photo saves on its own, so it isn't here)
+  const profileSnapshot = JSON.stringify({ displayName, bio, visibility, showInVisitorTrails, websites, featuredFriends });
+  const [savedProfileSnapshot, setSavedProfileSnapshot] = useState(profileSnapshot);
+  const profileDirty = profileSnapshot !== savedProfileSnapshot;
+  useEffect(() => {
+    if (!profileDirty) return;
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [profileDirty]);
 
   // Identity management state
   const [currentIdentity, setCurrentIdentity] = useState<LocalKeypair | null>(null);
@@ -205,6 +219,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
 
   const handleSaveProfile = async () => {
     setSaving(true);
+    const savingSnapshot = profileSnapshot;
 
     try {
       const capRes = await fetch("/api/cap/profile", { method: "POST" });
@@ -245,6 +260,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
       });
 
       if (response.ok) {
+        setSavedProfileSnapshot(savingSnapshot);
         notify("Saved.");
       } else {
         const errorData = await response.json();
@@ -688,9 +704,11 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
                 rows={4}
+                maxLength={1000}
                 className="w-full max-w-xl border-2 border-nb-ink-mid/60 rounded-md p-3 bg-white focus:outline-none focus:border-nb-ink-mid"
                 placeholder="Tell people about yourself..."
               />
+              <p className="text-xs text-nb-ink-mid mt-1">{bio.length} / 1000</p>
             </div>
 
             <div>
@@ -813,97 +831,40 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
               />
             </div>
 
-            <Button
-              onClick={handleSaveProfile}
-              disabled={saving}
-              className="thread-button disabled:opacity-50 min-h-[48px]"
-            >
-              {saving ? "Saving..." : "Save Profile"}
-            </Button>
+            {/* Stays in view while there's something to save */}
+            <div className={`${profileDirty ? "sticky bottom-0 z-10" : ""} -mx-4 sm:mx-0 px-4 py-3 bg-thread-paper border-t-2 border-dotted border-nb-ink-mid/40 flex flex-wrap items-center gap-3`}>
+              <Button
+                onClick={handleSaveProfile}
+                disabled={saving || !profileDirty}
+                className="thread-button disabled:opacity-50 min-h-[48px]"
+              >
+                {saving ? "Saving..." : "Save Profile"}
+              </Button>
+              <span className="text-sm text-nb-ink-mid" role="status">
+                {profileDirty ? "You have unsaved changes." : "Everything's saved."}
+              </span>
+            </div>
           </div>
         </div>
       )
     },
     {
       id: "appearance",
-      label: <><PixelIcon name="paint-bucket" /> Appearance</>,
+      label: <><PixelIcon name="paint-bucket" /> Your page</>,
       content: (
         <div className="space-y-6 px-4 sm:px-0">
-          <div className="mb-6">
-            <h2 className="text-xl font-bold mb-2 text-nb-ink">Profile Customization</h2>
-            <p className="text-nb-ink-mid mb-6">
-              Choose how you want to customize your profile - from simple styling to advanced layouts.
-            </p>
+          <div>
+            <h2 className="text-xl font-bold mb-2 text-nb-ink">Your page</h2>
+            <p className="text-nb-ink-mid">How your profile looks to people who visit it.</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            {/* CSS Styling - Simplest */}
-            <div className="thread-module text-center relative">
-              <div className="absolute top-3 right-3 badge badge--butter text-xs font-bold">
-                SIMPLEST
-              </div>
-              <div className="mb-3">
-                <PixelIcon name="bookmark" size={32} />
-              </div>
-              <h3 className="text-lg font-bold mb-2 text-nb-ink">CSS Styling</h3>
-              <p className="text-sm text-nb-ink mb-4">
-                Change colors, fonts, and spacing on your default layout. Perfect for quick customization.
-              </p>
-              <a
-                href={`/resident/${username}/css-editor`}
-                className="btn btn--primary bg-thread-cream inline-block text-thread-pine border-2 border-thread-sage rounded-md shadow-cozy-sm font-semibold text-sm min-h-[48px]"
-              >
-                Open CSS Editor →
-              </a>
-              <p className="text-sm text-nb-ink-mid mt-2">5 minutes</p>
-            </div>
-
-            {/* Template Language */}
-            <div className="thread-module text-center">
-              <div className="mb-3">
-                <PixelIcon name="code" size={48} />
-              </div>
-              <h3 className="text-lg font-bold mb-2 text-nb-ink">Template Code</h3>
-              <p className="text-sm text-nb-ink mb-4">
-                Code dynamic features with variables, loops, and conditionals. For developers.
-              </p>
-              <a
-                href={`/resident/${username}/template-editor?mode=template`}
-                className="btn btn--secondary bg-thread-paper inline-block text-thread-pine border-2 border-thread-sage rounded-md shadow-cozy-sm font-semibold text-sm min-h-[48px]"
-              >
-                Open Code Editor →
-              </a>
-              <p className="text-sm text-nb-ink-mid mt-2">1+ hour</p>
-            </div>
-          </div>
-
-          {/* TEMPORARY mount (profile-editing Phase 2): widget slot picker, until the Appearance tab rebuild takes it */}
-          <section className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-4" aria-labelledby="widget-slot-heading">
-            <h3 id="widget-slot-heading" className="text-lg font-bold mb-1 text-nb-ink">Widgets under your header</h3>
-            <p className="text-sm text-nb-ink-mid mb-4">A sticky note, your song or a few buttons, on your page as it is.</p>
-            <WidgetSlotPicker />
-          </section>
-
-          {/* Help Section */}
-          <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-4">
-            <h4 className="font-semibold text-nb-ink mb-2">Not sure which to choose?</h4>
-            <ul className="text-sm text-nb-ink space-y-1">
-              <li>• <strong>Just want to change colors?</strong> Start with CSS Styling</li>
-              <li>• <strong>Need dynamic features?</strong> Use Template Code</li>
-            </ul>
-            <Link
-              href="/templates"
-              className="text-sm mt-2 inline-block"
-            >
-              Learn more about customization options →
-            </Link>
-          </div>
+          <YourPage username={username} />
 
           {/* Reset Section */}
           <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-4">
-            <h4 className="font-semibold text-nb-ink mb-2 flex items-center gap-2"><PixelIcon name="reload" /> Reset to Default</h4>
+            <h4 className="font-semibold text-nb-ink mb-2 flex items-center gap-2"><PixelIcon name="reload" /> Start over</h4>
             <p className="text-sm text-nb-ink mb-3">
-              Want to start fresh? Remove all your customizations and return your profile to the site&apos;s default appearance.
+              Takes your CSS and HTML off your page and goes back to the site&apos;s look. Both stay in History.
             </p>
             <Button
               variant="secondary"
@@ -911,7 +872,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
               onClick={handleResetToDefault}
               className="thread-button-secondary min-h-[48px]"
             >
-              <PixelIcon name="reload" /> Reset to Default Template
+              <PixelIcon name="reload" /> Start over
             </Button>
           </div>
 

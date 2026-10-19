@@ -79,6 +79,8 @@ type ProfileProps = {
   userJoinedAt?: string;
   /** They have a pixel home, and (past the profile's access check) the viewer may see it */
   hasPixelHome?: boolean;
+  /** Tabs the owner hid (Settings > Your page); Blog always shows */
+  hiddenTabs?: string[];
   /** The widget slot under the header (standard layout only), already compiled */
   widgetSlot?: PublicWidgetSlot;
   /** What the slot's widgets may read about the owner and viewer */
@@ -115,6 +117,7 @@ export default function ProfilePage({
   hasPixelHome = false,
   widgetSlot,
   widgetSlotData,
+  hiddenTabs = [],
   isPrivateProfile,
   privateProfileVisibility,
 }: ProfileProps) {
@@ -278,7 +281,7 @@ export default function ProfilePage({
     },
   ];
 
-  const tabs: TabSpec[] = baseTabs;
+  const tabs: TabSpec[] = baseTabs.filter((tab) => tab.id === 'blog' || !hiddenTabs.includes(tab.id));
 
   return (
     <>
@@ -446,7 +449,8 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
       templateIslands?: any[];
       templateCompiledAt?: string;
       blogroll?: unknown[];
-      featuredFriends?: unknown[]
+      featuredFriends?: unknown[];
+      hiddenTabs?: string[];
     };
     profileMidi?: {
       url: string;
@@ -459,7 +463,8 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   } = await res.json();
 
   const requested = typeof query.tab === "string" ? query.tab : undefined;
-  const allowedBaseIds = new Set(["blog", "media", "friends", "guestbook"]);
+  const hiddenTabs = Array.isArray(data.profile?.hiddenTabs) ? data.profile.hiddenTabs : [];
+  const allowedBaseIds = new Set(["blog", "media", "friends", "badges", "guestbook"].filter((id) => !hiddenTabs.includes(id)));
   const initialTabId = requested && allowedBaseIds.has(requested) ? requested : "blog";
 
   // Convert blogroll to websites
@@ -681,6 +686,7 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
     username: data.username || usernameParam,
     ownerUserId: data.userId,            // <-- set it
     initialTabId,
+    hiddenTabs,
   };
   if (data.profile?.bio != null) props.bio = data.profile.bio;
   if (data.profile?.avatarUrl != null) props.photoUrl = data.profile.avatarUrl;

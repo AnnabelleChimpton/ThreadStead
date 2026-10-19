@@ -2,6 +2,7 @@ import { db } from "@/lib/config/database/connection";
 import { apiHandler } from "@/lib/api/handler";
 import { getDefaultProfileTemplate, ProfileTemplateType } from "@/lib/templates/default-profile-templates";
 import { cleanCss } from "@/lib/utils/sanitization/css";
+import { snapshotProfileBeforeSave } from "@/lib/templates/revisions/template-revisions";
 
 const VALID_TEMPLATES: ProfileTemplateType[] = ['abstract-art', 'charcoal-nights', 'pixel-petals', 'retro-social', 'classic-linen'];
 
@@ -15,38 +16,30 @@ export default apiHandler(
   async (req, res, { user }) => {
     try {
       if (req.method === "POST") {
-        // Update user's profile template
+        // Put a theme on the profile (signup, Settings > Your page), or
+        // "none" for the site's own look. Either way the standard layout.
         const { template } = req.body as { template?: string };
-        
-        if (typeof template !== 'string' || !VALID_TEMPLATES.includes(template as ProfileTemplateType)) {
+        const none = template === 'none';
+
+        if (typeof template !== 'string' || (!none && !VALID_TEMPLATES.includes(template as ProfileTemplateType))) {
           return res.status(400).json({ error: "Invalid template selected" });
         }
-        
-        // Get the template CSS content
+
         // Our own presets, but saved through the same sanitizer as everyone's CSS
-        const templateContent = cleanCss(getDefaultProfileTemplate(template as ProfileTemplateType));
-        
-        // Update or create profile with template
+        const customCSS = none ? '' : cleanCss(getDefaultProfileTemplate(template as ProfileTemplateType));
+        const look = none
+          ? { customCSS, templateMode: 'default' as const }
+          : { customCSS, templateEnabled: true, templateMode: 'enhanced' as const };
+
+        // Whatever this replaces stays in the person's History
+        await snapshotProfileBeforeSave(user.id, 'css-save');
         await db.profile.upsert({
           where: { userId: user.id },
-          update: { 
-            customCSS: templateContent,
-            templateEnabled: true,
-            templateMode: 'enhanced'  // Use standard layout with user's custom CSS
-          },
-          create: { 
-            userId: user.id, 
-            customCSS: templateContent,
-            templateEnabled: true,
-            templateMode: 'enhanced'  // Use standard layout with user's custom CSS
-          },
+          update: look,
+          create: { userId: user.id, ...look },
         });
-        
-        return res.json({ 
-          success: true,
-          message: "Profile template updated successfully",
-          template: template
-        });
+
+        return res.json({ success: true, template });
       }
       
       if (req.method === "GET") {
