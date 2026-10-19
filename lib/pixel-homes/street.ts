@@ -186,6 +186,24 @@ export async function streetIndexOf(db: Db, userId: string, host: string): Promi
 }
 
 /**
+ * House numbers (join order) for some residents, leaving out anyone without
+ * a pixel home or a local handle. Used to walk a ring's homes in street order.
+ */
+export async function houseNumbersOf(db: Db, userIds: string[], host: string): Promise<Map<string, number>> {
+  if (userIds.length === 0) return new Map();
+  const rows = await db.$queryRaw<{ id: string; number: bigint }[]>`
+    WITH numbered AS (
+      SELECT u."id", ROW_NUMBER() OVER (ORDER BY u."createdAt", u."id") AS number
+      FROM "User" u
+      JOIN "UserHomeConfig" c ON c."userId" = u."id"
+      WHERE EXISTS (SELECT 1 FROM "Handle" h WHERE h."userId" = u."id" AND h."host" = ${host})
+    )
+    SELECT "id", number FROM numbered WHERE "id" = ANY(${userIds})
+  `;
+  return new Map(rows.map((r) => [r.id, Number(r.number)]));
+}
+
+/**
  * Yards people have been working on lately: decorated homes, most recently
  * saved first. Kept apart from the street so saving never reshuffles it.
  */

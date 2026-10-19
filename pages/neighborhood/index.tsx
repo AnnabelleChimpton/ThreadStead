@@ -16,17 +16,19 @@ import {
   type StreetHome,
   type StreetPage,
 } from '@/lib/pixel-homes/street'
+import { getStreetRingSigns, type RingSign } from '@/lib/pixel-homes/street-rings'
 
 interface NeighborhoodProps {
   street: StreetPage
   recent: Array<Pick<StreetHome, 'username' | 'displayName' | 'snapshotCardUrl'>>
   at: string | null
+  ringSigns: RingSign[]
 }
 
 /** ?street= is 1-based for people; StreetPage.index is 0-based. */
 const streetHref = (index: number) => (index === 0 ? '/neighborhood' : `/neighborhood?street=${index + 1}`)
 
-export default function Neighborhood({ street, recent, at }: NeighborhoodProps) {
+export default function Neighborhood({ street, recent, at, ringSigns }: NeighborhoodProps) {
   const first = street.index * HOUSES_PER_STREET + 1
   const last = Math.min(first + HOUSES_PER_STREET - 1, street.totalHomes)
 
@@ -51,7 +53,7 @@ export default function Neighborhood({ street, recent, at }: NeighborhoodProps) 
           </p>
         </header>
 
-        <Street homes={street.homes} at={at} />
+        <Street homes={street.homes} at={at} ringSigns={ringSigns} />
 
         <nav aria-label="Streets" className="mt-4 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 text-sm sm:text-base">
           {street.previous ? (
@@ -105,5 +107,8 @@ export const getServerSideProps: GetServerSideProps<NeighborhoodProps> = async (
     getRecentlyDecorated(db, { viewerId: viewer?.id, host: SITE_NAME }),
   ])
 
-  return { props: { street, recent, at } }
+  // One look at the hub per street, cached and bounded; no hub, no signs
+  const ringSigns = await getStreetRingSigns(db, street.homes, { viewerId: viewer?.id })
+
+  return { props: { street, recent, at, ringSigns } }
 }

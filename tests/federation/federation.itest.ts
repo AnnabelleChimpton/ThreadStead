@@ -24,6 +24,9 @@ import { removePostFromRingHub } from '@/lib/domain/posts/ringhub-removal'
 import { buildPostUri } from '@/lib/domain/posts/ringhub-metadata'
 import { NOT_A_MEMBER_REASON, PUBLIC_ONLY_REASON, REMOVED_BEFORE_REASON, postToRings } from '@/lib/domain/posts/ring-submission'
 import { sendPostToRings } from '@/lib/domain/posts/send-to-rings'
+import { clearCache } from '@/lib/api/ringhub/ringhub-cache'
+import { publicRingsOf } from '@/lib/pixel-homes/street-rings'
+import { ringMemberDids } from '@/lib/pixel-homes/ring-walk'
 
 // removePostFromRingHub signs as the post's author through this factory, which
 // in the app maps a ThreadStead user id to their DID keypair (DB-backed).
@@ -150,6 +153,34 @@ describe('membership lifecycle', () => {
     expect(mine).toBeDefined()
     expect(mine!.status).toBe('ACTIVE')
     expect(result.total).toBeGreaterThanOrEqual(1)
+  })
+})
+
+// Pixel homes Phase 5: the street reads a resident's rings and a ring's
+// members from the hub, unsigned, and never copies them.
+describe('ring signposts on the street (lib/pixel-homes/street-rings, ring-walk)', () => {
+  beforeEach(() => clearCache())
+
+  test('a resident\'s public rings come from their badges, read unsigned', async () => {
+    const rings = await publicRingsOf(makePublicTestClient(), actorDid)
+    expect(rings).toContainEqual({ slug: ringSlug, name: expect.any(String) })
+  })
+
+  test('getRingMembers pages with limit and offset, and the walk reads every page', async () => {
+    const pub = makePublicTestClient()
+    const first = await pub.getRingMembers(ringSlug, { limit: 1, offset: 0 })
+    expect(first.members).toHaveLength(1)
+    expect(first.limit).toBe(1)
+    expect(first.hasMore).toBe(first.total > 1)
+    expect(typeof first.members[0].actorDid).toBe('string')
+
+    const dids = await ringMemberDids(pub, ringSlug)
+    expect(dids).toContain(actorDid)
+    expect(dids!.length).toBe(first.total)
+  })
+
+  test('a ring the hub doesn\'t have has no members to walk (404 → null)', async () => {
+    expect(await ringMemberDids(makePublicTestClient(), 'no-such-ring-itest')).toBeNull()
   })
 })
 

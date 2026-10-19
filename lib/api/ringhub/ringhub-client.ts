@@ -435,16 +435,21 @@ export class RingHubClient {
   }
 
   /**
-   * Get ring members
+   * Get ring members: ACTIVE ones, newest first. The hub pages them (20 by
+   * default, at most 100); pass limit/offset to read further.
    */
-  async getRingMembers(slug: string): Promise<{
+  async getRingMembers(slug: string, options?: { limit?: number; offset?: number }): Promise<{
     members: RingMember[]
     total: number
     limit: number
     offset: number
     hasMore: boolean
   }> {
-    return this.get(`/trp/rings/${slug}/members`)
+    const params = new URLSearchParams()
+    if (options?.limit) params.append('limit', options.limit.toString())
+    if (options?.offset) params.append('offset', options.offset.toString())
+    const query = params.toString() ? `?${params.toString()}` : ''
+    return this.get(`/trp/rings/${slug}/members${query}`)
   }
 
   /**

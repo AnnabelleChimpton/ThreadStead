@@ -1609,6 +1609,59 @@ img.ts-emoji {
 .ts-street-number {
   font-weight: 700;
 }
+/* A ThreadRing signpost between lots: the ring's 88×31 badge at 1x on a
+   post, the same ground as a lot without a picture, and prev / random /
+   next on the sidewalk below. Wood is the master palette's bark ramp. */
+.ts-street-stop {
+  width: 112px;
+  flex-shrink: 0;
+}
+.ts-street-stop-yard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 208px;
+  padding-bottom: 24px;
+  background: linear-gradient(#9dbfd3 0 72px, #608d43 72px);
+}
+.ts-street-stop-board {
+  display: block;
+  width: 92px;
+  height: 35px;
+  padding: 2px;
+  background: #6b4a35;
+  line-height: 0;
+}
+.ts-street-stop-board img {
+  display: block;
+  image-rendering: pixelated;
+}
+.ts-street-stop-board:focus-visible {
+  outline: 2px dotted #4a403d;
+  outline-offset: 2px;
+}
+.ts-street-stop-post {
+  display: block;
+  width: 4px;
+  height: 40px;
+  background: #6b4a35;
+  box-shadow: inset -2px 0 0 #4a3426;
+}
+/* Two classes: .ts-street-sign is the shared sidewalk strip */
+.ts-street-sign.ts-street-stop-walk {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  width: 112px;
+}
+.ts-street-stop-walk a {
+  color: inherit;
+}
+.ts-street-stop-walk a:hover {
+  color: #8c4a5b;
+}
 .ts-street-road {
   height: 32px;
   background-color: #5c6e70;
@@ -1633,5 +1686,12 @@ img.ts-emoji {
   }
   .ts-street-road {
     display: none;
+  }
+  .ts-street-stop-yard {
+    height: auto;
+    padding: 12px 0 0;
+  }
+  .ts-street-stop-post {
+    height: 16px;
   }
 }
