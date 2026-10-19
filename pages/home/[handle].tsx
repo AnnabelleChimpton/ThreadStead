@@ -141,7 +141,11 @@ function PixelHome({
       </Head>
 
       <Layout>
+        {/* Keyed by resident: a neighbor link is a client-side move to this
+            same page, and PixelHomePage reads its yard, weather and badges
+            into state once, so without a fresh mount it kept the last home's */}
         <PixelHomePage
+          key={username}
           username={username}
           displayName={userDisplayName}
           homeConfig={homeConfig}
