@@ -66,3 +66,23 @@ describe('the house in the sort', () => {
     expect(movesBehindHouse(item('roses_red', 'plant', 240, 260))).toBe(false) // in front anyway
   })
 })
+
+describe('things hung on the house', () => {
+  test('lights, chimes, lanterns, trellises and arches on the house stand in front of it', () => {
+    for (const id of ['string_lights', 'wind_chimes', 'garden_lantern', 'trellis', 'garden_arch']) {
+      const onTheWall = item(id, 'lighting', 240, 120)
+      expect(overlapsHouse(onTheWall)).toBe(true)
+      expect(decorationDepth(onTheWall)).toBeGreaterThan(houseDepth())
+      expect(movesBehindHouse(onTheWall)).toBe(false)
+      // Send back still puts it behind
+      expect(decorationDepth({ ...onTheWall, layerBias: -1 })).toBeLessThan(houseDepth())
+    }
+  })
+
+  test('away from the house they sort by their feet like anything else', () => {
+    const lantern = item('garden_lantern', 'lighting', 20, 40)
+    const tree = item('tree_pine', 'plant', 20, 60)
+    expect(overlapsHouse(lantern)).toBe(false)
+    expect(decorationDepth(lantern)).toBeLessThan(decorationDepth(tree))
+  })
+})

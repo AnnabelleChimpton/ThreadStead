@@ -27,6 +27,13 @@ export const HOUSE_SORT_Y = HOUSE_BOX.y + 150
 /** The part of the house that is actually drawn (walls, roof, chimney and foundation), for overlap checks. */
 export const HOUSE_DRAWN = { x: HOUSE_BOX.x + 20, y: HOUSE_BOX.y, width: 160, height: 170 }
 
+/**
+ * Things people hang on or lean against the house. Where one overlaps the
+ * house it stands in front of the wall, wherever its feet are; Send back
+ * still puts it behind.
+ */
+export const HUNG_ON_HOUSE = new Set(['string_lights', 'wind_chimes', 'garden_lantern', 'trellis', 'garden_arch'])
+
 export const MIN_LAYER_BIAS = -3
 export const MAX_LAYER_BIAS = 3
 
@@ -64,7 +71,9 @@ export function decorationDepth(item: DepthItem): number {
   const size = (item.size || 'medium') as 'small' | 'medium' | 'large'
   const { height } = getDecorationDimensions(item.decorationId || item.id, item.type, size)
   const x = Math.round(item.position?.x ?? 0)
-  const feet = Math.round((item.position?.y ?? 0) + height)
+  let feet = Math.round((item.position?.y ?? 0) + height)
+  // Hung on the wall: sorts as if planted at the house's line, just in front of it
+  if (HUNG_ON_HOUSE.has(item.decorationId || item.id) && feet < HOUSE_SORT_Y && overlapsHouse(item)) feet = HOUSE_SORT_Y
   return (
     BASE +
     clampLayerBias(item.layerBias) * LEVEL +
