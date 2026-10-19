@@ -131,7 +131,7 @@ export default function NeighborhoodGrid({ members, ringSlug }: NeighborhoodGrid
                   <HouseSVG
                     template={member.homeConfig.houseTemplate}
                     palette={member.homeConfig.palette}
-                    className="w-full h-full max-w-24 max-h-24 drop-shadow-sm"
+                    className="w-full h-full max-w-24 max-h-24"
                   />
                 </div>
               </Link>

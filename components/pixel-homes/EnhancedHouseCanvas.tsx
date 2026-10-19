@@ -1,6 +1,7 @@
-import React, { memo, useRef, useEffect, useState } from 'react'
-import HouseSVG, { HouseTemplate, ColorPalette, HouseCustomizations, AtmosphereSettings } from './HouseSVG'
+import React, { memo, useMemo, useRef, useEffect, useState } from 'react'
+import type { HouseTemplate, ColorPalette, HouseCustomizations, AtmosphereSettings } from './HouseSVG'
 import DecorationSVG from './DecorationSVG'
+import HouseSprite from './HouseSprite'
 import { SkyGradientDefs, GroundGradientDefs, TerrainDitherDefs, GrassTextureDefs, getSkyPatternCount, getGroundPatternCount, layoutDitherBands } from './DitherPatternDefs'
 import { useSvgIdPrefix } from './useSvgIdPrefix'
 import { DecorationItem, TERRAIN_TILES, isFlipped } from '@/lib/pixel-homes/decoration-data'
@@ -9,6 +10,7 @@ import { getDecorationDimensions } from '@/lib/pixel-homes/decoration-dimensions
 import type { ScenePointer } from '@/lib/pixel-homes/editor-interaction'
 import { pickPixelScale } from '@/lib/pixel-homes/pixel-scale'
 import { decorationDepth, houseDepth, HOUSE_BOX } from '@/lib/pixel-homes/depth'
+import { animatedSpriteIds } from '@/lib/pixel-homes/sprite-animation'
 
 /** A pointer event over the scene, in scene coordinates (see lib/pixel-homes/editor-interaction.ts). */
 export type ScenePointerKind = 'down' | 'move' | 'up' | 'cancel' | 'leave'
@@ -264,7 +266,7 @@ const HouseLayer = memo(function HouseLayer({
         zIndex: houseDepth()
       }}
     >
-      <HouseSVG template={template} palette={palette} customizations={customizations} className="w-full h-full drop-shadow-lg" />
+      <HouseSprite template={template} palette={palette} customizations={customizations} className="w-full h-full" />
     </div>
   )
 })
@@ -275,11 +277,13 @@ interface DecorationSpriteProps {
   /** The editor's surface: sprites show a pointer and carry their id for hit-testing. */
   editable: boolean
   deleting: boolean
+  /** One of the few frame strips on this home allowed to play */
+  animate: boolean
   onMailboxClick?: () => void
 }
 
 /** One placed decoration, redrawn only when it or its selection changes. */
-const DecorationSprite = memo(function DecorationSprite({ item, selected, editable, deleting, onMailboxClick }: DecorationSpriteProps) {
+const DecorationSprite = memo(function DecorationSprite({ item, selected, editable, deleting, animate, onMailboxClick }: DecorationSpriteProps) {
   const decorationKey = item.decorationId || item.id
   const { width, height } = getDecorationDimensions(decorationKey, item.type, item.size || 'medium', item)
 
@@ -302,7 +306,7 @@ const DecorationSprite = memo(function DecorationSprite({ item, selected, editab
       decorationId={decorationKey}
       variant={item.variant}
       size={item.size}
-      className="drop-shadow-sm block max-w-none"
+      className="block max-w-none"
       renderSvg={item.renderSvg}
       text={item.text || item.data?.text}
       customAssetUrl={item.customAssetUrl}
@@ -310,13 +314,14 @@ const DecorationSprite = memo(function DecorationSprite({ item, selected, editab
       pngWidth={item.pngWidth}
       pngHeight={item.pngHeight}
       pngFrames={item.pngFrames}
+      animate={animate}
     />
   )
 
   // A placed mailbox is the guestbook, for visitors
   if (onMailboxClick && decorationKey === 'mailbox') {
     return (
-      <div className="absolute" style={wrapperStyle}>
+      <div className="absolute ts-pixel-hop" style={wrapperStyle}>
         <button
           type="button"
           onClick={onMailboxClick}
@@ -329,8 +334,9 @@ const DecorationSprite = memo(function DecorationSprite({ item, selected, editab
     )
   }
 
+  // Appearing (the page loading, or just planted) is a 1-pixel hop
   return (
-    <div className="absolute" style={wrapperStyle}>
+    <div className="absolute ts-pixel-hop" style={wrapperStyle}>
       <div
         data-decoration-id={editable ? item.id : undefined}
         className={`pointer-events-auto ${editable ? 'cursor-pointer' : ''} ${deleting ? 'transition-all duration-150 hover:outline hover:outline-3 hover:outline-red-500 hover:outline-offset-2 rounded hover:scale-110 hover:brightness-90' : ''}`}
@@ -360,6 +366,8 @@ const DecorationsLayer = memo(function DecorationsLayer({
   deleting: boolean
   onMailboxClick?: () => void
 }) {
+  // At most a few strips play at once on a home; the rest hold their first frame
+  const playing = useMemo(() => animatedSpriteIds(decorations), [decorations])
   return (
     // No z-index of its own, so each sprite sorts against the house
     <div className="absolute inset-0">
@@ -370,6 +378,7 @@ const DecorationsLayer = memo(function DecorationsLayer({
           selected={selected.has(item.id)}
           editable={editable}
           deleting={deleting}
+          animate={playing.has(item.id)}
           onMailboxClick={onMailboxClick}
         />
       ))}

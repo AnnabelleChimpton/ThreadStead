@@ -121,7 +121,7 @@ export default function DemoPixelHome() {
                   houseCustomizations={demoConfig.customizations}
                   atmosphere={atmosphere}
                   terrain={demoTerrain}
-                  className="mx-auto drop-shadow-2xl"
+                  className="mx-auto"
                 />
               </div>
 

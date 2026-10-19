@@ -7,6 +7,8 @@ import Layout from '@/components/ui/layout/Layout'
 import AdminHeader from '@/components/ui/navigation/AdminHeader'
 import DecorationSVG from '@/components/pixel-homes/DecorationSVG'
 import HouseSVG, { type ColorPalette, type HouseTemplate } from '@/components/pixel-homes/HouseSVG'
+import HouseSprite from '@/components/pixel-homes/HouseSprite'
+import { HOUSE_LAYER_SETS, PLACEHOLDER_LAYER_SETS } from '@/lib/pixel-homes/house-layers'
 
 interface Sprite {
   itemId: string
@@ -134,6 +136,37 @@ export default function DecorationContactSheet({ sprites }: Props) {
                       <td key={p} className="p-1" style={{ borderBottom: `6px solid ${GRASS[grass]}` }}>
                         <div style={{ width: 200 * scale, height: 180 * scale }}>
                           <HouseSVG template={t} palette={p} className="h-full w-full" />
+                        </div>
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <h2 className="thread-headline text-lg font-bold mt-8 mb-2">Houses from layers</h2>
+          <p className="text-sm text-nb-ink-mid">
+            The same house drawn from PNG layers in key colours, swapped into each palette. Residents only see this
+            once a template&rsquo;s art exists and it&rsquo;s switched on.
+            {Object.keys(HOUSE_LAYER_SETS).length === 0 && ' No real layer art yet, so this is the stand-in made from the code-drawn cabin.'}
+          </p>
+          <div className="thread-module overflow-x-auto">
+            <table className="border-collapse">
+              <thead>
+                <tr>
+                  <th />
+                  {PALETTES.map((p) => <th key={p} className="px-2 text-xs font-normal">{p}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries({ ...PLACEHOLDER_LAYER_SETS, ...HOUSE_LAYER_SETS }).map(([t, set]) => (
+                  <tr key={t}>
+                    <th className="pr-2 text-xs font-normal text-left">{t}{set.placeholder ? ' (stand-in)' : ''}</th>
+                    {PALETTES.map((p) => (
+                      <td key={p} className="p-1" style={{ borderBottom: `6px solid ${GRASS[grass]}` }}>
+                        <div style={{ width: 200 * scale, height: 180 * scale }}>
+                          <HouseSprite template={t as HouseTemplate} palette={p} layerSet={set} className="h-full w-full" />
                         </div>
                       </td>
                     ))}

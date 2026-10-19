@@ -107,6 +107,7 @@ Unset, the branding falls back to "YourSiteHere". Set `SITE_HANDLE_DOMAIN` and `
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `NEXT_PUBLIC_PNG_AUTO_LOAD` | — | `false` | Load pixel-home decoration PNGs from the CDN automatically instead of SVG fallbacks. `true`/`false`. |
+| `NEXT_PUBLIC_HOUSE_SPRITES` | — | — | House templates drawn from PNG layers instead of the code-drawn SVG, comma-separated (e.g. "cabin_v1"). Off when unset; a template only switches once its layer art exists (lib/pixel-homes/house-layers.ts). |
 | `NEXT_PUBLIC_USE_RING_HUB` | — | `false` | Route ThreadRing operations through Ring Hub (featureFlags.ringhub()). `true`/`false`. |
 | `NEXT_PUBLIC_THREADRINGS_ENABLED` | — | `false` | Reported by the monitoring endpoints only; nothing else reads it. `true`/`false`. |
 | `ENABLE_TEMPLATE_ISLANDS` | — | `false` | featureFlags.templateIslands() — currently read by nothing else. `true`/`false`. |

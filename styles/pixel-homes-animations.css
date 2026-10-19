@@ -4,19 +4,23 @@
    Decoration Animations
    =============================================== */
 
-/* Decoration placement animation */
-@keyframes decorationPlace {
-  0% {
-    transform: scale(0) rotate(-180deg);
-    opacity: 0;
-  }
-  50% {
-    transform: scale(1.2) rotate(10deg);
-  }
-  100% {
-    transform: scale(1) rotate(0deg);
-    opacity: 1;
-  }
+/* Pixel art moves in whole art pixels and whole frames, never eased
+   (art-direction §3.5, T9). Placing something, and a house appearing, is
+   a 1-pixel hop over two frames: up one pixel, then down. Inside the scene
+   the transform is in art pixels, so it's always a whole device pixel. */
+@keyframes ts-pixel-hop {
+  0% { transform: translateY(-1px); }
+  50%, 100% { transform: none; }
+}
+
+.ts-pixel-hop {
+  animation: ts-pixel-hop 400ms steps(1, end) 1 both;
+}
+
+/* <Sprite>: a horizontal strip of frames, stepped one frame at a time */
+@keyframes ts-sprite-strip {
+  from { background-position-x: 0%; }
+  to { background-position-x: 100%; }
 }
 
 /* Decoration hover animation */
@@ -120,18 +124,6 @@
   }
 }
 
-/* House entrance animation */
-@keyframes houseEntrance {
-  0% {
-    opacity: 0;
-    transform: translateY(20px) scale(0.9);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
 /* ===============================================
    Decoration Classes
    =============================================== */
@@ -146,7 +138,7 @@
 }
 
 .decoration-item.placing {
-  animation: decorationPlace 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: ts-pixel-hop 400ms steps(1, end) 1 both;
 }
 
 .decoration-item.selected {
@@ -227,7 +219,7 @@
 }
 
 .house-svg {
-  animation: houseEntrance 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: ts-pixel-hop 400ms steps(1, end) 1 both;
 }
 
 /* ===============================================
@@ -799,7 +791,12 @@
   .animate-selection-ring,
   .animate-smoke-puff,
   .decoration-animated,
-  .decoration-animated * {
+  .decoration-animated *,
+  .ts-pixel-hop,
+  .house-svg,
+  .decoration-item.placing,
+  .ts-sprite {
+    /* Sprites hold their first frame */
     animation: none !important;
   }
 

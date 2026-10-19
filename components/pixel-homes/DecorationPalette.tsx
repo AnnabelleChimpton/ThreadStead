@@ -932,7 +932,6 @@ export default function DecorationPalette({
                     type={item.type as any}
                     id={item.id}
                     size={isMobile ? 42 : 38}
-                    className="!drop-shadow-sm"
                     color={
                       // Use current custom color if available, otherwise item default
                       (item.type === 'house_color' && houseCustomizations)

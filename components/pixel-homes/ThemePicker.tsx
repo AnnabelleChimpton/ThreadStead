@@ -213,7 +213,7 @@ export default function ThemePicker({
               <HouseSVG
                 template={selectedTemplate}
                 palette={selectedPalette}
-                className="w-full h-auto drop-shadow-lg"
+                className="w-full h-auto"
               />
             </div>
           </div>

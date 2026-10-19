@@ -15,6 +15,7 @@ import {
   markPngFailed,
 } from '@/lib/pixel-homes/decoration-assets'
 import { getDecorationDimensions, sizeScale } from '@/lib/pixel-homes/decoration-dimensions'
+import Sprite from './Sprite'
 
 interface DecorationSVGProps {
   decorationType: 'plant' | 'path' | 'feature' | 'seasonal' | 'house_custom' | 'furniture' | 'lighting' | 'water' | 'structure' | 'sky' | 'house_template' | 'house_color' | 'custom'
@@ -31,6 +32,8 @@ interface DecorationSVGProps {
   pngWidth?: number | null
   pngHeight?: number | null
   pngFrames?: number | null
+  /** Loop a frame strip (the scene allows a few per home); otherwise it holds its first frame */
+  animate?: boolean
 }
 
 // Decoration types that support PNG loading from R2
@@ -52,7 +55,8 @@ export default function DecorationSVG({
   pngUrl,
   pngWidth,
   pngHeight,
-  pngFrames
+  pngFrames,
+  animate = false
 }: DecorationSVGProps) {
   const scale = customScale || sizeScale(size)
   const props = { id: decorationId, variant, scale, className, text }
@@ -80,7 +84,26 @@ export default function DecorationSVG({
   if (shouldTryPng && resolvedPngUrl) {
     // At its own size when it has one (x a whole-number size scale), else the old table
     const dimensions = getDecorationDimensions(decorationId, decorationType, size, { pngUrl: resolvedPngUrl, pngWidth, pngHeight })
-    const frames = pngFrames && pngFrames > 1 ? pngFrames : 1
+    const onError = () => {
+      markPngFailed(decorationId)
+      setPngError(true)
+    }
+
+    // A strip of frames: one frame showing, stepped through when allowed to play
+    if (pngFrames && pngFrames > 1 && pngWidth && pngHeight) {
+      return (
+        <Sprite
+          src={resolvedPngUrl}
+          frameWidth={pngWidth}
+          height={pngHeight}
+          frames={pngFrames}
+          scale={dimensions.width / pngWidth}
+          playing={animate}
+          className={className}
+          onError={onError}
+        />
+      )
+    }
 
     return (
       <img
@@ -92,19 +115,8 @@ export default function DecorationSVG({
         style={{
           imageRendering: 'pixelated',
           display: 'block',
-          // A strip of frames shows its first frame. The size goes in the
-          // style too, or the site's img { height: auto } squeezes the strip.
-          ...(frames > 1 && {
-            width: dimensions.width,
-            height: dimensions.height,
-            objectFit: 'cover',
-            objectPosition: 'left top',
-          }),
         }}
-        onError={() => {
-          markPngFailed(decorationId)
-          setPngError(true)
-        }}
+        onError={onError}
       />
     )
   }

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/router'
 import HouseSVG, { HouseTemplate, ColorPalette, HouseCustomizations } from './HouseSVG'
 import DecorationSVG from './DecorationSVG'
+import { animatedSpriteIds } from '@/lib/pixel-homes/sprite-animation'
 import HouseDetailsPopup from './HouseDetailsPopup'
 import { trackNavigation } from '../../lib/analytics/pixel-homes'
 import { PixelIcon } from '@/components/ui/PixelIcon'
@@ -470,6 +471,8 @@ export default function NeighborhoodStreetView({
                 {currentStreetMembers.map((member) => {
                   // Get visible decorations for this member
                   const visibleDecorations = getVisibleDecorations(member.homeConfig.decorations)
+                  // One animated sprite per house on the street (art bible §3.5)
+                  const playing = animatedSpriteIds(visibleDecorations, 1)
                   const isHouseVisible = visibleHouses.has(member.userId)
 
                   return (
@@ -478,24 +481,7 @@ export default function NeighborhoodStreetView({
                       data-house-id={member.userId}
                       className="house-container relative cursor-pointer hover-lift group flex-shrink-0 motion-safe:transition-transform"
                       onClick={() => handleHouseClick(member)}
-                      style={{
-                        filter: 'drop-shadow(8px 12px 16px rgba(0,0,0,0.15))'
-                      }}
                     >
-                      {/* Ground shadow */}
-                      <div
-                        className="absolute"
-                        style={{
-                          bottom: '-85px',
-                          left: '50%',
-                          transform: 'translateX(-50%)',
-                          width: '80%',
-                          height: '18px',
-                          background: 'radial-gradient(ellipse, rgba(0,0,0,0.15), transparent)',
-                          borderRadius: '50%',
-                          zIndex: 1
-                        }}
-                      />
 
                       {/* House with decorations container - matches canvas proportions */}
                       <div className="house-wrapper interactive relative" style={{ width: '285px', height: '196px', zIndex: 2 }}>
@@ -550,12 +536,12 @@ export default function NeighborhoodStreetView({
                                   decorationId={decoration.decorationId}
                                   variant={decoration.variant}
                                   size={decoration.size || 'medium'}
-                                  className="drop-shadow-sm"
                                   text={decoration.data?.text}
                                   pngUrl={decoration.pngUrl || undefined}
                                   pngWidth={decoration.pngWidth}
                                   pngHeight={decoration.pngHeight}
                                   pngFrames={decoration.pngFrames}
+                                  animate={playing.has(decoration.id)}
                                 />
                               </div>
                             )
