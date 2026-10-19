@@ -49,6 +49,17 @@ export async function renderAvatarSizes(input: Buffer): Promise<ImageSizes> {
   return { thumbnail, medium, full };
 }
 
+/** Profile banner: one wide crop across the top of the profile, JPEG. */
+export const BANNER_SIZE = { width: 1500, height: 500 } as const;
+
+export function renderBanner(input: Buffer): Promise<Buffer> {
+  return sharp(input)
+    .rotate()
+    .resize(BANNER_SIZE.width, BANNER_SIZE.height, { fit: 'cover', position: 'centre', withoutEnlargement: true })
+    .jpeg({ quality: 85 })
+    .toBuffer();
+}
+
 /** Gallery/post media: square thumbnail, aspect-preserving medium and full, JPEG. */
 export async function renderMediaSizes(input: Buffer): Promise<ImageSizes> {
   const [thumbnail, medium, full] = await Promise.all([

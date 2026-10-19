@@ -6,6 +6,7 @@ import { requireAction } from "@/lib/domain/users/capabilities";
 import { cleanCss } from "@/lib/utils/sanitization/css";
 import { sourceTooLong } from "@/lib/templates/limits";
 import { cleanHiddenTabs } from "@/lib/domain/profile/tabs";
+import { cleanStatus } from "@/lib/domain/profile/status";
 import { notifyRingHubIfMember } from "@/lib/api/ringhub/ringhub-profile-sync";
 import { withCsrfProtection } from "@/lib/server/http/csrf";
 import { withRateLimit } from "@/lib/server/http/rate-limit";
@@ -18,7 +19,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   const me = await getSessionUser(req);
   if (!me) return res.status(401).json({ error: "not logged in" });
 
-  const { displayName, bio, customCSS, blogroll, featuredFriends, templateMode, includeSiteCSS, hideNavigation, visibility, showInVisitorTrails, hiddenTabs, cap } = (req.body || {}) as {
+  const { displayName, bio, customCSS, blogroll, featuredFriends, templateMode, includeSiteCSS, hideNavigation, visibility, showInVisitorTrails, hiddenTabs, status, cap } = (req.body || {}) as {
     displayName?: string;
     bio?: string;
     customCSS?: string;
@@ -30,6 +31,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     visibility?: 'public' | 'private' | 'friends' | 'followers';
     showInVisitorTrails?: boolean;
     hiddenTabs?: unknown;
+    status?: unknown;
     cap?: string;
   };
 
@@ -58,6 +60,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (typeof hideNavigation === "boolean") data.hideNavigation = hideNavigation;
   if (typeof showInVisitorTrails === "boolean") data.showInVisitorTrails = showInVisitorTrails;
   if (hiddenTabs !== undefined) data.hiddenTabs = cleanHiddenTabs(hiddenTabs);
+  const cleanedStatus = cleanStatus(status);
+  if (cleanedStatus !== undefined) data.status = cleanedStatus;
 
   // Handle visibility changes
   let visibilityChanged = false;

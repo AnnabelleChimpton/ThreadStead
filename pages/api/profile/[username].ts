@@ -16,7 +16,7 @@ const PUBLIC_PROFILE_FIELDS = [
   "customCSS", "templateMode", "templateEnabled", "cssMode", "includeSiteCSS", "hideNavigation",
   "customTemplateAst", "compiledTemplate", "templateIslands", "templateCompiledAt",
   "profileMidiId", "midiAutoplay", "midiLoop", "showTemplateSource",
-  "hiddenTabs",
+  "hiddenTabs", "status",
 ] as const satisfies ReadonlyArray<keyof Profile>;
 
 function profileFor(profile: Profile | null, isOwner: boolean) {

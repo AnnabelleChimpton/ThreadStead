@@ -38,6 +38,8 @@ import { validatePasswordStrength } from "@/lib/auth/password";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
 import YourPage from "@/components/features/profile/YourPage";
+import BannerUpload from "@/components/core/profile/BannerUpload";
+import { STATUS_MAX } from "@/lib/domain/profile/status";
 
 // We'll need to extract blocks functionality into a component
 interface UserSettingsProps {
@@ -52,6 +54,8 @@ interface UserSettingsProps {
       bio?: string | null;
       visibility?: 'public' | 'private' | 'friends' | 'followers' | null;
       showInVisitorTrails?: boolean | null;
+      status?: string | null;
+      bannerUrl?: string | null;
       avatarUrl?: string | null;
       customCSS?: string | null;
       templateEnabled?: boolean | null;
@@ -79,6 +83,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
   // Profile state
   const [displayName, setDisplayName] = useState(initialUser.profile?.displayName || "");
   const [bio, setBio] = useState(initialUser.profile?.bio || "");
+  const [status, setStatus] = useState<string>(initialUser.profile?.status || "");
   const [visibility, setVisibility] = useState<'public' | 'private' | 'friends' | 'followers'>(
     (initialUser.profile?.visibility as 'public' | 'private' | 'friends' | 'followers') || 'public'
   );
@@ -106,7 +111,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
 
   // What the profile form holds vs what's saved, for the save bar and the
   // leave-the-page guard (the photo saves on its own, so it isn't here)
-  const profileSnapshot = JSON.stringify({ displayName, bio, visibility, showInVisitorTrails, websites, featuredFriends });
+  const profileSnapshot = JSON.stringify({ displayName, bio, status, visibility, showInVisitorTrails, websites, featuredFriends });
   const [savedProfileSnapshot, setSavedProfileSnapshot] = useState(profileSnapshot);
   const profileDirty = profileSnapshot !== savedProfileSnapshot;
   useEffect(() => {
@@ -251,6 +256,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
         body: JSON.stringify({
           displayName,
           bio,
+          status,
           visibility,
           showInVisitorTrails,
           blogroll,
@@ -697,6 +703,23 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
             </div>
 
             <div>
+              <label className="block mb-2" htmlFor="profile-status">
+                <span className="font-bold text-black">Status</span>
+              </label>
+              <p className="text-sm text-nb-ink-mid mb-2">A short line under your name, like what you&apos;re up to. Leave it empty for the site&apos;s usual label.</p>
+              <input
+                id="profile-status"
+                type="text"
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                maxLength={STATUS_MAX}
+                className="w-full max-w-md border-2 border-nb-ink-mid/60 rounded-md p-3 bg-white focus:outline-none focus:border-nb-ink-mid"
+                placeholder="knitting a very long scarf"
+              />
+              <p className="text-xs text-nb-ink-mid mt-1">{status.length} / {STATUS_MAX}</p>
+            </div>
+
+            <div>
               <label className="block mb-2">
                 <span className="font-bold text-black">Bio</span>
               </label>
@@ -813,6 +836,10 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                 onUploadSuccess={handlePhotoUploadSuccess}
                 disabled={saving}
               />
+            </div>
+
+            <div className="border-t-2 border-dotted border-nb-ink-mid/40 pt-6">
+              <BannerUpload initialUrl={initialUser.profile?.bannerUrl} />
             </div>
 
             <div className="border-t-2 border-dotted border-nb-ink-mid/40 pt-6">
@@ -1875,6 +1902,8 @@ export const getServerSideProps: GetServerSideProps<UserSettingsProps> = async (
             bio: userData.profile.bio || null,
             visibility: (userData.profile.visibility as 'public' | 'private' | 'friends' | 'followers') || 'public',
             showInVisitorTrails: userData.profile.showInVisitorTrails,
+            status: userData.profile.status,
+            bannerUrl: userData.profile.bannerUrl,
             avatarUrl: userData.profile.avatarUrl || null,
             customCSS: userData.profile.customCSS || null,
             templateEnabled: userData.profile.templateEnabled ?? null,

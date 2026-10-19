@@ -21,6 +21,10 @@ interface ProfileHeaderProps {
   onRelStatusChange: (status: string) => void;
   /** The link out to their pixel home; the profile page passes whether they have one */
   showPixelHomeLink?: boolean;
+  /** A wide image across the top (Settings > Profile) */
+  bannerUrl?: string;
+  /** Their own status line, shown in place of the site's resident label */
+  status?: string;
 }
 
 export default function ProfileHeader({
@@ -31,7 +35,9 @@ export default function ProfileHeader({
   bio,
   relStatus,
   onRelStatusChange,
-  showPixelHomeLink = true
+  showPixelHomeLink = true,
+  bannerUrl,
+  status,
 }: ProfileHeaderProps) {
   const nameToShow = displayName || username;
   const { config } = useSiteConfig();
@@ -43,6 +49,18 @@ export default function ProfileHeader({
 
   return (
     <div className="ts-profile-header" data-component="profile-header">
+      {bannerUrl && (
+        <div className="ts-profile-banner mb-4">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={bannerUrl}
+            alt=""
+            width={1500}
+            height={500}
+            className="block w-full h-auto aspect-[3/1] object-cover"
+          />
+        </div>
+      )}
       <div className="ts-profile-header-layout flex flex-col sm:flex-row sm:items-start sm:gap-6">
         <div className="ts-profile-photo-section">
           <ProfilePhoto src={photoUrl} alt={`${username}'s profile photo`} />
@@ -53,7 +71,7 @@ export default function ProfileHeader({
               {nameToShow}
             </h2>
             <span className="ts-profile-status thread-label">
-              {config.user_status_text}
+              {status || config.user_status_text}
             </span>
           </div>
           {bio ? (

@@ -155,6 +155,9 @@ model Profile {
   widgetSlot          Json?
   // Profile tabs the owner hid (Settings > Your page). Blog always shows.
   hiddenTabs          String[]                 @default([])
+  // A short line of the owner's own under their name ("knitting a scarf"),
+  // in place of the site's resident label. Up to STATUS_MAX characters.
+  status              String?
   // Full-text search: displayName (A) + bio (B), `simple` config. Maintained
   // by a trigger (20261017000000_add_search_fts) — never write it from Prisma.
   searchTsv           Unsupported("tsvector")? @map("search_tsv")

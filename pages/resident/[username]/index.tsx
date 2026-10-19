@@ -52,6 +52,9 @@ type ProfileProps = {
   ownerUserId: string;
   bio?: string;
   photoUrl?: string;
+  /** Their banner across the top of the header, and their own status line */
+  bannerUrl?: string;
+  status?: string;
   customCSS?: string;
   websites?: Website[];
   featuredFriends?: SelectedFriend[];
@@ -96,6 +99,8 @@ export default function ProfilePage({
   ownerUserId,
   bio,
   photoUrl = "/assets/default-avatar.gif",
+  bannerUrl,
+  status,
   customCSS,
   websites = [],
   featuredFriends = [],
@@ -338,6 +343,8 @@ export default function ProfilePage({
             ownerUserId={ownerUserId}
             photoUrl={photoUrl}
             bio={bio}
+            bannerUrl={bannerUrl}
+            status={status}
             relStatus={relStatus}
             onRelStatusChange={setRelStatus}
             showPixelHomeLink={hasPixelHome}
@@ -451,6 +458,8 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
       blogroll?: unknown[];
       featuredFriends?: unknown[];
       hiddenTabs?: string[];
+      bannerUrl?: string | null;
+      status?: string | null;
     };
     profileMidi?: {
       url: string;
@@ -690,6 +699,8 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   };
   if (data.profile?.bio != null) props.bio = data.profile.bio;
   if (data.profile?.avatarUrl != null) props.photoUrl = data.profile.avatarUrl;
+  if (data.profile?.bannerUrl) props.bannerUrl = data.profile.bannerUrl;
+  if (data.profile?.status) props.status = data.profile.status;
   if (customTemplateAst != null) props.customTemplateAst = customTemplateAst;
   if (residentData != null) props.residentData = residentData;
   // hideNavigation should only apply to advanced templates, always show navigation in standard mode
