@@ -3,12 +3,12 @@ import HouseSVG, { HouseTemplate, ColorPalette, HouseCustomizations, AtmosphereS
 import DecorationSVG from './DecorationSVG'
 import { SkyGradientDefs, GroundGradientDefs, TerrainDitherDefs, GrassTextureDefs, getSkyPatternCount, getGroundPatternCount, layoutDitherBands } from './DitherPatternDefs'
 import { useSvgIdPrefix } from './useSvgIdPrefix'
-import { DecorationItem, TERRAIN_TILES } from '@/lib/pixel-homes/decoration-data'
+import { DecorationItem, TERRAIN_TILES, isFlipped } from '@/lib/pixel-homes/decoration-data'
 import { DEFAULT_DECORATION_GRID } from '@/lib/pixel-homes/decoration-grid-utils'
 import { getDecorationDimensions } from '@/lib/pixel-homes/decoration-dimensions'
 import type { ScenePointer } from '@/lib/pixel-homes/editor-interaction'
 import { pickPixelScale } from '@/lib/pixel-homes/pixel-scale'
-import { decorationDepth, houseDepth, HOUSE_BOX, OVERLAY_DEPTH } from '@/lib/pixel-homes/depth'
+import { decorationDepth, houseDepth, HOUSE_BOX } from '@/lib/pixel-homes/depth'
 
 /** A pointer event over the scene, in scene coordinates (see lib/pixel-homes/editor-interaction.ts). */
 export type ScenePointerKind = 'down' | 'move' | 'up' | 'cancel' | 'leave'
@@ -326,7 +326,10 @@ const DecorationSprite = memo(function DecorationSprite({ item, selected, editab
       <div
         data-decoration-id={editable ? item.id : undefined}
         className={`pointer-events-auto ${editable ? 'cursor-pointer' : ''} ${deleting ? 'transition-all duration-150 hover:outline hover:outline-3 hover:outline-red-500 hover:outline-offset-2 rounded hover:scale-110 hover:brightness-90' : ''}`}
-        style={selected ? { outline: '1px dotted #4a403d', outlineOffset: 1 } : undefined}
+        style={{
+          ...(selected && { outline: '1px dotted #4a403d', outlineOffset: 1 }),
+          ...(isFlipped(item) && { transform: 'scaleX(-1)' })
+        }}
       >
         {art}
       </div>
@@ -543,39 +546,6 @@ export default function EnhancedHouseCanvas({
 
           {overlay}
 
-          {/* Decoration Mode Overlay */}
-          {isDecorationMode && (
-            <div className="absolute inset-0 pointer-events-none" style={{ zIndex: OVERLAY_DEPTH }}>
-              {/* Zone guides */}
-              <div
-                className="absolute border-2 border-dashed border-blue-300 opacity-50"
-                style={{
-                  left: DECORATION_ZONES.background.x,
-                  top: DECORATION_ZONES.background.y,
-                  width: DECORATION_ZONES.background.width,
-                  height: DECORATION_ZONES.background.height
-                }}
-              >
-                <div className="absolute top-1 left-1 text-xs text-blue-600 font-medium bg-white/80 px-1 rounded">
-                  {DECORATION_ZONES.background.label}
-                </div>
-              </div>
-
-              <div
-                className="absolute border-2 border-dashed border-green-300 opacity-50"
-                style={{
-                  left: DECORATION_ZONES.front_yard.x,
-                  top: DECORATION_ZONES.front_yard.y,
-                  width: DECORATION_ZONES.front_yard.width,
-                  height: DECORATION_ZONES.front_yard.height
-                }}
-              >
-                <div className="absolute top-1 left-1 text-xs text-green-600 font-medium bg-white/80 px-1 rounded">
-                  {DECORATION_ZONES.front_yard.label}
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
 

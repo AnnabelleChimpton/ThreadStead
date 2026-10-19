@@ -10,7 +10,7 @@
  *  - `docFromProps` and `toSavePayload` are the only ways in and out, so the
  *    load → edit → save round trip has one place to test.
  */
-import type { DecorationItem } from './decoration-data'
+import { isFlipped, type DecorationItem } from './decoration-data'
 import type { Placement } from './placement'
 import { clampLayerBias } from './depth'
 import { customSlotOf } from './custom-art'
@@ -45,6 +45,8 @@ export type EditorAction =
   | { type: 'setHouse'; changes: Partial<HouseCustomizations>; mergeKey?: string }
   | { type: 'setAtmosphere'; changes: Partial<AtmosphereSettings> }
   | { type: 'setTheme'; template: HouseTemplate; palette: ColorPalette }
+  /** Put a whole document in place (a restored draft): one undo step. */
+  | { type: 'replace'; doc: EditorDoc }
   | { type: 'beginStroke' }
   | { type: 'paintCell'; key: string; tile: string | null }
   | { type: 'endStroke' }
@@ -94,6 +96,7 @@ export function docKey(doc: EditorDoc): string {
       text: decorationText(d),
       grid: d.gridX != null && d.gridY != null ? [d.gridX, d.gridY] : null,
       bias: clampLayerBias(d.layerBias),
+      flip: isFlipped(d),
     })),
     house: doc.house,
     atmosphere: doc.atmosphere,
@@ -197,6 +200,10 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
     case 'setTheme':
       if (doc.template === action.template && doc.palette === action.palette) return state
       return edit(state, { ...doc, template: action.template, palette: action.palette })
+
+    case 'replace':
+      if (docKey(action.doc) === docKey(doc)) return state
+      return edit(endStroke(state), action.doc)
 
     case 'beginStroke':
       if (state.strokeBase) return state
@@ -316,7 +323,7 @@ export function docFromProps(input: EditorDocInput): EditorDoc {
 
 /** A decoration's stored `data`: custom art's slot (never its file), or sign text over whatever else it carried. */
 function saveData(d: DecorationItem): Record<string, unknown> | null {
-  if (d.type === 'custom') return { slot: customSlotOf(catalogId(d)) }
+  if (d.type === 'custom') return { slot: customSlotOf(catalogId(d)), ...(isFlipped(d) && { flip: true }) }
   const { text: _oldText, ...rest } = (d.data && typeof d.data === 'object' ? d.data : {}) as Record<string, unknown>
   const text = decorationText(d)
   if (text) return { ...rest, text }

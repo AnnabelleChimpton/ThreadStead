@@ -277,3 +277,22 @@ describe('placing, loading and saving', () => {
     expect(parsed.data?.decorations[1]).toMatchObject({ decorationId: 'lamp_post_3', positionX: 100, positionY: 200, gridX: null, layerBias: 0 })
   })
 })
+
+describe('restoring a draft and flipping', () => {
+  test('replace puts a whole document in place as one undo step, and does nothing for the same home', () => {
+    const draft = { ...base, atmosphere: { ...base.atmosphere, sky: 'night' as const }, terrain: {} }
+    const s = run({ type: 'replace', doc: draft })
+    expect(s.present).toBe(draft)
+    expect(isDirty(s)).toBe(true)
+    expect(then(s, undo).present).toBe(base)
+    expect(run({ type: 'replace', doc: { ...base } }).past).toHaveLength(0)
+  })
+
+  test('a flip counts as a change and is saved, for custom art too', () => {
+    const flipped = rose('roses_red_1', 64, 240, { data: { flip: true } })
+    expect(docKey({ ...base, decorations: [flipped] })).not.toBe(docKey(base))
+    expect(toSavePayload({ ...base, decorations: [flipped] }).decorations[0].data).toEqual({ flip: true })
+    const art = { id: 'custom_asset_1_x', decorationId: 'custom_asset_1', name: 'Art', type: 'custom', data: { flip: true } } as DecorationItem
+    expect(toSavePayload({ ...base, decorations: [art] }).decorations[0].data).toEqual({ slot: 1, flip: true })
+  })
+})

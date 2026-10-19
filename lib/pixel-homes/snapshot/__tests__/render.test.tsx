@@ -6,6 +6,7 @@
  * whole square, never blended with its neighbours.
  */
 import sharp from 'sharp'
+import { getDecorationDimensions } from '@/lib/pixel-homes/decoration-dimensions'
 import {
   CARD_SIZE,
   OG_SIZE,
@@ -202,6 +203,19 @@ describe('renderHomeSnapshot', () => {
     const lower = { ...decoration({ x: 240, y: 152, pngUrl: 'https://cdn.test/blue.png' }), id: 'b', layerBias: 1 }
     const both = await renderHomeSnapshot(scene({ decorations: [lower, forward] }), { loadImage: load })
     expect((await pixels(both.card)).at(250, 160)).toEqual(BLUE)
+  })
+
+  test('a flipped decoration is mirrored in its box, as the canvas draws it', async () => {
+    // left half red, right half blue
+    const halves = await sharp(Buffer.from([...RED, ...BLUE]), { raw: { width: 2, height: 1, channels: 4 } }).png().toBuffer()
+    const plain = decoration({ x: 300, y: 280, pngUrl: 'https://cdn.test/h.png' })
+    const flipped = { ...plain, data: { flip: true } }
+    const at = async (item: typeof plain) =>
+      (await pixels((await renderHomeSnapshot(scene({ decorations: [item] }), { loadImage: async () => halves })).card))
+    const box = getDecorationDimensions('daisies_white', 'plant').width
+    expect((await at(plain)).at(302, 290)).toEqual(RED)
+    expect((await at(flipped)).at(302, 290)).toEqual(BLUE)
+    expect((await at(flipped)).at(300 + box - 2, 290)).toEqual(RED)
   })
 
   test('terrain tiles are drawn on the grid', async () => {

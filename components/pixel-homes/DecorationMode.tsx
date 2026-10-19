@@ -2,10 +2,11 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import EnhancedHouseCanvas, { type ScenePointerKind } from './EnhancedHouseCanvas'
 import { pickPixelScale } from '../../lib/pixel-homes/pixel-scale'
 import PlacementGhost, { type PlacementGhostHandle } from './PlacementGhost'
+import DecorationInspector from './DecorationInspector'
 import EditorSheet, { type SheetSnap } from './EditorSheet'
 import { useViewportSize } from '../../hooks/pixel-homes/useViewportSize'
 import DecorationPalette from './DecorationPalette'
-import { DecorationItem, TERRAIN_TILES } from '../../lib/pixel-homes/decoration-data'
+import { DecorationItem, TERRAIN_TILES, isFlipped } from '../../lib/pixel-homes/decoration-data'
 
 // House color picker items - these are UI triggers for the color picker, not actual decorations
 // Kept as constants since they don't need to be managed via admin
@@ -31,6 +32,7 @@ import { useUnsavedChangesGuard } from '../../hooks/useUnsavedChangesGuard'
 import { retroSFX } from '../../lib/audio/retro-sfx'
 import { MAX_DECORATIONS } from '../../lib/pixel-homes/decoration-save-rules'
 import { catalogId, docFromProps, newPlacement, toSavePayload, type SavePayload } from '../../lib/pixel-homes/editor-doc'
+import { clearDraft, draftTime, draftToOffer, writeDraft, type EditorDraft } from '../../lib/pixel-homes/editor-draft'
 import {
   IDLE,
   interact,
@@ -45,10 +47,15 @@ const TERRAIN_MIN_GRID_Y = 6
 const GRID_COLUMNS = 32
 const GRID_ROWS = 22
 
+/** Autosave waits this long after the last edit. */
+const DRAFT_DELAY_MS = 1000
+
 // Fixed heights, so the phone sheet's snap points can be worked out
 const HEADER_HEIGHT = 44
 const BAR_HEIGHT = 48
 const SCENE_PADDING = 8
+/** The draft notice on a phone (two lines). */
+const DRAFT_NOTICE_HEIGHT = 76
 /** The phone sheet at its smallest: the handle, the tabs and a row of tiles. */
 const SHEET_PEEK = 168
 
@@ -144,6 +151,34 @@ export default function DecorationMode({
   const [keyboardCursor, setKeyboardCursor] = useState(false)
   // Read out by screen readers after a keyboard action
   const [announcement, setAnnouncement] = useState('')
+  // A draft of unsaved work from an earlier visit, waiting for Restore or
+  // Discard. Until they choose, autosave leaves the stored draft alone.
+  const [offeredDraft, setOfferedDraft] = useState<EditorDraft | null>(null)
+  const [draftAnswered, setDraftAnswered] = useState(false)
+  useEffect(() => {
+    const draft = draftToOffer(username, initialDoc)
+    if (draft) setOfferedDraft(draft)
+    else setDraftAnswered(true)
+    // Read once, against the home as it opened
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Autosave: a second after the last edit, keep the unsaved document here
+  useEffect(() => {
+    if (!draftAnswered) return
+    const timer = setTimeout(() => {
+      if (isDirty) writeDraft(username, doc)
+      else clearDraft(username)
+    }, DRAFT_DELAY_MS)
+    return () => clearTimeout(timer)
+  }, [doc, isDirty, draftAnswered, username])
+
+  // "See it as a visitor": the scene with no editing chrome, and no palette
+  const [previewing, setPreviewing] = useState(false)
+  const [modKeyLabel, setModKeyLabel] = useState('Ctrl+')
+  useEffect(() => {
+    if (navigator.platform.toUpperCase().includes('MAC')) setModKeyLabel('⌘')
+  }, [])
 
   // SFX State - persisted to localStorage
   const [sfxMuted, setSfxMuted] = useState(() => {
@@ -178,13 +213,38 @@ export default function DecorationMode({
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0
+      const modKey = isMac ? e.metaKey : e.ctrlKey
+
+      // Ctrl/Cmd+S - Save, from anywhere in the editor (typing included)
+      if (modKey && !e.shiftKey && e.key.toLowerCase() === 's') {
+        e.preventDefault()
+        void saveRef.current()
+        return
+      }
+
       // Don't trigger shortcuts when typing in input fields
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
         return
       }
 
-      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0
-      const modKey = isMac ? e.metaKey : e.ctrlKey
+      const selectedOne = selectedDecorations.size === 1
+        ? decorationsRef.current.find(d => selectedDecorations.has(d.id))
+        : undefined
+
+      // Ctrl/Cmd+D - Duplicate the selected decoration
+      if (modKey && e.key.toLowerCase() === 'd' && selectedOne) {
+        e.preventDefault()
+        itemActionsRef.current.duplicate(selectedOne)
+        return
+      }
+
+      // F - Flip the selected decoration
+      if (!modKey && !e.altKey && e.key.toLowerCase() === 'f' && selectedOne) {
+        e.preventDefault()
+        itemActionsRef.current.flip(selectedOne)
+        return
+      }
 
       // Ctrl/Cmd+Z - Undo
       if (modKey && !e.shiftKey && e.key === 'z') {
@@ -224,9 +284,10 @@ export default function DecorationMode({
         return
       }
 
-      // Escape - Exit current mode / clear selection
+      // Escape - Exit current mode / clear selection (or leave the preview)
       if (e.key === 'Escape') {
         e.preventDefault()
+        setPreviewing(false)
         runRef.current({ type: 'escape' })
         return
       }
@@ -660,8 +721,13 @@ export default function DecorationMode({
     }
   }, [])
 
-  // Set once shiftLayer exists, further down
+  // Set once shiftLayer and the item actions exist, further down
   const shiftLayerRef = useRef<(decoration: DecorationItem, by: -1 | 1) => void>(() => {})
+  const itemActionsRef = useRef<Record<'flip' | 'duplicate' | 'remove', (d: DecorationItem) => void>>({
+    flip: () => {},
+    duplicate: () => {},
+    remove: () => {}
+  })
 
   // A release the scene never saw (pointer capture unavailable) still ends a press, drag or stroke
   useEffect(() => {
@@ -670,20 +736,19 @@ export default function DecorationMode({
     return () => window.removeEventListener('pointerup', onPointerUp)
   }, [])
 
-  const handleSave = async () => {
-    if (isSaving) return
+  const handleSave = async (): Promise<boolean> => {
+    if (isSaving) return false
     retroSFX.playSave()
 
     const docBeingSaved = doc
-    const keyBeingSaved = presentKey
-    if (!(await onSave(toSavePayload(docBeingSaved)))) return
+    if (!(await onSave(toSavePayload(docBeingSaved)))) return false
+    // You stay in the editor; edits made while it was saving stay unsaved
     dispatch({ type: 'saved', doc: docBeingSaved })
-    // Stay if something changed while the save was in flight
-    if (presentKeyRef.current === keyBeingSaved) {
-      allowLeave()
-      onExit()
-    }
+    if (presentKeyRef.current === presentKey) clearDraft(username)
+    return true
   }
+  const saveRef = useRef(handleSave)
+  saveRef.current = handleSave
 
   // Send back / bring forward: a whole depth level, past everything at its level
   const shiftLayer = (decoration: DecorationItem, by: -1 | 1) => {
@@ -694,6 +759,41 @@ export default function DecorationMode({
     setAnnouncement(`${itemName(decoration)} ${by > 0 ? 'brought forward' : 'sent back'}`)
   }
   shiftLayerRef.current = shiftLayer
+
+  // The selected decoration's tools (the inspector, and their keys)
+  const itemActions = {
+    flip: (d: DecorationItem) => {
+      const data = { ...(d.data && typeof d.data === 'object' ? d.data : {}) }
+      if (isFlipped(d)) delete data.flip
+      else data.flip = true
+      dispatch({ type: 'updateDecoration', id: d.id, changes: { data } })
+      setAnnouncement(`${itemName(d)} flipped`)
+    },
+    duplicate: (d: DecorationItem) => {
+      if (placedDecorations.length >= MAX_DECORATIONS) {
+        appToast.showWarning(`Decoration limit reached (${MAX_DECORATIONS} max)`)
+        return
+      }
+      // One cell to the right, or to the left at the yard's edge
+      const x = d.position?.x ?? 0
+      const y = d.position?.y ?? 0
+      let target = place(d, x + gridConfig.cellSize, y)
+      if (target.position.x === x) target = place(d, x - gridConfig.cellSize, y)
+      const copy = newPlacement(d, target)
+      dispatch({ type: 'place', decoration: copy })
+      selectDecoration(copy.id)
+      setSelectedItem(copy)
+      retroSFX.playPlaceItem()
+      setAnnouncement(`${itemName(d)} copied`)
+    },
+    remove: (d: DecorationItem) => {
+      removeDecorations(new Set([d.id]))
+      setSelectedItem(null)
+      retroSFX.playRemoveItem()
+      setAnnouncement(`${itemName(d)} removed`)
+    }
+  }
+  itemActionsRef.current = itemActions
 
   // ---------------------------------------------------------- keyboard --
   // The scene takes focus. Arrows move a dotted cursor cell (or nudge the
@@ -796,14 +896,15 @@ export default function DecorationMode({
   const [sheetSnap, setSheetSnap] = useState<SheetSnap>('fit')
   const sheetHeights = useMemo(() => {
     const { width, height, devicePixelRatio } = viewport
-    const roomForScene = height - HEADER_HEIGHT - BAR_HEIGHT
+    // The draft notice, while it's up, comes out of the palette's share, not the scene's
+    const roomForScene = height - HEADER_HEIGHT - BAR_HEIGHT - (offeredDraft ? DRAFT_NOTICE_HEIGHT : 0)
     const sceneHeight = (k: number) => Math.ceil(352 * k) + 2 * SCENE_PADDING
     const widthFit = pickPixelScale(width - 2 * SCENE_PADDING, devicePixelRatio, Infinity, { allowBelowOne: true })
     const smallest = pickPixelScale(width - 2 * SCENE_PADDING, devicePixelRatio, 0, { allowBelowOne: true })
     const full = Math.max(SHEET_PEEK, roomForScene - sceneHeight(smallest))
     const fit = Math.min(full, Math.max(SHEET_PEEK, roomForScene - sceneHeight(widthFit)))
     return { peek: SHEET_PEEK, fit, full }
-  }, [viewport])
+  }, [viewport, offeredDraft])
 
   const muteButton = (
     <button
@@ -836,7 +937,7 @@ export default function DecorationMode({
   const selectedOne = selectedDecorations.size === 1 ? placedDecorations.find(d => selectedDecorations.has(d.id)) : undefined
   const status =
     interaction.kind === 'armed' ? `Planting ${itemName(interaction.item)}`
-      : interaction.kind === 'painting' ? (brushName ? `Painting ${brushName}` : 'Erasing terrain')
+      : interaction.kind === 'painting' ? (brushName ? `Painting ${brushName} on the lawn` : 'Erasing terrain')
         : interaction.kind === 'erasing' ? 'Pick things to remove'
           : selectedOne ? `${itemName(selectedOne)} selected`
             : ''
@@ -854,12 +955,6 @@ export default function DecorationMode({
         setSelectedItem(null)
         retroSFX.playModeChange()
       }, false, isDeleting)}
-      {selectedOne && (
-        <>
-          {iconButton('Send back', 'arrow-down', () => shiftLayer(selectedOne, -1), clampLayerBias(selectedOne.layerBias) <= MIN_LAYER_BIAS)}
-          {iconButton('Bring forward', 'arrow-up', () => shiftLayer(selectedOne, 1), clampLayerBias(selectedOne.layerBias) >= MAX_LAYER_BIAS)}
-        </>
-      )}
       <div className="min-w-0 flex-1 flex items-center gap-2 px-1 text-sm text-thread-charcoal">
         <span className="truncate">{status}</span>
         {inMode && (
@@ -913,6 +1008,80 @@ export default function DecorationMode({
     />
   )
 
+  const inspector = selectedOne && interaction.kind === 'idle' ? (
+    <DecorationInspector
+      item={sceneDecorations.find(d => d.id === selectedOne.id) ?? selectedOne}
+      name={itemName(selectedOne)}
+      where={(() => {
+        const cell = { gx: Math.round((selectedOne.position?.x ?? 0) / gridConfig.cellSize), gy: Math.round((selectedOne.position?.y ?? 0) / gridConfig.cellSize) }
+        const label = cellLabel(cell)
+        return label.charAt(0).toUpperCase() + label.slice(1)
+      })()}
+      modKeyLabel={modKeyLabel}
+      canSendBack={clampLayerBias(selectedOne.layerBias) > MIN_LAYER_BIAS}
+      canBringForward={clampLayerBias(selectedOne.layerBias) < MAX_LAYER_BIAS}
+      onFlip={() => itemActions.flip(selectedOne)}
+      onSendBack={() => shiftLayer(selectedOne, -1)}
+      onBringForward={() => shiftLayer(selectedOne, 1)}
+      onDuplicate={() => itemActions.duplicate(selectedOne)}
+      onDelete={() => itemActions.remove(selectedOne)}
+      onTextChange={catalogId(selectedOne).startsWith('sign_post')
+        ? (text) => handleDecorationUpdate(selectedOne.id, { text })
+        : undefined}
+      onDone={() => {
+        clearSelection()
+        setSelectedItem(null)
+      }}
+    />
+  ) : null
+
+  // The side or bottom panel: the selected item's tools, or the palette
+  const panel = inspector ?? palette
+
+  const draftNotice = offeredDraft ? (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 border-b border-thread-sage/30 bg-thread-cream text-sm text-thread-charcoal shrink-0" role="status">
+      <span>You have unsaved changes from {draftTime(offeredDraft.at)}.</span>
+      <span className="flex gap-3">
+        <button
+          type="button"
+          className="ts-bare ts-text-button font-semibold"
+          onClick={() => {
+            dispatch({ type: 'replace', doc: offeredDraft.doc })
+            setOfferedDraft(null)
+            setDraftAnswered(true)
+          }}
+        >
+          Restore
+        </button>
+        <button
+          type="button"
+          className="ts-bare ts-text-button"
+          onClick={() => {
+            clearDraft(username)
+            setOfferedDraft(null)
+            setDraftAnswered(true)
+          }}
+        >
+          Discard
+        </button>
+      </span>
+    </div>
+  ) : null
+
+  const previewBar = (
+    <div
+      className="flex items-center gap-2 px-3 border-t border-thread-sage/30 bg-thread-paper shrink-0 text-sm"
+      style={{ height: BAR_HEIGHT }}
+    >
+      <span className="min-w-0 flex-1 truncate text-thread-charcoal">
+        {isDirty ? 'This is how it will look once you save.' : 'This is how neighbors see your yard.'}
+      </span>
+      <button type="button" onClick={() => setPreviewing(false)} className="btn btn--secondary shrink-0 px-3 py-1.5 text-sm">
+        Back to editing
+      </button>
+    </div>
+  )
+
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-thread-paper" style={{ height: '100dvh' }}>
       {/* A slim header instead of the site's: no stray nav clicks while editing */}
@@ -924,6 +1093,8 @@ export default function DecorationMode({
           type="button"
           onClick={async () => {
             if (!(await confirmLeave())) return
+            // They chose to drop the changes, so don't offer them back next time
+            if (isDirty) clearDraft(username)
             allowLeave()
             onExit()
           }}
@@ -932,9 +1103,31 @@ export default function DecorationMode({
           <PixelIcon name="arrow-left" size={16} />
           Back to my house
         </button>
-        <span className="ml-auto lg:ml-4 text-base font-headline font-bold text-thread-pine">Decorating</span>
-        <div className="lg:ml-auto">{muteButton}</div>
+        <span className="hidden sm:inline lg:ml-4 text-base font-headline font-bold text-thread-pine">Decorating</span>
+        <div className="ml-auto flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => {
+              if (!previewing) {
+                runInteraction({ type: 'reset' })
+                clearSelection()
+                setSelectedItem(null)
+              }
+              setPreviewing(!previewing)
+            }}
+            aria-pressed={previewing}
+            aria-label="See it as a visitor"
+            className="ts-bare ts-text-button flex items-center gap-1 text-sm"
+          >
+            <PixelIcon name="eye" size={16} />
+            <span className="hidden sm:inline">See it as a visitor</span>
+            <span className="sm:hidden">Preview</span>
+          </button>
+          {muteButton}
+        </div>
       </header>
+
+      {draftNotice}
 
       <div className="flex-1 min-h-0 flex flex-col lg:flex-row">
         <section className="flex-1 min-h-0 flex flex-col bg-thread-cream/50" aria-label="Your yard">
@@ -946,14 +1139,14 @@ export default function DecorationMode({
               houseCustomizations={houseCustomizations}
               atmosphere={atmosphere}
               terrain={terrain}
-              isDecorationMode={true}
+              isDecorationMode={!previewing}
               isDeleting={isDeleting}
               pixelPerfect
               fitBox
               className="h-full w-full"
-              onScenePointer={handleScenePointer}
-              selectedDecorations={selectedDecorations}
-              sceneProps={{
+              onScenePointer={previewing ? undefined : handleScenePointer}
+              selectedDecorations={previewing ? undefined : selectedDecorations}
+              sceneProps={previewing ? undefined : {
                 tabIndex: 0,
                 role: 'application',
                 'aria-label': 'Your yard. Arrow keys move the cursor, Enter plants or picks.',
@@ -968,7 +1161,7 @@ export default function DecorationMode({
                 onBlur: () => setKeyboardCursor(false),
                 onPointerDownCapture: () => setKeyboardCursor(false)
               }}
-              overlay={
+              overlay={previewing ? undefined : (
                 <>
                   <PlacementGhost ref={ghostRef} />
                   {keyboardCursor && (
@@ -986,20 +1179,23 @@ export default function DecorationMode({
                     />
                   )}
                 </>
-              }
+              )}
             />
           </div>
-          {actionBar}
+          {previewing ? previewBar : actionBar}
           <p id="decorate-status" className="sr-only" aria-live="polite">{announcement}</p>
         </section>
 
-        {isNarrow ? (
+        {previewing ? null : isNarrow ? (
           <EditorSheet heights={sheetHeights} snap={sheetSnap} onSnapChange={setSheetSnap}>
-            {palette}
+            {panel}
           </EditorSheet>
         ) : (
-          <aside className="w-[360px] xl:w-[400px] shrink-0 border-l border-thread-sage/30 bg-thread-paper flex flex-col min-h-0" aria-label="Palette">
-            {palette}
+          <aside
+            className="w-[360px] xl:w-[400px] shrink-0 border-l border-thread-sage/30 bg-thread-paper flex flex-col min-h-0"
+            aria-label={inspector ? 'Selected decoration' : 'Palette'}
+          >
+            {panel}
           </aside>
         )}
       </div>

@@ -64,6 +64,7 @@ export function snapshotHash(scene: HomeScene): string {
       y: d.position?.y,
       layer: d.position?.layer,
       bias: d.layerBias ?? 0,
+      flip: d.data && typeof d.data === 'object' && (d.data as { flip?: unknown }).flip === true,
       variant: d.variant,
       size: d.size,
       text: decorationText(d),

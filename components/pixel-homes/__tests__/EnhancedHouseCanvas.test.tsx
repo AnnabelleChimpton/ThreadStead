@@ -176,3 +176,10 @@ test('the house sorts with the sprites: a tree whose feet are above its sort lin
   // and they share one stacking context with it: the sprites' layer sets no z-index of its own
   expect((container.querySelector('[data-decoration-id="tree_r"]')!.parentElement!.parentElement as HTMLElement).style.zIndex).toBe('')
 })
+
+test('a flipped decoration is drawn mirrored; zone guides are gone from the art', () => {
+  const flipped = { id: 'f_r', decorationId: 'roses_red', name: 'Rose', type: 'plant' as const, position: { x: 32, y: 240 }, data: { flip: true } }
+  const { container } = render(scene({ decorations: [flipped] }))
+  expect((container.querySelector('[data-decoration-id="f_r"]') as HTMLElement).style.transform).toBe('scaleX(-1)')
+  expect(container.textContent).not.toMatch(/Front Yard|Background & Sky/)
+})

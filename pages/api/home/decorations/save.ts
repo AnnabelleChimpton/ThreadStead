@@ -93,7 +93,7 @@ export default apiHandler(
           size: decoration.size || "medium",
           // Custom art keeps only its slot, never a file URL
           data: (custom
-            ? { slot: customSlotOf(decoration.decorationId) }
+            ? { slot: customSlotOf(decoration.decorationId), ...(decoration.data?.flip === true && { flip: true }) }
             : decoration.data ?? undefined) as Prisma.InputJsonValue | undefined,
         };
       });

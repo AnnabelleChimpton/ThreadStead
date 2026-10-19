@@ -46,7 +46,7 @@ import { WaterSVGs } from '@/components/pixel-homes/assets/WaterSVGs'
 import { StructureSVGs } from '@/components/pixel-homes/assets/StructureSVGs'
 import { SeasonalSVGs } from '@/components/pixel-homes/assets/SeasonalSVGs'
 import { HouseCustomSVGs } from '@/components/pixel-homes/assets/HouseCustomSVGs'
-import { TERRAIN_TILES } from '@/lib/pixel-homes/decoration-data'
+import { TERRAIN_TILES, isFlipped } from '@/lib/pixel-homes/decoration-data'
 import { DEFAULT_DECORATION_GRID } from '@/lib/pixel-homes/decoration-grid-utils'
 import { getDecorationDimensions } from '@/lib/pixel-homes/decoration-dimensions'
 import { decorationText, type HomeScene, type SceneDecoration } from '@/lib/pixel-homes/home-scene'
@@ -96,7 +96,8 @@ const MAX_TOP_CROP = 30
 
 /** Bump when the drawing changes, so the backfill re-renders every home. */
 // 2: the house sorts with the decorations by depth (lib/pixel-homes/depth.ts)
-export const SNAPSHOT_RENDERER_VERSION = 2
+// 3: flipped decorations are drawn mirrored
+export const SNAPSHOT_RENDERER_VERSION = 3
 
 /** Fetch an image's bytes, or null if it can't be had (a 404, an origin we don't fetch from). */
 export type ImageLoader = (url: string) => Promise<Buffer | null>
@@ -290,6 +291,15 @@ function Terrain({ terrain }: { terrain: Record<string, string> }) {
   )
 }
 
+/** A flipped decoration, mirrored about the middle of its box (the canvas flips its art in place). */
+async function mirrored(item: SceneDecoration, markup: Promise<string>): Promise<string> {
+  const art = await markup
+  if (!art || !isFlipped(item)) return art
+  const box = getDecorationDimensions(item.decorationId || item.id, item.type, sizeOf(item))
+  const centreTwice = 2 * (item.position?.x || 0) + box.width
+  return `<g transform="translate(${round2(centreTwice)} 0) scale(-1 1)">${art}</g>`
+}
+
 /**
  * The scene as one SVG document in canvas units. `padX` carries the sky and
  * grass that many units past each side of the yard.
@@ -318,7 +328,7 @@ export async function renderSceneSvg(
     ...scene.decorations.map((item, index) => ({ depth: decorationDepth(item), index, item })),
   ].sort((a, b) => a.depth - b.depth || a.index - b.index)
   const decorations = await Promise.all(
-    ordered.map(({ item }) => (item ? decorationMarkup(item, loadImage) : Promise.resolve(house)))
+    ordered.map(({ item }) => (item ? mirrored(item, decorationMarkup(item, loadImage)) : Promise.resolve(house)))
   )
 
   return (

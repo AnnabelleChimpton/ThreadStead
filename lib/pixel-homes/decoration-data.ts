@@ -23,6 +23,12 @@ export interface DecorationItem {
     [key: string]: any
 }
 
+/** Whether a placed decoration is drawn mirrored (stored as data.flip). */
+export function isFlipped(d: unknown): boolean {
+    const data = (d as { data?: unknown } | null)?.data
+    return !!(data && typeof data === 'object' && (data as { flip?: unknown }).flip === true)
+}
+
 export interface AtmosphereSettings {
     sky: 'sunny' | 'cloudy' | 'sunset' | 'night'
     weather: 'clear' | 'light_rain' | 'light_snow'

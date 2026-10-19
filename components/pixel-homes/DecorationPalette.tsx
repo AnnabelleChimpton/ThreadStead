@@ -5,6 +5,7 @@ import { HouseCustomizations, HouseTemplate, ColorPalette } from './HouseSVG'
 import { DecorationItem, TERRAIN_TILES, TerrainTile } from '../../lib/pixel-homes/decoration-data'
 import { PixelIcon, PixelIconName } from '@/components/ui/PixelIcon'
 import { DECORATION_CATEGORY_ICONS, getCategoryIcon } from '@/lib/pixel-homes/category-icons'
+import { matchesSearch } from '@/lib/pixel-homes/palette-search'
 import { retroSFX } from '../../lib/audio/retro-sfx'
 import { normalizeHexColor } from '../../lib/pixel-homes/decoration-save-rules'
 
@@ -292,7 +293,7 @@ const PRIMARY_CATEGORIES: Record<string, {
 }> = {
   decorations: {
     label: 'Decor',
-    icon: 'paint-bucket',
+    icon: 'gift',
     subcategories: {
       custom: { label: 'My Art', icon: 'image' },
       plants: { label: 'Plants', icon: 'drop' },
@@ -325,7 +326,7 @@ const PRIMARY_CATEGORIES: Record<string, {
   },
   themes: {
     label: 'Themes',
-    icon: 'paint-bucket',
+    icon: 'buildings',
     subcategories: {}
   },
   colors: {
@@ -434,19 +435,18 @@ export default function DecorationPalette({
     return result
   }, [items])
 
-  // Filter items based on search
+  // Filter items based on search: names, ids, and the words for each category ("lamp", "flower")
   const filteredItems = useMemo(() => {
-    if (!searchQuery) return transformedItems
+    if (!searchQuery.trim()) return transformedItems
 
     const filtered: Record<string, DecorationItem[]> = {}
-    Object.entries(transformedItems).forEach(([category, itemList]) => {
-      filtered[category] = itemList.filter(item =>
-        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.id.toLowerCase().includes(searchQuery.toLowerCase())
-      )
+    Object.entries(items).forEach(([category, itemList]) => {
+      filtered[category] = itemList.filter(item => matchesSearch(item, category, searchQuery))
     })
+    filtered.decorations = ['plants', 'furniture', 'lighting', 'water', 'structures', 'paths', 'features']
+      .flatMap(category => filtered[category] ?? [])
     return filtered
-  }, [transformedItems, searchQuery])
+  }, [items, transformedItems, searchQuery])
 
   // Get current items to display
   const getCurrentItems = (): DecorationItem[] => {
@@ -979,7 +979,7 @@ export default function DecorationPalette({
           <div className="relative">
             <input
               type="text"
-              placeholder="Search decorations..."
+              placeholder="Search: lamp, flower, bench…"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full px-4 py-2 pl-10 border border-thread-sage/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-thread-sky focus:border-thread-sky text-sm text-gray-900 bg-white touch-manipulation"
@@ -1002,20 +1002,18 @@ export default function DecorationPalette({
 
       {/* Primary Category Navigation */}
       <div className="px-4 pb-2 pt-2">
-        <div className={`flex overflow-x-auto hide-scrollbar ${isMobile ? 'px-2' : 'px-4'} py-2 gap-2`}>
+        {/* Every tab in view: they wrap rather than scroll out of sight */}
+        <div className="grid grid-cols-4 gap-1" role="tablist" aria-label="Palette">
           {Object.entries(PRIMARY_CATEGORIES).map(([key, category]) => (
             <button
               key={key}
+              role="tab"
+              aria-selected={primaryCategory === key}
               onClick={() => handlePrimaryChange(key)}
-              className={`
-                shrink-0 flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all touch-manipulation
-                ${primaryCategory === key
-                  ? 'bg-thread-sky/30 text-thread-pine shadow-sm ring-1 ring-thread-sky/50'
-                  : 'bg-thread-cream/50 text-thread-sage hover:bg-thread-cream hover:text-thread-pine'
-                }
-              `}
+              // The site's own tab: an ink underline marks the open one
+              className="ts-tab flex flex-col items-center gap-0.5 text-xs whitespace-nowrap touch-manipulation"
             >
-              <PixelIcon name={category.icon} size={20} />
+              <PixelIcon name={category.icon} size={18} />
               <span>{category.label}</span>
             </button>
           ))}
@@ -1025,7 +1023,7 @@ export default function DecorationPalette({
       {/* Secondary Category Navigation */}
       {hasSecondaryCategories && !searchQuery && primaryCategory !== 'themes' && primaryCategory !== 'text' && primaryCategory !== 'terrain' && !selectedItem?.type?.includes('house_color') && !selectedItem?.id.startsWith('sign_post') && (
         <div className="flex-none border-b border-thread-sage/20 bg-thread-cream/30">
-          <div className={`flex overflow-x-auto hide-scrollbar ${isMobile ? 'px-2' : 'px-4'} py-2 gap-2`}>
+          <div className="flex flex-wrap px-3 py-1 gap-x-1" role="tablist" aria-label="Kinds">
             {Object.entries(secondaryCategories).map(([key, subcategory]) => (
               <button
                 key={key}
@@ -1034,16 +1032,11 @@ export default function DecorationPalette({
                   setSecondaryCategory(key)
                   retroSFX.playSelectItem()
                 }}
-                className={`
-                  shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all touch-manipulation
-                  ${secondaryCategory === key
-                    ? 'bg-white text-thread-pine shadow-sm ring-1 ring-thread-sky/30'
-                    : 'text-thread-sage hover:bg-white/70 hover:text-thread-pine'
-                  }
-                `}
+                role="tab"
+                aria-selected={secondaryCategory === key}
+                className="ts-tab text-xs whitespace-nowrap touch-manipulation"
               >
-                <PixelIcon name={(subcategory as { label: string; icon: PixelIconName }).icon} size={16} />
-                <span>{(subcategory as { label: string; icon: PixelIconName }).label}</span>
+                {(subcategory as { label: string; icon: PixelIconName }).label}
               </button>
             ))}
           </div>

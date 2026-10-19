@@ -108,6 +108,7 @@ const ghost = () => document.querySelector('[data-placement-ghost]') as HTMLElem
 const routeChangeStart = () => router.events.on.mock.calls.filter(([name]) => name === 'routeChangeStart').at(-1)![1]
 
 beforeEach(() => {
+  localStorage.clear()
   jest.clearAllMocks()
   canvasProps = undefined
   paletteProps = undefined
@@ -243,7 +244,7 @@ describe('0.5 unsaved changes', () => {
     expect(() => routeChangeStart()('/feed')).not.toThrow()
   })
 
-  test('after a successful save the editor leaves without asking', async () => {
+  test('after a successful save you stay, and nothing is unsaved', async () => {
     const { onSave, onExit } = setup()
     step(() => paletteProps.onHouseCustomizationChange({ wallColor: '#3a5f8c', houseNumber: undefined }))
     await act(async () => {
@@ -254,9 +255,12 @@ describe('0.5 unsaved changes', () => {
     expect(payload.houseCustomizations.wallColor).toBe('#3a5f8c')
     // cleared fields go as null so the server clears them too
     expect(payload.houseCustomizations).toHaveProperty('houseNumber', null)
-    expect(onExit).toHaveBeenCalled()
-    expect(screen.queryByText('Leave without saving?')).not.toBeInTheDocument()
+    expect(onExit).not.toHaveBeenCalled()
     expect(() => routeChangeStart()('/home/tester')).not.toThrow()
+    // and leaving now doesn't ask
+    fireEvent.click(screen.getByRole('button', { name: 'Back to my house' }))
+    await waitFor(() => expect(onExit).toHaveBeenCalled())
+    expect(screen.queryByText('Leave without saving?')).not.toBeInTheDocument()
   })
 
   test('a failed save keeps the work and the guard', async () => {
@@ -288,16 +292,19 @@ describe('Phase 3.1 one history for the whole home', () => {
     expect(Object.keys(canvasProps.terrain)).toHaveLength(5)
   })
 
-  test('typing sign text is one undo step, and the palette follows undo', () => {
-    setup()
-    pressRose(70, 250)
-    release()
-    for (const text of ['H', 'HI', 'HI!']) step(() => paletteProps.onDecorationUpdate(ROSE.id, { text }))
-    expect(paletteProps.selectedItem.text).toBe('HI!')
+  test('typing sign text is one undo step, and the inspector follows undo', () => {
+    const sign = { ...ROSE, id: 'sign_post_r1', decorationId: 'sign_post', name: 'Sign', type: 'feature' as const }
+    setup({ initialDecorations: [sign] })
+    pointer('down', 70, 250, sign.id)
+    pointer('up')
+    const field = screen.getByLabelText(/Sign text/) as HTMLInputElement
+    for (const text of ['H', 'HI', 'HI!']) fireEvent.change(field, { target: { value: text } })
+    expect(field.value).toBe('HI!')
 
-    undoKey()
+    // focus is in the field, so undo comes from the bar
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }))
     expect(canvasProps.decorations[0].text).toBeUndefined()
-    expect(paletteProps.selectedItem.text).toBeUndefined()
+    expect((screen.getByLabelText(/Sign text/) as HTMLInputElement).value).toBe('')
   })
 
   test('theme, sky, house parts and colours undo in order', () => {
@@ -579,3 +586,137 @@ describe('Phase 3.4 depth, grid and custom art', () => {
     }
   })
 })
+
+describe('Phase 3.5 the feel', () => {
+  const selectRose = () => {
+    pressRose(70, 250)
+    release()
+  }
+  const undoButton = () => screen.getByRole('button', { name: 'Undo' })
+
+  test('selecting shows the inspector in place of the palette; Back to the palette deselects', () => {
+    setup()
+    selectRose()
+    expect(screen.getByRole('button', { name: 'Flip' })).toBeInTheDocument()
+    expect(screen.getByText('Row 16, column 5')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /Back to the palette/ }))
+    expect(canvasProps.selectedDecorations.size).toBe(0)
+    expect(screen.queryByRole('button', { name: 'Flip' })).not.toBeInTheDocument()
+  })
+
+  test('Flip (and F) mirrors it, one undo step each', () => {
+    setup()
+    selectRose()
+    fireEvent.click(screen.getByRole('button', { name: 'Flip' }))
+    expect(canvasProps.decorations[0].data).toEqual({ flip: true })
+    step(() => fireEvent.keyDown(window, { key: 'f' }))
+    expect(canvasProps.decorations[0].data).toEqual({})
+    fireEvent.click(undoButton())
+    expect(canvasProps.decorations[0].data).toEqual({ flip: true })
+  })
+
+  test('Duplicate (and Cmd+D) adds a copy a cell to the right and selects it', () => {
+    setup()
+    selectRose()
+    fireEvent.click(screen.getByRole('button', { name: 'Duplicate' }))
+    const copy = canvasProps.decorations[1]
+    expect(copy).toMatchObject({ decorationId: 'roses_red', position: { x: 80, y: 240 } })
+    expect(canvasProps.selectedDecorations.has(copy.id)).toBe(true)
+    step(() => fireEvent.keyDown(window, { key: 'd', metaKey: true, ctrlKey: true }))
+    expect(canvasProps.decorations[2].position).toMatchObject({ x: 96, y: 240 })
+  })
+
+  test('Delete in the inspector removes it and brings the palette back', () => {
+    setup()
+    selectRose()
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    expect(canvasProps.decorations).toHaveLength(0)
+    expect(screen.queryByRole('button', { name: 'Flip' })).not.toBeInTheDocument()
+  })
+
+  test('Cmd+S saves and stays, even while typing in a field', async () => {
+    const { onSave, onExit } = setup()
+    step(() => paletteProps.onHouseCustomizationChange({ wallColor: '#3a5f8c' }))
+    const input = document.createElement('input')
+    document.body.appendChild(input)
+    await act(async () => {
+      fireEvent.keyDown(input, { key: 's', metaKey: true, ctrlKey: true })
+    })
+    expect(onSave).toHaveBeenCalledTimes(1)
+    expect(onExit).not.toHaveBeenCalled()
+    expect(() => routeChangeStart()('/feed')).not.toThrow()
+    input.remove()
+  })
+
+  test('See it as a visitor hides the editing tools; Escape comes back', () => {
+    setup()
+    selectRose()
+    fireEvent.click(screen.getByRole('button', { name: 'See it as a visitor' }))
+    expect(canvasProps.onScenePointer).toBeUndefined()
+    expect(canvasProps.isDecorationMode).toBe(false)
+    expect(canvasProps.selectedDecorations).toBeUndefined()
+    expect(screen.getByText('This is how neighbors see your yard.')).toBeInTheDocument()
+    step(() => fireEvent.keyDown(window, { key: 'Escape' }))
+    expect(canvasProps.onScenePointer).toBeDefined()
+  })
+
+  describe('the autosaved draft', () => {
+    beforeEach(() => jest.useFakeTimers())
+    afterEach(() => jest.useRealTimers())
+    const draftKey = 'pixelHomeDraft:tester'
+
+    test('unsaved work is kept a second after the last edit, and cleared once clean', () => {
+      setup()
+      step(() => paletteProps.onHouseCustomizationChange({ wallColor: '#3a5f8c' }))
+      expect(localStorage.getItem(draftKey)).toBeNull()
+      act(() => jest.advanceTimersByTime(1000))
+      expect(JSON.parse(localStorage.getItem(draftKey)!).doc.house.wallColor).toBe('#3a5f8c')
+
+      fireEvent.click(undoButton())
+      act(() => jest.advanceTimersByTime(1000))
+      expect(localStorage.getItem(draftKey)).toBeNull()
+    })
+
+    test('reopening offers it: Restore brings it back as one undo step', () => {
+      setup()
+      step(() => paletteProps.onHouseCustomizationChange({ wallColor: '#3a5f8c' }))
+      act(() => jest.advanceTimersByTime(1000))
+      cleanupAndReopen()
+
+      expect(screen.getByText(/You have unsaved changes from/)).toBeInTheDocument()
+      // nothing is overwritten while the question is open
+      act(() => jest.advanceTimersByTime(5000))
+      expect(localStorage.getItem(draftKey)).not.toBeNull()
+
+      fireEvent.click(screen.getByRole('button', { name: 'Restore' }))
+      expect(canvasProps.houseCustomizations.wallColor).toBe('#3a5f8c')
+      expect(() => routeChangeStart()('/feed')).toThrow() // restored work is unsaved
+      fireEvent.click(undoButton())
+      expect(canvasProps.houseCustomizations.wallColor).toBeUndefined()
+    })
+
+    test('Discard drops it for good', () => {
+      localStorage.setItem(draftKey, JSON.stringify({ at: Date.now(), doc: { decorations: [], terrain: { '6,12': 'sand' }, house: {}, atmosphere: { sky: 'night', weather: 'clear', timeOfDay: 'midday' }, template: 'cottage_v1', palette: 'thread_sage' } }))
+      setup()
+      fireEvent.click(screen.getByRole('button', { name: 'Discard' }))
+      expect(localStorage.getItem(draftKey)).toBeNull()
+      expect(canvasProps.terrain).toEqual({})
+    })
+
+    test('a draft that matches the home as it is now is not offered', () => {
+      setup()
+      const doc = { decorations: canvasProps.decorations, terrain: {}, house: canvasProps.houseCustomizations, atmosphere: { sky: 'sunny', weather: 'clear', timeOfDay: 'midday' }, template: 'cottage_v1', palette: 'thread_sage' }
+      localStorage.setItem(draftKey, JSON.stringify({ at: Date.now(), doc }))
+      cleanupAndReopen()
+      expect(screen.queryByText(/You have unsaved changes/)).not.toBeInTheDocument()
+      expect(localStorage.getItem(draftKey)).toBeNull()
+    })
+  })
+})
+
+/** Unmount and open the editor again on the same saved home (a reload). */
+function cleanupAndReopen() {
+  const { cleanup } = require('@testing-library/react')
+  cleanup()
+  setup()
+}

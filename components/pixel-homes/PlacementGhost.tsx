@@ -1,6 +1,6 @@
 import React, { forwardRef, memo, useImperativeHandle, useState } from 'react'
 import DecorationSVG from './DecorationSVG'
-import type { DecorationItem } from '@/lib/pixel-homes/decoration-data'
+import { isFlipped, type DecorationItem } from '@/lib/pixel-homes/decoration-data'
 import { getDecorationDimensions } from '@/lib/pixel-homes/decoration-dimensions'
 import type { Point } from '@/lib/pixel-homes/editor-interaction'
 import { OVERLAY_DEPTH } from '@/lib/pixel-homes/depth'
@@ -61,6 +61,7 @@ const PlacementGhost = forwardRef<PlacementGhostHandle>(function PlacementGhost(
         display: 'flex',
         alignItems: 'flex-end',
         justifyContent: 'center',
+        transform: isFlipped(item) ? 'scaleX(-1)' : undefined,
       }}
     >
       <GhostArt item={item} />
