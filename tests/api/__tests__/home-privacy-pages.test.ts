@@ -60,6 +60,12 @@ jest.mock('@/lib/config/database/connection', () => ({
 jest.mock('@/lib/auth/server', () => ({ getSessionUser: jest.fn() }))
 // Next-door houses have their own real-Postgres tests (tests/db/home-neighbors.dbtest.ts)
 jest.mock('@/lib/pixel-homes/street', () => ({ streetIndexOf: jest.fn(async () => 1) }))
+// The yard rows and catalog art (lib/pixel-homes/home-scene.ts has its own tests)
+jest.mock('@/lib/pixel-homes/home-scene', () => ({
+  ...jest.requireActual('@/lib/pixel-homes/home-scene'),
+  loadDecorationRows: jest.fn(async () => []),
+  loadCatalogArt: jest.fn(async () => new Map()),
+}))
 jest.mock('@/lib/pixel-homes/neighbors', () => ({
   getHomeNeighbors: jest.fn(async () => ({ previous: { username: 'ada', displayName: null }, next: null })),
 }))

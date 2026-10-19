@@ -71,6 +71,8 @@ interface PixelHomePageProps {
   neighbors?: HomeNeighbors
   /** Back to this house's street, with it in view */
   streetHref?: string
+  /** The yard from SSR; when given, the page doesn't fetch it again */
+  initialDecorations?: any[]
   className?: string
 }
 
@@ -82,6 +84,7 @@ export default function PixelHomePage({
   isSignedIn = false,
   neighbors = { previous: null, next: null },
   streetHref = '/neighborhood',
+  initialDecorations,
   className = ''
 }: PixelHomePageProps) {
   const nameToShow = displayName || username
@@ -92,7 +95,7 @@ export default function PixelHomePage({
   const [showGuestbook, setShowGuestbook] = useState(false)
   const [hasUnreadGuestbook, setHasUnreadGuestbook] = useState(false)
   // const [showDecorationMode, setShowDecorationMode] = useState(false) // Now handled by dedicated page
-  const [decorations, setDecorations] = useState<any[]>([])
+  const [decorations, setDecorations] = useState<any[]>(initialDecorations ?? [])
   const [terrain, setTerrain] = useState<Record<string, string>>(
     homeConfig?.houseCustomizations?.terrain || {}
   )
@@ -131,7 +134,10 @@ export default function PixelHomePage({
         isOwner
           ? fetch(`/api/users/${encodeURIComponent(username)}/guestbook-status`)
           : Promise.resolve(null),
-        fetch(`/api/home/decorations/load?username=${encodeURIComponent(username)}`)
+        // The yard came with the page; only fetch it for callers that didn't send it
+        initialDecorations
+          ? Promise.resolve(null)
+          : fetch(`/api/home/decorations/load?username=${encodeURIComponent(username)}`)
       ])
 
       if (badgeResult.status === 'fulfilled' && badgeResult.value.ok) {
@@ -144,7 +150,7 @@ export default function PixelHomePage({
         setHasUnreadGuestbook(guestbookData.hasUnreadGuestbook || false)
       }
 
-      if (decorationsResult.status === 'fulfilled' && decorationsResult.value.ok) {
+      if (decorationsResult.status === 'fulfilled' && decorationsResult.value?.ok) {
         const decorationData = await decorationsResult.value.json()
         setDecorations(decorationData.decorations || [])
         if (decorationData.atmosphere) {

@@ -10,6 +10,7 @@ import PrivateProfile from '@/components/core/profile/PrivateProfile'
 import { residentAccess } from '@/lib/domain/users/profile-access'
 import { getHomeNeighbors, type HomeNeighbors } from '@/lib/pixel-homes/neighbors'
 import { streetIndexOf } from '@/lib/pixel-homes/street'
+import { loadCatalogArt, loadDecorationRows, toSceneDecorations, type SceneDecoration } from '@/lib/pixel-homes/home-scene'
 import { SITE_NAME } from '@/lib/config/site/constants'
 
 interface UserHomeConfig {
@@ -55,6 +56,8 @@ interface PixelHomeProps {
   userDisplayName?: string
   userBio?: string
   neighbors: HomeNeighbors
+  /** The yard, sent with the page so it draws on first paint */
+  decorations: SceneDecoration[]
   /** Back to this house's own street, with it in view */
   streetHref: string
   /** The yard's share image; null when a signed-out visitor couldn't see this home. */
@@ -87,7 +90,8 @@ function PixelHome({
   userBio,
   neighbors,
   shareImage,
-  streetHref
+  streetHref,
+  decorations
 }: PixelHomeProps) {
   const pageTitle = `${userDisplayName || `@${username}`}'s Pixel Home`
   const pageDescription = userBio
@@ -147,6 +151,7 @@ function PixelHome({
           isSignedIn={isSignedIn}
           neighbors={neighbors}
           streetHref={streetHref}
+          initialDecorations={decorations}
         />
       </Layout>
     </>
@@ -226,10 +231,17 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       })
     }
 
-    const [neighbors, streetIndex] = await Promise.all([
+    const [neighbors, streetIndex, decorationRows] = await Promise.all([
       getHomeNeighbors(db, user, { viewerId: currentUser?.id, host: SITE_NAME }),
       streetIndexOf(db, user.id, SITE_NAME),
+      loadDecorationRows(user.id),
     ])
+    // The yard goes out with the page (same shape as /api/home/decorations/load),
+    // so it draws with the house instead of a beat after hydration.
+    const catalog = await loadCatalogArt(decorationRows.map((d) => d.decorationId))
+    const decorations: SceneDecoration[] = JSON.parse(
+      JSON.stringify(toSceneDecorations(decorationRows, catalog, homeConfig.customAssets))
+    )
     const streetParam = streetIndex ? `street=${streetIndex + 1}&` : ''
     const streetHref = `/neighborhood?${streetParam}at=${encodeURIComponent(cleanHandle)}`
 
@@ -252,6 +264,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         username: cleanHandle,
         neighbors,
         streetHref,
+        decorations,
         shareImage,
         homeConfig: {
           houseTemplate: homeConfig.houseTemplate as HouseTemplate,

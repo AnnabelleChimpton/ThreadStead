@@ -31,6 +31,12 @@ jest.mock('@/lib/config/database/connection', () => ({
 jest.mock('@/lib/auth/server', () => ({ getSessionUser: jest.fn() }))
 jest.mock('@/lib/pixel-homes/neighbors', () => ({ getHomeNeighbors: jest.fn(async () => ({ previous: null, next: null })) }))
 jest.mock('@/lib/pixel-homes/street', () => ({ streetIndexOf: jest.fn(async () => 0) }))
+// The yard rows and catalog art (lib/pixel-homes/home-scene.ts has its own tests)
+jest.mock('@/lib/pixel-homes/home-scene', () => ({
+  ...jest.requireActual('@/lib/pixel-homes/home-scene'),
+  loadDecorationRows: jest.fn(async () => []),
+  loadCatalogArt: jest.fn(async () => new Map()),
+}))
 jest.mock('@/lib/domain/users/profile-access', () => ({ residentAccess: jest.fn(async () => ({ visible: true })) }))
 jest.mock('@/lib/pixel-homes/snapshot/service', () => ({ scheduleHomeSnapshot: jest.fn(async () => null) }))
 
