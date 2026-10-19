@@ -8,7 +8,7 @@ export type ThreadRingInviteStatus = 'pending' | 'accepted' | 'declined' | 'revo
 export interface ThreadRing {
   id: string;
   uri: string; // Canonical URI for federation
-  curatorId: string;
+  curatorId: string | null; // null for a Ring Hub mirror, or after the curator's account is deleted
   name: string;
   slug: string;
   description?: string;
@@ -102,7 +102,7 @@ export interface ThreadRingWithDetails extends ThreadRing {
     displayName?: string;
     avatarUrl?: string;
     handles: Array<{ handle: string; host: string }>;
-  };
+  } | null;
   members: ThreadRingMember[];
   isUserMember: boolean;
   userRole?: ThreadRingRole;
@@ -169,7 +169,7 @@ export interface ThreadRingDirectoryResponse {
     curator: {
       displayName?: string;
       handles: Array<{ handle: string; host: string }>;
-    };
+    } | null;
   }>;
   pagination: {
     total: number;

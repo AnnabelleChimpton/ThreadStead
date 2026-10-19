@@ -343,8 +343,10 @@ export default withThreadRingSupport(async function handler(
 
     // Transform the data for the response
     const transformedRings = threadRings.map(ring => {
-      const curatorHandle = ring.curator.handles.find(h => h.host === "local")?.handle ||
-        ring.curator.handles[0]?.handle ||
+      // A ring can have no curator here (a Ring Hub mirror, or one whose
+      // curator's account was deleted).
+      const curatorHandle = ring.curator?.handles.find(h => h.host === "local")?.handle ||
+        ring.curator?.handles[0]?.handle ||
         "unknown";
 
       return {
@@ -357,11 +359,11 @@ export default withThreadRingSupport(async function handler(
         memberCount: ring.memberCount,
         postCount: ring.postCount,
         createdAt: ring.createdAt,
-        curator: {
+        curator: ring.curator ? {
           handle: curatorHandle,
           displayName: ring.curator.profile?.displayName,
           avatarUrl: ring.curator.profile?.avatarUrl
-        },
+        } : null,
         badge: ring.badge?.isActive ? ring.badge : null,
         // Include viewer's membership info if available
         ...(viewer && "members" in ring ? {

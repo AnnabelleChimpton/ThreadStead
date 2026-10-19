@@ -578,7 +578,7 @@ model PhotoComment {
 model ThreadRing {
   id                    String               @id @default(cuid())
   uri                   String               @unique
-  curatorId             String
+  curatorId             String?
   name                  String
   slug                  String               @unique
   description           String?
@@ -599,7 +599,7 @@ model ThreadRing {
   parentId              String?
   totalDescendantsCount Int                  @default(0)
   posts                 PostThreadRing[]
-  curator               User                 @relation("ThreadRingCurator", fields: [curatorId], references: [id], onDelete: Cascade)
+  curator               User?                @relation("ThreadRingCurator", fields: [curatorId], references: [id], onDelete: SetNull)
   parent                ThreadRing?          @relation("ThreadRingHierarchy", fields: [parentId], references: [id])
   children              ThreadRing[]         @relation("ThreadRingHierarchy")
   badge                 ThreadRingBadge?

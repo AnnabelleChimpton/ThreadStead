@@ -44,6 +44,9 @@ jest.mock('@/lib/config/database/connection', () => ({
         for (const r of state.rings) if (where.id.in.includes(r.id)) r.postCount += data.postCount.increment
       }),
     },
+    ringHubOwnership: {
+      findMany: jest.fn(async () => []),
+    },
     postThreadRing: {
       findMany: jest.fn(async ({ where }: any) =>
         state.links.filter((l) => l.postId === where.postId && where.threadRingId.in.includes(l.threadRingId))

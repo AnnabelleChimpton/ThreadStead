@@ -5,8 +5,9 @@
  * role; POST /trp/rings/:slug/transfer-ownership moves both). ThreadStead
  * keeps two mirrors that decide who may manage the ring here:
  * RingHubOwnership (settings, members and badge pages, member management)
- * and the local ThreadRing row's curatorId (onDelete Cascade, so the row
- * would go with a deleted curator). Both follow the hub, after it answers.
+ * and the local ThreadRing row's curatorId (empty for a mirror row until a
+ * transfer names someone; SET NULL if that account is deleted). Both follow
+ * the hub, after it answers.
  *
  * Who signs:
  *  - the owner, with their own key;

@@ -184,7 +184,11 @@ async function backfillPostThreadRingAssociations() {
                 slug: ringHubPost.ringSlug,
                 description: `RingHub ThreadRing: ${ringHubPost.ringName}`,
                 visibility: "public",
-                curatorId: localPost.authorId, // Use post author as temporary curator
+                // The hub owns the ring; the post's author isn't its curator.
+                curatorId: (await db.ringHubOwnership.findUnique({
+                  where: { ringSlug: ringHubPost.ringSlug },
+                  select: { ownerUserId: true },
+                }))?.ownerUserId ?? null,
                 joinType: "open",
                 postCount: 0,
                 memberCount: 1

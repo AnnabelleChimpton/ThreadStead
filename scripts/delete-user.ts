@@ -208,7 +208,7 @@ function displayDeletionSummary(summary: UserDeletionSummary) {
   console.log(`   Following: ${summary.counts.follows}`);
   console.log(`   Followers: ${summary.counts.followers}`);
   console.log(`   ThreadRing Memberships: ${summary.counts.threadRingMemberships}`);
-  console.log(`   ThreadRings Curated: ${summary.counts.threadRingsCurated}`);
+  console.log(`   ThreadRings Curated: ${summary.counts.threadRingsCurated} (kept, curator cleared)`);
   console.log(`   Reports: ${summary.counts.reports}`);
   console.log(`   Blocks: ${summary.counts.blocks}`);
   console.log(`   Beta Invite Codes: ${summary.counts.betaInviteCodes}`);
@@ -357,16 +357,9 @@ async function deleteUser(userId: string) {
     console.log('   🔄 Deleting user home config...');
     await tx.userHomeConfig.deleteMany({ where: { userId } });
 
-    // Handle ThreadRings curated by this user - these need to be deleted since curatorId is required
-    const curatedRings = await tx.threadRing.findMany({ where: { curatorId: userId } });
-    if (curatedRings.length > 0) {
-      console.log(`   🔄 Deleting ${curatedRings.length} curated ThreadRings...`);
-      // Delete the rings since curatorId is a required field
-      await tx.threadRing.deleteMany({
-        where: { curatorId: userId }
-      });
-    }
-    
+    // ThreadRings this user curated stay, without a curator (curatorId is
+    // SET NULL when the user row goes), along with everyone's posts in them.
+
     console.log('   🔄 Deleting profile...');
     await tx.profile.deleteMany({ where: { userId } });
     

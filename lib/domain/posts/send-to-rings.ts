@@ -237,8 +237,18 @@ export async function mirrorRingResults({ postId, userId, results, throwOnLinkEr
     })
     const ringsBySlug = new Map(localRings.map((ring) => [ring.slug, ring]))
 
-    // Create missing local ThreadRing records for Ring Hub rings
-    for (const slug of postedSlugs.filter((s) => !ringsBySlug.has(s))) {
+    // Create missing local ThreadRing records for Ring Hub rings. The hub
+    // owns the ring, so the poster isn't its curator: name the owner we
+    // track in RingHubOwnership, or no one (ownership transfer fills it in).
+    const missingSlugs = postedSlugs.filter((s) => !ringsBySlug.has(s))
+    const owners = missingSlugs.length > 0
+      ? await db.ringHubOwnership.findMany({
+          where: { ringSlug: { in: missingSlugs } },
+          select: { ringSlug: true, ownerUserId: true },
+        })
+      : []
+    const ownerBySlug = new Map(owners.map((o) => [o.ringSlug, o.ownerUserId]))
+    for (const slug of missingSlugs) {
       try {
         const ringName = nameBySlug.get(slug) || slug
         const created = await db.threadRing.create({
@@ -248,7 +258,7 @@ export async function mirrorRingResults({ postId, userId, results, throwOnLinkEr
             slug,
             description: `RingHub ThreadRing: ${ringName}`,
             visibility: 'public',
-            curatorId: userId,
+            curatorId: ownerBySlug.get(slug) ?? null,
             joinType: 'open',
             postCount: 0,
             memberCount: 1,
