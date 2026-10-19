@@ -169,7 +169,7 @@ model ProfileTemplateRevision {
   cssMode        String       @default("inherit")
   templateMode   TemplateMode @default(default)
   hideNavigation Boolean      @default(false)
-  trigger        String // which action overwrote this state: 'template-save' | 'css-save' | 'reset'
+  trigger        String // which action overwrote this state: 'template-save' | 'css-save' | 'reset' | 'moderator-reset'
   createdAt      DateTime     @default(now())
   user           User         @relation("ProfileTemplateRevisions", fields: [userId], references: [id], onDelete: Cascade)
 
@@ -847,6 +847,7 @@ enum ModerationActionType {
   ban
   lift
   delete
+  reset_page
 }
 
 enum UserRole {

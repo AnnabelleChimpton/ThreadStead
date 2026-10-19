@@ -17,7 +17,7 @@ export interface ModeratedAccount {
 
 interface HistoryRow {
   id: string;
-  action: "suspend" | "ban" | "lift" | "delete";
+  action: "suspend" | "ban" | "lift" | "delete" | "reset_page";
   reason: string | null;
   until: string | null;
   reportId: string | null;
@@ -32,7 +32,7 @@ interface Summary {
   hasKey: boolean;
 }
 
-type Action = "suspend" | "ban" | "lift";
+type Action = "suspend" | "ban" | "lift" | "reset_page";
 
 /** Why the delete stopped: rings they own, or Ring Hub steps that failed. */
 type Blocked =
@@ -171,6 +171,7 @@ const HISTORY_VERB: Record<HistoryRow["action"], string> = {
   ban: "Banned",
   lift: "Lifted",
   delete: "Deleted",
+  reset_page: "Page reset",
 };
 
 /**
@@ -239,6 +240,15 @@ export default function ModerationDialog({
         showError(data.error || "Couldn't do that. Try again.");
         return;
       }
+      if (action === "reset_page") {
+        showSuccess(
+          data.page?.hadCustomPage
+            ? `@${name}'s page is back to the standard layout.`
+            : `@${name} had no custom page. Noted in the history.`
+        );
+        onChanged(account);
+        return;
+      }
       const next: ModeratedAccount = {
         ...account,
         moderationStatus: data.user.moderationStatus,
@@ -303,6 +313,7 @@ export default function ModerationDialog({
     { value: "suspend", label: restricted ? "Suspend until a new date" : "Suspend until a date" },
     ...(account.moderationStatus !== "banned" ? [{ value: "ban" as const, label: "Ban" }] : []),
     ...(restricted ? [{ value: "lift" as const, label: account.moderationStatus === "banned" ? "Lift the ban" : "Lift the suspension" }] : []),
+    { value: "reset_page", label: "Reset their page to the standard layout" },
   ];
   const needsReason = action !== "lift";
   const canApply = !busy && (!needsReason || reason.trim().length > 0) && (action !== "suspend" || !!until);
@@ -319,7 +330,7 @@ export default function ModerationDialog({
             Cancel
           </Button>
           <Button variant={action === "ban" ? "danger" : "primary"} onClick={apply} disabled={!canApply}>
-            {busy ? "Saving..." : action === "suspend" ? "Suspend" : action === "ban" ? "Ban" : "Lift"}
+            {busy ? "Saving..." : action === "suspend" ? "Suspend" : action === "ban" ? "Ban" : action === "reset_page" ? "Reset page" : "Lift"}
           </Button>
         </div>
       }
@@ -372,7 +383,13 @@ export default function ModerationDialog({
           <span className="text-xs text-gray-600">Only admins see this.</span>
         </label>
 
-        {action !== "lift" && (
+        {action === "reset_page" && (
+          <p className="text-gray-700">
+            Their custom HTML and CSS come off their profile, which goes back to the standard layout. Their account
+            isn&apos;t touched. The old page stays in their editor&apos;s History, so they can fix it and bring it back.
+          </p>
+        )}
+        {(action === "suspend" || action === "ban") && (
           <p className="text-gray-700">
             They&apos;re signed out and can&apos;t post, comment, sign guestbooks or chat. They drop out of the street,
             New Neighbors, the directory, search, feeds, chat and the Indie Index, and their pages show as not found.

@@ -1,7 +1,11 @@
-// API endpoint for compiling profile templates
+// Compiles a profile template for the editor's live preview. A pure
+// compile: it never writes. Only POST /api/profile/[username]/template saves
+// (it snapshots a revision first); this endpoint used to store each preview
+// as the live page, so half-typed templates went public mid-edit.
 import { db } from '@/lib/config/database/connection';
 import { compileProfile, ProfileRenderContext } from '@/lib/templates/compilation/compiler';
 import { apiHandler } from '@/lib/api/handler';
+import { sourceTooLong } from '@/lib/templates/limits';
 // Note: getResidentData would be imported if it existed
 
 export default apiHandler(
@@ -13,16 +17,14 @@ export default apiHandler(
   },
   async (req, res, { user: sessionUser }) => {
     try {
-      console.log('COMPILE_API: Session user:', { id: sessionUser.id, primaryHandle: sessionUser.primaryHandle });
-
-      const { userId, mode, customCSS, customTemplate, force = false } = req.body;
-      console.log('COMPILE_API: Request body:', { userId, mode, customTemplateLength: customTemplate?.length || 0, customCSSLength: customCSS?.length || 0, force });
+      const { userId, mode, customCSS, customTemplate } = req.body;
 
       // Validate inputs
       if (!userId) {
-        console.log('COMPILE_API: userId is missing from request');
         return res.status(400).json({ error: 'userId is required' });
       }
+      const tooLong = sourceTooLong('template', customTemplate) ?? sourceTooLong('CSS', customCSS);
+      if (tooLong) return res.status(413).json({ error: tooLong });
 
       // Check authorization - users can only compile their own profiles
       if (sessionUser.id !== userId) {
@@ -48,21 +50,6 @@ export default apiHandler(
     
       if (!primaryHandle) {
         return res.status(400).json({ error: 'User has no valid handle' });
-      }
-
-      // Check if we need to recompile
-      if (!force && user.profile?.templateCompiledAt) {
-        const lastModified = user.profile.updatedAt;
-        const lastCompiled = user.profile.templateCompiledAt;
-      
-        if (lastCompiled > lastModified) {
-          // Template is up to date
-          return res.json({ 
-            success: true, 
-            message: 'Template is already up to date',
-            compiledAt: lastCompiled
-          });
-        }
       }
 
       // Get resident data for the user
@@ -169,24 +156,12 @@ export default apiHandler(
         });
       }
 
-      // Store compiled template in database
-      const updateData = {
-        compiledTemplate: result.compiled ? JSON.parse(JSON.stringify(result.compiled)) : null,
-        templateIslands: result.compiled?.islands ? JSON.parse(JSON.stringify(result.compiled.islands)) : null,
-        templateCompiledAt: new Date()
-      };
-
-      await db.profile.update({
-        where: { userId },
-        data: updateData
-      });
-
-      // Return success response
+      // Nothing is stored: the preview shows this, the live page doesn't change
       res.json({
         success: true,
         compiled: result.compiled,
         warnings: result.warnings,
-        compiledAt: updateData.templateCompiledAt
+        compiledAt: new Date()
       });
 
     } catch (error) {

@@ -4,7 +4,7 @@ import { db } from "@/lib/config/database/connection";
 // an accidental preset load, small enough to never think about quota.
 export const MAX_REVISIONS_PER_USER = 20;
 
-export type RevisionTrigger = 'template-save' | 'css-save' | 'reset';
+export type RevisionTrigger = 'template-save' | 'css-save' | 'reset' | 'moderator-reset';
 
 /**
  * Snapshot the profile's current customization before a save overwrites it.

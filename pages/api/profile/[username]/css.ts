@@ -3,6 +3,7 @@ import { SITE_NAME } from "@/lib/config/site/constants";
 import { cleanCss } from "@/lib/utils/sanitization/css";
 import { snapshotProfileBeforeSave } from "@/lib/templates/revisions/template-revisions";
 import { apiHandler } from "@/lib/api/handler";
+import { sourceTooLong } from "@/lib/templates/limits";
 
 export default apiHandler(
   { methods: ['POST'], auth: 'user', rateLimit: 'template_editing' },
@@ -10,6 +11,8 @@ export default apiHandler(
     try {
       const username = String(req.query.username);
       const { customCSS, cssMode } = req.body;
+      const tooLong = sourceTooLong('CSS', customCSS);
+      if (tooLong) return res.status(413).json({ error: tooLong });
 
       // Find the handle first
       const handle = await db.handle.findFirst({

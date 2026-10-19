@@ -2038,7 +2038,7 @@ We collect information you provide when creating an account..."
                                 <button
                                   onClick={() => setModerating(user)}
                                   className="border border-black px-2 py-1 bg-red-200 hover:bg-red-100 shadow-[1px_1px_0_#000] text-xs"
-                                  title="Suspend, ban, lift or delete"
+                                  title="Suspend, ban, lift, delete, or reset their page"
                                 >
                                   Moderate
                                 </button>

@@ -9,6 +9,7 @@ import { SITE_NAME } from '@/lib/config/site/constants';
 import { snapshotProfileBeforeSave } from '@/lib/templates/revisions/template-revisions';
 import { apiHandler } from '@/lib/api/handler';
 import { cleanCss } from '@/lib/utils/sanitization/css';
+import { sourceTooLong } from '@/lib/templates/limits';
 
 
 
@@ -60,6 +61,8 @@ export default apiHandler(
         if (customCSS !== undefined && typeof customCSS !== 'string') {
           return res.status(400).json({ error: 'Invalid CSS' });
         }
+        const tooLong = sourceTooLong('template', template) ?? sourceTooLong('CSS', customCSS);
+        if (tooLong) return res.status(413).json({ error: tooLong });
         // Same sanitizer as every other CSS save
         const safeCSS = customCSS === undefined ? undefined : cleanCss(customCSS);
 

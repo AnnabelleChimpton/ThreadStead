@@ -296,7 +296,7 @@ const nextConfig: NextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              `script-src 'self' ${process.env.NODE_ENV !== 'production' ? "'unsafe-eval' " : ''}'unsafe-inline' https://static.cloudflareinsights.com`, // unsafe-inline needed for Next.js, unsafe-eval only for dev tooling
+              `script-src 'self' ${process.env.NODE_ENV !== 'production' ? "'unsafe-eval' " : ''}'unsafe-inline'`, // unsafe-inline needed for Next.js, unsafe-eval only for dev tooling. No analytics hosts: the site promises no tracking
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com", // unsafe-inline needed for styled-components/CSS-in-JS
               "font-src 'self' https://fonts.gstatic.com data:",
               "img-src 'self' https: data: blob:",

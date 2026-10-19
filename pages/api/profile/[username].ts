@@ -2,6 +2,30 @@ import { db } from "@/lib/config/database/connection";
 import { SITE_NAME } from "@/lib/config/site/constants";
 import { apiHandler } from "@/lib/api/handler";
 import { hasPixelHome, residentAccess } from "@/lib/domain/users/profile-access";
+import type { Profile } from "@prisma/client";
+
+// What any viewer allowed to see a profile gets. The compiled page and the
+// CSS are public anyway (every visitor's browser receives them); the raw
+// template source is the owner's, shown to others only when they share it
+// (showTemplateSource, the same switch as /resident/[username]/source).
+const PUBLIC_PROFILE_FIELDS = [
+  "id", "userId", "displayName", "bio", "visibility", "updatedAt",
+  "avatarUrl", "avatarFullUrl", "avatarMediumUrl", "avatarThumbnailUrl", "bannerUrl",
+  "blogroll", "featuredFriends", "badgePreferences",
+  "customCSS", "templateMode", "templateEnabled", "cssMode", "includeSiteCSS", "hideNavigation",
+  "customTemplateAst", "compiledTemplate", "templateIslands", "templateCompiledAt",
+  "profileMidiId", "midiAutoplay", "midiLoop", "showTemplateSource",
+] as const satisfies ReadonlyArray<keyof Profile>;
+
+function profileFor(profile: Profile | null, isOwner: boolean) {
+  if (!profile || isOwner) return profile;
+  const visible: Partial<Profile> = {};
+  for (const field of PUBLIC_PROFILE_FIELDS) {
+    (visible as Record<string, unknown>)[field] = profile[field];
+  }
+  if (profile.showTemplateSource) visible.customTemplate = profile.customTemplate;
+  return visible;
+}
 
 
 export default apiHandler(
@@ -68,7 +92,7 @@ export default apiHandler(
       userId: u.id,                       // <-- add this
       username,
       primaryHandle: u.primaryHandle ?? null, // optional, handy later
-      profile: u.profile,
+      profile: profileFor(u.profile, viewer?.id === u.id),
       profileMidi,
       // Past the access check above, so the viewer may see the house too
       hasPixelHome: await hasPixelHome(u.id),

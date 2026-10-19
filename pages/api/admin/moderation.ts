@@ -2,6 +2,7 @@ import { z } from "zod";
 import { db } from "@/lib/config/database/connection";
 import { apiHandler } from "@/lib/api/handler";
 import { getModerationHistory, MAX_REASON_LENGTH, moderateUser } from "@/lib/domain/users/moderation";
+import { resetProfilePage } from "@/lib/domain/users/page-reset";
 
 const reason = z.string().trim().max(MAX_REASON_LENGTH, `Keep the reason under ${MAX_REASON_LENGTH} characters`);
 const base = { userId: z.string().min(1), reportId: z.string().min(1).optional() };
@@ -16,11 +17,12 @@ const actionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("suspend"), until: day, reason, ...base }),
   z.object({ action: z.literal("ban"), reason, ...base }),
   z.object({ action: z.literal("lift"), reason: reason.optional(), ...base }),
+  z.object({ action: z.literal("reset_page"), reason: reason.min(1, "Say why"), ...base }),
 ]);
 
 /**
  * GET  ?userId=  the account's moderation history, and what deleting it would touch
- * POST { action: suspend | ban | lift, userId, until?, reason?, reportId? }
+ * POST { action: suspend | ban | lift | reset_page, userId, until?, reason?, reportId? }
  */
 export default apiHandler(
   { methods: ["GET", "POST"], auth: "admin", rateLimit: "admin" },
@@ -39,6 +41,10 @@ export default apiHandler(
     }
 
     const input = actionSchema.parse(req.body);
+    if (input.action === "reset_page") {
+      const page = await resetProfilePage({ actorId: admin.id, userId: input.userId, reason: input.reason, reportId: input.reportId });
+      return res.json({ page });
+    }
     const result = await moderateUser(
       input.action === "suspend"
         ? { action: "suspend", until: input.until, reason: input.reason }
