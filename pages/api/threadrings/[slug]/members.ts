@@ -3,7 +3,9 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { getSessionUser } from "@/lib/auth/server";
 import { featureFlags } from "@/lib/utils/features/feature-flags";
 import { createAuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
-import { getPublicRingHubClient } from "@/lib/api/ringhub/ringhub-client";
+import { getPublicRingHubClient, RingHubClient } from "@/lib/api/ringhub/ringhub-client";
+import { readAllRingMembers } from "@/lib/api/ringhub/ring-members";
+import { HUB_TIMEOUT } from "@/lib/api/ringhub/ringhub-ssr";
 import { db } from "@/lib/config/database/connection";
 import { cached } from "@/lib/api/ringhub/ringhub-cache";
 import { RingHubAuthError, RingHubUnavailableError } from "@/lib/api/ringhub/ringhub-errors";
@@ -113,12 +115,20 @@ export default async function handler(
         // Create user-authenticated Ring Hub client
         const authenticatedClient = await createAuthenticatedRingHubClient(viewer.id);
         
-        // Fetch members using user's DID authentication (cached, SWR)
+        // Every member, signed as the viewer (cached, SWR). One hub page is only the
+        // newest 20, and the ring page reads the viewer's own role from this list.
         const membersResponse = await cached(
-          `ring-members:${viewer.id}:${slug}`,
+          `ring-members-all:${viewer.id}:${slug}`,
           30_000,
           5 * 60_000,
-          () => authenticatedClient.getRingMembers(slug)
+          async () => {
+            const read = await readAllRingMembers(authenticatedClient, slug, {
+              deadlineMs: RingHubClient.REQUEST_TIMEOUT_MS
+            });
+            // Thrown, not cached: the cache keeps serving a stale list if it has one.
+            if (read === HUB_TIMEOUT) throw new RingHubUnavailableError('Ring Hub members read failed');
+            return read;
+          }
         );
 
         // Transform Ring Hub member format with batched DID/user resolution (no N+1).
@@ -149,9 +159,10 @@ export default async function handler(
         return res.json({
           members: transformedMembers,
           total: membersResponse.total,
-          limit: membersResponse.limit,
-          offset: membersResponse.offset,
-          hasMore: membersResponse.hasMore
+          limit: transformedMembers.length,
+          offset: 0,
+          // Only when the page cap or deadline cut the read short
+          hasMore: !membersResponse.complete
         });
 
       } catch (ringHubError) {

@@ -6,7 +6,86 @@ import { isUserBlockedFromThreadRing } from "@/lib/domain/threadrings/blocks";
 import { withCsrfProtection } from "@/lib/server/http/csrf";
 import { withRateLimit } from "@/lib/server/http/rate-limit";
 import { featureFlags } from "@/lib/utils/features/feature-flags";
-import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
+import { getRingHubClient, RingHubClient, RingHubClientError } from "@/lib/api/ringhub/ringhub-client";
+import { createAuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
+import { RingHubAuthError, RingHubUnavailableError } from "@/lib/api/ringhub/ringhub-errors";
+import { readAllRingMembers } from "@/lib/api/ringhub/ring-members";
+import { HUB_TIMEOUT } from "@/lib/api/ringhub/ringhub-ssr";
+
+const HUB_UNREACHABLE = "We can't reach the ThreadRing hub right now. Try again in a minute.";
+
+/**
+ * Invite someone to a hub ring, signed as the viewer. The hub knows people by
+ * their federation DID (UserDID), which differs from User.did, and authorizes
+ * the invite by the signer's own membership.
+ */
+async function inviteOnHub(
+  slug: string,
+  viewer: { id: string; did: string },
+  username: string,
+  res: NextApiResponse
+) {
+  try {
+    const handle = await db.handle.findFirst({
+      where: {
+        handle: username.toLowerCase().replace(/^@/, ""),
+        host: SITE_NAME
+      },
+      include: { user: { select: { id: true, did: true, userDID: { select: { did: true } } } } }
+    });
+
+    if (!handle) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const viewerClient = createAuthenticatedRingHubClient(viewer.id);
+    const viewerDid = (await db.userDID.findUnique({
+      where: { userId: viewer.id },
+      select: { did: true }
+    }))?.did ?? viewer.did;
+
+    // Every page: the hub lists members newest first, 20 by default, and the
+    // curator usually joined first.
+    const read = await readAllRingMembers(viewerClient, slug, {
+      deadlineMs: RingHubClient.REQUEST_TIMEOUT_MS
+    });
+    if (read === HUB_TIMEOUT) {
+      return res.status(503).json({ error: HUB_UNREACHABLE, degraded: true });
+    }
+
+    const viewerMembership = read.members.find(m => m.actorDid === viewerDid);
+    const canInvite = viewerMembership?.role === "owner" || viewerMembership?.role === "moderator";
+    // A list cut short might just be missing the viewer; the hub checks again either way.
+    if (!canInvite && read.complete) {
+      return res.status(403).json({ error: "Only curators and moderators can send invites" });
+    }
+
+    const inviteeDid = handle.user.userDID?.did ?? handle.user.did;
+    await viewerClient.inviteMember(slug, inviteeDid);
+
+    return res.json({
+      success: true,
+      message: `Invite sent to @${username}`
+    });
+  } catch (ringHubError) {
+    console.error("RingHub error in invite:", ringHubError);
+    // A 401 here means the hub rejected the viewer's signing key — a hub-side
+    // auth problem, not a logged-out viewer.
+    if (
+      ringHubError instanceof RingHubAuthError ||
+      ringHubError instanceof RingHubUnavailableError ||
+      (ringHubError instanceof RingHubClientError && ringHubError.status === 401)
+    ) {
+      return res.status(503).json({ error: HUB_UNREACHABLE, degraded: true });
+    }
+    if (ringHubError instanceof RingHubClientError && ringHubError.status && ringHubError.status < 500) {
+      return res.status(ringHubError.status).json({
+        error: ringHubError.data?.message || ringHubError.message
+      });
+    }
+    return res.status(502).json({ error: "The ThreadRing hub couldn't send that invite. Try again in a minute." });
+  }
+}
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
@@ -38,51 +117,13 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
           const ring = await client.getRing(slug);
 
           if (ring) {
-            // This is a RingHub ring - use RingHub API
-
-            // Check if viewer owns this ring locally
-            const ownership = await db.ringHubOwnership.findUnique({
-              where: { ringSlug: slug }
-            });
-
-            // Get viewer's membership to check role
-            const members = await client.getRingMembers(slug);
-            const viewerDid = viewer.did;
-            const viewerMembership = members.members.find(m => m.actorDid === viewerDid);
-
-            const canInvite = viewerMembership &&
-              (viewerMembership.role === 'owner' || viewerMembership.role === 'moderator');
-
-            if (!canInvite) {
-              return res.status(403).json({ error: "Only curators and moderators can send invites" });
-            }
-
-            // Find the invitee's DID
-            const handle = await db.handle.findFirst({
-              where: {
-                handle: username.toLowerCase().replace(/^@/, ""),
-                host: SITE_NAME
-              },
-              include: { user: true }
-            });
-
-            if (!handle) {
-              return res.status(404).json({ error: "User not found" });
-            }
-
-            const inviteeDid = handle.user.did;
-
-            // Send invite via RingHub
-            const result = await client.inviteMember(slug, inviteeDid);
-
-            return res.json({
-              success: true,
-              message: `Invite sent to @${username}`
-            });
+            // This is a hub ring: the hub owns its memberships and invitations,
+            // so a hub failure is reported as-is — never written to the local mirror.
+            return await inviteOnHub(slug, viewer, username, res);
           }
         } catch (ringHubError) {
           console.error("RingHub error in invite:", ringHubError);
-          // Fall through to local database
+          // Can't tell whether this is a hub ring; keep the old local fallback.
         }
       }
     }

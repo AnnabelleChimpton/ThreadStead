@@ -283,10 +283,10 @@ export class AuthenticatedRingHubClient {
     return await userClient.listRings(options)
   }
 
-  async getRingMembers(slug: string) {
+  async getRingMembers(slug: string, options?: Parameters<RingHubClient['getRingMembers']>[1]) {
     const userClient = await this.getUserClient()
 
-    return await userClient.getRingMembers(slug)
+    return await userClient.getRingMembers(slug, options)
   }
 
   async getRingFeed(slug: string, options?: Parameters<RingHubClient['getRingFeed']>[1]) {
@@ -358,6 +358,15 @@ export class AuthenticatedRingHubClient {
   async updateMemberRole(slug: string, memberDid: string, role: 'member' | 'moderator') {
     const userClient = await this.getUserClient()
     return await userClient.updateMemberRole(slug, memberDid, role)
+  }
+
+  /**
+   * Invite someone to a ring as this user. The hub authorizes by the caller's
+   * own membership (owner or moderator), so this is signed as the inviter.
+   */
+  async inviteMember(slug: string, inviteeDid: string, expiresAt?: string) {
+    const userClient = await this.getUserClient()
+    return await userClient.inviteMember(slug, inviteeDid, expiresAt)
   }
 
   /**
