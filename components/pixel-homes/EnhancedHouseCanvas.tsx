@@ -1,12 +1,15 @@
-import React, { useRef, useEffect, useState } from 'react'
+import React, { memo, useRef, useEffect, useState } from 'react'
 import HouseSVG, { HouseTemplate, ColorPalette, HouseCustomizations, AtmosphereSettings } from './HouseSVG'
 import DecorationSVG from './DecorationSVG'
-import AnimatedDecoration from './DecorationAnimations'
 import { SkyGradientDefs, GroundGradientDefs, TerrainDitherDefs, GrassTextureDefs, getSkyPatternCount, getGroundPatternCount, layoutDitherBands } from './DitherPatternDefs'
 import { useSvgIdPrefix } from './useSvgIdPrefix'
-import { DecorationItem, TERRAIN_TILES, TerrainTile } from '@/lib/pixel-homes/decoration-data'
-import { DEFAULT_DECORATION_GRID, getDecorationGridSize } from '@/lib/pixel-homes/decoration-grid-utils'
+import { DecorationItem, TERRAIN_TILES } from '@/lib/pixel-homes/decoration-data'
+import { DEFAULT_DECORATION_GRID } from '@/lib/pixel-homes/decoration-grid-utils'
 import { getDecorationDimensions } from '@/lib/pixel-homes/decoration-dimensions'
+import type { ScenePointer } from '@/lib/pixel-homes/editor-interaction'
+
+/** A pointer event over the scene, in scene coordinates (see lib/pixel-homes/editor-interaction.ts). */
+export type ScenePointerKind = 'down' | 'move' | 'up' | 'cancel' | 'leave'
 
 interface EnhancedHouseCanvasProps {
   template: HouseTemplate
@@ -17,22 +20,16 @@ interface EnhancedHouseCanvasProps {
   atmosphere?: AtmosphereSettings
   terrain?: Record<string, string> // Map of "x,y" grid coords to terrainId
   isDecorationMode?: boolean
-  onDecorationClick?: (decorationId: string, event: React.MouseEvent) => void
-  onDecorationMouseDown?: (decorationId: string, event: React.MouseEvent) => void
-  // Animation props
-  animatedDecorations?: Map<string, 'place' | 'remove' | 'select' | 'hover'>
-  recentlyPlaced?: Set<string>
   selectedDecorations?: Set<string>
-  onAnimationComplete?: (decorationId: string) => void
-  // Interaction props
-  isPlacing?: boolean
   isDeleting?: boolean
-  previewPosition?: { x: number; y: number } | null
-  previewItem?: DecorationItem | null
-  onClick?: (x: number, y: number, event: React.MouseEvent) => void
-  onMouseDown?: (x: number, y: number, event: React.MouseEvent) => void
-  onMouseMove?: (x: number, y: number, event: React.MouseEvent) => void
-  onMouseLeave?: () => void
+  /**
+   * Every pointer event over the scene (mouse, pen and touch alike). A press
+   * captures the pointer, so the move and release arrive even off the scene.
+   * Passing this makes the scene an editing surface (no touch scrolling).
+   */
+  onScenePointer?: (kind: ScenePointerKind, pointer: ScenePointer, event: React.PointerEvent) => void
+  /** Drawn on top of the scene, in scene coordinates (the editor's placement ghost). */
+  overlay?: React.ReactNode
   onScaleChange?: (scale: number) => void
   /**
    * Show the scene at a whole number of device pixels per art pixel (2x, 1.5x,
@@ -110,29 +107,287 @@ const HOUSE_POSITION = {
   height: 180 // Proportional height - back to original house proportions
 }
 
+// Each layer below is memoized, so a change to one (a painted cell, a moved
+// sprite, a new selection) redraws only that layer, and nothing redraws while
+// the pointer just moves.
+
+const BASE_SKY_COLORS: Record<string, string> = {
+  sunny: '#C8F0FF',
+  cloudy: '#E0E8F0',
+  sunset: '#FFD090',
+  night: '#1A1A60'
+}
+
+const SkyLayer = memo(function SkyLayer({ sky, idPrefix }: { sky: AtmosphereSettings['sky']; idPrefix: string }) {
+  const zone = DECORATION_ZONES.background
+
+  // Pixel-perfect band heights for this sky type
+  const bands = layoutDitherBands(getSkyPatternCount(sky), zone.height).map(band => ({
+    ...band,
+    pattern: `${idPrefix}-sky-${sky}-${band.index}`
+  }))
+
+  return (
+    <svg
+      className="absolute"
+      style={{ left: zone.x, top: zone.y, width: zone.width, height: zone.height, zIndex: 1 }}
+      viewBox={`0 0 ${zone.width} ${zone.height}`}
+      preserveAspectRatio="none"
+      shapeRendering="crispEdges"
+    >
+      <SkyGradientDefs prefix={idPrefix} sky={sky} />
+      {/* Base fill to prevent any gaps */}
+      <rect x="0" y="0" width={zone.width} height={zone.height} fill={BASE_SKY_COLORS[sky] || '#87CEEB'} />
+      {/* Dithered sky bands with pixel-perfect heights */}
+      {bands.map((band, i) => (
+        <rect key={i} x="0" y={band.y} width={zone.width} height={band.height} fill={`url(#${band.pattern})`} />
+      ))}
+      {/* Stars for night sky */}
+      {sky === 'night' && (
+        <g>
+          <rect x="32" y="16" width="2" height="2" fill="#FFFFFF" opacity="0.8" />
+          <rect x="120" y="32" width="2" height="2" fill="#FFFFFF" opacity="0.6" />
+          <rect x="200" y="12" width="2" height="2" fill="#FFFFFF" opacity="0.9" />
+          <rect x="350" y="24" width="2" height="2" fill="#FFFFFF" opacity="0.7" />
+          <rect x="420" y="48" width="2" height="2" fill="#FFFFFF" opacity="0.8" />
+          <rect x="80" y="60" width="1" height="1" fill="#FFFFFF" opacity="0.5" />
+          <rect x="280" y="40" width="1" height="1" fill="#FFFFFF" opacity="0.6" />
+          <rect x="380" y="8" width="1" height="1" fill="#FFFFFF" opacity="0.7" />
+        </g>
+      )}
+    </svg>
+  )
+})
+
+const GroundLayer = memo(function GroundLayer({ idPrefix }: { idPrefix: string }) {
+  const zone = DECORATION_ZONES.front_yard
+
+  // Pixel-perfect band heights for the ground gradient
+  const bands = layoutDitherBands(getGroundPatternCount(), zone.height).map(band => ({
+    ...band,
+    pattern: `${idPrefix}-ground-${band.index}`
+  }))
+
+  // Calculate grass texture overlay positions (integer division)
+  const halfHeight = Math.floor(zone.height / 2)
+
+  return (
+    <svg
+      className="absolute"
+      style={{ left: zone.x, top: zone.y, width: zone.width, height: zone.height, zIndex: 2 }}
+      viewBox={`0 0 ${zone.width} ${zone.height}`}
+      preserveAspectRatio="none"
+      shapeRendering="crispEdges"
+    >
+      <GroundGradientDefs prefix={idPrefix} />
+      <GrassTextureDefs prefix={idPrefix} />
+      {/* Base fill to prevent any gaps (top grass color) */}
+      <rect x="0" y="0" width={zone.width} height={zone.height} fill="#90EE90" />
+      {/* Dithered grass bands with pixel-perfect heights */}
+      {bands.map((band, i) => (
+        <rect key={i} x="0" y={band.y} width={zone.width} height={band.height} fill={`url(#${band.pattern})`} />
+      ))}
+      {/* Grass blade texture overlay - sparse at horizon, denser in foreground */}
+      <rect x="0" y="0" width={zone.width} height={halfHeight} fill={`url(#${idPrefix}-grass-blades)`} />
+      <rect x="0" y={halfHeight} width={zone.width} height={zone.height - halfHeight} fill={`url(#${idPrefix}-grass-blades-dense)`} />
+    </svg>
+  )
+})
+
+// Map terrain IDs to dither pattern IDs
+const TERRAIN_PATTERNS: Record<string, string> = {
+  'dirt': 'terrain-dirt',
+  'stone_path': 'terrain-stone',
+  'brick_path': 'terrain-brick',
+  'water': 'terrain-water',
+  'sand': 'terrain-sand',
+  'gravel': 'terrain-gravel',
+  'flower_bed': 'terrain-flowerbed',
+  'wood_deck': 'terrain-wood',
+  'cobblestone': 'terrain-cobble',
+  'mulch': 'terrain-dirt',
+  'moss': 'terrain-flowerbed',
+  'pebbles': 'terrain-gravel'
+}
+
+// The terrain <svg> stays mounted even with no tiles: unmounting it re-created
+// its patterns whenever the first tile was painted or the last one erased.
+const TerrainLayer = memo(function TerrainLayer({ terrain, idPrefix }: { terrain: Record<string, string>; idPrefix: string }) {
+  return (
+    <svg
+      className="absolute inset-0"
+      style={{ zIndex: 3 }}
+      viewBox={`0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`}
+      preserveAspectRatio="none"
+      shapeRendering="crispEdges"
+    >
+      <TerrainDitherDefs prefix={idPrefix} />
+      {Object.entries(terrain).map(([key, tileId]) => {
+        // Grass is already the ground layer
+        if (tileId === 'grass') return null
+        const tile = TERRAIN_TILES.find(t => t.id === tileId)
+        if (!tile) return null
+
+        const [gridX, gridY] = key.split(',').map(Number)
+        const patternId = TERRAIN_PATTERNS[tileId]
+        const size = DEFAULT_DECORATION_GRID.cellSize + 1
+
+        return (
+          <rect
+            key={key}
+            x={gridX * DEFAULT_DECORATION_GRID.cellSize}
+            y={gridY * DEFAULT_DECORATION_GRID.cellSize}
+            width={size}
+            height={size}
+            fill={patternId ? `url(#${idPrefix}-${patternId})` : tile.color}
+          >
+            <title>{tile.name}</title>
+          </rect>
+        )
+      })}
+    </svg>
+  )
+})
+
+const HouseLayer = memo(function HouseLayer({
+  template,
+  palette,
+  customizations
+}: {
+  template: HouseTemplate
+  palette: ColorPalette
+  customizations: HouseCustomizations
+}) {
+  return (
+    <div
+      className="absolute"
+      style={{
+        left: HOUSE_POSITION.x,
+        top: HOUSE_POSITION.y,
+        width: HOUSE_POSITION.width,
+        height: HOUSE_POSITION.height,
+        zIndex: 5
+      }}
+    >
+      <HouseSVG template={template} palette={palette} customizations={customizations} className="w-full h-full drop-shadow-lg" />
+    </div>
+  )
+})
+
+interface DecorationSpriteProps {
+  item: DecorationItem
+  selected: boolean
+  /** The editor's surface: sprites show a pointer and carry their id for hit-testing. */
+  editable: boolean
+  deleting: boolean
+  onMailboxClick?: () => void
+}
+
+/** One placed decoration, redrawn only when it or its selection changes. */
+const DecorationSprite = memo(function DecorationSprite({ item, selected, editable, deleting, onMailboxClick }: DecorationSpriteProps) {
+  const decorationKey = item.decorationId || item.id
+  const { width, height } = getDecorationDimensions(decorationKey, item.type, item.size || 'medium')
+
+  // Bottom-aligned in its box, so sprites stand on the same line
+  const wrapperStyle: React.CSSProperties = {
+    left: item.position?.x || 0,
+    top: item.position?.y || 0,
+    width,
+    height,
+    zIndex: item.position?.layer || 10,
+    display: 'flex',
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    pointerEvents: 'none' // only the art itself takes the pointer
+  }
+
+  const art = (
+    <DecorationSVG
+      decorationType={item.type}
+      decorationId={decorationKey}
+      variant={item.variant}
+      size={item.size}
+      className="drop-shadow-sm block max-w-none"
+      renderSvg={item.renderSvg}
+      text={item.text || item.data?.text}
+      customAssetUrl={item.customAssetUrl}
+      pngUrl={item.pngUrl}
+    />
+  )
+
+  // A placed mailbox is the guestbook, for visitors
+  if (onMailboxClick && decorationKey === 'mailbox') {
+    return (
+      <div className="absolute" style={wrapperStyle}>
+        <button
+          type="button"
+          onClick={onMailboxClick}
+          aria-label="Mailbox (guestbook)"
+          className="ts-bare ts-scene-hotspot pointer-events-auto block cursor-pointer bg-transparent p-0 border-0"
+        >
+          {art}
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="absolute" style={wrapperStyle}>
+      <div
+        data-decoration-id={editable ? item.id : undefined}
+        className={`pointer-events-auto ${editable ? 'cursor-pointer' : ''} ${deleting ? 'transition-all duration-150 hover:outline hover:outline-3 hover:outline-red-500 hover:outline-offset-2 rounded hover:scale-110 hover:brightness-90' : ''}`}
+        style={selected ? { outline: '1px dotted #4a403d', outlineOffset: 1 } : undefined}
+      >
+        {art}
+      </div>
+    </div>
+  )
+})
+
+const NO_SELECTION: Set<string> = new Set()
+
+const DecorationsLayer = memo(function DecorationsLayer({
+  decorations,
+  selected,
+  editable,
+  deleting,
+  onMailboxClick
+}: {
+  decorations: DecorationItem[]
+  selected: Set<string>
+  editable: boolean
+  deleting: boolean
+  onMailboxClick?: () => void
+}) {
+  return (
+    <div className="absolute inset-0" style={{ zIndex: 10 }}>
+      {decorations.map(item => (
+        <DecorationSprite
+          key={item.id}
+          item={item}
+          selected={selected.has(item.id)}
+          editable={editable}
+          deleting={deleting}
+          onMailboxClick={onMailboxClick}
+        />
+      ))}
+    </div>
+  )
+})
+
 export default function EnhancedHouseCanvas({
   template,
   palette,
   className = '',
   decorations = [],
-  houseCustomizations = {},
-  atmosphere = { sky: 'sunny', weather: 'clear', timeOfDay: 'midday' },
-  terrain = {},
+  houseCustomizations,
+  atmosphere,
+  terrain,
   isDecorationMode = false,
-  onDecorationClick,
-  onDecorationMouseDown,
-  animatedDecorations,
-  recentlyPlaced,
-  selectedDecorations,
-  onAnimationComplete,
-  isPlacing,
-  isDeleting,
-  previewPosition,
-  previewItem,
-  onClick,
-  onMouseDown,
-  onMouseMove,
-  onMouseLeave,
+  selectedDecorations = NO_SELECTION,
+  isDeleting = false,
+  onScenePointer,
+  overlay,
   onScaleChange,
   pixelPerfect = false,
   door,
@@ -180,311 +435,32 @@ export default function EnhancedHouseCanvas({
     return () => resizeObserver.disconnect()
   }, [onScaleChange, pixelPerfect])
 
-  const handleInteraction = (
-    event: React.MouseEvent,
-    handler?: (x: number, y: number, event: React.MouseEvent) => void
-  ) => {
-    if (!handler) return
+  const editable = !!onScenePointer
+
+  // One handler for mouse, pen and touch, in scene coordinates
+  const handlePointer = (kind: ScenePointerKind) => (event: React.PointerEvent<HTMLDivElement>) => {
+    // A second finger is not primary; it never moves or plants anything
+    if (!onScenePointer || event.isPrimary === false) return
+    if (kind === 'down') {
+      if (event.button > 0) return // only the main button (touch and pen report 0)
+      // Keep the move and release coming here even off the scene, and stop
+      // the browser starting a text selection or image drag
+      event.currentTarget.setPointerCapture?.(event.pointerId)
+      event.preventDefault()
+    }
     const rect = event.currentTarget.getBoundingClientRect()
     const x = (event.clientX - rect.left) / scale
     const y = (event.clientY - rect.top) / scale
-    handler(x, y, event)
-  }
-
-  const renderBackground = () => {
-    const zone = DECORATION_ZONES.background
-
-    // Pixel-perfect band heights for this sky type
-    const patternCount = getSkyPatternCount(atmosphere.sky)
-    const bands = layoutDitherBands(patternCount, zone.height).map(band => ({
-      ...band,
-      pattern: `${idPrefix}-sky-${atmosphere.sky}-${band.index}`
-    }))
-
-    // Base sky colors for fallback fill (last/bottom color of each sky type)
-    const baseSkyColors: Record<string, string> = {
-      sunny: '#C8F0FF',
-      cloudy: '#E0E8F0',
-      sunset: '#FFD090',
-      night: '#1A1A60'
-    }
-
-    return (
-      <svg
-        className="absolute"
-        style={{
-          left: zone.x,
-          top: zone.y,
-          width: zone.width,
-          height: zone.height,
-          zIndex: 1
-        }}
-        viewBox={`0 0 ${zone.width} ${zone.height}`}
-        preserveAspectRatio="none"
-        shapeRendering="crispEdges"
-      >
-        <SkyGradientDefs prefix={idPrefix} sky={atmosphere.sky} />
-        {/* Base fill to prevent any gaps */}
-        <rect x="0" y="0" width={zone.width} height={zone.height} fill={baseSkyColors[atmosphere.sky] || '#87CEEB'} />
-        {/* Dithered sky bands with pixel-perfect heights */}
-        {bands.map((band, i) => (
-          <rect
-            key={i}
-            x="0"
-            y={band.y}
-            width={zone.width}
-            height={band.height}
-            fill={`url(#${band.pattern})`}
-          />
-        ))}
-        {/* Stars for night sky */}
-        {atmosphere.sky === 'night' && (
-          <g>
-            <rect x="32" y="16" width="2" height="2" fill="#FFFFFF" opacity="0.8" />
-            <rect x="120" y="32" width="2" height="2" fill="#FFFFFF" opacity="0.6" />
-            <rect x="200" y="12" width="2" height="2" fill="#FFFFFF" opacity="0.9" />
-            <rect x="350" y="24" width="2" height="2" fill="#FFFFFF" opacity="0.7" />
-            <rect x="420" y="48" width="2" height="2" fill="#FFFFFF" opacity="0.8" />
-            <rect x="80" y="60" width="1" height="1" fill="#FFFFFF" opacity="0.5" />
-            <rect x="280" y="40" width="1" height="1" fill="#FFFFFF" opacity="0.6" />
-            <rect x="380" y="8" width="1" height="1" fill="#FFFFFF" opacity="0.7" />
-          </g>
-        )}
-      </svg>
-    )
-  }
-
-  const renderFrontYard = () => {
-    const zone = DECORATION_ZONES.front_yard
-
-    // Pixel-perfect band heights for the ground gradient
-    const bands = layoutDitherBands(getGroundPatternCount(), zone.height).map(band => ({
-      ...band,
-      pattern: `${idPrefix}-ground-${band.index}`
-    }))
-
-    // Calculate grass texture overlay positions (integer division)
-    const halfHeight = Math.floor(zone.height / 2)
-
-    return (
-      <svg
-        className="absolute"
-        style={{
-          left: zone.x,
-          top: zone.y,
-          width: zone.width,
-          height: zone.height,
-          zIndex: 2
-        }}
-        viewBox={`0 0 ${zone.width} ${zone.height}`}
-        preserveAspectRatio="none"
-        shapeRendering="crispEdges"
-      >
-        <GroundGradientDefs prefix={idPrefix} />
-        <GrassTextureDefs prefix={idPrefix} />
-        {/* Base fill to prevent any gaps (top grass color) */}
-        <rect x="0" y="0" width={zone.width} height={zone.height} fill="#90EE90" />
-        {/* Dithered grass bands with pixel-perfect heights */}
-        {bands.map((band, i) => (
-          <rect
-            key={i}
-            x="0"
-            y={band.y}
-            width={zone.width}
-            height={band.height}
-            fill={`url(#${band.pattern})`}
-          />
-        ))}
-        {/* Grass blade texture overlay - sparse at horizon, denser in foreground */}
-        <rect
-          x="0"
-          y="0"
-          width={zone.width}
-          height={halfHeight}
-          fill={`url(#${idPrefix}-grass-blades)`}
-        />
-        <rect
-          x="0"
-          y={halfHeight}
-          width={zone.width}
-          height={zone.height - halfHeight}
-          fill={`url(#${idPrefix}-grass-blades-dense)`}
-        />
-      </svg>
-    )
-  }
-
-  // The terrain <svg> stays mounted even with no tiles: unmounting it re-created
-  // its patterns whenever the first tile was painted or the last one erased.
-  const renderTerrain = () => {
-    // Map terrain IDs to dither pattern IDs
-    const terrainPatternMap: Record<string, string> = {
-      'dirt': 'terrain-dirt',
-      'stone_path': 'terrain-stone',
-      'brick_path': 'terrain-brick',
-      'water': 'terrain-water',
-      'sand': 'terrain-sand',
-      'gravel': 'terrain-gravel',
-      'flower_bed': 'terrain-flowerbed',
-      'wood_deck': 'terrain-wood',
-      'cobblestone': 'terrain-cobble',
-      'mulch': 'terrain-dirt',
-      'moss': 'terrain-flowerbed',
-      'pebbles': 'terrain-gravel'
-    }
-
-    return (
-      <svg
-        className="absolute inset-0"
-        style={{ zIndex: 3 }}
-        viewBox={`0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`}
-        preserveAspectRatio="none"
-        shapeRendering="crispEdges"
-      >
-        <TerrainDitherDefs prefix={idPrefix} />
-        {Object.entries(terrain || {}).map(([key, tileId]) => {
-          const [gridX, gridY] = key.split(',').map(Number)
-          const tile = TERRAIN_TILES.find(t => t.id === tileId)
-          if (!tile) return null
-
-          const patternId = terrainPatternMap[tileId]
-          const x = gridX * DEFAULT_DECORATION_GRID.cellSize
-          const y = gridY * DEFAULT_DECORATION_GRID.cellSize
-          const size = DEFAULT_DECORATION_GRID.cellSize + 1
-
-          // Skip grass tiles - they're already in the ground layer
-          if (tileId === 'grass') return null
-
-          return (
-            <rect
-              key={key}
-              x={x}
-              y={y}
-              width={size}
-              height={size}
-              fill={patternId ? `url(#${idPrefix}-${patternId})` : tile.color}
-            >
-              <title>{tile.name}</title>
-            </rect>
-          )
-        })}
-      </svg>
-    )
-  }
-
-  const renderDecorations = () => {
-    return (
-      <div className="absolute inset-0" style={{ zIndex: 10 }}>
-        {decorations.map(item => {
-          // Determine if this decoration should be animated
-          const hasAnimations = animatedDecorations || recentlyPlaced || selectedDecorations
-          const animationType = recentlyPlaced?.has(item.id) ? 'place' :
-            selectedDecorations?.has(item.id) ? 'select' :
-              animatedDecorations?.get(item.id) || undefined
-
-          // Calculate actual dimensions for proper alignment and sizing
-          const dimensions = getDecorationDimensions(item.decorationId || item.id, item.type, item.size || 'medium')
-          const pixelWidth = dimensions.width
-          const pixelHeight = dimensions.height
-
-          // Wrapper style for bottom alignment
-          const wrapperStyle: React.CSSProperties = {
-            left: item.position?.x || 0,
-            top: item.position?.y || 0,
-            width: pixelWidth,
-            height: pixelHeight,
-            zIndex: item.position?.layer || 10,
-            display: 'flex',
-            alignItems: 'flex-end',
-            justifyContent: 'center',
-            pointerEvents: 'none' // Allow clicks to pass through wrapper
-          }
-
-          // Use AnimatedDecoration if animations are available and this decoration needs animation
-          if (hasAnimations && animationType) {
-            return (
-              <div
-                key={item.id}
-                className="absolute"
-                style={wrapperStyle}
-              >
-                <div
-                  className={`pointer-events-auto transition-all duration-150 ${isDeleting ? 'cursor-pointer hover:outline hover:outline-3 hover:outline-red-500 hover:outline-offset-2 rounded hover:scale-110 hover:brightness-90' : ''}`}
-                  onClick={onDecorationClick ? (e) => onDecorationClick(item.id, e) : undefined}
-                  onMouseDown={onDecorationMouseDown ? (e) => onDecorationMouseDown(item.id, e) : undefined}
-                >
-                  <AnimatedDecoration
-                    decorationType={item.type}
-                    decorationId={item.decorationId || item.id.replace(/_(\d+)_[a-z0-9]+$|_\d+$/, '')}
-                    variant={item.variant}
-                    size={item.size}
-                    position={{ x: 0, y: 0 }} // Position handled by wrapper
-                    animationType={animationType}
-                    onAnimationComplete={() => onAnimationComplete?.(item.id)}
-                    className="cursor-pointer block"
-                  />
-                </div>
-              </div>
-            )
-          }
-
-          const decorationKey = item.decorationId || item.id.replace(/_(\d+)_[a-z0-9]+$|_\d+$/, '')
-
-          // A placed mailbox is the guestbook, for visitors
-          if (onMailboxClick && !isDecorationMode && decorationKey === 'mailbox') {
-            return (
-              <div key={item.id} className="absolute" style={wrapperStyle}>
-                <button
-                  type="button"
-                  onClick={onMailboxClick}
-                  aria-label="Mailbox (guestbook)"
-                  className="ts-bare ts-scene-hotspot pointer-events-auto block cursor-pointer bg-transparent p-0 border-0"
-                >
-                  <DecorationSVG
-                    decorationType={item.type}
-                    decorationId={decorationKey}
-                    variant={item.variant}
-                    size={item.size}
-                    className="block max-w-none"
-                    renderSvg={item.renderSvg}
-                    text={item.text || item.data?.text}
-                    customAssetUrl={item.customAssetUrl}
-                    pngUrl={item.pngUrl}
-                  />
-                </button>
-              </div>
-            )
-          }
-
-          // Use static decoration for non-animated items
-          return (
-            <div
-              key={item.id}
-              className="absolute"
-              style={wrapperStyle}
-            >
-              <div
-                className={`pointer-events-auto transition-all duration-150 ${onDecorationClick || onDecorationMouseDown ? 'cursor-pointer' : ''} ${isDeleting ? 'hover:outline hover:outline-3 hover:outline-red-500 hover:outline-offset-2 rounded hover:scale-110 hover:brightness-90' : ''}`}
-                onClick={onDecorationClick ? (e) => onDecorationClick(item.id, e) : undefined}
-                onMouseDown={onDecorationMouseDown ? (e) => onDecorationMouseDown(item.id, e) : undefined}
-              >
-                <DecorationSVG
-                  decorationType={item.type}
-                  decorationId={item.decorationId || item.id.replace(/_(\d+)_[a-z0-9]+$|_\d+$/, '')}
-                  variant={item.variant}
-                  size={item.size}
-                  className="drop-shadow-sm block max-w-none"
-                  renderSvg={item.renderSvg}
-                  text={item.text || item.data?.text}
-                  customAssetUrl={item.customAssetUrl}
-                  pngUrl={item.pngUrl}
-                />
-              </div>
-            </div>
-          )
-        })}
-      </div>
-    )
+    const hit = kind === 'down'
+      ? (event.target as Element | null)?.closest?.('[data-decoration-id]')?.getAttribute('data-decoration-id') ?? null
+      : null
+    onScenePointer(kind, {
+      x,
+      y,
+      inside: x >= 0 && y >= 0 && x <= CANVAS_WIDTH && y <= CANVAS_HEIGHT,
+      decorationId: hit,
+      screenScale: scale
+    }, event)
   }
 
   const sceneStyle: React.CSSProperties = pixelPerfect
@@ -514,12 +490,16 @@ export default function EnhancedHouseCanvas({
     >
       <div
         ref={containerRef}
-        className={pixelPerfect ? 'relative overflow-hidden' : 'relative border-2 border-gray-300 rounded-lg overflow-hidden'}
+        data-scene=""
+        // An editing surface: touch drags edit instead of scrolling, and nothing gets text-selected
+        className={`${pixelPerfect ? 'relative overflow-hidden' : 'relative border-2 border-gray-300 rounded-lg overflow-hidden'}${editable ? ' touch-none select-none' : ''}`}
         style={sceneStyle}
-        onClick={(e) => handleInteraction(e, onClick)}
-        onMouseDown={(e) => handleInteraction(e, onMouseDown)}
-        onMouseMove={(e) => handleInteraction(e, onMouseMove)}
-        onMouseLeave={onMouseLeave}
+        onPointerDown={editable ? handlePointer('down') : undefined}
+        onPointerMove={editable ? handlePointer('move') : undefined}
+        onPointerUp={editable ? handlePointer('up') : undefined}
+        onPointerCancel={editable ? handlePointer('cancel') : undefined}
+        onPointerLeave={editable ? handlePointer('leave') : undefined}
+        onDragStart={editable ? (e) => e.preventDefault() : undefined}
       >
         {/* Scaled content wrapper - scales all content proportionally */}
         <div
@@ -531,36 +511,17 @@ export default function EnhancedHouseCanvas({
             position: 'relative'
           }}
         >
-          {/* Background Layer (Sky, weather effects) */}
-          {renderBackground()}
-
-          {/* Front Yard Layer (Grass, decorations) */}
-          {renderFrontYard()}
-
-          {/* Terrain Layer (Painted tiles) */}
-          {renderTerrain()}
-
-          {/* Decorations Layer (Above grass, below house) */}
-          {renderDecorations()}
-
-          {/* House Layer (Centered in canvas) */}
-          <div
-            className="absolute"
-            style={{
-              left: HOUSE_POSITION.x,
-              top: HOUSE_POSITION.y,
-              width: HOUSE_POSITION.width,
-              height: HOUSE_POSITION.height,
-              zIndex: 5
-            }}
-          >
-            <HouseSVG
-              template={template}
-              palette={palette}
-              customizations={houseCustomizations}
-              className="w-full h-full drop-shadow-lg"
-            />
-          </div>
+          <SkyLayer sky={atmosphere?.sky ?? 'sunny'} idPrefix={idPrefix} />
+          <GroundLayer idPrefix={idPrefix} />
+          <TerrainLayer terrain={terrain ?? NO_TERRAIN} idPrefix={idPrefix} />
+          <DecorationsLayer
+            decorations={decorations}
+            selected={selectedDecorations}
+            editable={editable}
+            deleting={isDeleting}
+            onMailboxClick={isDecorationMode ? undefined : onMailboxClick}
+          />
+          <HouseLayer template={template} palette={palette} customizations={houseCustomizations ?? NO_CUSTOMIZATIONS} />
 
           {/* The drawn front door is the way inside. No visible chrome: the
               cursor changes, and keyboard focus gets a dotted ring. */}
@@ -583,50 +544,7 @@ export default function EnhancedHouseCanvas({
             )
           })()}
 
-          {/* Preview Item (Ghost) */}
-          {previewPosition && previewItem && (
-            <div
-              className="absolute pointer-events-none opacity-70 animate-pulse"
-              style={{
-                left: previewPosition.x,
-                top: previewPosition.y,
-                width: (() => {
-                  const dimensions = getDecorationDimensions(previewItem.id, previewItem.type, previewItem.size || 'medium')
-                  return dimensions.width
-                })(),
-                height: (() => {
-                  const dimensions = getDecorationDimensions(previewItem.id, previewItem.type, previewItem.size || 'medium')
-                  return dimensions.height
-                })(),
-                zIndex: (() => {
-                  let baseLayer = 300000
-                  if (previewItem.type === 'path') baseLayer = 100000
-                  else if (previewItem.type === 'water') baseLayer = 200000
-
-                  // Calculate actual height for sorting
-                  const dimensions = getDecorationDimensions(previewItem.id, previewItem.type, previewItem.size || 'medium')
-                  const pixelHeight = dimensions.height
-                  const bottomY = Math.round(previewPosition.y + pixelHeight)
-
-                  return baseLayer + (bottomY * 1000) + Math.round(previewPosition.x)
-                })(),
-                display: 'flex',
-                alignItems: 'flex-end',
-                justifyContent: 'center',
-                filter: 'drop-shadow(0 0 4px rgba(255, 255, 255, 0.8)) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3))'
-              }}
-            >
-              <DecorationSVG
-                decorationType={previewItem.type}
-                decorationId={previewItem.decorationId || previewItem.id.replace(/_(\d+)_[a-z0-9]+$|_\d+$/, '')}
-                variant={previewItem.variant}
-                size={previewItem.size}
-                className="block max-w-none"
-                customAssetUrl={previewItem.customAssetUrl}
-                pngUrl={previewItem.pngUrl}
-              />
-            </div>
-          )}
+          {overlay}
 
           {/* Decoration Mode Overlay */}
           {isDecorationMode && (
@@ -667,3 +585,6 @@ export default function EnhancedHouseCanvas({
     </div>
   )
 }
+
+const NO_TERRAIN: Record<string, string> = {}
+const NO_CUSTOMIZATIONS: HouseCustomizations = {}

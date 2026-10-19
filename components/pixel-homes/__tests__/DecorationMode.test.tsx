@@ -4,12 +4,14 @@
  *    colours, theme, sky and text included, not just undo history), and
  *    Cancel, site links and router navigation all ask before dropping it
  *  - 0.6: a plain click on a decoration only selects it; a drag starts past
- *    a small threshold and always ends on mouseup
+ *    a small threshold and always ends on release
+ * and Phase 3: one undo history for the whole home (3.1), and pointer events
+ * through one state machine (3.2).
  *
  * The canvas and palette are stubs that hand back their props, so each test
- * calls the same callbacks the real components would, in the same order: a
- * press on a decoration fires onDecorationMouseDown, then bubbles to the
- * canvas's onMouseDown with canvas coordinates.
+ * calls the same callbacks the real components would: the canvas reports
+ * every pointer event through onScenePointer in scene coordinates. The stub
+ * renders the overlay, so the placement ghost is real.
  */
 import React from 'react'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
@@ -28,7 +30,7 @@ jest.mock('../EnhancedHouseCanvas', () => ({
   __esModule: true,
   default: (props: any) => {
     canvasProps = props
-    return null
+    return props.overlay ?? null
   },
 }))
 jest.mock('../DecorationPalette', () => ({
@@ -83,13 +85,24 @@ function setup(overrides: Partial<React.ComponentProps<typeof DecorationMode>> =
 const rosePosition = () => canvasProps.decorations.find((d: DecorationItem) => d.id === ROSE.id).position
 const step = (fn: () => void) => act(() => fn())
 
-/** Press on the rose at canvas (x, y), as the real canvas reports it. */
-function pressRose(x: number, y: number) {
-  step(() => canvasProps.onDecorationMouseDown(ROSE.id, ev()))
-  step(() => canvasProps.onMouseDown(x, y, ev()))
+type Kind = 'down' | 'move' | 'up' | 'cancel' | 'leave'
+let last = { x: 0, y: 0 }
+/** A pointer event as the real canvas reports it (scene coordinates, 1:1 scale). */
+function pointer(kind: Kind, x = last.x, y = last.y, decorationId: string | null = null) {
+  last = { x, y }
+  const inside = x >= 0 && y >= 0 && x <= 512 && y <= 352
+  step(() => canvasProps.onScenePointer(kind, { x, y, inside, decorationId, screenScale: 1 }, ev()))
 }
-const moveTo = (x: number, y: number) => step(() => canvasProps.onMouseMove(x, y, ev()))
-const release = () => step(() => fireEvent.mouseUp(window))
+/** Press on the rose at scene (x, y). */
+const pressRose = (x: number, y: number) => pointer('down', x, y, ROSE.id)
+const moveTo = (x: number, y: number) => pointer('move', x, y)
+const release = () => pointer('up')
+/** Press and release on the lawn. */
+const clickLawn = (x: number, y: number) => {
+  pointer('down', x, y)
+  pointer('up', x, y)
+}
+const ghost = () => document.querySelector('[data-placement-ghost]') as HTMLElement | null
 
 /** The routeChangeStart listener the leave guard registered. */
 const routeChangeStart = () => router.events.on.mock.calls.filter(([name]) => name === 'routeChangeStart').at(-1)![1]
@@ -111,14 +124,13 @@ describe('0.6 click versus drag', () => {
     setup()
     pressRose(70, 250)
     release()
-    step(() => canvasProps.onDecorationClick(ROSE.id, ev()))
     expect(canvasProps.selectedDecorations.has(ROSE.id)).toBe(true)
     // no ghost follows the pointer
     moveTo(300, 300)
-    expect(canvasProps.previewPosition).toBeNull()
+    expect(ghost()).toBeNull()
 
     // the next click on the lawn used to teleport the rose there
-    step(() => canvasProps.onClick(300, 300, ev()))
+    clickLawn(300, 300)
     expect(rosePosition()).toMatchObject({ x: 64, y: 240 })
     expect(canvasProps.selectedDecorations.size).toBe(0)
   })
@@ -127,9 +139,9 @@ describe('0.6 click versus drag', () => {
     setup()
     pressRose(70, 250)
     moveTo(72, 251)
-    expect(canvasProps.previewPosition).toBeNull()
+    expect(ghost()).toBeNull()
     release()
-    step(() => canvasProps.onClick(300, 300, ev()))
+    clickLawn(300, 300)
     expect(rosePosition()).toMatchObject({ x: 64, y: 240 })
   })
 
@@ -137,8 +149,7 @@ describe('0.6 click versus drag', () => {
     setup()
     pressRose(70, 250) // 6 px right of and 10 px below the rose's corner
     moveTo(150, 250)
-    expect(canvasProps.previewItem?.id).toBe(ROSE.id)
-    expect(canvasProps.previewPosition).not.toBeNull()
+    expect(ghost()).not.toBeNull()
     moveTo(200, 300)
     release()
 
@@ -146,24 +157,22 @@ describe('0.6 click versus drag', () => {
     // snapping may pull it up to 8 px towards the 16 px grid
     expect(Math.abs(x - 194)).toBeLessThanOrEqual(8)
     expect(Math.abs(y - 290)).toBeLessThanOrEqual(8)
-    expect(canvasProps.previewPosition).toBeNull()
-
-    // the click that follows the drop neither places nor moves anything
-    step(() => canvasProps.onClick(200, 300, ev()))
-    expect(rosePosition()).toMatchObject({ x, y })
+    expect(ghost()).toBeNull()
+    expect(canvasProps.selectedDecorations.size).toBe(0)
   })
 
-  test('the drag ends on mouseup even when the pointer left the canvas', () => {
+  test('a drag released off the scene leaves the decoration where it was', () => {
     setup()
     pressRose(70, 250)
     moveTo(150, 250)
-    step(() => canvasProps.onMouseLeave())
+    moveTo(600, 250) // captured: the moves keep coming from off the scene
+    expect(ghost()).toBeNull()
     release()
     expect(rosePosition()).toMatchObject({ x: 64, y: 240 })
-    expect(canvasProps.previewPosition).toBeNull()
+    expect(ghost()).toBeNull()
 
     // nothing is left armed for the next click
-    step(() => canvasProps.onClick(300, 300, ev()))
+    clickLawn(300, 300)
     expect(rosePosition()).toMatchObject({ x: 64, y: 240 })
   })
 
@@ -190,7 +199,8 @@ describe('0.5 unsaved changes', () => {
   test('terrain alone counts: Cancel asks, Keep editing stays, Leave leaves', async () => {
     const { onExit } = setup()
     step(() => paletteProps.onTerrainSelect('water'))
-    step(() => canvasProps.onMouseDown(100, 200, ev()))
+    pointer('down', 100, 200)
+    pointer('up')
     expect(canvasProps.terrain).toEqual({ '6,12': 'water' })
 
     clickCancel()
@@ -224,7 +234,7 @@ describe('0.5 unsaved changes', () => {
   test('undoing back to the saved home is clean again', () => {
     setup()
     step(() => paletteProps.onItemSelect({ id: 'tree_pine', name: 'Pine', type: 'plant' }))
-    step(() => canvasProps.onClick(200, 200, ev()))
+    clickLawn(200, 200)
     expect(canvasProps.decorations).toHaveLength(2)
     expect(() => routeChangeStart()('/feed')).toThrow()
 
@@ -267,7 +277,7 @@ describe('Phase 3.1 one history for the whole home', () => {
   test('a terrain stroke is one undo step', () => {
     setup()
     step(() => paletteProps.onTerrainSelect('stone_path'))
-    step(() => canvasProps.onMouseDown(100, 200, ev()))
+    pointer('down', 100, 200)
     for (const x of [116, 132, 148, 164]) moveTo(x, 200)
     release()
     expect(Object.keys(canvasProps.terrain)).toHaveLength(5)
@@ -280,7 +290,8 @@ describe('Phase 3.1 one history for the whole home', () => {
 
   test('typing sign text is one undo step, and the palette follows undo', () => {
     setup()
-    step(() => canvasProps.onDecorationClick(ROSE.id, ev()))
+    pressRose(70, 250)
+    release()
     for (const text of ['H', 'HI', 'HI!']) step(() => paletteProps.onDecorationUpdate(ROSE.id, { text }))
     expect(paletteProps.selectedItem.text).toBe('HI!')
 
@@ -313,11 +324,12 @@ describe('Phase 3.1 one history for the whole home', () => {
   test('a decoration removed by undo drops out of the selection', () => {
     setup()
     step(() => paletteProps.onItemSelect({ id: 'tree_pine', name: 'Pine', type: 'plant' }))
-    step(() => canvasProps.onClick(200, 200, ev()))
+    clickLawn(200, 200)
     step(() => paletteProps.onItemSelect(null))
     const pine = canvasProps.decorations[1]
     expect(pine.decorationId).toBe('tree_pine')
-    step(() => canvasProps.onDecorationClick(pine.id, ev()))
+    pointer('down', 200, 200, pine.id)
+    pointer('up')
     expect(canvasProps.selectedDecorations.has(pine.id)).toBe(true)
 
     undoKey()
@@ -327,7 +339,8 @@ describe('Phase 3.1 one history for the whole home', () => {
 
   test('deleting and moving are undoable', () => {
     setup()
-    step(() => canvasProps.onDecorationClick(ROSE.id, ev()))
+    pressRose(70, 250)
+    release()
     step(() => fireEvent.keyDown(window, { key: 'Delete' }))
     expect(canvasProps.decorations).toHaveLength(0)
     undoKey()
@@ -339,5 +352,103 @@ describe('Phase 3.1 one history for the whole home', () => {
     expect(rosePosition().x).not.toBe(64)
     undoKey()
     expect(rosePosition()).toMatchObject({ x: 64, y: 240 })
+  })
+})
+
+describe('Phase 3.2 pointer states', () => {
+  const pine = { id: 'tree_pine', name: 'Pine', type: 'plant' as const }
+
+  test('armed: the ghost follows the pointer, each tap plants one, and it stays armed', () => {
+    setup()
+    step(() => paletteProps.onItemSelect(pine))
+    moveTo(200, 200)
+    expect(ghost()).not.toBeNull()
+    clickLawn(200, 200)
+    clickLawn(260, 220)
+    expect(canvasProps.decorations.map((d: DecorationItem) => d.decorationId)).toEqual(['roses_red', 'tree_pine', 'tree_pine'])
+    // leaving the scene hides the ghost
+    pointer('leave')
+    expect(ghost()).toBeNull()
+  })
+
+  test('armed: pressing on a placed decoration plants on top, it does not grab it', () => {
+    setup()
+    step(() => paletteProps.onItemSelect(pine))
+    pressRose(70, 250)
+    moveTo(200, 250)
+    release()
+    expect(canvasProps.decorations).toHaveLength(2)
+    expect(rosePosition()).toMatchObject({ x: 64, y: 240 })
+  })
+
+  test('a cancelled touch (it became a scroll) neither selects, moves nor plants', () => {
+    setup()
+    pressRose(70, 250)
+    pointer('cancel')
+    expect(canvasProps.selectedDecorations.size).toBe(0)
+
+    pressRose(70, 250)
+    moveTo(200, 250)
+    pointer('cancel')
+    release()
+    expect(rosePosition()).toMatchObject({ x: 64, y: 240 })
+
+    step(() => paletteProps.onItemSelect(pine))
+    pointer('down', 200, 200)
+    pointer('cancel')
+    pointer('up', 200, 200)
+    expect(canvasProps.decorations).toHaveLength(1)
+  })
+
+  test('Escape leaves every state', () => {
+    setup()
+    const escape = () => step(() => fireEvent.keyDown(window, { key: 'Escape' }))
+
+    step(() => paletteProps.onItemSelect(pine))
+    moveTo(200, 200)
+    escape()
+    expect(ghost()).toBeNull()
+    clickLawn(200, 200)
+    expect(canvasProps.decorations).toHaveLength(1)
+
+    step(() => paletteProps.onTerrainSelect('sand'))
+    expect(paletteProps.selectedTerrainId).toBe('sand')
+    pointer('down', 100, 200)
+    escape() // mid-stroke: the stroke closes as one step
+    expect(paletteProps.selectedTerrainId).toBeUndefined()
+    moveTo(150, 200)
+    expect(canvasProps.terrain).toEqual({ '6,12': 'sand' })
+
+    fireEvent.click(screen.getByTitle('Delete items'))
+    expect(canvasProps.isDeleting).toBe(true)
+    escape()
+    expect(canvasProps.isDeleting).toBe(false)
+  })
+
+  test('erasing: pressing a decoration removes it, the lawn does nothing', () => {
+    setup()
+    fireEvent.click(screen.getByTitle('Delete items'))
+    clickLawn(300, 300)
+    expect(canvasProps.decorations).toHaveLength(1)
+    pressRose(70, 250)
+    release()
+    expect(canvasProps.decorations).toHaveLength(0)
+  })
+
+  test('the terrain eraser removes cells along a stroke', () => {
+    setup({ initialTerrain: { '6,12': 'water', '7,12': 'water', '8,12': 'water' } })
+    step(() => paletteProps.onTerrainSelect(null))
+    pointer('down', 100, 200)
+    moveTo(120, 200)
+    release()
+    expect(canvasProps.terrain).toEqual({ '8,12': 'water' })
+  })
+
+  test('the scene handler keeps one identity, so the scene never redraws for it', () => {
+    setup()
+    const first = canvasProps.onScenePointer
+    step(() => paletteProps.onItemSelect(pine))
+    clickLawn(200, 200)
+    expect(canvasProps.onScenePointer).toBe(first)
   })
 })

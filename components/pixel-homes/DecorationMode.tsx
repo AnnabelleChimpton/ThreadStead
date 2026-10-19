@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
-import EnhancedHouseCanvas from './EnhancedHouseCanvas'
+import EnhancedHouseCanvas, { type ScenePointerKind } from './EnhancedHouseCanvas'
+import PlacementGhost, { type PlacementGhostHandle } from './PlacementGhost'
 import DecorationPalette from './DecorationPalette'
 import { DecorationItem, TERRAIN_TILES } from '../../lib/pixel-homes/decoration-data'
 
@@ -24,10 +25,18 @@ import useIsMobile, { useIsTouch } from '../../hooks/useIsMobile'
 import { useUnsavedChangesGuard } from '../../hooks/useUnsavedChangesGuard'
 import { retroSFX } from '../../lib/audio/retro-sfx'
 import { MAX_DECORATIONS } from '../../lib/pixel-homes/decoration-save-rules'
-import { docFromProps, newPlacement, toSavePayload, type SavePayload } from '../../lib/pixel-homes/editor-doc'
+import { catalogId, docFromProps, newPlacement, toSavePayload, type SavePayload } from '../../lib/pixel-homes/editor-doc'
+import {
+  IDLE,
+  interact,
+  type Interaction,
+  type InteractionEffect,
+  type InteractionInput,
+  type ScenePointer
+} from '../../lib/pixel-homes/editor-interaction'
 
-/** Screen pixels the pointer must travel before pressing a decoration becomes a drag. */
-const DRAG_THRESHOLD_PX = 4
+// Terrain stays in the front yard: rows from y = 96 (grid row 6) down
+const TERRAIN_MIN_GRID_Y = 6
 
 interface DecorationModeProps {
   template: HouseTemplate
@@ -111,32 +120,15 @@ export default function DecorationMode({
     () => (selectedItemState && placedDecorations.find(d => d.id === selectedItemState.id)) || selectedItemState,
     [selectedItemState, placedDecorations]
   )
-  const [isPlacing, setIsPlacing] = useState(false)
-  const [isDeleting, setIsDeleting] = useState(false)
-
-  // paintBrush: undefined = not in terrain mode, null = eraser mode, string = painting terrain
-  const [paintBrush, setPaintBrush] = useState<string | null | undefined>(undefined)
-  const [isPainting, setIsPainting] = useState(false)
-
-  // Dragging State
-  const [isDragging, setIsDragging] = useState(false)
-  const [draggedItem, setDraggedItem] = useState<DecorationItem | null>(null)
-  const [dragOffset, setDragOffset] = useState<{ x: number, y: number }>({ x: 0, y: 0 })
-  // A press on a placed decoration. It only becomes a drag once the pointer
-  // moves past DRAG_THRESHOLD_PX; a press and release in place just selects.
-  const pressRef = useRef<{ id: string, start?: { x: number, y: number } } | null>(null)
-  // Last pointer position over the canvas, in canvas units; null once it leaves
-  const pointerRef = useRef<{ x: number, y: number } | null>(null)
-  // The click that follows a drop must not also place or deselect
-  const suppressClickRef = useRef(false)
-
-  // Grid system state
+  // What the pointer is doing: idle, armed, pressed, dragging, painting or erasing
+  const [interaction, setInteraction] = useState<Interaction>(IDLE)
+  const interactionRef = useRef(interaction)
+  const isPlacing = interaction.kind === 'armed'
+  const isDeleting = interaction.kind === 'erasing'
+  // undefined = not painting, null = the terrain eraser, a string = a terrain brush
+  const paintBrush = interaction.kind === 'painting' ? interaction.brush : undefined
+  const ghostRef = useRef<PlacementGhostHandle>(null)
   const gridConfig = DEFAULT_DECORATION_GRID
-  const [canvasScale, setCanvasScale] = useState(1)
-
-  // Canvas dimensions (used for touch placement bounds) - grid-aligned
-  const CANVAS_WIDTH = 512
-  const CANVAS_HEIGHT = 352
 
   // SFX State - persisted to localStorage
   const [sfxMuted, setSfxMuted] = useState(() => {
@@ -210,32 +202,14 @@ export default function DecorationMode({
       // Escape - Exit current mode / clear selection
       if (e.key === 'Escape') {
         e.preventDefault()
-        pressRef.current = null
-        if (isDragging) {
-          // The ghost hides with draggedItem; the next move refreshes the preview
-          setDraggedItem(null)
-          setIsDragging(false)
-        }
-        if (selectedDecorations.size > 0) {
-          clearSelection()
-        }
-        if (isPlacing) {
-          setIsPlacing(false)
-          setSelectedItem(null)
-        }
-        if (isDeleting) {
-          setIsDeleting(false)
-        }
-        if (paintBrush !== undefined) {
-          setPaintBrush(undefined)
-        }
+        runRef.current({ type: 'escape' })
         return
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [canUndo, canRedo, undo, redo, selectedDecorations, removeDecorations, clearSelection, isPlacing, isDeleting, paintBrush, isDragging])
+  }, [canUndo, canRedo, undo, redo, selectedDecorations, removeDecorations])
 
   // Load custom asset slots
   useEffect(() => {
@@ -293,16 +267,13 @@ export default function DecorationMode({
   }, [])
 
   // Snapping logic
-  const {
-    snapDecoration,
-    updatePreview,
-    clearPreview,
-    isSnapping,
-    toggleSnapping,
-    previewPosition: snapPreview
-  } = useDecorationSnapping({
+  const snappable = useMemo(
+    () => placedDecorations.filter(d => !['house_custom', 'house_color'].includes(d.type)),
+    [placedDecorations]
+  )
+  const { snapDecoration } = useDecorationSnapping({
     gridConfig,
-    decorations: placedDecorations.filter(d => !['house_custom', 'house_color'].includes(d.type)) as any[],
+    decorations: snappable as any[],
     enableSnapping: true,
     enableSpacingSuggestions: false
   })
@@ -422,15 +393,9 @@ export default function DecorationMode({
 
   // Handlers
   const handleItemSelect = (item: DecorationItem | null) => {
-    if (item) {
-      // Exit terrain and delete modes when selecting a decoration item
-      setPaintBrush(undefined)
-      setIsDeleting(false)
-    }
-
     if (!item) {
       setSelectedItem(null)
-      setIsPlacing(false)
+      runInteraction({ type: 'reset' })
       return
     }
 
@@ -441,12 +406,13 @@ export default function DecorationMode({
           item.id === 'sunset_sky' ? 'sunset' :
             item.id === 'night_sky' ? 'night' : 'sunny'
       dispatch({ type: 'setAtmosphere', changes: { sky: newSky as AtmosphereSettings['sky'] } })
+      runInteraction({ type: 'reset' })
       return
     }
 
     if (item.type === 'house_color') {
+      runInteraction({ type: 'reset' })
       setSelectedItem(item)
-      setIsPlacing(false)
       return
     }
 
@@ -514,31 +480,21 @@ export default function DecorationMode({
       else if (item.id === 'no_exterior_lights') customizationUpdate.exteriorLights = 'none'
 
       dispatch({ type: 'setHouse', changes: customizationUpdate })
+      runInteraction({ type: 'reset' })
       setSelectedItem(item)
-      setIsPlacing(false)
       retroSFX.playModeChange()
       return
     }
 
-    // Standard placeable items
-    if (selectedItem && selectedItem.id === item.id) {
-      setSelectedItem(null)
-      setIsPlacing(false)
-    } else {
-      setSelectedItem(item)
-      setIsPlacing(true)
-      setIsDeleting(false)
-      clearSelection()
-    }
+    // Placeable items: picking the armed one again puts it down
+    const wasArmed = interactionRef.current.kind === 'armed' && interactionRef.current.item.id === item.id
+    runInteraction({ type: 'arm', item })
+    setSelectedItem(wasArmed ? null : item)
   }
 
   const handleTerrainSelect = (terrainId: string | null) => {
-    setPaintBrush(terrainId)
-    // Clear other modes when entering terrain mode (painting or erasing)
+    runInteraction({ type: 'brush', brush: terrainId })
     setSelectedItem(null)
-    setIsPlacing(false)
-    setIsDeleting(false)
-    clearSelection()
   }
 
   // Typing in a decoration's field (sign text) is one undo step
@@ -557,7 +513,7 @@ export default function DecorationMode({
 
   // Where an item lands for a given top-left: snapped, with its depth layer
   const placementFor = (item: DecorationItem, x: number, y: number) => {
-    const snapResult = snapDecoration(x, y, item.type as any, item.id, item.size || 'medium')
+    const snapResult = snapDecoration(x, y, item.type as any, catalogId(item), item.size || 'medium')
 
     // Determine z-index layer based on type and Y position for depth sorting
     // Base layers separate categories:
@@ -569,7 +525,7 @@ export default function DecorationMode({
     else if (item.type === 'water') baseLayer = 200000
 
     // Calculate actual item height in pixels to sort by "feet" (bottom Y)
-    const dimensions = getDecorationDimensions(item.id, item.type, item.size || 'medium')
+    const dimensions = getDecorationDimensions(catalogId(item), item.type, item.size || 'medium')
 
     // Add bottom Y position to base layer for Y-sorting (items lower on screen appear in front)
     // Multiply Y by 1000 to ensure it's the primary sort factor
@@ -580,168 +536,121 @@ export default function DecorationMode({
     return { x: snapResult.position.pixelX, y: snapResult.position.pixelY, layer }
   }
 
-  const handleCanvasClick = (x: number, y: number, event: React.MouseEvent) => {
-    if (suppressClickRef.current) {
-      suppressClickRef.current = false
-      return
-    }
-
-    if (!isPlacing || !selectedItem) {
-      setSelectedItem(null)
-      setIsPlacing(false)
-      clearSelection()
-      return
-    }
-
-    if (['sky', 'house_custom', 'house_template', 'house_color'].includes(selectedItem.type)) return
-
-    // Check decoration limit before adding
-    if (placedDecorations.length >= MAX_DECORATIONS) {
-      appToast.showWarning(`Decoration limit reached (${MAX_DECORATIONS} max)`)
-      retroSFX.playError()
-      return
-    }
-
-    // Center the new item on the cursor
-    const size = getDecorationGridSize(selectedItem.type, selectedItem.id, selectedItem.size || 'medium')
-    const position = placementFor(
-      selectedItem,
-      x - (size.width * gridConfig.cellSize) / 2,
-      y - (size.height * gridConfig.cellSize) / 2
-    )
-
-    dispatch({ type: 'place', decoration: newPlacement(selectedItem, position) })
-    retroSFX.playPlaceItem()
-    // Don't clear selection or placement mode to allow rapid placement
-  }
-
-  // Pressing a placed decoration only notes the press. Selecting happens on
-  // click; a drag starts in handleMouseMove once the pointer has moved.
-  const handleDecorationMouseDown = (decorationId: string, event: React.MouseEvent) => {
-    if (isPlacing || isDeleting || paintBrush !== undefined || event.button !== 0) return
-    // No native image drag or text selection while moving a sprite. The event
-    // still bubbles to the canvas, whose handler records where the press was.
-    event.preventDefault()
-    pressRef.current = { id: decorationId }
-  }
-
-  const endDrag = () => {
-    setDraggedItem(null)
-    setIsDragging(false)
-    clearPreview()
-  }
-
-  // Window mouseup: ends painting and any press or drag, wherever the pointer is
-  const handleGlobalMouseUp = () => {
-    setIsPainting(false)
-    dispatch({ type: 'endStroke' }) // a whole stroke is one undo step
-    pressRef.current = null
-    if (!isDragging || !draggedItem) return
-
-    const pointer = pointerRef.current
-    if (pointer) {
-      dispatch({
-        type: 'move',
-        id: draggedItem.id,
-        position: placementFor(draggedItem, pointer.x - dragOffset.x, pointer.y - dragOffset.y)
-      })
-      retroSFX.playPlaceItem()
-    }
-    // Released outside the canvas: the decoration stays where it was
-    endDrag()
-    suppressClickRef.current = true
-    // The click (if any) is dispatched straight after this mouseup
-    setTimeout(() => { suppressClickRef.current = false }, 0)
-  }
-  const globalMouseUpRef = useRef(handleGlobalMouseUp)
-  globalMouseUpRef.current = handleGlobalMouseUp
-
-  // Minimum grid Y for terrain painting (front yard starts at y=96, so gridY >= 6)
-  const TERRAIN_MIN_GRID_Y = 6
-
-  const handleCanvasMouseDown = (x: number, y: number, event: React.MouseEvent) => {
-    // Bubbled up from handleDecorationMouseDown: note the grab point
-    const press = pressRef.current
-    if (press && !press.start) {
-      const decoration = placedDecorations.find(d => d.id === press.id)
-      press.start = { x, y }
-      setDragOffset({
-        x: x - (decoration?.position?.x ?? x),
-        y: y - (decoration?.position?.y ?? y)
-      })
-      return
-    }
-
-    // Check if we're in terrain mode (painting OR erasing)
-    // paintBrush is a string when painting, null when erasing, undefined when not in terrain mode
-    if (paintBrush !== undefined) {
-      setIsPainting(true)
-      dispatch({ type: 'beginStroke' })
-      const gridPos = pixelToGrid(x, y, DEFAULT_DECORATION_GRID)
-      // Only allow terrain in front yard zone (gridY >= 6, i.e. y >= 96px)
-      if (isValidGridPosition(gridPos.gridX, gridPos.gridY, { width: 1, height: 1 }) && gridPos.gridY >= TERRAIN_MIN_GRID_Y) {
-        // paintBrush null is the eraser
-        dispatch({ type: 'paintCell', key: `${gridPos.gridX},${gridPos.gridY}`, tile: paintBrush })
-        retroSFX.playTerrainPaint()
-      }
-      return
-    }
-  }
-
-  const handleMouseMove = (x: number, y: number, event: React.MouseEvent) => {
-    pointerRef.current = { x, y }
-
-    // A press turns into a drag once the pointer has really moved
-    const press = pressRef.current
-    if (press?.start && !isDragging) {
-      const moved = Math.hypot(x - press.start.x, y - press.start.y) * canvasScale
-      if (moved < DRAG_THRESHOLD_PX) return
-      const decoration = placedDecorations.find(d => d.id === press.id)
-      if (!decoration) {
-        pressRef.current = null
+  // Applies what the interaction asks for (lib/pixel-homes/editor-interaction.ts)
+  const applyEffect = (effect: InteractionEffect) => {
+    switch (effect.type) {
+      case 'place': {
+        const { item } = effect
+        if (placedDecorations.length >= MAX_DECORATIONS) {
+          appToast.showWarning(`Decoration limit reached (${MAX_DECORATIONS} max)`)
+          retroSFX.playError()
+          return
+        }
+        // Centred on the pointer
+        const size = getDecorationGridSize(item.type, catalogId(item), item.size || 'medium')
+        const position = placementFor(
+          item,
+          effect.at.x - (size.width * gridConfig.cellSize) / 2,
+          effect.at.y - (size.height * gridConfig.cellSize) / 2
+        )
+        dispatch({ type: 'place', decoration: newPlacement(item, position) })
+        retroSFX.playPlaceItem()
         return
       }
-      setDraggedItem(decoration)
-      setIsDragging(true)
-      clearSelection() // Don't highlight while dragging; the ghost shows intent
-      updatePreview(x - dragOffset.x, y - dragOffset.y, decoration.type as any, decoration.id, decoration.size || 'medium')
-      return
-    }
-
-    // Painting/Erasing Logic - paintBrush is string (paint), null (erase), or undefined (not in terrain mode)
-    if (isPainting && paintBrush !== undefined) {
-      const gridPos = pixelToGrid(x, y, DEFAULT_DECORATION_GRID)
-      // Only allow terrain in front yard zone (gridY >= 6, i.e. y >= 96px)
-      if (isValidGridPosition(gridPos.gridX, gridPos.gridY, { width: 1, height: 1 }) && gridPos.gridY >= TERRAIN_MIN_GRID_Y) {
-        dispatch({ type: 'paintCell', key: `${gridPos.gridX},${gridPos.gridY}`, tile: paintBrush })
+      case 'select': {
+        selectDecoration(effect.id)
+        retroSFX.playSelectItem()
+        // Also shown in the palette (sign text)
+        setSelectedItem(placedDecorations.find(d => d.id === effect.id) ?? null)
+        return
       }
-      return // Skip other logic if painting/erasing
-    }
-
-    let targetX = x
-    let targetY = y
-
-    if (isPlacing && selectedItem) {
-      // Center the item
-      const size = getDecorationGridSize(selectedItem.type, selectedItem.id, selectedItem.size || 'medium')
-      const pixelWidth = size.width * gridConfig.cellSize
-      const pixelHeight = size.height * gridConfig.cellSize
-      targetX = x - (pixelWidth / 2)
-      targetY = y - (pixelHeight / 2)
-
-      updatePreview(targetX, targetY, selectedItem.type as any, selectedItem.id, selectedItem.size || 'medium')
-    }
-
-    if (isDragging && draggedItem) {
-      // Apply drag offset
-      targetX = x - dragOffset.x
-      targetY = y - dragOffset.y
-
-      updatePreview(targetX, targetY, draggedItem.type as any, draggedItem.id, draggedItem.size || 'medium')
+      case 'deselect':
+        clearSelection()
+        setSelectedItem(null)
+        return
+      case 'move': {
+        const decoration = placedDecorations.find(d => d.id === effect.id)
+        if (!decoration) return
+        dispatch({ type: 'move', id: effect.id, position: placementFor(decoration, effect.topLeft.x, effect.topLeft.y) })
+        retroSFX.playPlaceItem()
+        return
+      }
+      case 'remove':
+        removeDecorations(new Set([effect.id]))
+        retroSFX.playRemoveItem()
+        return
+      case 'beginStroke':
+        dispatch({ type: 'beginStroke' })
+        retroSFX.playTerrainPaint()
+        return
+      case 'paint': {
+        const { gridX, gridY } = pixelToGrid(effect.at.x, effect.at.y, DEFAULT_DECORATION_GRID)
+        if (isValidGridPosition(gridX, gridY, { width: 1, height: 1 }) && gridY >= TERRAIN_MIN_GRID_Y) {
+          dispatch({ type: 'paintCell', key: `${gridX},${gridY}`, tile: effect.brush })
+        }
+        return
+      }
+      case 'endStroke':
+        dispatch({ type: 'endStroke' }) // a whole stroke is one undo step
+        return
+      case 'ghostItem': {
+        const { item } = effect
+        const size = getDecorationGridSize(item.type, catalogId(item), item.size || 'medium')
+        const snapped = placementFor(
+          item,
+          effect.at.x - (size.width * gridConfig.cellSize) / 2,
+          effect.at.y - (size.height * gridConfig.cellSize) / 2
+        )
+        ghostRef.current?.show(item, snapped)
+        return
+      }
+      case 'ghostDrag': {
+        const decoration = placedDecorations.find(d => d.id === effect.id)
+        if (!decoration) return
+        ghostRef.current?.show(decoration, placementFor(decoration, effect.topLeft.x, effect.topLeft.y))
+        return
+      }
+      case 'hideGhost':
+        ghostRef.current?.hide()
+        return
     }
   }
 
+  // Every pointer and mode change goes through here. The state only changes
+  // (and the editor only re-renders) when the mode does, not on every move.
+  const runInteraction = (input: InteractionInput) => {
+    const [next, effects] = interact(interactionRef.current, input)
+    if (next !== interactionRef.current) {
+      interactionRef.current = next
+      setInteraction(next)
+    }
+    effects.forEach(applyEffect)
+  }
+  // The latest runInteraction, for handlers that must keep one identity
+  const runRef = useRef(runInteraction)
+  runRef.current = runInteraction
+  const decorationsRef = useRef(placedDecorations)
+  decorationsRef.current = placedDecorations
 
+  // Handed to the canvas once; it never changes, so the scene doesn't redraw for it
+  const handleScenePointer = useCallback((kind: ScenePointerKind, pointer: ScenePointer) => {
+    const run = runRef.current
+    if (kind === 'down') {
+      const pressed = pointer.decorationId ? decorationsRef.current.find(d => d.id === pointer.decorationId) : undefined
+      run({ type: 'down', pointer, decorationPosition: pressed?.position })
+    } else if (kind === 'cancel' || kind === 'leave') {
+      run({ type: kind })
+    } else {
+      run({ type: kind, pointer })
+    }
+  }, [])
+
+  // A release the scene never saw (pointer capture unavailable) still ends a press, drag or stroke
+  useEffect(() => {
+    const onPointerUp = () => runRef.current({ type: 'cancel' })
+    window.addEventListener('pointerup', onPointerUp)
+    return () => window.removeEventListener('pointerup', onPointerUp)
+  }, [])
 
   const handleSave = async () => {
     if (isSaving) return
@@ -757,12 +666,6 @@ export default function DecorationMode({
       onExit()
     }
   }
-
-  useEffect(() => {
-    const onMouseUp = () => globalMouseUpRef.current()
-    window.addEventListener('mouseup', onMouseUp)
-    return () => window.removeEventListener('mouseup', onMouseUp)
-  }, [])
 
   return (
     <div
@@ -859,9 +762,11 @@ export default function DecorationMode({
               {/* Tools like Grid Toggle could go here */}
               <button
                 className={`p-2 rounded shadow-sm border ${isDeleting ? 'bg-thread-sunset/10 border-thread-sunset/50 text-thread-sunset' : 'bg-thread-paper border-thread-sage/50 hover:bg-thread-cream'}`}
+                title="Delete items"
+                aria-label="Delete items"
+                aria-pressed={isDeleting}
                 onClick={() => {
-                  setIsDeleting(!isDeleting)
-                  setIsPlacing(false)
+                  runInteraction({ type: 'toggleErase' })
                   setSelectedItem(null)
                   retroSFX.playModeChange()
                 }}
@@ -878,7 +783,7 @@ export default function DecorationMode({
                   <PixelIcon name="trash" size={20} className="text-red-600" />
                   <span className="text-sm font-bold text-red-700">Click items to delete</span>
                   <button
-                    onClick={() => setIsDeleting(false)}
+                    onClick={() => runInteraction({ type: 'reset' })}
                     className="ml-2 p-1 hover:bg-red-200 rounded transition-colors"
                     title="Exit delete mode (Esc)"
                   >
@@ -895,7 +800,7 @@ export default function DecorationMode({
                       <PixelIcon name="trash" size={18} className="text-orange-500" />
                       <span className="text-sm font-medium text-orange-700">Terrain Eraser</span>
                       <button
-                        onClick={() => setPaintBrush(undefined)}
+                        onClick={() => runInteraction({ type: 'reset' })}
                         className="ml-1 p-0.5 hover:bg-orange-100 rounded"
                         title="Exit terrain mode"
                       >
@@ -912,7 +817,7 @@ export default function DecorationMode({
                         {TERRAIN_TILES.find(t => t.id === paintBrush)?.name || 'Terrain'}
                       </span>
                       <button
-                        onClick={() => setPaintBrush(undefined)}
+                        onClick={() => runInteraction({ type: 'reset' })}
                         className="ml-1 p-0.5 hover:bg-thread-sky/30 rounded"
                         title="Exit terrain mode"
                       >
@@ -934,41 +839,10 @@ export default function DecorationMode({
               atmosphere={atmosphere}
               terrain={terrain}
               isDecorationMode={true}
-              isPlacing={isPlacing}
               isDeleting={isDeleting}
-              previewPosition={snapPreview ? { x: snapPreview.position.pixelX, y: snapPreview.position.pixelY } : null}
-              previewItem={selectedItem || draggedItem}
-              onClick={handleCanvasClick}
-              onMouseDown={handleCanvasMouseDown}
-              onMouseMove={handleMouseMove}
-              onMouseLeave={() => {
-                pointerRef.current = null
-                if (isDragging) clearPreview()
-              }}
-              onDecorationClick={(id, e) => {
-                if (suppressClickRef.current) {
-                  suppressClickRef.current = false
-                  e.stopPropagation()
-                  return
-                }
-                if (isPlacing || paintBrush !== undefined) return
-                e.stopPropagation()
-                if (isDeleting) {
-                  removeDecorations(new Set([id]))
-                  retroSFX.playRemoveItem()
-                } else {
-                  selectDecoration(id)
-                  retroSFX.playSelectItem()
-                  // Also set as selected item for palette editing (e.g. sign text)
-                  const clickedDecoration = placedDecorations.find(d => d.id === id)
-                  if (clickedDecoration) {
-                    setSelectedItem(clickedDecoration)
-                  }
-                }
-              }}
-              onDecorationMouseDown={handleDecorationMouseDown}
+              onScenePointer={handleScenePointer}
+              overlay={<PlacementGhost ref={ghostRef} />}
               selectedDecorations={selectedDecorations}
-              onScaleChange={setCanvasScale}
             />
 
 

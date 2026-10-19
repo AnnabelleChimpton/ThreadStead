@@ -143,11 +143,10 @@ export function getDecorationDimensions(
   decorationType: string,
   size: 'small' | 'medium' | 'large' = 'medium'
 ): DecorationDimensions {
-  // Normalize ID to handle instance IDs (e.g., 'tree_oak_123_abc' -> 'tree_oak')
-  const baseId = decorationId.replace(/_(\d+)_[a-z0-9]+$|_\d+$/, '');
-
-  // Look up specific decoration dimensions, fall back to type defaults
-  const baseDimensions = DECORATION_DIMENSIONS[baseId]
+  // A catalog id as given ('fence_2' is its own item), else an older
+  // instance id with its suffix stripped ('tree_oak_123_abc' -> 'tree_oak')
+  const baseDimensions = DECORATION_DIMENSIONS[decorationId]
+    || DECORATION_DIMENSIONS[decorationId.replace(/_(\d+)_[a-z0-9]+$|_\d+$/, '')]
     || DEFAULT_TYPE_DIMENSIONS[decorationType]
     || { width: 16, height: 16 };
 

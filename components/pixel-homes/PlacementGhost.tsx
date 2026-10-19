@@ -1,0 +1,71 @@
+import React, { forwardRef, memo, useImperativeHandle, useState } from 'react'
+import DecorationSVG from './DecorationSVG'
+import type { DecorationItem } from '@/lib/pixel-homes/decoration-data'
+import { getDecorationDimensions } from '@/lib/pixel-homes/decoration-dimensions'
+import type { Point } from '@/lib/pixel-homes/editor-interaction'
+
+export interface PlacementGhostHandle {
+  /** Show `item` with its top-left at `topLeft` (scene coordinates). */
+  show: (item: DecorationItem, topLeft: Point) => void
+  hide: () => void
+}
+
+/** The ghost's art, redrawn only when the item changes, not when it moves. */
+const GhostArt = memo(function GhostArt({ item }: { item: DecorationItem }) {
+  return (
+    <DecorationSVG
+      decorationType={item.type}
+      decorationId={item.decorationId || item.id}
+      variant={item.variant}
+      size={item.size}
+      className="block max-w-none"
+      renderSvg={item.renderSvg}
+      text={item.text || item.data?.text}
+      customAssetUrl={item.customAssetUrl}
+      pngUrl={item.pngUrl}
+    />
+  )
+})
+
+/**
+ * Where an armed or dragged item will land. It keeps its own state and is
+ * moved through a ref, so following the pointer redraws only this, not the
+ * editor or the scene.
+ */
+const PlacementGhost = forwardRef<PlacementGhostHandle>(function PlacementGhost(_props, ref) {
+  const [ghost, setGhost] = useState<{ item: DecorationItem; x: number; y: number } | null>(null)
+
+  useImperativeHandle(ref, () => ({
+    show: (item, { x, y }) =>
+      setGhost((prev) => (prev && prev.item === item && prev.x === x && prev.y === y ? prev : { item, x, y })),
+    hide: () => setGhost(null),
+  }), [])
+
+  if (!ghost) return null
+  const { item, x, y } = ghost
+  const { width, height } = getDecorationDimensions(item.decorationId || item.id, item.type, item.size || 'medium')
+  // Stacked like a placed item at the same spot
+  const base = item.type === 'path' ? 100000 : item.type === 'water' ? 200000 : 300000
+  const layer = base + Math.round(y + height) * 1000 + Math.round(x)
+
+  return (
+    <div
+      className="absolute pointer-events-none opacity-70"
+      data-placement-ghost=""
+      style={{
+        left: x,
+        top: y,
+        width,
+        height,
+        zIndex: layer,
+        display: 'flex',
+        alignItems: 'flex-end',
+        justifyContent: 'center',
+      }}
+    >
+      <GhostArt item={item} />
+    </div>
+  )
+})
+
+export default PlacementGhost
