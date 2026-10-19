@@ -1,6 +1,9 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
+    // Compile JSX (the root's "preserve" leaves it for Next): db tests load
+    // routes that render components on the server, e.g. the home snapshot.
+    "jsx": "react-jsx",
     "module": "CommonJS",
     "moduleResolution": "Node",
     "target": "ES2020",

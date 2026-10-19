@@ -9,6 +9,7 @@
  *    the replace was two statements that could wipe a yard)
  *  - strict validation with field errors: colours, enums, positions, data size
  *  - only items this resident can use, or already has placed
+ *  - a successful save redraws the share snapshot, after the response
  */
 import type { NextApiRequest, NextApiResponse } from 'next'
 
@@ -26,6 +27,7 @@ jest.mock('@/lib/config/database/connection', () => ({
   },
 }))
 jest.mock('@/lib/auth/server', () => ({ getSessionUser: jest.fn() }))
+jest.mock('@/lib/pixel-homes/snapshot/service', () => ({ scheduleHomeSnapshot: jest.fn(async () => null) }))
 jest.mock('@/lib/storage/r2', () => ({
   keyFromPublicUrl: (url: string) => (url.startsWith('https://cdn.test/') ? url.slice('https://cdn.test/'.length) : null),
 }))
@@ -34,6 +36,7 @@ import handler from '@/pages/api/home/decorations/save'
 import { getSessionUser } from '@/lib/auth/server'
 import { db } from '@/lib/config/database/connection'
 import { MAX_DECORATIONS } from '@/lib/pixel-homes/decoration-save-rules'
+import { scheduleHomeSnapshot } from '@/lib/pixel-homes/snapshot/service'
 
 const mockDb = db as any
 
@@ -263,5 +266,43 @@ describe('one transaction for the whole home', () => {
     const res = await save({ decorations: [ROSES] })
     expect(res.statusCode).toBe(500)
     expect(res.jsonBody.error).toBe('The server hit a problem.')
+  })
+})
+
+describe('share snapshot', () => {
+  test('a save redraws the snapshot once the response is sent', async () => {
+    let sentBeforeSnapshot: boolean | null = null
+    ;(scheduleHomeSnapshot as jest.Mock).mockImplementation(async () => {
+      sentBeforeSnapshot = true
+      return null
+    })
+    const { req, res } = makeReqRes({ decorations: [ROSES] })
+    const json = res.json.bind(res)
+    res.json = ((payload: any) => {
+      sentBeforeSnapshot = false
+      return json(payload)
+    }) as any
+
+    await handler(req, res)
+
+    expect(res.statusCode).toBe(200)
+    expect(scheduleHomeSnapshot).toHaveBeenCalledTimes(1)
+    expect(scheduleHomeSnapshot).toHaveBeenCalledWith('user-1')
+    expect(sentBeforeSnapshot).toBe(true) // json() ran first, then the snapshot
+  })
+
+  test('a slow or failing snapshot never holds up or breaks the save', async () => {
+    ;(scheduleHomeSnapshot as jest.Mock).mockReturnValue(new Promise(() => {}))
+    const res = await save({ decorations: [ROSES] })
+    expect(res.statusCode).toBe(200)
+    expect(res.jsonBody).toEqual({ ok: true, saved: 1 })
+  })
+
+  test('no redraw when the save is rejected or fails', async () => {
+    jest.spyOn(console, 'error').mockImplementation(() => {})
+    expect((await save({ decorations: [{ ...ROSES, positionX: 9999 }] })).statusCode).toBe(400)
+    tx.userHomeDecoration.createMany.mockRejectedValueOnce(new Error('db down'))
+    expect((await save({ decorations: [ROSES] })).statusCode).toBe(500)
+    expect(scheduleHomeSnapshot).not.toHaveBeenCalled()
   })
 })

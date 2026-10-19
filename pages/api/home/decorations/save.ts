@@ -3,6 +3,7 @@ import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/config/database/connection";
 import { apiHandler } from "@/lib/api/handler";
 import { keyFromPublicUrl } from "@/lib/storage/r2";
+import { scheduleHomeSnapshot } from "@/lib/pixel-homes/snapshot/service";
 import { availableDecorationsWhere } from "@/lib/pixel-homes/decoration-availability";
 import {
   fieldErrors,
@@ -148,7 +149,10 @@ export default apiHandler(
         }
       });
 
-      return res.status(200).json({ ok: true, saved: decorations.length });
+      res.status(200).json({ ok: true, saved: decorations.length });
+      // Redraw the share snapshot after answering; it logs its own failures.
+      void scheduleHomeSnapshot(me.id);
+      return;
     } catch (error) {
       console.error("Error saving decorations:", error);
       return res.status(500).json({ error: "The server hit a problem." });

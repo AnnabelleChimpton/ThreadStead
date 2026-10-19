@@ -3,6 +3,7 @@ import { sendUnauthenticated } from '@/lib/api/errors'
 import { getNewUserHomeConfig } from '../../../lib/pixel-homes/randomization'
 import { db } from '../../../lib/config/database/connection'
 import { residentAccess, sendPrivateProfile } from '@/lib/domain/users/profile-access'
+import { scheduleHomeSnapshot } from '@/lib/pixel-homes/snapshot/service'
 import { z } from 'zod'
 
 const updateConfigSchema = z.object({
@@ -119,6 +120,9 @@ export default apiHandler(
           },
           update: validatedData
         })
+
+        // The house's template or palette may have changed: redraw the share snapshot.
+        void scheduleHomeSnapshot(user.id)
 
         return res.status(200).json({
           homeConfig: {

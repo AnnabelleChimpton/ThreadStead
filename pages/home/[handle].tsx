@@ -54,6 +54,8 @@ interface PixelHomeProps {
   userDisplayName?: string
   userBio?: string
   neighbors: HomeNeighbors
+  /** The yard's share image; null when a signed-out visitor couldn't see this home. */
+  shareImage: string | null
 }
 
 /** A home the viewer may not see shows the same page as the private profile. */
@@ -80,7 +82,8 @@ function PixelHome({
   isSignedIn,
   userDisplayName,
   userBio,
-  neighbors
+  neighbors,
+  shareImage
 }: PixelHomeProps) {
   const pageTitle = `${userDisplayName || `@${username}`}'s Pixel Home`
   const pageDescription = userBio
@@ -96,6 +99,16 @@ function PixelHome({
         <meta property="og:description" content={pageDescription} />
         <meta property="og:type" content="profile" />
         <meta property="og:url" content={`${getSiteBaseUrl()}/home/${username}`} />
+        {shareImage && (
+          <>
+            <meta property="og:image" content={shareImage} />
+            <meta property="og:image:width" content="1200" />
+            <meta property="og:image:height" content="630" />
+            <meta property="og:image:alt" content={`${userDisplayName || `@${username}`}'s house and yard`} />
+            <meta name="twitter:card" content="summary_large_image" />
+            <meta name="twitter:image" content={shareImage} />
+          </>
+        )}
 
         {/* Pixel Home specific meta tags */}
         <meta name="pixel-home:template" content={homeConfig.houseTemplate} />
@@ -210,10 +223,25 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
     const neighbors = await getHomeNeighbors(db, user, { viewerId: currentUser?.id, host: SITE_NAME })
 
+    // The share image is for link previews, which reach signed-out
+    // visitors: only a public home gets one, whoever is viewing now.
+    let shareImage: string | null = null
+    if ((user.profile?.visibility ?? 'public') === 'public') {
+      shareImage = homeConfig.snapshotUrl
+      if (!shareImage) {
+        // Not drawn yet: start it now, and point previews at the route
+        // that waits for it.
+        const { scheduleHomeSnapshot } = await import('@/lib/pixel-homes/snapshot/service')
+        void scheduleHomeSnapshot(user.id)
+        shareImage = `${getSiteBaseUrl()}/api/home/${encodeURIComponent(cleanHandle)}/snapshot`
+      }
+    }
+
     return {
       props: {
         username: cleanHandle,
         neighbors,
+        shareImage,
         homeConfig: {
           houseTemplate: homeConfig.houseTemplate as HouseTemplate,
           palette: homeConfig.palette as ColorPalette,

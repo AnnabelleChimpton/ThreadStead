@@ -197,6 +197,11 @@ model UserHomeConfig {
   terrain             Json? // Grid-based terrain map { "x,y": "terrainId" }
   // Custom pixel art assets (user-uploaded)
   customAssets        Json? // Array of {slot: 0-4, url: string} for up to 5 custom pixel art images
+  // Share snapshot of the yard (lib/pixel-homes/snapshot), redrawn after a save
+  snapshotUrl         String? // 1200×630 PNG for og:image
+  snapshotCardUrl     String? // 512×352 PNG of the whole yard at 1×
+  snapshotHash        String? // hash of what was drawn; unchanged yards aren't redrawn
+  snapshotAt          DateTime?
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 

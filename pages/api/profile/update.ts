@@ -7,6 +7,7 @@ import { cleanCss } from "@/lib/utils/sanitization/css";
 import { notifyRingHubIfMember } from "@/lib/api/ringhub/ringhub-profile-sync";
 import { withCsrfProtection } from "@/lib/server/http/csrf";
 import { withRateLimit } from "@/lib/server/http/rate-limit";
+import { scheduleHomeSnapshot } from "@/lib/pixel-homes/snapshot/service";
 
 
 
@@ -124,7 +125,11 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     });
   }
 
-  return res.status(200).json({ ok: true });
+  res.status(200).json({ ok: true });
+
+  // Only public homes have a share snapshot: draw one, or delete the old one.
+  // (No profile row was public, so this doesn't use visibilityChanged.)
+  if (data.visibility && data.visibility !== (oldVisibility ?? "public")) void scheduleHomeSnapshot(me.id);
 }
 
 // Apply CSRF protection and rate limiting

@@ -28,6 +28,7 @@
     "email:generate-key": "tsx scripts/generate-email-encryption-key.ts",
     "threadrings:reconcile": "tsx scripts/reconcile-threadring-counters.ts",
     "randomize-pixel-homes": "tsx scripts/randomize-pixel-homes.ts",
+    "home-snapshots:backfill": "tsx scripts/backfill-home-snapshots.ts",
     "backfill-links": "tsx scripts/backfill-discovered-links.ts",
     "ringhub:test": "tsx scripts/quick-ringhub-test.ts",
     "user-did:migrate": "tsx scripts/migrate-user-dids-to-web.ts",
