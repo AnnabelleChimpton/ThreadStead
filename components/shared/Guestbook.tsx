@@ -7,6 +7,8 @@ import Link from "next/link";
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import { PixelIcon } from '@/components/ui/PixelIcon';
 import Modal from '@/components/ui/feedback/Modal';
+import Router from "next/router";
+import { guestbookEntryAnchor } from "@/lib/domain/notifications/links";
 
 type Entry = {
   id: string;
@@ -91,6 +93,29 @@ export default function Guestbook({ username, bio, signerLink = "profile" }: Gue
     })();
     return () => { alive = false; };
   }, [username]);
+
+  // A link to one entry (#guestbook-entry-<id>, from a guestbook
+  // notification) scrolls to it once the entries are in, and marks it.
+  const [targetId, setTargetId] = useState<string | null>(null);
+  useEffect(() => {
+    const prefix = guestbookEntryAnchor("");
+    const readHash = () => {
+      const hash = decodeURIComponent(window.location.hash.slice(1));
+      setTargetId(hash.startsWith(prefix) ? hash.slice(prefix.length) : null);
+    };
+    readHash();
+    window.addEventListener("hashchange", readHash);
+    Router.events?.on("routeChangeComplete", readHash);
+    return () => {
+      window.removeEventListener("hashchange", readHash);
+      Router.events?.off("routeChangeComplete", readHash);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!targetId || loading) return;
+    document.getElementById(guestbookEntryAnchor(targetId))?.scrollIntoView?.({ block: "center" });
+  }, [targetId, loading]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -237,7 +262,14 @@ export default function Guestbook({ username, bio, signerLink = "profile" }: Gue
           <span className="thread-label">{entries.length} messages</span>
           <ul className="space-y-3">
             {entries.map((e) => (
-              <li key={e.id} className="guestbook-entry bg-thread-paper border border-thread-sage/30 p-4 rounded-cozy shadow-cozy-sm">
+              <li
+                key={e.id}
+                id={guestbookEntryAnchor(e.id)}
+                aria-current={e.id === targetId ? "true" : undefined}
+                className={`guestbook-entry bg-thread-paper border border-thread-sage/30 p-4 rounded-cozy shadow-cozy-sm${
+                  e.id === targetId ? " guestbook-entry-target ring-2 ring-thread-sunset" : ""
+                }`}
+              >
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
                     <div className="thread-label mb-2">

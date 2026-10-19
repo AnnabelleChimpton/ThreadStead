@@ -1,7 +1,7 @@
 import { db } from "@/lib/config/database/connection";
 import { SITE_NAME } from "@/lib/config/site/constants";
 import { apiHandler } from "@/lib/api/handler";
-import { residentAccess } from "@/lib/domain/users/profile-access";
+import { hasPixelHome, residentAccess } from "@/lib/domain/users/profile-access";
 
 
 export default apiHandler(
@@ -68,6 +68,8 @@ export default apiHandler(
       primaryHandle: u.primaryHandle ?? null, // optional, handy later
       profile: u.profile,
       profileMidi,
+      // Past the access check above, so the viewer may see the house too
+      hasPixelHome: await hasPixelHome(u.id),
       plugins: u.installs
         .filter(i => i.enabled)
         .map(i => ({ id: i.pluginId, mode: i.mode, label: undefined })),

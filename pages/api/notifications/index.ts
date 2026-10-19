@@ -73,7 +73,13 @@ export default apiHandler(
         status: n.status,
         data:
           n.type === "guestbook" && n.data && typeof n.data === "object" && !Array.isArray(n.data)
-            ? { ...n.data, excerpt: excerpts.get(String((n.data as { guestbookEntryId?: unknown }).guestbookEntryId)) ?? null }
+            ? {
+                ...n.data,
+                excerpt: excerpts.get(String((n.data as { guestbookEntryId?: unknown }).guestbookEntryId)) ?? null,
+                // The signed guestbook is the recipient's, so the link can
+                // open it (lib/domain/notifications/links.ts)
+                guestbookOwnerHandle: user.primaryHandle ?? null,
+              }
             : n.data,
         createdAt: n.createdAt,
         readAt: n.readAt,

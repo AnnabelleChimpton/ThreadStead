@@ -184,3 +184,84 @@ html, body { height: 100%; }
     }
   }
 }
+
+/* "Step back outside" on profiles (components/core/profile/StepOutsideLink.tsx).
+   Site chrome that has to look the same on every profile. Unlayered and
+   !important on purpose: advanced-template CSS is unlayered too (so it beats
+   every layered rule, Tailwind utilities included) and boosted to
+   `html body …`. These selectors out-rank that even when it uses !important.
+   Default/enhanced profile CSS never reaches it (data-site-chrome scoping). */
+[data-site-chrome].ts-step-outside {
+  display: block !important;
+  position: relative !important;
+  z-index: 1 !important;
+  float: none !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  flex: none !important;
+  align-self: flex-start !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: 0 16px !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--ha-peach-edge, #A18463) !important;
+  border-radius: 0 !important;
+  background: var(--ha-paper, #FCFAF7) !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: none !important;
+  filter: none !important;
+  font: 500 14px/20px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  text-align: left !important;
+}
+/* Same inset as the site nav's logo */
+@media (min-width: 640px) { [data-site-chrome].ts-step-outside { padding: 0 40px !important; } }
+@media (min-width: 1024px) { [data-site-chrome].ts-step-outside { padding: 0 16px !important; } }
+@media (min-width: 1280px) { [data-site-chrome].ts-step-outside { padding: 0 40px !important; } }
+
+[data-site-chrome].ts-step-outside a {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  margin: 0 !important;
+  padding: 6px 0 !important;
+  border: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+  color: var(--ha-ink-dark, #2F2F2F) !important;
+  -webkit-text-fill-color: currentColor !important;
+  font: inherit !important;
+  letter-spacing: normal !important;
+  word-spacing: normal !important;
+  text-transform: none !important;
+  text-shadow: none !important;
+  text-decoration: underline !important;
+  text-underline-offset: 0.2em !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: none !important;
+  cursor: pointer !important;
+}
+[data-site-chrome].ts-step-outside a:hover {
+  color: var(--ha-rose-ink, #2E4B3F) !important;
+}
+[data-site-chrome].ts-step-outside a:focus-visible {
+  outline: 2px solid var(--ha-ink-dark, #2F2F2F) !important;
+  outline-offset: 2px !important;
+}
+[data-site-chrome].ts-step-outside svg {
+  display: inline-block !important;
+  width: 14px !important;
+  height: 14px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: none !important;
+  fill: currentColor !important;
+  color: inherit !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}

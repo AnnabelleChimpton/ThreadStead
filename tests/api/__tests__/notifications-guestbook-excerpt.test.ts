@@ -11,7 +11,7 @@ jest.mock('@/lib/config/database/connection', () => ({
     guestbookEntry: { findMany: jest.fn() },
   },
 }))
-jest.mock('@/lib/auth/server', () => ({ getSessionUser: jest.fn().mockResolvedValue({ id: 'owner', role: 'member' }) }))
+jest.mock('@/lib/auth/server', () => ({ getSessionUser: jest.fn().mockResolvedValue({ id: 'owner', role: 'member', primaryHandle: 'owner@local' }) }))
 
 import handler from '@/pages/api/notifications'
 import { db } from '@/lib/config/database/connection'
@@ -50,7 +50,11 @@ test('guestbook notifications carry a plain-text excerpt of a visible entry', as
   expect(res.statusCode).toBe(200)
   const byId = Object.fromEntries(res.body.notifications.map((n: any) => [n.id, n]))
 
-  expect(byId.n1.data).toEqual({ guestbookEntryId: 'e1', excerpt: 'Love the hedges! Come by sometime.' })
+  expect(byId.n1.data).toEqual({
+    guestbookEntryId: 'e1',
+    excerpt: 'Love the hedges! Come by sometime.',
+    guestbookOwnerHandle: 'owner@local',
+  })
   expect(byId.n2.data.excerpt).toBeNull()
   expect(byId.n3.data).toEqual({})
   expect(byId.n4.data.excerpt).toHaveLength(121)

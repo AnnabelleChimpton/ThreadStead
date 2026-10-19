@@ -294,14 +294,14 @@ export default function UserQuickView({ username, isOpen, onClose }: UserQuickVi
             href={`/resident/${data.username}`}
             className="flex-1 text-center px-3 py-2 text-sm border border-thread-sage bg-white hover:bg-thread-cream text-thread-charcoal rounded shadow-cozy-sm transition-all"
           >
-            View Full Profile
+            View profile
           </Link>
-          {data.hasCustomPixelHome && (
+          {data.hasPixelHome && (
             <Link
               href={`/home/${data.username}`}
               className="flex-1 text-center px-3 py-2 text-sm border border-thread-sage bg-white hover:bg-thread-cream text-thread-charcoal rounded shadow-cozy-sm transition-all"
             >
-              Visit Pixel Home
+              Pixel home
             </Link>
           )}
         </div>

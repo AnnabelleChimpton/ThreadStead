@@ -4,7 +4,7 @@ import { db } from "@/lib/config/database/connection";
 import { apiHandler } from "@/lib/api/handler";
 import { SITE_NAME } from "@/lib/config/site/constants";
 import type { UserQuickViewResponse, RelationshipStatus } from "@/types/user-quick-view";
-import { residentAccess } from "@/lib/domain/users/profile-access";
+import { hasPixelHome, residentAccess } from "@/lib/domain/users/profile-access";
 import { allowedVisibilities } from "@/lib/domain/posts/visibility";
 
 export default apiHandler(
@@ -104,14 +104,14 @@ export default apiHandler(
             bio: null,
             stats: null,
             badges: [],
-            hasCustomPixelHome: false,
+            hasPixelHome: false,
             visibility: access.visibility,
           },
         });
       }
 
       // Fetch stats in parallel
-      const [followerCount, followingCount, postCount, mutualFriendsCount] = await Promise.all([
+      const [followerCount, followingCount, postCount, mutualFriendsCount, pixelHome] = await Promise.all([
         // Follower count
         db.follow.count({
           where: {
@@ -181,18 +181,10 @@ export default apiHandler(
           // Count intersection
           return Array.from(viewerFriends).filter(id => targetFriends.has(id)).length;
         })(),
+
+        // Past the access check, so the viewer may see the house too
+        hasPixelHome(targetUser.id),
       ]);
-
-      // Check if user has a custom pixel home
-      const homeConfig = await db.userHomeConfig.findUnique({
-        where: { userId: targetUser.id },
-        select: {
-          houseTemplate: true,
-          preferPixelHome: true,
-        },
-      });
-
-      const hasCustomPixelHome = !!(homeConfig?.houseTemplate || homeConfig?.preferPixelHome);
 
       // Format response
       return res.status(200).json({
@@ -207,7 +199,7 @@ export default apiHandler(
             mutualFriends: mutualFriendsCount,
           },
           badges: [], // Badges are fetched separately via ImprovedBadgeDisplay component
-          hasCustomPixelHome,
+          hasPixelHome: pixelHome,
         },
       });
     } catch (error) {

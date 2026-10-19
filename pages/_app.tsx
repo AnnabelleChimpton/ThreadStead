@@ -119,7 +119,8 @@ export default function MyApp({ Component, pageProps, appSiteCSS }: MyAppProps) 
           document.querySelector(`.tab-${tab}`);
 
         if (tabElement) {
-          tabElement.scrollIntoView({ behavior: 'smooth' });
+          // A #fragment (e.g. one guestbook entry) picks its own scroll target
+          if (!window.location.hash) tabElement.scrollIntoView({ behavior: 'smooth' });
           // Trigger click if it's a clickable tab
           if (tabElement.tagName === 'BUTTON' || tabElement.onclick) {
             tabElement.click();

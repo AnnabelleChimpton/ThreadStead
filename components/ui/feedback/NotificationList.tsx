@@ -4,6 +4,7 @@ import Image from "next/image";
 import ImprovedBadgeDisplay from "../../shared/ImprovedBadgeDisplay";
 import UserMention from "@/components/ui/navigation/UserMention";
 import { csrfFetch } from "@/lib/api/client/csrf-fetch";
+import { notificationHref, usernameFromHandle } from "@/lib/domain/notifications/links";
 import { PixelIcon, type PixelIconName } from '@/components/ui/PixelIcon';
 import { useToast } from "@/contexts/ToastContext";
 import LoadingSpinner from "./LoadingSpinner";
@@ -26,6 +27,8 @@ export type NotificationData = {
     mediaOwnerHandle?: string;
     /** Guestbook notes: the start of the note, added by GET /api/notifications */
     excerpt?: string | null;
+    /** Guestbook notes: whose guestbook it is (yours), added by GET /api/notifications */
+    guestbookOwnerHandle?: string | null;
   };
   createdAt: string;
   readAt?: string | null;
@@ -124,15 +127,10 @@ export default function NotificationList({
     }
   };
 
-  // Helper function to extract username from handle (e.g., "alice@sitename" -> "alice")
-  const getUsername = (handle: string | null | undefined): string | null => {
-    if (!handle) return null;
-    return handle.split('@')[0];
-  };
 
   const getNotificationMessage = (notification: NotificationData): React.ReactNode => {
     const actorName = notification.actor.displayName || notification.actor.handle || "Someone";
-    const username = getUsername(notification.actor.handle);
+    const username = usernameFromHandle(notification.actor.handle);
 
     const ActorComponent = username ? (
       <UserMention
@@ -189,53 +187,6 @@ export default function NotificationList({
         );
       default:
         return <span>New activity from {ActorComponent}</span>;
-    }
-  };
-
-  const getNotificationLink = (notification: NotificationData): string | null => {
-    const username = getUsername(notification.actor.handle);
-    
-    switch (notification.type) {
-      case "comment":
-      case "reply":
-        // For comments and replies, link to the individual post page with comments expanded
-        if (notification.data?.postAuthorHandle && notification.data?.postId) {
-          // Extract clean username from handle (e.g., "scooby@sitename" -> "scooby")
-          const postAuthorUsername = getUsername(notification.data.postAuthorHandle);
-          if (postAuthorUsername) {
-            // Build URL with query parameters for auto-expanding comments and highlighting
-            const baseUrl = `/resident/${postAuthorUsername}/post/${notification.data.postId}`;
-            const params = new URLSearchParams({
-              comments: 'open',
-              ...(notification.data.commentId && { highlight: notification.data.commentId })
-            });
-            return `${baseUrl}?${params.toString()}`;
-          }
-        }
-        // Fallback to actor's profile
-        return username ? `/resident/${username}` : null;
-      case "photo_comment":
-      case "photo_reply":
-        // For photo comments, link to the specific photo in the owner's media gallery
-        if (notification.data?.mediaId && notification.data?.mediaOwnerHandle) {
-          const mediaOwnerUsername = getUsername(notification.data.mediaOwnerHandle);
-          if (mediaOwnerUsername) {
-            const params = new URLSearchParams({
-              photo: notification.data.mediaId,
-              ...(notification.data.commentId && { comment: notification.data.commentId })
-            });
-            return `/resident/${mediaOwnerUsername}/media?${params.toString()}`;
-          }
-        }
-        // Fallback to actor's profile
-        return username ? `/resident/${username}` : null;
-      case "follow":
-      case "friend":
-        return username ? `/resident/${username}` : null;
-      case "guestbook":
-        return username ? `/resident/${username}` : null;
-      default:
-        return null;
     }
   };
 
@@ -307,7 +258,7 @@ export default function NotificationList({
           />
         ) : (
           notifications.map((notification) => {
-            const link = getNotificationLink(notification);
+            const link = notificationHref(notification);
             const isUnread = notification.status === "unread";
 
             const content = (

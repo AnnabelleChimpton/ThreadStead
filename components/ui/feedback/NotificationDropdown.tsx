@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useRouter } from "next/router";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import type { NotificationData } from "./NotificationList";
+import { notificationHref } from "@/lib/domain/notifications/links";
 import { PixelIcon, type PixelIconName } from '@/components/ui/PixelIcon';
 import LoadingSpinner from "@/components/ui/feedback/LoadingSpinner";
 import EmptyState from "@/components/ui/feedback/EmptyState";
@@ -24,12 +25,6 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
   // `loading` state value captured in the useCallback closure (deps only
   // include `loggedIn`, so `loading` there is stale and never blocks).
   const fetchInFlightRef = useRef(false);
-
-  // Helper function to extract username from handle (e.g., "alice@sitename" -> "alice")
-  const getUsername = (handle: string | null | undefined): string | null => {
-    if (!handle) return null;
-    return handle.split('@')[0];
-  };
 
   const fetchNotifications = useCallback(async () => {
     if (fetchInFlightRef.current || !loggedIn) return;
@@ -159,52 +154,6 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
     }
   };
 
-  const getNotificationLink = (notification: NotificationData): string | null => {
-    const username = getUsername(notification.actor.handle);
-    
-    switch (notification.type) {
-      case "comment":
-      case "reply":
-        // For comments and replies, link to the individual post page with comments expanded
-        if (notification.data?.postAuthorHandle && notification.data?.postId) {
-          const postAuthorUsername = getUsername(notification.data.postAuthorHandle);
-          if (postAuthorUsername) {
-            // Build URL with query parameters for auto-expanding comments and highlighting
-            const baseUrl = `/resident/${postAuthorUsername}/post/${notification.data.postId}`;
-            const params = new URLSearchParams({
-              comments: 'open',
-              ...(notification.data.commentId && { highlight: notification.data.commentId })
-            });
-            return `${baseUrl}?${params.toString()}`;
-          }
-        }
-        // Fallback to actor's profile
-        return username ? `/resident/${username}` : null;
-      case "photo_comment":
-      case "photo_reply":
-        // For photo comments, link to the specific photo in the owner's media gallery
-        if (notification.data?.mediaId && notification.data?.mediaOwnerHandle) {
-          const mediaOwnerUsername = getUsername(notification.data.mediaOwnerHandle);
-          if (mediaOwnerUsername) {
-            const params = new URLSearchParams({
-              photo: notification.data.mediaId,
-              ...(notification.data.commentId && { comment: notification.data.commentId })
-            });
-            return `/resident/${mediaOwnerUsername}/media?${params.toString()}`;
-          }
-        }
-        // Fallback to actor's profile
-        return username ? `/resident/${username}` : null;
-      case "follow":
-      case "friend":
-        return username ? `/resident/${username}` : null;
-      case "guestbook":
-        return username ? `/resident/${username}` : null;
-      default:
-        return null;
-    }
-  };
-
   const getNotificationIcon = (type: string): PixelIconName => {
     switch (type) {
       case "comment":
@@ -294,10 +243,9 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
                     }
                     setIsOpen(false);
                     
-                    // Navigate to the actor's profile
-                    const profileLink = getNotificationLink(notification);
-                    if (profileLink) {
-                      router.push(profileLink);
+                    const link = notificationHref(notification);
+                    if (link) {
+                      router.push(link);
                     }
                   }}
                 >

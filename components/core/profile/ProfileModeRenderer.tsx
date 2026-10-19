@@ -33,7 +33,7 @@ import { ResidentDataProvider } from '@/components/features/templates/ResidentDa
 import { transformNodeToReact } from '@/lib/templates/rendering/template-renderer';
 import type { TemplateNode } from '@/lib/templates/compilation/template-parser';
 import ProfileLayout from '@/components/ui/layout/ProfileLayout';
-import NavigationPreview from '@/components/features/templates/NavigationPreview';
+import AdvancedNavFrame from './AdvancedNavFrame';
 import dynamic from 'next/dynamic';
 
 // Restore proper AdvancedProfileRenderer with fixed dependencies
@@ -73,6 +73,8 @@ export interface ProfileModeRendererProps {
   fallbackContent?: React.ReactNode;
   onModeChange?: (mode: ProfileMode) => void;
   hideNavigation?: boolean;
+  /** Site chrome under the nav (or at the very top when it's hidden) */
+  afterNav?: React.ReactNode;
 }
 
 // Main profile mode renderer component
@@ -82,7 +84,8 @@ export default function ProfileModeRenderer({
   useIslands = false,
   fallbackContent,
   onModeChange,
-  hideNavigation = false
+  hideNavigation = false,
+  afterNav
 }: ProfileModeRendererProps) {
   const mode = user.profile?.templateMode || 'default';
 
@@ -102,30 +105,27 @@ export default function ProfileModeRenderer({
         return renderDefaultMode(user, residentData, fallbackContent);
         
       case 'enhanced':
-        return renderEnhancedMode(user, residentData, fallbackContent, hideNavigation);
+        return renderEnhancedMode(user, residentData, fallbackContent, hideNavigation, afterNav);
         
       case 'advanced':
         if (shouldUseIslands && user.profile?.compiledTemplate) {
           const shouldShowNavigation = !hideNavigation && !user.profile?.hideNavigation;
 
           return (
-            <>
-              {shouldShowNavigation && <NavigationPreview />}
-              <div style={{ position: 'relative', marginTop: shouldShowNavigation ? '70px' : '0' }}>
-                <AdvancedProfileRenderer
-                  user={user}
-                  residentData={residentData}
-                  templateType={'legacy'}
-                />
-              </div>
-            </>
+            <AdvancedNavFrame showNavigation={shouldShowNavigation} afterNav={afterNav}>
+              <AdvancedProfileRenderer
+                user={user}
+                residentData={residentData}
+                templateType={'legacy'}
+              />
+            </AdvancedNavFrame>
           );
         } else if (shouldUseIslands && !user.profile?.compiledTemplate) {
           // Advanced mode but no compiled template - fall back to enhanced mode
           console.warn('Advanced mode requested but no compiled template available. Falling back to enhanced mode.');
-          return renderEnhancedMode(user, residentData, fallbackContent, hideNavigation);
+          return renderEnhancedMode(user, residentData, fallbackContent, hideNavigation, afterNav);
         } else {
-          return renderAdvancedLegacyMode(user, residentData);
+          return renderAdvancedLegacyMode(user, residentData, afterNav);
         }
 
       default:
@@ -137,7 +137,7 @@ export default function ProfileModeRenderer({
     
     // Fallback chain: Advanced → Enhanced → Default → Fallback Content
     if (mode === 'advanced') {
-      return renderEnhancedMode(user, residentData, fallbackContent, hideNavigation);
+      return renderEnhancedMode(user, residentData, fallbackContent, hideNavigation, afterNav);
     } else if (mode === 'enhanced') {
       return renderDefaultMode(user, residentData, fallbackContent);
     } else {
@@ -170,7 +170,8 @@ function renderEnhancedMode(
   user: ProfileUser, 
   residentData: ResidentData, 
   fallbackContent?: React.ReactNode,
-  hideNavigation?: boolean
+  hideNavigation?: boolean,
+  afterNav?: React.ReactNode
 ) {
   const customCSS = user.profile?.customCSS;
   
@@ -181,6 +182,7 @@ function renderEnhancedMode(
       cssMode={resolveCSSMode(user.profile?.cssMode, customCSS)}
       hideNavigation={hideNavigation}
       includeSiteCSS={true}  // Match live profile behavior
+      afterNav={afterNav}
     >
       {fallbackContent || (
         <div className="profile-container">
@@ -197,7 +199,7 @@ function renderEnhancedMode(
 // Note: Advanced islands mode is now handled by AdvancedProfileRenderer component
 
 // Advanced mode renderer (legacy iframe-based)
-function renderAdvancedLegacyMode(user: ProfileUser, residentData: ResidentData) {
+function renderAdvancedLegacyMode(user: ProfileUser, residentData: ResidentData, afterNav?: React.ReactNode) {
   const customTemplateAst = user.profile?.customTemplateAst;
   
   if (!customTemplateAst) {
@@ -216,9 +218,12 @@ function renderAdvancedLegacyMode(user: ProfileUser, residentData: ResidentData)
   const templateContent = transformNodeToReact(templateNode);
   
   return (
-    <ResidentDataProvider data={residentData}>
-      {templateContent}
-    </ResidentDataProvider>
+    <>
+      {afterNav}
+      <ResidentDataProvider data={residentData}>
+        {templateContent}
+      </ResidentDataProvider>
+    </>
   );
 }
 

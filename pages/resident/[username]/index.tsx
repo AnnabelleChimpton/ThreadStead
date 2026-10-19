@@ -20,6 +20,7 @@ import ProfileBadgeDisplay from "@/components/core/profile/ProfileBadgeDisplay";
 import ProfileModeRenderer from "@/components/core/profile/ProfileModeRenderer";
 import type { ProfileUser } from "@/components/core/profile/ProfileModeRenderer";
 import ViewSourceBadge from "@/components/core/profile/ViewSourceBadge";
+import StepOutsideLink from "@/components/core/profile/StepOutsideLink";
 import PrivateProfile from "@/components/core/profile/PrivateProfile";
 import type { ResidentData } from "@/components/features/templates/ResidentDataProvider";
 import type { TemplateNode } from "@/lib/templates/compilation/template-parser";
@@ -74,6 +75,8 @@ type ProfileProps = {
   // Metadata props
   displayName?: string;
   userJoinedAt?: string;
+  /** They have a pixel home, and (past the profile's access check) the viewer may see it */
+  hasPixelHome?: boolean;
   // Private profile props
   isPrivateProfile?: boolean;
   privateProfileVisibility?: 'private' | 'followers' | 'friends';
@@ -103,6 +106,7 @@ export default function ProfilePage({
   profileMidi,
   displayName,
   userJoinedAt,
+  hasPixelHome = false,
   isPrivateProfile,
   privateProfileVisibility,
 }: ProfileProps) {
@@ -131,6 +135,9 @@ export default function ProfilePage({
       />
     );
   }
+
+  // The way back out to the house, in the site chrome above every layout
+  const stepOutside = hasPixelHome ? <StepOutsideLink username={username} /> : null;
 
   // Advanced templates always use the advanced renderer for consistent behavior
   // Only non-advanced templates use the standard layout
@@ -163,6 +170,7 @@ export default function ProfilePage({
 
         return (
           <div className={wrapperClass}>
+            {stepOutside}
             <main className="flex-1 mx-auto max-w-5xl px-6 py-8">
               <ProfileModeRenderer
                 user={profileUser}
@@ -188,6 +196,7 @@ export default function ProfilePage({
               residentData={residentData}
               useIslands={true}
               hideNavigation={true}
+              afterNav={stepOutside}
               fallbackContent={
                 <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>
                   <p>Template failed to load</p>
@@ -206,6 +215,7 @@ export default function ProfilePage({
             user={profileUser}
             residentData={residentData}
             useIslands={true}
+            afterNav={stepOutside}
             fallbackContent={
               <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>
                 <p>Template failed to load</p>
@@ -304,6 +314,7 @@ export default function ProfilePage({
         cssMode={cssMode}
         initialSiteCSS={initialSiteCSS}
         preRenderedCSS={preRenderedCSS}
+        afterNav={stepOutside}
       >
         <RetroCard>
           <ProfileHeader
@@ -314,6 +325,7 @@ export default function ProfilePage({
             bio={bio}
             relStatus={relStatus}
             onRelStatusChange={setRelStatus}
+            showPixelHomeLink={hasPixelHome}
           />
         </RetroCard>
 
@@ -427,6 +439,7 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
       autoplay?: boolean;
       loop?: boolean;
     };
+    hasPixelHome?: boolean;
   } = await res.json();
 
   const requested = typeof query.tab === "string" ? query.tab : undefined;
@@ -707,6 +720,7 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   if (websites.length > 0) props.websites = websites;
   if (featuredFriends.length > 0) props.featuredFriends = featuredFriends;
   if (data.profileMidi) props.profileMidi = data.profileMidi;
+  props.hasPixelHome = data.hasPixelHome === true;
 
   // Add metadata props
   if (data.profile?.displayName) props.displayName = data.profile.displayName;

@@ -13,9 +13,11 @@ interface LayoutProps {
   fullWidth?: boolean;
   advancedTemplate?: boolean;
   homepageLayout?: boolean;
+  /** Site chrome right under the nav, e.g. a profile's "Step back outside" */
+  afterNav?: React.ReactNode;
 }
 
-export default function Layout({ children, siteConfig, fullWidth = false, advancedTemplate = false, homepageLayout = false }: LayoutProps) {
+export default function Layout({ children, siteConfig, fullWidth = false, advancedTemplate = false, homepageLayout = false, afterNav }: LayoutProps) {
   const { config: hookConfig } = useSiteConfig();
   const { hasMismatch, fixMismatch } = useIdentitySync();
   const config = siteConfig || hookConfig;
@@ -69,6 +71,7 @@ export default function Layout({ children, siteConfig, fullWidth = false, advanc
 
         {/* Navigation - positioned to not interfere with user content */}
         <NavBar siteConfig={config} fullWidth={true} advancedTemplate={true} />
+        {afterNav}
 
         {/* Spacing after navbar */}
         <div className="py-4"></div>
@@ -150,6 +153,7 @@ export default function Layout({ children, siteConfig, fullWidth = false, advanc
       )}
 
       <NavBar siteConfig={config} fullWidth={fullWidth} />
+      {afterNav}
 
       {/* Spacing after navbar */}
       <div className="py-4"></div>

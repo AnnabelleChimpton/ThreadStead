@@ -204,7 +204,7 @@ describe('GET /api/users/[username]/quick-view', () => {
           bio: null,
           stats: null,
           badges: [],
-          hasCustomPixelHome: false,
+          hasPixelHome: false,
           visibility: viewer === 'blocker' || viewer === 'blocked' ? 'private' : owner,
         })
       )

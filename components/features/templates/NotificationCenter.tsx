@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import type { NotificationData } from "../../ui/feedback/NotificationList";
+import { notificationHref } from "@/lib/domain/notifications/links";
 import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
 interface NotificationCenterProps extends UniversalCSSProps {
@@ -19,10 +20,6 @@ export default function NotificationCenter(props: NotificationCenterProps) {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const getUsername = (handle: string | null | undefined): string | null => {
-    if (!handle) return null;
-    return handle.split('@')[0];
-  };
 
   const getNotificationMessage = (notification: NotificationData): string => {
     const actorName = notification.actor?.displayName || notification.actor?.handle || "Someone";
@@ -158,43 +155,7 @@ export default function NotificationCenter(props: NotificationCenterProps) {
                   key={notification.id}
                   className="p-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer"
                   onClick={() => {
-                    // Use the same routing logic as other notification components
-                    let targetUrl: string | null = null;
-                    const username = getUsername(notification.actor?.handle);
-                    
-                    switch (notification.type) {
-                      case "comment":
-                      case "reply":
-                        if (notification.data?.postAuthorHandle && notification.data?.postId) {
-                          const postAuthorUsername = getUsername(notification.data.postAuthorHandle);
-                          if (postAuthorUsername) {
-                            const baseUrl = `/resident/${postAuthorUsername}/post/${notification.data.postId}`;
-                            const params = new URLSearchParams({
-                              comments: 'open',
-                              ...(notification.data.commentId && { highlight: notification.data.commentId })
-                            });
-                            targetUrl = `${baseUrl}?${params.toString()}`;
-                          }
-                        }
-                        break;
-                      case "photo_comment":
-                      case "photo_reply":
-                        if (notification.data?.mediaId && notification.data?.mediaOwnerHandle) {
-                          const mediaOwnerUsername = getUsername(notification.data.mediaOwnerHandle);
-                          if (mediaOwnerUsername) {
-                            const params = new URLSearchParams({
-                              photo: notification.data.mediaId,
-                              ...(notification.data.commentId && { comment: notification.data.commentId })
-                            });
-                            targetUrl = `/resident/${mediaOwnerUsername}/media?${params.toString()}`;
-                          }
-                        }
-                        break;
-                      default:
-                        targetUrl = username ? `/resident/${username}` : null;
-                        break;
-                    }
-                    
+                    const targetUrl = notificationHref(notification);
                     if (targetUrl) {
                       router.push(targetUrl);
                       setIsOpen(false);

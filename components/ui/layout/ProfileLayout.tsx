@@ -1,7 +1,7 @@
 import React from "react";
 import Layout from "./Layout";
 import NavBar from "../navigation/NavBar";
-import NavigationPreview from "@/components/features/templates/NavigationPreview";
+import AdvancedNavFrame from "@/components/core/profile/AdvancedNavFrame";
 import { generateOptimizedCSS, type CSSMode, type TemplateMode } from "@/lib/utils/css/layers";
 import { resolveCSSMode } from "@/lib/utils/css/css-mode";
 import { useSiteCSS } from "@/hooks/useSiteCSS";
@@ -17,6 +17,8 @@ interface ProfileLayoutProps {
   cssMode?: CSSMode;
   initialSiteCSS?: string; // Pre-fetched site CSS from SSR to prevent hydration mismatches
   preRenderedCSS?: string; // Pre-rendered complete CSS from SSR to prevent hydration mismatches
+  /** Site chrome under the nav (or at the very top when the nav is hidden) */
+  afterNav?: React.ReactNode;
 }
 
 export default function ProfileLayout({
@@ -29,7 +31,8 @@ export default function ProfileLayout({
   templateMode = 'default',
   cssMode = 'inherit',
   initialSiteCSS,
-  preRenderedCSS
+  preRenderedCSS,
+  afterNav
 }: ProfileLayoutProps) {
   // Shared resolver (legacy CSS_MODE comment wins over the prop) — the same
   // resolution the profile-page SSR uses, so server and client agree.
@@ -70,6 +73,7 @@ export default function ProfileLayout({
       return (
         <>
           {/* NO CSS injection - ProfileModeRenderer handles it */}
+          {afterNav}
           {/* Completely raw content - no containers, no classes, no styling */}
           {children}
         </>
@@ -80,13 +84,10 @@ export default function ProfileLayout({
         <>
           {/* NO CSS injection - ProfileModeRenderer handles it */}
           {/* Unified navigation with dropdown support */}
-          <NavigationPreview />
-
-          {/* Use margin-top (not padding) so absolute children position below navigation */}
-          <div style={{ position: 'relative', marginTop: '70px' }}>
-            {/* Completely raw content - no containers, no classes, no styling */}
+          {/* Completely raw content - no containers, no classes, no styling */}
+          <AdvancedNavFrame showNavigation afterNav={afterNav}>
             {children}
-          </div>
+          </AdvancedNavFrame>
         </>
       );
     }
@@ -98,6 +99,7 @@ export default function ProfileLayout({
       return (
         <>
           <style dangerouslySetInnerHTML={{ __html: layeredCSS || '' }} />
+          {afterNav}
           {/* No wrapper styling when CSS is disabled */}
           {children}
         </>
@@ -110,6 +112,7 @@ export default function ProfileLayout({
         <style dangerouslySetInnerHTML={{ __html: layeredCSS || '' }} />
         {/* Hide nav/footer but keep responsive structure */}
         <div className="min-h-screen thread-surface flex flex-col">
+          {afterNav}
           <main className="flex-1 mx-auto max-w-5xl px-6 py-8">
             <div className="ts-profile-container" data-component="profile-layout">
               <div className="ts-profile-content-wrapper">
@@ -143,7 +146,7 @@ export default function ProfileLayout({
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: layeredCSS || '' }} />
-      <Layout>
+      <Layout afterNav={afterNav}>
         {/* Inside Layout, not around it: templates style .ts-profile-container
             as the profile's card (width, border, background), and wrapping
             the site header/footer in it squeezed the nav out of its box. */}

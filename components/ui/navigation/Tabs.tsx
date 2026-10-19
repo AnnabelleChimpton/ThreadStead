@@ -25,14 +25,18 @@ export default function Tabs({ tabs, initialId, syncWithUrl = true, variant = "p
   }, [tabs, active, firstId]);
 
   // Optional URL sync on the client *after* first paint (won't affect SSR HTML)
+  const [initialActive] = useState(active);
   useEffect(() => {
     if (!syncWithUrl) return;
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
     if (active) params.set("tab", active); else params.delete("tab");
-    const url = `${window.location.pathname}?${params.toString()}`;
+    // Keep the #fragment on the tab the page opened on (a guestbook
+    // notification links to one entry); switching tabs drops it.
+    const hash = active === initialActive ? window.location.hash : "";
+    const url = `${window.location.pathname}?${params.toString()}${hash}`;
     window.history.replaceState({}, "", url);
-  }, [active, syncWithUrl]);
+  }, [active, initialActive, syncWithUrl]);
 
   const activeContent = useMemo(
     () => tabs.find(t => t.id === active)?.content,

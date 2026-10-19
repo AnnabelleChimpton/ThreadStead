@@ -30,7 +30,8 @@ export interface UserQuickViewData {
   /** null when the viewer can't see the profile */
   stats: UserQuickViewStats | null;
   badges: UserQuickViewBadge[];
-  hasCustomPixelHome: boolean;
+  /** They have a pixel home the viewer may see (lib/domain/users/profile-access) */
+  hasPixelHome: boolean;
   /** Set when the viewer can't see the profile (a block reads as private) */
   visibility?: 'private' | 'followers' | 'friends';
 }

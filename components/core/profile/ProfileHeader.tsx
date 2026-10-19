@@ -19,6 +19,8 @@ interface ProfileHeaderProps {
   bio?: string;
   relStatus: string;
   onRelStatusChange: (status: string) => void;
+  /** The link out to their pixel home; the profile page passes whether they have one */
+  showPixelHomeLink?: boolean;
 }
 
 export default function ProfileHeader({
@@ -28,7 +30,8 @@ export default function ProfileHeader({
   photoUrl = "/assets/default-avatar.gif",
   bio,
   relStatus,
-  onRelStatusChange
+  onRelStatusChange,
+  showPixelHomeLink = true
 }: ProfileHeaderProps) {
   const nameToShow = displayName || username;
   const { config } = useSiteConfig();
@@ -81,14 +84,15 @@ export default function ProfileHeader({
             )}
 
             <MutualFriends username={username} />
-            <Link
-              href={`/home/${username}`}
-              className="ts-profile-button ts-pixel-home-button thread-button text-sm bg-thread-sage text-thread-paper hover:bg-thread-pine transition-colors"
-              title="View Pixel Home"
-              onClick={() => trackNavigation('profile', 'pixel_home', username)}
-            >
-              Pixel Home
-            </Link>
+            {showPixelHomeLink && (
+              <Link
+                href={`/home/${username}`}
+                className="ts-profile-button ts-pixel-home-button thread-button text-sm"
+                onClick={() => trackNavigation('profile', 'pixel_home', username)}
+              >
+                Pixel home
+              </Link>
+            )}
             {relStatus === "owner" && (
               <Link
                 href={`/resident/${username}/edit`}

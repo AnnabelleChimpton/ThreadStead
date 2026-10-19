@@ -89,6 +89,16 @@ export function visibleResidentWhere(viewerId: string | null | undefined): Prism
   };
 }
 
+/**
+ * Whether the resident has a pixel home: a UserHomeConfig row (signup makes
+ * one). This says nothing about who may see it; ask residentAccess first.
+ * The profile's "Step back outside" link and quick view's "Pixel home" use it.
+ */
+export async function hasPixelHome(ownerId: string): Promise<boolean> {
+  const home = await db.userHomeConfig.findUnique({ where: { userId: ownerId }, select: { userId: true } });
+  return home !== null;
+}
+
 /** The 403 the profile API sends for a profile the viewer can't see. */
 export function sendPrivateProfile(res: NextApiResponse, visibility: HiddenVisibility) {
   return res.status(403).json({ error: "private_profile", visibility });
