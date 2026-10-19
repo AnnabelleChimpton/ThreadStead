@@ -24,6 +24,8 @@ import { serializeJsonLd } from "@/lib/utils/sanitization/json-ld";
 import FirstStepsChecklist, { FIRST_STEPS_HIDDEN_COOKIE } from "@/components/features/onboarding/FirstStepsChecklist";
 import WelcomeMusicControl from "@/components/features/onboarding/WelcomeMusicControl";
 import { getFirstSteps, FirstSteps } from "@/lib/domain/users/first-steps";
+import { DEMO_YARD, demoYardWithArt } from "@/lib/pixel-homes/demo-yard";
+import { loadCatalogArt } from "@/lib/pixel-homes/home-scene";
 
 interface HomeProps {
   siteConfig: SiteConfig;
@@ -50,6 +52,8 @@ interface HomeProps {
   firstSteps?: FirstSteps | null;
   // Shown with the list when arriving from signup
   foundersNote?: string | null;
+  // Signed-out visitors: the demo house's yard, with its catalog art
+  demoYard?: DecorationItem[];
 }
 
 interface UserHomeConfig {
@@ -252,7 +256,7 @@ function UserPixelHome({ user }: { user: any }) {
   );
 }
 
-function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImageUrl, userCount, firstSteps, foundersNote }: { siteConfig: SiteConfig; user?: any; customLandingPageSlug?: string; ogImageUrl: string; userCount?: number; firstSteps?: FirstSteps | null; foundersNote?: string | null }) {
+function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImageUrl, userCount, firstSteps, foundersNote, demoYard }: { siteConfig: SiteConfig; user?: any; customLandingPageSlug?: string; ogImageUrl: string; userCount?: number; firstSteps?: FirstSteps | null; foundersNote?: string | null; demoYard?: DecorationItem[] }) {
 
   // Generate metadata for personalized homepage
   const homepageMetadata = contentMetadataGenerator.generateHomepageMetadata(siteConfig);
@@ -388,7 +392,7 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
                     </div>
                   </>
                 ) : (
-                  <VisitorPixelHome />
+                  <VisitorPixelHome decorations={demoYard} />
                 )}
               </SimpleCard>
 
@@ -430,7 +434,7 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
   );
 }
 
-export default function Home({ siteConfig, pageType, user, customPage, customLandingPageSlug, ogImageUrl, userCount, firstSteps, foundersNote }: HomeProps) {
+export default function Home({ siteConfig, pageType, user, customPage, customLandingPageSlug, ogImageUrl, userCount, firstSteps, foundersNote, demoYard }: HomeProps) {
   // Route to appropriate component based on pageType
   switch (pageType) {
     case 'custom':
@@ -446,7 +450,7 @@ export default function Home({ siteConfig, pageType, user, customPage, customLan
     case 'unified':
     default:
       // 'unified' is the error fallback from getServerSideProps: the visitor homepage
-      return <PersonalizedHomepage siteConfig={siteConfig} user={user} customLandingPageSlug={customLandingPageSlug} ogImageUrl={ogImageUrl} userCount={userCount} firstSteps={firstSteps} foundersNote={foundersNote} />;
+      return <PersonalizedHomepage siteConfig={siteConfig} user={user} customLandingPageSlug={customLandingPageSlug} ogImageUrl={ogImageUrl} userCount={userCount} firstSteps={firstSteps} foundersNote={foundersNote} demoYard={demoYard} />;
   }
 }
 
@@ -553,6 +557,14 @@ export const getServerSideProps: GetServerSideProps<HomeProps> = async (context)
         };
       }
 
+      // The demo house's yard shows the same hand-drawn art as a resident's
+      const demoYard = demoYardWithArt(
+        await loadCatalogArt(DEMO_YARD.map((d) => d.decorationId!)).catch((err) => {
+          console.error('Demo yard art lookup failed:', err);
+          return new Map();
+        })
+      );
+
       // 3. Default: Visitors get unified homepage experience (PersonalizedHomepage without user)
       return {
         props: {
@@ -562,6 +574,7 @@ export const getServerSideProps: GetServerSideProps<HomeProps> = async (context)
           ...(customLandingPage?.slug ? { customLandingPageSlug: customLandingPage.slug } : {}),
           // user is undefined, which will trigger visitor mode in PersonalizedHomepage
           userCount,
+          demoYard,
         },
       };
     }

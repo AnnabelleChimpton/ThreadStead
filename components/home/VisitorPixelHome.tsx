@@ -3,20 +3,15 @@ import Link from 'next/link';
 import HousePicker from './HousePicker';
 import { PixelIcon } from '@/components/ui/PixelIcon';
 import type { DecorationItem } from '@/lib/pixel-homes/decoration-data';
+import { DEMO_TERRAIN, DEMO_YARD } from '@/lib/pixel-homes/demo-yard';
 import { DEFAULT_HOUSE_CHOICE, HouseChoice, houseChoiceQuery, saveHouseChoice } from '@/lib/pixel-homes/house-choice';
 
-// A lived-in yard so the demo isn't bare grass
-const DEMO_DECORATIONS = [
-  { id: 'd1', type: 'plant', zone: 'front_yard', position: { x: 80, y: 280, layer: 8 }, variant: 'red', size: 'medium' },
-  { id: 'd2', type: 'feature', zone: 'front_yard', position: { x: 380, y: 290, layer: 8 }, variant: 'classic', size: 'small' },
-] as unknown as DecorationItem[];
-const DEMO_TERRAIN = { '5,18': 'dirt_path', '6,18': 'dirt_path', '7,18': 'dirt_path' };
-
 /**
- * The homepage demo house for visitors. The house and colors they pick go
- * with them to signup ("Create This Home").
+ * The homepage demo house for visitors, in a lived-in yard. The house and
+ * colors they pick go with them to signup ("Create This Home").
+ * `decorations` is the demo yard with its catalog art, from the server.
  */
-export default function VisitorPixelHome() {
+export default function VisitorPixelHome({ decorations = DEMO_YARD }: { decorations?: DecorationItem[] }) {
   const [isNight, setIsNight] = useState(false);
   const [choice, setChoice] = useState<HouseChoice>(DEFAULT_HOUSE_CHOICE);
 
@@ -41,7 +36,7 @@ export default function VisitorPixelHome() {
         value={choice}
         onChange={setChoice}
         atmosphere={atmosphere}
-        decorations={DEMO_DECORATIONS}
+        decorations={decorations}
         terrain={DEMO_TERRAIN}
       />
 
