@@ -101,12 +101,12 @@ function PixelHome({
         <meta property="og:url" content={`${getSiteBaseUrl()}/home/${username}`} />
         {shareImage && (
           <>
-            <meta property="og:image" content={shareImage} />
-            <meta property="og:image:width" content="1200" />
-            <meta property="og:image:height" content="630" />
-            <meta property="og:image:alt" content={`${userDisplayName || `@${username}`}'s house and yard`} />
-            <meta name="twitter:card" content="summary_large_image" />
-            <meta name="twitter:image" content={shareImage} />
+            <meta key="og:image" property="og:image" content={shareImage} />
+            <meta key="og:image:width" property="og:image:width" content="1200" />
+            <meta key="og:image:height" property="og:image:height" content="630" />
+            <meta key="og:image:alt" property="og:image:alt" content={`${userDisplayName || `@${username}`}'s house and yard`} />
+            <meta key="twitter:card" name="twitter:card" content="summary_large_image" />
+            <meta key="twitter:image" name="twitter:image" content={shareImage} />
           </>
         )}
 

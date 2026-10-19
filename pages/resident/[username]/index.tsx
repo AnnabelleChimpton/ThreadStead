@@ -284,17 +284,17 @@ export default function ProfilePage({
         <meta property="og:title" content={profileMetadata.title} />
         <meta property="og:description" content={profileMetadata.description} />
         <meta property="og:type" content="profile" />
-        <meta property="og:image" content={photoUrl} />
-        <meta property="og:image:alt" content={profileMetadata.imageAlt} />
+        <meta key="og:image" property="og:image" content={photoUrl} />
+        <meta key="og:image:alt" property="og:image:alt" content={profileMetadata.imageAlt} />
         <meta property="og:url" content={`${getSiteBaseUrl()}${profileMetadata.url}`} />
         <meta property="og:site_name" content="ThreadStead" />
         <meta property="og:locale" content="en_US" />
 
         {/* Social media card meta tags */}
-        <meta name="twitter:card" content="summary_large_image" />
+        <meta key="twitter:card" name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={profileMetadata.title} />
         <meta name="twitter:description" content={profileMetadata.description} />
-        <meta name="twitter:image" content={photoUrl} />
+        <meta key="twitter:image" name="twitter:image" content={photoUrl} />
 
         {/* Structured data */}
         <script

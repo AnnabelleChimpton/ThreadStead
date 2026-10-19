@@ -157,6 +157,14 @@ export default function MyApp({ Component, pageProps, appSiteCSS }: MyAppProps) 
                 {/* ... existing head content ... */}
                 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
                 <meta name="color-scheme" content="light" />
+                {/* Default share image. Keyed so a page's own og:image or
+                    twitter:image (same key) replaces it instead of adding a
+                    second one. Size hints stay off: they'd be wrong for
+                    pages that use an avatar. */}
+                <meta key="og:image" property="og:image" content="/og-image.png?v=2" />
+                <meta key="og:image:alt" property="og:image:alt" content="HomePageAgain: The internet doesn't have to suck. A pixel-art house with a pink roof and door." />
+                <meta key="twitter:card" name="twitter:card" content="summary_large_image" />
+                <meta key="twitter:image" name="twitter:image" content="/og-image.png?v=2" />
 
                 {needsCSSResets && (
                   <style dangerouslySetInnerHTML={{

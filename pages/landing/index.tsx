@@ -35,7 +35,7 @@ export default function LandingPage({ siteConfig, customLanding }: LandingPagePr
           <meta property="og:title" content={homepageMetadata.title} />
           <meta property="og:description" content={homepageMetadata.description} />
           {homepageMetadata.image && (
-            <meta property="og:image" content={homepageMetadata.image} />
+            <meta key="og:image" property="og:image" content={homepageMetadata.image} />
           )}
         </Head>
         <CustomPageLayout siteConfig={siteConfig} hideNavbar={customLanding.hideNavbar}>
@@ -59,17 +59,17 @@ export default function LandingPage({ siteConfig, customLanding }: LandingPagePr
         <meta property="og:title" content={homepageMetadata.title} />
         <meta property="og:description" content={homepageMetadata.description} />
         {homepageMetadata.image && (
-          <meta property="og:image" content={homepageMetadata.image} />
+          <meta key="og:image" property="og:image" content={homepageMetadata.image} />
         )}
         <meta property="og:type" content={homepageMetadata.type || 'website'} />
         {homepageMetadata.url && (
           <meta property="og:url" content={homepageMetadata.url} />
         )}
-        <meta name="twitter:card" content="summary_large_image" />
+        <meta key="twitter:card" name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={homepageMetadata.title} />
         <meta name="twitter:description" content={homepageMetadata.description} />
         {homepageMetadata.image && (
-          <meta name="twitter:image" content={homepageMetadata.image} />
+          <meta key="twitter:image" name="twitter:image" content={homepageMetadata.image} />
         )}
         <style>{`
           /* Custom styles matching retro aesthetic */

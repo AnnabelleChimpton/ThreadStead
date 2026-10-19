@@ -126,8 +126,8 @@ function PostPage({ username, post, authorDisplayName, initialCommentsOpen = tru
         <meta property="og:title" content={postMetadata.title} />
         <meta property="og:description" content={postMetadata.description} />
         <meta property="og:type" content="article" />
-        <meta property="og:image" content={adaptedPost.author.avatarUrl || '/assets/default-avatar.gif'} />
-        <meta property="og:image:alt" content={postMetadata.imageAlt} />
+        <meta key="og:image" property="og:image" content={adaptedPost.author.avatarUrl || '/assets/default-avatar.gif'} />
+        <meta key="og:image:alt" property="og:image:alt" content={postMetadata.imageAlt} />
         <meta property="og:url" content={`${getSiteBaseUrl()}${postMetadata.url}`} />
         <meta property="og:site_name" content="ThreadStead" />
         <meta property="og:locale" content="en_US" />
@@ -138,10 +138,10 @@ function PostPage({ username, post, authorDisplayName, initialCommentsOpen = tru
         )}
 
         {/* Social media card meta tags */}
-        <meta name="twitter:card" content="summary_large_image" />
+        <meta key="twitter:card" name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={postMetadata.title} />
         <meta name="twitter:description" content={postMetadata.description} />
-        <meta name="twitter:image" content={adaptedPost.author.avatarUrl || '/assets/default-avatar.gif'} />
+        <meta key="twitter:image" name="twitter:image" content={adaptedPost.author.avatarUrl || '/assets/default-avatar.gif'} />
 
         {/* Structured data */}
         <script
