@@ -2,16 +2,93 @@
 import React, { useState } from 'react';
 import { PixelIcon } from '@/components/ui/PixelIcon';
 
+export type StrippedCategory = 'document' | 'unsupported' | 'safety';
+
+export interface StrippedEntry {
+  name: string;
+  line?: number;
+  reason?: string;
+  /** 'document' wrappers (expected), 'unsupported' here, or removed for 'safety' */
+  category?: StrippedCategory;
+  /** Further occurrences of the same tag */
+  count?: number;
+}
+
+/**
+ * Whether any stripped tag is worth stopping a save for. Document wrappers
+ * (<html>, <head>, <body>…) are expected when a whole page is pasted.
+ */
+export function hasStrippedNeedingAttention(entries: StrippedEntry[] | undefined): boolean {
+  return (entries || []).some((entry) => entry.category !== 'document');
+}
+
+const STRIPPED_GROUPS: Array<{
+  category: StrippedCategory;
+  title: string;
+  /** Summary-line ending after "N tag(s)" */
+  summary: string;
+  /** The reason's leading label, which the group title already says */
+  reasonPrefix: RegExp;
+  header: string;
+  body: string;
+  card: string;
+  tagText: string;
+  noteText: string;
+  lineBadge: string;
+}> = [
+  {
+    category: 'document',
+    title: 'Document wrappers (expected)',
+    summary: 'set aside',
+    reasonPrefix: /^Document wrapper \(expected\):\s*/,
+    header: 'bg-gray-50 hover:bg-gray-100 text-gray-800',
+    body: 'bg-gray-50',
+    card: 'border-gray-200',
+    tagText: 'text-gray-900',
+    noteText: 'text-gray-600',
+    lineBadge: 'text-gray-600 bg-gray-100',
+  },
+  {
+    category: 'unsupported',
+    title: 'Not supported here',
+    summary: 'not supported here',
+    reasonPrefix: /^Not supported here( as written)?:\s*/,
+    header: 'bg-orange-50 hover:bg-orange-100 text-orange-800',
+    body: 'bg-orange-50',
+    card: 'border-orange-200',
+    tagText: 'text-orange-900',
+    noteText: 'text-orange-700',
+    lineBadge: 'text-orange-600 bg-orange-100',
+  },
+  {
+    category: 'safety',
+    title: 'Removed for safety',
+    summary: 'removed for safety',
+    reasonPrefix: /^Removed for safety(:\s*|\.$)/,
+    header: 'bg-red-50 hover:bg-red-100 text-red-800',
+    body: 'bg-red-50',
+    card: 'border-red-200',
+    tagText: 'text-red-900',
+    noteText: 'text-red-700',
+    lineBadge: 'text-red-600 bg-red-100',
+  },
+];
+
+/** Entries with no category come from older compiles; treat them as unsupported */
+function categoryOf(entry: StrippedEntry): StrippedCategory {
+  return entry.category ?? 'unsupported';
+}
+
+function occurrences(entry: StrippedEntry): number {
+  return 1 + (entry.count || 0);
+}
+
 export interface ValidationFeedbackProps {
   validationResult: {
     isValid: boolean;
     errors: string[];
     warnings: string[];
-    strippedComponents?: Array<{
-      name: string;
-      line?: number;
-      reason?: string;
-    }>;
+    strippedComponents?: StrippedEntry[];
     stats?: {
       nodeCount: number;
       maxDepth: number;
@@ -30,7 +107,9 @@ export default function ValidationFeedbackPanel({
   const [expandedSections, setExpandedSections] = useState({
     errors: true,
     warnings: true,
-    stripped: true,
+    document: false,
+    unsupported: true,
+    safety: true,
     stats: false
   });
 
@@ -43,7 +122,16 @@ export default function ValidationFeedbackPanel({
 
   const hasErrors = validationResult.errors.length > 0;
   const hasWarnings = validationResult.warnings.length > 0;
-  const hasStripped = (validationResult.strippedComponents?.length || 0) > 0;
+  const stripped = validationResult.strippedComponents || [];
+  const strippedGroups = STRIPPED_GROUPS
+    .map((group) => {
+      const entries = stripped.filter((entry) => categoryOf(entry) === group.category);
+      return { ...group, entries, total: entries.reduce((sum, entry) => sum + occurrences(entry), 0) };
+    })
+    .filter((group) => group.entries.length > 0);
+  const documentGroup = strippedGroups.find((group) => group.category === 'document');
+  // Only tags that aren't expected wrappers count as a problem
+  const hasStripped = hasStrippedNeedingAttention(stripped);
 
   return (
     <div className="fixed right-4 top-20 bottom-4 w-96 bg-white border-2 border-gray-300 rounded-lg shadow-2xl overflow-hidden flex flex-col z-[10000]">
@@ -74,16 +162,23 @@ export default function ValidationFeedbackPanel({
               <span>{validationResult.warnings.length} Warning{validationResult.warnings.length !== 1 ? 's' : ''}</span>
             </div>
           )}
-          {hasStripped && (
-            <div className="text-orange-700 font-medium flex items-center gap-2">
-              <PixelIcon name="trash" size={20} />
-              <span>{validationResult.strippedComponents?.length} Component{(validationResult.strippedComponents?.length || 0) !== 1 ? 's' : ''} Stripped</span>
-            </div>
-          )}
+          {strippedGroups
+            .filter((group) => group.category !== 'document')
+            .map((group) => (
+              <div key={group.category} className={`${group.noteText} font-medium flex items-center gap-2`}>
+                <PixelIcon name="trash" size={20} />
+                <span>{group.total} tag{group.total !== 1 ? 's' : ''} {group.summary}</span>
+              </div>
+            ))}
           {!hasErrors && !hasWarnings && !hasStripped && (
             <div className="text-green-700 font-medium flex items-center gap-2">
               <span className="text-xl">✓</span>
               <span>Template is valid!</span>
+            </div>
+          )}
+          {documentGroup && (
+            <div className="text-gray-600 text-sm">
+              Only what’s inside &lt;body&gt; becomes your page; the {documentGroup.total} document tag{documentGroup.total !== 1 ? 's' : ''} around it {documentGroup.total !== 1 ? 'were' : 'was'} set aside.
             </div>
           )}
         </div>
@@ -139,39 +234,50 @@ export default function ValidationFeedbackPanel({
           </div>
         )}
 
-        {/* Stripped Components Section */}
-        {hasStripped && (
-          <div className="border-b border-gray-200">
+        {/* Stripped tags, grouped: expected wrappers, not supported here, removed for safety */}
+        {strippedGroups.map((group) => (
+          <div key={group.category} className="border-b border-gray-200">
             <button
-              onClick={() => toggleSection('stripped')}
-              className="w-full px-4 py-3 bg-orange-50 hover:bg-orange-100 transition-colors text-left flex items-center justify-between"
+              onClick={() => toggleSection(group.category)}
+              className={`w-full px-4 py-3 ${group.header} transition-colors text-left flex items-center justify-between`}
+              aria-expanded={expandedSections[group.category]}
             >
-              <span className="font-semibold text-orange-800 flex items-center gap-2">
-                <span>Stripped Components ({validationResult.strippedComponents?.length})</span>
+              <span className="font-semibold flex items-center gap-2">
+                <span>{group.title} ({group.total})</span>
               </span>
-              <span className="text-orange-600">{expandedSections.stripped ? '▼' : '▶'}</span>
+              <span>{expandedSections[group.category] ? '▼' : '▶'}</span>
             </button>
-            {expandedSections.stripped && (
-              <div className="px-4 py-3 bg-orange-50 space-y-2">
-                {validationResult.strippedComponents?.map((comp, index) => (
-                  <div key={index} className="bg-white border border-orange-200 rounded p-3">
-                    <div className="flex items-start gap-2">
-                      <span className="font-mono text-sm font-semibold text-orange-900">&lt;{comp.name}&gt;</span>
-                      {comp.line && (
-                        <span className="text-xs text-orange-600 bg-orange-100 px-2 py-0.5 rounded">
-                          Line {comp.line}
-                        </span>
+            {expandedSections[group.category] && (
+              <div className={`px-4 py-3 ${group.body} space-y-2`}>
+                {group.entries.map((entry, index) => {
+                  const times = occurrences(entry);
+                  const rest = entry.reason?.replace(group.reasonPrefix, '').trim();
+                  const note = rest && rest.charAt(0).toUpperCase() + rest.slice(1);
+                  return (
+                    <div key={index} className={`bg-white border ${group.card} rounded p-3`}>
+                      <div className="flex items-start gap-2 flex-wrap">
+                        <span className={`font-mono text-sm font-semibold ${group.tagText}`}>&lt;{entry.name}&gt;</span>
+                        {times > 1 && (
+                          <span className={`text-xs ${group.lineBadge} px-2 py-0.5 rounded`}>
+                            {times} times
+                          </span>
+                        )}
+                        {entry.line && (
+                          <span className={`text-xs ${group.lineBadge} px-2 py-0.5 rounded`}>
+                            {times > 1 ? 'First on line' : 'Line'} {entry.line}
+                          </span>
+                        )}
+                      </div>
+                      {note && (
+                        <p className={`text-xs ${group.noteText} mt-1`}>{note}</p>
                       )}
                     </div>
-                    {comp.reason && (
-                      <p className="text-xs text-orange-700 mt-1">{comp.reason}</p>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
-        )}
+        ))}
 
         {/* Template Stats Section */}
         {validationResult.stats && (

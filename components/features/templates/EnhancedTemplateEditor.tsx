@@ -22,7 +22,8 @@ import { useSiteConfig } from '@/hooks/useSiteConfig';
 import { generatePreviewCSS, type CSSMode, type TemplateMode } from '@/lib/utils/css/layers';
 import { useSiteCSS } from '@/hooks/useSiteCSS';
 import NavigationPreview from '@/components/features/templates/NavigationPreview';
-import ValidationFeedbackPanel from './ValidationFeedbackPanel';
+import ValidationFeedbackPanel, { hasStrippedNeedingAttention, type StrippedEntry } from './ValidationFeedbackPanel';
+import { extractDocument } from '@/lib/templates/compilation/document-head';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import { useRouter } from 'next/router';
 import { PixelIcon } from '@/components/ui/PixelIcon';
@@ -431,11 +432,7 @@ export default function EnhancedTemplateEditor({
     isValid: boolean;
     errors: string[];
     warnings: string[];
-    strippedComponents?: Array<{
-      name: string;
-      line?: number;
-      reason?: string;
-    }>;
+    strippedComponents?: StrippedEntry[];
     stats?: {
       nodeCount: number;
       maxDepth: number;
@@ -1195,7 +1192,8 @@ export default function EnhancedTemplateEditor({
       return {
         isValid: validationData.isValid,
         hasWarnings: validationData.warnings.length > 0,
-        hasStripped: (validationData.strippedComponents?.length || 0) > 0
+        // Document wrappers from a pasted whole page are expected, not a problem
+        hasStripped: hasStrippedNeedingAttention(validationData.strippedComponents)
       };
     } catch (error) {
       console.error('Validation failed:', error);
@@ -1235,7 +1233,7 @@ export default function EnhancedTemplateEditor({
         ? (validationInfo.hasWarnings || validationInfo.hasStripped)
         : (validationResult && (
             validationResult.warnings.length > 0 ||
-            (validationResult.strippedComponents?.length || 0) > 0
+            hasStrippedNeedingAttention(validationResult.strippedComponents)
           ));
 
       // Only show generic success message if there are no issues
@@ -1289,7 +1287,7 @@ export default function EnhancedTemplateEditor({
 
       // Show appropriate message based on what was found
       if (validationInfo.hasStripped) {
-        setSaveMessage('Some components were removed - see details in panel');
+        setSaveMessage('Some tags were removed - see details in panel');
       } else {
         setSaveMessage('Template saved with warnings - see details in panel');
       }
@@ -1395,35 +1393,75 @@ export default function EnhancedTemplateEditor({
     );
   }
 
-  // Template edits: extract pasted <style> blocks into the CSS field and
-  // auto-switch to advanced mode when HTML shows up in standard-layout mode.
+  // Template edits: move pasted <style> blocks and Google Fonts <link>s into
+  // the CSS field and auto-switch to advanced mode when HTML shows up in
+  // standard-layout mode.
   const handleTemplateChange = (newValue: string) => {
     // Check if the pasted/typed content has embedded style tags
     const styleMatch = newValue.match(/<style[^>]*>([\s\S]*?)<\/style>/gi);
-    if (styleMatch) {
+    // Google Fonts stylesheet links become @import lines, and the preconnect
+    // hints Google's snippet pastes with them go too (other <link>s stay, the
+    // report covers them)
+    const linkTags = newValue.match(/<link\b[^>]*>/gi) || [];
+    const fontLinks = linkTags
+      .map((tag) => ({ tag, imports: extractDocument(tag).head.fontImports }))
+      .filter((link) => link.imports.length > 0);
+    const fontHints = fontLinks.length > 0
+      ? linkTags.filter((tag) =>
+          /\brel\s*=\s*["']?(?:preconnect|dns-prefetch)\b/i.test(tag) &&
+          /\bhref\s*=\s*["']?https:\/\/fonts\.(?:googleapis|gstatic)\.com\/?["'\s>]/i.test(tag))
+      : [];
+    if (styleMatch || fontLinks.length > 0) {
       // Extract all CSS from style tags
       let extractedCSS = '';
-      styleMatch.forEach(styleTag => {
+      styleMatch?.forEach(styleTag => {
         const cssMatch = styleTag.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
         if (cssMatch && cssMatch[1]) {
           extractedCSS += cssMatch[1].trim() + '\n\n';
         }
       });
 
-      // Remove style tags from HTML
-      const cleanedHTML = newValue.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '').trim();
+      const existingCSS = customCSS || '';
+      const fontImports = Array.from(new Set(fontLinks.flatMap((link) => link.imports)))
+        .filter((line) => !existingCSS.includes(line));
+      if (fontImports.length > 0) {
+        extractedCSS = `${fontImports.join('\n')}\n\n${extractedCSS}`;
+      }
+
+      // Remove style tags and font links from HTML, with their line when they had one to themselves
+      let cleanedHTML = newValue;
+      [...(styleMatch || []), ...fontLinks.map(({ tag }) => tag), ...fontHints].forEach((tag) => {
+        const at = cleanedHTML.indexOf(tag);
+        if (at === -1) return;
+        let start = at;
+        let end = at + tag.length;
+        const lineStart = cleanedHTML.lastIndexOf('\n', at - 1) + 1;
+        const lineEnd = cleanedHTML.indexOf('\n', end);
+        if (!cleanedHTML.slice(lineStart, at).trim() && !cleanedHTML.slice(end, lineEnd === -1 ? undefined : lineEnd).trim()) {
+          start = lineStart;
+          end = lineEnd === -1 ? cleanedHTML.length : lineEnd + 1;
+        }
+        cleanedHTML = cleanedHTML.slice(0, start) + cleanedHTML.slice(end);
+      });
+      cleanedHTML = cleanedHTML.trim();
 
       // Set the cleaned HTML
       setTemplate(cleanedHTML);
 
       // Append extracted CSS to existing CSS (don't overwrite)
-      if (extractedCSS) {
-        const existingCSS = customCSS || '';
+      if (extractedCSS.trim()) {
         const combinedCSS = existingCSS.trim()
           ? `${existingCSS}\n\n/* Extracted from HTML */\n${extractedCSS.trim()}`
           : extractedCSS.trim();
         setCustomCSS(combinedCSS);
-        setSaveMessage('✓ Extracted CSS from <style> tags and moved to CSS tab');
+        const movedStyles = Boolean(styleMatch);
+        setSaveMessage(
+          movedStyles && fontLinks.length > 0
+            ? '✓ Moved your <style> CSS and Google Fonts links to the CSS tab'
+            : movedStyles
+              ? '✓ Extracted CSS from <style> tags and moved to CSS tab'
+              : '✓ Moved your Google Fonts links to the CSS tab as @import lines'
+        );
         setTimeout(() => setSaveMessage(null), 3000);
       }
 
