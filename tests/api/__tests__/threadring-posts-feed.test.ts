@@ -7,7 +7,11 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 
 jest.mock('@/lib/config/database/connection', () => ({
-  db: { post: { findUnique: jest.fn() } },
+  db: {
+    post: { findUnique: jest.fn() },
+    // getRestrictedUserIds: nobody suspended or banned
+    user: { findMany: jest.fn(async () => []) },
+  },
 }))
 jest.mock('@/lib/auth/server', () => ({ getSessionUser: jest.fn().mockResolvedValue(null) }))
 jest.mock('@/lib/utils/features/feature-flags', () => ({ featureFlags: { ringhub: () => true } }))

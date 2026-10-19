@@ -6,6 +6,12 @@
  */
 type Caps = typeof import('../capabilities');
 
+// requireAction asks whether the token's account is suspended or banned.
+// The real module loads the db client (and with it .env), so it's faked here;
+// tests/db/moderation.dbtest.ts runs it for real.
+const mockIsUserRestricted = jest.fn(async (_userId: string) => false);
+jest.mock('../moderation', () => ({ isUserRestricted: (id: string) => mockIsUserRestricted(id) }));
+
 function load(env: { CAP_JWT_SECRET?: string; NODE_ENV?: string } = {}): Caps {
   const saved = { CAP_JWT_SECRET: process.env.CAP_JWT_SECRET, NODE_ENV: process.env.NODE_ENV };
   const set = (k: keyof typeof saved, v: string | undefined) => {
@@ -70,6 +76,15 @@ describe('requireAction', () => {
     await expect(guard(await caps.mintCapability('u1', ['read'], 'post:p1'))).rejects.toThrow('missing action');
     await expect(guard(await caps.mintCapability('u1', ['write:comment'], 'post:p2'))).rejects.toThrow('bad resource');
     await expect(guard(await caps.mintCapability('', ['write:comment'], 'post:p1'))).rejects.toThrow('no subject');
+  });
+
+  it("refuses a token minted before its account was suspended or banned", async () => {
+    const caps = load({ CAP_JWT_SECRET: 'test-secret' });
+    const guard = caps.requireAction('write:comment', () => true);
+    const token = await caps.mintCapability('u1', ['write:comment'], 'post:p1');
+    mockIsUserRestricted.mockResolvedValueOnce(true);
+    await expect(guard(token)).rejects.toThrow('account suspended');
+    expect(mockIsUserRestricted).toHaveBeenLastCalledWith('u1');
   });
 });
 

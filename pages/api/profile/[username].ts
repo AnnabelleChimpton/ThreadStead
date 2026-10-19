@@ -30,6 +30,8 @@ export default apiHandler(
     // Visibility and blocks (either way), the same rules as the pixel home.
     // A block reads as "private" so nobody learns they were blocked.
     const access = await residentAccess(viewer, u.id, u.profile?.visibility ?? null);
+    // A suspended or banned account is gone, the same as no account.
+    if (!access.visible && access.suspended) return res.status(404).json({ error: "not found" });
     if (!access.visible) {
       return res.status(403).json({
         error: "private_profile",

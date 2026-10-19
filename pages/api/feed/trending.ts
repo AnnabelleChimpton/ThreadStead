@@ -3,7 +3,7 @@ import { featureFlags } from "@/lib/utils/features/feature-flags";
 import { RingHubAuthError, RingHubUnavailableError } from "@/lib/api/ringhub/ringhub-errors";
 import { apiHandler } from "@/lib/api/handler";
 import { parseLimit } from "@/lib/server/http/pagination";
-import { getUserBlockedIds, filterBlockedRingHubItems } from "@/lib/domain/users/blocks";
+import { getHiddenIds, filterBlockedRingHubItems } from "@/lib/domain/users/blocks";
 
 export default apiHandler(
   { methods: ["GET"], auth: "optional" },
@@ -45,9 +45,9 @@ export default apiHandler(
         includeNotifications: includeNotifications === "true" ? true : undefined
       });
 
-      // Signed-in viewers don't see posts from people they blocked
-      if (!viewer) return res.json(feedResponse);
-      const { blockedUserIds } = await getUserBlockedIds(viewer.id);
+      // Nobody sees suspended or banned accounts' posts; signed-in viewers
+      // also don't see people they blocked
+      const { blockedUserIds } = await getHiddenIds(viewer?.id);
       return res.json({
         ...feedResponse,
         posts: await filterBlockedRingHubItems(feedResponse.posts ?? [], blockedUserIds),

@@ -20,6 +20,7 @@ import { Prisma } from '@prisma/client'
 import { db } from '@/lib/config/database/connection'
 import { escapeLike } from './query'
 import type { RelevanceSignals } from './relevance'
+import { activeAccountSql } from '@/lib/domain/users/moderation'
 
 /**
  * Rows read per type before blending. Paging walks the blended list, so a
@@ -154,6 +155,7 @@ export async function postCandidates(query: string, viewer: Viewer, take = CANDI
         AND p.platform IS DISTINCT FROM 'ringhub'
         AND ${visibleTo(viewer, Prisma.sql`p.visibility`, Prisma.sql`p."authorId"`)}
         AND ${notBlockedEitherWay(viewer, Prisma.sql`p."authorId"`)}
+        AND ${activeAccountSql(Prisma.sql`p."authorId"`)}
         AND NOT EXISTS (
           SELECT 1 FROM "PostThreadRing" ptr
           JOIN "UserBlock" b ON b."blockedThreadRingId" = ptr."threadRingId"
@@ -221,6 +223,7 @@ export async function userCandidates(query: string, viewer: Viewer, take = CANDI
       -- No profile row means public, as on the profile page.
       WHERE (pr.id IS NULL OR ${visibleTo(viewer, Prisma.sql`pr.visibility`, Prisma.sql`u.id`)})
         AND ${notBlockedEitherWay(viewer, Prisma.sql`u.id`)}
+        AND ${activeAccountSql(Prisma.sql`u.id`)}
         ${excluding(Prisma.sql`pr.search_tsv`, 'simple', excluded)}
     ),
     cand AS (
@@ -297,6 +300,7 @@ export async function homeCandidates(query: string, viewer: Viewer, take = CANDI
         ${excluding(tsv, 'english', excluded)}
         AND (pr.id IS NULL OR ${visibleTo(viewer, Prisma.sql`pr.visibility`, Prisma.sql`h."userId"`)})
         AND ${notBlockedEitherWay(viewer, Prisma.sql`h."userId"`)}
+        AND ${activeAccountSql(Prisma.sql`h."userId"`)}
         AND EXISTS (SELECT 1 FROM "Handle" hd WHERE hd."userId" = h."userId")
     )
     SELECT * FROM matched ORDER BY ${PRE_ORDER}, id LIMIT ${take}

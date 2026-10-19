@@ -26,7 +26,7 @@ import {
   hydratePages,
   hydrateHomes,
 } from "@/lib/search/local";
-import { getUserBlockedIds, countHiddenComments, visibleCommentCount } from "@/lib/domain/users/blocks";
+import { getHiddenIds, countHiddenComments, visibleCommentCount } from "@/lib/domain/users/blocks";
 
 /**
  * GET /api/search?q&type=all|threadrings|users|posts|pages|homes&limit&cursor
@@ -189,7 +189,7 @@ async function hydrate(
     hydrateHomes(idsOf("home")),
   ]);
   // Comment counts leave out people the viewer blocked (and replies under them)
-  const blockedUserIds = viewerId && postRows.length > 0 ? (await getUserBlockedIds(viewerId)).blockedUserIds : [];
+  const blockedUserIds = postRows.length > 0 ? (await getHiddenIds(viewerId)).blockedUserIds : [];
   const hiddenComments = await countHiddenComments(postRows.map((p) => p.id), blockedUserIds);
 
   const display = new Map(ringDisplay);

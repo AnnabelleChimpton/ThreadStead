@@ -12,6 +12,8 @@ type User = {
   createdAt: Date
   handles: { handle: string; host: string }[]
   profile: { displayName: string | null; bio: string | null; avatarUrl: string | null; visibility: string } | null
+  moderationStatus: 'active' | 'suspended' | 'banned'
+  suspendedUntil: Date | null
 }
 const state: { users: User[] } = { users: [] }
 
@@ -33,9 +35,14 @@ jest.mock('@/lib/config/database/connection', () => ({
 import handler from '@/pages/api/directory'
 
 let clock = 0
-function user(id: string, opts: { bio?: string; visibility?: string; noProfile?: boolean } = {}): User {
+function user(
+  id: string,
+  opts: { bio?: string; visibility?: string; noProfile?: boolean; moderation?: Pick<User, 'moderationStatus' | 'suspendedUntil'> } = {}
+): User {
   return {
     id,
+    moderationStatus: opts.moderation?.moderationStatus ?? 'active',
+    suspendedUntil: opts.moderation?.suspendedUntil ?? null,
     createdAt: new Date(Date.UTC(2026, 0, 1, 0, 0, clock++)),
     handles: [{ handle: id, host: 'local' }],
     profile: opts.noProfile
@@ -68,6 +75,18 @@ beforeEach(() => {
     user('a_b'),
     user('axb'),
   ]
+})
+
+test('suspended and banned accounts are not listed or counted; an ended suspension is', async () => {
+  const day = 24 * 60 * 60 * 1000
+  state.users.push(
+    user('banned', { moderation: { moderationStatus: 'banned', suspendedUntil: null } }),
+    user('suspended', { moderation: { moderationStatus: 'suspended', suspendedUntil: new Date(Date.now() + day) } }),
+    user('back', { moderation: { moderationStatus: 'suspended', suspendedUntil: new Date(Date.now() - day) } })
+  )
+  const res = await call({})
+  expect(names(res).sort()).toEqual(['a_b', 'axb', 'back', 'bare', 'pub'])
+  expect(res.body.total).toBe(5)
 })
 
 test('private, followers-only and friends-only profiles are not listed; totals agree', async () => {

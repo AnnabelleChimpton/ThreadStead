@@ -1,6 +1,7 @@
 import { db } from "@/lib/config/database/connection";
 
 import { SITE_NAME } from "@/lib/config/site/constants";
+import { isUserRestricted } from "@/lib/domain/users/moderation";
 import { getUserBlockedIds, addBlockFiltersToWhere, countHiddenComments, visibleCommentCount } from "@/lib/domain/users/blocks";
 import { apiHandler } from "@/lib/api/handler";
 import { getAllowedVisibilities } from "@/lib/domain/posts/visibility";
@@ -18,6 +19,8 @@ export default apiHandler(
     if (!handle) return res.status(404).json({ error: "not found" });
 
     const authorId = handle.user.id;
+    // A suspended or banned account's pages are gone, posts included.
+    if (await isUserRestricted(authorId)) return res.status(404).json({ error: "not found" });
 
     const allowed = await getAllowedVisibilities(viewer?.id, authorId);
 

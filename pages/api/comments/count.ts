@@ -1,6 +1,6 @@
 import { db } from "@/lib/config/database/connection";
 import { apiHandler } from "@/lib/api/handler";
-import { getUserBlockedIds, countHiddenComments, visibleCommentCount } from "@/lib/domain/users/blocks";
+import { getHiddenIds, countHiddenComments, visibleCommentCount } from "@/lib/domain/users/blocks";
 
 export default apiHandler(
   { methods: ["GET"], auth: "optional" },
@@ -12,8 +12,8 @@ export default apiHandler(
     const count = await db.comment.count({ where: { postId, status: "visible" } });
 
     // A signed-in viewer's count leaves out comments from people they blocked
-    if (!viewer || count === 0) return res.json({ count });
-    const { blockedUserIds } = await getUserBlockedIds(viewer.id);
+    if (count === 0) return res.json({ count });
+    const { blockedUserIds } = await getHiddenIds(viewer?.id);
     const hidden = await countHiddenComments([postId], blockedUserIds);
     return res.json({ count: visibleCommentCount(postId, count, hidden) });
   }

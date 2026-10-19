@@ -11,7 +11,7 @@ import {
 } from '@/lib/domain/threadrings/orphan-postrefs';
 import { canViewPost, getViewerRelationship, type ViewerRelationship } from '@/lib/domain/posts/visibility';
 import { parseOffsetPagination } from '@/lib/server/http/pagination';
-import { getUserBlockedIds, getBlockedUserDids } from '@/lib/domain/users/blocks';
+import { getHiddenIds, getBlockedUserDids } from '@/lib/domain/users/blocks';
 
 /**
  * Resolve Ring Hub post references to actual ThreadStead post objects.
@@ -23,7 +23,8 @@ import { getUserBlockedIds, getBlockedUserDids } from '@/lib/domain/users/blocks
 async function resolveRingHubPosts(ringHubPosts: any[], viewer: { id: string } | null) {
   const resolvedPosts = [];
   let hidden = 0;
-  const blockedUserIds = viewer ? (await getUserBlockedIds(viewer.id)).blockedUserIds : [];
+  // Suspended or banned authors for everyone, plus the viewer's blocks
+  const { blockedUserIds } = await getHiddenIds(viewer?.id);
   const blockedDids = await getBlockedUserDids(blockedUserIds);
   // One relationship lookup per author, not per post
   const relationships = new Map<string, Promise<ViewerRelationship>>();

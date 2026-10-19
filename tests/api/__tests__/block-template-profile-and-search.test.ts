@@ -44,6 +44,8 @@ const visibleCount = (postId: string) =>
 
 jest.mock('@/lib/config/database/connection', () => ({
   db: {
+    // getRestrictedUserIds (lib/domain/users/moderation.ts): nobody suspended or banned
+    user: { findMany: jest.fn(async () => []) },
     userBlock: {
       findMany: jest.fn(async ({ where }: any) => state.blocks.filter((b) => b.blockerId === where.blockerId)),
     },

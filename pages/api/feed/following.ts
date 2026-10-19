@@ -2,7 +2,7 @@ import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/config/database/connection";
 import { SITE_NAME } from "@/lib/config/site/constants";
 import { apiHandler } from "@/lib/api/handler";
-import { getUserBlockedIds, addBlockFiltersToWhere, countHiddenComments, visibleCommentCount } from "@/lib/domain/users/blocks";
+import { getHiddenIds, addBlockFiltersToWhere, countHiddenComments, visibleCommentCount } from "@/lib/domain/users/blocks";
 import { followingPostsWhere, getFollowGraph } from "@/lib/domain/posts/visibility";
 import { parseLimit } from "@/lib/server/http/pagination";
 
@@ -30,7 +30,7 @@ export default apiHandler(
 
     const [{ followeeIds, friendIds }, { blockedUserIds, blockedThreadRingIds }] = await Promise.all([
       getFollowGraph(user.id),
-      getUserBlockedIds(user.id),
+      getHiddenIds(user.id),
     ]);
 
     if (followeeIds.length === 0) {

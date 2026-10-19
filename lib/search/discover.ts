@@ -12,6 +12,7 @@ import { fetchRings, ringResult, type RingRow } from './rings'
 import { queryTerms } from './relevance'
 import { isWebUrl, cleanText } from './sites'
 import { houseThumb, type SearchResult } from './types'
+import { activeAccountSql } from '@/lib/domain/users/moderation'
 
 type Card = Omit<SearchResult, 'relevanceScore'>
 
@@ -26,6 +27,7 @@ export async function randomHomes(viewerId: string | null, count: number): Promi
     LEFT JOIN "Profile" pr ON pr."userId" = h."userId"
     WHERE (pr.id IS NULL OR pr.visibility = 'public')
       AND EXISTS (SELECT 1 FROM "Handle" hd WHERE hd."userId" = h."userId")
+      AND ${activeAccountSql(Prisma.sql`h."userId"`)}
       AND NOT EXISTS (
         SELECT 1 FROM "UserBlock" b
         WHERE (b."blockerId" = ${v} AND b."blockedUserId" = h."userId")

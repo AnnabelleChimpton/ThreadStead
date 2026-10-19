@@ -1,5 +1,6 @@
 import { db } from '@/lib/config/database/connection';
 import { apiHandler } from '@/lib/api/handler';
+import { activeUserWhere } from '@/lib/domain/users/moderation';
 import { sendUnauthenticated } from '@/lib/api/errors';
 import { z } from 'zod';
 
@@ -25,6 +26,8 @@ export default apiHandler(
             expiresAt: {
               gt: now,
             },
+            // Notes from suspended or banned accounts come off the board
+            user: activeUserWhere(now),
           },
           include: {
             user: {

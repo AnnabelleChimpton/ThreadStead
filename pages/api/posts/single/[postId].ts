@@ -1,6 +1,7 @@
 import { db } from "@/lib/config/database/connection";
 import { apiHandler } from "@/lib/api/handler";
 import { canViewPost, getViewerRelationship } from "@/lib/domain/posts/visibility";
+import { isUserRestricted } from "@/lib/domain/users/moderation";
 
 
 
@@ -44,7 +45,8 @@ export default apiHandler(
         // Explicitly include all post fields including content warning fields
       });
 
-      if (!post) {
+      // A suspended or banned author's posts are gone along with their pages.
+      if (!post || (await isUserRestricted(post.authorId))) {
         return res.status(404).json({ error: "Post not found" });
       }
 

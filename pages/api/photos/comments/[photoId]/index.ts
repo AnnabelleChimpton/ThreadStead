@@ -5,7 +5,7 @@ import { requireAction } from "@/lib/domain/users/capabilities";
 import { createNotification } from "@/lib/domain/notifications";
 import { apiHandler, type SessionUser } from "@/lib/api/handler";
 import { sendUnauthenticated } from "@/lib/api/errors";
-import { getUserBlockedIds, filterBlockedComments } from "@/lib/domain/users/blocks";
+import { getHiddenIds, filterBlockedComments } from "@/lib/domain/users/blocks";
 
 // GET is public; POST checks the session itself (CSRF only applies to POST)
 export default apiHandler(
@@ -83,7 +83,7 @@ async function handleGetComments(req: NextApiRequest, res: NextApiResponse, phot
     });
 
     // Hide comments (and replies under them) from people the viewer blocked
-    const { blockedUserIds } = viewer ? await getUserBlockedIds(viewer.id) : { blockedUserIds: [] };
+    const { blockedUserIds } = await getHiddenIds(viewer?.id);
     const visible = filterBlockedComments(comments, blockedUserIds);
 
     return res.status(200).json({

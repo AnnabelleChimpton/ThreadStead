@@ -8,13 +8,18 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 jest.mock('@/lib/config/database/connection', () => ({
-  db: { session: { create: jest.fn(), findUnique: jest.fn(), deleteMany: jest.fn() } },
+  db: {
+    session: { create: jest.fn(), findUnique: jest.fn(), deleteMany: jest.fn() },
+    // createSession's moderation check (lib/domain/users/moderation.ts)
+    user: { findUnique: jest.fn().mockResolvedValue({ moderationStatus: 'active', suspendedUntil: null }) },
+  },
 }));
 
 import {
   SESSION_TTL_SECONDS,
   clearSession,
   createSession,
+  endAllSessions,
   endOtherSessions,
   getSessionUser,
   readCookie,
@@ -88,6 +93,27 @@ describe('createSession', () => {
     await createSession(res(), 'u');
     expect(create.mock.calls[0][0].data.secret).not.toBe(create.mock.calls[1][0].data.secret);
   });
+
+  test('refuses a banned or suspended account: no row, no cookie', async () => {
+    const userFind = (db as any).user.findUnique as jest.Mock;
+    userFind.mockResolvedValueOnce({ moderationStatus: 'banned', suspendedUntil: null });
+    const r = res();
+    await expect(createSession(r, 'u')).rejects.toMatchObject({ status: 403, message: 'This account is banned.' });
+    expect(create).not.toHaveBeenCalled();
+    expect(r.headers['set-cookie']).toBeUndefined();
+
+    userFind.mockResolvedValueOnce({ moderationStatus: 'suspended', suspendedUntil: new Date('2099-11-03T00:00:00Z') });
+    await expect(createSession(res(), 'u')).rejects.toMatchObject({
+      message: 'This account is suspended until 3 November 2099.',
+    });
+  });
+});
+
+describe('endAllSessions', () => {
+  test("deletes every one of the user's sessions", async () => {
+    await endAllSessions('u1');
+    expect(deleteMany).toHaveBeenCalledWith({ where: { userId: 'u1' } });
+  });
 });
 
 describe('clearSession', () => {
@@ -158,7 +184,41 @@ describe('getSessionUser', () => {
     const user = await getSessionUser(req('retro_session=u1.s'), { select: { id: true, did: true } });
 
     expect(user).toEqual({ id: 'u1', did: 'did:x' });
-    expect(findUnique.mock.calls[0][0].select.user).toEqual({ select: { id: true, did: true } });
+    // plus the moderation fields it needs, which it doesn't hand back
+    expect(findUnique.mock.calls[0][0].select.user).toEqual({
+      select: { id: true, did: true, moderationStatus: true, suspendedUntil: true },
+    });
+  });
+
+  test('select can ask for the moderation fields too', async () => {
+    findUnique.mockResolvedValue({
+      userId: 'u1',
+      expiresAt: future(),
+      user: { id: 'u1', moderationStatus: 'active', suspendedUntil: null },
+    });
+    const user = await getSessionUser(req('retro_session=u1.s'), { select: { id: true, moderationStatus: true } });
+    expect(user).toEqual({ id: 'u1', moderationStatus: 'active' });
+  });
+
+  test('a banned account → null, even with a live session', async () => {
+    findUnique.mockResolvedValue({
+      userId: 'u1',
+      expiresAt: future(),
+      user: { id: 'u1', moderationStatus: 'banned', suspendedUntil: null },
+    });
+    expect(await getSessionUser(req('retro_session=u1.s'))).toBeNull();
+  });
+
+  test('a suspended account → null until the end date, then back', async () => {
+    const session = (suspendedUntil: Date) => ({
+      userId: 'u1',
+      expiresAt: future(),
+      user: { id: 'u1', moderationStatus: 'suspended', suspendedUntil },
+    });
+    findUnique.mockResolvedValueOnce(session(future()));
+    expect(await getSessionUser(req('retro_session=u1.s'))).toBeNull();
+    findUnique.mockResolvedValueOnce(session(new Date(Date.now() - 1000)));
+    expect(await getSessionUser(req('retro_session=u1.s'))).toMatchObject({ id: 'u1' });
   });
 
   test('expired session → null', async () => {

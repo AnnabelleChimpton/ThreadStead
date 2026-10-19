@@ -9,6 +9,7 @@ import { isBetaKeysEnabled } from "@/lib/config/beta-keys";
 import { createSession, readCookie } from "@/lib/auth/server";
 import { getClientIp } from "@/lib/server/http/client-ip";
 import { recordSignup, SignupLimitError } from "@/lib/domain/users/signup-limits";
+import { isRestricted, restrictionMessage } from "@/lib/domain/users/moderation";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") return res.status(405).end();
@@ -166,6 +167,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const errorMessage = (error as Error).message;
       return res.status(400).json({ error: errorMessage });
     }
+  }
+
+  // A suspended or banned account gets the reason it can't sign in, no session
+  if (isRestricted(user)) {
+    return res.status(403).json({ error: restrictionMessage(user), code: "account_restricted" });
   }
 
   // Session + CSRF cookies

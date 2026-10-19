@@ -5,7 +5,7 @@ import { SITE_NAME } from "@/lib/config/site/constants";
 import { calculateHotScore } from "@/lib/feed/ranking";
 import { apiHandler } from "@/lib/api/handler";
 import { parseOffsetPagination } from "@/lib/server/http/pagination";
-import { getUserBlockedIds, addBlockFiltersToWhere, countHiddenComments, visibleCommentCount } from "@/lib/domain/users/blocks";
+import { getHiddenIds, addBlockFiltersToWhere, countHiddenComments, visibleCommentCount } from "@/lib/domain/users/blocks";
 
 export default apiHandler(
   { methods: ["GET"], auth: "optional" },
@@ -17,10 +17,9 @@ export default apiHandler(
 
       // Fetch a larger pool of candidates to rank
       // We look for posts that are either recent OR have recent comments
-      // Signed-in viewers don't see people or rings they've blocked
-      const { blockedUserIds, blockedThreadRingIds } = viewer
-        ? await getUserBlockedIds(viewer.id)
-        : { blockedUserIds: [], blockedThreadRingIds: [] };
+      // Nobody sees suspended or banned accounts; signed-in viewers also
+      // don't see people or rings they've blocked
+      const { blockedUserIds, blockedThreadRingIds } = await getHiddenIds(viewer?.id);
       // ...and a blocked person's comment doesn't count as the latest activity
       const visibleComment: Prisma.CommentWhereInput = {
         status: "visible",

@@ -2,6 +2,7 @@ import { apiHandler } from "@/lib/api/handler";
 import { db } from "@/lib/config/database/connection";
 import { checkEmailLoginToken, verifyEmailLoginToken } from "@/lib/email-login";
 import { createSession } from "@/lib/auth/server";
+import { isRestricted, MODERATION_SELECT, restrictionMessage } from "@/lib/domain/users/moderation";
 
 export default apiHandler(
   // no CSRF today: anonymous visitors following an emailed login link; plain fetch
@@ -66,6 +67,12 @@ export default apiHandler(
         }
       }
     
+      // A suspended or banned account gets the reason it can't sign in, no session
+      const moderation = await db.user.findUnique({ where: { id: selectedUser.id }, select: MODERATION_SELECT });
+      if (moderation && isRestricted(moderation)) {
+        return res.status(403).json({ error: restrictionMessage(moderation), code: "account_restricted" });
+      }
+
       // Mark email as verified if not already
       if (!selectedUser.emailVerifiedAt) {
         await db.user.update({

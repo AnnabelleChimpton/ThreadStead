@@ -1,5 +1,6 @@
 import { db } from "@/lib/config/database/connection";
 import { apiHandler } from "@/lib/api/handler";
+import { effectiveStatus } from "@/lib/domain/users/moderation";
 
 export default apiHandler(
   { methods: ["GET"], auth: "admin" },
@@ -44,6 +45,12 @@ export default apiHandler(
           emailVerifiedAt: user.emailVerifiedAt,
 
           hasEmail: !!user.encryptedEmail,
+
+          // A suspension past its end date reads as active
+          moderationStatus: effectiveStatus(user),
+          suspendedUntil: user.suspendedUntil,
+          moderationReason: user.moderationReason,
+          moderatedAt: user.moderatedAt,
         }));
 
         res.json({ users: formattedUsers });

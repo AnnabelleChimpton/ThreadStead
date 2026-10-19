@@ -78,6 +78,13 @@ export function attachChatServer(io: ChatServer, { log = () => {} }: ChatServerO
   const checkRateLimit = (userId: string, scope: "chat" | "dm" = "chat") =>
     limiter.check(`${userId}:${scope}`);
 
+  // Suspending or banning someone (lib/domain/users/moderation.ts) drops
+  // their open sockets; they reconnect as a guest, since the session is gone.
+  // On globalThis because API routes and this server are separate bundles.
+  globalThis.__threadsteadChatDisconnectUser = (userId: string) => {
+    io.in(userId).disconnectSockets(true);
+  };
+
   const broadcastPresence = (roomId: string) => {
     io.to(roomId).emit("presence:update", { users: getRoomPresence(roomId) });
   };

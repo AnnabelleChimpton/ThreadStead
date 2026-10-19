@@ -109,8 +109,11 @@ const dbProject = {
   },
   transform: {
     '^.+\\.(ts|tsx)$': ['ts-jest', { tsconfig: 'tsconfig.jest.json' }],
+    // jose (capability tokens) ships ESM-only .js, same as for engine
+    '^.+\\.(js|jsx|mjs)$': ['babel-jest', { presets: ['next/babel'] }],
   },
-  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
+  transformIgnorePatterns: transformEsmPackages,
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'mjs'],
   testTimeout: 30000,
 }
 

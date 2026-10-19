@@ -48,6 +48,8 @@ jest.mock('@/lib/config/database/connection', () => ({
       findMany: jest.fn(async ({ where }: any) => state.blocks.filter((b) => b.blockerId === where.blockerId)),
     },
     user: {
+      // isUserRestricted (lib/domain/users/moderation.ts): nobody suspended or banned
+      findUnique: jest.fn(async () => ({ moderationStatus: 'active', suspendedUntil: null })),
       findMany: jest.fn(async ({ where }: any) =>
         state.users
           .filter((u) => matches(u, where))

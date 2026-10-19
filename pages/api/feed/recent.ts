@@ -3,7 +3,7 @@ import { db } from "@/lib/config/database/connection";
 import { SITE_NAME } from "@/lib/config/site/constants";
 import { apiHandler } from "@/lib/api/handler";
 import { parseOffsetPagination } from "@/lib/server/http/pagination";
-import { getUserBlockedIds, addBlockFiltersToWhere, countHiddenComments, visibleCommentCount } from "@/lib/domain/users/blocks";
+import { getHiddenIds, addBlockFiltersToWhere, countHiddenComments, visibleCommentCount } from "@/lib/domain/users/blocks";
 
 
 
@@ -13,10 +13,9 @@ export default apiHandler(
     try {
       const { limit, offset } = parseOffsetPagination(req.query, { defaultLimit: 20, maxLimit: 50 });
 
-      // Signed-in viewers don't see people or rings they've blocked
-      const { blockedUserIds, blockedThreadRingIds } = viewer
-        ? await getUserBlockedIds(viewer.id)
-        : { blockedUserIds: [], blockedThreadRingIds: [] };
+      // Nobody sees suspended or banned accounts; signed-in viewers also
+      // don't see people or rings they've blocked
+      const { blockedUserIds, blockedThreadRingIds } = await getHiddenIds(viewer?.id);
 
       const posts = await db.post.findMany({
         where: addBlockFiltersToWhere({ visibility: "public" }, blockedUserIds, blockedThreadRingIds),

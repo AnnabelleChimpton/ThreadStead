@@ -44,10 +44,16 @@ function matchScalar(value: any, cond: any): boolean {
   if ('in' in cond && !cond.in.includes(value)) return false
   if ('notIn' in cond && cond.notIn.includes(value)) return false
   if ('hasSome' in cond) return Array.isArray(value) && value.some((v: any) => cond.hasSome.includes(v))
-  return true
+  // Comparisons (dates or numbers); null never compares, as in SQL
+  const cmp = (bound: any, ok: (a: number, b: number) => boolean) =>
+    bound === undefined || (value !== null && value !== undefined && ok(+value, +bound))
+  return (
+    cmp(cond.lt, (a, b) => a < b) && cmp(cond.lte, (a, b) => a <= b) &&
+    cmp(cond.gt, (a, b) => a > b) && cmp(cond.gte, (a, b) => a >= b)
+  )
 }
 
-const SCALAR_OPS = new Set(['contains', 'equals', 'mode', 'in', 'notIn', 'hasSome'])
+const SCALAR_OPS = new Set(['contains', 'equals', 'mode', 'in', 'notIn', 'hasSome', 'lt', 'lte', 'gt', 'gte'])
 
 /** Relations use `is` (to-one, or a bare nested filter) and `some` / `none` (to-many). */
 export function matchesWhere(row: any, where: any): boolean {

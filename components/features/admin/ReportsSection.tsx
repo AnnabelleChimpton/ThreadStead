@@ -4,10 +4,12 @@ import { useToast } from "@/contexts/ToastContext";
 import { useConfirm } from "@/contexts/ConfirmContext";
 import LoadingSpinner from "@/components/ui/feedback/LoadingSpinner";
 import EmptyState from "@/components/ui/feedback/EmptyState";
+import ModerationDialog, { statusText, type ModerationStatus } from "@/components/features/admin/ModerationDialog";
 
 interface Report {
   id: string;
   reportType: string;
+  targetId: string;
   reason: string;
   customReason?: string;
   description?: string;
@@ -22,6 +24,9 @@ interface Report {
   reportedUser?: {
     id: string;
     primaryHandle: string;
+    role: string;
+    moderationStatus: ModerationStatus;
+    suspendedUntil: string | null;
   };
   reviewer?: {
     id: string;
@@ -46,6 +51,7 @@ export default function ReportsSection() {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(false);
   const [updating, setUpdating] = useState<string | null>(null);
+  const [actingOn, setActingOn] = useState<Report | null>(null);
   const [filters, setFilters] = useState({
     status: "pending",
     type: "all",
@@ -109,7 +115,7 @@ export default function ReportsSection() {
 
   async function deleteReportedContent(report: Report) {
     const contentType = report.reportType;
-    const targetId = report.targetContent?.id;
+    const targetId = report.targetId;
     
     if (!targetId) {
       showError("This report doesn't point at any content, so there's nothing to delete.");
@@ -294,7 +300,12 @@ export default function ReportsSection() {
                   <div className="text-sm mb-2">
                     <strong>Reporter:</strong> {report.reporter.primaryHandle?.split('@')[0]}
                     {report.reportedUser && (
-                      <span> | <strong>Reported User:</strong> {report.reportedUser.primaryHandle?.split('@')[0]}</span>
+                      <span>
+                        {" "}| <strong>Reported User:</strong> {report.reportedUser.primaryHandle?.split('@')[0]}
+                        {report.reportedUser.moderationStatus !== "active" && (
+                          <span className="ml-1 font-bold text-red-800">({statusText(report.reportedUser)})</span>
+                        )}
+                      </span>
                     )}
                   </div>
 
@@ -350,6 +361,16 @@ export default function ReportsSection() {
                     >
                       Dismiss
                     </button>
+                    {report.reportedUser && report.reportedUser.role !== "admin" && (
+                      <button
+                        onClick={() => setActingOn(report)}
+                        disabled={updating === report.id}
+                        className="border border-black px-2 py-1 bg-red-200 hover:bg-red-100 shadow-[1px_1px_0_#000] text-xs"
+                        title="Suspend, ban or lift the reported account, and resolve this report"
+                      >
+                        Act on account
+                      </button>
+                    )}
                     {/* Delete content button - only show for posts, comments, and guestbook entries */}
                     {(report.reportType === "post" || report.reportType === "comment" || report.reportType === "guestbook_entry") && 
                      report.targetContent && !report.targetContent.deleted && (
@@ -369,6 +390,23 @@ export default function ReportsSection() {
           ))
         )}
       </div>
+
+      {actingOn?.reportedUser && (
+        <ModerationDialog
+          account={{
+            id: actingOn.reportedUser.id,
+            handle: actingOn.reportedUser.primaryHandle,
+            moderationStatus: actingOn.reportedUser.moderationStatus,
+            suspendedUntil: actingOn.reportedUser.suspendedUntil,
+          }}
+          reportId={actingOn.id}
+          onClose={() => setActingOn(null)}
+          onChanged={() => {
+            setActingOn(null);
+            loadReports();
+          }}
+        />
+      )}
 
       {/* Pagination */}
       {pagination.pages > 1 && (

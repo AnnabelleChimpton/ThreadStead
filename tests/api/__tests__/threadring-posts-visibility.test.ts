@@ -24,6 +24,8 @@ const localPost = (visibility: string) => ({
 
 jest.mock('@/lib/config/database/connection', () => ({
   db: {
+    // getRestrictedUserIds (lib/domain/users/moderation.ts): nobody suspended or banned
+    user: { findMany: jest.fn(async () => []) },
     post: { findUnique: jest.fn(async ({ where }: any) => {
       const v = String(where.id).replace('p-', '')
       return VISIBILITIES.includes(v) ? localPost(v) : null

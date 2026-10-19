@@ -17,6 +17,8 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 jest.mock('@/lib/config/database/connection', () => ({
   db: {
     handle: { findFirst: jest.fn() },
+    // residentAccess's moderation check: nobody suspended or banned
+    user: { findUnique: jest.fn(async () => ({ moderationStatus: 'active', suspendedUntil: null })) },
     userHomeConfig: { findUnique: jest.fn() },
     media: { findUnique: jest.fn() },
     follow: { count: jest.fn(async () => 0), findUnique: jest.fn(async () => null), findMany: jest.fn(async () => []) },

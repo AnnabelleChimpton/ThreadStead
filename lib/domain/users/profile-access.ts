@@ -9,34 +9,42 @@
  * friends by accepted follows, private for nobody else. On top of that, a
  * block in either direction hides it, the same as search does
  * (lib/search/local.ts). No profile row means public.
+ *
+ * A suspended or banned account (lib/domain/users/moderation.ts) is hidden
+ * from everyone, admins and lists included: residentAccess reports it as
+ * `suspended`, which the profile and home pages turn into a 404.
  */
 import type { NextApiResponse } from "next";
 import type { Prisma, UserRole, Visibility } from "@prisma/client";
 import { db } from "@/lib/config/database/connection";
 import { canViewPost, getViewerRelationship } from "@/lib/domain/posts/visibility";
 import { isUserBlocked } from "@/lib/domain/users/blocks";
+import { activeUserWhere, isUserRestricted } from "@/lib/domain/users/moderation";
 
 type HiddenVisibility = Exclude<Visibility, "public">;
 
 export type ResidentAccess =
   | { visible: true }
-  | { visible: false; visibility: HiddenVisibility; blocked: boolean };
+  | { visible: false; visibility: HiddenVisibility; blocked: boolean; suspended?: boolean };
 
 type Viewer = { id: string; role?: UserRole | string | null } | null | undefined;
 
 const VISIBLE: ResidentAccess = { visible: true };
+const SUSPENDED: ResidentAccess = { visible: false, visibility: "private", blocked: false, suspended: true };
 
 /**
  * Whether `viewer` may see `ownerId`'s home. Pass the owner's
  * Profile.visibility when it's already loaded (null = no profile row);
  * leave it out to look it up. A block reads as "private", so the page
- * doesn't tell anyone they were blocked.
+ * doesn't tell anyone they were blocked. A suspended or banned owner reads
+ * as private too, with `suspended: true`, for callers that 404 instead.
  */
 export async function residentAccess(
   viewer: Viewer,
   ownerId: string,
   knownVisibility?: Visibility | null
 ): Promise<ResidentAccess> {
+  if (await isUserRestricted(ownerId)) return SUSPENDED;
   if (viewer?.id === ownerId) return VISIBLE;
 
   if (viewer) {
@@ -60,21 +68,24 @@ export async function residentAccess(
 }
 
 /**
- * The same rules as a Prisma filter on User, for lists of homes (the street,
- * ring neighborhoods, random house). Hidden homes are left out, not shown
- * as empty plots. Lists have no admin exception, like search.
+ * The same rules as a Prisma filter on User, for lists of people and homes
+ * (the street, ring neighborhoods, random house, the directory and New
+ * Neighbors). Hidden homes are left out, not shown as empty plots. Lists have
+ * no admin exception, like search, and never include a suspended or banned
+ * account.
  */
 export function visibleResidentWhere(viewerId: string | null | undefined): Prisma.UserWhereInput {
   const isPublic: Prisma.UserWhereInput[] = [
     { profile: { is: null } },
     { profile: { is: { visibility: "public" } } },
   ];
-  if (!viewerId) return { OR: isPublic };
+  if (!viewerId) return { AND: [activeUserWhere(), { OR: isPublic }] };
 
   const viewerFollows = { followers: { some: { followerId: viewerId, status: "accepted" } } };
   const followsViewer = { following: { some: { followeeId: viewerId, status: "accepted" } } };
   return {
     AND: [
+      activeUserWhere(),
       {
         OR: [
           { id: viewerId },

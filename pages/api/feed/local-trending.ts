@@ -1,6 +1,6 @@
 import { db } from "@/lib/config/database/connection";
 import { SITE_NAME } from "@/lib/config/site/constants";
-import { getUserBlockedIds, addBlockFiltersToWhere, countHiddenComments, visibleCommentCount } from "@/lib/domain/users/blocks";
+import { getHiddenIds, addBlockFiltersToWhere, countHiddenComments, visibleCommentCount } from "@/lib/domain/users/blocks";
 import { apiHandler } from "@/lib/api/handler";
 import { parseLimit } from "@/lib/server/http/pagination";
 
@@ -69,15 +69,8 @@ export default apiHandler(
 
       // Build permission filters
       const allowedVisibilities = ["public"];
-      let blockedUserIds: string[] = [];
-      let blockedThreadRingIds: string[] = [];
-
-      if (viewer) {
-        // Get blocked users/ThreadRings for the viewer
-        const blockData = await getUserBlockedIds(viewer.id);
-        blockedUserIds = blockData.blockedUserIds;
-        blockedThreadRingIds = blockData.blockedThreadRingIds;
-      }
+      // Suspended or banned accounts for everyone, plus the viewer's blocks
+      const { blockedUserIds, blockedThreadRingIds } = await getHiddenIds(viewer?.id);
 
       // Build base where clause
       let whereClause: any = {
@@ -85,10 +78,7 @@ export default apiHandler(
         createdAt: { gte: timeWindowStart },
       };
 
-      // Apply block filters if viewer is logged in
-      if (viewer) {
-        whereClause = addBlockFiltersToWhere(whereClause, blockedUserIds, blockedThreadRingIds);
-      }
+      whereClause = addBlockFiltersToWhere(whereClause, blockedUserIds, blockedThreadRingIds);
 
       // Get posts with metrics and calculate trending scores
       const posts = await db.post.findMany({

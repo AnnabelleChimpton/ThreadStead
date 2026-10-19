@@ -2,6 +2,19 @@ import { db } from "@/lib/config/database/connection";
 import { apiHandler } from "@/lib/api/handler";
 import { ReportStatus } from "@prisma/client";
 import { parsePagePagination } from "@/lib/server/http/pagination";
+import { z } from "zod";
+import { effectiveStatus, MAX_REASON_LENGTH, moderateUser } from "@/lib/domain/users/moderation";
+
+/** Resolving a report can also suspend, ban or lift the reported account. */
+const moderationSchema = z.discriminatedUnion("action", [
+  z.object({
+    action: z.literal("suspend"),
+    until: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Pick an end date"),
+    reason: z.string().trim().max(MAX_REASON_LENGTH),
+  }),
+  z.object({ action: z.literal("ban"), reason: z.string().trim().max(MAX_REASON_LENGTH) }),
+  z.object({ action: z.literal("lift"), reason: z.string().trim().max(MAX_REASON_LENGTH).optional() }),
+]);
 
 export default apiHandler(
   { methods: ["GET", "PATCH"], auth: "admin" },
@@ -38,7 +51,10 @@ export default apiHandler(
               reportedUser: {
                 select: { 
                   id: true,
-                  primaryHandle: true 
+                  primaryHandle: true,
+                  role: true,
+                  moderationStatus: true,
+                  suspendedUntil: true,
                 }
               },
               reviewer: {
@@ -126,6 +142,10 @@ export default apiHandler(
 
             return {
               ...report,
+              reportedUser: report.reportedUser && {
+                ...report.reportedUser,
+                moderationStatus: effectiveStatus(report.reportedUser),
+              },
               targetContent
             };
           })
@@ -148,6 +168,30 @@ export default apiHandler(
     } 
 
     else if (req.method === "PATCH") {
+      // Act on the reported account, which resolves the report too
+      if (req.body?.moderation) {
+        const { reportId } = req.body;
+        if (!reportId) return res.status(400).json({ error: "Report ID is required" });
+        const moderation = moderationSchema.parse(req.body.moderation);
+        const report = await db.userReport.findUnique({
+          where: { id: reportId },
+          select: { reportType: true, targetId: true, reportedUserId: true },
+        });
+        if (!report) return res.status(404).json({ error: "Report not found" });
+        const userId = report.reportedUserId ?? (report.reportType === "user" ? report.targetId : null);
+        if (!userId) return res.status(400).json({ error: "This report isn't about an account" });
+
+        const result = await moderateUser(
+          moderation.action === "suspend"
+            ? { action: "suspend", until: new Date(`${moderation.until}T00:00:00.000Z`), reason: moderation.reason }
+            : moderation.action === "ban"
+              ? { action: "ban", reason: moderation.reason }
+              : { action: "lift", reason: moderation.reason },
+          { actorId: user.id, userId, reportId }
+        );
+        return res.status(200).json({ user: result });
+      }
+
       // Update report status
       try {
         const { reportId, status, resolution } = req.body;

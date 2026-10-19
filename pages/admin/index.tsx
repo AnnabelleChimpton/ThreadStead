@@ -18,6 +18,7 @@ import BetaLandingPagesSection from "@/components/features/admin/BetaLandingPage
 import IpManagementSection from "@/components/features/admin/IpManagementSection";
 import BetaInviteAnalyticsSection from "@/components/features/admin/BetaInviteAnalyticsSection";
 import PollsSection from "@/components/features/admin/PollsSection";
+import ModerationDialog, { statusText, type ModeratedAccount, type ModerationStatus } from "@/components/features/admin/ModerationDialog";
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import { useToast } from "@/contexts/ToastContext";
 import { useConfirm } from "@/contexts/ConfirmContext";
@@ -288,6 +289,9 @@ type User = {
   commentCount: number;
   emailVerifiedAt: string | null;
   hasEmail: boolean;
+  moderationStatus: ModerationStatus;
+  suspendedUntil: string | null;
+  moderationReason: string | null;
 };
 
 type SiteConfig = {
@@ -355,7 +359,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [generatedKey, setGeneratedKey] = useState<string | null>(null);
   const [generatingKey, setGeneratingKey] = useState(false);
-  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const [moderating, setModerating] = useState<User | null>(null);
   const [resendingEmailUserId, setResendingEmailUserId] = useState<string | null>(null);
   const [siteConfig, setSiteConfig] = useState<SiteConfig | null>(null);
   const [loadingConfig, setLoadingConfig] = useState(false);
@@ -461,37 +465,6 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
       showError("Couldn't make a beta key. Try again.");
     } finally {
       setGeneratingKey(false);
-    }
-  }
-
-  async function deleteUser(userId: string, displayName: string | null) {
-    if (!(await confirm({
-      title: `Delete user "${displayName || 'Unknown'}"?`,
-      message: "This action cannot be undone.",
-      confirmText: "Delete",
-      variant: "danger",
-    }))) return;
-
-    setDeletingUserId(userId);
-    try {
-      const res = await csrfFetch("/api/admin/delete-user", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId }),
-      });
-
-      if (res.ok) {
-        setUsers(users.filter(u => u.id !== userId));
-        showSuccess("User deleted.");
-      } else {
-        const error = await res.json();
-        showError(error.error || "Couldn't delete the user. Try again.");
-      }
-    } catch (error) {
-      console.error("Failed to delete user:", error);
-      showError("Couldn't delete the user. Try again.");
-    } finally {
-      setDeletingUserId(null);
     }
   }
 
@@ -1989,6 +1962,7 @@ We collect information you provide when creating an account..."
                         <th className="border border-black p-2 text-left">User</th>
                         <th className="border border-black p-2 text-left">Handle</th>
                         <th className="border border-black p-2 text-left">Role</th>
+                        <th className="border border-black p-2 text-left">Status</th>
                         <th className="border border-black p-2 text-left">Posts</th>
                         <th className="border border-black p-2 text-left">Comments</th>
                         <th className="border border-black p-2 text-left">Email Status</th>
@@ -2012,6 +1986,15 @@ We collect information you provide when creating an account..."
                               }`}>
                               {user.role}
                             </span>
+                          </td>
+                          <td className="border border-black p-2">
+                            {user.moderationStatus === "active" ? (
+                              <span className="text-gray-500">Active</span>
+                            ) : (
+                              <span className="font-bold text-red-800" title={user.moderationReason || undefined}>
+                                {statusText(user)}
+                              </span>
+                            )}
                           </td>
                           <td className="border border-black p-2">{user.postCount}</td>
                           <td className="border border-black p-2">{user.commentCount}</td>
@@ -2051,13 +2034,13 @@ We collect information you provide when creating an account..."
                                   {resendingEmailUserId === user.id ? "Sending..." : "Resend Email"}
                                 </button>
                               )}
-                              {user.role !== "admin" && (
+                              {user.role !== "admin" && user.id !== me?.user?.id && (
                                 <button
-                                  onClick={() => deleteUser(user.id, user.displayName)}
-                                  disabled={deletingUserId === user.id}
-                                  className="border border-black px-2 py-1 bg-red-200 hover:bg-red-100 shadow-[1px_1px_0_#000] text-xs disabled:opacity-50"
+                                  onClick={() => setModerating(user)}
+                                  className="border border-black px-2 py-1 bg-red-200 hover:bg-red-100 shadow-[1px_1px_0_#000] text-xs"
+                                  title="Suspend, ban, lift or delete"
                                 >
-                                  {deletingUserId === user.id ? "Deleting..." : "Delete"}
+                                  Moderate
                                 </button>
                               )}
                             </div>
@@ -2084,6 +2067,32 @@ We collect information you provide when creating an account..."
             </div>
           </div>
         </CollapsibleSection>
+
+        {moderating && (
+          <ModerationDialog
+            account={{
+              id: moderating.id,
+              handle: moderating.primaryHandle || moderating.handles[0] || null,
+              moderationStatus: moderating.moderationStatus,
+              suspendedUntil: moderating.suspendedUntil,
+              moderationReason: moderating.moderationReason,
+            }}
+            onClose={() => setModerating(null)}
+            onChanged={(next: ModeratedAccount | null) => {
+              const id = moderating.id;
+              setModerating(null);
+              setUsers((all) =>
+                next
+                  ? all.map((u) =>
+                      u.id === id
+                        ? { ...u, moderationStatus: next.moderationStatus, suspendedUntil: next.suspendedUntil ?? null, moderationReason: next.moderationReason ?? null }
+                        : u
+                    )
+                  : all.filter((u) => u.id !== id)
+              );
+            }}
+          />
+        )}
 
         {/* Seed Phrase Modal */}
         {generatedSeedPhrase && generatedSeedUser && (

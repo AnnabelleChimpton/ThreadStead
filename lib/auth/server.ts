@@ -4,6 +4,7 @@ import { Prisma, UserRole } from "@prisma/client";
 import { db } from "../config/database/connection";
 import { sendForbiddenAdmin, sendUnauthenticated } from "../api/errors";
 import { createCsrfCookie, generateCsrfToken, getCookieSecureFlag } from "../server/http/csrf";
+import { assertCanSignIn, isRestricted, MODERATION_SELECT, type ModerationFields } from "../domain/users/moderation";
 
 /**
  * Sessions: a `Session` row plus an HttpOnly cookie `retro_session=<userId>.<secret>`.
@@ -35,9 +36,12 @@ function sessionCookie(value: string, maxAge: number): string {
 
 /**
  * Start a session for `userId`: stores the Session row and sets the session
- * cookie plus a fresh CSRF cookie (same lifetime) on `res`.
+ * cookie plus a fresh CSRF cookie (same lifetime) on `res`. Throws
+ * AccountRestrictedError (403) for a suspended or banned account; sign-in
+ * routes check first so they can answer with the message.
  */
 export async function createSession(res: NextApiResponse, userId: string): Promise<void> {
+  await assertCanSignIn(userId);
   const secret = crypto.randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + SESSION_TTL_SECONDS * 1000);
   await db.session.create({ data: { userId, secret, expiresAt } });
@@ -79,13 +83,19 @@ export async function endOtherSessions(req: Pick<NextApiRequest, "headers">, use
   await db.session.deleteMany({ where: { userId, ...(secret ? { NOT: { secret } } : {}) } });
 }
 
+/** Delete every Session row of `userId`, e.g. when the account is suspended. */
+export async function endAllSessions(userId: string): Promise<void> {
+  await db.session.deleteMany({ where: { userId } });
+}
+
 const DEFAULT_USER_INCLUDE = { betaKey: true } as const;
 
 export type SessionUser = Prisma.UserGetPayload<{ include: typeof DEFAULT_USER_INCLUDE }>;
 
 /**
- * The signed-in user, or null when there is no valid, unexpired session.
- * By default the full user with `betaKey`; pass `select` to load only some
+ * The signed-in user, or null when there is no valid, unexpired session, or
+ * the account is suspended or banned (its sessions are deleted when that
+ * happens; this covers any made in between). By default the full user with `betaKey`; pass `select` to load only some
  * fields.
  */
 export async function getSessionUser(req: Pick<NextApiRequest, "headers">): Promise<SessionUser | null>;
@@ -107,11 +117,22 @@ export async function getSessionUser(
     select: {
       userId: true,
       expiresAt: true,
-      user: options?.select ? { select: options.select } : { include: DEFAULT_USER_INCLUDE },
+      user: options?.select
+        ? { select: { ...options.select, ...MODERATION_SELECT } }
+        : { include: DEFAULT_USER_INCLUDE },
     },
   });
   if (!session || session.userId !== userId || session.expiresAt <= new Date()) return null;
-  return session.user;
+
+  const user = session.user as unknown as ModerationFields & Record<string, unknown>;
+  if (isRestricted(user)) return null;
+  if (options?.select) {
+    // Hand back only what the caller asked for.
+    for (const key of Object.keys(MODERATION_SELECT)) {
+      if (!(key in options.select)) delete user[key];
+    }
+  }
+  return user;
 }
 
 /**

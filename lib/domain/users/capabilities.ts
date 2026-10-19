@@ -1,4 +1,5 @@
 import { SignJWT, jwtVerify } from "jose";
+import { isUserRestricted } from "./moderation";
 
 // Capability tokens are HMAC-signed with CAP_JWT_SECRET. If this secret is the
 // well-known dev fallback in production, anyone can forge capability tokens
@@ -95,6 +96,8 @@ export function requireAction(action: string, resourceOk: (res: string) => boole
     if (!cap.sub) throw new Error("cap: no subject");
     if (!Array.isArray(cap.act) || !cap.act.includes(action)) throw new Error("cap: missing action");
     if (!resourceOk(cap.res)) throw new Error("cap: bad resource");
+    // A token minted before a suspension or ban lives up to 15 minutes.
+    if (await isUserRestricted(cap.sub)) throw new Error("cap: account suspended");
     return cap; // includes cap.sub (userId)
   };
 }

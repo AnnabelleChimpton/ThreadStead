@@ -1,6 +1,6 @@
 import { db } from "@/lib/config/database/connection";
 import { apiHandler } from "@/lib/api/handler";
-import { getUserBlockedIds, countHiddenComments, visibleCommentCount } from "@/lib/domain/users/blocks";
+import { getHiddenIds, countHiddenComments, visibleCommentCount } from "@/lib/domain/users/blocks";
 
 const MAX_POST_IDS = 100;
 
@@ -45,8 +45,8 @@ export default apiHandler(
     for (const id of postIds) counts[id] = 0;
     for (const group of grouped) counts[group.postId] = group._count._all;
 
-    if (viewer && grouped.length > 0) {
-      const { blockedUserIds } = await getUserBlockedIds(viewer.id);
+    if (grouped.length > 0) {
+      const { blockedUserIds } = await getHiddenIds(viewer?.id);
       const hidden = await countHiddenComments(grouped.map((g) => g.postId), blockedUserIds);
       for (const id of hidden.keys()) counts[id] = visibleCommentCount(id, counts[id], hidden);
     }

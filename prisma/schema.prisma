@@ -17,6 +17,13 @@ model User {
   sharedBaseUrl             String?
   privateBaseUrl            String?
   role                      UserRole                  @default(member)
+  // Moderation (lib/domain/users/moderation.ts). A suspension ends on its own
+  // at suspendedUntil; ModerationAction keeps the history.
+  moderationStatus          ModerationStatus          @default(active)
+  suspendedUntil            DateTime?
+  moderationReason          String?
+  moderatedAt               DateTime?
+  moderatedById             String?
   emailVerifiedAt           DateTime?
   encryptedEmail            String?
   passwordHash              String? // For password-based auth
@@ -84,7 +91,12 @@ model User {
   conversations             ConversationParticipant[]
   messagesSent              DirectMessage[]
   userDID                   UserDID?
+  moderatedBy               User?                     @relation("UserModeratedBy", fields: [moderatedById], references: [id], onDelete: SetNull)
+  moderatedUsers            User[]                    @relation("UserModeratedBy")
+  moderationActionsTaken    ModerationAction[]        @relation("ModerationActionsTaken")
+  moderationHistory         ModerationAction[]        @relation("ModerationActionsReceived")
 
+  @@index([moderationStatus])
   // Resolved on nearly every profile/pixel-home/API path that takes a username.
   @@index([primaryHandle])
 }
@@ -774,6 +786,25 @@ model UserReport {
   @@index([reviewedBy])
 }
 
+/// One row per moderation action (suspend, ban, lift, delete). Rows outlive
+/// the account: userId goes null on delete, userHandle keeps who it was.
+model ModerationAction {
+  id         String               @id @default(cuid())
+  action     ModerationActionType
+  userId     String?
+  userHandle String?
+  actorId    String?
+  reason     String?
+  until      DateTime?
+  reportId   String?
+  createdAt  DateTime             @default(now())
+  user       User?                @relation("ModerationActionsReceived", fields: [userId], references: [id], onDelete: SetNull)
+  actor      User?                @relation("ModerationActionsTaken", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([createdAt])
+}
+
 model UserBlock {
   id                  String      @id @default(cuid())
   blockerId           String
@@ -803,6 +834,19 @@ enum TemplateMode {
   default
   enhanced
   advanced
+}
+
+enum ModerationStatus {
+  active
+  suspended
+  banned
+}
+
+enum ModerationActionType {
+  suspend
+  ban
+  lift
+  delete
 }
 
 enum UserRole {

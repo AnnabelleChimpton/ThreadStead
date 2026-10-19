@@ -1,5 +1,6 @@
 import { db } from "@/lib/config/database/connection";
 import { extractPostIdFromUri, isOurThreadSteadInstance } from "@/lib/domain/threadrings/orphan-postrefs";
+import { getRestrictedUserIds } from "@/lib/domain/users/moderation";
 
 /**
  * Get all user IDs and ThreadRing IDs that a user has blocked
@@ -24,6 +25,23 @@ export async function getUserBlockedIds(userId: string) {
   return {
     blockedUserIds,
     blockedThreadRingIds,
+  };
+}
+
+/**
+ * Who and what to leave out for this viewer: the people and rings they
+ * blocked, plus every suspended or banned account, for everyone (signed in
+ * or not). Feeds, comments and ring feeds use this instead of
+ * getUserBlockedIds, so moderation and blocks hide things the same way.
+ */
+export async function getHiddenIds(viewerId: string | null | undefined) {
+  const [own, restricted] = await Promise.all([
+    viewerId ? getUserBlockedIds(viewerId) : { blockedUserIds: [] as string[], blockedThreadRingIds: [] as string[] },
+    getRestrictedUserIds(),
+  ]);
+  return {
+    blockedUserIds: restricted.length ? [...new Set([...own.blockedUserIds, ...restricted])] : own.blockedUserIds,
+    blockedThreadRingIds: own.blockedThreadRingIds,
   };
 }
 
