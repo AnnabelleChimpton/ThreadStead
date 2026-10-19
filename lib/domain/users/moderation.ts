@@ -8,8 +8,11 @@
  *  - can't write with a capability token minted before the action
  *    (requireAction in lib/domain/users/capabilities.ts);
  *  - drops out of every list of people (visibleResidentWhere), its own pages
- *    404 (residentAccess), and its posts and comments leave feeds and search
- *    (getHiddenIds in lib/domain/users/blocks.ts, activeAccountSql below).
+ *    404 (residentAccess), and its posts, comments and chat messages leave
+ *    feeds, search, room history and DMs (getHiddenIds in
+ *    lib/domain/users/blocks.ts, activeAccountSql below);
+ *  - stops counting in the Indie Index: its sites lose the resident tier and
+ *    its signals and vouches stop counting (lib/indie-index/tiers.ts).
  *
  * A suspension ends by itself at suspendedUntil; nothing has to run. Every
  * action leaves a ModerationAction row. Hard delete is a separate, later step
@@ -18,6 +21,7 @@
 import { Prisma, type ModerationActionType, type ModerationStatus } from "@prisma/client";
 import { db } from "@/lib/config/database/connection";
 import { ApiError } from "@/lib/api/errors";
+import { recomputeSites, sitesTouchedBy } from "@/lib/indie-index/tiers";
 
 export type ModerationFields = {
   moderationStatus: ModerationStatus;
@@ -167,6 +171,15 @@ function disconnectChat(userId: string): void {
   }
 }
 
+/** Re-tier the account's Indie Index sites now instead of at the next nightly run. */
+async function retierIndieSites(userId: string, now: Date): Promise<void> {
+  try {
+    await recomputeSites(db, await sitesTouchedBy(db, userId), now);
+  } catch (error) {
+    console.error("Couldn't update Indie Index tiers after moderation:", error);
+  }
+}
+
 declare global {
   // eslint-disable-next-line no-var
   var __threadsteadChatDisconnectUser: ((userId: string) => void) | undefined;
@@ -175,7 +188,8 @@ declare global {
 /**
  * Suspend, ban or lift. One transaction writes the account's state, the
  * ModerationAction row and (when given) the resolved report; suspend and ban
- * also delete every Session row, then drop open chat sockets.
+ * also delete every Session row, then drop open chat sockets. Then the
+ * account's Indie Index sites are re-tiered.
  * Throws ApiError for anything the admin should hear about.
  */
 export async function moderateUser(
@@ -246,6 +260,7 @@ export async function moderateUser(
   ]);
 
   if (restricting) disconnectChat(userId);
+  await retierIndieSites(userId, now);
 
   return {
     userId,

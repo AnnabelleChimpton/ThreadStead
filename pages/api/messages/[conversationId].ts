@@ -1,5 +1,6 @@
 import { db } from '@/lib/config/database/connection';
 import { apiHandler } from '@/lib/api/handler';
+import { getRestrictedUserIds } from '@/lib/domain/users/moderation';
 
 export default apiHandler(
     { methods: ['GET'], auth: 'user' },
@@ -25,8 +26,11 @@ export default apiHandler(
         }
 
         try {
+            // Nothing from a suspended or banned account (the conversation
+            // list leaves those out too).
+            const restricted = await getRestrictedUserIds();
             const messages = await db.directMessage.findMany({
-                where: { conversationId },
+                where: { conversationId, ...(restricted.length ? { senderId: { notIn: restricted } } : {}) },
                 orderBy: { createdAt: 'desc' },
                 take: 50, // Pagination limit
                 include: {

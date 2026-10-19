@@ -34,6 +34,11 @@ interface Summary {
 
 type Action = "suspend" | "ban" | "lift";
 
+/** Why the delete stopped: rings they own, or Ring Hub steps that failed. */
+type Blocked =
+  | { code: "owns_rings"; rings: Array<{ slug: string; name: string }> }
+  | { code: "hub_failures"; count: number };
+
 const shortHandle = (handle: string | null | undefined) => (handle ? handle.split("@")[0] : "someone");
 
 export function formatDay(value: string | Date): string {
@@ -87,7 +92,7 @@ export default function ModerationDialog({
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [summary, setSummary] = useState<Summary | null>(null);
-  const [hubFailures, setHubFailures] = useState<number | null>(null);
+  const [blocked, setBlocked] = useState<Blocked | null>(null);
   const name = shortHandle(account.handle);
 
   useEffect(() => {
@@ -140,8 +145,10 @@ export default function ModerationDialog({
     const ok = await confirm({
       title: force ? `Delete @${name} anyway?` : `Delete @${name} for good?`,
       message: force
-        ? "Their ring posts that couldn't come off Ring Hub will stay there until a ring owner removes them."
-        : `${ringPosts ? `Their ${ringPosts} ring post${ringPosts === 1 ? "" : "s"} come off Ring Hub first. Then their` : "Their"} posts, home, guestbook and everything else go. This can't be undone.`,
+        ? blocked?.code === "owns_rings"
+          ? "Rings where they're the only member are left empty. The others stay on Ring Hub with nobody who can moderate them."
+          : "Whatever couldn't come off Ring Hub stays there until a ring owner removes it."
+        : `${ringPosts ? `Their ${ringPosts} ring post${ringPosts === 1 ? "" : "s"} come off Ring Hub and they leave their rings first. Then their` : "They leave their rings first. Then their"} posts, home, guestbook and everything else go. This can't be undone.`,
       confirmText: force ? "Delete anyway" : "Delete",
       variant: "danger",
     });
@@ -155,8 +162,12 @@ export default function ModerationDialog({
         body: JSON.stringify({ userId: account.id, force, reason: account.moderationReason || undefined }),
       });
       const data = await res.json().catch(() => ({}));
+      if (res.status === 409 && data.code === "owns_rings") {
+        setBlocked({ code: "owns_rings", rings: data.ownedRings ?? [] });
+        return;
+      }
       if (res.status === 409 && Array.isArray(data.failed)) {
-        setHubFailures(data.failed.length);
+        setBlocked({ code: "hub_failures", count: data.failed.length });
         return;
       }
       if (!res.ok) {
@@ -248,7 +259,7 @@ export default function ModerationDialog({
         {action !== "lift" && (
           <p className="text-gray-700">
             They&apos;re signed out and can&apos;t post, comment, sign guestbooks or chat. They drop out of the street,
-            New Neighbors, the directory, search and feeds, and their pages show as not found.
+            New Neighbors, the directory, search, feeds, chat and the Indie Index, and their pages show as not found.
             {action === "suspend" ? " It ends by itself on that day." : ""}
           </p>
         )}
@@ -264,11 +275,23 @@ export default function ModerationDialog({
                 ? " Their signing key is gone, so ring owners remove their ring posts instead."
                 : ""}
             </p>
-            {hubFailures !== null ? (
+            {blocked?.code === "owns_rings" ? (
               <>
                 <p className="text-red-700">
-                  {hubFailures} ring post{hubFailures === 1 ? "" : "s"} couldn&apos;t come off Ring Hub, so nothing was
-                  deleted. Try again later, or delete anyway.
+                  They own {blocked.rings.length === 1 ? "a ring" : `${blocked.rings.length} rings`} on Ring Hub:{" "}
+                  {blocked.rings.map((r) => r.name || r.slug).join(", ")}. Ring Hub can&apos;t hand a ring to someone
+                  else, so after a delete nobody could moderate {blocked.rings.length === 1 ? "it" : "them"}. Nothing
+                  was deleted.
+                </p>
+                <Button size="sm" variant="danger" onClick={() => deleteAccount(true)} disabled={busy}>
+                  Delete anyway
+                </Button>
+              </>
+            ) : blocked?.code === "hub_failures" ? (
+              <>
+                <p className="text-red-700">
+                  {blocked.count} Ring Hub step{blocked.count === 1 ? "" : "s"} failed (ring posts or rings to leave),
+                  so nothing was deleted. Try again later, or delete anyway.
                 </p>
                 <div className="flex gap-2">
                   <Button size="sm" variant="secondary" onClick={() => deleteAccount(false)} disabled={busy}>

@@ -18,6 +18,7 @@ import { db } from '@/lib/config/database/connection'
 import { buildExcerpt } from './excerpt'
 import { normaliseTextRank, recencyScore } from './relevance'
 import { splitQuery, MAX_QUERY_LENGTH } from './local'
+import { activeUserWhere } from '@/lib/domain/users/moderation'
 
 export type IndieTier = 'resident' | 'vouched' | 'community' | 'pool' | 'candidate'
 
@@ -41,7 +42,7 @@ export interface IndieSite {
   vouchCount: number
   /** Distinct residents pointing here (links, Websites lists, vouches). */
   residentSignals: number
-  /** The resident whose site it is, when their profile is public. */
+  /** The resident whose site it is, when their profile is public and the account isn't suspended or banned. */
   owner: { handle: string; name: string } | null
   lastPostAt: string | null
   /** Up to two posts that match the query (or the newest, when browsing). */
@@ -178,7 +179,7 @@ async function hydrate(rows: CandidateRow[], query: string | null, viewerId: str
   const [owners, vouches] = await Promise.all([
     ownerIds.length
       ? db.user.findMany({
-          where: { id: { in: ownerIds }, profile: { visibility: 'public' } },
+          where: { id: { in: ownerIds }, profile: { visibility: 'public' }, ...activeUserWhere() },
           select: { id: true, handles: { select: { handle: true }, take: 1 }, profile: { select: { displayName: true } } },
         })
       : [],

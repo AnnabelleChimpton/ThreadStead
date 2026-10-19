@@ -4,7 +4,7 @@
  * listing rule and tiers (lib/indie-index/tiers.ts).
  */
 import { db } from '@/lib/config/database/connection'
-import { recomputeSites, RESIDENT_MIN_AGE_DAYS } from '@/lib/indie-index/tiers'
+import { recomputeSites, RESIDENT_MIN_AGE_DAYS, sitesTouchedBy } from '@/lib/indie-index/tiers'
 
 const DAY = 24 * 60 * 60 * 1000
 const NOW = new Date('2026-10-19T12:00:00Z')
@@ -235,5 +235,61 @@ describe('recomputeSites', () => {
       status: 'hidden',
       tier: 'community',
     })
+  })
+})
+
+// ----------------------------------------------------------- moderation --
+
+describe('suspended and banned accounts (lib/domain/users/moderation.ts)', () => {
+  const restrict = (id: string, data: { moderationStatus: 'suspended' | 'banned' | 'active'; suspendedUntil?: Date | null }) =>
+    db.user.update({ where: { id }, data: { suspendedUntil: null, ...data } })
+
+  it("a banned owner's site loses the resident tier, and gets it back when the ban is lifted", async () => {
+    const u = await resident('spam')
+    const s = await site('spam.example.org', { ownerId: u })
+    await db.siteSignal.create({ data: { siteId: s.id, userId: u, kind: 'own' } })
+    await restrict(u, { moderationStatus: 'banned' })
+    await recomputeSites(db, [s.id], NOW)
+    expect(await tierOf(s.id)).toMatchObject({ tier: 'candidate', residentSignals: 0 })
+
+    await restrict(u, { moderationStatus: 'active' })
+    await recomputeSites(db, [s.id], NOW)
+    expect(await tierOf(s.id)).toMatchObject({ tier: 'resident', residentSignals: 1 })
+  })
+
+  it('a suspension counts until its end date, then the site comes back by itself', async () => {
+    const u = await resident('ada')
+    const s = await site('ada.example.org', { ownerId: u })
+    await restrict(u, { moderationStatus: 'suspended', suspendedUntil: new Date(NOW.getTime() + DAY) })
+    await recomputeSites(db, [s.id], NOW)
+    expect((await tierOf(s.id)).tier).toBe('candidate')
+
+    await recomputeSites(db, [s.id], new Date(NOW.getTime() + 2 * DAY))
+    expect((await tierOf(s.id)).tier).toBe('resident')
+  })
+
+  it("a restricted account's signals and vouches don't count toward listing", async () => {
+    const [a, b, spam] = [await resident('ada'), await resident('bo'), await resident('spam')]
+    const s = await site('stranger.example.org')
+    await db.siteSignal.create({ data: { siteId: s.id, userId: a, kind: 'blogroll' } })
+    await db.vouch.createMany({ data: [{ siteId: s.id, userId: spam }, { siteId: s.id, userId: b }] })
+    await recomputeSites(db, [s.id], NOW)
+    expect(await tierOf(s.id)).toMatchObject({ tier: 'vouched', residentSignals: 3, vouchCount: 2 })
+
+    await restrict(b, { moderationStatus: 'banned' })
+    await restrict(spam, { moderationStatus: 'suspended' }) // no end date: until lifted
+    await recomputeSites(db, [s.id], NOW)
+    expect(await tierOf(s.id)).toMatchObject({ tier: 'candidate', residentSignals: 1, vouchCount: 0 })
+  })
+
+  it('sitesTouchedBy finds the sites an account owns, points at or vouched for', async () => {
+    const [a, b] = [await resident('ada'), await resident('bo')]
+    const owned = await site('ada.example.org', { ownerId: a })
+    const linked = await site('linked.example.org')
+    const vouched = await site('vouched.example.org')
+    await site('other.example.org', { ownerId: b })
+    await db.siteSignal.create({ data: { siteId: linked.id, userId: a, kind: 'home_link' } })
+    await db.vouch.create({ data: { siteId: vouched.id, userId: a } })
+    expect((await sitesTouchedBy(db, a)).sort()).toEqual([owned.id, linked.id, vouched.id].sort())
   })
 })

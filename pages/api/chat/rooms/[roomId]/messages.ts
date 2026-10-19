@@ -1,13 +1,16 @@
 import { db } from '@/lib/config/database/connection';
 import { apiHandler } from '@/lib/api/handler';
 import { parseLimit } from '@/lib/server/http/pagination';
+import { getHiddenIds } from '@/lib/domain/users/blocks';
 
 export default apiHandler(
-  { methods: ['GET'], auth: 'none' },
-  async (req, res) => {
+  { methods: ['GET'], auth: 'optional' },
+  async (req, res, { user }) => {
     // Rooms are read-only-public: the socket server already streams live messages
     // to logged-out visitors, so history is readable without auth to match. (Only
     // sending — handled over the socket — requires a logged-in account.)
+    // History leaves out suspended and banned accounts for everyone, and the
+    // people the viewer blocked (the panel hides those live too).
 
     const { roomId } = req.query;
     const limit = parseLimit(req.query.limit, { fallback: 50, max: 100 });
@@ -31,8 +34,9 @@ export default apiHandler(
       // used as a Prisma cursor so pagination follows the createdAt ordering
       // exactly — ids are cuids and are NOT time-sortable, so an `id < before`
       // comparison would skip or repeat messages.
+      const { blockedUserIds: hidden } = await getHiddenIds(user?.id);
       const messages = await db.chatMessage.findMany({
-        where: { roomId },
+        where: { roomId, ...(hidden.length ? { userId: { notIn: hidden } } : {}) },
         take: limit,
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         ...(before ? { cursor: { id: before }, skip: 1 } : {}),

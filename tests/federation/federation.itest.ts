@@ -21,7 +21,12 @@ import {
 import * as ringHubClientModule from '@/lib/api/ringhub/ringhub-client'
 import { createAuthenticatedRingHubClient } from '@/lib/api/ringhub/ringhub-user-operations'
 import { removePostFromRingHub } from '@/lib/domain/posts/ringhub-removal'
-import { removeUserPostsFromRingHub } from '@/lib/domain/users/account-removal'
+import {
+  leaveUserRingsOnHub,
+  listUserRingMemberships,
+  ownedRings,
+  removeUserPostsFromRingHub,
+} from '@/lib/domain/users/account-removal'
 import { buildPostUri } from '@/lib/domain/posts/ringhub-metadata'
 import { NOT_A_MEMBER_REASON, PUBLIC_ONLY_REASON, REMOVED_BEFORE_REASON, postToRings } from '@/lib/domain/posts/ring-submission'
 import { sendPostToRings } from '@/lib/domain/posts/send-to-rings'
@@ -650,6 +655,83 @@ describe('deleting an account takes its ring posts off the hub (S-2)', () => {
     localDb.userDID.findUnique.mockImplementation(async () => ({ userId: 'second' }))
     const result = await removeUserPostsFromRingHub('second', 'itest')
     expect(result.removals).toEqual([{ postId: 'u-stored', ringSlug, outcome: 'not_on_hub' }])
+  })
+
+  // The account's ring memberships: listed and left as the account, so the
+  // hub's ACTIVE membership count (memberCount) drops.
+  const SECOND_RING = 'itest-second-owned'
+  const keys = (did: string) => async ({ where }: any) =>
+    where.userId === 'second' ? { userId: 'second', did } : where.did === actorDid ? { userId: 'main' } : null
+  const memberCount = async (slug: string) => {
+    clearCache()
+    return (await client.getRing(slug))?.memberCount
+  }
+
+  test('lists the rings it is in, as the account, with its role', async () => {
+    await second.joinRing(ringSlug).catch(() => {}) // still a member from the tests above
+    await second.forkRing('spool', { name: 'Second Owned', slug: SECOND_RING })
+    await client.joinRing(SECOND_RING)
+    localDb.userDID.findUnique.mockImplementation(keys(getRuntime().secondActorDid))
+
+    const rings = await listUserRingMemberships('second')
+
+    expect(rings.error).toBeUndefined()
+    const bySlug = Object.fromEntries(rings.memberships.map((m) => [m.ringSlug, m.role]))
+    expect(bySlug[ringSlug]).toBe('member')
+    expect(bySlug[SECOND_RING]).toBe('owner')
+    expect(ownedRings(rings.memberships).map((m) => m.ringSlug)).toEqual([SECOND_RING])
+  })
+
+  test('leaves a ring as the member, and the hub stops counting it', async () => {
+    localDb.userDID.findUnique.mockImplementation(keys(getRuntime().secondActorDid))
+    const before = await memberCount(ringSlug)
+
+    const leaves = await leaveUserRingsOnHub('second', [{ ringSlug, ringName: 'x', role: 'member', status: 'ACTIVE' }])
+
+    expect(leaves).toEqual([{ ringSlug, outcome: 'left', signer: 'member' }])
+    expect(await memberCount(ringSlug)).toBe(before! - 1)
+    const after = await second.getMyMemberships({ status: 'ACTIVE', limit: 100 })
+    expect(after.memberships.find((m) => m.ringSlug === ringSlug)).toBeUndefined()
+    // Leaving again: the hub has nothing to end
+    expect(await leaveUserRingsOnHub('second', [{ ringSlug, ringName: 'x', role: 'member', status: 'ACTIVE' }])).toEqual([
+      { ringSlug, outcome: 'not_member' },
+    ])
+  })
+
+  test("an owned ring with other members can't be left: still_owner, until it is the only member", async () => {
+    localDb.userDID.findUnique.mockImplementation(keys(getRuntime().secondActorDid))
+    const owned = { ringSlug: SECOND_RING, ringName: 'Second Owned', role: 'owner', status: 'ACTIVE' }
+
+    const [kept] = await leaveUserRingsOnHub('second', [owned])
+    expect(kept).toMatchObject({ ringSlug: SECOND_RING, outcome: 'still_owner' })
+    expect(kept.error).toContain('400')
+
+    await client.leaveRing(SECOND_RING)
+    expect(await leaveUserRingsOnHub('second', [owned])).toEqual([{ ringSlug: SECOND_RING, outcome: 'left', signer: 'member' }])
+    expect(await memberCount(SECOND_RING)).toBe(0)
+  })
+
+  test("when the account's own leave fails, the ring owner removes it by DID", async () => {
+    const secondDid = getRuntime().secondActorDid
+    await second.joinRing(FORK_SLUG).catch(() => {})
+    localDb.userDID.findUnique.mockImplementation(keys(secondDid))
+    // The account's signature no longer verifies on the hub
+    ;(createAuthenticatedRingHubClient as jest.Mock).mockImplementation((userId: string) =>
+      userId === 'main' ? client : makeTestClient('unresolvable')
+    )
+    const before = await memberCount(FORK_SLUG)
+
+    try {
+      const leaves = await leaveUserRingsOnHub('second', [{ ringSlug: FORK_SLUG, ringName: 'x', role: 'member', status: 'ACTIVE' }])
+      expect(leaves).toEqual([{ ringSlug: FORK_SLUG, outcome: 'left', signer: 'owner' }])
+    } finally {
+      ;(createAuthenticatedRingHubClient as jest.Mock).mockImplementation((userId: 'main' | 'second') =>
+        userId === 'main' ? client : makeTestClient(userId)
+      )
+    }
+    expect(await memberCount(FORK_SLUG)).toBe(before! - 1)
+    const after = await second.getMyMemberships({ status: 'ACTIVE', limit: 100 })
+    expect(after.memberships.find((m) => m.ringSlug === FORK_SLUG)).toBeUndefined()
   })
 })
 

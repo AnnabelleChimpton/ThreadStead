@@ -1,6 +1,7 @@
 import { db as prisma } from '@/lib/config/database/connection';
 import { apiHandler } from '@/lib/api/handler';
 import { findOrCreateDM } from '@/lib/chat/direct-messages';
+import { getRestrictedUserIds } from '@/lib/domain/users/moderation';
 
 // CSRF protection skips safe methods (GET/HEAD/OPTIONS) and validates POST
 export default apiHandler(
@@ -10,11 +11,17 @@ export default apiHandler(
 
         if (req.method === 'GET') {
             try {
+                // Conversations with a suspended or banned account drop out
+                // while the restriction lasts (they come back after a lift).
+                const restricted = await getRestrictedUserIds();
                 const conversations = await prisma.conversation.findMany({
                     where: {
                         participants: {
                             some: { userId }
-                        }
+                        },
+                        ...(restricted.length
+                            ? { NOT: { participants: { some: { userId: { in: restricted } } } } }
+                            : {})
                     },
                     include: {
                         participants: {
