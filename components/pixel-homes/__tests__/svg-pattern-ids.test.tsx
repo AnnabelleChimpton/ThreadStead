@@ -6,7 +6,6 @@
 import { render } from '@testing-library/react'
 import HouseSVG, { HouseTemplate, PALETTE_COLORS } from '@/components/pixel-homes/HouseSVG'
 import EnhancedHouseCanvas from '@/components/pixel-homes/EnhancedHouseCanvas'
-import NeighborhoodStreetView from '@/components/pixel-homes/NeighborhoodStreetView'
 import { layoutDitherBands } from '@/components/pixel-homes/DitherPatternDefs'
 
 jest.mock('@/components/ui/PixelIcon', () => ({ PixelIcon: () => null }))
@@ -114,20 +113,6 @@ describe('EnhancedHouseCanvas pattern ids', () => {
 
     rerender(<EnhancedHouseCanvas template="cabin_v1" palette="thread_sage" terrain={{ '1,10': 'water' }} />)
     expect(terrainDefs()).toBe(before)
-  })
-})
-
-describe('NeighborhoodStreetView pattern ids', () => {
-  test('sky and ground defs are emitted once and resolve', () => {
-    const members = ['a', 'b', 'c'].map(name => ({
-      userId: name,
-      username: name,
-      homeConfig: { houseTemplate: 'cabin_v1', palette: 'thread_sage', seasonalOptIn: false },
-      stats: { isActive: false },
-    }))
-    const { container } = render(<NeighborhoodStreetView members={members} neighborhoodType="explore" />)
-    expect(duplicateIds(container)).toEqual([])
-    expect(unresolvedRefs(container)).toEqual([])
   })
 })
 

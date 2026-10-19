@@ -183,6 +183,18 @@ const nextConfig: NextConfig = {
         permanent: true,
       },
       {
+        // The mutual-friends streets were never finished. Not permanent, so
+        // a friends street could live here one day without a cached redirect.
+        source: '/neighborhood/mutual/:param',
+        destination: '/neighborhood',
+        permanent: false,
+      },
+      {
+        source: '/neighborhood/mutual-friends/:username',
+        destination: '/neighborhood',
+        permanent: false,
+      },
+      {
         // ?template=, ?palette= and ?activeOnly= carry over as filters
         source: '/explore/homes',
         destination: '/neighborhood',
