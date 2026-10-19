@@ -60,20 +60,27 @@ export function generateDefaultProfileTemplate(options: DefaultProfileTemplateOp
   </Tab>` : ''}
 </Tabs>`;
 
+  // Someone's own CSS is carried over exactly as saved. The starter comments
+  // below are only for an empty stylesheet: prepending them would make a
+  // carried-over theme look "changed" to the editor.
+  if (customCSS.trim()) {
+    return { template, css: customCSS, cssMode };
+  }
+
   let css = '';
-  
+
   switch (cssMode) {
     case 'inherit':
       css = `/* Site-wide CSS will be inherited */
 /* Add your custom CSS below to extend the site styles */
 
-${customCSS}`;
+`;
       break;
     case 'override': 
       css = `/* Site-wide CSS will be loaded, but you can override it */
 /* Your CSS will take precedence over site styles */
 
-${customCSS}`;
+`;
       break;
     case 'disable':
       css = `/* Site-wide CSS is disabled - complete control */
@@ -87,7 +94,7 @@ body {
   color: #333333;
 }
 
-${customCSS}`;
+`;
       break;
   }
 

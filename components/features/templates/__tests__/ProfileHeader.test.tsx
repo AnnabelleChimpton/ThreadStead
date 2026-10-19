@@ -1,6 +1,5 @@
 import React from 'react';
-import { screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { screen } from '@testing-library/react';
 import ProfileHeader from '../ProfileHeader';
 import { renderWithTemplateContext, createMockResidentData } from './test-utils';
 
@@ -18,11 +17,15 @@ jest.mock('../ProfilePhoto', () => {
   };
 });
 
-jest.mock('../FriendBadge', () => {
-  return function MockFriendBadge() {
-    return <span data-testid="mock-friend-badge">🤝 Friend</span>;
-  };
-});
+// pixelarticons ships SVG modules jest can't load
+jest.mock('@/components/ui/PixelIcon', () => ({
+  PixelIcon: ({ name }: { name: string }) => <span data-testid={`pixel-icon-${name}`} />
+}));
+
+// The site's resident label, as the standard layout shows it
+jest.mock('@/hooks/useSiteConfig', () => ({
+  useSiteConfig: () => ({ config: { user_status_text: 'threadstead resident' }, isLoading: false, error: null }),
+}));
 
 jest.mock('../FollowButton', () => {
   return function MockFollowButton() {
@@ -61,7 +64,7 @@ describe('ProfileHeader Component', () => {
       });
 
       expect(screen.getByText('Test User')).toBeInTheDocument();
-      expect(screen.getByText('Online - Resident of ThreadStead')).toBeInTheDocument();
+      expect(screen.getByText('threadstead resident')).toBeInTheDocument();
       expect(screen.getByTestId('mock-profile-photo')).toBeInTheDocument();
     });
 
@@ -72,10 +75,9 @@ describe('ProfileHeader Component', () => {
 
       expect(screen.getByTestId('mock-profile-photo')).toBeInTheDocument();
       expect(screen.getByText('This is a test bio about the user.')).toBeInTheDocument();
-      expect(screen.getByTestId('mock-friend-badge')).toBeInTheDocument();
+      expect(screen.queryByText('Friend')).not.toBeInTheDocument(); // a stranger, not a friend
       expect(screen.getByTestId('mock-follow-button')).toBeInTheDocument();
       expect(screen.getByTestId('mock-mutual-friends')).toBeInTheDocument();
-      expect(screen.getByText('Contact')).toBeInTheDocument();
     });
 
     it('should have correct data-component attribute', () => {
@@ -112,12 +114,12 @@ describe('ProfileHeader Component', () => {
       expect(displayName.tagName).toBe('H2');
     });
 
-    it('should display status message', () => {
+    it('should display the site resident label', () => {
       renderWithTemplateContext(<ProfileHeader />, {
         residentData: defaultResidentData
       });
 
-      const status = screen.getByText('Online - Resident of ThreadStead');
+      const status = screen.getByText('threadstead resident');
       expect(status).toHaveClass('ts-profile-status');
       expect(status).toHaveClass('thread-label');
       expect(status.tagName).toBe('SPAN');
@@ -212,10 +214,9 @@ describe('ProfileHeader Component', () => {
         residentData: defaultResidentData
       });
 
-      expect(screen.getByTestId('mock-friend-badge')).toBeInTheDocument();
+      expect(screen.queryByText('Friend')).not.toBeInTheDocument(); // a stranger, not a friend
       expect(screen.getByTestId('mock-follow-button')).toBeInTheDocument();
       expect(screen.getByTestId('mock-mutual-friends')).toBeInTheDocument();
-      expect(screen.getByText('Contact')).toBeInTheDocument();
     });
 
     it('should hide actions when showActions is false', () => {
@@ -223,10 +224,10 @@ describe('ProfileHeader Component', () => {
         residentData: defaultResidentData
       });
 
-      expect(screen.queryByTestId('mock-friend-badge')).not.toBeInTheDocument();
+      expect(screen.queryByText('Friend')).not.toBeInTheDocument();
       expect(screen.queryByTestId('mock-follow-button')).not.toBeInTheDocument();
       expect(screen.queryByTestId('mock-mutual-friends')).not.toBeInTheDocument();
-      expect(screen.queryByText('Contact')).not.toBeInTheDocument();
+      expect(screen.queryByText('Edit Profile')).not.toBeInTheDocument();
     });
 
     it('should hide actions when viewer is null', () => {
@@ -240,10 +241,10 @@ describe('ProfileHeader Component', () => {
         residentData: noViewerData
       });
 
-      expect(screen.queryByTestId('mock-friend-badge')).not.toBeInTheDocument();
+      expect(screen.queryByText('Friend')).not.toBeInTheDocument();
       expect(screen.queryByTestId('mock-follow-button')).not.toBeInTheDocument();
       expect(screen.queryByTestId('mock-mutual-friends')).not.toBeInTheDocument();
-      expect(screen.queryByText('Contact')).not.toBeInTheDocument();
+      expect(screen.queryByText('Edit Profile')).not.toBeInTheDocument();
     });
 
     it('should hide actions when viewer is undefined', () => {
@@ -257,31 +258,90 @@ describe('ProfileHeader Component', () => {
         residentData: noViewerData
       });
 
-      expect(screen.queryByTestId('mock-friend-badge')).not.toBeInTheDocument();
+      expect(screen.queryByText('Friend')).not.toBeInTheDocument();
       expect(screen.queryByTestId('mock-follow-button')).not.toBeInTheDocument();
       expect(screen.queryByTestId('mock-mutual-friends')).not.toBeInTheDocument();
-      expect(screen.queryByText('Contact')).not.toBeInTheDocument();
+      expect(screen.queryByText('Edit Profile')).not.toBeInTheDocument();
     });
   });
 
-  describe('Contact Link', () => {
-    it('should have correct href for contact link', () => {
-      renderWithTemplateContext(<ProfileHeader />, {
+  describe('No made-up details', () => {
+    it('never claims the owner is online (nothing tracks presence)', () => {
+      const { container } = renderWithTemplateContext(<ProfileHeader />, {
         residentData: defaultResidentData
       });
 
-      const contactLink = screen.getByRole('link', { name: 'Contact' });
-      expect(contactLink).toHaveAttribute('href', '/resident/testuser/contact');
+      expect(container.textContent).not.toMatch(/online/i);
     });
 
-    it('should have correct CSS classes for contact link', () => {
-      renderWithTemplateContext(<ProfileHeader />, {
+    it('shows the Friend badge only to a friend', () => {
+      const friendViewing = createMockResidentData({
+        owner: defaultResidentData.owner,
+        viewer: { id: 'viewer-456', isFriend: true, isFollowing: true, isFollower: true },
+        capabilities: defaultResidentData.capabilities
+      });
+      renderWithTemplateContext(<ProfileHeader />, { residentData: friendViewing });
+
+      expect(screen.getByText('Friend')).toBeInTheDocument();
+    });
+
+    it('does not show the owner a Friend badge on their own page', () => {
+      const ownerViewing = createMockResidentData({
+        owner: defaultResidentData.owner,
+        viewer: { id: 'owner-123' },
+        capabilities: defaultResidentData.capabilities
+      });
+      renderWithTemplateContext(<ProfileHeader />, { residentData: ownerViewing });
+
+      expect(screen.queryByText('Friend')).not.toBeInTheDocument();
+    });
+
+    it('has no Contact link (that page does not exist)', () => {
+      const { container } = renderWithTemplateContext(<ProfileHeader />, {
         residentData: defaultResidentData
       });
 
-      const contactLink = screen.getByRole('link', { name: 'Contact' });
-      expect(contactLink).toHaveClass('ts-contact-link');
-      expect(contactLink).toHaveClass('thread-button-outline');
+      expect(screen.queryByText('Contact')).not.toBeInTheDocument();
+      expect(container.querySelector('a[href*="/contact"]')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Edit Profile link', () => {
+    const ownerViewing = createMockResidentData({
+      owner: defaultResidentData.owner,
+      viewer: { id: 'owner-123' },
+      capabilities: defaultResidentData.capabilities
+    });
+
+    it('shows Edit Profile to the owner, like the standard layout', () => {
+      renderWithTemplateContext(<ProfileHeader />, { residentData: ownerViewing });
+
+      const link = screen.getByRole('link', { name: 'Edit Profile' });
+      expect(link).toHaveAttribute('href', '/resident/testuser/edit');
+      expect(link).toHaveClass('ts-edit-profile-button', 'thread-button');
+    });
+
+    it('hides Edit Profile from other residents', () => {
+      renderWithTemplateContext(<ProfileHeader />, { residentData: defaultResidentData });
+
+      expect(screen.queryByRole('link', { name: 'Edit Profile' })).not.toBeInTheDocument();
+    });
+
+    it('hides Edit Profile from signed-out visitors', () => {
+      const anon = createMockResidentData({
+        owner: defaultResidentData.owner,
+        viewer: { id: null },
+        capabilities: defaultResidentData.capabilities
+      });
+      renderWithTemplateContext(<ProfileHeader />, { residentData: anon });
+
+      expect(screen.queryByRole('link', { name: 'Edit Profile' })).not.toBeInTheDocument();
+    });
+
+    it('hides Edit Profile when actions are off', () => {
+      renderWithTemplateContext(<ProfileHeader showActions={false} />, { residentData: ownerViewing });
+
+      expect(screen.queryByRole('link', { name: 'Edit Profile' })).not.toBeInTheDocument();
     });
   });
 
@@ -376,25 +436,6 @@ describe('ProfileHeader Component', () => {
       const heading = screen.getByRole('heading', { level: 2 });
       expect(heading).toHaveTextContent('Test User');
     });
-
-    it('should have accessible contact link', () => {
-      renderWithTemplateContext(<ProfileHeader />, {
-        residentData: defaultResidentData
-      });
-
-      const contactLink = screen.getByRole('link', { name: 'Contact' });
-      expect(contactLink).toBeInTheDocument();
-    });
-
-    it('should maintain logical tab order', () => {
-      renderWithTemplateContext(<ProfileHeader />, {
-        residentData: defaultResidentData
-      });
-
-      // The contact link should be focusable
-      const contactLink = screen.getByRole('link', { name: 'Contact' });
-      expect(contactLink).not.toHaveAttribute('tabindex', '-1');
-    });
   });
 
   describe('Error Handling', () => {
@@ -414,7 +455,7 @@ describe('ProfileHeader Component', () => {
       });
 
       // Component should render without crashing
-      expect(screen.getByText('Online - Resident of ThreadStead')).toBeInTheDocument();
+      expect(screen.getByText('threadstead resident')).toBeInTheDocument();
     });
 
     it('should handle missing owner handle gracefully', () => {
@@ -428,7 +469,7 @@ describe('ProfileHeader Component', () => {
         capabilities: defaultResidentData.capabilities
       });
 
-      // Should render without crashing, though contact link href may be undefined
+      // Should render without crashing
       renderWithTemplateContext(<ProfileHeader />, {
         residentData: incompleteOwnerData
       });
@@ -445,7 +486,7 @@ describe('ProfileHeader Component', () => {
 
       // Verify all mocked child components are rendered
       expect(screen.getByTestId('mock-profile-photo')).toBeInTheDocument();
-      expect(screen.getByTestId('mock-friend-badge')).toBeInTheDocument();
+      expect(screen.queryByText('Friend')).not.toBeInTheDocument(); // a stranger, not a friend
       expect(screen.getByTestId('mock-follow-button')).toBeInTheDocument();
       expect(screen.getByTestId('mock-mutual-friends')).toBeInTheDocument();
     });
@@ -479,7 +520,6 @@ describe('ProfileHeader Component', () => {
       expect(container.querySelector('.ts-profile-bio-section')).toBeInTheDocument();
       expect(container.querySelector('.ts-profile-bio')).toBeInTheDocument();
       expect(container.querySelector('.ts-profile-actions')).toBeInTheDocument();
-      expect(container.querySelector('.ts-contact-link')).toBeInTheDocument();
     });
 
     it('should have proper semantic HTML structure', () => {
@@ -491,7 +531,6 @@ describe('ProfileHeader Component', () => {
       expect(container.querySelector('h2')).toBeInTheDocument(); // Display name
       expect(container.querySelector('span')).toBeInTheDocument(); // Status
       expect(container.querySelector('p')).toBeInTheDocument(); // Bio
-      expect(container.querySelector('a')).toBeInTheDocument(); // Contact link
     });
   });
 });

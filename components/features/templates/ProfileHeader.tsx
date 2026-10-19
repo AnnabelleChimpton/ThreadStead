@@ -6,6 +6,7 @@ import FollowButton from './FollowButton';
 import BlockButton from '../../core/social/BlockButton';
 import FriendBadge from './FriendBadge';
 import MutualFriends from './MutualFriends';
+import { useSiteConfig } from '@/hooks/useSiteConfig';
 import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
 interface ProfileHeaderProps extends UniversalCSSProps {
@@ -26,6 +27,8 @@ export default function ProfileHeader(props: ProfileHeaderProps) {
     className: customClassName
   } = componentProps;
   const { owner, viewer, capabilities } = useResidentData();
+  const { config } = useSiteConfig();
+  const isOwner = !!viewer?.id && viewer.id === owner.id;
 
   // Handle className being passed as array or string
   const normalizedCustomClassName = Array.isArray(customClassName)
@@ -54,8 +57,10 @@ export default function ProfileHeader(props: ProfileHeaderProps) {
             <h2 className="ts-profile-display-name thread-headline text-3xl font-bold text-thread-pine mb-1">
               {owner.displayName}
             </h2>
+            {/* The site's resident label, as on the standard layout. Nothing
+                tracks presence, so no "Online". */}
             <span className="ts-profile-status thread-label">
-              Online - Resident of ThreadStead
+              {config.user_status_text}
             </span>
           </div>
           
@@ -72,13 +77,14 @@ export default function ProfileHeader(props: ProfileHeaderProps) {
               <FriendBadge />
               <FollowButton />
               <MutualFriends />
-              
-              <Link
-                href={`/resident/${owner.handle}/contact`}
-                className="ts-contact-link thread-button-outline text-sm px-3 py-1"
-              >
-                Contact
-              </Link>
+              {isOwner && (
+                <Link
+                  href={`/resident/${owner.handle}/edit`}
+                  className="ts-profile-button ts-edit-profile-button thread-button text-sm"
+                >
+                  Edit Profile
+                </Link>
+              )}
               <BlockButton userId={owner.id} name={owner.displayName || owner.handle} />
             </div>
           )}

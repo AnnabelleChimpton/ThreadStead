@@ -32,7 +32,11 @@ import { compileTemplate } from '@/lib/templates/compilation/template-parser'
 import { identifyIslandsWithTransform } from '@/lib/templates/compilation/compiler/island-detector'
 import { generateStaticHTML } from '@/lib/templates/compilation/compiler/html-optimizer'
 import { HTML_TEMPLATES } from '@/lib/templates/default-html-templates'
-import { TEMPLATE_EXAMPLES } from '@/lib/templates/default-profile-template'
+import {
+  TEMPLATE_EXAMPLES,
+  generateDefaultProfileTemplate,
+  getMinimalProfileTemplate,
+} from '@/lib/templates/default-profile-template'
 import { componentRegistry } from '@/lib/templates/core/template-registry'
 
 describe('environment canary', () => {
@@ -124,6 +128,29 @@ describe('shipped starter examples (TEMPLATE_EXAMPLES) compile end-to-end', () =
       expect(result.warnings).toEqual([])
     }
   )
+})
+
+// The layout "Load default template" (and ?mode=template) hands every
+// resident. It must compile with nothing stripped and keep its core parts.
+describe('generated default profile template', () => {
+  test.each([
+    ['full', generateDefaultProfileTemplate().template],
+    ['minimal', getMinimalProfileTemplate().template],
+  ] as const)('%s compiles with islands and zero stripped components', (_name, template) => {
+    const result = compileTemplateToArtifacts(template)
+    expect(result.islands.length).toBeGreaterThan(0)
+    expect(result.strippedComponents).toEqual([])
+    expect(result.warnings).toEqual([])
+    const names = result.islands.map((i) => i.component)
+    expect(names).toEqual(expect.arrayContaining(['profileheader', 'tabs', 'guestbook']))
+  })
+
+  test('carries saved CSS without touching the template', () => {
+    const plain = generateDefaultProfileTemplate()
+    const themed = generateDefaultProfileTemplate({ customCSS: '.x { color: red; }' })
+    expect(themed.template).toBe(plain.template)
+    expect(themed.css).toBe('.x { color: red; }')
+  })
 })
 
 describe('core language constructs produce islands', () => {

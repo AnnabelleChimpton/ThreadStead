@@ -214,6 +214,10 @@ export default function EnhancedTemplateEditor({
   const [template, setTemplate] = useState(unwrappedTemplate);
 
   const [customCSS, setCustomCSS] = useState(initialCSS);
+  // The CSS live on the page right now. Every save keeps the old version as a
+  // revision, so when a save would change it the editor says so.
+  const [savedCSS, setSavedCSS] = useState(initialCSS);
+  const cssWillChange = savedCSS.trim() !== '' && customCSS.trim() !== savedCSS.trim();
   const [cssMode, setCSSMode] = useState<'inherit' | 'override' | 'disable'>(initialCSSMode);
   const [currentTemplateMode, setCurrentTemplateMode] = useState<'default' | 'enhanced' | 'advanced'>(initialTemplateMode);
 
@@ -293,9 +297,11 @@ export default function EnhancedTemplateEditor({
   };
 
   const resetToDefaultTemplate = () => {
+    // Always asks: this saves straight away, so "nothing unsaved" doesn't
+    // mean nothing is lost.
     showDataLossWarning(
       "Reset to Default Template",
-      "This will remove all your customizations and return your profile to the admin's default template. Your custom CSS and HTML will be cleared and you'll use the site's default styling.",
+      "Your page goes back to the standard layout and the site's default look, and this takes effect right away. Your current HTML and CSS stay in History.",
       async () => {
         // Get username from user prop
         const username = user.primaryHandle?.split('@')[0] || user.handles?.[0]?.handle?.split('@')[0];
@@ -340,6 +346,7 @@ export default function EnhancedTemplateEditor({
           });
 
           setSaveState('saved');
+          setSavedCSS('');
           setSaveMessage('✓ Reset to default template');
           markSaved(JSON.stringify({
             template: '',
@@ -358,7 +365,8 @@ export default function EnhancedTemplateEditor({
           setSaveMessage('✗ Failed to reset to default');
           setTimeout(() => setSaveMessage(null), 3000);
         }
-      }
+      },
+      { always: true }
     );
   };
 
@@ -374,9 +382,15 @@ export default function EnhancedTemplateEditor({
           const data = await response.json();
           setUseStandardLayout(false); // This creates an editable version
           setTemplate(data.template);
-          setCustomCSS(data.css);
-          setCSSMode(data.cssMode || 'inherit');
-          setSaveMessage('✓ Editable default template loaded');
+          setActiveTab('template');
+          // Only the layout is replaced. The CSS already in the editor (the
+          // saved theme, plus any unsaved edits) stays; it used to be swapped
+          // for a blank stylesheet, so one save dropped the person's theme.
+          if (!customCSS.trim()) {
+            setCustomCSS(data.css);
+            setCSSMode(data.cssMode || 'inherit');
+          }
+          setSaveMessage('✓ Default layout loaded. Your CSS is unchanged.');
         } else {
           setSaveMessage('✗ Failed to load default template');
         }
@@ -391,7 +405,7 @@ export default function EnhancedTemplateEditor({
 
     showDataLossWarning(
       "Load Default Template",
-      "This will replace your current HTML template and CSS with the default template. Any unsaved changes will be lost.",
+      "This replaces your HTML with the default layout. Your CSS stays as it is. Unsaved HTML changes will be lost.",
       doLoad
     );
   };
@@ -452,11 +466,13 @@ export default function EnhancedTemplateEditor({
 
   // Check if user has unsaved content that would be lost
   const hasUnsavedContent = () => {
-    const hasCustomTemplate = template && template.trim() !== '' && template.trim() !== initialTemplate;
-    const hasCustomCSS = customCSS && customCSS.trim() !== '' && 
+    // Trim both sides: saved CSS usually ends in a newline, and comparing it
+    // untrimmed made every saved theme look like an unsaved edit.
+    const hasCustomTemplate = template && template.trim() !== '' && template.trim() !== unwrappedTemplate.trim();
+    const hasCustomCSS = customCSS && customCSS.trim() !== '' &&
       customCSS.trim() !== '/* Add your custom CSS here */' &&
       customCSS.trim() !== '/* Add your custom CSS here to style the standard layout */' &&
-      customCSS.trim() !== initialCSS;
+      customCSS.trim() !== initialCSS.trim();
     
     return hasCustomTemplate || hasCustomCSS;
   };
@@ -470,9 +486,14 @@ export default function EnhancedTemplateEditor({
     return isTemplateEmpty && isCSSEmpty;
   };
 
-  const showDataLossWarning = (title: string, message: string, confirmAction: () => void) => {
+  const showDataLossWarning = (
+    title: string,
+    message: string,
+    confirmAction: () => void,
+    { always = false }: { always?: boolean } = {}
+  ) => {
     // Skip warning if content is empty or matches initial values
-    if (isContentEmpty() || !hasUnsavedContent()) {
+    if (!always && (isContentEmpty() || !hasUnsavedContent())) {
       confirmAction();
     } else {
       setWarningDialog({
@@ -899,6 +920,10 @@ export default function EnhancedTemplateEditor({
         setSaveMessage('✓ Advanced template saved');
       }
 
+      if (savedCSS.trim() !== '' && (previewCSS || '').trim() !== savedCSS.trim()) {
+        setSaveMessage('✓ Saved. Your old look is in History.');
+      }
+      setSavedCSS(previewCSS || '');
       markSaved(JSON.stringify({
         template: previewTemplate || '',
         customCSS: previewCSS || '',
@@ -1197,6 +1222,8 @@ export default function EnhancedTemplateEditor({
       await onSave(template, customCSS, compiledTemplateData || undefined, cssMode, hideNavigation);
       setSaveState('saved');
       markSaved();
+      const replacedCSS = cssWillChange;
+      setSavedCSS(customCSS);
 
       // Update template mode - saving moves from 'default' to advanced/enhanced
       const newMode = useStandardLayout ? 'enhanced' : 'advanced';
@@ -1214,7 +1241,7 @@ export default function EnhancedTemplateEditor({
       // Only show generic success message if there are no issues
       // Otherwise, keep the specific warning message that was already set
       if (!hasIssues) {
-        setSaveMessage('✓ Template saved');
+        setSaveMessage(replacedCSS ? '✓ Saved. Your old look is in History.' : '✓ Template saved');
         setTimeout(() => setSaveMessage(null), 3000);
         setShowValidationPanel(false);
       }
@@ -1241,7 +1268,7 @@ export default function EnhancedTemplateEditor({
       setSaveMessage('✗ Save failed - see details in validation panel');
       setTimeout(() => setSaveMessage(null), 5000);
     }
-  }, [onSave, template, customCSS, compiledTemplate, compileTemplateForPreview, cssMode, hideNavigation, validationResult, markSaved]);
+  }, [onSave, template, customCSS, compiledTemplate, compileTemplateForPreview, cssMode, hideNavigation, validationResult, markSaved, cssWillChange]);
 
   // Main save handler with validation
   const handleSave = useCallback(async () => {
@@ -1458,37 +1485,21 @@ export default function EnhancedTemplateEditor({
       `}</style>
 
       <div className="enhanced-template-editor w-full">
-      {/* Unified Mode Status Indicator */}
-      <div className="px-4 py-2 bg-blue-50 border-b border-blue-200 text-sm">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <span className="font-medium text-blue-900">Profile Mode:</span>
-              <span className={`px-2 py-1 rounded text-xs font-medium ${
-                useStandardLayout
-                  ? 'bg-green-100 text-green-800'
-                  : 'bg-purple-100 text-purple-800'
-              }`}>
-                {useStandardLayout ? 'Standard Layout' : 'Custom Template'}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="font-medium text-blue-900">CSS Mode:</span>
-              <span className={`px-2 py-1 rounded text-xs font-medium ${
-                cssMode === 'inherit'
-                  ? 'bg-green-100 text-green-800'
-                  : cssMode === 'override'
-                  ? 'bg-yellow-100 text-yellow-800'
-                  : 'bg-red-100 text-red-800'
-              }`}>
-                {cssMode}
-              </span>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-blue-600">
-              Database: {initialTemplateMode} → {useStandardLayout ? 'enhanced' : 'advanced'}
+      {/* Status bar: what's being edited, History, Reset, save state */}
+      <div className="px-4 py-2 bg-thread-paper border-b border-thread-sage text-sm">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-2 text-thread-charcoal">
+            <span>Editing:</span>
+            <span className="font-medium">
+              {useStandardLayout ? 'the standard layout, with your CSS' : 'your own HTML layout'}
             </span>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            {cssWillChange && (
+              <span className="text-xs text-thread-sage">
+                Saving changes your CSS. The old look stays in History.
+              </span>
+            )}
             <div className="flex items-center gap-2">
               {/* History Button */}
               <button
@@ -1550,33 +1561,21 @@ export default function EnhancedTemplateEditor({
         />
       )}
 
-      {/* Mode Selector */}
-      <div className="flex justify-between items-center px-4 py-2 bg-thread-cream border-b border-thread-sage">
-        <div className="flex gap-1">
-          <span className="px-3 py-1 text-sm font-medium rounded bg-thread-sage text-white">
-            {useStandardLayout ? 'CSS Editor' : 'Code Editor'}
-          </span>
-        </div>
-        <div className="flex items-center gap-4">
-          <ViewSourceToggle username={user.primaryHandle?.split('@')[0] || user.handles?.[0]?.handle?.split('@')[0] || ''} />
-          <div className="text-xs text-thread-sage">
-            {useStandardLayout
-              ? 'Customize the standard layout with CSS'
-              : 'Direct HTML/CSS editing'
-            }
-          </div>
-        </div>
+      <div className="flex justify-end items-center px-4 py-2 bg-thread-cream border-b border-thread-sage">
+        <ViewSourceToggle username={user.primaryHandle?.split('@')[0] || user.handles?.[0]?.handle?.split('@')[0] || ''} />
       </div>
 
-      {/* Default Mode Warning Banner */}
+      {/* The page still shows the site's default look */}
       {currentTemplateMode === 'default' && (
-        <div className="mx-4 mt-3 mb-2 p-4 bg-blue-50 border-2 border-blue-200 rounded-xl">
+        <div className="mx-4 mt-3 mb-2 p-4 bg-thread-paper border-2 border-thread-sage rounded-xl">
           <div className="flex items-start gap-3">
             <PixelIcon name="info-box" size={24} />
             <div className="flex-1">
-              <h4 className="font-semibold text-blue-900 mb-1">Profile in Default Mode</h4>
-              <p className="text-sm text-blue-800 leading-relaxed">
-                Your profile is currently using the site&apos;s default template. Any changes you save here will automatically switch your profile to <strong>Advanced Template Mode</strong>, giving you full control over your design.
+              <h4 className="font-semibold text-thread-pine mb-1">Your page has the site&apos;s default look</h4>
+              <p className="text-sm text-thread-charcoal leading-relaxed">
+                {useStandardLayout
+                  ? 'Saving here puts your CSS on the standard layout.'
+                  : 'Saving here switches your page to this HTML layout.'}
               </p>
             </div>
           </div>
