@@ -16,7 +16,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   const me = await getSessionUser(req);
   if (!me) return res.status(401).json({ error: "not logged in" });
 
-  const { displayName, bio, customCSS, blogroll, featuredFriends, templateMode, includeSiteCSS, hideNavigation, visibility, cap } = (req.body || {}) as {
+  const { displayName, bio, customCSS, blogroll, featuredFriends, templateMode, includeSiteCSS, hideNavigation, visibility, showInVisitorTrails, cap } = (req.body || {}) as {
     displayName?: string;
     bio?: string;
     customCSS?: string;
@@ -26,6 +26,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     includeSiteCSS?: boolean;
     hideNavigation?: boolean;
     visibility?: 'public' | 'private' | 'friends' | 'followers';
+    showInVisitorTrails?: boolean;
     cap?: string;
   };
 
@@ -50,6 +51,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   }
   if (typeof includeSiteCSS === "boolean") data.includeSiteCSS = includeSiteCSS;
   if (typeof hideNavigation === "boolean") data.hideNavigation = hideNavigation;
+  if (typeof showInVisitorTrails === "boolean") data.showInVisitorTrails = showInVisitorTrails;
 
   // Handle visibility changes
   let visibilityChanged = false;
@@ -112,6 +114,11 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     update: data,
     create: { userId: me.id, ...data },
   });
+
+  // Turning trails off takes you out of the ones you're already in
+  if (showInVisitorTrails === false) {
+    await db.pixelHomeVisitor.deleteMany({ where: { visitorId: me.id } });
+  }
 
   // Notify RingHub of profile update if user is in any federated rings
   // (Fire-and-forget - don't wait for response or block on errors)

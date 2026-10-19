@@ -103,41 +103,44 @@ model Handle {
 }
 
 model Profile {
-  id                 String                   @id @default(cuid())
-  userId             String                   @unique
-  displayName        String?
-  bio                String?
-  avatarUrl          String?
-  bannerUrl          String?
-  customCSS          String?
-  blogroll           Json?
-  visibility         Visibility               @default(public)
-  updatedAt          DateTime                 @updatedAt
-  featuredFriends    Json?
-  avatarFullUrl      String?
-  avatarMediumUrl    String?
-  avatarThumbnailUrl String?
-  customTemplate     String?
-  customTemplateAst  String?
-  hideNavigation     Boolean                  @default(false)
-  templateEnabled    Boolean                  @default(false)
-  templateMode       TemplateMode             @default(default)
-  badgePreferences   Json?
-  includeSiteCSS     Boolean                  @default(true)
-  cssMode            String                   @default("inherit") // 'inherit' | 'override' | 'disable'
-  profileMidiId      String?
-  midiAutoplay       Boolean                  @default(false)
-  midiLoop           Boolean                  @default(false)
-  compiledTemplate   Json?
-  templateIslands    Json?
-  templateCompiledAt DateTime?
+  id                  String                   @id @default(cuid())
+  userId              String                   @unique
+  displayName         String?
+  bio                 String?
+  avatarUrl           String?
+  bannerUrl           String?
+  customCSS           String?
+  blogroll            Json?
+  visibility          Visibility               @default(public)
+  updatedAt           DateTime                 @updatedAt
+  featuredFriends     Json?
+  avatarFullUrl       String?
+  avatarMediumUrl     String?
+  avatarThumbnailUrl  String?
+  customTemplate      String?
+  customTemplateAst   String?
+  hideNavigation      Boolean                  @default(false)
+  templateEnabled     Boolean                  @default(false)
+  templateMode        TemplateMode             @default(default)
+  badgePreferences    Json?
+  includeSiteCSS      Boolean                  @default(true)
+  cssMode             String                   @default("inherit") // 'inherit' | 'override' | 'disable'
+  profileMidiId       String?
+  midiAutoplay        Boolean                  @default(false)
+  midiLoop            Boolean                  @default(false)
+  compiledTemplate    Json?
+  templateIslands     Json?
+  templateCompiledAt  DateTime?
   // Neocities-style "view source": when true, anyone can read this profile's
   // template + CSS at /resident/[username]/source.
-  showTemplateSource Boolean                  @default(false)
+  showTemplateSource  Boolean                  @default(false)
+  // Visiting someone's pixel home puts your name under it for a week
+  // (components/pixel-homes/VisitorTrail.tsx). Off, you're only counted.
+  showInVisitorTrails Boolean                  @default(true)
   // Full-text search: displayName (A) + bio (B), `simple` config. Maintained
   // by a trigger (20261017000000_add_search_fts) — never write it from Prisma.
-  searchTsv          Unsupported("tsvector")? @map("search_tsv")
-  user               User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  searchTsv           Unsupported("tsvector")? @map("search_tsv")
+  user                User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([searchTsv], type: Gin, map: "Profile_search_tsv_idx")
   @@index([displayName(ops: raw("gin_trgm_ops"))], type: Gin, map: "Profile_displayName_trgm_idx")
@@ -162,15 +165,15 @@ model ProfileTemplateRevision {
 }
 
 model UserHomeConfig {
-  userId              String   @id
-  houseTemplate       String   @default("cottage_v1")
-  palette             String   @default("thread_sage")
-  bookSkin            String?  @default("linen_v1")
-  seasonalOptIn       Boolean  @default(false)
-  preferPixelHome     Boolean  @default(false)
-  atmosphereSky       String   @default("sunny") // sunny, cloudy, sunset, night
-  atmosphereWeather   String   @default("clear") // clear, light_rain, light_snow
-  atmosphereTimeOfDay String   @default("midday") // morning, midday, evening, night
+  userId              String    @id
+  houseTemplate       String    @default("cottage_v1")
+  palette             String    @default("thread_sage")
+  bookSkin            String?   @default("linen_v1")
+  seasonalOptIn       Boolean   @default(false)
+  preferPixelHome     Boolean   @default(false)
+  atmosphereSky       String    @default("sunny") // sunny, cloudy, sunset, night
+  atmosphereWeather   String    @default("clear") // clear, light_rain, light_snow
+  atmosphereTimeOfDay String    @default("midday") // morning, midday, evening, night
   // House color customizations
   wallColor           String? // Override base color
   roofColor           String? // Override primary color
@@ -178,9 +181,9 @@ model UserHomeConfig {
   windowColor         String? // Override accent color
   detailColor         String? // Override detail color
   // House style customizations
-  windowStyle         String?  @default("default") // default, round, arched, bay
-  doorStyle           String?  @default("default") // default, arched, double, cottage
-  roofTrim            String?  @default("default") // default, ornate, scalloped, gabled
+  windowStyle         String?   @default("default") // default, round, arched, bay
+  doorStyle           String?   @default("default") // default, arched, double, cottage
+  roofTrim            String?   @default("default") // default, ornate, scalloped, gabled
   // House text customizations
   houseTitle          String? // Custom title text shown above house description (max 50 characters)
   houseDescription    String? // Custom description text shown below house (max 200 characters)
@@ -202,11 +205,12 @@ model UserHomeConfig {
   snapshotCardUrl     String? // 512×352 PNG of the whole yard at 1×
   snapshotHash        String? // hash of what was drawn; unchanged yards aren't redrawn
   snapshotAt          DateTime?
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
-  user        User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   decorations UserHomeDecoration[]
+  visitCounts PixelHomeVisitCount[]
 }
 
 model UserHomeDecoration {
@@ -231,6 +235,21 @@ model UserHomeDecoration {
 
   @@index([userId])
   @@index([userId, zone])
+}
+
+/// Visits to a home that don't appear in its trail (signed out, or signed in
+/// with showInVisitorTrails off), as one number per home per UTC day. Nothing
+/// about the visitor is stored; repeat visits are told apart in memory only
+/// (lib/pixel-homes/visit-count.ts). Rows older than a week are pruned.
+model PixelHomeVisitCount {
+  homeOwnerId String
+  day         DateTime @db.Date
+  visits      Int      @default(0)
+
+  home UserHomeConfig @relation(fields: [homeOwnerId], references: [userId], onDelete: Cascade)
+
+  @@id([homeOwnerId, day])
+  @@index([day])
 }
 
 model PixelHomeVisitor {

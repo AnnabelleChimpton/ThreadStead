@@ -52,7 +52,6 @@ interface PixelHomeProps {
   username: string
   homeConfig: UserHomeConfig
   isOwner: boolean
-  isSignedIn: boolean
   userDisplayName?: string
   userBio?: string
   neighbors: HomeNeighbors
@@ -85,7 +84,6 @@ function PixelHome({
   username,
   homeConfig,
   isOwner,
-  isSignedIn,
   userDisplayName,
   userBio,
   neighbors,
@@ -148,7 +146,6 @@ function PixelHome({
           displayName={userDisplayName}
           homeConfig={homeConfig}
           isOwner={isOwner}
-          isSignedIn={isSignedIn}
           neighbors={neighbors}
           streetHref={streetHref}
           initialDecorations={decorations}
@@ -194,6 +191,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
     // The profile's visibility rules, checked before anything is loaded
     const access = await residentAccess(currentUser, user.id, user.profile?.visibility ?? null)
+    if (!access.visible && access.suspended) return { notFound: true }
     if (!access.visible) {
       return {
         props: {
@@ -301,7 +299,6 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
           }
         },
         isOwner,
-        isSignedIn: !!currentUser,
         userDisplayName: user.profile?.displayName || null,
         userBio: user.profile?.bio || null
       }

@@ -92,16 +92,8 @@ export default function HouseDetailsPopup({ isOpen, onClose, member }: HouseDeta
     weather: 'clear' as const,
     timeOfDay: 'midday' as const
   })
-  const [profileData, setProfileData] = useState<{
-    bio: string | null
-    stats: {
-      followers: number
-      following: number
-      posts: number
-      mutualFriends: number
-    } | null
-  } | null>(null)
-  const [profileLoading, setProfileLoading] = useState(false)
+  // Just the bio: no follower, following or post counts on a house
+  const [profileData, setProfileData] = useState<{ bio: string | null } | null>(null)
   const [dragStartY, setDragStartY] = useState<number | null>(null)
   const [dragCurrentY, setDragCurrentY] = useState<number | null>(null)
   const [isDragging, setIsDragging] = useState(false)
@@ -181,23 +173,17 @@ export default function HouseDetailsPopup({ isOpen, onClose, member }: HouseDeta
   // Load user profile data
   useEffect(() => {
     if (isOpen && member) {
-      setProfileLoading(true)
       fetch(`/api/users/${encodeURIComponent(member.username)}/quick-view`)
         .then(res => res.json())
         .then(data => {
           if (data.success) {
-            setProfileData({
-              bio: data.data.bio,
-              stats: data.data.stats
-            })
+            setProfileData({ bio: data.data.bio })
           }
         })
         .catch(error => {
           console.error('Failed to load profile data:', error)
         })
-        .finally(() => {
-          setProfileLoading(false)
-        })
+
     }
   }, [isOpen, member?.userId])
 
@@ -449,33 +435,6 @@ export default function HouseDetailsPopup({ isOpen, onClose, member }: HouseDeta
             <p className="text-gray-700 leading-relaxed text-sm whitespace-pre-wrap">
               {profileData.bio}
             </p>
-          </div>
-        )}
-
-        {/* User Stats */}
-        {profileData?.stats && !profileLoading && (
-          <div className="bg-white border border-thread-sage rounded-sm p-4 mb-4 shadow-sm">
-            <h4 className="text-sm font-semibold text-gray-900 mb-3">Profile Stats</h4>
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div className="flex flex-col items-center p-3 bg-thread-cream border border-thread-sage/30 rounded-sm">
-                <span className="text-2xl font-bold text-thread-pine">{profileData.stats.followers}</span>
-                <span className="text-xs text-gray-600 mt-1">Followers</span>
-              </div>
-              <div className="flex flex-col items-center p-3 bg-thread-cream border border-thread-sage/30 rounded-sm">
-                <span className="text-2xl font-bold text-thread-pine">{profileData.stats.following}</span>
-                <span className="text-xs text-gray-600 mt-1">Following</span>
-              </div>
-              <div className="flex flex-col items-center p-3 bg-thread-cream border border-thread-sage/30 rounded-sm">
-                <span className="text-2xl font-bold text-thread-pine">{profileData.stats.posts}</span>
-                <span className="text-xs text-gray-600 mt-1">Posts</span>
-              </div>
-              {profileData.stats.mutualFriends > 0 && (
-                <div className="flex flex-col items-center p-3 bg-thread-cream border border-thread-sage/30 rounded-sm">
-                  <span className="text-2xl font-bold text-thread-pine">{profileData.stats.mutualFriends}</span>
-                  <span className="text-xs text-gray-600 mt-1">Mutual Friends</span>
-                </div>
-              )}
-            </div>
           </div>
         )}
 

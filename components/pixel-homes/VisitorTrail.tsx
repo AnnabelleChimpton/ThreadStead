@@ -11,85 +11,94 @@ interface Visitor {
 
 interface VisitorTrailProps {
   username: string
-  /** Record this page view as a visit. Only for a signed-in visitor who isn't
-   *  the owner; signed out, the POST can only 401. */
+  /** Record this page view as a visit (everyone but the owner). Signed-in
+   *  visitors who show in trails join the trail; everyone else only adds
+   *  to the quiet count, which keeps nothing about them. */
   recordVisit?: boolean
   className?: string
 }
 
 export default function VisitorTrail({ username, recordVisit = false, className = '' }: VisitorTrailProps) {
   const [visitors, setVisitors] = useState<Visitor[]>([])
+  const [otherVisits, setOtherVisits] = useState(0)
   const [loading, setLoading] = useState(true)
   const [selectedVisitorUsername, setSelectedVisitorUsername] = useState<string | null>(null)
 
+  // Record this visit first, so the trail and count that follow include it
   useEffect(() => {
-    const fetchVisitors = async () => {
+    let alive = true
+    const load = async () => {
+      if (recordVisit) {
+        try {
+          await fetch(`/api/home/${encodeURIComponent(username)}/visitors`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+          })
+        } catch (error) {
+          // Not critical: the trail still loads
+          console.debug('Visit tracking failed:', error)
+        }
+      }
       try {
-        const response = await fetch(`/api/home/${username}/visitors`)
-        if (response.ok) {
+        const response = await fetch(`/api/home/${encodeURIComponent(username)}/visitors`)
+        if (response.ok && alive) {
           const data = await response.json()
           setVisitors(data.visitors || [])
+          setOtherVisits(typeof data.otherVisits === 'number' ? data.otherVisits : 0)
         }
       } catch (error) {
         console.error('Failed to fetch visitors:', error)
       } finally {
-        setLoading(false)
+        if (alive) setLoading(false)
       }
     }
-
-    fetchVisitors()
-  }, [username])
-
-  // Record the current user's visit when component mounts
-  useEffect(() => {
-    if (!recordVisit) return
-    const postVisit = async () => {
-      try {
-        await fetch(`/api/home/${username}/visitors`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
-        })
-      } catch (error) {
-        // Silently fail - visit tracking is not critical
-        console.debug('Visit tracking failed:', error)
-      }
-    }
-
-    postVisit()
+    load()
+    return () => { alive = false }
   }, [username, recordVisit])
 
-  if (loading || visitors.length === 0) {
+  if (loading || (visitors.length === 0 && otherVisits === 0)) {
     return null
   }
+
+  const visitWord = (n: number) => `${n} ${n === 1 ? 'visit' : 'visits'}`
 
   return (
     // One plain line in normal flow, under the scene (never over it)
     <div className={`visitor-trail flex flex-wrap items-center gap-2 text-sm text-nb-ink-mid ${className}`}>
-      <span>Stopped by recently:</span>
-      <ul className="flex items-center gap-1.5">
-        {visitors.map((visitor) => {
-          const name = visitor.displayName || `@${visitor.username}`
-          return (
-            <li key={visitor.id}>
-              <button
-                type="button"
-                onClick={() => setSelectedVisitorUsername(visitor.username)}
-                className="ts-bare block w-8 h-8 rounded-full overflow-hidden border border-thread-sage bg-thread-cream p-0 cursor-pointer"
-                title={`${name}, ${getTimeAgo(visitor.visitedAt)}`}
-                aria-label={`${name}, ${getTimeAgo(visitor.visitedAt)}`}
-              >
-                {visitor.avatarUrl ? (
-                  <img src={visitor.avatarUrl} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <span aria-hidden="true" className="w-full h-full flex items-center justify-center text-thread-pine font-bold text-xs">
-                    {name.replace(/^@/, '').charAt(0).toUpperCase()}
-                  </span>
-                )}
-              </button>
-            </li>
-          )
-        })}
-      </ul>
+      {visitors.length === 0 ? (
+        <span>{visitWord(otherVisits)} this week.</span>
+      ) : (
+        <span>Stopped by recently:</span>
+      )}
+      {visitors.length > 0 && (
+        <ul className="flex items-center gap-1.5">
+          {visitors.map((visitor) => {
+            const name = visitor.displayName || `@${visitor.username}`
+            return (
+              <li key={visitor.id}>
+                <button
+                  type="button"
+                  onClick={() => setSelectedVisitorUsername(visitor.username)}
+                  className="ts-bare block w-8 h-8 rounded-full overflow-hidden border border-thread-sage bg-thread-cream p-0 cursor-pointer"
+                  title={`${name}, ${getTimeAgo(visitor.visitedAt)}`}
+                  aria-label={`${name}, ${getTimeAgo(visitor.visitedAt)}`}
+                >
+                  {visitor.avatarUrl ? (
+                    <img src={visitor.avatarUrl} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <span aria-hidden="true" className="w-full h-full flex items-center justify-center text-thread-pine font-bold text-xs">
+                      {name.replace(/^@/, '').charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+      {visitors.length > 0 && otherVisits > 0 && (
+        <span>and {otherVisits} other {otherVisits === 1 ? 'visit' : 'visits'} this week.</span>
+      )}
 
       {/* User Quick View Modal */}
       {selectedVisitorUsername && (

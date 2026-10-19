@@ -65,8 +65,6 @@ interface PixelHomePageProps {
   displayName?: string
   homeConfig?: UserHomeConfig
   isOwner?: boolean
-  /** The viewer is signed in (from SSR), so their visit can be recorded */
-  isSignedIn?: boolean
   /** The houses on either side, for the next-door links */
   neighbors?: HomeNeighbors
   /** Back to this house's street, with it in view */
@@ -81,7 +79,6 @@ export default function PixelHomePage({
   displayName,
   homeConfig,
   isOwner = false,
-  isSignedIn = false,
   neighbors = { previous: null, next: null },
   streetHref = '/neighborhood',
   initialDecorations,
@@ -315,7 +312,7 @@ export default function PixelHomePage({
         )}
 
         <div className="mt-4 flex justify-start">
-          <VisitorTrail username={username} recordVisit={isSignedIn && !isOwner} />
+          <VisitorTrail username={username} recordVisit={!isOwner} />
         </div>
 
         {/* Keep walking: the houses either side, or back out to the street */}

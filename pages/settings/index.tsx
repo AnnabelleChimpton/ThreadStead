@@ -50,6 +50,7 @@ interface UserSettingsProps {
       displayName?: string | null;
       bio?: string | null;
       visibility?: 'public' | 'private' | 'friends' | 'followers' | null;
+      showInVisitorTrails?: boolean | null;
       avatarUrl?: string | null;
       customCSS?: string | null;
       templateEnabled?: boolean | null;
@@ -79,6 +80,9 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
   const [bio, setBio] = useState(initialUser.profile?.bio || "");
   const [visibility, setVisibility] = useState<'public' | 'private' | 'friends' | 'followers'>(
     (initialUser.profile?.visibility as 'public' | 'private' | 'friends' | 'followers') || 'public'
+  );
+  const [showInVisitorTrails, setShowInVisitorTrails] = useState<boolean>(
+    initialUser.profile?.showInVisitorTrails ?? true
   );
   const [avatarUrl, setAvatarUrl] = useState(initialUser.profile?.avatarUrl || "");
   const [websites, setWebsites] = useState<Website[]>(
@@ -231,6 +235,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
           displayName,
           bio,
           visibility,
+          showInVisitorTrails,
           blogroll,
           featuredFriends: featuredFriendsData,
           cap: token
@@ -763,6 +768,23 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                 <strong>Federated ThreadRings:</strong> Your profile link is always shared when you join federated rings.
                 If set to Public, your name and avatar will also be shared. Other visibility settings share only the link.
               </div>
+            </div>
+
+            <div>
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={showInVisitorTrails}
+                  onChange={(e) => setShowInVisitorTrails(e.target.checked)}
+                  className="mt-1 w-5 h-5"
+                />
+                <span>
+                  <span className="block font-bold text-black">Show me in visitor trails</span>
+                  <span className="block text-sm text-nb-ink-mid">
+                    When you visit someone&apos;s pixel home, your name and picture show under it for a week. Turned off, you&apos;re only counted as a visit, with nothing about you kept.
+                  </span>
+                </span>
+              </label>
             </div>
 
             <div className="border-t-2 border-dotted border-nb-ink-mid/40 pt-6">
@@ -1882,6 +1904,7 @@ export const getServerSideProps: GetServerSideProps<UserSettingsProps> = async (
             displayName: userData.profile.displayName || null,
             bio: userData.profile.bio || null,
             visibility: (userData.profile.visibility as 'public' | 'private' | 'friends' | 'followers') || 'public',
+            showInVisitorTrails: userData.profile.showInVisitorTrails,
             avatarUrl: userData.profile.avatarUrl || null,
             customCSS: userData.profile.customCSS || null,
             templateEnabled: userData.profile.templateEnabled ?? null,

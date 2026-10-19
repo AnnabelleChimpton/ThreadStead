@@ -116,15 +116,14 @@ describe('/home/[handle]', () => {
     const result: any = await homePageProps(ctx({ handle: 'shy' }, 'u_friend'))
     expect(result.props.homeConfig.houseCustomizations.houseTitle).toBe('u_shy house')
     expect(result.props.privateProfile).toBeUndefined()
-    expect(result.props.isSignedIn).toBe(true)
+    expect(result.props.isOwner).toBe(false)
     expect(result.props.neighbors).toEqual({ previous: { username: 'ada', displayName: null }, next: null })
     expect(result.props.streetHref).toBe('/neighborhood?street=2&at=shy')
   })
 
-  test('a signed-out visitor is flagged so the page doesn’t record a visit', async () => {
+  test('a signed-out visitor is not the owner, so the page records (counts) the visit', async () => {
     ;(residentAccess as jest.Mock).mockResolvedValue({ visible: true })
     const result: any = await homePageProps(ctx({ handle: 'shy' }, null))
-    expect(result.props.isSignedIn).toBe(false)
     expect(result.props.isOwner).toBe(false)
   })
 })
