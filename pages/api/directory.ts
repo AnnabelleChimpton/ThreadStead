@@ -3,7 +3,7 @@ import { db } from "@/lib/config/database/connection";
 
 import { SITE_NAME } from "@/lib/config/site/constants";
 import { escapeLike, parseIntParam } from "@/lib/search/query";
-import { visibleResidentWhere } from "@/lib/domain/users/profile-access";
+import { neighborWhere } from "@/lib/domain/users/profile-access";
 import { settledResidentIds } from "@/lib/domain/users/new-neighbors";
 
 const SORTS = ["recent", "alphabetical", "posts", "random"];
@@ -31,25 +31,9 @@ export default apiHandler(
       // Prisma sends `contains` as ILIKE without escaping: `%` listed everyone.
       const search = escapeLike(String(req.query.search || "").trim());
 
-      // Profiles that aren't public 403 on view, so they don't belong in a
-      // public directory (with their bio). No profile row means public.
-      // A block either way leaves the person out too (visibleResidentWhere).
-      const whereClause: any = {
-        handles: {
-          some: {
-            host: SITE_NAME
-          }
-        },
-        AND: [
-          {
-            OR: [
-              { profile: { is: null } },
-              { profile: { is: { visibility: "public" } } },
-            ],
-          },
-          visibleResidentWhere(viewer?.id),
-        ],
-      };
+      // The same people the homepage counts (neighborWhere): public
+      // profiles, no suspended or banned accounts, no blocks either way.
+      const whereClause: any = neighborWhere(viewer?.id);
 
       if (search) {
         whereClause.OR = [

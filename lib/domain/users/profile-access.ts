@@ -17,6 +17,7 @@
 import type { NextApiResponse } from "next";
 import type { Prisma, UserRole, Visibility } from "@prisma/client";
 import { db } from "@/lib/config/database/connection";
+import { SITE_NAME } from "@/lib/config/site/constants";
 import { canViewPost, getViewerRelationship } from "@/lib/domain/posts/visibility";
 import { isUserBlocked } from "@/lib/domain/users/blocks";
 import { activeUserWhere, isUserRestricted } from "@/lib/domain/users/moderation";
@@ -98,6 +99,29 @@ export function visibleResidentWhere(viewerId: string | null | undefined): Prism
       { blocksReceived: { none: { blockerId: viewerId } } },
     ],
   };
+}
+
+/**
+ * The neighbors: residents of this instance with a public profile (or none),
+ * minus suspended and banned accounts and anyone on either side of a block
+ * with the viewer. The directory lists these and the homepage counts them,
+ * so the two numbers always agree.
+ */
+export function neighborWhere(viewerId: string | null | undefined): Prisma.UserWhereInput {
+  return {
+    handles: { some: { host: SITE_NAME } },
+    AND: [
+      // Profiles that aren't public 403 on view, so they don't belong in a
+      // public directory (with their bio).
+      { OR: [{ profile: { is: null } }, { profile: { is: { visibility: "public" } } }] },
+      visibleResidentWhere(viewerId),
+    ],
+  };
+}
+
+/** How many neighbors there are, for this viewer (see neighborWhere). */
+export function countNeighbors(viewerId: string | null | undefined): Promise<number> {
+  return db.user.count({ where: neighborWhere(viewerId) });
 }
 
 /**

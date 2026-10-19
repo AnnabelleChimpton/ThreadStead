@@ -26,6 +26,7 @@ import WelcomeMusicControl from "@/components/features/onboarding/WelcomeMusicCo
 import { getFirstSteps, FirstSteps } from "@/lib/domain/users/first-steps";
 import { DEMO_YARD, demoYardWithArt } from "@/lib/pixel-homes/demo-yard";
 import { loadCatalogArt } from "@/lib/pixel-homes/home-scene";
+import { countNeighbors } from '@/lib/domain/users/profile-access';
 
 interface HomeProps {
   siteConfig: SiteConfig;
@@ -458,7 +459,8 @@ export const getServerSideProps: GetServerSideProps<HomeProps> = async (context)
   const siteConfig = await getSiteConfig();
   const user = await getSessionUser(context.req as any);
   const ogImageUrl = getOgImageUrl(); // Get dynamic og:image URL with automatic cache-busting
-  const userCount = await db.user.count();
+  // The same number the directory's "View all" shows
+  const userCount = await countNeighbors(user?.id);
 
   try {
     if (user) {

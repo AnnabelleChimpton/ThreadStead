@@ -20,6 +20,7 @@ import { randomUUID } from "crypto";
 
 export type RateLimitCategory =
   | "posts"
+  | "reads" // Public list reads that pages fetch on load (the board)
   | "comments"
   | "uploads"
   | "profile_updates" // Legacy - use more specific categories below
@@ -54,6 +55,7 @@ const DEV_MULTIPLIER = isDevelopment ? 10 : 1;
 
 export const RATE_LIMIT_CONFIGS: Record<RateLimitCategory, RateLimitConfig> = {
   posts: { limit: 20 * DEV_MULTIPLIER, windowMs: 60 * 1000 }, // 20 per minute (200 in dev)
+  reads: { limit: 120 * DEV_MULTIPLIER, windowMs: 60 * 1000 }, // 120 per minute (1200 in dev)
   comments: { limit: 100 * DEV_MULTIPLIER, windowMs: 60 * 1000 }, // 100 per minute (1000 in dev)
   uploads: { limit: 5 * DEV_MULTIPLIER, windowMs: 60 * 60 * 1000 }, // 5 per hour (50 in dev)
   profile_updates: { limit: 10 * DEV_MULTIPLIER, windowMs: 60 * 60 * 1000 }, // 10 per hour (100 in dev) - LEGACY

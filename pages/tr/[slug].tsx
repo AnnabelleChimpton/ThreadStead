@@ -430,6 +430,9 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
   const [isExternalPopupOpen, setIsExternalPopupOpen] = useState(false);
   const [posts, setPosts] = useState<any[]>([]);
   const [postsLoading, setPostsLoading] = useState(false);
+  // Where the next hub page starts (the API's nextOffset; it counts PostRefs, not shown posts)
+  const [nextOffset, setNextOffset] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [lineageData, setLineageData] = useState({
     lineage: [],
     directChildrenCount: 0,
@@ -651,7 +654,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
           const data = await response.json();
           setPosts(data.posts || []);
           setHasMore(data.hasMore || false);
-          // Posts data loaded successfully
+          setNextOffset(data.nextOffset ?? (data.posts?.length || 0));
         } else {
           console.error('Failed to fetch posts:', response.status);
           if (response.status === 403) {
@@ -833,9 +836,34 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
 
         setPosts(data.posts);
         setHasMore(data.hasMore);
+        setNextOffset(data.nextOffset ?? data.posts.length);
       }
     } catch (error) {
       console.error("Error refetching posts:", error);
+    }
+  };
+
+  // The next page of the hub feed, added under what's already shown
+  const loadMorePosts = async () => {
+    if (!ring || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const response = await fetch(
+        `/api/threadrings/${ring.slug}/posts?scope=${feedScope}&offset=${nextOffset}`
+      );
+      if (!response.ok) throw new Error(`status ${response.status}`);
+      const data = await response.json();
+      setPosts((shown) => {
+        const seen = new Set(shown.map((post) => post.id));
+        return [...shown, ...(data.posts || []).filter((post: any) => !seen.has(post.id))];
+      });
+      setHasMore(data.hasMore || false);
+      setNextOffset(data.nextOffset ?? nextOffset + (data.posts?.length || 0));
+    } catch (error) {
+      console.error("Error loading more posts:", error);
+      showError("Couldn't load more posts. Try again.");
+    } finally {
+      setLoadingMore(false);
     }
   };
 
@@ -1052,12 +1080,10 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                     <div className="text-center pt-6 mt-6">
                       <button
                         className="bg-thread-paper border border-thread-sage/30 px-6 py-2 rounded-cozy shadow-cozy-sm hover:shadow-cozy transition-all text-sm font-medium"
-                        onClick={() => {
-                          // TODO: Implement load more functionality
-                          // Loading more posts
-                        }}
+                        onClick={loadMorePosts}
+                        disabled={loadingMore}
                       >
-                        Load More Posts
+                        {loadingMore ? "Loading..." : "Load More Posts"}
                       </button>
                     </div>
                   )}

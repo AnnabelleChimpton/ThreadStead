@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { PixelIcon } from '@/components/ui/PixelIcon';
 import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner';
+import { getBulletinColor, type BulletinCategory } from '@/lib/helpers/bulletinHelpers';
 
 interface TickerItem {
   id: string;
@@ -105,17 +106,9 @@ export default function CommunityTicker() {
     return () => clearInterval(refreshInterval);
   }, [isClient]);
 
-  // Helper function
-  const getCategoryLabel = (category: string) => {
-    const labels: Record<string, string> = {
-      'looking_for': 'Looking For',
-      'offering': 'Offering',
-      'event': 'Event',
-      'announcement': 'Announcement',
-      'discussion': 'Discussion'
-    };
-    return labels[category] || category;
-  };
+  // The board's own labels ("Looking For"), keyed by the enum (LOOKING_FOR)
+  const getCategoryLabel = (category: string) =>
+    getBulletinColor(category as BulletinCategory)?.label ?? category;
 
   const handleClick = () => {
     router.push('/community');

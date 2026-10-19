@@ -36,7 +36,7 @@ jest.mock('@/lib/domain/notifications', () => ({
 import { createSession, getSessionUser } from '@/lib/auth/server'
 import { mintCapability } from '@/lib/domain/users/capabilities'
 import { getRestrictedUserIds, isRestricted, moderateUser } from '@/lib/domain/users/moderation'
-import { residentAccess, visibleResidentWhere } from '@/lib/domain/users/profile-access'
+import { countNeighbors, residentAccess, visibleResidentWhere } from '@/lib/domain/users/profile-access'
 import { getHiddenIds } from '@/lib/domain/users/blocks'
 import { homeCandidates, postCandidates, userCandidates } from '@/lib/search/local'
 import moderationRoute from '@/pages/api/admin/moderation'
@@ -265,6 +265,7 @@ describe('they drop out of lists, and their pages read as gone', () => {
     const listed = async (viewer: string | null) => ({
       residents: ids(await db.user.findMany({ where: visibleResidentWhere(viewer), select: { id: true } })),
       directory: (await call(directoryRoute, { query: { limit: '50' } })).body.users.map((u: any) => u.id).sort(),
+      neighbors: await countNeighbors(viewer),
       posts: ids(await postCandidates('essay', viewer)),
       people: ids(await userCandidates('spammer', viewer)),
       homes: ids(await homeCandidates('essay house', viewer)),
@@ -277,6 +278,7 @@ describe('they drop out of lists, and their pages read as gone', () => {
     const before = await listed(null)
     expect(before.residents).toContain(SPAMMER)
     expect(before.directory).toContain(SPAMMER)
+    expect(before.neighbors).toBe(3)
     expect(before.posts).toContain('post_spammer')
     expect(before.people).toContain(SPAMMER)
     expect(before.homes).toContain(SPAMMER)
@@ -289,6 +291,7 @@ describe('they drop out of lists, and their pages read as gone', () => {
       const after = await listed(viewer)
       expect(after.residents).not.toContain(SPAMMER)
       expect(after.directory).not.toContain(SPAMMER)
+      expect(after.neighbors).toBe(2)
       expect(after.posts).not.toContain('post_spammer')
       expect(after.people).not.toContain(SPAMMER)
       expect(after.homes).not.toContain(SPAMMER)

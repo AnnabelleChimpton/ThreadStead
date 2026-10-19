@@ -12,6 +12,7 @@ import { csrfFetchJson } from '@/lib/api/client/csrf-fetch';
 import UserQuickView from '@/components/ui/feedback/UserQuickView';
 import { useToast } from '@/contexts/ToastContext';
 import { useConfirm } from '@/contexts/ConfirmContext';
+import ErrorDisplay from '@/components/ui/feedback/ErrorDisplay';
 import {
   getBulletinColor,
   getUserBulletinCategories,
@@ -46,6 +47,8 @@ interface BulletinPageProps {
 
 export default function BulletinBoard({ siteConfig, user }: BulletinPageProps) {
   const [bulletins, setBulletins] = useState<Bulletin[]>([]);
+  // Why the board didn't load, so a failed read never looks like an empty board
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [userBulletin, setUserBulletin] = useState<Bulletin | null>(null);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -71,11 +74,18 @@ export default function BulletinBoard({ siteConfig, user }: BulletinPageProps) {
   const fetchBulletins = async () => {
     try {
       setLoading(true);
+      setLoadError(null);
       const response = await fetch('/api/bulletin', {
         credentials: 'include',
       });
 
-      if (response.ok) {
+      if (!response.ok) {
+        setLoadError(
+          response.status === 429
+            ? "The board's had a lot of visits just now. Give it a minute and try again."
+            : "Couldn't load the board. Try again."
+        );
+      } else {
         const data = await response.json();
         setBulletins(data.bulletins);
 
@@ -87,6 +97,7 @@ export default function BulletinBoard({ siteConfig, user }: BulletinPageProps) {
       }
     } catch (err) {
       console.error('Error fetching bulletins:', err);
+      setLoadError("Couldn't load the board. Try again.");
     } finally {
       setLoading(false);
     }
@@ -319,6 +330,8 @@ export default function BulletinBoard({ siteConfig, user }: BulletinPageProps) {
                     <div key={i} className="animate-pulse bg-[#D4C4A8] rounded-lg h-40"></div>
                   ))}
                 </div>
+              ) : loadError ? (
+                <ErrorDisplay title="The board didn't load" message={loadError} onRetry={fetchBulletins} />
               ) : bulletins.length === 0 ? (
                 <div className="bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[2px_2px_0_#A18463] p-8 text-center">
                   <p className="text-[#5A5A5A] mb-2">No notes on the board yet.</p>

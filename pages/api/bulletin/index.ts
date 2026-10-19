@@ -1,5 +1,6 @@
 import { db } from '@/lib/config/database/connection';
 import { apiHandler } from '@/lib/api/handler';
+import { rateLimitCheck } from '@/lib/server/http/rate-limit';
 import { activeUserWhere } from '@/lib/domain/users/moderation';
 import { sendUnauthenticated } from '@/lib/api/errors';
 import { z } from 'zod';
@@ -13,8 +14,12 @@ const createBulletinSchema = z.object({
 });
 
 export default apiHandler(
-  { methods: ['GET', 'POST'], auth: 'optional', rateLimit: 'posts' },
+  { methods: ['GET', 'POST'], auth: 'optional' },
   async (req, res, { user }) => {
+    // Reading the board has its own, roomier budget: sharing the posts one
+    // let a busy reader's 429 look like an empty board.
+    if (!(await rateLimitCheck(req, res, req.method === 'GET' ? 'reads' : 'posts', user?.id))) return;
+
     try {
       if (req.method === 'GET') {
         // Return all active bulletins for the full board
