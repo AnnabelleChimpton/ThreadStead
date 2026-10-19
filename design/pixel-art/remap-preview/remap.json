@@ -1,0 +1,485 @@
+{
+ "tree_pine": {
+  "size": [
+   20,
+   44
+  ],
+  "trimmed": [
+   20,
+   44
+  ],
+  "bottomPad": 0,
+  "coloursBefore": 9,
+  "coloursAfter": 6,
+  "map": {
+   "#1e3a8a": "#1d3029",
+   "#1e40af": "#1d3029",
+   "#224b3d": "#1d3029",
+   "#2563eb": "#2e4b3f",
+   "#278d6b": "#4a957a",
+   "#4a957a": "#4a957a",
+   "#6d4223": "#5c301b",
+   "#8b4513": "#834a27",
+   "#a86433": "#b05e2b"
+  }
+ },
+ "tree_oak": {
+  "size": [
+   32,
+   40
+  ],
+  "trimmed": [
+   32,
+   40
+  ],
+  "bottomPad": 0,
+  "coloursBefore": 9,
+  "coloursAfter": 7,
+  "map": {
+   "#1b350a": "#1b350a",
+   "#2d5016": "#2d5016",
+   "#49722e": "#49722e",
+   "#4b2306": "#3d2314",
+   "#546a22": "#49722e",
+   "#5c2d0c": "#5c301b",
+   "#608d43": "#608d43",
+   "#6a5422": "#834a27",
+   "#8b4513": "#834a27"
+  }
+ },
+ "small_tree": {
+  "size": [
+   32,
+   40
+  ],
+  "trimmed": [
+   32,
+   40
+  ],
+  "bottomPad": 0,
+  "coloursBefore": 9,
+  "coloursAfter": 7,
+  "map": {
+   "#1b350a": "#1b350a",
+   "#2d5016": "#2d5016",
+   "#49722e": "#49722e",
+   "#4b2306": "#3d2314",
+   "#546a22": "#49722e",
+   "#5c2d0c": "#5c301b",
+   "#608d43": "#608d43",
+   "#6a5422": "#834a27",
+   "#8b4513": "#834a27"
+  }
+ },
+ "roses_red": {
+  "size": [
+   24,
+   24
+  ],
+  "trimmed": [
+   24,
+   19
+  ],
+  "bottomPad": 5,
+  "coloursBefore": 6,
+  "coloursAfter": 6,
+  "map": {
+   "#2d5016": "#2d5016",
+   "#4a5d23": "#49722e",
+   "#4a7c59": "#608d43",
+   "#7f1d1d": "#7f1d1d",
+   "#dc2626": "#c4473a",
+   "#ef4444": "#e27d60"
+  }
+ },
+ "roses_pink": {
+  "size": [
+   24,
+   24
+  ],
+  "trimmed": [
+   24,
+   19
+  ],
+  "bottomPad": 5,
+  "coloursBefore": 6,
+  "coloursAfter": 6,
+  "map": {
+   "#2d5016": "#2d5016",
+   "#4a5d23": "#49722e",
+   "#4a7c59": "#608d43",
+   "#9d174d": "#8c4a5b",
+   "#db2777": "#d9a9b5",
+   "#f472b6": "#f4d6dc"
+  }
+ },
+ "roses_white": {
+  "size": [
+   24,
+   24
+  ],
+  "trimmed": [
+   24,
+   19
+  ],
+  "bottomPad": 5,
+  "coloursBefore": 6,
+  "coloursAfter": 6,
+  "map": {
+   "#2d5016": "#2d5016",
+   "#4a5d23": "#49722e",
+   "#4a7c59": "#608d43",
+   "#887373": "#7a6c64",
+   "#b9b3b3": "#d8cbbd",
+   "#ffffff": "#fffaf5"
+  }
+ },
+ "daisies_yellow": {
+  "size": [
+   20,
+   20
+  ],
+  "trimmed": [
+   20,
+   18
+  ],
+  "bottomPad": 2,
+  "coloursBefore": 6,
+  "coloursAfter": 6,
+  "map": {
+   "#2d5016": "#2d5016",
+   "#4a5d23": "#49722e",
+   "#d97706": "#b05e2b",
+   "#f59e0b": "#b07d1a",
+   "#fcd34d": "#e8b730",
+   "#fef3c7": "#f6e27f"
+  }
+ },
+ "daisies_white": {
+  "size": [
+   20,
+   20
+  ],
+  "trimmed": [
+   20,
+   18
+  ],
+  "bottomPad": 2,
+  "coloursBefore": 6,
+  "coloursAfter": 5,
+  "map": {
+   "#2d5016": "#2d5016",
+   "#4a5d23": "#49722e",
+   "#f59e0b": "#e8b730",
+   "#f9fafb": "#fffaf5",
+   "#fcd34d": "#f6e27f",
+   "#ffffff": "#fffaf5"
+  }
+ },
+ "sunflowers": {
+  "size": [
+   28,
+   36
+  ],
+  "trimmed": [
+   28,
+   33
+  ],
+  "bottomPad": 3,
+  "coloursBefore": 8,
+  "coloursAfter": 7,
+  "map": {
+   "#16a34a": "#608d43",
+   "#2d5016": "#2d5016",
+   "#5c9139": "#49722e",
+   "#72501b": "#834a27",
+   "#c0720f": "#b07d1a",
+   "#c3821c": "#b07d1a",
+   "#fcd34d": "#e8b730",
+   "#ffe9a3": "#f6e27f"
+  }
+ },
+ "lavender": {
+  "size": [
+   24,
+   32
+  ],
+  "trimmed": [
+   24,
+   28
+  ],
+  "bottomPad": 4,
+  "coloursBefore": 4,
+  "coloursAfter": 4,
+  "map": {
+   "#16a34a": "#49722e",
+   "#7c3aed": "#5a4fb3",
+   "#8b5cf6": "#8b7fe0",
+   "#d09fff": "#c0b7f9"
+  }
+ },
+ "stone_path": {
+  "size": [
+   48,
+   16
+  ],
+  "trimmed": [
+   48,
+   14
+  ],
+  "bottomPad": 2,
+  "coloursBefore": 3,
+  "coloursAfter": 3,
+  "map": {
+   "#62646a": "#3e4b4d",
+   "#6b7280": "#5c6e70",
+   "#9ca3af": "#8fa0a0"
+  }
+ },
+ "bird_bath": {
+  "size": [
+   24,
+   32
+  ],
+  "trimmed": [
+   24,
+   30
+  ],
+  "bottomPad": 2,
+  "coloursBefore": 10,
+  "coloursAfter": 9,
+  "map": {
+   "#000000": "#2b2523",
+   "#689bee": "#6f97b3",
+   "#6b7280": "#5c6e70",
+   "#82b4f7": "#9dbfd3",
+   "#8b5a2b": "#834a27",
+   "#9ca3af": "#8fa0a0",
+   "#a0522d": "#b05e2b",
+   "#c9cbcf": "#c5d0cd",
+   "#d1d5db": "#c5d0cd",
+   "#f59e0b": "#e8b730"
+  }
+ },
+ "decorative_fence": {
+  "size": [
+   48,
+   20
+  ],
+  "trimmed": [
+   48,
+   18
+  ],
+  "bottomPad": 2,
+  "coloursBefore": 5,
+  "coloursAfter": 4,
+  "map": {
+   "#451a03": "#3d2314",
+   "#7b4325": "#834a27",
+   "#8b4513": "#834a27",
+   "#92400e": "#5c301b",
+   "#b05e2b": "#b05e2b"
+  }
+ },
+ "flamingo": {
+  "size": [
+   16,
+   32
+  ],
+  "trimmed": [
+   16,
+   31
+  ],
+  "bottomPad": 1,
+  "coloursBefore": 4,
+  "coloursAfter": 3,
+  "map": {
+   "#000000": "#2b2523",
+   "#1a1a1a": "#2b2523",
+   "#ff69b4": "#d9a9b5",
+   "#ffb6c1": "#f4d6dc"
+  }
+ },
+ "wheelbarrow": {
+  "size": [
+   32,
+   24
+  ],
+  "trimmed": [
+   32,
+   22
+  ],
+  "bottomPad": 2,
+  "coloursBefore": 10,
+  "coloursAfter": 9,
+  "map": {
+   "#000000": "#2b2523",
+   "#22c55e": "#608d43",
+   "#374151": "#3e4b4d",
+   "#3d8a95": "#4a957a",
+   "#4ade80": "#a3c27a",
+   "#4b2409": "#3d2314",
+   "#6a3008": "#5c301b",
+   "#6b7280": "#5c6e70",
+   "#6e482e": "#834a27",
+   "#8b4513": "#834a27"
+  }
+ },
+ "mailbox": {
+  "size": [
+   20,
+   32
+  ],
+  "trimmed": [
+   20,
+   30
+  ],
+  "bottomPad": 2,
+  "coloursBefore": 10,
+  "coloursAfter": 7,
+  "map": {
+   "#723305": "#5c301b",
+   "#8b4513": "#834a27",
+   "#a70000": "#7f1d1d",
+   "#b93200": "#7f1d1d",
+   "#b97240": "#b05e2b",
+   "#f20707": "#c4473a",
+   "#fb7962": "#f2a58e",
+   "#fb9999": "#f2a58e",
+   "#ff4500": "#c4473a",
+   "#ff6347": "#e27d60"
+  }
+ },
+ "planter_box": {
+  "size": [
+   32,
+   20
+  ],
+  "trimmed": [
+   32,
+   18
+  ],
+  "bottomPad": 2,
+  "coloursBefore": 10,
+  "coloursAfter": 9,
+  "map": {
+   "#15803d": "#2d5016",
+   "#228b22": "#49722e",
+   "#4f2e17": "#3d2314",
+   "#582603": "#5c301b",
+   "#72533d": "#7a6c64",
+   "#803602": "#834a27",
+   "#8b4513": "#834a27",
+   "#ed9bc4": "#f4d6dc",
+   "#ff1493": "#8c4a5b",
+   "#ff69b4": "#d9a9b5"
+  }
+ },
+ "raised_bed": {
+  "size": [
+   40,
+   24
+  ],
+  "trimmed": [
+   40,
+   22
+  ],
+  "bottomPad": 2,
+  "coloursBefore": 14,
+  "coloursAfter": 12,
+  "map": {
+   "#228b22": "#49722e",
+   "#27543a": "#2e4b3f",
+   "#2e8b57": "#4a957a",
+   "#32cd32": "#608d43",
+   "#3d2314": "#3d2314",
+   "#5c301b": "#5c301b",
+   "#654321": "#5c301b",
+   "#67ed67": "#a3c27a",
+   "#834a27": "#834a27",
+   "#9e8373": "#a8998e",
+   "#a0522d": "#b05e2b",
+   "#dc2626": "#c4473a",
+   "#ed6464": "#e27d60",
+   "#ef4444": "#e27d60"
+  }
+ },
+ "garden_cart": {
+  "size": [
+   36,
+   24
+  ],
+  "trimmed": [
+   36,
+   22
+  ],
+  "bottomPad": 2,
+  "coloursBefore": 16,
+  "coloursAfter": 14,
+  "map": {
+   "#15803d": "#49722e",
+   "#16a34a": "#608d43",
+   "#228b22": "#49722e",
+   "#22c55e": "#a3c27a",
+   "#2e8b57": "#4a957a",
+   "#32cd32": "#a3c27a",
+   "#374151": "#3e4b4d",
+   "#4b5563": "#5c6e70",
+   "#5c2701": "#5c301b",
+   "#5d4037": "#4a403d",
+   "#6b7280": "#8fa0a0",
+   "#806962": "#7a6c64",
+   "#8b4513": "#834a27",
+   "#f472b6": "#d9a9b5",
+   "#f6e7c1": "#ffe7cf",
+   "#fbbf24": "#e8b730"
+  }
+ },
+ "garden_gnome": {
+  "size": [
+   16,
+   24
+  ],
+  "trimmed": [
+   16,
+   24
+  ],
+  "bottomPad": 0,
+  "coloursBefore": 8,
+  "coloursAfter": 8,
+  "map": {
+   "#000000": "#2b2523",
+   "#4a5d23": "#2d5016",
+   "#b61d95": "#8c4a5b",
+   "#f3e8ff": "#d8cbbd",
+   "#f3f4f6": "#fffaf5",
+   "#f97316": "#e27d60",
+   "#fbbf24": "#e8b730",
+   "#ff00c8": "#d9a9b5"
+  }
+ },
+ "outdoor_table": {
+  "size": [
+   32,
+   32
+  ],
+  "trimmed": [
+   32,
+   28
+  ],
+  "bottomPad": 4,
+  "coloursBefore": 9,
+  "coloursAfter": 9,
+  "map": {
+   "#886e4b": "#7a6c64",
+   "#8b4513": "#834a27",
+   "#8fbc8f": "#a3c27a",
+   "#9a9a9a": "#8fa0a0",
+   "#9e5e30": "#b05e2b",
+   "#d318aa": "#8c4a5b",
+   "#deb887": "#e1b489",
+   "#f6d9b2": "#f2c6a0",
+   "#ffe4e1": "#f4d6dc"
+  }
+ }
+}

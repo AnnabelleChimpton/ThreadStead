@@ -1,0 +1,51 @@
+GIMP Palette
+Name: ThreadStead 44
+Columns: 6
+#
+# The ThreadStead master palette. Ramps run dark to light.
+# See README.md in this folder.
+#
+ 43  37  35	ink 1 #2b2523
+ 74  64  61	ink 2 #4a403d
+122 108 100	ink 3 #7a6c64
+168 153 142	ink 4 #a8998e
+216 203 189	ink 5 #d8cbbd
+255 250 245	ink 6 #fffaf5
+ 62  75  77	slate 1 #3e4b4d
+ 92 110 112	slate 2 #5c6e70
+143 160 160	slate 3 #8fa0a0
+197 208 205	slate 4 #c5d0cd
+ 63  95 122	sky 1 #3f5f7a
+111 151 179	sky 2 #6f97b3
+157 191 211	sky 3 #9dbfd3
+212 230 239	sky 4 #d4e6ef
+ 61  35  20	wood 1 #3d2314
+ 92  48  27	wood 2 #5c301b
+131  74  39	wood 3 #834a27
+176  94  43	wood 4 #b05e2b
+225 180 137	wood 5 #e1b489
+168  99  74	terracotta 1 #a8634a
+205 157 112	terracotta 2 #cd9d70
+242 198 160	terracotta 3 #f2c6a0
+255 231 207	terracotta 4 #ffe7cf
+ 27  53  10	foliage 1 #1b350a
+ 45  80  22	foliage 2 #2d5016
+ 73 114  46	foliage 3 #49722e
+ 96 141  67	foliage 4 #608d43
+163 194 122	foliage 5 #a3c27a
+ 29  48  41	pine 1 #1d3029
+ 46  75  63	pine 2 #2e4b3f
+ 74 149 122	pine 3 #4a957a
+127  29  29	red 1 #7f1d1d
+196  71  58	red 2 #c4473a
+226 125  96	red 3 #e27d60
+242 165 142	red 4 #f2a58e
+140  74  91	rose 1 #8c4a5b
+217 169 181	rose 2 #d9a9b5
+244 214 220	rose 3 #f4d6dc
+176 125  26	butter 1 #b07d1a
+232 183  48	butter 2 #e8b730
+246 226 127	butter 3 #f6e27f
+ 90  79 179	lavender 1 #5a4fb3
+139 127 224	lavender 2 #8b7fe0
+192 183 249	lavender 3 #c0b7f9

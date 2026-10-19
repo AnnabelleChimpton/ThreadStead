@@ -1,0 +1,106 @@
+{
+  "_about": "Where each layer and option sprite goes on a 200x180 house, in house pixels. Taken from the cabin as HouseSVG draws it today.",
+  "keyRamps": {
+    "_about": "Draw house layers in these. The site swaps each one, dark to light, for the ramp of the palette someone picked. They are deliberately loud so they are never mistaken for real colours.",
+    "wall": [
+      "#500050",
+      "#900090",
+      "#d000d0",
+      "#ff60ff"
+    ],
+    "roof": [
+      "#005050",
+      "#009090",
+      "#00d0d0",
+      "#60ffff"
+    ],
+    "trim": [
+      "#505000",
+      "#909000",
+      "#d0d000",
+      "#ffff60"
+    ],
+    "glass": [
+      "#000050",
+      "#000090",
+      "#0000d0",
+      "#6060ff"
+    ]
+  },
+  "cabin": {
+    "size": {
+      "w": 200,
+      "h": 180
+    },
+    "sortLine": 150,
+    "groundLine": 170,
+    "sockets": {
+      "roof": {
+        "x": 30,
+        "y": 40,
+        "w": 141,
+        "h": 61
+      },
+      "chimney": {
+        "x": 135,
+        "y": 50,
+        "w": 12,
+        "h": 50
+      },
+      "walls": {
+        "x": 40,
+        "y": 100,
+        "w": 120,
+        "h": 50
+      },
+      "foundation": {
+        "x": 40,
+        "y": 150,
+        "w": 120,
+        "h": 20
+      },
+      "door": {
+        "x": 90,
+        "y": 120,
+        "w": 20,
+        "h": 30
+      },
+      "window-left": {
+        "x": 55,
+        "y": 125,
+        "w": 15,
+        "h": 15
+      },
+      "window-right": {
+        "x": 130,
+        "y": 125,
+        "w": 15,
+        "h": 15
+      },
+      "sign": {
+        "x": 80,
+        "y": 84,
+        "w": 40,
+        "h": 12
+      },
+      "number": {
+        "x": 152,
+        "y": 100,
+        "w": 16,
+        "h": 10
+      },
+      "lights": {
+        "x": 82,
+        "y": 112,
+        "w": 36,
+        "h": 8
+      },
+      "mat": {
+        "x": 86,
+        "y": 155,
+        "w": 28,
+        "h": 6
+      }
+    }
+  }
+}
