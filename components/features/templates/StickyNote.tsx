@@ -2,8 +2,18 @@ import React from "react";
 import { useGridCompatibilityContext } from './GridCompatibleWrapper';
 import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
+const NOTE_COLORS = ['yellow', 'pink', 'blue', 'green', 'orange', 'purple'] as const;
+type NoteColor = (typeof NOTE_COLORS)[number];
+
+// Dark ink, so the text reads on every note colour whatever the page's text colour is
+const INK = '#3b2f1e';
+
+function isNoteColor(value: unknown): value is NoteColor {
+  return NOTE_COLORS.includes(value as NoteColor);
+}
+
 interface StickyNoteProps extends UniversalCSSProps {
-  noteColor?: 'yellow' | 'pink' | 'blue' | 'green' | 'orange' | 'purple';
+  noteColor?: NoteColor;
   size?: 'sm' | 'md' | 'lg';
   rotation?: number;
   children: React.ReactNode;
@@ -13,9 +23,18 @@ interface StickyNoteProps extends UniversalCSSProps {
 }
 
 export default function StickyNote(props: StickyNoteProps) {
-  const { cssProps, componentProps } = separateCSSProps(props);
+  const { cssProps: allCSSProps, componentProps } = separateCSSProps(props);
+
+  // Templates set the note colour with `color` (the registry's name for it).
+  // The compile step files `color` under CSS, so it arrives here as
+  // `style.color`, and pages saved earlier store it that way too. A note-colour
+  // name there means the note; anything else is the ink.
+  const { color: cssColor, ...otherCSSProps } = allCSSProps;
+  const colorFromTemplate = isNoteColor(cssColor) ? cssColor : undefined;
+  const cssProps = colorFromTemplate ? otherCSSProps : allCSSProps;
+
   const {
-    noteColor = 'yellow',
+    noteColor = colorFromTemplate ?? 'yellow',
     size = 'md',
     rotation = 0,
     children,
@@ -60,6 +79,7 @@ export default function StickyNote(props: StickyNoteProps) {
   const mergedStyles = {
     transform: `rotate(${rotation}deg)`,
     transformOrigin: 'center',
+    color: INK,
     ...appliedStyles
   };
 

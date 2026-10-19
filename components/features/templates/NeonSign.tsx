@@ -5,13 +5,22 @@
 import React from 'react';
 import { UniversalCSSProps, separateCSSProps, applyCSSProps } from '@/lib/templates/styling/universal-css-props';
 
+const NEON_COLORS = ['blue', 'pink', 'green', 'purple', 'cyan', 'yellow', 'red', 'white'] as const;
+const TEXT_SIZES = ['small', 'medium', 'large', 'xl'] as const;
+const TEXT_WEIGHTS = ['normal', 'bold', 'black'] as const;
+
+/** `value` if it's one of `values`, else undefined. */
+function oneOf<T extends string>(values: readonly T[], value: unknown): T | undefined {
+  return values.includes(value as T) ? (value as T) : undefined;
+}
+
 export interface NeonSignProps extends UniversalCSSProps {
   text?: string;
-  neonColor?: 'blue' | 'pink' | 'green' | 'purple' | 'cyan' | 'yellow' | 'red' | 'white';
+  neonColor?: (typeof NEON_COLORS)[number];
   intensity?: 'dim' | 'bright' | 'blazing';
   animation?: 'steady' | 'flicker' | 'pulse' | 'buzz';
-  textSize?: 'small' | 'medium' | 'large' | 'xl';
-  textWeight?: 'normal' | 'bold' | 'black';
+  textSize?: (typeof TEXT_SIZES)[number];
+  textWeight?: (typeof TEXT_WEIGHTS)[number];
   uppercase?: boolean;
   outline?: boolean;
   background?: boolean;
@@ -22,14 +31,27 @@ export interface NeonSignProps extends UniversalCSSProps {
 }
 
 export default function NeonSign(props: NeonSignProps) {
-  const { cssProps, componentProps } = separateCSSProps(props);
+  const { cssProps: allCSSProps, componentProps } = separateCSSProps(props);
+
+  // Templates use the registry's names, `color`, `fontSize` and `fontWeight`.
+  // The compile step files those under CSS, so they arrive here as styles, and
+  // pages saved earlier store them that way too. One of the sign's own values
+  // there means the sign; anything else stays CSS.
+  const colorFromTemplate = oneOf(NEON_COLORS, allCSSProps.color);
+  const sizeFromTemplate = oneOf(TEXT_SIZES, allCSSProps.fontSize);
+  const weightFromTemplate = oneOf(TEXT_WEIGHTS, allCSSProps.fontWeight);
+  const cssProps = { ...allCSSProps };
+  if (colorFromTemplate) delete cssProps.color;
+  if (sizeFromTemplate) delete cssProps.fontSize;
+  if (weightFromTemplate) delete cssProps.fontWeight;
+
   const {
     text = 'NEON SIGN',
-    neonColor = 'blue',
+    neonColor = colorFromTemplate ?? 'blue',
     intensity = 'bright',
     animation = 'steady',
-    textSize = 'medium',
-    textWeight = 'bold',
+    textSize = sizeFromTemplate ?? 'medium',
+    textWeight = weightFromTemplate ?? 'bold',
     uppercase = true,
     outline = true,
     background = false,
@@ -137,7 +159,12 @@ export default function NeonSign(props: NeonSignProps) {
     }
   };
 
-  const displayText = uppercase ? (children || text).toString().toUpperCase() : (children || text);
+  // Children can be elements (a hydrated <b>, say), so they're rendered as
+  // they are and capitals come from CSS. Whitespace alone isn't content.
+  const hasChildren = React.Children.toArray(children).some(
+    (child) => typeof child !== 'string' || child.trim() !== ''
+  );
+  const displayText = hasChildren ? children : text;
 
   // Component default styles
   const componentStyle = {
@@ -145,7 +172,8 @@ export default function NeonSign(props: NeonSignProps) {
     display: 'inline-block',
     padding: background ? '20px 40px' : '10px',
     background: background ? `radial-gradient(ellipse at center, ${shadow}20 0%, transparent 70%)` : 'transparent',
-    borderRadius: background ? '15px' : '0'
+    borderRadius: background ? '15px' : '0',
+    textTransform: uppercase ? ('uppercase' as const) : undefined
   };
 
   // Merge component styles with CSS props (CSS props win)

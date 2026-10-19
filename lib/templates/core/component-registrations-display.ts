@@ -396,7 +396,10 @@ export function registerDisplayComponents(registry: ComponentRegistry) {
     name: 'StickyNote',
     component: StickyNote,
     props: {
-      color: { type: 'enum', values: ['yellow', 'pink', 'blue', 'green', 'orange', 'purple'], default: 'yellow' },
+      // The note colour. It reaches StickyNote as `style.color` (CSS-named
+      // props are compiled to styles), which the component reads as the note.
+      // No default, so an ink colour set with `style` isn't overwritten.
+      color: { type: 'enum', values: ['yellow', 'pink', 'blue', 'green', 'orange', 'purple'] },
       size: { type: 'enum', values: ['sm', 'md', 'lg'], default: 'md' },
       rotation: { type: 'number', min: -15, max: 15, default: 0 }
     },
@@ -736,11 +739,14 @@ export function registerDisplayComponents(registry: ComponentRegistry) {
     component: NeonSign,
     props: {
       text: { type: 'string', default: 'NEON SIGN' },
-      color: { type: 'enum', values: ['blue', 'pink', 'green', 'purple', 'cyan', 'yellow', 'red', 'white'], default: 'blue' },
+      // color, fontSize and fontWeight reach NeonSign as styles (CSS-named
+      // props are compiled to styles), which the component reads as its own.
+      // NeonSign has the defaults.
+      color: { type: 'enum', values: ['blue', 'pink', 'green', 'purple', 'cyan', 'yellow', 'red', 'white'] },
       intensity: { type: 'enum', values: ['dim', 'bright', 'blazing'], default: 'bright' },
       animation: { type: 'enum', values: ['steady', 'flicker', 'pulse', 'buzz'], default: 'steady' },
-      fontSize: { type: 'enum', values: ['small', 'medium', 'large', 'xl'], default: 'medium' },
-      fontWeight: { type: 'enum', values: ['normal', 'bold', 'black'], default: 'bold' },
+      fontSize: { type: 'enum', values: ['small', 'medium', 'large', 'xl'] },
+      fontWeight: { type: 'enum', values: ['normal', 'bold', 'black'] },
       uppercase: { type: 'boolean', default: true },
       outline: { type: 'boolean', default: true },
       background: { type: 'boolean', default: false }
