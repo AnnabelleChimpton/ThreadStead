@@ -21,7 +21,8 @@ export const PRESET_CHROME_CSS = `
   font-family: var(--ts-font-head) !important;
   text-shadow: none !important;
 }
-.thread-label {
+/* The status line is a label too, but each theme styles it on its own */
+.thread-label:not(.ts-profile-status) {
   color: color-mix(in srgb, var(--ts-ink) 70%, transparent) !important;
 }
 .thread-divider {
