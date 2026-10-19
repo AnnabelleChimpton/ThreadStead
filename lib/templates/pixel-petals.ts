@@ -1,4 +1,21 @@
-export const PIXEL_PETALS_TEMPLATE = `@import url('https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Nunito:wght@400;600;700;800&display=swap');
+import { presetFontFaces } from './preset-fonts';
+import { PRESET_CHROME_CSS } from './preset-chrome';
+
+export const PIXEL_PETALS_TEMPLATE = `/* Fonts come from this site (lib/templates/preset-fonts.ts), not Google */
+${presetFontFaces(['Silkscreen', 'Nunito'])}
+
+/* Your page's main colours and fonts. Change a value here and the
+   whole theme follows (the Appearance settings write these too). */
+:root {
+  --ts-ground: #fff8fa;
+  --ts-card: #ffffff;
+  --ts-ink: #53384a;
+  --ts-accent: #c2477d;
+  --ts-on-accent: #ffffff;
+  --ts-font-head: 'Silkscreen', monospace;
+  --ts-font-body: 'Nunito', sans-serif;
+}
+
 
 /* ==============================================
    PIXEL PETALS — a tidy little kawaii garden
@@ -15,7 +32,7 @@ export const PIXEL_PETALS_TEMPLATE = `@import url('https://fonts.googleapis.com/
 /* ---- page ground: flat cream with a faint
         picnic-check texture, no gradient fades ---- */
 .thread-surface {
-  background-color: #fff8fa !important;
+  background-color: var(--ts-ground) !important;
   background-image:
     repeating-linear-gradient(
       0deg,
@@ -31,22 +48,22 @@ export const PIXEL_PETALS_TEMPLATE = `@import url('https://fonts.googleapis.com/
       transparent 2px,
       transparent 24px
     ) !important;
-  color: #53384a !important;
-  font-family: 'Nunito', sans-serif !important;
+  color: var(--ts-ink) !important;
+  font-family: var(--ts-font-body) !important;
 }
 
 /* ---- generic content modules ---- */
 .thread-module {
-  background: #ffffff !important;
+  background: var(--ts-card) !important;
   border: 2px solid #ffd4e8 !important;
   border-radius: 10px !important;
   box-shadow: 3px 3px 0 #ffd4e8 !important;
-  color: #53384a !important;
+  color: var(--ts-ink) !important;
 }
 
 /* ---- profile: the shrine centerpiece ---- */
 .ts-profile-container {
-  background: #ffffff !important;
+  background: var(--ts-card) !important;
   border: 3px dashed #ff8fb8 !important;
   border-radius: 14px 4px 14px 4px !important;
   box-shadow:
@@ -67,33 +84,33 @@ export const PIXEL_PETALS_TEMPLATE = `@import url('https://fonts.googleapis.com/
 }
 
 .ts-profile-display-name {
-  font-family: 'Silkscreen', monospace !important;
+  font-family: var(--ts-font-head) !important;
   font-weight: 700 !important;
   font-size: 1.9rem !important;
-  color: #c2477d !important;
+  color: var(--ts-accent) !important;
   text-shadow: 2px 2px 0 #ffffff, 4px 4px 0 #ffd4e8 !important;
   letter-spacing: 0.5px !important;
 }
 
 .ts-profile-status {
   display: inline-block !important;
-  font-family: 'Nunito', sans-serif !important;
+  font-family: var(--ts-font-body) !important;
   font-weight: 700 !important;
   font-size: 0.8rem !important;
-  color: #c2477d !important;
-  background: #fff8fa !important;
+  color: var(--ts-accent) !important;
+  background: var(--ts-ground) !important;
   border: 2px solid #ffd4e8 !important;
   border-radius: 999px !important;
   padding: 0.15rem 0.75rem !important;
 }
 
 .ts-profile-bio {
-  background: #fff8fa !important;
+  background: var(--ts-ground) !important;
   border: 2px solid #ffd4e8 !important;
   border-radius: 4px !important;
   padding: 1.1rem 1.25rem !important;
-  color: #53384a !important;
-  font-family: 'Nunito', sans-serif !important;
+  color: var(--ts-ink) !important;
+  font-family: var(--ts-font-body) !important;
   font-weight: 600 !important;
   line-height: 1.7 !important;
   box-shadow: 2px 2px 0 #ffd4e8 !important;
@@ -107,12 +124,12 @@ export const PIXEL_PETALS_TEMPLATE = `@import url('https://fonts.googleapis.com/
 }
 
 .ts-profile-button {
-  font-family: 'Nunito', sans-serif !important;
+  font-family: var(--ts-font-body) !important;
   font-weight: 800 !important;
   font-size: 0.85rem !important;
-  color: #c2477d !important;
-  background: #ffffff !important;
-  border: 2px solid #c2477d !important;
+  color: var(--ts-accent) !important;
+  background: var(--ts-card) !important;
+  border: 2px solid var(--ts-accent) !important;
   border-radius: 3px !important;
   padding: 0.4rem 1rem !important;
   box-shadow: 2px 2px 0 #ff8fb8 !important;
@@ -121,7 +138,7 @@ export const PIXEL_PETALS_TEMPLATE = `@import url('https://fonts.googleapis.com/
 
 .ts-profile-button:hover {
   background: #ffd4e8 !important;
-  color: #c2477d !important;
+  color: var(--ts-accent) !important;
   transform: translate(1px, 1px) !important;
   box-shadow: 1px 1px 0 #ff8fb8 !important;
 }
@@ -138,7 +155,7 @@ export const PIXEL_PETALS_TEMPLATE = `@import url('https://fonts.googleapis.com/
 }
 
 .profile-photo-frame {
-  background: #ffffff !important;
+  background: var(--ts-card) !important;
   border: 8px solid #ffffff !important;
   border-radius: 2px !important;
   box-shadow:
@@ -154,7 +171,7 @@ export const PIXEL_PETALS_TEMPLATE = `@import url('https://fonts.googleapis.com/
 
 /* ---- blog posts: pressed-flower diary pages ---- */
 .blog-post-card {
-  background: #ffffff !important;
+  background: var(--ts-card) !important;
   border: 2px dotted #ff8fb8 !important;
   border-radius: 4px 16px 4px 16px !important;
   box-shadow: 3px 3px 0 #ffd4e8 !important;
@@ -173,15 +190,15 @@ export const PIXEL_PETALS_TEMPLATE = `@import url('https://fonts.googleapis.com/
 }
 
 .blog-post-title {
-  font-family: 'Silkscreen', monospace !important;
+  font-family: var(--ts-font-head) !important;
   font-weight: 700 !important;
   font-size: 1.05rem !important;
-  color: #c2477d !important;
+  color: var(--ts-accent) !important;
   letter-spacing: 0.3px !important;
 }
 
 .blog-post-title a {
-  color: #c2477d !important;
+  color: var(--ts-accent) !important;
   text-decoration: none !important;
 }
 
@@ -190,22 +207,22 @@ export const PIXEL_PETALS_TEMPLATE = `@import url('https://fonts.googleapis.com/
 }
 
 .blog-post-date {
-  font-family: 'Nunito', sans-serif !important;
+  font-family: var(--ts-font-body) !important;
   font-weight: 700 !important;
   font-size: 0.75rem !important;
   text-transform: lowercase !important;
   letter-spacing: 0.5px !important;
   color: #a04e74 !important;
-  background: #fff8fa !important;
+  background: var(--ts-ground) !important;
   border: 1px solid #ffd4e8 !important;
   border-radius: 999px !important;
   padding: 0.1rem 0.6rem !important;
 }
 
 .blog-post-content {
-  font-family: 'Nunito', sans-serif !important;
+  font-family: var(--ts-font-body) !important;
   font-weight: 500 !important;
-  color: #53384a !important;
+  color: var(--ts-ink) !important;
   line-height: 1.75 !important;
 }
 
@@ -220,12 +237,12 @@ export const PIXEL_PETALS_TEMPLATE = `@import url('https://fonts.googleapis.com/
 }
 
 .profile-tab-panel {
-  background: #ffffff !important;
+  background: var(--ts-card) !important;
   border: 2px solid #ffd4e8 !important;
   border-top: none !important;
   border-radius: 0 0 10px 10px !important;
   padding: 1.25rem !important;
-  color: #53384a !important;
+  color: var(--ts-ink) !important;
 }
 
 /* ---- phones: looser thumbs, tighter padding ---- */
@@ -265,22 +282,22 @@ export const PIXEL_PETALS_TEMPLATE = `@import url('https://fonts.googleapis.com/
 /* ---------- Tabs & blog list (profile page) ---------- */
 
 .profile-tab-button {
-  background: #fff8fa !important;
+  background: var(--ts-ground) !important;
   color: #b06a8a !important;
   border-right: 1px dotted #ffb8d4 !important;
-  font-family: 'Nunito', sans-serif !important;
+  font-family: var(--ts-font-body) !important;
   font-weight: 700 !important;
 }
 
 .profile-tab-button:hover {
   background: #ffeef5 !important;
-  color: #c2477d !important;
+  color: var(--ts-accent) !important;
 }
 
 .profile-tab-button.active {
   background: #ffd4e8 !important;
   color: #8f2f5a !important;
-  box-shadow: inset 0 -3px 0 #c2477d !important;
+  box-shadow: inset 0 -3px 0 var(--ts-accent) !important;
 }
 
 .blog-tab-content {
@@ -302,10 +319,11 @@ export const PIXEL_PETALS_TEMPLATE = `@import url('https://fonts.googleapis.com/
 
 .blog-post-content {
   color: #4a3540 !important;
-  font-family: 'Nunito', sans-serif !important;
+  font-family: var(--ts-font-body) !important;
 }
 
 .blog-post-actions {
   border-top: 1px dotted #ffb8d4 !important;
   color: #b06a8a !important;
-}`;
+}
+${PRESET_CHROME_CSS}`;

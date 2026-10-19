@@ -1,3 +1,6 @@
+import { presetFontFaces } from './preset-fonts';
+import { PRESET_CHROME_CSS } from './preset-chrome';
+
 export const ABSTRACT_ART_TEMPLATE = `/* ==============================================
    ABSTRACT ART — GALLERY WALL
    Warm white #faf8f4 · Charcoal #22211f
@@ -5,56 +8,70 @@ export const ABSTRACT_ART_TEMPLATE = `/* =======================================
    Flat Bauhaus geometry: hard shadows, no gradients.
    ============================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;700;900&family=Space+Mono:wght@400;700&display=swap');
+/* Fonts come from this site (lib/templates/preset-fonts.ts), not Google */
+${presetFontFaces(['Archivo', 'Space Mono'])}
+
+/* Your page's main colours and fonts. Change a value here and the
+   whole theme follows (the Appearance settings write these too). */
+:root {
+  --ts-ground: #faf8f4;
+  --ts-card: #ffffff;
+  --ts-ink: #22211f;
+  --ts-accent: #2857c4;
+  --ts-on-accent: #faf8f4;
+  --ts-font-head: 'Archivo', sans-serif;
+  --ts-font-body: 'Archivo', sans-serif;
+}
+
 
 /* ---------- The wall ---------- */
 
 .thread-surface {
-  background-color: #faf8f4 !important;
+  background-color: var(--ts-ground) !important;
   background-image: none !important;
-  color: #22211f !important;
-  font-family: 'Archivo', sans-serif !important;
+  color: var(--ts-ink) !important;
+  font-family: var(--ts-font-body) !important;
 }
 
 /* ---------- Generic module: a mounted print ---------- */
 
 .thread-module {
-  background: #ffffff !important;
-  border: 3px solid #22211f !important;
+  background: var(--ts-card) !important;
+  border: 3px solid var(--ts-ink) !important;
   border-radius: 0 !important;
-  box-shadow: 4px 4px 0 #22211f !important;
+  box-shadow: 4px 4px 0 var(--ts-ink) !important;
   padding: 1.5rem !important;
-  color: #22211f !important;
+  color: var(--ts-ink) !important;
 }
 
 /* ---------- Profile: the artist's plinth ---------- */
 
 .ts-profile-container {
-  background: #ffffff !important;
-  border: 3px solid #22211f !important;
+  background: var(--ts-card) !important;
+  border: 3px solid var(--ts-ink) !important;
   border-radius: 0 !important;
-  box-shadow: 8px 8px 0 #2857c4 !important;
+  box-shadow: 8px 8px 0 var(--ts-accent) !important;
   overflow: visible !important;
   position: relative !important;
 }
 
 .ts-profile-header {
-  background: #ffffff !important;
-  border-bottom: 3px solid #22211f !important;
+  background: var(--ts-card) !important;
+  border-bottom: 3px solid var(--ts-ink) !important;
   padding: 2rem 1.75rem 1.5rem !important;
   position: relative !important;
 }
 
 .ts-profile-display-name {
-  font-family: 'Archivo', sans-serif !important;
+  font-family: var(--ts-font-head) !important;
   font-weight: 900 !important;
   font-size: 2.4rem !important;
   line-height: 1.05 !important;
   letter-spacing: -0.045em !important;
   text-transform: uppercase !important;
-  color: #22211f !important;
+  color: var(--ts-ink) !important;
   background: none !important;
-  -webkit-text-fill-color: #22211f !important;
+  -webkit-text-fill-color: var(--ts-ink) !important;
 }
 
 /* The single rotated accent on the page */
@@ -67,7 +84,7 @@ export const ABSTRACT_ART_TEMPLATE = `/* =======================================
   text-transform: uppercase !important;
   color: #faf8f4 !important;
   background: #e0432f !important;
-  border: 2px solid #22211f !important;
+  border: 2px solid var(--ts-ink) !important;
   border-radius: 0 !important;
   padding: 0.2rem 0.6rem !important;
   transform: rotate(-2deg) !important;
@@ -80,13 +97,13 @@ export const ABSTRACT_ART_TEMPLATE = `/* =======================================
 }
 
 .ts-profile-bio {
-  font-family: 'Archivo', sans-serif !important;
+  font-family: var(--ts-font-body) !important;
   font-weight: 400 !important;
   font-size: 1rem !important;
   line-height: 1.65 !important;
-  color: #22211f !important;
-  background: #faf8f4 !important;
-  border: 2px solid #22211f !important;
+  color: var(--ts-ink) !important;
+  background: var(--ts-ground) !important;
+  border: 2px solid var(--ts-ink) !important;
   border-left: 10px solid #e3a92c !important;
   border-radius: 0 !important;
   box-shadow: none !important;
@@ -102,16 +119,16 @@ export const ABSTRACT_ART_TEMPLATE = `/* =======================================
 }
 
 .ts-profile-button {
-  font-family: 'Archivo', sans-serif !important;
+  font-family: var(--ts-font-body) !important;
   font-weight: 700 !important;
   font-size: 0.8rem !important;
   text-transform: uppercase !important;
   letter-spacing: 0.08em !important;
-  color: #22211f !important;
-  background: #ffffff !important;
-  border: 2px solid #22211f !important;
+  color: var(--ts-ink) !important;
+  background: var(--ts-card) !important;
+  border: 2px solid var(--ts-ink) !important;
   border-radius: 0 !important;
-  box-shadow: 4px 4px 0 #22211f !important;
+  box-shadow: 4px 4px 0 var(--ts-ink) !important;
   padding: 0.5rem 1.1rem !important;
   cursor: pointer !important;
   transition: transform 0.1s linear, box-shadow 0.1s linear, background 0.1s linear !important;
@@ -119,9 +136,9 @@ export const ABSTRACT_ART_TEMPLATE = `/* =======================================
 
 .ts-profile-button:hover {
   background: #e3a92c !important;
-  color: #22211f !important;
+  color: var(--ts-ink) !important;
   transform: translate(2px, 2px) !important;
-  box-shadow: 2px 2px 0 #22211f !important;
+  box-shadow: 2px 2px 0 var(--ts-ink) !important;
 }
 
 /* ---------- Photo: framed like a print ---------- */
@@ -132,8 +149,8 @@ export const ABSTRACT_ART_TEMPLATE = `/* =======================================
 }
 
 .profile-photo-frame {
-  background: #ffffff !important;
-  border: 3px solid #22211f !important;
+  background: var(--ts-card) !important;
+  border: 3px solid var(--ts-ink) !important;
   border-radius: 0 !important;
   box-shadow: 6px 6px 0 #e0432f !important;
   padding: 6px !important;
@@ -152,8 +169,8 @@ export const ABSTRACT_ART_TEMPLATE = `/* =======================================
 .profile-tab-list {
   display: flex !important;
   gap: 0 !important;
-  background: #22211f !important;
-  border: 3px solid #22211f !important;
+  background: var(--ts-ink) !important;
+  border: 3px solid var(--ts-ink) !important;
   border-radius: 0 !important;
   padding: 0 !important;
   overflow-x: auto !important;
@@ -167,7 +184,7 @@ export const ABSTRACT_ART_TEMPLATE = `/* =======================================
   text-transform: uppercase !important;
   letter-spacing: 0.06em !important;
   color: #faf8f4 !important;
-  background: #22211f !important;
+  background: var(--ts-ink) !important;
   border: none !important;
   border-right: 1px solid #faf8f4 !important;
   border-radius: 0 !important;
@@ -177,26 +194,26 @@ export const ABSTRACT_ART_TEMPLATE = `/* =======================================
 
 .profile-tab-list button[aria-selected="true"],
 .profile-tab-list [role="tab"][aria-selected="true"] {
-  color: #22211f !important;
+  color: var(--ts-ink) !important;
   background: #e3a92c !important;
 }
 
 .profile-tab-panel {
-  background: #ffffff !important;
-  border: 3px solid #22211f !important;
+  background: var(--ts-card) !important;
+  border: 3px solid var(--ts-ink) !important;
   border-top: none !important;
   border-radius: 0 !important;
   padding: 1.5rem !important;
-  color: #22211f !important;
+  color: var(--ts-ink) !important;
 }
 
 /* ---------- Posts: numbered exhibits ---------- */
 
 .blog-post-card {
-  background: #ffffff !important;
-  border: 3px solid #22211f !important;
+  background: var(--ts-card) !important;
+  border: 3px solid var(--ts-ink) !important;
   border-radius: 0 !important;
-  box-shadow: 4px 4px 0 #22211f !important;
+  box-shadow: 4px 4px 0 var(--ts-ink) !important;
   padding: 1.5rem 1.75rem !important;
   margin-bottom: 2.25rem !important;
   margin-right: 8px !important;
@@ -206,23 +223,23 @@ export const ABSTRACT_ART_TEMPLATE = `/* =======================================
 
 .blog-post-card:hover {
   transform: translate(-2px, -2px) !important;
-  box-shadow: 8px 8px 0 #2857c4 !important;
+  box-shadow: 8px 8px 0 var(--ts-accent) !important;
 }
 
 .blog-post-header {
-  border-bottom: 3px solid #22211f !important;
+  border-bottom: 3px solid var(--ts-ink) !important;
   padding-bottom: 0.75rem !important;
   margin-bottom: 1rem !important;
   background: transparent !important;
 }
 
 .blog-post-title {
-  font-family: 'Archivo', sans-serif !important;
+  font-family: var(--ts-font-head) !important;
   font-weight: 900 !important;
   font-size: 1.45rem !important;
   line-height: 1.15 !important;
   letter-spacing: -0.03em !important;
-  color: #22211f !important;
+  color: var(--ts-ink) !important;
   border: none !important;
   padding: 0 !important;
   margin: 0 0 0.35rem !important;
@@ -240,22 +257,22 @@ export const ABSTRACT_ART_TEMPLATE = `/* =======================================
   letter-spacing: 0.12em !important;
   text-transform: uppercase !important;
   color: #faf8f4 !important;
-  background: #2857c4 !important;
+  background: var(--ts-accent) !important;
   border-radius: 0 !important;
   padding: 0.15rem 0.5rem !important;
   display: inline-block !important;
 }
 
 .blog-post-content {
-  font-family: 'Archivo', sans-serif !important;
+  font-family: var(--ts-font-body) !important;
   font-weight: 400 !important;
   font-size: 1rem !important;
   line-height: 1.7 !important;
-  color: #22211f !important;
+  color: var(--ts-ink) !important;
 }
 
 .blog-post-content a {
-  color: #2857c4 !important;
+  color: var(--ts-accent) !important;
   text-decoration: underline !important;
 }
 
@@ -267,7 +284,7 @@ export const ABSTRACT_ART_TEMPLATE = `/* =======================================
   }
 
   .ts-profile-container {
-    box-shadow: 5px 5px 0 #2857c4 !important;
+    box-shadow: 5px 5px 0 var(--ts-accent) !important;
   }
 
   .thread-module,
@@ -284,10 +301,10 @@ export const ABSTRACT_ART_TEMPLATE = `/* =======================================
 /* ---------- Tabs & blog list (profile page) ---------- */
 
 .profile-tab-button {
-  background: #faf8f4 !important;
-  color: #22211f !important;
-  border-right: 3px solid #22211f !important;
-  font-family: 'Archivo', sans-serif !important;
+  background: var(--ts-ground) !important;
+  color: var(--ts-ink) !important;
+  border-right: 3px solid var(--ts-ink) !important;
+  font-family: var(--ts-font-body) !important;
   font-weight: 700 !important;
   text-transform: uppercase !important;
   letter-spacing: 0.05em !important;
@@ -296,11 +313,11 @@ export const ABSTRACT_ART_TEMPLATE = `/* =======================================
 
 .profile-tab-button:hover {
   background: #e3a92c !important;
-  color: #22211f !important;
+  color: var(--ts-ink) !important;
 }
 
 .profile-tab-button.active {
-  background: #22211f !important;
+  background: var(--ts-ink) !important;
   color: #faf8f4 !important;
 }
 
@@ -315,14 +332,14 @@ export const ABSTRACT_ART_TEMPLATE = `/* =======================================
 }
 
 .post-item {
-  background: #ffffff !important;
-  border: 3px solid #22211f !important;
+  background: var(--ts-card) !important;
+  border: 3px solid var(--ts-ink) !important;
   border-radius: 0 !important;
   box-shadow: 6px 6px 0 #e0432f !important;
 }
 
 .post-item:nth-child(2n) {
-  box-shadow: 6px 6px 0 #2857c4 !important;
+  box-shadow: 6px 6px 0 var(--ts-accent) !important;
 }
 
 .post-item:nth-child(3n) {
@@ -330,12 +347,13 @@ export const ABSTRACT_ART_TEMPLATE = `/* =======================================
 }
 
 .blog-post-content {
-  color: #22211f !important;
+  color: var(--ts-ink) !important;
 }
 
 .blog-post-actions {
-  border-top: 3px solid #22211f !important;
+  border-top: 3px solid var(--ts-ink) !important;
   color: #55524c !important;
   font-family: 'Space Mono', monospace !important;
   font-size: 0.8rem !important;
-}`;
+}
+${PRESET_CHROME_CSS}`;

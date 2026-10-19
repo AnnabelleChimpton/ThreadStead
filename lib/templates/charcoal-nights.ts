@@ -1,37 +1,54 @@
+import { presetFontFaces } from './preset-fonts';
+import { PRESET_CHROME_CSS } from './preset-chrome';
+
 export const CHARCOAL_NIGHTS_TEMPLATE = `/* ==============================================
    CHARCOAL NIGHTS — ink & ember
    charcoal #1a1816 / #232019 · text #ece7df
    ember #e8853d · hairline #3a352e
    ============================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap');
+/* Fonts come from this site (lib/templates/preset-fonts.ts), not Google */
+${presetFontFaces(['Fraunces', 'Inter'])}
+
+/* Your page's main colours and fonts. Change a value here and the
+   whole theme follows (the Appearance settings write these too). */
+:root {
+  --ts-ground: #1a1816;
+  --ts-card: #232019;
+  --ts-ink: #ece7df;
+  --ts-accent: #e8853d;
+  --ts-on-accent: #1a1816;
+  --ts-font-head: 'Fraunces', Georgia, serif;
+  --ts-font-body: 'Inter', system-ui, sans-serif;
+}
+
 
 /* ---------- page ground ---------- */
 
 .thread-surface {
-  background: #1a1816 !important;
-  color: #ece7df !important;
-  font-family: 'Inter', system-ui, sans-serif !important;
+  background: var(--ts-ground) !important;
+  color: var(--ts-ink) !important;
+  font-family: var(--ts-font-body) !important;
 }
 
 /* ---------- generic modules ---------- */
 
 .thread-module {
-  background: #232019 !important;
+  background: var(--ts-card) !important;
   border: 1px solid #3a352e !important;
   border-radius: 6px !important;
   box-shadow: none !important;
-  color: #ece7df !important;
+  color: var(--ts-ink) !important;
 }
 
 /* ---------- profile ---------- */
 
 .ts-profile-container {
-  background: #232019 !important;
+  background: var(--ts-card) !important;
   border: 1px solid #3a352e !important;
   border-radius: 8px !important;
   box-shadow: none !important;
-  color: #ece7df !important;
+  color: var(--ts-ink) !important;
   animation: cn-settle 420ms ease-out both !important;
 }
 
@@ -45,11 +62,11 @@ export const CHARCOAL_NIGHTS_TEMPLATE = `/* ====================================
 }
 
 .ts-profile-display-name {
-  font-family: 'Fraunces', Georgia, serif !important;
+  font-family: var(--ts-font-head) !important;
   font-weight: 600 !important;
   font-size: 2.1rem !important;
   line-height: 1.15 !important;
-  color: #ece7df !important;
+  color: var(--ts-ink) !important;
   letter-spacing: 0.005em !important;
   text-shadow: none !important;
   animation: none !important;
@@ -65,12 +82,12 @@ export const CHARCOAL_NIGHTS_TEMPLATE = `/* ====================================
 .ts-profile-bio {
   background: transparent !important;
   border: none !important;
-  border-left: 2px solid #e8853d !important;
+  border-left: 2px solid var(--ts-accent) !important;
   border-radius: 0 !important;
   padding: 0.25rem 0 0.25rem 1rem !important;
   margin-top: 0.9rem !important;
   color: #cfc8bc !important;
-  font-family: 'Inter', system-ui, sans-serif !important;
+  font-family: var(--ts-font-body) !important;
   font-size: 0.95rem !important;
   line-height: 1.7 !important;
 }
@@ -82,12 +99,12 @@ export const CHARCOAL_NIGHTS_TEMPLATE = `/* ====================================
 }
 
 .ts-profile-button {
-  background: #1a1816 !important;
-  color: #ece7df !important;
+  background: var(--ts-ground) !important;
+  color: var(--ts-ink) !important;
   border: 1px solid #3a352e !important;
   border-radius: 4px !important;
   padding: 0.5rem 1.1rem !important;
-  font-family: 'Inter', system-ui, sans-serif !important;
+  font-family: var(--ts-font-body) !important;
   font-size: 0.85rem !important;
   font-weight: 500 !important;
   letter-spacing: 0.02em !important;
@@ -96,9 +113,9 @@ export const CHARCOAL_NIGHTS_TEMPLATE = `/* ====================================
 }
 
 .ts-profile-button:hover {
-  border-color: #e8853d !important;
-  color: #e8853d !important;
-  background: #1a1816 !important;
+  border-color: var(--ts-accent) !important;
+  color: var(--ts-accent) !important;
+  background: var(--ts-ground) !important;
 }
 
 /* ---------- profile photo ---------- */
@@ -109,7 +126,7 @@ export const CHARCOAL_NIGHTS_TEMPLATE = `/* ====================================
 }
 
 .profile-photo-frame {
-  background: #1a1816 !important;
+  background: var(--ts-ground) !important;
   border: 1px solid #3a352e !important;
   border-radius: 6px !important;
   padding: 4px !important;
@@ -118,7 +135,7 @@ export const CHARCOAL_NIGHTS_TEMPLATE = `/* ====================================
 }
 
 .profile-photo-frame:hover {
-  border-color: #e8853d !important;
+  border-color: var(--ts-accent) !important;
   /* the one permitted glow: a faint ember halo */
   box-shadow: 0 0 18px rgba(232, 133, 61, 0.18) !important;
 }
@@ -148,7 +165,7 @@ export const CHARCOAL_NIGHTS_TEMPLATE = `/* ====================================
   border: none !important;
   border-bottom: 2px solid transparent !important;
   border-radius: 0 !important;
-  font-family: 'Inter', system-ui, sans-serif !important;
+  font-family: var(--ts-font-body) !important;
   font-size: 0.88rem !important;
   font-weight: 500 !important;
   padding: 0.6rem 0.9rem !important;
@@ -157,14 +174,14 @@ export const CHARCOAL_NIGHTS_TEMPLATE = `/* ====================================
 
 .profile-tab-list button:hover,
 .profile-tab-list [role="tab"]:hover {
-  color: #ece7df !important;
+  color: var(--ts-ink) !important;
   background: transparent !important;
 }
 
 .profile-tab-list button[aria-selected="true"],
 .profile-tab-list [role="tab"][aria-selected="true"] {
-  color: #e8853d !important;
-  border-bottom-color: #e8853d !important;
+  color: var(--ts-accent) !important;
+  border-bottom-color: var(--ts-accent) !important;
   background: transparent !important;
   font-weight: 600 !important;
 }
@@ -172,18 +189,18 @@ export const CHARCOAL_NIGHTS_TEMPLATE = `/* ====================================
 .profile-tab-panel {
   background: transparent !important;
   border: none !important;
-  color: #ece7df !important;
+  color: var(--ts-ink) !important;
   padding-top: 1.5rem !important;
 }
 
 /* ---------- blog posts ---------- */
 
 .blog-post-card {
-  background: #232019 !important;
+  background: var(--ts-card) !important;
   border: 1px solid #3a352e !important;
   border-radius: 6px !important;
   box-shadow: none !important;
-  color: #ece7df !important;
+  color: var(--ts-ink) !important;
   padding: 1.6rem 1.75rem !important;
   margin-bottom: 1.4rem !important;
   transition: border-color 180ms ease !important;
@@ -202,11 +219,11 @@ export const CHARCOAL_NIGHTS_TEMPLATE = `/* ====================================
 }
 
 .blog-post-title {
-  font-family: 'Fraunces', Georgia, serif !important;
+  font-family: var(--ts-font-head) !important;
   font-weight: 600 !important;
   font-size: 1.35rem !important;
   line-height: 1.3 !important;
-  color: #ece7df !important;
+  color: var(--ts-ink) !important;
   letter-spacing: 0.005em !important;
 }
 
@@ -217,12 +234,12 @@ export const CHARCOAL_NIGHTS_TEMPLATE = `/* ====================================
 }
 
 .blog-post-title a:hover {
-  color: #e8853d !important;
+  color: var(--ts-accent) !important;
 }
 
 .blog-post-date {
   color: #7c7365 !important;
-  font-family: 'Inter', system-ui, sans-serif !important;
+  font-family: var(--ts-font-body) !important;
   font-size: 0.75rem !important;
   font-variant-numeric: tabular-nums !important;
   letter-spacing: 0.08em !important;
@@ -231,24 +248,24 @@ export const CHARCOAL_NIGHTS_TEMPLATE = `/* ====================================
 
 .blog-post-content {
   color: #cfc8bc !important;
-  font-family: 'Inter', system-ui, sans-serif !important;
+  font-family: var(--ts-font-body) !important;
   font-size: 0.95rem !important;
   line-height: 1.75 !important;
 }
 
 .blog-post-content a {
-  color: #e8853d !important;
+  color: var(--ts-accent) !important;
   text-decoration: underline !important;
   text-decoration-color: rgba(232, 133, 61, 0.4) !important;
   text-underline-offset: 3px !important;
 }
 
 .blog-post-content a:hover {
-  text-decoration-color: #e8853d !important;
+  text-decoration-color: var(--ts-accent) !important;
 }
 
 .blog-post-content blockquote {
-  border-left: 2px solid #e8853d !important;
+  border-left: 2px solid var(--ts-accent) !important;
   color: #a89e8f !important;
   font-style: italic !important;
   padding-left: 1rem !important;
@@ -256,7 +273,7 @@ export const CHARCOAL_NIGHTS_TEMPLATE = `/* ====================================
 }
 
 .blog-post-content code {
-  background: #1a1816 !important;
+  background: var(--ts-ground) !important;
   border: 1px solid #2c2822 !important;
   border-radius: 3px !important;
   color: #ddb892 !important;
@@ -304,7 +321,7 @@ export const CHARCOAL_NIGHTS_TEMPLATE = `/* ====================================
 /* ---------- Tabs & blog list (profile page) ---------- */
 
 .profile-tab-button {
-  background: #1a1816 !important;
+  background: var(--ts-ground) !important;
   color: #8f887c !important;
   border-right: 1px solid #3a352e !important;
   font-family: 'Inter', sans-serif !important;
@@ -312,14 +329,14 @@ export const CHARCOAL_NIGHTS_TEMPLATE = `/* ====================================
 }
 
 .profile-tab-button:hover {
-  background: #232019 !important;
-  color: #ece7df !important;
+  background: var(--ts-card) !important;
+  color: var(--ts-ink) !important;
 }
 
 .profile-tab-button.active {
-  background: #232019 !important;
-  color: #ece7df !important;
-  box-shadow: inset 0 -2px 0 #e8853d !important;
+  background: var(--ts-card) !important;
+  color: var(--ts-ink) !important;
+  box-shadow: inset 0 -2px 0 var(--ts-accent) !important;
 }
 
 .blog-tab-content {
@@ -350,4 +367,5 @@ export const CHARCOAL_NIGHTS_TEMPLATE = `/* ====================================
 .blog-post-actions {
   border-top: 1px solid #3a352e !important;
   color: #8f887c !important;
-}`;
+}
+${PRESET_CHROME_CSS}`;

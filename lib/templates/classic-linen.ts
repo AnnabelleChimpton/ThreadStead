@@ -1,15 +1,32 @@
+import { presetFontFaces } from './preset-fonts';
+import { PRESET_CHROME_CSS } from './preset-chrome';
+
 export const CLASSIC_LINEN_TEMPLATE = `/* ==============================================
    CLASSIC LINEN — quiet, typographic, timeless
    linen #f4efe6 · ink #2b2925 · olive #6b6a45
    hairline #d8d0c0 · faded ink #6e675c
    ============================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@400;500&display=swap');
+/* Fonts come from this site (lib/templates/preset-fonts.ts), not Google */
+${presetFontFaces(['Source Serif 4', 'Inter'])}
+
+/* Your page's main colours and fonts. Change a value here and the
+   whole theme follows (the Appearance settings write these too). */
+:root {
+  --ts-ground: #f4efe6;
+  --ts-card: transparent;
+  --ts-ink: #2b2925;
+  --ts-accent: #6b6a45;
+  --ts-on-accent: #f4efe6;
+  --ts-font-head: 'Source Serif 4', Georgia, serif;
+  --ts-font-body: 'Source Serif 4', Georgia, serif;
+}
+
 
 /* ---------- Surface: linen with woven texture ---------- */
 
 .thread-surface {
-  background-color: #f4efe6 !important;
+  background-color: var(--ts-ground) !important;
   background-image:
     repeating-linear-gradient(
       0deg,
@@ -25,8 +42,8 @@ export const CLASSIC_LINEN_TEMPLATE = `/* ======================================
       transparent 1px,
       transparent 3px
     ) !important;
-  color: #2b2925 !important;
-  font-family: 'Source Serif 4', Georgia, serif !important;
+  color: var(--ts-ink) !important;
+  font-family: var(--ts-font-body) !important;
   line-height: 1.75 !important;
 }
 
@@ -67,12 +84,12 @@ export const CLASSIC_LINEN_TEMPLATE = `/* ======================================
 }
 
 .ts-profile-display-name {
-  font-family: 'Source Serif 4', Georgia, serif !important;
+  font-family: var(--ts-font-head) !important;
   font-weight: 600 !important;
   font-size: 2.1rem !important;
   line-height: 1.25 !important;
   letter-spacing: 0.005em !important;
-  color: #2b2925 !important;
+  color: var(--ts-ink) !important;
   text-shadow: none !important;
 }
 
@@ -82,18 +99,18 @@ export const CLASSIC_LINEN_TEMPLATE = `/* ======================================
   font-weight: 500 !important;
   text-transform: uppercase !important;
   letter-spacing: 0.18em !important;
-  color: #6b6a45 !important;
+  color: var(--ts-accent) !important;
   background: transparent !important;
   border: none !important;
   margin-top: 0.5rem !important;
 }
 
 .ts-profile-bio {
-  font-family: 'Source Serif 4', Georgia, serif !important;
+  font-family: var(--ts-font-body) !important;
   font-size: 1.05rem !important;
   font-weight: 400 !important;
   line-height: 1.85 !important;
-  color: #2b2925 !important;
+  color: var(--ts-ink) !important;
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
@@ -118,7 +135,7 @@ export const CLASSIC_LINEN_TEMPLATE = `/* ======================================
   font-weight: 500 !important;
   text-transform: uppercase !important;
   letter-spacing: 0.14em !important;
-  color: #2b2925 !important;
+  color: var(--ts-ink) !important;
   background: transparent !important;
   border: 1px solid #d8d0c0 !important;
   border-radius: 2px !important;
@@ -129,8 +146,8 @@ export const CLASSIC_LINEN_TEMPLATE = `/* ======================================
 
 .ts-profile-button:hover,
 .ts-profile-button:focus {
-  color: #6b6a45 !important;
-  border-color: #6b6a45 !important;
+  color: var(--ts-accent) !important;
+  border-color: var(--ts-accent) !important;
   background: transparent !important;
   box-shadow: none !important;
   transform: none !important;
@@ -146,7 +163,7 @@ export const CLASSIC_LINEN_TEMPLATE = `/* ======================================
 }
 
 .profile-photo-frame {
-  background: #f4efe6 !important;
+  background: var(--ts-ground) !important;
   border: 1px solid #d8d0c0 !important;
   border-radius: 2px !important;
   box-shadow: 0 1px 2px rgba(43, 41, 37, 0.08) !important;
@@ -205,21 +222,21 @@ export const CLASSIC_LINEN_TEMPLATE = `/* ======================================
 }
 
 .blog-post-title {
-  font-family: 'Source Serif 4', Georgia, serif !important;
+  font-family: var(--ts-font-head) !important;
   font-weight: 600 !important;
   font-size: 1.35rem !important;
   line-height: 1.35 !important;
   letter-spacing: 0.005em !important;
-  color: #2b2925 !important;
+  color: var(--ts-ink) !important;
 }
 
 .blog-post-title a {
-  color: #2b2925 !important;
+  color: var(--ts-ink) !important;
   text-decoration: none !important;
 }
 
 .blog-post-title a:hover {
-  color: #6b6a45 !important;
+  color: var(--ts-accent) !important;
   text-decoration: underline !important;
   text-underline-offset: 3px !important;
   text-decoration-thickness: 1px !important;
@@ -235,14 +252,14 @@ export const CLASSIC_LINEN_TEMPLATE = `/* ======================================
 }
 
 .blog-post-content {
-  font-family: 'Source Serif 4', Georgia, serif !important;
+  font-family: var(--ts-font-body) !important;
   font-size: 1rem !important;
   line-height: 1.85 !important;
-  color: #2b2925 !important;
+  color: var(--ts-ink) !important;
 }
 
 .blog-post-content a {
-  color: #6b6a45 !important;
+  color: var(--ts-accent) !important;
   text-decoration: underline !important;
   text-underline-offset: 3px !important;
   text-decoration-thickness: 1px !important;
@@ -302,13 +319,13 @@ export const CLASSIC_LINEN_TEMPLATE = `/* ======================================
 }
 
 .profile-tab-button:hover {
-  color: #2b2925 !important;
+  color: var(--ts-ink) !important;
 }
 
 .profile-tab-button.active {
   background: transparent !important;
-  color: #2b2925 !important;
-  box-shadow: inset 0 -1px 0 #6b6a45 !important;
+  color: var(--ts-ink) !important;
+  box-shadow: inset 0 -1px 0 var(--ts-accent) !important;
 }
 
 .blog-tab-content {
@@ -332,8 +349,8 @@ export const CLASSIC_LINEN_TEMPLATE = `/* ======================================
 }
 
 .blog-post-content {
-  color: #2b2925 !important;
-  font-family: 'Source Serif 4', Georgia, serif !important;
+  color: var(--ts-ink) !important;
+  font-family: var(--ts-font-body) !important;
   line-height: 1.7 !important;
 }
 
@@ -343,4 +360,5 @@ export const CLASSIC_LINEN_TEMPLATE = `/* ======================================
   font-family: 'Inter', sans-serif !important;
   font-size: 0.78rem !important;
   letter-spacing: 0.06em !important;
-}`;
+}
+${PRESET_CHROME_CSS}`;

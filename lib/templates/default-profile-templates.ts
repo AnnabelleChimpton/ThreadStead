@@ -41,27 +41,27 @@ export function getDefaultProfileTemplate(type: ProfileTemplateType | 'clear' = 
 export const DEFAULT_PROFILE_TEMPLATE_INFO = {
   'abstract-art': {
     name: 'Abstract Art',
-    description: 'Colorful and artistic with dynamic gradients',
+    description: 'A gallery wall: warm white, charcoal and Bauhaus red, blue and mustard',
     emoji: '🎨'
   },
   'charcoal-nights': {
     name: 'Charcoal Nights',
-    description: 'Dark retro terminal aesthetic',
+    description: 'Ink and ember: dark charcoal with an orange accent and a serif',
     emoji: '🖤'
   },
   'pixel-petals': {
     name: 'Pixel Petals',
-    description: 'Kawaii pastel pink paradise',
+    description: 'A tidy pink garden with pixel headings',
     emoji: '🌸'
   },
   'retro-social': {
     name: 'Retro Social',
-    description: 'MySpace-inspired nostalgic vibes',
+    description: 'A mid-2000s profile page in blue and white',
     emoji: '📱'
   },
   'classic-linen': {
     name: 'Classic Linen',
-    description: 'Vintage cream and dotted elegance',
+    description: 'Quiet and bookish: linen, ink and olive, set in a serif',
     emoji: '🧵'
   },
   'clear': {

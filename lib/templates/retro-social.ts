@@ -1,4 +1,21 @@
-export const RETRO_SOCIAL_TEMPLATE = `@import url('https://fonts.googleapis.com/css2?family=Righteous&display=swap');
+import { presetFontFaces } from './preset-fonts';
+import { PRESET_CHROME_CSS } from './preset-chrome';
+
+export const RETRO_SOCIAL_TEMPLATE = `/* Fonts come from this site (lib/templates/preset-fonts.ts), not Google */
+${presetFontFaces(['Righteous'])}
+
+/* Your page's main colours and fonts. Change a value here and the
+   whole theme follows (the Appearance settings write these too). */
+:root {
+  --ts-ground: #e9edf6;
+  --ts-card: #ffffff;
+  --ts-ink: #222222;
+  --ts-accent: #1c3f95;
+  --ts-on-accent: #ffffff;
+  --ts-font-head: 'Righteous', Verdana, Tahoma, sans-serif;
+  --ts-font-body: Verdana, Tahoma, Geneva, sans-serif;
+}
+
 
 /* ===========================================
    RETRO SOCIAL — mid-2000s profile-page chic
@@ -9,18 +26,18 @@ export const RETRO_SOCIAL_TEMPLATE = `@import url('https://fonts.googleapis.com/
 
 /* ---- Page surface: tiled subtle dot pattern ---- */
 .thread-surface {
-  background-color: #e9edf6 !important;
+  background-color: var(--ts-ground) !important;
   background-image:
     radial-gradient(circle at 4px 4px, #d4dbec 1px, transparent 1px),
     radial-gradient(circle at 16px 16px, #dee4f1 1px, transparent 1px) !important;
   background-size: 24px 24px, 24px 24px !important;
-  color: #222222 !important;
-  font-family: Verdana, Tahoma, Geneva, sans-serif !important;
+  color: var(--ts-ink) !important;
+  font-family: var(--ts-font-body) !important;
 }
 
 /* ---- Beveled module boxes (the load-bearing kitsch) ---- */
 .thread-module {
-  background: #ffffff !important;
+  background: var(--ts-card) !important;
   border-top: 2px solid #ffffff !important;
   border-left: 2px solid #ffffff !important;
   border-right: 2px solid #7d8db3 !important;
@@ -29,43 +46,43 @@ export const RETRO_SOCIAL_TEMPLATE = `@import url('https://fonts.googleapis.com/
   border-radius: 0 !important;
   box-shadow: none !important;
   padding: 1rem !important;
-  font-family: Verdana, Tahoma, Geneva, sans-serif !important;
-  color: #222222 !important;
+  font-family: var(--ts-font-body) !important;
+  color: var(--ts-ink) !important;
 }
 
 /* ---- Profile container: framed like a classic profile table ---- */
 .ts-profile-container {
-  background: #ffffff !important;
-  border: 2px solid #1c3f95 !important;
+  background: var(--ts-card) !important;
+  border: 2px solid var(--ts-accent) !important;
   border-radius: 0 !important;
   box-shadow: 3px 3px 0 #aeb9d6 !important;
-  font-family: Verdana, Tahoma, Geneva, sans-serif !important;
-  color: #222222 !important;
+  font-family: var(--ts-font-body) !important;
+  color: var(--ts-ink) !important;
   overflow: hidden !important;
 }
 
 .ts-profile-header {
   background: #dbe3f4 !important;
-  border-bottom: 2px solid #1c3f95 !important;
+  border-bottom: 2px solid var(--ts-accent) !important;
   padding: 1rem !important;
   border-radius: 0 !important;
 }
 
 .ts-profile-display-name {
-  font-family: 'Righteous', Verdana, Tahoma, sans-serif !important;
+  font-family: var(--ts-font-head) !important;
   font-weight: 400 !important;
   font-size: 1.6rem !important;
-  color: #1c3f95 !important;
+  color: var(--ts-accent) !important;
   text-shadow: 1px 1px 0 #ffffff !important;
   letter-spacing: 0.5px !important;
 }
 
 .ts-profile-status {
-  font-family: Verdana, Tahoma, Geneva, sans-serif !important;
+  font-family: var(--ts-font-body) !important;
   font-size: 0.75rem !important;
   font-weight: 700 !important;
-  color: #1c3f95 !important;
-  background: #ffffff !important;
+  color: var(--ts-accent) !important;
+  background: var(--ts-card) !important;
   border: 1px solid #7d8db3 !important;
   border-radius: 3px !important;
   padding: 0.15rem 0.5rem !important;
@@ -80,7 +97,7 @@ export const RETRO_SOCIAL_TEMPLATE = `@import url('https://fonts.googleapis.com/
 }
 
 .ts-profile-bio {
-  font-family: Verdana, Tahoma, Geneva, sans-serif !important;
+  font-family: var(--ts-font-body) !important;
   font-size: 0.85rem !important;
   line-height: 1.6 !important;
   color: #333333 !important;
@@ -102,10 +119,10 @@ export const RETRO_SOCIAL_TEMPLATE = `@import url('https://fonts.googleapis.com/
 
 /* ---- Beveled OS-style buttons ---- */
 .ts-profile-button {
-  font-family: Verdana, Tahoma, Geneva, sans-serif !important;
+  font-family: var(--ts-font-body) !important;
   font-size: 0.75rem !important;
   font-weight: 700 !important;
-  color: #1c3f95 !important;
+  color: var(--ts-accent) !important;
   background: #e4e9f5 !important;
   border-top: 2px solid #ffffff !important;
   border-left: 2px solid #ffffff !important;
@@ -137,8 +154,8 @@ export const RETRO_SOCIAL_TEMPLATE = `@import url('https://fonts.googleapis.com/
 }
 
 .profile-photo-frame {
-  background: #ffffff !important;
-  border: 2px solid #1c3f95 !important;
+  background: var(--ts-card) !important;
+  border: 2px solid var(--ts-accent) !important;
   outline: 1px solid #aeb9d6 !important;
   border-radius: 0 !important;
   box-shadow: 3px 3px 0 #aeb9d6 !important;
@@ -153,7 +170,7 @@ export const RETRO_SOCIAL_TEMPLATE = `@import url('https://fonts.googleapis.com/
 
 /* ---- Blog posts: bulletin-board entries ---- */
 .blog-post-card {
-  background: #ffffff !important;
+  background: var(--ts-card) !important;
   border-top: 2px solid #ffffff !important;
   border-left: 2px solid #ffffff !important;
   border-right: 2px solid #7d8db3 !important;
@@ -167,21 +184,21 @@ export const RETRO_SOCIAL_TEMPLATE = `@import url('https://fonts.googleapis.com/
 
 .blog-post-header {
   background: #dbe3f4 !important;
-  border-bottom: 2px solid #1c3f95 !important;
+  border-bottom: 2px solid var(--ts-accent) !important;
   margin: -1rem -1rem 0.75rem -1rem !important;
   padding: 0.5rem 1rem !important;
 }
 
 .blog-post-title {
-  font-family: Verdana, Tahoma, Geneva, sans-serif !important;
+  font-family: var(--ts-font-body) !important;
   font-size: 1rem !important;
   font-weight: 700 !important;
-  color: #1c3f95 !important;
+  color: var(--ts-accent) !important;
   text-decoration: none !important;
 }
 
 .blog-post-title a {
-  color: #1c3f95 !important;
+  color: var(--ts-accent) !important;
   text-decoration: underline !important;
 }
 
@@ -190,21 +207,21 @@ export const RETRO_SOCIAL_TEMPLATE = `@import url('https://fonts.googleapis.com/
 }
 
 .blog-post-date {
-  font-family: Verdana, Tahoma, Geneva, sans-serif !important;
+  font-family: var(--ts-font-body) !important;
   font-size: 0.7rem !important;
   color: #5a6a8f !important;
   font-style: italic !important;
 }
 
 .blog-post-content {
-  font-family: Verdana, Tahoma, Geneva, sans-serif !important;
+  font-family: var(--ts-font-body) !important;
   font-size: 0.85rem !important;
   line-height: 1.65 !important;
   color: #333333 !important;
 }
 
 .blog-post-content a {
-  color: #1c3f95 !important;
+  color: var(--ts-accent) !important;
   font-weight: 700 !important;
   text-decoration: underline !important;
 }
@@ -216,22 +233,22 @@ export const RETRO_SOCIAL_TEMPLATE = `@import url('https://fonts.googleapis.com/
 /* ---- Tabs: folder tabs, table-era style ---- */
 .profile-tab-list {
   background: #dbe3f4 !important;
-  border-bottom: 2px solid #1c3f95 !important;
+  border-bottom: 2px solid var(--ts-accent) !important;
   border-radius: 0 !important;
   padding: 0.4rem 0.4rem 0 0.4rem !important;
   gap: 3px !important;
-  font-family: Verdana, Tahoma, Geneva, sans-serif !important;
+  font-family: var(--ts-font-body) !important;
 }
 
 .profile-tab-panel {
-  background: #ffffff !important;
+  background: var(--ts-card) !important;
   border-top: 0 !important;
   border-left: 2px solid #ffffff !important;
   border-right: 2px solid #7d8db3 !important;
   border-bottom: 2px solid #7d8db3 !important;
   border-radius: 0 !important;
   padding: 1rem !important;
-  font-family: Verdana, Tahoma, Geneva, sans-serif !important;
+  font-family: var(--ts-font-body) !important;
 }
 
 /* ---- Small screens: tighter chrome, same charm ---- */
@@ -265,7 +282,7 @@ export const RETRO_SOCIAL_TEMPLATE = `@import url('https://fonts.googleapis.com/
 
 .profile-tab-button {
   background: #dfe6f5 !important;
-  color: #1c3f95 !important;
+  color: var(--ts-accent) !important;
   border-right: 2px solid !important;
   border-color: #ffffff #9aa7c7 #9aa7c7 #ffffff !important;
   font-family: Verdana, Tahoma, sans-serif !important;
@@ -278,7 +295,7 @@ export const RETRO_SOCIAL_TEMPLATE = `@import url('https://fonts.googleapis.com/
 }
 
 .profile-tab-button.active {
-  background: #ffffff !important;
+  background: var(--ts-card) !important;
   color: #16327a !important;
   border-color: #9aa7c7 #ffffff #ffffff #9aa7c7 !important;
 }
@@ -294,7 +311,7 @@ export const RETRO_SOCIAL_TEMPLATE = `@import url('https://fonts.googleapis.com/
 }
 
 .post-item {
-  background: #ffffff !important;
+  background: var(--ts-card) !important;
   border: 2px solid !important;
   border-color: #ffffff #9aa7c7 #9aa7c7 #ffffff !important;
   border-radius: 0 !important;
@@ -310,4 +327,5 @@ export const RETRO_SOCIAL_TEMPLATE = `@import url('https://fonts.googleapis.com/
 .blog-post-actions {
   border-top: 1px solid #c6cede !important;
   color: #5a6a8c !important;
-}`;
+}
+${PRESET_CHROME_CSS}`;
