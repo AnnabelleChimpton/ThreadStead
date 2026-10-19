@@ -252,6 +252,21 @@ html, body { height: 100%; }
   outline: 2px solid var(--ha-ink-dark, #2F2F2F) !important;
   outline-offset: 2px !important;
 }
+/* Their 88×31 house badge, at 1x, whatever the template's img rules say */
+[data-site-chrome].ts-step-outside img.ts-house-badge {
+  display: inline-block !important;
+  width: 88px !important;
+  height: 31px !important;
+  max-width: none !important;
+  margin: 0 0 0 6px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  filter: none !important;
+  opacity: 1 !important;
+  image-rendering: pixelated !important;
+}
 [data-site-chrome].ts-step-outside svg {
   display: inline-block !important;
   width: 14px !important;

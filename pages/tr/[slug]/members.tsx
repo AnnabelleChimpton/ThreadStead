@@ -13,6 +13,7 @@ import UserMention from "@/components/ui/navigation/UserMention";
 import { csrfFetch } from "@/lib/api/client/csrf-fetch";
 import { useToast } from "@/contexts/ToastContext";
 import { useConfirm } from "@/contexts/ConfirmContext";
+import { badgeHandlesFor } from "@/lib/pixel-homes/house-badge";
 
 interface Member {
   id: string;
@@ -27,6 +28,8 @@ interface Member {
       avatarUrl?: string | null;
     };
   };
+  /** Their pixel home's handle, when the viewer may see it: shows the house badge */
+  homeHandle?: string | null;
 }
 
 interface ThreadRingMembersPageProps {
@@ -213,6 +216,19 @@ export default function ThreadRingMembersPage({
                   </div>
 
                   <div className="flex items-center gap-3">
+                    {member.homeHandle && (
+                      <a href={`/home/${encodeURIComponent(member.homeHandle)}`} className="ts-house-badge-link block shrink-0" title={`${getMemberDisplayName(member)}'s house`}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={`/api/home/${encodeURIComponent(member.homeHandle)}/badge`}
+                          alt={`${getMemberDisplayName(member)}'s house`}
+                          width={88}
+                          height={31}
+                          loading="lazy"
+                          style={{ imageRendering: "pixelated", display: "block" }}
+                        />
+                      </a>
+                    )}
                     {/* Role Badge */}
                     <span className={`text-xs px-3 py-1 border border-black rounded ${member.role === "curator" ? "bg-yellow-200" :
                         member.role === "moderator" ? "bg-blue-200" :
@@ -363,7 +379,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
               props: {
                 siteConfig,
                 ring,
-                members,
+                members: await withHouseBadges(members, viewer?.id),
                 canManage,
               },
             };
@@ -443,7 +459,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
           memberCount: ring.memberCount,
           curatorId: ring.curatorId,
         },
-        members: serializedMembers,
+        members: await withHouseBadges(serializedMembers, viewer?.id),
         canManage,
       },
     };
@@ -460,3 +476,14 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     };
   }
 };
+
+/** Each member's house badge handle, for homes this viewer may see. Never fails the page. */
+async function withHouseBadges<T extends { user: { id: string } }>(members: T[], viewerId: string | undefined) {
+  try {
+    const handles = await badgeHandlesFor(db, members.map((m) => m.user.id), viewerId, SITE_NAME);
+    return members.map((m) => ({ ...m, homeHandle: handles.get(m.user.id) ?? null }));
+  } catch (error) {
+    console.error("House badges skipped:", error);
+    return members.map((m) => ({ ...m, homeHandle: null }));
+  }
+}
