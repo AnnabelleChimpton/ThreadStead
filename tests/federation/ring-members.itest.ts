@@ -178,4 +178,67 @@ describe('accepting a hub invite is joining the ring', () => {
     await makeTestClient('second').leaveRing(ACCEPT_SLUG)
     await expect(makeTestClient('second').joinRing(ACCEPT_SLUG)).rejects.toMatchObject(invitationRequired)
   })
+
+  test('the curator can invite them again after they left (was a 500)', async () => {
+    const { testActorDid, secondActorDid } = getRuntime()
+    const result = await makeTestClient('main').inviteMember(ACCEPT_SLUG, secondActorDid)
+    expect(result.invitation).toMatchObject({
+      ringSlug: ACCEPT_SLUG,
+      inviteeDid: secondActorDid,
+      inviterDid: testActorDid,
+      status: 'PENDING',
+    })
+    expect(Date.parse(result.invitation.expiresAt)).toBeGreaterThan(Date.now() + 6.9 * 24 * 3600_000)
+
+    const joined = await makeTestClient('second').joinRing(ACCEPT_SLUG)
+    expect(joined.membership).toMatchObject({ status: 'ACTIVE', role: 'member' })
+  })
+})
+
+describe('an invite nobody used runs out', () => {
+  // The hub never marks invitations EXPIRED, so a stale PENDING row used to
+  // block every later invite to that person (400 "Invitation exists").
+  const EXPIRE_SLUG = 'mbrs-expire-ring'
+
+  beforeAll(() => {
+    const { testActorDid } = getRuntime()
+    hubSql(`INSERT INTO "Ring" (id, slug, name, visibility, "joinPolicy", "ownerDid", "updatedAt")
+        VALUES (gen_random_uuid()::text, '${EXPIRE_SLUG}', 'Expire Ring', 'PUBLIC', 'INVITATION', '${testActorDid}', now());
+      INSERT INTO "RingRole" (id, "ringId", name, permissions)
+        SELECT gen_random_uuid()::text, r.id, n, '[]'::jsonb
+        FROM "Ring" r, unnest(array['owner', 'member']) AS n WHERE r.slug = '${EXPIRE_SLUG}';
+      INSERT INTO "Membership" (id, "ringId", "actorDid", "roleId", status, "joinedAt", "updatedAt")
+        SELECT gen_random_uuid()::text, r.id, '${testActorDid}', rr.id, 'ACTIVE', now(), now()
+        FROM "Ring" r JOIN "RingRole" rr ON rr."ringId" = r.id AND rr.name = 'owner'
+        WHERE r.slug = '${EXPIRE_SLUG}';`)
+  })
+
+  afterAll(() => {
+    hubSql(`DELETE FROM "Ring" WHERE slug = '${EXPIRE_SLUG}';`)
+  })
+
+  test('a second invite while the first is live is refused', async () => {
+    const { secondActorDid } = getRuntime()
+    await makeTestClient('main').inviteMember(EXPIRE_SLUG, secondActorDid)
+    await expect(makeTestClient('main').inviteMember(EXPIRE_SLUG, secondActorDid)).rejects.toMatchObject({
+      status: 400,
+      data: { error: 'Invitation exists' },
+    })
+  })
+
+  test('once it has expired it no longer lets them in, and the curator can invite again', async () => {
+    const { secondActorDid } = getRuntime()
+    hubSql(`UPDATE "Invitation" SET "createdAt" = now() - interval '10 days', "expiresAt" = now() - interval '3 days'
+      WHERE "inviteeDid" = '${secondActorDid}'
+        AND "ringId" = (SELECT id FROM "Ring" WHERE slug = '${EXPIRE_SLUG}');`)
+    await expect(makeTestClient('second').joinRing(EXPIRE_SLUG)).rejects.toMatchObject({ status: 403 })
+
+    const result = await makeTestClient('main').inviteMember(EXPIRE_SLUG, secondActorDid)
+    expect(result.invitation.status).toBe('PENDING')
+    expect(Date.parse(result.invitation.createdAt)).toBeGreaterThan(Date.now() - 60_000)
+    expect(Date.parse(result.invitation.expiresAt)).toBeGreaterThan(Date.now() + 6.9 * 24 * 3600_000)
+
+    const joined = await makeTestClient('second').joinRing(EXPIRE_SLUG)
+    expect(joined.membership).toMatchObject({ status: 'ACTIVE', role: 'member' })
+  })
 })
