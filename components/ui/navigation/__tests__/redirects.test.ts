@@ -7,6 +7,18 @@
 import { applyRedirect, loadRedirects, pageFor, resolve } from "./routeTable";
 import { ADMIN_PAGES, COMMUNITY_TABS, FOOTER_COLUMNS, NAV_SECTIONS, SEARCH_HREF, WRITE_HREF, accountMenuItems } from "../siteNav";
 
+// One way into profile editing (design/profile-editing-audit PLAN Phase 2).
+// The template editor is the HTML editor; ?mode=css means the CSS editor.
+const PROFILE_EDITING_URLS: [string, string][] = [
+  ["/resident/someone/edit", "/settings"],
+  ["/settings/profile", "/settings"],
+  ["/resident/someone/template-editor", "/resident/someone/template-editor"],
+  ["/resident/someone/template-editor?mode=template", "/resident/someone/template-editor?mode=template"],
+  ["/resident/someone/template-editor?mode=css", "/resident/someone/css-editor?mode=css"],
+  ["/resident/someone/css-editor", "/resident/someone/css-editor"],
+  ["/resident/someone/post/abc123/edit", "/resident/someone/post/abc123/edit"],
+];
+
 // [old URL, where it should end up] — the old URL may be served directly
 // (destination === old URL) or redirected.
 const OLD_URLS: [string, string][] = [
@@ -70,6 +82,8 @@ const OLD_URLS: [string, string][] = [
   ["/threadrings/genealogy", "/threadrings/genealogy"],
   ["/explore/homes", "/neighborhood"],
   ["/explore/homes?template=loft_v1", "/neighborhood?template=loft_v1"],
+
+  ...PROFILE_EDITING_URLS,
 ];
 
 describe("old URLs", () => {
@@ -82,6 +96,12 @@ describe("old URLs", () => {
   it("never sends /feed back to /discover/feed (a browser-cached 308 would loop)", async () => {
     expect(await applyRedirect("/feed")).toBeNull();
     expect(await applyRedirect("/discover/feed")).toBeNull();
+  });
+
+  it("never permanently redirects a profile-editing URL (these paths might come back)", async () => {
+    for (const [oldUrl] of PROFILE_EDITING_URLS) {
+      expect((await applyRedirect(oldUrl))?.permanent ?? false).toBe(false);
+    }
   });
 
   it("has no redirect whose destination is itself redirected", async () => {

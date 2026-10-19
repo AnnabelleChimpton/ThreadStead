@@ -43,12 +43,6 @@ export default function TemplateEditorPage({
 }: TemplateEditorPageProps) {
   const router = useRouter();
 
-  // Get mode parameter from URL (?mode=template, ?mode=css)
-  const urlMode = router.query.mode as string | undefined;
-  const initialEditorMode = (urlMode === 'template' || urlMode === 'css')
-    ? urlMode
-    : undefined;
-
   // Extract HTML content and any embedded CSS from existing template
   let extractedHtmlContent = '';
   let embeddedCSS = '';
@@ -157,8 +151,8 @@ export default function TemplateEditorPage({
     router.push(`/resident/${username}`);
   };
 
-  const handleBackToEdit = () => {
-    router.push(`/resident/${username}/edit`);
+  const handleBackToSettings = () => {
+    router.push('/settings?tab=appearance');
   };
 
   if (!isOwner) {
@@ -211,10 +205,10 @@ export default function TemplateEditorPage({
 
               <div className="flex items-center gap-2">
                 <button
-                  onClick={handleBackToEdit}
+                  onClick={handleBackToSettings}
                   className="thread-button-secondary text-xs px-2 py-1"
                 >
-                  ← Edit Profile
+                  ← Settings
                 </button>
                 <button
                   onClick={handleBackToProfile}
@@ -234,7 +228,9 @@ export default function TemplateEditorPage({
               initialCSSMode={cssMode}
               initialTemplateMode={templateMode}
               initialShowNavigation={!hideNavigation}
-              initialEditorMode={initialEditorMode}
+              // Always the HTML editor. CSS-only editing is the CSS editor
+              // (?mode=css redirects there in next.config.ts).
+              initialEditorMode="template"
               onSave={handleSave}
             />
           </div>

@@ -280,7 +280,7 @@ export default function UserQuickView({ username, isOpen, onClose }: UserQuickVi
           )}
           {isOwner && (
             <Link
-              href="/settings/profile"
+              href="/settings"
               className="thread-button text-sm text-center flex-1"
             >
               Edit Profile

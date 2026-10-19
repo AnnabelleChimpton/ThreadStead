@@ -95,7 +95,7 @@ export default function ProfileHeader({
             )}
             {relStatus === "owner" && (
               <Link
-                href={`/resident/${username}/edit`}
+                href="/settings"
                 className="ts-profile-button ts-edit-profile-button thread-button text-sm"
               >
                 Edit Profile

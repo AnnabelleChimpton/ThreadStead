@@ -85,7 +85,7 @@ export default function TemplatesIndex({ siteConfig, username }: TemplatesIndexP
 
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                   <Link
-                    href={username ? `/resident/${username}/template-editor?mode=template` : "/settings?tab=appearance"}
+                    href={username ? `/resident/${username}/css-editor` : "/settings?tab=appearance"}
                     className="px-6 py-3 bg-green-200 border-3 border-black shadow-[4px_4px_0_#000] hover:shadow-[6px_6px_0_#000] transition-all font-bold text-center"
                   >
                     <PixelIcon name="edit" className="inline-block align-middle mr-1" /> Start CSS Styling
@@ -131,7 +131,7 @@ export default function TemplatesIndex({ siteConfig, username }: TemplatesIndexP
 
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                   <Link
-                    href={username ? `/resident/${username}/template-editor?mode=template` : "/settings?tab=appearance"}
+                    href={username ? `/resident/${username}/template-editor` : "/settings?tab=appearance"}
                     className="px-6 py-3 bg-blue-200 border-3 border-black shadow-[4px_4px_0_#000] hover:shadow-[6px_6px_0_#000] transition-all font-bold text-center"
                   >
                     <PixelIcon name="code" size={16} className="inline-block align-middle mr-1" /> Open Template Editor

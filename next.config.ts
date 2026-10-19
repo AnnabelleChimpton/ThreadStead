@@ -214,6 +214,26 @@ const nextConfig: NextConfig = {
         permanent: false,
       },
 
+      // One way into profile editing (design/profile-editing-audit PLAN
+      // Phase 2). Not permanent: these paths might be reused.
+      {
+        source: '/resident/:username/edit',
+        destination: '/settings',
+        permanent: false,
+      },
+      {
+        source: '/settings/profile',
+        destination: '/settings',
+        permanent: false,
+      },
+      {
+        // The template editor is the HTML editor; CSS-only editing is the CSS editor
+        source: '/resident/:username/template-editor',
+        has: [{ type: 'query', key: 'mode', value: 'css' }],
+        destination: '/resident/:username/css-editor',
+        permanent: false,
+      },
+
       // Old ring-neighborhood URL
       {
         source: '/rings/:slug/neighborhood',

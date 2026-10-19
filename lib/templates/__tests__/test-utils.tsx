@@ -191,24 +191,6 @@ export const testComponentProps = async (componentName: string, validProps: Reco
   });
 };
 
-// Template rendering test utilities
-export const testTemplateRendering = async (template: string, _expectedElements: string[]) => {
-  const { TemplateEngine } = await import('../core/template-engine');
-  const residentData = createMockResidentData();
-  
-  const compileResult = TemplateEngine.compile({ html: template, mode: 'custom-tags' });
-  expect(compileResult.success).toBe(true);
-  
-  const renderResult = TemplateEngine.render({
-    ast: compileResult.ast!,
-    residentData,
-    mode: 'preview'
-  });
-  
-  expect(renderResult.success).toBe(true);
-  return renderResult.content;
-};
-
 // Mock fetch for API testing
 export const mockFetch = (responses: Record<string, any>) => {
   const originalFetch = global.fetch;

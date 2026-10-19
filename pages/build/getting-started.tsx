@@ -66,7 +66,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                 ) : (
                   <ButtonLink href={WELCOME_RING_PATH}>Start with Welcome Ring</ButtonLink>
                 )}
-                <ButtonLink href="/settings/profile" variant="secondary">Customize Profile</ButtonLink>
+                <ButtonLink href="/settings?tab=appearance" variant="secondary">Customize Profile</ButtonLink>
               </p>
             </>
           )}
@@ -166,7 +166,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                       <h3 className="font-bold text-lg">Customize</h3>
                       <div className="space-y-2">
                         <Link
-                          href="/settings/profile"
+                          href="/settings"
                           className="ts-card-link block p-3 border-2 border-dotted border-nb-ink-mid/60 rounded-md hover:border-solid hover:border-nb-ink-mid"
                         >
                           <div className="font-medium">Profile Settings</div>
@@ -454,7 +454,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                     <h4 className="font-bold mb-2">Profile Settings</h4>
                     <div className="space-y-2 text-sm">
                       <Link
-                        href="/settings/profile"
+                        href="/settings"
                         className={`${buttonClasses("primary", "sm")} block text-center`}
                       >
                         Edit Profile Settings

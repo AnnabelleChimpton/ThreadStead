@@ -317,7 +317,7 @@ describe('ProfileHeader Component', () => {
       renderWithTemplateContext(<ProfileHeader />, { residentData: ownerViewing });
 
       const link = screen.getByRole('link', { name: 'Edit Profile' });
-      expect(link).toHaveAttribute('href', '/resident/testuser/edit');
+      expect(link).toHaveAttribute('href', '/settings');
       expect(link).toHaveClass('ts-edit-profile-button', 'thread-button');
     });
 

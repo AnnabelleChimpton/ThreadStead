@@ -79,7 +79,7 @@ export default function ProfileHeader(props: ProfileHeaderProps) {
               <MutualFriends />
               {isOwner && (
                 <Link
-                  href={`/resident/${owner.handle}/edit`}
+                  href="/settings"
                   className="ts-profile-button ts-edit-profile-button thread-button text-sm"
                 >
                   Edit Profile

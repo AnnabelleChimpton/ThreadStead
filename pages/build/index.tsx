@@ -1,15 +1,17 @@
 import { getSiteBaseUrl } from '@/lib/config/site-url';
-import { GetServerSideProps } from 'next';
+import { GetServerSideProps, NextApiRequest } from 'next';
 import Head from 'next/head';
 import Link from 'next/link';
 import Layout from '@/components/ui/layout/Layout';
+import ButtonLink from '@/components/ui/ButtonLink';
 import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
 
 interface BuildHubProps {
   siteConfig: SiteConfig;
+  username: string | null;
 }
 
-export default function BuildHub({ siteConfig }: BuildHubProps) {
+export default function BuildHub({ siteConfig, username }: BuildHubProps) {
   const tabs = [
     { href: '/build/templates', label: 'Templates', description: 'The template language and its components' },
     { href: '/build/getting-started', label: 'Getting Started', description: 'A tour of rings, your page, your house, and posting' },
@@ -42,6 +44,14 @@ export default function BuildHub({ siteConfig }: BuildHubProps) {
                 let you write the whole page&apos;s HTML yourself. I&apos;d start with CSS and only reach for a template when
                 you want a completely different layout.
               </p>
+              <div className="mt-5 flex flex-wrap justify-center gap-3">
+                <ButtonLink href={username ? `/resident/${username}/css-editor` : '/settings?tab=appearance'}>
+                  Open the CSS editor
+                </ButtonLink>
+                <ButtonLink href={username ? `/resident/${username}/template-editor` : '/settings?tab=appearance'} variant="secondary">
+                  Write your own HTML
+                </ButtonLink>
+              </div>
             </div>
           </div>
 
@@ -100,12 +110,23 @@ export default function BuildHub({ siteConfig }: BuildHubProps) {
   );
 }
 
-export const getServerSideProps: GetServerSideProps = async () => {
+export const getServerSideProps: GetServerSideProps<BuildHubProps> = async ({ req }) => {
   const siteConfig = await getSiteConfig();
+
+  // Signed in: the buttons open your own editors
+  let username: string | null = null;
+  try {
+    const { getSessionUser } = await import('@/lib/auth/server');
+    const user = await getSessionUser(req as NextApiRequest);
+    username = user?.primaryHandle?.split('@')[0] ?? null;
+  } catch {
+    // Signed out or the lookup failed: the buttons go to Settings
+  }
 
   return {
     props: {
       siteConfig,
+      username,
     }
   };
 };
