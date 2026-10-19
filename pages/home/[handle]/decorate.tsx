@@ -9,6 +9,7 @@ import { useToast } from '@/contexts/ToastContext'
 import { HouseTemplate, ColorPalette, HouseCustomizations, AtmosphereSettings } from '@/components/pixel-homes/HouseSVG'
 import { normalizeDecorationRow, normalizeHomeConfig } from '@/lib/pixel-homes/decoration-save-rules'
 import type { SavePayload } from '@/lib/pixel-homes/editor-doc'
+import { customArtUrl, customSlotOf, customSlotUrls } from '@/lib/pixel-homes/custom-art'
 
 interface DecorationPageProps {
   handle: string
@@ -154,7 +155,10 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
             size: true,
             positionX: true,
             positionY: true,
+            gridX: true,
+            gridY: true,
             layer: true,
+            layerBias: true,
             data: true
           }
         }
@@ -181,6 +185,8 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       }
     }
 
+    const slotUrls = customSlotUrls(homeConfig.customAssets)
+
     // Transform decorations to match component interface
     const transformedDecorations = homeConfig.decorations?.map((decoration) => {
       // Get pngUrl and renderSvg from lookup map
@@ -197,13 +203,12 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         renderSvg: decorationData?.renderSvg || null
       }
 
-      // For custom type decorations, extract customAssetUrl and slot from data
-      if (decoration.decorationType === 'custom' && decoration.data) {
-        const data = decoration.data as { customAssetUrl?: string; slot?: number }
+      // A resident's own art shows whatever is in its slot now
+      if (decoration.decorationType === 'custom') {
         return {
           ...baseDecoration,
-          customAssetUrl: data.customAssetUrl || null,
-          slot: typeof data.slot === 'number' ? data.slot : null
+          customAssetUrl: customArtUrl(decoration.decorationId, slotUrls),
+          slot: customSlotOf(decoration.decorationId)
         }
       }
 

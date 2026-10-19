@@ -99,27 +99,19 @@ export default apiHandler(
       }
 
       try {
-        // Get current slots
-        const slots = await getCustomAssetSlots(me.id);
-
-        // Delete old asset in this slot if it exists
-        if (slots[slot].url) {
-          try {
-            await deleteCustomPixelArt(slots[slot].url!);
-          } catch (e) {
-            console.error('Error deleting old asset:', e);
-            // Continue anyway - the old file might already be gone
-          }
-        }
-
-        // Upload new custom asset
+        // Upload first: if it fails, the slot keeps its old image
         const { customAssetUrl } = await uploadCustomPixelArt(imageDataUrl, me.id);
 
-        // Update the slot
+        // Then point the slot at it (placed copies follow the slot)
+        const slots = await getCustomAssetSlots(me.id);
+        const oldUrl = slots[slot].url;
         slots[slot].url = customAssetUrl;
-
-        // Save to database
         await saveCustomAssetSlots(me.id, slots);
+
+        // Only now is the old file unused
+        if (oldUrl && oldUrl !== customAssetUrl) {
+          await deleteCustomPixelArt(oldUrl).catch((e) => console.error('Error deleting old asset:', e));
+        }
 
         return res.status(200).json({
           ok: true,
@@ -148,20 +140,12 @@ export default apiHandler(
         // Get current slots
         const slots = await getCustomAssetSlots(me.id);
 
-        // Delete asset from storage if it exists
-        if (slots[slot].url) {
-          try {
-            await deleteCustomPixelArt(slots[slot].url!);
-          } catch (e) {
-            console.error('Error deleting asset from storage:', e);
-            // Continue anyway
-          }
-
-          // Clear the slot
+        // Clear the slot first, then delete the file nothing points at
+        const oldUrl = slots[slot].url;
+        if (oldUrl) {
           slots[slot].url = null;
-
-          // Save to database
           await saveCustomAssetSlots(me.id, slots);
+          await deleteCustomPixelArt(oldUrl).catch((e) => console.error('Error deleting asset from storage:', e));
         }
 
         return res.status(200).json({ ok: true, slot, slots });

@@ -11,6 +11,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { db } from '@/lib/config/database/connection'
 import { SITE_NAME } from '@/lib/config/site/constants'
+import { place } from '@/lib/pixel-homes/placement'
+import { customSlotUrls } from '@/lib/pixel-homes/custom-art'
 import {
   createEditorState,
   docFromProps,
@@ -144,9 +146,9 @@ test('every kind of edit survives save and reload', async () => {
 
   const edited = edit(
     opened,
-    { type: 'place', decoration: newPlacement(lampItem, { x: 300, y: 260, layer: 300 }) },
-    { type: 'place', decoration: newPlacement(lamp, { x: 340, y: 260, layer: 300 }) }, // a copy of a placed copy
-    { type: 'move', id: rose.id, position: { x: 80.4, y: 255.6, layer: 1 } },
+    { type: 'place', decoration: newPlacement(lampItem, place(lampItem, 300, 260)) },
+    { type: 'place', decoration: newPlacement(lamp, place(lamp, 340, 260)) }, // a copy of a placed copy
+    { type: 'move', id: rose.id, placement: place(rose, 80.4, 255.6, { free: true }) },
     { type: 'updateDecoration', id: sign.id, changes: { text: 'HELLO' }, mergeKey: 'sign' },
     { type: 'beginStroke' },
     { type: 'paintCell', key: '4,8', tile: 'stone_path' },
@@ -188,4 +190,71 @@ test('clearing a sign and removing everything stick', async () => {
   const empty = edit(opened, { type: 'remove', ids: opened.decorations.map((d) => d.id) })
   expect((await save(empty)).statusCode).toBe(200)
   expect((await openEditor()).decorations).toEqual([])
+})
+
+describe('grid cells, depth and custom art', () => {
+  const art = (n: number) => `https://cdn.example/pixel-homes/custom/${me.id}-${n}.png`
+
+  test('grid placements store their cell, free ones their pixels, and both come back', async () => {
+    const opened = await openEditor()
+    const pine = { id: 'tree_pine', name: 'Pine', type: 'plant' as const }
+    const edited = edit(
+      { ...opened, decorations: [] },
+      { type: 'place', decoration: { ...newPlacement(pine, place(pine, 70, 250), 'grid'), layerBias: 2 } },
+      { type: 'place', decoration: newPlacement(pine, place(pine, 101, 250, { free: true }), 'free') },
+    )
+    expect((await save(edited)).statusCode).toBe(200)
+
+    const rows = await db.userHomeDecoration.findMany({ where: { userId: me.id }, orderBy: { positionX: 'asc' } })
+    expect(rows.map((r) => [r.positionX, r.positionY, r.gridX, r.gridY, r.layerBias])).toEqual([
+      [64, 256, 4, 16, 2],
+      [101, 250, null, null, 0],
+    ])
+    const reopened = await openEditor()
+    expect(docKey(reopened)).toBe(docKey(edited))
+    expect(reopened.decorations.map((d) => [d.gridX, d.layerBias])).toEqual([[4, 2], [null, 0]])
+  })
+
+  test('the server works the position out from the cell', async () => {
+    const res = await callApi(saveHandler, {
+      method: 'POST',
+      body: { decorations: [{ decorationType: 'plant', decorationId: 'tree_pine', zone: 'front_yard', positionX: 0, positionY: 0, gridX: 5, gridY: 15 }] },
+    })
+    expect(res.statusCode).toBe(200)
+    const [row] = await db.userHomeDecoration.findMany({ where: { userId: me.id } })
+    expect([row.positionX, row.positionY]).toEqual([80, 240])
+  })
+
+  test('custom art points at its slot: replacing the slot changes every copy, and the URL is never stored', async () => {
+    await db.userHomeConfig.update({ where: { userId: me.id }, data: { customAssets: [{ slot: 2, url: art(1) }] } })
+    const opened = await openEditor()
+    const slotItem = { id: 'custom_asset_2', name: 'My Art 3', type: 'custom' as const, customAssetUrl: art(1), slot: 2 }
+    const edited = edit(
+      { ...opened, decorations: [] },
+      { type: 'place', decoration: newPlacement(slotItem, place(slotItem, 32, 240), 'a') },
+      { type: 'place', decoration: newPlacement(slotItem, place(slotItem, 128, 240), 'b') },
+    )
+    expect((await save(edited)).statusCode).toBe(200)
+    const rows = await db.userHomeDecoration.findMany({ where: { userId: me.id } })
+    expect(rows.map((r) => r.data)).toEqual([{ slot: 2 }, { slot: 2 }])
+
+    // an older client that still sends the URL: it is dropped
+    await callApi(saveHandler, {
+      method: 'POST',
+      body: { decorations: [{ decorationType: 'custom', decorationId: 'custom_asset_2', zone: 'front_yard', positionX: 0, positionY: 240, data: { customAssetUrl: 'https://elsewhere.example/x.png', slot: 2 } }] },
+    })
+    expect((await db.userHomeDecoration.findFirst({ where: { userId: me.id } }))?.data).toEqual({ slot: 2 })
+    await save(edited)
+
+    // replace the slot's image: every copy shows the new one, in the editor and for visitors
+    await db.userHomeConfig.update({ where: { userId: me.id }, data: { customAssets: [{ slot: 2, url: art(2) }] } })
+    expect((await openEditor()).decorations.map((d) => d.customAssetUrl)).toEqual([art(2), art(2)])
+    const load = await callApi(loadHandler, { method: 'GET', query: { username: HANDLE } })
+    expect(load.body.decorations.map((d: any) => d.customAssetUrl)).toEqual([art(2), art(2)])
+
+    // an emptied slot shows nothing
+    await db.userHomeConfig.update({ where: { userId: me.id }, data: { customAssets: [] } })
+    expect((await openEditor()).decorations.map((d) => d.customAssetUrl ?? null)).toEqual([null, null])
+    expect(customSlotUrls([])).toEqual([null, null, null, null, null])
+  })
 })

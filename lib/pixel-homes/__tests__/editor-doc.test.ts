@@ -35,6 +35,11 @@ const base: EditorDoc = {
   terrain: { '3,8': 'water' },
 }
 
+/** A free placement at exact pixels. */
+const at = (x: number, y: number) => ({ position: { x, y }, gridX: null, gridY: null })
+/** A placement on grid cell (gx, gy). */
+const cell = (gx: number, gy: number) => ({ position: { x: gx * 16, y: gy * 16 }, gridX: gx, gridY: gy })
+
 const run = (...actions: EditorAction[]) => actions.reduce(editorReducer, createEditorState(base))
 const then = (state: EditorState, ...actions: EditorAction[]) => actions.reduce(editorReducer, state)
 const undo: EditorAction = { type: 'undo' }
@@ -43,7 +48,7 @@ const redo: EditorAction = { type: 'redo' }
 describe('undo and redo cover the whole home', () => {
   const edits: Array<[string, EditorAction, (doc: EditorDoc) => unknown]> = [
     ['placing a decoration', { type: 'place', decoration: rose('roses_red_2', 96, 240) }, (d) => d.decorations.length],
-    ['moving a decoration', { type: 'move', id: 'roses_red_1', position: { x: 128, y: 256, layer: 1 } }, (d) => d.decorations[0].position],
+    ['moving a decoration', { type: 'move', id: 'roses_red_1', placement: at(128, 256) }, (d) => d.decorations[0].position],
     ['removing a decoration', { type: 'remove', ids: ['roses_red_1'] }, (d) => d.decorations.length],
     ['sign text', { type: 'updateDecoration', id: 'roses_red_1', changes: { text: 'HI' } }, (d) => d.decorations[0].text],
     ['a wall colour', { type: 'setHouse', changes: { wallColor: '#3a5f8c' } }, (d) => d.house.wallColor],
@@ -81,8 +86,8 @@ describe('undo and redo cover the whole home', () => {
       { type: 'setAtmosphere', changes: { sky: 'sunny' } },
       { type: 'setTheme', template: 'cottage_v1', palette: 'thread_sage' },
       { type: 'setHouse', changes: { windowStyle: 'default' } },
-      { type: 'move', id: 'roses_red_1', position: { x: 64, y: 240, layer: 300000 } },
-      { type: 'move', id: 'not_here', position: { x: 0, y: 0 } },
+      { type: 'move', id: 'roses_red_1', placement: at(64, 240) },
+      { type: 'move', id: 'not_here', placement: at(0, 0) },
       { type: 'remove', ids: ['not_here'] },
       { type: 'paintCell', key: '3,8', tile: 'water' },
       { type: 'paintCell', key: '9,9', tile: null },
@@ -98,7 +103,7 @@ describe('undo and redo cover the whole home', () => {
 
   test(`history keeps the last ${HISTORY_LIMIT} steps`, () => {
     let s = createEditorState(base)
-    for (let i = 0; i < HISTORY_LIMIT + 20; i++) s = then(s, { type: 'move', id: 'roses_red_1', position: { x: i, y: 240 } })
+    for (let i = 0; i < HISTORY_LIMIT + 20; i++) s = then(s, { type: 'move', id: 'roses_red_1', placement: at(i, 240) })
     expect(s.past).toHaveLength(HISTORY_LIMIT)
     for (let i = 0; i < HISTORY_LIMIT + 5; i++) s = then(s, undo)
     expect(s.present.decorations[0].position).toEqual({ x: 19, y: 240 })
@@ -229,17 +234,18 @@ describe('docKey (what counts as a change)', () => {
 describe('placing, loading and saving', () => {
   test('a new copy keeps a catalog id that ends in digits', () => {
     const fence = { id: 'fence_2', name: 'Fence', type: 'structure' } as DecorationItem
-    const placed = newPlacement(fence, { x: 32, y: 200 }, '1729300000000_abc123')
+    const placed = newPlacement(fence, cell(2, 12), '1729300000000_abc123')
     expect(placed).toMatchObject({ id: 'fence_2_1729300000000_abc123', decorationId: 'fence_2', variant: 'default', size: 'medium' })
     // a copy of a copy is still the same catalog item
-    expect(newPlacement(placed, { x: 0, y: 200 }, '9_x').decorationId).toBe('fence_2')
+    expect(newPlacement(placed, cell(0, 12), '9_x').decorationId).toBe('fence_2')
     expect(toSavePayload({ ...base, decorations: [placed] }).decorations[0].decorationId).toBe('fence_2')
   })
 
   test('custom art keeps its slot', () => {
     const slot = { id: 'custom_asset_3', name: 'My Art 4', type: 'custom', customAssetUrl: 'https://cdn/x.png', slot: 3 } as DecorationItem
-    const [saved] = toSavePayload({ ...base, decorations: [newPlacement(slot, { x: 0, y: 200 })] }).decorations
-    expect(saved).toMatchObject({ decorationId: 'custom_asset_3', decorationType: 'custom', data: { customAssetUrl: 'https://cdn/x.png', slot: 3 } })
+    const [saved] = toSavePayload({ ...base, decorations: [newPlacement(slot, cell(0, 12))] }).decorations
+    // the slot only: the image comes from the slot when drawn, so a replaced image updates every copy
+    expect(saved).toMatchObject({ decorationId: 'custom_asset_3', decorationType: 'custom', data: { slot: 3 } })
   })
 
   test('sign text is read from data and saved back, and clearing it sticks', () => {
@@ -263,11 +269,11 @@ describe('placing, loading and saving', () => {
 
   test('what the editor sends passes the save schema', () => {
     const s = run(
-      { type: 'place', decoration: newPlacement({ id: 'lamp_post_3', name: 'Lamp', type: 'lighting' }, { x: 100.4, y: 199.6, layer: 300123 }) },
+      { type: 'place', decoration: newPlacement({ id: 'lamp_post_3', name: 'Lamp', type: 'lighting' }, at(100, 200)) },
       { type: 'setHouse', changes: { wallColor: '#3a5f8c', houseTitle: 'Home' } },
     )
     const parsed = saveHomeSchema.safeParse(toSavePayload(s.present))
     expect(parsed.error?.issues).toBeUndefined()
-    expect(parsed.data?.decorations[1]).toMatchObject({ decorationId: 'lamp_post_3', positionX: 100, positionY: 200 })
+    expect(parsed.data?.decorations[1]).toMatchObject({ decorationId: 'lamp_post_3', positionX: 100, positionY: 200, gridX: null, layerBias: 0 })
   })
 })

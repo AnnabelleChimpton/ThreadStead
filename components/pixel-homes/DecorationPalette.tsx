@@ -804,7 +804,7 @@ export default function DecorationPalette({
           <div className="mb-4 p-3 bg-thread-cream/50 rounded-lg border border-thread-sage/30">
             <div className="text-sm text-thread-pine font-medium mb-1">My Custom Pixel Art</div>
             <div className="text-xs text-thread-sage">
-              Upload your own pixel art (64×64 max, PNG/GIF/WebP, 100KB limit). Click a slot to upload or select placed art.
+              Your own pixel art: PNG or WebP, up to 64×64 px and 100 KB. A GIF keeps only its first frame. Replacing an image changes every copy in your yard.
             </div>
           </div>
 
@@ -815,8 +815,8 @@ export default function DecorationPalette({
               const isSelected = selectedItem?.id === item.id
 
               return (
+                <div key={item.id} className="flex flex-col gap-1">
                 <div
-                  key={item.id}
                   className={`
                     relative aspect-square rounded-xl border-2 overflow-hidden
                     transition-all duration-200
@@ -862,30 +862,6 @@ export default function DecorationPalette({
                         />
                       </button>
 
-                      {/* Replace button */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          triggerUpload(item.slot!)
-                        }}
-                        className="absolute top-1 left-1 w-6 h-6 bg-white/90 rounded-full flex items-center justify-center shadow-sm opacity-0 hover:opacity-100 transition-opacity hover:bg-thread-cream"
-                        title="Replace image"
-                      >
-                        <PixelIcon name="upload" size={12} className="text-thread-sage" />
-                      </button>
-
-                      {/* Delete button */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onCustomSlotDelete?.(item.slot!)
-                        }}
-                        className="absolute top-1 right-1 w-6 h-6 bg-white/90 rounded-full flex items-center justify-center shadow-sm opacity-0 hover:opacity-100 transition-opacity hover:bg-red-50"
-                        title="Remove image"
-                      >
-                        <PixelIcon name="close" size={12} className="text-red-500" />
-                      </button>
-
                       {/* Selection indicator */}
                       {isSelected && (
                         <div className="absolute -top-1 -right-1 w-5 h-5 bg-thread-sky rounded-full flex items-center justify-center shadow-sm z-10">
@@ -894,6 +870,18 @@ export default function DecorationPalette({
                       )}
                     </>
                   )}
+                </div>
+                {/* Always shown, so touch and keyboard users can reach them */}
+                {!isEmpty && !isUploading && (
+                  <div className="flex justify-center gap-2 text-xs">
+                    <button type="button" onClick={() => triggerUpload(item.slot!)} className="ts-bare ts-text-button">
+                      Replace
+                    </button>
+                    <button type="button" onClick={() => onCustomSlotDelete?.(item.slot!)} className="ts-bare ts-text-button">
+                      Remove
+                    </button>
+                  </div>
+                )}
                 </div>
               )
             })}

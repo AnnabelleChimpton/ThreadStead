@@ -63,6 +63,7 @@ export function snapshotHash(scene: HomeScene): string {
       x: d.position?.x,
       y: d.position?.y,
       layer: d.position?.layer,
+      bias: d.layerBias ?? 0,
       variant: d.variant,
       size: d.size,
       text: decorationText(d),

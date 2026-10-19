@@ -18,8 +18,10 @@ const HOUSE_COLOR_ITEMS: DecorationItem[] = [
 ]
 import { HouseCustomizations, HouseTemplate, ColorPalette, AtmosphereSettings } from './HouseSVG'
 import { useEditorDoc } from '../../hooks/pixel-homes/useEditorDoc'
-import useDecorationSnapping from '../../hooks/pixel-homes/useDecorationSnapping'
-import { DEFAULT_DECORATION_GRID, getDecorationGridSize, pixelToGrid, isValidGridPosition } from '../../lib/pixel-homes/decoration-grid-utils'
+import { DEFAULT_DECORATION_GRID, pixelToGrid, isValidGridPosition } from '../../lib/pixel-homes/decoration-grid-utils'
+import { centredOn, place, type Placement } from '../../lib/pixel-homes/placement'
+import { OVERLAY_DEPTH, MAX_LAYER_BIAS, MIN_LAYER_BIAS, clampLayerBias } from '../../lib/pixel-homes/depth'
+import { customArtUrl } from '../../lib/pixel-homes/custom-art'
 import { getDecorationDimensions } from '../../lib/pixel-homes/decoration-dimensions'
 import { PixelIcon } from '../ui/PixelIcon'
 import { useToast } from '@/contexts/ToastContext'
@@ -212,6 +214,16 @@ export default function DecorationMode({
         return
       }
 
+      // [ and ] - Send back / bring forward the selected decoration
+      if ((e.key === '[' || e.key === ']') && !modKey && selectedDecorations.size === 1) {
+        const selected = decorationsRef.current.find(d => selectedDecorations.has(d.id))
+        if (selected) {
+          e.preventDefault()
+          shiftLayerRef.current(selected, e.key === ']' ? 1 : -1)
+        }
+        return
+      }
+
       // Escape - Exit current mode / clear selection
       if (e.key === 'Escape') {
         e.preventDefault()
@@ -279,23 +291,11 @@ export default function DecorationMode({
     loadDecorations()
   }, [])
 
-  // Snapping logic
-  const snappable = useMemo(
-    () => placedDecorations.filter(d => !['house_custom', 'house_color'].includes(d.type)),
-    [placedDecorations]
-  )
-  const { snapDecoration } = useDecorationSnapping({
-    gridConfig,
-    decorations: snappable as any[],
-    enableSnapping: true,
-    enableSpacingSuggestions: false
-  })
-
   // Custom asset upload handler - uploads to a specific slot
   const handleCustomSlotUpload = async (slot: number, file: File) => {
     // Validate file type
     if (!['image/png', 'image/gif', 'image/webp'].includes(file.type)) {
-      appToast.showWarning('Please upload a PNG, GIF, or WebP image')
+      appToast.showWarning('Use a PNG or WebP image (a GIF keeps only its first frame).')
       return
     }
 
@@ -384,6 +384,25 @@ export default function DecorationMode({
       console.error('Error deleting custom asset:', error)
     }
   }
+
+  // Placed copies of a resident's own art show whatever is in their slot now,
+  // so replacing a slot's image updates every copy. The same object comes back
+  // while its slot's URL is unchanged, so memoized sprites don't redraw.
+  const customCopies = useRef(new WeakMap<DecorationItem, { url: string | undefined, shown: DecorationItem }>())
+  const sceneDecorations = useMemo(() => {
+    const urls = customAssetSlots.map(slot => slot.url)
+    return placedDecorations.map(d => {
+      if (d.type !== 'custom') return d
+      const url = customArtUrl(catalogId(d), urls) ?? undefined
+      const cached = customCopies.current.get(d)
+      if (cached && cached.url === url) return cached.shown
+      const shown = { ...d, customAssetUrl: url }
+      customCopies.current.set(d, { url, shown })
+      return shown
+    })
+  }, [placedDecorations, customAssetSlots])
+  const sceneDecorationsRef = useRef(sceneDecorations)
+  sceneDecorationsRef.current = sceneDecorations
 
   // Catalog names by item id, for the status line (placed copies loaded with the page have none)
   const catalogNames = useMemo(() => {
@@ -531,30 +550,15 @@ export default function DecorationMode({
     dispatch({ type: 'setHouse', changes: updates, mergeKey })
   }
 
-  // Where an item lands for a given top-left: snapped, with its depth layer
-  const placementFor = (item: DecorationItem, x: number, y: number) => {
-    const snapResult = snapDecoration(x, y, item.type as any, catalogId(item), item.size || 'medium')
+  // Alt held on the last pointer event: place at the exact pixel, off the grid
+  const freeRef = useRef(false)
 
-    // Determine z-index layer based on type and Y position for depth sorting
-    // Base layers separate categories:
-    // Paths: 100000+ (Bottom)
-    // Water: 200000+ (Middle)
-    // Objects: 300000+ (Top)
-    let baseLayer = 300000
-    if (item.type === 'path') baseLayer = 100000
-    else if (item.type === 'water') baseLayer = 200000
+  // Where an item lands for a given top-left: on the grid (or free with Alt), inside the yard
+  const placementFor = (item: DecorationItem, x: number, y: number): Placement =>
+    place(item, x, y, { free: freeRef.current })
 
-    // Calculate actual item height in pixels to sort by "feet" (bottom Y)
-    const dimensions = getDecorationDimensions(catalogId(item), item.type, item.size || 'medium')
-
-    // Add bottom Y position to base layer for Y-sorting (items lower on screen appear in front)
-    // Multiply Y by 1000 to ensure it's the primary sort factor
-    // Add X position as tie-breaker for decorations at same Y position
-    const bottomY = Math.round(snapResult.position.pixelY + dimensions.height)
-    const layer = baseLayer + (bottomY * 1000) + Math.round(snapResult.position.pixelX)
-
-    return { x: snapResult.position.pixelX, y: snapResult.position.pixelY, layer }
-  }
+  // A placement as the ghost shows it
+  const ghostAt = (placement: Placement) => placement.position
 
   // Applies what the interaction asks for (lib/pixel-homes/editor-interaction.ts)
   const applyEffect = (effect: InteractionEffect) => {
@@ -567,13 +571,8 @@ export default function DecorationMode({
           return
         }
         // Centred on the pointer
-        const size = getDecorationGridSize(item.type, catalogId(item), item.size || 'medium')
-        const position = placementFor(
-          item,
-          effect.at.x - (size.width * gridConfig.cellSize) / 2,
-          effect.at.y - (size.height * gridConfig.cellSize) / 2
-        )
-        dispatch({ type: 'place', decoration: newPlacement(item, position) })
+        const corner = centredOn(item, effect.at)
+        dispatch({ type: 'place', decoration: newPlacement(item, placementFor(item, corner.x, corner.y)) })
         retroSFX.playPlaceItem()
         return
       }
@@ -591,7 +590,7 @@ export default function DecorationMode({
       case 'move': {
         const decoration = placedDecorations.find(d => d.id === effect.id)
         if (!decoration) return
-        dispatch({ type: 'move', id: effect.id, position: placementFor(decoration, effect.topLeft.x, effect.topLeft.y) })
+        dispatch({ type: 'move', id: effect.id, placement: placementFor(decoration, effect.topLeft.x, effect.topLeft.y) })
         retroSFX.playPlaceItem()
         return
       }
@@ -615,19 +614,14 @@ export default function DecorationMode({
         return
       case 'ghostItem': {
         const { item } = effect
-        const size = getDecorationGridSize(item.type, catalogId(item), item.size || 'medium')
-        const snapped = placementFor(
-          item,
-          effect.at.x - (size.width * gridConfig.cellSize) / 2,
-          effect.at.y - (size.height * gridConfig.cellSize) / 2
-        )
-        ghostRef.current?.show(item, snapped)
+        const corner = centredOn(item, effect.at)
+        ghostRef.current?.show(item, ghostAt(placementFor(item, corner.x, corner.y)))
         return
       }
       case 'ghostDrag': {
-        const decoration = placedDecorations.find(d => d.id === effect.id)
+        const decoration = sceneDecorationsRef.current.find(d => d.id === effect.id)
         if (!decoration) return
-        ghostRef.current?.show(decoration, placementFor(decoration, effect.topLeft.x, effect.topLeft.y))
+        ghostRef.current?.show(decoration, ghostAt(placementFor(decoration, effect.topLeft.x, effect.topLeft.y)))
         return
       }
       case 'hideGhost':
@@ -653,7 +647,8 @@ export default function DecorationMode({
   decorationsRef.current = placedDecorations
 
   // Handed to the canvas once; it never changes, so the scene doesn't redraw for it
-  const handleScenePointer = useCallback((kind: ScenePointerKind, pointer: ScenePointer) => {
+  const handleScenePointer = useCallback((kind: ScenePointerKind, pointer: ScenePointer, event?: React.PointerEvent) => {
+    freeRef.current = !!event?.altKey
     const run = runRef.current
     if (kind === 'down') {
       const pressed = pointer.decorationId ? decorationsRef.current.find(d => d.id === pointer.decorationId) : undefined
@@ -664,6 +659,9 @@ export default function DecorationMode({
       run({ type: kind, pointer })
     }
   }, [])
+
+  // Set once shiftLayer exists, further down
+  const shiftLayerRef = useRef<(decoration: DecorationItem, by: -1 | 1) => void>(() => {})
 
   // A release the scene never saw (pointer capture unavailable) still ends a press, drag or stroke
   useEffect(() => {
@@ -686,6 +684,16 @@ export default function DecorationMode({
       onExit()
     }
   }
+
+  // Send back / bring forward: a whole depth level, past everything at its level
+  const shiftLayer = (decoration: DecorationItem, by: -1 | 1) => {
+    const bias = clampLayerBias(decoration.layerBias)
+    const next = clampLayerBias(bias + by)
+    if (next === bias) return
+    dispatch({ type: 'updateDecoration', id: decoration.id, changes: { layerBias: next } })
+    setAnnouncement(`${itemName(decoration)} ${by > 0 ? 'brought forward' : 'sent back'}`)
+  }
+  shiftLayerRef.current = shiftLayer
 
   // ---------------------------------------------------------- keyboard --
   // The scene takes focus. Arrows move a dotted cursor cell (or nudge the
@@ -737,7 +745,7 @@ export default function DecorationMode({
         // Nudge by whole cells
         const x = (selected.position?.x ?? 0) + dx * step * gridConfig.cellSize
         const y = (selected.position?.y ?? 0) + dy * step * gridConfig.cellSize
-        dispatch({ type: 'move', id: selected.id, position: placementFor(selected, x, y) })
+        dispatch({ type: 'move', id: selected.id, placement: place(selected, x, y) })
         setAnnouncement(`${itemName(selected)} moved`)
       }
       const next = {
@@ -846,6 +854,12 @@ export default function DecorationMode({
         setSelectedItem(null)
         retroSFX.playModeChange()
       }, false, isDeleting)}
+      {selectedOne && (
+        <>
+          {iconButton('Send back', 'arrow-down', () => shiftLayer(selectedOne, -1), clampLayerBias(selectedOne.layerBias) <= MIN_LAYER_BIAS)}
+          {iconButton('Bring forward', 'arrow-up', () => shiftLayer(selectedOne, 1), clampLayerBias(selectedOne.layerBias) >= MAX_LAYER_BIAS)}
+        </>
+      )}
       <div className="min-w-0 flex-1 flex items-center gap-2 px-1 text-sm text-thread-charcoal">
         <span className="truncate">{status}</span>
         {inMode && (
@@ -928,7 +942,7 @@ export default function DecorationMode({
             <EnhancedHouseCanvas
               template={currentTemplate}
               palette={currentPalette}
-              decorations={placedDecorations}
+              decorations={sceneDecorations}
               houseCustomizations={houseCustomizations}
               atmosphere={atmosphere}
               terrain={terrain}
@@ -967,7 +981,7 @@ export default function DecorationMode({
                         width: gridConfig.cellSize,
                         height: gridConfig.cellSize,
                         outline: '1px dotted #4a403d',
-                        zIndex: 10_000_000
+                        zIndex: OVERLAY_DEPTH
                       }}
                     />
                   )}

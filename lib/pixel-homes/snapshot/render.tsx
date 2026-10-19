@@ -50,6 +50,7 @@ import { TERRAIN_TILES } from '@/lib/pixel-homes/decoration-data'
 import { DEFAULT_DECORATION_GRID } from '@/lib/pixel-homes/decoration-grid-utils'
 import { getDecorationDimensions } from '@/lib/pixel-homes/decoration-dimensions'
 import { decorationText, type HomeScene, type SceneDecoration } from '@/lib/pixel-homes/home-scene'
+import { decorationDepth, houseDepth } from '@/lib/pixel-homes/depth'
 
 // --- EnhancedHouseCanvas's layout, in canvas units --------------------------
 export const CANVAS_WIDTH = 512
@@ -94,7 +95,8 @@ const OG_ROWS = OG_SIZE.height / OG_SCALE // 315 of the 352 rows
 const MAX_TOP_CROP = 30
 
 /** Bump when the drawing changes, so the backfill re-renders every home. */
-export const SNAPSHOT_RENDERER_VERSION = 1
+// 2: the house sorts with the decorations by depth (lib/pixel-homes/depth.ts)
+export const SNAPSHOT_RENDERER_VERSION = 2
 
 /** Fetch an image's bytes, or null if it can't be had (a 404, an origin we don't fetch from). */
 export type ImageLoader = (url: string) => Promise<Buffer | null>
@@ -301,20 +303,23 @@ export async function renderSceneSvg(
     <>
       <Backdrop sky={scene.sky} padX={padX} />
       <Terrain terrain={scene.terrain} />
-      {/* The house sits under every decoration: the canvas stacks the whole
-          decoration layer above it. */}
-      <svg x={HOUSE.x} y={HOUSE.y} width={HOUSE.width} height={HOUSE.height} viewBox={`0 0 ${HOUSE.width} ${HOUSE.height}`}>
-        <HouseSVG template={scene.template} palette={scene.palette} customizations={scene.houseCustomizations} />
-      </svg>
     </>
   )
+  const house = renderToStaticMarkup(
+    <svg x={HOUSE.x} y={HOUSE.y} width={HOUSE.width} height={HOUSE.height} viewBox={`0 0 ${HOUSE.width} ${HOUSE.height}`}>
+      <HouseSVG template={scene.template} palette={scene.palette} customizations={scene.houseCustomizations} />
+    </svg>
+  )
 
-  // Decorations stack by layer; equal layers keep their load order (the DOM order).
-  const ordered = scene.decorations
-    .map((item, index) => ({ item, index }))
-    .sort((a, b) => (a.item.position?.layer ?? 10) - (b.item.position?.layer ?? 10) || a.index - b.index)
-    .map(({ item }) => item)
-  const decorations = await Promise.all(ordered.map((item) => decorationMarkup(item, loadImage)))
+  // The house and the decorations in one depth order, as the canvas stacks
+  // them; equal depths keep their load order (the DOM order).
+  const ordered = [
+    { depth: houseDepth(), index: -1, item: null as SceneDecoration | null },
+    ...scene.decorations.map((item, index) => ({ depth: decorationDepth(item), index, item })),
+  ].sort((a, b) => a.depth - b.depth || a.index - b.index)
+  const decorations = await Promise.all(
+    ordered.map(({ item }) => (item ? decorationMarkup(item, loadImage) : Promise.resolve(house)))
+  )
 
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"` +

@@ -162,3 +162,17 @@ test('a catalog id that ends in digits keeps its own size', () => {
     delete DECORATION_DIMENSIONS.fence_2
   }
 })
+
+test('the house sorts with the sprites: a tree whose feet are above its sort line is behind it', () => {
+  const tree = { id: 'tree_r', decorationId: 'tree_pine', name: 'Pine', type: 'plant' as const, position: { x: 240, y: 60 } }
+  const rose = { id: 'rose_r', decorationId: 'roses_red', name: 'Rose', type: 'plant' as const, position: { x: 240, y: 260 } }
+  const { container } = render(scene({ decorations: [tree, rose] }))
+  const z = (el: Element | null) => Number((el as HTMLElement).style.zIndex)
+  const houseZ = z(container.querySelector('[data-scene] > div > div[style*="left: 156px"]'))
+  const treeZ = z(container.querySelector('[data-decoration-id="tree_r"]')!.parentElement)
+  const roseZ = z(container.querySelector('[data-decoration-id="rose_r"]')!.parentElement)
+  expect(treeZ).toBeLessThan(houseZ)
+  expect(roseZ).toBeGreaterThan(houseZ)
+  // and they share one stacking context with it: the sprites' layer sets no z-index of its own
+  expect((container.querySelector('[data-decoration-id="tree_r"]')!.parentElement!.parentElement as HTMLElement).style.zIndex).toBe('')
+})

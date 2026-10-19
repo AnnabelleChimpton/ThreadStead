@@ -14,6 +14,8 @@ interface HomeDecoration {
   layer: number;
   renderSvg?: string | null;
   data?: any; // Custom data for decorations (e.g. sign text)
+  layerBias?: number;
+  customAssetUrl?: string | null;
 }
 
 interface NeighborhoodMember {
@@ -305,6 +307,8 @@ const NeighborhoodCardView: React.FC<NeighborhoodCardViewProps> = ({
                         type: dec.decorationType,
                         zone: 'front_yard' as const,
                         position: { x: dec.x, y: dec.y, layer: dec.layer },
+                        layerBias: dec.layerBias,
+                        customAssetUrl: dec.customAssetUrl ?? undefined,
                         variant: dec.variant,
                         size: dec.size,
                         data: dec.data,

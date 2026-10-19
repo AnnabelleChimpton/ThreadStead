@@ -215,9 +215,12 @@ model UserHomeDecoration {
   decorationType String // plant, path, feature, seasonal
   decorationId   String // roses_red, stone_path, bird_bath, etc.
   zone           String // front_yard, house_facade, background
-  positionX      Int // X coordinate on canvas
+  positionX      Int // X coordinate on canvas (top-left, canvas px); always set, kept in step with gridX
   positionY      Int // Y coordinate on canvas
-  layer          Int      @default(1) // Z-layer for rendering order
+  gridX          Int? // Grid cell (16 px) of the top-left; null = free placement at positionX/Y
+  gridY          Int?
+  layer          Int      @default(1) // Legacy stacking number; depth is now worked out from position + layerBias
+  layerBias      Int      @default(0) // Send back (-) / bring forward (+), in whole depth levels
   variant        String? // color variant, size, etc.
   size           String?  @default("medium") // small, medium, large
   data           Json? // Flexible storage for custom data (e.g. sign text)

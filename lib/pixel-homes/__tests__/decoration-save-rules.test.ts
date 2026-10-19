@@ -107,12 +107,18 @@ describe('normalizeTerrain', () => {
 describe('normalizeDecorationRow', () => {
   test('clamps out-of-yard positions and cleans odd fields', () => {
     expect(normalizeDecorationRow({ positionX: 99999, positionY: -5000, layer: 1e12, variant: 'big pink!', size: 'huge', data: 'text' }))
-      .toEqual({ position: { x: 512, y: -POSITION_MARGIN, layer: 10_000_000 }, variant: 'default', size: 'medium', data: null })
+      .toEqual({ position: { x: 512, y: -POSITION_MARGIN, layer: 10_000_000 }, gridX: null, gridY: null, layerBias: 0, variant: 'default', size: 'medium', data: null })
   })
 
   test('leaves a normal row alone', () => {
     expect(normalizeDecorationRow({ positionX: 64, positionY: 240, layer: 452064, variant: 'default', size: 'large', data: { text: 'HI' } }))
-      .toEqual({ position: { x: 64, y: 240, layer: 452064 }, variant: 'default', size: 'large', data: { text: 'HI' } })
+      .toEqual({ position: { x: 64, y: 240, layer: 452064 }, gridX: null, gridY: null, layerBias: 0, variant: 'default', size: 'large', data: { text: 'HI' } })
+  })
+
+  test('keeps a stored grid cell only when it matches the stored position', () => {
+    expect(normalizeDecorationRow({ positionX: 64, positionY: 240, gridX: 4, gridY: 15, layerBias: 2 })).toMatchObject({ gridX: 4, gridY: 15, layerBias: 2 })
+    expect(normalizeDecorationRow({ positionX: 65, positionY: 240, gridX: 4, gridY: 15 })).toMatchObject({ gridX: null, gridY: null })
+    expect(normalizeDecorationRow({ positionX: 64, positionY: 240, layerBias: 40 })).toMatchObject({ layerBias: 3 })
   })
 
   test('a normalized row passes the save schema', () => {

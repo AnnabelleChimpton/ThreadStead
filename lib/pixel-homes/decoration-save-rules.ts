@@ -8,6 +8,7 @@
  */
 import { z } from 'zod'
 import { TERRAIN_TILES } from './decoration-data'
+import { MAX_LAYER_BIAS, MIN_LAYER_BIAS, clampLayerBias } from './depth'
 
 export const MAX_DECORATIONS = 100
 
@@ -16,6 +17,10 @@ export const CANVAS_HEIGHT = 352
 export const TERRAIN_CELL = 16
 export const TERRAIN_COLUMNS = CANVAS_WIDTH / TERRAIN_CELL
 export const TERRAIN_ROWS = CANVAS_HEIGHT / TERRAIN_CELL
+/** Grid cells a decoration's top-left may use: the scene, plus the same margin as positions. */
+const GRID_MIN = -8
+const GRID_MAX_X = CANVAS_WIDTH / TERRAIN_CELL
+const GRID_MAX_Y = CANVAS_HEIGHT / TERRAIN_CELL
 /**
  * How far a decoration's top-left corner may sit outside the canvas. Items
  * are centred on the cursor, so one dropped at the edge starts up to half
@@ -151,6 +156,9 @@ export function normalizePosition(x: unknown, y: unknown): { x: number; y: numbe
 export function normalizeDecorationRow(row: {
   positionX: unknown
   positionY: unknown
+  gridX?: unknown
+  gridY?: unknown
+  layerBias?: unknown
   layer?: unknown
   variant?: unknown
   size?: unknown
@@ -160,8 +168,15 @@ export function normalizeDecorationRow(row: {
   const layer = typeof row.layer === 'number' && Number.isInteger(row.layer) ? clamp(row.layer, 0, MAX_LAYER) : 1
   const data =
     row.data && typeof row.data === 'object' && !Array.isArray(row.data) ? (row.data as Record<string, unknown>) : null
+  // On the grid only if the stored cell really is the stored position
+  const onGrid =
+    Number.isInteger(row.gridX) && Number.isInteger(row.gridY) &&
+    (row.gridX as number) * TERRAIN_CELL === x && (row.gridY as number) * TERRAIN_CELL === y
   return {
     position: { x, y, layer: layer || 1 },
+    gridX: onGrid ? (row.gridX as number) : null,
+    gridY: onGrid ? (row.gridY as number) : null,
+    layerBias: clampLayerBias(row.layerBias),
     variant: typeof row.variant === 'string' && IDENTIFIER.test(row.variant) ? row.variant : 'default',
     size: oneOf(DECORATION_SIZES, row.size) ?? 'medium',
     data,
@@ -215,6 +230,10 @@ export const decorationSchema = z.object({
     .min(-POSITION_MARGIN, 'A decoration is outside the yard.')
     .max(CANVAS_HEIGHT, 'A decoration is outside the yard.'),
   layer: z.number().int().min(0).max(MAX_LAYER).nullish(),
+  // A cell on the 16 px grid; when given, the stored position is worked out from it
+  gridX: z.number().int().min(GRID_MIN, 'A decoration is outside the yard.').max(GRID_MAX_X, 'A decoration is outside the yard.').nullish(),
+  gridY: z.number().int().min(GRID_MIN, 'A decoration is outside the yard.').max(GRID_MAX_Y, 'A decoration is outside the yard.').nullish(),
+  layerBias: z.number().int().min(MIN_LAYER_BIAS, 'Unknown layer.').max(MAX_LAYER_BIAS, 'Unknown layer.').nullish(),
   variant: z.string().regex(IDENTIFIER, 'Unknown decoration variant.').nullish(),
   size: z.enum(DECORATION_SIZES, { error: 'Unknown decoration size.' }).nullish(),
   data: z

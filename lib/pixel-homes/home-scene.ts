@@ -9,6 +9,8 @@
 import type { Prisma, UserHomeConfig, UserHomeDecoration } from "@prisma/client";
 import { db } from "@/lib/config/database/connection";
 import { getDecorationDimensions } from "@/lib/pixel-homes/decoration-dimensions";
+import { clampLayerBias } from "@/lib/pixel-homes/depth";
+import { customArtUrl, customSlotOf, customSlotUrls } from "@/lib/pixel-homes/custom-art";
 import type { ColorPalette, HouseCustomizations, HouseTemplate } from "@/components/pixel-homes/HouseSVG";
 import type { SkyType } from "@/components/pixel-homes/DitherPatternDefs";
 
@@ -18,6 +20,8 @@ export interface SceneDecoration {
   type: string;
   zone: string;
   position: { x: number; y: number; layer?: number };
+  /** Send back / bring forward (lib/pixel-homes/depth.ts). */
+  layerBias?: number;
   variant?: string;
   size?: string;
   data?: Prisma.JsonValue;
@@ -60,11 +64,17 @@ export function decorationText(item: Pick<SceneDecoration, "data">): string | un
   return typeof text === "string" ? text : undefined;
 }
 
-/** Stored decoration rows → the items the canvas renders. */
+/**
+ * Stored decoration rows → the items the canvas renders. `customAssets` is
+ * the home's slot list: placed copies of a resident's own art show whatever
+ * is in their slot now.
+ */
 export function toSceneDecorations(
   rows: UserHomeDecoration[],
-  catalog: Map<string, CatalogArt>
+  catalog: Map<string, CatalogArt>,
+  customAssets: unknown
 ): SceneDecoration[] {
+  const slotUrls = customSlotUrls(customAssets);
   return rows.map((decoration) => {
     const catalogItem = catalog.get(decoration.decorationId);
     const item: SceneDecoration = {
@@ -73,16 +83,18 @@ export function toSceneDecorations(
       type: decoration.decorationType,
       zone: decoration.zone,
       position: { x: decoration.positionX, y: decoration.positionY, layer: decorationLayer(decoration) },
+      layerBias: clampLayerBias(decoration.layerBias),
       variant: decoration.variant || "default",
       size: decoration.size || "medium",
       data: decoration.data,
       ...(catalogItem?.renderSvg && { renderSvg: catalogItem.renderSvg }),
       ...(catalogItem?.pngUrl && { pngUrl: catalogItem.pngUrl }),
     };
-    if (decoration.decorationType === "custom" && decoration.data) {
-      const data = decoration.data as { customAssetUrl?: string; slot?: number };
-      if (data.customAssetUrl) item.customAssetUrl = data.customAssetUrl;
-      if (typeof data.slot === "number") item.slot = data.slot;
+    if (decoration.decorationType === "custom") {
+      const url = customArtUrl(decoration.decorationId, slotUrls);
+      if (url) item.customAssetUrl = url;
+      const slot = customSlotOf(decoration.decorationId);
+      if (slot !== null) item.slot = slot;
     }
     return item;
   });
@@ -149,6 +161,6 @@ export async function loadHomeScene(userId: string): Promise<HomeScene | null> {
     houseCustomizations: houseCustomizationsFromConfig(config),
     sky: config.atmosphereSky as SkyType,
     terrain: (config.terrain as Record<string, string> | null) || {},
-    decorations: toSceneDecorations(rows, catalog),
+    decorations: toSceneDecorations(rows, catalog, config.customAssets),
   };
 }

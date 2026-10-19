@@ -28,9 +28,6 @@ jest.mock('@/lib/config/database/connection', () => ({
 }))
 jest.mock('@/lib/auth/server', () => ({ getSessionUser: jest.fn() }))
 jest.mock('@/lib/pixel-homes/snapshot/service', () => ({ scheduleHomeSnapshot: jest.fn(async () => null) }))
-jest.mock('@/lib/storage/r2', () => ({
-  keyFromPublicUrl: (url: string) => (url.startsWith('https://cdn.test/') ? url.slice('https://cdn.test/'.length) : null),
-}))
 
 import handler from '@/pages/api/home/decorations/save'
 import { getSessionUser } from '@/lib/auth/server'
@@ -198,34 +195,31 @@ describe('which items may be placed', () => {
     expect(res.statusCode).toBe(200)
   })
 
-  test("custom art must be the user's own upload", async () => {
+  test('custom art is stored as its slot only; any URL sent is dropped', async () => {
     const own = { decorationType: 'custom', decorationId: 'custom_asset_2', zone: 'front_yard', positionX: 5, positionY: 5 }
-    const ok = await save({
-      decorations: [{ ...own, data: { customAssetUrl: 'https://cdn.test/pixel-homes/custom/user-1-1-abc.png', slot: 2 } }],
+    // A URL from anywhere (someone else's upload, a tracker) never reaches the database:
+    // the image is looked up from the resident's own slot when the yard is drawn
+    const res = await save({
+      decorations: [
+        { ...own, data: { customAssetUrl: 'https://cdn.test/pixel-homes/custom/user-2-1-abc.png', slot: 2 } },
+        { ...own, data: { customAssetUrl: 'https://evil.test/pixel.png' } },
+      ],
     })
-    expect(ok.statusCode).toBe(200)
-
-    const someoneElses = await save({
-      decorations: [{ ...own, data: { customAssetUrl: 'https://cdn.test/pixel-homes/custom/user-2-1-abc.png', slot: 2 } }],
-    })
-    expect(someoneElses.statusCode).toBe(400)
-
-    const tracker = await save({ decorations: [{ ...own, data: { customAssetUrl: 'https://evil.test/pixel.png' } }] })
-    expect(tracker.statusCode).toBe(400)
+    expect(res.statusCode).toBe(200)
+    expect(tx.userHomeDecoration.createMany.mock.calls[0][0].data.map((d: any) => d.data)).toEqual([{ slot: 2 }, { slot: 2 }])
 
     const badSlot = await save({ decorations: [{ ...own, decorationId: 'custom_asset_9' }] })
     expect(badSlot.statusCode).toBe(400)
   })
 
-  test('custom art from an older CDN origin is fine if the user already uses it', async () => {
-    const oldUrl = 'https://old-cdn.test/pixel-homes/custom/user-1-1-abc.png'
-    mockDb.userHomeConfig.findUnique.mockResolvedValue({ customAssets: [{ slot: 0, url: oldUrl }] })
-    const res = await save({
-      decorations: [
-        { decorationType: 'custom', decorationId: 'custom_asset_0', zone: 'front_yard', positionX: 5, positionY: 5, data: { customAssetUrl: oldUrl, slot: 0 } },
-      ],
-    })
+  test('a cell on the grid decides the stored position', async () => {
+    const res = await save({ decorations: [{ ...ROSES, positionX: 3, positionY: 7, gridX: 4, gridY: 15, layerBias: -1 }] })
     expect(res.statusCode).toBe(200)
+    expect(tx.userHomeDecoration.createMany.mock.calls[0][0].data[0]).toMatchObject({
+      positionX: 64, positionY: 240, gridX: 4, gridY: 15, layerBias: -1,
+    })
+    expect((await save({ decorations: [{ ...ROSES, gridX: 40, gridY: 15 }] })).statusCode).toBe(400)
+    expect((await save({ decorations: [{ ...ROSES, layerBias: 9 }] })).statusCode).toBe(400)
   })
 })
 

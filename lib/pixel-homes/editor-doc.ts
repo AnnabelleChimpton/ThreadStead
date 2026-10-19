@@ -11,6 +11,9 @@
  *    load → edit → save round trip has one place to test.
  */
 import type { DecorationItem } from './decoration-data'
+import type { Placement } from './placement'
+import { clampLayerBias } from './depth'
+import { customSlotOf } from './custom-art'
 import type { AtmosphereSettings, ColorPalette, HouseCustomizations, HouseTemplate } from '../../components/pixel-homes/HouseSVG'
 
 export interface EditorDoc {
@@ -34,11 +37,9 @@ export interface EditorState {
   mergeKey: string | null
 }
 
-type Position = NonNullable<DecorationItem['position']>
-
 export type EditorAction =
   | { type: 'place'; decoration: DecorationItem }
-  | { type: 'move'; id: string; position: Position }
+  | { type: 'move'; id: string; placement: Placement }
   | { type: 'updateDecoration'; id: string; changes: Partial<DecorationItem>; mergeKey?: string }
   | { type: 'remove'; ids: Iterable<string> }
   | { type: 'setHouse'; changes: Partial<HouseCustomizations>; mergeKey?: string }
@@ -91,8 +92,8 @@ export function docKey(doc: EditorDoc): string {
       variant: d.variant || 'default',
       size: d.size || 'medium',
       text: decorationText(d),
-      slot: d.slot,
-      art: d.customAssetUrl,
+      grid: d.gridX != null && d.gridY != null ? [d.gridX, d.gridY] : null,
+      bias: clampLayerBias(d.layerBias),
     })),
     house: doc.house,
     atmosphere: doc.atmosphere,
@@ -158,9 +159,17 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
     case 'move': {
       const current = doc.decorations.find((d) => d.id === action.id)
       if (!current) return state
-      const { x, y, layer } = action.position
-      if (current.position?.x === x && current.position?.y === y && current.position?.layer === layer) return state
-      return edit(state, withDecorations(doc, doc.decorations.map((d) => (d.id === action.id ? { ...d, position: action.position } : d))))
+      const { position, gridX, gridY } = action.placement
+      if (
+        current.position?.x === position.x &&
+        current.position?.y === position.y &&
+        (current.gridX ?? null) === gridX &&
+        (current.gridY ?? null) === gridY
+      ) {
+        return state
+      }
+      const moved = { ...current, position: { x: position.x, y: position.y }, gridX, gridY }
+      return edit(state, withDecorations(doc, doc.decorations.map((d) => (d.id === action.id ? moved : d))))
     }
 
     case 'updateDecoration': {
@@ -263,7 +272,7 @@ export function decorationText(d: DecorationItem): string | undefined {
  */
 export function newPlacement(
   item: DecorationItem,
-  position: Position,
+  placement: Placement,
   uniqueSuffix = `${Date.now()}_${Math.random().toString(36).slice(2, 11)}`
 ): DecorationItem {
   const decorationId = catalogId(item)
@@ -271,7 +280,10 @@ export function newPlacement(
     ...item,
     id: `${decorationId}_${uniqueSuffix}`,
     decorationId,
-    position,
+    position: { x: placement.position.x, y: placement.position.y },
+    gridX: placement.gridX,
+    gridY: placement.gridY,
+    layerBias: clampLayerBias(item.layerBias),
     variant: item.variant || 'default',
     size: item.size || 'medium',
   }
@@ -302,9 +314,9 @@ export function docFromProps(input: EditorDocInput): EditorDoc {
   }
 }
 
-/** A decoration's stored `data`: custom-art slot, or sign text over whatever else it carried. */
+/** A decoration's stored `data`: custom art's slot (never its file), or sign text over whatever else it carried. */
 function saveData(d: DecorationItem): Record<string, unknown> | null {
-  if (d.type === 'custom') return { customAssetUrl: d.customAssetUrl, slot: d.slot }
+  if (d.type === 'custom') return { slot: customSlotOf(catalogId(d)) }
   const { text: _oldText, ...rest } = (d.data && typeof d.data === 'object' ? d.data : {}) as Record<string, unknown>
   const text = decorationText(d)
   if (text) return { ...rest, text }
@@ -320,7 +332,9 @@ export function toSavePayload(doc: EditorDoc) {
       zone: d.zone || 'front_yard',
       positionX: Math.round(d.position?.x ?? 0),
       positionY: Math.round(d.position?.y ?? 0),
-      layer: d.position?.layer || 1,
+      gridX: d.gridX ?? null,
+      gridY: d.gridY ?? null,
+      layerBias: clampLayerBias(d.layerBias),
       variant: d.variant || 'default',
       size: d.size || 'medium',
       data: saveData(d),

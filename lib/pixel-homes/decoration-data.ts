@@ -7,6 +7,9 @@ export interface DecorationItem {
     type: 'plant' | 'path' | 'feature' | 'seasonal' | 'furniture' | 'lighting' | 'water' | 'structure' | 'house_custom' | 'house_color' | 'sky' | 'house_template' | 'custom'
     zone?: 'front_yard' | 'house_facade' | 'background'
     position?: { x: number; y: number; layer?: number }
+    gridX?: number | null    // Grid cell of the top-left; null/undefined = free placement at position
+    gridY?: number | null
+    layerBias?: number       // Send back (-) / bring forward (+), see lib/pixel-homes/depth.ts
     variant?: string
     size?: 'small' | 'medium' | 'large'
     color?: string  // For house color items

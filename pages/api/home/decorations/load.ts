@@ -47,7 +47,7 @@ export default apiHandler(
       // Catalog art (renderSvg, pngUrl), with layers recomputed for y-sorting
       // (fixes legacy decorations with incorrect layer values)
       const catalog = await loadCatalogArt(decorations.map(d => d.decorationId));
-      const decorationItems = toSceneDecorations(decorations, catalog);
+      const decorationItems = toSceneDecorations(decorations, catalog, homeConfig?.customAssets);
 
       // Extract atmosphere settings from home config
       const atmosphere = homeConfig ? {

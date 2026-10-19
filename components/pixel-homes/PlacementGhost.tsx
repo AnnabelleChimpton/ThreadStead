@@ -3,6 +3,7 @@ import DecorationSVG from './DecorationSVG'
 import type { DecorationItem } from '@/lib/pixel-homes/decoration-data'
 import { getDecorationDimensions } from '@/lib/pixel-homes/decoration-dimensions'
 import type { Point } from '@/lib/pixel-homes/editor-interaction'
+import { OVERLAY_DEPTH } from '@/lib/pixel-homes/depth'
 
 export interface PlacementGhostHandle {
   /** Show `item` with its top-left at `topLeft` (scene coordinates). */
@@ -44,9 +45,8 @@ const PlacementGhost = forwardRef<PlacementGhostHandle>(function PlacementGhost(
   if (!ghost) return null
   const { item, x, y } = ghost
   const { width, height } = getDecorationDimensions(item.decorationId || item.id, item.type, item.size || 'medium')
-  // Stacked like a placed item at the same spot
-  const base = item.type === 'path' ? 100000 : item.type === 'water' ? 200000 : 300000
-  const layer = base + Math.round(y + height) * 1000 + Math.round(x)
+  // Always on top, even where it will land behind the house: you can see what you're carrying
+  const layer = OVERLAY_DEPTH - 1
 
   return (
     <div

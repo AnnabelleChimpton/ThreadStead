@@ -184,16 +184,24 @@ describe('renderHomeSnapshot', () => {
     expect(c.at(91, 228)).not.toEqual(BLUE)
   })
 
-  test('decorations stack by layer, over the house', async () => {
+  test('the house sorts with the decorations by their feet, as the canvas does', async () => {
     const red = await checkerPng(1, 1) // a single red pixel, stretched to the box
     const blue = await sharp(Buffer.from(BLUE), { raw: { width: 1, height: 1, channels: 4 } }).png().toBuffer()
     const load = async (url: string) => (url.endsWith('red.png') ? red : blue)
-    // Same spot; the blue one has the higher layer so it's on top. Both overlap the house.
-    const under = decoration({ x: 240, y: 150, pngUrl: 'https://cdn.test/red.png' })
-    const over = { ...decoration({ x: 240, y: 150, pngUrl: 'https://cdn.test/blue.png' }), id: 'b' }
-    over.position = { ...over.position, layer: (under.position.layer ?? 0) + 1 }
-    const { card } = await renderHomeSnapshot(scene({ decorations: [over, under] }), { loadImage: load })
-    expect((await pixels(card)).at(250, 160)).toEqual(BLUE)
+    // Feet at 150 + its height, above the house's sort line (182): behind the wall
+    const behind = decoration({ x: 240, y: 150, pngUrl: 'https://cdn.test/red.png' })
+    const { card } = await renderHomeSnapshot(scene({ decorations: [behind] }), { loadImage: load })
+    expect((await pixels(card)).at(250, 160)).not.toEqual(RED)
+
+    // Brought forward a level: in front of the house again
+    const forward = { ...behind, layerBias: 1 }
+    const front = await renderHomeSnapshot(scene({ decorations: [forward] }), { loadImage: load })
+    expect((await pixels(front.card)).at(250, 160)).toEqual(RED)
+
+    // Between two decorations at the same spot, the one further down the yard is in front
+    const lower = { ...decoration({ x: 240, y: 152, pngUrl: 'https://cdn.test/blue.png' }), id: 'b', layerBias: 1 }
+    const both = await renderHomeSnapshot(scene({ decorations: [lower, forward] }), { loadImage: load })
+    expect((await pixels(both.card)).at(250, 160)).toEqual(BLUE)
   })
 
   test('terrain tiles are drawn on the grid', async () => {

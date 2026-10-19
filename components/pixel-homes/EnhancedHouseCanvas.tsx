@@ -8,6 +8,7 @@ import { DEFAULT_DECORATION_GRID } from '@/lib/pixel-homes/decoration-grid-utils
 import { getDecorationDimensions } from '@/lib/pixel-homes/decoration-dimensions'
 import type { ScenePointer } from '@/lib/pixel-homes/editor-interaction'
 import { pickPixelScale } from '@/lib/pixel-homes/pixel-scale'
+import { decorationDepth, houseDepth, HOUSE_BOX, OVERLAY_DEPTH } from '@/lib/pixel-homes/depth'
 
 /** A pointer event over the scene, in scene coordinates (see lib/pixel-homes/editor-interaction.ts). */
 export type ScenePointerKind = 'down' | 'move' | 'up' | 'cancel' | 'leave'
@@ -92,12 +93,7 @@ const DOOR_RECTS: Record<string, { x: number; y: number; width: number; height: 
 }
 
 // House positioning within the larger canvas (centered for 512px width)
-const HOUSE_POSITION = {
-  x: 156, // Centered: (512 - 200) / 2 = 156
-  y: 32, // 2 grid cells from top
-  width: 200, // Larger house
-  height: 180 // Proportional height - back to original house proportions
-}
+const HOUSE_POSITION = HOUSE_BOX
 
 // Each layer below is memoized, so a change to one (a painted cell, a moved
 // sprite, a new selection) redraws only that layer, and nothing redraws while
@@ -258,7 +254,9 @@ const HouseLayer = memo(function HouseLayer({
         top: HOUSE_POSITION.y,
         width: HOUSE_POSITION.width,
         height: HOUSE_POSITION.height,
-        zIndex: 5
+        // In the same sort as the decorations: things whose feet are above
+        // its sort line stand behind it (lib/pixel-homes/depth.ts)
+        zIndex: houseDepth()
       }}
     >
       <HouseSVG template={template} palette={palette} customizations={customizations} className="w-full h-full drop-shadow-lg" />
@@ -286,7 +284,7 @@ const DecorationSprite = memo(function DecorationSprite({ item, selected, editab
     top: item.position?.y || 0,
     width,
     height,
-    zIndex: item.position?.layer || 10,
+    zIndex: decorationDepth(item),
     display: 'flex',
     alignItems: 'flex-end',
     justifyContent: 'center',
@@ -352,7 +350,8 @@ const DecorationsLayer = memo(function DecorationsLayer({
   onMailboxClick?: () => void
 }) {
   return (
-    <div className="absolute inset-0" style={{ zIndex: 10 }}>
+    // No z-index of its own, so each sprite sorts against the house
+    <div className="absolute inset-0">
       {decorations.map(item => (
         <DecorationSprite
           key={item.id}
@@ -536,7 +535,7 @@ export default function EnhancedHouseCanvas({
                   top: HOUSE_POSITION.y + rect.y,
                   width: rect.width,
                   height: rect.height,
-                  zIndex: 6
+                  zIndex: houseDepth() + 1
                 }}
               />
             )
@@ -546,7 +545,7 @@ export default function EnhancedHouseCanvas({
 
           {/* Decoration Mode Overlay */}
           {isDecorationMode && (
-            <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 20 }}>
+            <div className="absolute inset-0 pointer-events-none" style={{ zIndex: OVERLAY_DEPTH }}>
               {/* Zone guides */}
               <div
                 className="absolute border-2 border-dashed border-blue-300 opacity-50"

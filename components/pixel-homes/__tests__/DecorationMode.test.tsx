@@ -517,3 +517,65 @@ describe('Phase 3.3 keyboard and the action bar', () => {
     expect(canvasProps.decorations).toHaveLength(1)
   })
 })
+
+describe('Phase 3.4 depth, grid and custom art', () => {
+  const pine = { id: 'tree_pine', name: 'Pine', type: 'plant' as const }
+
+  test('placing snaps to a grid cell and records it', () => {
+    setup()
+    step(() => paletteProps.onItemSelect(pine))
+    clickLawn(203, 211)
+    const planted = canvasProps.decorations[1]
+    expect(planted.position.x % 16).toBe(0)
+    expect(planted.position.y % 16).toBe(0)
+    expect(planted.gridX).toBe(planted.position.x / 16)
+  })
+
+  test('[ and ] send the selected decoration back and bring it forward, one undo step each', () => {
+    setup()
+    pressRose(70, 250)
+    release()
+    step(() => fireEvent.keyDown(window, { key: ']' }))
+    expect(canvasProps.decorations[0].layerBias).toBe(1)
+    fireEvent.click(screen.getByRole('button', { name: 'Send back' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Send back' }))
+    expect(canvasProps.decorations[0].layerBias).toBe(-1)
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }))
+    expect(canvasProps.decorations[0].layerBias).toBe(0)
+  })
+
+  test('placed custom art shows its slot’s current image, and replacing the slot updates every copy', async () => {
+    let slots = [{ slot: 0, url: 'https://cdn.test/a.png' }]
+    global.fetch = jest.fn(async (url: string, init?: RequestInit) => {
+      if (url === '/api/home/custom-asset' && init?.method === 'POST') slots = [{ slot: 0, url: 'https://cdn.test/b.png' }]
+      if (url === '/api/home/custom-asset') return { ok: true, json: async () => ({ slots }) }
+      return { ok: false, json: async () => ({}) }
+    }) as any
+    // The upload checks the image's size in the browser; jsdom can't decode images
+    const RealImage = global.Image
+    ;(global as any).Image = class {
+      width = 32
+      height = 32
+      onload: () => void = () => {}
+      set src(_: string) {
+        setTimeout(() => this.onload(), 0)
+      }
+    }
+    try {
+      const art = { id: 'custom_asset_0_r1', decorationId: 'custom_asset_0', name: 'My Art', type: 'custom' as const, position: { x: 32, y: 240 } }
+      const copy = { ...art, id: 'custom_asset_0_r2', position: { x: 128, y: 240 } }
+      setup({ initialDecorations: [art, copy] })
+      await waitFor(() => expect(canvasProps.decorations.map((d: DecorationItem) => d.customAssetUrl)).toEqual(['https://cdn.test/a.png', 'https://cdn.test/a.png']))
+
+      const file = new File([new Uint8Array([137, 80, 78, 71])], 'b.png', { type: 'image/png' })
+      await act(async () => {
+        await paletteProps.onCustomSlotUpload(0, file)
+      })
+      expect(canvasProps.decorations.map((d: DecorationItem) => d.customAssetUrl)).toEqual(['https://cdn.test/b.png', 'https://cdn.test/b.png'])
+      // a new image isn't an edit to the yard
+      expect(() => routeChangeStart()('/feed')).not.toThrow()
+    } finally {
+      global.Image = RealImage
+    }
+  })
+})

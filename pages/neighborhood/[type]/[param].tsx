@@ -1,4 +1,5 @@
 import { GetServerSideProps } from 'next'
+import { customArtUrl, customSlotUrls } from '@/lib/pixel-homes/custom-art'
 import Head from 'next/head'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
@@ -88,6 +89,8 @@ interface NeighborhoodMember {
       renderSvg?: string | null
       pngUrl?: string | null
       data?: any // Custom data for decorations (e.g. sign text)
+      layerBias?: number
+      customAssetUrl?: string | null
     }[]
     terrain?: Record<string, string>
   }
@@ -852,6 +855,10 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
                   x: d.positionX,
                   y: d.positionY,
                   layer: d.layer,
+                  layerBias: d.layerBias,
+                  ...(d.decorationType === 'custom' && {
+                    customAssetUrl: customArtUrl(d.decorationId, customSlotUrls(config.customAssets))
+                  }),
                   ...(decorationItemMap.has(d.decorationId) && {
                     renderSvg: decorationItemMap.get(d.decorationId)?.renderSvg,
                     pngUrl: decorationItemMap.get(d.decorationId)?.pngUrl
@@ -979,6 +986,10 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
                   x: d.positionX,
                   y: d.positionY,
                   layer: d.layer,
+                  layerBias: d.layerBias,
+                  ...(d.decorationType === 'custom' && {
+                    customAssetUrl: customArtUrl(d.decorationId, customSlotUrls(config.customAssets))
+                  }),
                   ...(decorationItemMap.has(d.decorationId) && {
                     renderSvg: decorationItemMap.get(d.decorationId)?.renderSvg,
                     pngUrl: decorationItemMap.get(d.decorationId)?.pngUrl
@@ -1104,6 +1115,10 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
                   x: d.positionX,
                   y: d.positionY,
                   layer: d.layer,
+                  layerBias: d.layerBias,
+                  ...(d.decorationType === 'custom' && {
+                    customAssetUrl: customArtUrl(d.decorationId, customSlotUrls(config.customAssets))
+                  }),
                   ...(decorationItemMap.has(d.decorationId) && {
                     renderSvg: decorationItemMap.get(d.decorationId)?.renderSvg,
                     pngUrl: decorationItemMap.get(d.decorationId)?.pngUrl

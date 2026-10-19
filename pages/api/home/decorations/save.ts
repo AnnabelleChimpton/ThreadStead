@@ -2,43 +2,20 @@ import type { NextApiResponse } from "next";
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/config/database/connection";
 import { apiHandler } from "@/lib/api/handler";
-import { keyFromPublicUrl } from "@/lib/storage/r2";
 import { scheduleHomeSnapshot } from "@/lib/pixel-homes/snapshot/service";
 import { availableDecorationsWhere } from "@/lib/pixel-homes/decoration-availability";
 import {
+  TERRAIN_CELL,
   fieldErrors,
   isCustomAssetId,
   saveHomeSchema,
 } from "@/lib/pixel-homes/decoration-save-rules";
+import { customSlotOf } from "@/lib/pixel-homes/custom-art";
 
 type FieldErrors = Record<string, string>;
 
 function sendInvalid(res: NextApiResponse, fields: FieldErrors) {
   return res.status(400).json({ error: Object.values(fields)[0], fields });
-}
-
-/** Own uploads live at `pixel-homes/custom/<userId>-…` in our bucket. */
-function isOwnUpload(url: string, userId: string): boolean {
-  return !!keyFromPublicUrl(url)?.startsWith(`pixel-homes/custom/${userId}-`);
-}
-
-/**
- * URLs of art this resident already uses: their current slots and placed
- * copies. Those stay valid if the CDN origin has changed since upload.
- */
-async function knownCustomArtUrls(userId: string): Promise<Set<string>> {
-  const [config, placed] = await Promise.all([
-    db.userHomeConfig.findUnique({ where: { userId }, select: { customAssets: true } }),
-    db.userHomeDecoration.findMany({ where: { userId, decorationType: "custom" }, select: { data: true } }),
-  ]);
-  const urls = new Set<string>();
-  const add = (value: unknown) => {
-    const url = (value as { url?: unknown; customAssetUrl?: unknown } | null);
-    for (const v of [url?.url, url?.customAssetUrl]) if (typeof v === "string") urls.add(v);
-  };
-  if (Array.isArray(config?.customAssets)) config.customAssets.forEach(add);
-  placed.forEach((d) => add(d.data));
-  return urls;
 }
 
 export default apiHandler(
@@ -71,23 +48,13 @@ export default apiHandler(
       const allowed = new Set([...available.map((d) => d.itemId), ...alreadyPlaced.map((d) => d.decorationId)]);
 
       const problems: FieldErrors = {};
-      let knownArt: Set<string> | null = null;
       for (const [i, decoration] of decorations.entries()) {
         let problem: string | null = null;
         if (decoration.decorationType !== "custom") {
           if (!allowed.has(decoration.decorationId)) problem = "One of these decorations isn't available to you.";
         } else if (!isCustomAssetId(decoration.decorationId)) {
+          // A resident's own art is named by its slot; the image comes from the slot when drawn
           problem = "Unknown decoration.";
-        } else {
-          const url = decoration.data?.customAssetUrl;
-          if (url !== undefined && url !== null) {
-            if (typeof url !== "string") {
-              problem = "That pixel art isn't one of your uploads.";
-            } else if (!isOwnUpload(url, me.id)) {
-              knownArt ??= await knownCustomArtUrls(me.id);
-              if (!knownArt.has(url)) problem = "That pixel art isn't one of your uploads.";
-            }
-          }
         }
         if (problem) problems[`decorations.${i}.decorationId`] = problem;
       }
@@ -107,18 +74,29 @@ export default apiHandler(
       }
       if (terrain) configUpdate.terrain = terrain;
 
-      const decorationRecords = decorations.map((decoration) => ({
-        userId: me.id,
-        decorationType: decoration.decorationType,
-        decorationId: decoration.decorationId,
-        zone: decoration.zone,
-        positionX: decoration.positionX,
-        positionY: decoration.positionY,
-        layer: decoration.layer || 1,
-        variant: decoration.variant || "default",
-        size: decoration.size || "medium",
-        data: (decoration.data ?? undefined) as Prisma.InputJsonValue | undefined,
-      }));
+      const decorationRecords = decorations.map((decoration) => {
+        // On the grid, the cell decides the position; otherwise a free placement
+        const onGrid = decoration.gridX != null && decoration.gridY != null;
+        const custom = decoration.decorationType === "custom";
+        return {
+          userId: me.id,
+          decorationType: decoration.decorationType,
+          decorationId: decoration.decorationId,
+          zone: decoration.zone,
+          positionX: onGrid ? decoration.gridX! * TERRAIN_CELL : decoration.positionX,
+          positionY: onGrid ? decoration.gridY! * TERRAIN_CELL : decoration.positionY,
+          gridX: onGrid ? decoration.gridX! : null,
+          gridY: onGrid ? decoration.gridY! : null,
+          layer: decoration.layer || 1,
+          layerBias: decoration.layerBias ?? 0,
+          variant: decoration.variant || "default",
+          size: decoration.size || "medium",
+          // Custom art keeps only its slot, never a file URL
+          data: (custom
+            ? { slot: customSlotOf(decoration.decorationId) }
+            : decoration.data ?? undefined) as Prisma.InputJsonValue | undefined,
+        };
+      });
 
       // One transaction for the config and the decorations, so a failure
       // can't leave a new house with the old yard (or no yard: the replace
