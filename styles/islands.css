@@ -355,40 +355,7 @@ body[data-env="development"] .islands-container::before {
   display: none;
 }
 
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .island-skeleton {
-    background: #2d3748;
-  }
-  
-  .island-skeleton--default {
-    background: #2d3748;
-  }
-  
-  .island-skeleton--enhanced {
-    background: linear-gradient(90deg, #2d3748 25%, #4a5568 50%, #2d3748 75%);
-  }
-  
-  .skeleton-shimmer {
-    background: linear-gradient(
-      90deg,
-      transparent,
-      rgba(255, 255, 255, 0.1),
-      transparent
-    );
-  }
-  
-  .island-error {
-    background: #2d3748;
-    border-color: #e53e3e;
-    color: #fed7d7;
-  }
-  
-  .island-runtime-error {
-    background: #2d3748;
-    color: #fed7d7;
-  }
-}
+/* No dark-mode overrides: the site is light-only (see globals.css). */
 
 /* Mobile responsiveness */
 @media (max-width: 768px) {

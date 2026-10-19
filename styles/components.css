@@ -775,23 +775,10 @@
     }
   }
 
-  /* Dark mode optimizations */
-  @media (prefers-color-scheme: dark) {
-    .mobile-nav-enhanced {
-      /* No dark mode modifications - preserves original header styling */
-    }
-
-    .mobile-card {
-      background: #1F2937;
-      border-color: rgba(255, 255, 255, 0.1);
-      color: #F9FAFB;
-    }
-
-    .mobile-content-container {
-      background: #111827;
-      color: #F9FAFB;
-    }
-  }
+  /* No dark-mode rules here: the site is light-only (globals.css forces a
+     light page, and _app sets color-scheme: light). A dark rule on
+     .mobile-content-container used to paint the whole main area near-black
+     around the light cards on phones in dark mode. */
 
   /* Screen reader optimization */
   .mobile-sr-only {
