@@ -82,7 +82,7 @@ These are modular pieces that overlay the base house. Dimensions are relative to
 
 ### Interactive Elements
 
-**File:** `components/pixel-homes/InteractiveHouseSVG.tsx`
+**File:** `components/pixel-homes/InteractiveHouseSVG.tsx` (removed 2026-10; nothing rendered it)
 
 | Element | Current Size | Recommended Size | Canvas |
 |---------|-------------|------------------|---------|
