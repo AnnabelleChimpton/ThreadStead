@@ -136,6 +136,24 @@ async function numberedRange(db: Db, host: string, from: number, to: number) {
   return { total, numbers };
 }
 
+/** The homes among `numbers` (userId → house number) the viewer may visit, in house-number order. */
+async function visibleHomes(
+  db: Db,
+  numbers: Map<string, number>,
+  viewerId: string | null | undefined,
+  host: string
+): Promise<StreetHome[]> {
+  if (numbers.size === 0) return [];
+  const rows = await db.user.findMany({
+    where: { AND: [{ id: { in: [...numbers.keys()] } }, visibleResidentWhere(viewerId)] },
+    select: homeSelect,
+  });
+  return rows
+    .map((row) => toStreetHome(row, numbers.get(row.id)!, host))
+    .filter((home): home is StreetHome => home !== null)
+    .sort((a, b) => a.number - b.number);
+}
+
 /** One street of homes the viewer may visit, in house-number order. */
 export async function getStreetPage(
   db: Db,
@@ -149,16 +167,7 @@ export async function getStreetPage(
   const clamped = Math.min(safeIndex, streetCount - 1);
   if (clamped !== safeIndex) return getStreetPage(db, { index: clamped, viewerId, host });
 
-  const rows = numbers.size
-    ? await db.user.findMany({
-        where: { AND: [{ id: { in: [...numbers.keys()] } }, visibleResidentWhere(viewerId)] },
-        select: homeSelect,
-      })
-    : [];
-  const homes = rows
-    .map((row) => toStreetHome(row, numbers.get(row.id)!, host))
-    .filter((home): home is StreetHome => home !== null)
-    .sort((a, b) => a.number - b.number);
+  const homes = await visibleHomes(db, numbers, viewerId, host);
 
   return {
     index: clamped,
@@ -201,6 +210,18 @@ export async function houseNumbersOf(db: Db, userIds: string[], host: string): P
     SELECT "id", number FROM numbered WHERE "id" = ANY(${userIds})
   `;
   return new Map(rows.map((r) => [r.id, Number(r.number)]));
+}
+
+/**
+ * Some residents' homes as a street of their own (a ring's members, say),
+ * keeping each house's number from the main street. Leaves out anyone
+ * without a pixel home or a local handle, and homes the viewer may not see.
+ */
+export async function getHomesOf(
+  db: Db,
+  { userIds, viewerId, host }: { userIds: string[]; viewerId: string | null | undefined; host: string }
+): Promise<StreetHome[]> {
+  return visibleHomes(db, await houseNumbersOf(db, userIds, host), viewerId, host);
 }
 
 /**

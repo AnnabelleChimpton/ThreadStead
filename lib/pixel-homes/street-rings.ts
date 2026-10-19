@@ -157,7 +157,14 @@ export async function getStreetRingSigns(
     viewerId,
     hub,
     deadlineMs = STREET_HUB_DEADLINE_MS,
-  }: { viewerId?: string | null; hub?: HubReader | null; deadlineMs?: number } = {}
+    exceptSlugs = [],
+  }: {
+    viewerId?: string | null
+    hub?: HubReader | null
+    deadlineMs?: number
+    /** Rings that get no sign here (a ring's own street doesn't sign itself) */
+    exceptSlugs?: string[]
+  } = {}
 ): Promise<RingSign[]> {
   if (homes.length < MIN_MEMBERS_FOR_SIGN) return []
   try {
@@ -179,7 +186,7 @@ export async function getStreetRingSigns(
       if (list) ringsByUser.set(d.userId, list)
     })
 
-    const plan = planRingSigns(homes, ringsByUser, blocked)
+    const plan = planRingSigns(homes, ringsByUser, new Set([...blocked, ...exceptSlugs]))
     if (plan.length === 0) return []
 
     // The badge each ring shows today. A ring that has since gone private or
