@@ -553,7 +553,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
             <li>Remove any custom HTML templates</li>
             <li>Return your profile to the site&apos;s default appearance</li>
           </ul>
-          <p className="font-semibold mt-4">This action cannot be undone.</p>
+          <p className="mt-4">You can bring the old version back from History.</p>
         </div>
       ),
       confirmText: "Yes, Reset to Default",

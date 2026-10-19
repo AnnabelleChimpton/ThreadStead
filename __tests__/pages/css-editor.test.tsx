@@ -1,0 +1,126 @@
+/**
+ * The CSS editor (/resident/[username]/css-editor):
+ *  - the small header "Reset" wiped CSS and template with no question asked,
+ *    while the footer "Reset to Default" confirmed; both confirm now, and the
+ *    dialog says History can bring the old version back (it can).
+ *  - generator "Insert CSS" and reference "Insert" looked for a <textarea>
+ *    that went away when the editor became CodeMirror, so they did nothing.
+ *    These run the real CodeMirror so the insert path is the production one.
+ */
+import React from 'react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { EditorView } from '@codemirror/view';
+
+// The page loads CodeMirror through next/dynamic; hand back the real one.
+jest.mock('next/dynamic', () => () => require('@uiw/react-codemirror').default);
+jest.mock('@/components/ui/PixelIcon', () => ({ PixelIcon: () => null }));
+jest.mock('@/components/ui/layout/Layout', () => ({ __esModule: true, default: ({ children }: { children: React.ReactNode }) => children }));
+jest.mock('@/components/features/templates/TemplateHistoryPanel', () => ({ __esModule: true, default: () => null }));
+jest.mock('@/components/features/templates/TemplatePanelSelector', () => ({ __esModule: true, default: () => null }));
+jest.mock('@/lib/templates/core/template-data', () => ({ fetchResidentData: jest.fn(() => new Promise(() => {})) }));
+jest.mock('@/lib/api/client/csrf-fetch', () => ({ csrfFetch: jest.fn() }));
+
+import CSSEditorPage from '@/pages/resident/[username]/css-editor';
+import { ToastProvider } from '@/contexts/ToastContext';
+import { ConfirmProvider } from '@/contexts/ConfirmContext';
+import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+
+// jsdom has no layout; CodeMirror's measuring pass needs these to exist.
+Object.assign(Range.prototype, {
+  getClientRects: () => Object.assign([], { item: () => null }),
+  getBoundingClientRect: () => ({ x: 0, y: 0, width: 0, height: 0, top: 0, left: 0, right: 0, bottom: 0 }),
+});
+
+const mockCsrfFetch = csrfFetch as jest.Mock;
+const INITIAL_CSS = '.ts-profile-header {\n  color: red;\n}\n';
+
+function renderEditor(props: Partial<React.ComponentProps<typeof CSSEditorPage>> = {}) {
+  return render(
+    <ToastProvider>
+      <ConfirmProvider>
+        <CSSEditorPage
+          username="tester"
+          isOwner
+          initialCSS={INITIAL_CSS}
+          templateMode="enhanced"
+          currentUser={{ id: 'u1', primaryHandle: 'tester@local' }}
+          {...props}
+        />
+      </ConfirmProvider>
+    </ToastProvider>
+  );
+}
+
+async function editorText() {
+  const dom = await waitFor(() => {
+    const el = document.querySelector('.cm-editor') as HTMLElement | null;
+    if (!el) throw new Error('editor not mounted');
+    return el;
+  });
+  return EditorView.findFromDOM(dom)!.state.doc.toString();
+}
+
+beforeEach(() => {
+  localStorage.clear();
+  mockCsrfFetch.mockReset();
+  mockCsrfFetch.mockResolvedValue({ ok: true, status: 200, json: async () => ({ token: 'cap' }) });
+});
+
+describe('header Reset', () => {
+  it('asks first, and does nothing on Cancel', async () => {
+    renderEditor();
+    fireEvent.click(screen.getByRole('button', { name: 'Reset' }));
+
+    const dialog = await screen.findByRole('alertdialog');
+    expect(within(dialog).getByText(/bring the old version back from History/)).toBeInTheDocument();
+    expect(dialog).not.toHaveTextContent(/cannot be undone/i);
+
+    // The footer button (the dialog's close X shares the label).
+    const cancel = within(dialog).getAllByRole('button', { name: 'Cancel' }).find(b => b.textContent === 'Cancel')!;
+    fireEvent.click(cancel);
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument());
+    expect(mockCsrfFetch).not.toHaveBeenCalled();
+  });
+
+  it('resets once confirmed', async () => {
+    renderEditor();
+    fireEvent.click(screen.getByRole('button', { name: 'Reset' }));
+    const dialog = await screen.findByRole('alertdialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Yes, Reset to Default' }));
+
+    await waitFor(() =>
+      expect(mockCsrfFetch).toHaveBeenCalledWith('/api/profile/tester/css', expect.objectContaining({ method: 'POST' }))
+    );
+  });
+
+  it('uses the same dialog as the footer Reset to Default', async () => {
+    renderEditor();
+    fireEvent.click(screen.getByRole('button', { name: 'Reset to Default' }));
+    expect(await screen.findByRole('alertdialog')).toHaveTextContent('Reset to Default Template?');
+    expect(mockCsrfFetch).not.toHaveBeenCalled();
+  });
+});
+
+describe('inserting CSS', () => {
+  it('generator Insert CSS adds the rule to the editor, after what is there', async () => {
+    renderEditor();
+    expect(await editorText()).toBe(INITIAL_CSS);
+
+    // Color Palette is the generator open by default.
+    fireEvent.change(screen.getByDisplayValue('Select an element...'), { target: { value: '.thread-surface' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Insert CSS' }));
+
+    expect(await editorText()).toBe(`${INITIAL_CSS}.thread-surface {\n  background-color: #3b82f6;\n}\n`);
+  });
+
+  it('reference Insert adds a starter rule to the editor', async () => {
+    renderEditor();
+    await editorText();
+
+    fireEvent.click(screen.getByRole('tab', { name: /Reference/ }));
+    fireEvent.click(screen.getAllByRole('button', { name: 'Insert' })[0]);
+
+    expect(await editorText()).toMatch(new RegExp(`^${INITIAL_CSS.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\.site-layout \\{`));
+    expect(screen.getByRole('button', { name: 'Inserted' })).toBeInTheDocument();
+  });
+});

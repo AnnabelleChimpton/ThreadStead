@@ -233,16 +233,20 @@ export default function CSSClassReference({ onClassSelect }: CSSClassReferencePr
     );
   };
 
-  const copyToClipboard = (className: string) => {
+  // With an editor to put it in, the snippet goes there; otherwise it's copied.
+  const handleSnippet = async (className: string) => {
     const cssSnippet = generateCSSSnippet(className);
-    navigator.clipboard.writeText(cssSnippet);
-    setCopiedClass(className);
-    setTimeout(() => setCopiedClass(null), 2000);
-
-    // Also insert into editor if callback provided
     if (onClassSelect) {
       onClassSelect(cssSnippet);
+    } else {
+      try {
+        await navigator.clipboard.writeText(cssSnippet);
+      } catch {
+        return;
+      }
     }
+    setCopiedClass(className);
+    setTimeout(() => setCopiedClass(null), 2000);
   };
 
   // Filter classes based on search query
@@ -264,7 +268,9 @@ export default function CSSClassReference({ onClassSelect }: CSSClassReferencePr
       <div className="pb-3 border-b border-gray-200">
         <h3 className="font-bold text-base mb-1">CSS Class Reference</h3>
         <p className="text-xs text-gray-600 mb-2">
-          Click any class to copy a CSS snippet with common properties.
+          {onClassSelect
+            ? 'Insert a starter rule for any class, then change the values.'
+            : 'Copy a starter rule for any class, then change the values.'}
         </p>
 
         {/* Search */}
@@ -305,10 +311,12 @@ export default function CSSClassReference({ onClassSelect }: CSSClassReferencePr
                         {cls.name}
                       </code>
                       <button
-                        onClick={() => copyToClipboard(cls.name)}
+                        onClick={() => handleSnippet(cls.name)}
                         className="px-2 py-1 text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 rounded transition-colors flex-shrink-0"
                       >
-                        {copiedClass === cls.name ? '✓ Copied!' : 'Copy'}
+                        {copiedClass === cls.name
+                          ? (onClassSelect ? 'Inserted' : 'Copied')
+                          : (onClassSelect ? 'Insert' : 'Copy')}
                       </button>
                     </div>
                     <p className="text-xs text-gray-600 break-words">{cls.description}</p>

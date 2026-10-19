@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { getInternalBaseUrl } from "@/lib/utils/api/internal-base-url";
 import type { GetServerSideProps, NextApiRequest } from 'next';
 import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import { css as cssLang } from '@codemirror/lang-css';
+import type { EditorView } from '@codemirror/view';
 import Head from 'next/head';
 
 // CodeMirror is editor-page-only — loaded dynamically so it never lands in
@@ -28,6 +29,7 @@ import { useLocalDraft } from '@/hooks/useLocalDraft';
 import TemplateHistoryPanel, { type FullRevision } from '@/components/features/templates/TemplateHistoryPanel';
 import TemplatePanelSelector from '@/components/features/templates/TemplatePanelSelector';
 import { PixelIcon } from '@/components/ui/PixelIcon';
+import { insertCSSIntoView, planCSSInsertion } from '@/components/features/templates/css-generators/shared/insertCSS';
 
 interface CSSEditorPageProps {
   username: string;
@@ -159,23 +161,26 @@ export default function CSSEditorPage({
     router.push(`/settings?tab=appearance`);
   };
 
-  // Helper function to insert CSS at cursor position in textarea
-  const insertCSSAtCursor = useCallback((cssToInsert: string) => {
-    const textarea = document.querySelector('textarea');
-    if (textarea) {
-      const start = textarea.selectionStart;
-      const end = textarea.selectionEnd;
-      const newCSS = css.substring(0, start) + `\n${cssToInsert}\n\n` + css.substring(end);
-      setCSS(newCSS);
+  // Captured via onCreateEditor: next/dynamic doesn't forward refs, so a
+  // ref on the <CodeMirror> wrapper would stay null forever.
+  const editorViewRef = useRef<EditorView | null>(null);
+  // Until the person clicks into the editor its cursor sits at 0; inserting
+  // there would put new rules above (and under) everything already written.
+  const cursorPlacedRef = useRef(false);
 
-      // Focus textarea and position cursor after inserted CSS
-      setTimeout(() => {
-        textarea.focus();
-        const newPosition = start + cssToInsert.length + 2;
-        textarea.setSelectionRange(newPosition, newPosition);
-      }, 0);
+  // Generators and the class reference drop their CSS in through here.
+  const insertCSSAtCursor = useCallback((cssToInsert: string) => {
+    const view = editorViewRef.current;
+    if (view) {
+      insertCSSIntoView(view, cssToInsert, cursorPlacedRef.current);
+    } else {
+      // Editor still loading: append, the same place it would go untouched.
+      setCSS(prev => {
+        const plan = planCSSInsertion(prev, prev.length, prev.length, cssToInsert);
+        return prev + plan.insert;
+      });
     }
-  }, [css]);
+  }, []);
 
   const confirmReset = async () => {
     const ok = await confirm({
@@ -188,7 +193,7 @@ export default function CSSEditorPage({
             <li>Remove any custom HTML templates</li>
             <li>Return your profile to the site&apos;s default appearance</li>
           </ul>
-          <p className="font-semibold mt-4">This action cannot be undone.</p>
+          <p className="mt-4">You can bring the old version back from History.</p>
         </div>
       ),
       confirmText: "Yes, Reset to Default",
@@ -416,8 +421,8 @@ export default function CSSEditorPage({
       <div className="flex flex-col h-full bg-white overflow-x-hidden">
         {/* Header */}
         <div className="bg-white border-b border-gray-200 px-4 py-3 shadow-sm flex-shrink-0">
-            <div className="flex items-center justify-between max-w-full mx-auto">
-              <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 max-w-full mx-auto">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 min-w-0">
                 <h1 className="text-lg font-semibold flex items-center gap-2"><PixelIcon name="paint-bucket" size={16} /> Simple CSS Styling</h1>
                 <span className="text-gray-600 text-sm">@{username}</span>
                 {currentTemplateMode === 'enhanced' && (
@@ -437,10 +442,10 @@ export default function CSSEditorPage({
                 )}
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 {currentTemplateMode !== 'default' && (
                   <button
-                    onClick={handleResetToDefault}
+                    onClick={confirmReset}
                     disabled={saving}
                     className="text-sm px-2 py-1 bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded transition-colors disabled:opacity-50"
                     title="Switch back to default layout"
@@ -503,8 +508,8 @@ export default function CSSEditorPage({
                         You&apos;re currently using a custom template (Advanced Mode)
                       </p>
                       <p className="text-xs text-purple-700 mt-1">
-                        Saving CSS here will switch you to CSS Mode, which uses the default layout with your styles. Your custom template will be preserved but hidden.
-                        Click &quot;Reset to Default&quot; above to return to standard layout.
+                        CSS you save here styles your custom template, which stays on.
+                        To go back to the standard layout, use &quot;Reset to Default&quot;.
                       </p>
                     </div>
                   </>
@@ -556,12 +561,13 @@ export default function CSSEditorPage({
           )}
 
           {/* Main Content */}
-          <div className="flex-1 flex overflow-hidden min-h-0">
+          {/* Below lg the tools stack under the editor instead of squeezing it */}
+          <div className="flex-1 flex flex-col lg:flex-row lg:overflow-hidden min-h-0">
             {/* Editor Pane */}
-            <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-              <div className="bg-gray-50 border-b border-gray-200 px-4 py-2 flex items-center justify-between">
+            <div className="lg:flex-1 flex flex-col min-w-0 overflow-hidden">
+              <div className="bg-gray-50 border-b border-gray-200 px-4 py-2 flex flex-wrap items-center justify-between gap-2">
                 <span className="text-sm font-semibold text-gray-700">CSS Editor</span>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   {saveMessage && (
                     <span className={`text-sm ${saveMessage.includes('Error') ? 'text-red-600' : 'text-green-600'}`}>
                       {saveMessage}
@@ -586,10 +592,10 @@ export default function CSSEditorPage({
               </div>
 
               {/* Theme Gallery */}
-              <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3">
+              <div className="bg-white border-b border-gray-200 px-4 py-3 flex flex-wrap items-center gap-3">
                 <button
                   onClick={() => setShowThemeGallery(true)}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors text-sm font-medium"
+                  className="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors text-sm font-medium"
                 >
                   <PixelIcon name="paint-bucket" size={16} />
                   Browse Themes
@@ -601,12 +607,12 @@ export default function CSSEditorPage({
 
               {/* CSS Mode Selector */}
               <div className="bg-white border-b border-gray-200 px-4 py-3">
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                   <span className="text-sm font-medium text-gray-700">Site CSS Mode:</span>
                   <select
                     value={cssMode}
                     onChange={(e) => setCSSMode(e.target.value as 'inherit' | 'override' | 'disable')}
-                    className="text-sm px-3 py-1.5 border border-gray-300 rounded bg-white hover:bg-gray-50"
+                    className="max-w-full text-sm px-3 py-1.5 border border-gray-300 rounded bg-white hover:bg-gray-50"
                   >
                     <option value="inherit">Inherit - Extend site styles</option>
                     <option value="override">Override - Priority over site</option>
@@ -638,10 +644,16 @@ export default function CSSEditorPage({
                 </div>
               </div>
 
-              <div className="flex-1 overflow-auto">
+              {/* A phone has no row height to fill, so the editor gets its own */}
+              <div className="h-[60vh] min-h-[320px] lg:h-auto lg:min-h-0 lg:flex-1 overflow-auto">
                 <CodeMirror
                   value={css}
                   onChange={(value: string) => setCSS(value)}
+                  onCreateEditor={(view: EditorView) => {
+                    editorViewRef.current = view;
+                    cursorPlacedRef.current = false;
+                    view.contentDOM.addEventListener('focus', () => { cursorPlacedRef.current = true; });
+                  }}
                   extensions={[cssLang()]}
                   height="100%"
                   style={{ height: '100%', fontSize: '13px' }}
@@ -671,9 +683,8 @@ export default function CSSEditorPage({
             </div>
 
             {/* Reference & Generators Sidebar */}
-            {/* Note: Using inline styles for width to avoid CSS class conflicts with thread-module */}
             {showReference && (
-              <div style={{ width: '400px', flexShrink: 0 }} className="border-l border-gray-200 flex flex-col h-full overflow-hidden bg-white">
+              <div className="w-full lg:w-[400px] flex-shrink-0 border-t lg:border-t-0 lg:border-l border-gray-200 flex flex-col lg:h-full overflow-hidden bg-white">
                 {/* Simple Tab Bar */}
                 <div className="flex border-b border-gray-200" role="tablist">
                   <button

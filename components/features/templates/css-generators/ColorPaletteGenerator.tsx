@@ -108,7 +108,7 @@ export default function ColorPaletteGenerator({ onInsertCSS }: ColorPaletteGener
                 key={index}
                 onClick={() => setColor(historyColor)}
                 className="w-8 h-8 rounded border-2 border-gray-300 hover:border-gray-400 transition-colors"
-                style={{ backgroundColor: historyColor }}
+                style={{ background: historyColor }}
                 title={historyColor}
               />
             ))}
