@@ -1,5 +1,6 @@
 import { apiHandler } from "@/lib/api/handler";
 import { db } from "@/lib/config/database/connection";
+import { availableDecorationsWhere } from "@/lib/pixel-homes/decoration-availability";
 
 export default apiHandler(
   { methods: ["GET"], auth: "user" },
@@ -9,35 +10,7 @@ export default apiHandler(
 
       // Get all decorations that the user has access to
       const availableDecorations = await db.decorationItem.findMany({
-        where: {
-          isActive: true,
-          OR: [
-            // Default decorations - always available to everyone
-            { releaseType: 'DEFAULT' },
-
-            // Public decorations
-            { releaseType: 'PUBLIC' },
-
-            // Limited time decorations that are currently active
-            {
-              releaseType: 'LIMITED_TIME',
-              releaseStartAt: { lte: now },
-              releaseEndAt: { gte: now }
-            },
-
-            // Beta users only (if user has beta access)
-            ...(user.betaKey ? [{ releaseType: 'BETA_USERS' as const }] : []),
-
-            // Decorations explicitly claimed by this user
-            {
-              userClaims: {
-                some: {
-                  userId: user.id
-                }
-              }
-            }
-          ]
-        },
+        where: availableDecorationsWhere(user, now),
         select: {
           id: true,
           itemId: true,

@@ -8,6 +8,7 @@ import Layout from '@/components/ui/layout/Layout'
 import DecorationMode from '@/components/pixel-homes/DecorationMode'
 import { useToast } from '@/contexts/ToastContext'
 import { HouseTemplate, ColorPalette, HouseCustomizations, AtmosphereSettings } from '@/components/pixel-homes/HouseSVG'
+import { normalizeDecorationRow, normalizeHomeConfig } from '@/lib/pixel-homes/decoration-save-rules'
 
 interface DecorationPageProps {
   handle: string
@@ -31,7 +32,7 @@ export default function DecoratePage({
   isOwnHome
 }: DecorationPageProps) {
   const router = useRouter()
-  const { showError } = useToast()
+  const { showError, showSuccess } = useToast()
   const [isSaving, setIsSaving] = useState(false)
 
   // Redirect if not own home
@@ -45,10 +46,10 @@ export default function DecoratePage({
     return <div>Redirecting...</div>
   }
 
-  const handleSave = async (data: any) => {
+  // Resolves true once the home is saved; DecorationMode then leaves the editor.
+  const handleSave = async (data: any): Promise<boolean> => {
+    setIsSaving(true)
     try {
-      setIsSaving(true)
-
       // Transform decorations to match API expected format
       const formattedDecorations = data.decorations.map((d: any) => {
         // Extract base ID from complex ID (e.g. tree_pine_123 -> tree_pine)
@@ -86,22 +87,24 @@ export default function DecoratePage({
       })
 
       if (!response.ok) {
-        throw new Error('Failed to save decorations')
+        const body = await response.json().catch(() => null)
+        const reason = typeof body?.error === 'string' ? body.error : 'Something went wrong.'
+        showError(`Couldn't save: ${reason} Your changes are still here.`)
+        return false
       }
 
-      // Navigate back to home page after successful save
-      router.push(`/home/${handle}`)
+      showSuccess('Saved.')
+      return true
     } catch (error) {
       console.error('Error saving decorations:', error)
-      // In-app toast instead of a blocking browser alert()
-      showError('Failed to save decorations — your changes are still here. Please try again.')
+      showError("Couldn't reach the server. Your changes are still here, so try again.")
+      return false
     } finally {
       setIsSaving(false)
     }
   }
 
-  const handleCancel = () => {
-    // Navigate back to home page without saving
+  const handleExit = () => {
     router.push(`/home/${handle}`)
   }
 
@@ -120,7 +123,7 @@ export default function DecoratePage({
             palette={palette}
             username={handle}
             onSave={handleSave}
-            onCancel={handleCancel}
+            onExit={handleExit}
             initialDecorations={initialDecorations}
             initialHouseCustomizations={initialHouseCustomizations}
             initialAtmosphere={initialAtmosphere}
@@ -217,14 +220,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         name: 'Decoration', // Placeholder name as we don't fetch it yet
         type: decoration.decorationType,
         zone: 'front_yard' as const,
-        position: {
-          x: decoration.positionX || 0,
-          y: decoration.positionY || 0,
-          layer: decoration.layer || 1
-        },
-        variant: decoration.variant || 'default',
-        size: decoration.size || 'medium',
-        data: decoration.data,
+        ...normalizeDecorationRow(decoration),
         pngUrl: decorationData?.pngUrl || null,
         renderSvg: decorationData?.renderSvg || null
       }
@@ -242,39 +238,19 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       return baseDecoration
     }) || []
 
+    // Older rows can hold values the save API now refuses (a colour with no
+    // #, an unknown style); clean them here so the home opens and re-saves.
+    const home = normalizeHomeConfig(homeConfig)
+
     return {
       props: {
         handle: cleanHandle,
-        template: homeConfig.houseTemplate || 'cottage_v1',
-        palette: homeConfig.palette || 'thread_sage',
+        template: home.template,
+        palette: home.palette,
         initialDecorations: transformedDecorations,
-        initialHouseCustomizations: {
-          windowStyle: homeConfig.windowStyle || null,
-          doorStyle: homeConfig.doorStyle || null,
-          roofTrim: homeConfig.roofTrim || null,
-          wallColor: homeConfig.wallColor || null,
-          roofColor: homeConfig.roofColor || null,
-          trimColor: homeConfig.trimColor || null,
-          windowColor: homeConfig.windowColor || null,
-          detailColor: homeConfig.detailColor || null,
-          houseTitle: homeConfig.houseTitle || null,
-          houseDescription: homeConfig.houseDescription || null,
-          houseBoardText: homeConfig.houseBoardText || null,
-          houseNumber: homeConfig.houseNumber || null,
-          houseNumberStyle: homeConfig.houseNumberStyle || null,
-          welcomeMat: homeConfig.welcomeMat || null,
-          welcomeMatText: homeConfig.welcomeMatText || null,
-          welcomeMatColor: homeConfig.welcomeMatColor || null,
-          chimneyStyle: homeConfig.chimneyStyle || null,
-          exteriorLights: homeConfig.exteriorLights || null,
-          windowTreatments: homeConfig.windowTreatments || null
-        },
-        initialAtmosphere: {
-          sky: homeConfig.atmosphereSky || 'sunny',
-          weather: homeConfig.atmosphereWeather || 'clear',
-          timeOfDay: homeConfig.atmosphereTimeOfDay || 'midday'
-        },
-        initialTerrain: (homeConfig.terrain as Record<string, string>) || {},
+        initialHouseCustomizations: home.houseCustomizations,
+        initialAtmosphere: home.atmosphere,
+        initialTerrain: home.terrain,
         isOwnHome
       }
     }

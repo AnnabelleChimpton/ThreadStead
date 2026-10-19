@@ -75,7 +75,6 @@ export function useDecorationState(initialDecorations: DecorationItem[] = []) {
     }, [])
 
     const addDecoration = useCallback((item: DecorationItem) => {
-        console.log('useDecorationState: Adding decoration', item)
         const newDecorations = [...decorations, item]
         addToHistory(newDecorations)
     }, [decorations, addToHistory])

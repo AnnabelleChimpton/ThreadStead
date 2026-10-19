@@ -6,6 +6,58 @@ import { DecorationItem, TERRAIN_TILES, TerrainTile } from '../../lib/pixel-home
 import { PixelIcon, PixelIconName } from '@/components/ui/PixelIcon'
 import { DECORATION_CATEGORY_ICONS, getCategoryIcon } from '@/lib/pixel-homes/category-icons'
 import { retroSFX } from '../../lib/audio/retro-sfx'
+import { normalizeHexColor } from '../../lib/pixel-homes/decoration-save-rules'
+
+/**
+ * A hex color box that only passes on real colors. While what's typed
+ * isn't one ("banana", "#12"), the house keeps its last good color and the
+ * box says so. Empty means "use the theme's color".
+ */
+function HexColorInput({ value, onChange }: { value: string | undefined; onChange: (color: string | undefined) => void }) {
+  const [draft, setDraft] = useState(value || '')
+  // Follow changes made elsewhere (the color picker, Reset)
+  useEffect(() => {
+    setDraft((current) => (normalizeHexColor(current) === (value || null) ? current : value || ''))
+  }, [value])
+
+  const invalid = draft.trim() !== '' && !normalizeHexColor(draft)
+  const commit = (color: string | null | undefined) => {
+    if ((color || undefined) !== (value || undefined)) onChange(color || undefined)
+  }
+
+  return (
+    <div>
+      <input
+        type="text"
+        value={draft}
+        onChange={(e) => {
+          const next = e.target.value
+          setDraft(next)
+          // Short #abc only counts on blur, so typing #abcdef isn't cut off
+          if (next.trim() === '') commit(undefined)
+          else if (/^#?[0-9a-fA-F]{6}$/.test(next.trim())) commit(normalizeHexColor(next))
+        }}
+        onBlur={() => {
+          const color = normalizeHexColor(draft)
+          if (color) commit(color)
+          setDraft(color || value || '')
+        }}
+        placeholder="#RRGGBB"
+        maxLength={7}
+        aria-invalid={invalid}
+        aria-describedby={invalid ? 'hex-color-error' : undefined}
+        className={`w-full px-3 py-2 border rounded focus:outline-none focus:ring-1 font-mono text-sm ${
+          invalid ? 'border-thread-sunset focus:ring-thread-sunset' : 'border-thread-sage focus:ring-thread-pine'
+        }`}
+      />
+      {invalid && (
+        <p id="hex-color-error" className="mt-1 text-xs text-thread-sunset">
+          Use a color like #A1B2C3.
+        </p>
+      )}
+    </div>
+  )
+}
 
 /**
  * Renders a terrain tile icon with dithered pattern matching the actual terrain
@@ -555,16 +607,13 @@ export default function DecorationPalette({
                     />
                   </div>
                   <div className="flex-1">
-                    <input
-                      type="text"
-                      value={currentColor || ''}
-                      onChange={(e) => {
+                    <HexColorInput
+                      value={currentColor}
+                      onChange={(color) => {
                         if (colorKey) {
-                          onHouseCustomizationChange({ [colorKey]: e.target.value })
+                          onHouseCustomizationChange({ [colorKey]: color })
                         }
                       }}
-                      placeholder="#RRGGBB"
-                      className="w-full px-3 py-2 border border-thread-sage rounded focus:outline-none focus:ring-1 focus:ring-thread-pine font-mono text-sm"
                     />
                   </div>
                 </div>

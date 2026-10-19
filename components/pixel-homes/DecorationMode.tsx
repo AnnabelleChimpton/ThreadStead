@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import EnhancedHouseCanvas from './EnhancedHouseCanvas'
 import DecorationPalette from './DecorationPalette'
 import { DecorationItem, TERRAIN_TILES } from '../../lib/pixel-homes/decoration-data'
@@ -21,17 +21,22 @@ import { PixelIcon } from '../ui/PixelIcon'
 import { useToast } from '@/contexts/ToastContext'
 import { useConfirm } from '@/contexts/ConfirmContext'
 import useIsMobile, { useIsTouch } from '../../hooks/useIsMobile'
+import { useUnsavedChangesGuard } from '../../hooks/useUnsavedChangesGuard'
 import { retroSFX } from '../../lib/audio/retro-sfx'
+import { MAX_DECORATIONS } from '../../lib/pixel-homes/decoration-save-rules'
+import { editorSnapshot } from '../../lib/pixel-homes/editor-snapshot'
 
-// Maximum number of decorations allowed per home
-const MAX_DECORATIONS = 100
+/** Screen pixels the pointer must travel before pressing a decoration becomes a drag. */
+const DRAG_THRESHOLD_PX = 4
 
 interface DecorationModeProps {
   template: HouseTemplate
   palette: ColorPalette
   username: string
-  onSave: (data: any) => void
-  onCancel: () => void
+  /** Resolves true once saved; the editor then calls onExit. */
+  onSave: (data: any) => Promise<boolean>
+  /** Leave the editor (after Cancel, or after a save). */
+  onExit: () => void
   initialDecorations?: DecorationItem[]
   initialHouseCustomizations?: HouseCustomizations
   initialAtmosphere?: AtmosphereSettings
@@ -44,7 +49,7 @@ export default function DecorationMode({
   palette: initialPalette,
   username,
   onSave,
-  onCancel,
+  onExit,
   initialDecorations = [],
   initialHouseCustomizations,
   initialAtmosphere,
@@ -113,15 +118,35 @@ export default function DecorationMode({
   const [paintBrush, setPaintBrush] = useState<string | null | undefined>(undefined)
   const [isPainting, setIsPainting] = useState(false)
 
+  // Unsaved changes: the editor's current state against the last saved one
+  const snapshot = useMemo(() => editorSnapshot({
+    decorations: placedDecorations,
+    houseCustomizations,
+    atmosphere,
+    template: currentTemplate,
+    palette: currentPalette,
+    terrain
+  }), [placedDecorations, houseCustomizations, atmosphere, currentTemplate, currentPalette, terrain])
+  const [savedSnapshot, setSavedSnapshot] = useState(snapshot)
+  const isDirty = snapshot !== savedSnapshot
+  const snapshotRef = useRef(snapshot)
+  snapshotRef.current = snapshot
+  const { confirmLeave, allowLeave } = useUnsavedChangesGuard(isDirty)
+
   // Dragging State
   const [isDragging, setIsDragging] = useState(false)
   const [draggedItem, setDraggedItem] = useState<DecorationItem | null>(null)
-  const [draggedDecorationId, setDraggedDecorationId] = useState<string | null>(null)
   const [dragOffset, setDragOffset] = useState<{ x: number, y: number }>({ x: 0, y: 0 })
+  // A press on a placed decoration. It only becomes a drag once the pointer
+  // moves past DRAG_THRESHOLD_PX; a press and release in place just selects.
+  const pressRef = useRef<{ id: string, start?: { x: number, y: number } } | null>(null)
+  // Last pointer position over the canvas, in canvas units; null once it leaves
+  const pointerRef = useRef<{ x: number, y: number } | null>(null)
+  // The click that follows a drop must not also place or deselect
+  const suppressClickRef = useRef(false)
 
   // Grid system state
   const gridConfig = DEFAULT_DECORATION_GRID
-  const [mousePosition, setMousePosition] = useState<{ x: number, y: number } | undefined>()
   const [canvasScale, setCanvasScale] = useState(1)
 
   // Canvas dimensions (used for touch placement bounds) - grid-aligned
@@ -200,6 +225,12 @@ export default function DecorationMode({
       // Escape - Exit current mode / clear selection
       if (e.key === 'Escape') {
         e.preventDefault()
+        pressRef.current = null
+        if (isDragging) {
+          // The ghost hides with draggedItem; the next move refreshes the preview
+          setDraggedItem(null)
+          setIsDragging(false)
+        }
         if (selectedDecorations.size > 0) {
           clearSelection()
         }
@@ -219,21 +250,7 @@ export default function DecorationMode({
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [canUndo, canRedo, undo, redo, selectedDecorations, removeDecorations, clearSelection, isPlacing, isDeleting, paintBrush])
-
-  // Warn about unsaved changes when leaving the page
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (canUndo) {
-        e.preventDefault()
-        e.returnValue = '' // Required for Chrome
-        return '' // Required for some browsers
-      }
-    }
-
-    window.addEventListener('beforeunload', handleBeforeUnload)
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
-  }, [canUndo])
+  }, [canUndo, canRedo, undo, redo, selectedDecorations, removeDecorations, clearSelection, isPlacing, isDeleting, paintBrush, isDragging])
 
   // Load custom asset slots
   useEffect(() => {
@@ -559,42 +576,9 @@ export default function DecorationMode({
     }
   }
 
-  const handleCanvasClick = (x: number, y: number, event: React.MouseEvent) => {
-    if ((!isPlacing || !selectedItem) && !draggedItem) {
-      setSelectedItem(null)
-      setIsPlacing(false)
-      clearSelection()
-      return
-    }
-
-    const itemToPlace = draggedItem || selectedItem
-    if (!itemToPlace || ['sky', 'house_custom', 'house_template', 'house_color'].includes(itemToPlace.type)) return
-
-    // Calculate position with offset
-    // If placing new item, center it (offset is half size)
-    // If dragging, use the calculated dragOffset
-    let finalX = x
-    let finalY = y
-
-    if (isPlacing && selectedItem) {
-      // Center the item
-      const size = getDecorationGridSize(selectedItem.type, selectedItem.id, selectedItem.size || 'medium')
-      const pixelWidth = size.width * gridConfig.cellSize
-      const pixelHeight = size.height * gridConfig.cellSize
-      finalX = x - (pixelWidth / 2)
-      finalY = y - (pixelHeight / 2)
-    } else if (draggedItem) {
-      finalX = x - dragOffset.x
-      finalY = y - dragOffset.y
-    }
-
-    const snapResult = snapDecoration(
-      finalX,
-      finalY,
-      itemToPlace.type as any,
-      itemToPlace.id,
-      itemToPlace.size || 'medium'
-    )
+  // Where an item lands for a given top-left: snapped, with its depth layer
+  const placementFor = (item: DecorationItem, x: number, y: number) => {
+    const snapResult = snapDecoration(x, y, item.type as any, item.id, item.size || 'medium')
 
     // Determine z-index layer based on type and Y position for depth sorting
     // Base layers separate categories:
@@ -602,98 +586,116 @@ export default function DecorationMode({
     // Water: 200000+ (Middle)
     // Objects: 300000+ (Top)
     let baseLayer = 300000
-    if (itemToPlace.type === 'path') baseLayer = 100000
-    else if (itemToPlace.type === 'water') baseLayer = 200000
+    if (item.type === 'path') baseLayer = 100000
+    else if (item.type === 'water') baseLayer = 200000
 
     // Calculate actual item height in pixels to sort by "feet" (bottom Y)
-    const dimensions = getDecorationDimensions(itemToPlace.id, itemToPlace.type, itemToPlace.size || 'medium')
-    const pixelHeight = dimensions.height
+    const dimensions = getDecorationDimensions(item.id, item.type, item.size || 'medium')
 
     // Add bottom Y position to base layer for Y-sorting (items lower on screen appear in front)
     // Multiply Y by 1000 to ensure it's the primary sort factor
     // Add X position as tie-breaker for decorations at same Y position
-    const bottomY = Math.round(snapResult.position.pixelY + pixelHeight)
+    const bottomY = Math.round(snapResult.position.pixelY + dimensions.height)
     const layer = baseLayer + (bottomY * 1000) + Math.round(snapResult.position.pixelX)
 
-    const newDecoration: DecorationItem = {
-      ...itemToPlace,
-      id: draggedItem ? itemToPlace.id : `${itemToPlace.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      position: {
-        x: snapResult.position.pixelX,
-        y: snapResult.position.pixelY,
-        layer
-      },
-      variant: itemToPlace.variant || 'default',
-      size: itemToPlace.size || 'medium'
-    }
-
-    if (draggedItem) {
-      handleDecorationUpdate(draggedItem.id, { position: newDecoration.position })
-      setDraggedItem(null)
-      setIsDragging(false)
-      retroSFX.playPlaceItem()
-    } else {
-      // Check decoration limit before adding
-      if (placedDecorations.length >= MAX_DECORATIONS) {
-        appToast.showWarning(`Decoration limit reached (${MAX_DECORATIONS} max)`)
-        retroSFX.playError()
-        return
-      }
-      addDecoration(newDecoration)
-      retroSFX.playPlaceItem()
-      // Don't clear selection or placement mode to allow rapid placement
-      // But we do need to update the preview to the new mouse position immediately
-      // which happens in onMouseMove
-    }
+    return { x: snapResult.position.pixelX, y: snapResult.position.pixelY, layer }
   }
 
+  const handleCanvasClick = (x: number, y: number, event: React.MouseEvent) => {
+    if (suppressClickRef.current) {
+      suppressClickRef.current = false
+      return
+    }
+
+    if (!isPlacing || !selectedItem) {
+      setSelectedItem(null)
+      setIsPlacing(false)
+      clearSelection()
+      return
+    }
+
+    if (['sky', 'house_custom', 'house_template', 'house_color'].includes(selectedItem.type)) return
+
+    // Check decoration limit before adding
+    if (placedDecorations.length >= MAX_DECORATIONS) {
+      appToast.showWarning(`Decoration limit reached (${MAX_DECORATIONS} max)`)
+      retroSFX.playError()
+      return
+    }
+
+    // Center the new item on the cursor
+    const size = getDecorationGridSize(selectedItem.type, selectedItem.id, selectedItem.size || 'medium')
+    const position = placementFor(
+      selectedItem,
+      x - (size.width * gridConfig.cellSize) / 2,
+      y - (size.height * gridConfig.cellSize) / 2
+    )
+
+    addDecoration({
+      ...selectedItem,
+      id: `${selectedItem.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      position,
+      variant: selectedItem.variant || 'default',
+      size: selectedItem.size || 'medium'
+    })
+    retroSFX.playPlaceItem()
+    // Don't clear selection or placement mode to allow rapid placement
+  }
+
+  // Pressing a placed decoration only notes the press. Selecting happens on
+  // click; a drag starts in handleMouseMove once the pointer has moved.
   const handleDecorationMouseDown = (decorationId: string, event: React.MouseEvent) => {
-    if (isPlacing || isDeleting || paintBrush !== undefined) return
-
-    event.stopPropagation()
-    const decoration = placedDecorations.find(d => d.id === decorationId)
-    if (decoration) {
-      setDraggedItem(decoration)
-      setDraggedDecorationId(decorationId)
-      setIsDragging(true)
-      clearSelection()  // Don't highlight when dragging - preview ghost shows intent
-
-      // Calculate offset from mouse to decoration top-left
-      // We need to use the scaled coordinates from the canvas
-      // Since we don't have the exact canvas scale here easily without ref,
-      // we'll rely on the fact that handleMouseMove gives us normalized coordinates.
-      // But for the initial grab, we need to know where the mouse is relative to the item *in grid space*.
-
-      // We can't easily get normalized X/Y here without the canvas logic.
-      // However, we can calculate it if we assume the mouse is at the position passed to onMouseMove.
-      // A better approach: The canvas calls this handler. 
-      // We should probably update EnhancedHouseCanvas to pass normalized X/Y to onDecorationMouseDown too.
-
-      // For now, let's approximate or rely on the first mouse move to set it? 
-      // No, that causes a jump.
-
-      // Let's assume the click was valid and we can just use the current mouse position from state if available?
-      // Or better: update EnhancedHouseCanvas to pass x,y to onDecorationMouseDown.
-
-      // WORKAROUND: We'll calculate the offset in the first mouse move if we don't have it.
-      // OR: We can just snap to the center of the item when dragging starts? No, that jumps.
-
-      // Let's use the mousePosition state if it's fresh?
-      if (mousePosition && decoration.position) {
-        setDragOffset({
-          x: mousePosition.x - decoration.position.x,
-          y: mousePosition.y - decoration.position.y
-        })
-      } else {
-        setDragOffset({ x: 0, y: 0 })
-      }
-    }
+    if (isPlacing || isDeleting || paintBrush !== undefined || event.button !== 0) return
+    // No native image drag or text selection while moving a sprite. The event
+    // still bubbles to the canvas, whose handler records where the press was.
+    event.preventDefault()
+    pressRef.current = { id: decorationId }
   }
+
+  const endDrag = () => {
+    setDraggedItem(null)
+    setIsDragging(false)
+    clearPreview()
+  }
+
+  // Window mouseup: ends painting and any press or drag, wherever the pointer is
+  const handleGlobalMouseUp = () => {
+    setIsPainting(false)
+    pressRef.current = null
+    if (!isDragging || !draggedItem) return
+
+    const pointer = pointerRef.current
+    if (pointer) {
+      handleDecorationUpdate(draggedItem.id, {
+        position: placementFor(draggedItem, pointer.x - dragOffset.x, pointer.y - dragOffset.y)
+      })
+      retroSFX.playPlaceItem()
+    }
+    // Released outside the canvas: the decoration stays where it was
+    endDrag()
+    suppressClickRef.current = true
+    // The click (if any) is dispatched straight after this mouseup
+    setTimeout(() => { suppressClickRef.current = false }, 0)
+  }
+  const globalMouseUpRef = useRef(handleGlobalMouseUp)
+  globalMouseUpRef.current = handleGlobalMouseUp
 
   // Minimum grid Y for terrain painting (front yard starts at y=96, so gridY >= 6)
   const TERRAIN_MIN_GRID_Y = 6
 
   const handleCanvasMouseDown = (x: number, y: number, event: React.MouseEvent) => {
+    // Bubbled up from handleDecorationMouseDown: note the grab point
+    const press = pressRef.current
+    if (press && !press.start) {
+      const decoration = placedDecorations.find(d => d.id === press.id)
+      press.start = { x, y }
+      setDragOffset({
+        x: x - (decoration?.position?.x ?? x),
+        y: y - (decoration?.position?.y ?? y)
+      })
+      return
+    }
+
     // Check if we're in terrain mode (painting OR erasing)
     // paintBrush is a string when painting, null when erasing, undefined when not in terrain mode
     if (paintBrush !== undefined) {
@@ -721,7 +723,24 @@ export default function DecorationMode({
   }
 
   const handleMouseMove = (x: number, y: number, event: React.MouseEvent) => {
-    setMousePosition({ x, y })
+    pointerRef.current = { x, y }
+
+    // A press turns into a drag once the pointer has really moved
+    const press = pressRef.current
+    if (press?.start && !isDragging) {
+      const moved = Math.hypot(x - press.start.x, y - press.start.y) * canvasScale
+      if (moved < DRAG_THRESHOLD_PX) return
+      const decoration = placedDecorations.find(d => d.id === press.id)
+      if (!decoration) {
+        pressRef.current = null
+        return
+      }
+      setDraggedItem(decoration)
+      setIsDragging(true)
+      clearSelection() // Don't highlight while dragging; the ghost shows intent
+      updatePreview(x - dragOffset.x, y - dragOffset.y, decoration.type as any, decoration.id, decoration.size || 'medium')
+      return
+    }
 
     // Painting/Erasing Logic - paintBrush is string (paint), null (erase), or undefined (not in terrain mode)
     if (isPainting && paintBrush !== undefined) {
@@ -771,7 +790,8 @@ export default function DecorationMode({
 
 
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (isSaving) return
     retroSFX.playSave()
 
     // Map decorations to include data field with appropriate content
@@ -790,31 +810,36 @@ export default function DecorationMode({
       }
     })
 
+    // Send cleared fields as null: a missing key leaves the stored value alone,
+    // so a reset colour or a removed house number would never stick.
+    const houseCustomizationsToSave = Object.fromEntries(
+      Object.entries(houseCustomizations).map(([key, value]) => [key, value ?? null])
+    )
+
     const payload = {
       decorations: decorationsToSave,
-      houseCustomizations,
+      houseCustomizations: houseCustomizationsToSave,
       atmosphere,
       template: currentTemplate,
       palette: currentPalette,
       terrain
     }
 
-    onSave(payload)
+    const snapshotBeingSaved = snapshot
+    if (!(await onSave(payload))) return
+    setSavedSnapshot(snapshotBeingSaved)
+    // Stay if something changed while the save was in flight
+    if (snapshotRef.current === snapshotBeingSaved) {
+      allowLeave()
+      onExit()
+    }
   }
 
-  // Global mouse up to stop painting/dragging
   useEffect(() => {
-    const handleGlobalMouseUp = () => {
-      setIsPainting(false)
-      if (isDragging) {
-        // ... existing drag end logic if needed, but drag end is usually handled by click/drop
-        // Actually, drag end is handled by handleCanvasClick for placement, but if we drag off canvas?
-        // For now just stop painting.
-      }
-    }
-    window.addEventListener('mouseup', handleGlobalMouseUp)
-    return () => window.removeEventListener('mouseup', handleGlobalMouseUp)
-  }, [isDragging])
+    const onMouseUp = () => globalMouseUpRef.current()
+    window.addEventListener('mouseup', onMouseUp)
+    return () => window.removeEventListener('mouseup', onMouseUp)
+  }, [])
 
   return (
     <div
@@ -871,10 +896,9 @@ export default function DecorationMode({
           <div className="w-px h-6 bg-thread-sage/40 mx-1" />
           <button
             onClick={async () => {
-              if (canUndo && !(await confirm({ title: 'Leave without saving?', message: 'You have unsaved changes.', confirmText: 'Leave', variant: 'danger' }))) {
-                return
-              }
-              onCancel()
+              if (!(await confirmLeave())) return
+              allowLeave()
+              onExit()
             }}
             className="px-4 py-1.5 text-sm font-medium text-thread-sage hover:bg-thread-cream rounded"
           >
@@ -994,7 +1018,16 @@ export default function DecorationMode({
               onClick={handleCanvasClick}
               onMouseDown={handleCanvasMouseDown}
               onMouseMove={handleMouseMove}
+              onMouseLeave={() => {
+                pointerRef.current = null
+                if (isDragging) clearPreview()
+              }}
               onDecorationClick={(id, e) => {
+                if (suppressClickRef.current) {
+                  suppressClickRef.current = false
+                  e.stopPropagation()
+                  return
+                }
                 if (isPlacing || paintBrush !== undefined) return
                 e.stopPropagation()
                 if (isDeleting) {
