@@ -1523,6 +1523,13 @@ img.ts-emoji {
   outline: 1px dotted #4a403d;
   outline-offset: 1px;
 }
+/* A decoration with an owner's note: the same dotted ring on hover too, and
+   while its note is open. No badge or label on the art. */
+.ts-scene-note:hover,
+.ts-scene-note.is-open {
+  outline: 1px dotted #4a403d;
+  outline-offset: 1px;
+}
 
 /* A button that reads as a link, for inline rows of actions. Pair with
    .ts-bare so the theme's bevelled button style stays off it. */

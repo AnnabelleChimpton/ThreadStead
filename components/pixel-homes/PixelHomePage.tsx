@@ -11,6 +11,9 @@ import Modal from '../ui/feedback/Modal'
 import Guestbook from '../shared/Guestbook'
 import { trackNavigation, trackModalOpen } from '../../lib/analytics/pixel-homes'
 import { useToast } from '@/contexts/ToastContext'
+import { CommentMarkupWithEmojis } from '@/lib/comment-markup'
+import { decorationNote } from '@/lib/pixel-homes/decoration-note'
+import type { DecorationItem } from '@/lib/pixel-homes/decoration-data'
 import type { HomeNeighbors } from '@/lib/pixel-homes/neighbors'
 
 interface UserHomeConfig {
@@ -97,6 +100,8 @@ export default function PixelHomePage({
     homeConfig?.houseCustomizations?.terrain || {}
   )
   const [loadingDecorations, setLoadingDecorations] = useState(true)
+  // The owner's note on a decoration someone clicked, shown under the scene
+  const [openNote, setOpenNote] = useState<{ id: string; text: string } | null>(null)
   const config: UserHomeConfig = homeConfig || {
     houseTemplate: 'cottage_v1',
     palette: 'thread_sage',
@@ -226,6 +231,12 @@ export default function PixelHomePage({
 
   // handleCancelDecorations now handled by dedicated page
 
+  const handleNoteClick = (item: DecorationItem) => {
+    const text = decorationNote(item)
+    if (!text) return
+    setOpenNote((current) => (current?.id === item.id ? null : { id: item.id, text }))
+  }
+
   const houseTitle = config.houseCustomizations?.houseTitle?.trim()
   const houseDescription = config.houseCustomizations?.houseDescription?.trim()
   const neighborName = (n: { username: string; displayName: string | null }) => n.displayName || n.username
@@ -249,8 +260,27 @@ export default function PixelHomePage({
           pixelPerfect
           door={{ href: insideHref, label: isOwner ? 'Go inside to your page' : `Go inside to ${nameToShow}'s page` }}
           onMailboxClick={handleMailboxClick}
+          onNoteClick={handleNoteClick}
+          openNoteId={openNote?.id ?? null}
           className="w-full"
         />
+
+        {/* A note the owner left on a decoration: under the art, never on it */}
+        {openNote && (
+          <section
+            id="ts-decoration-note"
+            aria-live="polite"
+            aria-label={isOwner ? 'Your note' : `${nameToShow}'s note`}
+            className="mt-3 max-w-xl border border-thread-sage/60 bg-thread-paper px-4 py-3"
+          >
+            <div className="text-nb-ink leading-relaxed whitespace-pre-line break-words">
+              <CommentMarkupWithEmojis text={openNote.text} />
+            </div>
+            <button type="button" onClick={() => setOpenNote(null)} className="ts-bare ts-text-button mt-2 text-sm">
+              Close
+            </button>
+          </section>
+        )}
 
         {/* What you can do here, as one plain row under the art */}
         <nav aria-label="This house" className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm sm:text-base">

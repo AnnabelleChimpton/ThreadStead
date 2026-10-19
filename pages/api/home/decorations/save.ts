@@ -11,8 +11,24 @@ import {
   saveHomeSchema,
 } from "@/lib/pixel-homes/decoration-save-rules";
 import { customSlotOf } from "@/lib/pixel-homes/custom-art";
+import { canHaveNote, cleanNote } from "@/lib/pixel-homes/decoration-note";
 
 type FieldErrors = Record<string, string>;
+
+/**
+ * What's stored in a decoration's `data`. Custom art keeps only its slot
+ * (never a file URL) and flip. An owner's note is cleaned the same way for
+ * both, and dropped from decorations that already do something on click.
+ */
+function decorationData(decorationId: string, custom: boolean, data: Record<string, unknown> | null | undefined) {
+  const { note: rawNote, ...rest } = data ?? {};
+  const note = canHaveNote(decorationId) ? cleanNote(rawNote) : null;
+  const base: Record<string, unknown> = custom
+    ? { slot: customSlotOf(decorationId), ...(rest.flip === true && { flip: true }) }
+    : rest;
+  if (note) base.note = note;
+  return Object.keys(base).length > 0 ? base : undefined;
+}
 
 function sendInvalid(res: NextApiResponse, fields: FieldErrors) {
   return res.status(400).json({ error: Object.values(fields)[0], fields });
@@ -91,10 +107,7 @@ export default apiHandler(
           layerBias: decoration.layerBias ?? 0,
           variant: decoration.variant || "default",
           size: decoration.size || "medium",
-          // Custom art keeps only its slot, never a file URL
-          data: (custom
-            ? { slot: customSlotOf(decoration.decorationId), ...(decoration.data?.flip === true && { flip: true }) }
-            : decoration.data ?? undefined) as Prisma.InputJsonValue | undefined,
+          data: decorationData(decoration.decorationId, custom, decoration.data) as Prisma.InputJsonValue | undefined,
         };
       });
 

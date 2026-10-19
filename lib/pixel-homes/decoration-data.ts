@@ -23,6 +23,7 @@ export interface DecorationItem {
     pngWidth?: number | null  // The PNG's own size (one frame), stored on upload
     pngHeight?: number | null
     pngFrames?: number | null // >1: a horizontal strip of frames
+    note?: string            // The owner's note (stored as data.note), lib/pixel-homes/decoration-note.ts
     [key: string]: any
 }
 

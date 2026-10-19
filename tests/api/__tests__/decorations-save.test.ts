@@ -300,3 +300,51 @@ describe('share snapshot', () => {
     expect(scheduleHomeSnapshot).not.toHaveBeenCalled()
   })
 })
+
+describe('owner notes (data.note)', () => {
+  const stored = () => tx.userHomeDecoration.createMany.mock.calls[0][0].data.map((d: any) => d.data)
+
+  test('a note is cleaned before it is stored: control and invisible characters out, blank lines squeezed', async () => {
+    const res = await save({
+      decorations: [{ ...ROSES, data: { note: '  hello\u0000 there‮\r\n\r\n\r\n\r\nmy roses​  ' } }],
+    })
+    expect(res.statusCode).toBe(200)
+    expect(stored()).toEqual([{ note: 'hello there\n\nmy roses' }])
+  })
+
+  test('a note over 200 characters is refused with a field error', async () => {
+    const res = await save({ decorations: [{ ...ROSES, data: { note: 'x'.repeat(201) } }] })
+    expect(res.statusCode).toBe(400)
+    expect(res.jsonBody.fields['decorations.0.data']).toBe('A note can be at most 200 characters.')
+  })
+
+  test('a note that is not text is refused', async () => {
+    const res = await save({ decorations: [{ ...ROSES, data: { note: { html: '<b>hi</b>' } } }] })
+    expect(res.statusCode).toBe(400)
+  })
+
+  test('an empty note is dropped, and sign text stays beside a note', async () => {
+    catalog(['roses_red', 'sign_post'])
+    const sign = { ...ROSES, decorationType: 'feature', decorationId: 'sign_post' }
+    const res = await save({
+      decorations: [
+        { ...ROSES, data: { note: '   \n ' } },
+        { ...sign, data: { text: 'Hi', note: 'Come in' } },
+      ],
+    })
+    expect(res.statusCode).toBe(200)
+    expect(stored()).toEqual([undefined, { text: 'Hi', note: 'Come in' }])
+  })
+
+  test('custom art keeps its note with its slot', async () => {
+    const own = { decorationType: 'custom', decorationId: 'custom_asset_1', zone: 'front_yard', positionX: 5, positionY: 5 }
+    await save({ decorations: [{ ...own, data: { note: 'I drew this', flip: true, customAssetUrl: 'https://evil.test/x.png' } }] })
+    expect(stored()).toEqual([{ slot: 1, flip: true, note: 'I drew this' }])
+  })
+
+  test('the mailbox never takes a note: clicking it opens the guestbook', async () => {
+    catalog(['mailbox'])
+    await save({ decorations: [{ ...ROSES, decorationType: 'feature', decorationId: 'mailbox', data: { note: 'hi' } }] })
+    expect(stored()).toEqual([undefined])
+  })
+})

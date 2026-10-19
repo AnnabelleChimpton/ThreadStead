@@ -296,3 +296,37 @@ describe('restoring a draft and flipping', () => {
     expect(toSavePayload({ ...base, decorations: [art] }).decorations[0].data).toEqual({ slot: 1, flip: true })
   })
 })
+
+describe('owner notes', () => {
+  test('a note is read from data, counts as a change, and is saved back with whatever else it carried', () => {
+    const [loaded] = docFromProps({ ...base, decorations: [rose('roses_red_1', 64, 240, { data: { note: 'for gran', flip: true } })] }).decorations
+    expect(loaded.note).toBe('for gran')
+    const doc = { ...base, decorations: [loaded] }
+    expect(docKey(doc)).not.toBe(docKey(base))
+    expect(toSavePayload(doc).decorations[0].data).toEqual({ note: 'for gran', flip: true })
+  })
+
+  test('typing a note is one undo step, and clearing it removes it from the save', () => {
+    const s = run(
+      { type: 'updateDecoration', id: 'roses_red_1', changes: { note: 'f' }, mergeKey: 'decoration:roses_red_1:note' },
+      { type: 'updateDecoration', id: 'roses_red_1', changes: { note: 'fo' }, mergeKey: 'decoration:roses_red_1:note' },
+      { type: 'updateDecoration', id: 'roses_red_1', changes: { note: 'for gran' }, mergeKey: 'decoration:roses_red_1:note' },
+    )
+    expect(s.past).toHaveLength(1)
+    expect(isDirty(s)).toBe(true)
+    expect(toSavePayload(s.present).decorations[0].data).toEqual({ note: 'for gran' })
+    const cleared = then(s, { type: 'updateDecoration', id: 'roses_red_1', changes: { note: '' } })
+    expect(toSavePayload(cleared.present).decorations[0].data).toBeNull()
+    expect(isDirty(cleared)).toBe(false)
+  })
+
+  test('custom art keeps a note beside its slot', () => {
+    const art = { id: 'custom_asset_2_x', decorationId: 'custom_asset_2', name: 'Art', type: 'custom', note: 'I drew this' } as DecorationItem
+    expect(toSavePayload({ ...base, decorations: [art] }).decorations[0].data).toEqual({ slot: 2, note: 'I drew this' })
+  })
+
+  test('a saved note passes the save schema', () => {
+    const doc = { ...base, decorations: [rose('roses_red_1', 64, 240, { note: 'x'.repeat(200) })] }
+    expect(saveHomeSchema.safeParse(toSavePayload(doc)).success).toBe(true)
+  })
+})

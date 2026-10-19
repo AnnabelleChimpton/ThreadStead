@@ -9,6 +9,7 @@
 import { z } from 'zod'
 import { TERRAIN_TILES } from './decoration-data'
 import { MAX_LAYER_BIAS, MIN_LAYER_BIAS, clampLayerBias } from './depth'
+import { NOTE_MAX } from './decoration-note'
 
 export const MAX_DECORATIONS = 100
 
@@ -204,6 +205,13 @@ const choice = <T extends readonly [string, ...string[]]>(values: T, label: stri
 
 const text = (max: number, label: string) => z.string().max(max, `${label} can be at most ${max} characters.`).nullish()
 
+/** An owner's note, when there is one, is text of at most NOTE_MAX characters. */
+const noteFits = (value: unknown) => {
+  const note = (value as { note?: unknown } | null | undefined)?.note
+  if (note === undefined || note === null) return true
+  return typeof note === 'string' && Array.from(note).length <= NOTE_MAX
+}
+
 const dataSize = (value: unknown) => {
   if (value === undefined || value === null) return true
   try {
@@ -239,7 +247,8 @@ export const decorationSchema = z.object({
   data: z
     .record(z.string(), z.unknown(), { error: 'Decoration data should be an object.' })
     .nullish()
-    .refine(dataSize, `Decoration data can be at most ${MAX_DECORATION_DATA_BYTES} bytes.`),
+    .refine(dataSize, `Decoration data can be at most ${MAX_DECORATION_DATA_BYTES} bytes.`)
+    .refine(noteFits, `A note can be at most ${NOTE_MAX} characters.`),
 })
 
 export const saveHomeSchema = z.object({

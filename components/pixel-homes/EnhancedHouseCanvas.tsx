@@ -11,6 +11,7 @@ import type { ScenePointer } from '@/lib/pixel-homes/editor-interaction'
 import { pickPixelScale } from '@/lib/pixel-homes/pixel-scale'
 import { decorationDepth, houseDepth, HOUSE_BOX } from '@/lib/pixel-homes/depth'
 import { animatedSpriteIds } from '@/lib/pixel-homes/sprite-animation'
+import { canHaveNote, decorationNote } from '@/lib/pixel-homes/decoration-note'
 
 /** A pointer event over the scene, in scene coordinates (see lib/pixel-homes/editor-interaction.ts). */
 export type ScenePointerKind = 'down' | 'move' | 'up' | 'cancel' | 'leave'
@@ -60,6 +61,14 @@ interface EnhancedHouseCanvasProps {
   door?: { href: string; label: string }
   /** Makes a placed mailbox decoration open the guestbook. */
   onMailboxClick?: () => void
+  /**
+   * Makes decorations with an owner's note clickable (lib/pixel-homes/
+   * decoration-note.ts). The page shows the note beside the scene; nothing
+   * is drawn over the art except a dotted outline on hover and focus.
+   */
+  onNoteClick?: (item: DecorationItem) => void
+  /** The decoration whose note is showing, so it keeps its outline. */
+  openNoteId?: string | null
 }
 
 // Enhanced canvas dimensions - grid-aligned (divisible by 16px cell size)
@@ -280,10 +289,12 @@ interface DecorationSpriteProps {
   /** One of the few frame strips on this home allowed to play */
   animate: boolean
   onMailboxClick?: () => void
+  onNoteClick?: (item: DecorationItem) => void
+  noteOpen: boolean
 }
 
 /** One placed decoration, redrawn only when it or its selection changes. */
-const DecorationSprite = memo(function DecorationSprite({ item, selected, editable, deleting, animate, onMailboxClick }: DecorationSpriteProps) {
+const DecorationSprite = memo(function DecorationSprite({ item, selected, editable, deleting, animate, onMailboxClick, onNoteClick, noteOpen }: DecorationSpriteProps) {
   const decorationKey = item.decorationId || item.id
   const { width, height } = getDecorationDimensions(decorationKey, item.type, item.size || 'medium', item)
 
@@ -334,6 +345,25 @@ const DecorationSprite = memo(function DecorationSprite({ item, selected, editab
     )
   }
 
+  // A decoration the owner wrote a note on opens it, for visitors
+  if (onNoteClick && canHaveNote(decorationKey) && decorationNote(item)) {
+    return (
+      <div className="absolute ts-pixel-hop" style={wrapperStyle}>
+        <button
+          type="button"
+          onClick={() => onNoteClick(item)}
+          aria-expanded={noteOpen}
+          aria-controls="ts-decoration-note"
+          aria-label="Read the owner's note"
+          className={`ts-bare ts-scene-hotspot ts-scene-note pointer-events-auto block cursor-pointer bg-transparent p-0 border-0${noteOpen ? ' is-open' : ''}`}
+          style={isFlipped(item) ? { transform: 'scaleX(-1)' } : undefined}
+        >
+          {art}
+        </button>
+      </div>
+    )
+  }
+
   // Appearing (the page loading, or just planted) is a 1-pixel hop.
   // In delete mode, hovering marks the art like selection does, in red,
   // and never scales or tints it.
@@ -360,13 +390,17 @@ const DecorationsLayer = memo(function DecorationsLayer({
   selected,
   editable,
   deleting,
-  onMailboxClick
+  onMailboxClick,
+  onNoteClick,
+  openNoteId
 }: {
   decorations: DecorationItem[]
   selected: Set<string>
   editable: boolean
   deleting: boolean
   onMailboxClick?: () => void
+  onNoteClick?: (item: DecorationItem) => void
+  openNoteId?: string | null
 }) {
   // At most a few strips play at once on a home; the rest hold their first frame
   const playing = useMemo(() => animatedSpriteIds(decorations), [decorations])
@@ -382,6 +416,8 @@ const DecorationsLayer = memo(function DecorationsLayer({
           deleting={deleting}
           animate={playing.has(item.id)}
           onMailboxClick={onMailboxClick}
+          onNoteClick={onNoteClick}
+          noteOpen={openNoteId === item.id}
         />
       ))}
     </div>
@@ -407,7 +443,9 @@ export default function EnhancedHouseCanvas({
   fitBox = false,
   sceneProps,
   door,
-  onMailboxClick
+  onMailboxClick,
+  onNoteClick,
+  openNoteId
 }: EnhancedHouseCanvasProps) {
   // Refs and state for responsive scaling
   const containerRef = useRef<HTMLDivElement>(null)
@@ -544,6 +582,8 @@ export default function EnhancedHouseCanvas({
             editable={editable}
             deleting={isDeleting}
             onMailboxClick={isDecorationMode ? undefined : onMailboxClick}
+            onNoteClick={isDecorationMode || editable ? undefined : onNoteClick}
+            openNoteId={openNoteId}
           />
           <HouseLayer template={template} palette={palette} customizations={houseCustomizations ?? NO_CUSTOMIZATIONS} />
 

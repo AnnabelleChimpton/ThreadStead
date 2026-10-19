@@ -32,6 +32,7 @@ import { useUnsavedChangesGuard } from '../../hooks/useUnsavedChangesGuard'
 import { retroSFX } from '../../lib/audio/retro-sfx'
 import { MAX_DECORATIONS } from '../../lib/pixel-homes/decoration-save-rules'
 import { catalogId, docFromProps, newPlacement, toSavePayload, type SavePayload } from '../../lib/pixel-homes/editor-doc'
+import { canHaveNote } from '../../lib/pixel-homes/decoration-note'
 import { clearDraft, draftTime, draftToOffer, writeDraft, type EditorDraft } from '../../lib/pixel-homes/editor-draft'
 import {
   IDLE,
@@ -1027,6 +1028,9 @@ export default function DecorationMode({
       onDelete={() => itemActions.remove(selectedOne)}
       onTextChange={catalogId(selectedOne).startsWith('sign_post')
         ? (text) => handleDecorationUpdate(selectedOne.id, { text })
+        : undefined}
+      onNoteChange={canHaveNote(catalogId(selectedOne))
+        ? (note) => handleDecorationUpdate(selectedOne.id, { note })
         : undefined}
       onDone={() => {
         clearSelection()

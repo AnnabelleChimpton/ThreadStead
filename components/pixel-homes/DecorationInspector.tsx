@@ -2,6 +2,7 @@ import React from 'react'
 import DecorationSVG from './DecorationSVG'
 import { PixelIcon, type PixelIconName } from '../ui/PixelIcon'
 import { isFlipped, type DecorationItem } from '@/lib/pixel-homes/decoration-data'
+import { NOTE_MAX, decorationNote } from '@/lib/pixel-homes/decoration-note'
 
 interface DecorationInspectorProps {
   item: DecorationItem
@@ -19,6 +20,8 @@ interface DecorationInspectorProps {
   onDelete: () => void
   /** Sign text, for decorations that carry some. */
   onTextChange?: (text: string) => void
+  /** The owner's note, shown to visitors who click it (not for the mailbox). */
+  onNoteChange?: (note: string) => void
   /** Back to the palette (deselects). */
   onDone: () => void
 }
@@ -44,9 +47,11 @@ export default function DecorationInspector({
   onDuplicate,
   onDelete,
   onTextChange,
+  onNoteChange,
   onDone,
 }: DecorationInspectorProps) {
   const text = (item.text ?? item.data?.text ?? '') as string
+  const note = decorationNote(item) ?? ''
 
   const action = (label: string, icon: PixelIconName, onClick: () => void, keys: string, disabled = false) => (
     <button
@@ -108,6 +113,22 @@ export default function DecorationInspector({
             className="rounded border border-thread-sage/50 bg-white px-3 py-2 text-sm"
           />
           <span className="text-xs text-thread-sage">{text.length}/{SIGN_TEXT_MAX}</span>
+        </label>
+      )}
+
+      {onNoteChange && (
+        <label className="flex flex-col gap-1 text-sm text-thread-charcoal">
+          Note
+          <textarea
+            value={note}
+            rows={4}
+            maxLength={NOTE_MAX}
+            onChange={(e) => onNoteChange(Array.from(e.target.value).slice(0, NOTE_MAX).join(''))}
+            className="rounded border border-thread-sage/50 bg-white px-3 py-2 text-sm resize-y"
+          />
+          <span className="text-xs text-thread-sage">
+            Visitors can click this to read it. {Array.from(note).length}/{NOTE_MAX}
+          </span>
         </label>
       )}
 

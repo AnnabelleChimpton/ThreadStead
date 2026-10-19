@@ -14,6 +14,7 @@ import { isFlipped, type DecorationItem } from './decoration-data'
 import type { Placement } from './placement'
 import { clampLayerBias } from './depth'
 import { customSlotOf } from './custom-art'
+import { decorationNote } from './decoration-note'
 import type { AtmosphereSettings, ColorPalette, HouseCustomizations, HouseTemplate } from '../../components/pixel-homes/HouseSVG'
 
 export interface EditorDoc {
@@ -94,6 +95,7 @@ export function docKey(doc: EditorDoc): string {
       variant: d.variant || 'default',
       size: d.size || 'medium',
       text: decorationText(d),
+      note: decorationNote(d),
       grid: d.gridX != null && d.gridY != null ? [d.gridX, d.gridY] : null,
       bias: clampLayerBias(d.layerBias),
       flip: isFlipped(d),
@@ -312,6 +314,7 @@ export function docFromProps(input: EditorDocInput): EditorDoc {
       ...d,
       decorationId: catalogId(d),
       text: decorationText(d),
+      note: decorationNote(d),
     })),
     terrain: input.terrain ?? {},
     house: input.house ?? DEFAULT_HOUSE,
@@ -321,13 +324,19 @@ export function docFromProps(input: EditorDocInput): EditorDoc {
   }
 }
 
-/** A decoration's stored `data`: custom art's slot (never its file), or sign text over whatever else it carried. */
+/**
+ * A decoration's stored `data`: custom art's slot (never its file), or sign
+ * text over whatever else it carried; plus the owner's note on either.
+ */
 function saveData(d: DecorationItem): Record<string, unknown> | null {
-  if (d.type === 'custom') return { slot: customSlotOf(catalogId(d)), ...(isFlipped(d) && { flip: true }) }
-  const { text: _oldText, ...rest } = (d.data && typeof d.data === 'object' ? d.data : {}) as Record<string, unknown>
+  const note = decorationNote(d)
+  if (d.type === 'custom') {
+    return { slot: customSlotOf(catalogId(d)), ...(isFlipped(d) && { flip: true }), ...(note && { note }) }
+  }
+  const { text: _oldText, note: _oldNote, ...rest } = (d.data && typeof d.data === 'object' ? d.data : {}) as Record<string, unknown>
   const text = decorationText(d)
-  if (text) return { ...rest, text }
-  return Object.keys(rest).length > 0 ? rest : null
+  const out = { ...rest, ...(text && { text }), ...(note && { note }) }
+  return Object.keys(out).length > 0 ? out : null
 }
 
 /** The body POST /api/home/decorations/save takes for `doc`. */
