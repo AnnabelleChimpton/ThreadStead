@@ -21,6 +21,7 @@ import { PixelIcon } from '@/components/ui/PixelIcon'
 import { featureFlags } from '@/lib/utils/features/feature-flags'
 import { getRingHubClient } from '@/lib/api/ringhub/ringhub-client'
 import { raceHubCall, HUB_TIMEOUT } from '@/lib/api/ringhub/ringhub-ssr'
+import { readAllRingMembers } from '@/lib/api/ringhub/ring-members'
 import { transformRingDescriptorToThreadRing, transformRingMembersBatchWithUserResolution } from '@/lib/api/ringhub/ringhub-transformers'
 import { weatherWidget } from '@/components/widgets/examples/WeatherWidget'
 import useIsMobile from '../../../hooks/useIsMobile'
@@ -689,10 +690,10 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
               if (ringDescriptor !== HUB_TIMEOUT && ringDescriptor) {
                 ring = transformRingDescriptorToThreadRing(ringDescriptor)
 
-                // Fetch members from Ring Hub (bounded; failure/timeout just yields no members)
-                const ringHubMembersResponse = await raceHubCall(client.getRingMembers(param))
-                if (ringHubMembersResponse !== HUB_TIMEOUT && ringHubMembersResponse && ringHubMembersResponse.members) {
-                  ringMembers = ringHubMembersResponse.members
+                // Every page of members (bounded; failure/timeout just yields no members)
+                const ringHubMembers = await readAllRingMembers(client, param)
+                if (ringHubMembers !== HUB_TIMEOUT) {
+                  ringMembers = ringHubMembers.members
                 }
               }
             } catch (error) {

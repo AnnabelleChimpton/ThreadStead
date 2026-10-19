@@ -9,6 +9,7 @@ import { SITE_NAME } from "@/lib/config/site/constants";
 import { featureFlags } from "@/lib/utils/features/feature-flags";
 import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
 import { raceHubCall, HUB_TIMEOUT } from "@/lib/api/ringhub/ringhub-ssr";
+import { readAllRingMembers } from "@/lib/api/ringhub/ring-members";
 import UserMention from "@/components/ui/navigation/UserMention";
 import { csrfFetch } from "@/lib/api/client/csrf-fetch";
 import { useToast } from "@/contexts/ToastContext";
@@ -324,8 +325,8 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
             throw new Error('Ring Hub SSR timeout (getRing)');
           }
           if (ringDescriptor) {
-            // Get Ring Hub members
-            const ringHubMembers = await raceHubCall(client.getRingMembers(slug as string));
+            // Every page of Ring Hub members
+            const ringHubMembers = await readAllRingMembers(client, slug as string);
             if (ringHubMembers === HUB_TIMEOUT) {
               throw new Error('Ring Hub SSR timeout (getRingMembers)');
             }
