@@ -11,6 +11,7 @@ import PhotoComments from "@/components/core/content/PhotoComments";
 import { PixelIcon } from "@/components/ui/PixelIcon";
 import { csrfFetch } from "@/lib/api/client/csrf-fetch";
 import { useConfirm } from "@/contexts/ConfirmContext";
+import { useToast } from "@/contexts/ToastContext";
 import Modal from "@/components/ui/feedback/Modal";
 import PrivateProfile from "@/components/core/profile/PrivateProfile";
 
@@ -68,6 +69,18 @@ function MediaGalleryPage({
 }: MediaGalleryProps) {
   const router = useRouter();
   const confirm = useConfirm();
+  const { showSuccess, showError } = useToast();
+
+  // The image's full-size address, to paste into your own page's <img src>
+  const copyImageLink = async (item: MediaItem) => {
+    const link = new URL(item.fullUrl, window.location.origin).href;
+    try {
+      await navigator.clipboard.writeText(link);
+      showSuccess("Link copied. Paste it into an <img src> on your page.");
+    } catch {
+      showError(`Couldn't copy. The link is ${link}`);
+    }
+  };
   const [media, setMedia] = useState<MediaItem[]>(initialMedia);
   const [pagination, setPagination] = useState(initialPagination);
   const [loading, setLoading] = useState(false);
@@ -447,6 +460,13 @@ function MediaGalleryPage({
                     >
                       <PixelIcon name="edit" size={16} />
                       Edit
+                    </button>
+                    <button
+                      onClick={() => copyImageLink(selectedImage)}
+                      className="inline-flex items-center gap-1 bg-black/70 text-white px-3 py-2 rounded hover:bg-black/90 transition-colors text-sm"
+                    >
+                      <PixelIcon name="link" size={16} />
+                      Copy link
                     </button>
                     <button
                       onClick={handleDelete}

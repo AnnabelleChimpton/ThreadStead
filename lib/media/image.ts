@@ -76,6 +76,25 @@ export async function renderMediaSizes(input: Buffer): Promise<ImageSizes> {
   return { thumbnail, medium, full };
 }
 
+/**
+ * PNG and WebP media keep their format: transparency, and pixel art's exact
+ * pixels, survive (the JPEG pipeline above flattened and blurred both). Still
+ * re-encoded, so hidden metadata like location is dropped. PNG is lossless;
+ * WebP keeps full alpha. The full size is only shrunk past MEDIA_KEEP_MAX.
+ */
+export const MEDIA_KEEP_MAX = 4096;
+
+export async function renderMediaSizesKeepingFormat(input: Buffer, format: 'png' | 'webp'): Promise<ImageSizes> {
+  const encode = (img: sharp.Sharp) =>
+    format === 'png' ? img.png({ compressionLevel: 9 }) : img.webp({ quality: 90, alphaQuality: 100 });
+  const [thumbnail, medium, full] = await Promise.all([
+    encode(sharp(input).rotate().resize(150, 150, { fit: 'cover' })).toBuffer(),
+    encode(sharp(input).rotate().resize(600, 600, { fit: 'inside', withoutEnlargement: true })).toBuffer(),
+    encode(sharp(input).rotate().resize(MEDIA_KEEP_MAX, MEDIA_KEEP_MAX, { fit: 'inside', withoutEnlargement: true })).toBuffer(),
+  ]);
+  return { thumbnail, medium, full };
+}
+
 /** 88×31 web badge and its 4× (352×124) version, letterboxed on transparent PNG. */
 export const BADGE_SIZE = { width: 88, height: 31 } as const;
 export const BADGE_HD_SIZE = { width: 352, height: 124 } as const;

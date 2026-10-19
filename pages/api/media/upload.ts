@@ -6,7 +6,7 @@ import multer from "multer";
 import { promisify } from "util";
 import { apiHandler } from "@/lib/api/handler";
 import { putObject } from "@/lib/storage/r2";
-import { BADGE_HD_SIZE, BADGE_SIZE, containPng, imageDimensions, renderMediaSizes } from "@/lib/media/image";
+import { BADGE_HD_SIZE, BADGE_SIZE, containPng, imageDimensions, renderMediaSizes, renderMediaSizesKeepingFormat } from "@/lib/media/image";
 
 // Configure multer for memory storage
 const upload = multer({
@@ -141,18 +141,22 @@ async function processAndUploadMedia(
 
     // Process images in different sizes based on context
     let thumbnail: Buffer, medium: Buffer, full: Buffer;
+    // PNG and WebP keep their format (transparency, pixel art); photos go to JPEG
+    const keptFormat = mimeType === 'image/png' ? 'png' : mimeType === 'image/webp' ? 'webp' : null;
 
     if (uploadContext === 'threadring_badge') {
       // Badge-specific processing
       thumbnail = await containPng(buffer, BADGE_SIZE.width, BADGE_SIZE.height, { quality: 100 });
       medium = await containPng(buffer, BADGE_SIZE.width, BADGE_SIZE.height, { quality: 100 });
       full = await containPng(buffer, BADGE_HD_SIZE.width, BADGE_HD_SIZE.height, { quality: 100 });
+    } else if (keptFormat) {
+      ({ thumbnail, medium, full } = await renderMediaSizesKeepingFormat(buffer, keptFormat));
     } else {
       // Standard image processing
       ({ thumbnail, medium, full } = await renderMediaSizes(buffer));
     }
 
-    const fileExtension = uploadContext === 'threadring_badge' ? 'png' : 'jpg';
+    const fileExtension = uploadContext === 'threadring_badge' ? 'png' : keptFormat ?? 'jpg';
     uploads = [
       { key: `${baseKey}_thumb.${fileExtension}`, buffer: thumbnail, size: 'thumbnail' },
       { key: `${baseKey}_medium.${fileExtension}`, buffer: medium, size: 'medium' },
@@ -171,7 +175,8 @@ async function processAndUploadMedia(
   for (const { key, buffer: imageBuffer, size } of uploads) {
     const contentType = isMidi ? mimeType :
                         isGif ? 'image/gif' :
-                        uploadContext === 'threadring_badge' ? 'image/png' :
+                        key.endsWith('.png') ? 'image/png' :
+                        key.endsWith('.webp') ? 'image/webp' :
                         'image/jpeg';
     urls[`${size}Url`] = await putObject({ key, body: imageBuffer, contentType });
   }
