@@ -123,13 +123,44 @@ describe('ProfileBadges Component', () => {
       expect(screen.getByText('No badges yet')).toBeInTheDocument();
     });
 
-    it('should render empty state when badges is undefined', () => {
-      renderWithTemplateContext(
-        <ProfileBadges />,
-        { residentData: createMockResidentData({ badges: undefined }) }
-      );
-      
-      expect(screen.getByText('No badges yet')).toBeInTheDocument();
+    describe('when the page did not preload badges', () => {
+      const realFetch = global.fetch;
+      afterEach(() => {
+        global.fetch = realFetch;
+      });
+      const answer = (ok: boolean, body: unknown) => {
+        global.fetch = jest.fn(async () => ({ ok, json: async () => body })) as unknown as typeof fetch;
+      };
+
+      it('fetches them from the badges API', async () => {
+        answer(true, { badges: mockBadges.slice(0, 2) });
+        renderWithTemplateContext(
+          <ProfileBadges />,
+          { residentData: createMockResidentData({ badges: undefined }) }
+        );
+        expect(await screen.findAllByTestId('mock-badge')).toHaveLength(2);
+        expect(global.fetch).toHaveBeenCalledWith(expect.stringMatching(/^\/api\/users\/[^/]+\/badges$/));
+      });
+
+      it('shows the empty state only once the API says there are none', async () => {
+        answer(true, { badges: [] });
+        renderWithTemplateContext(
+          <ProfileBadges />,
+          { residentData: createMockResidentData({ badges: undefined }) }
+        );
+        expect(await screen.findByText('No badges yet')).toBeInTheDocument();
+      });
+
+      it('says nothing when the hub is unavailable, rather than "no badges"', async () => {
+        answer(false, { error: 'hub_unavailable' });
+        const { container } = renderWithTemplateContext(
+          <ProfileBadges />,
+          { residentData: createMockResidentData({ badges: undefined }) }
+        );
+        await new Promise((r) => setTimeout(r, 0));
+        expect(screen.queryByText('No badges yet')).not.toBeInTheDocument();
+        expect(container.querySelector('.profile-badges')).toBeNull();
+      });
     });
 
     it('should have correct container structure', () => {
@@ -332,7 +363,8 @@ describe('ProfileBadges Component', () => {
   describe('Custom ClassName Handling', () => {
     it('should apply custom className string', () => {
       const { container } = renderWithTemplateContext(
-        <ProfileBadges className="custom-class" />
+        <ProfileBadges className="custom-class" />,
+        { residentData: createMockResidentData({ badges: [] }) }
       );
       
       const profileBadges = container.querySelector('.profile-badges');
@@ -341,7 +373,8 @@ describe('ProfileBadges Component', () => {
 
     it('should handle className as array', () => {
       const { container } = renderWithTemplateContext(
-        <ProfileBadges className={['class1', 'class2'] as any} />
+        <ProfileBadges className={['class1', 'class2'] as any} />,
+        { residentData: createMockResidentData({ badges: [] }) }
       );
       
       const profileBadges = container.querySelector('.profile-badges');
@@ -350,7 +383,8 @@ describe('ProfileBadges Component', () => {
 
     it('should handle empty className', () => {
       const { container } = renderWithTemplateContext(
-        <ProfileBadges className="" />
+        <ProfileBadges className="" />,
+        { residentData: createMockResidentData({ badges: [] }) }
       );
       
       const profileBadges = container.querySelector('.profile-badges');
@@ -359,7 +393,8 @@ describe('ProfileBadges Component', () => {
 
     it('should handle undefined className', () => {
       const { container } = renderWithTemplateContext(
-        <ProfileBadges />
+        <ProfileBadges />,
+        { residentData: createMockResidentData({ badges: [] }) }
       );
       
       const profileBadges = container.querySelector('.profile-badges');

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useResidentData } from './ResidentDataProvider';
+import { useResidentData, type ResidentData } from './ResidentDataProvider';
 import ThreadRing88x31Badge from '../../core/threadring/ThreadRing88x31Badge';
 import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 import { PixelIcon } from '@/components/ui/PixelIcon';
@@ -19,7 +19,26 @@ export default function ProfileBadges(props: ProfileBadgesProps) {
     className: customClassName
   } = componentProps;
 
-  const { owner, badges } = useResidentData();
+  const { owner, badges: providedBadges } = useResidentData();
+  // Pages don't preload ring badges (they live on the Ring Hub), so fetch
+  // them like the standard Badges tab does. null = loading or unavailable.
+  const [fetchedBadges, setFetchedBadges] = React.useState<ResidentData['badges'] | null>(null);
+  React.useEffect(() => {
+    if (providedBadges !== undefined || !owner?.handle) return;
+    let cancelled = false;
+    // Via a promise, so a missing fetch is just "unavailable" too
+    Promise.resolve()
+      .then(() => fetch(`/api/users/${encodeURIComponent(owner.handle)}/badges`))
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!cancelled && Array.isArray(data?.badges)) setFetchedBadges(data.badges);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [providedBadges, owner?.handle]);
+  const badges = providedBadges !== undefined ? providedBadges ?? [] : fetchedBadges;
 
   // Handle className being passed as array or string
   const normalizedCustomClassName = Array.isArray(customClassName)
@@ -38,6 +57,9 @@ export default function ProfileBadges(props: ProfileBadgesProps) {
 
   // Apply CSS properties as inline styles
   const appliedStyles = applyCSSProps(cssProps);
+
+  // Still loading, or the hub didn't answer: say nothing rather than "no badges"
+  if (badges === null) return null;
 
   if (!badges || badges.length === 0) {
     return (

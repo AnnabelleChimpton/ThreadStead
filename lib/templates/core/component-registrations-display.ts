@@ -11,6 +11,7 @@ import Guestbook from '@/components/features/templates/Guestbook';
 import FollowButton from '@/components/features/templates/FollowButton';
 import MutualFriends from '@/components/features/templates/MutualFriends';
 import FriendBadge from '@/components/features/templates/FriendBadge';
+import ProfileMusic from '@/components/features/templates/ProfileMusic';
 import FriendDisplay from '@/components/features/templates/FriendDisplay';
 import WebsiteDisplay from '@/components/features/templates/WebsiteDisplay';
 import NotificationCenter from '@/components/features/templates/NotificationCenter';
@@ -160,6 +161,12 @@ export function registerDisplayComponents(registry: ComponentRegistry) {
   registry.register({
     name: 'FriendBadge',
     component: FriendBadge,
+    props: {}
+  });
+
+  registry.register({
+    name: 'ProfileMusic',
+    component: ProfileMusic,
     props: {}
   });
 

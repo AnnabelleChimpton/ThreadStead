@@ -73,6 +73,13 @@ export interface ResidentData {
   }>;
   // CSS configuration for template components
   cssRenderMode?: ComponentCSSRenderMode;
+  /** The owner's profile song, for <ProfileMusic /> */
+  profileMidi?: {
+    url: string;
+    title?: string;
+    autoplay?: boolean;
+    loop?: boolean;
+  };
 }
 
 const ResidentDataContext = createContext<ResidentData | null>(null);

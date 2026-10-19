@@ -26,6 +26,7 @@ const componentLoaders: Record<string, () => Promise<{ default: React.ComponentT
   FollowButton: () => import('@/components/features/templates/FollowButton'),
   MutualFriends: () => import('@/components/features/templates/MutualFriends'),
   FriendBadge: () => import('@/components/features/templates/FriendBadge'),
+  ProfileMusic: () => import('@/components/features/templates/ProfileMusic'),
   FriendDisplay: () => import('@/components/features/templates/FriendDisplay'),
   WebsiteDisplay: () => import('@/components/features/templates/WebsiteDisplay'),
   NotificationCenter: () => import('@/components/features/templates/NotificationCenter'),

@@ -22,6 +22,8 @@ import type { ProfileUser } from "@/components/core/profile/ProfileModeRenderer"
 import ViewSourceBadge from "@/components/core/profile/ViewSourceBadge";
 import StepOutsideLink from "@/components/core/profile/StepOutsideLink";
 import PrivateProfile from "@/components/core/profile/PrivateProfile";
+import WidgetSlot from "@/components/core/profile/WidgetSlot";
+import type { PublicWidgetSlot } from "@/lib/domain/profile/widget-slot/compile";
 import type { ResidentData } from "@/components/features/templates/ResidentDataProvider";
 import type { TemplateNode } from "@/lib/templates/compilation/template-parser";
 import { mapProfileCSSModeToComponentMode } from "@/lib/utils/css/css-mode-mapper";
@@ -77,6 +79,10 @@ type ProfileProps = {
   userJoinedAt?: string;
   /** They have a pixel home, and (past the profile's access check) the viewer may see it */
   hasPixelHome?: boolean;
+  /** The widget slot under the header (standard layout only), already compiled */
+  widgetSlot?: PublicWidgetSlot;
+  /** What the slot's widgets may read about the owner and viewer */
+  widgetSlotData?: ResidentData;
   // Private profile props
   isPrivateProfile?: boolean;
   privateProfileVisibility?: 'private' | 'followers' | 'friends';
@@ -107,6 +113,8 @@ export default function ProfilePage({
   displayName,
   userJoinedAt,
   hasPixelHome = false,
+  widgetSlot,
+  widgetSlotData,
   isPrivateProfile,
   privateProfileVisibility,
 }: ProfileProps) {
@@ -333,12 +341,15 @@ export default function ProfilePage({
           />
         </RetroCard>
 
+        {widgetSlot && widgetSlotData && <WidgetSlot slot={widgetSlot} residentData={widgetSlotData} />}
+
         <div className="profile-tabs-wrapper">
           <Tabs tabs={tabs} initialId={initialTabId} />
         </div>
 
-        {/* MIDI Player - Now using the refactored component with new library */}
-        {profileMidi && (
+        {/* MIDI Player - Now using the refactored component with new library.
+            Not when the slot's "My song" widget already plays it in the page. */}
+        {profileMidi && !widgetSlot?.playsSong && (
           <MidiPlayer
             midiUrl={profileMidi.url}
             title={profileMidi.title}
@@ -444,6 +455,7 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
       loop?: boolean;
     };
     hasPixelHome?: boolean;
+    widgetSlot?: PublicWidgetSlot | null;
   } = await res.json();
 
   const requested = typeof query.tab === "string" ? query.tab : undefined;
@@ -654,6 +666,8 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
         websites,
         // Map profile CSS mode to component CSS render mode
         cssRenderMode: mapProfileCSSModeToComponentMode(cssMode),
+        // For <ProfileMusic />: the song plays where the page puts it
+        ...(data.profileMidi ? { profileMidi: data.profileMidi } : {}),
       };
     } catch (error) {
       console.error('Error preparing custom template:', error);
@@ -725,6 +739,31 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   if (featuredFriends.length > 0) props.featuredFriends = featuredFriends;
   if (data.profileMidi) props.profileMidi = data.profileMidi;
   props.hasPixelHome = data.hasPixelHome === true;
+
+  // The widget slot belongs to the standard layout; a page of your own HTML
+  // has its own place for components.
+  if (data.widgetSlot && templateMode !== 'advanced') {
+    const { getSessionUser } = await import('@/lib/auth/server');
+    const viewer = await getSessionUser(req as any);
+    props.widgetSlot = data.widgetSlot;
+    props.widgetSlotData = {
+      owner: {
+        id: data.userId,
+        handle: data.username || usernameParam,
+        displayName: data.profile?.displayName || data.username || usernameParam,
+        avatarUrl: data.profile?.avatarUrl || "/assets/default-avatar.gif",
+      },
+      viewer: { id: viewer?.id ?? null },
+      // Widgets that need posts or pictures can't go in the slot (compile.ts)
+      posts: [],
+      guestbook: [],
+      capabilities: { bio: data.profile?.bio || "" },
+      featuredFriends,
+      websites,
+      cssRenderMode: mapProfileCSSModeToComponentMode(cssMode),
+      ...(data.profileMidi ? { profileMidi: data.profileMidi } : {}),
+    };
+  }
 
   // Add metadata props
   if (data.profile?.displayName) props.displayName = data.profile.displayName;

@@ -8,6 +8,8 @@ import Tabs, { TabSpec } from "@/components/ui/navigation/Tabs";
 import { getSessionUser } from "@/lib/auth/server";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+// TEMPORARY mount (profile-editing Phase 2): the Appearance tab is being rebuilt
+import WidgetSlotPicker from "@/components/features/profile/WidgetSlotPicker";
 import { useToast } from '@/contexts/ToastContext';
 import { useConfirm } from '@/contexts/ConfirmContext';
 import { PixelIcon } from '@/components/ui/PixelIcon';
@@ -874,6 +876,13 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
               <p className="text-sm text-nb-ink-mid mt-2">1+ hour</p>
             </div>
           </div>
+
+          {/* TEMPORARY mount (profile-editing Phase 2): widget slot picker, until the Appearance tab rebuild takes it */}
+          <section className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-4" aria-labelledby="widget-slot-heading">
+            <h3 id="widget-slot-heading" className="text-lg font-bold mb-1 text-nb-ink">Widgets under your header</h3>
+            <p className="text-sm text-nb-ink-mid mb-4">A sticky note, your song or a few buttons, on your page as it is.</p>
+            <WidgetSlotPicker />
+          </section>
 
           {/* Help Section */}
           <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-4">

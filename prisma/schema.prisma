@@ -149,6 +149,10 @@ model Profile {
   // Visiting someone's pixel home puts your name under it for a week
   // (components/pixel-homes/VisitorTrail.tsx). Off, you're only counted.
   showInVisitorTrails Boolean                  @default(true)
+  // The widget slot under the header on the standard layout: the fragment
+  // (and the picks it came from) plus its compiled form, written only by
+  // /api/user/widget-slot (lib/domain/profile/widget-slot).
+  widgetSlot          Json?
   // Full-text search: displayName (A) + bio (B), `simple` config. Maintained
   // by a trigger (20261017000000_add_search_fts) — never write it from Prisma.
   searchTsv           Unsupported("tsvector")? @map("search_tsv")
