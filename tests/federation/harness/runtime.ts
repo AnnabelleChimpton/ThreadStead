@@ -19,6 +19,9 @@ export interface FederationRuntime {
   publicKeyMultibase: string
   secondActorDid: string
   secondPrivateKeyBase64Url: string
+  /** A hub admin (Actor.isAdmin): may act on rings it doesn't own. */
+  adminActorDid: string
+  adminPrivateKeyBase64Url: string
   unresolvableActorDid: string
   unresolvablePrivateKeyBase64Url: string
   ringSlug: string

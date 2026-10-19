@@ -15,6 +15,7 @@ import {
   SubmitPostResponseSchema,
   JoinRingResponseSchema,
   LeaveRingResponseSchema,
+  TransferOwnershipResponseSchema,
   MyMembershipsResponseSchema,
   RingFeedResponseSchema,
   CuratePostResponseSchema,
@@ -111,6 +112,16 @@ export interface JoinRingResult {
   }
   badge: { id: string; url: string } | null
   message: string
+}
+
+/** What POST /trp/rings/:slug/transfer-ownership returns (hub ring-management.ts). */
+export interface TransferOwnershipResult {
+  message: string
+  ring: { slug: string; ownerDid: string }
+  previousOwnerDid: string
+  newOwnerDid: string
+  byAdmin: boolean
+  transferredAt: string
 }
 
 export interface PostRef {
@@ -486,6 +497,18 @@ export class RingHubClient {
     // Encode the DID: the hub decodes path params, so a did:web with a
     // percent-encoded port (did:web:host%3A3000) would otherwise not match.
     return this.put(`/trp/rings/${slug}/members/${encodeURIComponent(actorDid)}`, { role })
+  }
+
+  /**
+   * Hand a ring to another ACTIVE member. Signed as the ring owner, or as a
+   * hub admin (Actor.isAdmin) when the owner can't sign, e.g. a banned
+   * account. The previous owner stays on as a member.
+   */
+  async transferOwnership(slug: string, newOwnerDid: string, reason?: string): Promise<TransferOwnershipResult> {
+    const body: { newOwnerDid: string; reason?: string } = { newOwnerDid }
+    if (reason) body.reason = reason
+    const response = await this.post(`/trp/rings/${slug}/transfer-ownership`, body)
+    return validateRingHubResponse('POST /trp/rings/:slug/transfer-ownership', TransferOwnershipResponseSchema, response)
   }
 
   /**

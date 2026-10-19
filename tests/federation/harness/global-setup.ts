@@ -131,9 +131,10 @@ export default async function globalSetup(): Promise<void> {
   // 3. Serve REAL DID documents for the test actors, exactly as ThreadStead
   //    serves user DIDs in production. The hub resolves them during /trp/join
   //    (loopback did:web resolves over plain http). itest1 is the main actor;
-  //    itest2 is a second member for owner-side member management.
+  //    itest2 is a second member for owner-side member management; itest3 is
+  //    a hub admin (Actor.isAdmin), the role ThreadStead's own DID plays.
   const didPort = await freePort()
-  const actors = ['itest1', 'itest2'].map((name) => {
+  const actors = ['itest1', 'itest2', 'itest3'].map((name) => {
     const keys = generateTestKeys()
     const did = `did:web:localhost%3A${didPort}:users:${name}`
     const document = {
@@ -188,10 +189,11 @@ export default async function globalSetup(): Promise<void> {
         TEST_ACTOR_DID: actor.did,
         TEST_ACTOR_PUBKEY_B64: actor.keys.publicKeyBase64,
         TEST_RING_SLUG: ringSlug,
+        TEST_ACTOR_IS_ADMIN: actor.name === 'itest3' ? '1' : '0',
       },
     })
   }
-  const [mainActor, secondActor] = actors
+  const [mainActor, secondActor, adminActor] = actors
 
   // A signer the hub can NEVER resolve: not seeded, and its did:web host
   // doesn't exist — reproduces the prod "Unknown key" failure.
@@ -237,6 +239,8 @@ export default async function globalSetup(): Promise<void> {
     publicKeyBase64: mainActor.keys.publicKeyBase64,
     secondActorDid: secondActor.did,
     secondPrivateKeyBase64Url: secondActor.keys.privateKeyBase64Url,
+    adminActorDid: adminActor.did,
+    adminPrivateKeyBase64Url: adminActor.keys.privateKeyBase64Url,
     unresolvableActorDid: 'did:web:unresolvable.invalid:users:ghost',
     unresolvablePrivateKeyBase64Url: unresolvableKeys.privateKeyBase64Url,
     // The client requires SOME multibase value but never uses it for signing.

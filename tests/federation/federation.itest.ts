@@ -27,6 +27,9 @@ import {
   ownedRings,
   removeUserPostsFromRingHub,
 } from '@/lib/domain/users/account-removal'
+import { listOwnershipCandidates, transferRingOwnership } from '@/lib/domain/threadrings/ownership-transfer'
+import { ApiError } from '@/lib/api/errors'
+import { execSync } from 'child_process'
 import { buildPostUri } from '@/lib/domain/posts/ringhub-metadata'
 import { NOT_A_MEMBER_REASON, PUBLIC_ONLY_REASON, REMOVED_BEFORE_REASON, postToRings } from '@/lib/domain/posts/ring-submission'
 import { sendPostToRings } from '@/lib/domain/posts/send-to-rings'
@@ -57,7 +60,11 @@ jest.mock('@/lib/config/database/connection', () => ({
       findMany: jest.fn(async () => []),
     },
     // who still has a signing key here, by user id or DID (set per test)
-    userDID: { findUnique: jest.fn(async () => null) },
+    userDID: { findUnique: jest.fn(async () => null), findMany: jest.fn(async () => []) },
+    // transferRingOwnership / listOwnershipCandidates: residents and the local owner mirror (set per test)
+    user: { findUnique: jest.fn(async () => null), findMany: jest.fn(async () => []) },
+    ringHubOwnership: { findUnique: jest.fn(async () => null), upsert: jest.fn(async () => ({})) },
+    threadRingMember: { updateMany: jest.fn(async () => ({ count: 0 })) },
     threadRing: {
       findMany: jest.fn(async ({ where }: any) => mockLocalDb.rings.filter((r) => where.slug.in.includes(r.slug))),
       create: jest.fn(async ({ data }: any) => {
@@ -732,6 +739,175 @@ describe('deleting an account takes its ring posts off the hub (S-2)', () => {
     expect(await memberCount(FORK_SLUG)).toBe(before! - 1)
     const after = await second.getMyMemberships({ status: 'ACTIVE', limit: 100 })
     expect(after.memberships.find((m) => m.ringSlug === FORK_SLUG)).toBeUndefined()
+  })
+})
+
+describe('handing a ring to a new owner (POST /trp/rings/:slug/transfer-ownership)', () => {
+  // 'second' owns both rings and plays the banned account; the main actor is
+  // the member who takes over. The rings go straight into the hub's database
+  // (the fork gate allows one empty fork per actor, already used above); the
+  // main actor then joins through the real API.
+  const { db: localDb } = jest.requireMock('@/lib/config/database/connection')
+  const OWNER_SLUG = 'itest-handover'
+  const ADMIN_SLUG = 'itest-handover-admin'
+  const hubSql = (sql: string) =>
+    execSync(`psql "${getRuntime().databaseUrl}" -v ON_ERROR_STOP=1 -q`, { input: sql, stdio: ['pipe', 'pipe', 'pipe'] })
+  const roleIn = async (as: RingHubClient, slug: string) =>
+    (await as.getMyMemberships({ status: 'ACTIVE', limit: 100 })).memberships.find((m) => m.ringSlug === slug)?.role
+  const hubOwner = async (slug: string) => {
+    clearCache()
+    return (await client.getRing(slug))?.ownerDid
+  }
+  let second: RingHubClient
+  let secondDid: string
+  let gate: jest.SpyInstance
+  let site: jest.SpyInstance
+
+  // Residents here: 'main' and 'second', each with their hub key.
+  const residents = () => {
+    const did: Record<string, string> = { main: actorDid, second: secondDid }
+    localDb.userDID.findUnique.mockImplementation(async ({ where }: any) =>
+      where.userId && did[where.userId]
+        ? { userId: where.userId, did: did[where.userId] }
+        : where.did === actorDid
+          ? { userId: 'main' }
+          : null
+    )
+    localDb.userDID.findMany.mockImplementation(async ({ where }: any) =>
+      Object.entries(did)
+        .filter(([, d]) => where.did.in.includes(d))
+        .map(([userId, d]) => ({ userId, did: d }))
+    )
+    localDb.user.findUnique.mockImplementation(async ({ where }: any) =>
+      did[where.id] ? { id: where.id, primaryHandle: `${where.id}@threadstead-itest.invalid`, moderationStatus: 'active', suspendedUntil: null } : null
+    )
+  }
+
+  beforeAll(async () => {
+    makePublicTestClient()
+    second = makeTestClient('second')
+    secondDid = getRuntime().secondActorDid
+    gate = jest.spyOn(ringHubClientModule, 'shouldUseRingHub').mockReturnValue(true)
+    // This site's own DID, as the hub admin.
+    site = jest.spyOn(ringHubClientModule, 'getRingHubClient').mockReturnValue(makeTestClient('admin'))
+    ;(createAuthenticatedRingHubClient as jest.Mock).mockImplementation((userId: 'main' | 'second') =>
+      userId === 'main' ? client : makeTestClient(userId)
+    )
+    for (const slug of [OWNER_SLUG, ADMIN_SLUG]) {
+      hubSql(`INSERT INTO "Ring" (id, slug, name, visibility, "joinPolicy", "ownerDid", "updatedAt")
+          VALUES (gen_random_uuid()::text, '${slug}', 'Handover ${slug}', 'PUBLIC', 'OPEN', '${secondDid}', now());
+        INSERT INTO "RingRole" (id, "ringId", name, permissions)
+          SELECT gen_random_uuid()::text, r.id, n, '[]'::jsonb
+          FROM "Ring" r, unnest(array['owner', 'moderator', 'member']) AS n WHERE r.slug = '${slug}';
+        INSERT INTO "Membership" (id, "ringId", "actorDid", "roleId", status, "joinedAt", "updatedAt")
+          SELECT gen_random_uuid()::text, r.id, '${secondDid}', rr.id, 'ACTIVE', now(), now()
+          FROM "Ring" r JOIN "RingRole" rr ON rr."ringId" = r.id AND rr.name = 'owner' WHERE r.slug = '${slug}';`)
+      await client.joinRing(slug)
+    }
+  })
+
+  afterAll(() => {
+    gate.mockRestore()
+    site.mockRestore()
+    hubSql(`DELETE FROM "Ring" WHERE slug IN ('${OWNER_SLUG}', '${ADMIN_SLUG}');`)
+  })
+
+  test("a member who doesn't own the ring can't take it", async () => {
+    const attempt = client.transferOwnership(OWNER_SLUG, actorDid)
+    await expect(attempt).rejects.toBeInstanceOf(RingHubClientError)
+    await expect(attempt).rejects.toMatchObject({ status: 403 })
+    expect(await hubOwner(OWNER_SLUG)).toBe(secondDid)
+  })
+
+  test('the owner hands it over: the hub moves ownerDid and both roles', async () => {
+    const result = await second.transferOwnership(OWNER_SLUG, actorDid, 'moving on')
+
+    expect(result).toMatchObject({
+      ring: { slug: OWNER_SLUG, ownerDid: actorDid },
+      previousOwnerDid: secondDid,
+      newOwnerDid: actorDid,
+      byAdmin: false,
+    })
+    expect(await hubOwner(OWNER_SLUG)).toBe(actorDid)
+    expect(await roleIn(client, OWNER_SLUG)).toBe('owner')
+    expect(await roleIn(second, OWNER_SLUG)).toBe('member')
+  })
+
+  test('then the delete flow no longer counts it as theirs, and they leave it like any member', async () => {
+    residents()
+    const rings = await listUserRingMemberships('second')
+    expect(rings.error).toBeUndefined()
+    expect(ownedRings(rings.memberships).map((m) => m.ringSlug)).not.toContain(OWNER_SLUG)
+    const membership = rings.memberships.find((m) => m.ringSlug === OWNER_SLUG)!
+    expect(membership.role).toBe('member')
+
+    expect(await leaveUserRingsOnHub('second', [membership])).toEqual([{ ringSlug: OWNER_SLUG, outcome: 'left', signer: 'member' }])
+    clearCache()
+    expect((await client.getRing(OWNER_SLUG))?.memberCount).toBe(1)
+  })
+
+  test('the old owner can no longer hand it anywhere', async () => {
+    await expect(second.transferOwnership(OWNER_SLUG, secondDid)).rejects.toMatchObject({ status: 403 })
+  })
+
+  test("an admin lists who could take a banned owner's ring: residents here, not the owner", async () => {
+    residents()
+    localDb.user.findMany.mockResolvedValueOnce([{ id: 'main', primaryHandle: 'main@threadstead-itest.invalid', profile: null }])
+
+    const candidates = await listOwnershipCandidates(ADMIN_SLUG, { id: 'an-admin', role: 'admin' })
+
+    expect(candidates).toEqual([{ userId: 'main', handle: 'main@threadstead-itest.invalid', displayName: null, role: 'member' }])
+  })
+
+  test('someone who neither owns it nor is an admin is refused before the hub is asked', async () => {
+    residents()
+    const attempt = transferRingOwnership({ slug: ADMIN_SLUG, actor: { id: 'nobody', role: 'user' }, newOwnerUserId: 'main' })
+    await expect(attempt).rejects.toBeInstanceOf(ApiError)
+    await expect(attempt).rejects.toMatchObject({ status: 403 })
+    expect(await hubOwner(ADMIN_SLUG)).toBe(secondDid)
+  })
+
+  test("an admin hands a banned owner's ring over, signed as this site, and the local owner records follow", async () => {
+    residents()
+    localDb.ringHubOwnership.upsert.mockClear()
+    localDb.threadRing.updateMany.mockClear()
+
+    const result = await transferRingOwnership({
+      slug: ADMIN_SLUG,
+      actor: { id: 'an-admin', role: 'admin' },
+      newOwnerUserId: 'main',
+      reason: 'Owner banned',
+    })
+
+    expect(result).toEqual({
+      slug: ADMIN_SLUG,
+      previousOwnerDid: secondDid,
+      newOwnerDid: actorDid,
+      newOwner: { id: 'main', handle: 'main@threadstead-itest.invalid' },
+      signer: 'admin',
+      localSynced: true,
+    })
+    expect(await hubOwner(ADMIN_SLUG)).toBe(actorDid)
+    expect(await roleIn(second, ADMIN_SLUG)).toBe('member')
+    expect(localDb.ringHubOwnership.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { ringSlug: ADMIN_SLUG },
+        update: { ownerUserId: 'main', serverDID: actorDid },
+      })
+    )
+    expect(localDb.threadRing.updateMany).toHaveBeenCalledWith({ where: { slug: ADMIN_SLUG }, data: { curatorId: 'main' } })
+  })
+
+  test("when the hub doesn't treat this site as an admin, the error says so and nothing moves", async () => {
+    residents()
+    site.mockReturnValue(makeTestClient('second')) // a signer the hub knows, without isAdmin
+    try {
+      const attempt = transferRingOwnership({ slug: ADMIN_SLUG, actor: { id: 'an-admin', role: 'admin' }, newOwnerUserId: 'second' })
+      await expect(attempt).rejects.toMatchObject({ status: 403, message: expect.stringContaining("doesn't treat this site as an admin") })
+    } finally {
+      site.mockReturnValue(makeTestClient('admin'))
+    }
+    expect(await hubOwner(ADMIN_SLUG)).toBe(actorDid)
   })
 })
 

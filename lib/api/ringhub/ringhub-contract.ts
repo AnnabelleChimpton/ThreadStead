@@ -194,6 +194,19 @@ export const LeaveRingResponseSchema = z.object({
   leftAt: z.string(),
 })
 
+/**
+ * POST /trp/rings/:slug/transfer-ownership → 200 (ring-management.ts).
+ * `byAdmin`: a hub admin moved it, not the owner.
+ */
+export const TransferOwnershipResponseSchema = z.object({
+  message: z.string(),
+  ring: z.object({ slug: z.string(), ownerDid: z.string() }),
+  previousOwnerDid: z.string(),
+  newOwnerDid: z.string(),
+  byAdmin: z.boolean(),
+  transferredAt: z.string(),
+})
+
 /** GET /trp/my/memberships → 200 (rings.ts; shape enforced by hub Fastify schema). */
 export const MyMembershipsResponseSchema = z.object({
   memberships: z.array(

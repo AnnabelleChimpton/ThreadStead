@@ -41,6 +41,112 @@ type Blocked =
 
 const shortHandle = (handle: string | null | undefined) => (handle ? handle.split("@")[0] : "someone");
 
+interface Candidate {
+  userId: string;
+  handle: string | null;
+  displayName: string | null;
+  role: string;
+}
+
+/**
+ * One ring the account owns: pick another member and hand it over
+ * (/api/threadrings/[slug]/transfer-ownership, signed by this site as the
+ * Ring Hub admin).
+ */
+function RingHandover({
+  ring,
+  reason,
+  disabled,
+  onHandedOver,
+}: {
+  ring: { slug: string; name: string };
+  reason: string;
+  disabled: boolean;
+  onHandedOver: (slug: string) => void;
+}) {
+  const { showSuccess, showError } = useToast();
+  const [candidates, setCandidates] = useState<Candidate[] | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [picked, setPicked] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let live = true;
+    fetch(`/api/threadrings/${encodeURIComponent(ring.slug)}/transfer-ownership`)
+      .then(async (res) => {
+        const data = await res.json().catch(() => ({}));
+        if (!live) return;
+        if (!res.ok) return setLoadError(data.error || "Couldn't load its members.");
+        setCandidates(data.candidates ?? []);
+        if (data.candidates?.length) setPicked(data.candidates[0].userId);
+      })
+      .catch(() => live && setLoadError("Couldn't load its members."));
+    return () => {
+      live = false;
+    };
+  }, [ring.slug]);
+
+  async function handOver() {
+    setBusy(true);
+    try {
+      const res = await csrfFetch(`/api/threadrings/${encodeURIComponent(ring.slug)}/transfer-ownership`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ newOwnerUserId: picked, reason }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        showError(data.error || "Couldn't hand the ring over. Try again.");
+        return;
+      }
+      showSuccess(`${ring.name || ring.slug}: ${data.message}`);
+      onHandedOver(ring.slug);
+    } catch {
+      showError("Couldn't hand the ring over. Try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const label = (c: Candidate) => {
+    const handle = shortHandle(c.handle);
+    const name = c.displayName && c.displayName !== handle ? ` (${c.displayName})` : "";
+    return `@${handle}${name}${c.role === "moderator" ? ", moderator" : ""}`;
+  };
+
+  return (
+    <li className="space-y-1">
+      <span className="font-semibold">{ring.name || ring.slug}</span>
+      {loadError ? (
+        <p className="text-red-700">{loadError}</p>
+      ) : !candidates ? (
+        <p className="text-gray-600">Loading its members...</p>
+      ) : candidates.length === 0 ? (
+        <p className="text-gray-700">Nobody else from here is in it, so there&apos;s no one to hand it to.</p>
+      ) : (
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            className="border border-black p-1 bg-white"
+            value={picked}
+            onChange={(e) => setPicked(e.target.value)}
+            disabled={busy || disabled}
+            aria-label={`New owner for ${ring.name || ring.slug}`}
+          >
+            {candidates.map((c) => (
+              <option key={c.userId} value={c.userId}>
+                {label(c)}
+              </option>
+            ))}
+          </select>
+          <Button size="sm" variant="secondary" onClick={handOver} disabled={busy || disabled || !picked}>
+            {busy ? "Handing over..." : "Hand over"}
+          </Button>
+        </div>
+      )}
+    </li>
+  );
+}
+
 export function formatDay(value: string | Date): string {
   return new Date(value).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
 }
@@ -93,7 +199,17 @@ export default function ModerationDialog({
   const [busy, setBusy] = useState(false);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [blocked, setBlocked] = useState<Blocked | null>(null);
+  const [handedOver, setHandedOver] = useState(0);
   const name = shortHandle(account.handle);
+
+  function ringHandedOver(slug: string) {
+    setHandedOver((n) => n + 1);
+    setBlocked((current) => {
+      if (current?.code !== "owns_rings") return current;
+      const rings = current.rings.filter((r) => r.slug !== slug);
+      return rings.length > 0 ? { ...current, rings } : null;
+    });
+  }
 
   useEffect(() => {
     let live = true;
@@ -278,11 +394,21 @@ export default function ModerationDialog({
             {blocked?.code === "owns_rings" ? (
               <>
                 <p className="text-red-700">
-                  They own {blocked.rings.length === 1 ? "a ring" : `${blocked.rings.length} rings`} on Ring Hub:{" "}
-                  {blocked.rings.map((r) => r.name || r.slug).join(", ")}. Ring Hub can&apos;t hand a ring to someone
-                  else, so after a delete nobody could moderate {blocked.rings.length === 1 ? "it" : "them"}. Nothing
-                  was deleted.
+                  They own {blocked.rings.length === 1 ? "a ring" : `${blocked.rings.length} rings`} on Ring Hub, so
+                  nothing was deleted. Hand {blocked.rings.length === 1 ? "it" : "each one"} to another member first,
+                  so someone can still look after {blocked.rings.length === 1 ? "it" : "them"}.
                 </p>
+                <ul className="space-y-3">
+                  {blocked.rings.map((ring) => (
+                    <RingHandover
+                      key={ring.slug}
+                      ring={ring}
+                      reason={account.moderationReason ? `Owner banned: ${account.moderationReason}` : "Owner banned"}
+                      disabled={busy}
+                      onHandedOver={ringHandedOver}
+                    />
+                  ))}
+                </ul>
                 <Button size="sm" variant="danger" onClick={() => deleteAccount(true)} disabled={busy}>
                   Delete anyway
                 </Button>
@@ -303,9 +429,17 @@ export default function ModerationDialog({
                 </div>
               </>
             ) : (
-              <Button size="sm" variant="danger" onClick={() => deleteAccount(false)} disabled={busy}>
-                Delete account
-              </Button>
+              <>
+                {handedOver > 0 && (
+                  <p className="text-gray-700">
+                    Their {handedOver === 1 ? "ring has a new owner" : "rings have new owners"} now, so the delete can go
+                    ahead.
+                  </p>
+                )}
+                <Button size="sm" variant="danger" onClick={() => deleteAccount(false)} disabled={busy}>
+                  Delete account
+                </Button>
+              </>
             )}
           </div>
         )}

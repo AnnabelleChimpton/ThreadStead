@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import Layout from "../../../components/ui/layout/Layout";
 import { getSiteConfig, SiteConfig } from "@/lib/config/site/dynamic";
@@ -44,6 +44,8 @@ interface ThreadRingMembersPageProps {
   } | null;
   members: Member[];
   canManage: boolean;
+  /** A Ring Hub ring: only those can be handed to a new owner. */
+  hubRing?: boolean;
   error?: string;
 }
 
@@ -52,10 +54,13 @@ export default function ThreadRingMembersPage({
   ring,
   members: initialMembers,
   canManage,
+  hubRing = false,
   error
 }: ThreadRingMembersPageProps) {
   const router = useRouter();
   const [members, setMembers] = useState<Member[]>(initialMembers);
+  // A reload (after handing the ring over) brings a fresh list.
+  useEffect(() => setMembers(initialMembers), [initialMembers]);
   const [managing, setManaging] = useState<string | null>(null);
   const { showSuccess, showError } = useToast();
   const confirm = useConfirm();
@@ -143,6 +148,37 @@ export default function ThreadRingMembersPage({
     } catch (error: any) {
       console.error("Error removing member:", error);
       showError(error.message || "Failed to remove member");
+    } finally {
+      setManaging(null);
+    }
+  };
+
+  const handleMakeOwner = async (member: Member) => {
+    const handle = getMemberHandle(member);
+    if (!(await confirm({
+      title: `Hand ${ring.name} to @${handle}?`,
+      message: `@${handle} becomes the owner and can manage the ring. The current owner stays on as a member, and only @${handle} can hand it back.`,
+      confirmText: "Hand it over",
+    }))) return;
+
+    setManaging(member.user.id);
+    try {
+      const response = await csrfFetch(`/api/threadrings/${ring.slug}/transfer-ownership`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ newOwnerUserId: member.user.id }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || "Couldn't hand the ring over. Try again.");
+      }
+      showSuccess(data.message);
+      // Who can manage the ring changed: reload it from the server.
+      await router.replace(router.asPath);
+    } catch (error) {
+      showError(error instanceof Error && error.message ? error.message : "Couldn't hand the ring over. Try again.");
     } finally {
       setManaging(null);
     }
@@ -253,6 +289,17 @@ export default function ThreadRingMembersPage({
                           <option value="member">Member</option>
                           <option value="moderator">Moderator</option>
                         </select>
+
+                        {/* Hand the ring over: residents here only (others show by DID) */}
+                        {hubRing && !member.user.id.startsWith("did:") && (
+                          <button
+                            onClick={() => handleMakeOwner(member)}
+                            disabled={managing === member.user.id}
+                            className="text-xs border border-black px-3 py-1 bg-white hover:bg-gray-100 shadow-[1px_1px_0_#000] hover:shadow-[2px_2px_0_#000] transition-all disabled:opacity-50"
+                          >
+                            Make owner
+                          </button>
+                        )}
 
                         {/* Remove Button */}
                         <button
@@ -382,6 +429,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
                 ring,
                 members: await withHouseBadges(members, viewer?.id),
                 canManage,
+                hubRing: true,
               },
             };
           }

@@ -27,10 +27,13 @@
  * nothing to leave.
  *
  * Rings the account OWNS block the delete: the hub refuses an owner's leave
- * while other members remain and can't hand a ring to anyone else, so after
- * the delete nobody could moderate it. The admin can still go ahead
- * (`force`); then each owned ring is left if the owner is its only member,
- * and otherwise stays on the hub with an owner who is gone.
+ * while other members remain, so after the delete nobody could moderate it.
+ * The admin hands each one to another member first
+ * (lib/domain/threadrings/ownership-transfer.ts, signed as this site, the
+ * hub admin); the old owner is then a plain member and leaves like one. The
+ * admin can still go ahead (`force`); then each owned ring is left if the
+ * owner is its only member, and otherwise stays on the hub with an owner who
+ * is gone.
  *
  * If any hub step fails the account is NOT deleted unless the admin says so
  * (`force`), because after the delete only the ring owner can clean up.

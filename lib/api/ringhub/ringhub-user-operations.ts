@@ -378,6 +378,15 @@ export class AuthenticatedRingHubClient {
   }
 
   /**
+   * Hand a ring this user owns to another member. The hub checks the
+   * caller is Ring.ownerDid, so this is signed as the owner.
+   */
+  async transferOwnership(slug: string, newOwnerDid: string, reason?: string) {
+    const userClient = await this.getUserClient()
+    return await userClient.transferOwnership(slug, newOwnerDid, reason)
+  }
+
+  /**
    * Curate/moderate a post as this user (requires curator/moderator permissions)
    */
   async curatePost(postId: string, action: 'accept' | 'reject' | 'pin' | 'unpin' | 'remove', options?: {
