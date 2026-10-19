@@ -7,7 +7,7 @@
  * Replaces the old magnetic snap, which only snapped within 8 px and left
  * everything else at a raw float position.
  */
-import { getDecorationDimensions } from './decoration-dimensions'
+import { itemDimensions, type DecorationArtSize } from './decoration-dimensions'
 
 export const CELL = 16
 const SCENE_WIDTH = 512
@@ -20,7 +20,7 @@ export interface Placement {
   gridY: number | null
 }
 
-interface Placeable {
+interface Placeable extends DecorationArtSize {
   id: string
   decorationId?: string
   type: string
@@ -32,8 +32,7 @@ function clamp(n: number, min: number, max: number) {
 }
 
 export function place(item: Placeable, x: number, y: number, { free = false }: { free?: boolean } = {}): Placement {
-  const size = (item.size || 'medium') as 'small' | 'medium' | 'large'
-  const { width, height } = getDecorationDimensions(item.decorationId || item.id, item.type, size)
+  const { width, height } = itemDimensions(item)
   const maxX = Math.max(0, SCENE_WIDTH - width)
   const maxY = Math.max(0, SCENE_HEIGHT - height)
   if (free) {
@@ -46,7 +45,6 @@ export function place(item: Placeable, x: number, y: number, { free = false }: {
 
 /** The top-left that centres an item on a point, before snapping. */
 export function centredOn(item: Placeable, at: { x: number; y: number }): { x: number; y: number } {
-  const size = (item.size || 'medium') as 'small' | 'medium' | 'large'
-  const { width, height } = getDecorationDimensions(item.decorationId || item.id, item.type, size)
+  const { width, height } = itemDimensions(item)
   return { x: at.x - width / 2, y: at.y - height / 2 }
 }

@@ -10,6 +10,8 @@
  * (lib/config/env.ts). Object keys are the callers' business and must not
  * change: every stored avatar/media/badge URL is `${publicBase}/${key}`.
  */
+import { promises as fs } from 'fs';
+import path from 'path';
 import { DeleteObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { getServerEnv } from '@/lib/config/env';
 
@@ -50,6 +52,25 @@ function bucket(): string {
   return getServerEnv().R2_BUCKET_NAME;
 }
 
+/**
+ * R2_LOCAL_DIR: in development, a folder under public/ that stands in for the
+ * bucket, so a local preview's uploads never reach real storage. Never in
+ * production.
+ */
+function localFolder(): string | null {
+  if (process.env.NODE_ENV === 'production') return null;
+  const dir = getServerEnv().R2_LOCAL_DIR?.replace(/^\/+|\/+$/g, '');
+  return dir && !dir.includes('..') ? dir : null;
+}
+
+function localPath(folder: string, key: string): string {
+  const file = path.join(process.cwd(), 'public', folder, key);
+  if (!file.startsWith(path.join(process.cwd(), 'public', folder) + path.sep)) {
+    throw new Error(`Refusing to write outside ${folder}: ${key}`);
+  }
+  return file;
+}
+
 function stripTrailingSlash(url: string): string {
   return url.replace(/\/+$/, '');
 }
@@ -60,6 +81,8 @@ function stripTrailingSlash(url: string): string {
  */
 function publicBases(): string[] {
   const env = getServerEnv();
+  const local = localFolder();
+  if (local) return [`/${local}`];
   return [env.R2_CDN_URL, env.NEXT_PUBLIC_R2_CDN_URL, env.R2_PUBLIC_URL]
     .filter((v): v is string => !!v)
     .map(stripTrailingSlash);
@@ -101,6 +124,13 @@ export async function putObject({
   contentType,
   cacheControl = IMMUTABLE_CACHE_CONTROL,
 }: PutObjectInput): Promise<string> {
+  const local = localFolder();
+  if (local) {
+    const file = localPath(local, key);
+    await fs.mkdir(path.dirname(file), { recursive: true });
+    await fs.writeFile(file, body);
+    return publicUrl(key);
+  }
   await getClient().send(
     new PutObjectCommand({
       Bucket: bucket(),
@@ -129,6 +159,17 @@ export async function deleteObjects(
 ): Promise<DeleteObjectsResult> {
   const result: DeleteObjectsResult = { deleted: [], failed: [] };
   if (keys.length === 0) return result;
+
+  const local = localFolder();
+  if (local) {
+    for (const key of keys) {
+      await fs.rm(localPath(local, key), { force: true }).then(
+        () => result.deleted.push(key),
+        () => result.failed.push(key)
+      );
+    }
+    return result;
+  }
 
   let s3: S3Client;
   try {

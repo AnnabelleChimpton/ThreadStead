@@ -100,15 +100,89 @@ export function decodeImageDataUrl(dataUrl: string): { format: string; buffer: B
   return { format, buffer: Buffer.from(base64Data, 'base64') };
 }
 
+/** What's in a piece of pixel art, pixel by pixel. */
+export interface PixelArtInspection {
+  width: number;
+  height: number;
+  /** `#rrggbb` → how many fully opaque pixels use it. */
+  colours: Map<string, number>;
+  /** Pixels that are neither fully clear nor fully solid. */
+  partialAlpha: number;
+  firstPartialAlpha: { x: number; y: number } | null;
+  /** Fully clear rows under the lowest solid pixel (the art's ground line). */
+  bottomPadding: number;
+  /** True when no pixel is solid. */
+  empty: boolean;
+}
+
+const hex2 = (n: number) => n.toString(16).padStart(2, '0');
+
+/** Reads every pixel. Pixel art is small (decorations are at most 256 px). */
+export async function inspectPixelArt(input: Buffer): Promise<PixelArtInspection> {
+  const { data, info } = await sharp(input).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const { width, height, channels } = info;
+  const colours = new Map<string, number>();
+  let partialAlpha = 0;
+  let firstPartialAlpha: PixelArtInspection['firstPartialAlpha'] = null;
+  let lowestSolid = -1;
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = (y * width + x) * channels;
+      const alpha = data[i + 3];
+      if (alpha === 0) continue;
+      if (alpha !== 255) {
+        partialAlpha++;
+        firstPartialAlpha ??= { x, y };
+        continue;
+      }
+      const hex = `#${hex2(data[i])}${hex2(data[i + 1])}${hex2(data[i + 2])}`;
+      colours.set(hex, (colours.get(hex) ?? 0) + 1);
+      lowestSolid = y;
+    }
+  }
+  return {
+    width,
+    height,
+    colours,
+    partialAlpha,
+    firstPartialAlpha,
+    bottomPadding: lowestSolid < 0 ? height : height - 1 - lowestSolid,
+    empty: lowestSolid < 0 && partialAlpha === 0,
+  };
+}
+
+/** The same picture, pixel for pixel (fully clear pixels match whatever their colour). */
+async function samePixels(a: Buffer, b: Buffer): Promise<boolean> {
+  const [ra, rb] = await Promise.all(
+    [a, b].map((buf) => sharp(buf).ensureAlpha().raw().toBuffer({ resolveWithObject: true }))
+  );
+  if (ra.info.width !== rb.info.width || ra.info.height !== rb.info.height) return false;
+  for (let i = 0; i < ra.data.length; i += 4) {
+    if (ra.data[i + 3] !== rb.data[i + 3]) return false;
+    if (ra.data[i + 3] === 0) continue;
+    if (ra.data[i] !== rb.data[i] || ra.data[i + 1] !== rb.data[i + 1] || ra.data[i + 2] !== rb.data[i + 2]) {
+      return false;
+    }
+  }
+  return true;
+}
+
 /**
  * Pixel art (pixel-home decorations, custom assets): enforce byte and
- * dimension limits, then re-encode as a palette PNG at the original size.
+ * dimension limits, then re-encode at the original size without changing a
+ * pixel. Art with 256 colours or fewer becomes a palette PNG with no
+ * dithering; anything else, or anything the palette encoder would alter, is
+ * saved as a lossless full-colour PNG.
+ *
+ * `rejectPartialAlpha` turns away half-transparent pixels (the catalog's
+ * art bible wants hard edges). Residents' own uploads don't set it.
+ *
  * Throws ImageValidationError with a user-facing message.
  */
 export async function preparePixelArtPng(
   input: Buffer,
-  { maxBytes, maxDimension }: { maxBytes: number; maxDimension: number }
-): Promise<{ buffer: Buffer; width: number; height: number }> {
+  { maxBytes, maxDimension, rejectPartialAlpha = false }: { maxBytes: number; maxDimension: number; rejectPartialAlpha?: boolean }
+): Promise<{ buffer: Buffer; width: number; height: number; inspection: PixelArtInspection }> {
   if (input.length > maxBytes) {
     throw new ImageValidationError(`Image too large. Maximum size is ${maxBytes / 1024}KB`);
   }
@@ -123,6 +197,24 @@ export async function preparePixelArtPng(
     );
   }
 
-  const buffer = await sharp(input).png({ compressionLevel: 9, palette: true }).toBuffer();
-  return { buffer, width, height };
+  const inspection = await inspectPixelArt(input);
+  if (rejectPartialAlpha && inspection.partialAlpha > 0) {
+    const { x, y } = inspection.firstPartialAlpha!;
+    throw new ImageValidationError(
+      `${inspection.partialAlpha} pixel${inspection.partialAlpha === 1 ? ' is' : 's are'} partly see-through (the first is at ${x}, ${y}). Every pixel needs to be fully solid or fully clear.`
+    );
+  }
+
+  const lossless = () => sharp(input).png({ compressionLevel: 9, palette: false }).toBuffer();
+  let buffer: Buffer;
+  // +1 leaves room for the transparent entry
+  if (inspection.colours.size + 1 <= 256 && inspection.partialAlpha === 0) {
+    const indexed = await sharp(input)
+      .png({ compressionLevel: 9, palette: true, colours: 256, dither: 0, quality: 100 })
+      .toBuffer();
+    buffer = (await samePixels(input, indexed)) ? indexed : await lossless();
+  } else {
+    buffer = await lossless();
+  }
+  return { buffer, width, height, inspection };
 }

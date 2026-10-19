@@ -24,6 +24,9 @@ const GhostArt = memo(function GhostArt({ item }: { item: DecorationItem }) {
       text={item.text || item.data?.text}
       customAssetUrl={item.customAssetUrl}
       pngUrl={item.pngUrl}
+      pngWidth={item.pngWidth}
+      pngHeight={item.pngHeight}
+      pngFrames={item.pngFrames}
     />
   )
 })
@@ -44,7 +47,7 @@ const PlacementGhost = forwardRef<PlacementGhostHandle>(function PlacementGhost(
 
   if (!ghost) return null
   const { item, x, y } = ghost
-  const { width, height } = getDecorationDimensions(item.decorationId || item.id, item.type, item.size || 'medium')
+  const { width, height } = getDecorationDimensions(item.decorationId || item.id, item.type, item.size || 'medium', item)
   // Always on top, even where it will land behind the house: you can see what you're carrying
   const layer = OVERLAY_DEPTH - 1
 

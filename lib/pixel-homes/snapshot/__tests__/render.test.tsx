@@ -158,10 +158,24 @@ describe('renderHomeSnapshot', () => {
     const big = decoration({ x: 200, y: 260, size: 'large', pngUrl: 'https://cdn.test/d.png' })
     const { card } = await renderHomeSnapshot(scene({ decorations: [big] }), { loadImage: async () => sprite })
     const c = await pixels(card)
-    // large = 1.4× → a 28×28 box
+    // large = 2× (whole-number sizes only) → a 40×40 box of 2×2 blocks
     const seen = new Set<string>()
-    for (let y = 260; y < 288; y++) for (let x = 200; x < 228; x++) seen.add(c.at(x, y).join(','))
+    for (let y = 260; y < 300; y++) for (let x = 200; x < 240; x++) seen.add(c.at(x, y).join(','))
     expect(seen).toEqual(new Set([RED.join(','), BLUE.join(',')]))
+    expect(c.at(200, 260)).toEqual(c.at(201, 261))
+  })
+
+  test('a PNG with a stored size draws at that size, and a strip draws its first frame', async () => {
+    // 2 frames of 10×6: frame 0 red, frame 1 blue
+    const raw = Buffer.alloc(20 * 6 * 4)
+    for (let y = 0; y < 6; y++) for (let x = 0; x < 20; x++) raw.set(x < 10 ? RED : BLUE, (y * 20 + x) * 4)
+    const strip = await sharp(raw, { raw: { width: 20, height: 6, channels: 4 } }).png().toBuffer()
+    const item = decoration({ x: 300, y: 300, pngUrl: 'https://cdn.test/strip.png', pngWidth: 10, pngHeight: 6, pngFrames: 2 })
+    const c = await pixels((await renderHomeSnapshot(scene({ decorations: [item] }), { loadImage: async () => strip })).card)
+    for (let y = 300; y < 306; y++) for (let x = 300; x < 310; x++) expect(c.at(x, y)).toEqual(RED)
+    // Not stretched to the old 20×20 daisy box
+    expect(c.at(312, 303)).not.toEqual(BLUE)
+    expect(c.at(305, 308)).not.toEqual(RED)
   })
 
   test("a PNG that won't load falls back to the code-drawn decoration, like the canvas", async () => {

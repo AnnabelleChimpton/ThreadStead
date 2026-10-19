@@ -8,7 +8,8 @@
  */
 import type { Prisma, UserHomeConfig, UserHomeDecoration } from "@prisma/client";
 import { db } from "@/lib/config/database/connection";
-import { getDecorationDimensions } from "@/lib/pixel-homes/decoration-dimensions";
+import { getDecorationDimensions, type DecorationArtSize } from "@/lib/pixel-homes/decoration-dimensions";
+import { CATALOG_ART_SELECT, catalogArtFields, type CatalogArtRow } from "@/lib/pixel-homes/catalog-art";
 import { clampLayerBias } from "@/lib/pixel-homes/depth";
 import { customArtUrl, customSlotOf, customSlotUrls } from "@/lib/pixel-homes/custom-art";
 import type { ColorPalette, HouseCustomizations, HouseTemplate } from "@/components/pixel-homes/HouseSVG";
@@ -27,6 +28,10 @@ export interface SceneDecoration {
   data?: Prisma.JsonValue;
   renderSvg?: string | null;
   pngUrl?: string | null;
+  /** The PNG's own size and frame count, when it was uploaded with one. */
+  pngWidth?: number | null;
+  pngHeight?: number | null;
+  pngFrames?: number | null;
   customAssetUrl?: string;
   slot?: number;
 }
@@ -40,7 +45,7 @@ export interface HomeScene {
   decorations: SceneDecoration[];
 }
 
-type CatalogArt = { renderSvg: string | null; pngUrl: string | null };
+type CatalogArt = CatalogArtRow;
 
 /**
  * Stacking order for a placed decoration: paths under water under
@@ -48,9 +53,12 @@ type CatalogArt = { renderSvg: string | null; pngUrl: string | null };
  * yard is nearer the viewer), then left to right. Recomputed on load, so
  * legacy rows with stale `layer` values still stack right.
  */
-export function decorationLayer(row: Pick<UserHomeDecoration, "decorationId" | "decorationType" | "size" | "positionX" | "positionY">): number {
+export function decorationLayer(
+  row: Pick<UserHomeDecoration, "decorationId" | "decorationType" | "size" | "positionX" | "positionY">,
+  art?: DecorationArtSize
+): number {
   const size = (row.size || "medium") as "small" | "medium" | "large";
-  const dimensions = getDecorationDimensions(row.decorationId, row.decorationType, size);
+  const dimensions = getDecorationDimensions(row.decorationId, row.decorationType, size, art);
   let baseLayer = 300000;
   if (row.decorationType === "path") baseLayer = 100000;
   else if (row.decorationType === "water") baseLayer = 200000;
@@ -76,19 +84,18 @@ export function toSceneDecorations(
 ): SceneDecoration[] {
   const slotUrls = customSlotUrls(customAssets);
   return rows.map((decoration) => {
-    const catalogItem = catalog.get(decoration.decorationId);
+    const art = catalogArtFields(catalog.get(decoration.decorationId));
     const item: SceneDecoration = {
       id: `${decoration.decorationId}_${decoration.id}`,
       decorationId: decoration.decorationId, // base id, for matching the code-drawn SVGs
       type: decoration.decorationType,
       zone: decoration.zone,
-      position: { x: decoration.positionX, y: decoration.positionY, layer: decorationLayer(decoration) },
+      position: { x: decoration.positionX, y: decoration.positionY, layer: decorationLayer(decoration, art) },
       layerBias: clampLayerBias(decoration.layerBias),
       variant: decoration.variant || "default",
       size: decoration.size || "medium",
       data: decoration.data,
-      ...(catalogItem?.renderSvg && { renderSvg: catalogItem.renderSvg }),
-      ...(catalogItem?.pngUrl && { pngUrl: catalogItem.pngUrl }),
+      ...art,
     };
     if (decoration.decorationType === "custom") {
       const url = customArtUrl(decoration.decorationId, slotUrls);
@@ -100,15 +107,15 @@ export function toSceneDecorations(
   });
 }
 
-/** Catalog art (code SVG override and PNG) for the decorations in a yard. */
+/** Catalog art (code SVG override, PNG and its size) for the decorations in a yard. */
 export async function loadCatalogArt(decorationIds: Iterable<string>): Promise<Map<string, CatalogArt>> {
   const ids = [...new Set(decorationIds)];
   if (ids.length === 0) return new Map();
   const items = await db.decorationItem.findMany({
     where: { itemId: { in: ids } },
-    select: { itemId: true, renderSvg: true, pngUrl: true },
+    select: CATALOG_ART_SELECT,
   });
-  return new Map(items.map((item) => [item.itemId, { renderSvg: item.renderSvg, pngUrl: item.pngUrl }]));
+  return new Map(items.map((item) => [item.itemId, item]));
 }
 
 /** The decoration rows in the order the canvas has always received them. */

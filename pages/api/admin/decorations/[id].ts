@@ -18,6 +18,7 @@ interface UpdateDecorationRequest {
   releaseStartAt?: string | null;
   releaseEndAt?: string | null;
   maxClaims?: number | null;
+  collection?: string | null;
 }
 
 export default apiHandler(
@@ -65,7 +66,8 @@ export default apiHandler(
           releaseType,
           releaseStartAt,
           releaseEndAt,
-          maxClaims
+          maxClaims,
+          collection
         }: UpdateDecorationRequest = req.body;
 
         // Validate time-based releases if updating to LIMITED_TIME
@@ -108,6 +110,7 @@ export default apiHandler(
           updateData.releaseEndAt = releaseEndAt ? new Date(releaseEndAt) : null;
         }
         if (maxClaims !== undefined) updateData.maxClaims = maxClaims;
+        if (collection !== undefined) updateData.collection = collection?.trim() || null;
 
         const updatedDecoration = await db.decorationItem.update({
           where: { id },

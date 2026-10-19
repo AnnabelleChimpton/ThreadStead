@@ -190,6 +190,15 @@ export const SERVER_ENV_SPECS = [
     group: 'Storage (Cloudflare R2)',
     description: 'Public origin uploaded files are served from (custom domain or r2.dev). First choice for upload URLs (lib/storage/r2.ts publicUrl).',
   },
+  {
+    name: 'R2_LOCAL_DIR',
+    kind: 'string',
+    scope: 'server',
+    group: 'Storage (Cloudflare R2)',
+    description:
+      'Development only, ignored in production. When set, uploads are written to this folder under public/ (e.g. "_local-r2") and served from /<folder>/<key> instead of going to the bucket, so local previews never touch real storage.',
+    example: '_local-r2',
+  },
 
   // ── Ring Hub & DID ──────────────────────────────────────────────────────
   {

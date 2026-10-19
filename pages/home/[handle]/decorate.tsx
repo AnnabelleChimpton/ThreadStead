@@ -10,6 +10,7 @@ import { HouseTemplate, ColorPalette, HouseCustomizations, AtmosphereSettings } 
 import { normalizeDecorationRow, normalizeHomeConfig } from '@/lib/pixel-homes/decoration-save-rules'
 import type { SavePayload } from '@/lib/pixel-homes/editor-doc'
 import { customArtUrl, customSlotOf, customSlotUrls } from '@/lib/pixel-homes/custom-art'
+import { CATALOG_ART_SELECT, catalogArtFields, catalogArtMap } from '@/lib/pixel-homes/catalog-art'
 
 interface DecorationPageProps {
   handle: string
@@ -170,14 +171,12 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     const decorationItems = decorationIds.length > 0
       ? await db.decorationItem.findMany({
           where: { itemId: { in: decorationIds } },
-          select: { itemId: true, pngUrl: true, renderSvg: true }
+          select: CATALOG_ART_SELECT
         })
       : []
 
     // Create lookup map for pngUrls
-    const pngUrlMap = new Map<string, { pngUrl: string | null; renderSvg: string | null }>(
-      decorationItems.map(d => [d.itemId, { pngUrl: d.pngUrl, renderSvg: d.renderSvg }])
-    )
+    const pngUrlMap = catalogArtMap(decorationItems)
 
     if (!homeConfig) {
       return {
@@ -200,7 +199,8 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         zone: 'front_yard' as const,
         ...normalizeDecorationRow(decoration),
         pngUrl: decorationData?.pngUrl || null,
-        renderSvg: decorationData?.renderSvg || null
+        renderSvg: decorationData?.renderSvg || null,
+        ...catalogArtFields(decorationData)
       }
 
       // A resident's own art shows whatever is in its slot now

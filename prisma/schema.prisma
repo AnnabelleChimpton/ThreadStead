@@ -1411,6 +1411,13 @@ model DecorationItem {
   imagePath String? // Path to uploaded image asset
   pngUrl    String? // R2 CDN URL for PNG asset
 
+  // Hand-drawn PNG art, read from the upload ("New from PNG" in admin)
+  width      Int? // one frame's width in art px; null = use the SVG size table
+  height     Int? // art px
+  frames     Int     @default(1) // a horizontal strip of this many frames
+  pngVersion Int? // which DecorationArtVersion pngUrl points at
+  collection String? // a named set, e.g. "Autumn 2026"
+
   // Grid behavior
   gridWidth  Int @default(1)
   gridHeight Int @default(1)
@@ -1433,14 +1440,34 @@ model DecorationItem {
   createdBy   String? // Admin user ID (optional for system items)
 
   // Relations
-  creator    User?                 @relation("DecorationItemsCreated", fields: [createdBy], references: [id])
-  userClaims UserDecorationClaim[]
+  creator     User?                  @relation("DecorationItemsCreated", fields: [createdBy], references: [id])
+  userClaims  UserDecorationClaim[]
+  artVersions DecorationArtVersion[]
 
   @@index([releaseType])
   @@index([releaseStartAt, releaseEndAt])
   @@index([claimCode])
   @@index([isActive])
   @@index([itemId])
+}
+
+/// Every PNG uploaded for a catalog item. Files are never overwritten
+/// ({itemId}.v{n}.png), so reverting just points the item at an older row.
+model DecorationArtVersion {
+  id           String   @id @default(cuid())
+  decorationId String
+  version      Int
+  url          String
+  width        Int // one frame
+  height       Int
+  frames       Int      @default(1)
+  colours      Int
+  createdAt    DateTime @default(now())
+  createdBy    String?
+
+  decoration DecorationItem @relation(fields: [decorationId], references: [id], onDelete: Cascade)
+
+  @@unique([decorationId, version])
 }
 
 model UserDecorationClaim {

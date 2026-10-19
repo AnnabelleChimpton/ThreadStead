@@ -21,6 +21,9 @@ interface HomeDecoration {
   layer: number
   renderSvg?: string | null
   pngUrl?: string | null
+  pngWidth?: number | null
+  pngHeight?: number | null
+  pngFrames?: number | null
   data?: any // Custom data for decorations (e.g. sign text)
 }
 
@@ -550,6 +553,9 @@ export default function NeighborhoodStreetView({
                                   className="drop-shadow-sm"
                                   text={decoration.data?.text}
                                   pngUrl={decoration.pngUrl || undefined}
+                                  pngWidth={decoration.pngWidth}
+                                  pngHeight={decoration.pngHeight}
+                                  pngFrames={decoration.pngFrames}
                                 />
                               </div>
                             )

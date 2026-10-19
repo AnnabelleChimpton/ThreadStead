@@ -14,7 +14,7 @@ import {
   hasPngFailed,
   markPngFailed,
 } from '@/lib/pixel-homes/decoration-assets'
-import { getDecorationDimensions } from '@/lib/pixel-homes/decoration-dimensions'
+import { getDecorationDimensions, sizeScale } from '@/lib/pixel-homes/decoration-dimensions'
 
 interface DecorationSVGProps {
   decorationType: 'plant' | 'path' | 'feature' | 'seasonal' | 'house_custom' | 'furniture' | 'lighting' | 'water' | 'structure' | 'sky' | 'house_template' | 'house_color' | 'custom'
@@ -27,13 +27,10 @@ interface DecorationSVGProps {
   text?: string
   customAssetUrl?: string  // URL to user's uploaded custom pixel art
   pngUrl?: string  // Direct PNG URL from database (overrides R2 lookup)
-}
-
-// Size multipliers for different decoration sizes
-const SIZE_SCALES = {
-  small: 0.7,
-  medium: 1.0,
-  large: 1.4
+  /** The PNG's own size (one frame) and frame count, stored when it was uploaded */
+  pngWidth?: number | null
+  pngHeight?: number | null
+  pngFrames?: number | null
 }
 
 // Decoration types that support PNG loading from R2
@@ -52,9 +49,12 @@ export default function DecorationSVG({
   customScale,
   text,
   customAssetUrl,
-  pngUrl
+  pngUrl,
+  pngWidth,
+  pngHeight,
+  pngFrames
 }: DecorationSVGProps) {
-  const scale = customScale || SIZE_SCALES[size]
+  const scale = customScale || sizeScale(size)
   const props = { id: decorationId, variant, scale, className, text }
 
   // Track whether PNG failed to load (triggers SVG fallback)
@@ -78,7 +78,9 @@ export default function DecorationSVG({
 
   // Try PNG first if supported
   if (shouldTryPng && resolvedPngUrl) {
-    const dimensions = getDecorationDimensions(decorationId, decorationType, size)
+    // At its own size when it has one (x a whole-number size scale), else the old table
+    const dimensions = getDecorationDimensions(decorationId, decorationType, size, { pngUrl: resolvedPngUrl, pngWidth, pngHeight })
+    const frames = pngFrames && pngFrames > 1 ? pngFrames : 1
 
     return (
       <img
@@ -90,6 +92,14 @@ export default function DecorationSVG({
         style={{
           imageRendering: 'pixelated',
           display: 'block',
+          // A strip of frames shows its first frame. The size goes in the
+          // style too, or the site's img { height: auto } squeezes the strip.
+          ...(frames > 1 && {
+            width: dimensions.width,
+            height: dimensions.height,
+            objectFit: 'cover',
+            objectPosition: 'left top',
+          }),
         }}
         onError={() => {
           markPngFailed(decorationId)

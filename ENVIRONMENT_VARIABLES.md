@@ -74,6 +74,7 @@ Unset, the branding falls back to "YourSiteHere". Set `SITE_HANDLE_DOMAIN` and `
 | `R2_BUCKET_NAME` | — | `threadstead-media` | Bucket for uploads. Some upload routes have no fallback, so set it explicitly. |
 | `R2_PUBLIC_URL` | — | — | Despite the name, this is the S3 API endpoint (https://<account>.r2.cloudflarestorage.com) used by lib/storage/r2.ts. Also the last-resort public URL when neither R2_CDN_URL nor NEXT_PUBLIC_R2_CDN_URL is set. |
 | `R2_CDN_URL` | — | — | Public origin uploaded files are served from (custom domain or r2.dev). First choice for upload URLs (lib/storage/r2.ts publicUrl). |
+| `R2_LOCAL_DIR` | — | — | Development only, ignored in production. When set, uploads are written to this folder under public/ (e.g. "_local-r2") and served from /<folder>/<key> instead of going to the bucket, so local previews never touch real storage. |
 
 ## Ring Hub & DID
 

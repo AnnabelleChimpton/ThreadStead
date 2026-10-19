@@ -1,11 +1,13 @@
 /**
- * Decoration Dimensions Lookup Table
+ * How big a decoration is, in art px.
  *
- * This file maps decoration IDs to their actual pixel dimensions.
- * These dimensions are used for accurate y-sorting (depth sorting) calculations.
+ * A PNG uploaded through admin carries its own size (DecorationItem
+ * width/height, passed along as pngWidth/pngHeight), and that always wins.
+ * The table below is the fallback for the code-drawn SVGs and for PNGs
+ * uploaded before sizes were stored (art-direction T5).
  *
- * The height is particularly important as it determines the bottom Y position
- * of each decoration, which is used for layer calculation.
+ * The height matters most: the bottom edge is where a decoration stands,
+ * which is what depth sorting reads.
  */
 
 export interface DecorationDimensions {
@@ -121,14 +123,30 @@ export const DEFAULT_TYPE_DIMENSIONS: Record<string, DecorationDimensions> = {
 };
 
 /**
- * Size multipliers for decoration size variants.
- * Applied to base dimensions.
+ * Size variants as whole-number scales, so pixel art never resamples
+ * (art-direction T6). Small used to be 0.7×, which dropped pixels; it now
+ * shows at 1×. Nothing in the editor sets a size, so every placed item is
+ * medium.
  */
 export const SIZE_MULTIPLIERS: Record<string, number> = {
-  'small': 0.7,
-  'medium': 1.0,
-  'large': 1.4,
+  'small': 1,
+  'medium': 1,
+  'large': 2,
 };
+
+export type DecorationSize = 'small' | 'medium' | 'large';
+
+export function sizeScale(size: string | null | undefined): number {
+  return SIZE_MULTIPLIERS[size || 'medium'] ?? 1;
+}
+
+/** A catalog PNG's own size, as the scene items carry it. */
+export interface DecorationArtSize {
+  pngUrl?: string | null;
+  pngWidth?: number | null;
+  pngHeight?: number | null;
+  pngFrames?: number | null;
+}
 
 /**
  * Get the actual pixel dimensions for a decoration.
@@ -136,24 +154,37 @@ export const SIZE_MULTIPLIERS: Record<string, number> = {
  * @param decorationId - The ID of the decoration (e.g., 'tree_oak', 'roses_red')
  * @param decorationType - The type of decoration (e.g., 'plant', 'feature')
  * @param size - The size variant ('small', 'medium', 'large')
+ * @param art - The item's PNG and its stored size, when it has one
  * @returns The scaled pixel dimensions { width, height }
  */
 export function getDecorationDimensions(
   decorationId: string,
   decorationType: string,
-  size: 'small' | 'medium' | 'large' = 'medium'
+  size: DecorationSize = 'medium',
+  art?: DecorationArtSize | null
 ): DecorationDimensions {
+  const fromArt = art?.pngUrl && art.pngWidth && art.pngHeight
+    ? { width: art.pngWidth, height: art.pngHeight }
+    : null;
   // A catalog id as given ('fence_2' is its own item), else an older
   // instance id with its suffix stripped ('tree_oak_123_abc' -> 'tree_oak')
-  const baseDimensions = DECORATION_DIMENSIONS[decorationId]
+  const baseDimensions = fromArt
+    || DECORATION_DIMENSIONS[decorationId]
     || DECORATION_DIMENSIONS[decorationId.replace(/_(\d+)_[a-z0-9]+$|_\d+$/, '')]
     || DEFAULT_TYPE_DIMENSIONS[decorationType]
     || { width: 16, height: 16 };
 
-  const multiplier = SIZE_MULTIPLIERS[size] || 1.0;
+  const multiplier = sizeScale(size);
 
   return {
-    width: Math.round(baseDimensions.width * multiplier),
-    height: Math.round(baseDimensions.height * multiplier),
+    width: baseDimensions.width * multiplier,
+    height: baseDimensions.height * multiplier,
   };
+}
+
+/** A placed item's size: its own PNG size if it has one, else the table. */
+export function itemDimensions(
+  item: { id: string; decorationId?: string; type: string; size?: string | null } & DecorationArtSize
+): DecorationDimensions {
+  return getDecorationDimensions(item.decorationId || item.id, item.type, (item.size || 'medium') as DecorationSize, item);
 }

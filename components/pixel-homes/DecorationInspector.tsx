@@ -85,6 +85,9 @@ export default function DecorationInspector({
               text={text}
               customAssetUrl={item.customAssetUrl}
               pngUrl={item.pngUrl}
+              pngWidth={item.pngWidth}
+              pngHeight={item.pngHeight}
+              pngFrames={item.pngFrames}
             />
           </div>
         </div>

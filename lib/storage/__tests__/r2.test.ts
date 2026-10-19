@@ -33,6 +33,7 @@ const R2_VARS = [
   'R2_ACCESS_KEY_ID',
   'R2_SECRET_ACCESS_KEY',
   'R2_BUCKET_NAME',
+  'R2_LOCAL_DIR',
 ] as const;
 const saved: Record<string, string | undefined> = {};
 
@@ -199,5 +200,42 @@ describe('deleteObjects', () => {
     setEnv({});
     expect(await deleteObjects([])).toEqual({ deleted: [], failed: [] });
     expect(errorSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe('R2_LOCAL_DIR (development stand-in for the bucket)', () => {
+  const fs = jest.requireActual('fs') as typeof import('fs');
+  const path = jest.requireActual('path') as typeof import('path');
+  const folder = `_local-r2-test-${process.pid}`;
+  const root = path.join(process.cwd(), 'public', folder);
+  afterEach(() => fs.rmSync(root, { recursive: true, force: true }));
+
+  test('writes under public/<folder>, serves from /<folder>, deletes there, never calls S3', async () => {
+    setEnv({ ...CONFIGURED, R2_LOCAL_DIR: folder });
+    send.mockClear();
+    const url = await putObject({ key: 'pixel-homes/decorations/a.v1.png', body: Buffer.from('png'), contentType: 'image/png' });
+    expect(url).toBe(`/${folder}/pixel-homes/decorations/a.v1.png`);
+    expect(fs.readFileSync(path.join(root, 'pixel-homes/decorations/a.v1.png'), 'utf8')).toBe('png');
+    expect(keyFromPublicUrl(url)).toBe('pixel-homes/decorations/a.v1.png');
+    expect(await deleteObjects(['pixel-homes/decorations/a.v1.png'])).toEqual({ deleted: ['pixel-homes/decorations/a.v1.png'], failed: [] });
+    expect(fs.existsSync(path.join(root, 'pixel-homes/decorations/a.v1.png'))).toBe(false);
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  test('refuses keys that climb out of the folder', async () => {
+    setEnv({ ...CONFIGURED, R2_LOCAL_DIR: folder });
+    await expect(putObject({ key: '../../evil.png', body: Buffer.from(''), contentType: 'image/png' })).rejects.toThrow(/Refusing/);
+  });
+
+  test('is ignored in production', async () => {
+    const env = process.env as Record<string, string | undefined>;
+    const before = env.NODE_ENV;
+    env.NODE_ENV = 'production';
+    try {
+      setEnv({ ...CONFIGURED, R2_LOCAL_DIR: folder });
+      expect(publicUrl('k.png')).toBe('https://cdn.example.com/k.png');
+    } finally {
+      env.NODE_ENV = before;
+    }
   });
 });

@@ -50,6 +50,7 @@ export default apiHandler(
         prepared = await preparePixelArtPng(decoded.buffer, {
           maxBytes: MAX_FILE_SIZE,
           maxDimension: MAX_DIMENSION,
+          rejectPartialAlpha: true,
         });
       } catch (error) {
         if (error instanceof ImageValidationError) {
@@ -72,9 +73,12 @@ export default apiHandler(
 
       // Update database if this is a decoration item (not house template)
       if (!isHouseTemplate && itemId) {
+        // The size comes from the file now (art-direction T5), so the PNG
+        // renders at its own size. "New from PNG" is the versioned path; this
+        // older one overwrites {itemId}.png, so it isn't any stored version.
         await db.decorationItem.updateMany({
           where: { itemId },
-          data: { pngUrl }
+          data: { pngUrl, width, height, frames: 1, pngVersion: null }
         });
       }
 

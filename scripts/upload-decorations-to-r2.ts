@@ -1,268 +1,99 @@
+#!/usr/bin/env tsx
 /**
- * Bulk Upload Decoration PNGs to R2
+ * Upload a folder of sprites to the catalog, the same way admin's "New from
+ * PNG" does: the filename gives the item, type and frame count
+ * (design/pixel-art/README.md), the checks run, the PNG is stored as the
+ * item's next version ({itemId}.v{n}.png) and the item is pointed at it with
+ * its width, height and frames. New items start ADMIN_ONLY.
  *
- * Uploads all PNG files from exports/decorations/ to Cloudflare R2 storage.
+ * Dry run by default: checks every file and says what it would do.
  *
- * Usage:
- *   npx tsx scripts/upload-decorations-to-r2.ts           # Upload all
- *   npx tsx scripts/upload-decorations-to-r2.ts --dry-run # Preview only
- *   npx tsx scripts/upload-decorations-to-r2.ts --sync    # Also update DB pngUrl fields
- *   npx tsx scripts/upload-decorations-to-r2.ts --houses  # Upload house templates only
+ *   npx tsx scripts/upload-decorations-to-r2.ts                        # check design/pixel-art/export/
+ *   npx tsx scripts/upload-decorations-to-r2.ts --dir path/to/pngs     # another folder
+ *   npx tsx scripts/upload-decorations-to-r2.ts --apply                # upload and update the catalog
+ *   npx tsx scripts/upload-decorations-to-r2.ts --apply --as annabelle # new ADMIN_ONLY items show in your editor
+ *   npx tsx scripts/upload-decorations-to-r2.ts --apply --allow-off-palette
+ *
+ * With R2_LOCAL_DIR set (development), files go to public/<dir> instead of the bucket.
  */
+import './load-env'
+import { existsSync, readdirSync, readFileSync } from 'fs'
+import path from 'path'
+import { db } from '@/lib/config/database/connection'
+import { publishSprite, reviewSprite, SpriteError } from '@/lib/pixel-homes/decoration-art'
 
-import { S3Client, PutObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
-import { PrismaClient } from "@prisma/client";
-import * as fs from "fs";
-import * as path from "path";
-
-// Load environment variables
-import * as dotenv from "dotenv";
-dotenv.config();
-
-const EXPORTS_DIR = path.join(process.cwd(), "exports", "decorations");
-const R2_PATH_PREFIX = "pixel-homes/decorations";
-
-interface UploadResult {
-  file: string;
-  decorationId: string;
-  url: string;
-  status: "uploaded" | "skipped" | "failed";
-  error?: string;
-}
-
-function getS3Client(): S3Client {
-  const requiredEnvVars = ['R2_PUBLIC_URL', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY'];
-  for (const envVar of requiredEnvVars) {
-    if (!process.env[envVar]) {
-      throw new Error(`Missing required environment variable: ${envVar}`);
+function parseArgs(argv: string[]) {
+  const args = { apply: false, allowOffPalette: false, dir: path.join(process.cwd(), 'design/pixel-art/export'), as: '' }
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i]
+    if (a === '--apply') args.apply = true
+    else if (a === '--allow-off-palette') args.allowOffPalette = true
+    else if (a === '--dir') args.dir = path.resolve(argv[++i])
+    else if (a === '--as') args.as = argv[++i].replace(/^@/, '').toLowerCase()
+    else if (a === '--help' || a === '-h') {
+      console.log('Usage: npx tsx scripts/upload-decorations-to-r2.ts [--dir <folder>] [--apply] [--as <handle>] [--allow-off-palette]')
+      process.exit(0)
+    } else {
+      console.error(`Unknown argument: ${a}`)
+      process.exit(1)
     }
   }
-
-  return new S3Client({
-    region: "auto",
-    endpoint: process.env.R2_PUBLIC_URL!,
-    credentials: {
-      accessKeyId: process.env.R2_ACCESS_KEY_ID!,
-      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
-    },
-    forcePathStyle: false,
-  });
+  return args
 }
 
-function getCdnUrl(): string {
-  return (process.env.R2_CDN_URL || process.env.R2_PUBLIC_URL || "").replace(/\/$/, "");
+async function adminIdFor(handle: string): Promise<string | null> {
+  if (!handle) return null
+  const row = await db.handle.findFirst({ where: { handle }, select: { user: { select: { id: true, role: true } } } })
+  if (!row || row.user.role !== 'admin') throw new Error(`@${handle} isn't an admin.`)
+  return row.user.id
 }
 
-function getBucketName(): string {
-  return process.env.R2_BUCKET_NAME || "threadstead-media";
-}
-
-async function checkFileExists(client: S3Client, key: string): Promise<boolean> {
-  try {
-    await client.send(new HeadObjectCommand({
-      Bucket: getBucketName(),
-      Key: key,
-    }));
-    return true;
-  } catch {
-    return false;
+async function main() {
+  const args = parseArgs(process.argv.slice(2))
+  if (!existsSync(args.dir)) {
+    console.log(`No folder at ${args.dir}. Put sprites there or pass --dir.`)
+    return
   }
-}
+  const files = readdirSync(args.dir).filter((f) => f.toLowerCase().endsWith('.png')).sort()
+  console.log(`${files.length} PNGs in ${args.dir}${args.apply ? '' : ' (dry run)'}\n`)
+  const adminId = await adminIdFor(args.as)
 
-async function uploadFile(
-  client: S3Client,
-  filePath: string,
-  r2Key: string,
-  skipExisting: boolean = true
-): Promise<{ uploaded: boolean; url: string }> {
-  const cdnUrl = getCdnUrl();
-  const url = `${cdnUrl}/${r2Key}`;
-
-  if (skipExisting) {
-    const exists = await checkFileExists(client, r2Key);
-    if (exists) {
-      return { uploaded: false, url };
-    }
-  }
-
-  const fileBuffer = fs.readFileSync(filePath);
-
-  await client.send(new PutObjectCommand({
-    Bucket: getBucketName(),
-    Key: r2Key,
-    Body: fileBuffer,
-    ContentType: "image/png",
-    CacheControl: "public, max-age=31536000", // 1 year cache
-  }));
-
-  return { uploaded: true, url };
-}
-
-function getDecorationFiles(): { decorations: string[]; houses: string[] } {
-  const decorations: string[] = [];
-  const houses: string[] = [];
-
-  // Get decoration PNGs
-  if (fs.existsSync(EXPORTS_DIR)) {
-    const files = fs.readdirSync(EXPORTS_DIR);
-    for (const file of files) {
-      if (file.endsWith(".png")) {
-        decorations.push(path.join(EXPORTS_DIR, file));
-      }
-    }
-  }
-
-  // Get house PNGs
-  const housesDir = path.join(EXPORTS_DIR, "houses");
-  if (fs.existsSync(housesDir)) {
-    const files = fs.readdirSync(housesDir);
-    for (const file of files) {
-      if (file.endsWith(".png")) {
-        houses.push(path.join(housesDir, file));
-      }
-    }
-  }
-
-  return { decorations, houses };
-}
-
-function extractDecorationId(filePath: string): string {
-  const filename = path.basename(filePath, ".png");
-  return filename;
-}
-
-async function syncDatabaseUrls(results: UploadResult[], prisma: PrismaClient): Promise<void> {
-  console.log("\nSyncing database URLs...");
-
-  for (const result of results) {
-    if (result.status === "failed") continue;
-
-    // Skip house templates - they're handled differently
-    if (result.file.includes("/houses/")) continue;
-
+  let ok = 0
+  let failed = 0
+  for (const file of files) {
+    const input = readFileSync(path.join(args.dir, file))
     try {
-      // Update decoration if it exists in database
-      const updated = await prisma.decorationItem.updateMany({
-        where: { itemId: result.decorationId },
-        data: { pngUrl: result.url },
-      });
-
-      if (updated.count > 0) {
-        console.log(`  ✓ Updated ${result.decorationId} in database`);
+      const review = await reviewSprite(file, input)
+      const { name, result } = review
+      const notes = result.checks.filter((c) => c.status !== 'pass').map((c) => `${c.status}: ${c.message}`)
+      const existing = await db.decorationItem.findUnique({ where: { itemId: name.itemId }, select: { id: true } })
+      const what = `${name.itemId} (${name.type}, ${result.frameWidth}×${result.height}${result.frames > 1 ? `, ${result.frames} frames` : ''}) ${existing ? 'new version' : 'new item'}`
+      if (result.blocked || (result.needsOverride && !args.allowOffPalette)) {
+        failed++
+        console.log(`✗ ${file}: ${what}\n    ${notes.join('\n    ')}`)
+        continue
       }
-    } catch (error) {
-      console.log(`  ✗ Failed to update ${result.decorationId}: ${error}`);
-    }
-  }
-}
-
-async function main(): Promise<void> {
-  const args = process.argv.slice(2);
-  const dryRun = args.includes("--dry-run");
-  const syncDb = args.includes("--sync");
-  const housesOnly = args.includes("--houses");
-  const forceOverwrite = args.includes("--force");
-
-  console.log("=== Decoration PNG Upload to R2 ===\n");
-
-  if (dryRun) {
-    console.log("DRY RUN MODE - No files will be uploaded\n");
-  }
-
-  const { decorations, houses } = getDecorationFiles();
-
-  let filesToUpload: string[] = [];
-  if (housesOnly) {
-    filesToUpload = houses;
-    console.log(`Found ${houses.length} house template PNGs`);
-  } else {
-    filesToUpload = [...decorations, ...houses];
-    console.log(`Found ${decorations.length} decoration PNGs`);
-    console.log(`Found ${houses.length} house template PNGs`);
-  }
-
-  if (filesToUpload.length === 0) {
-    console.log("\nNo files found to upload.");
-    console.log(`Expected directory: ${EXPORTS_DIR}`);
-    return;
-  }
-
-  const results: UploadResult[] = [];
-  let client: S3Client | null = null;
-
-  if (!dryRun) {
-    client = getS3Client();
-    console.log(`\nUploading to bucket: ${getBucketName()}`);
-    console.log(`CDN URL: ${getCdnUrl()}\n`);
-  }
-
-  for (const filePath of filesToUpload) {
-    const decorationId = extractDecorationId(filePath);
-    const isHouse = filePath.includes("/houses/");
-    const r2Key = isHouse
-      ? `${R2_PATH_PREFIX}/houses/${decorationId}.png`
-      : `${R2_PATH_PREFIX}/${decorationId}.png`;
-
-    if (dryRun) {
-      console.log(`Would upload: ${decorationId}.png -> ${r2Key}`);
-      results.push({
-        file: filePath,
-        decorationId,
-        url: `${getCdnUrl()}/${r2Key}`,
-        status: "skipped",
-      });
-      continue;
-    }
-
-    try {
-      const { uploaded, url } = await uploadFile(client!, filePath, r2Key, !forceOverwrite);
-
-      if (uploaded) {
-        console.log(`✓ Uploaded: ${decorationId}.png`);
-        results.push({ file: filePath, decorationId, url, status: "uploaded" });
+      if (args.apply) {
+        const { version } = await publishSprite({ filename: file, input, allowOffPalette: args.allowOffPalette, adminId })
+        console.log(`✓ ${file}: ${what}, saved as v${version}`)
       } else {
-        console.log(`- Skipped (exists): ${decorationId}.png`);
-        results.push({ file: filePath, decorationId, url, status: "skipped" });
+        console.log(`· ${file}: would save ${what}`)
       }
+      for (const note of notes) console.log(`    ${note}`)
+      ok++
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      console.log(`✗ Failed: ${decorationId}.png - ${errorMsg}`);
-      results.push({
-        file: filePath,
-        decorationId,
-        url: "",
-        status: "failed",
-        error: errorMsg,
-      });
+      if (!(error instanceof SpriteError)) throw error
+      failed++
+      console.log(`✗ ${file}: ${error.message}`)
     }
   }
-
-  // Summary
-  const uploaded = results.filter(r => r.status === "uploaded").length;
-  const skipped = results.filter(r => r.status === "skipped").length;
-  const failed = results.filter(r => r.status === "failed").length;
-
-  console.log("\n=== Summary ===");
-  console.log(`Uploaded: ${uploaded}`);
-  console.log(`Skipped:  ${skipped}`);
-  console.log(`Failed:   ${failed}`);
-
-  // Sync to database if requested
-  if (syncDb && !dryRun && uploaded > 0) {
-    const prisma = new PrismaClient();
-    try {
-      await syncDatabaseUrls(results, prisma);
-    } finally {
-      await prisma.$disconnect();
-    }
-  }
-
-  if (failed > 0) {
-    process.exit(1);
-  }
+  console.log(`\n${ok} ${args.apply ? 'saved' : 'ready'}, ${failed} not`)
+  if (failed > 0) process.exitCode = 1
 }
 
-main().catch((error) => {
-  console.error("Fatal error:", error);
-  process.exit(1);
-});
+main()
+  .catch((error) => {
+    console.error(error)
+    process.exitCode = 1
+  })
+  .finally(() => db.$disconnect())

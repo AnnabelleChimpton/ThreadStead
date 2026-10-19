@@ -14,7 +14,7 @@
  *
  * Depth is worked out at render time; nothing stored is a magic number.
  */
-import { getDecorationDimensions } from './decoration-dimensions'
+import { itemDimensions, type DecorationArtSize } from './decoration-dimensions'
 
 /** Where the house sits in the 512 × 352 scene. */
 export const HOUSE_BOX = { x: 156, y: 32, width: 200, height: 180 }
@@ -57,7 +57,7 @@ export function clampLayerBias(bias: unknown): number {
   return Math.min(MAX_LAYER_BIAS, Math.max(MIN_LAYER_BIAS, n))
 }
 
-export interface DepthItem {
+export interface DepthItem extends DecorationArtSize {
   type: string
   decorationId?: string
   id: string
@@ -68,8 +68,7 @@ export interface DepthItem {
 
 /** A decoration's z-index: level, then flat-or-standing, then feet, then left to right. */
 export function decorationDepth(item: DepthItem): number {
-  const size = (item.size || 'medium') as 'small' | 'medium' | 'large'
-  const { height } = getDecorationDimensions(item.decorationId || item.id, item.type, size)
+  const { height } = itemDimensions(item)
   const x = Math.round(item.position?.x ?? 0)
   let feet = Math.round((item.position?.y ?? 0) + height)
   // Hung on the wall: sorts as if planted at the house's line, just in front of it
@@ -95,8 +94,7 @@ export function houseDepth(): number {
 
 /** Whether a decoration's box overlaps the drawn house. */
 export function overlapsHouse(item: DepthItem): boolean {
-  const size = (item.size || 'medium') as 'small' | 'medium' | 'large'
-  const { width, height } = getDecorationDimensions(item.decorationId || item.id, item.type, size)
+  const { width, height } = itemDimensions(item)
   const x = item.position?.x ?? 0
   const y = item.position?.y ?? 0
   return x < HOUSE_DRAWN.x + HOUSE_DRAWN.width && x + width > HOUSE_DRAWN.x && y < HOUSE_DRAWN.y + HOUSE_DRAWN.height && y + height > HOUSE_DRAWN.y

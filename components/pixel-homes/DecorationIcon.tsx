@@ -12,6 +12,9 @@ interface DecorationIconProps {
   palette?: ColorPalette
   customAssetUrl?: string  // URL to user's uploaded custom pixel art
   pngUrl?: string  // PNG URL from database (preferred over SVG)
+  pngWidth?: number | null
+  pngHeight?: number | null
+  pngFrames?: number | null
 }
 
 export default function DecorationIcon({
@@ -23,7 +26,10 @@ export default function DecorationIcon({
   iconSvg,
   palette = 'thread_sage',
   customAssetUrl,
-  pngUrl
+  pngUrl,
+  pngWidth,
+  pngHeight,
+  pngFrames
 }: DecorationIconProps) {
   // If custom icon SVG is provided from database, use it
   // BUT ignore it for types that we have fully refactored to pixel art
@@ -199,6 +205,9 @@ export default function DecorationIcon({
           renderSvg={iconSvg}
           customAssetUrl={customAssetUrl}
           pngUrl={pngUrl}
+          pngWidth={pngWidth}
+          pngHeight={pngHeight}
+          pngFrames={pngFrames}
         />
       )
   }

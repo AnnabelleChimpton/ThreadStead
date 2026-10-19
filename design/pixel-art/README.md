@@ -96,6 +96,18 @@ The filename is the item, so uploading is drag and drop:
 
 The first word is the type: `plant`, `path`, `feature`, `furniture`, `lighting`, `water`, `structure` or `seasonal`. Lowercase, underscores between words, a hyphen only inside a house option name.
 
+## Uploading
+
+Admin → Decorations → **New from PNG**. I drop the files in, and for each one it shows the checks (size, frames, hard edges, ground line, palette), boxes any colour that isn't in the palette, and stands the sprite in a real yard at 1× and 2× next to the house, with a height ruler. Empty rows under the art get trimmed for me.
+
+A new item starts out visible only to me, so I can put it in my own yard and live with it for a bit. Then from the same card I release it to everyone, for a date range, or with a claim code, and give it a collection name if it's part of a seasonal set.
+
+Every upload is a new version (`roses_red.v3.png`), and the old files stay, so if a new drawing looks wrong in people's yards I just pick an older version from the list.
+
+For a batch, I put the PNGs in `design/pixel-art/export/` and run `npx tsx scripts/upload-decorations-to-r2.ts`. It checks everything and says what it would do; `--apply` actually uploads, and `--as <my handle>` lets new items show up in my editor straight away.
+
+**Contact sheet** (next to New from PNG) shows every sprite at 1× on one strip of grass, plus all the houses, so I can spot one that's drifted off.
+
 ## Houses
 
 A house is a stack of layers on a 200×180 canvas: `base` (walls, foundation, ground line), `roof` (with the chimney spot), then option sprites that drop into sockets: door, window-left, window-right, chimney, sign, number, lights and mat. The boxes are in `_guide-house.png` and `_template-house.sockets.json`.

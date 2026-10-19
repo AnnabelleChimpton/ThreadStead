@@ -29,6 +29,9 @@ interface DecorationItem {
   name: string;
   data?: any; // Custom data for decorations (e.g. sign text)
   pngUrl?: string; // URL for PNG asset
+  pngWidth?: number | null;
+  pngHeight?: number | null;
+  pngFrames?: number | null;
 }
 
 interface HomeDecoration {
@@ -312,7 +315,10 @@ const transformDecorations = (decorations: DecorationItem[]): HomeDecoration[] =
       y: decoration.position.y,
       layer: decoration.position.layer || 10,
       renderSvg: decoration.renderSvg,
-      pngUrl: decoration.pngUrl || undefined
+      pngUrl: decoration.pngUrl || undefined,
+      pngWidth: decoration.pngWidth,
+      pngHeight: decoration.pngHeight,
+      pngFrames: decoration.pngFrames
     };
 
     return result;

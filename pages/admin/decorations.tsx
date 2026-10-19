@@ -4,6 +4,7 @@ import { GetServerSideProps } from 'next';
 import { getSessionUser } from '@/lib/auth/server';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import { PixelIcon } from '@/components/ui/PixelIcon';
+import ButtonLink from '@/components/ui/ButtonLink';
 import Modal from '@/components/ui/feedback/Modal';
 import Layout from '@/components/ui/layout/Layout';
 import AdminHeader from '@/components/ui/navigation/AdminHeader';
@@ -365,6 +366,8 @@ export default function AdminDecorationsPage({ isAdmin, userId }: AdminDecoratio
         {/* Controls Bar */}
         <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
           <div className="flex flex-wrap gap-4">
+            <ButtonLink href="/admin/decorations/from-png">New from PNG</ButtonLink>
+            <ButtonLink href="/admin/decorations/sheet" variant="secondary">Contact sheet</ButtonLink>
             <button
               onClick={() => setShowCreateForm(true)}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"

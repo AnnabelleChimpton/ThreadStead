@@ -948,6 +948,9 @@ export default function DecorationPalette({
                     }
                     iconSvg={item.iconSvg}
                     pngUrl={item.pngUrl}
+                    pngWidth={item.pngWidth}
+                    pngHeight={item.pngHeight}
+                    pngFrames={item.pngFrames}
                     palette={palette}
                   />
                 </div>

@@ -47,6 +47,11 @@ interface EnhancedHouseCanvasProps {
    * definite height. Used by the editor, which also allows scales under 1x.
    */
   fitBox?: boolean
+  /**
+   * With pixelPerfect: always this whole-number scale, never measured (admin
+   * previews of a sprite at exactly 1x and 2x). The frame crops what doesn't fit.
+   */
+  fixedScale?: number
   /** Extra attributes for the scene element (keyboard focus, labels). */
   sceneProps?: React.HTMLAttributes<HTMLDivElement>
   /** Makes the drawn front door a link (the way inside). */
@@ -276,7 +281,7 @@ interface DecorationSpriteProps {
 /** One placed decoration, redrawn only when it or its selection changes. */
 const DecorationSprite = memo(function DecorationSprite({ item, selected, editable, deleting, onMailboxClick }: DecorationSpriteProps) {
   const decorationKey = item.decorationId || item.id
-  const { width, height } = getDecorationDimensions(decorationKey, item.type, item.size || 'medium')
+  const { width, height } = getDecorationDimensions(decorationKey, item.type, item.size || 'medium', item)
 
   // Bottom-aligned in its box, so sprites stand on the same line
   const wrapperStyle: React.CSSProperties = {
@@ -302,6 +307,9 @@ const DecorationSprite = memo(function DecorationSprite({ item, selected, editab
       text={item.text || item.data?.text}
       customAssetUrl={item.customAssetUrl}
       pngUrl={item.pngUrl}
+      pngWidth={item.pngWidth}
+      pngHeight={item.pngHeight}
+      pngFrames={item.pngFrames}
     />
   )
 
@@ -384,6 +392,7 @@ export default function EnhancedHouseCanvas({
   overlay,
   onScaleChange,
   pixelPerfect = false,
+  fixedScale,
   fitBox = false,
   sceneProps,
   door,
@@ -392,7 +401,7 @@ export default function EnhancedHouseCanvas({
   // Refs and state for responsive scaling
   const containerRef = useRef<HTMLDivElement>(null)
   const frameRef = useRef<HTMLDivElement>(null)
-  const [scale, setScale] = useState(1)
+  const [scale, setScale] = useState(fixedScale ?? 1)
 
   // Scopes this canvas's sky, ground and terrain pattern ids (several canvases can share a page)
   const idPrefix = useSvgIdPrefix()
@@ -400,6 +409,10 @@ export default function EnhancedHouseCanvas({
   // pixelPerfect: pick a whole-number scale from the frame's width
   useEffect(() => {
     if (!pixelPerfect || !frameRef.current) return
+    if (fixedScale) {
+      setScale(fixedScale)
+      return
+    }
     const frame = frameRef.current
     const update = (width: number, height: number) => {
       const k = fitBox
@@ -413,7 +426,7 @@ export default function EnhancedHouseCanvas({
     })
     observer.observe(frame)
     return () => observer.disconnect()
-  }, [pixelPerfect, fitBox, onScaleChange])
+  }, [pixelPerfect, fitBox, fixedScale, onScaleChange])
 
   // ResizeObserver to calculate scale based on container width
   useEffect(() => {

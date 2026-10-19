@@ -1,6 +1,7 @@
 import { apiHandler } from "@/lib/api/handler";
 import { db } from "@/lib/config/database/connection";
 import { availableDecorationsWhere } from "@/lib/pixel-homes/decoration-availability";
+import { catalogArtFields } from "@/lib/pixel-homes/catalog-art";
 
 export default apiHandler(
   { methods: ["GET"], auth: "user" },
@@ -23,6 +24,9 @@ export default apiHandler(
           renderSvg: true,
           imagePath: true,
           pngUrl: true,
+          width: true,
+          height: true,
+          frames: true,
           gridWidth: true,
           gridHeight: true,
           description: true,
@@ -59,6 +63,7 @@ export default apiHandler(
           renderSvg: decoration.renderSvg,
           imagePath: decoration.imagePath,
           pngUrl: decoration.pngUrl,
+          ...catalogArtFields(decoration),
           isUserClaimed: userClaims.length > 0,
           claimedAt: userClaims[0]?.claimedAt || null,
           claimMethod: userClaims[0]?.claimMethod || null,

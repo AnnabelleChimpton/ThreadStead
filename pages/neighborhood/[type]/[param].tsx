@@ -1,5 +1,6 @@
 import { GetServerSideProps } from 'next'
 import { customArtUrl, customSlotUrls } from '@/lib/pixel-homes/custom-art'
+import { CATALOG_ART_SELECT, catalogArtFields, catalogArtMap } from '@/lib/pixel-homes/catalog-art'
 import Head from 'next/head'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
@@ -88,6 +89,9 @@ interface NeighborhoodMember {
       layer: number
       renderSvg?: string | null
       pngUrl?: string | null
+      pngWidth?: number | null
+      pngHeight?: number | null
+      pngFrames?: number | null
       data?: any // Custom data for decorations (e.g. sign text)
       layerBias?: number
       customAssetUrl?: string | null
@@ -782,15 +786,9 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
           where: {
             itemId: { in: Array.from(allDecorationIds) }
           },
-          select: {
-            itemId: true,
-            renderSvg: true,
-            pngUrl: true
-          }
+          select: CATALOG_ART_SELECT
         })
-        const decorationItemMap = new Map<string, { renderSvg: string | null; pngUrl: string | null }>(
-          decorationItems.map(item => [item.itemId, { renderSvg: item.renderSvg, pngUrl: item.pngUrl }])
-        )
+        const decorationItemMap = catalogArtMap(decorationItems)
 
         const homeConfigMap = new Map(homeConfigs.map(c => [c.userId, c]))
 
@@ -859,10 +857,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
                   ...(d.decorationType === 'custom' && {
                     customAssetUrl: customArtUrl(d.decorationId, customSlotUrls(config.customAssets))
                   }),
-                  ...(decorationItemMap.has(d.decorationId) && {
-                    renderSvg: decorationItemMap.get(d.decorationId)?.renderSvg,
-                    pngUrl: decorationItemMap.get(d.decorationId)?.pngUrl
-                  }),
+                  ...catalogArtFields(decorationItemMap.get(d.decorationId)),
                   ...(d.data && { data: d.data })
                 })) : [],
                 terrain: (config.terrain as Record<string, string>) || {}
@@ -922,15 +917,9 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
           where: {
             itemId: { in: Array.from(allDecorationIds) }
           },
-          select: {
-            itemId: true,
-            renderSvg: true,
-            pngUrl: true
-          }
+          select: CATALOG_ART_SELECT
         })
-        const decorationItemMap = new Map<string, { renderSvg: string | null; pngUrl: string | null }>(
-          decorationItems.map(item => [item.itemId, { renderSvg: item.renderSvg, pngUrl: item.pngUrl }])
-        )
+        const decorationItemMap = catalogArtMap(decorationItems)
 
         members = homeConfigs
           .filter(config => config.user.handles.length > 0)
@@ -990,10 +979,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
                   ...(d.decorationType === 'custom' && {
                     customAssetUrl: customArtUrl(d.decorationId, customSlotUrls(config.customAssets))
                   }),
-                  ...(decorationItemMap.has(d.decorationId) && {
-                    renderSvg: decorationItemMap.get(d.decorationId)?.renderSvg,
-                    pngUrl: decorationItemMap.get(d.decorationId)?.pngUrl
-                  }),
+                  ...catalogArtFields(decorationItemMap.get(d.decorationId)),
                   ...(d.data && { data: d.data })
                 })) : [],
                 terrain: (config.terrain as Record<string, string>) || {}
@@ -1051,15 +1037,9 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
           where: {
             itemId: { in: Array.from(allDecorationIds) }
           },
-          select: {
-            itemId: true,
-            renderSvg: true,
-            pngUrl: true
-          }
+          select: CATALOG_ART_SELECT
         })
-        const decorationItemMap = new Map<string, { renderSvg: string | null; pngUrl: string | null }>(
-          decorationItems.map(item => [item.itemId, { renderSvg: item.renderSvg, pngUrl: item.pngUrl }])
-        )
+        const decorationItemMap = catalogArtMap(decorationItems)
 
         const processedMembers = homeConfigs
           .filter(config => config.user.handles.length > 0)
@@ -1119,10 +1099,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
                   ...(d.decorationType === 'custom' && {
                     customAssetUrl: customArtUrl(d.decorationId, customSlotUrls(config.customAssets))
                   }),
-                  ...(decorationItemMap.has(d.decorationId) && {
-                    renderSvg: decorationItemMap.get(d.decorationId)?.renderSvg,
-                    pngUrl: decorationItemMap.get(d.decorationId)?.pngUrl
-                  }),
+                  ...catalogArtFields(decorationItemMap.get(d.decorationId)),
                   ...(d.data && { data: d.data })
                 })) : [],
                 terrain: (config.terrain as Record<string, string>) || {}

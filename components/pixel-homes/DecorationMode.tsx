@@ -808,7 +808,7 @@ export default function DecorationMode({
     const py = cell.gy * gridConfig.cellSize + gridConfig.cellSize / 2
     let best: DecorationItem | undefined
     for (const d of placedDecorations) {
-      const { width, height } = getDecorationDimensions(catalogId(d), d.type, d.size || 'medium')
+      const { width, height } = getDecorationDimensions(catalogId(d), d.type, d.size || 'medium', d)
       const x = d.position?.x ?? 0
       const y = d.position?.y ?? 0
       if (px >= x && px < x + width && py >= y && py < y + height) {

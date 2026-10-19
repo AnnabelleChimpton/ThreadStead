@@ -57,3 +57,5 @@ THREADRING_REFACTOR_TODO.md
 
 # Server signing keypair (holds a secret key)
 .threadstead-server-keypair.json
+
+/public/_local-r2/

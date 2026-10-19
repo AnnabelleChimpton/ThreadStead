@@ -48,7 +48,7 @@ import { SeasonalSVGs } from '@/components/pixel-homes/assets/SeasonalSVGs'
 import { HouseCustomSVGs } from '@/components/pixel-homes/assets/HouseCustomSVGs'
 import { TERRAIN_TILES, isFlipped } from '@/lib/pixel-homes/decoration-data'
 import { DEFAULT_DECORATION_GRID } from '@/lib/pixel-homes/decoration-grid-utils'
-import { getDecorationDimensions } from '@/lib/pixel-homes/decoration-dimensions'
+import { getDecorationDimensions, sizeScale } from '@/lib/pixel-homes/decoration-dimensions'
 import { decorationText, type HomeScene, type SceneDecoration } from '@/lib/pixel-homes/home-scene'
 import { decorationDepth, houseDepth } from '@/lib/pixel-homes/depth'
 
@@ -78,7 +78,6 @@ const TERRAIN_PATTERNS: Record<string, string> = {
   moss: 'terrain-flowerbed',
   pebbles: 'terrain-gravel',
 }
-const SIZE_SCALES: Record<string, number> = { small: 0.7, medium: 1.0, large: 1.4 }
 const NIGHT_STARS: Array<[number, number, number, number]> = [
   [32, 16, 2, 0.8], [120, 32, 2, 0.6], [200, 12, 2, 0.9], [350, 24, 2, 0.7],
   [420, 48, 2, 0.8], [80, 60, 1, 0.5], [280, 40, 1, 0.6], [380, 8, 1, 0.7],
@@ -143,9 +142,20 @@ function round2(n: number): number {
   return Math.round(n * 100) / 100
 }
 
-/** A PNG, resized with nearest-neighbour to exactly width×height, as a data: URI. */
-async function pixelPng(bytes: Buffer, width: number, height: number): Promise<string> {
-  const png = await sharp(bytes)
+/**
+ * A PNG, resized with nearest-neighbour to exactly width×height, as a data:
+ * URI. A strip of `frames` frames shows its first frame, as the canvas does.
+ */
+async function pixelPng(bytes: Buffer, width: number, height: number, frames = 1): Promise<string> {
+  let source = bytes
+  if (frames > 1) {
+    const meta = await sharp(bytes).metadata()
+    const frameWidth = Math.floor((meta.width ?? 0) / frames)
+    if (frameWidth > 0 && meta.height) {
+      source = await sharp(bytes).extract({ left: 0, top: 0, width: frameWidth, height: meta.height }).png().toBuffer()
+    }
+  }
+  const png = await sharp(source)
     .resize(width, height, { kernel: 'nearest', fit: 'fill' })
     .png()
     .toBuffer()
@@ -173,7 +183,7 @@ function svgMarkup(markup: string, left: number, top: number, boxWidth: number, 
 async function decorationMarkup(item: SceneDecoration, loadImage: ImageLoader): Promise<string> {
   const id = baseDecorationId(item)
   const size = sizeOf(item)
-  const box = getDecorationDimensions(item.decorationId || item.id, item.type, size)
+  const box = getDecorationDimensions(item.decorationId || item.id, item.type, size, item)
   const left = item.position?.x || 0
   const top = item.position?.y || 0
 
@@ -183,7 +193,7 @@ async function decorationMarkup(item: SceneDecoration, loadImage: ImageLoader): 
     const bytes = await loadImage(item.customAssetUrl)
     if (!bytes) return ''
     const meta = await sharp(bytes).metadata()
-    const square = 64 * (SIZE_SCALES[size] ?? 1)
+    const square = 64 * (sizeScale(size))
     const natural = { width: meta.width ?? square, height: meta.height ?? square }
     const fit = Math.min(1, square / natural.width, square / natural.height)
     const width = Math.max(1, Math.round(natural.width * fit))
@@ -209,18 +219,19 @@ async function decorationMarkup(item: SceneDecoration, loadImage: ImageLoader): 
     />
   ).replace(/^(?:<link\b[^>]*>)+/, '')
 
-  // Her hand-drawn PNG: stretched to the box, as the canvas's <img> is.
+  // Her hand-drawn PNG: drawn into the box, as the canvas's <img> is (at its
+  // own size when it has a stored one).
   if (markup.startsWith('<img')) {
     const src = attr(markup, 'src')
     const bytes = src ? await loadImage(src) : null
     if (bytes) {
-      return imageMarkup(await pixelPng(bytes, box.width, box.height), left, top, box.width, box.height)
+      return imageMarkup(await pixelPng(bytes, box.width, box.height, item.pngFrames ?? 1), left, top, box.width, box.height)
     }
     // The canvas falls back to the code-drawn version when a PNG won't load.
     const Fallback = FALLBACK_SVGS[item.type]
     if (!Fallback) return ''
     const fallback = renderToStaticMarkup(
-      <Fallback id={id} variant={item.variant || 'default'} scale={SIZE_SCALES[size] ?? 1} text={decorationText(item)} />
+      <Fallback id={id} variant={item.variant || 'default'} scale={sizeScale(size)} text={decorationText(item)} />
     )
     return svgMarkup(fallback, left, top, box.width, box.height)
   }
@@ -296,7 +307,7 @@ function Terrain({ terrain }: { terrain: Record<string, string> }) {
 async function mirrored(item: SceneDecoration, markup: Promise<string>): Promise<string> {
   const art = await markup
   if (!art || !isFlipped(item)) return art
-  const box = getDecorationDimensions(item.decorationId || item.id, item.type, sizeOf(item))
+  const box = getDecorationDimensions(item.decorationId || item.id, item.type, sizeOf(item), item)
   const centreTwice = 2 * (item.position?.x || 0) + box.width
   return `<g transform="translate(${round2(centreTwice)} 0) scale(-1 1)">${art}</g>`
 }
@@ -350,7 +361,7 @@ export function ogCropTop(scene: HomeScene): number {
   let contentTop = HOUSE.y
   let contentBottom = HOUSE.y + HOUSE.height
   for (const item of scene.decorations) {
-    const box = getDecorationDimensions(item.decorationId || item.id, item.type, sizeOf(item))
+    const box = getDecorationDimensions(item.decorationId || item.id, item.type, sizeOf(item), item)
     const y = item.position?.y || 0
     contentTop = Math.min(contentTop, Math.max(0, y))
     contentBottom = Math.max(contentBottom, Math.min(CANVAS_HEIGHT, y + box.height))

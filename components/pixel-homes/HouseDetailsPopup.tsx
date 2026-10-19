@@ -20,6 +20,9 @@ interface HomeDecoration {
   layer: number
   renderSvg?: string | null
   pngUrl?: string | null
+  pngWidth?: number | null
+  pngHeight?: number | null
+  pngFrames?: number | null
   data?: any // Custom data for decorations (e.g. sign text)
 }
 
@@ -291,6 +294,9 @@ export default function HouseDetailsPopup({ isOpen, onClose, member }: HouseDeta
         size: dec.size,
         renderSvg: dec.renderSvg ?? undefined,
         pngUrl: dec.pngUrl ?? undefined,
+        pngWidth: dec.pngWidth,
+        pngHeight: dec.pngHeight,
+        pngFrames: dec.pngFrames,
         data: dec.data // Include custom data for sign text
       })),
     [decorations]
