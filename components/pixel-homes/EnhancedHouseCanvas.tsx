@@ -334,12 +334,14 @@ const DecorationSprite = memo(function DecorationSprite({ item, selected, editab
     )
   }
 
-  // Appearing (the page loading, or just planted) is a 1-pixel hop
+  // Appearing (the page loading, or just planted) is a 1-pixel hop.
+  // In delete mode, hovering marks the art like selection does, in red,
+  // and never scales or tints it.
   return (
     <div className="absolute ts-pixel-hop" style={wrapperStyle}>
       <div
         data-decoration-id={editable ? item.id : undefined}
-        className={`pointer-events-auto ${editable ? 'cursor-pointer' : ''} ${deleting ? 'transition-all duration-150 hover:outline hover:outline-3 hover:outline-red-500 hover:outline-offset-2 rounded hover:scale-110 hover:brightness-90' : ''}`}
+        className={`pointer-events-auto ${editable ? 'cursor-pointer' : ''} ${deleting ? 'hover:outline-1 hover:outline-dotted hover:outline-offset-1 hover:outline-[#c4473a]' : ''}`}
         style={{
           ...(selected && { outline: '1px dotted #4a403d', outlineOffset: 1 }),
           ...(isFlipped(item) && { transform: 'scaleX(-1)' })
