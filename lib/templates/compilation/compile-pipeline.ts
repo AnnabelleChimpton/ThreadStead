@@ -16,11 +16,16 @@ import { compileTemplate, type TemplateNode } from './template-parser'
 import { identifyIslandsWithTransform } from './compiler/island-detector'
 import { generateStaticHTML } from './compiler/html-optimizer'
 import type { Island } from './compiler/types'
+import type { DocumentHead } from './document-head'
 
 export interface StrippedComponentReport {
   name: string
   line?: number
   reason?: string
+  /** 'document' wrappers (expected), 'unsupported' here, or removed for 'safety' */
+  category?: 'document' | 'unsupported' | 'safety'
+  /** Further occurrences of the same tag */
+  count?: number
 }
 
 export interface CompiledTemplateArtifacts {
@@ -34,6 +39,8 @@ export interface CompiledTemplateArtifacts {
    * component vanished must be told, not left staring at a blank spot.
    */
   strippedComponents: StrippedComponentReport[]
+  /** A pasted whole document's title and Google Fonts imports (also on ast.head) */
+  head?: DocumentHead
 }
 
 export class TemplateCompilationError extends Error {
@@ -71,5 +78,6 @@ export function compileTemplateToArtifacts(template: string): CompiledTemplateAr
     warnings: parsed.validation?.warnings ?? [],
     strippedComponents:
       (parsed as { strippedComponents?: StrippedComponentReport[] }).strippedComponents ?? [],
+    head: parsed.ast.head,
   }
 }

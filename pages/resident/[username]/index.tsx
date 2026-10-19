@@ -171,7 +171,11 @@ export default function ProfilePage({
         return (
           <div className={wrapperClass}>
             {stepOutside}
-            <main className="flex-1 mx-auto max-w-5xl px-6 py-8">
+            {/* Full bleed: your own page decides its width and margins, as
+                it does with navigation shown (this used to box it at 1024px).
+                A div, not <main>: the page's own `main {}` rules are for its
+                own <main>. */}
+            <div className="flex-1">
               <ProfileModeRenderer
                 user={profileUser}
                 residentData={residentData}
@@ -183,7 +187,7 @@ export default function ProfilePage({
                   </div>
                 }
                 />
-              </main>
+              </div>
               <ViewSourceBadge username={username} />
             </div>
           );

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>my website</title>
+<style>
+@font-face { font-family: 'Pixelated'; src: url('https://example.neocities.org/fonts/pixel.ttf'); }
+body {
+  background-color: #08031A;
+  background-image: url('https://sadhost.neocities.org/images/tiles/stars.gif');
+  font-family: 'Pixelated', Arial, sans-serif;
+  color: #fceaff;
+  margin: 0;
+}
+:root {
+  --header-bg-color: #FDA4BA;
+  --content-background-color: #13092D;
+  --sidebar-background-color: #13092D;
+  --text-color: #FCEAFF;
+  --sidebar-text-color: #FCEAFF;
+  --link-color: #E9A5E9;
+  --link-color-hover: #FFFFFF;
+  --font: Arial, sans-serif;
+  --heading-font: Arial, sans-serif;
+  --font-size: 14px;
+  --margin: 10px;
+  --padding: 20px;
+  --border: 2px solid #ED64F5;
+  --round-borders: 4px;
+  --sidebar-width: 200px;
+}
+* { box-sizing: border-box; }
+.layout {
+  width: 1000px;
+  display: grid;
+  grid-gap: var(--margin);
+  grid-template: "header header header" auto "leftSidebar main rightSidebar" auto "footer footer footer" auto / var(--sidebar-width) auto var(--sidebar-width);
+}
+main { grid-area: main; background: var(--content-background-color); padding: var(--padding); border: var(--border); border-radius: var(--round-borders); }
+header { grid-area: header; font-size: 1.2em; border: var(--border); border-radius: var(--round-borders); background: var(--header-bg-color); }
+.header-content { padding: var(--padding); }
+.header-title { font-family: var(--heading-font); font-size: 1.5em; font-weight: bold; }
+.header-image img { width: 100%; height: auto; }
+aside { grid-area: aside; border: var(--border); border-radius: var(--round-borders); overflow: hidden; background: var(--sidebar-background-color); padding: var(--padding); color: var(--sidebar-text-color); }
+.left-sidebar { grid-area: leftSidebar; }
+.right-sidebar { grid-area: rightSidebar; }
+.sidebar-title { font-weight: bold; font-size: 1.2em; font-family: var(--heading-font); }
+.sidebar-section:not(:last-child) { margin-bottom: 3em; }
+.sidebar-section ul, .sidebar-section ol { padding-left: 1.5em; }
+.sidebar-section > *:not(p):not(ul):not(ol):not(blockquote) { margin-top: 10px; }
+.site-button { display: flex; flex-direction: column; align-items: center; }
+.site-button textarea { font-family: monospace; font-size: 0.7em; }
+footer { grid-area: footer; border: var(--border); border-radius: var(--round-borders); overflow: hidden; font-size: 0.75em; padding: 15px; background: var(--content-background-color); display: flex; justify-content: center; }
+footer a, footer a:visited { color: var(--link-color); }
+nav { margin-bottom: 3em; }
+nav .sidebar-title { margin-bottom: 0.5em; }
+nav ul { padding: 0 0.5em; list-style: none; user-select: none; }
+nav ul li { margin-bottom: 0; }
+nav > ul li > a, nav > ul li > strong { display: inline-block; }
+nav > ul li > a { font-weight: bold; }
+nav > ul li > ul { padding-left: 0.5em; }
+nav > ul li > ul li { margin-bottom: 0.2em; }
+nav ul li a { color: var(--link-color); text-decoration: none; }
+nav ul li a:hover { color: var(--link-color-hover); }
+nav ul li a:hover::before { content: "> "; }
+strong { color: var(--accent-color); }
+a { color: var(--link-color); font-weight: bold; }
+a:hover { color: var(--link-color-hover); }
+@media only screen and (max-width: 800px) {
+  .layout { width: 100%; grid-template: "header" auto "leftSidebar" auto "main" auto "footer" auto / 1fr; }
+  .right-sidebar { display: none; }
+  aside { border-bottom: 1px solid; padding: 9px; font-size: 0.9em; }
+  nav { padding: 0; }
+  nav > ul { padding-top: 0.5em; }
+  nav > ul > li { display: inline-block; margin-right: 1em; }
+}
+</style>
+</head>
+<body>
+<div class="layout">
+  <header>
+    <div class="header-content">
+      <div class="header-title">My Website Title</div>
+      <div class="header-image"><img src="https://sadhost.neocities.org/images/layouts/headerimg.png"></div>
+    </div>
+  </header>
+  <aside class="left-sidebar">
+    <nav>
+      <div class="sidebar-title">Navigation</div>
+      <ul>
+        <li><a href="/">Home page</a></li>
+        <li><a href="/about.html">About me</a></li>
+        <li><a href="/shrines/">Shrines</a>
+          <ul>
+            <li><a href="/shrines/moss.html">moss</a></li>
+          </ul>
+        </li>
+        <li><a href="/links.html">Links</a></li>
+      </ul>
+    </nav>
+    <div class="sidebar-section">
+      <div class="sidebar-title">Section Title</div>
+      <p>You can put something here.</p>
+    </div>
+    <div class="sidebar-section">
+      <div class="site-button">
+        <a href="https://example.neocities.org"><img src="https://sadhost.neocities.org/images/layouts/button.png" alt="My site button"></a>
+        <textarea>&lt;a href="https://example.neocities.org"&gt;&lt;img src="https://example.neocities.org/button.png" alt="My site button"&gt;&lt;/a&gt;</textarea>
+      </div>
+    </div>
+  </aside>
+  <main>
+    <h1>A heading</h1>
+    <p>Lorem ipsum dolor sit amet, <strong>consectetur</strong> adipiscing elit.</p>
+    <blockquote>quote block</blockquote>
+    <h2>Another heading</h2>
+    <p>Some text with a <a href="#jump">jump link</a>.</p>
+    <h2 id="jump">Jumped here</h2>
+  </main>
+  <aside class="right-sidebar">
+    <div class="sidebar-title">Right sidebar</div>
+    <p>Updates: 2026-10-19 — added a shrine</p>
+  </aside>
+  <footer>
+    <div>Layout by <a href="https://sadgrl.online">sadgrl.online</a></div>
+  </footer>
+</div>
+</body>
+</html>

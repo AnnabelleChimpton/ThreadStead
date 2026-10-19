@@ -12,7 +12,8 @@ import { useSiteCSS } from "@/hooks/useSiteCSS";
 import { useRouter } from "next/router";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { CSSModeProvider } from "@/contexts/CSSModeContext";
-import { extractImports, mapSelectors, scopeAwayFromSiteChrome } from "@/lib/utils/css/css-transform";
+import { extractImports, scopeAwayFromSiteChrome, transformAdvancedCss } from "@/lib/utils/css/css-transform";
+import { documentCssFromCompiledTemplate } from "@/lib/templates/compilation/document-head";
 import { escapeCssForStyleTag } from "@/lib/utils/sanitization/css";
 
 // Import Layout to ensure CSS dependencies are always available
@@ -138,6 +139,8 @@ export default function MyApp({ Component, pageProps, appSiteCSS }: MyAppProps) 
     router.pathname === '/resident/[username]/index' ||
     router.pathname === '/template-preview';
   const hasCustomCSS = pageProps.customCSS && pageProps.customCSS.trim() !== '';
+  // Google Fonts <link>s and <body bgcolor…> from a pasted page, kept by the compiler
+  const advancedDocumentCss = documentCssFromCompiledTemplate(pageProps.compiledTemplate);
 
   const actualCSSMode = cssMode;
   const needsCSSResets = isProfilePage && pageProps.templateMode === 'advanced' && actualCSSMode !== 'inherit';
@@ -188,28 +191,18 @@ export default function MyApp({ Component, pageProps, appSiteCSS }: MyAppProps) 
                   }} />
                 )}
 
-                {/* Advanced template CSS - inject with boosted specificity */}
-                {isProfilePage && hasCustomCSS && pageProps.templateMode === 'advanced' && (() => {
-                  const customCSS = pageProps.customCSS || '';
-
-                  // Boost specificity to beat Tailwind by adding 'html body' prefix.
-                  // Statement-aware transform (css-transform.ts): @imports are
-                  // hoisted intact and @keyframes bodies are untouched — the
-                  // old regex boosted keyframe stops into invalid CSS, so
-                  // user animations never ran in advanced mode.
-                  const { imports, rest } = extractImports(customCSS);
-                  const boosted = mapSelectors(rest, (sel: string) =>
-                    sel.startsWith('html body') ? sel : `html body ${sel}`
-                  );
-                  const boostedCSS = imports.join('\n') + (imports.length ? '\n' : '') + boosted;
-
-                  return (
-                    <style
-                      id="advanced-template-css"
-                      dangerouslySetInnerHTML={{ __html: escapeCssForStyleTag(boostedCSS) }}
-                    />
-                  );
-                })()}
+                {/* Advanced template CSS: the same transform the editor preview uses */}
+                {isProfilePage && pageProps.templateMode === 'advanced' &&
+                  (hasCustomCSS || advancedDocumentCss.fontImports.length > 0 || advancedDocumentCss.bodyCss) && (
+                  <style
+                    id="advanced-template-css"
+                    dangerouslySetInnerHTML={{
+                      __html: escapeCssForStyleTag(
+                        transformAdvancedCss(pageProps.customCSS || '', advancedDocumentCss)
+                      ),
+                    }}
+                  />
+                )}
 
                 {isProfilePage && hasCustomCSS && pageProps.templateMode !== 'advanced' && (() => {
                   // Hoist user @imports above our preamble rule: per the CSS

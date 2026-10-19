@@ -7,7 +7,8 @@ import type { ResidentData } from '@/components/features/templates/ResidentDataP
 import { ResidentDataProvider } from '@/components/features/templates/ResidentDataProvider';
 import { componentRegistry } from '@/lib/templates/core/template-registry';
 import { getLoadedComponent } from '@/lib/templates/core/dynamic-registry';
-import { normalizeAttributeName } from '@/lib/templates/core/attribute-mappings';
+import { domAttributeToReactProp, normalizeAttributeName } from '@/lib/templates/core/attribute-mappings';
+import { looksLikeComponentName } from '@/lib/templates/compilation/source-scan';
 import { separateCSSProps, applyCSSProps } from '@/lib/templates/styling/universal-css-props';
 import { getCurrentBreakpoint } from '@/lib/templates/positioning/breakpoints';
 import type { StaticHTMLWithIslandsProps } from './types';
@@ -353,10 +354,16 @@ export function StaticHTMLWithIslands({
           }
         }
 
-        // Check if this is a registered component (but not an island)
+        // Check if this is a registered component (but not an island).
+        // Only a component spelling counts: compiled HTML carries every
+        // component as an island placeholder, so a plain <button>, <select>
+        // or SVG <filter> here is the page's own HTML (the DOM reports HTML
+        // tags in capitals, never PascalCase).
         const tagName = element.tagName.toLowerCase();
         const elementComponentName = element.tagName; // Keep original case for component lookup
-        const registration = componentRegistry.get(elementComponentName);
+        const registration = looksLikeComponentName(elementComponentName)
+          ? componentRegistry.get(elementComponentName)
+          : undefined;
 
         if (registration) {
           // This is a registered component but not an island - render as component
@@ -502,33 +509,17 @@ export function StaticHTMLWithIslands({
         // Regular HTML element - convert to React element
         const props: any = {};
 
-        // Copy attributes
+        // Copy attributes (class → className, controls → controls: true,
+        // aria-label stays aria-label: see domAttributeToReactProp)
+        const inSvg = element.namespaceURI === 'http://www.w3.org/2000/svg';
         for (let i = 0; i < element.attributes.length; i++) {
           const attr = element.attributes[i];
-          let propName = attr.name;
-
-          // Convert HTML attributes to React props
-          if (propName === 'class') {
-            propName = 'className';
-            props[propName] = attr.value; // CRITICAL: Actually set the className prop!
-          } else if (propName === 'style') {
+          if (attr.name === 'style') {
             // Convert CSS string to React style object
-            props[propName] = parseStyleString(attr.value);
-          } else if (propName.includes('-')) {
-            // PRESERVE positioning data attributes in original form for template renderer
-            if (propName === 'data-positioning-mode' ||
-                propName === 'data-pixel-position' ||
-                propName === 'data-position' ||
-                propName === 'data-grid-position') {
-              // Keep these attributes as-is for positioning logic
-              props[propName] = attr.value;
-            } else {
-              // Convert other kebab-case to camelCase
-              propName = propName.replace(/-([a-z])/g, (match, letter) => letter.toUpperCase());
-              props[propName] = attr.value;
-            }
+            props.style = parseStyleString(attr.value);
           } else {
-            props[propName] = attr.value;
+            const [propName, value] = domAttributeToReactProp(tagName, attr.name, attr.value, inSvg);
+            props[propName] = value;
           }
         }
 
@@ -540,12 +531,14 @@ export function StaticHTMLWithIslands({
           domToReact(child, islands, residentData, onIslandRender, onIslandError, isNestedComponent)
         ).filter(child => child !== null && child !== '');
 
+        // localName keeps SVG's casing (linearGradient, feGaussianBlur)
+        const elementName = element.localName;
         if (children.length === 0) {
-          return React.createElement(tagName, props);
+          return React.createElement(elementName, props);
         } else if (children.length === 1 && typeof children[0] === 'string') {
-          return React.createElement(tagName, props, children[0]);
+          return React.createElement(elementName, props, children[0]);
         } else {
-          return React.createElement(tagName, props, ...children);
+          return React.createElement(elementName, props, ...children);
         }
       }
 

@@ -231,8 +231,10 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
   function traverse(node: TemplateNode, path: string[] = []): TemplateNode {
     nodeCount++;
     if (node.type === 'element' && node.tagName) {
-      // Check if this node is a registered component
-      const registration = componentRegistry.get(node.tagName);
+      // Only component tags (written PascalCase, marked by the parser) become
+      // islands. Plain HTML that shares a component's name stays HTML:
+      // <button>, <select>, <option>, <var>, SVG <filter>.
+      const registration = node.component ? componentRegistry.get(node.tagName) : undefined;
 
       if (registration) {
         // This is an interactive component - create an island
@@ -513,7 +515,7 @@ export function identifyIslands(ast: TemplateNode): Island[] {
   function traverse(node: TemplateNode, path: string[] = []): void {
     if (node.type === 'element' && node.tagName) {
       // Check if this node is a registered component
-      const registration = componentRegistry.get(node.tagName);
+      const registration = node.component ? componentRegistry.get(node.tagName) : undefined;
       if (registration) {
         // This is an interactive component - create an island
         const islandId = generateIslandId(node.tagName, path);

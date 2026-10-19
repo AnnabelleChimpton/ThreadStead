@@ -201,7 +201,8 @@ export function extractImports(css: string): { imports: string[]; rest: string }
 /**
  * The site chrome profile CSS must never reach: header (with its nav and
  * menus), footer, and anything else marked data-site-chrome (cookie notice,
- * chat). Used as the exclusive lower boundary of the profile @scope below.
+ * chat, "step outside", the nav bar on your-own-HTML pages). Used as the
+ * exclusive lower boundary of the profile @scope below.
  */
 export const SITE_CHROME_SELECTOR = '.site-header, .site-footer, [data-site-chrome]'
 
@@ -224,6 +225,18 @@ const GLOBAL_AT_RULES = new Set([
  * the chrome roots reset those themselves (styles/retro.css).
  */
 export function scopeAwayFromSiteChrome(css: string): string {
+  return wrapInChromeScope(css, (sel) =>
+    sel
+      .replace(/^html(?![\w-])/, ':scope')
+      .replace(/:root(?![\w-])/g, ':scope')
+  )
+}
+
+/**
+ * Hoist the at-rules that can't live inside @scope, then wrap the rest in
+ * the chrome donut with each selector rewritten by `scopeSelector`.
+ */
+function wrapInChromeScope(css: string, scopeSelector: (selector: string) => string): string {
   if (!css.trim()) return ''
   const hoisted: CSSStatement[] = []
   const scoped: CSSStatement[] = []
@@ -233,13 +246,125 @@ export function scopeAwayFromSiteChrome(css: string): string {
   }
   if (scoped.length === 0) return serializeStatements(hoisted)
 
-  const inner = mapSelectors(serializeStatements(scoped), (sel) =>
-    sel
-      .replace(/^html(?![\w-])/, ':scope')
-      .replace(/:root(?![\w-])/g, ':scope')
-  )
+  const inner = mapSelectors(serializeStatements(scoped), scopeSelector)
   const head = serializeStatements(hoisted)
   return `${head}${head ? '\n' : ''}@scope (html) to (${SITE_CHROME_SELECTOR}) {\n${inner}\n}`
+}
+
+/**
+ * rehype-sanitize prefixes every id (and name) in a person's own HTML with
+ * this, so `id="x"` can't overwrite a `window.x` the site's scripts read.
+ * The compiler rewrites `href="#x"`, `<label for>` and friends to match;
+ * prefixUserContentIds does the same for their CSS.
+ */
+export const USER_CONTENT_PREFIX = 'user-content-'
+
+/**
+ * Point `#id` selectors and `url(#id)` references (SVG filters, gradients,
+ * clip paths) at the prefixed ids the page actually has. Ids already written
+ * with the prefix are left alone.
+ */
+export function prefixUserContentIds(css: string): string {
+  if (!css.includes('#')) return css
+  const withUrls = css.replace(
+    /url\(\s*(['"]?)#(?!user-content-)([^'")\s]+)\1\s*\)/g,
+    (_m, quote: string, id: string) => `url(${quote}#${USER_CONTENT_PREFIX}${id}${quote})`
+  )
+  return mapSelectors(withUrls, prefixSelectorIds)
+}
+
+/** `#a.b:not(#c)` → `#user-content-a.b:not(#user-content-c)`; leaves `[href="#a"]` alone. */
+function prefixSelectorIds(selector: string): string {
+  let out = ''
+  let i = 0
+  while (i < selector.length) {
+    const ch = selector[i]
+    if (ch === "'" || ch === '"') {
+      const end = skipString(selector, i)
+      out += selector.slice(i, end)
+      i = end
+      continue
+    }
+    if (ch === '[') {
+      // Attribute selectors compare text, not ids
+      let end = i + 1
+      while (end < selector.length && selector[end] !== ']') {
+        end = selector[end] === '"' || selector[end] === "'" ? skipString(selector, end) : end + 1
+      }
+      out += selector.slice(i, end + 1)
+      i = end + 1
+      continue
+    }
+    if (ch === '\\') {
+      out += selector.slice(i, i + 2)
+      i += 2
+      continue
+    }
+    if (ch === '#' && /[A-Za-z_\\ -￿-]/.test(selector[i + 1] || '')) {
+      out += selector.startsWith(USER_CONTENT_PREFIX, i + 1) ? '#' : `#${USER_CONTENT_PREFIX}`
+      i++
+      continue
+    }
+    out += ch
+    i++
+  }
+  return out
+}
+
+/**
+ * One selector of advanced-mode CSS, scoped under `@scope (html)` where
+ * `:scope` is the html element:
+ *   `:root …`, `html …` → `:scope:root …`   (the page root)
+ *   `body …`            → `:scope body …`
+ *   `::selection` etc.  → the root and everything in body
+ *   anything else, `*` included → `:scope body …`
+ * The `:scope body` prefix is the specificity boost that lets plain element
+ * rules beat Tailwind's single-class utilities. Before 2026-10 every selector
+ * got a bare `html body` prefix, which turned `body {}` into `html body body`
+ * and `:root {}` into `html body :root`: dead rules, and every CSS variable
+ * a pasted page declared on :root came out undefined.
+ */
+export function scopeAdvancedSelector(selector: string): string {
+  const sel = selector.trim()
+  const root = sel.match(/^(?::root|html)(?![\w-])/i)
+  if (root) {
+    let rest = sel.slice(root[0].length)
+    if (/^:root(?![\w-])/i.test(rest)) rest = rest.slice(5) // `html:root`
+    return `:scope:root${rest}`
+  }
+  if (/^body(?![\w-])/i.test(sel)) return `:scope ${sel}`
+  if (sel.startsWith('::')) return `:scope:root${sel}, :scope body ${sel}`
+  return `:scope body ${sel}`
+}
+
+/**
+ * THE transform for advanced-mode (your own HTML page) CSS. The live page
+ * (pages/_app.tsx) and the editor preview (pages/template-preview.tsx) both
+ * call this, so the preview can't show a page the live site won't.
+ *
+ * - @import / @charset are hoisted intact, after `fontImports` (Google Fonts
+ *   <link>s pulled out of a pasted document's head, see document-head.ts).
+ * - `bodyCss` (a pasted page's <body bgcolor text link…>) comes before the
+ *   page's own rules, so those still win.
+ * - Ids and url(#…) references follow the user-content- prefix.
+ * - Root selectors stay roots (scopeAdvancedSelector).
+ * - Everything is scoped away from the site header, footer and other chrome,
+ *   the way standard-layout CSS already is, so a page's `nav a {}` or
+ *   `h1::after {}` can't restyle or fake the site's own navigation.
+ */
+export function transformAdvancedCss(
+  css: string,
+  options: { fontImports?: readonly string[]; bodyCss?: string } = {}
+): string {
+  // <body bgcolor…> rules go first so the page's own CSS wins over them
+  const source = options.bodyCss ? `${options.bodyCss}\n${css || ''}` : css || ''
+  const { imports, rest } = extractImports(prefixUserContentIds(source))
+  const allImports = [
+    ...(options.fontImports ?? []).filter((line) => !imports.includes(line)),
+    ...imports,
+  ]
+  const scoped = wrapInChromeScope(rest, scopeAdvancedSelector)
+  return [...allImports, scoped].filter(Boolean).join('\n')
 }
 
 /**

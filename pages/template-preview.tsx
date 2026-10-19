@@ -7,6 +7,7 @@ import type { ResidentData } from '@/components/features/templates/ResidentDataP
 import { useProfileIslandHydration } from '@/lib/islands';
 import Head from 'next/head';
 import NavigationPreview from '@/components/features/templates/NavigationPreview';
+import { ADVANCED_NAV_SURFACE } from '@/components/core/profile/AdvancedNavFrame';
 import RetroCard from '@/components/ui/layout/RetroCard';
 import ProfileHeader from '@/components/core/profile/ProfileHeader';
 import Tabs, { TabSpec } from '@/components/ui/navigation/Tabs';
@@ -16,6 +17,8 @@ import FriendsWebsitesGrid from '@/components/core/profile/tabs/FriendsWebsitesG
 import ProfileBadgeDisplay from '@/components/core/profile/ProfileBadgeDisplay';
 import Guestbook from '@/components/shared/Guestbook';
 import { cleanCss, escapeCssForStyleTag } from '@/lib/utils/sanitization/css';
+import { transformAdvancedCss } from '@/lib/utils/css/css-transform';
+import { extractDocument, legacyBodyCss } from '@/lib/templates/compilation/document-head';
 // Removed unused imports - now using ProfileModeRenderer like production
 
 interface PreviewData {
@@ -148,6 +151,18 @@ export default function PreviewTemp() {
     // Sanitized like a save, then escaped for the <style> tags below
     return escapeCssForStyleTag(cleanCss(previewData.customCSS));
   }, [previewData?.customCSS]);
+
+  // Your own HTML page: exactly what the live page injects (pages/_app.tsx),
+  // with a pasted page's Google Fonts links and <body bgcolor…> as CSS
+  const documentCss = useMemo(() => {
+    const { head } = extractDocument(previewData?.template || '');
+    return { fontImports: head.fontImports, bodyCss: legacyBodyCss(head.body) };
+  }, [previewData?.template]);
+  const advancedCSS = useMemo(() => {
+    const css = previewData?.customCSS ? cleanCss(previewData.customCSS) : '';
+    if (!css && documentCss.fontImports.length === 0 && !documentCss.bodyCss) return '';
+    return transformAdvancedCss(css, documentCss);
+  }, [previewData?.customCSS, documentCss]);
 
   if (!isReady || !previewData) {
     return (
@@ -427,15 +442,15 @@ export default function PreviewTemp() {
 
       {/* User content with optional navigation and ResidentDataProvider */}
       <div style={{ paddingTop: isEmbedded ? (showNavigation ? '80px' : 0) : (showNavigation ? '120px' : '40px') }}>
-        {/* Apply user's custom CSS FIRST - this is the ONLY styling that should affect the page */}
-        {sanitizedCSS && (
-          <style dangerouslySetInnerHTML={{ __html: sanitizedCSS }} />
+        {/* The page's own CSS, transformed exactly as on the live page */}
+        {advancedCSS && (
+          <style id="advanced-template-css" dangerouslySetInnerHTML={{ __html: escapeCssForStyleTag(advancedCSS) }} />
         )}
 
         {/* Show site navigation if toggle is enabled */}
         {showNavigation && (
-          <div style={{ position: 'fixed', top: isEmbedded ? 0 : '40px', left: 0, right: 0, zIndex: 999998, height: '80px' }}>
-            <NavigationPreview />
+          <div data-site-chrome="true" style={{ position: 'fixed', top: isEmbedded ? 0 : '40px', left: 0, right: 0, zIndex: 999998, height: '80px' }}>
+            <NavigationPreview navBackgroundColor={ADVANCED_NAV_SURFACE} />
           </div>
         )}
         

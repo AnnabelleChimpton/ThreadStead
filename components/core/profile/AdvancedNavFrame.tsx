@@ -1,6 +1,15 @@
 import React, { useLayoutEffect, useRef, useState } from "react";
 import NavigationPreview from "@/components/features/templates/NavigationPreview";
 
+/**
+ * The site nav's surface on your-own-HTML pages. The bar used to be see-through
+ * and take the page's text colour, so it only stayed readable while the
+ * page's `body {}` rules were dead; once they worked, a dark page made it
+ * dark-on-dark. This is the colour it always showed (a 10% shade over the
+ * site's cream), now solid, with the site's own ink (data-site-chrome).
+ */
+export const ADVANCED_NAV_SURFACE = "#E3E1DE";
+
 interface AdvancedNavFrameProps {
   showNavigation: boolean;
   /** Site chrome under the nav, e.g. "Step back outside" */
@@ -32,7 +41,12 @@ export default function AdvancedNavFrame({ showNavigation, afterNav, children }:
   return (
     <>
       {/* The wrapper takes no space: its only child is position: fixed */}
-      {showNavigation && <div ref={navRef}><NavigationPreview /></div>}
+      {/* data-site-chrome: the page's CSS can't reach or restyle the nav */}
+      {showNavigation && (
+        <div ref={navRef} data-site-chrome="true">
+          <NavigationPreview navBackgroundColor={ADVANCED_NAV_SURFACE} />
+        </div>
+      )}
       <div style={{ marginTop: showNavigation ? `${navHeight}px` : 0 }}>
         {afterNav}
         {/* Absolute template children position from here, below afterNav */}

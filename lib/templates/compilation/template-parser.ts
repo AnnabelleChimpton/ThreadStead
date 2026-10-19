@@ -1,40 +1,99 @@
 import { unified } from 'unified';
 import rehypeParse from 'rehype-parse';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
+import { html as htmlSchema } from 'property-information';
 import type { Root } from 'hast';
 import { componentRegistry } from '../core/template-registry';
 import { getAllowedAttributes } from '../core/attribute-mappings';
 import { TEMPLATE_LIMITS, formatLimitError, checkWarningThresholds } from './template-limits';
+import {
+  COMPONENT_TAG_PREFIX,
+  lineAt,
+  looksLikeComponentName,
+  prepareSourceForParse,
+  tokenizeSource,
+} from './source-scan';
+import { extractDocument, type DocumentHead } from './document-head';
+import {
+  ELEMENT_ATTRIBUTES,
+  GLOBAL_ATTRIBUTES,
+  HTML_AUTHORING_TAGS,
+  ID_REFERENCE_ATTRIBUTES,
+  STRIPPED_WITH_CONTENT,
+  SVG_ATTRIBUTES,
+  SVG_TAGS,
+} from './html-allowlist';
 
 // QUICK WIN #2: Cache schema to avoid recreating on every parse
 // Schema is only rebuilt when component registry changes
 let cachedSchema: any = null;
 let lastRegistrySize: number = 0;
 
-// Define our custom sanitization schema
-function createCustomSchema() {
+/** Every aria-* property name property-information knows (ariaLabel, ariaHidden, …). */
+const ARIA_ATTRIBUTES = Object.keys(htmlSchema.property).filter((name) => /^aria[A-Z]/.test(name));
+
+/**
+ * The sanitizer schema. Plain HTML follows html-allowlist.ts (how people
+ * write pages); component tags arrive as `ts-component-<name>` (see
+ * source-scan.ts) and take the registry's props. Exported for the
+ * blocklist golden test, which asserts what never gets in.
+ */
+export function createCustomSchema() {
   // Check if we can reuse cached schema
   const currentRegistrySize = componentRegistry.size;
 
   if (cachedSchema && currentRegistrySize === lastRegistrySize) {
     return cachedSchema;
   }
-  // Start with a more permissive base instead of defaultSchema
+
+  const svgTags: readonly string[] = SVG_TAGS;
+  const tagNames = Array.from(new Set([
+    ...(defaultSchema.tagNames || []),
+    ...HTML_AUTHORING_TAGS,
+    ...svgTags,
+  ]));
+
+  // Deep copy so nothing writes into defaultSchema's arrays
+  const attributes: Record<string, unknown[]> = {};
+  for (const [tag, attrs] of Object.entries(defaultSchema.attributes || {})) {
+    attributes[tag] = Array.isArray(attrs)
+      // defaultSchema pins className to GitHub's own values (task lists,
+      // footnotes) and allows its footnote data-* markers; pages use any
+      // class they like, and data-* stays out (island markers are ours)
+      ? attrs.filter((attr) => {
+          const name = Array.isArray(attr) ? String(attr[0]) : String(attr);
+          return name !== 'className' && !/^data[A-Z]/.test(name);
+        })
+      : attrs;
+  }
+  attributes['*'] = Array.from(new Set([...(attributes['*'] || []), ...GLOBAL_ATTRIBUTES, ...ARIA_ATTRIBUTES]));
+  for (const [tag, attrs] of Object.entries(ELEMENT_ATTRIBUTES)) {
+    // A tag's own list replaces defaultSchema's (input's checkbox-only rule goes)
+    attributes[tag] = [...attrs];
+  }
+  for (const tag of svgTags) {
+    attributes[tag] = [...SVG_ATTRIBUTES];
+  }
+
   const schema = {
-    tagNames: [...(defaultSchema.tagNames || [])],
-    // Deep copy attributes to avoid modifying defaultSchema's arrays
-    attributes: Object.entries(defaultSchema.attributes || {}).reduce((acc, [tag, attrs]) => {
-      acc[tag] = Array.isArray(attrs) ? [...attrs] : attrs;
-      return acc;
-    }, {} as Record<string, any>),
-    protocols: { ...(defaultSchema.protocols || {}) },
+    tagNames,
+    attributes,
+    ancestors: { ...(defaultSchema.ancestors || {}) },
+    protocols: { ...(defaultSchema.protocols || {}) } as Record<string, string[]>,
+    // defaultSchema forces every <input> to `disabled type="checkbox"` (GitHub task lists)
+    required: {},
+    // These go with their content: a stray <style> or <title> must not turn into visible text
+    strip: [...STRIPPED_WITH_CONTENT],
+    // Ids, and every attribute that points at an id, get the same prefix
+    clobber: [...ID_REFERENCE_ATTRIBUTES],
+    clobberPrefix: 'user-content-',
     // CRITICAL: Allow inline CSS properties in style attributes
     // Without this, rehype-sanitize strips ALL inline styles
     properties: {
       style: ['*'] // Allow all CSS properties
     }
   };
-  
+
   // Allow placeholder URLs like "#"
   schema.protocols.src = ['http', 'https', 'mailto', 'tel', 'data', '#'];
   schema.protocols.href = ['http', 'https', 'mailto', 'tel', '#'];
@@ -52,70 +111,9 @@ function createCustomSchema() {
   }
   schema.protocols.srcSet = schema.protocols.src;
 
-  // Add class to wildcard attributes so ALL tags can have classes
-  if (schema.attributes['*']) {
-    const wildcardAttrs = schema.attributes['*'];
-    if (!wildcardAttrs.includes('class')) {
-      wildcardAttrs.push('class');
-    }
-    if (!wildcardAttrs.includes('className')) {
-      wildcardAttrs.push('className');
-    }
-  }
-
-  // Allow class attributes on all standard HTML elements
-  const standardHTMLTags = [
-    'div', 'span', 'section', 'article', 'aside', 'header', 'footer', 'main', 'nav',
-    'a', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-    'ul', 'ol', 'li', 'dl', 'dt', 'dd',
-    'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td',
-    'form', 'input', 'button', 'select', 'textarea', 'label',
-    'img', 'video', 'audio', 'canvas', 'svg',
-    'strong', 'em', 'code', 'pre', 'blockquote'
-  ];
-
-  for (const tag of standardHTMLTags) {
-    // The tag itself must be in tagNames or rehype-sanitize drops it entirely.
-    // defaultSchema is GitHub-comment flavored and lacks main/aside/header/
-    // footer/nav/article/form/button/... — attribute entries alone don't
-    // allow a tag, so without this push the list above was partly cosmetic
-    // and semantic-HTML pages silently lost their structure.
-    if (!schema.tagNames.includes(tag)) {
-      schema.tagNames.push(tag);
-    }
-
-    // Ensure the tag has an attributes array
-    if (!schema.attributes[tag]) {
-      schema.attributes[tag] = [];
-    }
-
-    // Remove conditional class/className entries like ['className', 'value']
-    // These restrict className to specific values only, which breaks our templates
-    schema.attributes[tag] = schema.attributes[tag].filter((attr: any) => {
-      if (Array.isArray(attr) && (attr[0] === 'class' || attr[0] === 'className')) {
-        return false; // Remove conditional class/className
-      }
-      return true;
-    });
-
-    // Add unconditional class and className (allow any value)
-    if (!schema.attributes[tag].includes('class')) {
-      schema.attributes[tag].push('class');
-    }
-    if (!schema.attributes[tag].includes('className')) {
-      schema.attributes[tag].push('className');
-    }
-    // Add style attribute (allow inline styles with CSS variables)
-    if (!schema.attributes[tag].includes('style')) {
-      schema.attributes[tag].push('style');
-    }
-    // Add id attribute (will be prefixed with user-content- by rehype-sanitize for security)
-    if (!schema.attributes[tag].includes('id')) {
-      schema.attributes[tag].push('id');
-    }
-  }
-
-  // Allow custom component tags from the registry
+  // Component tags, as prepareSourceForParse spells them. Only PascalCase
+  // source tags become components; `<button>`, `<select>`, `<var>` and SVG
+  // `<filter>` stay HTML even though a component shares their name.
   if (componentRegistry) {
     const allowedTags = componentRegistry.getAllowedTags();
 
@@ -124,14 +122,9 @@ function createCustomSchema() {
     const allAttributes = getAllowedAttributes();
 
     for (const tagName of allowedTags) {
-      // Add both original and lowercase versions
-      const lowerTagName = tagName.toLowerCase();
-
-      if (!schema.tagNames.includes(tagName)) {
-        schema.tagNames.push(tagName);
-      }
-      if (!schema.tagNames.includes(lowerTagName)) {
-        schema.tagNames.push(lowerTagName);
+      const componentTag = COMPONENT_TAG_PREFIX + tagName.toLowerCase();
+      if (!schema.tagNames.includes(componentTag)) {
+        schema.tagNames.push(componentTag);
       }
 
       // Apply centralized allowed attributes list, PLUS every prop the
@@ -152,8 +145,8 @@ function createCustomSchema() {
         }
         attrs = [...allAttributes, ...propAttrs];
       }
-      schema.attributes[tagName] = attrs;
-      schema.attributes[lowerTagName] = attrs;
+      // Components get class/className/style/id like every element
+      schema.attributes[componentTag] = [...attrs, 'className', 'class'];
     }
   }
 
@@ -164,450 +157,368 @@ function createCustomSchema() {
   return schema;
 }
 
-/**
- * Convert self-closing tags to proper closing tags while respecting quoted attributes
- * Handles cases like: <Filter where="item.price > 100" />
- * The regex approach fails because > inside quotes terminates the match early
- */
-function convertSelfClosingTags(html: string): string {
-  let result = '';
-  let i = 0;
-
-  while (i < html.length) {
-    // Look for opening < of a tag
-    if (html[i] === '<') {
-      // Check if this might be a self-closing tag
-      const tagStart = i;
-      i++; // Skip <
-
-      // Skip whitespace after <
-      while (i < html.length && /\s/.test(html[i])) i++;
-
-      // Extract tag name
-      let tagName = '';
-      while (i < html.length && /[a-zA-Z0-9\-]/.test(html[i])) {
-        tagName += html[i];
-        i++;
-      }
-
-      // If no tag name, this isn't a tag - just copy and continue
-      if (!tagName) {
-        result += html[tagStart];
-        continue;
-      }
-
-      // Now parse attributes, respecting quotes
-      let attributes = '';
-      let inQuote = false;
-      let quoteChar = '';
-      let isSelfClosing = false;
-
-      while (i < html.length) {
-        const char = html[i];
-
-        // Track quote state
-        if ((char === '"' || char === "'") && (i === 0 || html[i - 1] !== '\\')) {
-          if (!inQuote) {
-            inQuote = true;
-            quoteChar = char;
-          } else if (char === quoteChar) {
-            inQuote = false;
-            quoteChar = '';
-          }
-        }
-
-        // Check for self-closing /> (only when not in quotes)
-        if (!inQuote && char === '/' && i + 1 < html.length && html[i + 1] === '>') {
-          isSelfClosing = true;
-          i += 2; // Skip />
-          break;
-        }
-
-        // Check for regular closing > (only when not in quotes)
-        if (!inQuote && char === '>') {
-          i++; // Skip >
-          break;
-        }
-
-        attributes += char;
-        i++;
-      }
-
-      // Build the result
-      if (isSelfClosing) {
-        // Convert to proper closing tag
-        result += `<${tagName}${attributes}></${tagName}>`;
-      } else {
-        // Regular tag, keep as is
-        result += `<${tagName}${attributes}>`;
-      }
-    } else {
-      // Not a tag, just copy
-      result += html[i];
-      i++;
-    }
-  }
-
-  return result;
+/** Is `name` (as written in the source) a registered component? */
+function isRegisteredComponent(name: string): boolean {
+  return !!componentRegistry.get(name);
 }
 
-// Helper function to extract ALL tag names from HTML string (both Components and HTML tags)
-// This allows us to track what gets stripped during sanitization
-function extractComponentTags(html: string): Array<{ name: string; line: number }> {
-  const tags: Array<{ name: string; line: number }> = [];
-  const lines = html.split('\n');
-
-  // Match ALL opening tags (both uppercase Components and lowercase HTML tags)
-  // But skip closing tags and comments
-  const tagRegex = /<([a-zA-Z][a-zA-Z0-9]*)/g;
-
-  lines.forEach((line, lineIndex) => {
-    let match;
-    // Reset regex for each line
-    tagRegex.lastIndex = 0;
-
-    while ((match = tagRegex.exec(line)) !== null) {
-      const tagName = match[1];
-
-      // Skip if this is a closing tag (preceded by </)
-      const fullMatch = match[0];
-      const beforeTag = line.substring(Math.max(0, match.index - 1), match.index);
-      if (beforeTag === '/') {
-        continue; // Skip closing tags
-      }
-
-      tags.push({
-        name: tagName,
-        line: lineIndex + 1
-      });
-    }
-  });
-
-  return tags;
-}
-
-// Pre-parse syntax validation to catch common errors before rehype
+// Pre-parse syntax check. HTML itself is the parser's job: parse5 reads
+// `<p>` without `</p>`, `<P>…</p>`, `<li>` lists and table cells exactly as
+// browsers do, so none of that is an error here. What this checks is what
+// the parser can't recover sensibly:
+//  - component tags (PascalCase), where a missing or misspelled closing tag
+//    changes which content a component wraps;
+//  - a tag whose attribute quote never closes, which swallows the page;
+//  - invalid JSON in a component's `initial` attribute.
+// Comments, doctypes and raw-text content (textarea, title…) are skipped.
+//
+// History: this used to demand XML strictness for ALL tags, so most
+// pre-2010 pages and any page with a tag inside a comment could not be
+// saved at all ("9 Errors (Must Fix)" on a 13-line page).
 function detectSyntaxErrors(htmlString: string): { errors: string[]; warnings: string[] } {
   const errors: string[] = [];
   const warnings: string[] = [];
   const lines = htmlString.split('\n');
+  const lineText = (line: number) => (lines[line - 1] || '').trim();
 
-  // Track tag stack for matching opening/closing tags
-  const tagStack: Array<{ name: string; line: number }> = [];
+  // Open components, innermost last
+  const stack: Array<{ name: string; line: number }> = [];
 
-  // Ranges of the input covered by well-formed tag matches — used to detect
-  // malformed tags / unterminated attribute quotes afterwards.
-  const coveredTagRanges: Array<[number, number]> = [];
+  for (const token of tokenizeSource(htmlString)) {
+    if (token.type !== 'open' && token.type !== 'close') continue;
+    const line = lineAt(htmlString, token.start);
 
-  // --- Tag structure validation (whole-string, in SOURCE ORDER) ---
-  // The previous implementation scanned per line and pushed ALL opening tags
-  // on a line before processing ANY of its closing tags, so perfectly valid
-  // one-line HTML like <div><h1>x</h1><p>y</p></div> produced bogus
-  // "Mismatched closing tag" errors — and opening tags whose attributes
-  // spanned multiple lines were missed entirely. Whether a template compiled
-  // depended on the author's LINE BREAKS. This scan walks tags in document
-  // order with quote-aware attribute matching.
-  const voidElements = new Set([
-    'img', 'br', 'hr', 'input', 'meta', 'link', 'area', 'base', 'col',
-    'embed', 'param', 'source', 'track', 'wbr',
-  ]);
-  // Quoted attribute values may contain '>' — the alternation consumes them
-  // as a unit so they can't terminate the tag early.
-  const tagScanRegex = /<(\/?)([a-zA-Z][a-zA-Z0-9-]*)((?:"[^"]*"|'[^']*'|[^>])*?)(\/?)>/g;
-  let scanMatch: RegExpExecArray | null;
-  // Matches arrive in ascending index order — count newlines incrementally.
-  let scanCursor = 0;
-  let scanLine = 1;
-  const lineAtIndex = (idx: number): number => {
-    for (let i = scanCursor; i < idx; i++) {
-      if (htmlString[i] === '\n') scanLine++;
-    }
-    scanCursor = idx;
-    return scanLine;
-  };
-
-  // A quote that opens inside a tag's attributes but never closes before the
-  // tag ends (class="oops>) — the scanner recovers like a browser would, but
-  // the author almost certainly wants an error, not silent garbage.
-  const hasUnbalancedQuote = (attrText: string): boolean => {
-    let i = 0;
-    while (i < attrText.length) {
-      const ch = attrText[i];
-      if (ch === '"' || ch === "'") {
-        const close = attrText.indexOf(ch, i + 1);
-        if (close === -1) return true;
-        i = close + 1;
-        continue;
-      }
-      i++;
-    }
-    return false;
-  };
-
-  while ((scanMatch = tagScanRegex.exec(htmlString)) !== null) {
-    const isClosing = scanMatch[1] === '/';
-    const tagName = scanMatch[2];
-    const attrText = scanMatch[3] || '';
-    const isSelfClosing = scanMatch[4] === '/';
-    const lineNum = lineAtIndex(scanMatch.index);
-    const lineText = (lines[lineNum - 1] || '').trim();
-    coveredTagRanges.push([scanMatch.index, scanMatch.index + scanMatch[0].length]);
-
-    if (hasUnbalancedQuote(attrText)) {
+    if (token.type === 'open' && (token.unterminated || token.strayQuote)) {
       errors.push(
-        `Line ${lineNum}: Unclosed quote in <${tagName}> attributes.\n` +
-        `  ${lineText}\n` +
+        `Line ${line}: Unclosed quote in <${token.name}> attributes.\n` +
+        `  ${lineText(line)}\n` +
         `Tip: Make sure all attribute values have matching quotes`
       );
+      continue;
     }
-
-    if (voidElements.has(tagName.toLowerCase())) {
+    if (token.type === 'open' && token.strayLessThan) {
+      warnings.push(
+        `Line ${line}: "<${token.name}" reads as the start of a <${token.name}> tag, the way a browser reads it.\n` +
+        `  ${lineText(line)}\n` +
+        `Tip: To show a less-than sign as text, write &lt;`
+      );
+    }
+    if (token.type === 'close' && token.unterminated) {
+      errors.push(
+        `Line ${line}: Malformed tag — found '</${token.name}' that never closes with '>'.\n` +
+        `  ${lineText(line)}\n` +
+        `Tip: Check for a missing '>'`
+      );
       continue;
     }
 
-    if (isClosing) {
-      if (tagStack.length === 0) {
+    if (!looksLikeComponentName(token.name)) {
+      // </if> for an open <If>: the parser would never close the component
+      const innermost = stack[stack.length - 1];
+      if (token.type === 'close' && innermost && innermost.name.toLowerCase() === token.name.toLowerCase()) {
         errors.push(
-          `Line ${lineNum}: Unexpected closing tag </${tagName}>.\n` +
-          `  ${lineText}\n` +
-          `Tip: This closing tag has no matching opening tag`
+          `Line ${line}: Mismatched closing tag </${token.name}>.\n` +
+          `  Expected </${innermost.name}> (opened on line ${innermost.line})\n` +
+          `  ${lineText(line)}\n` +
+          `Tip: Component names are case-sensitive. Close <${innermost.name}> with </${innermost.name}>`
         );
-      } else {
-        const lastOpened = tagStack.pop()!;
-        if (lastOpened.name !== tagName) {
+        stack.pop();
+      }
+      continue;
+    }
+
+    if (token.type === 'open') {
+      // Invalid JSON in a component's initial attribute (entities decoded first)
+      const initial = token.attributes.find((a) => a.name.toLowerCase() === 'initial')?.value;
+      if (initial !== undefined && initial.trim().startsWith('{')) {
+        const jsonStr = initial
+          .replace(/&quot;/g, '"')
+          .replace(/&#0*39;|&apos;/g, "'")
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&amp;/g, '&');
+        try {
+          JSON.parse(jsonStr);
+        } catch {
           errors.push(
-            `Line ${lineNum}: Mismatched closing tag </${tagName}>.\n` +
-            `  Expected </${lastOpened.name}> (opened on line ${lastOpened.line})\n` +
-            `  ${lineText}\n` +
-            `Tip: Closing tags must match their opening tags exactly`
+            `Invalid JSON in 'initial' attribute on line ${line}.\n` +
+            `  ${jsonStr}\n` +
+            `Tip: Use double quotes for JSON property names and string values`
           );
-          // Put it back since we didn't find the right match
-          tagStack.push(lastOpened);
         }
       }
-    } else if (!isSelfClosing) {
-      tagStack.push({ name: tagName, line: lineNum });
+      if (!token.selfClosing) stack.push({ name: token.name, line });
+      continue;
     }
-  }
 
-  // --- Malformed tags / unterminated attribute quotes ---
-  // Anything that LOOKS like a tag start (<tag or </tag) but wasn't consumed
-  // by the quote-aware tag scan above is malformed — most commonly an
-  // attribute quote that never closes (class="oops>), which prevents the
-  // scanner from finding the tag's end.
-  //
-  // The previous implementation tracked quote characters across ALL text,
-  // so an apostrophe in ordinary prose ("aren't", "don't") produced a bogus
-  // "Unclosed quote" error — the shipped conditional-showcase template
-  // failed to compile because of the word "aren't".
-  {
-    const tagStartRegex = /<\/?[a-zA-Z]/g;
-    let startMatch: RegExpExecArray | null;
-    let rangeIdx = 0;
-    while ((startMatch = tagStartRegex.exec(htmlString)) !== null) {
-      const idx = startMatch.index;
-      while (rangeIdx < coveredTagRanges.length && coveredTagRanges[rangeIdx][1] <= idx) {
-        rangeIdx++;
-      }
-      const covered =
-        rangeIdx < coveredTagRanges.length &&
-        coveredTagRanges[rangeIdx][0] <= idx &&
-        idx < coveredTagRanges[rangeIdx][1];
-      if (!covered) {
-        const lineNum = htmlString.slice(0, idx).split('\n').length;
-        const lineText = (lines[lineNum - 1] || '').trim();
-        errors.push(
-          `Line ${lineNum}: Malformed tag — found '<' that never closes with '>'.\n` +
-          `  ${lineText}\n` +
-          `Tip: Check for a missing '>' or an attribute quote that never closes`
-        );
-      }
-    }
-  }
-
-  // Check each line for syntax issues
-  lines.forEach((line, lineIndex) => {
-    const lineNum = lineIndex + 1;
-
-    // Check for invalid JSON in initial attributes
-    const initialMatch = line.match(/initial=['"](\{[^'"]*\})['"]/);
-    if (initialMatch) {
-      const jsonStr = initialMatch[1];
-      try {
-        JSON.parse(jsonStr);
-      } catch (e) {
-        errors.push(
-          `Invalid JSON in 'initial' attribute on line ${lineNum}.\n` +
-          `  ${jsonStr}\n` +
-          `Tip: Use double quotes for JSON property names and string values`
-        );
-      }
-    }
-  });
-
-  // Check for unclosed tags at end of document
-  if (tagStack.length > 0) {
-    tagStack.forEach(tag => {
+    // Closing component tag
+    const innermost = stack[stack.length - 1];
+    if (!innermost) {
       errors.push(
-        `Line ${tag.line}: Unclosed tag <${tag.name}>.\n` +
-        `Tip: Every opening tag needs a matching closing tag. Add </${tag.name}> before the end of the template.`
+        `Line ${line}: Unexpected closing tag </${token.name}>.\n` +
+        `  ${lineText(line)}\n` +
+        `Tip: This closing tag has no matching opening tag`
       );
-    });
+    } else if (innermost.name === token.name) {
+      stack.pop();
+    } else {
+      const sameNameOtherCase = innermost.name.toLowerCase() === token.name.toLowerCase();
+      errors.push(
+        `Line ${line}: Mismatched closing tag </${token.name}>.\n` +
+        `  Expected </${innermost.name}> (opened on line ${innermost.line})\n` +
+        `  ${lineText(line)}\n` +
+        (sameNameOtherCase
+          ? `Tip: Component names are case-sensitive. Close <${innermost.name}> with </${innermost.name}>`
+          : `Tip: Close the inner component before the outer one`)
+      );
+      // Recover like the parser would: close up to a matching component if there is one
+      const match = stack.map((s) => s.name).lastIndexOf(token.name);
+      if (match !== -1) stack.length = match;
+    }
+  }
+
+  // A component left open runs to the end of the page
+  for (const open of stack) {
+    errors.push(
+      `Line ${open.line}: Unclosed tag <${open.name}>.\n` +
+      `Tip: Every component needs a closing tag or a self-closing slash. Add </${open.name}> where it should end, or write <${open.name} />.`
+    );
   }
 
   return { errors, warnings };
 }
 
-// Parse HTML to HAST (Hypertext Abstract Syntax Tree)
-// Returns both the parsed tree and information about stripped components
-export function parseTemplate(htmlString: string): Root & { _strippedComponents?: Array<{ name: string; line?: number; reason?: string }> } {
+// ---------------------------------------------------------------------------
+// Stripped-tag report
+// ---------------------------------------------------------------------------
 
-  // Extract component tags BEFORE sanitization
-  const componentsBefore = extractComponentTags(htmlString);
+/** The parts of a hast node the walkers below read and write. */
+interface HastLike {
+  type: string;
+  tagName?: string;
+  properties?: Record<string, unknown>;
+  children?: HastLike[];
+  data?: Record<string, unknown>;
+}
 
-  // Unescape HTML entities in attributes before processing
-  // This handles &quot; &apos; &lt; &gt; &amp; etc.
-  let processedHtml = htmlString.trim()
-    .replace(/&quot;/g, '"')
-    .replace(/&apos;/g, "'")
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&amp;/g, '&');
-  
-  // Check if this is a full HTML document
-  const isFullDocument = processedHtml.includes('<!DOCTYPE') || 
-                         (processedHtml.includes('<html') && processedHtml.includes('<body>'));
-  
-  if (isFullDocument) {
-    // Extract body content from full HTML document
-    const bodyMatch = processedHtml.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-    if (bodyMatch && bodyMatch[1]) {
-      processedHtml = bodyMatch[1].trim();
+export type StrippedCategory = 'document' | 'unsupported' | 'safety';
+
+export interface StrippedTag {
+  name: string;
+  line?: number;
+  reason?: string;
+  /** How the editor groups it: expected wrappers, not supported here, removed for safety */
+  category?: StrippedCategory;
+  /** Occurrences after the first */
+  count?: number;
+}
+
+const DOCUMENT_WRAPPERS = new Set(['html', 'head', 'body', 'title', 'meta', '!doctype']);
+const SAFETY_TAGS = new Set([
+  'script', 'iframe', 'frame', 'frameset', 'object', 'embed', 'applet', 'base', 'portal',
+  'foreignobject', 'set', 'animate', 'animatemotion', 'animatetransform', 'use', 'image', 'feimage',
+]);
+
+function strippedReason(
+  name: string,
+  head: DocumentHead
+): { category: StrippedCategory; reason: string } {
+  const lower = name.toLowerCase();
+
+  if (lower === 'link') {
+    if (head.fontImports.length > 0 && head.otherStylesheets.length === 0) {
+      return {
+        category: 'document',
+        reason: 'Document wrapper (expected): your Google Fonts load for you as an @import.',
+      };
+    }
+    return {
+      category: 'unsupported',
+      reason:
+        'Not supported here: stylesheets from other files can’t load. Paste the CSS into the CSS tab. ' +
+        '(Google Fonts links still work; they load as an @import.)',
+    };
+  }
+  if (DOCUMENT_WRAPPERS.has(lower)) {
+    return {
+      category: 'document',
+      reason: lower === 'title'
+        ? 'Document wrapper (expected): the title isn’t shown on the page itself.'
+        : 'Document wrapper (expected): only what’s inside <body> becomes your page.',
+    };
+  }
+  if (lower === 'style') {
+    return { category: 'unsupported', reason: 'Not supported here: <style> blocks belong in the CSS tab.' };
+  }
+  if (SAFETY_TAGS.has(lower)) {
+    const reason =
+      lower === 'script'
+        ? 'Removed for safety: scripts don’t run on pages here. Components like Toggle, Var and OnClick do most script jobs.'
+        : lower === 'iframe' || lower === 'frame' || lower === 'frameset' || lower === 'embed' || lower === 'object' || lower === 'applet'
+          ? 'Removed for safety: pages here can’t embed other sites or plugins.'
+          : 'Removed for safety.';
+    return { category: 'safety', reason };
+  }
+  if (looksLikeComponentName(name)) {
+    return {
+      category: 'unsupported',
+      reason: 'Unknown component (not registered in template system). Check the spelling; component names are case-sensitive.',
+    };
+  }
+  const component = componentRegistry.get(name);
+  if (component) {
+    return {
+      category: 'unsupported',
+      reason: `Not supported here as written: components start with a capital letter. Write <${component.name}>.`,
+    };
+  }
+  return { category: 'unsupported', reason: 'Not supported here: this tag isn’t one pages can use, so its contents were kept without it.' };
+}
+
+const CATEGORY_ORDER: Record<StrippedCategory, number> = { document: 0, unsupported: 1, safety: 2 };
+
+/** Source tags that didn't make it into the sanitized tree, one entry per tag name. */
+function reportStrippedTags(source: string, tree: Root, head: DocumentHead): StrippedTag[] {
+  // What survived: component nodes by name, everything else by lowercase tag
+  const survived = new Set<string>();
+  const walk = (node: HastLike) => {
+    if (node.tagName) {
+      survived.add(node.data?.component ? `component:${node.tagName}` : node.tagName.toLowerCase());
+    }
+    node.children?.forEach(walk);
+  };
+  walk(tree as HastLike);
+
+  const byKey = new Map<string, StrippedTag>();
+  for (const token of tokenizeSource(source)) {
+    let key: string | undefined;
+    let name: string | undefined;
+    if (token.type === 'open') {
+      name = token.name;
+      const component = looksLikeComponentName(name) && isRegisteredComponent(name);
+      key = component ? `component:${name.toLowerCase()}` : name.toLowerCase();
+    } else if (token.type === 'doctype' && /^<!doctype/i.test(source.slice(token.start, token.start + 9))) {
+      continue; // a doctype isn't a tag anyone expects to see
+    }
+    if (!key || !name || survived.has(key)) continue;
+
+    const existing = byKey.get(key);
+    if (existing) {
+      existing.count = (existing.count || 0) + 1;
+      continue;
+    }
+    const { category, reason } = strippedReason(name, head);
+    byKey.set(key, { name, line: lineAt(source, token.start), reason, category });
+  }
+  return Array.from(byKey.values()).sort(
+    (a, b) => CATEGORY_ORDER[a.category!] - CATEGORY_ORDER[b.category!] || (a.line || 0) - (b.line || 0)
+  );
+}
+
+// ---------------------------------------------------------------------------
+// After sanitizing
+// ---------------------------------------------------------------------------
+
+const PREFIX = 'user-content-';
+/** Attributes whose values may hold `url(#id)` (SVG paint servers, filters, clip paths) */
+const URL_REFERENCE_PROPERTIES = ['fill', 'stroke', 'filter', 'clipPath', 'mask', 'style'];
+
+function prefixFragment(value: unknown): unknown {
+  return typeof value === 'string' && value.length > 1 && value.startsWith('#') && !value.startsWith('#' + PREFIX)
+    ? '#' + PREFIX + value.slice(1)
+    : value;
+}
+
+/**
+ * Finish what the sanitizer started, on plain HTML elements:
+ *  - `ts-component-x` tags become `x`, marked as components (data.component);
+ *  - in-page references follow the user-content- id prefix: `href="#about"`,
+ *    `usemap="#m"` and `url(#blur)` in SVG attributes and inline styles
+ *    (htmlFor, list and the aria id lists are prefixed by the sanitizer);
+ *  - links that open a new tab get rel="noopener";
+ *  - autoplay only survives on muted media.
+ */
+function finishSanitizedTree(node: HastLike): void {
+  if (node.type === 'element') {
+    if (typeof node.tagName === 'string' && node.tagName.startsWith(COMPONENT_TAG_PREFIX)) {
+      node.tagName = node.tagName.slice(COMPONENT_TAG_PREFIX.length);
+      node.data = { ...(node.data || {}), component: true };
     } else {
-      // Fallback: try to extract content between body tags even if malformed
-      const bodyStart = processedHtml.indexOf('<body');
-      const bodyEnd = processedHtml.lastIndexOf('</body>');
-      if (bodyStart !== -1 && bodyEnd !== -1) {
-        const bodyOpenEnd = processedHtml.indexOf('>', bodyStart);
-        if (bodyOpenEnd !== -1) {
-          processedHtml = processedHtml.substring(bodyOpenEnd + 1, bodyEnd).trim();
+      const props = node.properties || (node.properties = {});
+      if ('href' in props) props.href = prefixFragment(props.href);
+      if ('useMap' in props) props.useMap = prefixFragment(props.useMap);
+      for (const key of URL_REFERENCE_PROPERTIES) {
+        const value = props[key];
+        if (typeof value === 'string' && value.includes('#')) {
+          props[key] = value.replace(
+            /url\(\s*(['"]?)#(?!user-content-)([^'")\s]+)\1\s*\)/g,
+            (_m: string, quote: string, id: string) => `url(${quote}#${PREFIX}${id}${quote})`
+          );
         }
+      }
+      if ((node.tagName === 'a' || node.tagName === 'area') && props.target) {
+        const rel: string[] = Array.isArray(props.rel) ? props.rel : props.rel ? String(props.rel).split(/\s+/) : [];
+        if (!rel.includes('noopener')) rel.push('noopener');
+        props.rel = rel;
+      }
+      if ((node.tagName === 'audio' || node.tagName === 'video') && props.autoPlay && !props.muted) {
+        delete props.autoPlay;
       }
     }
   }
-  
-  // Convert self-closing tags to proper closing tags, respecting quoted attributes
-  // This properly handles cases like: <Filter where="item.price > 100" />
-  processedHtml = convertSelfClosingTags(processedHtml);
-  
+  node.children?.forEach(finishSanitizedTree);
+}
+
+// Parse HTML to HAST (Hypertext Abstract Syntax Tree)
+// Returns both the parsed tree and information about stripped components
+export function parseTemplate(htmlString: string): Root & {
+  _strippedComponents?: StrippedTag[];
+  _documentHead?: DocumentHead;
+} {
+  // A whole pasted page: only the body becomes the page; the head's title
+  // and Google Fonts links are kept aside (document-head.ts)
+  const document = extractDocument(htmlString.trim());
+
+  // No entity pre-decoding: parse5 decodes entities itself, in text and in
+  // attributes, exactly once. Decoding the whole source first turned
+  // `&lt;div&gt;` in a code sample into a real <div>, `&lt;Guestbook /&gt;`
+  // into a second working guestbook, and cut `title="said &quot;hi&quot;"` short.
+  let processedHtml = prepareSourceForParse(document.body, isRegisteredComponent);
+
   // Detect if we have multiple root-level components after conversion and wrap them
   const trimmedHtml = processedHtml.trim();
-  const hasMultipleRootElements = /<[^>]+><\/[^>]+>[\s\S]*<[^>]+><\/[^>]+>/.test(trimmedHtml) && 
-                                  !trimmedHtml.startsWith('<div') && 
+  const hasMultipleRootElements = /<[^>]+><\/[^>]+>[\s\S]*<[^>]+><\/[^>]+>/.test(trimmedHtml) &&
+                                  !trimmedHtml.startsWith('<div') &&
                                   !trimmedHtml.startsWith('<section') &&
                                   !trimmedHtml.startsWith('<main');
-  
+
   if (hasMultipleRootElements) {
     processedHtml = `<div>${processedHtml}</div>`;
   }
 
   // Parse as fragment (now we have clean body content)
-  // IMPORTANT: rehype-parse may collapse whitespace by default
-  // We need to preserve whitespace for inline components
   const processor = unified()
     .use(rehypeParse, {
       fragment: true,
-      // Preserve whitespace around inline elements
       emitParseErrors: false,
       duplicateAttribute: false
     })
     .use(rehypeSanitize, createCustomSchema());
 
   const tree = processor.parse(processedHtml);
+  const processed = processor.runSync(tree) as Root;
+  finishSanitizedTree(processed as HastLike);
 
-  const processed = processor.runSync(tree);
-
-  // Check if positioning data survived sanitization (check both old and new formats)
-  const processedString = JSON.stringify(processed);
-
-  // DEBUG: Log what the parser extracted for Var/Set/ShowVar components (development only)
-  if (process.env.NODE_ENV === 'development') {
-    if (processedString.includes('"var"') || processedString.includes('"Var"')) {
-      // Find and log Var nodes with their properties
-      const findVarNodes = (node: any): any[] => {
-        const results: any[] = [];
-        if (node.tagName === 'var' || node.tagName === 'Var') {
-          results.push({ tagName: node.tagName, properties: node.properties });
-        }
-        if (node.children) {
-          for (const child of node.children) {
-            results.push(...findVarNodes(child));
-          }
-        }
-        return results;
-      };
-    }
-  }
-
-  const hasPositioningAfterSanitization = processedString.includes('data-positioning-mode') ||
-                                          processedString.includes('data-pixel-position') ||
-                                          processedString.includes('data-pure-positioning') ||
-                                          processedString.includes('dataPositioningMode') ||
-                                          processedString.includes('dataPixelPosition') ||
-                                          processedString.includes('dataPurePositioning') ||
-                                          processedString.includes('dataPosition');
-
-  // Extract ALL tags AFTER sanitization by traversing the AST (Components and HTML tags)
-  const tagsAfter: string[] = [];
-  const extractTagsFromAst = (node: any) => {
-    // Track all tag names that survived sanitization
-    if (node.tagName) {
-      tagsAfter.push(node.tagName);
-    }
-    if (node.children) {
-      node.children.forEach(extractTagsFromAst);
-    }
-  };
-  extractTagsFromAst(processed);
-
-  // Compare before/after to find stripped tags (both Components and HTML tags)
-  // Use case-insensitive comparison because rehype might normalize tag names
-  const strippedComponents: Array<{ name: string; line?: number; reason?: string }> = [];
-  const allowedTagsLowercase = new Set(tagsAfter.map(t => t.toLowerCase()));
-
-  componentsBefore.forEach(tag => {
-    if (!allowedTagsLowercase.has(tag.name.toLowerCase())) {
-      // Check if it's a registered component
-      const isRegistered = componentRegistry.get(tag.name);
-
-      // Determine reason for stripping
-      let reason: string;
-      if (!isRegistered) {
-        // Not a registered component - could be unknown component or disallowed HTML tag
-        if (/^[A-Z]/.test(tag.name)) {
-          reason = 'Unknown component (not registered in template system)';
-        } else {
-          reason = 'Disallowed HTML tag (removed by security sanitization)';
-        }
-      } else {
-        reason = 'Invalid attributes or structure (removed by sanitization)';
-      }
-
-      strippedComponents.push({
-        name: tag.name,
-        line: tag.line,
-        reason
-      });
-    }
-  });
+  const strippedComponents = reportStrippedTags(htmlString, processed, document.head);
 
   // Validate component attributes against registry
   const attributeWarnings = validateComponentAttributes(processed);
 
   // Attach stripped components and attribute warnings to the result
   const result = processed as Root & {
-    _strippedComponents?: Array<{ name: string; line?: number; reason?: string }>;
+    _strippedComponents?: StrippedTag[];
     _attributeWarnings?: string[];
+    _documentHead?: DocumentHead;
   };
 
   if (strippedComponents.length > 0) {
@@ -618,20 +529,18 @@ export function parseTemplate(htmlString: string): Root & { _strippedComponents?
     result._attributeWarnings = attributeWarnings;
   }
 
+  if (document.isFullDocument || document.head.fontImports.length > 0) {
+    result._documentHead = document.head;
+  }
+
   return result;
 }
 
 // Validate component attributes against registry definitions
 function validateComponentAttributes(node: any, warnings: string[] = [], lineNumber = 0): string[] {
-  if (node.tagName) {
-    // Check if this is a registered component
-    // Try both the original tagName and the capitalized version (rehype may normalize case)
-    let componentDef = componentRegistry.get(node.tagName);
-    if (!componentDef && node.tagName.length > 0) {
-      // Try with first letter capitalized
-      const capitalizedName = node.tagName.charAt(0).toUpperCase() + node.tagName.slice(1);
-      componentDef = componentRegistry.get(capitalizedName);
-    }
+  if (node.tagName && node.data?.component) {
+    // Only component tags (marked by finishSanitizedTree); <select> is HTML
+    const componentDef = componentRegistry.get(node.tagName);
 
     if (componentDef && componentDef.props) {
       const props = node.properties || {};
@@ -699,10 +608,18 @@ export interface TemplateNode {
   properties?: Record<string, unknown>;
   children?: TemplateNode[];
   value?: string;
+  /** A component tag (written PascalCase). Plain HTML that shares a name, like <button>, isn't. */
+  component?: boolean;
+  /**
+   * Root only, for a pasted whole document: its title and Google Fonts.
+   * Kept on the AST because the save API stores the AST as-is; _app.tsx
+   * reads the font imports from it (fontImportsFromCompiledTemplate).
+   */
+  head?: DocumentHead;
 }
 
 export function astToJson(node: unknown): TemplateNode {
-  const typedNode = node as { type: string; value?: string; tagName?: string; properties?: Record<string, unknown>; children?: unknown[] };
+  const typedNode = node as { type: string; value?: string; tagName?: string; properties?: Record<string, unknown>; children?: unknown[]; data?: { component?: boolean } };
 
   if (typedNode.type === 'text') {
     return {
@@ -718,6 +635,7 @@ export function astToJson(node: unknown): TemplateNode {
       properties: typedNode.properties || {},
       children: typedNode.children?.map(astToJson) || []
     };
+    if (typedNode.data?.component) result.component = true;
 
     return result;
   }
@@ -728,7 +646,8 @@ export function astToJson(node: unknown): TemplateNode {
     // Check if we have a single auto-added div wrapper to unwrap
     if (children.length === 1 &&
         children[0].type === 'element' &&
-        children[0].tagName === 'div') {
+        children[0].tagName === 'div' &&
+        !children[0].component) {
 
       const divElement = children[0];
       const hasEmptyProperties = !divElement.properties || Object.keys(divElement.properties).length === 0;
@@ -787,7 +706,7 @@ function countNodes(node: TemplateNode, depth = 0): { count: number; maxDepth: n
 }
 
 function countComponents(node: TemplateNode, counts: Record<string, number> = {}): Record<string, number> {
-  if (node.type === 'element' && node.tagName) {
+  if (node.type === 'element' && node.tagName && node.component) {
     const isComponent = componentRegistry.get(node.tagName);
     if (isComponent) {
       counts[node.tagName] = (counts[node.tagName] || 0) + 1;
@@ -853,11 +772,7 @@ export interface CompilationResult {
   ast?: TemplateNode;
   validation?: ValidationResult;
   errors: string[];
-  strippedComponents?: Array<{
-    name: string;
-    line?: number;
-    reason?: string;
-  }>;
+  strippedComponents?: StrippedTag[];
 }
 
 export function compileTemplate(htmlString: string): CompilationResult {
@@ -892,12 +807,12 @@ export function compileTemplate(htmlString: string): CompilationResult {
 
     // Convert to JSON AST
     const ast = astToJson(hast);
-
-    // Check final AST for positioning data (both old and new formats)
-    const astString = JSON.stringify(ast);
+    const documentHead = (hast as any)._documentHead as DocumentHead | undefined;
+    if (documentHead) ast.head = documentHead;
 
     // Validate
     const validation = validateTemplate(ast);
+    validation.warnings.push(...syntaxCheck.warnings);
 
     // Merge attribute warnings into validation warnings
     if (attributeWarnings.length > 0 && validation.warnings) {

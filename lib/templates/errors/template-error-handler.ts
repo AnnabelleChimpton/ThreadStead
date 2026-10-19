@@ -75,7 +75,7 @@ function generateSuggestion(
           'BlogPost': 'BlogPosts',
           'Post': 'BlogPosts',
           'Friend': 'FriendDisplay',
-          'Friends': 'FriendDisplay or FeaturedFriends',
+          'Friends': 'FriendDisplay',
           'Profile': 'ProfilePhoto or ProfileHero',
           'Image': 'ProfilePhoto or UserImage',
           'Text': 'TextElement or Paragraph',
@@ -91,7 +91,7 @@ function generateSuggestion(
 
     case 'syntax':
       if (message?.includes('closing tag')) {
-        return 'Every opening tag needs a matching closing tag. Example: <Show>...</Show>';
+        return 'Every component needs a closing tag or a self-closing slash, with the same capitals: <If data="…">…</If> or <Guestbook />.';
       }
       if (message?.includes('attribute')) {
         return 'Check the attribute syntax. Use double quotes for values: attribute="value"';

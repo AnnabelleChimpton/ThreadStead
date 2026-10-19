@@ -10,6 +10,8 @@
  * - template-parser.ts (sanitization schema)
  */
 
+import { find, html as htmlSpace, svg as svgSpace } from 'property-information';
+
 /**
  * Master attribute mapping table
  * Maps lowercase/kebab-case HTML attributes to proper React prop names
@@ -415,6 +417,10 @@ export function normalizeAttributeName(attrName: string): string {
   if (attrName === 'class') return 'className';
   if (attrName === 'for') return 'htmlFor';
 
+  // React takes aria-* attributes as written (ariaLabel would render as an
+  // unknown "arialabel" attribute that screen readers ignore)
+  if (attrName.startsWith('aria-')) return attrName;
+
   // Convert kebab-case to camelCase for data attributes and other props
   if (attrName.includes('-') && !attrName.startsWith('data-')) {
     return attrName.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
@@ -551,4 +557,37 @@ export function getDuplicatePropPairs(): [string, string][] {
   }
 
   return pairs;
+}
+
+/**
+ * One attribute of a page's own (non-component) HTML element, as a React
+ * prop. Used when compiled HTML is turned back into React elements around
+ * hydrated islands. property-information knows every HTML and SVG
+ * attribute's React-style name and type, so:
+ *  - boolean attributes are on when present (`<audio controls>` has
+ *    `controls=""`, which React reads as false);
+ *  - `aria-*` and `data-*` stay as written (React wants them that way);
+ *  - form fields get their starting value as defaultValue/defaultChecked,
+ *    so React doesn't freeze them as read-only controlled inputs.
+ */
+export function domAttributeToReactProp(
+  tagName: string,
+  name: string,
+  value: string,
+  inSvg: boolean
+): [string, unknown] {
+  const lower = name.toLowerCase();
+  if (lower.startsWith('aria-') || lower.startsWith('data-')) return [lower, value];
+  const info = find(inSvg ? svgSpace : htmlSpace, name);
+  const prop = info.property;
+  if (info.boolean) {
+    return [prop === 'checked' && tagName === 'input' ? 'defaultChecked' : prop, true];
+  }
+  if (info.overloadedBoolean) {
+    return [prop, value === '' || value.toLowerCase() === lower ? true : value];
+  }
+  if (prop === 'value' && (tagName === 'input' || tagName === 'textarea' || tagName === 'select')) {
+    return ['defaultValue', value];
+  }
+  return [prop, value];
 }

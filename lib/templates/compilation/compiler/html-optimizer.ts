@@ -1,4 +1,5 @@
 // HTML optimization and static generation
+import { find, html as htmlSpace, svg as svgSpace, type Schema } from 'property-information';
 import type { TemplateNode } from '@/lib/templates/compilation/template-parser';
 import type { Island } from './types';
 
@@ -9,15 +10,8 @@ export function generateStaticHTML(ast: TemplateNode, islands: Island[]): string
   let islandReplacements = 0;
 
 
-  function renderNode(node: TemplateNode): string {
+  function renderNode(node: TemplateNode, inSvg = false): string {
     nodeCount++;
-
-    // Debug: Check for positioning data in each node
-    if (node.properties) {
-      const hasPositioningProps = Object.keys(node.properties).some(key =>
-        key.includes('data-positioning-mode') || key.includes('data-pixel-position') || key.includes('data-position')
-      );
-    }
 
     if (node.type === 'text') {
       return escapeHtml(node.value || '');
@@ -31,18 +25,19 @@ export function generateStaticHTML(ast: TemplateNode, islands: Island[]): string
         islandReplacements++;
 
         // Render as inline span with data-island attributes (matches HTML custom element behavior)
-        const attrs = renderAttributes(node.properties || {});
-        const children = node.children?.map(renderNode).join('') || '';
+        const attrs = renderAttributes(node.properties || {}, htmlSpace);
+        const children = node.children?.map((child) => renderNode(child)).join('') || '';
         return `<span${attrs ? ` ${attrs}` : ''}>${children}</span>`;
       }
       
-      // Regular HTML rendering
-      const attrs = renderAttributes(node.properties || {});
-      const children = node.children?.map(renderNode).join('') || '';
+      // Regular HTML rendering. SVG attributes have their own spellings
+      // (stroke-width, viewBox), so the space follows the element.
+      const childInSvg = inSvg || node.tagName === 'svg';
+      const attrs = renderAttributes(node.properties || {}, childInSvg ? svgSpace : htmlSpace);
+      const children = node.children?.map((child) => renderNode(child, childInSvg)).join('') || '';
       
       // Handle self-closing tags
-      const voidElements = new Set(['br', 'hr', 'img', 'input', 'meta', 'link']);
-      if (voidElements.has(node.tagName.toLowerCase()) && !children) {
+      if (VOID_ELEMENTS.has(node.tagName.toLowerCase()) && !children) {
         return `<${node.tagName}${attrs ? ` ${attrs}` : ''} />`;
       }
       
@@ -50,7 +45,7 @@ export function generateStaticHTML(ast: TemplateNode, islands: Island[]): string
     }
     
     if (node.type === 'root') {
-      return node.children?.map(renderNode).join('') || '';
+      return node.children?.map((child) => renderNode(child)).join('') || '';
     }
     
     return '';
@@ -59,42 +54,33 @@ export function generateStaticHTML(ast: TemplateNode, islands: Island[]): string
   return renderNode(ast);
 }
 
-// Render HTML attributes safely
-function renderAttributes(properties: Record<string, any>): string {
-  return Object.entries(properties)
-    .filter(([key, value]) => value != null)
-    .map(([key, value]) => {
-      // Convert JSX attributes to HTML attributes
-      let htmlKey = key;
-      if (key === 'className') {
-        htmlKey = 'class';
-      }
+const VOID_ELEMENTS = new Set([
+  'area', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'source', 'track', 'wbr',
+]);
 
-      // Convert camelCase positioning attributes back to kebab-case for HTML
-      if (key === 'dataPositioningMode') {
-        htmlKey = 'data-positioning-mode';
-      } else if (key === 'dataPixelPosition') {
-        htmlKey = 'data-pixel-position';
-      } else if (key === 'dataPosition') {
-        htmlKey = 'data-position';
-      } else if (key === 'dataGridPosition') {
-        htmlKey = 'data-grid-position';
-      } else if (key === 'dataGridColumn') {
-        htmlKey = 'data-grid-column';
-      } else if (key === 'dataGridRow') {
-        htmlKey = 'data-grid-row';
-      } else if (key === 'dataGridSpan') {
-        htmlKey = 'data-grid-span';
-      }
+/**
+ * Render hast properties as HTML attributes. property-information maps
+ * each property back to its attribute (htmlFor → for, cellPadding →
+ * cellpadding, ariaLabel → aria-label, dataPositioningMode →
+ * data-positioning-mode, strokeWidth → stroke-width) and says how lists
+ * join. The old hand list only knew className, so `<label for>` came out
+ * as `htmlFor="…"` and clicking the label did nothing.
+ */
+function renderAttributes(properties: Record<string, any>, space: Schema): string {
+  return Object.entries(properties)
+    .filter(([, value]) => value != null && value !== false)
+    .map(([key, value]) => {
+      const info = find(space, key);
+      const htmlKey = info.attribute;
 
       // Handle boolean attributes
-      if (typeof value === 'boolean') {
-        return value ? htmlKey : '';
+      if (value === true) {
+        return htmlKey;
       }
 
       // Handle array values (like classList)
       if (Array.isArray(value)) {
-        return `${htmlKey}="${escapeHtml(value.join(' '))}"`;
+        return `${htmlKey}="${escapeHtml(value.join(info.commaSeparated ? ', ' : ' '))}"`;
       }
 
       return `${htmlKey}="${escapeHtml(String(value))}"`;
