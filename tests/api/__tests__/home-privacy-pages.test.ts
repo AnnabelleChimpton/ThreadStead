@@ -59,6 +59,7 @@ jest.mock('@/lib/config/database/connection', () => ({
 }))
 jest.mock('@/lib/auth/server', () => ({ getSessionUser: jest.fn() }))
 // Next-door houses have their own real-Postgres tests (tests/db/home-neighbors.dbtest.ts)
+jest.mock('@/lib/pixel-homes/street', () => ({ streetIndexOf: jest.fn(async () => 1) }))
 jest.mock('@/lib/pixel-homes/neighbors', () => ({
   getHomeNeighbors: jest.fn(async () => ({ previous: { username: 'ada', displayName: null }, next: null })),
 }))
@@ -111,6 +112,7 @@ describe('/home/[handle]', () => {
     expect(result.props.privateProfile).toBeUndefined()
     expect(result.props.isSignedIn).toBe(true)
     expect(result.props.neighbors).toEqual({ previous: { username: 'ada', displayName: null }, next: null })
+    expect(result.props.streetHref).toBe('/neighborhood?street=2&at=shy')
   })
 
   test('a signed-out visitor is flagged so the page doesn’t record a visit', async () => {

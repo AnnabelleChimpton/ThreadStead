@@ -69,6 +69,8 @@ interface PixelHomePageProps {
   isSignedIn?: boolean
   /** The houses on either side, for the next-door links */
   neighbors?: HomeNeighbors
+  /** Back to this house's street, with it in view */
+  streetHref?: string
   className?: string
 }
 
@@ -79,6 +81,7 @@ export default function PixelHomePage({
   isOwner = false,
   isSignedIn = false,
   neighbors = { previous: null, next: null },
+  streetHref = '/neighborhood',
   className = ''
 }: PixelHomePageProps) {
   const nameToShow = displayName || username
@@ -316,7 +319,7 @@ export default function PixelHomePage({
               ← {neighborName(neighbors.previous)}&apos;s house
             </Link>
           ) : <span />}
-          <Link href="/neighborhood">Back to the street</Link>
+          <Link href={streetHref}>Back to the street</Link>
           {neighbors.next ? (
             <Link href={`/home/${encodeURIComponent(neighbors.next.username)}`}>
               {neighborName(neighbors.next)}&apos;s house →

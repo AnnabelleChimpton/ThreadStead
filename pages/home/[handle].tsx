@@ -9,6 +9,7 @@ import { serializeJsonLd } from "@/lib/utils/sanitization/json-ld";
 import PrivateProfile from '@/components/core/profile/PrivateProfile'
 import { residentAccess } from '@/lib/domain/users/profile-access'
 import { getHomeNeighbors, type HomeNeighbors } from '@/lib/pixel-homes/neighbors'
+import { streetIndexOf } from '@/lib/pixel-homes/street'
 import { SITE_NAME } from '@/lib/config/site/constants'
 
 interface UserHomeConfig {
@@ -54,6 +55,8 @@ interface PixelHomeProps {
   userDisplayName?: string
   userBio?: string
   neighbors: HomeNeighbors
+  /** Back to this house's own street, with it in view */
+  streetHref: string
   /** The yard's share image; null when a signed-out visitor couldn't see this home. */
   shareImage: string | null
 }
@@ -83,7 +86,8 @@ function PixelHome({
   userDisplayName,
   userBio,
   neighbors,
-  shareImage
+  shareImage,
+  streetHref
 }: PixelHomeProps) {
   const pageTitle = `${userDisplayName || `@${username}`}'s Pixel Home`
   const pageDescription = userBio
@@ -142,6 +146,7 @@ function PixelHome({
           isOwner={isOwner}
           isSignedIn={isSignedIn}
           neighbors={neighbors}
+          streetHref={streetHref}
         />
       </Layout>
     </>
@@ -221,7 +226,12 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       })
     }
 
-    const neighbors = await getHomeNeighbors(db, user, { viewerId: currentUser?.id, host: SITE_NAME })
+    const [neighbors, streetIndex] = await Promise.all([
+      getHomeNeighbors(db, user, { viewerId: currentUser?.id, host: SITE_NAME }),
+      streetIndexOf(db, user.id, SITE_NAME),
+    ])
+    const streetParam = streetIndex ? `street=${streetIndex + 1}&` : ''
+    const streetHref = `/neighborhood?${streetParam}at=${encodeURIComponent(cleanHandle)}`
 
     // The share image is for link previews, which reach signed-out
     // visitors: only a public home gets one, whoever is viewing now.
@@ -241,6 +251,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       props: {
         username: cleanHandle,
         neighbors,
+        streetHref,
         shareImage,
         homeConfig: {
           houseTemplate: homeConfig.houseTemplate as HouseTemplate,

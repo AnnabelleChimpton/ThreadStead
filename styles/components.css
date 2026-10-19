@@ -1545,3 +1545,90 @@ img.ts-emoji {
   color: var(--ha-rose-ink, #9b3b2a);
   text-decoration-color: currentColor;
 }
+
+/* The street (components/pixel-homes/Street.tsx). Lots are 1x crops of each
+   yard's picture, so sizes here are art pixels: keep them whole numbers.
+   Colours come from the pixel-art master palette (design/pixel-homes-audit/
+   art-direction.md §3.2): slate for the sidewalk and road, butter for the
+   lane line. */
+.ts-street {
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.ts-street-inner {
+  width: max-content;
+}
+.ts-street-lots {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.ts-street-lot-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+.ts-street-lot-link:focus-visible {
+  outline: 2px dotted #4a403d;
+  outline-offset: -2px;
+}
+.ts-street-yard {
+  position: relative;
+  display: block;
+  width: 288px;
+  height: 208px;
+  overflow: hidden;
+  /* Only seen behind a house that has no picture yet */
+  background: linear-gradient(#9dbfd3 0 72px, #608d43 72px);
+}
+.ts-street-yard img {
+  display: block;
+  max-width: none;
+}
+.ts-street-sign {
+  display: block;
+  width: 288px;
+  padding: 4px 8px;
+  background: #c5d0cd;
+  border-top: 2px solid #8fa0a0;
+  color: #3e4b4d;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ts-street-lot-link:hover .ts-street-sign {
+  color: #8c4a5b;
+  text-decoration: underline;
+}
+.ts-street-number {
+  font-weight: 700;
+}
+.ts-street-road {
+  height: 32px;
+  background-color: #5c6e70;
+  background-image: repeating-linear-gradient(90deg, #f6e27f 0 24px, transparent 24px 48px);
+  background-size: 100% 4px;
+  background-position: 0 50%;
+  background-repeat: no-repeat;
+}
+
+/* Phones: the street runs down the page instead of across it */
+@media (max-width: 767px) {
+  .ts-street {
+    overflow-x: visible;
+  }
+  .ts-street-inner {
+    width: auto;
+  }
+  .ts-street-lots {
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+  .ts-street-road {
+    display: none;
+  }
+}

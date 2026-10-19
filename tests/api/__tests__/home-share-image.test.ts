@@ -30,6 +30,7 @@ jest.mock('@/lib/config/database/connection', () => ({
 }))
 jest.mock('@/lib/auth/server', () => ({ getSessionUser: jest.fn() }))
 jest.mock('@/lib/pixel-homes/neighbors', () => ({ getHomeNeighbors: jest.fn(async () => ({ previous: null, next: null })) }))
+jest.mock('@/lib/pixel-homes/street', () => ({ streetIndexOf: jest.fn(async () => 0) }))
 jest.mock('@/lib/domain/users/profile-access', () => ({ residentAccess: jest.fn(async () => ({ visible: true })) }))
 jest.mock('@/lib/pixel-homes/snapshot/service', () => ({ scheduleHomeSnapshot: jest.fn(async () => null) }))
 
