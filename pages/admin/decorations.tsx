@@ -10,6 +10,7 @@ import Layout from '@/components/ui/layout/Layout';
 import AdminHeader from '@/components/ui/navigation/AdminHeader';
 import { useToast } from '@/contexts/ToastContext';
 import { useConfirm } from '@/contexts/ConfirmContext';
+import CurrentCollectionPanel from '@/components/features/admin/CurrentCollectionPanel';
 
 interface Decoration {
   id: string;
@@ -406,6 +407,8 @@ export default function AdminDecorationsPage({ isAdmin, userId }: AdminDecoratio
             </select>
           </div>
         </div>
+
+        <CurrentCollectionPanel />
 
         {/* Create Form Modal */}
         {showCreateForm && (

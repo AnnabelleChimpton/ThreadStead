@@ -8,6 +8,15 @@ import { DECORATION_CATEGORY_ICONS, getCategoryIcon } from '@/lib/pixel-homes/ca
 import { matchesSearch } from '@/lib/pixel-homes/palette-search'
 import { retroSFX } from '../../lib/audio/retro-sfx'
 import { normalizeHexColor } from '../../lib/pixel-homes/decoration-save-rules'
+import { shortDate } from '../../lib/pixel-homes/collections'
+
+/** Palette tab keys for a seasonal collection ("collection:Autumn 2026"). */
+const COLLECTION_TAB = 'collection:'
+
+/** "Red Roses, until Nov 30" for a limited release; just the name otherwise. */
+function tileTitle(item: DecorationItem): string {
+  return item.isLimitedTime && item.expiresAt ? `${item.name}, until ${shortDate(item.expiresAt)}` : item.name
+}
 
 /**
  * A hex color box that only passes on real colors. While what's typed
@@ -435,6 +444,19 @@ export default function DecorationPalette({
     return result
   }, [items])
 
+  // Seasonal collections, each shown as its own group, whatever category its
+  // items sit in (a "seasonal" category has no tab of its own)
+  const collectionItems = useMemo(
+    () => Object.entries(items)
+      .filter(([category]) => category !== 'house' && category !== 'custom')
+      .flatMap(([, list]) => list.filter(item => typeof item.collection === 'string' && item.collection)),
+    [items]
+  )
+  const collectionNames = useMemo(
+    () => [...new Set(collectionItems.map(item => item.collection as string))].sort(),
+    [collectionItems]
+  )
+
   // Filter items based on search: names, ids, and the words for each category ("lamp", "flower")
   const filteredItems = useMemo(() => {
     if (!searchQuery.trim()) return transformedItems
@@ -453,6 +475,10 @@ export default function DecorationPalette({
     if (primaryCategory === 'decorations') {
       if (searchQuery) {
         return filteredItems.decorations || []
+      }
+      if (secondaryCategory.startsWith(COLLECTION_TAB)) {
+        const name = secondaryCategory.slice(COLLECTION_TAB.length)
+        return collectionItems.filter(item => item.collection === name)
       }
       return filteredItems[secondaryCategory] || []
     }
@@ -491,10 +517,23 @@ export default function DecorationPalette({
 
   const currentItems = getCurrentItems()
 
+  // In a collection whose items are all limited, the last day they're out
+  const collectionUntil = (() => {
+    if (primaryCategory !== 'decorations' || searchQuery || !secondaryCategory.startsWith(COLLECTION_TAB)) return null
+    if (currentItems.length === 0 || !currentItems.every(item => item.isLimitedTime && item.expiresAt)) return null
+    return currentItems.map(item => String(item.expiresAt)).sort().pop() ?? null
+  })()
+
   // Get available secondary categories
   const getSecondaryCategories = () => {
     const primary = PRIMARY_CATEGORIES[primaryCategory as keyof typeof PRIMARY_CATEGORIES]
-    return primary?.subcategories || {}
+    const subcategories = primary?.subcategories || {}
+    if (primaryCategory !== 'decorations' || collectionNames.length === 0) return subcategories
+    // Collections come first, named as the admin named them
+    const collectionTabs = Object.fromEntries(
+      collectionNames.map(name => [`${COLLECTION_TAB}${name}`, { label: name, icon: 'calendar' as PixelIconName }])
+    )
+    return { ...collectionTabs, ...subcategories }
   }
 
   const secondaryCategories = getSecondaryCategories()
@@ -899,6 +938,9 @@ export default function DecorationPalette({
           scrollSnapType: 'y proximity'
         } : undefined}
       >
+        {collectionUntil && (
+          <p className="text-xs text-thread-sage mb-2">Out until {shortDate(collectionUntil)}.</p>
+        )}
         {currentItems.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-32 text-thread-sage">
             <PixelIcon name="search" size={32} className="mb-2 text-thread-sage/60" />
@@ -912,7 +954,7 @@ export default function DecorationPalette({
               <button
                 key={item.id}
                 onClick={() => onItemSelect(item)}
-                title={item.name}
+                title={tileTitle(item)}
                 className={`
                   !relative !aspect-square !rounded-xl !border-2 !w-full !overflow-hidden
                   !transition-all !duration-200 hover:!scale-105 hover:!shadow-lg

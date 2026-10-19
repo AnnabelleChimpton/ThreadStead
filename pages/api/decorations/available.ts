@@ -33,6 +33,7 @@ export default apiHandler(
           releaseType: true,
           releaseStartAt: true,
           releaseEndAt: true,
+          collection: true,
           userClaims: {
             where: { userId: user.id },
             select: { claimedAt: true, claimMethod: true }
@@ -70,7 +71,9 @@ export default apiHandler(
           releaseType: decoration.releaseType,
           isDefault: decoration.releaseType === 'DEFAULT',
           isLimitedTime: decoration.releaseType === 'LIMITED_TIME',
-          expiresAt: decoration.releaseEndAt
+          expiresAt: decoration.releaseEndAt,
+          // A named set ("Autumn 2026"); the palette shows it as its own group
+          collection: decoration.collection?.trim() || null
         };
 
         if (!decorationsByCategory[decoration.category]) {

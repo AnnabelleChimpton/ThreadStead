@@ -17,18 +17,21 @@ import {
   type StreetPage,
 } from '@/lib/pixel-homes/street'
 import { getStreetRingSigns, type RingSign } from '@/lib/pixel-homes/street-rings'
+import { getCollectionNotice, noticeText } from '@/lib/pixel-homes/collections'
 
 interface NeighborhoodProps {
   street: StreetPage
   recent: Array<Pick<StreetHome, 'username' | 'displayName' | 'snapshotCardUrl'>>
   at: string | null
   ringSigns: RingSign[]
+  /** "Autumn 2026 decorations are out until Nov 30.", while the current collection is out */
+  collectionLine: string | null
 }
 
 /** ?street= is 1-based for people; StreetPage.index is 0-based. */
 const streetHref = (index: number) => (index === 0 ? '/neighborhood' : `/neighborhood?street=${index + 1}`)
 
-export default function Neighborhood({ street, recent, at, ringSigns }: NeighborhoodProps) {
+export default function Neighborhood({ street, recent, at, ringSigns, collectionLine }: NeighborhoodProps) {
   const first = street.index * HOUSES_PER_STREET + 1
   const last = Math.min(first + HOUSES_PER_STREET - 1, street.totalHomes)
 
@@ -45,6 +48,7 @@ export default function Neighborhood({ street, recent, at, ringSigns }: Neighbor
             <p className="text-nb-ink-mid text-sm sm:text-base mb-0">
               Houses {first}–{last} of {street.totalHomes}, in the order people moved in.
             </p>
+            {collectionLine && <p className="text-nb-ink-mid text-sm sm:text-base mt-1 mb-0">{collectionLine}</p>}
           </div>
           <p className="text-sm sm:text-base mb-0 flex flex-wrap gap-x-3">
             <Link href="/neighborhood/random">A random house</Link>
@@ -102,13 +106,14 @@ export const getServerSideProps: GetServerSideProps<NeighborhoodProps> = async (
   const index = Number.isFinite(requested) && requested > 0 ? requested - 1 : 0
   const at = typeof context.query.at === 'string' ? context.query.at : null
 
-  const [street, recent] = await Promise.all([
+  const [street, recent, collection] = await Promise.all([
     getStreetPage(db, { index, viewerId: viewer?.id, host: SITE_NAME }),
     getRecentlyDecorated(db, { viewerId: viewer?.id, host: SITE_NAME }),
+    getCollectionNotice(db),
   ])
 
   // One look at the hub per street, cached and bounded; no hub, no signs
   const ringSigns = await getStreetRingSigns(db, street.homes, { viewerId: viewer?.id })
 
-  return { props: { street, recent, at, ringSigns } }
+  return { props: { street, recent, at, ringSigns, collectionLine: collection ? noticeText(collection) : null } }
 }
