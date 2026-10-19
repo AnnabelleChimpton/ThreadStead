@@ -114,7 +114,8 @@ export async function harvestSignals(db: PrismaClient, { baseUrl, now = new Date
   const before = await db.site.count()
   if (keys.length > 0) {
     await db.site.createMany({
-      data: [...found.values()].map(({ ref }) => ({ key: ref.key, host: ref.host, url: ref.url, source: 'community' as const })),
+      // First fetch is due now, by this run's clock (not the database's).
+      data: [...found.values()].map(({ ref }) => ({ key: ref.key, host: ref.host, url: ref.url, source: 'community' as const, nextFetchAt: now })),
       skipDuplicates: true,
     })
   }
@@ -171,7 +172,7 @@ export async function harvestSignals(db: PrismaClient, { baseUrl, now = new Date
   await db.$executeRaw`
     UPDATE "SiteLink" l SET "toSiteId" = s."id" FROM "Site" s WHERE s."key" = l."toKey" AND l."toSiteId" IS NULL
   `
-  const linkCandidatesCreated = await createLinkCandidates(db, blockedSet, optOutSet, ownHost)
+  const linkCandidatesCreated = await createLinkCandidates(db, blockedSet, optOutSet, ownHost, now)
 
   await recomputeSites(db, undefined, now)
 
@@ -219,7 +220,8 @@ async function createLinkCandidates(
   db: PrismaClient,
   blockedSet: Set<string>,
   optOutSet: Set<string>,
-  ownHost: string | undefined
+  ownHost: string | undefined,
+  now: Date
 ): Promise<number> {
   const targets = await db.$queryRaw<Array<{ toKey: string }>>`
     SELECT l."toKey"
@@ -230,11 +232,11 @@ async function createLinkCandidates(
     ORDER BY count(DISTINCT l."fromSiteId") DESC, l."toKey"
     LIMIT ${MAX_LINK_CANDIDATES_PER_RUN * 2}
   `
-  const data: Array<{ key: string; host: string; url: string; source: 'community' }> = []
+  const data: Array<{ key: string; host: string; url: string; source: 'community'; nextFetchAt: Date }> = []
   for (const { toKey } of targets) {
     const ref = siteRefOf(`https://${toKey}/`)
     if (!ref || ref.key !== toKey || ref.host === ownHost || isBlockedHost(ref.host, blockedSet) || isOptedOut(ref, optOutSet)) continue
-    data.push({ key: ref.key, host: ref.host, url: ref.url, source: 'community' })
+    data.push({ key: ref.key, host: ref.host, url: ref.url, source: 'community', nextFetchAt: now })
     if (data.length >= MAX_LINK_CANDIDATES_PER_RUN) break
   }
   if (data.length === 0) return 0
