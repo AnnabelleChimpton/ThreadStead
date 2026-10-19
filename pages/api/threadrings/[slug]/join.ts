@@ -67,10 +67,19 @@ export default withRateLimit('threadring_operations')(
           return res.status(404).json({ error: "ThreadRing not found" });
         }
         if (ringHubError.status === 403) {
-          return res.status(403).json({ error: ringHubError.message || "Cannot join this ThreadRing" });
+          if (ringHubError.data?.error === "Invitation required") {
+            return res.status(403).json({
+              error: "This ring needs an invite, and there isn't an open one for you. Invites last a week, so ask the ring host for a new one."
+            });
+          }
+          return res.status(403).json({ error: ringHubError.data?.message || ringHubError.message || "Cannot join this ThreadRing" });
         }
         if (ringHubError.status === 400) {
           return res.status(400).json({ error: ringHubError.message || "Already a member or invalid request" });
+        }
+        if (ringHubError.status === 409) {
+          // Already a member, or an application is waiting for review
+          return res.status(409).json({ error: ringHubError.data?.message || ringHubError.message || "You're already in this ThreadRing" });
         }
         return res.status(500).json({
           error: "Failed to join ThreadRing via Ring Hub",

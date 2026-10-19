@@ -315,3 +315,20 @@ export const ActorBadgesResponseSchema = z.object({
   offset: z.number(),
   hasMore: z.boolean(),
 })
+
+/**
+ * POST /trp/rings/:slug/invite → 200 (ring-management.ts; no response schema,
+ * so nothing is stripped). Dates are ISO strings; expiresAt defaults to 7 days.
+ */
+export const InviteMemberResponseSchema = z.object({
+  success: z.literal(true),
+  invitation: z.object({
+    id: z.string(),
+    ringSlug: z.string(),
+    inviteeDid: z.string(),
+    inviterDid: z.string(),
+    status: z.string(),
+    createdAt: z.string(),
+    expiresAt: z.string(),
+  }),
+})

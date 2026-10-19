@@ -39,6 +39,8 @@ export default function NotificationCenter(props: NotificationCenterProps) {
         return `${actorName} is now your mutual friend!`;
       case "guestbook":
         return `${actorName} signed your guestbook`;
+      case "threadring_invite":
+        return `${actorName} invited you to join ${notification.data?.threadRingName || "a ThreadRing"}`;
       default:
         return `New activity from ${actorName}`;
     }

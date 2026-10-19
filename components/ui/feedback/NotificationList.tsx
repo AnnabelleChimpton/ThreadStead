@@ -14,7 +14,7 @@ import Button from "@/components/ui/Button";
 
 export type NotificationData = {
   id: string;
-  type: "comment" | "reply" | "photo_comment" | "photo_reply" | "follow" | "friend" | "guestbook";
+  type: "comment" | "reply" | "photo_comment" | "photo_reply" | "follow" | "friend" | "guestbook" | "threadring_invite";
   status: "unread" | "read" | "dismissed";
   data?: {
     postId?: string;
@@ -29,6 +29,9 @@ export type NotificationData = {
     excerpt?: string | null;
     /** Guestbook notes: whose guestbook it is (yours), added by GET /api/notifications */
     guestbookOwnerHandle?: string | null;
+    /** Ring invites */
+    threadRingSlug?: string;
+    threadRingName?: string;
   };
   createdAt: string;
   readAt?: string | null;
@@ -185,6 +188,15 @@ export default function NotificationList({
             {ActorComponent} signed your guestbook
           </span>
         );
+      case "threadring_invite":
+        return (
+          <span>
+            {ActorComponent} invited you to join{" "}
+            {notification.data?.threadRingName
+              ? <span className="font-semibold">{notification.data.threadRingName}</span>
+              : "a ThreadRing"}
+          </span>
+        );
       default:
         return <span>New activity from {ActorComponent}</span>;
     }
@@ -204,6 +216,8 @@ export default function NotificationList({
         return "users";
       case "guestbook":
         return "file";
+      case "threadring_invite":
+        return "mail";
       default:
         return "notification";
     }

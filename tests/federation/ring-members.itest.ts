@@ -113,3 +113,69 @@ describe("inviting to a ring whose curator isn't among the newest 20", () => {
     })
   })
 })
+
+describe('accepting a hub invite is joining the ring', () => {
+  // The flow ThreadStead's invite notification leads to: the ring page's
+  // Accept button posts /api/threadrings/[slug]/join, which signs /trp/join
+  // as the invitee. The hub has no route to list or accept invitations.
+  const ACCEPT_SLUG = 'mbrs-accept-ring'
+
+  beforeAll(() => {
+    const { testActorDid } = getRuntime()
+    hubSql(`INSERT INTO "Ring" (id, slug, name, visibility, "joinPolicy", "ownerDid", "updatedAt")
+        VALUES (gen_random_uuid()::text, '${ACCEPT_SLUG}', 'Accept Ring', 'PUBLIC', 'INVITATION', '${testActorDid}', now());
+      INSERT INTO "RingRole" (id, "ringId", name, permissions)
+        SELECT gen_random_uuid()::text, r.id, n, '[]'::jsonb
+        FROM "Ring" r, unnest(array['owner', 'member']) AS n WHERE r.slug = '${ACCEPT_SLUG}';
+      INSERT INTO "Membership" (id, "ringId", "actorDid", "roleId", status, "joinedAt", "updatedAt")
+        SELECT gen_random_uuid()::text, r.id, '${testActorDid}', rr.id, 'ACTIVE', now(), now()
+        FROM "Ring" r JOIN "RingRole" rr ON rr."ringId" = r.id AND rr.name = 'owner'
+        WHERE r.slug = '${ACCEPT_SLUG}';`)
+  })
+
+  afterAll(() => {
+    hubSql(`DELETE FROM "Ring" WHERE slug = '${ACCEPT_SLUG}';`)
+  })
+
+  const invitationRequired = {
+    status: 403,
+    data: { error: 'Invitation required', message: 'This ring requires an invitation to join' },
+  }
+
+  test('without an invite the hub says one is required', async () => {
+    await expect(makeTestClient('second').joinRing(ACCEPT_SLUG)).rejects.toMatchObject(invitationRequired)
+  })
+
+  test('the invite reply carries the expiry the notification shows', async () => {
+    const { testActorDid, secondActorDid } = getRuntime()
+    const result = await makeTestClient('main').inviteMember(ACCEPT_SLUG, secondActorDid)
+    expect(result.invitation).toMatchObject({
+      ringSlug: ACCEPT_SLUG,
+      inviteeDid: secondActorDid,
+      inviterDid: testActorDid,
+      status: 'PENDING',
+    })
+    const week = Date.parse(result.invitation.expiresAt) - Date.parse(result.invitation.createdAt)
+    expect(week).toBeGreaterThan(6.9 * 24 * 3600_000)
+    expect(week).toBeLessThan(7.1 * 24 * 3600_000)
+  })
+
+  test('the invitee joins, as an active member', async () => {
+    const { secondActorDid } = getRuntime()
+    const joined = await makeTestClient('second').joinRing(ACCEPT_SLUG)
+    expect(joined.membership).toMatchObject({ status: 'ACTIVE', role: 'member', requiresApproval: false })
+
+    const read = await readAllRingMembers(makeTestClient(), ACCEPT_SLUG, { deadlineMs: 10_000 })
+    if (read === HUB_TIMEOUT) throw new Error('hub read timed out')
+    expect(read.members.find((m) => m.actorDid === secondActorDid)?.role).toBe('member')
+  })
+
+  test('joining again while a member is a 409', async () => {
+    await expect(makeTestClient('second').joinRing(ACCEPT_SLUG)).rejects.toMatchObject({ status: 409 })
+  })
+
+  test('an invite is used up: after leaving, it no longer lets them in', async () => {
+    await makeTestClient('second').leaveRing(ACCEPT_SLUG)
+    await expect(makeTestClient('second').joinRing(ACCEPT_SLUG)).rejects.toMatchObject(invitationRequired)
+  })
+})

@@ -21,6 +21,7 @@ import {
   ActorBadgesResponseSchema,
   MyFeedResponseSchema,
   TrendingFeedResponseSchema,
+  InviteMemberResponseSchema,
 } from './ringhub-contract'
 
 // Types for Ring Hub API compatibility
@@ -467,7 +468,8 @@ export class RingHubClient {
       expiresAt: string
     }
   }> {
-    return this.post(`/trp/rings/${slug}/invite`, { inviteeDid, expiresAt })
+    const response = await this.post(`/trp/rings/${slug}/invite`, { inviteeDid, expiresAt })
+    return validateRingHubResponse('POST /trp/rings/:slug/invite', InviteMemberResponseSchema, response)
   }
 
   /**

@@ -69,3 +69,15 @@ describe('the other types keep their targets', () => {
     expect(notificationHref({ type: 'follow', actor: { handle: null } })).toBeNull()
   })
 })
+
+describe('ring invites', () => {
+  test('open the ring page, where the Accept button is', () => {
+    expect(
+      notificationHref({ type: 'threadring_invite', actor, data: { threadRingSlug: 'tea & toast' } })
+    ).toBe('/tr/tea%20%26%20toast')
+  })
+
+  test('without a ring slug there is nowhere to go', () => {
+    expect(notificationHref({ type: 'threadring_invite', actor, data: {} })).toBeNull()
+  })
+})

@@ -149,6 +149,8 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
         return `${actorName} is now your mutual friend!`;
       case "guestbook":
         return `${actorName} signed your guestbook`;
+      case "threadring_invite":
+        return `${actorName} invited you to join ${notification.data?.threadRingName || "a ThreadRing"}`;
       default:
         return `New activity from ${actorName}`;
     }
@@ -168,6 +170,8 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
         return "users";
       case "guestbook":
         return "file";
+      case "threadring_invite":
+        return "mail";
       default:
         return "notification";
     }

@@ -19,6 +19,7 @@ type LinkableNotification = {
     guestbookOwnerHandle?: string | null;
     /** Added by GET /api/notifications: null when the entry is gone or hidden. */
     excerpt?: string | null;
+    threadRingSlug?: string;
   } | null;
   actor?: { handle?: string | null } | null;
 };
@@ -92,6 +93,9 @@ export function notificationHref(notification: LinkableNotification): string | n
     case "follow":
     case "friend":
       return actorProfile;
+    case "threadring_invite":
+      // The ring page shows invited people an Accept button
+      return data.threadRingSlug ? `/tr/${encodeURIComponent(data.threadRingSlug)}` : null;
     default:
       return null;
   }

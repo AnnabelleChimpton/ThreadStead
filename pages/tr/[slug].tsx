@@ -19,6 +19,7 @@ import { featureFlags } from "@/lib/utils/features/feature-flags";
 import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
 import { raceHubCall, HUB_TIMEOUT } from "@/lib/api/ringhub/ringhub-ssr";
 import { transformRingDescriptorToThreadRing } from "@/lib/api/ringhub/ringhub-transformers";
+import { usernameFromHandle } from "@/lib/domain/notifications/links";
 import UserQuickView from "../../components/ui/feedback/UserQuickView";
 import ExternalUserPopup from "../../components/ui/feedback/ExternalUserPopup";
 import { useToast } from "@/contexts/ToastContext";
@@ -416,6 +417,11 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
   // Set by join/leave until the page reloads.
   const [membershipOverride, setMembershipOverride] = useState<{ slug: string; role: string | null } | null>(null);
   const [membersLoading, setMembersLoading] = useState(false);
+  // An open hub invite for the viewer, tagged with its ring. Accepting is joining.
+  const [pendingInvite, setPendingInvite] = useState<{
+    slug: string;
+    inviterName: string | null;
+  } | null>(null);
   const [isPublicMemberInfo, setIsPublicMemberInfo] = useState(false);
   const [selectedMemberUsername, setSelectedMemberUsername] = useState<string | null>(null);
   const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
@@ -456,6 +462,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
         ? "curator"
         : listedMember?.role ?? null;
   const isMember = currentUserRole !== null;
+  const hasInvite = !!ring && ring.joinType === "invite" && pendingInvite?.slug === ring.slug;
 
   // Toast notifications
   const { showError, showSuccess, showWarning } = useToast();
@@ -569,6 +576,24 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
       document.removeEventListener('touchend', handleTouchEnd);
     };
   }, [isMobile, showSidebarModal]);
+
+  // Invite-only ring: has someone invited the viewer? (The hub checks again on join.)
+  useEffect(() => {
+    if (!ring || ring.joinType !== "invite" || !currentUser) return;
+    let cancelled = false;
+    const slug = ring.slug;
+    fetch(`/api/threadrings/${encodeURIComponent(slug)}/my-invite`)
+      .then(response => (response.ok ? response.json() : null))
+      .then(data => {
+        if (cancelled || !data?.invite) return;
+        const inviter = data.invite.inviter;
+        setPendingInvite({ slug, inviterName: inviter?.displayName || usernameFromHandle(inviter?.handle) });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [ring, currentUser]);
 
   // Fetch members using user-authenticated API
   useEffect(() => {
@@ -1174,6 +1199,21 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                     >
                       {joining ? "Joining..." : "Join Ring"}
                     </Button>
+                  ) : hasInvite ? (
+                    <div className="space-y-2">
+                      <p className="text-sm text-center m-0">
+                        {pendingInvite?.inviterName
+                          ? <><span className="font-semibold">{pendingInvite.inviterName}</span> invited you to this ring.</>
+                          : "You're invited to this ring."}
+                      </p>
+                      <Button
+                        onClick={handleJoin}
+                        disabled={joining}
+                        className="thread-button w-full flex items-center justify-center gap-2"
+                      >
+                        {joining ? "Joining..." : "Accept invite"}
+                      </Button>
+                    </div>
                   ) : ring.joinType === "invite" ? (
                     <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md px-4 py-3 text-center font-medium flex items-center justify-center gap-2">
                       <PixelIcon name="lock" size={16} /> Invite Only
@@ -1537,14 +1577,24 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {/* Join Button */}
-                      <Button
-                        onClick={handleJoin}
-                        disabled={joining}
-                        className="tr-join-button thread-button btn--lg w-full font-bold"
-                      >
-                        {joining ? 'Joining...' : '+ Join Ring'}
-                      </Button>
+                      {/* Join Button: same rules as the desktop sidebar */}
+                      {ring.joinType === "open" || hasInvite ? (
+                        <Button
+                          onClick={handleJoin}
+                          disabled={joining}
+                          className="tr-join-button thread-button btn--lg w-full font-bold"
+                        >
+                          {joining ? 'Joining...' : hasInvite ? 'Accept invite' : '+ Join Ring'}
+                        </Button>
+                      ) : ring.joinType === "invite" ? (
+                        <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md px-4 py-3 text-center font-medium flex items-center justify-center gap-2">
+                          <PixelIcon name="lock" size={16} /> Invite Only
+                        </div>
+                      ) : (
+                        <div className="border-2 border-nb-rose rounded-md px-4 py-3 text-center font-medium text-nb-rose-ink flex items-center justify-center gap-2">
+                          <PixelIcon name="alert" size={16} /> Closed to New Members
+                        </div>
+                      )}
 
                       {/* Badge Preview */}
                       {ring.badge && ring.badge.isActive && (

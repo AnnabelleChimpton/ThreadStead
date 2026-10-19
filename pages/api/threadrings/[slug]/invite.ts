@@ -11,6 +11,7 @@ import { createAuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user
 import { RingHubAuthError, RingHubUnavailableError } from "@/lib/api/ringhub/ringhub-errors";
 import { readAllRingMembers } from "@/lib/api/ringhub/ring-members";
 import { HUB_TIMEOUT } from "@/lib/api/ringhub/ringhub-ssr";
+import { activeUserWhere } from "@/lib/domain/users/moderation";
 
 const HUB_UNREACHABLE = "We can't reach the ThreadRing hub right now. Try again in a minute.";
 
@@ -18,18 +19,32 @@ const HUB_UNREACHABLE = "We can't reach the ThreadRing hub right now. Try again 
  * Invite someone to a hub ring, signed as the viewer. The hub knows people by
  * their federation DID (UserDID), which differs from User.did, and authorizes
  * the invite by the signer's own membership.
+ *
+ * The hub has no way to list someone's invitations, so the notification is
+ * how the invitee finds out. Accepting is joining the ring: the hub's /join
+ * uses up the invitation.
  */
 async function inviteOnHub(
-  slug: string,
+  ring: { slug: string; name: string },
   viewer: { id: string; did: string },
   username: string,
   res: NextApiResponse
 ) {
+  const slug = ring.slug;
   try {
+    // Someone on either side of a block, or a suspended or banned account,
+    // looks the same as no account at all.
     const handle = await db.handle.findFirst({
       where: {
         handle: username.toLowerCase().replace(/^@/, ""),
-        host: SITE_NAME
+        host: SITE_NAME,
+        user: {
+          AND: [
+            activeUserWhere(),
+            { blocksCreated: { none: { blockedUserId: viewer.id } } },
+            { blocksReceived: { none: { blockerId: viewer.id } } },
+          ],
+        },
       },
       include: { user: { select: { id: true, did: true, userDID: { select: { did: true } } } } }
     });
@@ -61,7 +76,27 @@ async function inviteOnHub(
     }
 
     const inviteeDid = handle.user.userDID?.did ?? handle.user.did;
-    await viewerClient.inviteMember(slug, inviteeDid);
+    const { invitation } = await viewerClient.inviteMember(slug, inviteeDid);
+
+    try {
+      await db.notification.create({
+        data: {
+          recipientId: handle.user.id,
+          actorId: viewer.id,
+          type: "threadring_invite",
+          data: {
+            source: "ringhub",
+            threadRingSlug: slug,
+            threadRingName: ring.name,
+            invitationId: invitation.id,
+            expiresAt: invitation.expiresAt
+          }
+        }
+      });
+    } catch (notifyError) {
+      // The hub invite stands, and joining still works; they just won't hear about it.
+      console.error("Hub invite sent but the notification failed:", notifyError);
+    }
 
     return res.json({
       success: true,
@@ -119,7 +154,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
           if (ring) {
             // This is a hub ring: the hub owns its memberships and invitations,
             // so a hub failure is reported as-is — never written to the local mirror.
-            return await inviteOnHub(slug, viewer, username, res);
+            return await inviteOnHub({ slug, name: ring.name }, viewer, username, res);
           }
         } catch (ringHubError) {
           console.error("RingHub error in invite:", ringHubError);
