@@ -1,0 +1,50 @@
+# HomePageAgain
+#
+# Residents' pages, posts, guestbooks and pixel homes are theirs. Search
+# engines are welcome, so people can find each other. AI training and AI
+# answer engines are not: please don't collect anything here for them.
+
+User-agent: *
+Content-Signal: search=yes, ai-input=no, ai-train=no
+# Share images for link previews (the yard snapshot route)
+Allow: /api/home/
+Disallow: /api/
+Disallow: /admin
+Disallow: /settings
+Disallow: /template-preview
+
+# AI crawlers and fetchers: nothing on this site, for training or for answers
+User-agent: GPTBot
+User-agent: ChatGPT-User
+User-agent: OAI-SearchBot
+User-agent: ClaudeBot
+User-agent: Claude-User
+User-agent: Claude-SearchBot
+User-agent: anthropic-ai
+User-agent: CCBot
+User-agent: Google-Extended
+User-agent: Applebot-Extended
+User-agent: Bytespider
+User-agent: PerplexityBot
+User-agent: Perplexity-User
+User-agent: Meta-ExternalAgent
+User-agent: Meta-ExternalFetcher
+User-agent: FacebookBot
+User-agent: Amazonbot
+User-agent: cohere-ai
+User-agent: cohere-training-data-crawler
+User-agent: Diffbot
+User-agent: ImagesiftBot
+User-agent: Omgilibot
+User-agent: omgili
+User-agent: Timpibot
+User-agent: YouBot
+User-agent: AI2Bot
+User-agent: Ai2Bot-Dolma
+User-agent: DuckAssistBot
+User-agent: MistralAI-User
+User-agent: PanguBot
+User-agent: Kangaroo Bot
+User-agent: Webzio-Extended
+User-agent: Brightbot
+Disallow: /
