@@ -1,5 +1,5 @@
 import React from 'react'
-import DitherPatternDefs from './DitherPatternDefs'
+import { useSvgIdPrefix } from './useSvgIdPrefix'
 
 export type HouseTemplate = 'cottage_v1' | 'townhouse_v1' | 'loft_v1' | 'cabin_v1'
 export type ColorPalette = 'thread_sage' | 'charcoal_nights' | 'pixel_petals' | 'crt_glow' | 'classic_linen'
@@ -89,13 +89,17 @@ const seededRandom = (x: number, y: number) => {
 
 // --- DITHER PATTERN DEFS FOR HOUSE ---
 
+// Pattern ids are scoped per HouseSVG instance (see useSvgIdPrefix).
+const patternUrl = (idPrefix: string, name: string) => `url(#${idPrefix}-${name})`
+
 interface HouseDitherDefsProps {
+  idPrefix: string;
   roofColor: string;
   wallColor: string;
   foundationColor?: string;
 }
 
-const HouseDitherDefs: React.FC<HouseDitherDefsProps> = ({ roofColor, wallColor, foundationColor = '#777777' }) => {
+const HouseDitherDefs: React.FC<HouseDitherDefsProps> = ({ idPrefix, roofColor, wallColor, foundationColor = '#777777' }) => {
   const roofDark = darken(roofColor, 15);
   const roofLight = lighten(roofColor, 10);
   const wallDark = darken(wallColor, 12);
@@ -106,7 +110,7 @@ const HouseDitherDefs: React.FC<HouseDitherDefsProps> = ({ roofColor, wallColor,
   return (
     <defs>
       {/* Roof shingle pattern */}
-      <pattern id="roof-shingle" width="8" height="4" patternUnits="userSpaceOnUse">
+      <pattern id={`${idPrefix}-roof-shingle`} width="8" height="4" patternUnits="userSpaceOnUse">
         <rect width="8" height="4" fill={roofColor} />
         <rect x="0" y="3" width="8" height="1" fill={roofDark} />
         <rect x="4" y="0" width="1" height="4" fill={roofDark} opacity="0.4" />
@@ -114,7 +118,7 @@ const HouseDitherDefs: React.FC<HouseDitherDefsProps> = ({ roofColor, wallColor,
       </pattern>
 
       {/* Roof tile pattern */}
-      <pattern id="roof-tile" width="6" height="6" patternUnits="userSpaceOnUse">
+      <pattern id={`${idPrefix}-roof-tile`} width="6" height="6" patternUnits="userSpaceOnUse">
         <rect width="6" height="6" fill={roofColor} />
         <rect x="0" y="0" width="3" height="3" fill={roofLight} opacity="0.3" />
         <rect x="3" y="3" width="3" height="3" fill={roofLight} opacity="0.3" />
@@ -123,7 +127,7 @@ const HouseDitherDefs: React.FC<HouseDitherDefsProps> = ({ roofColor, wallColor,
       </pattern>
 
       {/* Roof thatch pattern */}
-      <pattern id="roof-thatch" width="8" height="8" patternUnits="userSpaceOnUse">
+      <pattern id={`${idPrefix}-roof-thatch`} width="8" height="8" patternUnits="userSpaceOnUse">
         <rect width="8" height="8" fill={roofColor} />
         <rect x="1" y="0" width="1" height="4" fill={roofDark} opacity="0.5" />
         <rect x="3" y="2" width="1" height="5" fill={roofDark} opacity="0.4" />
@@ -134,7 +138,7 @@ const HouseDitherDefs: React.FC<HouseDitherDefsProps> = ({ roofColor, wallColor,
       </pattern>
 
       {/* Wall wood siding pattern */}
-      <pattern id="wall-wood" width="16" height="5" patternUnits="userSpaceOnUse">
+      <pattern id={`${idPrefix}-wall-wood`} width="16" height="5" patternUnits="userSpaceOnUse">
         <rect width="16" height="5" fill={wallColor} />
         <rect x="0" y="4" width="16" height="1" fill={wallDark} />
         <rect x="3" y="1" width="2" height="1" fill={wallDark} opacity="0.2" />
@@ -142,7 +146,7 @@ const HouseDitherDefs: React.FC<HouseDitherDefsProps> = ({ roofColor, wallColor,
       </pattern>
 
       {/* Wall shingle pattern */}
-      <pattern id="wall-shingle" width="8" height="6" patternUnits="userSpaceOnUse">
+      <pattern id={`${idPrefix}-wall-shingle`} width="8" height="6" patternUnits="userSpaceOnUse">
         <rect width="8" height="6" fill={wallColor} />
         <rect x="0" y="5" width="8" height="1" fill={wallDark} />
         <rect x="4" y="0" width="1" height="6" fill={wallDark} opacity="0.3" />
@@ -151,7 +155,7 @@ const HouseDitherDefs: React.FC<HouseDitherDefsProps> = ({ roofColor, wallColor,
       </pattern>
 
       {/* Wall brick pattern */}
-      <pattern id="wall-brick" width="8" height="6" patternUnits="userSpaceOnUse">
+      <pattern id={`${idPrefix}-wall-brick`} width="8" height="6" patternUnits="userSpaceOnUse">
         <rect width="8" height="6" fill={wallColor} />
         <rect x="0" y="2" width="8" height="1" fill={wallDark} />
         <rect x="0" y="5" width="8" height="1" fill={wallDark} />
@@ -162,7 +166,7 @@ const HouseDitherDefs: React.FC<HouseDitherDefsProps> = ({ roofColor, wallColor,
       </pattern>
 
       {/* Wall stone pattern */}
-      <pattern id="wall-stone" width="10" height="8" patternUnits="userSpaceOnUse">
+      <pattern id={`${idPrefix}-wall-stone`} width="10" height="8" patternUnits="userSpaceOnUse">
         <rect width="10" height="8" fill={wallColor} />
         <rect x="0" y="3" width="4" height="1" fill={wallDark} />
         <rect x="6" y="3" width="4" height="1" fill={wallDark} />
@@ -175,7 +179,7 @@ const HouseDitherDefs: React.FC<HouseDitherDefsProps> = ({ roofColor, wallColor,
       </pattern>
 
       {/* Foundation stone pattern */}
-      <pattern id="foundation-stone" width="10" height="8" patternUnits="userSpaceOnUse">
+      <pattern id={`${idPrefix}-foundation-stone`} width="10" height="8" patternUnits="userSpaceOnUse">
         <rect width="10" height="8" fill={foundationColor} />
         <rect x="0" y="3" width="4" height="1" fill={foundDark} />
         <rect x="6" y="3" width="4" height="1" fill={foundDark} />
@@ -188,7 +192,7 @@ const HouseDitherDefs: React.FC<HouseDitherDefsProps> = ({ roofColor, wallColor,
       </pattern>
 
       {/* Foundation brick pattern */}
-      <pattern id="foundation-brick" width="8" height="6" patternUnits="userSpaceOnUse">
+      <pattern id={`${idPrefix}-foundation-brick`} width="8" height="6" patternUnits="userSpaceOnUse">
         <rect width="8" height="6" fill="#8B4513" />
         <rect x="0" y="2" width="8" height="1" fill="#6B3410" />
         <rect x="0" y="5" width="8" height="1" fill="#6B3410" />
@@ -199,7 +203,7 @@ const HouseDitherDefs: React.FC<HouseDitherDefsProps> = ({ roofColor, wallColor,
       </pattern>
 
       {/* Log cabin pattern */}
-      <pattern id="wall-logs" width="20" height="8" patternUnits="userSpaceOnUse">
+      <pattern id={`${idPrefix}-wall-logs`} width="20" height="8" patternUnits="userSpaceOnUse">
         <rect width="20" height="8" fill={wallColor} />
         <rect x="0" y="6" width="20" height="2" fill={wallDark} opacity="0.4" />
         <rect x="0" y="0" width="20" height="1" fill={wallLight} opacity="0.3" />
@@ -822,7 +826,21 @@ const renderSign = (x: number, y: number, text: string, colors: any, simplified 
 
 // --- TEMPLATES ---
 
-const CottageTemplate: React.FC<{ colors: any, customizations: HouseCustomizations, simplified: boolean }> = ({ colors, customizations, simplified }) => {
+// The simplified variant emits no pattern defs, so it paints the chimney with
+// the patterns' base colours instead of referencing them.
+const chimneyFill = (material: 'brick' | 'stone', simplified: boolean, idPrefix: string) => {
+  if (simplified) return material === 'brick' ? '#8B4513' : '#777777'
+  return patternUrl(idPrefix, `foundation-${material}`)
+}
+
+interface TemplateProps {
+  colors: any
+  customizations: HouseCustomizations
+  simplified: boolean
+  idPrefix: string
+}
+
+const CottageTemplate: React.FC<TemplateProps> = ({ colors, customizations, simplified, idPrefix }) => {
   const wallColor = customizations.wallColor || colors.base;
   const roofColor = customizations.roofColor || colors.primary;
 
@@ -830,37 +848,37 @@ const CottageTemplate: React.FC<{ colors: any, customizations: HouseCustomizatio
   const getRoofPattern = () => {
     if (simplified) return roofColor;
     switch (customizations.roofMaterial) {
-      case 'tile': return 'url(#roof-tile)';
-      case 'thatch': return 'url(#roof-thatch)';
+      case 'tile': return patternUrl(idPrefix, 'roof-tile');
+      case 'thatch': return patternUrl(idPrefix, 'roof-thatch');
       case 'shingles':
-      default: return 'url(#roof-shingle)';
+      default: return patternUrl(idPrefix, 'roof-shingle');
     }
   };
 
   const getWallPattern = () => {
     if (simplified) return wallColor;
     switch (customizations.wallPattern) {
-      case 'shingles': return 'url(#wall-shingle)';
-      case 'board_batten': return 'url(#wall-wood)';
-      case 'stone_veneer': return 'url(#wall-stone)';
-      case 'brick': return 'url(#wall-brick)';
-      default: return 'url(#wall-wood)';
+      case 'shingles': return patternUrl(idPrefix, 'wall-shingle');
+      case 'board_batten': return patternUrl(idPrefix, 'wall-wood');
+      case 'stone_veneer': return patternUrl(idPrefix, 'wall-stone');
+      case 'brick': return patternUrl(idPrefix, 'wall-brick');
+      default: return patternUrl(idPrefix, 'wall-wood');
     }
   };
 
   const getFoundationPattern = () => {
     if (simplified) return '#777';
     switch (customizations.foundationStyle) {
-      case 'brick': return 'url(#foundation-brick)';
+      case 'brick': return patternUrl(idPrefix, 'foundation-brick');
       case 'stone':
-      default: return 'url(#foundation-stone)';
+      default: return patternUrl(idPrefix, 'foundation-stone');
     }
   };
 
   return (
     <svg viewBox="0 0 200 180" fill="none" xmlns="http://www.w3.org/2000/svg" shapeRendering="crispEdges">
       {/* Dither pattern definitions */}
-      {!simplified && <HouseDitherDefs roofColor={roofColor} wallColor={wallColor} />}
+      {!simplified && <HouseDitherDefs idPrefix={idPrefix} roofColor={roofColor} wallColor={wallColor} />}
 
       {/* Shadow under house */}
       <rect x="40" y="165" width="120" height="5" fill="black" opacity="0.2" />
@@ -882,7 +900,7 @@ const CottageTemplate: React.FC<{ colors: any, customizations: HouseCustomizatio
       {/* Chimney with dither pattern */}
       {customizations.chimneyStyle !== 'none' && (
         <>
-          <rect x="130" y="60" width="15" height="40" fill={customizations.chimneyStyle === 'stone' ? 'url(#foundation-stone)' : 'url(#foundation-brick)'} />
+          <rect x="130" y="60" width="15" height="40" fill={chimneyFill(customizations.chimneyStyle === 'stone' ? 'stone' : 'brick', simplified, idPrefix)} />
           <rect x="128" y="58" width="19" height="4" fill="#555" />
         </>
       )}
@@ -930,24 +948,24 @@ const CottageTemplate: React.FC<{ colors: any, customizations: HouseCustomizatio
   )
 }
 
-const TownhouseTemplate: React.FC<{ colors: any, customizations: HouseCustomizations, simplified: boolean }> = ({ colors, customizations, simplified }) => {
+const TownhouseTemplate: React.FC<TemplateProps> = ({ colors, customizations, simplified, idPrefix }) => {
   const wallColor = customizations.wallColor || colors.base;
   const roofColor = customizations.roofColor || colors.primary;
 
   const getWallPattern = () => {
     if (simplified) return wallColor;
     switch (customizations.wallPattern) {
-      case 'stone_veneer': return 'url(#wall-stone)';
-      case 'board_batten': return 'url(#wall-wood)';
+      case 'stone_veneer': return patternUrl(idPrefix, 'wall-stone');
+      case 'board_batten': return patternUrl(idPrefix, 'wall-wood');
       case 'brick':
-      default: return 'url(#wall-brick)';
+      default: return patternUrl(idPrefix, 'wall-brick');
     }
   };
 
   return (
     <svg viewBox="0 0 200 180" fill="none" xmlns="http://www.w3.org/2000/svg" shapeRendering="crispEdges">
       {/* Dither pattern definitions */}
-      {!simplified && <HouseDitherDefs roofColor={roofColor} wallColor={wallColor} />}
+      {!simplified && <HouseDitherDefs idPrefix={idPrefix} roofColor={roofColor} wallColor={wallColor} />}
 
       {/* Shadow */}
       <rect x="40" y="170" width="120" height="5" fill="black" opacity="0.2" />
@@ -1014,15 +1032,15 @@ const TownhouseTemplate: React.FC<{ colors: any, customizations: HouseCustomizat
   )
 }
 
-const LoftTemplate: React.FC<{ colors: any, customizations: HouseCustomizations, simplified: boolean }> = ({ colors, customizations, simplified }) => {
+const LoftTemplate: React.FC<TemplateProps> = ({ colors, customizations, simplified, idPrefix }) => {
   const wallColor = customizations.wallColor || colors.base;
   const roofColor = customizations.roofColor || colors.primary;
 
   const getWallPattern = () => {
     if (simplified) return wallColor;
     switch (customizations.wallPattern) {
-      case 'brick': return 'url(#wall-brick)';
-      case 'stone_veneer': return 'url(#wall-stone)';
+      case 'brick': return patternUrl(idPrefix, 'wall-brick');
+      case 'stone_veneer': return patternUrl(idPrefix, 'wall-stone');
       default: return wallColor; // Loft uses concrete by default
     }
   };
@@ -1030,7 +1048,7 @@ const LoftTemplate: React.FC<{ colors: any, customizations: HouseCustomizations,
   return (
     <svg viewBox="0 0 200 180" fill="none" xmlns="http://www.w3.org/2000/svg" shapeRendering="crispEdges">
       {/* Dither pattern definitions */}
-      {!simplified && <HouseDitherDefs roofColor={roofColor} wallColor={wallColor} />}
+      {!simplified && <HouseDitherDefs idPrefix={idPrefix} roofColor={roofColor} wallColor={wallColor} />}
 
       {/* Shadow */}
       <rect x="40" y="170" width="120" height="5" fill="black" opacity="0.2" />
@@ -1072,7 +1090,6 @@ const LoftTemplate: React.FC<{ colors: any, customizations: HouseCustomizations,
 
       {/* Door - Metal */}
       <rect x="90" y="140" width="20" height="30" fill="#444" />
-      {!simplified && <rect x="90" y="140" width="20" height="30" fill="url(#metalPattern)" opacity="0.2" />}
       <rect x="105" y="155" width="2" height="4" fill="#888" />
 
       {/* Fire Escape / Balcony */}
@@ -1103,43 +1120,43 @@ const LoftTemplate: React.FC<{ colors: any, customizations: HouseCustomizations,
   )
 }
 
-const CabinTemplate: React.FC<{ colors: any, customizations: HouseCustomizations, simplified: boolean }> = ({ colors, customizations, simplified }) => {
+const CabinTemplate: React.FC<TemplateProps> = ({ colors, customizations, simplified, idPrefix }) => {
   const wallColor = customizations.wallColor || colors.base;
   const roofColor = customizations.roofColor || colors.primary;
 
   const getRoofPattern = () => {
     if (simplified) return roofColor;
     switch (customizations.roofMaterial) {
-      case 'tile': return 'url(#roof-tile)';
-      case 'thatch': return 'url(#roof-thatch)';
+      case 'tile': return patternUrl(idPrefix, 'roof-tile');
+      case 'thatch': return patternUrl(idPrefix, 'roof-thatch');
       case 'metal': return roofColor; // Metal is solid
       case 'shingles':
-      default: return 'url(#roof-shingle)';
+      default: return patternUrl(idPrefix, 'roof-shingle');
     }
   };
 
   const getWallPattern = () => {
     if (simplified) return wallColor;
     switch (customizations.wallPattern) {
-      case 'shingles': return 'url(#wall-shingle)';
-      case 'stone_veneer': return 'url(#wall-stone)';
-      default: return 'url(#wall-logs)';
+      case 'shingles': return patternUrl(idPrefix, 'wall-shingle');
+      case 'stone_veneer': return patternUrl(idPrefix, 'wall-stone');
+      default: return patternUrl(idPrefix, 'wall-logs');
     }
   };
 
   const getFoundationPattern = () => {
     if (simplified) return '#555';
     switch (customizations.foundationStyle) {
-      case 'brick': return 'url(#foundation-brick)';
+      case 'brick': return patternUrl(idPrefix, 'foundation-brick');
       case 'stone':
-      default: return 'url(#foundation-stone)';
+      default: return patternUrl(idPrefix, 'foundation-stone');
     }
   };
 
   return (
     <svg viewBox="0 0 200 180" fill="none" xmlns="http://www.w3.org/2000/svg" shapeRendering="crispEdges">
       {/* Dither pattern definitions */}
-      {!simplified && <HouseDitherDefs roofColor={roofColor} wallColor={wallColor} />}
+      {!simplified && <HouseDitherDefs idPrefix={idPrefix} roofColor={roofColor} wallColor={wallColor} />}
 
       {/* Shadow */}
       <rect x="35" y="165" width="130" height="5" fill="black" opacity="0.2" />
@@ -1149,7 +1166,7 @@ const CabinTemplate: React.FC<{ colors: any, customizations: HouseCustomizations
 
       {/* Chimney with dither pattern */}
       {customizations.chimneyStyle !== 'none' && (
-        <rect x="135" y="50" width="12" height="50" fill={customizations.chimneyStyle === 'brick' ? 'url(#foundation-brick)' : 'url(#foundation-stone)'} />
+        <rect x="135" y="50" width="12" height="50" fill={chimneyFill(customizations.chimneyStyle === 'brick' ? 'brick' : 'stone', simplified, idPrefix)} />
       )}
 
       {/* Walls with dither pattern */}
@@ -1214,6 +1231,7 @@ interface HouseSVGProps {
 }
 
 export default function HouseSVG({ template, palette, className = '', onClick, customizations, variant = 'detailed' }: HouseSVGProps) {
+  const idPrefix = useSvgIdPrefix()
   const paletteColors = PALETTE_COLORS[palette]
 
   const colors = {
@@ -1242,7 +1260,7 @@ export default function HouseSVG({ template, palette, className = '', onClick, c
       tabIndex={onClick ? 0 : undefined}
       onKeyDown={onClick ? (e) => e.key === 'Enter' && onClick() : undefined}
     >
-      <TemplateComponent colors={colors} customizations={customizations || {}} simplified={variant === 'simplified'} />
+      <TemplateComponent colors={colors} customizations={customizations || {}} simplified={variant === 'simplified'} idPrefix={idPrefix} />
     </svg>
   )
 }

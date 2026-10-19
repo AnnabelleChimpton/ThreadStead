@@ -258,34 +258,44 @@ function GradientDitherPatterns({
   return <>{patterns}</>
 }
 
+export type SkyType = 'sunny' | 'cloudy' | 'sunset' | 'night'
+
+// Sky color palettes - from top (darker) to horizon (lighter)
+const SKY_COLORS: Record<SkyType, string[]> = {
+  sunny: ['#5BA3D0', '#6BB5DC', '#87CEEB', '#A8E4F0', '#C8F0FF'],
+  cloudy: ['#8899AA', '#9DAAB8', '#B0C4DE', '#C8D4E8', '#E0E8F0'],
+  sunset: ['#4A3070', '#7B4090', '#C85A80', '#FF7060', '#FFB060', '#FFD090'],
+  night: ['#050510', '#0A0A20', '#101035', '#151550', '#1A1A60']
+}
+
+// Ground/grass colors - from light (top/horizon) to darker (bottom/foreground)
+// Stored atmosphere values aren't validated, so fall back to the sunny sky.
+const skyColors = (sky: SkyType) => SKY_COLORS[sky] ?? SKY_COLORS.sunny
+
+const GROUND_COLORS = ['#90EE90', '#7CCD7C', '#68B868', '#54A454', '#408040', '#2C6C2C']
+
 /**
- * Generates SVG pattern definitions for sky gradients with proper dithering.
- * Creates smooth color transitions using checkerboard dithering between adjacent colors.
+ * Pattern definitions for one sky gradient: ids `${prefix}-sky-${sky}-${i}`.
+ * Emit only the sky an SVG actually paints, once per SVG, with a prefix unique
+ * to that SVG (useSvgIdPrefix) so two scenes on a page never share ids.
  */
-export function SkyDitherDefs({ prefix = '' }: { prefix?: string }) {
+export function SkyGradientDefs({ prefix = '', sky }: { prefix?: string; sky: SkyType }) {
   const p = prefix ? `${prefix}-` : ''
-
-  // Sky color palettes - from top (darker) to horizon (lighter)
-  const skyColors = {
-    sunny: ['#5BA3D0', '#6BB5DC', '#87CEEB', '#A8E4F0', '#C8F0FF'],
-    cloudy: ['#8899AA', '#9DAAB8', '#B0C4DE', '#C8D4E8', '#E0E8F0'],
-    sunset: ['#4A3070', '#7B4090', '#C85A80', '#FF7060', '#FFB060', '#FFD090'],
-    night: ['#050510', '#0A0A20', '#101035', '#151550', '#1A1A60']
-  }
-
-  // Ground/grass colors - from light (top/horizon) to darker (bottom/foreground)
-  const groundColors = ['#90EE90', '#7CCD7C', '#68B868', '#54A454', '#408040', '#2C6C2C']
-
   return (
     <defs>
-      {/* Sky gradients */}
-      <GradientDitherPatterns prefix={p} name="sky-sunny" colors={skyColors.sunny} />
-      <GradientDitherPatterns prefix={p} name="sky-cloudy" colors={skyColors.cloudy} />
-      <GradientDitherPatterns prefix={p} name="sky-sunset" colors={skyColors.sunset} />
-      <GradientDitherPatterns prefix={p} name="sky-night" colors={skyColors.night} />
+      <GradientDitherPatterns prefix={p} name={`sky-${sky}`} colors={skyColors(sky)} />
+    </defs>
+  )
+}
 
-      {/* Ground gradient */}
-      <GradientDitherPatterns prefix={p} name="ground" colors={groundColors} />
+/**
+ * Pattern definitions for the ground gradient: ids `${prefix}-ground-${i}`.
+ */
+export function GroundGradientDefs({ prefix = '' }: { prefix?: string }) {
+  const p = prefix ? `${prefix}-` : ''
+  return (
+    <defs>
+      <GradientDitherPatterns prefix={p} name="ground" colors={GROUND_COLORS} />
     </defs>
   )
 }
@@ -294,26 +304,64 @@ export function SkyDitherDefs({ prefix = '' }: { prefix?: string }) {
  * Returns the number of pattern bands for a given sky type.
  * Used by EnhancedHouseCanvas to know how many bands to render.
  */
-export function getSkyPatternCount(skyType: 'sunny' | 'cloudy' | 'sunset' | 'night'): number {
+export function getSkyPatternCount(skyType: SkyType): number {
   // Each color gets 1 solid band
   // Each transition between colors gets 1 checker band
   // Total = numColors + (numColors - 1) = numColors * 2 - 1
-  const colorCounts = {
-    sunny: 5,
-    cloudy: 5,
-    sunset: 6,
-    night: 5
-  }
-  const numColors = colorCounts[skyType]
-  return numColors * 2 - 1
+  return skyColors(skyType).length * 2 - 1
 }
 
 /**
  * Returns the number of pattern bands for the ground gradient.
  */
 export function getGroundPatternCount(): number {
-  const numColors = 6 // groundColors length
-  return numColors * 2 - 1
+  return GROUND_COLORS.length * 2 - 1
+}
+
+export interface DitherBand {
+  index: number
+  y: number
+  height: number
+}
+
+/**
+ * Lays out gradient bands in whole pixels. Even indexes are solid bands, odd
+ * indexes are the checker transitions between them (see GradientDitherPatterns).
+ *
+ * Without `transitionHeight` every band gets an equal share of `height`. With
+ * it, each transition is exactly that many pixels and the solid bands split
+ * the rest, so the dither reads as a thin seam rather than a stripe.
+ */
+export function layoutDitherBands(patternCount: number, height: number, transitionHeight?: number): DitherBand[] {
+  const transitions = Math.floor(patternCount / 2)
+  const solids = patternCount - transitions
+  const bands: DitherBand[] = []
+
+  if (transitionHeight === undefined) {
+    // Distribute extra pixels to the first N bands for even distribution
+    const base = Math.floor(height / patternCount)
+    const extra = height % patternCount
+    let y = 0
+    for (let i = 0; i < patternCount; i++) {
+      const h = base + (i < extra ? 1 : 0)
+      bands.push({ index: i, y, height: h })
+      y += h
+    }
+    return bands
+  }
+
+  const solidSpace = Math.max(0, height - transitions * transitionHeight)
+  const base = Math.floor(solidSpace / solids)
+  const extra = solidSpace % solids
+  let y = 0
+  let solidIndex = 0
+  for (let i = 0; i < patternCount; i++) {
+    const isTransition = i % 2 === 1
+    const h = isTransition ? transitionHeight : base + (solidIndex++ < extra ? 1 : 0)
+    bands.push({ index: i, y, height: h })
+    y += h
+  }
+  return bands
 }
 
 /**

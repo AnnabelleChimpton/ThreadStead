@@ -7,7 +7,8 @@ import { trackNavigation } from '../../lib/analytics/pixel-homes'
 import { PixelIcon } from '@/components/ui/PixelIcon'
 import { TERRAIN_TILES } from '../../lib/pixel-homes/decoration-data'
 import { DEFAULT_DECORATION_GRID } from '../../lib/pixel-homes/decoration-grid-utils'
-import { SkyDitherDefs, GrassTextureDefs, getSkyPatternCount, getGroundPatternCount } from './DitherPatternDefs'
+import { SkyGradientDefs, GroundGradientDefs, GrassTextureDefs, getSkyPatternCount, getGroundPatternCount, layoutDitherBands } from './DitherPatternDefs'
+import { useSvgIdPrefix } from './useSvgIdPrefix'
 
 interface HomeDecoration {
   id: string
@@ -90,44 +91,52 @@ const SkyLayer: React.FC<{ timeOfDay: 'morning' | 'afternoon' | 'evening' | 'nig
   const isStatic = totalWidth === 0
   const width = isStatic ? '100%' : `${totalWidth}px`
 
-  // Get sky pattern info
+  // The sky is drawn 1:1 in CSS pixels (no viewBox), so each dither cell is one
+  // pixel. Band positions need the rendered height, which follows the viewport.
+  const skyRef = useRef<HTMLDivElement>(null)
+  const [skyHeight, setSkyHeight] = useState(600)
+  useEffect(() => {
+    const el = skyRef.current
+    if (!el) return
+    const update = () => setSkyHeight(Math.round(el.clientHeight))
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
+  // Solid bands with thin 2px checker seams between them
   const skyType = getSkyTypeForTime(timeOfDay)
-  const patternCount = getSkyPatternCount(skyType)
-  const skyPrefix = `street-sky-${skyType}`
-  const patterns = Array.from({ length: patternCount }, (_, i) => `${skyPrefix}-${i}`)
+  const idPrefix = useSvgIdPrefix()
+  const bands = layoutDitherBands(getSkyPatternCount(skyType), skyHeight, 2)
 
   return (
     <div
+      ref={skyRef}
       className="absolute top-0 left-0 h-full pointer-events-none"
       style={{ width }}
     >
       {/* Dithered sky gradient */}
       <svg
         className="absolute inset-0 w-full h-full"
-        viewBox="0 0 100 100"
-        preserveAspectRatio="none"
         shapeRendering="crispEdges"
       >
-        <SkyDitherDefs prefix="street" />
+        <SkyGradientDefs prefix={idPrefix} sky={skyType} />
         {/* Solid fallback in case patterns fail */}
-        <rect x={0} y={0} width={100} height={100} fill={
+        <rect x={0} y={0} width="100%" height="100%" fill={
           timeOfDay === 'night' ? '#151550' :
           timeOfDay === 'evening' ? '#FF7060' : '#87CEEB'
         } />
-        {/* Dithered sky bands - using absolute coords matching viewBox */}
-        {patterns.map((pattern, i) => {
-          const bandHeight = 100 / patternCount
-          return (
-            <rect
-              key={i}
-              x={0}
-              y={i * bandHeight}
-              width={100}
-              height={bandHeight + 0.5}
-              fill={`url(#${pattern})`}
-            />
-          )
-        })}
+        {bands.map(band => (
+          <rect
+            key={band.index}
+            x={0}
+            y={band.y}
+            width="100%"
+            height={band.height}
+            fill={`url(#${idPrefix}-sky-${skyType}-${band.index})`}
+          />
+        ))}
       </svg>
 
       {/* Clouds - only show when scrollable */}
@@ -180,10 +189,11 @@ const SkyLayer: React.FC<{ timeOfDay: 'morning' | 'afternoon' | 'evening' | 'nig
 }
 
 
-const StreetLayer: React.FC<{ scrollOffset: number; totalWidth: number }> = ({ scrollOffset, totalWidth }) => {
-  // Get ground pattern info for dithered grass
-  const groundPatternCount = getGroundPatternCount()
-  const groundPatterns = Array.from({ length: groundPatternCount }, (_, i) => `street-ground-${i}`)
+const StreetLayer: React.FC<{ totalWidth: number }> = ({ totalWidth }) => {
+  // Dithered grass bands, 1:1 with the 220px strip
+  const groundWidth = Math.max(100, totalWidth)
+  const idPrefix = useSvgIdPrefix()
+  const groundBands = layoutDitherBands(getGroundPatternCount(), 220)
 
   return (
     <div
@@ -200,42 +210,39 @@ const StreetLayer: React.FC<{ scrollOffset: number; totalWidth: number }> = ({ s
         {/* Dithered grass gradient */}
         <svg
           className="absolute inset-0 w-full h-full"
-          viewBox={`0 0 ${Math.max(100, totalWidth)} 220`}
+          viewBox={`0 0 ${groundWidth} 220`}
           preserveAspectRatio="none"
           shapeRendering="crispEdges"
         >
-          <SkyDitherDefs prefix="street" />
-          <GrassTextureDefs prefix="street" />
+          <GroundGradientDefs prefix={idPrefix} />
+          <GrassTextureDefs prefix={idPrefix} />
           {/* Solid fallback in case patterns fail */}
           <rect x="0" y="0" width="100%" height="100%" fill="#4ade80" />
           {/* Grass gradient bands */}
-          {groundPatterns.map((pattern, i) => {
-            const bandHeight = 220 / groundPatternCount
-            return (
-              <rect
-                key={i}
-                x={0}
-                y={Math.floor(i * bandHeight)}
-                width={Math.max(100, totalWidth)}
-                height={Math.ceil(bandHeight) + 1}
-                fill={`url(#${pattern})`}
-              />
-            )
-          })}
+          {groundBands.map(band => (
+            <rect
+              key={band.index}
+              x={0}
+              y={band.y}
+              width={groundWidth}
+              height={band.height}
+              fill={`url(#${idPrefix}-ground-${band.index})`}
+            />
+          ))}
           {/* Grass blade texture overlay - sparse at back, dense at front */}
           <rect
             x={0}
             y={0}
-            width={Math.max(100, totalWidth)}
+            width={groundWidth}
             height={110}
-            fill="url(#street-grass-blades)"
+            fill={`url(#${idPrefix}-grass-blades)`}
           />
           <rect
             x={0}
             y={110}
-            width={Math.max(100, totalWidth)}
+            width={groundWidth}
             height={110}
-            fill="url(#street-grass-blades-dense)"
+            fill={`url(#${idPrefix}-grass-blades-dense)`}
           />
         </svg>
 
@@ -331,8 +338,6 @@ export default function NeighborhoodStreetView({
 }: NeighborhoodStreetViewProps) {
   const router = useRouter()
   const scrollContainerRef = useRef<HTMLDivElement>(null)
-  const rafIdRef = useRef<number | null>(null)
-  const [scrollOffset, setScrollOffset] = useState(0)
   const [timeOfDay, setTimeOfDay] = useState<'morning' | 'afternoon' | 'evening' | 'night'>('afternoon')
   const [selectedMember, setSelectedMember] = useState<NeighborhoodMember | null>(null)
   const [showPopup, setShowPopup] = useState(false)
@@ -356,31 +361,6 @@ export default function NeighborhoodStreetView({
       setShowInstructions(false)
     }, 3000)
     return () => clearTimeout(timer)
-  }, [])
-
-  // Handle horizontal scrolling with requestAnimationFrame for performance
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const target = e.target as HTMLDivElement
-
-    // Cancel any pending animation frame
-    if (rafIdRef.current !== null) {
-      cancelAnimationFrame(rafIdRef.current)
-    }
-
-    // Schedule update for next animation frame
-    rafIdRef.current = requestAnimationFrame(() => {
-      setScrollOffset(target.scrollLeft)
-      rafIdRef.current = null
-    })
-  }
-
-  // Cleanup animation frame on unmount
-  useEffect(() => {
-    return () => {
-      if (rafIdRef.current !== null) {
-        cancelAnimationFrame(rafIdRef.current)
-      }
-    }
   }, [])
 
   // Intersection Observer to optimize animations - only animate visible houses
@@ -464,7 +444,6 @@ export default function NeighborhoodStreetView({
     <div className="neighborhood-street-view relative h-[calc(100dvh-200px)] sm:h-[calc(100vh-200px)] max-h-[750px] overflow-hidden bg-[#E0F7FA] z-0">
       <div
         className="absolute inset-0 overflow-x-auto overflow-y-hidden scrollbar-thin scrollbar-thumb-thread-sage scrollbar-track-thread-cream z-30"
-        onScroll={handleScroll}
         ref={scrollContainerRef}
       >
         <div className="relative h-full" style={{ width: `${totalWidth}px` }}>
@@ -473,17 +452,16 @@ export default function NeighborhoodStreetView({
 
           {/* Street Layer - at the bottom */}
           <div className="absolute bottom-0 left-0 z-10" style={{ width: `${totalWidth}px` }}>
-            <StreetLayer scrollOffset={scrollOffset} totalWidth={totalWidth} />
+            <StreetLayer totalWidth={totalWidth} />
           </div>
 
-          {/* Houses Layer - positioned closer to street for better viewport usage */}
+          {/* Houses Layer - positioned closer to street for better viewport usage.
+              It sits inside the natively scrolled content, so it scrolls with the
+              street on its own; no offset to apply here. */}
           <div className="absolute left-0 right-0 z-20" style={{ bottom: '300px' }}>
             <div
               className={`house-layer motion-safe:transition-all motion-safe:duration-500 ${isTransitioning ? 'opacity-80 scale-95' : 'opacity-100 scale-100'}`}
-              style={{
-                transform: `translateX(${-scrollOffset}px)`,
-                transformOrigin: 'bottom center'
-              }}
+              style={{ transformOrigin: 'bottom center' }}
             >
               <div className="flex gap-12 sm:gap-16 md:gap-20 px-4 sm:px-8">
                 {currentStreetMembers.map((member) => {

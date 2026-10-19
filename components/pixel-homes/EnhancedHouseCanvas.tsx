@@ -2,7 +2,8 @@ import React, { useRef, useEffect, useState } from 'react'
 import HouseSVG, { HouseTemplate, ColorPalette, HouseCustomizations, AtmosphereSettings } from './HouseSVG'
 import DecorationSVG from './DecorationSVG'
 import AnimatedDecoration from './DecorationAnimations'
-import { SkyDitherDefs, TerrainDitherDefs, GrassTextureDefs, getSkyPatternCount, getGroundPatternCount } from './DitherPatternDefs'
+import { SkyGradientDefs, GroundGradientDefs, TerrainDitherDefs, GrassTextureDefs, getSkyPatternCount, getGroundPatternCount, layoutDitherBands } from './DitherPatternDefs'
+import { useSvgIdPrefix } from './useSvgIdPrefix'
 import { DecorationItem, TERRAIN_TILES, TerrainTile } from '@/lib/pixel-homes/decoration-data'
 import { DEFAULT_DECORATION_GRID, getDecorationGridSize } from '@/lib/pixel-homes/decoration-grid-utils'
 import { getDecorationDimensions } from '@/lib/pixel-homes/decoration-dimensions'
@@ -94,6 +95,8 @@ export default function EnhancedHouseCanvas({
   // Refs and state for responsive scaling
   const containerRef = useRef<HTMLDivElement>(null)
   const [scale, setScale] = useState(1)
+  // Scopes this canvas's sky, ground and terrain pattern ids (several canvases can share a page)
+  const idPrefix = useSvgIdPrefix()
 
   // ResizeObserver to calculate scale based on container width
   useEffect(() => {
@@ -127,23 +130,12 @@ export default function EnhancedHouseCanvas({
   const renderBackground = () => {
     const zone = DECORATION_ZONES.background
 
-    // Get the number of pattern bands for this sky type
+    // Pixel-perfect band heights for this sky type
     const patternCount = getSkyPatternCount(atmosphere.sky)
-
-    // Calculate pixel-perfect band heights (distribute remainder evenly)
-    const baseHeight = Math.floor(zone.height / patternCount)
-    const extraPixels = zone.height % patternCount
-
-    // Generate pattern IDs with calculated positions
-    const skyPrefix = `sky-${atmosphere.sky}`
-    const bands: Array<{ pattern: string; y: number; height: number }> = []
-    let currentY = 0
-    for (let i = 0; i < patternCount; i++) {
-      // Distribute extra pixels to first N bands for even distribution
-      const height = baseHeight + (i < extraPixels ? 1 : 0)
-      bands.push({ pattern: `${skyPrefix}-${i}`, y: currentY, height })
-      currentY += height
-    }
+    const bands = layoutDitherBands(patternCount, zone.height).map(band => ({
+      ...band,
+      pattern: `${idPrefix}-sky-${atmosphere.sky}-${band.index}`
+    }))
 
     // Base sky colors for fallback fill (last/bottom color of each sky type)
     const baseSkyColors: Record<string, string> = {
@@ -167,7 +159,7 @@ export default function EnhancedHouseCanvas({
         preserveAspectRatio="none"
         shapeRendering="crispEdges"
       >
-        <SkyDitherDefs />
+        <SkyGradientDefs prefix={idPrefix} sky={atmosphere.sky} />
         {/* Base fill to prevent any gaps */}
         <rect x="0" y="0" width={zone.width} height={zone.height} fill={baseSkyColors[atmosphere.sky] || '#87CEEB'} />
         {/* Dithered sky bands with pixel-perfect heights */}
@@ -201,22 +193,11 @@ export default function EnhancedHouseCanvas({
   const renderFrontYard = () => {
     const zone = DECORATION_ZONES.front_yard
 
-    // Get the number of pattern bands for ground gradient
-    const patternCount = getGroundPatternCount()
-
-    // Calculate pixel-perfect band heights (distribute remainder evenly)
-    const baseHeight = Math.floor(zone.height / patternCount)
-    const extraPixels = zone.height % patternCount
-
-    // Generate pattern IDs with calculated positions
-    const bands: Array<{ pattern: string; y: number; height: number }> = []
-    let currentY = 0
-    for (let i = 0; i < patternCount; i++) {
-      // Distribute extra pixels to first N bands for even distribution
-      const height = baseHeight + (i < extraPixels ? 1 : 0)
-      bands.push({ pattern: `ground-${i}`, y: currentY, height })
-      currentY += height
-    }
+    // Pixel-perfect band heights for the ground gradient
+    const bands = layoutDitherBands(getGroundPatternCount(), zone.height).map(band => ({
+      ...band,
+      pattern: `${idPrefix}-ground-${band.index}`
+    }))
 
     // Calculate grass texture overlay positions (integer division)
     const halfHeight = Math.floor(zone.height / 2)
@@ -235,8 +216,8 @@ export default function EnhancedHouseCanvas({
         preserveAspectRatio="none"
         shapeRendering="crispEdges"
       >
-        <SkyDitherDefs />
-        <GrassTextureDefs />
+        <GroundGradientDefs prefix={idPrefix} />
+        <GrassTextureDefs prefix={idPrefix} />
         {/* Base fill to prevent any gaps (top grass color) */}
         <rect x="0" y="0" width={zone.width} height={zone.height} fill="#90EE90" />
         {/* Dithered grass bands with pixel-perfect heights */}
@@ -256,22 +237,22 @@ export default function EnhancedHouseCanvas({
           y="0"
           width={zone.width}
           height={halfHeight}
-          fill="url(#grass-blades)"
+          fill={`url(#${idPrefix}-grass-blades)`}
         />
         <rect
           x="0"
           y={halfHeight}
           width={zone.width}
           height={zone.height - halfHeight}
-          fill="url(#grass-blades-dense)"
+          fill={`url(#${idPrefix}-grass-blades-dense)`}
         />
       </svg>
     )
   }
 
+  // The terrain <svg> stays mounted even with no tiles: unmounting it re-created
+  // its patterns whenever the first tile was painted or the last one erased.
   const renderTerrain = () => {
-    if (!terrain || Object.keys(terrain).length === 0) return null
-
     // Map terrain IDs to dither pattern IDs
     const terrainPatternMap: Record<string, string> = {
       'dirt': 'terrain-dirt',
@@ -296,8 +277,8 @@ export default function EnhancedHouseCanvas({
         preserveAspectRatio="none"
         shapeRendering="crispEdges"
       >
-        <TerrainDitherDefs />
-        {Object.entries(terrain).map(([key, tileId]) => {
+        <TerrainDitherDefs prefix={idPrefix} />
+        {Object.entries(terrain || {}).map(([key, tileId]) => {
           const [gridX, gridY] = key.split(',').map(Number)
           const tile = TERRAIN_TILES.find(t => t.id === tileId)
           if (!tile) return null
@@ -317,7 +298,7 @@ export default function EnhancedHouseCanvas({
               y={y}
               width={size}
               height={size}
-              fill={patternId ? `url(#${patternId})` : tile.color}
+              fill={patternId ? `url(#${idPrefix}-${patternId})` : tile.color}
             >
               <title>{tile.name}</title>
             </rect>
