@@ -48,6 +48,7 @@ interface PixelHomeProps {
   username: string
   homeConfig: UserHomeConfig
   isOwner: boolean
+  isSignedIn: boolean
   userDisplayName?: string
   userBio?: string
 }
@@ -73,6 +74,7 @@ function PixelHome({
   username,
   homeConfig,
   isOwner,
+  isSignedIn,
   userDisplayName,
   userBio
 }: PixelHomeProps) {
@@ -121,6 +123,7 @@ function PixelHome({
           displayName={userDisplayName}
           homeConfig={homeConfig}
           isOwner={isOwner}
+          isSignedIn={isSignedIn}
         />
       </Layout>
     </>
@@ -238,6 +241,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
           }
         },
         isOwner,
+        isSignedIn: !!currentUser,
         userDisplayName: user.profile?.displayName || null,
         userBio: user.profile?.bio || null
       }

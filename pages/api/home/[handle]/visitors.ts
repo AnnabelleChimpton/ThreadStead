@@ -3,6 +3,9 @@ import { apiHandler } from "@/lib/api/handler";
 import { sendUnauthenticated } from "@/lib/api/errors";
 import { residentAccess, sendPrivateProfile } from "@/lib/domain/users/profile-access";
 
+/** Visits are shown, and kept, for a week. */
+const VISITOR_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+
 export default apiHandler(
   // no CSRF today: components/pixel-homes/VisitorTrail.tsx POSTs with plain fetch
   { methods: ["GET", "POST"], auth: "optional", csrf: false },
@@ -77,7 +80,7 @@ export default apiHandler(
           where: {
             homeOwnerId,
             visitedAt: {
-              lt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) // 7 days ago
+              lt: new Date(Date.now() - VISITOR_WINDOW_MS)
             }
           }
         });
@@ -89,12 +92,13 @@ export default apiHandler(
       }
 
       if (req.method === "GET") {
-        // Get recent visitors (last 5, within 24 hours)
+        // The last 5 visitors in the past week (POST prunes anything older).
+        // A 24h window meant the trail was almost always empty.
         const recentVisitors = await db.pixelHomeVisitor.findMany({
           where: {
             homeOwnerId,
             visitedAt: {
-              gte: new Date(Date.now() - 24 * 60 * 60 * 1000) // 24 hours ago
+              gte: new Date(Date.now() - VISITOR_WINDOW_MS)
             }
           },
           include: {

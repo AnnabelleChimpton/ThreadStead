@@ -34,9 +34,11 @@ interface ClaimInfo {
 interface ClaimPageProps {
   isAuthenticated: boolean;
   userId: string | null;
+  /** The signed-in user's handle, for the link to their pixel home */
+  username: string | null;
 }
 
-export default function ClaimPage({ isAuthenticated, userId }: ClaimPageProps) {
+export default function ClaimPage({ isAuthenticated, userId, username }: ClaimPageProps) {
   const router = useRouter();
   const { code } = router.query;
 
@@ -222,10 +224,11 @@ export default function ClaimPage({ isAuthenticated, userId }: ClaimPageProps) {
             {/* Action Buttons */}
             <div className="flex gap-4">
               {!isAuthenticated && !success && (
-                <Link href="/login">
-                  <a className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-center font-medium">
-                    Sign In to Claim
-                  </a>
+                <Link
+                  href="/login"
+                  className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-center font-medium"
+                >
+                  Sign In to Claim
                 </Link>
               )}
 
@@ -240,17 +243,19 @@ export default function ClaimPage({ isAuthenticated, userId }: ClaimPageProps) {
               )}
 
               {success && (
-                <Link href="/pixel-home">
-                  <a className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 text-center font-medium">
-                    Go to Pixel Home
-                  </a>
+                <Link
+                  href={username ? `/home/${encodeURIComponent(username)}` : '/neighborhood'}
+                  className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 text-center font-medium"
+                >
+                  Go to Pixel Home
                 </Link>
               )}
 
-              <Link href="/">
-                <a className="flex-1 px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-center font-medium">
-                  Back to Home
-                </a>
+              <Link
+                href="/"
+                className="flex-1 px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-center font-medium"
+              >
+                Back to Home
               </Link>
             </div>
           </div>
@@ -271,7 +276,8 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   return {
     props: {
       isAuthenticated: !!user,
-      userId: user?.id || null
+      userId: user?.id || null,
+      username: user?.primaryHandle?.split('@')[0] || null
     }
   };
 };

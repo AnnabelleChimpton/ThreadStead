@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/router'
 import EnhancedHouseCanvas from './EnhancedHouseCanvas'
@@ -267,6 +267,35 @@ export default function HouseDetailsPopup({ isOpen, onClose, member }: HouseDeta
     }
   }, [isOpen, isMobile])
 
+  // The phone sheet isn't the shared Modal, so it needs its own Escape
+  useEffect(() => {
+    if (!isOpen || !isMobile) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !e.isComposing) onClose()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [isOpen, isMobile, onClose])
+
+  // Stable across re-renders (drag frames, profile data arriving)
+  const canvasDecorations = useMemo(
+    () =>
+      decorations.map((dec, index) => ({
+        id: dec.id || `${dec.decorationId}_${index}`,
+        name: dec.decorationId,
+        decorationId: dec.decorationId,
+        type: dec.decorationType,
+        zone: 'front_yard' as const,
+        position: { x: dec.x, y: dec.y, layer: dec.layer },
+        variant: dec.variant,
+        size: dec.size,
+        renderSvg: dec.renderSvg ?? undefined,
+        pngUrl: dec.pngUrl ?? undefined,
+        data: dec.data // Include custom data for sign text
+      })),
+    [decorations]
+  )
+
   if (!isOpen || !member) return null
 
   const displayName = member.displayName || member.username
@@ -294,14 +323,19 @@ export default function HouseDetailsPopup({ isOpen, onClose, member }: HouseDeta
     return null
   }
 
-  // Content component (shared between mobile and desktop)
-  const ContentSection = () => (
+  // Shared between the phone sheet and the desktop dialog. A plain element,
+  // not a component defined in render: that remounted the canvas (and
+  // flickered the terrain) on every state change.
+  const content = (
     <>
       {/* Header */}
       <div className="relative bg-thread-pine text-thread-paper p-6 rounded-t-sm border-b-2 border-thread-sage drag-handle-area">
+        {/* ts-icon-button: the site's button padding otherwise squeezes
+            the icon to nothing in a small button */}
         <button
+          type="button"
           onClick={onClose}
-          className="absolute top-3 right-3 sm:top-4 sm:right-4 text-thread-pine bg-thread-paper hover:bg-thread-cream transition-colors rounded-full w-8 h-8 flex items-center justify-center shadow-sm"
+          className="ts-icon-button absolute top-3 right-3 sm:top-4 sm:right-4 flex items-center justify-center"
           aria-label="Close"
         >
           <PixelIcon name="close" size={16} />
@@ -371,21 +405,7 @@ export default function HouseDetailsPopup({ isOpen, onClose, member }: HouseDeta
                 template={member.homeConfig.houseTemplate as any}
                 palette={member.homeConfig.palette as any}
                 houseCustomizations={(member.homeConfig.houseCustomizations || {}) as HouseCustomizations}
-                decorations={(() => {
-                  return decorations.map((dec, index) => ({
-                    id: dec.id || `${dec.decorationId}_${index}`,
-                    name: dec.decorationId,
-                    decorationId: dec.decorationId,
-                    type: dec.decorationType,
-                    zone: 'front_yard' as const,
-                    position: { x: dec.x, y: dec.y, layer: dec.layer },
-                    variant: dec.variant,
-                    size: dec.size,
-                    renderSvg: dec.renderSvg ?? undefined,
-                    pngUrl: dec.pngUrl ?? undefined,
-                    data: dec.data // Include custom data for sign text
-                  }))
-                })()}
+                decorations={canvasDecorations}
                 atmosphere={atmosphere}
                 terrain={terrain}
                 className="w-full h-auto"
@@ -500,7 +520,7 @@ export default function HouseDetailsPopup({ isOpen, onClose, member }: HouseDeta
         bodyClassName=""
         className="overflow-hidden"
       >
-        <ContentSection />
+        {content}
       </Modal>
     )
   }
@@ -528,7 +548,7 @@ export default function HouseDetailsPopup({ isOpen, onClose, member }: HouseDeta
       >
         <div className="bottom-sheet-handle drag-handle-area" />
         <div className="bottom-sheet-content">
-          <ContentSection />
+          {content}
         </div>
       </div>
     </>,

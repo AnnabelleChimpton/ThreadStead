@@ -232,9 +232,11 @@ function UserPixelHome({ user }: { user: any }) {
   return (
     <div className="p-2 sm:p-4 min-h-[250px] sm:min-h-[300px] flex items-center justify-center">
       <div className="w-full max-w-md flex justify-center">
-        <div
-          className="transform scale-90 sm:scale-75 origin-center cursor-pointer"
-          onClick={() => window.location.href = `/resident/${user.primaryHandle?.split('@')[0]}`}
+        {/* w-full keeps the 512px canvas from overflowing a phone */}
+        <Link
+          href={`/home/${user.primaryHandle?.split('@')[0]}`}
+          aria-label="Your pixel home"
+          className="ts-card-link block w-full transform scale-90 sm:scale-75 origin-center"
         >
           <EnhancedHouseCanvas
             template={homeConfig.houseTemplate as HouseTemplate}
@@ -244,7 +246,7 @@ function UserPixelHome({ user }: { user: any }) {
             decorations={decorations}
             terrain={homeConfig.terrain}
           />
-        </div>
+        </Link>
       </div>
     </div>
   );
@@ -382,7 +384,7 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
                   <>
                     <UserPixelHome user={user} />
                     <div className="text-center mt-2 text-xs text-nb-ink-mid">
-                      Click your home to visit your profile page
+                      Click your house to visit your pixel home
                     </div>
                   </>
                 ) : (

@@ -134,7 +134,7 @@ function NewNeighborsWidget({ data, isLoading, error }: WidgetProps & { data?: N
       {data.users.length > 3 && (
         <div className="text-center pt-2 border-t border-nb-ink-mid/30">
           <Link
-            href="/directory"
+            href="/neighborhood/residents"
             className="text-sm"
           >
             View all {data.total} neighbors →

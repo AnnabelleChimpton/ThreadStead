@@ -616,7 +616,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                       Everyone here with a public page. You can search by name, username or bio.
                     </p>
                     <Link 
-                      href="/directory" 
+                      href="/neighborhood/residents"
                       className={`${buttonClasses("primary", "sm")} block text-center`}
                     >
                       Browse residents

@@ -43,7 +43,7 @@ function QuickActionsWidget({ user, isLoading, error }: WidgetProps) {
     {
       id: 'pixel-home',
       label: 'Pixel Home',
-      href: '/pixel-homes/build',
+      href: user?.primaryHandle ? `/home/${user.primaryHandle.split('@')[0]}` : '/neighborhood',
       icon: 'home',
       color: 'bg-purple-500 hover:bg-purple-600',
       description: 'Customize your pixel home'

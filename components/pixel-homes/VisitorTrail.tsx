@@ -11,10 +11,13 @@ interface Visitor {
 
 interface VisitorTrailProps {
   username: string
+  /** Record this page view as a visit. Only for a signed-in visitor who isn't
+   *  the owner; signed out, the POST can only 401. */
+  recordVisit?: boolean
   className?: string
 }
 
-export default function VisitorTrail({ username, className = '' }: VisitorTrailProps) {
+export default function VisitorTrail({ username, recordVisit = false, className = '' }: VisitorTrailProps) {
   const [visitors, setVisitors] = useState<Visitor[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedVisitorUsername, setSelectedVisitorUsername] = useState<string | null>(null)
@@ -39,7 +42,8 @@ export default function VisitorTrail({ username, className = '' }: VisitorTrailP
 
   // Record the current user's visit when component mounts
   useEffect(() => {
-    const recordVisit = async () => {
+    if (!recordVisit) return
+    const postVisit = async () => {
       try {
         await fetch(`/api/home/${username}/visitors`, {
           method: 'POST',
@@ -51,8 +55,8 @@ export default function VisitorTrail({ username, className = '' }: VisitorTrailP
       }
     }
 
-    recordVisit()
-  }, [username])
+    postVisit()
+  }, [username, recordVisit])
 
   if (loading || visitors.length === 0) {
     return null

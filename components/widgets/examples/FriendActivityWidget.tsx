@@ -87,7 +87,7 @@ function FriendActivityWidget({ data, isLoading, error, user }: WidgetProps & { 
       <div className="text-center py-4 text-gray-500">
         <p className="text-sm mb-2">No friend activity yet</p>
         <Link
-          href="/directory"
+          href="/neighborhood/residents"
           className="text-xs text-blue-600 hover:text-blue-800 transition-colors"
         >
           Find friends to follow →

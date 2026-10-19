@@ -10,11 +10,9 @@ import HouseSVG from './HouseSVG'
 import VisitorTrail from './VisitorTrail'
 import ThreadbookModal from './ThreadbookModal'
 import SharePixelHomeModal from './SharePixelHomeModal'
-import { PixelIcon } from '../ui/PixelIcon'
 // import DecorationMode from './DecorationMode' // Now handled by dedicated page
-import { HouseTemplate, ColorPalette, HouseCustomizations } from './HouseSVG'
+import { HouseTemplate, ColorPalette, HouseCustomizations, AtmosphereSettings } from './HouseSVG'
 import Modal from '../ui/feedback/Modal'
-import LoadingSpinner from '../ui/feedback/LoadingSpinner'
 import Guestbook from '../shared/Guestbook'
 import { trackNavigation, trackModalOpen } from '../../lib/analytics/pixel-homes'
 
@@ -70,6 +68,8 @@ interface PixelHomePageProps {
   displayName?: string
   homeConfig?: UserHomeConfig
   isOwner?: boolean
+  /** The viewer is signed in (from SSR), so their visit can be recorded */
+  isSignedIn?: boolean
   className?: string
 }
 
@@ -78,6 +78,7 @@ export default function PixelHomePage({
   displayName,
   homeConfig,
   isOwner = false,
+  isSignedIn = false,
   className = ''
 }: PixelHomePageProps) {
   const nameToShow = displayName || username
@@ -86,8 +87,6 @@ export default function PixelHomePage({
   const [badges, setBadges] = useState<ProfileBadge[]>([])
   const [showThreadbook, setShowThreadbook] = useState(false)
   const [showGuestbook, setShowGuestbook] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [hasUnreadGuestbook, setHasUnreadGuestbook] = useState(false)
   // const [showDecorationMode, setShowDecorationMode] = useState(false) // Now handled by dedicated page
   const [decorations, setDecorations] = useState<any[]>([])
@@ -95,12 +94,6 @@ export default function PixelHomePage({
     homeConfig?.houseCustomizations?.terrain || {}
   )
   const [loadingDecorations, setLoadingDecorations] = useState(true)
-  const [atmosphere, setAtmosphere] = useState({
-    sky: 'sunny' as const,
-    weather: 'clear' as const,
-    timeOfDay: 'midday' as const
-  })
-
   const config: UserHomeConfig = homeConfig || {
     houseTemplate: 'cottage_v1',
     palette: 'thread_sage',
@@ -114,14 +107,18 @@ export default function PixelHomePage({
     houseCustomizations: {}
   }
 
+  // Seeded from the SSR config so the house draws on first paint; the
+  // decorations request only adds the yard (and refreshes these).
+  const [atmosphere, setAtmosphere] = useState<AtmosphereSettings>(
+    config.atmosphere as AtmosphereSettings
+  )
+
   useEffect(() => {
     loadUserData()
   }, [username])
 
   const loadUserData = async () => {
     try {
-      setLoading(true)
-
       // Load user badges, guestbook status, and decorations in parallel.
       // allSettled: one failing endpoint must not blank the whole home —
       // Promise.all here meant a badges 500 hid the decorations too.
@@ -156,9 +153,10 @@ export default function PixelHomePage({
       }
 
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load user data')
+      // The house is already on screen from SSR; a bad side response
+      // just leaves the yard or badges empty.
+      console.error('Failed to load home extras:', err)
     } finally {
-      setLoading(false)
       setLoadingDecorations(false)
     }
   }
@@ -220,24 +218,6 @@ export default function PixelHomePage({
   }
 
   // handleCancelDecorations now handled by dedicated page
-
-  if (error) {
-    return (
-      <div className={`flex items-center justify-center py-16 ${className}`}>
-        <div className="text-center space-y-4 max-w-md">
-          <div className="flex justify-center"><PixelIcon name="home" size={48} /></div>
-          <div className="text-xl font-headline text-thread-pine">Home Not Found</div>
-          <div className="text-thread-sage">{error}</div>
-          <button
-            onClick={() => router.push('/')}
-            className="thread-button btn btn--primary"
-          >
-            Return to ThreadStead
-          </button>
-        </div>
-      </div>
-    )
-  }
 
   return (
     <div className={className}>
@@ -364,16 +344,13 @@ export default function PixelHomePage({
           {/* Center - Main House Display */}
           <div className="lg:col-span-2 lg:order-2 order-1">
             <div className="thread-module">
-              {/* Pure House Display - Always show house */}
+              {/* The house renders from the SSR config straight away;
+                  decorations fill in when their request lands. */}
               <div className="flex justify-center">
-                {loading ? (
-                  <LoadingSpinner
-                    size="lg"
-                    message="Loading Pixel Home..."
-                    className="w-full max-w-xl min-h-[300px] border-2 border-dotted border-nb-ink-mid/40 rounded-cozy"
-                  />
-                ) : (
-                <div className="relative">
+                {/* w-full: as a shrink-to-fit flex item this took the
+                    canvas's 512px min-content width and overflowed phones.
+                    512 is EnhancedHouseCanvas's own max width. */}
+                <div className="relative w-full max-w-[512px]">
                   <EnhancedHouseCanvas
                     template={config.houseTemplate}
                     palette={config.palette}
@@ -381,7 +358,7 @@ export default function PixelHomePage({
                     houseCustomizations={config.houseCustomizations as HouseCustomizations}
                     atmosphere={atmosphere}
                     terrain={terrain}
-                    className="w-full max-w-xl"
+                    className="w-full"
                   />
 
                   {/* NOTE: no overlays on the artwork. Badge sparkles + a
@@ -390,12 +367,11 @@ export default function PixelHomePage({
                       ponds/lawns like debris. Badges live in the sidebar
                       card; the visitor trail sits below the canvas. */}
                 </div>
-                )}
               </div>
 
               {/* Recent visitors — under the artwork, not on it */}
               <div className="flex justify-center mt-3">
-                <VisitorTrail username={username} />
+                <VisitorTrail username={username} recordVisit={isSignedIn && !isOwner} />
               </div>
 
               {/* House Description */}
