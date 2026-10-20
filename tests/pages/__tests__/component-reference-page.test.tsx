@@ -1,6 +1,6 @@
 /**
- * The public component reference (/build/templates/components): connected
- * components first under their own heading, each with a snippet and a Copy
+ * The public component reference (/build/templates/components): the ones to
+ * start with first, every component a click away, each with a snippet and a Copy
  * button. Copy says when it can't (no clipboard outside https), through
  * the site's toasts.
  */
@@ -49,12 +49,19 @@ afterEach(() => {
   else delete (navigator as unknown as Record<string, unknown>).clipboard
 })
 
-test('connected components come first, under their own heading', () => {
+test('it starts with the components to start with, in their own sections', () => {
   renderPage()
   const headings = screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)
-  expect(headings[0]).toBe('Connected to your page')
+  expect(headings).toEqual(['Your stuff', 'Bits of fun', 'Things people can click'])
   const entries = screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)
   expect(entries).toEqual(['<Guestbook>', '<FollowButton>', '<Embed>'])
+})
+
+test('Show all lists every component, connected ones first', () => {
+  renderPage()
+  fireEvent.click(screen.getByRole('button', { name: 'Show all 3' }))
+  const headings = screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)
+  expect(headings[0]).toBe('Connected to your page')
 })
 
 test('Copy puts the snippet on the clipboard', async () => {

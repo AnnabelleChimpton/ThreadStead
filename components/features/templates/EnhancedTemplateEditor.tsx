@@ -2,12 +2,13 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import dynamic from 'next/dynamic';
-import { html as htmlLang } from '@codemirror/lang-html';
+import { html as htmlLang, htmlLanguage } from '@codemirror/lang-html';
 import { css as cssLang } from '@codemirror/lang-css';
 import type { EditorView } from '@codemirror/view';
 import {
   fetchComponentSchemas,
   buildExtraTags,
+  nicknameCompletions,
   type ComponentSchema,
 } from '@/lib/templates/editor/component-autocomplete';
 import ComponentPalette from '@/components/features/templates/ComponentPalette';
@@ -807,7 +808,10 @@ export default function EnhancedTemplateEditor({
   }, []);
 
   const templateExtensions = React.useMemo(
-    () => [htmlLang(componentSchemas ? { extraTags: buildExtraTags(componentSchemas) } : {})],
+    () => [
+      htmlLang(componentSchemas ? { extraTags: buildExtraTags(componentSchemas) } : {}),
+      htmlLanguage.data.of({ autocomplete: nicknameCompletions }),
+    ],
     [componentSchemas]
   );
 

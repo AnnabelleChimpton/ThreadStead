@@ -2,6 +2,8 @@
 // CodeMirror HTML completions and palette snippets. Deliberately does NOT
 // import the component registry — that would pull all component
 // implementations into the editor bundle.
+import type { CompletionContext, CompletionResult } from '@codemirror/autocomplete';
+import { COMPONENT_NICKNAMES } from './component-nicknames';
 import type { TagSpec } from '@codemirror/lang-html';
 
 import type { ComponentDoc, ComponentPropDoc } from '@/lib/templates-docs/component-docs';
@@ -38,7 +40,9 @@ export function buildExtraTags(components: ComponentSchema[]): Record<string, Ta
     for (const p of c.props) {
       attrs[p.name] = p.values ?? null;
     }
-    specs[c.name] = { attrs, globalAttrs: true };
+    // Only the component's own settings: HTML's global and aria-* attributes
+    // buried them in the list
+    specs[c.name] = { attrs, globalAttrs: false };
   }
   return specs;
 }
@@ -56,4 +60,21 @@ export function describeProps(c: ComponentSchema): string {
   return [c.description, c.parent ? `Goes inside <${c.parent}>.` : '', settings || 'No settings.']
     .filter(Boolean)
     .join('\n\n');
+}
+
+/**
+ * Completions for what people call a component (<top → FriendDisplay,
+ * <song → ProfileMusic), on top of lang-html's own tag list, which only
+ * matches the real names.
+ */
+export function nicknameCompletions(context: CompletionContext): CompletionResult | null {
+  const typed = context.matchBefore(/<[A-Za-z][\w-]*$/);
+  if (!typed || typed.text.length < 3) return null;
+  const word = typed.text.slice(1).toLowerCase().replace(/[-_]/g, '');
+  const seen = new Set<string>();
+  const options = Object.entries(COMPONENT_NICKNAMES)
+    .filter(([nickname, component]) => nickname.startsWith(word) && !component.toLowerCase().startsWith(word))
+    .filter(([, component]) => !seen.has(component) && !!seen.add(component))
+    .map(([nickname, component]) => ({ label: component, detail: `for ${nickname}`, type: 'type', boost: 20 }));
+  return options.length ? { from: typed.from + 1, options, filter: false } : null;
 }

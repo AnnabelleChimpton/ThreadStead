@@ -14,6 +14,7 @@ import {
 } from "@/lib/templates-docs/component-docs";
 // Used only in getServerSideProps, so they stay out of the page's JS
 import { componentRegistry } from "@/lib/templates/core/template-registry";
+import { BEGINNER_SECTIONS } from "@/lib/templates-docs/beginner-set";
 import { getCachedTutorialsForComponent } from "@/lib/templates-docs/componentTutorialMap";
 
 interface TutorialLink {
@@ -146,6 +147,8 @@ function ComponentEntry({ doc, tutorials }: { doc: ComponentDoc; tutorials: Tuto
 
 export default function ComponentsPage({ siteConfig, components, tutorials }: ComponentsPageProps) {
   const [query, setQuery] = useState("");
+  // The ones to start with first; every component a click (or a search) away
+  const [showAll, setShowAll] = useState(false);
 
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -158,10 +161,19 @@ export default function ComponentsPage({ siteConfig, components, tutorials }: Co
     );
   }, [components, query]);
 
-  const sections = COMPONENT_GROUPS.map((group) => ({
-    ...group,
-    components: matches.filter((doc) => doc.group === group.id),
-  })).filter((section) => section.components.length > 0);
+  const byName = new Map(components.map((doc) => [doc.name, doc]));
+  const starting = !query.trim() && !showAll;
+  const sections = starting
+    ? BEGINNER_SECTIONS.map((section) => ({
+        id: section.id,
+        title: section.title,
+        blurb: section.blurb,
+        components: section.components.map((name) => byName.get(name)).filter((doc): doc is ComponentDoc => !!doc),
+      }))
+    : COMPONENT_GROUPS.map((group) => ({
+        ...group,
+        components: matches.filter((doc) => doc.group === group.id),
+      })).filter((section) => section.components.length > 0);
 
   return (
     <Layout siteConfig={siteConfig}>
@@ -194,17 +206,25 @@ export default function ComponentsPage({ siteConfig, components, tutorials }: Co
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={`Search ${components.length} components`}
+            placeholder={`Search all ${components.length} components`}
             className="w-full px-3 py-2 border border-thread-sage rounded bg-thread-paper focus:border-thread-pine focus:ring-1 focus:ring-thread-pine"
           />
           {!query && (
-            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
               {sections.map((section) => (
                 <a key={section.id} href={`#group-${section.id}`} className="text-thread-pine underline">
                   {section.title} ({section.components.length})
                 </a>
               ))}
+              <button type="button" className="ts-bare underline text-thread-pine" onClick={() => setShowAll((v) => !v)}>
+                {showAll ? 'Just the ones to start with' : `Show all ${components.length}`}
+              </button>
             </div>
+          )}
+          {starting && (
+            <p className="mt-2 mb-0 text-sm text-nb-ink">
+              These {BEGINNER_SECTIONS.reduce((n, s) => n + s.components.length, 0)} are the ones to start with. The rest are a click away, and search looks through all of them.
+            </p>
           )}
         </div>
 
