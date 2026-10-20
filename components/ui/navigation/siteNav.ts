@@ -69,6 +69,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { href: "/build/getting-started", label: "Getting started" },
       { href: "/help/faq", label: "FAQ" },
       { href: "/build", label: "Build your page" },
+      { href: "/build/showcase", label: "Page showcase" },
       { href: "/help/music-guide", label: "Music guide" },
       { href: "/help/guidelines", label: "Guidelines" },
       { href: "/help/contact", label: "Contact" },

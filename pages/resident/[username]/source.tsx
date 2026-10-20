@@ -4,10 +4,10 @@ import Head from 'next/head';
 import Link from 'next/link';
 import Layout from '@/components/ui/layout/Layout';
 import { PixelIcon } from '@/components/ui/PixelIcon';
-import { db } from '@/lib/config/database/connection';
-import { SITE_NAME } from '@/lib/config/site/constants';
+import ButtonLink from '@/components/ui/ButtonLink';
 import PrivateProfile from '@/components/core/profile/PrivateProfile';
-import { residentAccess } from '@/lib/domain/users/profile-access';
+import { canStartFrom, lookUpSource } from '@/lib/domain/profile/shared-source';
+import { startFromHref } from '@/lib/domain/profile/start-from-link';
 
 interface SourcePageProps {
   username: string;
@@ -17,6 +17,8 @@ interface SourcePageProps {
   cssMode: string;
   customTemplate: string;
   customCSS: string;
+  /** "Start from this page", for a signed-in visitor on someone else's HTML page */
+  startHref: string | null;
 }
 
 /** The source of a profile the viewer may not see shows the private-profile page. */
@@ -63,6 +65,7 @@ function ViewSourcePage({
   cssMode,
   customTemplate,
   customCSS,
+  startHref,
 }: SourcePageProps) {
   if (!sharing && !isOwner) {
     return (
@@ -97,7 +100,7 @@ function ViewSourcePage({
           </h1>
           <p className="text-sm text-thread-sage mt-1">
             {isOwner && !sharing
-              ? 'Only you can see this right now — turn on sharing in the editor to let others learn from it.'
+              ? 'Only you can see this right now. Turn on sharing in the editor to let others learn from it.'
               : 'Shared by the resident. Copy anything you like into your own editor and make it yours.'}
           </p>
           <div className="flex items-center gap-3 mt-2 text-xs text-thread-sage">
@@ -107,6 +110,11 @@ function ViewSourcePage({
               View the live page →
             </Link>
           </div>
+          {startHref && (
+            <div className="mt-4">
+              <ButtonLink href={startHref} size="sm">Start from this page</ButtonLink>
+            </div>
+          )}
         </div>
 
         {customTemplate.trim() !== '' && (
@@ -135,7 +143,7 @@ function ViewSourcePage({
 
         {customTemplate.trim() === '' && customCSS.trim() === '' && (
           <p className="text-sm text-thread-sage">
-            Nothing custom here yet — this page uses the site&apos;s default look.
+            Nothing custom here yet. This page uses the site&apos;s default look.
           </p>
         )}
       </div>
@@ -147,42 +155,40 @@ export const getServerSideProps: GetServerSideProps<SourcePageProps | HiddenSour
   const username = Array.isArray(params?.username) ? params.username[0] : String(params?.username || '');
   if (!username) return { notFound: true };
 
-  const handle = await db.handle.findFirst({
-    where: { handle: username, host: SITE_NAME },
-    include: { user: { include: { profile: true } } }
-  });
-  if (!handle || !handle.user.profile) return { notFound: true };
-  const profile = handle.user.profile;
-
   const { getSessionUser } = await import('@/lib/auth/server');
   const currentUser = await getSessionUser(req as Parameters<typeof getSessionUser>[0]);
-  const isOwner = currentUser?.id === handle.user.id;
 
-  const access = await residentAccess(currentUser, handle.user.id, profile.visibility);
-  if (!access.visible) {
+  const source = await lookUpSource(currentUser, username);
+  if (source.status === 'not_found') return { notFound: true };
+  if (source.status === 'hidden') {
     return {
       props: {
         privateProfile: {
           username,
-          displayName: profile.displayName || username,
-          avatarUrl: profile.avatarUrl || '/assets/default-avatar.gif',
-          visibility: access.visibility,
+          displayName: source.displayName,
+          avatarUrl: source.avatarUrl,
+          visibility: source.visibility,
         },
       },
     };
   }
 
-  const canSee = profile.showTemplateSource || isOwner;
+  // Signed in, someone else's page, and there's HTML to start from
+  const startHref =
+    currentUser && !source.isOwner && canStartFrom(source)
+      ? startFromHref(currentUser.primaryHandle?.split('@')[0], true, source.username)
+      : null;
 
   return {
     props: {
       username,
-      sharing: profile.showTemplateSource,
-      isOwner,
-      templateMode: profile.templateMode,
-      cssMode: profile.cssMode,
-      customTemplate: canSee ? (profile.customTemplate || '') : '',
-      customCSS: canSee ? (profile.customCSS || '') : '',
+      sharing: source.sharing,
+      isOwner: source.isOwner,
+      templateMode: source.templateMode,
+      cssMode: source.cssMode,
+      customTemplate: source.customTemplate,
+      customCSS: source.customCSS,
+      startHref,
     },
   };
 };

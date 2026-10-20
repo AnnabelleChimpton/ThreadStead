@@ -16,6 +16,7 @@ export default function BuildHub({ siteConfig, username }: BuildHubProps) {
     { href: '/build/templates', label: 'Templates', description: 'The template language and its components' },
     { href: '/build/getting-started', label: 'Getting Started', description: 'A tour of rings, your page, your house, and posting' },
     { href: '/build/what-works-here', label: 'What works here', description: 'What your own HTML page can do, and the few things it can\'t' },
+    { href: '/build/showcase', label: 'Showcase', description: 'Pages people share the source of, to look through or start from' },
   ];
 
   return (

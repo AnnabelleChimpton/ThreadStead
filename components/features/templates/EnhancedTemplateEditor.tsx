@@ -142,6 +142,13 @@ interface EnhancedTemplateEditorProps {
   initialTemplateMode?: 'default' | 'enhanced' | 'advanced';
   initialShowNavigation?: boolean;
   initialEditorMode?: 'template' | 'css'; // URL mode parameter
+  /**
+   * The initial contents aren't what's saved (a page started from someone
+   * else's): the editor opens unsaved, so it warns before leaving and keeps a
+   * draft. savedCSS is the CSS that is saved, for the "old look" note.
+   */
+  startsUnsaved?: boolean;
+  savedCSS?: string;
   onSave?: (template: string, css: string, compiledTemplate?: CompiledTemplate, cssMode?: 'inherit' | 'override' | 'disable', hideNavigation?: boolean, templateMode?: 'default' | 'enhanced' | 'advanced') => void;
 }
 
@@ -153,6 +160,8 @@ export default function EnhancedTemplateEditor({
   initialTemplateMode = 'default',
   initialShowNavigation = true,
   initialEditorMode,
+  startsUnsaved = false,
+  savedCSS: savedCSSProp,
   onSave
 }: EnhancedTemplateEditorProps) {
   const router = useRouter();
@@ -222,7 +231,7 @@ export default function EnhancedTemplateEditor({
   const [customCSS, setCustomCSS] = useState(initialCSS);
   // The CSS live on the page right now. Every save keeps the old version as a
   // revision, so when a save would change it the editor says so.
-  const [savedCSS, setSavedCSS] = useState(initialCSS);
+  const [savedCSS, setSavedCSS] = useState(savedCSSProp ?? initialCSS);
   const cssWillChange = savedCSS.trim() !== '' && customCSS.trim() !== savedCSS.trim();
   // Site styles on ('inherit') or off ('disable'); an older 'override' reads as on
   const [cssMode, setCSSMode] = useState<'inherit' | 'disable'>(siteStylesCSSMode(initialCSSMode));
@@ -1080,8 +1089,9 @@ export default function EnhancedTemplateEditor({
   const savedSnapshotRef = useRef<string | null>(null);
   useEffect(() => {
     if (savedSnapshotRef.current === null) {
-      savedSnapshotRef.current = currentSnapshot;
-      return;
+      // A started-from page is never the saved one, so it opens unsaved
+      savedSnapshotRef.current = startsUnsaved ? '' : currentSnapshot;
+      if (!startsUnsaved) return;
     }
     const dirty = currentSnapshot !== savedSnapshotRef.current;
     setHasUnsavedChanges(dirty);
