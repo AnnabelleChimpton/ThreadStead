@@ -1,6 +1,6 @@
 import { db } from "@/lib/config/database/connection";
 import { SITE_NAME } from '@/lib/config/site/constants';
-import { generateDefaultProfileTemplate, TEMPLATE_EXAMPLES } from '@/lib/templates/default-profile-template';
+import { generateDefaultProfileTemplate } from '@/lib/templates/default-profile-template';
 import { apiHandler } from '@/lib/api/handler';
 import { resolveCSSMode } from '@/lib/utils/css/css-mode';
 
@@ -59,18 +59,15 @@ export default apiHandler(
           template: defaultTemplate.template,
           css: defaultTemplate.css,
           cssMode: defaultTemplate.cssMode,
-          examples: TEMPLATE_EXAMPLES
         });
 
       } else if (req.method === 'POST') {
-        // Generate a specific template example
-        const { templateType, options } = req.body;
+        // The standard layout as a template, with these options
+        const { options } = req.body;
       
         let result;
       
-        if (templateType && TEMPLATE_EXAMPLES[templateType as keyof typeof TEMPLATE_EXAMPLES]) {
-          result = TEMPLATE_EXAMPLES[templateType as keyof typeof TEMPLATE_EXAMPLES];
-        } else if (options) {
+        if (options) {
           result = generateDefaultProfileTemplate(options);
         } else {
           result = generateDefaultProfileTemplate();

@@ -1,11 +1,12 @@
 /**
- * Opening the editor with ?mode=template on a standard-layout profile loads
- * the generated default template. That used to replace the saved CSS with a
- * blank stylesheet, with no warning, so one "Save & Go Live" silently dropped
- * the person's theme.
+ * Opening the HTML editor on a standard-layout profile starts from the Plain
+ * page starter, never a blank box. It once replaced the saved CSS with a
+ * blank stylesheet with no warning, so one "Save & Go Live" silently dropped
+ * the person's theme; now the starter brings its own CSS, and the editor
+ * says before the save that the old look stays in History.
  *
  * Pins:
- *  - the default template keeps the CSS already in the editor
+ *  - a new HTML page opens with Plain page, saying the old look is kept
  *  - a save that changes the CSS says the old look is in History
  *  - Reset to Default always asks, since it saves straight away
  *  - the header shows no developer text
@@ -14,6 +15,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import EnhancedTemplateEditor from '../EnhancedTemplateEditor';
 import { ToastProvider } from '@/contexts/ToastContext';
+import { STARTERS, splitStarter } from '@/lib/templates/starters';
 
 // CodeMirror (the only next/dynamic import the editor uses) becomes a textarea.
 jest.mock('next/dynamic', () => () => {
@@ -85,9 +87,11 @@ function renderEditor(props: Partial<React.ComponentProps<typeof EnhancedTemplat
   return { onSave };
 }
 
-async function waitForDefaultLayout() {
+const PLAIN = splitStarter(STARTERS[0].template);
+
+async function waitForPlainPage() {
   await waitFor(() =>
-    expect((screen.getByLabelText('template-code') as HTMLTextAreaElement).value).toBe(DEFAULT_LAYOUT)
+    expect((screen.getByLabelText('template-code') as HTMLTextAreaElement).value).toBe(PLAIN.html)
   );
 }
 
@@ -105,18 +109,18 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe('Loading the default template (?mode=template)', () => {
-  it('keeps the saved CSS instead of blanking it', async () => {
+describe('A new HTML page (?mode=template on a standard-layout profile)', () => {
+  it('opens with the Plain page starter, HTML and CSS', async () => {
     renderEditor();
-    await waitForDefaultLayout();
-
-    expect(openCSSTab().value).toBe(THEME);
+    await waitForPlainPage();
+    expect(STARTERS[0].id).toBe('plain-page');
+    expect(openCSSTab().value).toBe(PLAIN.css);
   });
 
-  it('saves the default layout with the theme still on it', async () => {
+  it('says before saving that the old look stays in History, and saves the starter', async () => {
     const { onSave } = renderEditor();
-    await waitForDefaultLayout();
-    // Let the debounced preview compile land.
+    await waitForPlainPage();
+    expect(screen.getByText('Saving changes your CSS. The old look stays in History.')).toBeInTheDocument();
     await waitFor(() =>
       expect(global.fetch).toHaveBeenCalledWith('/api/templates/compile', expect.anything())
     );
@@ -126,10 +130,8 @@ describe('Loading the default template (?mode=template)', () => {
 
     await waitFor(() => expect(onSave).toHaveBeenCalled());
     const [savedTemplate, savedCSS] = onSave.mock.calls[0];
-    expect(savedTemplate).toBe(DEFAULT_LAYOUT);
-    expect(savedCSS).toBe(THEME);
-    // The CSS didn't change, so there's nothing to point at in History.
-    expect(screen.queryByText(/old look/i)).not.toBeInTheDocument();
+    expect(savedTemplate).toBe(PLAIN.html);
+    expect(savedCSS).toBe(PLAIN.css);
   });
 });
 

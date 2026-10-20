@@ -31,12 +31,12 @@ import {
 import { compileTemplate } from '@/lib/templates/compilation/template-parser'
 import { identifyIslandsWithTransform } from '@/lib/templates/compilation/compiler/island-detector'
 import { generateStaticHTML } from '@/lib/templates/compilation/compiler/html-optimizer'
-import { HTML_TEMPLATES } from '@/lib/templates/default-html-templates'
+import { HTML_TEMPLATES } from '../fixtures/old-starters/html-templates'
 import {
-  TEMPLATE_EXAMPLES,
   generateDefaultProfileTemplate,
   getMinimalProfileTemplate,
 } from '@/lib/templates/default-profile-template'
+import { TEMPLATE_EXAMPLES } from '../fixtures/old-starters/examples'
 import { componentRegistry } from '@/lib/templates/core/template-registry'
 
 describe('environment canary', () => {

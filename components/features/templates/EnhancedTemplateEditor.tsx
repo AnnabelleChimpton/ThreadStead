@@ -19,6 +19,7 @@ import { getDefaultProfileTemplate } from '@/lib/templates/default-profile-templ
 import { THEMES, detectTheme } from '@/lib/templates/appearance';
 import TemplatePanelSelector from './TemplatePanelSelector';
 import StarterTemplateGallery from './StarterTemplateGallery';
+import { STARTERS, splitStarter } from '@/lib/templates/starters';
 import Link from 'next/link';
 import { useSiteConfig } from '@/hooks/useSiteConfig';
 import { useSiteCSS } from '@/hooks/useSiteCSS';
@@ -1073,21 +1074,21 @@ export default function EnhancedTemplateEditor({
     // Users should be able to manually navigate to CSS tab in advanced mode
   }, [useStandardLayout, activeTab]);
 
-  // Handle initial mode from URL parameter — ONCE. loadDefaultTemplate is a
-  // plain function (new identity every render), so without the ref guard this
-  // effect fired on every render and looped the page: each call opened the
-  // data-loss dialog via setState, which re-rendered, which re-fired the
-  // effect ("Maximum update depth exceeded" + endless default-template
-  // fetches).
+  // Opened as the HTML editor on a page with no HTML yet: start from the
+  // Plain page starter (never a blank box). Once, guarded by the ref. Nothing
+  // is saved until Save, and the page's old CSS stays in History then.
   const initialModeHandledRef = useRef(false);
   useEffect(() => {
     if (initialModeHandledRef.current) return;
     if (initialEditorMode === 'template' && savedOnStandardLayout && !template.trim()) {
       initialModeHandledRef.current = true;
-      // The saved page has no HTML yet: start from the default layout
-      loadDefaultTemplate();
+      const { html, css } = splitStarter(STARTERS[0].template);
+      setTemplate(html);
+      setCustomCSS(css);
+      setCSSMode('disable');
+      setActiveTab('template');
     }
-  }, [initialEditorMode, savedOnStandardLayout, template, loadDefaultTemplate]);
+  }, [initialEditorMode, savedOnStandardLayout, template]);
 
   // Track changes against the last-saved snapshot (manual save required now).
   // Comparing to a snapshot (instead of blindly marking dirty) keeps a fresh
@@ -1720,55 +1721,18 @@ export default function EnhancedTemplateEditor({
             {/* Editor Toolbar - matching original seamless style */}
             <div className="bg-thread-cream border-b border-thread-sage/30 border-l-2 border-r-2 border-thread-sage px-4 py-3 -mt-px">
 
-              {/* Template Gallery with Progressive Disclosure */}
-              <details className="mb-4">
-                <summary className="cursor-pointer flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors">
-                  <PixelIcon name={useStandardLayout ? 'paint-bucket' : 'folder'} size={16} />
-                  <span className="font-semibold text-thread-pine">
-                    {useStandardLayout ? 'CSS Theme Gallery' : 'HTML Template Gallery'}
-                  </span>
-                  <span className="text-xs text-gray-500 ml-auto">Click to expand</span>
-                </summary>
-
-                <div className="mt-3 p-4 border border-gray-200 rounded-lg bg-gray-50">
-                  {useStandardLayout ? (
-                    <div className="space-y-4">
-                      <div>
-                        <h5 className="font-medium text-thread-charcoal mb-2">CSS Themes for Standard Layout</h5>
-                        <p className="text-sm text-gray-600 mb-3">
-                          These themes add beautiful styling to your standard layout without changing the structure.
-                        </p>
-                        <div className="flex gap-2">
-                          <select
-                            onChange={(e) => {
-                              if (e.target.value === '') return;
-                              showDataLossWarning(
-                                "Apply CSS Theme",
-                                `This will replace your current CSS with the theme. Any unsaved changes will be lost.`,
-                                () => {
-                                  const templateCSS = getDefaultProfileTemplate(e.target.value as any);
-                                  setCustomCSS(templateCSS);
-                                  setCSSMode('inherit'); // Themes work with inherit mode
-                                }
-                              );
-                              e.target.value = '';
-                            }}
-                            className="text-sm px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50"
-                          >
-                            <option value="">Choose a CSS theme...</option>
-                            {THEMES.map((theme) => (
-                              <option key={theme.id} value={theme.id}>{theme.name}</option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
+              {/* Starter pages: open until you close it */}
+              {!useStandardLayout && (
+                <details className="mb-4" open>
+                  <summary className="cursor-pointer font-semibold text-nb-ink py-1">
+                    Starter pages
+                  </summary>
+                  <div className="mt-2">
                     <StarterTemplateGallery
                       onSelect={(starterTemplate, starterCSS, name) => {
                         showDataLossWarning(
-                          "Load Starter",
-                          `This will replace your current HTML and CSS with "${name}". Any unsaved changes will be lost.`,
+                          "Start from a starter page",
+                          `This replaces the HTML and CSS in the editor with ${name}. Unsaved changes will be lost.`,
                           () => {
                             setUseStandardLayout(false);
                             setTemplate(starterTemplate);
@@ -1778,9 +1742,9 @@ export default function EnhancedTemplateEditor({
                         );
                       }}
                     />
-                  )}
-                </div>
-              </details>
+                  </div>
+                </details>
+              )}
 
               {/* Action Bar */}
               <div className="flex flex-wrap items-center justify-between gap-2">

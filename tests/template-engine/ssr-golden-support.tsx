@@ -6,12 +6,12 @@
 import fs from 'fs'
 import path from 'path'
 import {
-  TEMPLATE_EXAMPLES,
   generateDefaultProfileTemplate,
   getMinimalProfileTemplate,
   getFullProfileTemplate,
 } from '@/lib/templates/default-profile-template'
-import { HTML_TEMPLATES } from '@/lib/templates/default-html-templates'
+import { TEMPLATE_EXAMPLES } from './fixtures/old-starters/examples'
+import { HTML_TEMPLATES } from './fixtures/old-starters/html-templates'
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider'
 import React from 'react'
 import type { JSDOM } from 'jsdom'

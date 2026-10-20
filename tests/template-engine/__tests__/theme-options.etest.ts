@@ -37,7 +37,8 @@ import {
   validThemeOptions,
   writeThemeOptions,
 } from '@/lib/templates/compilation/theme-options'
-import { HTML_TEMPLATES } from '@/lib/templates/default-html-templates'
+import { HTML_TEMPLATES } from '../fixtures/old-starters/html-templates'
+import { STARTERS, splitStarter } from '@/lib/templates/starters'
 import { transformAdvancedCss } from '@/lib/utils/css/css-transform'
 import { escapeCssForStyleTag } from '@/lib/utils/sanitization/css'
 
@@ -292,8 +293,8 @@ describe('rewriting values in the source', () => {
   })
 })
 
-describe('starters', () => {
-  // The HTML Template Gallery's starters (StarterTemplateGallery "Just HTML")
+describe('old gallery starters (now test fixtures)', () => {
+  // The gallery's "Just HTML" starters when theme options came in
   const GALLERY = HTML_TEMPLATES.filter((t) => t.id !== 'conditional-showcase')
 
   // How each starter looked before it had options: the <style> contents and
@@ -353,6 +354,41 @@ describe('starters', () => {
       const { head, ...page } = ast
       expect(head).toEqual({ fontImports: [], otherStylesheets: [], options })
       expect(JSON.parse(JSON.stringify(page))).toEqual(fixture.ast)
+    })
+  })
+})
+
+describe('starter pages', () => {
+  // The gallery's starters (lib/templates/starters), as the gallery loads them
+  describe.each(STARTERS.map((s) => [s.id, s.template] as const))('%s', (_id, template) => {
+    const { css, html } = splitStarter(template)
+    const { options } = scanThemeOptions(html)
+
+    test('declares colours and fonts and compiles with nothing stripped or warned about', () => {
+      expect(options.some((o) => o.type === 'color')).toBe(true)
+      expect(options.some((o) => o.type === 'font')).toBe(true)
+      const artifacts = compileTemplateToArtifacts(html)
+      expect(artifacts.strippedComponents).toEqual([])
+      expect(artifacts.warnings).toEqual([])
+      expect(artifacts.ast.head?.options).toEqual(options)
+    })
+
+    test('its CSS uses every option, and only options it declares', () => {
+      for (const option of options) expect(css).toContain(`var(${optionVar(option)})`)
+      const used = [...css.matchAll(/var\((--(?:color|font)-[a-z0-9-]+)\)/g)].map((m) => m[1])
+      expect(used.filter((v) => !options.some((o) => optionVar(o) === v))).toEqual([])
+    })
+
+    test('is written for people, not a demo: no emoji, no em dashes, no placeholder links to nowhere', () => {
+      expect(template).not.toMatch(/\p{Extended_Pictographic}/u)
+      expect(template).not.toContain('\u2014')
+      expect(template).not.toMatch(/href="#"/)
+    })
+
+    test('has a focus style, a phone layout, and keeps still for reduced motion if anything moves', () => {
+      expect(css).toMatch(/:focus-visible/)
+      expect(css).toMatch(/@media \(max-width: 600px\)/)
+      if (/animation:/.test(css)) expect(css).toMatch(/prefers-reduced-motion: reduce/)
     })
   })
 })

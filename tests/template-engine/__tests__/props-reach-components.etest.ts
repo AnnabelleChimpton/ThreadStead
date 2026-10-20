@@ -35,12 +35,12 @@ import { tokenizeSource, looksLikeComponentName } from '@/lib/templates/compilat
 import { componentRegistry } from '@/lib/templates/core/template-registry'
 import { coercePropValue, findPropSchema, type PropSchema } from '@/lib/templates/core/template-registry-types'
 import type { Island } from '@/lib/templates/compilation/compiler/types'
-import { HTML_TEMPLATES } from '@/lib/templates/default-html-templates'
+import { HTML_TEMPLATES } from '../fixtures/old-starters/html-templates'
 import {
-  TEMPLATE_EXAMPLES,
   generateDefaultProfileTemplate,
   getMinimalProfileTemplate,
 } from '@/lib/templates/default-profile-template'
+import { TEMPLATE_EXAMPLES } from '../fixtures/old-starters/examples'
 
 const ROOT = path.resolve(__dirname, '../../..')
 

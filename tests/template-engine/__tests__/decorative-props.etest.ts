@@ -21,7 +21,7 @@ jest.mock('@noble/ed25519', () => ({
 }))
 
 import { compileTemplateToArtifacts } from '@/lib/templates/compilation/compile-pipeline'
-import { TEMPLATE_EXAMPLES } from '@/lib/templates/default-profile-template'
+import { TEMPLATE_EXAMPLES } from '../fixtures/old-starters/examples'
 
 function onlyIsland(source: string) {
   const artifacts = compileTemplateToArtifacts(source)
