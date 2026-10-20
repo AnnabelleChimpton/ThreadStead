@@ -11,6 +11,7 @@ import {
   type ComponentSchema,
 } from '@/lib/templates/editor/component-autocomplete';
 import ComponentPalette from '@/components/features/templates/ComponentPalette';
+import ImagePicker, { type ImagePane } from '@/components/features/templates/ImagePicker';
 import { fetchResidentData } from '@/lib/templates/core/template-data';
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
 import type { CompiledTemplate } from '@/lib/templates/compilation/compiler';
@@ -27,6 +28,7 @@ import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import { useRouter } from 'next/router';
 import { PixelIcon } from '@/components/ui/PixelIcon';
 import Modal from '@/components/ui/feedback/Modal';
+import Button from '@/components/ui/Button';
 import DraftRestoreBanner from '@/components/ui/feedback/DraftRestoreBanner';
 import { useLocalDraft } from '@/hooks/useLocalDraft';
 import { useToast } from '@/contexts/ToastContext';
@@ -764,20 +766,42 @@ export default function EnhancedTemplateEditor({
     [componentSchemas]
   );
 
+  const cssViewRef = useRef<EditorView | null>(null);
+
   // Drop a snippet in at the cursor (or append if the editor isn't mounted).
-  const insertIntoTemplate = useCallback((snippet: string) => {
-    const view = templateViewRef.current;
+  // `cursor` is where the cursor lands, counted from the snippet's start.
+  const insertAtCursor = useCallback((pane: ImagePane, snippet: string, cursor = snippet.length) => {
+    const view = (pane === 'html' ? templateViewRef : cssViewRef).current;
     if (view) {
       const { from, to } = view.state.selection.main;
       view.dispatch({
         changes: { from, to, insert: snippet },
-        selection: { anchor: from + snippet.length },
+        selection: { anchor: from + cursor },
       });
       view.focus();
-    } else {
+    } else if (pane === 'html') {
       handleTemplateChange(template ? `${template}\n${snippet}` : snippet);
+    } else {
+      setCustomCSS(customCSS ? `${customCSS}\n${snippet}` : snippet);
     }
-  }, [template]);
+  }, [template, customCSS]);
+
+  const insertIntoTemplate = useCallback((snippet: string) => insertAtCursor('html', snippet), [insertAtCursor]);
+
+  // ── Image picker (your own media, into the HTML or CSS pane) ──
+  const [imagePickerPane, setImagePickerPane] = useState<ImagePane | null>(null);
+  const [pendingImage, setPendingImage] = useState<{ pane: ImagePane; text: string; cursor: number } | null>(null);
+  const pickImage = useCallback((pane: ImagePane, snippet: { text: string; cursor: number }) => {
+    setImagePickerPane(null);
+    setPendingImage({ pane, ...snippet });
+  }, []);
+  // Inserted once the picker has closed and handed focus back, so the
+  // cursor ends up in the code (inside alt="" when there's alt text to write).
+  useEffect(() => {
+    if (!pendingImage) return;
+    insertAtCursor(pendingImage.pane, pendingImage.text, pendingImage.cursor);
+    setPendingImage(null);
+  }, [pendingImage, insertAtCursor]);
 
   // Feature flag for islands mode
   // Islands are always enabled - legacy mode removed
@@ -1767,8 +1791,8 @@ export default function EnhancedTemplateEditor({
                       <span className="text-sm text-thread-sage ml-2">Plain HTML plus ThreadStead components</span>
                     </label>
 
-                    {/* Navigation Toggle */}
-                    <div className="mb-3 flex items-center gap-2">
+                    {/* Navigation Toggle, and the image picker */}
+                    <div className="mb-3 flex flex-wrap items-center gap-2">
                       <input
                         type="checkbox"
                         id="hideNavigation"
@@ -1779,6 +1803,17 @@ export default function EnhancedTemplateEditor({
                       <label htmlFor="hideNavigation" className="text-sm text-thread-sage">
                         Show site navigation
                       </label>
+                      <div className="ml-auto">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          aria-haspopup="dialog"
+                          onClick={() => setImagePickerPane('html')}
+                          className="inline-flex items-center gap-2"
+                        >
+                          <PixelIcon name="image" size={14} /> Insert image
+                        </Button>
+                      </div>
                     </div>
                     <div className="border border-thread-sage rounded overflow-hidden focus-within:border-thread-pine focus-within:ring-1 focus-within:ring-thread-pine">
                       <CodeMirror
@@ -1970,8 +2005,20 @@ export default function EnhancedTemplateEditor({
                     </div>
                   )}
                 </div>
+                <div className="mb-3 flex justify-end">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    aria-haspopup="dialog"
+                    onClick={() => setImagePickerPane('css')}
+                    className="inline-flex items-center gap-2"
+                  >
+                    <PixelIcon name="image" size={14} /> Insert image
+                  </Button>
+                </div>
                 <div className="border border-thread-sage rounded overflow-hidden focus-within:border-thread-pine focus-within:ring-1 focus-within:ring-thread-pine">
                   <CodeMirror
+                    onCreateEditor={(view) => { cssViewRef.current = view; }}
                     value={customCSS}
                     onChange={(value: string) => setCustomCSS(value)}
                     extensions={[cssLang()]}
@@ -2036,6 +2083,13 @@ body {
           </details>
         </div>
       )}
+
+      <ImagePicker
+        pane={imagePickerPane}
+        username={user.primaryHandle?.split('@')[0] || user.handles?.[0]?.handle?.split('@')[0] || ''}
+        onClose={() => setImagePickerPane(null)}
+        onPick={pickImage}
+      />
 
       </div>{/* end editor column */}
 

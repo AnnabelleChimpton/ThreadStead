@@ -95,6 +95,68 @@ export async function renderMediaSizesKeepingFormat(input: Buffer, format: 'png'
   return { thumbnail, medium, full };
 }
 
+/**
+ * GIFs keep their format and every frame.
+ *
+ * - full: the uploaded file itself, byte for byte (exact frames, timing and
+ *   palette; re-encoding a GIF re-quantises every frame and often makes it
+ *   bigger). Only a GIF wider or taller than MEDIA_KEEP_MAX is re-encoded,
+ *   shrunk to fit with every frame.
+ * - medium: shrunk to fit 600×600 with every frame, when it's bigger than that.
+ * - thumbnail: a 150×150 crop with every frame, like the other formats.
+ *
+ * A smaller size is never a bigger file than the upload: if shrinking costs
+ * bytes, that size is the original. A GIF with more pixels across all its
+ * frames than GIF_ANIMATE_PIXEL_BUDGET isn't decoded frame by frame (memory):
+ * its medium is the original and its thumbnail the first frame, still (and
+ * one that is also over MEDIA_KEEP_MAX is turned away).
+ *
+ * Throws ImageValidationError when the bytes aren't a GIF sharp can read.
+ */
+export const GIF_ANIMATE_PIXEL_BUDGET = 40_000_000;
+
+export interface GifSizes extends ImageSizes {
+  width: number;
+  /** One frame's height */
+  height: number;
+  frames: number;
+}
+
+export async function renderGifSizes(input: Buffer): Promise<GifSizes> {
+  const notAGif = () => new ImageValidationError("That doesn't look like a GIF.");
+  let meta: sharp.Metadata;
+  try {
+    meta = await sharp(input, { animated: true }).metadata();
+  } catch {
+    throw notAGif();
+  }
+  const width = meta.width;
+  const height = meta.pageHeight ?? meta.height;
+  if (meta.format !== 'gif' || !width || !height) throw notAGif();
+  const frames = meta.pages ?? 1;
+  const canAnimate = width * height * frames <= GIF_ANIMATE_PIXEL_BUDGET;
+  const fits = (max: number) => width <= max && height <= max;
+  if (!fits(MEDIA_KEEP_MAX) && !canAnimate) {
+    throw new ImageValidationError(`That GIF is too big to keep moving. Try one under ${MEDIA_KEEP_MAX} pixels on each side.`);
+  }
+
+  const animated = () => sharp(input, { animated: true });
+  const noBigger = (out: Buffer) => (out.length < input.length ? out : input);
+  const fitInside = (max: number) =>
+    animated().resize(max, max, { fit: 'inside', withoutEnlargement: true }).gif().toBuffer();
+
+  const [full, medium, thumbnail] = await Promise.all([
+    fits(MEDIA_KEEP_MAX) ? input : fitInside(MEDIA_KEEP_MAX),
+    fits(600) || !canAnimate ? input : fitInside(600).then(noBigger),
+    (canAnimate ? animated() : sharp(input))
+      .resize(150, 150, { fit: 'cover' })
+      .gif()
+      .toBuffer()
+      .then(noBigger),
+  ]);
+  return { thumbnail, medium, full, width, height, frames };
+}
+
 /** 88×31 web badge and its 4× (352×124) version, letterboxed on transparent PNG. */
 export const BADGE_SIZE = { width: 88, height: 31 } as const;
 export const BADGE_HD_SIZE = { width: 352, height: 124 } as const;

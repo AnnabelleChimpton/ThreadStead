@@ -4,6 +4,7 @@ import { db } from "@/lib/config/database/connection";
 import { SITE_NAME } from "@/lib/config/site/constants";
 import { parsePagePagination } from "@/lib/server/http/pagination";
 import { residentAccess, sendPrivateProfile } from "@/lib/domain/users/profile-access";
+import { PICTURE_MEDIA_TYPES } from "@/lib/media/media-types";
 
 
 
@@ -47,7 +48,7 @@ export default apiHandler(
         db.media.findMany({
           where: {
             userId: handle.user.id,
-            mediaType: "image", // Only images, not MIDI files
+            mediaType: { in: PICTURE_MEDIA_TYPES }, // Pictures (images and GIFs), not MIDI files
             visibility: "public", // Only show public media for now
             isGalleryItem: true // Only show intentional gallery uploads
           },
@@ -75,7 +76,7 @@ export default apiHandler(
         db.media.count({
           where: {
             userId: handle.user.id,
-            mediaType: "image", // Only count images
+            mediaType: { in: PICTURE_MEDIA_TYPES },
             visibility: "public",
             isGalleryItem: true // Only count gallery items
           }

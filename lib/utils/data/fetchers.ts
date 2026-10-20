@@ -5,6 +5,7 @@ import { db } from "../../config/database/connection";
 import { SITE_NAME } from "../../config/site/constants";
 import { getAllowedVisibilities } from "../../domain/posts/visibility";
 import { getUserBlockedIds, addBlockFiltersToWhere } from "../../domain/users/blocks";
+import { PICTURE_MEDIA_TYPES } from "../../media/media-types";
 
 export async function getPostsForUser(username: string, viewerId?: string) {
   const handle = await db.handle.findFirst({
@@ -111,7 +112,7 @@ export async function getPhotosForUser(username: string, page: number = 1, limit
     db.media.findMany({
       where: {
         userId: handle.user.id,
-        mediaType: "image", // Only images, not MIDI files
+        mediaType: { in: PICTURE_MEDIA_TYPES }, // Pictures (images and GIFs), not MIDI files
         visibility: "public" // Only show public media for now
       },
       orderBy: {
@@ -138,7 +139,7 @@ export async function getPhotosForUser(username: string, page: number = 1, limit
     db.media.count({
       where: {
         userId: handle.user.id,
-        mediaType: "image", // Only count images
+        mediaType: { in: PICTURE_MEDIA_TYPES },
         visibility: "public"
       }
     })

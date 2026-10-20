@@ -5,6 +5,7 @@ import PhotoComments from "@/components/core/content/PhotoComments";
 import { PixelIcon } from '@/components/ui/PixelIcon';
 import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner';
 import Modal from '@/components/ui/feedback/Modal';
+import { PICTURE_MEDIA_TYPES } from '@/lib/media/media-types';
 
 interface PhotoItem {
   id: string;
@@ -61,8 +62,8 @@ export default function MediaGrid({ username, isOwner = false }: MediaGridProps)
   };
 
   const handleUploadSuccess = (newPhoto: any) => {
-    // Add to featured photos if it was marked as featured and is an image
-    if (newPhoto.featured && newPhoto.mediaType === 'image') {
+    // Add to featured photos if it was marked as featured and is a picture
+    if (newPhoto.featured && PICTURE_MEDIA_TYPES.includes(newPhoto.mediaType)) {
       setFeaturedPhotos(prev => [...prev, newPhoto].sort((a, b) => 
         (a.featuredOrder || 0) - (b.featuredOrder || 0)
       ));

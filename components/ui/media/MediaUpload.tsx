@@ -73,8 +73,10 @@ export default function MediaUpload({ onUploadSuccess, disabled = false }: Media
       return;
     }
 
-    // For GIFs, skip compression to preserve animation
-    if (isGif) {
+    // GIF, PNG and WebP go up as they are: GIFs keep their animation, and the
+    // server keeps PNG and WebP in their own format (pixel art, transparency)
+    // and does any resizing itself. Only photos are compressed here.
+    if (isGif || file.type === 'image/png' || file.type === 'image/webp') {
       setSelectedFile(file);
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -84,7 +86,7 @@ export default function MediaUpload({ onUploadSuccess, disabled = false }: Media
       return;
     }
 
-    // Compress other images (JPEG, PNG, WebP, HEIC)
+    // Compress photos (JPEG, HEIC)
     try {
       setUploading(true);
       const options = {

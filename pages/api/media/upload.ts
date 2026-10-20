@@ -6,7 +6,16 @@ import multer from "multer";
 import { promisify } from "util";
 import { apiHandler } from "@/lib/api/handler";
 import { putObject } from "@/lib/storage/r2";
-import { BADGE_HD_SIZE, BADGE_SIZE, containPng, imageDimensions, renderMediaSizes, renderMediaSizesKeepingFormat } from "@/lib/media/image";
+import {
+  BADGE_HD_SIZE,
+  BADGE_SIZE,
+  containPng,
+  ImageValidationError,
+  imageDimensions,
+  renderGifSizes,
+  renderMediaSizes,
+  renderMediaSizesKeepingFormat,
+} from "@/lib/media/image";
 
 // Configure multer for memory storage
 const upload = multer({
@@ -121,20 +130,18 @@ async function processAndUploadMedia(
     ];
     metadata = { fileSize: buffer.length };
   } else if (isGif) {
-    // Validate GIF magic bytes since these files bypass Sharp processing entirely
+    // GIFs keep every frame: the full size is the upload itself (see renderGifSizes)
     const gifHeader = buffer.subarray(0, 6).toString('ascii');
     if (gifHeader !== 'GIF87a' && gifHeader !== 'GIF89a') {
-      throw new Error('Invalid GIF file: magic byte validation failed');
+      throw new ImageValidationError("That doesn't look like a GIF.");
     }
-
-    // For GIF files, upload as-is to preserve animation (no Sharp processing)
-    // Sharp would convert to static JPEG and lose animation
+    const gif = await renderGifSizes(buffer);
     uploads = [
-      { key: `${baseKey}.gif`, buffer: buffer, size: 'full' },
-      { key: `${baseKey}_medium.gif`, buffer: buffer, size: 'medium' },
-      { key: `${baseKey}_thumb.gif`, buffer: buffer, size: 'thumbnail' },
+      { key: `${baseKey}.gif`, buffer: gif.full, size: 'full' },
+      { key: `${baseKey}_medium.gif`, buffer: gif.medium, size: 'medium' },
+      { key: `${baseKey}_thumb.gif`, buffer: gif.thumbnail, size: 'thumbnail' },
     ];
-    metadata = { fileSize: buffer.length };
+    metadata = { width: gif.width, height: gif.height, fileSize: buffer.length };
   } else {
     // Get image metadata
     const { width: originalWidth = 0, height: originalHeight = 0 } = await imageDimensions(buffer);
@@ -333,8 +340,11 @@ export default apiHandler(
       });
 
     } catch (error) {
+      if (error instanceof ImageValidationError) {
+        return res.status(400).json({ error: error.message });
+      }
       console.error("Media upload error:", error);
-    
+
       if (error instanceof Error) {
         if (error.message === 'Only image, HEIC, and MIDI files are allowed') {
           return res.status(400).json({ error: error.message });

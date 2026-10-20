@@ -2,6 +2,7 @@ import { apiHandler } from "@/lib/api/handler";
 import { db } from "@/lib/config/database/connection";
 
 import { SITE_NAME } from "@/lib/config/site/constants";
+import { PICTURE_MEDIA_TYPES } from "@/lib/media/media-types";
 
 
 
@@ -34,7 +35,7 @@ export default apiHandler(
         where: {
           userId: handle.user.id,
           featured: true,
-          mediaType: "image", // Only images, not MIDI files
+          mediaType: { in: PICTURE_MEDIA_TYPES }, // Pictures (images and GIFs), not MIDI files
           visibility: "public", // Only show public media for now
           isGalleryItem: true // Only show intentional gallery uploads
         },
