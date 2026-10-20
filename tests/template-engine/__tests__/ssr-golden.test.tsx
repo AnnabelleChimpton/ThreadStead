@@ -109,6 +109,18 @@ async function settle(ms = Number(process.env.SETTLE_MS) || 60) {
   await new Promise((resolve) => setTimeout(resolve, ms))
 }
 
+/**
+ * Settle, then keep waiting while the page still says it's loading (the
+ * guestbook and posts fetch after hydration). A fixed wait came up short
+ * when the machine was busy. No fixture contains "Loading", and pages
+ * without it are compared after the same single settle as before.
+ */
+async function settleLoaded(root: Element, maxMs = 3000) {
+  await settle()
+  const start = Date.now()
+  while (/Loading/.test(root.textContent || '') && Date.now() - start < maxMs) await settle(30)
+}
+
 /** Server HTML → browser DOM → hydrate → settled DOM, plus hydration errors */
 async function visit(compiledTemplate: unknown, viewerId: string, beforeHydrate?: (dom: JSDOM) => void) {
   logged = []
@@ -131,8 +143,8 @@ async function visit(compiledTemplate: unknown, viewerId: string, beforeHydrate?
     const root = hydrateRoot(dom.window.document.getElementById('root')!, page(compiledTemplate, viewerId), {
       onRecoverableError: (error) => hydrationErrors.push(error),
     })
-    await settle()
     const rootEl = dom.window.document.getElementById('root')!
+    await settleLoaded(rootEl)
     // React 19 puts <link rel=preload as=image> hints for the page's images
     // into the server HTML. Resource hints, not page content: not compared.
     rootEl.querySelectorAll('link[rel="preload"][as="image"]').forEach((link) => link.remove())
