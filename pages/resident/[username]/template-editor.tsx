@@ -175,8 +175,9 @@ export default function TemplateEditorPage({
       <Layout fullWidth={true}>
         <div className="editor-full-page flex flex-col bg-white template-editor-page w-full">
           <div className="bg-white border-b border-thread-sage/30 px-4 py-3 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
+            {/* Wraps on a phone instead of pushing the buttons off the card */}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 min-w-0">
                 <h1 className="text-lg font-semibold">Profile Layout Editor</h1>
                 <span className="text-thread-sage text-sm">@{username}</span>
                 {layoutOf(templateMode) === 'html' && (
@@ -186,7 +187,7 @@ export default function TemplateEditorPage({
                 )}
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 shrink-0">
                 <button
                   onClick={handleBackToSettings}
                   className="thread-button-secondary text-xs px-2 py-1"
