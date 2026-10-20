@@ -57,3 +57,58 @@ test('onclick and javascript: links are reported once each, not dropped quietly'
 test('a Var without a type is fine', async () => {
   expect((await report('<Var name="waves" initial="0" />')).warnings).toEqual([])
 })
+
+describe('mistakes that compile and then do nothing', () => {
+  test('a misspelt variable says which one was meant', async () => {
+    const { warnings } = await report('<Var name="count" initial="0" />\n<Button><OnClick><Increment var="cuont" /></OnClick>Go</Button>')
+    expect(warnings).toEqual([expect.stringMatching(/^Line 2: <Increment> uses a variable called cuont, but nothing makes one, so it does nothing\. Did you mean count\?$/)])
+  })
+
+  test('a variable nothing makes says how to make it', async () => {
+    const { warnings } = await report('<p><ShowVar name="waves" /></p>')
+    expect(warnings[0]).toContain('Add <Var name="waves" initial="…" /> near the top.')
+  })
+
+  test('variables made by actions and loops count as made', async () => {
+    const source = [
+      '<Var name="books" type="array" initial=\'["a"]\' />',
+      '<Button><OnClick><Count data="$vars.books" target="howMany" /></OnClick>Count</Button>',
+      '<p><ShowVar name="howMany" /></p>',
+      '<ForEach data="$vars.books" item="book"><p>{book}</p></ForEach>',
+    ].join('\n')
+    expect((await report(source)).warnings.filter((w) => /variable called/.test(w))).toEqual([])
+  })
+
+  test('JavaScript in an If is never true, and says how to write it', async () => {
+    const { warnings } = await report('<Var name="mood" initial="happy" />\n<If condition="mood == \'happy\'"><p>yay</p></If>')
+    expect(warnings).toEqual([expect.stringContaining('<If condition="mood == \'happy\'"> reads condition as a name, not a sum')])
+    expect(warnings[0]).toContain('<If condition="mood" equals="happy">')
+  })
+
+  test('Else on the page, and OnClick outside a Button, are reported', async () => {
+    const { warnings } = await report('<Var name="n" initial="0" />\n<If condition="n"><p>a</p></If>\n<Else><p>b</p></Else>\n<div><OnClick><Increment var="n" /></OnClick></div>')
+    expect(warnings).toEqual(expect.arrayContaining([
+      expect.stringMatching(/^Line 3: <Else> only works inside an event like <OnClick>/),
+      expect.stringMatching(/^Line 4: <OnClick> only works straight inside a <Button>/),
+    ]))
+  })
+
+  test('a Tab outside Tabs is reported', async () => {
+    const { warnings } = await report('<Tab title="One"><p>x</p></Tab>')
+    expect(warnings).toEqual([expect.stringMatching(/<Tab> only works inside a <Tabs>/)])
+  })
+
+  test('ShowVar takes var= like the tags that change a variable', async () => {
+    expect((await report('<Var name="waves" initial="0" />\n<ShowVar var="waves" />')).warnings).toEqual([])
+  })
+
+  test('the starter pages and the counter people write first have nothing to warn about', async () => {
+    const source = '<Var name="waves" type="number" initial="0" />\n<p><ShowVar name="waves" /></p>\n<Button><OnClick><Increment var="waves" /></OnClick>Wave</Button>'
+    expect((await report(source)).warnings).toEqual([])
+  })
+})
+
+test('name= where a tag wants var= says so, once', async () => {
+  const { warnings } = await report('<Var name="n" initial="0" />\n<Button><OnClick><Increment name="n" /></OnClick>Go</Button>')
+  expect(warnings).toEqual(['Line 2: <Increment name="n"> Increment says which variable with var="…", not name=. Write var="n".'])
+})

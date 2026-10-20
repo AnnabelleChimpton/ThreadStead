@@ -89,7 +89,8 @@ export function registerStateComponents(registry: ComponentRegistry) {
     description: 'Shows the current value of a page variable as text, and updates when it changes. Lists and objects show as JSON, and true or false show as the words.',
     example: '<Var name="cookies" type="number" initial="3" />\n<Var name="guest" type="string" />\n<p><ShowVar name="cookies" format="{value} cookies on the porch" /></p>\n<p>Hello, <ShowVar name="guest" fallback="stranger" /></p>',
     props: {
-      name: { type: 'string', required: true, description: 'The page variable to show. Inside a ForEach, write {book} for the item instead: ShowVar with the item or index name stays blank.' },
+      name: { type: 'string', description: 'The page variable to show. Inside a ForEach, write {book} for the item instead: ShowVar with the item or index name stays blank.' },
+      var: { type: 'string', description: 'The same as name. The tags that change a variable say var=, so ShowVar takes it too.' },
       format: { type: 'string', description: 'Text around the value, with {value} where it goes, like "{value} cookies". For an object, {value.title} shows one field.' },
       fallback: { type: 'string', description: 'Text to show while the variable has no value yet. Empty text counts as a value, so then it shows nothing.' },
       dateFormat: {

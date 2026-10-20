@@ -17,6 +17,7 @@ import {
 import { extractDocument, type DocumentHead } from './document-head';
 import { isThemeOptionMeta } from './theme-options';
 import { whyNoEmbed } from '../embeds';
+import { COMPONENT_NICKNAMES } from '../editor/component-nicknames';
 import {
   ELEMENT_ATTRIBUTES,
   GLOBAL_ATTRIBUTES,
@@ -559,7 +560,7 @@ export function parseTemplate(htmlString: string): Root & {
   const strippedComponents = reportStrippedTags(htmlString, processed, document.head);
 
   // Component props that won't do what the author meant, for the editor
-  const attributeWarnings = [...reportComponentProps(htmlString), ...(document.warnings ?? [])];
+  const attributeWarnings = [...reportComponentProps(htmlString), ...reportPageProblems(htmlString), ...(document.warnings ?? [])];
 
   // Attach stripped components and attribute warnings to the result
   const result = processed as Root & {
@@ -624,17 +625,6 @@ function editDistance(a: string, b: string): number {
   return row[b.length];
 }
 
-/** What people call a component, for the ones whose names they wouldn't guess */
-const COMPONENT_NICKNAMES: Record<string, string> = {
-  top8: 'FriendDisplay', topfriends: 'FriendDisplay', friends: 'FriendDisplay', friend: 'FriendDisplay',
-  song: 'ProfileMusic', music: 'ProfileMusic', musicplayer: 'ProfileMusic',
-  webring: 'RingNav', rings: 'MyRings', threadrings: 'MyRings',
-  youtube: 'Embed', video: 'Embed', iframe: 'Embed',
-  post: 'BlogPosts', posts: 'BlogPosts', blog: 'BlogPosts', blogpost: 'BlogPosts',
-  photo: 'ProfilePhoto', avatar: 'ProfilePhoto', picture: 'ProfilePhoto',
-  name: 'DisplayName', about: 'Bio', aboutme: 'Bio',
-  house: 'MyHouse', home: 'MyHouse',
-};
 
 /** The component an unknown tag name was probably meant to be (a typo or a nickname). */
 function suggestComponent(written: string): string | undefined {
@@ -749,6 +739,13 @@ function reportComponentProps(source: string): string[] {
         if (problem) messages.push(`${asWritten} ${problem}`);
         continue;
       }
+      // name= and var= both mean "which variable", on different tags
+      const other = attr.name.toLowerCase() === 'name' ? 'var' : attr.name.toLowerCase() === 'var' ? 'name' : null;
+      if (other && registration.props[other]) {
+        written.add(other);
+        messages.push(`${asWritten} ${name} says which variable with ${other}="…", not ${attr.name}=. Write ${other}="${attr.value ?? ''}".`);
+        continue;
+      }
       if (!keptBySanitizer(attr.name, allowed)) {
         const meant = closestProp(attr.name, registration.props);
         messages.push(
@@ -770,6 +767,138 @@ function reportComponentProps(source: string): string[] {
     return [...messages.slice(0, MAX_PROP_MESSAGES), `…and ${more} more like these.`];
   }
   return messages;
+}
+
+/**
+ * Whether an editor warning is one of reportPageProblems' (how the page fits
+ * together) rather than about one tag's own settings. Tests that compile a
+ * single tag on its own leave these out.
+ */
+export function isPageProblem(message: string): boolean {
+  return /uses a variable called|only works (straight )?inside|reads (condition|data|when) as a name|needs name="…" \(or var="…"\)/.test(message);
+}
+
+/** Components that run what's inside them when something happens (OnClick, OnChange, OnMount…) */
+const isEvent = (name: string) => /^On[A-Z]/.test(name);
+
+/** A prop that makes a page variable for you ("Made for you if it doesn't exist") */
+function declaresVariable(prop: PropSchema | undefined): boolean {
+  return !!prop?.description && /made for you/i.test(prop.description);
+}
+
+/** The JavaScript people write in an If and expect to work: ==, !=, <, >, && and || */
+const SCRIPT_IN_CONDITION = /==|!=|<=|>=|&&|\|\||(?<![\w-])[<>](?!=)/;
+
+/**
+ * Mistakes that compile fine and then do nothing on the page, found from the
+ * source with its lines:
+ *  - a variable that's used but never made (setVariable ignores unknown
+ *    names, so <Increment var="cuont"> just does nothing), with the
+ *    closest name that is made;
+ *  - JavaScript in an If's condition (it's read as a name, so
+ *    condition="mood == 'happy'" is never true);
+ *  - Else or ElseIf outside an event (on the page they do nothing);
+ *  - OnClick anywhere but straight inside a Button, and a component outside
+ *    the one it has to sit in (Tab outside Tabs, Case outside Switch);
+ *  - ShowVar with nothing to show.
+ */
+function reportPageProblems(source: string): string[] {
+  const messages: string[] = [];
+  const declared = new Set<string>();
+  const used: Array<{ name: string; line: number; tag: string; attr: string }> = [];
+  const stack: string[] = [];
+
+  for (const token of tokenizeSource(source)) {
+    if (token.type === 'close') {
+      if (!looksLikeComponentName(token.name)) continue;
+      const at = stack.lastIndexOf(token.name);
+      if (at !== -1) stack.length = at;
+      continue;
+    }
+    if (token.type !== 'open' || !looksLikeComponentName(token.name)) continue;
+    const registration = componentRegistry.get(token.name);
+    if (!registration) continue;
+    const name = registration.name;
+    const line = lineAt(source, token.start);
+    const parent = stack[stack.length - 1];
+    const attrs = new Map(token.attributes.map((a) => [a.name.toLowerCase(), decodeAttributeValue(a.value ?? '')]));
+
+    // Where it sits
+    if (name === 'OnClick' && parent !== 'Button') {
+      messages.push(
+        `Line ${line}: <OnClick> only works straight inside a <Button>, so here nothing happens on a click.` +
+        (parent ? ` It's inside <${parent}>.` : '')
+      );
+    }
+    const needs = registration.relationship?.requiresParent;
+    if (needs && parent !== needs && name !== 'OnClick') {
+      messages.push(`Line ${line}: <${name}> only works inside a <${needs}>.`);
+    }
+    if ((name === 'Else' || name === 'ElseIf') && !stack.some(isEvent)) {
+      messages.push(
+        `Line ${line}: <${name}> only works inside an event like <OnClick>. On the page it does nothing; use another <If> for the other case.`
+      );
+    }
+
+    // JavaScript in a condition
+    if (['If', 'ElseIf', 'When', 'Show'].includes(name)) {
+      for (const key of ['condition', 'data', 'when']) {
+        const value = attrs.get(key);
+        if (value && SCRIPT_IN_CONDITION.test(value)) {
+          messages.push(
+            `Line ${line}: <${name} ${key}="${value}"> reads ${key} as a name, not a sum, so it's never true. ` +
+            `Write the name and what to compare with, like <If condition="mood" equals="happy">.`
+          );
+          break;
+        }
+      }
+    }
+
+    // Variables made and used
+    if (name === 'Var' && attrs.get('name')) declared.add(attrs.get('name')!);
+    if (name === 'ForEach') {
+      for (const key of ['item', 'index']) if (attrs.get(key)) declared.add(attrs.get(key)!);
+    }
+    // Validate makes <var>_valid, <var>_error and <var>_errors
+    if (name === 'Validate' && attrs.get('var')) {
+      for (const suffix of ['_valid', '_error', '_errors']) declared.add(attrs.get('var') + suffix);
+    }
+    for (const [propName, prop] of Object.entries(registration.props)) {
+      const value = attrs.get(propName.toLowerCase());
+      if (value && declaresVariable(prop)) declared.add(value);
+    }
+    if (attrs.get('var')) used.push({ name: attrs.get('var')!, line, tag: name, attr: 'var' });
+    if ((name === 'ShowVar' || name === 'DebugValue') && attrs.get('name')) {
+      used.push({ name: attrs.get('name')!, line, tag: name, attr: 'name' });
+    }
+    for (const value of attrs.values()) {
+      for (const m of value.matchAll(/\$vars\.([A-Za-z_][\w-]*)/g)) used.push({ name: m[1], line, tag: name, attr: '$vars' });
+    }
+    if (name === 'ShowVar' && !attrs.get('name') && !attrs.get('var')) {
+      messages.push(`Line ${line}: <ShowVar> needs name="…" (or var="…") to know which variable to show.`);
+    }
+
+    if (!token.selfClosing) stack.push(name);
+  }
+
+  const reported = new Set<string>();
+  for (const use of used) {
+    if (declared.has(use.name) || reported.has(use.name)) continue;
+    reported.add(use.name);
+    let best: { name: string; distance: number } | undefined;
+    for (const candidate of declared) {
+      const distance = editDistance(use.name.toLowerCase(), candidate.toLowerCase());
+      if (distance <= 2 && (!best || distance < best.distance)) best = { name: candidate, distance };
+    }
+    messages.push(
+      `Line ${use.line}: <${use.tag}> uses a variable called ${use.name}, but nothing makes one, so it does nothing.` +
+      (best ? ` Did you mean ${best.name}?` : ` Add <Var name="${use.name}" initial="…" /> near the top.`)
+    );
+  }
+
+  return messages.length > MAX_PROP_MESSAGES
+    ? [...messages.slice(0, MAX_PROP_MESSAGES), `…and ${messages.length - MAX_PROP_MESSAGES} more like these.`]
+    : messages;
 }
 
 // Convert HAST to a serializable AST for storage

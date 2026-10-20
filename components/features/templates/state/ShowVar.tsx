@@ -28,7 +28,10 @@ import { globalTemplateStateManager } from '@/lib/templates/state/TemplateStateM
 
 export interface ShowVarProps {
   /** Variable name to display */
-  name: string;
+  name?: string;
+
+  /** The same as name: the tags that change a variable say var= */
+  var?: string;
 
   /** Format string with {value} placeholder */
   format?: string;
@@ -46,12 +49,15 @@ export interface ShowVarProps {
 
 export default function ShowVar(props: ShowVarProps) {
   const {
-    name,
+    name: nameProp,
+    var: varProp,
     scopeId: propScopeId,
     format,
     fallback,
     dateFormat,
   } = props;
+
+  const name = nameProp || varProp || '';
 
   // IMPORTANT: Always call hooks before any conditional returns
   // PHASE 1.1: Use selective subscription - only re-render when this specific variable changes
@@ -71,7 +77,7 @@ export default function ShowVar(props: ShowVarProps) {
         fontSize: '12px',
         fontFamily: 'monospace'
       }}>
-        ⚠️ ShowVar: missing &quot;name&quot;
+        ShowVar needs name=&quot;…&quot;
       </span>
     );
   }

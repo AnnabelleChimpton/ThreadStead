@@ -41,6 +41,11 @@ import {
   getMinimalProfileTemplate,
 } from '@/lib/templates/default-profile-template'
 import { TEMPLATE_EXAMPLES } from '../fixtures/old-starters/examples'
+import { isPageProblem } from '@/lib/templates/compilation/template-parser'
+
+// About each tag's own settings: how the page fits together (variables made,
+// where a tag sits) is editor-messages.etest.ts's
+const propWarnings = (warnings: string[]) => warnings.filter((w) => !isPageProblem(w))
 
 const ROOT = path.resolve(__dirname, '../../..')
 
@@ -106,7 +111,7 @@ describe('every declared prop reaches its component', () => {
     const artifacts = compileTemplateToArtifacts(source)
     expect(artifacts.strippedComponents).toEqual([])
     // A fine value says nothing to the author
-    expect(artifacts.warnings).toEqual([])
+    expect(propWarnings(artifacts.warnings)).toEqual([])
 
     const island = flatten(artifacts.islands).find((i) => i.component === name.toLowerCase())!
     const receivedAs = schema.componentProp ?? prop
@@ -145,7 +150,7 @@ describe('the implementation name works as an attribute too', () => {
     ['SkillChart', 'displayMode', 'radial', 'displayMode'],
   ])('<%s %s>', (name, attr, value, receivedAs) => {
     const artifacts = compileTemplateToArtifacts(`<${name} ${attr}="${value}"></${name}>`)
-    expect(artifacts.warnings).toEqual([])
+    expect(propWarnings(artifacts.warnings)).toEqual([])
     expect(artifacts.islands[0]._precomputed!.componentProps[receivedAs]).toBe(value)
   })
 })
@@ -165,7 +170,7 @@ describe('every starter hands each prop it writes to its component', () => {
   test.each(STARTERS)('%s', (_id, source) => {
     const artifacts = compileTemplateToArtifacts(source)
     expect(artifacts.strippedComponents).toEqual([])
-    expect(artifacts.warnings).toEqual([])
+    expect(propWarnings(artifacts.warnings)).toEqual([])
     const islands = flatten(artifacts.islands)
 
     // What the source asks for, per component and prop: the values written

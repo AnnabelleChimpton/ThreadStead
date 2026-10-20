@@ -18,9 +18,14 @@ jest.mock('@noble/ed25519', () => ({
 }))
 
 import { compileTemplateToArtifacts } from '@/lib/templates/compilation/compile-pipeline'
+import { isPageProblem } from '@/lib/templates/compilation/template-parser'
+
+// About each tag's own settings: how the page fits together (variables made,
+// where a tag sits) is editor-messages.etest.ts's
+const propWarnings = (warnings: string[]) => warnings.filter((w) => !isPageProblem(w))
 
 function warningsFor(source: string): string[] {
-  return compileTemplateToArtifacts(source).warnings
+  return propWarnings(compileTemplateToArtifacts(source).warnings)
 }
 
 function propsOf(source: string, component: string) {
@@ -79,7 +84,7 @@ describe('attributes a component does not have', () => {
 
   test('an event handler is reported as left out (and stays out)', () => {
     const artifacts = compileTemplateToArtifacts('<RetroCard onclick="x()">hi</RetroCard>')
-    expect(artifacts.warnings).toEqual([
+    expect(propWarnings(artifacts.warnings)).toEqual([
       'Line 1: <RetroCard onclick="x()"> RetroCard has no onclick setting, so it\'s left out.',
     ])
     expect(JSON.stringify(artifacts.islands)).not.toContain('x()')
@@ -145,7 +150,7 @@ describe('where the messages go', () => {
 
   test('nothing of the message reaches the compiled page', () => {
     const artifacts = compileTemplateToArtifacts('<StickyNote colour="pink" color="teal">hi</StickyNote>')
-    expect(artifacts.warnings).toHaveLength(2)
+    expect(propWarnings(artifacts.warnings)).toHaveLength(2)
     const page = artifacts.staticHTML + JSON.stringify(artifacts.islands)
     expect(page).not.toMatch(/left out|can be|Using/)
   })
