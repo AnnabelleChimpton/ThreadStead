@@ -174,11 +174,6 @@ export default function MyApp({ Component, pageProps, appSiteCSS }: MyAppProps) 
                     /* Advanced template mode - complete CSS control */
                     /* Only reset classes that advanced templates commonly override */
                     
-                    /* Reset thread module styling for complete control */
-                    .thread-module.p-6 { padding: unset; }
-                    .thread-module.mb-6 { margin-bottom: unset; }
-                    .thread-module.p-0 { padding: unset; }
-                    
                     /* Reset ThreadStead colors for complete control */  
                     .bg-thread-cream { background-color: unset; }
                     .bg-thread-paper { background-color: unset; }
@@ -231,7 +226,9 @@ ${rest}`)
             </Head>
             <div
               className={`${pageProps.templateMode === 'advanced'
-                ? 'min-h-screen font-body'
+                // No font-body here: it re-set the font under <body>, so a
+                // page's own body { font-family } and font: pickers did nothing
+                ? 'min-h-screen'
                 : 'min-h-screen font-body thread-surface text-thread-charcoal'
               }`}
             >

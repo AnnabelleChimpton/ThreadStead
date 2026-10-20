@@ -47,6 +47,15 @@ html, body { height: 100%; }
     letter-spacing: -0.02em;
   }
 
+  /* Your own HTML page: a heading with no style of its own takes the page's
+     font and colour, as in a browser, not the site's pine Georgia (pine on a
+     black page, Georgia under a monospace one) */
+  .profile-template-root :is(h1, h2, h3, h4, h5, h6) {
+    font-family: inherit;
+    color: inherit;
+    letter-spacing: normal;
+  }
+
   h1 { font-size: 2.25rem; line-height: 1.2; }
   h2 { font-size: 1.875rem; line-height: 1.3; }
   h3 { font-size: 1.5rem; line-height: 1.4; }
