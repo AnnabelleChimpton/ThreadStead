@@ -142,7 +142,6 @@ export const tutorials: Tutorial[] = [
         code: '<Var name="counter" type="number" initial="0" />',
         concepts: ['Var'],
         tips: [
-          'Variables must be declared at the top of your template (before any elements that reference them)',
           'The initial value determines what users see when they first load your template'
         ]
       },
@@ -405,11 +404,14 @@ export const tutorials: Tutorial[] = [
         code: `<Var name="email" type="string" initial="" />
 
 <TInput var="email" placeholder="your@email.com">
-  <OnChange>
+  <OnChange debounce="500">
     <ShowToast message="Email updated!" />
   </OnChange>
 </TInput>`,
-        concepts: ['TInput', 'OnChange', 'ShowToast']
+        concepts: ['TInput', 'OnChange', 'ShowToast'],
+        tips: [
+          'debounce="500" waits until someone stops typing for half a second, so the toast shows once instead of on every key'
+        ]
       },
       {
         id: 'step-3',
@@ -626,19 +628,14 @@ export const tutorials: Tutorial[] = [
         id: 'step-4',
         title: 'Multiple Conditions with AND',
         explanation: 'Use the and prop with comma-separated variable paths to require multiple conditions to be true.',
-        code: `<Var name="username" type="string" initial="" />
-<Var name="password" type="string" initial="" />
+        code: `<Var name="visitor" type="string" initial="" />
+<Var name="song" type="string" initial="" />
 
-<TInput var="username" placeholder="Username" />
-<TInput var="password" placeholder="Password" />
+<TInput var="visitor" placeholder="Your name" />
+<TInput var="song" placeholder="A song you love" />
 
-<If and="$vars.username,$vars.password">
-  <Button>
-    <OnClick>
-      <ShowToast message="Logging in..." />
-    </OnClick>
-    Login
-  </Button>
+<If and="$vars.visitor,$vars.song">
+  <p><ShowVar name="visitor" /> says everyone should hear <ShowVar name="song" />.</p>
 </If>`,
         concepts: ['If'],
         tips: [
@@ -678,44 +675,9 @@ export const tutorials: Tutorial[] = [
           'Switch evaluates the value once, then checks each Case in order',
           'First matching Case wins - subsequent Cases are skipped'
         ]
-      },
-      {
-        id: 'step-6',
-        title: 'Dynamic Form Validation',
-        explanation: 'Combine If operators with computed variables for real-time validation feedback.',
-        code: `<Var name="email" type="string" initial="" />
-<Var name="password" type="string" initial="" />
-<Var name="passwordLength" type="computed" expression="$vars.password.length" />
-
-<label>Email</label>
-<TInput var="email" placeholder="user@example.com" />
-
-<label>Password (min 8 characters)</label>
-<TInput var="password" placeholder="Password" />
-<If and="$vars.password" condition="$vars.passwordLength" lessThan="8">
-  <p style="color: red">Password must be at least 8 characters</p>
-</If>
-
-<If condition="$vars.email" contains="@">
-  <If condition="$vars.passwordLength" greaterThanOrEqual="8">
-    <Button>
-      <OnClick>
-        <ShowToast message="Form submitted!" />
-      </OnClick>
-      Submit
-    </Button>
-  </If>
-</If>`,
-        concepts: ['If', 'Var', 'TInput'],
-        tips: [
-          'Use contains operator to check if strings include substrings',
-          'Computed variables can access .length property',
-          'Nest If components to create AND conditions',
-          'lessThan and greaterThanOrEqual work with numbers'
-        ]
       }
     ],
-    summary: 'Conditional logic lets you create dynamic, responsive templates that adapt to user input and state changes. Master If and Switch to build sophisticated UIs! NEW: You can now combine multiple conditions (and/or with comparison operators) in a single If tag, making complex logic more readable.',
+    summary: 'Conditional logic lets you create dynamic, responsive templates that adapt to user input and state changes. Master If and Switch to build sophisticated UIs!',
     nextTutorial: 'loops-and-lists',
     relatedComponents: ['if', 'switch', 'toggle', 'cycle']
   },
@@ -1148,7 +1110,7 @@ export const tutorials: Tutorial[] = [
         explanation: 'OnInterval runs actions repeatedly at a specified interval (in milliseconds).',
         code: `<Var name="seconds" type="number" initial="0" />
 
-<OnInterval interval="1000">
+<OnInterval seconds="1">
   <Increment var="seconds" />
 </OnInterval>
 
@@ -1166,7 +1128,7 @@ export const tutorials: Tutorial[] = [
         code: `<Var name="isRunning" type="boolean" initial="false" />
 <Var name="count" type="number" initial="0" />
 
-<OnInterval interval="1000">
+<OnInterval seconds="1">
   <If condition="$vars.isRunning">
     <Increment var="count" />
   </If>
@@ -1251,7 +1213,7 @@ export const tutorials: Tutorial[] = [
 <Var name="isFinished" type="computed" expression="timeLeft <= 0" />
 <Var name="shouldTick" type="computed" expression="isRunning && !isFinished" />
 
-<OnInterval interval="1000">
+<OnInterval seconds="1">
   <If condition="$vars.shouldTick">
     <Decrement var="timeLeft" />
     <If condition="$vars.isFinished">
@@ -1509,7 +1471,6 @@ export const tutorials: Tutorial[] = [
         concepts: ['Clone', 'OnMount', 'ObjectSet'],
         tips: [
           'Clone creates an independent copy - changes to one don\'t affect the other',
-          'Without Clone, both variables would point to the same object',
           'Essential for maintaining separate state'
         ]
       },
@@ -1621,16 +1582,7 @@ export const tutorials: Tutorial[] = [
 
   <Button>
     <OnClick>
-      <Set var="profile" value='{
-        "name": "Alex Smith",
-        "email": "alex@example.com",
-        "age": 28,
-        "preferences": {
-          "theme": "dark",
-          "notifications": true,
-          "language": "en"
-        }
-      }' />
+      <Reset var="profile" />
       <ShowToast message="Profile reset to defaults!" />
     </OnClick>
     Reset to Defaults
