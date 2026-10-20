@@ -213,3 +213,53 @@ test('a storage failure is a 500 and the profile is untouched', async () => {
   expect(res.statusCode).toBe(500);
   expect(db.profile.upsert).not.toHaveBeenCalled();
 });
+
+// A 40×40 cut-out: a solid square in the middle, clear all round it
+async function cutout(): Promise<Buffer> {
+  const raw = Buffer.alloc(40 * 40 * 4);
+  for (let y = 10; y < 30; y++) {
+    for (let x = 10; x < 30; x++) raw.set([30, 160, 90, 255], (y * 40 + x) * 4);
+  }
+  return sharp(raw, { raw: { width: 40, height: 40, channels: 4 } }).png().toBuffer();
+}
+
+test.each([
+  ['a PNG', 'image/png', (b: Buffer) => Promise.resolve(b)],
+  ['a WebP', 'image/webp', (b: Buffer) => sharp(b).webp({ lossless: true }).toBuffer()],
+])('%s avatar is stored as transparent PNGs', async (_label, type, encode) => {
+  const file = await encode(await cutout());
+  const res = await call({ body: multipart([{ name: 'photo', file, type }, { name: 'cap', value: 'good-cap' }]) });
+  const userId = `user-${userSeq}`;
+
+  expect(res.statusCode).toBe(200);
+  const puts = send.mock.calls.map((c) => c[0].input);
+  expect(puts.map((p) => p.Key.replace(/\d+_/, 'N_'))).toEqual([
+    `profile-photos/${userId}/N_thumb.png`,
+    `profile-photos/${userId}/N_medium.png`,
+    `profile-photos/${userId}/N_full.png`,
+  ]);
+  const sizes = [64, 200, 40]; // the full size is never enlarged
+  for (const [i, put] of puts.entries()) {
+    expect(put.ContentType).toBe('image/png');
+    const meta = await sharp(put.Body).metadata();
+    expect(meta.format).toBe('png');
+    expect(meta.hasAlpha).toBe(true);
+    expect([meta.width, meta.height]).toEqual([sizes[i], sizes[i]]);
+    // The corner is still see-through, not flattened onto white or black
+    const { data } = await sharp(put.Body).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    expect(data[3]).toBe(0);
+  }
+  // The full size is the cut-out's exact pixels
+  const full = await sharp(puts[2].Body).ensureAlpha().raw().toBuffer();
+  const original = await sharp(await cutout()).ensureAlpha().raw().toBuffer();
+  expect(full.equals(original)).toBe(true);
+  expect(res.body.urls.mediumUrl).toMatch(/_medium\.png$/);
+});
+
+test('the stored format follows the bytes, not the MIME type the browser sent', async () => {
+  const res = await call({
+    body: multipart([{ name: 'photo', file: await cutout(), type: 'image/jpeg' }, { name: 'cap', value: 'good-cap' }]),
+  });
+  expect(res.statusCode).toBe(200);
+  for (const c of send.mock.calls) expect(c[0].input.ContentType).toBe('image/png');
+});

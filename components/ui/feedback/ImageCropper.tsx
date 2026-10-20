@@ -9,13 +9,19 @@ interface ImageCropperProps {
   onCropComplete: (croppedImageBlob: Blob) => void;
   onCancel: () => void;
   aspectRatio?: number;
+  /** image/png keeps transparency and exact pixels; JPEG for photos */
+  outputType?: 'image/jpeg' | 'image/png';
+  /** Longest side of the cropped image; a bigger crop is scaled down to it */
+  maxOutputSize?: number;
 }
 
 export default function ImageCropper({ 
   imageUrl, 
   onCropComplete, 
   onCancel, 
-  aspectRatio = 1 
+  aspectRatio = 1,
+  outputType = 'image/jpeg',
+  maxOutputSize,
 }: ImageCropperProps) {
   const [crop, setCrop] = useState<Crop>({
     unit: '%',
@@ -58,34 +64,40 @@ export default function ImageCropper({
     const scaleX = image.naturalWidth / image.width;
     const scaleY = image.naturalHeight / image.height;
 
-    // Set canvas size to crop size
-    const cropWidth = crop.width * scaleX;
-    const cropHeight = crop.height * scaleY;
-    
-    canvas.width = cropWidth;
-    canvas.height = cropHeight;
+    // Whole source pixels, so a 1:1 crop copies pixels exactly (pixel art)
+    const sourceX = Math.round(crop.x * scaleX);
+    const sourceY = Math.round(crop.y * scaleY);
+    const cropWidth = Math.max(1, Math.round(crop.width * scaleX));
+    const cropHeight = Math.max(1, Math.round(crop.height * scaleY));
+    const scale = maxOutputSize ? Math.min(1, maxOutputSize / Math.max(cropWidth, cropHeight)) : 1;
+
+    canvas.width = Math.max(1, Math.round(cropWidth * scale));
+    canvas.height = Math.max(1, Math.round(cropHeight * scale));
+    // Only smooth when actually shrinking
+    ctx.imageSmoothingEnabled = scale < 1;
+    if (outputType === 'image/png') ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // Draw the cropped image
     ctx.drawImage(
       image,
-      crop.x * scaleX,
-      crop.y * scaleY,
+      sourceX,
+      sourceY,
       cropWidth,
       cropHeight,
       0,
       0,
-      cropWidth,
-      cropHeight
+      canvas.width,
+      canvas.height
     );
 
-    return new Promise((resolve) => {
-      canvas.toBlob((blob) => {
-        if (blob) {
-          resolve(blob);
-        }
-      }, 'image/jpeg', 0.9);
+    return new Promise((resolve, reject) => {
+      canvas.toBlob(
+        (blob) => (blob ? resolve(blob) : reject(new Error('Could not crop the image'))),
+        outputType,
+        outputType === 'image/jpeg' ? 0.9 : undefined
+      );
     });
-  }, []);
+  }, [outputType, maxOutputSize]);
 
   const handleApplyCrop = async () => {
     if (!completedCrop || !imgRef.current) return;

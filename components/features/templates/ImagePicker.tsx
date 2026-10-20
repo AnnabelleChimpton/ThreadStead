@@ -8,7 +8,7 @@ import { PixelIcon } from '@/components/ui/PixelIcon';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import { useToast } from '@/contexts/ToastContext';
 
-/** A picture from the person's media gallery (/api/photos/[username]). */
+/** One of the person's own pictures (/api/photos/[username]?scope=mine). */
 export interface PickerImage {
   id: string;
   thumbnailUrl: string;
@@ -69,7 +69,8 @@ interface ImagePickerProps {
 
 /**
  * Pick one of your own images (or upload a new one) to put in your page's
- * HTML or CSS. Uses the media gallery's list and upload APIs.
+ * HTML or CSS. Lists your gallery and the pictures in your posts and
+ * comments, newest first, and uploads through the media page's API.
  */
 export default function ImagePicker({ pane, username, onClose, onPick }: ImagePickerProps) {
   const { showError } = useToast();
@@ -85,7 +86,8 @@ export default function ImagePicker({ pane, username, onClose, onPick }: ImagePi
   const fetchPage = useCallback(
     async (n: number) => {
       if (!username) throw new Error('no username');
-      const res = await fetch(`/api/photos/${encodeURIComponent(username)}?page=${n}&limit=${PAGE_SIZE}`);
+      // scope=mine: gallery and post images, private ones too; owner only
+      const res = await fetch(`/api/photos/${encodeURIComponent(username)}?page=${n}&limit=${PAGE_SIZE}&scope=mine`);
       if (!res.ok) throw new Error(`photos ${res.status}`);
       const data = await res.json();
       return { media: (data.media ?? []) as PickerImage[], hasNext: Boolean(data.pagination?.hasNextPage) };

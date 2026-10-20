@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import { apiHandler } from "@/lib/api/handler";
 import { db } from "@/lib/config/database/connection";
 
@@ -6,8 +7,15 @@ import { parsePagePagination } from "@/lib/server/http/pagination";
 import { residentAccess, sendPrivateProfile } from "@/lib/domain/users/profile-access";
 import { PICTURE_MEDIA_TYPES } from "@/lib/media/media-types";
 
-
-
+/**
+ * GET /api/photos/<username>: that person's public gallery pictures, for
+ * anyone who can see their profile.
+ *
+ * GET /api/photos/<username>?scope=mine: the signed-in owner's own pictures,
+ * gallery and post/comment images together, whatever their visibility (the
+ * editor's image picker). Only that person gets it: signed out is a 401,
+ * anyone else a 403. Without scope=mine nothing changes.
+ */
 export default apiHandler(
   { methods: ["GET"], auth: "optional" },
   async (req, res, { user: viewer }) => {
@@ -34,24 +42,43 @@ export default apiHandler(
         return res.status(404).json({ error: "User not found" });
       }
 
-      // Public photos still follow the profile's visibility and blocks
-      const access = await residentAccess(viewer, handle.user.id);
-      if (!access.visible) {
-        return sendPrivateProfile(res, access.visibility);
+      const mine = req.query.scope === "mine";
+      if (mine) {
+        if (!viewer) return res.status(401).json({ error: "Please log in." });
+        if (viewer.id !== handle.user.id) {
+          return res.status(403).json({ error: "Only you can see this list." });
+        }
+        // Holds private images: never store it in a shared cache
+        res.setHeader("Cache-Control", "private, no-store");
+      } else {
+        // Public photos still follow the profile's visibility and blocks
+        const access = await residentAccess(viewer, handle.user.id);
+        if (!access.visible) {
+          return sendPrivateProfile(res, access.visibility);
+        }
       }
 
       // Calculate offset for pagination
       const offset = (page - 1) * limit;
 
-      // Get gallery media for this user (images only, gallery items only)
-      const [media, totalCount] = await Promise.all([
-        db.media.findMany({
-          where: {
+      const where: Prisma.MediaWhereInput = mine
+        ? {
+            userId: handle.user.id,
+            mediaType: { in: PICTURE_MEDIA_TYPES },
+            // Gallery uploads plus pictures added to posts and comments
+            // (badges and other one-off uploads stay out)
+            OR: [{ isGalleryItem: true }, { uploadContext: "post_embed" }],
+          }
+        : {
             userId: handle.user.id,
             mediaType: { in: PICTURE_MEDIA_TYPES }, // Pictures (images and GIFs), not MIDI files
             visibility: "public", // Only show public media for now
-            isGalleryItem: true // Only show intentional gallery uploads
-          },
+            isGalleryItem: true, // Only show intentional gallery uploads
+          };
+
+      const [media, totalCount] = await Promise.all([
+        db.media.findMany({
+          where,
           orderBy: {
             createdAt: "desc"
           },
@@ -73,14 +100,7 @@ export default apiHandler(
             fileSize: true
           }
         }),
-        db.media.count({
-          where: {
-            userId: handle.user.id,
-            mediaType: { in: PICTURE_MEDIA_TYPES },
-            visibility: "public",
-            isGalleryItem: true // Only count gallery items
-          }
-        })
+        db.media.count({ where })
       ]);
 
       const totalPages = Math.ceil(totalCount / limit);

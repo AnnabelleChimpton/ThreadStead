@@ -134,7 +134,7 @@ describe('EnhancedTemplateEditor image picker', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Insert image' }));
     expect(await screen.findByRole('dialog', { name: 'Insert an image' })).toBeInTheDocument();
-    expect(photoRequests[0]).toBe('/api/photos/testuser?page=1&limit=30');
+    expect(photoRequests[0]).toBe('/api/photos/testuser?page=1&limit=30&scope=mine');
 
     // Each image is a button named by its title (or, untitled, its date)
     const miso = await screen.findByRole('button', { name: 'Miso on the windowsill' });

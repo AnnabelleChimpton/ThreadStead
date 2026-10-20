@@ -9,6 +9,7 @@ import SmartUrlShortener from "@/components/ui/forms/SmartUrlShortener";
 import Link from "next/link";
 import { getCsrfToken } from '@/lib/api/client/csrf-fetch';
 import imageCompression from 'browser-image-compression';
+import { uploadsAsIs } from '@/lib/media/media-types';
 import { PixelIcon } from '@/components/ui/PixelIcon';
 import { VISIBILITY_LABELS, VISIBILITY_HINTS } from "@/components/core/content/VisibilityBadge";
 import LoadingSpinner from "@/components/ui/feedback/LoadingSpinner";
@@ -305,11 +306,14 @@ export default function PostEditor({
     setUploadProgress(0);
     setError(null);
 
-    // Compress image (handles HEIC conversion automatically, preserves GIFs)
+    // GIF, PNG and WebP go up as they are: the server keeps their animation,
+    // transparency and exact pixels and makes the smaller sizes itself (25MB
+    // cap, checked above and again on the server). Only photos (JPEG, HEIC)
+    // are compressed here; that's also what turns HEIC into something
+    // browsers can show.
     let fileToUpload = file;
-    const isGif = file.type === 'image/gif';
 
-    if (!isGif) {
+    if (!uploadsAsIs(file)) {
       try {
         setUploadProgress(10); // Show progress during compression
         const options = {

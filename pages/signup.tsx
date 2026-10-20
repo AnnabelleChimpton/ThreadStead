@@ -18,6 +18,7 @@ import {
   parseHouseChoice, readHouseChoice, saveHouseChoice, clearHouseChoice,
 } from "@/lib/pixel-homes/house-choice";
 import imageCompression from 'browser-image-compression';
+import { avatarUploadsAsIs } from '@/lib/media/media-types';
 import { fetchAuthMe } from "@/hooks/useCurrentUser";
 import { csrfFetch } from "@/lib/api/client/csrf-fetch";
 
@@ -341,7 +342,9 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
 
       setIsLoading(true);
       try {
-        // Compress image (handles HEIC conversion automatically)
+        // PNG and WebP go up as they are; the server keeps them as PNG
+        // (transparency, pixel art) and makes the avatar sizes itself. Photos
+        // (JPEG, HEIC) and anything else are compressed to JPEG first.
         const options = {
           maxSizeMB: 3,          // Target 3MB max
           maxWidthOrHeight: 2400, // High quality for displays
@@ -349,7 +352,7 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
           fileType: 'image/jpeg'  // Convert to JPEG (handles HEIC conversion)
         };
 
-        const compressedFile = await imageCompression(file, options);
+        const compressedFile = avatarUploadsAsIs(file) ? file : await imageCompression(file, options);
         setProfilePhoto(compressedFile);
 
         const reader = new FileReader();
@@ -1139,7 +1142,7 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
                       >
                         Choose Photo
                       </label>
-                      <p className="text-xs text-nb-ink-mid mt-1">JPG, PNG up to 20MB</p>
+                      <p className="text-xs text-nb-ink-mid mt-1">JPEG, PNG, WebP or HEIC, up to 20MB</p>
                     </div>
                   </div>
                 </div>

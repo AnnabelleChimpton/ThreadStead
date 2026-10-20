@@ -24,27 +24,42 @@ export class ImageValidationError extends Error {
 const TRANSPARENT_WHITE = { r: 255, g: 255, b: 255, alpha: 0 };
 const TRANSPARENT_BLACK = { r: 0, g: 0, b: 0, alpha: 0 };
 
-/** Avatar: square crops (the client crops to square first), JPEG. */
+/**
+ * Avatar: square crops (the client crops to square first). Photos are JPEG;
+ * PNG and WebP uploads come out as PNG, so transparency and pixel art's hard
+ * edges survive (PNG rather than WebP because avatars also go out as
+ * og:image link previews, and PNG works everywhere those are read).
+ */
 export const AVATAR_SIZES = { thumbnail: 64, medium: 200, full: 800 } as const;
 
-export async function renderAvatarSizes(input: Buffer): Promise<ImageSizes> {
+export type AvatarFormat = 'jpeg' | 'png';
+
+/** The format an avatar is stored in, from the uploaded bytes (not the client's MIME type). */
+export async function avatarFormatFor(input: Buffer): Promise<AvatarFormat> {
+  const { format } = await sharp(input).metadata();
+  return format === 'png' || format === 'webp' ? 'png' : 'jpeg';
+}
+
+export async function renderAvatarSizes(input: Buffer, format: AvatarFormat = 'jpeg'): Promise<ImageSizes> {
+  const encode = (img: sharp.Sharp, jpegQuality: number) =>
+    format === 'png' ? img.png({ compressionLevel: 9 }) : img.jpeg({ quality: jpegQuality });
   const [thumbnail, medium, full] = await Promise.all([
-    sharp(input)
-      .resize(AVATAR_SIZES.thumbnail, AVATAR_SIZES.thumbnail, { fit: 'cover', position: 'center' })
-      .jpeg({ quality: 80 })
-      .toBuffer(),
-    sharp(input)
-      .resize(AVATAR_SIZES.medium, AVATAR_SIZES.medium, { fit: 'cover', position: 'center' })
-      .jpeg({ quality: 85 })
-      .toBuffer(),
-    sharp(input)
-      .resize(AVATAR_SIZES.full, AVATAR_SIZES.full, {
+    encode(
+      sharp(input).resize(AVATAR_SIZES.thumbnail, AVATAR_SIZES.thumbnail, { fit: 'cover', position: 'center' }),
+      80
+    ).toBuffer(),
+    encode(
+      sharp(input).resize(AVATAR_SIZES.medium, AVATAR_SIZES.medium, { fit: 'cover', position: 'center' }),
+      85
+    ).toBuffer(),
+    encode(
+      sharp(input).resize(AVATAR_SIZES.full, AVATAR_SIZES.full, {
         fit: 'cover',
         position: 'center',
         withoutEnlargement: true,
-      })
-      .jpeg({ quality: 90 })
-      .toBuffer(),
+      }),
+      90
+    ).toBuffer(),
   ]);
   return { thumbnail, medium, full };
 }

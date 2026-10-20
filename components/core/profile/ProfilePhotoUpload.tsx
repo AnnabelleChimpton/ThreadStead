@@ -2,6 +2,11 @@ import React, { useState, useRef } from 'react';
 import ImageCropper from '../../ui/feedback/ImageCropper';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import imageCompression from 'browser-image-compression';
+import { avatarUploadsAsIs } from '@/lib/media/media-types';
+
+// The server's biggest avatar is 800px; twice that leaves room and keeps
+// an uncompressed PNG crop far under the route's 20MB limit.
+const MAX_CROP_SIZE = 1600;
 
 interface ProfilePhotoUploadProps {
   currentAvatarUrl?: string;
@@ -19,6 +24,7 @@ export default function ProfilePhotoUpload({
   const [dragOver, setDragOver] = useState(false);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
   const [showCropper, setShowCropper] = useState(false);
+  const [cropOutputType, setCropOutputType] = useState<'image/jpeg' | 'image/png'>('image/jpeg');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = async (file: File) => {
@@ -44,18 +50,24 @@ export default function ProfilePhotoUpload({
     setUploading(true);
 
     try {
-      // Compress image before cropping (handles HEIC conversion automatically)
-      const options = {
-        maxSizeMB: 3,          // Target 3MB max
-        maxWidthOrHeight: 2400, // High quality for displays
-        useWebWorker: true,     // Don't block UI
-        fileType: 'image/jpeg'  // Convert to JPEG (handles HEIC conversion)
-      };
-
-      const compressedFile = await imageCompression(file, options);
+      // PNG and WebP are cropped as they are and saved as PNG (transparency,
+      // pixel art); the server keeps them as PNG. Photos (JPEG, HEIC) are
+      // compressed to JPEG first, which is also what makes HEIC viewable.
+      const keepFormat = avatarUploadsAsIs(file);
+      let imageFile: Blob = file;
+      if (!keepFormat) {
+        const options = {
+          maxSizeMB: 3,          // Target 3MB max
+          maxWidthOrHeight: 2400, // High quality for displays
+          useWebWorker: true,     // Don't block UI
+          fileType: 'image/jpeg'  // Convert to JPEG (handles HEIC conversion)
+        };
+        imageFile = await imageCompression(file, options);
+      }
+      setCropOutputType(keepFormat ? 'image/png' : 'image/jpeg');
 
       // Create URL for cropping
-      const imageUrl = URL.createObjectURL(compressedFile);
+      const imageUrl = URL.createObjectURL(imageFile);
       setSelectedImageUrl(imageUrl);
       setShowCropper(true);
       setUploading(false);
@@ -83,7 +95,7 @@ export default function ProfilePhotoUpload({
 
       // Create form data with cropped image
       const formData = new FormData();
-      formData.append('photo', croppedBlob, 'cropped-profile.jpg');
+      formData.append('photo', croppedBlob, croppedBlob.type === 'image/png' ? 'cropped-profile.png' : 'cropped-profile.jpg');
       formData.append('cap', token);
 
       // Upload photo
@@ -204,7 +216,7 @@ export default function ProfilePhotoUpload({
                   : 'Click to upload or drag and drop'}
               </p>
               <p className="text-xs text-thread-sage">
-                JPEG, PNG, WebP, or GIF • Max 10MB
+                JPEG, PNG, WebP or HEIC, up to 20MB
               </p>
               <p className="text-xs text-thread-sage">
                 Select an image to preview and crop before uploading
@@ -233,6 +245,8 @@ export default function ProfilePhotoUpload({
           onCropComplete={handleCropComplete}
           onCancel={handleCropCancel}
           aspectRatio={1} // Square crop for profile photos
+          outputType={cropOutputType}
+          maxOutputSize={MAX_CROP_SIZE}
         />
       )}
     </div>

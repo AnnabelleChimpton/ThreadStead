@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import imageCompression from 'browser-image-compression';
+import { uploadsAsIs } from '@/lib/media/media-types';
 
 interface MediaUploadProps {
   onUploadSuccess: (media: any) => void;
@@ -51,7 +52,6 @@ export default function MediaUpload({ onUploadSuccess, disabled = false }: Media
     const isHEIC = file.type === 'image/heic' || file.type === 'image/heif' ||
                    file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif');
     const isMidi = allowedMidiTypes.includes(file.type);
-    const isGif = file.type === 'image/gif';
 
     if (!allowedImageTypes.includes(file.type) && !isMidi && !isHEIC) {
       setError('Please select a valid image file (JPEG, PNG, WebP, GIF, or HEIC) or MIDI file');
@@ -76,7 +76,7 @@ export default function MediaUpload({ onUploadSuccess, disabled = false }: Media
     // GIF, PNG and WebP go up as they are: GIFs keep their animation, and the
     // server keeps PNG and WebP in their own format (pixel art, transparency)
     // and does any resizing itself. Only photos are compressed here.
-    if (isGif || file.type === 'image/png' || file.type === 'image/webp') {
+    if (uploadsAsIs(file)) {
       setSelectedFile(file);
       const reader = new FileReader();
       reader.onload = (e) => {

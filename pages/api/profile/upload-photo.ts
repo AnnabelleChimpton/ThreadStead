@@ -7,7 +7,7 @@ import multer from "multer";
 import { promisify } from "util";
 import { notifyRingHubIfMember } from "@/lib/api/ringhub/ringhub-profile-sync";
 import { putObject } from "@/lib/storage/r2";
-import { renderAvatarSizes } from "@/lib/media/image";
+import { avatarFormatFor, renderAvatarSizes } from "@/lib/media/image";
 
 // Configure multer for memory storage
 const upload = multer({
@@ -55,10 +55,13 @@ async function processAndUploadImage(
   userId: string
 ): Promise<{ thumbnailUrl: string; mediumUrl: string; fullUrl: string }> {
   const baseKey = `profile-photos/${userId}/${Date.now()}`;
-  const sizes = await renderAvatarSizes(buffer);
+  // PNG and WebP keep their transparency as PNG; photos stay JPEG
+  const format = await avatarFormatFor(buffer);
+  const sizes = await renderAvatarSizes(buffer, format);
+  const ext = format === 'png' ? 'png' : 'jpg';
 
   const put = (suffix: string, body: Buffer) =>
-    putObject({ key: `${baseKey}_${suffix}.jpg`, body, contentType: 'image/jpeg' });
+    putObject({ key: `${baseKey}_${suffix}.${ext}`, body, contentType: `image/${format}` });
 
   return {
     thumbnailUrl: await put('thumb', sizes.thumbnail),

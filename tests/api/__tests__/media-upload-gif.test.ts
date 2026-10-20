@@ -50,10 +50,11 @@ const ENV = {
 };
 const savedEnv: Record<string, string | undefined> = {};
 
-function multipart(file: Buffer, type: string, filename: string) {
+function multipart(file: Buffer, type: string, filename: string, context?: string) {
   return Buffer.concat([
     Buffer.from(
       `--${BOUNDARY}\r\nContent-Disposition: form-data; name="cap"\r\n\r\ngood-cap\r\n` +
+        (context ? `--${BOUNDARY}\r\nContent-Disposition: form-data; name="context"\r\n\r\n${context}\r\n` : '') +
         `--${BOUNDARY}\r\nContent-Disposition: form-data; name="image"; filename="${filename}"\r\nContent-Type: ${type}\r\n\r\n`
     ),
     file,
@@ -61,8 +62,8 @@ function multipart(file: Buffer, type: string, filename: string) {
   ]);
 }
 
-async function upload(file: Buffer, type = 'image/gif', filename = 'dance.gif') {
-  const body = multipart(file, type, filename);
+async function upload(file: Buffer, type = 'image/gif', filename = 'dance.gif', context?: string) {
+  const body = multipart(file, type, filename, context);
   const req = Readable.from([body]) as unknown as NextApiRequest & Record<string, unknown>;
   Object.assign(req, {
     method: 'POST',
@@ -166,4 +167,41 @@ test('a file that says it is a GIF but is not is a 400, and nothing is stored', 
   expect(res.body.error).toBe("That doesn't look like a GIF.");
   expect(send).not.toHaveBeenCalled();
   expect(db.media.create).not.toHaveBeenCalled();
+});
+
+// Post and comment uploads (context post_embed) go through the same route:
+// the browser now sends PNG, WebP and GIF as they are, and they stay that way.
+test.each([
+  ['a PNG', 'image/png', 'png', (b: Buffer) => Promise.resolve(b)],
+  ['a WebP', 'image/webp', 'webp', (b: Buffer) => sharp(b).webp({ lossless: true }).toBuffer()],
+])('%s added to a post keeps its format and transparency, and is saved as a post image', async (_l, type, ext, encode) => {
+  const raw = Buffer.alloc(8 * 8 * 4);
+  for (let i = 0; i < 64; i++) raw.set([200, 40, 120, i % 2 ? 255 : 0], i * 4);
+  const png = await sharp(raw, { raw: { width: 8, height: 8, channels: 4 } }).png().toBuffer();
+  const res = await upload(await encode(png), type, `sprite.${ext}`, 'post_embed');
+
+  expect(res.statusCode).toBe(200);
+  const puts: Array<{ Key: string; Body: Buffer; ContentType: string }> = send.mock.calls.map((c) => c[0].input);
+  expect(puts).toHaveLength(3);
+  for (const put of puts) {
+    expect(put.Key.endsWith(`.${ext}`)).toBe(true);
+    expect(put.ContentType).toBe(type);
+    const meta = await sharp(put.Body).metadata();
+    expect(meta.format).toBe(ext);
+    expect(meta.hasAlpha).toBe(true);
+  }
+  expect(db.media.create).toHaveBeenCalledWith({
+    data: expect.objectContaining({ mediaType: 'image', uploadContext: 'post_embed', isGalleryItem: false }),
+  });
+});
+
+test('a GIF added to a post keeps its frames', async () => {
+  const res = await upload(await twoFrameGif(40, 40), 'image/gif', 'dance.gif', 'post_embed');
+  expect(res.statusCode).toBe(200);
+  for (const c of send.mock.calls) {
+    expect((await sharp(c[0].input.Body, { animated: true }).metadata()).pages).toBe(2);
+  }
+  expect(db.media.create).toHaveBeenCalledWith({
+    data: expect.objectContaining({ mediaType: 'gif', uploadContext: 'post_embed', isGalleryItem: false }),
+  });
 });
