@@ -88,7 +88,7 @@ test('unticked when the editor opens, on both tabs', async () => {
   renderEditor();
   await ready();
   expect(screen.getByLabelText(LABEL)).not.toBeChecked();
-  fireEvent.click(screen.getByRole('button', { name: 'CSS Styles' }));
+  fireEvent.click(screen.getByRole('tab', { name: 'CSS' }));
   expect(screen.getByLabelText(LABEL)).not.toBeChecked();
 });
 
@@ -118,9 +118,9 @@ test('ticked: shared once the save works, then unticked again', async () => {
 test('ticked on the CSS tab works the same', async () => {
   renderEditor();
   await ready();
-  fireEvent.click(screen.getByRole('button', { name: 'CSS Styles' }));
+  fireEvent.click(screen.getByRole('tab', { name: 'CSS' }));
   fireEvent.click(screen.getByLabelText(LABEL));
-  fireEvent.click(screen.getByRole('button', { name: 'Save Template' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Save & Go Live' }));
   await waitFor(() => expect(shareCalls()).toHaveLength(1));
 });
 

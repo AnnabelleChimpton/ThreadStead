@@ -41,6 +41,15 @@ import { useLocalDraft } from '@/hooks/useLocalDraft';
 import { useToast } from '@/contexts/ToastContext';
 import TemplateHistoryPanel, { type FullRevision } from '@/components/features/templates/TemplateHistoryPanel';
 import ViewSourceToggle from '@/components/features/templates/ViewSourceToggle';
+import EditorWorkspace, {
+  EditorMenu,
+  EditorToolbar,
+  LivePreviewPane,
+  MenuItem,
+  SaveStatus,
+  useEmbeddedPreview,
+  type WorkspaceTab,
+} from '@/components/features/templates/editor/EditorWorkspace';
 import ShareToFeedCheckbox from '@/components/features/profile/ShareToFeedCheckbox';
 import { layoutFields, layoutOf, siteStylesCSSMode } from '@/lib/domain/profile/layout';
 
@@ -141,6 +150,8 @@ function DataLossWarning({
   );
 }
 
+type EditorTab = 'template' | 'css' | 'starters' | 'components';
+
 interface EnhancedTemplateEditorProps {
   user: any; // User with profile
   initialTemplate?: string;
@@ -156,6 +167,8 @@ interface EnhancedTemplateEditorProps {
    */
   startsUnsaved?: boolean;
   savedCSS?: string;
+  /** Under the toolbar, e.g. "Started from @someone's page" */
+  notice?: React.ReactNode;
   onSave?: (template: string, css: string, compiledTemplate?: CompiledTemplate, cssMode?: 'inherit' | 'override' | 'disable', hideNavigation?: boolean, templateMode?: 'default' | 'enhanced' | 'advanced') => void;
 }
 
@@ -169,6 +182,7 @@ export default function EnhancedTemplateEditor({
   initialEditorMode,
   startsUnsaved = false,
   savedCSS: savedCSSProp,
+  notice,
   onSave
 }: EnhancedTemplateEditorProps) {
   const router = useRouter();
@@ -456,7 +470,7 @@ export default function EnhancedTemplateEditor({
   const [isLoading, setIsLoading] = useState(true);
   const [compiledTemplate, setCompiledTemplate] = useState<CompiledTemplate | null>(null);
   // Smart default tab selection based on URL mode param or layout mode
-  const [activeTab, setActiveTab] = useState<'template' | 'css'>(() => {
+  const [activeTab, setActiveTab] = useState<EditorTab>(() => {
     // Priority 1: URL parameter
     if (initialEditorMode === 'template') return 'template';
     if (initialEditorMode === 'css') return 'css';
@@ -754,49 +768,20 @@ export default function EnhancedTemplateEditor({
   }, [template, previewWindow, residentData, sendPreviewData]);
 
   // ── Embedded live preview pane ──
-  const previewFrameRef = useRef<HTMLIFrameElement | null>(null);
   const [showPreviewPane, setShowPreviewPane] = useState(false);
-  const [previewFrameReady, setPreviewFrameReady] = useState(false);
+  const { frameRef: previewFrameRef, ready: previewFrameReady } = useEmbeddedPreview({
+    enabled: showPreviewPane,
+    hasData: !!residentData,
+    send: sendPreviewData,
+  });
 
-  // Default the pane open on wide screens (decided after mount so SSR and
-  // first client render agree).
+  // Open beside the code wherever there's room for it (decided after mount
+  // so SSR and the first client render agree).
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.innerWidth >= 1280) {
+    if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
       setShowPreviewPane(true);
     }
   }, []);
-
-  // Handshake: the iframe posts PREVIEW_READY when it can accept data.
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return;
-      const frameWin = previewFrameRef.current?.contentWindow;
-      if (!frameWin || event.source !== frameWin) return;
-      if (event.data.type === 'PREVIEW_READY') {
-        setPreviewFrameReady(true);
-        if (residentData) {
-          sendPreviewData(frameWin);
-        }
-      }
-    };
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, [residentData, sendPreviewData]);
-
-  // Push editor state into the pane as it changes. Debounced: every push is a
-  // full re-render (and possible island hydration) inside the preview.
-  useEffect(() => {
-    if (!showPreviewPane || !previewFrameReady || !residentData) return;
-    const frameWin = previewFrameRef.current?.contentWindow;
-    if (!frameWin) return;
-    const timer = setTimeout(() => sendPreviewData(frameWin), 400);
-    return () => clearTimeout(timer);
-  }, [showPreviewPane, previewFrameReady, residentData, sendPreviewData]);
-
-  // The iframe unmounts when the pane closes; forget its readiness.
-  useEffect(() => {
-    if (!showPreviewPane) setPreviewFrameReady(false);
-  }, [showPreviewPane]);
 
   // ── Component autocomplete + palette (registry-fed) ──
   // Captured via onCreateEditor: next/dynamic doesn't forward refs, so a
@@ -1111,8 +1096,8 @@ export default function EnhancedTemplateEditor({
 
   // Auto-switch tabs when switching between layout modes
   useEffect(() => {
-    if (useStandardLayout && activeTab === 'template') {
-      // Switch to CSS tab when switching to standard layout (no HTML template to edit)
+    if (useStandardLayout && activeTab !== 'css') {
+      // The standard layout has no HTML to edit, so CSS is the only tab
       setActiveTab('css');
     }
     // Removed the problematic auto-switch from CSS to template tab
@@ -1131,9 +1116,11 @@ export default function EnhancedTemplateEditor({
       setTemplate(html);
       setCustomCSS(css);
       setCSSMode('disable');
-      setActiveTab('template');
+      // A page with no HTML of its own yet opens on the starter pages
+      // (straight to the code during a lesson)
+      setActiveTab(typeof router.query.learn === 'string' ? 'template' : 'starters');
     }
-  }, [initialEditorMode, savedOnStandardLayout, template]);
+  }, [initialEditorMode, savedOnStandardLayout, template, router.query.learn]);
 
   // Track changes against the last-saved snapshot (manual save required now).
   // Comparing to a snapshot (instead of blindly marking dirty) keeps a fresh
@@ -1580,6 +1567,237 @@ export default function EnhancedTemplateEditor({
     }
   };
 
+  const username = user.primaryHandle?.split('@')[0] || user.handles?.[0]?.handle?.split('@')[0] || '';
+  const startedFromTheme = useStandardLayout ? THEMES.find((t) => t.id === detectTheme(customCSS)) : undefined;
+
+  const htmlTab: WorkspaceTab = {
+    id: 'template',
+    label: 'HTML',
+    fill: true,
+    content: (
+      <>
+        {learn && (
+          <div className="px-3 pt-3 flex-shrink-0 max-h-[45%] overflow-auto border-b border-thread-sage/40">
+            <LearnPanel
+              slug={learn.slug}
+              step={learn.step}
+              onStep={(step) => setLearn({ slug: learn.slug, step })}
+              // A page that doesn't compile right now can't be checked
+              page={liveProblems.status === 'failed' ? null : (compiledTemplate as unknown as CheckablePage | null)}
+              onShowMe={(step: LessonStep) =>
+                showDataLossWarning(
+                  'Show me',
+                  "This puts the step's code in the editor in place of yours. Unsaved changes will be lost.",
+                  () => {
+                    setUseStandardLayout(false);
+                    setTemplate(step.code);
+                    if (step.css) setCustomCSS(step.css);
+                    setActiveTab('template');
+                  }
+                )
+              }
+              onClose={() => {
+                setLearn(null);
+                const { learn: _learn, step: _step, ...rest } = router.query;
+                router.replace({ pathname: router.pathname, query: rest }, undefined, { shallow: true });
+              }}
+            />
+          </div>
+        )}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-3 py-1.5 border-b border-thread-sage/40 flex-shrink-0 text-sm text-nb-ink">
+          <label className="inline-flex items-center gap-1.5 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={!hideNavigation}
+              onChange={(e) => setHideNavigation(!e.target.checked)}
+              className="h-4 w-4"
+            />
+            Show site navigation
+          </label>
+          <Button
+            variant="secondary"
+            size="sm"
+            aria-haspopup="dialog"
+            onClick={() => setImagePickerPane('html')}
+            className="ml-auto inline-flex items-center gap-2"
+          >
+            <PixelIcon name="image" size={14} /> Insert image
+          </Button>
+        </div>
+        <div className="flex-1 min-h-0 overflow-hidden bg-white">
+          <CodeMirror
+            onCreateEditor={(view) => { templateViewRef.current = view; }}
+            value={template}
+            onChange={handleTemplateChange}
+            extensions={templateExtensions}
+            height="100%"
+            style={{ height: '100%', fontSize: '13px' }}
+            placeholder={loadingDefault
+              ? 'Loading the default layout…'
+              : 'Write your page here. Plain HTML works, and so do components like <ProfilePhoto /> or <RetroCard>…</RetroCard>'}
+            basicSetup={{
+              lineNumbers: true,
+              foldGutter: true,
+              autocompletion: true,
+              highlightActiveLine: true,
+            }}
+          />
+        </div>
+        <ProblemsStrip problems={liveProblems} onJump={jumpToLine} />
+      </>
+    ),
+  };
+
+  const cssTab: WorkspaceTab = {
+    id: 'css',
+    label: 'CSS',
+    fill: true,
+    content: (
+      <>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-3 py-1.5 border-b border-thread-sage/40 flex-shrink-0 text-sm text-nb-ink">
+          {useStandardLayout ? (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setShowTemplateSelector(true)}
+              className="inline-flex items-center gap-2"
+            >
+              <PixelIcon name="paint-bucket" size={14} /> Choose a theme
+            </Button>
+          ) : (
+            <select
+              aria-label="Load a theme"
+              onChange={(e) => {
+                if (e.target.value === '') return;
+                const themeId = e.target.value;
+                showDataLossWarning(
+                  "Load a theme",
+                  `This replaces the CSS in the editor with the theme. Unsaved changes will be lost.`,
+                  () => {
+                    setCustomCSS(getDefaultProfileTemplate(themeId as any));
+                  }
+                );
+                // Back to the prompt
+                e.target.value = '';
+              }}
+              className="text-sm px-2 py-1 border border-thread-sage rounded bg-thread-paper"
+            >
+              <option value="">Load a theme…</option>
+              {THEMES.map((theme) => (
+                <option key={theme.id} value={theme.id}>{theme.name}</option>
+              ))}
+              <option value="clear">Blank</option>
+            </select>
+          )}
+          <label className="inline-flex items-center gap-2">
+            Site styles
+            <select
+              id="editor-site-styles"
+              value={cssMode}
+              onChange={(e) => setCSSMode(siteStylesCSSMode(e.target.value))}
+              className="text-sm px-2 py-1 border border-thread-sage rounded bg-thread-paper"
+            >
+              <option value="inherit">On</option>
+              <option value="disable">Off</option>
+            </select>
+          </label>
+          <Button
+            variant="secondary"
+            size="sm"
+            aria-haspopup="dialog"
+            onClick={() => setImagePickerPane('css')}
+            className="ml-auto inline-flex items-center gap-2"
+          >
+            <PixelIcon name="image" size={14} /> Insert image
+          </Button>
+        </div>
+        <p className="m-0 px-3 py-1.5 text-xs text-nb-ink-mid border-b border-thread-sage/40 flex-shrink-0">
+          {cssMode === 'inherit'
+            ? "Site styles on: your CSS adds to the site's, so the nav, buttons and boxes keep their look until you change them."
+            : 'Site styles off: only your CSS applies, so you style everything, buttons and nav included.'}
+          {useStandardLayout && cssMode === 'disable' && ' The standard layout needs the site styles to look right.'}
+          {startedFromTheme && ` Started from ${startedFromTheme.name}.`}
+        </p>
+        <div className="flex-1 min-h-0 overflow-hidden bg-white">
+          <CodeMirror
+            onCreateEditor={(view) => { cssViewRef.current = view; }}
+            value={customCSS}
+            onChange={(value: string) => setCustomCSS(value)}
+            extensions={[cssLang()]}
+            height="100%"
+            style={{ height: '100%', fontSize: '13px' }}
+            placeholder={cssMode === 'inherit'
+              ? `/* Site styles are on: add to them here */
+
+.ts-profile-header {
+  background: linear-gradient(135deg, #2E4B3F 0%, #4FAF6D 100%);
+  padding: 2rem;
+  border-radius: 8px;
+}`
+              : `/* Site styles are off: you style everything */
+
+body {
+  font-family: Georgia, serif;
+  background: #f8f9fa;
+  margin: 0;
+}`}
+            basicSetup={{
+              lineNumbers: true,
+              foldGutter: true,
+              autocompletion: true,
+              highlightActiveLine: true,
+            }}
+          />
+        </div>
+      </>
+    ),
+  };
+
+  const startersTab: WorkspaceTab = {
+    id: 'starters',
+    label: 'Starter pages',
+    content: (
+      <div className="p-4">
+        <StarterTemplateGallery
+          onSelect={(starterTemplate, starterCSS, name) => {
+            showDataLossWarning(
+              "Start from a starter page",
+              `This replaces the HTML and CSS in the editor with ${name}. Unsaved changes will be lost.`,
+              () => {
+                setUseStandardLayout(false);
+                setTemplate(starterTemplate);
+                setCustomCSS(starterCSS);
+                setCSSMode('disable');
+                setActiveTab('template');
+              }
+            );
+          }}
+        />
+      </div>
+    ),
+  };
+
+  const componentsTab: WorkspaceTab = {
+    id: 'components',
+    label: 'Components',
+    content: (
+      <div className="p-4 text-sm text-nb-ink">
+        <p className="mt-0 mb-3 text-nb-ink-mid">
+          Point at one to see what it does. Typing &lt; in the code suggests them too.
+        </p>
+        <ComponentPalette
+          schemas={componentSchemas}
+          onInsert={(snippet) => {
+            insertIntoTemplate(snippet);
+            setActiveTab('template');
+          }}
+        />
+      </div>
+    ),
+  };
+
+  const tabs = useStandardLayout ? [cssTab] : [htmlTab, cssTab, startersTab, componentsTab];
+
   return (
     <>
       <style jsx>{`
@@ -1605,596 +1823,134 @@ export default function EnhancedTemplateEditor({
         }
       `}</style>
 
-      <div className="enhanced-template-editor w-full">
-      {/* Status bar: what's being edited, History, Reset, save state */}
-      <div className="px-4 py-2 bg-thread-paper border-b border-thread-sage text-sm">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <div className="flex items-center gap-2 text-thread-charcoal">
-            <span>Editing:</span>
-            <span className="font-medium">
-              {useStandardLayout ? 'the standard layout, with your CSS' : 'your own HTML layout'}
-            </span>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            {cssWillChange && (
-              <span className="text-xs text-thread-sage">
-                Saving changes your CSS. The old look stays in History.
+      <div className="enhanced-template-editor flex flex-col flex-1 min-h-0 w-full">
+      <EditorWorkspace
+        toolbar={
+          <EditorToolbar
+            title={useStandardLayout ? 'Your page' : 'Your own HTML page'}
+            handle={username}
+            status={<SaveStatus state={saveState} />}
+          >
+            {saveMessage && (
+              <span className={`text-sm ${saveMessage.includes('✓') ? 'text-nb-ink' : 'text-thread-sunset'}`}>
+                {saveMessage}
               </span>
             )}
-            <div className="flex items-center gap-2">
-              {/* History Button */}
-              <button
-                onClick={() => setShowHistoryPanel(true)}
-                className="px-2 py-1 text-xs rounded font-medium transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300"
-                title="Load an earlier version of your page"
-              >
-                <span className="inline-flex items-center gap-1"><PixelIcon name="clock" size={12} /> History</span>
-              </button>
-
-              {/* Reset to Default Template Button */}
-              <button
-                onClick={resetToDefaultTemplate}
-                className="px-2 py-1 text-xs rounded font-medium transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300"
-                title="Remove all customizations and return to site default"
-              >
-                <span className="inline-flex items-center gap-1"><PixelIcon name="reload" size={12} /> Reset to Default</span>
-              </button>
-
-              {/* Save State Indicator */}
-              <div className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
-                saveState === 'saved' ? 'bg-green-100 text-green-700' :
-                saveState === 'saving' ? 'bg-blue-100 text-blue-700' :
-                saveState === 'error' ? 'bg-red-100 text-red-700' :
-                'bg-yellow-100 text-yellow-700'
-              }`}>
-                {saveState === 'saved' && (
-                  <><PixelIcon name="check" size={12} /><span>Saved</span></>
+            <ShareToFeedCheckbox checked={shareToFeed} onChange={setShareToFeed} disabled={isSaving} className="text-nb-ink" />
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setShowHistoryPanel(true)}
+              title="Load an earlier version of your page"
+              className="inline-flex items-center gap-1"
+            >
+              <PixelIcon name="clock" size={12} /> History
+            </Button>
+            <EditorMenu>
+              {(close) => (
+                <>
+                  <MenuItem href={`/resident/${encodeURIComponent(username)}`}>
+                    <PixelIcon name="home" size={12} /> View my page
+                  </MenuItem>
+                  <MenuItem onClick={() => { close(); openPopupPreview(); }}>
+                    <PixelIcon name="external-link" size={12} /> Preview in its own window
+                  </MenuItem>
+                  <div className="px-2 py-1.5">
+                    <ViewSourceToggle username={username} />
+                  </div>
+                  <MenuItem href="/settings?tab=appearance">
+                    <PixelIcon name="sliders" size={12} /> Appearance settings
+                  </MenuItem>
+                  <hr className="my-1 border-thread-sage/40" />
+                  <MenuItem onClick={() => { close(); resetToDefaultTemplate(); }}>
+                    <PixelIcon name="reload" size={12} /> Reset to default
+                  </MenuItem>
+                </>
+              )}
+            </EditorMenu>
+            <Button size="sm" onClick={handleSave} disabled={isSaving}>
+              {isSaving ? 'Saving...' : 'Save & Go Live'}
+            </Button>
+          </EditorToolbar>
+        }
+        notices={
+          <>
+            {notice}
+            {pendingDraft && (
+              <DraftRestoreBanner
+                savedAt={pendingDraft.savedAt}
+                onRestore={() => {
+                  const draft = pendingDraft.data;
+                  setTemplate(draft.template);
+                  setCustomCSS(draft.customCSS);
+                  setCSSMode(siteStylesCSSMode(draft.cssMode));
+                  setUseStandardLayout(draft.useStandardLayout);
+                  setHideNavigation(draft.hideNavigation);
+                  clearDraft();
+                }}
+                onDiscard={clearDraft}
+              />
+            )}
+            {(showsDefaultLook || cssWillChange) && (
+              <p className="m-0 px-4 py-1.5 flex flex-wrap gap-x-3 text-sm bg-thread-cream border-b border-thread-sage text-nb-ink flex-shrink-0">
+                {showsDefaultLook && (
+                  <span>
+                    <strong>Your page has the site&apos;s default look.</strong>{' '}
+                    {useStandardLayout
+                      ? 'Saving here puts your CSS on the standard layout.'
+                      : 'Saving here switches your page to this HTML layout.'}
+                  </span>
                 )}
-                {saveState === 'saving' && (
-                  <><span className="animate-spin"><PixelIcon name="reload" size={12} /></span><span>Saving...</span></>
+                {cssWillChange && (
+                  <span className="text-nb-ink-mid">Saving changes your CSS. The old look stays in History.</span>
                 )}
-                {saveState === 'error' && (
-                  <><PixelIcon name="close" size={12} /><span>Error</span></>
-                )}
-                {saveState === 'pending' && (
-                  <><span>●</span><span>Unsaved</span></>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Draft recovery */}
-      {pendingDraft && (
-        <DraftRestoreBanner
-          savedAt={pendingDraft.savedAt}
-          onRestore={() => {
-            const draft = pendingDraft.data;
-            setTemplate(draft.template);
-            setCustomCSS(draft.customCSS);
-            setCSSMode(siteStylesCSSMode(draft.cssMode));
-            setUseStandardLayout(draft.useStandardLayout);
-            setHideNavigation(draft.hideNavigation);
-            clearDraft();
-          }}
-          onDiscard={clearDraft}
-        />
-      )}
-
-      <div className="flex justify-end items-center px-4 py-2 bg-thread-cream border-b border-thread-sage">
-        <ViewSourceToggle username={user.primaryHandle?.split('@')[0] || user.handles?.[0]?.handle?.split('@')[0] || ''} />
-      </div>
-
-      {/* The page still shows the site's default look */}
-      {showsDefaultLook && (
-        <div className="mx-4 mt-3 mb-2 p-4 bg-thread-paper border-2 border-thread-sage rounded-xl">
-          <div className="flex items-start gap-3">
-            <PixelIcon name="info-box" size={24} />
-            <div className="flex-1">
-              <h4 className="font-semibold text-thread-pine mb-1">Your page has the site&apos;s default look</h4>
-              <p className="text-sm text-thread-charcoal leading-relaxed">
-                {useStandardLayout
-                  ? 'Saving here puts your CSS on the standard layout.'
-                  : 'Saving here switches your page to this HTML layout.'}
               </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Tab Navigation - exactly matching original style */}
-      <div className="flex gap-1 px-4">
-        {!useStandardLayout && (
-          <button
-            onClick={() => setActiveTab('template')}
-            className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
-              activeTab === 'template'
-                ? 'bg-thread-paper text-thread-charcoal border-t-2 border-l-2 border-r-2 border-thread-sage'
-                : 'text-thread-sage hover:text-thread-charcoal hover:bg-thread-cream'
-            }`}
-          >
-            HTML Template
-          </button>
-        )}
-        <button
-          onClick={() => setActiveTab('css')}
-          className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
-            activeTab === 'css'
-              ? 'bg-thread-paper text-thread-charcoal border-t-2 border-l-2 border-r-2 border-thread-sage'
-              : 'text-thread-sage hover:text-thread-charcoal hover:bg-thread-cream'
-          }`}
-        >
-          {useStandardLayout ? 'CSS Styling' : 'CSS Styles'}
-        </button>
-        <div className="ml-auto flex items-center gap-2">
-          <button
-            onClick={() => setShowPreviewPane(v => !v)}
-            className="hidden lg:flex px-4 py-2 text-sm font-medium rounded-lg bg-thread-pine hover:opacity-90 text-white transition-opacity items-center gap-2"
-          >
-            <PixelIcon name="search" size={16} />
-            {showPreviewPane ? 'Hide Preview' : 'Show Preview'}
-          </button>
-          <button
-            onClick={openPopupPreview}
-            className="px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors flex items-center gap-2"
-            title="Open the preview in its own window"
-          >
-            <PixelIcon name="external-link" size={16} />
-            Pop Out
-          </button>
-        </div>
-      </div>
-
-      {/* Editor + live preview split */}
-      <div className="flex items-stretch">
-      <div className="flex-1 min-w-0">
-
-      {/* Tab Content */}
-      <div className="flex-1">
-        {/* HTML Editor Tab */}
-        {activeTab === 'template' && (
-          <div className="w-full flex flex-col">
-            {/* Editor Toolbar - matching original seamless style */}
-            <div className="bg-thread-cream border-b border-thread-sage/30 border-l-2 border-r-2 border-thread-sage px-4 py-3 -mt-px">
-
-              {learn && !useStandardLayout && (
-                <LearnPanel
-                  slug={learn.slug}
-                  step={learn.step}
-                  onStep={(step) => setLearn({ slug: learn.slug, step })}
-                  // A page that doesn't compile right now can't be checked
-                  page={liveProblems.status === 'failed' ? null : (compiledTemplate as unknown as CheckablePage | null)}
-                  onShowMe={(step: LessonStep) =>
-                    showDataLossWarning(
-                      'Show me',
-                      "This puts the step's code in the editor in place of yours. Unsaved changes will be lost.",
-                      () => {
-                        setUseStandardLayout(false);
-                        setTemplate(step.code);
-                        if (step.css) setCustomCSS(step.css);
-                        setActiveTab('template');
-                      }
-                    )
-                  }
-                  onClose={() => {
-                    setLearn(null);
-                    const { learn: _learn, step: _step, ...rest } = router.query;
-                    router.replace({ pathname: router.pathname, query: rest }, undefined, { shallow: true });
-                  }}
-                />
-              )}
-
-              {/* Starter pages: open until you close it (closed during a lesson) */}
-              {!useStandardLayout && (
-                <details className="mb-4" open={!learn}>
-                  <summary className="cursor-pointer font-semibold text-nb-ink py-1">
-                    Starter pages
-                  </summary>
-                  <div className="mt-2">
-                    <StarterTemplateGallery
-                      onSelect={(starterTemplate, starterCSS, name) => {
-                        showDataLossWarning(
-                          "Start from a starter page",
-                          `This replaces the HTML and CSS in the editor with ${name}. Unsaved changes will be lost.`,
-                          () => {
-                            setUseStandardLayout(false);
-                            setTemplate(starterTemplate);
-                            setCustomCSS(starterCSS);
-                            setCSSMode('disable');
-                          }
-                        );
-                      }}
-                    />
-                  </div>
-                </details>
-              )}
-
-              {/* Action Bar */}
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <a
-                    href="/build/html"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="thread-button-secondary text-sm"
-                  >
-                    Lessons
-                  </a>
-                  <a
-                    href="/build/what-works-here"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="thread-button-secondary text-sm"
-                  >
-                    What works here
-                  </a>
-                  <a
-                    href="/build/templates/components"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="thread-button-secondary text-sm"
-                  >
-                    Components
-                  </a>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  {saveMessage && (
-                    <span className={`text-sm font-medium px-3 py-2 rounded-lg ${
-                      saveMessage.includes('✓')
-                        ? 'text-green-700 bg-green-100'
-                        : 'text-red-700 bg-red-100'
-                    }`}>
-                      {saveMessage}
-                    </span>
-                  )}
-
-                  <ShareToFeedCheckbox checked={shareToFeed} onChange={setShareToFeed} disabled={isSaving} />
-                  <button
-                    onClick={handleSave}
-                    disabled={isSaving}
-                    className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:bg-gray-400 transition-colors"
-                  >
-                    {isSaving ? 'Saving...' : 'Save & Go Live'}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* HTML Code Editor - matching original style */}
-            <div className="w-full">
-              <div className="px-4 py-4">
-                {!useStandardLayout && (
-                  <>
-                    <label className="block mb-3">
-                      <span className="thread-label text-lg">Custom Template HTML</span>
-                      <span className="text-sm text-thread-sage ml-2">Plain HTML plus ThreadStead components</span>
-                    </label>
-
-                    {/* Navigation Toggle, and the image picker */}
-                    <div className="mb-3 flex flex-wrap items-center gap-2">
-                      <input
-                        type="checkbox"
-                        id="hideNavigation"
-                        checked={!hideNavigation}
-                        onChange={(e) => setHideNavigation(!e.target.checked)}
-                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-                      />
-                      <label htmlFor="hideNavigation" className="text-sm text-thread-sage">
-                        Show site navigation
-                      </label>
-                      <div className="ml-auto">
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          aria-haspopup="dialog"
-                          onClick={() => setImagePickerPane('html')}
-                          className="inline-flex items-center gap-2"
-                        >
-                          <PixelIcon name="image" size={14} /> Insert image
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="border border-thread-sage rounded overflow-hidden focus-within:border-thread-pine focus-within:ring-1 focus-within:ring-thread-pine">
-                      <CodeMirror
-                        onCreateEditor={(view) => { templateViewRef.current = view; }}
-                        value={template}
-                        onChange={handleTemplateChange}
-                        extensions={templateExtensions}
-                        height="560px"
-                        style={{ fontSize: '13px' }}
-                        placeholder={loadingDefault
-                          ? 'Loading the default layout…'
-                          : 'Write your page here. Plain HTML works, and so do components like <ProfilePhoto /> or <RetroCard>…</RetroCard>'}
-                        basicSetup={{
-                          lineNumbers: true,
-                          foldGutter: true,
-                          autocompletion: true,
-                          highlightActiveLine: true,
-                        }}
-                      />
-                    </div>
-                    <ProblemsStrip problems={liveProblems} onJump={jumpToLine} />
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* CSS Editor Tab */}
-        {activeTab === 'css' && (
-          <div className="w-full flex flex-col">
-            {/* CSS Editor Toolbar - matching original style */}
-            <div className="bg-thread-cream border-b border-thread-sage/30 border-l-2 border-r-2 border-thread-sage px-4 py-2 -mt-px">
-              <div className="flex items-center justify-between flex-wrap gap-4">
-                {/* Wraps on a narrow screen instead of pushing the dropdowns off the card */}
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 min-w-0">
-                  <span className="text-sm text-thread-sage">
-                    {useStandardLayout ? 'Style the standard layout' : 'Style your custom template'}
-                  </span>
-                  
-                  {/* Site styles: on or off */}
-                  <div className="flex items-center gap-2">
-                    <label htmlFor="editor-site-styles" className="text-xs text-thread-sage">Site styles:</label>
-                    <select
-                      id="editor-site-styles"
-                      value={cssMode}
-                      onChange={(e) => setCSSMode(siteStylesCSSMode(e.target.value))}
-                      className="text-xs px-2 py-1 border border-thread-sage rounded bg-thread-paper hover:bg-thread-cream focus:border-thread-pine focus:ring-1 focus:ring-thread-pine"
-                    >
-                      <option value="inherit">On (add styles to site defaults)</option>
-                      <option value="disable">Off (complete CSS control)</option>
-                    </select>
-                  </div>
-
-
-                  {/* CSS Template Selector */}
-                  {useStandardLayout ? (
-                    <button
-                      onClick={() => setShowTemplateSelector(true)}
-                      className="flex items-center gap-2 px-3 py-1.5 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors text-sm font-medium"
-                    >
-                      <PixelIcon name="paint-bucket" size={16} />
-                      Choose Theme
-                    </button>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-thread-sage">Theme:</span>
-                      <select
-                        onChange={(e) => {
-                          if (e.target.value === '') return;
-                          showDataLossWarning(
-                            "Load a theme",
-                            `This replaces the CSS in the editor with the theme. Unsaved changes will be lost.`,
-                            () => {
-                              const templateCSS = getDefaultProfileTemplate(e.target.value as any);
-                              setCustomCSS(templateCSS);
-                            }
-                          );
-                          // Reset the selector
-                          e.target.value = '';
-                        }}
-                        className="text-xs px-2 py-1 border border-thread-sage rounded bg-thread-paper hover:bg-thread-cream"
-                      >
-                        <option value="">Load a theme…</option>
-                        {THEMES.map((theme) => (
-                          <option key={theme.id} value={theme.id}>{theme.name}</option>
-                        ))}
-                        <option value="clear">Blank</option>
-                      </select>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <a 
-                    href="/build/css" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="thread-button-secondary text-sm"
-                  >
-                    CSS guide
-                  </a>
-                  <a
-                    href="/build/what-works-here"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="thread-button-secondary text-sm"
-                  >
-                    What works here
-                  </a>
-                  
-                  {saveMessage && (
-                    <span className={`text-sm ${saveMessage.includes('✓') ? 'text-green-600' : 'text-red-600'}`}>
-                      {saveMessage}
-                    </span>
-                  )}
-                  <ShareToFeedCheckbox checked={shareToFeed} onChange={setShareToFeed} disabled={isSaving} />
-                  <button
-                    onClick={handleSave}
-                    disabled={isSaving}
-                    className="thread-button text-sm"
-                  >
-                    {isSaving ? 'Saving...' : 'Save Template'}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* CSS Code Editor - matching original style */}
-            <div className="w-full">
-              <div className="px-4 py-4">
-                <label className="block mb-3">
-                  <span className="thread-label text-lg">
-                    {useStandardLayout ? 'Custom CSS for Standard Layout' : 'Template CSS'}
-                  </span>
-                  {useStandardLayout && (() => {
-                    const theme = THEMES.find((t) => t.id === detectTheme(customCSS));
-                    return theme ? (
-                      <span className="ml-3 text-xs text-nb-ink-mid">Started from {theme.name}</span>
-                    ) : null;
-                  })()}
-                </label>
-                
-                {/* Enhanced CSS Mode Explainer */}
-                <div className={`mb-3 text-sm p-4 rounded-lg border-2 ${
-                  cssMode === 'inherit'
-                    ? 'bg-green-50 border-green-300 text-green-800'
-                    : 'bg-red-50 border-red-300 text-red-800'
-                }`}>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="font-semibold text-base">
-                      {cssMode === 'inherit' && 'Site styles on'}
-                      {cssMode === 'disable' && 'Site styles off'}
-                    </span>
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${
-                      cssMode === 'inherit'
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-red-100 text-red-700'
-                    }`}>
-                      {useStandardLayout ? 'Standard Layout' : 'Custom Template'}
-                    </span>
-                  </div>
-
-                  {cssMode === 'inherit' && (
-                    <div className="space-y-2">
-                      <p><strong>How it works:</strong> Your CSS adds to ThreadStead&apos;s base styles</p>
-                      <p><strong>Best for:</strong> {useStandardLayout ? 'Styling the standard layout with colors, fonts, and effects' : 'Custom templates that want to feel integrated with the site'}</p>
-                      <p><strong>Result:</strong> Navigation, buttons, and layout components keep their ThreadStead styling while your customizations are applied on top</p>
-                    </div>
-                  )}
-
-                  {cssMode === 'disable' && (
-                    <div className="space-y-2">
-                      <p><strong>How it works:</strong> All ThreadStead CSS is disabled - you style everything</p>
-                      <p><strong>Best for:</strong> {useStandardLayout ? 'NOT RECOMMENDED for standard layout' : 'Custom templates with complete visual control'}</p>
-                      <p><strong>Result:</strong> You must style buttons, navigation, layouts from scratch. Complete creative freedom but more work</p>
-                      {useStandardLayout && (
-                        <div className="bg-red-100 border border-red-200 rounded p-2 mt-2">
-                          <p className="text-red-900 font-medium">Warning: Standard layout needs ThreadStead CSS to function properly. Consider switching to Custom Template mode instead.</p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-                <div className="mb-3 flex justify-end">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    aria-haspopup="dialog"
-                    onClick={() => setImagePickerPane('css')}
-                    className="inline-flex items-center gap-2"
-                  >
-                    <PixelIcon name="image" size={14} /> Insert image
-                  </Button>
-                </div>
-                <div className="border border-thread-sage rounded overflow-hidden focus-within:border-thread-pine focus-within:ring-1 focus-within:ring-thread-pine">
-                  <CodeMirror
-                    onCreateEditor={(view) => { cssViewRef.current = view; }}
-                    value={customCSS}
-                    onChange={(value: string) => setCustomCSS(value)}
-                    extensions={[cssLang()]}
-                    height="560px"
-                    style={{ fontSize: '13px' }}
-                    placeholder={cssMode === 'inherit' ?
-                      `/* Site styles will be inherited - extend them here */
-
-.ts-profile-header {
-  background: linear-gradient(135deg, #2E4B3F 0%, #4FAF6D 100%);
-  padding: 2rem;
-  border-radius: 8px;
-}
-
-.blog-posts {
-  margin-top: 2rem;
-}` :
-                      `/* Complete control - no site CSS loaded */
-
-body {
-  font-family: Georgia, serif;
-  background: #f8f9fa;
-  margin: 0;
-}
-
-.profile-header {
-  background: white;
-  padding: 2rem;
-  border: 1px solid #ddd;
-  margin-bottom: 2rem;
-}`
-                    }
-                    basicSetup={{
-                      lineNumbers: true,
-                      foldGutter: true,
-                      autocompletion: true,
-                      highlightActiveLine: true,
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-
-      </div>
-
-      {/* Component palette - registry-fed, insert at cursor */}
-      {activeTab === 'template' && !useStandardLayout && (
-        <div className="editor-footer bg-thread-cream border-t border-thread-sage/30 p-4">
-          <details className="text-sm" open>
-            <summary className="cursor-pointer font-medium mb-2 flex items-center gap-2">
-              <PixelIcon name="folder" size={14} /> Components
-              <span className="text-xs text-thread-sage font-normal">
-                Point at one to see what it does. Typing &lt; suggests them too.
-              </span>
-            </summary>
-            <div className="mt-2">
-              <ComponentPalette schemas={componentSchemas} onInsert={insertIntoTemplate} />
-            </div>
-          </details>
-        </div>
-      )}
+            )}
+          </>
+        }
+        tabs={tabs}
+        activeTab={activeTab}
+        onTabChange={(id) => setActiveTab(id as EditorTab)}
+        tabsEnd={
+          <>
+            {activeTab === 'css' ? (
+              <a href="/build/css" target="_blank" rel="noopener noreferrer" className="underline text-nb-ink">CSS guide</a>
+            ) : (
+              <a href="/build/html" target="_blank" rel="noopener noreferrer" className="underline text-nb-ink">Lessons</a>
+            )}
+            <a href="/build/what-works-here" target="_blank" rel="noopener noreferrer" className="underline text-nb-ink">What works here</a>
+            {!showPreviewPane && (
+              <button type="button" className="ts-bare hidden lg:inline underline text-nb-ink" onClick={() => setShowPreviewPane(true)}>
+                Show preview
+              </button>
+            )}
+          </>
+        }
+        preview={showPreviewPane ? (
+          <LivePreviewPane
+            frameRef={previewFrameRef}
+            status={previewFrameReady ? 'Updates as you type' : 'Warming up…'}
+            notice={liveProblems.status === 'failed' && (
+              <p role="status" className="m-0 px-3 py-2 text-sm bg-thread-paper border-b border-thread-sage text-nb-ink flex-shrink-0">
+                Showing your last working version.{' '}
+                {firstProblemLine(liveProblems)
+                  ? <>Line {firstProblemLine(liveProblems)} has a problem; it&apos;s listed under the code.</>
+                  : <>Something in the code has a problem; it&apos;s listed under the code.</>}
+              </p>
+            )}
+            onPopOut={openPopupPreview}
+            onHide={() => setShowPreviewPane(false)}
+          />
+        ) : null}
+      />
 
       <ImagePicker
         pane={imagePickerPane}
-        username={user.primaryHandle?.split('@')[0] || user.handles?.[0]?.handle?.split('@')[0] || ''}
+        username={username}
         onClose={() => setImagePickerPane(null)}
         onPick={pickImage}
       />
 
-      </div>{/* end editor column */}
-
-      {/* Live preview pane */}
-      {showPreviewPane && (
-        <div className="hidden lg:flex flex-col w-[46%] flex-shrink-0 border-l-2 border-thread-sage bg-white sticky top-0 self-start h-screen">
-          <div className="flex items-center justify-between px-3 py-2 bg-thread-cream border-b border-thread-sage flex-shrink-0">
-            <span className="text-sm font-medium text-thread-charcoal flex items-center gap-2">
-              <PixelIcon name="search" size={14} /> Live preview
-            </span>
-            <span className="text-xs text-thread-sage">
-              {previewFrameReady ? 'Updates as you type' : 'Warming up…'}
-            </span>
-          </div>
-          {liveProblems.status === 'failed' && (
-            <p role="status" className="m-0 px-3 py-2 text-sm bg-thread-paper border-b border-thread-sage text-nb-ink">
-              Showing your last working version.{' '}
-              {firstProblemLine(liveProblems)
-                ? <>Line {firstProblemLine(liveProblems)} has a problem; it&apos;s listed under the code.</>
-                : <>Something in the code has a problem; it&apos;s listed under the code.</>}
-            </p>
-          )}
-          <iframe
-            ref={previewFrameRef}
-            src="/template-preview?embed=1"
-            title="Live preview of your page"
-            className="flex-1 w-full bg-white"
-          />
-        </div>
-      )}
-      </div>{/* end editor + preview split */}
 
       {/* Template Selector Modal - only for Standard Layout */}
       {showTemplateSelector && useStandardLayout && (

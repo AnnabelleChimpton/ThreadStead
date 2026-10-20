@@ -96,7 +96,7 @@ async function waitForPlainPage() {
 }
 
 function openCSSTab() {
-  fireEvent.click(screen.getByRole('button', { name: 'CSS Styles' }));
+  fireEvent.click(screen.getByRole('tab', { name: 'CSS' }));
   return screen.getByLabelText('css-code') as HTMLTextAreaElement;
 }
 
@@ -114,6 +114,8 @@ describe('A new HTML page (?mode=template on a standard-layout profile)', () => 
     renderEditor();
     await waitForPlainPage();
     expect(STARTERS[0].id).toBe('plain-page');
+    // With the other starters to pick from first
+    expect(screen.getByRole('tab', { name: 'Starter pages' })).toHaveAttribute('aria-selected', 'true');
     expect(openCSSTab().value).toBe(PLAIN.css);
   });
 
@@ -148,7 +150,7 @@ describe('A save that changes the CSS', () => {
     expect(screen.getByText('Saving changes your CSS. The old look stays in History.')).toBeInTheDocument();
 
     await act(async () => {});
-    fireEvent.click(screen.getByRole('button', { name: 'Save Template' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save & Go Live' }));
 
     await waitFor(() => expect(onSave).toHaveBeenCalled());
     expect(onSave.mock.calls[0][1]).toBe('/* something new */');
@@ -164,6 +166,7 @@ describe('Reset to Default', () => {
     await screen.findByLabelText('template-code');
     (global.fetch as jest.Mock).mockClear();
 
+    fireEvent.click(screen.getByRole('button', { name: /More/ }));
     fireEvent.click(screen.getByRole('button', { name: /reset to default/i }));
 
     const dialog = await screen.findByRole('alertdialog');
@@ -182,6 +185,6 @@ describe('Editor header', () => {
     expect(text).not.toMatch(/Database:/);
     expect(text).not.toMatch(/Profile Mode/);
     expect(text).not.toMatch(/CSS Mode:/);
-    expect(screen.getByText('your own HTML layout')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Your own HTML page' })).toBeInTheDocument();
   });
 });

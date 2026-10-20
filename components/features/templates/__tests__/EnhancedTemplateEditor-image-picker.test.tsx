@@ -43,6 +43,8 @@ jest.mock('next/dynamic', () => () => {
       view.state = EditorState.create({ doc: props.value ?? '' });
     }
     ReactLib.useEffect(() => {
+      // Other dynamic() components (in the starter and component tabs) aren't editors
+      if (typeof propsRef.current.onChange !== 'function') return;
       mockViews[label] = view;
       propsRef.current.onCreateEditor?.(view);
     }, [label, view]);

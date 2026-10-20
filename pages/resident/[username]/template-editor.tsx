@@ -66,12 +66,12 @@ function StartedFromNotice({ startedFrom }: { startedFrom: StartedFrom }) {
   return (
     <div
       role="status"
-      className="flex items-start gap-2 px-4 py-2 bg-thread-cream border-b border-thread-sage/30 text-sm text-thread-charcoal"
+      className="flex items-start gap-2 px-4 py-1.5 bg-thread-cream border-b border-thread-sage text-sm text-nb-ink flex-shrink-0"
     >
       <span className="shrink-0 mt-0.5" aria-hidden="true">
         <PixelIcon name="info-box" size={14} />
       </span>
-      <p className="min-w-0">{message}</p>
+      <p className="min-w-0 m-0">{message}</p>
     </div>
   );
 }
@@ -191,10 +191,6 @@ export default function TemplateEditorPage({
     router.push(`/resident/${username}`);
   };
 
-  const handleBackToSettings = () => {
-    router.push('/settings?tab=appearance');
-  };
-
   if (!isOwner) {
     return (
       <Layout>
@@ -227,60 +223,25 @@ export default function TemplateEditorPage({
   return (
     <>
       <Head>
-        <title>{`Profile Layout Editor - ${username} | ThreadStead`}</title>
+        <title>{`Your own HTML page - ${username} | ThreadStead`}</title>
       </Head>
-      <Layout fullWidth={true}>
-        <div className="editor-full-page flex flex-col bg-white template-editor-page w-full">
-          <div className="bg-white border-b border-thread-sage/30 px-4 py-3 shadow-sm">
-            {/* Wraps on a phone instead of pushing the buttons off the card */}
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 min-w-0">
-                <h1 className="text-lg font-semibold">Profile Layout Editor</h1>
-                <span className="text-thread-sage text-sm">@{username}</span>
-                {layoutOf(templateMode) === 'html' && (
-                  <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm">
-                    Template Active
-                  </span>
-                )}
-              </div>
-
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  onClick={handleBackToSettings}
-                  className="thread-button-secondary text-xs px-2 py-1"
-                >
-                  ← Settings
-                </button>
-                <button
-                  onClick={handleBackToProfile}
-                  className="thread-button text-xs px-2 py-1"
-                >
-                  View Profile
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {startedFrom && <StartedFromNotice startedFrom={startedFrom} />}
-
-          <div className="flex-1">
-            <EnhancedTemplateEditor
-              user={editorUser}
-              initialTemplate={extractedHtmlContent}
-              initialCSS={cleanedCssContent}
-              initialCSSMode={cssMode}
-              // A page started from someone else's is HTML, whatever yours is now
-              initialTemplateMode={startedFrom?.ok ? 'advanced' : templateMode}
-              initialShowNavigation={!hideNavigation}
-              // Always the HTML editor. CSS-only editing is the CSS editor
-              // (?mode=css redirects there in next.config.ts).
-              initialEditorMode="template"
-              startsUnsaved={!!startedFrom?.ok}
-              savedCSS={ownCSS}
-              onSave={handleSave}
-            />
-          </div>
-        </div>
+      <Layout workspace>
+        <EnhancedTemplateEditor
+          user={editorUser}
+          initialTemplate={extractedHtmlContent}
+          initialCSS={cleanedCssContent}
+          initialCSSMode={cssMode}
+          // A page started from someone else's is HTML, whatever yours is now
+          initialTemplateMode={startedFrom?.ok ? 'advanced' : templateMode}
+          initialShowNavigation={!hideNavigation}
+          // Always the HTML editor. CSS-only editing is the CSS editor
+          // (?mode=css redirects there in next.config.ts).
+          initialEditorMode="template"
+          startsUnsaved={!!startedFrom?.ok}
+          savedCSS={ownCSS}
+          notice={startedFrom && <StartedFromNotice startedFrom={startedFrom} />}
+          onSave={handleSave}
+        />
       </Layout>
     </>
   );

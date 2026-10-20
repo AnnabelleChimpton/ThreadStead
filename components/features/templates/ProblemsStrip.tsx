@@ -63,7 +63,7 @@ export default function ProblemsStrip({ problems, onJump }: { problems: LiveProb
   };
 
   return (
-    <section aria-live="polite" className="border-2 border-t-0 border-thread-sage bg-thread-paper px-3 py-2">
+    <section aria-live="polite" className="border-t-2 border-thread-sage bg-thread-paper px-3 py-2 flex-shrink-0">
       {count === 0 ? (
         <p className="text-sm text-nb-ink-mid m-0">No problems found.</p>
       ) : (
