@@ -1810,7 +1810,8 @@ export default function EnhancedTemplateEditor({
             {/* CSS Editor Toolbar - matching original style */}
             <div className="bg-thread-cream border-b border-thread-sage/30 border-l-2 border-r-2 border-thread-sage px-4 py-2 -mt-px">
               <div className="flex items-center justify-between flex-wrap gap-4">
-                <div className="flex items-center gap-4">
+                {/* Wraps on a narrow screen instead of pushing the dropdowns off the card */}
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 min-w-0">
                   <span className="text-sm text-thread-sage">
                     {useStandardLayout ? 'Style the standard layout' : 'Style your custom template'}
                   </span>
