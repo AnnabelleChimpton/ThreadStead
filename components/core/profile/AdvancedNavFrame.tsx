@@ -17,19 +17,31 @@ interface AdvancedNavFrameProps {
   children: React.ReactNode;
 }
 
+/**
+ * The bar's height in px, measured and rounded up as the measurement below
+ * rounds. The server renders it signed out (it learns who's signed in in
+ * the browser), and narrower than about 1133px its "Sign Up" wraps to two
+ * lines. That width depends on the site's name and sections; the
+ * measurement covers a site where it comes out elsewhere.
+ */
+const NAV_HEIGHT = { wide: 90, narrow: 101, narrowBelow: 1133 };
+
 // Advanced templates get the site nav as a position: fixed bar, so the page
-// has to leave room under it. It used to leave a flat 70px, but the bar is
-// taller than that (about 89px on desktop), so anything placed right under
-// it was hidden. Measure the bar instead. The page is server-rendered, so
-// until this runs (at hydration) it sits under the 70px guess.
+// has to leave room under it. The room comes from CSS (NAV_HEIGHT), so it's
+// right in the server's HTML; a flat 70px used to sit under the taller bar
+// until hydration measured it, a ~19px jump. The measurement stays, for a
+// bar that comes out another height (a long site name, a larger root font
+// size, the signed-in bar). The margin is !important because a pasted page's
+// `* { margin: 0 }` would otherwise take it away, so the measured value goes
+// in through the custom property.
 export default function AdvancedNavFrame({ showNavigation, afterNav, children }: AdvancedNavFrameProps) {
   const navRef = useRef<HTMLDivElement>(null);
-  const [navHeight, setNavHeight] = useState(70);
+  const [navHeight, setNavHeight] = useState<number | null>(null);
 
   useLayoutEffect(() => {
     const bar = navRef.current?.firstElementChild as HTMLElement | null;
     if (!showNavigation || !bar) return;
-    const measure = () => setNavHeight(Math.ceil(bar.getBoundingClientRect().height) || 70);
+    const measure = () => setNavHeight(Math.ceil(bar.getBoundingClientRect().height) || null);
     measure();
     if (typeof ResizeObserver === "undefined") return;
     const observer = new ResizeObserver(measure);
@@ -46,11 +58,24 @@ export default function AdvancedNavFrame({ showNavigation, afterNav, children }:
           <NavigationPreview navBackgroundColor={ADVANCED_NAV_SURFACE} />
         </div>
       )}
-      <div style={{ marginTop: showNavigation ? `${navHeight}px` : 0 }}>
+      <div
+        className={showNavigation ? "ts-under-nav" : undefined}
+        style={navHeight ? ({ "--ts-nav-height": `${navHeight}px` } as React.CSSProperties) : undefined}
+      >
         {afterNav}
         {/* Absolute template children position from here, below afterNav */}
         <div style={{ position: "relative" }}>{children}</div>
       </div>
+      <style jsx>{`
+        .ts-under-nav {
+          margin-top: var(--ts-nav-height, ${NAV_HEIGHT.wide}px) !important;
+        }
+        @media (max-width: ${NAV_HEIGHT.narrowBelow - 1}px) {
+          .ts-under-nav {
+            margin-top: var(--ts-nav-height, ${NAV_HEIGHT.narrow}px) !important;
+          }
+        }
+      `}</style>
     </>
   );
 }

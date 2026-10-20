@@ -186,7 +186,7 @@ export default function If(props: IfProps) {
   // Normal mode - evaluate condition and render conditionally
   // Evaluate condition using centralized engine
   // Pass scopeId for ForEach loop variable resolution
-  const shouldShow = evaluateFullCondition(config, residentData, scopeId);
+  const shouldShow = evaluateFullCondition(config, residentData, scopeId, templateState);
 
   // Return children if condition is true, null otherwise
   // NOTE: ActionExecutor will still intercept If components inside event handlers

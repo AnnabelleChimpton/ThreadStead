@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef } from 'react';
-import { useTemplateState, VariableType, VariableConfig } from '@/lib/templates/state/TemplateStateProvider';
+import { useTemplateState, coerceVarInitial, VariableType, VariableConfig } from '@/lib/templates/state/TemplateStateProvider';
 
 /**
  * Var Component - Declare a template variable
@@ -146,58 +146,7 @@ export default function Var(props: VarProps) {
     }
 
     // Coerce initial value to correct type
-    let coercedInitial = initial;
-    if (initial !== undefined) {
-      switch (type) {
-        case 'number':
-          const parsed = parseFloat(String(initial));
-          coercedInitial = typeof initial === 'number' ? initial : (isNaN(parsed) ? 0 : parsed);
-          break;
-        case 'boolean':
-          coercedInitial = initial === true || initial === 'true' || initial === '1';
-          break;
-        case 'string':
-          coercedInitial = String(initial);
-          break;
-        case 'array':
-          if (Array.isArray(initial)) {
-            coercedInitial = initial;
-          } else if (typeof initial === 'string') {
-            // Try to parse JSON string
-            try {
-              const parsed = JSON.parse(initial);
-              coercedInitial = Array.isArray(parsed) ? parsed : [];
-            } catch {
-              // If parsing fails, treat as empty array
-              coercedInitial = [];
-            }
-          } else {
-            coercedInitial = [];
-          }
-          break;
-        case 'object':
-          if (typeof initial === 'string') {
-            // Try to parse JSON string
-            try {
-              const parsed = JSON.parse(initial);
-              // Ensure result is an object (not array or null)
-              coercedInitial = typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed) ? parsed : {};
-            } catch (error) {
-              coercedInitial = {};
-            }
-          } else if (typeof initial === 'object' && initial !== null && !Array.isArray(initial)) {
-            // Already an object
-            coercedInitial = initial;
-          } else {
-            // Invalid type, use empty object
-            coercedInitial = {};
-          }
-          break;
-        case 'date':
-          coercedInitial = initial instanceof Date ? initial : new Date(String(initial));
-          break;
-      }
-    }
+    const coercedInitial = coerceVarInitial(type, initial);
 
     // Coerce persist to boolean
     const shouldPersist = persist === true || persist === 'true' || persist === '1';

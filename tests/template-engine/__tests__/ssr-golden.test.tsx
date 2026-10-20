@@ -153,7 +153,7 @@ async function settle(ms = Number(process.env.SETTLE_MS) || 60) {
 }
 
 /** Server HTML → browser DOM → hydrate → settled DOM, plus hydration errors */
-async function visit(compiledTemplate: unknown, viewerId: string) {
+async function visit(compiledTemplate: unknown, viewerId: string, beforeHydrate?: (dom: JSDOM) => void) {
   logged = []
   const html = renderToString(page(compiledTemplate, viewerId))
   const serverErrors = logged.splice(0)
@@ -167,6 +167,7 @@ async function visit(compiledTemplate: unknown, viewerId: string) {
   const leave = enterBrowser(dom)
   const hydrationErrors: unknown[] = []
   try {
+    beforeHydrate?.(dom)
     // Loaded here, with a browser present, as the client bundle would be
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { hydrateRoot } = require('react-dom/client') as typeof import('react-dom/client')
@@ -189,13 +190,15 @@ async function visit(compiledTemplate: unknown, viewerId: string) {
 
 describe.each(corpus())('%s', (id, source) => {
   const stored = storedInput(id, source)
-  const sources = {
-    ast: pageForRender(stored),
-    staticHTML: pageForRender({ staticHTML: stored.staticHTML, islands: stored.islands }),
-  }
 
   test.each(VIEWERS)('as %s: server-rendered, hydrated, same DOM as before', async (who, viewerId) => {
     const goldenFile = path.join(GOLDEN_DIR, `${id}.${who}.html`)
+    // As getServerSideProps builds it, for this viewer
+    const viewer = { isOwner: who === 'owner' }
+    const sources = {
+      ast: pageForRender(stored, undefined, viewer),
+      staticHTML: pageForRender({ staticHTML: stored.staticHTML, islands: stored.islands }, undefined, viewer),
+    }
     for (const [from, compiled] of Object.entries(sources)) {
       expect(compiled).not.toBeNull()
       const result = await visit(compiled, viewerId)
@@ -215,6 +218,75 @@ describe('the page is in the response', () => {
     )
     expect(html).toContain('<main><h1>Hello <b>there</b></h1><p>From my page</p></main>')
     expect(html).not.toMatch(/Loading advanced template/)
+  })
+})
+
+describe("a page's <Var>s on the server", () => {
+  const nightWindow = () => {
+    const [, source] = corpus().find(([id]) => id === 'example-nightWindow')!
+    return pageForRender(storedInput('example-nightWindow', source))
+  }
+
+  test('render with their declared starting values, not unset', () => {
+    const html = renderToString(page(nightWindow(), 'u_visitor'))
+    expect(html).toContain('the lamp is on')
+    expect(html).not.toContain('lights out')
+    expect(html).toMatch(/you(&#x27;|')ve left <!-- -->0<!-- --> on this sill/)
+  })
+
+  test('never land in the module-wide store (it would carry them into the next request)', () => {
+    const { globalTemplateStateManager } = require('@/lib/templates/state/TemplateStateManager')
+    renderToString(page(nightWindow(), 'u_visitor'))
+    expect(globalTemplateStateManager.getAllVariables()).toEqual({})
+  })
+
+  test("a visitor's saved value still loads after the page hydrates, without a mismatch", async () => {
+    const result = await visit(nightWindow(), 'u_visitor', (dom) => {
+      dom.window.localStorage.setItem('threadstead_template_lampOn', 'false')
+      dom.window.localStorage.setItem('threadstead_template_kudos', '7')
+    })
+    expect(result.html).toContain('the lamp is on')
+    expect(result.hydrationErrors.map(String)).toEqual([])
+    expect(result.settled).toContain('lights out')
+    expect(result.settled).not.toContain('the lamp is on')
+    expect(result.settled).toMatch(/left\s*"?\s*7/)
+  })
+})
+
+describe('IfOwner / IfVisitor', () => {
+  const source = `<main>
+    <h1>My page</h1>
+    <IfOwner><p>owner-only note <ShowVar name="secretVar" /></p><Var name="secretVar" type="string" initial="owner-secret-initial" /></IfOwner>
+    <IfVisitor><p>visitor-only welcome</p></IfVisitor>
+  </main>`
+
+  test("the other side's content isn't in the page data sent to the browser", () => {
+    const stored = storedCompileResult(source)
+    const forVisitor = JSON.stringify(pageForRender(stored, undefined, { isOwner: false }))
+    const forOwner = JSON.stringify(pageForRender(stored, undefined, { isOwner: true }))
+    expect(forVisitor).toContain('visitor-only welcome')
+    expect(forVisitor).not.toContain('owner-only note')
+    expect(forVisitor).not.toContain('owner-secret-initial')
+    expect(forOwner).toContain('owner-only note')
+    expect(forOwner).toContain('owner-secret-initial')
+    expect(forOwner).not.toContain('visitor-only welcome')
+    // Without a viewer, a visitor's
+    expect(JSON.stringify(pageForRender(stored))).toEqual(forVisitor)
+  })
+
+  test.each(VIEWERS)('as %s: hydrates without a mismatch and shows the right side', async (who, viewerId) => {
+    const compiled = pageForRender(storedCompileResult(source), undefined, { isOwner: who === 'owner' })
+    const result = await visit(compiled, viewerId)
+    expect(result.serverErrors).toEqual([])
+    expect(result.hydrationErrors.map(String)).toEqual([])
+    if (who === 'owner') {
+      expect(result.html).toContain('owner-only note')
+      expect(result.settled).toContain('owner-secret-initial')
+      expect(result.settled).not.toContain('visitor-only welcome')
+    } else {
+      expect(result.html).toContain('visitor-only welcome')
+      expect(result.settled).not.toContain('owner-only note')
+    }
   })
 })
 

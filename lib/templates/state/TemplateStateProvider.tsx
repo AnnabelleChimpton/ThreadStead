@@ -498,6 +498,7 @@ export function useTemplateStateWithDeps(dependencies?: string[]): TemplateState
  * Uses the global TemplateStateManager for true cross-island state sharing
  */
 import { globalTemplateStateManager } from './TemplateStateManager';
+import { evaluateExpression } from './expression-evaluator';
 
 /**
  * Get global template state for use in non-React contexts
@@ -517,6 +518,91 @@ export function getGlobalTemplateState(): TemplateStateContextType {
 }
 
 /**
+ * A <Var initial="…">'s value as its type reads it ("true" → true, "3" → 3,
+ * a JSON string → an array or object).
+ */
+export function coerceVarInitial(type: VariableType, initial: unknown): unknown {
+  if (initial === undefined) return initial;
+  switch (type) {
+    case 'number': {
+      const parsed = parseFloat(String(initial));
+      return typeof initial === 'number' ? initial : (isNaN(parsed) ? 0 : parsed);
+    }
+    case 'boolean':
+      return initial === true || initial === 'true' || initial === '1';
+    case 'string':
+      return String(initial);
+    case 'array':
+      if (Array.isArray(initial)) return initial;
+      if (typeof initial === 'string') {
+        try {
+          const parsed = JSON.parse(initial);
+          return Array.isArray(parsed) ? parsed : [];
+        } catch {
+          return [];
+        }
+      }
+      return [];
+    case 'object':
+      if (typeof initial === 'string') {
+        try {
+          const parsed = JSON.parse(initial);
+          return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed) ? parsed : {};
+        } catch {
+          return {};
+        }
+      }
+      return typeof initial === 'object' && initial !== null && !Array.isArray(initial) ? initial : {};
+    case 'date':
+      return initial instanceof Date ? initial : new Date(String(initial));
+    default:
+      return initial;
+  }
+}
+
+/**
+ * What each declared <Var> holds before it registers: the value the server
+ * renders with and the browser's first render (hydration) reads, so the two
+ * agree. Persisted values, URL params and random picks only exist in the
+ * browser; they arrive when the <Var> registers after mount.
+ *
+ * Declarations come with their `initial` as written (coerced here).
+ */
+export function seedVariables(declared: VariableConfig[] = []): Record<string, TemplateVariable> {
+  const seed: Record<string, TemplateVariable> = {};
+  const computed: VariableConfig[] = [];
+  for (const config of declared) {
+    if (!config.name || seed[config.name] || computed.some((c) => c.name === config.name)) continue;
+    // The pick is random; a date shows in the reader's own time zone
+    if (config.type === 'random' || config.type === 'date') continue;
+    if (config.type === 'computed') {
+      if (config.computed) computed.push(config);
+      continue;
+    }
+    const initial = coerceVarInitial(config.type, config.initial);
+    // Before the browser reads the URL, a URL param is its default
+    const value = config.type === 'urlParam' ? (config.default ?? initial) : initial;
+    seed[config.name] = { name: config.name, type: config.type, value, initial };
+  }
+  for (const config of computed) {
+    const context = Object.fromEntries(Object.entries(seed).map(([name, v]) => [name, v.value]));
+    let value: unknown;
+    try {
+      value = evaluateExpression(config.computed!, context);
+    } catch {
+      value = undefined;
+    }
+    seed[config.name] = { name: config.name, type: 'computed', value, initial: undefined, computed: config.computed };
+  }
+  return seed;
+}
+
+export interface GlobalTemplateStateProviderProps extends TemplateStateProviderProps {
+  /** The page's <Var> declarations, so it renders with their starting values (seedVariables) */
+  declared?: VariableConfig[];
+}
+
+/**
  * Enhanced TemplateStateProvider that uses global state manager
  *
  * This provider:
@@ -525,11 +611,19 @@ export function getGlobalTemplateState(): TemplateStateContextType {
  * 3. Provides context for React hooks to access global state
  *
  * The global manager ensures all islands share the same state.
+ *
+ * Until it has mounted it reads only the declared starting values: that is
+ * what the server rendered (the global manager is one module-wide object, so
+ * on the server it must never hold a page's values), and whatever the store
+ * holds in the browser before hydration can't make the two differ. Once
+ * mounted, a registered variable wins and the seed covers the rest.
  */
-export function GlobalTemplateStateProvider({ children, initialVariables }: TemplateStateProviderProps) {
+export function GlobalTemplateStateProvider({ children, initialVariables, declared }: GlobalTemplateStateProviderProps) {
   // Force re-render when global state changes
   const [, forceUpdate] = useState({});
+  const [mounted, setMounted] = useState(false);
   const computedDepsRef = useRef<Record<string, Set<string>>>({});
+  const seed = useMemo(() => seedVariables(declared), [declared]);
 
   // Initialize global state on mount
   useEffect(() => {
@@ -545,16 +639,22 @@ export function GlobalTemplateStateProvider({ children, initialVariables }: Temp
     });
     // Children's effects run before this one, so every <Var> on a page that
     // mounts with this provider has already registered, unheard. Catch up.
-    forceUpdate({});
+    setMounted(true);
     return unsubscribe;
   }, []);
 
   // Get current variables from global manager
-  const variables = globalTemplateStateManager.getAllVariables();
+  const variables = mounted ? { ...seed, ...globalTemplateStateManager.getAllVariables() } : seed;
 
   const getVariable = useCallback((name: string): any => {
-    return globalTemplateStateManager.getVariable(name);
-  }, []);
+    if (mounted) {
+      const registered = globalTemplateStateManager.getAllVariables();
+      if (name in registered || `user-content-${name}` in registered) {
+        return globalTemplateStateManager.getVariable(name);
+      }
+    }
+    return seed[name]?.value;
+  }, [mounted, seed]);
 
   const setVariable = useCallback((name: string, value: any) => {
     globalTemplateStateManager.setVariable(name, value);

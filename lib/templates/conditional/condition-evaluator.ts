@@ -3,8 +3,17 @@
  * Provides shared logic for all conditional components
  */
 
-import { getGlobalTemplateState } from '../state/TemplateStateProvider';
+import { getGlobalTemplateState, type TemplateStateContextType } from '../state/TemplateStateProvider';
 import { globalTemplateStateManager } from '../state/TemplateStateManager';
+
+/**
+ * Where `$vars` are read from. A component rendering a page passes its
+ * template state (useTemplateState), which knows each declared <Var>'s
+ * starting value before it registers, so the server and the browser's first
+ * render agree. Without one (event handlers, after mount) it's the global
+ * store.
+ */
+export type VariableSource = Pick<TemplateStateContextType, 'getVariable' | 'variables'>;
 
 /**
  * Safely get nested property values from an object
@@ -16,8 +25,9 @@ import { globalTemplateStateManager } from '../state/TemplateStateManager';
  * @param obj The object to get values from (typically residentData)
  * @param path The path to the value
  * @param scopeId Optional ForEach scope ID for scoped variable resolution
+ * @param vars Where `$vars` come from (default: the global store)
  */
-export function getNestedValue(obj: any, path: string | undefined, scopeId?: string): any {
+export function getNestedValue(obj: any, path: string | undefined, scopeId?: string, vars?: VariableSource): any {
   // CRITICAL: Defensive null checks
   if (!path || typeof path !== 'string') {
     return undefined;
@@ -31,9 +41,7 @@ export function getNestedValue(obj: any, path: string | undefined, scopeId?: str
   if (path.startsWith('$vars.')) {
     const varPath = path.slice(6); // Remove "$vars." prefix
 
-    // Try to get template state from global context
-    // This is set by TemplateStateProvider
-    const templateState = getGlobalTemplateState();
+    const templateState = vars ?? getGlobalTemplateState();
 
     if (!templateState) {
       return undefined;
@@ -257,7 +265,7 @@ export function exists(value: any): boolean {
  * @param data The data context (typically residentData)
  * @param scopeId Optional ForEach scope ID for scoped variable resolution
  */
-export function evaluateCondition(condition: string | undefined, data: any, scopeId?: string): boolean {
+export function evaluateCondition(condition: string | undefined, data: any, scopeId?: string, vars?: VariableSource): boolean {
   // CRITICAL: Defensive null checks
   if (!condition || typeof condition !== 'string') {
     return false;
@@ -269,18 +277,18 @@ export function evaluateCondition(condition: string | undefined, data: any, scop
 
   // Handle negation
   if (condition.startsWith('!')) {
-    return !evaluateCondition(condition.slice(1), data, scopeId);
+    return !evaluateCondition(condition.slice(1), data, scopeId, vars);
   }
 
   // Handle existence checks
   if (condition.startsWith('has:')) {
     const path = condition.slice(4);
-    const value = getNestedValue(data, path, scopeId);
+    const value = getNestedValue(data, path, scopeId, vars);
     return exists(value) && isTruthy(value);
   }
 
   // Handle data path truthy checks
-  const value = getNestedValue(data, condition, scopeId);
+  const value = getNestedValue(data, condition, scopeId, vars);
   return isTruthy(value);
 }
 
@@ -303,12 +311,13 @@ export interface LogicalConditions {
 export function evaluateLogical(
   conditions: LogicalConditions,
   data: any,
-  scopeId?: string
+  scopeId?: string,
+  vars?: VariableSource
 ): boolean {
   // AND: all conditions must be true
   if (conditions.and && conditions.and.length > 0) {
     return conditions.and.every(cond => {
-      const value = getNestedValue(data, cond, scopeId);
+      const value = getNestedValue(data, cond, scopeId, vars);
       return isTruthy(value);
     });
   }
@@ -316,14 +325,14 @@ export function evaluateLogical(
   // OR: at least one condition must be true
   if (conditions.or && conditions.or.length > 0) {
     return conditions.or.some(cond => {
-      const value = getNestedValue(data, cond, scopeId);
+      const value = getNestedValue(data, cond, scopeId, vars);
       return isTruthy(value);
     });
   }
 
   // NOT: condition must be false
   if (conditions.not) {
-    const value = getNestedValue(data, conditions.not, scopeId);
+    const value = getNestedValue(data, conditions.not, scopeId, vars);
     return !isTruthy(value);
   }
 
@@ -368,11 +377,13 @@ export interface ConditionConfig {
  * @param config The condition configuration
  * @param data The data context (typically residentData)
  * @param scopeId Optional ForEach scope ID for scoped variable resolution
+ * @param vars Where `$vars` come from (see VariableSource)
  */
 export function evaluateFullCondition(
   config: ConditionConfig,
   data: any,
-  scopeId?: string
+  scopeId?: string,
+  vars?: VariableSource
 ): boolean {
 
   // Accumulate all condition checks (allows combining and/or with comparisons)
@@ -383,7 +394,7 @@ export function evaluateFullCondition(
     const conditions = typeof config.and === 'string'
       ? config.and.split(',').map(s => s.trim())
       : config.and;
-    const result = evaluateLogical({ and: conditions }, data, scopeId);
+    const result = evaluateLogical({ and: conditions }, data, scopeId, vars);
     conditionResults.push(result);
   }
 
@@ -392,7 +403,7 @@ export function evaluateFullCondition(
     const conditions = typeof config.or === 'string'
       ? config.or.split(',').map(s => s.trim())
       : config.or;
-    const result = evaluateLogical({ or: conditions }, data, scopeId);
+    const result = evaluateLogical({ or: conditions }, data, scopeId, vars);
     conditionResults.push(result);
   }
 
@@ -404,23 +415,23 @@ export function evaluateFullCondition(
     let dataPath = config.data;
     if (!dataPath.includes('.') && !dataPath.startsWith('$vars.')) {
       // Check if this is a template variable
-      const templateState = getGlobalTemplateState();
+      const templateState = vars ?? getGlobalTemplateState();
       if (templateState && templateState.variables[dataPath]) {
         dataPath = `$vars.${dataPath}`;
       }
     }
-    const value = getNestedValue(data, dataPath, scopeId);
+    const value = getNestedValue(data, dataPath, scopeId, vars);
     conditionResults.push(!isTruthy(value));
   }
   // Otherwise, not is a logical operator with a path
   else if (config.not) {
-    const result = evaluateLogical({ not: config.not }, data, scopeId);
+    const result = evaluateLogical({ not: config.not }, data, scopeId, vars);
     conditionResults.push(result);
   }
 
   // Check 4: Simple condition expression
   if (config.when) {
-    const result = evaluateCondition(config.when, data, scopeId);
+    const result = evaluateCondition(config.when, data, scopeId, vars);
     conditionResults.push(result);
   }
 
@@ -431,13 +442,13 @@ export function evaluateFullCondition(
 
     if (dataPath && !dataPath.includes('.') && !dataPath.startsWith('$vars.')) {
       // Check if this is a template variable
-      const templateState = getGlobalTemplateState();
+      const templateState = vars ?? getGlobalTemplateState();
       if (templateState && templateState.variables[dataPath]) {
         dataPath = `$vars.${dataPath}`;
       }
     }
 
-    const value = dataPath ? getNestedValue(data, dataPath, scopeId) : undefined;
+    const value = dataPath ? getNestedValue(data, dataPath, scopeId, vars) : undefined;
 
     // Check for comparison operators (push result to array instead of returning)
     if (config.notEquals !== undefined) {
@@ -481,7 +492,7 @@ export function evaluateFullCondition(
       }
       // Legacy: exists as string means check that path
       else {
-        const existsValue = getNestedValue(data, config.exists as string, scopeId);
+        const existsValue = getNestedValue(data, config.exists as string, scopeId, vars);
         conditionResults.push(exists(existsValue));
       }
     }
@@ -493,7 +504,7 @@ export function evaluateFullCondition(
 
   // Check 6: Standalone existence check
   if (config.exists && typeof config.exists === 'string' && !config.data && !config.condition) {
-    const value = getNestedValue(data, config.exists, scopeId);
+    const value = getNestedValue(data, config.exists, scopeId, vars);
     conditionResults.push(exists(value));
   }
 

@@ -691,10 +691,15 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
 
   // A page of your own HTML: the tree it renders from on the server and in
   // the browser, its components, and its <head> bits (title, fonts, <body>
-  // colours). Only what rendering reads, not the three stored copies.
+  // colours). Only what rendering reads, not the three stored copies, and
+  // only this viewer's side of IfOwner / IfVisitor. Without residentData the
+  // tree isn't rendered; it goes out as a visitor's.
   if (data.profile?.templateMode === 'advanced' && data.profile.compiledTemplate != null) {
     const { pageForRender } = await import('@/lib/templates/rendering/page-tree-server');
-    const page = pageForRender(data.profile.compiledTemplate, data.profile.templateIslands);
+    const { viewerIsOwner } = await import('@/components/features/templates/conditional/IfOwner');
+    const page = pageForRender(data.profile.compiledTemplate, data.profile.templateIslands, {
+      isOwner: residentData != null && viewerIsOwner(residentData),
+    });
     if (page) props.compiledTemplate = page;
   }
 

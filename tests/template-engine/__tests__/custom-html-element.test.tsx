@@ -4,9 +4,9 @@
  * <CustomHTMLElement content="…"> (and innerHTML="…", and a text child)
  * carries HTML inside an attribute value, where the page sanitizer never
  * looks. The component cleans it at render with the page's own sanitizer,
- * so rows saved before that check are covered too. These render to server
- * HTML, parse it into a browser DOM, and check that event handlers and
- * scripts don't reach it. Payloads are inert on purpose.
+ * so rows saved before that check are covered too. These render the way a
+ * visit does (server HTML, parsed into a browser DOM) and check that event
+ * handlers and scripts don't reach the DOM. Payloads are inert on purpose.
  */
 jest.mock('@noble/ed25519', () => ({
   getPublicKey: jest.fn(),
@@ -21,9 +21,14 @@ import React from 'react'
 import { renderToString } from 'react-dom/server'
 import { JSDOM } from 'jsdom'
 import CustomHTMLElement, { CUSTOM_HTML_TAGS, sanitizeCustomHTML } from '@/components/features/templates/CustomHTMLElement'
+import AdvancedProfileRenderer from '@/components/core/profile/AdvancedProfileRenderer'
+import { compileTemplateToArtifacts } from '@/lib/templates/compilation/compile-pipeline'
+import { pageForRender } from '@/lib/templates/rendering/page-tree-server'
 import { componentRegistry } from '@/lib/templates/core/template-registry'
+import { AppProviders, OWNER_ID, residentData } from '../ssr-golden-support'
 
 const UNSAFE = '<p>stays</p><img src="/a.png" onerror="x"><b onclick="x">bold</b><script>kept-out</script>'
+const ESCAPED = UNSAFE.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
 /** The server HTML as a browser builds it */
 function domOf(html: string) {
@@ -37,6 +42,20 @@ function expectNothingRuns(doc: Document) {
   )
   expect(handlers).toEqual([])
   expect(doc.body.textContent).not.toContain('kept-out')
+}
+
+function renderPage(source: string) {
+  const a = compileTemplateToArtifacts(source)
+  // As the save API stores it, then as getServerSideProps hands it over
+  const compiledTemplate = pageForRender(
+    JSON.parse(JSON.stringify({ mode: 'advanced', staticHTML: a.staticHTML, islands: a.islands, ast: a.ast }))
+  )
+  const user = { id: OWNER_ID, handle: 'pat', profile: { templateMode: 'advanced' as const, compiledTemplate } }
+  return renderToString(
+    <AppProviders>
+      <AdvancedProfileRenderer user={user} residentData={residentData('u_visitor')} />
+    </AppProviders>
+  )
 }
 
 const realError = console.error
@@ -95,5 +114,24 @@ describe('CustomHTMLElement on its own (rows already saved)', () => {
     expect(sanitizeCustomHTML('Now playing: Cocteau Twins')).toBe('Now playing: Cocteau Twins')
     expect(sanitizeCustomHTML('   ')).toBe('')
     expect(renderToString(<CustomHTMLElement />)).not.toMatch(/<div/)
+  })
+})
+
+describe('CustomHTMLElement on a page, server-rendered', () => {
+  test.each([
+    ['content, entity-escaped', `<CustomHTMLElement content="${ESCAPED}" />`],
+    ['innerHTML, entity-escaped', `<CustomHTMLElement innerHTML="${ESCAPED}" />`],
+    ['content, raw in single quotes', `<CustomHTMLElement content='${UNSAFE}' />`],
+    ['an escaped text child', `<CustomHTMLElement>${ESCAPED}</CustomHTMLElement>`],
+    ['tagName set to script', '<CustomHTMLElement tagName="script" content="shown as text" />'],
+  ])('%s', (_label, source) => {
+    const doc = domOf(renderPage(`<div><h1>My page</h1>${source}</div>`))
+    expectNothingRuns(doc)
+    expect(doc.body.textContent).toContain('My page')
+  })
+
+  test('a harmless value still shows', () => {
+    const doc = domOf(renderPage('<CustomHTMLElement tagName="aside" content="Now playing: Cocteau Twins" />'))
+    expect(doc.querySelector('aside')?.textContent).toBe('Now playing: Cocteau Twins')
   })
 })

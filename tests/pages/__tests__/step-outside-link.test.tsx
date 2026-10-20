@@ -141,7 +141,8 @@ describe('it sits under the nav, outside the resident’s template, in every mod
       render(<ProfilePage {...advanced} />)
     })
     const strip = stepOutside()!.closest('[data-site-chrome]')!
-    expect((strip.parentElement as HTMLElement).style.marginTop).toBe('89px')
+    // The margin itself is CSS (AdvancedNavFrame); the measurement sets its variable
+    expect((strip.parentElement as HTMLElement).style.getPropertyValue('--ts-nav-height')).toBe('89px')
     rect.mockRestore()
   })
 })

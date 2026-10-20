@@ -4,7 +4,7 @@
 import React from 'react';
 import type { Island } from '@/lib/templates/compilation/compiler';
 import type { PageTreeNode } from '@/lib/templates/rendering/page-tree';
-import { GlobalTemplateStateProvider } from '@/lib/templates/state/TemplateStateProvider';
+import { GlobalTemplateStateProvider, type VariableConfig } from '@/lib/templates/state/TemplateStateProvider';
 import { ToastProvider } from '@/contexts/ToastContext';
 import TemplateErrorBoundary from '@/components/features/templates/TemplateErrorBoundary';
 import { ResidentDataProvider } from '@/components/features/templates/ResidentDataProvider';
@@ -23,9 +23,28 @@ export interface RenderableTemplate {
   islands?: Island[];
 }
 
+const NO_ISLANDS: Island[] = [];
+
+/** The page's <Var> declarations, as written */
+export function declaredVariables(islands: Island[]): VariableConfig[] {
+  return islands
+    .filter((island) => island.component.toLowerCase() === 'var')
+    .map((island) => {
+      const props = (island._precomputed?.componentProps ?? island.props) as Record<string, unknown>;
+      return {
+        name: String(props.name ?? ''),
+        type: props.type as VariableConfig['type'],
+        initial: props.initial,
+        computed: typeof props.expression === 'string' ? props.expression : undefined,
+        default: props.default,
+      };
+    });
+}
+
 export default function AdvancedProfileRenderer({ user, residentData }: AdvancedProfileRendererProps) {
   const compiled = user.profile?.compiledTemplate as RenderableTemplate | null | undefined;
-  const islands = compiled?.islands ?? (user.profile?.templateIslands as Island[] | undefined) ?? [];
+  const islands = compiled?.islands ?? (user.profile?.templateIslands as Island[] | undefined) ?? NO_ISLANDS;
+  const declared = React.useMemo(() => declaredVariables(islands), [islands]);
 
   if (!compiled?.tree && !compiled?.staticHTML?.trim()) {
     console.error('AdvancedProfileRenderer: No compiled template available');
@@ -38,7 +57,8 @@ export default function AdvancedProfileRenderer({ user, residentData }: Advanced
       componentName="AdvancedProfileRenderer"
       fallbackMessage="The template could not be rendered due to an error. This may be caused by invalid template syntax or missing required properties."
     >
-      <GlobalTemplateStateProvider>
+      {/* Renders with each <Var>'s starting value, here and at hydration */}
+      <GlobalTemplateStateProvider declared={declared}>
         <ResidentDataProvider data={residentData}>
           <ToastProvider>
             {/* A neutral box: no positioning, stacking or clipping context */}
