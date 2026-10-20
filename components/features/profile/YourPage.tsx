@@ -102,7 +102,7 @@ function doorsFor(username: string, ownHTML: boolean): Door[] {
       ]
     : [
         { title: 'Pick a theme', text: 'Choose a look for your page, then change its colours and fonts.', href: '#your-page-theme' },
-        { title: 'Write your own HTML page', text: 'Paste a page you already have, or start from one of ours.', href: htmlEditor },
+        { title: 'Write your own HTML page', text: 'Paste a page you already have, or start from one of ours. A short lesson opens alongside.', href: `${htmlEditor}?learn=make-it-yours&step=1` },
         { title: 'Add components', text: 'Put widgets like a sticky note or your song under your header.', href: '#your-page-widgets' },
       ];
 }

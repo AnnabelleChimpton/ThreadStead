@@ -196,11 +196,11 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                           </Link>
                         )}
                         <Link
-                          href="/build/templates"
+                          href="/build"
                           className="ts-card-link block p-3 border-2 border-dotted border-nb-ink-mid/60 rounded-md hover:border-solid hover:border-nb-ink-mid"
                         >
-                          <div className="font-medium">Templates & CSS</div>
-                          <div className="text-sm text-nb-ink-mid">Template Language & CSS guides</div>
+                          <div className="font-medium">Build your page</div>
+                          <div className="text-sm text-nb-ink-mid">The CSS guide, and lessons for your own HTML page</div>
                         </Link>
                       </div>
                     </div>
@@ -360,7 +360,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                         <div className="text-nb-ink">Change colors, fonts and spacing on the standard page</div>
                       </div>
                       <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-3">
-                        <strong className="text-nb-ink">Template Language</strong>
+                        <strong className="text-nb-ink">Your own HTML page</strong>
                         <div className="text-nb-ink">Write the page&apos;s HTML yourself</div>
                       </div>
                     </div>
@@ -411,13 +411,13 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                     </div>
 
                     <div>
-                      <h4 className="font-bold mb-2 text-sm">Template Code</h4>
+                      <h4 className="font-bold mb-2 text-sm">Your own HTML page</h4>
                       <div className="space-y-2 text-sm">
                         <Link
-                          href="/build/templates/tutorials/make-it-yours"
+                          href="/build/html"
                           className={`${buttonClasses("secondary", "sm")} block text-center`}
                         >
-                          First tutorial
+                          Lessons
                         </Link>
                         <p className="text-nb-ink-mid text-xs">
                           Write the page&apos;s HTML with variables, loops and conditionals.

@@ -51,7 +51,7 @@ export default function WhatWorksHere({ siteConfig }: WhatWorksHereProps) {
               of what&apos;s different, so you don&apos;t have to find out by trial and error.
             </p>
             <p className="flex flex-wrap gap-3 pt-2">
-              <ButtonLink href="/build/templates/tutorials/make-it-yours">First tutorial</ButtonLink>
+              <ButtonLink href="/build/html">Lessons</ButtonLink>
               <ButtonLink href="/build/templates/components" variant="secondary">
                 Component reference
               </ButtonLink>

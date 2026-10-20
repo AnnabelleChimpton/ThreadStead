@@ -207,3 +207,10 @@
   box-shadow: none;
   color: inherit;
 }
+
+/* ---------- lesson examples ---------- */
+/* A lesson's example runs in a small box (components/features/lessons/
+   LessonExample.tsx); the page root otherwise fills the screen */
+.lesson-example .profile-template-root {
+  min-height: 0 !important;
+}

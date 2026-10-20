@@ -244,8 +244,8 @@ export default function LandingPage({ siteConfig, customLanding }: LandingPagePr
               <Link href="/build/getting-started" className="retro-button bg-blue-200 hover:bg-blue-100 px-6 py-3 font-medium text-center">
                 Getting Started Guide
               </Link>
-              <Link href="/build/templates" className="retro-button bg-purple-200 hover:bg-purple-100 px-6 py-3 font-medium text-center">
-                Design Documentation
+              <Link href="/build" className="retro-button bg-purple-200 hover:bg-purple-100 px-6 py-3 font-medium text-center">
+                Build your page
               </Link>
             </div>
           </section>

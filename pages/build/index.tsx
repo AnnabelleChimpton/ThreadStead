@@ -4,6 +4,8 @@ import Head from 'next/head';
 import Link from 'next/link';
 import Layout from '@/components/ui/layout/Layout';
 import ButtonLink from '@/components/ui/ButtonLink';
+import PageHeader from '@/components/ui/layout/PageHeader';
+import RetroCard from '@/components/ui/layout/RetroCard';
 import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
 
 interface BuildHubProps {
@@ -12,100 +14,67 @@ interface BuildHubProps {
 }
 
 export default function BuildHub({ siteConfig, username }: BuildHubProps) {
-  const tabs = [
-    { href: '/build/templates', label: 'Templates', description: 'The template language and its components' },
-    { href: '/build/getting-started', label: 'Getting Started', description: 'A tour of rings, your page, your house, and posting' },
-    { href: '/build/what-works-here', label: 'What works here', description: 'What your own HTML page can do, and the few things it can\'t' },
-    { href: '/build/showcase', label: 'Showcase', description: 'Pages people share the source of, to look through or start from' },
-  ];
-
+  const description = "Two ways to change how your page looks: CSS on the normal page, or a page you write yourself.";
   return (
     <>
       <Head>
         <title>{`Build your page | ${siteConfig.site_name}`}</title>
-        <meta name="description" content="There are two ways to change how your page looks: the CSS editor, or a template you write yourself." />
+        <meta name="description" content={description} />
         <link rel="canonical" href={`${getSiteBaseUrl()}/build`} />
         <meta name="robots" content="index, follow" />
 
         <meta property="og:title" content={`Build your page | ${siteConfig.site_name}`} />
-        <meta property="og:description" content="There are two ways to change how your page looks: the CSS editor, or a template you write yourself." />
+        <meta property="og:description" content={description} />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={`${getSiteBaseUrl()}/build`} />
       </Head>
 
       <Layout siteConfig={siteConfig}>
-        <div className="w-full max-w-6xl mx-auto px-3 sm:px-4 py-8 sm:py-12">
-          {/* Hero Section */}
-          <div className="mb-6 sm:mb-8">
-            <div className="bg-gradient-to-br from-purple-100 via-pink-50 to-orange-100 border-2 border-black rounded-lg shadow-[4px_4px_0_#000] p-6 sm:p-8 text-center">
-              <h1 className="text-3xl sm:text-4xl font-bold text-thread-pine mb-4">
-                Build your page
-              </h1>
-              <p className="text-lg sm:text-xl text-gray-700 max-w-3xl mx-auto mb-2">
-                There are two ways to change how your page looks. The CSS editor restyles the normal page, and templates
-                let you write the whole page&apos;s HTML yourself. I&apos;d start with CSS and only reach for a template when
-                you want a completely different layout.
+        <div className="space-y-6 max-w-4xl mx-auto">
+          <PageHeader title="Build your page">
+            <p>
+              There are two ways to change how your page looks. CSS restyles the normal page, and you can write the
+              whole page&apos;s HTML yourself. I&apos;d start with CSS, or a theme, and only write your own page when you
+              want a completely different layout.
+            </p>
+          </PageHeader>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            <RetroCard title="Change how it looks with CSS">
+              <p className="mt-0 text-nb-ink">
+                Your page keeps its normal layout and you change the colours, fonts and spacing. Start from a theme if
+                you like.
               </p>
-              <div className="mt-5 flex flex-wrap justify-center gap-3">
+              <div className="flex flex-wrap gap-3">
                 <ButtonLink href={username ? `/resident/${username}/css-editor` : '/settings?tab=appearance'}>
                   Open the CSS editor
                 </ButtonLink>
-                <ButtonLink href={username ? `/resident/${username}/template-editor` : '/settings?tab=appearance'} variant="secondary">
-                  Write your own HTML
-                </ButtonLink>
+                <ButtonLink href="/build/css" variant="secondary">CSS guide</ButtonLink>
               </div>
-            </div>
+            </RetroCard>
+
+            <RetroCard title="Write your own HTML page">
+              <p className="mt-0 text-nb-ink">
+                The whole page is HTML you write, the way it was on Neocities, plus tags for your guestbook, friends and
+                the rest. The lessons start from nothing.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <ButtonLink href={username ? `/resident/${username}/template-editor` : '/settings?tab=appearance'}>
+                  Open the HTML editor
+                </ButtonLink>
+                <ButtonLink href="/build/html" variant="secondary">Lessons</ButtonLink>
+              </div>
+            </RetroCard>
           </div>
 
-          {/* Sub-navigation Tabs */}
-          <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mb-8 border-b border-gray-200 pb-4">
-            {tabs.map(tab => (
-              <Link
-                key={tab.href}
-                href={tab.href}
-                className="px-4 py-2 text-thread-pine hover:text-thread-sunset font-medium border-b-2 border-transparent hover:border-thread-sunset transition-colors"
-              >
-                {tab.label}
-              </Link>
-            ))}
-          </div>
-
-          {/* Feature Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-            {tabs.map(tab => (
-              <Link
-                key={tab.href}
-                href={tab.href}
-                className="bg-thread-cream border border-thread-sage rounded-lg shadow-[2px_2px_0_#A18463] p-6 hover:shadow-[4px_4px_0_#A18463] transition-shadow"
-              >
-                <h2 className="text-2xl font-bold text-thread-pine mb-3">
-                  {tab.label}
-                </h2>
-                <p className="text-gray-700">
-                  {tab.description}
-                </p>
-                <div className="mt-4 text-nb-rose-ink font-medium">
-                  Learn more →
-                </div>
-              </Link>
-            ))}
-          </div>
-
-          {/* Additional Info */}
-          <div className="mt-12 p-6 bg-blue-50 border border-blue-200 rounded-lg">
-            <h3 className="text-lg font-semibold text-blue-900 mb-2">
-              New to this?
-            </h3>
-            <p className="text-blue-800 mb-4">
-              The getting started guide covers rings, your page, your house and posting. You don&apos;t need any code for it.
-            </p>
-            <Link
-              href="/build/getting-started"
-              className="inline-block px-4 py-2 bg-blue-600 !text-white rounded hover:bg-blue-700 transition-colors font-medium"
-            >
-              Getting Started guide
-            </Link>
-          </div>
+          <RetroCard title="Also here">
+            <ul className="pl-5 m-0 space-y-1 text-nb-ink">
+              <li><Link href="/build/showcase" className="underline text-thread-pine">Showcase</Link>: pages people share the source of, to look through or start from</li>
+              <li><Link href="/build/what-works-here" className="underline text-thread-pine">What works here</Link>: what your own HTML page can do, and the few things it can&apos;t</li>
+              <li><Link href="/build/templates/components" className="underline text-thread-pine">Components</Link>: every tag that&apos;s a piece of the site</li>
+              <li><Link href="/build/getting-started" className="underline text-thread-pine">Getting started</Link>: a tour of rings, your page, your house and posting, no code needed</li>
+            </ul>
+          </RetroCard>
         </div>
       </Layout>
     </>

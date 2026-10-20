@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { OLD_TUTORIALS } from "./lib/templates-docs/lessons";
 
 const nextConfig: NextConfig = {
   // A second dev server in this checkout (e.g. a preview on another port)
@@ -109,9 +110,32 @@ const nextConfig: NextConfig = {
       },
       {
         source: '/design-tutorial',
-        destination: '/build/templates',
+        destination: '/build',
         permanent: true,
       },
+
+      // The docs' one front door (2026-10): /build, /build/css, /build/html.
+      // Not permanent: browsers keep permanent redirects, and these may move again.
+      {
+        source: '/build/templates',
+        destination: '/build',
+        permanent: false,
+      },
+      {
+        source: '/design-css-tutorial',
+        destination: '/build/css',
+        permanent: false,
+      },
+      {
+        source: '/build/templates/tutorials',
+        destination: '/build/html',
+        permanent: false,
+      },
+      ...Object.entries(OLD_TUTORIALS).map(([slug, destination]) => ({
+        source: `/build/templates/tutorials/${slug}`,
+        destination,
+        permanent: false,
+      })),
 
       // Navigation refactor redirects - Help hub
       {

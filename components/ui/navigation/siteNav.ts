@@ -74,7 +74,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { href: "/help/guidelines", label: "Guidelines" },
       { href: "/help/contact", label: "Contact" },
     ],
-    activePrefixes: ["/help", "/build", "/discover/faq", "/design-css-tutorial"],
+    activePrefixes: ["/help", "/build", "/discover/faq"],
     customPagesKey: "help",
   },
 ];

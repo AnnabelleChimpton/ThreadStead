@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { CSS_CLASSES as cssClassData } from '@/lib/templates-docs/css-classes';
 
 // CSS snippets for common properties based on element type
 const generateCSSSnippet = (className: string): string => {
@@ -144,78 +145,6 @@ ${className}:hover {
 };
 
 // CSS Class data organized by category
-const cssClassData = {
-  'Page': [
-    { name: '.site-layout', description: 'Overall page container' },
-    { name: '.site-main', description: 'Main content area' },
-    { name: '.ts-profile-container', description: 'The box your whole profile sits in' },
-  ],
-  'Profile Header': [
-    { name: '.ts-profile-header', description: 'Main profile header container' },
-    { name: '.ts-profile-header-layout', description: 'Flex layout for header elements' },
-    { name: '.ts-profile-photo-section', description: 'Profile photo container' },
-    { name: '.ts-profile-photo-image', description: 'The actual profile image element' },
-    { name: '.ts-profile-info-section', description: 'Name and bio container' },
-    { name: '.ts-profile-display-name', description: 'Profile display name' },
-    { name: '.ts-profile-bio', description: 'Profile bio text' },
-    { name: '.ts-profile-actions', description: 'Action buttons container' },
-    { name: '.ts-profile-button', description: 'Profile-specific button styling' },
-  ],
-  'Profile Tabs': [
-    { name: '.profile-tabs-wrapper', description: 'Main tabs container' },
-    { name: '.profile-tabs', description: 'Tab navigation container' },
-    { name: '.profile-tab-button', description: 'Individual tab button' },
-    { name: '.profile-tab-button[aria-selected="true"]', description: 'Active/selected tab' },
-    { name: '.profile-tab-content', description: 'Tab content container' },
-    { name: '.profile-tab-panel', description: 'Individual tab panel' },
-  ],
-  'Blog Posts': [
-    { name: '.ts-blog-tab-content', description: 'Blog posts tab container' },
-    { name: '.ts-blog-posts-list', description: 'List container for posts' },
-    { name: '.blog-post-card', description: 'Individual blog post card' },
-    { name: '.blog-post-header', description: 'Post header: picture, name and date' },
-    { name: '.blog-post-author', description: 'Who wrote the post' },
-    { name: '.blog-post-date', description: 'When it was posted' },
-    { name: '.blog-post-title', description: 'Blog post title/heading' },
-    { name: '.blog-post-content', description: 'Post content area' },
-    { name: '.blog-post-more', description: 'The Continue reading button on long posts' },
-    { name: '.blog-post-footer', description: 'Comments and View on profile' },
-  ],
-  'Media & Badges': [
-    { name: '.media-tab-content', description: 'Media tab container' },
-    { name: '.media-grid', description: 'Grid layout for media items' },
-    { name: '.media-item', description: 'Individual media item' },
-    { name: '.profile-badges', description: 'Main badges container' },
-    { name: '.badge-item', description: 'Individual badge container' },
-    { name: '.threadring-badge', description: '88x31 badge styling' },
-  ],
-  'ThreadRing Pages': [
-    { name: '.tr-page-container', description: 'Main grid container for ThreadRing pages' },
-    { name: '.tr-main-content', description: 'Main content area (left column)' },
-    { name: '.tr-sidebar', description: 'Sidebar area (right column)' },
-    { name: '.tr-header-card', description: 'ThreadRing header information card' },
-    { name: '.tr-title', description: 'ThreadRing title/name' },
-    { name: '.tr-posts-list', description: 'The list of posts' },
-  ],
-  'Thread Design System': [
-    { name: '.thread-surface', description: 'Background surface with paper texture' },
-    { name: '.thread-module', description: 'Paper-like container with cozy shadow' },
-    { name: '.thread-divider', description: 'Stitched divider pattern' },
-    { name: '.thread-button', description: 'Primary cozy button styling' },
-    { name: '.thread-button-secondary', description: 'Secondary button variant' },
-    { name: '.thread-headline', description: 'Serif headline with text shadow' },
-    { name: '.thread-label', description: 'Monospace micro-labels' },
-    { name: '.thread-content', description: 'Enhanced content typography' },
-  ],
-  'Typography': [
-    { name: '.thread-content h1', description: 'Large heading (1.5rem)' },
-    { name: '.thread-content h2', description: 'Medium heading (1.25rem)' },
-    { name: '.thread-content h3', description: 'Small heading (1.125rem)' },
-    { name: '.thread-content p', description: 'Paragraph with enhanced line-height' },
-    { name: '.thread-content blockquote', description: 'Styled blockquotes with border' },
-    { name: '.thread-content code', description: 'Inline code styling' },
-  ],
-};
 
 interface CSSClassReferenceProps {
   onClassSelect?: (className: string) => void;
@@ -342,7 +271,7 @@ export default function CSSClassReference({ onClassSelect }: CSSClassReferencePr
             <strong>Need more help?</strong>
           </p>
           <a
-            href="/design-css-tutorial"
+            href="/build/css"
             target="_blank"
             rel="noopener noreferrer"
             className="text-blue-600 hover:underline"

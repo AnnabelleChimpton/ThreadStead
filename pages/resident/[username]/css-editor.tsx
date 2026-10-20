@@ -517,7 +517,7 @@ export default function CSSEditorPage({
                       <p className="text-xs text-gray-700 mt-1">
                         Click <strong className="text-blue-700">&quot;Preview&quot;</strong> to see changes live. •
                         Load a theme below for quick-start styles. •
-                        Want your own layout? Try <Link href="/build/templates/tutorials/make-it-yours" className="text-blue-600 hover:underline">writing your own HTML page</Link>.
+                        Want your own layout? Try <Link href="/build/html" className="text-blue-600 hover:underline">writing your own HTML page</Link>.
                       </p>
                     </div>
                   </>
@@ -532,7 +532,7 @@ export default function CSSEditorPage({
                         New to CSS? <strong className="text-green-700">Load a theme</strong> and change it from there. •
                         Click <strong className="text-blue-700">&quot;Preview&quot;</strong> to see changes live. •
                         Click <strong className="text-green-700">&quot;Save CSS&quot;</strong> to put your styles live. •
-                        Want your own layout? Try <Link href="/build/templates/tutorials/make-it-yours" className="text-blue-600 hover:underline">writing your own HTML page</Link>.
+                        Want your own layout? Try <Link href="/build/html" className="text-blue-600 hover:underline">writing your own HTML page</Link>.
                       </p>
                     </div>
                   </>
@@ -719,7 +719,7 @@ export default function CSSEditorPage({
             <div className="max-w-full mx-auto flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-600">
               <span className="flex items-center gap-1"><PixelIcon name="lightbulb" size={12} /> Use Generators to create CSS visually</span>
               <span>•</span>
-              <a href="/design-css-tutorial" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+              <a href="/build/css" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
                 CSS Tutorial
               </a>
               <span>•</span>

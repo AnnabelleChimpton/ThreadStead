@@ -155,8 +155,8 @@ export default function FAQ({ siteConfig }: FAQProps) {
           answer: 'Nope! The house is all point and click. For your page, Settings → Your page has five themes you can use as they are: Classic Linen, Charcoal Nights, Pixel Petals, Retro Social and Starfield. If you do want to write code, you can change any of the CSS, or write the whole page yourself with a template.'
         },
         {
-          question: 'What\'s the difference between the CSS editor and templates?',
-          answer: 'You\'ll find both in Settings → Appearance. CSS Styling changes how the normal page looks, from colors and fonts to the whole layout. Template Code lets you write the page\'s HTML yourself, with components for things like your posts, photos and guestbook. There are variables and if/else logic in there too, if you\'re into that. I\'d start with CSS and see how far it gets you.'
+          question: 'What\'s the difference between CSS and my own HTML page?',
+          answer: 'You\'ll find both in Settings → Your page. CSS changes how the normal page looks, from colours and fonts to the whole layout. Your own HTML page means writing the page\'s HTML yourself, with components for things like your posts, photos and guestbook. There are variables and if/else in there too, if you\'re into that. I\'d start with CSS and see how far it gets you.'
         },
         {
           question: 'Can I switch between CSS and a template?',
@@ -166,7 +166,7 @@ export default function FAQ({ siteConfig }: FAQProps) {
           question: 'How do templates work?',
           answer: (
             <>
-              The HTML editor comes with five starter pages. Load one and start changing things. The <Link href="/build/templates" className={link}>template guide</Link> lists every component you can use.
+              The HTML editor comes with five starter pages. Load one and start changing things. The <Link href="/build/html" className={link}>lessons</Link> start from nothing, and the <Link href="/build/templates/components" className={link}>components page</Link> lists every component you can use.
             </>
           )
         },

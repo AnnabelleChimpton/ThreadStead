@@ -21,6 +21,9 @@ import { THEMES, detectTheme } from '@/lib/templates/appearance';
 import TemplatePanelSelector from './TemplatePanelSelector';
 import StarterTemplateGallery from './StarterTemplateGallery';
 import { STARTERS, splitStarter } from '@/lib/templates/starters';
+import LearnPanel from '@/components/features/lessons/LearnPanel';
+import { getLesson, type LessonStep } from '@/lib/templates-docs/lessons';
+import type { CheckablePage } from '@/lib/templates-docs/lesson-checks';
 import Link from 'next/link';
 import { useSiteConfig } from '@/hooks/useSiteConfig';
 import { useSiteCSS } from '@/hooks/useSiteCSS';
@@ -169,6 +172,16 @@ export default function EnhancedTemplateEditor({
   onSave
 }: EnhancedTemplateEditorProps) {
   const router = useRouter();
+
+  // A lesson beside the code (?learn=<lesson>&step=<n>, from a lesson page
+  // or the "Write your own HTML page" door)
+  const [learn, setLearn] = useState<{ slug: string; step: number } | null>(null);
+  useEffect(() => {
+    const slug = router.query.learn;
+    if (typeof slug === 'string' && getLesson(slug)) {
+      setLearn({ slug, step: Number(router.query.step) || 1 });
+    }
+  }, [router.query.learn, router.query.step]);
   const { showError, showInfo, showSuccess } = useToast();
 
   // AUTO-FIX: Detect and unwrap flow templates that were incorrectly wrapped
@@ -1745,9 +1758,36 @@ export default function EnhancedTemplateEditor({
             {/* Editor Toolbar - matching original seamless style */}
             <div className="bg-thread-cream border-b border-thread-sage/30 border-l-2 border-r-2 border-thread-sage px-4 py-3 -mt-px">
 
-              {/* Starter pages: open until you close it */}
+              {learn && !useStandardLayout && (
+                <LearnPanel
+                  slug={learn.slug}
+                  step={learn.step}
+                  onStep={(step) => setLearn({ slug: learn.slug, step })}
+                  // A page that doesn't compile right now can't be checked
+                  page={liveProblems.status === 'failed' ? null : (compiledTemplate as unknown as CheckablePage | null)}
+                  onShowMe={(step: LessonStep) =>
+                    showDataLossWarning(
+                      'Show me',
+                      "This puts the step's code in the editor in place of yours. Unsaved changes will be lost.",
+                      () => {
+                        setUseStandardLayout(false);
+                        setTemplate(step.code);
+                        if (step.css) setCustomCSS(step.css);
+                        setActiveTab('template');
+                      }
+                    )
+                  }
+                  onClose={() => {
+                    setLearn(null);
+                    const { learn: _learn, step: _step, ...rest } = router.query;
+                    router.replace({ pathname: router.pathname, query: rest }, undefined, { shallow: true });
+                  }}
+                />
+              )}
+
+              {/* Starter pages: open until you close it (closed during a lesson) */}
               {!useStandardLayout && (
-                <details className="mb-4" open>
+                <details className="mb-4" open={!learn}>
                   <summary className="cursor-pointer font-semibold text-nb-ink py-1">
                     Starter pages
                   </summary>
@@ -1774,7 +1814,7 @@ export default function EnhancedTemplateEditor({
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex flex-wrap items-center gap-2">
                   <a
-                    href="/build/templates/tutorials/make-it-yours"
+                    href="/build/html"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="thread-button-secondary text-sm"
@@ -1950,7 +1990,7 @@ export default function EnhancedTemplateEditor({
 
                 <div className="flex items-center gap-2">
                   <a 
-                    href="/design-css-tutorial" 
+                    href="/build/css" 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="thread-button-secondary text-sm"

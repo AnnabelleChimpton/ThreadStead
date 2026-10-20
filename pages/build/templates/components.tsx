@@ -134,7 +134,7 @@ function ComponentEntry({ doc, tutorials }: { doc: ComponentDoc; tutorials: Tuto
           {tutorials.map((tutorial, index) => (
             <React.Fragment key={tutorial.slug}>
               {index > 0 && ", "}
-              <Link href={`/build/templates/tutorials/${tutorial.slug}`} className="underline hover:text-thread-pine">
+              <Link href={`/build/html/${tutorial.slug}`} className="underline hover:text-thread-pine">
                 {tutorial.title}
               </Link>
             </React.Fragment>
@@ -182,8 +182,8 @@ export default function ComponentsPage({ siteConfig, components, tutorials }: Co
       </Head>
       <div className="w-full px-4 sm:px-6 py-8 max-w-4xl mx-auto">
         <nav className="mb-4 text-sm text-thread-sage" aria-label="Breadcrumb">
-          <Link href="/build/templates" className="underline hover:text-thread-pine">
-            Templates
+          <Link href="/build/html" className="underline hover:text-thread-pine">
+            Your own HTML page
           </Link>{" "}
           → Components
         </nav>
