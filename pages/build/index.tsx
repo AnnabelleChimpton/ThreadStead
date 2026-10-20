@@ -22,12 +22,12 @@ export default function BuildHub({ siteConfig, username }: BuildHubProps) {
   return (
     <>
       <Head>
-        <title>{`${siteConfig.site_name} — Build`}</title>
+        <title>{`Build your page | ${siteConfig.site_name}`}</title>
         <meta name="description" content="There are two ways to change how your page looks: the CSS editor, or a template you write yourself." />
         <link rel="canonical" href={`${getSiteBaseUrl()}/build`} />
         <meta name="robots" content="index, follow" />
 
-        <meta property="og:title" content={`${siteConfig.site_name} — Build`} />
+        <meta property="og:title" content={`Build your page | ${siteConfig.site_name}`} />
         <meta property="og:description" content="There are two ways to change how your page looks: the CSS editor, or a template you write yourself." />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={`${getSiteBaseUrl()}/build`} />
@@ -84,7 +84,7 @@ export default function BuildHub({ siteConfig, username }: BuildHubProps) {
                 <p className="text-gray-700">
                   {tab.description}
                 </p>
-                <div className="mt-4 text-thread-sunset font-medium">
+                <div className="mt-4 text-nb-rose-ink font-medium">
                   Learn more →
                 </div>
               </Link>

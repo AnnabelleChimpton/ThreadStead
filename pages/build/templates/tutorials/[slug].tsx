@@ -1,4 +1,5 @@
 import React from "react";
+import Head from "next/head";
 import { GetServerSideProps } from "next";
 import Layout from "@/components/ui/layout/Layout";
 import TutorialLayout from "@/components/templates-docs/TutorialLayout";
@@ -14,6 +15,9 @@ interface TutorialPageProps {
 export default function TutorialPage({ tutorial, siteConfig }: TutorialPageProps) {
   return (
     <Layout siteConfig={siteConfig} fullWidth={true}>
+      <Head>
+        <title>{`${tutorial.title} | ${siteConfig.site_name}`}</title>
+      </Head>
       <TutorialLayout currentTutorial={tutorial}>
         {tutorial.steps.map((step, index) => (
           <TutorialStep key={step.id} step={step} stepNumber={index + 1} />

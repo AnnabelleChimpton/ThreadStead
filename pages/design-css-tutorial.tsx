@@ -4,6 +4,7 @@ import Link from "next/link";
 import Layout from "@/components/ui/layout/Layout";
 import Head from "next/head";
 import { PixelIcon } from "@/components/ui/PixelIcon";
+import { useSiteConfig } from "@/hooks/useSiteConfig";
 
 // CSS Class Categories
 const cssCategories = [
@@ -1661,6 +1662,7 @@ const cssData: Record<string, CSSSection[]> = {
 };
 
 export default function DesignCSSTutorialPage() {
+  const siteName = useSiteConfig().config.site_name;
   const router = useRouter();
   const [activeCategory, setActiveCategory] = useState('getting-started');
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
@@ -1692,7 +1694,7 @@ export default function DesignCSSTutorialPage() {
   return (
     <Layout>
       <Head>
-        <title>CSS Classes Guide - ThreadStead Design Tutorial</title>
+        <title>{`CSS guide | ${siteName}`}</title>
         <meta name="description" content="Complete guide to ThreadStead CSS classes for customizing profile pages" />
       </Head>
       

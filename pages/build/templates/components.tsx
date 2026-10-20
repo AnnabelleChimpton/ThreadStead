@@ -112,7 +112,7 @@ function ComponentEntry({ doc, tutorials }: { doc: ComponentDoc; tutorials: Tuto
                     {valuesOf(prop)}
                     {prop.default !== undefined && prop.type !== "string" && <>, normally {prop.default}</>}
                   </span>
-                  {prop.required && <span className="text-thread-sunset font-semibold">needed</span>}
+                  {prop.required && <span className="text-nb-rose-ink font-semibold">needed</span>}
                 </dt>
                 {prop.description && <dd className="text-thread-charcoal mt-0.5">{prop.description}</dd>}
               </div>
@@ -218,7 +218,7 @@ export default function ComponentsPage({ siteConfig, components, tutorials }: Co
           {sections.map((section) => (
             <section key={section.id} id={`group-${section.id}`} className="scroll-mt-24">
               <h2 className="text-2xl font-bold text-thread-pine">{section.title}</h2>
-              <p className="text-thread-sage mb-4">{section.blurb}</p>
+              <p className="text-nb-ink mb-4">{section.blurb}</p>
               <div className="space-y-4">
                 {section.components.map((doc) => (
                   <ComponentEntry key={doc.name} doc={doc} tutorials={tutorials[doc.id] || []} />

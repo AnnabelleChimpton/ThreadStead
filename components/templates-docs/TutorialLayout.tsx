@@ -45,18 +45,16 @@ export default function TutorialLayout({ currentTutorial, children }: TutorialLa
 
       <div className="w-full px-4 sm:px-6 py-8 sm:py-12 max-w-6xl mx-auto">
         {/* Breadcrumbs */}
-        <div className="mb-6 flex items-center gap-2 text-sm">
+        <div className="mb-6 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
           <Link href="/build/templates" className="hover:underline font-medium">
             Templates
           </Link>
-          <span>→</span>
-          <span className="text-gray-600">Template Language</span>
           <span>→</span>
           <Link href="/build/templates/tutorials/make-it-yours" className="hover:underline font-medium">
             Tutorials
           </Link>
           <span>→</span>
-          <span className="font-bold">{currentTutorial.title}</span>
+          <span className="font-bold min-w-0 break-words">{currentTutorial.title}</span>
         </div>
 
         {/* Tutorial Navigation */}

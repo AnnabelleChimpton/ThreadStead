@@ -1,6 +1,7 @@
 import React from "react";
 import { GetServerSideProps, NextApiRequest } from "next";
 import Link from "next/link";
+import Head from "next/head";
 import Layout from "@/components/ui/layout/Layout";
 import RetroCard from "@/components/ui/layout/RetroCard";
 import { getSiteConfig, SiteConfig } from "@/lib/config/site/dynamic";
@@ -14,6 +15,9 @@ interface TemplatesIndexProps {
 export default function TemplatesIndex({ siteConfig, username }: TemplatesIndexProps) {
   return (
     <Layout siteConfig={siteConfig} fullWidth={true}>
+      <Head>
+        <title>{`Customize your profile | ${siteConfig.site_name}`}</title>
+      </Head>
       <div className="min-h-screen bg-gradient-to-br from-cyan-50 to-purple-50">
         <div className="w-full px-4 sm:px-6 py-8 sm:py-12 max-w-6xl mx-auto">
           {/* Hero Section */}

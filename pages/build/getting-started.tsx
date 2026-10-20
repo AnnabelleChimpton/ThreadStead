@@ -6,6 +6,7 @@ import ButtonLink, { buttonClasses } from '@/components/ui/ButtonLink';
 import { getSiteConfig, SiteConfig } from "@/lib/config/site/dynamic";
 import { GetServerSideProps } from "next";
 import Link from "next/link";
+import Head from "next/head";
 import FeatureGate, { NewUserTooltip } from "@/components/features/onboarding/FeatureGate";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { PixelIcon } from "@/components/ui/PixelIcon";
@@ -43,6 +44,9 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
 
   return (
     <Layout siteConfig={siteConfig}>
+      <Head>
+        <title>{`Getting started | ${siteConfig.site_name}`}</title>
+      </Head>
       <div className="space-y-6">
         <PageHeader title={`Getting started on ${siteConfig.site_name}`} className="mb-0 sm:mb-0">
           {!user ? (
