@@ -1,14 +1,10 @@
 import React from "react";
-import { GetStaticPaths, GetStaticProps } from "next";
+import { GetServerSideProps } from "next";
 import Layout from "@/components/ui/layout/Layout";
 import TutorialLayout from "@/components/templates-docs/TutorialLayout";
 import TutorialStep from "@/components/templates-docs/TutorialStep";
 import { getSiteConfig, SiteConfig } from "@/lib/config/site/dynamic";
-import {
-  Tutorial,
-  getTutorialBySlug,
-  getAllTutorialSlugs,
-} from "@/lib/templates-docs/tutorialContent";
+import { Tutorial, getTutorialBySlug } from "@/lib/templates-docs/tutorialContent";
 
 interface TutorialPageProps {
   tutorial: Tutorial;
@@ -27,33 +23,12 @@ export default function TutorialPage({ tutorial, siteConfig }: TutorialPageProps
   );
 }
 
-export const getStaticPaths: GetStaticPaths = async () => {
-  const slugs = getAllTutorialSlugs();
-
-  return {
-    paths: slugs.map((slug) => ({
-      params: { slug },
-    })),
-    fallback: false,
-  };
-};
-
-export const getStaticProps: GetStaticProps<TutorialPageProps> = async ({ params }) => {
-  const slug = params?.slug as string;
-  const tutorial = getTutorialBySlug(slug);
-
-  if (!tutorial) {
-    return {
-      notFound: true,
-    };
-  }
-
+// Rendered per request, like the other Build pages: the site name and theme
+// come from the database, and a page built ahead of time kept whatever they
+// were at deploy (or nothing, when the build couldn't reach the database).
+export const getServerSideProps: GetServerSideProps<TutorialPageProps> = async ({ params }) => {
+  const tutorial = getTutorialBySlug(String(params?.slug ?? ''));
+  if (!tutorial) return { notFound: true };
   const siteConfig = await getSiteConfig();
-
-  return {
-    props: {
-      tutorial,
-      siteConfig,
-    },
-  };
+  return { props: { tutorial, siteConfig } };
 };

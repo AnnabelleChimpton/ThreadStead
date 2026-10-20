@@ -288,8 +288,13 @@ MyApp.getInitialProps = async (appContext: AppContext) => {
   if (typeof window === "undefined") {
     // Server-only: Next replaces `typeof window` at build time, so this
     // import (and Prisma) never reaches the client bundle.
-    const { getSiteCSS } = await import("@/lib/utils/css/site-css-server");
-    return { ...appProps, appSiteCSS: await getSiteCSS() };
+    const { getSiteCSS, getDefaultSiteCSS } = await import("@/lib/utils/css/site-css-server");
+    // A page pre-rendered at build time (no request) would keep whatever CSS
+    // the build saw until the next deploy, so it gets the bundled theme and
+    // the browser loads the current site CSS. It also keeps the build off the
+    // database.
+    const appSiteCSS = appContext.ctx.req ? await getSiteCSS() : getDefaultSiteCSS();
+    return { ...appProps, appSiteCSS };
   }
   return appProps;
 };
