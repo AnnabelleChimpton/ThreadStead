@@ -13,7 +13,7 @@ const PUBLIC_PROFILE_FIELDS = [
   "id", "userId", "displayName", "bio", "visibility", "updatedAt",
   "avatarUrl", "avatarFullUrl", "avatarMediumUrl", "avatarThumbnailUrl", "bannerUrl",
   "blogroll", "featuredFriends", "badgePreferences",
-  "customCSS", "templateMode", "templateEnabled", "cssMode", "includeSiteCSS", "hideNavigation",
+  "customCSS", "templateMode", "cssMode", "hideNavigation",
   "compiledTemplate", "templateCompiledAt",
   "profileMidiId", "midiAutoplay", "midiLoop", "showTemplateSource",
   "hiddenTabs", "status",

@@ -8,6 +8,7 @@ import Layout from "@/components/ui/layout/Layout";
 import EnhancedTemplateEditor from '@/components/features/templates/EnhancedTemplateEditor';
 import type { CompiledTemplate } from '@/lib/templates/compilation/compiler';
 import { csrfFetch } from "@/lib/api/client/csrf-fetch";
+import { layoutFields, layoutOf } from "@/lib/domain/profile/layout";
 
 interface TemplateEditorPageProps {
   username: string;
@@ -15,7 +16,6 @@ interface TemplateEditorPageProps {
   existingTemplate?: string;
   customCSS?: string;
   cssMode?: 'inherit' | 'override' | 'disable';
-  templateEnabled?: boolean;
   templateMode?: 'default' | 'enhanced' | 'advanced';
   hideNavigation?: boolean;
   currentUser?: {
@@ -36,7 +36,6 @@ export default function TemplateEditorPage({
   existingTemplate,
   customCSS,
   cssMode = 'inherit',
-  templateEnabled = false,
   templateMode = 'default',
   hideNavigation = false,
   currentUser
@@ -69,17 +68,9 @@ export default function TemplateEditorPage({
   }
   extractedCssContent = extractedCssContent || '/* Add your custom CSS here */\n\n';
 
-  // Extract CSS mode from CSS comment if present
-  const extractCSSMode = (): 'inherit' | 'override' | 'disable' => {
-    const css = customCSS || '';
-    const modeMatch = css.match(/\/\* CSS_MODE:(\w+) \*\//);
-    if (modeMatch && ['inherit', 'override', 'disable'].includes(modeMatch[1])) {
-      return modeMatch[1] as 'inherit' | 'override' | 'disable';
-    }
-    return 'inherit';
-  };
-
-  const initialCSSMode = extractCSSMode();
+  // Older CSS can start with a mode comment (/* CSS_MODE:inherit */). The mode
+  // is the profile's cssMode now; the comment means nothing, so it's left
+  // out of the editor (and drops off on the next save).
   const cleanedCssContent = extractedCssContent.replace(/\/\* CSS_MODE:\w+ \*\/\n?/, '');
 
   const handleSave = async (template: string, css: string, compiledTemplate?: CompiledTemplate, cssMode?: 'inherit' | 'override' | 'disable', hideNavigation?: boolean, explicitTemplateMode?: 'default' | 'enhanced' | 'advanced') => {
@@ -117,13 +108,15 @@ export default function TemplateEditorPage({
       }
       const { token } = await capRes.json();
 
-      const templateMode = explicitTemplateMode || (template.trim() === '' ? 'enhanced' : 'advanced');
+      const layout = explicitTemplateMode
+        ? layoutOf(explicitTemplateMode)
+        : (template.trim() === '' ? 'standard' : 'html');
 
       const layoutResponse = await csrfFetch("/api/profile/update", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          templateMode: templateMode,
+          ...layoutFields({ layout }),
           hideNavigation: hideNavigation,
           cap: token
         }),
@@ -131,16 +124,6 @@ export default function TemplateEditorPage({
 
       if (!layoutResponse.ok) {
         throw new Error("Template saved, but failed to enable template mode.");
-      }
-
-      const templateToggleResponse = await csrfFetch(`/api/profile/${username}/template-toggle`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ enabled: true }),
-      });
-
-      if (!templateToggleResponse.ok) {
-        throw new Error("Template saved and mode set, but failed to enable template.");
       }
     } catch (error) {
       throw error;
@@ -196,7 +179,7 @@ export default function TemplateEditorPage({
               <div className="flex items-center gap-3">
                 <h1 className="text-lg font-semibold">Profile Layout Editor</h1>
                 <span className="text-thread-sage text-sm">@{username}</span>
-                {templateEnabled && (
+                {layoutOf(templateMode) === 'html' && (
                   <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm">
                     Template Active
                   </span>
@@ -282,7 +265,6 @@ export const getServerSideProps: GetServerSideProps<TemplateEditorPageProps> = a
 
     let existingTemplate = "";
     let customCSS = "";
-    let templateEnabled = false;
     let templateMode: 'default' | 'enhanced' | 'advanced' = 'default';
 
     if (isOwner) {
@@ -299,7 +281,6 @@ export const getServerSideProps: GetServerSideProps<TemplateEditorPageProps> = a
       }
 
       customCSS = profileData.profile?.customCSS || "";
-      templateEnabled = profileData.profile?.templateEnabled || false;
       templateMode = profileData.profile?.templateMode || 'default';
     }
 
@@ -314,7 +295,6 @@ export const getServerSideProps: GetServerSideProps<TemplateEditorPageProps> = a
         customCSS,
         cssMode,
         hideNavigation,
-        templateEnabled,
         templateMode,
         currentUser: currentUser ? JSON.parse(JSON.stringify(currentUser)) : null,
       },

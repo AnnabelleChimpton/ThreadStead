@@ -4,6 +4,7 @@ import { cleanCss } from "@/lib/utils/sanitization/css";
 import { snapshotProfileBeforeSave } from "@/lib/templates/revisions/template-revisions";
 import { apiHandler } from "@/lib/api/handler";
 import { sourceTooLong } from "@/lib/templates/limits";
+import { layoutFields, siteStylesOn } from "@/lib/domain/profile/layout";
 
 export default apiHandler(
   { methods: ['POST'], auth: 'user', rateLimit: 'template_editing' },
@@ -42,17 +43,18 @@ export default apiHandler(
       // Sanitize CSS to prevent XSS attacks
       const sanitizedCSS = cleanCss(customCSS || '');
 
-      // Build update data object
+      // Build update data object. Site styles are on or off: 'override'
+      // (an older on) is written as 'inherit'.
       const updateData: { customCSS: string; cssMode?: string } = { customCSS: sanitizedCSS };
       if (cssMode !== undefined) {
-        updateData.cssMode = cssMode;
+        Object.assign(updateData, layoutFields({ siteStyles: siteStylesOn(cssMode) }));
       }
 
       // Keep a restore point of what this save is about to overwrite
       const existing = handle.user.profile;
       const changesContent =
         (existing.customCSS || '') !== sanitizedCSS ||
-        (cssMode !== undefined && existing.cssMode !== cssMode);
+        (updateData.cssMode !== undefined && existing.cssMode !== updateData.cssMode);
       if (changesContent) {
         await snapshotProfileBeforeSave(handle.user.id, 'css-save');
       }

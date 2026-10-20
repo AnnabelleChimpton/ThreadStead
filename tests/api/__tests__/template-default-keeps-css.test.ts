@@ -82,12 +82,12 @@ describe('GET /api/profile/[username]/template/default', () => {
     expect(res.jsonBody.cssMode).toBe('disable')
   })
 
-  it('honours a legacy CSS_MODE comment, like the live page does', async () => {
-    const legacy = `/* CSS_MODE:override */\n${THEME}`
+  it('goes by the saved mode, not an old mode comment in the CSS', async () => {
+    const legacy = `/* CSS_MODE:disable */\n${THEME}`
     ownerWith({ customCSS: legacy, cssMode: 'inherit' })
     const res = await get()
     expect(res.jsonBody.css).toBe(legacy)
-    expect(res.jsonBody.cssMode).toBe('override')
+    expect(res.jsonBody.cssMode).toBe('inherit')
   })
 
   it('gives the starter comment only when there is no CSS yet', async () => {

@@ -128,8 +128,8 @@ describe('it sits under the nav, outside the resident’s template, in every mod
     expect(template.contains(strip)).toBe(false)
   })
 
-  test.each([true, false])('advanced with the nav hidden (site CSS %s): first on the page', (includeSiteCSS) => {
-    render(<ProfilePage {...advanced} hideNavigation includeSiteCSS={includeSiteCSS} />)
+  test.each(['inherit', 'disable'] as const)('advanced with the nav hidden (cssMode %s): first on the page', (cssMode) => {
+    render(<ProfilePage {...advanced} hideNavigation cssMode={cssMode} />)
     expect(screen.queryByTestId('site-nav')).toBeNull()
     const strip = stepOutside()!.closest('[data-site-chrome]')!
     expect(before(strip, screen.getByTestId('advanced-template'))).toBe(true)

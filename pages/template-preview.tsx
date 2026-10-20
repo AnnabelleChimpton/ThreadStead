@@ -306,9 +306,7 @@ export default function PreviewTemp() {
         <div style={{ paddingTop: isEmbedded ? 0 : '40px' }}>
           <ResidentDataProvider data={residentData}>
             <ProfileLayout 
-              customCSS={customCSS}
               hideNavigation={false}
-              includeSiteCSS={true}
               templateMode={templateMode}
               cssMode={typedCSSMode}
             >
@@ -447,7 +445,7 @@ export async function getServerSideProps() {
     props: {
       // Tell _app.tsx this is an advanced template preview - no default styles
       templateMode: 'advanced',
-      includeSiteCSS: false
+      siteStyles: false
     }
   };
 }

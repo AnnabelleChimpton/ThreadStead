@@ -12,6 +12,7 @@ import { contentMetadataGenerator } from "@/lib/utils/metadata/content-metadata"
 import { serializeJsonLd } from "@/lib/utils/sanitization/json-ld";
 import Layout from "@/components/ui/layout/Layout";
 import { PixelIcon } from "@/components/ui/PixelIcon";
+import { pageCSS } from "@/lib/domain/profile/layout";
 
 type PostPageProps = {
   username: string;
@@ -20,9 +21,9 @@ type PostPageProps = {
   authorDisplayName?: string;
   initialCommentsOpen?: boolean;
   highlightCommentId?: string | null;
+  /** The author's page CSS. Not rendered here: _app only applies profile CSS on the profile page itself. */
   customCSS?: string;
   hideNavigation?: boolean;
-  includeSiteCSS?: boolean;
 };
 
 type PrivatePostPageProps = {
@@ -62,7 +63,7 @@ export default function PostPageRoute(props: PostPageProps | PrivatePostPageProp
   return <PostPage {...props} />;
 }
 
-function PostPage({ username, post, authorDisplayName, initialCommentsOpen = true, highlightCommentId, customCSS, hideNavigation = false, includeSiteCSS = true }: PostPageProps) {
+function PostPage({ username, post, authorDisplayName, initialCommentsOpen = true, highlightCommentId, hideNavigation = false }: PostPageProps) {
   // Generate metadata for this post
   const adaptedPost = {
     ...post,
@@ -153,9 +154,7 @@ function PostPage({ username, post, authorDisplayName, initialCommentsOpen = tru
       </Head>
 
       <ProfileLayout
-        customCSS={customCSS}
         hideNavigation={hideNavigation}
-        includeSiteCSS={includeSiteCSS}
         sidebarContent={sidebarContent}
       >
         <RetroCard>
@@ -256,34 +255,15 @@ export const getServerSideProps: GetServerSideProps<PostPageProps | PrivatePostP
       console.error("Failed to fetch admin default CSS:", error);
     }
 
-    // Apply CSS logic based on template mode (same as profile page)
-    const templateMode = authorProfile?.profile?.templateMode || 'default';
-    
-    if (templateMode === 'enhanced' && authorProfile?.profile?.customCSS != null && authorProfile.profile.customCSS.trim() !== '') {
-      // Enhanced mode (Default Layout + Custom CSS) - use user's custom CSS
-      props.customCSS = authorProfile.profile.customCSS;
-    } else if (templateMode === 'default') {
-      // Default mode - use admin default CSS only, ignore user CSS
-      if (adminDefaultCSS && adminDefaultCSS.trim() !== '') {
-        props.customCSS = adminDefaultCSS;
-      }
-    } else if (templateMode === 'advanced' && authorProfile?.profile?.customCSS != null && authorProfile.profile.customCSS.trim() !== '') {
-      // Advanced template mode - use user's custom CSS (legacy compatibility)
-      props.customCSS = authorProfile.profile.customCSS;
-    } else if (adminDefaultCSS && adminDefaultCSS.trim() !== '') {
-      // Fallback to admin default CSS if available
-      props.customCSS = adminDefaultCSS;
-    }
-    // If none of the above, customCSS remains undefined and no CSS is injected
+    // The same CSS the author's profile page sends (lib/domain/profile/layout.ts)
+    const css = pageCSS(authorProfile?.profile, adminDefaultCSS);
+    if (css !== undefined) props.customCSS = css;
 
     // Add other layout properties
     // Temporarily disabled - navigation always shown on post pages
     // if (authorProfile?.profile?.hideNavigation != null) {
     //   props.hideNavigation = authorProfile.profile.hideNavigation;
     // }
-    if (authorProfile?.profile?.includeSiteCSS != null) {
-      props.includeSiteCSS = authorProfile.profile.includeSiteCSS;
-    }
 
     return { props };
   } catch (error) {

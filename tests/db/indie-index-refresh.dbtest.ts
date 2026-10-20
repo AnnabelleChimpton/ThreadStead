@@ -28,7 +28,7 @@ async function reset() {
 let seq = 0
 async function resident(
   name: string,
-  profile: Partial<{ blogroll: unknown; bio: string; customTemplate: string; templateMode: 'default' | 'advanced'; templateEnabled: boolean; visibility: 'public' | 'private' }> = {},
+  profile: Partial<{ blogroll: unknown; bio: string; customTemplate: string; templateMode: 'default' | 'advanced'; visibility: 'public' | 'private' }> = {},
   opts: { ageDays?: number; role?: 'member' | 'admin' } = {}
 ) {
   const id = `u_${name}`
@@ -129,15 +129,14 @@ describe('harvestSignals', () => {
     expect((await db.site.findMany({ select: { key: true } })).map((s) => s.key)).toEqual(['kept.example.org'])
   })
 
-  it('reads links and 88×31 buttons from live templates and bios, but not from a template that is switched off', async () => {
+  it('reads links and 88×31 buttons from live templates and bios, but not from a saved template on the standard layout', async () => {
     await resident('ada', {
       templateMode: 'advanced',
-      templateEnabled: true,
       customTemplate: `<div><a href="https://linked.example.org/">a friend</a>
         <a href="https://buttoned.example.org/"><img src="/buttons/b.gif" width="88" height="31"></a></div>`,
       bio: 'I write at https://bio.example.org/ and <a href="https://bio-link.example.org/">here</a>.',
     })
-    await resident('bo', { templateMode: 'default', templateEnabled: false, customTemplate: '<a href="https://old-template.example.org/">x</a>' })
+    await resident('bo', { templateMode: 'default', customTemplate: '<a href="https://old-template.example.org/">x</a>' })
 
     await harvestSignals(db, { baseUrl: BASE, now: NOW })
     const signals = await db.siteSignal.findMany({ select: { kind: true, site: { select: { key: true, buttonUrl: true } } } })

@@ -7,11 +7,9 @@ import { useSiteCSS } from "@/hooks/useSiteCSS";
 
 interface ProfileLayoutProps {
   children: React.ReactNode;
-  customCSS?: string;
   sidebarContent?: React.ReactNode;
   showSidebar?: boolean;
   hideNavigation?: boolean;
-  includeSiteCSS?: boolean;
   templateMode?: TemplateMode;
   cssMode?: CSSMode;
   initialSiteCSS?: string; // Pre-fetched site CSS from SSR to prevent hydration mismatches
@@ -21,19 +19,17 @@ interface ProfileLayoutProps {
 
 export default function ProfileLayout({
   children,
-  customCSS,
   sidebarContent,
   showSidebar = false,
   hideNavigation = false,
-  includeSiteCSS = true,
   templateMode = 'default',
   cssMode = 'inherit',
   initialSiteCSS,
   afterNav
 }: ProfileLayoutProps) {
-  // Shared resolver (legacy CSS_MODE comment wins over the prop) — the same
-  // resolution the profile-page SSR uses, so server and client agree.
-  const actualCSSMode = resolveCSSMode(cssMode, customCSS);
+  // Shared resolver: the same resolution the profile-page SSR uses, so
+  // server and client agree.
+  const actualCSSMode = resolveCSSMode(cssMode);
 
   // Return value unused — the hook still manages #site-wide-css DOM behavior
   // (e.g. clearing it in disable mode) on client-side navigations.

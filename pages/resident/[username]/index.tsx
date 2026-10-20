@@ -31,6 +31,7 @@ import WelcomeMusicControl from "@/components/features/onboarding/WelcomeMusicCo
 import { contentMetadataGenerator } from "@/lib/utils/metadata/content-metadata";
 import { getSiteCSS } from "@/lib/utils/css/site-css-server";
 import { resolveCSSMode } from "@/lib/utils/css/css-mode";
+import { pageCSS, siteStylesOn } from "@/lib/domain/profile/layout";
 import { serializeJsonLd } from "@/lib/utils/sanitization/json-ld";
 
 
@@ -65,7 +66,6 @@ type ProfileProps = {
   residentData?: ResidentData;
   hideNavigation?: boolean;
   templateMode?: 'default' | 'enhanced' | 'advanced';
-  includeSiteCSS?: boolean;
   cssMode?: 'inherit' | 'override' | 'disable';
   initialSiteCSS?: string; // Pre-fetched site CSS from SSR to prevent hydration mismatches
   /** A page of your own HTML, ready to render (lib/templates/rendering/page-tree-server.ts) */
@@ -107,7 +107,6 @@ export default function ProfilePage({
   residentData,
   hideNavigation = false,
   templateMode = 'default',
-  includeSiteCSS = true,
   cssMode = 'inherit',
   initialSiteCSS,
   compiledTemplate,
@@ -192,8 +191,8 @@ export default function ProfilePage({
     </Head>
   );
 
-  // Your own HTML page. Without residentData (template switched off or
-  // missing) an advanced page falls through to the standard layout below.
+  // Your own HTML page. Without residentData (no compiled page, or its data
+  // didn't load) an advanced page falls through to the standard layout below.
   if (templateMode === 'advanced' && residentData) {
     // Create ProfileUser object with Islands data
     const profileUser: ProfileUser = {
@@ -209,7 +208,7 @@ export default function ProfilePage({
 
     // Islands mode: Handle CSS based on navigation and CSS settings
     if (hideNavigation) {
-      if (includeSiteCSS) {
+      if (siteStylesOn(cssMode)) {
         return (
           <div className="min-h-screen flex flex-col">
             {head}
@@ -319,9 +318,7 @@ export default function ProfilePage({
       {head}
       <ViewSourceBadge username={username} />
       <ProfileLayout
-        customCSS={customCSS}
         hideNavigation={hideNavigation}
-        includeSiteCSS={includeSiteCSS}
         templateMode={templateMode}
         cssMode={cssMode}
         initialSiteCSS={initialSiteCSS}
@@ -436,11 +433,9 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
       displayName?: string;
       customCSS?: string;
       customTemplate?: string;
-      templateEnabled?: boolean;
       templateMode?: 'default' | 'enhanced' | 'advanced';
       cssMode?: 'inherit' | 'override' | 'disable';
       hideNavigation?: boolean;
-      includeSiteCSS?: boolean;
       // Islands compilation data
       compiledTemplate?: any;
       templateCompiledAt?: string;
@@ -505,10 +500,9 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   // Handle custom template data
   let residentData: ResidentData | undefined;
 
-  // Shared resolver: DB field, with the legacy CSS_MODE comment honored for
-  // old rows. Server and client MUST resolve identically (this used to
-  // diverge between SSR, ProfileLayout, and ProfileModeRenderer).
-  const cssMode = resolveCSSMode(data.profile?.cssMode, data.profile?.customCSS);
+  // Shared resolver: server and client MUST resolve identically (this used
+  // to diverge between SSR, ProfileLayout, and ProfileModeRenderer).
+  const cssMode = resolveCSSMode(data.profile?.cssMode);
 
   // A page of your own HTML renders from its one compiled copy. A page saved
   // before compiled copies were stored is compiled here from its source
@@ -527,8 +521,7 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   }
 
   // Load what the page's components read
-  if (data.profile?.templateMode === 'advanced' && compiledTemplate != null &&
-    data.profile?.templateEnabled) {
+  if (data.profile?.templateMode === 'advanced' && compiledTemplate != null) {
     try {
       // Fetch posts and guestbook data for template rendering using direct DB calls
       const { getSessionUser } = await import('@/lib/auth/server');
@@ -702,38 +695,14 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
     if (page) props.compiledTemplate = page;
   }
 
-  // CSS Priority based on template mode and CSS mode
+  // The page's CSS: theirs if they have some, else the admin default
+  // (lib/domain/profile/layout.ts). Site styles follow cssMode, in _app.
   const templateMode = data.profile?.templateMode || 'default';
 
   props.cssMode = cssMode;
 
-  // Ensure includeSiteCSS is properly set based on CSS mode
-  if (cssMode === 'inherit') {
-    // Inherit mode must always load site CSS
-    props.includeSiteCSS = true;
-  } else if (data.profile?.includeSiteCSS != null) {
-    props.includeSiteCSS = data.profile.includeSiteCSS;
-  } else {
-    // Default to true unless explicitly disabled
-    props.includeSiteCSS = true;
-  }
-
-  if (templateMode === 'enhanced' && data.profile?.customCSS != null && data.profile.customCSS.trim() !== '') {
-    // Enhanced mode (Default Layout + Custom CSS) - use user's custom CSS
-    props.customCSS = data.profile.customCSS;
-  } else if (templateMode === 'default') {
-    // Default mode - use admin default CSS only, ignore user CSS
-    if (adminDefaultCSS && adminDefaultCSS.trim() !== '') {
-      props.customCSS = adminDefaultCSS;
-    }
-  } else if (templateMode === 'advanced' && data.profile?.customCSS != null && data.profile.customCSS.trim() !== '') {
-    // Advanced template mode - use raw CSS as-is in head
-    props.customCSS = data.profile.customCSS;
-  } else if (adminDefaultCSS && adminDefaultCSS.trim() !== '') {
-    // Fallback to admin default CSS if available
-    props.customCSS = adminDefaultCSS;
-  }
-  // If none of the above, customCSS remains undefined and no CSS is injected
+  const css = pageCSS(data.profile, adminDefaultCSS);
+  if (css !== undefined) props.customCSS = css;
 
   if (websites.length > 0) props.websites = websites;
   if (featuredFriends.length > 0) props.featuredFriends = featuredFriends;

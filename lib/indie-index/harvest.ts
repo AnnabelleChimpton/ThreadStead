@@ -25,6 +25,7 @@ import { isPlatformProfile, loadBlockedSet } from './blocklist'
 import { isBlockedHost, isOptedOut, siteRefOf, type SiteRef } from './site-key'
 import { utc } from './sql'
 import { recomputeSites } from './tiers'
+import { layoutOf } from '@/lib/domain/profile/layout'
 
 /** New sites found only through links from listed sites, per run. */
 export const MAX_LINK_CANDIDATES_PER_RUN = 200
@@ -84,7 +85,7 @@ export async function harvestSignals(db: PrismaClient, { baseUrl, now = new Date
   // Residents' homes: Websites list, bio, and the profile template when it's live.
   const profiles = await db.profile.findMany({
     where: { visibility: 'public' },
-    select: { userId: true, blogroll: true, bio: true, customTemplate: true, templateMode: true, templateEnabled: true },
+    select: { userId: true, blogroll: true, bio: true, customTemplate: true, templateMode: true },
   })
   const profileBase = `${baseUrl.replace(/\/+$/, '')}/`
   for (const p of profiles) {
@@ -93,7 +94,7 @@ export async function harvestSignals(db: PrismaClient, { baseUrl, now = new Date
       for (const link of extractLinks(p.bio, profileBase)) add(link.href, p.userId, 'home_link')
       for (const url of extractBareUrls(p.bio)) add(url, p.userId, 'home_link')
     }
-    if (p.templateMode === 'advanced' && p.templateEnabled && p.customTemplate) {
+    if (layoutOf(p.templateMode) === 'html' && p.customTemplate) {
       for (const link of extractLinks(p.customTemplate, profileBase)) {
         add(link.href, p.userId, link.button ? 'home_button' : 'home_link', link.button?.src)
       }

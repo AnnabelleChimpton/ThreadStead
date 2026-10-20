@@ -7,6 +7,7 @@ import { cleanCss } from "@/lib/utils/sanitization/css";
 import { sourceTooLong } from "@/lib/templates/limits";
 import { cleanHiddenTabs } from "@/lib/domain/profile/tabs";
 import { cleanStatus } from "@/lib/domain/profile/status";
+import { layoutFields, layoutOf } from "@/lib/domain/profile/layout";
 import { notifyRingHubIfMember } from "@/lib/api/ringhub/ringhub-profile-sync";
 import { withCsrfProtection } from "@/lib/server/http/csrf";
 import { withRateLimit } from "@/lib/server/http/rate-limit";
@@ -19,14 +20,13 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   const me = await getSessionUser(req);
   if (!me) return res.status(401).json({ error: "not logged in" });
 
-  const { displayName, bio, customCSS, blogroll, featuredFriends, templateMode, includeSiteCSS, hideNavigation, visibility, showInVisitorTrails, hiddenTabs, status, cap } = (req.body || {}) as {
+  const { displayName, bio, customCSS, blogroll, featuredFriends, templateMode, hideNavigation, visibility, showInVisitorTrails, hiddenTabs, status, cap } = (req.body || {}) as {
     displayName?: string;
     bio?: string;
     customCSS?: string;
     blogroll?: unknown[];
     featuredFriends?: unknown[];
     templateMode?: 'default' | 'enhanced' | 'advanced';
-    includeSiteCSS?: boolean;
     hideNavigation?: boolean;
     visibility?: 'public' | 'private' | 'friends' | 'followers';
     showInVisitorTrails?: boolean;
@@ -53,10 +53,11 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (typeof displayName === "string") data.displayName = displayName.trim().slice(0, 80);
   if (typeof bio === "string") data.bio = bio.trim().slice(0, 1000);
   if (typeof customCSS === "string") data.customCSS = cleanCss(customCSS);
+  // Any of the three stored modes is accepted; it's written as its layout
+  // ('default' and 'enhanced' are both the standard layout)
   if (typeof templateMode === "string" && ['default', 'enhanced', 'advanced'].includes(templateMode)) {
-    data.templateMode = templateMode;
+    Object.assign(data, layoutFields({ layout: layoutOf(templateMode) }));
   }
-  if (typeof includeSiteCSS === "boolean") data.includeSiteCSS = includeSiteCSS;
   if (typeof hideNavigation === "boolean") data.hideNavigation = hideNavigation;
   if (typeof showInVisitorTrails === "boolean") data.showInVisitorTrails = showInVisitorTrails;
   if (hiddenTabs !== undefined) data.hiddenTabs = cleanHiddenTabs(hiddenTabs);

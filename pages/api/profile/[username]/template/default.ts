@@ -52,7 +52,7 @@ export default apiHandler(
           includeBadges: true,
           blogPostLimit: 5,
           customCSS: savedCSS,
-          cssMode: resolveCSSMode(profile?.cssMode, savedCSS),
+          cssMode: resolveCSSMode(profile?.cssMode),
         });
 
         return res.status(200).json({

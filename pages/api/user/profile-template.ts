@@ -3,6 +3,7 @@ import { apiHandler } from "@/lib/api/handler";
 import { getDefaultProfileTemplate, ProfileTemplateType } from "@/lib/templates/default-profile-templates";
 import { cleanCss } from "@/lib/utils/sanitization/css";
 import { snapshotProfileBeforeSave } from "@/lib/templates/revisions/template-revisions";
+import { layoutFields, layoutOf } from "@/lib/domain/profile/layout";
 
 const VALID_TEMPLATES: ProfileTemplateType[] = ['abstract-art', 'charcoal-nights', 'pixel-petals', 'retro-social', 'classic-linen'];
 
@@ -27,9 +28,7 @@ export default apiHandler(
 
         // Our own presets, but saved through the same sanitizer as everyone's CSS
         const customCSS = none ? '' : cleanCss(getDefaultProfileTemplate(template as ProfileTemplateType));
-        const look = none
-          ? { customCSS, templateMode: 'default' as const }
-          : { customCSS, templateEnabled: true, templateMode: 'enhanced' as const };
+        const look = { customCSS, ...layoutFields({ layout: 'standard' }) };
 
         // Whatever this replaces stays in the person's History
         await snapshotProfileBeforeSave(user.id, 'css-save');
@@ -43,15 +42,16 @@ export default apiHandler(
       }
       
       if (req.method === "GET") {
-        // Get user's current template
+        // Whether the page has a look of its own yet: some CSS (signup's
+        // theme step always saves some), or a page of their own HTML
         const profile = await db.profile.findUnique({
           where: { userId: user.id },
-          select: { customCSS: true, templateEnabled: true }
+          select: { customCSS: true, templateMode: true }
         });
-        
+
         return res.json({
-          hasCustomCss: !!profile?.customCSS,
-          templateEnabled: profile?.templateEnabled || false
+          hasCustomCss: !!profile?.customCSS?.trim(),
+          layout: layoutOf(profile?.templateMode),
         });
       }
       

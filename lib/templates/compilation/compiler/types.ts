@@ -14,7 +14,6 @@ export interface ProfileRenderContext {
       templateMode?: ProfileMode;
       customCSS?: string | null;
       customTemplate?: string | null;
-      includeSiteCSS?: boolean;
       hideNavigation?: boolean;
     } | null;
   };

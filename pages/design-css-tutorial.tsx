@@ -420,53 +420,8 @@ const cssData = {
   ],
   'css-modes': [
     {
-      name: 'CSS Mode System',
-      description: 'Control how your custom CSS interacts with ThreadStead\'s base styles',
-      classes: [
-        { name: '/* CSS_MODE:inherit */', description: 'Your CSS enhances the default styles (recommended)' },
-        { name: '/* CSS_MODE:override */', description: 'Your CSS replaces default styles completely' },
-        { name: '/* CSS_MODE:disable */', description: 'Disables all site CSS, only your styles apply' }
-      ],
-      example: `/* Add this comment at the top of your CSS to set the mode */
-/* CSS_MODE:inherit */
-
-/* inherit mode - Works WITH the base styles */
-.ts-profile-header {
-  /* Enhances the existing header */
-  background: linear-gradient(135deg, #2E4B3F, #4FAF6D) !important;
-  padding: 2rem !important;
-}
-
-/* CSS_MODE:override */
-
-/* override mode - Replaces base styles completely */
-.ts-profile-container {
-  /* You define everything from scratch */
-  display: grid !important;
-  grid-template-columns: 200px 1fr !important;
-}
-
-/* CSS_MODE:disable */
-
-/* disable mode - NO base styles at all */
-body {
-  /* Complete control - even basic styles are removed */
-  margin: 0;
-  font-family: 'Comic Sans MS', cursive;
-}`,
-      preview: (
-        <div className="space-y-3 text-xs">
-          <div className="bg-green-100 border border-green-300 p-2 rounded">
-            <strong>inherit</strong>: Enhances existing styles
-          </div>
-          <div className="bg-yellow-100 border border-yellow-300 p-2 rounded">
-            <strong>override</strong>: Replaces styles completely
-          </div>
-          <div className="bg-red-100 border border-red-300 p-2 rounded">
-            <strong>disable</strong>: No base styles at all
-          </div>
-        </div>
-      )
+      name: 'Site styles',
+      description: "Site styles on means your CSS adds to the site's own styles, and off means only your CSS applies; switch them with the Site styles menu in the CSS editor or the HTML editor."
     },
     {
       name: 'Using !important',
@@ -488,7 +443,7 @@ body {
   padding: 3rem;
 }
 
-/* Pro tip: In inherit mode, !important ensures your 
+/* Pro tip: With site styles on, !important ensures your 
    enhancements always apply over the defaults */`,
       preview: (
         <div className="bg-blue-50 border-2 border-blue-300 p-3 rounded text-xs">
@@ -513,7 +468,7 @@ body {
 
 /* Advanced Mode - Complete control */
 /* Write your own HTML templates with full control */
-/* Usually paired with CSS_MODE:override or disable */`,
+/* Usually paired with site styles off */`,
       preview: (
         <div className="space-y-2 text-xs">
           <div className="bg-gray-100 p-2 rounded">
@@ -2020,14 +1975,16 @@ export default function DesignCSSTutorialPage() {
                             )}
 
                             {/* Code Example */}
-                            <div>
-                              <h4 className="font-bold text-black text-lg mb-3">Example CSS</h4>
-                              <div className="bg-black text-green-400 border-2 border-black p-4 overflow-x-auto shadow-[2px_2px_0_#000]">
-                                <pre className="text-sm font-mono">
-                                  <code>{section.example}</code>
-                                </pre>
+                            {section.example && (
+                              <div>
+                                <h4 className="font-bold text-black text-lg mb-3">Example CSS</h4>
+                                <div className="bg-black text-green-400 border-2 border-black p-4 overflow-x-auto shadow-[2px_2px_0_#000]">
+                                  <pre className="text-sm font-mono">
+                                    <code>{section.example}</code>
+                                  </pre>
+                                </div>
                               </div>
-                            </div>
+                            )}
                           </div>
                         </div>
                       )}

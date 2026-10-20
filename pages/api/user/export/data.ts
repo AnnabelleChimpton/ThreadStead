@@ -212,11 +212,9 @@ async function generateUserExport(userId: string): Promise<UserDataExport> {
       featuredFriends: user.profile.featuredFriends,
       visibility: user.profile.visibility,
       customTemplate: user.profile.customTemplate,
-      templateEnabled: user.profile.templateEnabled,
       templateMode: user.profile.templateMode,
       hideNavigation: user.profile.hideNavigation,
       badgePreferences: user.profile.badgePreferences,
-      includeSiteCSS: user.profile.includeSiteCSS,
       midiAutoplay: user.profile.midiAutoplay,
       midiLoop: user.profile.midiLoop
     } : null,

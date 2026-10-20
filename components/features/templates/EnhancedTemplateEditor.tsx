@@ -32,6 +32,7 @@ import { useLocalDraft } from '@/hooks/useLocalDraft';
 import { useToast } from '@/contexts/ToastContext';
 import TemplateHistoryPanel, { type FullRevision } from '@/components/features/templates/TemplateHistoryPanel';
 import ViewSourceToggle from '@/components/features/templates/ViewSourceToggle';
+import { layoutFields, layoutOf, siteStylesCSSMode } from '@/lib/domain/profile/layout';
 
 // CodeMirror is editor-page-only — loaded dynamically so it never lands in
 // the shared bundle (same pattern as css-editor.tsx).
@@ -55,6 +56,12 @@ interface DataLossWarningProps {
   // Enhanced properties for legacy conversion
   preservedItems?: string[];
   clearedItems?: string[];
+}
+
+// CSS of the person's own, past the editor's empty-stylesheet comment
+function hasOwnCSS(css: string | undefined): boolean {
+  const trimmed = (css || '').trim();
+  return trimmed !== '' && trimmed !== '/* Add your custom CSS here */';
 }
 
 function DataLossWarning({
@@ -218,8 +225,12 @@ export default function EnhancedTemplateEditor({
   // revision, so when a save would change it the editor says so.
   const [savedCSS, setSavedCSS] = useState(initialCSS);
   const cssWillChange = savedCSS.trim() !== '' && customCSS.trim() !== savedCSS.trim();
-  const [cssMode, setCSSMode] = useState<'inherit' | 'override' | 'disable'>(initialCSSMode);
-  const [currentTemplateMode, setCurrentTemplateMode] = useState<'default' | 'enhanced' | 'advanced'>(initialTemplateMode);
+  // Site styles on ('inherit') or off ('disable'); an older 'override' reads as on
+  const [cssMode, setCSSMode] = useState<'inherit' | 'disable'>(siteStylesCSSMode(initialCSSMode));
+  // The standard layout with no CSS of its own shows the site's default look
+  const [showsDefaultLook, setShowsDefaultLook] = useState(
+    () => layoutOf(initialTemplateMode) === 'standard' && !hasOwnCSS(initialCSS)
+  );
 
   // Pop-up preview window management. The ref is what the message listener
   // checks event.source against (see the popup listener effect below).
@@ -325,7 +336,7 @@ export default function EnhancedTemplateEditor({
           await csrfFetch(`/api/profile/${username}/css`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ customCSS: '', cssMode: 'inherit' }),
+            body: JSON.stringify({ customCSS: '', ...layoutFields({ siteStyles: true }) }),
           });
 
           // 2. Clear template via template API
@@ -335,18 +346,19 @@ export default function EnhancedTemplateEditor({
             body: JSON.stringify({ template: '', customCSS: '' }),
           });
 
-          // 3. Set mode to 'default'
+          // 3. Back to the standard layout
           const capRes = await csrfFetch("/api/cap/profile", { method: "POST" });
           const { token } = await capRes.json();
 
           await csrfFetch("/api/profile/update", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ templateMode: 'default', cap: token }),
+            body: JSON.stringify({ ...layoutFields({ layout: 'standard' }), cap: token }),
           });
 
           setSaveState('saved');
           setSavedCSS('');
+          setShowsDefaultLook(true);
           setSaveMessage('✓ Reset to default template');
           markSaved(JSON.stringify({
             template: '',
@@ -388,7 +400,7 @@ export default function EnhancedTemplateEditor({
           // for a blank stylesheet, so one save dropped the person's theme.
           if (!customCSS.trim()) {
             setCustomCSS(data.css);
-            setCSSMode(data.cssMode || 'inherit');
+            setCSSMode(siteStylesCSSMode(data.cssMode));
           }
           setSaveMessage('✓ Default layout loaded. Your CSS is unchanged.');
         } else {
@@ -880,7 +892,7 @@ export default function EnhancedTemplateEditor({
       // Update local state to match what's being saved
       setTemplate(previewTemplate || '');
       setCustomCSS(previewCSS || '');
-      setCSSMode(previewCSSMode || 'inherit');
+      setCSSMode(siteStylesCSSMode(previewCSSMode));
       setHideNavigation(previewHideNavigation);
       setUseStandardLayout(previewUseStandardLayout !== undefined ? previewUseStandardLayout : true);
 
@@ -1198,9 +1210,7 @@ export default function EnhancedTemplateEditor({
       const replacedCSS = cssWillChange;
       setSavedCSS(customCSS);
 
-      // Update template mode - saving moves from 'default' to advanced/enhanced
-      const newMode = useStandardLayout ? 'enhanced' : 'advanced';
-      setCurrentTemplateMode(newMode);
+      setShowsDefaultLook(useStandardLayout && !hasOwnCSS(customCSS));
 
       // Check if we have warnings or stripped components
       // Use passed validationInfo first (most current), fall back to state
@@ -1565,7 +1575,7 @@ export default function EnhancedTemplateEditor({
             const draft = pendingDraft.data;
             setTemplate(draft.template);
             setCustomCSS(draft.customCSS);
-            setCSSMode(draft.cssMode);
+            setCSSMode(siteStylesCSSMode(draft.cssMode));
             setUseStandardLayout(draft.useStandardLayout);
             setHideNavigation(draft.hideNavigation);
             clearDraft();
@@ -1579,7 +1589,7 @@ export default function EnhancedTemplateEditor({
       </div>
 
       {/* The page still shows the site's default look */}
-      {currentTemplateMode === 'default' && (
+      {showsDefaultLook && (
         <div className="mx-4 mt-3 mb-2 p-4 bg-thread-paper border-2 border-thread-sage rounded-xl">
           <div className="flex items-start gap-3">
             <PixelIcon name="info-box" size={24} />
@@ -1805,17 +1815,17 @@ export default function EnhancedTemplateEditor({
                     {useStandardLayout ? 'Style the standard layout' : 'Style your custom template'}
                   </span>
                   
-                  {/* CSS Mode Selector */}
+                  {/* Site styles: on or off */}
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-thread-sage">Site-wide CSS:</span>
+                    <label htmlFor="editor-site-styles" className="text-xs text-thread-sage">Site styles:</label>
                     <select
+                      id="editor-site-styles"
                       value={cssMode}
-                      onChange={(e) => setCSSMode(e.target.value as 'inherit' | 'override' | 'disable')}
+                      onChange={(e) => setCSSMode(siteStylesCSSMode(e.target.value))}
                       className="text-xs px-2 py-1 border border-thread-sage rounded bg-thread-paper hover:bg-thread-cream focus:border-thread-pine focus:ring-1 focus:ring-thread-pine"
                     >
-                      <option value="inherit">Inherit (add styles to site defaults)</option>
-                      <option value="override">Override (your CSS takes precedence)</option>
-                      <option value="disable">Disable (complete CSS control)</option>
+                      <option value="inherit">On (add styles to site defaults)</option>
+                      <option value="disable">Off (complete CSS control)</option>
                     </select>
                   </div>
 
@@ -1922,21 +1932,16 @@ export default function EnhancedTemplateEditor({
                 <div className={`mb-3 text-sm p-4 rounded-lg border-2 ${
                   cssMode === 'inherit'
                     ? 'bg-green-50 border-green-300 text-green-800'
-                    : cssMode === 'override'
-                    ? 'bg-yellow-50 border-yellow-300 text-yellow-800'
                     : 'bg-red-50 border-red-300 text-red-800'
                 }`}>
                   <div className="flex items-center gap-2 mb-2">
                     <span className="font-semibold text-base">
-                      {cssMode === 'inherit' && 'Inherit Mode'}
-                      {cssMode === 'override' && 'Override Mode'}
-                      {cssMode === 'disable' && 'Disable Mode'}
+                      {cssMode === 'inherit' && 'Site styles on'}
+                      {cssMode === 'disable' && 'Site styles off'}
                     </span>
                     <span className={`px-2 py-1 rounded text-xs font-medium ${
                       cssMode === 'inherit'
                         ? 'bg-green-100 text-green-700'
-                        : cssMode === 'override'
-                        ? 'bg-yellow-100 text-yellow-700'
                         : 'bg-red-100 text-red-700'
                     }`}>
                       {useStandardLayout ? 'Standard Layout' : 'Custom Template'}
@@ -1948,15 +1953,6 @@ export default function EnhancedTemplateEditor({
                       <p><strong>How it works:</strong> Your CSS adds to ThreadStead&apos;s base styles</p>
                       <p><strong>Best for:</strong> {useStandardLayout ? 'Styling the standard layout with colors, fonts, and effects' : 'Custom templates that want to feel integrated with the site'}</p>
                       <p><strong>Result:</strong> Navigation, buttons, and layout components keep their ThreadStead styling while your customizations are applied on top</p>
-                    </div>
-                  )}
-
-                  {cssMode === 'override' && (
-                    <div className="space-y-2">
-                      <p><strong>How it works:</strong> Your CSS takes priority over ThreadStead&apos;s styles</p>
-                      <p><strong>Best for:</strong> Major visual redesigns while keeping site functionality</p>
-                      <p><strong>Result:</strong> You can completely change colors, fonts, and layout appearance. Navigation remains functional but styled by you</p>
-                      {useStandardLayout && <p className="text-yellow-900"><strong>Note:</strong> This affects the entire profile page appearance including navigation</p>}
                     </div>
                   )}
 
@@ -1991,18 +1987,6 @@ export default function EnhancedTemplateEditor({
 
 .blog-posts {
   margin-top: 2rem;
-}` :
-                      cssMode === 'override' ?
-                      `/* Your CSS will override site styles */
-
-.profile-header {
-  background: #ffffff !important;
-  border: 2px solid #000000 !important;
-  padding: 1rem !important;
-}
-
-.blog-posts {
-  font-family: 'Courier New', monospace !important;
 }` :
                       `/* Complete control - no site CSS loaded */
 
@@ -2118,7 +2102,7 @@ body {
               () => {
                 setTemplate(rev.customTemplate || '');
                 setCustomCSS(rev.customCSS || '');
-                setCSSMode(rev.cssMode);
+                setCSSMode(siteStylesCSSMode(rev.cssMode));
                 setUseStandardLayout(rev.templateMode !== 'advanced');
                 setHideNavigation(rev.hideNavigation);
                 setShowHistoryPanel(false);

@@ -40,6 +40,7 @@ import Button from "@/components/ui/Button";
 import YourPage from "@/components/features/profile/YourPage";
 import BannerUpload from "@/components/core/profile/BannerUpload";
 import { STATUS_MAX } from "@/lib/domain/profile/status";
+import { layoutFields } from "@/lib/domain/profile/layout";
 
 // We'll need to extract blocks functionality into a component
 interface UserSettingsProps {
@@ -58,7 +59,6 @@ interface UserSettingsProps {
       bannerUrl?: string | null;
       avatarUrl?: string | null;
       customCSS?: string | null;
-      templateEnabled?: boolean | null;
       hideNavigation?: boolean | null;
       templateMode?: 'default' | 'enhanced' | 'advanced' | null;
       blogroll?: any[] | null;
@@ -590,7 +590,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
       const cssResponse = await csrfFetch(`/api/profile/${username}/css`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customCSS: '', cssMode: 'inherit' }),
+        body: JSON.stringify({ customCSS: '', ...layoutFields({ siteStyles: true }) }),
       });
 
       // Clear template
@@ -600,14 +600,14 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
         body: JSON.stringify({ template: '', customCSS: '' }),
       });
 
-      // Set mode to default
+      // Back to the standard layout
       const capRes = await csrfFetch("/api/cap/profile", { method: "POST" });
       const { token } = await capRes.json();
 
       const layoutResponse = await csrfFetch("/api/profile/update", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ templateMode: 'default', cap: token }),
+        body: JSON.stringify({ ...layoutFields({ layout: 'standard' }), cap: token }),
       });
 
       if (cssResponse.ok && templateResponse.ok && layoutResponse.ok) {
@@ -1906,7 +1906,6 @@ export const getServerSideProps: GetServerSideProps<UserSettingsProps> = async (
             bannerUrl: userData.profile.bannerUrl,
             avatarUrl: userData.profile.avatarUrl || null,
             customCSS: userData.profile.customCSS || null,
-            templateEnabled: userData.profile.templateEnabled ?? null,
             hideNavigation: userData.profile.hideNavigation ?? null,
             templateMode: (userData.profile.templateMode as 'default' | 'enhanced' | 'advanced') || null,
             blogroll: (userData.profile.blogroll as any[]) || null,

@@ -112,7 +112,9 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
           .then((res) => (res.ok ? res.json() : null))
           .catch(() => null);
         if (!alive) return;
-        if (template?.templateEnabled) {
+        // The theme is signup's last save, so a page with a look of its own
+        // has finished signup
+        if (template?.hasCustomCss || template?.layout === 'html') {
           router.replace('/');
           return;
         }

@@ -14,6 +14,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { extractImports, scopeAwayFromSiteChrome, transformAdvancedCss } from "@/lib/utils/css/css-transform";
 import { documentCssFromCompiledTemplate } from "@/lib/templates/compilation/document-head";
 import { escapeCssForStyleTag } from "@/lib/utils/sanitization/css";
+import { siteStylesOn } from "@/lib/domain/profile/layout";
 
 // Import Layout to ensure CSS dependencies are always available
 import Layout from "@/components/ui/layout/Layout";
@@ -142,7 +143,9 @@ export default function MyApp({ Component, pageProps, appSiteCSS }: MyAppProps) 
 
   const actualCSSMode = cssMode;
   const needsCSSResets = isProfilePage && pageProps.templateMode === 'advanced' && actualCSSMode !== 'inherit';
-  const includeSiteCSS = pageProps.includeSiteCSS !== false; // Default to true if not specified
+  // Site styles on a profile page follow its cssMode (lib/domain/profile/layout.ts).
+  // The editor's preview page turns them off for itself (siteStyles: false).
+  const siteStyles = pageProps.siteStyles !== false && siteStylesOn(actualCSSMode);
 
 
   return (
@@ -246,8 +249,7 @@ ${rest}`)
                   declarations lose to Tailwind's unlayered utilities.
                   SSR-primed via initialSiteCSS on profile pages; the
                   useSiteCSS hook updates it by id on client fetches. */}
-              {(!isProfilePage ||
-                (includeSiteCSS && actualCSSMode !== 'disable')) && (
+              {(!isProfilePage || siteStyles) && (
                 <style
                   id="site-wide-css"
                   key="site-css"

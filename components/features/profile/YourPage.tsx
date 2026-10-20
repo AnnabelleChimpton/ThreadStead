@@ -30,6 +30,7 @@ import { PRESET_FONT_FACES } from '@/lib/templates/preset-fonts';
 import { scopeAwayFromSiteChrome } from '@/lib/utils/css/css-transform';
 import { escapeCssForStyleTag } from '@/lib/utils/sanitization/css';
 import { HIDEABLE_TABS } from '@/lib/domain/profile/tabs';
+import { layoutFields, layoutOf, type Layout } from '@/lib/domain/profile/layout';
 
 type TemplateMode = 'default' | 'enhanced' | 'advanced';
 
@@ -104,7 +105,7 @@ export default function YourPage({ username }: { username: string }) {
   const themeVars = page ? readThemeVars(page.customCSS) : null;
   const savedKnobs = useMemo(() => (page ? readKnobs(page.customCSS) : {}), [page]);
   const knobsChanged = JSON.stringify(knobs) !== JSON.stringify(savedKnobs);
-  const ownHTML = page?.templateMode === 'advanced';
+  const ownHTML = layoutOf(page?.templateMode) === 'html';
 
   // Unsaved knob changes show in the preview straight away, through the same
   // scoping the real page applies (so they win exactly as the saved ones will)
@@ -124,13 +125,13 @@ export default function YourPage({ username }: { username: string }) {
     applyPreviewKnobs();
   }, [applyPreviewKnobs]);
 
-  async function setLayout(templateMode: TemplateMode) {
+  async function setLayout(layout: Layout) {
     const capRes = await csrfFetch('/api/cap/profile', { method: 'POST' });
     const { token } = await capRes.json();
     const res = await csrfFetch('/api/profile/update', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ templateMode, cap: token }),
+      body: JSON.stringify({ ...layoutFields({ layout }), cap: token }),
     });
     if (!res.ok) throw new Error('layout');
   }
@@ -180,7 +181,8 @@ export default function YourPage({ username }: { username: string }) {
     setBusy(true);
     try {
       await saveCSS(undo.previous.customCSS);
-      if (undo.previous.templateMode !== page?.templateMode) await setLayout(undo.previous.templateMode);
+      const previousLayout = layoutOf(undo.previous.templateMode);
+      if (previousLayout !== layoutOf(page?.templateMode)) await setLayout(previousLayout);
       await load();
       setPreviewKey((k) => k + 1);
       setUndo(null);

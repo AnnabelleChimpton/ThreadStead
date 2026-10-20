@@ -68,7 +68,6 @@ const PROFILE = {
   customTemplate: '<h1>my secret draft notes</h1>',
   compiledTemplate: { staticHTML: '<h1>hi</h1>' },
   templateMode: 'advanced',
-  templateEnabled: true,
   showTemplateSource: false,
   showInVisitorTrails: true,
   profileMidiId: null,

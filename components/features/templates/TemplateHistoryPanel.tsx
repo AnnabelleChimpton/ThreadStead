@@ -30,6 +30,8 @@ const TRIGGER_LABELS: Record<string, string> = {
   'template-save': 'before a template save',
   'css-save': 'before a CSS save',
   'reset': 'before a reset',
+  'moderator-reset': 'before a moderator reset your page',
+  'layout-merge': "when the site cleared CSS your page wasn't showing",
 };
 
 function describeWhen(iso: string): string {

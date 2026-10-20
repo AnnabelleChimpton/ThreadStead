@@ -7,6 +7,7 @@ import { snapshotProfileBeforeSave } from '@/lib/templates/revisions/template-re
 import { apiHandler } from '@/lib/api/handler';
 import { cleanCss } from '@/lib/utils/sanitization/css';
 import { sourceTooLong } from '@/lib/templates/limits';
+import { layoutFields, siteStylesOn } from '@/lib/domain/profile/layout';
 
 
 
@@ -96,10 +97,7 @@ export default apiHandler(
             compiledTemplate: JSON.parse(JSON.stringify(compiledResult)),
             templateCompiledAt: new Date(),
             ...(safeCSS !== undefined && { customCSS: safeCSS }),
-            ...(cssMode !== undefined && {
-              cssMode,
-              includeSiteCSS: cssMode !== 'disable'
-            })
+            ...(cssMode !== undefined && layoutFields({ siteStyles: siteStylesOn(cssMode) }))
           },
           create: {
             userId: handle.user.id,
@@ -108,10 +106,7 @@ export default apiHandler(
             compiledTemplate: JSON.parse(JSON.stringify(compiledResult)),
             templateCompiledAt: new Date(),
             ...(safeCSS !== undefined && { customCSS: safeCSS }),
-            ...(cssMode !== undefined && {
-              cssMode,
-              includeSiteCSS: cssMode !== 'disable'
-            })
+            ...(cssMode !== undefined && layoutFields({ siteStyles: siteStylesOn(cssMode) }))
           }
         });
 

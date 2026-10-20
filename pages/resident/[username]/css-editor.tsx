@@ -30,6 +30,7 @@ import TemplateHistoryPanel, { type FullRevision } from '@/components/features/t
 import TemplatePanelSelector from '@/components/features/templates/TemplatePanelSelector';
 import { PixelIcon } from '@/components/ui/PixelIcon';
 import { insertCSSIntoView, planCSSInsertion } from '@/components/features/templates/css-generators/shared/insertCSS';
+import { layoutFields, layoutOf, siteStylesCSSMode, siteStylesOn, type Layout as PageLayout } from '@/lib/domain/profile/layout';
 
 interface CSSEditorPageProps {
   username: string;
@@ -56,9 +57,10 @@ export default function CSSEditorPage({
   const confirm = useConfirm();
   const emptyCSS = '/* Add your custom CSS here */\n\n';
   const [css, setCSS] = useState(initialCSS || emptyCSS);
-  const [cssMode, setCSSMode] = useState<'inherit' | 'override' | 'disable'>(initialCSSMode);
+  // Site styles on ('inherit') or off ('disable'); an older 'override' reads as on
+  const [cssMode, setCSSMode] = useState<'inherit' | 'disable'>(siteStylesCSSMode(initialCSSMode));
   // What the server currently has — dirty means the editor differs from this.
-  const [savedSnapshot, setSavedSnapshot] = useState({ css: initialCSS || emptyCSS, cssMode: initialCSSMode });
+  const [savedSnapshot, setSavedSnapshot] = useState({ css: initialCSS || emptyCSS, cssMode: siteStylesCSSMode(initialCSSMode) });
   const isDirty = css !== savedSnapshot.css || cssMode !== savedSnapshot.cssMode;
   const draftData = useMemo(() => ({ css, cssMode }), [css, cssMode]);
   const { pendingDraft, clearDraft } = useLocalDraft(
@@ -73,7 +75,10 @@ export default function CSSEditorPage({
   const [previewWindow, setPreviewWindow] = useState<Window | null>(null);
   const [residentData, setResidentData] = useState<ResidentData | null>(null);
   const [loadingData, setLoadingData] = useState(true);
-  const [currentTemplateMode, setCurrentTemplateMode] = useState<'default' | 'enhanced' | 'advanced'>(templateMode);
+  const [layout, setLayout] = useState<PageLayout>(layoutOf(templateMode));
+  // The standard layout shows the site's default look until there's saved CSS
+  const hasSavedCSS = savedSnapshot.css.trim() !== '' && savedSnapshot.css.trim() !== emptyCSS.trim();
+  const pageLook: 'html' | 'css' | 'default' = layout === 'html' ? 'html' : hasSavedCSS ? 'css' : 'default';
   const [showHistoryPanel, setShowHistoryPanel] = useState(false);
   const [showThemeGallery, setShowThemeGallery] = useState(false);
 
@@ -104,7 +109,7 @@ export default function CSSEditorPage({
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ customCSS: cssToSave, cssMode }),
+        body: JSON.stringify({ customCSS: cssToSave, ...layoutFields({ siteStyles: siteStylesOn(cssMode) }) }),
       });
 
       if (!response.ok) {
@@ -112,39 +117,11 @@ export default function CSSEditorPage({
         throw new Error(errorData.error || 'Failed to save CSS');
       }
 
-      // Update template mode: upgrade 'default' to 'enhanced', preserve 'advanced'
-      // This allows CSS editing without breaking custom HTML templates
-      const newTemplateMode = currentTemplateMode === 'default' ? 'enhanced' : currentTemplateMode;
-
-      const capRes = await fetch("/api/cap/profile", { method: "POST" });
-      if (capRes.status === 401) {
-        throw new Error("Failed to update layout mode. Please log in again.");
-      }
-      const { token } = await capRes.json();
-
-      const layoutResponse = await csrfFetch("/api/profile/update", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          templateMode: newTemplateMode,
-          cap: token
-        }),
-      });
-
-      if (!layoutResponse.ok) {
-        throw new Error("CSS saved, but failed to enable CSS mode. Please check Settings.");
-      }
-
-      setCurrentTemplateMode(newTemplateMode);
+      // The layout stays as it is: saved CSS shows on either layout
       setSavedSnapshot({ css: cssToSave, cssMode });
       clearDraft();
 
-      // Show appropriate success message based on mode change
-      if (currentTemplateMode === 'default') {
-        setSaveMessage('✓ CSS saved — enhanced mode is now on');
-      } else {
-        setSaveMessage('✓ CSS saved');
-      }
+      setSaveMessage('✓ CSS saved');
       setTimeout(() => setSaveMessage(null), 3000);
     } catch (error) {
       setSaveMessage(`Error: ${error instanceof Error ? error.message : 'Failed to save'}`);
@@ -212,7 +189,7 @@ export default function CSSEditorPage({
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ customCSS: '', cssMode: 'inherit' }),
+        body: JSON.stringify({ customCSS: '', ...layoutFields({ siteStyles: true }) }),
       });
 
       if (!cssResponse.ok) {
@@ -232,7 +209,7 @@ export default function CSSEditorPage({
         throw new Error('Failed to clear template');
       }
 
-      // Set template mode to 'default'
+      // Back to the standard layout
       const capRes = await csrfFetch("/api/cap/profile", { method: "POST" });
       if (capRes.status === 401) {
         throw new Error("Failed to update layout mode. Please log in again.");
@@ -243,7 +220,7 @@ export default function CSSEditorPage({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          templateMode: 'default',
+          ...layoutFields({ layout: 'standard' }),
           cap: token
         }),
       });
@@ -255,7 +232,7 @@ export default function CSSEditorPage({
       // Update local state - stay on CSS editor with cleared CSS
       setCSS(emptyCSS);
       setCSSMode('inherit');
-      setCurrentTemplateMode('default');
+      setLayout('standard');
       setSavedSnapshot({ css: emptyCSS, cssMode: 'inherit' });
       clearDraft();
 
@@ -425,17 +402,17 @@ export default function CSSEditorPage({
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 min-w-0">
                 <h1 className="text-lg font-semibold flex items-center gap-2"><PixelIcon name="paint-bucket" size={16} /> Simple CSS Styling</h1>
                 <span className="text-gray-600 text-sm">@{username}</span>
-                {currentTemplateMode === 'enhanced' && (
+                {pageLook === 'css' && (
                   <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
                     ✓ CSS Mode Active
                   </span>
                 )}
-                {currentTemplateMode === 'default' && (
+                {pageLook === 'default' && (
                   <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">
                     Default Layout
                   </span>
                 )}
-                {currentTemplateMode === 'advanced' && (
+                {pageLook === 'html' && (
                   <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs">
                     Template Mode Active
                   </span>
@@ -443,7 +420,7 @@ export default function CSSEditorPage({
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
-                {currentTemplateMode !== 'default' && (
+                {pageLook !== 'default' && (
                   <button
                     onClick={confirmReset}
                     disabled={saving}
@@ -492,15 +469,15 @@ export default function CSSEditorPage({
 
           {/* Info Banner */}
           <div className={`border-b px-4 py-3 flex-shrink-0 ${
-            currentTemplateMode === 'advanced'
+            pageLook === 'html'
               ? 'bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200'
-              : currentTemplateMode === 'enhanced'
+              : pageLook === 'css'
               ? 'bg-gradient-to-r from-green-50 to-blue-50 border-green-200'
               : 'bg-gradient-to-r from-blue-50 to-gray-50 border-blue-200'
           }`}>
             <div className="max-w-full mx-auto">
               <div className="flex items-center gap-3">
-                {currentTemplateMode === 'advanced' ? (
+                {pageLook === 'html' ? (
                   <>
                     <PixelIcon name="warning-box" size={24} />
                     <div className="flex-1">
@@ -513,7 +490,7 @@ export default function CSSEditorPage({
                       </p>
                     </div>
                   </>
-                ) : currentTemplateMode === 'enhanced' ? (
+                ) : pageLook === 'css' ? (
                   <>
                     <PixelIcon name="zap" size={24} />
                     <div className="flex-1">
@@ -553,7 +530,7 @@ export default function CSSEditorPage({
               savedAt={pendingDraft.savedAt}
               onRestore={() => {
                 setCSS(pendingDraft.data.css);
-                setCSSMode(pendingDraft.data.cssMode);
+                setCSSMode(siteStylesCSSMode(pendingDraft.data.cssMode));
                 clearDraft();
               }}
               onDiscard={clearDraft}
@@ -605,40 +582,33 @@ export default function CSSEditorPage({
                 </span>
               </div>
 
-              {/* CSS Mode Selector */}
+              {/* Site styles: on or off */}
               <div className="bg-white border-b border-gray-200 px-4 py-3">
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                  <span className="text-sm font-medium text-gray-700">Site CSS Mode:</span>
+                  <label htmlFor="site-styles" className="text-sm font-medium text-gray-700">Site styles:</label>
                   <select
+                    id="site-styles"
                     value={cssMode}
-                    onChange={(e) => setCSSMode(e.target.value as 'inherit' | 'override' | 'disable')}
+                    onChange={(e) => setCSSMode(siteStylesCSSMode(e.target.value))}
                     className="max-w-full text-sm px-3 py-1.5 border border-gray-300 rounded bg-white hover:bg-gray-50"
                   >
-                    <option value="inherit">Inherit - Extend site styles</option>
-                    <option value="override">Override - Priority over site</option>
-                    <option value="disable">Disable - Full control</option>
+                    <option value="inherit">On - Extend site styles</option>
+                    <option value="disable">Off - Full control</option>
                   </select>
                 </div>
                 <div className={`mt-2 text-xs p-2 rounded ${
                   cssMode === 'inherit'
                     ? 'bg-green-50 text-green-800'
-                    : cssMode === 'override'
-                    ? 'bg-yellow-50 text-yellow-800'
                     : 'bg-red-50 text-red-800'
                 }`}>
                   {cssMode === 'inherit' && (
                     <>
-                      <strong>Inherit Mode:</strong> Your CSS adds to ThreadStead&apos;s base styles. Site CSS will be included and your styles extend it.
-                    </>
-                  )}
-                  {cssMode === 'override' && (
-                    <>
-                      <strong>Override Mode:</strong> Your CSS takes priority over ThreadStead&apos;s styles. Site CSS is included but your styles win conflicts.
+                      <strong>Site styles on:</strong> Your CSS adds to ThreadStead&apos;s base styles. Site CSS will be included and your styles extend it.
                     </>
                   )}
                   {cssMode === 'disable' && (
                     <>
-                      <strong>Disable Mode:</strong> All ThreadStead CSS is disabled - you style everything from scratch. Only your CSS applies.
+                      <strong>Site styles off:</strong> All ThreadStead CSS is disabled - you style everything from scratch. Only your CSS applies.
                     </>
                   )}
                 </div>
@@ -760,7 +730,7 @@ export default function CSSEditorPage({
               return;
             }
             setCSS(rev.customCSS || emptyCSS);
-            setCSSMode(rev.cssMode);
+            setCSSMode(siteStylesCSSMode(rev.cssMode));
             setShowHistoryPanel(false);
             showSuccess('Version loaded — save to put it live.');
           }}

@@ -10,6 +10,7 @@ import { Prisma } from "@prisma/client";
 import { db } from "@/lib/config/database/connection";
 import { ApiError } from "@/lib/api/errors";
 import { MAX_REVISIONS_PER_USER } from "@/lib/templates/revisions/template-revisions";
+import { layoutFields, layoutOf, siteStylesOn } from "@/lib/domain/profile/layout";
 
 export interface ResetPageInput {
   actorId: string;
@@ -38,9 +39,14 @@ export async function resetProfilePage({ actorId, userId, reason, reportId }: Re
   });
   if (!target) throw new ApiError(404, "User not found");
 
+  // Anything that makes the page look different from a new account's
   const page = target.profile;
   const hadCustomPage =
-    !!page && (!!page.customTemplate?.trim() || !!page.customCSS?.trim() || page.templateMode !== "default");
+    !!page &&
+    (!!page.customTemplate?.trim() ||
+      !!page.customCSS?.trim() ||
+      layoutOf(page.templateMode) === "html" ||
+      !siteStylesOn(page.cssMode));
   const now = new Date();
 
   const action = await db.$transaction(async (tx) => {
@@ -59,14 +65,11 @@ export async function resetProfilePage({ actorId, userId, reason, reportId }: Re
       await tx.profile.update({
         where: { userId },
         data: {
-          templateMode: "default",
-          templateEnabled: false,
+          ...layoutFields({ layout: "standard", siteStyles: true }),
           customTemplate: null,
           compiledTemplate: Prisma.DbNull,
           templateCompiledAt: null,
           customCSS: null,
-          cssMode: "inherit",
-          includeSiteCSS: true,
           hideNavigation: false,
         },
       });
