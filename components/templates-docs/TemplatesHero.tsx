@@ -37,7 +37,7 @@ export default function TemplatesHero() {
         {/* CTA Buttons */}
         <div className="flex flex-col sm:flex-row justify-center gap-4">
           <Link
-            href="/templates/tutorials/your-first-template"
+            href="/templates/tutorials/make-it-yours"
             className="inline-block border-3 border-black px-8 py-4 bg-green-300 hover:bg-green-200 shadow-[4px_4px_0_#000] hover:shadow-[6px_6px_0_#000] transition-all font-black text-lg"
           >
             Start Tutorial

@@ -46,19 +46,6 @@ export default function TutorialLayout({ currentTutorial, children }: TutorialLa
       </div>
 
       <div className="w-full px-4 sm:px-6 py-8 sm:py-12 max-w-6xl mx-auto">
-        {/* Mode Banner */}
-        <div className="mb-4 p-3 bg-blue-50 border-2 border-blue-300 rounded flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold">Template language tutorial</span>
-          </div>
-          <Link
-            href="/templates"
-            className="text-xs px-3 py-1 bg-white border border-blue-400 hover:bg-blue-100 transition-colors rounded"
-          >
-            Switch to Visual Builder →
-          </Link>
-        </div>
-
         {/* Breadcrumbs */}
         <div className="mb-6 flex items-center gap-2 text-sm">
           <Link href="/templates" className="hover:underline font-medium">
@@ -67,7 +54,7 @@ export default function TutorialLayout({ currentTutorial, children }: TutorialLa
           <span>→</span>
           <span className="text-gray-600">Template Language</span>
           <span>→</span>
-          <Link href="/templates/tutorials/your-first-template" className="hover:underline font-medium">
+          <Link href="/templates/tutorials/make-it-yours" className="hover:underline font-medium">
             Tutorials
           </Link>
           <span>→</span>

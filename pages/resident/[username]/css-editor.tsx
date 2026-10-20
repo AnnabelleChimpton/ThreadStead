@@ -699,6 +699,10 @@ export default function CSSEditorPage({
               <a href="/design-css-tutorial" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
                 CSS Tutorial
               </a>
+              <span>•</span>
+              <a href="/build/what-works-here" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                What works here
+              </a>
             </div>
           </div>
         </div>

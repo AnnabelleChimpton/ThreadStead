@@ -28,6 +28,94 @@ export interface Tutorial {
 }
 
 export const tutorials: Tutorial[] = [
+  // Tutorial 0: the gentle one. Words, a picture, a guestbook.
+  {
+    id: 'tutorial-0',
+    slug: 'make-it-yours',
+    title: 'Make It Yours',
+    description: 'Change the words on a page, add a picture of your own, and put a guestbook on it',
+    difficulty: 'beginner',
+    estimatedTime: '5 minutes',
+    icon: '',
+    color: 'bg-yellow-200',
+    hoverColor: 'hover:bg-yellow-100',
+    learningObjectives: [
+      'Edit the words on your page',
+      'Add an image you uploaded',
+      'Add a guestbook visitors can sign'
+    ],
+    prerequisites: [],
+    steps: [
+      {
+        id: 'step-1',
+        title: 'Start with a few words',
+        explanation: 'Open Settings, go to Your page, and pick "Write your own HTML page". Whatever is in the HTML box is your page, so swap the words below for your own. Normal HTML works here, the same as on Neocities or anywhere else.',
+        code: `<main>
+  <h1>Hi, I'm Pat!</h1>
+  <p>I collect old radios and I'm trying to learn the banjo.</p>
+</main>`,
+        concepts: [],
+        tips: [
+          'The preview next to the editor updates as you type, so you can see it before anyone else does',
+          'Nothing goes live until you press Save'
+        ]
+      },
+      {
+        id: 'step-2',
+        title: 'Add a picture',
+        explanation: "Upload a picture on your Media page, press Copy link on it, and paste the link into an img tag. Links to pictures on other sites work too, just know that site can see who's looking at your page.",
+        code: `<main>
+  <h1>Hi, I'm Pat!</h1>
+  <img src="/assets/default-avatar.gif" alt="A tiny pixel me" width="96">
+  <p>I collect old radios and I'm trying to learn the banjo.</p>
+</main>`,
+        concepts: [],
+        tips: [
+          'Write a short alt description so people using screen readers know what the picture is',
+          'PNG, GIF and WebP stay exactly as you uploaded them, so pixel art stays crisp'
+        ]
+      },
+      {
+        id: 'step-3',
+        title: 'Put out a guestbook',
+        explanation: "This is where the ThreadStead part comes in. Some tags aren't HTML at all, they're pieces of the site you can drop into your page. <Guestbook /> is the one I'd start with: visitors sign it right there on your page.",
+        code: `<main>
+  <h1>Hi, I'm Pat!</h1>
+  <img src="/assets/default-avatar.gif" alt="A tiny pixel me" width="96">
+  <p>I collect old radios and I'm trying to learn the banjo.</p>
+
+  <h2>Sign my guestbook</h2>
+  <Guestbook />
+</main>`,
+        concepts: ['Guestbook'],
+        tips: [
+          'Component names start with a capital letter, which is how the editor tells them apart from HTML',
+          'The component reference lists all of them, with the ones that show your ThreadStead stuff first'
+        ]
+      },
+      {
+        id: 'step-4',
+        title: 'Save it',
+        explanation: "Press Save and that's your page! If you change your mind later, History in the editor keeps the versions you saved over, so you can always go back.",
+        code: `<main>
+  <h1>Hi, I'm Pat!</h1>
+  <img src="/assets/default-avatar.gif" alt="A tiny pixel me" width="96">
+  <p>I collect old radios and I'm trying to learn the banjo.</p>
+
+  <h2>Sign my guestbook</h2>
+  <Guestbook />
+</main>`,
+        concepts: [],
+        tips: [
+          'Tick "Visitors can view my source" if you want people to be able to learn from your page the way you might have learned from theirs'
+        ]
+      }
+    ],
+    summary: "That's a real page, written by you, with a guestbook people can sign. From here you can style it in the CSS tab, or try the next tutorial, which makes things on your page do something when people click them.",
+    nextTutorial: 'your-first-template',
+    relatedComponents: ['guestbook']
+  },
+
   // Tutorial 1: Your First Template
   {
     id: 'tutorial-1',

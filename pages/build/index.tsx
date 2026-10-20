@@ -15,6 +15,7 @@ export default function BuildHub({ siteConfig, username }: BuildHubProps) {
   const tabs = [
     { href: '/build/templates', label: 'Templates', description: 'The template language and its components' },
     { href: '/build/getting-started', label: 'Getting Started', description: 'A tour of rings, your page, your house, and posting' },
+    { href: '/build/what-works-here', label: 'What works here', description: 'What your own HTML page can do, and the few things it can\'t' },
   ];
 
   return (
@@ -56,7 +57,7 @@ export default function BuildHub({ siteConfig, username }: BuildHubProps) {
           </div>
 
           {/* Sub-navigation Tabs */}
-          <div className="flex justify-center gap-4 mb-8 border-b border-gray-200 pb-4">
+          <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mb-8 border-b border-gray-200 pb-4">
             {tabs.map(tab => (
               <Link
                 key={tab.href}
@@ -69,7 +70,7 @@ export default function BuildHub({ siteConfig, username }: BuildHubProps) {
           </div>
 
           {/* Feature Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {tabs.map(tab => (
               <Link
                 key={tab.href}

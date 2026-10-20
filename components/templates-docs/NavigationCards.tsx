@@ -20,7 +20,7 @@ const navigationCards: NavCard[] = [
   {
     title: "Tutorials",
     description: "Step-by-step guides from beginner to advanced concepts",
-    href: "/templates/tutorials/your-first-template",
+    href: "/templates/tutorials/make-it-yours",
     color: "bg-pink-200",
     hoverColor: "hover:bg-pink-100",
   },
