@@ -78,6 +78,7 @@ describe('order', () => {
   test('"connected" is the components that show your own data from here, not page logic', () => {
     expect(docs.filter((d) => d.group === 'connected').map((d) => d.name)).toEqual([
       'Guestbook', 'FollowButton', 'BlogPosts', 'FriendDisplay', 'ProfileMusic', 'MediaGrid',
+      'MyRings', 'RingNav', 'MyHouse', 'HouseBadge',
       'MutualFriends', 'FriendBadge', 'WebsiteDisplay', 'ProfileBadges',
     ])
     // Whether the viewer is you isn't your data: these are logic

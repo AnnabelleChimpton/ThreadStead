@@ -654,6 +654,10 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
         // For <ProfileMusic />: the song plays where the page puts it
         ...(data.profileMidi ? { profileMidi: data.profileMidi } : {}),
       };
+      // <MyHouse /> <HouseBadge /> <RingNav />: the owner's home, read only when the page uses one
+      const { pageHomeIfUsed } = await import('@/lib/templates/page-home');
+      const pixelHome = await pageHomeIfUsed(compiledTemplate, data.userId, data.hasPixelHome === true).catch(() => undefined);
+      if (pixelHome !== undefined) residentData.pixelHome = pixelHome;
     } catch (error) {
       console.error('Error preparing custom template:', error);
       residentData = undefined;

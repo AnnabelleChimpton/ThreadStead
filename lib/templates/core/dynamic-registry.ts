@@ -65,6 +65,10 @@ const componentLoaders: Record<string, () => Promise<{ default: React.ComponentT
   ProfileHeader: () => import('@/components/features/templates/ProfileHeader'),
   MediaGrid: () => import('@/components/features/templates/MediaGrid'),
   ProfileBadges: () => import('@/components/features/templates/ProfileBadges'),
+  MyRings: () => import('@/components/features/templates/MyRings'),
+  RingNav: () => import('@/components/features/templates/RingNav'),
+  MyHouse: () => import('@/components/features/templates/MyHouse'),
+  HouseBadge: () => import('@/components/features/templates/HouseBadge'),
   RetroCard: () => import('@/components/ui/layout/RetroCard'),
   UserImage: () => import('@/components/features/templates/UserImage'),
 

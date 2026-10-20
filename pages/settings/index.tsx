@@ -38,6 +38,7 @@ import { validatePasswordStrength } from "@/lib/auth/password";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
 import YourPage from "@/components/features/profile/YourPage";
+import DownloadMyPage from "@/components/features/profile/DownloadMyPage";
 import BannerUpload from "@/components/core/profile/BannerUpload";
 import { STATUS_MAX } from "@/lib/domain/profile/status";
 import { layoutFields } from "@/lib/domain/profile/layout";
@@ -886,6 +887,8 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
           </div>
 
           <YourPage username={username} />
+
+          <DownloadMyPage />
 
           {/* Reset Section */}
           <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-4">

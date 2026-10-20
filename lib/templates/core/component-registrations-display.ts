@@ -38,6 +38,10 @@ import ProfileHero from '@/components/features/templates/ProfileHero';
 import ProfileHeader from '@/components/features/templates/ProfileHeader';
 import MediaGrid from '@/components/features/templates/MediaGrid';
 import ProfileBadges from '@/components/features/templates/ProfileBadges';
+import MyRings from '@/components/features/templates/MyRings';
+import RingNav from '@/components/features/templates/RingNav';
+import MyHouse from '@/components/features/templates/MyHouse';
+import HouseBadge from '@/components/features/templates/HouseBadge';
 import RetroCard from '@/components/ui/layout/RetroCard';
 import UserImage from '@/components/features/templates/UserImage';
 import ProgressTracker, { ProgressItem } from '@/components/features/templates/ProgressTracker';
@@ -648,6 +652,53 @@ export function registerDisplayComponents(registry: ComponentRegistry) {
       showTitle: { type: 'boolean', default: false, description: 'Not used yet.' },
       layout: { type: 'enum', values: ['grid', 'list'], default: 'grid', description: 'grid puts the badges side by side; list stacks them.' }
     }
+  });
+
+  // Your rings and your pixel home (data: lib/templates/owner-rings.ts, lib/templates/page-home.ts)
+  registry.register({
+    name: 'MyRings',
+    component: MyRings,
+    group: 'connected',
+    featured: 7,
+    description: 'The rings you\'re in, as links to each ring\'s page. The list fills in once the page has loaded. With no rings, visitors see nothing and you see a link to find one.',
+    example: '<h2>My rings</h2>\n<MyRings />',
+    props: {
+      limit: { type: 'number', min: 1, max: 50, default: 20, description: 'How many rings to list, 1 to 50.' }
+    }
+  });
+
+  registry.register({
+    name: 'RingNav',
+    component: RingNav,
+    group: 'connected',
+    featured: 8,
+    description: 'Webring links for one of your rings: Previous, the ring\'s page, Random and Next. Previous and Next go to the pixel homes of the members before and after you on the ring\'s street. If you\'re not in that ring, or it isn\'t public, visitors see nothing and you see a note.',
+    example: '<RingNav ring="tiny-gardens" />',
+    props: {
+      ring: { type: 'string', required: true, example: 'tiny-gardens', description: 'The ring\'s slug, the end of its address: for /tr/tiny-gardens, write tiny-gardens.' }
+    }
+  });
+
+  registry.register({
+    name: 'MyHouse',
+    component: MyHouse,
+    group: 'connected',
+    featured: 9,
+    description: 'Your pixel home, small, linking to it. It shows the picture of your yard once one has been drawn, or else the house. Nothing shows if you don\'t have a home.',
+    example: '<MyHouse size="sm" />',
+    props: {
+      size: { type: 'enum', values: ['sm', 'md', 'lg'], default: 'md', description: 'How wide: sm (128px), md (256px, default) or lg (512px).' }
+    }
+  });
+
+  registry.register({
+    name: 'HouseBadge',
+    component: HouseBadge,
+    group: 'connected',
+    featured: 10,
+    description: 'Your 88×31 house badge, the one beside Step back outside on your profile, linking to your pixel home. Nothing shows if you don\'t have a home.',
+    example: '<HouseBadge />',
+    props: {}
   });
 
   registry.register({

@@ -1,5 +1,6 @@
 import React, { createContext, useContext } from 'react';
 import type { ComponentCSSRenderMode } from '@/lib/utils/css/css-mode-mapper';
+import type { PageHome } from '@/lib/templates/page-home';
 
 export interface ResidentData {
   owner: {
@@ -80,6 +81,8 @@ export interface ResidentData {
     autoplay?: boolean;
     loop?: boolean;
   };
+  /** The owner's pixel home, for <MyHouse /> <HouseBadge /> <RingNav />: null = none, left out = not loaded */
+  pixelHome?: PageHome | null;
 }
 
 const ResidentDataContext = createContext<ResidentData | null>(null);
