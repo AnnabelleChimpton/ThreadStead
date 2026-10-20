@@ -1,11 +1,9 @@
 import React from "react";
 import Layout from "./Layout";
-import NavBar from "../navigation/NavBar";
 import AdvancedNavFrame from "@/components/core/profile/AdvancedNavFrame";
-import { generateOptimizedCSS, type CSSMode, type TemplateMode } from "@/lib/utils/css/layers";
+import type { CSSMode, TemplateMode } from "@/lib/utils/css/layers";
 import { resolveCSSMode } from "@/lib/utils/css/css-mode";
 import { useSiteCSS } from "@/hooks/useSiteCSS";
-import { escapeCssForStyleTag } from "@/lib/utils/sanitization/css";
 
 interface ProfileLayoutProps {
   children: React.ReactNode;
@@ -17,7 +15,6 @@ interface ProfileLayoutProps {
   templateMode?: TemplateMode;
   cssMode?: CSSMode;
   initialSiteCSS?: string; // Pre-fetched site CSS from SSR to prevent hydration mismatches
-  preRenderedCSS?: string; // Pre-rendered complete CSS from SSR to prevent hydration mismatches
   /** Site chrome under the nav (or at the very top when the nav is hidden) */
   afterNav?: React.ReactNode;
 }
@@ -32,7 +29,6 @@ export default function ProfileLayout({
   templateMode = 'default',
   cssMode = 'inherit',
   initialSiteCSS,
-  preRenderedCSS,
   afterNav
 }: ProfileLayoutProps) {
   // Shared resolver (legacy CSS_MODE comment wins over the prop) — the same
@@ -47,134 +43,43 @@ export default function ProfileLayout({
     initialCSS: initialSiteCSS // Pass SSR-fetched CSS to prevent hydration mismatch
   });
 
-  // Use pre-rendered CSS from SSR if available, otherwise generate on client.
-  // Either way this stylesheet carries SITE CSS ONLY: user CSS reaches the
-  // page exactly once, as a raw whole-page injection (production:
-  // _app.tsx#profile-page-styles; previews: their own raw <style>). The old
-  // layered user copy was scoped to '#profile-layout', an id nothing renders,
-  // so it never worked by design — only by accident.
-  const layeredCSS = preRenderedCSS ?? generateOptimizedCSS({
-    cssMode: actualCSSMode,
-    templateMode,
-    // Site CSS is delivered ONLY by _app.tsx#site-wide-css (raw/unlayered —
-    // layered site CSS loses to Tailwind utilities and stops applying).
-    siteWideCSS: '',
-    userCustomCSS: '',
-    profileId: 'profile-layout'
-  });
-  
-  // Advanced template mode: DO NOT inject CSS here - ProfileModeRenderer handles it
+  // An advanced page whose own HTML is switched off or missing: the standard
+  // header and tabs, under the advanced page's nav (its CSS comes from _app)
   if (templateMode === 'advanced') {
-    // For Visual Builder (advanced mode), ProfileModeRenderer handles ALL CSS injection
-    // ProfileLayout should NOT interfere with advanced template CSS rendering
-
-    // Handle navigation for advanced templates
     if (hideNavigation) {
-      // Advanced template with hidden navigation - no CSS injection, no containers
       return (
         <>
-          {/* NO CSS injection - ProfileModeRenderer handles it */}
           {afterNav}
-          {/* Completely raw content - no containers, no classes, no styling */}
-          {children}
-        </>
-      );
-    } else {
-      // Advanced template with navigation shown - minimal navigation only
-      return (
-        <>
-          {/* NO CSS injection - ProfileModeRenderer handles it */}
-          {/* Unified navigation with dropdown support */}
-          {/* Completely raw content - no containers, no classes, no styling */}
-          <AdvancedNavFrame showNavigation afterNav={afterNav}>
-            {children}
-          </AdvancedNavFrame>
-        </>
-      );
-    }
-  }
-
-  if (hideNavigation) {
-    // Check if site CSS is disabled - if so, render without any styling
-    if (actualCSSMode === 'disable') {
-      return (
-        <>
-          <style dangerouslySetInnerHTML={{ __html: escapeCssForStyleTag(layeredCSS) }} />
-          {afterNav}
-          {/* No wrapper styling when CSS is disabled */}
           {children}
         </>
       );
     }
-    
-    // Render without Layout wrapper when hiding navigation but keeping site CSS (NON-advanced templates only)
     return (
-      <>
-        <style dangerouslySetInnerHTML={{ __html: escapeCssForStyleTag(layeredCSS) }} />
-        {/* Hide nav/footer but keep responsive structure */}
-        <div className="min-h-screen thread-surface flex flex-col">
-          {afterNav}
-          <main className="flex-1 mx-auto max-w-5xl px-6 py-8">
-            <div className="ts-profile-container" data-component="profile-layout">
-              <div className="ts-profile-content-wrapper">
-                <div className="ts-profile-main-content">
-                  {children}
-                </div>
-                
-                <div 
-                  className={`ts-profile-sidebar ${showSidebar ? 'profile-sidebar-visible' : 'profile-sidebar-hidden'}`}
-                  data-sidebar-visible={showSidebar}
-                >
-                  <div className="ts-sidebar-content">
-                    {sidebarContent || (
-                      <>
-                        <h3 className="ts-sidebar-heading">Quick Info</h3>
-                        <p className="ts-sidebar-text">
-                          This sidebar is available for advanced CSS customization.
-                        </p>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </main>
-        </div>
-      </>
+      <AdvancedNavFrame showNavigation afterNav={afterNav}>
+        {children}
+      </AdvancedNavFrame>
     );
   }
 
   return (
-    <>
-      <style dangerouslySetInnerHTML={{ __html: escapeCssForStyleTag(layeredCSS) }} />
-      <Layout afterNav={afterNav}>
-        {/* Inside Layout, not around it: templates style .ts-profile-container
-            as the profile's card (width, border, background), and wrapping
-            the site header/footer in it squeezed the nav out of its box. */}
-        <div className="ts-profile-container" data-component="profile-layout">
-          <div className="ts-profile-content-wrapper">
-            <div className="ts-profile-main-content">
-              {children}
-            </div>
-            
-            <div 
-              className={`ts-profile-sidebar ${showSidebar ? 'profile-sidebar-visible' : 'profile-sidebar-hidden'}`}
-              data-sidebar-visible={showSidebar}
-            >
-              <div className="ts-sidebar-content">
-                {sidebarContent || (
-                  <>
-                    <h3 className="ts-sidebar-heading">Quick Info</h3>
-                    <p className="ts-sidebar-text">
-                      This sidebar is available for advanced CSS customization.
-                    </p>
-                  </>
-                )}
-              </div>
-            </div>
+    <Layout afterNav={afterNav}>
+      {/* Inside Layout, not around it: templates style .ts-profile-container
+          as the profile's card (width, border, background), and wrapping
+          the site header/footer in it squeezed the nav out of its box. */}
+      <div className="ts-profile-container" data-component="profile-layout">
+        <div className="ts-profile-content-wrapper">
+          <div className="ts-profile-main-content">
+            {children}
+          </div>
+          
+          <div 
+            className={`ts-profile-sidebar ${showSidebar ? 'profile-sidebar-visible' : 'profile-sidebar-hidden'}`}
+            data-sidebar-visible={showSidebar}
+          >
+            <div className="ts-sidebar-content">{sidebarContent}</div>
           </div>
         </div>
-      </Layout>
-    </>
+      </div>
+    </Layout>
   );
 }

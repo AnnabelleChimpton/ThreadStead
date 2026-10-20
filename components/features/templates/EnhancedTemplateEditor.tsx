@@ -19,7 +19,6 @@ import TemplatePanelSelector from './TemplatePanelSelector';
 import StarterTemplateGallery from './StarterTemplateGallery';
 import Link from 'next/link';
 import { useSiteConfig } from '@/hooks/useSiteConfig';
-import { generatePreviewCSS, type CSSMode, type TemplateMode } from '@/lib/utils/css/layers';
 import { useSiteCSS } from '@/hooks/useSiteCSS';
 import NavigationPreview from '@/components/features/templates/NavigationPreview';
 import ValidationFeedbackPanel, { hasStrippedNeedingAttention, type StrippedEntry } from './ValidationFeedbackPanel';

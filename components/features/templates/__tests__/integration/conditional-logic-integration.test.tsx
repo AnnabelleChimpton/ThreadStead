@@ -27,7 +27,6 @@ import FlexContainer from '../../FlexContainer';
 import GradientBox from '../../GradientBox';
 import CenteredBox from '../../CenteredBox';
 import { IfOwner, IfVisitor } from '../../conditional/IfOwner';
-import Show from '../../conditional/Show';
 import Choose, { When, Otherwise } from '../../conditional/Choose';
 
 describe('Conditional Logic Integration', () => {
@@ -148,7 +147,7 @@ describe('Conditional Logic Integration', () => {
   });
 
   describe('Nested Conditional Logic', () => {
-    it('should handle IfOwner containing Show containing Choose/When/Otherwise', () => {
+    it('should handle IfOwner containing When containing Choose/When/Otherwise', () => {
       const ownerWithPostsData = createMockResidentData({
         viewer: { id: 'owner123' },
         owner: { 
@@ -177,7 +176,7 @@ describe('Conditional Logic Integration', () => {
                   <h2>Owner Dashboard</h2>
                   <DisplayName />
                   
-                  <Show when="has:capabilities.bio">
+                  <Choose><When when="has:capabilities.bio">
                     <div data-testid="bio-section">
                       <h3>Bio Available</h3>
                       <Bio />
@@ -197,14 +196,14 @@ describe('Conditional Logic Integration', () => {
                         </Otherwise>
                       </Choose>
                     </div>
-                  </Show>
+                  </When></Choose>
                   
-                  <Show when="!has:capabilities.bio">
+                  <Choose><When when="!has:capabilities.bio">
                     <div data-testid="no-bio-section">
                       <h3>Add Your Bio</h3>
                       <p>Tell visitors about yourself</p>
                     </div>
-                  </Show>
+                  </When></Choose>
                 </div>
               </IfOwner>
 
@@ -212,9 +211,9 @@ describe('Conditional Logic Integration', () => {
                 <div data-testid="visitor-simple-view">
                   <h2>Public Profile</h2>
                   <DisplayName />
-                  <Show when="has:capabilities.bio">
+                  <Choose><When when="has:capabilities.bio">
                     <Bio />
-                  </Show>
+                  </When></Choose>
                 </div>
               </IfVisitor>
             </FlexContainer>
@@ -271,7 +270,7 @@ describe('Conditional Logic Integration', () => {
             <div data-testid="owner-section">
               <DisplayName />
               
-              <Show when="has:capabilities.bio">
+              <Choose><When when="has:capabilities.bio">
                 <div data-testid="bio-exists">
                   <Bio />
                   <Choose>
@@ -283,9 +282,9 @@ describe('Conditional Logic Integration', () => {
                     </Otherwise>
                   </Choose>
                 </div>
-              </Show>
+              </When></Choose>
               
-              <Show when="!has:capabilities.bio">
+              <Choose><When when="!has:capabilities.bio">
                 <div data-testid="no-bio">
                   <p>No bio available</p>
                   <Choose>
@@ -302,7 +301,7 @@ describe('Conditional Logic Integration', () => {
                     </Otherwise>
                   </Choose>
                 </div>
-              </Show>
+              </When></Choose>
             </div>
           </IfOwner>
         </div>,
@@ -350,21 +349,21 @@ describe('Conditional Logic Integration', () => {
         <div className="deep-nesting-performance-test">
           <IfOwner>
             <div data-testid="level-1">Level 1
-              <Show when="has:capabilities.bio">
+              <Choose><When when="has:capabilities.bio">
                 <div data-testid="level-2">Level 2
                   <Choose>
                     <When when="has:posts">
                       <div data-testid="level-3">Level 3
                         <IfOwner>
                           <div data-testid="level-4">Level 4
-                            <Show when="has:websites">
+                            <Choose><When when="has:websites">
                               <div data-testid="level-5">Level 5
                                 <Choose>
                                   <When when="has:badges">
                                     <div data-testid="level-6">Level 6
                                       <IfOwner>
                                         <div data-testid="level-7">Level 7
-                                          <Show when="has:owner.displayName">
+                                          <Choose><When when="has:owner.displayName">
                                             <div data-testid="level-8">Level 8
                                               <Choose>
                                                 <When when="has:owner.handle">
@@ -383,7 +382,7 @@ describe('Conditional Logic Integration', () => {
                                                 </Otherwise>
                                               </Choose>
                                             </div>
-                                          </Show>
+                                          </When></Choose>
                                         </div>
                                       </IfOwner>
                                     </div>
@@ -393,7 +392,7 @@ describe('Conditional Logic Integration', () => {
                                   </Otherwise>
                                 </Choose>
                               </div>
-                            </Show>
+                            </When></Choose>
                           </div>
                         </IfOwner>
                       </div>
@@ -403,7 +402,7 @@ describe('Conditional Logic Integration', () => {
                     </Otherwise>
                   </Choose>
                 </div>
-              </Show>
+              </When></Choose>
             </div>
           </IfOwner>
         </div>,
@@ -451,18 +450,18 @@ describe('Conditional Logic Integration', () => {
           <GridLayout columns={2} gapSize="lg">
             <IfOwner>
               <div data-testid="owner-complex">
-                <Show when="has:posts">
+                <Choose><When when="has:posts">
                   <div data-testid="owner-posts">Owner Posts</div>
-                </Show>
-                <Show when="!has:posts">
+                </When></Choose>
+                <Choose><When when="!has:posts">
                   <div data-testid="owner-no-posts">No Posts (Owner)</div>
-                </Show>
+                </When></Choose>
               </div>
             </IfOwner>
             
             <IfVisitor>
               <div data-testid="visitor-complex">
-                <Show when="has:capabilities.bio">
+                <Choose><When when="has:capabilities.bio">
                   <div data-testid="visitor-bio">
                     <Bio />
                     <Choose>
@@ -474,10 +473,10 @@ describe('Conditional Logic Integration', () => {
                       </Otherwise>
                     </Choose>
                   </div>
-                </Show>
-                <Show when="!has:capabilities.bio">
+                </When></Choose>
+                <Choose><When when="!has:capabilities.bio">
                   <div data-testid="visitor-no-bio">No Bio Available</div>
-                </Show>
+                </When></Choose>
               </div>
             </IfVisitor>
           </GridLayout>
@@ -562,7 +561,7 @@ describe('Conditional Logic Integration', () => {
               </IfVisitor>
             </div>
 
-            <Show when="has:posts">
+            <Choose><When when="has:posts">
               <div data-testid="posts-section">
                 <h3>Posts Available</h3>
                 <IfOwner>
@@ -577,7 +576,7 @@ describe('Conditional Logic Integration', () => {
                   </div>
                 </IfVisitor>
               </div>
-            </Show>
+            </When></Choose>
           </GridLayout>
         </div>,
         { residentData: ownerData }
@@ -635,7 +634,7 @@ describe('Conditional Logic Integration', () => {
             </IfVisitor>
 
             <div className="universal-section">
-              <Show when="has:owner.displayName">
+              <Choose><When when="has:owner.displayName">
                 <GradientBox 
                   gradient="sunset" 
                   containerPadding="sm" 
@@ -644,7 +643,7 @@ describe('Conditional Logic Integration', () => {
                   <h2>Profile Information</h2>
                   <DisplayName />
                 </GradientBox>
-              </Show>
+              </When></Choose>
             </div>
           </GridLayout>
         </div>,

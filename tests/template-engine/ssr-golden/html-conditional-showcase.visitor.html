@@ -1,0 +1,587 @@
+<div class="profile-template-root" id="profile-u_owner" style="position: static; z-index: auto; overflow: visible; isolation: auto; min-height: 100vh; width: 100%; display: block;">
+  <div class="pure-absolute-container" id="profile-u_owner">
+    <div class="showcase-container">
+      " "
+      <div class="page-header">
+        " "
+        <h1 class="page-title">
+          "Conditional Logic Showcase"
+        " "
+        <p class="page-subtitle">
+          "Live examples with "
+          <span class="ts-profile-display-name thread-headline text-3xl font-bold mb-1 text-thread-pine">
+            "Pat Example"
+          "'s actual profile data"
+        " "
+        <div class="user-level-banner">
+          "🌱 BEGINNER Level - You have 1-9 posts!"
+        " "
+      " "
+      <div class="content-grid">
+        " "
+        <div class="section-card comparison-section">
+          " "
+          <h2 class="section-title">
+            "🔢 Comparison Operators"
+          " "
+          <div class="example-item">
+            " "
+            <div class="example-label">
+              "Greater Than (>)"
+            " "
+            <div class="code-snippet">
+              "＜If data="posts.length" greater-than="5"＞"
+            " "
+            <div class="data-display">
+              " "
+              <span class="data-label">
+                "Your post count:"
+              " 2 "
+            " "
+            <div class="condition-check">
+              " "
+              <strong>
+                "Checking:"
+              " Is post count > 5? "
+            " "
+            <span class="result-badge result-false">
+              "✗ FALSE - You have 5 or fewer posts"
+            " "
+            <div class="explanation">
+              " This content shows when you have 5 or fewer posts. "
+            " "
+          " "
+          <div class="example-item">
+            " "
+            <div class="example-label">
+              "Less Than (<)"
+            " "
+            <div class="code-snippet">
+              "＜If data="posts.length" less-than="100"＞"
+            " "
+            <div class="data-display">
+              " "
+              <span class="data-label">
+                "Your post count:"
+              " 2 "
+            " "
+            <div class="condition-check">
+              " "
+              <strong>
+                "Checking:"
+              " Is post count < 100? "
+            " "
+            <span class="result-badge result-true">
+              "✓ TRUE - You have under 100 posts"
+            " "
+            <div class="explanation">
+              " This shows because you haven't reached 100 posts yet. "
+            " "
+          " "
+          <div class="example-item">
+            " "
+            <div class="example-label">
+              "Equals (=)"
+            " "
+            <div class="code-snippet">
+              "＜If data="posts.length" equals="0"＞"
+            " "
+            <div class="data-display">
+              " "
+              <span class="data-label">
+                "Your post count:"
+              " 2 "
+            " "
+            <div class="condition-check">
+              " "
+              <strong>
+                "Checking:"
+              " Is post count exactly 0? "
+            " "
+            <span class="result-badge result-false">
+              "✗ FALSE - You have posts!"
+            " "
+            <div class="explanation">
+              " You've already started posting. Great work! "
+            " "
+          " "
+          <div class="example-item">
+            " "
+            <div class="example-label">
+              "Not Equals (!=)"
+            " "
+            <div class="code-snippet">
+              "＜If data="posts.length" not-equals="0"＞"
+            " "
+            <div class="data-display">
+              " "
+              <span class="data-label">
+                "Your post count:"
+              " 2 "
+            " "
+            <div class="condition-check">
+              " "
+              <strong>
+                "Checking:"
+              " Is post count NOT equal to 0? "
+            " "
+            <span class="result-badge result-true">
+              "✓ TRUE - You have at least one post"
+            " "
+            <div class="explanation">
+              " Perfect! This shows any content you want visible only when users have posts. "
+            " "
+          " "
+        " "
+        <div class="section-card string-section">
+          " "
+          <h2 class="section-title">
+            "📝 String Operators"
+          " "
+          <div class="example-item">
+            " "
+            <div class="example-label">
+              "Contains"
+            " "
+            <div class="code-snippet">
+              "＜If data="capabilities.bio" contains="developer"＞"
+            " "
+            <div class="data-display">
+              " "
+              <span class="data-label">
+                "Your bio:"
+              " "
+              <div class="ts-profile-bio-section mb-4">
+                <h3 class="ts-bio-heading thread-headline text-xl font-bold mb-2 text-thread-pine">
+                  "About Me"
+                <p class="ts-bio-text ts-profile-bio leading-relaxed text-thread-charcoal">
+                  "I make small websites."
+              " "
+            " "
+            <div class="condition-check">
+              " "
+              <strong>
+                "Checking:"
+              " Does bio contain "developer"? "
+            " "
+            <span class="result-badge result-false">
+              "✗ FALSE - Your bio doesn't mention "developer""
+            " "
+            <div class="explanation">
+              " Your bio exists but doesn't contain the word "developer". "
+            " "
+          " "
+          <div class="example-item">
+            " "
+            <div class="example-label">
+              "Starts With"
+            " "
+            <div class="code-snippet">
+              "＜If data="owner.handle" starts-with="admin"＞"
+            " "
+            <div class="data-display">
+              " "
+              <span class="data-label">
+                "Your username:"
+              " "
+              <h2 class="ts-profile-display-name thread-headline text-3xl font-bold mb-1 text-thread-pine">
+                "Pat Example"
+              " "
+            " "
+            <div class="condition-check">
+              " "
+              <strong>
+                "Checking:"
+              " Does username start with "admin"? "
+            " "
+            <span class="result-badge result-false">
+              "✗ FALSE - Username doesn't start with "admin""
+            " "
+            <div class="explanation">
+              " Your username exists but doesn't start with "admin". "
+            " "
+          " "
+          <div class="example-item">
+            " "
+            <div class="example-label">
+              "Ends With"
+            " "
+            <div class="code-snippet">
+              "＜If data="owner.handle" ends-with="_test"＞"
+            " "
+            <div class="data-display">
+              " "
+              <span class="data-label">
+                "Your username:"
+              " "
+              <h2 class="ts-profile-display-name thread-headline text-3xl font-bold mb-1 text-thread-pine">
+                "Pat Example"
+              " "
+            " "
+            <div class="condition-check">
+              " "
+              <strong>
+                "Checking:"
+              " Does username end with "_test"? "
+            " "
+            <span class="result-badge result-false">
+              "✗ FALSE - Username doesn't end with "_test""
+            " "
+            <div class="explanation">
+              " Your username exists but doesn't end with "_test". This is a regular account. "
+            " "
+          " "
+        " "
+        <div class="section-card logical-section">
+          " "
+          <h2 class="section-title">
+            "🔗 Logical Operators"
+          " "
+          <div class="example-item">
+            " "
+            <div class="example-label">
+              "AND - All must be true"
+            " "
+            <div class="code-snippet">
+              "<If and="posts,capabilities.bio">"
+            " "
+            <div class="data-display">
+              " "
+              <span class="data-label">
+                "Has posts?"
+              " "
+              <span class="data-value">
+                "YES"
+              <br>
+              " "
+              <span class="data-label">
+                "Has bio?"
+              " "
+              <span class="data-value">
+                "YES"
+              " "
+            " "
+            <div class="condition-check">
+              " "
+              <strong>
+                "Checking:"
+              " Does user have BOTH posts AND bio? "
+            " "
+            <span class="result-badge result-true">
+              "✓ TRUE - You have both posts AND bio"
+            " "
+            <div class="explanation">
+              " Both conditions are true! This is a complete profile. "
+            " "
+          " "
+          <div class="example-item">
+            " "
+            <div class="example-label">
+              "OR - At least one true"
+            " "
+            <div class="code-snippet">
+              "<If or="posts,guestbook">"
+            " "
+            <div class="data-display">
+              " "
+              <span class="data-label">
+                "Has posts?"
+              " "
+              <span class="data-value">
+                "YES"
+              <br>
+              " "
+              <span class="data-label">
+                "Has guestbook?"
+              " "
+              <span class="data-value">
+                "YES"
+              " "
+            " "
+            <div class="condition-check">
+              " "
+              <strong>
+                "Checking:"
+              " Does user have posts OR guestbook (or both)? "
+            " "
+            <span class="result-badge result-true">
+              "✓ TRUE - Has posts OR guestbook (or both)"
+            " "
+            <div class="explanation">
+              " At least one condition is true! Your profile has some content. "
+            " "
+          " "
+          <div class="example-item">
+            " "
+            <div class="example-label">
+              "NOT - Must be false"
+            " "
+            <div class="code-snippet">
+              "<If not="featuredFriends">"
+            " "
+            <div class="data-display">
+              " "
+              <span class="data-label">
+                "Has featured friends?"
+              " "
+              <span class="data-value">
+                "NO"
+              " "
+            " "
+            <div class="condition-check">
+              " "
+              <strong>
+                "Checking:"
+              " Does user NOT have featured friends? "
+            " "
+            <span class="result-badge result-true">
+              "✓ TRUE - No featured friends set"
+            " "
+            <div class="explanation">
+              " This shows when the condition is FALSE (no featured friends). "
+            " "
+          " "
+        " "
+        <div class="section-card level-section">
+          " "
+          <h2 class="section-title">
+            "🏆 Level System with Choose/When/Otherwise"
+          " "
+          <div class="example-item">
+            " "
+            <div class="example-label">
+              "Multi-Tier Branching"
+            " "
+            <div class="code-snippet">
+              "<Choose> <When data="posts.length" greater-than-or-equal="50">Expert</When> <When data="posts.length" greater-than-or-equal="10">Intermediate</When> <Otherwise>Beginner</Otherwise> </Choose>"
+            " "
+            <div class="data-display">
+              " "
+              <span class="data-label">
+                "Your post count:"
+              " 2 "
+            " "
+            <div class="condition-check">
+              " "
+              <strong>
+                "Checking:"
+              " Which tier do you fall into?"
+              <br>
+              " • 50+ posts = Expert"
+              <br>
+              " • 10-49 posts = Intermediate"
+              <br>
+              " • 0-9 posts = Beginner "
+            " "
+            <span class="level-badge" style="background: linear-gradient(135deg, #84fab0, #8fd3f4); color: rgb(6, 95, 70);">
+              "🌱 BEGINNER"
+            " "
+            <div class="explanation">
+              " "
+              <strong>
+                "Third When matched!"
+              " You have 1-9 posts. "
+            " "
+            <div class="explanation" style="margin-top: 15px; background: rgb(230, 255, 250); border-left-color: rgb(56, 178, 172);">
+              " "
+              <strong>
+                "💡 How Choose works:"
+              " It checks each When in order and shows the FIRST one that's true. If none match, it shows Otherwise. "
+            " "
+          " "
+        " "
+      " "
+      <div class="section-card" style="background: white; padding: 25px; border-radius: 12px; margin-top: 20px;">
+        " "
+        <h2 style="font-size: 1.5rem; font-weight: 700; margin: 0px 0px 15px 0px; border-bottom: 3px solid rgb(229, 62, 62); padding-bottom: 10px; color: rgb(155, 44, 44);">
+          "👥 Owner vs Visitor"
+        " "
+        <div class="example-item">
+          " "
+          <div class="example-label">
+            "IfOwner Component"
+          " "
+          <div class="code-snippet">
+            "<IfOwner>Owner-only content</IfOwner>"
+          " "
+          <div class="condition-check">
+            " "
+            <strong>
+              "Checking:"
+            " Is the current viewer the profile owner? "
+          " "
+          <span class="result-badge result-false">
+            "✗ Hidden from you (you're a visitor)"
+          " "
+          <div class="explanation">
+            " Visitors don't see this content. "
+          " "
+        " "
+        <div class="example-item">
+          " "
+          <div class="example-label">
+            "IfVisitor Component"
+          " "
+          <div class="code-snippet">
+            "<IfVisitor>Visitor-only content</IfVisitor>"
+          " "
+          <div class="condition-check">
+            " "
+            <strong>
+              "Checking:"
+            " Is the current viewer NOT the profile owner? "
+          " "
+          <div style="background: rgb(219, 234, 254); padding: 15px; border-radius: 8px; border: 2px solid rgb(59, 130, 246); margin: 10px 0px;">
+            " "
+            <strong>
+              "👋 Visitor View:"
+            " You see this because you're VISITING this profile. "
+          " "
+          <span class="result-badge result-true">
+            "✓ TRUE - You are a visitor"
+          " "
+          <div class="explanation">
+            " Use this to show welcome messages, follow buttons, or guest-specific content. "
+          " "
+        " "
+        <div class="explanation" style="background: rgb(255, 245, 245); border-left-color: rgb(252, 129, 129); margin-top: 15px;">
+          " "
+          <strong>
+            "💡 Pro Tip:"
+          " IfOwner and IfVisitor are mutually exclusive - only ONE will ever show at a time! "
+        " "
+      " "
+      <div class="section-card" style="background: white; padding: 25px; border-radius: 12px; margin-top: 20px;">
+        " "
+        <h2 style="font-size: 1.5rem; font-weight: 700; margin: 0px 0px 15px 0px; border-bottom: 3px solid rgb(16, 185, 129); padding-bottom: 10px; color: rgb(4, 120, 87);">
+          "💚 Relationship-Based Content"
+        " "
+        <div class="example-item">
+          " "
+          <div class="example-label">
+            "Friend-Only Content"
+          " "
+          <div class="code-snippet">
+            "<If data="viewer.isFriend">Secret friend content</If>"
+          " "
+          <div class="condition-check">
+            " "
+            <strong>
+              "Checking:"
+            " Is the viewer a friend (mutual follows)? "
+          " "
+          <span class="result-badge result-false">
+            "✗ FALSE - Not friends yet"
+          " "
+          <div class="explanation">
+            " This content is hidden because you're not friends with the profile owner. "
+          " "
+        " "
+        <div class="example-item">
+          " "
+          <div class="example-label">
+            "Follower Content"
+          " "
+          <div class="code-snippet">
+            "<If data="viewer.isFollowing">Thanks for following!</If>"
+          " "
+          <div class="condition-check">
+            " "
+            <strong>
+              "Checking:"
+            " Is the viewer following this profile? "
+          " "
+          <span class="result-badge result-false">
+            "✗ FALSE - Not following"
+          " "
+          <div class="explanation">
+            " Could show a "Follow me!" button here for non-followers. "
+          " "
+        " "
+        <div class="example-item">
+          " "
+          <div class="example-label">
+            "Non-Friend CTA"
+          " "
+          <div class="code-snippet">
+            "<IfVisitor><If not="viewer.isFriend">Add friend button</If></IfVisitor>"
+          " "
+          <div class="condition-check">
+            " "
+            <strong>
+              "Checking:"
+            " Is viewer NOT a friend (to show "Add Friend" CTA)? "
+          " "
+          <div style="background: rgb(254, 243, 199); padding: 15px; border-radius: 8px; border: 2px solid rgb(245, 158, 11); margin: 10px 0px;">
+            " "
+            <strong>
+              "👋 Hey there!"
+            " We're not friends yet. Want to add me? "
+          " "
+          <span class="result-badge result-true">
+            "✓ TRUE - Not friends (CTA visible)"
+          " "
+          <div class="explanation">
+            " Perfect for showing "Add Friend" or "Follow" buttons only to non-friends. "
+          " "
+        " "
+        <div class="explanation" style="background: rgb(236, 253, 245); border-left-color: rgb(16, 185, 129); margin-top: 15px;">
+          " "
+          <strong>
+            "💡 Use Cases:"
+          " Friend galleries, exclusive posts, follower-only updates, personalized CTAs, and more! "
+        " "
+      " "
+      <div style="background: white; border-radius: 12px; padding: 25px; margin-top: 30px;">
+        " "
+        <h2 style="font-size: 1.5rem; font-weight: 700; margin: 0px 0px 20px 0px; border-bottom: 3px solid rgb(102, 126, 234); padding-bottom: 10px;">
+          "📚 Quick Syntax Reference"
+        " "
+        <h3 style="color: rgb(74, 85, 104); margin: 15px 0px 10px 0px;">
+          "Comparison Operators"
+        " "
+        <div class="code-snippet">
+          "＜If data="posts.length" greater-than="10"＞...＜/If＞ ＜If data="posts.length" less-than="100"＞...＜/If＞ ＜If data="posts.length" greater-than-or-equal="5"＞...＜/If＞ ＜If data="posts.length" less-than-or-equal="50"＞...＜/If＞ ＜If data="posts.length" equals="5"＞...＜/If＞ ＜If data="posts.length" not-equals="0"＞...＜/If＞"
+        " "
+        <h3 style="color: rgb(74, 85, 104); margin: 15px 0px 10px 0px;">
+          "String Operators"
+        " "
+        <div class="code-snippet">
+          "＜If data="capabilities.bio" contains="developer"＞...＜/If＞ ＜If data="owner.handle" starts-with="admin"＞...＜/If＞ ＜If data="owner.handle" ends-with="_test"＞...＜/If＞ ＜If data="owner.handle" matches="userd+"＞...＜/If＞"
+        " "
+        <h3 style="color: rgb(74, 85, 104); margin: 15px 0px 10px 0px;">
+          "Logical Operators"
+        " "
+        <div class="code-snippet">
+          "＜If and="posts,capabilities.bio"＞All must be true＜/If＞ ＜If or="posts,guestbook"＞At least one true＜/If＞ ＜If not="posts"＞Must be false＜/If＞"
+        " "
+        <h3 style="color: rgb(74, 85, 104); margin: 15px 0px 10px 0px;">
+          "Multi-Condition Branching"
+        " "
+        <div class="code-snippet">
+          "＜Choose＞ ＜When data="posts.length" greater-than="50"＞Expert content＜/When＞ ＜When data="posts.length" greater-than="10"＞Intermediate content＜/When＞ ＜Otherwise＞Beginner content＜/Otherwise＞ ＜/Choose＞"
+        " "
+        <h3 style="color: rgb(74, 85, 104); margin: 15px 0px 10px 0px;">
+          "Owner/Visitor"
+        " "
+        <div class="code-snippet">
+          "＜IfOwner＞Only you see this＜/IfOwner＞ ＜IfVisitor＞Only visitors see this＜/IfVisitor＞"
+        " "
+        <h3 style="color: rgb(74, 85, 104); margin: 15px 0px 10px 0px;">
+          "Relationship Status"
+        " "
+        <div class="code-snippet">
+          "＜If data="viewer.isFriend"＞Friend-only content＜/If＞ ＜If data="viewer.isFollowing"＞Follower content＜/If＞ ＜If data="viewer.isFollower"＞They follow you＜/If＞ ＜If not="viewer.isFriend"＞Add friend CTA＜/If＞"
+        " "
+      " "
+      <div style="background: white; border-radius: 12px; padding: 20px; text-align: center; margin-top: 30px; color: rgb(113, 128, 150);">
+        " "
+        <p>
+          <strong>
+            "Conditional Logic Showcase"
+          " - All examples use YOUR live profile data"
+        " "
+        <p style="font-size: 0.9rem;">
+          "Try editing your profile (add posts, change bio, etc.) and reload to see conditions change!"
+        " "
+      " "

@@ -62,11 +62,6 @@ export function transformNodeToReact(node: TemplateNode, key?: string | number):
       // Transform custom component
       const { component: Component, props: propSchemas } = componentRegistration;
 
-      // DEBUG: Log node properties for Show component
-      if (tagName === 'Show') {
-        console.log('[transformNodeToReact] Show node.properties:', node.properties);
-      }
-
       // Extract and normalize props from properties (kebab-case → camelCase)
       const rawProps = normalizeProps({ ...node.properties });
       

@@ -61,7 +61,6 @@ import SplitLayout from '../../SplitLayout';
 import GridLayout from '../../GridLayout';
 import Tabs, { Tab } from '../../Tabs';
 import { IfOwner, IfVisitor } from '../../conditional/IfOwner';
-import Show from '../../conditional/Show';
 import Choose, { When, Otherwise } from '../../conditional/Choose';
 
 // CSS from the elegant showcase template (trimmed to the parts asserted below)

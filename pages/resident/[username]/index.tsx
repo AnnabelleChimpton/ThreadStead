@@ -17,12 +17,11 @@ import BlogTab from "@/components/core/profile/tabs/BlogTab";
 import MediaGrid from "@/components/core/profile/tabs/MediaGrid";
 import FriendsWebsitesGrid from "@/components/core/profile/tabs/FriendsWebsitesGrid";
 import ProfileBadgeDisplay from "@/components/core/profile/ProfileBadgeDisplay";
-import ProfileModeRenderer from "@/components/core/profile/ProfileModeRenderer";
 import type { ProfileUser } from "@/components/core/profile/ProfileModeRenderer";
+import type { PageForRender } from "@/lib/templates/rendering/page-tree-server";
 import ViewSourceBadge from "@/components/core/profile/ViewSourceBadge";
 import StepOutsideLink from "@/components/core/profile/StepOutsideLink";
 import PrivateProfile from "@/components/core/profile/PrivateProfile";
-import WidgetSlot from "@/components/core/profile/WidgetSlot";
 import type { PublicWidgetSlot } from "@/lib/domain/profile/widget-slot/compile";
 import type { ResidentData } from "@/components/features/templates/ResidentDataProvider";
 import type { TemplateNode } from "@/lib/templates/compilation/template-parser";
@@ -32,10 +31,15 @@ import dynamic from 'next/dynamic';
 import WelcomeMusicControl from "@/components/features/onboarding/WelcomeMusicControl";
 import { contentMetadataGenerator } from "@/lib/utils/metadata/content-metadata";
 import { getSiteCSS } from "@/lib/utils/css/site-css-server";
-import { generateOptimizedCSS } from "@/lib/utils/css/layers";
 import { resolveCSSMode } from "@/lib/utils/css/css-mode";
 import { serializeJsonLd } from "@/lib/utils/sanitization/json-ld";
 
+
+// The template runtime (every template component) loads only on the pages
+// that use it: a page of your own HTML, or a profile with a widget slot.
+// Both still render on the server.
+const ProfileModeRenderer = dynamic(() => import("@/components/core/profile/ProfileModeRenderer"));
+const WidgetSlot = dynamic(() => import("@/components/core/profile/WidgetSlot"));
 
 // Dynamically import components to avoid SSR issues
 const MidiPlayer = dynamic(() => import('@/components/ui/media/MidiPlayer'), {
@@ -59,18 +63,16 @@ type ProfileProps = {
   websites?: Website[];
   featuredFriends?: SelectedFriend[];
   initialTabId?: string;
-  customTemplateAst?: any; // Legacy compatibility
+  /** Only for rows saved before compiled templates existed */
+  customTemplateAst?: any;
   residentData?: ResidentData;
   hideNavigation?: boolean;
   templateMode?: 'default' | 'enhanced' | 'advanced';
   includeSiteCSS?: boolean;
   cssMode?: 'inherit' | 'override' | 'disable';
   initialSiteCSS?: string; // Pre-fetched site CSS from SSR to prevent hydration mismatches
-  preRenderedCSS?: string; // Pre-rendered complete CSS from SSR to prevent hydration mismatches
-  // Islands compilation data
-  compiledTemplate?: any;
-  templateIslands?: any[];
-  templateCompiledAt?: string | null;
+  /** A page of your own HTML, ready to render (lib/templates/rendering/page-tree-server.ts) */
+  compiledTemplate?: PageForRender;
   profileMidi?: {
     url: string;
     title?: string;
@@ -112,10 +114,7 @@ export default function ProfilePage({
   includeSiteCSS = true,
   cssMode = 'inherit',
   initialSiteCSS,
-  preRenderedCSS,
   compiledTemplate,
-  templateIslands,
-  templateCompiledAt,
   profileMidi,
   displayName,
   userJoinedAt,
@@ -155,12 +154,51 @@ export default function ProfilePage({
   // The way back out to the house, in the site chrome above every layout
   const stepOutside = hasPixelHome ? <StepOutsideLink username={username} /> : null;
 
-  // Advanced templates always use the advanced renderer for consistent behavior
-  // Only non-advanced templates use the standard layout
-  const shouldUseStandardLayout = templateMode !== 'advanced';
+  // Every layout gets the same <head>. A page of your own HTML that came with
+  // its own <title> keeps it.
+  const documentTitle =
+    templateMode === 'advanced' ? compiledTemplate?.ast?.head?.title?.trim() : undefined;
+  const pageTitle = documentTitle || profileMetadata.title;
+  const head = (
+    <Head>
+      <title>{pageTitle}</title>
+      <meta name="description" content={profileMetadata.description} />
+      {profileMetadata.keywords && (
+        <meta name="keywords" content={profileMetadata.keywords.join(', ')} />
+      )}
+      <meta name="author" content={displayName || username} />
+      <link rel="canonical" href={`${getSiteBaseUrl()}${profileMetadata.url}`} />
+      <meta name="robots" content="index, follow" />
 
-  // Use advanced renderer for all advanced templates
-  if (templateMode === 'advanced' && residentData && !shouldUseStandardLayout) {
+      {/* OpenGraph meta tags */}
+      <meta property="og:title" content={pageTitle} />
+      <meta property="og:description" content={profileMetadata.description} />
+      <meta property="og:type" content="profile" />
+      <meta key="og:image" property="og:image" content={photoUrl} />
+      <meta key="og:image:alt" property="og:image:alt" content={profileMetadata.imageAlt} />
+      <meta property="og:url" content={`${getSiteBaseUrl()}${profileMetadata.url}`} />
+      <meta property="og:site_name" content="ThreadStead" />
+      <meta property="og:locale" content="en_US" />
+
+      {/* Social media card meta tags */}
+      <meta key="twitter:card" name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:title" content={pageTitle} />
+      <meta name="twitter:description" content={profileMetadata.description} />
+      <meta key="twitter:image" name="twitter:image" content={photoUrl} />
+
+      {/* Structured data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: serializeJsonLd(profileMetadata.structuredData)
+        }}
+      />
+    </Head>
+  );
+
+  // Your own HTML page. Without residentData (template switched off or
+  // missing) an advanced page falls through to the standard layout below.
+  if (templateMode === 'advanced' && residentData) {
     // Create ProfileUser object with Islands data
     const profileUser: ProfileUser = {
       id: ownerUserId,
@@ -168,24 +206,19 @@ export default function ProfilePage({
       profile: {
         templateMode,
         customCSS,
-        customTemplate: null, // Not needed for Islands rendering
+        // Only rows from before compiled templates existed send this
         customTemplateAst: customTemplateAst ? JSON.stringify(customTemplateAst) : null,
         cssMode: cssMode,
         compiledTemplate,
-        templateIslands,
-        templateCompiledAt: templateCompiledAt ? new Date(templateCompiledAt) : null
       }
     };
 
     // Islands mode: Handle CSS based on navigation and CSS settings
     if (hideNavigation) {
       if (includeSiteCSS) {
-        const wrapperClass = templateMode === 'advanced'
-          ? "min-h-screen flex flex-col"
-          : "min-h-screen thread-surface flex flex-col";
-
         return (
-          <div className={wrapperClass}>
+          <div className="min-h-screen flex flex-col">
+            {head}
             {stepOutside}
             {/* Full bleed: your own page decides its width and margins, as
                 it does with navigation shown (this used to box it at 1024px).
@@ -195,7 +228,6 @@ export default function ProfilePage({
               <ProfileModeRenderer
                 user={profileUser}
                 residentData={residentData}
-                useIslands={true}
                 hideNavigation={true}
                 fallbackContent={
                   <div className="p-8 text-center text-gray-500">
@@ -211,10 +243,10 @@ export default function ProfilePage({
         // Hide navigation and disable site CSS - no wrapper constraints
         return (
           <>
+            {head}
             <ProfileModeRenderer
               user={profileUser}
               residentData={residentData}
-              useIslands={true}
               hideNavigation={true}
               afterNav={stepOutside}
               fallbackContent={
@@ -231,10 +263,10 @@ export default function ProfilePage({
       // Show navigation for advanced templates - no wrapper styling, no constraints
       return (
         <>
+          {head}
           <ProfileModeRenderer
             user={profileUser}
             residentData={residentData}
-            useIslands={true}
             afterNav={stepOutside}
             fallbackContent={
               <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>
@@ -290,41 +322,7 @@ export default function ProfilePage({
 
   return (
     <>
-      <Head>
-        <title>{profileMetadata.title}</title>
-        <meta name="description" content={profileMetadata.description} />
-        {profileMetadata.keywords && (
-          <meta name="keywords" content={profileMetadata.keywords.join(', ')} />
-        )}
-        <meta name="author" content={displayName || username} />
-        <link rel="canonical" href={`${getSiteBaseUrl()}${profileMetadata.url}`} />
-        <meta name="robots" content="index, follow" />
-
-        {/* OpenGraph meta tags */}
-        <meta property="og:title" content={profileMetadata.title} />
-        <meta property="og:description" content={profileMetadata.description} />
-        <meta property="og:type" content="profile" />
-        <meta key="og:image" property="og:image" content={photoUrl} />
-        <meta key="og:image:alt" property="og:image:alt" content={profileMetadata.imageAlt} />
-        <meta property="og:url" content={`${getSiteBaseUrl()}${profileMetadata.url}`} />
-        <meta property="og:site_name" content="ThreadStead" />
-        <meta property="og:locale" content="en_US" />
-
-        {/* Social media card meta tags */}
-        <meta key="twitter:card" name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={profileMetadata.title} />
-        <meta name="twitter:description" content={profileMetadata.description} />
-        <meta key="twitter:image" name="twitter:image" content={photoUrl} />
-
-        {/* Structured data */}
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: serializeJsonLd(profileMetadata.structuredData)
-          }}
-        />
-      </Head>
-
+      {head}
       <ViewSourceBadge username={username} />
       <ProfileLayout
         customCSS={customCSS}
@@ -333,7 +331,6 @@ export default function ProfilePage({
         templateMode={templateMode}
         cssMode={cssMode}
         initialSiteCSS={initialSiteCSS}
-        preRenderedCSS={preRenderedCSS}
         afterNav={stepOutside}
       >
         <RetroCard>
@@ -527,29 +524,9 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
     (data.profile?.customTemplateAst || data.profile?.compiledTemplate) &&
     data.profile?.templateEnabled) {
     try {
-      // Parse the stored AST (if available - legacy compatibility)
-      if (data.profile.customTemplateAst) {
+      // Rows saved before compiled templates existed render from the old AST
+      if (!data.profile.compiledTemplate && data.profile.customTemplateAst) {
         customTemplateAst = JSON.parse(data.profile.customTemplateAst);
-      }
-
-      // Migration: Check if AST has img tags but template has Image or UserImage tags (indicates corrupted AST)
-      const hasImageComponents = data.profile.customTemplate?.includes('<Image') || data.profile.customTemplate?.includes('<UserImage');
-      const astString = customTemplateAst ? JSON.stringify(customTemplateAst) : '';
-      const hasImgInAst = astString.includes('"tagName":"img"');
-
-      if (customTemplateAst && hasImageComponents && hasImgInAst) {
-        // Convert old <Image> tags to <UserImage> for backward compatibility
-        const updatedTemplate = data.profile.customTemplate?.replace(/<Image\b/g, '<UserImage').replace(/<\/Image>/g, '</UserImage>');
-
-        if (updatedTemplate) {
-          // Recompile the template to fix the AST
-          const { compileTemplate } = await import('@/lib/templates/compilation/template-parser');
-          const compilationResult = compileTemplate(updatedTemplate);
-
-          if (compilationResult.success) {
-            customTemplateAst = compilationResult.ast!;
-          }
-        }
       }
 
       // Fetch posts and guestbook data for template rendering using direct DB calls
@@ -712,12 +689,14 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   if (data.profile?.templateMode != null) props.templateMode = data.profile.templateMode;
 
 
-  // Islands compilation data
-  if (data.profile?.compiledTemplate != null) {
-    props.compiledTemplate = data.profile.compiledTemplate;
+  // A page of your own HTML: the tree it renders from on the server and in
+  // the browser, its components, and its <head> bits (title, fonts, <body>
+  // colours). Only what rendering reads, not the three stored copies.
+  if (data.profile?.templateMode === 'advanced' && data.profile.compiledTemplate != null) {
+    const { pageForRender } = await import('@/lib/templates/rendering/page-tree-server');
+    const page = pageForRender(data.profile.compiledTemplate, data.profile.templateIslands);
+    if (page) props.compiledTemplate = page;
   }
-  if (data.profile?.templateIslands != null) props.templateIslands = data.profile.templateIslands;
-  if (data.profile?.templateCompiledAt != null) props.templateCompiledAt = new Date(data.profile.templateCompiledAt).toISOString();
 
   // CSS Priority based on template mode and CSS mode
   const templateMode = data.profile?.templateMode || 'default';
@@ -789,29 +768,6 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
 
   // Add site-wide CSS for SSR (prevents hydration mismatch)
   props.initialSiteCSS = siteWideCSS;
-
-  // Generate the SITE-CSS-ONLY layered stylesheet on the server (prevents
-  // hydration mismatches and site-CSS FOUC).
-  //
-  // User CSS is deliberately NOT included here. The user's CSS reaches the
-  // page exactly once, via the raw whole-page injection in _app.tsx
-  // (#profile-page-styles) — that is the intended model (presets style
-  // .site-header/.thread-surface, i.e. the whole page). The old layered copy
-  // scoped user CSS to '#profile-layout', an id no element carries, so it was
-  // dead weight that only leaked accidental output while the raw copy did the
-  // real work. One CSS source, one injection.
-  // Site CSS is NOT carried here: layered site CSS loses to unlayered
-  // Tailwind utilities and the admin panel's CSS visibly stopped applying.
-  // The single delivery point is _app.tsx#site-wide-css (raw, unlayered,
-  // SSR-primed via props.initialSiteCSS above).
-  const preRenderedCSS = generateOptimizedCSS({
-    cssMode,
-    templateMode,
-    siteWideCSS: '',
-    userCustomCSS: '',
-    profileId: 'profile-layout'
-  });
-  props.preRenderedCSS = preRenderedCSS;
 
   return { props };
 };

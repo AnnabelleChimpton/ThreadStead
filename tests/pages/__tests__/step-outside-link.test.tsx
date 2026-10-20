@@ -15,9 +15,19 @@ import React from 'react'
 import { act, render, screen } from '@testing-library/react'
 
 jest.mock('@/components/ui/PixelIcon', () => ({ PixelIcon: () => null }))
-// The only other dynamic import on these pages is the advanced template renderer
-jest.mock('next/dynamic', () => () => function DynamicStub() {
+// The page's own HTML is stood in for; its frame (nav, step-outside strip) is real
+jest.mock('@/components/core/profile/AdvancedProfileRenderer', () => function AdvancedProfileRenderer() {
   return <div data-testid="advanced-template">template</div>
+})
+// The advanced branch is a dynamic import: load it for real. Anything else
+// dynamic (the MIDI player) renders nothing here.
+jest.mock('next/dynamic', () => (loader: () => unknown) => {
+  const path = String(loader).match(/require\("([^"]+ProfileModeRenderer)"\)/)?.[1]
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  if (path) return require(path).default
+  return function DynamicStub() {
+    return null
+  }
 })
 jest.mock('next/router', () => ({
   useRouter: () => ({ query: {}, pathname: '/resident/[username]', asPath: '/resident/pigeon', push: jest.fn(), events: { on: jest.fn(), off: jest.fn() } }),
@@ -106,7 +116,7 @@ describe('it sits under the nav, outside the resident’s template, in every mod
     hasPixelHome: true,
     templateMode: 'advanced' as const,
     residentData,
-    compiledTemplate: { mode: 'islands' },
+    compiledTemplate: { tree: [], islands: [], ast: {} },
   }
 
   test('advanced: under the fixed nav, before the template', () => {

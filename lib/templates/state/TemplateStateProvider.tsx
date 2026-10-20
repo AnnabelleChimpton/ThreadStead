@@ -543,6 +543,9 @@ export function GlobalTemplateStateProvider({ children, initialVariables }: Temp
     const unsubscribe = globalTemplateStateManager.subscribe(() => {
       forceUpdate({}); // Trigger re-render when state changes
     });
+    // Children's effects run before this one, so every <Var> on a page that
+    // mounts with this provider has already registered, unheard. Catch up.
+    forceUpdate({});
     return unsubscribe;
   }, []);
 

@@ -1,7 +1,6 @@
-// Error boundary and debugging components for island rendering
+// Error boundary for island rendering
 
-import React, { useState } from 'react';
-import type { HydrationDebugInfoProps } from './types';
+import React from 'react';
 
 // Error boundary for islands rendering (P3.3 - Per-Island Error Boundaries)
 export class IslandErrorBoundary extends React.Component<
@@ -58,56 +57,4 @@ export class IslandErrorBoundary extends React.Component<
 
     return this.props.children;
   }
-}
-
-// Development hydration debug info component
-export function HydrationDebugInfo({
-  totalIslands,
-  loadedIslands,
-  failedIslands,
-  isHydrated
-}: HydrationDebugInfoProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  return (
-    <div className="hydration-debug-info">
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="debug-toggle"
-      >
-        Islands Debug ({loadedIslands.size}/{totalIslands})
-      </button>
-
-      {isExpanded && (
-        <div className="debug-panel">
-          <div className="debug-stats">
-            <div>Total Islands: {totalIslands}</div>
-            <div>Loaded: {loadedIslands.size}</div>
-            <div>Failed: {failedIslands.size}</div>
-            <div>Hydrated: {isHydrated ? 'yes' : 'pending'}</div>
-          </div>
-
-          {failedIslands.size > 0 && (
-            <div className="debug-failures">
-              <h4>Failed Islands:</h4>
-              {Array.from(failedIslands.entries()).map(([islandId, error]) => (
-                <div key={islandId} className="debug-failure">
-                  <strong>{islandId}:</strong> {error.message}
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div className="debug-loaded">
-            <h4>Loaded Islands:</h4>
-            {Array.from(loadedIslands).map(islandId => (
-              <div key={islandId} className="debug-loaded-item">
-                ✓ {islandId}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
 }

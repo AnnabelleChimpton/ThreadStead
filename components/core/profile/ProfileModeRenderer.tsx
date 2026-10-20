@@ -1,49 +1,13 @@
-// Profile mode renderer with fallback logic
+// Renders a page of your own HTML (advanced mode), on the server and then
+// hydrated. The standard layout (default/enhanced) is ProfileLayout, rendered
+// by the profile page itself.
 import React from 'react';
-import { resolveCSSMode } from '@/lib/utils/css/css-mode';
-
-// Simple error boundary for advanced profile renderer
-class ErrorBoundary extends React.Component<
-  { children: React.ReactNode; fallback: React.ReactNode },
-  { hasError: boolean }
-> {
-  constructor(props: { children: React.ReactNode; fallback: React.ReactNode }) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError() {
-    return { hasError: true };
-  }
-
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('AdvancedProfileRenderer Error Boundary caught an error:', error, errorInfo);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return this.props.fallback;
-    }
-
-    return this.props.children;
-  }
-}
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
 import { ResidentDataProvider } from '@/components/features/templates/ResidentDataProvider';
 import { transformNodeToReact } from '@/lib/templates/rendering/template-renderer';
 import type { TemplateNode } from '@/lib/templates/compilation/template-parser';
-import ProfileLayout from '@/components/ui/layout/ProfileLayout';
 import AdvancedNavFrame from './AdvancedNavFrame';
-import dynamic from 'next/dynamic';
-
-// Restore proper AdvancedProfileRenderer with fixed dependencies
-const AdvancedProfileRenderer = dynamic(
-  () => import('./AdvancedProfileRenderer'),
-  {
-    ssr: false,
-    loading: () => <div className="advanced-profile-loading">Loading advanced template...</div>
-  }
-);
+import AdvancedProfileRenderer from './AdvancedProfileRenderer';
 
 // Profile mode types
 export type ProfileMode = 'default' | 'enhanced' | 'advanced';
@@ -65,189 +29,57 @@ export interface ProfileUser {
   } | null;
 }
 
-// Profile mode renderer props
 export interface ProfileModeRendererProps {
   user: ProfileUser;
   residentData: ResidentData;
-  useIslands?: boolean;
+  /** Shown when there's nothing compiled to render */
   fallbackContent?: React.ReactNode;
-  onModeChange?: (mode: ProfileMode) => void;
   hideNavigation?: boolean;
   /** Site chrome under the nav (or at the very top when it's hidden) */
   afterNav?: React.ReactNode;
 }
 
-// Main profile mode renderer component
 export default function ProfileModeRenderer({
   user,
   residentData,
-  useIslands = false,
   fallbackContent,
-  onModeChange,
   hideNavigation = false,
   afterNav
 }: ProfileModeRendererProps) {
-  const mode = user.profile?.templateMode || 'default';
-
-  const hasCompiledTemplate = !!user.profile?.compiledTemplate;
-  const shouldUseIslands = useIslands &&
-                          mode === 'advanced' &&
-                          hasCompiledTemplate;
-
-  React.useEffect(() => {
-    onModeChange?.(mode);
-  }, [mode, onModeChange]);
-
-  // Render based on mode with fallback chain
-  try {
-    switch (mode) {
-      case 'default':
-        return renderDefaultMode(user, residentData, fallbackContent);
-        
-      case 'enhanced':
-        return renderEnhancedMode(user, residentData, fallbackContent, hideNavigation, afterNav);
-        
-      case 'advanced':
-        if (shouldUseIslands && user.profile?.compiledTemplate) {
-          const shouldShowNavigation = !hideNavigation && !user.profile?.hideNavigation;
-
-          return (
-            <AdvancedNavFrame showNavigation={shouldShowNavigation} afterNav={afterNav}>
-              <AdvancedProfileRenderer
-                user={user}
-                residentData={residentData}
-                templateType={'legacy'}
-              />
-            </AdvancedNavFrame>
-          );
-        } else if (shouldUseIslands && !user.profile?.compiledTemplate) {
-          // Advanced mode but no compiled template - fall back to enhanced mode
-          console.warn('Advanced mode requested but no compiled template available. Falling back to enhanced mode.');
-          return renderEnhancedMode(user, residentData, fallbackContent, hideNavigation, afterNav);
-        } else {
-          return renderAdvancedLegacyMode(user, residentData, afterNav);
-        }
-
-      default:
-        console.warn(`Unknown template mode: ${mode}, falling back to default`);
-        return renderDefaultMode(user, residentData, fallbackContent);
-    }
-  } catch (error) {
-    console.error(`Error rendering ${mode} mode:`, error);
-    
-    // Fallback chain: Advanced → Enhanced → Default → Fallback Content
-    if (mode === 'advanced') {
-      return renderEnhancedMode(user, residentData, fallbackContent, hideNavigation, afterNav);
-    } else if (mode === 'enhanced') {
-      return renderDefaultMode(user, residentData, fallbackContent);
-    } else {
-      return fallbackContent || <div>Error loading profile</div>;
-    }
+  if (user.profile?.compiledTemplate) {
+    const shouldShowNavigation = !hideNavigation && !user.profile?.hideNavigation;
+    return (
+      <AdvancedNavFrame showNavigation={shouldShowNavigation} afterNav={afterNav}>
+        <AdvancedProfileRenderer user={user} residentData={residentData} />
+      </AdvancedNavFrame>
+    );
   }
-}
 
-// Default mode renderer (standard React components)
-function renderDefaultMode(
-  user: ProfileUser, 
-  residentData: ResidentData, 
-  fallbackContent?: React.ReactNode
-) {
-  // Return the fallback content which should be the default profile layout
-  return fallbackContent || (
-    <ProfileLayout>
-      <div className="profile-container">
-        <div className="text-center p-8">
-          <h1>Profile loading...</h1>
-          <p>Default profile layout not provided</p>
-        </div>
-      </div>
-    </ProfileLayout>
-  );
-}
-
-// Enhanced mode renderer (default + CSS override)
-function renderEnhancedMode(
-  user: ProfileUser, 
-  residentData: ResidentData, 
-  fallbackContent?: React.ReactNode,
-  hideNavigation?: boolean,
-  afterNav?: React.ReactNode
-) {
-  const customCSS = user.profile?.customCSS;
-  
-  return (
-    <ProfileLayout 
-      customCSS={customCSS || undefined}
-      templateMode='enhanced'
-      cssMode={resolveCSSMode(user.profile?.cssMode, customCSS)}
-      hideNavigation={hideNavigation}
-      includeSiteCSS={true}  // Match live profile behavior
-      afterNav={afterNav}
-    >
-      {fallbackContent || (
-        <div className="profile-container">
-          <div className="text-center p-8">
-            <h1>Enhanced Profile</h1>
-            <p>Enhanced profile layout not provided</p>
-          </div>
-        </div>
-      )}
-    </ProfileLayout>
-  );
-}
-
-// Note: Advanced islands mode is now handled by AdvancedProfileRenderer component
-
-// Advanced mode renderer (legacy iframe-based)
-function renderAdvancedLegacyMode(user: ProfileUser, residentData: ResidentData, afterNav?: React.ReactNode) {
-  const customTemplateAst = user.profile?.customTemplateAst;
-  
-  if (!customTemplateAst) {
-    throw new Error('No custom template available for advanced mode');
+  // Rows saved before compiled templates existed kept only an AST
+  const legacy = renderLegacyAst(user.profile?.customTemplateAst);
+  if (legacy) {
+    return (
+      <>
+        {afterNav}
+        <ResidentDataProvider data={residentData}>{legacy}</ResidentDataProvider>
+      </>
+    );
   }
-  
-  // Parse the stored AST
-  let templateNode: TemplateNode;
-  try {
-    templateNode = JSON.parse(customTemplateAst);
-  } catch (error) {
-    throw new Error('Invalid template AST format');
-  }
-  
-  // Render using existing legacy system
-  const templateContent = transformNodeToReact(templateNode);
-  
+
   return (
     <>
       {afterNav}
-      <ResidentDataProvider data={residentData}>
-        {templateContent}
-      </ResidentDataProvider>
+      {fallbackContent || <div>Error loading profile</div>}
     </>
   );
 }
 
-// Hook for using profile mode rendering
-export function useProfileModeRenderer(user: ProfileUser) {
-  const [currentMode, setCurrentMode] = React.useState<ProfileMode>(
-    user.profile?.templateMode || 'default'
-  );
-  
-  const [renderError, setRenderError] = React.useState<string | null>(null);
-  
-  const handleModeChange = React.useCallback((mode: ProfileMode) => {
-    setCurrentMode(mode);
-    setRenderError(null);
-  }, []);
-  
-  const handleRenderError = React.useCallback((error: string) => {
-    setRenderError(error);
-  }, []);
-  
-  return {
-    currentMode,
-    renderError,
-    handleModeChange,
-    handleRenderError,
-  };
+function renderLegacyAst(customTemplateAst?: string | null): React.ReactNode {
+  if (!customTemplateAst) return null;
+  try {
+    return transformNodeToReact(JSON.parse(customTemplateAst) as TemplateNode);
+  } catch (error) {
+    console.error('Invalid template AST format:', error);
+    return null;
+  }
 }

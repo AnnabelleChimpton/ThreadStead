@@ -4,7 +4,6 @@ import ProfileModeRenderer, { ProfileUser } from '@/components/core/profile/Prof
 import ProfileLayout from '@/components/ui/layout/ProfileLayout';
 import { ResidentDataProvider } from '@/components/features/templates/ResidentDataProvider';
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
-import { useProfileIslandHydration } from '@/lib/islands';
 import Head from 'next/head';
 import NavigationPreview from '@/components/features/templates/NavigationPreview';
 import { ADVANCED_NAV_SURFACE } from '@/components/core/profile/AdvancedNavFrame';
@@ -50,45 +49,6 @@ export default function PreviewTemp() {
   // and saves things, so the banner would just be noise.
   const isEmbedded = router.query.embed === '1';
   
-  // Island hydration for interactive components
-  const { hydrateProfile, status, isSupported } = useProfileIslandHydration();
-
-  // Hydrate islands when advanced mode template is rendered.
-  // Guarded by the compiled payload's content: hydration itself updates hook
-  // state, which re-renders and would otherwise re-run this effect and
-  // remount every island root (each remounted FollowButton refetches
-  // /api/rel/... — unguarded this hammered the API in a loop).
-  const lastHydratedRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (previewData && previewData.user && previewData.residentData) {
-      // Check if this is advanced mode
-      const hasCustomTemplate = previewData.user.profile?.customTemplate &&
-                               previewData.user.profile.customTemplate.trim() !== '';
-      const isAdvancedMode = !previewData.useStandardLayout && hasCustomTemplate;
-
-      if (isAdvancedMode && isReady && previewData.user.profile?.compiledTemplate) {
-        const compiledTemplate = previewData.user.profile.compiledTemplate;
-        const hydrationKey = JSON.stringify((compiledTemplate as any).islands ?? null);
-        if (hydrationKey === lastHydratedRef.current) return;
-
-        // Small delay to ensure DOM is ready after ProfileModeRenderer renders
-        const timer = setTimeout(() => {
-          if (compiledTemplate && (compiledTemplate as any).islands) {
-            lastHydratedRef.current = hydrationKey;
-            hydrateProfile('preview-container', {
-              residentData: previewData.residentData,
-              profileMode: 'advanced',
-              islands: (compiledTemplate as any).islands
-            }).catch(error => {
-              console.error('Preview hydration failed:', error);
-            });
-          }
-        }, 100);
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [previewData, isReady, hydrateProfile]);
-
   // This effect must arm exactly ONCE. Its old deps ([isReady, previewData])
   // re-ran it on every received message, and the unconditional PREVIEW_READY
   // it posts turned the handshake into an infinite READY -> DATA -> READY
@@ -465,7 +425,6 @@ export default function PreviewTemp() {
           <ProfileModeRenderer
             user={previewUser}
             residentData={residentData}
-            useIslands={true}
             hideNavigation={true}
             fallbackContent={
               <div style={{ padding: '20px', textAlign: 'center' }}>

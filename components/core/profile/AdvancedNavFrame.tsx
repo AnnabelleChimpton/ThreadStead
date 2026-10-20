@@ -20,9 +20,8 @@ interface AdvancedNavFrameProps {
 // Advanced templates get the site nav as a position: fixed bar, so the page
 // has to leave room under it. It used to leave a flat 70px, but the bar is
 // taller than that (about 89px on desktop), so anything placed right under
-// it was hidden. Measure the bar instead. The template itself renders
-// client-side only (AdvancedProfileRenderer is ssr: false), so measuring
-// before paint doesn't shift anything a visitor sees.
+// it was hidden. Measure the bar instead. The page is server-rendered, so
+// until this runs (at hydration) it sits under the 70px guess.
 export default function AdvancedNavFrame({ showNavigation, afterNav, children }: AdvancedNavFrameProps) {
   const navRef = useRef<HTMLDivElement>(null);
   const [navHeight, setNavHeight] = useState(70);
