@@ -25,6 +25,7 @@ import { useSiteConfig } from '@/hooks/useSiteConfig';
 import { useSiteCSS } from '@/hooks/useSiteCSS';
 import NavigationPreview from '@/components/features/templates/NavigationPreview';
 import ValidationFeedbackPanel, { hasStrippedNeedingAttention, type StrippedEntry } from './ValidationFeedbackPanel';
+import ProblemsStrip, { NO_PROBLEMS, firstProblemLine, type LiveProblems } from './ProblemsStrip';
 import { extractDocument } from '@/lib/templates/compilation/document-head';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import { useRouter } from 'next/router';
@@ -551,12 +552,16 @@ export default function EnhancedTemplateEditor({
   // Track last compiled template to avoid unnecessary recompilation
   const [lastCompiledTemplate, setLastCompiledTemplate] = useState<string>('');
 
+  // What the live compile found, shown under the code as you type
+  const [liveProblems, setLiveProblems] = useState<LiveProblems>(NO_PROBLEMS);
+
   // Compile template function (using real compilation API like production)
   const compileTemplateForPreview = useCallback(async (forceCompile: boolean = false) => {
     // Force compile when saving, even if in standard layout mode
     if (!template.trim() || (!forceCompile && useStandardLayout)) {
       setCompiledTemplate(null);
       setLastCompiledTemplate('');
+      setLiveProblems(NO_PROBLEMS);
       return null;
     }
 
@@ -586,9 +591,18 @@ export default function EnhancedTemplateEditor({
           return null;
         }
 
-        // Try to get more details from the response
+        // The page can't be compiled as it is: say why. The preview keeps
+        // showing the last version that worked.
         try {
           const errorData = await response.json();
+          if (Array.isArray(errorData?.errors) && errorData.errors.length > 0) {
+            setLiveProblems({
+              status: 'failed',
+              errors: errorData.errors,
+              warnings: Array.isArray(errorData.warnings) ? errorData.warnings : [],
+              stripped: [],
+            });
+          }
         } catch (parseError) {
           // Could not parse error response
         }
@@ -603,6 +617,12 @@ export default function EnhancedTemplateEditor({
 
       setCompiledTemplate(result.compiled);
       setLastCompiledTemplate(template); // Track what we compiled
+      setLiveProblems({
+        status: 'ok',
+        errors: [],
+        warnings: Array.isArray(result.warnings) ? result.warnings : [],
+        stripped: Array.isArray(result.strippedComponents) ? result.strippedComponents : [],
+      });
       return result.compiled;
     } catch (error) {
       // Check if it's a network error specifically
@@ -768,6 +788,14 @@ export default function EnhancedTemplateEditor({
   // Captured via onCreateEditor: next/dynamic doesn't forward refs, so a
   // ref on the <CodeMirror> wrapper would stay null forever.
   const templateViewRef = useRef<EditorView | null>(null);
+  // A problem's "Line N": put the cursor at the start of that line, in view
+  const jumpToLine = useCallback((lineNumber: number) => {
+    const view = templateViewRef.current;
+    if (!view) return;
+    const line = view.state.doc.line(Math.min(Math.max(lineNumber, 1), view.state.doc.lines));
+    view.dispatch({ selection: { anchor: line.from }, scrollIntoView: true });
+    view.focus();
+  }, []);
   const [componentSchemas, setComponentSchemas] = useState<ComponentSchema[] | null>(null);
 
   useEffect(() => {
@@ -1282,14 +1310,14 @@ export default function EnhancedTemplateEditor({
             hasStrippedNeedingAttention(validationResult.strippedComponents)
           ));
 
-      // Only show generic success message if there are no issues
-      // Otherwise, keep the specific warning message that was already set
-      if (!hasIssues) {
+      setShowValidationPanel(false);
+      if (hasIssues) {
+        setSaveMessage("✓ Saved. A few things won't work as written; they're listed under the code.");
+        setTimeout(() => setSaveMessage(null), 8000);
+      } else {
         setSaveMessage(replacedCSS ? '✓ Saved. Your old look is in History.' : '✓ Template saved');
         setTimeout(() => setSaveMessage(null), 3000);
-        setShowValidationPanel(false);
       }
-      // If there are issues, panel stays open with the warning message from handleSave
     } catch (error) {
       console.error('Save failed:', error);
       setSaveState('error');
@@ -1322,24 +1350,16 @@ export default function EnhancedTemplateEditor({
     // If validation has errors, block save and show panel
     if (!validationInfo.isValid) {
       setShowValidationPanel(true);
-      setSaveMessage('Cannot save yet - fix the validation errors first');
+      setSaveMessage("Not saved yet: fix what's listed first.");
       setTimeout(() => setSaveMessage(null), 5000);
       return;
     }
 
-    // If validation passed but has warnings or stripped components, show panel but allow save
+    // Warnings or taken-out tags don't stop a save: it goes ahead, and the
+    // list under the code says what won't work (it used to open a panel
+    // offering "Save Anyway" for a save that had already happened)
     if (validationInfo.hasWarnings || validationInfo.hasStripped) {
-      setShowValidationPanel(true);
-
-      // Show appropriate message based on what was found
-      if (validationInfo.hasStripped) {
-        setSaveMessage('Some tags were removed - see details in panel');
-      } else {
-        setSaveMessage('Template saved with warnings - see details in panel');
-      }
-      setTimeout(() => setSaveMessage(null), 8000);
-
-      // Still proceed with save - pass validation info to prevent stale state issues
+      // Pass validation info to prevent stale state issues
       try {
         await performSave(validationInfo);
       } catch (error) {
@@ -1851,6 +1871,7 @@ export default function EnhancedTemplateEditor({
                         }}
                       />
                     </div>
+                    <ProblemsStrip problems={liveProblems} onJump={jumpToLine} />
                   </>
                 )}
               </div>
@@ -2113,6 +2134,14 @@ body {
               {previewFrameReady ? 'Updates as you type' : 'Warming up…'}
             </span>
           </div>
+          {liveProblems.status === 'failed' && (
+            <p role="status" className="m-0 px-3 py-2 text-sm bg-thread-paper border-b border-thread-sage text-nb-ink">
+              Showing your last working version.{' '}
+              {firstProblemLine(liveProblems)
+                ? <>Line {firstProblemLine(liveProblems)} has a problem; it&apos;s listed under the code.</>
+                : <>Something in the code has a problem; it&apos;s listed under the code.</>}
+            </p>
+          )}
           <iframe
             ref={previewFrameRef}
             src="/template-preview?embed=1"
@@ -2183,7 +2212,7 @@ body {
         <ValidationFeedbackPanel
           validationResult={validationResult}
           onDismiss={() => setShowValidationPanel(false)}
-          onSaveAnyway={validationResult.errors.length === 0 ? performSave : undefined}
+          onSaveAnyway={undefined}
         />
       )}
     </div>
