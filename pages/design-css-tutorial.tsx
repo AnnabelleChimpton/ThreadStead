@@ -1825,7 +1825,7 @@ export default function DesignCSSTutorialPage() {
                 </div>
               </div>
               <Link
-                href="/templates"
+                href="/build/templates"
                 className="px-3 py-1.5 bg-purple-100 hover:bg-purple-200 text-purple-700 font-semibold rounded border border-purple-300 transition-colors whitespace-nowrap text-sm"
               >
                 Explore Options →

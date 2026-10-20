@@ -133,10 +133,10 @@ export default function TemplatesIndex({ siteConfig, username }: TemplatesIndexP
                     <PixelIcon name="code" size={16} className="inline-block align-middle mr-1" /> Open Template Editor
                   </Link>
                   <Link
-                    href="/templates/tutorials/your-first-template"
+                    href="/build/templates/tutorials/make-it-yours"
                     className="px-6 py-3 bg-white border-2 border-black shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all font-medium text-center"
                   >
-                    <PixelIcon name="script" size={16} className="inline-block align-middle mr-1" /> Coding Tutorial
+                    <PixelIcon name="script" size={16} className="inline-block align-middle mr-1" /> First tutorial
                   </Link>
                 </div>
               </div>

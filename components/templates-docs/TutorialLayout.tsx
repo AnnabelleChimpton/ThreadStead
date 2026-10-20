@@ -1,5 +1,4 @@
 import React from "react";
-import { useRouter } from "next/router";
 import Link from "next/link";
 import RetroCard from "@/components/ui/layout/RetroCard";
 import { Tutorial, tutorials } from "@/lib/templates-docs/tutorialContent";
@@ -10,7 +9,6 @@ interface TutorialLayoutProps {
 }
 
 export default function TutorialLayout({ currentTutorial, children }: TutorialLayoutProps) {
-  const router = useRouter();
 
   // Find previous and next tutorials
   const currentIndex = tutorials.findIndex(t => t.slug === currentTutorial.slug);
@@ -48,13 +46,13 @@ export default function TutorialLayout({ currentTutorial, children }: TutorialLa
       <div className="w-full px-4 sm:px-6 py-8 sm:py-12 max-w-6xl mx-auto">
         {/* Breadcrumbs */}
         <div className="mb-6 flex items-center gap-2 text-sm">
-          <Link href="/templates" className="hover:underline font-medium">
+          <Link href="/build/templates" className="hover:underline font-medium">
             Templates
           </Link>
           <span>→</span>
           <span className="text-gray-600">Template Language</span>
           <span>→</span>
-          <Link href="/templates/tutorials/make-it-yours" className="hover:underline font-medium">
+          <Link href="/build/templates/tutorials/make-it-yours" className="hover:underline font-medium">
             Tutorials
           </Link>
           <span>→</span>
@@ -82,7 +80,7 @@ export default function TutorialLayout({ currentTutorial, children }: TutorialLa
                 return (
                   <Link
                     key={tutorial.slug}
-                    href={`/templates/tutorials/${tutorial.slug}`}
+                    href={`/build/templates/tutorials/${tutorial.slug}`}
                     className={`flex-shrink-0 w-40 p-4 border-2 border-black transition-all ${
                       isActive
                         ? `${tutorial.color} shadow-[2px_2px_0_#000]`
@@ -154,7 +152,7 @@ export default function TutorialLayout({ currentTutorial, children }: TutorialLa
                         const prereqTutorial = tutorials.find(t => t.slug === prereq);
                         return (
                           <span key={prereq}>
-                            <Link href={`/templates/tutorials/${prereq}`} className="underline font-bold hover:text-purple-600">
+                            <Link href={`/build/templates/tutorials/${prereq}`} className="underline font-bold hover:text-purple-600">
                               {prereqTutorial?.title || prereq}
                             </Link>
                             {index < currentTutorial.prerequisites.length - 1 ? ', ' : ''}
@@ -188,7 +186,7 @@ export default function TutorialLayout({ currentTutorial, children }: TutorialLa
                       {currentTutorial.relatedComponents.map((componentId) => (
                         <Link
                           key={componentId}
-                          href={`/templates/components#${componentId}`}
+                          href={`/build/templates/components#${componentId}`}
                           className="px-3 py-1 bg-white border-2 border-black shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all text-sm font-mono font-bold"
                         >
                           {componentId}
@@ -198,35 +196,34 @@ export default function TutorialLayout({ currentTutorial, children }: TutorialLa
                   </div>
                 )}
 
-                {/* Want Visual Design? */}
                 {/* Navigation */}
                 <div className="grid sm:grid-cols-2 gap-4">
                   {previousTutorial ? (
-                    <button
-                      onClick={() => router.push(`/templates/tutorials/${previousTutorial.slug}`)}
-                      className="px-6 py-4 bg-purple-200 border-3 border-black shadow-[3px_3px_0_#000] hover:shadow-[4px_4px_0_#000] transition-all text-left"
+                    <Link
+                      href={`/build/templates/tutorials/${previousTutorial.slug}`}
+                      className="block px-6 py-4 bg-purple-200 border-3 border-black shadow-[3px_3px_0_#000] hover:shadow-[4px_4px_0_#000] transition-all text-left"
                     >
                       <div className="text-xs text-gray-600 mb-1">← Previous</div>
                       <div className="font-bold">{previousTutorial.title}</div>
-                    </button>
+                    </Link>
                   ) : (
                     <div />
                   )}
                   {nextTutorial ? (
-                    <button
-                      onClick={() => router.push(`/templates/tutorials/${nextTutorial.slug}`)}
-                      className="px-6 py-4 bg-green-200 border-3 border-black shadow-[3px_3px_0_#000] hover:shadow-[4px_4px_0_#000] transition-all text-right"
+                    <Link
+                      href={`/build/templates/tutorials/${nextTutorial.slug}`}
+                      className="block px-6 py-4 bg-green-200 border-3 border-black shadow-[3px_3px_0_#000] hover:shadow-[4px_4px_0_#000] transition-all text-right"
                     >
                       <div className="text-xs text-gray-600 mb-1">Next →</div>
                       <div className="font-bold">{nextTutorial.title}</div>
-                    </button>
+                    </Link>
                   ) : (
-                    <button
-                      onClick={() => router.push('/templates/components')}
-                      className="px-6 py-4 bg-cyan-200 border-3 border-black shadow-[3px_3px_0_#000] hover:shadow-[4px_4px_0_#000] transition-all text-right font-bold"
+                    <Link
+                      href="/build/templates/components"
+                      className="block px-6 py-4 bg-cyan-200 border-3 border-black shadow-[3px_3px_0_#000] hover:shadow-[4px_4px_0_#000] transition-all text-right font-bold"
                     >
                       Browse Components →
-                    </button>
+                    </Link>
                   )}
                 </div>
             </RetroCard>

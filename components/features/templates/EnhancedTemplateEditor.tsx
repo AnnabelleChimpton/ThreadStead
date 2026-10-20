@@ -1787,20 +1787,28 @@ export default function EnhancedTemplateEditor({
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex flex-wrap items-center gap-2">
                   <a
-                    href="/design-css-tutorial"
+                    href="/build/templates/tutorials/make-it-yours"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-3 py-2 bg-blue-100 text-blue-800 rounded-lg text-sm font-medium hover:bg-blue-200 transition-colors"
+                    className="thread-button-secondary text-sm"
                   >
-                    <PixelIcon name="article" size={16} /> Design Guide
+                    Lessons
                   </a>
                   <a
                     href="/build/what-works-here"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-3 py-2 bg-blue-100 text-blue-800 rounded-lg text-sm font-medium hover:bg-blue-200 transition-colors"
+                    className="thread-button-secondary text-sm"
                   >
-                    <PixelIcon name="info-box" size={16} /> What works here
+                    What works here
+                  </a>
+                  <a
+                    href="/build/templates/components"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="thread-button-secondary text-sm"
+                  >
+                    Components
                   </a>
                 </div>
 
@@ -1961,7 +1969,7 @@ export default function EnhancedTemplateEditor({
                     rel="noopener noreferrer"
                     className="thread-button-secondary text-sm"
                   >
-                    CSS Guide
+                    CSS guide
                   </a>
                   <a
                     href="/build/what-works-here"

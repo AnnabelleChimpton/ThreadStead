@@ -190,7 +190,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                           </Link>
                         )}
                         <Link
-                          href="/templates"
+                          href="/build/templates"
                           className="ts-card-link block p-3 border-2 border-dotted border-nb-ink-mid/60 rounded-md hover:border-solid hover:border-nb-ink-mid"
                         >
                           <div className="font-medium">Templates & CSS</div>
@@ -433,10 +433,10 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                       <h4 className="font-bold mb-2 text-sm">Template Code</h4>
                       <div className="space-y-2 text-sm">
                         <Link
-                          href="/templates/tutorials/your-first-template"
+                          href="/build/templates/tutorials/make-it-yours"
                           className={`${buttonClasses("secondary", "sm")} block text-center`}
                         >
-                          Coding Tutorial
+                          First tutorial
                         </Link>
                         <p className="text-nb-ink-mid text-xs">
                           Write the page&apos;s HTML with variables, loops and conditionals.

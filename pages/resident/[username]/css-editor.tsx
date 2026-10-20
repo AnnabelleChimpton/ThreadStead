@@ -517,7 +517,7 @@ export default function CSSEditorPage({
                       <p className="text-xs text-gray-700 mt-1">
                         Click <strong className="text-blue-700">&quot;Preview&quot;</strong> to see changes live. •
                         Load a theme below for quick-start styles. •
-                        Want custom layouts? Try <Link href="/templates" className="text-blue-600 hover:underline">Template Language</Link>.
+                        Want your own layout? Try <Link href="/build/templates/tutorials/make-it-yours" className="text-blue-600 hover:underline">writing your own HTML page</Link>.
                       </p>
                     </div>
                   </>
@@ -532,7 +532,7 @@ export default function CSSEditorPage({
                         New to CSS? <strong className="text-green-700">Load a theme</strong> below (Pixel Petals, Abstract Art, etc.) then make it yours. •
                         Click <strong className="text-blue-700">&quot;Preview&quot;</strong> to see changes live. •
                         Click <strong className="text-green-700">&quot;Save CSS&quot;</strong> to put your styles live. •
-                        Want custom layouts? Try <Link href="/templates" className="text-blue-600 hover:underline">Template Language</Link>.
+                        Want your own layout? Try <Link href="/build/templates/tutorials/make-it-yours" className="text-blue-600 hover:underline">writing your own HTML page</Link>.
                       </p>
                     </div>
                   </>

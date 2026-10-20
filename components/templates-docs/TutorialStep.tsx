@@ -61,7 +61,7 @@ export default function TutorialStep({ step, stepNumber }: TutorialStepProps) {
               return (
                 <Link
                   key={index}
-                  href={`/templates/components#${componentId}`}
+                  href={`/build/templates/components#${componentId}`}
                   className="px-3 py-1 bg-white border-2 border-black shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] text-sm font-mono font-bold transition-all"
                 >
                   {concept}
