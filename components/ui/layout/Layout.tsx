@@ -15,9 +15,15 @@ interface LayoutProps {
   homepageLayout?: boolean;
   /** Site chrome right under the nav, e.g. a profile's "Step back outside" */
   afterNav?: React.ReactNode;
+  /**
+   * A tool that fills the window under the nav (the page editors): the whole
+   * width, no footer, and on a laptop the page itself doesn't scroll, its
+   * panes do. Phones get the normal flow.
+   */
+  workspace?: boolean;
 }
 
-export default function Layout({ children, siteConfig, fullWidth = false, advancedTemplate = false, homepageLayout = false, afterNav }: LayoutProps) {
+export default function Layout({ children, siteConfig, fullWidth = false, advancedTemplate = false, homepageLayout = false, afterNav, workspace = false }: LayoutProps) {
   const { config: hookConfig } = useSiteConfig();
   const { hasMismatch, fixMismatch } = useIdentitySync();
   const config = siteConfig || hookConfig;
@@ -100,7 +106,9 @@ export default function Layout({ children, siteConfig, fullWidth = false, advanc
   }
 
   // Determine max-width classes based on props
-  const maxWidthClass = homepageLayout
+  const maxWidthClass = workspace
+    ? 'w-full min-h-0 flex flex-col'
+    : homepageLayout
     ? 'w-full max-w-full sm:max-w-[640px] md:max-w-[768px] lg:max-w-[1024px] xl:max-w-7xl 2xl:max-w-screen-2xl mx-auto sm:px-6 md:px-8'
     : fullWidth
       ? 'w-full max-w-full sm:max-w-[640px] md:max-w-[768px] lg:max-w-[1024px] xl:max-w-[1200px] mx-auto sm:px-6 md:px-8'
@@ -109,7 +117,7 @@ export default function Layout({ children, siteConfig, fullWidth = false, advanc
   // Standard layout mode
   return (
     <div
-      className="site-layout min-h-screen thread-surface flex flex-col"
+      className={`site-layout thread-surface flex flex-col ${workspace ? 'min-h-screen lg:min-h-0 lg:h-[100dvh] lg:overflow-hidden' : 'min-h-screen'}`}
     >
       {/* Skip to main content for screen readers */}
       <a
@@ -152,11 +160,11 @@ export default function Layout({ children, siteConfig, fullWidth = false, advanc
         </div>
       )}
 
-      <NavBar siteConfig={config} fullWidth={fullWidth} />
+      <NavBar siteConfig={config} fullWidth={fullWidth || workspace} />
       {afterNav}
 
       {/* Spacing after navbar */}
-      <div className="py-4"></div>
+      {!workspace && <div className="py-4"></div>}
 
       {/* Creative header section - users can style this wildly! */}
       <div className="site-creative-header"></div>
@@ -169,13 +177,17 @@ export default function Layout({ children, siteConfig, fullWidth = false, advanc
         {children}
       </main>
 
-      {/* Spacing before footer */}
-      <div className="py-4"></div>
+      {!workspace && (
+        <>
+          {/* Spacing before footer */}
+          <div className="py-4"></div>
 
-      <SiteFooter siteDescription={config.site_description} />
+          <SiteFooter siteDescription={config.site_description} />
 
-      {/* Scroll to Top Button */}
-      <ScrollToTop />
+          {/* Scroll to Top Button */}
+          <ScrollToTop />
+        </>
+      )}
     </div>
   );
 }
