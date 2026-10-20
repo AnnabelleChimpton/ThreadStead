@@ -1,8 +1,8 @@
 /**
  * The CSS editor (/resident/[username]/css-editor):
- *  - the small header "Reset" wiped CSS and template with no question asked,
- *    while the footer "Reset to Default" confirmed; both confirm now, and the
- *    dialog says History can bring the old version back (it can).
+ *  - Reset wiped CSS and template with no question asked; it confirms now
+ *    (one Reset, in the More menu), and the dialog says History can bring
+ *    the old version back (it can).
  *  - generator "Insert CSS" and reference "Insert" looked for a <textarea>
  *    that went away when the editor became CodeMirror, so they did nothing.
  *    These run the real CodeMirror so the insert path is the production one.
@@ -66,12 +66,18 @@ beforeEach(() => {
   mockCsrfFetch.mockResolvedValue({ ok: true, status: 200, json: async () => ({ token: 'cap' }) });
 });
 
-describe('header Reset', () => {
+function clickReset() {
+  fireEvent.click(screen.getByRole('button', { name: /More/ }));
+  fireEvent.click(screen.getByRole('button', { name: 'Reset to default' }));
+}
+
+describe('Reset to default (in More)', () => {
   it('asks first, and does nothing on Cancel', async () => {
     renderEditor();
-    fireEvent.click(screen.getByRole('button', { name: 'Reset' }));
+    clickReset();
 
     const dialog = await screen.findByRole('alertdialog');
+    expect(dialog).toHaveTextContent('Reset to Default Template?');
     expect(within(dialog).getByText(/bring the old version back from History/)).toBeInTheDocument();
     expect(dialog).not.toHaveTextContent(/cannot be undone/i);
 
@@ -84,20 +90,13 @@ describe('header Reset', () => {
 
   it('resets once confirmed', async () => {
     renderEditor();
-    fireEvent.click(screen.getByRole('button', { name: 'Reset' }));
+    clickReset();
     const dialog = await screen.findByRole('alertdialog');
     fireEvent.click(within(dialog).getByRole('button', { name: 'Yes, Reset to Default' }));
 
     await waitFor(() =>
       expect(mockCsrfFetch).toHaveBeenCalledWith('/api/profile/tester/css', expect.objectContaining({ method: 'POST' }))
     );
-  });
-
-  it('uses the same dialog as the footer Reset to Default', async () => {
-    renderEditor();
-    fireEvent.click(screen.getByRole('button', { name: 'Reset to Default' }));
-    expect(await screen.findByRole('alertdialog')).toHaveTextContent('Reset to Default Template?');
-    expect(mockCsrfFetch).not.toHaveBeenCalled();
   });
 });
 
@@ -107,6 +106,7 @@ describe('inserting CSS', () => {
     expect(await editorText()).toBe(INITIAL_CSS);
 
     // Color Palette is the generator open by default.
+    fireEvent.click(screen.getByRole('tab', { name: 'Generators' }));
     fireEvent.change(screen.getByDisplayValue('Select an element...'), { target: { value: '.thread-surface' } });
     fireEvent.click(screen.getByRole('button', { name: 'Insert CSS' }));
 
@@ -117,7 +117,7 @@ describe('inserting CSS', () => {
     renderEditor();
     await editorText();
 
-    fireEvent.click(screen.getByRole('tab', { name: /Reference/ }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Class names' }));
     fireEvent.click(screen.getAllByRole('button', { name: 'Insert' })[0]);
 
     expect(await editorText()).toMatch(new RegExp(`^${INITIAL_CSS.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\.site-layout \\{`));
