@@ -366,20 +366,6 @@ function NavigationContent({
           }}>
             {config.site_name}
           </h1>
-          <span style={{
-            fontSize: '0.75rem',
-            fontFamily: 'Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace',
-            fontWeight: 'bold',
-            padding: '0.125rem 0.5rem',
-            backgroundColor: '#F5E9D4',
-            border: '1px solid #A18463',
-            borderRadius: '0.25rem',
-            color: '#A18463',
-            textTransform: 'uppercase',
-            boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
-          }}>
-            Beta
-          </span>
         </div>
         <span style={{
           display: 'inline-block',
