@@ -521,6 +521,32 @@ export function getGlobalTemplateState(): TemplateStateContextType {
  * A <Var initial="…">'s value as its type reads it ("true" → true, "3" → 3,
  * a JSON string → an array or object).
  */
+/**
+ * The type a <Var> without one holds, worked out from its starting value:
+ * initial="0" is a number, "true"/"false" a boolean, '["a"]' a list,
+ * '{"a": 1}' an object, anything else text. Without this, a Var with no type
+ * kept its value as text, so initial="false" counted as true.
+ */
+export function inferVarType(initial: unknown): VariableType {
+  if (typeof initial === 'number') return 'number';
+  if (typeof initial === 'boolean') return 'boolean';
+  if (Array.isArray(initial)) return 'array';
+  if (typeof initial === 'object' && initial !== null) return 'object';
+  const text = String(initial ?? '').trim();
+  if (/^-?\d+(\.\d+)?$/.test(text)) return 'number';
+  if (text === 'true' || text === 'false') return 'boolean';
+  if (/^[[{]/.test(text)) {
+    try {
+      const parsed = JSON.parse(text);
+      if (Array.isArray(parsed)) return 'array';
+      if (typeof parsed === 'object' && parsed !== null) return 'object';
+    } catch {
+      // not JSON: it's text
+    }
+  }
+  return 'string';
+}
+
 export function coerceVarInitial(type: VariableType, initial: unknown): unknown {
   if (initial === undefined) return initial;
   switch (type) {
@@ -571,8 +597,9 @@ export function coerceVarInitial(type: VariableType, initial: unknown): unknown 
 export function seedVariables(declared: VariableConfig[] = []): Record<string, TemplateVariable> {
   const seed: Record<string, TemplateVariable> = {};
   const computed: VariableConfig[] = [];
-  for (const config of declared) {
+  for (let config of declared) {
     if (!config.name || seed[config.name] || computed.some((c) => c.name === config.name)) continue;
+    if (!config.type) config = { ...config, type: inferVarType(config.initial) };
     // The pick is random; a date shows in the reader's own time zone
     if (config.type === 'random' || config.type === 'date') continue;
     if (config.type === 'computed') {

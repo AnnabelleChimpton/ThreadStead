@@ -45,10 +45,9 @@ export function registerStateComponents(registry: ComponentRegistry) {
     props: {
       name: { type: 'string', required: true, description: 'The variable\'s name. Other components use it to find the value, so keep it unique on the page.' },
       type: {
-        description: 'What it holds: number, string (text), boolean (true or false), array (a list), object, date, computed (worked out from other variables), random (one Option picked on each page load) or urlParam (read from the page address).',
+        description: 'What it holds: number, string (text), boolean (true or false), array (a list), object, date, computed (worked out from other variables), random (one Option picked on each page load) or urlParam (read from the page address). Leave it out and it\'s worked out from initial: initial="0" is a number, "true" a boolean, anything else text. date, computed, random and urlParam always need it.',
         type: 'enum',
-        values: ['number', 'string', 'boolean', 'array', 'object', 'date', 'computed', 'random', 'urlParam'],
-        required: true
+        values: ['number', 'string', 'boolean', 'array', 'object', 'date', 'computed', 'random', 'urlParam']
       },
       initial: { type: 'string', description: 'The starting value. For array or object, write JSON in single quotes, like initial=\'["a", "b"]\'; JSON that doesn\'t parse gives an empty one. For date, a day alone like 2024-03-14 counts as midnight UTC and can show as the day before, so add a time: 2024-03-14T12:00.' },
       persist: { type: 'boolean', default: false, description: 'When true, the value is saved in the visitor\'s own browser and comes back on their next visit. Each visitor has their own copy that nobody else sees. Not used for computed, random or urlParam.' },

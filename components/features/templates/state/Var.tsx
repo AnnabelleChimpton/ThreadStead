@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef } from 'react';
-import { useTemplateState, coerceVarInitial, VariableType, VariableConfig } from '@/lib/templates/state/TemplateStateProvider';
+import { useTemplateState, coerceVarInitial, inferVarType, VariableType, VariableConfig } from '@/lib/templates/state/TemplateStateProvider';
 
 /**
  * Var Component - Declare a template variable
@@ -23,7 +23,7 @@ export interface VarProps {
   name: string;
 
   /** Variable type */
-  type: VariableType;
+  type?: VariableType;
 
   /** Initial value (will be coerced to the specified type) */
   initial?: string | number | boolean | any;
@@ -145,8 +145,9 @@ export default function Var(props: VarProps) {
         });
     }
 
-    // Coerce initial value to correct type
-    const coercedInitial = coerceVarInitial(type, initial);
+    // Coerce initial value to correct type (worked out from it if not given)
+    const varType = type ?? inferVarType(initial);
+    const coercedInitial = coerceVarInitial(varType, initial);
 
     // Coerce persist to boolean
     const shouldPersist = persist === true || persist === 'true' || persist === '1';
@@ -154,7 +155,7 @@ export default function Var(props: VarProps) {
     // Register variable
     const config: VariableConfig = {
       name,
-      type,
+      type: varType,
       initial: coercedInitial,
       persist: shouldPersist,
       computed: expression,
