@@ -2,11 +2,12 @@
  * StickyNote and NeonSign props through THE compile pipeline, pinned at the
  * island: what the compile step hands the component at hydration.
  *
- * Their registry props `color`, `fontSize` and `fontWeight` are CSS-named, so
- * the compile step files them under styles (engine R2). The components read
- * their own values back out of `style` (see decorative-islands.test.tsx for
- * the render side). These tests pin that hand-over, and that no default lands
- * in `style` when the author didn't set one.
+ * Their props `color`, `fontSize` and `fontWeight` are named like CSS. They
+ * used to be compiled into inline style (engine R2); now declared props reach
+ * the component, under the names it reads (noteColor, neonColor, textSize,
+ * textWeight), and only the author's own `style` is style. Islands saved
+ * before that still carry the old shape; the components read those back
+ * (decorative-islands.test.tsx). Every component: props-reach-components.etest.ts.
  */
 // The registry imports did-client → @noble/ed25519 (ESM jest can't parse);
 // nothing here renders components.
@@ -31,45 +32,58 @@ function onlyIsland(source: string) {
 }
 
 describe('StickyNote', () => {
-  test('color="pink" reaches the island as style.color', () => {
+  test('color="pink" reaches the component as noteColor, not as style', () => {
     const { island, hydrated } = onlyIsland('<StickyNote color="pink" rotation="3"><p>hi</p></StickyNote>')
     expect(island.props.color).toBe('pink')
-    expect(hydrated.styles).toEqual({ color: 'pink' })
-    expect(hydrated.componentProps).toEqual({ rotation: 3, size: 'md' })
+    expect(hydrated.styles).toEqual({})
+    expect(hydrated.componentProps).toEqual({ noteColor: 'pink', rotation: 3, size: 'md' })
   })
 
-  test('without a colour, nothing is put in style (no yellow text)', () => {
-    const { island, hydrated } = onlyIsland('<StickyNote><p>hi</p></StickyNote>')
-    expect(island.props).not.toHaveProperty('color')
+  test('without a colour the note is yellow, and nothing is put in style', () => {
+    const { hydrated } = onlyIsland('<StickyNote><p>hi</p></StickyNote>')
+    expect(hydrated.componentProps.noteColor).toBe('yellow')
     expect(hydrated.styles).toEqual({})
   })
 
-  test('an ink colour set with style survives', () => {
-    const { hydrated } = onlyIsland('<StickyNote style="color: #333"><p>hi</p></StickyNote>')
+  test('an ink colour set with style is the ink, next to the note colour', () => {
+    const { hydrated } = onlyIsland('<StickyNote color="green" style="color: #333"><p>hi</p></StickyNote>')
     expect(hydrated.styles).toEqual({ color: '#333' })
+    expect(hydrated.componentProps.noteColor).toBe('green')
   })
 
-  test('a colour that is not a note colour is dropped, not turned into yellow', () => {
-    const { hydrated } = onlyIsland('<StickyNote color="#333"><p>hi</p></StickyNote>')
-    expect(hydrated.styles.color).toBeUndefined()
+  test('a colour that is not a note colour falls back to yellow (and the editor says so)', () => {
+    const artifacts = compileTemplateToArtifacts('<StickyNote color="#333"><p>hi</p></StickyNote>')
+    expect(artifacts.islands[0]._precomputed!.componentProps.noteColor).toBe('yellow')
+    expect(artifacts.islands[0]._precomputed!.styles.color).toBeUndefined()
+    expect(artifacts.warnings).toEqual([
+      'Line 1: <StickyNote color="#333"> color can be yellow, pink, blue, green, orange or purple. Using yellow.',
+    ])
   })
 })
 
 describe('NeonSign', () => {
-  test('color, fontSize and fontWeight reach the island as styles', () => {
+  test('color, fontSize and fontWeight reach the component as its own props', () => {
     const { hydrated } = onlyIsland('<NeonSign text="hi" color="pink" fontSize="large" fontWeight="black" />')
-    expect(hydrated.styles).toEqual({ color: 'pink', fontSize: 'large', fontWeight: 'black' })
-    expect(hydrated.componentProps).toMatchObject({ text: 'hi', uppercase: true })
+    expect(hydrated.styles).toEqual({})
+    expect(hydrated.componentProps).toMatchObject({
+      text: 'hi',
+      uppercase: true,
+      neonColor: 'pink',
+      textSize: 'large',
+      textWeight: 'black',
+    })
   })
 
-  test('without them, nothing is put in style', () => {
+  test('without them, the defaults are props and nothing is put in style', () => {
     const { hydrated } = onlyIsland('<NeonSign text="hi" />')
     expect(hydrated.styles).toEqual({})
+    expect(hydrated.componentProps).toMatchObject({ neonColor: 'blue', textSize: 'medium', textWeight: 'bold' })
   })
 
-  test('element children stay in the placeholder for hydration', () => {
+  test('element children stay in the placeholder for hydration, with no CSS from the props', () => {
     const { staticHTML } = onlyIsland('<NeonSign color="green">Hi <b>there</b></NeonSign>')
     expect(staticHTML).toMatch(/data-component="neonsign"[^>]*>Hi <b>there<\/b><\/span>/)
+    expect(staticHTML).not.toMatch(/style="color/)
   })
 })
 
@@ -77,6 +91,8 @@ test('the Retro Toybox starter hands its pink note and pink sign their colours',
   const { islands } = compileTemplateToArtifacts(TEMPLATE_EXAMPLES.retroToybox.template)
   const note = islands.find((i) => i.component === 'stickynote')!
   const sign = islands.find((i) => i.component === 'neonsign')!
-  expect(note._precomputed!.styles).toEqual({ color: 'pink' })
-  expect(sign._precomputed!.styles).toEqual({ color: 'pink', fontSize: 'large' })
+  expect(note._precomputed!.componentProps.noteColor).toBe('pink')
+  expect(sign._precomputed!.componentProps).toMatchObject({ neonColor: 'pink', textSize: 'large' })
+  expect(note._precomputed!.styles).toEqual({})
+  expect(sign._precomputed!.styles).toEqual({})
 })

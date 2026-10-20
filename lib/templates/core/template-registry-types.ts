@@ -16,7 +16,35 @@ export interface PropSchema {
   values?: readonly string[]; // for enum type
   min?: number; // for number type
   max?: number; // for number type
+  /** What it does, in one plain sentence. Shown in the component reference and the editor. */
+  description?: string;
+  /** A value worth showing in snippets, when the default isn't a good example. */
+  example?: string;
+  /**
+   * The name the component's implementation reads, when it isn't the name
+   * authors write. `<FlexContainer gap="lg">` reaches FlexContainer as
+   * `gapSize`: the component renamed its prop so its own CSS handling
+   * wouldn't read the size as CSS `gap`. Authors may write either name.
+   */
+  componentProp?: string;
+  /**
+   * The value is CSS (a colour, a length…) and becomes the component's inline
+   * style, the way a CSS-named attribute does on plain HTML. Without this, a
+   * declared prop always reaches the component as a prop, even when it's
+   * named like a CSS property (`color`, `gap`, `display`).
+   */
+  css?: boolean;
 }
+
+/** Where a component sits in the public component reference. */
+export type ComponentGroup =
+  | 'connected'
+  | 'profile'
+  | 'layout'
+  | 'decorative'
+  | 'interactive'
+  | 'logic'
+  | 'site';
 
 // Component relationship metadata for parent-child relationships
 export interface ComponentRelationship {
@@ -38,6 +66,12 @@ export interface ComponentRegistration {
   props: Record<string, PropSchema>;
   fromAttrs?: (attrs: Record<string, string>) => Record<string, unknown>;
   relationship?: ComponentRelationship; // Parent-child relationship metadata
+  /** What it shows or does, in a sentence or two, for the component reference and the editor palette. */
+  description?: string;
+  /** A snippet to copy: the component the way someone would usually write it. */
+  example?: string;
+  /** Section in the component reference. Without one, it's listed under its registration file's area. */
+  group?: ComponentGroup;
 }
 
 /**
@@ -68,44 +102,118 @@ export interface StandardizedComponentRegistration<T extends StandardComponentPr
 }
 
 // Prop validation and coercion utilities
-export function validateAndCoerceProp(value: unknown, schema: PropSchema): unknown {
+
+/** A prop name the way authors vary it: `fontSize`, `fontsize` and `font-size` are one name. */
+export function propNameKey(name: string): string {
+  return name.toLowerCase().replace(/-/g, '');
+}
+
+/**
+ * The declared prop an attribute sets, matched regardless of case and
+ * dashes, by the name authors write or by the implementation's own name
+ * (componentProp). The HTML parser lowercases attribute names, so an exact
+ * lookup missed every camelCase prop: `tvStyle` arrives as `tvstyle`.
+ */
+export function findPropSchema(
+  schemas: Record<string, PropSchema>,
+  attrName: string
+): [string, PropSchema] | undefined {
+  if (Object.prototype.hasOwnProperty.call(schemas, attrName)) return [attrName, schemas[attrName]];
+  const wanted = propNameKey(attrName);
+  const entries = Object.entries(schemas);
+  return (
+    entries.find(([key]) => propNameKey(key) === wanted) ??
+    entries.find(([, schema]) => schema.componentProp !== undefined && propNameKey(schema.componentProp) === wanted)
+  );
+}
+
+export interface CoercedProp {
+  value: unknown;
+  /**
+   * Why the value written wasn't used as written, in words for the page's
+   * owner (the editor shows it). Undefined when the value was fine.
+   */
+  problem?: string;
+}
+
+function listOf(values: readonly string[]): string {
+  return values.length <= 1 ? values.join('') : `${values.slice(0, -1).join(', ')} or ${values[values.length - 1]}`;
+}
+
+function using(fallback: unknown): string {
+  return fallback === undefined ? 'It\'s left out.' : `Using ${String(fallback)}.`;
+}
+
+/**
+ * One attribute value, made into what the component gets. Never throws: a
+ * value that doesn't fit falls back to the default and says so in `problem`.
+ * Enum values match regardless of case (`color="Pink"` is pink).
+ */
+export function coercePropValue(value: unknown, schema: PropSchema, name: string): CoercedProp {
   if (value === undefined || value === null) {
-    if (schema.required) {
-      throw new Error(`Required prop is missing`);
-    }
-    return schema.default;
+    return schema.required
+      ? { value: schema.default, problem: `${name} is needed.` }
+      : { value: schema.default };
   }
 
   switch (schema.type) {
     case 'string':
-      return String(value);
+      return { value: String(value) };
 
-    case 'number':
+    case 'number': {
       const num = Number(value);
       if (isNaN(num)) {
-        if (schema.default !== undefined) return schema.default;
-        throw new Error(`Invalid number: ${value}`);
+        return { value: schema.default, problem: `${name} needs a number. ${using(schema.default)}` };
       }
-      if (schema.min !== undefined && num < schema.min) return schema.min;
-      if (schema.max !== undefined && num > schema.max) return schema.max;
-      return num;
-
-    case 'boolean':
-      if (typeof value === 'boolean') return value;
-      if (value === 'true' || value === '') return true;
-      if (value === 'false') return false;
-      return schema.default ?? false;
-
-    case 'enum':
-      const strValue = String(value);
-      if (schema.values && schema.values.includes(strValue)) {
-        return strValue;
+      const tooLow = schema.min !== undefined && num < schema.min;
+      const tooHigh = schema.max !== undefined && num > schema.max;
+      if (tooLow || tooHigh) {
+        const clamped = tooLow ? schema.min! : schema.max!;
+        const range =
+          schema.min !== undefined && schema.max !== undefined
+            ? `goes from ${schema.min} to ${schema.max}`
+            : schema.min !== undefined
+              ? `is at least ${schema.min}`
+              : `is at most ${schema.max}`;
+        return { value: clamped, problem: `${name} ${range}. Using ${clamped}.` };
       }
-      return schema.default;
+      return { value: num };
+    }
+
+    case 'boolean': {
+      if (typeof value === 'boolean') return { value };
+      const text = String(value).trim().toLowerCase();
+      // A bare attribute (`loop`) or HTML's `loop="loop"` is on
+      if (text === 'true' || text === '' || text === name.toLowerCase()) return { value: true };
+      if (text === 'false') return { value: false };
+      const fallback = schema.default ?? false;
+      return { value: fallback, problem: `${name} is true or false. Using ${String(fallback)}.` };
+    }
+
+    case 'enum': {
+      const text = String(value).trim();
+      const match = schema.values?.find((v) => v === text) ?? schema.values?.find((v) => v.toLowerCase() === text.toLowerCase());
+      if (match !== undefined) return { value: match };
+      return {
+        value: schema.default,
+        problem: `${name} can be ${listOf(schema.values || [])}. ${using(schema.default)}`,
+      };
+    }
 
     default:
-      return value;
+      return { value };
   }
+}
+
+export function validateAndCoerceProp(value: unknown, schema: PropSchema): unknown {
+  if ((value === undefined || value === null) && schema.required) {
+    throw new Error(`Required prop is missing`);
+  }
+  const { value: coerced, problem } = coercePropValue(value, schema, 'value');
+  if (problem && schema.type === 'number' && coerced === undefined) {
+    throw new Error(`Invalid number: ${value}`);
+  }
+  return coerced;
 }
 
 /**
@@ -146,12 +254,50 @@ function validateCSSValueForLegacy(propName: string, value: unknown): unknown {
   return stringValue;
 }
 
+/**
+ * Universal CSS properties every component accepts without declaring them.
+ * They become the component's inline style (island-detector), as on plain HTML.
+ */
+export const UNIVERSAL_CSS_ATTRIBUTES: readonly string[] = [
+  // Standard HTML attributes
+  'className', 'id', 'title', 'style', 'role', 'aria-label', 'aria-labelledby', 'aria-describedby',
+
+  // Standard CSS properties as props
+  'backgroundColor', 'color', 'fontSize', 'fontFamily', 'fontWeight', 'textAlign', 'lineHeight',
+  'padding', 'margin', 'border', 'borderRadius', 'boxShadow', 'opacity',
+  'position', 'top', 'right', 'bottom', 'left', 'width', 'height', 'minWidth', 'minHeight', 'maxWidth', 'maxHeight', 'zIndex',
+  'display', 'flexDirection', 'justifyContent', 'alignItems', 'gap',
+  'gridTemplateColumns', 'gridTemplateRows', 'gridColumn', 'gridRow', 'gridArea',
+  'gridAutoColumns', 'gridAutoRows', 'gridAutoFlow', 'rowGap', 'columnGap',
+  'alignContent', 'justifyItems', 'justifySelf', 'alignSelf',
+  'overflow', 'overflowX', 'overflowY',
+
+  // Text decoration and styling
+  'textDecoration', 'fontStyle', 'textTransform', 'letterSpacing', 'wordSpacing',
+  'textIndent', 'whiteSpace', 'wordBreak', 'wordWrap', 'textOverflow',
+
+  // Border styling
+  'borderColor', 'borderWidth', 'borderStyle', 'borderTop', 'borderRight', 'borderBottom', 'borderLeft',
+  'borderTopColor', 'borderRightColor', 'borderBottomColor', 'borderLeftColor',
+  'borderTopWidth', 'borderRightWidth', 'borderBottomWidth', 'borderLeftWidth',
+  'borderTopStyle', 'borderRightStyle', 'borderBottomStyle', 'borderLeftStyle',
+
+  // Legacy props that need to pass through during migration
+  'contentEditable', 'tabIndex'
+];
+
 export function validateAndCoerceProps(
   attrs: Record<string, unknown>,
   propSchemas: Record<string, PropSchema>,
   options?: {
     hasChildren?: boolean;
     componentType?: string;
+    /**
+     * Where problems go. The compiler passes its own: the template parser
+     * has already told the page's owner about each one, with line numbers
+     * (template-parser reportComponentProps). Without it they go to the console.
+     */
+    report?: (problems: string[]) => void;
   }
 ): Record<string, unknown> {
   const result: Record<string, unknown> = {};
@@ -168,94 +314,35 @@ export function validateAndCoerceProps(
     }
   }
 
-
-  // Universal CSS properties that should be allowed on all components
-  const universalCSSProperties = [
-    // Standard HTML attributes
-    'className', 'id', 'title', 'style', 'role', 'aria-label', 'aria-labelledby', 'aria-describedby',
-
-    // Standard CSS properties as props
-    'backgroundColor', 'color', 'fontSize', 'fontFamily', 'fontWeight', 'textAlign', 'lineHeight',
-    'padding', 'margin', 'border', 'borderRadius', 'boxShadow', 'opacity',
-    'position', 'top', 'right', 'bottom', 'left', 'width', 'height', 'minWidth', 'minHeight', 'maxWidth', 'maxHeight', 'zIndex',
-    'display', 'flexDirection', 'justifyContent', 'alignItems', 'gap',
-    'gridTemplateColumns', 'gridTemplateRows', 'gridColumn', 'gridRow', 'gridArea',
-    'gridAutoColumns', 'gridAutoRows', 'gridAutoFlow', 'rowGap', 'columnGap',
-    'alignContent', 'justifyItems', 'justifySelf', 'alignSelf',
-    'overflow', 'overflowX', 'overflowY',
-
-    // Text decoration and styling
-    'textDecoration', 'fontStyle', 'textTransform', 'letterSpacing', 'wordSpacing',
-    'textIndent', 'whiteSpace', 'wordBreak', 'wordWrap', 'textOverflow',
-
-    // Border styling
-    'borderColor', 'borderWidth', 'borderStyle', 'borderTop', 'borderRight', 'borderBottom', 'borderLeft',
-    'borderTopColor', 'borderRightColor', 'borderBottomColor', 'borderLeftColor',
-    'borderTopWidth', 'borderRightWidth', 'borderBottomWidth', 'borderLeftWidth',
-    'borderTopStyle', 'borderRightStyle', 'borderBottomStyle', 'borderLeftStyle',
-
-    // Legacy props that need to pass through during migration
-    'contentEditable', 'tabIndex'
-  ];
-
-  // DEBUG: Log incoming attrs for Show component
-  if (options?.componentType === 'Show') {
-    console.log('[validateAndCoerceProps] Show component attrs:', normalizedAttrs);
-    console.log('[validateAndCoerceProps] Show component propSchemas:', Object.keys(propSchemas));
-  }
-
   // Validate provided attrs
   for (const [key, value] of Object.entries(normalizedAttrs)) {
-    let schema = propSchemas[key];
+    const declared = findPropSchema(propSchemas, key);
 
-    // Try case-insensitive lookup if exact match not found (for legacy templates)
-    if (!schema) {
-      const lowerKey = key.toLowerCase();
-      const correctKey = Object.keys(propSchemas).find(k => k.toLowerCase() === lowerKey);
-      if (correctKey) {
-        schema = propSchemas[correctKey];
-        // Use the correct casing for the result
-        const correctedValue = value;
-        try {
-          result[correctKey] = validateAndCoerceProp(correctedValue, schema);
-        } catch (error) {
-          // Never swallow silently — the sibling catch below records the same
-          // condition, and a defaulted prop with no trace is exactly the kind
-          // of "component renders wrong with no explanation" flakiness the
-          // engine audit flagged.
-          warnings.push(`Invalid prop ${correctKey}: ${error}`);
-          result[correctKey] = schema.default;
-        }
-        continue;
-      }
-    }
-
-    if (!schema) {
-      // Allow special props to pass through for all components without warning
-      // Note: data-* attributes get converted to camelCase (data-component-id -> dataComponentId) by HTML parser
-      if (key === 'className' || key.startsWith('_') || key.startsWith('data-') || key.startsWith('data')) {
-        // Allow className, internal props (like _size, _positioningMode, etc.), and data attributes
-        result[key] = value;
-        continue;
-      }
-
-      // NEW: Allow universal CSS properties to pass through for legacy components
-      if (universalCSSProperties.includes(key)) {
-        // Apply basic CSS value validation (same as standardized components)
-        result[key] = validateCSSValueForLegacy(key, value);
-        continue;
-      }
-
-      warnings.push(`Unknown prop: ${key}`);
+    if (declared) {
+      // Stored under the registry's name, whatever case or spelling was written
+      const [propName, schema] = declared;
+      const { value: coerced, problem } = coercePropValue(value, schema, propName);
+      if (problem) warnings.push(`Invalid prop ${propName}: ${problem}`);
+      result[propName] = coerced;
       continue;
     }
 
-    try {
-      result[key] = validateAndCoerceProp(value, schema);
-    } catch (error) {
-      warnings.push(`Invalid prop ${key}: ${error}`);
-      result[key] = schema.default;
+    // Allow special props to pass through for all components without warning
+    // Note: data-* attributes get converted to camelCase (data-component-id -> dataComponentId) by HTML parser
+    if (key === 'className' || key.startsWith('_') || key.startsWith('data-') || key.startsWith('data')) {
+      // Allow className, internal props (like _size, _positioningMode, etc.), and data attributes
+      result[key] = value;
+      continue;
     }
+
+    // Universal CSS properties pass through for every component
+    if (UNIVERSAL_CSS_ATTRIBUTES.includes(key)) {
+      // Apply basic CSS value validation (same as standardized components)
+      result[key] = validateCSSValueForLegacy(key, value);
+      continue;
+    }
+
+    warnings.push(`Unknown prop: ${key}`);
   }
 
   // Add defaults for missing required props
@@ -278,7 +365,11 @@ export function validateAndCoerceProps(
   }
 
   if (warnings.length > 0) {
-    console.warn('Template prop validation warnings:', warnings);
+    if (options?.report) {
+      options.report(warnings);
+    } else {
+      console.warn('Template prop validation warnings:', warnings);
+    }
   }
 
   return result;

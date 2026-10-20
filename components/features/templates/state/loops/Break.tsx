@@ -18,17 +18,20 @@ import React from 'react';
  * </ForEach>
  * ```
  *
- * @example Conditional break
+ * @example Stop after ten items
  * ```xml
  * <ForEach var="items" item="item">
- *   <Break when="item.error === true" />
+ *   <Break when="i >= 10" />
  *   <div>{item.name}</div>
  * </ForEach>
  * ```
+ *
+ * `when` only compares the loop count (`i` or `index`) with a number. To
+ * stop on anything else, put <Break /> inside an <If>, as in the first example.
  */
 
 export interface BreakProps {
-  /** Optional inner condition (e.g., "i >= 5") - uses scoped variables */
+  /** The loop count compared with a number, like "i >= 5" (the compiler warns about anything else) */
   when?: string;
 
   /** Optional outer condition (e.g., "$vars.enabled") - uses global variables */

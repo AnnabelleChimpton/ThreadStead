@@ -8,72 +8,89 @@
 
 import React from 'react';
 
-// Universal styling prop definitions for component registry
+// Universal styling prop definitions for component registry. They're CSS
+// (`css: true`): the compiler turns them into the component's inline style.
 export const UNIVERSAL_STYLE_PROPS = {
   backgroundColor: {
     type: 'string' as const,
-    description: 'Background color of the component'
+    css: true,
+    description: 'A CSS colour for the background.'
   },
   textColor: {
     type: 'string' as const,
-    description: 'Text color of the component'
+    css: true,
+    description: 'A CSS colour for the text.'
   },
   borderColor: {
     type: 'string' as const,
-    description: 'Border color of the component'
+    css: true,
+    description: 'A CSS colour for the border.'
   },
   accentColor: {
     type: 'string' as const,
-    description: 'Accent color for highlights and special elements'
+    css: true,
+    description: 'A CSS colour for highlights.'
   },
   opacity: {
     type: 'string' as const,
-    description: 'Component opacity (0-100%)'
+    css: true,
+    description: 'How see-through it is, from 0 (invisible) to 1.'
   },
   borderRadius: {
     type: 'string' as const,
-    description: 'Border radius for rounded corners'
+    css: true,
+    description: 'How round the corners are, like 8px.'
   },
   borderWidth: {
     type: 'string' as const,
-    description: 'Border thickness'
+    css: true,
+    description: 'How thick the border is, like 2px.'
   },
   boxShadow: {
     type: 'string' as const,
-    description: 'Drop shadow effect'
+    css: true,
+    description: 'A CSS box-shadow, like 3px 3px 0 #000.'
   },
   fontSize: {
     type: 'string' as const,
-    description: 'Font size'
+    css: true,
+    description: 'A CSS font size, like 1.2rem.'
   },
   fontWeight: {
     type: 'string' as const,
-    description: 'Font weight (normal, bold, etc.)'
+    css: true,
+    description: 'normal, bold, or a number like 600.'
   },
   fontFamily: {
     type: 'string' as const,
-    description: 'Font family'
+    css: true,
+    description: 'A CSS font family, like Georgia, serif.'
   },
   textAlign: {
     type: 'enum' as const,
+    css: true,
     values: ['left', 'center', 'right', 'justify'] as const,
-    description: 'Text alignment'
+    description: 'Lines the text up left, center, right, or to both edges.'
   },
   lineHeight: {
     type: 'string' as const,
-    description: 'Line height for text spacing'
+    css: true,
+    description: 'Space between lines of text, like 1.6.'
   },
   padding: {
     type: 'string' as const,
-    description: 'Internal padding'
+    css: true,
+    description: 'Space inside the edge, like 1rem.'
   },
   margin: {
     type: 'string' as const,
-    description: 'External margin'
+    css: true,
+    description: 'Space outside the edge, like 1rem auto.'
   },
   customCSS: {
     type: 'string' as const,
-    description: 'Raw CSS styles as JSON string for advanced customization'
+    css: true,
+    description: 'Any other CSS, written as JSON, like {"letterSpacing": "2px"}.'
   }
 };
 

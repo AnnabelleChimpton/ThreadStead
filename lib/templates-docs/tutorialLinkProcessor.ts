@@ -2,44 +2,30 @@
 // Auto-links component mentions in tutorial text to component reference page
 
 import React from 'react';
-import { getAllUnifiedComponents } from './unifiedComponentData';
+import { COMPONENT_NAMES as REGISTERED_NAMES } from './component-names';
 
-// Build a list of all component names for pattern matching
-function getComponentNames(): Set<string> {
-  const components = getAllUnifiedComponents();
-  const names = new Set<string>();
+const COMPONENT_NAMES = new Set(REGISTERED_NAMES);
 
-  components.forEach(({ component }) => {
-    names.add(component.name);
-    names.add(component.id);
-  });
-
-  return names;
+/** Exact name, by case-insensitive match: `<foreach>` links to ForEach. */
+function canonicalName(name: string): string | undefined {
+  if (COMPONENT_NAMES.has(name)) return name;
+  const lower = name.toLowerCase();
+  return REGISTERED_NAMES.find((n) => n.toLowerCase() === lower);
 }
 
-const COMPONENT_NAMES = getComponentNames();
-
-/**
- * Check if a word is a known component name
- */
-function isComponentName(word: string): boolean {
-  return COMPONENT_NAMES.has(word) || COMPONENT_NAMES.has(word.toLowerCase());
-}
-
-/**
- * Get component ID from component name
- */
+/** Anchor on the component reference: the lowercase name. */
 function getComponentId(name: string): string {
-  // Try exact match first
-  const components = getAllUnifiedComponents();
-  const match = components.find(
-    ({ component }) =>
-      component.name === name ||
-      component.id === name.toLowerCase() ||
-      component.name.toLowerCase() === name.toLowerCase()
-  );
+  return (canonicalName(name) ?? name).toLowerCase();
+}
 
-  return match ? match.component.id : name.toLowerCase();
+/**
+ * Names that are also everyday words (Set, Tab, If, Default, Bio…) only
+ * link when written as a tag, in bold or as code; as plain words they're
+ * usually just words. Names with two capitals (ShowVar, FollowButton) link
+ * anywhere, as written.
+ */
+function isCompoundName(name: string): boolean {
+  return /^[A-Z][a-z0-9]*[A-Z]/.test(name);
 }
 
 /**
@@ -47,9 +33,9 @@ function getComponentId(name: string): string {
  * Preserves markdown formatting
  *
  * Examples:
- * - "Use the Slider component" → "Use the [Slider](/templates/components#slider) component"
- * - "The <Var> tag" → "The [<Var>](/templates/components#var) tag"
- * - "**Button** widget" → "**[Button](/templates/components#button)** widget"
+ * - "Use the ShowVar component" → "Use the [ShowVar](/build/templates/components#showvar) component"
+ * - "The <Var> tag" → "The <[Var](/build/templates/components#var)> tag"
+ * - "**Button** widget" → "**[Button](/build/templates/components#button)** widget"
  */
 export function autoLinkComponents(text: string): string {
   if (!text) return text;
@@ -100,8 +86,8 @@ export function autoLinkComponents(text: string): string {
       new RegExp(`(\\*\\*)(${componentName})(\\*\\*)`, 'gi'),
       // `ComponentName`
       new RegExp(`(\`)(${componentName})(\`)`, 'gi'),
-      // Plain ComponentName (as whole word)
-      new RegExp(`\\b()(${componentName})(\\b)`, 'gi'),
+      // Plain ComponentName (as whole word, as written)
+      ...(isCompoundName(componentName) ? [new RegExp(`\\b()(${componentName})(\\b)`, 'g')] : []),
     ];
 
     patterns.forEach((pattern) => {
@@ -116,7 +102,7 @@ export function autoLinkComponents(text: string): string {
         }
 
         const componentId = getComponentId(name);
-        const url = `/templates/components#${componentId}`;
+        const url = `/build/templates/components#${componentId}`;
 
         // Return with link wrapped around the component name
         return `${prefix}[${name}](${url})${suffix}`;
@@ -139,5 +125,5 @@ export function autoLinkComponentsInArray(textArray: string[]): string[] {
  */
 export function componentLink(componentId: string, displayText?: string): string {
   const text = displayText || componentId;
-  return `[${text}](/templates/components#${componentId})`;
+  return `[${text}](/build/templates/components#${componentId})`;
 }

@@ -2066,7 +2066,7 @@ body {
             <summary className="cursor-pointer font-medium mb-2 flex items-center gap-2">
               <PixelIcon name="folder" size={14} /> Components
               <span className="text-xs text-thread-sage font-normal">
-                — hover for props, autocomplete knows them too
+                Point at one to see what it does. Typing &lt; suggests them too.
               </span>
             </summary>
             <div className="mt-2">

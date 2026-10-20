@@ -83,6 +83,16 @@ function occurrences(entry: StrippedEntry): number {
   return 1 + (entry.count || 0);
 }
 
+/**
+ * A warning about one tag, as the compiler words it:
+ * `Line 3: <StickyNote color="teal"> color can be yellow, pink…`.
+ * Shown like a stripped tag: the tag as written, its line, then the note.
+ */
+export function splitTagWarning(warning: string): { line: number; tag: string; note: string } | null {
+  const match = /^Line (\d+): (<[^>]*>)\s*([\s\S]*)$/.exec(warning);
+  return match ? { line: Number(match[1]), tag: match[2], note: match[3] } : null;
+}
+
 export interface ValidationFeedbackProps {
   validationResult: {
     isValid: boolean;
@@ -224,11 +234,25 @@ export default function ValidationFeedbackPanel({
             </button>
             {expandedSections.warnings && (
               <div className="px-4 py-3 bg-yellow-50 space-y-2">
-                {validationResult.warnings.map((warning, index) => (
-                  <div key={index} className="bg-white border border-yellow-200 rounded p-3">
-                    <p className="text-sm text-yellow-800">{warning}</p>
-                  </div>
-                ))}
+                {validationResult.warnings.map((warning, index) => {
+                  const tagWarning = splitTagWarning(warning);
+                  if (!tagWarning) {
+                    return (
+                      <div key={index} className="bg-white border border-yellow-200 rounded p-3">
+                        <p className="text-sm text-yellow-800 whitespace-pre-wrap">{warning}</p>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div key={index} className="bg-white border border-yellow-200 rounded p-3">
+                      <div className="flex items-start gap-2 flex-wrap">
+                        <span className="font-mono text-sm font-semibold text-yellow-900 break-all">{tagWarning.tag}</span>
+                        <span className="text-xs text-yellow-700 bg-yellow-100 px-2 py-0.5 rounded">Line {tagWarning.line}</span>
+                      </div>
+                      {tagWarning.note && <p className="text-xs text-yellow-800 mt-1">{tagWarning.note}</p>}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

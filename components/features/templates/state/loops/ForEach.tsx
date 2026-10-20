@@ -90,7 +90,7 @@ function calculateBreakIndex(
     React.Children.forEach(node, (child) => {
       if (React.isValidElement(child)) {
         const childType = child.type;
-        const typeName = typeof childType === 'function' ? (childType as any).name || (childType as any).displayName : String(childType);
+        const typeName = typeof childType === 'function' ? (childType as any).displayName || (childType as any).name : String(childType);
 
         if (typeName === 'Break') {
           const props = child.props as any;

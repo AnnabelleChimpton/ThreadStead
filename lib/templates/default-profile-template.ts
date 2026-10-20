@@ -1464,7 +1464,7 @@ a:hover {
     template: `<ProfileHero variant="plain" />
 
 <RetroCard>
-  <ProfileHeader showPhoto="true" showBio="true" showActions="true" photoSize="xl" />
+  <ProfileHeader showPhoto="true" showBio="true" showActions="true" photoSize="lg" />
 </RetroCard>
 
 <Heading level="2" content="🎨 Featured Work" />

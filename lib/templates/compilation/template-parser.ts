@@ -1,9 +1,10 @@
 import { unified } from 'unified';
 import rehypeParse from 'rehype-parse';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
-import { html as htmlSchema } from 'property-information';
+import { find, html as htmlSchema } from 'property-information';
 import type { Root } from 'hast';
 import { componentRegistry } from '../core/template-registry';
+import { coercePropValue, findPropSchema, propNameKey, type PropSchema } from '../core/template-registry-types';
 import { getAllowedAttributes } from '../core/attribute-mappings';
 import { TEMPLATE_LIMITS, formatLimitError, checkWarningThresholds } from './template-limits';
 import {
@@ -136,12 +137,20 @@ export function createCustomSchema() {
       let attrs = allAttributes;
       if (registration?.props) {
         const propAttrs: string[] = [];
-        for (const propName of Object.keys(registration.props)) {
+        // The implementation's own name works too (`neonColor` for `color`)
+        const propNames = Object.entries(registration.props).flatMap(
+          ([name, propSchema]) => (propSchema.componentProp ? [name, propSchema.componentProp] : [name])
+        );
+        for (const propName of propNames) {
           const lower = propName.toLowerCase();
           const kebab = propName.replace(/[A-Z]/g, (c) => '-' + c.toLowerCase());
+          // hast keys known HTML attributes by property name: a prop called
+          // autoplay arrives as autoPlay, maxlength as maxLength
+          const property = find(htmlSchema, lower).property;
           propAttrs.push(propName);
           if (lower !== propName) propAttrs.push(lower);
           if (kebab !== propName && kebab !== lower) propAttrs.push(kebab);
+          if (property !== propName && property !== lower) propAttrs.push(property);
         }
         attrs = [...allAttributes, ...propAttrs];
       }
@@ -511,8 +520,8 @@ export function parseTemplate(htmlString: string): Root & {
 
   const strippedComponents = reportStrippedTags(htmlString, processed, document.head);
 
-  // Validate component attributes against registry
-  const attributeWarnings = validateComponentAttributes(processed);
+  // Component props that won't do what the author meant, for the editor
+  const attributeWarnings = reportComponentProps(htmlString);
 
   // Attach stripped components and attribute warnings to the result
   const result = processed as Root & {
@@ -536,69 +545,163 @@ export function parseTemplate(htmlString: string): Root & {
   return result;
 }
 
-// Validate component attributes against registry definitions
-function validateComponentAttributes(node: any, warnings: string[] = [], lineNumber = 0): string[] {
-  if (node.tagName && node.data?.component) {
-    // Only component tags (marked by finishSanitizedTree); <select> is HTML
-    const componentDef = componentRegistry.get(node.tagName);
+// ---------------------------------------------------------------------------
+// Component props the author should hear about
+// ---------------------------------------------------------------------------
 
-    if (componentDef && componentDef.props) {
-      const props = node.properties || {};
+/** Past this many, one line says how many more there are. */
+const MAX_PROP_MESSAGES = 50;
 
-      // Validate each attribute
-      Object.entries(props).forEach(([attrName, attrValue]) => {
-        const propDef = componentDef.props![attrName];
+/** Attribute values as written, with the entities people write in them decoded. */
+function decodeAttributeValue(value: string): string {
+  return value
+    .replace(/&quot;/g, '"')
+    .replace(/&#0*39;|&apos;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&');
+}
 
-        if (!propDef) {
-          // Unknown attribute - skip (might be universal props like class, id, style)
-          return;
-        }
+/** Does the sanitizer keep this attribute on this tag? Mirrors hast-util-sanitize's lookup. */
+function keptBySanitizer(attrName: string, allowed: readonly unknown[]): boolean {
+  // parse5 lowercases the name; hast keys it by property name (class → className)
+  const property = find(htmlSchema, attrName.toLowerCase()).property;
+  return allowed.some((entry) => {
+    const name = Array.isArray(entry) ? String(entry[0]) : String(entry);
+    return name === property || (name === 'data*' && property.length > 4 && property.slice(0, 4).toLowerCase() === 'data');
+  });
+}
 
-        // Validate enum values
-        if (propDef.type === 'enum' && propDef.values) {
-          const value = String(attrValue);
-          if (!propDef.values.includes(value)) {
-            // Use the original component name for display (capitalize if needed)
-            const displayName = componentDef.name || node.tagName;
-            warnings.push(
-              `<${displayName}> has invalid "${attrName}" value: "${value}".\n` +
-              `  Valid values are: ${propDef.values.join(', ')}\n` +
-              `  Tip: Check the component documentation for allowed values`
-            );
-          }
-        }
+function editDistance(a: string, b: string): number {
+  const row = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    let diagonal = row[0];
+    row[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const above = row[j];
+      row[j] = Math.min(row[j] + 1, row[j - 1] + 1, diagonal + (a[i - 1] === b[j - 1] ? 0 : 1));
+      diagonal = above;
+    }
+  }
+  return row[b.length];
+}
 
-        // Validate required attributes
-        if (propDef.required && (attrValue === undefined || attrValue === null || attrValue === '')) {
-          const displayName = componentDef.name || node.tagName;
-          warnings.push(
-            `<${displayName}> is missing required attribute "${attrName}"`
-          );
-        }
-      });
+/** The declared prop a misspelt attribute was probably meant to be. */
+function closestProp(attrName: string, props: Record<string, PropSchema>): string | undefined {
+  const wanted = propNameKey(attrName);
+  let best: { name: string; distance: number } | undefined;
+  for (const name of Object.keys(props)) {
+    const distance = editDistance(wanted, propNameKey(name));
+    if (distance <= 2 && distance < wanted.length && (!best || distance < best.distance)) best = { name, distance };
+  }
+  return best?.name;
+}
 
-      // Check for missing required attributes
-      if (componentDef.props) {
-        Object.entries(componentDef.props).forEach(([propName, propDef]) => {
-          if (propDef.required && !(propName in props)) {
-            const displayName = componentDef.name || node.tagName;
-            warnings.push(
-              `<${displayName}> is missing required attribute "${propName}"`
-            );
-          }
-        });
+/** What `<Break when>` understands: the loop count compared with a number (ForEach evaluateWhenCondition). */
+const BREAK_WHEN = /^\s*(i|index|\d+)\s*(>=|<=|>|<|===|!==|==|!=)\s*(i|index|\d+)\s*$/;
+
+/**
+ * Values a component would quietly give up on when the page runs (a
+ * pattern that isn't a pattern, a list that isn't JSON, a Break condition
+ * it can't read), checked here instead, where the author hears about it.
+ */
+function valueProblem(
+  component: string,
+  prop: string,
+  value: string,
+  attributes: Array<{ name: string; value?: string }>
+): string | undefined {
+  if (prop === 'matches' || (component === 'Validate' && prop === 'pattern')) {
+    try {
+      new RegExp(value);
+    } catch (error) {
+      const reason = error instanceof Error ? error.message.replace(/^Invalid regular expression: /, '') : '';
+      return `${prop} isn't a pattern this can read${reason ? ` (${reason})` : ''}, so it never matches.`;
+    }
+  }
+  if (component === 'Var' && prop === 'initial') {
+    const type = attributes.find((a) => a.name.toLowerCase() === 'type')?.value?.toLowerCase();
+    if (type === 'array' || type === 'object') {
+      const kind = type === 'array' ? 'a list like ["a", "b"]' : 'an object like {"a": 1}';
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(value);
+      } catch {
+        return `initial needs to be ${kind} in JSON, so it starts empty.`;
+      }
+      const fits = type === 'array' ? Array.isArray(parsed) : typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed);
+      if (!fits) return `initial needs to be ${kind}, so it starts empty.`;
+    }
+  }
+  if (component === 'Break' && prop === 'when' && !BREAK_WHEN.test(value)) {
+    return 'when compares the loop count with a number, like when="i >= 5". To stop on anything else, put <Break /> inside an <If>.';
+  }
+  return undefined;
+}
+
+/**
+ * Every component attribute that won't do what its author meant, said to
+ * the page's owner (these become validation warnings, which only the editor
+ * shows; visitors never see them):
+ *  - an attribute the component doesn't have (a typo, or another
+ *    component's prop): the sanitizer drops it;
+ *  - a value that doesn't fit (not one of the choices, not true/false, not a
+ *    number, out of range): the component gets its default instead;
+ *  - a required prop left out.
+ * Read from the source as written, so each message has its line. The
+ * compiler coerces the same values with the same function (island-detector
+ * via validateAndCoerceProps), so what this says is what happens.
+ */
+function reportComponentProps(source: string): string[] {
+  const schema = createCustomSchema();
+  const globalAttributes: unknown[] = schema.attributes['*'] || [];
+  const messages: string[] = [];
+
+  for (const token of tokenizeSource(source)) {
+    if (token.type !== 'open' || !looksLikeComponentName(token.name)) continue;
+    // Unregistered names are in the stripped report
+    const registration = componentRegistry.get(token.name);
+    if (!registration) continue;
+
+    const name = registration.name;
+    const line = lineAt(source, token.start);
+    const allowed = [...(schema.attributes[COMPONENT_TAG_PREFIX + name.toLowerCase()] || []), ...globalAttributes];
+    const written = new Set<string>();
+
+    for (const attr of token.attributes) {
+      const asWritten = `Line ${line}: <${name} ${attr.name}${attr.value !== undefined ? `="${attr.value}"` : ''}>`;
+      const declared = findPropSchema(registration.props, attr.name);
+      if (declared) {
+        const [propName, propSchema] = declared;
+        written.add(propName);
+        const value = decodeAttributeValue(attr.value ?? '');
+        const problem =
+          coercePropValue(value, propSchema, propName).problem ??
+          valueProblem(name, propName, value, token.attributes);
+        if (problem) messages.push(`${asWritten} ${problem}`);
+        continue;
+      }
+      if (!keptBySanitizer(attr.name, allowed)) {
+        const meant = closestProp(attr.name, registration.props);
+        messages.push(
+          `${asWritten} ${name} has no ${attr.name} setting, so it's left out.` +
+          (meant ? ` Did you mean ${meant}?` : '')
+        );
+      }
+    }
+
+    for (const [propName, propSchema] of Object.entries(registration.props)) {
+      if (propSchema.required && !written.has(propName)) {
+        messages.push(`Line ${line}: <${name}> needs ${propName}="…" to work.`);
       }
     }
   }
 
-  // Recursively validate children
-  if (node.children) {
-    node.children.forEach((child: any) => {
-      validateComponentAttributes(child, warnings, lineNumber);
-    });
+  if (messages.length > MAX_PROP_MESSAGES) {
+    const more = messages.length - MAX_PROP_MESSAGES;
+    return [...messages.slice(0, MAX_PROP_MESSAGES), `…and ${more} more like these.`];
   }
-
-  return warnings;
+  return messages;
 }
 
 // Convert HAST to a serializable AST for storage

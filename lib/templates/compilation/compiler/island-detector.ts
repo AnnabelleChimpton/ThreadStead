@@ -1,6 +1,7 @@
 // Island detection for template compilation
 import type { TemplateNode } from '@/lib/templates/compilation/template-parser';
-import { componentRegistry, validateAndCoerceProps, validateStandardizedProps } from '@/lib/templates/core/template-registry';
+import { componentRegistry, validateAndCoerceProps } from '@/lib/templates/core/template-registry';
+import { findPropSchema, type PropSchema } from '@/lib/templates/core/template-registry-types';
 import type { Island } from './types';
 import { normalizeVariableName } from '@/lib/templates/state/variable-utils';
 import { normalizeAttributeName } from '@/lib/templates/core/attribute-mappings';
@@ -222,6 +223,37 @@ function extractPositioningFromProperties(properties: Record<string, any>): any 
   return null;
 }
 
+/** A declared prop the component takes as a prop (not one marked `css`). */
+function isComponentOwnProp(schemas: Record<string, PropSchema>, name: string): boolean {
+  const declared = findPropSchema(schemas, name);
+  return declared !== undefined && !declared[1].css;
+}
+
+/**
+ * Split validated props into the ones the component declares, under the
+ * name its implementation reads (`componentProp`), and the rest. A declared
+ * prop named like CSS used to be turned into inline style before the
+ * component saw it, so `<NeonBorder color="pink">` stayed blue and
+ * `<SkillChart display="radial">` became `style.display` (engine audit R2).
+ */
+export function splitDeclaredProps(
+  props: Record<string, any>,
+  schemas: Record<string, PropSchema>
+): { declaredProps: Record<string, any>; undeclared: Record<string, any> } {
+  const declaredProps: Record<string, any> = {};
+  const undeclared: Record<string, any> = {};
+  for (const [key, value] of Object.entries(props)) {
+    // `style` is always the style attribute, even where a registry lists it
+    const schema = key !== 'style' && Object.prototype.hasOwnProperty.call(schemas, key) ? schemas[key] : undefined;
+    if (schema && !schema.css) {
+      declaredProps[schema.componentProp ?? key] = value;
+    } else {
+      undeclared[key] = value;
+    }
+  }
+  return { declaredProps, undeclared };
+}
+
 // Identify interactive components and create islands (new version with transformed AST)
 export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Island[], transformedAst: TemplateNode } {
   const islands: Island[] = [];
@@ -312,32 +344,13 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
           rawProps._positioning = positioningData;
         }
 
-        // NEW: Check if this is a standardized component or legacy component
-        const componentInfo = componentRegistry.getAnyComponent(node.tagName);
-        let props: Record<string, unknown>;
-
-        if (componentInfo?.type === 'standardized') {
-          // Handle standardized component with CSS property validation
-          props = validateStandardizedProps(rawProps, node.tagName);
-        } else if (componentInfo?.type === 'legacy') {
-          // Handle legacy component with old schema validation
-          props = validateAndCoerceProps(rawProps, componentInfo.registration.props, {
-            componentType: node.tagName,
-            hasChildren: childIslands.length > 0
-          });
-        } else {
-          // Fallback: try legacy validation (for backward compatibility)
-          const registration = componentRegistry.get(node.tagName);
-          if (registration) {
-            props = validateAndCoerceProps(rawProps, registration.props, {
-              componentType: node.tagName,
-              hasChildren: childIslands.length > 0
-            });
-          } else {
-            // Component not found in either registry
-            props = rawProps; // Use raw props as fallback
-          }
-        }
+        // The template parser already told the author about each prop
+        // problem, with its line (template-parser reportComponentProps).
+        const props = validateAndCoerceProps(rawProps, registration.props, {
+          componentType: node.tagName,
+          hasChildren: childIslands.length > 0,
+          report: () => {}
+        });
 
         // PHASE 2: Pre-compute props at compile-time
         // This moves prop processing from runtime (hydration) to compile-time
@@ -346,8 +359,12 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
           ? stripPositioningFromProps(props as Record<string, any>)
           : (props as Record<string, any>);
 
-        // Separate CSS props from component props
-        const { cssProps, componentProps: separatedComponentProps } = separateCSSProps(cleanedIslandProps);
+        // Declared props reach the component (props win). Only what's left,
+        // undeclared CSS-named attributes and props marked `css`, becomes
+        // inline style, the way those attributes work on plain HTML.
+        const { declaredProps, undeclared } = splitDeclaredProps(cleanedIslandProps, registration.props);
+        const { cssProps, componentProps: otherComponentProps } = separateCSSProps(undeclared);
+        const separatedComponentProps = { ...otherComponentProps, ...declaredProps };
 
         // Convert CSS props to inline styles
         const generatedStyles = applyCSSProps(cssProps);
@@ -439,6 +456,9 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
 
           for (const cssProp of cssProperties) {
             const value = node.properties[cssProp];
+            // A declared prop named like CSS (`<SkillChart display="radial">`)
+            // is the component's, not the placeholder's style
+            if (isComponentOwnProp(registration.props, cssProp)) continue;
             if (value && typeof value === 'string') {
               // Convert camelCase to kebab-case for CSS
               const cssProperty = cssProp

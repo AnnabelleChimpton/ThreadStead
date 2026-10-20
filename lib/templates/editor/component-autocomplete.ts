@@ -4,19 +4,11 @@
 // implementations into the editor bundle.
 import type { TagSpec } from '@codemirror/lang-html';
 
-export interface ComponentSchemaProp {
-  name: string;
-  type: 'string' | 'number' | 'boolean' | 'enum';
-  required: boolean;
-  values?: string[];
-  default?: string;
-}
+import type { ComponentDoc, ComponentPropDoc } from '@/lib/templates-docs/component-docs';
 
-export interface ComponentSchema {
-  name: string;
-  acceptsChildren: boolean;
-  props: ComponentSchemaProp[];
-}
+// The registry's own docs (lib/templates-docs/component-docs.ts), as the API sends them
+export type ComponentSchemaProp = ComponentPropDoc;
+export type ComponentSchema = ComponentDoc;
 
 let cachedSchemas: ComponentSchema[] | null = null;
 let inflight: Promise<ComponentSchema[]> | null = null;
@@ -51,21 +43,17 @@ export function buildExtraTags(components: ComponentSchema[]): Record<string, Ta
   return specs;
 }
 
-/** What the palette inserts: containers open+close, leaves self-close. */
+/** What the palette inserts: the registry's snippet, the same one the component reference shows. */
 export function componentSnippet(c: ComponentSchema): string {
-  const required = c.props
-    .filter((p) => p.required)
-    .map((p) => ` ${p.name}="${p.default ?? ''}"`)
-    .join('');
-  return c.acceptsChildren
-    ? `<${c.name}${required}>\n  \n</${c.name}>`
-    : `<${c.name}${required} />`;
+  return c.example;
 }
 
-/** One-line human summary of a component's props, for palette tooltips. */
+/** What a component does and the settings it takes, for palette tooltips. */
 export function describeProps(c: ComponentSchema): string {
-  if (c.props.length === 0) return 'No props';
-  return c.props
-    .map((p) => `${p.name}${p.required ? '*' : ''}: ${p.values ? p.values.join(' | ') : p.type}`)
+  const settings = c.props
+    .map((p) => `${p.name}${p.required ? ' (needed)' : ''}: ${p.values ? p.values.join(' | ') : p.type}`)
     .join('\n');
+  return [c.description, c.parent ? `Goes inside <${c.parent}>.` : '', settings || 'No settings.']
+    .filter(Boolean)
+    .join('\n\n');
 }

@@ -1,8 +1,9 @@
 /**
  * StickyNote and NeonSign as a profile page shows them: compiled by the real
  * pipeline (or stored by an earlier compile), then hydrated by the islands
- * renderer. Their `color`/`fontSize`/`fontWeight` arrive as styles (engine
- * R2); the components read their own values back out of them.
+ * renderer. Their `color`/`fontSize`/`fontWeight` arrive as their own props
+ * (noteColor, neonColor, textSize, textWeight). Islands saved before that
+ * carry them as styles instead; the components read those back.
  * (Compile side: tests/template-engine/__tests__/decorative-props.etest.ts)
  */
 jest.mock('@noble/ed25519', () => ({
@@ -78,6 +79,18 @@ describe('StickyNote', () => {
     const inked = await hydrateSource('<StickyNote style="color: #123456"><p>hi</p></StickyNote>')
     expect(note(inked)).toHaveClass('bg-yellow-200')
     expect(note(inked).style.color).toBe('rgb(18, 52, 86)')
+  })
+
+  test('a note colour and an ink colour together', async () => {
+    const c = await hydrateSource('<StickyNote color="pink" style="color: blue"><p>hi</p></StickyNote>')
+    expect(note(c)).toHaveClass('bg-pink-200')
+    expect(note(c).style.color).toBe('blue')
+  })
+
+  test('an ink colour that is also a note colour stays the ink', async () => {
+    const c = await hydrateSource('<StickyNote style="color: pink"><p>hi</p></StickyNote>')
+    expect(note(c)).toHaveClass('bg-yellow-200')
+    expect(note(c).style.color).toBe('pink')
   })
 
   test('the widget slot workaround (background style, inner ink) still renders as before', async () => {

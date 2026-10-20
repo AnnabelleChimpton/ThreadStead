@@ -25,12 +25,13 @@ interface StickyNoteProps extends UniversalCSSProps {
 export default function StickyNote(props: StickyNoteProps) {
   const { cssProps: allCSSProps, componentProps } = separateCSSProps(props);
 
-  // Templates set the note colour with `color` (the registry's name for it).
-  // The compile step files `color` under CSS, so it arrives here as
-  // `style.color`, and pages saved earlier store it that way too. A note-colour
-  // name there means the note; anything else is the ink.
+  // Templates write the note colour as `color`; it arrives as noteColor.
+  // Pages saved before props reached components store it as `style.color`
+  // instead, with no noteColor. For those, a note-colour name there still
+  // means the note; anything else is the ink.
   const { color: cssColor, ...otherCSSProps } = allCSSProps;
-  const colorFromTemplate = isNoteColor(cssColor) ? cssColor : undefined;
+  const colorFromTemplate =
+    componentProps.noteColor === undefined && isNoteColor(cssColor) ? cssColor : undefined;
   const cssProps = colorFromTemplate ? otherCSSProps : allCSSProps;
 
   const {

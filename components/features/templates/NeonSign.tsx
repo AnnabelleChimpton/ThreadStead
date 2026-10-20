@@ -33,13 +33,13 @@ export interface NeonSignProps extends UniversalCSSProps {
 export default function NeonSign(props: NeonSignProps) {
   const { cssProps: allCSSProps, componentProps } = separateCSSProps(props);
 
-  // Templates use the registry's names, `color`, `fontSize` and `fontWeight`.
-  // The compile step files those under CSS, so they arrive here as styles, and
-  // pages saved earlier store them that way too. One of the sign's own values
-  // there means the sign; anything else stays CSS.
-  const colorFromTemplate = oneOf(NEON_COLORS, allCSSProps.color);
-  const sizeFromTemplate = oneOf(TEXT_SIZES, allCSSProps.fontSize);
-  const weightFromTemplate = oneOf(TEXT_WEIGHTS, allCSSProps.fontWeight);
+  // Templates write `color`, `fontSize` and `fontWeight`; they arrive as
+  // neonColor, textSize and textWeight. Pages saved before props reached
+  // components store them as styles instead. For those, one of the sign's
+  // own values there still means the sign; anything else stays CSS.
+  const colorFromTemplate = componentProps.neonColor === undefined ? oneOf(NEON_COLORS, allCSSProps.color) : undefined;
+  const sizeFromTemplate = componentProps.textSize === undefined ? oneOf(TEXT_SIZES, allCSSProps.fontSize) : undefined;
+  const weightFromTemplate = componentProps.textWeight === undefined ? oneOf(TEXT_WEIGHTS, allCSSProps.fontWeight) : undefined;
   const cssProps = { ...allCSSProps };
   if (colorFromTemplate) delete cssProps.color;
   if (sizeFromTemplate) delete cssProps.fontSize;

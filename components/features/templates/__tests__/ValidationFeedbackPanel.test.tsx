@@ -87,3 +87,21 @@ describe('ValidationFeedbackPanel stripped report', () => {
     expect(screen.getByRole('button', { name: 'Save Anyway' })).toBeInTheDocument();
   });
 });
+
+describe('ValidationFeedbackPanel component prop warnings', () => {
+  const propWarning =
+    'Line 3: <StickyNote color="teal"> color can be yellow, pink, blue, green, orange or purple. Using yellow.';
+
+  it('shows the tag as written, its line, and what happened', () => {
+    renderPanel([], [propWarning, 'Template is getting large']);
+
+    expect(screen.getByText('2 Warnings')).toBeInTheDocument();
+    expect(screen.getByText('<StickyNote color="teal">')).toBeInTheDocument();
+    expect(screen.getByText('Line 3')).toBeInTheDocument();
+    expect(screen.getByText('color can be yellow, pink, blue, green, orange or purple. Using yellow.')).toBeInTheDocument();
+    // Warnings without a line show as they are
+    expect(screen.getByText('Template is getting large')).toBeInTheDocument();
+    // A warning doesn't stop the save
+    expect(screen.getByRole('button', { name: 'Save Anyway' })).toBeInTheDocument();
+  });
+});

@@ -35,6 +35,9 @@ export function registerEventComponents(registry: ComponentRegistry) {
   registry.register({
     name: 'OnClick',
     component: OnClick,
+    group: 'logic',
+    description: 'Says what happens when a Button is clicked: the actions inside run in order. It only works as a direct child of a Button. If a Button has more than one, only the last one runs.',
+    example: '<Var name="waves" type="number" initial="0" />\n<Button>\n  <OnClick><Increment var="waves" /><ShowToast message="Waved back" type="info" /></OnClick>\n  Wave hello\n</Button>\n<p>Waves so far: <ShowVar name="waves" /></p>',
     props: {},
     relationship: {
       type: 'container',
@@ -45,8 +48,11 @@ export function registerEventComponents(registry: ComponentRegistry) {
   registry.register({
     name: 'OnChange',
     component: OnChange,
+    group: 'logic',
+    description: 'Runs the actions inside when the visitor changes an input. It goes inside a TInput, Select, Slider, ColorPicker or RadioGroup, not a Checkbox. The input\'s own variable is already updated when it runs.',
+    example: '<Var name="mood" type="string" initial="" />\n<Var name="changes" type="number" initial="0" />\n<Select var="mood" placeholder="Pick a mood">\n  <Option value="cozy">Cozy</Option>\n  <Option value="restless">Restless</Option>\n  <OnChange><Increment var="changes" /></OnChange>\n</Select>\n<p>Mood changes: <ShowVar name="changes" /></p>',
     props: {
-      debounce: { type: 'number', default: 0 }
+      debounce: { type: 'number', default: 0, description: 'Wait this many milliseconds after the last change before running, so typing in a TInput runs it once at the end instead of on every key. 0 by default.' }
     },
     relationship: {
       type: 'action',
@@ -58,6 +64,9 @@ export function registerEventComponents(registry: ComponentRegistry) {
   registry.register({
     name: 'OnMount',
     component: OnMount,
+    group: 'logic',
+    description: 'Runs the actions inside once, when the page loads. Put it after the Var tags it changes, or they won\'t exist yet. Increment, Decrement, Toggle and Cycle don\'t work here because the variable isn\'t found yet; use Set instead, like expression="$vars.visits + 1".',
+    example: '<Var name="visits" type="number" initial="0" persist="true" />\n<OnMount><Set var="visits" expression="$vars.visits + 1" /></OnMount>\n<p>You\'ve visited from this browser <ShowVar name="visits" /> times.</p>',
     props: {},
     relationship: {
       type: 'action',
@@ -69,9 +78,12 @@ export function registerEventComponents(registry: ComponentRegistry) {
   registry.register({
     name: 'OnInterval',
     component: OnInterval,
+    group: 'logic',
+    description: 'Runs the actions inside over and over on a timer, for as long as the page is open.',
+    example: '<Var name="weather" type="string" initial="sunny" />\n<p>Outside my window it\'s <ShowVar name="weather" /></p>\n<OnInterval seconds="3"><Cycle var="weather" values="sunny, rainy, foggy, snowy" /></OnInterval>',
     props: {
-      seconds: { type: 'number' },
-      milliseconds: { type: 'number' }
+      seconds: { type: 'number', description: 'How many seconds between runs. If you set neither this nor milliseconds, it\'s 1 second.' },
+      milliseconds: { type: 'number', description: 'How many milliseconds between runs. Wins over seconds if you set both.' }
     },
     relationship: {
       type: 'action',
@@ -83,6 +95,9 @@ export function registerEventComponents(registry: ComponentRegistry) {
   registry.register({
     name: 'OnHover',
     component: OnHover,
+    group: 'logic',
+    description: 'Runs the actions inside each time the mouse moves onto an EventDiv. Nothing happens when it leaves. It must sit directly inside an EventDiv, and it\'s ignored if that EventDiv also has an OnMouseEnter.',
+    example: '<Var name="boops" type="number" initial="0" />\n<EventDiv style="padding: 1em; border: 1px solid">\n  <OnHover><Increment var="boops" /></OnHover>\n  Boop the snoot. Boops: <ShowVar name="boops" />\n</EventDiv>',
     props: {},
     relationship: {
       type: 'action',
@@ -93,6 +108,9 @@ export function registerEventComponents(registry: ComponentRegistry) {
   registry.register({
     name: 'OnMouseEnter',
     component: OnMouseEnter,
+    group: 'logic',
+    description: 'Runs the actions inside when the mouse moves onto an EventDiv. It must sit directly inside an EventDiv. Pair it with OnMouseLeave to undo the change.',
+    example: '<Var name="sign" type="string" initial="Closed" />\n<EventDiv style="padding: 1em; border: 1px solid">\n  <OnMouseEnter><Set var="sign" value="Open, come in" /></OnMouseEnter>\n  <OnMouseLeave><Set var="sign" value="Closed" /></OnMouseLeave>\n  Shop sign: <ShowVar name="sign" />\n</EventDiv>',
     props: {},
     relationship: {
       type: 'action',
@@ -103,6 +121,9 @@ export function registerEventComponents(registry: ComponentRegistry) {
   registry.register({
     name: 'OnMouseLeave',
     component: OnMouseLeave,
+    group: 'logic',
+    description: 'Runs the actions inside when the mouse moves off an EventDiv. It must sit directly inside an EventDiv.',
+    example: '<Var name="sign" type="string" initial="Closed" />\n<EventDiv style="padding: 1em; border: 1px solid">\n  <OnMouseEnter><Set var="sign" value="Open, come in" /></OnMouseEnter>\n  <OnMouseLeave><Set var="sign" value="Closed" /></OnMouseLeave>\n  Shop sign: <ShowVar name="sign" />\n</EventDiv>',
     props: {},
     relationship: {
       type: 'action',
@@ -113,8 +134,11 @@ export function registerEventComponents(registry: ComponentRegistry) {
   registry.register({
     name: 'OnKeyPress',
     component: OnKeyPress,
+    group: 'logic',
+    description: 'Runs the actions inside when a certain key is pressed anywhere on the page, including while someone is typing in a text box.',
+    example: '<Var name="jumps" type="number" initial="0" />\n<OnKeyPress keyName="j"><Increment var="jumps" /></OnKeyPress>\n<p>Press j to jump. Jumps: <ShowVar name="jumps" /></p>',
     props: {
-      keyName: { type: 'string', required: true }
+      keyName: { type: 'string', required: true, description: 'The key to listen for, named the way browsers name keys: Enter, Escape, ArrowUp, j, J (a capital means with Shift) and so on. It has to match exactly.' }
     },
     relationship: {
       type: 'action',
@@ -125,9 +149,12 @@ export function registerEventComponents(registry: ComponentRegistry) {
   registry.register({
     name: 'OnVisible',
     component: OnVisible,
+    group: 'logic',
+    description: 'Runs the actions inside when the spot where it sits scrolls into view. By default it only runs the first time.',
+    example: '<p>Thanks for reading this far.</p>\n<OnVisible>\n  <ShowToast message="You made it to the bottom of my page" type="info" />\n</OnVisible>',
     props: {
-      threshold: { type: 'number', default: 0.5 },
-      once: { type: 'boolean', default: true }
+      threshold: { type: 'number', default: 0.5, description: 'How much has to be on screen, from 0 to 1. The spot it watches has no size, so in practice it runs as soon as the spot is on screen whatever this is.' },
+      once: { type: 'boolean', default: true, description: 'true (the default) runs it only the first time. With false it runs each time the spot comes back into view, and also again whenever any page variable changes while it\'s on screen, so an action here that changes a variable keeps repeating.' }
     },
     relationship: {
       type: 'action',
@@ -139,11 +166,14 @@ export function registerEventComponents(registry: ComponentRegistry) {
   registry.register({
     name: 'ForEach',
     component: ForEach,
+    group: 'logic',
+    description: 'Repeats what\'s inside once for each item in a list variable. Inside, write {book} (your item name in curly brackets) in text or attributes for the item, {book.title} for one field of an object, and {i} or {i + 1} for the position if you set index. ShowVar can\'t show the item; use the curly brackets.',
+    example: '<Var name="books" type="array" initial=\'["Earthsea", "Piranesi", "Momo"]\' />\n<ul>\n  <ForEach var="books" item="book" index="i">\n    <li>{i + 1}. {book}</li>\n  </ForEach>\n</ul>',
     props: {
-      var: { type: 'string', required: true },
-      item: { type: 'string', required: true },
-      index: { type: 'string' },
-      className: { type: 'string' }
+      var: { type: 'string', required: true, description: 'The list variable to go through. If it isn\'t a list, nothing shows.' },
+      item: { type: 'string', required: true, description: 'The name for the current item inside the loop, like book for {book}.' },
+      index: { type: 'string', description: 'A name for the current position, counting from 0, like i for {i}. {i + 1} counts from 1; only + works there.' },
+      className: { type: 'string', description: 'Not used yet.' }
     },
     relationship: {
       type: 'container',
@@ -154,9 +184,12 @@ export function registerEventComponents(registry: ComponentRegistry) {
   registry.register({
     name: 'Break',
     component: Break,
+    group: 'logic',
+    description: 'Stops a ForEach early, so only the items before that point show. It must sit directly inside the ForEach, or inside plain HTML tags there; inside an If or an event it does nothing. With neither when nor condition set, the list shows no items at all.',
+    example: '<Var name="books" type="array" initial=\'["Earthsea", "Piranesi", "Momo", "Watership Down"]\' />\n<ul>\n  <ForEach var="books" item="book">\n    <Break when="i >= 3" />\n    <li>{book}</li>\n  </ForEach>\n</ul>',
     props: {
-      when: { type: 'string', required: false },
-      condition: { type: 'string', required: false }
+      when: { type: 'string', description: 'Stop when the loop count reaches this, like i >= 5.', example: 'i >= 5' },
+      condition: { type: 'string', description: 'Stop when this page variable is set, like $vars.done.', example: '$vars.done' }
     },
     relationship: {
       type: 'action',
@@ -167,8 +200,11 @@ export function registerEventComponents(registry: ComponentRegistry) {
   registry.register({
     name: 'Continue',
     component: Continue,
+    group: 'logic',
+    description: 'Meant to skip one item in a ForEach, but it doesn\'t do anything yet, on the page or inside an event. To leave items out, put the item\'s HTML inside an If instead.',
+    example: '<Var name="books" type="array" initial=\'["Earthsea", "Momo"]\' />\n<ul>\n  <ForEach var="books" item="book">\n    <Continue />\n    <li>{book}</li>\n  </ForEach>\n</ul>',
     props: {
-      when: { type: 'string', required: false }
+      when: { type: 'string', required: false, description: 'Not used yet.' }
     },
     relationship: {
       type: 'action',
@@ -180,15 +216,18 @@ export function registerEventComponents(registry: ComponentRegistry) {
   registry.register({
     name: 'Validate',
     component: Validate,
+    group: 'logic',
+    description: 'Checks a page variable and makes three more from it: name_valid (true or false), name_error (the first failing message, or empty) and name_errors (a list of all of them). It doesn\'t read the box it sits in, so always set var. Putting it inside the TInput it checks just keeps them together.',
+    example: '<Var name="email" type="string" initial="" />\n<TInput var="email" type="email" placeholder="you@example.com">\n  <Validate var="email" pattern="email" message="That doesn\'t look like an email address" />\n</TInput>\n<p><ShowVar name="email_error" /></p>',
     props: {
-      var: { type: 'string' },
-      pattern: { type: 'string' },
-      required: { type: 'boolean', default: false },
-      min: { type: 'number' },
-      max: { type: 'number' },
-      minLength: { type: 'number' },
-      maxLength: { type: 'number' },
-      message: { type: 'string', required: true }
+      var: { type: 'string', description: 'The page variable to check. Needed: without it nothing is checked.' },
+      pattern: { type: 'string', description: 'email, url (must start with http:// or https://), phone (digits, spaces and + - ( ) only), or your own regular expression.' },
+      required: { type: 'boolean', default: false, description: 'When true, an empty value fails. Without it an empty value always passes, so the error shows only once something is typed.' },
+      min: { type: 'number', description: 'The lowest number allowed.' },
+      max: { type: 'number', description: 'The highest number allowed.' },
+      minLength: { type: 'number', description: 'The fewest characters allowed.' },
+      maxLength: { type: 'number', description: 'The most characters allowed.' },
+      message: { type: 'string', required: true, description: 'The text put into name_error when this check fails. Use one Validate per message.' }
     },
     relationship: {
       type: 'leaf',
@@ -200,9 +239,12 @@ export function registerEventComponents(registry: ComponentRegistry) {
   registry.register({
     name: 'Delay',
     component: Delay,
+    group: 'logic',
+    description: 'Waits, then runs the actions inside. It goes inside an event like OnClick or in a Sequence. Actions after it in the same event don\'t wait; inside a Sequence they do.',
+    example: '<Var name="note" type="string" initial="" />\n<Button><OnClick>\n  <Set var="note" value="Knock knock..." />\n  <Delay seconds="2"><Set var="note" value="Who\'s there? Come on in." /></Delay>\n</OnClick>Knock</Button>\n<p><ShowVar name="note" /></p>',
     props: {
-      seconds: { type: 'number', required: false },
-      milliseconds: { type: 'number', required: false }
+      seconds: { type: 'number', required: false, description: 'How many seconds to wait. With neither this nor milliseconds, it doesn\'t wait.' },
+      milliseconds: { type: 'number', required: false, description: 'How many milliseconds to wait. Wins over seconds if you set both.' }
     },
     relationship: {
       type: 'action',
@@ -213,6 +255,9 @@ export function registerEventComponents(registry: ComponentRegistry) {
   registry.register({
     name: 'Sequence',
     component: Sequence,
+    group: 'logic',
+    description: 'Runs actions one after another, with waits in between. It goes inside an event like OnClick. Either fill it with Step tags, or with actions and Delay tags, where each Delay pauses before the rest. If there\'s any Step inside, everything that isn\'t a Step is skipped.',
+    example: '<Var name="kettle" type="string" initial="Cold" />\n<Button><OnClick><Sequence>\n  <Step><Set var="kettle" value="Boiling..." /></Step>\n  <Step delay="3000"><Set var="kettle" value="Tea\'s ready" /></Step>\n</Sequence></OnClick>Put the kettle on</Button>\n<p>Kettle: <ShowVar name="kettle" /></p>',
     props: {},
     relationship: {
       type: 'action',
@@ -223,8 +268,11 @@ export function registerEventComponents(registry: ComponentRegistry) {
   registry.register({
     name: 'Step',
     component: Step,
+    group: 'logic',
+    description: 'One step in a Sequence: it waits, then runs the actions inside. It must sit directly inside a Sequence.',
+    example: '<Var name="count" type="string" initial="Ready" />\n<Button><OnClick><Sequence>\n  <Step><Set var="count" value="3" /></Step>\n  <Step delay="1000"><Set var="count" value="2" /></Step>\n  <Step delay="1000"><Set var="count" value="1" /></Step>\n  <Step delay="1000"><Set var="count" value="Blast off" /></Step>\n</Sequence></OnClick>Count down</Button>\n<p><ShowVar name="count" /></p>',
     props: {
-      delay: { type: 'number', default: 0 }
+      delay: { type: 'number', default: 0, description: 'How many milliseconds to wait, counted from when the step before it ran. 0 by default. Waits add up: two steps with delay="1000" run 1 and 2 seconds after the click.' }
     },
     relationship: {
       type: 'action',
@@ -235,9 +283,12 @@ export function registerEventComponents(registry: ComponentRegistry) {
   registry.register({
     name: 'Timeout',
     component: Timeout,
+    group: 'logic',
+    description: 'Waits once after the page loads, then runs the OnTimeout inside it. It shows nothing, and anything inside other than OnTimeout isn\'t shown either.',
+    example: '<Var name="welcome" type="string" initial="Welcome in, take your shoes off." />\n<p><ShowVar name="welcome" /></p>\n<Timeout seconds="10"><OnTimeout><Set var="welcome" value="Still here? Put the kettle on." /></OnTimeout></Timeout>',
     props: {
-      seconds: { type: 'number', required: false },
-      milliseconds: { type: 'number', required: false }
+      seconds: { type: 'number', required: false, description: 'How many seconds to wait. If you set neither this nor milliseconds, it\'s 5 seconds.' },
+      milliseconds: { type: 'number', required: false, description: 'How many milliseconds to wait. Wins over seconds if you set both.' }
     },
     relationship: {
       type: 'container',
@@ -248,6 +299,9 @@ export function registerEventComponents(registry: ComponentRegistry) {
   registry.register({
     name: 'OnTimeout',
     component: OnTimeout,
+    group: 'logic',
+    description: 'Holds the actions a Timeout runs when its time is up. It must sit directly inside a Timeout.',
+    example: '<Timeout seconds="30">\n  <OnTimeout>\n    <ShowToast message="Thanks for staying a while" type="info" />\n  </OnTimeout>\n</Timeout>',
     props: {},
     relationship: {
       type: 'action',
