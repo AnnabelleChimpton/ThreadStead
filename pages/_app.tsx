@@ -260,7 +260,9 @@ ${rest}`)
               {/* Site chrome: profile CSS is scoped away from data-site-chrome */}
               <div data-site-chrome style={{ display: 'contents' }}>
                 {/* Cookie Consent Banner */}
-                <CookieConsentBanner userId={user?.id} />
+                {/* Not inside the editor's live preview, where it covered the
+                    page being edited */}
+                {router.pathname !== '/template-preview' && <CookieConsentBanner userId={user?.id} />}
 
                 {/* Global Chat - Only show for authenticated users */}
                 {user && (
