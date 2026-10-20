@@ -2,15 +2,18 @@ import React from 'react';
 import { useResidentData } from './ResidentDataProvider';
 import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 import { PixelIcon } from '@/components/ui/PixelIcon';
+import { componentHeading } from './component-heading';
 
 interface MediaGridProps extends UniversalCSSProps {
   className?: string;
+  heading?: string;
 }
 
 export default function MediaGrid(props: MediaGridProps) {
   const { cssProps, componentProps } = separateCSSProps(props);
-  const { className: customClassName } = componentProps;
-  const { images, owner } = useResidentData();
+  const { className: customClassName, heading } = componentProps;
+  const headingText = componentHeading(heading, 'Featured Photos');
+  const { images, owner, viewer } = useResidentData();
 
   // Handle className being passed as array or string
   const normalizedCustomClassName = Array.isArray(customClassName)
@@ -26,6 +29,9 @@ export default function MediaGrid(props: MediaGridProps) {
     : filteredClasses;
 
   if (!images || images.length === 0) {
+    // Visitors see nothing rather than a box saying there's nothing; the
+    // owner gets the hint
+    if (!viewer?.id || viewer.id !== owner?.id) return null;
     return (
       <div className={containerClassName} style={style}>
         <div className="text-center py-12">
@@ -50,9 +56,10 @@ export default function MediaGrid(props: MediaGridProps) {
   return (
     <div className={containerClassName} style={style}>
       {/* Header */}
+      {headingText && (
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-thread-pine">Featured Photos</h3>
+          <h3 className="text-lg font-semibold text-thread-pine">{headingText}</h3>
           <p className="text-sm text-thread-sage">
             {owner?.displayName || owner?.handle || 'This user'}&apos;s favorite photos
           </p>
@@ -65,6 +72,7 @@ export default function MediaGrid(props: MediaGridProps) {
           )}
         </div>
       </div>
+      )}
 
       {/* Media Grid */}
       <div className="media-gallery grid grid-cols-2 sm:grid-cols-3 gap-4">

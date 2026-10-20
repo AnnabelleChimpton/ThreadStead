@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { useResidentData } from './ResidentDataProvider';
+import { componentHeading } from './component-heading';
 import PostItem, { Post as PostType } from '../../core/content/PostItem';
 import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
@@ -8,12 +9,14 @@ interface BlogPostsProps extends UniversalCSSProps {
   limit?: number;
   className?: string;
   mode?: 'full' | 'count'; // Renamed from 'display' to avoid CSS prop collision
+  heading?: string;
 }
 
 export default function BlogPosts(props: BlogPostsProps) {
   // Separate CSS properties from component-specific properties
   const { cssProps, componentProps } = separateCSSProps(props);
-  const { limit = 5, className: customClassName, mode = 'full' } = componentProps;
+  const { limit = 5, className: customClassName, mode = 'full', heading } = componentProps;
+  const headingText = componentHeading(heading, 'Recent Posts');
 
   const { posts, owner, viewer } = useResidentData();
 
@@ -54,7 +57,7 @@ export default function BlogPosts(props: BlogPostsProps) {
 
   return (
     <div className={containerClassName} style={appliedStyles}>
-      <h3 className="blog-posts-title thread-headline text-xl font-bold mb-3">Recent Posts</h3>
+      {headingText && <h3 className="blog-posts-title thread-headline text-xl font-bold mb-3">{headingText}</h3>}
       <div className="blog-posts-list space-y-3">
         {displayPosts.map((post) => (
           <PostItem

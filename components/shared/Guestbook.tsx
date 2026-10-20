@@ -22,13 +22,15 @@ type Entry = {
 };
 
 interface GuestbookProps {
+  /** The heading above it; null leaves it (and "visitor messages") out */
+  heading?: string | null;
   username: string;
   bio?: string;
   /** Where a signer's name links, so you can visit them back: their profile (default) or their pixel home */
   signerLink?: "profile" | "home";
 }
 
-export default function Guestbook({ username, bio, signerLink = "profile" }: GuestbookProps) {
+export default function Guestbook({ username, bio, signerLink = "profile", heading = "Guestbook" }: GuestbookProps) {
   const { config } = useSiteConfig();
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -218,10 +220,12 @@ export default function Guestbook({ username, bio, signerLink = "profile" }: Gue
 
   return (
     <div className="guestbook-section">
-      <div className="mb-3">
-        <h3 className="thread-headline text-xl font-bold">Guestbook</h3>
-        <span className="thread-label">visitor messages</span>
-      </div>
+      {heading !== null && (
+        <div className="mb-3">
+          <h3 className="thread-headline text-xl font-bold">{heading}</h3>
+          <span className="thread-label">visitor messages</span>
+        </div>
+      )}
       {bio && <p className="text-sm text-thread-sage mb-4">Leave a cozy note for {username}!</p>}
 
       <div className="thread-divider"></div>

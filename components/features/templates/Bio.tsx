@@ -1,15 +1,18 @@
 import React from 'react';
 import { useResidentData } from './ResidentDataProvider';
+import { componentHeading } from './component-heading';
 import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
 interface BioProps extends UniversalCSSProps {
   className?: string;
+  heading?: string;
 }
 
 export default function Bio(props: BioProps) {
   // Separate CSS properties from component-specific properties
   const { cssProps, componentProps } = separateCSSProps(props);
-  const { className: customClassName } = componentProps;
+  const { className: customClassName, heading } = componentProps;
+  const headingText = componentHeading(heading, 'About Me');
 
   const { capabilities } = useResidentData();
 
@@ -32,14 +35,18 @@ export default function Bio(props: BioProps) {
   const bioTextStyle = applyCSSProps(cssProps);
 
   // Build bio text classes - USER STYLING IS ALWAYS QUEEN
-  const bioTextClasses = `ts-bio-text ts-profile-bio leading-relaxed text-thread-charcoal`;
+  // No colour of its own: it's the page's text (a fixed charcoal was
+  // invisible on dark pages)
+  const bioTextClasses = `ts-bio-text ts-profile-bio leading-relaxed`;
   const filteredBioTextClasses = removeTailwindConflicts(bioTextClasses, cssProps);
 
   return (
     <div className={containerClass}>
-      <h3 className="ts-bio-heading thread-headline text-xl font-bold mb-2 text-thread-pine">
-        About Me
-      </h3>
+      {headingText && (
+        <h3 className="ts-bio-heading thread-headline text-xl font-bold mb-2 text-thread-pine">
+          {headingText}
+        </h3>
+      )}
       <p className={filteredBioTextClasses} style={bioTextStyle}>
         {bio}
       </p>

@@ -1,7 +1,16 @@
 import React from 'react';
 import { screen, cleanup } from '@testing-library/react';
 import MediaGrid from '../MediaGrid';
-import { renderWithTemplateContext, createMockResidentData } from './test-utils';
+import { renderWithTemplateContext, createMockResidentData as mockResidentData, type MockResidentDataOverrides } from './test-utils';
+
+// Read as the page's owner, who sees the empty-state hint (visitors see
+// nothing; tested below)
+const createMockResidentData = (overrides: MockResidentDataOverrides = {}) => {
+  const data = mockResidentData(overrides);
+  if (!data.owner) return data;
+  const owner = { ...data.owner, id: data.owner.id ?? 'test-owner' };
+  return { ...data, owner, viewer: { ...data.viewer, id: owner.id } };
+};
 
 // PixelIcon uses next/dynamic which does not resolve in the jest environment
 jest.mock('@/components/ui/PixelIcon', () => ({
@@ -9,6 +18,15 @@ jest.mock('@/components/ui/PixelIcon', () => ({
 }));
 
 describe('MediaGrid Component', () => {
+  it('shows visitors nothing when there is nothing to show', () => {
+    const { container } = renderWithTemplateContext(
+      <MediaGrid />,
+      { residentData: mockResidentData({ images: [] }) }
+    );
+    expect(container).toBeEmptyDOMElement();
+    expect(screen.queryByText('No featured photos')).not.toBeInTheDocument();
+  });
+
   beforeEach(() => {
     cleanup(); // Ensure clean state between tests
   });

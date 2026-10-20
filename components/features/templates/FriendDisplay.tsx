@@ -1,15 +1,18 @@
 import React from "react";
 import Link from "next/link";
 import { useResidentData } from './ResidentDataProvider';
+import { componentHeading } from './component-heading';
 import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
 interface FriendDisplayProps extends UniversalCSSProps {
   className?: string;
+  heading?: string;
 }
 
 export default function FriendDisplay(props: FriendDisplayProps) {
   const { cssProps, componentProps } = separateCSSProps(props);
-  const { className: customClassName } = componentProps;
+  const { className: customClassName, heading } = componentProps;
+  const headingText = componentHeading(heading, 'Friends');
   const { featuredFriends } = useResidentData();
 
   const baseClasses = "border border-black p-3 bg-white shadow-[2px_2px_0_#000]";
@@ -22,8 +25,8 @@ export default function FriendDisplay(props: FriendDisplayProps) {
 
   if (!featuredFriends || featuredFriends.length === 0) {
     return (
-      <div className={containerClassName} style={style}>
-        <h4 className="font-bold mb-2">Friends</h4>
+      <div className={`featured-friends ${containerClassName}`} style={style}>
+        {headingText && <h4 className="section-heading font-bold mb-2">{headingText}</h4>}
         <p className="text-gray-500 text-sm">No featured friends yet.</p>
       </div>
     );
@@ -31,7 +34,7 @@ export default function FriendDisplay(props: FriendDisplayProps) {
 
   return (
     <div className={`featured-friends ${containerClassName}`} style={style}>
-      <h4 className="section-heading font-bold mb-3">Friends</h4>
+      {headingText && <h4 className="section-heading font-bold mb-3">{headingText}</h4>}
       <div className="grid grid-cols-2 gap-3">
         {featuredFriends.map((friend) => (
           <Link

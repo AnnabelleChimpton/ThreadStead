@@ -1,6 +1,8 @@
 /*
- * The site's own parts of a themed profile page (posts, friends and
- * websites, guestbook names, buttons, focus), in the theme's colours.
+ * The site's own parts of a profile page in the page's colours: on a themed
+ * standard page (posts, friends and websites, guestbook names, buttons,
+ * focus) and on your own HTML page with site styles off (the end of this
+ * file).
  *
  * Each person's theme is a copy of a preset, made when they picked it, so a
  * fix to the presets never reaches a page that already has one. These rules
@@ -145,4 +147,63 @@
     animation: none !important;
     transition: none !important;
   }
+}
+
+/* ---------- your own HTML page, site styles off ---------- */
+/* _app.tsx already unsets the site's paper and cream backgrounds here, so
+   the parts sat on the page's own background with the site's fixed dark
+   text and white boxes: invisible on a dark page. They take the page's
+   colour instead. Each rule weighs at most one class, so anything the page
+   says about them wins. */
+:where(.profile-template-root[data-site-styles="off"]) :is(.text-thread-charcoal, .text-black, .thread-headline, .thread-label, .section-heading) {
+  color: inherit;
+}
+:where(.profile-template-root[data-site-styles="off"]) .thread-headline {
+  font-family: inherit;
+  text-shadow: none;
+}
+:where(.profile-template-root[data-site-styles="off"]) .thread-label {
+  opacity: 0.8;
+}
+:where(.profile-template-root[data-site-styles="off"]) :is(.featured-friends, .websites-section) {
+  background: transparent;
+  border-color: currentColor;
+  box-shadow: 2px 2px 0 currentColor;
+}
+:where(.profile-template-root[data-site-styles="off"]) .friend-card {
+  background: transparent;
+  border-color: color-mix(in srgb, currentColor 35%, transparent);
+  box-shadow: none;
+}
+:where(.profile-template-root[data-site-styles="off"] :is(.featured-friends, .websites-section)) :is(.text-gray-500, .text-gray-600, .text-gray-700) {
+  color: inherit;
+  opacity: 0.8;
+}
+:where(.profile-template-root[data-site-styles="off"]) .website-item {
+  border-left-color: currentColor;
+}
+:where(.profile-template-root[data-site-styles="off"] .website-link) {
+  color: inherit;
+  text-decoration: underline;
+}
+:where(.profile-template-root[data-site-styles="off"]) .post-item :is(.blog-post-title, .blog-post-author, .thread-content) {
+  color: inherit;
+}
+:where(.profile-template-root[data-site-styles="off"]) .post-item .blog-post-date {
+  color: inherit;
+  opacity: 0.8;
+}
+:where(.profile-template-root[data-site-styles="off"]) .post-item .mask-linear-fade {
+  mask-image: linear-gradient(to bottom, #000 60%, transparent);
+}
+:where(.profile-template-root[data-site-styles="off"]) .post-item .blog-post-fade {
+  background: none;
+  position: static;
+  padding-top: 0;
+}
+:where(.profile-template-root[data-site-styles="off"] .post-item .blog-post-actions) button {
+  background: transparent;
+  border-color: currentColor;
+  box-shadow: none;
+  color: inherit;
 }

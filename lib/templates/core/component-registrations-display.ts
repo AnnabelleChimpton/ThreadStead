@@ -1,6 +1,7 @@
 // Display and Layout Component Registrations
 import { ComponentRegistry } from './template-registry-class';
 import { mergeWithUniversalProps } from '@/lib/templates/core/universal-styling';
+import { headingProp } from '@/components/features/templates/component-heading';
 
 // Import display/layout components
 import ProfilePhoto from '@/components/features/templates/ProfilePhoto';
@@ -151,7 +152,7 @@ export function registerDisplayComponents(registry: ComponentRegistry) {
     group: 'profile',
     description: 'Your bio from Settings, under Profile.',
     example: '<Bio />',
-    props: mergeWithUniversalProps({}, 'text')
+    props: mergeWithUniversalProps({ heading: headingProp('About Me') }, 'text')
   });
 
   registry.register({
@@ -160,8 +161,9 @@ export function registerDisplayComponents(registry: ComponentRegistry) {
     group: 'connected',
     featured: 3,
     description: 'Your latest posts, newest first, with their comments. Or just how many you\'ve written, with mode="count".',
-    example: '<h2>Lately</h2>\n<BlogPosts limit="3" />',
+    example: '<h2>Lately</h2>\n<BlogPosts limit="3" heading="none" />',
     props: {
+      heading: headingProp('Recent Posts'),
       limit: { type: 'number', min: 1, max: 20, default: 5, description: 'How many posts to show, 1 to 20.' },
       mode: { type: 'enum', values: ['full', 'count'], default: 'full', description: 'full shows the posts; count shows only how many there are.' }
     }
@@ -173,8 +175,10 @@ export function registerDisplayComponents(registry: ComponentRegistry) {
     group: 'connected',
     featured: 1,
     description: 'Your guestbook, the same one as on the standard profile. Visitors sign it, and you can delete any entry.',
-    example: '<h2>Sign my guestbook</h2>\n<Guestbook />',
-    props: {}
+    example: '<h2>Sign my guestbook</h2>\n<Guestbook heading="none" />',
+    props: {
+      heading: headingProp('Guestbook')
+    }
   });
 
   registry.register({
@@ -222,7 +226,9 @@ export function registerDisplayComponents(registry: ComponentRegistry) {
     featured: 4,
     description: 'Your featured friends, up to 8, with their pictures and links to their pages. You pick them in Settings, under Profile.',
     example: '<FriendDisplay />',
-    props: {}
+    props: {
+      heading: headingProp('Friends')
+    }
   });
 
   registry.register({
@@ -231,7 +237,9 @@ export function registerDisplayComponents(registry: ComponentRegistry) {
     group: 'connected',
     description: 'Your website recommendations, with their descriptions. You add them in Settings, under Profile.',
     example: '<WebsiteDisplay />',
-    props: {}
+    props: {
+      heading: headingProp('Website Recommendations')
+    }
   });
 
   registry.register({
@@ -637,16 +645,18 @@ export function registerDisplayComponents(registry: ComponentRegistry) {
     component: MediaGrid,
     group: 'connected',
     featured: 6,
-    description: 'Your featured photos, the six newest, in a grid. A photo\'s caption shows when you point at it.',
+    description: 'Your featured photos, the six newest, in a grid. A photo\'s caption shows when you point at it. With none featured, visitors see nothing and you see a reminder.',
     example: '<MediaGrid />',
-    props: {}
+    props: {
+      heading: headingProp('Featured Photos')
+    }
   });
 
   registry.register({
     name: 'ProfileBadges',
     component: ProfileBadges,
     group: 'connected',
-    description: 'The 88×31 badges of the rings you\'re in, linking to each ring.',
+    description: 'The 88×31 badges of the rings you\'re in, linking to each ring. With none, visitors see nothing and you see a reminder.',
     example: '<ProfileBadges layout="grid" />',
     props: {
       showTitle: { type: 'boolean', default: false, description: 'Not used yet.' },

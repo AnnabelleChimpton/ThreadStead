@@ -1,14 +1,17 @@
 import React from "react";
 import { useResidentData } from './ResidentDataProvider';
+import { componentHeading } from './component-heading';
 import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
 interface WebsiteDisplayProps extends UniversalCSSProps {
   className?: string;
+  heading?: string;
 }
 
 export default function WebsiteDisplay(props: WebsiteDisplayProps) {
   const { cssProps, componentProps } = separateCSSProps(props);
-  const { className: customClassName } = componentProps;
+  const { className: customClassName, heading } = componentProps;
+  const headingText = componentHeading(heading, 'Website Recommendations');
   const { websites } = useResidentData();
 
   // Filter valid websites first
@@ -24,8 +27,8 @@ export default function WebsiteDisplay(props: WebsiteDisplayProps) {
 
   if (!websites || websites.length === 0 || validWebsites.length === 0) {
     return (
-      <div className={containerClassName} style={style}>
-        <h4 className="font-bold mb-2">Website Recommendations</h4>
+      <div className={`websites-section ${containerClassName}`} style={style}>
+        {headingText && <h4 className="section-heading font-bold mb-2">{headingText}</h4>}
         <p className="text-gray-500 text-sm">No websites added yet.</p>
       </div>
     );
@@ -33,7 +36,7 @@ export default function WebsiteDisplay(props: WebsiteDisplayProps) {
 
   return (
     <div className={`websites-section ${containerClassName}`} style={style}>
-      <h4 className="section-heading font-bold mb-3">Website Recommendations</h4>
+      {headingText && <h4 className="section-heading font-bold mb-3">{headingText}</h4>}
       <div className="websites-list space-y-3">
         {validWebsites.map((website) => (
           <div key={website.id} className="website-item border-l-4 border-blue-400 pl-3">

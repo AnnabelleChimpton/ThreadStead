@@ -19,7 +19,7 @@ export default function ProfileBadges(props: ProfileBadgesProps) {
     className: customClassName
   } = componentProps;
 
-  const { owner, badges: providedBadges } = useResidentData();
+  const { owner, viewer, badges: providedBadges } = useResidentData();
   // Pages don't preload ring badges (they live on the Ring Hub), so fetch
   // them like the standard Badges tab does. null = loading or unavailable.
   const [fetchedBadges, setFetchedBadges] = React.useState<ResidentData['badges'] | null>(null);
@@ -62,6 +62,9 @@ export default function ProfileBadges(props: ProfileBadgesProps) {
   if (badges === null) return null;
 
   if (!badges || badges.length === 0) {
+    // Visitors see nothing rather than a box saying there's nothing; the
+    // owner gets the hint
+    if (!viewer?.id || viewer.id !== owner?.id) return null;
     return (
       <div className={containerClassName} style={appliedStyles}>
         <div className="text-center py-12">

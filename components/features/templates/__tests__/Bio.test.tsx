@@ -47,7 +47,8 @@ describe('Bio Component', () => {
       expect(bioText).toHaveClass('ts-bio-text');
       expect(bioText).toHaveClass('ts-profile-bio');
       expect(bioText).toHaveClass('leading-relaxed');
-      expect(bioText).toHaveClass('text-thread-charcoal');
+      // No colour of its own: it's the page's text
+      expect(bioText).not.toHaveClass('text-thread-charcoal');
     });
 
     it('should render as paragraph element for bio text', () => {

@@ -1,16 +1,18 @@
 import React from 'react';
 import { useResidentData } from './ResidentDataProvider';
+import { componentHeading } from './component-heading';
 import OriginalGuestbook from '../../shared/Guestbook';
 import { UniversalCSSProps, separateCSSProps, applyCSSProps } from '@/lib/templates/styling/universal-css-props';
 
 interface GuestbookProps extends UniversalCSSProps {
   className?: string;
+  heading?: string;
 }
 
 export default function Guestbook(props: GuestbookProps) {
   // Separate CSS properties from component-specific properties
   const { cssProps, componentProps } = separateCSSProps(props);
-  const { className } = componentProps;
+  const { className, heading } = componentProps;
 
   const { owner } = useResidentData();
 
@@ -19,7 +21,7 @@ export default function Guestbook(props: GuestbookProps) {
 
   return (
     <div style={style} className={className}>
-      <OriginalGuestbook username={owner?.handle || ''} />
+      <OriginalGuestbook username={owner?.handle || ''} heading={componentHeading(heading, 'Guestbook')} />
     </div>
   );
 }

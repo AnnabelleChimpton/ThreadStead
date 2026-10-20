@@ -10,6 +10,7 @@ import TemplateErrorBoundary from '@/components/features/templates/TemplateError
 import { ResidentDataProvider } from '@/components/features/templates/ResidentDataProvider';
 import { PixelIcon } from '@/components/ui/PixelIcon';
 import { StaticHTMLWithIslands } from './HTMLIslandHydration';
+import { siteStylesOn } from '@/lib/domain/profile/layout';
 import type { AdvancedProfileRendererProps } from './types';
 
 export type { AdvancedProfileRendererProps, StaticHTMLWithIslandsProps } from './types';
@@ -65,6 +66,9 @@ export default function AdvancedProfileRenderer({ user, residentData }: Advanced
             <div
               id={profileId}
               className="profile-template-root"
+              // styles/theme-parts.css: with site styles off, the site's parts
+              // take the page's own colours
+              data-site-styles={siteStylesOn(user.profile?.cssMode) ? 'on' : 'off'}
               style={{
                 position: 'static',
                 zIndex: 'auto',
