@@ -10,54 +10,54 @@ const cssCategories = [
   {
     id: 'getting-started',
     title: 'Getting Started',
-    icon: 'zap',
     description: 'Step-by-step tutorial for beginners - learn by example!'
   },
   {
     id: 'css-modes',
     title: 'CSS Modes',
-    icon: 'sliders',
     description: 'Understanding CSS layering and mode system'
   },
   {
     id: 'profile-structure',
     title: 'Profile Structure',
-    icon: 'Structure',
     description: 'Main containers and layout elements for profile pages'
   },
   {
     id: 'profile-components',
     title: 'Profile Components',
-    icon: 'Components',
     description: 'Header, tabs, blog posts, media, and badge styling'
   },
   {
     id: 'threadring-pages',
     title: 'ThreadRing Pages',
-    icon: 'ThreadRings',
     description: 'ThreadRing community page styling and components'
   },
   {
     id: 'thread-utilities',
     title: 'Thread Utilities',
-    icon: 'Utilities',
     description: 'ThreadStead design system classes and components'
   },
   {
     id: 'colors-themes',
     title: 'Colors & Themes',
-    icon: 'Colors',
     description: 'Color palette and theming utilities'
   },
   {
     id: 'typography',
     title: 'Typography',
-    icon: 'Typography',
     description: 'Text styling and content formatting'
   }
 ];
 
-const cssData = {
+interface CSSSection {
+  name: string;
+  description: string;
+  classes?: Array<{ name: string; description: string }>;
+  example?: string;
+  preview?: React.ReactNode;
+}
+
+const cssData: Record<string, CSSSection[]> = {
   'getting-started': [
     {
       name: 'Welcome to CSS Customization!',
@@ -114,12 +114,13 @@ const cssData = {
 
 /* Transform the entire page into an art gallery */
 .thread-surface {
-  background: 
-    #f8f8f8,
+  /* A plain colour has to be the last layer, or the whole line is ignored */
+  background:
     radial-gradient(ellipse at 15% 25%, rgba(231, 76, 60, 0.15) 0%, transparent 25%),
     radial-gradient(ellipse at 85% 75%, rgba(52, 152, 219, 0.12) 0%, transparent 30%),
-    radial-gradient(ellipse at 60% 10%, rgba(155, 89, 182, 0.1) 0%, transparent 35%) !important;
-  background-size: 100% 100%, 300px 200px, 250px 180px, 280px 220px !important;
+    radial-gradient(ellipse at 60% 10%, rgba(155, 89, 182, 0.1) 0%, transparent 35%),
+    #f8f8f8 !important;
+  background-size: 300px 200px, 250px 180px, 280px 220px !important;
 }
 
 /* Your header as a gallery wall */
@@ -395,7 +396,7 @@ const cssData = {
               (with gradient, shadow, and animation!)
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-2 text-xs">
+          <div className="grid grid-cols-2 gap-2 text-xs">
             <div className="bg-red-100 border border-red-300 p-2 rounded text-center">
               <strong>Selector</strong><br/>
               What to style
@@ -403,10 +404,6 @@ const cssData = {
             <div className="bg-green-100 border border-green-300 p-2 rounded text-center">
               <strong>Properties</strong><br/>
               How to style it
-            </div>
-            <div className="bg-blue-100 border border-blue-300 p-2 rounded text-center">
-              <strong>!important</strong><br/>
-              Override defaults
             </div>
           </div>
           <div className="bg-yellow-50 border-2 border-yellow-300 p-3 rounded text-center text-sm">
@@ -424,64 +421,8 @@ const cssData = {
       description: "Site styles on means your CSS adds to the site's own styles, and off means only your CSS applies; switch them with the Site styles menu in the CSS editor or the HTML editor."
     },
     {
-      name: 'Using !important',
-      description: 'Best practices for overriding styles with specificity',
-      classes: [
-        { name: '!important', description: 'Forces your style to take precedence' }
-      ],
-      example: `/* ALWAYS use !important to ensure your styles apply */
-
-/* ✅ Good - Using !important */
-.ts-profile-header {
-  background: #ff6b6b !important;
-  padding: 3rem !important;
-}
-
-/* ❌ Bad - May not override base styles */
-.ts-profile-header {
-  background: #ff6b6b;
-  padding: 3rem;
-}
-
-/* Pro tip: With site styles on, !important ensures your 
-   enhancements always apply over the defaults */`,
-      preview: (
-        <div className="bg-blue-50 border-2 border-blue-300 p-3 rounded text-xs">
-          <div className="font-bold mb-2 flex items-center gap-1"><PixelIcon name="lightbulb" size={12} /> Pro Tip</div>
-          <div>Always use <code className="bg-white px-1">!important</code> in your custom CSS to ensure your styles take precedence over the base styles.</div>
-        </div>
-      )
-    },
-    {
-      name: 'Template Modes',
-      description: 'Different levels of customization control',
-      classes: [
-        { name: 'default', description: 'Standard profile with CSS enhancements only' },
-        { name: 'enhanced', description: 'Custom CSS with structural modifications' },
-        { name: 'advanced', description: 'Full HTML/CSS control with custom templates' }
-      ],
-      example: `/* Default Mode - CSS customization only */
-/* You can style all the ts- classes but can't change HTML */
-
-/* Enhanced Mode - CSS + some structural changes */
-/* Additional layout options and component arrangements */
-
-/* Advanced Mode - Complete control */
-/* Write your own HTML templates with full control */
-/* Usually paired with site styles off */`,
-      preview: (
-        <div className="space-y-2 text-xs">
-          <div className="bg-gray-100 p-2 rounded">
-            <strong>Default</strong>: Style existing elements
-          </div>
-          <div className="bg-gray-200 p-2 rounded">
-            <strong>Enhanced</strong>: Modify structure + style
-          </div>
-          <div className="bg-gray-300 p-2 rounded">
-            <strong>Advanced</strong>: Full HTML/CSS control
-          </div>
-        </div>
-      )
+      name: '!important',
+      description: "You don't need it here. Your CSS loads after the site's, so a plain rule like .ts-profile-header { background: pink; } already wins. If something won't change without !important, tell me which class it is, because that's a bug."
     }
   ],
   'profile-components': [
@@ -777,7 +718,7 @@ const cssData = {
         { name: '.tr-main-content', description: 'Main content area (left column)' },
         { name: '.tr-sidebar', description: 'Sidebar area (right column)' },
         { name: '.tr-header-card', description: 'ThreadRing header information card' },
-        { name: '.tr-posts-container', description: 'Container for posts list' }
+        { name: '.tr-posts-list', description: 'The list of posts' }
       ],
       example: `/* Custom ThreadRing page layout */
 .tr-page-container {
@@ -817,10 +758,8 @@ const cssData = {
       description: 'Header components showing ThreadRing information',
       classes: [
         { name: '.tr-title', description: 'ThreadRing title/name' },
-        { name: '.tr-description', description: 'ThreadRing description text' },
-        { name: '.tr-curator-note', description: 'Curator\'s note/welcome message' },
-        { name: '.tr-meta-info', description: 'Member count, post count, join type info' },
-        { name: '.tr-badge-wrapper', description: 'Container for ThreadRing badge' }
+        { name: '.tr-curator-info', description: 'Who hosts the ring' },
+        { name: '.tr-meta-info', description: 'Member count, post count, join type info' }
       ],
       example: `/* Cosmic ThreadRing header styling */
 .tr-title {
@@ -837,7 +776,7 @@ const cssData = {
   100% { filter: hue-rotate(360deg); }
 }
 
-.tr-curator-note {
+.tr-curator-info {
   background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%) !important;
   border: none !important;
   border-radius: 20px !important;
@@ -872,11 +811,7 @@ const cssData = {
       description: 'Sidebar widgets and sections',
       classes: [
         { name: '.tr-sidebar-section', description: 'Individual sidebar section container' },
-        { name: '.tr-sidebar-header', description: 'Collapsible section header' },
-        { name: '.tr-sidebar-title', description: 'Section title text' },
-        { name: '.tr-ring-info', description: 'Ring info section' },
-        { name: '.tr-member-status', description: 'Current user membership status' },
-        { name: '.tr-actions-section', description: 'Action buttons container' }
+        { name: '.tr-member-status', description: 'Current user membership status' }
       ],
       example: `/* Glassmorphism sidebar styling */
 .tr-sidebar-section {
@@ -886,17 +821,6 @@ const cssData = {
   border-radius: 15px !important;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
   margin-bottom: 1.5rem !important;
-}
-
-.tr-sidebar-header {
-  background: rgba(255, 255, 255, 0.1) !important;
-  border-radius: 15px 15px 0 0 !important;
-  transition: all 0.3s ease !important;
-}
-
-.tr-sidebar-header:hover {
-  background: rgba(255, 255, 255, 0.2) !important;
-  transform: translateY(-2px) !important;
 }
 
 .tr-member-status {
@@ -1134,27 +1058,15 @@ const cssData = {
       description: 'Photo containers and styling elements',
       classes: [
         { name: '.ts-profile-photo-section', description: 'Container for profile photo area' },
-        { name: '.ts-profile-photo-wrapper', description: 'Photo wrapper with positioning' },
-        { name: '.ts-profile-photo-frame', description: 'Photo frame/border styling' },
-        { name: '.ts-profile-photo-image', description: 'The actual profile image element' },
-        { name: '.ts-profile-photo-placeholder', description: 'Placeholder when no photo is set' }
+        { name: '.ts-profile-photo-image', description: 'The actual profile image element' }
       ],
-      example: `/* Polaroid-style photo frame */
-.ts-profile-photo-frame {
-  background: #ffffff !important;
-  border: none !important;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3) !important;
-  padding: 16px !important;
-  transform: rotate(-2deg) !important;
-  transition: transform 0.3s ease !important;
-}
-
-.ts-profile-photo-frame:hover {
-  transform: rotate(0deg) scale(1.05) !important;
-}
-
+      example: `/* Polaroid-style photo: the padding shows the white background */
 .ts-profile-photo-image {
+  background: #ffffff !important;
+  padding: 12px 12px 32px !important;
   border-radius: 0 !important;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3) !important;
+  transform: rotate(-2deg) !important;
   filter: sepia(20%) contrast(120%) !important;
 }`,
       preview: (
@@ -1611,14 +1523,14 @@ const cssData = {
         { name: 'rounded-thread', description: 'Thread border radius (12px)' }
       ],
       example: `/* Border radius examples */
-.cozy-container {
+.my-note {
   background: #F5E9D4 !important;
   border: 1px solid #A18463 !important;
   border-radius: 8px !important; /* rounded-cozy */
   padding: 1rem !important;
 }
 
-.thread-container {
+.my-box {
   background: #FCFAF7 !important;
   border: 1px solid #2E4B3F !important;
   border-radius: 12px !important; /* rounded-thread */
@@ -1859,22 +1771,6 @@ export default function DesignCSSTutorialPage() {
                 </p>
               </div>
             </div>
-
-            {/* Quick tips */}
-            <div className="mt-8 grid md:grid-cols-3 gap-4 max-w-4xl mx-auto">
-              <div className="bg-green-200 border-4 border-black shadow-[4px_4px_0_#000] p-4">
-                <div className="font-bold text-black">Target Classes</div>
-                <div className="text-sm text-gray-700">Use specific CSS selectors</div>
-              </div>
-              <div className="bg-pink-200 border-4 border-black shadow-[4px_4px_0_#000] p-4">
-                <div className="font-bold text-black">Override Styles</div>
-                <div className="text-sm text-gray-700">Use !important for control</div>
-              </div>
-              <div className="bg-cyan-200 border-4 border-black shadow-[4px_4px_0_#000] p-4">
-                <div className="font-bold text-black">Mobile Ready</div>
-                <div className="text-sm text-gray-700">Responsive design tips</div>
-              </div>
-            </div>
           </div>
 
           {/* Navigation */}
@@ -1893,7 +1789,6 @@ export default function DesignCSSTutorialPage() {
                       : 'bg-white text-gray-700 hover:bg-gray-100 shadow-[2px_2px_0_#000]'
                   }`}
                 >
-                  <div className="font-bold text-sm mb-2">{category.icon}</div>
                   <h3 className="font-semibold text-sm mb-1">{category.title}</h3>
                   <p className="text-xs opacity-80">{category.description}</p>
                 </button>
@@ -1907,7 +1802,6 @@ export default function DesignCSSTutorialPage() {
               {/* Category Header */}
               <div className="text-center mb-12">
                 <div className="inline-block bg-red-400 border-4 border-black shadow-[8px_8px_0_#000] p-6 transform rotate-1">
-                  <div className="text-2xl font-bold mb-4">{activeData.icon}</div>
                   <h2 className="text-4xl font-black text-black mb-2">
                     {activeData.title}
                   </h2>

@@ -193,8 +193,7 @@ const cssClassData = {
     { name: '.tr-sidebar', description: 'Sidebar area (right column)' },
     { name: '.tr-header-card', description: 'ThreadRing header information card' },
     { name: '.tr-title', description: 'ThreadRing title/name' },
-    { name: '.tr-description', description: 'ThreadRing description text' },
-    { name: '.tr-posts-container', description: 'Container for posts list' },
+    { name: '.tr-posts-list', description: 'The list of posts' },
   ],
   'Thread Design System': [
     { name: '.thread-surface', description: 'Background surface with paper texture' },
