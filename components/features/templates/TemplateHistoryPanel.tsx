@@ -32,6 +32,7 @@ const TRIGGER_LABELS: Record<string, string> = {
   'reset': 'before a reset',
   'moderator-reset': 'before a moderator reset your page',
   'layout-merge': "when the site cleared CSS your page wasn't showing",
+  'vb-convert': 'before the old Visual Builder layout was converted',
 };
 
 function describeWhen(iso: string): string {

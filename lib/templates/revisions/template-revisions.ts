@@ -5,8 +5,9 @@ import { db } from "@/lib/config/database/connection";
 export const MAX_REVISIONS_PER_USER = 20;
 
 // 'layout-merge' is written only by migration 20261031000000 (CSS a
-// "default" layout page saved but never showed).
-export type RevisionTrigger = 'template-save' | 'css-save' | 'reset' | 'moderator-reset' | 'layout-merge';
+// "default" layout page saved but never showed), 'vb-convert' only by
+// scripts/convert-visual-builder-pages.ts.
+export type RevisionTrigger = 'template-save' | 'css-save' | 'reset' | 'moderator-reset' | 'layout-merge' | 'vb-convert';
 
 /**
  * Snapshot the profile's current customization before a save overwrites it.
