@@ -264,8 +264,8 @@ export default function EnhancedTemplateEditor({
     fetchSiteCSS();
   }, []);
   
-  // Detect if user is currently using standard layout
-  const [useStandardLayout, setUseStandardLayout] = useState(() => {
+  // Whether the saved page is on the standard layout (no HTML of its own)
+  const [savedOnStandardLayout] = useState(() => {
     // First, respect the saved template mode from the database
     if (initialTemplateMode === 'advanced') {
       // User has explicitly saved in advanced mode, respect that
@@ -288,6 +288,13 @@ export default function EnhancedTemplateEditor({
     
     return shouldUseStandardLayout;
   });
+  // Opened as the HTML editor, it starts in HTML mode even when the saved page
+  // is on the standard layout; the default layout is loaded into it below.
+  // It used to start on the standard layout and switch only once that fetch
+  // came back, so until then it was a CSS-only editor with no HTML tab.
+  const [useStandardLayout, setUseStandardLayout] = useState(
+    () => initialEditorMode === 'template' ? false : savedOnStandardLayout
+  );
   
   
   // Load default template for preview when needed
@@ -1074,13 +1081,12 @@ export default function EnhancedTemplateEditor({
   const initialModeHandledRef = useRef(false);
   useEffect(() => {
     if (initialModeHandledRef.current) return;
-    if (initialEditorMode === 'template' && useStandardLayout) {
+    if (initialEditorMode === 'template' && savedOnStandardLayout && !template.trim()) {
       initialModeHandledRef.current = true;
-      // User wants Template Code but is in standard layout
-      // Need to switch to advanced mode first
+      // The saved page has no HTML yet: start from the default layout
       loadDefaultTemplate();
     }
-  }, [initialEditorMode, useStandardLayout, loadDefaultTemplate]);
+  }, [initialEditorMode, savedOnStandardLayout, template, loadDefaultTemplate]);
 
   // Track changes against the last-saved snapshot (manual save required now).
   // Comparing to a snapshot (instead of blindly marking dirty) keeps a fresh
@@ -1863,7 +1869,9 @@ export default function EnhancedTemplateEditor({
                         extensions={templateExtensions}
                         height="560px"
                         style={{ fontSize: '13px' }}
-                        placeholder="Write your page here — plain HTML works, and so do components like <ProfilePhoto /> or <RetroCard>…</RetroCard>"
+                        placeholder={loadingDefault
+                          ? 'Loading the default layout…'
+                          : 'Write your page here. Plain HTML works, and so do components like <ProfilePhoto /> or <RetroCard>…</RetroCard>'}
                         basicSetup={{
                           lineNumbers: true,
                           foldGutter: true,
