@@ -73,7 +73,7 @@ export function registerConditionalComponents(registry: ComponentRegistry) {
   registry.register({
     name: 'IfOwner',
     component: IfOwner,
-    group: 'connected',
+    group: 'logic',
     description: 'Shown only when you\'re signed in and looking at your own page. Visitors don\'t see it, but its text is still sent with the page, so don\'t put anything private in it.',
     example: '<IfOwner>\n  <p>You\'re looking at your own page. Visitors don\'t see this note.</p>\n</IfOwner>',
     props: {}
@@ -82,7 +82,7 @@ export function registerConditionalComponents(registry: ComponentRegistry) {
   registry.register({
     name: 'IfVisitor',
     component: IfVisitor,
-    group: 'connected',
+    group: 'logic',
     description: 'Shown to everyone except you on your own page, including people who aren\'t signed in. It\'s hidden from you, not removed: its text is still sent with the page.',
     example: '<IfVisitor>\n  <p>Thanks for visiting. Sign my guestbook on the way out.</p>\n</IfVisitor>',
     props: {}

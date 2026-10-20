@@ -13,6 +13,8 @@
  * in exactly one token.
  */
 
+import { decodeHtmlEntities, embedFor, parseEmbedCode } from '../embeds'
+
 export interface SourceAttribute {
   name: string
   /** Raw value as written (entities NOT decoded); undefined for bare attributes */
@@ -229,7 +231,9 @@ export const COMPONENT_TAG_PREFIX = 'ts-component-'
  *  - `<Tag />` on anything but a void element becomes `<Tag></Tag>`:
  *    HTML ignores the slash, and components and JSX-minded authors rely
  *    on it. Void elements (`<br/>`, `<img/>`) are left alone; turning
- *    them into `<br></br>` gave every self-closed line break twice.
+ *    them into `<br></br>` gave every self-closed line break twice. A
+ *    component is never void, even when it shares a void element's name
+ *    (`<Embed />`): left open, it swallowed the rest of the page.
  * Comments, doctypes and raw-text content pass through untouched.
  */
 export function prepareSourceForParse(source: string, isComponent: (name: string) => boolean): string {
@@ -240,7 +244,8 @@ export function prepareSourceForParse(source: string, isComponent: (name: string
       const name = component ? COMPONENT_TAG_PREFIX + token.name.toLowerCase() : token.name
       let attrs = source.slice(token.nameEnd, token.end)
       if (token.name.toLowerCase() === 'font') attrs = absoluteFontSize(token, source, attrs)
-      if (token.selfClosing && !VOID_ELEMENTS.has(token.name.toLowerCase())) {
+      if (component && token.name === 'Embed') attrs = embedCodeToLink(token, attrs)
+      if (token.selfClosing && (component || !VOID_ELEMENTS.has(token.name.toLowerCase()))) {
         // Drop the '/' before '>' and add the closing tag
         out += `<${name}${attrs.slice(0, -2).replace(/\s*$/, '')}></${name}>`
       } else {
@@ -255,6 +260,30 @@ export function prepareSourceForParse(source: string, isComponent: (name: string
     out += source.slice(token.start, token.end)
   }
   return out
+}
+
+/**
+ * `<Embed src='<iframe …></iframe>'>`: a host's whole embed code pasted into
+ * src (Bandcamp's page links don't say which album, so its embed code is
+ * what people have). The sanitizer would drop that src, since it isn't a
+ * link, so keep only the player link out of it (rebuilt by embedFor), plus
+ * the height the host gave that player unless the tag sets its own.
+ * Anything embedFor can't play is left as written, for the warning.
+ */
+function embedCodeToLink(token: Extract<SourceToken, { type: 'open' }>, attrs: string): string {
+  const src = token.attributes.find((a) => a.name.toLowerCase() === 'src')
+  if (!src?.value) return attrs
+  const value = decodeHtmlEntities(src.value).trim()
+  if (!/^<iframe[\s>]/i.test(value)) return attrs
+  const player = embedFor(value)
+  if (!player) return attrs
+  let replacement = `src="${player.playerUrl.replace(/&/g, '&amp;').replace(/"/g, '&quot;')}"`
+  const ownHeight = token.attributes.some((a) => a.name.toLowerCase() === 'height')
+  if (!ownHeight && player.height !== null && parseEmbedCode(value)?.height !== undefined) {
+    replacement += ` height="${player.height}"`
+  }
+  const offset = token.nameEnd
+  return attrs.slice(0, src.start - offset) + replacement + attrs.slice(src.end - offset)
 }
 
 /**

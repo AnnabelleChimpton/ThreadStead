@@ -14,6 +14,7 @@ import {
 import { HTML_TEMPLATES } from '@/lib/templates/default-html-templates'
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider'
 import React from 'react'
+import type { JSDOM } from 'jsdom'
 import { GlobalAudioProvider } from '@/contexts/GlobalAudioContext'
 import { ToastProvider } from '@/contexts/ToastContext'
 import { ConfirmProvider } from '@/contexts/ConfirmContext'
@@ -131,6 +132,50 @@ export function installBrowserStubs() {
       takeRecords() {
         return []
       }
+    }
+  }
+}
+
+// ---- a browser to hydrate in --------------------------------------------
+
+const BROWSER_GLOBALS = [
+  'window', 'document', 'navigator', 'location', 'localStorage', 'sessionStorage',
+  'Node', 'Element', 'HTMLElement', 'HTMLInputElement', 'HTMLTextAreaElement', 'HTMLSelectElement',
+  'HTMLIFrameElement', 'Text', 'Comment', 'DocumentFragment', 'SVGElement',
+  'Event', 'CustomEvent', 'MouseEvent', 'KeyboardEvent', 'FocusEvent', 'InputEvent',
+  'getComputedStyle', 'requestAnimationFrame', 'cancelAnimationFrame', 'DOMParser', 'MutationObserver',
+  'Audio', 'Image', 'HTMLMediaElement', 'HTMLAudioElement', 'HTMLImageElement', 'Blob', 'URL', 'FormData',
+] as const
+
+/** Make `dom` the global browser (as on a real visit) until the returned undo runs */
+export function enterBrowser(dom: JSDOM): () => void {
+  const g = globalThis as unknown as Record<string, unknown>
+  const saved = new Map<string, PropertyDescriptor | undefined>()
+  const set = (name: string, value: unknown) => {
+    saved.set(name, Object.getOwnPropertyDescriptor(g, name))
+    Object.defineProperty(g, name, { value, configurable: true, writable: true })
+  }
+  const w = dom.window as unknown as Record<string, unknown>
+  for (const name of BROWSER_GLOBALS) set(name, name === 'window' ? dom.window : w[name])
+  set('self', dom.window)
+  const noopObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+    takeRecords() {
+      return []
+    }
+  }
+  set('IntersectionObserver', noopObserver)
+  set('ResizeObserver', noopObserver)
+  set('matchMedia', () => ({ matches: false, addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {} }))
+  ;(dom.window as unknown as Record<string, unknown>).matchMedia = g.matchMedia
+  ;(dom.window as unknown as Record<string, unknown>).IntersectionObserver = noopObserver
+  set('fetch', async () => ({ ok: true, status: 200, json: async () => ({}) }))
+  return () => {
+    for (const [name, descriptor] of saved) {
+      if (descriptor) Object.defineProperty(g, name, descriptor)
+      else delete g[name]
     }
   }
 }

@@ -35,6 +35,8 @@ export interface ComponentDoc {
   /** The component this one goes inside (Tab in Tabs) */
   parent?: string;
   props: ComponentPropDoc[];
+  /** Listed first in its group, lowest first (the registration's `featured`) */
+  featured?: number;
 }
 
 export interface ComponentGroupInfo {
@@ -48,7 +50,7 @@ export const COMPONENT_GROUPS: readonly ComponentGroupInfo[] = [
   {
     id: 'connected',
     title: 'Connected to your page',
-    blurb: 'Your own things from here: your guestbook, posts, friends, rings and song. They update by themselves.',
+    blurb: 'Your own things from here: your guestbook, posts, friends, photos, rings and song. They update by themselves.',
   },
   { id: 'profile', title: 'Your profile', blurb: 'Your picture, name and bio, wherever you want them.' },
   { id: 'layout', title: 'Layout and text', blurb: 'Rows, grids, boxes and tabs for arranging a page. Plain HTML and CSS work too.' },
@@ -61,9 +63,6 @@ export const COMPONENT_GROUPS: readonly ComponentGroupInfo[] = [
   { id: 'logic', title: 'Logic and events', blurb: 'Show things only sometimes, react to clicks, work with lists.' },
   { id: 'site', title: 'Parts of the site', blurb: 'Pieces of the site itself, like the notification bell.' },
 ];
-
-/** Within "connected", the ones people reach for first. The rest follow in registry order. */
-const CONNECTED_FIRST = ['Guestbook', 'FollowButton', 'BlogPosts', 'FriendDisplay', 'ProfileMusic', 'MediaGrid'];
 
 function exampleValue(schema: PropSchema): string {
   if (schema.example !== undefined) return schema.example;
@@ -121,17 +120,15 @@ export function componentDoc(registration: ComponentRegistration): ComponentDoc 
     acceptsChildren: acceptsChildren(registration),
     ...(registration.relationship?.requiresParent ? { parent: registration.relationship.requiresParent } : {}),
     props: propDocs(registration.props),
+    ...(registration.featured !== undefined ? { featured: registration.featured } : {}),
   };
 }
 
-/** Every registered component, in reference order: by group, connected ones first. */
+/** Every registered component, in reference order: by group, connected ones first, featured ones first in each. */
 export function buildComponentDocs(registrations: Map<string, ComponentRegistration>): ComponentDoc[] {
   const docs = Array.from(registrations.values()).map(componentDoc);
   const groupOrder = new Map(COMPONENT_GROUPS.map((group, index) => [group.id, index]));
-  const position = (doc: ComponentDoc) => {
-    const featured = CONNECTED_FIRST.indexOf(doc.name);
-    return featured === -1 ? CONNECTED_FIRST.length : featured;
-  };
+  const position = (doc: ComponentDoc) => doc.featured ?? Number.MAX_SAFE_INTEGER;
   // Array.prototype.sort is stable, so registry order holds within a group
   return docs.sort(
     (a, b) => (groupOrder.get(a.group) ?? 99) - (groupOrder.get(b.group) ?? 99) || position(a) - position(b)

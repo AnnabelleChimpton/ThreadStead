@@ -4,6 +4,7 @@ import Head from "next/head";
 import Link from "next/link";
 import Layout from "@/components/ui/layout/Layout";
 import Button from "@/components/ui/Button";
+import { useToast } from "@/contexts/ToastContext";
 import { getSiteConfig, SiteConfig } from "@/lib/config/site/dynamic";
 import {
   COMPONENT_GROUPS,
@@ -46,19 +47,23 @@ function valuesOf(prop: ComponentPropDoc): string {
 
 function CopyButton({ text, label }: { text: string; label: string }) {
   const [copied, setCopied] = useState(false);
+  const { showError } = useToast();
+  const failed = () => {
+    setCopied(false);
+    showError("Couldn't copy that. Select the snippet and copy it yourself.");
+  };
   return (
     <Button
       variant="secondary"
       size="sm"
       aria-label={`Copy the ${label} snippet`}
       onClick={() => {
-        navigator.clipboard?.writeText(text).then(
-          () => {
-            setCopied(true);
-            setTimeout(() => setCopied(false), 1500);
-          },
-          () => setCopied(false)
-        );
+        // No clipboard outside https (and in some embedded browsers)
+        if (!navigator.clipboard) return failed();
+        navigator.clipboard.writeText(text).then(() => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1500);
+        }, failed);
       }}
     >
       {copied ? "Copied" : "Copy"}

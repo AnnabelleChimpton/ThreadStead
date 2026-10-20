@@ -15,6 +15,7 @@ import {
   tokenizeSource,
 } from './source-scan';
 import { extractDocument, type DocumentHead } from './document-head';
+import { whyNoEmbed } from '../embeds';
 import {
   ELEMENT_ATTRIBUTES,
   GLOBAL_ATTRIBUTES,
@@ -632,6 +633,10 @@ function valueProblem(
       const fits = type === 'array' ? Array.isArray(parsed) : typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed);
       if (!fits) return `initial needs to be ${kind}, so it starts empty.`;
     }
+  }
+  if (component === 'Embed' && prop === 'src') {
+    const why = whyNoEmbed(value);
+    if (why) return `${why} Visitors see nothing there.`;
   }
   if (component === 'Break' && prop === 'when' && !BREAK_WHEN.test(value)) {
     return 'when compares the loop count with a number, like when="i >= 5". To stop on anything else, put <Break /> inside an <If>.';

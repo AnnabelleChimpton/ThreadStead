@@ -51,6 +51,7 @@ import {
   serializeDom,
   GOLDEN_DIR,
   OWNER_ID,
+  enterBrowser,
 } from '../ssr-golden-support'
 
 const VIEWERS = [
@@ -103,50 +104,6 @@ beforeEach(() => {
 afterEach(() => {
   console.error = realError
 })
-
-// ---- a browser to hydrate in --------------------------------------------
-
-const BROWSER_GLOBALS = [
-  'window', 'document', 'navigator', 'location', 'localStorage', 'sessionStorage',
-  'Node', 'Element', 'HTMLElement', 'HTMLInputElement', 'HTMLTextAreaElement', 'HTMLSelectElement',
-  'HTMLIFrameElement', 'Text', 'Comment', 'DocumentFragment', 'SVGElement',
-  'Event', 'CustomEvent', 'MouseEvent', 'KeyboardEvent', 'FocusEvent', 'InputEvent',
-  'getComputedStyle', 'requestAnimationFrame', 'cancelAnimationFrame', 'DOMParser', 'MutationObserver',
-  'Audio', 'Image', 'HTMLMediaElement', 'HTMLAudioElement', 'HTMLImageElement', 'Blob', 'URL', 'FormData',
-] as const
-
-/** Make `dom` the global browser (as on a real visit) until the returned undo runs */
-function enterBrowser(dom: JSDOM): () => void {
-  const g = globalThis as unknown as Record<string, unknown>
-  const saved = new Map<string, PropertyDescriptor | undefined>()
-  const set = (name: string, value: unknown) => {
-    saved.set(name, Object.getOwnPropertyDescriptor(g, name))
-    Object.defineProperty(g, name, { value, configurable: true, writable: true })
-  }
-  const w = dom.window as unknown as Record<string, unknown>
-  for (const name of BROWSER_GLOBALS) set(name, name === 'window' ? dom.window : w[name])
-  set('self', dom.window)
-  const noopObserver = class {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-    takeRecords() {
-      return []
-    }
-  }
-  set('IntersectionObserver', noopObserver)
-  set('ResizeObserver', noopObserver)
-  set('matchMedia', () => ({ matches: false, addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {} }))
-  ;(dom.window as unknown as Record<string, unknown>).matchMedia = g.matchMedia
-  ;(dom.window as unknown as Record<string, unknown>).IntersectionObserver = noopObserver
-  set('fetch', async () => ({ ok: true, status: 200, json: async () => ({}) }))
-  return () => {
-    for (const [name, descriptor] of saved) {
-      if (descriptor) Object.defineProperty(g, name, descriptor)
-      else delete g[name]
-    }
-  }
-}
 
 async function settle(ms = Number(process.env.SETTLE_MS) || 60) {
   await new Promise((resolve) => setTimeout(resolve, ms))

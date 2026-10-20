@@ -11,7 +11,7 @@ export const COMPONENT_NAMES: readonly string[] = [
   'Break', 'Button', 'CRTMonitor', 'CarouselImage', 'Case', 'CassetteTape', 'CenteredBox',
   'Checkbox', 'Choose', 'Clone', 'ColorPicker', 'ConditionalAttr', 'ContactCard', 'ContactMethod',
   'Continue', 'CopyToClipboard', 'Count', 'CustomHTMLElement', 'Cycle', 'DebugValue', 'Decrement',
-  'Default', 'Delay', 'DisplayName', 'DynamicImage', 'Else', 'ElseIf', 'EventDiv', 'Extract',
+  'Default', 'Delay', 'DisplayName', 'DynamicImage', 'Else', 'ElseIf', 'Embed', 'EventDiv', 'Extract',
   'Filter', 'Find', 'FlexContainer', 'FloatingBadge', 'FollowButton', 'ForEach', 'FriendBadge',
   'FriendDisplay', 'Get', 'GlitchText', 'GradientBox', 'Grid', 'GridItem', 'GridLayout',
   'Guestbook', 'Heading', 'If', 'IfOwner', 'IfVisitor', 'ImageCarousel', 'Increment', 'MatrixRain',

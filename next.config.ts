@@ -323,7 +323,8 @@ const nextConfig: NextConfig = {
               "media-src 'self' https: data:",
               "connect-src 'self' https:",
               "worker-src 'self' blob:",
-              "frame-src 'self'",
+              // <Embed>'s players, loaded only after a visitor clicks (lib/templates/embeds.ts EMBED_HOSTS)
+              "frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://bandcamp.com https://w.soundcloud.com https://open.spotify.com",
               "object-src 'none'",
               "base-uri 'self'",
               "form-action 'self'",

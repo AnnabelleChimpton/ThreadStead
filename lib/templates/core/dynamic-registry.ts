@@ -73,6 +73,7 @@ const componentLoaders: Record<string, () => Promise<{ default: React.ComponentT
   ProgressItem: () => import('@/components/features/templates/ProgressTracker').then(m => ({ default: m.ProgressItem })),
   ImageCarousel: () => import('@/components/features/templates/ImageCarousel'),
   CarouselImage: () => import('@/components/features/templates/ImageCarousel').then(m => ({ default: m.CarouselImage })),
+  Embed: () => import('@/components/features/templates/Embed'),
   ContactCard: () => import('@/components/features/templates/ContactCard'),
   ContactMethod: () => import('@/components/features/templates/ContactCard').then(m => ({ default: m.ContactMethod })),
   SkillChart: () => import('@/components/features/templates/SkillChart'),

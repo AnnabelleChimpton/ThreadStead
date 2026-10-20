@@ -72,6 +72,12 @@ export interface ComponentRegistration {
   example?: string;
   /** Section in the component reference. Without one, it's listed under its registration file's area. */
   group?: ComponentGroup;
+  /**
+   * Puts it at the top of its group in the component reference and the
+   * editor palette, lowest number first: the ones people reach for first.
+   * The rest follow in registry order.
+   */
+  featured?: number;
 }
 
 /**

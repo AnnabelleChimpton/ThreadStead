@@ -75,6 +75,28 @@ describe('order', () => {
     expect(docs.slice(firstOther).some((d) => d.group === 'connected')).toBe(false)
   })
 
+  test('"connected" is the components that show your own data from here, not page logic', () => {
+    expect(docs.filter((d) => d.group === 'connected').map((d) => d.name)).toEqual([
+      'Guestbook', 'FollowButton', 'BlogPosts', 'FriendDisplay', 'ProfileMusic', 'MediaGrid',
+      'MutualFriends', 'FriendBadge', 'WebsiteDisplay', 'ProfileBadges',
+    ])
+    // Whether the viewer is you isn't your data: these are logic
+    expect(docs.find((d) => d.name === 'IfOwner')!.group).toBe('logic')
+    expect(docs.find((d) => d.name === 'IfVisitor')!.group).toBe('logic')
+  })
+
+  test("the first few come from the registrations' featured numbers, not a list kept here", () => {
+    const registry = new ComponentRegistry()
+    const Leaf = () => null
+    registry.register({ name: 'Plain', component: Leaf, group: 'connected', example: '<Plain />', props: {} })
+    registry.register({ name: 'Second', component: Leaf, group: 'connected', featured: 2, example: '<Second />', props: {} })
+    registry.register({ name: 'Layouty', component: Leaf, group: 'layout', featured: 1, example: '<Layouty />', props: {} })
+    registry.register({ name: 'First', component: Leaf, group: 'connected', featured: 1, example: '<First />', props: {} })
+    expect(buildComponentDocs(registry.getAllRegistrations()).map((d) => d.name)).toEqual([
+      'First', 'Second', 'Plain', 'Layouty',
+    ])
+  })
+
   test('groups follow COMPONENT_GROUPS', () => {
     const order = COMPONENT_GROUPS.map((g) => g.id)
     const seen = docs.map((d) => order.indexOf(d.group))

@@ -42,6 +42,7 @@ import RetroCard from '@/components/ui/layout/RetroCard';
 import UserImage from '@/components/features/templates/UserImage';
 import ProgressTracker, { ProgressItem } from '@/components/features/templates/ProgressTracker';
 import ImageCarousel, { CarouselImage } from '@/components/features/templates/ImageCarousel';
+import Embed from '@/components/features/templates/Embed';
 import ContactCard, { ContactMethod } from '@/components/features/templates/ContactCard';
 import SkillChart, { Skill } from '@/components/features/templates/SkillChart';
 import CRTMonitor from '@/components/features/templates/CRTMonitor';
@@ -153,6 +154,7 @@ export function registerDisplayComponents(registry: ComponentRegistry) {
     name: 'BlogPosts',
     component: BlogPosts,
     group: 'connected',
+    featured: 3,
     description: 'Your latest posts, newest first, with their comments. Or just how many you\'ve written, with mode="count".',
     example: '<h2>Lately</h2>\n<BlogPosts limit="3" />',
     props: {
@@ -165,6 +167,7 @@ export function registerDisplayComponents(registry: ComponentRegistry) {
     name: 'Guestbook',
     component: Guestbook,
     group: 'connected',
+    featured: 1,
     description: 'Your guestbook, the same one as on the standard profile. Visitors sign it, and you can delete any entry.',
     example: '<h2>Sign my guestbook</h2>\n<Guestbook />',
     props: {}
@@ -174,6 +177,7 @@ export function registerDisplayComponents(registry: ComponentRegistry) {
     name: 'FollowButton',
     component: FollowButton,
     group: 'connected',
+    featured: 2,
     description: 'The follow button for your page. Visitors who are signed in can follow or unfollow you with it; you don\'t see it on your own page.',
     example: '<FollowButton />',
     props: {}
@@ -201,6 +205,7 @@ export function registerDisplayComponents(registry: ComponentRegistry) {
     name: 'ProfileMusic',
     component: ProfileMusic,
     group: 'connected',
+    featured: 5,
     description: 'Your profile song (Settings, Music), with its player right where you put it. Without a song, visitors see nothing and you see a link to pick one.',
     example: '<ProfileMusic />',
     props: {}
@@ -210,6 +215,7 @@ export function registerDisplayComponents(registry: ComponentRegistry) {
     name: 'FriendDisplay',
     component: FriendDisplay,
     group: 'connected',
+    featured: 4,
     description: 'Your featured friends, up to 8, with their pictures and links to their pages. You pick them in Settings, under Profile.',
     example: '<FriendDisplay />',
     props: {}
@@ -626,6 +632,7 @@ export function registerDisplayComponents(registry: ComponentRegistry) {
     name: 'MediaGrid',
     component: MediaGrid,
     group: 'connected',
+    featured: 6,
     description: 'Your featured photos, the six newest, in a grid. A photo\'s caption shows when you point at it.',
     example: '<MediaGrid />',
     props: {}
@@ -772,6 +779,19 @@ export function registerDisplayComponents(registry: ComponentRegistry) {
     relationship: {
       type: 'child',
       requiresParent: 'ImageCarousel'
+    }
+  });
+
+  registry.register({
+    name: 'Embed',
+    component: Embed,
+    group: 'layout',
+    description: 'A video or song from YouTube, Vimeo, Bandcamp, SoundCloud or Spotify. Visitors see a Play button first; the player only loads from the other site when they press it. Paste the link from your address bar. For Bandcamp, use the link in its embed code.',
+    example: '<h2>Where it all started</h2>\n<Embed src="https://www.youtube.com/watch?v=jNQXAC9IVRw" title="Me at the zoo" />',
+    props: {
+      src: { type: 'string', required: true, example: 'https://youtu.be/jNQXAC9IVRw', description: 'The link: a video, song, album or playlist page, or the site\'s own player link. For Bandcamp, the link from its embed code, or the whole embed code.' },
+      title: { type: 'string', description: 'What it is, like the song\'s name. Shown next to the Play button, and given to the player for screen readers.' },
+      height: { type: 'number', min: 40, max: 1200, description: 'Player height in pixels, 40 to 1200. Without it, videos keep a 16:9 shape and music players use their site\'s own height.' }
     }
   });
 
