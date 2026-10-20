@@ -479,17 +479,20 @@ export default function CommentList({
             {/* Collapse toggle - minimal, protected from custom CSS */}
             <button
               onClick={() => toggleCollapse(comment.id)}
+              aria-expanded={!collapsedThreads.has(comment.id)}
+              aria-label={collapsedThreads.has(comment.id) ? `Show ${countAllReplies(comment)} more` : 'Hide replies'}
               style={{
                 all: 'unset',
                 cursor: 'pointer',
                 fontSize: '11px',
-                color: '#A18463',
-                opacity: 0.6,
+                // The comment's own colour: a fixed sage at 60% was about 2:1
+                color: 'inherit',
+                opacity: 0.75,
                 padding: '2px 4px',
                 fontFamily: 'monospace',
               }}
               onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
-              onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.6')}
+              onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.75')}
             >
               {collapsedThreads.has(comment.id) ? `+${countAllReplies(comment)}` : '−'}
             </button>

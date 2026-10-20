@@ -94,6 +94,59 @@
   background: color-mix(in srgb, var(--ts-ink) 8%, transparent);
 }
 
+/* ---------- inside a post, on a page with its own colours ---------- */
+/* A themed page or your own HTML page with site styles off sets the post's
+   text colour, but retro.css and the comment components still gave bold
+   text, headings, links, quotes and comments the site's fixed dark colours,
+   and the comment box white buttons in the page's (often light) ink: all
+   near-invisible on a dark page. They follow the post's colour instead.
+   Each rule weighs one class, so the page's own CSS can still say otherwise. */
+:where([data-ts-theme] .post-item, .profile-template-root[data-site-styles="off"] .post-item) .thread-content :is(strong, b, h1, h2, h3, h4, h5, h6) {
+  color: inherit;
+}
+:where([data-ts-theme] .post-item) .thread-content a {
+  color: var(--ts-accent);
+}
+:where(.profile-template-root[data-site-styles="off"] .post-item) .thread-content a {
+  color: inherit;
+}
+:where(.profile-template-root[data-site-styles="off"] .post-item) .thread-content blockquote {
+  background: color-mix(in srgb, currentColor 8%, transparent);
+  border-left-color: currentColor;
+  color: inherit;
+}
+:where([data-ts-theme] .post-item, .profile-template-root[data-site-styles="off"] .post-item) :is(.comment-content, .comment-author-name, .user-link) {
+  color: inherit;
+}
+:where([data-ts-theme] .post-item, .profile-template-root[data-site-styles="off"] .post-item) .comment-container :is(.text-gray-500, .text-gray-600, .text-thread-sage) {
+  color: inherit;
+  opacity: 0.75;
+}
+:where([data-ts-theme] .post-item, .profile-template-root[data-site-styles="off"] .post-item) .formatting-toolbar {
+  background: color-mix(in srgb, currentColor 6%, transparent);
+  border-color: color-mix(in srgb, currentColor 30%, transparent);
+}
+:where([data-ts-theme] .post-item, .profile-template-root[data-site-styles="off"] .post-item) .formatting-toolbar button {
+  background: transparent;
+  border-color: color-mix(in srgb, currentColor 40%, transparent);
+  color: inherit;
+}
+:where([data-ts-theme] .post-item, .profile-template-root[data-site-styles="off"] .post-item) :is(.comment-container button, .comment-submit-button) {
+  background: transparent;
+  border-color: currentColor;
+  box-shadow: 2px 2px 0 color-mix(in srgb, currentColor 35%, transparent);
+  color: inherit;
+}
+/* site-theme's disabled button puts its peach back but not its ink */
+:where([data-ts-theme] .post-item, .profile-template-root[data-site-styles="off"] .post-item) :is(.comment-container button, .comment-submit-button, .formatting-toolbar button):disabled {
+  background: transparent;
+}
+:where([data-ts-theme] .post-item, .profile-template-root[data-site-styles="off"] .post-item) .comment-form-textarea {
+  background: transparent;
+  border-color: color-mix(in srgb, currentColor 45%, transparent);
+  color: inherit;
+}
+
 /* ---------- friends and websites ---------- */
 :where([data-ts-theme]) :is(.featured-friends, .websites-section) {
   background: var(--ts-card);
@@ -122,6 +175,12 @@
 }
 
 /* ---------- guestbook ---------- */
+/* Your own delete button: the site's rose ink is for light pages */
+:where([data-ts-theme], .profile-template-root[data-site-styles="off"]) .guestbook-delete {
+  background: transparent;
+  border-color: currentColor;
+  color: inherit;
+}
 /* The signer's name was the site's pine link colour on the theme's card */
 :where([data-ts-theme] .guestbook-entry) .thread-label a {
   color: var(--ts-ink);

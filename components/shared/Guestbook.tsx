@@ -319,8 +319,10 @@ export default function Guestbook({ username, bio, signerLink = "profile", headi
                       <button
                         onClick={() => handleDeleteClick(e)}
                         disabled={deletingId === e.id}
-                        className="px-2 py-1 text-xs border border-thread-sunset/60 bg-thread-sunset/10 hover:bg-thread-sunset/20 text-thread-sunset rounded shadow-sm disabled:opacity-50 transition-all"
+                        // Rose ink: the sunset coral was 2.6:1 on the paper
+                        className="guestbook-delete px-2 py-1 text-xs border border-[#9B3B2A]/60 bg-thread-sunset/10 hover:bg-thread-sunset/20 text-[#9B3B2A] rounded shadow-sm disabled:opacity-50 transition-all"
                         title="Delete this entry"
+                        aria-label="Delete this entry"
                       >
                         {deletingId === e.id ? "..." : "×"}
                       </button>
