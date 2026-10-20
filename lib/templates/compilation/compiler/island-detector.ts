@@ -6,7 +6,7 @@ import type { Island } from './types';
 import { normalizeVariableName } from '@/lib/templates/state/variable-utils';
 import { normalizeAttributeName } from '@/lib/templates/core/attribute-mappings';
 import { separateCSSProps, applyCSSProps } from '@/lib/templates/styling/universal-css-props';
-import { parseStyleString } from '@/lib/templates/positioning/positioning-utils';
+import { parseStyleString } from '@/lib/utils/css/parse-style-string';
 import type React from 'react';
 
 /**

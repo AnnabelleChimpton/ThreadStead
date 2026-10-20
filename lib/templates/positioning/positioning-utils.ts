@@ -226,27 +226,5 @@ export function shouldApplyPositioning(
   return !isNestedComponent && hasPositioningData;
 }
 
-/**
- * Parse style string into React CSSProperties object
- * Extracted from DOMConversionUtils for consistency
- *
- * @param styleString - CSS style string
- * @returns React CSSProperties object
- */
-export function parseStyleString(styleString: string): React.CSSProperties {
-  const styles: React.CSSProperties = {};
-
-  if (!styleString) return styles;
-
-  const declarations = styleString.split(';');
-  for (const declaration of declarations) {
-    const [property, value] = declaration.split(':').map((s) => s.trim());
-    if (property && value) {
-      // Convert kebab-case to camelCase
-      const camelProperty = property.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
-      (styles as any)[camelProperty] = value;
-    }
-  }
-
-  return styles;
-}
+// One parser for style strings (it splits url(https://…) correctly)
+export { parseStyleString } from '@/lib/utils/css/parse-style-string';

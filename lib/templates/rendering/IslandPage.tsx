@@ -10,6 +10,7 @@
  * ImageCarousel…) look through it to find their children.
  */
 import React from 'react';
+import { parseStyleString } from '@/lib/utils/css/parse-style-string';
 import type { Island } from '@/lib/templates/compilation/compiler';
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
 import { ResidentDataProvider } from '@/components/features/templates/ResidentDataProvider';
@@ -157,22 +158,6 @@ function getComponent(name: string): React.ComponentType<Record<string, unknown>
   return null;
 }
 
-/** `color: red; font-size: 2em` → `{ color: 'red', fontSize: '2em' }` */
-export function parseStyleString(styleString: string): Record<string, string> {
-  const styles: Record<string, string> = {};
-  if (!styleString) return styles;
-  styleString.split(';').forEach((declaration) => {
-    const colonIndex = declaration.indexOf(':');
-    if (colonIndex > 0) {
-      const property = declaration.slice(0, colonIndex).trim();
-      const value = declaration.slice(colonIndex + 1).trim();
-      if (property && value) {
-        styles[property.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase())] = value;
-      }
-    }
-  });
-  return styles;
-}
 
 /**
  * A positioned island gets its position from the strategy's wrapper, so the
