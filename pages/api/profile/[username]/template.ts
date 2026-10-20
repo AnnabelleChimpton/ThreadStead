@@ -87,15 +87,13 @@ export default apiHandler(
         // Keep a restore point of what this save is about to overwrite
         await snapshotProfileBeforeSave(handle.user.id, 'template-save');
 
-        // Update or create profile with compiled template and islands data
+        // Update or create the profile with its source and compiled copy
         await db.profile.upsert({
           where: { userId: handle.user.id },
           update: {
             customTemplate: cleanedTemplate, // Save cleaned template without navigation
-            customTemplateAst: JSON.stringify(compiledResult),
-            // Save the compiled template for Islands architecture
+            // The page's one compiled copy: what it renders from
             compiledTemplate: JSON.parse(JSON.stringify(compiledResult)),
-            templateIslands: JSON.parse(JSON.stringify(compiledResult.islands || null)),
             templateCompiledAt: new Date(),
             ...(safeCSS !== undefined && { customCSS: safeCSS }),
             ...(cssMode !== undefined && {
@@ -106,10 +104,8 @@ export default apiHandler(
           create: {
             userId: handle.user.id,
             customTemplate: cleanedTemplate, // Save cleaned template without navigation
-            customTemplateAst: JSON.stringify(compiledResult),
-            // Save the compiled template for Islands architecture
+            // The page's one compiled copy: what it renders from
             compiledTemplate: JSON.parse(JSON.stringify(compiledResult)),
-            templateIslands: JSON.parse(JSON.stringify(compiledResult.islands || null)),
             templateCompiledAt: new Date(),
             ...(safeCSS !== undefined && { customCSS: safeCSS }),
             ...(cssMode !== undefined && {
@@ -146,14 +142,12 @@ export default apiHandler(
         // Keep a restore point before wiping the template
         await snapshotProfileBeforeSave(handle.user.id, 'reset');
 
-        // Remove template and islands data from profile
+        // Remove the template and its compiled copy
         await db.profile.updateMany({
           where: { userId: handle.user.id },
           data: {
             customTemplate: null,
-            customTemplateAst: null,
             compiledTemplate: Prisma.JsonNull,
-            templateIslands: Prisma.JsonNull,
             templateCompiledAt: null
           }
         });

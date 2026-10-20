@@ -14,7 +14,7 @@ const PUBLIC_PROFILE_FIELDS = [
   "avatarUrl", "avatarFullUrl", "avatarMediumUrl", "avatarThumbnailUrl", "bannerUrl",
   "blogroll", "featuredFriends", "badgePreferences",
   "customCSS", "templateMode", "templateEnabled", "cssMode", "includeSiteCSS", "hideNavigation",
-  "customTemplateAst", "compiledTemplate", "templateIslands", "templateCompiledAt",
+  "compiledTemplate", "templateCompiledAt",
   "profileMidiId", "midiAutoplay", "midiLoop", "showTemplateSource",
   "hiddenTabs", "status",
 ] as const satisfies ReadonlyArray<keyof Profile>;

@@ -43,7 +43,7 @@ export function declaredVariables(islands: Island[]): VariableConfig[] {
 
 export default function AdvancedProfileRenderer({ user, residentData }: AdvancedProfileRendererProps) {
   const compiled = user.profile?.compiledTemplate as RenderableTemplate | null | undefined;
-  const islands = compiled?.islands ?? (user.profile?.templateIslands as Island[] | undefined) ?? NO_ISLANDS;
+  const islands = compiled?.islands ?? NO_ISLANDS;
   const declared = React.useMemo(() => declaredVariables(islands), [islands]);
 
   if (!compiled?.tree && !compiled?.staticHTML?.trim()) {

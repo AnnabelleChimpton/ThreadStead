@@ -196,8 +196,8 @@ describe.each(corpus())('%s', (id, source) => {
     // As getServerSideProps builds it, for this viewer
     const viewer = { isOwner: who === 'owner' }
     const sources = {
-      ast: pageForRender(stored, undefined, viewer),
-      staticHTML: pageForRender({ staticHTML: stored.staticHTML, islands: stored.islands }, undefined, viewer),
+      ast: pageForRender(stored, viewer),
+      staticHTML: pageForRender({ staticHTML: stored.staticHTML, islands: stored.islands }, viewer),
     }
     for (const [from, compiled] of Object.entries(sources)) {
       expect(compiled).not.toBeNull()
@@ -262,8 +262,8 @@ describe('IfOwner / IfVisitor', () => {
 
   test("the other side's content isn't in the page data sent to the browser", () => {
     const stored = storedCompileResult(source)
-    const forVisitor = JSON.stringify(pageForRender(stored, undefined, { isOwner: false }))
-    const forOwner = JSON.stringify(pageForRender(stored, undefined, { isOwner: true }))
+    const forVisitor = JSON.stringify(pageForRender(stored, { isOwner: false }))
+    const forOwner = JSON.stringify(pageForRender(stored, { isOwner: true }))
     expect(forVisitor).toContain('visitor-only welcome')
     expect(forVisitor).not.toContain('owner-only note')
     expect(forVisitor).not.toContain('owner-secret-initial')
@@ -275,7 +275,7 @@ describe('IfOwner / IfVisitor', () => {
   })
 
   test.each(VIEWERS)('as %s: hydrates without a mismatch and shows the right side', async (who, viewerId) => {
-    const compiled = pageForRender(storedCompileResult(source), undefined, { isOwner: who === 'owner' })
+    const compiled = pageForRender(storedCompileResult(source), { isOwner: who === 'owner' })
     const result = await visit(compiled, viewerId)
     expect(result.serverErrors).toEqual([])
     expect(result.hydrationErrors.map(String)).toEqual([])

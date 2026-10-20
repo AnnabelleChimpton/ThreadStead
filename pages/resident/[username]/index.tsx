@@ -24,7 +24,6 @@ import StepOutsideLink from "@/components/core/profile/StepOutsideLink";
 import PrivateProfile from "@/components/core/profile/PrivateProfile";
 import type { PublicWidgetSlot } from "@/lib/domain/profile/widget-slot/compile";
 import type { ResidentData } from "@/components/features/templates/ResidentDataProvider";
-import type { TemplateNode } from "@/lib/templates/compilation/template-parser";
 import { mapProfileCSSModeToComponentMode } from "@/lib/utils/css/css-mode-mapper";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import dynamic from 'next/dynamic';
@@ -63,8 +62,6 @@ type ProfileProps = {
   websites?: Website[];
   featuredFriends?: SelectedFriend[];
   initialTabId?: string;
-  /** Only for rows saved before compiled templates existed */
-  customTemplateAst?: any;
   residentData?: ResidentData;
   hideNavigation?: boolean;
   templateMode?: 'default' | 'enhanced' | 'advanced';
@@ -107,7 +104,6 @@ export default function ProfilePage({
   websites = [],
   featuredFriends = [],
   initialTabId,
-  customTemplateAst,
   residentData,
   hideNavigation = false,
   templateMode = 'default',
@@ -206,8 +202,6 @@ export default function ProfilePage({
       profile: {
         templateMode,
         customCSS,
-        // Only rows from before compiled templates existed send this
-        customTemplateAst: customTemplateAst ? JSON.stringify(customTemplateAst) : null,
         cssMode: cssMode,
         compiledTemplate,
       }
@@ -442,7 +436,6 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
       displayName?: string;
       customCSS?: string;
       customTemplate?: string;
-      customTemplateAst?: string;
       templateEnabled?: boolean;
       templateMode?: 'default' | 'enhanced' | 'advanced';
       cssMode?: 'inherit' | 'override' | 'disable';
@@ -450,7 +443,6 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
       includeSiteCSS?: boolean;
       // Islands compilation data
       compiledTemplate?: any;
-      templateIslands?: any[];
       templateCompiledAt?: string;
       blogroll?: unknown[];
       featuredFriends?: unknown[];
@@ -511,7 +503,6 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   }
 
   // Handle custom template data
-  let customTemplateAst: TemplateNode | undefined;
   let residentData: ResidentData | undefined;
 
   // Shared resolver: DB field, with the legacy CSS_MODE comment honored for
@@ -519,16 +510,26 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   // diverge between SSR, ProfileLayout, and ProfileModeRenderer).
   const cssMode = resolveCSSMode(data.profile?.cssMode, data.profile?.customCSS);
 
-  // Load custom template data for advanced mode (legacy AST or Islands compilation)
-  if (data.profile?.templateMode === 'advanced' &&
-    (data.profile?.customTemplateAst || data.profile?.compiledTemplate) &&
+  // A page of your own HTML renders from its one compiled copy. A page saved
+  // before compiled copies were stored is compiled here from its source
+  // (cached by source), the same compile the editor and a save run.
+  // The source is read here on the server: the profile API only shows it to
+  // the owner.
+  let compiledTemplate: unknown = data.profile?.compiledTemplate ?? null;
+  if (data.profile?.templateMode === 'advanced' && compiledTemplate == null) {
+    const { db } = await import('@/lib/config/database/connection');
+    const source = await db.profile.findUnique({ where: { userId: data.userId }, select: { customTemplate: true } });
+    if (source?.customTemplate?.trim()) {
+      const { compileForEditor } = await import('@/lib/templates/compilation/compile-for-editor');
+      const compiled = await compileForEditor(source.customTemplate);
+      if (compiled.ok) compiledTemplate = compiled.compiled;
+    }
+  }
+
+  // Load what the page's components read
+  if (data.profile?.templateMode === 'advanced' && compiledTemplate != null &&
     data.profile?.templateEnabled) {
     try {
-      // Rows saved before compiled templates existed render from the old AST
-      if (!data.profile.compiledTemplate && data.profile.customTemplateAst) {
-        customTemplateAst = JSON.parse(data.profile.customTemplateAst);
-      }
-
       // Fetch posts and guestbook data for template rendering using direct DB calls
       const { getSessionUser } = await import('@/lib/auth/server');
       const { getPostsForUser, getGuestbookForUser, getPhotosForUser } = await import('@/lib/utils/data/fetchers');
@@ -662,7 +663,6 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
       };
     } catch (error) {
       console.error('Error preparing custom template:', error);
-      customTemplateAst = undefined;
       residentData = undefined;
     }
   }
@@ -678,7 +678,6 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   if (data.profile?.avatarUrl != null) props.photoUrl = data.profile.avatarUrl;
   if (data.profile?.bannerUrl) props.bannerUrl = data.profile.bannerUrl;
   if (data.profile?.status) props.status = data.profile.status;
-  if (customTemplateAst != null) props.customTemplateAst = customTemplateAst;
   if (residentData != null) props.residentData = residentData;
   // hideNavigation should only apply to advanced templates, always show navigation in standard mode
   if (data.profile?.hideNavigation != null && data.profile?.templateMode === 'advanced') {
@@ -694,10 +693,10 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   // colours). Only what rendering reads, not the three stored copies, and
   // only this viewer's side of IfOwner / IfVisitor. Without residentData the
   // tree isn't rendered; it goes out as a visitor's.
-  if (data.profile?.templateMode === 'advanced' && data.profile.compiledTemplate != null) {
+  if (data.profile?.templateMode === 'advanced' && compiledTemplate != null) {
     const { pageForRender } = await import('@/lib/templates/rendering/page-tree-server');
     const { viewerIsOwner } = await import('@/components/features/templates/conditional/IfOwner');
-    const page = pageForRender(data.profile.compiledTemplate, data.profile.templateIslands, {
+    const page = pageForRender(compiledTemplate, {
       isOwner: residentData != null && viewerIsOwner(residentData),
     });
     if (page) props.compiledTemplate = page;

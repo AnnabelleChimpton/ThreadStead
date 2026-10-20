@@ -38,11 +38,7 @@ interface StoredCompileResult {
 }
 
 /** Without a viewer, the page is rendered for a visitor */
-export function pageForRender(
-  compiled: unknown,
-  storedIslands?: unknown,
-  viewer: PageViewer = { isOwner: false }
-): PageForRender | null {
+export function pageForRender(compiled: unknown, viewer: PageViewer = { isOwner: false }): PageForRender | null {
   const stored = compiled as StoredCompileResult | null | undefined;
   if (!stored || typeof stored !== 'object') return null;
 
@@ -56,7 +52,7 @@ export function pageForRender(
     return null;
   }
 
-  const allIslands = (Array.isArray(stored.islands) ? stored.islands : Array.isArray(storedIslands) ? storedIslands : []) as Island[];
+  const allIslands = (Array.isArray(stored.islands) ? stored.islands : []) as Island[];
   const pruned = forViewer(tree, allIslands, viewer);
   const islands = allIslands.filter((island) => !pruned.droppedIslands.has(island.id));
   return {
