@@ -68,7 +68,7 @@ describe('ValidationFeedbackPanel stripped report', () => {
       ...wrappers,
       { name: 'marquee', line: 20, category: 'unsupported', count: 2, reason: 'Not supported here: this tag isn’t one pages can use, so its contents were kept without it.' },
       { name: 'script', line: 30, category: 'safety', reason: 'Removed for safety: scripts don’t run on pages here.' },
-      { name: 'Guestbok', line: 12, category: 'unsupported', reason: 'Unknown component (not registered in template system).' },
+      { name: 'Guestbok', line: 12, category: 'unsupported', reason: 'There’s no component called <Guestbok>. Did you mean <Guestbook>?' },
     ]);
 
     expect(screen.queryByText('Template is valid!')).toBeNull();
@@ -82,7 +82,7 @@ describe('ValidationFeedbackPanel stripped report', () => {
     expect(screen.getByText('3 times')).toBeInTheDocument();
     expect(screen.getByText('This tag isn’t one pages can use, so its contents were kept without it.')).toBeInTheDocument();
     expect(screen.getByText('Scripts don’t run on pages here.')).toBeInTheDocument();
-    expect(screen.getByText('Unknown component (not registered in template system).')).toBeInTheDocument();
+    expect(screen.getByText('There’s no component called <Guestbok>. Did you mean <Guestbook>?')).toBeInTheDocument();
 
     expect(screen.getByRole('button', { name: 'Save Anyway' })).toBeInTheDocument();
   });

@@ -99,7 +99,7 @@ function generateSuggestion(
       return 'Check your HTML syntax. Make sure tags are properly opened and closed.';
 
     case 'attribute':
-      return 'Check the attribute name and value. Common attributes: data, when, equals, contains, etc.';
+      return 'Check the attribute’s name and its quotes: name="value".';
 
     case 'validation':
       if (message?.toLowerCase().includes('too many nodes')) {
@@ -197,8 +197,9 @@ function generateMessage(
 ): string {
   let message = parsed.message;
 
-  // Add line/column information if available
-  if (parsed.line) {
+  // Add line/column information if available (the parser's own messages
+  // already start with it: "Line 1: Line 1: Unclosed quote…")
+  if (parsed.line && !/^line\s*\d+/i.test(message)) {
     const location = parsed.column
       ? `Line ${parsed.line}, Column ${parsed.column}`
       : `Line ${parsed.line}`;
@@ -222,12 +223,14 @@ export function parseTemplateError(error: Error | string): TemplateError {
   // Generate helpful content
   const title = generateTitle(type, parsed.component, errorMessage);
   const message = generateMessage(type, parsed);
-  const suggestion = generateSuggestion(type, parsed.component, errorMessage);
+  // The parser's messages carry their own Tip, which knows more than a
+  // suggestion guessed from the wording
+  const suggestion = /\nTip:/.test(errorMessage) ? undefined : generateSuggestion(type, parsed.component, errorMessage);
 
   // Determine details based on type
   let details: string | undefined;
   if (type === 'component' && parsed.component) {
-    details = 'Available components: Show, Choose, When, Otherwise, IfOwner, IfVisitor, BlogPosts, DisplayName, Bio, ProfilePhoto, and more.';
+    details = 'The components page lists every one.';
   } else if (type === 'syntax') {
     details = 'HTML syntax must be valid. Check that all tags are properly closed and nested.';
   } else if (type === 'validation') {

@@ -195,6 +195,23 @@ function detectSyntaxErrors(htmlString: string): { errors: string[]; warnings: s
   // Open components, innermost last
   const stack: Array<{ name: string; line: number }> = [];
 
+  // onclick="…" and javascript: links are taken out by the sanitizer; say so
+  // once per kind (with the first line), so a pasted old page doesn't just
+  // quietly have dead buttons.
+  const scriptAttributes = new Map<string, { line: number; tag: string; count: number }>();
+  const noteScriptAttributes = (token: { name: string; attributes: Array<{ name: string; value?: string }> }, line: number) => {
+    for (const attr of token.attributes) {
+      const name = attr.name.toLowerCase();
+      const key = /^on[a-z]+$/.test(name)
+        ? name
+        : /^\s*javascript:/i.test(attr.value ?? '') ? 'javascript:' : undefined;
+      if (!key) continue;
+      const seen = scriptAttributes.get(key);
+      if (seen) seen.count++;
+      else scriptAttributes.set(key, { line, tag: token.name, count: 1 });
+    }
+  };
+
   for (const token of tokenizeSource(htmlString)) {
     if (token.type !== 'open' && token.type !== 'close') continue;
     const line = lineAt(htmlString, token.start);
@@ -203,7 +220,7 @@ function detectSyntaxErrors(htmlString: string): { errors: string[]; warnings: s
       errors.push(
         `Line ${line}: Unclosed quote in <${token.name}> attributes.\n` +
         `  ${lineText(line)}\n` +
-        `Tip: Make sure all attribute values have matching quotes`
+        `Tip: Every value needs a quote at each end, like src="me.png". If a value has double quotes inside it, put single quotes around it: initial='["a", "b"]'`
       );
       continue;
     }
@@ -222,6 +239,8 @@ function detectSyntaxErrors(htmlString: string): { errors: string[]; warnings: s
       );
       continue;
     }
+
+    if (token.type === 'open' && !looksLikeComponentName(token.name)) noteScriptAttributes(token, line);
 
     if (!looksLikeComponentName(token.name)) {
       // </if> for an open <If>: the parser would never close the component
@@ -286,6 +305,16 @@ function detectSyntaxErrors(htmlString: string): { errors: string[]; warnings: s
       const match = stack.map((s) => s.name).lastIndexOf(token.name);
       if (match !== -1) stack.length = match;
     }
+  }
+
+  for (const [key, { line, tag, count }] of scriptAttributes) {
+    const more = count > 1 ? ` (and ${count - 1} more like it)` : '';
+    warnings.push(
+      key === 'javascript:'
+        ? `Line ${line}: A javascript: link on <${tag}> was taken out${more}. Scripts don’t run on pages here.`
+        : `Line ${line}: ${key}="…" on <${tag}> was taken out${more}. Scripts don’t run on pages here.` +
+          (key === 'onclick' ? ' For something to happen on a click, put an <OnClick> inside a <Button>.' : '')
+    );
   }
 
   // A component left open runs to the end of the page
@@ -365,15 +394,20 @@ function strippedReason(
     const reason =
       lower === 'script'
         ? 'Removed for safety: scripts don’t run on pages here. Components like Toggle, Var and OnClick do most script jobs.'
-        : lower === 'iframe' || lower === 'frame' || lower === 'frameset' || lower === 'embed' || lower === 'object' || lower === 'applet'
-          ? 'Removed for safety: pages here can’t embed other sites or plugins.'
-          : 'Removed for safety.';
+        : lower === 'iframe' || lower === 'embed'
+          ? 'Removed for safety: pages here can’t run other sites inside them. For YouTube, Vimeo, Bandcamp, SoundCloud or Spotify, use <Embed src="…" /> with the same link.'
+          : lower === 'frame' || lower === 'frameset' || lower === 'object' || lower === 'applet'
+            ? 'Removed for safety: pages here can’t embed other sites or plugins.'
+            : 'Removed for safety.';
     return { category: 'safety', reason };
   }
   if (looksLikeComponentName(name)) {
+    const meant = suggestComponent(name);
     return {
       category: 'unsupported',
-      reason: 'Unknown component (not registered in template system). Check the spelling; component names are case-sensitive.',
+      reason: meant
+        ? `There’s no component called <${name}>. Did you mean <${meant}>?`
+        : `There’s no component called <${name}>. The components page lists every one.`,
     };
   }
   const component = componentRegistry.get(name);
@@ -588,6 +622,32 @@ function editDistance(a: string, b: string): number {
     }
   }
   return row[b.length];
+}
+
+/** What people call a component, for the ones whose names they wouldn't guess */
+const COMPONENT_NICKNAMES: Record<string, string> = {
+  top8: 'FriendDisplay', topfriends: 'FriendDisplay', friends: 'FriendDisplay', friend: 'FriendDisplay',
+  song: 'ProfileMusic', music: 'ProfileMusic', musicplayer: 'ProfileMusic',
+  webring: 'RingNav', rings: 'MyRings', threadrings: 'MyRings',
+  youtube: 'Embed', video: 'Embed', iframe: 'Embed',
+  post: 'BlogPosts', posts: 'BlogPosts', blog: 'BlogPosts', blogpost: 'BlogPosts',
+  photo: 'ProfilePhoto', avatar: 'ProfilePhoto', picture: 'ProfilePhoto',
+  name: 'DisplayName', about: 'Bio', aboutme: 'Bio',
+  house: 'MyHouse', home: 'MyHouse',
+};
+
+/** The component an unknown tag name was probably meant to be (a typo or a nickname). */
+function suggestComponent(written: string): string | undefined {
+  const key = written.toLowerCase().replace(/[-_]/g, '');
+  const names = Array.from(componentRegistry.getAllRegistrations().values(), (r) => r.name);
+  const nickname = COMPONENT_NICKNAMES[key];
+  if (nickname && names.includes(nickname)) return nickname;
+  let best: { name: string; distance: number } | undefined;
+  for (const name of names) {
+    const distance = editDistance(key, name.toLowerCase());
+    if (distance <= 2 && distance < key.length - 1 && (!best || distance < best.distance)) best = { name, distance };
+  }
+  return best?.name;
 }
 
 /** The declared prop a misspelt attribute was probably meant to be. */
