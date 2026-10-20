@@ -42,13 +42,21 @@ npm run --silent env:check
 step "Applying database migrations"
 npx prisma migrate deploy
 
-step "Building"
-npm run build
+step "Building (into .next-build; the running site keeps using .next)"
+# Building straight into .next replaced the files the running site was
+# reading, so every page failed with "Cannot find module ./chunks/…" until
+# the restart. The new build is swapped in just before it instead.
+rm -rf .next-build
+NEXT_DIST_DIR=.next-build npm run build
 
-step "Restarting $PM2_APP"
+step "Swapping in the new build and restarting $PM2_APP"
+rm -rf .next-previous
+if [ -d .next ]; then mv .next .next-previous; fi
+mv .next-build .next
 # --update-env replaces the process's environment with this shell's, so set
 # NODE_ENV here: without it server.ts starts Next in dev mode, which serves
-# 500s and rewrites .next under the next build (2026-10-18 outage).
+# 500s and rewrites .next under the next build (2026-10-18 outage). The
+# shell's NEXT_DIST_DIR is unset here, so the site reads .next.
 NODE_ENV=production pm2 restart "$PM2_APP" --update-env >/dev/null
 pm2 save >/dev/null
 
@@ -68,6 +76,7 @@ if [ -z "$ok" ]; then
   echo
   echo "Roll back with:"
   echo "  $ROLLBACK"
+  echo "(The build that was running before is kept in .next-previous.)"
   exit 1
 fi
 echo "Site is up."
@@ -79,6 +88,8 @@ else
   echo "WARNING: RingHub is not authenticating. Check:"
   echo "  curl -s http://127.0.0.1:$PORT/api/ringhub/health-check"
 fi
+
+rm -rf .next-previous
 
 step "Done: $PREV -> $NEW"
 echo "Roll back with:"
