@@ -17,7 +17,6 @@ export interface BoomboxProps extends UniversalCSSProps {
   className?: string;
   children?: React.ReactNode;
   _positioningMode?: 'absolute' | 'grid' | 'normal';
-  _isInGrid?: boolean;
 }
 
 export default function Boombox(props: BoomboxProps) {
@@ -33,17 +32,13 @@ export default function Boombox(props: BoomboxProps) {
   volume = 75,
   className: customClassName,
   children,
-  _positioningMode = 'normal',
-  _isInGrid = false
+  _positioningMode = 'normal'
   } = componentProps;
 
   // Handle className being passed as array or string
   const normalizedCustomClassName = Array.isArray(customClassName)
     ? customClassName.join(' ')
     : customClassName;
-
-  // Use prop-based grid detection instead of context hook
-  const isInGrid = _isInGrid;
 
   // Normalize numeric props that could be passed as arrays
   const normalizedVolume = React.useMemo(() => {
@@ -181,12 +176,7 @@ export default function Boombox(props: BoomboxProps) {
   // Component default styles
   const componentStyle: React.CSSProperties = {
     display: 'inline-block',
-    position: _positioningMode === 'absolute' ? 'relative' : 'static',
-    ...(isInGrid && {
-      width: '100%',
-      height: '100%',
-      minHeight: '200px'
-    })
+    position: _positioningMode === 'absolute' ? 'relative' : 'static'
   };
 
   // Merge component styles with CSS props (CSS props win)

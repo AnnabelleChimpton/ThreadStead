@@ -17,7 +17,6 @@ export interface CRTMonitorProps extends UniversalCSSProps {
   className?: string;
   children?: React.ReactNode;
   _positioningMode?: 'absolute' | 'grid' | 'normal';
-  _isInGrid?: boolean;
 }
 
 export default function CRTMonitor(props: CRTMonitorProps) {
@@ -33,17 +32,13 @@ export default function CRTMonitor(props: CRTMonitorProps) {
     textFont = 'monospace',
     className: customClassName,
     children,
-    _positioningMode = 'normal',
-    _isInGrid = false
+    _positioningMode = 'normal'
   } = componentProps;
 
   // Handle className being passed as array or string
   const normalizedCustomClassName = Array.isArray(customClassName)
     ? customClassName.join(' ')
     : customClassName;
-
-  // Use prop-based grid detection instead of context hook
-  const isInGrid = _isInGrid;
 
   const getScreenColorValues = (color: string, intensity: string) => {
     const intensityMap = {

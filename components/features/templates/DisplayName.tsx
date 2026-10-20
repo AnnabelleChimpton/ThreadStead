@@ -1,6 +1,5 @@
 import React from 'react';
 import { useResidentData } from './ResidentDataProvider';
-import { useGridCompatibilityContext } from './GridCompatibleWrapper';
 import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
 interface DisplayNameProps extends UniversalCSSProps {
@@ -19,19 +18,14 @@ export default function DisplayName(props: DisplayNameProps) {
   } = componentProps;
 
   const { owner } = useResidentData();
-  const { isInGrid } = useGridCompatibilityContext();
 
   // Handle className being passed as array or string (fix parser issue)
   const normalizedCustomClassName = Array.isArray(customClassName)
     ? customClassName.join(' ')
     : customClassName;
 
-  // Adaptive text sizing: smaller in grid, normal size otherwise
-  const adaptiveTextSize = isInGrid ? 'text-lg sm:text-xl' : 'text-3xl';
-  const adaptiveMargin = isInGrid ? 'mb-0' : 'mb-1';
-
   // Build base classes - USER STYLING IS ALWAYS QUEEN
-  const baseClasses = `ts-profile-display-name thread-headline ${adaptiveTextSize} font-bold ${adaptiveMargin} text-thread-pine`;
+  const baseClasses = `ts-profile-display-name thread-headline text-3xl font-bold mb-1 text-thread-pine`;
 
   // Remove Tailwind classes that conflict with CSS props
   const filteredClasses = removeTailwindConflicts(baseClasses, cssProps);

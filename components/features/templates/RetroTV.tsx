@@ -17,7 +17,6 @@ export interface RetroTVProps extends UniversalCSSProps {
   className?: string;
   children?: React.ReactNode;
   _positioningMode?: 'absolute' | 'grid' | 'normal';
-  _isInGrid?: boolean;
 }
 
 export default function RetroTV(props: RetroTVProps) {
@@ -33,17 +32,13 @@ export default function RetroTV(props: RetroTVProps) {
     contrast = 100,
     className: customClassName,
     children,
-    _positioningMode = 'normal',
-    _isInGrid = false
+    _positioningMode = 'normal'
   } = componentProps;
 
   // Handle className being passed as array or string
   const normalizedCustomClassName = Array.isArray(customClassName)
     ? customClassName.join(' ')
     : customClassName;
-
-  // Use prop-based grid detection instead of context hook
-  const isInGrid = _isInGrid;
 
   // Screen color configurations
   const screenColors = {
@@ -129,12 +124,7 @@ export default function RetroTV(props: RetroTVProps) {
   // Component default styles
   const componentStyle: React.CSSProperties = {
     display: 'inline-block',
-    position: _positioningMode === 'absolute' ? 'relative' : 'static',
-    ...(isInGrid && {
-      width: '100%',
-      height: '100%',
-      minHeight: '300px'
-    })
+    position: _positioningMode === 'absolute' ? 'relative' : 'static'
   };
 
   // Merge component styles with CSS props (CSS props win)

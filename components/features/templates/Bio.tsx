@@ -1,6 +1,5 @@
 import React from 'react';
 import { useResidentData } from './ResidentDataProvider';
-import { useGridCompatibilityContext } from './GridCompatibleWrapper';
 import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
 interface BioProps extends UniversalCSSProps {
@@ -13,7 +12,6 @@ export default function Bio(props: BioProps) {
   const { className: customClassName } = componentProps;
 
   const { capabilities } = useResidentData();
-  const { isInGrid } = useGridCompatibilityContext();
 
   // Handle className being passed as array or string (fix parser issue)
   const normalizedCustomClassName = Array.isArray(customClassName)
@@ -23,15 +21,10 @@ export default function Bio(props: BioProps) {
   const bio = capabilities?.bio;
   if (!bio) return null;
 
-  // Grid-adaptive styling
-  const gridAdaptiveClasses = isInGrid ? 'w-full h-full overflow-y-auto' : '';
-  const adaptiveMargin = isInGrid ? 'mb-2' : 'mb-4';
-
   // Always include base classes for targeting, add custom classes
   const containerClass = [
     'ts-profile-bio-section',
-    adaptiveMargin,
-    gridAdaptiveClasses,
+    'mb-4',
     normalizedCustomClassName
   ].filter(Boolean).join(' ');
 
@@ -39,12 +32,12 @@ export default function Bio(props: BioProps) {
   const bioTextStyle = applyCSSProps(cssProps);
 
   // Build bio text classes - USER STYLING IS ALWAYS QUEEN
-  const bioTextClasses = `ts-bio-text ts-profile-bio leading-relaxed text-thread-charcoal ${isInGrid ? 'text-sm' : ''}`;
+  const bioTextClasses = `ts-bio-text ts-profile-bio leading-relaxed text-thread-charcoal`;
   const filteredBioTextClasses = removeTailwindConflicts(bioTextClasses, cssProps);
 
   return (
     <div className={containerClass}>
-      <h3 className={`ts-bio-heading thread-headline ${isInGrid ? 'text-base' : 'text-xl'} font-bold ${isInGrid ? 'mb-1' : 'mb-2'} text-thread-pine`}>
+      <h3 className="ts-bio-heading thread-headline text-xl font-bold mb-2 text-thread-pine">
         About Me
       </h3>
       <p className={filteredBioTextClasses} style={bioTextStyle}>

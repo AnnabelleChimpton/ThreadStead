@@ -1,5 +1,4 @@
 import React from "react";
-import { useGridCompatibilityContext } from './GridCompatibleWrapper';
 import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
 interface GradientBoxProps extends UniversalCSSProps {
@@ -35,11 +34,6 @@ export default function GradientBox(props: GradientBoxProps) {
     onClick,
     _positioningMode
   } = componentProps;
-
-  const { isInGrid } = useGridCompatibilityContext();
-
-  // Override grid detection if component is in absolute positioning mode
-  const shouldUseGridClasses = _positioningMode === 'absolute' ? false : isInGrid;
 
   let backgroundClass = '';
   let opacityClass = '';
@@ -112,20 +106,14 @@ export default function GradientBox(props: GradientBoxProps) {
     opacityClass = `bg-opacity-${gradientOpacity}`;
   }
 
-  // Handle legacy containerPadding (only if no custom className) - adaptive padding: smaller in grid, normal otherwise
-  const paddingClass = !className ? (shouldUseGridClasses ? {
-    'xs': 'p-1',
-    'sm': 'p-2',
-    'md': 'p-3',
-    'lg': 'p-4',
-    'xl': 'p-6'
-  }[containerPadding] : {
+  // Handle legacy containerPadding (only if no custom className)
+  const paddingClass = !className ? {
     'xs': 'p-2',
     'sm': 'p-4',
     'md': 'p-6',
     'lg': 'p-8',
     'xl': 'p-12'
-  }[containerPadding]) : '';
+  }[containerPadding] : '';
 
   // Handle legacy rounded (only if no custom className)
   const roundedClass = !className && rounded ? 'rounded-lg' : '';
@@ -137,8 +125,7 @@ export default function GradientBox(props: GradientBoxProps) {
     paddingClass,
     roundedClass,
     className,
-    // Size behavior: fill container when in absolute mode, use grid sizing in grid mode
-    shouldUseGridClasses ? 'w-full h-full' : '',
+    // Size behavior: fill container when in absolute mode
     _positioningMode === 'absolute' ? 'w-full h-full' : '' // Fill full width and height when positioned
   ].filter(Boolean).join(' ');
 

@@ -1,5 +1,4 @@
 import React from "react";
-import { useGridCompatibilityContext } from './GridCompatibleWrapper';
 import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
 interface PolaroidFrameProps extends UniversalCSSProps {
@@ -22,19 +21,14 @@ export default function PolaroidFrame(props: PolaroidFrameProps) {
     _positioningMode
   } = componentProps;
 
-  const { isInGrid } = useGridCompatibilityContext();
-
-  // Override grid detection if component is in absolute positioning mode
-  const shouldUseGridClasses = _positioningMode === 'absolute' ? false : isInGrid;
-
   const rotateClass = rotation !== 0 ? `rotate-[${rotation}deg]` : '';
   const shadowClass = shadow ? 'shadow-lg' : '';
 
   const baseClasses = [
-    shouldUseGridClasses ? 'w-full h-full aspect-[5/6] flex flex-col' : 'inline-block',
+    'inline-block',
     _positioningMode === 'absolute' ? 'h-full flex flex-col' : '',
     'bg-white',
-    shouldUseGridClasses ? 'p-2 pb-8' : 'p-4 pb-12',
+    'p-4 pb-12',
     rotateClass,
     shadowClass,
     'transition-transform hover:scale-105'
@@ -55,9 +49,7 @@ export default function PolaroidFrame(props: PolaroidFrameProps) {
       className={filteredClasses}
       style={mergedStyles}
     >
-      <div className={`bg-gray-100 border border-gray-200 ${
-        shouldUseGridClasses ? 'flex-1' : ''
-      } ${
+      <div className={`bg-gray-100 border border-gray-200  ${
         _positioningMode === 'absolute' ? 'flex-1' : ''
       }`}>
         {children}

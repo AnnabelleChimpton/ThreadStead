@@ -1,5 +1,4 @@
 import React from "react";
-import { useGridCompatibilityContext } from './GridCompatibleWrapper';
 import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
 const NOTE_COLORS = ['yellow', 'pink', 'blue', 'green', 'orange', 'purple'] as const;
@@ -51,25 +50,17 @@ export default function StickyNote(props: StickyNoteProps) {
     'purple': 'bg-purple-200 border-purple-300'
   }[noteColor];
 
-  const { isInGrid } = useGridCompatibilityContext();
-
-  // Override grid detection if component is in absolute positioning mode
-  const shouldUseGridClasses = _positioningMode === 'absolute' ? false : isInGrid;
-
-  // Adaptive sizing: use responsive sizing in grid, fixed sizes otherwise
   const sizeClasses = {
-    'sm': shouldUseGridClasses ? 'w-full h-full min-w-32 min-h-32 p-3 text-xs' : 'w-32 h-32 p-3 text-xs',
-    'md': shouldUseGridClasses ? 'w-full h-full min-w-48 min-h-48 p-4 text-sm' : 'w-48 h-48 p-4 text-sm',
-    'lg': shouldUseGridClasses ? 'w-full h-full min-w-64 min-h-64 p-6 text-base' : 'w-64 h-64 p-6 text-base'
+    'sm': 'w-32 h-32 p-3 text-xs',
+    'md': 'w-48 h-48 p-4 text-sm',
+    'lg': 'w-64 h-64 p-6 text-base'
   }[size];
 
-  // Grid-adaptive container styling
   const baseContainerClasses = [
-    shouldUseGridClasses ? 'sticky-note-wrapper' : 'inline-block',
+    'inline-block',
     colorClasses,
     sizeClasses,
     'border border-dashed shadow-md font-handwriting relative overflow-hidden',
-    shouldUseGridClasses ? 'aspect-square' : '',
     _positioningMode === 'absolute' ? 'h-full' : ''
   ].filter(Boolean).join(' ');
 

@@ -1,5 +1,4 @@
 import React from "react";
-import { useGridCompatibilityContext } from './GridCompatibleWrapper';
 import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
 interface NeonBorderProps extends UniversalCSSProps {
@@ -24,11 +23,6 @@ export default function NeonBorder(props: NeonBorderProps) {
     _positioningMode
   } = componentProps;
 
-  const { isInGrid } = useGridCompatibilityContext();
-
-  // Override grid detection if component is in absolute positioning mode
-  const shouldUseGridClasses = _positioningMode === 'absolute' ? false : isInGrid;
-
   const colorMap = {
     'blue': '#00f',
     'pink': '#f0f',
@@ -44,14 +38,7 @@ export default function NeonBorder(props: NeonBorderProps) {
     'bright': '0 0 15px'
   }[intensity];
 
-  // Adaptive padding: smaller in grid, normal otherwise
-  const paddingClass = shouldUseGridClasses ? {
-    'xs': 'p-1',
-    'sm': 'p-2',
-    'md': 'p-3',
-    'lg': 'p-4',
-    'xl': 'p-6'
-  }[containerPadding] : {
+  const paddingClass = {
     'xs': 'p-2',
     'sm': 'p-4',
     'md': 'p-6',
@@ -72,7 +59,6 @@ export default function NeonBorder(props: NeonBorderProps) {
   const baseClasses = [
     paddingClass,
     roundedClass,
-    shouldUseGridClasses ? 'w-full h-full' : '',
     _positioningMode === 'absolute' ? 'h-full' : ''
   ].filter(Boolean).join(' ');
 

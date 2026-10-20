@@ -1,5 +1,4 @@
 import React from "react";
-import { useGridCompatibilityContext } from './GridCompatibleWrapper';
 import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
 interface RetroTerminalProps extends UniversalCSSProps {
@@ -21,11 +20,6 @@ export default function RetroTerminal(props: RetroTerminalProps) {
     children,
     _positioningMode
   } = componentProps;
-
-  const { isInGrid } = useGridCompatibilityContext();
-
-  // Override grid detection if component is in absolute positioning mode
-  const shouldUseGridClasses = _positioningMode === 'absolute' ? false : isInGrid;
 
   // Convert string values to boolean (HTML attributes come as strings)
   const shouldShowHeader = showHeader === true || showHeader === 'true';
@@ -56,14 +50,7 @@ export default function RetroTerminal(props: RetroTerminalProps) {
     border: 'border-green-400'
   };
 
-  // Grid-aware padding
-  const paddingClass = shouldUseGridClasses ? {
-    'xs': 'p-1',
-    'sm': 'p-2',
-    'md': 'p-3',
-    'lg': 'p-4',
-    'xl': 'p-6'
-  }[containerPadding] : {
+  const paddingClass = {
     'xs': 'p-2',
     'sm': 'p-4',
     'md': 'p-6',
@@ -78,7 +65,6 @@ export default function RetroTerminal(props: RetroTerminalProps) {
     'rounded',
     'font-mono',
     'shadow-lg',
-    shouldUseGridClasses ? 'w-full h-full' : '',
     _positioningMode === 'absolute' ? 'h-full flex flex-col' : ''
   ].filter(Boolean).join(' ');
 

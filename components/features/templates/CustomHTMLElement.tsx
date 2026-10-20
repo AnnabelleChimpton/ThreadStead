@@ -42,7 +42,6 @@ export interface CustomHTMLElementProps extends UniversalStyleProps {
 
   // Visual builder internal props
   _positioningMode?: 'absolute' | 'grid' | 'normal';
-  _isInGrid?: boolean;
   _onContentChange?: (innerHTML: string, cssRenderMode?: string) => void; // Callback for content updates
 }
 
@@ -62,7 +61,6 @@ export default function CustomHTMLElement({
   children,
   cssRenderMode = 'auto',
   _positioningMode = 'normal',
-  _isInGrid = false,
   _onContentChange,
   ...rest
 }: CustomHTMLElementProps & { cssrendermode?: string }) {

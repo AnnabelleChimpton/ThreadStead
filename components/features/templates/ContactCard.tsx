@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useGridCompatibilityContext } from './GridCompatibleWrapper';
 import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
 interface ContactCardProps extends UniversalCSSProps {
@@ -65,7 +64,6 @@ export default function ContactCard(props: ContactCardProps) {
   } = componentProps;
   const [isExpanded, setIsExpanded] = useState(initialExpanded);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
-  const { isInGrid } = useGridCompatibilityContext();
 
   // Handle className being passed as array or string
   const normalizedCustomClassName = Array.isArray(customClassName) 
@@ -268,16 +266,12 @@ export default function ContactCard(props: ContactCardProps) {
     );
   }
 
-  // Grid-adaptive container styling
-  const gridAdaptiveClasses = isInGrid ? 'w-full h-full' : '';
-
   const baseClasses = [
     'ts-contact-card',
     currentTheme.container,
     'rounded-lg',
     'overflow-hidden',
-    'relative',
-    gridAdaptiveClasses
+    'relative'
   ].filter(Boolean).join(' ');
 
   const filteredClasses = removeTailwindConflicts(baseClasses, cssProps);
@@ -316,7 +310,7 @@ export default function ContactCard(props: ContactCardProps) {
       )}
 
       {/* Contact Methods */}
-      <div className={`ts-contact-list ${isInGrid ? 'p-2' : 'p-4'} ${layout !== 'grid' ? layoutClasses[layout] : ''}`}>
+      <div className={`ts-contact-list p-4 ${layout !== 'grid' ? layoutClasses[layout] : ''}`}>
         <div className={layout === 'grid' ? layoutClasses[layout] : 'space-y-0'}>
           {displayedMethods.map((method, index) => {
             const { href, action } = getContactAction(method.type, method.value);

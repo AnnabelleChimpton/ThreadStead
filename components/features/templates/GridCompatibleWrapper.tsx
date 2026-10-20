@@ -8,8 +8,7 @@ import {
   getComponentGridBehavior,
   getGridClassModifications,
   getGridStyles,
-  isGridOverlay,
-  type ComponentGridBehavior
+  isGridOverlay
 } from '@/lib/templates/positioning/grid-compatibility';
 import { UniversalCSSProps, separateCSSProps, applyCSSProps } from '@/lib/templates/styling/universal-css-props';
 
@@ -231,51 +230,4 @@ export default function GridCompatibleWrapper(props: GridCompatibleWrapperProps)
       {children}
     </div>
   );
-}
-
-/**
- * Higher-order component for adding grid compatibility
- */
-export function withGridCompatibility<P extends object>(
-  WrappedComponent: React.ComponentType<P>,
-  componentType: string,
-  defaultGridBehavior?: Partial<ComponentGridBehavior>
-) {
-  const GridCompatibleComponent = React.forwardRef<any, P & GridCompatibleWrapperProps>(
-    (props, ref) => {
-      const { className, style, gridPosition, forceGridMode, disableGridAdaptation, ...otherProps } = props;
-
-      return (
-        <GridCompatibleWrapper
-          componentType={componentType}
-          className={className as string}
-          style={style as React.CSSProperties}
-          gridPosition={gridPosition}
-          forceGridMode={forceGridMode}
-          disableGridAdaptation={disableGridAdaptation}
-        >
-          <WrappedComponent ref={ref} {...(otherProps as P)} />
-        </GridCompatibleWrapper>
-      );
-    }
-  );
-
-  GridCompatibleComponent.displayName = `GridCompatible(${WrappedComponent.displayName || WrappedComponent.name})`;
-
-  return GridCompatibleComponent;
-}
-
-/**
- * Hook for getting grid context information
- */
-export function useGridCompatibilityContext() {
-  const elementRef = useRef<HTMLDivElement>(null);
-  const { isInGrid, gridInfo } = useGridContext(elementRef);
-
-  return {
-    elementRef,
-    isInGrid,
-    gridInfo,
-    isGridCompatible: true // Components using this hook are assumed to be grid-compatible
-  };
 }

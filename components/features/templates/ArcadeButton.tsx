@@ -18,7 +18,6 @@ export interface ArcadeButtonProps extends UniversalCSSProps {
   onClick?: () => void;
   className?: string;
   _positioningMode?: 'absolute' | 'grid' | 'normal';
-  _isInGrid?: boolean;
   children?: React.ReactNode;
 }
 
@@ -37,8 +36,7 @@ export default function ArcadeButton(props: ArcadeButtonProps) {
     onClick,
     className: customClassName = '',
     children,
-    _positioningMode = 'normal',
-    _isInGrid = false
+    _positioningMode = 'normal'
   } = componentProps;
 
   // Handle className being passed as array or string
@@ -46,8 +44,6 @@ export default function ArcadeButton(props: ArcadeButtonProps) {
     ? customClassName.join(' ')
     : customClassName;
 
-  // Use prop-based grid detection instead of context hook
-  const isInGrid = _isInGrid;
   const [isPressed, setIsPressed] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
 

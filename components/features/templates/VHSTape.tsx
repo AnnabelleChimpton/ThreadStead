@@ -17,7 +17,6 @@ export interface VHSTapeProps extends UniversalCSSProps {
   className?: string;
   children?: React.ReactNode;
   _positioningMode?: 'absolute' | 'grid' | 'normal';
-  _isInGrid?: boolean;
 }
 
 export default function VHSTape(props: VHSTapeProps) {
@@ -33,17 +32,13 @@ export default function VHSTape(props: VHSTapeProps) {
     showBarcode = true,
     className: customClassName,
     children,
-    _positioningMode = 'normal',
-    _isInGrid = false
+    _positioningMode = 'normal'
   } = componentProps;
 
   // Handle className being passed as array or string
   const normalizedCustomClassName = Array.isArray(customClassName)
     ? customClassName.join(' ')
     : customClassName;
-
-  // Use prop-based grid detection instead of context hook
-  const isInGrid = _isInGrid;
 
   // Normalize string props that could be passed as arrays
   const normalizedTitle = React.useMemo(() => {
@@ -106,12 +101,7 @@ export default function VHSTape(props: VHSTapeProps) {
   const componentStyle: React.CSSProperties = {
     display: 'inline-block',
     position: _positioningMode === 'absolute' ? 'relative' : 'static',
-    opacity: currentWear.opacity,
-    ...(isInGrid && {
-      width: '100%',
-      height: '100%',
-      minHeight: '120px'
-    })
+    opacity: currentWear.opacity
   };
 
   // Merge component styles with CSS props (CSS props win)

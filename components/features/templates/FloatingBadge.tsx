@@ -1,5 +1,4 @@
 import React from "react";
-import { useGridCompatibilityContext } from './GridCompatibleWrapper';
 import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
 interface FloatingBadgeProps extends UniversalCSSProps {
@@ -35,16 +34,7 @@ export default function FloatingBadge(props: FloatingBadgeProps) {
     'lg': 'text-base px-4 py-2'
   }[size];
 
-  const { isInGrid } = useGridCompatibilityContext();
-
-  // In grid: use absolute positioning within the grid cell
-  // Outside grid: use fixed positioning
-  const positionClasses = isInGrid ? {
-    'top-left': 'top-1 left-1',
-    'top-right': 'top-1 right-1',
-    'bottom-left': 'bottom-1 left-1',
-    'bottom-right': 'bottom-1 right-1'
-  }[badgePosition] : {
+  const positionClasses = {
     'top-left': 'top-2 left-2',
     'top-right': 'top-2 right-2',
     'bottom-left': 'bottom-2 left-2',
@@ -59,9 +49,9 @@ export default function FloatingBadge(props: FloatingBadgeProps) {
   }[animation];
 
   const baseWrapperClasses = [
-    isInGrid ? 'absolute' : 'fixed',
+    'fixed',
     positionClasses,
-    isInGrid ? 'z-10' : 'z-50'
+    'z-50'
   ].filter(Boolean).join(' ');
 
   const filteredClasses = removeTailwindConflicts(baseWrapperClasses, cssProps);

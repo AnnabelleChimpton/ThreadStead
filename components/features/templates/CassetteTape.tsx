@@ -19,7 +19,6 @@ export interface CassetteTapeProps extends UniversalCSSProps {
   className?: string;
   children?: React.ReactNode;
   _positioningMode?: 'absolute' | 'grid' | 'normal';
-  _isInGrid?: boolean;
 }
 
 export default function CassetteTape(props: CassetteTapeProps) {
@@ -37,17 +36,13 @@ export default function CassetteTape(props: CassetteTapeProps) {
   showSpokesToRotate = true,
   className: customClassName,
   children,
-  _positioningMode = 'normal',
-  _isInGrid = false
+  _positioningMode = 'normal'
   } = componentProps;
 
   // Handle className being passed as array or string
   const normalizedCustomClassName = Array.isArray(customClassName)
     ? customClassName.join(' ')
     : customClassName;
-
-  // Use prop-based grid detection instead of context hook
-  const isInGrid = _isInGrid;
 
   // Normalize string props that could be passed as arrays
   const normalizedTitle = React.useMemo(() => {
@@ -132,12 +127,7 @@ export default function CassetteTape(props: CassetteTapeProps) {
   const componentStyle: React.CSSProperties = {
     display: 'inline-block',
     position: _positioningMode === 'absolute' ? 'relative' : 'static',
-    opacity: currentWear.opacity,
-    ...(isInGrid && {
-      width: '100%',
-      height: '100%',
-      minHeight: '100px'
-    })
+    opacity: currentWear.opacity
   };
 
   // Merge component styles with CSS props (CSS props win)

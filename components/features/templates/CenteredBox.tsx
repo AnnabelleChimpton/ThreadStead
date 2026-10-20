@@ -1,5 +1,4 @@
 import React from "react";
-import { useGridCompatibilityContext } from './GridCompatibleWrapper';
 import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
 interface CenteredBoxProps extends UniversalCSSProps {
@@ -21,11 +20,6 @@ export default function CenteredBox(props: CenteredBoxProps) {
     _positioningMode
   } = componentProps;
 
-  const { isInGrid } = useGridCompatibilityContext();
-
-  // Override grid detection if component is in absolute positioning mode
-  const shouldUseGridClasses = _positioningMode === 'absolute' ? false : isInGrid;
-
   const maxWidthClass = {
     'sm': 'max-w-sm',
     'md': 'max-w-md',
@@ -35,14 +29,7 @@ export default function CenteredBox(props: CenteredBoxProps) {
     'full': 'max-w-full'
   }[containerMaxWidth as string];
 
-  // Grid-aware padding
-  const paddingClass = shouldUseGridClasses ? {
-    'xs': 'p-1',
-    'sm': 'p-2',
-    'md': 'p-3',
-    'lg': 'p-4',
-    'xl': 'p-6'
-  }[containerPadding] : {
+  const paddingClass = {
     'xs': 'p-2',
     'sm': 'p-4',
     'md': 'p-6',
@@ -66,8 +53,7 @@ export default function CenteredBox(props: CenteredBoxProps) {
     'mx-auto',
     maxWidthClass || '',
     paddingClass,
-    // Height behavior: fill height in grid/absolute mode, but DON'T force full width (breaks centering)
-    shouldUseGridClasses ? 'h-full' : '',
+    // Height behavior: fill height in absolute mode, but DON'T force full width (breaks centering)
     _positioningMode === 'absolute' ? 'h-full' : '' // Fill full height when resized
   ].filter(Boolean).join(' ');
 

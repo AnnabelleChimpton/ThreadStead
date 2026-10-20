@@ -17,7 +17,6 @@ export interface MatrixRainProps extends UniversalCSSProps {
   className?: string;
   children?: React.ReactNode;
   _positioningMode?: 'absolute' | 'grid' | 'normal';
-  _isInGrid?: boolean;
 }
 
 export default function MatrixRain(props: MatrixRainProps) {
@@ -33,8 +32,7 @@ export default function MatrixRain(props: MatrixRainProps) {
   backgroundOpacity = 95,
   className: customClassName,
   children,
-  _positioningMode = 'normal',
-  _isInGrid = false
+  _positioningMode = 'normal'
   } = componentProps;
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -45,9 +43,6 @@ export default function MatrixRain(props: MatrixRainProps) {
   const normalizedCustomClassName = Array.isArray(customClassName)
     ? customClassName.join(' ')
     : customClassName;
-
-  // Use prop-based grid detection instead of context hook
-  const isInGrid = _isInGrid;
 
   // Color configurations
   const colorThemes = {
@@ -121,12 +116,7 @@ export default function MatrixRain(props: MatrixRainProps) {
 
   // Component default styles
   const componentStyle: React.CSSProperties = {
-    position: _positioningMode === 'absolute' ? 'relative' : 'static',
-    ...(isInGrid && {
-      width: '100%',
-      height: '100%',
-      minHeight: '400px'
-    })
+    position: _positioningMode === 'absolute' ? 'relative' : 'static'
   };
 
   // Merge component styles with CSS props (CSS props win)
