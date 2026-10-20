@@ -25,7 +25,7 @@ export default function TemplatesIndex({ siteConfig, username }: TemplatesIndexP
               Two ways to make your profile unique
             </p>
             <p className="text-sm text-gray-600 max-w-xl mx-auto">
-              Start simple with CSS styling, or go advanced with our Template Language.
+              Style the standard page with CSS, or write your own with the Template Language.
             </p>
           </div>
 
@@ -42,7 +42,7 @@ export default function TemplatesIndex({ siteConfig, username }: TemplatesIndexP
                       It&apos;s the simplest way to customize!
                     </p>
                     <p className="text-sm text-gray-600">
-                      Want custom layouts? Try <strong>Template Language</strong> (for developers).
+                      Want custom layouts? Try <strong>Template Language</strong>.
                     </p>
                   </div>
                 </div>
@@ -52,12 +52,9 @@ export default function TemplatesIndex({ siteConfig, username }: TemplatesIndexP
 
           {/* Three Customization Paths */}
           <div className="space-y-8 mb-16">
-            {/* CSS Styling - SIMPLEST PATH */}
+            {/* CSS Styling */}
             <RetroCard>
               <div className="text-center">
-                <div className="bg-green-100 border-2 border-green-500 rounded-lg px-4 py-2 inline-block mb-3">
-                  <span className="text-green-800 font-bold text-sm"><PixelIcon name="bookmark" className="inline-block align-middle mr-1" /> SIMPLEST - Start Here!</span>
-                </div>
                 <div className="text-6xl mb-4"><PixelIcon name="paint-bucket" size={48} /></div>
                 <h2 className="text-3xl font-black mb-3">CSS Styling</h2>
                 <p className="text-gray-600 mb-6">
@@ -97,7 +94,6 @@ export default function TemplatesIndex({ siteConfig, username }: TemplatesIndexP
                     CSS Class Reference
                   </Link>
                 </div>
-                <p className="text-xs text-gray-500 mt-3">(5 minutes - just style what&apos;s already there)</p>
               </div>
             </RetroCard>
 
@@ -107,7 +103,7 @@ export default function TemplatesIndex({ siteConfig, username }: TemplatesIndexP
                 <div className="text-6xl mb-4"><PixelIcon name="code" size={48} /></div>
                 <h2 className="text-3xl font-black mb-3">Template Language</h2>
                 <p className="text-gray-600 mb-6">
-                  Build dynamic, interactive features with code. Perfect for developers who want variables, loops, conditionals, and full programming control.
+                  Build dynamic, interactive features with code, with variables, loops, conditionals and full control.
                 </p>
 
                 <div className="space-y-3 mb-6 text-left max-w-md mx-auto">
@@ -143,7 +139,6 @@ export default function TemplatesIndex({ siteConfig, username }: TemplatesIndexP
                     <PixelIcon name="script" size={16} className="inline-block align-middle mr-1" /> Coding Tutorial
                   </Link>
                 </div>
-                <p className="text-xs text-gray-500 mt-3">(1+ hour - requires coding knowledge)</p>
               </div>
             </RetroCard>
           </div>
@@ -185,14 +180,9 @@ export default function TemplatesIndex({ siteConfig, username }: TemplatesIndexP
                     <td className="text-center p-3 bg-green-50"><span className="text-gray-300">−</span></td>
                     <td className="text-center p-3"><span className="text-green-600 font-bold text-xl"><PixelIcon name="check" size={20} /></span></td>
                   </tr>
-                  <tr className="border-b border-gray-300">
-                    <td className="p-3">Learning time</td>
-                    <td className="text-center p-3 bg-green-50">5 minutes</td>
-                    <td className="text-center p-3">1+ hour</td>
-                  </tr>
                   <tr>
                     <td className="p-3">Best for</td>
-                    <td className="text-center p-3 text-xs bg-green-50">Quick styling, beginners</td>
+                    <td className="text-center p-3 text-xs bg-green-50">Quick styling</td>
                     <td className="text-center p-3 text-xs">Dynamic interactive content</td>
                   </tr>
                 </tbody>
@@ -221,7 +211,7 @@ export default function TemplatesIndex({ siteConfig, username }: TemplatesIndexP
               <RetroCard>
                 <h3 className="font-bold mb-2">Do I need to know CSS to customize my profile?</h3>
                 <p className="text-sm text-gray-700">
-                  Basic CSS knowledge lets you do quick styling changes. Check out our CSS Class Reference for beginner-friendly examples.
+                  Basic CSS knowledge lets you do quick styling changes. Check out our CSS Class Reference for examples.
                 </p>
               </RetroCard>
             </div>

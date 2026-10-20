@@ -13,8 +13,8 @@ jest.mock('@/components/ui/PixelIcon', () => ({
 }));
 jest.mock('@/components/widgets', () => ({ widgetFrameClassName: 'widget-container' }));
 
-const none = { house: false, yard: false, post: false, guestbook: false };
-const allLocal = { house: true, yard: true, post: true, guestbook: true };
+const none = { house: false, yard: false, page: false, post: false, guestbook: false };
+const allLocal = { house: true, yard: true, page: true, post: true, guestbook: true };
 
 function mockRings(rings: unknown[] | null) {
   global.fetch = jest.fn().mockResolvedValue(
@@ -39,9 +39,10 @@ describe('FirstStepsChecklist', () => {
     await renderList(<FirstStepsChecklist username="newbie" steps={none} />);
     expect(global.fetch).toHaveBeenCalledWith('/api/threadrings/my-memberships');
 
-    expect(screen.getByText('0 of 5')).toBeInTheDocument();
+    expect(screen.getByText('0 of 6')).toBeInTheDocument();
     expect(screen.getByText('Pick your house').closest('a')).toHaveAttribute('href', '/home/newbie/decorate');
     expect(screen.getByText('Decorate your yard').closest('a')).toHaveAttribute('href', '/home/newbie/decorate');
+    expect(screen.getByText('Make your page yours').closest('a')).toHaveAttribute('href', '/settings?tab=appearance');
     expect(screen.getByText('Write a first post').closest('a')).toHaveAttribute('href', '/post/new');
     expect(screen.getByText("Sign a neighbor's guestbook").closest('a')).toHaveAttribute('href', '/neighborhood');
     expect(screen.getByText('Join a ring').closest('a')).toHaveAttribute('href', '/threadrings');
@@ -50,22 +51,23 @@ describe('FirstStepsChecklist', () => {
 
   it('ticks done steps and stops linking them', async () => {
     mockRings([]);
-    await renderList(<FirstStepsChecklist username="newbie" steps={{ ...none, house: true, post: true }} />);
-    expect(screen.getByText('2 of 5')).toBeInTheDocument();
+    await renderList(<FirstStepsChecklist username="newbie" steps={{ ...none, house: true, page: true, post: true }} />);
+    expect(screen.getByText('3 of 6')).toBeInTheDocument();
     expect(screen.getByText('Pick your house').closest('a')).toBeNull();
-    expect(screen.getAllByText('(done)')).toHaveLength(2);
+    expect(screen.getByText('Make your page yours').closest('a')).toBeNull();
+    expect(screen.getAllByText('(done)')).toHaveLength(3);
   });
 
   it('ticks the ring step from Ring Hub memberships', async () => {
     mockRings([{ slug: 'local-test' }]);
     await renderList(<FirstStepsChecklist username="newbie" steps={allLocal} />);
-    expect(screen.getByText('5 of 5')).toBeInTheDocument();
+    expect(screen.getByText('6 of 6')).toBeInTheDocument();
   });
 
   it("can't be hidden while the hub can't confirm a ring", async () => {
     mockRings(null);
     await renderList(<FirstStepsChecklist username="newbie" steps={allLocal} />);
-    expect(screen.getByText('4 of 5')).toBeInTheDocument();
+    expect(screen.getByText('5 of 6')).toBeInTheDocument();
     expect(screen.queryByText('Hide this list')).not.toBeInTheDocument();
   });
 

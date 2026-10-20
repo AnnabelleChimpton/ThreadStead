@@ -8,11 +8,13 @@ jest.mock('@/lib/config/database/connection', () => ({
     userHomeDecoration: { findFirst: jest.fn() },
     post: { findFirst: jest.fn() },
     guestbookEntry: { findFirst: jest.fn() },
+    profile: { findUnique: jest.fn() },
+    profileTemplateRevision: { findFirst: jest.fn() },
   },
 }));
 
 import { db as realDb } from '@/lib/config/database/connection';
-import { getFirstSteps, housePicked, FIRST_STEPS_MAX_AGE_DAYS } from '../first-steps';
+import { getFirstSteps, housePicked, FIRST_STEPS_MAX_AGE_DAYS, OWN_PAGE_SAVE_TRIGGERS } from '../first-steps';
 
 const db = realDb as unknown as Record<string, Record<string, jest.Mock>>;
 
@@ -25,12 +27,17 @@ function newcomer({
   decoration = null as any,
   post = null as any,
   signed = null as any,
+  // What signup leaves: a theme's CSS on the standard layout, no History yet
+  profile = { templateMode: 'enhanced', widgetSlot: null } as { templateMode: string; widgetSlot: unknown } | null,
+  pageSave = null as { id: string } | null,
 } = {}) {
   db.user.findUnique.mockResolvedValue({ createdAt });
   db.userHomeConfig.findUnique.mockResolvedValue(config);
   db.userHomeDecoration.findFirst.mockResolvedValue(decoration);
   db.post.findFirst.mockResolvedValue(post);
   db.guestbookEntry.findFirst.mockResolvedValue(signed);
+  db.profile.findUnique.mockResolvedValue(profile);
+  db.profileTemplateRevision.findFirst.mockResolvedValue(pageSave);
 }
 
 beforeEach(() => jest.clearAllMocks());
@@ -53,7 +60,7 @@ describe('housePicked', () => {
 describe('getFirstSteps', () => {
   it('starts with nothing done for a brand-new account', async () => {
     newcomer();
-    await expect(getFirstSteps('u1', NOW)).resolves.toEqual({ house: false, yard: false, post: false, guestbook: false });
+    await expect(getFirstSteps('u1', NOW)).resolves.toEqual({ house: false, yard: false, post: false, guestbook: false, page: false });
   });
 
   it('ticks each item from the matching data', async () => {
@@ -62,8 +69,38 @@ describe('getFirstSteps', () => {
       decoration: { id: 'd1' },
       post: { id: 'p1' },
       signed: { id: 'g1' },
+      pageSave: { id: 'r1' },
     });
-    await expect(getFirstSteps('u1', NOW)).resolves.toEqual({ house: true, yard: true, post: true, guestbook: true });
+    await expect(getFirstSteps('u1', NOW)).resolves.toEqual({ house: true, yard: true, post: true, guestbook: true, page: true });
+  });
+
+  it("counts the page as theirs once they've saved a look over signup's", async () => {
+    newcomer({ pageSave: { id: 'r1' } });
+    expect((await getFirstSteps('u1', NOW))?.page).toBe(true);
+    expect(db.profileTemplateRevision.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { userId: 'u1', trigger: { in: OWN_PAGE_SAVE_TRIGGERS } } })
+    );
+  });
+
+  it("doesn't count History the person didn't make", () => {
+    expect(OWN_PAGE_SAVE_TRIGGERS).toEqual(expect.arrayContaining(['css-save', 'template-save']));
+    expect(OWN_PAGE_SAVE_TRIGGERS).not.toContain('moderator-reset');
+    expect(OWN_PAGE_SAVE_TRIGGERS).not.toContain('layout-merge');
+  });
+
+  it('counts their own HTML page', async () => {
+    newcomer({ profile: { templateMode: 'advanced', widgetSlot: null } });
+    expect((await getFirstSteps('u1', NOW))?.page).toBe(true);
+  });
+
+  it('counts widgets under the header', async () => {
+    newcomer({ profile: { templateMode: 'enhanced', widgetSlot: { fragment: '<StickyNote />' } } });
+    expect((await getFirstSteps('u1', NOW))?.page).toBe(true);
+  });
+
+  it('copes with no profile row', async () => {
+    newcomer({ profile: null });
+    expect((await getFirstSteps('u1', NOW))?.page).toBe(false);
   });
 
   it('counts a painted path as a decorated yard', async () => {

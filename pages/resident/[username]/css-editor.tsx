@@ -482,7 +482,7 @@ export default function CSSEditorPage({
                     <PixelIcon name="warning-box" size={24} />
                     <div className="flex-1">
                       <p className="text-sm text-purple-900 font-semibold">
-                        You&apos;re currently using a custom template (Advanced Mode)
+                        You&apos;re currently using a custom template
                       </p>
                       <p className="text-xs text-purple-700 mt-1">
                         CSS you save here styles your custom template, which stays on.

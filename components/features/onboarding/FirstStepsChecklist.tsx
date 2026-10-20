@@ -36,6 +36,7 @@ export default function FirstStepsChecklist({ username, steps, foundersNote }: F
   const items = [
     { done: steps.house, label: 'Pick your house', href: `/home/${username}/decorate` },
     { done: steps.yard, label: 'Decorate your yard', href: `/home/${username}/decorate` },
+    { done: steps.page, label: 'Make your page yours', href: '/settings?tab=appearance' },
     { done: steps.post, label: 'Write a first post', href: '/post/new' },
     { done: steps.guestbook, label: "Sign a neighbor's guestbook", href: '/neighborhood' },
     { done: inRing === true, label: 'Join a ring', href: '/threadrings' },
@@ -91,7 +92,7 @@ export default function FirstStepsChecklist({ username, steps, foundersNote }: F
 
       {allDone && (
         <div className="mt-3 flex items-center justify-between gap-2 text-sm text-nb-ink">
-          <span>All five done.</span>
+          <span>All six done.</span>
           <button onClick={hide} className="ts-bare underline">
             Hide this list
           </button>

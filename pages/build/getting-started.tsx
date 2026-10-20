@@ -350,11 +350,11 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                     </p>
                     <div className="grid md:grid-cols-2 gap-3 text-sm">
                       <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-3">
-                        <strong className="text-nb-ink">CSS Styling (Recommended)</strong>
+                        <strong className="text-nb-ink">CSS Styling</strong>
                         <div className="text-nb-ink">Change colors, fonts and spacing on the standard page</div>
                       </div>
                       <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-3">
-                        <strong className="text-nb-ink">Template Language (Advanced)</strong>
+                        <strong className="text-nb-ink">Template Language</strong>
                         <div className="text-nb-ink">Write the page&apos;s HTML yourself</div>
                       </div>
                     </div>
@@ -403,10 +403,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
               <RetroCard title="Changing how your page looks">
                 <div className="space-y-4">
                   <div className="bg-nb-paper border-2 border-nb-ink-mid rounded-cozy shadow-nb-sm p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="badge badge--butter text-xs font-bold">SIMPLEST</span>
-                      <h3 className="font-bold">CSS styling: start here</h3>
-                    </div>
+                    <h3 className="font-bold mb-2">CSS styling: start here</h3>
                     <p className="text-sm mb-3">
                       If you want different colors and fonts, a little CSS on the normal layout goes a long way. The
                       class reference lists every part of the page you can style.
@@ -429,7 +426,6 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                         <p className="text-nb-ink-mid text-xs">
                           Colors, fonts and spacing on the standard layout, with a class reference beside the editor.
                         </p>
-                        <div className="text-xs text-nb-ink-mid"> 5 minutes</div>
                       </div>
                     </div>
 
@@ -445,7 +441,6 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                         <p className="text-nb-ink-mid text-xs">
                           Write the page&apos;s HTML with variables, loops and conditionals.
                         </p>
-                        <div className="text-xs text-nb-ink-mid"> 1+ hour</div>
                       </div>
                     </div>
                   </div>

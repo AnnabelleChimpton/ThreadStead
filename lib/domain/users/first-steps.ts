@@ -4,13 +4,22 @@
  * separately (/api/threadrings/my-memberships).
  */
 import { db } from '@/lib/config/database/connection';
+import { layoutOf } from '@/lib/domain/profile/layout';
 
 export interface FirstSteps {
   house: boolean;
   yard: boolean;
   post: boolean;
   guestbook: boolean;
+  /** Made their page their own: a theme, CSS, their own HTML or widgets */
+  page: boolean;
 }
+
+// Saves the person makes from Settings > Your page and the two editors each
+// put the look they replace into History first. Signup's theme doesn't (the
+// page has no look yet to keep), so one of these means they've changed their
+// page since signup. Moderator resets and the layout migration aren't theirs.
+export const OWN_PAGE_SAVE_TRIGGERS = ['css-save', 'template-save', 'reset'];
 
 // Shown to accounts this young; older residents don't get a newcomer list
 export const FIRST_STEPS_MAX_AGE_DAYS = 60;
@@ -34,7 +43,7 @@ export async function getFirstSteps(userId: string, now: Date = new Date()): Pro
   const ageDays = (now.getTime() - user.createdAt.getTime()) / 86_400_000;
   if (ageDays > FIRST_STEPS_MAX_AGE_DAYS) return null;
 
-  const [config, decoration, post, signed] = await Promise.all([
+  const [config, decoration, post, signed, profile, pageSave] = await Promise.all([
     db.userHomeConfig.findUnique({
       where: { userId },
       select: { createdAt: true, updatedAt: true, terrain: true },
@@ -45,6 +54,11 @@ export async function getFirstSteps(userId: string, now: Date = new Date()): Pro
       where: { authorId: userId, profileOwner: { not: userId } },
       select: { id: true },
     }),
+    db.profile.findUnique({ where: { userId }, select: { templateMode: true, widgetSlot: true } }),
+    db.profileTemplateRevision.findFirst({
+      where: { userId, trigger: { in: OWN_PAGE_SAVE_TRIGGERS } },
+      select: { id: true },
+    }),
   ]);
 
   return {
@@ -52,5 +66,6 @@ export async function getFirstSteps(userId: string, now: Date = new Date()): Pro
     yard: !!decoration || hasTerrain(config?.terrain),
     post: !!post,
     guestbook: !!signed,
+    page: !!pageSave || layoutOf(profile?.templateMode) === 'html' || profile?.widgetSlot != null,
   };
 }

@@ -1,8 +1,10 @@
 /**
  * Settings > Your page: the light way to make a profile yours, without
- * opening a code editor. Pick a theme (one click, saved, undoable), nudge
- * its colours and fonts, add widgets under the header, hide tabs, and watch
- * the real page change beside it. The code editors are links at the bottom.
+ * opening a code editor. Three doors up top (pick a theme, write your own
+ * HTML page, add components), then the theme cards (one click, saved,
+ * undoable), colour and font knobs, widgets under the header and hidden
+ * tabs, with the real page changing beside it. The CSS editor is a link at
+ * the bottom.
  *
  * Themes and knobs: lib/templates/appearance.ts. Widgets: WidgetSlotPicker.
  */
@@ -44,6 +46,36 @@ interface PageState {
 const SWATCH_FONTS = Object.values(PRESET_FONT_FACES).join('\n');
 
 const PREVIEW_STYLE_ID = 'your-page-preview-knobs';
+
+interface Door {
+  title: string;
+  text: string;
+  href: string;
+}
+
+// The three ways in, by what you want to do. No time estimates or skill
+// labels. With your own HTML page on, the HTML and components doors both go
+// to the HTML editor (its component list is open there), and themes would
+// switch you back to the standard layout.
+function doorsFor(username: string, ownHTML: boolean): Door[] {
+  const htmlEditor = `/resident/${encodeURIComponent(username)}/template-editor`;
+  return ownHTML
+    ? [
+        { title: 'Pick a theme', text: 'Go back to the standard layout with one of ours. Your HTML page stays in History.', href: '#your-page-theme' },
+        { title: 'Edit your HTML page', text: 'Your page is your own HTML. Change it in the HTML editor.', href: htmlEditor },
+        { title: 'Add components', text: 'The HTML editor lists them all. Click one to drop it into your page.', href: htmlEditor },
+      ]
+    : [
+        { title: 'Pick a theme', text: 'Choose a look for your page, then change its colours and fonts.', href: '#your-page-theme' },
+        { title: 'Write your own HTML page', text: 'Paste a page you already have, or start from one of ours.', href: htmlEditor },
+        { title: 'Add components', text: 'Put widgets like a sticky note or your song under your header.', href: '#your-page-widgets' },
+      ];
+}
+
+const DOOR_CLASS =
+  'block h-full p-3 border-2 border-black bg-white no-underline hover:bg-thread-cream focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2';
+// Settings' own link styles underline every link and win over the utility
+const DOOR_STYLE = { textDecoration: 'none' } as const;
 
 function ThemeSwatch({ vars, name }: { vars: ThemeVars; name: string }) {
   const card = vars.card === 'transparent' ? vars.ground : vars.card;
@@ -152,7 +184,7 @@ export default function YourPage({ username }: { username: string }) {
       const ok = await confirm({
         title: 'Switch back to the standard layout?',
         message:
-          "Themes style the standard profile layout. Your page uses your own HTML, which stays saved in the HTML editor, so you can switch back to it any time.",
+          "Themes style the standard profile layout. Your HTML page and its CSS go into History in the HTML editor, so you can load them back any time.",
         confirmText: theme ? `Use ${theme.name}` : "Use the site's look",
       });
       if (!ok) return;
@@ -246,9 +278,30 @@ export default function YourPage({ username }: { username: string }) {
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:items-start">
         <div className="space-y-8 min-w-0">
+          {/* Doors */}
+          <nav aria-label="Ways to change your page">
+            <ul className="grid gap-3 sm:grid-cols-3 list-none p-0 m-0">
+              {doorsFor(username, ownHTML).map((door) => (
+                <li key={door.title}>
+                  {door.href.startsWith('#') ? (
+                    <a href={door.href} className={DOOR_CLASS} style={DOOR_STYLE}>
+                      <span className="block font-semibold text-nb-ink">{door.title}</span>
+                      <span className="block text-sm text-nb-ink-mid mt-1">{door.text}</span>
+                    </a>
+                  ) : (
+                    <Link href={door.href} className={DOOR_CLASS} style={DOOR_STYLE}>
+                      <span className="block font-semibold text-nb-ink">{door.title}</span>
+                      <span className="block text-sm text-nb-ink-mid mt-1">{door.text}</span>
+                    </Link>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </nav>
+
           {/* Theme */}
           <section aria-labelledby="your-page-theme">
-            <h3 id="your-page-theme" className="text-lg font-bold mb-1 text-nb-ink">Theme</h3>
+            <h3 id="your-page-theme" className="text-lg font-bold mb-1 text-nb-ink scroll-mt-24">Theme</h3>
             <p className="text-sm text-nb-ink-mid mb-3">
               {ownHTML
                 ? "Your page is your own HTML right now, so these don't show on it."
@@ -401,7 +454,7 @@ export default function YourPage({ username }: { username: string }) {
           {/* Widgets */}
           {!ownHTML && (
             <section aria-labelledby="your-page-widgets">
-              <h3 id="your-page-widgets" className="text-lg font-bold mb-1 text-nb-ink">Under your header</h3>
+              <h3 id="your-page-widgets" className="text-lg font-bold mb-1 text-nb-ink scroll-mt-24">Under your header</h3>
               <p className="text-sm text-nb-ink-mid mb-3">A sticky note, your song or a few buttons, on your page as it is.</p>
               <WidgetSlotPicker />
             </section>
@@ -439,8 +492,8 @@ export default function YourPage({ username }: { username: string }) {
                 <span className="text-nb-ink-mid">. Your theme&apos;s CSS is already in there to change.</span>
               </li>
               <li>
-                <Link href={`/resident/${encodeURIComponent(username)}/template-editor`}>Write your own HTML page</Link>
-                <span className="text-nb-ink-mid">. Paste a page you already have, or start from one of ours.</span>
+                <Link href="/build/templates/components">Every component</Link>
+                <span className="text-nb-ink-mid">. What each one does, with a snippet to copy into your HTML.</span>
               </li>
             </ul>
           </section>
