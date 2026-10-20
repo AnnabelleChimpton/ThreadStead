@@ -97,7 +97,7 @@ ${presetFontFaces(['Silkscreen', 'Nunito'])}
   font-family: var(--ts-font-body) !important;
   font-weight: 700 !important;
   font-size: 0.8rem !important;
-  color: var(--ts-accent) !important;
+  color: #a83a6c !important; /* the accent, darkened: small text on white */
   background: var(--ts-ground) !important;
   border: 2px solid #ffd4e8 !important;
   border-radius: 999px !important;
@@ -283,7 +283,7 @@ ${presetFontFaces(['Silkscreen', 'Nunito'])}
 
 .profile-tab-button {
   background: var(--ts-ground) !important;
-  color: #b06a8a !important;
+  color: #9a4f72 !important;
   border-right: 1px dotted #ffb8d4 !important;
   font-family: var(--ts-font-body) !important;
   font-weight: 700 !important;
@@ -324,6 +324,6 @@ ${presetFontFaces(['Silkscreen', 'Nunito'])}
 
 .blog-post-actions {
   border-top: 1px dotted #ffb8d4 !important;
-  color: #b06a8a !important;
+  color: #9a4f72 !important;
 }
 ${PRESET_CHROME_CSS}`;

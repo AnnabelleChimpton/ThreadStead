@@ -88,7 +88,7 @@ export default function ProfileHeader({
           )}
           <div className="ts-profile-actions flex items-center gap-3 flex-wrap">
             {relStatus === "friends" && <FriendBadge />}
-            <FollowButton username={username} onStatus={onRelStatusChange} />
+            <FollowButton username={username} onStatus={onRelStatusChange} buttonClassName="ts-profile-button ts-follow-button" />
 
             {showMessageButton && (
               <button

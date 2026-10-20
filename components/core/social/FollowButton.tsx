@@ -7,7 +7,14 @@ type Rel = "loading" | "anon" | "owner" | "none" | "following" | "followed_by" |
 export default function FollowButton({
   username,
   onStatus,
-}: { username: string; onStatus?: (status: Rel) => void }) {
+  buttonClassName = "",
+}: {
+  username: string;
+  onStatus?: (status: Rel) => void;
+  /** Added to the Follow/Unfollow button: the profile header passes
+      ts-profile-button, so a theme styles it like Message and Block */
+  buttonClassName?: string;
+}) {
   const [status, setStatus] = useState<Rel>("loading");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -66,7 +73,7 @@ export default function FollowButton({
         <button
           onClick={follow}
           disabled={busy}
-          className="thread-button text-sm disabled:opacity-50"
+          className={`thread-button text-sm disabled:opacity-50 ${buttonClassName}`}
           aria-label={followLabel}
         >
           {busy ? "Working…" : followLabel}
@@ -77,7 +84,7 @@ export default function FollowButton({
         <button
           onClick={unfollow}
           disabled={busy}
-          className="px-3 py-1 text-sm border border-thread-sage bg-thread-paper hover:bg-thread-cream text-thread-charcoal rounded shadow-cozy-sm transition-all disabled:opacity-50"
+          className={`px-3 py-1 text-sm border border-thread-sage bg-thread-paper hover:bg-thread-cream text-thread-charcoal rounded shadow-cozy-sm transition-all disabled:opacity-50 ${buttonClassName}`}
           aria-label="Unfollow"
         >
           {busy ? "Working…" : "Unfollow"}

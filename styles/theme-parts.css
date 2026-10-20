@@ -1,6 +1,6 @@
 /*
- * The site's own parts of a themed profile page (posts for now), in the
- * theme's colours.
+ * The site's own parts of a themed profile page (posts, friends and
+ * websites, guestbook names, buttons, focus), in the theme's colours.
  *
  * Each person's theme is a copy of a preset, made when they picked it, so a
  * fix to the presets never reaches a page that already has one. These rules
@@ -90,4 +90,59 @@
 }
 :where([data-ts-theme] .post-item) .blog-post-footer button:hover {
   background: color-mix(in srgb, var(--ts-ink) 8%, transparent);
+}
+
+/* ---------- friends and websites ---------- */
+:where([data-ts-theme]) :is(.featured-friends, .websites-section) {
+  background: var(--ts-card);
+  border-color: color-mix(in srgb, var(--ts-ink) 30%, transparent);
+  box-shadow: none;
+  color: var(--ts-ink);
+}
+:where([data-ts-theme]) .section-heading {
+  color: inherit;
+  font-family: var(--ts-font-head);
+}
+:where([data-ts-theme]) .friend-card {
+  background: color-mix(in srgb, var(--ts-ink) 5%, transparent);
+  border-color: color-mix(in srgb, var(--ts-ink) 20%, transparent);
+  box-shadow: none;
+}
+:where([data-ts-theme] :is(.featured-friends, .websites-section)) :is(.text-gray-500, .text-gray-600, .text-gray-700) {
+  color: color-mix(in srgb, var(--ts-ink) 80%, transparent);
+}
+:where([data-ts-theme]) .website-item {
+  border-left-color: var(--ts-accent);
+}
+:where([data-ts-theme]) .website-link {
+  color: var(--ts-ink);
+  text-decoration: underline;
+}
+
+/* ---------- guestbook ---------- */
+/* The signer's name was the site's pine link colour on the theme's card */
+:where([data-ts-theme] .guestbook-entry) .thread-label a {
+  color: var(--ts-ink);
+  text-decoration: underline;
+}
+
+/* ---------- focus ---------- */
+/* The site's ring is a fixed colour, near-invisible on dark themes */
+:where([data-ts-theme]) :focus-visible {
+  outline: 2px solid var(--ts-ink);
+  outline-offset: 2px;
+}
+
+/* ---------- motion ---------- */
+/* Themes animate with !important (a fade-in, a stamp, an endless wink), which
+   outranked the site's reduced-motion rule. Doubled to outweigh a theme's
+   one-class selector; this one is the visitor's own setting. */
+@media (prefers-reduced-motion: reduce) {
+  [data-ts-theme][data-ts-theme],
+  [data-ts-theme][data-ts-theme] *,
+  [data-ts-theme][data-ts-theme] *::before,
+  [data-ts-theme][data-ts-theme] *::after {
+    animation: none !important;
+    transition: none !important;
+  }
 }

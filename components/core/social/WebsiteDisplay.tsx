@@ -8,8 +8,8 @@ interface WebsiteDisplayProps {
 export default function WebsiteDisplay({ websites }: WebsiteDisplayProps) {
   if (!websites || websites.length === 0) {
     return (
-      <div className="border border-black p-3 bg-white shadow-[2px_2px_0_#000]">
-        <h4 className="font-bold mb-2">Website Recommendations</h4>
+      <div className="websites-section border border-black p-3 bg-white shadow-[2px_2px_0_#000]">
+        <h4 className="section-heading font-bold mb-2">Website Recommendations</h4>
         <p className="text-gray-500 text-sm">No websites added yet.</p>
       </div>
     );

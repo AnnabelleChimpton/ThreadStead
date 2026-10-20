@@ -10,8 +10,8 @@ interface FriendDisplayProps {
 export default function FriendDisplay({ friends }: FriendDisplayProps) {
   if (!friends || friends.length === 0) {
     return (
-      <div className="border border-black p-3 bg-white shadow-[2px_2px_0_#000]">
-        <h4 className="font-bold mb-2">Friends</h4>
+      <div className="featured-friends border border-black p-3 bg-white shadow-[2px_2px_0_#000]">
+        <h4 className="section-heading font-bold mb-2">Friends</h4>
         <p className="text-gray-500 text-sm">No featured friends yet.</p>
       </div>
     );

@@ -23,7 +23,7 @@ export const PRESET_CHROME_CSS = `
 }
 /* The status line is a label too, but each theme styles it on its own */
 .thread-label:not(.ts-profile-status) {
-  color: color-mix(in srgb, var(--ts-ink) 70%, transparent) !important;
+  color: color-mix(in srgb, var(--ts-ink) 80%, transparent) !important;
 }
 .thread-divider {
   border-top-color: color-mix(in srgb, var(--ts-ink) 30%, transparent) !important;
@@ -53,7 +53,7 @@ export const PRESET_CHROME_CSS = `
   color: color-mix(in srgb, var(--ts-ink) 55%, transparent) !important;
 }
 .guestbook-section .text-thread-sage {
-  color: color-mix(in srgb, var(--ts-ink) 70%, transparent) !important;
+  color: color-mix(in srgb, var(--ts-ink) 80%, transparent) !important;
 }
 .guestbook-entry {
   background: var(--ts-card) !important;
