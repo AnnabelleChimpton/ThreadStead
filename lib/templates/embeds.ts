@@ -57,8 +57,16 @@ export const EMBED_HOSTS: Readonly<Record<EmbedHost, EmbedHostInfo>> = {
   // Bandcamp's player has no autoplay switch and asks for nothing
   bandcamp: { label: 'Bandcamp', origin: 'https://bandcamp.com', sandbox: AUDIO_SANDBOX },
   soundcloud: { label: 'SoundCloud', origin: 'https://w.soundcloud.com', sandbox: AUDIO_SANDBOX, allow: 'autoplay' },
-  // encrypted-media: full tracks for visitors signed in to Spotify are DRM'd
-  spotify: { label: 'Spotify', origin: 'https://open.spotify.com', sandbox: AUDIO_SANDBOX, allow: 'autoplay; encrypted-media' },
+  // Full tracks are for visitors signed in to Spotify: those are DRM'd
+  // (encrypted-media), and where the browser blocks third-party cookies the
+  // player has to ask for its sign-in, which a sandboxed frame can only do
+  // with allow-storage-access-by-user-activation (on a click, like Play).
+  spotify: {
+    label: 'Spotify',
+    origin: 'https://open.spotify.com',
+    sandbox: `${AUDIO_SANDBOX} allow-storage-access-by-user-activation`,
+    allow: 'autoplay; encrypted-media',
+  },
 };
 
 export interface EmbedPlayer {
