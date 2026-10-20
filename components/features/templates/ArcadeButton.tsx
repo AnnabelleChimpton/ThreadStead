@@ -17,7 +17,6 @@ export interface ArcadeButtonProps extends UniversalCSSProps {
   href?: string;
   onClick?: () => void;
   className?: string;
-  _positioningMode?: 'absolute' | 'grid' | 'normal';
   children?: React.ReactNode;
 }
 
@@ -36,7 +35,6 @@ export default function ArcadeButton(props: ArcadeButtonProps) {
     onClick,
     className: customClassName = '',
     children,
-    _positioningMode = 'normal'
   } = componentProps;
 
   // Handle className being passed as array or string

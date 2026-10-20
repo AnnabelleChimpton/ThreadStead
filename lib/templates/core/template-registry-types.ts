@@ -336,7 +336,7 @@ export function validateAndCoerceProps(
     // Allow special props to pass through for all components without warning
     // Note: data-* attributes get converted to camelCase (data-component-id -> dataComponentId) by HTML parser
     if (key === 'className' || key.startsWith('_') || key.startsWith('data-') || key.startsWith('data')) {
-      // Allow className, internal props (like _size, _positioningMode, etc.), and data attributes
+      // Allow className, internal props (like _onContentChange), and data attributes
       result[key] = value;
       continue;
     }
@@ -413,7 +413,7 @@ export function validateStandardizedProps(
     'overflow', 'overflowX', 'overflowY',
 
     // Legacy props that need to pass through during migration
-    '_positioning', '_size', '_positioningMode', '_onContentChange'
+    '_onContentChange'
   ];
 
   // Validate and coerce each property

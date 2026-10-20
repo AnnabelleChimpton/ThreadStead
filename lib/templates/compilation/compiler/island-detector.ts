@@ -10,17 +10,12 @@ import { parseStyleString } from '@/lib/utils/css/parse-style-string';
 import type React from 'react';
 
 /**
- * Strip positioning properties from a style object.
- * Used when positioning is handled by a wrapper element.
+ * A component's own style never carries position/top/right/bottom/left/
+ * z-index/transform: the compiler has always dropped them (they belonged to
+ * the old Visual Builder's positioning wrapper), and pages are built on that.
  */
-function stripPositioningFromStyle(style: React.CSSProperties): React.CSSProperties {
-  const {
-    position,
-    top, right, bottom, left,
-    zIndex,
-    transform,
-    ...rest
-  } = style;
+function stripPositionFromStyle(style: React.CSSProperties): React.CSSProperties {
+  const { position, top, right, bottom, left, zIndex, transform, ...rest } = style;
   return rest;
 }
 
@@ -40,187 +35,6 @@ function hashString(str: string): string {
     hash = hash & hash; // Convert to 32-bit integer
   }
   return Math.abs(hash).toString(36);
-}
-
-/**
- * Phase 2: Strip positioning properties from props
- * This mirrors the logic in HTMLIslandHydration.tsx but is run at compile-time
- * Removes positioning from both flat props and the style property
- */
-function stripPositioningFromProps(props: Record<string, any>): Record<string, any> {
-  const {
-    position,
-    top,
-    right,
-    bottom,
-    left,
-    zIndex,
-    ...cleanedProps
-  } = props;
-
-  // Also strip positioning from the style property
-  if (cleanedProps.style) {
-    if (typeof cleanedProps.style === 'string') {
-      // Parse style string, strip positioning, convert back to string
-      const parsedStyle = parseStyleString(cleanedProps.style);
-      const cleanedStyle = stripPositioningFromStyle(parsedStyle) as React.CSSProperties;
-
-      // Convert back to style string (only if there are remaining styles)
-      const styleEntries = Object.entries(cleanedStyle);
-      if (styleEntries.length > 0) {
-        cleanedProps.style = styleEntries
-          .map(([key, value]) => {
-            // Convert camelCase to kebab-case
-            const kebabKey = key.replace(/([A-Z])/g, '-$1').toLowerCase();
-            return `${kebabKey}: ${value}`;
-          })
-          .join('; ');
-      } else {
-        // No styles left after stripping, remove style property
-        delete cleanedProps.style;
-      }
-    } else if (typeof cleanedProps.style === 'object') {
-      // Style is already an object, strip positioning
-      cleanedProps.style = stripPositioningFromStyle(cleanedProps.style) as React.CSSProperties;
-
-      // Remove style property if empty
-      if (Object.keys(cleanedProps.style).length === 0) {
-        delete cleanedProps.style;
-      }
-    }
-  }
-
-  return cleanedProps;
-}
-
-// Extract positioning data from node properties and standardize it
-// This function consolidates all positioning formats into a single standardized object
-function extractPositioningFromProperties(properties: Record<string, any>): any | null {
-  // Check for pure positioning data first (new format) - try both kebab-case and camelCase
-  const purePositioningValue = properties['data-pure-positioning'] || properties['dataPurePositioning'];
-
-  if (purePositioningValue) {
-    try {
-      // Handle HTML-escaped quotes in the JSON string
-      const unescaped = String(purePositioningValue).replace(/&quot;/g, '"');
-      const parsed = JSON.parse(unescaped);
-      return parsed;
-    } catch (e) {
-      console.warn('Failed to parse data-pure-positioning:', purePositioningValue, 'Error:', e);
-    }
-  }
-
-  // Check for legacy absolute positioning
-  const positioningMode = properties['data-positioning-mode'] || properties['dataPositioningMode'];
-  if (positioningMode === 'absolute') {
-    const pixelPosition = properties['data-pixel-position'] || properties['dataPixelPosition'];
-    const position = properties['data-position'] || properties['dataPosition'];
-
-    if (pixelPosition) {
-      try {
-        const parsedPosition = JSON.parse(String(pixelPosition));
-        return {
-          mode: 'absolute',
-          x: parsedPosition.x || 0,
-          y: parsedPosition.y || 0,
-          width: parsedPosition.width || 200,
-          height: parsedPosition.height || 150,
-          zIndex: parsedPosition.zIndex || 1
-        };
-      } catch (e) {
-        console.warn('Failed to parse pixel position data:', pixelPosition);
-      }
-    } else if (position) {
-      const [x, y] = String(position).split(',').map(Number);
-      if (!isNaN(x) && !isNaN(y)) {
-        return {
-          mode: 'absolute',
-          x,
-          y,
-          width: 200,
-          height: 150,
-          zIndex: 1
-        };
-      }
-    }
-  }
-
-  // Check for legacy grid positioning
-  if (positioningMode === 'grid') {
-    const gridPosition = properties['data-grid-position'] || properties['dataGridPosition'];
-    const column = properties['data-grid-column'] || properties['dataGridColumn'];
-    const row = properties['data-grid-row'] || properties['dataGridRow'];
-    const span = properties['data-grid-span'] || properties['dataGridSpan'];
-
-    if (gridPosition) {
-      try {
-        const parsedGrid = JSON.parse(String(gridPosition));
-        return {
-          mode: 'grid',
-          column: parsedGrid.column || 1,
-          row: parsedGrid.row || 1,
-          span: parsedGrid.span || 1,
-          breakpoint: parsedGrid.breakpoint
-        };
-      } catch (e) {
-        console.warn('Failed to parse grid position data:', gridPosition);
-      }
-    } else if (column && row) {
-      return {
-        mode: 'grid',
-        column: parseInt(String(column), 10) || 1,
-        row: parseInt(String(row), 10) || 1,
-        span: parseInt(String(span), 10) || 1
-      };
-    }
-  }
-
-  // NEW: Check for Visual Builder positioning attributes (data-x, data-y format)
-  // This is the format output by the Visual Builder's HTML generator
-  const dataX = properties['data-x'] || properties['dataX'];
-  const dataY = properties['data-y'] || properties['dataY'];
-
-  if (dataX !== undefined && dataY !== undefined) {
-    const x = parseFloat(String(dataX));
-    const y = parseFloat(String(dataY));
-
-    if (!isNaN(x) && !isNaN(y)) {
-      const dataWidth = properties['data-width'] || properties['dataWidth'];
-      const dataHeight = properties['data-height'] || properties['dataHeight'];
-      const dataResponsive = properties['data-responsive'] || properties['dataResponsive'];
-
-      // Check if this is responsive positioning (has breakpoints)
-      const isResponsive = dataResponsive === 'true' || dataResponsive === true;
-
-      if (isResponsive) {
-        // Responsive positioning - create breakpoints object
-        // Currently Visual Builder only outputs desktop, but structure supports all breakpoints
-        return {
-          breakpoints: {
-            desktop: {
-              x,
-              y,
-              zIndex: 1, // Default z-index, can be overridden
-              width: dataWidth ? parseFloat(String(dataWidth)) : undefined,
-              height: dataHeight ? parseFloat(String(dataHeight)) : undefined
-            }
-          }
-        };
-      } else {
-        // Simple absolute positioning (data-responsive="false")
-        return {
-          mode: 'absolute',
-          x,
-          y,
-          width: dataWidth ? parseFloat(String(dataWidth)) : 200,
-          height: dataHeight ? parseFloat(String(dataHeight)) : 150,
-          zIndex: 1
-        };
-      }
-    }
-  }
-
-  return null;
 }
 
 /** A declared prop the component takes as a prop (not one marked `css`). */
@@ -326,24 +140,6 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
           rawProps['name'] = normalizeVariableName(rawProps['name']);
         }
 
-        // Convert dataComponentSize attribute back to _size prop if present
-        if (rawProps['dataComponentSize'] || rawProps['data-component-size']) {
-          try {
-            const sizeAttr = rawProps['dataComponentSize'] || rawProps['data-component-size'];
-            const sizeData = JSON.parse(String(sizeAttr));
-            rawProps._size = sizeData;
-          } catch (e) {
-            console.warn('Failed to parse dataComponentSize in island detector:', rawProps['dataComponentSize'] || rawProps['data-component-size']);
-          }
-        }
-
-        // PROPS-BASED POSITIONING: Extract positioning data and put it directly in props
-        // This eliminates the need for HTML attribute parsing in the Profile Renderer
-        const positioningData = extractPositioningFromProperties(node.properties || {});
-        if (positioningData) {
-          rawProps._positioning = positioningData;
-        }
-
         // The template parser already told the author about each prop
         // problem, with its line (template-parser reportComponentProps).
         const props = validateAndCoerceProps(rawProps, registration.props, {
@@ -355,30 +151,23 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
         // PHASE 2: Pre-compute props at compile-time
         // This moves prop processing from runtime (hydration) to compile-time
         // Expected: 20-40% faster renders
-        const cleanedIslandProps = positioningData
-          ? stripPositioningFromProps(props as Record<string, any>)
-          : (props as Record<string, any>);
+        const islandProps = props as Record<string, any>;
 
         // Declared props reach the component (props win). Only what's left,
         // undeclared CSS-named attributes and props marked `css`, becomes
         // inline style, the way those attributes work on plain HTML.
-        const { declaredProps, undeclared } = splitDeclaredProps(cleanedIslandProps, registration.props);
+        const { declaredProps, undeclared } = splitDeclaredProps(islandProps, registration.props);
         const { cssProps, componentProps: otherComponentProps } = separateCSSProps(undeclared);
         const separatedComponentProps = { ...otherComponentProps, ...declaredProps };
 
         // Convert CSS props to inline styles
         const generatedStyles = applyCSSProps(cssProps);
 
-        // Handle existing style prop (parse if string, strip positioning)
-        const existingStyle = typeof cleanedIslandProps.style === 'string'
-          ? parseStyleString(cleanedIslandProps.style)
-          : (cleanedIslandProps.style as React.CSSProperties) || {};
-
-        // Strip positioning from existing styles if component has positioning data
-        const shouldStripPositioning = positioningData !== undefined;
-        const cleanedExistingStyle = shouldStripPositioning
-          ? (stripPositioningFromStyle(existingStyle) as React.CSSProperties)
-          : existingStyle;
+        // Handle existing style prop (parse if string, drop position)
+        const existingStyle = typeof islandProps.style === 'string'
+          ? parseStyleString(islandProps.style)
+          : (islandProps.style as React.CSSProperties) || {};
+        const cleanedExistingStyle = stripPositionFromStyle(existingStyle);
 
         // Merge all styles (existing styles + generated styles from CSS props)
         const finalStyles: React.CSSProperties = {
@@ -402,32 +191,13 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
 
         islands.push(island);
         
-        // Return a placeholder node with both island identifiers AND positioning attributes
-        // We preserve positioning attributes in the static HTML for CSS styling
+        // Return a placeholder node with the island identifiers
         const preservedProperties: Record<string, any> = {
           'data-island': islandId,
           'data-component': node.tagName
         };
 
-        // Preserve original positioning attributes in the placeholder
-        // This allows the static HTML to have positioning data for CSS
         if (node.properties) {
-          // Preserve pure positioning attribute
-          if (node.properties['data-pure-positioning'] || node.properties['dataPurePositioning']) {
-            preservedProperties['data-pure-positioning'] =
-              node.properties['data-pure-positioning'] || node.properties['dataPurePositioning'];
-          }
-
-          // Also preserve legacy positioning attributes for backward compatibility
-          if (node.properties['data-positioning-mode'] || node.properties['dataPositioningMode']) {
-            preservedProperties['data-positioning-mode'] =
-              node.properties['data-positioning-mode'] || node.properties['dataPositioningMode'];
-          }
-          if (node.properties['data-pixel-position'] || node.properties['dataPixelPosition']) {
-            preservedProperties['data-pixel-position'] =
-              node.properties['data-pixel-position'] || node.properties['dataPixelPosition'];
-          }
-
           // NEW: Preserve CSS styling properties in static HTML placeholder
           // This ensures CSS styling appears in both static HTML and hydrated components
           const cssProperties = [

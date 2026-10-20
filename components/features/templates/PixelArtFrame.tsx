@@ -18,7 +18,6 @@ export interface PixelArtFrameProps extends UniversalCSSProps {
   fillColor?: string;
   className?: string;
   children?: React.ReactNode;
-  _positioningMode?: 'absolute' | 'grid' | 'normal';
 }
 
 export default function PixelArtFrame(props: PixelArtFrameProps) {
@@ -36,7 +35,6 @@ export default function PixelArtFrame(props: PixelArtFrameProps) {
     fillColor = 'transparent',
     className: customClassName,
     children,
-    _positioningMode = 'normal'
   } = componentProps;
 
   // Handle className being passed as array or string

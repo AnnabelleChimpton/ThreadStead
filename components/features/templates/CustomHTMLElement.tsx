@@ -40,8 +40,7 @@ export interface CustomHTMLElementProps extends UniversalStyleProps {
   children?: React.ReactNode;  // React children (alternative to innerHTML)
   cssRenderMode?: 'auto' | 'inherit' | 'custom'; // How to handle CSS for HTML content
 
-  // Visual builder internal props
-  _positioningMode?: 'absolute' | 'grid' | 'normal';
+  // Internal props
   _onContentChange?: (innerHTML: string, cssRenderMode?: string) => void; // Callback for content updates
 }
 
@@ -60,7 +59,6 @@ export default function CustomHTMLElement({
   style,
   children,
   cssRenderMode = 'auto',
-  _positioningMode = 'normal',
   _onContentChange,
   ...rest
 }: CustomHTMLElementProps & { cssrendermode?: string }) {

@@ -14,9 +14,6 @@ interface GradientBoxProps extends UniversalCSSProps {
   className?: string; // Additional CSS classes
   children: React.ReactNode;
   onClick?: (event: React.MouseEvent<HTMLDivElement>) => void;
-
-  // Internal prop from visual builder
-  _positioningMode?: 'grid' | 'absolute';
 }
 
 export default function GradientBox(props: GradientBoxProps) {
@@ -31,8 +28,7 @@ export default function GradientBox(props: GradientBoxProps) {
     gradientOpacity,
     className,
     children,
-    onClick,
-    _positioningMode
+    onClick
   } = componentProps;
 
   let backgroundClass = '';
@@ -125,8 +121,6 @@ export default function GradientBox(props: GradientBoxProps) {
     paddingClass,
     roundedClass,
     className,
-    // Size behavior: fill container when in absolute mode
-    _positioningMode === 'absolute' ? 'w-full h-full' : '' // Fill full width and height when positioned
   ].filter(Boolean).join(' ');
 
   // Remove Tailwind classes that conflict with CSS props - USER STYLING IS QUEEN

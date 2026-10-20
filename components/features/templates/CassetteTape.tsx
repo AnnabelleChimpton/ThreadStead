@@ -18,7 +18,6 @@ export interface CassetteTapeProps extends UniversalCSSProps {
   showSpokesToRotate?: boolean;
   className?: string;
   children?: React.ReactNode;
-  _positioningMode?: 'absolute' | 'grid' | 'normal';
 }
 
 export default function CassetteTape(props: CassetteTapeProps) {
@@ -36,7 +35,6 @@ export default function CassetteTape(props: CassetteTapeProps) {
   showSpokesToRotate = true,
   className: customClassName,
   children,
-  _positioningMode = 'normal'
   } = componentProps;
 
   // Handle className being passed as array or string
@@ -126,7 +124,7 @@ export default function CassetteTape(props: CassetteTapeProps) {
   // Component default styles
   const componentStyle: React.CSSProperties = {
     display: 'inline-block',
-    position: _positioningMode === 'absolute' ? 'relative' : 'static',
+    position: 'static',
     opacity: currentWear.opacity
   };
 

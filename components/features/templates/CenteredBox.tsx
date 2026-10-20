@@ -5,9 +5,6 @@ interface CenteredBoxProps extends UniversalCSSProps {
   containerMaxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full' | string;
   containerPadding?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   children: React.ReactNode;
-
-  // Internal prop from visual builder
-  _positioningMode?: 'grid' | 'absolute';
 }
 
 export default function CenteredBox(props: CenteredBoxProps) {
@@ -16,8 +13,7 @@ export default function CenteredBox(props: CenteredBoxProps) {
   const {
     containerMaxWidth = 'lg',
     containerPadding = 'md',
-    children,
-    _positioningMode
+    children
   } = componentProps;
 
   const maxWidthClass = {
@@ -53,8 +49,6 @@ export default function CenteredBox(props: CenteredBoxProps) {
     'mx-auto',
     maxWidthClass || '',
     paddingClass,
-    // Height behavior: fill height in absolute mode, but DON'T force full width (breaks centering)
-    _positioningMode === 'absolute' ? 'h-full' : '' // Fill full height when resized
   ].filter(Boolean).join(' ');
 
   // Remove Tailwind classes that conflict with CSS props - USER STYLING IS QUEEN

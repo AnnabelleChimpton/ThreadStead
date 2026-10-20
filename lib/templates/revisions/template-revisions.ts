@@ -5,8 +5,10 @@ import { db } from "@/lib/config/database/connection";
 export const MAX_REVISIONS_PER_USER = 20;
 
 // 'layout-merge' is written only by migration 20261031000000 (CSS a
-// "default" layout page saved but never showed), 'vb-convert' only by
-// scripts/convert-visual-builder-pages.ts.
+// "default" layout page saved but never showed). 'vb-convert' was written by
+// scripts/convert-visual-builder-pages.ts when it turned the last old Visual
+// Builder pages into plain HTML/CSS on 2026-10-19 (script since deleted);
+// nothing writes it now, but those revisions are still in History.
 export type RevisionTrigger = 'template-save' | 'css-save' | 'reset' | 'moderator-reset' | 'layout-merge' | 'vb-convert';
 
 /**

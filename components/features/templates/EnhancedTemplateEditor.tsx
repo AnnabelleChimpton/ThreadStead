@@ -159,7 +159,7 @@ export default function EnhancedTemplateEditor({
 
   // AUTO-FIX: Detect and unwrap flow templates that were incorrectly wrapped
   // This fixes templates corrupted by the previous auto-wrap bug
-  // CRITICAL: Only unwrap if components have NO positioning attributes (true flow mode)
+  // CRITICAL: Only unwrap if the component isn't absolutely positioned (true flow mode)
   const unwrappedTemplate = React.useMemo(() => {
     const hasWrapper = initialTemplate.includes('pure-absolute-container');
 
@@ -192,8 +192,7 @@ export default function EnhancedTemplateEditor({
         return initialTemplate;
       }
 
-      // Check if the component has positioning attributes
-      // Look for: style="...position: absolute..." OR data-position OR data-positioning-mode
+      // Check if the component is absolutely positioned: style="...position: absolute..."
       const componentTagMatch = innerContent.match(
         new RegExp(`^\\s*<${componentType}[^>]*>`, 's')
       );
@@ -202,16 +201,13 @@ export default function EnhancedTemplateEditor({
         const componentTag = componentTagMatch[0];
 
         const hasAbsoluteStyle = /style="[^"]*position:\s*absolute/.test(componentTag);
-        const hasDataPosition = /data-position=/.test(componentTag);
-        const hasPositioningMode = /data-positioning-mode=/.test(componentTag);
-        const hasPixelPosition = /data-pixel-position=/.test(componentTag);
 
-        // If ANY positioning attributes found, this is a valid positioned template
-        if (hasAbsoluteStyle || hasDataPosition || hasPositioningMode || hasPixelPosition) {
+        // Positioned, so this is a valid positioned template
+        if (hasAbsoluteStyle) {
           return initialTemplate; // Keep wrapper - it's positioned mode!
         }
 
-        // No positioning found - this is likely a flow template that was incorrectly wrapped
+        // Not positioned - this is likely a flow template that was incorrectly wrapped
         // Unwrap it
         return innerContent;
       }

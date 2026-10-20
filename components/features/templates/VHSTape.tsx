@@ -16,7 +16,6 @@ export interface VHSTapeProps extends UniversalCSSProps {
   showBarcode?: boolean;
   className?: string;
   children?: React.ReactNode;
-  _positioningMode?: 'absolute' | 'grid' | 'normal';
 }
 
 export default function VHSTape(props: VHSTapeProps) {
@@ -32,7 +31,6 @@ export default function VHSTape(props: VHSTapeProps) {
     showBarcode = true,
     className: customClassName,
     children,
-    _positioningMode = 'normal'
   } = componentProps;
 
   // Handle className being passed as array or string
@@ -100,7 +98,7 @@ export default function VHSTape(props: VHSTapeProps) {
   // Component default styles
   const componentStyle: React.CSSProperties = {
     display: 'inline-block',
-    position: _positioningMode === 'absolute' ? 'relative' : 'static',
+    position: 'static',
     opacity: currentWear.opacity
   };
 

@@ -16,7 +16,6 @@ export interface MatrixRainProps extends UniversalCSSProps {
   backgroundOpacity?: number;
   className?: string;
   children?: React.ReactNode;
-  _positioningMode?: 'absolute' | 'grid' | 'normal';
 }
 
 export default function MatrixRain(props: MatrixRainProps) {
@@ -32,7 +31,6 @@ export default function MatrixRain(props: MatrixRainProps) {
   backgroundOpacity = 95,
   className: customClassName,
   children,
-  _positioningMode = 'normal'
   } = componentProps;
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -116,7 +114,7 @@ export default function MatrixRain(props: MatrixRainProps) {
 
   // Component default styles
   const componentStyle: React.CSSProperties = {
-    position: _positioningMode === 'absolute' ? 'relative' : 'static'
+    position: 'static'
   };
 
   // Merge component styles with CSS props (CSS props win)

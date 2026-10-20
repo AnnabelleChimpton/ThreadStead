@@ -7,9 +7,6 @@ interface NeonBorderProps extends UniversalCSSProps {
   containerPadding?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   rounded?: boolean;
   children: React.ReactNode;
-
-  // Internal prop from visual builder
-  _positioningMode?: 'grid' | 'absolute';
 }
 
 export default function NeonBorder(props: NeonBorderProps) {
@@ -19,8 +16,7 @@ export default function NeonBorder(props: NeonBorderProps) {
     intensity = 'medium',
     containerPadding = 'md',
     rounded = true,
-    children,
-    _positioningMode
+    children
   } = componentProps;
 
   const colorMap = {
@@ -58,8 +54,7 @@ export default function NeonBorder(props: NeonBorderProps) {
   // Build base classes and apply CSS prop conflict removal
   const baseClasses = [
     paddingClass,
-    roundedClass,
-    _positioningMode === 'absolute' ? 'h-full' : ''
+    roundedClass
   ].filter(Boolean).join(' ');
 
   const filteredClasses = removeTailwindConflicts(baseClasses, cssProps);

@@ -6,9 +6,6 @@ interface RetroTerminalProps extends UniversalCSSProps {
   showHeader?: boolean | string;
   containerPadding?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   children: React.ReactNode;
-
-  // Internal prop from visual builder
-  _positioningMode?: 'grid' | 'absolute';
 }
 
 export default function RetroTerminal(props: RetroTerminalProps) {
@@ -17,8 +14,7 @@ export default function RetroTerminal(props: RetroTerminalProps) {
     variant = 'green',
     showHeader = true,
     containerPadding = 'md',
-    children,
-    _positioningMode
+    children
   } = componentProps;
 
   // Convert string values to boolean (HTML attributes come as strings)
@@ -64,8 +60,7 @@ export default function RetroTerminal(props: RetroTerminalProps) {
     'border-2',
     'rounded',
     'font-mono',
-    'shadow-lg',
-    _positioningMode === 'absolute' ? 'h-full flex flex-col' : ''
+    'shadow-lg'
   ].filter(Boolean).join(' ');
 
   const filteredClasses = removeTailwindConflicts(baseContainerClasses, cssProps);
@@ -81,9 +76,7 @@ export default function RetroTerminal(props: RetroTerminalProps) {
           <span className="ml-2">terminal</span>
         </div>
       )}
-      <div className={`${variantStyles.text} ${paddingClass} ${
-        _positioningMode === 'absolute' ? 'flex-1' : ''
-      }`}>
+      <div className={`${variantStyles.text} ${paddingClass} `}>
         {children}
       </div>
     </div>

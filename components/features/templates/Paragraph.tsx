@@ -7,8 +7,6 @@ export interface ParagraphProps extends UniversalCSSProps {
   className?: string;
   children?: React.ReactNode;
   // Internal props for visual builder
-  _positioningMode?: 'absolute' | 'grid';
-  _size?: { width: string; height: string };
   _onContentChange?: (content: string) => void;
 }
 
@@ -25,8 +23,6 @@ export default function Paragraph(props: ParagraphProps) {
     style,
     className = '',
     children,
-    _positioningMode,
-    _size,
     _onContentChange,
     ...otherProps
   } = componentProps;
@@ -65,9 +61,6 @@ export default function Paragraph(props: ParagraphProps) {
     ...existingStyle,
     ...appliedCSSStyles
   };
-
-  // Apply height-aware pattern for absolute positioning
-  const isAbsolutePositioned = _positioningMode === 'absolute';
 
   // Update editing content when prop changes
   useEffect(() => {
@@ -185,17 +178,11 @@ export default function Paragraph(props: ParagraphProps) {
     'break-words', // Ensure text wrapping at word boundaries
     'hyphens-auto', // Enable automatic hyphenation
     className,
-    isAbsolutePositioned && _size ? 'h-full flex items-start justify-start' : '',
   ].filter(Boolean).join(' ');
 
   // Merge styles with consistent text wrapping behavior
   const finalStyle: React.CSSProperties = {
     ...processedStyle, // Use processed style instead of raw style
-    // Apply custom size if in absolute positioning mode
-    ...(isAbsolutePositioned && _size ? {
-      width: _size.width,
-      height: _size.height,
-    } : {}),
     // Ensure consistent text wrapping behavior
     wordWrap: 'break-word',
     overflowWrap: 'break-word',

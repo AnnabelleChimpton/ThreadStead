@@ -6,9 +6,6 @@ interface PolaroidFrameProps extends UniversalCSSProps {
   rotation?: number;
   shadow?: boolean;
   children: React.ReactNode;
-
-  // Internal prop from visual builder
-  _positioningMode?: 'grid' | 'absolute';
 }
 
 export default function PolaroidFrame(props: PolaroidFrameProps) {
@@ -17,8 +14,7 @@ export default function PolaroidFrame(props: PolaroidFrameProps) {
     caption = "",
     rotation = 0,
     shadow = true,
-    children,
-    _positioningMode
+    children
   } = componentProps;
 
   const rotateClass = rotation !== 0 ? `rotate-[${rotation}deg]` : '';
@@ -26,7 +22,6 @@ export default function PolaroidFrame(props: PolaroidFrameProps) {
 
   const baseClasses = [
     'inline-block',
-    _positioningMode === 'absolute' ? 'h-full flex flex-col' : '',
     'bg-white',
     'p-4 pb-12',
     rotateClass,
@@ -49,9 +44,7 @@ export default function PolaroidFrame(props: PolaroidFrameProps) {
       className={filteredClasses}
       style={mergedStyles}
     >
-      <div className={`bg-gray-100 border border-gray-200  ${
-        _positioningMode === 'absolute' ? 'flex-1' : ''
-      }`}>
+      <div className="bg-gray-100 border border-gray-200  ">
         {children}
       </div>
       {caption && (

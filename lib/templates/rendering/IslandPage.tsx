@@ -17,7 +17,6 @@ import { ResidentDataProvider } from '@/components/features/templates/ResidentDa
 import { componentRegistry } from '@/lib/templates/core/template-registry';
 import { domAttributeToReactProp } from '@/lib/templates/core/attribute-mappings';
 import { separateCSSProps, applyCSSProps } from '@/lib/templates/styling/universal-css-props';
-import { positioningRegistry } from '@/lib/templates/positioning';
 import { IslandErrorBoundary } from '@/components/core/profile/IslandErrorBoundary';
 import { islandIdOf, type PageTreeNode } from './page-tree';
 
@@ -33,7 +32,7 @@ export default function IslandPage({ tree, islands, residentData }: IslandPagePr
     for (const island of islands) if (!map.has(island.id)) map.set(island.id, island);
     return map;
   }, [islands]);
-  return <>{renderChildren(tree, { islandMap, residentData }, false, 'n')}</>;
+  return <>{renderChildren(tree, { islandMap, residentData }, 'n')}</>;
 }
 
 interface WalkContext {
@@ -41,21 +40,11 @@ interface WalkContext {
   residentData: ResidentData;
 }
 
-function renderChildren(
-  nodes: PageTreeNode[] | undefined,
-  ctx: WalkContext,
-  isNestedComponent: boolean,
-  keyPrefix: string
-): React.ReactNode[] {
-  return (nodes ?? []).map((node, i) => renderNode(node, ctx, isNestedComponent, `${keyPrefix}.${i}`));
+function renderChildren(nodes: PageTreeNode[] | undefined, ctx: WalkContext, keyPrefix: string): React.ReactNode[] {
+  return (nodes ?? []).map((node, i) => renderNode(node, ctx, `${keyPrefix}.${i}`));
 }
 
-function renderNode(
-  node: PageTreeNode,
-  ctx: WalkContext,
-  isNestedComponent: boolean,
-  key: string
-): React.ReactNode {
+function renderNode(node: PageTreeNode, ctx: WalkContext, key: string): React.ReactNode {
   if (typeof node === 'string') return node;
 
   const islandId = islandIdOf(node);
@@ -63,8 +52,8 @@ function renderNode(
   if (island) {
     const Component = getComponent(island.component);
     if (Component) {
-      const children = renderChildren(node.c, ctx, true, key);
-      return renderIsland(island, Component, children.length > 0 ? children : undefined, ctx, isNestedComponent);
+      const children = renderChildren(node.c, ctx, key);
+      return renderIsland(island, Component, children.length > 0 ? children : undefined, ctx);
     }
     console.error(`Template component "${island.component}" isn't registered`);
   }
@@ -83,7 +72,7 @@ function renderNode(
       props[propName] = propValue;
     }
   }
-  const children = renderChildren(node.c, ctx, isNestedComponent, key);
+  const children = renderChildren(node.c, ctx, key);
   // A textarea's text is its starting value
   if (node.t === 'textarea' && children.every((child) => typeof child === 'string')) {
     if (children.length) props.defaultValue = children.join('');
@@ -101,10 +90,8 @@ function renderIsland(
   island: Island,
   Component: React.ComponentType<Record<string, unknown>>,
   children: React.ReactNode[] | undefined,
-  ctx: WalkContext,
-  isNestedComponent: boolean
+  ctx: WalkContext
 ): React.ReactNode {
-  const positioningData = island.props._positioning;
   let componentProps: Record<string, unknown>;
 
   if (island._precomputed) {
@@ -115,32 +102,25 @@ function renderIsland(
     };
   } else {
     // Islands stored before the split was precomputed
-    const props = positioningData ? stripPositioningFromProps(island.props) : island.props;
+    const props = island.props;
     const { cssProps } = separateCSSProps(props);
     const existingStyle =
       typeof props.style === 'string' ? parseStyleString(props.style) : (props.style as React.CSSProperties) || {};
     componentProps = {
       ...props,
       style: {
-        ...(positioningData ? stripPositioningFromStyle(existingStyle) : existingStyle),
+        ...existingStyle,
         ...applyCSSProps(cssProps),
       },
     };
   }
-  if (positioningData) componentProps._positioningMode = 'absolute';
 
-  const rendered = (
+  return (
     <IslandErrorBoundary islandId={island.id} key={island.id}>
       <ResidentDataProvider data={ctx.residentData}>
         <Component {...componentProps}>{children}</Component>
       </ResidentDataProvider>
     </IslandErrorBoundary>
-  );
-
-  return positioningRegistry.applyPositioning(
-    rendered,
-    { island, isNestedComponent },
-    { componentType: island.component.toLowerCase(), islandId: island.id }
   );
 }
 
@@ -158,32 +138,3 @@ function getComponent(name: string): React.ComponentType<Record<string, unknown>
   return null;
 }
 
-
-/**
- * A positioned island gets its position from the strategy's wrapper, so the
- * component itself must not carry position/top/left… (it would be
- * positioned twice). Old Visual Builder islands carry them as flat props
- * and inside `style`.
- */
-function stripPositioningFromStyle(style: React.CSSProperties): React.CSSProperties {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { position, top, right, bottom, left, zIndex, ...rest } = style;
-  return rest;
-}
-
-function stripPositioningFromProps(props: Record<string, unknown>): Record<string, unknown> {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { position, top, right, bottom, left, zIndex, ...rest } = props;
-  if (typeof rest.style === 'string') {
-    const kept = Object.entries(stripPositioningFromStyle(parseStyleString(rest.style)));
-    if (kept.length) {
-      rest.style = kept.map(([k, v]) => `${k.replace(/([A-Z])/g, '-$1').toLowerCase()}: ${v}`).join('; ');
-    } else {
-      delete rest.style;
-    }
-  } else if (rest.style && typeof rest.style === 'object') {
-    rest.style = stripPositioningFromStyle(rest.style as React.CSSProperties);
-    if (Object.keys(rest.style as object).length === 0) delete rest.style;
-  }
-  return rest;
-}

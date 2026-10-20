@@ -20,8 +20,6 @@ export interface TextElementProps extends UniversalCSSProps {
   textTextTransform?: string;
   textLetterSpacing?: string;
   // Internal props for visual builder
-  _positioningMode?: 'absolute' | 'grid';
-  _size?: { width: string; height: string };
   _onContentChange?: (content: string) => void;
 }
 
@@ -49,17 +47,12 @@ export default function TextElement(props: TextElementProps) {
     textFontStyle,
     textTextTransform,
     textLetterSpacing,
-    _positioningMode,
-    _size,
     _onContentChange
   } = componentProps;
 
   const [isEditing, setIsEditing] = useState(false);
   const [editingContent, setEditingContent] = useState(content);
   const editRef = useRef<any>(null);
-
-  // Apply height-aware pattern for absolute positioning
-  const isAbsolutePositioned = _positioningMode === 'absolute';
 
   // Update editing content when prop changes
   useEffect(() => {
@@ -173,7 +166,6 @@ export default function TextElement(props: TextElementProps) {
   const baseClasses = [
     'break-words', // Ensure text wrapping at word boundaries
     'hyphens-auto', // Enable automatic hyphenation
-    isAbsolutePositioned && _size ? 'h-full flex items-center justify-start' : '',
   ].filter(Boolean).join(' ');
 
   const filteredClasses = removeTailwindConflicts(baseClasses, cssProps);
@@ -184,12 +176,6 @@ export default function TextElement(props: TextElementProps) {
 
   // FIXED: Merge styles with proper priority - user CSS properties come LAST
   const componentStyle: React.CSSProperties = {
-    // Base positioning and size styles first (lowest priority)
-    ...(isAbsolutePositioned && _size ? {
-      width: _size.width,
-      height: _size.height,
-    } : {}),
-
     // Consistent text wrapping behavior
     wordWrap: 'break-word',
     overflowWrap: 'break-word',

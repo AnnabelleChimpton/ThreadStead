@@ -16,7 +16,6 @@ export interface CRTMonitorProps extends UniversalCSSProps {
   textFont?: 'monospace' | 'terminal';
   className?: string;
   children?: React.ReactNode;
-  _positioningMode?: 'absolute' | 'grid' | 'normal';
 }
 
 export default function CRTMonitor(props: CRTMonitorProps) {
@@ -32,7 +31,6 @@ export default function CRTMonitor(props: CRTMonitorProps) {
     textFont = 'monospace',
     className: customClassName,
     children,
-    _positioningMode = 'normal'
   } = componentProps;
 
   // Handle className being passed as array or string

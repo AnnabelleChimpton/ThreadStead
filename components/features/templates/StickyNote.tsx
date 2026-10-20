@@ -16,9 +16,6 @@ interface StickyNoteProps extends UniversalCSSProps {
   size?: 'sm' | 'md' | 'lg';
   rotation?: number;
   children: React.ReactNode;
-
-  // Internal prop from visual builder
-  _positioningMode?: 'grid' | 'absolute';
 }
 
 export default function StickyNote(props: StickyNoteProps) {
@@ -37,8 +34,7 @@ export default function StickyNote(props: StickyNoteProps) {
     noteColor = colorFromTemplate ?? 'yellow',
     size = 'md',
     rotation = 0,
-    children,
-    _positioningMode
+    children
   } = componentProps;
 
   const colorClasses = {
@@ -60,8 +56,7 @@ export default function StickyNote(props: StickyNoteProps) {
     'inline-block',
     colorClasses,
     sizeClasses,
-    'border border-dashed shadow-md font-handwriting relative overflow-hidden',
-    _positioningMode === 'absolute' ? 'h-full' : ''
+    'border border-dashed shadow-md font-handwriting relative overflow-hidden'
   ].filter(Boolean).join(' ');
 
   const filteredClasses = removeTailwindConflicts(baseContainerClasses, cssProps);
@@ -83,9 +78,7 @@ export default function StickyNote(props: StickyNoteProps) {
       {/* Tape effect */}
       <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-8 h-4 bg-white bg-opacity-70 border border-gray-300 rounded-sm"></div>
 
-      <div className={`relative z-10 ${
-        _positioningMode === 'absolute' ? 'h-full flex flex-col justify-center' : ''
-      }`}>
+      <div className="relative z-10 ">
         {children}
       </div>
     </div>

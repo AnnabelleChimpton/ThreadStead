@@ -17,7 +17,6 @@ export interface RetroGridProps extends UniversalCSSProps {
   content?: string;
   className?: string;
   children?: React.ReactNode;
-  _positioningMode?: 'absolute' | 'grid' | 'normal';
 }
 
 export default function RetroGrid(props: RetroGridProps) {
@@ -34,7 +33,6 @@ export default function RetroGrid(props: RetroGridProps) {
     content = '',
     className: customClassName,
     children,
-    _positioningMode = 'normal'
   } = componentProps;
 
   // Handle className being passed as array or string

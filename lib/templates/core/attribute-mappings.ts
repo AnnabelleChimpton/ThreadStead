@@ -336,34 +336,10 @@ export const ATTRIBUTE_MAP = {
 } as const;
 
 /**
- * Positioning data attribute names (for preservation during sanitization)
+ * Component metadata attributes (for preservation during sanitization)
  * These should NOT be normalized since they need to be read as-is
  */
-export const POSITIONING_ATTRIBUTES = new Set([
-  // Legacy formats (for backward compatibility)
-  'data-positioning-mode',
-  'data-pixel-position',
-  'data-position',
-  'data-grid-position',
-  'data-grid-column',
-  'data-grid-row',
-  'data-grid-span',
-
-  // Pure positioning format (new standard)
-  'data-pure-positioning',
-
-  // Human-readable format (Phase 4.2)
-  'data-x',
-  'data-y',
-  'data-width',
-  'data-height',
-  'data-responsive',
-  'data-breakpoints',
-
-  // Size metadata
-  'data-component-size',
-
-  // Component metadata
+export const METADATA_ATTRIBUTES = new Set([
   'data-component-id',
   'data-island',
   'data-component',
@@ -376,9 +352,6 @@ export const POSITIONING_ATTRIBUTES = new Set([
  * Internal system properties (should be preserved but not normalized)
  */
 export const INTERNAL_PROPS = new Set([
-  '_positioning',
-  '_positioningMode',
-  '_size',
   'children',
 ]);
 
@@ -394,8 +367,8 @@ export const INTERNAL_PROPS = new Set([
  * normalizeAttributeName('backgroundColor') // 'backgroundColor'
  */
 export function normalizeAttributeName(attrName: string): string {
-  // Check if it's a positioning attribute - preserve as-is
-  if (POSITIONING_ATTRIBUTES.has(attrName)) {
+  // Check if it's a metadata attribute - preserve as-is
+  if (METADATA_ATTRIBUTES.has(attrName)) {
     return attrName;
   }
 
@@ -470,10 +443,10 @@ export function getAllowedAttributes(): string[] {
     attributes.add(prop);
   }
 
-  // Add positioning attributes
-  for (const attr of POSITIONING_ATTRIBUTES) {
+  // Add metadata attributes
+  for (const attr of METADATA_ATTRIBUTES) {
     attributes.add(attr);
-    // Also add camelCase variants for positioning attributes
+    // Also add camelCase variants
     const camelCase = attr.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
     attributes.add(camelCase);
   }
@@ -492,10 +465,10 @@ export function getAllowedAttributes(): string[] {
 
 /**
  * Check if an attribute should be preserved during normalization
- * (positioning attributes, internal props, etc.)
+ * (metadata attributes, internal props, etc.)
  */
 export function shouldPreserveAttribute(attrName: string): boolean {
-  return POSITIONING_ATTRIBUTES.has(attrName) ||
+  return METADATA_ATTRIBUTES.has(attrName) ||
          INTERNAL_PROPS.has(attrName) ||
          attrName.startsWith('data-') ||
          attrName.startsWith('aria-');

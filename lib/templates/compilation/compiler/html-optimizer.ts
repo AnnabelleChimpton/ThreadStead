@@ -61,8 +61,8 @@ const VOID_ELEMENTS = new Set([
 /**
  * Render hast properties as HTML attributes. property-information maps
  * each property back to its attribute (htmlFor → for, cellPadding →
- * cellpadding, ariaLabel → aria-label, dataPositioningMode →
- * data-positioning-mode, strokeWidth → stroke-width) and says how lists
+ * cellpadding, ariaLabel → aria-label, dataComponentId →
+ * data-component-id, strokeWidth → stroke-width) and says how lists
  * join. The old hand list only knew className, so `<label for>` came out
  * as `htmlFor="…"` and clicking the label did nothing.
  */

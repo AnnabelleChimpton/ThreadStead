@@ -87,7 +87,7 @@ describe('attributes a component does not have', () => {
 
   test('HTML attributes every element has say nothing', () => {
     expect(
-      warningsFor('<RetroCard class="a" id="b" style="color: red" title="c" aria-label="d" data-x="1">hi</RetroCard>')
+      warningsFor('<RetroCard class="a" id="b" style="color: red" title="c" aria-label="d" data-component-id="1">hi</RetroCard>')
     ).toEqual([])
   })
 
