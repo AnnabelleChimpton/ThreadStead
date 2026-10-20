@@ -2,19 +2,7 @@ import { db } from '../../../lib/config/database/connection';
 import { z } from 'zod';
 import { apiHandler } from '@/lib/api/handler';
 import { parsePagePagination } from '@/lib/server/http/pagination';
-
-const createNewsSchema = z.object({
-  title: z.string().min(1).max(255),
-  summary: z.string().min(1).max(500),
-  content: z.string().optional(),
-  url: z.string().optional(),
-  type: z.enum(['announcement', 'feature', 'maintenance', 'community']),
-  priority: z.enum(['high', 'medium', 'low']),
-  isPublished: z.boolean().default(true),
-  publishedAt: z.string().optional()
-});
-
-const updateNewsSchema = createNewsSchema.partial();
+import { SITE_NEWS_ORDER, createNewsSchema, newsValidationMessage } from '@/lib/domain/site-news';
 
 export default apiHandler(
   { methods: ['GET', 'POST'], auth: 'admin', rateLimit: 'admin' },
@@ -26,10 +14,7 @@ export default apiHandler(
 
         const [news, totalCount] = await Promise.all([
           db.siteNews.findMany({
-            orderBy: [
-              { priority: 'desc' },
-              { publishedAt: 'desc' }
-            ],
+            orderBy: SITE_NEWS_ORDER,
             skip: offset,
             take: limit,
             include: {
@@ -109,7 +94,7 @@ export default apiHandler(
 
       if (error instanceof z.ZodError) {
         return res.status(400).json({
-          error: 'Validation error',
+          error: newsValidationMessage(error),
           details: error.issues
         });
       }

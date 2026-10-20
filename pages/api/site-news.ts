@@ -1,6 +1,7 @@
 import { db } from '../../lib/config/database/connection';
 import { apiHandler } from '@/lib/api/handler';
 import { parseOffsetPagination } from '@/lib/server/http/pagination';
+import { SITE_NEWS_ORDER } from '@/lib/domain/site-news';
 
 export default apiHandler(
   { methods: ['GET'], auth: 'none' },
@@ -25,10 +26,7 @@ export default apiHandler(
             lte: new Date() // Only show news that's already published
           }
         },
-        orderBy: [
-          { priority: 'desc' },
-          { publishedAt: 'desc' }
-        ],
+        orderBy: SITE_NEWS_ORDER,
         skip: offset,
         take: limit,
         select: {

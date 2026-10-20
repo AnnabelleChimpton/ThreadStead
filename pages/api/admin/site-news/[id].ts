@@ -1,17 +1,7 @@
 import { db } from '../../../../lib/config/database/connection';
 import { z } from 'zod';
 import { apiHandler } from '@/lib/api/handler';
-
-const updateNewsSchema = z.object({
-  title: z.string().min(1).max(255).optional(),
-  summary: z.string().min(1).max(500).optional(),
-  content: z.string().optional(),
-  url: z.string().optional(),
-  type: z.enum(['announcement', 'feature', 'maintenance', 'community']).optional(),
-  priority: z.enum(['high', 'medium', 'low']).optional(),
-  isPublished: z.boolean().optional(),
-  publishedAt: z.string().optional()
-});
+import { updateNewsSchema, newsValidationMessage } from '@/lib/domain/site-news';
 
 export default apiHandler(
   { methods: ['GET', 'PATCH', 'DELETE'], auth: 'admin', rateLimit: 'admin' },
@@ -53,12 +43,12 @@ export default apiHandler(
 
       if (req.method === 'PATCH') {
         // Update news item
-        const validatedData = updateNewsSchema.parse(req.body);
+        const { publishedAt, ...fields } = updateNewsSchema.parse(req.body);
 
-        const updateData: any = { ...validatedData };
-        if (validatedData.publishedAt) {
-          updateData.publishedAt = new Date(validatedData.publishedAt);
-        }
+        const updateData = {
+          ...fields,
+          ...(publishedAt ? { publishedAt: new Date(publishedAt) } : {})
+        };
 
         const updatedNewsItem = await db.siteNews.update({
           where: { id },
@@ -98,7 +88,7 @@ export default apiHandler(
 
       if (error instanceof z.ZodError) {
         return res.status(400).json({
-          error: 'Validation error',
+          error: newsValidationMessage(error),
           details: error.issues
         });
       }
