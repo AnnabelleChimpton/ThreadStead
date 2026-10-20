@@ -77,6 +77,7 @@ model User {
   consents                  UserConsent[]             @relation("UserConsents")
   consentLogs               ConsentLog[]              @relation("ConsentLogs")
   templateRevisions         ProfileTemplateRevision[] @relation("ProfileTemplateRevisions")
+  pageUpdates               PageUpdate[]
   userCollections           UserCollection[]          @relation("UserCollections")
   userBookmarks             UserBookmark[]            @relation("UserBookmarks")
   indieSitesOwned           Site[]                    @relation("SiteOwner")
@@ -139,6 +140,11 @@ model Profile {
   midiLoop            Boolean                  @default(false)
   compiledTemplate    Json?
   templateCompiledAt  DateTime?
+  // When the owner last changed their page's look: an HTML or CSS save, a
+  // theme, a layout switch (lib/domain/profile/page-updates.ts). Not bumped by
+  // other profile edits or a moderator's reset. Null: not known (see
+  // migration 20261102000000). "Recently updated" on the residents list.
+  pageUpdatedAt       DateTime?
   // Neocities-style "view source": when true, anyone can read this profile's
   // template + CSS at /resident/[username]/source.
   showTemplateSource  Boolean                  @default(false)
@@ -179,6 +185,22 @@ model ProfileTemplateRevision {
   user           User         @relation("ProfileTemplateRevisions", fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt(sort: Desc)])
+}
+
+// "<Name> updated their page" in the feed. Written only when the owner ticks
+// "Share this update in the feed" on a save; at most one per person per UTC
+// day (a second share that day moves sharedAt instead). Read by
+// lib/feed/page-updates.ts, which applies the profile's visibility, blocks
+// and moderation through the person, not here.
+model PageUpdate {
+  id       String   @id @default(cuid())
+  userId   String
+  day      DateTime @db.Date
+  sharedAt DateTime @default(now())
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, day])
+  @@index([sharedAt(sort: Desc)])
 }
 
 model UserHomeConfig {

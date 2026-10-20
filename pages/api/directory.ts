@@ -6,7 +6,7 @@ import { escapeLike, parseIntParam } from "@/lib/search/query";
 import { neighborWhere } from "@/lib/domain/users/profile-access";
 import { settledResidentIds } from "@/lib/domain/users/new-neighbors";
 
-const SORTS = ["recent", "alphabetical", "posts", "random"];
+const SORTS = ["recent", "alphabetical", "posts", "random", "updated"];
 
 function shuffle<T>(items: T[]): T[] {
   for (let i = items.length - 1; i > 0; i--) {
@@ -90,6 +90,15 @@ export default apiHandler(
             _count: "desc"
           }
         };
+      } else if (sortBy === "updated") {
+        // "Recently updated": when the owner last changed their page's look
+        // (Profile.pageUpdatedAt); people with no known time come last,
+        // newest first. id keeps pages from overlapping on ties.
+        orderBy = [
+          { profile: { pageUpdatedAt: { sort: "desc", nulls: "last" } } },
+          { createdAt: "desc" },
+          { id: "asc" }
+        ];
       }
 
       // sortBy=random used to fall through to "recent". Pick `limit` random
@@ -112,7 +121,8 @@ export default apiHandler(
             select: {
               displayName: true,
               bio: true,
-              avatarUrl: true
+              avatarUrl: true,
+              pageUpdatedAt: true
             }
           },
           _count: {
@@ -140,6 +150,7 @@ export default apiHandler(
           bio: user.profile?.bio || null,
           avatarUrl: user.profile?.avatarUrl || null,
           createdAt: user.createdAt,
+          pageUpdatedAt: user.profile?.pageUpdatedAt ?? null,
           postCount: user._count.posts,
           followerCount: user._count.followers,
           followingCount: user._count.following

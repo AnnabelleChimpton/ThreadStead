@@ -29,6 +29,7 @@ import { useLocalDraft } from '@/hooks/useLocalDraft';
 import TemplateHistoryPanel, { type FullRevision } from '@/components/features/templates/TemplateHistoryPanel';
 import TemplatePanelSelector from '@/components/features/templates/TemplatePanelSelector';
 import { PixelIcon } from '@/components/ui/PixelIcon';
+import ShareToFeedCheckbox from '@/components/features/profile/ShareToFeedCheckbox';
 import { insertCSSIntoView, planCSSInsertion } from '@/components/features/templates/css-generators/shared/insertCSS';
 import { layoutFields, layoutOf, siteStylesCSSMode, siteStylesOn, type Layout as PageLayout } from '@/lib/domain/profile/layout';
 
@@ -69,6 +70,8 @@ export default function CSSEditorPage({
     isDirty
   );
   const [saving, setSaving] = useState(false);
+  // "Share this update in the feed": unticked each time the editor opens
+  const [shareToFeed, setShareToFeed] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [showReference, setShowReference] = useState(true);
   const [activeTab, setActiveTab] = useState<'generators' | 'reference'>('generators');
@@ -109,19 +112,33 @@ export default function CSSEditorPage({
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ customCSS: cssToSave, ...layoutFields({ siteStyles: siteStylesOn(cssMode) }) }),
+        body: JSON.stringify({
+          customCSS: cssToSave,
+          ...layoutFields({ siteStyles: siteStylesOn(cssMode) }),
+          ...(shareToFeed && { shareToFeed: true }),
+        }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to save CSS');
       }
+      const saved = await response.json().catch(() => ({}));
 
       // The layout stays as it is: saved CSS shows on either layout
       setSavedSnapshot({ css: cssToSave, cssMode });
       clearDraft();
 
-      setSaveMessage('✓ CSS saved');
+      if (shareToFeed && saved.shared) {
+        setShareToFeed(false);
+        setSaveMessage('✓ CSS saved and shared in the feed');
+      } else if (shareToFeed && saved.pageChanged === false) {
+        setSaveMessage("✓ CSS saved. Nothing changed, so there's nothing to share.");
+      } else if (shareToFeed) {
+        setSaveMessage("CSS saved, but it didn't reach the feed.");
+      } else {
+        setSaveMessage('✓ CSS saved');
+      }
       setTimeout(() => setSaveMessage(null), 3000);
     } catch (error) {
       setSaveMessage(`Error: ${error instanceof Error ? error.message : 'Failed to save'}`);
@@ -558,6 +575,12 @@ export default function CSSEditorPage({
                   >
                     <PixelIcon name="reload" /> Reset to Default
                   </button>
+                  <ShareToFeedCheckbox
+                    checked={shareToFeed}
+                    onChange={setShareToFeed}
+                    disabled={saving}
+                    className="text-gray-700"
+                  />
                   <button
                     onClick={handleSave}
                     disabled={saving}

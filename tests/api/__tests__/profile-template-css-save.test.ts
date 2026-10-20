@@ -8,7 +8,7 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 jest.mock('@/lib/config/database/connection', () => ({
   db: {
     handle: { findFirst: jest.fn() },
-    profile: { upsert: jest.fn().mockResolvedValue({}) },
+    profile: { upsert: jest.fn().mockResolvedValue({}), findUnique: jest.fn().mockResolvedValue(null) },
   },
 }))
 jest.mock('@/lib/auth/server', () => ({ getSessionUser: jest.fn() }))

@@ -1,5 +1,7 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import FeedPost, { FeedPostData } from "./FeedPost";
+import PageUpdateCard from "./PageUpdateCard";
+import type { FeedPageUpdate } from "@/lib/feed/page-updates";
 import { PostSkeletonList } from "./PostSkeleton";
 import { useSiteConfig } from "@/hooks/useSiteConfig";
 import ButtonLink from "@/components/ui/ButtonLink";
@@ -25,11 +27,42 @@ type FeedResponse = {
   nextCursor?: string | null;
   /** Following feed only: how many people the viewer follows */
   followingCount?: number;
+  /** Shared page updates from the same stretch of time (Recent and Following) */
+  pageUpdates?: FeedPageUpdate[];
 };
+
+type FeedItem =
+  | { kind: "post"; at: number; post: FeedPostData }
+  | { kind: "page"; at: number; update: FeedPageUpdate };
+
+/**
+ * Page updates slotted in among the posts by time. The posts keep the
+ * server's order; each page update goes just before the first post older
+ * than it.
+ */
+export function mergeFeedItems(posts: FeedPostData[], pageUpdates: FeedPageUpdate[]): FeedItem[] {
+  const updates = pageUpdates
+    .map((update) => ({ kind: "page" as const, at: new Date(update.sharedAt).getTime(), update }))
+    .sort((a, b) => b.at - a.at);
+  const items: FeedItem[] = [];
+  let next = 0;
+  for (const post of posts) {
+    const at = new Date(post.createdAt).getTime();
+    while (next < updates.length && updates[next].at > at) items.push(updates[next++]);
+    items.push({ kind: "post", at, post });
+  }
+  return items.concat(updates.slice(next));
+}
+
+function addPageUpdates(existing: FeedPageUpdate[], incoming: FeedPageUpdate[] = []): FeedPageUpdate[] {
+  const seen = new Set(existing.map((u) => u.id));
+  return [...existing, ...incoming.filter((u) => !seen.has(u.id))];
+}
 
 export default function Feed({ type }: FeedProps) {
   const { config } = useSiteConfig();
   const [posts, setPosts] = useState<FeedPostData[]>([]);
+  const [pageUpdates, setPageUpdates] = useState<FeedPageUpdate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
@@ -41,6 +74,8 @@ export default function Feed({ type }: FeedProps) {
   const observerTarget = useRef<HTMLDivElement>(null);
   const latestPostIdRef = useRef<string | null>(null);
   const cursorRef = useRef<string | null>(null);
+  /** Recent feed: the last loaded post's time, so the next page's page updates start there */
+  const lastPostAtRef = useRef<string | null>(null);
 
   const endpoint = ENDPOINTS[type];
 
@@ -54,7 +89,9 @@ export default function Feed({ type }: FeedProps) {
         if (!isInitial && cursorRef.current) query += `&cursor=${encodeURIComponent(cursorRef.current)}`;
       } else {
         query += `&offset=${isInitial ? 0 : postsCountRef.current}`;
+        if (!isInitial && lastPostAtRef.current) query += `&before=${encodeURIComponent(lastPostAtRef.current)}`;
       }
+      if (type !== "active") query += "&withPageUpdates=1";
       const res = await fetch(`${endpoint}?${query}`);
 
       if (!res.ok) {
@@ -65,6 +102,7 @@ export default function Feed({ type }: FeedProps) {
 
       if (isInitial) {
         setPosts(data.posts);
+        setPageUpdates(addPageUpdates([], data.pageUpdates));
         postsCountRef.current = data.posts.length;
         if (data.posts.length > 0) {
           latestPostIdRef.current = data.posts[0].id;
@@ -72,8 +110,12 @@ export default function Feed({ type }: FeedProps) {
         setNewPostsCount(0); // Reset new posts count on refresh
       } else {
         setPosts(prev => [...prev, ...data.posts]);
+        setPageUpdates(prev => addPageUpdates(prev, data.pageUpdates));
         postsCountRef.current += data.posts.length;
       }
+      const lastPost = data.posts[data.posts.length - 1];
+      if (lastPost) lastPostAtRef.current = lastPost.createdAt;
+      else if (isInitial) lastPostAtRef.current = null;
 
       cursorRef.current = data.nextCursor ?? null;
       if (typeof data.followingCount === "number") setFollowingCount(data.followingCount);
@@ -90,6 +132,7 @@ export default function Feed({ type }: FeedProps) {
   useEffect(() => {
     postsCountRef.current = 0;
     cursorRef.current = null;
+    lastPostAtRef.current = null;
     setLoading(true);
     loadPosts(true);
   }, [type, loadPosts]);
@@ -148,6 +191,8 @@ export default function Feed({ type }: FeedProps) {
     return () => clearInterval(interval);
   }, [type, endpoint]);
 
+  const items = useMemo(() => mergeFeedItems(posts, pageUpdates), [posts, pageUpdates]);
+
   const handleRefresh = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setLoading(true);
@@ -162,7 +207,7 @@ export default function Feed({ type }: FeedProps) {
     return <ErrorDisplay title={error} onRetry={() => loadPosts(true)} />;
   }
 
-  if (posts.length === 0 && type === "following") {
+  if (items.length === 0 && type === "following") {
     const followsNobody = followingCount === 0;
     return (
       <EmptyState
@@ -180,7 +225,7 @@ export default function Feed({ type }: FeedProps) {
     );
   }
 
-  if (posts.length === 0) {
+  if (items.length === 0) {
     return (
       <EmptyState
         title="No posts yet"
@@ -203,14 +248,18 @@ export default function Feed({ type }: FeedProps) {
         </div>
       )}
 
-      {posts.map((post) => (
-        <FeedPost
-          key={post.id}
-          post={post}
-          showActivity={type === "active"}
-          showVisibility={type === "following"}
-        />
-      ))}
+      {items.map((item) =>
+        item.kind === "page" ? (
+          <PageUpdateCard key={`page-${item.update.id}`} update={item.update} />
+        ) : (
+          <FeedPost
+            key={item.post.id}
+            post={item.post}
+            showActivity={type === "active"}
+            showVisibility={type === "following"}
+          />
+        )
+      )}
 
       {/* Infinite Scroll Sentinel */}
       <div ref={observerTarget} className="h-10 flex items-center justify-center py-6">
@@ -221,7 +270,7 @@ export default function Feed({ type }: FeedProps) {
             <div className="w-2 h-2 bg-thread-sage rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
           </div>
         )}
-        {!hasMore && posts.length > 0 && (
+        {!hasMore && items.length > 0 && (
           <span className="thread-label opacity-60">
             You&apos;re all caught up!
           </span>

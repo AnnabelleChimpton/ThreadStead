@@ -34,6 +34,7 @@ import { useLocalDraft } from '@/hooks/useLocalDraft';
 import { useToast } from '@/contexts/ToastContext';
 import TemplateHistoryPanel, { type FullRevision } from '@/components/features/templates/TemplateHistoryPanel';
 import ViewSourceToggle from '@/components/features/templates/ViewSourceToggle';
+import ShareToFeedCheckbox from '@/components/features/profile/ShareToFeedCheckbox';
 import { layoutFields, layoutOf, siteStylesCSSMode } from '@/lib/domain/profile/layout';
 
 // CodeMirror is editor-page-only — loaded dynamically so it never lands in
@@ -155,7 +156,7 @@ export default function EnhancedTemplateEditor({
   onSave
 }: EnhancedTemplateEditorProps) {
   const router = useRouter();
-  const { showError, showInfo } = useToast();
+  const { showError, showInfo, showSuccess } = useToast();
 
   // AUTO-FIX: Detect and unwrap flow templates that were incorrectly wrapped
   // This fixes templates corrupted by the previous auto-wrap bug
@@ -452,6 +453,8 @@ export default function EnhancedTemplateEditor({
 
 
   const [isSaving, setIsSaving] = useState(false);
+  // "Share this update in the feed": unticked each time the editor opens
+  const [shareToFeed, setShareToFeed] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [loadingDefault, setLoadingDefault] = useState(false);
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
@@ -1214,6 +1217,25 @@ export default function EnhancedTemplateEditor({
     }
   }, [template, customCSS, user.id, useStandardLayout]);
 
+  // The save request comes from the page that hosts this editor, so the
+  // share is a second request once the save has worked. The server only
+  // shares when the page changed in the last few minutes.
+  const sharePageUpdate = useCallback(async () => {
+    try {
+      const res = await csrfFetch('/api/user/page-update', { method: 'POST' });
+      if (!res.ok) throw new Error('share');
+      const { shared } = await res.json();
+      if (shared) {
+        setShareToFeed(false);
+        showSuccess('Shared in the feed.');
+      } else {
+        showInfo("Nothing changed, so there's nothing to share.");
+      }
+    } catch {
+      showError("Saved, but it didn't reach the feed.");
+    }
+  }, [showSuccess, showInfo, showError]);
+
   // Internal save function (called after validation passes)
   // Takes optional validation info to avoid relying on stale state
   const performSave = useCallback(async (validationInfo?: { hasWarnings: boolean; hasStripped: boolean }) => {
@@ -1227,6 +1249,7 @@ export default function EnhancedTemplateEditor({
       await onSave(template, customCSS, compiledTemplateData || undefined, cssMode, hideNavigation);
       setSaveState('saved');
       markSaved();
+      if (shareToFeed) await sharePageUpdate();
       const replacedCSS = cssWillChange;
       setSavedCSS(customCSS);
 
@@ -1271,7 +1294,7 @@ export default function EnhancedTemplateEditor({
       setSaveMessage('✗ Save failed - see details in validation panel');
       setTimeout(() => setSaveMessage(null), 5000);
     }
-  }, [onSave, template, customCSS, compiledTemplate, compileTemplateForPreview, cssMode, hideNavigation, validationResult, markSaved, cssWillChange]);
+  }, [onSave, template, customCSS, compiledTemplate, compileTemplateForPreview, cssMode, hideNavigation, validationResult, markSaved, cssWillChange, shareToFeed, sharePageUpdate]);
 
   // Main save handler with validation
   const handleSave = useCallback(async () => {
@@ -1776,6 +1799,7 @@ export default function EnhancedTemplateEditor({
                     </span>
                   )}
 
+                  <ShareToFeedCheckbox checked={shareToFeed} onChange={setShareToFeed} disabled={isSaving} />
                   <button
                     onClick={handleSave}
                     disabled={isSaving}
@@ -1935,6 +1959,7 @@ export default function EnhancedTemplateEditor({
                       {saveMessage}
                     </span>
                   )}
+                  <ShareToFeedCheckbox checked={shareToFeed} onChange={setShareToFeed} disabled={isSaving} />
                   <button
                     onClick={handleSave}
                     disabled={isSaving}

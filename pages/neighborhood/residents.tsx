@@ -4,7 +4,7 @@ import UserCard, { DirectoryUser } from "@/components/ui/feedback/UserCard";
 import { UserCardSkeletonGrid } from "@/components/ui/feedback/UserCardSkeleton";
 import { useSiteConfig } from "@/hooks/useSiteConfig";
 
-type SortOption = "recent" | "alphabetical" | "posts";
+type SortOption = "recent" | "updated" | "alphabetical" | "posts";
 
 type DirectoryResponse = {
   users: DirectoryUser[];
@@ -136,6 +136,7 @@ export default function Directory() {
                 className="w-full mt-1 border border-thread-sage p-3 bg-thread-paper rounded-cozy focus:border-thread-pine focus:ring-1 focus:ring-thread-pine"
               >
                 <option value="recent">Recently joined</option>
+                <option value="updated">Recently updated</option>
                 <option value="alphabetical">Name (A-Z)</option>
                 <option value="posts">Most posts</option>
               </select>
@@ -168,7 +169,7 @@ export default function Directory() {
           {/* User Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
             {users.map((user) => (
-              <UserCard key={user.id} user={user} />
+              <UserCard key={user.id} user={user} showUpdated={sortBy === "updated"} />
             ))}
           </div>
 

@@ -5,6 +5,7 @@ import { apiHandler } from "@/lib/api/handler";
 import { getHiddenIds, addBlockFiltersToWhere, countHiddenComments, visibleCommentCount } from "@/lib/domain/users/blocks";
 import { followingPostsWhere, getFollowGraph } from "@/lib/domain/posts/visibility";
 import { parseLimit } from "@/lib/server/http/pagination";
+import { loadPageUpdates, pageUpdateWindow } from "@/lib/feed/page-updates";
 
 /**
  * Posts from the people the viewer follows, newest first, filtered by the
@@ -33,8 +34,14 @@ export default apiHandler(
       getHiddenIds(user.id),
     ]);
 
+    // The feed page asks for shared page updates too (lib/feed/page-updates.ts)
+    const withPageUpdates = req.query.withPageUpdates === "1";
+
     if (followeeIds.length === 0) {
-      return res.json({ posts: [], hasMore: false, nextCursor: null, followingCount: 0 });
+      return res.json({
+        posts: [], hasMore: false, nextCursor: null, followingCount: 0,
+        ...(withPageUpdates && { pageUpdates: [] }),
+      });
     }
 
     let where: Prisma.PostWhereInput = followingPostsWhere(followeeIds, friendIds);
@@ -75,6 +82,13 @@ export default apiHandler(
     const page = hasMore ? rows.slice(0, limit) : rows;
     const last = page[page.length - 1];
     const hiddenComments = await countHiddenComments(page.map((post) => post.id), blockedUserIds);
+    const pageUpdates = withPageUpdates
+      ? await loadPageUpdates(
+          user.id,
+          { kind: "following", followeeIds },
+          pageUpdateWindow(cursor?.createdAt, page, hasMore)
+        )
+      : undefined;
 
     return res.json({
       posts: page.map((post) => ({
@@ -102,6 +116,7 @@ export default apiHandler(
       hasMore,
       nextCursor: hasMore && last ? `${last.createdAt.toISOString()}_${last.id}` : null,
       followingCount: followeeIds.length,
+      ...(pageUpdates && { pageUpdates }),
     });
   }
 );

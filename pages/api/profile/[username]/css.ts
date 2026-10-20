@@ -5,6 +5,7 @@ import { snapshotProfileBeforeSave } from "@/lib/templates/revisions/template-re
 import { apiHandler } from "@/lib/api/handler";
 import { sourceTooLong } from "@/lib/templates/limits";
 import { layoutFields, siteStylesOn } from "@/lib/domain/profile/layout";
+import { changesPageLook, pageUpdatedNow, sharePageUpdate } from "@/lib/domain/profile/page-updates";
 
 export default apiHandler(
   { methods: ['POST'], auth: 'user', rateLimit: 'template_editing' },
@@ -45,7 +46,7 @@ export default apiHandler(
 
       // Build update data object. Site styles are on or off: 'override'
       // (an older on) is written as 'inherit'.
-      const updateData: { customCSS: string; cssMode?: string } = { customCSS: sanitizedCSS };
+      const updateData: { customCSS: string; cssMode?: string; pageUpdatedAt?: Date } = { customCSS: sanitizedCSS };
       if (cssMode !== undefined) {
         Object.assign(updateData, layoutFields({ siteStyles: siteStylesOn(cssMode) }));
       }
@@ -58,6 +59,9 @@ export default apiHandler(
       if (changesContent) {
         await snapshotProfileBeforeSave(handle.user.id, 'css-save');
       }
+      // Whitespace or an older stored value that means the same thing isn't an update
+      const changed = changesPageLook(existing, updateData);
+      if (changed) Object.assign(updateData, pageUpdatedNow());
 
       // Update the CSS and optionally the CSS mode
       const updatedProfile = await db.profile.update({
@@ -65,8 +69,15 @@ export default apiHandler(
         data: updateData
       });
 
+      // "Share this update in the feed", ticked, and the page did change
+      const shared = req.body.shareToFeed === true && changed
+        ? await sharePageUpdate(handle.user.id)
+        : false;
+
       return res.status(200).json({
         success: true,
+        shared,
+        pageChanged: changed,
         customCSS: updatedProfile.customCSS,
         cssMode: updatedProfile.cssMode
       });

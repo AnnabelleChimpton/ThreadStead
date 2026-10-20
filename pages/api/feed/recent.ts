@@ -4,6 +4,7 @@ import { SITE_NAME } from "@/lib/config/site/constants";
 import { apiHandler } from "@/lib/api/handler";
 import { parseOffsetPagination } from "@/lib/server/http/pagination";
 import { getHiddenIds, addBlockFiltersToWhere, countHiddenComments, visibleCommentCount } from "@/lib/domain/users/blocks";
+import { loadPageUpdates, pageUpdateWindow, parseBefore } from "@/lib/feed/page-updates";
 
 
 
@@ -93,9 +94,22 @@ export default apiHandler(
         metadata: post.metadata
       }));
 
+      const hasMore = posts.length === limit;
+
+      // The feed page asks for shared page updates from the same stretch of
+      // time (lib/feed/page-updates.ts); other callers only want posts
+      const pageUpdates = req.query.withPageUpdates === "1"
+        ? await loadPageUpdates(
+            viewer?.id,
+            { kind: "everyone" },
+            pageUpdateWindow(offset > 0 ? parseBefore(req.query.before) : null, posts, hasMore)
+          )
+        : undefined;
+
       return res.json({
         posts: transformedPosts,
-        hasMore: posts.length === limit
+        hasMore,
+        ...(pageUpdates && { pageUpdates })
       });
 
     } catch (error) {

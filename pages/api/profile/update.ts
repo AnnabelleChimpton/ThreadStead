@@ -8,6 +8,7 @@ import { sourceTooLong } from "@/lib/templates/limits";
 import { cleanHiddenTabs } from "@/lib/domain/profile/tabs";
 import { cleanStatus } from "@/lib/domain/profile/status";
 import { layoutFields, layoutOf } from "@/lib/domain/profile/layout";
+import { PAGE_LOOK_SELECT, changesPageLook, pageUpdatedNow, type PageLook } from "@/lib/domain/profile/page-updates";
 import { notifyRingHubIfMember } from "@/lib/api/ringhub/ringhub-profile-sync";
 import { withCsrfProtection } from "@/lib/server/http/csrf";
 import { withRateLimit } from "@/lib/server/http/rate-limit";
@@ -45,7 +46,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   // Get current profile to check for visibility changes
   const currentProfile = await db.profile.findUnique({
     where: { userId: me.id },
-    select: { visibility: true }
+    select: { visibility: true, ...PAGE_LOOK_SELECT }
   });
 
   // Basic trims & constraints
@@ -58,6 +59,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (typeof templateMode === "string" && ['default', 'enhanced', 'advanced'].includes(templateMode)) {
     Object.assign(data, layoutFields({ layout: layoutOf(templateMode) }));
   }
+  // CSS or a layout switch from here is the owner updating their page too
+  if (changesPageLook(currentProfile, data as PageLook)) Object.assign(data, pageUpdatedNow());
   if (typeof hideNavigation === "boolean") data.hideNavigation = hideNavigation;
   if (typeof showInVisitorTrails === "boolean") data.showInVisitorTrails = showInVisitorTrails;
   if (hiddenTabs !== undefined) data.hiddenTabs = cleanHiddenTabs(hiddenTabs);

@@ -8,6 +8,7 @@ import { apiHandler } from '@/lib/api/handler';
 import { cleanCss } from '@/lib/utils/sanitization/css';
 import { sourceTooLong } from '@/lib/templates/limits';
 import { layoutFields, siteStylesOn } from '@/lib/domain/profile/layout';
+import { PAGE_LOOK_SELECT, changesPageLook, pageUpdatedNow, sharePageUpdate } from '@/lib/domain/profile/page-updates';
 
 
 
@@ -85,35 +86,47 @@ export default apiHandler(
           return res.status(403).json({ error: 'Access denied' });
         }
 
+        const before = await db.profile.findUnique({
+          where: { userId: handle.user.id },
+          select: PAGE_LOOK_SELECT
+        });
+        const siteStyles = cssMode !== undefined ? layoutFields({ siteStyles: siteStylesOn(cssMode) }) : {};
+        const changed = changesPageLook(before, {
+          customTemplate: cleanedTemplate,
+          ...(safeCSS !== undefined && { customCSS: safeCSS }),
+          ...siteStyles
+        });
+
         // Keep a restore point of what this save is about to overwrite
         await snapshotProfileBeforeSave(handle.user.id, 'template-save');
 
         // Update or create the profile with its source and compiled copy
+        const fields = {
+          customTemplate: cleanedTemplate, // Save cleaned template without navigation
+          // The page's one compiled copy: what it renders from
+          compiledTemplate: JSON.parse(JSON.stringify(compiledResult)),
+          templateCompiledAt: new Date(),
+          ...(safeCSS !== undefined && { customCSS: safeCSS }),
+          ...siteStyles,
+          ...(changed && pageUpdatedNow())
+        };
         await db.profile.upsert({
           where: { userId: handle.user.id },
-          update: {
-            customTemplate: cleanedTemplate, // Save cleaned template without navigation
-            // The page's one compiled copy: what it renders from
-            compiledTemplate: JSON.parse(JSON.stringify(compiledResult)),
-            templateCompiledAt: new Date(),
-            ...(safeCSS !== undefined && { customCSS: safeCSS }),
-            ...(cssMode !== undefined && layoutFields({ siteStyles: siteStylesOn(cssMode) }))
-          },
-          create: {
-            userId: handle.user.id,
-            customTemplate: cleanedTemplate, // Save cleaned template without navigation
-            // The page's one compiled copy: what it renders from
-            compiledTemplate: JSON.parse(JSON.stringify(compiledResult)),
-            templateCompiledAt: new Date(),
-            ...(safeCSS !== undefined && { customCSS: safeCSS }),
-            ...(cssMode !== undefined && layoutFields({ siteStyles: siteStylesOn(cssMode) }))
-          }
+          update: fields,
+          create: { userId: handle.user.id, ...fields }
         });
+
+        // "Share this update in the feed", ticked, and the page did change
+        const shared = req.body.shareToFeed === true && changed
+          ? await sharePageUpdate(handle.user.id)
+          : false;
 
         // Anti-silent-failure contract: the editor must be able to tell the
         // user what was stripped or warned about, not just "saved".
         return res.status(200).json({
           success: true,
+          shared,
+          pageChanged: changed,
           warnings: compiledResult?.warnings ?? [],
           strippedComponents: compiledResult?.strippedComponents ?? []
         });
@@ -134,6 +147,11 @@ export default apiHandler(
           return res.status(403).json({ error: 'Access denied' });
         }
 
+        const before = await db.profile.findUnique({
+          where: { userId: handle.user.id },
+          select: PAGE_LOOK_SELECT
+        });
+
         // Keep a restore point before wiping the template
         await snapshotProfileBeforeSave(handle.user.id, 'reset');
 
@@ -143,7 +161,8 @@ export default apiHandler(
           data: {
             customTemplate: null,
             compiledTemplate: Prisma.JsonNull,
-            templateCompiledAt: null
+            templateCompiledAt: null,
+            ...(changesPageLook(before, { customTemplate: null }) && pageUpdatedNow())
           }
         });
 

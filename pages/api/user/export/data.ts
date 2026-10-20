@@ -30,6 +30,8 @@ interface UserDataExport {
     blocks: any[];
   };
   guestbook: any[];
+  /** Days you shared a page update in the feed */
+  pageUpdates: { day: string; sharedAt: string }[];
   account: {
     did: string;
     primaryHandle: string | null;
@@ -177,7 +179,8 @@ async function generateUserExport(userId: string): Promise<UserDataExport> {
         orderBy: { createdAt: 'desc' }
       },
       consents: true,
-      homeConfig: true
+      homeConfig: true,
+      pageUpdates: { orderBy: { sharedAt: 'desc' } }
     }
   });
 
@@ -334,6 +337,10 @@ async function generateUserExport(userId: string): Promise<UserDataExport> {
       signature: entry.signature,
       status: entry.status,
       createdAt: entry.createdAt.toISOString()
+    })),
+    pageUpdates: user.pageUpdates.map(update => ({
+      day: update.day.toISOString().slice(0, 10),
+      sharedAt: update.sharedAt.toISOString()
     })),
     account: {
       did: user.did,

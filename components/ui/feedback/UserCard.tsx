@@ -1,6 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { formatDistanceToNow } from "date-fns";
 import UserMention from "@/components/ui/navigation/UserMention";
 
 export type DirectoryUser = {
@@ -10,6 +11,8 @@ export type DirectoryUser = {
   bio: string | null;
   avatarUrl: string | null;
   createdAt: string;
+  /** When they last changed their page's look; null when not known */
+  pageUpdatedAt?: string | null;
   postCount: number;
   followerCount: number;
   followingCount: number;
@@ -17,9 +20,11 @@ export type DirectoryUser = {
 
 type UserCardProps = {
   user: DirectoryUser;
+  /** "Updated 3 days ago" in place of the join date ("Recently updated") */
+  showUpdated?: boolean;
 };
 
-export default function UserCard({ user }: UserCardProps) {
+export default function UserCard({ user, showUpdated = false }: UserCardProps) {
   const displayName = user.displayName || user.username || "Anonymous";
   const profileLink = user.username ? `/resident/${user.username}` : null;
   
@@ -27,6 +32,10 @@ export default function UserCard({ user }: UserCardProps) {
     month: 'long',
     year: 'numeric'
   });
+
+  const updated = showUpdated && user.pageUpdatedAt
+    ? `Updated ${formatDistanceToNow(new Date(user.pageUpdatedAt), { addSuffix: true })}`
+    : null;
 
   // Truncate bio if too long
   const shortBio = user.bio && user.bio.length > 120 
@@ -106,7 +115,7 @@ export default function UserCard({ user }: UserCardProps) {
       {/* Join Date */}
       <div className="mb-4 pt-3 border-t border-thread-sage/20">
         <span className="thread-label">
-          Joined {joinDate}
+          {updated ?? `Joined ${joinDate}`}
         </span>
       </div>
 

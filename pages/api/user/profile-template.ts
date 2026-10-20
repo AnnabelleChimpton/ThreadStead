@@ -4,6 +4,7 @@ import { getDefaultProfileTemplate, ProfileTemplateType } from "@/lib/templates/
 import { cleanCss } from "@/lib/utils/sanitization/css";
 import { snapshotProfileBeforeSave } from "@/lib/templates/revisions/template-revisions";
 import { layoutFields, layoutOf } from "@/lib/domain/profile/layout";
+import { PAGE_LOOK_SELECT, changesPageLook, pageUpdatedNow } from "@/lib/domain/profile/page-updates";
 
 const VALID_TEMPLATES: ProfileTemplateType[] = ['abstract-art', 'charcoal-nights', 'pixel-petals', 'retro-social', 'classic-linen'];
 
@@ -30,12 +31,16 @@ export default apiHandler(
         const customCSS = none ? '' : cleanCss(getDefaultProfileTemplate(template as ProfileTemplateType));
         const look = { customCSS, ...layoutFields({ layout: 'standard' }) };
 
+        // A theme is the person updating their page (when it changes anything)
+        const before = await db.profile.findUnique({ where: { userId: user.id }, select: PAGE_LOOK_SELECT });
+        const write = { ...look, ...(changesPageLook(before, look) && pageUpdatedNow()) };
+
         // Whatever this replaces stays in the person's History
         await snapshotProfileBeforeSave(user.id, 'css-save');
         await db.profile.upsert({
           where: { userId: user.id },
-          update: look,
-          create: { userId: user.id, ...look },
+          update: write,
+          create: { userId: user.id, ...write },
         });
 
         return res.json({ success: true, template });
