@@ -186,7 +186,7 @@
   color: inherit;
   text-decoration: underline;
 }
-:where(.profile-template-root[data-site-styles="off"]) .post-item :is(.blog-post-title, .blog-post-author, .thread-content) {
+:where(.profile-template-root[data-site-styles="off"]) .post-item :is(.blog-post-title, .blog-post-author, .blog-post-content, .thread-content) {
   color: inherit;
 }
 :where(.profile-template-root[data-site-styles="off"]) .post-item .blog-post-date {
