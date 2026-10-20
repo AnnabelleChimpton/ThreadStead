@@ -214,6 +214,20 @@
    text and white boxes: invisible on a dark page. They take the page's
    colour instead. Each rule weighs at most one class, so anything the page
    says about them wins. */
+/* _app.tsx unsets the site's paper and cream on the live page, from the
+   cssMode the server knows. The editor's preview only learns the page's
+   setting from the editor, so it kept the light boxes, and a dark starter's
+   light text sat on them (1.2:1). The same unset, keyed on the page's own
+   marker, reaches both. */
+:where(.profile-template-root[data-site-styles="off"]) :is(.bg-thread-cream, .bg-thread-paper) {
+  background-color: unset;
+}
+:where(.profile-template-root[data-site-styles="off"]) :is(.text-thread-pine, .text-thread-sage) {
+  color: unset;
+}
+:where(.profile-template-root[data-site-styles="off"]) .border-thread-sage {
+  border-color: unset;
+}
 :where(.profile-template-root[data-site-styles="off"]) :is(.text-thread-charcoal, .text-black, .thread-headline, .thread-label, .section-heading) {
   color: inherit;
 }

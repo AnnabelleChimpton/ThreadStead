@@ -1,5 +1,6 @@
 // Data fetching utilities for template system
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
+import { postBodyHtml } from './post-body';
 
 export interface UserProfile {
   did: string;
@@ -22,8 +23,9 @@ export interface UserProfile {
 export interface UserPosts {
   posts: Array<{
     id: string;
-    content: string;
-    contentHtml: string;
+    bodyMarkdown?: string | null;
+    bodyHtml?: string | null;
+    bodyText?: string | null;
     createdAt: string;
     visibility: string;
     author: {
@@ -155,7 +157,9 @@ export async function fetchResidentData(username: string): Promise<ResidentData 
       },
       posts: posts.posts.map(post => ({
         id: post.id,
-        bodyHtml: post.contentHtml,
+        // The API sends bodyMarkdown/bodyHtml/bodyText; there's no
+        // contentHtml, so every post here read "(No content)"
+        bodyHtml: postBodyHtml(post),
         createdAt: post.createdAt
       })),
       guestbook: guestbook.entries.map(entry => ({

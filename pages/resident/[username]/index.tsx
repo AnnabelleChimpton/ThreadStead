@@ -563,46 +563,12 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
       let posts: Array<{ id: string; bodyHtml: string; createdAt: string }> = [];
       if (postsData.status === 'fulfilled' && postsData.value) {
 
-        // Import cleaning functions
-        const { markdownToSafeHtml, cleanAndNormalizeHtml } = await import("@/lib/utils/sanitization/html");
-        function escapeHtml(s: string) {
-          return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-        }
-        function textToHtml(text: string) {
-          return `<p>${escapeHtml(text).replace(/\n/g, "<br/>")}</p>`;
-        }
-
-        posts = postsData.value.posts?.map((post: any) => {
-          let text = "";
-          let mode: "markdown" | "html" | "text" = "text";
-          if (post.bodyMarkdown) {
-            text = post.bodyMarkdown;
-            mode = "markdown";
-          } else if (post.bodyHtml) {
-            text = post.bodyHtml;
-            mode = "html";
-          } else if (post.bodyText) {
-            text = post.bodyText;
-            mode = "text";
-          }
-
-          let contentHtml = "";
-          if (!text.trim()) {
-            contentHtml = "<p class='opacity-60'>(Nothing to preview)</p>";
-          } else if (mode === "markdown") {
-            contentHtml = markdownToSafeHtml(text);
-          } else if (mode === "html") {
-            contentHtml = cleanAndNormalizeHtml(text);
-          } else {
-            contentHtml = textToHtml(text);
-          }
-
-          return {
-            id: post.id || '',
-            bodyHtml: contentHtml,
-            createdAt: post.createdAt ? new Date(post.createdAt).toISOString() : new Date().toISOString()
-          };
-        }) || [];
+        const { postBodyHtml } = await import("@/lib/templates/core/post-body");
+        posts = postsData.value.posts?.map((post: any) => ({
+          id: post.id || '',
+          bodyHtml: postBodyHtml(post),
+          createdAt: post.createdAt ? new Date(post.createdAt).toISOString() : new Date().toISOString()
+        })) || [];
       }
 
       // Handle images data
