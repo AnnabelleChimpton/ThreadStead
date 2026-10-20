@@ -31,6 +31,8 @@ interface NewNewsItem {
   publishedAt?: string;
 }
 
+const SUMMARY_MAX = 500;
+
 export default function SiteNewsSection() {
   const { showError } = useToast();
   const confirm = useConfirm();
@@ -82,7 +84,12 @@ export default function SiteNewsSection() {
           'Content-Type': 'application/json'
         },
         credentials: 'include',
-        body: JSON.stringify(newItem)
+        // datetime-local has no time zone; send it as the admin's local time
+        // so the server doesn't read it in its own zone.
+        body: JSON.stringify({
+          ...newItem,
+          publishedAt: newItem.publishedAt ? new Date(newItem.publishedAt).toISOString() : undefined
+        })
       });
 
       if (response.ok) {
@@ -208,6 +215,7 @@ export default function SiteNewsSection() {
             <input
               type="text"
               placeholder="Title"
+              maxLength={255}
               value={newItem.title}
               onChange={(e) => setNewItem({...newItem, title: e.target.value})}
               className="border border-gray-300 rounded px-3 py-2"
@@ -262,6 +270,10 @@ export default function SiteNewsSection() {
             rows={3}
             className="w-full border border-gray-300 rounded px-3 py-2 mt-4"
           />
+          <p className={`text-xs mt-1 ${newItem.summary.length > SUMMARY_MAX ? 'text-red-700 font-semibold' : 'text-gray-600'}`}>
+            {newItem.summary.length}/{SUMMARY_MAX}
+            {newItem.summary.length > SUMMARY_MAX && '. Move the rest into the full content.'}
+          </p>
           <textarea
             placeholder="Full content (optional)"
             value={newItem.content}
@@ -271,7 +283,7 @@ export default function SiteNewsSection() {
           />
           <button
             onClick={createNewsItem}
-            disabled={!newItem.title || !newItem.summary}
+            disabled={!newItem.title || !newItem.summary || newItem.summary.length > SUMMARY_MAX}
             className="mt-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-400 transition-colors"
           >
             Create News Item
