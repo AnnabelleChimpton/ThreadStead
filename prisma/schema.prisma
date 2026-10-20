@@ -131,10 +131,8 @@ model Profile {
   avatarThumbnailUrl  String?
   customTemplate      String?
   hideNavigation      Boolean                  @default(false)
-  templateEnabled     Boolean                  @default(false)
   templateMode        TemplateMode             @default(default)
   badgePreferences    Json?
-  includeSiteCSS      Boolean                  @default(true)
   cssMode             String                   @default("inherit") // 'inherit' | 'override' | 'disable'
   profileMidiId       String?
   midiAutoplay        Boolean                  @default(false)
