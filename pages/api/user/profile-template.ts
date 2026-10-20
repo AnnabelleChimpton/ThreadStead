@@ -1,12 +1,10 @@
 import { db } from "@/lib/config/database/connection";
 import { apiHandler } from "@/lib/api/handler";
-import { getDefaultProfileTemplate, ProfileTemplateType } from "@/lib/templates/default-profile-templates";
+import { getDefaultProfileTemplate, isProfileThemeId } from "@/lib/templates/default-profile-templates";
 import { cleanCss } from "@/lib/utils/sanitization/css";
 import { snapshotProfileBeforeSave } from "@/lib/templates/revisions/template-revisions";
 import { layoutFields, layoutOf } from "@/lib/domain/profile/layout";
 import { PAGE_LOOK_SELECT, changesPageLook, pageUpdatedNow } from "@/lib/domain/profile/page-updates";
-
-const VALID_TEMPLATES: ProfileTemplateType[] = ['abstract-art', 'charcoal-nights', 'pixel-petals', 'retro-social', 'classic-linen'];
 
 export default apiHandler(
   {
@@ -23,12 +21,12 @@ export default apiHandler(
         const { template } = req.body as { template?: string };
         const none = template === 'none';
 
-        if (typeof template !== 'string' || (!none && !VALID_TEMPLATES.includes(template as ProfileTemplateType))) {
+        if (!none && !isProfileThemeId(template)) {
           return res.status(400).json({ error: "Invalid template selected" });
         }
 
         // Our own presets, but saved through the same sanitizer as everyone's CSS
-        const customCSS = none ? '' : cleanCss(getDefaultProfileTemplate(template as ProfileTemplateType));
+        const customCSS = none || !isProfileThemeId(template) ? '' : cleanCss(getDefaultProfileTemplate(template));
         const look = { customCSS, ...layoutFields({ layout: 'standard' }) };
 
         // A theme is the person updating their page (when it changes anything)

@@ -8,6 +8,8 @@ import { PixelIcon } from '@/components/ui/PixelIcon';
 import { validatePasswordStrength } from "@/lib/auth/password";
 import { validateUsername } from "@/lib/domain/validation/username";
 import { DEFAULT_PROFILE_TEMPLATE_INFO, ProfileTemplateType } from "@/lib/templates/default-profile-templates";
+import { THEMES } from '@/lib/templates/appearance';
+import ThemeSwatch from '@/components/features/profile/ThemeSwatch';
 import SignupFinaleAnimation from "@/components/features/onboarding/SignupFinaleAnimation";
 import { useGlobalAudio } from "@/contexts/GlobalAudioContext";
 import { getSiteConfig, SiteConfig } from "@/lib/config/site/dynamic";
@@ -982,21 +984,22 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
                 {/* Profile page colors: quiet, and they follow the house unless changed */}
                 <details className="mt-4 text-sm text-nb-ink">
                   <summary className="cursor-pointer text-center text-nb-ink-mid">
-                    Your page will use {DEFAULT_PROFILE_TEMPLATE_INFO[selectedTemplate].name} colors{pageTheme ? '' : ' to match'}
+                    Your page: {DEFAULT_PROFILE_TEMPLATE_INFO[selectedTemplate].name}. <span className="underline">Change</span>
                   </summary>
                   <fieldset className="mt-3">
                     <legend className="sr-only">Page colors</legend>
                     <div className="flex flex-wrap justify-center gap-x-4 gap-y-2">
-                      {(['classic-linen', 'charcoal-nights', 'pixel-petals', 'retro-social', 'abstract-art'] as ProfileTemplateType[]).map((t) => (
-                        <label key={t} className="flex items-center gap-1.5 cursor-pointer">
+                      {THEMES.map((t) => (
+                        <label key={t.id} className="flex items-center gap-1.5 cursor-pointer">
                           <input
                             type="radio"
                             name="page-theme"
-                            checked={selectedTemplate === t}
-                            onChange={() => setPageTheme(t)}
+                            checked={selectedTemplate === t.id}
+                            onChange={() => setPageTheme(t.id)}
                             className="accent-nb-ink"
                           />
-                          {DEFAULT_PROFILE_TEMPLATE_INFO[t].name}
+                          <ThemeSwatch vars={t.vars} name={t.name} compact />
+                          {t.name}
                         </label>
                       ))}
                     </div>

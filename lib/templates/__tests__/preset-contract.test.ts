@@ -1,5 +1,5 @@
 /**
- * The five profile presets (lib/templates/{abstract-art,…}.ts), as residents
+ * The profile presets (lib/templates/{classic-linen,…}.ts), as residents
  * get them at signup and from the theme picker:
  *  - their fonts come from this site, so a visitor's browser asks nobody else;
  *  - every font file they name exists under public/fonts/presets;
@@ -10,11 +10,11 @@
  */
 import fs from 'fs'
 import path from 'path'
-import { getDefaultProfileTemplate, type ProfileTemplateType } from '@/lib/templates/default-profile-templates'
+import { getDefaultProfileTemplate, PROFILE_THEME_IDS } from '@/lib/templates/default-profile-templates'
 import { PRESET_CHROME_CSS } from '@/lib/templates/preset-chrome'
 import { sanitizeCss } from '@/lib/utils/sanitization/css'
 
-const PRESETS: ProfileTemplateType[] = ['abstract-art', 'charcoal-nights', 'classic-linen', 'pixel-petals', 'retro-social']
+const PRESETS = PROFILE_THEME_IDS
 const VARIABLES = ['ground', 'card', 'ink', 'accent', 'on-accent', 'font-head', 'font-body']
 const fontsDir = path.resolve(__dirname, '../../../public/fonts/presets')
 
@@ -29,7 +29,8 @@ describe.each(PRESETS)('%s', (preset) => {
   })
 
   test('every font file it names is on disk', () => {
-    // Retro Social (Verdana) uses fonts every computer has, so it names none
+    // Retro Social (Verdana) and Starfield (Times New Roman) use fonts every
+    // computer has, so they name none
     const files = [...css.matchAll(/url\('\/fonts\/presets\/([^']+)'\)/g)].map((m) => m[1])
     for (const file of files) expect(fs.existsSync(path.join(fontsDir, file))).toBe(true)
   })

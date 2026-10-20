@@ -152,7 +152,7 @@ export default function FAQ({ siteConfig }: FAQProps) {
       questions: [
         {
           question: 'Do I need to know how to code?',
-          answer: 'Nope! The house is all point and click. For your page, the CSS editor has five themes you can use as they are: Abstract Art, Charcoal Nights, Pixel Petals, Retro Social and Classic Linen. If you do want to write code, you can change any of the CSS, or write the whole page yourself with a template.'
+          answer: 'Nope! The house is all point and click. For your page, Settings → Your page has five themes you can use as they are: Classic Linen, Charcoal Nights, Pixel Petals, Retro Social and Starfield. If you do want to write code, you can change any of the CSS, or write the whole page yourself with a template.'
         },
         {
           question: 'What\'s the difference between the CSS editor and templates?',
@@ -166,7 +166,7 @@ export default function FAQ({ siteConfig }: FAQProps) {
           question: 'How do templates work?',
           answer: (
             <>
-              The template editor comes with six starter templates. Load one and start changing things. The <Link href="/build/templates" className={link}>template guide</Link> lists every component you can use.
+              The HTML editor comes with five starter pages. Load one and start changing things. The <Link href="/build/templates" className={link}>template guide</Link> lists every component you can use.
             </>
           )
         },

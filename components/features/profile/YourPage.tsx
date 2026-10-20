@@ -19,6 +19,7 @@ import Link from 'next/link';
 import Button from '@/components/ui/Button';
 import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner';
 import WidgetSlotPicker from '@/components/features/profile/WidgetSlotPicker';
+import ThemeSwatch from '@/components/features/profile/ThemeSwatch';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import { useToast } from '@/contexts/ToastContext';
 import { useConfirm } from '@/contexts/ConfirmContext';
@@ -32,7 +33,6 @@ import {
   writeKnobs,
   type Knobs,
   type Theme,
-  type ThemeVars,
 } from '@/lib/templates/appearance';
 import { PRESET_FONT_FACES } from '@/lib/templates/preset-fonts';
 import { scopeAwayFromSiteChrome, transformAdvancedCss } from '@/lib/utils/css/css-transform';
@@ -111,30 +111,6 @@ const DOOR_CLASS =
   'block h-full p-3 border-2 border-black bg-white no-underline hover:bg-thread-cream focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2';
 // Settings' own link styles underline every link and win over the utility
 const DOOR_STYLE = { textDecoration: 'none' } as const;
-
-function ThemeSwatch({ vars, name }: { vars: ThemeVars; name: string }) {
-  const card = vars.card === 'transparent' ? vars.ground : vars.card;
-  return (
-    <span
-      aria-hidden="true"
-      className="block w-full p-3 border border-black/20"
-      style={{ background: vars.ground, color: vars.ink, fontFamily: vars.fontBody }}
-    >
-      <span className="block p-2" style={{ background: card, border: `1px solid ${vars.ink}33` }}>
-        <span className="block text-base leading-tight break-words" style={{ fontFamily: vars.fontHead }}>
-          {name}
-        </span>
-        <span className="block text-xs mt-1 opacity-80">Notes from my balcony</span>
-        <span
-          className="inline-block text-[11px] mt-2 px-2 py-0.5"
-          style={{ background: vars.accent, color: vars.onAccent }}
-        >
-          Guestbook
-        </span>
-      </span>
-    </span>
-  );
-}
 
 export default function YourPage({ username }: { username: string }) {
   const { showSuccess, showError } = useToast();
@@ -444,12 +420,11 @@ export default function YourPage({ username }: { username: string }) {
                       onClick={() => chooseTheme(theme)}
                       title={theme.description}
                     >
-                      <ThemeSwatch vars={theme.vars} name={theme.name} />
+                      <ThemeSwatch vars={theme.vars} name={theme.name} line={theme.description} />
                       <span className="block text-sm font-semibold mt-1 text-nb-ink">
                         {theme.name}
                         {on && <span className="font-normal text-nb-ink-mid"> (on)</span>}
                       </span>
-                      <span className="block text-xs text-nb-ink-mid">{theme.description}</span>
                     </button>
                   </li>
                 );
@@ -469,7 +444,7 @@ export default function YourPage({ username }: { username: string }) {
                     </span>
                   </span>
                   <span className="block text-sm font-semibold mt-1 text-nb-ink">No theme</span>
-                  <span className="block text-xs text-nb-ink-mid">The notebook look everyone starts with</span>
+                  <span className="block text-xs text-nb-ink-mid">The site&apos;s own notebook look.</span>
                 </button>
               </li>
             </ul>

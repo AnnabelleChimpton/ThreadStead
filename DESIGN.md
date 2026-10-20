@@ -45,9 +45,9 @@ A gradient that always looks at home:
 
 ## Start From a Preset
 
-The CSS editor's Theme Gallery has five complete, working starting points:
-**Abstract Art**, **Charcoal Nights**, **Pixel Petals**, **Retro Social**,
-and **Classic Linen**. Pick the one closest to your vision, then edit — every
+Settings > Your page (and the CSS editor's theme gallery) has five complete,
+working starting points: **Classic Linen**, **Charcoal Nights**, **Pixel
+Petals**, **Retro Social** and **Starfield**. Pick the one closest to your vision, then edit — every
 preset is ordinary CSS you can read and change line by line. This is the
 fastest route to a beautiful page.
 

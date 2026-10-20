@@ -104,14 +104,14 @@ const cssData: Record<string, CSSSection[]> = {
       )
     },
     {
-      name: 'Template Showcase: Abstract Art Gallery',
-      description: 'See how our Abstract Art template transforms a profile into a modern art gallery. Every element is styled with purpose!',
+      name: 'Example: an art gallery',
+      description: 'A whole page done in CSS alone: a canvas background with paint splatters, a gallery wall with track lights, a name in shifting colours.',
       classes: [
         { name: '.thread-surface', description: 'Canvas background with paint splatters' },
         { name: '.ts-profile-header', description: 'A white gallery wall with a strip of track lights' },
         { name: '.ts-profile-display-name', description: 'Your name in slowly shifting paint colors' }
       ],
-      example: `/* Abstract Art Gallery Template - Full Power of CSS! */
+      example: `/* An art gallery, in CSS alone */
 
 /* Transform the entire page into an art gallery */
 .thread-surface {

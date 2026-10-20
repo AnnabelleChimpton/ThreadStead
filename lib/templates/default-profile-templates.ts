@@ -1,91 +1,73 @@
-// Import all template constants from separate files
-import { ABSTRACT_ART_TEMPLATE } from './abstract-art';
+// The themes people pick for their page (signup, Settings > Your page, the
+// CSS editor's Browse Themes). This list is the only one: everything that
+// shows or accepts a theme reads it. A theme is saved as a copy of its CSS,
+// so dropping one here leaves the pages that already use it as they are.
 import { CHARCOAL_NIGHTS_TEMPLATE } from './charcoal-nights';
 import { PIXEL_PETALS_TEMPLATE } from './pixel-petals';
 import { RETRO_SOCIAL_TEMPLATE } from './retro-social';
 import { CLASSIC_LINEN_TEMPLATE } from './classic-linen';
+import { WEB1_STARFIELD_TEMPLATE } from './web1-starfield';
 
-// Type definitions
-export type ProfileTemplateType = 'abstract-art' | 'charcoal-nights' | 'pixel-petals' | 'retro-social' | 'classic-linen';
+export type ProfileTemplateType = 'classic-linen' | 'charcoal-nights' | 'pixel-petals' | 'retro-social' | 'web1-starfield';
 
-// Re-export all template constants for backward compatibility
 export {
-  ABSTRACT_ART_TEMPLATE,
   CHARCOAL_NIGHTS_TEMPLATE,
   PIXEL_PETALS_TEMPLATE,
   RETRO_SOCIAL_TEMPLATE,
-  CLASSIC_LINEN_TEMPLATE
+  CLASSIC_LINEN_TEMPLATE,
+  WEB1_STARFIELD_TEMPLATE
 };
 
-// Template selection function
-export function getDefaultProfileTemplate(type: ProfileTemplateType | 'clear' = 'abstract-art'): string {
-  switch (type) {
-    case 'abstract-art':
-      return ABSTRACT_ART_TEMPLATE;
-    case 'charcoal-nights':
-      return CHARCOAL_NIGHTS_TEMPLATE;
-    case 'pixel-petals':
-      return PIXEL_PETALS_TEMPLATE;
-    case 'retro-social':
-      return RETRO_SOCIAL_TEMPLATE;
-    case 'classic-linen':
-      return CLASSIC_LINEN_TEMPLATE;
-    case 'clear':
-      return '';
-    default:
-      return ABSTRACT_ART_TEMPLATE;
-  }
+const TEMPLATES: Record<ProfileTemplateType, string> = {
+  'classic-linen': CLASSIC_LINEN_TEMPLATE,
+  'charcoal-nights': CHARCOAL_NIGHTS_TEMPLATE,
+  'pixel-petals': PIXEL_PETALS_TEMPLATE,
+  'retro-social': RETRO_SOCIAL_TEMPLATE,
+  'web1-starfield': WEB1_STARFIELD_TEMPLATE,
+};
+
+/** A theme's CSS ('clear' is no CSS). An unknown id gets Classic Linen. */
+export function getDefaultProfileTemplate(type: ProfileTemplateType | 'clear' = 'classic-linen'): string {
+  if (type === 'clear') return '';
+  return TEMPLATES[type] ?? CLASSIC_LINEN_TEMPLATE;
 }
 
-// Template metadata for UI display
+// Names and one-line descriptions, in the order pickers show them
 export const DEFAULT_PROFILE_TEMPLATE_INFO = {
-  'abstract-art': {
-    name: 'Abstract Art',
-    description: 'A gallery wall: warm white, charcoal and Bauhaus red, blue and mustard',
-    emoji: '🎨'
+  'classic-linen': {
+    name: 'Classic Linen',
+    description: 'A cream page set in a bookish serif.',
   },
   'charcoal-nights': {
     name: 'Charcoal Nights',
-    description: 'Ink and ember: dark charcoal with an orange accent and a serif',
-    emoji: '🖤'
+    description: 'A dark page with orange links, for reading at night.',
   },
   'pixel-petals': {
     name: 'Pixel Petals',
-    description: 'A tidy pink garden with pixel headings',
-    emoji: '🌸'
+    description: 'Pink and white, with headings in a pixel font.',
   },
   'retro-social': {
     name: 'Retro Social',
-    description: 'A mid-2000s profile page in blue and white',
-    emoji: '📱'
+    description: 'Blue bars and small Verdana, like a 2005 profile page.',
   },
-  'classic-linen': {
-    name: 'Classic Linen',
-    description: 'Quiet and bookish: linen, ink and olive, set in a serif',
-    emoji: '🧵'
+  'web1-starfield': {
+    name: 'Starfield',
+    description: 'Stars, Times New Roman and bright links, like a 1999 homepage.',
   },
   'clear': {
     name: 'Clear',
-    description: 'No custom styling',
-    emoji: '🧹'
-  }
+    description: 'No theme: the site\'s own notebook look.',
+  },
 };
 
-// Get all available template types
+/** Every theme id plus 'clear' */
 export function getAvailableTemplateTypes() {
   return Object.keys(DEFAULT_PROFILE_TEMPLATE_INFO) as Array<keyof typeof DEFAULT_PROFILE_TEMPLATE_INFO>;
 }
 
-// Template loading utility
-export function loadTemplate(templateName: string): string {
-  const templates = {
-    'abstract-art': ABSTRACT_ART_TEMPLATE,
-    'charcoal-nights': CHARCOAL_NIGHTS_TEMPLATE,
-    'pixel-petals': PIXEL_PETALS_TEMPLATE,
-    'retro-social': RETRO_SOCIAL_TEMPLATE,
-    'classic-linen': CLASSIC_LINEN_TEMPLATE,
-    'clear': ''
-  };
+/** The theme ids, without 'clear' */
+export const PROFILE_THEME_IDS = Object.keys(TEMPLATES) as ProfileTemplateType[];
 
-  return templates[templateName as keyof typeof templates] || ABSTRACT_ART_TEMPLATE;
+export function isProfileThemeId(id: unknown): id is ProfileTemplateType {
+  return typeof id === 'string' && (PROFILE_THEME_IDS as string[]).includes(id);
 }

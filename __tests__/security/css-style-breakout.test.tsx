@@ -17,7 +17,7 @@ import path from 'path'
 import React from 'react'
 import { renderToString } from 'react-dom/server'
 import { cleanCss, escapeCssForStyleTag, sanitizeCss } from '@/lib/utils/sanitization/css'
-import { getDefaultProfileTemplate } from '@/lib/templates/default-profile-templates'
+import { getDefaultProfileTemplate, PROFILE_THEME_IDS } from '@/lib/templates/default-profile-templates'
 
 const MARKER = '<b id="breakout-marker">outside</b>'
 
@@ -99,7 +99,7 @@ describe('sanitizeCss', () => {
     expect(removed).toHaveLength(3)
   })
 
-  test.each(['abstract-art', 'charcoal-nights', 'pixel-petals', 'retro-social', 'classic-linen'] as const)(
+  test.each(PROFILE_THEME_IDS)(
     'the %s preset comes through with nothing removed',
     (preset) => {
       const source = getDefaultProfileTemplate(preset)

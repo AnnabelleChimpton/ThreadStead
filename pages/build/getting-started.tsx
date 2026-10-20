@@ -10,6 +10,8 @@ import Head from "next/head";
 import FeatureGate, { NewUserTooltip } from "@/components/features/onboarding/FeatureGate";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { PixelIcon } from "@/components/ui/PixelIcon";
+import ThemeSwatch from '@/components/features/profile/ThemeSwatch';
+import { THEMES } from '@/lib/templates/appearance';
 import { useWelcomeRingMissing, WELCOME_RING_PATH } from "@/components/features/onboarding/useWelcomeRing";
 
 interface GettingStartedProps {
@@ -365,41 +367,16 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                   </div>
 
                   <div className="space-y-3">
-                    <h4 className="font-bold">Default Themes</h4>
+                    <h4 className="font-bold">Themes</h4>
                     <p className="text-sm text-nb-ink-mid">Pick one to start from, then change whatever you like:</p>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                      <div className="border-2 border-black shadow-[2px_2px_0_#000] p-3 bg-gradient-to-br from-purple-100 via-pink-100 to-yellow-100">
-                        <div className="text-lg mb-1"><PixelIcon name="paint-bucket" size={18} /></div>
-                        <div className="font-bold text-xs">Abstract Art</div>
-                        <div className="text-xs text-nb-ink-mid mt-1">Bright and loud</div>
-                      </div>
-                      <div className="border-2 border-black shadow-[2px_2px_0_#000] p-3 bg-gray-900 text-white">
-                        <div className="text-lg mb-1"><PixelIcon name="heart" size={18} /></div>
-                        <div className="font-bold text-xs text-green-400 font-mono">Charcoal Nights</div>
-                        <div className="text-xs text-green-300 mt-1">Terminal aesthetic</div>
-                      </div>
-                      <div className="border-2 border-black shadow-[2px_2px_0_#000] p-3 bg-gradient-to-br from-pink-200 to-purple-100">
-                        <div className="text-lg mb-1"><PixelIcon name="drop" size={18} /></div>
-                        <div className="font-bold text-xs text-nb-ink">Pixel Petals</div>
-                        <div className="text-xs text-pink-600 mt-1">Pink and soft</div>
-                      </div>
-                      <div className="border-2 border-black shadow-[2px_2px_0_#000] p-3 bg-gradient-to-br from-blue-100 to-purple-100">
-                        <div className="text-lg mb-1"><PixelIcon name="users" size={18} /></div>
-                        <div className="font-bold text-xs text-nb-ink">Retro Social</div>
-                        <div className="text-xs text-blue-600 mt-1">Profile boxes, MySpace-style</div>
-                      </div>
-                      <div className="border-2 border-black shadow-[2px_2px_0_#000] p-3" style={{background: 'repeating-linear-gradient(45deg, #f5f5f0, #f5f5f0 10px, #fafaf5 10px, #fafaf5 20px)'}}>
-                        <div className="text-lg mb-1"><PixelIcon name="link" size={18} /></div>
-                        <div className="font-bold text-xs text-amber-800">Classic Linen</div>
-                        <div className="text-xs text-amber-700 mt-1">Paper and ink</div>
-                      </div>
-                      <div className="border-2 border-black shadow-[2px_2px_0_#000] p-3 bg-white">
-                        <div className="text-lg mb-1"><PixelIcon name="zap" size={18} /></div>
-                        <div className="font-bold text-xs">Start Fresh</div>
-                        <div className="text-xs text-nb-ink-mid mt-1">A blank page</div>
-                      </div>
-                    </div>
-                    <p className="text-xs text-nb-ink-mid">When you sign up, your page colors are matched to the house you pick. You can switch to any of these later with Browse Themes in the CSS editor.</p>
+                    <ul className="grid grid-cols-2 md:grid-cols-3 gap-3 list-none p-0 m-0">
+                      {THEMES.map((theme) => (
+                        <li key={theme.id}>
+                          <ThemeSwatch vars={theme.vars} name={theme.name} line={theme.description} />
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="text-xs text-nb-ink-mid">When you sign up, your page takes the colours of the house you pick. You can change it any time in Settings, under Your page.</p>
                   </div>
                 </div>
               </RetroCard>

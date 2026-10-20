@@ -529,7 +529,7 @@ export default function CSSEditorPage({
                         <strong>Just styling your default layout.</strong> Start with a theme or write custom CSS to change colors, fonts, and spacing.
                       </p>
                       <p className="text-xs text-gray-600 mt-1">
-                        New to CSS? <strong className="text-green-700">Load a theme</strong> below (Pixel Petals, Abstract Art, etc.) then make it yours. •
+                        New to CSS? <strong className="text-green-700">Load a theme</strong> and change it from there. •
                         Click <strong className="text-blue-700">&quot;Preview&quot;</strong> to see changes live. •
                         Click <strong className="text-green-700">&quot;Save CSS&quot;</strong> to put your styles live. •
                         Want your own layout? Try <Link href="/build/templates/tutorials/make-it-yours" className="text-blue-600 hover:underline">writing your own HTML page</Link>.
@@ -741,7 +741,7 @@ export default function CSSEditorPage({
             }
             setCSS(themeCSS);
             setShowThemeGallery(false);
-            showSuccess(`${themeName} loaded — save to put it live.`);
+            showSuccess(`${themeName} is in the editor. Save to put it on your page.`);
           }}
           onClose={() => setShowThemeGallery(false)}
         />
@@ -759,7 +759,7 @@ export default function CSSEditorPage({
             setCSS(rev.customCSS || emptyCSS);
             setCSSMode(siteStylesCSSMode(rev.cssMode));
             setShowHistoryPanel(false);
-            showSuccess('Version loaded — save to put it live.');
+            showSuccess('That version is in the editor. Save to put it on your page.');
           }}
         />
       )}

@@ -15,7 +15,8 @@ import ImagePicker, { type ImagePane } from '@/components/features/templates/Ima
 import { fetchResidentData } from '@/lib/templates/core/template-data';
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
 import type { CompiledTemplate } from '@/lib/templates/compilation/compiler';
-import { getDefaultProfileTemplate, DEFAULT_PROFILE_TEMPLATE_INFO } from '@/lib/templates/default-profile-templates';
+import { getDefaultProfileTemplate } from '@/lib/templates/default-profile-templates';
+import { THEMES, detectTheme } from '@/lib/templates/appearance';
 import TemplatePanelSelector from './TemplatePanelSelector';
 import StarterTemplateGallery from './StarterTemplateGallery';
 import Link from 'next/link';
@@ -1755,11 +1756,9 @@ export default function EnhancedTemplateEditor({
                             className="text-sm px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50"
                           >
                             <option value="">Choose a CSS theme...</option>
-                            <option value="abstract-art">Abstract Art</option>
-                            <option value="charcoal-nights">Charcoal Nights</option>
-                            <option value="pixel-petals">Pixel Petals</option>
-                            <option value="retro-social">Retro Social</option>
-                            <option value="classic-linen">Classic Linen</option>
+                            {THEMES.map((theme) => (
+                              <option key={theme.id} value={theme.id}>{theme.name}</option>
+                            ))}
                           </select>
                         </div>
                       </div>
@@ -1933,13 +1932,13 @@ export default function EnhancedTemplateEditor({
                     </button>
                   ) : (
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-thread-sage">Template:</span>
+                      <span className="text-xs text-thread-sage">Theme:</span>
                       <select
                         onChange={(e) => {
                           if (e.target.value === '') return;
                           showDataLossWarning(
-                            "Load CSS Template",
-                            `This will replace your current CSS with the template. Any unsaved changes will be lost.`,
+                            "Load a theme",
+                            `This replaces the CSS in the editor with the theme. Unsaved changes will be lost.`,
                             () => {
                               const templateCSS = getDefaultProfileTemplate(e.target.value as any);
                               setCustomCSS(templateCSS);
@@ -1950,13 +1949,11 @@ export default function EnhancedTemplateEditor({
                         }}
                         className="text-xs px-2 py-1 border border-thread-sage rounded bg-thread-paper hover:bg-thread-cream"
                       >
-                        <option value="">Load Template...</option>
-                        <option value="abstract-art">Abstract Art</option>
-                        <option value="charcoal-nights">Charcoal Nights</option>
-                        <option value="pixel-petals">Pixel Petals</option>
-                        <option value="retro-social">Retro Social</option>
-                        <option value="classic-linen">Classic Linen</option>
-                        <option value="clear">Clear CSS</option>
+                        <option value="">Load a theme…</option>
+                        {THEMES.map((theme) => (
+                          <option key={theme.id} value={theme.id}>{theme.name}</option>
+                        ))}
+                        <option value="clear">Blank</option>
                       </select>
                     </div>
                   )}
@@ -2004,28 +2001,11 @@ export default function EnhancedTemplateEditor({
                   <span className="thread-label text-lg">
                     {useStandardLayout ? 'Custom CSS for Standard Layout' : 'Template CSS'}
                   </span>
-                  {useStandardLayout && customCSS && (() => {
-                    // Detect current template
-                    const templates: Array<{id: string, name: string}> = [
-                      {id: 'abstract-art', name: 'Abstract Art'},
-                      {id: 'charcoal-nights', name: 'Charcoal Nights'},
-                      {id: 'pixel-petals', name: 'Pixel Petals'},
-                      {id: 'retro-social', name: 'Retro Social'},
-                      {id: 'classic-linen', name: 'Classic Linen'}
-                    ];
-                    
-                    for (const template of templates) {
-                      const templateCSS = getDefaultProfileTemplate(template.id as any);
-                      const normalize = (str: string) => str.replace(/\s+/g, ' ').trim().substring(0, 200);
-                      if (normalize(customCSS).includes(normalize(templateCSS).substring(0, 100))) {
-                        return (
-                          <span className="ml-3 px-2 py-1 bg-green-100 text-green-700 text-xs rounded font-medium">
-                            ✓ {template.name} Theme Applied
-                          </span>
-                        );
-                      }
-                    }
-                    return null;
+                  {useStandardLayout && (() => {
+                    const theme = THEMES.find((t) => t.id === detectTheme(customCSS));
+                    return theme ? (
+                      <span className="ml-3 text-xs text-nb-ink-mid">Started from {theme.name}</span>
+                    ) : null;
                   })()}
                 </label>
                 

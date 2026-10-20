@@ -1,7 +1,7 @@
 /**
  * Settings → Your page: themes and the few knobs on top of them.
  *
- * A theme is one of the five presets (lib/templates/{abstract-art,…}.ts).
+ * A theme is one of the presets (lib/templates/default-profile-templates.ts).
  * Each declares its colours and fonts as --ts-* variables in one :root block,
  * so a knob is a single variable. The knobs live in a marked block at the end
  * of the person's CSS, rewritten whole on each save, so their own CSS above it
@@ -12,10 +12,11 @@ import { PRESET_FONT_FACES } from './preset-fonts';
 import {
   DEFAULT_PROFILE_TEMPLATE_INFO,
   getDefaultProfileTemplate,
+  PROFILE_THEME_IDS,
   type ProfileTemplateType,
 } from './default-profile-templates';
 
-export const THEME_IDS: ProfileTemplateType[] = ['classic-linen', 'abstract-art', 'charcoal-nights', 'pixel-petals', 'retro-social'];
+export const THEME_IDS: ProfileTemplateType[] = PROFILE_THEME_IDS;
 
 export interface ThemeVars {
   ground: string;
