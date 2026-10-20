@@ -209,7 +209,7 @@ ${presetFontFaces(['Righteous'])}
 .blog-post-date {
   font-family: var(--ts-font-body) !important;
   font-size: 0.7rem !important;
-  color: #5a6a8f !important;
+  color: #47557a !important;
   font-style: italic !important;
 }
 

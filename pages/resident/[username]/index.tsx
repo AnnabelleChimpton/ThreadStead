@@ -32,6 +32,7 @@ import { contentMetadataGenerator } from "@/lib/utils/metadata/content-metadata"
 import { getSiteCSS } from "@/lib/utils/css/site-css-server";
 import { resolveCSSMode } from "@/lib/utils/css/css-mode";
 import { pageCSS, siteStylesOn } from "@/lib/domain/profile/layout";
+import { usesThemeVars } from "@/lib/templates/appearance";
 import { serializeJsonLd } from "@/lib/utils/sanitization/json-ld";
 
 
@@ -323,6 +324,7 @@ export default function ProfilePage({
         cssMode={cssMode}
         initialSiteCSS={initialSiteCSS}
         afterNav={stepOutside}
+        themed={usesThemeVars(customCSS)}
       >
         <RetroCard>
           <ProfileHeader

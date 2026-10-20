@@ -238,7 +238,7 @@ ${presetFontFaces(['Fraunces', 'Inter'])}
 }
 
 .blog-post-date {
-  color: #7c7365 !important;
+  color: #9a9182 !important;
   font-family: var(--ts-font-body) !important;
   font-size: 0.75rem !important;
   font-variant-numeric: tabular-nums !important;

@@ -1,0 +1,93 @@
+/*
+ * The site's own parts of a themed profile page (posts for now), in the
+ * theme's colours.
+ *
+ * Each person's theme is a copy of a preset, made when they picked it, so a
+ * fix to the presets never reaches a page that already has one. These rules
+ * live with the site instead and read the theme's own variables (--ts-ink,
+ * --ts-accent…, declared by every preset and changed by the Appearance
+ * knobs). The profile page sets data-ts-theme only when its CSS declares
+ * them (usesThemeVars), so a page without a theme looks exactly as before.
+ *
+ * Unlayered, like retro.css, so it beats Tailwind's utilities (the parts'
+ * default colours). The [data-ts-theme] part sits in :where(), so each rule
+ * weighs one class: it ties with retro.css (and wins by coming after it), and
+ * the person's own CSS, which loads after this, still wins over it.
+ */
+/* ---------- posts ---------- */
+:where([data-ts-theme]) .post-item {
+  color: var(--ts-ink);
+}
+:where([data-ts-theme] .post-item) .blog-post-title {
+  color: var(--ts-ink);
+  font-family: var(--ts-font-head);
+}
+:where([data-ts-theme] .post-item a:hover) .blog-post-title,
+:where([data-ts-theme] .post-item) .blog-post-author:hover {
+  color: var(--ts-accent);
+}
+:where([data-ts-theme] .post-item) .blog-post-author {
+  color: var(--ts-ink);
+}
+/* The theme's .blog-post-content colour reaches the text */
+:where([data-ts-theme] .post-item) .blog-post-content {
+  color: var(--ts-ink);
+}
+:where([data-ts-theme] .post-item) .thread-content {
+  color: inherit;
+}
+:where([data-ts-theme] .post-item) .blog-post-date,
+:where([data-ts-theme] .post-item) .text-thread-sage {
+  color: color-mix(in srgb, var(--ts-ink) 80%, transparent);
+}
+/* retro.css gives quotes a cream wash, a light box on dark themes */
+:where([data-ts-theme] .post-item) .thread-content blockquote {
+  background: color-mix(in srgb, var(--ts-ink) 6%, transparent);
+  border-left-color: var(--ts-accent);
+  color: inherit;
+}
+:where([data-ts-theme] .post-item) .blog-post-intent,
+:where([data-ts-theme] .post-item) .blog-post-tag {
+  background: color-mix(in srgb, var(--ts-ink) 8%, transparent);
+  border-color: color-mix(in srgb, var(--ts-ink) 20%, transparent);
+  color: var(--ts-ink);
+}
+/* A long post fades out by a mask, whatever colour the card is; the
+   paper-coloured overlay was a light band across dark themes */
+:where([data-ts-theme] .post-item) .mask-linear-fade {
+  mask-image: linear-gradient(to bottom, #000 60%, transparent);
+}
+:where([data-ts-theme] .post-item) .blog-post-fade {
+  background: none;
+  position: static;
+  padding-top: 0;
+}
+:where([data-ts-theme] .post-item) .blog-post-more {
+  background: var(--ts-accent);
+  border-color: var(--ts-accent);
+  color: var(--ts-on-accent);
+}
+:where([data-ts-theme] .post-item) .blog-post-more span {
+  color: inherit;
+}
+:where([data-ts-theme] .post-item) .blog-post-actions button[aria-haspopup],
+:where([data-ts-theme] .post-item) .blog-post-actions > div > button {
+  background: transparent;
+  border-color: color-mix(in srgb, var(--ts-ink) 35%, transparent);
+  box-shadow: none;
+  color: var(--ts-ink);
+}
+:where([data-ts-theme] .post-item) .blog-post-footer {
+  border-color: color-mix(in srgb, var(--ts-ink) 15%, transparent);
+}
+:where([data-ts-theme] .post-item) .blog-post-footer .text-thread-pine {
+  color: var(--ts-ink);
+}
+:where([data-ts-theme] .post-item) .blog-post-footer button {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+:where([data-ts-theme] .post-item) .blog-post-footer button:hover {
+  background: color-mix(in srgb, var(--ts-ink) 8%, transparent);
+}

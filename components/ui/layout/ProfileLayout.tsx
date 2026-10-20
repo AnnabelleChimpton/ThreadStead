@@ -15,6 +15,9 @@ interface ProfileLayoutProps {
   initialSiteCSS?: string; // Pre-fetched site CSS from SSR to prevent hydration mismatches
   /** Site chrome under the nav (or at the very top when the nav is hidden) */
   afterNav?: React.ReactNode;
+  /** The page's CSS is a theme (it sets --ts-ink…): styles/theme-parts.css
+      gives the site's own parts its colours */
+  themed?: boolean;
 }
 
 export default function ProfileLayout({
@@ -25,7 +28,8 @@ export default function ProfileLayout({
   templateMode = 'default',
   cssMode = 'inherit',
   initialSiteCSS,
-  afterNav
+  afterNav,
+  themed = false
 }: ProfileLayoutProps) {
   // Shared resolver: the same resolution the profile-page SSR uses, so
   // server and client agree.
@@ -62,7 +66,7 @@ export default function ProfileLayout({
       {/* Inside Layout, not around it: templates style .ts-profile-container
           as the profile's card (width, border, background), and wrapping
           the site header/footer in it squeezed the nav out of its box. */}
-      <div className="ts-profile-container" data-component="profile-layout">
+      <div className="ts-profile-container" data-component="profile-layout" data-ts-theme={themed ? '' : undefined}>
         <div className="ts-profile-content-wrapper">
           <div className="ts-profile-main-content">
             {children}

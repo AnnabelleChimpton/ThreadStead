@@ -44,6 +44,16 @@ const VAR_NAMES: Record<keyof ThemeVars, string> = {
   fontBody: '--ts-font-body',
 };
 
+/**
+ * Whether a stylesheet is (or started as) a theme: every theme sets --ts-ink.
+ * The profile page marks the page for styles/theme-parts.css with it, which
+ * reaches pages whose theme was saved before the site's parts had theme
+ * classes (each person's theme is a copy, made when they picked it).
+ */
+export function usesThemeVars(css: string | null | undefined): boolean {
+  return !!css && /--ts-ink\s*:/.test(css);
+}
+
 /** The theme variables a stylesheet's first :root block declares, or null if it has none. */
 export function readThemeVars(css: string): ThemeVars | null {
   const root = css.match(/(?:^|[\s}]):root\s*\{([^}]*)\}/);

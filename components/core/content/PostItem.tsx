@@ -411,11 +411,11 @@ export default function PostItem({
     <article
       ref={viewportRef}
       id={`post-${post.id.slice(-6)}`}
-      className={`post-item bg-thread-paper border-y sm:border border-thread-sage/30 p-5 sm:p-8 mb-6 sm:rounded-cozy shadow-cozy-sm hover:shadow-cozy transition-all duration-300 ${post.isPinned ? 'border-yellow-500 border-2' : ''}`}
+      className={`post-item blog-post-card bg-thread-paper border-y sm:border border-thread-sage/30 p-5 sm:p-8 mb-6 sm:rounded-cozy shadow-cozy-sm hover:shadow-cozy transition-all duration-300 ${post.isPinned ? 'border-yellow-500 border-2' : ''}`}
       data-post-id={post.id.slice(-6)}
     >
       {/* Author Info & Header */}
-      <header className="flex items-center gap-4 mb-5">
+      <header className="blog-post-header flex items-center gap-4 mb-5">
         {authorAvatarUrl ? (
           <Image
             src={authorAvatarUrl}
@@ -438,13 +438,13 @@ export default function PostItem({
               <UserMention
                 username={authorUsername}
                 displayName={authorName}
-                className="font-bold text-lg text-thread-pine hover:text-thread-sunset transition-colors truncate"
+                className="blog-post-author font-bold text-lg text-thread-pine hover:text-thread-sunset transition-colors truncate"
               />
             ) : (
-              <span className="font-bold text-lg text-thread-pine truncate">{authorName}</span>
+              <span className="blog-post-author font-bold text-lg text-thread-pine truncate">{authorName}</span>
             )}
-            <span className="text-thread-sage text-sm">•</span>
-            <span className="text-thread-sage text-sm font-medium">{postDate}</span>
+            <span className="text-thread-sage text-sm" aria-hidden="true">•</span>
+            <span className="blog-post-date text-thread-sage text-sm font-medium">{postDate}</span>
             {isOwner && <VisibilityBadge visibility={post.visibility} />}
             {post.isPinned && (
               <span className="inline-flex items-center gap-1 text-xs bg-thread-cream text-thread-pine px-2 py-1 border border-thread-sage/50 rounded ml-2">
@@ -601,16 +601,16 @@ export default function PostItem({
                     >
                       {post.intent ? (
                         <div className="space-y-2">
-                          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-thread-cream/50 border border-thread-sage/20 text-sm text-thread-pine/80">
+                          <div className="blog-post-intent inline-flex items-center gap-2 px-3 py-1 rounded-full bg-thread-cream/50 border border-thread-sage/20 text-sm text-thread-pine/80">
                             <span className="font-semibold">{authorName}</span>
                             <span>is {post.intent}</span>
                           </div>
-                          <h2 className="text-2xl sm:text-3xl font-bold text-black leading-tight group-hover:text-thread-sunset transition-colors font-display tracking-tight">
+                          <h2 className="blog-post-title text-2xl sm:text-3xl font-bold text-black leading-tight group-hover:text-thread-sunset transition-colors font-display tracking-tight">
                             {post.title}
                           </h2>
                         </div>
                       ) : (
-                        <h2 className="text-2xl sm:text-3xl font-bold text-black leading-tight group-hover:text-thread-sunset transition-colors font-display tracking-tight">
+                        <h2 className="blog-post-title text-2xl sm:text-3xl font-bold text-black leading-tight group-hover:text-thread-sunset transition-colors font-display tracking-tight">
                           {post.title}
                         </h2>
                       )}
@@ -619,16 +619,16 @@ export default function PostItem({
                     <div>
                       {post.intent ? (
                         <div className="space-y-2">
-                          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-thread-cream/50 border border-thread-sage/20 text-sm text-thread-pine/80">
+                          <div className="blog-post-intent inline-flex items-center gap-2 px-3 py-1 rounded-full bg-thread-cream/50 border border-thread-sage/20 text-sm text-thread-pine/80">
                             <span className="font-semibold">{authorName}</span>
                             <span>is {post.intent}</span>
                           </div>
-                          <h2 className="text-2xl sm:text-3xl font-bold text-black leading-tight font-display tracking-tight">
+                          <h2 className="blog-post-title text-2xl sm:text-3xl font-bold text-black leading-tight font-display tracking-tight">
                             {post.title}
                           </h2>
                         </div>
                       ) : (
-                        <h2 className="text-2xl sm:text-3xl font-bold text-black leading-tight font-display tracking-tight">
+                        <h2 className="blog-post-title text-2xl sm:text-3xl font-bold text-black leading-tight font-display tracking-tight">
                           {post.title}
                         </h2>
                       )}
@@ -665,10 +665,10 @@ export default function PostItem({
                         {contentElement}
                       </div>
                       {shouldEnableTruncation && needsTruncation(rawContent) && (
-                        <div className={`mt-4 flex justify-center ${!isExpanded ? 'absolute bottom-0 left-0 right-0 pt-20 pb-0 bg-gradient-to-t from-thread-paper to-transparent' : ''}`}>
+                        <div className={`mt-4 flex justify-center ${!isExpanded ? 'blog-post-fade absolute bottom-0 left-0 right-0 pt-20 pb-0 bg-gradient-to-t from-thread-paper to-transparent' : ''}`}>
                           <button
                             onClick={() => setIsExpanded(!isExpanded)}
-                            className="group flex items-center gap-2 px-6 py-2 bg-white border border-thread-sage/30 rounded-full shadow-sm hover:shadow-md hover:border-thread-sunset/50 transition-all"
+                            className="blog-post-more group flex items-center gap-2 px-6 py-2 bg-white border border-thread-sage/30 rounded-full shadow-sm hover:shadow-md hover:border-thread-sunset/50 transition-all"
                           >
                             <span className="text-sm font-semibold text-thread-pine group-hover:text-thread-sunset">
                               {isExpanded ? 'Show less' : 'Continue reading'}
@@ -728,7 +728,7 @@ export default function PostItem({
                   {post.tags.map((tag, idx) => (
                     <span
                       key={idx}
-                      className="px-3 py-1 bg-thread-cream/60 border border-thread-sage/10 rounded-lg text-sm text-thread-pine hover:bg-thread-cream hover:border-thread-sage/30 transition-colors cursor-pointer"
+                      className="blog-post-tag px-3 py-1 bg-thread-cream/60 border border-thread-sage/10 rounded-lg text-sm text-thread-pine hover:bg-thread-cream hover:border-thread-sage/30 transition-colors cursor-pointer"
                     >
                       #{tag}
                     </span>
@@ -790,7 +790,7 @@ export default function PostItem({
         return !isForkNotification;
       })() && (
           <>
-            <footer className="flex items-center justify-between pt-4 border-t-2 border-thread-sage/10">
+            <footer className="blog-post-footer flex items-center justify-between pt-4 border-t-2 border-thread-sage/10">
               <div className="flex items-center gap-4">
                 <button
                   type="button"

@@ -545,17 +545,21 @@ const cssData: Record<string, CSSSection[]> = {
         { name: '.ts-new-post-section', description: 'New post button area' },
         { name: '.ts-no-posts-message', description: 'Empty state message' },
         { name: '.ts-blog-loading', description: 'Loading state for blog posts' },
-        { name: '.blog-post', description: 'Individual blog post' },
-        { name: '.blog-post-header', description: 'Post header with date/meta' },
+        { name: '.blog-post-card', description: 'Individual blog post' },
+        { name: '.blog-post-header', description: 'Post header: picture, name and date' },
+        { name: '.blog-post-author', description: 'Who wrote the post' },
+        { name: '.blog-post-date', description: 'When it was posted' },
+        { name: '.blog-post-title', description: 'Post title' },
         { name: '.blog-post-content', description: 'Post content area' },
-        { name: '.blog-post-meta', description: 'Post metadata' }
+        { name: '.blog-post-more', description: 'The Continue reading button on long posts' },
+        { name: '.blog-post-footer', description: 'Comments and View on profile' }
       ],
       example: `/* Card-based blog posts */
 .ts-blog-tab-content {
   padding: 1rem !important;
 }
 
-.blog-post {
+.blog-post-card {
   background: white !important;
   border-radius: 12px !important;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1) !important;
@@ -565,7 +569,7 @@ const cssData: Record<string, CSSSection[]> = {
   transition: transform 0.3s ease !important;
 }
 
-.blog-post:hover {
+.blog-post-card:hover {
   transform: translateY(-5px) !important;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15) !important;
 }
@@ -602,10 +606,7 @@ const cssData: Record<string, CSSSection[]> = {
       classes: [
         { name: '.media-tab-content', description: 'Media tab container' },
         { name: '.media-grid', description: 'Grid layout for media items' },
-        { name: '.media-item', description: 'Individual media item' },
-        { name: '.media-image', description: 'Media image element' },
-        { name: '.media-overlay', description: 'Hover overlay on media items' },
-        { name: '.media-caption', description: 'Media item caption' }
+        { name: '.media-item', description: 'Individual media item' }
       ],
       example: `/* Instagram-style media grid */
 .media-grid {
@@ -628,23 +629,7 @@ const cssData: Record<string, CSSSection[]> = {
   transform: scale(1.05) !important;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2) !important;
 }
-
-.media-overlay {
-  position: absolute !important;
-  inset: 0 !important;
-  background: linear-gradient(45deg, rgba(255, 107, 107, 0.8), rgba(78, 205, 196, 0.8)) !important;
-  opacity: 0 !important;
-  transition: opacity 0.3s ease !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  color: white !important;
-  font-weight: bold !important;
-}
-
-.media-item:hover .media-overlay {
-  opacity: 1 !important;
-}`,
+`,
       preview: (
         <div className="grid grid-cols-3 gap-2">
           {[1, 2, 3, 4, 5, 6].map(i => (
@@ -663,10 +648,8 @@ const cssData: Record<string, CSSSection[]> = {
       description: 'ThreadRing badges display and styling',
       classes: [
         { name: '.profile-badges', description: 'Main badges container' },
-        { name: '.badges-grid', description: 'Grid layout for badges' },
         { name: '.badge-item', description: 'Individual badge container' },
-        { name: '.threadring-badge', description: '88x31 badge styling' },
-        { name: '.badge-collection-link', description: 'Link to full badge collection' }
+        { name: '.threadring-badge', description: '88x31 badge styling' }
       ],
       example: `/* Floating badge collection */
 .profile-badges {
@@ -1123,7 +1106,7 @@ const cssData: Record<string, CSSSection[]> = {
         { name: '.ts-blog-tab-content', description: 'Container for blog posts tab' },
         { name: '.ts-blog-posts-list', description: 'List container for blog posts' },
         { name: '.blog-post-card', description: 'Individual blog post card' },
-        { name: '.blog-post-header', description: 'Post header (date, meta)' },
+        { name: '.blog-post-header', description: 'Post header: picture, name and date' },
         { name: '.blog-post-title', description: 'Blog post title/heading' },
         { name: '.blog-post-content', description: 'Post content area' },
         { name: '.blog-post-date', description: 'Post publication date' }

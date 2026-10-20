@@ -60,7 +60,7 @@ export default function BlogTab({ username, ownerUserId }: BlogTabProps) {
   }
 
   return (
-    <div className="ts-blog-tab-content profile-tab-content space-y-3" data-component="blog-tab">
+    <div className="ts-blog-tab-content blog-tab-content profile-tab-content space-y-3" data-component="blog-tab">
       {isOwner && (
         <div className="ts-new-post-section mb-3">
           <Link 
@@ -71,7 +71,7 @@ export default function BlogTab({ username, ownerUserId }: BlogTabProps) {
           </Link>
         </div>
       )}
-      <div className="ts-blog-posts-list">
+      <div className="ts-blog-posts-list blog-posts-list">
         {blocked ? (
           <div className="ts-no-posts-message ts-blocked-posts-message italic opacity-70">
             You blocked {username}, so their posts are hidden from you. You can undo that from{" "}
