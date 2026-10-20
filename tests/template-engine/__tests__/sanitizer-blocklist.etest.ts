@@ -21,6 +21,7 @@ import { compileTemplateToArtifacts } from '@/lib/templates/compilation/compile-
 import { createCustomSchema } from '@/lib/templates/compilation/template-parser'
 import { COMPONENT_TAG_PREFIX } from '@/lib/templates/compilation/source-scan'
 import { NEVER_ALLOWED_ATTRIBUTES, NEVER_ALLOWED_TAGS } from '@/lib/templates/compilation/html-allowlist'
+import { CUSTOM_HTML_TAGS, sanitizeCustomHTML } from '@/components/features/templates/CustomHTMLElement'
 
 type Schema = {
   tagNames: string[]
@@ -182,5 +183,51 @@ describe('compiled output', () => {
       '<form name="config"><input type="text" name="user" id="settings"></form><a name="top"></a>'
     )
     expect(staticHTML).not.toMatch(/\s(id|name)="(?!user-content-)/)
+  })
+})
+
+/**
+ * <CustomHTMLElement content="…"> / innerHTML="…" carry HTML inside an
+ * attribute value, which the page sanitizer above never parses. The
+ * component cleans that string at render with the same parser; these are
+ * the same checks, run on that path.
+ */
+describe('HTML inside a CustomHTMLElement prop', () => {
+  test.each([...NEVER_ALLOWED_TAGS].filter((t) => !t.includes(':')))('<%s> is dropped', (tag) => {
+    const html = sanitizeCustomHTML(`<div><${tag}>kept-out</${tag}><p>stays</p></div>`)
+    expect(html.toLowerCase()).not.toContain(`<${tag.toLowerCase()}`)
+    expect(html).toContain('<p>stays</p>')
+  })
+
+  test('raw-text elements take their content with them', () => {
+    for (const tag of ['script', 'style', 'iframe', 'noscript', 'title']) {
+      expect(sanitizeCustomHTML(`<${tag}>kept-out</${tag}><p>stays</p>`)).not.toContain('kept-out')
+    }
+  })
+
+  test('every event-handler attribute is dropped', () => {
+    const attrs = EVENT_HANDLERS.map((name) => `${name.toLowerCase()}="x"`).join(' ')
+    const html = sanitizeCustomHTML(
+      `<div ${attrs}><a href="/x" ${attrs}>a</a><img src="/a.png" ${attrs}><svg ${attrs}><rect ${attrs}/></svg></div>`
+    )
+    expect(html).not.toMatch(/\son[a-z]+=/i)
+    expect(html).toContain('src="/a.png"')
+  })
+
+  test.each([...NEVER_ALLOWED_ATTRIBUTES])('%s is dropped', (attr) => {
+    const name = htmlSpace.property[attr]?.attribute ?? attr
+    expect(sanitizeCustomHTML(`<div ${name}="x"><p>stays</p></div>`)).not.toContain(`${name}=`)
+  })
+
+  test('script URLs are dropped', () => {
+    const scheme = ['java', 'script'].join('') + ':'
+    expect(sanitizeCustomHTML(`<a href="${scheme}x">a</a><img src="${scheme}x">`)).not.toContain(scheme)
+  })
+
+  test('tagName can only be a tag the page itself allows', () => {
+    for (const tag of CUSTOM_HTML_TAGS) {
+      expect(schema.tagNames).toContain(tag)
+      expect(schema.strip).not.toContain(tag)
+    }
   })
 })
