@@ -29,8 +29,8 @@ describe.each(PRESETS)('%s', (preset) => {
   })
 
   test('every font file it names is on disk', () => {
+    // Retro Social (Verdana) uses fonts every computer has, so it names none
     const files = [...css.matchAll(/url\('\/fonts\/presets\/([^']+)'\)/g)].map((m) => m[1])
-    expect(files.length).toBeGreaterThan(0)
     for (const file of files) expect(fs.existsSync(path.join(fontsDir, file))).toBe(true)
   })
 

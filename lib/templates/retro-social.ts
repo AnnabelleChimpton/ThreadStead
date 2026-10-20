@@ -1,8 +1,12 @@
-import { presetFontFaces } from './preset-fonts';
 import { PRESET_CHROME_CSS } from './preset-chrome';
 
-export const RETRO_SOCIAL_TEMPLATE = `/* Fonts come from this site (lib/templates/preset-fonts.ts), not Google */
-${presetFontFaces(['Righteous'])}
+export const RETRO_SOCIAL_TEMPLATE = `/* ===========================================
+   RETRO SOCIAL
+   A 2005 profile page: blue bars, peach headings,
+   small Verdana, thin borders.
+   blue #1c3f95, dark blue #16327a, peach #ffcc99,
+   page #e9edf6, borders #7d8db3
+   =========================================== */
 
 /* Your page's main colours and fonts. Change a value here and the
    whole theme follows (the Appearance settings write these too). */
@@ -12,142 +16,135 @@ ${presetFontFaces(['Righteous'])}
   --ts-ink: #222222;
   --ts-accent: #1c3f95;
   --ts-on-accent: #ffffff;
-  --ts-font-head: 'Righteous', Verdana, Tahoma, sans-serif;
+  --ts-font-head: Verdana, Tahoma, Geneva, sans-serif;
   --ts-font-body: Verdana, Tahoma, Geneva, sans-serif;
 }
 
+/* ---------- Page background ---------- */
 
-/* ===========================================
-   RETRO SOCIAL — mid-2000s profile-page chic
-   Palette: #1c3f95 (accent blue) / #16327a (deep blue)
-            #e9edf6 (page) / #ffffff (panels)
-            #7d8db3 (bevel dark) / #551a8b (visited)
-   =========================================== */
-
-/* ---- Page surface: tiled subtle dot pattern ---- */
 .thread-surface {
   background-color: var(--ts-ground) !important;
-  background-image:
-    radial-gradient(circle at 4px 4px, #d4dbec 1px, transparent 1px),
-    radial-gradient(circle at 16px 16px, #dee4f1 1px, transparent 1px) !important;
-  background-size: 24px 24px, 24px 24px !important;
   color: var(--ts-ink) !important;
   font-family: var(--ts-font-body) !important;
 }
 
-/* ---- Beveled module boxes (the load-bearing kitsch) ---- */
+/* ---------- Boxes: white with a thin blue-grey border ---------- */
+
 .thread-module {
   background: var(--ts-card) !important;
-  border-top: 2px solid #ffffff !important;
-  border-left: 2px solid #ffffff !important;
-  border-right: 2px solid #7d8db3 !important;
-  border-bottom: 2px solid #7d8db3 !important;
-  outline: 1px solid #aeb9d6 !important;
+  border: 1px solid #7d8db3 !important;
   border-radius: 0 !important;
   box-shadow: none !important;
-  padding: 1rem !important;
+  padding: 0.75rem !important;
   font-family: var(--ts-font-body) !important;
+  font-size: 0.8rem !important;
   color: var(--ts-ink) !important;
 }
 
-/* ---- Profile container: framed like a classic profile table ---- */
+/* Section headings ("Right now", Guestbook…) are peach bars. One class
+   more than the shared block at the end, so these win. */
+.ts-profile-container .thread-headline {
+  display: block !important;
+  background: #ffcc99 !important;
+  color: #16327a !important;
+  font-family: var(--ts-font-head) !important;
+  font-size: 0.9rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0 !important;
+  padding: 0.25rem 0.5rem !important;
+  margin: 0 0 0.6rem 0 !important;
+}
+
+/* ---------- Profile ---------- */
+
 .ts-profile-container {
-  background: var(--ts-card) !important;
-  border: 2px solid var(--ts-accent) !important;
+  background: transparent !important;
+  border: none !important;
   border-radius: 0 !important;
-  box-shadow: 3px 3px 0 #aeb9d6 !important;
+  box-shadow: none !important;
   font-family: var(--ts-font-body) !important;
   color: var(--ts-ink) !important;
-  overflow: hidden !important;
+  max-width: 52rem !important;
 }
 
 .ts-profile-header {
-  background: #dbe3f4 !important;
-  border-bottom: 2px solid var(--ts-accent) !important;
-  padding: 1rem !important;
+  background: var(--ts-card) !important;
+  border: none !important;
   border-radius: 0 !important;
+  padding: 0 !important;
 }
 
-.ts-profile-display-name {
+/* Photo on the left, everything else beside it */
+.ts-profile-header-layout {
+  gap: 1rem !important;
+}
+
+/* The name sits in a solid blue bar (it's a .thread-headline too: this
+   comes after the peach bars, at the same weight, so it wins) */
+.ts-profile-container .ts-profile-display-name {
+  display: block !important;
+  background: var(--ts-accent) !important;
+  color: #ffffff !important;
   font-family: var(--ts-font-head) !important;
-  font-weight: 400 !important;
-  font-size: 1.6rem !important;
-  color: var(--ts-accent) !important;
-  text-shadow: 1px 1px 0 #ffffff !important;
-  letter-spacing: 0.5px !important;
+  font-size: 1.15rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0 !important;
+  text-shadow: none !important;
+  padding: 0.35rem 0.6rem !important;
+  margin-bottom: 0.4rem !important;
 }
 
 .ts-profile-status {
   font-family: var(--ts-font-body) !important;
   font-size: 0.75rem !important;
-  font-weight: 700 !important;
-  color: var(--ts-accent) !important;
-  background: var(--ts-card) !important;
-  border: 1px solid #7d8db3 !important;
-  border-radius: 3px !important;
-  padding: 0.15rem 0.5rem !important;
-  display: inline-block !important;
-  animation: rsStatusWink 4s ease-in-out infinite !important;
-}
-
-/* One subtle blink-adjacent wink, in loving memory of <blink> */
-@keyframes rsStatusWink {
-  0%, 88%, 100% { opacity: 1; }
-  94% { opacity: 0.55; }
+  font-weight: 400 !important;
+  font-style: italic !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  color: #16327a !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 0.6rem !important;
 }
 
 .ts-profile-bio {
   font-family: var(--ts-font-body) !important;
-  font-size: 0.85rem !important;
+  font-size: 0.8rem !important;
   line-height: 1.6 !important;
   color: #333333 !important;
-  background: #f3f6fc !important;
-  border-top: 1px solid #7d8db3 !important;
-  border-left: 1px solid #7d8db3 !important;
-  border-right: 1px solid #ffffff !important;
-  border-bottom: 1px solid #ffffff !important;
+  background: transparent !important;
+  border: 1px solid #7d8db3 !important;
   border-radius: 0 !important;
-  padding: 0.75rem !important;
+  padding: 0.6rem !important;
 }
 
 .ts-profile-actions {
-  padding: 0.5rem 0 !important;
   display: flex !important;
-  gap: 0.5rem !important;
+  gap: 0.4rem !important;
   flex-wrap: wrap !important;
 }
 
-/* ---- Beveled OS-style buttons ---- */
-.ts-profile-button {
+.ts-profile-actions .ts-profile-button {
   font-family: var(--ts-font-body) !important;
   font-size: 0.75rem !important;
   font-weight: 700 !important;
-  color: var(--ts-accent) !important;
-  background: #e4e9f5 !important;
-  border-top: 2px solid #ffffff !important;
-  border-left: 2px solid #ffffff !important;
-  border-right: 2px solid #7d8db3 !important;
-  border-bottom: 2px solid #7d8db3 !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  color: #ffffff !important;
+  background: var(--ts-accent) !important;
+  border: 1px solid #16327a !important;
   border-radius: 0 !important;
   box-shadow: none !important;
-  padding: 0.35rem 0.9rem !important;
-  text-decoration: none !important;
-  cursor: pointer !important;
+  padding: 0.3rem 0.8rem !important;
 }
 
-.ts-profile-button:hover {
-  background: #d3dcf0 !important;
-  color: #16327a !important;
+.ts-profile-actions .ts-profile-button:hover {
+  background: #16327a !important;
+  color: #ffffff !important;
 }
 
-.ts-profile-button:active {
-  border-top: 2px solid #7d8db3 !important;
-  border-left: 2px solid #7d8db3 !important;
-  border-right: 2px solid #ffffff !important;
-  border-bottom: 2px solid #ffffff !important;
-}
+/* ---------- Photo ---------- */
 
-/* ---- Profile photo: the classic framed square ---- */
 .profile-photo-wrapper {
   padding: 0 !important;
   background: transparent !important;
@@ -155,55 +152,95 @@ ${presetFontFaces(['Righteous'])}
 
 .profile-photo-frame {
   background: var(--ts-card) !important;
-  border: 2px solid var(--ts-accent) !important;
-  outline: 1px solid #aeb9d6 !important;
+  border: 1px solid #7d8db3 !important;
   border-radius: 0 !important;
-  box-shadow: 3px 3px 0 #aeb9d6 !important;
-  padding: 4px !important;
+  box-shadow: none !important;
+  padding: 3px !important;
 }
 
 .profile-photo-image {
-  border: 1px solid #7d8db3 !important;
+  border: none !important;
   border-radius: 0 !important;
   display: block !important;
 }
 
-/* ---- Blog posts: bulletin-board entries ---- */
-.blog-post-card {
-  background: var(--ts-card) !important;
-  border-top: 2px solid #ffffff !important;
-  border-left: 2px solid #ffffff !important;
-  border-right: 2px solid #7d8db3 !important;
-  border-bottom: 2px solid #7d8db3 !important;
-  outline: 1px solid #aeb9d6 !important;
+/* ---------- Tabs: a peach bar of blue links ---------- */
+
+.profile-tab-list {
+  background: #ffcc99 !important;
+  border: 1px solid #7d8db3 !important;
+  border-bottom: none !important;
+  border-radius: 0 !important;
+  padding: 0.25rem 0.25rem 0 0.25rem !important;
+  gap: 2px !important;
+}
+
+.profile-tab-button {
+  background: transparent !important;
+  color: #16327a !important;
+  border: none !important;
   border-radius: 0 !important;
   box-shadow: none !important;
-  margin-bottom: 1rem !important;
-  padding: 1rem !important;
+  font-family: var(--ts-font-body) !important;
+  font-size: 0.78rem !important;
+  font-weight: 700 !important;
+  text-transform: none !important;
+  text-decoration: underline !important;
+  padding: 0.3rem 0.6rem !important;
+}
+
+.profile-tab-button:hover {
+  background: #ffe0c2 !important;
+}
+
+.profile-tab-button.active {
+  background: var(--ts-card) !important;
+  color: var(--ts-ink) !important;
+  text-decoration: none !important;
+}
+
+.profile-tab-panel {
+  background: var(--ts-card) !important;
+  border: 1px solid #7d8db3 !important;
+  border-top: none !important;
+  border-radius: 0 !important;
+  padding: 0.75rem !important;
+  font-family: var(--ts-font-body) !important;
+}
+
+/* ---------- Posts: each one a box with a light blue header strip ---------- */
+
+.blog-tab-content {
+  background: transparent !important;
+}
+
+.blog-posts-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.75rem !important;
+}
+
+.post-item {
+  background: var(--ts-card) !important;
+  border: 1px solid #7d8db3 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  margin-bottom: 0 !important;
+  padding: 0.75rem !important;
 }
 
 .blog-post-header {
   background: #dbe3f4 !important;
-  border-bottom: 2px solid var(--ts-accent) !important;
-  margin: -1rem -1rem 0.75rem -1rem !important;
-  padding: 0.5rem 1rem !important;
+  border-bottom: 1px solid #7d8db3 !important;
+  margin: -0.75rem -0.75rem 0.6rem -0.75rem !important;
+  padding: 0.4rem 0.75rem !important;
 }
 
 .blog-post-title {
   font-family: var(--ts-font-body) !important;
-  font-size: 1rem !important;
+  font-size: 0.95rem !important;
   font-weight: 700 !important;
   color: var(--ts-accent) !important;
-  text-decoration: none !important;
-}
-
-.blog-post-title a {
-  color: var(--ts-accent) !important;
-  text-decoration: underline !important;
-}
-
-.blog-post-title a:visited {
-  color: #551a8b !important;
 }
 
 .blog-post-date {
@@ -215,9 +252,9 @@ ${presetFontFaces(['Righteous'])}
 
 .blog-post-content {
   font-family: var(--ts-font-body) !important;
-  font-size: 0.85rem !important;
+  font-size: 0.8rem !important;
   line-height: 1.65 !important;
-  color: #333333 !important;
+  color: #222222 !important;
 }
 
 .blog-post-content a {
@@ -226,106 +263,19 @@ ${presetFontFaces(['Righteous'])}
   text-decoration: underline !important;
 }
 
-.blog-post-content a:visited {
-  color: #551a8b !important;
+.blog-post-actions {
+  color: #47557a !important;
 }
 
-/* ---- Tabs: folder tabs, table-era style ---- */
-.profile-tab-list {
-  background: #dbe3f4 !important;
-  border-bottom: 2px solid var(--ts-accent) !important;
-  border-radius: 0 !important;
-  padding: 0.4rem 0.4rem 0 0.4rem !important;
-  gap: 3px !important;
-  font-family: var(--ts-font-body) !important;
-}
+/* ---------- Phones ---------- */
 
-.profile-tab-panel {
-  background: var(--ts-card) !important;
-  border-top: 0 !important;
-  border-left: 2px solid #ffffff !important;
-  border-right: 2px solid #7d8db3 !important;
-  border-bottom: 2px solid #7d8db3 !important;
-  border-radius: 0 !important;
-  padding: 1rem !important;
-  font-family: var(--ts-font-body) !important;
-}
-
-/* ---- Small screens: tighter chrome, same charm ---- */
 @media (max-width: 767px) {
-  .ts-profile-display-name {
-    font-size: 1.25rem !important;
-  }
-
-  .thread-module,
-  .blog-post-card,
-  .profile-tab-panel {
-    padding: 0.75rem !important;
-  }
-
-  .blog-post-header {
-    margin: -0.75rem -0.75rem 0.6rem -0.75rem !important;
-    padding: 0.4rem 0.75rem !important;
+  .ts-profile-container .ts-profile-display-name {
+    font-size: 1rem !important;
   }
 
   .ts-profile-actions {
     gap: 0.35rem !important;
   }
-
-  .ts-profile-button {
-    padding: 0.3rem 0.7rem !important;
-    font-size: 0.7rem !important;
-  }
-}
-
-/* ---------- Tabs & blog list (profile page) ---------- */
-
-.profile-tab-button {
-  background: #dfe6f5 !important;
-  color: var(--ts-accent) !important;
-  border-right: 2px solid !important;
-  border-color: #ffffff #9aa7c7 #9aa7c7 #ffffff !important;
-  font-family: Verdana, Tahoma, sans-serif !important;
-  font-weight: 700 !important;
-  font-size: 0.78rem !important;
-}
-
-.profile-tab-button:hover {
-  background: #eef2fb !important;
-}
-
-.profile-tab-button.active {
-  background: var(--ts-card) !important;
-  color: #16327a !important;
-  border-color: #9aa7c7 #ffffff #ffffff #9aa7c7 !important;
-}
-
-.blog-tab-content {
-  background: transparent !important;
-}
-
-.blog-posts-list {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 10px !important;
-}
-
-.post-item {
-  background: var(--ts-card) !important;
-  border: 2px solid !important;
-  border-color: #ffffff #9aa7c7 #9aa7c7 #ffffff !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-}
-
-.blog-post-content {
-  color: #1f2532 !important;
-  font-family: Verdana, Tahoma, sans-serif !important;
-  font-size: 0.85rem !important;
-}
-
-.blog-post-actions {
-  border-top: 1px solid #c6cede !important;
-  color: #5a6a8c !important;
 }
 ${PRESET_CHROME_CSS}`;

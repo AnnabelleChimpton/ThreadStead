@@ -2,9 +2,9 @@ import { presetFontFaces } from './preset-fonts';
 import { PRESET_CHROME_CSS } from './preset-chrome';
 
 export const CLASSIC_LINEN_TEMPLATE = `/* ==============================================
-   CLASSIC LINEN — quiet, typographic, timeless
-   linen #f4efe6 · ink #2b2925 · olive #6b6a45
-   hairline #d8d0c0 · faded ink #6e675c
+   CLASSIC LINEN
+   linen #f4efe6, ink #2b2925, olive #6b6a45,
+   hairline #d8d0c0, faded ink #6e675c
    ============================================== */
 
 /* Fonts come from this site (lib/templates/preset-fonts.ts), not Google */
@@ -23,7 +23,7 @@ ${presetFontFaces(['Source Serif 4', 'Inter'])}
 }
 
 
-/* ---------- Surface: linen with woven texture ---------- */
+/* ---------- Page background ---------- */
 
 .thread-surface {
   background-color: var(--ts-ground) !important;
@@ -47,12 +47,12 @@ ${presetFontFaces(['Source Serif 4', 'Inter'])}
   line-height: 1.75 !important;
 }
 
-/* ---------- Modules: rules, not boxes ---------- */
+/* ---------- Sections: a line under each, no boxes ---------- */
 
 .thread-module {
   background: transparent !important;
   border: none !important;
-  border-top: 1px solid #d8d0c0 !important;
+  border-bottom: 1px solid #d8d0c0 !important;
   border-radius: 0 !important;
   box-shadow: none !important;
   padding: 2rem 0 !important;
@@ -76,10 +76,9 @@ ${presetFontFaces(['Source Serif 4', 'Inter'])}
 .ts-profile-header {
   background: transparent !important;
   border: none !important;
-  border-bottom: 1px solid #d8d0c0 !important;
   box-shadow: none !important;
-  padding: 0 0 2rem 0 !important;
-  margin-bottom: 2rem !important;
+  padding: 0 !important;
+  margin-bottom: 0 !important;
   text-align: center !important;
 }
 
@@ -95,10 +94,10 @@ ${presetFontFaces(['Source Serif 4', 'Inter'])}
 
 .ts-profile-status {
   font-family: 'Inter', 'Helvetica Neue', sans-serif !important;
-  font-size: 0.7rem !important;
+  font-size: 0.85rem !important;
   font-weight: 500 !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.18em !important;
+  text-transform: none !important;
+  letter-spacing: 0.01em !important;
   color: var(--ts-accent) !important;
   background: transparent !important;
   border: none !important;
@@ -129,23 +128,23 @@ ${presetFontFaces(['Source Serif 4', 'Inter'])}
   border: none !important;
 }
 
-.ts-profile-button {
+.ts-profile-actions .ts-profile-button {
   font-family: 'Inter', 'Helvetica Neue', sans-serif !important;
-  font-size: 0.72rem !important;
+  font-size: 0.85rem !important;
   font-weight: 500 !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.14em !important;
+  text-transform: none !important;
+  letter-spacing: 0.01em !important;
   color: var(--ts-ink) !important;
   background: transparent !important;
   border: 1px solid #d8d0c0 !important;
   border-radius: 2px !important;
   box-shadow: none !important;
-  padding: 0.55rem 1.4rem !important;
+  padding: 0.5rem 1.2rem !important;
   transition: border-color 0.2s ease, color 0.2s ease !important;
 }
 
-.ts-profile-button:hover,
-.ts-profile-button:focus {
+.ts-profile-actions .ts-profile-button:hover,
+.ts-profile-actions .ts-profile-button:focus {
   color: var(--ts-accent) !important;
   border-color: var(--ts-accent) !important;
   background: transparent !important;
@@ -153,7 +152,7 @@ ${presetFontFaces(['Source Serif 4', 'Inter'])}
   transform: none !important;
 }
 
-/* ---------- Portrait ---------- */
+/* ---------- Photo ---------- */
 
 .profile-photo-wrapper {
   background: transparent !important;
@@ -188,10 +187,31 @@ ${presetFontFaces(['Source Serif 4', 'Inter'])}
   box-shadow: none !important;
   gap: 1.5rem !important;
   padding: 0 !important;
+}
+
+/* The site draws each tab as a bordered box; here they're words on a line */
+.profile-tab-button {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  color: #6e675c !important;
   font-family: 'Inter', 'Helvetica Neue', sans-serif !important;
-  font-size: 0.72rem !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.14em !important;
+  font-size: 0.85rem !important;
+  text-transform: none !important;
+  letter-spacing: 0.01em !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+.profile-tab-button:hover {
+  color: var(--ts-ink) !important;
+}
+
+.profile-tab-button.active {
+  background: transparent !important;
+  color: var(--ts-ink) !important;
+  box-shadow: inset 0 -2px 0 var(--ts-accent) !important;
 }
 
 .profile-tab-panel {
@@ -202,17 +222,7 @@ ${presetFontFaces(['Source Serif 4', 'Inter'])}
   padding: 2rem 0 !important;
 }
 
-/* ---------- Blog posts: entries in a journal ---------- */
-
-.blog-post-card {
-  background: transparent !important;
-  border: none !important;
-  border-bottom: 1px solid #d8d0c0 !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  padding: 2rem 0 !important;
-  margin-bottom: 0 !important;
-}
+/* ---------- Posts ---------- */
 
 .blog-post-header {
   background: transparent !important;
@@ -244,10 +254,9 @@ ${presetFontFaces(['Source Serif 4', 'Inter'])}
 
 .blog-post-date {
   font-family: 'Inter', 'Helvetica Neue', sans-serif !important;
-  font-size: 0.68rem !important;
+  font-size: 0.8rem !important;
   font-weight: 500 !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.18em !important;
+  letter-spacing: 0.01em !important;
   color: #6e675c !important;
 }
 
@@ -265,7 +274,7 @@ ${presetFontFaces(['Source Serif 4', 'Inter'])}
   text-decoration-thickness: 1px !important;
 }
 
-/* ---------- Motion: a fade at most ---------- */
+/* ---------- Animation ---------- */
 
 @keyframes linen-fade {
   from { opacity: 0; }
@@ -297,8 +306,8 @@ ${presetFontFaces(['Source Serif 4', 'Inter'])}
     overflow-x: auto !important;
   }
 
-  .blog-post-card {
-    padding: 1.5rem 0 !important;
+  .post-item {
+    padding: 1.25rem 0 !important;
   }
 
   .blog-post-title {
@@ -306,31 +315,7 @@ ${presetFontFaces(['Source Serif 4', 'Inter'])}
   }
 }
 
-/* ---------- Tabs & blog list (profile page) ---------- */
-
-.profile-tab-button {
-  background: transparent !important;
-  color: #6e675c !important;
-  border-right: none !important;
-  font-family: 'Inter', sans-serif !important;
-  font-size: 0.78rem !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.12em !important;
-}
-
-.profile-tab-button:hover {
-  color: var(--ts-ink) !important;
-}
-
-.profile-tab-button.active {
-  background: transparent !important;
-  color: var(--ts-ink) !important;
-  box-shadow: inset 0 -1px 0 var(--ts-accent) !important;
-}
-
-.blog-tab-content {
-  background: transparent !important;
-}
+/* ---------- Post list ---------- */
 
 .blog-posts-list {
   display: flex !important;
@@ -344,21 +329,11 @@ ${presetFontFaces(['Source Serif 4', 'Inter'])}
   border-bottom: 1px solid #d8d0c0 !important;
   border-radius: 0 !important;
   box-shadow: none !important;
-  padding-top: 1.25rem !important;
-  padding-bottom: 1.25rem !important;
-}
-
-.blog-post-content {
-  color: var(--ts-ink) !important;
-  font-family: var(--ts-font-body) !important;
-  line-height: 1.7 !important;
+  padding: 1.5rem 0 !important;
+  margin-bottom: 0 !important;
 }
 
 .blog-post-actions {
   border-top: none !important;
-  color: #6e675c !important;
-  font-family: 'Inter', sans-serif !important;
-  font-size: 0.78rem !important;
-  letter-spacing: 0.06em !important;
 }
 ${PRESET_CHROME_CSS}`;

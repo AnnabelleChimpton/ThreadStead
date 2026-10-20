@@ -2,9 +2,9 @@ import { presetFontFaces } from './preset-fonts';
 import { PRESET_CHROME_CSS } from './preset-chrome';
 
 export const CHARCOAL_NIGHTS_TEMPLATE = `/* ==============================================
-   CHARCOAL NIGHTS — ink & ember
-   charcoal #1a1816 / #232019 · text #ece7df
-   ember #e8853d · hairline #3a352e
+   CHARCOAL NIGHTS
+   charcoal #1a1816 and #232019, text #ece7df,
+   orange #e8853d, lines #3a352e
    ============================================== */
 
 /* Fonts come from this site (lib/templates/preset-fonts.ts), not Google */
@@ -23,7 +23,7 @@ ${presetFontFaces(['Fraunces', 'Inter'])}
 }
 
 
-/* ---------- page ground ---------- */
+/* ---------- Page background ---------- */
 
 .thread-surface {
   background: var(--ts-ground) !important;
@@ -31,7 +31,7 @@ ${presetFontFaces(['Fraunces', 'Inter'])}
   font-family: var(--ts-font-body) !important;
 }
 
-/* ---------- generic modules ---------- */
+/* ---------- Boxes ---------- */
 
 .thread-module {
   background: var(--ts-card) !important;
@@ -41,7 +41,7 @@ ${presetFontFaces(['Fraunces', 'Inter'])}
   color: var(--ts-ink) !important;
 }
 
-/* ---------- profile ---------- */
+/* ---------- Profile ---------- */
 
 .ts-profile-container {
   background: var(--ts-card) !important;
@@ -98,7 +98,7 @@ ${presetFontFaces(['Fraunces', 'Inter'])}
   margin-top: 1.4rem !important;
 }
 
-.ts-profile-button {
+.ts-profile-actions .ts-profile-button {
   background: var(--ts-ground) !important;
   color: var(--ts-ink) !important;
   border: 1px solid #3a352e !important;
@@ -112,13 +112,13 @@ ${presetFontFaces(['Fraunces', 'Inter'])}
   transition: border-color 160ms ease, color 160ms ease !important;
 }
 
-.ts-profile-button:hover {
+.ts-profile-actions .ts-profile-button:hover {
   border-color: var(--ts-accent) !important;
   color: var(--ts-accent) !important;
   background: var(--ts-ground) !important;
 }
 
-/* ---------- profile photo ---------- */
+/* ---------- Photo ---------- */
 
 .profile-photo-wrapper {
   background: transparent !important;
@@ -136,7 +136,6 @@ ${presetFontFaces(['Fraunces', 'Inter'])}
 
 .profile-photo-frame:hover {
   border-color: var(--ts-accent) !important;
-  /* the one permitted glow: a faint ember halo */
   box-shadow: 0 0 18px rgba(232, 133, 61, 0.18) !important;
 }
 
@@ -147,7 +146,7 @@ ${presetFontFaces(['Fraunces', 'Inter'])}
   display: block !important;
 }
 
-/* ---------- tabs ---------- */
+/* ---------- Tabs ---------- */
 
 .profile-tab-list {
   background: transparent !important;
@@ -193,7 +192,7 @@ ${presetFontFaces(['Fraunces', 'Inter'])}
   padding-top: 1.5rem !important;
 }
 
-/* ---------- blog posts ---------- */
+/* ---------- Posts ---------- */
 
 .blog-post-card {
   background: var(--ts-card) !important;
@@ -247,7 +246,7 @@ ${presetFontFaces(['Fraunces', 'Inter'])}
 }
 
 .blog-post-content {
-  color: #cfc8bc !important;
+  color: #d9d2c7 !important;
   font-family: var(--ts-font-body) !important;
   font-size: 0.95rem !important;
   line-height: 1.75 !important;
@@ -281,14 +280,14 @@ ${presetFontFaces(['Fraunces', 'Inter'])}
   font-size: 0.85em !important;
 }
 
-/* ---------- motion ---------- */
+/* ---------- Animation ---------- */
 
 @keyframes cn-settle {
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ---------- phones ---------- */
+/* ---------- Phones ---------- */
 
 @media (max-width: 767px) {
   .ts-profile-header {
@@ -318,26 +317,7 @@ ${presetFontFaces(['Fraunces', 'Inter'])}
   }
 }
 
-/* ---------- Tabs & blog list (profile page) ---------- */
-
-.profile-tab-button {
-  background: var(--ts-ground) !important;
-  color: #8f887c !important;
-  border-right: 1px solid #3a352e !important;
-  font-family: 'Inter', sans-serif !important;
-  letter-spacing: 0.02em !important;
-}
-
-.profile-tab-button:hover {
-  background: var(--ts-card) !important;
-  color: var(--ts-ink) !important;
-}
-
-.profile-tab-button.active {
-  background: var(--ts-card) !important;
-  color: var(--ts-ink) !important;
-  box-shadow: inset 0 -2px 0 var(--ts-accent) !important;
-}
+/* ---------- Post list ---------- */
 
 .blog-tab-content {
   background: transparent !important;
@@ -346,26 +326,10 @@ ${presetFontFaces(['Fraunces', 'Inter'])}
 .blog-posts-list {
   display: flex !important;
   flex-direction: column !important;
-  gap: 1px !important;
-}
-
-.post-item {
-  background: #201d19 !important;
-  border: 1px solid #3a352e !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-}
-
-.post-item:hover {
-  border-color: #55503f !important;
-}
-
-.blog-post-content {
-  color: #d9d2c7 !important;
+  gap: 1rem !important;
 }
 
 .blog-post-actions {
-  border-top: 1px solid #3a352e !important;
-  color: #8f887c !important;
+  color: #a89e8f !important;
 }
 ${PRESET_CHROME_CSS}`;
