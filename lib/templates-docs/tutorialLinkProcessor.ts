@@ -28,17 +28,43 @@ function isCompoundName(name: string): boolean {
   return /^[A-Z][a-z0-9]*[A-Z]/.test(name);
 }
 
+/** A tag written out in the text: `<Guestbook />`, `<Var name="x">`, `</If>`, `<h2>` */
+const TAG_IN_TEXT = /<\/?([A-Za-z][\w-]*)(?:\s[^<>]*)?\/?>/g;
+
+/**
+ * Tags written in the text become code, so they show as written. The text
+ * goes through the HTML sanitizer, which took a bare `<Guestbook />` for real
+ * HTML and dropped it ("…drop into your page. is the one I'd start with").
+ * A component's tag also links to its reference entry. Code spans and code
+ * blocks are left alone.
+ */
+function tagsAsCode(text: string): string {
+  return text
+    .split(/(```[\s\S]*?```|`[^`\n]*`)/)
+    .map((part, i) => {
+      if (i % 2 === 1) return part; // code, as written
+      return part.replace(TAG_IN_TEXT, (tag, name: string) => {
+        const component = /^[A-Z]/.test(name) ? canonicalName(name) : undefined;
+        return component
+          ? `[\`${tag}\`](/build/templates/components#${getComponentId(component)})`
+          : `\`${tag}\``;
+      });
+    })
+    .join('');
+}
+
 /**
  * Process text and auto-link component mentions
  * Preserves markdown formatting
  *
  * Examples:
  * - "Use the ShowVar component" → "Use the [ShowVar](/build/templates/components#showvar) component"
- * - "The <Var> tag" → "The <[Var](/build/templates/components#var)> tag"
+ * - "The <Var> tag" → "The [`<Var>`](/build/templates/components#var) tag"
  * - "**Button** widget" → "**[Button](/build/templates/components#button)** widget"
  */
-export function autoLinkComponents(text: string): string {
-  if (!text) return text;
+export function autoLinkComponents(input: string): string {
+  if (!input) return input;
+  const text = tagsAsCode(input);
 
   // Pattern: Find component names (with optional markdown formatting)
   // Match: ComponentName, <ComponentName>, **ComponentName**, `ComponentName`
