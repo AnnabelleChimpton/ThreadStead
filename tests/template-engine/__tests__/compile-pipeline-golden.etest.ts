@@ -311,17 +311,17 @@ describe('malformed input produces errors, not crashes', () => {
   })
 
   test('oversized template is rejected with a friendly limit error', () => {
-    const huge = '<div>' + '<p>x</p>'.repeat(40_000) + '</div>' // > 256KB
+    const huge = '<div>' + '<p>x</p>'.repeat(40_000) + '</div>' // > 200 KB
     const parsed = compileTemplate(huge)
     expect(parsed.success).toBe(false)
-    expect((parsed.errors ?? []).join(' ')).toMatch(/size|large|limit/i)
+    expect((parsed.errors ?? []).join(' ')).toMatch(/the most is 200 KB/)
   })
 
-  test('too many nodes is rejected with a friendly limit error', () => {
-    const many = '<div>' + '<span>y</span>'.repeat(6000) + '</div>' // > 5000 nodes
+  test('too many tags is rejected with a friendly limit error', () => {
+    const many = '<div>' + '<span>y</span>'.repeat(10_001) + '</div>' // > 10,000 tags
     const parsed = compileTemplate(many)
     expect(parsed.success).toBe(false)
-    expect((parsed.errors ?? []).join(' ')).toMatch(/node|element|many|limit/i)
+    expect((parsed.errors ?? []).join(' ')).toMatch(/tags; the most is 10,000/)
   })
 
   test('empty template compiles to empty output without error', () => {

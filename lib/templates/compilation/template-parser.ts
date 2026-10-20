@@ -6,7 +6,7 @@ import type { Root } from 'hast';
 import { componentRegistry } from '../core/template-registry';
 import { coercePropValue, findPropSchema, propNameKey, type PropSchema } from '../core/template-registry-types';
 import { getAllowedAttributes } from '../core/attribute-mappings';
-import { TEMPLATE_LIMITS, formatLimitError, checkWarningThresholds } from './template-limits';
+import { TEMPLATE_LIMITS, formatLimitError } from './template-limits';
 import {
   COMPONENT_TAG_PREFIX,
   lineAt,
@@ -984,19 +984,28 @@ export interface ValidationResult {
   errors: string[];
   warnings: string[];
   stats: {
+    /** Tags (elements), not text; see countElements */
     nodeCount: number;
     maxDepth: number;
     componentCounts: Record<string, number>;
   };
 }
 
-function countNodes(node: TemplateNode, depth = 0): { count: number; maxDepth: number } {
-  let count = 1;
-  let maxDepth = depth;
+/**
+ * Tags on the page and how deeply they nest. Text between tags isn't counted
+ * (a 150-row table is mostly whitespace nodes), and neither is the <tbody>
+ * the parser adds to every table, so twelve nested layout tables are 36
+ * deep, not 50.
+ */
+function countElements(node: TemplateNode, depth = 0): { count: number; maxDepth: number } {
+  const counted = node.type === 'element' && node.tagName !== 'tbody';
+  const here = counted ? depth + 1 : depth;
+  let count = counted ? 1 : 0;
+  let maxDepth = here;
 
   if (node.children) {
     for (const child of node.children) {
-      const childResult = countNodes(child, depth + 1);
+      const childResult = countElements(child, here);
       count += childResult.count;
       maxDepth = Math.max(maxDepth, childResult.maxDepth);
     }
@@ -1026,16 +1035,13 @@ export function validateTemplate(ast: TemplateNode): ValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
 
-  // Count nodes and depth
-  const { count: nodeCount, maxDepth } = countNodes(ast);
+  const { count: nodeCount, maxDepth } = countElements(ast);
 
-  // Count components
   const componentCounts = countComponents(ast);
   const totalComponents = Object.values(componentCounts).reduce((sum, count) => sum + count, 0);
 
-  // Check hard limits (Phase 3: Using centralized limit management)
-  if (nodeCount > TEMPLATE_LIMITS.maxNodes) {
-    errors.push(formatLimitError('nodes', nodeCount, TEMPLATE_LIMITS.maxNodes));
+  if (nodeCount > TEMPLATE_LIMITS.maxElements) {
+    errors.push(formatLimitError('elements', nodeCount, TEMPLATE_LIMITS.maxElements));
   }
 
   if (maxDepth > TEMPLATE_LIMITS.maxDepth) {
@@ -1045,14 +1051,6 @@ export function validateTemplate(ast: TemplateNode): ValidationResult {
   if (totalComponents > TEMPLATE_LIMITS.maxComponents) {
     errors.push(formatLimitError('components', totalComponents, TEMPLATE_LIMITS.maxComponents));
   }
-
-  // Check warning thresholds (Phase 3: Soft limits)
-  const thresholdWarnings = checkWarningThresholds({
-    nodes: nodeCount,
-    depth: maxDepth,
-    components: totalComponents,
-  });
-  warnings.push(...thresholdWarnings);
 
   return {
     isValid: errors.length === 0,
@@ -1077,15 +1075,11 @@ export interface CompilationResult {
 
 export function compileTemplate(htmlString: string): CompilationResult {
   try {
-    // Check size limit (Phase 3: Using centralized limit management)
-    const sizeBytes = new Blob([htmlString]).size;
-    const sizeKB = sizeBytes / 1024;
-    const maxKB = TEMPLATE_LIMITS.maxSizeBytes / 1024;
-
-    if (sizeBytes > TEMPLATE_LIMITS.maxSizeBytes) {
+    // Characters, like the save check, so the two agree on the same page
+    if (htmlString.length > TEMPLATE_LIMITS.maxChars) {
       return {
         success: false,
-        errors: [formatLimitError('size', Math.round(sizeKB), Math.round(maxKB))]
+        errors: [formatLimitError('size', htmlString.length, TEMPLATE_LIMITS.maxChars)]
       };
     }
 
@@ -1117,12 +1111,6 @@ export function compileTemplate(htmlString: string): CompilationResult {
     // Merge attribute warnings into validation warnings
     if (attributeWarnings.length > 0 && validation.warnings) {
       validation.warnings.push(...attributeWarnings);
-    }
-
-    // Add size warning check (Phase 3)
-    const sizeWarnings = checkWarningThresholds({ sizeBytes });
-    if (sizeWarnings.length > 0 && validation.warnings) {
-      validation.warnings.push(...sizeWarnings);
     }
 
     return {
