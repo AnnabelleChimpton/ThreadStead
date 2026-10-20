@@ -80,7 +80,9 @@ export default function UserDropdown() {
         {/* Icon until xl, handle from xl up (long handles truncate), so the nav bar fits at 1024 and 1280px */}
         <PixelIcon name="user" size={16} className="xl:hidden" aria-hidden="true" />
         <span className="thread-label hidden xl:inline-block max-w-[8rem] 2xl:max-w-[14rem] truncate align-bottom">{username}</span>
-        <span className="text-xs text-thread-sage">
+        {/* The button's own colour: a fixed sage was 3.4:1 where the site's
+            CSS doesn't darken it (the editor's preview) */}
+        <span className="text-xs" aria-hidden="true">
           {isOpen ? "▲" : "▼"}
         </span>
       </button>

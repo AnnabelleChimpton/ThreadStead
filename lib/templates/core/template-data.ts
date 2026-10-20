@@ -13,6 +13,8 @@ export interface UserProfile {
     avatarUrl?: string;
     [key: string]: any;
   } | null;
+  /** Whether there's a pixel home this viewer may see (the profile API says) */
+  hasPixelHome?: boolean;
   plugins: Array<{
     id: string;
     mode: string;
@@ -150,7 +152,9 @@ export async function fetchResidentData(username: string): Promise<ResidentData 
         id: profile.userId,
         handle: profile.username,
         displayName: profile.profile?.displayName || profile.username,
-        avatarUrl: profile.profile?.avatarUrl
+        // The default the profile page shows too; without it the preview
+        // said "No Photo" where the page shows the default avatar
+        avatarUrl: profile.profile?.avatarUrl || '/assets/default-avatar.gif'
       },
       viewer: {
         id: currentUser?.loggedIn ? currentUser.user?.id || null : null
@@ -168,6 +172,10 @@ export async function fetchResidentData(username: string): Promise<ResidentData 
         authorUsername: entry.authorUsername || undefined,
         createdAt: entry.createdAt
       })),
+      // No home: null, so <HouseBadge /> and <MyHouse /> stay out, as on the
+      // page (the badge used to ask for an image that 404s). A home: left
+      // out, so the badge loads it and <MyHouse /> says where it goes.
+      ...(profile.hasPixelHome === false && { pixelHome: null }),
       relationships: {}, // TODO: Add relationship data if needed
       capabilities: {
         bio: profile.profile?.bio || undefined,
