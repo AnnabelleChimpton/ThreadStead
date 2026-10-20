@@ -30,6 +30,7 @@ export interface CompilationResult {
   // warnings/stripped-component reports as first compiles.
   warnings?: string[];
   strippedComponents?: Array<{ name: string; line?: number; reason?: string }>;
+  stats?: { nodeCount: number; maxDepth: number; componentCounts: Record<string, number> };
 }
 
 // In-memory cache with LRU eviction

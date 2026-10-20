@@ -1,9 +1,6 @@
 import { db } from "@/lib/config/database/connection";
 import { Prisma } from '@prisma/client';
-import { compileTemplateToArtifacts, TemplateCompilationError } from '@/lib/templates/compilation/compile-pipeline';
-import { stripNavigationFromTemplate } from '@/lib/templates/utils/navigation-stripper';
-import { parseTemplateError, formatTemplateErrorForAPI } from '@/lib/templates/errors/template-error-handler';
-import { getCompiledTemplateWithMetrics, getCacheStats } from '@/lib/templates/compilation/template-cache';
+import { compileForEditor } from '@/lib/templates/compilation/compile-for-editor';
 
 import { SITE_NAME } from '@/lib/config/site/constants';
 import { snapshotProfileBeforeSave } from '@/lib/templates/revisions/template-revisions';
@@ -66,92 +63,11 @@ export default apiHandler(
         // Same sanitizer as every other CSS save
         const safeCSS = customCSS === undefined ? undefined : cleanCss(customCSS);
 
-        // Strip navigation components from template - they're NOT stored in HTML
-        const cleanedTemplate = stripNavigationFromTemplate(template);
-
-        // Debug: Check positioning data in template being saved
-        const hasPositioningInTemplate = cleanedTemplate.includes('data-positioning-mode') || cleanedTemplate.includes('data-pixel-position');
-
-        if (hasPositioningInTemplate) {
-          const positioningMatches = cleanedTemplate.match(/data-(?:positioning-mode|pixel-position|position)="[^"]*"/g);
-        }
-
-        // Compile the template using cached compilation pipeline
-        let compiledResult;
-        try {
-          const startTime = performance.now();
-
-          // Use cached compilation wrapper - this will hit cache on repeat saves
-          const { ast, islands, staticHTML, warnings, strippedComponents } = await getCompiledTemplateWithMetrics(
-            cleanedTemplate,
-            async () => {
-              // This function only runs on cache MISS (first compilation).
-              // SINGLE compilation entry point — see compile-pipeline.ts.
-              try {
-                const artifacts = compileTemplateToArtifacts(cleanedTemplate);
-                return {
-                  ast: artifacts.ast,
-                  islands: artifacts.islands,
-                  staticHTML: artifacts.staticHTML,
-                  warnings: artifacts.warnings,
-                  strippedComponents: artifacts.strippedComponents
-                };
-              } catch (error) {
-                if (error instanceof TemplateCompilationError) {
-                  console.error('Template compilation failed:', error.errors);
-                  // Parse and format the error for users
-                  const templateError = parseTemplateError(error.errors[0] || error);
-                  const formattedError = formatTemplateErrorForAPI(templateError);
-                  // Throw error to prevent caching failed compilations
-                  throw new Error(JSON.stringify(formattedError));
-                }
-                throw error;
-              }
-            }
-          );
-
-          // Debug: Check positioning data in final static HTML
-          const hasPositioningInStaticHTML = staticHTML.includes('data-positioning-mode') ||
-                                            staticHTML.includes('data-pixel-position') ||
-                                            staticHTML.includes('data-position');
-
-          if (hasPositioningInTemplate && !hasPositioningInStaticHTML) {
-            console.error('🚨 [TEMPLATE_SAVE_API] POSITIONING DATA LOST during compilation!');
-          }
-
-          // Create compiled result structure that matches what the renderer expects
-          compiledResult = {
-            mode: 'advanced' as const,
-            staticHTML: staticHTML,
-            islands: islands,
-            fallback: undefined,
-            compiledAt: new Date(),
-            errors: [],
-            warnings: warnings ?? [],
-            strippedComponents: strippedComponents ?? [],
-            // Keep additional data for compatibility
-            ast: ast
-          };
-
-        } catch (compileError) {
-          console.error('Template compilation failed:', compileError);
-
-          // Check if error is already formatted (from cache function)
-          try {
-            const parsedError = JSON.parse((compileError as Error).message);
-            if (parsedError.error) {
-              return res.status(400).json(parsedError);
-            }
-          } catch {
-            // Not a JSON error, handle normally
-          }
-
-          // Parse and format the error for users
-          const templateError = parseTemplateError(compileError as Error);
-          const formattedError = formatTemplateErrorForAPI(templateError);
-
-          return res.status(400).json(formattedError);
-        }
+        // The same compile the editor's preview runs; it takes out site
+        // navigation tags, which come from the profile's settings instead
+        const compiledSource = await compileForEditor(template);
+        if (!compiledSource.ok) return res.status(400).json(compiledSource.body);
+        const { template: cleanedTemplate, compiled: compiledResult } = compiledSource;
 
         // Check if user can modify this profile
         const handle = await db.handle.findFirst({

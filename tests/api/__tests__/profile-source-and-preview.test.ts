@@ -3,9 +3,9 @@
  *  - GET /api/profile/[username] gives other viewers an explicit list of
  *    fields. The raw template source is the owner's, shown to others only
  *    when they share it (showTemplateSource).
- *  - POST /api/templates/compile-profile is the editor's live preview: it
- *    compiles and never writes. It used to store every preview as the live
- *    page, so half-typed templates went public mid-edit.
+ *  - POST /api/templates/compile is the editor's live preview and problems
+ *    panel: it compiles and never writes. The old preview route stored every
+ *    preview as the live page, so half-typed templates went public mid-edit.
  *  - Source saves have a size cap with a plain message.
  */
 import type { NextApiRequest, NextApiResponse } from 'next'
@@ -39,11 +39,16 @@ jest.mock('@/lib/templates/compilation/compile-pipeline', () => ({
     warnings: [],
     strippedComponents: [],
   })),
-  TemplateCompilationError: class extends Error {},
+  TemplateCompilationError: class extends Error {
+    constructor(public errors: string[], public warnings: string[] = []) {
+      super(errors[0])
+    }
+  },
 }))
 
 import profileHandler from '@/pages/api/profile/[username]'
-import compileHandler from '@/pages/api/templates/compile-profile'
+import compileHandler from '@/pages/api/templates/compile'
+import { compileTemplateToArtifacts, TemplateCompilationError } from '@/lib/templates/compilation/compile-pipeline'
 import templateSaveHandler from '@/pages/api/profile/[username]/template'
 import { getSessionUser } from '@/lib/auth/server'
 import { db } from '@/lib/config/database/connection'
@@ -128,19 +133,13 @@ describe('GET /api/profile/[username]', () => {
   })
 })
 
-describe('POST /api/templates/compile-profile (the live preview)', () => {
+describe('POST /api/templates/compile (the live preview and problems panel)', () => {
   beforeEach(() => {
     ;(getSessionUser as jest.Mock).mockResolvedValue(OWNER)
-    mockDb.user.findUnique.mockResolvedValue({
-      id: 'u-pat',
-      primaryHandle: 'pat',
-      handles: [{ handle: 'pat' }],
-      profile: PROFILE,
-    })
   })
 
   test('compiles the draft and writes nothing', async () => {
-    const { req, res } = makeReqRes('POST', {}, { userId: 'u-pat', mode: 'advanced', customTemplate: '<p>draft</p>', force: true })
+    const { req, res } = makeReqRes('POST', {}, { template: '<p>draft</p>' })
     await compileHandler(req, res)
     expect(res.statusCode).toBe(200)
     expect(res.body.compiled.staticHTML).toBe('<p>draft</p>')
@@ -148,10 +147,28 @@ describe('POST /api/templates/compile-profile (the live preview)', () => {
     expect(mockDb.profile.upsert).not.toHaveBeenCalled()
   })
 
+  test('a template that does not compile comes back with every error', async () => {
+    ;(compileTemplateToArtifacts as jest.Mock).mockImplementationOnce(() => {
+      throw new TemplateCompilationError(['first problem', 'second problem'], ['a warning'])
+    })
+    const { req, res } = makeReqRes('POST', {}, { template: '<p>broken draft' })
+    await compileHandler(req, res)
+    expect(res.statusCode).toBe(400)
+    expect(res.body).toMatchObject({ success: false, errors: ['first problem', 'second problem'], warnings: ['a warning'] })
+  })
+
   test('refuses a draft over the size cap', async () => {
-    const { req, res } = makeReqRes('POST', {}, { userId: 'u-pat', mode: 'advanced', customTemplate: 'x'.repeat(MAX_TEMPLATE_CHARS + 1) })
+    const { req, res } = makeReqRes('POST', {}, { template: 'x'.repeat(MAX_TEMPLATE_CHARS + 1) })
     await compileHandler(req, res)
     expect(res.statusCode).toBe(413)
+  })
+
+  test('needs you signed in', async () => {
+    ;(getSessionUser as jest.Mock).mockResolvedValue(null)
+    const { req, res } = makeReqRes('POST', {}, { template: '<p>draft</p>' })
+    await compileHandler(req, res)
+    expect(res.statusCode).toBe(401)
+    expect(compileTemplateToArtifacts).not.toHaveBeenCalled()
   })
 })
 

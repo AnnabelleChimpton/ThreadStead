@@ -47,19 +47,18 @@ function installFetch() {
         }),
       } as any;
     }
-    if (u.includes('/api/templates/compile-profile')) {
+    if (u.includes('/api/templates/compile')) {
       const body = JSON.parse(init.body);
       return {
         ok: true,
         status: 200,
-        json: async () => ({ success: true, compiled: { compiledFrom: body.customTemplate, islands: [] } }),
-      } as any;
-    }
-    if (u.includes('/templates/compile')) {
-      return {
-        ok: true,
-        status: 200,
-        json: async () => ({ success: true, errors: [], warnings: [], strippedComponents: [] }),
+        json: async () => ({
+          success: true,
+          compiled: { compiledFrom: body.template, islands: [] },
+          errors: [],
+          warnings: [],
+          strippedComponents: [],
+        }),
       } as any;
     }
     return { ok: true, status: 200, json: async () => ({}) } as any;
@@ -119,7 +118,7 @@ describe('Loading the default template (?mode=template)', () => {
     await waitForDefaultLayout();
     // Let the debounced preview compile land.
     await waitFor(() =>
-      expect(global.fetch).toHaveBeenCalledWith('/api/templates/compile-profile', expect.anything())
+      expect(global.fetch).toHaveBeenCalledWith('/api/templates/compile', expect.anything())
     );
     await act(async () => {});
 
@@ -138,7 +137,7 @@ describe('A save that changes the CSS', () => {
   it('says beforehand and afterwards that the old look is in History', async () => {
     const { onSave } = renderEditor({ initialTemplate: '<p>my page</p>', initialTemplateMode: 'advanced' });
     await waitFor(() =>
-      expect(global.fetch).toHaveBeenCalledWith('/api/templates/compile-profile', expect.anything())
+      expect(global.fetch).toHaveBeenCalledWith('/api/templates/compile', expect.anything())
     );
 
     expect(screen.queryByText(/old look/i)).not.toBeInTheDocument();

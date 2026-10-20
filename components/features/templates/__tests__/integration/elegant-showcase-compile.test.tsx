@@ -13,7 +13,6 @@
 // DID client, whose @noble/ed25519 dependency is ESM-only and breaks jest.
 jest.mock('@/lib/api/did/did-client', () => ({}));
 
-import { createMockResidentData } from '../test-utils';
 
 const templateCSS = `
 :root {
@@ -282,74 +281,6 @@ describe('Elegant Showcase Template Compilation', () => {
   });
 
   describe('Template Compilation Requirements', () => {
-    it('should validate advanced mode compatibility', async () => {
-      const { validateProfileTemplate } = await import('@/lib/templates/compilation/compiler');
-
-      // The showcase template is valid for advanced mode
-      const valid = validateProfileTemplate(templateHTML, 'advanced');
-      expect(valid.isValid).toBe(true);
-      expect(valid.errors).toEqual([]);
-
-      // Advanced mode without a template is invalid
-      const invalid = validateProfileTemplate('', 'advanced');
-      expect(invalid.isValid).toBe(false);
-      expect(invalid.errors.length).toBeGreaterThan(0);
-    });
-
-    it('should compile using the server-side compiler with an enhanced fallback', async () => {
-      const { compileProfile } = await import('@/lib/templates/compilation/compiler');
-
-      const mockResidentData = createMockResidentData({
-        owner: {
-          id: 'test-user',
-          handle: 'elegantuser',
-          displayName: 'Elegant Test User',
-          avatarUrl: '/test-avatar.jpg'
-        },
-        capabilities: {
-          bio: 'Test user bio for elegant template'
-        }
-      });
-
-      const context = {
-        user: {
-          id: 'test-user',
-          handle: 'elegantuser',
-          profile: {
-            templateMode: 'advanced' as const,
-            customTemplate: templateHTML,
-            customCSS: templateCSS,
-            includeSiteCSS: false,
-            hideNavigation: false
-          }
-        },
-        residentData: mockResidentData
-      };
-
-      const result = await compileProfile(context, { mode: 'advanced' });
-
-      // NOTE: jest.setup.js stubs the unified/rehype parser, so island
-      // detection sees an empty AST here. We assert the parts of the compiler
-      // that run for real: success, mode dispatch and fallback generation.
-      expect(result.success).toBe(true);
-      expect(result.compiled).toBeDefined();
-      expect(result.compiled?.mode).toBe('advanced');
-      expect(Array.isArray(result.compiled?.islands)).toBe(true);
-
-      // Advanced compilations carry an enhanced-mode fallback
-      const fallback = result.compiled?.fallback;
-      expect(fallback).toBeDefined();
-      expect(fallback?.mode).toBe('enhanced');
-
-      // The enhanced fallback injects the (sanitized) user CSS
-      expect(fallback?.staticHTML).toContain('<style type="text/css">');
-      expect(fallback?.staticHTML).toContain('--primary-gold');
-
-      // ...and renders the default profile HTML with resident data
-      expect(fallback?.staticHTML).toContain('Elegant Test User');
-      expect(fallback?.staticHTML).toContain('Test user bio for elegant template');
-    });
-
     it('should handle self-closing and paired tags', () => {
       const selfClosingRegex = /<(\w+)(?:\s[^>]*)?\/>/gi;
       const selfClosing = [...templateHTML.matchAll(selfClosingRegex)].map(m => m[1]);

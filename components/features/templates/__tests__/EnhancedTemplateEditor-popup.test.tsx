@@ -36,12 +36,12 @@ const ORIGIN = window.location.origin;
 function installFetch() {
   global.fetch = jest.fn(async (url: any, init?: any) => {
     const u = String(url);
-    if (u.includes('/api/templates/compile-profile')) {
+    if (u.includes('/api/templates/compile')) {
       const body = JSON.parse(init.body);
       return {
         ok: true,
         status: 200,
-        json: async () => ({ success: true, compiled: { compiledFrom: body.customTemplate, islands: [] } }),
+        json: async () => ({ success: true, compiled: { compiledFrom: body.template, islands: [] } }),
       } as any;
     }
     return { ok: true, status: 200, json: async () => ({}) } as any;
@@ -79,7 +79,7 @@ async function renderEditor(props: Partial<React.ComponentProps<typeof EnhancedT
   );
   // Mount compiles the initial template (debounced).
   await waitFor(() =>
-    expect(global.fetch).toHaveBeenCalledWith('/api/templates/compile-profile', expect.anything())
+    expect(global.fetch).toHaveBeenCalledWith('/api/templates/compile', expect.anything())
   );
   return { onSave };
 }
@@ -116,7 +116,7 @@ describe('EnhancedTemplateEditor pop-out preview messaging', () => {
     });
     await waitFor(() =>
       expect(global.fetch).toHaveBeenCalledWith(
-        '/api/templates/compile-profile',
+        '/api/templates/compile',
         expect.objectContaining({ body: expect.stringContaining('version two') })
       )
     );

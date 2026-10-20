@@ -540,18 +540,12 @@ export default function EnhancedTemplateEditor({
         return null;
       }
 
-      // Call the same compilation API that production uses
-      const response = await fetch('/api/templates/compile-profile', {
+      // The same compile a save runs, so the preview is what gets stored
+      const response = await fetch('/api/templates/compile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include', // Ensure cookies are sent with the request
-        body: JSON.stringify({
-          userId: user.id,
-          mode: 'advanced',
-          customTemplate: template,
-          customCSS: customCSS,
-          force: true // Always recompile for preview
-        })
+        body: JSON.stringify({ template })
       });
 
       if (!response.ok) {
@@ -1107,29 +1101,11 @@ export default function EnhancedTemplateEditor({
     }
 
     try {
-      // Extract username from user handle for API call
-      const fullHandle = user.primaryHandle || user.handles?.[0]?.handle;
-      const username = fullHandle ? fullHandle.split('@')[0] : null;
-
-      if (!username) {
-        const errorData = {
-          isValid: false,
-          errors: ['Unable to determine username for validation'],
-          warnings: []
-        };
-        setValidationResult(errorData);
-        return { isValid: false, hasWarnings: false, hasStripped: false };
-      }
-
-      // Use the compilation API to get validation results
-      const response = await fetch(`/api/users/${username}/templates/compile`, {
+      // The same compile the preview and a save use
+      const response = await fetch('/api/templates/compile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          template,
-          customCSS,
-          mode: 'advanced'
-        })
+        body: JSON.stringify({ template })
       });
 
       if (!response.ok) {
@@ -1183,7 +1159,7 @@ export default function EnhancedTemplateEditor({
         errors: result.errors || [],
         warnings: result.warnings || [],
         strippedComponents: result.strippedComponents || [],
-        stats: result.validation?.stats
+        stats: result.stats
       };
 
       setValidationResult(validationData);

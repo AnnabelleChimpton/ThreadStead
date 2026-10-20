@@ -1,18 +1,16 @@
 /**
  * THE single compilation entry point for advanced templates (G2).
  *
- * Before this existed, the parse → island-detection → static-HTML pipeline
- * was hand-orchestrated in three places with divergent error handling:
- * pages/api/profile/[username]/template.ts (friendly errors),
- * pages/api/templates/compile-profile.ts (generic errors), and implicitly in
- * lib/templates/compilation/compiler/profile-modes.ts. Divergent copies of
- * the pipeline are how the boundary bugs of 2026-07 stayed invisible.
+ * The parse → island-detection → static-HTML pipeline used to be
+ * hand-orchestrated in several places with divergent error handling, which
+ * is how the boundary bugs of 2026-07 stayed invisible. The editor's check
+ * and the save route now both reach it through compile-for-editor.ts.
  *
  * All compilation of user template source MUST go through this function so
  * behavior (and its golden-test coverage — see tests/template-engine/) stays
  * uniform.
  */
-import { compileTemplate, type TemplateNode } from './template-parser'
+import { compileTemplate, type TemplateNode, type ValidationResult } from './template-parser'
 import { identifyIslandsWithTransform } from './compiler/island-detector'
 import { generateStaticHTML } from './compiler/html-optimizer'
 import type { Island } from './compiler/types'
@@ -41,6 +39,8 @@ export interface CompiledTemplateArtifacts {
   strippedComponents: StrippedComponentReport[]
   /** A pasted whole document's title and Google Fonts imports (also on ast.head) */
   head?: DocumentHead
+  /** Node count, depth and components used, for the editor's problems panel */
+  stats?: ValidationResult['stats']
 }
 
 export class TemplateCompilationError extends Error {
@@ -79,5 +79,6 @@ export function compileTemplateToArtifacts(template: string): CompiledTemplateAr
     strippedComponents:
       (parsed as { strippedComponents?: StrippedComponentReport[] }).strippedComponents ?? [],
     head: parsed.ast.head,
+    stats: parsed.validation?.stats,
   }
 }
