@@ -147,6 +147,18 @@ h1 { font-family: "VT323", monospace; }`}</Example>
                 them. Off, the site&apos;s theme is left out and your CSS does the rest. That&apos;s the Site styles
                 menu in the editor.
               </p>
+              <p id="theme-options">
+                Theme options are a trick I borrowed from Tumblr. Put a <Code>&lt;meta&gt;</Code> tag in your HTML for
+                any colour or font you&apos;d like to be easy to change, and use it in your CSS as a variable. The name
+                after the colon becomes the variable&apos;s name. Then Settings &gt; Your page shows a picker for each
+                one, so you or a friend can change them without opening the code:
+              </p>
+              <Example>{`<!-- in your HTML -->
+<meta name="color:Accent" content="#c96633">
+<meta name="font:Headings" content="Georgia, serif">
+
+/* in your CSS */
+h1 { color: var(--color-accent); font-family: var(--font-headings); }`}</Example>
             </div>
           </RetroCard>
 

@@ -1,17 +1,21 @@
 /* Quiet Garden — proof that a plain, beautiful HTML page lives here.
  * No components, no scripting: header, about, now, links, footer. */
 
-export const QUIET_GARDEN_TEMPLATE = `<style>
+export const QUIET_GARDEN_TEMPLATE = `<meta name="color:Paper" content="#f7f4ee">
+<meta name="color:Ink" content="#1f1c17">
+<meta name="color:Accent" content="#4a7c59">
+<meta name="font:Text" content="'Iowan Old Style', 'Palatino Linotype', Georgia, serif">
+<style>
 body {
-  background: #f7f4ee;
+  background: var(--color-paper);
   margin: 0;
   padding: 0;
 }
 
 .profile-template-root {
-  background: #f7f4ee;
-  color: #1f1c17;
-  font-family: 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-text);
   line-height: 1.75;
   min-height: 100vh;
   padding: 3.5rem 1.25rem 5rem;
@@ -47,7 +51,7 @@ body {
 }
 
 .garden-nav a:hover {
-  color: #4a7c59;
+  color: var(--color-accent);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
@@ -59,7 +63,7 @@ body {
 }
 
 .garden-intro em {
-  color: #4a7c59;
+  color: var(--color-accent);
 }
 
 .garden section {
@@ -108,13 +112,13 @@ body {
   border-radius: 8px;
   padding: 1rem 1.15rem;
   text-decoration: none;
-  color: #1f1c17;
+  color: var(--color-ink);
   background: #fffdf8;
   transition: all 0.2s ease;
 }
 
 .link-card:hover {
-  border-color: #4a7c59;
+  border-color: var(--color-accent);
   transform: translateY(-2px);
   box-shadow: 0 6px 18px rgba(74, 124, 89, 0.12);
 }
@@ -140,7 +144,7 @@ body {
 }
 
 a {
-  color: #4a7c59;
+  color: var(--color-accent);
 }
 </style>
 

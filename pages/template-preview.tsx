@@ -17,7 +17,7 @@ import ProfileBadgeDisplay from '@/components/core/profile/ProfileBadgeDisplay';
 import Guestbook from '@/components/shared/Guestbook';
 import { cleanCss, escapeCssForStyleTag } from '@/lib/utils/sanitization/css';
 import { transformAdvancedCss } from '@/lib/utils/css/css-transform';
-import { extractDocument, legacyBodyCss } from '@/lib/templates/compilation/document-head';
+import { documentHeadCss, extractDocument } from '@/lib/templates/compilation/document-head';
 // Removed unused imports - now using ProfileModeRenderer like production
 
 interface PreviewData {
@@ -113,10 +113,10 @@ export default function PreviewTemp() {
   }, [previewData?.customCSS]);
 
   // Your own HTML page: exactly what the live page injects (pages/_app.tsx),
-  // with a pasted page's Google Fonts links and <body bgcolor…> as CSS
+  // with a pasted page's Google Fonts links, <body bgcolor…> and theme options as CSS
   const documentCss = useMemo(() => {
     const { head } = extractDocument(previewData?.template || '');
-    return { fontImports: head.fontImports, bodyCss: legacyBodyCss(head.body) };
+    return { fontImports: head.fontImports, bodyCss: documentHeadCss(head) };
   }, [previewData?.template]);
   const advancedCSS = useMemo(() => {
     const css = previewData?.customCSS ? cleanCss(previewData.customCSS) : '';

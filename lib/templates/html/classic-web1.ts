@@ -1,10 +1,13 @@
-export const CLASSIC_WEB1_TEMPLATE = `<style>
+export const CLASSIC_WEB1_TEMPLATE = `<meta name="color:Background" content="#000080">
+<meta name="font:Text" content='"Comic Sans MS", cursive, sans-serif'>
+<meta name="font:Headings" content='"Impact", "Arial Black", sans-serif'>
+<style>
 /* Classic 90s Web 1.0 Styling */
 body {
-  background: #000080;
+  background: var(--color-background);
   background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><defs><pattern id="stars" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="0.5" fill="%23ffffff" opacity="0.3"/></pattern></defs><rect width="20" height="20" fill="url(%23stars)"/></svg>');
   color: #ffffff;
-  font-family: "Comic Sans MS", cursive, sans-serif;
+  font-family: var(--font-text);
   margin: 0;
   padding: 20px;
 }
@@ -33,7 +36,7 @@ body {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   text-shadow: 2px 2px 4px #000000;
-  font-family: "Impact", "Arial Black", sans-serif;
+  font-family: var(--font-headings);
   margin: 0;
 }
 

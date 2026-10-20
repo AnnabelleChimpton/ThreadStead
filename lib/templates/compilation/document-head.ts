@@ -6,7 +6,10 @@
  *    (and can become the page title once advanced pages render on the server);
  *  - Google Fonts <link>s, turned into the @import lines the CSS would need;
  *  - `<body bgcolor text link vlink alink background>`, turned into CSS.
- *    Live and preview CSS both add these (transformAdvancedCss).
+ *    Live and preview CSS both add these (transformAdvancedCss);
+ *  - theme options, `<meta name="color:Accent" content="#c96633">`, from
+ *    anywhere in the source (head or not), taken out before the page is
+ *    parsed and turned into CSS variables (theme-options.ts).
  *
  * Detection is case-insensitive and attribute-tolerant: `<!doctype html>`,
  * `<HTML>` and `<body class="dark">` all count. It used to look for the
@@ -17,6 +20,7 @@
  * Kept free of server-only imports: pages/_app.tsx reads the font imports.
  */
 import { tokenizeSource, type SourceToken } from './source-scan'
+import { scanThemeOptions, themeOptionsCss, type ThemeOption } from './theme-options'
 
 export interface DocumentHead {
   title?: string
@@ -26,6 +30,8 @@ export interface DocumentHead {
   otherStylesheets: string[]
   /** The old-web colour attributes on <body>, validated (see legacyBodyCss) */
   body?: LegacyBodyAttributes
+  /** Theme options the page declares (only present when it declares some) */
+  options?: ThemeOption[]
 }
 
 /** `<body bgcolor text link vlink alink background>` */
@@ -97,6 +103,22 @@ export interface ExtractedDocument {
   /** The markup that becomes the page */
   body: string
   head: DocumentHead
+  /** Problems with the page's theme options, for the editor */
+  warnings?: string[]
+}
+
+/** The source between start and end, without the given spans (and the line break after each). */
+function withoutSpans(source: string, spans: Array<{ start: number; end: number }>, start: number, end: number): string {
+  let out = ''
+  let at = start
+  for (const span of spans) {
+    if (span.start < at || span.end > end) continue
+    out += source.slice(at, span.start)
+    at = span.end
+    const lineBreak = source.slice(at, end).match(/^[ \t]*\r?\n/)
+    if (lineBreak) at += lineBreak[0].length
+  }
+  return out + source.slice(at, end)
 }
 
 const GOOGLE_FONTS_CSS = /^https:\/\/fonts\.googleapis\.com\/css2?\?/i
@@ -183,14 +205,22 @@ export function extractDocument(source: string): ExtractedDocument {
     }
   }
 
-  if (!isFullDocument) return { isFullDocument, body: source, head }
+  // Theme options can sit anywhere; they never become part of the page
+  const themeOptions = scanThemeOptions(source, tokens)
+  if (themeOptions.options.length > 0) head.options = themeOptions.options
+  const warnings = themeOptions.warnings.length > 0 ? { warnings: themeOptions.warnings } : {}
+
+  if (!isFullDocument) {
+    const body = themeOptions.spans.length ? withoutSpans(source, themeOptions.spans, 0, source.length) : source
+    return { isFullDocument, body, head, ...warnings }
+  }
 
   // Body content: after <body …> (or after </head>, or after <html …>) up to </body> (or </html>)
   const start = bodyOpen?.end ?? headClose?.end ?? htmlOpen?.end ?? 0
   const end = bodyClose && bodyClose.start >= start
     ? bodyClose.start
     : htmlClose && htmlClose.start >= start ? htmlClose.start : source.length
-  let body = source.slice(start, end)
+  let body = withoutSpans(source, themeOptions.spans, start, end)
 
   // No <body> or </head> to start from: drop the head-only elements by hand
   if (!bodyOpen && !headClose) {
@@ -199,7 +229,19 @@ export function extractDocument(source: string): ExtractedDocument {
       .replace(/<title\b[^>]*>[\s\S]*?<\/title\s*>/gi, '')
       .replace(/<(?:meta|link|base)\b[^>]*>/gi, '')
   }
-  return { isFullDocument, body: body.trim(), head }
+  return { isFullDocument, body: body.trim(), head, ...warnings }
+}
+
+/**
+ * The CSS a page's head stands for, written before the page's own CSS:
+ * its theme options as variables on the root, then its <body bgcolor…>.
+ * Both re-validated. The live page and the editor preview both use this.
+ */
+export function documentHeadCss(head: { body?: unknown; options?: unknown } | null | undefined): string {
+  return [
+    themeOptionsCss(head?.options),
+    legacyBodyCss(head?.body as LegacyBodyAttributes | undefined),
+  ].filter(Boolean).join('\n')
 }
 
 /**
@@ -208,10 +250,10 @@ export function extractDocument(source: string): ExtractedDocument {
  * on every page view).
  */
 export function documentCssFromCompiledTemplate(compiled: unknown): { fontImports: string[]; bodyCss: string } {
-  const head = (compiled as { ast?: { head?: { body?: unknown } } } | null | undefined)?.ast?.head
+  const head = (compiled as { ast?: { head?: { body?: unknown; options?: unknown } } } | null | undefined)?.ast?.head
   return {
     fontImports: fontImportsFromCompiledTemplate(compiled),
-    bodyCss: legacyBodyCss(head?.body as LegacyBodyAttributes | undefined),
+    bodyCss: documentHeadCss(head),
   }
 }
 

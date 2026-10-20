@@ -1,11 +1,16 @@
-export const SIMPLE_DEFAULT_TEMPLATE = `<style>
+export const SIMPLE_DEFAULT_TEMPLATE = `<meta name="color:Background" content="#f5f5dc">
+<meta name="color:Accent" content="#4a90a4">
+<meta name="color:Accent dark" content="#2c5f77">
+<meta name="font:Text" content="'Verdana', 'Geneva', sans-serif">
+<meta name="font:Headings" content="'Georgia', serif">
+<style>
 /* Personal Homepage - Early 2000s Blog Style */
 body {
-  background: #f5f5dc;
+  background: var(--color-background);
   background-image:
     repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.02) 2px, rgba(0,0,0,0.02) 4px);
   color: #333;
-  font-family: 'Verdana', 'Geneva', sans-serif;
+  font-family: var(--font-text);
   margin: 0;
   padding: 0;
   font-size: 14px;
@@ -32,8 +37,8 @@ body {
 
 .header-banner {
   grid-column: 1 / -1;
-  background: linear-gradient(135deg, #4a90a4 0%, #5ba4b8 100%);
-  border: 3px solid #2c5f77;
+  background: linear-gradient(135deg, var(--color-accent) 0%, #5ba4b8 100%);
+  border: 3px solid var(--color-accent-dark);
   border-radius: 8px;
   padding: 25px;
   text-align: center;
@@ -42,7 +47,7 @@ body {
 
 .site-name {
   font-size: 2.5rem;
-  font-family: 'Georgia', serif;
+  font-family: var(--font-headings);
   color: #fff;
   margin: 0;
   text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
@@ -72,8 +77,8 @@ body {
 .sidebar-module h3 {
   margin: 0 0 10px 0;
   padding-bottom: 8px;
-  border-bottom: 2px solid #4a90a4;
-  color: #2c5f77;
+  border-bottom: 2px solid var(--color-accent);
+  color: var(--color-accent-dark);
   font-size: 0.95rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -113,7 +118,7 @@ body {
 }
 
 .links-box a {
-  color: #4a90a4;
+  color: var(--color-accent);
   text-decoration: none;
   font-size: 0.9rem;
   display: block;
@@ -124,7 +129,7 @@ body {
 
 .links-box a:hover {
   background: #e8f4f8;
-  color: #2c5f77;
+  color: var(--color-accent-dark);
   padding-left: 10px;
 }
 
@@ -150,10 +155,10 @@ body {
 .content-section h2 {
   margin: 0 0 15px 0;
   padding-bottom: 10px;
-  border-bottom: 3px double #4a90a4;
-  color: #2c5f77;
+  border-bottom: 3px double var(--color-accent);
+  color: var(--color-accent-dark);
   font-size: 1.5rem;
-  font-family: 'Georgia', serif;
+  font-family: var(--font-headings);
 }
 
 .photo-gallery {
@@ -166,8 +171,8 @@ body {
 
 .footer-bar {
   grid-column: 1 / -1;
-  background: #4a90a4;
-  border: 2px solid #2c5f77;
+  background: var(--color-accent);
+  border: 2px solid var(--color-accent-dark);
   border-radius: 5px;
   padding: 15px;
   text-align: center;
@@ -204,8 +209,8 @@ body {
   display: inline-block;
   width: 88px;
   height: 31px;
-  background: linear-gradient(135deg, #4a90a4, #5ba4b8);
-  border: 2px solid #2c5f77;
+  background: linear-gradient(135deg, var(--color-accent), #5ba4b8);
+  border: 2px solid var(--color-accent-dark);
   border-radius: 3px;
   color: white;
   font-size: 10px;
@@ -224,12 +229,12 @@ body {
 }
 
 a {
-  color: #4a90a4;
+  color: var(--color-accent);
   text-decoration: underline;
 }
 
 a:hover {
-  color: #2c5f77;
+  color: var(--color-accent-dark);
 }
 
 a:visited {

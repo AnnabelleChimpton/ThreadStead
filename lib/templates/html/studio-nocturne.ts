@@ -1,17 +1,21 @@
 /* Studio Nocturne — a bold dark one-pager in plain HTML.
  * Big display type, project rows, one hot accent. No components. */
 
-export const STUDIO_NOCTURNE_TEMPLATE = `<style>
+export const STUDIO_NOCTURNE_TEMPLATE = `<meta name="color:Background" content="#17161a">
+<meta name="color:Text" content="#e8e4dd">
+<meta name="color:Accent" content="#ff5d47">
+<meta name="font:Text" content="'Avenir Next', 'Helvetica Neue', system-ui, sans-serif">
+<style>
 body {
-  background: #17161a;
+  background: var(--color-background);
   margin: 0;
   padding: 0;
 }
 
 .profile-template-root {
-  background: #17161a;
-  color: #e8e4dd;
-  font-family: 'Avenir Next', 'Helvetica Neue', system-ui, sans-serif;
+  background: var(--color-background);
+  color: var(--color-text);
+  font-family: var(--font-text);
   min-height: 100vh;
   padding: 4rem 1.5rem 5rem;
 }
@@ -22,7 +26,7 @@ body {
 }
 
 .studio-kicker {
-  color: #ff5d47;
+  color: var(--color-accent);
   font-size: 0.85rem;
   letter-spacing: 0.28em;
   text-transform: uppercase;
@@ -39,7 +43,7 @@ body {
 
 .studio-title em {
   font-style: normal;
-  color: #ff5d47;
+  color: var(--color-accent);
 }
 
 .studio-lede {
@@ -69,14 +73,14 @@ body {
   padding: 1.5rem 0.25rem;
   border-bottom: 1px solid #2b2930;
   text-decoration: none;
-  color: #e8e4dd;
+  color: var(--color-text);
   transition: all 0.2s ease;
 }
 
 .work-row:hover {
   background: #1e1d22;
   padding-left: 1rem;
-  color: #ff5d47;
+  color: var(--color-accent);
 }
 
 .work-name {
@@ -116,15 +120,15 @@ body {
   border: 1px solid #3a3740;
   border-radius: 999px;
   padding: 0.5rem 1.25rem;
-  color: #e8e4dd;
+  color: var(--color-text);
   text-decoration: none;
   font-size: 0.95rem;
   transition: all 0.2s ease;
 }
 
 .contact-pill:hover {
-  border-color: #ff5d47;
-  color: #ff5d47;
+  border-color: var(--color-accent);
+  color: var(--color-accent);
 }
 
 .studio-footer {

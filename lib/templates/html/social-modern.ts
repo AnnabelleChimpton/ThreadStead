@@ -1,10 +1,14 @@
-export const SOCIAL_MODERN_TEMPLATE = `<style>
+export const SOCIAL_MODERN_TEMPLATE = `<meta name="color:Accent" content="#e94560">
+<meta name="color:Accent dark" content="#d62c4e">
+<meta name="color:Text" content="#eee">
+<meta name="font:Text" content="'Trebuchet MS', 'Lucida Sans', sans-serif">
+<style>
 /* ThreadRing Portal Styling */
 body {
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
   background-attachment: fixed;
-  color: #eee;
-  font-family: 'Trebuchet MS', 'Lucida Sans', sans-serif;
+  color: var(--color-text);
+  font-family: var(--font-text);
   margin: 0;
   padding: 20px;
 }
@@ -15,7 +19,7 @@ body {
 }
 
 .portal-header {
-  background: linear-gradient(135deg, #e94560 0%, #d62c4e 100%);
+  background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-dark) 100%);
   border: 3px solid #fff;
   border-radius: 15px;
   padding: 30px;
@@ -50,7 +54,7 @@ body {
 }
 
 .welcome-banner h2 {
-  color: #e94560;
+  color: var(--color-accent);
   margin-top: 0;
 }
 
@@ -63,7 +67,7 @@ body {
 
 .nav-card {
   background: linear-gradient(135deg, rgba(233, 69, 96, 0.2) 0%, rgba(214, 44, 78, 0.2) 100%);
-  border: 2px solid #e94560;
+  border: 2px solid var(--color-accent);
   border-radius: 10px;
   padding: 20px;
   text-align: center;
@@ -104,13 +108,13 @@ body {
 
 .member-card:hover {
   background: rgba(255, 255, 255, 0.1);
-  border-color: #e94560;
+  border-color: var(--color-accent);
   transform: translateY(-3px);
   box-shadow: 0 8px 20px rgba(233, 69, 96, 0.3);
 }
 
 .member-card h3 {
-  color: #e94560;
+  color: var(--color-accent);
   margin-top: 0;
   font-size: 1.3rem;
 }
@@ -148,7 +152,7 @@ body {
 }
 
 .badge-member {
-  background: linear-gradient(135deg, #e94560, #d62c4e);
+  background: linear-gradient(135deg, var(--color-accent), var(--color-accent-dark));
   color: white;
   border-color: #fff;
 }
@@ -167,7 +171,7 @@ body {
 
 .join-section {
   background: linear-gradient(135deg, rgba(233, 69, 96, 0.3) 0%, rgba(15, 52, 96, 0.3) 100%);
-  border: 3px solid #e94560;
+  border: 3px solid var(--color-accent);
   border-radius: 15px;
   padding: 30px;
   text-align: center;
@@ -182,7 +186,7 @@ body {
 
 .cta-button {
   display: inline-block;
-  background: linear-gradient(135deg, #e94560, #d62c4e);
+  background: linear-gradient(135deg, var(--color-accent), var(--color-accent-dark));
   color: white;
   padding: 15px 30px;
   border: 3px solid #fff;
@@ -196,14 +200,14 @@ body {
 }
 
 .cta-button:hover {
-  background: linear-gradient(135deg, #d62c4e, #c42345);
+  background: linear-gradient(135deg, var(--color-accent-dark), #c42345);
   transform: scale(1.05);
   box-shadow: 0 10px 30px rgba(233, 69, 96, 0.5);
 }
 
 .info-box {
   background: rgba(255, 255, 255, 0.05);
-  border-left: 4px solid #e94560;
+  border-left: 4px solid var(--color-accent);
   border-radius: 5px;
   padding: 15px;
   margin: 20px 0;
@@ -219,7 +223,7 @@ body {
 }
 
 a {
-  color: #e94560;
+  color: var(--color-accent);
   text-decoration: none;
   transition: color 0.2s ease;
 }
@@ -249,7 +253,7 @@ h2 {
 }
 
 .join-text {
-  color: #eee;
+  color: var(--color-text);
   font-size: 1.1rem;
   line-height: 1.8;
 }
@@ -265,7 +269,7 @@ h2 {
 }
 
 .about-portal-heading {
-  color: #e94560;
+  color: var(--color-accent);
   margin-top: 0;
 }
 

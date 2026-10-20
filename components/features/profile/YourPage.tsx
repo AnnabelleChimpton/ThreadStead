@@ -6,7 +6,13 @@
  * tabs, with the real page changing beside it. The CSS editor is a link at
  * the bottom.
  *
- * Themes and knobs: lib/templates/appearance.ts. Widgets: WidgetSlotPicker.
+ * With your own HTML page on, the knobs are the page's own theme options
+ * (`<meta name="color:Accent" content="#c96633">`): saving rewrites those
+ * values in the page's source through the HTML editor's save route, so
+ * History keeps the old version and the page recompiles.
+ *
+ * Themes and knobs: lib/templates/appearance.ts. Theme options:
+ * lib/templates/compilation/theme-options.ts. Widgets: WidgetSlotPicker.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
@@ -29,7 +35,15 @@ import {
   type ThemeVars,
 } from '@/lib/templates/appearance';
 import { PRESET_FONT_FACES } from '@/lib/templates/preset-fonts';
-import { scopeAwayFromSiteChrome } from '@/lib/utils/css/css-transform';
+import { scopeAwayFromSiteChrome, transformAdvancedCss } from '@/lib/utils/css/css-transform';
+import {
+  fontFamilies,
+  optionKey,
+  scanThemeOptions,
+  themeOptionsCss,
+  writeThemeOptions,
+  type ThemeOption,
+} from '@/lib/templates/compilation/theme-options';
 import { escapeCssForStyleTag } from '@/lib/utils/sanitization/css';
 import { HIDEABLE_TABS } from '@/lib/domain/profile/tabs';
 import { layoutFields, layoutOf, type Layout } from '@/lib/domain/profile/layout';
@@ -46,6 +60,27 @@ interface PageState {
 const SWATCH_FONTS = Object.values(PRESET_FONT_FACES).join('\n');
 
 const PREVIEW_STYLE_ID = 'your-page-preview-knobs';
+const OPTIONS_PREVIEW_STYLE_ID = 'your-page-preview-options';
+
+/** What a colour input can show for a theme option's colour (#rrggbb only). */
+function colorInputValue(value: string): string {
+  const v = value.trim().toLowerCase();
+  if (/^#[0-9a-f]{6}$/.test(v)) return v;
+  if (/^#[0-9a-f]{8}$/.test(v)) return v.slice(0, 7);
+  if (/^#[0-9a-f]{3,4}$/.test(v)) return `#${v[1]}${v[1]}${v[2]}${v[2]}${v[3]}${v[3]}`;
+  // rgb(), hsl() and names: let the browser work it out
+  try {
+    const ctx = typeof document !== 'undefined' ? document.createElement('canvas').getContext('2d') : null;
+    if (ctx) {
+      ctx.fillStyle = '#000000';
+      ctx.fillStyle = v;
+      if (/^#[0-9a-f]{6}$/i.test(String(ctx.fillStyle))) return String(ctx.fillStyle);
+    }
+  } catch {
+    // no canvas: fall through
+  }
+  return '#000000';
+}
 
 interface Door {
   title: string;
@@ -111,6 +146,10 @@ export default function YourPage({ username }: { username: string }) {
   const [knobs, setKnobs] = useState<Knobs>({});
   const [previewKey, setPreviewKey] = useState(0);
   const previewRef = useRef<HTMLIFrameElement>(null);
+  // Your own HTML page: its source, and unsaved theme option values by optionKey
+  const [source, setSource] = useState<string | null>(null);
+  const [optionDraft, setOptionDraft] = useState<Record<string, string>>({});
+  const [optionsUndo, setOptionsUndo] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -139,6 +178,29 @@ export default function YourPage({ username }: { username: string }) {
   const knobsChanged = JSON.stringify(knobs) !== JSON.stringify(savedKnobs);
   const ownHTML = layoutOf(page?.templateMode) === 'html';
 
+  const loadSource = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/profile/${encodeURIComponent(username)}/template`);
+      if (!res.ok) throw new Error(String(res.status));
+      const data = await res.json();
+      setSource(typeof data.template === 'string' ? data.template : '');
+    } catch {
+      setSource(null);
+    }
+    setOptionDraft({});
+  }, [username]);
+
+  useEffect(() => {
+    if (ownHTML) loadSource();
+  }, [ownHTML, loadSource]);
+
+  const pageOptions = useMemo(() => (ownHTML && source ? scanThemeOptions(source).options : []), [ownHTML, source]);
+  const shownOptions: ThemeOption[] = useMemo(
+    () => pageOptions.map((o) => ({ ...o, value: optionDraft[optionKey(o)] ?? o.value })),
+    [pageOptions, optionDraft]
+  );
+  const optionsChanged = shownOptions.some((o, i) => o.value !== pageOptions[i].value);
+
   // Unsaved knob changes show in the preview straight away, through the same
   // scoping the real page applies (so they win exactly as the saved ones will)
   const applyPreviewKnobs = useCallback(() => {
@@ -156,6 +218,23 @@ export default function YourPage({ username }: { username: string }) {
   useEffect(() => {
     applyPreviewKnobs();
   }, [applyPreviewKnobs]);
+
+  // Unsaved theme option values, as the live page will write them (pages/_app.tsx)
+  const applyPreviewOptions = useCallback(() => {
+    const doc = previewRef.current?.contentDocument;
+    if (!doc?.head) return;
+    let style = doc.getElementById(OPTIONS_PREVIEW_STYLE_ID);
+    if (!style) {
+      style = doc.createElement('style');
+      style.id = OPTIONS_PREVIEW_STYLE_ID;
+      doc.head.appendChild(style);
+    }
+    style.textContent = optionsChanged ? escapeCssForStyleTag(transformAdvancedCss(themeOptionsCss(shownOptions))) : '';
+  }, [shownOptions, optionsChanged]);
+
+  useEffect(() => {
+    applyPreviewOptions();
+  }, [applyPreviewOptions]);
 
   async function setLayout(layout: Layout) {
     const capRes = await csrfFetch('/api/cap/profile', { method: 'POST' });
@@ -238,6 +317,51 @@ export default function YourPage({ username }: { username: string }) {
       showSuccess('Saved.');
     } catch (error) {
       showError(error instanceof Error && error.message !== 'css' ? error.message : "Couldn't save. Try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // The HTML editor's own save: History keeps what this replaces, and the page recompiles
+  async function saveTemplate(template: string) {
+    const res = await csrfFetch(`/api/profile/${encodeURIComponent(username)}/template`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ template }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(typeof data.error === 'string' ? data.error : 'template');
+  }
+
+  async function saveOptions() {
+    if (source === null || busy) return;
+    setBusy(true);
+    const previous = source;
+    try {
+      const values = Object.fromEntries(shownOptions.map((o) => [optionKey(o), o.value]));
+      await saveTemplate(writeThemeOptions(previous, values));
+      await loadSource();
+      setPreviewKey((k) => k + 1);
+      setOptionsUndo(previous);
+      showSuccess('Saved.');
+    } catch (error) {
+      showError(error instanceof Error && error.message !== 'template' ? error.message : "Couldn't save. Try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function undoOptions() {
+    if (optionsUndo === null || busy) return;
+    setBusy(true);
+    try {
+      await saveTemplate(optionsUndo);
+      await loadSource();
+      setPreviewKey((k) => k + 1);
+      setOptionsUndo(null);
+      showSuccess('Put back.');
+    } catch {
+      showError("Couldn't undo that. Your old page is in the HTML editor's History.");
     } finally {
       setBusy(false);
     }
@@ -451,6 +575,71 @@ export default function YourPage({ username }: { username: string }) {
             </section>
           )}
 
+          {/* Your own HTML page's theme options */}
+          {ownHTML && pageOptions.length > 0 && (
+            <section aria-labelledby="your-page-options">
+              <h3 id="your-page-options" className="text-lg font-bold mb-1 text-nb-ink">Colours and fonts</h3>
+              <p className="text-sm text-nb-ink-mid mb-3">
+                Your page&apos;s HTML sets these. Changes show in the preview first. Save to put them on your page.
+              </p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {shownOptions.map((option, i) => {
+                  const key = optionKey(option);
+                  const set = (value: string) => setOptionDraft({ ...optionDraft, [key]: value });
+                  if (option.type === 'color') {
+                    return (
+                      <label key={key} className="block text-sm text-nb-ink min-w-0">
+                        {option.name}
+                        <span className="flex items-center gap-2 mt-1">
+                          <input
+                            type="color"
+                            value={colorInputValue(option.value)}
+                            onChange={(e) => set(e.target.value)}
+                            className="h-10 w-14 border border-black p-0.5 bg-white"
+                          />
+                          <span className="font-mono text-xs break-all">{option.value}</span>
+                        </span>
+                      </label>
+                    );
+                  }
+                  const saved = pageOptions[i].value;
+                  return (
+                    <label key={key} className="block text-sm text-nb-ink min-w-0">
+                      {option.name}
+                      <select
+                        value={option.value}
+                        onChange={(e) => set(e.target.value)}
+                        className="block w-full mt-1 border border-black p-2 bg-white"
+                      >
+                        {!FONT_CHOICES.some((f) => f.stack === saved) && (
+                          <option value={saved}>Your page&apos;s font ({fontFamilies(saved)[0]})</option>
+                        )}
+                        {FONT_CHOICES.map((f) => (
+                          <option key={f.stack} value={f.stack}>{f.label}</option>
+                        ))}
+                      </select>
+                    </label>
+                  );
+                })}
+              </div>
+              <div className="flex flex-wrap gap-2 mt-4">
+                <Button onClick={saveOptions} disabled={busy || !optionsChanged}>
+                  {busy ? 'Saving...' : 'Save'}
+                </Button>
+                {optionsChanged && (
+                  <Button variant="secondary" onClick={() => setOptionDraft({})} disabled={busy}>
+                    Discard changes
+                  </Button>
+                )}
+                {!optionsChanged && optionsUndo !== null && (
+                  <Button variant="secondary" onClick={undoOptions} disabled={busy}>
+                    Undo
+                  </Button>
+                )}
+              </div>
+            </section>
+          )}
+
           {/* Widgets */}
           {!ownHTML && (
             <section aria-labelledby="your-page-widgets">
@@ -491,6 +680,12 @@ export default function YourPage({ username }: { username: string }) {
                 <Link href={`/resident/${encodeURIComponent(username)}/css-editor`}>Edit the CSS yourself</Link>
                 <span className="text-nb-ink-mid">. Your theme&apos;s CSS is already in there to change.</span>
               </li>
+              {ownHTML && source !== null && pageOptions.length === 0 && (
+                <li>
+                  <Link href="/build/what-works-here#theme-options">Add colour and font settings</Link>
+                  <span className="text-nb-ink-mid">. A few lines in your HTML put pickers here.</span>
+                </li>
+              )}
               <li>
                 <Link href="/build/templates/components">Every component</Link>
                 <span className="text-nb-ink-mid">. What each one does, with a snippet to copy into your HTML.</span>
@@ -512,7 +707,10 @@ export default function YourPage({ username }: { username: string }) {
             ref={previewRef}
             src={`/resident/${encodeURIComponent(username)}`}
             title="Your page"
-            onLoad={applyPreviewKnobs}
+            onLoad={() => {
+              applyPreviewKnobs();
+              applyPreviewOptions();
+            }}
             className="block w-full h-[28rem] lg:h-[40rem] border-2 border-black bg-white"
           />
         </section>

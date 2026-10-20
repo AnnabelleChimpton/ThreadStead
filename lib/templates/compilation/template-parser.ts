@@ -15,6 +15,7 @@ import {
   tokenizeSource,
 } from './source-scan';
 import { extractDocument, type DocumentHead } from './document-head';
+import { isThemeOptionMeta } from './theme-options';
 import { whyNoEmbed } from '../embeds';
 import {
   ELEMENT_ATTRIBUTES,
@@ -410,6 +411,8 @@ function reportStrippedTags(source: string, tree: Root, head: DocumentHead): Str
     } else if (token.type === 'doctype' && /^<!doctype/i.test(source.slice(token.start, token.start + 9))) {
       continue; // a doctype isn't a tag anyone expects to see
     }
+    // Theme options report their own problems (theme-options.ts)
+    if (isThemeOptionMeta(token)) continue;
     if (!key || !name || survived.has(key)) continue;
 
     const existing = byKey.get(key);
@@ -522,7 +525,7 @@ export function parseTemplate(htmlString: string): Root & {
   const strippedComponents = reportStrippedTags(htmlString, processed, document.head);
 
   // Component props that won't do what the author meant, for the editor
-  const attributeWarnings = reportComponentProps(htmlString);
+  const attributeWarnings = [...reportComponentProps(htmlString), ...(document.warnings ?? [])];
 
   // Attach stripped components and attribute warnings to the result
   const result = processed as Root & {
@@ -539,7 +542,7 @@ export function parseTemplate(htmlString: string): Root & {
     result._attributeWarnings = attributeWarnings;
   }
 
-  if (document.isFullDocument || document.head.fontImports.length > 0) {
+  if (document.isFullDocument || document.head.fontImports.length > 0 || document.head.options) {
     result._documentHead = document.head;
   }
 

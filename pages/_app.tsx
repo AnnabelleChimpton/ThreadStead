@@ -138,7 +138,8 @@ export default function MyApp({ Component, pageProps, appSiteCSS }: MyAppProps) 
     router.pathname === '/resident/[username]/index' ||
     router.pathname === '/template-preview';
   const hasCustomCSS = pageProps.customCSS && pageProps.customCSS.trim() !== '';
-  // Google Fonts <link>s and <body bgcolor…> from a pasted page, kept by the compiler
+  // Google Fonts <link>s, <body bgcolor…> and theme options (<meta name="color:…">)
+  // from the page's source, kept by the compiler and re-checked here
   const advancedDocumentCss = documentCssFromCompiledTemplate(pageProps.compiledTemplate);
 
   const actualCSSMode = cssMode;
