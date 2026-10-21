@@ -28,13 +28,16 @@ import sharp from 'sharp'
 import HouseSVG from '@/components/pixel-homes/HouseSVG'
 import DecorationSVG from '@/components/pixel-homes/DecorationSVG'
 import {
-  GrassTextureDefs,
   GroundGradientDefs,
+  NIGHT_STARS,
+  SCENE_DITHER_SEAM,
   SkyGradientDefs,
   TerrainDitherDefs,
   getGroundPatternCount,
   getSkyPatternCount,
+  groundBaseColor,
   layoutDitherBands,
+  skyBaseColor,
   type SkyType,
 } from '@/components/pixel-homes/DitherPatternDefs'
 import { PlantSVGs } from '@/components/pixel-homes/assets/PlantSVGs'
@@ -57,13 +60,6 @@ export const CANVAS_WIDTH = 512
 export const CANVAS_HEIGHT = 352
 const SKY_HEIGHT = 96 // background zone: y 0–96
 const HOUSE = { x: 156, y: 32, width: 200, height: 180 }
-const BASE_SKY_COLORS: Record<string, string> = {
-  sunny: '#C8F0FF',
-  cloudy: '#E0E8F0',
-  sunset: '#FFD090',
-  night: '#1A1A60',
-}
-const BASE_GRASS_COLOR = '#90EE90'
 const TERRAIN_PATTERNS: Record<string, string> = {
   dirt: 'terrain-dirt',
   stone_path: 'terrain-stone',
@@ -78,10 +74,6 @@ const TERRAIN_PATTERNS: Record<string, string> = {
   moss: 'terrain-flowerbed',
   pebbles: 'terrain-gravel',
 }
-const NIGHT_STARS: Array<[number, number, number, number]> = [
-  [32, 16, 2, 0.8], [120, 32, 2, 0.6], [200, 12, 2, 0.9], [350, 24, 2, 0.7],
-  [420, 48, 2, 0.8], [80, 60, 1, 0.5], [280, 40, 1, 0.6], [380, 8, 1, 0.7],
-]
 
 // --- The share image ----------------------------------------------------------
 export const OG_SIZE = { width: 1200, height: 630 } as const
@@ -98,7 +90,8 @@ const MAX_TOP_CROP = 30
 // 3: flipped decorations are drawn mirrored
 // 4: lights, chimes, lanterns, trellises and arches on the house stay in front of it
 // 5: every palette owns its walls; loft, townhouse and cabin parts take palette colours
-export const SNAPSHOT_RENDERER_VERSION = 5
+// 6: threadstead-44 sky and lawn (the street's)
+export const SNAPSHOT_RENDERER_VERSION = 6
 
 /** Fetch an image's bytes, or null if it can't be had (a 404, an origin we don't fetch from). */
 export type ImageLoader = (url: string) => Promise<Buffer | null>
@@ -244,33 +237,29 @@ async function decorationMarkup(item: SceneDecoration, loadImage: ImageLoader): 
 function Backdrop({ sky, padX }: { sky: SkyType; padX: number }) {
   const width = CANVAS_WIDTH + padX * 2
   const groundHeight = CANVAS_HEIGHT - SKY_HEIGHT
-  const halfGround = Math.floor(groundHeight / 2)
-  const skyBands = layoutDitherBands(getSkyPatternCount(sky), SKY_HEIGHT)
-  const groundBands = layoutDitherBands(getGroundPatternCount(), groundHeight)
+  const skyBands = layoutDitherBands(getSkyPatternCount(sky), SKY_HEIGHT, SCENE_DITHER_SEAM)
+  const groundBands = layoutDitherBands(getGroundPatternCount(), groundHeight, SCENE_DITHER_SEAM)
   // Each layer keeps the canvas's own origin (the sky and terrain at 0,0,
   // the ground at 0,96), so the dither patterns line up pixel for pixel.
   return (
     <>
       <g>
         <SkyGradientDefs prefix="snap" sky={sky} />
-        <rect x={-padX} y={0} width={width} height={SKY_HEIGHT} fill={BASE_SKY_COLORS[sky] || '#87CEEB'} />
+        <rect x={-padX} y={0} width={width} height={SKY_HEIGHT} fill={skyBaseColor(sky)} />
         {skyBands.map((band) => (
           <rect key={band.index} x={-padX} y={band.y} width={width} height={band.height} fill={`url(#snap-sky-${sky}-${band.index})`} />
         ))}
         {sky === 'night' &&
-          NIGHT_STARS.map(([x, y, s, opacity]) => (
-            <rect key={`${x},${y}`} x={x} y={y} width={s} height={s} fill="#FFFFFF" opacity={opacity} />
+          NIGHT_STARS.map(([x, y, size, color]) => (
+            <rect key={`${x},${y}`} x={x} y={y} width={size} height={size} fill={color} />
           ))}
       </g>
       <g transform={`translate(0 ${SKY_HEIGHT})`}>
         <GroundGradientDefs prefix="snap" />
-        <GrassTextureDefs prefix="snap" />
-        <rect x={-padX} y={0} width={width} height={groundHeight} fill={BASE_GRASS_COLOR} />
+        <rect x={-padX} y={0} width={width} height={groundHeight} fill={groundBaseColor()} />
         {groundBands.map((band) => (
           <rect key={band.index} x={-padX} y={band.y} width={width} height={band.height} fill={`url(#snap-ground-${band.index})`} />
         ))}
-        <rect x={-padX} y={0} width={width} height={halfGround} fill="url(#snap-grass-blades)" />
-        <rect x={-padX} y={halfGround} width={width} height={groundHeight - halfGround} fill="url(#snap-grass-blades-dense)" />
       </g>
     </>
   )

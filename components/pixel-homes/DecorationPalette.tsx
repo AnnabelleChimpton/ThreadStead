@@ -78,18 +78,18 @@ function TerrainTileIcon({ tileId, size = 32 }: { tileId: string; size?: number 
       case 'grass':
         return (
           <>
-            <rect width={size} height={size} fill="#7CCD7C" />
+            <rect width={size} height={size} fill="#608d43" />
             {/* Grass blades */}
-            <rect x={2} y={4} width={1} height={3} fill="#5AAF5A" />
-            <rect x={6} y={2} width={1} height={4} fill="#5AAF5A" />
-            <rect x={10} y={5} width={1} height={3} fill="#5AAF5A" />
-            <rect x={14} y={3} width={1} height={4} fill="#5AAF5A" />
-            <rect x={4} y={10} width={1} height={3} fill="#5AAF5A" />
-            <rect x={8} y={8} width={1} height={4} fill="#5AAF5A" />
-            <rect x={12} y={11} width={1} height={3} fill="#5AAF5A" />
+            <rect x={2} y={4} width={1} height={3} fill="#49722e" />
+            <rect x={6} y={2} width={1} height={4} fill="#49722e" />
+            <rect x={10} y={5} width={1} height={3} fill="#49722e" />
+            <rect x={14} y={3} width={1} height={4} fill="#49722e" />
+            <rect x={4} y={10} width={1} height={3} fill="#49722e" />
+            <rect x={8} y={8} width={1} height={4} fill="#49722e" />
+            <rect x={12} y={11} width={1} height={3} fill="#49722e" />
             {/* Highlights */}
-            <rect x={3} y={6} width={1} height={2} fill="#90EE90" />
-            <rect x={9} y={4} width={1} height={2} fill="#90EE90" />
+            <rect x={3} y={6} width={1} height={2} fill="#a3c27a" />
+            <rect x={9} y={4} width={1} height={2} fill="#a3c27a" />
           </>
         )
       case 'dirt':

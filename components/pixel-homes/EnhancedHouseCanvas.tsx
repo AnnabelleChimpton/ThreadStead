@@ -2,7 +2,7 @@ import React, { memo, useMemo, useRef, useEffect, useState } from 'react'
 import type { HouseTemplate, ColorPalette, HouseCustomizations, AtmosphereSettings } from './HouseSVG'
 import DecorationSVG from './DecorationSVG'
 import HouseSprite from './HouseSprite'
-import { SkyGradientDefs, GroundGradientDefs, TerrainDitherDefs, GrassTextureDefs, getSkyPatternCount, getGroundPatternCount, layoutDitherBands } from './DitherPatternDefs'
+import { SkyGradientDefs, GroundGradientDefs, TerrainDitherDefs, getSkyPatternCount, getGroundPatternCount, layoutDitherBands, groundBaseColor, skyBaseColor, NIGHT_STARS, SCENE_DITHER_SEAM } from './DitherPatternDefs'
 import { useSvgIdPrefix } from './useSvgIdPrefix'
 import { DecorationItem, TERRAIN_TILES, isFlipped } from '@/lib/pixel-homes/decoration-data'
 import { DEFAULT_DECORATION_GRID } from '@/lib/pixel-homes/decoration-grid-utils'
@@ -115,18 +115,11 @@ const HOUSE_POSITION = HOUSE_BOX
 // sprite, a new selection) redraws only that layer, and nothing redraws while
 // the pointer just moves.
 
-const BASE_SKY_COLORS: Record<string, string> = {
-  sunny: '#C8F0FF',
-  cloudy: '#E0E8F0',
-  sunset: '#FFD090',
-  night: '#1A1A60'
-}
-
 const SkyLayer = memo(function SkyLayer({ sky, idPrefix }: { sky: AtmosphereSettings['sky']; idPrefix: string }) {
   const zone = DECORATION_ZONES.background
 
-  // Pixel-perfect band heights for this sky type
-  const bands = layoutDitherBands(getSkyPatternCount(sky), zone.height).map(band => ({
+  // Solid bands with a thin checker seam between each pair
+  const bands = layoutDitherBands(getSkyPatternCount(sky), zone.height, SCENE_DITHER_SEAM).map(band => ({
     ...band,
     pattern: `${idPrefix}-sky-${sky}-${band.index}`
   }))
@@ -141,22 +134,15 @@ const SkyLayer = memo(function SkyLayer({ sky, idPrefix }: { sky: AtmosphereSett
     >
       <SkyGradientDefs prefix={idPrefix} sky={sky} />
       {/* Base fill to prevent any gaps */}
-      <rect x="0" y="0" width={zone.width} height={zone.height} fill={BASE_SKY_COLORS[sky] || '#87CEEB'} />
-      {/* Dithered sky bands with pixel-perfect heights */}
+      <rect x="0" y="0" width={zone.width} height={zone.height} fill={skyBaseColor(sky)} />
       {bands.map((band, i) => (
         <rect key={i} x="0" y={band.y} width={zone.width} height={band.height} fill={`url(#${band.pattern})`} />
       ))}
-      {/* Stars for night sky */}
       {sky === 'night' && (
         <g>
-          <rect x="32" y="16" width="2" height="2" fill="#FFFFFF" opacity="0.8" />
-          <rect x="120" y="32" width="2" height="2" fill="#FFFFFF" opacity="0.6" />
-          <rect x="200" y="12" width="2" height="2" fill="#FFFFFF" opacity="0.9" />
-          <rect x="350" y="24" width="2" height="2" fill="#FFFFFF" opacity="0.7" />
-          <rect x="420" y="48" width="2" height="2" fill="#FFFFFF" opacity="0.8" />
-          <rect x="80" y="60" width="1" height="1" fill="#FFFFFF" opacity="0.5" />
-          <rect x="280" y="40" width="1" height="1" fill="#FFFFFF" opacity="0.6" />
-          <rect x="380" y="8" width="1" height="1" fill="#FFFFFF" opacity="0.7" />
+          {NIGHT_STARS.map(([x, y, size, color]) => (
+            <rect key={`${x},${y}`} x={x} y={y} width={size} height={size} fill={color} />
+          ))}
         </g>
       )}
     </svg>
@@ -166,14 +152,10 @@ const SkyLayer = memo(function SkyLayer({ sky, idPrefix }: { sky: AtmosphereSett
 const GroundLayer = memo(function GroundLayer({ idPrefix }: { idPrefix: string }) {
   const zone = DECORATION_ZONES.front_yard
 
-  // Pixel-perfect band heights for the ground gradient
-  const bands = layoutDitherBands(getGroundPatternCount(), zone.height).map(band => ({
+  const bands = layoutDitherBands(getGroundPatternCount(), zone.height, SCENE_DITHER_SEAM).map(band => ({
     ...band,
     pattern: `${idPrefix}-ground-${band.index}`
   }))
-
-  // Calculate grass texture overlay positions (integer division)
-  const halfHeight = Math.floor(zone.height / 2)
 
   return (
     <svg
@@ -184,16 +166,11 @@ const GroundLayer = memo(function GroundLayer({ idPrefix }: { idPrefix: string }
       shapeRendering="crispEdges"
     >
       <GroundGradientDefs prefix={idPrefix} />
-      <GrassTextureDefs prefix={idPrefix} />
-      {/* Base fill to prevent any gaps (top grass color) */}
-      <rect x="0" y="0" width={zone.width} height={zone.height} fill="#90EE90" />
-      {/* Dithered grass bands with pixel-perfect heights */}
+      {/* Base fill to prevent any gaps */}
+      <rect x="0" y="0" width={zone.width} height={zone.height} fill={groundBaseColor()} />
       {bands.map((band, i) => (
         <rect key={i} x="0" y={band.y} width={zone.width} height={band.height} fill={`url(#${band.pattern})`} />
       ))}
-      {/* Grass blade texture overlay - sparse at horizon, denser in foreground */}
-      <rect x="0" y="0" width={zone.width} height={halfHeight} fill={`url(#${idPrefix}-grass-blades)`} />
-      <rect x="0" y={halfHeight} width={zone.width} height={zone.height - halfHeight} fill={`url(#${idPrefix}-grass-blades-dense)`} />
     </svg>
   )
 })
@@ -496,6 +473,7 @@ export default function EnhancedHouseCanvas({
   }, [onScaleChange, pixelPerfect])
 
   const editable = !!onScenePointer
+  const sky = atmosphere?.sky ?? 'sunny'
 
   // One handler for mouse, pen and touch, in scene coordinates
   const handlePointer = (kind: ScenePointerKind) => (event: React.PointerEvent<HTMLDivElement>) => {
@@ -573,7 +551,7 @@ export default function EnhancedHouseCanvas({
             position: 'relative'
           }}
         >
-          <SkyLayer sky={atmosphere?.sky ?? 'sunny'} idPrefix={idPrefix} />
+          <SkyLayer sky={sky} idPrefix={idPrefix} />
           <GroundLayer idPrefix={idPrefix} />
           <TerrainLayer terrain={terrain ?? NO_TERRAIN} idPrefix={idPrefix} />
           <DecorationsLayer

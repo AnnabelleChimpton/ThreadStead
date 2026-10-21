@@ -49,7 +49,7 @@ export interface TerrainTile {
 }
 
 export const TERRAIN_TILES: TerrainTile[] = [
-    { id: 'grass', name: 'Grass', color: '#90EE90' }, // Default
+    { id: 'grass', name: 'Grass', color: '#608d43' }, // Default: the lawn itself
     { id: 'dirt', name: 'Dirt', color: '#8B4513' },
     { id: 'stone_path', name: 'Stone Path', color: '#808080' },
     { id: 'brick_path', name: 'Brick Path', color: '#A52A2A' },

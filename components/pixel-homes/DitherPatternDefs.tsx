@@ -260,19 +260,38 @@ function GradientDitherPatterns({
 
 export type SkyType = 'sunny' | 'cloudy' | 'sunset' | 'night'
 
-// Sky color palettes - from top (darker) to horizon (lighter)
+// The yard's sky and lawn, from threadstead-44 (lib/pixel-homes/palette.ts),
+// as in the art bible's design/pixel-art/_yard-preview.png. The street's lots
+// and signposts (styles/components.css .ts-street-yard) use the same bands.
+
+// Sky colours, from the top down to the horizon
 const SKY_COLORS: Record<SkyType, string[]> = {
-  sunny: ['#5BA3D0', '#6BB5DC', '#87CEEB', '#A8E4F0', '#C8F0FF'],
-  cloudy: ['#8899AA', '#9DAAB8', '#B0C4DE', '#C8D4E8', '#E0E8F0'],
-  sunset: ['#4A3070', '#7B4090', '#C85A80', '#FF7060', '#FFB060', '#FFD090'],
-  night: ['#050510', '#0A0A20', '#101035', '#151550', '#1A1A60']
+  sunny: ['#6f97b3', '#9dbfd3', '#d4e6ef'],
+  cloudy: ['#8fa0a0', '#c5d0cd', '#d4e6ef'],
+  sunset: ['#8b7fe0', '#d9a9b5', '#e27d60', '#f2c6a0'],
+  night: ['#2b2523', '#3e4b4d', '#3f5f7a'],
 }
 
-// Ground/grass colors - from light (top/horizon) to darker (bottom/foreground)
+// Lawn colours, from the horizon down to the foreground
+const GROUND_COLORS = ['#a3c27a', '#608d43', '#49722e']
+
+/** Height in pixels of the checker seam between two sky or lawn bands. */
+export const SCENE_DITHER_SEAM = 2
+
+/** Stars on the night sky, in sky coordinates: [x, y, size, colour]. */
+export const NIGHT_STARS: ReadonlyArray<readonly [number, number, number, string]> = [
+  [32, 16, 2, '#fffaf5'], [120, 32, 2, '#c5d0cd'], [200, 12, 2, '#fffaf5'], [350, 24, 2, '#d8cbbd'],
+  [420, 48, 2, '#fffaf5'], [80, 60, 1, '#8fa0a0'], [280, 40, 1, '#c5d0cd'], [380, 8, 1, '#d8cbbd'],
+]
+
 // Stored atmosphere values aren't validated, so fall back to the sunny sky.
 const skyColors = (sky: SkyType) => SKY_COLORS[sky] ?? SKY_COLORS.sunny
 
-const GROUND_COLORS = ['#90EE90', '#7CCD7C', '#68B868', '#54A454', '#408040', '#2C6C2C']
+/** The sky's horizon colour, painted under the bands so nothing shows through a gap. */
+export const skyBaseColor = (sky: SkyType): string => skyColors(sky)[skyColors(sky).length - 1]
+
+/** The lawn's horizon colour, painted under the bands. */
+export const groundBaseColor = (): string => GROUND_COLORS[0]
 
 /**
  * Pattern definitions for one sky gradient: ids `${prefix}-sky-${sky}-${i}`.
@@ -289,7 +308,7 @@ export function SkyGradientDefs({ prefix = '', sky }: { prefix?: string; sky: Sk
 }
 
 /**
- * Pattern definitions for the ground gradient: ids `${prefix}-ground-${i}`.
+ * Pattern definitions for the lawn gradient: ids `${prefix}-ground-${i}`.
  */
 export function GroundGradientDefs({ prefix = '' }: { prefix?: string }) {
   const p = prefix ? `${prefix}-` : ''
@@ -312,7 +331,7 @@ export function getSkyPatternCount(skyType: SkyType): number {
 }
 
 /**
- * Returns the number of pattern bands for the ground gradient.
+ * Returns the number of pattern bands for the lawn gradient.
  */
 export function getGroundPatternCount(): number {
   return GROUND_COLORS.length * 2 - 1
@@ -362,56 +381,6 @@ export function layoutDitherBands(patternCount: number, height: number, transiti
     y += h
   }
   return bands
-}
-
-/**
- * Grass texture pattern definitions - adds blade details on top of color bands
- */
-export function GrassTextureDefs({ prefix = '' }: { prefix?: string }) {
-  const p = prefix ? `${prefix}-` : ''
-
-  return (
-    <defs>
-      {/* Grass blade texture - scattered vertical lines */}
-      <pattern id={`${p}grass-blades`} width="16" height="12" patternUnits="userSpaceOnUse">
-        {/* Darker grass blade hints */}
-        <rect x="1" y="4" width="1" height="3" fill="rgba(0,80,0,0.25)" />
-        <rect x="4" y="2" width="1" height="4" fill="rgba(0,80,0,0.2)" />
-        <rect x="7" y="5" width="1" height="3" fill="rgba(0,80,0,0.25)" />
-        <rect x="10" y="1" width="1" height="4" fill="rgba(0,80,0,0.15)" />
-        <rect x="13" y="3" width="1" height="4" fill="rgba(0,80,0,0.2)" />
-        <rect x="3" y="8" width="1" height="3" fill="rgba(0,80,0,0.2)" />
-        <rect x="8" y="9" width="1" height="2" fill="rgba(0,80,0,0.25)" />
-        <rect x="12" y="7" width="1" height="4" fill="rgba(0,80,0,0.15)" />
-        <rect x="15" y="6" width="1" height="3" fill="rgba(0,80,0,0.2)" />
-        {/* Lighter highlight blades */}
-        <rect x="2" y="6" width="1" height="2" fill="rgba(180,255,180,0.2)" />
-        <rect x="6" y="3" width="1" height="3" fill="rgba(180,255,180,0.15)" />
-        <rect x="11" y="5" width="1" height="2" fill="rgba(180,255,180,0.2)" />
-        <rect x="14" y="9" width="1" height="2" fill="rgba(180,255,180,0.15)" />
-      </pattern>
-
-      {/* Denser grass for foreground areas */}
-      <pattern id={`${p}grass-blades-dense`} width="12" height="10" patternUnits="userSpaceOnUse">
-        <rect x="0" y="2" width="1" height="4" fill="rgba(0,60,0,0.3)" />
-        <rect x="2" y="0" width="1" height="5" fill="rgba(0,60,0,0.25)" />
-        <rect x="4" y="3" width="1" height="4" fill="rgba(0,60,0,0.3)" />
-        <rect x="6" y="1" width="1" height="5" fill="rgba(0,60,0,0.2)" />
-        <rect x="8" y="2" width="1" height="4" fill="rgba(0,60,0,0.25)" />
-        <rect x="10" y="0" width="1" height="5" fill="rgba(0,60,0,0.3)" />
-        <rect x="1" y="6" width="1" height="3" fill="rgba(0,60,0,0.25)" />
-        <rect x="3" y="5" width="1" height="4" fill="rgba(0,60,0,0.2)" />
-        <rect x="5" y="7" width="1" height="3" fill="rgba(0,60,0,0.3)" />
-        <rect x="7" y="6" width="1" height="3" fill="rgba(0,60,0,0.25)" />
-        <rect x="9" y="5" width="1" height="4" fill="rgba(0,60,0,0.2)" />
-        <rect x="11" y="7" width="1" height="3" fill="rgba(0,60,0,0.25)" />
-        {/* Highlights */}
-        <rect x="3" y="1" width="1" height="2" fill="rgba(200,255,200,0.2)" />
-        <rect x="7" y="4" width="1" height="2" fill="rgba(200,255,200,0.15)" />
-        <rect x="11" y="2" width="1" height="2" fill="rgba(200,255,200,0.2)" />
-      </pattern>
-    </defs>
-  )
 }
 
 /**

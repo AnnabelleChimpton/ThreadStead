@@ -20,8 +20,9 @@ type RGBA = [number, number, number, number]
 
 const RED: RGBA = [255, 0, 0, 255]
 const BLUE: RGBA = [0, 0, 255, 255]
-const SKY_TOP = '#5ba3d0' // sunny band 0 (DitherPatternDefs SKY_COLORS)
-const SKY_NEXT = '#6bb5dc' // sunny band 2; band 1 is a 1px checker of the two
+const SKY_TOP = '#6f97b3' // sunny band 0 (DitherPatternDefs SKY_COLORS)
+const SKY_NEXT = '#9dbfd3' // sunny band 2; band 1 is a 2px-tall, 1px checker of the two
+const SEAM_Y = 31 // the first seam's rows: 31 and 32
 
 function scene(overrides: Partial<HomeScene> = {}): HomeScene {
   return {
@@ -86,7 +87,7 @@ describe('renderHomeSnapshot', () => {
     expect(c.hex(5, 5)).toBe(SKY_TOP)
     expect(c.hex(500, 5)).toBe(SKY_TOP)
     // The first transition band is a 1px checker of the two sky colours…
-    const checker = [c.hex(10, 15), c.hex(11, 15), c.hex(10, 16), c.hex(11, 16)]
+    const checker = [c.hex(10, SEAM_Y), c.hex(11, SEAM_Y), c.hex(10, SEAM_Y + 1), c.hex(11, SEAM_Y + 1)]
     expect(new Set(checker)).toEqual(new Set([SKY_TOP, SKY_NEXT]))
     expect(checker[0]).toBe(checker[3])
     expect(checker[1]).toBe(checker[2])
@@ -94,7 +95,7 @@ describe('renderHomeSnapshot', () => {
 
     // …and in the share image each of those pixels is a 2×2 square, shifted
     // right by the 44 units of sky carried past the yard's left edge.
-    for (const [x, y] of [[10, 15], [11, 15], [10, 16], [11, 16]]) {
+    for (const [x, y] of [[10, SEAM_Y], [11, SEAM_Y], [10, SEAM_Y + 1], [11, SEAM_Y + 1]]) {
       const ox = (x + 44) * 2
       const oy = y * 2
       const want = c.hex(x, y)
@@ -106,7 +107,13 @@ describe('renderHomeSnapshot', () => {
 
   test('a different sky is a different picture', async () => {
     const { card } = await renderHomeSnapshot(scene({ sky: 'sunset' }), { loadImage: noImages })
-    expect((await pixels(card)).hex(5, 5)).toBe('#4a3070')
+    expect((await pixels(card)).hex(5, 5)).toBe('#8b7fe0')
+  })
+
+  test("the lawn is the street's", async () => {
+    const day = await pixels((await renderHomeSnapshot(scene(), { loadImage: noImages })).card)
+    expect(day.hex(20, 100)).toBe('#a3c27a')
+    expect(day.hex(20, 200)).toBe('#608d43')
   })
 
   test("the house uses the resident's colours", async () => {
