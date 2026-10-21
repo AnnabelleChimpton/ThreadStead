@@ -16,6 +16,7 @@ import ThreadRingActivePrompt from "../../components/core/threadring/ThreadRingA
 import ThreadRing88x31Badge from "../../components/core/threadring/ThreadRing88x31Badge";
 import ThreadRingAboutWidget from "../../components/core/threadring/ThreadRingAboutWidget";
 import { featureFlags } from "@/lib/utils/features/feature-flags";
+import { calendarDate } from "@/lib/utils/dates";
 import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
 import { raceHubCall, HUB_TIMEOUT } from "@/lib/api/ringhub/ringhub-ssr";
 import { transformRingDescriptorToThreadRing } from "@/lib/api/ringhub/ringhub-transformers";
@@ -357,7 +358,7 @@ function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: 
               <ul className="mt-1 space-y-1">
                 <li>• System Ring: {ring.isSystemRing ? 'Yes' : 'No'}</li>
                 <li>• Lineage Depth: {lineageData.lineageDepth || ring.lineageDepth || 0}</li>
-                <li>• Created: {new Date(ring.createdAt).toLocaleDateString()}</li>
+                <li>• Created: {calendarDate(ring.createdAt)}</li>
               </ul>
             </div>
             <div>
@@ -1498,7 +1499,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
             <div className="widget-container widget--flat bg-thread-paper border border-thread-sage rounded-cozy p-3 text-xs space-y-1">
               <div className="flex justify-between">
                 <span className="text-nb-ink-mid">Created:</span>
-                <span className="font-medium">{new Date(ring.createdAt).toLocaleDateString()}</span>
+                <span className="font-medium">{calendarDate(ring.createdAt)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-nb-ink-mid">Visibility:</span>
@@ -1717,7 +1718,7 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                 <div className="widget-container widget--flat bg-thread-paper border border-thread-sage rounded-cozy p-3 text-xs space-y-1">
                   <div className="flex justify-between">
                     <span className="text-nb-ink-mid">Created:</span>
-                    <span className="font-medium text-nb-ink">{new Date(ring.createdAt).toLocaleDateString()}</span>
+                    <span className="font-medium text-nb-ink">{calendarDate(ring.createdAt)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-nb-ink-mid">Visibility:</span>

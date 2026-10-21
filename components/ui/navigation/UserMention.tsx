@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import UserQuickView from "@/components/ui/feedback/UserQuickView";
-import { SITE_NAME } from "@/lib/config/site/constants";
 
 interface UserMentionProps {
   username: string;
@@ -10,8 +9,14 @@ interface UserMentionProps {
   className?: string;
   showBadge?: boolean;
   children?: React.ReactNode;
-  handleHost?: string;  // Host of the user's handle (to detect federated users)
+  handleHost?: string;  // Host of the user's handle (shown in the link label)
   profileUrl?: string;  // Profile URL for federated users
+  /**
+   * A user from another instance. Decide it on the server and pass it down:
+   * SITE_NAME's env var isn't public, so the browser can't tell, and a guess
+   * there renders different HTML than the server did.
+   */
+  external?: boolean;
 }
 
 export default function UserMention({
@@ -21,16 +26,14 @@ export default function UserMention({
   children,
   handleHost,
   profileUrl,
+  external = false,
 }: UserMentionProps) {
   const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
-
-  // Check if this is a federated user from another instance
-  const isExternalUser = handleHost && handleHost !== SITE_NAME;
 
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
     // Only open quick view for local users
-    if (!isExternalUser) {
+    if (!external) {
       setIsQuickViewOpen(true);
     }
     // For external users, do nothing (could show a toast in the future)
@@ -40,7 +43,7 @@ export default function UserMention({
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       // Only open quick view for local users
-      if (!isExternalUser) {
+      if (!external) {
         setIsQuickViewOpen(true);
       }
     }
@@ -50,7 +53,7 @@ export default function UserMention({
 
   return (
     <>
-      {isExternalUser && profileUrl ? (
+      {external && profileUrl ? (
         // External user with profile URL - render as link
         <a
           href={profileUrl}

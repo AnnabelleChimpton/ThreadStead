@@ -16,6 +16,7 @@ import { csrfFetch } from "@/lib/api/client/csrf-fetch";
 import { useToast } from "@/contexts/ToastContext";
 import { useConfirm } from "@/contexts/ConfirmContext";
 import { badgeHandlesFor } from "@/lib/pixel-homes/house-badge";
+import { calendarDate } from "@/lib/utils/dates";
 
 interface Member {
   id: string;
@@ -32,6 +33,8 @@ interface Member {
   };
   /** Their pixel home's handle, when the viewer may see it: shows the house badge */
   homeHandle?: string | null;
+  /** From another instance (decided on the server, see UserMention) */
+  external?: boolean;
 }
 
 interface ThreadRingMembersPageProps {
@@ -229,7 +232,7 @@ export default function ThreadRingMembersPage({
               const isCurator = member.role === "curator";
 
               return (
-                <div key={member.id} className="p-4 flex items-center justify-between">
+                <div key={member.user.id} className="p-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     {member.user.profile?.avatarUrl && (
                       <img
@@ -245,10 +248,11 @@ export default function ThreadRingMembersPage({
                           displayName={member.user.profile?.displayName || undefined}
                           handleHost={member.user.handles[0]?.host}
                           profileUrl={member.user.profileUrl}
+                          external={member.external}
                         />
                       </div>
                       <div className="text-sm text-gray-600">
-                        Joined {new Date(member.joinedAt).toLocaleDateString()}
+                        Joined {calendarDate(member.joinedAt)}
                       </div>
                     </div>
                   </div>
@@ -428,7 +432,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
               props: {
                 siteConfig,
                 ring,
-                members: await withHouseBadges(members, viewer?.id),
+                members: markExternal(await withHouseBadges(members, viewer?.id)),
                 canManage,
                 hubRing: true,
               },
@@ -511,7 +515,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
           memberCount: ring.memberCount,
           curatorId: ring.curatorId,
         },
-        members: await withHouseBadges(serializedMembers, viewer?.id),
+        members: markExternal(await withHouseBadges(serializedMembers, viewer?.id)),
         canManage,
       },
     };
@@ -538,4 +542,12 @@ async function withHouseBadges<T extends { user: { id: string } }>(members: T[],
     console.error("House badges skipped:", error);
     return members.map((m) => ({ ...m, homeHandle: null }));
   }
+}
+
+/** Flags members from other instances here, where SITE_NAME is known. */
+function markExternal<T extends { user: { handles: Array<{ host: string }> } }>(members: T[]) {
+  return members.map((m) => {
+    const host = m.user.handles[0]?.host;
+    return { ...m, external: !!host && host !== SITE_NAME };
+  });
 }
