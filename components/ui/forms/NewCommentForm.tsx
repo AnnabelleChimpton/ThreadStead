@@ -181,7 +181,7 @@ export default function NewCommentForm({ postId, parentId, onCommentAdded, place
       const { token } = await capRes.json();
 
       const formData = new FormData();
-      formData.append('image', fileToUpload);
+      formData.append('file', fileToUpload);
       formData.append('cap', token);
       formData.append('context', 'post_embed');
 

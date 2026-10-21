@@ -50,20 +50,20 @@ const ENV = {
 };
 const savedEnv: Record<string, string | undefined> = {};
 
-function multipart(file: Buffer, type: string, filename: string, context?: string) {
+function multipart(file: Buffer, type: string, filename: string, context?: string, field = 'file') {
   return Buffer.concat([
     Buffer.from(
       `--${BOUNDARY}\r\nContent-Disposition: form-data; name="cap"\r\n\r\ngood-cap\r\n` +
         (context ? `--${BOUNDARY}\r\nContent-Disposition: form-data; name="context"\r\n\r\n${context}\r\n` : '') +
-        `--${BOUNDARY}\r\nContent-Disposition: form-data; name="image"; filename="${filename}"\r\nContent-Type: ${type}\r\n\r\n`
+        `--${BOUNDARY}\r\nContent-Disposition: form-data; name="${field}"; filename="${filename}"\r\nContent-Type: ${type}\r\n\r\n`
     ),
     file,
     Buffer.from(`\r\n--${BOUNDARY}--\r\n`),
   ]);
 }
 
-async function upload(file: Buffer, type = 'image/gif', filename = 'dance.gif', context?: string) {
-  const body = multipart(file, type, filename, context);
+async function upload(file: Buffer, type = 'image/gif', filename = 'dance.gif', context?: string, field?: string) {
+  const body = multipart(file, type, filename, context, field);
   const req = Readable.from([body]) as unknown as NextApiRequest & Record<string, unknown>;
   Object.assign(req, {
     method: 'POST',
@@ -204,4 +204,19 @@ test('a GIF added to a post keeps its frames', async () => {
   expect(db.media.create).toHaveBeenCalledWith({
     data: expect.objectContaining({ mediaType: 'gif', uploadContext: 'post_embed', isGalleryItem: false }),
   });
+});
+
+// The file field was called "image" until it took songs too. A page loaded
+// before that deploy still sends "image", so it's still accepted.
+test('a file sent under the old field name "image" still uploads', async () => {
+  const res = await upload(await twoFrameGif(40, 40), 'image/gif', 'dance.gif', undefined, 'image');
+  expect(res.statusCode).toBe(200);
+  expect(db.media.create).toHaveBeenCalledWith({ data: expect.objectContaining({ mediaType: 'gif' }) });
+});
+
+test('a file under some other field name is a 400, not a server error', async () => {
+  const res = await upload(await twoFrameGif(40, 40), 'image/gif', 'dance.gif', undefined, 'photo');
+  expect(res.statusCode).toBe(400);
+  expect(res.body.error).toBe('Send one file, in the "file" field.');
+  expect(db.media.create).not.toHaveBeenCalled();
 });

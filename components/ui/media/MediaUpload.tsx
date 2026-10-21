@@ -134,7 +134,7 @@ export default function MediaUpload({ onUploadSuccess, disabled = false }: Media
 
       // Create form data
       const formData = new FormData();
-      formData.append('image', selectedFile);
+      formData.append('file', selectedFile);
       formData.append('cap', token);
       if (caption.trim()) formData.append('caption', caption.trim());
       if (title.trim()) formData.append('title', title.trim());

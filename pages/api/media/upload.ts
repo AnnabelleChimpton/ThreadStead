@@ -50,7 +50,10 @@ const upload = multer({
   },
 });
 
-const uploadSingle = promisify(upload.single('image'));
+// The file comes as "file". "image" was its old name (it took songs too);
+// it's still accepted so a page loaded before a deploy can upload.
+const uploadOne = promisify(upload.fields([{ name: 'file', maxCount: 1 }, { name: 'image', maxCount: 1 }]));
+type UploadedFiles = { file?: Express.Multer.File[]; image?: Express.Multer.File[] };
 
 // Rate limiting storage (in production, use Redis or database)
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
@@ -224,8 +227,9 @@ export default apiHandler(
 
     try {
       // Handle file upload
-      await uploadSingle(req as any, res as any);
-      const file = (req as any).file;
+      await uploadOne(req as any, res as any);
+      const files = ((req as any).files ?? {}) as UploadedFiles;
+      const file = files.file?.[0] ?? files.image?.[0];
     
       if (!file) {
         return res.status(400).json({ error: "No file uploaded" });
@@ -371,6 +375,10 @@ export default apiHandler(
     } catch (error) {
       if (error instanceof ImageValidationError) {
         return res.status(400).json({ error: error.message });
+      }
+      // A file under any other field name, or more than one file
+      if (error instanceof multer.MulterError && (error.code === 'LIMIT_UNEXPECTED_FILE' || error.code === 'LIMIT_FILE_COUNT')) {
+        return res.status(400).json({ error: 'Send one file, in the "file" field.' });
       }
       console.error("Media upload error:", error);
 

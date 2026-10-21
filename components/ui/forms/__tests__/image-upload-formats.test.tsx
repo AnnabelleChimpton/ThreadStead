@@ -69,7 +69,7 @@ describe.each(forms)('%s', (_name, element) => {
     pick(file);
     await waitFor(() => expect(sent).toHaveLength(1));
     expect(imageCompression).not.toHaveBeenCalled();
-    const image = sent[0].get('image') as File;
+    const image = sent[0].get('file') as File;
     expect(image.name).toBe(name);
     expect(image.type).toBe(type);
     expect(sent[0].get('context')).toBe('post_embed');
@@ -84,6 +84,6 @@ describe.each(forms)('%s', (_name, element) => {
     await waitFor(() => expect(sent).toHaveLength(1));
     expect(imageCompression).toHaveBeenCalledTimes(1);
     expect((imageCompression as unknown as jest.Mock).mock.calls[0][1]).toMatchObject({ fileType: 'image/jpeg' });
-    expect(sent[0].get('image')).toBe(compressed);
+    expect(sent[0].get('file')).toBe(compressed);
   });
 });

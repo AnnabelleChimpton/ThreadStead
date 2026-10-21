@@ -139,7 +139,7 @@ export default function MidiManager({ username }: MidiManagerProps) {
           continue;
         }
         const form = new FormData();
-        form.append('image', file); // the upload route's one file field
+        form.append('file', file);
         form.append('cap', cap);
         form.append('title', file.name.replace(/\.midi?$/i, ''));
         const res = await csrfFetch('/api/media/upload', { method: 'POST', body: form });

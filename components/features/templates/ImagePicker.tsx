@@ -154,7 +154,7 @@ export default function ImagePicker({ pane, username, onClose, onPick }: ImagePi
       }
       const { token } = await capRes.json();
       const form = new FormData();
-      form.append('image', file);
+      form.append('file', file);
       form.append('cap', token);
       const res = await csrfFetch('/api/media/upload', { method: 'POST', body: form });
       const result = await res.json().catch(() => ({}));

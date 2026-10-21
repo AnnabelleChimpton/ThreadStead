@@ -73,7 +73,7 @@ export default function BadgeUpload({ onUploadSuccess, disabled = false, ringSlu
 
       // Upload using media API with badge context
       const formData = new FormData();
-      formData.append('image', selectedFile);
+      formData.append('file', selectedFile);
       formData.append('cap', token);
       formData.append('context', 'threadring_badge');
       formData.append('ringSlug', ringSlug); // Include ring slug for badge processing

@@ -55,12 +55,12 @@ const ENV = {
 };
 const savedEnv: Record<string, string | undefined> = {};
 
-function multipart(file: Buffer, type: string, filename: string, context?: string) {
+function multipart(file: Buffer, type: string, filename: string, context?: string, field = 'file') {
   return Buffer.concat([
     Buffer.from(
       `--${BOUNDARY}\r\nContent-Disposition: form-data; name="cap"\r\n\r\ngood-cap\r\n` +
         (context ? `--${BOUNDARY}\r\nContent-Disposition: form-data; name="context"\r\n\r\n${context}\r\n` : '') +
-        `--${BOUNDARY}\r\nContent-Disposition: form-data; name="image"; filename="${filename}"\r\nContent-Type: ${type}\r\n\r\n`
+        `--${BOUNDARY}\r\nContent-Disposition: form-data; name="${field}"; filename="${filename}"\r\nContent-Type: ${type}\r\n\r\n`
     ),
     file,
     Buffer.from(`\r\n--${BOUNDARY}--\r\n`),

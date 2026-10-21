@@ -208,7 +208,7 @@ describe('EnhancedTemplateEditor image picker', () => {
     const upload = (global.fetch as jest.Mock).mock.calls.find(([u]) => u === '/api/media/upload');
     const body = upload[1].body as FormData;
     expect(body.get('cap')).toBe('cap-token');
-    expect((body.get('image') as File).name).toBe('sparkles.gif');
+    expect((body.get('file') as File).name).toBe('sparkles.gif');
   });
 
   it('shows an error state when the images do not load, and Try again reloads them', async () => {
