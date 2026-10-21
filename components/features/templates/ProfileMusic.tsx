@@ -15,9 +15,6 @@ interface ProfileMusicProps extends UniversalCSSProps {
   className?: string;
 }
 
-// MidiPlayer floats in the corner by default; here it sits where it was put.
-const IN_PAGE = '!static !translate-x-0 max-sm:!translate-x-0 !mx-0 !w-full !max-w-full';
-
 /** The profile owner's song (Settings → Music), played in the page. */
 export default function ProfileMusic(props: ProfileMusicProps) {
   const { cssProps, componentProps } = separateCSSProps(props);
@@ -41,7 +38,7 @@ export default function ProfileMusic(props: ProfileMusicProps) {
         title={profileMidi.title}
         autoplay={profileMidi.autoplay}
         loop={profileMidi.loop}
-        className={IN_PAGE}
+        placement="inline"
       />
     </div>
   );

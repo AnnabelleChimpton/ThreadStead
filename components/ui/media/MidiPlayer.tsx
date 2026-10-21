@@ -1,18 +1,21 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useGlobalAudio } from '@/contexts/GlobalAudioContext';
-import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner';
 import { PixelIcon } from '@/components/ui/PixelIcon';
-
-type PlayerMode = 'compact' | 'hybrid' | 'full';
 
 interface MidiPlayerProps {
   midiUrl: string;
   title?: string;
+  /** The owner's choice */
   autoplay?: boolean;
   loop?: boolean;
   className?: string;
-  compact?: boolean; // Deprecated, use defaultMode instead
-  defaultMode?: PlayerMode;
+  /**
+   * 'floating': the profile's song, as site chrome in the corner, out of the
+   * page's reach, with a close button. 'inline': where it's put
+   * (<ProfileMusic />, the Settings preview), part of the page.
+   */
+  placement?: 'floating' | 'inline';
 }
 
 // Newer browser APIs the player feature-detects (iPhone audio session, and
@@ -23,13 +26,12 @@ type NavigatorWithAudio = Navigator & {
 };
 
 export default function MidiPlayer({ 
-  midiUrl, 
-  title = 'Background Music',
-  autoplay = false, 
+  midiUrl,
+  title = 'Profile song',
+  autoplay: ownerAutoplay = false,
   loop = false,
   className = '',
-  compact = false,
-  defaultMode = 'compact'
+  placement = 'floating',
 }: MidiPlayerProps) {
   const globalAudio = useGlobalAudio();
   const [isPlaying, setIsPlaying] = useState(false);
@@ -37,18 +39,24 @@ export default function MidiPlayer({
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [volume, setVolume] = useState(50);
-  const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [pausedAt, setPausedAt] = useState(0); // Track where we paused (in seconds)
-  const [showVisualization, setShowVisualization] = useState(false);
-  const [playerMode, setPlayerMode] = useState<PlayerMode>(compact ? 'compact' : defaultMode);
-  
-  // Visualization state
-  const [activeNotes, setActiveNotes] = useState<Array<{frequency: number, velocity: number, instrument: number, startTime: number, midiNote?: number}>>([]);
-  const [spectrumData, setSpectrumData] = useState<Uint8Array>(new Uint8Array(256));
-  const [waveformData, setWaveformData] = useState<Uint8Array>(new Uint8Array(256));
-  
+  const [volume, setVolume] = useState(50);
+  const [muted, setMuted] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  // Closed for this visit: the song stops, a small Music button stays
+  const [closed, setClosed] = useState(false);
+  // Autoplay is armed but the browser wants a click first
+  const [waitingForClick, setWaitingForClick] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const autoplay = ownerAutoplay;
+  // Read by the audio graph when it's built, so it never sees stale state
+  const volumeRef = useRef(volume);
+  const mutedRef = useRef(muted);
+  volumeRef.current = volume;
+  mutedRef.current = muted;
+  const frameRef = useRef<HTMLDivElement | null>(null);
+
   const audioContextRef = useRef<AudioContext | null>(null);
   const midiDataRef = useRef<any>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -68,9 +76,7 @@ export default function MidiPlayer({
   const stereoWidenerRef = useRef<{ left: GainNode; right: GainNode; delay: DelayNode } | null>(null);
   const effectsInputRef = useRef<GainNode | null>(null);
   
-  // Audio analysis refs for visualization
   const analyzerRef = useRef<AnalyserNode | null>(null);
-  const visualizationIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
   const activeNodesRef = useRef<Array<{ osc: OscillatorNode; gain: GainNode; endTime: number; id: string }>>([]); // Track active notes
   const autoplayTriggeredRef = useRef<boolean>(false);
@@ -379,10 +385,6 @@ export default function MidiPlayer({
   };
 
   // Chord detection and harmony analysis
-  const getNoteName = (midiNote: number): string => {
-    const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-    return noteNames[midiNote % 12];
-  };
 
   const areNotesHarmonicallyRelated = (note1: number, note2: number): boolean => {
     const interval = Math.abs(note1 - note2) % 12;
@@ -1643,7 +1645,7 @@ export default function MidiPlayer({
     
     // Master gain remains the same
     masterGainRef.current = audioContext.createGain();
-    masterGainRef.current.gain.value = volume / 100;
+    masterGainRef.current.gain.value = mutedRef.current ? 0 : volumeRef.current / 100;
     
     // Professional effects chain routing:
     // Input -> EQ (Low->Mid->High) -> Chorus -> Reverb -> Compressor -> Limiter -> Master -> Output
@@ -1940,8 +1942,6 @@ export default function MidiPlayer({
     setIsPlaying(true);
     globalAudio.setProfileMidiPlaying(true);
 
-    // Always start visualization when playing (it will only update if shown)
-    startVisualization();
 
     // Optimized progress tracking with batched scheduling
     progressIntervalRef.current = setInterval(() => {
@@ -2047,8 +2047,6 @@ export default function MidiPlayer({
     // Clear the active nodes array
     activeNodesRef.current = [];
     
-    // Stop visualization
-    stopVisualization();
     
     // Clean up professional effects chain
     try {
@@ -2112,6 +2110,40 @@ export default function MidiPlayer({
     autoplayTriggeredRef.current = false;
   };
 
+  // Pause where it is; Play picks up from there
+  const pause = () => {
+    if (!isPlaying) return;
+    const elapsed = (Date.now() - playbackStartTimeRef.current) / 1000;
+    setPausedAt(elapsed);
+    setIsPaused(true);
+
+    // Stop only the active notes, not the entire audio chain
+    const currentTime = audioContextRef.current?.currentTime || 0;
+    activeNodesRef.current.forEach(node => {
+      try {
+        if (node.gain && node.gain.gain) {
+          node.gain.gain.cancelScheduledValues(currentTime);
+          node.gain.gain.setValueAtTime(node.gain.gain.value, currentTime);
+          node.gain.gain.exponentialRampToValueAtTime(0.001, currentTime + 0.05);
+        }
+        if (node.osc && node.osc.stop) {
+          node.osc.stop(currentTime + 0.05);
+        }
+      } catch {
+        // Already stopped
+      }
+    });
+    activeNodesRef.current = [];
+
+    setIsPlaying(false);
+    globalAudio.setProfileMidiPlaying(false);
+
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
+    }
+  };
+
   const play = async () => {
     // First, while still inside the click or tap: let audio start
     unlockAudio();
@@ -2142,41 +2174,8 @@ export default function MidiPlayer({
     }
 
     if (isPlaying) {
-      // Stop playback
-      const elapsed = (Date.now() - playbackStartTimeRef.current) / 1000;
-      setPausedAt(elapsed);
-      setIsPaused(true);
-      
-      // Stop only the active notes, not the entire audio chain
-      const currentTime = audioContextRef.current?.currentTime || 0;
-      activeNodesRef.current.forEach(node => {
-        try {
-          if (node.gain && node.gain.gain) {
-            node.gain.gain.cancelScheduledValues(currentTime);
-            node.gain.gain.setValueAtTime(node.gain.gain.value, currentTime);
-            node.gain.gain.exponentialRampToValueAtTime(0.001, currentTime + 0.05);
-          }
-          if (node.osc && node.osc.stop) {
-            node.osc.stop(currentTime + 0.05);
-          }
-        } catch (e) {
-          // Ignore errors
-        }
-      });
-      
-      // Clear the active nodes array
-      activeNodesRef.current = [];
-      
-      // Stop visualization
-      stopVisualization();
-
-      setIsPlaying(false);
-      globalAudio.setProfileMidiPlaying(false);
-      
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
-        progressIntervalRef.current = null;
-      }
+      pause();
+      return false;
     } else {
       // Guard against a start-while-starting: autoplay's resume() can be
       // pending (suspended context) when the visitor clicks play, and both
@@ -2198,15 +2197,27 @@ export default function MidiPlayer({
     return false;
   };
 
+  const applyGain = (nextVolume: number, nextMuted: boolean) => {
+    if (masterGainRef.current && audioContextRef.current) {
+      const currentTime = audioContextRef.current.currentTime;
+      masterGainRef.current.gain.setTargetAtTime(nextMuted ? 0 : nextVolume / 100, currentTime, 0.015);
+    }
+  };
+
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newVolume = Number(e.target.value);
     setVolume(newVolume);
-    
-    // Apply volume change to master gain node in real-time
-    if (masterGainRef.current && audioContextRef.current) {
-      const currentTime = audioContextRef.current.currentTime;
-      masterGainRef.current.gain.setValueAtTime(newVolume / 100, currentTime);
+    // Moving the slider is a clear "I want to hear it"
+    if (muted && newVolume > 0) {
+      setMuted(false);
     }
+    applyGain(newVolume, muted && newVolume === 0);
+  };
+
+  const toggleMute = () => {
+    const next = !muted;
+    setMuted(next);
+    applyGain(volume, next);
   };
 
   const formatTime = (seconds: number): string => {
@@ -2331,99 +2342,6 @@ export default function MidiPlayer({
       midiWorkerRef.current = null;
     }
     workerPromisesRef.current.clear();
-  };
-
-  // Real-time visualization functions
-  const updateVisualization = () => {
-    if (!analyzerRef.current) {
-      return;
-    }
-
-    // Check if audio context is running
-    if (audioContextRef.current?.state !== 'running') {
-      return;
-    }
-
-    // Update spectrum data (frequency analysis)
-    const bufferLength = analyzerRef.current.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
-    analyzerRef.current.getByteFrequencyData(dataArray);
-    
-    // Check if we're getting any data
-    const hasData = dataArray.some(value => value > 0);
-    const maxValue = Math.max(...dataArray);
-    const averageValue = dataArray.reduce((sum, val) => sum + val, 0) / dataArray.length;
-    
-    
-    setSpectrumData(dataArray);
-
-    // Update waveform data (time domain)
-    const waveformArray = new Uint8Array(bufferLength);
-    analyzerRef.current.getByteTimeDomainData(waveformArray);
-    setWaveformData(waveformArray);
-
-    // Update active notes display
-    const currentTime = audioContextRef.current?.currentTime || 0;
-    const currentActiveNotes = activeNodesRef.current
-      .filter(node => node.endTime > currentTime)
-      .map((node, index) => {
-        // Extract note info from node ID
-        const parts = node.id.split('-');
-        const instrumentType = parts[0]; // piano, string, brass, synth, drum, legacy
-        const startTime = parseFloat(parts[1]) || currentTime;
-        
-        let frequency, velocity, midiNote;
-        
-        if (instrumentType === 'legacy') {
-          // legacy-startTime-frequency-suffix
-          frequency = parseFloat(parts[2]) || 440;
-          velocity = 64; // Default for legacy
-          midiNote = Math.round(12 * Math.log2(frequency / 440) + 69);
-        } else if (instrumentType === 'drum') {
-          // drum-startTime-midiNote
-          midiNote = parseFloat(parts[2]) || 36;
-          frequency = 440 * Math.pow(2, (midiNote - 69) / 12);
-          velocity = 64; // Default for drums
-        } else {
-          // piano/string/brass/synth-startTime-midiNote-velocity-channel
-          midiNote = parseFloat(parts[2]) || 60;
-          velocity = parseFloat(parts[3]) || 64;
-          frequency = 440 * Math.pow(2, (midiNote - 69) / 12);
-        }
-        
-        // Map instrument types to numbers for visualization
-        const instrumentMap: Record<string, number> = {
-          'piano': 0,
-          'string': 40,
-          'brass': 56,
-          'synth': 80,
-          'drum': 128,
-          'legacy': 0
-        };
-        const instrument = instrumentMap[instrumentType] || 0;
-        
-        return { frequency, velocity, instrument, startTime, midiNote };
-      })
-      .slice(0, 32); // Limit to 32 visible notes for performance
-
-    setActiveNotes(currentActiveNotes);
-  };
-
-  const startVisualization = () => {
-    if (visualizationIntervalRef.current) return;
-    
-    
-    visualizationIntervalRef.current = setInterval(updateVisualization, 50); // 20 FPS
-  };
-
-  const stopVisualization = () => {
-    if (visualizationIntervalRef.current) {
-      clearInterval(visualizationIntervalRef.current);
-      visualizationIntervalRef.current = null;
-    }
-    setActiveNotes([]);
-    setSpectrumData(new Uint8Array(256));
-    setWaveformData(new Uint8Array(256));
   };
 
   // Advanced Psychoacoustic Voice Stealing System
@@ -2594,21 +2512,6 @@ export default function MidiPlayer({
   // Instrument-Specific Effects System
   
   // Piano sustain pedal simulation
-  const togglePianoSustain = (enabled: boolean) => {
-    pianoSustainRef.current.enabled = enabled;
-    
-    if (!enabled) {
-      // Release all sustained notes
-      const currentTime = audioContextRef.current?.currentTime || 0;
-      pianoSustainRef.current.sustainedNotes.forEach((gainNode, noteId) => {
-        try {
-          gainNode.gain.exponentialRampToValueAtTime(0.001, currentTime + 0.5);
-        } catch (e) { /* ignore */ }
-      });
-      pianoSustainRef.current.sustainedNotes.clear();
-    }
-    
-  };
 
   const applyPianoSustain = (noteId: string, gainNode: GainNode, frequency: number) => {
     if (!pianoSustainRef.current.enabled) return;
@@ -2761,29 +2664,6 @@ export default function MidiPlayer({
     }
   };
 
-  // Handle visualization state changes
-  useEffect(() => {
-    if (showVisualization && isPlaying) {
-      startVisualization();
-    } else if (!showVisualization) {
-      stopVisualization();
-    }
-  }, [showVisualization, isPlaying]);
-
-  // Handle visualization when switching to modes that support it
-  useEffect(() => {
-    if ((playerMode === 'hybrid' || playerMode === 'full') && isPlaying && showVisualization) {
-      if (!visualizationIntervalRef.current) {
-        startVisualization();
-      }
-    } else if (playerMode === 'compact') {
-      // Stop visualization when in compact mode
-      if (visualizationIntervalRef.current) {
-        stopVisualization();
-      }
-    }
-  }, [playerMode, isPlaying, showVisualization]);
-
   useEffect(() => {
     // Initialize worker on component mount
     initializeWorker();
@@ -2813,6 +2693,10 @@ export default function MidiPlayer({
       // kept saying "Stop" over silence, and autoplay skipped the new song
       setIsPlaying(false);
       setProgress(0);
+      setWaitingForClick(false);
+      // Closing lasts for the visit to that profile, not the next one
+      setClosed(false);
+      setExpanded(false);
       // Each player used to keep its AudioContext open for the rest of the
       // tab, holding the device's audio output open too
       if (audioContextRef.current) {
@@ -2824,7 +2708,9 @@ export default function MidiPlayer({
       // Cleanup worker
       cleanupWorker();
     };
-  }, [midiUrl, autoplay]);
+    // The owner's setting, not the visitor's: switching "play automatically"
+    // off mid-song mustn't tear the player down
+  }, [midiUrl, ownerAutoplay]);
 
   // Autoplay. Browsers only let audio start inside a click, tap or key
   // press. If the visitor has already used the page, start now; otherwise
@@ -2833,7 +2719,7 @@ export default function MidiPlayer({
   // gesture: that try hung, used up the autoplay, and locked the Play button,
   // so on a shared link the player never played until a reload.
   useEffect(() => {
-    if (!autoplay || !midiDataRef.current || isLoading || isPlaying || autoplayTriggeredRef.current) {
+    if (!autoplay || closed || !midiDataRef.current || isLoading || isPlaying || autoplayTriggeredRef.current) {
       return;
     }
 
@@ -2848,7 +2734,10 @@ export default function MidiPlayer({
 
     // userActivation is missing in older browsers; trying is harmless now
     const activation = (navigator as NavigatorWithAudio).userActivation;
-    const timer = !activation || activation.hasBeenActive ? setTimeout(tryStart, 200) : null;
+    const canTryNow = !activation || activation.hasBeenActive;
+    const timer = canTryNow ? setTimeout(tryStart, 200) : null;
+    // Say so, instead of a silent player that seems broken
+    if (!canTryNow) setWaitingForClick(true);
 
     const onFirstGesture = () => {
       if (autoplayTriggeredRef.current || isPlaying) return;
@@ -2865,514 +2754,192 @@ export default function MidiPlayer({
       window.removeEventListener('pointerdown', onFirstGesture, opts);
       window.removeEventListener('keydown', onFirstGesture, opts);
     };
-  }, [autoplay, isLoading, isPlaying]);
+  }, [autoplay, closed, isLoading, isPlaying]);
 
-  if (isLoading) {
-    return (
-      <div className={`bg-nb-paper text-nb-ink rounded-cozy shadow-nb border-2 border-nb-ink-mid p-6 ${className}`}>
-        <LoadingSpinner message="Loading MIDI..." />
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (isPlaying || !autoplay) setWaitingForClick(false);
+  }, [isPlaying, autoplay]);
 
-  if (error) {
-    return (
-      <div className={`bg-nb-paper text-nb-ink rounded-cozy shadow-nb border-2 border-nb-ink-mid p-6 ${className}`}>
-        <div className="text-sm text-nb-rose-ink">
-          {error}
-        </div>
-      </div>
-    );
-  }
+  useEffect(() => setMounted(true), []);
 
-  // Compact mode (minimal floating player)
-  if (playerMode === 'compact') {
-    return (
-      <div className={`fixed bottom-4 z-50 bg-nb-paper text-nb-ink rounded-cozy shadow-nb border-2 border-nb-ink-mid p-3 ${className}
-        sm:right-4 sm:left-auto
-        max-sm:left-1/2 max-sm:transform max-sm:-translate-x-1/2 max-sm:max-w-[calc(100vw-2rem)]`}>
-        <div className="flex items-center gap-2 sm:gap-3">
-          <button
-            onClick={play}
-            className="btn btn--primary !p-0 w-11 h-11 sm:w-10 sm:h-10 flex items-center justify-center flex-shrink-0"
-            aria-label={isPlaying ? 'Stop' : 'Play'}
-          >
-            <PixelIcon name={isPlaying ? 'pause' : 'play'} size={16} />
-          </button>
-          
-          <div className="flex-1 min-w-0">
-            <div className="text-xs sm:text-sm font-medium truncate">{title}</div>
-            {isPlaying && (
-              <div className="w-full bg-nb-ink-mid/20 rounded-full h-1 mt-1">
-                <div 
-                  className="bg-nb-ink h-1 rounded-full"
-                  style={{ width: `${progress}%` }}
-                />
+  // The floating player's height, so scroll-to-top can sit above it
+  // (styles/corners.css)
+  useEffect(() => {
+    const el = frameRef.current;
+    if (placement !== 'floating' || !el || typeof ResizeObserver === 'undefined') return;
+    const root = document.documentElement;
+    const observer = new ResizeObserver(([entry]) => {
+      root.style.setProperty('--ts-music-height', `${Math.ceil(entry.borderBoxSize?.[0]?.blockSize ?? el.offsetHeight)}px`);
+    });
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty('--ts-music-height');
+    };
+  }, [placement, mounted, closed]);
+
+  const close = () => {
+    pause();
+    setExpanded(false);
+    setClosed(true);
+  };
+
+  const elapsed = (progress / 100) * duration;
+  const panelId = `ts-music-panel-${placement}`;
+
+  // A short line under the title when there's no progress bar to show
+  const statusLine = error
+    ? `This song won't play. ${error}`
+    : isLoading
+      ? 'Loading the song…'
+      : waitingForClick
+        ? 'Click anywhere on the page for music'
+        : isPaused
+          ? 'Paused'
+          : '';
+
+  // What a screen reader hears when it changes
+  const liveText = closed
+    ? 'Music player closed'
+    : error
+      ? `This song won't play. ${error}`
+      : isPlaying
+        ? `Playing ${title}`
+        : waitingForClick
+          ? 'Click anywhere on the page to start the music'
+          : isPaused
+            ? 'Paused'
+            : '';
+
+  const progressBar = (
+    <div className="w-full bg-nb-ink-mid/20 rounded-full h-1 mt-1" aria-hidden="true">
+      <div className="bg-nb-ink h-1 rounded-full" style={{ width: `${progress}%` }} />
+    </div>
+  );
+
+  const frame = (
+    <section
+      aria-label={`Music: ${title}`}
+      className={`ts-music bg-nb-paper text-nb-ink rounded-cozy shadow-nb border-2 border-nb-ink-mid ${placement === 'inline' ? 'w-full' : ''} ${className}`}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape' && expanded) {
+          e.stopPropagation();
+          setExpanded(false);
+        }
+      }}
+    >
+      {expanded && (
+        <div id={panelId} className="px-3 pt-3 pb-2 space-y-3 border-b border-nb-ink-mid/30 text-sm">
+          {duration > 0 && (
+            <div>
+              <div className="flex justify-between text-xs text-nb-ink-mid">
+                <span>{formatTime(elapsed)}</span>
+                <span>{formatTime(duration)}</span>
               </div>
-            )}
-          </div>
-          
-          <div className="relative">
-            <button
-              onClick={() => setShowVolumeSlider(!showVolumeSlider)}
-              className="text-nb-ink-mid hover:text-nb-ink"
-              aria-label="Volume"
-            >
-              <PixelIcon name="volume" size={16} />
-            </button>
-            
-            {showVolumeSlider && (
-              <div className="absolute bottom-full right-0 mb-2 p-2 bg-nb-paper border-2 border-nb-ink-mid rounded-cozy shadow-nb-sm">
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={volume}
-                  onChange={handleVolumeChange}
-                  className="w-24"
-                  aria-label="Volume slider"
-                />
-              </div>
-            )}
-          </div>
-          
-          <button
-            onClick={() => {
-              setPlayerMode('hybrid');
-              // Start visualization if playing
-              if (isPlaying && !visualizationIntervalRef.current) {
-                startVisualization();
-              }
-            }}
-            className="text-nb-ink-mid hover:text-nb-ink text-sm"
-            title="Expand player"
-            aria-label="Expand player"
-          >
-            <PixelIcon name="expand" size={16} />
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Hybrid mode (floating with visualizer)
-  if (playerMode === 'hybrid') {
-    return (
-      <div className={`fixed bottom-4 z-50 bg-nb-paper text-nb-ink rounded-cozy shadow-nb border-2 border-nb-ink-mid p-4 ${className} 
-        sm:right-4 sm:left-auto sm:max-w-[400px]
-        max-sm:left-1/2 max-sm:transform max-sm:-translate-x-1/2 max-sm:max-w-[calc(100vw-2rem)] max-sm:w-full max-sm:mx-4`}>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-bold">{title}</h3>
-          <div className="flex gap-1">
-            <button
-              onClick={() => setPlayerMode('compact')}
-              className="text-nb-ink-mid hover:text-nb-ink text-xs"
-              title="Minimize"
-              aria-label="Minimize"
-            >
-              <PixelIcon name="minus" size={14} />
-            </button>
-            <button
-              onClick={() => {
-                setPlayerMode('full');
-                // Start visualization if playing
-                if (isPlaying && !visualizationIntervalRef.current) {
-                  startVisualization();
-                }
-              }}
-              className="text-nb-ink-mid hover:text-nb-ink text-xs"
-              title="Full mode"
-              aria-label="Full mode"
-            >
-              <PixelIcon name="expand" size={14} />
-            </button>
-          </div>
-        </div>
-      
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={play}
-            className="btn btn--primary min-h-[44px] sm:min-h-0 text-sm flex-shrink-0"
-          >
-            {isPlaying ? 'Stop' : 'Play'}
-          </button>
-          
+              {progressBar}
+            </div>
+          )}
+          <label className="flex items-center gap-2">
+            <span>Volume</span>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={muted ? 0 : volume}
+              onChange={handleVolumeChange}
+              aria-valuetext={muted ? 'Muted' : `${volume}%`}
+              className="flex-1 min-w-0"
+            />
+            <span className="w-12 text-right text-xs text-nb-ink-mid tabular-nums">{muted ? 'Muted' : `${volume}%`}</span>
+          </label>
           {loop && (
-            <span className="text-nb-ink-mid" title="Loop on" aria-label="Loop on"><PixelIcon name="repeat" size={14} /></span>
+            <p className="m-0 flex items-center gap-1.5 text-xs text-nb-ink-mid">
+              <PixelIcon name="repeat" size={12} /> Plays on repeat
+            </p>
           )}
         </div>
-        
-        {duration > 0 && (
-          <div>
-            <div className="flex justify-between text-sm text-nb-ink-mid mb-1">
-              <span>{formatTime((progress / 100) * duration)}</span>
-              <span>{formatTime(duration)}</span>
-            </div>
-            <div className="w-full bg-nb-ink-mid/20 rounded-full h-2">
-              <div 
-                className="bg-nb-ink h-2 rounded-full"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-          </div>
-        )}
-        
-        <div className="flex items-center gap-2 sm:gap-3">
-          <span className="flex-shrink-0 text-nb-ink-mid"><PixelIcon name="volume" size={16} /></span>
-          <input
-            type="range"
-            min="0"
-            max="100"
-            value={volume}
-            onChange={handleVolumeChange}
-            className="flex-1 min-w-0"
-            aria-label="Volume"
-          />
-          <span className="text-xs sm:text-sm text-nb-ink-mid flex-shrink-0">{volume}%</span>
-          <div className="flex gap-1">
-            <button
-              onClick={() => {
-                const newState = !showVisualization;
-                setShowVisualization(newState);
-                if (newState && isPlaying) {
-                  startVisualization();
-                } else {
-                  stopVisualization();
-                }
-              }}
-              className="btn btn--secondary ts-icon-button !p-1.5 flex-shrink-0"
-              title="Toggle retro visualizer"
-              aria-label="Toggle retro visualizer"
-            >
-              <PixelIcon name="chart" size={14} />
-            </button>
-            <button
-              onClick={() => togglePianoSustain(!pianoSustainRef.current.enabled)}
-              className={"ts-chip ts-icon-button !p-1.5 flex-shrink-0"}
-              title="Piano sustain pedal"
-              aria-label="Piano sustain pedal"
-              aria-pressed={pianoSustainRef.current.enabled}
-            >
-              <PixelIcon name="music" size={14} />
-            </button>
-          </div>
-        </div>
+      )}
 
-        {/* Retro Pixel-Art Visualizer - Compact */}
-        {showVisualization && (
-          <div className="bg-black rounded border-2 border-green-400 p-2 font-mono">
-            <div className="text-green-400 text-xs mb-1 flex justify-between items-center">
-              <span>◉ VISUALIZER</span>
-              <span className="animate-pulse text-xs">●</span>
-            </div>
-            
-            {/* Spectrum Analyzer - Compact */}
-            <div className="mb-2">
-              <div className="h-8 sm:h-12 bg-gray-900 border border-green-400 flex items-end gap-px p-1">
-                {Array.from(spectrumData.slice(0, 24)).map((value, i) => {
-                  const height = Math.max(2, (value / 255) * 40); // 2px min, 40px max
-                  return (
-                    <div
-                      key={i}
-                      className="flex-1 bg-gradient-to-t from-green-500 via-yellow-400 to-red-500"
-                      style={{ 
-                        height: `${height}px`,
-                        filter: 'contrast(1.2) saturate(1.5)', // Retro CRT effect
-                        imageRendering: 'pixelated'
-                      }}
-                    />
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Waveform - Compact */}
-            <div className="mb-2">
-              <div className="h-6 sm:h-8 bg-gray-900 border border-green-400 relative">
-                <svg width="100%" height="100%" className="absolute inset-0">
-                  <polyline
-                    fill="none"
-                    stroke="#10b981"
-                    strokeWidth="1"
-                    points={Array.from(waveformData.slice(0, 48)).map((value, i) => {
-                      const x = (i / 47) * 100;
-                      const y = 16 - ((value - 128) / 127) * 16 + 16;
-                      return `${x}%,${y}`;
-                    }).join(' ')}
-                    style={{ filter: 'drop-shadow(0 0 2px #10b981)' }}
-                  />
-                  {/* Retro grid lines */}
-                  <defs>
-                    <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
-                      <path d="M 10 0 L 0 0 0 10" fill="none" stroke="#065f46" strokeWidth="0.5" opacity="0.3"/>
-                    </pattern>
-                  </defs>
-                  <rect width="100%" height="100%" fill="url(#grid)"/>
-                </svg>
-              </div>
-            </div>
-
-            {/* Active Notes - Retro MIDI Monitor */}
-            <div>
-              <div className="text-green-400 text-xs mb-1">
-                ACTIVE NOTES [{activeNotes.length}/32]
-              </div>
-              <div className="h-16 sm:h-20 bg-gray-900 border border-green-400 overflow-hidden">
-                <div className="grid grid-cols-6 sm:grid-cols-8 gap-px p-1 h-full">
-                  {Array.from({ length: 32 }).map((_, i) => {
-                    const note = activeNotes[i];
-                    const isEmpty = !note;
-                    
-                    if (isEmpty) {
-                      return (
-                        <div 
-                          key={i} 
-                          className="bg-gray-800 border border-gray-700 opacity-30"
-                          style={{ imageRendering: 'pixelated' }}
-                        />
-                      );
-                    }
-
-                    // Get instrument color (retro palette)
-                    const instrumentColors = {
-                      0: 'bg-blue-500',    // Piano
-                      40: 'bg-yellow-500', // Strings  
-                      56: 'bg-red-500',    // Brass
-                      80: 'bg-green-500',  // Synth
-                      128: 'bg-purple-500', // Drums
-                    };
-                    
-                    const instrFamily = note.instrument >= 40 && note.instrument <= 47 ? 40 :
-                                       note.instrument >= 56 && note.instrument <= 63 ? 56 :
-                                       note.instrument >= 80 && note.instrument <= 87 ? 80 :
-                                       note.instrument === 128 ? 128 : 0;
-                    
-                    const color = instrumentColors[instrFamily as keyof typeof instrumentColors] || 'bg-green-500';
-                    const intensity = Math.min(1, note.velocity / 127);
-                    
-                    return (
-                      <div 
-                        key={i}
-                        className={`${color} border border-white animate-pulse`}
-                        style={{ 
-                          opacity: intensity,
-                          imageRendering: 'pixelated',
-                          animationDuration: '0.5s'
-                        }}
-                        title={`${getNoteName(note.midiNote || 60)} (${note.frequency.toFixed(1)}Hz) vel:${note.velocity}`}
-                      />
-                    );
-                  })}
-                </div>
-              </div>
-              
-              {/* Retro Status Bar */}
-              <div className="text-green-400 text-xs mt-2 flex justify-between gap-2 overflow-hidden">
-                <span className="flex-shrink-0">CPU: {Math.min(99, activeNotes.length * 3)}%</span>
-                <span className="flex-shrink-0 hidden sm:inline">VOICES: {activeNodesRef.current.length}</span>
-                <span className="flex-shrink-0">FREQ: 44.1kHz</span>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-    );
-  }
-
-  // Full mode (large, non-floating)
-  return (
-    <div className={`bg-nb-paper text-nb-ink rounded-cozy shadow-nb border-2 border-nb-ink-mid p-4 sm:p-6 ${className}`}>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-base sm:text-lg font-bold truncate flex-1">{title}</h3>
+      <div className="flex items-center gap-1.5 p-2">
         <button
-          onClick={() => setPlayerMode('compact')}
-          className="text-nb-ink-mid hover:text-nb-ink text-sm flex-shrink-0 ml-2"
-          title="Minimize to compact mode"
-          aria-label="Minimize to compact mode"
+          type="button"
+          onClick={() => { void play(); }}
+          disabled={isLoading}
+          className="ts-music-btn ts-music-btn--primary"
+          aria-label={isPlaying ? 'Pause' : 'Play'}
         >
-          <PixelIcon name="minus" size={16} />
+          <PixelIcon name={isPlaying ? 'pause' : 'play'} size={16} />
         </button>
-      </div>
-      
-      <div className="space-y-4">
-        <div className="flex items-center gap-2 sm:gap-4">
+
+        <div className="flex-1 min-w-0 px-1">
+          <div className="text-sm font-semibold truncate" title={title}>{title}</div>
+          {isPlaying
+            ? progressBar
+            : statusLine && <div className="text-xs text-nb-ink-mid truncate" title={statusLine}>{statusLine}</div>}
+        </div>
+
+        <button
+          type="button"
+          onClick={toggleMute}
+          className="ts-music-btn"
+          aria-label="Mute"
+          aria-pressed={muted}
+          title={muted ? 'Unmute' : 'Mute'}
+        >
+          <PixelIcon name={muted ? 'volume-x' : 'volume'} size={16} />
+        </button>
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="ts-music-btn"
+          aria-label="More music controls"
+          aria-expanded={expanded}
+          aria-controls={panelId}
+          title={expanded ? 'Fewer controls' : 'More controls'}
+        >
+          <PixelIcon name={expanded ? 'chevron-down' : 'chevron-up'} size={16} />
+        </button>
+        {placement === 'floating' && (
           <button
-            onClick={play}
-            className="btn btn--primary btn--lg min-h-[44px] flex-shrink-0"
+            type="button"
+            onClick={close}
+            className="ts-music-btn"
+            aria-label="Close the music player"
+            title="Close"
           >
-            {isPlaying ? 'Stop' : 'Play'}
+            <PixelIcon name="close" size={16} />
           </button>
-          
-          {loop && (
-            <span className="text-sm text-nb-ink-mid">Loop enabled</span>
-          )}
-        </div>
-        
-        {duration > 0 && (
-          <div>
-            <div className="flex justify-between text-sm text-nb-ink-mid mb-1">
-              <span>{formatTime((progress / 100) * duration)}</span>
-              <span>{formatTime(duration)}</span>
-            </div>
-            <div className="w-full bg-nb-ink-mid/20 rounded-full h-2">
-              <div 
-                className="bg-nb-ink h-2 rounded-full"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-          </div>
-        )}
-        
-        <div className="flex items-center gap-2 sm:gap-3">
-          <span className="flex-shrink-0 text-nb-ink-mid"><PixelIcon name="volume" size={16} /></span>
-          <input
-            type="range"
-            min="0"
-            max="100"
-            value={volume}
-            onChange={handleVolumeChange}
-            className="flex-1 min-w-0"
-            aria-label="Volume"
-          />
-          <span className="text-xs sm:text-sm text-nb-ink-mid flex-shrink-0">{volume}%</span>
-          <div className="flex gap-1">
-            <button
-              onClick={() => {
-                const newState = !showVisualization;
-                setShowVisualization(newState);
-                if (newState && isPlaying) {
-                  startVisualization();
-                } else {
-                  stopVisualization();
-                }
-              }}
-              className="btn btn--secondary ts-icon-button !p-1.5 flex-shrink-0"
-              title="Toggle retro visualizer"
-              aria-label="Toggle retro visualizer"
-            >
-              <PixelIcon name="chart" size={14} />
-            </button>
-            <button
-              onClick={() => togglePianoSustain(!pianoSustainRef.current.enabled)}
-              className={"ts-chip ts-icon-button !p-1.5 flex-shrink-0"}
-              title="Piano sustain pedal"
-              aria-label="Piano sustain pedal"
-              aria-pressed={pianoSustainRef.current.enabled}
-            >
-              <PixelIcon name="music" size={14} />
-            </button>
-          </div>
-        </div>
-
-        {/* Full-size Retro Visualizer */}
-        {showVisualization && (
-          <div className="bg-black rounded border-2 border-green-400 p-4 font-mono">
-            <div className="text-green-400 text-xs mb-2 flex justify-between items-center">
-              <span>◉ AUDIO VISUALIZER v1.0</span>
-              <span className="animate-pulse">●REC</span>
-            </div>
-            
-            {/* Full spectrum analyzer */}
-            <div className="mb-4">
-              <div className="text-green-400 text-xs mb-1">SPECTRUM</div>
-              <div className="h-16 bg-gray-900 border border-green-400 flex items-end gap-px p-1">
-                {Array.from(spectrumData.slice(0, 32)).map((value, i) => {
-                  const height = Math.max(2, (value / 255) * 56);
-                  return (
-                    <div
-                      key={i}
-                      className="flex-1 bg-gradient-to-t from-green-500 via-yellow-400 to-red-500"
-                      style={{ 
-                        height: `${height}px`,
-                        filter: 'contrast(1.2) saturate(1.5)',
-                        imageRendering: 'pixelated'
-                      }}
-                    />
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Full waveform */}
-            <div className="mb-4">
-              <div className="text-green-400 text-xs mb-1">WAVEFORM</div>
-              <div className="h-12 bg-gray-900 border border-green-400 relative">
-                <svg width="100%" height="48" className="absolute inset-0">
-                  <polyline
-                    fill="none"
-                    stroke="#10b981"
-                    strokeWidth="1"
-                    points={Array.from(waveformData.slice(0, 64)).map((value, i) => {
-                      const x = (i / 63) * 100;
-                      const y = 48 - ((value - 128) / 127) * 24 - 24;
-                      return `${x}%,${y}`;
-                    }).join(' ')}
-                    style={{ filter: 'drop-shadow(0 0 2px #10b981)' }}
-                  />
-                </svg>
-              </div>
-            </div>
-
-            {/* Full note activity */}
-            <div>
-              <div className="text-green-400 text-xs mb-1">
-                ACTIVE NOTES [{activeNotes.length}/32]
-              </div>
-              <div className="h-16 sm:h-20 bg-gray-900 border border-green-400 overflow-hidden">
-                <div className="grid grid-cols-6 sm:grid-cols-8 gap-px p-1 h-full">
-                  {Array.from({ length: 32 }).map((_, i) => {
-                    const note = activeNotes[i];
-                    if (!note) {
-                      return (
-                        <div 
-                          key={i} 
-                          className="bg-gray-800 border border-gray-700 opacity-30"
-                          style={{ imageRendering: 'pixelated' }}
-                        />
-                      );
-                    }
-
-                    const instrumentColors = {
-                      0: 'bg-blue-500',
-                      40: 'bg-yellow-500',
-                      56: 'bg-red-500',
-                      128: 'bg-purple-500',
-                    };
-                    
-                    const instrFamily = note.instrument >= 40 && note.instrument <= 47 ? 40 :
-                                       note.instrument >= 56 && note.instrument <= 63 ? 56 :
-                                       note.instrument === 128 ? 128 : 0;
-                    
-                    const color = instrumentColors[instrFamily as keyof typeof instrumentColors] || 'bg-green-500';
-                    const intensity = Math.min(1, note.velocity / 127);
-                    
-                    return (
-                      <div 
-                        key={i}
-                        className={`${color} border border-white animate-pulse`}
-                        style={{ 
-                          opacity: intensity,
-                          imageRendering: 'pixelated',
-                          animationDuration: '0.5s'
-                        }}
-                        title={`${getNoteName(note.midiNote || 60)} (${note.frequency.toFixed(1)}Hz) vel:${note.velocity}`}
-                      />
-                    );
-                  })}
-                </div>
-              </div>
-              
-              <div className="text-green-400 text-xs mt-2 flex justify-between">
-                <span>CPU: {Math.min(99, activeNotes.length * 3)}%</span>
-                <span>VOICES: {activeNodesRef.current.length}</span>
-                <span>FREQ: 44.1kHz</span>
-              </div>
-            </div>
-          </div>
         )}
       </div>
-    </div>
+
+      <span className="sr-only" role="status" aria-live="polite">{liveText}</span>
+    </section>
+  );
+
+  if (placement === 'inline') return frame;
+
+  // The profile's own song: site chrome, outside the page, so the page's CSS
+  // can't move, cover or hide it (it used to sit inside the profile card,
+  // where a theme's transform pinned it to the card and page CSS reached it)
+  if (!mounted) return null;
+  return createPortal(
+    <div ref={frameRef} data-site-chrome="true" className="ts-music-dock">
+      {closed ? (
+        <div className="ts-music">
+          <button
+            type="button"
+            onClick={() => setClosed(false)}
+            className="ts-music-btn ts-music-pill"
+            aria-label={`Show the music player: ${title}`}
+          >
+            <PixelIcon name="music" size={14} /> Music
+          </button>
+        </div>
+      ) : (
+        frame
+      )}
+      {closed && <span className="sr-only" role="status" aria-live="polite">Music player closed</span>}
+    </div>,
+    document.body
   );
 }

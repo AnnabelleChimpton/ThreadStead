@@ -42,6 +42,63 @@ body:has(.ts-chat-toggle) .ts-view-source-badge {
   bottom: calc(1.25rem + 60px + 0.75rem);
 }
 
+/* ---------- the music player's own controls ----------
+   The site bevel comes from the site theme, which a page with site styles
+   off doesn't load, so the player carries its own: the same look on every
+   page. Fallbacks are the default theme's colours. */
+.ts-music .ts-music-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border: 2px outset var(--ha-ink-mid, #5c6e70);
+  border-radius: 6px;
+  background: linear-gradient(to bottom, #ffffff, var(--ha-paper, #fffaf5));
+  color: var(--ha-ink-dark, #4a403d);
+  box-shadow: 2px 2px 0 var(--ha-ink-mid, #5c6e70);
+  cursor: pointer;
+  line-height: 1;
+}
+.ts-music .ts-music-btn--primary {
+  background: linear-gradient(to bottom, var(--ha-peach-hi, #ffe7cf), var(--ha-header, #f2c6a0));
+}
+.ts-music .ts-music-btn:hover {
+  background: linear-gradient(to bottom, var(--ha-peach-hover, #fff1d0), #f6d2aa);
+}
+.ts-music .ts-music-btn:active {
+  border-style: inset;
+  box-shadow: none;
+  transform: translate(2px, 2px);
+}
+.ts-music .ts-music-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+.ts-music .ts-music-btn[aria-pressed="true"] {
+  background: var(--ha-ink-dark, #4a403d);
+  color: var(--ha-paper, #fffaf5);
+}
+.ts-music .ts-music-btn:focus-visible,
+.ts-music input:focus-visible {
+  outline: 3px dashed var(--ha-lav-ink, #5a4fb3);
+  outline-offset: 2px;
+}
+.ts-music-dock .ts-music-pill {
+  width: auto;
+  gap: 0.5rem;
+  padding: 0 0.875rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.ts-music input[type="range"],
+.ts-music input[type="checkbox"] {
+  accent-color: var(--ha-ink-dark, #4a403d);
+}
+
 /* ---------- the page can't cover chrome ----------
    A person's HTML page gets its own stacking context, so nothing in it,
    whatever its z-index, can rise over the nav, chat or music. */

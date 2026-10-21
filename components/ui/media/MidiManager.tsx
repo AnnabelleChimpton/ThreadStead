@@ -509,11 +509,13 @@ export default function MidiManager({ username }: MidiManagerProps) {
             </button>
           </div>
           <div className="p-2">
+            {/* In the box, not floating over it and its close button */}
             <MidiPlayer
               midiUrl={`/api/media/serve/${previewingMidi}`}
+              title={midiFiles.find(f => f.id === previewingMidi)?.title || 'Preview'}
               autoplay={false}
               loop={false}
-              defaultMode="compact"
+              placement="inline"
             />
           </div>
         </div>,

@@ -16,9 +16,9 @@ jest.mock('@noble/ed25519', () => ({
 jest.mock('next/dynamic', () => ({
   __esModule: true,
   default: () =>
-    function MidiPlayerStandIn({ title, className }: { title?: string; className?: string }) {
+    function MidiPlayerStandIn({ title, placement }: { title?: string; placement?: string }) {
       return (
-        <div data-testid="midi-player" className={className}>
+        <div data-testid="midi-player" data-placement={placement ?? 'floating'}>
           {title}
         </div>
       )
@@ -76,8 +76,8 @@ test('the song widget plays the profile song in the page', async () => {
   )
   const player = await screen.findByTestId('midi-player')
   expect(player).toHaveTextContent('Little tune')
-  // Not the floating corner player
-  expect(player.className).toContain('!static')
+  // In the page, not the floating corner player
+  expect(player).toHaveAttribute('data-placement', 'inline')
 })
 
 test('without a song, only the owner is told; visitors see nothing', async () => {

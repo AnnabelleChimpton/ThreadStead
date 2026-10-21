@@ -27,6 +27,7 @@ import type { ResidentData } from "@/components/features/templates/ResidentDataP
 import { mapProfileCSSModeToComponentMode } from "@/lib/utils/css/css-mode-mapper";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import dynamic from 'next/dynamic';
+import { pageUsesAny } from '@/lib/templates/page-home';
 import WelcomeMusicControl from "@/components/features/onboarding/WelcomeMusicControl";
 import { contentMetadataGenerator } from "@/lib/utils/metadata/content-metadata";
 import { getSiteCSS } from "@/lib/utils/css/site-css-server";
@@ -192,6 +193,19 @@ export default function ProfilePage({
     </Head>
   );
 
+  // The profile's song, floating in the corner as site chrome. On your own
+  // HTML page only when it has no <ProfileMusic /> of its own, which plays it
+  // in the page instead (a picked song used to be silent there).
+  const floatingSong = profileMidi ? (
+    <MidiPlayer
+      midiUrl={profileMidi.url}
+      title={profileMidi.title}
+      autoplay={profileMidi.autoplay}
+      loop={profileMidi.loop}
+    />
+  ) : null;
+  const pagePlaysSong = pageUsesAny(compiledTemplate, ['ProfileMusic']);
+
   // Your own HTML page. Without residentData (no compiled page, or its data
   // didn't load) an advanced page falls through to the standard layout below.
   if (templateMode === 'advanced' && residentData) {
@@ -231,6 +245,7 @@ export default function ProfilePage({
                 />
               </div>
               <ViewSourceBadge username={username} />
+              {!pagePlaysSong && floatingSong}
             </div>
           );
       } else {
@@ -250,6 +265,7 @@ export default function ProfilePage({
               }
             />
             <ViewSourceBadge username={username} />
+            {!pagePlaysSong && floatingSong}
           </>
         );
       }
@@ -269,6 +285,7 @@ export default function ProfilePage({
             }
           />
           <ViewSourceBadge username={username} />
+          {!pagePlaysSong && floatingSong}
         </>
       );
     }
@@ -347,17 +364,8 @@ export default function ProfilePage({
           <Tabs tabs={tabs} initialId={initialTabId} />
         </div>
 
-        {/* MIDI Player - Now using the refactored component with new library.
-            Not when the slot's "My song" widget already plays it in the page. */}
-        {profileMidi && !widgetSlot?.playsSong && (
-          <MidiPlayer
-            midiUrl={profileMidi.url}
-            title={profileMidi.title}
-            autoplay={profileMidi.autoplay}
-            loop={profileMidi.loop}
-            compact={false}
-          />
-        )}
+        {/* Not when the slot's "My song" widget already plays it in the page */}
+        {!widgetSlot?.playsSong && floatingSong}
 
         {/* Signup's welcome music, if it followed the new resident here */}
         {!profileMidi && <WelcomeMusicControl />}
