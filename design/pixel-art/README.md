@@ -121,4 +121,4 @@ I draw them in key colours: one reserved ramp each for wall, roof, trim and glas
 | Trim | `#505000` `#909000` `#d0d000` `#ffff60` |
 | Glass | `#000050` `#000090` `#0000d0` `#6060ff` |
 
-Everything else on a house layer (the door, the stones, the chimney) is drawn in normal palette colours and stays as drawn.
+The door goes in the trim key. Everything else on a house layer (the stones, the chimney, the knob) is drawn in normal palette colours and stays as drawn.

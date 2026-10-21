@@ -53,8 +53,8 @@ describe('HouseSprite', () => {
       const imgs = [...container.querySelectorAll('img')].map((i) => i.getAttribute('src'))
       expect(imgs).toHaveLength(2)
       expect(imgs.every((src) => src?.startsWith('blob:layer-'))).toBe(true)
-      // pixel_petals roof step 3 is #f2c6a0
-      expect(swapped).toContain('242,198,160')
+      // pixel_petals roof step 3 is #c4473a
+      expect(swapped).toContain('196,71,58')
     })
   })
 })

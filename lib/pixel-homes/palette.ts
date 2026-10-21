@@ -48,42 +48,78 @@ export type HousePart = keyof typeof KEY_RAMPS
 export type HouseRamps = Record<HousePart, readonly [string, string, string, string]>
 
 const R = PALETTE_RAMPS
-const NEUTRAL_LIGHT = [R.ink[2], R.ink[3], R.ink[4], R.ink[5]] as const
 
 /**
  * What each house palette swaps the key ramps for: a wall, roof, trim and
- * glass ramp from the master palette (art-direction §3.2). Three-step ramps
- * repeat their darkest step, which is the outline.
+ * glass ramp from the master palette, dark to light (art-direction §3.2).
+ * Every palette owns its walls, so switching palettes repaints most of the
+ * house (design/starter-house-audit). A ramp that repeats its darkest step
+ * uses it as the outline. Step 3 (index 2) is the colour the code-drawn
+ * houses paint with; see HOUSE_PAINT.
  */
 export const HOUSE_PALETTE_RAMPS: Record<string, HouseRamps> = {
+  // Sage green walls, brown roof, pine trim
   thread_sage: {
-    wall: NEUTRAL_LIGHT,
-    roof: [R.wood[1], R.wood[2], R.wood[3], R.wood[4]],
+    wall: [R.foliage[2], R.foliage[3], R.foliage[4], R.butter[2]],
+    roof: [R.wood[0], R.wood[1], R.wood[2], R.wood[3]],
     trim: [R.pine[0], R.pine[0], R.pine[1], R.pine[2]],
     glass: [R.sky[0], R.sky[1], R.sky[2], R.sky[3]],
   },
+  // Charcoal walls, slate roof, linen trim, lit windows
   charcoal_nights: {
-    wall: NEUTRAL_LIGHT,
-    roof: [R.ink[0], R.ink[0], R.ink[1], R.ink[2]],
-    trim: [R.slate[0], R.slate[1], R.slate[2], R.slate[3]],
-    glass: [R.red[0], R.red[1], R.red[2], R.red[3]],
+    wall: [R.ink[0], R.ink[0], R.ink[1], R.ink[2]],
+    roof: [R.ink[0], R.slate[0], R.slate[1], R.slate[2]],
+    trim: [R.ink[2], R.ink[3], R.ink[4], R.ink[5]],
+    glass: [R.butter[0], R.butter[1], R.butter[2], R.ink[5]],
   },
+  // Rose walls, red roof, dark red trim
   pixel_petals: {
-    wall: NEUTRAL_LIGHT,
-    roof: [R.terracotta[0], R.terracotta[1], R.terracotta[2], R.terracotta[3]],
-    trim: [R.foliage[0], R.foliage[1], R.foliage[2], R.foliage[3]],
+    wall: [R.rose[0], R.rose[0], R.rose[1], R.rose[2]],
+    roof: [R.red[0], R.red[0], R.red[1], R.red[2]],
+    trim: [R.ink[0], R.ink[1], R.red[0], R.rose[0]],
     glass: [R.sky[0], R.sky[1], R.sky[2], R.sky[3]],
   },
+  // Lavender walls, dark roof, violet trim, green-screen windows
   crt_glow: {
-    wall: NEUTRAL_LIGHT,
-    roof: [R.sky[0], R.sky[1], R.sky[2], R.sky[3]],
-    trim: [R.ink[0], R.ink[1], R.ink[2], R.ink[3]],
-    glass: [R.foliage[1], R.foliage[2], R.foliage[3], R.foliage[4]],
+    wall: [R.lavender[0], R.lavender[1], R.lavender[2], R.ink[5]],
+    roof: [R.ink[0], R.ink[0], R.ink[1], R.ink[2]],
+    trim: [R.ink[0], R.ink[0], R.lavender[0], R.lavender[1]],
+    glass: [R.foliage[1], R.foliage[3], R.foliage[4], R.ink[5]],
   },
+  // Linen walls, dark brown roof, white trim
   classic_linen: {
-    wall: NEUTRAL_LIGHT,
-    roof: [R.wood[1], R.wood[2], R.wood[3], R.wood[4]],
-    trim: [R.wood[0], R.wood[1], R.wood[2], R.wood[3]],
-    glass: [R.pine[0], R.pine[0], R.pine[1], R.pine[2]],
+    wall: [R.ink[2], R.ink[3], R.ink[4], R.ink[5]],
+    roof: [R.wood[0], R.wood[0], R.wood[1], R.wood[2]],
+    trim: [R.ink[3], R.ink[4], R.ink[5], R.ink[5]],
+    glass: [R.sky[0], R.sky[0], R.sky[1], R.sky[2]],
   },
+}
+
+/** The one small accent each palette adds (the townhouse's corner stones). */
+export const HOUSE_DETAIL_COLOURS: Record<string, string> = {
+  thread_sage: R.wood[4],
+  charcoal_nights: R.red[2],
+  pixel_petals: R.foliage[3],
+  crt_glow: R.pine[2],
+  classic_linen: R.wood[2],
+}
+
+export interface HousePaint {
+  wall: string
+  roof: string
+  trim: string
+  glass: string
+  detail: string
+}
+
+/** The flat colours a palette paints a code-drawn house with: step 3 of each ramp. */
+export function housePaint(palette: string): HousePaint {
+  const ramps = HOUSE_PALETTE_RAMPS[palette] ?? HOUSE_PALETTE_RAMPS.thread_sage
+  return {
+    wall: ramps.wall[2],
+    roof: ramps.roof[2],
+    trim: ramps.trim[2],
+    glass: ramps.glass[2],
+    detail: HOUSE_DETAIL_COLOURS[palette] ?? HOUSE_DETAIL_COLOURS.thread_sage,
+  }
 }

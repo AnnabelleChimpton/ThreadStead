@@ -97,7 +97,8 @@ const MAX_TOP_CROP = 30
 // 2: the house sorts with the decorations by depth (lib/pixel-homes/depth.ts)
 // 3: flipped decorations are drawn mirrored
 // 4: lights, chimes, lanterns, trellises and arches on the house stay in front of it
-export const SNAPSHOT_RENDERER_VERSION = 4
+// 5: every palette owns its walls; loft, townhouse and cabin parts take palette colours
+export const SNAPSHOT_RENDERER_VERSION = 5
 
 /** Fetch an image's bytes, or null if it can't be had (a 404, an origin we don't fetch from). */
 export type ImageLoader = (url: string) => Promise<Buffer | null>

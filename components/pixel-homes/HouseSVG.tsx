@@ -1,5 +1,6 @@
 import React from 'react'
 import { useSvgIdPrefix } from './useSvgIdPrefix'
+import { housePaint } from '../../lib/pixel-homes/palette'
 
 export type HouseTemplate = 'cottage_v1' | 'townhouse_v1' | 'loft_v1' | 'cabin_v1'
 export type ColorPalette = 'thread_sage' | 'charcoal_nights' | 'pixel_petals' | 'crt_glow' | 'classic_linen'
@@ -52,12 +53,30 @@ export interface AtmosphereSettings {
   timeOfDay: 'morning' | 'midday' | 'evening' | 'night'
 }
 
-export const PALETTE_COLORS = {
-  thread_sage: { primary: '#A18463', secondary: '#2E4B3F', accent: '#8EC5E8', base: '#F5E9D4', detail: '#4FAF6D' },
-  charcoal_nights: { primary: '#2F2F2F', secondary: '#B8B8B8', accent: '#E27D60', base: '#FCFAF7', detail: '#A18463' },
-  pixel_petals: { primary: '#E27D60', secondary: '#4FAF6D', accent: '#8EC5E8', base: '#F5E9D4', detail: '#2E4B3F' },
-  crt_glow: { primary: '#8EC5E8', secondary: '#2F2F2F', accent: '#4FAF6D', base: '#FCFAF7', detail: '#E27D60' },
-  classic_linen: { primary: '#F5E9D4', secondary: '#A18463', accent: '#2E4B3F', base: '#FCFAF7', detail: '#8EC5E8' }
+export interface PaletteColors {
+  primary: string
+  secondary: string
+  accent: string
+  base: string
+  detail: string
+}
+
+const paintToRoles = (palette: ColorPalette): PaletteColors => {
+  const paint = housePaint(palette)
+  return { primary: paint.roof, secondary: paint.trim, accent: paint.glass, base: paint.wall, detail: paint.detail }
+}
+
+/**
+ * Each palette's roles, from the one table in lib/pixel-homes/palette.ts:
+ * base → walls · primary → roof · secondary → trim and door · accent → glass
+ * · detail → small accents.
+ */
+export const PALETTE_COLORS: Record<ColorPalette, PaletteColors> = {
+  thread_sage: paintToRoles('thread_sage'),
+  charcoal_nights: paintToRoles('charcoal_nights'),
+  pixel_petals: paintToRoles('pixel_petals'),
+  crt_glow: paintToRoles('crt_glow'),
+  classic_linen: paintToRoles('classic_linen'),
 }
 
 const darken = (color: string, amount: number = 20) => {
@@ -973,14 +992,14 @@ const TownhouseTemplate: React.FC<TemplateProps> = ({ colors, customizations, si
       {/* Main Structure with dither pattern */}
       <rect x="40" y="80" width="120" height="90" fill={getWallPattern()} />
 
-      {/* Cornice / Roof Trim */}
-      <rect x="35" y="75" width="130" height="8" fill={colors.secondary} />
-      {renderRoofTrim(35, 75, 130, customizations.roofTrim || 'default', colors.secondary, simplified)}
+      {/* Cornice / Roof Trim: a flat roof, so the cornice wears the roof colour */}
+      <rect x="35" y="75" width="130" height="8" fill={roofColor} />
+      {renderRoofTrim(35, 75, 130, customizations.roofTrim || 'default', roofColor, simplified)}
 
-      <rect x="38" y="83" width="124" height="2" fill={darken(colors.secondary, 20)} />
+      <rect x="38" y="83" width="124" height="2" fill={darken(roofColor, 20)} />
       {/* Dentils */}
       {!simplified && Array.from({ length: 20 }).map((_, i) => (
-        <rect key={i} x={38 + i * 6} y={79} width={2} height={2} fill={darken(colors.secondary, 30)} />
+        <rect key={i} x={38 + i * 6} y={79} width={2} height={2} fill={darken(roofColor, 30)} />
       ))}
 
       {/* Quoins (Corner stones) */}
@@ -1071,25 +1090,25 @@ const LoftTemplate: React.FC<TemplateProps> = ({ colors, customizations, simplif
       )}
 
       {/* Roof - Flat with parapet */}
-      <rect x="38" y="65" width="124" height="5" fill="#333" />
-      {renderRoofTrim(38, 65, 124, customizations.roofTrim || 'default', '#333', simplified)}
+      <rect x="38" y="65" width="124" height="5" fill={roofColor} />
+      {renderRoofTrim(38, 65, 124, customizations.roofTrim || 'default', roofColor, simplified)}
 
       {/* Large Industrial Windows */}
-      <rect x="50" y="80" width="30" height="40" fill="#222" />
-      <rect x="52" y="82" width="26" height="36" fill={colors.accent} opacity="0.8" />
+      <rect x="50" y="80" width="30" height="40" fill={colors.secondary} />
+      <rect x="52" y="82" width="26" height="36" fill={colors.accent} />
       {/* Grid */}
-      <rect x="64" y="80" width="2" height="40" fill="#222" />
-      <rect x="50" y="100" width="30" height="2" fill="#222" />
+      <rect x="64" y="80" width="2" height="40" fill={colors.secondary} />
+      <rect x="50" y="100" width="30" height="2" fill={colors.secondary} />
       {renderWindowTreatments(50, 80, 30, 40, customizations.windowTreatments || 'default', colors, simplified)}
 
-      <rect x="120" y="80" width="30" height="40" fill="#222" />
-      <rect x="122" y="82" width="26" height="36" fill={colors.accent} opacity="0.8" />
-      <rect x="134" y="80" width="2" height="40" fill="#222" />
-      <rect x="120" y="100" width="30" height="2" fill="#222" />
+      <rect x="120" y="80" width="30" height="40" fill={colors.secondary} />
+      <rect x="122" y="82" width="26" height="36" fill={colors.accent} />
+      <rect x="134" y="80" width="2" height="40" fill={colors.secondary} />
+      <rect x="120" y="100" width="30" height="2" fill={colors.secondary} />
       {renderWindowTreatments(120, 80, 30, 40, customizations.windowTreatments || 'default', colors, simplified)}
 
-      {/* Door - Metal */}
-      <rect x="90" y="140" width="20" height="30" fill="#444" />
+      {/* Door */}
+      <rect x="90" y="140" width="20" height="30" fill={colors.secondary} />
       <rect x="105" y="155" width="2" height="4" fill="#888" />
 
       {/* Fire Escape / Balcony */}
@@ -1191,10 +1210,10 @@ const CabinTemplate: React.FC<TemplateProps> = ({ colors, customizations, simpli
       {renderRoofTrim(30, 100, 140, customizations.roofTrim || 'default', colors.primary, simplified)}
 
       {/* Porch */}
-      <rect x="35" y="150" width="130" height="5" fill="#5C4033" />
-      <rect x="45" y="120" width="5" height="30" fill="#5C4033" />
-      <rect x="150" y="120" width="5" height="30" fill="#5C4033" />
-      <rect x="98" y="120" width="4" height="30" fill="#5C4033" />
+      <rect x="35" y="150" width="130" height="5" fill={colors.secondary} />
+      <rect x="45" y="120" width="5" height="30" fill={colors.secondary} />
+      <rect x="150" y="120" width="5" height="30" fill={colors.secondary} />
+      <rect x="98" y="120" width="4" height="30" fill={colors.secondary} />
 
       {/* Door */}
       {renderDoor(90, 120, 20, 30, customizations.doorStyle || 'default', colors, simplified)}
@@ -1232,7 +1251,7 @@ interface HouseSVGProps {
 
 export default function HouseSVG({ template, palette, className = '', onClick, customizations, variant = 'detailed' }: HouseSVGProps) {
   const idPrefix = useSvgIdPrefix()
-  const paletteColors = PALETTE_COLORS[palette]
+  const paletteColors = PALETTE_COLORS[palette] ?? PALETTE_COLORS.thread_sage
 
   const colors = {
     base: customizations?.wallColor || paletteColors.base,

@@ -1,5 +1,3 @@
-import { HouseTemplate, ColorPalette } from '../../components/pixel-homes/HouseSVG'
-
 export interface DecorationItem {
     id: string
     decorationId?: string
@@ -37,44 +35,6 @@ export interface AtmosphereSettings {
     sky: 'sunny' | 'cloudy' | 'sunset' | 'night'
     weather: 'clear' | 'light_rain' | 'light_snow'
     timeOfDay: 'morning' | 'midday' | 'evening' | 'night'
-}
-
-export const PALETTE_COLORS = {
-    thread_sage: {
-        primary: '#A18463',    // sage
-        secondary: '#2E4B3F',  // pine  
-        accent: '#8EC5E8',     // sky
-        base: '#F5E9D4',       // cream
-        detail: '#4FAF6D'      // meadow
-    },
-    charcoal_nights: {
-        primary: '#2F2F2F',    // charcoal
-        secondary: '#B8B8B8',  // stone
-        accent: '#E27D60',     // sunset
-        base: '#FCFAF7',       // paper
-        detail: '#A18463'      // sage
-    },
-    pixel_petals: {
-        primary: '#E27D60',    // sunset
-        secondary: '#4FAF6D',  // meadow
-        accent: '#8EC5E8',     // sky
-        base: '#F5E9D4',       // cream
-        detail: '#2E4B3F'      // pine
-    },
-    crt_glow: {
-        primary: '#8EC5E8',    // sky
-        secondary: '#2F2F2F',  // charcoal
-        accent: '#4FAF6D',     // meadow
-        base: '#FCFAF7',       // paper
-        detail: '#E27D60'      // sunset
-    },
-    classic_linen: {
-        primary: '#A18463',    // sage
-        secondary: '#2E4B3F',  // pine
-        accent: '#E27D60',     // sunset
-        base: '#FCFAF7',       // paper
-        detail: '#8EC5E8'      // sky
-    }
 }
 
 // BETA_ITEMS has been migrated to the database (DecorationItem table)

@@ -1,6 +1,7 @@
 jest.mock('@/lib/config/database/connection', () => ({ db: {} }))
 
 import { BADGE_NAME_CHARS, badgeColors, badgeText, houseBadgeSvg } from '../house-badge'
+import { PALETTE_COLORS } from '@/components/pixel-homes/HouseSVG'
 
 describe('badgeText', () => {
   it('upper-cases, drops accents and characters the font lacks', () => {
@@ -40,7 +41,7 @@ describe('houseBadgeSvg', () => {
   it('uses the house’s own colours, and ignores colours that are not hex', () => {
     expect(badgeColors('thread_sage', { roofColor: '#123456', wallColor: 'red;background:url(x)' })).toMatchObject({
       roof: '#123456',
-      wall: '#F5E9D4',
+      wall: PALETTE_COLORS.thread_sage.base,
     })
     expect(svg('A', { customizations: { roofColor: '#123456' } })).toContain('fill="#123456"')
   })

@@ -44,19 +44,21 @@ Four tones per ramp is the budget: shadow, base, light, highlight. Light
 comes from the top left. Outlines are selective, in the darkest step of the
 ramp they sit on, never pure black.
 
-How the five palettes map key ramps to the master palette (from
-art-direction.md §3.2):
+How the five palettes map key ramps to the master palette
+(`HOUSE_PALETTE_RAMPS` in `lib/pixel-homes/palette.ts`). Every palette owns
+its walls, so switching palettes repaints most of the house:
 
 | Palette | Wall | Roof | Trim | Glass |
 |---|---|---|---|---|
-| thread_sage | neutral | wood | pine | sky |
-| charcoal_nights | neutral | ink | slate | red |
-| pixel_petals | neutral | terracotta | foliage | sky |
-| crt_glow | neutral | sky | ink | foliage |
-| classic_linen | neutral | wood | wood | pine |
+| thread_sage | sage green (foliage) | wood | pine | sky |
+| charcoal_nights | charcoal (ink) | slate | linen (light ink) | butter, lit windows |
+| pixel_petals | rose | red | dark red | sky |
+| crt_glow | lavender | ink | lavender | foliage, a green screen |
+| classic_linen | linen (light ink) | dark wood | white | sky |
 
-These mappings are a starting point. Once a house is drawn, look at it in all
-five and adjust the table (it's data, not art).
+Step 3 of each ramp is the colour the code-drawn houses paint with, so paint
+most of a surface in the key's step 3. Once a house is drawn, look at it in
+all five and adjust the table if a step reads wrong (it's data, not art).
 
 ## The order
 
