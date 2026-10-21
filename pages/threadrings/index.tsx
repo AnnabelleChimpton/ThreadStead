@@ -252,7 +252,7 @@ export default function ThreadRingsPage({ siteConfig, initialTab }: ThreadRingsP
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-6 sm:mb-8">
-          <div className="threadring-hero bg-gradient-to-br from-thread-sunset/10 via-thread-cream to-thread-sky/15 border border-thread-sage rounded-cozy shadow-cozy p-6 sm:p-8">
+          <div className="threadring-hero bg-gradient-to-br from-thread-sunset/10 via-thread-cream to-thread-sky/15 border border-thread-sage rounded-cozy shadow-cozy p-4 sm:p-8">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
               <div>
                 <h1 className="text-3xl font-headline font-bold text-thread-pine">ThreadRings</h1>
@@ -262,16 +262,16 @@ export default function ThreadRingsPage({ siteConfig, initialTab }: ThreadRingsP
                   {total !== null && `${total} ${total === 1 ? 'ring' : 'rings'}`}
                 </p>
               </div>
-              <div className="flex flex-col sm:flex-row gap-2">
+              <div className="flex gap-2">
                 <Link
                   href="/threadrings/genealogy"
-                  className="btn btn--secondary border border-thread-sage px-3 py-2 text-sm md:px-4 md:text-base bg-thread-paper hover:bg-thread-cream text-thread-pine rounded-cozy shadow-cozy-sm hover:shadow-cozy transition-all font-medium text-center"
+                  className="flex-1 sm:flex-none whitespace-nowrap btn btn--secondary border border-thread-sage px-3 py-2 text-sm md:px-4 md:text-base bg-thread-paper hover:bg-thread-cream text-thread-pine rounded-cozy shadow-cozy-sm hover:shadow-cozy transition-all font-medium text-center"
                 >
                   Family tree
                 </Link>
                 <Link
                   href="/tr/spool/fork"
-                  className="btn btn--primary border border-thread-pine px-3 py-2 text-sm md:px-4 md:text-base bg-thread-sunset text-thread-paper hover:bg-thread-sunset/90 rounded-cozy shadow-cozy-sm hover:shadow-cozy transition-all font-medium text-center"
+                  className="flex-1 sm:flex-none whitespace-nowrap btn btn--primary border border-thread-pine px-3 py-2 text-sm md:px-4 md:text-base bg-thread-sunset text-thread-paper hover:bg-thread-sunset/90 rounded-cozy shadow-cozy-sm hover:shadow-cozy transition-all font-medium text-center"
                 >
                   Start a ring
                 </Link>
@@ -305,11 +305,11 @@ export default function ThreadRingsPage({ siteConfig, initialTab }: ThreadRingsP
           </div>
 
           {/* Search and Filters */}
-          <div className="flex flex-col md:flex-row gap-3">
+          <div className="flex gap-2 md:gap-3">
             <div className="flex-1 min-w-0">
               <input
                 type="text"
-                placeholder={`Search ${activeTab === 'mine' ? 'my' : ''} ThreadRings...`}
+                placeholder={activeTab === 'mine' ? 'Search my rings' : 'Search rings'}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full border border-thread-sage px-3 py-2 bg-thread-paper rounded-cozy focus:outline-none focus:border-thread-sunset focus:shadow-cozy-sm transition-all"
@@ -318,7 +318,7 @@ export default function ThreadRingsPage({ siteConfig, initialTab }: ThreadRingsP
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value)}
-              className="w-full md:w-auto border border-thread-sage px-3 py-2 bg-thread-paper rounded-cozy focus:outline-none focus:border-thread-sunset"
+              className="flex-1 min-w-0 md:flex-none md:w-auto border border-thread-sage px-3 py-2 bg-thread-paper rounded-cozy focus:outline-none focus:border-thread-sunset"
             >
               {sortOptions.map(option => (
                 <option key={option.value} value={option.value}>
