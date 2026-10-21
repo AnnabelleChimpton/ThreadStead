@@ -116,54 +116,57 @@ model Handle {
 }
 
 model Profile {
-  id                  String                   @id @default(cuid())
-  userId              String                   @unique
-  displayName         String?
-  bio                 String?
-  avatarUrl           String?
-  bannerUrl           String?
-  customCSS           String?
-  blogroll            Json?
-  visibility          Visibility               @default(public)
-  updatedAt           DateTime                 @updatedAt
-  featuredFriends     Json?
-  avatarFullUrl       String?
-  avatarMediumUrl     String?
-  avatarThumbnailUrl  String?
-  customTemplate      String?
-  hideNavigation      Boolean                  @default(false)
-  templateMode        TemplateMode             @default(default)
-  badgePreferences    Json?
-  cssMode             String                   @default("inherit") // 'inherit' | 'override' | 'disable'
-  profileMidiId       String?
-  midiAutoplay        Boolean                  @default(false)
-  midiLoop            Boolean                  @default(false)
-  compiledTemplate    Json?
-  templateCompiledAt  DateTime?
+  id                            String                   @id @default(cuid())
+  userId                        String                   @unique
+  displayName                   String?
+  bio                           String?
+  avatarUrl                     String?
+  bannerUrl                     String?
+  customCSS                     String?
+  blogroll                      Json?
+  visibility                    Visibility               @default(public)
+  updatedAt                     DateTime                 @updatedAt
+  featuredFriends               Json?
+  avatarFullUrl                 String?
+  avatarMediumUrl               String?
+  avatarThumbnailUrl            String?
+  customTemplate                String?
+  hideNavigation                Boolean                  @default(false)
+  templateMode                  TemplateMode             @default(default)
+  badgePreferences              Json?
+  cssMode                       String                   @default("inherit") // 'inherit' | 'override' | 'disable'
+  profileMidiId                 String?
+  midiAutoplay                  Boolean                  @default(false)
+  midiLoop                      Boolean                  @default(false)
+  // As a visitor: whether other people's profile music may start on its
+  // own (the "Don't play music automatically for me" switch)
+  playProfileMusicAutomatically Boolean                  @default(true)
+  compiledTemplate              Json?
+  templateCompiledAt            DateTime?
   // When the owner last changed their page's look: an HTML or CSS save, a
   // theme, a layout switch (lib/domain/profile/page-updates.ts). Not bumped by
   // other profile edits or a moderator's reset. Null: not known (see
   // migration 20261102000000). "Recently updated" on the residents list.
-  pageUpdatedAt       DateTime?
+  pageUpdatedAt                 DateTime?
   // Neocities-style "view source": when true, anyone can read this profile's
   // template + CSS at /resident/[username]/source.
-  showTemplateSource  Boolean                  @default(false)
+  showTemplateSource            Boolean                  @default(false)
   // Visiting someone's pixel home puts your name under it for a week
   // (components/pixel-homes/VisitorTrail.tsx). Off, you're only counted.
-  showInVisitorTrails Boolean                  @default(true)
+  showInVisitorTrails           Boolean                  @default(true)
   // The widget slot under the header on the standard layout: the fragment
   // (and the picks it came from) plus its compiled form, written only by
   // /api/user/widget-slot (lib/domain/profile/widget-slot).
-  widgetSlot          Json?
+  widgetSlot                    Json?
   // Profile tabs the owner hid (Settings > Your page). Blog always shows.
-  hiddenTabs          String[]                 @default([])
+  hiddenTabs                    String[]                 @default([])
   // A short line of the owner's own under their name ("knitting a scarf"),
   // in place of the site's resident label. Up to STATUS_MAX characters.
-  status              String?
+  status                        String?
   // Full-text search: displayName (A) + bio (B), `simple` config. Maintained
   // by a trigger (20261017000000_add_search_fts) — never write it from Prisma.
-  searchTsv           Unsupported("tsvector")? @map("search_tsv")
-  user                User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  searchTsv                     Unsupported("tsvector")? @map("search_tsv")
+  user                          User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([searchTsv], type: Gin, map: "Profile_search_tsv_idx")
   @@index([displayName(ops: raw("gin_trgm_ops"))], type: Gin, map: "Profile_displayName_trgm_idx")

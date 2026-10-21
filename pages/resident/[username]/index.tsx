@@ -530,6 +530,23 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
     }
   }
 
+  // A signed-in visitor who said "don't play music automatically for me"
+  // gets the song paused, wherever the page plays it. (A signed-out
+  // visitor's choice lives in their browser; the player reads it there.)
+  if (data.profileMidi?.autoplay) {
+    const { getSessionUser } = await import('@/lib/auth/server');
+    const visitor = await getSessionUser(req as any);
+    if (visitor) {
+      const { db } = await import('@/lib/config/database/connection');
+      const own = await db.profile
+        .findUnique({ where: { userId: visitor.id }, select: { playProfileMusicAutomatically: true } })
+        .catch(() => null);
+      if (own && !own.playProfileMusicAutomatically) {
+        data.profileMidi = { ...data.profileMidi, autoplay: false };
+      }
+    }
+  }
+
   // Load what the page's components read
   if (data.profile?.templateMode === 'advanced' && compiledTemplate != null) {
     try {

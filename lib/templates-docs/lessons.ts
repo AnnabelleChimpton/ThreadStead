@@ -158,7 +158,7 @@ export const lessons: Lesson[] = [
       {
         id: 'song',
         title: 'Your song',
-        body: "Pick a song in Settings, under Music. <ProfileMusic /> puts its player wherever you put the tag. It never starts on its own: visitors press play if they want to.",
+        body: "Pick a song in Settings, under Music. <ProfileMusic /> puts its player wherever you put the tag. If you've turned autoplay on, it starts when a visitor first clicks somewhere on the page, unless they've said no to music starting on its own. Leave the tag out and the player floats in the corner instead.",
         code: `<h2>On repeat</h2>
 <ProfileMusic />`,
         live: false,

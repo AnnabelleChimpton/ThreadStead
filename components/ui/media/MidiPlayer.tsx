@@ -2,11 +2,19 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useGlobalAudio } from '@/contexts/GlobalAudioContext';
 import { PixelIcon } from '@/components/ui/PixelIcon';
+import {
+  saveAutoplay,
+  saveMuted,
+  saveVolume,
+  savedAutoplay,
+  savedMuted,
+  savedVolume,
+} from '@/lib/audio/music-preferences';
 
 interface MidiPlayerProps {
   midiUrl: string;
   title?: string;
-  /** The owner's choice */
+  /** The owner's choice; the visitor's own "no" (music-preferences) wins */
   autoplay?: boolean;
   loop?: boolean;
   className?: string;
@@ -41,15 +49,18 @@ export default function MidiPlayer({
   const [duration, setDuration] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [pausedAt, setPausedAt] = useState(0); // Track where we paused (in seconds)
-  const [volume, setVolume] = useState(50);
-  const [muted, setMuted] = useState(false);
+  // The player is client-only (loaded with ssr: false), so the visitor's
+  // remembered choices can be read straight away
+  const [volume, setVolume] = useState(savedVolume);
+  const [muted, setMuted] = useState(savedMuted);
+  const [autoplayAllowed, setAutoplayAllowed] = useState(savedAutoplay);
   const [expanded, setExpanded] = useState(false);
   // Closed for this visit: the song stops, a small Music button stays
   const [closed, setClosed] = useState(false);
   // Autoplay is armed but the browser wants a click first
   const [waitingForClick, setWaitingForClick] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const autoplay = ownerAutoplay;
+  const autoplay = ownerAutoplay && autoplayAllowed;
   // Read by the audio graph when it's built, so it never sees stale state
   const volumeRef = useRef(volume);
   const mutedRef = useRef(muted);
@@ -2207,9 +2218,11 @@ export default function MidiPlayer({
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newVolume = Number(e.target.value);
     setVolume(newVolume);
+    saveVolume(newVolume);
     // Moving the slider is a clear "I want to hear it"
     if (muted && newVolume > 0) {
       setMuted(false);
+      saveMuted(false);
     }
     applyGain(newVolume, muted && newVolume === 0);
   };
@@ -2217,6 +2230,7 @@ export default function MidiPlayer({
   const toggleMute = () => {
     const next = !muted;
     setMuted(next);
+    saveMuted(next);
     applyGain(volume, next);
   };
 
@@ -2857,6 +2871,18 @@ export default function MidiPlayer({
               <PixelIcon name="repeat" size={12} /> Plays on repeat
             </p>
           )}
+          <label className="flex items-start gap-2 text-xs cursor-pointer">
+            <input
+              type="checkbox"
+              checked={autoplayAllowed}
+              onChange={(e) => {
+                setAutoplayAllowed(e.target.checked);
+                void saveAutoplay(e.target.checked);
+              }}
+              className="mt-0.5 h-4 w-4 flex-shrink-0"
+            />
+            <span>Play music automatically when I visit a profile</span>
+          </label>
         </div>
       )}
 

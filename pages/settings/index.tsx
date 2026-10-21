@@ -19,6 +19,7 @@ import FriendManager, { SelectedFriend } from "@/components/core/social/FriendMa
 import ProfileBadgeSelector from "@/components/core/profile/ProfileBadgeSelector";
 import BetaInviteCodesManager from "@/components/features/admin/BetaInviteCodesManager";
 import MidiManager from "@/components/ui/media/MidiManager";
+import MusicListeningSetting from "@/components/ui/media/MusicListeningSetting";
 import ThemePicker from "@/components/pixel-homes/ThemePicker";
 import ConsentManager from "@/components/features/auth/ConsentManager";
 // Full identity management imports
@@ -980,6 +981,8 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
 
             <MidiManager username={username} />
           </div>
+
+          <MusicListeningSetting />
 
           {/* Music Tips */}
           <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-4">

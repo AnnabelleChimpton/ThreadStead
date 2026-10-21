@@ -1,11 +1,13 @@
 /**
  * The music player's controls (MIDI plan Phase 1). The floating player is
- * site chrome, so page CSS can't reach it, and it can always be closed. No
- * sound is played here: nothing presses Play.
+ * site chrome, so page CSS can't reach it; it can always be closed; Mute,
+ * volume and "play automatically" are remembered. No sound is played here:
+ * nothing presses Play.
  */
 import React from 'react';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 
+jest.mock('@/lib/api/client/csrf-fetch', () => ({ csrfFetch: jest.fn(async () => ({ ok: true })) }));
 jest.mock('@/components/ui/PixelIcon', () => ({ PixelIcon: () => null }));
 jest.mock('@/contexts/GlobalAudioContext', () => ({
   useGlobalAudio: () => ({
@@ -16,9 +18,11 @@ jest.mock('@/contexts/GlobalAudioContext', () => ({
 }));
 
 import MidiPlayer from '../MidiPlayer';
+import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 
 beforeEach(() => {
   window.localStorage.clear();
+  (csrfFetch as jest.Mock).mockClear();
 });
 
 test('the floating player is site chrome, outside the page', () => {
@@ -45,15 +49,19 @@ test('Play says Play, not Stop', () => {
   expect(screen.queryByRole('button', { name: 'Stop' })).not.toBeInTheDocument();
 });
 
-test('Mute is a toggle that says whether it is on', () => {
-  render(<MidiPlayer midiUrl="/song.mid" />);
+test('Mute is a toggle, and remembered', () => {
+  const { unmount } = render(<MidiPlayer midiUrl="/song.mid" />);
   const mute = screen.getByRole('button', { name: 'Mute' });
   expect(mute).toHaveAttribute('aria-pressed', 'false');
   fireEvent.click(mute);
   expect(mute).toHaveAttribute('aria-pressed', 'true');
+  unmount();
+
+  render(<MidiPlayer midiUrl="/song.mid" />);
+  expect(screen.getByRole('button', { name: 'Mute' })).toHaveAttribute('aria-pressed', 'true');
 });
 
-test('More shows the volume; Escape folds it away', () => {
+test('More shows volume and the autoplay switch; Escape folds it away', () => {
   render(<MidiPlayer midiUrl="/song.mid" title="Little tune" />);
   const more = screen.getByRole('button', { name: 'More music controls' });
   expect(more).toHaveAttribute('aria-expanded', 'false');
@@ -63,10 +71,29 @@ test('More shows the volume; Escape folds it away', () => {
   const player = screen.getByRole('region', { name: 'Music: Little tune' });
   const volume = within(player).getByRole('slider', { name: /Volume/ });
   fireEvent.change(volume, { target: { value: '20' } });
-  expect(volume).toHaveValue('20');
+  expect(window.localStorage.getItem('threadstead-audio-volume')).toBe('0.2');
 
   fireEvent.keyDown(volume, { key: 'Escape' });
   expect(more).toHaveAttribute('aria-expanded', 'false');
+});
+
+test('"Play music automatically" off is kept in the browser and sent to the account', async () => {
+  render(<MidiPlayer midiUrl="/song.mid" />);
+  fireEvent.click(screen.getByRole('button', { name: 'More music controls' }));
+  const box = screen.getByRole('checkbox', { name: 'Play music automatically when I visit a profile' });
+  expect(box).toBeChecked();
+  fireEvent.click(box);
+  expect(box).not.toBeChecked();
+  expect(window.localStorage.getItem('threadstead-music-autoplay')).toBe('off');
+  await waitFor(() =>
+    expect(csrfFetch).toHaveBeenCalledWith('/api/user/music-preferences', expect.objectContaining({ method: 'POST', body: JSON.stringify({ autoplay: false }) }))
+  );
+});
+
+test('a visitor who said no gets no "click anywhere" hint, even when the owner wants autoplay', () => {
+  window.localStorage.setItem('threadstead-music-autoplay', 'off');
+  render(<MidiPlayer midiUrl="/song.mid" autoplay />);
+  expect(screen.queryByText('Click anywhere on the page for music')).not.toBeInTheDocument();
 });
 
 test('in the page (<ProfileMusic />, previews) it stays where it was put, with no Close', () => {
