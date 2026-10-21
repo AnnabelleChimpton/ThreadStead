@@ -161,7 +161,7 @@ export default function ConsentManager({ userId }: ConsentManagerProps) {
   }
 
   return (
-    <div className="bg-white border-2 border-nb-ink-mid p-6">
+    <div className="bg-white border-2 border-nb-ink-mid p-4 sm:p-6">
       <h3 className="text-xl font-bold mb-4">Cookie & Consent Preferences</h3>
 
       <p className="text-nb-ink mb-6">
@@ -179,15 +179,15 @@ export default function ConsentManager({ userId }: ConsentManagerProps) {
 
       <div className="space-y-6">
         <div className="border border-nb-ink-mid/40 p-4 rounded">
-          <div className="flex items-start justify-between mb-2">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2 mb-2">
+            <div className="flex items-center gap-2 min-w-0">
               <span>{getConsentIcon(ConsentType.ESSENTIAL)}</span>
-              <h4 className="font-semibold capitalize flex items-center gap-2">
+              <h4 className="font-semibold capitalize">
                 Authentication Cookies
-                <span className="thread-button-secondary btn btn--secondary text-xs">Required</span>
               </h4>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
+              <span className="badge text-xs">Required</span>
               <label className="flex items-center cursor-not-allowed opacity-50">
                 <input
                   type="checkbox"

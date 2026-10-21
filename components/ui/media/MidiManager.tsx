@@ -257,8 +257,8 @@ export default function MidiManager({ username }: MidiManagerProps) {
         <legend className="font-semibold text-nb-ink mb-2">On your profile</legend>
         {/* Inline margin and padding: site CSS indents lists on phones */}
         <ul className="list-none space-y-2" style={{ margin: 0, padding: 0 }}>
-          <li className="border-2 border-nb-ink-mid/30 rounded-md bg-white px-3 py-2">
-            <label className="flex items-center gap-2 cursor-pointer">
+          <li className="border-2 border-nb-ink-mid/30 rounded-md bg-white">
+            <label className="flex items-center gap-2 cursor-pointer px-3 py-2 min-h-[44px]">
               <input
                 type="radio"
                 name="profile-song"

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 export type TabSpec = { id: string; label: React.ReactNode; content: React.ReactNode };
 type TabsProps = {
@@ -12,9 +12,15 @@ type TabsProps = {
    * its unlayered .ts-tab rules would override users' template CSS.
    */
   variant?: "profile" | "site";
+  /**
+   * "site" only. On phones the tabs sit in one row that scrolls sideways
+   * instead of wrapping, and the frame around the panel goes away (the page
+   * card already frames it).
+   */
+  compactOnPhone?: boolean;
 };
 
-export default function Tabs({ tabs, initialId, syncWithUrl = true, variant = "profile" }: TabsProps) {
+export default function Tabs({ tabs, initialId, syncWithUrl = true, variant = "profile", compactOnPhone = false }: TabsProps) {
   const firstId = tabs[0]?.id;
   // Initial state comes from server-provided initialId or first tab.
   const [active, setActive] = useState(initialId || firstId);
@@ -38,6 +44,19 @@ export default function Tabs({ tabs, initialId, syncWithUrl = true, variant = "p
     window.history.replaceState({}, "", url);
   }, [active, initialActive, syncWithUrl]);
 
+  // Keep the open tab in view when the row scrolls sideways
+  const listRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const list = listRef.current;
+    if (!compactOnPhone || !list || list.scrollWidth <= list.clientWidth) return;
+    const tab = list.querySelector<HTMLElement>('[aria-selected="true"]');
+    if (!tab) return;
+    const left = tab.offsetLeft - list.offsetLeft;
+    if (left < list.scrollLeft || left + tab.offsetWidth > list.scrollLeft + list.clientWidth) {
+      list.scrollLeft = left - 16;
+    }
+  }, [active, compactOnPhone]);
+
   const activeContent = useMemo(
     () => tabs.find(t => t.id === active)?.content,
     [tabs, active]
@@ -45,8 +64,12 @@ export default function Tabs({ tabs, initialId, syncWithUrl = true, variant = "p
 
   if (variant === "site") {
     return (
-      <div className="thread-module">
-        <div role="tablist" className="flex flex-wrap border-b-2 border-dotted border-nb-ink-mid/40 mb-4">
+      <div className={compactOnPhone ? "thread-module ts-phone-bare" : "thread-module"}>
+        <div
+          ref={listRef}
+          role="tablist"
+          className={`flex border-b-2 border-dotted border-nb-ink-mid/40 mb-4 ${compactOnPhone ? "ts-tab-row flex-nowrap overflow-x-auto sm:flex-wrap sm:overflow-visible" : "flex-wrap"}`}
+        >
           {tabs.map(t => {
             const selected = t.id === active;
             return (

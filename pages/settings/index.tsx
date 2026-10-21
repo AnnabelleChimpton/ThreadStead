@@ -682,7 +682,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
       id: "profile",
       label: <><PixelIcon name="user" /> Profile</>,
       content: (
-        <div className="space-y-6 px-4 sm:px-0">
+        <div className="space-y-6">
           <div className="mb-6">
             <h2 className="text-xl font-bold mb-2">Profile Information</h2>
             <p className="text-nb-ink-mid mb-6">
@@ -881,7 +881,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
       id: "appearance",
       label: <><PixelIcon name="paint-bucket" /> Your page</>,
       content: (
-        <div className="space-y-6 px-4 sm:px-0">
+        <div className="space-y-6">
           <div>
             <h2 className="text-xl font-bold mb-2 text-nb-ink">Your page</h2>
             <p className="text-nb-ink-mid">How your profile looks to people who visit it.</p>
@@ -914,7 +914,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
       id: "pixel-home",
       label: <><PixelIcon name="home" /> Pixel Home</>,
       content: (
-        <div className="space-y-6 px-4 sm:px-0">
+        <div className="space-y-6">
           <div className="mb-6">
             <h2 className="text-xl font-bold mb-2 text-nb-ink">Pixel Home Customization</h2>
             <p className="text-nb-ink-mid mb-6">
@@ -961,7 +961,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
       id: "music",
       label: <><PixelIcon name="music" /> Music</>,
       content: (
-        <div className="space-y-6 px-4 sm:px-0">
+        <div className="space-y-6">
           <div>
             <h2 className="text-xl font-bold mb-2 text-nb-ink">Music</h2>
             <p className="text-nb-ink-mid m-0">
@@ -986,7 +986,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
       id: "account",
       label: <><PixelIcon name="shield" /> Account & Security</>,
       content: (
-        <div className="space-y-6 px-4 sm:px-0">
+        <div className="space-y-6">
           <div className="mb-6">
             <h2 className="text-xl font-bold mb-2">Account & Security</h2>
             <p className="text-nb-ink-mid mb-6">
@@ -1694,7 +1694,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
       id: "privacy",
       label: <><PixelIcon name="shield" /> Privacy & Consent</>,
       content: (
-        <div className="space-y-6 px-4 sm:px-0">
+        <div className="space-y-6">
           <div className="mb-6">
             <h2 className="text-xl font-bold mb-2">Privacy & Consent</h2>
             <p className="text-nb-ink-mid mb-6">
@@ -1792,7 +1792,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
       id: "beta" as const,
       label: <><PixelIcon name="gift" /> Beta Invites</>,
       content: (
-        <div className="space-y-6 px-4 sm:px-0">
+        <div className="space-y-6">
           <div className="mb-6">
             <h2 className="text-xl font-bold mb-2">Beta Invite Codes</h2>
             <p className="text-nb-ink-mid mb-6">
@@ -1814,8 +1814,8 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
         <title>Settings | ThreadStead</title>
       </Head>
       <Layout fullWidth={true}>
-        <RetroCard>
-          <div className="flex items-center justify-between mb-6 px-4 sm:px-0">
+        <RetroCard className="ts-phone-sheet">
+          <div className="flex items-center justify-between gap-3 mb-4 sm:mb-6">
             <h1 className="text-2xl font-bold">Settings</h1>
             <div className="flex gap-2">
               <a
@@ -1827,7 +1827,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
             </div>
           </div>
 
-          <Tabs tabs={settingsTabs} initialId={router.query.tab as string || "profile"} variant="site" />
+          <Tabs tabs={settingsTabs} initialId={router.query.tab as string || "profile"} variant="site" compactOnPhone />
         </RetroCard>
       </Layout>
     </>

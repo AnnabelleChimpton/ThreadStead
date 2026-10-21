@@ -231,6 +231,35 @@ a.widget-container {
   text-decoration: none; /* tabs can be links */
 }
 .ts-tab:hover { color: var(--ha-ink-dark, #2E4B3F); }
+
+/* Phones: a page card runs edge to edge as one sheet, frames inside it go
+   away, and a tab row scrolls sideways (Tabs compactOnPhone). Two classes
+   so these beat the site theme's .thread-module. */
+@media (max-width: 639.98px) {
+  /* !important: .site-main > * pins children to the 16px gutter */
+  .thread-module.ts-phone-sheet {
+    margin-left: -1rem !important;
+    margin-right: -1rem !important;
+    width: calc(100% + 2rem) !important;
+    max-width: none !important;
+    padding: 1rem;
+    border-left-width: 0;
+    border-right-width: 0;
+    border-radius: 0;
+    outline: 0;
+    box-shadow: none;
+  }
+  .thread-module.ts-phone-bare {
+    padding: 0;
+    border: 0;
+    outline: 0;
+    box-shadow: none;
+    background: transparent;
+  }
+  .ts-tab-row { scrollbar-width: none; }
+  .ts-tab-row::-webkit-scrollbar { display: none; }
+  .ts-tab-row .ts-tab { min-height: 44px; flex-shrink: 0; }
+}
 .ts-tab[aria-selected="true"],
 .ts-tab[aria-current="page"] {
   color: var(--ha-ink-dark, #2E4B3F);

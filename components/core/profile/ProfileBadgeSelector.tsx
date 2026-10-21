@@ -192,7 +192,7 @@ export default function ProfileBadgeSelector({ onSave, className = '' }: Profile
           </h4>
           
           <div className="space-y-3">
-            <label className="flex items-center space-x-3">
+            <label className="flex items-center space-x-3 min-h-[44px] cursor-pointer">
               <input
                 type="checkbox"
                 checked={preferences.showBadgesOnProfile}
