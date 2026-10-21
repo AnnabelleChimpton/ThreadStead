@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/router";
 import BadgeSelector from "../../shared/BadgeSelector";
 import { useToast } from "@/contexts/ToastContext";
+import { PixelIcon } from "@/components/ui/PixelIcon";
 import { validateThreadRingName } from "@/lib/domain/validation";
 import { csrfFetch } from "@/lib/api/client/csrf-fetch";
 
@@ -375,13 +376,13 @@ export default function ForkThreadRingForm({
               {formData.slug.length}/25 characters
             </div>
             {slugStatus.message && (
-              <div className={`${
+              <div className={`flex items-center gap-1 ${
                 !slugStatus.isValid || slugStatus.isAvailable === false ? 'text-red-600' : 
                 slugStatus.isAvailable === true ? 'text-green-600' : 'text-gray-600'
               }`}>
                 {slugStatus.message}
-                {slugStatus.isAvailable === true && ' ✓'}
-                {slugStatus.isAvailable === false && ' ✗'}
+                {slugStatus.isAvailable === true && <PixelIcon name="check" size={12} className="shrink-0" />}
+                {slugStatus.isAvailable === false && <PixelIcon name="close" size={12} className="shrink-0" />}
               </div>
             )}
             <div className="text-gray-500">

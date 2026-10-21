@@ -11,6 +11,7 @@ import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import { useToast } from '@/contexts/ToastContext';
 import { useConfirm } from '@/contexts/ConfirmContext';
 import { PixelIcon } from '@/components/ui/PixelIcon';
+import PasswordRules from '@/components/features/auth/PasswordRules';
 
 // Import existing components
 import ProfilePhotoUpload from "@/components/core/profile/ProfilePhotoUpload";
@@ -1187,23 +1188,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                     </div>
 
                     {/* Password Requirements */}
-                    <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-3">
-                      <p className="text-sm font-bold text-nb-ink mb-2">Password Requirements:</p>
-                      <ul className="text-sm space-y-1">
-                        <li className={newPassword.length >= 8 ? "text-nb-ink font-medium" : "text-nb-ink-mid"}>
-                          {newPassword.length >= 8 ? "✓" : "○"} At least 8 characters
-                        </li>
-                        <li className={/[a-z]/.test(newPassword) ? "text-nb-ink font-medium" : "text-nb-ink-mid"}>
-                          {/[a-z]/.test(newPassword) ? "✓" : "○"} One lowercase letter
-                        </li>
-                        <li className={/[A-Z]/.test(newPassword) ? "text-nb-ink font-medium" : "text-nb-ink-mid"}>
-                          {/[A-Z]/.test(newPassword) ? "✓" : "○"} One uppercase letter
-                        </li>
-                        <li className={/[0-9]/.test(newPassword) ? "text-nb-ink font-medium" : "text-nb-ink-mid"}>
-                          {/[0-9]/.test(newPassword) ? "✓" : "○"} One number
-                        </li>
-                      </ul>
-                    </div>
+                    <PasswordRules password={newPassword} />
 
                     <div className="flex gap-3 flex-wrap">
                       <Button
@@ -1336,25 +1321,8 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                               />
                             </div>
 
-                            {/* Reusing existing password requirements display logic */}
                             {newPasswordChange && (
-                              <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-3">
-                                <p className="text-sm font-bold text-nb-ink mb-2">Password Requirements:</p>
-                                <ul className="text-sm space-y-1">
-                                  <li className={newPasswordChange.length >= 8 ? "text-nb-ink font-medium" : "text-nb-ink-mid"}>
-                                    {newPasswordChange.length >= 8 ? "✓" : "○"} At least 8 characters
-                                  </li>
-                                  <li className={/[a-z]/.test(newPasswordChange) ? "text-nb-ink font-medium" : "text-nb-ink-mid"}>
-                                    {/[a-z]/.test(newPasswordChange) ? "✓" : "○"} One lowercase letter
-                                  </li>
-                                  <li className={/[A-Z]/.test(newPasswordChange) ? "text-nb-ink font-medium" : "text-nb-ink-mid"}>
-                                    {/[A-Z]/.test(newPasswordChange) ? "✓" : "○"} One uppercase letter
-                                  </li>
-                                  <li className={/[0-9]/.test(newPasswordChange) ? "text-nb-ink font-medium" : "text-nb-ink-mid"}>
-                                    {/[0-9]/.test(newPasswordChange) ? "✓" : "○"} One number
-                                  </li>
-                                </ul>
-                              </div>
+                              <PasswordRules password={newPasswordChange} />
                             )}
 
                             <div className="flex gap-3 flex-wrap">
@@ -1511,23 +1479,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
 
                         {/* Password Requirements for Change */}
                         {newPasswordChange && (
-                          <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-3">
-                            <p className="text-sm font-bold text-nb-ink mb-2">Password Requirements:</p>
-                            <ul className="text-sm space-y-1">
-                              <li className={newPasswordChange.length >= 8 ? "text-nb-ink font-medium" : "text-nb-ink-mid"}>
-                                {newPasswordChange.length >= 8 ? "✓" : "○"} At least 8 characters
-                              </li>
-                              <li className={/[a-z]/.test(newPasswordChange) ? "text-nb-ink font-medium" : "text-nb-ink-mid"}>
-                                {/[a-z]/.test(newPasswordChange) ? "✓" : "○"} One lowercase letter
-                              </li>
-                              <li className={/[A-Z]/.test(newPasswordChange) ? "text-nb-ink font-medium" : "text-nb-ink-mid"}>
-                                {/[A-Z]/.test(newPasswordChange) ? "✓" : "○"} One uppercase letter
-                              </li>
-                              <li className={/[0-9]/.test(newPasswordChange) ? "text-nb-ink font-medium" : "text-nb-ink-mid"}>
-                                {/[0-9]/.test(newPasswordChange) ? "✓" : "○"} One number
-                              </li>
-                            </ul>
-                          </div>
+                          <PasswordRules password={newPasswordChange} />
                         )}
 
                         <div className="flex gap-3 flex-wrap">
@@ -1578,7 +1530,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
                 <div className="flex items-center gap-2">
                   {emailVerifiedAt ? (
                     <>
-                      <span className="text-nb-ink text-sm font-medium">✓ {userEmail}</span>
+                      <span className="text-nb-ink text-sm font-medium inline-flex items-center gap-1"><PixelIcon name="check" size={24} className="shrink-0 -my-1 -ml-1" />{userEmail}</span>
                       <span className="text-sm text-nb-ink-mid">(verified)</span>
                     </>
                   ) : (

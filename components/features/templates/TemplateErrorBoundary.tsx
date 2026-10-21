@@ -156,7 +156,7 @@ export default class TemplateErrorBoundary extends Component<
                 color: '#dc2626',
               }}
             >
-              ✓ Common Issues Checklist
+              Common Issues Checklist
             </summary>
             <ul
               style={{

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { PixelIcon } from "@/components/ui/PixelIcon";
 import { getExistingDid, signMessage, hasExistingDid } from "@/lib/api/did/did-client";
 
 interface LoginButtonProps {
@@ -100,7 +101,7 @@ export default function LoginButton({ onToggleIdentity, isIdentityOpen }: LoginB
     return (
       <div className="bg-green-50 border border-green-200 rounded p-4 max-w-md">
         <div className="flex items-center gap-2 mb-2">
-          <span className="text-green-600">✓</span>
+          <PixelIcon name="check" size={16} className="text-green-600 shrink-0" />
           <span className="text-green-800 font-medium">Email Sent!</span>
         </div>
         <p className="text-green-700 text-sm mb-3">

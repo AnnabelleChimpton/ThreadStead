@@ -5,6 +5,7 @@ import Layout from '@/components/ui/layout/Layout';
 import RetroCard from '@/components/ui/layout/RetroCard';
 import ButtonLink, { buttonClasses } from '@/components/ui/ButtonLink';
 import PageHeader from '@/components/ui/layout/PageHeader';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 export default function CommunityGuidelines() {
   return (
@@ -49,35 +50,35 @@ export default function CommunityGuidelines() {
               <h3 className="thread-headline text-xl font-bold mb-4">Do&apos;s</h3>
               <ul className="space-y-4">
                 <li className="flex items-start gap-3">
-                  <span aria-hidden="true" className="text-nb-ink-mid font-bold flex-shrink-0">✓</span>
+                  <PixelIcon name="check" size={24} className="text-nb-ink-mid flex-shrink-0" />
                   <div>
                     <div className="font-semibold text-nb-ink">Share original content</div>
                     <div className="text-sm text-nb-ink-mid">Your creations, thoughts, and experiences</div>
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span aria-hidden="true" className="text-nb-ink-mid font-bold flex-shrink-0">✓</span>
+                  <PixelIcon name="check" size={24} className="text-nb-ink-mid flex-shrink-0" />
                   <div>
                     <div className="font-semibold text-nb-ink">Support others</div>
                     <div className="text-sm text-nb-ink-mid">Leave encouraging comments and celebrate achievements</div>
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span aria-hidden="true" className="text-nb-ink-mid font-bold flex-shrink-0">✓</span>
+                  <PixelIcon name="check" size={24} className="text-nb-ink-mid flex-shrink-0" />
                   <div>
                     <div className="font-semibold text-nb-ink">Report issues</div>
                     <div className="text-sm text-nb-ink-mid">Help us maintain a safe space by reporting violations</div>
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span aria-hidden="true" className="text-nb-ink-mid font-bold flex-shrink-0">✓</span>
+                  <PixelIcon name="check" size={24} className="text-nb-ink-mid flex-shrink-0" />
                   <div>
                     <div className="font-semibold text-nb-ink">Respect boundaries</div>
                     <div className="text-sm text-nb-ink-mid">Ask before sharing others&apos; content elsewhere</div>
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span aria-hidden="true" className="text-nb-ink-mid font-bold flex-shrink-0">✓</span>
+                  <PixelIcon name="check" size={24} className="text-nb-ink-mid flex-shrink-0" />
                   <div>
                     <div className="font-semibold text-nb-ink">Have fun</div>
                     <div className="text-sm text-nb-ink-mid">Explore, experiment, and enjoy yourself</div>
@@ -90,35 +91,35 @@ export default function CommunityGuidelines() {
               <h3 className="thread-headline text-xl font-bold mb-4">Don&apos;ts</h3>
               <ul className="space-y-4">
                 <li className="flex items-start gap-3">
-                  <span aria-hidden="true" className="text-nb-ink-mid font-bold flex-shrink-0">✗</span>
+                  <PixelIcon name="close" size={24} className="text-nb-ink-mid flex-shrink-0" />
                   <div>
                     <div className="font-semibold text-nb-ink">No harassment</div>
                     <div className="text-sm text-nb-ink-mid">Bullying, threats, or targeted attacks</div>
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span aria-hidden="true" className="text-nb-ink-mid font-bold flex-shrink-0">✗</span>
+                  <PixelIcon name="close" size={24} className="text-nb-ink-mid flex-shrink-0" />
                   <div>
                     <div className="font-semibold text-nb-ink">No hate speech</div>
                     <div className="text-sm text-nb-ink-mid">Discrimination based on identity or beliefs</div>
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span aria-hidden="true" className="text-nb-ink-mid font-bold flex-shrink-0">✗</span>
+                  <PixelIcon name="close" size={24} className="text-nb-ink-mid flex-shrink-0" />
                   <div>
                     <div className="font-semibold text-nb-ink">No spam</div>
                     <div className="text-sm text-nb-ink-mid">Excessive self-promotion or repetitive content</div>
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span aria-hidden="true" className="text-nb-ink-mid font-bold flex-shrink-0">✗</span>
+                  <PixelIcon name="close" size={24} className="text-nb-ink-mid flex-shrink-0" />
                   <div>
                     <div className="font-semibold text-nb-ink">No inappropriate content</div>
                     <div className="text-sm text-nb-ink-mid">Keep it friendly for all ages</div>
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span aria-hidden="true" className="text-nb-ink-mid font-bold flex-shrink-0">✗</span>
+                  <PixelIcon name="close" size={24} className="text-nb-ink-mid flex-shrink-0" />
                   <div>
                     <div className="font-semibold text-nb-ink">No impersonation</div>
                     <div className="text-sm text-nb-ink-mid">Be yourself, not someone else</div>

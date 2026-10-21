@@ -427,10 +427,11 @@ export default function UsernameSelector({
             disabled={isLoading}
           />
           {betaKey && (
-            <div className={`text-xs mt-1 ${isValidBetaKeyFormat(betaKey) ? 'text-green-600' : 'text-red-600'}`}>
-              {isValidBetaKeyFormat(betaKey) 
-                ? "✓ Valid beta key format"
-                : "✗ Invalid format. Should be: BETA-XXXX-XXXX-XXXX"
+            <div className={`text-xs mt-1 flex items-center gap-1 ${isValidBetaKeyFormat(betaKey) ? 'text-green-600' : 'text-red-600'}`}>
+              <PixelIcon name={isValidBetaKeyFormat(betaKey) ? 'check' : 'close'} size={12} className="shrink-0" />
+              {isValidBetaKeyFormat(betaKey)
+                ? "Valid beta key format"
+                : "Invalid format. Should be: BETA-XXXX-XXXX-XXXX"
               }
             </div>
           )}

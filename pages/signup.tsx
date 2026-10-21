@@ -5,6 +5,7 @@ import Head from "next/head";
 import Layout from "@/components/ui/layout/Layout";
 import { createNewIdentityWithSeedPhrase, createNewIdentityWithPassword } from "@/lib/api/did/did-client";
 import { PixelIcon } from '@/components/ui/PixelIcon';
+import PasswordRules from '@/components/features/auth/PasswordRules';
 import { validatePasswordStrength } from "@/lib/auth/password";
 import { validateUsername } from "@/lib/domain/validation/username";
 import { DEFAULT_PROFILE_TEMPLATE_INFO, ProfileTemplateType } from "@/lib/templates/default-profile-templates";
@@ -563,7 +564,7 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
                               : 'text-nb-ink-mid'
                         }
                       >
-                        {i < current ? '✓ ' : ''}{label}
+                        {i < current && <PixelIcon name="check" size={12} className="inline-block align-[-1px] mr-1" />}{label}
                       </span>
                     </li>
                   ))}
@@ -608,17 +609,17 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
                     if (!validation.ok) {
                       return (
                         <div className="mt-2">
-                          <p className="text-red-600 text-sm">✗ {validation.message}</p>
+                          <p className="text-red-600 text-sm flex items-center gap-1"><PixelIcon name="close" size={24} className="shrink-0 -my-1 -ml-1" />{validation.message}</p>
                         </div>
                       );
                     }
                     return (
                       <div className="mt-2">
                         {usernameAvailable === true && (
-                          <p className="text-green-600 text-sm">✓ @{username} is available</p>
+                          <p className="text-green-600 text-sm flex items-center gap-1"><PixelIcon name="check" size={24} className="shrink-0 -my-1 -ml-1" />@{username} is available</p>
                         )}
                         {usernameAvailable === false && (
-                          <p className="text-red-600 text-sm">✗ @{username} is taken</p>
+                          <p className="text-red-600 text-sm flex items-center gap-1"><PixelIcon name="close" size={24} className="shrink-0 -my-1 -ml-1" />@{username} is taken</p>
                         )}
                         {usernameAvailable === null && username.length >= 3 && (
                           <p className="text-nb-ink-mid text-sm">Checking availability...</p>
@@ -690,10 +691,10 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
                         Sign in with a username and password, the way you&apos;re used to.
                       </p>
                       <ul className="text-sm text-nb-ink-mid space-y-1 mb-4">
-                        <li>✓ Easy to remember and use</li>
-                        <li>✓ Change your password anytime</li>
-                        <li>✓ Recovery phrase generated but hidden</li>
-                        <li>✓ A good fit for most people</li>
+                        <li className="flex items-center gap-1"><PixelIcon name="check" size={24} className="shrink-0 -my-1 -ml-1" />Easy to remember and use</li>
+                        <li className="flex items-center gap-1"><PixelIcon name="check" size={24} className="shrink-0 -my-1 -ml-1" />Change your password anytime</li>
+                        <li className="flex items-center gap-1"><PixelIcon name="check" size={24} className="shrink-0 -my-1 -ml-1" />Recovery phrase generated but hidden</li>
+                        <li className="flex items-center gap-1"><PixelIcon name="check" size={24} className="shrink-0 -my-1 -ml-1" />A good fit for most people</li>
                       </ul>
                       <button
                         onClick={() => handleAuthMethodSelected('password')}
@@ -719,10 +720,10 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
                         Maximum security with a 12-word recovery phrase. No passwords needed.
                       </p>
                       <ul className="text-sm text-nb-ink-mid space-y-1 mb-4">
-                        <li>✓ Most secure option</li>
-                        <li>✓ Full control of your identity</li>
-                        <li>✓ No password to remember or reset</li>
-                        <li><PixelIcon name="warning-box" size={14} className="inline-block align-middle mr-1" />Must safely store recovery phrase</li>
+                        <li className="flex items-center gap-1"><PixelIcon name="check" size={24} className="shrink-0 -my-1 -ml-1" />Most secure option</li>
+                        <li className="flex items-center gap-1"><PixelIcon name="check" size={24} className="shrink-0 -my-1 -ml-1" />Full control of your identity</li>
+                        <li className="flex items-center gap-1"><PixelIcon name="check" size={24} className="shrink-0 -my-1 -ml-1" />No password to remember or reset</li>
+                        <li className="flex items-center gap-1"><span className="w-6 -ml-1 shrink-0 flex justify-center"><PixelIcon name="warning-box" size={14} /></span>Must safely store recovery phrase</li>
                       </ul>
                       <button
                         onClick={() => handleAuthMethodSelected('seedphrase')}
@@ -799,23 +800,7 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
                 </div>
 
                 {/* Password Requirements */}
-                <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-4">
-                  <p className="text-sm font-bold text-nb-ink mb-2">Password Requirements:</p>
-                  <ul className="text-sm space-y-1">
-                    <li className={password.length >= 8 ? "text-nb-ink font-medium" : "text-nb-ink-mid"}>
-                      {password.length >= 8 ? "✓" : "○"} At least 8 characters
-                    </li>
-                    <li className={/[a-z]/.test(password) ? "text-nb-ink font-medium" : "text-nb-ink-mid"}>
-                      {/[a-z]/.test(password) ? "✓" : "○"} One lowercase letter
-                    </li>
-                    <li className={/[A-Z]/.test(password) ? "text-nb-ink font-medium" : "text-nb-ink-mid"}>
-                      {/[A-Z]/.test(password) ? "✓" : "○"} One uppercase letter
-                    </li>
-                    <li className={/[0-9]/.test(password) ? "text-nb-ink font-medium" : "text-nb-ink-mid"}>
-                      {/[0-9]/.test(password) ? "✓" : "○"} One number
-                    </li>
-                  </ul>
-                </div>
+                <PasswordRules password={password} className="p-4" />
 
                 <button
                   onClick={handlePasswordSetup}
@@ -894,7 +879,7 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
                   onClick={handleSeedPhraseSaved}
                   className="w-full thread-button btn btn--primary btn--lg text-lg font-bold min-h-[48px]"
                 >
-                  ✓ I&apos;ve Safely Saved My Recovery Phrase
+                  <PixelIcon name="check" className="inline-block align-[-3px] mr-1.5" />I&apos;ve Safely Saved My Recovery Phrase
                 </button>
               </div>
             </div>
@@ -1188,7 +1173,7 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
 
                 {profileSaved && (
                   <div className="p-4 bg-green-50 border border-green-200 rounded text-sm text-green-700">
-                    <strong>✓ Profile saved.</strong>
+                    <strong className="inline-flex items-center gap-1"><PixelIcon name="check" size={24} className="-my-1 -ml-1" />Profile saved.</strong>
                   </div>
                 )}
                 

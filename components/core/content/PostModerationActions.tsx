@@ -4,6 +4,7 @@ import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import { useToast } from '@/contexts/ToastContext';
 import Modal from '@/components/ui/feedback/Modal';
 import Button from '@/components/ui/Button';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface PostModerationActionsProps {
   postId: string;
@@ -84,7 +85,7 @@ export default function PostModerationActions({
     await performAction(showReasonDialog, reason);
   };
 
-  const getActionButton = (action: PostModerationAction, label: string, className: string, requiresReason = false) => {
+  const getActionButton = (action: PostModerationAction, label: React.ReactNode, className: string, requiresReason = false) => {
     const isDisabled = isProcessing || 
       (action === 'accept' && currentStatus === 'ACCEPTED') ||
       (action === 'reject' && currentStatus === 'REJECTED') ||
@@ -96,7 +97,7 @@ export default function PostModerationActions({
       <button
         onClick={() => handleAction(action, requiresReason)}
         disabled={isDisabled}
-        className={`px-3 py-1 text-xs font-medium rounded ${className} ${
+        className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded ${className} ${
           isDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-80'
         }`}
       >
@@ -112,8 +113,8 @@ export default function PostModerationActions({
         
         {currentStatus === 'PENDING' && (
           <>
-            {getActionButton('accept', '✓ Accept', 'bg-green-100 text-green-700 border border-green-300')}
-            {getActionButton('reject', '✗ Reject', 'bg-red-100 text-red-700 border border-red-300', true)}
+            {getActionButton('accept', <><PixelIcon name="check" size={12} />Accept</>, 'bg-green-100 text-green-700 border border-green-300')}
+            {getActionButton('reject', <><PixelIcon name="close" size={12} />Reject</>, 'bg-red-100 text-red-700 border border-red-300', true)}
           </>
         )}
 
@@ -129,7 +130,7 @@ export default function PostModerationActions({
 
         {(currentStatus === 'REJECTED' || currentStatus === 'REMOVED') && (
           <>
-            {getActionButton('accept', '✓ Restore', 'bg-green-100 text-green-700 border border-green-300')}
+            {getActionButton('accept', <><PixelIcon name="check" size={12} />Restore</>, 'bg-green-100 text-green-700 border border-green-300')}
           </>
         )}
       </div>

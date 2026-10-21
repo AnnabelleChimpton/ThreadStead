@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+import { useToast } from '@/contexts/ToastContext';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner';
 import EmptyState from '@/components/ui/feedback/EmptyState';
 import ErrorDisplay from '@/components/ui/feedback/ErrorDisplay';
@@ -24,7 +26,7 @@ export default function BetaInviteCodesManager({ className = '' }: BetaInviteCod
   const [codes, setCodes] = useState<BetaInviteCode[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [copiedCodeId, setCopiedCodeId] = useState<string | null>(null);
+  const { showSuccess } = useToast();
 
   useEffect(() => {
     fetchBetaInviteCodes();
@@ -81,13 +83,10 @@ export default function BetaInviteCodesManager({ className = '' }: BetaInviteCod
       }
 
       await navigator.clipboard.writeText(textToCopy);
-      setCopiedCodeId(codeId);
+      showSuccess(shareMethod === 'copy_link' ? 'Copied the signup link.' : 'Copied the code.');
 
       // Track the share
       await trackShare(codeId, shareMethod);
-
-      // Reset copied state after 2 seconds
-      setTimeout(() => setCopiedCodeId(null), 2000);
     } catch (err) {
       console.error('Failed to copy to clipboard:', err);
       // Fallback: select the text
@@ -99,12 +98,10 @@ export default function BetaInviteCodesManager({ className = '' }: BetaInviteCod
       textArea.select();
       document.execCommand('copy');
       document.body.removeChild(textArea);
-      setCopiedCodeId(codeId);
+      showSuccess(shareMethod === 'copy_link' ? 'Copied the signup link.' : 'Copied the code.');
 
       // Track the share even if clipboard API failed
       await trackShare(codeId, shareMethod);
-
-      setTimeout(() => setCopiedCodeId(null), 2000);
     }
   };
 
@@ -170,7 +167,7 @@ export default function BetaInviteCodesManager({ className = '' }: BetaInviteCod
       {unusedCodes.length > 0 && (
         <div>
           <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-            <span className="text-green-600">✓</span>
+            <PixelIcon name="check" size={18} className="text-green-600" />
             Available Codes ({unusedCodes.length})
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -183,11 +180,6 @@ export default function BetaInviteCodesManager({ className = '' }: BetaInviteCod
                   <code className="text-lg font-bold text-green-700 bg-green-50 px-2 py-1 rounded">
                     {code.code}
                   </code>
-                  {copiedCodeId === code.id && (
-                    <span className="text-xs text-green-600 font-medium">
-                      ✓ Copied!
-                    </span>
-                  )}
                 </div>
                 <div className="text-xs text-gray-600 mb-3">
                   Created: {formatDate(code.createdAt)}

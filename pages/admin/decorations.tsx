@@ -819,10 +819,10 @@ export default function AdminDecorationsPage({ isAdmin, userId }: AdminDecoratio
                         href={decoration.pngUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-green-600 hover:underline"
+                        className="text-green-600 hover:underline inline-flex items-center gap-1"
                         title={decoration.pngUrl}
                       >
-                        ✓ Has PNG
+                        <PixelIcon name="check" size={12} className="shrink-0" />Has PNG
                       </a>
                     ) : (
                       <span className="text-gray-400">No PNG</span>
@@ -833,7 +833,7 @@ export default function AdminDecorationsPage({ isAdmin, userId }: AdminDecoratio
                   </td>
                   <td className="px-4 py-3 text-sm">
                     {decoration.isActive ? (
-                      <span className="text-green-600">✓ Active</span>
+                      <span className="text-green-600 inline-flex items-center gap-1"><PixelIcon name="check" size={12} className="shrink-0" />Active</span>
                     ) : (
                       <span className="text-gray-400">Inactive</span>
                     )}

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/router";
 import Image from "next/image";
 import Layout from "@/components/ui/layout/Layout";
+import { PixelIcon } from "@/components/ui/PixelIcon";
 
 interface User {
   id: string;
@@ -188,8 +189,8 @@ export default function EmailVerifyPage() {
                       @{user.handle || 'No handle set'}
                     </div>
                     {user.emailVerifiedAt && (
-                      <div className="text-xs text-green-600 mt-1">
-                        ✓ Email verified
+                      <div className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                        <PixelIcon name="check" size={12} className="shrink-0" />Email verified
                       </div>
                     )}
                   </div>

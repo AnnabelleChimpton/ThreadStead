@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { useRouter } from 'next/router';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 import ProfileModeRenderer, { ProfileUser } from '@/components/core/profile/ProfileModeRenderer';
 import ProfileLayout from '@/components/ui/layout/ProfileLayout';
 import { ResidentDataProvider } from '@/components/features/templates/ResidentDataProvider';
@@ -44,7 +45,7 @@ export default function PreviewTemp() {
   const [previewData, setPreviewData] = useState<PreviewData | null>(null);
   const [isReady, setIsReady] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [saveMessage, setSaveMessage] = useState<{ text: string; ok: boolean } | null>(null);
   // Embedded in the editor's preview pane: the editor chrome already labels
   // and saves things, so the banner would just be noise.
   const isEmbedded = router.query.embed === '1';
@@ -151,7 +152,7 @@ export default function PreviewTemp() {
   const handleSave = async () => {
     const host = getHostWindow();
     if (!host) {
-      setSaveMessage("Can't save — the editor window is closed");
+      setSaveMessage({ text: "Can't save. The editor window is closed.", ok: false });
       return;
     }
 
@@ -172,12 +173,12 @@ export default function PreviewTemp() {
       }, window.location.origin);
 
       // Show success message
-      setSaveMessage('✓ Save request sent');
+      setSaveMessage({ text: 'Save request sent', ok: true });
       
       // Clear message after 3 seconds
       setTimeout(() => setSaveMessage(null), 3000);
     } catch (error) {
-      setSaveMessage("Couldn't save");
+      setSaveMessage({ text: "Couldn't save", ok: false });
       console.error('Save error:', error);
     } finally {
       setIsSaving(false);
@@ -288,7 +289,9 @@ export default function PreviewTemp() {
             <span>STANDARD LAYOUT PREVIEW - CSS updates automatically</span>
             <div>
               {saveMessage && (
-                <span className="mr-3 text-xs">{saveMessage}</span>
+                <span className="mr-3 text-xs inline-flex items-center gap-1 align-middle">
+                  <PixelIcon name={saveMessage.ok ? 'check' : 'close'} size={12} />{saveMessage.text}
+                </span>
               )}
               <button
                 onClick={handleSave}
@@ -369,7 +372,9 @@ export default function PreviewTemp() {
         <span>ADVANCED TEMPLATE PREVIEW - Live CSS Updates</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           {saveMessage && (
-            <span style={{ fontSize: '11px', opacity: 0.9 }}>{saveMessage}</span>
+            <span style={{ fontSize: '11px', opacity: 0.9, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <PixelIcon name={saveMessage.ok ? 'check' : 'close'} size={12} />{saveMessage.text}
+            </span>
           )}
           <button
             onClick={handleSave}

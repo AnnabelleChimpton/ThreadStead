@@ -153,7 +153,7 @@ export default function ValidationFeedbackPanel({
           className="text-white hover:bg-blue-800 rounded p-1 transition-colors"
           aria-label="Close"
         >
-          ✕
+          <PixelIcon name="close" size={16} />
         </button>
       </div>
 
@@ -162,7 +162,7 @@ export default function ValidationFeedbackPanel({
         <div className="space-y-1">
           {hasErrors && (
             <div className="text-red-700 font-medium flex items-center gap-2">
-              <span className="text-xl">✗</span>
+              <PixelIcon name="close" size={20} />
               <span>{validationResult.errors.length} Error{validationResult.errors.length !== 1 ? 's' : ''} (Must Fix)</span>
             </div>
           )}
@@ -182,7 +182,7 @@ export default function ValidationFeedbackPanel({
             ))}
           {!hasErrors && !hasWarnings && !hasStripped && (
             <div className="text-green-700 font-medium flex items-center gap-2">
-              <span className="text-xl">✓</span>
+              <PixelIcon name="check" size={20} />
               <span>Template is valid!</span>
             </div>
           )}

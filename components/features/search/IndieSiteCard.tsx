@@ -79,7 +79,7 @@ export function VouchButton({ site, onChange }: { site: Pick<IndieSite, 'id' | '
       title={vouched ? 'Take your vouch back' : 'Say this site belongs in the index'}
       className="shrink-0 whitespace-nowrap"
     >
-      {vouched ? '✓ Vouched' : 'Vouch'}
+      {vouched ? <><PixelIcon name="check" size={12} className="inline-block align-[-1px] mr-1" />Vouched</> : 'Vouch'}
     </Button>
   )
 }
