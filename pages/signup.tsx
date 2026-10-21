@@ -23,6 +23,7 @@ import {
 import imageCompression from 'browser-image-compression';
 import { avatarUploadsAsIs } from '@/lib/media/media-types';
 import { fetchAuthMe } from "@/hooks/useCurrentUser";
+import { unlockAudio } from "@/lib/audio/context";
 import { csrfFetch } from "@/lib/api/client/csrf-fetch";
 
 interface SignupPageProps {
@@ -374,6 +375,9 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
   }
 
   async function handleHouseSelected() {
+    // Inside the click itself, before any await: iPhones only let the
+    // welcome music start from here (lib/audio/context.ts)
+    unlockAudio();
     setIsLoading(true);
     setError(null);
 
@@ -403,13 +407,12 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
       }
       clearHouseChoice();
 
-      // Start the welcome music (only if not already playing)
+      // Start the welcome music (only if not already playing). Not awaited:
+      // the song and its sounds load while the finale runs
       if (!globalAudio.state.isPlaying) {
-        try {
-          await globalAudio.startSignupAudio();
-        } catch (error) {
+        globalAudio.startSignupAudio().catch(() => {
           // Audio failed but don't block signup flow
-        }
+        });
       }
 
       // Complete beta landing page tracking if applicable
