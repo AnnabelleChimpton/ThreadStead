@@ -121,6 +121,10 @@ export default function MidiPlayer({
 
   useEffect(() => {
     if (isPlaying || !autoplay) setWaitingForClick(false);
+    // Once the song has played, autoplay's job is done: a song that ends
+    // stays ended. (Marking it in start() wasn't enough: going to
+    // "playing" cancels that effect before its await returns.)
+    if (isPlaying) autoplayDoneRef.current = true;
   }, [isPlaying, autoplay]);
 
   // Progress from the audio clock, four times a second while playing (it

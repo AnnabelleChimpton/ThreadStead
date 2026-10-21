@@ -5,7 +5,7 @@
  * nothing presses Play.
  */
 import React from 'react';
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { act, render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 
 jest.mock('@/lib/api/client/csrf-fetch', () => ({ csrfFetch: jest.fn(async () => ({ ok: true })) }));
 jest.mock('@/components/ui/PixelIcon', () => ({ PixelIcon: () => null }));
@@ -135,4 +135,24 @@ test('two players of the same song are one song: Play on one shows Pause on both
   await waitFor(() => expect(screen.getAllByRole('button', { name: 'Play' })[0]).not.toBeDisabled());
   fireEvent.click(screen.getAllByRole('button', { name: 'Play' })[0]);
   await waitFor(() => expect(screen.getAllByRole('button', { name: 'Pause' })).toHaveLength(2));
+});
+
+test('an autoplayed song that ends stays ended (it used to start over, forever)', async () => {
+  let ended: () => void = () => {};
+  const play = jest.fn(async () => true);
+  nowPlaying.__setupForTests({
+    engine: () => ({
+      load() {}, duration: 30, play, pause: () => 30, position: () => 30,
+      setLoop() {}, onEnded(cb: () => void) { ended = cb; }, dispose() {},
+    }) as MidiEngine,
+    parse: (async () => ({ tracks: [{}], duration: 30 })) as unknown as nowPlaying.SongParser,
+  });
+  render(<MidiPlayer midiUrl="/song.mid" title="Little tune" autoplay />);
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Pause' })).toBeInTheDocument());
+  expect(play).toHaveBeenCalledTimes(1);
+
+  act(() => ended());
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Play' })).toBeInTheDocument());
+  await new Promise((r) => setTimeout(r, 50));
+  expect(play).toHaveBeenCalledTimes(1);
 });
