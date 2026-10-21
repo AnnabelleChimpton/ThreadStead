@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import imageCompression from 'browser-image-compression';
 import { uploadsAsIs } from '@/lib/media/media-types';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface MediaUploadProps {
   onUploadSuccess: (media: any) => void;
@@ -292,10 +293,12 @@ export default function MediaUpload({ onUploadSuccess, disabled = false }: Media
             />
             <button
               onClick={handleRemoveFile}
-              className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600"
+              className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-red-600"
               disabled={uploading}
+              title="Remove photo"
+              aria-label="Remove photo"
             >
-              ×
+              <PixelIcon name="close" size={24} className="shrink-0" />
             </button>
           </div>
           

@@ -8,6 +8,9 @@ import { render, fireEvent, waitFor } from '@testing-library/react'
 
 jest.mock('browser-image-compression', () => jest.fn(async (file: File) => new File(['jpeg'], 'photo.jpg', { type: 'image/jpeg' })))
 jest.mock('@/lib/api/client/csrf-fetch', () => ({ csrfFetch: jest.fn() }))
+jest.mock('@/components/ui/PixelIcon', () => ({
+  PixelIcon: ({ name }: { name: string }) => <span data-testid={`pixel-icon-${name}`} />,
+}))
 
 import imageCompression from 'browser-image-compression'
 import MediaUpload from '../MediaUpload'

@@ -1,5 +1,10 @@
 import React, { useState } from 'react';
 import { act, render, screen, fireEvent } from '@testing-library/react';
+
+jest.mock('@/components/ui/PixelIcon', () => ({
+  PixelIcon: ({ name }: { name: string }) => <span data-testid={`pixel-icon-${name}`} />,
+}));
+
 import SmartUrlShortener from '../SmartUrlShortener';
 
 // URLs over 500 chars are auto-shortened via tinyurl. The replace used to run

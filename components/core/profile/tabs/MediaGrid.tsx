@@ -244,7 +244,7 @@ export default function MediaGrid({ username, isOwner = false }: MediaGridProps)
                 title="Close"
                 aria-label="Close"
               >
-                ×
+                <PixelIcon name="close" size={24} className="shrink-0" />
               </button>
               
               {/* Comments toggle button */}

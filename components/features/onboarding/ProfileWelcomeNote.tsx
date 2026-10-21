@@ -39,10 +39,11 @@ export default function ProfileWelcomeNote({
       <div className="flex justify-end mb-2">
         <button
           onClick={handleDismiss}
-          className="text-gray-400 hover:text-gray-600 text-xl leading-none"
+          className="text-gray-400 hover:text-gray-600 leading-none"
           title="Dismiss"
+          aria-label="Dismiss"
         >
-          ×
+          <PixelIcon name="close" size={24} />
         </button>
       </div>
 

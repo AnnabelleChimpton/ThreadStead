@@ -324,7 +324,7 @@ export default function Guestbook({ username, bio, signerLink = "profile", headi
                         title="Delete this entry"
                         aria-label="Delete this entry"
                       >
-                        {deletingId === e.id ? "..." : "×"}
+                        {deletingId === e.id ? "..." : <PixelIcon name="close" size={12} className="inline-block align-middle" />}
                       </button>
                     )}
                     {canAdminDeleteEntry(e) && (
@@ -335,7 +335,7 @@ export default function Guestbook({ username, bio, signerLink = "profile", headi
                         title="Admin: Delete this entry"
                         aria-label="Admin: Delete this entry"
                       >
-                        {deletingId === e.id ? "..." : <><PixelIcon name="shield" size={12} className="inline-block align-middle" />×</>}
+                        {deletingId === e.id ? "..." : <><PixelIcon name="shield" size={12} className="inline-block align-middle" /><PixelIcon name="close" size={12} className="inline-block align-middle" /></>}
                       </button>
                     )}
                   </div>

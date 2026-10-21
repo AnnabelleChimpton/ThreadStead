@@ -9,6 +9,7 @@ import { getSessionUser } from '@/lib/auth/server'
 import { csrfFetch } from '@/lib/api/client/csrf-fetch'
 import { useToast } from '@/contexts/ToastContext'
 import { useConfirm } from '@/contexts/ConfirmContext'
+import { PixelIcon } from '@/components/ui/PixelIcon'
 
 /**
  * /admin/indie: the Indie Index for the admin (SEARCH_PLAN.md §3.5). The
@@ -319,7 +320,7 @@ export default function IndieAdminPage() {
                   <span>{b.domain}</span>
                   <span className="text-nb-ink-mid">({b.category})</span>
                   <button type="button" onClick={() => removeBlocked(b)} className="px-2 py-0.5 text-nb-ink-mid hover:text-nb-ink" aria-label={`Remove ${b.domain}`}>
-                    ×
+                    <PixelIcon name="close" size={24} className="-my-1" />
                   </button>
                 </li>
               ))}

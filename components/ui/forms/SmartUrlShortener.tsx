@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface SmartUrlShortenerProps {
   content: string;
@@ -167,10 +168,11 @@ export default function SmartUrlShortener({ content, onContentChange, className 
             </div>
             <button
               onClick={() => setAutoShortenedUrls(new Set())}
-              className="text-green-400 hover:text-green-600 text-lg leading-none"
+              className="text-green-400 hover:text-green-600 leading-none"
               title="Dismiss"
+              aria-label="Dismiss"
             >
-              ×
+              <PixelIcon name="close" size={24} />
             </button>
           </div>
         </div>
@@ -217,10 +219,11 @@ export default function SmartUrlShortener({ content, onContentChange, className 
             {suggestion.originalUrl.length <= 500 && (
               <button
                 onClick={() => handleDismiss(suggestion)}
-                className="text-blue-400 hover:text-blue-600 text-lg leading-none"
+                className="text-blue-400 hover:text-blue-600 leading-none"
                 title="Dismiss"
+                aria-label="Dismiss"
               >
-                ×
+                <PixelIcon name="close" size={24} />
               </button>
             )}
           </div>

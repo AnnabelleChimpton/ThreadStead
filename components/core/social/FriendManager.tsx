@@ -156,8 +156,9 @@ export default function FriendManager({
                     onClick={() => removeFriend(friend.id)}
                     className="thread-button-secondary btn btn--secondary text-xs"
                     title="Remove"
+                    aria-label={`Remove ${friend.displayName || friend.handle}`}
                   >
-                    ×
+                    <PixelIcon name="close" size={12} />
                   </button>
                 </div>
               </div>

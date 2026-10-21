@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { PixelIcon } from "@/components/ui/PixelIcon";
 
 export interface Website {
   id: string;
@@ -219,8 +220,9 @@ export default function WebsiteManager({
                       onClick={() => deleteWebsite(website.id)}
                       className="thread-button-secondary btn btn--secondary text-xs"
                       title="Delete"
+                      aria-label={`Delete ${website.label || website.url}`}
                     >
-                      ×
+                      <PixelIcon name="close" size={12} />
                     </button>
                   </div>
                 </div>
