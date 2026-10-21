@@ -247,10 +247,10 @@ function MediaGalleryPage({
         <title>{`Media Gallery - ${username} | ThreadStead`}</title>
       </Head>
       <ProfileLayout>
-        <RetroCard>
+        <RetroCard className="ts-phone-sheet">
           <div className="space-y-6">
-            {/* Header */}
-            <div className="flex items-center justify-between">
+            {/* Header. Phones: the buttons go under the title, side by side */}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h1 className="text-2xl font-bold text-thread-pine">
                   {isOwner ? "Your" : `${username}'s`} Media Gallery
@@ -262,14 +262,14 @@ function MediaGalleryPage({
               <div className="flex gap-2">
                 <Link 
                   href={`/resident/${username}`}
-                  className="thread-button-secondary"
+                  className="thread-button-secondary inline-flex items-center justify-center min-h-[44px] sm:min-h-0 flex-1 sm:flex-none whitespace-nowrap"
                 >
                   Back to Profile
                 </Link>
                 {isOwner && (
                   <button
                     onClick={() => setShowUpload(!showUpload)}
-                    className="thread-button"
+                    className="thread-button inline-flex items-center justify-center min-h-[44px] sm:min-h-0 flex-1 sm:flex-none whitespace-nowrap"
                   >
                     {showUpload ? "Cancel" : "Add Photo"}
                   </button>
@@ -285,7 +285,7 @@ function MediaGalleryPage({
             {/* Gallery Grid */}
             {media.length > 0 ? (
               <div className="space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
                   {media.map((item) => (
                     <div
                       key={item.id}
