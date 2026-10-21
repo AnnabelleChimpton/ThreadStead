@@ -571,6 +571,8 @@ model Media {
   mediaType     String         @default("image")
   /// A MIDI song's own sound bank: GeneralUser GS trimmed to the song (MIDI plan Phase 3)
   soundBankUrl  String?
+  /// Where a song sits in its owner's list in Settings → Music; null (new songs) sorts first, newest first
+  songOrder     Int?
   width         Int?
   height        Int?
   featured      Boolean        @default(false)

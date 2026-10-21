@@ -12,6 +12,7 @@ const confirm = jest.fn(async (_options: { title: string; message?: string }) =>
 jest.mock('@/contexts/ToastContext', () => ({ useToast: () => toast }));
 jest.mock('@/contexts/ConfirmContext', () => ({ useConfirm: () => confirm }));
 jest.mock('@/lib/api/client/csrf-fetch', () => ({ csrfFetch: jest.fn() }));
+jest.mock('@/components/ui/PixelIcon', () => ({ PixelIcon: () => null }));
 // The player is loaded with next/dynamic; a stand-in shows which song it was given
 jest.mock('next/dynamic', () => () => {
   const PreviewPlayer = (props: { title: string; credit?: string }) => (
@@ -121,4 +122,31 @@ test('Download saves the file with its own name', async () => {
   render(<MidiManager username="me" />);
   const link = await screen.findAllByRole('link', { name: 'Download' });
   expect(link[0]).toHaveAttribute('href', '/api/media/serve/s1?download=1');
+});
+
+test('songs move up and down, and the new order is saved', async () => {
+  serve({ profileMidiId: null });
+  render(<MidiManager username="me" />);
+  const up = await screen.findByRole('button', { name: 'Move “Little tune” up' });
+  expect(up).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Move “second-song” down' })).toBeDisabled();
+
+  fireEvent.click(screen.getByRole('button', { name: 'Move “Little tune” down' }));
+  await waitFor(() => {
+    const call = (csrfFetch as jest.Mock).mock.calls.find(([url]) => url === '/api/user/song-order');
+    expect(call && JSON.parse(call[1].body)).toEqual({ ids: ['s2', 's1'] });
+  });
+  const names = screen.getAllByRole('radio').map((r) => r.closest('li')?.textContent ?? '');
+  expect(names[1]).toMatch(/second-song/);
+  expect(names[2]).toMatch(/Little tune/);
+  expect(screen.getByText('Moved “Little tune” to 2 of 2.')).toBeInTheDocument();
+});
+
+test('when the order can’t be saved, the list goes back', async () => {
+  serve({ profileMidiId: null });
+  (csrfFetch as jest.Mock).mockResolvedValue({ ok: false, json: async () => ({}) });
+  render(<MidiManager username="me" />);
+  fireEvent.click(await screen.findByRole('button', { name: 'Move “Little tune” down' }));
+  await waitFor(() => expect(toast.showError).toHaveBeenCalledWith("Couldn't save the new order. Try again in a moment."));
+  expect(screen.getAllByRole('radio')[1].closest('li')?.textContent).toMatch(/Little tune/);
 });

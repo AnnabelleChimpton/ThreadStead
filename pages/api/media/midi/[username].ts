@@ -26,7 +26,9 @@ export default apiHandler(
 
       const midiFiles = await db.media.findMany({
         where: { userId: me.id, mediaType: "midi" },
-        orderBy: { createdAt: "desc" },
+        // Your order once you've moved one (/api/user/song-order); songs
+        // added since come first, newest first
+        orderBy: [{ songOrder: { sort: "asc", nulls: "first" } }, { createdAt: "desc" }],
         select: {
           id: true,
           title: true,

@@ -6,6 +6,7 @@ import { useConfirm } from '@/contexts/ConfirmContext';
 import Button from '@/components/ui/Button';
 import { buttonClasses } from '@/components/ui/ButtonLink';
 import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 
 // The player is client-only
 const MidiPlayer = dynamic(() => import('@/components/ui/media/MidiPlayer'), {
@@ -55,6 +56,8 @@ export default function MidiManager({ username }: MidiManagerProps) {
   const [uploading, setUploading] = useState(false);
   const [previewing, setPreviewing] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
+  // Read out after a move, for screen readers
+  const [moved, setMoved] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -205,6 +208,28 @@ export default function MidiManager({ username }: MidiManagerProps) {
     }
   };
 
+  /** Move a song one place up (-1) or down (+1), and save the whole order */
+  const move = async (index: number, by: -1 | 1) => {
+    const to = index + by;
+    if (to < 0 || to >= songs.length) return;
+    const before = songs;
+    const next = [...songs];
+    [next[index], next[to]] = [next[to], next[index]];
+    setSongs(next);
+    setMoved(`Moved “${songName(next[to])}” to ${to + 1} of ${next.length}.`);
+    try {
+      const res = await csrfFetch('/api/user/song-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: next.map((s) => s.id) }),
+      });
+      if (!res.ok) throw new Error();
+    } catch {
+      setSongs(before);
+      showError("Couldn't save the new order. Try again in a moment.");
+    }
+  };
+
   if (loading) {
     return <LoadingSpinner message="Loading your songs…" className="py-8" />;
   }
@@ -244,10 +269,13 @@ export default function MidiManager({ username }: MidiManagerProps) {
               <span className="text-nb-ink">No music</span>
             </label>
           </li>
-          {songs.map((song) => (
+          {songs.map((song, index) => (
             <SongRow
               key={song.id}
               song={song}
+              first={index === 0}
+              last={index === songs.length - 1}
+              onMove={(by) => move(index, by)}
               onProfile={song.id === profileSong}
               previewing={previewing === song.id}
               editing={editing === song.id}
@@ -259,6 +287,7 @@ export default function MidiManager({ username }: MidiManagerProps) {
             />
           ))}
         </ul>
+        <p className="sr-only" aria-live="polite">{moved}</p>
         {songs.length === 0 && (
           <p className="mt-3 mb-0 text-sm text-nb-ink-mid">No songs yet. Add a MIDI file and it shows up here.</p>
         )}
@@ -308,6 +337,9 @@ export default function MidiManager({ username }: MidiManagerProps) {
 
 interface SongRowProps {
   song: Song;
+  first: boolean;
+  last: boolean;
+  onMove: (by: -1 | 1) => void;
   onProfile: boolean;
   previewing: boolean;
   editing: boolean;
@@ -318,7 +350,7 @@ interface SongRowProps {
   onDelete: () => void;
 }
 
-function SongRow({ song, onProfile, previewing, editing, onPick, onPreview, onEdit, onSave, onDelete }: SongRowProps) {
+function SongRow({ song, first, last, onMove, onProfile, previewing, editing, onPick, onPreview, onEdit, onSave, onDelete }: SongRowProps) {
   const [title, setTitle] = useState(song.title ?? '');
   const [credit, setCredit] = useState(song.caption ?? '');
   const name = songName(song);
@@ -337,14 +369,27 @@ function SongRow({ song, onProfile, previewing, editing, onPick, onPreview, onEd
 
   return (
     <li className={`border-2 rounded-md px-3 py-2 ${onProfile ? 'border-nb-ink-mid/60 bg-nb-paper' : 'border-nb-ink-mid/30 bg-white'}`}>
-      <label className="flex items-start gap-2 cursor-pointer min-w-0">
-        <input type="radio" name="profile-song" checked={onProfile} onChange={onPick} className="mt-1 h-4 w-4 flex-shrink-0 accent-nb-ink" />
-        <span className="min-w-0">
-          <span className="block font-semibold text-nb-ink break-words">{name}</span>
-          {song.caption && <span className="block text-sm text-nb-ink-mid break-words">{song.caption}</span>}
-          <span className="block text-xs text-nb-ink-mid">{details}</span>
-        </span>
-      </label>
+      <div className="flex items-start gap-2">
+        <label className="flex flex-1 items-start gap-2 cursor-pointer min-w-0">
+          <input type="radio" name="profile-song" checked={onProfile} onChange={onPick} className="mt-1 h-4 w-4 flex-shrink-0 accent-nb-ink" />
+          <span className="min-w-0">
+            <span className="block font-semibold text-nb-ink break-words">{name}</span>
+            {song.caption && <span className="block text-sm text-nb-ink-mid break-words">{song.caption}</span>}
+            <span className="block text-xs text-nb-ink-mid">{details}</span>
+          </span>
+        </label>
+        {!(first && last) && (
+          // Stacked on phones, so the song's name keeps the room
+          <span className="flex flex-col sm:flex-row flex-shrink-0 gap-1">
+            <Button variant="secondary" size="sm" onClick={() => onMove(-1)} disabled={first} aria-label={`Move “${name}” up`} title="Move up" className="!px-2">
+              <PixelIcon name="chevron-up" size={14} />
+            </Button>
+            <Button variant="secondary" size="sm" onClick={() => onMove(1)} disabled={last} aria-label={`Move “${name}” down`} title="Move down" className="!px-2">
+              <PixelIcon name="chevron-down" size={14} />
+            </Button>
+          </span>
+        )}
+      </div>
 
       {/* Two by two on phones, one row from sm up */}
       <div className="mt-2 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:pl-6">
