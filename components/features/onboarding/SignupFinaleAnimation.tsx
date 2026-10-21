@@ -8,7 +8,7 @@ import type { Arrival } from '@/lib/pixel-homes/street';
 /**
  * The end of signup's "Move in": the new resident's street, with their
  * house set down into its plot between their neighbours, then their
- * address, then on to their home. About five seconds; Skip (focused) or
+ * address, then on to their home. About seven seconds; Skip (focused) or
  * Escape goes straight on.
  *
  * - It covers the page, and the page behind is inert.
@@ -20,10 +20,10 @@ import type { Arrival } from '@/lib/pixel-homes/street';
  * the click, for phones); this only shows its control.
  */
 
-/** From the street appearing to going home */
-export const FINALE_MS = 4500;
-/** When the house has landed (the CSS arrival is 0.3 s + 1.1 s) */
-export const LANDED_MS = 1500;
+/** From the street appearing to going home: about 4 s on the finished street */
+export const FINALE_MS = 6500;
+/** When the house has landed (the CSS arrival is 0.3 s + 2.2 s, styles/components.css) */
+export const LANDED_MS = 2500;
 /** How long to wait for the street before going home without it */
 export const ARRIVAL_TIMEOUT_MS = 3000;
 

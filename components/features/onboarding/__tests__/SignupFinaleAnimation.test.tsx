@@ -96,6 +96,23 @@ describe('SignupFinaleAnimation', () => {
     expect(push).toHaveBeenCalledWith('/?welcome=1');
   });
 
+  it('lingers: the house lands at 2.5 s, and the address stays up 4 s before going home', async () => {
+    expect(LANDED_MS).toBe(2500);
+    expect(FINALE_MS).toBe(6500);
+    await openFinale();
+
+    act(() => { jest.advanceTimersByTime(LANDED_MS); });
+    await act(async () => {});
+    expect(screen.getByRole('status')).toHaveTextContent(SENTENCE);
+
+    act(() => { jest.advanceTimersByTime(FINALE_MS - LANDED_MS - 1); });
+    expect(push).not.toHaveBeenCalled();
+    // Skip stays there the whole time
+    expect(screen.getByRole('button', { name: 'Skip' })).toHaveFocus();
+    act(() => { jest.advanceTimersByTime(1); });
+    expect(push).toHaveBeenCalledWith('/?welcome=1');
+  });
+
   it('Escape skips too', async () => {
     await openFinale();
     fireEvent.keyDown(document, { key: 'Escape' });
