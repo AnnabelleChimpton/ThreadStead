@@ -183,6 +183,14 @@ export default function FAQ({ siteConfig }: FAQProps) {
           )
         },
         {
+          question: 'How do I stop music playing on other people\'s pages?',
+          answer: (
+            <>
+              Press the × on the player to close it for the rest of your visit. To stop songs starting on their own anywhere, untick &quot;Play music automatically when I visit a profile&quot;, either in the player&apos;s controls or in Settings → Music. The <Link href="/help/music-guide#visitors" className={link}>music guide</Link> has the details.
+            </>
+          )
+        },
+        {
           question: 'What are guestbooks?',
           answer: 'Just like the old ones! Visitors leave you a note on the Guestbook tab of your page. Your mailbox out front opens the same guestbook, so neighbors walking by can sign it too.'
         }
