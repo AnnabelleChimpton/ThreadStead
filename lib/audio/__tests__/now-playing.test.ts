@@ -43,15 +43,14 @@ function holdNextLoad() {
   return () => finish();
 }
 
-function fakeEngine(kind: nowPlaying.EngineKind, duration = 60) {
+function fakeEngine(duration = 60) {
   let at = 0;
   let playing = false;
   const engine = {
-    kind,
     load: jest.fn(async () => {
       const held = heldLoads.shift();
       if (held) await held;
-      if (kind === 'sampler' && failSampler) throw new Error('no AudioWorklet');
+      if (failSampler) throw new Error('This browser can’t play the music');
     }),
     duration,
     play: jest.fn(async (from: number) => { at = from; playing = true; return true; }),
@@ -67,7 +66,7 @@ function fakeEngine(kind: nowPlaying.EngineKind, duration = 60) {
 
 let engines: ReturnType<typeof fakeEngine>[];
 let failSampler = false;
-// What the server has: songs, and the banks of the songs that have one
+// What the server answers, when it isn't 200 with a song or a bank
 let files: Record<string, number>;
 
 beforeEach(() => {
@@ -80,14 +79,14 @@ beforeEach(() => {
   heldLoads.length = 0;
   files = {};
   nowPlaying.__setupForTests({
-    engine: (_ctx, _out, kind) => {
-      const e = fakeEngine(kind);
+    engine: () => {
+      const e = fakeEngine();
       engines.push(e);
       return e as unknown as MidiEngine;
     },
   });
   global.fetch = jest.fn(async (url: string) => {
-    const status = files[url] ?? (url.endsWith('.mid') ? 200 : 404);
+    const status = files[url] ?? 200;
     // A bank answers with a SoundFont header; a song with anything else
     const body = url.includes('bank=1') && !url.includes('not-a-bank')
       ? Uint8Array.from('RIFF\0\0\0\0sfbk', (c) => c.charCodeAt(0)).buffer
@@ -97,10 +96,12 @@ beforeEach(() => {
 });
 
 const settle = () => new Promise((r) => setTimeout(r, 0));
+/** A member's song, as players get it */
+const song = (id: string) => `/api/media/serve/${id}`;
 
 test('two players of one song share it: one load, one engine', async () => {
-  const releaseA = nowPlaying.claim('/a.mid', { owner: 'profile' });
-  const releaseB = nowPlaying.claim('/a.mid', { owner: 'profile' });
+  const releaseA = nowPlaying.claim(song('a'), { owner: 'profile' });
+  const releaseB = nowPlaying.claim(song('a'), { owner: 'profile' });
   await settle();
   expect(engines).toHaveLength(1);
   expect(engines[0].load).toHaveBeenCalledTimes(1);
@@ -115,7 +116,7 @@ test('two players of one song share it: one load, one engine', async () => {
 });
 
 test('one AudioContext for every song (each player used to make its own)', async () => {
-  for (const url of ['/a.mid', '/b.mid', '/c.mid']) {
+  for (const url of [song('a'), song('b'), song('c')]) {
     const release = nowPlaying.claim(url, { owner: 'profile' });
     await settle();
     release();
@@ -124,35 +125,35 @@ test('one AudioContext for every song (each player used to make its own)', async
 });
 
 test('going to another profile swaps the song: the old engine goes', async () => {
-  const releaseA = nowPlaying.claim('/a.mid', { owner: 'profile' });
+  const releaseA = nowPlaying.claim(song('a'), { owner: 'profile' });
   await settle();
   await nowPlaying.play();
   expect(nowPlaying.getSnapshot().status).toBe('playing');
 
   releaseA();
-  nowPlaying.claim('/b.mid', { owner: 'profile' });
+  nowPlaying.claim(song('b'), { owner: 'profile' });
   await settle();
   expect(engines[0].dispose).toHaveBeenCalled();
-  expect(nowPlaying.getSnapshot()).toMatchObject({ url: '/b.mid', status: 'ready' });
+  expect(nowPlaying.getSnapshot()).toMatchObject({ url: song('b'), status: 'ready' });
   expect(await nowPlaying.play()).toBe(true);
   expect(engines[1].play).toHaveBeenCalledTimes(1);
 });
 
 test('a song that finishes loading after another was picked is dropped', async () => {
   const finishA = holdNextLoad();
-  nowPlaying.claim('/a.mid', { owner: 'profile' });
+  nowPlaying.claim(song('a'), { owner: 'profile' });
   await settle();
-  nowPlaying.claim('/b.mid', { owner: 'profile' });
+  nowPlaying.claim(song('b'), { owner: 'profile' });
   await settle();
   finishA();
   await settle();
-  expect(nowPlaying.getSnapshot().url).toBe('/b.mid');
+  expect(nowPlaying.getSnapshot().url).toBe(song('b'));
   // a's engine finished loading after b was picked and was thrown away
   expect(engines.filter((e) => e.dispose.mock.calls.length === 0)).toHaveLength(1);
 });
 
 test('an autoplay attempt and a click at once start the song once', async () => {
-  nowPlaying.claim('/a.mid', { owner: 'profile' });
+  nowPlaying.claim(song('a'), { owner: 'profile' });
   const [first, second] = await Promise.all([nowPlaying.play(), nowPlaying.play()]);
   expect(first && second).toBe(true);
   expect(engines[0].play).toHaveBeenCalledTimes(1);
@@ -160,10 +161,10 @@ test('an autoplay attempt and a click at once start the song once', async () => 
 
 test('a song claimed again while starting still starts (React mounts twice in development)', async () => {
   const finishFirst = holdNextLoad();
-  const release = nowPlaying.claim('/a.mid', { owner: 'profile' });
+  const release = nowPlaying.claim(song('a'), { owner: 'profile' });
   const firstTry = nowPlaying.play();
   release();
-  nowPlaying.claim('/a.mid', { owner: 'profile' });
+  nowPlaying.claim(song('a'), { owner: 'profile' });
   const secondTry = nowPlaying.play();
   await settle();
   finishFirst();
@@ -174,7 +175,7 @@ test('a song claimed again while starting still starts (React mounts twice in de
 
 test('before any click, play() gives up instead of hanging (it used to lock Play)', async () => {
   allowStart = false;
-  nowPlaying.claim('/a.mid', { owner: 'profile' });
+  nowPlaying.claim(song('a'), { owner: 'profile' });
   await settle();
   const started = await nowPlaying.play();
   expect(started).toBe(false);
@@ -187,7 +188,7 @@ test('before any click, play() gives up instead of hanging (it used to lock Play
 });
 
 test('pause, then play carries on from where it was', async () => {
-  nowPlaying.claim('/a.mid', { owner: 'profile' });
+  nowPlaying.claim(song('a'), { owner: 'profile' });
   await nowPlaying.play();
   nowPlaying.pause();
   expect(nowPlaying.getSnapshot().status).toBe('paused');
@@ -196,55 +197,53 @@ test('pause, then play carries on from where it was', async () => {
 });
 
 test('the welcome music gives way to a profile song', async () => {
-  nowPlaying.claim('/welcome.mid', { owner: 'signup', loop: true });
+  nowPlaying.claim(song('welcome'), { owner: 'signup', loop: true });
   await settle();
   expect(nowPlaying.getSnapshot()).toMatchObject({ owner: 'signup', loop: true });
-  nowPlaying.claim('/song.mid', { owner: 'profile' });
-  expect(nowPlaying.getSnapshot()).toMatchObject({ owner: 'profile', url: '/song.mid' });
+  nowPlaying.claim(song('song'), { owner: 'profile' });
+  expect(nowPlaying.getSnapshot()).toMatchObject({ owner: 'profile', url: song('song') });
 });
 
 test('a song that will not load says why', async () => {
   global.fetch = jest.fn(async () => ({ ok: false, status: 404 })) as unknown as typeof fetch;
-  nowPlaying.claim('/missing.mid', { owner: 'profile' });
+  nowPlaying.claim(song('missing'), { owner: 'profile' });
   await settle();
   expect(nowPlaying.getSnapshot()).toMatchObject({ status: 'error', error: 'Could not fetch the song (HTTP 404)' });
 });
 
-test('a song with a sound bank plays on the sampler', async () => {
-  files['/api/media/serve/s1?bank=1'] = 200;
-  files['/api/media/serve/s1'] = 200;
-  nowPlaying.claim('/api/media/serve/s1', { owner: 'profile' });
+test('the song and its sound bank are fetched together, and it plays on the sampler', async () => {
+  nowPlaying.claim(song('s1'), { owner: 'profile' });
   await settle();
-  expect(engines.map((e) => e.kind)).toEqual(['sampler']);
-  expect(nowPlaying.getSnapshot()).toMatchObject({ status: 'ready', engine: 'sampler' });
+  const fetched = (global.fetch as jest.Mock).mock.calls.map((c) => c[0]);
+  expect(fetched).toEqual(expect.arrayContaining([song('s1'), `${song('s1')}?bank=1`]));
+  expect(nowPlaying.getSnapshot()).toMatchObject({ status: 'ready' });
 });
 
-test('a song without one (not backfilled yet) plays on the old synth', async () => {
-  files['/api/media/serve/s2'] = 200;
-  nowPlaying.claim('/api/media/serve/s2', { owner: 'profile' });
+test('when the sounds don’t arrive, the player says so', async () => {
+  files[`${song('s2')}?bank=1`] = 404;
+  nowPlaying.claim(song('s2'), { owner: 'profile' });
   await settle();
-  expect(engines.map((e) => e.kind)).toEqual(['legacy']);
-  expect(nowPlaying.getSnapshot()).toMatchObject({ status: 'ready', engine: 'legacy' });
+  expect(nowPlaying.getSnapshot()).toMatchObject({ status: 'error', error: 'The song’s sounds didn’t load' });
+  expect(engines).toHaveLength(0);
 });
 
-test('when the sampler can’t start, the old synth plays the song', async () => {
-  files['/api/media/serve/s3?bank=1'] = 200;
-  files['/api/media/serve/s3'] = 200;
+test('a "bank" that isn’t a sound bank is refused the same way', async () => {
+  nowPlaying.claim(song('not-a-bank'), { owner: 'profile' });
+  await settle();
+  expect(nowPlaying.getSnapshot()).toMatchObject({ status: 'error', error: 'The song’s sounds didn’t load' });
+});
+
+test('when this browser can’t run the sampler, the player says so and lets go of it', async () => {
   failSampler = true;
-  const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
-  nowPlaying.claim('/api/media/serve/s3', { owner: 'profile' });
+  nowPlaying.claim(song('s3'), { owner: 'profile' });
   await settle();
   await settle();
-  expect(engines.map((e) => e.kind)).toEqual(['sampler', 'legacy']);
   expect(engines[0].dispose).toHaveBeenCalled();
-  expect(nowPlaying.getSnapshot()).toMatchObject({ status: 'ready', engine: 'legacy' });
-  warn.mockRestore();
+  expect(nowPlaying.getSnapshot()).toMatchObject({ status: 'error', error: 'This browser can’t play the music' });
 });
 
-test('a "bank" that isn’t a sound bank (an older server sends the song) means the old synth', async () => {
-  files['/api/media/serve/not-a-bank?bank=1'] = 200;
-  files['/api/media/serve/not-a-bank'] = 200;
-  nowPlaying.claim('/api/media/serve/not-a-bank', { owner: 'profile' });
+test('a song from anywhere else can’t be played (there’s no bank for it)', async () => {
+  nowPlaying.claim('https://example.com/tune.mid', { owner: 'profile' });
   await settle();
-  expect(engines.map((e) => e.kind)).toEqual(['legacy']);
+  expect(nowPlaying.getSnapshot()).toMatchObject({ status: 'error', error: 'This song can’t be played here' });
 });

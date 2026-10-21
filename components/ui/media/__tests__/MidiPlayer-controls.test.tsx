@@ -31,6 +31,10 @@ class FakeContext {
   createBufferSource() { return { connect() {}, start() {}, buffer: null }; }
 }
 
+// A member's song: the player fetches it and its sound bank (?bank=1)
+const SONG = '/api/media/serve/song';
+const BANK = Uint8Array.from('RIFF\0\0\0\0sfbk', (c) => c.charCodeAt(0)).buffer;
+
 beforeEach(() => {
   window.localStorage.clear();
   (csrfFetch as jest.Mock).mockClear();
@@ -42,11 +46,15 @@ beforeEach(() => {
       setLoop() {}, onEnded() {}, dispose() {},
     }) as MidiEngine,
   });
-  global.fetch = jest.fn(async () => ({ ok: true, status: 200, arrayBuffer: async () => new ArrayBuffer(8) })) as unknown as typeof fetch;
+  global.fetch = jest.fn(async (url: string) => ({
+    ok: true,
+    status: 200,
+    arrayBuffer: async () => (url.endsWith('?bank=1') ? BANK : new ArrayBuffer(8)),
+  })) as unknown as typeof fetch;
 });
 
 test('the floating player is site chrome, outside the page', () => {
-  const { container } = render(<div className="profile-card"><MidiPlayer midiUrl="/song.mid" title="Little tune" /></div>);
+  const { container } = render(<div className="profile-card"><MidiPlayer midiUrl={SONG} title="Little tune" /></div>);
   const player = screen.getByRole('region', { name: 'Music: Little tune' });
   // Portaled to <body>, not inside the profile card (a theme's transform
   // pinned it to the card there, and page CSS could hide it)
@@ -55,7 +63,7 @@ test('the floating player is site chrome, outside the page', () => {
 });
 
 test('Close stops the music and leaves a Music button that brings it back', () => {
-  render(<MidiPlayer midiUrl="/song.mid" title="Little tune" />);
+  render(<MidiPlayer midiUrl={SONG} title="Little tune" />);
   fireEvent.click(screen.getByRole('button', { name: 'Close the music player' }));
   expect(screen.queryByRole('region', { name: 'Music: Little tune' })).not.toBeInTheDocument();
 
@@ -64,25 +72,25 @@ test('Close stops the music and leaves a Music button that brings it back', () =
 });
 
 test('Play says Play, not Stop', () => {
-  render(<MidiPlayer midiUrl="/song.mid" title="Little tune" />);
+  render(<MidiPlayer midiUrl={SONG} title="Little tune" />);
   expect(screen.getByRole('button', { name: 'Play' })).toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'Stop' })).not.toBeInTheDocument();
 });
 
 test('Mute is a toggle, and remembered', () => {
-  const { unmount } = render(<MidiPlayer midiUrl="/song.mid" />);
+  const { unmount } = render(<MidiPlayer midiUrl={SONG} />);
   const mute = screen.getByRole('button', { name: 'Mute' });
   expect(mute).toHaveAttribute('aria-pressed', 'false');
   fireEvent.click(mute);
   expect(mute).toHaveAttribute('aria-pressed', 'true');
   unmount();
 
-  render(<MidiPlayer midiUrl="/song.mid" />);
+  render(<MidiPlayer midiUrl={SONG} />);
   expect(screen.getByRole('button', { name: 'Mute' })).toHaveAttribute('aria-pressed', 'true');
 });
 
 test('More shows volume and the autoplay switch; Escape folds it away', () => {
-  render(<MidiPlayer midiUrl="/song.mid" title="Little tune" />);
+  render(<MidiPlayer midiUrl={SONG} title="Little tune" />);
   const more = screen.getByRole('button', { name: 'More music controls' });
   expect(more).toHaveAttribute('aria-expanded', 'false');
   fireEvent.click(more);
@@ -98,7 +106,7 @@ test('More shows volume and the autoplay switch; Escape folds it away', () => {
 });
 
 test('"Play music automatically" off is kept in the browser and sent to the account', async () => {
-  render(<MidiPlayer midiUrl="/song.mid" />);
+  render(<MidiPlayer midiUrl={SONG} />);
   fireEvent.click(screen.getByRole('button', { name: 'More music controls' }));
   const box = screen.getByRole('checkbox', { name: 'Play music automatically when I visit a profile' });
   expect(box).toBeChecked();
@@ -112,12 +120,12 @@ test('"Play music automatically" off is kept in the browser and sent to the acco
 
 test('a visitor who said no gets no "click anywhere" hint, even when the owner wants autoplay', () => {
   window.localStorage.setItem('threadstead-music-autoplay', 'off');
-  render(<MidiPlayer midiUrl="/song.mid" autoplay />);
+  render(<MidiPlayer midiUrl={SONG} autoplay />);
   expect(screen.queryByText('Click anywhere on the page for music')).not.toBeInTheDocument();
 });
 
 test('in the page (<ProfileMusic />, previews) it stays where it was put, with no Close', () => {
-  const { container } = render(<div className="page"><MidiPlayer midiUrl="/song.mid" title="Little tune" placement="inline" /></div>);
+  const { container } = render(<div className="page"><MidiPlayer midiUrl={SONG} title="Little tune" placement="inline" /></div>);
   const player = screen.getByRole('region', { name: 'Music: Little tune' });
   expect(container.querySelector('.page')).toContainElement(player);
   expect(player.closest('[data-site-chrome]')).toBeNull();
@@ -127,8 +135,8 @@ test('in the page (<ProfileMusic />, previews) it stays where it was put, with n
 test('two players of the same song are one song: Play on one shows Pause on both', async () => {
   render(
     <>
-      <MidiPlayer midiUrl="/song.mid" title="Little tune" placement="inline" />
-      <MidiPlayer midiUrl="/song.mid" title="Little tune" placement="inline" />
+      <MidiPlayer midiUrl={SONG} title="Little tune" placement="inline" />
+      <MidiPlayer midiUrl={SONG} title="Little tune" placement="inline" />
     </>
   );
   await waitFor(() => expect(screen.getAllByRole('button', { name: 'Play' })[0]).not.toBeDisabled());
@@ -145,7 +153,7 @@ test('an autoplayed song that ends stays ended (it used to start over, forever)'
       setLoop() {}, onEnded(cb: () => void) { ended = cb; }, dispose() {},
     }) as MidiEngine,
   });
-  render(<MidiPlayer midiUrl="/song.mid" title="Little tune" autoplay />);
+  render(<MidiPlayer midiUrl={SONG} title="Little tune" autoplay />);
   await waitFor(() => expect(screen.getByRole('button', { name: 'Pause' })).toBeInTheDocument());
   expect(play).toHaveBeenCalledTimes(1);
 

@@ -29,6 +29,7 @@ jest.mock('spessasynth_lib', () => ({
 }));
 jest.mock('spessasynth_core', () => ({
   BasicMIDI: { fromArrayBuffer: () => ({ tracks: [{}], duration: 30 }) },
+  SpessaLog: { setLogLevel: jest.fn() },
 }));
 
 import { createSampler, SAMPLER_START_TIMEOUT_MS } from '../engines/sampler';
@@ -57,20 +58,20 @@ test('looping sets a count the audio thread loops on (Infinity: -1 never loops)'
   expect(engine.duration).toBe(30);
 });
 
-test('when the audio thread never answers, loading gives up so the old synth can play', async () => {
+test('when the audio thread never answers, loading gives up and says so', async () => {
   jest.useFakeTimers();
   bankLoads = () => new Promise<void>(() => {});
   const engine = await createSampler(context(), {} as AudioNode);
   const loading = engine.load(song);
-  const failed = expect(loading).rejects.toThrow('The sampler didn’t start');
+  const failed = expect(loading).rejects.toThrow('This browser can’t play the music');
   jest.advanceTimersByTime(SAMPLER_START_TIMEOUT_MS + 1);
   await failed;
   jest.useRealTimers();
 });
 
-test('a song without a bank is refused (the store plays it on the old synth)', async () => {
-  const engine = await createSampler(context(), {} as AudioNode);
-  await expect(engine.load({ midi: song.midi, bank: null })).rejects.toThrow('no sound bank');
+test('a browser without AudioWorklet is told plainly', async () => {
+  const ctx = { ...context(), audioWorklet: undefined } as unknown as AudioContext;
+  await expect(createSampler(ctx, {} as AudioNode)).rejects.toThrow('This browser can’t play the music');
 });
 
 test('play from a point, pause there', async () => {

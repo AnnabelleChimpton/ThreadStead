@@ -5,7 +5,7 @@
  * - a member's song, /api/media/serve/<id>, has /api/media/serve/<id>?bank=1
  * - the signup music, /uploads/admin/<file>.mid, has <file>.mid.sf2 beside it
  *
- * Anything else has none and plays on the old synth.
+ * Anything else has none, and can't be played.
  */
 export function soundBankUrlFor(midiUrl: string): string | null {
   if (/^\/api\/media\/serve\/[^/?#]+$/.test(midiUrl)) return `${midiUrl}?bank=1`;

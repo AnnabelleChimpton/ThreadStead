@@ -1,19 +1,16 @@
 /**
  * A voice engine: what turns a MIDI song into sound. The "now playing"
  * store (lib/audio/now-playing.ts) owns one at a time and hands it the
- * shared AudioContext and an output node.
- *
- * - engines/sampler.ts plays the song through its own trimmed General MIDI
- *   sound bank (GeneralUser GS), on the audio thread. Every song uploaded
- *   since MIDI plan Phase 3 has one.
- * - engines/legacy-synth.ts is the old hand-rolled synth, for songs whose
- *   bank isn't there (not backfilled yet, or the trim failed).
+ * shared AudioContext and an output node. There's one engine,
+ * engines/sampler.ts: the song through its own trimmed General MIDI sound
+ * bank (GeneralUser GS), on the audio thread. The interface stays so tests
+ * can stand in for it.
  */
 export interface SongFiles {
   /** The MIDI file */
   midi: ArrayBuffer;
-  /** Its sound bank (SF2), or null when there isn't one */
-  bank: ArrayBuffer | null;
+  /** Its sound bank (SF2) */
+  bank: ArrayBuffer;
 }
 
 export interface MidiEngine {

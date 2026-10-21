@@ -19,18 +19,19 @@ import type { MidiEngine, SongFiles } from '../engine';
 export const SAMPLER_PROCESSOR_URL = '/audio/spessasynth_processor-4.3.14.min.js';
 
 /**
- * GeneralUser GS plays 4–11 dB quieter than the old synth did at the same
- * volume. +3.5 dB closes most of that while the loudest test song still
- * peaks at 0.84 at full volume, short of clipping.
+ * GeneralUser GS played 4–11 dB quieter than the hand-rolled synth it
+ * replaced, at the same volume. +3.5 dB keeps visitors' saved volumes about
+ * right while the loudest test song still peaks at 0.84 at full volume,
+ * short of clipping.
  */
 export const SAMPLER_MAKEUP_GAIN = 1.5;
 
-/** How long the sampler gets to start before the old synth plays the song instead */
+/** How long the sampler gets to start before the player says this browser can't */
 export const SAMPLER_START_TIMEOUT_MS = 10000;
 
 function within<T>(promise: Promise<T>, ms: number): Promise<T> {
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('The sampler didn’t start')), ms);
+    const timer = setTimeout(() => reject(new Error(CANT_PLAY)), ms);
     promise.then(
       (value) => { clearTimeout(timer); resolve(value); },
       (error) => { clearTimeout(timer); reject(error); }
@@ -38,13 +39,15 @@ function within<T>(promise: Promise<T>, ms: number): Promise<T> {
   });
 }
 
+const CANT_PLAY = 'This browser can’t play the music';
+
 // A worklet module is registered once per context
 const registered = new WeakMap<BaseAudioContext, Promise<void>>();
 
 function registerProcessor(ctx: BaseAudioContext): Promise<void> {
   let ready = registered.get(ctx);
   if (!ready) {
-    if (!ctx.audioWorklet) return Promise.reject(new Error('This browser can’t play the sampler'));
+    if (!ctx.audioWorklet) return Promise.reject(new Error(CANT_PLAY));
     ready = ctx.audioWorklet.addModule(SAMPLER_PROCESSOR_URL);
     ready.catch(() => registered.delete(ctx));
     registered.set(ctx, ready);
@@ -54,7 +57,10 @@ function registerProcessor(ctx: BaseAudioContext): Promise<void> {
 
 export async function createSampler(ctx: AudioContext, output: AudioNode): Promise<MidiEngine> {
   const { WorkletSynthesizer, Sequencer } = await import('spessasynth_lib');
-  const { BasicMIDI } = await import('spessasynth_core');
+  const { BasicMIDI, SpessaLog } = await import('spessasynth_core');
+  // Its progress notes ("Processor successfully registered!") stay out of
+  // visitors' consoles; warnings still show
+  SpessaLog.setLogLevel(false, true, false);
   await within(registerProcessor(ctx), SAMPLER_START_TIMEOUT_MS);
 
   const synth = new WorkletSynthesizer(ctx);
@@ -80,7 +86,6 @@ export async function createSampler(ctx: AudioContext, output: AudioNode): Promi
 
   return {
     async load({ midi, bank }: SongFiles) {
-      if (!bank) throw new Error('This song has no sound bank');
       // Read it here first: a broken file says so before anything reaches
       // the audio thread, and the length is known straight away
       let song: InstanceType<typeof BasicMIDI>;
@@ -91,7 +96,7 @@ export async function createSampler(ctx: AudioContext, output: AudioNode): Promi
       }
       if (!song.tracks.length || !(song.duration > 0)) throw new Error('This file has no playable tracks');
       // If the audio thread never answers (a page whose security policy
-      // blocks its decoder, say), the store falls back to the old synth
+      // blocks its decoder, an old browser), say so instead of hanging
       await within(
         synth.soundBankManager.addSoundBank(bank, 'main').then(() => synth.isReady),
         SAMPLER_START_TIMEOUT_MS

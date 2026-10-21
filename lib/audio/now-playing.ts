@@ -11,7 +11,7 @@
  *
  * Players claim a song while they're on the page and release it when they
  * go; when nothing holds it any more it stops. The song's sound bank is
- * fetched alongside it (sound-bank-url.ts), and the engine loads only when a
+ * fetched alongside it (sound-bank-url.ts), and the sampler loads only when a
  * song does, so it stays out of every other page.
  */
 import type { MidiEngine, SongFiles } from './engine';
@@ -21,8 +21,6 @@ import { isSoundBank } from './is-sound-bank';
 
 export type NowPlayingStatus = 'idle' | 'loading' | 'ready' | 'playing' | 'paused' | 'error';
 export type NowPlayingOwner = 'profile' | 'signup';
-/** The soundfont sampler, or the old synth for a song without a sound bank */
-export type EngineKind = 'sampler' | 'legacy';
 
 export interface NowPlayingState {
   url: string | null;
@@ -33,11 +31,9 @@ export interface NowPlayingState {
   /** Seconds; 0 until loaded */
   duration: number;
   loop: boolean;
-  /** Which engine is playing it, once loaded */
-  engine: EngineKind | null;
 }
 
-export type EngineFactory = (ctx: AudioContext, output: AudioNode, kind: EngineKind) => MidiEngine | Promise<MidiEngine>;
+export type EngineFactory = (ctx: AudioContext, output: AudioNode) => MidiEngine | Promise<MidiEngine>;
 
 const IDLE: NowPlayingState = {
   url: null,
@@ -47,7 +43,6 @@ const IDLE: NowPlayingState = {
   error: null,
   duration: 0,
   loop: false,
-  engine: null,
 };
 
 let state: NowPlayingState = IDLE;
@@ -62,13 +57,9 @@ let output: { fade: GainNode; out: GainNode } | null = null;
 let volume = 0.5;
 let muted = false;
 
-let createEngine: EngineFactory = async (ctx, out, kind) => {
-  if (kind === 'sampler') {
-    const { createSampler } = await import('./engines/sampler');
-    return createSampler(ctx, out);
-  }
-  const { createLegacySynth } = await import('./engines/legacy-synth');
-  return createLegacySynth(ctx, out);
+let createEngine: EngineFactory = async (ctx, out) => {
+  const { createSampler } = await import('./engines/sampler');
+  return createSampler(ctx, out);
 };
 
 function set(patch: Partial<NowPlayingState>) {
@@ -108,61 +99,29 @@ function disposeEngine() {
   loading = null;
 }
 
-async function fetchBank(url: string): Promise<ArrayBuffer | null> {
+async function fetchBank(url: string): Promise<ArrayBuffer> {
   const bankUrl = soundBankUrlFor(url);
-  if (!bankUrl) return null;
-  try {
-    const response = await fetch(bankUrl, { signal: AbortSignal.timeout(30000) });
-    if (!response.ok) return null;
-    const bank = await response.arrayBuffer();
-    // Only a real sound bank (an older server answers with the song itself)
-    return isSoundBank(new Uint8Array(bank)) ? bank : null;
-  } catch {
-    // No bank, or too slow: the old synth plays it instead
-    return null;
-  }
+  if (!bankUrl) throw new Error('This song can’t be played here');
+  const response = await fetch(bankUrl, { signal: AbortSignal.timeout(30000) });
+  const bank = response.ok ? await response.arrayBuffer() : null;
+  if (!bank || !isSoundBank(new Uint8Array(bank))) throw new Error('The song’s sounds didn’t load');
+  return bank;
 }
 
-async function loadEngine(song: SongFiles, token: number): Promise<{ engine: MidiEngine; kind: EngineKind } | null> {
-  const ctx = getAudioContext();
-  const out = outputNodes(ctx).fade;
-  if (song.bank) {
-    let sampler: MidiEngine | null = null;
-    try {
-      sampler = await createEngine(ctx, out, 'sampler');
-      await sampler.load(song);
-      return { engine: sampler, kind: 'sampler' };
-    } catch (err) {
-      sampler?.dispose();
-      if (token !== generation) return null;
-      // A browser without AudioWorklet, or a bank that won't load: the old
-      // synth still plays the song. Its own error is the one shown.
-      console.warn('Sampler could not play this song, using the old synth:', err);
-    }
-  }
-  const legacy = await createEngine(ctx, out, 'legacy');
-  try {
-    await legacy.load(song);
-  } catch (err) {
-    legacy.dispose();
-    throw err;
-  }
-  return { engine: legacy, kind: 'legacy' };
+async function fetchSong(url: string): Promise<ArrayBuffer> {
+  const response = await fetch(url, { signal: AbortSignal.timeout(15000) });
+  if (!response.ok) throw new Error(`Could not fetch the song (HTTP ${response.status})`);
+  return response.arrayBuffer();
 }
 
 async function load(url: string, token: number) {
+  let next: MidiEngine | null = null;
   try {
-    const [midi, bank] = await Promise.all([
-      fetch(url, { signal: AbortSignal.timeout(15000) }).then(async (response) => {
-        if (!response.ok) throw new Error(`Could not fetch the song (HTTP ${response.status})`);
-        return response.arrayBuffer();
-      }),
-      fetchBank(url),
-    ]);
+    const [midi, bank] = await Promise.all([fetchSong(url), fetchBank(url)]);
     if (token !== generation) return;
-    const loaded = await loadEngine({ midi, bank }, token);
-    if (!loaded) return;
-    const next = loaded.engine;
+    const ctx = getAudioContext();
+    next = await createEngine(ctx, outputNodes(ctx).fade);
+    await next.load({ midi, bank });
     if (token !== generation) {
       next.dispose();
       return;
@@ -172,8 +131,9 @@ async function load(url: string, token: number) {
       if (token === generation) set({ status: 'ready' });
     });
     engine = next;
-    set({ status: 'ready', duration: next.duration, engine: loaded.kind });
+    set({ status: 'ready', duration: next.duration });
   } catch (err) {
+    next?.dispose();
     if (token !== generation) return;
     const reason =
       (err as { name?: string })?.name === 'TimeoutError'
