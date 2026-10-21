@@ -6,6 +6,7 @@ import { PostSkeletonList } from "./PostSkeleton";
 import { useSiteConfig } from "@/hooks/useSiteConfig";
 import ButtonLink from "@/components/ui/ButtonLink";
 import EmptyState from "@/components/ui/feedback/EmptyState";
+import { PixelIcon } from "@/components/ui/PixelIcon";
 import ErrorDisplay from "@/components/ui/feedback/ErrorDisplay";
 
 type FeedType = "recent" | "active" | "following";
@@ -243,7 +244,8 @@ export default function Feed({ type }: FeedProps) {
             onClick={handleRefresh}
             className="pointer-events-auto bg-thread-pine text-white px-4 py-2 rounded-full shadow-lg hover:bg-thread-pine/90 transition-all transform hover:scale-105 flex items-center gap-2 font-medium text-sm animate-bounce-in"
           >
-            <span>↑ New posts available</span>
+            <PixelIcon name="arrow-up" size={24} className="shrink-0" />
+            <span>New posts available</span>
           </button>
         </div>
       )}

@@ -401,8 +401,8 @@ export default function FeedPost({ post, showActivity = false, showVisibility = 
                   <span className="text-sm font-semibold text-thread-pine group-hover:text-thread-sunset">
                     {isExpanded ? 'Show less' : 'Continue reading'}
                   </span>
-                  <span className="text-xs transform group-hover:translate-y-0.5 transition-transform">
-                    {isExpanded ? '↑' : '↓'}
+                  <span className="flex transform group-hover:translate-y-0.5 transition-transform">
+                    <PixelIcon name={isExpanded ? 'arrow-up' : 'arrow-down'} size={24} />
                   </span>
                 </button>
               </div>

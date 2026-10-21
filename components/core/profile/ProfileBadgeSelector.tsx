@@ -322,14 +322,14 @@ export default function ProfileBadgeSelector({ onSave, className = '' }: Profile
                               disabled={selectedBadge.displayOrder === 0}
                               className="thread-button-secondary btn btn--secondary text-sm disabled:opacity-50"
                             >
-                              ↑ Move Up
+                              <PixelIcon name="arrow-up" size={24} className="inline-block align-middle" /> Move Up
                             </button>
                             <button
                               onClick={() => moveBadge(badge.badgeId, 'down')}
                               disabled={selectedBadge.displayOrder === preferences.selectedBadges.length - 1}
                               className="thread-button-secondary btn btn--secondary text-sm disabled:opacity-50"
                             >
-                              ↓ Move Down
+                              <PixelIcon name="arrow-down" size={24} className="inline-block align-middle" /> Move Down
                             </button>
                           </div>
                         </div>
