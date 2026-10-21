@@ -251,6 +251,59 @@
   }
 }
 
+/* Phones: the page editors (EditorWorkspace) run edge to edge, leave room
+   for their Save bar, and keep the notes and tool rows above the code
+   short. Two classes or !important: the site's phone rules pin
+   .site-main's gutter and make every button and select 48px. */
+@media (max-width: 639.98px) {
+  .site-main:has(> .editor-workspace, > .enhanced-template-editor) {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+  .editor-workspace:has(.ts-editor-actions) {
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+  }
+  .editor-workspace .ts-editor-actions label {
+    min-height: 44px;
+  }
+  .editor-workspace .ts-editor-note {
+    font-size: 13px;
+    line-height: 1.4;
+    padding: 0.375rem 1rem;
+  }
+  .editor-workspace .ts-editor-tools {
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+    padding: 0.375rem 0.75rem;
+  }
+  .ts-editor-tools .btn,
+  .ts-editor-tools select {
+    min-height: 44px;
+    height: 44px;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  .ts-editor-tools .btn {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+    white-space: nowrap;
+  }
+  .ts-editor-tools .btn.ts-icon-only {
+    min-width: 44px;
+    padding: 0;
+    justify-content: center;
+  }
+  .ts-editor-tools select {
+    padding-left: 0.625rem;
+    padding-right: 2rem;
+    background-position: right 0.375rem center;
+  }
+  .ts-editor-menu a.ts-bare,
+  .ts-editor-menu button.ts-bare {
+    min-height: 44px;
+  }
+}
+
 @media (max-width: 768px) {
   /* Edge to edge; the editor's own sections pad themselves */
   .post-editor-container {

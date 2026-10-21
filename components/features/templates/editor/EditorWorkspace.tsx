@@ -23,22 +23,45 @@ function store(key: string, value: string | number) {
 
 // ── Toolbar ──
 
-export function EditorToolbar({ title, handle, status, children }: {
+/**
+ * On a laptop everything sits in one row: title, then the save note, Share,
+ * History, More and Save. On a phone the row keeps only the title and More,
+ * Share and Save go in a bar stuck to the bottom of the screen, and History
+ * moves into More (see PhoneOnly).
+ */
+export function EditorToolbar({ title, handle, status, message, share, laptopOnly, save, children }: {
   title: string;
   handle: string;
   status?: React.ReactNode;
-  /** Right-hand actions, Save last */
+  /** What the last save did */
+  message?: React.ReactNode;
+  /** "Share this update in the feed" */
+  share?: React.ReactNode;
+  /** Buttons that are in More on a phone */
+  laptopOnly?: React.ReactNode;
+  save: React.ReactNode;
+  /** The More menu */
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2 bg-thread-paper border-b-2 border-thread-sage flex-shrink-0">
-      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 min-w-0">
+    <div className="flex flex-nowrap sm:flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2 bg-thread-paper border-b-2 border-thread-sage flex-shrink-0">
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 min-w-0 flex-1 sm:flex-initial">
         {/* Inline size: the site's phone rules for h1 outrank utilities */}
         <h1 className="m-0 leading-tight" style={{ fontSize: '1.125rem' }}>{title}</h1>
-        <span className="text-sm text-nb-ink-mid">@{handle}</span>
+        <span className="hidden sm:inline text-sm text-nb-ink-mid">@{handle}</span>
         {status}
       </div>
-      <div className="ml-auto flex flex-wrap items-center gap-2">{children}</div>
+      <div className="ml-auto flex flex-wrap items-center gap-2 flex-shrink-0 sm:flex-shrink">
+        {/* Phones: stuck to the bottom of the screen. Laptops: its parts sit
+            in this row, in order around History and More */}
+        <div className="ts-editor-actions fixed inset-x-0 bottom-0 z-30 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 bg-thread-paper border-t-2 border-thread-sage px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] sm:static sm:contents">
+          {message && <div className="flex items-center basis-full sm:basis-auto sm:order-1">{message}</div>}
+          {share && <div className="flex items-center sm:order-2">{share}</div>}
+          <div className="flex items-center ml-auto sm:ml-0 sm:order-5">{save}</div>
+        </div>
+        {laptopOnly && <div className="hidden sm:flex sm:order-3 items-center gap-2">{laptopOnly}</div>}
+        <div className="flex items-center sm:order-4">{children}</div>
+      </div>
     </div>
   );
 }
@@ -92,7 +115,7 @@ export function EditorMenu({ children }: { children: (close: () => void) => Reac
       {open && (
         <div
           id={id}
-          className="absolute right-0 top-full mt-1 z-50 w-72 max-w-[calc(100vw-2rem)] bg-thread-paper border-2 border-thread-sage shadow-[3px_3px_0_rgba(46,75,63,0.25)] p-2 flex flex-col gap-1 text-sm text-nb-ink"
+          className="ts-editor-menu absolute right-0 top-full mt-1 z-50 w-72 max-w-[calc(100vw-2rem)] bg-thread-paper border-2 border-thread-sage shadow-[3px_3px_0_rgba(46,75,63,0.25)] p-2 flex flex-col gap-1 text-sm text-nb-ink"
         >
           {children(close)}
         </div>
@@ -118,6 +141,16 @@ export function MenuItem({ onClick, href, children, newTab }: {
     );
   }
   return <button type="button" className={cls} onClick={onClick}>{children}</button>;
+}
+
+/** More-menu rows for phones only: on a laptop they're on screen already */
+export function PhoneOnly({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="sm:hidden flex flex-col gap-1">
+      {children}
+      <hr className="my-1 border-thread-sage/40" />
+    </div>
+  );
 }
 
 // ── Tabs + split ──
@@ -183,6 +216,19 @@ export default function EditorWorkspace({ toolbar, notices, tabs, activeTab, onT
     if (!dragging) store(SPLIT_KEY, split.toFixed(3));
   }, [dragging, split]);
 
+  // Keep the open tab in view when the row scrolls sideways
+  const tabRowRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const row = tabRowRef.current;
+    if (!row || row.scrollWidth <= row.clientWidth) return;
+    const tab = row.querySelector<HTMLElement>('[aria-selected="true"]');
+    if (!tab) return;
+    const left = tab.offsetLeft - row.offsetLeft;
+    if (left < row.scrollLeft || left + tab.offsetWidth > row.scrollLeft + row.clientWidth) {
+      row.scrollLeft = left - 16;
+    }
+  }, [activeTab]);
+
   const tabIds = tabs.map((t) => t.id);
   const onTabKey = (e: React.KeyboardEvent) => {
     const i = tabIds.indexOf(activeTab);
@@ -201,7 +247,14 @@ export default function EditorWorkspace({ toolbar, notices, tabs, activeTab, onT
           style={preview ? { flex: `0 0 ${(split * 100).toFixed(2)}%` } : { flex: '1 1 auto' }}
         >
           <div className="flex flex-wrap items-end gap-x-1 px-3 bg-thread-cream border-b border-thread-sage flex-shrink-0">
-            <div role="tablist" aria-label="Editor" className="flex flex-wrap" onKeyDown={onTabKey}>
+            {/* Phones: one row that scrolls sideways */}
+            <div
+              ref={tabRowRef}
+              role="tablist"
+              aria-label="Editor"
+              className="ts-tab-row flex flex-nowrap overflow-x-auto max-w-full sm:flex-wrap sm:overflow-visible"
+              onKeyDown={onTabKey}
+            >
               {tabs.map((t) => (
                 <button
                   key={t.id}
@@ -218,7 +271,8 @@ export default function EditorWorkspace({ toolbar, notices, tabs, activeTab, onT
                 </button>
               ))}
             </div>
-            {tabsEnd && <div className="ml-auto flex flex-wrap items-center gap-x-3 py-1.5 text-sm">{tabsEnd}</div>}
+            {/* Phones: these links are in More */}
+            {tabsEnd && <div className="ml-auto hidden sm:flex flex-wrap items-center gap-x-3 py-1.5 text-sm">{tabsEnd}</div>}
           </div>
 
           {tabs.map((t) => (

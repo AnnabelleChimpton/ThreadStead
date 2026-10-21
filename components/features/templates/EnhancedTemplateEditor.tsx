@@ -46,6 +46,7 @@ import EditorWorkspace, {
   EditorToolbar,
   LivePreviewPane,
   MenuItem,
+  PhoneOnly,
   SaveStatus,
   useEmbeddedPreview,
   type WorkspaceTab,
@@ -1604,7 +1605,7 @@ export default function EnhancedTemplateEditor({
             />
           </div>
         )}
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-3 py-1.5 border-b border-thread-sage/40 flex-shrink-0 text-sm text-nb-ink">
+        <div className="ts-editor-tools flex flex-wrap items-center gap-x-4 gap-y-2 px-3 py-1.5 border-b border-thread-sage/40 flex-shrink-0 text-sm text-nb-ink">
           <label className="inline-flex items-center gap-1.5 cursor-pointer">
             <input
               type="checkbox"
@@ -1619,9 +1620,10 @@ export default function EnhancedTemplateEditor({
             size="sm"
             aria-haspopup="dialog"
             onClick={() => setImagePickerPane('html')}
-            className="ml-auto inline-flex items-center gap-2"
+            aria-label="Insert image"
+            className="ts-icon-only ml-auto inline-flex items-center gap-2"
           >
-            <PixelIcon name="image" size={14} /> Insert image
+            <PixelIcon name="image" size={14} /> <span className="hidden sm:inline">Insert image</span>
           </Button>
         </div>
         <div className="flex-1 min-h-0 overflow-hidden bg-white">
@@ -1654,7 +1656,7 @@ export default function EnhancedTemplateEditor({
     fill: true,
     content: (
       <>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-3 py-1.5 border-b border-thread-sage/40 flex-shrink-0 text-sm text-nb-ink">
+        <div className="ts-editor-tools flex flex-wrap items-center gap-x-4 gap-y-2 px-3 py-1.5 border-b border-thread-sage/40 flex-shrink-0 text-sm text-nb-ink">
           {useStandardLayout ? (
             <Button
               variant="secondary"
@@ -1706,9 +1708,10 @@ export default function EnhancedTemplateEditor({
             size="sm"
             aria-haspopup="dialog"
             onClick={() => setImagePickerPane('css')}
-            className="ml-auto inline-flex items-center gap-2"
+            aria-label="Insert image"
+            className="ts-icon-only ml-auto inline-flex items-center gap-2"
           >
-            <PixelIcon name="image" size={14} /> Insert image
+            <PixelIcon name="image" size={14} /> <span className="hidden sm:inline">Insert image</span>
           </Button>
         </div>
         <p className="m-0 px-3 py-1.5 text-xs text-nb-ink-mid border-b border-thread-sage/40 flex-shrink-0">
@@ -1830,25 +1833,49 @@ body {
             title={useStandardLayout ? 'Your page' : 'Your own HTML page'}
             handle={username}
             status={<SaveStatus state={saveState} />}
-          >
-            {saveMessage && (
+            message={saveMessage && (
               <span className={`text-sm ${saveMessage.includes('✓') ? 'text-nb-ink' : 'text-thread-sunset'}`}>
                 {saveMessage}
               </span>
             )}
-            <ShareToFeedCheckbox checked={shareToFeed} onChange={setShareToFeed} disabled={isSaving} className="text-nb-ink" />
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setShowHistoryPanel(true)}
-              title="Load an earlier version of your page"
-              className="inline-flex items-center gap-1"
-            >
-              <PixelIcon name="clock" size={12} /> History
-            </Button>
+            share={<ShareToFeedCheckbox checked={shareToFeed} onChange={setShareToFeed} disabled={isSaving} className="text-nb-ink" />}
+            laptopOnly={
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setShowHistoryPanel(true)}
+                title="Load an earlier version of your page"
+                className="inline-flex items-center gap-1"
+              >
+                <PixelIcon name="clock" size={12} /> History
+              </Button>
+            }
+            save={
+              <Button size="sm" onClick={handleSave} disabled={isSaving}>
+                {isSaving ? 'Saving...' : 'Save & Go Live'}
+              </Button>
+            }
+          >
             <EditorMenu>
               {(close) => (
                 <>
+                  <PhoneOnly>
+                    <MenuItem onClick={() => { close(); setShowHistoryPanel(true); }}>
+                      <PixelIcon name="clock" size={12} /> History
+                    </MenuItem>
+                    {activeTab === 'css' ? (
+                      <MenuItem href="/build/css" newTab>
+                        <PixelIcon name="article" size={12} /> CSS guide
+                      </MenuItem>
+                    ) : (
+                      <MenuItem href="/build/html" newTab>
+                        <PixelIcon name="article" size={12} /> Lessons
+                      </MenuItem>
+                    )}
+                    <MenuItem href="/build/what-works-here" newTab>
+                      <PixelIcon name="info-box" size={12} /> What works here
+                    </MenuItem>
+                  </PhoneOnly>
                   <MenuItem href={`/resident/${encodeURIComponent(username)}`}>
                     <PixelIcon name="home" size={12} /> View my page
                   </MenuItem>
@@ -1868,9 +1895,6 @@ body {
                 </>
               )}
             </EditorMenu>
-            <Button size="sm" onClick={handleSave} disabled={isSaving}>
-              {isSaving ? 'Saving...' : 'Save & Go Live'}
-            </Button>
           </EditorToolbar>
         }
         notices={
@@ -1892,7 +1916,7 @@ body {
               />
             )}
             {(showsDefaultLook || cssWillChange) && (
-              <p className="m-0 px-4 py-1.5 flex flex-wrap gap-x-3 text-sm bg-thread-cream border-b border-thread-sage text-nb-ink flex-shrink-0">
+              <p className="ts-editor-note m-0 px-4 py-1.5 flex flex-wrap gap-x-3 text-sm bg-thread-cream border-b border-thread-sage text-nb-ink flex-shrink-0">
                 {showsDefaultLook && (
                   <span>
                     <strong>Your page has the site&apos;s default look.</strong>{' '}

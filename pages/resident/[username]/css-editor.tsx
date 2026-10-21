@@ -36,6 +36,7 @@ import EditorWorkspace, {
   EditorToolbar,
   LivePreviewPane,
   MenuItem,
+  PhoneOnly,
   SaveStatus,
   useEmbeddedPreview,
   type WorkspaceTab,
@@ -443,7 +444,7 @@ export default function CSSEditorPage({
     fill: true,
     content: (
       <>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-3 py-1.5 border-b border-thread-sage/40 flex-shrink-0 text-sm text-nb-ink">
+        <div className="ts-editor-tools flex flex-wrap items-center gap-x-4 gap-y-2 px-3 py-1.5 border-b border-thread-sage/40 flex-shrink-0 text-sm text-nb-ink">
           <Button
             variant="secondary"
             size="sm"
@@ -543,30 +544,50 @@ export default function CSSEditorPage({
               title="CSS for your page"
               handle={username}
               status={<SaveStatus state={saving ? 'saving' : isDirty ? 'pending' : 'saved'} />}
-            >
-              {saveMessage && (
+              message={saveMessage && (
                 <span className={`text-sm ${saveMessage.startsWith('Error') ? 'text-thread-sunset' : 'text-nb-ink'}`}>
                   {saveMessage}
                 </span>
               )}
-              <ShareToFeedCheckbox
-                checked={shareToFeed}
-                onChange={setShareToFeed}
-                disabled={saving}
-                className="text-nb-ink"
-              />
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setShowHistoryPanel(true)}
-                title="Load an earlier version of your CSS"
-                className="inline-flex items-center gap-1"
-              >
-                <PixelIcon name="clock" size={12} /> History
-              </Button>
+              share={
+                <ShareToFeedCheckbox
+                  checked={shareToFeed}
+                  onChange={setShareToFeed}
+                  disabled={saving}
+                  className="text-nb-ink"
+                />
+              }
+              laptopOnly={
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setShowHistoryPanel(true)}
+                  title="Load an earlier version of your CSS"
+                  className="inline-flex items-center gap-1"
+                >
+                  <PixelIcon name="clock" size={12} /> History
+                </Button>
+              }
+              save={
+                <Button size="sm" onClick={handleSave} disabled={saving} className="inline-flex items-center gap-1">
+                  {saving ? 'Saving...' : <><PixelIcon name="save" size={14} /> Save CSS</>}
+                </Button>
+              }
+            >
               <EditorMenu>
                 {(close) => (
                   <>
+                    <PhoneOnly>
+                      <MenuItem onClick={() => { close(); setShowHistoryPanel(true); }}>
+                        <PixelIcon name="clock" size={12} /> History
+                      </MenuItem>
+                      <MenuItem href="/build/css" newTab>
+                        <PixelIcon name="article" size={12} /> CSS guide
+                      </MenuItem>
+                      <MenuItem href="/build/what-works-here" newTab>
+                        <PixelIcon name="info-box" size={12} /> What works here
+                      </MenuItem>
+                    </PhoneOnly>
                     <MenuItem href={`/resident/${encodeURIComponent(username)}`}>
                       <PixelIcon name="home" size={12} /> View my page
                     </MenuItem>
@@ -587,9 +608,6 @@ export default function CSSEditorPage({
                   </>
                 )}
               </EditorMenu>
-              <Button size="sm" onClick={handleSave} disabled={saving} className="inline-flex items-center gap-1">
-                {saving ? 'Saving...' : <><PixelIcon name="save" size={14} /> Save CSS</>}
-              </Button>
             </EditorToolbar>
           }
           notices={
@@ -606,7 +624,7 @@ export default function CSSEditorPage({
                 />
               )}
               {pageLook !== 'css' && (
-                <p className="m-0 px-4 py-1.5 text-sm bg-thread-cream border-b border-thread-sage text-nb-ink flex-shrink-0">
+                <p className="ts-editor-note m-0 px-4 py-1.5 text-sm bg-thread-cream border-b border-thread-sage text-nb-ink flex-shrink-0">
                   {pageLook === 'html' ? (
                     <>
                       This CSS styles your own HTML page.{' '}

@@ -27,7 +27,8 @@ export default function ShareToFeedCheckbox({
         onChange={(e) => onChange(e.target.checked)}
         className="h-4 w-4"
       />
-      Share this update in the feed
+      {/* Phones: short enough to sit beside Save */}
+      <span>Share <span className="hidden sm:inline">this update </span>in the feed</span>
     </label>
   );
 }
