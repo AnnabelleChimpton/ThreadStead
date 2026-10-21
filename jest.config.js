@@ -28,7 +28,7 @@ const createJestConfig = nextJest({ dir: './' })
 // CommonJS, so these packages must be transformed or tests can't load the real
 // sanitizer. Shared by unit and engine.
 const ESM_PACKAGES =
-  'unified|rehype.*|hast.*|mdast.*|micromark.*|vfile.*|unist.*|bail|is-plain-obj|trough|property-information|space-separated-tokens|comma-separated-tokens|web-namespaces|zwitch|html-void-elements|ccount|character-entities.*|character-reference.*|stringify-entities|devlop|estree.*|@noble|@tonejs|marked|jose'
+  'unified|rehype.*|hast.*|mdast.*|micromark.*|vfile.*|unist.*|bail|is-plain-obj|trough|property-information|space-separated-tokens|comma-separated-tokens|web-namespaces|zwitch|html-void-elements|ccount|character-entities.*|character-reference.*|stringify-entities|devlop|estree.*|@noble|@tonejs|marked|jose|spessasynth_core|stb-vorbis'
 const transformEsmPackages = [`node_modules/(?!(${ESM_PACKAGES})/)`]
 
 /** @type {import('jest').Config} */

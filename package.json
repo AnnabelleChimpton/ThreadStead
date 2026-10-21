@@ -83,6 +83,8 @@
     "sharp": "^0.34.3",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
+    "spessasynth_core": "4.3.22",
+    "spessasynth_lib": "4.3.14",
     "tsx": "^4.20.3",
     "unified": "^11.0.5",
     "zod": "^4.1.5"

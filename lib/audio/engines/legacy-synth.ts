@@ -1,16 +1,15 @@
 /**
- * Today's hand-rolled synth, moved out of MidiPlayer.tsx (MIDI plan Phase 2)
- * behind the MidiEngine interface, so players and the signup music share
- * one engine through the "now playing" store. The synthesis itself (samples,
- * voices, effects, voice stealing) is the component's code unchanged;
- * Phase 3 replaces the whole file with a soundfont sampler.
+ * The old hand-rolled synth, moved out of MidiPlayer.tsx (MIDI plan Phase 2)
+ * behind the MidiEngine interface. Since Phase 3 songs play through the
+ * soundfont sampler (sampler.ts); this one only plays a song whose sound
+ * bank isn't there yet, and goes in Phase 4.
  *
  * Left behind in the move: four note players nothing called, and the
  * analysis worker, whose results only fed a voice stealer that almost never
  * runs (the same analyses run here on the main thread).
  */
 import type { Midi } from '@tonejs/midi';
-import type { MidiEngine } from '../engine';
+import type { MidiEngine, SongFiles } from '../engine';
 
 type Ref<T> = { current: T };
 const ref = <T,>(current: T): Ref<T> => ({ current });
@@ -1845,7 +1844,10 @@ export function createLegacySynth(ctx: AudioContext, output: AudioNode): MidiEng
   };
 
   return {
-    load(midi: Midi) {
+    async load(song: SongFiles) {
+      const { Midi: MidiFile } = await import('@tonejs/midi');
+      const midi = new MidiFile(song.midi);
+      if (!midi.tracks?.length) throw new Error('This file has no playable tracks');
       playToken++;
       midiDataRef.current = midi;
       playing = false;

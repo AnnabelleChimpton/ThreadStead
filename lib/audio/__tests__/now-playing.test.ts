@@ -35,11 +35,24 @@ class FakeContext {
 }
 
 // ---- a fake engine that records what the store asks of it ----
-function fakeEngine(duration = 60) {
+// A test can hold the next load open (a slow download or parse)
+const heldLoads: Array<Promise<void>> = [];
+function holdNextLoad() {
+  let finish: () => void = () => {};
+  heldLoads.push(new Promise<void>((resolve) => { finish = resolve; }));
+  return () => finish();
+}
+
+function fakeEngine(kind: nowPlaying.EngineKind, duration = 60) {
   let at = 0;
   let playing = false;
   const engine = {
-    load: jest.fn(),
+    kind,
+    load: jest.fn(async () => {
+      const held = heldLoads.shift();
+      if (held) await held;
+      if (kind === 'sampler' && failSampler) throw new Error('no AudioWorklet');
+    }),
     duration,
     play: jest.fn(async (from: number) => { at = from; playing = true; return true; }),
     // Like the real engine: remembers where it stopped (a second in)
@@ -53,7 +66,9 @@ function fakeEngine(duration = 60) {
 }
 
 let engines: ReturnType<typeof fakeEngine>[];
-let parse: jest.Mock;
+let failSampler = false;
+// What the server has: songs, and the banks of the songs that have one
+let files: Record<string, number>;
 
 beforeEach(() => {
   allowStart = true;
@@ -61,16 +76,24 @@ beforeEach(() => {
   (window as unknown as { AudioContext: unknown }).AudioContext = FakeContext;
   __resetAudioContextForTests();
   engines = [];
-  parse = jest.fn(async () => ({ tracks: [{}], duration: 60 }));
+  failSampler = false;
+  heldLoads.length = 0;
+  files = {};
   nowPlaying.__setupForTests({
-    engine: () => {
-      const e = fakeEngine();
+    engine: (_ctx, _out, kind) => {
+      const e = fakeEngine(kind);
       engines.push(e);
       return e as unknown as MidiEngine;
     },
-    parse: parse as unknown as nowPlaying.SongParser,
   });
-  global.fetch = jest.fn(async () => ({ ok: true, status: 200, arrayBuffer: async () => new ArrayBuffer(8) })) as unknown as typeof fetch;
+  global.fetch = jest.fn(async (url: string) => {
+    const status = files[url] ?? (url.endsWith('.mid') ? 200 : 404);
+    // A bank answers with a SoundFont header; a song with anything else
+    const body = url.includes('bank=1') && !url.includes('not-a-bank')
+      ? Uint8Array.from('RIFF\0\0\0\0sfbk', (c) => c.charCodeAt(0)).buffer
+      : new ArrayBuffer(8);
+    return { ok: status === 200, status, arrayBuffer: async () => body };
+  }) as unknown as typeof fetch;
 });
 
 const settle = () => new Promise((r) => setTimeout(r, 0));
@@ -79,8 +102,8 @@ test('two players of one song share it: one load, one engine', async () => {
   const releaseA = nowPlaying.claim('/a.mid', { owner: 'profile' });
   const releaseB = nowPlaying.claim('/a.mid', { owner: 'profile' });
   await settle();
-  expect(parse).toHaveBeenCalledTimes(1);
   expect(engines).toHaveLength(1);
+  expect(engines[0].load).toHaveBeenCalledTimes(1);
   expect(nowPlaying.getSnapshot().status).toBe('ready');
 
   // One player leaving keeps it; the last one leaving stops it
@@ -116,16 +139,15 @@ test('going to another profile swaps the song: the old engine goes', async () =>
 });
 
 test('a song that finishes loading after another was picked is dropped', async () => {
-  let finishA: (v: unknown) => void = () => {};
-  parse.mockImplementationOnce(() => new Promise((r) => { finishA = r; }));
+  const finishA = holdNextLoad();
   nowPlaying.claim('/a.mid', { owner: 'profile' });
   await settle();
   nowPlaying.claim('/b.mid', { owner: 'profile' });
   await settle();
-  finishA({ tracks: [{}], duration: 60 });
+  finishA();
   await settle();
   expect(nowPlaying.getSnapshot().url).toBe('/b.mid');
-  // a's engine was made after b's and thrown away
+  // a's engine finished loading after b was picked and was thrown away
   expect(engines.filter((e) => e.dispose.mock.calls.length === 0)).toHaveLength(1);
 });
 
@@ -137,15 +159,14 @@ test('an autoplay attempt and a click at once start the song once', async () => 
 });
 
 test('a song claimed again while starting still starts (React mounts twice in development)', async () => {
-  let finishFirst: (v: unknown) => void = () => {};
-  parse.mockImplementationOnce(() => new Promise((r) => { finishFirst = r; }));
+  const finishFirst = holdNextLoad();
   const release = nowPlaying.claim('/a.mid', { owner: 'profile' });
   const firstTry = nowPlaying.play();
   release();
   nowPlaying.claim('/a.mid', { owner: 'profile' });
   const secondTry = nowPlaying.play();
   await settle();
-  finishFirst({ tracks: [{}], duration: 60 });
+  finishFirst();
   expect(await firstTry).toBe(false);
   expect(await secondTry).toBe(true);
   expect(nowPlaying.getSnapshot().status).toBe('playing');
@@ -187,4 +208,43 @@ test('a song that will not load says why', async () => {
   nowPlaying.claim('/missing.mid', { owner: 'profile' });
   await settle();
   expect(nowPlaying.getSnapshot()).toMatchObject({ status: 'error', error: 'Could not fetch the song (HTTP 404)' });
+});
+
+test('a song with a sound bank plays on the sampler', async () => {
+  files['/api/media/serve/s1?bank=1'] = 200;
+  files['/api/media/serve/s1'] = 200;
+  nowPlaying.claim('/api/media/serve/s1', { owner: 'profile' });
+  await settle();
+  expect(engines.map((e) => e.kind)).toEqual(['sampler']);
+  expect(nowPlaying.getSnapshot()).toMatchObject({ status: 'ready', engine: 'sampler' });
+});
+
+test('a song without one (not backfilled yet) plays on the old synth', async () => {
+  files['/api/media/serve/s2'] = 200;
+  nowPlaying.claim('/api/media/serve/s2', { owner: 'profile' });
+  await settle();
+  expect(engines.map((e) => e.kind)).toEqual(['legacy']);
+  expect(nowPlaying.getSnapshot()).toMatchObject({ status: 'ready', engine: 'legacy' });
+});
+
+test('when the sampler can’t start, the old synth plays the song', async () => {
+  files['/api/media/serve/s3?bank=1'] = 200;
+  files['/api/media/serve/s3'] = 200;
+  failSampler = true;
+  const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  nowPlaying.claim('/api/media/serve/s3', { owner: 'profile' });
+  await settle();
+  await settle();
+  expect(engines.map((e) => e.kind)).toEqual(['sampler', 'legacy']);
+  expect(engines[0].dispose).toHaveBeenCalled();
+  expect(nowPlaying.getSnapshot()).toMatchObject({ status: 'ready', engine: 'legacy' });
+  warn.mockRestore();
+});
+
+test('a "bank" that isn’t a sound bank (an older server sends the song) means the old synth', async () => {
+  files['/api/media/serve/not-a-bank?bank=1'] = 200;
+  files['/api/media/serve/not-a-bank'] = 200;
+  nowPlaying.claim('/api/media/serve/not-a-bank', { owner: 'profile' });
+  await settle();
+  expect(engines.map((e) => e.kind)).toEqual(['legacy']);
 });

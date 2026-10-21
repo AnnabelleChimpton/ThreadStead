@@ -340,7 +340,10 @@ const nextConfig: NextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              `script-src 'self' ${process.env.NODE_ENV !== 'production' ? "'unsafe-eval' " : ''}'unsafe-inline'`, // unsafe-inline needed for Next.js, unsafe-eval only for dev tooling. No analytics hosts: the site promises no tracking
+              // unsafe-inline needed for Next.js, unsafe-eval only for dev tooling. No analytics hosts: the site promises no tracking.
+              // wasm-unsafe-eval lets WebAssembly compile (not JS eval): the music sampler's audio thread
+              // starts its decoder before it will load any sound bank (lib/audio/engines/sampler.ts)
+              `script-src 'self' 'wasm-unsafe-eval' ${process.env.NODE_ENV !== 'production' ? "'unsafe-eval' " : ''}'unsafe-inline'`,
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com", // unsafe-inline needed for styled-components/CSS-in-JS
               "font-src 'self' https://fonts.gstatic.com data:",
               "img-src 'self' https: data: blob:",

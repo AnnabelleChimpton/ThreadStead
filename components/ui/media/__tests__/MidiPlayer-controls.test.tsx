@@ -38,10 +38,9 @@ beforeEach(() => {
   __resetAudioContextForTests();
   nowPlaying.__setupForTests({
     engine: () => ({
-      load() {}, duration: 30, play: async () => true, pause: () => 0, position: () => 0,
+      load: async () => {}, duration: 30, play: async () => true, pause: () => 0, position: () => 0,
       setLoop() {}, onEnded() {}, dispose() {},
     }) as MidiEngine,
-    parse: (async () => ({ tracks: [{}], duration: 30 })) as unknown as nowPlaying.SongParser,
   });
   global.fetch = jest.fn(async () => ({ ok: true, status: 200, arrayBuffer: async () => new ArrayBuffer(8) })) as unknown as typeof fetch;
 });
@@ -142,10 +141,9 @@ test('an autoplayed song that ends stays ended (it used to start over, forever)'
   const play = jest.fn(async () => true);
   nowPlaying.__setupForTests({
     engine: () => ({
-      load() {}, duration: 30, play, pause: () => 30, position: () => 30,
+      load: async () => {}, duration: 30, play, pause: () => 30, position: () => 30,
       setLoop() {}, onEnded(cb: () => void) { ended = cb; }, dispose() {},
     }) as MidiEngine,
-    parse: (async () => ({ tracks: [{}], duration: 30 })) as unknown as nowPlaying.SongParser,
   });
   render(<MidiPlayer midiUrl="/song.mid" title="Little tune" autoplay />);
   await waitFor(() => expect(screen.getByRole('button', { name: 'Pause' })).toBeInTheDocument());
