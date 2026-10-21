@@ -78,6 +78,8 @@ export interface ResidentData {
   profileMidi?: {
     url: string;
     title?: string;
+    /** The owner's credit line for the song */
+    credit?: string | null;
     autoplay?: boolean;
     loop?: boolean;
   };

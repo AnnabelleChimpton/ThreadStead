@@ -42,7 +42,7 @@ export default apiHandler(
         db.handle.findFirst({ where: { userId: user.id, host: SITE_NAME }, select: { handle: true } }),
       ]);
       const song = profile?.profileMidiId
-        ? await db.media.findUnique({ where: { id: profile.profileMidiId }, select: { id: true, title: true } })
+        ? await db.media.findUnique({ where: { id: profile.profileMidiId }, select: { id: true, title: true, caption: true } })
         : null;
       const slot = storedSlot(profile?.widgetSlot);
       const handleName = handle?.handle ?? user.primaryHandle?.split('@')[0] ?? '';
@@ -56,7 +56,7 @@ export default apiHandler(
           avatarUrl: profile?.avatarUrl || '/assets/default-avatar.gif',
           // Never autoplay inside the picker
           song: song
-            ? { url: `/api/media/serve/${song.id}`, title: song.title || 'Background Music', autoplay: false, loop: profile?.midiLoop ?? false }
+            ? { url: `/api/media/serve/${song.id}`, title: song.title || 'Background Music', credit: song.caption || null, autoplay: false, loop: profile?.midiLoop ?? false }
             : null,
         },
         previews: gallery(),

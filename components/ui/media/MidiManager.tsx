@@ -1,526 +1,418 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
-import { PixelIcon } from '@/components/ui/PixelIcon';
 import { useToast } from '@/contexts/ToastContext';
 import { useConfirm } from '@/contexts/ConfirmContext';
+import Button from '@/components/ui/Button';
+import { buttonClasses } from '@/components/ui/ButtonLink';
 import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner';
-import ErrorDisplay from '@/components/ui/feedback/ErrorDisplay';
 
-// Dynamic import of MidiPlayer to avoid SSR issues
+// The player is client-only
 const MidiPlayer = dynamic(() => import('@/components/ui/media/MidiPlayer'), {
   ssr: false,
-  loading: () => <LoadingSpinner layout="row" message="Loading player..." className="justify-start" />
+  loading: () => <LoadingSpinner layout="row" message="Loading the player…" className="justify-start" />,
 });
 
-interface MidiFile {
+interface Song {
   id: string;
-  title?: string;
-  caption?: string;
-  fullUrl: string;
-  originalName?: string;
-  fileSize?: number;
+  title?: string | null;
+  /** The credit line: "by …", "arranged from …" */
+  caption?: string | null;
+  originalName?: string | null;
+  fileSize?: number | null;
   createdAt: string;
-  featured: boolean;
-  featuredOrder?: number;
 }
 
 interface MidiManagerProps {
   username: string;
 }
 
+const MAX_BYTES = 1024 * 1024;
+const songName = (song: Song) => song.title || song.originalName?.replace(/\.midi?$/i, '') || 'Untitled song';
+
+async function capability(kind: 'media' | 'profile'): Promise<string> {
+  const res = await fetch(`/api/cap/${kind}`, { method: 'POST' });
+  if (!res.ok) throw new Error(res.status === 401 ? 'Sign in again to change your music.' : "Couldn't save that. Try again in a moment.");
+  const { token } = await res.json();
+  return token;
+}
+
+/**
+ * Your songs, in Settings → Music (MIDI plan Phase 5): pick the one on your
+ * profile (or none), preview each in its own row, give it a title and a
+ * credit, and choose whether it starts on its own and repeats. Every change
+ * saves as you make it.
+ */
 export default function MidiManager({ username }: MidiManagerProps) {
-  const { showSuccess } = useToast();
+  const { showSuccess, showError } = useToast();
   const confirm = useConfirm();
-  const [midiFiles, setMidiFiles] = useState<MidiFile[]>([]);
+  const [songs, setSongs] = useState<Song[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  const [selectedMidi, setSelectedMidi] = useState<string | null>(null);
-  const [autoplayEnabled, setAutoplayEnabled] = useState(false);
-  const [loopEnabled, setLoopEnabled] = useState(false);
-  const [settingsLoaded, setSettingsLoaded] = useState(false);
+  const [profileSong, setProfileSong] = useState<string | null>(null);
+  const [autoplay, setAutoplay] = useState(false);
+  const [loop, setLoop] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [previewingMidi, setPreviewingMidi] = useState<string | null>(null);
-  const [isMounted, setIsMounted] = useState(false);
+  const [previewing, setPreviewing] = useState<string | null>(null);
+  const [editing, setEditing] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  const loadMidiFiles = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(`/api/media/midi/${username}`);
-      if (response.ok) {
-        const data = await response.json();
-        setMidiFiles(data.files || []);
-      } else {
-        setError('Failed to load MIDI files');
-      }
-    } catch (err) {
-      setError('Failed to load MIDI files');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadCurrentSettings = async () => {
-    // Only load if we haven't loaded settings yet to avoid excessive API calls
-    if (settingsLoaded) {
-      return;
-    }
-    
-    try {
-      const response = await fetch(`/api/profile/${username}`);
-      if (response.ok) {
-        const data = await response.json();
-        if (data.profile) {
-          setSelectedMidi(data.profile.profileMidiId);
-          setAutoplayEnabled(data.profile.midiAutoplay || false);
-          setLoopEnabled(data.profile.midiLoop || false);
-        }
-        setSettingsLoaded(true);
-      }
-    } catch (err) {
-      console.error('Failed to load current MIDI settings:', err);
-      setSettingsLoaded(true); // Mark as loaded even on error to prevent retries
-    }
-  };
-
-  useEffect(() => {
-    setSettingsLoaded(false); // Reset settings loaded flag when username changes
-    loadMidiFiles();
-    loadCurrentSettings();
+    let cancelled = false;
+    setLoading(true);
+    Promise.all([
+      fetch(`/api/media/midi/${encodeURIComponent(username)}`).then((r) => (r.ok ? r.json() : Promise.reject())),
+      fetch(`/api/profile/${encodeURIComponent(username)}`).then((r) => (r.ok ? r.json() : null)),
+    ])
+      .then(([list, profile]) => {
+        if (cancelled) return;
+        const files: Song[] = list.files || [];
+        setSongs(files);
+        const picked = profile?.profile?.profileMidiId ?? null;
+        // A song that's gone doesn't count as picked
+        setProfileSong(files.some((f) => f.id === picked) ? picked : null);
+        setAutoplay(!!profile?.profile?.midiAutoplay);
+        setLoop(!!profile?.profile?.midiLoop);
+      })
+      .catch(() => {
+        if (!cancelled) showError("Couldn't load your songs. Try reloading the page.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // showError is stable enough; reloading on it would loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [username]);
 
-
-  const handleDelete = async (id: string) => {
-    if (!(await confirm({ title: 'Delete this MIDI file?', message: "This can't be undone.", confirmText: 'Delete', variant: 'danger' }))) return;
-
+  /** Save the profile's song and its two switches together (one route) */
+  const saveProfile = async (next: { song: string | null; autoplay: boolean; loop: boolean }, done: string) => {
+    const before = { song: profileSong, autoplay, loop };
+    setProfileSong(next.song);
+    setAutoplay(next.autoplay);
+    setLoop(next.loop);
+    setSaving(true);
     try {
-      const capRes = await fetch('/api/cap/media', { method: 'POST' });
-      if (capRes.status === 401) {
-        setError('Please log in to delete files');
-        return;
-      }
-      const { token } = await capRes.json();
-
-      const response = await csrfFetch(`/api/media/${id}`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cap: token }),
-      });
-
-      if (response.ok) {
-        setMidiFiles(prev => prev.filter(f => f.id !== id));
-      } else {
-        setError('Failed to delete file');
-      }
-    } catch (err) {
-      setError('Failed to delete file');
-    }
-  };
-
-  const handleSetAsProfile = async (id: string) => {
-    try {
-      const capRes = await fetch('/api/cap/profile', { method: 'POST' });
-      if (capRes.status === 401) {
-        setError('Please log in');
-        return;
-      }
-      const { token } = await capRes.json();
-
-      const response = await csrfFetch('/api/profile/midi', {
+      const cap = await capability('profile');
+      const res = await csrfFetch('/api/profile/midi', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          midiId: id,
-          autoplay: autoplayEnabled,
-          loop: loopEnabled,
-          cap: token
-        }),
+        body: JSON.stringify({ midiId: next.song, autoplay: next.autoplay, loop: next.loop, cap }),
       });
-
-      if (response.ok) {
-        setSelectedMidi(id);
-        showSuccess('Profile music updated.');
-      } else {
-        setError('Failed to update profile MIDI');
-      }
-    } catch (err) {
-      setError('Failed to update profile MIDI');
+      if (!res.ok) throw new Error("Couldn't save that. Try again in a moment.");
+      showSuccess(done);
+    } catch (error) {
+      setProfileSong(before.song);
+      setAutoplay(before.autoplay);
+      setLoop(before.loop);
+      showError(error instanceof Error ? error.message : "Couldn't save that. Try again in a moment.");
+    } finally {
+      setSaving(false);
     }
   };
 
-  const saveGlobalSettings = async () => {
-    try {
-      const capRes = await fetch('/api/cap/profile', { method: 'POST' });
-      if (capRes.status === 401) {
-        setError('Please log in');
-        return;
-      }
-      const { token } = await capRes.json();
-
-      const response = await csrfFetch('/api/profile/midi', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          midiId: selectedMidi,
-          autoplay: autoplayEnabled,
-          loop: loopEnabled,
-          cap: token
-        }),
-      });
-
-      if (response.ok) {
-        // Show a brief success message
-        setSuccess('Settings saved.');
-        setTimeout(() => setSuccess(null), 2000);
-      } else {
-        setError('Failed to save settings');
-      }
-    } catch (err) {
-      setError('Failed to save settings');
-    }
+  const pickSong = (id: string | null) => {
+    if (id === profileSong) return;
+    const song = songs.find((s) => s.id === id);
+    void saveProfile(
+      { song: id, autoplay, loop },
+      song ? `Your profile plays “${songName(song)}” now.` : 'Your profile has no music now.'
+    );
   };
 
-  const formatFileSize = (bytes?: number) => {
-    if (!bytes) return '';
-    const kb = bytes / 1024;
-    return `${kb.toFixed(1)} KB`;
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  };
-
-  const handleButtonClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
+  const upload = async (files: FileList) => {
     setUploading(true);
-    setError(null);
-
     try {
-      // Get capability token
-      const capRes = await fetch("/api/cap/media", { method: "POST" });
-      if (capRes.status === 401) {
-        setError("Please log in to upload MIDI files");
-        setUploading(false);
-        return;
-      }
-      const { token } = await capRes.json();
-
-      // Upload each file
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        
-        // Validate file
-        const allowedTypes = ['audio/midi', 'audio/x-midi', 'application/x-midi'];
-        const allowedExtensions = ['.mid', '.midi'];
-        
-        const hasValidType = allowedTypes.includes(file.type);
-        const hasValidExtension = allowedExtensions.some(ext => 
-          file.name.toLowerCase().endsWith(ext)
-        );
-
-        if (!hasValidType && !hasValidExtension) {
-          setError(`"${file.name}" is not a valid MIDI file`);
+      const cap = await capability('media');
+      for (const file of Array.from(files)) {
+        if (!/\.midi?$/i.test(file.name)) {
+          showError(`“${file.name}” isn't a MIDI file (.mid or .midi).`);
           continue;
         }
-
-        if (file.size > 1 * 1024 * 1024) {
-          setError(`"${file.name}" is too large (max 1MB)`);
+        if (file.size > MAX_BYTES) {
+          showError(`“${file.name}” is over 1 MB.`);
           continue;
         }
-
-        // Create form data
-        const formData = new FormData();
-        formData.append('image', file); // Using 'image' field name for compatibility
-        formData.append('cap', token);
-        formData.append('title', file.name.replace(/\.(mid|midi)$/i, '')); // Auto title from filename
-
-        // Upload file
-        const response = await csrfFetch('/api/media/upload', {
-          method: 'POST',
-          body: formData,
-        });
-
-        const result = await response.json();
-
-        if (response.ok) {
-          // Add to local state
-          setMidiFiles(prev => [result.media, ...prev]);
-        } else {
-          setError(result.error || `Failed to upload "${file.name}"`);
+        const form = new FormData();
+        form.append('image', file); // the upload route's one file field
+        form.append('cap', cap);
+        form.append('title', file.name.replace(/\.midi?$/i, ''));
+        const res = await csrfFetch('/api/media/upload', { method: 'POST', body: form });
+        const result = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          showError(result.error ? `“${file.name}”: ${result.error}` : `Couldn't add “${file.name}”.`);
+          continue;
         }
+        setSongs((prev) => [
+          { id: result.media.id, title: result.media.title, caption: result.media.caption, originalName: file.name, fileSize: file.size, createdAt: result.media.createdAt },
+          ...prev,
+        ]);
+        showSuccess(`Added “${file.name.replace(/\.midi?$/i, '')}”.`);
       }
-
-      // Reload files to ensure we have the latest data
-      loadMidiFiles();
-      
-    } catch (err) {
-      setError('Upload failed. Please try again.');
+    } catch (error) {
+      showError(error instanceof Error ? error.message : "Couldn't add that. Try again in a moment.");
     } finally {
       setUploading(false);
-      // Clear the input so the same file can be selected again
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const saveDetails = async (song: Song, title: string, credit: string) => {
+    try {
+      const cap = await capability('media');
+      const res = await csrfFetch(`/api/media/${song.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cap, title: title.trim() || null, caption: credit.trim() || null }),
+      });
+      if (!res.ok) throw new Error("Couldn't save that. Try again in a moment.");
+      const { media } = await res.json();
+      setSongs((prev) => prev.map((s) => (s.id === song.id ? { ...s, title: media.title, caption: media.caption } : s)));
+      setEditing(null);
+      showSuccess('Saved.');
+    } catch (error) {
+      showError(error instanceof Error ? error.message : "Couldn't save that. Try again in a moment.");
+    }
+  };
+
+  const remove = async (song: Song) => {
+    const onProfile = song.id === profileSong;
+    const ok = await confirm({
+      title: `Delete “${songName(song)}”?`,
+      message: onProfile
+        ? "It's the song on your profile, so your page will go quiet. This can't be undone."
+        : "This can't be undone.",
+      confirmText: 'Delete',
+      variant: 'danger',
+    });
+    if (!ok) return;
+    try {
+      const cap = await capability('media');
+      const res = await csrfFetch(`/api/media/${song.id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cap }),
+      });
+      if (!res.ok) throw new Error("Couldn't delete it. Try again in a moment.");
+      setSongs((prev) => prev.filter((s) => s.id !== song.id));
+      if (onProfile) setProfileSong(null);
+      if (previewing === song.id) setPreviewing(null);
+      showSuccess(onProfile ? 'Deleted. Your profile has no music now.' : 'Deleted.');
+    } catch (error) {
+      showError(error instanceof Error ? error.message : "Couldn't delete it. Try again in a moment.");
     }
   };
 
   if (loading) {
-    return <LoadingSpinner message="Loading MIDI files..." className="py-8" />;
+    return <LoadingSpinner message="Loading your songs…" className="py-8" />;
   }
 
+  const picked = songs.find((s) => s.id === profileSong) ?? null;
+
   return (
-    <div className="space-y-4">
-      {/* Current Profile Music Status - Most Important Info First */}
-      <div className="bg-white border border-nb-ink-mid/40 rounded-lg p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <PixelIcon name="music" size={32} />
-            <div>
-              <h3 className="font-semibold">Profile Music</h3>
-              {selectedMidi ? (
-                <p className="text-sm text-nb-ink">
-                  <PixelIcon name="check" size={16} className="inline-block align-middle" /> Background music is active ({midiFiles.find(f => f.id === selectedMidi)?.title || 'Unnamed Track'})
-                </p>
-              ) : midiFiles.length > 0 ? (
-                <p className="text-sm text-amber-600">
-                  <PixelIcon name="alert" size={16} className="inline-block align-middle" /> You have {midiFiles.length} track{midiFiles.length === 1 ? '' : 's'} but none selected for your profile
-                </p>
-              ) : (
-                <p className="text-sm text-nb-ink-mid">
-                  No background music set up yet
-                </p>
-              )}
-            </div>
-          </div>
-          
-          {/* Quick Upload Button */}
-          <div className="flex items-center gap-2">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".mid,.midi,audio/midi"
-              onChange={handleFileInputChange}
-              className="hidden"
-              multiple
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-center gap-3">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".mid,.midi,audio/midi"
+          multiple
+          className="hidden"
+          onChange={(e) => e.target.files?.length && upload(e.target.files)}
+        />
+        <Button onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+          {uploading ? 'Adding…' : 'Add a song'}
+        </Button>
+        <span className="text-sm text-nb-ink-mid">A .mid or .midi file, up to 1 MB. Up to 10 a month.</span>
+      </div>
+
+      <fieldset className="m-0 p-0 border-0 min-w-0" disabled={saving}>
+        <legend className="font-semibold text-nb-ink mb-2">On your profile</legend>
+        {/* Inline margin and padding: site CSS indents lists on phones */}
+        <ul className="list-none space-y-2" style={{ margin: 0, padding: 0 }}>
+          <li className="border-2 border-nb-ink-mid/30 rounded-md bg-white px-3 py-2">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="profile-song"
+                checked={profileSong === null}
+                onChange={() => pickSong(null)}
+                className="h-4 w-4 flex-shrink-0 accent-nb-ink"
+              />
+              <span className="text-nb-ink">No music</span>
+            </label>
+          </li>
+          {songs.map((song) => (
+            <SongRow
+              key={song.id}
+              song={song}
+              onProfile={song.id === profileSong}
+              previewing={previewing === song.id}
+              editing={editing === song.id}
+              onPick={() => pickSong(song.id)}
+              onPreview={() => setPreviewing(previewing === song.id ? null : song.id)}
+              onEdit={() => setEditing(editing === song.id ? null : song.id)}
+              onSave={(title, credit) => saveDetails(song, title, credit)}
+              onDelete={() => remove(song)}
             />
-            <button
-              onClick={handleButtonClick}
-              disabled={uploading}
-              className={`px-3 py-1.5 text-sm border font-medium rounded transition-all ${
-                uploading 
-                  ? 'border-nb-ink-mid/40 bg-nb-ink-mid/5 text-nb-ink-mid cursor-not-allowed' 
-                  : 'border-nb-ink-mid/50 border-2 border-dotted border-nb-ink-mid/60 rounded-md text-nb-ink hover:bg-nb-paper'
-              }`}
-            >
-              {uploading ? (
-                <span className="flex items-center gap-1">
-                  <PixelIcon name="clock" size={16} className="animate-spin" />
-                  Uploading...
-                </span>
-              ) : (
-                <span className="flex items-center gap-1">
-                  <PixelIcon name="folder" size={16} />
-                  Add Files
-                </span>
-              )}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Control Panel */}
-      <div className="space-y-4">
-
-        {/* Playback Settings - Compact version, only show if there are files */}
-        {midiFiles.length > 0 && (
-          <div className="bg-nb-ink-mid/5 border border-nb-ink-mid/40 rounded-lg p-3">
-            <div className="flex items-center justify-between">
-              <h4 className="font-medium text-sm text-nb-ink">Playback Settings</h4>
-              <button
-                onClick={saveGlobalSettings}
-                className="thread-button-secondary btn btn--secondary text-xs"
-              >
-                <PixelIcon name="save" size={12} className="inline-block align-middle" /> Save
-              </button>
-            </div>
-            <div className="flex items-center gap-6 mt-2">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={autoplayEnabled}
-                  onChange={(e) => setAutoplayEnabled(e.target.checked)}
-                  className="w-3 h-3 text-nb-ink focus:ring-nb-lav"
-                />
-                <span className="text-xs text-nb-ink-mid">Autoplay when visitors arrive</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={loopEnabled}
-                  onChange={(e) => setLoopEnabled(e.target.checked)}
-                  className="w-3 h-3 text-nb-ink focus:ring-nb-lav"
-                />
-                <span className="text-xs text-nb-ink-mid">Loop continuously</span>
-              </label>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* MIDI Files List */}
-      {midiFiles.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h4 className="font-semibold">Your MIDI Files</h4>
-            <span className="text-sm text-nb-ink-mid">
-              {selectedMidi ? <><PixelIcon name="check" size={14} className="inline-block align-middle" /> Profile music selected</> : 'Select a file to set as profile music'}
-            </span>
-          </div>
-          {midiFiles.map((file) => (
-            <div
-              key={file.id}
-              className={`border-2 rounded-lg p-4 transition-all ${
-                selectedMidi === file.id 
-                  ? 'border-nb-ink-mid/50 bg-nb-paper shadow-md' 
-                  : 'border-nb-ink-mid/40 bg-white hover:border-nb-ink-mid/50 hover:shadow-sm'
-              }`}
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex items-start gap-3 flex-1">
-                  <div className={`mt-1 ${selectedMidi === file.id ? 'animate-pulse' : ''}`}>
-                    <PixelIcon name="music" size={32} />
-                  </div>
-                  <div className="flex-1">
-                    <h5 className="font-semibold text-nb-ink">
-                      {file.title || file.originalName || 'Untitled MIDI'}
-                      {selectedMidi === file.id && (
-                        <span className="thread-button-secondary btn btn--secondary inline-flex items-center text-xs">
-                          Active
-                        </span>
-                      )}
-                    </h5>
-                    {file.caption && (
-                      <p className="text-sm text-nb-ink-mid mt-1">{file.caption}</p>
-                    )}
-                    <div className="flex items-center gap-3 text-xs text-nb-ink-mid mt-2">
-                      <span className="flex items-center gap-1">
-                        <PixelIcon name="folder" size={12} /> {formatFileSize(file.fileSize)}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <PixelIcon name="calendar" size={12} /> {formatDate(file.createdAt)}
-                      </span>
-                      {file.featured && (
-                        <span className="flex items-center gap-1 text-amber-600">
-                          <PixelIcon name="bookmark" size={12} /> Featured
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex flex-col gap-1">
-                  {selectedMidi !== file.id ? (
-                    <button
-                      onClick={() => handleSetAsProfile(file.id)}
-                      className="thread-button-secondary btn btn--secondary text-sm"
-                    >
-                      Set as Profile
-                    </button>
-                  ) : (
-                    <button
-                      disabled
-                      className="thread-button btn btn--primary text-sm"
-                    >
-                      <PixelIcon name="check" size={14} className="inline-block align-middle" /> Active
-                    </button>
-                  )}
-                  <button
-                    onClick={() => setPreviewingMidi(previewingMidi === file.id ? null : file.id)}
-                    className={`px-3 py-1.5 text-sm border rounded transition-colors ${
-                      previewingMidi === file.id
-                        ? 'border-nb-ink-mid/50 bg-nb-paper hover:bg-nb-paper text-nb-ink'
-                        : 'border-nb-ink-mid/40 bg-white hover:bg-nb-ink-mid/5'
-                    }`}
-                    title={previewingMidi === file.id ? 'Close preview' : 'Preview MIDI'}
-                  >
-                    <PixelIcon name={previewingMidi === file.id ? 'close' : 'play'} size={14} className="inline-block align-middle" /> {previewingMidi === file.id ? 'Close' : 'Preview'}
-                  </button>
-                  <button
-                    onClick={() => window.open(file.fullUrl, '_blank')}
-                    className="thread-button-secondary btn btn--secondary text-sm"
-                    title="Download MIDI file"
-                  >
-                    <PixelIcon name="download" size={14} className="inline-block align-middle" /> Download
-                  </button>
-                  <button
-                    onClick={() => handleDelete(file.id)}
-                    className="thread-button-secondary btn btn--secondary text-sm"
-                    title="Delete this file"
-                  >
-                    <PixelIcon name="trash" size={14} className="inline-block align-middle" /> Delete
-                  </button>
-                </div>
-              </div>
-            </div>
           ))}
-        </div>
-      )}
+        </ul>
+        {songs.length === 0 && (
+          <p className="mt-3 mb-0 text-sm text-nb-ink-mid">No songs yet. Add a MIDI file and it shows up here.</p>
+        )}
+      </fieldset>
 
-
-      {error && (
-        <ErrorDisplay title={error} />
-      )}
-
-      {success && (
-        <div className="p-3 border-2 border-dotted border-nb-ink-mid/60 rounded-md text-nb-ink border border-nb-ink-mid/50 rounded text-sm">
-          {success}
-        </div>
-      )}
-
-      {/* Fixed MIDI Player in bottom right - using portal to render at body level */}
-      {isMounted && previewingMidi && createPortal(
-        <div className="fixed bottom-4 right-4 z-50 shadow-2xl rounded-lg bg-white border-2 border-nb-ink-mid/50">
-          <div className="thread-button-secondary btn btn--secondary flex items-center">
-            <span className="text-sm font-medium text-nb-ink">
-              {midiFiles.find(f => f.id === previewingMidi)?.title || 'Preview'}
-            </span>
-            <button
-              onClick={() => setPreviewingMidi(null)}
-              className="text-nb-ink-mid hover:text-nb-ink transition-colors"
-              title="Close preview"
-            >
-              <PixelIcon name="close" size={16} />
-            </button>
-          </div>
-          <div className="p-2">
-            {/* In the box, not floating over it and its close button */}
-            <MidiPlayer
-              midiUrl={`/api/media/serve/${previewingMidi}`}
-              title={midiFiles.find(f => f.id === previewingMidi)?.title || 'Preview'}
-              autoplay={false}
-              loop={false}
-              placement="inline"
+      {picked && (
+        <fieldset className="m-0 p-0 border-0 min-w-0 space-y-3" disabled={saving}>
+          <legend className="font-semibold text-nb-ink mb-2">How “{songName(picked)}” plays</legend>
+          <label className="flex items-start gap-2 cursor-pointer text-nb-ink">
+            <input
+              type="checkbox"
+              checked={autoplay}
+              onChange={(e) =>
+                saveProfile(
+                  { song: profileSong, autoplay: e.target.checked, loop },
+                  e.target.checked ? "Your song starts on a visitor's first click now." : 'Your song waits for visitors to press Play now.'
+                )
+              }
+              className="mt-1 h-4 w-4 flex-shrink-0 accent-nb-ink"
             />
-          </div>
-        </div>,
-        document.body
+            <span>
+              Start it when someone visits
+              <span className="block text-sm text-nb-ink-mid">
+                Browsers wait for a visitor&apos;s first click or tap, and anyone who has turned autoplay off still has to press Play.
+              </span>
+            </span>
+          </label>
+          <label className="flex items-start gap-2 cursor-pointer text-nb-ink">
+            <input
+              type="checkbox"
+              checked={loop}
+              onChange={(e) =>
+                saveProfile(
+                  { song: profileSong, autoplay, loop: e.target.checked },
+                  e.target.checked ? 'Your song plays on repeat now.' : 'Your song plays once now.'
+                )
+              }
+              className="mt-1 h-4 w-4 flex-shrink-0 accent-nb-ink"
+            />
+            <span>Play it on repeat</span>
+          </label>
+        </fieldset>
       )}
     </div>
+  );
+}
+
+interface SongRowProps {
+  song: Song;
+  onProfile: boolean;
+  previewing: boolean;
+  editing: boolean;
+  onPick: () => void;
+  onPreview: () => void;
+  onEdit: () => void;
+  onSave: (title: string, credit: string) => void;
+  onDelete: () => void;
+}
+
+function SongRow({ song, onProfile, previewing, editing, onPick, onPreview, onEdit, onSave, onDelete }: SongRowProps) {
+  const [title, setTitle] = useState(song.title ?? '');
+  const [credit, setCredit] = useState(song.caption ?? '');
+  const name = songName(song);
+
+  useEffect(() => {
+    if (editing) {
+      setTitle(song.title ?? '');
+      setCredit(song.caption ?? '');
+    }
+  }, [editing, song.title, song.caption]);
+
+  const details = [
+    song.fileSize ? `${Math.max(1, Math.round(song.fileSize / 1024))} KB` : null,
+    new Date(song.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+  ].filter(Boolean).join(' · ');
+
+  return (
+    <li className={`border-2 rounded-md px-3 py-2 ${onProfile ? 'border-nb-ink-mid/60 bg-nb-paper' : 'border-nb-ink-mid/30 bg-white'}`}>
+      <label className="flex items-start gap-2 cursor-pointer min-w-0">
+        <input type="radio" name="profile-song" checked={onProfile} onChange={onPick} className="mt-1 h-4 w-4 flex-shrink-0 accent-nb-ink" />
+        <span className="min-w-0">
+          <span className="block font-semibold text-nb-ink break-words">{name}</span>
+          {song.caption && <span className="block text-sm text-nb-ink-mid break-words">{song.caption}</span>}
+          <span className="block text-xs text-nb-ink-mid">{details}</span>
+        </span>
+      </label>
+
+      {/* Two by two on phones, one row from sm up */}
+      <div className="mt-2 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:pl-6">
+        <Button variant="secondary" size="sm" onClick={onPreview} aria-expanded={previewing}>
+          {previewing ? 'Close preview' : 'Preview'}
+        </Button>
+        <Button variant="secondary" size="sm" onClick={onEdit} aria-expanded={editing}>
+          {editing ? 'Cancel' : 'Edit'}
+        </Button>
+        <a
+          href={`/api/media/serve/${song.id}?download=1`}
+          download
+          className={buttonClasses('secondary', 'sm', { inline: false })}
+          // Inline: the theme's .btn rule for links sets its own display and line-height
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 'inherit' }}
+        >
+          Download
+        </a>
+        <Button variant="danger" size="sm" onClick={onDelete}>
+          Delete
+        </Button>
+      </div>
+
+      {editing && (
+        <form
+          className="mt-3 sm:pl-6 space-y-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            onSave(title, credit);
+          }}
+        >
+          <label className="block text-sm text-nb-ink">
+            Title
+            <input
+              type="text"
+              value={title}
+              maxLength={100}
+              onChange={(e) => setTitle(e.target.value)}
+              className="mt-1 block w-full max-w-md border-2 border-nb-ink-mid/40 rounded px-2 py-1"
+            />
+          </label>
+          <label className="block text-sm text-nb-ink">
+            Credit <span className="text-nb-ink-mid">(optional: who wrote it, who sequenced it)</span>
+            <input
+              type="text"
+              value={credit}
+              maxLength={200}
+              onChange={(e) => setCredit(e.target.value)}
+              className="mt-1 block w-full max-w-md border-2 border-nb-ink-mid/40 rounded px-2 py-1"
+            />
+          </label>
+          <p className="m-0 text-xs text-nb-ink-mid">Visitors see the credit when they open the player&apos;s controls.</p>
+          <Button type="submit" size="sm">Save</Button>
+        </form>
+      )}
+
+      {previewing && (
+        <div className="mt-3 sm:pl-6 max-w-md">
+          <MidiPlayer
+            midiUrl={`/api/media/serve/${song.id}`}
+            title={name}
+            credit={song.caption}
+            playNow
+            loop={false}
+            placement="inline"
+          />
+        </div>
+      )}
+    </li>
   );
 }

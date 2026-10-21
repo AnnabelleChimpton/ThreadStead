@@ -36,6 +36,7 @@ export default function ProfileMusic(props: ProfileMusicProps) {
       <MidiPlayer
         midiUrl={profileMidi.url}
         title={profileMidi.title}
+        credit={profileMidi.credit}
         autoplay={profileMidi.autoplay}
         loop={profileMidi.loop}
         placement="inline"

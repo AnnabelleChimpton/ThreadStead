@@ -75,6 +75,8 @@ type ProfileProps = {
   profileMidi?: {
     url: string;
     title?: string;
+    /** The owner's credit line for the song */
+    credit?: string | null;
     autoplay?: boolean;
     loop?: boolean;
   };
@@ -200,6 +202,7 @@ export default function ProfilePage({
     <MidiPlayer
       midiUrl={profileMidi.url}
       title={profileMidi.title}
+      credit={profileMidi.credit}
       autoplay={profileMidi.autoplay}
       loop={profileMidi.loop}
     />
@@ -458,6 +461,8 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
     profileMidi?: {
       url: string;
       title?: string;
+      /** The owner's credit line for the song */
+      credit?: string | null;
       autoplay?: boolean;
       loop?: boolean;
     };

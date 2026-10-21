@@ -76,13 +76,16 @@ export default apiHandler(
         select: {
           id: true,
           title: true,
-          fullUrl: true,
+          caption: true,
+          mediaType: true,
         }
       });
-      if (midiFile) {
+      if (midiFile?.mediaType === 'midi') {
         profileMidi = {
           url: `/api/media/serve/${midiFile.id}`, // Use proxy to avoid CORS issues
           title: midiFile.title || 'Background Music',
+          // The owner's credit line ("by …", "arranged from …")
+          credit: midiFile.caption || null,
           autoplay: u.profile.midiAutoplay || false,
           loop: u.profile.midiLoop || false,
         };

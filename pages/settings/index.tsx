@@ -962,47 +962,23 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
       label: <><PixelIcon name="music" /> Music</>,
       content: (
         <div className="space-y-6 px-4 sm:px-0">
-          <div className="mb-6">
-            <h2 className="text-xl font-bold mb-2 text-nb-ink">Profile Music</h2>
-            <p className="text-nb-ink-mid mb-6">
-              Add background music to your profile with MIDI files. Create the perfect soundtrack for your digital home.
+          <div>
+            <h2 className="text-xl font-bold mb-2 text-nb-ink">Music</h2>
+            <p className="text-nb-ink-mid m-0">
+              Your profile can play a MIDI song, the way homepages used to. Pick one here, or none.
             </p>
           </div>
 
-          {/* Enhanced MIDI Manager */}
           <div className="thread-module">
-            <div className="flex items-center gap-3 mb-4">
-              <PixelIcon name="music" size={32} />
-              <div>
-                <h3 className="text-lg font-semibold text-nb-ink">MIDI Music Manager</h3>
-                <p className="text-sm text-nb-ink-mid">Upload and manage your profile&apos;s background music</p>
-              </div>
-            </div>
-
+            <h3 className="text-lg font-semibold text-nb-ink mb-4">Your songs</h3>
             <MidiManager username={username} />
           </div>
 
           <MusicListeningSetting />
 
-          {/* Music Tips */}
-          <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-4">
-            <div className="flex items-start justify-between mb-2">
-              <h4 className="font-semibold text-nb-ink"><PixelIcon name="lightbulb" className="inline-block align-middle" /> Music Tips</h4>
-              <Link
-                href="/help/music-guide"
-                className="text-xs"
-              >
-                Full Guide →
-              </Link>
-            </div>
-            <div className="text-sm text-nb-ink space-y-2">
-              <p>• <strong>MIDI files are perfect</strong> for profile music - they&apos;re tiny, load instantly, and create a nostalgic web atmosphere</p>
-              <p>• <strong>Keep it subtle</strong> - background music should enhance, not distract from your content</p>
-              <p>• <strong>Consider your visitors</strong> - some prefer browsing without sound, so make music easy to control</p>
-              <p>• <strong>Shorter loops work best</strong> - 30-60 second tracks that loop seamlessly are ideal</p>
-              <p>• <strong>Need help getting started?</strong> Check our <Link href="/help/music-guide" className="underline hover:text-nb-ink">complete music creator&apos;s guide</Link> for technical specs, composition tips, and software recommendations</p>
-            </div>
-          </div>
+          <p className="text-sm text-nb-ink-mid m-0">
+            New to MIDI? The <Link href="/help/music-guide" className="underline hover:text-nb-ink">music guide</Link> covers where to find songs and how to make your own.
+          </p>
         </div>
       )
     },

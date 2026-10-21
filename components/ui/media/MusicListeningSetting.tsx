@@ -47,7 +47,7 @@ export default function MusicListeningSetting() {
           checked={autoplay}
           disabled={saving}
           onChange={(e) => change(e.target.checked)}
-          className="mt-1 h-4 w-4 flex-shrink-0"
+          className="mt-1 h-4 w-4 flex-shrink-0 accent-nb-ink"
         />
         <span>Play profile music automatically when I visit</span>
       </label>

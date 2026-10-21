@@ -162,3 +162,16 @@ test('an autoplayed song that ends stays ended (it used to start over, forever)'
   await new Promise((r) => setTimeout(r, 50));
   expect(play).toHaveBeenCalledTimes(1);
 });
+
+test('the owner’s credit line shows with the controls', () => {
+  render(<MidiPlayer midiUrl={SONG} title="Little tune" credit="by me, from an old songbook" />);
+  expect(screen.queryByText('by me, from an old songbook')).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'More music controls' }));
+  expect(screen.getByText('by me, from an old songbook')).toBeInTheDocument();
+});
+
+test('a preview starts by itself, even for someone who has turned autoplay off', async () => {
+  window.localStorage.setItem('threadstead-music-autoplay', 'off');
+  render(<MidiPlayer midiUrl={SONG} title="Little tune" placement="inline" playNow />);
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Pause' })).toBeInTheDocument());
+});

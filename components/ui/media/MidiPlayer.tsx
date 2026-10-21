@@ -16,8 +16,15 @@ import {
 interface MidiPlayerProps {
   midiUrl: string;
   title?: string;
+  /** The owner's credit line ("by …", "arranged from …"), shown with the controls */
+  credit?: string | null;
   /** The owner's choice; the visitor's own "no" (music-preferences) wins */
   autoplay?: boolean;
+  /**
+   * Start as soon as it's loaded, because the person just asked for it (the
+   * Preview button in Settings). Not affected by their autoplay choice.
+   */
+  playNow?: boolean;
   loop?: boolean;
   className?: string;
   /**
@@ -42,7 +49,9 @@ const formatTime = (seconds: number): string => {
 export default function MidiPlayer({
   midiUrl,
   title = 'Profile song',
+  credit = null,
   autoplay: ownerAutoplay = false,
+  playNow = false,
   loop = false,
   className = '',
   placement = 'floating',
@@ -66,7 +75,7 @@ export default function MidiPlayer({
   // Autoplay is armed but the browser wants a click first
   const [waitingForClick, setWaitingForClick] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const autoplay = ownerAutoplay && autoplayAllowed;
+  const autoplay = (ownerAutoplay && autoplayAllowed) || playNow;
   const frameRef = useRef<HTMLDivElement | null>(null);
   const sectionRef = useRef<HTMLElement | null>(null);
   const elapsedRef = useRef<HTMLSpanElement | null>(null);
@@ -247,6 +256,7 @@ export default function MidiPlayer({
     >
       {expanded && (
         <div id={panelId} className="px-3 pt-3 pb-2 space-y-3 border-b border-nb-ink-mid/30 text-sm">
+          {credit && <p className="m-0 text-xs text-nb-ink-mid break-words">{credit}</p>}
           {duration > 0 && (
             <div>
               <div className="flex justify-between text-xs text-nb-ink-mid">

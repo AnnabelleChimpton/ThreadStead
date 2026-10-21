@@ -1,8 +1,8 @@
 /**
  * @jest-environment node
  *
- * The owner's side of music (MIDI plan Phase 5): deleting the song on your
- * profile clears it from the profile.
+ * The owner's side of music (MIDI plan Phase 5): the song list is yours
+ * alone, and deleting the song on your profile clears it from the profile.
  */
 import type { NextApiRequest, NextApiResponse } from 'next';
 
@@ -28,13 +28,14 @@ jest.mock('@/lib/storage/r2', () => ({
   deleteObjects: jest.fn(async (keys: string[]) => ({ deleted: keys, failed: [] })),
 }));
 
+import songsHandler from '@/pages/api/media/midi/[username]';
 import mediaHandler from '@/pages/api/media/[id]';
 import { db } from '@/lib/config/database/connection';
 import { getSessionUser } from '@/lib/auth/server';
 import { deleteObjects } from '@/lib/storage/r2';
 
 const CSRF = 'csrf-tok';
-function call(handler: typeof mediaHandler, method: string, query: Record<string, string>, body?: unknown) {
+function call(handler: typeof songsHandler, method: string, query: Record<string, string>, body?: unknown) {
   const req = {
     method,
     query,
@@ -58,6 +59,29 @@ beforeEach(() => {
   jest.clearAllMocks();
   // A fresh owner id per test keeps the route's limiter out of it
   (getSessionUser as jest.Mock).mockResolvedValue({ id: `owner-${++seq}` });
+});
+
+test('your songs, every one, without raw storage links', async () => {
+  (db.handle.findFirst as jest.Mock).mockResolvedValue({ userId: `owner-${seq}` });
+  (db.media.findMany as jest.Mock).mockResolvedValue([{ id: 's1', title: 'Little tune', caption: null }]);
+  const res = await call(songsHandler, 'GET', { username: 'me' });
+  expect(res.statusCode).toBe(200);
+  const where = (db.media.findMany as jest.Mock).mock.calls[0][0].where;
+  expect(where).toEqual({ userId: `owner-${seq}`, mediaType: 'midi' });
+  expect((db.media.findMany as jest.Mock).mock.calls[0][0].select.fullUrl).toBeUndefined();
+});
+
+test('someone else’s song list is refused', async () => {
+  (db.handle.findFirst as jest.Mock).mockResolvedValue({ userId: 'somebody-else' });
+  const res = await call(songsHandler, 'GET', { username: 'them' });
+  expect(res.statusCode).toBe(403);
+  expect(db.media.findMany).not.toHaveBeenCalled();
+});
+
+test('signed out, there is no song list', async () => {
+  (getSessionUser as jest.Mock).mockResolvedValue(null);
+  const res = await call(songsHandler, 'GET', { username: 'me' });
+  expect(res.statusCode).toBe(401);
 });
 
 test('deleting the song on your profile takes it off the profile too, and deletes each file once', async () => {
