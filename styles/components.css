@@ -1770,6 +1770,72 @@ img.ts-emoji {
   }
 }
 
+/* Signup's "Move in" (SignupFinaleAnimation): the street with your house
+   set down into its plot. Steps keep the drop pixel-chunky. */
+.ts-street-lot--arriving .ts-street-yard > span {
+  animation: ts-house-arrive 1.1s steps(11, end) 0.3s both;
+}
+/* The sidewalk stays; the house's number and name come up on it */
+.ts-street-lot--arriving .ts-street-sign {
+  animation: ts-arrive-sign 0.4s ease-out 1.4s both;
+}
+@keyframes ts-arrive-sign {
+  from { color: transparent; }
+}
+@keyframes ts-house-arrive {
+  0% { transform: translateY(-112px); opacity: 0; }
+  20% { opacity: 1; }
+  80% { transform: translateY(0); }
+  90% { transform: translateY(-4px); }
+  100% { transform: translateY(0); opacity: 1; }
+}
+@keyframes ts-arrive-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.ts-finale-caption {
+  animation: ts-arrive-fade 0.4s ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ts-street-lot--arriving .ts-street-yard > span,
+  .ts-street-lot--arriving .ts-street-sign,
+  .ts-finale-caption {
+    animation: none;
+  }
+}
+/* Your house mid-row, with the neighbours in reach either side: the street
+   stays a row here even on a phone, where it scrolls to your lot */
+.ts-finale-street .ts-street {
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.ts-finale-street .ts-street::-webkit-scrollbar {
+  display: none;
+}
+.ts-finale-street .ts-street-inner {
+  width: max-content;
+  margin: 0 auto;
+}
+.ts-finale-street .ts-street-lots {
+  flex-direction: row;
+  align-items: stretch;
+  gap: 0;
+}
+.ts-finale-street .ts-street-road {
+  display: block;
+}
+/* A phone shows the lot and most of each neighbour at half size: one device
+   pixel per art pixel on a 2x screen, with the signs' text kept readable */
+@media (max-width: 639px) {
+  .ts-finale-street .ts-street-inner {
+    zoom: 0.5;
+  }
+  .ts-finale-street .ts-street-sign {
+    font-size: 1.5rem;
+    padding: 6px 12px;
+  }
+}
+
 /* The welcome music's control (WelcomeMusicControl): bottom left, above the
    cookie notice while that's up, never wider than a phone */
 .ts-welcome-music {

@@ -32,6 +32,8 @@ interface StreetProps {
   at?: string | null
   /** Rings two or more of these residents belong to, each after its first member's lot */
   ringSigns?: RingSign[]
+  /** Username whose house is being set down into its lot (signup's "Move in") */
+  arriving?: string | null
 }
 
 const walkHref = (sign: RingSign, go: 'prev' | 'random' | 'next') =>
@@ -61,7 +63,7 @@ function RingSignpost({ sign }: { sign: RingSign }) {
   )
 }
 
-export default function Street({ homes, at, ringSigns = [] }: StreetProps) {
+export default function Street({ homes, at, ringSigns = [], arriving }: StreetProps) {
   useEffect(() => {
     if (!at) return
     const lot = document.getElementById(`lot-${at}`)
@@ -81,7 +83,10 @@ export default function Street({ homes, at, ringSigns = [] }: StreetProps) {
             const signsHere = ringSigns.filter((sign) => sign.afterUserId === home.userId)
             return (
               <React.Fragment key={home.userId}>
-                <li id={`lot-${home.username}`} className="ts-street-lot">
+                <li
+                  id={`lot-${home.username}`}
+                  className={home.username === arriving ? 'ts-street-lot ts-street-lot--arriving' : 'ts-street-lot'}
+                >
                   <Link
                     href={`/home/${encodeURIComponent(home.username)}`}
                     className="ts-street-lot-link"

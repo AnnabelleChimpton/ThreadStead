@@ -253,3 +253,42 @@ export async function getRecentlyDecorated(
       snapshotCardUrl: c.snapshotCardUrl,
     }));
 }
+
+/**
+ * A resident's lot with up to `count` neighbours from their own street: the
+ * nearest house on each side first, then the next nearest on whichever side
+ * has more. The newest resident has nobody after them, so they get the two
+ * houses before theirs. In house-number order.
+ */
+export function withNeighbours(homes: StreetHome[], userId: string, count = 2): StreetHome[] {
+  const me = homes.find((home) => home.userId === userId);
+  if (!me) return [];
+  const before = homes.filter((home) => home.number < me.number).sort((a, b) => b.number - a.number);
+  const after = homes.filter((home) => home.number > me.number).sort((a, b) => a.number - b.number);
+  const picked: StreetHome[] = [];
+  while (picked.length < count && (before.length || after.length)) {
+    const fromBefore = before.length && (!after.length || picked.length % 2 === 0);
+    picked.push((fromBefore ? before : after).shift()!);
+  }
+  return [...picked, me].sort((a, b) => a.number - b.number);
+}
+
+export interface Arrival {
+  number: number;
+  street: { index: number; name: string };
+  /** Their lot and their nearest neighbours, in house-number order */
+  homes: StreetHome[];
+}
+
+/**
+ * Where a resident lives on the street, for signup's "Move in": their house
+ * number, their street, and the neighbours either side. Null without a home.
+ */
+export async function getArrival(db: Db, { userId, host }: { userId: string; host: string }): Promise<Arrival | null> {
+  const number = (await houseNumbersOf(db, [userId], host)).get(userId);
+  if (!number) return null;
+  const street = await getStreetPage(db, { index: streetOfNumber(number), viewerId: userId, host });
+  const homes = withNeighbours(street.homes, userId);
+  if (homes.length === 0) return null;
+  return { number, street: { index: street.index, name: street.name }, homes };
+}
