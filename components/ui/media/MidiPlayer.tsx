@@ -15,6 +15,13 @@ interface MidiPlayerProps {
   defaultMode?: PlayerMode;
 }
 
+// Newer browser APIs the player feature-detects (iPhone audio session, and
+// whether the visitor has clicked or tapped yet)
+type NavigatorWithAudio = Navigator & {
+  audioSession?: { type: string };
+  userActivation?: { hasBeenActive: boolean };
+};
+
 export default function MidiPlayer({ 
   midiUrl, 
   title = 'Background Music',
@@ -913,15 +920,11 @@ export default function MidiPlayer({
 
     const midiNote = Math.round(12 * Math.log2(frequency / 440) + 69);
     
-    // Adaptive quality settings based on system load
-    const activeNodeCount = activeNodesRef.current.length;
-    const systemLoad = activeNodeCount / 200; // Updated for 200 voice limit
-    
-    // Dynamic quality thresholds
-    const minVelocity = Math.max(3, systemLoad * 30); // More permissive
-    const minDuration = Math.max(0.03, systemLoad * 0.2);
-    
-    if (velocity < minVelocity || duration < minDuration) return null;
+    // Only near-silent notes are skipped. A "system load" filter here
+    // counted every note in the 5 s lookahead as load and then dropped notes
+    // under 0.1 s: every drum hit, so busy songs lost most of their drums.
+    // Real overload is the voice limit's job (stealVoiceIfNeeded).
+    if (velocity < 3) return null;
 
     // Voice stealing for polyphony management with musical intelligence
     const newNote = { note: midiNote, velocity, channel, instrument, priority };
@@ -1732,27 +1735,49 @@ export default function MidiPlayer({
     }
   };
 
-  // Play the MIDI with optimized note scheduling
-  const playMidi = async (startOffset: number = 0) => {
-    if (!midiDataRef.current) return;
-
-    // Initialize audio context
+  // Create the AudioContext and ask it to start. Browsers only let it start
+  // inside a click, tap or key press, so this runs synchronously at the top
+  // of every gesture handler, before any await.
+  const unlockAudio = () => {
     if (!audioContextRef.current) {
       audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
     }
-    
+    const ctx = audioContextRef.current;
+    // iPhone: play through the silent switch, like any music player
+    const { audioSession } = navigator as NavigatorWithAudio;
+    if (audioSession && audioSession.type !== 'playback') {
+      try { audioSession.type = 'playback'; } catch { /* not supported */ }
+    }
+    if (ctx.state !== 'running') ctx.resume().catch(() => {});
+    return ctx;
+  };
+
+  // Whether the context is running, waiting at most `ms`. Outside a gesture
+  // resume() never settles, and awaiting it used to leave the player stuck:
+  // on a fresh visit with autoplay on, Play did nothing until a reload.
+  const audioIsRunning = (ctx: AudioContext, ms: number): Promise<boolean> => {
+    if (ctx.state === 'running') return Promise.resolve(true);
+    return Promise.race([
+      ctx.resume().then(() => ctx.state === 'running', () => false),
+      new Promise<boolean>((resolve) => setTimeout(() => resolve(ctx.state === 'running'), ms)),
+    ]);
+  };
+
+  // Play the MIDI with optimized note scheduling. False when the browser
+  // hasn't let audio start yet (no click or tap so far).
+  const playMidi = async (startOffset: number = 0): Promise<boolean> => {
+    if (!midiDataRef.current) return false;
+
+    const ctx = audioContextRef.current ?? unlockAudio();
+    if (!(await audioIsRunning(ctx, 500))) return false;
+    if (!midiDataRef.current) return false;
+
     // Initialize professional audio effects chain (only once)
     if (!effectsInputRef.current) {
-      effectsInputRef.current = initializeProfessionalEffects(audioContextRef.current);
-    }
-
-    if (audioContextRef.current.state === 'suspended') {
-      await audioContextRef.current.resume();
+      effectsInputRef.current = initializeProfessionalEffects(ctx);
     }
 
     const midi = midiDataRef.current;
-    const currentTime = audioContextRef.current.currentTime;
-    playbackStartTimeRef.current = Date.now() - (startOffset * 1000);
 
     // Advanced note collection with intelligent filtering
     const allNotes: Array<{
@@ -1821,8 +1846,6 @@ export default function MidiPlayer({
       return a.time - b.time;
     });
 
-    const totalChannels = Math.max(...allNotes.map(n => n.channel)) + 1;
-
     // Perform background analysis using Web Worker (non-blocking)
     analyzeMidiInWorker(allNotes);
 
@@ -1859,34 +1882,19 @@ export default function MidiPlayer({
       else if (rhythmicImportance >= 0.9) strongBeatCount++;
     });
     
-    // Enhanced limits with intelligent voice management
-    const MAX_CONCURRENT_NOTES = 200; // Increased from 120
-    let MAX_TOTAL_NOTES = 7500; // Increased from 6000 for better quality
-    let VELOCITY_THRESHOLD = 3; // Very permissive
-    
-    // Adjust limits based on complexity - less aggressive for better quality
-    if (allNotes.length > 8000) {
-      MAX_TOTAL_NOTES = 6500; // Allow 77% of notes vs previous 60%
-      VELOCITY_THRESHOLD = 5;
-    } else if (allNotes.length > 5000) {
-      MAX_TOTAL_NOTES = 7000; // Allow 95%+ for medium complexity  
-      VELOCITY_THRESHOLD = 4;
-    }
+    // Every audible note plays. Big songs used to be cut to 6,500 notes by a
+    // priority over the whole song, which dropped short notes first: every
+    // drum hit, and whole stretches of other tracks. Notes are scheduled 5 s
+    // ahead, so a big song never puts more than that in flight; the voice
+    // limit in playNoteAdvanced handles anything denser.
+    const VELOCITY_THRESHOLD = 3;
+    const notesToPlay = allNotes.filter(note => note.velocity >= VELOCITY_THRESHOLD);
 
-    // Much more permissive note selection
-    let selectedNotes = allNotes.filter(note => note.velocity >= VELOCITY_THRESHOLD);
-    
-    if (selectedNotes.length > MAX_TOTAL_NOTES) {
-      // Use priority-based selection but keep much more
-      selectedNotes.sort((a, b) => b.priority - a.priority);
-      selectedNotes = selectedNotes.slice(0, MAX_TOTAL_NOTES);
-      // Re-sort by time for playback
-      selectedNotes.sort((a, b) => a.time - b.time);
-      
-    } else {
-    }
-
-    const notesToPlay = selectedNotes;
+    // Read the clock now, after the samples are built. It used to be read
+    // before, so every note due during that wait started at once when it
+    // ended (seconds of the opening, bunched, on a slow phone).
+    const currentTime = ctx.currentTime;
+    playbackStartTimeRef.current = Date.now() - (startOffset * 1000);
 
     // Schedule notes in batches with lookahead scheduling
     let scheduledCount = 0;
@@ -2011,6 +2019,7 @@ export default function MidiPlayer({
         setProgress(progressPercent);
       }
     }, 100);
+    return true;
   };
 
   const stopAllAudio = () => {
@@ -2068,6 +2077,26 @@ export default function MidiPlayer({
           stereoWidenerRef.current = null;
         } catch (e) { /* ignore */ }
       }
+
+      // The channel and instrument gains were wired into the effects input
+      // disconnected above, and initializeOptimizedAudioGraph only builds the
+      // ones that are missing. Kept, they sent every later note into that
+      // dead end: after going from one music profile to another the player
+      // stayed silent until a reload.
+      [channelGainsRef, instrumentGainsRef].forEach(ref => {
+        ref.current.forEach(gain => {
+          try { gain.disconnect(); } catch { /* ignore */ }
+        });
+        ref.current.clear();
+      });
+      if (analyzerRef.current) {
+        try { analyzerRef.current.disconnect(); } catch { /* ignore */ }
+        analyzerRef.current = null;
+      }
+      pianoSustainRef.current.sustainedNotes.clear();
+      stringVibratoRef.current.clear();
+      brassDynamicsRef.current.clear();
+      criticalBandsRef.current = criticalBandsRef.current.map(() => ({ notes: [], dominantLevel: 0 }));
       
     } catch (e) {
     }
@@ -2084,6 +2113,9 @@ export default function MidiPlayer({
   };
 
   const play = async () => {
+    // First, while still inside the click or tap: let audio start
+    unlockAudio();
+
     // Stop global audio to prevent conflicts
     if (globalAudio.state.isPlaying) {
       globalAudio.stopAudio();
@@ -2156,13 +2188,14 @@ export default function MidiPlayer({
       try {
         // Resume playback from pause point or start from beginning
         const startOffset = isPaused ? pausedAt : 0;
-        setIsPaused(false);
-
-        await playMidi(startOffset);
+        const started = await playMidi(startOffset);
+        if (started) setIsPaused(false);
+        return started;
       } finally {
         startingRef.current = false;
       }
     }
+    return false;
   };
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -2614,11 +2647,18 @@ export default function MidiPlayer({
       
       lfo.type = 'sine';
       lfo.frequency.value = 5.5; // 5.5 Hz vibrato rate
-      depthGain.gain.value = frequency * intensity; // Vibrato depth
-      
-      // Connect LFO to frequency modulation
+      // Depth in cents (0.02 → ±10 cents). It was frequency × 0.02, about ±9,
+      // fed into playbackRate, whose normal value is 1: violins swung across
+      // octaves five times a second.
+      const cents = intensity * 500;
       lfo.connect(depthGain);
-      depthGain.connect(sourceNode.frequency || sourceNode.playbackRate);
+      if (sourceNode.detune) {
+        depthGain.gain.value = cents;
+        depthGain.connect(sourceNode.detune);
+      } else if (sourceNode.frequency) {
+        depthGain.gain.value = frequency * (Math.pow(2, cents / 1200) - 1);
+        depthGain.connect(sourceNode.frequency);
+      }
       
       lfo.start();
       
@@ -2678,7 +2718,11 @@ export default function MidiPlayer({
         muteFilter.Q.value = 1 + muteAmount * 3;
       }
       
-      // Connect effects chain
+      // The note goes through breath and mute instead of straight to its
+      // channel, not as well: brass played twice, about 10 dB louder than
+      // everything else. (Brass is never on the drum channel, whose gain is
+      // the only one that isn't 1, so skipping the channel gain is the same.)
+      gainNode.disconnect();
       gainNode.connect(breathController);
       breathController.connect(muteFilter);
       muteFilter.connect(effectsInputRef.current || audioContextRef.current.destination);
@@ -2765,6 +2809,16 @@ export default function MidiPlayer({
       midiDataRef.current = null;
       autoplayTriggeredRef.current = false;
       startingRef.current = false;
+      // Going from one music profile to another reuses this component: it
+      // kept saying "Stop" over silence, and autoplay skipped the new song
+      setIsPlaying(false);
+      setProgress(0);
+      // Each player used to keep its AudioContext open for the rest of the
+      // tab, holding the device's audio output open too
+      if (audioContextRef.current) {
+        audioContextRef.current.close().catch(() => {});
+        audioContextRef.current = null;
+      }
       // Clear profile MIDI playing flag
       globalAudio.setProfileMidiPlaying(false);
       // Cleanup worker
@@ -2772,39 +2826,42 @@ export default function MidiPlayer({
     };
   }, [midiUrl, autoplay]);
 
-  // Autoplay handling. Browsers block audio without a user gesture, so a
-  // bare play() on load silently fails on a fresh visit (the AudioContext
-  // stays suspended and resume() hangs). We try once — which succeeds if the
-  // visitor has already interacted with the site — and also arm a one-time
-  // "first gesture anywhere starts the music" listener, the way old homepages
-  // did it. The startingRef guard makes the two paths safe to both fire.
+  // Autoplay. Browsers only let audio start inside a click, tap or key
+  // press. If the visitor has already used the page, start now; otherwise
+  // their first click, tap or key press anywhere starts the music, the way
+  // old homepages did it. The old version always tried once without a
+  // gesture: that try hung, used up the autoplay, and locked the Play button,
+  // so on a shared link the player never played until a reload.
   useEffect(() => {
     if (!autoplay || !midiDataRef.current || isLoading || isPlaying || autoplayTriggeredRef.current) {
       return;
     }
 
     let cancelled = false;
-    const tryStart = () => {
+    const tryStart = async () => {
       if (cancelled || autoplayTriggeredRef.current || isPlaying || !midiDataRef.current) return;
       autoplayTriggeredRef.current = true;
-      play();
+      const started = await play();
+      // Not allowed yet: the next gesture gets another go
+      if (!started) autoplayTriggeredRef.current = false;
     };
 
-    const timer = setTimeout(tryStart, 200);
+    // userActivation is missing in older browsers; trying is harmless now
+    const activation = (navigator as NavigatorWithAudio).userActivation;
+    const timer = !activation || activation.hasBeenActive ? setTimeout(tryStart, 200) : null;
 
-    // Fallback: if the browser blocked the immediate attempt, the visitor's
-    // first tap/click/keypress kicks it off. Listener removes itself.
     const onFirstGesture = () => {
       if (autoplayTriggeredRef.current || isPlaying) return;
+      unlockAudio(); // inside the gesture, before anything awaits
       tryStart();
     };
-    const opts = { once: true, capture: true } as AddEventListenerOptions;
+    const opts = { capture: true } as AddEventListenerOptions;
     window.addEventListener('pointerdown', onFirstGesture, opts);
     window.addEventListener('keydown', onFirstGesture, opts);
 
     return () => {
       cancelled = true;
-      clearTimeout(timer);
+      if (timer) clearTimeout(timer);
       window.removeEventListener('pointerdown', onFirstGesture, opts);
       window.removeEventListener('keydown', onFirstGesture, opts);
     };
