@@ -38,3 +38,38 @@ export function pickPixelScale(
   }
   return smallest
 }
+
+/** Scene columns the house picker's close-up shows at least: the 200 px house and a little yard. */
+export const CLOSE_UP_MIN_WIDTH = 272
+const CLOSE_UP_TOP = 24
+const CLOSE_UP_MIN_ROWS = 196
+
+export interface CloseUpView {
+  /** CSS pixels per art pixel; scale × devicePixelRatio is a whole number */
+  scale: number
+  /** The scene window shown, in art pixels (even width, centred on the house) */
+  left: number
+  top: number
+  width: number
+  height: number
+}
+
+/**
+ * The house picker's view: the house at the largest whole-device-pixel scale
+ * that still shows `minWidth` scene columns in `frameWidth` CSS pixels,
+ * cropped to the house and the yard around it.
+ */
+export function pickCloseUpView(frameWidth: number, devicePixelRatio: number, minWidth = CLOSE_UP_MIN_WIDTH): CloseUpView {
+  const dpr = devicePixelRatio > 0 ? devicePixelRatio : 1
+  let scale = 1 / Math.ceil(dpr)
+  for (let n = Math.floor(3 * dpr); n >= 1; n--) {
+    if (frameWidth / (n / dpr) >= minWidth) {
+      scale = n / dpr
+      break
+    }
+  }
+  const width = Math.min(CANVAS_WIDTH, 2 * Math.floor(frameWidth / scale / 2))
+  const height = Math.min(CANVAS_HEIGHT, Math.max(CLOSE_UP_MIN_ROWS, Math.round(width * 0.62)))
+  const top = Math.min(CLOSE_UP_TOP, CANVAS_HEIGHT - height)
+  return { scale, left: (CANVAS_WIDTH - width) / 2, top, width, height }
+}

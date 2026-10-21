@@ -706,7 +706,8 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
         <title>{`${COPY.pageTitle} | ${siteConfig.site_name}`}</title>
       </Head>
       <Layout siteConfig={siteConfig}>
-        <div className="max-w-full sm:max-w-2xl mx-auto px-0 sm:px-6 py-6">
+        {/* The house step is wider on a big screen: preview and choices side by side */}
+        <div className={`max-w-full sm:max-w-2xl ${currentStep === 'house' ? 'lg:max-w-4xl' : ''} mx-auto px-0 sm:px-6 py-6`}>
           {currentStep !== 'finale' && (
           <div className="thread-module">
           <div className="sm:px-4 sm:pb-2">
@@ -1013,7 +1014,7 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
                 </p>
               </div>
 
-              <div className="max-w-xl mx-auto mb-6">
+              <div className="max-w-xl lg:max-w-none mx-auto mb-6">
                 <HousePicker value={houseChoice} onChange={setHouseChoice} />
               </div>
 

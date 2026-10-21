@@ -39,3 +39,32 @@ describe('pickPixelScale for the editor (allowBelowOne)', () => {
     expect(editor(359, 1)).toBe(1) // a 1x screen has nothing below 1x
   })
 })
+
+describe('pickCloseUpView (the house picker)', () => {
+  const { pickCloseUpView } = jest.requireActual('@/lib/pixel-homes/pixel-scale')
+
+  it('crops to the house at the largest whole-device-pixel scale that still shows it', () => {
+    // signup on desktop: 456 px at 2x DPR → 1.5x, 304 columns around the house
+    expect(pickCloseUpView(456, 2)).toEqual({ scale: 1.5, left: 104, top: 24, width: 304, height: 196 })
+    // a phone at 3x DPR: 1x (3 device pixels per art pixel)
+    expect(pickCloseUpView(323, 3)).toMatchObject({ scale: 1, width: 322 })
+  })
+
+  it('shows more of the yard when asked', () => {
+    // the homepage demo: 636 px at 2x DPR
+    expect(pickCloseUpView(636, 2, 400)).toMatchObject({ scale: 1.5, width: 424 })
+    expect(pickCloseUpView(636, 2)).toMatchObject({ scale: 2, width: 318 })
+  })
+
+  it('never shows more than the scene, and every scale maps to whole device pixels', () => {
+    for (const dpr of [1, 1.5, 2, 3]) {
+      for (const w of [200, 320, 448, 700, 1400]) {
+        const v = pickCloseUpView(w, dpr)
+        expect(Number.isInteger(v.scale * dpr)).toBe(true)
+        expect(v.width).toBeLessThanOrEqual(512)
+        expect(v.top + v.height).toBeLessThanOrEqual(352)
+        expect(v.left).toBe((512 - v.width) / 2)
+      }
+    }
+  })
+})
