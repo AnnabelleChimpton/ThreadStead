@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useRef, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useRef, useState, useEffect, useCallback, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/router';
+import * as nowPlaying from '@/lib/audio/now-playing';
 
 interface AudioConfig {
   enabled: boolean;
@@ -22,7 +23,6 @@ interface GlobalAudioContextType {
   stopAudio: () => void;
   fadeOut: (duration?: number) => Promise<void>;
   setVolume: (volume: number) => void;
-  setProfileMidiPlaying: (playing: boolean) => void;
 }
 
 const GlobalAudioContext = createContext<GlobalAudioContextType | null>(null);
@@ -53,35 +53,15 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
   
   // Audio references
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const midiPlayerRef = useRef<any>(null); // Will hold MidiPlayer component instance
-  // The current run's token: a stop, or a new song, retires the old run's
-  // scheduling timers instead of letting them play into the new one
-  const scheduleRunRef = useRef<object | null>(null);
+  // A MIDI welcome song plays through the page's one song
+  // (lib/audio/now-playing.ts); this lets go of it
+  const releaseMidiRef = useRef<(() => void) | null>(null);
   const fadeIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const masterGainRef = useRef<GainNode | null>(null);
 
-  // Shared audio context management to prevent browser limits
-  const getOrCreateAudioContext = useCallback(() => {
-    if (!audioContextRef.current) {
-      try {
-        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-      } catch (error) {
-        console.warn('Failed to create AudioContext:', error);
-        return null;
-      }
-    }
+  // Profile music playing takes over from the welcome music
+  const song = useSyncExternalStore(nowPlaying.subscribe, nowPlaying.getSnapshot, nowPlaying.getServerSnapshot);
+  const profileMidiPlaying = song.owner === 'profile' && song.status === 'playing';
 
-    // Handle suspended state (required on some browsers)
-    if (audioContextRef.current.state === 'suspended') {
-      audioContextRef.current.resume().catch(err =>
-        console.warn('Failed to resume AudioContext:', err)
-      );
-    }
-
-    return audioContextRef.current;
-  }, []);
-  
   // Fetch admin audio config on mount
   useEffect(() => {
     fetch('/api/signup-audio')
@@ -119,38 +99,21 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
   }, []);
 
   const stopAudio = useCallback(() => {
-    
     // Stop regular audio
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
       audioRef.current.src = '';
     }
-    
-    // Stop MIDI player
-    if (midiPlayerRef.current) {
-      try {
-        midiPlayerRef.current = null; // Stop the scheduling loop
-        scheduleRunRef.current = null;
-      } catch (e) {
-        console.warn('Error stopping MIDI player:', e);
-      }
+
+    // Let go of the welcome song; if nothing else holds it, it stops
+    if (releaseMidiRef.current) {
+      releaseMidiRef.current();
+      releaseMidiRef.current = null;
     }
-    
-    // Clear fade interval
+
     clearFadeInterval();
-    
-    // Clean up Web Audio context (but don't close it, just clear references)
-    if (masterGainRef.current && audioContextRef.current) {
-      try {
-        // Disconnect the master gain to stop all audio
-        masterGainRef.current.disconnect();
-        masterGainRef.current = null;
-      } catch (e) {
-        console.warn('Error cleaning up master gain:', e);
-      }
-    }
-    
+
     setState(prev => ({
       ...prev,
       isPlaying: false,
@@ -159,255 +122,32 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
     }));
   }, [clearFadeInterval]);
 
+  // A MIDI welcome song: the profile player's engine plays it, with a
+  // gentle fade-in and on a loop. (It used to have a synth of its own, one
+  // soft tone for every instrument, drums included.)
   const playMidiAudio = useCallback(async (midiUrl: string, targetVolume: number) => {
-    try {
-      // Fetch MIDI file with retry logic
-      let response: Response;
-      let lastError: Error | null = null;
-
-      for (let attempt = 1; attempt <= 3; attempt++) {
-        try {
-          response = await fetch(midiUrl, {
-            headers: {
-              'Accept': 'audio/midi, audio/x-midi, application/x-midi, */*'
-            }
-          });
-
-          if (response.ok) break;
-
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        } catch (error) {
-          lastError = error as Error;
-          if (attempt === 3) throw lastError;
-
-          // Wait before retry (exponential backoff)
-          await new Promise(resolve => setTimeout(resolve, attempt * 1000));
-        }
-      }
-
-      const arrayBuffer = await response!.arrayBuffer();
-
-      // Validate MIDI file size (reasonable limits)
-      if (arrayBuffer.byteLength === 0) {
-        throw new Error('MIDI file is empty');
-      }
-      if (arrayBuffer.byteLength > 5 * 1024 * 1024) { // 5MB limit
-        throw new Error('MIDI file too large (>5MB)');
-      }
-
-      // Parse MIDI using @tonejs/midi with error handling
-      let midi: any;
-      try {
-        const { Midi } = await import('@tonejs/midi');
-        midi = new Midi(arrayBuffer);
-
-        if (!midi.tracks || midi.tracks.length === 0) {
-          throw new Error('MIDI file contains no tracks');
-        }
-      } catch (midiError) {
-        const errorMessage = midiError instanceof Error ? midiError.message : 'Unknown parsing error';
-        throw new Error(`Failed to parse MIDI file: ${errorMessage}`);
-      }
-
-      // Use shared audio context
-      const audioContext = getOrCreateAudioContext();
-      if (!audioContext) {
-        throw new Error('Could not create AudioContext');
-      }
-      
-      // Create master gain node for volume control
-      if (!masterGainRef.current) {
-        masterGainRef.current = audioContext.createGain();
-        masterGainRef.current.connect(audioContext.destination);
-        // Start at zero for gentle fade-in (prevents startling users)
-        masterGainRef.current.gain.setValueAtTime(0, audioContext.currentTime);
-        // Gentle 3-second fade-in for autoplay
-        masterGainRef.current.gain.linearRampToValueAtTime(targetVolume, audioContext.currentTime + 3);
-      }
-      
-      // Warmer, smoother piano-like sound for background audio
-      const playNote = (frequency: number, startTime: number, duration: number, velocity: number) => {
-        const osc = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
-        const filter = audioContext.createBiquadFilter();
-
-        // Use sine wave for smoother sound, especially in high frequencies
-        // Mix between sine and triangle based on frequency for warmth
-        if (frequency > 800) {
-          osc.type = 'sine'; // Pure sine for high notes to avoid squeakiness
-        } else {
-          osc.type = 'triangle'; // Triangle for lower notes for more character
-        }
-        osc.frequency.value = frequency;
-
-        // Add slight detuning for warmth (more detuning for higher notes)
-        const detuneAmount = Math.min(frequency / 1000, 5); // Max 5 cents detune
-        osc.detune.value = (Math.random() - 0.5) * detuneAmount;
-
-        // Low-pass filter to remove harsh high frequencies
-        filter.type = 'lowpass';
-        // Lower cutoff for higher notes to reduce squeakiness
-        filter.frequency.value = Math.min(frequency * 3, 2000); // Cap at 2kHz
-        filter.Q.value = 1; // Gentle resonance
-
-        // Adjust gain based on frequency (reduce volume for high notes)
-        const frequencyAttenuation = frequency > 1000 ? 0.6 : frequency > 500 ? 0.8 : 1.0;
-        const gainValue = (velocity / 127) * 0.25 * frequencyAttenuation;
-
-        // Smoother envelope with longer attack to avoid clicks
-        gainNode.gain.setValueAtTime(0, startTime);
-        gainNode.gain.linearRampToValueAtTime(gainValue, startTime + 0.03); // Slower attack (30ms)
-        gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + Math.min(duration, 2.0));
-
-        // Connect through filter for warmer sound
-        osc.connect(filter);
-        filter.connect(gainNode);
-        gainNode.connect(masterGainRef.current!); // Connect to master gain instead of destination
-
-        osc.start(startTime);
-        const stopTime = startTime + Math.min(duration, 2.0);
-        osc.stop(stopTime);
-
-        // Properly cleanup audio nodes to prevent memory leaks
-        osc.addEventListener('ended', () => {
-          try {
-            osc.disconnect();
-            filter.disconnect();
-            gainNode.disconnect();
-          } catch (e) {
-            // Nodes may already be disconnected
-          }
-        });
-      };
-      
-      // Convert MIDI note to frequency
-      const noteToFrequency = (note: number): number => {
-        return 440 * Math.pow(2, (note - 69) / 12);
-      };
-      
-      // Every note, in time order, at most 12 per 100 ms. It used to keep
-      // the first 500 notes in TRACK order, so a long song went quiet after
-      // two minutes and later tracks (bass, drums) never played.
-      const MAX_SIMULTANEOUS_VOICES = 12;
-      const voicesPerSlot = new Map<number, number>();
-      const notes: Array<{ time: number; frequency: number; duration: number; velocity: number }> = [];
-      midi.tracks.forEach((track: any) => {
-        track.notes.forEach((note: any) => {
-          notes.push({
-            time: note.time,
-            frequency: noteToFrequency(note.midi),
-            duration: Math.max(note.duration, 0.1),
-            velocity: note.velocity * 127,
-          });
-        });
-      });
-      notes.sort((a, b) => a.time - b.time);
-      const playable = notes.filter(note => {
-        const slot = Math.floor(note.time * 10);
-        const count = voicesPerSlot.get(slot) || 0;
-        if (count >= MAX_SIMULTANEOUS_VOICES) return false;
-        voicesPerSlot.set(slot, count + 1);
-        return true;
-      });
-
-      // Scheduled 20 s at a time, a couple of seconds ahead. Each pass of the
-      // loop starts where the last one ends on the audio clock. The old loop
-      // reused the first pass's start time, so pass two was all in the past:
-      // every note fired at once, then silence.
-      const songLength = midi.duration;
-      const WINDOW = 20;
-      const LEAD = 2;
-      let passStart = audioContext.currentTime + 0.05;
-      let nextIndex = 0;
-      const run = {};
-      scheduleRunRef.current = run;
-      const scheduleWindow = (from: number) => {
-        if (scheduleRunRef.current !== run || midiPlayerRef.current !== 'playing' || !(songLength > 0)) return;
-        // A throttled timer can wake late; don't schedule into the past
-        if (passStart + from < audioContext.currentTime) {
-          passStart = audioContext.currentTime + 0.05 - from;
-        }
-        const to = Math.min(from + WINDOW, songLength);
-        while (nextIndex < playable.length && playable[nextIndex].time < to) {
-          const note = playable[nextIndex++];
-          playNote(note.frequency, passStart + note.time, note.duration, note.velocity);
-        }
-        let nextFrom = to;
-        if (to >= songLength) {
-          passStart += songLength;
-          nextIndex = 0;
-          nextFrom = 0;
-        }
-        const wait = (passStart + nextFrom - LEAD - audioContext.currentTime) * 1000;
-        setTimeout(() => scheduleWindow(nextFrom), Math.max(0, wait));
-      };
-
-      setState(prev => ({
-        ...prev,
-        isPlaying: true,
-        currentTrack: midiUrl,
-        volume: targetVolume,
-        fadeState: 'idle'
-      }));
-      
-      // Store playing state (before scheduling: each window checks it)
-      midiPlayerRef.current = 'playing';
-      scheduleWindow(0);
-      
-
-    } catch (error) {
-      console.error('MIDI playback failed:', error);
-
-      // Provide user-friendly error handling
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-      if (errorMessage.includes('Failed to fetch') || errorMessage.includes('HTTP')) {
-        console.warn('Network issue loading MIDI, using fallback audio');
-      } else if (errorMessage.includes('parse')) {
-        console.warn('Invalid MIDI file format, using fallback audio');
-      } else {
-        console.warn('MIDI playback failed, using fallback audio:', errorMessage);
-      }
-
-      // Fallback to simple audio
-      createFallbackAudio(targetVolume);
-
-      setState(prev => ({
-        ...prev,
-        isPlaying: true,
-        currentTrack: midiUrl,
-        volume: targetVolume,
-        fadeState: 'idle'
-      }));
+    releaseMidiRef.current?.();
+    releaseMidiRef.current = nowPlaying.claim(midiUrl, { title: 'Welcome music', loop: true, owner: 'signup' });
+    nowPlaying.setVolume(targetVolume);
+    nowPlaying.fadeTo(0, 0);
+    const started = await nowPlaying.play();
+    if (!started) {
+      releaseMidiRef.current?.();
+      releaseMidiRef.current = null;
+      return;
     }
-  }, []);
-
-  const createFallbackAudio = useCallback((targetVolume: number = 0.7) => {
-    try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      
-      // Create a gentle, magical tone
-      oscillator.type = 'sine';
-      oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
-      oscillator.frequency.exponentialRampToValueAtTime(880, audioContext.currentTime + 2);
-      oscillator.frequency.exponentialRampToValueAtTime(440, audioContext.currentTime + 4);
-      
-      gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-      gainNode.gain.linearRampToValueAtTime(targetVolume * 0.1, audioContext.currentTime + 1);
-      gainNode.gain.linearRampToValueAtTime(targetVolume * 0.05, audioContext.currentTime + 3);
-      gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 4);
-      
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 4);
-      
-    } catch (e) {
-      console.error('Global Web Audio fallback failed:', e);
-    }
+    // Start at zero and fade in over 3 seconds, so it doesn't startle
+    nowPlaying.fadeTo(1, 3);
+    setState(prev => ({
+      ...prev,
+      isPlaying: true,
+      currentTrack: midiUrl,
+      volume: targetVolume,
+      fadeState: 'fading-in'
+    }));
+    setTimeout(() => {
+      setState(prev => (prev.fadeState === 'fading-in' ? { ...prev, fadeState: 'idle' } : prev));
+    }, 3000);
   }, []);
 
   const playRegularAudio = useCallback(async (audioUrl: string, targetVolume: number) => {
@@ -473,7 +213,7 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
   }, [clearFadeInterval]);
 
   const startSignupAudio = useCallback(async () => {
-    if (state.isPlaying || state.profileMidiPlaying) {
+    if (state.isPlaying || profileMidiPlaying) {
       return;
     }
 
@@ -487,7 +227,7 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
     } else {
       await playRegularAudio(adminAudio.url, adminAudio.volume || 0.7);
     }
-  }, [state.isPlaying, adminAudio, playMidiAudio, playRegularAudio]);
+  }, [state.isPlaying, profileMidiPlaying, adminAudio, playMidiAudio, playRegularAudio]);
 
   const fadeOut = useCallback(async (duration: number = 2000): Promise<void> => {
     if (!state.isPlaying || state.fadeState === 'fading-out') {
@@ -495,7 +235,8 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
     }
     
     setState(prev => ({ ...prev, fadeState: 'fading-out' }));
-    
+    if (releaseMidiRef.current) nowPlaying.fadeTo(0, duration / 1000);
+
     return new Promise((resolve) => {
       const steps = duration / 100; // 100ms intervals
       let currentStep = 0;
@@ -513,8 +254,7 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
         
         const newVolume = state.volume * (1 - fadeProgress);
         
-        // Apply fade to regular audio only
-        // For MIDI, we'll just stop it at the end (MidiPlayer component manages its own volume)
+        // Regular audio fades here; MIDI fades on its own ramp (above)
         if (audioRef.current && !audioRef.current.paused) {
           audioRef.current.volume = newVolume;
         }
@@ -538,16 +278,21 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
       audioRef.current.volume = clampedVolume;
     }
 
-    // Apply volume to Web Audio MIDI via master gain node
-    if (masterGainRef.current && audioContextRef.current) {
-      const currentTime = audioContextRef.current.currentTime;
-      masterGainRef.current.gain.setValueAtTime(clampedVolume, currentTime);
-    }
+    // And to a MIDI welcome song
+    if (releaseMidiRef.current) nowPlaying.setVolume(clampedVolume);
   }, []);
 
-  const setProfileMidiPlaying = useCallback((playing: boolean) => {
-    setState(prev => ({ ...prev, profileMidiPlaying: playing }));
-  }, []);
+  // Profile music took over the page's one song: the welcome song is gone,
+  // and a regular-audio welcome track stops too
+  useEffect(() => {
+    if (releaseMidiRef.current && song.owner !== 'signup') {
+      releaseMidiRef.current = null;
+      setState(prev => ({ ...prev, isPlaying: false, currentTrack: undefined, fadeState: 'idle' }));
+    }
+    if (profileMidiPlaying && audioRef.current && !audioRef.current.paused) {
+      stopAudio();
+    }
+  }, [song.owner, profileMidiPlaying, stopAudio]);
 
   // Stop signup audio when navigating away from the page signup lands on
   // (the logged-in home's welcome view, or a profile), but not during signup
@@ -607,12 +352,11 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
   }, [stopAudio]);
 
   const contextValue: GlobalAudioContextType = {
-    state,
+    state: { ...state, profileMidiPlaying },
     startSignupAudio,
     stopAudio,
     fadeOut,
     setVolume,
-    setProfileMidiPlaying,
   };
 
   return (

@@ -9,20 +9,41 @@ import { render, screen, fireEvent, waitFor, within } from '@testing-library/rea
 
 jest.mock('@/lib/api/client/csrf-fetch', () => ({ csrfFetch: jest.fn(async () => ({ ok: true })) }));
 jest.mock('@/components/ui/PixelIcon', () => ({ PixelIcon: () => null }));
-jest.mock('@/contexts/GlobalAudioContext', () => ({
-  useGlobalAudio: () => ({
-    state: { isPlaying: false },
-    stopAudio: jest.fn(),
-    setProfileMidiPlaying: jest.fn(),
-  }),
-}));
-
 import MidiPlayer from '../MidiPlayer';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+import * as nowPlaying from '@/lib/audio/now-playing';
+import { __resetAudioContextForTests } from '@/lib/audio/context';
+import type { MidiEngine } from '@/lib/audio/engine';
+
+// The song loads through the page's one song (lib/audio/now-playing.ts):
+// a stand-in engine and AudioContext, so nothing makes a sound
+class FakeContext {
+  state = 'suspended';
+  currentTime = 0;
+  sampleRate = 44100;
+  destination = {};
+  resume() { this.state = 'running'; return Promise.resolve(); }
+  createGain() {
+    const gain = { value: 1, setValueAtTime() {}, setTargetAtTime() {}, linearRampToValueAtTime() {}, cancelScheduledValues() {} };
+    return { gain, connect() {}, context: this };
+  }
+  createBuffer() { return {}; }
+  createBufferSource() { return { connect() {}, start() {}, buffer: null }; }
+}
 
 beforeEach(() => {
   window.localStorage.clear();
   (csrfFetch as jest.Mock).mockClear();
+  (window as unknown as { AudioContext: unknown }).AudioContext = FakeContext;
+  __resetAudioContextForTests();
+  nowPlaying.__setupForTests({
+    engine: () => ({
+      load() {}, duration: 30, play: async () => true, pause: () => 0, position: () => 0,
+      setLoop() {}, onEnded() {}, dispose() {},
+    }) as MidiEngine,
+    parse: (async () => ({ tracks: [{}], duration: 30 })) as unknown as nowPlaying.SongParser,
+  });
+  global.fetch = jest.fn(async () => ({ ok: true, status: 200, arrayBuffer: async () => new ArrayBuffer(8) })) as unknown as typeof fetch;
 });
 
 test('the floating player is site chrome, outside the page', () => {
@@ -102,4 +123,16 @@ test('in the page (<ProfileMusic />, previews) it stays where it was put, with n
   expect(container.querySelector('.page')).toContainElement(player);
   expect(player.closest('[data-site-chrome]')).toBeNull();
   expect(screen.queryByRole('button', { name: 'Close the music player' })).not.toBeInTheDocument();
+});
+
+test('two players of the same song are one song: Play on one shows Pause on both', async () => {
+  render(
+    <>
+      <MidiPlayer midiUrl="/song.mid" title="Little tune" placement="inline" />
+      <MidiPlayer midiUrl="/song.mid" title="Little tune" placement="inline" />
+    </>
+  );
+  await waitFor(() => expect(screen.getAllByRole('button', { name: 'Play' })[0]).not.toBeDisabled());
+  fireEvent.click(screen.getAllByRole('button', { name: 'Play' })[0]);
+  await waitFor(() => expect(screen.getAllByRole('button', { name: 'Pause' })).toHaveLength(2));
 });
