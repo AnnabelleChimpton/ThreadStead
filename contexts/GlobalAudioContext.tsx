@@ -54,6 +54,9 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
   // Audio references
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const midiPlayerRef = useRef<any>(null); // Will hold MidiPlayer component instance
+  // The current run's token: a stop, or a new song, retires the old run's
+  // scheduling timers instead of letting them play into the new one
+  const scheduleRunRef = useRef<object | null>(null);
   const fadeIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const masterGainRef = useRef<GainNode | null>(null);
@@ -128,6 +131,7 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
     if (midiPlayerRef.current) {
       try {
         midiPlayerRef.current = null; // Stop the scheduling loop
+        scheduleRunRef.current = null;
       } catch (e) {
         console.warn('Error stopping MIDI player:', e);
       }
@@ -281,63 +285,63 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
         return 440 * Math.pow(2, (note - 69) / 12);
       };
       
-      const currentTime = audioContext.currentTime;
-      
-      // Optimized note scheduling for looping playback
-      const scheduleNotes = () => {
-        let noteCount = 0;
-        const MAX_GLOBAL_NOTES = 500; // Lower limit for background audio
-        
-        // Collect and intelligently limit notes
-        const allNotes: Array<{time: number, frequency: number, duration: number, velocity: number}> = [];
-
-        midi.tracks.forEach((track: any) => {
-          track.notes.forEach((note: any) => {
-            if (noteCount < MAX_GLOBAL_NOTES) {
-              allNotes.push({
-                time: note.time,
-                frequency: noteToFrequency(note.midi),
-                duration: Math.max(note.duration, 0.1),
-                velocity: note.velocity * 127
-              });
-              noteCount++;
-            }
+      // Every note, in time order, at most 12 per 100 ms. It used to keep
+      // the first 500 notes in TRACK order, so a long song went quiet after
+      // two minutes and later tracks (bass, drums) never played.
+      const MAX_SIMULTANEOUS_VOICES = 12;
+      const voicesPerSlot = new Map<number, number>();
+      const notes: Array<{ time: number; frequency: number; duration: number; velocity: number }> = [];
+      midi.tracks.forEach((track: any) => {
+        track.notes.forEach((note: any) => {
+          notes.push({
+            time: note.time,
+            frequency: noteToFrequency(note.midi),
+            duration: Math.max(note.duration, 0.1),
+            velocity: note.velocity * 127,
           });
         });
+      });
+      notes.sort((a, b) => a.time - b.time);
+      const playable = notes.filter(note => {
+        const slot = Math.floor(note.time * 10);
+        const count = voicesPerSlot.get(slot) || 0;
+        if (count >= MAX_SIMULTANEOUS_VOICES) return false;
+        voicesPerSlot.set(slot, count + 1);
+        return true;
+      });
 
-        // Voice limiting: filter out notes that would cause overload
-        const MAX_SIMULTANEOUS_VOICES = 12; // Reasonable limit for background audio
-        const activeVoices = new Map<number, number>(); // time -> voice count
-        const filteredNotes = allNotes.filter(note => {
-          const timeSlot = Math.floor(note.time * 10); // 100ms time slots
-          const count = activeVoices.get(timeSlot) || 0;
-
-          if (count >= MAX_SIMULTANEOUS_VOICES) {
-            return false; // Skip this note
-          }
-
-          activeVoices.set(timeSlot, count + 1);
-          return true; // Keep this note
-        });
-        
-        // Sort by time and schedule (use filtered notes)
-        filteredNotes.sort((a, b) => a.time - b.time);
-
-        filteredNotes.forEach(note => {
-          const startTime = currentTime + note.time;
-          playNote(note.frequency, startTime, note.duration, note.velocity);
-        });
-                
-        // Schedule next loop
-        setTimeout(() => {
-          if (midiPlayerRef.current === 'playing') {
-            scheduleNotes();
-          }
-        }, midi.duration * 1000);
+      // Scheduled 20 s at a time, a couple of seconds ahead. Each pass of the
+      // loop starts where the last one ends on the audio clock. The old loop
+      // reused the first pass's start time, so pass two was all in the past:
+      // every note fired at once, then silence.
+      const songLength = midi.duration;
+      const WINDOW = 20;
+      const LEAD = 2;
+      let passStart = audioContext.currentTime + 0.05;
+      let nextIndex = 0;
+      const run = {};
+      scheduleRunRef.current = run;
+      const scheduleWindow = (from: number) => {
+        if (scheduleRunRef.current !== run || midiPlayerRef.current !== 'playing' || !(songLength > 0)) return;
+        // A throttled timer can wake late; don't schedule into the past
+        if (passStart + from < audioContext.currentTime) {
+          passStart = audioContext.currentTime + 0.05 - from;
+        }
+        const to = Math.min(from + WINDOW, songLength);
+        while (nextIndex < playable.length && playable[nextIndex].time < to) {
+          const note = playable[nextIndex++];
+          playNote(note.frequency, passStart + note.time, note.duration, note.velocity);
+        }
+        let nextFrom = to;
+        if (to >= songLength) {
+          passStart += songLength;
+          nextIndex = 0;
+          nextFrom = 0;
+        }
+        const wait = (passStart + nextFrom - LEAD - audioContext.currentTime) * 1000;
+        setTimeout(() => scheduleWindow(nextFrom), Math.max(0, wait));
       };
-      
-      scheduleNotes();
-      
+
       setState(prev => ({
         ...prev,
         isPlaying: true,
@@ -346,8 +350,9 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
         fadeState: 'idle'
       }));
       
-      // Store playing state
+      // Store playing state (before scheduling: each window checks it)
       midiPlayerRef.current = 'playing';
+      scheduleWindow(0);
       
 
     } catch (error) {
