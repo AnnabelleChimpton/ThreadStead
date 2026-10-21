@@ -949,7 +949,7 @@ export default function DecorationPalette({
             </div>
           </div>
         ) : (
-          <div className={`!grid ${isMobile ? '!grid-cols-3 !gap-2' : '!grid-cols-5 !gap-4'}`}>
+          <div className={`!grid ${isMobile ? '!grid-cols-4 !gap-2' : '!grid-cols-5 !gap-4'}`}>
             {currentItems.map((item) => (
               <button
                 key={item.id}
@@ -1026,18 +1026,22 @@ export default function DecorationPalette({
               placeholder="Search: lamp, flower, bench…"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-4 py-2 pl-10 border border-thread-sage/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-thread-sky focus:border-thread-sky text-sm text-gray-900 bg-white touch-manipulation"
-              style={{ minHeight: '48px' }}
+              className="w-full px-4 py-2 border border-thread-sage/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-thread-sky focus:border-thread-sky text-sm text-gray-900 bg-white touch-manipulation"
+              // Inline: the site's phone input padding would cover the icon otherwise
+              style={{ minHeight: '48px', paddingLeft: '2.5rem', paddingRight: searchQuery ? '2.75rem' : undefined }}
             />
             <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-thread-sage">
               <PixelIcon name="search" size={16} />
             </div>
             {searchQuery && (
               <button
+                type="button"
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-thread-sage hover:text-thread-pine"
+                aria-label="Clear search"
+                title="Clear search"
+                className="ts-bare ts-icon-button ts-touch absolute right-1 top-1/2 transform -translate-y-1/2 text-thread-sage hover:text-thread-pine"
               >
-                ✕
+                <PixelIcon name="close" size={16} />
               </button>
             )}
           </div>

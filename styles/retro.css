@@ -193,6 +193,15 @@ a.widget-container {
   line-height: 1;
 }
 
+/* Touch screens: a compact icon or text button still gets a 44px target.
+   The look stays the same; only the hit area grows. */
+@media (pointer: coarse) {
+  .ts-bare.ts-touch {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
 /* Destructive confirm button (delete, remove…): same bevel, rose ink */
 .btn.ts-btn-danger,
 .btn.ts-btn-danger:hover {

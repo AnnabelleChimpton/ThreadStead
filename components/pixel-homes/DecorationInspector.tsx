@@ -69,7 +69,7 @@ export default function DecorationInspector({
 
   return (
     <div className="flex h-full flex-col gap-3 overflow-y-auto bg-thread-paper p-4" aria-label={`${name}, selected`}>
-      <button type="button" onClick={onDone} className="ts-bare ts-text-button flex items-center gap-1 self-start text-sm">
+      <button type="button" onClick={onDone} className="ts-bare ts-text-button ts-touch flex items-center gap-1 self-start text-sm">
         <PixelIcon name="arrow-left" size={14} />
         Back to the palette
       </button>

@@ -911,7 +911,7 @@ export default function DecorationMode({
     <button
       type="button"
       onClick={() => setSfxMuted(!sfxMuted)}
-      className="ts-bare ts-icon-button p-2 rounded hover:bg-thread-cream text-thread-pine"
+      className="ts-bare ts-icon-button ts-touch p-2 rounded hover:bg-thread-cream text-thread-pine"
       title={sfxMuted ? 'Sounds off' : 'Sounds on'}
       aria-label="Sounds"
       aria-pressed={!sfxMuted}
@@ -928,7 +928,7 @@ export default function DecorationMode({
       title={label}
       aria-label={label}
       aria-pressed={pressed}
-      className={`ts-bare ts-icon-button p-2 rounded text-thread-pine ${pressed ? 'bg-thread-sunset/15' : 'hover:bg-thread-cream'} ${disabled ? 'opacity-30 cursor-not-allowed' : ''}`}
+      className={`ts-bare ts-icon-button ts-touch p-2 rounded text-thread-pine ${pressed ? 'bg-thread-sunset/15' : 'hover:bg-thread-cream'} ${disabled ? 'opacity-30 cursor-not-allowed' : ''}`}
     >
       <PixelIcon name={icon} size={18} />
     </button>
@@ -965,7 +965,7 @@ export default function DecorationMode({
               runInteraction({ type: 'reset' })
               setSelectedItem(null)
             }}
-            className="ts-bare ts-text-button shrink-0 text-sm"
+            className="ts-bare ts-text-button ts-touch shrink-0 text-sm"
           >
             Done
           </button>
@@ -1102,7 +1102,7 @@ export default function DecorationMode({
             allowLeave()
             onExit()
           }}
-          className="ts-bare ts-text-button flex items-center gap-1 text-sm font-medium"
+          className="ts-bare ts-text-button ts-touch flex items-center gap-1 text-sm font-medium"
         >
           <PixelIcon name="arrow-left" size={16} />
           Back to my house
@@ -1121,7 +1121,7 @@ export default function DecorationMode({
             }}
             aria-pressed={previewing}
             aria-label="See it as a visitor"
-            className="ts-bare ts-text-button flex items-center gap-1 text-sm"
+            className="ts-bare ts-text-button ts-touch flex items-center gap-1 text-sm"
           >
             <PixelIcon name="eye" size={16} />
             <span className="hidden sm:inline">See it as a visitor</span>
