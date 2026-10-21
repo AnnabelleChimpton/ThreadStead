@@ -346,6 +346,9 @@ export default function ProfilePage({
         afterNav={stepOutside}
         themed={usesThemeVars(customCSS)}
       >
+        {/* Signup's welcome music, if it followed the new resident here:
+            first in the page so Tab reaches it early */}
+        {!profileMidi && <WelcomeMusicControl />}
         <RetroCard>
           <ProfileHeader
             username={username}
@@ -370,8 +373,6 @@ export default function ProfilePage({
         {/* Not when the slot's "My song" widget already plays it in the page */}
         {!widgetSlot?.playsSong && floatingSong}
 
-        {/* Signup's welcome music, if it followed the new resident here */}
-        {!profileMidi && <WelcomeMusicControl />}
       </ProfileLayout>
     </>
   );

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useRef, useState, useEffect, useCallback, useSyncExternalStore } from 'react';
+import React, { createContext, useContext, useRef, useState, useEffect, useCallback, useMemo, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/router';
 import * as nowPlaying from '@/lib/audio/now-playing';
 
@@ -10,6 +10,7 @@ interface AudioConfig {
 }
 
 interface GlobalAudioState {
+  /** The welcome song is on: playing, paused, or waiting for a tap */
   isPlaying: boolean;
   currentTrack?: string;
   volume: number;
@@ -17,12 +18,32 @@ interface GlobalAudioState {
   profileMidiPlaying: boolean; // Track if profile MIDI is active
 }
 
+export interface WelcomeMusic {
+  /** The song's name from the admin's upload, without the file extension */
+  name: string | null;
+  /** 'blocked': loaded, but the browser wouldn't start it without a tap */
+  status: 'playing' | 'paused' | 'blocked';
+  muted: boolean;
+}
+
+/** "Gravitation - Glaring Dream.mid" → "Gravitation - Glaring Dream" */
+export function songNameFromFile(originalName?: string | null): string | null {
+  const name = originalName?.replace(/\.(midi?|mp3|ogg|wav|m4a)$/i, '').replace(/_/g, ' ').trim();
+  return name || null;
+}
+
 interface GlobalAudioContextType {
   state: GlobalAudioState;
+  /** The welcome song while it's on, for its controls; null when there's nothing to control */
+  welcome: WelcomeMusic | null;
   startSignupAudio: () => Promise<void>;
   stopAudio: () => void;
   fadeOut: (duration?: number) => Promise<void>;
   setVolume: (volume: number) => void;
+  /** Call from the click or tap itself: that's what lets a phone start it */
+  playWelcome: () => void;
+  pauseWelcome: () => void;
+  setWelcomeMuted: (muted: boolean) => void;
 }
 
 const GlobalAudioContext = createContext<GlobalAudioContextType | null>(null);
@@ -50,6 +71,11 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
   });
   
   const [adminAudio, setAdminAudio] = useState<AudioConfig>({ enabled: false });
+  // How the welcome song is held: through the shared song (MIDI) or the <audio> element
+  const [welcomeKind, setWelcomeKind] = useState<'off' | 'midi' | 'audio'>('off');
+  const [blocked, setBlocked] = useState(false);
+  const [audioPaused, setAudioPaused] = useState(false);
+  const [muted, setMuted] = useState(false);
   
   // Audio references
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -106,13 +132,19 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
       audioRef.current.src = '';
     }
 
-    // Let go of the welcome song; if nothing else holds it, it stops
+    // Let go of the welcome song; if nothing else holds it, it stops.
+    // Its mute was ours, so it goes with it.
     if (releaseMidiRef.current) {
+      nowPlaying.setMuted(false);
       releaseMidiRef.current();
       releaseMidiRef.current = null;
     }
 
     clearFadeInterval();
+    setWelcomeKind('off');
+    setBlocked(false);
+    setAudioPaused(false);
+    setMuted(false);
 
     setState(prev => ({
       ...prev,
@@ -125,19 +157,36 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
   // A MIDI welcome song: the profile player's engine plays it, with a
   // gentle fade-in and on a loop. (It used to have a synth of its own, one
   // soft tone for every instrument, drums included.)
-  const playMidiAudio = useCallback(async (midiUrl: string, targetVolume: number) => {
+  //
+  // Browsers only start sound from a click or tap: "Move in" unlocks audio in
+  // its click (lib/audio/context.ts), so this can start later. If a browser
+  // still says no, the song stays loaded and its control offers Play.
+  const playMidiAudio = useCallback(async (midiUrl: string, targetVolume: number, title: string) => {
     releaseMidiRef.current?.();
-    releaseMidiRef.current = nowPlaying.claim(midiUrl, { title: 'Welcome music', loop: true, owner: 'signup' });
+    const release = nowPlaying.claim(midiUrl, { title, loop: true, owner: 'signup' });
+    releaseMidiRef.current = release;
     nowPlaying.setVolume(targetVolume);
     nowPlaying.fadeTo(0, 0);
     const started = await nowPlaying.play();
+    // Let go of (or replaced) while it loaded
+    if (releaseMidiRef.current !== release) return;
     if (!started) {
-      releaseMidiRef.current?.();
-      releaseMidiRef.current = null;
+      if (nowPlaying.getSnapshot().status !== 'ready') {
+        // It didn't load: nothing to offer
+        release();
+        releaseMidiRef.current = null;
+        return;
+      }
+      nowPlaying.fadeTo(1, 0);
+      setWelcomeKind('midi');
+      setBlocked(true);
+      setState(prev => ({ ...prev, isPlaying: true, currentTrack: midiUrl, volume: targetVolume }));
       return;
     }
     // Start at zero and fade in over 3 seconds, so it doesn't startle
     nowPlaying.fadeTo(1, 3);
+    setWelcomeKind('midi');
+    setBlocked(false);
     setState(prev => ({
       ...prev,
       isPlaying: true,
@@ -177,7 +226,9 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
       });
       
       await audio.play();
-      
+      setWelcomeKind('audio');
+      setAudioPaused(false);
+
       setState(prev => ({
         ...prev,
         isPlaying: true,
@@ -213,7 +264,8 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
   }, [clearFadeInterval]);
 
   const startSignupAudio = useCallback(async () => {
-    if (state.isPlaying || profileMidiPlaying) {
+    // Already on, or still loading from an earlier start
+    if (state.isPlaying || profileMidiPlaying || releaseMidiRef.current) {
       return;
     }
 
@@ -223,7 +275,7 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
     
     // Check if it's a MIDI file
     if (adminAudio.url.toLowerCase().endsWith('.mid') || adminAudio.url.toLowerCase().endsWith('.midi')) {
-      await playMidiAudio(adminAudio.url, adminAudio.volume || 0.7);
+      await playMidiAudio(adminAudio.url, adminAudio.volume || 0.7, songNameFromFile(adminAudio.originalName) ?? 'Welcome music');
     } else {
       await playRegularAudio(adminAudio.url, adminAudio.volume || 0.7);
     }
@@ -287,6 +339,10 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
   useEffect(() => {
     if (releaseMidiRef.current && song.owner !== 'signup') {
       releaseMidiRef.current = null;
+      // Its mute is the new song's business now (a profile player sets its own)
+      setWelcomeKind('off');
+      setBlocked(false);
+      setMuted(false);
       setState(prev => ({ ...prev, isPlaying: false, currentTrack: undefined, fadeState: 'idle' }));
     }
     if (profileMidiPlaying && audioRef.current && !audioRef.current.paused) {
@@ -351,13 +407,59 @@ export function GlobalAudioProvider({ children }: { children: React.ReactNode })
     };
   }, [stopAudio]);
 
-  const contextValue: GlobalAudioContextType = {
+  const playWelcome = useCallback(() => {
+    if (welcomeKind === 'midi') {
+      // play() unlocks audio before anything awaits, inside this tap
+      void nowPlaying.play().then((ok) => {
+        if (!ok) return;
+        setBlocked(false);
+        nowPlaying.fadeTo(1, 0.3);
+      });
+    } else if (welcomeKind === 'audio' && audioRef.current) {
+      audioRef.current.play().then(() => setAudioPaused(false), () => {});
+    }
+  }, [welcomeKind]);
+
+  const pauseWelcome = useCallback(() => {
+    if (welcomeKind === 'midi') nowPlaying.pause();
+    else if (welcomeKind === 'audio' && audioRef.current) {
+      audioRef.current.pause();
+      setAudioPaused(true);
+    }
+  }, [welcomeKind]);
+
+  const setWelcomeMuted = useCallback((next: boolean) => {
+    if (welcomeKind === 'midi') nowPlaying.setMuted(next);
+    if (audioRef.current) audioRef.current.muted = next;
+    setMuted(next);
+  }, [welcomeKind]);
+
+  // Only a song that's actually there gets a control: none while it loads
+  let welcomeStatus: WelcomeMusic['status'] | null = null;
+  if (welcomeKind === 'midi' && song.owner === 'signup') {
+    welcomeStatus = song.status === 'playing' ? 'playing' : song.status === 'paused' ? 'paused' : blocked ? 'blocked' : null;
+  } else if (welcomeKind === 'audio') {
+    welcomeStatus = audioPaused ? 'paused' : 'playing';
+  }
+  const welcomeName = songNameFromFile(adminAudio.originalName);
+  const welcome = useMemo<WelcomeMusic | null>(
+    () => (welcomeStatus ? { name: welcomeName, status: welcomeStatus, muted } : null),
+    [welcomeStatus, welcomeName, muted]
+  );
+
+  // Memoized: effects that depend on this (the signup finale's did) would
+  // otherwise re-run on every render of the provider
+  const contextValue = useMemo<GlobalAudioContextType>(() => ({
     state: { ...state, profileMidiPlaying },
+    welcome,
     startSignupAudio,
     stopAudio,
     fadeOut,
     setVolume,
-  };
+    playWelcome,
+    pauseWelcome,
+    setWelcomeMuted,
+  }), [state, profileMidiPlaying, welcome, startSignupAudio, stopAudio, fadeOut, setVolume, playWelcome, pauseWelcome, setWelcomeMuted]);
 
   return (
     <GlobalAudioContext.Provider value={contextValue}>

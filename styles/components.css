@@ -1769,3 +1769,92 @@ img.ts-emoji {
     height: 16px;
   }
 }
+
+/* The welcome music's control (WelcomeMusicControl): bottom left, above the
+   cookie notice while that's up, never wider than a phone */
+.ts-welcome-music {
+  position: fixed;
+  left: 1rem;
+  bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  max-width: min(20rem, calc(100vw - 2rem));
+  padding: 0.25rem 0.5rem 0.25rem 0.25rem;
+  background: var(--ha-paper, #FCFAF7);
+  border: 2px solid var(--ha-ink-mid, #A18463);
+  border-radius: 8px;
+  box-shadow: 2px 2px 0 var(--ha-ink-mid, #A18463);
+  color: var(--ha-ink-dark, #2E4B3F);
+}
+/* It's the first thing in <main>; on phones `.site-main > *` would let it
+   run the full width with !important */
+section.ts-welcome-music {
+  max-width: min(20rem, calc(100vw - 2rem)) !important;
+}
+body:has(.ts-cookie-notice) .ts-welcome-music {
+  bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+}
+.ts-welcome-music .ts-welcome-music-main {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0.25rem 0.5rem 0.25rem 0.25rem;
+  border-radius: 6px;
+  text-align: left;
+  font-size: 0.875rem;
+  line-height: 1.25;
+}
+.ts-welcome-music .ts-welcome-music-main:hover {
+  background: var(--ha-surface, #F5E9D4);
+}
+.ts-welcome-music .ts-welcome-music-main:focus-visible {
+  outline: 2px dotted var(--ha-ink-dark, #2E4B3F);
+  outline-offset: 1px;
+}
+.ts-welcome-music-text {
+  min-width: 0;
+  overflow: hidden;
+}
+.ts-welcome-music-line {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ts-welcome-music .ts-welcome-music-mute {
+  flex-shrink: 0;
+}
+.ts-welcome-music-icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border: 2px solid var(--ha-ink-mid, #A18463);
+  border-radius: 50%;
+  background: var(--ha-surface, #F5E9D4);
+}
+@media (pointer: coarse) {
+  .ts-welcome-music .ts-icon-button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+/* "Tap" on touch screens, "Click" with a mouse */
+.ts-hint-tap {
+  display: none;
+}
+@media (pointer: coarse) {
+  .ts-hint-tap {
+    display: inline;
+  }
+  .ts-hint-click {
+    display: none;
+  }
+}

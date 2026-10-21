@@ -323,6 +323,8 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
       </Head>
 
       <Layout siteConfig={siteConfig} fullWidth={true} homepageLayout={true}>
+        {/* Signup's welcome music: first in the page so Tab reaches it early */}
+        {user && <WelcomeMusicControl />}
         <div className="w-full max-w-full sm:max-w-7xl mx-auto px-0 sm:px-4 py-4 sm:py-6">
           {/* Hero Statement */}
           {!user && (
@@ -429,7 +431,6 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
             </div>
           </div>
         </div>
-        {user && <WelcomeMusicControl />}
       </Layout>
     </>
   );
