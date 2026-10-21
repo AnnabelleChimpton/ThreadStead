@@ -168,7 +168,7 @@ export default function EditPostPage({ siteConfig, post, username }: EditPostPag
 
       <Layout siteConfig={siteConfig}>
         <div className="w-full p-4">
-          <div className="post-editor-container p-6 mb-4 bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[3px_3px_0_#A18463]">
+          <div className="post-editor-container ts-editor-head p-6 mb-4 bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[3px_3px_0_#A18463]">
             <h1 className="thread-headline text-2xl font-bold mb-2">Edit Post</h1>
             <p className="text-[#A18463]">Make changes to your post using Markdown formatting</p>
           </div>

@@ -228,13 +228,37 @@
   margin-right: calc(-40vw + 50%);
 }
 
+/* Phones: the editor page's heading drops its card, the toolbar sticks
+   under the header, and the corner buttons sit above the editor's bottom
+   bar (PostEditor's .ts-editor-toolbar, .ts-editor-actions) */
+@media (max-width: 639.98px) {
+  .post-editor-container.ts-editor-head {
+    background: none;
+    border: 0;
+    box-shadow: none;
+    padding: 0 1rem;
+    margin-bottom: 0.75rem;
+  }
+  /* Stick under the site header (NavBar sets --nav-height), not behind it */
+  .ts-editor-toolbar {
+    top: var(--nav-height, 0px);
+  }
+  body:has(.ts-editor-actions) .ts-chat-toggle {
+    bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px)) !important;
+  }
+  body:has(.ts-editor-actions) .ts-scroll-top {
+    bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
 @media (max-width: 768px) {
+  /* Edge to edge; the editor's own sections pad themselves */
   .post-editor-container {
     width: 100vw;
     margin-left: calc(-50vw + 50%);
     margin-right: calc(-50vw + 50%);
-    padding-left: 1rem;
-    padding-right: 1rem;
+    padding-left: 0;
+    padding-right: 0;
   }
 
   /* Mobile-specific post editor improvements */
@@ -249,9 +273,6 @@
     min-height: 44px;
     padding: 0.75rem;
     font-size: 1rem;
-    width: 100vw;
-    margin-left: calc(-50vw + 50%);
-    margin-right: calc(-50vw + 50%);
   }
 
   .post-editor-container .form-select {

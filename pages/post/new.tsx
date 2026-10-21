@@ -116,7 +116,7 @@ export default function PostEditorPage({ siteConfig, ringSlug }: PostEditorPageP
         <title>{`New post | ${siteConfig.site_name}`}</title>
       </Head>
       <div className="w-full p-4">
-        <div className="post-editor-container p-6 mb-4 bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[3px_3px_0_#A18463]">
+        <div className="post-editor-container ts-editor-head p-6 mb-4 bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[3px_3px_0_#A18463]">
           <h1 className="thread-headline text-2xl font-bold mb-2">Create New Post</h1>
           <p className="text-[#A18463]">Write your post using Markdown formatting</p>
         </div>

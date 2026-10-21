@@ -759,14 +759,16 @@ export default function PostEditor({
       )}
 
       <form onSubmit={handleSubmit} noValidate className="post-editor-container border-2 border-nb-ink-mid bg-white shadow-nb-sm relative">
-        {/* Tab Navigation */}
-        <div className="border-b border-nb-ink-mid bg-nb-ink-mid/5 p-3 flex items-center justify-between sticky top-0 z-20">
+        {/* Tab Navigation. On phones Visibility wraps to its own row and the
+            bar scrolls away; the toolbar is what sticks. */}
+        <div className="border-b border-nb-ink-mid bg-nb-ink-mid/5 px-3 py-2 sm:p-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 sm:sticky sm:top-0 z-20">
           <div className="flex items-center gap-2" role="tablist">
             <button
               type="button"
               role="tab"
               aria-selected={activeTab === "write"}
               className="ts-tab inline-flex items-center gap-2 text-sm"
+              style={{ minHeight: 44 }}
               onClick={() => setActiveTab("write")}
             >
               <PixelIcon name="edit" size={16} /> Write
@@ -776,27 +778,28 @@ export default function PostEditor({
               role="tab"
               aria-selected={activeTab === "preview"}
               className="ts-tab inline-flex items-center gap-2 text-sm"
+              style={{ minHeight: 44 }}
               onClick={() => setActiveTab("preview")}
             >
               <PixelIcon name="eye" size={16} /> Preview
             </button>
             {
               draftSaved && (
-                <span className="ml-2 text-xs text-thread-sage flex items-center animate-fade-in gap-1">
+                <span className="ml-2 text-xs text-thread-sage hidden sm:flex items-center animate-fade-in gap-1">
                   <PixelIcon name="check" size={14} /> Draft saved
                 </span>
               )
             }
           </div >
 
-          <div className="flex items-center gap-3">
-            <div className="flex flex-col items-end gap-1">
+          <div className="w-full sm:w-auto">
+            <div className="flex flex-col items-stretch sm:items-end gap-1">
               <div className="flex items-center gap-2">
-                <label htmlFor="post-visibility" className="text-sm font-medium">Visibility:</label>
+                <label htmlFor="post-visibility" className="text-sm font-medium flex-shrink-0">Visibility:</label>
                 <select
                   id="post-visibility"
                   aria-describedby="post-visibility-hint"
-                  className="thread-button-secondary btn btn--secondary text-sm"
+                  className="thread-button-secondary btn btn--secondary text-sm flex-1 sm:flex-none min-w-0"
                   value={visibility}
                   onChange={(e) => setVisibility(e.target.value as Visibility)}
                   disabled={busy}
@@ -858,175 +861,41 @@ export default function PostEditor({
             </div>
           </div >
 
-          {/* Spoiler/Content Warning Section */}
-          <div className="mb-6 border border-dashed border-thread-sage/40 p-4 bg-thread-cream/30 rounded-lg">
-            <div className="flex items-center gap-2 mb-2">
-              <PixelIcon name="alert" size={20} className="text-nb-ink" />
-              <h3 className="text-sm font-bold text-nb-ink">Content Warning</h3>
-            </div>
-
-            <div className="space-y-3">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={isSpoiler}
-                  onChange={(e) => {
-                    setIsSpoiler(e.target.checked);
-                    if (!e.target.checked) {
-                      setContentWarning("");
-                    }
-                  }}
-                  disabled={busy}
-                  className="w-4 h-4 text-nb-ink rounded focus:ring-orange-500"
-                />
-                <span className="text-sm text-nb-ink font-medium">
-                  Mark this post as containing spoilers
-                </span>
-              </label>
-
-              {isSpoiler && (
-                <div className="mt-2 animate-in slide-in-from-top-2">
-                  <input
-                    type="text"
-                    className="form-input w-full border-2 border-nb-ink-mid p-2 text-sm rounded shadow-sm"
-                    placeholder="Warning description (e.g. Episode 5 spoilers, Season 2 finale)"
-                    value={contentWarning}
-                    onChange={(e) => setContentWarning(e.target.value)}
-                    disabled={busy}
-                    maxLength={100}
-                  />
-                  <div className="text-xs text-nb-ink-mid mt-1">
-                    This will blur the post content until readers choose to reveal it
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Journal Metadata Section */}
-          <div className="mb-6 border-2 border-nb-ink-mid bg-white shadow-nb-sm">
-            <button
-              type="button"
-              onClick={() => setIsMetadataOpen(!isMetadataOpen)}
-              className="w-full flex items-center justify-between p-4 hover:bg-nb-ink-mid/5 transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <PixelIcon name="script" size={20} />
-                <h3 className="text-sm font-bold text-nb-ink uppercase tracking-wider">Journal Metadata</h3>
-              </div>
-              <PixelIcon name={isMetadataOpen ? "chevron-up" : "chevron-down"} size={16} />
-            </button>
-
-            {isMetadataOpen && (
-              <div className="p-4 border-t border-gray-100 grid grid-cols-1 sm:grid-cols-2 gap-4 animate-in slide-in-from-top-2">
-                <div>
-                  <label className="block text-xs font-bold text-nb-ink-mid uppercase mb-1">Mood</label>
-                  <div className="flex items-center gap-2 border-b-2 border-nb-ink-mid/40 focus-within:border-nb-ink-mid transition-colors">
-                    <PixelIcon name="heart" size={16} className="text-nb-ink-mid" />
-                    <input
-                      type="text"
-                      className="w-full py-1 bg-transparent outline-none text-sm"
-                      placeholder="How are you feeling?"
-                      value={mood}
-                      onChange={(e) => setMood(e.target.value)}
-                      disabled={busy}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-nb-ink-mid uppercase mb-1">Listening To</label>
-                  <div className="flex items-center gap-2 border-b-2 border-nb-ink-mid/40 focus-within:border-nb-ink-mid transition-colors">
-                    <PixelIcon name="music" size={16} className="text-nb-ink-mid" />
-                    <input
-                      type="text"
-                      className="w-full py-1 bg-transparent outline-none text-sm"
-                      placeholder="Song, album, or artist"
-                      value={listeningTo}
-                      onChange={(e) => setListeningTo(e.target.value)}
-                      disabled={busy}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-nb-ink-mid uppercase mb-1">Reading</label>
-                  <div className="flex items-center gap-2 border-b-2 border-nb-ink-mid/40 focus-within:border-nb-ink-mid transition-colors">
-                    <PixelIcon name="article" size={16} className="text-nb-ink-mid" />
-                    <input
-                      type="text"
-                      className="w-full py-1 bg-transparent outline-none text-sm"
-                      placeholder="Book or article"
-                      value={reading}
-                      onChange={(e) => setReading(e.target.value)}
-                      disabled={busy}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-nb-ink-mid uppercase mb-1">Drinking</label>
-                  <div className="flex items-center gap-2 border-b-2 border-nb-ink-mid/40 focus-within:border-nb-ink-mid transition-colors">
-                    <PixelIcon name="drop" size={16} className="text-nb-ink-mid" />
-                    <input
-                      type="text"
-                      className="w-full py-1 bg-transparent outline-none text-sm"
-                      placeholder="Coffee, tea, etc."
-                      value={drinking}
-                      onChange={(e) => setDrinking(e.target.value)}
-                      disabled={busy}
-                    />
-                  </div>
-                </div>
-
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-bold text-nb-ink-mid uppercase mb-1">Location</label>
-                  <div className="flex items-center gap-2 border-b-2 border-nb-ink-mid/40 focus-within:border-nb-ink-mid transition-colors">
-                    <PixelIcon name="map" size={16} className="text-nb-ink-mid" />
-                    <input
-                      type="text"
-                      className="w-full py-1 bg-transparent outline-none text-sm"
-                      placeholder="Where are you posting from?"
-                      value={location}
-                      onChange={(e) => setLocation(e.target.value)}
-                      disabled={busy}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
           {activeTab === "write" ? (
-            <>
+            // Its own box, so the toolbar stops sticking once you're past the text
+            <div>
               {/* Markdown Toolbar */}
-              <div className="sticky top-[60px] z-10 border-2 border-nb-ink-mid bg-nb-ink-mid/5 p-2 mb-4 flex flex-wrap gap-1 items-center shadow-md rounded-lg mx-[-8px]">
+              {/* Phones: one row that scrolls sideways, stuck to the top while you type */}
+              <div className="ts-editor-toolbar sticky sm:top-[60px] z-10 border-2 border-nb-ink-mid bg-nb-paper sm:bg-nb-ink-mid/5 p-1 sm:p-2 mb-4 flex flex-nowrap overflow-x-auto sm:flex-wrap sm:overflow-visible gap-1 items-center shadow-md rounded-lg sm:mx-[-8px]">
                 {TOOLBAR_ITEMS.map((item) => (
                   <button
                     key={item.action}
                     type="button"
-                    className="toolbar-button px-2 py-1.5 border border-transparent hover:border-nb-ink-mid hover:bg-white rounded text-sm font-mono transition-all"
+                    className="toolbar-button flex-shrink-0 px-2 py-1.5 border border-transparent hover:border-nb-ink-mid hover:bg-white rounded text-sm font-mono transition-all"
                     onClick={() => insertMarkdown(item.action)}
                     title={item.label}
+                    aria-label={item.label}
                     disabled={busy || uploadingImage}
                   >
                     {item.icon}
                   </button>
                 ))}
 
-                <EmojiPicker onEmojiSelect={handleEmojiSelect} />
+                <EmojiPicker onEmojiSelect={handleEmojiSelect} className="flex-shrink-0" />
 
-                <div className="ml-2 border-l border-nb-ink-mid pl-2">
+                <div className="flex-shrink-0 ml-1 sm:ml-2 border-l border-nb-ink-mid pl-1 sm:pl-2">
                   <button
                     type="button"
-                    className="thread-button-secondary btn btn--secondary text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="thread-button-secondary btn btn--secondary text-sm whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ minHeight: 44 }}
                     onClick={() => fileInputRef.current?.click()}
                     title="Upload Image"
+                    aria-label="Upload Image"
                     disabled={busy || uploadingImage}
                   >
-                    {uploadingImage ? `Uploading...${uploadProgress}% ` : (
+                    {uploadingImage ? `${uploadProgress}%` : (
                       <span className="flex items-center gap-1">
-                        <PixelIcon name="camera" size={16} /> Upload Image
+                        <PixelIcon name="camera" size={16} /> <span className="hidden sm:inline">Upload Image</span>
                       </span>
                     )}
                   </button>
@@ -1117,7 +986,7 @@ code block
               <div className="text-xs text-nb-ink-mid mt-2 flex items-center gap-1">
                 <PixelIcon name="lightbulb" size={14} /> Tips: Use Tab to indent, Shift+Tab to outdent. Drag & drop or click Upload Image to add pictures.
               </div>
-            </>
+            </div>
           ) : (
             <div className="border-2 border-nb-ink-mid p-4 min-h-[400px] bg-white">
               {title && (
@@ -1128,6 +997,147 @@ code block
               <Preview content={previewHtml} />
             </div>
           )}
+
+          {/* Spoiler/Content Warning Section */}
+          <div className="mt-6 mb-6 border border-dashed border-thread-sage/40 p-4 bg-thread-cream/30 rounded-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <PixelIcon name="alert" size={20} className="text-nb-ink" />
+              <h3 className="text-sm font-bold text-nb-ink">Content Warning</h3>
+            </div>
+
+            <div className="space-y-3">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isSpoiler}
+                  onChange={(e) => {
+                    setIsSpoiler(e.target.checked);
+                    if (!e.target.checked) {
+                      setContentWarning("");
+                    }
+                  }}
+                  disabled={busy}
+                  className="w-4 h-4 text-nb-ink rounded focus:ring-orange-500"
+                />
+                <span className="text-sm text-nb-ink font-medium">
+                  Mark this post as containing spoilers
+                </span>
+              </label>
+
+              {isSpoiler && (
+                <div className="mt-2 animate-in slide-in-from-top-2">
+                  <input
+                    type="text"
+                    className="form-input w-full border-2 border-nb-ink-mid p-2 text-sm rounded shadow-sm"
+                    placeholder="Warning description (e.g. Episode 5 spoilers, Season 2 finale)"
+                    value={contentWarning}
+                    onChange={(e) => setContentWarning(e.target.value)}
+                    disabled={busy}
+                    maxLength={100}
+                  />
+                  <div className="text-xs text-nb-ink-mid mt-1">
+                    This will blur the post content until readers choose to reveal it
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Journal Metadata Section */}
+          <div className="mb-0 border-2 border-nb-ink-mid bg-white shadow-nb-sm">
+            <button
+              type="button"
+              onClick={() => setIsMetadataOpen(!isMetadataOpen)}
+              aria-expanded={isMetadataOpen}
+              className="ts-bare w-full flex items-center justify-between px-4 hover:bg-nb-ink-mid/5 transition-colors"
+              style={{ minHeight: 48 }}
+            >
+              <div className="flex items-center gap-2">
+                <PixelIcon name="script" size={20} />
+                <span className="text-sm font-bold text-nb-ink uppercase tracking-wider">Journal Metadata</span>
+              </div>
+              <PixelIcon name={isMetadataOpen ? "chevron-up" : "chevron-down"} size={16} />
+            </button>
+
+            {isMetadataOpen && (
+              <div className="p-4 border-t border-gray-100 grid grid-cols-1 sm:grid-cols-2 gap-4 animate-in slide-in-from-top-2">
+                <div>
+                  <label className="block text-xs font-bold text-nb-ink-mid uppercase mb-1">Mood</label>
+                  <div className="flex items-center gap-2 border-b-2 border-nb-ink-mid/40 focus-within:border-nb-ink-mid transition-colors">
+                    <PixelIcon name="heart" size={16} className="text-nb-ink-mid" />
+                    <input
+                      type="text"
+                      className="w-full py-1 bg-transparent outline-none text-sm"
+                      placeholder="How are you feeling?"
+                      value={mood}
+                      onChange={(e) => setMood(e.target.value)}
+                      disabled={busy}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-nb-ink-mid uppercase mb-1">Listening To</label>
+                  <div className="flex items-center gap-2 border-b-2 border-nb-ink-mid/40 focus-within:border-nb-ink-mid transition-colors">
+                    <PixelIcon name="music" size={16} className="text-nb-ink-mid" />
+                    <input
+                      type="text"
+                      className="w-full py-1 bg-transparent outline-none text-sm"
+                      placeholder="Song, album, or artist"
+                      value={listeningTo}
+                      onChange={(e) => setListeningTo(e.target.value)}
+                      disabled={busy}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-nb-ink-mid uppercase mb-1">Reading</label>
+                  <div className="flex items-center gap-2 border-b-2 border-nb-ink-mid/40 focus-within:border-nb-ink-mid transition-colors">
+                    <PixelIcon name="article" size={16} className="text-nb-ink-mid" />
+                    <input
+                      type="text"
+                      className="w-full py-1 bg-transparent outline-none text-sm"
+                      placeholder="Book or article"
+                      value={reading}
+                      onChange={(e) => setReading(e.target.value)}
+                      disabled={busy}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-nb-ink-mid uppercase mb-1">Drinking</label>
+                  <div className="flex items-center gap-2 border-b-2 border-nb-ink-mid/40 focus-within:border-nb-ink-mid transition-colors">
+                    <PixelIcon name="drop" size={16} className="text-nb-ink-mid" />
+                    <input
+                      type="text"
+                      className="w-full py-1 bg-transparent outline-none text-sm"
+                      placeholder="Coffee, tea, etc."
+                      value={drinking}
+                      onChange={(e) => setDrinking(e.target.value)}
+                      disabled={busy}
+                    />
+                  </div>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-bold text-nb-ink-mid uppercase mb-1">Location</label>
+                  <div className="flex items-center gap-2 border-b-2 border-nb-ink-mid/40 focus-within:border-nb-ink-mid transition-colors">
+                    <PixelIcon name="map" size={16} className="text-nb-ink-mid" />
+                    <input
+                      type="text"
+                      className="w-full py-1 bg-transparent outline-none text-sm"
+                      placeholder="Where are you posting from?"
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                      disabled={busy}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* ThreadRing Selection - only available during post creation */}
           {
@@ -1254,8 +1264,17 @@ code block
           }
         </div >
 
-        {/* Action Buttons */}
-        < div className="border-t border-nb-ink-mid bg-nb-ink-mid/5 p-4 flex items-center justify-between" >
+        {/* Just above the buttons */}
+        {error && (
+          <div className="border-t border-nb-ink-mid bg-red-50 p-3">
+            <div className="text-red-700 text-sm">{error}</div>
+          </div>
+        )}
+
+        {/* Action Buttons. Phones: stuck to the bottom of the screen */}
+        < div
+          className="ts-editor-actions sticky bottom-0 sm:static z-20 border-t border-nb-ink-mid bg-nb-paper sm:bg-nb-ink-mid/5 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] sm:p-4 flex items-center justify-between gap-3"
+        >
           <button
             type="button"
             className="thread-button-secondary btn btn--secondary"
@@ -1265,10 +1284,14 @@ code block
             Cancel
           </button>
 
-          <div className="flex items-center gap-3">
-            {uploadingImage && (
+          <div className="flex items-center gap-3 min-w-0">
+            {uploadingImage ? (
               <span className="text-sm text-nb-ink-mid" role="status">
                 Uploading image… please wait
+              </span>
+            ) : draftSaved && (
+              <span className="sm:hidden text-xs text-thread-sage flex items-center gap-1">
+                <PixelIcon name="check" size={14} /> Draft saved
               </span>
             )}
             <button
@@ -1281,11 +1304,6 @@ code block
           </div>
         </div >
 
-        {error && (
-          <div className="border-t border-nb-ink-mid bg-red-50 p-3">
-            <div className="text-red-700 text-sm">{error}</div>
-          </div>
-        )}
       </form >
     </div >
   );
