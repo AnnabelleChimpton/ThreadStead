@@ -596,7 +596,9 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
                         setUsername(value);
                       }}
                       placeholder="alice"
-                      className="w-full pl-8 pr-4 py-3 text-lg border-2 border-nb-ink-mid/60 rounded-md bg-white focus:outline-none focus:border-nb-ink-mid"
+                      className="w-full px-4 py-3 text-lg border-2 border-nb-ink-mid/60 rounded-md bg-white focus:outline-none focus:border-nb-ink-mid"
+                      // Inline: the site's phone input padding would put the text under the @ otherwise
+                      style={{ paddingLeft: '2rem' }}
                       disabled={isLoading}
                       maxLength={20}
                     />
@@ -768,7 +770,9 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
                         setPasswordErrors(validation.errors);
                       }}
                       placeholder="Enter a strong password"
-                      className="w-full px-4 py-3 text-lg border-2 border-nb-ink-mid/60 rounded-md bg-white focus:outline-none focus:border-nb-ink-mid pr-12"
+                      className="w-full px-4 py-3 text-lg border-2 border-nb-ink-mid/60 rounded-md bg-white focus:outline-none focus:border-nb-ink-mid"
+                      // Inline: the site's phone input padding would run the text under the eye button otherwise
+                      style={{ paddingRight: '3rem' }}
                       disabled={isLoading}
                     />
                     <button
