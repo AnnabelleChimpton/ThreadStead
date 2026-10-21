@@ -259,6 +259,7 @@ function GradientDitherPatterns({
 }
 
 export type SkyType = 'sunny' | 'cloudy' | 'sunset' | 'night'
+export type GroundType = 'day' | 'night'
 
 // The yard's sky and lawn, from threadstead-44 (lib/pixel-homes/palette.ts),
 // as in the art bible's design/pixel-art/_yard-preview.png. The street's lots
@@ -273,7 +274,10 @@ const SKY_COLORS: Record<SkyType, string[]> = {
 }
 
 // Lawn colours, from the horizon down to the foreground
-const GROUND_COLORS = ['#a3c27a', '#608d43', '#49722e']
+const GROUND_COLORS: Record<GroundType, string[]> = {
+  day: ['#a3c27a', '#608d43', '#49722e'],
+  night: ['#2d5016', '#1b350a', '#1d3029'],
+}
 
 /** Height in pixels of the checker seam between two sky or lawn bands. */
 export const SCENE_DITHER_SEAM = 2
@@ -287,11 +291,14 @@ export const NIGHT_STARS: ReadonlyArray<readonly [number, number, number, string
 // Stored atmosphere values aren't validated, so fall back to the sunny sky.
 const skyColors = (sky: SkyType) => SKY_COLORS[sky] ?? SKY_COLORS.sunny
 
+/** The lawn at night is darker, under a night sky. */
+export const groundFor = (sky: SkyType): GroundType => (sky === 'night' ? 'night' : 'day')
+
 /** The sky's horizon colour, painted under the bands so nothing shows through a gap. */
 export const skyBaseColor = (sky: SkyType): string => skyColors(sky)[skyColors(sky).length - 1]
 
 /** The lawn's horizon colour, painted under the bands. */
-export const groundBaseColor = (): string => GROUND_COLORS[0]
+export const groundBaseColor = (ground: GroundType): string => GROUND_COLORS[ground][0]
 
 /**
  * Pattern definitions for one sky gradient: ids `${prefix}-sky-${sky}-${i}`.
@@ -308,13 +315,13 @@ export function SkyGradientDefs({ prefix = '', sky }: { prefix?: string; sky: Sk
 }
 
 /**
- * Pattern definitions for the lawn gradient: ids `${prefix}-ground-${i}`.
+ * Pattern definitions for the lawn gradient: ids `${prefix}-ground-${ground}-${i}`.
  */
-export function GroundGradientDefs({ prefix = '' }: { prefix?: string }) {
+export function GroundGradientDefs({ prefix = '', ground }: { prefix?: string; ground: GroundType }) {
   const p = prefix ? `${prefix}-` : ''
   return (
     <defs>
-      <GradientDitherPatterns prefix={p} name="ground" colors={GROUND_COLORS} />
+      <GradientDitherPatterns prefix={p} name={`ground-${ground}`} colors={GROUND_COLORS[ground]} />
     </defs>
   )
 }
@@ -333,8 +340,8 @@ export function getSkyPatternCount(skyType: SkyType): number {
 /**
  * Returns the number of pattern bands for the lawn gradient.
  */
-export function getGroundPatternCount(): number {
-  return GROUND_COLORS.length * 2 - 1
+export function getGroundPatternCount(ground: GroundType): number {
+  return GROUND_COLORS[ground].length * 2 - 1
 }
 
 export interface DitherBand {

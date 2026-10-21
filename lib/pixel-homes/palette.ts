@@ -95,6 +95,12 @@ export const HOUSE_PALETTE_RAMPS: Record<string, HouseRamps> = {
   },
 }
 
+/** Window glass at night, in every palette: lamplight. */
+export const LIT_GLASS = R.butter[2]
+
+/** The glass ramp at night (house sprites swap their glass key for it). */
+export const LIT_GLASS_RAMP: HouseRamps['glass'] = [R.butter[0], R.butter[1], R.butter[2], R.ink[5]]
+
 /** The one small accent each palette adds (the townhouse's corner stones). */
 export const HOUSE_DETAIL_COLOURS: Record<string, string> = {
   thread_sage: R.wood[4],

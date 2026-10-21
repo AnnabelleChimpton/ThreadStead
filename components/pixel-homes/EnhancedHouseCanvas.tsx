@@ -2,7 +2,7 @@ import React, { memo, useMemo, useRef, useEffect, useState } from 'react'
 import type { HouseTemplate, ColorPalette, HouseCustomizations, AtmosphereSettings } from './HouseSVG'
 import DecorationSVG from './DecorationSVG'
 import HouseSprite from './HouseSprite'
-import { SkyGradientDefs, GroundGradientDefs, TerrainDitherDefs, getSkyPatternCount, getGroundPatternCount, layoutDitherBands, groundBaseColor, skyBaseColor, NIGHT_STARS, SCENE_DITHER_SEAM } from './DitherPatternDefs'
+import { SkyGradientDefs, GroundGradientDefs, TerrainDitherDefs, getSkyPatternCount, getGroundPatternCount, layoutDitherBands, groundFor, groundBaseColor, skyBaseColor, NIGHT_STARS, SCENE_DITHER_SEAM, type GroundType } from './DitherPatternDefs'
 import { useSvgIdPrefix } from './useSvgIdPrefix'
 import { DecorationItem, TERRAIN_TILES, isFlipped } from '@/lib/pixel-homes/decoration-data'
 import { DEFAULT_DECORATION_GRID } from '@/lib/pixel-homes/decoration-grid-utils'
@@ -149,12 +149,12 @@ const SkyLayer = memo(function SkyLayer({ sky, idPrefix }: { sky: AtmosphereSett
   )
 })
 
-const GroundLayer = memo(function GroundLayer({ idPrefix }: { idPrefix: string }) {
+const GroundLayer = memo(function GroundLayer({ ground, idPrefix }: { ground: GroundType; idPrefix: string }) {
   const zone = DECORATION_ZONES.front_yard
 
-  const bands = layoutDitherBands(getGroundPatternCount(), zone.height, SCENE_DITHER_SEAM).map(band => ({
+  const bands = layoutDitherBands(getGroundPatternCount(ground), zone.height, SCENE_DITHER_SEAM).map(band => ({
     ...band,
-    pattern: `${idPrefix}-ground-${band.index}`
+    pattern: `${idPrefix}-ground-${ground}-${band.index}`
   }))
 
   return (
@@ -165,9 +165,9 @@ const GroundLayer = memo(function GroundLayer({ idPrefix }: { idPrefix: string }
       preserveAspectRatio="none"
       shapeRendering="crispEdges"
     >
-      <GroundGradientDefs prefix={idPrefix} />
+      <GroundGradientDefs prefix={idPrefix} ground={ground} />
       {/* Base fill to prevent any gaps */}
-      <rect x="0" y="0" width={zone.width} height={zone.height} fill={groundBaseColor()} />
+      <rect x="0" y="0" width={zone.width} height={zone.height} fill={groundBaseColor(ground)} />
       {bands.map((band, i) => (
         <rect key={i} x="0" y={band.y} width={zone.width} height={band.height} fill={`url(#${band.pattern})`} />
       ))}
@@ -233,11 +233,13 @@ const TerrainLayer = memo(function TerrainLayer({ terrain, idPrefix }: { terrain
 const HouseLayer = memo(function HouseLayer({
   template,
   palette,
-  customizations
+  customizations,
+  lit
 }: {
   template: HouseTemplate
   palette: ColorPalette
   customizations: HouseCustomizations
+  lit: boolean
 }) {
   return (
     <div
@@ -252,7 +254,7 @@ const HouseLayer = memo(function HouseLayer({
         zIndex: houseDepth()
       }}
     >
-      <HouseSprite template={template} palette={palette} customizations={customizations} className="w-full h-full" />
+      <HouseSprite template={template} palette={palette} customizations={customizations} lit={lit} className="w-full h-full" />
     </div>
   )
 })
@@ -473,6 +475,7 @@ export default function EnhancedHouseCanvas({
   }, [onScaleChange, pixelPerfect])
 
   const editable = !!onScenePointer
+  // At night the lawn darkens and the windows are lit
   const sky = atmosphere?.sky ?? 'sunny'
 
   // One handler for mouse, pen and touch, in scene coordinates
@@ -552,7 +555,7 @@ export default function EnhancedHouseCanvas({
           }}
         >
           <SkyLayer sky={sky} idPrefix={idPrefix} />
-          <GroundLayer idPrefix={idPrefix} />
+          <GroundLayer ground={groundFor(sky)} idPrefix={idPrefix} />
           <TerrainLayer terrain={terrain ?? NO_TERRAIN} idPrefix={idPrefix} />
           <DecorationsLayer
             decorations={decorations}
@@ -563,7 +566,7 @@ export default function EnhancedHouseCanvas({
             onNoteClick={isDecorationMode || editable ? undefined : onNoteClick}
             openNoteId={openNoteId}
           />
-          <HouseLayer template={template} palette={palette} customizations={houseCustomizations ?? NO_CUSTOMIZATIONS} />
+          <HouseLayer template={template} palette={palette} customizations={houseCustomizations ?? NO_CUSTOMIZATIONS} lit={sky === 'night'} />
 
           {/* The drawn front door is the way inside. No visible chrome: the
               cursor changes, and keyboard focus gets a dotted ring. */}

@@ -110,10 +110,21 @@ describe('renderHomeSnapshot', () => {
     expect((await pixels(card)).hex(5, 5)).toBe('#8b7fe0')
   })
 
-  test("the lawn is the street's", async () => {
+  test("the lawn is the street's, and at night it darkens and the windows are lit", async () => {
+    // A pane of the cottage's left window (house 58,128), clear of the
+    // reflection, and the lawn just under the horizon
+    const WINDOW = [156 + 58, 32 + 128] as const
+    const LAWN = [20, 100] as const
     const day = await pixels((await renderHomeSnapshot(scene(), { loadImage: noImages })).card)
-    expect(day.hex(20, 100)).toBe('#a3c27a')
+    const night = await pixels((await renderHomeSnapshot(scene({ sky: 'night' }), { loadImage: noImages })).card)
+
+    expect(day.hex(...LAWN)).toBe('#a3c27a')
     expect(day.hex(20, 200)).toBe('#608d43')
+    expect(day.hex(...WINDOW)).toBe('#9dbfd3') // thread_sage glass
+
+    expect(night.hex(5, 5)).toBe('#2b2523')
+    expect(night.hex(...LAWN)).toBe('#2d5016')
+    expect(night.hex(...WINDOW)).toBe('#f6e27f')
   })
 
   test("the house uses the resident's colours", async () => {

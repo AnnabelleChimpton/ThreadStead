@@ -36,6 +36,7 @@ import {
   getGroundPatternCount,
   getSkyPatternCount,
   groundBaseColor,
+  groundFor,
   layoutDitherBands,
   skyBaseColor,
   type SkyType,
@@ -90,7 +91,7 @@ const MAX_TOP_CROP = 30
 // 3: flipped decorations are drawn mirrored
 // 4: lights, chimes, lanterns, trellises and arches on the house stay in front of it
 // 5: every palette owns its walls; loft, townhouse and cabin parts take palette colours
-// 6: threadstead-44 sky and lawn (the street's)
+// 6: threadstead-44 sky and lawn (the street's); at night the lawn darkens and the windows are lit
 export const SNAPSHOT_RENDERER_VERSION = 6
 
 /** Fetch an image's bytes, or null if it can't be had (a 404, an origin we don't fetch from). */
@@ -237,8 +238,9 @@ async function decorationMarkup(item: SceneDecoration, loadImage: ImageLoader): 
 function Backdrop({ sky, padX }: { sky: SkyType; padX: number }) {
   const width = CANVAS_WIDTH + padX * 2
   const groundHeight = CANVAS_HEIGHT - SKY_HEIGHT
+  const ground = groundFor(sky)
   const skyBands = layoutDitherBands(getSkyPatternCount(sky), SKY_HEIGHT, SCENE_DITHER_SEAM)
-  const groundBands = layoutDitherBands(getGroundPatternCount(), groundHeight, SCENE_DITHER_SEAM)
+  const groundBands = layoutDitherBands(getGroundPatternCount(ground), groundHeight, SCENE_DITHER_SEAM)
   // Each layer keeps the canvas's own origin (the sky and terrain at 0,0,
   // the ground at 0,96), so the dither patterns line up pixel for pixel.
   return (
@@ -255,10 +257,10 @@ function Backdrop({ sky, padX }: { sky: SkyType; padX: number }) {
           ))}
       </g>
       <g transform={`translate(0 ${SKY_HEIGHT})`}>
-        <GroundGradientDefs prefix="snap" />
-        <rect x={-padX} y={0} width={width} height={groundHeight} fill={groundBaseColor()} />
+        <GroundGradientDefs prefix="snap" ground={ground} />
+        <rect x={-padX} y={0} width={width} height={groundHeight} fill={groundBaseColor(ground)} />
         {groundBands.map((band) => (
-          <rect key={band.index} x={-padX} y={band.y} width={width} height={band.height} fill={`url(#snap-ground-${band.index})`} />
+          <rect key={band.index} x={-padX} y={band.y} width={width} height={band.height} fill={`url(#snap-ground-${ground}-${band.index})`} />
         ))}
       </g>
     </>
@@ -319,7 +321,7 @@ export async function renderSceneSvg(
   )
   const house = renderToStaticMarkup(
     <svg x={HOUSE.x} y={HOUSE.y} width={HOUSE.width} height={HOUSE.height} viewBox={`0 0 ${HOUSE.width} ${HOUSE.height}`}>
-      <HouseSVG template={scene.template} palette={scene.palette} customizations={scene.houseCustomizations} />
+      <HouseSVG template={scene.template} palette={scene.palette} customizations={scene.houseCustomizations} lit={scene.sky === 'night'} />
     </svg>
   )
 

@@ -1,5 +1,5 @@
 import sockets from '../../../design/pixel-art/_template-house.sockets.json'
-import { HOUSE_PALETTE_RAMPS, KEY_RAMPS, isPaletteColour } from '../palette'
+import { HOUSE_PALETTE_RAMPS, KEY_RAMPS, LIT_GLASS_RAMP, isPaletteColour } from '../palette'
 import {
   HOUSE_LAYER_SETS,
   PLACEHOLDER_LAYER_SETS,
@@ -47,6 +47,20 @@ describe('key colours', () => {
 
   test('an unknown palette falls back to thread_sage', () => {
     expect([...keyColourMap('nope')]).toEqual([...keyColourMap('thread_sage')])
+  })
+
+  test('at night every palette lights its windows and keeps the rest', () => {
+    const hex = (rgb: [number, number, number]) => '#' + rgb.map((c) => c.toString(16).padStart(2, '0')).join('')
+    const key = (k: string) => parseInt(k.slice(1), 16)
+    for (const palette of Object.keys(HOUSE_PALETTE_RAMPS)) {
+      const day = keyColourMap(palette)
+      const night = keyColourMap(palette, true)
+      KEY_RAMPS.glass.forEach((k, step) => expect(hex(night.get(key(k))!)).toBe(LIT_GLASS_RAMP[step]))
+      for (const part of ['wall', 'roof', 'trim'] as const) {
+        for (const k of KEY_RAMPS[part]) expect(night.get(key(k))).toEqual(day.get(key(k)))
+      }
+    }
+    for (const hex of LIT_GLASS_RAMP) expect(isPaletteColour(hex)).toBe(true)
   })
 })
 

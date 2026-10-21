@@ -16,9 +16,11 @@ interface HouseSpriteProps {
   className?: string
   /** Draw this layer set whatever the flag says (admin previews of placeholder or new art) */
   layerSet?: HouseLayerSet
+  /** Night: the windows glow (see HouseSVG) */
+  lit?: boolean
 }
 
-/** One recoloured copy of each layer per palette, shared by every house on the page. */
+/** One recoloured copy of each layer per palette (lit or not), shared by every house on the page. */
 const recoloured = new Map<string, Promise<string>>()
 
 function loadImage(src: string): Promise<HTMLImageElement> {
@@ -32,8 +34,8 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 }
 
 /** A layer with its key colours swapped for the palette's, as an object URL. */
-function paletteLayerUrl(src: string, palette: string): Promise<string> {
-  const cacheKey = `${palette}|${src}`
+function paletteLayerUrl(src: string, palette: string, lit: boolean): Promise<string> {
+  const cacheKey = `${palette}|${lit ? 'lit' : 'day'}|${src}`
   let url = recoloured.get(cacheKey)
   if (!url) {
     url = (async () => {
@@ -45,7 +47,7 @@ function paletteLayerUrl(src: string, palette: string): Promise<string> {
       if (!ctx) throw new Error('No canvas')
       ctx.drawImage(img, 0, 0)
       const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height)
-      swapKeyColours(pixels.data, keyColourMap(palette))
+      swapKeyColours(pixels.data, keyColourMap(palette, lit))
       ctx.putImageData(pixels, 0, 0)
       const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'))
       if (!blob) throw new Error('No PNG')
@@ -69,7 +71,7 @@ const pct = (n: number, of: number) => `${(n / of) * 100}%`
  * Falls back to the code-drawn HouseSVG when the template has no layer art,
  * isn't switched on, uses custom colours, or while the layers are loading.
  */
-export default function HouseSprite({ template, palette, customizations, className = '', layerSet }: HouseSpriteProps) {
+export default function HouseSprite({ template, palette, customizations, className = '', layerSet, lit = false }: HouseSpriteProps) {
   const set = layerSet ?? houseLayerSet(template)
   const usable = !!set && !hasCustomColours(customizations)
   const options = usable ? houseOptionSprites(template, set!, customizations as Record<string, unknown>) : []
@@ -80,16 +82,16 @@ export default function HouseSprite({ template, palette, customizations, classNa
   useEffect(() => {
     if (!sourcesKey) return
     let cancelled = false
-    const key = `${palette}\n${sourcesKey}`
-    Promise.all(sourcesKey.split('\n').map((src) => paletteLayerUrl(src, palette)))
+    const key = `${palette}|${lit}\n${sourcesKey}`
+    Promise.all(sourcesKey.split('\n').map((src) => paletteLayerUrl(src, palette, lit)))
       .then((list) => { if (!cancelled) setUrls({ key, list }) })
       .catch(() => { if (!cancelled) setUrls(null) })
     return () => { cancelled = true }
-  }, [sourcesKey, palette])
+  }, [sourcesKey, palette, lit])
 
-  const ready = usable && urls?.key === `${palette}\n${sourcesKey}`
+  const ready = usable && urls?.key === `${palette}|${lit}\n${sourcesKey}`
   if (!ready) {
-    return <HouseSVG template={template} palette={palette} customizations={customizations} className={className} />
+    return <HouseSVG template={template} palette={palette} customizations={customizations} lit={lit} className={className} />
   }
 
   const [base, roof, ...optionUrls] = urls!.list
