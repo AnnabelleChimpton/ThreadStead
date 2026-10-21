@@ -2,7 +2,7 @@ import React, { memo, useMemo, useRef, useEffect, useState } from 'react'
 import type { HouseTemplate, ColorPalette, HouseCustomizations, AtmosphereSettings } from './HouseSVG'
 import DecorationSVG from './DecorationSVG'
 import HouseSprite from './HouseSprite'
-import { SkyGradientDefs, GroundGradientDefs, TerrainDitherDefs, getSkyPatternCount, getGroundPatternCount, layoutDitherBands, groundFor, groundBaseColor, skyBaseColor, NIGHT_STARS, SCENE_DITHER_SEAM, type GroundType } from './DitherPatternDefs'
+import { SkyGradientDefs, GroundGradientDefs, TerrainDitherDefs, TERRAIN_PATTERNS, getSkyPatternCount, getGroundPatternCount, layoutDitherBands, groundFor, groundBaseColor, skyBaseColor, NIGHT_STARS, SCENE_DITHER_SEAM, type GroundType } from './DitherPatternDefs'
 import { useSvgIdPrefix } from './useSvgIdPrefix'
 import { DecorationItem, TERRAIN_TILES, isFlipped } from '@/lib/pixel-homes/decoration-data'
 import { DEFAULT_DECORATION_GRID } from '@/lib/pixel-homes/decoration-grid-utils'
@@ -174,22 +174,6 @@ const GroundLayer = memo(function GroundLayer({ ground, idPrefix }: { ground: Gr
     </svg>
   )
 })
-
-// Map terrain IDs to dither pattern IDs
-const TERRAIN_PATTERNS: Record<string, string> = {
-  'dirt': 'terrain-dirt',
-  'stone_path': 'terrain-stone',
-  'brick_path': 'terrain-brick',
-  'water': 'terrain-water',
-  'sand': 'terrain-sand',
-  'gravel': 'terrain-gravel',
-  'flower_bed': 'terrain-flowerbed',
-  'wood_deck': 'terrain-wood',
-  'cobblestone': 'terrain-cobble',
-  'mulch': 'terrain-dirt',
-  'moss': 'terrain-flowerbed',
-  'pebbles': 'terrain-gravel'
-}
 
 // The terrain <svg> stays mounted even with no tiles: unmounting it re-created
 // its patterns whenever the first tile was painted or the last one erased.

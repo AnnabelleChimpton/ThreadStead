@@ -32,6 +32,7 @@ import {
   NIGHT_STARS,
   SCENE_DITHER_SEAM,
   SkyGradientDefs,
+  TERRAIN_PATTERNS,
   TerrainDitherDefs,
   getGroundPatternCount,
   getSkyPatternCount,
@@ -61,20 +62,6 @@ export const CANVAS_WIDTH = 512
 export const CANVAS_HEIGHT = 352
 const SKY_HEIGHT = 96 // background zone: y 0–96
 const HOUSE = { x: 156, y: 32, width: 200, height: 180 }
-const TERRAIN_PATTERNS: Record<string, string> = {
-  dirt: 'terrain-dirt',
-  stone_path: 'terrain-stone',
-  brick_path: 'terrain-brick',
-  water: 'terrain-water',
-  sand: 'terrain-sand',
-  gravel: 'terrain-gravel',
-  flower_bed: 'terrain-flowerbed',
-  wood_deck: 'terrain-wood',
-  cobblestone: 'terrain-cobble',
-  mulch: 'terrain-dirt',
-  moss: 'terrain-flowerbed',
-  pebbles: 'terrain-gravel',
-}
 
 // --- The share image ----------------------------------------------------------
 export const OG_SIZE = { width: 1200, height: 630 } as const
@@ -92,7 +79,8 @@ const MAX_TOP_CROP = 30
 // 4: lights, chimes, lanterns, trellises and arches on the house stay in front of it
 // 5: every palette owns its walls; loft, townhouse and cabin parts take palette colours
 // 6: threadstead-44 sky and lawn (the street's); at night the lawn darkens and the windows are lit
-export const SNAPSHOT_RENDERER_VERSION = 6
+// 7: threadstead-44 terrain; mulch, moss and pebbles get their own colours
+export const SNAPSHOT_RENDERER_VERSION = 7
 
 /** Fetch an image's bytes, or null if it can't be had (a 404, an origin we don't fetch from). */
 export type ImageLoader = (url: string) => Promise<Buffer | null>
