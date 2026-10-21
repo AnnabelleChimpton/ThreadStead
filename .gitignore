@@ -59,3 +59,6 @@ THREADRING_REFACTOR_TODO.md
 .threadstead-server-keypair.json
 
 /public/_local-r2/
+
+# Sound banks the dev server makes beside the signup music (/api/signup-audio)
+public/uploads/admin/*.sf2
