@@ -249,6 +249,11 @@ a.widget-container {
     outline: 0;
     box-shadow: none;
   }
+  /* RetroCard's title has its own phone gutter; the sheet already has one */
+  .thread-module.ts-phone-sheet > .thread-headline {
+    padding-left: 0;
+    padding-right: 0;
+  }
   .thread-module.ts-phone-bare {
     padding: 0;
     border: 0;
