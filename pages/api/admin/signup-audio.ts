@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import formidable from 'formidable';
 import { apiHandler } from '@/lib/api/handler';
-import { trimSoundBank } from '@/lib/audio/server/trim-sound-bank';
+import { ensureSignupSoundBank } from '@/lib/audio/server/signup-sound-bank';
 
 export const config = {
   api: {
@@ -35,18 +35,6 @@ function getAudioConfig(): AudioConfig {
     console.error('Error reading signup audio config:', error);
   }
   return { enabled: false, volume: 0.7 };
-}
-
-/** A MIDI's sound bank sits beside it as <file>.sf2 (lib/audio/sound-bank-url.ts) */
-async function writeSoundBank(midiPath: string) {
-  if (!/\.midi?$/i.test(midiPath)) return;
-  try {
-    const bank = await trimSoundBank(await fs.promises.readFile(midiPath));
-    await fs.promises.writeFile(`${midiPath}.sf2`, bank);
-  } catch (error) {
-    // The music still plays, on the old synth
-    console.error('Could not make the signup music\'s sound bank:', error);
-  }
 }
 
 function removeAudioFile(filePath: string) {
@@ -96,7 +84,7 @@ export default apiHandler(
 
         // Move file to final location
         fs.renameSync(audioFile.filepath, newPath);
-        await writeSoundBank(newPath);
+        await ensureSignupSoundBank(newPath, { remake: true });
 
         // Delete old file if exists
         const oldConfig = getAudioConfig();

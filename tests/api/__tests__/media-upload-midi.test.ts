@@ -154,7 +154,7 @@ test('a song is stored with its own sound bank, and the row points at it', async
   });
 });
 
-test('when the bank can’t be made the song still uploads, for the old synth', async () => {
+test('when the bank can’t be made the song still uploads (its first play makes one)', async () => {
   (trimSoundBank as jest.Mock).mockRejectedValueOnce(new Error('no bank today'));
   const error = jest.spyOn(console, 'error').mockImplementation(() => {});
   const res = await upload(song());

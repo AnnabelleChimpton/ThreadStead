@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { apiHandler } from '@/lib/api/handler';
+import { ensureSignupSoundBank } from '@/lib/audio/server/signup-sound-bank';
 
 const AUDIO_CONFIG_FILE = path.join(process.cwd(), 'data', 'signup-audio-config.json');
 
@@ -35,6 +36,10 @@ export default apiHandler(
     // Check if file exists
     const filePath = path.join(process.cwd(), 'public', 'uploads', 'admin', config.filename);
     if (!fs.existsSync(filePath)) {
+      return res.json({ enabled: false });
+    }
+    // A MIDI plays through the sampler, which needs its sound bank beside it
+    if (/\.midi?$/i.test(config.filename) && !(await ensureSignupSoundBank(filePath))) {
       return res.json({ enabled: false });
     }
 

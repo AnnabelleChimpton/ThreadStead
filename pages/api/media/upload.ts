@@ -191,7 +191,7 @@ async function processAndUploadMedia(
   }
 
   // A song's own sound bank, so it plays through the sampler. If this
-  // fails the song still uploads and plays on the old synth.
+  // fails the song still uploads; its bank is made when it's first played.
   let soundBankUrl: string | null = null;
   if (isMidi) {
     try {

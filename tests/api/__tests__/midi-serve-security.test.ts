@@ -9,7 +9,10 @@ jest.mock('@/lib/config/database/connection', () => ({
   db: { media: { findUnique: jest.fn() } },
 }))
 
+jest.mock('@/lib/audio/server/song-sound-bank', () => ({ makeSongSoundBank: jest.fn() }))
+
 import handler from '@/pages/api/media/serve/[id]'
+import { makeSongSoundBank } from '@/lib/audio/server/song-sound-bank'
 import { db } from '@/lib/config/database/connection'
 
 const mockMedia = (db as any).media as { findUnique: jest.Mock }
@@ -95,27 +98,45 @@ test('serves a song\'s sound bank as a download, never as a page', async () => {
   expect(res.headers['content-disposition']).toMatch(/^attachment;/)
 })
 
-test('a stored "bank" that isn\'t a sound bank is not served', async () => {
+test('a stored "bank" that isn\'t a sound bank is made again, and that one is served', async () => {
   mockMedia.findUnique.mockResolvedValue({
     id: 'm1', mediaType: 'midi', visibility: 'public', userId: 'u1', fullUrl: 'https://cdn/song.mid',
     soundBankUrl: 'https://cdn/song.sf2', originalName: 'song.mid',
   })
   ;(global.fetch as jest.Mock).mockResolvedValue({ ok: true, arrayBuffer: async () => FAKE_HTML })
+  ;(makeSongSoundBank as jest.Mock).mockResolvedValue({ url: 'https://cdn/song.sf2', bank: REAL_BANK })
   const res = makeRes()
   await handler(bankReq(), res)
-  expect(res.statusCode).toBe(404)
-  expect(res.body).toEqual({ error: 'Sound bank not found' })
+  expect(res.statusCode).toBe(200)
+  expect(res.body).toBe(REAL_BANK)
 })
 
-test('a song without a bank yet says so (the player uses the old synth)', async () => {
+test('a song without a bank gets one made on its first play', async () => {
   mockMedia.findUnique.mockResolvedValue({
     id: 'm1', mediaType: 'midi', visibility: 'public', userId: 'u1', fullUrl: 'https://cdn/song.mid',
     soundBankUrl: null, originalName: 'song.mid',
   })
+  ;(makeSongSoundBank as jest.Mock).mockResolvedValue({ url: 'https://cdn/song.sf2', bank: REAL_BANK })
+  const res = makeRes()
+  await handler(bankReq(), res)
+  expect(makeSongSoundBank).toHaveBeenCalledWith(expect.objectContaining({ id: 'm1', fullUrl: 'https://cdn/song.mid' }))
+  expect(res.statusCode).toBe(200)
+  expect(res.headers['content-type']).toBe('application/octet-stream')
+  expect(global.fetch).not.toHaveBeenCalled()
+})
+
+test('when the bank can\'t be made, it\'s a 404 and nothing is served', async () => {
+  mockMedia.findUnique.mockResolvedValue({
+    id: 'm1', mediaType: 'midi', visibility: 'public', userId: 'u1', fullUrl: 'https://cdn/song.mid',
+    soundBankUrl: null, originalName: 'song.mid',
+  })
+  ;(makeSongSoundBank as jest.Mock).mockRejectedValue(new Error('The song file is missing'))
+  const error = jest.spyOn(console, 'error').mockImplementation(() => {})
   const res = makeRes()
   await handler(bankReq(), res)
   expect(res.statusCode).toBe(404)
-  expect(global.fetch).not.toHaveBeenCalled()
+  expect(res.body).toEqual({ error: 'Sound bank not found' })
+  error.mockRestore()
 })
 
 test('a private song\'s bank follows the song\'s rules', async () => {
@@ -127,4 +148,5 @@ test('a private song\'s bank follows the song\'s rules', async () => {
   await handler(bankReq(), res)
   expect(res.statusCode).toBe(403)
   expect(global.fetch).not.toHaveBeenCalled()
+  expect(makeSongSoundBank).not.toHaveBeenCalled()
 })

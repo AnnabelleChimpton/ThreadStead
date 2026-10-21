@@ -1,8 +1,9 @@
 #!/usr/bin/env tsx
 /**
- * Give older MIDI songs their own sound bank (MIDI plan Phase 3), so they
- * play through the sampler instead of the old synth. Songs uploaded since
- * then get one at upload. Needs migration 20261104000000_midi_sound_banks.
+ * Give MIDI songs without one their own sound bank (MIDI plan Phase 3).
+ * Songs get one at upload, and a song still without one gets it the first
+ * time it's played, so this is for doing them all ahead of time (and for
+ * --force remakes). Needs migration 20261104000000_midi_sound_banks.
  *
  * Dry run by default: reads each song and trims its bank to report the
  * size, but uploads and saves nothing.
@@ -19,8 +20,9 @@ import './load-env'
 import fs from 'fs'
 import path from 'path'
 import { db } from '@/lib/config/database/connection'
-import { keyFromPublicUrl, putObject, readStoredObject } from '@/lib/storage/r2'
+import { readStoredObject } from '@/lib/storage/r2'
 import { SOURCE_SOUND_BANK, trimSoundBank } from '@/lib/audio/server/trim-sound-bank'
+import { makeSongSoundBank, soundBankKeyFor } from '@/lib/audio/server/song-sound-bank'
 
 function parseArgs(argv: string[]) {
   const args = { apply: false, force: false, limit: 0 }
@@ -78,25 +80,24 @@ async function main() {
   for (const song of songs) {
     const name = `${song.id}  ${song.title || song.originalName || ''}`.trim()
     try {
-      const key = keyFromPublicUrl(song.fullUrl)
-      if (!key) {
+      if (!soundBankKeyFor(song.fullUrl)) {
         tally('skipped')
         console.log(`skipped    ${name}  (not in our storage: ${song.fullUrl})`)
         continue
       }
-      const midi = await readStoredObject(song.fullUrl)
-      if (!midi) {
-        tally('missing')
-        console.log(`missing    ${name}`)
-        continue
-      }
-      const bank = await trimSoundBank(midi, source)
-      total += bank.length
+      let bank: Buffer
       if (args.apply) {
-        const bankKey = `${key.replace(/\.[^./]+$/, '')}.sf2`
-        const soundBankUrl = await putObject({ key: bankKey, body: bank, contentType: 'application/octet-stream' })
-        await db.media.update({ where: { id: song.id }, data: { soundBankUrl } })
+        bank = (await makeSongSoundBank(song, source)).bank
+      } else {
+        const midi = await readStoredObject(song.fullUrl)
+        if (!midi) {
+          tally('missing')
+          console.log(`missing    ${name}`)
+          continue
+        }
+        bank = await trimSoundBank(midi, source)
       }
+      total += bank.length
       tally(args.apply ? 'made' : 'would make')
       console.log(`${(args.apply ? 'made' : 'would make').padEnd(10)} ${name}  ${mb(bank.length)}`)
     } catch (error) {

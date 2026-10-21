@@ -3,6 +3,7 @@ import { getSessionUser } from "@/lib/auth/server";
 import { apiHandler } from "@/lib/api/handler";
 import { readStoredObject } from "@/lib/storage/r2";
 import { isSoundBank } from "@/lib/audio/is-sound-bank";
+import { makeSongSoundBank } from "@/lib/audio/server/song-sound-bank";
 
 export default apiHandler(
   // auth 'none': the session is looked up below only for non-public media
@@ -47,14 +48,17 @@ export default apiHandler(
       }
 
       // ?bank=1: the song's own sound bank, for the sampler (MIDI plan
-      // Phase 3). The same access rules as the song.
+      // Phase 3). The same access rules as the song. A song without one
+      // (or whose stored bank is gone) gets it made now, once.
       if (req.query.bank === '1') {
-        if (!media.soundBankUrl) {
-          return res.status(404).json({ error: "This song has no sound bank yet" });
-        }
-        const bank = await readStoredObject(media.soundBankUrl);
+        let bank = media.soundBankUrl ? await readStoredObject(media.soundBankUrl) : null;
         if (!bank || !isSoundBank(bank)) {
-          return res.status(404).json({ error: "Sound bank not found" });
+          try {
+            bank = (await makeSongSoundBank(media)).bank;
+          } catch (error) {
+            console.error(`[media:${media.id}] Could not make the song's sound bank:`, error);
+            return res.status(404).json({ error: "Sound bank not found" });
+          }
         }
         res.setHeader('Content-Type', 'application/octet-stream');
         res.setHeader('X-Content-Type-Options', 'nosniff');
