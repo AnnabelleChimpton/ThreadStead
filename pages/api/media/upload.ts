@@ -6,6 +6,7 @@ import multer from "multer";
 import { promisify } from "util";
 import { apiHandler } from "@/lib/api/handler";
 import { putObject } from "@/lib/storage/r2";
+import { trimSoundBank } from "@/lib/audio/server/trim-sound-bank";
 import {
   BADGE_HD_SIZE,
   BADGE_SIZE,
@@ -102,6 +103,7 @@ async function processAndUploadMedia(
   fullUrl: string;
   metadata: { width?: number; height?: number; fileSize: number };
   mediaType: string;
+  soundBankUrl: string | null;
 }> {
   const timestamp = Date.now();
   const baseKey = `media/${userId}/${timestamp}`;
@@ -188,12 +190,25 @@ async function processAndUploadMedia(
     urls[`${size}Url`] = await putObject({ key, body: imageBuffer, contentType });
   }
 
+  // A song's own sound bank, so it plays through the sampler. If this
+  // fails the song still uploads and plays on the old synth.
+  let soundBankUrl: string | null = null;
+  if (isMidi) {
+    try {
+      const bank = await trimSoundBank(buffer);
+      soundBankUrl = await putObject({ key: `${baseKey}.sf2`, body: bank, contentType: 'application/octet-stream' });
+    } catch (error) {
+      console.error(`[media:${baseKey}] Could not make the song's sound bank:`, error);
+    }
+  }
+
   return {
     thumbnailUrl: urls.thumbnailUrl,
     mediumUrl: urls.mediumUrl,
     fullUrl: urls.fullUrl,
     metadata,
     mediaType: isMidi ? 'midi' : isGif ? 'gif' : 'image',
+    soundBankUrl,
   };
 }
 
@@ -278,7 +293,7 @@ export default apiHandler(
       const isGalleryItem = uploadContext === 'media_collection';
 
       // Process and upload media
-      const { thumbnailUrl, mediumUrl, fullUrl, metadata, mediaType } = await processAndUploadMedia(
+      const { thumbnailUrl, mediumUrl, fullUrl, metadata, mediaType, soundBankUrl } = await processAndUploadMedia(
         file.buffer,
         me.id,
         file.mimetype,
@@ -312,6 +327,7 @@ export default apiHandler(
           fileSize: metadata.fileSize,
           mimeType: file.mimetype,
           mediaType,
+          soundBankUrl,
           width: metadata.width || null,
           height: metadata.height || null,
           featured: shouldFeature,

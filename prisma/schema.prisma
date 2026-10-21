@@ -569,6 +569,8 @@ model Media {
   fileSize      Int?
   mimeType      String?
   mediaType     String         @default("image")
+  /// A MIDI song's own sound bank: GeneralUser GS trimmed to the song (MIDI plan Phase 3)
+  soundBankUrl  String?
   width         Int?
   height        Int?
   featured      Boolean        @default(false)

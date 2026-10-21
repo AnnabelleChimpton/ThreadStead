@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import formidable from 'formidable';
 import { apiHandler } from '@/lib/api/handler';
+import { trimSoundBank } from '@/lib/audio/server/trim-sound-bank';
 
 export const config = {
   api: {
@@ -34,6 +35,24 @@ function getAudioConfig(): AudioConfig {
     console.error('Error reading signup audio config:', error);
   }
   return { enabled: false, volume: 0.7 };
+}
+
+/** A MIDI's sound bank sits beside it as <file>.sf2 (lib/audio/sound-bank-url.ts) */
+async function writeSoundBank(midiPath: string) {
+  if (!/\.midi?$/i.test(midiPath)) return;
+  try {
+    const bank = await trimSoundBank(await fs.promises.readFile(midiPath));
+    await fs.promises.writeFile(`${midiPath}.sf2`, bank);
+  } catch (error) {
+    // The music still plays, on the old synth
+    console.error('Could not make the signup music\'s sound bank:', error);
+  }
+}
+
+function removeAudioFile(filePath: string) {
+  for (const file of [filePath, `${filePath}.sf2`]) {
+    if (fs.existsSync(file)) fs.unlinkSync(file);
+  }
 }
 
 function saveAudioConfig(config: AudioConfig) {
@@ -77,14 +96,12 @@ export default apiHandler(
 
         // Move file to final location
         fs.renameSync(audioFile.filepath, newPath);
+        await writeSoundBank(newPath);
 
         // Delete old file if exists
         const oldConfig = getAudioConfig();
         if (oldConfig.filename) {
-          const oldPath = path.join(UPLOADS_DIR, oldConfig.filename);
-          if (fs.existsSync(oldPath)) {
-            fs.unlinkSync(oldPath);
-          }
+          removeAudioFile(path.join(UPLOADS_DIR, oldConfig.filename));
         }
 
         // Save new config
@@ -125,10 +142,7 @@ export default apiHandler(
       // Delete audio file and config
       const config = getAudioConfig();
       if (config.filename) {
-        const filePath = path.join(UPLOADS_DIR, config.filename);
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
-        }
+        removeAudioFile(path.join(UPLOADS_DIR, config.filename));
       }
 
       saveAudioConfig({ enabled: false, volume: 0.7 });

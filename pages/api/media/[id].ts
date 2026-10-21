@@ -67,7 +67,7 @@ export default apiHandler(
       // Extract keys from URLs to delete from R2
       const keysToDelete: string[] = [];
 
-      for (const url of [media.thumbnailUrl, media.mediumUrl, media.fullUrl]) {
+      for (const url of [media.thumbnailUrl, media.mediumUrl, media.fullUrl, media.soundBankUrl]) {
         if (!url) continue;
         const key = keyFromPublicUrl(url);
         if (!key) {

@@ -1,6 +1,8 @@
 import { db } from "@/lib/config/database/connection";
 import { getSessionUser } from "@/lib/auth/server";
 import { apiHandler } from "@/lib/api/handler";
+import { readStoredObject } from "@/lib/storage/r2";
+import { isSoundBank } from "@/lib/audio/is-sound-bank";
 
 export default apiHandler(
   // auth 'none': the session is looked up below only for non-public media
@@ -23,6 +25,7 @@ export default apiHandler(
           mediaType: true,
           userId: true,
           visibility: true,
+          soundBankUrl: true,
         }
       });
 
@@ -43,14 +46,29 @@ export default apiHandler(
         return res.status(400).json({ error: "This endpoint only serves MIDI files" });
       }
 
-      // Fetch the file from R2/S3
-      const response = await fetch(media.fullUrl);
-      if (!response.ok) {
-        console.error('Failed to fetch from R2:', response.status, response.statusText);
-        return res.status(404).json({ error: "File not found" });
+      // ?bank=1: the song's own sound bank, for the sampler (MIDI plan
+      // Phase 3). The same access rules as the song.
+      if (req.query.bank === '1') {
+        if (!media.soundBankUrl) {
+          return res.status(404).json({ error: "This song has no sound bank yet" });
+        }
+        const bank = await readStoredObject(media.soundBankUrl);
+        if (!bank || !isSoundBank(bank)) {
+          return res.status(404).json({ error: "Sound bank not found" });
+        }
+        res.setHeader('Content-Type', 'application/octet-stream');
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        res.setHeader('Content-Length', bank.byteLength);
+        res.setHeader('Cache-Control', 'public, max-age=3600');
+        res.setHeader('Content-Disposition', 'attachment; filename="sound-bank.sf2"');
+        return res.status(200).send(bank);
       }
 
-      const bytes = Buffer.from(await response.arrayBuffer());
+      // Fetch the file from R2/S3
+      const bytes = await readStoredObject(media.fullUrl);
+      if (!bytes) {
+        return res.status(404).json({ error: "File not found" });
+      }
 
       // Verify the bytes are actually a MIDI file (magic number "MThd").
       // The upload path trusts the client-supplied MIME/extension, so a file

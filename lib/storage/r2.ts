@@ -143,6 +143,28 @@ export async function putObject({
   return publicUrl(key);
 }
 
+/**
+ * The bytes of an object we stored, by its public URL, or null when it
+ * isn't there. In development with R2_LOCAL_DIR the URL is a path on this
+ * site, so it's read from the folder instead of fetched.
+ */
+export async function readStoredObject(url: string): Promise<Buffer | null> {
+  const local = localFolder();
+  if (local && url.startsWith(`/${local}/`)) {
+    try {
+      return await fs.readFile(localPath(local, url.slice(local.length + 2)));
+    } catch {
+      return null;
+    }
+  }
+  const response = await fetch(url);
+  if (!response.ok) {
+    console.error(`Could not fetch ${url} from storage:`, response.status, response.statusText);
+    return null;
+  }
+  return Buffer.from(await response.arrayBuffer());
+}
+
 export interface DeleteObjectsResult {
   deleted: string[];
   failed: string[];
