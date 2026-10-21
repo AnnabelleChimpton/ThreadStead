@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import Button from '@/components/ui/Button'
 import { csrfFetch } from '@/lib/api/client/csrf-fetch'
 // import { ConsentType } from '@prisma/client' // Use local definition to avoid import issues
@@ -26,6 +26,24 @@ export default function CookieConsentBanner({
 }: CookieConsentBannerProps) {
   const [isVisible, setIsVisible] = useState(false)
   const [loading, setLoading] = useState(false)
+  const barRef = useRef<HTMLDivElement | null>(null)
+
+  // While the notice shows, the things in the bottom corners (music, chat,
+  // view source, scroll to top) sit above it instead of under it
+  // (styles/corners.css)
+  useEffect(() => {
+    const el = barRef.current
+    if (!isVisible || !el || typeof ResizeObserver === 'undefined') return
+    const root = document.documentElement
+    const observer = new ResizeObserver(() => {
+      root.style.setProperty('--ts-bottom-bar', `${Math.ceil(el.getBoundingClientRect().height)}px`)
+    })
+    observer.observe(el)
+    return () => {
+      observer.disconnect()
+      root.style.removeProperty('--ts-bottom-bar')
+    }
+  }, [isVisible])
 
   useEffect(() => {
     // Check if user has already acknowledged
@@ -82,9 +100,10 @@ export default function CookieConsentBanner({
 
   return (
     <div
+      ref={barRef}
       role="region"
       aria-label="Cookie notice"
-      className="fixed bottom-0 left-0 right-0 z-50 bg-nb-paper border-t-2 border-nb-ink-mid"
+      className="ts-cookie-notice fixed bottom-0 left-0 right-0 z-50 bg-nb-paper border-t-2 border-nb-ink-mid"
     >
       <div className="max-w-6xl mx-auto px-4 py-2 flex items-center gap-3">
         <p className="flex-1 m-0 text-xs sm:text-sm text-nb-ink">

@@ -1,0 +1,57 @@
+/*
+ * Site chrome over a person's page: what sits in the bottom corners, and
+ * what the page's own CSS can't cover. Unlayered, like retro.css, so it
+ * beats Tailwind's utilities.
+ */
+
+/* ---------- the bottom corners, in one order ----------
+   Music (MidiPlayer's floating placement, the profile's song) bottom left.
+   Chat and "view source" bottom right. Scroll-to-top above the music. All of
+   them above the cookie notice while it shows: CookieConsentBanner sets
+   --ts-bottom-bar to its height, MidiPlayer sets --ts-music-height. */
+.ts-music-dock {
+  position: fixed;
+  left: 1rem;
+  bottom: calc(1rem + var(--ts-bottom-bar, 0px) + env(safe-area-inset-bottom, 0px));
+  z-index: 60;
+  width: max-content;
+}
+.ts-music-dock section.ts-music {
+  width: min(22rem, calc(100vw - 2rem));
+}
+/* A phone with the chat button: stop short of it */
+@media (max-width: 767px) {
+  body:has(.ts-chat-toggle) .ts-music-dock section.ts-music {
+    width: calc(100vw - 2rem - 56px - 0.75rem);
+  }
+}
+
+.ts-scroll-top {
+  margin-bottom: var(--ts-bottom-bar, 0px);
+}
+body:has(.ts-music-dock) .ts-scroll-top {
+  left: 1rem;
+  bottom: calc(1rem + var(--ts-music-height, 3.75rem) + 0.75rem);
+}
+
+.ts-view-source-badge {
+  margin-bottom: var(--ts-bottom-bar, 0px);
+}
+/* Above the chat button instead of on it */
+body:has(.ts-chat-toggle) .ts-view-source-badge {
+  bottom: calc(1.25rem + 60px + 0.75rem);
+}
+
+/* ---------- the page can't cover chrome ----------
+   A person's HTML page gets its own stacking context, so nothing in it,
+   whatever its z-index, can rise over the nav, chat or music. */
+.profile-template-root {
+  isolation: isolate;
+}
+/* Full-page decorations drawn on body::before/::after (sparkles, scanlines)
+   took every click meant for what's under them. A click on a pseudo-element
+   only ever reaches body, so the page loses nothing. */
+html body::before,
+html body::after {
+  pointer-events: none !important;
+}
