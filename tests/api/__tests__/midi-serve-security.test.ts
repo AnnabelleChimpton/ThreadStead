@@ -150,3 +150,15 @@ test('a private song\'s bank follows the song\'s rules', async () => {
   expect(global.fetch).not.toHaveBeenCalled()
   expect(makeSongSoundBank).not.toHaveBeenCalled()
 })
+
+test('?download=1 saves the song under its own (cleaned) name', async () => {
+  mockMedia.findUnique.mockResolvedValue({
+    id: 'm1', mediaType: 'midi', visibility: 'public', userId: 'u1', fullUrl: 'https://cdn/song.mid',
+    mimeType: 'audio/midi', originalName: 'little tune.mid',
+  })
+  ;(global.fetch as jest.Mock).mockResolvedValue({ ok: true, arrayBuffer: async () => REAL_MIDI })
+  const res = makeRes()
+  await handler({ method: 'GET', query: { id: 'm1', download: '1' } } as unknown as NextApiRequest, res)
+  expect(res.statusCode).toBe(200)
+  expect(res.headers['content-disposition']).toBe('attachment; filename="little_tune.mid"')
+})

@@ -178,3 +178,43 @@ test('a photo gets no sound bank', async () => {
   expect(trimSoundBank).not.toHaveBeenCalled();
   expect(db.media.create).toHaveBeenCalledWith({ data: expect.objectContaining({ soundBankUrl: null }) });
 });
+
+test('a song is stored once, not three times, and never as a featured photo', async () => {
+  const res = await upload(song());
+  expect(res.statusCode).toBe(200);
+  const puts: Put[] = send.mock.calls.map((c) => c[0].input);
+  expect(puts.filter((p) => p.Key.endsWith('.mid'))).toHaveLength(1);
+  const data = (db.media.create as jest.Mock).mock.calls[0][0].data;
+  expect(data.thumbnailUrl).toBe(data.fullUrl);
+  expect(data.mediumUrl).toBe(data.fullUrl);
+  expect(data.featured).toBe(false);
+  expect(data.featuredOrder).toBeNull();
+  expect((res.body as { message?: string }).message).toBe('Song added.');
+});
+
+test('a MIDI with the right header but nothing playable after it is refused', async () => {
+  const broken = Buffer.concat([Buffer.from('MThd'), Buffer.from([0, 0, 0, 6, 0, 1, 0, 1, 1, 224]), Buffer.from('MTrk garbage that is not a track')]);
+  const res = await upload(broken);
+  expect(res.statusCode).toBe(400);
+  expect(res.body.error).toMatch(/broken|no notes/);
+  expect(send).not.toHaveBeenCalled();
+  expect(db.media.create).not.toHaveBeenCalled();
+});
+
+test('songs have their own monthly allowance, apart from photos', async () => {
+  // Ten songs this month already, no photos
+  (db.media.count as jest.Mock).mockImplementation(async ({ where }: { where: { mediaType?: unknown } }) =>
+    where.mediaType === 'midi' ? 10 : 0
+  );
+  const full = await upload(song());
+  expect(full.statusCode).toBe(413);
+  expect(full.body.error).toBe("You can add 10 songs a month. There's room for more next month.");
+
+  const png = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+    'base64'
+  );
+  const photo = await upload(png, 'image/png', 'dot.png');
+  expect(photo.statusCode).toBe(200);
+  (db.media.count as jest.Mock).mockResolvedValue(0);
+});

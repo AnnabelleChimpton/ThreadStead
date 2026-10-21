@@ -64,10 +64,11 @@ export default apiHandler(
         return res.status(200).json({ media: updated });
       }
 
-      // Extract keys from URLs to delete from R2
+      // Extract keys from URLs to delete from R2 (a song's three URLs can be
+      // one file)
       const keysToDelete: string[] = [];
 
-      for (const url of [media.thumbnailUrl, media.mediumUrl, media.fullUrl, media.soundBankUrl]) {
+      for (const url of new Set([media.thumbnailUrl, media.mediumUrl, media.fullUrl, media.soundBankUrl])) {
         if (!url) continue;
         const key = keyFromPublicUrl(url);
         if (!key) {
@@ -82,10 +83,12 @@ export default apiHandler(
       // block removing the record; deleteObjects logs each one loudly.
       await deleteObjects(keysToDelete, { context: `media:${mediaId}` });
 
-      // Delete from database
-      await db.media.delete({
-        where: { id: mediaId }
-      });
+      // Delete from database. If it was the song on the owner's profile, the
+      // profile goes quiet instead of pointing at nothing.
+      await db.$transaction([
+        db.profile.updateMany({ where: { userId: me.id, profileMidiId: mediaId }, data: { profileMidiId: null } }),
+        db.media.delete({ where: { id: mediaId } }),
+      ]);
 
       return res.status(200).json({ success: true });
 

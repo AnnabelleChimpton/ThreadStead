@@ -96,7 +96,8 @@ export default apiHandler(
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.setHeader('Access-Control-Allow-Methods', 'GET');
       res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-      res.setHeader('Content-Disposition', `inline; filename="${safeName}"`);
+      // ?download=1: the owner's Download button saves it with its own name
+      res.setHeader('Content-Disposition', `${req.query.download === '1' ? 'attachment' : 'inline'}; filename="${safeName}"`);
 
       // Send the file
       res.status(200).send(bytes);

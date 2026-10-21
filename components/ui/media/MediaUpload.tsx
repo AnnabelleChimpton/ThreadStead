@@ -48,13 +48,17 @@ export default function MediaUpload({ onUploadSuccess, disabled = false }: Media
 
     // Validate file type
     const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif'];
-    const allowedMidiTypes = ['audio/midi', 'audio/x-midi', 'application/x-midi'];
     const isHEIC = file.type === 'image/heic' || file.type === 'image/heif' ||
                    file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif');
-    const isMidi = allowedMidiTypes.includes(file.type);
+    const isMidi = /\.midi?$/i.test(file.name) || file.type.includes('midi');
 
-    if (!allowedImageTypes.includes(file.type) && !isMidi && !isHEIC) {
-      setError('Please select a valid image file (JPEG, PNG, WebP, GIF, or HEIC) or MIDI file');
+    if (isMidi) {
+      // Songs have their own place, and never show among photos
+      setError('Songs go in Settings, under Music.');
+      return;
+    }
+    if (!allowedImageTypes.includes(file.type) && !isHEIC) {
+      setError('Choose a photo: JPEG, PNG, WebP, GIF or HEIC.');
       return;
     }
 
@@ -65,13 +69,6 @@ export default function MediaUpload({ onUploadSuccess, disabled = false }: Media
     }
 
     setError(null);
-
-    // For MIDI files, skip compression
-    if (isMidi) {
-      setSelectedFile(file);
-      setPreviewUrl('midi-placeholder');
-      return;
-    }
 
     // GIF, PNG and WebP go up as they are: GIFs keep their animation, and the
     // server keeps PNG and WebP in their own format (pixel art, transparency)
@@ -267,7 +264,7 @@ export default function MediaUpload({ onUploadSuccess, disabled = false }: Media
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*,.mid,.midi,.heic,.heif,audio/midi"
+            accept="image/*,.heic,.heif"
             onChange={handleFileInputChange}
             className="hidden"
             disabled={disabled || uploading}
@@ -279,7 +276,7 @@ export default function MediaUpload({ onUploadSuccess, disabled = false }: Media
                 {dragOver ? 'Drop your file here!' : currentButtonText}
               </p>
               <p className="text-xs text-thread-sage">
-                JPEG, PNG, WebP, GIF, or MIDI • Max 15MB
+                JPEG, PNG, WebP, GIF or HEIC, up to 25 MB
               </p>
             </div>
           </div>
@@ -288,18 +285,11 @@ export default function MediaUpload({ onUploadSuccess, disabled = false }: Media
         <div className="space-y-4">
           {/* Preview */}
           <div className="relative">
-            {previewUrl === 'midi-placeholder' ? (
-              <div className="w-full max-w-md mx-auto rounded-lg shadow-sm border border-thread-sage bg-thread-paper p-8 text-center">
-                <p className="text-thread-pine font-medium">MIDI File</p>
-                <p className="text-sm text-thread-sage mt-1">Ready to upload</p>
-              </div>
-            ) : (
-              <img 
-                src={previewUrl || ''} 
-                alt="Preview" 
-                className="w-full max-w-md mx-auto rounded-lg shadow-sm border border-thread-sage"
-              />
-            )}
+            <img 
+              src={previewUrl || ''} 
+              alt="Preview" 
+              className="w-full max-w-md mx-auto rounded-lg shadow-sm border border-thread-sage"
+            />
             <button
               onClick={handleRemoveFile}
               className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600"

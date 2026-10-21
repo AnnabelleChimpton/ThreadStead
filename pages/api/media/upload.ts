@@ -7,6 +7,7 @@ import { promisify } from "util";
 import { apiHandler } from "@/lib/api/handler";
 import { putObject } from "@/lib/storage/r2";
 import { trimSoundBank } from "@/lib/audio/server/trim-sound-bank";
+import { checkSong, SongCheckError } from "@/lib/audio/server/check-song";
 import {
   BADGE_HD_SIZE,
   BADGE_SIZE,
@@ -74,21 +75,24 @@ function checkRateLimit(userId: string): boolean {
   return true;
 }
 
-async function checkUserQuota(userId: string): Promise<boolean> {
-  // Check how many media items user has uploaded this month
+const PHOTOS_PER_MONTH = 50;
+// Songs have their own allowance, so music never uses up photo uploads
+const SONGS_PER_MONTH = 10;
+
+/** Room for another photo, or another song, this month */
+async function checkUserQuota(userId: string, kind: 'photo' | 'song'): Promise<boolean> {
   const monthStart = new Date();
   monthStart.setDate(1);
   monthStart.setHours(0, 0, 0, 0);
-  
-  const mediaCount = await db.media.count({
+
+  const count = await db.media.count({
     where: {
       userId,
-      createdAt: { gte: monthStart }
-    }
+      createdAt: { gte: monthStart },
+      mediaType: kind === 'song' ? 'midi' : { not: 'midi' },
+    },
   });
-  
-  // Allow up to 50 media uploads per month
-  return mediaCount < 50;
+  return count < (kind === 'song' ? SONGS_PER_MONTH : PHOTOS_PER_MONTH);
 }
 
 async function processAndUploadMedia(
@@ -122,14 +126,10 @@ async function processAndUploadMedia(
   let metadata: { width?: number; height?: number; fileSize: number };
 
   if (isMidi) {
-    // For MIDI files, just upload the original file
+    // One copy: a song has no sizes (the row's thumbnail and medium URLs
+    // point at it too)
     const extension = originalName.split('.').pop() || 'mid';
-    uploads = [
-      { key: `${baseKey}.${extension}`, buffer: buffer, size: 'full' },
-      // Create placeholder entries for thumbnails (we'll use a MIDI icon on frontend)
-      { key: `${baseKey}_thumb.${extension}`, buffer: buffer, size: 'thumbnail' },
-      { key: `${baseKey}_medium.${extension}`, buffer: buffer, size: 'medium' },
-    ];
+    uploads = [{ key: `${baseKey}.${extension}`, buffer: buffer, size: 'full' }];
     metadata = { fileSize: buffer.length };
   } else if (isGif) {
     // GIFs keep every frame: the full size is the upload itself (see renderGifSizes)
@@ -203,8 +203,8 @@ async function processAndUploadMedia(
   }
 
   return {
-    thumbnailUrl: urls.thumbnailUrl,
-    mediumUrl: urls.mediumUrl,
+    thumbnailUrl: urls.thumbnailUrl ?? urls.fullUrl,
+    mediumUrl: urls.mediumUrl ?? urls.fullUrl,
     fullUrl: urls.fullUrl,
     metadata,
     mediaType: isMidi ? 'midi' : isGif ? 'gif' : 'image',
@@ -219,13 +219,6 @@ export default apiHandler(
     if (!checkRateLimit(me.id)) {
       return res.status(429).json({ 
         error: "Rate limit exceeded. Maximum 30 uploads per day." 
-      });
-    }
-
-    // Check user quota
-    if (!(await checkUserQuota(me.id))) {
-      return res.status(413).json({ 
-        error: "Monthly upload quota exceeded (50 images per month)" 
       });
     }
 
@@ -260,8 +253,9 @@ export default apiHandler(
       // and extension are client-controlled, so require the real "MThd" magic
       // bytes before storing. Without this a file named song.mid could hold
       // HTML and later be served inline from our origin (stored XSS).
+      // (Matches processAndUploadMedia's test, so nothing stored as a song skips this)
       const treatedAsMidi = allowedMidiTypes.includes(file.mimetype) || isMidiByExtension;
-      if (treatedAsMidi && !allowedImageTypes.includes(file.mimetype)) {
+      if (treatedAsMidi) {
         const head = file.buffer as Buffer;
         if (head.length < 4 || head.toString('ascii', 0, 4) !== 'MThd') {
           return res.status(400).json({ error: "That doesn't look like a MIDI file." });
@@ -271,6 +265,22 @@ export default apiHandler(
         if (head.length > 1024 * 1024) {
           return res.status(400).json({ error: "MIDI files must be 1MB or smaller." });
         }
+        // Read it the way the player will: a header alone isn't a song
+        try {
+          checkSong(head);
+        } catch (error) {
+          if (error instanceof SongCheckError) return res.status(400).json({ error: error.message });
+          throw error;
+        }
+      }
+
+      // Photos and songs each have their own monthly allowance
+      if (!(await checkUserQuota(me.id, treatedAsMidi ? 'song' : 'photo'))) {
+        return res.status(413).json({
+          error: treatedAsMidi
+            ? `You can add ${SONGS_PER_MONTH} songs a month. There's room for more next month.`
+            : `You can add ${PHOTOS_PER_MONTH} photos a month. There's room for more next month.`,
+        });
       }
 
       // Check capability
@@ -305,9 +315,10 @@ export default apiHandler(
       let shouldFeature = false;
       let featuredOrder = null;
 
-      if (isGalleryItem) {
+      // Songs are never featured photos, and don't take photo slots
+      if (isGalleryItem && mediaType !== 'midi') {
         const featuredCount = await db.media.count({
-          where: { userId: me.id, featured: true }
+          where: { userId: me.id, featured: true, mediaType: { not: 'midi' } }
         });
 
         shouldFeature = featuredCount < 6;
@@ -350,9 +361,11 @@ export default apiHandler(
           mediaType: mediaRecord.mediaType,
           createdAt: mediaRecord.createdAt,
         },
-        message: shouldFeature 
-          ? "Image uploaded and added to your featured media!" 
-          : "Image uploaded successfully!"
+        message: mediaType === 'midi'
+          ? "Song added."
+          : shouldFeature
+            ? "Photo added to your featured photos."
+            : "Photo added."
       });
 
     } catch (error) {
