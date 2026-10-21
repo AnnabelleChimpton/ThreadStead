@@ -46,7 +46,7 @@ async function chooseAndSave(file: File) {
   await screen.findByText('Set up your profile');
   fireEvent.change(container.querySelector('#profile-photo') as HTMLInputElement, { target: { files: [file] } });
   await screen.findByAltText('Profile preview');
-  fireEvent.click(screen.getByRole('button', { name: 'Save Profile & Continue' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Save and continue' }));
   await waitFor(() => expect(csrfFetch).toHaveBeenCalledWith('/api/profile/upload-photo', expect.anything()));
   const call = (csrfFetch as jest.Mock).mock.calls.find((c) => c[0] === '/api/profile/upload-photo');
   return (call[1].body as FormData).get('photo') as File;

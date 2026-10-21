@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
 import Head from "next/head";
@@ -25,6 +25,8 @@ import { avatarUploadsAsIs } from '@/lib/media/media-types';
 import { fetchAuthMe } from "@/hooks/useCurrentUser";
 import { unlockAudio } from "@/lib/audio/context";
 import { csrfFetch } from "@/lib/api/client/csrf-fetch";
+import Button from "@/components/ui/Button";
+import { buttonClasses } from "@/components/ui/ButtonLink";
 
 interface SignupPageProps {
   betaKey?: string | null;
@@ -39,6 +41,136 @@ type AuthMethod = 'password' | 'seedphrase';
 // reload (or a return visit while signed in) resumes instead of restarting.
 const RESUMABLE_STEPS: SignupStep[] = ['email', 'guidelines', 'profile', 'house'];
 const PROGRESS_KEY = 'ts-signup-progress';
+
+// Signup's own words, in one place so they're easy to read through and change
+const COPY = {
+  pageTitle: 'Make an account',
+  welcomeHeading: 'Make an account',
+  welcomeIntro: 'Pick a username and a password. Your house comes after that.',
+  welcomeIntroWords: 'Pick a username. Your house comes after that.',
+  usernameLabel: 'Username',
+  usernameEmpty: 'Pick a username first.',
+  checking: 'Checking if it\'s free...',
+  passwordLabel: 'Password',
+  passwordWeak: 'Your password needs everything on the list below.',
+  confirmLabel: 'Password again',
+  confirmEmpty: 'Type your password again here.',
+  mismatch: 'The two passwords don\'t match.',
+  betaLabel: 'Beta invite code',
+  betaEmpty: 'You need an invite code while the site is in beta.',
+  createButton: 'Create account',
+  creating: 'Making your account...',
+  createFailed: 'I couldn\'t make your account. Try again?',
+  otherWays: 'Other ways to sign in',
+  seedHeading: 'Sign in with 12 words instead',
+  seedBody: 'Instead of a password, you get 12 words to sign in with. Write them down somewhere safe. If you lose them and haven\'t added an email, I can\'t get you back in. This browser remembers them too, so only do this on your own device.',
+  seedLater: 'You can add a password later in Settings.',
+  seedButton: 'Make my 12 words',
+  usePassword: 'Use a password instead',
+
+  wordsHeading: 'Write these down',
+  wordsIntro: 'These 12 words are how you sign in. Keep them in order, somewhere only you can see.',
+  wordsSafeHeading: 'Keep these words safe',
+  wordsSafe: [
+    'Anyone with these words can get into your account.',
+    'Paper is best.',
+    'Don\'t share them with anyone, me included.',
+    'Don\'t put them in email, screenshots or cloud storage.',
+  ],
+  copyWords: 'Copy words',
+  copied: 'Copied',
+  copiedStatus: 'Copied the 12 words.',
+  copyFailed: 'That didn\'t copy. You can select the words and copy them yourself.',
+  downloadWords: 'Download as a file',
+  wordsSaved: 'I wrote them down',
+
+  emailHeading: 'Add an email?',
+  emailIntroPassword: 'It\'s optional, but it helps. I\'ll send you a link to confirm it. After that you can sign in with an emailed link from any device, and reset your password if you forget it.',
+  emailIntroWords: 'It\'s optional, but it helps. I\'ll send you a link to confirm it. After that you can sign in with an emailed link from any device, even if you lose your 12 words.',
+  emailNoSpam: 'I don\'t send newsletters or ads.',
+  emailLabel: 'Email',
+  emailAdd: 'Add email',
+  emailSkip: 'Skip',
+  emailAdding: 'Adding...',
+  skipForNow: 'Skip for now',
+  emailFailed: 'I couldn\'t save your email. You can add it later in Settings.',
+
+  rulesHeading: 'Before you move in',
+  rulesIntro: 'Here are the house rules, short version. The full guidelines, terms and privacy policy are linked below if you want the long one.',
+  rulesInPractice: [
+    'No harassment, bullying or hate speech',
+    'Share your own stuff and respect other people\'s work',
+    'Keep it all-ages',
+    'If something\'s wrong, report it and I\'ll take a look',
+  ],
+  agreeLabel: 'I agree to the community guidelines, terms of service and privacy policy',
+  agreeFirst: 'Check the box first, then you can keep going.',
+  continue: 'Continue',
+
+  profileHeading: 'Set up your profile',
+  profileIntro: 'A photo and a few words about you. Both are optional, and you can change them any time.',
+  photoLabel: 'Photo',
+  choosePhoto: 'Choose a photo',
+  bioLabel: 'Bio',
+  saveProfile: 'Save and continue',
+  saving: 'Saving...',
+  profileSaved: 'Profile saved.',
+  profileRetry: 'You can try again, or skip this and do it later in Settings.',
+  notAnImage: 'That isn\'t an image. Try a JPEG, PNG, WebP or HEIC.',
+  photoTooBig: 'That photo is over 20MB. Try a smaller one?',
+  photoUnreadable: 'I couldn\'t read that image. Try a different one?',
+  photoFailed: 'Your photo didn\'t upload.',
+  bioFailed: 'Your bio didn\'t save.',
+  profileFailed: 'Your profile didn\'t save.',
+
+  newTab: '(opens in a new tab)',
+};
+
+// The site's focus ring (site-theme :focus-visible), on a label whose visually
+// hidden input has focus
+const PEER_FOCUS_RING = 'peer-focus-visible:outline-dashed peer-focus-visible:outline-[3px] peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[color:var(--ha-lav-ink,#5a4fb3)]';
+// Inputs keep the site's own focus look (darker border and a shadow)
+const INPUT = 'w-full px-4 py-3 text-lg border-2 border-nb-ink-mid/60 rounded-md bg-white aria-[invalid=true]:border-red-600';
+// Step headings take focus on a step change (so a screen reader announces
+// the step) but aren't something you Tab to, so no ring
+const HEADING = 'thread-headline text-3xl font-bold mb-2 outline-none!';
+// Primary buttons use aria-disabled, not disabled: they stay in the Tab order
+// and pressing one says what's missing
+const PRIMARY = 'w-full font-bold min-h-[48px] aria-disabled:opacity-50 aria-disabled:cursor-not-allowed';
+
+type FieldMsg = { tone: 'ok' | 'error' | 'quiet'; text: string };
+
+/** The line under a field. Always rendered, so changes to it are announced. */
+function FieldStatus({ id, msg }: { id: string; msg: FieldMsg | null }) {
+  const color = msg?.tone === 'ok' ? 'text-green-600' : msg?.tone === 'error' ? 'text-red-600' : 'text-nb-ink-mid';
+  return (
+    <div id={id} role="status" className={msg ? 'mt-2' : undefined}>
+      {msg && (
+        <p className={`${color} text-sm flex items-center gap-1`}>
+          {msg.tone !== 'quiet' && <PixelIcon name={msg.tone === 'ok' ? 'check' : 'close'} size={24} className="shrink-0 -my-1 -ml-1" />}
+          {msg.text}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** A step's error, read out as soon as it appears */
+function ErrorAlert({ error }: { error: string | null }) {
+  return (
+    <div role="alert">
+      {error && <div className="p-4 bg-red-50 border border-red-200 rounded text-sm text-red-700">{error}</div>}
+    </div>
+  );
+}
+
+function NewTabLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <a href={href} target="_blank" rel="noopener noreferrer" className="underline">
+      {children}<span className="sr-only"> {COPY.newTab}</span>
+    </a>
+  );
+}
 
 function readSavedStep(username: string): SignupStep | null {
   try {
@@ -58,7 +190,19 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
   const [currentStep, setCurrentStep] = useState<SignupStep>('welcome');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedAuthMethod, setSelectedAuthMethod] = useState<AuthMethod | null>(null);
+  const [selectedAuthMethod, setSelectedAuthMethod] = useState<AuthMethod>('password');
+  // Set by the first press of "Create account": from then on empty fields say so
+  const [attempted, setAttempted] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  // Focus targets: each step's heading, and the fields a submit sends you back to
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const usernameRef = useRef<HTMLInputElement>(null);
+  const betaKeyRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
+  const confirmRef = useRef<HTMLInputElement>(null);
+  const seedPanelRef = useRef<HTMLHeadingElement>(null);
+  const agreeRef = useRef<HTMLInputElement>(null);
 
   // Beta landing page tracking
   const [signupSource, setSignupSource] = useState<string | null>(null);
@@ -74,11 +218,9 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
   
   // Step 3: Seed Phrase
   const [generatedSeedPhrase, setGeneratedSeedPhrase] = useState<string>('');
-  const [seedPhraseSaved, setSeedPhraseSaved] = useState(false);
 
   // Step 3: Email (Optional)
   const [email, setEmail] = useState('');
@@ -175,26 +317,37 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
     if (choice) setHouseChoice(choice);
   }, [router.isReady, router.query.house, router.query.palette]);
 
+  // On every step change: back to the top, and focus on the new step's
+  // heading so a screen reader says where you are. Not on first load.
+  const firstStep = useRef(true);
   useEffect(() => {
-    // Scroll to top when step changes
+    if (firstStep.current) {
+      firstStep.current = false;
+      return;
+    }
+    setError(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    headingRef.current?.focus({ preventScroll: true });
   }, [currentStep]);
 
-  async function checkUsernameAvailability(username: string) {
+  // Returns what it found, so a submit can wait for a check still in flight
+  async function checkUsernameAvailability(username: string): Promise<boolean | null> {
     // First validate the username format
     const validation = validateUsername(username);
     if (!validation.ok) {
       setUsernameAvailable(null);
-      return;
+      return null;
     }
 
     try {
       const response = await fetch(`/api/account/check-handle?handle=${encodeURIComponent(username)}`);
       const data = await response.json();
       setUsernameAvailable(data.available);
+      return data.available;
     } catch (error) {
       console.error('Error checking username:', error);
       setUsernameAvailable(null);
+      return null;
     }
   }
 
@@ -208,88 +361,76 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
     return () => clearTimeout(timeoutId);
   }, [username]);
 
+  // Username, then a password or the 12 words, on one form. This is where
+  // the account is made.
   async function handleCreateAccount() {
-    if (!username.trim()) {
-      setError('Please enter a username');
+    if (isLoading) return;
+    setAttempted(true);
+    setError(null);
+
+    const name = username.trim();
+    if (!name || !validateUsername(name).ok) {
+      usernameRef.current?.focus();
+      return;
+    }
+    const available = usernameAvailable ?? await checkUsernameAvailability(name);
+    if (available === false) {
+      usernameRef.current?.focus();
+      return;
+    }
+    if (isBetaEnabled && !betaKey.trim()) {
+      betaKeyRef.current?.focus();
       return;
     }
 
-    const validation = validateUsername(username);
-    if (!validation.ok) {
-      setError(validation.message);
-      return;
-    }
-
-    if (usernameAvailable === false) {
-      setError('Username is not available');
-      return;
-    }
-
-    // Move to auth method selection
-    setCurrentStep('auth-method');
-  }
-
-  async function handleAuthMethodSelected(method: AuthMethod) {
-    setSelectedAuthMethod(method);
-    
-    if (method === 'password') {
-      setCurrentStep('password-setup');
-    } else {
-      // Create account with seed phrase immediately
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const result = await createNewIdentityWithSeedPhrase(username.trim(), betaKey || undefined);
-        setGeneratedSeedPhrase(result.mnemonic);
-        setCurrentStep('seed-phrase');
-        setAccountCreated(true);
-      } catch (e: unknown) {
-        setError((e as Error).message || 'Failed to create account');
-      } finally {
-        setIsLoading(false);
+    if (selectedAuthMethod === 'password') {
+      if (!validatePasswordStrength(password).valid) {
+        passwordRef.current?.focus();
+        return;
       }
-    }
-  }
-
-  async function handlePasswordSetup() {
-    // Validate password
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-
-    const validation = validatePasswordStrength(password);
-    if (!validation.valid) {
-      setPasswordErrors(validation.errors);
-      return;
+      if (password !== confirmPassword) {
+        confirmRef.current?.focus();
+        return;
+      }
     }
 
     setIsLoading(true);
-    setError(null);
-
     try {
-      // Create account with password
-      const result = await createNewIdentityWithPassword(username.trim(), password, betaKey || undefined);
-      setGeneratedSeedPhrase(result.mnemonic);
-      setAccountCreated(true);
-      // For password users, optionally show seed phrase but move to email step
-      setCurrentStep('email');
+      if (selectedAuthMethod === 'password') {
+        await createNewIdentityWithPassword(name, password, betaKey || undefined);
+        setAccountCreated(true);
+        setCurrentStep('email');
+      } else {
+        const result = await createNewIdentityWithSeedPhrase(name, betaKey || undefined);
+        setGeneratedSeedPhrase(result.mnemonic);
+        setAccountCreated(true);
+        setCurrentStep('seed-phrase');
+      }
     } catch (e: unknown) {
-      setError((e as Error).message || 'Failed to create account');
+      setError((e as Error).message || COPY.createFailed);
     } finally {
       setIsLoading(false);
     }
   }
 
+  function switchAuthMethod(method: AuthMethod) {
+    setSelectedAuthMethod(method);
+    setError(null);
+    // Land on what replaced the button that was just pressed
+    setTimeout(() => {
+      if (method === 'seedphrase') seedPanelRef.current?.focus();
+      else passwordRef.current?.focus();
+    }, 0);
+  }
+
   async function handleSeedPhraseSaved() {
-    setSeedPhraseSaved(true);
     setCurrentStep('email');
   }
 
   function handleGuidelinesAgreement() {
     if (!agreedToGuidelines) {
-      setError('Please agree to the Terms of Service, Privacy Policy, and Community Guidelines to continue');
+      setError(COPY.agreeFirst);
+      agreeRef.current?.focus();
       return;
     }
     setError(null);
@@ -297,6 +438,7 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
   }
 
   async function handleEmailSetup() {
+    if (isLoading) return;
     if (!email.trim()) {
       // Skip email step
       setCurrentStep('guidelines');
@@ -317,10 +459,10 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
         setCurrentStep('guidelines');
       } else {
         const error = await response.json();
-        setError(error.error || 'Failed to set email');
+        setError(error.error || COPY.emailFailed);
       }
     } catch (err) {
-      setError('Failed to set email. You can add it later in settings.');
+      setError(COPY.emailFailed);
       // Continue to guidelines even if email fails
       setTimeout(() => setCurrentStep('guidelines'), 2000);
     } finally {
@@ -336,11 +478,11 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
       const isImage = file.type.startsWith('image/') || isHEIC;
 
       if (!isImage) {
-        setError('Please select an image file');
+        setError(COPY.notAnImage);
         return;
       }
       if (file.size > 20 * 1024 * 1024) { // 20MB limit (modern phone cameras)
-        setError('Profile photo must be smaller than 20MB');
+        setError(COPY.photoTooBig);
         return;
       }
 
@@ -368,7 +510,7 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
         setIsLoading(false);
       } catch (compressionError: any) {
         console.error('Image compression error:', compressionError);
-        setError('Failed to process image. Please try a different file.');
+        setError(COPY.photoUnreadable);
         setIsLoading(false);
       }
     }
@@ -453,6 +595,12 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
   }
 
   async function handleProfileSetup() {
+    if (isLoading) return;
+    // Nothing to save: same as skipping
+    if (!profilePhoto && !bio.trim()) {
+      setCurrentStep('house');
+      return;
+    }
     setIsLoading(true);
     setError(null);
 
@@ -473,8 +621,8 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
         });
         
         if (!photoResponse.ok) {
-          const errorData = await photoResponse.json().catch(() => ({ error: 'Failed to upload photo' }));
-          throw new Error(errorData.error || 'Failed to upload profile photo');
+          const errorData = await photoResponse.json().catch(() => ({}));
+          throw new Error(errorData.error || COPY.photoFailed);
         }
         profileUpdated = true;
       }
@@ -489,22 +637,19 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
         });
         
         if (!bioResponse.ok) {
-          const errorData = await bioResponse.json().catch(() => ({ error: 'Failed to save bio' }));
-          throw new Error(errorData.error || 'Failed to update bio');
+          const errorData = await bioResponse.json().catch(() => ({}));
+          throw new Error(errorData.error || COPY.bioFailed);
         }
         profileUpdated = true;
       }
 
-      // Only proceed if either operation was attempted and successful
-      if (profileUpdated || (!profilePhoto && !bio.trim())) {
+      if (profileUpdated) {
         setProfileSaved(true);
         setTimeout(() => setCurrentStep('house'), 1500);
-      } else {
-        throw new Error('No profile data to save');
       }
     } catch (err) {
       console.error('Profile setup error:', err);
-      setError((err as Error).message || 'Failed to set up profile');
+      setError((err as Error).message || COPY.profileFailed);
       // Don't automatically proceed on error - let user retry or skip manually
     } finally {
       setIsLoading(false);
@@ -513,9 +658,13 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
 
 
   function copyToClipboard(text: string) {
-    navigator.clipboard.writeText(text).then(() => {
-      // Could show a toast here
-    });
+    navigator.clipboard.writeText(text).then(
+      () => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2500);
+      },
+      () => setError(COPY.copyFailed),
+    );
   }
 
   function downloadSeedPhrase(phrase: string) {
@@ -530,31 +679,57 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
     URL.revokeObjectURL(url);
   }
 
+  // What the first form says under each field, live as you type
+  const usernameCheck = username ? validateUsername(username) : null;
+  const usernameMsg: FieldMsg | null =
+    !usernameCheck ? (attempted ? { tone: 'error', text: COPY.usernameEmpty } : null)
+    : !usernameCheck.ok ? { tone: 'error', text: usernameCheck.message || COPY.usernameEmpty }
+    : usernameAvailable === true ? { tone: 'ok', text: `@${username} is available` }
+    : usernameAvailable === false ? { tone: 'error', text: `@${username} is taken` }
+    : username.length >= 3 ? { tone: 'quiet', text: COPY.checking }
+    : null;
+  const passwordOk = validatePasswordStrength(password).valid;
+  const passwordMsg: FieldMsg | null = attempted && !passwordOk ? { tone: 'error', text: COPY.passwordWeak } : null;
+  const confirmMsg: FieldMsg | null =
+    attempted && !confirmPassword ? { tone: 'error', text: COPY.confirmEmpty }
+    : confirmPassword && (attempted || confirmPassword.length >= password.length) && confirmPassword !== password
+      ? { tone: 'error', text: COPY.mismatch }
+      : null;
+  const betaMsg: FieldMsg | null = attempted && isBetaEnabled && !betaKey.trim() ? { tone: 'error', text: COPY.betaEmpty } : null;
+  const readyToCreate =
+    !!usernameCheck?.ok && usernameAvailable !== false && (!isBetaEnabled || !!betaKey.trim()) &&
+    (selectedAuthMethod !== 'password' || (passwordOk && password === confirmPassword));
+
   return (
     <>
       <Head>
-        <title>Create Your Account | {siteConfig.site_name}</title>
+        <title>{`${COPY.pageTitle} | ${siteConfig.site_name}`}</title>
       </Head>
       <Layout siteConfig={siteConfig}>
         <div className="max-w-full sm:max-w-2xl mx-auto px-0 sm:px-6 py-6">
           {currentStep !== 'finale' && (
           <div className="thread-module">
           <div className="sm:px-4 sm:pb-2">
-          {/* Progress: steps before the current one are done */}
+          {/* Progress: steps before the current one are done. The words step
+              is only there for people who chose the 12 words. */}
           {(() => {
-            const labels = ['Username', 'Backup', 'Email', 'Agreements', 'Profile', 'House', 'Done'];
-            const stepIndex: Record<SignupStep, number> = {
-              'welcome': 0, 'auth-method': 1, 'password-setup': 1, 'seed-phrase': 1,
-              'email': 2, 'guidelines': 3, 'profile': 4, 'house': 5, 'finale': 6,
-            };
-            const current = stepIndex[currentStep] ?? 0;
+            const words = selectedAuthMethod === 'seedphrase';
+            const steps: { label: string; covers: SignupStep[] }[] = [
+              { label: 'Account', covers: ['welcome', 'auth-method', 'password-setup'] },
+              ...(words ? [{ label: 'Words', covers: ['seed-phrase'] as SignupStep[] }] : []),
+              { label: 'Email', covers: ['email'] },
+              { label: 'Rules', covers: ['guidelines'] },
+              { label: 'Profile', covers: ['profile'] },
+              { label: 'House', covers: ['house', 'finale'] },
+            ];
+            const current = Math.max(0, steps.findIndex((s) => s.covers.includes(currentStep)));
             return (
               <div className="mb-6 pb-4 border-b-2 border-dotted border-nb-ink-mid/40">
                 <p className="sm:hidden thread-label text-center">
-                  Step {current + 1} of {labels.length} · {labels[current]}
+                  Step {current + 1} of {steps.length} · {steps[current].label}
                 </p>
                 <ol className="hidden sm:flex flex-wrap items-center justify-center gap-y-2 text-[11px] font-mono uppercase">
-                  {labels.map((label, i) => (
+                  {steps.map(({ label }, i) => (
                     <li key={label} className="flex items-center gap-1">
                       {i > 0 && <span aria-hidden="true" className="text-nb-ink-mid px-0.5">·</span>}
                       <span
@@ -568,6 +743,7 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
                         }
                       >
                         {i < current && <PixelIcon name="check" size={12} className="inline-block align-[-1px] mr-1" />}{label}
+                        {i < current && <span className="sr-only"> (done)</span>}
                       </span>
                     </li>
                   ))}
@@ -576,385 +752,262 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
             );
           })()}
 
-          {/* Step 1: Welcome & Username */}
+          {/* Account: username, then a password or the 12 words */}
           {currentStep === 'welcome' && !resumeChecked && <div className="min-h-[320px]" aria-busy="true" />}
           {currentStep === 'welcome' && resumeChecked && (
-            <div>
+            <form onSubmit={(e) => { e.preventDefault(); handleCreateAccount(); }} noValidate>
               <div className="text-center mb-8">
-                <h1 className="thread-headline text-3xl font-bold mb-2">Welcome to {siteConfig.site_name}!</h1>
-                <p className="text-nb-ink-mid">
-                  Pick a username and a way to sign in.
-                </p>
+                <h1 ref={headingRef} tabIndex={-1} className={HEADING}>{COPY.welcomeHeading}</h1>
+                <p className="text-nb-ink-mid">{selectedAuthMethod === 'password' ? COPY.welcomeIntro : COPY.welcomeIntroWords}</p>
               </div>
 
               <div className="space-y-6 max-w-md mx-auto">
                 <div>
-                  <label className="block text-sm font-bold mb-2">Choose Your Username</label>
+                  <label htmlFor="signup-username" className="block text-sm font-bold mb-2">{COPY.usernameLabel}</label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-nb-ink-mid">@</span>
+                    <span aria-hidden="true" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-nb-ink-mid">@</span>
                     <input
+                      ref={usernameRef}
+                      id="signup-username"
+                      name="username"
                       type="text"
+                      autoComplete="username"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
                       value={username}
                       onChange={(e) => {
                         const value = e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, '');
                         setUsername(value);
                       }}
                       placeholder="alice"
-                      className="w-full px-4 py-3 text-lg border-2 border-nb-ink-mid/60 rounded-md bg-white focus:outline-none focus:border-nb-ink-mid"
+                      aria-invalid={usernameMsg?.tone === 'error'}
+                      aria-describedby="signup-username-status"
+                      className={INPUT}
                       // Inline: the site's phone input padding would put the text under the @ otherwise
                       style={{ paddingLeft: '2rem' }}
-                      disabled={isLoading}
+                      readOnly={isLoading}
                       maxLength={20}
                     />
                   </div>
-                  {username.length > 0 && (() => {
-                    const validation = validateUsername(username);
-                    if (!validation.ok) {
-                      return (
-                        <div className="mt-2">
-                          <p className="text-red-600 text-sm flex items-center gap-1"><PixelIcon name="close" size={24} className="shrink-0 -my-1 -ml-1" />{validation.message}</p>
-                        </div>
-                      );
-                    }
-                    return (
-                      <div className="mt-2">
-                        {usernameAvailable === true && (
-                          <p className="text-green-600 text-sm flex items-center gap-1"><PixelIcon name="check" size={24} className="shrink-0 -my-1 -ml-1" />@{username} is available</p>
-                        )}
-                        {usernameAvailable === false && (
-                          <p className="text-red-600 text-sm flex items-center gap-1"><PixelIcon name="close" size={24} className="shrink-0 -my-1 -ml-1" />@{username} is taken</p>
-                        )}
-                        {usernameAvailable === null && username.length >= 3 && (
-                          <p className="text-nb-ink-mid text-sm">Checking availability...</p>
-                        )}
-                      </div>
-                    );
-                  })()}
+                  <FieldStatus id="signup-username-status" msg={usernameMsg} />
                 </div>
 
                 {isBetaEnabled && (
                   <div>
-                    <label className="block text-sm font-bold mb-2">
-                      Beta Invite Code
+                    <label htmlFor="signup-beta-key" className="block text-sm font-bold mb-2">
+                      {COPY.betaLabel}
                       {urlBetaKey && <span className="text-green-600 ml-1">(Auto-filled)</span>}
                     </label>
                     <input
+                      ref={betaKeyRef}
+                      id="signup-beta-key"
+                      name="beta-key"
                       type="text"
+                      autoComplete="off"
+                      autoCapitalize="characters"
+                      spellCheck={false}
                       value={betaKey}
                       onChange={(e) => setBetaKey(e.target.value.toUpperCase())}
                       placeholder="BETA-XXXX-XXXX-XXXX"
-                      className="w-full px-4 py-3 text-lg border-2 border-nb-ink-mid/60 rounded-md bg-white focus:outline-none focus:border-nb-ink-mid font-mono"
-                      disabled={isLoading}
+                      aria-invalid={!!betaMsg}
+                      aria-describedby="signup-beta-hint signup-beta-status"
+                      className={`${INPUT} font-mono`}
+                      readOnly={isLoading}
                     />
-                    <p className="text-xs text-nb-ink-mid mt-1">
+                    <p id="signup-beta-hint" className="text-xs text-nb-ink-mid mt-1">
                       Required during beta. Get one from a friend or contact support.
                     </p>
+                    <FieldStatus id="signup-beta-status" msg={betaMsg} />
                   </div>
                 )}
 
-                <button
-                  onClick={handleCreateAccount}
-                  disabled={isLoading || !username || usernameAvailable !== true || (isBetaEnabled && !betaKey.trim())}
-                  className="w-full thread-button btn btn--primary btn--lg text-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
-                >
-                  {isLoading ? "Creating Account..." : "Create My Account"}
-                </button>
+                {selectedAuthMethod === 'password' ? (
+                  <>
+                    <div>
+                      <label htmlFor="signup-password" className="block text-sm font-bold mb-2">{COPY.passwordLabel}</label>
+                      <div className="relative">
+                        <input
+                          ref={passwordRef}
+                          id="signup-password"
+                          name="password"
+                          type={showPassword ? "text" : "password"}
+                          autoComplete="new-password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          aria-invalid={!!passwordMsg}
+                          aria-describedby="signup-password-status signup-password-rules"
+                          className={INPUT}
+                          // Inline: the site's phone input padding would run the text under the eye button otherwise
+                          style={{ paddingRight: '3rem' }}
+                          readOnly={isLoading}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="ts-icon-button absolute right-2 top-1/2 -translate-y-1/2"
+                          aria-label={showPassword ? 'Hide password' : 'Show password'}
+                        >
+                          {showPassword ? <PixelIcon name="eye" size={20} /> : <PixelIcon name="eye-closed" size={20} />}
+                        </button>
+                      </div>
+                      <FieldStatus id="signup-password-status" msg={passwordMsg} />
+                    </div>
 
-                {error && (
-                  <div className="p-4 bg-red-50 border border-red-200 rounded text-sm text-red-700">
-                    {error}
-                  </div>
+                    <div>
+                      <label htmlFor="signup-password-confirm" className="block text-sm font-bold mb-2">{COPY.confirmLabel}</label>
+                      <input
+                        ref={confirmRef}
+                        id="signup-password-confirm"
+                        name="password-confirm"
+                        type={showPassword ? "text" : "password"}
+                        autoComplete="new-password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        aria-invalid={!!confirmMsg}
+                        aria-describedby="signup-password-confirm-status"
+                        className={INPUT}
+                        readOnly={isLoading}
+                      />
+                      <FieldStatus id="signup-password-confirm-status" msg={confirmMsg} />
+                    </div>
+
+                    <div id="signup-password-rules">
+                      <PasswordRules password={password} className="p-4" />
+                    </div>
+                  </>
+                ) : (
+                  <section aria-labelledby="signup-seed-heading" className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-4">
+                    <h2 id="signup-seed-heading" ref={seedPanelRef} tabIndex={-1} className="font-bold text-nb-ink mb-2 outline-none!">
+                      {COPY.seedHeading}
+                    </h2>
+                    <p className="text-sm text-nb-ink mb-2">{COPY.seedBody}</p>
+                    <p className="text-sm text-nb-ink-mid">{COPY.seedLater}</p>
+                  </section>
                 )}
-              </div>
-            </div>
-          )}
 
-          {/* Step 2: Auth Method Selection */}
-          {currentStep === 'auth-method' && (
-            <div>
-              <div className="text-center mb-8">
-                <h2 className="thread-headline text-3xl font-bold mb-2">Choose Your Security Method</h2>
-                <p className="text-nb-ink-mid">
-                  How would you like to secure your @{username} account?
+                <ErrorAlert error={error} />
+
+                <Button type="submit" size="lg" aria-disabled={isLoading || !readyToCreate} className={PRIMARY}>
+                  {isLoading ? COPY.creating : selectedAuthMethod === 'password' ? COPY.createButton : COPY.seedButton}
+                </Button>
+
+                <p className="text-center">
+                  <button
+                    type="button"
+                    onClick={() => switchAuthMethod(selectedAuthMethod === 'password' ? 'seedphrase' : 'password')}
+                    className="ts-bare text-sm underline text-nb-ink-mid"
+                  >
+                    {selectedAuthMethod === 'password' ? COPY.otherWays : COPY.usePassword}
+                  </button>
                 </p>
               </div>
-
-              <div className="max-w-2xl mx-auto space-y-4">
-                {/* Password Option (Recommended) */}
-                <div className="border-2 border-nb-ink-mid rounded-cozy p-5 sm:p-6 bg-nb-paper shadow-nb-sm">
-                  <div className="flex items-start gap-4">
-                    <div className="flex-shrink-0">
-                      <span className="badge badge--butter inline-block text-xs font-bold font-mono">
-                        RECOMMENDED
-                      </span>
-                    </div>
-                    <div className="flex-grow">
-                      <h3 className="thread-headline text-xl font-bold mb-2">Use a Password</h3>
-                      <p className="text-nb-ink mb-4">
-                        Sign in with a username and password, the way you&apos;re used to.
-                      </p>
-                      <ul className="text-sm text-nb-ink-mid space-y-1 mb-4">
-                        <li className="flex items-center gap-1"><PixelIcon name="check" size={24} className="shrink-0 -my-1 -ml-1" />Easy to remember and use</li>
-                        <li className="flex items-center gap-1"><PixelIcon name="check" size={24} className="shrink-0 -my-1 -ml-1" />Change your password anytime</li>
-                        <li className="flex items-center gap-1"><PixelIcon name="check" size={24} className="shrink-0 -my-1 -ml-1" />Recovery phrase generated but hidden</li>
-                        <li className="flex items-center gap-1"><PixelIcon name="check" size={24} className="shrink-0 -my-1 -ml-1" />A good fit for most people</li>
-                      </ul>
-                      <button
-                        onClick={() => handleAuthMethodSelected('password')}
-                        className="w-full thread-button btn btn--primary btn--lg font-bold min-h-[48px]"
-                      >
-                        Continue with Password →
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Seed Phrase Option (Advanced) */}
-                <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-cozy p-5 sm:p-6">
-                  <div className="flex items-start gap-4">
-                    <div className="flex-shrink-0">
-                      <span className="badge inline-block text-xs font-bold font-mono">
-                        ADVANCED
-                      </span>
-                    </div>
-                    <div className="flex-grow">
-                      <h3 className="thread-headline text-xl font-bold mb-2">Passwordless Keypair</h3>
-                      <p className="text-nb-ink mb-4">
-                        Maximum security with a 12-word recovery phrase. No passwords needed.
-                      </p>
-                      <ul className="text-sm text-nb-ink-mid space-y-1 mb-4">
-                        <li className="flex items-center gap-1"><PixelIcon name="check" size={24} className="shrink-0 -my-1 -ml-1" />Most secure option</li>
-                        <li className="flex items-center gap-1"><PixelIcon name="check" size={24} className="shrink-0 -my-1 -ml-1" />Full control of your identity</li>
-                        <li className="flex items-center gap-1"><PixelIcon name="check" size={24} className="shrink-0 -my-1 -ml-1" />No password to remember or reset</li>
-                        <li className="flex items-center gap-1"><span className="w-6 -ml-1 shrink-0 flex justify-center"><PixelIcon name="warning-box" size={14} /></span>Must safely store recovery phrase</li>
-                      </ul>
-                      <button
-                        onClick={() => handleAuthMethodSelected('seedphrase')}
-                        className="w-full thread-button-secondary btn btn--secondary btn--lg font-bold min-h-[48px]"
-                      >
-                        Continue with Seed Phrase →
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="text-center text-sm text-nb-ink-mid mt-6">
-                  <p>You can switch between methods later in your account settings.</p>
-                </div>
-              </div>
-
-              {error && (
-                <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded text-sm text-red-700">
-                  {error}
-                </div>
-              )}
-            </div>
+            </form>
           )}
 
-          {/* Step 2b: Password Setup */}
-          {currentStep === 'password-setup' && (
-            <div>
-              <div className="text-center mb-8">
-                <h2 className="thread-headline text-3xl font-bold mb-2">Create Your Password</h2>
-                <p className="text-nb-ink-mid">
-                  Choose a strong password for your @{username} account
-                </p>
-              </div>
-
-              <div className="max-w-md mx-auto space-y-6">
-                <div>
-                  <label className="block text-sm font-bold mb-2">Password</label>
-                  <div className="relative">
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={(e) => {
-                        setPassword(e.target.value);
-                        const validation = validatePasswordStrength(e.target.value);
-                        setPasswordErrors(validation.errors);
-                      }}
-                      placeholder="Enter a strong password"
-                      className="w-full px-4 py-3 text-lg border-2 border-nb-ink-mid/60 rounded-md bg-white focus:outline-none focus:border-nb-ink-mid"
-                      // Inline: the site's phone input padding would run the text under the eye button otherwise
-                      style={{ paddingRight: '3rem' }}
-                      disabled={isLoading}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="ts-icon-button absolute right-2 top-1/2 -translate-y-1/2"
-                      aria-label={showPassword ? 'Hide password' : 'Show password'}
-                    >
-                      {showPassword ? <PixelIcon name="eye" size={20} /> : <PixelIcon name="eye-closed" size={20} />}
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold mb-2">Confirm Password</label>
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Enter password again"
-                    className="w-full px-4 py-3 text-lg border-2 border-nb-ink-mid/60 rounded-md bg-white focus:outline-none focus:border-nb-ink-mid"
-                    disabled={isLoading}
-                  />
-                </div>
-
-                {/* Password Requirements */}
-                <PasswordRules password={password} className="p-4" />
-
-                <button
-                  onClick={handlePasswordSetup}
-                  disabled={isLoading || !password || !confirmPassword || passwordErrors.length > 0}
-                  className="w-full thread-button btn btn--primary btn--lg text-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
-                >
-                  {isLoading ? "Creating Account..." : "Create Account with Password"}
-                </button>
-
-                {error && (
-                  <div className="p-4 bg-red-50 border border-red-200 rounded text-sm text-red-700">
-                    {error}
-                  </div>
-                )}
-
-                {passwordErrors.length > 0 && password && (
-                  <div className="p-4 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-700">
-                    {passwordErrors[0]}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Step 3: Seed Phrase */}
+          {/* The 12 words, for people who chose them instead of a password */}
           {currentStep === 'seed-phrase' && generatedSeedPhrase && (
-            <div>
+            <form onSubmit={(e) => { e.preventDefault(); handleSeedPhraseSaved(); }}>
               <div className="text-center mb-8">
-                <h2 className="thread-headline text-3xl font-bold mb-2">Secure Your Account</h2>
-                <p className="text-nb-ink-mid max-w-lg mx-auto">
-                  <strong>Save these 12 words in order!</strong> This is your account recovery phrase. 
-                  You&apos;ll need it if you lose access to this device.
-                </p>
+                <h1 ref={headingRef} tabIndex={-1} className={HEADING}>{COPY.wordsHeading}</h1>
+                <p className="text-nb-ink-mid max-w-lg mx-auto">{COPY.wordsIntro}</p>
               </div>
 
               <div className="max-w-2xl mx-auto">
                 <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-cozy p-4 sm:p-6 mb-6">
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  <ol className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     {generatedSeedPhrase.split(' ').map((word, index) => (
-                      <div key={index} className="flex items-center gap-3 p-3 bg-white rounded-md border border-nb-ink-mid/50">
+                      <li key={index} className="flex items-center gap-3 p-3 bg-white rounded-md border border-nb-ink-mid/50">
                         <span className="text-sm font-bold text-nb-ink-mid min-w-[24px] font-mono">{index + 1}.</span>
                         <span className="font-mono font-medium text-nb-ink">{word}</span>
-                      </div>
+                      </li>
                     ))}
-                  </div>
+                  </ol>
                 </div>
 
                 <div className="border-2 border-nb-rose bg-nb-paper rounded-md p-4 mb-6">
-                  <h3 className="font-bold text-nb-rose-ink mb-2"><PixelIcon name="warning-box" size={16} className="inline-block align-middle mr-1" />Keep these words safe</h3>
-                  <ul className="text-nb-ink text-sm space-y-1">
-                    <li>• Anyone with these words can access your account</li>
-                    <li>• Write them down on paper and store safely</li>
-                    <li>• Never share them with anyone</li>
-                    <li>• Don&apos;t store them in email, screenshots, or cloud storage</li>
+                  <h2 className="font-bold text-nb-rose-ink mb-2"><PixelIcon name="warning-box" size={16} className="inline-block align-middle mr-1" />{COPY.wordsSafeHeading}</h2>
+                  <ul className="text-nb-ink text-sm space-y-1 list-disc pl-5">
+                    {COPY.wordsSafe.map((line) => <li key={line}>{line}</li>)}
                   </ul>
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-4 mb-6">
-                  <button
-                    onClick={() => copyToClipboard(generatedSeedPhrase)}
-                    className="thread-button-secondary btn btn--secondary flex-1"
-                  >
-                    <PixelIcon name="clipboard" className="inline-block align-[-3px] mr-1.5" />
-                    Copy Words
-                  </button>
-                  <button
-                    onClick={() => downloadSeedPhrase(generatedSeedPhrase)}
-                    className="thread-button-secondary btn btn--secondary flex-1"
-                  >
+                  <Button variant="secondary" onClick={() => copyToClipboard(generatedSeedPhrase)} className="flex-1">
+                    <PixelIcon name={copied ? 'check' : 'clipboard'} className="inline-block align-[-3px] mr-1.5" />
+                    {copied ? COPY.copied : COPY.copyWords}
+                  </Button>
+                  <Button variant="secondary" onClick={() => downloadSeedPhrase(generatedSeedPhrase)} className="flex-1">
                     <PixelIcon name="save" className="inline-block align-[-3px] mr-1.5" />
-                    Download Backup
-                  </button>
+                    {COPY.downloadWords}
+                  </Button>
                 </div>
+                <p role="status" className="sr-only">{copied ? COPY.copiedStatus : ''}</p>
 
-                <button
-                  onClick={handleSeedPhraseSaved}
-                  className="w-full thread-button btn btn--primary btn--lg text-lg font-bold min-h-[48px]"
-                >
-                  <PixelIcon name="check" className="inline-block align-[-3px] mr-1.5" />I&apos;ve Safely Saved My Recovery Phrase
-                </button>
+                <ErrorAlert error={error} />
+
+                <Button type="submit" size="lg" className={PRIMARY}>
+                  <PixelIcon name="check" className="inline-block align-[-3px] mr-1.5" />{COPY.wordsSaved}
+                </Button>
               </div>
-            </div>
+            </form>
           )}
 
-          {/* Step 3: Email (Optional) */}
+          {/* Email (optional) */}
           {currentStep === 'email' && (
-            <div>
+            <form onSubmit={(e) => { e.preventDefault(); handleEmailSetup(); }}>
               <div className="text-center mb-8">
-                <h2 className="thread-headline text-3xl font-bold mb-2">Add Email (Optional)</h2>
+                <h1 ref={headingRef} tabIndex={-1} className={HEADING}>{COPY.emailHeading}</h1>
                 <p className="text-nb-ink-mid max-w-lg mx-auto">
-                  Add your email address for magic link login. This makes it easier to access your account
-                  from different devices.
+                  {selectedAuthMethod === 'seedphrase' ? COPY.emailIntroWords : COPY.emailIntroPassword} {COPY.emailNoSpam}
                 </p>
               </div>
 
               <div className="max-w-md mx-auto space-y-6">
-                <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-4">
-                  <p className="font-bold text-nb-ink mb-2">Why add an email?</p>
-                  <ul className="text-nb-ink text-sm space-y-1">
-                    <li>• Sign in without your recovery phrase</li>
-                    <li>• Access your account from any device</li>
-                    <li>• Additional account recovery option</li>
-                    <li>• We&apos;ll never send spam or marketing emails</li>
-                  </ul>
-                </div>
-
                 <div>
-                  <label className="block text-sm font-bold mb-2">Email Address</label>
+                  <label htmlFor="signup-email" className="block text-sm font-bold mb-2">{COPY.emailLabel}</label>
                   <input
+                    id="signup-email"
+                    name="email"
                     type="email"
+                    inputMode="email"
+                    autoComplete="email"
+                    autoCapitalize="none"
+                    spellCheck={false}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="alice@example.com"
-                    className="w-full px-4 py-3 text-lg border-2 border-nb-ink-mid/60 rounded-md bg-white focus:outline-none focus:border-nb-ink-mid"
-                    disabled={isLoading}
+                    className={INPUT}
+                    readOnly={isLoading}
                   />
                 </div>
 
+                <ErrorAlert error={error} />
+
                 <div className="flex flex-col gap-3">
-                  <button
-                    onClick={handleEmailSetup}
-                    disabled={isLoading}
-                    className="w-full thread-button btn btn--primary btn--lg font-bold disabled:opacity-50 min-h-[48px]"
-                  >
-                    {isLoading ? "Setting up..." : email.trim() ? "Add Email & Continue" : "Skip Email Setup"}
-                  </button>
-                  
+                  <Button type="submit" size="lg" aria-disabled={isLoading} className={PRIMARY}>
+                    {isLoading ? COPY.emailAdding : email.trim() ? COPY.emailAdd : COPY.emailSkip}
+                  </Button>
+
                   {email.trim() && (
                     <button
+                      type="button"
                       onClick={() => setCurrentStep('guidelines')}
                       className="ts-bare text-sm underline self-center"
                     >
-                      Skip for now
+                      {COPY.skipForNow}
                     </button>
                   )}
                 </div>
-
-                {error && (
-                  <div className="p-4 bg-red-50 border border-red-200 rounded text-sm text-red-700">
-                    {error}
-                  </div>
-                )}
               </div>
-            </div>
+            </form>
           )}
 
           {/* House step */}
           {currentStep === 'house' && (
-            <div>
+            <form onSubmit={(e) => { e.preventDefault(); if (!isLoading) handleHouseSelected(); }}>
               <div className="text-center mb-6">
-                <h2 className="thread-headline text-3xl font-bold mb-2">Pick your house</h2>
+                <h1 ref={headingRef} tabIndex={-1} className={HEADING}>Pick your house</h1>
                 <p className="text-nb-ink-mid max-w-lg mx-auto">
                   This is the house your neighbors see on the street. You can repaint it any time.
                 </p>
@@ -965,16 +1018,9 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
               </div>
 
               <div className="max-w-md mx-auto">
-                <button
-                  onClick={handleHouseSelected}
-                  disabled={isLoading}
-                  className="w-full thread-button btn btn--primary btn--lg text-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
-                >
-                  {isLoading ? 'Moving in...' : 'Move in'}
-                </button>
-
-                {/* Profile page colors: quiet, and they follow the house unless changed */}
-                <details className="mt-4 text-sm text-nb-ink">
+                {/* Profile page colors: quiet, and they follow the house unless
+                    changed. Before "Move in", so it isn't found too late. */}
+                <details className="mb-4 text-sm text-nb-ink">
                   <summary className="cursor-pointer text-center text-nb-ink-mid">
                     Your page: {DEFAULT_PROFILE_TEMPLATE_INFO[selectedTemplate].name}. <span className="underline">Change</span>
                   </summary>
@@ -998,122 +1044,76 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
                   </fieldset>
                 </details>
 
-                {error && (
-                  <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded text-sm text-red-700">
-                    {error}
-                  </div>
-                )}
+                <ErrorAlert error={error} />
+
+                <Button type="submit" size="lg" aria-disabled={isLoading} className={PRIMARY}>
+                  {isLoading ? 'Moving in...' : 'Move in'}
+                </Button>
               </div>
-            </div>
+            </form>
           )}
 
-          {/* Step 4: Community Guidelines Agreement */}
+          {/* House rules */}
           {currentStep === 'guidelines' && (
-            <div>
+            <form onSubmit={(e) => { e.preventDefault(); handleGuidelinesAgreement(); }}>
               <div className="text-center mb-8">
-                <h2 className="thread-headline text-3xl font-bold mb-2">Legal & Community Agreements</h2>
-                <p className="text-nb-ink-mid max-w-lg mx-auto">
-                  Before joining our community, please review and agree to our Terms of Service,
-                  Privacy Policy, and Community Guidelines.
-                </p>
+                <h1 ref={headingRef} tabIndex={-1} className={HEADING}>{COPY.rulesHeading}</h1>
+                <p className="text-nb-ink-mid max-w-lg mx-auto">{COPY.rulesIntro}</p>
               </div>
 
               {/* TODO: Make community guidelines content configurable via admin portal */}
-              <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-cozy p-5 mb-6 max-h-64 overflow-y-auto">
-                <h3 className="font-bold text-lg mb-3 text-nb-ink">House rules, short version:</h3>
-                <div className="space-y-2 text-sm text-nb-ink">
-                  <p>Be kind, post your own stuff, no harassment or hate, keep it all-ages.</p>
-                </div>
+              <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-cozy p-5 mb-6">
+                <h2 className="font-bold text-lg mb-3 text-nb-ink">House rules, short version:</h2>
+                <p className="text-sm text-nb-ink">Be kind, post your own stuff, no harassment or hate, keep it all-ages.</p>
 
-                <h3 className="font-bold text-lg mt-4 mb-3 text-nb-ink">In practice:</h3>
-                <div className="space-y-1 text-sm text-nb-ink">
-                  <div>• No harassment, bullying, or hate speech</div>
-                  <div>• Share original content and respect others&apos; work</div>
-                  <div>• Keep content appropriate for all ages</div>
-                  <div>• Report issues to help maintain a safe space</div>
-                </div>
+                <h2 className="font-bold text-lg mt-4 mb-3 text-nb-ink">In practice:</h2>
+                <ul className="space-y-1 text-sm text-nb-ink list-disc pl-5">
+                  {COPY.rulesInPractice.map((line) => <li key={line}>{line}</li>)}
+                </ul>
 
-                <div className="mt-4 text-center">
-                  <a
-                    href="/community-guidelines"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline text-sm"
-                  >
-                    Read Full Guidelines →
-                  </a>
-                </div>
+                <p className="mt-4 flex flex-wrap justify-center gap-x-4 gap-y-1 text-sm">
+                  <NewTabLink href="/community-guidelines">Community guidelines</NewTabLink>
+                  <NewTabLink href="/terms">Terms of service</NewTabLink>
+                  <NewTabLink href="/privacy">Privacy policy</NewTabLink>
+                </p>
               </div>
 
               <div className="space-y-4">
-                <label className="flex items-start gap-3 cursor-pointer">
+                <label htmlFor="signup-agree" className="flex items-start gap-3 cursor-pointer py-1">
                   <input
+                    ref={agreeRef}
+                    id="signup-agree"
                     type="checkbox"
                     checked={agreedToGuidelines}
-                    onChange={(e) => setAgreedToGuidelines(e.target.checked)}
-                    className="mt-1 w-5 h-5 accent-nb-ink"
+                    onChange={(e) => {
+                      setAgreedToGuidelines(e.target.checked);
+                      if (e.target.checked) setError(null);
+                    }}
+                    className="mt-0.5 w-6 h-6 shrink-0 accent-nb-ink"
                   />
-                  <span className="text-sm text-nb-ink">
-                    I have read and agree to the{' '}
-                    <a
-                      href="/terms"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="underline"
-                    >
-                      Terms of Service
-                    </a>
-                    ,{' '}
-                    <a
-                      href="/privacy"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="underline"
-                    >
-                      Privacy Policy
-                    </a>
-                    , and{' '}
-                    <a
-                      href="/community-guidelines"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="underline"
-                    >
-                      Community Guidelines
-                    </a>
-                  </span>
+                  <span className="text-sm text-nb-ink">{COPY.agreeLabel}</span>
                 </label>
 
-                <button
-                  onClick={handleGuidelinesAgreement}
-                  disabled={!agreedToGuidelines}
-                  className="w-full thread-button btn btn--primary btn--lg font-bold disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
-                >
-                  {agreedToGuidelines ? "Continue to Profile Setup" : "Please agree to all terms to continue"}
-                </button>
+                <ErrorAlert error={error} />
 
-                {error && (
-                  <div className="p-4 bg-red-50 border border-red-200 rounded text-sm text-red-700">
-                    {error}
-                  </div>
-                )}
+                <Button type="submit" size="lg" aria-disabled={!agreedToGuidelines} className={PRIMARY}>
+                  {COPY.continue}
+                </Button>
               </div>
-            </div>
+            </form>
           )}
 
-          {/* Step 5: Profile Setup (Optional) */}
+          {/* Profile (optional) */}
           {currentStep === 'profile' && (
-            <div>
+            <form onSubmit={(e) => { e.preventDefault(); handleProfileSetup(); }}>
               <div className="text-center mb-8">
-                <h2 className="thread-headline text-3xl font-bold mb-2">Set up your profile</h2>
-                <p className="text-nb-ink-mid">
-                  Add a profile photo and bio to help others recognize you (optional)
-                </p>
+                <h1 ref={headingRef} tabIndex={-1} className={HEADING}>{COPY.profileHeading}</h1>
+                <p className="text-nb-ink-mid">{COPY.profileIntro}</p>
               </div>
 
               <div className="space-y-6 max-w-md mx-auto">
                 <div>
-                  <label className="block text-sm font-bold mb-3 text-nb-ink">Profile Photo</label>
+                  <p className="block text-sm font-bold mb-3 text-nb-ink">{COPY.photoLabel}</p>
                   <div className="flex items-center gap-4">
                     <div className="w-20 h-20 rounded-full border-2 border-nb-ink-mid bg-thread-cream flex items-center justify-center overflow-hidden">
                       {profilePhotoPreview ? (
@@ -1123,73 +1123,67 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
                       )}
                     </div>
                     <div>
+                      {/* Visually hidden, not display:none, so it stays in the Tab order */}
                       <input
                         type="file"
                         accept="image/*"
                         onChange={handleProfilePhotoChange}
-                        className="hidden"
+                        className="sr-only peer"
                         id="profile-photo"
-                        disabled={isLoading}
+                        aria-describedby="signup-photo-hint"
                       />
                       <label
                         htmlFor="profile-photo"
-                        className="thread-button-secondary btn btn--secondary cursor-pointer inline-block"
+                        className={`${buttonClasses('secondary', 'md')} cursor-pointer ${PEER_FOCUS_RING}`}
                       >
-                        Choose Photo
+                        {COPY.choosePhoto}
                       </label>
-                      <p className="text-xs text-nb-ink-mid mt-1">JPEG, PNG, WebP or HEIC, up to 20MB</p>
+                      <p id="signup-photo-hint" className="text-xs text-nb-ink-mid mt-1">JPEG, PNG, WebP or HEIC, up to 20MB</p>
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold mb-2 text-nb-ink">Bio</label>
+                  <label htmlFor="signup-bio" className="block text-sm font-bold mb-2 text-nb-ink">{COPY.bioLabel}</label>
                   <textarea
+                    id="signup-bio"
+                    name="bio"
                     value={bio}
                     onChange={(e) => setBio(e.target.value)}
-                    placeholder="Tell others about yourself..."
-                    className="w-full px-4 py-3 text-lg border-2 border-nb-ink-mid/60 rounded-md bg-white focus:outline-none focus:border-nb-ink-mid resize-none"
-                    disabled={isLoading}
+                    aria-describedby="signup-bio-count"
+                    className={`${INPUT} resize-none`}
+                    readOnly={isLoading}
                     rows={3}
                     maxLength={200}
                   />
-                  <p className="text-xs text-nb-ink-mid mt-1">{bio.length}/200 characters</p>
+                  <p id="signup-bio-count" className="text-xs text-nb-ink-mid mt-1">{bio.length}/200 characters</p>
                 </div>
+
+                <div role="status">
+                  {profileSaved && (
+                    <div className="p-4 bg-green-50 border border-green-200 rounded text-sm text-green-700">
+                      <strong className="inline-flex items-center gap-1"><PixelIcon name="check" size={24} className="-my-1 -ml-1" />{COPY.profileSaved}</strong>
+                    </div>
+                  )}
+                </div>
+
+                <ErrorAlert error={error && `${error} ${COPY.profileRetry}`} />
 
                 <div className="flex flex-col gap-3">
+                  <Button type="submit" size="lg" aria-disabled={isLoading} className={PRIMARY}>
+                    {isLoading ? COPY.saving : COPY.saveProfile}
+                  </Button>
+
                   <button
-                    onClick={handleProfileSetup}
-                    disabled={isLoading || (!profilePhoto && !bio.trim())}
-                    className="w-full thread-button btn btn--primary btn--lg font-bold disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
+                    type="button"
+                    onClick={() => { if (!isLoading) setCurrentStep('house'); }}
+                    className="ts-bare text-sm underline self-center"
                   >
-                    {isLoading ? "Saving..." : "Save Profile & Continue"}
-                  </button>
-                  
-                  <button
-                    onClick={() => setCurrentStep('house')}
-                    disabled={isLoading}
-                    className="ts-bare text-sm underline self-center disabled:opacity-50"
-                  >
-                    Skip for now
+                    {COPY.skipForNow}
                   </button>
                 </div>
-
-                {profileSaved && (
-                  <div className="p-4 bg-green-50 border border-green-200 rounded text-sm text-green-700">
-                    <strong className="inline-flex items-center gap-1"><PixelIcon name="check" size={24} className="-my-1 -ml-1" />Profile saved.</strong>
-                  </div>
-                )}
-                
-                {error && (
-                  <div className="p-4 bg-red-50 border border-red-200 rounded text-sm text-red-700">
-                    <strong>Error:</strong> {error}
-                    <div className="mt-2 text-xs">
-                      You can try again or skip this step and set up your profile later in settings.
-                    </div>
-                  </div>
-                )}
               </div>
-            </div>
+            </form>
           )}
 
           </div>
