@@ -1,5 +1,3 @@
-import { PALETTE_RAMPS } from './palette'
-
 export interface DecorationItem {
     id: string
     decorationId?: string
@@ -43,45 +41,26 @@ export interface AtmosphereSettings {
 // Decorations are now managed via /admin/decorations
 // The migration script at /api/admin/decorations/migrate was used to populate the database
 
-/**
- * A terrain tile's colours, all threadstead-44: the main colour, a step darker
- * and a step lighter, and an accent for joints, mortar, plank seams or a glint.
- * Stone and cobble take a "lighter" step of about the same lightness from the
- * other grey ramp, so their stones vary in hue rather than read as a checker;
- * cobbles are warm and cool stones between dark joints.
- * The yard's patterns (TerrainDitherDefs) and the editor's tile icons both
- * paint with these.
- */
-export interface TerrainShades {
-    base: string
-    dark: string
-    light: string
-    accent: string
-}
-
 export interface TerrainTile {
     id: string
     name: string
-    color: string // Fallback color, the shades' base
-    shades: TerrainShades
+    color: string // Fallback color
+    texture?: string // Optional texture pattern
 }
 
-const R = PALETTE_RAMPS
-const tile = (id: string, name: string, shades: TerrainShades): TerrainTile => ({ id, name, color: shades.base, shades })
-
 export const TERRAIN_TILES: TerrainTile[] = [
-    // Default: the lawn itself
-    tile('grass', 'Grass', { base: R.foliage[3], dark: R.foliage[2], light: R.foliage[4], accent: R.foliage[2] }),
-    tile('dirt', 'Dirt', { base: R.wood[2], dark: R.wood[1], light: R.wood[3], accent: R.wood[1] }),
-    tile('stone_path', 'Stone Path', { base: R.slate[2], dark: R.slate[1], light: R.ink[3], accent: R.slate[1] }),
-    tile('brick_path', 'Brick Path', { base: R.terracotta[0], dark: R.terracotta[0], light: R.red[1], accent: R.red[0] }),
-    tile('water', 'Water', { base: R.sky[1], dark: R.sky[0], light: R.sky[2], accent: R.sky[3] }),
-    tile('sand', 'Sand', { base: R.wood[4], dark: R.terracotta[1], light: R.terracotta[2], accent: R.terracotta[1] }),
-    tile('gravel', 'Gravel', { base: R.slate[1], dark: R.slate[0], light: R.slate[2], accent: R.slate[0] }),
-    tile('flower_bed', 'Flower Bed', { base: R.wood[0], dark: R.ink[0], light: R.wood[1], accent: R.ink[0] }),
-    tile('mulch', 'Mulch', { base: R.wood[1], dark: R.wood[0], light: R.wood[2], accent: R.wood[0] }),
-    tile('moss', 'Moss', { base: R.foliage[4], dark: R.foliage[3], light: R.butter[2], accent: R.foliage[3] }),
-    tile('pebbles', 'Pebbles', { base: R.slate[2], dark: R.slate[1], light: R.slate[3], accent: R.slate[1] }),
-    tile('cobblestone', 'Cobblestone', { base: R.ink[3], dark: R.ink[3], light: R.slate[2], accent: R.ink[2] }),
-    tile('wood_deck', 'Wood Deck', { base: R.wood[4], dark: R.terracotta[1], light: R.terracotta[2], accent: R.wood[3] }),
+    { id: 'grass', name: 'Grass', color: '#90EE90' }, // Default
+    { id: 'dirt', name: 'Dirt', color: '#8B4513' },
+    { id: 'stone_path', name: 'Stone Path', color: '#808080' },
+    { id: 'brick_path', name: 'Brick Path', color: '#A52A2A' },
+    { id: 'water', name: 'Water', color: '#4682B4' },
+    { id: 'sand', name: 'Sand', color: '#F4A460' },
+    { id: 'gravel', name: 'Gravel', color: '#708090' },
+    // New terrain types
+    { id: 'flower_bed', name: 'Flower Bed', color: '#3D2314' },
+    { id: 'mulch', name: 'Mulch', color: '#5D4037' },
+    { id: 'moss', name: 'Moss', color: '#7CB342' },
+    { id: 'pebbles', name: 'Pebbles', color: '#90A4AE' },
+    { id: 'cobblestone', name: 'Cobblestone', color: '#9E9E9E' },
+    { id: 'wood_deck', name: 'Wood Deck', color: '#A1887F' }
 ]

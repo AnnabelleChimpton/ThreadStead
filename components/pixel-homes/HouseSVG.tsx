@@ -1,6 +1,6 @@
 import React from 'react'
 import { useSvgIdPrefix } from './useSvgIdPrefix'
-import { housePaint, LIT_GLASS } from '../../lib/pixel-homes/palette'
+import { housePaint } from '../../lib/pixel-homes/palette'
 
 export type HouseTemplate = 'cottage_v1' | 'townhouse_v1' | 'loft_v1' | 'cabin_v1'
 export type ColorPalette = 'thread_sage' | 'charcoal_nights' | 'pixel_petals' | 'crt_glow' | 'classic_linen'
@@ -485,8 +485,8 @@ const renderWindow = (x: number, y: number, w: number, h: number, style: string,
       <rect x={x} y={y} width={w} height={h} fill={frame} />
       {/* Glass */}
       <rect x={x + 2} y={y + 2} width={w - 4} height={h - 4} fill={glass} />
-      {/* Reflection (a lit window doesn't reflect) */}
-      {!colors.lit && <path d={`M${x + 3} ${y + h - 3} L${x + w - 3} ${y + 3} L${x + w - 2} ${y + 3} L${x + 4} ${y + h - 2} Z`} fill={highlight} opacity="0.4" />}
+      {/* Reflection */}
+      <path d={`M${x + 3} ${y + h - 3} L${x + w - 3} ${y + 3} L${x + w - 2} ${y + 3} L${x + 4} ${y + h - 2} Z`} fill={highlight} opacity="0.4" />
     </g>
   );
 
@@ -1247,11 +1247,9 @@ interface HouseSVGProps {
   onClick?: () => void
   customizations?: HouseCustomizations
   variant?: 'detailed' | 'simplified'
-  /** Night: every window glows, whatever the glass colour. */
-  lit?: boolean
 }
 
-export default function HouseSVG({ template, palette, className = '', onClick, customizations, variant = 'detailed', lit = false }: HouseSVGProps) {
+export default function HouseSVG({ template, palette, className = '', onClick, customizations, variant = 'detailed' }: HouseSVGProps) {
   const idPrefix = useSvgIdPrefix()
   const paletteColors = PALETTE_COLORS[palette] ?? PALETTE_COLORS.thread_sage
 
@@ -1259,9 +1257,8 @@ export default function HouseSVG({ template, palette, className = '', onClick, c
     base: customizations?.wallColor || paletteColors.base,
     primary: customizations?.roofColor || paletteColors.primary,
     secondary: customizations?.trimColor || paletteColors.secondary,
-    accent: lit ? LIT_GLASS : customizations?.windowColor || paletteColors.accent,
-    detail: customizations?.detailColor || paletteColors.detail,
-    lit
+    accent: customizations?.windowColor || paletteColors.accent,
+    detail: customizations?.detailColor || paletteColors.detail
   }
 
   const TemplateComponent = {

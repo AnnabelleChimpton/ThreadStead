@@ -30,8 +30,8 @@ interface Props {
 const TEMPLATES: HouseTemplate[] = ['cabin_v1', 'cottage_v1', 'townhouse_v1', 'loft_v1']
 const PALETTES: ColorPalette[] = ['thread_sage', 'charcoal_nights', 'pixel_petals', 'crt_glow', 'classic_linen']
 
-/** The yard's lawn (DitherPatternDefs.tsx), the band the sprites stand on. */
-const GRASS = '#608d43'
+/** The lawn colour the yard draws today, and the foliage step the art bible proposes. */
+const GRASS = { today: '#90EE90', palette: '#608d43' } as const
 
 /**
  * Every active PNG sprite at 1× on one grass strip, grouped by category,
@@ -39,6 +39,7 @@ const GRASS = '#608d43'
  * floats, one drawn at the wrong scale.
  */
 export default function DecorationContactSheet({ sprites }: Props) {
+  const [grass, setGrass] = useState<keyof typeof GRASS>('today')
   const [scale, setScale] = useState<1 | 2>(1)
   const groups = new Map<string, Sprite[]>()
   for (const sprite of sprites) groups.set(sprite.category, [...(groups.get(sprite.category) ?? []), sprite])
@@ -56,6 +57,11 @@ export default function DecorationContactSheet({ sprites }: Props) {
           </p>
 
           <div className="mb-4 flex flex-wrap gap-6 text-sm" role="group" aria-label="View">
+            <fieldset className="flex gap-3 border-0 p-0 m-0">
+              <legend className="sr-only">Grass</legend>
+              <label><input type="radio" name="grass" checked={grass === 'today'} onChange={() => setGrass('today')} /> Today&rsquo;s grass</label>
+              <label><input type="radio" name="grass" checked={grass === 'palette'} onChange={() => setGrass('palette')} /> Palette grass</label>
+            </fieldset>
             <fieldset className="flex gap-3 border-0 p-0 m-0">
               <legend className="sr-only">Size</legend>
               <label><input type="radio" name="scale" checked={scale === 1} onChange={() => setScale(1)} /> 1×</label>
@@ -77,7 +83,7 @@ export default function DecorationContactSheet({ sprites }: Props) {
                       key={sprite.itemId}
                       title={`${sprite.itemId} (${sprite.category}${sprite.collection ? `, ${sprite.collection}` : ''}${sprite.releaseType !== 'PUBLIC' && sprite.releaseType !== 'DEFAULT' ? `, ${sprite.releaseType}` : ''})`}
                       className="flex items-end px-1"
-                      style={{ borderBottom: `6px solid ${GRASS}`, minHeight: 104 }}
+                      style={{ borderBottom: `6px solid ${GRASS[grass]}`, minHeight: 104 }}
                     >
                       <DecorationSVG
                         decorationType={sprite.type as React.ComponentProps<typeof DecorationSVG>['decorationType']}
@@ -89,7 +95,7 @@ export default function DecorationContactSheet({ sprites }: Props) {
                       />
                     </div>
                   ))}
-                  <div aria-hidden="true" className="px-2" style={{ borderBottom: `6px solid ${GRASS}`, minHeight: 104 }} />
+                  <div aria-hidden="true" className="px-2" style={{ borderBottom: `6px solid ${GRASS[grass]}`, minHeight: 104 }} />
                 </React.Fragment>
               ))}
             </div>
@@ -127,7 +133,7 @@ export default function DecorationContactSheet({ sprites }: Props) {
                   <tr key={t}>
                     <th className="pr-2 text-xs font-normal text-left">{t}</th>
                     {PALETTES.map((p) => (
-                      <td key={p} className="p-1" style={{ borderBottom: `6px solid ${GRASS}` }}>
+                      <td key={p} className="p-1" style={{ borderBottom: `6px solid ${GRASS[grass]}` }}>
                         <div style={{ width: 200 * scale, height: 180 * scale }}>
                           <HouseSVG template={t} palette={p} className="h-full w-full" />
                         </div>
@@ -158,7 +164,7 @@ export default function DecorationContactSheet({ sprites }: Props) {
                   <tr key={t}>
                     <th className="pr-2 text-xs font-normal text-left">{t}{set.placeholder ? ' (stand-in)' : ''}</th>
                     {PALETTES.map((p) => (
-                      <td key={p} className="p-1" style={{ borderBottom: `6px solid ${GRASS}` }}>
+                      <td key={p} className="p-1" style={{ borderBottom: `6px solid ${GRASS[grass]}` }}>
                         <div style={{ width: 200 * scale, height: 180 * scale }}>
                           <HouseSprite template={t as HouseTemplate} palette={p} layerSet={set} className="h-full w-full" />
                         </div>

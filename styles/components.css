@@ -1631,9 +1631,6 @@ img.ts-emoji {
 .ts-street {
   overflow-x: auto;
   padding-bottom: 4px;
-  /* The yard's sky and lawn bands (DitherPatternDefs.tsx) as a lot crops
-     them (y 24–232), for lots with no picture yet and the signposts */
-  --ts-lot-ground: linear-gradient(#6f97b3 0 8px, #9dbfd3 8px 41px, #d4e6ef 41px 72px, #a3c27a 72px 157px, #608d43 157px);
 }
 .ts-street-inner {
   width: max-content;
@@ -1660,7 +1657,7 @@ img.ts-emoji {
   height: 208px;
   overflow: hidden;
   /* Only seen behind a house that has no picture yet */
-  background: var(--ts-lot-ground);
+  background: linear-gradient(#9dbfd3 0 72px, #608d43 72px);
 }
 .ts-street-yard img {
   display: block;
@@ -1701,7 +1698,7 @@ img.ts-emoji {
   justify-content: flex-end;
   height: 208px;
   padding-bottom: 24px;
-  background: var(--ts-lot-ground);
+  background: linear-gradient(#9dbfd3 0 72px, #608d43 72px);
 }
 .ts-street-stop-board {
   display: block;

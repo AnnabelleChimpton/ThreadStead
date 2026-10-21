@@ -11,7 +11,7 @@
  * listed in NEXT_PUBLIC_HOUSE_SPRITES. Until then every house is HouseSVG.
  */
 import sockets from '../../design/pixel-art/_template-house.sockets.json'
-import { HOUSE_PALETTE_RAMPS, KEY_RAMPS, LIT_GLASS_RAMP, type HousePart } from './palette'
+import { HOUSE_PALETTE_RAMPS, KEY_RAMPS, type HousePart } from './palette'
 
 export interface SocketBox {
   x: number
@@ -72,10 +72,8 @@ const hexToRgb = (hex: string): [number, number, number] => [
 const rgbKey = (r: number, g: number, b: number) => (r << 16) | (g << 8) | b
 
 /** Key colour (as 0xRRGGBB) → the palette's colour, for every step of every part. */
-export function keyColourMap(palette: string, lit = false): Map<number, [number, number, number]> {
-  const paletteRamps = HOUSE_PALETTE_RAMPS[palette] ?? HOUSE_PALETTE_RAMPS.thread_sage
-  // At night the windows are lit in every palette
-  const ramps = lit ? { ...paletteRamps, glass: LIT_GLASS_RAMP } : paletteRamps
+export function keyColourMap(palette: string): Map<number, [number, number, number]> {
+  const ramps = HOUSE_PALETTE_RAMPS[palette] ?? HOUSE_PALETTE_RAMPS.thread_sage
   const map = new Map<number, [number, number, number]>()
   for (const part of Object.keys(KEY_RAMPS) as HousePart[]) {
     KEY_RAMPS[part].forEach((key, step) => {

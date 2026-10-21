@@ -1,5 +1,4 @@
 import React from 'react'
-import { TERRAIN_TILES, type TerrainShades } from '@/lib/pixel-homes/decoration-data'
 
 /**
  * SVG Defs component providing dither patterns for pixel art rendering.
@@ -260,46 +259,20 @@ function GradientDitherPatterns({
 }
 
 export type SkyType = 'sunny' | 'cloudy' | 'sunset' | 'night'
-export type GroundType = 'day' | 'night'
 
-// The yard's sky and lawn, from threadstead-44 (lib/pixel-homes/palette.ts),
-// as in the art bible's design/pixel-art/_yard-preview.png. The street's lots
-// and signposts (styles/components.css .ts-street-yard) use the same bands.
-
-// Sky colours, from the top down to the horizon
-export const SKY_COLORS: Record<SkyType, string[]> = {
-  sunny: ['#6f97b3', '#9dbfd3', '#d4e6ef'],
-  cloudy: ['#8fa0a0', '#c5d0cd', '#d4e6ef'],
-  sunset: ['#8b7fe0', '#d9a9b5', '#e27d60', '#f2c6a0'],
-  night: ['#2b2523', '#3e4b4d', '#3f5f7a'],
+// Sky color palettes - from top (darker) to horizon (lighter)
+const SKY_COLORS: Record<SkyType, string[]> = {
+  sunny: ['#5BA3D0', '#6BB5DC', '#87CEEB', '#A8E4F0', '#C8F0FF'],
+  cloudy: ['#8899AA', '#9DAAB8', '#B0C4DE', '#C8D4E8', '#E0E8F0'],
+  sunset: ['#4A3070', '#7B4090', '#C85A80', '#FF7060', '#FFB060', '#FFD090'],
+  night: ['#050510', '#0A0A20', '#101035', '#151550', '#1A1A60']
 }
 
-// Lawn colours, from the horizon down to the foreground
-const GROUND_COLORS: Record<GroundType, string[]> = {
-  day: ['#a3c27a', '#608d43', '#49722e'],
-  night: ['#2d5016', '#1b350a', '#1d3029'],
-}
-
-/** Height in pixels of the checker seam between two sky or lawn bands. */
-export const SCENE_DITHER_SEAM = 2
-
-/** Stars on the night sky, in sky coordinates: [x, y, size, colour]. */
-export const NIGHT_STARS: ReadonlyArray<readonly [number, number, number, string]> = [
-  [32, 16, 2, '#fffaf5'], [120, 32, 2, '#c5d0cd'], [200, 12, 2, '#fffaf5'], [350, 24, 2, '#d8cbbd'],
-  [420, 48, 2, '#fffaf5'], [80, 60, 1, '#8fa0a0'], [280, 40, 1, '#c5d0cd'], [380, 8, 1, '#d8cbbd'],
-]
-
+// Ground/grass colors - from light (top/horizon) to darker (bottom/foreground)
 // Stored atmosphere values aren't validated, so fall back to the sunny sky.
 const skyColors = (sky: SkyType) => SKY_COLORS[sky] ?? SKY_COLORS.sunny
 
-/** The lawn at night is darker, under a night sky. */
-export const groundFor = (sky: SkyType): GroundType => (sky === 'night' ? 'night' : 'day')
-
-/** The sky's horizon colour, painted under the bands so nothing shows through a gap. */
-export const skyBaseColor = (sky: SkyType): string => skyColors(sky)[skyColors(sky).length - 1]
-
-/** The lawn's horizon colour, painted under the bands. */
-export const groundBaseColor = (ground: GroundType): string => GROUND_COLORS[ground][0]
+const GROUND_COLORS = ['#90EE90', '#7CCD7C', '#68B868', '#54A454', '#408040', '#2C6C2C']
 
 /**
  * Pattern definitions for one sky gradient: ids `${prefix}-sky-${sky}-${i}`.
@@ -316,13 +289,13 @@ export function SkyGradientDefs({ prefix = '', sky }: { prefix?: string; sky: Sk
 }
 
 /**
- * Pattern definitions for the lawn gradient: ids `${prefix}-ground-${ground}-${i}`.
+ * Pattern definitions for the ground gradient: ids `${prefix}-ground-${i}`.
  */
-export function GroundGradientDefs({ prefix = '', ground }: { prefix?: string; ground: GroundType }) {
+export function GroundGradientDefs({ prefix = '' }: { prefix?: string }) {
   const p = prefix ? `${prefix}-` : ''
   return (
     <defs>
-      <GradientDitherPatterns prefix={p} name={`ground-${ground}`} colors={GROUND_COLORS[ground]} />
+      <GradientDitherPatterns prefix={p} name="ground" colors={GROUND_COLORS} />
     </defs>
   )
 }
@@ -339,10 +312,10 @@ export function getSkyPatternCount(skyType: SkyType): number {
 }
 
 /**
- * Returns the number of pattern bands for the lawn gradient.
+ * Returns the number of pattern bands for the ground gradient.
  */
-export function getGroundPatternCount(ground: GroundType): number {
-  return GROUND_COLORS[ground].length * 2 - 1
+export function getGroundPatternCount(): number {
+  return GROUND_COLORS.length * 2 - 1
 }
 
 export interface DitherBand {
@@ -391,146 +364,150 @@ export function layoutDitherBands(patternCount: number, height: number, transiti
   return bands
 }
 
-/** The yard's pattern for each terrain tile; grass is the lawn itself and has none. */
-export const TERRAIN_PATTERNS: Record<string, string> = {
-  dirt: 'terrain-dirt',
-  stone_path: 'terrain-stone',
-  brick_path: 'terrain-brick',
-  water: 'terrain-water',
-  sand: 'terrain-sand',
-  gravel: 'terrain-gravel',
-  flower_bed: 'terrain-flowerbed',
-  wood_deck: 'terrain-wood',
-  cobblestone: 'terrain-cobble',
-  mulch: 'terrain-mulch',
-  moss: 'terrain-moss',
-  pebbles: 'terrain-pebbles',
-}
+/**
+ * Grass texture pattern definitions - adds blade details on top of color bands
+ */
+export function GrassTextureDefs({ prefix = '' }: { prefix?: string }) {
+  const p = prefix ? `${prefix}-` : ''
 
-const shadesOf = (id: string): TerrainShades => TERRAIN_TILES.find((t) => t.id === id)!.shades
-
-// Loose soil: dirt and mulch
-function SpecklePattern({ id, s }: { id: string; s: TerrainShades }) {
   return (
-    <pattern id={id} width="4" height="4" patternUnits="userSpaceOnUse">
-      <rect width="4" height="4" fill={s.base} />
-      <rect x="0" y="0" width="1" height="1" fill={s.dark} />
-      <rect x="2" y="1" width="1" height="1" fill={s.light} />
-      <rect x="1" y="3" width="1" height="1" fill={s.dark} />
-      <rect x="3" y="2" width="1" height="1" fill={s.light} />
-    </pattern>
-  )
-}
+    <defs>
+      {/* Grass blade texture - scattered vertical lines */}
+      <pattern id={`${p}grass-blades`} width="16" height="12" patternUnits="userSpaceOnUse">
+        {/* Darker grass blade hints */}
+        <rect x="1" y="4" width="1" height="3" fill="rgba(0,80,0,0.25)" />
+        <rect x="4" y="2" width="1" height="4" fill="rgba(0,80,0,0.2)" />
+        <rect x="7" y="5" width="1" height="3" fill="rgba(0,80,0,0.25)" />
+        <rect x="10" y="1" width="1" height="4" fill="rgba(0,80,0,0.15)" />
+        <rect x="13" y="3" width="1" height="4" fill="rgba(0,80,0,0.2)" />
+        <rect x="3" y="8" width="1" height="3" fill="rgba(0,80,0,0.2)" />
+        <rect x="8" y="9" width="1" height="2" fill="rgba(0,80,0,0.25)" />
+        <rect x="12" y="7" width="1" height="4" fill="rgba(0,80,0,0.15)" />
+        <rect x="15" y="6" width="1" height="3" fill="rgba(0,80,0,0.2)" />
+        {/* Lighter highlight blades */}
+        <rect x="2" y="6" width="1" height="2" fill="rgba(180,255,180,0.2)" />
+        <rect x="6" y="3" width="1" height="3" fill="rgba(180,255,180,0.15)" />
+        <rect x="11" y="5" width="1" height="2" fill="rgba(180,255,180,0.2)" />
+        <rect x="14" y="9" width="1" height="2" fill="rgba(180,255,180,0.15)" />
+      </pattern>
 
-// Dark ground with a few flecks: flower bed and moss
-function FleckPattern({ id, s }: { id: string; s: TerrainShades }) {
-  return (
-    <pattern id={id} width="8" height="8" patternUnits="userSpaceOnUse">
-      <rect width="8" height="8" fill={s.base} />
-      <rect x="1" y="1" width="1" height="1" fill={s.light} />
-      <rect x="4" y="2" width="1" height="1" fill={s.light} />
-      <rect x="2" y="5" width="1" height="1" fill={s.light} />
-      <rect x="6" y="6" width="1" height="1" fill={s.light} />
-      <rect x="0" y="3" width="1" height="1" fill={s.dark} />
-      <rect x="5" y="0" width="1" height="1" fill={s.dark} />
-    </pattern>
-  )
-}
-
-// Small stones: gravel and pebbles
-function GravelPattern({ id, s }: { id: string; s: TerrainShades }) {
-  return (
-    <pattern id={id} width="6" height="6" patternUnits="userSpaceOnUse">
-      <rect width="6" height="6" fill={s.base} />
-      <rect x="0" y="0" width="2" height="2" fill={s.light} />
-      <rect x="3" y="1" width="2" height="1" fill={s.dark} />
-      <rect x="1" y="3" width="1" height="2" fill={s.dark} />
-      <rect x="4" y="4" width="2" height="2" fill={s.light} />
-    </pattern>
+      {/* Denser grass for foreground areas */}
+      <pattern id={`${p}grass-blades-dense`} width="12" height="10" patternUnits="userSpaceOnUse">
+        <rect x="0" y="2" width="1" height="4" fill="rgba(0,60,0,0.3)" />
+        <rect x="2" y="0" width="1" height="5" fill="rgba(0,60,0,0.25)" />
+        <rect x="4" y="3" width="1" height="4" fill="rgba(0,60,0,0.3)" />
+        <rect x="6" y="1" width="1" height="5" fill="rgba(0,60,0,0.2)" />
+        <rect x="8" y="2" width="1" height="4" fill="rgba(0,60,0,0.25)" />
+        <rect x="10" y="0" width="1" height="5" fill="rgba(0,60,0,0.3)" />
+        <rect x="1" y="6" width="1" height="3" fill="rgba(0,60,0,0.25)" />
+        <rect x="3" y="5" width="1" height="4" fill="rgba(0,60,0,0.2)" />
+        <rect x="5" y="7" width="1" height="3" fill="rgba(0,60,0,0.3)" />
+        <rect x="7" y="6" width="1" height="3" fill="rgba(0,60,0,0.25)" />
+        <rect x="9" y="5" width="1" height="4" fill="rgba(0,60,0,0.2)" />
+        <rect x="11" y="7" width="1" height="3" fill="rgba(0,60,0,0.25)" />
+        {/* Highlights */}
+        <rect x="3" y="1" width="1" height="2" fill="rgba(200,255,200,0.2)" />
+        <rect x="7" y="4" width="1" height="2" fill="rgba(200,255,200,0.15)" />
+        <rect x="11" y="2" width="1" height="2" fill="rgba(200,255,200,0.2)" />
+      </pattern>
+    </defs>
   )
 }
 
 /**
- * Terrain tile dither patterns, in each tile's threadstead-44 shades
- * (TERRAIN_TILES in lib/pixel-homes/decoration-data.ts).
+ * Terrain tile dither patterns
  */
 export function TerrainDitherDefs({ prefix = '' }: { prefix?: string }) {
   const p = prefix ? `${prefix}-` : ''
-  const stone = shadesOf('stone_path')
-  const brick = shadesOf('brick_path')
-  const water = shadesOf('water')
-  const sand = shadesOf('sand')
-  const wood = shadesOf('wood_deck')
-  const cobble = shadesOf('cobblestone')
 
   return (
     <defs>
-      <SpecklePattern id={`${p}terrain-dirt`} s={shadesOf('dirt')} />
-      <SpecklePattern id={`${p}terrain-mulch`} s={shadesOf('mulch')} />
+      {/* Dirt */}
+      <pattern id={`${p}terrain-dirt`} width="4" height="4" patternUnits="userSpaceOnUse">
+        <rect width="4" height="4" fill="#8B4513" />
+        <rect x="0" y="0" width="1" height="1" fill="#6B3410" />
+        <rect x="2" y="1" width="1" height="1" fill="#A0522D" />
+        <rect x="1" y="3" width="1" height="1" fill="#6B3410" />
+        <rect x="3" y="2" width="1" height="1" fill="#A0522D" />
+      </pattern>
 
       {/* Stone path */}
       <pattern id={`${p}terrain-stone`} width="8" height="8" patternUnits="userSpaceOnUse">
-        <rect width="8" height="8" fill={stone.base} />
-        <rect x="0" y="0" width="3" height="3" fill={stone.light} />
-        <rect x="4" y="1" width="3" height="2" fill={stone.dark} />
-        <rect x="1" y="4" width="2" height="3" fill={stone.dark} />
-        <rect x="5" y="5" width="3" height="2" fill={stone.light} />
+        <rect width="8" height="8" fill="#808080" />
+        <rect x="0" y="0" width="3" height="3" fill="#909090" />
+        <rect x="4" y="1" width="3" height="2" fill="#707070" />
+        <rect x="1" y="4" width="2" height="3" fill="#707070" />
+        <rect x="5" y="5" width="3" height="2" fill="#909090" />
       </pattern>
 
-      {/* Brick path, mortar in the accent */}
+      {/* Brick path */}
       <pattern id={`${p}terrain-brick`} width="8" height="6" patternUnits="userSpaceOnUse">
-        <rect width="8" height="6" fill={brick.base} />
-        <rect x="0" y="0" width="3" height="2" fill={brick.light} />
-        <rect x="4" y="0" width="3" height="2" fill={brick.dark} />
-        <rect x="0" y="2" width="8" height="1" fill={brick.accent} />
-        <rect x="2" y="3" width="3" height="2" fill={brick.light} />
-        <rect x="6" y="3" width="2" height="2" fill={brick.dark} />
-        <rect x="0" y="5" width="8" height="1" fill={brick.accent} />
+        <rect width="8" height="6" fill="#A52A2A" />
+        <rect x="0" y="0" width="3" height="2" fill="#B83030" />
+        <rect x="4" y="0" width="3" height="2" fill="#983030" />
+        <rect x="0" y="2" width="8" height="1" fill="#6B1F1F" />
+        <rect x="2" y="3" width="3" height="2" fill="#B83030" />
+        <rect x="6" y="3" width="2" height="2" fill="#983030" />
+        <rect x="0" y="5" width="8" height="1" fill="#6B1F1F" />
       </pattern>
 
-      {/* Water: ripples in the light step, a glint in the accent */}
+      {/* Water */}
       <pattern id={`${p}terrain-water`} width="8" height="8" patternUnits="userSpaceOnUse">
-        <rect width="8" height="8" fill={water.base} />
-        <rect x="0" y="2" width="2" height="1" fill={water.light} />
-        <rect x="4" y="0" width="3" height="1" fill={water.light} />
-        <rect x="1" y="5" width="2" height="1" fill={water.light} />
-        <rect x="6" y="6" width="2" height="1" fill={water.light} />
-        <rect x="3" y="3" width="1" height="1" fill={water.accent} />
-        <rect x="7" y="4" width="1" height="1" fill={water.accent} />
+        <rect width="8" height="8" fill="#4682B4" />
+        <rect x="0" y="2" width="2" height="1" fill="#5A9ECF" />
+        <rect x="4" y="0" width="3" height="1" fill="#5A9ECF" />
+        <rect x="1" y="5" width="2" height="1" fill="#5A9ECF" />
+        <rect x="6" y="6" width="2" height="1" fill="#5A9ECF" />
+        <rect x="3" y="3" width="1" height="1" fill="#6BAFDF" />
+        <rect x="7" y="4" width="1" height="1" fill="#6BAFDF" />
       </pattern>
 
       {/* Sand */}
       <pattern id={`${p}terrain-sand`} width="4" height="4" patternUnits="userSpaceOnUse">
-        <rect width="4" height="4" fill={sand.base} />
-        <rect x="0" y="0" width="1" height="1" fill={sand.light} />
-        <rect x="2" y="2" width="1" height="1" fill={sand.light} />
-        <rect x="1" y="1" width="1" height="1" fill={sand.dark} />
-        <rect x="3" y="3" width="1" height="1" fill={sand.dark} />
+        <rect width="4" height="4" fill="#F4A460" />
+        <rect x="0" y="0" width="1" height="1" fill="#E8C080" />
+        <rect x="2" y="2" width="1" height="1" fill="#E8C080" />
+        <rect x="1" y="1" width="1" height="1" fill="#D49040" />
+        <rect x="3" y="3" width="1" height="1" fill="#D49040" />
       </pattern>
 
-      <GravelPattern id={`${p}terrain-gravel`} s={shadesOf('gravel')} />
-      <GravelPattern id={`${p}terrain-pebbles`} s={shadesOf('pebbles')} />
+      {/* Gravel */}
+      <pattern id={`${p}terrain-gravel`} width="6" height="6" patternUnits="userSpaceOnUse">
+        <rect width="6" height="6" fill="#708090" />
+        <rect x="0" y="0" width="2" height="2" fill="#808898" />
+        <rect x="3" y="1" width="2" height="1" fill="#606878" />
+        <rect x="1" y="3" width="1" height="2" fill="#606878" />
+        <rect x="4" y="4" width="2" height="2" fill="#808898" />
+      </pattern>
 
-      <FleckPattern id={`${p}terrain-flowerbed`} s={shadesOf('flower_bed')} />
-      <FleckPattern id={`${p}terrain-moss`} s={shadesOf('moss')} />
+      {/* Flower bed */}
+      <pattern id={`${p}terrain-flowerbed`} width="8" height="8" patternUnits="userSpaceOnUse">
+        <rect width="8" height="8" fill="#3D2314" />
+        <rect x="1" y="1" width="1" height="1" fill="#4D3324" />
+        <rect x="4" y="2" width="1" height="1" fill="#4D3324" />
+        <rect x="2" y="5" width="1" height="1" fill="#4D3324" />
+        <rect x="6" y="6" width="1" height="1" fill="#4D3324" />
+        <rect x="0" y="3" width="1" height="1" fill="#2D1304" />
+        <rect x="5" y="0" width="1" height="1" fill="#2D1304" />
+      </pattern>
 
-      {/* Wood deck: plank seams in the accent, grain a step down */}
+      {/* Wood deck */}
       <pattern id={`${p}terrain-wood`} width="12" height="4" patternUnits="userSpaceOnUse">
-        <rect width="12" height="4" fill={wood.base} />
-        <rect x="0" y="3" width="12" height="1" fill={wood.accent} />
-        <rect x="2" y="1" width="2" height="1" fill={wood.dark} />
-        <rect x="8" y="2" width="2" height="1" fill={wood.dark} />
+        <rect width="12" height="4" fill="#A1887F" />
+        <rect x="0" y="3" width="12" height="1" fill="#8B7060" />
+        <rect x="2" y="1" width="2" height="1" fill="#8B7060" opacity="0.3" />
+        <rect x="8" y="2" width="2" height="1" fill="#8B7060" opacity="0.3" />
       </pattern>
 
-      {/* Cobblestone, joints in the accent */}
+      {/* Cobblestone */}
       <pattern id={`${p}terrain-cobble`} width="8" height="8" patternUnits="userSpaceOnUse">
-        <rect width="8" height="8" fill={cobble.base} />
-        <rect x="0" y="0" width="3" height="3" fill={cobble.light} />
-        <rect x="4" y="0" width="4" height="3" fill={cobble.dark} />
-        <rect x="0" y="4" width="4" height="4" fill={cobble.dark} />
-        <rect x="5" y="4" width="3" height="4" fill={cobble.light} />
-        <rect x="3" y="0" width="1" height="8" fill={cobble.accent} />
-        <rect x="0" y="3" width="8" height="1" fill={cobble.accent} />
+        <rect width="8" height="8" fill="#9E9E9E" />
+        <rect x="0" y="0" width="3" height="3" fill="#AEAEAE" />
+        <rect x="4" y="0" width="4" height="3" fill="#8E8E8E" />
+        <rect x="0" y="4" width="4" height="4" fill="#8E8E8E" />
+        <rect x="5" y="4" width="3" height="4" fill="#AEAEAE" />
+        <rect x="3" y="0" width="1" height="8" fill="#7E7E7E" opacity="0.5" />
+        <rect x="0" y="3" width="8" height="1" fill="#7E7E7E" opacity="0.5" />
       </pattern>
     </defs>
   )
