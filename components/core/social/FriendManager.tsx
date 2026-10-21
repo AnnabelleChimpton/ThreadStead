@@ -141,16 +141,18 @@ export default function FriendManager({
                     disabled={index === 0}
                     className="thread-button-secondary btn btn--secondary text-xs disabled:opacity-50"
                     title="Move up"
+                    aria-label={`Move ${friend.displayName || friend.handle} up`}
                   >
-                    ↑
+                    <PixelIcon name="arrow-up" size={12} />
                   </button>
                   <button
                     onClick={() => moveDown(index)}
                     disabled={index === selectedFriends.length - 1}
                     className="thread-button-secondary btn btn--secondary text-xs disabled:opacity-50"
                     title="Move down"
+                    aria-label={`Move ${friend.displayName || friend.handle} down`}
                   >
-                    ↓
+                    <PixelIcon name="arrow-down" size={12} />
                   </button>
                   <button
                     onClick={() => removeFriend(friend.id)}
@@ -225,7 +227,7 @@ export default function FriendManager({
 
       <div className="text-xs text-nb-ink-mid">
         <p>• Select up to {maxFriends} friends to feature on your profile</p>
-        <p>• Use ↑↓ buttons to change the order they appear</p>
+        <p>• Use the arrow buttons to change the order they appear</p>
         <p>• Only mutual friends (people who follow you back) can be featured</p>
       </div>
     </div>

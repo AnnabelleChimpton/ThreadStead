@@ -198,23 +198,26 @@ export default function WebsiteManager({
                       disabled={index === 0}
                       className="thread-button-secondary btn btn--secondary text-xs disabled:opacity-50"
                       title="Move up"
+                      aria-label={`Move ${website.label || website.url} up`}
                     >
-                      ↑
+                      <PixelIcon name="arrow-up" size={12} />
                     </button>
                     <button
                       onClick={() => moveDown(index)}
                       disabled={index === websites.length - 1}
                       className="thread-button-secondary btn btn--secondary text-xs disabled:opacity-50"
                       title="Move down"
+                      aria-label={`Move ${website.label || website.url} down`}
                     >
-                      ↓
+                      <PixelIcon name="arrow-down" size={12} />
                     </button>
                     <button
                       onClick={() => setEditingId(website.id)}
                       className="thread-button-secondary btn btn--secondary text-xs"
                       title="Edit"
+                      aria-label={`Edit ${website.label || website.url}`}
                     >
-                      ✎
+                      <PixelIcon name="edit" size={12} />
                     </button>
                     <button
                       onClick={() => deleteWebsite(website.id)}
@@ -234,7 +237,7 @@ export default function WebsiteManager({
 
       <div className="text-xs text-nb-ink-mid">
         <p>• Add up to {maxWebsites} websites</p>
-        <p>• Use the ↑↓ buttons to reorder them</p>
+        <p>• Use the arrow buttons to reorder them</p>
         <p>• Descriptions are optional but help visitors understand what each site is about</p>
       </div>
     </div>
