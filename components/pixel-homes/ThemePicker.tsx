@@ -17,22 +17,22 @@ const TEMPLATES: Array<{ id: HouseTemplate; name: string; description: string }>
   {
     id: 'cottage_v1',
     name: 'Cozy Cottage',
-    description: 'Classic and warm, perfect for storytellers and community builders'
+    description: 'An arched roof over a timber frame'
   },
   {
     id: 'townhouse_v1',
     name: 'Urban Townhouse',
-    description: 'Modern and connected, ideal for networkers and professionals'
+    description: 'Brick, a flat roof and tall windows'
   },
   {
     id: 'loft_v1',
     name: 'Creative Loft',
-    description: 'Minimalist and artistic, great for creators and innovators'
+    description: 'A flat roof and big factory windows'
   },
   {
     id: 'cabin_v1',
     name: 'Rustic Cabin',
-    description: 'Natural and peaceful, suited for thoughtful writers and nature lovers'
+    description: 'Log walls, a steep roof and a porch'
   }
 ]
 
@@ -40,27 +40,27 @@ const PALETTES: Array<{ id: ColorPalette; name: string; description: string }> =
   {
     id: 'thread_sage',
     name: 'Thread Sage',
-    description: 'Warm earth tones with sage green - the classic ThreadStead feel'
+    description: 'Sage green walls, a brown roof, pine trim'
   },
   {
     id: 'charcoal_nights',
     name: 'Charcoal Nights',
-    description: 'Dark and sophisticated with warm accent touches'
+    description: 'Charcoal walls, a slate roof, lit windows'
   },
   {
     id: 'pixel_petals',
     name: 'Pixel Petals',
-    description: 'Bright and cheerful with coral and meadow greens'
+    description: 'Rose pink walls, a red roof'
   },
   {
     id: 'crt_glow',
     name: 'CRT Glow',
-    description: 'Retro computing vibes with blue and green highlights'
+    description: 'Lavender walls, green-screen windows'
   },
   {
     id: 'classic_linen',
     name: 'Classic Linen',
-    description: 'Clean and minimal with cream and sage accents'
+    description: 'Linen walls, a dark brown roof, white trim'
   }
 ]
 
