@@ -13,18 +13,22 @@ interface HousePickerProps {
 }
 
 // Radio options are labels, not <button>s, so the site theme's button bevel
-// doesn't reach them; the checked one gets the ink border.
+// doesn't reach them; the checked one gets the ink border. The input is
+// sr-only, so the card wears the site's dashed focus ring for it.
 const optionClass =
   'flex cursor-pointer flex-col items-center gap-1 rounded-md border-2 border-nb-ink-mid/40 bg-nb-paper p-1.5 text-xs font-semibold text-nb-ink ' +
-  'hover:border-nb-ink-mid has-[:checked]:border-nb-ink has-[:checked]:shadow-nb-sm has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-nb-ink';
+  'hover:border-nb-ink-mid has-[:checked]:border-nb-ink has-[:checked]:shadow-nb-sm has-[:focus-visible]:outline-dashed has-[:focus-visible]:outline-[3px] has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[color:var(--ha-lav-ink,#5a4fb3)]';
 
 /** House + colors with a live preview. Used by the homepage demo and the signup house step. */
 export default function HousePicker({ value, onChange, atmosphere, decorations, terrain }: HousePickerProps) {
   const name = useId();
+  const houseName = HOUSE_TEMPLATES.find((t) => t.id === value.template)?.name ?? value.template;
+  const paletteName = HOUSE_PALETTES.find((p) => p.id === value.palette)?.name ?? value.palette;
 
   return (
     <div>
-      <div className="mx-auto mb-4 w-full max-w-md">
+      {/* One picture with a name that follows the choice, not its layers */}
+      <div className="mx-auto mb-4 w-full max-w-md" role="img" aria-label={`Preview: ${houseName} in ${paletteName}`}>
         <EnhancedHouseCanvas
           template={value.template}
           palette={value.palette}
