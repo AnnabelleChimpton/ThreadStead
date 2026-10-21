@@ -9,16 +9,11 @@
  * pre-check.
  */
 import type { Prisma } from "@prisma/client";
-import { IP_LIMITS, SIGNUP_LIMIT_MESSAGES } from "@/lib/server/http/rate-limit";
+import { IP_LIMITS, SIGNUP_LIMIT_MESSAGES, signupLimitsApply } from "@/lib/server/http/rate-limit";
 
 export class SignupLimitError extends Error {}
 
 const HOUR = 60 * 60 * 1000;
-
-/** Local dev makes lots of test accounts from one loopback address. */
-export function signupLimitsApply(): boolean {
-  return process.env.NODE_ENV !== "development";
-}
 
 /**
  * Counts one new account against its IP. Throws SignupLimitError (rolling
@@ -45,9 +40,9 @@ export async function recordSignup(
     successes(now - 24 * HOUR),
     successes(),
   ]);
-  if (hour >= IP_LIMITS.MAX_SIGNUPS_PER_IP_PER_HOUR) throw new SignupLimitError(SIGNUP_LIMIT_MESSAGES.hour);
-  if (day >= IP_LIMITS.MAX_SIGNUPS_PER_IP_PER_DAY) throw new SignupLimitError(SIGNUP_LIMIT_MESSAGES.day);
-  if (lifetime >= IP_LIMITS.MAX_SIGNUPS_PER_IP_LIFETIME) throw new SignupLimitError(SIGNUP_LIMIT_MESSAGES.lifetime);
+  if (hour >= IP_LIMITS.MAX_SIGNUPS_PER_IP_PER_HOUR) throw new SignupLimitError(SIGNUP_LIMIT_MESSAGES.hour());
+  if (day >= IP_LIMITS.MAX_SIGNUPS_PER_IP_PER_DAY) throw new SignupLimitError(SIGNUP_LIMIT_MESSAGES.day());
+  if (lifetime >= IP_LIMITS.MAX_SIGNUPS_PER_IP_LIFETIME) throw new SignupLimitError(SIGNUP_LIMIT_MESSAGES.lifetime());
 
   if (betaKey) {
     const claimed = await tx.signupAttempt.updateMany({

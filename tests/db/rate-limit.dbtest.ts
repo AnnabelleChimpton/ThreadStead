@@ -157,6 +157,37 @@ describe('signupLimitCheck', () => {
       expect(res.statusCode).toBe(429)
     }
   })
+
+  it('tells an auto-blocked IP how long until the block lifts', async () => {
+    await db.ipSignupTracking.create({
+      data: {
+        ipAddress: '203.0.113.50',
+        isBlocked: true,
+        autoBlocked: true,
+        unblockAt: new Date(Date.now() + 5 * 60 * 60 * 1000),
+      },
+    })
+    const res = fakeRes()
+    expect(await signupLimitCheck(fakeReq('203.0.113.50'), res as unknown as NextApiResponse)).toBe(false)
+    expect(res.statusCode).toBe(429)
+    expect(res.body).toMatchObject({ error: expect.stringMatching(/Try again in about 5 hours\.$/) })
+    expect(Number(res.headers['Retry-After'])).toBeGreaterThan(5 * 60 * 60 - 60)
+  })
+
+  it('is off in local dev, like recordSignup', async () => {
+    await db.ipSignupTracking.create({ data: { ipAddress: '203.0.113.50', isBlocked: true, blockedReason: 'test block' } })
+    const env = process.env as Record<string, string | undefined>
+    const was = env.NODE_ENV
+    env.NODE_ENV = 'development'
+    try {
+      const res = fakeRes()
+      expect(await signupLimitCheck(fakeReq('203.0.113.50'), res as unknown as NextApiResponse)).toBe(true)
+      expect(res.statusCode).toBe(200)
+      expect(await db.signupAttempt.count({ where: { ipAddress: '203.0.113.50' } })).toBe(0)
+    } finally {
+      env.NODE_ENV = was
+    }
+  })
 })
 
 describe('cleanupExpiredRateLimits', () => {

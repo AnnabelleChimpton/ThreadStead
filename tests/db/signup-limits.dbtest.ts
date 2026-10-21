@@ -38,9 +38,9 @@ type Key = { did: string; publicKey: Buffer; privateKey: crypto.KeyObject }
 
 async function call(
   handler: (req: NextApiRequest, res: NextApiResponse) => Promise<unknown>,
-  opts: { ip: string; body?: unknown; cookie?: string }
+  opts: { ip: string; body?: unknown; cookie?: string; ua?: string }
 ): Promise<Res> {
-  const headers: Record<string, string> = { 'user-agent': 'Mozilla/5.0 test', 'x-forwarded-for': opts.ip }
+  const headers: Record<string, string> = { 'user-agent': opts.ua ?? 'Mozilla/5.0 test', 'x-forwarded-for': opts.ip }
   if (opts.cookie) headers.cookie = opts.cookie
   const req = {
     method: 'POST',
@@ -71,10 +71,11 @@ function newKey(): Key {
 }
 
 /** Signs in with `key` from `ip`; a key with no account makes one. */
-async function signIn(key: Key, ip: string, betaKey?: string) {
+async function signIn(key: Key, ip: string, betaKey?: string, ua?: string) {
   const nonce = `nonce-${crypto.randomUUID()}`
   return call(verify as never, {
     ip,
+    ua,
     cookie: `retro_nonce=${nonce}.${Date.now() + 60_000}`,
     body: {
       did: key.did,
@@ -85,7 +86,7 @@ async function signIn(key: Key, ip: string, betaKey?: string) {
   })
 }
 
-const signUp = (ip: string, betaKey?: string) => signIn(newKey(), ip, betaKey)
+const signUp = (ip: string, betaKey?: string, ua?: string) => signIn(newKey(), ip, betaKey, ua)
 
 /** Moves every success row for `ip` back by `ms`. */
 async function age(ip: string, ms: number) {
@@ -130,7 +131,12 @@ describe('a normal signup counts against its IP', () => {
     }
     const res = await signUp(ip)
     expect(res.statusCode).toBe(429)
-    expect(res.body.error).toBe(SIGNUP_LIMIT_MESSAGES.hour)
+    expect(res.body.error).toBe(SIGNUP_LIMIT_MESSAGES.hour(res.body.retryAfter))
+    expect(res.body.error).toMatch(/Try again in \d+ minutes\.$/)
+    // The first signup ages out of the hour a moment from now
+    expect(res.body.retryAfter).toBeGreaterThan(HOUR / 1000 - 60)
+    expect(res.body.retryAfter).toBeLessThanOrEqual(HOUR / 1000)
+    expect(res.headers['retry-after']).toBe(String(res.body.retryAfter))
     expect(await db.user.count()).toBe(IP_LIMITS.MAX_SIGNUPS_PER_IP_PER_HOUR)
     // Another connection is unaffected
     expect((await signUp(freshIp())).statusCode).toBe(200)
@@ -145,7 +151,9 @@ describe('a normal signup counts against its IP', () => {
     }
     const res = await signUp(ip)
     expect(res.statusCode).toBe(429)
-    expect(res.body.error).toBe(SIGNUP_LIMIT_MESSAGES.day)
+    expect(res.body.error).toBe(SIGNUP_LIMIT_MESSAGES.day(res.body.retryAfter))
+    // Every row was aged to just over an hour ago, so the day frees up in ~23h
+    expect(res.body.error).toMatch(/Try again in about 23 hours\.$/)
   })
 
   it(`stops at ${IP_LIMITS.MAX_SIGNUPS_PER_IP_LIFETIME} ever`, async () => {
@@ -159,7 +167,8 @@ describe('a normal signup counts against its IP', () => {
     })
     const res = await signUp(ip)
     expect(res.statusCode).toBe(429)
-    expect(res.body.error).toBe(SIGNUP_LIMIT_MESSAGES.lifetime)
+    expect(res.body.error).toBe(SIGNUP_LIMIT_MESSAGES.lifetime())
+    expect(res.body.retryAfter).toBeUndefined()
     expect(await db.user.count()).toBe(0)
   })
 
@@ -218,5 +227,64 @@ describe('beta landing signups', () => {
     expect(await db.signupAttempt.findMany({ where: { ipAddress: ip } })).toEqual([
       expect.objectContaining({ success: true, userId: res.body.userId, landingPageId: page.id }),
     ])
+  })
+})
+
+describe('flagged signups are not failed attempts', () => {
+  /** Rows detectSuspiciousActivity leaves for flagged attempts that went on to sign up. */
+  async function flagged(ip: string, n: number) {
+    await db.signupAttempt.createMany({
+      data: Array.from({ length: n }, () => ({
+        ipAddress: ip,
+        success: false,
+        suspicious: true,
+        failureReason: 'Suspicious activity detected: suspicious_user_agent',
+      })),
+    })
+  }
+
+  it('a headless browser still signs up, and its flag row is marked suspicious', async () => {
+    const ip = freshIp()
+    const res = await signUp(ip, undefined, 'Mozilla/5.0 HeadlessChrome/120.0')
+    expect(res.statusCode).toBe(200)
+    const rows = await db.signupAttempt.findMany({ where: { ipAddress: ip }, orderBy: { attemptedAt: 'asc' } })
+    expect(rows).toEqual([
+      expect.objectContaining({ success: false, suspicious: true }),
+      expect.objectContaining({ success: true, userId: res.body.userId }),
+    ])
+  })
+
+  it(`${IP_LIMITS.MAX_FAILED_ATTEMPTS_PER_HOUR}+ flag rows in an hour don't block the IP`, async () => {
+    const ip = freshIp()
+    await flagged(ip, IP_LIMITS.AUTO_BLOCK_AFTER_FAILED_ATTEMPTS + 1)
+    const res = await signUp(ip, undefined, 'Mozilla/5.0 HeadlessChrome/120.0')
+    expect(res.statusCode).toBe(200)
+    expect(await db.ipSignupTracking.findUnique({ where: { ipAddress: ip } })).toMatchObject({ isBlocked: false })
+  })
+
+  it('flag rows do not raise rapid_attempts or low_success_rate for a normal browser', async () => {
+    const ip = freshIp()
+    await flagged(ip, 8)
+    expect((await signUp(ip)).statusCode).toBe(200)
+    expect(await db.signupAttempt.count({ where: { ipAddress: ip, suspicious: true } })).toBe(8)
+  })
+
+  it(`real failures still stop the IP at ${IP_LIMITS.MAX_FAILED_ATTEMPTS_PER_HOUR} an hour, saying when to come back`, async () => {
+    const ip = freshIp()
+    await db.signupAttempt.createMany({
+      data: Array.from({ length: IP_LIMITS.MAX_FAILED_ATTEMPTS_PER_HOUR }, (_, i) => ({
+        ipAddress: ip,
+        success: false,
+        // Oldest 50 minutes ago, so the limit lifts in about 10
+        attemptedAt: new Date(Date.now() - (50 - i) * 60_000),
+      })),
+    })
+    const res = await signUp(ip)
+    expect(res.statusCode).toBe(429)
+    expect(res.body.error).toBe(SIGNUP_LIMIT_MESSAGES.busy(res.body.retryAfter))
+    expect(res.body.error).not.toMatch(/fail/i)
+    expect(res.body.retryAfter).toBeGreaterThan(9 * 60)
+    expect(res.body.retryAfter).toBeLessThanOrEqual(10 * 60)
+    expect(res.body.error).toMatch(/Try again in (9|10) minutes\.$/)
   })
 })

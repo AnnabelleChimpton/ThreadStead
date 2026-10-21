@@ -1,4 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
+import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/config/database/connection";
 import { getSessionUser } from "@/lib/auth/server";
 import { getClientIp } from "./client-ip";
@@ -383,14 +384,62 @@ export const IP_LIMITS = {
   ]
 };
 
-/** What a visitor sees when an IP_LIMITS signup cap stops them. */
+/** Local dev makes lots of test accounts from one loopback address. */
+export function signupLimitsApply(): boolean {
+  return process.env.NODE_ENV !== "development";
+}
+
+/** "12 minutes", or "about 5 hours" once it's past an hour and a half. */
+function waitFor(seconds: number): string {
+  if (seconds <= 90 * 60) return minutes(seconds);
+  return `about ${Math.ceil(seconds / 3600)} hours`;
+}
+
+/**
+ * What a visitor sees when a signup limit stops them. Pass the seconds until
+ * it lifts when known; recordSignup's under-lock re-check doesn't know them.
+ */
 export const SIGNUP_LIMIT_MESSAGES = {
-  hour: "A couple of accounts were just made from this connection. Try again in an hour.",
-  day: "A few accounts were made from this connection today. Try again tomorrow.",
-  lifetime: "This connection has made as many accounts as it can here.",
+  hour: (retryAfter?: number) =>
+    `A couple of accounts were just made from this connection. Try again in ${retryAfter ? waitFor(retryAfter) : "an hour"}.`,
+  day: (retryAfter?: number) =>
+    `A few accounts were made from this connection today. Try again ${retryAfter ? `in ${waitFor(retryAfter)}` : "tomorrow"}.`,
+  busy: (retryAfter: number) =>
+    `A lot of signups came from this connection just now. Try again in ${waitFor(retryAfter)}.`,
+  paused: (retryAfter: number) =>
+    `Signups from this connection are paused for now. Try again in ${waitFor(retryAfter)}.`,
+  lifetime: () => "This connection has made as many accounts as it can here.",
 };
 
-export async function checkIPBlocked(ipAddress: string): Promise<{ isBlocked: boolean; reason?: string }> {
+type SignupLimitResult = { valid: boolean; reason?: string; retryAfter?: number };
+
+function secondsUntil(at: Date): number {
+  return Math.max(1, Math.ceil((at.getTime() - Date.now()) / 1000));
+}
+
+/**
+ * Seconds until `count` rows matching `where` (all inside a window of
+ * `windowMs`) drop below `limit`, i.e. until the row that has to age out
+ * does.
+ */
+async function secondsUntilUnder(
+  where: Prisma.SignupAttemptWhereInput,
+  count: number,
+  limit: number,
+  windowMs: number
+): Promise<number> {
+  const row = await db.signupAttempt.findFirst({
+    where,
+    orderBy: { attemptedAt: "asc" },
+    skip: Math.max(0, count - limit),
+    select: { attemptedAt: true },
+  });
+  return row ? secondsUntil(new Date(row.attemptedAt.getTime() + windowMs)) : Math.ceil(windowMs / 1000);
+}
+
+export async function checkIPBlocked(
+  ipAddress: string
+): Promise<{ isBlocked: boolean; reason?: string; retryAfter?: number }> {
   try {
     const tracking = await db.ipSignupTracking.findUnique({
       where: { ipAddress }
@@ -411,10 +460,8 @@ export async function checkIPBlocked(ipAddress: string): Promise<{ isBlocked: bo
     // Check auto-block with expiry
     if (tracking.isBlocked && tracking.autoBlocked && tracking.unblockAt) {
       if (new Date() < tracking.unblockAt) {
-        return {
-          isBlocked: true,
-          reason: `IP address is temporarily blocked until ${tracking.unblockAt.toISOString()}`
-        };
+        const retryAfter = secondsUntil(tracking.unblockAt);
+        return { isBlocked: true, reason: SIGNUP_LIMIT_MESSAGES.paused(retryAfter), retryAfter };
       } else {
         // Auto-unblock expired block
         await db.ipSignupTracking.update({
@@ -446,67 +493,61 @@ export async function checkIPBlocked(ipAddress: string): Promise<{ isBlocked: bo
   }
 }
 
+/**
+ * Failed attempts that count toward MAX_FAILED_ATTEMPTS_PER_HOUR and the
+ * auto-block. Rows written because detectSuspiciousActivity flagged an
+ * attempt don't: that attempt carried on and usually made an account, so
+ * counting it let one odd user agent lock out its whole IP.
+ */
+const countedFailures = (ipAddress: string, since: Date): Prisma.SignupAttemptWhereInput => ({
+  ipAddress,
+  success: false,
+  suspicious: false,
+  attemptedAt: { gte: since },
+});
+
 export async function validateSignupLimits(
   ipAddress: string,
   landingPageId?: string
-): Promise<{ valid: boolean; reason?: string }> {
+): Promise<SignupLimitResult> {
   try {
     // Check if IP is blocked
     const blockCheck = await checkIPBlocked(ipAddress);
     if (blockCheck.isBlocked) {
-      return { valid: false, reason: blockCheck.reason };
+      return { valid: false, reason: blockCheck.reason, retryAfter: blockCheck.retryAfter };
     }
 
     const now = new Date();
-    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+    const DAY = 24 * 60 * 60 * 1000;
+    const HOUR = 60 * 60 * 1000;
+    const oneDayAgo = new Date(now.getTime() - DAY);
+    const oneHourAgo = new Date(now.getTime() - HOUR);
 
     // Check daily signup limit
-    const dailySuccessfulSignups = await db.signupAttempt.count({
-      where: {
-        ipAddress,
-        success: true,
-        attemptedAt: { gte: oneDayAgo }
-      }
-    });
+    const daily = { ipAddress, success: true, attemptedAt: { gte: oneDayAgo } };
+    const dailySuccessfulSignups = await db.signupAttempt.count({ where: daily });
 
     if (dailySuccessfulSignups >= IP_LIMITS.MAX_SIGNUPS_PER_IP_PER_DAY) {
-      return {
-        valid: false,
-        reason: SIGNUP_LIMIT_MESSAGES.day
-      };
+      const retryAfter = await secondsUntilUnder(daily, dailySuccessfulSignups, IP_LIMITS.MAX_SIGNUPS_PER_IP_PER_DAY, DAY);
+      return { valid: false, reason: SIGNUP_LIMIT_MESSAGES.day(retryAfter), retryAfter };
     }
 
     // Check hourly signup limit
-    const hourlySuccessfulSignups = await db.signupAttempt.count({
-      where: {
-        ipAddress,
-        success: true,
-        attemptedAt: { gte: oneHourAgo }
-      }
-    });
+    const hourly = { ipAddress, success: true, attemptedAt: { gte: oneHourAgo } };
+    const hourlySuccessfulSignups = await db.signupAttempt.count({ where: hourly });
 
     if (hourlySuccessfulSignups >= IP_LIMITS.MAX_SIGNUPS_PER_IP_PER_HOUR) {
-      return {
-        valid: false,
-        reason: SIGNUP_LIMIT_MESSAGES.hour
-      };
+      const retryAfter = await secondsUntilUnder(hourly, hourlySuccessfulSignups, IP_LIMITS.MAX_SIGNUPS_PER_IP_PER_HOUR, HOUR);
+      return { valid: false, reason: SIGNUP_LIMIT_MESSAGES.hour(retryAfter), retryAfter };
     }
 
     // Check failed attempts in the last hour
-    const hourlyFailedAttempts = await db.signupAttempt.count({
-      where: {
-        ipAddress,
-        success: false,
-        attemptedAt: { gte: oneHourAgo }
-      }
-    });
+    const failed = countedFailures(ipAddress, oneHourAgo);
+    const hourlyFailedAttempts = await db.signupAttempt.count({ where: failed });
 
     if (hourlyFailedAttempts >= IP_LIMITS.MAX_FAILED_ATTEMPTS_PER_HOUR) {
-      return {
-        valid: false,
-        reason: "Too many failed signup attempts. Please try again later."
-      };
+      const retryAfter = await secondsUntilUnder(failed, hourlyFailedAttempts, IP_LIMITS.MAX_FAILED_ATTEMPTS_PER_HOUR, HOUR);
+      return { valid: false, reason: SIGNUP_LIMIT_MESSAGES.busy(retryAfter), retryAfter };
     }
 
     // Check campaign-specific limit
@@ -538,7 +579,7 @@ export async function validateSignupLimits(
     if (lifetimeSignups >= IP_LIMITS.MAX_SIGNUPS_PER_IP_LIFETIME) {
       return {
         valid: false,
-        reason: SIGNUP_LIMIT_MESSAGES.lifetime
+        reason: SIGNUP_LIMIT_MESSAGES.lifetime()
       };
     }
 
@@ -549,6 +590,11 @@ export async function validateSignupLimits(
   }
 }
 
+/**
+ * Flags for an attempt that has passed the limits. Rows this function's
+ * flags produced (suspicious: true) are left out of every count, so one flag
+ * can't raise the next.
+ */
 export async function detectSuspiciousActivity(
   ipAddress: string,
   userAgent: string
@@ -566,6 +612,7 @@ export async function detectSuspiciousActivity(
     const recentAttempts = await db.signupAttempt.count({
       where: {
         ipAddress,
+        suspicious: false,
         attemptedAt: { gte: tenMinutesAgo }
       }
     });
@@ -579,6 +626,7 @@ export async function detectSuspiciousActivity(
     const similarUserAgents = await db.signupAttempt.findMany({
       where: {
         userAgent,
+        suspicious: false,
         attemptedAt: { gte: oneHourAgo }
       },
       select: {
@@ -593,7 +641,7 @@ export async function detectSuspiciousActivity(
 
     // Check for high failure rate
     const totalAttempts = await db.signupAttempt.count({
-      where: { ipAddress }
+      where: { ipAddress, suspicious: false }
     });
     const successfulAttempts = await db.signupAttempt.count({
       where: { ipAddress, success: true }
@@ -626,11 +674,7 @@ export async function autoBlockIPIfNeeded(ipAddress: string): Promise<boolean> {
     // Check if should auto-block based on failed attempts
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
     const recentFailedAttempts = await db.signupAttempt.count({
-      where: {
-        ipAddress,
-        success: false,
-        attemptedAt: { gte: oneHourAgo }
-      }
+      where: countedFailures(ipAddress, oneHourAgo)
     });
 
     if (recentFailedAttempts >= IP_LIMITS.AUTO_BLOCK_AFTER_FAILED_ATTEMPTS) {
@@ -659,7 +703,8 @@ export async function autoBlockIPIfNeeded(ipAddress: string): Promise<boolean> {
 
 /**
  * Signup gate for login/signup routes: blocked IPs and per-IP signup limits
- * get a 429; suspicious attempts are logged and may auto-block the IP.
+ * get a 429 with Retry-After when the wait is known; suspicious attempts are
+ * logged and may auto-block the IP. Off in local dev, like recordSignup.
  * Returns false when it has already sent the response.
  */
 export async function signupLimitCheck(
@@ -670,7 +715,7 @@ export async function signupLimitCheck(
     landingPageId?: string;
   } = {}
 ): Promise<boolean> {
-  if (options.skipLimits) {
+  if (options.skipLimits || !signupLimitsApply()) {
     return true;
   }
 
@@ -680,10 +725,12 @@ export async function signupLimitCheck(
   // Check rate limits
   const validation = await validateSignupLimits(ipAddress, options.landingPageId);
   if (!validation.valid) {
+    if (validation.retryAfter) res.setHeader("Retry-After", validation.retryAfter.toString());
     // Sign-up forms show `error`
     res.status(429).json({
       error: validation.reason ?? "Too many signups from here. Try again later.",
-      message: validation.reason
+      message: validation.reason,
+      retryAfter: validation.retryAfter,
     });
     return false;
   }
@@ -691,7 +738,8 @@ export async function signupLimitCheck(
   // Check for suspicious activity
   const suspiciousFlags = await detectSuspiciousActivity(ipAddress, userAgent);
   if (suspiciousFlags.length > 0) {
-    // Log suspicious activity but don't block immediately
+    // Logged for the admin IP page; the attempt carries on. suspicious: true
+    // keeps this row out of the failure counts.
     await db.signupAttempt.create({
       data: {
         ipAddress,
@@ -707,9 +755,12 @@ export async function signupLimitCheck(
     // Auto-block if needed
     const wasBlocked = await autoBlockIPIfNeeded(ipAddress);
     if (wasBlocked) {
+      const retryAfter = IP_LIMITS.AUTO_BLOCK_DURATION_HOURS * 60 * 60;
+      res.setHeader("Retry-After", retryAfter.toString());
       res.status(429).json({
-        error: "Account creation temporarily disabled",
-        message: "Suspicious activity detected. Please try again later."
+        error: SIGNUP_LIMIT_MESSAGES.paused(retryAfter),
+        message: SIGNUP_LIMIT_MESSAGES.paused(retryAfter),
+        retryAfter,
       });
       return false;
     }
