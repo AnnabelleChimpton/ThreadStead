@@ -63,7 +63,7 @@ test('left unticked: the save asks for no share', async () => {
   fireEvent.click(screen.getByRole('button', { name: 'Save CSS' }));
   await waitFor(() => expect(mockCsrfFetch).toHaveBeenCalled());
   expect(saveBody()).not.toHaveProperty('shareToFeed');
-  expect(await screen.findByText('✓ CSS saved')).toBeInTheDocument();
+  expect(await screen.findByText('CSS saved')).toBeInTheDocument();
 });
 
 test('ticked: sent with the save, and unticked again once shared', async () => {
@@ -72,7 +72,7 @@ test('ticked: sent with the save, and unticked again once shared', async () => {
   fireEvent.click(screen.getByRole('button', { name: 'Save CSS' }));
   await waitFor(() => expect(mockCsrfFetch).toHaveBeenCalled());
   expect(saveBody().shareToFeed).toBe(true);
-  expect(await screen.findByText('✓ CSS saved and shared in the feed')).toBeInTheDocument();
+  expect(await screen.findByText('CSS saved and shared in the feed')).toBeInTheDocument();
   expect(screen.getByLabelText(LABEL)).not.toBeChecked();
 });
 
@@ -81,6 +81,6 @@ test('ticked, but nothing changed: says so and stays ticked', async () => {
   renderEditor();
   fireEvent.click(screen.getByLabelText(LABEL));
   fireEvent.click(screen.getByRole('button', { name: 'Save CSS' }));
-  expect(await screen.findByText("✓ CSS saved. Nothing changed, so there's nothing to share.")).toBeInTheDocument();
+  expect(await screen.findByText("CSS saved. Nothing changed, so there's nothing to share.")).toBeInTheDocument();
   expect(screen.getByLabelText(LABEL)).toBeChecked();
 });

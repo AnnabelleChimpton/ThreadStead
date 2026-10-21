@@ -47,7 +47,9 @@ import EditorWorkspace, {
   LivePreviewPane,
   MenuItem,
   PhoneOnly,
+  SaveNoteText,
   SaveStatus,
+  type SaveNote,
   useEmbeddedPreview,
   type WorkspaceTab,
 } from '@/components/features/templates/editor/EditorWorkspace';
@@ -348,7 +350,7 @@ export default function EnhancedTemplateEditor({
         setTemplate(''); // Clear template since we're using standard layout
         setCustomCSS('/* Add your custom CSS here to style the standard layout */\n\n');
         setCSSMode('inherit');
-        setSaveMessage('✓ Switched to Standard Layout mode');
+        setSaveMessage({ text: 'Switched to Standard Layout mode', tone: 'ok' });
         setTimeout(() => setSaveMessage(null), 3000);
       }
     );
@@ -364,7 +366,7 @@ export default function EnhancedTemplateEditor({
         // Get username from user prop
         const username = user.primaryHandle?.split('@')[0] || user.handles?.[0]?.handle?.split('@')[0];
         if (!username) {
-          setSaveMessage('✗ Could not determine username');
+          setSaveMessage({ text: 'Could not determine username', tone: 'error' });
           setTimeout(() => setSaveMessage(null), 3000);
           return;
         }
@@ -406,7 +408,7 @@ export default function EnhancedTemplateEditor({
           setSaveState('saved');
           setSavedCSS('');
           setShowsDefaultLook(true);
-          setSaveMessage('✓ Reset to default template');
+          setSaveMessage({ text: 'Reset to default template', tone: 'ok' });
           markSaved(JSON.stringify({
             template: '',
             customCSS: '',
@@ -421,7 +423,7 @@ export default function EnhancedTemplateEditor({
           }, 500);
         } catch (error) {
           setSaveState('error');
-          setSaveMessage('✗ Failed to reset to default');
+          setSaveMessage({ text: 'Failed to reset to default', tone: 'error' });
           setTimeout(() => setSaveMessage(null), 3000);
         }
       },
@@ -449,13 +451,13 @@ export default function EnhancedTemplateEditor({
             setCustomCSS(data.css);
             setCSSMode(siteStylesCSSMode(data.cssMode));
           }
-          setSaveMessage('✓ Default layout loaded. Your CSS is unchanged.');
+          setSaveMessage({ text: 'Default layout loaded. Your CSS is unchanged.', tone: 'ok' });
         } else {
-          setSaveMessage('✗ Failed to load default template');
+          setSaveMessage({ text: 'Failed to load default template', tone: 'error' });
         }
       } catch (error) {
         console.error('Failed to load default template:', error);
-        setSaveMessage('✗ Failed to load default template');
+        setSaveMessage({ text: 'Failed to load default template', tone: 'error' });
       } finally {
         setLoadingDefault(false);
         setTimeout(() => setSaveMessage(null), 3000);
@@ -503,7 +505,7 @@ export default function EnhancedTemplateEditor({
   const [isSaving, setIsSaving] = useState(false);
   // "Share this update in the feed": unticked each time the editor opens
   const [shareToFeed, setShareToFeed] = useState(false);
-  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [saveMessage, setSaveMessage] = useState<SaveNote | null>(null);
   const [loadingDefault, setLoadingDefault] = useState(false);
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
   const [showHistoryPanel, setShowHistoryPanel] = useState(false);
@@ -973,7 +975,7 @@ export default function EnhancedTemplateEditor({
         // For standard layout, we save with empty template to indicate using default layout
         // Standard layout always shows navigation (hideNavigation = false)
         await onSave('', previewCSS || '', undefined, previewCSSMode || 'inherit', false);
-        setSaveMessage('✓ Standard layout saved');
+        setSaveMessage({ text: 'Standard layout saved', tone: 'ok' });
       } else {
         // For advanced templates, we need compiled template data
         // Use existing compiled template or compile the preview template
@@ -986,16 +988,16 @@ export default function EnhancedTemplateEditor({
         }
         
         if (!templateToSave) {
-          setSaveMessage('Preview the template first, then save');
+          setSaveMessage({ text: 'Preview the template first, then save', tone: 'warn' });
           return;
         }
         
         await onSave(previewTemplate || '', previewCSS || '', templateToSave, previewCSSMode || 'inherit', previewHideNavigation);
-        setSaveMessage('✓ Advanced template saved');
+        setSaveMessage({ text: 'Advanced template saved', tone: 'ok' });
       }
 
       if (savedCSS.trim() !== '' && (previewCSS || '').trim() !== savedCSS.trim()) {
-        setSaveMessage('✓ Saved. Your old look is in History.');
+        setSaveMessage({ text: 'Saved. Your old look is in History.', tone: 'ok' });
       }
       setSavedCSS(previewCSS || '');
       markSaved(JSON.stringify({
@@ -1007,7 +1009,7 @@ export default function EnhancedTemplateEditor({
       }));
       setTimeout(() => setSaveMessage(null), 3000);
     } catch (error) {
-      setSaveMessage('✗ Failed to save template from preview');
+      setSaveMessage({ text: 'Failed to save template from preview', tone: 'error' });
       console.error('Save from preview error:', error);
     } finally {
       setIsSaving(false);
@@ -1317,10 +1319,10 @@ export default function EnhancedTemplateEditor({
 
       setShowValidationPanel(false);
       if (hasIssues) {
-        setSaveMessage("✓ Saved. A few things won't work as written; they're listed under the code.");
+        setSaveMessage({ text: "Saved. A few things won't work as written; they're listed under the code.", tone: 'ok' });
         setTimeout(() => setSaveMessage(null), 8000);
       } else {
-        setSaveMessage(replacedCSS ? '✓ Saved. Your old look is in History.' : '✓ Template saved');
+        setSaveMessage({ text: replacedCSS ? 'Saved. Your old look is in History.' : 'Template saved', tone: 'ok' });
         setTimeout(() => setSaveMessage(null), 3000);
       }
     } catch (error) {
@@ -1342,7 +1344,7 @@ export default function EnhancedTemplateEditor({
       setShowValidationPanel(true);
 
       // Also show toast for quick feedback
-      setSaveMessage('✗ Save failed - see details in validation panel');
+      setSaveMessage({ text: 'Save failed - see details in validation panel', tone: 'error' });
       setTimeout(() => setSaveMessage(null), 5000);
     }
   }, [onSave, template, customCSS, compiledTemplate, compileTemplateForPreview, cssMode, hideNavigation, validationResult, markSaved, cssWillChange, shareToFeed, sharePageUpdate]);
@@ -1355,7 +1357,7 @@ export default function EnhancedTemplateEditor({
     // If validation has errors, block save and show panel
     if (!validationInfo.isValid) {
       setShowValidationPanel(true);
-      setSaveMessage("Not saved yet: fix what's listed first.");
+      setSaveMessage({ text: "Not saved yet: fix what's listed first.", tone: 'warn' });
       setTimeout(() => setSaveMessage(null), 5000);
       return;
     }
@@ -1526,13 +1528,14 @@ export default function EnhancedTemplateEditor({
           : extractedCSS.trim();
         setCustomCSS(combinedCSS);
         const movedStyles = Boolean(styleMatch);
-        setSaveMessage(
-          movedStyles && fontLinks.length > 0
-            ? '✓ Moved your <style> CSS and Google Fonts links to the CSS tab'
+        setSaveMessage({
+          text: movedStyles && fontLinks.length > 0
+            ? 'Moved your <style> CSS and Google Fonts links to the CSS tab'
             : movedStyles
-              ? '✓ Extracted CSS from <style> tags and moved to CSS tab'
-              : '✓ Moved your Google Fonts links to the CSS tab as @import lines'
-        );
+              ? 'Extracted CSS from <style> tags and moved to CSS tab'
+              : 'Moved your Google Fonts links to the CSS tab as @import lines',
+          tone: 'ok',
+        });
         setTimeout(() => setSaveMessage(null), 3000);
       }
 
@@ -1561,7 +1564,7 @@ export default function EnhancedTemplateEditor({
           if (cssMode === 'inherit') {
             setCSSMode('disable');
           }
-          setSaveMessage('✓ Switched to Advanced Template mode');
+          setSaveMessage({ text: 'Switched to Advanced Template mode', tone: 'ok' });
           setTimeout(() => setSaveMessage(null), 3000);
         }
       }
@@ -1833,11 +1836,7 @@ body {
             title={useStandardLayout ? 'Your page' : 'Your own HTML page'}
             handle={username}
             status={<SaveStatus state={saveState} />}
-            message={saveMessage && (
-              <span className={`text-sm ${saveMessage.includes('✓') ? 'text-nb-ink' : 'text-thread-sunset'}`}>
-                {saveMessage}
-              </span>
-            )}
+            message={saveMessage && <SaveNoteText note={saveMessage} />}
             share={<ShareToFeedCheckbox checked={shareToFeed} onChange={setShareToFeed} disabled={isSaving} className="text-nb-ink" />}
             laptopOnly={
               <Button
@@ -1987,7 +1986,7 @@ body {
               () => {
                 setCustomCSS(css);
                 setCSSMode('inherit'); // Templates work best with inherit mode
-                setSaveMessage(`✓ Applied ${templateName} template`);
+                setSaveMessage({ text: `Applied ${templateName} template`, tone: 'ok' });
                 setTimeout(() => setSaveMessage(null), 3000);
               }
             );
@@ -2023,7 +2022,7 @@ body {
                 setUseStandardLayout(rev.templateMode !== 'advanced');
                 setHideNavigation(rev.hideNavigation);
                 setShowHistoryPanel(false);
-                setSaveMessage('✓ Version loaded into the editor');
+                setSaveMessage({ text: 'Version loaded into the editor', tone: 'ok' });
                 setTimeout(() => setSaveMessage(null), 3000);
               }
             );

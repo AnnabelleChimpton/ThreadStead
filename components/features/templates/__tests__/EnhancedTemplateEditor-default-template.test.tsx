@@ -154,7 +154,7 @@ describe('A save that changes the CSS', () => {
 
     await waitFor(() => expect(onSave).toHaveBeenCalled());
     expect(onSave.mock.calls[0][1]).toBe('/* something new */');
-    await waitFor(() => expect(screen.getByText('✓ Saved. Your old look is in History.')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Saved. Your old look is in History.')).toBeInTheDocument());
     // Now the new CSS is the saved one; the "before" note goes away.
     expect(screen.queryByText('Saving changes your CSS. The old look stays in History.')).not.toBeInTheDocument();
   });

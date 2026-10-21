@@ -4,11 +4,10 @@ import { useToast } from '@/contexts/ToastContext';
 import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner';
 
 export default function FoundersNoteSection() {
-  const { showError } = useToast();
+  const { showError, showSuccess } = useToast();
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [saveSuccess, setSaveSuccess] = useState(false);
 
   // Load current founder's note
   useEffect(() => {
@@ -26,7 +25,6 @@ export default function FoundersNoteSection() {
 
   const handleSave = async () => {
     setSaving(true);
-    setSaveSuccess(false);
 
     try {
       const res = await csrfFetch('/api/admin/founders-note', {
@@ -37,8 +35,7 @@ export default function FoundersNoteSection() {
       
       if (!res.ok) throw new Error('Failed to save');
       
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
+      showSuccess("Saved the founder's note.");
     } catch (error) {
       console.error('Failed to save founders note:', error);
       showError("Couldn't save the founder's note. Try again.");
@@ -75,10 +72,6 @@ export default function FoundersNoteSection() {
           </span>
           
           <div className="flex items-center gap-3">
-            {saveSuccess && (
-              <span className="text-sm text-green-600">✓ Saved!</span>
-            )}
-            
             <button
               onClick={handleSave}
               disabled={saving}

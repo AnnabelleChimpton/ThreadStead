@@ -37,8 +37,10 @@ import EditorWorkspace, {
   LivePreviewPane,
   MenuItem,
   PhoneOnly,
+  SaveNoteText,
   SaveStatus,
   useEmbeddedPreview,
+  type SaveNote,
   type WorkspaceTab,
 } from '@/components/features/templates/editor/EditorWorkspace';
 import { insertCSSIntoView, planCSSInsertion } from '@/components/features/templates/css-generators/shared/insertCSS';
@@ -94,7 +96,7 @@ export default function CSSEditorPage({
   const [saving, setSaving] = useState(false);
   // "Share this update in the feed": unticked each time the editor opens
   const [shareToFeed, setShareToFeed] = useState(false);
-  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [saveMessage, setSaveMessage] = useState<SaveNote | null>(null);
   const [activeTab, setActiveTab] = useState<CSSEditorTab>('css');
   const [previewWindow, setPreviewWindow] = useState<Window | null>(null);
   const [residentData, setResidentData] = useState<ResidentData | null>(null);
@@ -152,17 +154,17 @@ export default function CSSEditorPage({
 
       if (shareToFeed && saved.shared) {
         setShareToFeed(false);
-        setSaveMessage('✓ CSS saved and shared in the feed');
+        setSaveMessage({ text: 'CSS saved and shared in the feed', tone: 'ok' });
       } else if (shareToFeed && saved.pageChanged === false) {
-        setSaveMessage("✓ CSS saved. Nothing changed, so there's nothing to share.");
+        setSaveMessage({ text: "CSS saved. Nothing changed, so there's nothing to share.", tone: 'ok' });
       } else if (shareToFeed) {
-        setSaveMessage("CSS saved, but it didn't reach the feed.");
+        setSaveMessage({ text: "CSS saved, but it didn't reach the feed.", tone: 'note' });
       } else {
-        setSaveMessage('✓ CSS saved');
+        setSaveMessage({ text: 'CSS saved', tone: 'ok' });
       }
       setTimeout(() => setSaveMessage(null), 3000);
     } catch (error) {
-      setSaveMessage(`Error: ${error instanceof Error ? error.message : 'Failed to save'}`);
+      setSaveMessage({ text: `Error: ${error instanceof Error ? error.message : 'Failed to save'}`, tone: 'error' });
     } finally {
       setSaving(false);
     }
@@ -544,11 +546,7 @@ export default function CSSEditorPage({
               title="CSS for your page"
               handle={username}
               status={<SaveStatus state={saving ? 'saving' : isDirty ? 'pending' : 'saved'} />}
-              message={saveMessage && (
-                <span className={`text-sm ${saveMessage.startsWith('Error') ? 'text-thread-sunset' : 'text-nb-ink'}`}>
-                  {saveMessage}
-                </span>
-              )}
+              message={saveMessage && <SaveNoteText note={saveMessage} />}
               share={
                 <ShareToFeedCheckbox
                   checked={shareToFeed}

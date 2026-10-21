@@ -68,6 +68,20 @@ export function EditorToolbar({ title, handle, status, message, share, laptopOnl
 
 export type SaveState = 'saved' | 'saving' | 'error' | 'pending';
 
+/** A short message after saving or loading. ok and error get an icon; warn and note are plain text. */
+export type SaveNote = { text: string; tone: 'ok' | 'error' | 'warn' | 'note' };
+
+export function SaveNoteText({ note }: { note: SaveNote }) {
+  const ink = note.tone === 'error' || note.tone === 'warn' ? 'text-thread-sunset' : 'text-nb-ink';
+  return (
+    <span className={`inline-flex items-center gap-1 text-sm ${ink}`}>
+      {note.tone === 'ok' && <PixelIcon name="check" size={12} className="shrink-0" />}
+      {note.tone === 'error' && <PixelIcon name="close" size={12} className="shrink-0" />}
+      <span>{note.text}</span>
+    </span>
+  );
+}
+
 export function SaveStatus({ state }: { state: SaveState }) {
   return (
     <span role="status" className="inline-flex items-center gap-1 text-xs text-nb-ink-mid">
