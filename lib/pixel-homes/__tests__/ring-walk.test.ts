@@ -21,9 +21,11 @@ describe('pickWalkTarget', () => {
     expect(pickWalkTarget(members, 2, 'prev')).toEqual({ number: 20 })
   })
 
-  it('random is any member', () => {
-    expect(pickWalkTarget(members, 3, 'random', () => 0)).toEqual({ number: 3 })
+  it('random is any other member, never the one you came from', () => {
+    expect(pickWalkTarget(members, 3, 'random', () => 0)).toEqual({ number: 9 })
     expect(pickWalkTarget(members, 3, 'random', () => 0.99)).toEqual({ number: 20 })
+    expect(pickWalkTarget(members, 0, 'random', () => 0)).toEqual({ number: 3 })
+    expect(pickWalkTarget([{ number: 3 }], 3, 'random', () => 0.5)).toEqual({ number: 3 })
   })
 
   it('no members, nowhere to go', () => {

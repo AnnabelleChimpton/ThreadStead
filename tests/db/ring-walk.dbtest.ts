@@ -81,7 +81,8 @@ test('next and prev walk the member homes in street order, wrapping round', asyn
   expect(await walk(1, 'prev')).toEqual({ kind: 'home', handle: 'ann' })
   expect(await walk(2, 'prev')).toEqual({ kind: 'home', handle: 'ann' })
   expect(await walk(0, 'prev')).toEqual({ kind: 'home', handle: 'cat' })
-  expect(await walk(1, 'random')).toEqual({ kind: 'home', handle: 'ann' })
+  // Random never lands where you are
+  expect(await walk(1, 'random')).toEqual({ kind: 'home', handle: 'cat' })
 })
 
 test('a member home the viewer may not see is skipped; its owner can walk to it', async () => {

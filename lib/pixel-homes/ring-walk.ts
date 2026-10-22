@@ -57,7 +57,9 @@ export function ringMemberDids(hub: HubReader, slug: string): Promise<string[] |
 /**
  * The member home to go to from a sign standing after house `from`: next is
  * the first member past it, prev the last one at or before it, both wrapping
- * round; random is any member. null when there are none.
+ * round; random is any other member (house `from` itself only when it's the
+ * only one). null when there are none. lib/rings/walk.ts walks the same way
+ * from a member's own site, with `from` the member's house number.
  */
 export function pickWalkTarget<T extends { number: number }>(
   members: T[],
@@ -67,7 +69,11 @@ export function pickWalkTarget<T extends { number: number }>(
 ): T | null {
   if (members.length === 0) return null
   const ordered = [...members].sort((a, b) => a.number - b.number)
-  if (go === 'random') return ordered[Math.floor(random() * ordered.length) % ordered.length]
+  if (go === 'random') {
+    const others = ordered.filter((m) => m.number !== from)
+    const pool = others.length > 0 ? others : ordered
+    return pool[Math.floor(random() * pool.length) % pool.length]
+  }
   if (go === 'next') return ordered.find((m) => m.number > from) ?? ordered[0]
   return [...ordered].reverse().find((m) => m.number <= from) ?? ordered[ordered.length - 1]
 }
