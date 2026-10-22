@@ -36,7 +36,10 @@ import { useWelcomeRingTracking } from "../../hooks/useWelcomeRingTracking";
 import { contentMetadataGenerator } from "@/lib/utils/metadata/content-metadata";
 import { PixelIcon } from '@/components/ui/PixelIcon';
 import Button from '@/components/ui/Button';
+import ButtonLink, { buttonClasses } from '@/components/ui/ButtonLink';
 import { serializeJsonLd } from "@/lib/utils/sanitization/json-ld";
+import StripBuilder from "@/components/features/rings/StripBuilder";
+import { cameFromSite } from "@/lib/rings/sites";
 
 // Helper function to count total descendants recursively
 function countTotalDescendants(descendants: any[]): number {
@@ -54,6 +57,8 @@ interface ThreadRingPageProps {
   siteConfig: SiteConfig;
   ring: ThreadRing | null;
   error?: string;
+  /** A member's own site the visitor came from, through its ring strip's badge (?from=). */
+  cameFrom?: { id: string; url: string; name: string } | null;
 }
 
 interface ThreadRing {
@@ -115,6 +120,8 @@ interface ThreadRing {
 // Special component for The Spool landing page
 function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: SiteConfig }) {
   const [showSpoolBadgeOptions, setShowSpoolBadgeOptions] = useState(false);
+  const [stripOpen, setStripOpen] = useState(false);
+  const { user: spoolViewer } = useCurrentUser();
   const [lineageData, setLineageData] = useState({
     lineage: [],
     directChildrenCount: 0,
@@ -204,17 +211,15 @@ function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: 
                   {showSpoolBadgeOptions ? (
                     <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-3 mb-3">
                       <div className="flex justify-center gap-2 mb-2">
-                        <Button
-                          variant="secondary"
-                          onClick={() => {
-                            const badgeHtml = `<a href="${getSiteBaseUrl()}/tr/${ring.slug}" target="_blank" rel="noopener"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==" alt="${ring.badge?.title || ring.name}" width="88" height="31" style="border: 1px solid #ccc;" /></a>`;
-                            navigator.clipboard.writeText(badgeHtml);
-                            showSuccess('Spool badge HTML copied to clipboard!');
-                          }}
-                          className="thread-button-secondary text-xs flex items-center justify-center gap-1"
-                        >
-                          <PixelIcon name="clipboard" size={12} /> Copy HTML
-                        </Button>
+                        {ring.visibility === "public" && (
+                          <Button
+                            variant="secondary"
+                            onClick={() => setStripOpen(true)}
+                            className="thread-button-secondary text-xs flex items-center justify-center gap-1"
+                          >
+                            <PixelIcon name="clipboard" size={12} /> Get a strip
+                          </Button>
+                        )}
                         <Button
                           variant="secondary"
                           onClick={() => {
@@ -237,6 +242,7 @@ function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: 
                       <p className="text-xs text-thread-sage">
                         Share The Spool&apos;s genesis badge on your website
                       </p>
+                      <StripBuilder isOpen={stripOpen} onClose={() => setStripOpen(false)} ring={ring} signedIn={!!spoolViewer} />
                     </div>
                   ) : null}
                 </div>
@@ -376,7 +382,7 @@ function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: 
   );
 }
 
-export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPageProps) {
+export default function ThreadRingPage({ siteConfig, ring, error, cameFrom = null }: ThreadRingPageProps) {
   // Generate metadata for ThreadRing page
   const adaptedRing = ring ? {
     slug: ring.slug,
@@ -406,6 +412,11 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
   useWelcomeTracking();
   const { trackCommentCreated } = useWelcomeRingTracking(ring?.slug);
   const [showBadgeOptions, setShowBadgeOptions] = useState(false);
+  const [stripOpen, setStripOpen] = useState(false);
+  // Settings → Your sites links here with ?strip=<site id> to open the strip builder
+  useEffect(() => {
+    if (ring?.visibility === "public" && typeof router.query.strip === "string") setStripOpen(true);
+  }, [ring?.visibility, router.query.strip]);
   const [feedScope, setFeedScope] = useState<'current' | 'parent' | 'children' | 'siblings' | 'family'>('current');
   const [sidebarTab, setSidebarTab] = useState<'stats' | 'lineage' | 'discovery'>('stats');
   const [showSidebarModal, setShowSidebarModal] = useState(false);
@@ -980,6 +991,19 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
           <WelcomeRingGuide ringSlug={ring.slug} viewer={currentUser} ring={ring} />
         )}
 
+        {cameFrom && (
+          <div className="mx-0 sm:mx-4 lg:mx-6 mb-4 px-4 py-2 bg-thread-paper border border-thread-sage/40 rounded-cozy text-sm text-nb-ink flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span>
+              You came from{' '}
+              <a href={cameFrom.url} rel="ugc" className="font-semibold underline">{cameFrom.name}</a>
+            </span>
+            <span aria-hidden="true">·</span>
+            <a href={cameFrom.url} rel="ugc" className="underline">back to it</a>
+            <span aria-hidden="true">·</span>
+            <a href={`/ring/${encodeURIComponent(ring.slug)}/next?from=${encodeURIComponent(cameFrom.id)}`} className="underline">keep walking →</a>
+          </div>
+        )}
+
         <div className="tr-page-container grid grid-cols-1 lg:grid-cols-3 gap-6 px-0 sm:px-4 lg:px-6">
           {/* Main content area - posts feed */}
           <div className="tr-main-content col-span-1 lg:col-span-2">
@@ -1253,6 +1277,32 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
               )}
             </div>
 
+            {ring.visibility === "public" && (
+              <div className="widget-container bg-thread-paper border border-thread-sage rounded-cozy shadow-cozy-sm p-4">
+                <div className="text-sm font-bold text-nb-ink mb-1">Members&apos; own sites</div>
+                <p className="text-xs text-nb-ink-mid mb-3">
+                  Members can make their own site, out on the web, their stop in this ring. Everyone else&apos;s stop is their pixel home.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <ButtonLink href={`/tr/${ring.slug}/sites`} variant="secondary" size="sm" className="thread-button-secondary text-xs flex-1 text-center">
+                    All the stops
+                  </ButtonLink>
+                  <a href={`/ring/${encodeURIComponent(ring.slug)}/random`} className={`${buttonClasses("secondary", "sm")} thread-button-secondary text-xs flex-1 text-center`}>
+                    Random stop
+                  </a>
+                </div>
+                {!(ring.badge && ring.badge.isActive) && (
+                  <Button
+                    variant="secondary"
+                    onClick={() => setStripOpen(true)}
+                    className="thread-button-secondary text-xs w-full mt-2 flex items-center justify-center gap-1"
+                  >
+                    <PixelIcon name="clipboard" size={12} /> Get a strip for your site
+                  </Button>
+                )}
+              </div>
+            )}
+
             {/* Official ThreadRing Badge - Always Visible */}
             {ring.badge && ring.badge.isActive && (
               <div className="widget-container bg-thread-paper border border-thread-sage rounded-cozy shadow-cozy-sm p-4">
@@ -1282,17 +1332,15 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
 
                 {showBadgeOptions && (
                   <div className="space-y-2 mt-3">
-                    <Button
-                      variant="secondary"
-                      onClick={() => {
-                        const badgeHtml = `<a href="${getSiteBaseUrl()}/tr/${ring.slug}" target="_blank" rel="noopener"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==" alt="${ring.badge?.title || ring.name}" width="88" height="31" style="border: 1px solid #ccc;" /></a>`;
-                        navigator.clipboard.writeText(badgeHtml);
-                        showSuccess('Badge HTML copied!');
-                      }}
-                      className="thread-button-secondary text-xs w-full flex items-center justify-center gap-1"
-                    >
-                      <PixelIcon name="clipboard" size={12} /> Copy HTML
-                    </Button>
+                    {ring.visibility === "public" && (
+                      <Button
+                        variant="secondary"
+                        onClick={() => setStripOpen(true)}
+                        className="thread-button-secondary text-xs w-full flex items-center justify-center gap-1"
+                      >
+                        <PixelIcon name="clipboard" size={12} /> Get a strip for your site
+                      </Button>
+                    )}
                     <Button
                       variant="secondary"
                       onClick={() => {
@@ -1405,6 +1453,16 @@ export default function ThreadRingPage({ siteConfig, ring, error }: ThreadRingPa
                 </>
               )}
             </div>
+
+            {ring.visibility === "public" && (
+              <StripBuilder
+                isOpen={stripOpen}
+                onClose={() => setStripOpen(false)}
+                ring={ring}
+                signedIn={!!currentUser}
+                initialSiteId={typeof router.query.strip === "string" ? router.query.strip : null}
+              />
+            )}
 
             {/* User Quick View Modal */}
             {selectedMemberUsername && (
@@ -1901,10 +1959,16 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       })),
     }, (key, value) => value === undefined ? null : value));
 
+    // Arrived through a member's ring strip
+    const cameFrom = serializedRing.visibility === "public" && context.query.from
+      ? await cameFromSite(db, serializedRing.slug, context.query.from).catch(() => null)
+      : null;
+
     return {
       props: {
         siteConfig,
         ring: serializedRing,
+        cameFrom,
       },
     };
   } catch (error: any) {
