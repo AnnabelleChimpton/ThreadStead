@@ -110,7 +110,7 @@ For a batch, I put the PNGs in `design/pixel-art/export/` and run `npx tsx scrip
 
 ## Houses
 
-A house is a stack of layers on a 200×180 canvas: `base` (walls, foundation, ground line), `roof` (with the chimney spot), then option sprites that drop into sockets: door, window-left, window-right, chimney, sign, number, lights and mat. The boxes are in `_guide-house.png` and `_template-house.sockets.json`.
+A house is a stack of layers on a 200×180 canvas: `base` (walls, foundation, ground line), `roof` (no chimney), then option sprites that drop into sockets: door, window-left, window-right and chimney (the default chimney is its own sprite). The sign, number, lights and mat are drawn by the code at their sockets. The boxes are in `_guide-house.png` and `_template-house.sockets.json`.
 
 I draw them in key colours: one reserved ramp each for wall, roof, trim and glass. The site swaps those for the palette someone picks, so one drawing covers every palette. The key colours are loud on purpose, so I never mistake one for a real colour:
 

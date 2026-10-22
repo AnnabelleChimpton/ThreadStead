@@ -9,9 +9,12 @@ outline, light, ground line) and the files it names.
 A house is a short stack of PNGs on a **200×180** canvas, drawn at 1×:
 
 1. **`base`**: the walls, foundation and the ground line, with no roof.
-2. **`roof`**: the roof plane and the chimney's default spot.
+2. **`roof`**: the roof plane, with no chimney.
 3. **Option sprites**, each the size of a **socket** box, dropped on top:
-   door, window-left, window-right, chimney, sign, number, lights, mat.
+   door, window-left, window-right and chimney. The default chimney is its
+   own sprite (`chimney-default`) so "no chimney" can leave it out. The
+   sign, number, lights and mat are still drawn by the code, at their
+   sockets.
 
 The socket boxes live in `_template-house.sockets.json`, and `_guide-house.png`
 shows them over the canvas. The renderer reads that same file, so if a door
@@ -89,11 +92,18 @@ on (the default look is part of base and roof):
 |---|---|---|
 | door | arched, double, cottage | `house_cabin_door-arched.png` … |
 | window-left, window-right | round, arched, bay | `house_cabin_window-round.png` … (one sprite fills both sockets) |
-| chimney | brick, stone (`none` hides it) | `house_cabin_chimney-brick.png` … |
+| chimney | default, brick, stone (`none` hides it) | `house_cabin_chimney-default.png` … |
 
-**Not yet sprite options:** roof trim, foundation, window treatments, roof
-material, lights, mat, house number and sign. Houses using any of these keep
-their old drawing for now (see "Before switching a template on" below).
+An option that looks the same as the default (the townhouse's own door is
+the double door) can be left out: list it in the set's `sameAsDefault`.
+
+**Not yet sprite options:** roof trim and window treatments. Homes using
+either keep their old drawing for now, and so do homes with their own
+colours (`spriteDrawable` in `lib/pixel-homes/house-layers.ts`).
+
+**Where the files live:** `public/pixel-homes/house-layers/<template>/`,
+e.g. `public/pixel-homes/house-layers/cabin_v1/house_cabin_base.png`. The
+drafts and the scripts that drew them are in `HomePageAgain/design/house-drafts`.
 
 ## How I'd draw one
 
@@ -115,19 +125,19 @@ their old drawing for now (see "Before switching a template on" below).
 
 These are the code steps, for me or a session:
 
-- **Wire the files in.** Put them in `HOUSE_LAYER_SETS`
-  (`lib/pixel-homes/house-layers.ts`) or in the upload flow, preview the
-  template in all five palettes, then set `NEXT_PUBLIC_HOUSE_SPRITES=cabin_v1`.
-- **Fall back for undrawn options.** The sprite renderer currently draws the
-  base when someone picked an option with no sprite. It should fall back to
-  the old drawing for that home until the option is drawn, so nobody's house
-  loses something they chose.
+- **Wire the files in.** Done for all four (`HOUSE_LAYER_SETS`,
+  `lib/pixel-homes/house-layers.ts`). A template switches on when it's named
+  in `NEXT_PUBLIC_HOUSE_SPRITES` (`cabin_v1,cottage_v1,townhouse_v1,loft_v1`).
+  The yard, the share picture and the street picture all follow the flag.
+- **Fall back for undrawn options.** Done: a home that picked something the
+  art doesn't draw keeps the old drawing (`spriteDrawable`).
 - **Custom colours.** 11 homes set their own roof or wall hex, and the sprite
   renderer skips those (they keep the old drawing). Decide whether custom
   colours snap to the palette ramps so these homes get the new art too.
 - **Redraw the pictures.** After switching on, redraw the share and street
-  images:
-  `npx tsx scripts/backfill-home-snapshots.ts --apply --force`
-  (dry run first, without `--apply`).
+  images (the flag is part of each picture's hash, so no `--force` needed):
+  `npx tsx scripts/backfill-home-snapshots.ts --apply`
+  (dry run first, without `--apply`). Redrawn art at the same file names
+  does need `--force`.
 - **Look at the contact sheet** (admin) with all houses × palettes before
   announcing it.
