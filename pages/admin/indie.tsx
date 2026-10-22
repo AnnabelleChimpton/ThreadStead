@@ -50,6 +50,8 @@ interface Overview {
   sites: SiteRow[]
   total: number
   nextOffset: number | null
+  ringSites: Partial<Record<'pending' | 'verified' | 'resting' | 'removed', number>>
+  doorways: Partial<Record<'next' | 'prev' | 'random' | 'ring', number>>
 }
 interface Blocked {
   id: string
@@ -193,6 +195,18 @@ export default function IndieAdminPage() {
                 </tbody>
               </table>
             )}
+          </section>
+
+          <section className="thread-module p-4">
+            <h2 className="thread-headline text-xl font-bold mb-2">Ring sites</h2>
+            <p className="text-sm m-0">
+              Residents&apos; own sites as ring stops: {data.ringSites.verified ?? 0} proved, {data.ringSites.pending ?? 0} not proved yet,{' '}
+              {data.ringSites.resting ?? 0} resting, {data.ringSites.removed ?? 0} removed.
+            </p>
+            <p className="text-sm m-0 mt-1">
+              Strip clicks this month: {data.doorways.next ?? 0} next, {data.doorways.prev ?? 0} prev, {data.doorways.random ?? 0} random,{' '}
+              {data.doorways.ring ?? 0} to a ring&apos;s page.
+            </p>
           </section>
 
           <section className="thread-module p-4 overflow-x-auto">

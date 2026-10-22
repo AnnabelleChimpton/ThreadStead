@@ -101,6 +101,9 @@
 | Page Views | Platform improvement | Consent (Analytics) | 24 months | Local Analytics |
 | Feature Usage | Product development | Consent (Analytics) | 24 months | Local Analytics |
 | Performance Metrics | Technical optimization | Consent (Analytics) | 12 months | Local Analytics |
+| Ring strip clicks (RingDoorwayCount) | Tell residents and ring owners how many visits their ring strips send | Legitimate interest | 13 months | Primary Database |
+
+Ring strip clicks are one number per ring, site, direction and day, counted when someone follows a strip on a resident's own site (lib/rings/counts.ts). No IP address, user agent, cookie or account is read or stored, and loading the strip's badge isn't counted. Nightly pruning drops days older than 13 months.
 
 **Processing Activities:**
 - Platform usage analysis

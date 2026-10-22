@@ -3,6 +3,7 @@ import { apiHandler } from "@/lib/api/handler";
 import { db } from "@/lib/config/database/connection";
 import { escapeLike, parseIntParam } from "@/lib/search/query";
 import { liftOptOut, optOutKey, setHidden } from "@/lib/indie-index/actions";
+import { doorwayTotals } from "@/lib/rings/counts";
 
 const TIERS = ["resident", "vouched", "community", "pool", "candidate"] as const;
 const STATUSES = ["active", "stale", "dead", "hidden"] as const;
@@ -40,7 +41,9 @@ export default apiHandler(
       ...(status ? { status } : {}),
     };
 
-    const [runs, counts, optOuts, sites, total] = await Promise.all([
+    const now = new Date();
+    const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    const [runs, counts, optOuts, sites, total, ringSites, doorways] = await Promise.all([
       db.indexRun.findMany({ orderBy: { startedAt: "desc" }, take: 10 }),
       db.site.groupBy({ by: ["tier", "status"], _count: true }),
       db.siteOptOut.findMany({ orderBy: { createdAt: "desc" }, take: 50 }),
@@ -55,6 +58,8 @@ export default apiHandler(
         },
       }),
       db.site.count({ where }),
+      db.externalSite.groupBy({ by: ["state"], _count: true }),
+      doorwayTotals(db, monthStart),
     ]);
 
     return res.json({
@@ -64,6 +69,9 @@ export default apiHandler(
       sites,
       total,
       nextOffset: offset + sites.length < total ? offset + sites.length : null,
+      // Residents' own sites as ring stops (lib/rings), and their strips' clicks this month
+      ringSites: Object.fromEntries(ringSites.map((r) => [r.state, r._count])),
+      doorways,
     });
   }
 );
