@@ -27,7 +27,7 @@ export default apiHandler(
     }
 
     // Validate reportType
-    const validReportTypes: ReportType[] = ["user", "post", "comment", "threadring", "guestbook_entry", "photo_comment"];
+    const validReportTypes: ReportType[] = ["user", "post", "comment", "threadring", "guestbook_entry", "photo_comment", "site"];
     if (!validReportTypes.includes(reportType)) {
       return res.status(400).json({ error: "Invalid report type" });
     }
@@ -110,6 +110,16 @@ export default apiHandler(
           });
           if (!photoComment) return res.status(404).json({ error: "Photo comment not found" });
           reportedUser = photoComment.authorId;
+          break;
+
+        case "site":
+          // A resident's own site, as a stop in a ring (ExternalSite id)
+          const site = await db.externalSite.findUnique({
+            where: { id: targetId },
+            select: { userId: true }
+          });
+          if (!site) return res.status(404).json({ error: "Site not found" });
+          reportedUser = site.userId;
           break;
       }
 

@@ -134,6 +134,21 @@ export default apiHandler(
                     createdAt: photoComment?.createdAt 
                   };
                   break;
+
+                case "site": {
+                  const site = await db.externalSite.findUnique({
+                    where: { id: report.targetId },
+                    select: { url: true, title: true, createdAt: true, stops: { select: { ringSlug: true, status: true } } }
+                  });
+                  targetContent = site
+                    ? {
+                        type: "site",
+                        preview: `${site.title ? `${site.title} · ` : ""}${site.url} (rings: ${site.stops.map((s) => `${s.ringSlug} ${s.status}`).join(", ") || "none"})`,
+                        createdAt: site.createdAt
+                      }
+                    : { type: "site", deleted: true };
+                  break;
+                }
               }
             } catch (error) {
               // Content might have been deleted

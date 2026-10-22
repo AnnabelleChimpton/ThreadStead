@@ -205,7 +205,8 @@ export default function ReportsSection() {
       comment: "Comment",
       threadring: "ThreadRing",
       guestbook_entry: "Guestbook Entry",
-      photo_comment: "Photo Comment"
+      photo_comment: "Photo Comment",
+      site: "Ring site"
     };
     return typeMap[type] || type;
   };
@@ -250,6 +251,7 @@ export default function ReportsSection() {
             <option value="threadring">ThreadRings</option>
             <option value="guestbook_entry">Guestbook</option>
             <option value="photo_comment">Photo Comments</option>
+            <option value="site">Ring sites</option>
           </select>
         </div>
 

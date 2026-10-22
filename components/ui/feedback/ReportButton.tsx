@@ -8,7 +8,8 @@ export type ReportType =
   | "comment"
   | "threadring"
   | "guestbook_entry"
-  | "photo_comment";
+  | "photo_comment"
+  | "site";
 
 export type ReportReason =
   | "spam"
