@@ -114,6 +114,38 @@ describe("inviting to a ring whose curator isn't among the newest 20", () => {
   })
 })
 
+describe("outside sites read roles and profiles from the members list (lib/rings/stops.ts)", () => {
+  // Ring owners' and moderators' controls for members' outside sites come
+  // from the public members list, unsigned, like the /ring/<slug> walk.
+  test('role filter: only the ring owner, with its role named, unsigned', async () => {
+    const { testActorDid } = getRuntime()
+    const page = await makePublicTestClient().getRingMembers(INVITE_SLUG, { limit: 100, role: 'owner' })
+    expect(page.members.map((m) => [m.actorDid, m.role])).toEqual([[testActorDid, 'owner']])
+    expect(await makePublicTestClient().getRingMembers(INVITE_SLUG, { limit: 100, role: 'moderator' })).toMatchObject({ members: [], total: 0 })
+  })
+
+  test('profileUrl and handles come through as the hub stored them', async () => {
+    const { secondActorDid } = getRuntime()
+    hubSql(`UPDATE "Membership" SET "profileUrl" = 'https://ts.invalid/resident/second', handle = 'second',
+        "instanceDomain" = 'ts.invalid' WHERE "actorDid" = '${secondActorDid}'
+        AND "ringId" = (SELECT id FROM "Ring" WHERE slug = '${INVITE_SLUG}');`)
+    const hub = makePublicTestClient()
+    // Newest first: the second actor joined a day before the 130 others
+    const first = await hub.getRingMembers(INVITE_SLUG, { limit: 100, role: 'member' })
+    const page = await hub.getRingMembers(INVITE_SLUG, { limit: 100, offset: 100, role: 'member' })
+    expect([first.total, first.hasMore, page.hasMore]).toEqual([MEMBERS + 1, true, false])
+    const second = page.members.find((m) => m.actorDid === secondActorDid)
+    expect(second).toMatchObject({
+      role: 'member',
+      status: 'ACTIVE',
+      profileUrl: 'https://ts.invalid/resident/second',
+      handles: [{ handle: 'second', domain: 'ts.invalid', url: 'https://ts.invalid/resident/second' }],
+    })
+    // Members with no profile data: null profileUrl, empty handles
+    expect(first.members.find((m) => m.actorDid === 'did:web:mbrs-inv-m1.invalid')).toMatchObject({ profileUrl: null, handles: [] })
+  })
+})
+
 describe('accepting a hub invite is joining the ring', () => {
   // The flow ThreadStead's invite notification leads to: the ring page's
   // Accept button posts /api/threadrings/[slug]/join, which signs /trp/join

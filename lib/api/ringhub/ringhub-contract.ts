@@ -330,6 +330,34 @@ export const ActorBadgesResponseSchema = z.object({
 })
 
 /**
+ * GET /trp/rings/:slug/members → 200 (rings.ts; no response schema, so
+ * nothing is stripped). Pages newest first, ACTIVE only unless asked.
+ * `role` is the hub RingRole name (owner | moderator | member) or null for a
+ * membership with no role; ring owners' and moderators' controls for outside
+ * sites rely on it (lib/rings/stops.ts).
+ */
+export const RingMembersResponseSchema = z.object({
+  members: z.array(
+    z.object({
+      actorDid: z.string(),
+      actorName: z.string().nullish(),
+      avatarUrl: z.string().nullish(),
+      profileUrl: z.string().nullish(),
+      instanceDomain: z.string().nullish(),
+      handles: z.array(z.object({ handle: z.string(), domain: z.string(), url: z.string() })),
+      status: z.string(),
+      role: z.string().nullable(),
+      joinedAt: z.string().nullish(),
+      badgeId: z.string().nullish(),
+    })
+  ),
+  total: z.number(),
+  limit: z.number(),
+  offset: z.number(),
+  hasMore: z.boolean(),
+})
+
+/**
  * POST /trp/rings/:slug/invite → 200 (ring-management.ts; no response schema,
  * so nothing is stripped). Dates are ISO strings; expiresAt defaults to 7 days.
  */

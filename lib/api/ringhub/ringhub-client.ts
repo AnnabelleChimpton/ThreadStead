@@ -23,6 +23,7 @@ import {
   MyFeedResponseSchema,
   TrendingFeedResponseSchema,
   InviteMemberResponseSchema,
+  RingMembersResponseSchema,
 } from './ringhub-contract'
 
 // Types for Ring Hub API compatibility
@@ -450,7 +451,7 @@ export class RingHubClient {
    * Get ring members: ACTIVE ones, newest first. The hub pages them (20 by
    * default, at most 100); pass limit/offset to read further.
    */
-  async getRingMembers(slug: string, options?: { limit?: number; offset?: number }): Promise<{
+  async getRingMembers(slug: string, options?: { limit?: number; offset?: number; role?: string }): Promise<{
     members: RingMember[]
     total: number
     limit: number
@@ -460,8 +461,10 @@ export class RingHubClient {
     const params = new URLSearchParams()
     if (options?.limit) params.append('limit', options.limit.toString())
     if (options?.offset) params.append('offset', options.offset.toString())
+    if (options?.role) params.append('role', options.role)
     const query = params.toString() ? `?${params.toString()}` : ''
-    return this.get(`/trp/rings/${slug}/members${query}`)
+    const response = await this.get(`/trp/rings/${slug}/members${query}`)
+    return validateRingHubResponse(`GET /trp/rings/${slug}/members`, RingMembersResponseSchema, response as any)
   }
 
   /**
