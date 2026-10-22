@@ -2,6 +2,7 @@ import React, { memo, useMemo, useRef, useEffect, useState } from 'react'
 import type { HouseTemplate, ColorPalette, HouseCustomizations, AtmosphereSettings } from './HouseSVG'
 import DecorationSVG from './DecorationSVG'
 import HouseSprite from './HouseSprite'
+import { houseLayerSet, spriteDoorRect, spriteDrawable } from '@/lib/pixel-homes/house-layers'
 import { SkyGradientDefs, GroundGradientDefs, TerrainDitherDefs, GrassTextureDefs, getSkyPatternCount, getGroundPatternCount, layoutDitherBands } from './DitherPatternDefs'
 import { useSvgIdPrefix } from './useSvgIdPrefix'
 import { DecorationItem, TERRAIN_TILES, isFlipped } from '@/lib/pixel-homes/decoration-data'
@@ -590,7 +591,10 @@ export default function EnhancedHouseCanvas({
           {/* The drawn front door is the way inside. No visible chrome: the
               cursor changes, and keyboard focus gets a dotted ring. */}
           {door && !isDecorationMode && (() => {
-            const rect = DOOR_RECTS[template] ?? DOOR_RECTS.cottage_v1
+            const sprite = houseLayerSet(template)
+            const rect = sprite && spriteDrawable(sprite, houseCustomizations as Record<string, unknown> | undefined)
+              ? spriteDoorRect(template)
+              : DOOR_RECTS[template] ?? DOOR_RECTS.cottage_v1
             return (
               <a
                 href={door.href}

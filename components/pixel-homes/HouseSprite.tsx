@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react'
-import HouseSVG, { type ColorPalette, type HouseCustomizations, type HouseTemplate } from './HouseSVG'
+import HouseSVG, { HouseExtras, type ColorPalette, type HouseCustomizations, type HouseTemplate } from './HouseSVG'
 import {
   HOUSE_SIZE,
+  houseExtrasAt,
   houseLayerSet,
   houseOptionSprites,
   keyColourMap,
+  spriteDrawable,
   swapKeyColours,
   type HouseLayerSet,
 } from '@/lib/pixel-homes/house-layers'
@@ -57,21 +59,18 @@ function paletteLayerUrl(src: string, palette: string): Promise<string> {
   return url
 }
 
-/** Residents' own wall/roof/trim/window colours wait on a decision (snap to ramps or not). */
-function hasCustomColours(c: HouseCustomizations | undefined): boolean {
-  return !!(c && (c.wallColor || c.roofColor || c.trimColor || c.windowColor || c.detailColor))
-}
-
 const pct = (n: number, of: number) => `${(n / of) * 100}%`
 
 /**
  * A house from PNG layers in the resident's palette (art-direction T14).
  * Falls back to the code-drawn HouseSVG when the template has no layer art,
- * isn't switched on, uses custom colours, or while the layers are loading.
+ * isn't switched on, the art can't show the home's choices (spriteDrawable),
+ * or while the layers are loading. The sign, number, mat and lights are
+ * still HouseSVG's, laid over the layers.
  */
 export default function HouseSprite({ template, palette, customizations, className = '', layerSet }: HouseSpriteProps) {
   const set = layerSet ?? houseLayerSet(template)
-  const usable = !!set && !hasCustomColours(customizations)
+  const usable = !!set && spriteDrawable(set, customizations as Record<string, unknown>)
   const options = usable ? houseOptionSprites(template, set!, customizations as Record<string, unknown>) : []
   const sources = usable ? [set!.layers.base, set!.layers.roof, ...options.map((o) => o.src)] : []
   const sourcesKey = sources.join('\n')
@@ -120,6 +119,7 @@ export default function HouseSprite({ template, palette, customizations, classNa
           }}
         />
       ))}
+      <HouseExtras palette={palette} customizations={customizations} at={houseExtrasAt(template)} />
     </div>
   )
 }

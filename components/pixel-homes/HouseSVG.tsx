@@ -843,6 +843,37 @@ const renderSign = (x: number, y: number, text: string, colors: any, simplified 
   )
 }
 
+type Spot = { x: number; y: number }
+
+/**
+ * Just the sign, house number, mat and lights, for a house drawn from sprite
+ * layers (HouseSprite lays this over them). Spots come from houseExtrasAt.
+ */
+export function HouseExtras({ palette, customizations, at }: {
+  palette: ColorPalette
+  customizations?: HouseCustomizations
+  at: { sign: Spot; number: Spot; mat: Spot; lights: Spot }
+}) {
+  const c = customizations ?? {}
+  const hasMat = !!c.welcomeMat && c.welcomeMat !== 'none'
+  const hasLights = !!c.exteriorLights && c.exteriorLights !== 'none'
+  if (!c.houseBoardText && !c.houseNumber && !hasMat && !hasLights) return null
+  const colors = PALETTE_COLORS[palette] ?? PALETTE_COLORS.thread_sage
+  return (
+    <svg
+      viewBox="0 0 200 180"
+      shapeRendering="crispEdges"
+      aria-hidden="true"
+      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+    >
+      {renderWelcomeMat(at.mat.x, at.mat.y, c.welcomeMat, c.welcomeMatText, c.welcomeMatColor)}
+      {renderHouseNumber(at.number.x, at.number.y, c.houseNumber, c.houseNumberStyle, colors)}
+      {renderExteriorLights(at.lights.x, at.lights.y, c.exteriorLights, colors)}
+      {renderSign(at.sign.x, at.sign.y, c.houseBoardText || '', colors)}
+    </svg>
+  )
+}
+
 // --- TEMPLATES ---
 
 // The simplified variant emits no pattern defs, so it paints the chimney with

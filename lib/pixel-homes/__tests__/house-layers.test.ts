@@ -1,12 +1,18 @@
+import { readFileSync } from 'fs'
+import path from 'path'
 import sockets from '../../../design/pixel-art/_template-house.sockets.json'
 import { HOUSE_PALETTE_RAMPS, KEY_RAMPS, isPaletteColour } from '../palette'
 import {
   HOUSE_LAYER_SETS,
+  HOUSE_SOCKETS,
   PLACEHOLDER_LAYER_SETS,
   enabledHouseSpriteTemplates,
   houseLayerSet,
+  houseExtrasAt,
   houseOptionSprites,
   keyColourMap,
+  spriteDoorRect,
+  spriteDrawable,
   swapKeyColours,
 } from '../house-layers'
 import { animatedSpriteIds } from '../sprite-animation'
@@ -50,11 +56,48 @@ describe('key colours', () => {
   })
 })
 
+/** Width and height from a PNG's header. */
+function pngSize(src: string): { w: number; h: number } {
+  const file = readFileSync(path.join(process.cwd(), 'public', src))
+  expect(file.toString('ascii', 1, 4)).toBe('PNG')
+  return { w: file.readUInt32BE(16), h: file.readUInt32BE(20) }
+}
+
+describe('the drawn houses', () => {
+  const templates = ['cabin_v1', 'cottage_v1', 'townhouse_v1', 'loft_v1']
+
+  test('all four templates have art', () => {
+    expect(Object.keys(HOUSE_LAYER_SETS).sort()).toEqual([...templates].sort())
+  })
+
+  test.each(templates)('%s: layers are 200x180 and every option is its socket size', (template) => {
+    const set = HOUSE_LAYER_SETS[template]
+    expect(pngSize(set.layers.base)).toEqual({ w: 200, h: 180 })
+    expect(pngSize(set.layers.roof)).toEqual({ w: 200, h: 180 })
+    for (const [name, src] of Object.entries(set.options)) {
+      const socket = name.startsWith('window-') ? 'window-left' : name.split('-')[0]
+      const box = HOUSE_SOCKETS[template][socket]
+      expect([name, pngSize(src)]).toEqual([name, { w: box.w, h: box.h }])
+    }
+    expect(Object.keys(set.options)).toContain('chimney-default')
+  })
+
+  test.each(templates)('%s: both windows are the same size, and every overlay spot is on the house', (template) => {
+    const box = HOUSE_SOCKETS[template]
+    expect({ w: box['window-right'].w, h: box['window-right'].h }).toEqual({ w: box['window-left'].w, h: box['window-left'].h })
+    for (const spot of Object.values(houseExtrasAt(template))) {
+      expect(spot.x).toBeGreaterThanOrEqual(0); expect(spot.x).toBeLessThan(200)
+      expect(spot.y).toBeGreaterThanOrEqual(0); expect(spot.y).toBeLessThan(180)
+    }
+  })
+})
+
 describe('which houses use layers', () => {
-  test('nothing switches without real art, flag or not', () => {
-    expect(Object.keys(HOUSE_LAYER_SETS)).toEqual([])
-    expect(houseLayerSet('cabin_v1', 'cabin_v1')).toBeNull()
+  test('only templates named in the flag switch', () => {
     expect(houseLayerSet('cabin_v1', undefined)).toBeNull()
+    expect(houseLayerSet('cabin_v1', 'loft_v1')).toBeNull()
+    expect(houseLayerSet('cabin_v1', 'cabin_v1,loft_v1')).toBe(HOUSE_LAYER_SETS.cabin_v1)
+    expect(houseLayerSet('nope_v1', 'nope_v1')).toBeNull()
   })
 
   test('the flag is a comma list', () => {
@@ -71,6 +114,54 @@ describe('which houses use layers', () => {
       { name: 'window-round', src: '/w.png', box: sockets.cabin.sockets['window-right'] },
     ])
     expect(houseOptionSprites('cabin_v1', set, { doorStyle: 'default' })).toEqual([])
+  })
+
+  test('the default chimney is its own sprite, so "none" can leave it out', () => {
+    const set = HOUSE_LAYER_SETS.loft_v1
+    const chimneys = (c: Record<string, unknown>) => houseOptionSprites('loft_v1', set, c).filter((s) => s.name.startsWith('chimney')).map((s) => s.name)
+    expect(chimneys({})).toEqual(['chimney-default'])
+    expect(chimneys({ chimneyStyle: 'default' })).toEqual(['chimney-default'])
+    expect(chimneys({ chimneyStyle: 'brick' })).toEqual(['chimney-brick'])
+    expect(chimneys({ chimneyStyle: 'none' })).toEqual([])
+  })
+})
+
+describe('spriteDrawable: homes keep HouseSVG when the art can\'t show their choices', () => {
+  const cabin = HOUSE_LAYER_SETS.cabin_v1
+
+  test('plain homes and every drawn option are drawable', () => {
+    expect(spriteDrawable(cabin, undefined)).toBe(true)
+    expect(spriteDrawable(cabin, { doorStyle: 'cottage', windowStyle: 'bay', chimneyStyle: 'none', roofTrim: 'default', windowTreatments: 'none' })).toBe(true)
+    // the sign, number, mat and lights are laid over the sprites
+    expect(spriteDrawable(cabin, { houseBoardText: 'Hello', houseNumber: '7', welcomeMat: 'floral', exteriorLights: 'lantern' })).toBe(true)
+  })
+
+  test('custom colours, roof trims and window treatments are not', () => {
+    expect(spriteDrawable(cabin, { wallColor: '#123456' })).toBe(false)
+    expect(spriteDrawable(cabin, { roofTrim: 'scalloped' })).toBe(false)
+    expect(spriteDrawable(cabin, { windowTreatments: 'shutters' })).toBe(false)
+  })
+
+  test('a choice with no drawing is not, unless it looks like the default', () => {
+    expect(spriteDrawable(PLACEHOLDER_LAYER_SETS.cabin_v1, { doorStyle: 'arched' })).toBe(false)
+    expect(spriteDrawable(PLACEHOLDER_LAYER_SETS.cabin_v1, { chimneyStyle: 'none' })).toBe(false)
+    expect(spriteDrawable(HOUSE_LAYER_SETS.townhouse_v1, { doorStyle: 'double' })).toBe(true)
+  })
+})
+
+describe('overlays and the door', () => {
+  test('the cabin\'s sign, number, mat and lights land where HouseSVG draws them', () => {
+    expect(houseExtrasAt('cabin_v1')).toEqual({
+      sign: { x: 100, y: 90 },
+      number: { x: 160, y: 105 },
+      mat: { x: 100, y: 155 },
+      lights: { x: 90, y: 120 },
+    })
+  })
+
+  test('the door link follows the drawn door', () => {
+    expect(spriteDoorRect('townhouse_v1')).toEqual({ x: 90, y: 125, width: 20, height: 35 })
+    expect(spriteDoorRect('cabin_v1')).toEqual({ x: 90, y: 120, width: 20, height: 30 })
   })
 })
 

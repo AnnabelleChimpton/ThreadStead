@@ -9,6 +9,8 @@
  *
  * Nothing switches until a template's art exists here AND the template is
  * listed in NEXT_PUBLIC_HOUSE_SPRITES. Until then every house is HouseSVG.
+ * A home whose choices the art can't show yet keeps HouseSVG too
+ * (spriteDrawable), so nobody's house loses something they picked.
  */
 import sockets from '../../design/pixel-art/_template-house.sockets.json'
 import { HOUSE_PALETTE_RAMPS, KEY_RAMPS, type HousePart } from './palette'
@@ -25,6 +27,8 @@ export interface HouseLayerSet {
   layers: { base: string; roof: string }
   /** Option sprites by name ("door-arched", "window-round"), each the size of its socket */
   options: Record<string, string>
+  /** Choices that look the same as the default drawing ("door-double" on the townhouse) */
+  sameAsDefault?: string[]
   /** A stand-in made from the code-drawn house, for testing the renderer */
   placeholder?: boolean
 }
@@ -34,13 +38,40 @@ export const HOUSE_SIZE = { width: 200, height: 180 } as const
 /** Socket boxes per template, from design/pixel-art/_template-house.sockets.json. */
 export const HOUSE_SOCKETS: Record<string, Record<string, SocketBox>> = {
   cabin_v1: sockets.cabin.sockets,
+  cottage_v1: sockets.cottage.sockets,
+  townhouse_v1: sockets.townhouse.sockets,
+  loft_v1: sockets.loft.sockets,
+}
+
+/** Every option sprite a template can have. The default chimney is its own sprite so "no chimney" can leave it out. */
+const ALL_OPTIONS = [
+  'door-arched', 'door-double', 'door-cottage',
+  'window-round', 'window-arched', 'window-bay',
+  'chimney-default', 'chimney-brick', 'chimney-stone',
+]
+
+/** public/pixel-homes/house-layers/<template>/house_<name>_<layer>.png */
+function drawnSet(template: string, options: string[], sameAsDefault?: string[]): HouseLayerSet {
+  const name = template.replace(/_v\d+$/, '')
+  const file = (layer: string) => `/pixel-homes/house-layers/${template}/house_${name}_${layer}.png`
+  return {
+    layers: { base: file('base'), roof: file('roof') },
+    options: Object.fromEntries(options.map((option) => [option, file(option)])),
+    ...(sameAsDefault ? { sameAsDefault } : {}),
+  }
 }
 
 /**
- * The layer art per template. Empty until the redraw lands; the placeholder
- * is only used where something asks for it by name (admin previews, tests).
+ * The layer art per template. The placeholder is only used where something
+ * asks for it by name (admin previews, tests).
  */
-export const HOUSE_LAYER_SETS: Record<string, HouseLayerSet> = {}
+export const HOUSE_LAYER_SETS: Record<string, HouseLayerSet> = {
+  cabin_v1: drawnSet('cabin_v1', ALL_OPTIONS),
+  cottage_v1: drawnSet('cottage_v1', ALL_OPTIONS),
+  // The townhouse's own door is the double door
+  townhouse_v1: drawnSet('townhouse_v1', ALL_OPTIONS.filter((o) => o !== 'door-double'), ['door-double']),
+  loft_v1: drawnSet('loft_v1', ALL_OPTIONS),
+}
 
 export const PLACEHOLDER_LAYER_SETS: Record<string, HouseLayerSet> = {
   cabin_v1: {
@@ -110,9 +141,13 @@ const OPTION_SOCKETS: Record<string, { field: string; sockets: string[] }> = {
   chimney: { field: 'chimneyStyle', sockets: ['chimney'] },
 }
 
+const picked = (value: unknown): string | null =>
+  typeof value === 'string' && value && value !== 'default' ? value : null
+
 /**
  * The option sprites to draw for a house's customisations, each with its
- * socket box. A choice with no drawing yet is left out (the base shows).
+ * socket box. The default chimney is drawn unless someone picked another or
+ * "none". A choice with no drawing is left out (see spriteDrawable).
  */
 export function houseOptionSprites(
   template: string,
@@ -122,12 +157,57 @@ export function houseOptionSprites(
   const boxes = HOUSE_SOCKETS[template] ?? {}
   const out: { name: string; src: string; box: SocketBox }[] = []
   for (const [prefix, { field, sockets: names }] of Object.entries(OPTION_SOCKETS)) {
-    const choice = customizations?.[field]
-    if (typeof choice !== 'string' || !choice || choice === 'default') continue
+    const choice = picked(customizations?.[field]) ?? 'default'
+    if (choice === 'none') continue
     const name = `${prefix}-${choice}`
     const src = set.options[name]
     if (!src) continue
     for (const socket of names) if (boxes[socket]) out.push({ name, src, box: boxes[socket] })
   }
   return out
+}
+
+/** Choices the sprite art doesn't draw yet; homes using them keep HouseSVG. */
+const NOT_DRAWN_YET = ['roofTrim', 'windowTreatments']
+
+/**
+ * Whether a layer set can show this home as its owner set it up. False when
+ * they picked their own colours, a roof trim or window treatment, or an
+ * option with no drawing in this set.
+ */
+export function spriteDrawable(set: HouseLayerSet, customizations: Record<string, unknown> | undefined): boolean {
+  const c = customizations ?? {}
+  if (['wallColor', 'roofColor', 'trimColor', 'windowColor', 'detailColor'].some((k) => c[k])) return false
+  if (NOT_DRAWN_YET.some((k) => { const v = picked(c[k]); return v !== null && v !== 'none' })) return false
+  for (const [prefix, { field }] of Object.entries(OPTION_SOCKETS)) {
+    const choice = picked(c[field])
+    if (!choice) continue
+    const name = `${prefix}-${choice}`
+    if (set.options[name] || set.sameAsDefault?.includes(name)) continue
+    if (choice === 'none' && set.options[`${prefix}-default`]) continue
+    return false
+  }
+  return true
+}
+
+/**
+ * Where HouseSVG's sign, house number, mat and lights go on a sprite house,
+ * in house pixels, from the template's sockets. The sign hangs on chains
+ * above its board, so its board starts 6px into the box.
+ */
+export function houseExtrasAt(template: string) {
+  const box = HOUSE_SOCKETS[template] ?? HOUSE_SOCKETS.cabin_v1
+  const centre = (b: SocketBox) => b.x + b.w / 2
+  return {
+    sign: { x: centre(box.sign), y: box.sign.y + 6 },
+    number: { x: centre(box.number), y: box.number.y + 5 },
+    mat: { x: centre(box.mat), y: box.mat.y },
+    lights: { x: box.door.x, y: box.door.y },
+  }
+}
+
+/** The front door of a sprite house, in house pixels. */
+export function spriteDoorRect(template: string) {
+  const door = (HOUSE_SOCKETS[template] ?? HOUSE_SOCKETS.cabin_v1).door
+  return { x: door.x, y: door.y, width: door.w, height: door.h }
 }

@@ -1,5 +1,5 @@
 {
-  "_about": "Where each layer and option sprite goes on a 200x180 house, in house pixels. Taken from the cabin as HouseSVG draws it today.",
+  "_about": "Where each layer and option sprite goes on a 200x180 house, in house pixels, per template. The cabin's boxes were measured from HouseSVG; the cottage, townhouse and loft from their sprite art. sign/number/mat/lights place the overlays HouseSVG still draws (see houseExtrasAt).",
   "keyRamps": {
     "_about": "Draw house layers in these. The site swaps each one, dark to light, for the ramp of the palette someone picked. They are deliberately loud so they are never mistaken for real colours.",
     "wall": [
@@ -98,6 +98,234 @@
       "mat": {
         "x": 86,
         "y": 155,
+        "w": 28,
+        "h": 6
+      }
+    }
+  },
+  "cottage": {
+    "size": {
+      "w": 200,
+      "h": 180
+    },
+    "sortLine": 150,
+    "groundLine": 170,
+    "sockets": {
+      "roof": {
+        "x": 26,
+        "y": 50,
+        "w": 149,
+        "h": 66
+      },
+      "chimney": {
+        "x": 128,
+        "y": 50,
+        "w": 18,
+        "h": 50
+      },
+      "walls": {
+        "x": 45,
+        "y": 110,
+        "w": 110,
+        "h": 40
+      },
+      "foundation": {
+        "x": 40,
+        "y": 150,
+        "w": 120,
+        "h": 20
+      },
+      "door": {
+        "x": 90,
+        "y": 120,
+        "w": 20,
+        "h": 30
+      },
+      "window-left": {
+        "x": 55,
+        "y": 125,
+        "w": 15,
+        "h": 15
+      },
+      "window-right": {
+        "x": 130,
+        "y": 125,
+        "w": 15,
+        "h": 15
+      },
+      "sign": {
+        "x": 80,
+        "y": 95,
+        "w": 40,
+        "h": 12
+      },
+      "number": {
+        "x": 122,
+        "y": 150,
+        "w": 16,
+        "h": 10
+      },
+      "lights": {
+        "x": 82,
+        "y": 112,
+        "w": 36,
+        "h": 8
+      },
+      "mat": {
+        "x": 86,
+        "y": 155,
+        "w": 28,
+        "h": 6
+      }
+    }
+  },
+  "townhouse": {
+    "size": {
+      "w": 200,
+      "h": 180
+    },
+    "sortLine": 150,
+    "groundLine": 170,
+    "sockets": {
+      "roof": {
+        "x": 34,
+        "y": 42,
+        "w": 132,
+        "h": 44
+      },
+      "chimney": {
+        "x": 144,
+        "y": 44,
+        "w": 12,
+        "h": 28
+      },
+      "walls": {
+        "x": 40,
+        "y": 84,
+        "w": 120,
+        "h": 76
+      },
+      "foundation": {
+        "x": 38,
+        "y": 160,
+        "w": 124,
+        "h": 10
+      },
+      "door": {
+        "x": 90,
+        "y": 125,
+        "w": 20,
+        "h": 35
+      },
+      "window-left": {
+        "x": 55,
+        "y": 95,
+        "w": 20,
+        "h": 30
+      },
+      "window-right": {
+        "x": 125,
+        "y": 95,
+        "w": 20,
+        "h": 30
+      },
+      "sign": {
+        "x": 80,
+        "y": 58,
+        "w": 40,
+        "h": 12
+      },
+      "number": {
+        "x": 92,
+        "y": 86,
+        "w": 16,
+        "h": 8
+      },
+      "lights": {
+        "x": 82,
+        "y": 115,
+        "w": 36,
+        "h": 8
+      },
+      "mat": {
+        "x": 86,
+        "y": 160,
+        "w": 28,
+        "h": 6
+      }
+    }
+  },
+  "loft": {
+    "size": {
+      "w": 200,
+      "h": 180
+    },
+    "sortLine": 150,
+    "groundLine": 170,
+    "sockets": {
+      "roof": {
+        "x": 38,
+        "y": 28,
+        "w": 124,
+        "h": 42
+      },
+      "chimney": {
+        "x": 142,
+        "y": 32,
+        "w": 16,
+        "h": 28
+      },
+      "walls": {
+        "x": 40,
+        "y": 70,
+        "w": 120,
+        "h": 90
+      },
+      "foundation": {
+        "x": 38,
+        "y": 160,
+        "w": 124,
+        "h": 10
+      },
+      "door": {
+        "x": 90,
+        "y": 130,
+        "w": 20,
+        "h": 30
+      },
+      "window-left": {
+        "x": 50,
+        "y": 78,
+        "w": 30,
+        "h": 36
+      },
+      "window-right": {
+        "x": 120,
+        "y": 78,
+        "w": 30,
+        "h": 36
+      },
+      "sign": {
+        "x": 80,
+        "y": 58,
+        "w": 40,
+        "h": 12
+      },
+      "number": {
+        "x": 140,
+        "y": 128,
+        "w": 16,
+        "h": 10
+      },
+      "lights": {
+        "x": 82,
+        "y": 120,
+        "w": 36,
+        "h": 8
+      },
+      "mat": {
+        "x": 86,
+        "y": 160,
         "w": 28,
         "h": 6
       }
