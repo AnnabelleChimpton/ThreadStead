@@ -13,7 +13,9 @@ import {
   ogCropTop,
   renderHomeSnapshot,
   renderSceneSvg,
+  spriteHouseMarkup,
 } from '@/lib/pixel-homes/snapshot/render'
+import { HOUSE_PALETTE_RAMPS, KEY_RAMPS } from '@/lib/pixel-homes/palette'
 import type { HomeScene, SceneDecoration } from '@/lib/pixel-homes/home-scene'
 
 type RGBA = [number, number, number, number]
@@ -239,6 +241,36 @@ describe('renderHomeSnapshot', () => {
     )
     expect(watered.hex(40, 296)).not.toBe(bare.hex(40, 296)) // cell 2,18 = x 32–48, y 288–304
     expect(watered.hex(56, 296)).toBe(bare.hex(56, 296)) // grass is the ground already
+  })
+})
+
+describe('sprite houses', () => {
+  const KEYS = new Set<string>(Object.values(KEY_RAMPS).flat())
+  afterEach(() => { delete process.env.NEXT_PUBLIC_HOUSE_SPRITES })
+
+  async function houseColours(s: HomeScene) {
+    const { card } = await renderHomeSnapshot(s, { loadImage: noImages })
+    const { hex } = await pixels(card)
+    const seen = new Map<string, number>()
+    for (let y = 32; y < 212; y++) for (let x = 156; x < 356; x++) seen.set(hex(x, y), (seen.get(hex(x, y)) ?? 0) + 1)
+    return seen
+  }
+
+  test('a switched-on template draws its layers in the palette, with no key colours left', async () => {
+    process.env.NEXT_PUBLIC_HOUSE_SPRITES = 'loft_v1'
+    const seen = await houseColours(scene({ template: 'loft_v1', palette: 'pixel_petals' }))
+    expect([...seen.keys()].filter((c) => KEYS.has(c))).toEqual([])
+    expect(seen.get(HOUSE_PALETTE_RAMPS.pixel_petals.wall[2])).toBeGreaterThan(1000)
+    expect(await spriteHouseMarkup(scene({ template: 'loft_v1' }))).toContain('<image')
+  })
+
+  test('"no chimney" leaves the chimney out, and roof trims keep HouseSVG', async () => {
+    process.env.NEXT_PUBLIC_HOUSE_SPRITES = 'cabin_v1'
+    const withChimney = await renderSceneSvg(scene({ template: 'cabin_v1' }), { loadImage: noImages })
+    const without = await renderSceneSvg(scene({ template: 'cabin_v1', houseCustomizations: { chimneyStyle: 'none' } }), { loadImage: noImages })
+    expect(without).not.toEqual(withChimney)
+    expect(await spriteHouseMarkup(scene({ template: 'cabin_v1', houseCustomizations: { roofTrim: 'ornate' } }))).toBeNull()
+    expect(await spriteHouseMarkup(scene({ template: 'cottage_v1' }))).toBeNull() // not in the flag
   })
 })
 

@@ -15,17 +15,29 @@
  *  - card  512×352, the whole yard at 1× (for grid cards and search
  *          thumbnails; scale it up with `image-rendering: pixelated`).
  *
- * The art isn't forked: the house is HouseSVG, sky/grass/terrain are the
+ * The art isn't forked: the house is HouseSprite's layers when they're
+ * switched on (else HouseSVG), sky/grass/terrain are the
  * DitherPatternDefs patterns, decorations are DecorationSVG (code-drawn) or
  * her PNGs, fetched and resized with nearest-neighbour to the size the
  * canvas shows them at. What IS mirrored here is EnhancedHouseCanvas's
  * layout (zone sizes, the house's spot, how a decoration sits in its box);
  * those numbers are below, and the snapshot tests pin the result.
  */
+import { readFile } from 'fs/promises'
+import path from 'path'
 import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import sharp from 'sharp'
-import HouseSVG from '@/components/pixel-homes/HouseSVG'
+import HouseSVG, { HouseExtras } from '@/components/pixel-homes/HouseSVG'
+import {
+  HOUSE_SIZE,
+  houseExtrasAt,
+  houseLayerSet,
+  houseOptionSprites,
+  keyColourMap,
+  spriteDrawable,
+  swapKeyColours,
+} from '@/lib/pixel-homes/house-layers'
 import DecorationSVG from '@/components/pixel-homes/DecorationSVG'
 import {
   GrassTextureDefs,
@@ -316,6 +328,39 @@ async function mirrored(item: SceneDecoration, markup: Promise<string>): Promise
 }
 
 /**
+ * The house as HouseSprite draws it: its layers recoloured into the palette
+ * and stacked into one 200×180 PNG, with HouseSVG's sign, number, mat and
+ * lights over it. Null when the house is HouseSVG (not switched on, or the
+ * art can't show the home's choices).
+ */
+export async function spriteHouseMarkup(scene: HomeScene): Promise<string | null> {
+  const set = houseLayerSet(scene.template)
+  const customizations = scene.houseCustomizations as Record<string, unknown>
+  if (!set || !spriteDrawable(set, customizations)) return null
+  const whole = { x: 0, y: 0 }
+  const layers = [
+    { src: set.layers.base, at: whole },
+    { src: set.layers.roof, at: whole },
+    ...houseOptionSprites(scene.template, set, customizations).map((o) => ({ src: o.src, at: o.box })),
+  ]
+  const colours = keyColourMap(scene.palette)
+  const pieces = await Promise.all(layers.map(async ({ src, at }) => {
+    const file = await readFile(path.join(process.cwd(), 'public', src))
+    const { data, info } = await sharp(file).ensureAlpha().raw().toBuffer({ resolveWithObject: true })
+    swapKeyColours(new Uint8ClampedArray(data.buffer, data.byteOffset, data.length), colours)
+    const input = await sharp(data, { raw: { width: info.width, height: info.height, channels: 4 } }).png().toBuffer()
+    return { input, left: at.x, top: at.y }
+  }))
+  const flat = await sharp({
+    create: { width: HOUSE_SIZE.width, height: HOUSE_SIZE.height, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } },
+  }).composite(pieces).png().toBuffer()
+  const extras = renderToStaticMarkup(
+    <HouseExtras palette={scene.palette} customizations={scene.houseCustomizations} at={houseExtrasAt(scene.template)} />
+  )
+  return imageMarkup(`data:image/png;base64,${flat.toString('base64')}`, 0, 0, HOUSE_SIZE.width, HOUSE_SIZE.height) + extras
+}
+
+/**
  * The scene as one SVG document in canvas units. `padX` carries the sky and
  * grass that many units past each side of the yard.
  */
@@ -330,11 +375,14 @@ export async function renderSceneSvg(
       <Terrain terrain={scene.terrain} />
     </>
   )
-  const house = renderToStaticMarkup(
-    <svg x={HOUSE.x} y={HOUSE.y} width={HOUSE.width} height={HOUSE.height} viewBox={`0 0 ${HOUSE.width} ${HOUSE.height}`}>
-      <HouseSVG template={scene.template} palette={scene.palette} customizations={scene.houseCustomizations} />
-    </svg>
-  )
+  const sprite = await spriteHouseMarkup(scene)
+  const house = sprite
+    ? `<svg x="${HOUSE.x}" y="${HOUSE.y}" width="${HOUSE.width}" height="${HOUSE.height}" viewBox="0 0 ${HOUSE.width} ${HOUSE.height}">${sprite}</svg>`
+    : renderToStaticMarkup(
+      <svg x={HOUSE.x} y={HOUSE.y} width={HOUSE.width} height={HOUSE.height} viewBox={`0 0 ${HOUSE.width} ${HOUSE.height}`}>
+        <HouseSVG template={scene.template} palette={scene.palette} customizations={scene.houseCustomizations} />
+      </svg>
+    )
 
   // The house and the decorations in one depth order, as the canvas stacks
   // them; equal depths keep their load order (the DOM order).

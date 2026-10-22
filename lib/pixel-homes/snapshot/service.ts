@@ -20,6 +20,7 @@ import { residentAccess } from '@/lib/domain/users/profile-access'
 import { deleteObjects, keyFromPublicUrl, putObject } from '@/lib/storage/r2'
 import { decorationText, loadHomeScene, type HomeScene } from '@/lib/pixel-homes/home-scene'
 import { renderHomeSnapshot, SNAPSHOT_RENDERER_VERSION, type ImageLoader } from './render'
+import { houseLayerSet } from '@/lib/pixel-homes/house-layers'
 
 const KEY_PREFIX = 'pixel-homes/snapshots'
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024
@@ -53,6 +54,8 @@ export function snapshotHash(scene: HomeScene): string {
   const drawn = {
     v: SNAPSHOT_RENDERER_VERSION,
     template: scene.template,
+    // Switching a template's sprite art on (or off) redraws its pictures
+    sprite: !!houseLayerSet(scene.template),
     palette: scene.palette,
     house,
     sky: scene.sky,
