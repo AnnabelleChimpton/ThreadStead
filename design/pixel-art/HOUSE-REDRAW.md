@@ -11,7 +11,8 @@ A house is a short stack of PNGs on a **200×180** canvas, drawn at 1×:
 1. **`base`**: the walls, foundation and the ground line, with no roof.
 2. **`roof`**: the roof plane, with no chimney.
 3. **Option sprites**, each the size of a **socket** box, dropped on top:
-   door, window-left, window-right and chimney. The default chimney is its
+   door, window-left, window-right, chimney, trim (the band under the eave)
+   and treatment-left/right (around each window). The default chimney is its
    own sprite (`chimney-default`) so "no chimney" can leave it out. The
    sign, number, lights and mat are still drawn by the code, at their
    sockets.
@@ -97,9 +98,16 @@ on (the default look is part of base and roof):
 An option that looks the same as the default (the townhouse's own door is
 the double door) can be left out: list it in the set's `sameAsDefault`.
 
-**Not yet sprite options:** roof trim and window treatments. Homes using
-either keep their old drawing for now, and so do homes with their own
-colours (`spriteDrawable` in `lib/pixel-homes/house-layers.ts`).
+| trim | ornate, scalloped, gabled | `house_cabin_trim-ornate.png` … |
+| treatment-left, treatment-right | shutters, awnings, flower_boxes (one sprite fills both) | `house_loft_treatment-flower_boxes.png` … |
+
+Trims and treatments are mostly see-through: they're laid over the walls.
+The cabin, cottage and townhouse already have flower boxes, so their
+`flower_boxes` is the default drawing.
+
+Homes with their own colours keep the old drawing for now, and so does a
+home that picked anything without a sprite (`spriteDrawable` in
+`lib/pixel-homes/house-layers.ts`).
 
 **Where the files live:** `public/pixel-homes/house-layers/<template>/`,
 e.g. `public/pixel-homes/house-layers/cabin_v1/house_cabin_base.png`. The
@@ -130,7 +138,8 @@ These are the code steps, for me or a session:
   in `NEXT_PUBLIC_HOUSE_SPRITES` (`cabin_v1,cottage_v1,townhouse_v1,loft_v1`).
   The yard, the share picture and the street picture all follow the flag.
 - **Fall back for undrawn options.** Done: a home that picked something the
-  art doesn't draw keeps the old drawing (`spriteDrawable`).
+  art doesn't draw keeps the old drawing (`spriteDrawable`). Every door,
+  window, chimney, roof trim and window treatment is drawn for all four.
 - **Custom colours.** 11 homes set their own roof or wall hex, and the sprite
   renderer skips those (they keep the old drawing). Decide whether custom
   colours snap to the palette ramps so these homes get the new art too.

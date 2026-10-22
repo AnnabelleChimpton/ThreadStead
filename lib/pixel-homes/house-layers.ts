@@ -48,7 +48,10 @@ const ALL_OPTIONS = [
   'door-arched', 'door-double', 'door-cottage',
   'window-round', 'window-arched', 'window-bay',
   'chimney-default', 'chimney-brick', 'chimney-stone',
+  'trim-ornate', 'trim-scalloped', 'trim-gabled',
+  'treatment-shutters', 'treatment-awnings', 'treatment-flower_boxes',
 ]
+const without = (...names: string[]) => ALL_OPTIONS.filter((o) => !names.includes(o))
 
 /** public/pixel-homes/house-layers/<template>/house_<name>_<layer>.png */
 function drawnSet(template: string, options: string[], sameAsDefault?: string[]): HouseLayerSet {
@@ -65,11 +68,12 @@ function drawnSet(template: string, options: string[], sameAsDefault?: string[])
  * The layer art per template. The placeholder is only used where something
  * asks for it by name (admin previews, tests).
  */
+// Every house but the loft already has flower boxes under its windows.
 export const HOUSE_LAYER_SETS: Record<string, HouseLayerSet> = {
-  cabin_v1: drawnSet('cabin_v1', ALL_OPTIONS),
-  cottage_v1: drawnSet('cottage_v1', ALL_OPTIONS),
+  cabin_v1: drawnSet('cabin_v1', without('treatment-flower_boxes'), ['treatment-flower_boxes']),
+  cottage_v1: drawnSet('cottage_v1', without('treatment-flower_boxes'), ['treatment-flower_boxes']),
   // The townhouse's own door is the double door
-  townhouse_v1: drawnSet('townhouse_v1', ALL_OPTIONS.filter((o) => o !== 'door-double'), ['door-double']),
+  townhouse_v1: drawnSet('townhouse_v1', without('door-double', 'treatment-flower_boxes'), ['door-double', 'treatment-flower_boxes']),
   loft_v1: drawnSet('loft_v1', ALL_OPTIONS),
 }
 
@@ -134,11 +138,17 @@ export function swapKeyColours(data: Uint8ClampedArray, map: Map<number, [number
   return changed
 }
 
-/** Customisations that pick an option sprite, and the socket(s) it fills. */
-const OPTION_SOCKETS: Record<string, { field: string; sockets: string[] }> = {
+/**
+ * Customisations that pick an option sprite, and the socket(s) it fills,
+ * drawn in this order. A part with `drawnByDefault` shows something when
+ * nothing is picked (the chimney); the rest show nothing.
+ */
+const OPTION_SOCKETS: Record<string, { field: string; sockets: string[]; drawnByDefault?: boolean }> = {
   door: { field: 'doorStyle', sockets: ['door'] },
   window: { field: 'windowStyle', sockets: ['window-left', 'window-right'] },
-  chimney: { field: 'chimneyStyle', sockets: ['chimney'] },
+  chimney: { field: 'chimneyStyle', sockets: ['chimney'], drawnByDefault: true },
+  trim: { field: 'roofTrim', sockets: ['trim'] },
+  treatment: { field: 'windowTreatments', sockets: ['treatment-left', 'treatment-right'] },
 }
 
 const picked = (value: unknown): string | null =>
@@ -167,24 +177,20 @@ export function houseOptionSprites(
   return out
 }
 
-/** Choices the sprite art doesn't draw yet; homes using them keep HouseSVG. */
-const NOT_DRAWN_YET = ['roofTrim', 'windowTreatments']
-
 /**
  * Whether a layer set can show this home as its owner set it up. False when
- * they picked their own colours, a roof trim or window treatment, or an
- * option with no drawing in this set.
+ * they picked their own colours, or an option with no drawing in this set.
  */
 export function spriteDrawable(set: HouseLayerSet, customizations: Record<string, unknown> | undefined): boolean {
   const c = customizations ?? {}
   if (['wallColor', 'roofColor', 'trimColor', 'windowColor', 'detailColor'].some((k) => c[k])) return false
-  if (NOT_DRAWN_YET.some((k) => { const v = picked(c[k]); return v !== null && v !== 'none' })) return false
-  for (const [prefix, { field }] of Object.entries(OPTION_SOCKETS)) {
+  for (const [prefix, { field, drawnByDefault }] of Object.entries(OPTION_SOCKETS)) {
     const choice = picked(c[field])
     if (!choice) continue
     const name = `${prefix}-${choice}`
     if (set.options[name] || set.sameAsDefault?.includes(name)) continue
-    if (choice === 'none' && set.options[`${prefix}-default`]) continue
+    // "none" works when there's nothing to hide, or the default is a sprite we can leave out
+    if (choice === 'none' && (!drawnByDefault || set.options[`${prefix}-default`])) continue
     return false
   }
   return true

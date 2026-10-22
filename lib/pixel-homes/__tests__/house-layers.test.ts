@@ -75,11 +75,12 @@ describe('the drawn houses', () => {
     expect(pngSize(set.layers.base)).toEqual({ w: 200, h: 180 })
     expect(pngSize(set.layers.roof)).toEqual({ w: 200, h: 180 })
     for (const [name, src] of Object.entries(set.options)) {
-      const socket = name.startsWith('window-') ? 'window-left' : name.split('-')[0]
+      const socket = name.startsWith('window-') ? 'window-left' : name.startsWith('treatment-') ? 'treatment-left' : name.split('-')[0]
       const box = HOUSE_SOCKETS[template][socket]
       expect([name, pngSize(src)]).toEqual([name, { w: box.w, h: box.h }])
     }
     expect(Object.keys(set.options)).toContain('chimney-default')
+    for (const trim of ['ornate', 'scalloped', 'gabled']) expect(Object.keys(set.options)).toContain(`trim-${trim}`)
   })
 
   test.each(templates)('%s: both windows are the same size, and every overlay spot is on the house', (template) => {
@@ -136,10 +137,15 @@ describe('spriteDrawable: homes keep HouseSVG when the art can\'t show their cho
     expect(spriteDrawable(cabin, { houseBoardText: 'Hello', houseNumber: '7', welcomeMat: 'floral', exteriorLights: 'lantern' })).toBe(true)
   })
 
-  test('custom colours, roof trims and window treatments are not', () => {
+  test('every roof trim and window treatment is drawn', () => {
+    for (const set of Object.values(HOUSE_LAYER_SETS)) {
+      for (const roofTrim of ['ornate', 'scalloped', 'gabled']) expect(spriteDrawable(set, { roofTrim })).toBe(true)
+      for (const windowTreatments of ['shutters', 'awnings', 'flower_boxes', 'none']) expect(spriteDrawable(set, { windowTreatments })).toBe(true)
+    }
+  })
+
+  test('custom colours are not', () => {
     expect(spriteDrawable(cabin, { wallColor: '#123456' })).toBe(false)
-    expect(spriteDrawable(cabin, { roofTrim: 'scalloped' })).toBe(false)
-    expect(spriteDrawable(cabin, { windowTreatments: 'shutters' })).toBe(false)
   })
 
   test('a choice with no drawing is not, unless it looks like the default', () => {

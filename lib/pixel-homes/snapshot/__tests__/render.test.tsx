@@ -264,12 +264,13 @@ describe('sprite houses', () => {
     expect(await spriteHouseMarkup(scene({ template: 'loft_v1' }))).toContain('<image')
   })
 
-  test('"no chimney" leaves the chimney out, and roof trims keep HouseSVG', async () => {
+  test('"no chimney" leaves the chimney out, and own colours keep HouseSVG', async () => {
     process.env.NEXT_PUBLIC_HOUSE_SPRITES = 'cabin_v1'
     const withChimney = await renderSceneSvg(scene({ template: 'cabin_v1' }), { loadImage: noImages })
     const without = await renderSceneSvg(scene({ template: 'cabin_v1', houseCustomizations: { chimneyStyle: 'none' } }), { loadImage: noImages })
     expect(without).not.toEqual(withChimney)
-    expect(await spriteHouseMarkup(scene({ template: 'cabin_v1', houseCustomizations: { roofTrim: 'ornate' } }))).toBeNull()
+    expect(await spriteHouseMarkup(scene({ template: 'cabin_v1', houseCustomizations: { wallColor: '#123456' } }))).toBeNull()
+    expect(await spriteHouseMarkup(scene({ template: 'cabin_v1', houseCustomizations: { roofTrim: 'ornate', windowTreatments: 'awnings' } }))).toContain('<image')
     expect(await spriteHouseMarkup(scene({ template: 'cottage_v1' }))).toBeNull() // not in the flag
   })
 })

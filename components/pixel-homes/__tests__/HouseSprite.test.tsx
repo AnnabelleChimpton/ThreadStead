@@ -25,8 +25,8 @@ describe('HouseSprite', () => {
     expect(container.querySelector('[data-house-svg]')).not.toBeNull()
   })
 
-  test('keeps HouseSVG for a roof trim the art doesn\'t draw yet', () => {
-    const { container } = render(<HouseSprite template="cabin_v1" palette="thread_sage" layerSet={HOUSE_LAYER_SETS.cabin_v1} customizations={{ roofTrim: 'ornate' }} />)
+  test('keeps HouseSVG for an option the art doesn\'t draw', () => {
+    const { container } = render(<HouseSprite template="cabin_v1" palette="thread_sage" layerSet={HOUSE_LAYER_SETS.cabin_v1} customizations={{ doorStyle: 'revolving' as never }} />)
     expect(container.querySelector('[data-house-svg]')).not.toBeNull()
   })
 
