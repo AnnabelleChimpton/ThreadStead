@@ -4,7 +4,7 @@ import Image from "next/image";
 import ImprovedBadgeDisplay from "../../shared/ImprovedBadgeDisplay";
 import UserMention from "@/components/ui/navigation/UserMention";
 import { csrfFetch } from "@/lib/api/client/csrf-fetch";
-import { notificationHref, usernameFromHandle } from "@/lib/domain/notifications/links";
+import { notificationHref, ringSiteText, usernameFromHandle } from "@/lib/domain/notifications/links";
 import { PixelIcon, type PixelIconName } from '@/components/ui/PixelIcon';
 import { useToast } from "@/contexts/ToastContext";
 import LoadingSpinner from "./LoadingSpinner";
@@ -14,7 +14,7 @@ import Button from "@/components/ui/Button";
 
 export type NotificationData = {
   id: string;
-  type: "comment" | "reply" | "photo_comment" | "photo_reply" | "follow" | "friend" | "guestbook" | "threadring_invite";
+  type: "comment" | "reply" | "photo_comment" | "photo_reply" | "follow" | "friend" | "guestbook" | "threadring_invite" | "ring_site";
   status: "unread" | "read" | "dismissed";
   data?: {
     postId?: string;
@@ -197,6 +197,8 @@ export default function NotificationList({
               : "a ThreadRing"}
           </span>
         );
+      case "ring_site":
+        return <span>{ringSiteText(notification.data, notification.actor?.displayName || usernameFromHandle(notification.actor?.handle) || "Someone")}</span>;
       default:
         return <span>New activity from {ActorComponent}</span>;
     }
@@ -218,6 +220,8 @@ export default function NotificationList({
         return "file";
       case "threadring_invite":
         return "mail";
+      case "ring_site":
+        return "link";
       default:
         return "notification";
     }

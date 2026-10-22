@@ -41,6 +41,7 @@ import Link from "next/link";
 import Button from "@/components/ui/Button";
 import YourPage from "@/components/features/profile/YourPage";
 import DownloadMyPage from "@/components/features/profile/DownloadMyPage";
+import YourSites from "@/components/features/rings/YourSites";
 import BannerUpload from "@/components/core/profile/BannerUpload";
 import { STATUS_MAX } from "@/lib/domain/profile/status";
 import { layoutFields } from "@/lib/domain/profile/layout";
@@ -957,6 +958,11 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
           )}
         </div>
       )
+    },
+    {
+      id: "sites",
+      label: <><PixelIcon name="link" /> Your sites</>,
+      content: <YourSites />
     },
     {
       id: "music",

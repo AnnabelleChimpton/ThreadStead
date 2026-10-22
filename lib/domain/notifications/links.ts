@@ -96,7 +96,47 @@ export function notificationHref(notification: LinkableNotification): string | n
     case "threadring_invite":
       // The ring page shows invited people an Accept button
       return data.threadRingSlug ? `/tr/${encodeURIComponent(data.threadRingSlug)}` : null;
+    case "ring_site":
+      // A site waiting for a yes: the ring's stops page has the buttons. Anything else is about your own site.
+      return (data as { event?: string }).event === "waiting" && data.threadRingSlug
+        ? `/tr/${encodeURIComponent(data.threadRingSlug)}/sites`
+        : "/settings?tab=sites";
     default:
       return null;
+  }
+}
+
+/**
+ * The words for a `ring_site` notification (lib/rings/notify.ts), which is
+ * about a site rather than what the actor did. `actorName` only reads in
+ * the events another person caused.
+ */
+export function ringSiteText(data: Record<string, unknown> | null | undefined, actorName: string): string {
+  const site = (typeof data?.siteTitle === "string" && data.siteTitle) || hostOfUrl(data?.siteUrl) || "Your site";
+  const ring = (typeof data?.threadRingName === "string" && data.threadRingName) || "a ring";
+  switch (data?.event) {
+    case "resting":
+      return `I couldn't find ${site} the last two times I looked, so your rings walk to your pixel home until it's back.`;
+    case "removed":
+      return `${site} was resting for 30 days, so it's out of its rings. Check it again in Your sites once it's back.`;
+    case "back":
+      return `${site} is back, and your rings walk to it again.`;
+    case "hidden":
+      return `${actorName} hid ${site} from ${ring}. Your pixel home is your stop there.`;
+    case "approved":
+      return `${actorName} let ${site} into ${ring}.`;
+    case "waiting":
+      return `${actorName} would like ${site} to be their stop in ${ring}.`;
+    default:
+      return `News about ${site}.`;
+  }
+}
+
+function hostOfUrl(url: unknown): string | null {
+  if (typeof url !== "string") return null;
+  try {
+    return new URL(url).host.replace(/^www\./, "");
+  } catch {
+    return null;
   }
 }

@@ -6,6 +6,9 @@
  *   2. harvest residents' signals and recompute tiers
  *   3. refresh due sites (feeds, weekly homepages, new candidates)
  *   4. harvest again, so tonight's backlinks and links count tonight
+ *   5. re-check residents' ring sites that are due their weekly look
+ *      (lib/rings/sites.ts; the one page each owner gave, robots.txt not read),
+ *      and drop ring strip click counts past their 13 months
  *
  * Each run is an IndexRun row. A run that hasn't finished and started under
  * 6 hours ago blocks another (two pm2 starts, or a manual run during the
@@ -16,6 +19,8 @@ import { harvestSignals } from './harvest'
 import { ACCEPT_TEXT, type Fetcher } from './http'
 import { importKagiList, KAGI_SMALLWEB_URL } from './kagi'
 import { refreshSites, type RefreshOptions, type RefreshStats } from './refresh'
+import { recheckSites } from '@/lib/rings/sites'
+import { pruneDoorwayCounts } from '@/lib/rings/counts'
 
 const HOUR = 60 * 60 * 1000
 const DAY = 24 * HOUR
@@ -95,6 +100,14 @@ export async function runNightly(db: PrismaClient, options: NightlyOptions): Pro
     log(`Refresh: ${stats.sites} sites, ${stats.fetched} requests, ${stats.notModified} unchanged, ${stats.failed} failed, ${stats.itemsAdded} new entries, ${stats.optedOut} opted out, ${stats.dropped} dropped`)
 
     await harvestSignals(db, { baseUrl: options.baseUrl, now: now() })
+
+    // Its own failure shouldn't cost the Index its night
+    const rings = await recheckSites(db, { fetcher: options.fetcher, baseUrl: options.baseUrl, now, log }).catch((error) => {
+      log(`Ring site re-check failed: ${error instanceof Error ? error.message : error}`)
+      return null
+    })
+    if (rings) log(`Ring sites: ${rings.checked} checked, ${rings.ok} found, ${rings.missed} missed, ${rings.resting} now resting, ${rings.removed} removed`)
+    await pruneDoorwayCounts(db, now()).catch(() => {})
 
     await db.indexRun.update({
       where: { id: run.id },
