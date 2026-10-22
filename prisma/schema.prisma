@@ -83,6 +83,9 @@ model User {
   indieSitesOwned           Site[]                    @relation("SiteOwner")
   indieVouches              Vouch[]                   @relation("UserVouches")
   indieSiteSignals          SiteSignal[]              @relation("UserSiteSignals")
+  externalSites             ExternalSite[]            @relation("ExternalSiteOwner")
+  ringStops                 RingStop[]                @relation("RingStopOwner")
+  ringStopsHidden           RingStop[]                @relation("RingStopHiddenBy")
   pollsCreated              Poll[]                    @relation("PollsCreated")
   pollVotes                 PollVote[]                @relation("PollVotes")
   bulletins                 Bulletin[]                @relation("UserBulletins")
@@ -929,6 +932,7 @@ enum NotificationType {
   threadring_join
   threadring_post
   threadring_fork
+  ring_site // news about a resident's own site in a ring (lib/rings/notify.ts)
 }
 
 enum UploadContext {
@@ -994,6 +998,7 @@ enum ReportType {
   threadring
   guestbook_entry
   photo_comment
+  site // a resident's outside site in a ring (ExternalSite id)
 }
 
 enum ReportStatus {
@@ -1240,6 +1245,7 @@ enum SiteSignalKind {
   home_link // a link in the profile template or bio
   home_button // an 88x31 button in the profile template
   page_link // a link on a published CustomPage (the admin's signal)
+  verified // the resident proved the site is theirs (ExternalSite); outranks own and backlink
 }
 
 enum SiteOptOutVia {
@@ -1780,4 +1786,118 @@ model DirectMessage {
 
   @@index([conversationId, createdAt])
   @@index([senderId])
+}
+
+// Rings for any site (design/rings-for-any-site/SCOPE.md): a resident's site
+// elsewhere (Neocities, their own domain...) as their stop in a ThreadRing.
+// The hub still decides who is in a ring; these say where each member's stop
+// is. Never foreign-keyed to the Indie Index Site table: a robots.txt opt-out
+// deletes Site rows, and that mustn't drop anyone from a ring. siteRef is the
+// same key as Site.key, for a loose join. Migration:
+// 20261107000000_rings_for_any_site.
+
+enum ExternalSiteState {
+  pending // added, not proved yet
+  verified
+  resting // missed two checks in a row: walks skip to the owner's pixel home
+  removed // rested 30 days: out of its rings until checked again
+}
+
+enum ExternalSiteVerifyMethod {
+  strip // a ring strip with from=<id> on the page
+  relme // rel="me" link back to the resident's profile
+  meta // <meta name="homepageagain-verification" content="<id>">
+}
+
+enum RingStopStatus {
+  listed
+  pending // waiting for a ring owner or moderator
+  hidden // hidden by a ring owner or moderator
+}
+
+enum RingOutsideSites {
+  allow // listed once verified
+  ask // pending until a ring owner or moderator says yes
+  off
+}
+
+enum RingDoorway {
+  next
+  prev
+  random
+  ring // arrived on the ring page from the site's strip badge
+}
+
+model ExternalSite {
+  // Public and opaque: it's in the strip's from= links (lib/rings/sites.ts)
+  id            String                    @id
+  userId        String
+  url           String
+  siteRef       String
+  // The page with the strip when it isn't the homepage (same site)
+  stripPageUrl  String?
+  title         String?
+  verifiedAt    DateTime?
+  verifyMethod  ExternalSiteVerifyMethod?
+  lastCheckedAt DateTime?
+  lastOkAt      DateTime?
+  missCount     Int                       @default(0)
+  state         ExternalSiteState         @default(pending)
+  restingSince  DateTime?
+  lastError     String?
+  createdAt     DateTime                  @default(now())
+  updatedAt     DateTime                  @updatedAt
+
+  user   User               @relation("ExternalSiteOwner", fields: [userId], references: [id], onDelete: Cascade)
+  stops  RingStop[]
+  clicks RingDoorwayCount[]
+
+  @@unique([userId, siteRef])
+  @@index([siteRef])
+  @@index([state, lastCheckedAt])
+}
+
+// One member's outside site as their stop in one ring.
+model RingStop {
+  id             String         @id @default(cuid())
+  ringSlug       String
+  externalSiteId String
+  userId         String
+  status         RingStopStatus
+  hiddenByUserId String?
+  reason         String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  site     ExternalSite @relation(fields: [externalSiteId], references: [id], onDelete: Cascade)
+  user     User         @relation("RingStopOwner", fields: [userId], references: [id], onDelete: Cascade)
+  hiddenBy User?        @relation("RingStopHiddenBy", fields: [hiddenByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([ringSlug, externalSiteId])
+  // One stop per member per ring
+  @@unique([ringSlug, userId])
+  @@index([externalSiteId])
+}
+
+// A ring's rule for outside sites. No row: the ring's join rule decides
+// (open rings allow, others ask). Lives here, not in hub Ring.metadata.
+model RingSiteSettings {
+  ringSlug     String           @id
+  outsideSites RingOutsideSites
+  updatedAt    DateTime         @updatedAt
+}
+
+// Clicks through a site's strip, one number per ring, site, doorway and UTC
+// day. Nothing about the visitor is stored. Badge loads aren't counted.
+model RingDoorwayCount {
+  ringSlug String
+  siteId   String
+  doorway  RingDoorway
+  day      DateTime    @db.Date
+  clicks   Int         @default(0)
+
+  site ExternalSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@id([ringSlug, siteId, doorway, day])
+  @@index([day])
 }

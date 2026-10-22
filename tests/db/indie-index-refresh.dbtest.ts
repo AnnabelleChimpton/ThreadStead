@@ -112,6 +112,20 @@ describe('harvestSignals', () => {
     expect(await db.siteSignal.count({ where: { userId: bo, kind: 'blogroll' } })).toBe(1)
   })
 
+  it('a site someone proved is theirs (Your sites) outranks an earlier "This is my site" tick', async () => {
+    await resident('ada', { blogroll: [{ url: 'https://shared.example.org/', mine: true }] })
+    const bo = await resident('bo')
+    await harvestSignals(db, { baseUrl: BASE, now: NOW })
+    await db.externalSite.create({ data: { id: 'site_bo', userId: bo, url: 'https://shared.example.org/', siteRef: 'shared.example.org', state: 'verified' } })
+    await harvestSignals(db, { baseUrl: BASE, now: new Date(NOW.getTime() + DAY) })
+    expect(await db.site.findUniqueOrThrow({ where: { key: 'shared.example.org' }, select: { ownerId: true, tier: true } })).toEqual({ ownerId: bo, tier: 'resident' })
+
+    // Not while it's waiting to be proved, nor once it's been removed
+    await db.externalSite.update({ where: { id: 'site_bo' }, data: { state: 'removed' } })
+    await harvestSignals(db, { baseUrl: BASE, now: new Date(NOW.getTime() + 2 * DAY) })
+    expect(await db.site.findUniqueOrThrow({ where: { key: 'shared.example.org' }, select: { ownerId: true } })).toEqual({ ownerId: 'u_ada' })
+  })
+
   it('reads only public profiles, and skips blocked hosts, opted-out sites and links to this site', async () => {
     await db.blockedSite.create({ data: { domain: 'youtube.com', category: 'video' } })
     await db.siteOptOut.create({ data: { key: 'gone.example.org', via: 'owner' } })

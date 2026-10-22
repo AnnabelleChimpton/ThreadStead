@@ -8,6 +8,9 @@
  *   home_link    a link in a live profile template or the bio
  *   home_button  an 88×31 button in a live profile template
  *   page_link    a link on a published CustomPage (the admin's signal)
+ *   verified     a site the resident proved is theirs (Settings → Your
+ *                sites, lib/rings/sites.ts); it decides the owner over
+ *                `own` and `backlink`, whoever came first
  *
  * Only public profiles are read. Signals whose source has gone are deleted,
  * so a resident who removes a link, or makes their profile private, takes
@@ -101,6 +104,13 @@ export async function harvestSignals(db: PrismaClient, { baseUrl, now = new Date
     }
   }
 
+  // Sites residents proved are theirs, while they're still up.
+  const proved = await db.externalSite.findMany({
+    where: { state: { in: ['verified', 'resting'] }, user: { profile: { visibility: 'public' } } },
+    select: { url: true, userId: true },
+  })
+  for (const s of proved) add(s.url, s.userId, 'verified')
+
   // The site's own pages count as the admin's signal.
   const admin = await db.user.findFirst({ where: { role: 'admin' }, orderBy: { createdAt: 'asc' }, select: { id: true } })
   if (admin) {
@@ -157,14 +167,14 @@ export async function harvestSignals(db: PrismaClient, { baseUrl, now = new Date
     })
   }
 
-  // Owner: whoever claimed it first (a tick or a backlink).
+  // Owner: whoever proved it's theirs, else whoever claimed it first (a tick or a backlink).
   await db.$executeRaw`
     UPDATE "Site" s SET "ownerId" = o."userId"
     FROM (
       SELECT DISTINCT ON (si."id") si."id", sig."userId"
       FROM "Site" si
-      LEFT JOIN "SiteSignal" sig ON sig."siteId" = si."id" AND sig."kind" IN ('own', 'backlink')
-      ORDER BY si."id", sig."firstSeenAt" ASC NULLS LAST, sig."userId"
+      LEFT JOIN "SiteSignal" sig ON sig."siteId" = si."id" AND sig."kind" IN ('verified', 'own', 'backlink')
+      ORDER BY si."id", (sig."kind" = 'verified') DESC NULLS LAST, sig."firstSeenAt" ASC NULLS LAST, sig."userId"
     ) o
     WHERE s."id" = o."id" AND s."ownerId" IS DISTINCT FROM o."userId"
   `
