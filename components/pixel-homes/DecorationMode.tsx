@@ -33,6 +33,7 @@ import { retroSFX } from '../../lib/audio/retro-sfx'
 import { MAX_DECORATIONS } from '../../lib/pixel-homes/decoration-save-rules'
 import { catalogId, docFromProps, newPlacement, toSavePayload, type SavePayload } from '../../lib/pixel-homes/editor-doc'
 import { canHaveNote } from '../../lib/pixel-homes/decoration-note'
+import { HOUSE_OPTION_ITEMS } from '../../lib/pixel-homes/house-option-items'
 import { clearDraft, draftTime, draftToOffer, writeDraft, type EditorDraft } from '../../lib/pixel-homes/editor-draft'
 import {
   IDLE,
@@ -520,37 +521,8 @@ export default function DecorationMode({
     if (item.type === 'house_custom') {
       const customizationUpdate: Partial<HouseCustomizations> = {}
 
-      // Windows
-      if (item.id.includes('windows') || item.id === 'default_windows') {
-        if (item.id === 'round_windows') customizationUpdate.windowStyle = 'round'
-        else if (item.id === 'arched_windows') customizationUpdate.windowStyle = 'arched'
-        else if (item.id === 'bay_windows') customizationUpdate.windowStyle = 'bay'
-        else if (item.id === 'default_windows') customizationUpdate.windowStyle = 'default'
-      }
-      // Doors
-      else if (item.id.includes('door') || item.id === 'default_door') {
-        if (item.id === 'arched_door') customizationUpdate.doorStyle = 'arched'
-        else if (item.id === 'double_door') customizationUpdate.doorStyle = 'double'
-        else if (item.id === 'cottage_door') customizationUpdate.doorStyle = 'cottage'
-        else if (item.id === 'default_door') customizationUpdate.doorStyle = 'default'
-      }
-      // Roof Trim
-      else if (item.id.includes('trim') || item.id === 'default_trim') {
-        if (item.id === 'ornate_trim') customizationUpdate.roofTrim = 'ornate'
-        else if (item.id === 'scalloped_trim') customizationUpdate.roofTrim = 'scalloped'
-        else if (item.id === 'gabled_trim') customizationUpdate.roofTrim = 'gabled'
-        else if (item.id === 'default_trim') customizationUpdate.roofTrim = 'default'
-      }
-      // Window Treatments
-      else if (item.id === 'shutters') customizationUpdate.windowTreatments = 'shutters'
-      else if (item.id === 'flower_boxes') customizationUpdate.windowTreatments = 'flower_boxes'
-      else if (item.id === 'awnings') customizationUpdate.windowTreatments = 'awnings'
-      else if (item.id === 'default_treatments') customizationUpdate.windowTreatments = 'default'
-      // Chimney
-      else if (item.id === 'brick_chimney') customizationUpdate.chimneyStyle = 'brick'
-      else if (item.id === 'stone_chimney') customizationUpdate.chimneyStyle = 'stone'
-      else if (item.id === 'no_chimney') customizationUpdate.chimneyStyle = 'none'
-      else if (item.id === 'default_chimney') customizationUpdate.chimneyStyle = 'default'
+      // Doors, windows, window decor, roof trim, chimney
+      if (HOUSE_OPTION_ITEMS[item.id]) Object.assign(customizationUpdate, HOUSE_OPTION_ITEMS[item.id].set)
       // Welcome Mat
       else if (item.id === 'plain_mat') customizationUpdate.welcomeMat = 'plain'
       else if (item.id === 'floral_mat') customizationUpdate.welcomeMat = 'floral'

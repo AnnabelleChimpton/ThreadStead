@@ -1,5 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react'
 import DecorationIcon from './DecorationIcon'
+import HouseOptionThumb, { isHouseOptionItem } from './HouseOptionThumb'
+import { houseLayerSet } from '@/lib/pixel-homes/house-layers'
 import ThemePicker from './ThemePicker'
 import { HouseCustomizations, HouseTemplate, ColorPalette } from './HouseSVG'
 import { DecorationItem, TERRAIN_TILES, TerrainTile } from '../../lib/pixel-homes/decoration-data'
@@ -970,6 +972,15 @@ export default function DecorationPalette({
               >
                 {/* Item Icon */}
                 <div className="!flex-1 !flex !items-center !justify-center !w-full !h-full !overflow-hidden">
+                  {isHouseOptionItem(item.id) && houseLayerSet(currentTemplate) ? (
+                    <HouseOptionThumb
+                      itemId={item.id}
+                      template={currentTemplate}
+                      palette={currentPalette}
+                      customizations={houseCustomizations}
+                      size={isMobile ? 48 : 44}
+                    />
+                  ) : (
                   <DecorationIcon
                     type={item.type as any}
                     id={item.id}
@@ -994,6 +1005,7 @@ export default function DecorationPalette({
                     pngFrames={item.pngFrames}
                     palette={palette}
                   />
+                  )}
                 </div>
 
                 {/* Selection Indicator */}
