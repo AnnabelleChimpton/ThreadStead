@@ -3,15 +3,28 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { Prisma, UserRole } from "@prisma/client";
 import { db } from "../config/database/connection";
 import { sendForbiddenAdmin, sendUnauthenticated } from "../api/errors";
-import { createCsrfCookie, generateCsrfToken, getCookieSecureFlag } from "../server/http/csrf";
+import {
+  createCsrfCookie,
+  generateCsrfToken,
+  getCookieSecureFlag,
+  LEGACY_CSRF_COOKIE,
+  usesHostPrefixedCookies,
+} from "../server/http/csrf";
 import { assertCanSignIn, isRestricted, MODERATION_SELECT, type ModerationFields } from "../domain/users/moderation";
 
 /**
- * Sessions: a `Session` row plus an HttpOnly cookie `retro_session=<userId>.<secret>`.
- * Everything that creates, reads or clears one goes through this file.
+ * Sessions: a `Session` row plus an HttpOnly cookie `<name>=<userId>.<secret>`,
+ * named `__Host-retro_session` in production and `retro_session` in dev (see
+ * usesHostPrefixedCookies). Everything that creates, reads or clears one goes
+ * through this file.
  */
-export const SESSION_COOKIE = "retro_session";
+/** The session cookie's name before the `__Host-` prefix, still read in production for one session lifetime. */
+export const LEGACY_SESSION_COOKIE = "retro_session";
 export const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 days
+
+export function sessionCookieName(): string {
+  return usesHostPrefixedCookies() ? `__Host-${LEGACY_SESSION_COOKIE}` : LEGACY_SESSION_COOKIE;
+}
 
 /** A cookie value from the request header, or null. Tolerates bad %-escapes. */
 export function readCookie(req: Pick<NextApiRequest, "headers">, name: string): string | null {
@@ -30,8 +43,17 @@ export function readCookie(req: Pick<NextApiRequest, "headers">, name: string): 
   return null;
 }
 
-function sessionCookie(value: string, maxAge: number): string {
-  return `${SESSION_COOKIE}=${value}; HttpOnly; ${getCookieSecureFlag()}Path=/; Max-Age=${maxAge}; SameSite=Strict`;
+function sessionCookie(value: string, maxAge: number, name = sessionCookieName()): string {
+  return `${name}=${value}; HttpOnly; ${getCookieSecureFlag()}Path=/; Max-Age=${maxAge}; SameSite=Strict`;
+}
+
+/** In production, Set-Cookie lines that expire the pre-`__Host-` cookies (none in dev, where the names are the same). */
+function expireLegacyCookies(): string[] {
+  if (!usesHostPrefixedCookies()) return [];
+  return [
+    sessionCookie("", 0, LEGACY_SESSION_COOKIE),
+    `${LEGACY_CSRF_COOKIE}=; ${getCookieSecureFlag()}Path=/; Max-Age=0; SameSite=Lax`,
+  ];
 }
 
 /**
@@ -49,12 +71,19 @@ export async function createSession(res: NextApiResponse, userId: string): Promi
   res.setHeader("Set-Cookie", [
     sessionCookie(`${userId}.${secret}`, SESSION_TTL_SECONDS),
     createCsrfCookie(generateCsrfToken(), SESSION_TTL_SECONDS),
+    ...expireLegacyCookies(),
   ]);
 }
 
-/** The `[userId, secret]` halves of the session cookie, or null. */
+/**
+ * The `[userId, secret]` halves of the session cookie, or null. In production
+ * a session from before the rename only has the old `retro_session` name, so
+ * that's read when there's no `__Host-` one. Drop the fallback a week after
+ * the rename ships (sessions last 7 days and aren't extended).
+ */
 function readSessionCookie(req: Pick<NextApiRequest, "headers">): [string, string] | null {
-  const value = readCookie(req, SESSION_COOKIE);
+  let value = readCookie(req, sessionCookieName());
+  if (!value && usesHostPrefixedCookies()) value = readCookie(req, LEGACY_SESSION_COOKIE);
   if (!value) return null;
   const [userId, secret] = value.split(".");
   return userId && secret ? [userId, secret] : null;
@@ -66,7 +95,7 @@ function readSessionCookie(req: Pick<NextApiRequest, "headers">): [string, strin
  */
 export async function clearSession(req: Pick<NextApiRequest, "headers">, res: NextApiResponse): Promise<void> {
   // cookie first, so the browser is signed out even if the delete fails
-  res.setHeader("Set-Cookie", sessionCookie("", 0));
+  res.setHeader("Set-Cookie", [sessionCookie("", 0), ...expireLegacyCookies()]);
   const cookie = readSessionCookie(req);
   if (cookie) {
     const [userId, secret] = cookie;
@@ -79,8 +108,13 @@ export async function clearSession(req: Pick<NextApiRequest, "headers">, res: Ne
  * signed in with, e.g. after a password change.
  */
 export async function endOtherSessions(req: Pick<NextApiRequest, "headers">, userId: string): Promise<void> {
-  const secret = readSessionCookie(req)?.[1];
+  const secret = sessionSecret(req);
   await db.session.deleteMany({ where: { userId, ...(secret ? { NOT: { secret } } : {}) } });
+}
+
+/** The secret half of the request's session cookie, or null. */
+export function sessionSecret(req: Pick<NextApiRequest, "headers">): string | null {
+  return readSessionCookie(req)?.[1] ?? null;
 }
 
 /** Delete every Session row of `userId`, e.g. when the account is suspended. */

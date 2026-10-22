@@ -2,8 +2,11 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/config/database/connection";
 import { hashPassword } from "@/lib/auth/password";
 import { endOtherSessions, getSessionUser } from "@/lib/auth/server";
+import { sameOriginProtection } from "@/lib/server/http/same-origin";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // cookie-authed and not on apiHandler: refuse cross-origin posts here
+  if (!sameOriginProtection(req, res)) return;
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }

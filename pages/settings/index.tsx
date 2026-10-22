@@ -151,7 +151,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
 
     setPixelHomeLoading(true);
     try {
-      const response = await fetch(`/api/home/${username}`, {
+      const response = await csrfFetch(`/api/home/${username}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ houseTemplate: template, palette })
@@ -377,7 +377,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
             const newEncryptedSeed = encryptSeedPhraseWithPassword(newSeed, userPassword);
 
             // Update the encrypted seed phrase on server
-            const response = await fetch('/api/auth/update-encrypted-seed', {
+            const response = await csrfFetch('/api/auth/update-encrypted-seed', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ encryptedSeedPhrase: newEncryptedSeed, currentPassword: userPassword })
@@ -430,7 +430,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
             const newEncryptedSeed = encryptSeedPhraseWithPassword(recoveryPhrase.trim(), userPassword);
 
             // Update the encrypted seed phrase on server
-            const response = await fetch('/api/auth/update-encrypted-seed', {
+            const response = await csrfFetch('/api/auth/update-encrypted-seed', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ encryptedSeedPhrase: newEncryptedSeed, currentPassword: userPassword })
@@ -537,7 +537,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
 
     setIsEmailLoading(true);
     try {
-      const response = await fetch('/api/user/email', {
+      const response = await csrfFetch('/api/user/email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: emailInput.trim() })
@@ -638,7 +638,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
 
     setIsEmailLoading(true);
     try {
-      const response = await fetch('/api/user/email', {
+      const response = await csrfFetch('/api/user/email', {
         method: 'DELETE'
       });
 

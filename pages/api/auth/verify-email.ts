@@ -2,7 +2,7 @@ import { apiHandler } from "@/lib/api/handler";
 import { verifyEmailVerificationToken } from "@/lib/email-login";
 
 export default apiHandler(
-  // no CSRF today: opened from an emailed link, possibly signed out; plain fetch
+  // CSRF off: opened from an emailed link, possibly signed out; the same-origin check still applies
   { methods: ["POST"], auth: "none", csrf: false, rateLimit: "auth" },
   async (req, res) => {
     try {

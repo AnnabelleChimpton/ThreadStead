@@ -4,8 +4,7 @@ import { hashPassword } from "@/lib/auth/password";
 import { checkCurrentPassword, signedInRecently } from "@/lib/auth/current-password";
 
 export default apiHandler(
-  // no CSRF today: did-client signup flow calls it with plain fetch right after /api/auth/verify
-  { methods: ["POST"], auth: "user", csrf: false },
+  { methods: ["POST"], auth: "user" },
   async (req, res, { user }) => {
     const { password, encryptedSeedPhrase, currentPassword } = req.body;
 

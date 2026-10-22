@@ -15,8 +15,7 @@ const updateConfigSchema = z.object({
 })
 
 export default apiHandler(
-  // no CSRF today: pages/settings/index.tsx PATCHes with plain fetch
-  { methods: ['GET', 'PATCH'], auth: 'optional', csrf: false },
+  { methods: ['GET', 'PATCH'], auth: 'optional' },
   async (req, res, { user: currentUser }) => {
     const { handle } = req.query
 

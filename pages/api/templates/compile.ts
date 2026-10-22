@@ -10,8 +10,6 @@ export default apiHandler(
   {
     methods: ['POST'],
     auth: 'user',
-    // Changes nothing, so a cross-site post gains nothing
-    csrf: false,
   },
   async (req, res) => {
     const { template } = req.body ?? {};

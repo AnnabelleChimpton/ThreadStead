@@ -608,7 +608,7 @@ export default function EnhancedTemplateEditor({
       }
 
       // The same compile a save runs, so the preview is what gets stored
-      const response = await fetch('/api/templates/compile', {
+      const response = await csrfFetch('/api/templates/compile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include', // Ensure cookies are sent with the request
@@ -1190,7 +1190,7 @@ export default function EnhancedTemplateEditor({
 
     try {
       // The same compile the preview and a save use
-      const response = await fetch('/api/templates/compile', {
+      const response = await csrfFetch('/api/templates/compile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ template })

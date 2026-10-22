@@ -11,6 +11,7 @@ import { normalizeDecorationRow, normalizeHomeConfig } from '@/lib/pixel-homes/d
 import type { SavePayload } from '@/lib/pixel-homes/editor-doc'
 import { customArtUrl, customSlotOf, customSlotUrls } from '@/lib/pixel-homes/custom-art'
 import { CATALOG_ART_SELECT, catalogArtFields, catalogArtMap } from '@/lib/pixel-homes/catalog-art'
+import { csrfFetch } from '@/lib/api/client/csrf-fetch'
 
 interface DecorationPageProps {
   handle: string
@@ -52,7 +53,7 @@ export default function DecoratePage({
   const handleSave = async (payload: SavePayload): Promise<boolean> => {
     setIsSaving(true)
     try {
-      const response = await fetch('/api/home/decorations/save', {
+      const response = await csrfFetch('/api/home/decorations/save', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

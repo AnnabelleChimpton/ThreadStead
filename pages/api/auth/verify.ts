@@ -10,8 +10,11 @@ import { createSession, readCookie } from "@/lib/auth/server";
 import { getClientIp } from "@/lib/server/http/client-ip";
 import { recordSignup, SignupLimitError } from "@/lib/domain/users/signup-limits";
 import { isRestricted, restrictionMessage } from "@/lib/domain/users/moderation";
+import { sameOriginProtection } from "@/lib/server/http/same-origin";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // cookie-authed and not on apiHandler: refuse cross-origin posts here
+  if (!sameOriginProtection(req, res)) return;
   if (req.method !== "POST") return res.status(405).end();
 
   // Every sign-in and signup lands here; cap attempts per IP

@@ -38,7 +38,7 @@ import { scheduleHomeSnapshot } from '@/lib/pixel-homes/snapshot/service'
 const mockDb = db as any
 
 function makeReqRes(body: any, method = 'POST') {
-  const req = { method, body, headers: {} } as unknown as NextApiRequest
+  const req = { method, body, headers: { cookie: 'csrf_token=t', 'x-csrf-token': 't' } } as unknown as NextApiRequest
   const res: any = {
     statusCode: 200,
     jsonBody: undefined,

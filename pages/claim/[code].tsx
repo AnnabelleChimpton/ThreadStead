@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { PixelIcon } from '@/components/ui/PixelIcon';
 import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner';
 import ErrorDisplay from '@/components/ui/feedback/ErrorDisplay';
+import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 
 interface DecorationInfo {
   itemId: string;
@@ -79,7 +80,7 @@ export default function ClaimPage({ isAuthenticated, userId, username }: ClaimPa
     setError(null);
 
     try {
-      const response = await fetch(`/api/decorations/claim/${code}`, {
+      const response = await csrfFetch(`/api/decorations/claim/${code}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

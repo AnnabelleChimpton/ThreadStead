@@ -6,8 +6,6 @@ export default apiHandler(
   {
     methods: ["GET", "POST", "DELETE"],
     auth: "user",
-    // no CSRF today: pages/settings/blocks.tsx sends DELETE with plain fetch
-    csrf: false,
   },
   async (req, res, { user }) => {
     if (req.method === "GET") {

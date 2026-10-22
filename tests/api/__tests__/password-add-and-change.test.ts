@@ -77,7 +77,7 @@ async function call(route: (req: NextApiRequest, res: NextApiResponse) => unknow
     method: 'POST',
     body,
     url: '/api/auth/x',
-    headers: { cookie: 'retro_session=user-seed.secret123' },
+    headers: { cookie: 'retro_session=user-seed.secret123; csrf_token=t', 'x-csrf-token': 't' },
     socket: { remoteAddress: '127.0.0.1' },
   } as unknown as NextApiRequest
   const res: any = {

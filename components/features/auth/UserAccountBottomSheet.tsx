@@ -27,7 +27,7 @@ export default function UserAccountBottomSheet({ isOpen, onClose }: UserAccountB
   }, [isOpen]);
 
   async function logout() {
-    await fetch("/api/auth/logout");
+    await fetch("/api/auth/logout", { method: "POST" });
     window.location.href = "/";
   }
 

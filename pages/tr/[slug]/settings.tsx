@@ -495,8 +495,6 @@ export default function ThreadRingSettingsPage({
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const siteConfig = await getSiteConfig();
   const { slug } = context.query;
-  const session = context.req.cookies.retro_session;
-  // Session and cookie validation
 
   if (typeof slug !== "string") {
     return {

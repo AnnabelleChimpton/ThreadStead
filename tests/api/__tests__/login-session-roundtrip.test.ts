@@ -88,7 +88,10 @@ import { toBase64Url } from '@/lib/utils/encoding/base64url';
 type Route = (req: NextApiRequest, res: NextApiResponse) => unknown;
 
 async function call(route: Route, { method = 'GET', body, cookie }: { method?: string; body?: unknown; cookie?: string } = {}) {
-  const req = { method, body, url: '/api/test', query: {}, headers: cookie ? { cookie } : {} } as unknown as NextApiRequest;
+  // Like csrfFetch: the CSRF cookie goes back as the header too
+  const csrf = cookie?.match(/(?:^|;\s*)csrf_token=([^;]+)/)?.[1];
+  const headers = { ...(cookie ? { cookie } : {}), ...(csrf ? { 'x-csrf-token': csrf } : {}) };
+  const req = { method, body, url: '/api/test', query: {}, headers } as unknown as NextApiRequest;
   const res: any = {
     statusCode: 200,
     body: undefined,
@@ -156,7 +159,8 @@ test('email link login → cookie → /me → logout', async () => {
   });
 
   const out = await call(logout, { method: 'POST', cookie });
-  expect(out.headers['set-cookie']).toMatch(/^retro_session=; HttpOnly; (Secure; )?Path=\/; Max-Age=0; SameSite=Strict$/);
+  expect(([] as string[]).concat(out.headers['set-cookie'] as string[])).toHaveLength(1);
+  expect((out.headers['set-cookie'] as string[])[0]).toMatch(/^retro_session=; HttpOnly; (Secure; )?Path=\/; Max-Age=0; SameSite=Strict$/);
   expect((await call(me, { cookie: cookieJar(out.headers['set-cookie']) })).body).toEqual({ loggedIn: false });
 
   // a copy of the old cookie no longer works either
@@ -172,11 +176,17 @@ async function emailLogin(): Promise<string> {
   return cookieJar(login.headers['set-cookie']);
 }
 
+test('logout is POST-only, so a link on a page can\'t sign anyone out', async () => {
+  const laptop = await emailLogin();
+  expect((await call(logout, { cookie: laptop })).statusCode).toBe(405);
+  expect((await call(me, { cookie: laptop })).body).toMatchObject({ loggedIn: true });
+});
+
 test('logout ends only its own session', async () => {
   const laptop = await emailLogin();
   const phone = await emailLogin();
 
-  await call(logout, { cookie: laptop });
+  await call(logout, { method: 'POST', cookie: laptop });
   expect((await call(me, { cookie: laptop })).body).toEqual({ loggedIn: false });
   expect((await call(me, { cookie: phone })).body).toMatchObject({ loggedIn: true });
 });

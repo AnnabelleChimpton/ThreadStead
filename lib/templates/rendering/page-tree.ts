@@ -11,6 +11,7 @@
  */
 import { find, html as htmlSpace, svg as svgSpace } from 'property-information';
 import type { TemplateNode } from '@/lib/templates/compilation/template-parser';
+import { postsToApi } from '@/lib/templates/compilation/form-action';
 
 export type PageTreeNode = string | PageTreeElement;
 
@@ -65,6 +66,8 @@ function nodeFromHast(node: TemplateNode, inSvg: boolean): PageTreeNode | null {
   const attrs: Array<[string, string]> = [];
   for (const [key, value] of Object.entries(node.properties ?? {})) {
     if (value == null || value === false) continue;
+    // Saved before the sanitizer took these out
+    if (key === 'action' && node.tagName === 'form' && postsToApi(value)) continue;
     const info = find(space, key);
     if (value === true) attrs.push([info.attribute, '']);
     else if (Array.isArray(value)) attrs.push([info.attribute, value.join(info.commaSeparated ? ', ' : ' ')]);
@@ -93,7 +96,9 @@ export function treeFromDom(parent: ParentNode): PageTreeNode[] {
     const element = node as Element;
     const el: PageTreeElement = { t: element.localName };
     if (element.attributes.length) {
-      el.a = Array.from(element.attributes, (attr) => [attr.name, attr.value] as [string, string]);
+      el.a = Array.from(element.attributes, (attr) => [attr.name, attr.value] as [string, string]).filter(
+        ([name, value]) => !(name === 'action' && el.t === 'form' && postsToApi(value))
+      );
     }
     const children = treeFromDom(element);
     if (children.length) el.c = children;

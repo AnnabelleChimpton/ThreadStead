@@ -92,6 +92,16 @@ describe('withCsrfProtection', () => {
     );
     expect(handler).toHaveBeenCalledTimes(1);
   });
+
+  it('refuses a cross-origin post even with a good token', async () => {
+    const handler = jest.fn(async () => {});
+    const r = res();
+    const crossSite = req({ cookie: `csrf_token=${TOKEN}`, header: TOKEN });
+    crossSite.headers['sec-fetch-site'] = 'same-site';
+    await withCsrfProtection(handler)(crossSite, r as unknown as NextApiResponse);
+    expect(r.statusCode).toBe(403);
+    expect(handler).not.toHaveBeenCalled();
+  });
 });
 
 describe('token + cookie', () => {
@@ -108,10 +118,38 @@ describe('token + cookie', () => {
       expect(dev).toBe('csrf_token=t; Path=/; Max-Age=604800; SameSite=Lax');
       (process.env as Record<string, string>).NODE_ENV = 'production';
       const prod = createCsrfCookie('t', 60);
-      expect(prod).toBe('csrf_token=t; Secure; Path=/; Max-Age=60; SameSite=Lax');
+      // __Host-: a subdomain can't set or shadow it
+      expect(prod).toBe('__Host-csrf_token=t; Secure; Path=/; Max-Age=60; SameSite=Lax');
       expect(prod).not.toMatch(/HttpOnly/i);
     } finally {
       (process.env as Record<string, string>).NODE_ENV = env!;
     }
+  });
+});
+
+describe('cookie names in production', () => {
+  const env = process.env.NODE_ENV;
+  beforeEach(() => ((process.env as Record<string, string>).NODE_ENV = 'production'));
+  afterEach(() => ((process.env as Record<string, string>).NODE_ENV = env!));
+
+  it('checks the header against __Host-csrf_token', () => {
+    expect(validateCsrfToken(req({ cookie: `__Host-csrf_token=${TOKEN}`, header: TOKEN }))).toBe(true);
+    expect(getCsrfToken(req({ cookie: `__Host-csrf_token=${TOKEN}` }))).toBe(TOKEN);
+  });
+
+  it('still takes the old csrf_token when there is no __Host- one (sessions from before the rename)', () => {
+    expect(validateCsrfToken(req({ cookie: `csrf_token=${TOKEN}`, header: TOKEN }))).toBe(true);
+  });
+
+  it('prefers __Host-csrf_token over a planted csrf_token', () => {
+    const cookie = `csrf_token=${'b'.repeat(64)}; __Host-csrf_token=${TOKEN}`;
+    expect(validateCsrfToken(req({ cookie, header: TOKEN }))).toBe(true);
+    expect(validateCsrfToken(req({ cookie, header: 'b'.repeat(64) }))).toBe(false);
+  });
+});
+
+describe('dev cookie names', () => {
+  it('ignores a __Host- cookie', () => {
+    expect(getCsrfToken(req({ cookie: `__Host-csrf_token=${TOKEN}` }))).toBeNull();
   });
 });

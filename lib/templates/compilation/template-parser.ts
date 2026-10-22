@@ -1,6 +1,7 @@
 import { unified } from 'unified';
 import rehypeParse from 'rehype-parse';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
+import { FORM_ACTION_REMOVED, postsToApi } from './form-action';
 import { find, html as htmlSchema } from 'property-information';
 import type { Root } from 'hast';
 import { componentRegistry } from '../core/template-registry';
@@ -484,9 +485,12 @@ function prefixFragment(value: unknown): unknown {
  *    `usemap="#m"` and `url(#blur)` in SVG attributes and inline styles
  *    (htmlFor, list and the aria id lists are prefixed by the sanitizer);
  *  - links that open a new tab get rel="noopener";
- *  - autoplay only survives on muted media.
+ *  - autoplay only survives on muted media;
+ *  - a form's action can't point at /api/ (form-action.ts).
+ * Returns whether it took out any form action.
  */
-function finishSanitizedTree(node: HastLike): void {
+function finishSanitizedTree(node: HastLike): boolean {
+  let removedFormAction = false;
   if (node.type === 'element') {
     if (typeof node.tagName === 'string' && node.tagName.startsWith(COMPONENT_TAG_PREFIX)) {
       node.tagName = node.tagName.slice(COMPONENT_TAG_PREFIX.length);
@@ -512,9 +516,16 @@ function finishSanitizedTree(node: HastLike): void {
       if ((node.tagName === 'audio' || node.tagName === 'video') && props.autoPlay && !props.muted) {
         delete props.autoPlay;
       }
+      if (node.tagName === 'form' && postsToApi(props.action)) {
+        delete props.action;
+        removedFormAction = true;
+      }
     }
   }
-  node.children?.forEach(finishSanitizedTree);
+  for (const child of node.children ?? []) {
+    if (finishSanitizedTree(child)) removedFormAction = true;
+  }
+  return removedFormAction;
 }
 
 // Parse HTML to HAST (Hypertext Abstract Syntax Tree)
@@ -555,12 +566,17 @@ export function parseTemplate(htmlString: string): Root & {
 
   const tree = processor.parse(processedHtml);
   const processed = processor.runSync(tree) as Root;
-  finishSanitizedTree(processed as HastLike);
+  const removedFormAction = finishSanitizedTree(processed as HastLike);
 
   const strippedComponents = reportStrippedTags(htmlString, processed, document.head);
 
   // Component props that won't do what the author meant, for the editor
-  const attributeWarnings = [...reportComponentProps(htmlString), ...reportPageProblems(htmlString), ...(document.warnings ?? [])];
+  const attributeWarnings = [
+    ...reportComponentProps(htmlString),
+    ...reportPageProblems(htmlString),
+    ...(document.warnings ?? []),
+    ...(removedFormAction ? [FORM_ACTION_REMOVED] : []),
+  ];
 
   // Attach stripped components and attribute warnings to the result
   const result = processed as Root & {

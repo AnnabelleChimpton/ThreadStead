@@ -65,8 +65,7 @@ async function saveCustomAssetSlots(userId: string, slots: CustomAssetSlot[]): P
 }
 
 export default apiHandler(
-  // no CSRF today: components/pixel-homes/DecorationMode.tsx POSTs/DELETEs with plain fetch
-  { methods: ["GET", "POST", "DELETE"], auth: "user", csrf: false },
+  { methods: ["GET", "POST", "DELETE"], auth: "user" },
   async (req, res, { user: me }) => {
     // GET - Retrieve all custom asset slots
     if (req.method === "GET") {

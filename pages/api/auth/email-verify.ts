@@ -5,7 +5,7 @@ import { createSession } from "@/lib/auth/server";
 import { isRestricted, MODERATION_SELECT, restrictionMessage } from "@/lib/domain/users/moderation";
 
 export default apiHandler(
-  // no CSRF today: anonymous visitors following an emailed login link; plain fetch
+  // CSRF off: signed-out visitors following an emailed login link; the same-origin check still applies
   { methods: ["POST"], auth: "none", csrf: false, rateLimit: "auth" },
   async (req, res) => {
     try {

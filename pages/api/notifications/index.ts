@@ -17,8 +17,6 @@ export default apiHandler(
   {
     methods: ["GET", "PATCH", "POST"],
     auth: "user",
-    // no CSRF today: NotificationDropdown sends PATCH with plain fetch
-    csrf: false,
   },
   async (req, res, { user }) => {
     if (req.method === "GET") {

@@ -14,7 +14,7 @@ export default function UserDropdown() {
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number; right?: number; left?: number }>({ top: 0, right: 0 });
 
   async function logout() {
-    await fetch("/api/auth/logout");
+    await fetch("/api/auth/logout", { method: "POST" });
     window.location.href = "/";
   }
 

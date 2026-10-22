@@ -7,6 +7,7 @@ import UsernameSelector from "@/components/features/auth/UsernameSelector";
 import WelcomeRingOptIn from "@/components/features/onboarding/WelcomeRingOptIn";
 import { welcomeRingExists, WELCOME_RING_PATH } from "@/components/features/onboarding/useWelcomeRing";
 import { PixelIcon } from '@/components/ui/PixelIcon';
+import { csrfFetch } from "@/lib/api/client/csrf-fetch";
 
 type OnboardingStep = 'username' | 'welcome-ring' | 'complete';
 
@@ -31,7 +32,7 @@ export default function Onboarding() {
     setBusy(true);
     setErr(null);
     try {
-      const res = await fetch("/api/account/claim-handle", {
+      const res = await csrfFetch("/api/account/claim-handle", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ handle: confirmedUsername }),

@@ -23,7 +23,7 @@ function hashIP(ip: string | undefined): string | null {
 }
 
 export default apiHandler(
-  // no CSRF today: anonymous visitors record views too
+  // CSRF off: signed-out visitors record views too; the same-origin check still applies
   { methods: ['POST'], auth: 'optional', csrf: false },
   async (req, res, { user }) => {
     try {

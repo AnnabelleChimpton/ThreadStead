@@ -3,8 +3,7 @@ import { db } from "@/lib/config/database/connection";
 import { checkCurrentPassword } from "@/lib/auth/current-password";
 
 export default apiHandler(
-  // no CSRF today: settings page calls it with plain fetch
-  { methods: ["POST"], auth: "user", csrf: false },
+  { methods: ["POST"], auth: "user" },
   async (req, res, { user }) => {
     const { encryptedSeedPhrase, currentPassword } = req.body;
 

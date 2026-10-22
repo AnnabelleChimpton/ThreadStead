@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { getSessionUser } from '@/lib/auth/server'
 import { AuthenticatedRingHubClient } from '@/lib/api/ringhub/ringhub-user-operations'
+import { sameOriginProtection } from '@/lib/server/http/same-origin'
 
 interface BadgeUpdateRequest {
   badgeImageUrl?: string;
@@ -21,6 +22,8 @@ interface BadgeUpdateResponse {
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // cookie-authed and not on apiHandler: refuse cross-origin posts here
+  if (!sameOriginProtection(req, res)) return
   const user = await getSessionUser(req)
   if (!user) {
     return res.status(401).json({ error: 'Authentication required' })

@@ -2,7 +2,8 @@
  * @jest-environment node
  *
  * apiHandler (TECH_DEBT_AUDIT §2.1): one session lookup per request, the
- * fixed check order (405 → api key → rate limit → CSRF → 401/403 → schema),
+ * fixed check order (405 → api key → rate limit → same origin → CSRF →
+ * 401/403 → schema),
  * and consistent `{ error }` bodies.
  */
 import type { NextApiRequest, NextApiResponse } from 'next';
@@ -14,6 +15,7 @@ jest.mock('@/lib/server/http/rate-limit', () => ({ rateLimitCheck: jest.fn() }))
 import { apiHandler, ApiError } from '@/lib/api/handler';
 import { getSessionUser } from '@/lib/auth/server';
 import { rateLimitCheck } from '@/lib/server/http/rate-limit';
+import { CROSS_ORIGIN_ERROR, getSiteOrigin } from '@/lib/server/http/same-origin';
 
 const mockSession = getSessionUser as jest.Mock;
 const mockRateLimit = rateLimitCheck as jest.Mock;
@@ -160,6 +162,49 @@ describe('CSRF', () => {
   test('csrf: false opts out', async () => {
     const open = apiHandler({ methods: ['POST'], auth: 'admin', csrf: false }, async (_req, res) => res.json({}));
     expect((await call(open, { method: 'POST' })).statusCode).toBe(200);
+  });
+});
+
+describe('same-origin check (lib/server/http/same-origin.ts)', () => {
+  const SITE = getSiteOrigin();
+  const strict = apiHandler({ methods: ['GET', 'POST'], auth: 'admin' }, async (_req, res) => res.json({ ok: true }));
+  const open = apiHandler({ methods: ['POST'], auth: 'none', csrf: false }, async (_req, res) => res.json({ ok: true }));
+
+  test.each([
+    ['a resident subdomain', { 'sec-fetch-site': 'same-site' }],
+    ['another site', { 'sec-fetch-site': 'cross-site' }],
+    ['another Origin (no Sec-Fetch-Site)', { origin: 'https://alice.example.com' }],
+    ['Origin null (sandboxed frame)', { origin: 'null' }],
+  ])('refuses a post from %s, even with csrf: false and a good token', async (_name, from) => {
+    for (const route of [strict, open]) {
+      const res = await call(route, { method: 'POST', headers: { ...withCsrf, ...from } });
+      expect(res.statusCode).toBe(403);
+      expect(res.body).toEqual({ error: CROSS_ORIGIN_ERROR });
+    }
+  });
+
+  test.each([
+    ['Sec-Fetch-Site: same-origin', { 'sec-fetch-site': 'same-origin' }],
+    ['the site Origin', { origin: SITE }],
+    ['no browser headers at all (a script, not a browser)', {}],
+  ])('lets a post with %s through', async (_name, from) => {
+    expect((await call(open, { method: 'POST', headers: from })).statusCode).toBe(200);
+    expect((await call(strict, { method: 'POST', headers: { ...withCsrf, ...from } })).statusCode).toBe(200);
+  });
+
+  test('Sec-Fetch-Site wins over a matching Origin', async () => {
+    const res = await call(open, { method: 'POST', headers: { origin: SITE, 'sec-fetch-site': 'same-site' } });
+    expect(res.statusCode).toBe(403);
+  });
+
+  test('GET from anywhere is fine', async () => {
+    expect((await call(strict, { headers: { 'sec-fetch-site': 'cross-site' } })).statusCode).toBe(200);
+  });
+
+  test('an API-key caller is not a browser and skips it', async () => {
+    const keyed = apiHandler({ methods: ['POST'], auth: 'admin', apiKey: () => 'k' }, async (_req, res) => res.json({}));
+    const res = await call(keyed, { method: 'POST', headers: { authorization: 'Bearer k', origin: 'https://elsewhere.test' } });
+    expect(res.statusCode).toBe(200);
   });
 });
 

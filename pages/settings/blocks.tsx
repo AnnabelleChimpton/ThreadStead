@@ -9,6 +9,7 @@ import { PixelIcon } from "@/components/ui/PixelIcon";
 import { useToast } from "@/contexts/ToastContext";
 import LoadingSpinner from "@/components/ui/feedback/LoadingSpinner";
 import EmptyState from "@/components/ui/feedback/EmptyState";
+import { csrfFetch } from "@/lib/api/client/csrf-fetch";
 
 interface BlockedUser {
   id: string;
@@ -77,7 +78,7 @@ export default function BlocksPage() {
         payload.blockedThreadRingId = block.blockedThreadRing.id;
       }
 
-      const response = await fetch("/api/blocks", {
+      const response = await csrfFetch("/api/blocks", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

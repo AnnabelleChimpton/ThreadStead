@@ -35,8 +35,7 @@ function sendInvalid(res: NextApiResponse, fields: FieldErrors) {
 }
 
 export default apiHandler(
-  // no CSRF today: pages/home/[handle]/decorate.tsx POSTs with plain fetch
-  { methods: ["POST"], auth: "user", csrf: false },
+  { methods: ["POST"], auth: "user" },
   async (req, res, { user: me }) => {
     const parsed = saveHomeSchema.safeParse(req.body);
     if (!parsed.success) return sendInvalid(res, fieldErrors(parsed.error));

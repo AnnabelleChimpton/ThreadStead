@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import crypto from "crypto";
+import { sameOriginProtection } from "./same-origin";
 
 /**
  * CSRF protection (double-submit cookie). The browser half is
@@ -7,7 +8,7 @@ import crypto from "crypto";
  *
  * How it works:
  * 1. Generate a random CSRF token when user authenticates
- * 2. Set token in a cookie (csrf_token)
+ * 2. Set token in a cookie (csrfCookieName())
  * 3. Frontend includes token in request header (X-CSRF-Token)
  * 4. Validate that cookie value matches header value
  *
@@ -15,7 +16,8 @@ import crypto from "crypto";
  * attackers cannot forge requests from external sites.
  */
 
-const CSRF_COOKIE_NAME = "csrf_token";
+/** The CSRF cookie's name before the `__Host-` prefix, still read in production for one session lifetime. */
+export const LEGACY_CSRF_COOKIE = "csrf_token";
 const CSRF_HEADER_NAME = "x-csrf-token";
 const CSRF_TOKEN_LENGTH = 32; // 256 bits
 
@@ -36,6 +38,36 @@ export function getCookieSecureFlag(): string {
 }
 
 /**
+ * Whether the session and CSRF cookies take the `__Host-` prefix. Such a
+ * cookie must be Secure with Path=/ and no Domain, so a subdomain
+ * (alice.homepageagain.com) can neither set nor shadow it. Production only:
+ * dev runs on plain http, where Secure cookies aren't kept everywhere
+ * (127.0.0.1, Safari), so dev keeps the plain names.
+ */
+export function usesHostPrefixedCookies(): boolean {
+  return process.env.NODE_ENV === 'production';
+}
+
+export function csrfCookieName(): string {
+  return usesHostPrefixedCookies() ? `__Host-${LEGACY_CSRF_COOKIE}` : LEGACY_CSRF_COOKIE;
+}
+
+/**
+ * The value of cookie `name` in a Cookie header, or null. Anchored on a
+ * cookie boundary, so `x_csrf_token` isn't read in place of `csrf_token`.
+ * A malformed %-escape counts as missing.
+ */
+function cookieValue(cookie: string, name: string): string | null {
+  const match = cookie.match(new RegExp(`(?:^|;\\s*)${name}=([^;]+)`));
+  if (!match) return null;
+  try {
+    return decodeURIComponent(match[1]);
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Create the Set-Cookie header value for CSRF token
  */
 export function createCsrfCookie(token: string, maxAge: number = 604800): string {
@@ -43,24 +75,20 @@ export function createCsrfCookie(token: string, maxAge: number = 604800): string
   // Session cookie remains HttpOnly for security (it contains actual secrets)
   // Secure flag is environment-dependent (HTTPS in production, HTTP in dev)
   // Max age: 7 days (same as session)
-  return `${CSRF_COOKIE_NAME}=${token}; ${getCookieSecureFlag()}Path=/; Max-Age=${maxAge}; SameSite=Lax`;
+  return `${csrfCookieName()}=${token}; ${getCookieSecureFlag()}Path=/; Max-Age=${maxAge}; SameSite=Lax`;
 }
 
 /**
- * Extract CSRF token from cookie
+ * Extract CSRF token from cookie. In production the old `csrf_token` name is
+ * still read when there's no `__Host-` one: sessions from before the rename
+ * carry only that. Drop the fallback a week after the rename ships (sessions
+ * last 7 days and aren't extended).
  */
-function getCsrfTokenFromCookie(req: NextApiRequest): string | null {
+function getCsrfTokenFromCookie(req: Pick<NextApiRequest, "headers">): string | null {
   const cookie = req.headers.cookie || "";
-  // Anchor on a cookie boundary so a cookie like `x_csrf_token` can't be
-  // read in place of ours.
-  const match = cookie.match(new RegExp(`(?:^|;\\s*)${CSRF_COOKIE_NAME}=([^;]+)`));
-  if (!match) return null;
-  try {
-    return decodeURIComponent(match[1]);
-  } catch {
-    // Malformed %-escape: treat as missing (403), not a 500
-    return null;
-  }
+  const current = cookieValue(cookie, csrfCookieName());
+  if (current || !usesHostPrefixedCookies()) return current;
+  return cookieValue(cookie, LEGACY_CSRF_COOKIE);
 }
 
 /**
@@ -128,21 +156,22 @@ export async function csrfProtection(
 /**
  * Get the CSRF token from request (for debugging/logging)
  */
-export function getCsrfToken(req: NextApiRequest): string | null {
+export function getCsrfToken(req: Pick<NextApiRequest, "headers">): string | null {
   return getCsrfTokenFromCookie(req);
 }
 
 type Handler = (req: NextApiRequest, res: NextApiResponse) => Promise<void | NextApiResponse>;
 
 /**
- * Wrap a hand-written route with CSRF protection. Routes on apiHandler get
- * this from its `csrf` option (on by default) instead.
+ * Wrap a hand-written route with the same-origin check and CSRF protection.
+ * Routes on apiHandler get both from it instead.
  *
  *   export default withRateLimit('posts')(withCsrfProtection(handler));
  */
 export function withCsrfProtection(handler: Handler) {
   return async (req: NextApiRequest, res: NextApiResponse) => {
     // On failure the 403 has already been sent
+    if (!sameOriginProtection(req, res)) return;
     if (!(await csrfProtection(req, res))) return;
     return handler(req, res);
   };

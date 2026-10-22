@@ -73,11 +73,20 @@ async function ready() {
 
 const shareCalls = () => mockCsrfFetch.mock.calls.filter(([url]) => url === '/api/user/page-update');
 
+/** What the share call answers */
+let shareResult = { shared: true };
+
 beforeEach(() => {
   installFetch();
   window.localStorage.clear();
+  shareResult = { shared: true };
   mockCsrfFetch.mockReset();
-  mockCsrfFetch.mockResolvedValue({ ok: true, status: 200, json: async () => ({ shared: true }) });
+  // The compile preview goes through csrfFetch too; hand it to the fetch stub
+  mockCsrfFetch.mockImplementation(async (url: any, init?: any) =>
+    String(url).includes('/api/templates/compile')
+      ? global.fetch(url, init)
+      : { ok: true, status: 200, json: async () => shareResult }
+  );
 });
 
 afterEach(() => {
@@ -110,7 +119,8 @@ test('ticked: shared once the save works, then unticked again', async () => {
   fireEvent.click(screen.getByRole('button', { name: 'Save & Go Live' }));
   await waitFor(() => expect(shareCalls()).toHaveLength(1));
   expect(shareCalls()[0][1]).toEqual({ method: 'POST' });
-  expect(mockCsrfFetch.mock.invocationCallOrder[0]).toBeGreaterThan(onSave.mock.invocationCallOrder[0]);
+  const shareAt = mockCsrfFetch.mock.calls.findIndex(([url]) => url === '/api/user/page-update');
+  expect(mockCsrfFetch.mock.invocationCallOrder[shareAt]).toBeGreaterThan(onSave.mock.invocationCallOrder[0]);
   expect(await screen.findByText('Shared in the feed.')).toBeInTheDocument();
   expect(screen.getByLabelText(LABEL)).not.toBeChecked();
 });
@@ -125,7 +135,7 @@ test('ticked on the CSS tab works the same', async () => {
 });
 
 test('ticked, but nothing changed: says so', async () => {
-  mockCsrfFetch.mockResolvedValue({ ok: true, status: 200, json: async () => ({ shared: false }) });
+  shareResult = { shared: false };
   renderEditor();
   await ready();
   fireEvent.click(screen.getByLabelText(LABEL));

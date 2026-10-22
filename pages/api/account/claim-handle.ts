@@ -1,5 +1,5 @@
 // pages/api/account/claim-handle.ts
-import { apiHandler } from "@/lib/api/handler";
+import { apiHandler, ApiError } from "@/lib/api/handler";
 import { db } from "@/lib/config/database/connection";
 import { validateUsername } from "@/lib/domain/validation";
 import { SITE_NAME } from "@/lib/config/site/constants";
@@ -7,9 +7,15 @@ import { SITE_NAME } from "@/lib/config/site/constants";
 
 const HOST = SITE_NAME;
 
+export const ALREADY_HAS_HANDLE = "You already have a username.";
+
+/**
+ * Claim the signed-in account's username, once. One handle per account: a
+ * second claim used to add another Handle row and move primaryHandle, which
+ * would let one account squat many names (and, later, many subdomains).
+ */
 export default apiHandler(
-  // no CSRF today: onboarding page and did-client signup flows call it with plain fetch
-  { methods: ["POST"], auth: "user", csrf: false },
+  { methods: ["POST"], auth: "user" },
   async (req, res, { user }) => {
     const { handle } = req.body || {};
     if (typeof handle !== "string") {
@@ -24,16 +30,23 @@ export default apiHandler(
       });
     }
 
+    if (user.primaryHandle || (await db.handle.findFirst({ where: { userId: user.id }, select: { id: true } }))) {
+      return res.status(409).json({ error: ALREADY_HAS_HANDLE });
+    }
+
     // Ensure it's free on this host
     const existing = await db.handle.findFirst({ where: { handle, host: HOST } });
     if (existing) return res.status(409).json({ error: "handle taken" });
 
     // Set primaryHandle and create Handle + starter Profile in a transaction
     await db.$transaction(async (tx) => {
-      await tx.user.update({
-        where: { id: user.id },
+      // Only while primaryHandle is still unset: of two claims racing, the
+      // second waits on the row lock and then matches nothing
+      const claimed = await tx.user.updateMany({
+        where: { id: user.id, primaryHandle: null },
         data: { primaryHandle: `${handle}@${HOST}` },
       });
+      if (claimed.count === 0) throw new ApiError(409, ALREADY_HAS_HANDLE);
 
       await tx.handle.create({
         data: {

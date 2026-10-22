@@ -1,5 +1,5 @@
 import { apiHandler } from "@/lib/api/handler";
-import { generateCsrfToken, createCsrfCookie } from "@/lib/server/http/csrf";
+import { generateCsrfToken, createCsrfCookie, getCsrfToken } from "@/lib/server/http/csrf";
 
 /**
  * CSRF Token Auto-Generation Endpoint
@@ -16,10 +16,7 @@ export default apiHandler(
   { methods: ["GET"], auth: "user" },
   async (req, res) => {
     // Check if user already has a CSRF token
-    const cookie = req.headers.cookie || "";
-    const existingToken = cookie.match(/csrf_token=([^;]+)/);
-
-    if (existingToken) {
+    if (getCsrfToken(req)) {
       // User already has a token, nothing to do
       return res.status(200).json({
         success: true,

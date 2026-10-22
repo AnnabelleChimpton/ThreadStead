@@ -25,7 +25,7 @@ let lastPrunedDay = 0;
  * aren't blocked either way by the viewer or the owner.
  */
 export default apiHandler(
-  // no CSRF today: components/pixel-homes/VisitorTrail.tsx POSTs with plain fetch
+  // CSRF off: signed-out visitors POST visits too and have no CSRF cookie; the same-origin check still applies
   { methods: ["GET", "POST"], auth: "optional", csrf: false },
   async (req, res, { user: visitor }) => {
     const { handle } = req.query;

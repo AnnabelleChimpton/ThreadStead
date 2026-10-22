@@ -13,7 +13,9 @@
  *   3. resolves the session ONCE (the old stacked withRateLimit/withCsrf/
  *      getSessionUser wrappers queried Session up to 3× per request)
  *   4. rate-limits (per user when signed in, else per IP)
- *   5. checks CSRF on POST/PUT/PATCH/DELETE (on by default)
+ *   5. refuses a cross-origin POST/PUT/PATCH/DELETE (always; see
+ *      lib/server/http/same-origin.ts), then checks the CSRF token (on by
+ *      default)
  *   6. enforces auth: 401 when signed out, 403 when not an admin
  *   7. validates req.body against `schema` on POST/PUT/PATCH → 400
  *   8. runs the handler; a thrown ApiError becomes `{ error }` with its
@@ -29,6 +31,7 @@ import { ZodError, type ZodType, type z } from 'zod';
 import { UserRole } from '@prisma/client';
 import { getSessionUser, type SessionUser } from '@/lib/auth/server';
 import { csrfProtection } from '@/lib/server/http/csrf';
+import { sameOriginProtection } from '@/lib/server/http/same-origin';
 import { rateLimitCheck, type RateLimitCategory } from '@/lib/server/http/rate-limit';
 import {
   API_ERRORS,
@@ -55,7 +58,11 @@ export type AuthMode = 'none' | 'optional' | 'user' | 'admin';
 export interface ApiHandlerOptions {
   methods: readonly HttpMethod[];
   auth: AuthMode;
-  /** Double-submit CSRF check on POST/PUT/PATCH/DELETE. Default true. */
+  /**
+   * Double-submit CSRF check on POST/PUT/PATCH/DELETE. Default true. Turning
+   * it off keeps the same-origin check; do that only for routes signed-out
+   * visitors call (they have no CSRF cookie yet).
+   */
   csrf?: boolean;
   rateLimit?: RateLimitCategory;
   /** Validates req.body on POST/PUT/PATCH; the result is ctx.body. */
@@ -124,6 +131,7 @@ export function apiHandler<const O extends ApiHandlerOptions>(
       if (rateLimit && !(await rateLimitCheck(req, res, rateLimit, user?.id))) return;
 
       if (!viaApiKey) {
+        if (!sameOriginProtection(req, res)) return;
         if (csrf && !(await csrfProtection(req, res))) return;
 
         if ((auth === 'user' || auth === 'admin') && !user) return sendUnauthenticated(res);

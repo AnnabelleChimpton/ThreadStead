@@ -5,8 +5,7 @@ import { checkCurrentPassword } from "@/lib/auth/current-password";
 import { endOtherSessions } from "@/lib/auth/server";
 
 export default apiHandler(
-  // no CSRF today: did-client changePassword() calls it with plain fetch
-  { methods: ["POST"], auth: "user", csrf: false },
+  { methods: ["POST"], auth: "user" },
   async (req, res, { user }) => {
     const { currentPassword, newPassword, encryptedSeedPhrase } = req.body;
 

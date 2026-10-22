@@ -43,7 +43,7 @@ async function main() {
   // require, not import(): tsx hooks require; import() would bypass it.
   /* eslint-disable @typescript-eslint/no-require-imports */
   const { db } = require("./lib/config/database/connection") as typeof import("./lib/config/database/connection");
-  const { attachChatServer } = require("./lib/chat/socket-server") as typeof import("./lib/chat/socket-server");
+  const { attachChatServer, allowChatHandshake } = require("./lib/chat/socket-server") as typeof import("./lib/chat/socket-server");
   /* eslint-enable @typescript-eslint/no-require-imports */
 
   // Next parses the URL itself (url.parse is deprecated, DEP0169)
@@ -74,6 +74,8 @@ async function main() {
       origin: dev ? corsOrigin : false,
       credentials: true,
     },
+    // production: only handshakes from the site itself
+    allowRequest: allowChatHandshake,
   });
 
   const chat = attachChatServer(io, { log });

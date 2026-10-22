@@ -79,13 +79,17 @@ describe('createSession', () => {
     expect(csrf).toMatch(/^csrf_token=[0-9a-f]{64}; Path=\/; Max-Age=604800; SameSite=Lax$/);
   });
 
-  test('adds Secure in production', async () => {
+  test('in production: __Host- names, Secure, and the old names expired', async () => {
     setNodeEnv('production');
     const r = res();
     await createSession(r, 'user-1');
-    const [session, csrf] = r.headers['set-cookie'] as string[];
-    expect(session).toMatch(/; HttpOnly; Secure; Path=\/; Max-Age=604800; SameSite=Strict$/);
-    expect(csrf).toContain('Secure; ');
+    const [session, csrf, oldSession, oldCsrf] = r.headers['set-cookie'] as string[];
+    // __Host- needs Secure + Path=/ + no Domain, or the browser drops it
+    expect(session).toMatch(/^__Host-retro_session=user-1\.[0-9a-f]{64}; HttpOnly; Secure; Path=\/; Max-Age=604800; SameSite=Strict$/);
+    expect(csrf).toMatch(/^__Host-csrf_token=[0-9a-f]{64}; Secure; Path=\/; Max-Age=604800; SameSite=Lax$/);
+    expect([session, csrf].join()).not.toMatch(/Domain=/i);
+    expect(oldSession).toBe('retro_session=; HttpOnly; Secure; Path=/; Max-Age=0; SameSite=Strict');
+    expect(oldCsrf).toBe('csrf_token=; Secure; Path=/; Max-Age=0; SameSite=Lax');
   });
 
   test('a new secret every time', async () => {
@@ -121,7 +125,19 @@ describe('clearSession', () => {
     setNodeEnv('development');
     const r = res();
     await clearSession(req('retro_session=u1.s3cret'), r);
-    expect(r.headers['set-cookie']).toBe('retro_session=; HttpOnly; Path=/; Max-Age=0; SameSite=Strict');
+    expect(r.headers['set-cookie']).toEqual(['retro_session=; HttpOnly; Path=/; Max-Age=0; SameSite=Strict']);
+  });
+
+  test('in production it expires the __Host- cookie and the old names', async () => {
+    setNodeEnv('production');
+    const r = res();
+    await clearSession(req('__Host-retro_session=u1.s3cret'), r);
+    expect(deleteMany).toHaveBeenCalledWith({ where: { userId: 'u1', secret: 's3cret' } });
+    expect(r.headers['set-cookie']).toEqual([
+      '__Host-retro_session=; HttpOnly; Secure; Path=/; Max-Age=0; SameSite=Strict',
+      'retro_session=; HttpOnly; Secure; Path=/; Max-Age=0; SameSite=Strict',
+      'csrf_token=; Secure; Path=/; Max-Age=0; SameSite=Lax',
+    ]);
   });
 
   test("deletes the request's Session row", async () => {
@@ -134,14 +150,14 @@ describe('clearSession', () => {
     await clearSession(req('retro_session=nodot'), r);
     await clearSession(req(), r);
     expect(deleteMany).not.toHaveBeenCalled();
-    expect(r.headers['set-cookie']).toMatch(/^retro_session=; /);
+    expect((r.headers['set-cookie'] as string[])[0]).toMatch(/^retro_session=; /);
   });
 
   test('still expires the cookie when the delete fails', async () => {
     deleteMany.mockRejectedValue(new Error('db down'));
     const r = res();
     await expect(clearSession(req('retro_session=u1.s'), r)).rejects.toThrow('db down');
-    expect(r.headers['set-cookie']).toMatch(/^retro_session=; /);
+    expect((r.headers['set-cookie'] as string[])[0]).toMatch(/^retro_session=; /);
   });
 });
 
@@ -177,6 +193,35 @@ describe('getSessionUser', () => {
       where: { secret: 's3cret' },
       select: { userId: true, expiresAt: true, user: { include: { betaKey: true } } },
     });
+  });
+
+  describe('in production (__Host- names)', () => {
+    beforeEach(() => setNodeEnv('production'));
+    const secretLookedUp = () => findUnique.mock.calls.map((c) => c[0].where.secret);
+
+    test('reads __Host-retro_session', async () => {
+      findUnique.mockResolvedValue({ userId: 'u1', expiresAt: future(), user: { id: 'u1' } });
+      expect(await getSessionUser(req('__Host-retro_session=u1.new'))).toMatchObject({ id: 'u1' });
+      expect(secretLookedUp()).toEqual(['new']);
+    });
+
+    test('still reads a session from before the rename (old name only)', async () => {
+      findUnique.mockResolvedValue({ userId: 'u1', expiresAt: future(), user: { id: 'u1' } });
+      expect(await getSessionUser(req('retro_session=u1.old'))).toMatchObject({ id: 'u1' });
+      expect(secretLookedUp()).toEqual(['old']);
+    });
+
+    test('with both, the __Host- one wins (a subdomain could only plant the old name)', async () => {
+      findUnique.mockResolvedValue({ userId: 'u1', expiresAt: future(), user: { id: 'u1' } });
+      await getSessionUser(req('retro_session=evil.planted; __Host-retro_session=u1.real'));
+      expect(secretLookedUp()).toEqual(['real']);
+    });
+  });
+
+  test('in dev a __Host- cookie is not read', async () => {
+    setNodeEnv('development');
+    expect(await getSessionUser(req('__Host-retro_session=u1.s'))).toBeNull();
+    expect(findUnique).not.toHaveBeenCalled();
   });
 
   test('select loads only the requested fields', async () => {

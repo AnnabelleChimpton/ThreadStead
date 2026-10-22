@@ -10,8 +10,6 @@ export default apiHandler(
   {
     methods: ["GET", "POST"],
     auth: "user",
-    // no CSRF today: signup.tsx posts with plain fetch
-    csrf: false,
   },
   async (req, res, { user }) => {
     try {

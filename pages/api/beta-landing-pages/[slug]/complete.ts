@@ -10,9 +10,7 @@ import { getClientIp } from "@/lib/server/http/client-ip";
  * could complete any signup and fill a campaign without signing up.
  */
 export default apiHandler(
-  // no CSRF today: pages/signup.tsx POSTs with plain fetch. A forged call can
-  // only complete the caller's own signup.
-  { methods: ["POST"], auth: "user", csrf: false },
+  { methods: ["POST"], auth: "user" },
   async (req, res, { user }) => {
     const { slug } = req.query;
     const { signupId } = req.body ?? {};

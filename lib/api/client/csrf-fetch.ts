@@ -6,7 +6,11 @@
  */
 
 /**
- * Extract CSRF token from cookies
+ * Extract CSRF token from cookies. Production names it `__Host-csrf_token`
+ * (lib/server/http/csrf.ts); sessions from before that rename, and dev, use
+ * `csrf_token`. Anchored on a cookie boundary, so `x_csrf_token` (or a
+ * subdomain's look-alike) is never read in place of ours. The server reads
+ * the same names in the same order.
  */
 export function getCsrfToken(): string | null {
   if (typeof document === "undefined") {
@@ -14,8 +18,14 @@ export function getCsrfToken(): string | null {
   }
 
   const cookie = document.cookie;
-  const match = cookie.match(/csrf_token=([^;]+)/);
-  return match ? decodeURIComponent(match[1]) : null;
+  const match =
+    cookie.match(/(?:^|;\s*)__Host-csrf_token=([^;]+)/) ?? cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/);
+  if (!match) return null;
+  try {
+    return decodeURIComponent(match[1]);
+  } catch {
+    return null;
+  }
 }
 
 /**

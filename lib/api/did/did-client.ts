@@ -2,6 +2,7 @@
 import * as ed from "@noble/ed25519";
 import { toBase64Url, fromBase64Url } from "@/lib/utils/encoding/base64url";
 import * as bip39 from "bip39";
+import { csrfFetch } from "@/lib/api/client/csrf-fetch";
 
 const KEY_STORAGE = "retro_did_keypair_v1";
 const SEED_STORAGE = "retro_seed_phrase_v1";
@@ -334,7 +335,7 @@ export async function recoverFromSeedPhrase(mnemonic: string, username?: string)
 
   // If username provided, try to claim it (this would only work for new accounts)
   if (username) {
-    const claimRes = await fetch("/api/account/claim-handle", {
+    const claimRes = await csrfFetch("/api/account/claim-handle", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ handle: username }),
@@ -372,7 +373,7 @@ export async function createNewIdentityWithUsername(username: string, betaKey?: 
   }
 
   // Claim the username
-  const claimRes = await fetch("/api/account/claim-handle", {
+  const claimRes = await csrfFetch("/api/account/claim-handle", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ handle: username }),
@@ -431,7 +432,7 @@ export async function createNewIdentityWithSeedPhrase(username: string, betaKey?
   }
 
   // Claim the username
-  const claimRes = await fetch("/api/account/claim-handle", {
+  const claimRes = await csrfFetch("/api/account/claim-handle", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ handle: username }),
@@ -497,7 +498,7 @@ export async function createNewIdentityWithPassword(
   }
 
   // Save password hash to database
-  const saveRes = await fetch("/api/auth/save-password", {
+  const saveRes = await csrfFetch("/api/auth/save-password", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ 
@@ -511,7 +512,7 @@ export async function createNewIdentityWithPassword(
   }
 
   // Claim the username
-  const claimRes = await fetch("/api/account/claim-handle", {
+  const claimRes = await csrfFetch("/api/account/claim-handle", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ handle: username }),
@@ -626,7 +627,7 @@ export async function changePassword(currentPassword: string, newPassword: strin
   const newEncryptedSeed = encryptSeedPhraseWithPassword(seedPhrase, newPassword);
   
   // Update on server
-  const res = await fetch('/api/auth/change-password', {
+  const res = await csrfFetch('/api/auth/change-password', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({

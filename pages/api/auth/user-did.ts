@@ -8,8 +8,11 @@
 import { NextApiRequest, NextApiResponse } from 'next'
 import { getSessionUser } from '@/lib/auth/server'
 import { getUserDID, getOrCreateUserDID, migrateUserToDID } from '@/lib/api/did/server-did-client'
+import { sameOriginProtection } from '@/lib/server/http/same-origin'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // cookie-authed and not on apiHandler: refuse cross-origin posts here
+  if (!sameOriginProtection(req, res)) return
   // Verify user authentication
   const user = await getSessionUser(req)
   if (!user) {

@@ -15,6 +15,7 @@ import { CommentMarkupWithEmojis } from '@/lib/comment-markup'
 import { decorationNote } from '@/lib/pixel-homes/decoration-note'
 import type { DecorationItem } from '@/lib/pixel-homes/decoration-data'
 import type { HomeNeighbors } from '@/lib/pixel-homes/neighbors'
+import { csrfFetch } from '@/lib/api/client/csrf-fetch'
 
 interface UserHomeConfig {
   houseTemplate: HouseTemplate
@@ -192,7 +193,7 @@ export default function PixelHomePage({
     // Mark guestbook notifications as read if user is the owner
     if (isOwner && hasUnreadGuestbook) {
       try {
-        await fetch(`/api/users/${encodeURIComponent(username)}/mark-guestbook-read`, {
+        await csrfFetch(`/api/users/${encodeURIComponent(username)}/mark-guestbook-read`, {
           method: 'POST'
         })
         setHasUnreadGuestbook(false)

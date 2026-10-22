@@ -7,6 +7,7 @@ import EditorSheet, { type SheetSnap } from './EditorSheet'
 import { useViewportSize } from '../../hooks/pixel-homes/useViewportSize'
 import DecorationPalette from './DecorationPalette'
 import { DecorationItem, TERRAIN_TILES, isFlipped } from '../../lib/pixel-homes/decoration-data'
+import { csrfFetch } from '@/lib/api/client/csrf-fetch'
 
 // House color picker items - these are UI triggers for the color picker, not actual decorations
 // Kept as constants since they don't need to be managed via admin
@@ -394,7 +395,7 @@ export default function DecorationMode({
       })
 
       // Upload to server with slot number
-      const response = await fetch('/api/home/custom-asset', {
+      const response = await csrfFetch('/api/home/custom-asset', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ slot, imageDataUrl: dataUrl })
@@ -424,7 +425,7 @@ export default function DecorationMode({
     if (!(await confirm({ title: 'Remove this custom pixel art?', confirmText: 'Remove', variant: 'danger' }))) return
 
     try {
-      const response = await fetch('/api/home/custom-asset', {
+      const response = await csrfFetch('/api/home/custom-asset', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ slot })

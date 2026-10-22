@@ -449,7 +449,7 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
     setError(null);
 
     try {
-      const response = await fetch('/api/user/email', {
+      const response = await csrfFetch('/api/user/email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim() })
@@ -524,7 +524,7 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
     setError(null);
 
     try {
-      const houseResponse = await fetch(`/api/home/${encodeURIComponent(username)}`, {
+      const houseResponse = await csrfFetch(`/api/home/${encodeURIComponent(username)}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ houseTemplate: houseChoice.template, palette: houseChoice.palette }),
@@ -536,7 +536,7 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
       }
 
       // The page theme goes last: it's what marks signup as finished
-      const templateResponse = await fetch('/api/user/profile-template', {
+      const templateResponse = await csrfFetch('/api/user/profile-template', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ template: selectedTemplate }),
@@ -565,7 +565,7 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
           if (userResponse.ok) {
             const userData = await userResponse.json();
             if (userData.user?.id) {
-              await fetch(`/api/beta-landing-pages/${landingSlug}/complete`, {
+              await csrfFetch(`/api/beta-landing-pages/${landingSlug}/complete`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json'
@@ -629,7 +629,7 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
 
       // Update bio if provided
       if (bio.trim()) {
-        const bioResponse = await fetch('/api/user/bio', {
+        const bioResponse = await csrfFetch('/api/user/bio', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ bio: bio.trim() }),

@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/config/database/connection";
 import { verifyPassword } from "@/lib/auth/password";
-import { readCookie, SESSION_COOKIE } from "@/lib/auth/server";
+import { sessionSecret } from "@/lib/auth/server";
 import { rateLimitCheck } from "@/lib/server/http/rate-limit";
 
 /** One message for a missing or wrong current password, so neither says more. */
@@ -43,7 +43,7 @@ export const RECENT_SIGN_IN_MS = 15 * 60 * 1000;
 
 /** Whether this request's session was issued within RECENT_SIGN_IN_MS. */
 export async function signedInRecently(req: Pick<NextApiRequest, "headers">): Promise<boolean> {
-  const secret = readCookie(req, SESSION_COOKIE)?.split(".")[1];
+  const secret = sessionSecret(req);
   if (!secret) return false;
   const session = await db.session.findUnique({ where: { secret }, select: { issuedAt: true } });
   return !!session && Date.now() - session.issuedAt.getTime() < RECENT_SIGN_IN_MS;

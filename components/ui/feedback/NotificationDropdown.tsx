@@ -8,6 +8,7 @@ import { notificationHref } from "@/lib/domain/notifications/links";
 import { PixelIcon, type PixelIconName } from '@/components/ui/PixelIcon';
 import LoadingSpinner from "@/components/ui/feedback/LoadingSpinner";
 import EmptyState from "@/components/ui/feedback/EmptyState";
+import { csrfFetch } from "@/lib/api/client/csrf-fetch";
 
 interface NotificationDropdownProps {
   className?: string;
@@ -59,7 +60,7 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
     if (!loggedIn) return;
     
     try {
-      const res = await fetch("/api/notifications", {
+      const res = await csrfFetch("/api/notifications", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

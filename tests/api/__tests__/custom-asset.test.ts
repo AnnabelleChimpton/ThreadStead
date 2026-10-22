@@ -36,7 +36,7 @@ import handler from '@/pages/api/home/custom-asset'
 import { uploadCustomPixelArt, deleteCustomPixelArt } from '@/lib/pixel-homes/custom-asset-uploader'
 
 async function call(method: string, body: any) {
-  const req = { method, body, headers: {} } as unknown as NextApiRequest
+  const req = { method, body, headers: { cookie: 'csrf_token=t', 'x-csrf-token': 't' } } as unknown as NextApiRequest
   const res: any = {
     statusCode: 200,
     status(code: number) {

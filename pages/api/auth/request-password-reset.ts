@@ -4,7 +4,7 @@ import { createPasswordResetToken, sendPasswordResetEmail } from "@/lib/email-lo
 import { emailSendLimitCheck } from "@/lib/server/http/rate-limit";
 
 export default apiHandler(
-  // no CSRF today: settings page calls it with plain fetch; the route never reads the session
+  // CSRF off: never reads the session, so it works signed out; the same-origin check still applies
   { methods: ["POST"], auth: "none", csrf: false },
   async (req, res) => {
       const { email } = req.body;

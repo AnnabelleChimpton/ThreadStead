@@ -7,7 +7,7 @@ import * as ed from "@noble/ed25519";
 import { toBase64Url } from "@/lib/utils/encoding/base64url";
 
 export default apiHandler(
-  // no CSRF today: anonymous visitors following an emailed reset link; plain fetch
+  // CSRF off: signed-out visitors following an emailed reset link; the same-origin check still applies
   { methods: ["POST"], auth: "none", csrf: false, rateLimit: "auth" },
   async (req, res) => {
       const { token, newPassword } = req.body;

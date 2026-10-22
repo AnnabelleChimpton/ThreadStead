@@ -10,8 +10,6 @@ export default apiHandler(
   {
     methods: ["POST"],
     auth: "user",
-    // no CSRF today: PixelHomePage.tsx posts with plain fetch
-    csrf: false,
   },
   async (req, res, { user: currentUser }) => {
     const username = String(req.query.username || "");

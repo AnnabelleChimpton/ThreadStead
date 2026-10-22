@@ -18,6 +18,7 @@ import { getSessionUser } from "@/lib/auth/server";
 import { isUserBlocked } from "@/lib/domain/users/blocks";
 import { getChatBlockedIds } from "./block-cache";
 import { createMemoryRateLimiter } from "@/lib/server/http/rate-limit";
+import { isSameOriginRequest } from "@/lib/server/http/same-origin";
 import { findOrCreateDM } from "./direct-messages";
 import { resolveDiceCommands, sanitizeMessage } from "./message-text";
 import { addToPresence, getRoomPresence, removeFromPresence, updateStatus } from "./presence";
@@ -64,6 +65,24 @@ async function resolveChatUser(headers: IncomingMessage["headers"]): Promise<Cha
     console.error("Session validation error:", error);
     return null;
   }
+}
+
+export const CROSS_ORIGIN_CHAT = "Chat only takes connections from this site.";
+
+/**
+ * socket.io's allowRequest. Browsers don't CORS-check a WebSocket handshake
+ * and it carries the visitor's cookies, so without this any page (or a
+ * resident subdomain) could open a chat socket as them. In production a
+ * handshake must come from the site itself, by the same rule as API posts
+ * (lib/server/http/same-origin.ts). Dev is left open for phones and other
+ * hosts on the LAN.
+ */
+export function allowChatHandshake(
+  req: IncomingMessage,
+  callback: (err: string | null | undefined, success: boolean) => void
+): void {
+  if (process.env.NODE_ENV !== "production" || isSameOriginRequest(req)) return callback(null, true);
+  callback(CROSS_ORIGIN_CHAT, false);
 }
 
 export interface ChatServerOptions {

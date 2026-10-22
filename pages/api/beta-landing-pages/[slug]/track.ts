@@ -8,7 +8,7 @@ import { allowTrackCall, claimCampaignKey } from "@/lib/domain/beta/landing-keys
  * lib/domain/beta/landing-keys.ts for the limits.
  */
 export default apiHandler(
-  // no CSRF today: anonymous visitors, pages/beta/[slug].tsx POSTs with plain fetch
+  // CSRF off: signed-out visitors (pages/beta/[slug].tsx) have no CSRF cookie; the same-origin check still applies
   { methods: ["POST"], auth: "none", csrf: false },
   async (req, res) => {
     const { slug } = req.query;

@@ -2,8 +2,7 @@ import { apiHandler } from "@/lib/api/handler";
 import { db } from "@/lib/config/database/connection";
 
 export default apiHandler(
-  // no CSRF today: pages/claim/[code].tsx POSTs with plain fetch
-  { methods: ["POST"], auth: "user", csrf: false },
+  { methods: ["POST"], auth: "user" },
   async (req, res, { user }) => {
     try {
       const { code } = req.query;

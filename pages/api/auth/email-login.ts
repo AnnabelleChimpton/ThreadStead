@@ -4,7 +4,7 @@ import { createEmailLoginToken, sendLoginEmail, cleanupExpiredTokens } from "@/l
 import { emailSendLimitCheck } from "@/lib/server/http/rate-limit";
 
 export default apiHandler(
-  // no CSRF today: anonymous visitors (login page) with plain fetch
+  // CSRF off: signed-out visitors (login page) have no CSRF cookie; the same-origin check still applies
   { methods: ["POST"], auth: "none", csrf: false },
   async (req, res) => {
     try {
