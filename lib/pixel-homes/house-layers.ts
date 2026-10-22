@@ -13,7 +13,7 @@
  * (spriteDrawable), so nobody's house loses something they picked.
  */
 import sockets from '../../design/pixel-art/_template-house.sockets.json'
-import { HOUSE_PALETTE_RAMPS, KEY_RAMPS, type HousePart } from './palette'
+import { HOUSE_PALETTE_RAMPS, KEY_RAMPS, type HousePart, type HouseRamps } from './palette'
 
 export interface SocketBox {
   x: number
@@ -106,9 +106,82 @@ const hexToRgb = (hex: string): [number, number, number] => [
 ]
 const rgbKey = (r: number, g: number, b: number) => (r << 16) | (g << 8) | b
 
-/** Key colour (as 0xRRGGBB) → the palette's colour, for every step of every part. */
-export function keyColourMap(palette: string): Map<number, [number, number, number]> {
-  const ramps = HOUSE_PALETTE_RAMPS[palette] ?? HOUSE_PALETTE_RAMPS.thread_sage
+/** A resident's own colour per part (HouseSVG's wallColor, roofColor, …); detailColor has no part here. */
+const OWN_COLOUR_FIELDS: Record<HousePart, string> = {
+  wall: 'wallColor',
+  roof: 'roofColor',
+  trim: 'trimColor',
+  glass: 'windowColor',
+}
+
+/** "#abc" or "#aabbcc" as "#aabbcc", or null for anything else. */
+function sixDigitHex(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const v = value.trim().toLowerCase()
+  if (/^#[0-9a-f]{6}$/.test(v)) return v
+  if (/^#[0-9a-f]{3}$/.test(v)) return '#' + [...v.slice(1)].map((c) => c + c).join('')
+  return null
+}
+
+function rgbToHsl([r, g, b]: [number, number, number]): [number, number, number] {
+  const [rn, gn, bn] = [r / 255, g / 255, b / 255]
+  const max = Math.max(rn, gn, bn), min = Math.min(rn, gn, bn)
+  const l = (max + min) / 2
+  if (max === min) return [0, 0, l]
+  const d = max - min
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
+  const h = max === rn ? (gn - bn) / d + (gn < bn ? 6 : 0) : max === gn ? (bn - rn) / d + 2 : (rn - gn) / d + 4
+  return [h * 60, s, l]
+}
+
+function hslToHex(h: number, s: number, l: number): string {
+  const clamp = (n: number) => Math.min(1, Math.max(0, n))
+  s = clamp(s); l = clamp(l); h = ((h % 360) + 360) % 360
+  const k = (n: number) => (n + h / 30) % 12
+  const a = s * Math.min(l, 1 - l)
+  const f = (n: number) => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)))
+  return '#' + [f(0), f(8), f(4)].map((x) => Math.round(x * 255).toString(16).padStart(2, '0')).join('')
+}
+
+/**
+ * Four shades, dark to light, around a picked colour (step 3 is the colour
+ * itself). Shadows lean a little towards blue and highlights towards
+ * yellow, the way the master palette's ramps do, so it still reads as
+ * pixel art rather than flat tints.
+ */
+export function rampFromColour(hex: string): [string, string, string, string] {
+  const [h, s, l] = rgbToHsl(hexToRgb(hex))
+  const towards = (target: number, by: number) => {
+    const diff = ((target - h + 540) % 360) - 180
+    return h + Math.sign(diff) * Math.min(Math.abs(diff), by)
+  }
+  return [
+    hslToHex(towards(240, 14), s * 0.9 + 0.08, l * 0.5),
+    hslToHex(towards(240, 7), s * 0.95 + 0.04, l * 0.75),
+    hex,
+    hslToHex(towards(60, 8), s * 0.85, l + (1 - l) * 0.45),
+  ]
+}
+
+/** The ramps a house is painted in: its palette's, with any part the resident coloured themselves swapped for a ramp built from that colour. */
+export function houseRamps(palette: string, customizations?: Record<string, unknown>): HouseRamps {
+  const base = HOUSE_PALETTE_RAMPS[palette] ?? HOUSE_PALETTE_RAMPS.thread_sage
+  const out = { ...base } as Record<HousePart, readonly [string, string, string, string]>
+  for (const part of Object.keys(OWN_COLOUR_FIELDS) as HousePart[]) {
+    const own = sixDigitHex(customizations?.[OWN_COLOUR_FIELDS[part]])
+    if (own) out[part] = rampFromColour(own)
+  }
+  return out
+}
+
+/** A key for caching recoloured layers: the four ramps, flattened. */
+export function rampsKey(ramps: HouseRamps): string {
+  return (Object.keys(KEY_RAMPS) as HousePart[]).map((part) => ramps[part].join(',')).join('|')
+}
+
+/** Key colour (as 0xRRGGBB) → the house's colour, for every step of every part. */
+export function keyColourMap(palette: string, customizations?: Record<string, unknown>): Map<number, [number, number, number]> {
+  const ramps = houseRamps(palette, customizations)
   const map = new Map<number, [number, number, number]>()
   for (const part of Object.keys(KEY_RAMPS) as HousePart[]) {
     KEY_RAMPS[part].forEach((key, step) => {
@@ -178,12 +251,12 @@ export function houseOptionSprites(
 }
 
 /**
- * Whether a layer set can show this home as its owner set it up. False when
- * they picked their own colours, or an option with no drawing in this set.
+ * Whether a layer set can show this home as its owner set it up: false when
+ * they picked an option with no drawing in this set. Their own colours are
+ * fine; the layers are painted in ramps built from them (houseRamps).
  */
 export function spriteDrawable(set: HouseLayerSet, customizations: Record<string, unknown> | undefined): boolean {
   const c = customizations ?? {}
-  if (['wallColor', 'roofColor', 'trimColor', 'windowColor', 'detailColor'].some((k) => c[k])) return false
   for (const [prefix, { field, drawnByDefault }] of Object.entries(OPTION_SOCKETS)) {
     const choice = picked(c[field])
     if (!choice) continue

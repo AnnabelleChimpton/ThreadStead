@@ -264,15 +264,28 @@ describe('sprite houses', () => {
     expect(await spriteHouseMarkup(scene({ template: 'loft_v1' }))).toContain('<image')
   })
 
-  test('"no chimney" leaves the chimney out, and own colours keep HouseSVG', async () => {
+  test('"no chimney" leaves the chimney out; trims, treatments and own colours are drawn', async () => {
     process.env.NEXT_PUBLIC_HOUSE_SPRITES = 'cabin_v1'
     const withChimney = await renderSceneSvg(scene({ template: 'cabin_v1' }), { loadImage: noImages })
     const without = await renderSceneSvg(scene({ template: 'cabin_v1', houseCustomizations: { chimneyStyle: 'none' } }), { loadImage: noImages })
     expect(without).not.toEqual(withChimney)
-    expect(await spriteHouseMarkup(scene({ template: 'cabin_v1', houseCustomizations: { wallColor: '#123456' } }))).toBeNull()
+    expect(await spriteHouseMarkup(scene({ template: 'cabin_v1', houseCustomizations: { wallColor: '#123456' } }))).toContain('<image')
     expect(await spriteHouseMarkup(scene({ template: 'cabin_v1', houseCustomizations: { roofTrim: 'ornate', windowTreatments: 'awnings' } }))).toContain('<image')
     expect(await spriteHouseMarkup(scene({ template: 'cottage_v1' }))).toBeNull() // not in the flag
   })
+})
+
+test('own colours paint the sprite house: the wall is the picked colour', async () => {
+  process.env.NEXT_PUBLIC_HOUSE_SPRITES = 'loft_v1'
+  try {
+    const { card } = await renderHomeSnapshot(scene({ template: 'loft_v1', houseCustomizations: { wallColor: '#123456' } }), { loadImage: noImages })
+    const { hex } = await pixels(card)
+    let n = 0
+    for (let y = 32; y < 212; y++) for (let x = 156; x < 356; x++) if (hex(x, y) === '#123456') n++
+    expect(n).toBeGreaterThan(1000)
+  } finally {
+    delete process.env.NEXT_PUBLIC_HOUSE_SPRITES
+  }
 })
 
 describe('ogCropTop', () => {

@@ -105,9 +105,11 @@ Trims and treatments are mostly see-through: they're laid over the walls.
 The cabin, cottage and townhouse already have flower boxes, so their
 `flower_boxes` is the default drawing.
 
-Homes with their own colours keep the old drawing for now, and so does a
-home that picked anything without a sprite (`spriteDrawable` in
-`lib/pixel-homes/house-layers.ts`).
+A home that picked anything without a sprite keeps the old drawing
+(`spriteDrawable` in `lib/pixel-homes/house-layers.ts`). Homes with their
+own wall, roof, trim or window colour get the art in that colour: the
+colour becomes step 3 of a four-step ramp (`rampFromColour`), with
+shadows leaning blue and highlights leaning yellow.
 
 **Where the files live:** `public/pixel-homes/house-layers/<template>/`,
 e.g. `public/pixel-homes/house-layers/cabin_v1/house_cabin_base.png`. The
@@ -140,9 +142,8 @@ These are the code steps, for me or a session:
 - **Fall back for undrawn options.** Done: a home that picked something the
   art doesn't draw keeps the old drawing (`spriteDrawable`). Every door,
   window, chimney, roof trim and window treatment is drawn for all four.
-- **Custom colours.** 11 homes set their own roof or wall hex, and the sprite
-  renderer skips those (they keep the old drawing). Decide whether custom
-  colours snap to the palette ramps so these homes get the new art too.
+- **Custom colours.** Done: each part a resident coloured themselves gets a
+  ramp built from their colour (`houseRamps`); the rest keep the palette.
 - **Redraw the pictures.** After switching on, redraw the share and street
   images (the flag is part of each picture's hash, so no `--force` needed):
   `npx tsx scripts/backfill-home-snapshots.ts --apply`

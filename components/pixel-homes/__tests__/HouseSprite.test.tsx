@@ -20,11 +20,6 @@ describe('HouseSprite', () => {
     expect(container.querySelector('[data-house-sprite]')).toBeNull()
   })
 
-  test('keeps HouseSVG for custom colours until there is a decision on snapping them', () => {
-    const { container } = render(<HouseSprite template="cabin_v1" palette="thread_sage" layerSet={set} customizations={{ roofColor: '#7e0101' }} />)
-    expect(container.querySelector('[data-house-svg]')).not.toBeNull()
-  })
-
   test('keeps HouseSVG for an option the art doesn\'t draw', () => {
     const { container } = render(<HouseSprite template="cabin_v1" palette="thread_sage" layerSet={HOUSE_LAYER_SETS.cabin_v1} customizations={{ doorStyle: 'revolving' as never }} />)
     expect(container.querySelector('[data-house-svg]')).not.toBeNull()
@@ -62,6 +57,14 @@ describe('HouseSprite', () => {
       expect(imgs.every((src) => src?.startsWith('blob:layer-'))).toBe(true)
       // pixel_petals roof step 3 is #c4473a
       expect(swapped).toContain('196,71,58')
+    })
+
+    test('own colours: the layers are painted in a ramp built from the picked colour', async () => {
+      swapped.length = 0
+      const { container } = render(<HouseSprite template="cabin_v1" palette="thread_sage" layerSet={set} customizations={{ roofColor: '#7e0101' }} />)
+      await waitFor(() => expect(container.querySelector('[data-house-sprite="cabin_v1"]')).not.toBeNull())
+      // the roof key's main step is the picked colour itself
+      expect(swapped).toContain('126,1,1')
     })
 
     test('the real art adds its chimney and window sprites, with the sign laid over', async () => {

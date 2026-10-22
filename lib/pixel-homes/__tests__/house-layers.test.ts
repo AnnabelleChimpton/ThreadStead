@@ -10,7 +10,9 @@ import {
   houseLayerSet,
   houseExtrasAt,
   houseOptionSprites,
+  houseRamps,
   keyColourMap,
+  rampFromColour,
   spriteDoorRect,
   spriteDrawable,
   swapKeyColours,
@@ -93,6 +95,38 @@ describe('the drawn houses', () => {
   })
 })
 
+describe('own colours', () => {
+  const lightness = (hex: string) => {
+    const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
+    return (Math.max(r, g, b) + Math.min(r, g, b)) / 2
+  }
+
+  test('a picked colour becomes the main step of four, dark to light', () => {
+    for (const hex of ['#f3d3f2', '#4a7e82', '#632c72', '#7e0101', '#808080']) {
+      const ramp = rampFromColour(hex)
+      expect(ramp[2]).toBe(hex)
+      for (const step of ramp) expect(step).toMatch(/^#[0-9a-f]{6}$/)
+      expect(lightness(ramp[0])).toBeLessThan(lightness(ramp[1]))
+      expect(lightness(ramp[1])).toBeLessThan(lightness(ramp[2]))
+      expect(lightness(ramp[3])).toBeGreaterThan(lightness(ramp[2]))
+    }
+  })
+
+  test('only the parts someone coloured change; the rest keep the palette', () => {
+    const ramps = houseRamps('pixel_petals', { wallColor: '#F3D3F2', trimColor: '#abc', windowColor: 'not a colour', detailColor: '#000000' })
+    expect(ramps.wall[2]).toBe('#f3d3f2')
+    expect(ramps.trim[2]).toBe('#aabbcc')
+    expect(ramps.roof).toEqual(HOUSE_PALETTE_RAMPS.pixel_petals.roof)
+    expect(ramps.glass).toEqual(HOUSE_PALETTE_RAMPS.pixel_petals.glass)
+    expect(houseRamps('pixel_petals', undefined)).toEqual(HOUSE_PALETTE_RAMPS.pixel_petals)
+  })
+
+  test('keyColourMap paints the wall key in the picked colour', () => {
+    const map = keyColourMap('thread_sage', { wallColor: '#4a7e82' })
+    expect(map.get(0xd000d0)).toEqual([0x4a, 0x7e, 0x82])
+  })
+})
+
 describe('which houses use layers', () => {
   test('only templates named in the flag switch', () => {
     expect(houseLayerSet('cabin_v1', undefined)).toBeNull()
@@ -144,8 +178,8 @@ describe('spriteDrawable: homes keep HouseSVG when the art can\'t show their cho
     }
   })
 
-  test('custom colours are not', () => {
-    expect(spriteDrawable(cabin, { wallColor: '#123456' })).toBe(false)
+  test('own colours are drawable: the layers are painted in them', () => {
+    expect(spriteDrawable(cabin, { wallColor: '#123456', roofColor: '#7e0101' })).toBe(true)
   })
 
   test('a choice with no drawing is not, unless it looks like the default', () => {

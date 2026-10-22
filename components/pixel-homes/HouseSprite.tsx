@@ -5,7 +5,9 @@ import {
   houseExtrasAt,
   houseLayerSet,
   houseOptionSprites,
+  houseRamps,
   keyColourMap,
+  rampsKey,
   spriteDrawable,
   swapKeyColours,
   type HouseLayerSet,
@@ -20,7 +22,7 @@ interface HouseSpriteProps {
   layerSet?: HouseLayerSet
 }
 
-/** One recoloured copy of each layer per palette, shared by every house on the page. */
+/** One recoloured copy of each layer per set of colours, shared by every house on the page. */
 const recoloured = new Map<string, Promise<string>>()
 
 function loadImage(src: string): Promise<HTMLImageElement> {
@@ -33,9 +35,9 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   })
 }
 
-/** A layer with its key colours swapped for the palette's, as an object URL. */
-function paletteLayerUrl(src: string, palette: string): Promise<string> {
-  const cacheKey = `${palette}|${src}`
+/** A layer with its key colours swapped for the house's, as an object URL. `colours` names the ramps. */
+function recolouredLayerUrl(src: string, colours: string, map: () => Map<number, [number, number, number]>): Promise<string> {
+  const cacheKey = `${colours}|${src}`
   let url = recoloured.get(cacheKey)
   if (!url) {
     url = (async () => {
@@ -47,7 +49,7 @@ function paletteLayerUrl(src: string, palette: string): Promise<string> {
       if (!ctx) throw new Error('No canvas')
       ctx.drawImage(img, 0, 0)
       const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height)
-      swapKeyColours(pixels.data, keyColourMap(palette))
+      swapKeyColours(pixels.data, map())
       ctx.putImageData(pixels, 0, 0)
       const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'))
       if (!blob) throw new Error('No PNG')
@@ -74,19 +76,24 @@ export default function HouseSprite({ template, palette, customizations, classNa
   const options = usable ? houseOptionSprites(template, set!, customizations as Record<string, unknown>) : []
   const sources = usable ? [set!.layers.base, set!.layers.roof, ...options.map((o) => o.src)] : []
   const sourcesKey = sources.join('\n')
+  // The palette's ramps, with any part the resident coloured themselves built from their colour
+  const colours = rampsKey(houseRamps(palette, customizations as Record<string, unknown>))
   const [urls, setUrls] = useState<{ key: string; list: string[] } | null>(null)
 
   useEffect(() => {
     if (!sourcesKey) return
     let cancelled = false
-    const key = `${palette}\n${sourcesKey}`
-    Promise.all(sourcesKey.split('\n').map((src) => paletteLayerUrl(src, palette)))
+    const key = `${colours}\n${sourcesKey}`
+    const map = () => keyColourMap(palette, customizations as Record<string, unknown>)
+    Promise.all(sourcesKey.split('\n').map((src) => recolouredLayerUrl(src, colours, map)))
       .then((list) => { if (!cancelled) setUrls({ key, list }) })
       .catch(() => { if (!cancelled) setUrls(null) })
     return () => { cancelled = true }
-  }, [sourcesKey, palette])
+    // `colours` stands for palette + customizations' colours
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sourcesKey, colours])
 
-  const ready = usable && urls?.key === `${palette}\n${sourcesKey}`
+  const ready = usable && urls?.key === `${colours}\n${sourcesKey}`
   if (!ready) {
     return <HouseSVG template={template} palette={palette} customizations={customizations} className={className} />
   }

@@ -858,7 +858,15 @@ export function HouseExtras({ palette, customizations, at }: {
   const hasMat = !!c.welcomeMat && c.welcomeMat !== 'none'
   const hasLights = !!c.exteriorLights && c.exteriorLights !== 'none'
   if (!c.houseBoardText && !c.houseNumber && !hasMat && !hasLights) return null
-  const colors = PALETTE_COLORS[palette] ?? PALETTE_COLORS.thread_sage
+  const paletteColors = PALETTE_COLORS[palette] ?? PALETTE_COLORS.thread_sage
+  // Own colours win, as in HouseSVG
+  const colors = {
+    base: c.wallColor || paletteColors.base,
+    primary: c.roofColor || paletteColors.primary,
+    secondary: c.trimColor || paletteColors.secondary,
+    accent: c.windowColor || paletteColors.accent,
+    detail: c.detailColor || paletteColors.detail,
+  }
   return (
     <svg
       viewBox="0 0 200 180"
