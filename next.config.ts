@@ -36,6 +36,11 @@ const nextConfig: NextConfig = {
   // Rewrite DID document paths to API routes
   async rewrites() {
     return [
+      // Ring strips on residents' own sites (pages/api/ring/[slug]/[action].ts)
+      {
+        source: '/ring/:slug/:action',
+        destination: '/api/ring/:slug/:action',
+      },
       // Server DID document
       {
         source: '/.well-known/did.json',

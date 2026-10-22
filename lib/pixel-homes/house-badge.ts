@@ -23,8 +23,8 @@ export const BADGE_NAME_CHARS = 13
 const SKY = '#9dbfd3'
 const GRASS = '#608d43'
 const GRASS_DARK = '#4c7236'
-const INK = '#3e4b4d'
-const FRAME = '#4a403d'
+export const INK = '#3e4b4d'
+export const FRAME = '#4a403d'
 
 // A 3×5 font: each glyph is five rows of three bits, top to bottom
 const GLYPHS: Record<string, string> = {
@@ -69,9 +69,9 @@ export function badgeText(name: string, max = BADGE_NAME_CHARS): string {
   return (cut >= 6 ? plain.slice(0, cut) : plain.slice(0, max)).trimEnd()
 }
 
-type Px = { x: number; y: number; w: number; h: number; fill: string }
+export type Px = { x: number; y: number; w: number; h: number; fill: string }
 
-function textPixels(text: string, x0: number, y0: number, fill: string): Px[] {
+export function textPixels(text: string, x0: number, y0: number, fill: string): Px[] {
   const out: Px[] = []
   let x = x0
   for (const ch of text) {

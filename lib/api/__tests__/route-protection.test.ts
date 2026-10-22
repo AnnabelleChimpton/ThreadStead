@@ -41,6 +41,8 @@ const NOT_COOKIE_WRITES = [
   'pages/api/.well-known/did.json.ts',
   'pages/api/cron/cleanup-rate-limits.ts',
   'pages/api/did/[hash]/document.ts',
+  // GET/HEAD only, reads no session: ring strips on residents' own sites
+  'pages/api/ring/[slug]/[action].ts',
   'pages/api/ringhub/health-check.ts',
   'pages/api/threadrings/[slug].ts',
   'pages/api/threadrings/[slug]/lineage.ts',
