@@ -15,6 +15,7 @@ import {
   markPngFailed,
 } from '@/lib/pixel-homes/decoration-assets'
 import { getDecorationDimensions, sizeScale } from '@/lib/pixel-homes/decoration-dimensions'
+import { bundledDecorationPngUrl } from '@/lib/pixel-homes/bundled-decoration-art'
 import Sprite from './Sprite'
 
 interface DecorationSVGProps {
@@ -69,16 +70,19 @@ export default function DecorationSVG({
     setPngError(false)
   }, [decorationId])
 
+  // The site's own default art for decorations without an uploaded PNG
+  const bundledPng = bundledDecorationPngUrl(decorationId)
+
   // Determine if we should try PNG loading
   const shouldTryPng = (
     PNG_SUPPORTED_TYPES.has(decorationType) &&
     !pngError &&
     !hasPngFailed(decorationId) &&
-    (pngUrl || isPngLoadingEnabled())
+    (pngUrl || bundledPng || isPngLoadingEnabled())
   )
 
-  // Get PNG URL (direct URL takes priority over R2 lookup)
-  const resolvedPngUrl = pngUrl || getDecorationPngUrl(decorationId)
+  // An uploaded PNG wins, then the site's own default art, then the R2 lookup
+  const resolvedPngUrl = pngUrl || bundledPng || getDecorationPngUrl(decorationId)
 
   // Try PNG first if supported
   if (shouldTryPng && resolvedPngUrl) {

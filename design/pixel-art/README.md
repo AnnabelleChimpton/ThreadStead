@@ -108,6 +108,8 @@ For a batch, I put the PNGs in `design/pixel-art/export/` and run `npx tsx scrip
 
 **Contact sheet** (next to New from PNG) shows every sprite at 1× on one strip of grass, plus all the houses, so I can spot one that's drifted off.
 
+**Default art.** Decorations I haven't drawn yet use the site's own PNGs in `public/pixel-homes/decorations/` (listed in `lib/pixel-homes/bundled-decoration-art.ts`), drawn at the size the yard already gives them. Uploading my own PNG for an item always wins over these, so to replace one I just upload it as usual. The drafts and the script that drew them are in `HomePageAgain/design/decoration-drafts`.
+
 ## Houses
 
 A house is a stack of layers on a 200×180 canvas: `base` (walls, foundation, ground line), `roof` (no chimney), then option sprites that drop into sockets: door, window-left, window-right, chimney (the default chimney is its own sprite), trim and treatment-left/right. The sign, number, lights and mat are drawn by the code at their sockets. The boxes are in `_guide-house.png` and `_template-house.sockets.json`.

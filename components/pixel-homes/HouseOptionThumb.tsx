@@ -2,7 +2,7 @@ import React from 'react'
 import HouseSprite from './HouseSprite'
 import type { ColorPalette, HouseCustomizations, HouseTemplate } from './HouseSVG'
 import { HOUSE_SIZE } from '@/lib/pixel-homes/house-layers'
-import { HOUSE_OPTION_ITEMS, houseOptionCrop } from '@/lib/pixel-homes/house-option-items'
+import { HOUSE_EXTRA_ITEMS, HOUSE_OPTION_ITEMS, houseOptionCrop } from '@/lib/pixel-homes/house-option-items'
 
 interface HouseOptionThumbProps {
   itemId: string
@@ -13,13 +13,15 @@ interface HouseOptionThumbProps {
 }
 
 /**
- * A decorator tile for a door, window, window decor, roof trim or chimney:
- * a close-up of the resident's own house wearing that choice, in their
- * colours. Null for items that aren't one of those parts.
+ * A decorator tile for a door, window, window decor, roof trim, chimney,
+ * mat, house number or lights: a close-up of the resident's own house
+ * wearing that choice, in their colours. Null for any other item.
  */
 export default function HouseOptionThumb({ itemId, template, palette, customizations, size }: HouseOptionThumbProps) {
-  const option = HOUSE_OPTION_ITEMS[itemId]
+  const option = HOUSE_OPTION_ITEMS[itemId] ?? HOUSE_EXTRA_ITEMS[itemId]
   if (!option) return null
+  // A number style needs a number to show
+  const extra = option.part === 'number' && option.set.houseNumberStyle && !customizations.houseNumber ? { houseNumber: '42' } : {}
   const crop = houseOptionCrop(template, option.part)
   const scale = size / crop.size
   return (
@@ -40,7 +42,7 @@ export default function HouseOptionThumb({ itemId, template, palette, customizat
         <HouseSprite
           template={template}
           palette={palette}
-          customizations={{ ...customizations, ...option.set }}
+          customizations={{ ...customizations, ...option.set, ...extra }}
           className="w-full h-full"
         />
       </div>
@@ -50,5 +52,5 @@ export default function HouseOptionThumb({ itemId, template, palette, customizat
 
 /** Whether a decorator item gets a house close-up as its tile. */
 export function isHouseOptionItem(itemId: string): boolean {
-  return itemId in HOUSE_OPTION_ITEMS
+  return itemId in HOUSE_OPTION_ITEMS || itemId in HOUSE_EXTRA_ITEMS
 }

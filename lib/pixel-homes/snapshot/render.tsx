@@ -113,7 +113,8 @@ const MAX_TOP_CROP = 30
 // 6, 7: a new sky, lawn, night ground and terrain (taken back out)
 // 8: the ground from 5 again, so pictures drawn at 6 and 7 are redrawn
 // 9: homes with their own colours get the sprite houses, in those colours
-export const SNAPSHOT_RENDERER_VERSION = 9
+// 10: decorations without an uploaded PNG use the site's own pixel art
+export const SNAPSHOT_RENDERER_VERSION = 10
 
 /** Fetch an image's bytes, or null if it can't be had (a 404, an origin we don't fetch from). */
 export type ImageLoader = (url: string) => Promise<Buffer | null>

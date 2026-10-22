@@ -16,7 +16,7 @@ describe('decorator house items', () => {
 
   test('each close-up crop is a square on the house canvas', () => {
     for (const template of Object.keys(HOUSE_SOCKETS)) {
-      for (const part of ['door', 'window', 'treatment', 'trim', 'chimney'] as const) {
+      for (const part of ['door', 'window', 'treatment', 'trim', 'chimney', 'mat', 'number', 'lights'] as const) {
         const crop = houseOptionCrop(template, part)
         expect(crop.size).toBeGreaterThan(10)
         expect(crop.x).toBeGreaterThanOrEqual(0)
