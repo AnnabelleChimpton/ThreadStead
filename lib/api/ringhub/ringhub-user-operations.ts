@@ -285,11 +285,10 @@ export class AuthenticatedRingHubClient {
     return await this.client.getRingFeed(slug, options)
   }
 
-  async getRingLineage(slug: string) {
-    if (!this.client) {
-      throw new Error('Ring Hub client not available')
-    }
-    return await this.client.getRingLineage(slug)
+  /** A ring's family tree signed as this user, so a PRIVATE ring's member sees it, and their private relatives. */
+  async getRingLineageAsMember(slug: string) {
+    const userClient = await this.getUserClient()
+    return await userClient.getRingLineage(slug)
   }
 
   async getStats() {

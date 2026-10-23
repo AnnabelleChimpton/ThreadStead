@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getSessionUser } from "@/lib/auth/server";
-import { getRingHubClient, shouldUseRingHub } from "@/lib/api/ringhub/ringhub-client";
+import { getPublicRingHubClient, shouldUseRingHub } from "@/lib/api/ringhub/ringhub-client";
+import { readAsViewer } from "@/lib/rings/read-as-viewer";
 import { createAuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
 
 interface ThreadRingNode {
@@ -44,15 +45,8 @@ export default async function handler(
       return res.status(503).json({ error: "Ring Hub is not available" });
     }
 
-    // Get Ring Hub client (authenticated if user is logged in)
-    let ringHubClient;
-    if (viewer) {
-      ringHubClient = await createAuthenticatedRingHubClient(viewer.id);
-    } else {
-      ringHubClient = getRingHubClient();
-    }
-
-    if (!ringHubClient) {
+    const publicClient = getPublicRingHubClient();
+    if (!publicClient) {
       return res.status(503).json({ error: "Ring Hub client not available" });
     }
 
@@ -62,8 +56,11 @@ export default async function handler(
       rootSlug = rootId;
     }
 
-    // Get lineage data from Ring Hub
-    const lineageData = await ringHubClient.getRingLineage(rootSlug);
+    // The tree as the viewer may see it: their private rings too
+    const lineageData = await readAsViewer(
+      viewer ? () => createAuthenticatedRingHubClient(viewer.id).getRingLineageAsMember(rootSlug) : null,
+      () => publicClient.getRingLineage(rootSlug)
+    );
 
     // Transform Ring Hub data to our format
     // `depth` is how many rings up the tree this one sits from the root shown
@@ -157,7 +154,7 @@ export default async function handler(
     const calculateStats = async (node: ThreadRingNode): Promise<GenealogyStats> => {
       try {
         // Use Ring Hub stats for global network statistics
-        const ringHubStats = await ringHubClient.getStats();
+        const ringHubStats = await publicClient.getStats();
         
         // Calculate max depth from the tree structure
         const calculateMaxDepth = (n: ThreadRingNode): number => {

@@ -45,7 +45,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const body = await cached(`ring-lineage:${viewer?.id ?? 'public'}:${slug}`, FRESH_MS, STALE_MS, async () => {
       const lineageData = await readAsViewer(
-        viewer ? () => createAuthenticatedRingHubClient(viewer.id).getRingLineage(slug) : null,
+        viewer ? () => createAuthenticatedRingHubClient(viewer.id).getRingLineageAsMember(slug) : null,
         () => asPublic(slug)
       );
       const ring = lineageData?.ring;
