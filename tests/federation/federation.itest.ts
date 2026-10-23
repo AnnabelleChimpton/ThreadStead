@@ -541,7 +541,10 @@ describe('owner member management (audit 0.8)', () => {
     expect((await second.joinRing(FORK_SLUG)).membership.status).toBe('ACTIVE')
 
     await second.leaveRing(FORK_SLUG)
-    expect((await second.joinRing(FORK_SLUG)).membership.status).toBe('ACTIVE')
+    const rejoined = await second.joinRing(FORK_SLUG)
+    expect(rejoined.membership.status).toBe('ACTIVE')
+    // A rejoin's badge is stored too (it once 404'd: one badge row per membership)
+    expect((await fetch(rejoined.badge!.url)).status).toBe(200)
   })
 })
 
