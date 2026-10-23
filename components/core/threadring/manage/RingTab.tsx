@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useRouter } from "next/router";
 import Button from "@/components/ui/Button";
 import { PixelIcon } from "@/components/ui/PixelIcon";
-import ImagePicker from "@/components/features/templates/ImagePicker";
+import { ImageLibrary } from "@/components/features/templates/ImagePicker";
 import { useToast } from "@/contexts/ToastContext";
 import { useConfirm } from "@/contexts/ConfirmContext";
 import { csrfFetch } from "@/lib/api/client/csrf-fetch";
@@ -53,11 +53,6 @@ const otherPeople = (n: number) =>
   `${NUMBER_WORDS[n] ?? n} other ${n === 1 ? "person is" : "people are"}`;
 
 /** The address in the image picker's url("...") snippet. */
-function pickedUrl(snippet: string): string | null {
-  const match = /^url\("(.*)"\)$/.exec(snippet);
-  return match ? match[1].replace(/%22/g, '"') : null;
-}
-
 interface RingTabProps {
   ring: ManageRing;
   settings: RingSettings;
@@ -192,15 +187,17 @@ export default function RingTab({ ring, settings, rights, people, viewer, onSave
               <span className="text-sm text-nb-ink-mid">Wide pictures work best, about 1200 × 300.</span>
             )}
           </div>
-          <ImagePicker
-            pane={picking ? "css" : null}
+          <ImageLibrary
+            isOpen={picking}
             username={viewer.username}
             onClose={() => setPicking(false)}
-            onPick={(_pane, snippet) => {
-              const url = pickedUrl(snippet.text);
-              if (url) set("bannerUrl", url);
+            onChoose={(url) => {
+              set("bannerUrl", url);
               setPicking(false);
             }}
+            title="Choose a banner"
+            hint="Pick one of your pictures, or upload a new one."
+            emptyHint="Upload a picture to use it as the banner."
           />
         </div>
       </div>

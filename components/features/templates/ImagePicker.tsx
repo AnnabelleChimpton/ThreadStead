@@ -70,10 +70,42 @@ interface ImagePickerProps {
 
 /**
  * Pick one of your own images (or upload a new one) to put in your page's
- * HTML or CSS. Lists your gallery and the pictures in your posts and
- * comments, newest first, and uploads through the media page's API.
+ * HTML or CSS, at the cursor.
  */
 export default function ImagePicker({ pane, username, onClose, onPick }: ImagePickerProps) {
+  return (
+    <ImageLibrary
+      isOpen={pane !== null}
+      username={username}
+      onClose={onClose}
+      // An untitled image gets an empty alt to fill in, not the "Untitled image" label
+      onChoose={(url, item) => pane && onPick(pane, imageSnippet(pane, url, item.title?.trim() || ''))}
+      title="Insert an image"
+      hint="Pick one to put it where your cursor is."
+      emptyHint="Upload one and it goes right where your cursor is."
+    />
+  );
+}
+
+interface ImageLibraryProps {
+  isOpen: boolean;
+  username: string;
+  onClose: () => void;
+  /** The image picked (or just uploaded), and its address */
+  onChoose: (url: string, item: PickerImage) => void;
+  title: string;
+  /** Above the images, and when there are none yet */
+  hint: string;
+  emptyHint: string;
+}
+
+/**
+ * Your own images to choose from, or upload a new one: your gallery and the
+ * pictures in your posts and comments, newest first, uploading through the
+ * media page's API. ImagePicker puts one in your page's code; a ring's
+ * banner just takes its address.
+ */
+export function ImageLibrary({ isOpen, username, onClose, onChoose, title, hint, emptyHint }: ImageLibraryProps) {
   const { showError } = useToast();
   const [images, setImages] = useState<PickerImage[]>([]);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
@@ -82,7 +114,6 @@ export default function ImagePicker({ pane, username, onClose, onPick }: ImagePi
   const [loadingMore, setLoadingMore] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const isOpen = pane !== null;
 
   const fetchPage = useCallback(
     async (n: number) => {
@@ -128,12 +159,7 @@ export default function ImagePicker({ pane, username, onClose, onPick }: ImagePi
     }
   };
 
-  const pick = (item: PickerImage) => {
-    if (!pane) return;
-    // An untitled image gets an empty alt to fill in, not the "Untitled image" label
-    const alt = item.title?.trim() || '';
-    onPick(pane, imageSnippet(pane, imageAddress(item), alt));
-  };
+  const pick = (item: PickerImage) => onChoose(imageAddress(item), item);
 
   // Same API and capability token as the media page's upload; the new image
   // goes straight into the page.
@@ -198,7 +224,7 @@ export default function ImagePicker({ pane, username, onClose, onPick }: ImagePi
       <Modal
         isOpen={isOpen}
         onClose={onClose}
-        title="Insert an image"
+        title={title}
         maxWidth="max-w-3xl"
         footer={
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -228,13 +254,13 @@ export default function ImagePicker({ pane, username, onClose, onPick }: ImagePi
           <EmptyState
             variant="plain"
             title="No images yet"
-            description="Upload one and it goes right where your cursor is."
+            description={emptyHint}
           />
         )}
 
         {status === 'ready' && images.length > 0 && (
           <>
-            <p className="text-sm text-nb-ink-mid mb-3">Pick one to put it where your cursor is.</p>
+            <p className="text-sm text-nb-ink-mid mb-3">{hint}</p>
             <ul className="grid grid-cols-3 sm:grid-cols-5 gap-2" aria-label="Your images">
               {images.map((item) => (
                 <li key={item.id}>
