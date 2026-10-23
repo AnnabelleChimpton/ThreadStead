@@ -5,7 +5,7 @@ import { readRingAs } from '@/lib/domain/threadrings/ring-access';
  * Is the viewer this ring's Host? Ring Hub says (Ring.ownerDid), read signed
  * as them so a private ring's Host gets an answer; the local owner row can
  * lag a hand-over. `isCurator` stays for older callers and is always false:
- * a local ring's curator no longer exists with Ring Hub on.
+ * rings live on Ring Hub, so there's no local curator.
  */
 export default apiHandler({ methods: ['GET'], auth: 'user' }, async (req, res, { user }) => {
   const slug = req.query.slug;

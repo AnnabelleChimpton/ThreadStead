@@ -6,7 +6,6 @@ import TrendingFeedTab from "@/components/core/content/TrendingFeedTab";
 import { getSiteConfig, SiteConfig } from "@/lib/config/site/dynamic";
 import { GetServerSideProps, NextApiRequest } from "next";
 import { getSessionUser } from "@/lib/auth/server";
-import { featureFlags } from "@/lib/utils/features/feature-flags";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import ButtonLink from "@/components/ui/ButtonLink";
 import Callout from "@/components/ui/feedback/Callout";
@@ -41,8 +40,7 @@ export default function FeedPage({ siteConfig, signedIn, initialTab }: FeedPageP
     }
   ];
 
-  // RingHub tabs (only show if feature is enabled)
-  const ringHubTabs: TabSpec[] = featureFlags.ringhub() ? [
+  const ringHubTabs: TabSpec[] = [
     {
       id: "my-rings",
       label: "Ring posts",
@@ -60,7 +58,7 @@ export default function FeedPage({ siteConfig, signedIn, initialTab }: FeedPageP
       label: "Trending",
       content: <TrendingFeedTab />
     }
-  ] : [];
+  ];
 
   const tabs: TabSpec[] = [...baseTabs, ...ringHubTabs];
 

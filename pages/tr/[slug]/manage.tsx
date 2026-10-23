@@ -188,7 +188,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async (context) => 
   let people: ManageMember[] | null = null;
   if (rights.tabs.includes("people") || rights.handOver) {
     const reader = access.viewerDid ? createAuthenticatedRingHubClient(viewer.id) : getPublicRingHubClient();
-    const result = reader ? await ringPeople(db, { reader, ring, viewerId: viewer.id, host: SITE_NAME }) : HUB_TIMEOUT;
+    const result = await ringPeople(db, { reader, ring, viewerId: viewer.id, host: SITE_NAME });
     people = result === HUB_TIMEOUT ? null : result;
   }
   const stops = rights.tabs.includes("stops") ? await ringStopsData(db, { ring, host: SITE_NAME }) : null;

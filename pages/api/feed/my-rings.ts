@@ -1,5 +1,4 @@
 import { createAuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
-import { featureFlags } from "@/lib/utils/features/feature-flags";
 import { RingHubAuthError, RingHubUnavailableError } from "@/lib/api/ringhub/ringhub-errors";
 import { apiHandler } from "@/lib/api/handler";
 import { sendUnauthenticated } from "@/lib/api/errors";
@@ -8,17 +7,8 @@ import { getHiddenIds, filterBlockedRingHubItems } from "@/lib/domain/users/bloc
 import { visibleRingHubItems } from "@/lib/domain/posts/visibility";
 
 export default apiHandler(
-  // optional, not 'user': the RingHub-disabled 503 below must still win over the signed-out 401
   { methods: ["GET"], auth: "optional" },
   async (req, res, { user }) => {
-    // Check if RingHub is enabled
-    if (!featureFlags.ringhub()) {
-      return res.status(503).json({ 
-        error: "Service unavailable", 
-        message: "My Rings feed is not available" 
-      });
-    }
-
     try {
       if (!user) return sendUnauthenticated(res);
 
@@ -36,12 +26,6 @@ export default apiHandler(
 
       // Create authenticated RingHub client
       const authenticatedClient = createAuthenticatedRingHubClient(user.id);
-      if (!authenticatedClient) {
-        return res.status(503).json({ 
-          error: "Service unavailable", 
-          message: "Could not connect to RingHub service" 
-        });
-      }
 
       // Fetch feed from RingHub. Fork notices are dropped below, not with the
       // hub's includeNotifications=false: its JSON-path `not` filter may also

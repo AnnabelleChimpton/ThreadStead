@@ -38,7 +38,7 @@ function getUserAuthMode(): RingHubUserAuthMode {
  * Enhanced Ring Hub client that automatically handles user authentication
  */
 export class AuthenticatedRingHubClient {
-  private client: RingHubClient | null
+  private client: RingHubClient
   private userId: string
   private userClient: RingHubClient | null = null
 
@@ -64,9 +64,6 @@ export class AuthenticatedRingHubClient {
       // Explicit dev-only opt-in: act as the SERVER actor, tracking user intent in logs.
       console.log(`⚠️ RINGHUB_USER_AUTH_MODE=server-proxy: using server DID for Ring Hub auth`)
       console.log(`User intent tracked for: ${userDIDMapping.did}`)
-      if (!this.client) {
-        throw new RingHubUnavailableError('Ring Hub server client not available (check env configuration)')
-      }
       // Cache so repeated ops on this instance reuse the server client.
       this.userClient = this.client
       return this.userClient
@@ -255,7 +252,7 @@ export class AuthenticatedRingHubClient {
   // Pass-through methods that don't require user authentication
 
   async getRing(slug: string): Promise<RingDescriptor | null> {
-    return this.client?.getRing(slug) || null
+    return this.client.getRing(slug)
   }
 
   async listRings(options?: Parameters<RingHubClient['listRings']>[0]) {
@@ -279,9 +276,6 @@ export class AuthenticatedRingHubClient {
   }
 
   async getRingFeed(slug: string, options?: Parameters<RingHubClient['getRingFeed']>[1]) {
-    if (!this.client) {
-      throw new Error('Ring Hub client not available')
-    }
     return await this.client.getRingFeed(slug, options)
   }
 
@@ -292,9 +286,6 @@ export class AuthenticatedRingHubClient {
   }
 
   async getStats() {
-    if (!this.client) {
-      throw new Error('Ring Hub client not available')
-    }
     return await this.client.getStats()
   }
 
@@ -332,9 +323,6 @@ export class AuthenticatedRingHubClient {
   }
 
   async getTrendingFeed(options?: Parameters<RingHubClient['getTrendingFeed']>[0]) {
-    if (!this.client) {
-      throw new Error('Ring Hub client not available')
-    }
     return await this.client.getTrendingFeed(options)
   }
 

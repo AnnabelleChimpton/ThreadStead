@@ -1,7 +1,6 @@
 // pages/api/users/badges-for-display.ts
 import { db } from '@/lib/config/database/connection'
 import { UserBadgePreferences } from '@/pages/api/users/me/badge-preferences'
-import { featureFlags } from '@/lib/utils/features/feature-flags'
 import { getPublicRingHubClient } from '@/lib/api/ringhub/ringhub-client'
 import { getUserDID } from '@/lib/api/did/server-did-client'
 import { cached } from '@/lib/api/ringhub/ringhub-cache'
@@ -51,11 +50,6 @@ export default apiHandler(
         return res.json({ badges: [] })
       }
 
-      // Use Ring Hub only (no local fallback)
-      if (!featureFlags.ringhub()) {
-        return res.json({ badges: [] })
-      }
-
       try {
         // Get user's DID for Ring Hub lookup
         const userDID = await getUserDID(userId)
@@ -64,9 +58,6 @@ export default apiHandler(
         }
 
         const publicClient = getPublicRingHubClient()
-        if (!publicClient) {
-          return res.json({ badges: [] })
-        }
 
         // Fetch all user's badges from Ring Hub (cached, SWR)
         const ringHubBadges = await cached(

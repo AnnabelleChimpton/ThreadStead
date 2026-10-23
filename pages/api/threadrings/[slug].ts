@@ -1,16 +1,12 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { db } from "@/lib/config/database/connection";
-import { filterBlockedUsers } from "@/lib/domain/threadrings/blocks";
-import { withThreadRingSupport } from "@/lib/api/ringhub/ringhub-middleware";
 import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
 import { transformRingDescriptorToThreadRing } from "@/lib/api/ringhub/ringhub-transformers";
 import { cached } from "@/lib/api/ringhub/ringhub-cache";
 import { RingHubAuthError, RingHubUnavailableError } from "@/lib/api/ringhub/ringhub-errors";
 
-export default withThreadRingSupport(async function handler(
+export default async function handler(
   req: NextApiRequest, 
-  res: NextApiResponse,
-  system: 'ringhub' | 'local'
+  res: NextApiResponse
 ) {
   if (req.method !== "GET") return res.status(405).json({ error: "Method Not Allowed" });
 
@@ -21,111 +17,43 @@ export default withThreadRingSupport(async function handler(
   }
 
   try {
-    // Use Ring Hub if enabled
-    if (system === 'ringhub') {
-      const client = getRingHubClient();
-      if (!client) {
-        return res.status(500).json({ error: "Ring Hub client not configured" });
-      }
+    const client = getRingHubClient();
 
-      let ringDescriptor;
-      try {
-        ringDescriptor = await cached(
-          `ring:${slug}`,
-          30_000,
-          5 * 60_000,
-          () => client.getRing(slug)
-        );
-      } catch (error) {
-        if (error instanceof RingHubAuthError || error instanceof RingHubUnavailableError) {
-          console.error('Ring Hub unavailable for ring fetch:', error.name, error.message);
-          return res.status(503).json({ error: 'hub_unavailable', degraded: true });
-        }
-        throw error;
+    let ringDescriptor;
+    try {
+      ringDescriptor = await cached(
+        `ring:${slug}`,
+        30_000,
+        5 * 60_000,
+        () => client.getRing(slug)
+      );
+    } catch (error) {
+      if (error instanceof RingHubAuthError || error instanceof RingHubUnavailableError) {
+        console.error('Ring Hub unavailable for ring fetch:', error.name, error.message);
+        return res.status(503).json({ error: 'hub_unavailable', degraded: true });
       }
-
-      if (!ringDescriptor) {
-        return res.status(404).json({ error: "ThreadRing not found" });
-      }
-
-      // Transform Ring Hub descriptor to ThreadRing format
-      // Note: We'll need to fetch members separately if needed
-      const ring = transformRingDescriptorToThreadRing(ringDescriptor);
-      
-      // For now, return a simplified response matching the expected format
-      // Members will be fetched separately via the members endpoint
-      return res.status(200).json({ 
-        ring: {
-          ...ring,
-          curator: null, // Will be populated from members with role=curator
-          members: [] // Members fetched separately via /api/threadrings/[slug]/members
-        }
-      });
+      throw error;
     }
 
-    // Original local ThreadRing logic
-    const ring = await db.threadRing.findUnique({
-      where: { slug },
-      include: {
-        curator: {
-          select: {
-            id: true,
-            handles: {
-              select: {
-                handle: true,
-                host: true,
-              },
-            },
-            profile: {
-              select: {
-                displayName: true,
-                avatarUrl: true,
-              },
-            },
-          },
-        },
-        members: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                handles: {
-                  select: {
-                    handle: true,
-                    host: true,
-                  },
-                },
-                profile: {
-                  select: {
-                    displayName: true,
-                    avatarUrl: true,
-                  },
-                },
-              },
-            },
-          },
-          orderBy: [
-            { role: "desc" }, // Curator first, then moderators, then members
-            { joinedAt: "asc" },
-          ],
-        },
-      },
-    });
-
-    if (!ring) {
+    if (!ringDescriptor) {
       return res.status(404).json({ error: "ThreadRing not found" });
     }
 
-    // Filter out blocked users from member list
-    if (ring.members.length > 0) {
-      const memberUserIds = ring.members.map(member => member.user.id);
-      const allowedUserIds = await filterBlockedUsers(ring.id, memberUserIds);
-      ring.members = ring.members.filter(member => allowedUserIds.includes(member.user.id));
-    }
-
-    res.status(200).json({ ring });
+    // Transform Ring Hub descriptor to ThreadRing format
+    // Note: We'll need to fetch members separately if needed
+    const ring = transformRingDescriptorToThreadRing(ringDescriptor);
+    
+    // For now, return a simplified response matching the expected format
+    // Members will be fetched separately via the members endpoint
+    return res.status(200).json({ 
+      ring: {
+        ...ring,
+        curator: null, // Will be populated from members with role=curator
+        members: [] // Members fetched separately via /api/threadrings/[slug]/members
+      }
+    });
   } catch (error: any) {
     console.error("ThreadRing fetch error:", error);
     res.status(500).json({ error: "Failed to fetch ThreadRing" });
   }
-});
+}

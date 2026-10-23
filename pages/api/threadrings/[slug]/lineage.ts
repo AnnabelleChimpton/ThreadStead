@@ -1,9 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { getSessionUser } from '@/lib/auth/server';
 import { createAuthenticatedRingHubClient } from '@/lib/api/ringhub/ringhub-user-operations';
-import { featureFlags } from '@/lib/utils/features/feature-flags';
 import { getPublicRingHubClient } from '@/lib/api/ringhub/ringhub-client';
-import { RingHubUnavailableError } from '@/lib/api/ringhub/ringhub-errors';
 import { cached } from '@/lib/api/ringhub/ringhub-cache';
 import { readAsViewer } from '@/lib/rings/read-as-viewer';
 
@@ -32,21 +30,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: 'Invalid slug parameter' });
   }
 
-  const empty = { lineage: [], ancestors: [], descendants: [], parents: [], children: [], directChildrenCount: 0, totalDescendantsCount: 0, siblingsCount: 0, lineageDepth: 0, lineagePath: '' };
-  if (!featureFlags.ringhub()) return res.status(200).json(empty);
-
   const viewer = await getSessionUser(req);
   const publicClient = getPublicRingHubClient();
-  const asPublic = (ringSlug: string) => {
-    if (!publicClient) throw new RingHubUnavailableError('Ring Hub client not available');
-    return publicClient.getRingLineage(ringSlug);
-  };
 
   try {
     const body = await cached(`ring-lineage:${viewer?.id ?? 'public'}:${slug}`, FRESH_MS, STALE_MS, async () => {
       const lineageData = await readAsViewer(
         viewer ? () => createAuthenticatedRingHubClient(viewer.id).getRingLineageAsMember(slug) : null,
-        () => asPublic(slug)
+        () => publicClient.getRingLineage(slug)
       );
       const ring = lineageData?.ring;
       const ancestors = lineageData?.ancestors || [];
@@ -56,7 +47,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // Siblings: the parent's direct children, less this ring. One ring read
       // (cached for everyone), not the parent's whole subtree.
       let siblingsCount = 0;
-      if (parent?.slug && publicClient) {
+      if (parent?.slug) {
         try {
           const parentRing = await cached(`ring:${parent.slug}`, FRESH_MS, STALE_MS, () => publicClient.getRing(parent.slug));
           siblingsCount = (parentRing?.children || []).filter((child) => child.slug !== slug).length;

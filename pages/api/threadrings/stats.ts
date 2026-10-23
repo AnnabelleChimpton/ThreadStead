@@ -13,9 +13,6 @@ export default async function handler(
   }
 
   const client = getPublicRingHubClient();
-  if (!client) {
-    return res.status(503).json({ error: "hub_unavailable", degraded: true });
-  }
 
   try {
     // The ring page's loader keeps the same key (lib/rings/page-data.ts)

@@ -2,7 +2,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { apiHandler } from '@/lib/api/handler'
 import { db } from '@/lib/config/database/connection'
-import { featureFlags } from '@/lib/utils/features/feature-flags'
 import { getPublicRingHubClient } from '@/lib/api/ringhub/ringhub-client'
 import { getUserDID } from '@/lib/api/did/server-did-client'
 
@@ -48,20 +47,6 @@ async function getBadgePreferences(req: NextApiRequest, res: NextApiResponse, us
 
     let availableBadges: any[] = []
 
-    // Use Ring Hub only (no local fallback)
-    if (!featureFlags.ringhub()) {
-      // Ring Hub not enabled, return empty badges
-      return res.json({
-        preferences: {
-          selectedBadges: existingPrefs?.selectedBadges || [],
-          maxBadgesOnPosts: existingPrefs?.maxBadgesOnPosts || 2,
-          maxBadgesOnComments: existingPrefs?.maxBadgesOnComments || 1,
-          showBadgesOnProfile: existingPrefs?.showBadgesOnProfile ?? true
-        },
-        availableBadges: []
-      })
-    }
-
     try {
       // Get user's DID for Ring Hub lookup
       const userDID = await getUserDID(userId)
@@ -78,17 +63,6 @@ async function getBadgePreferences(req: NextApiRequest, res: NextApiResponse, us
       }
 
       const publicClient = getPublicRingHubClient()
-      if (!publicClient) {
-        return res.json({
-          preferences: {
-            selectedBadges: existingPrefs?.selectedBadges || [],
-            maxBadgesOnPosts: existingPrefs?.maxBadgesOnPosts || 2,
-            maxBadgesOnComments: existingPrefs?.maxBadgesOnComments || 1,
-            showBadgesOnProfile: existingPrefs?.showBadgesOnProfile ?? true
-          },
-          availableBadges: []
-        })
-      }
 
       // Note: We can't use getMyMemberships() here since we're using the public client
       // The badges endpoint should include all the membership info we need

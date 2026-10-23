@@ -1,5 +1,4 @@
 import { apiHandler } from "@/lib/api/handler";
-import { getThreadRingSystem } from "@/lib/api/ringhub/ringhub-middleware";
 import { surprisePick, type SurprisePick } from "@/lib/search/discover";
 
 const KINDS: SurprisePick["kind"][] = ["home", "ring", "site"];
@@ -18,7 +17,7 @@ export default apiHandler(
     if (raw && !kind) {
       return res.status(400).json({ error: `Invalid kind "${raw}" — expected one of: ${KINDS.join(", ")}` });
     }
-    const pick = await surprisePick(viewer?.id ?? null, getThreadRingSystem(viewer), kind);
+    const pick = await surprisePick(viewer?.id ?? null, kind);
     res.setHeader("Cache-Control", "no-store");
     return res.json({ pick });
   }

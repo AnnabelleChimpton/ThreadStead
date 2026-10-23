@@ -1,5 +1,4 @@
 import { apiHandler } from "@/lib/api/handler";
-import { getThreadRingSystem } from "@/lib/api/ringhub/ringhub-middleware";
 import {
   rankBySignals,
   ringTextRank,
@@ -72,13 +71,6 @@ const RING_CANDIDATES = 50;
 export default apiHandler(
   { methods: ["GET"], auth: "optional" },
   async (req, res, { user: viewer }) => {
-    // Was withThreadRingSupport (which resolved the session a second time just
-    // to pick the system); same feature-flag check, now on ctx.user.
-    const system = getThreadRingSystem(viewer);
-    if (system === 'none') {
-      return res.status(404).json({ error: "ThreadRing features not available" });
-    }
-
     // Bad numbers / cursors are a 400 (thrown ApiError), not a 500.
     const limit = parseIntParam(req.query.limit, "limit", { fallback: 20, min: 1, max: 50 });
     const per = parseIntParam(req.query.per, "per", { fallback: 5, min: 1, max: 10 });
@@ -117,7 +109,7 @@ export default apiHandler(
       const sourceErrors: Array<{ source: string; message: string }> = [];
 
       const [rings, users, posts, pages, homes] = await Promise.all([
-        types.has("threadrings") ? ringCandidates(query, viewerId, system, sourceErrors) : [],
+        types.has("threadrings") ? ringCandidates(query, viewerId, sourceErrors) : [],
         types.has("users") ? userCandidates(query, viewerId) : [],
         types.has("posts") ? postCandidates(query, viewerId) : [],
         types.has("pages") ? pageCandidates(query) : [],
@@ -272,12 +264,11 @@ async function hydrate(
 async function ringCandidates(
   query: string,
   viewerId: string | null,
-  system: string,
   sourceErrors: Array<{ source: string; message: string }>
 ): Promise<RingCandidate[]> {
   let rings: RingRow[];
   try {
-    rings = await fetchRings({ search: query, viewerId, system, limit: RING_CANDIDATES });
+    rings = await fetchRings({ search: query, viewerId, limit: RING_CANDIDATES });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error("Ring Hub search failed:", {

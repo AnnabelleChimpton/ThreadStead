@@ -1,5 +1,4 @@
 import { getPublicRingHubClient } from "@/lib/api/ringhub/ringhub-client";
-import { featureFlags } from "@/lib/utils/features/feature-flags";
 import { RingHubAuthError, RingHubUnavailableError } from "@/lib/api/ringhub/ringhub-errors";
 import { apiHandler } from "@/lib/api/handler";
 import { parseLimit } from "@/lib/server/http/pagination";
@@ -9,14 +8,6 @@ import { visibleRingHubItems } from "@/lib/domain/posts/visibility";
 export default apiHandler(
   { methods: ["GET"], auth: "optional" },
   async (req, res, { user: viewer }) => {
-    // Check if RingHub is enabled
-    if (!featureFlags.ringhub()) {
-      return res.status(503).json({ 
-        error: "Service unavailable", 
-        message: "Trending feed is not available" 
-      });
-    }
-
     try {
       // Parse query parameters
       const { timeWindow = "day" } = req.query;
@@ -29,12 +20,6 @@ export default apiHandler(
 
       // Create public RingHub client
       const publicClient = getPublicRingHubClient();
-      if (!publicClient) {
-        return res.status(503).json({ 
-          error: "Service unavailable", 
-          message: "Could not connect to RingHub service" 
-        });
-      }
 
       // Fetch trending feed from RingHub
       const feedResponse = await publicClient.getTrendingFeed({

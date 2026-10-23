@@ -56,7 +56,6 @@ export default apiHandler(
         throw new ApiError(409, "Others are still in this ring, so hand it to one of them instead.");
       }
       const deleter = access.manageAs === "site" ? getRingHubClient() : createAuthenticatedRingHubClient(user.id);
-      if (!deleter) throw new ApiError(503, "We can't reach Ring Hub right now. Try again in a minute.");
       let outcome;
       try {
         outcome = await deleteEmptyRing(

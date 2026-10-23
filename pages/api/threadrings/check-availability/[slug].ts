@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { featureFlags } from "@/lib/utils/features/feature-flags";
+import { ringHubUrl } from "@/lib/api/ringhub/ringhub-client";
 
 export default async function handler(
   req: NextApiRequest,
@@ -51,26 +51,16 @@ export default async function handler(
 
     // Ask the hub's own check: it sees every ring, private ones too, where
     // reading the ring (getRing) 404s for a private ring and called it free.
-    if (featureFlags.ringhub() && process.env.RING_HUB_URL) {
-      const hubUrl = process.env.RING_HUB_URL.replace(/\/$/, '');
-      const response = await fetch(`${hubUrl}/trp/rings/check-availability/${encodeURIComponent(slug)}`, {
-        signal: AbortSignal.timeout(10_000),
-      });
-      if (!response.ok) throw new Error(`Ring Hub check-availability: HTTP ${response.status}`);
-      const { available } = (await response.json()) as { available?: boolean };
-      return res.status(200).json({
-        available: available === true,
-        slug,
-        message: available === true ? `Ring slug '${slug}' is available` : `Ring slug '${slug}' is already taken`
-      });
-    }
-
-    // If Ring Hub is not enabled, assume available
-    // (local database checking could be added here if needed)
+    const hubUrl = ringHubUrl().replace(/\/$/, '');
+    const response = await fetch(`${hubUrl}/trp/rings/check-availability/${encodeURIComponent(slug)}`, {
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!response.ok) throw new Error(`Ring Hub check-availability: HTTP ${response.status}`);
+    const { available } = (await response.json()) as { available?: boolean };
     return res.status(200).json({
-      available: true,
-      slug: slug,
-      message: `Ring slug '${slug}' is available`
+      available: available === true,
+      slug,
+      message: available === true ? `Ring slug '${slug}' is available` : `Ring slug '${slug}' is already taken`
     });
 
   } catch (error: any) {

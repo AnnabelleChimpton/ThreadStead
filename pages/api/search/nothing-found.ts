@@ -1,5 +1,4 @@
 import { apiHandler } from "@/lib/api/handler";
-import { getThreadRingSystem } from "@/lib/api/ringhub/ringhub-middleware";
 import { MAX_QUERY_LENGTH } from "@/lib/search/local";
 import { closestRings, randomHomes } from "@/lib/search/discover";
 
@@ -15,10 +14,9 @@ export default apiHandler(
   async (req, res, { user: viewer }) => {
     const query = String(req.query.q || "").trim().slice(0, MAX_QUERY_LENGTH);
     const viewerId = viewer?.id ?? null;
-    const system = getThreadRingSystem(viewer);
 
     const [rings, homes] = await Promise.all([
-      system === "none" ? { rings: [], fallback: true } : closestRings(query, viewerId, system),
+      closestRings(query, viewerId),
       randomHomes(viewerId, 3),
     ]);
     return res.json({ query, rings: rings.rings, ringsAreFallback: rings.fallback, homes });

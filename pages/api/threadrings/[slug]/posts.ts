@@ -1,7 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { getSessionUser } from '@/lib/auth/server';
 import { createAuthenticatedRingHubClient } from '@/lib/api/ringhub/ringhub-user-operations';
-import { featureFlags } from '@/lib/utils/features/feature-flags';
 import { getPublicRingHubClient, type RingHubClient } from '@/lib/api/ringhub/ringhub-client';
 import { RingHubAuthError, RingHubUnavailableError } from '@/lib/api/ringhub/ringhub-errors';
 import { readAsViewer } from '@/lib/rings/read-as-viewer';
@@ -200,11 +199,7 @@ type FeedOptions = Parameters<RingHubClient['getRingFeed']>[1];
 
 /** One page of the ring's feed, signed as the viewer so a private ring's members can read it. */
 function readFeedPage(slug: string, viewer: { id: string } | null, options: FeedOptions) {
-  const asPublic = () => {
-    const client = getPublicRingHubClient();
-    if (!client) throw new RingHubUnavailableError('Ring Hub client not available');
-    return client.getRingFeed(slug, options);
-  };
+  const asPublic = () => getPublicRingHubClient().getRingFeed(slug, options);
   const asViewer = viewer
     ? () => createAuthenticatedRingHubClient(viewer.id).getRingFeedAsMember(slug, options)
     : null;
@@ -243,17 +238,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     // Get current user for optional authentication (enhanced data if authenticated)
     const viewer = await getSessionUser(req);
-
-    // Only fetch from Ring Hub if enabled
-    if (!featureFlags.ringhub()) {
-      return res.status(200).json({
-        posts: [],
-        total: 0,
-        limit,
-        offset,
-        hasMore: false
-      });
-    }
 
     // Map our scope values to Ring Hub scope values
     const hubScope = ({ current: 'ring', parent: 'parent', children: 'children', siblings: 'siblings', family: 'family' } as const)[

@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getSessionUser } from "@/lib/auth/server";
-import { getPublicRingHubClient, shouldUseRingHub } from "@/lib/api/ringhub/ringhub-client";
+import { getPublicRingHubClient } from "@/lib/api/ringhub/ringhub-client";
 import { readAsViewer } from "@/lib/rings/read-as-viewer";
 import { createAuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
 
@@ -43,14 +43,7 @@ export default async function handler(
     const viewer = await getSessionUser(req);
     const { rootId, maxDepth = 3 } = req.query;
 
-    if (!shouldUseRingHub()) {
-      return res.status(503).json({ error: "Ring Hub is not available" });
-    }
-
     const publicClient = getPublicRingHubClient();
-    if (!publicClient) {
-      return res.status(503).json({ error: "Ring Hub client not available" });
-    }
 
     // Determine the root ring
     let rootSlug = 'spool'; // Default to spool

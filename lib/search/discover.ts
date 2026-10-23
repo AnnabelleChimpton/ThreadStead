@@ -55,9 +55,9 @@ export async function randomHomes(viewerId: string | null, count: number): Promi
 }
 
 /** Ring lists here change slowly and are the same for everyone (blocks aside). */
-function cachedRings(search: string, viewerId: string | null, system: string, limit: number) {
-  return cached(`search-discover:${system}:${viewerId ?? 'anon'}:${search}:${limit}`, 60_000, 10 * 60_000, () =>
-    fetchRings({ search, viewerId, system, limit })
+function cachedRings(search: string, viewerId: string | null, limit: number) {
+  return cached(`search-discover:${viewerId ?? 'anon'}:${search}:${limit}`, 60_000, 10 * 60_000, () =>
+    fetchRings({ search, viewerId, limit })
   )
 }
 
@@ -68,7 +68,6 @@ function cachedRings(search: string, viewerId: string | null, system: string, li
 export async function closestRings(
   query: string,
   viewerId: string | null,
-  system: string,
   limit = 4
 ): Promise<{ rings: Card[]; fallback: boolean }> {
   // Single words, plus a crude singular ("cats" → "cat": the hub matches
@@ -82,7 +81,7 @@ export async function closestRings(
   const seen = new Set<string>()
   const near: RingRow[] = []
   if (terms.length > 0) {
-    const lists = await Promise.all(terms.map((t) => cachedRings(t, viewerId, system, limit).catch(() => [])))
+    const lists = await Promise.all(terms.map((t) => cachedRings(t, viewerId, limit).catch(() => [])))
     for (const ring of lists.flat()) {
       if (seen.has(ring.slug)) continue
       seen.add(ring.slug)
@@ -90,7 +89,7 @@ export async function closestRings(
     }
   }
   if (near.length > 0) return { rings: near.slice(0, limit).map(ringResult), fallback: false }
-  const biggest = await cachedRings('', viewerId, system, limit).catch(() => [])
+  const biggest = await cachedRings('', viewerId, limit).catch(() => [])
   return { rings: biggest.map(ringResult), fallback: true }
 }
 
@@ -134,8 +133,8 @@ async function randomSite(): Promise<SurprisePick | null> {
   }
 }
 
-async function randomRing(viewerId: string | null, system: string): Promise<SurprisePick | null> {
-  const rings = await cachedRings('', viewerId, system, 50).catch(() => [])
+async function randomRing(viewerId: string | null): Promise<SurprisePick | null> {
+  const rings = await cachedRings('', viewerId, 50).catch(() => [])
   if (rings.length === 0) return null
   const card = ringResult(rings[Math.floor(Math.random() * rings.length)])
   return { kind: 'ring', title: card.title, description: card.description, url: card.url, external: false, ring: card.ring }
@@ -150,12 +149,11 @@ async function randomHome(viewerId: string | null): Promise<SurprisePick | null>
 /** One random home, ring or indie site, trying the others if a kind is empty. */
 export async function surprisePick(
   viewerId: string | null,
-  system: string,
   kind?: SurprisePick['kind']
 ): Promise<SurprisePick | null> {
   const pickers: Record<SurprisePick['kind'], () => Promise<SurprisePick | null>> = {
     home: () => randomHome(viewerId),
-    ring: () => (system === 'none' ? Promise.resolve(null) : randomRing(viewerId, system)),
+    ring: () => randomRing(viewerId),
     site: randomSite,
   }
   // Fisher–Yates; a Math.random() sort comparator isn't a fair shuffle.

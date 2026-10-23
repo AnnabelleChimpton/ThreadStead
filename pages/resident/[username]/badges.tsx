@@ -6,7 +6,6 @@ import ProfileLayout from '@/components/ui/layout/ProfileLayout'
 import RetroCard from '@/components/ui/layout/RetroCard'
 import ThreadRing88x31Badge from '@/components/core/threadring/ThreadRing88x31Badge'
 import { db } from '@/lib/config/database/connection'
-import { featureFlags } from '@/lib/utils/features/feature-flags'
 import { getSessionUser } from '@/lib/auth/server'
 import { getPublicRingHubClient } from '@/lib/api/ringhub/ringhub-client'
 import { raceHubCall, HUB_TIMEOUT } from '@/lib/api/ringhub/ringhub-ssr'
@@ -268,98 +267,93 @@ export const getServerSideProps: GetServerSideProps<UserBadgesPageProps | Hidden
       }
     }
 
-    // Use Ring Hub if enabled
-    if (featureFlags.ringhub()) {
-      try {
-        // Get user's DID for Ring Hub lookup
-        const userDID = await getUserDID(userId)
-        if (userDID) {
-          const publicClient = getPublicRingHubClient()
-          if (publicClient) {
-            // Fetch badges from Ring Hub with a short SSR deadline.
-            const ringHubBadges = await raceHubCall(
-              publicClient.getActorBadges(userDID, { status: 'active', limit: 100 })
-            )
-            if (ringHubBadges === HUB_TIMEOUT) {
-              return {
-                props: {
-                  username: usernameParam,
-                  displayName,
-                  badges: [],
-                  totalThreadRings: 0,
-                  hubUnavailable: true
-                }
-              }
-            }
-
-            // Fetch all unique rings to get their current badge designs.
-            // allSettled so one slow/failed ring doesn't drop the whole badge list.
-            const uniqueRingSlugs = [...new Set(ringHubBadges.badges.map(b => b.ring.slug))]
-            const ringDataMap = new Map<string, any>()
-
-            const ringResults = await Promise.allSettled(
-              uniqueRingSlugs.map(slug => raceHubCall(publicClient.getRing(slug)))
-            )
-            ringResults.forEach((result, i) => {
-              if (result.status === 'fulfilled' && result.value && result.value !== HUB_TIMEOUT) {
-                ringDataMap.set(uniqueRingSlugs[i], result.value)
-              }
-            })
-
-            // Transform Ring Hub badges to our expected format
-            const transformedBadges: BadgeWithThreadRing[] = ringHubBadges.badges.map(badge => {
-              const ring = ringDataMap.get(badge.ring.slug)
-              const achievement = badge.badge.credentialSubject?.achievement
-              return {
-                id: badge.ring.slug,
-                title: ring?.name || achievement?.name || badge.ring.name,
-                subtitle: badge.membership.role !== 'member' ? (badge.membership.role.toLowerCase() === 'owner' ? 'curator' : badge.membership.role.toLowerCase()) : undefined,
-                // Use the ring's current badge URL if available, fallback to achievement image
-                imageUrl: ring?.badgeImageUrl || ring?.badgeImageHighResUrl || achievement?.image,
-                templateId: undefined, // Not available from Ring Hub
-                backgroundColor: '#4A90E2', // Default color
-                textColor: '#FFFFFF', // Default color
-                threadRing: {
-                  id: badge.ring.slug,
-                  name: badge.ring.name,
-                  slug: badge.ring.slug,
-                  description: ring?.description || achievement?.description,
-                  memberCount: ring?.memberCount || 0,
-                  visibility: badge.ring.visibility.toLowerCase() as 'public' | 'unlisted' | 'private'
-                },
-                userMembership: {
-                  role: (badge.membership.role.toLowerCase() === 'owner' ? 'curator' : badge.membership.role.toLowerCase()) as 'member' | 'moderator' | 'curator',
-                  joinedAt: badge.membership.joinedAt
-                }
-              }
-            })
-
-            return {
-              props: {
-                username: usernameParam,
-                displayName,
-                badges: transformedBadges,
-                totalThreadRings: transformedBadges.length // Use badge count as approximation
-              }
+    try {
+      // Get user's DID for Ring Hub lookup
+      const userDID = await getUserDID(userId)
+      if (userDID) {
+        const publicClient = getPublicRingHubClient()
+        // Fetch badges from Ring Hub with a short SSR deadline.
+        const ringHubBadges = await raceHubCall(
+          publicClient.getActorBadges(userDID, { status: 'active', limit: 100 })
+        )
+        if (ringHubBadges === HUB_TIMEOUT) {
+          return {
+            props: {
+              username: usernameParam,
+              displayName,
+              badges: [],
+              totalThreadRings: 0,
+              hubUnavailable: true
             }
           }
         }
-      } catch (error) {
-        console.error('Ring Hub badges fetch failed in SSR:', error)
-        // Distinguish "hub down" from "no badges" so the page can say so.
+
+        // Fetch all unique rings to get their current badge designs.
+        // allSettled so one slow/failed ring doesn't drop the whole badge list.
+        const uniqueRingSlugs = [...new Set(ringHubBadges.badges.map(b => b.ring.slug))]
+        const ringDataMap = new Map<string, any>()
+
+        const ringResults = await Promise.allSettled(
+          uniqueRingSlugs.map(slug => raceHubCall(publicClient.getRing(slug)))
+        )
+        ringResults.forEach((result, i) => {
+          if (result.status === 'fulfilled' && result.value && result.value !== HUB_TIMEOUT) {
+            ringDataMap.set(uniqueRingSlugs[i], result.value)
+          }
+        })
+
+        // Transform Ring Hub badges to our expected format
+        const transformedBadges: BadgeWithThreadRing[] = ringHubBadges.badges.map(badge => {
+          const ring = ringDataMap.get(badge.ring.slug)
+          const achievement = badge.badge.credentialSubject?.achievement
+          return {
+            id: badge.ring.slug,
+            title: ring?.name || achievement?.name || badge.ring.name,
+            subtitle: badge.membership.role !== 'member' ? (badge.membership.role.toLowerCase() === 'owner' ? 'curator' : badge.membership.role.toLowerCase()) : undefined,
+            // Use the ring's current badge URL if available, fallback to achievement image
+            imageUrl: ring?.badgeImageUrl || ring?.badgeImageHighResUrl || achievement?.image,
+            templateId: undefined, // Not available from Ring Hub
+            backgroundColor: '#4A90E2', // Default color
+            textColor: '#FFFFFF', // Default color
+            threadRing: {
+              id: badge.ring.slug,
+              name: badge.ring.name,
+              slug: badge.ring.slug,
+              description: ring?.description || achievement?.description,
+              memberCount: ring?.memberCount || 0,
+              visibility: badge.ring.visibility.toLowerCase() as 'public' | 'unlisted' | 'private'
+            },
+            userMembership: {
+              role: (badge.membership.role.toLowerCase() === 'owner' ? 'curator' : badge.membership.role.toLowerCase()) as 'member' | 'moderator' | 'curator',
+              joinedAt: badge.membership.joinedAt
+            }
+          }
+        })
+
         return {
           props: {
             username: usernameParam,
             displayName,
-            badges: [],
-            totalThreadRings: 0,
-            hubUnavailable: true
+            badges: transformedBadges,
+            totalThreadRings: transformedBadges.length // Use badge count as approximation
           }
+        }
+      }
+    } catch (error) {
+      console.error('Ring Hub badges fetch failed in SSR:', error)
+      // Distinguish "hub down" from "no badges" so the page can say so.
+      return {
+        props: {
+          username: usernameParam,
+          displayName,
+          badges: [],
+          totalThreadRings: 0,
+          hubUnavailable: true
         }
       }
     }
 
-    // No Ring Hub enabled, return empty
+    // No DID yet, so no rings
     return {
       props: {
         username: usernameParam,

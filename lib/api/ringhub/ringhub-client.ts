@@ -6,7 +6,6 @@
  */
 
 import crypto from 'crypto';
-import { featureFlags } from '@/lib/utils/features/feature-flags'
 import { RingHubAuthError } from './ringhub-errors'
 import {
   validateRingHubResponse,
@@ -225,25 +224,16 @@ export class RingHubClient {
   }
 
   /**
-   * Check if Ring Hub is available and configured
-   */
-  static isAvailable(): boolean {
-    return featureFlags.ringhub() &&
-      !!process.env.RING_HUB_URL &&
-      !!process.env.THREADSTEAD_DID &&
-      !!process.env.THREADSTEAD_PRIVATE_KEY_B64URL
-  }
-
-  /**
    * Create a Ring Hub client instance from environment variables
    */
-  static fromEnvironment(): RingHubClient | null {
-    if (!RingHubClient.isAvailable()) {
-      return null
+  static fromEnvironment(): RingHubClient {
+    const baseUrl = ringHubUrl()
+    if (!process.env.THREADSTEAD_DID || !process.env.THREADSTEAD_PRIVATE_KEY_B64URL) {
+      throw new Error('THREADSTEAD_DID and THREADSTEAD_PRIVATE_KEY_B64URL must be set to sign Ring Hub requests (see ENVIRONMENT_VARIABLES.md).')
     }
 
     return new RingHubClient({
-      baseUrl: process.env.RING_HUB_URL!,
+      baseUrl,
       instanceDID: process.env.THREADSTEAD_DID!,
       privateKeyBase64Url: process.env.THREADSTEAD_PRIVATE_KEY_B64URL!,
       publicKeyMultibase: process.env.THREADSTEAD_PUBLIC_KEY_MULTIBASE!
@@ -254,15 +244,11 @@ export class RingHubClient {
    * Create a public Ring Hub client for unauthenticated requests
    * This client can only make GET requests to public endpoints
    */
-  static createPublicClient(): RingHubClient | null {
-    if (!featureFlags.ringhub() || !process.env.RING_HUB_URL) {
-      return null
-    }
-
+  static createPublicClient(): RingHubClient {
     // Create a minimal client that can only make public GET requests
     // Use properly formatted 32-byte base64url dummy key
     const client = new RingHubClient({
-      baseUrl: process.env.RING_HUB_URL!,
+      baseUrl: ringHubUrl(),
       instanceDID: 'public-client',
       privateKeyBase64Url: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA_', // 32-byte base64url dummy key
       publicKeyMultibase: 'z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK' // Valid multibase dummy
@@ -1025,26 +1011,31 @@ export class RingHubClient {
 }
 
 /**
- * Get a configured Ring Hub client instance
- * Returns null if Ring Hub is not enabled or configured
+ * The Ring Hub base URL. ThreadStead always runs against a hub, so an unset
+ * RING_HUB_URL is a configuration error.
  */
-export function getRingHubClient(): RingHubClient | null {
+export function ringHubUrl(): string {
+  const url = process.env.RING_HUB_URL
+  if (!url) {
+    throw new Error('RING_HUB_URL is not set. ThreadStead needs a Ring Hub (see ENVIRONMENT_VARIABLES.md).')
+  }
+  return url
+}
+
+/**
+ * Get a Ring Hub client signed as this instance. Throws when the hub or the
+ * instance DID isn't configured.
+ */
+export function getRingHubClient(): RingHubClient {
   return RingHubClient.fromEnvironment()
 }
 
 /**
- * Get a public Ring Hub client for unauthenticated requests
- * Returns null if Ring Hub is not enabled
+ * Get a public Ring Hub client for unauthenticated requests. Throws when
+ * RING_HUB_URL is unset.
  */
-export function getPublicRingHubClient(): RingHubClient | null {
+export function getPublicRingHubClient(): RingHubClient {
   return RingHubClient.createPublicClient()
-}
-
-/**
- * Utility to check if we should use Ring Hub for ThreadRing operations
- */
-export function shouldUseRingHub(): boolean {
-  return RingHubClient.isAvailable()
 }
 
 /**
@@ -1052,10 +1043,5 @@ export function shouldUseRingHub(): boolean {
  * NOTE: Use environment variables instead of hardcoded values for production
  */
 export function createThreadSteadRingHubClient(): RingHubClient {
-  // Use environment variables to match DID document
-  const client = RingHubClient.fromEnvironment();
-  if (!client) {
-    throw new Error('Ring Hub not configured - missing environment variables');
-  }
-  return client;
+  return RingHubClient.fromEnvironment();
 }

@@ -85,7 +85,7 @@ export function rankBySignals<T extends RelevanceSignals>(items: T[], now: numbe
 }
 
 // ------------------------------------------------------------------ rings --
-// Rings come from RingHub (or the local fallback) without a text score, so
+// Rings come from RingHub without a text score, so
 // they're scored here with the same scale as Postgres' signals.
 
 /** Lowercase, strip accents, split into words. */
