@@ -116,7 +116,7 @@ export default function ThreadRingCard({
           {threadRing.viewerMembership ? (
             <span className="pill badge--lav text-xs bg-thread-meadow/20 text-thread-pine px-2.5 py-1 border border-thread-sage rounded-full font-medium">
               {threadRing.viewerMembership.role === "owner" || threadRing.viewerMembership.role === "curator"
-                ? "Ring Host"
+                ? "Host"
                 : threadRing.viewerMembership.role === "moderator"
                   ? "Moderator"
                   : "Member"}

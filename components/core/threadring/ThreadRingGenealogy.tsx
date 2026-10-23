@@ -194,7 +194,7 @@ export default function ThreadRingGenealogy({
           Posts: ${d.data.postCount}<br/>
           Direct Descendants: ${d.data.directChildrenCount}<br/>
           Total Descendants: ${d.data.totalDescendantsCount}<br/>
-          ${d.data.curatorHandle ? `Ring Host: @${d.data.curatorHandle}` : ''}
+          ${d.data.curatorHandle ? `Host: @${d.data.curatorHandle}` : ''}
         `)
           .style("left", (event.pageX + 10) + "px")
           .style("top", (event.pageY - 10) + "px");

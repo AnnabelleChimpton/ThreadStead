@@ -59,7 +59,7 @@ export default function ExternalUserPopup({
   const getRoleDisplay = (memberRole: string) => {
     switch (memberRole) {
       case "curator":
-        return { label: "Ring Host", color: "badge--butter" };
+        return { label: "Host", color: "badge--butter" };
       case "moderator":
         return { label: "Moderator", color: "badge--lav" };
       default:

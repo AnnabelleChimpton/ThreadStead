@@ -114,7 +114,7 @@ export default function ThreadRingInviteForm({
       
       <div className="mt-3 text-xs text-gray-600">
         <p><strong>Tip:</strong> Enter just the username without the @ symbol.</p>
-        <p>Only curators and moderators can send invites.</p>
+        <p>Only the ring&apos;s host and moderators can send invites.</p>
       </div>
     </div>
   );

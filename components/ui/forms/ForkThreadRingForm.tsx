@@ -486,8 +486,7 @@ export default function ForkThreadRingForm({
       <div className="mt-6 p-3 bg-gray-50 border border-gray-300 text-xs text-gray-700">
         <h4 className="font-medium mb-1">About Starting a New Ring:</h4>
         <ul className="space-y-1">
-          <li>• You&apos;ll become the Ring Host of the new ThreadRing</li>
-          <li>• The original Ring Host will be notified</li>
+          <li>• You&apos;ll be the new ring&apos;s host</li>
           <li>• Members and posts are not copied over</li>
           <li>• The connection is tracked in the Ring Family Tree</li>
         </ul>

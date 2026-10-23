@@ -1217,7 +1217,7 @@ code block
                             )}
                           </div>
                           {(ring.role === "owner" || ring.role === "curator") ? (
-                            <span className="text-xs text-nb-ink-mid">Ring Host</span>
+                            <span className="text-xs text-nb-ink-mid">Host</span>
                           ) : ring.role === "moderator" ? (
                             <span className="text-xs text-nb-ink-mid">Moderator</span>
                           ) : null}
