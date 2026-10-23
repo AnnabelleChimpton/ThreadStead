@@ -1181,6 +1181,52 @@ describe('handing a ring to a new owner (POST /trp/rings/:slug/transfer-ownershi
   })
 })
 
+describe('related-ring feeds show only rings the reader could open (scope=children|siblings|family|parent)', () => {
+  // PARENT (public, main's) has two forks: SECRET (private, second's) and
+  // QUIET (unlisted). LOWER (public) is a fork of SECRET. Each holds one
+  // accepted post. Written straight into the hub's database.
+  const PARENT = 'itest-scope-parent'
+  const SECRET = 'itest-scope-secret'
+  const QUIET = 'itest-scope-quiet'
+  const LOWER = 'itest-scope-lower'
+  const postIn = (slug: string) => `https://threadstead-itest.invalid/posts/scope-${slug}`
+  const hubSql = (sql: string) =>
+    execSync(`psql "${getRuntime().databaseUrl}" -v ON_ERROR_STOP=1 -q`, { input: sql, stdio: ['pipe', 'pipe', 'pipe'] })
+  const feedUris = async (reader: RingHubClient, slug: string, scope: 'children' | 'siblings' | 'family' | 'parent') =>
+    (await reader.getRingFeed(slug, { scope })).posts.map((p) => p.uri)
+
+  beforeAll(() => {
+    const secondDid = getRuntime().secondActorDid
+    for (const [slug, owner, parent, visibility] of [
+      [PARENT, actorDid, null, 'PUBLIC'],
+      [SECRET, secondDid, PARENT, 'PRIVATE'],
+      [QUIET, actorDid, PARENT, 'UNLISTED'],
+      [LOWER, actorDid, SECRET, 'PUBLIC'],
+    ] as const) {
+      hubSql(`INSERT INTO "Ring" (id, slug, name, visibility, "ownerDid", "parentId", "updatedAt")
+          VALUES (gen_random_uuid()::text, '${slug}', '${slug}', '${visibility}', '${owner}',
+            ${parent ? `(SELECT id FROM "Ring" WHERE slug = '${parent}')` : 'NULL'}, now());
+        INSERT INTO "Membership" (id, "ringId", "actorDid", status, "joinedAt", "updatedAt")
+          SELECT gen_random_uuid()::text, id, '${owner}', 'ACTIVE', now(), now() FROM "Ring" WHERE slug = '${slug}';
+        INSERT INTO "PostRef" (id, "ringId", "actorDid", uri, digest, "submittedBy", status)
+          SELECT gen_random_uuid()::text, id, '${owner}', '${postIn(slug)}', 'sha256:scope', '${owner}', 'ACCEPTED'
+          FROM "Ring" WHERE slug = '${slug}';`)
+    }
+  })
+
+  afterAll(() => {
+    hubSql(`DELETE FROM "Ring" WHERE slug IN ('${LOWER}', '${SECRET}', '${QUIET}', '${PARENT}');`)
+  })
+
+  test('an unsigned reader never gets posts from a private related ring', async () => {
+    const pub = makePublicTestClient()
+    expect(await feedUris(pub, PARENT, 'children')).toEqual([postIn(QUIET)])
+    expect(await feedUris(pub, QUIET, 'siblings')).toEqual([])
+    expect((await feedUris(pub, QUIET, 'family')).sort()).toEqual([postIn(PARENT), postIn(QUIET)].sort())
+    expect(await feedUris(pub, LOWER, 'parent')).toEqual([])
+  })
+})
+
 describe('badges (the `badge: {}` regression)', () => {
   test('getActorBadges returns non-empty badge JSON-LD', async () => {
     const result = await client.getActorBadges(actorDid)
