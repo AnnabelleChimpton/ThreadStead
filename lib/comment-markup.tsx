@@ -1,5 +1,5 @@
 import React from 'react';
-import { cleanHtml } from '@/lib/utils/sanitization/html';
+import { cleanHtml, markdownToSafeHtml } from '@/lib/utils/sanitization/html';
 
 /**
  * Simple markup parser for comments
@@ -272,8 +272,9 @@ function parseInline(text: string): (string | ParsedContent)[] {
 
 // React component for markdown rendering with emoji support
 export function MarkdownWithEmojis({ markdown }: { markdown: string }): React.ReactNode {
-  const [processedHtml, setProcessedHtml] = React.useState<string>("");
-  const [isLoading, setIsLoading] = React.useState(true);
+  // Rendered on the server without emojis, so readers without JavaScript
+  // (feed readers, webmention checks, search) get the post, not "Loading..."
+  const [processedHtml, setProcessedHtml] = React.useState<string>(() => markdownToSafeHtml(markdown));
 
   React.useEffect(() => {
     let cancelled = false;
@@ -281,19 +282,10 @@ export function MarkdownWithEmojis({ markdown }: { markdown: string }): React.Re
     async function processMarkdown() {
       try {
         const html = await markdownToSafeHtmlWithEmojis(markdown);
-        if (!cancelled) {
-          setProcessedHtml(html);
-          setIsLoading(false);
-        }
+        if (!cancelled) setProcessedHtml(html);
       } catch (error) {
+        // Keep the plain markdown rendering
         console.error('Failed to process markdown with emojis:', error);
-        if (!cancelled) {
-          // Fall back to regular markdown processing
-          const { markdownToSafeHtml } = await import('@/lib/utils/sanitization/html');
-          const fallbackHtml = markdownToSafeHtml(markdown);
-          setProcessedHtml(fallbackHtml);
-          setIsLoading(false);
-        }
       }
     }
 
@@ -303,10 +295,6 @@ export function MarkdownWithEmojis({ markdown }: { markdown: string }): React.Re
       cancelled = true;
     };
   }, [markdown]);
-
-  if (isLoading) {
-    return <div className="text-gray-500">Loading...</div>;
-  }
 
   return <div dangerouslySetInnerHTML={{ __html: processedHtml }} />;
 }
@@ -663,36 +651,19 @@ export function CommentMarkupWithEmojis({ text }: { text: string }): React.React
 
 // HTML renderer with emoji support (for posts with HTML content)
 export function HtmlWithEmojis({ html }: { html: string }): React.ReactNode {
-  const [processedHtml, setProcessedHtml] = React.useState<string>(html);
-  const [isLoading, setIsLoading] = React.useState(true);
+  // Sanitized on the server without emojis, for readers without JavaScript
+  const [processedHtml, setProcessedHtml] = React.useState<string>(() => cleanHtml(html));
 
   React.useEffect(() => {
     let cancelled = false;
 
     async function processEmojis() {
       try {
-        // If emojis are already loaded, process immediately without async call
-        if (emojiMapLoaded) {
-          if (!cancelled) {
-            const processed = processHtmlWithEmojis(html);
-            setProcessedHtml(processed);
-            setIsLoading(false);
-          }
-          return;
-        }
-
-        await loadEmojiMap();
-        if (!cancelled) {
-          const processed = processHtmlWithEmojis(html);
-          setProcessedHtml(processed);
-          setIsLoading(false);
-        }
+        if (!emojiMapLoaded) await loadEmojiMap();
+        if (!cancelled) setProcessedHtml(processHtmlWithEmojis(html));
       } catch (error) {
+        // Keep the plain sanitized HTML
         console.error('Failed to process HTML emojis:', error);
-        if (!cancelled) {
-          setProcessedHtml(cleanHtml(html));
-          setIsLoading(false);
-        }
       }
     }
 
@@ -703,45 +674,23 @@ export function HtmlWithEmojis({ html }: { html: string }): React.ReactNode {
     };
   }, [html]);
 
-  if (isLoading) {
-    return <div className="text-gray-500">Loading...</div>;
-  }
-
   return <div dangerouslySetInnerHTML={{ __html: processedHtml }} />;
 }
 
 // Simple text renderer with emoji support only (for posts)
 export function TextWithEmojis({ text }: { text: string }): React.ReactNode {
+  // The plain text on the server, emojis once they load
   const [renderedText, setRenderedText] = React.useState<React.ReactNode>(text);
-  const [isLoading, setIsLoading] = React.useState(true);
 
   React.useEffect(() => {
     let cancelled = false;
 
     async function processEmojis() {
       try {
-        // If emojis are already loaded, process immediately without async call
-        if (emojiMapLoaded) {
-          if (!cancelled) {
-            const processedText = parseEmojiText(text);
-            setRenderedText(processedText);
-            setIsLoading(false);
-          }
-          return;
-        }
-
-        await loadEmojiMap();
-        if (!cancelled) {
-          const processedText = parseEmojiText(text);
-          setRenderedText(processedText);
-          setIsLoading(false);
-        }
+        if (!emojiMapLoaded) await loadEmojiMap();
+        if (!cancelled) setRenderedText(parseEmojiText(text));
       } catch (error) {
         console.error('Failed to process emojis:', error);
-        if (!cancelled) {
-          setRenderedText(text);
-          setIsLoading(false);
-        }
       }
     }
 
@@ -751,10 +700,6 @@ export function TextWithEmojis({ text }: { text: string }): React.ReactNode {
       cancelled = true;
     };
   }, [text]);
-
-  if (isLoading) {
-    return <span className="text-gray-500">Loading...</span>;
-  }
 
   return <span>{renderedText}</span>;
 }
