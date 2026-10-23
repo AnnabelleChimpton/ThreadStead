@@ -145,7 +145,7 @@ export default function ThreadRingActivePrompt({
             )}
             
             <Link 
-              href={`/threadrings/${threadRingSlug}/prompts/${activePrompt.id}/responses`}
+              href={`/tr/${threadRingSlug}/prompts/${activePrompt.id}/responses`}
               className="tr-prompt-link-purple font-medium hover:text-purple-800 hover:underline"
             >
               {activePrompt.responseCount} {activePrompt.responseCount === 1 ? 'response' : 'responses'}
@@ -165,7 +165,7 @@ export default function ThreadRingActivePrompt({
               
               {activePrompt.responseCount > 0 && (
                 <Link
-                  href={`/threadrings/${threadRingSlug}/prompts/${activePrompt.id}/responses`}
+                  href={`/tr/${threadRingSlug}/prompts/${activePrompt.id}/responses`}
                   className="tr-prompt-button-white inline-flex items-center px-4 py-2 bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors no-underline hover:no-underline"
                 >
                   <PixelIcon name="users" className="mr-2" />

@@ -1,32 +1,33 @@
 /**
- * The ring page learns the viewer's role from two requests that race:
- *  - the access check (/api/auth/me + /api/threadrings/:slug/ownership), which
- *    says "curator" for admins, ring owners and the local curator, and
- *  - the members list (/api/threadrings/:slug/members), which has the role the
- *    hub records — an owner can be listed as a plain "member", and an admin
- *    may not be listed at all.
- * Whichever lands last used to win, so a curator could lose "Manage Settings"
- * until they reloaded. These tests control when each request resolves.
+ * The ring page learns the viewer's role from one place, the hub's members
+ * list (read signed as them), and keeps membership and manage rights apart:
+ *  - a site admin who isn't in a ring can manage it, but isn't shown as its
+ *    Host and can still join it;
+ *  - joining and leaving update the page in place from the route's answer,
+ *    and the members list is read again (the routes clear its cache), so
+ *    there's no reload into a stale "Join";
+ *  - signed out, joining is a sign-in link back to the ring;
+ *  - the page is keyed by ring, so one ring's late answers never land on
+ *    the next.
  */
 import React from 'react';
-import { render, screen, act } from '@testing-library/react';
+import { render, screen, act, fireEvent } from '@testing-library/react';
 
 jest.mock('@/components/ui/PixelIcon', () => ({ PixelIcon: () => null }));
 jest.mock('@/lib/config/database/connection', () => ({ db: {} }));
+jest.mock('@/lib/auth/server', () => ({ getSessionUser: jest.fn() }));
 jest.mock('@/lib/config/site/dynamic', () => ({ getSiteConfig: jest.fn() }));
-jest.mock('@/lib/api/ringhub/ringhub-client', () => ({ getRingHubClient: jest.fn() }));
-jest.mock('@/lib/api/ringhub/ringhub-ssr', () => ({ raceHubCall: jest.fn(), HUB_TIMEOUT: 0 }));
-jest.mock('@/lib/api/ringhub/ringhub-transformers', () => ({ transformRingDescriptorToThreadRing: jest.fn() }));
-jest.mock('@/lib/utils/features/feature-flags', () => ({ featureFlags: { ringhub: () => true } }));
+jest.mock('@/lib/rings/page-data', () => ({ loadRingForPage: jest.fn() }));
+jest.mock('@/lib/rings/sites', () => ({ cameFromSite: jest.fn() }));
 jest.mock('@/hooks/useCurrentUser', () => ({ useCurrentUser: jest.fn() }));
 jest.mock('@/hooks/useWelcomeTracking', () => ({ useWelcomeTracking: jest.fn() }));
 jest.mock('@/hooks/useWelcomeRingTracking', () => ({
   useWelcomeRingTracking: () => ({ trackCommentCreated: jest.fn() }),
 }));
-jest.mock('@/contexts/ToastContext', () => ({
-  useToast: () => ({ showError: jest.fn(), showSuccess: jest.fn(), showWarning: jest.fn() }),
-}));
-jest.mock('@/contexts/ConfirmContext', () => ({ useConfirm: () => jest.fn() }));
+const showError = jest.fn();
+const showSuccess = jest.fn();
+jest.mock('@/contexts/ToastContext', () => ({ useToast: () => ({ showError, showSuccess }) }));
+jest.mock('@/contexts/ConfirmContext', () => ({ useConfirm: () => async () => true }));
 jest.mock('@/lib/api/client/csrf-fetch', () => ({ csrfFetch: jest.fn() }));
 
 // Child components are not under test; render nothing (Layout passes children through).
@@ -34,7 +35,6 @@ jest.mock('@/components/ui/layout/Layout', () => ({ __esModule: true, default: (
 jest.mock('@/components/core/content/PostItem', () => ({ __esModule: true, default: () => null }));
 jest.mock('@/components/core/threadring/ThreadRingStats', () => ({ __esModule: true, default: () => null }));
 jest.mock('@/components/core/threadring/ThreadRingLineage', () => ({ __esModule: true, default: () => null }));
-jest.mock('@/components/shared/RandomMemberDiscovery', () => ({ __esModule: true, default: () => null }));
 jest.mock('@/components/core/threadring/ThreadRingFeedScope', () => ({ __esModule: true, default: () => null }));
 jest.mock('@/components/core/threadring/ThreadRingActivePrompt', () => ({ __esModule: true, default: () => null }));
 jest.mock('@/components/core/threadring/ThreadRing88x31Badge', () => ({ __esModule: true, default: () => null }));
@@ -42,17 +42,18 @@ jest.mock('@/components/core/threadring/ThreadRingAboutWidget', () => ({ __esMod
 jest.mock('@/components/ui/feedback/UserQuickView', () => ({ __esModule: true, default: () => null }));
 jest.mock('@/components/ui/feedback/ExternalUserPopup', () => ({ __esModule: true, default: () => null }));
 jest.mock('@/components/features/onboarding/WelcomeRingGuide', () => ({ __esModule: true, default: () => null }));
+jest.mock('@/components/features/rings/StripBuilder', () => ({ __esModule: true, default: () => null }));
 
 import ThreadRingPage from '@/pages/tr/[slug]';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 
-const VIEWER = { id: 'u-owner', did: 'did:key:owner', role: 'member', primaryHandle: 'owner' };
+const VIEWER = { id: 'u-pat', did: 'did:key:pat', role: 'member', primaryHandle: 'pat' };
 const ADMIN = { ...VIEWER, id: 'u-admin', role: 'admin', primaryHandle: 'admin' };
 
 function makeRing(slug: string, overrides: Record<string, unknown> = {}) {
   return {
     id: `ring-${slug}`,
-    uri: `https://hub.test/rings/${slug}`,
     name: `Ring ${slug}`,
     slug,
     description: '',
@@ -60,10 +61,9 @@ function makeRing(slug: string, overrides: Record<string, unknown> = {}) {
     visibility: 'public',
     memberCount: 2,
     postCount: 0,
-    curatorId: 'u-someone-else',
     createdAt: '2026-01-01T00:00:00.000Z',
-    curator: null,
-    members: [],
+    badge: null,
+    host: null,
     ...overrides,
   } as any;
 }
@@ -91,10 +91,12 @@ function respond(urlPart: string, body: unknown, ok = true) {
 }
 
 const siteConfig = {} as any;
-const settingsButton = () => screen.queryByRole('button', { name: /manage settings/i });
+const settingsLink = () => screen.queryByRole('link', { name: /manage settings/i });
+const joinButton = () => screen.queryByRole('button', { name: /join ring/i });
 
 beforeEach(() => {
   pending = [];
+  jest.clearAllMocks();
   (globalThis as any).fetch = jest.fn((url: string) => new Promise(resolveFetch => {
     pending.push({
       url,
@@ -105,90 +107,90 @@ beforeEach(() => {
 });
 
 describe('ThreadRing page viewer role', () => {
-  it('keeps the curator role when the members list lands after the ownership check', async () => {
+  it('a member sees their role, Write and Leave, and no settings', async () => {
     render(<ThreadRingPage siteConfig={siteConfig} ring={makeRing('alpha')} />);
-
-    await respond('/api/auth/me', { loggedIn: true, user: VIEWER });
-    await respond('/api/threadrings/alpha/ownership', { isOwner: true, isCurator: false });
-    expect(settingsButton()).toBeInTheDocument();
-
-    // The hub lists the owner as a plain member.
     await respond('/api/threadrings/alpha/members', membersBody(VIEWER.id, 'member'));
-    expect(settingsButton()).toBeInTheDocument();
+
+    expect(screen.getByText('Member')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /leave ring/i })).toBeInTheDocument();
+    expect(settingsLink()).not.toBeInTheDocument();
+    expect(joinButton()).not.toBeInTheDocument();
   });
 
-  it('keeps the curator role when the members list lands first', async () => {
+  it("the hub's owner is the Host, with settings", async () => {
     render(<ThreadRingPage siteConfig={siteConfig} ring={makeRing('alpha')} />);
+    await respond('/api/threadrings/alpha/members', membersBody(VIEWER.id, 'curator'));
 
-    await respond('/api/threadrings/alpha/members', membersBody(VIEWER.id, 'member'));
-    expect(settingsButton()).not.toBeInTheDocument();
-
-    await respond('/api/auth/me', { loggedIn: true, user: VIEWER });
-    await respond('/api/threadrings/alpha/ownership', { isOwner: true, isCurator: false });
-    expect(settingsButton()).toBeInTheDocument();
-  });
-
-  it('keeps an admin as curator when the members list does not include them', async () => {
-    (useCurrentUser as jest.Mock).mockReturnValue({ user: ADMIN, loading: false, loggedIn: true });
-    render(<ThreadRingPage siteConfig={siteConfig} ring={makeRing('alpha')} />);
-
-    await respond('/api/auth/me', { loggedIn: true, user: ADMIN });
-    expect(settingsButton()).toBeInTheDocument();
-
-    await respond('/api/threadrings/alpha/members', membersBody('u-someone-else', 'curator'));
-    expect(settingsButton()).toBeInTheDocument();
-  });
-
-  it('keeps the curator role when the current user loads late', async () => {
-    (useCurrentUser as jest.Mock).mockReturnValue({ user: null, loading: true, loggedIn: false });
-    const { rerender } = render(<ThreadRingPage siteConfig={siteConfig} ring={makeRing('alpha')} />);
-
-    await respond('/api/threadrings/alpha/members', membersBody(VIEWER.id, 'member'));
-    await respond('/api/auth/me', { loggedIn: true, user: VIEWER });
-    await respond('/api/threadrings/alpha/ownership', { isOwner: true, isCurator: false });
-    expect(settingsButton()).toBeInTheDocument();
-
-    (useCurrentUser as jest.Mock).mockReturnValue({ user: VIEWER, loading: false, loggedIn: true });
-    rerender(<ThreadRingPage siteConfig={siteConfig} ring={makeRing('alpha')} />);
-    expect(settingsButton()).toBeInTheDocument();
+    expect(screen.getByText('Host')).toBeInTheDocument();
+    expect(settingsLink()).toHaveAttribute('href', '/tr/alpha/settings');
   });
 
   it('shows the moderator role from the members list', async () => {
     render(<ThreadRingPage siteConfig={siteConfig} ring={makeRing('alpha')} />);
-
-    await respond('/api/auth/me', { loggedIn: true, user: VIEWER });
-    await respond('/api/threadrings/alpha/ownership', { isOwner: false, isCurator: false });
     await respond('/api/threadrings/alpha/members', membersBody(VIEWER.id, 'moderator'));
 
     expect(screen.getByText('Moderator')).toBeInTheDocument();
-    expect(settingsButton()).not.toBeInTheDocument();
+    expect(settingsLink()).not.toBeInTheDocument();
   });
 
-  it('ignores a previous ring\'s responses after the slug changes mid-flight', async () => {
-    const { rerender } = render(<ThreadRingPage siteConfig={siteConfig} ring={makeRing('alpha')} />);
-    await respond('/api/auth/me', { loggedIn: true, user: VIEWER });
+  it("an admin who isn't in the ring can manage it, isn't its Host, and can join", async () => {
+    (useCurrentUser as jest.Mock).mockReturnValue({ user: ADMIN, loading: false, loggedIn: true });
+    render(<ThreadRingPage siteConfig={siteConfig} ring={makeRing('alpha')} />);
+    await respond('/api/threadrings/alpha/members', membersBody('u-someone-else', 'curator'));
 
-    // Navigate to beta while alpha's ownership check and members list are still out.
+    expect(settingsLink()).toBeInTheDocument();
+    expect(screen.queryByText('Host')).not.toBeInTheDocument();
+    expect(joinButton()).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /leave ring/i })).not.toBeInTheDocument();
+  });
+
+  it('joining updates the page in place and reads the members again', async () => {
+    (csrfFetch as jest.Mock).mockResolvedValue({ ok: true, json: async () => ({ success: true, role: 'member', message: "You're in." }) });
+    render(<ThreadRingPage siteConfig={siteConfig} ring={makeRing('alpha')} />);
+    await respond('/api/threadrings/alpha/members', membersBody('u-someone-else', 'curator'));
+
+    await act(async () => {
+      fireEvent.click(joinButton()!);
+    });
+
+    expect(csrfFetch).toHaveBeenCalledWith('/api/threadrings/alpha/join', expect.objectContaining({ method: 'POST' }));
+    expect(screen.getByText('Member')).toBeInTheDocument();
+    expect(screen.getByText('3 members')).toBeInTheDocument();
+    expect(showSuccess).toHaveBeenCalledWith("You're in.");
+    // Read again, now that the route has forgotten the cached list
+    expect(pending.some(p => p.url.includes('/api/threadrings/alpha/members'))).toBe(true);
+  });
+
+  it("a refused join says why and doesn't pretend", async () => {
+    (csrfFetch as jest.Mock).mockResolvedValue({ ok: false, json: async () => { throw new Error('<html>'); } });
+    render(<ThreadRingPage siteConfig={siteConfig} ring={makeRing('alpha')} />);
+    await respond('/api/threadrings/alpha/members', membersBody('u-someone-else', 'curator'));
+
+    await act(async () => {
+      fireEvent.click(joinButton()!);
+    });
+
+    expect(showError).toHaveBeenCalledWith("Couldn't join. Try again in a minute.");
+    expect(joinButton()).toBeInTheDocument();
+  });
+
+  it('signed out, joining is a sign-in link back to the ring', async () => {
+    (useCurrentUser as jest.Mock).mockReturnValue({ user: null, loading: false, loggedIn: false });
+    render(<ThreadRingPage siteConfig={siteConfig} ring={makeRing('alpha')} />);
+
+    expect(joinButton()).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /sign in to join/i })).toHaveAttribute('href', '/login?next=%2Ftr%2Falpha');
+  });
+
+  it("a previous ring's late members list never sets the role on the next ring", async () => {
+    const { rerender } = render(<ThreadRingPage siteConfig={siteConfig} ring={makeRing('alpha')} />);
     rerender(<ThreadRingPage siteConfig={siteConfig} ring={makeRing('beta')} />);
-    await respond('/api/auth/me', { loggedIn: true, user: VIEWER });
-    await respond('/api/threadrings/beta/ownership', { isOwner: false, isCurator: false });
     await respond('/api/threadrings/beta/members', membersBody('u-someone-else', 'curator'));
 
-    // Alpha's answers arrive late: the viewer owns alpha, not beta.
-    await respond('/api/threadrings/alpha/ownership', { isOwner: true, isCurator: false });
+    // Alpha's answer arrives late: the viewer hosts alpha, not beta.
     await respond('/api/threadrings/alpha/members', membersBody(VIEWER.id, 'curator'));
 
-    expect(settingsButton()).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /join ring/i })).toBeInTheDocument();
-  });
-
-  it('drops the previous ring\'s curator role as soon as the slug changes', async () => {
-    const { rerender } = render(<ThreadRingPage siteConfig={siteConfig} ring={makeRing('alpha')} />);
-    await respond('/api/auth/me', { loggedIn: true, user: VIEWER });
-    await respond('/api/threadrings/alpha/ownership', { isOwner: true, isCurator: false });
-    expect(settingsButton()).toBeInTheDocument();
-
-    rerender(<ThreadRingPage siteConfig={siteConfig} ring={makeRing('beta')} />);
-    expect(settingsButton()).not.toBeInTheDocument();
+    expect(settingsLink()).not.toBeInTheDocument();
+    expect(joinButton()).toBeInTheDocument();
   });
 });

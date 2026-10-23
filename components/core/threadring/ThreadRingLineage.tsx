@@ -1,9 +1,8 @@
-import { useState, useEffect } from "react";
 import Link from "next/link";
 import LoadingSpinner from "@/components/ui/feedback/LoadingSpinner";
 import EmptyState from "@/components/ui/feedback/EmptyState";
-import ErrorDisplay from "@/components/ui/feedback/ErrorDisplay";
 import { countOf } from "@/lib/utils/count-of";
+import { calendarDate } from "@/lib/utils/dates";
 
 interface RingDescriptor {
   id: string;
@@ -17,85 +16,36 @@ interface RingDescriptor {
   metadata?: any;
 }
 
-interface LineageData {
-  ring: RingDescriptor;
+/** The ring's family, as /api/threadrings/[slug]/lineage returns it. */
+export interface LineageData {
+  ring?: RingDescriptor;
   ancestors: RingDescriptor[];
   descendants: RingDescriptor[];
   parents: RingDescriptor[];
   children: RingDescriptor[];
   directChildrenCount: number;
   totalDescendantsCount: number;
+  siblingsCount?: number;
   lineageDepth: number;
   lineagePath: string;
 }
 
 interface ThreadRingLineageProps {
-  threadRingSlug: string;
   ringName: string;
+  /** The page's lineage read; null while it loads */
+  data: LineageData | null;
   className?: string;
 }
 
-export default function ThreadRingLineage({ 
-  threadRingSlug, 
+export default function ThreadRingLineage({
   ringName,
+  data: lineageData,
   className = ""
 }: ThreadRingLineageProps) {
-  const [lineageData, setLineageData] = useState<LineageData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetchLineage();
-  }, [threadRingSlug]);
-
-  const fetchLineage = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await fetch(`/api/threadrings/${threadRingSlug}/lineage`);
-      
-      if (!response.ok) {
-        if (response.status === 404) {
-          // Create empty lineage structure for no data case
-          setLineageData({
-            ring: { id: '', slug: threadRingSlug, name: ringName, createdAt: '' },
-            ancestors: [],
-            descendants: [],
-            parents: [],
-            children: [],
-            directChildrenCount: 0,
-            totalDescendantsCount: 0,
-            lineageDepth: 0,
-            lineagePath: ringName
-          });
-          return;
-        }
-        throw new Error("Failed to fetch lineage");
-      }
-
-      const data = await response.json();
-      setLineageData(data);
-    } catch (error: any) {
-      console.error("Error fetching lineage:", error);
-      setError(error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
+  if (!lineageData) {
     return (
       <div className={`bg-white p-4 ${className}`}>
         <LoadingSpinner message="Loading ring family tree..." className="py-4" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className={`bg-white p-4 ${className}`}>
-        <ErrorDisplay title={error} onRetry={fetchLineage} />
       </div>
     );
   }
@@ -124,7 +74,7 @@ export default function ThreadRingLineage({
             </span>
             <span>•</span>
             <span>
-              {new Date(ring.createdAt).toLocaleDateString()}
+              {calendarDate(ring.createdAt)}
             </span>
           </div>
         </div>
@@ -150,7 +100,7 @@ export default function ThreadRingLineage({
           {/* Lineage Overview */}
           <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-3">
             <div className="text-sm text-nb-ink space-y-1">
-              <div><strong>Lineage Depth:</strong> {lineageData?.lineageDepth || 0} levels from root</div>
+              <div><strong>Lineage Depth:</strong> {countOf(lineageData?.lineageDepth || 0, 'level')} from root</div>
               <div><strong>Direct Descendants:</strong> {lineageData?.directChildrenCount || 0}</div>
               <div><strong>Total Descendants:</strong> {lineageData?.totalDescendantsCount || 0}</div>
               {lineageData?.lineagePath && (

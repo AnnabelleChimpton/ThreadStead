@@ -20,6 +20,7 @@ jest.mock('@/lib/api/ringhub/ringhub-ssr', () => ({ raceHubCall: jest.fn(), HUB_
 jest.mock('@/lib/api/ringhub/ring-members', () => ({ readAllRingMembers: jest.fn() }));
 jest.mock('@/lib/api/ringhub/ringhub-transformers', () => ({ transformRingDescriptorToThreadRing: jest.fn() }));
 jest.mock('@/lib/pixel-homes/house-badge', () => ({ badgeHandlesFor: jest.fn() }));
+jest.mock('@/lib/rings/page-data', () => ({ loadRingForPage: jest.fn() }));
 jest.mock('@/lib/utils/features/feature-flags', () => ({ featureFlags: { ringhub: () => true } }));
 jest.mock('@/hooks/useCurrentUser', () => ({
   useCurrentUser: () => ({ user: null, loading: false, loggedIn: false }),
@@ -39,7 +40,6 @@ jest.mock('@/components/ui/layout/Layout', () => ({ __esModule: true, default: (
 jest.mock('@/components/core/content/PostItem', () => ({ __esModule: true, default: () => null }));
 jest.mock('@/components/core/threadring/ThreadRingStats', () => ({ __esModule: true, default: () => null }));
 jest.mock('@/components/core/threadring/ThreadRingLineage', () => ({ __esModule: true, default: () => null }));
-jest.mock('@/components/shared/RandomMemberDiscovery', () => ({ __esModule: true, default: () => null }));
 jest.mock('@/components/core/threadring/ThreadRingFeedScope', () => ({ __esModule: true, default: () => null }));
 jest.mock('@/components/core/threadring/ThreadRingActivePrompt', () => ({ __esModule: true, default: () => null }));
 jest.mock('@/components/core/threadring/ThreadRing88x31Badge', () => ({ __esModule: true, default: () => null }));

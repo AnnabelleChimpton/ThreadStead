@@ -9,9 +9,7 @@ import NewCommentForm, { CommentWire as CommentWireForm } from "../../ui/forms/N
 import ThreadRingBadge from "../threadring/ThreadRingBadge";
 import AddToRingPanel from "../threadring/AddToRingPanel";
 import { UserWithRole } from "@/lib/utils/features/feature-flags";
-import PostModerationActions from "./PostModerationActions";
-import { useModerationPermissions } from "@/hooks/useModerationPermissions";
-import { PostModerationAction, PostModerationStatus, ThreadRingRole } from "@/types/threadrings";
+import { PostModerationStatus } from "@/types/threadrings";
 import ReportButton from "../../ui/feedback/ReportButton";
 import PostActionsDropdown from "./PostActionsDropdown";
 import { useWelcomeRingTracking } from "@/hooks/useWelcomeRingTracking";
@@ -41,6 +39,9 @@ function formatTimeAgo(date: Date): string {
 }
 
 type Visibility = "public" | "followers" | "friends" | "private";
+
+/** What a ring's host or moderator just did to a post, so a list can update it in place. */
+export type PostChange = { removed: true } | { isPinned: boolean };
 
 type PostIntent = "sharing" | "asking" | "feeling" | "announcing" | "showing" | "teaching" | "looking" | "celebrating" | "recommending";
 
@@ -122,8 +123,6 @@ export default function PostItem({
   threadRingContext = null,
   canModerateRing = false,
   currentUser,
-  userRole,
-  isUserMember = false,
   viewContext,
   commentCount: initialCommentCount,
   canAddToRing = false,
@@ -131,14 +130,14 @@ export default function PostItem({
   post: Post;
   isOwner: boolean;
   isAdmin?: boolean;
-  onChanged?: () => void | Promise<void>;
+  /** After an edit, delete or ring moderation; ring moderation says what changed. */
+  onChanged?: (change?: PostChange) => void | Promise<void>;
   highlightCommentId?: string | null;
   initialCommentsOpen?: boolean;
   currentUser?: UserWithRole | null;
   threadRingContext?: { slug: string; name: string } | null;
+  /** The viewer is this ring's host or a moderator (pin, unpin, remove from the ring) */
   canModerateRing?: boolean;
-  userRole?: ThreadRingRole;
-  isUserMember?: boolean;
   viewContext?: 'feed' | 'profile' | 'ring' | 'widget';
   /** Comment count provided by a list-level batch fetch; when set, the per-post count fetch is skipped. */
   commentCount?: number;
@@ -177,9 +176,8 @@ export default function PostItem({
   // When viewContext is defined (feed/profile/ring/widget), we're in a list view (truncate)
   const shouldEnableTruncation = viewContext !== undefined;
 
-  // Ring Hub moderation permissions
-  const moderationPermissions = useModerationPermissions(userRole, isUserMember);
-  const showRingHubModeration = threadRingContext && post.ringHubPostId && moderationPermissions.canModerate;
+  // Ring moderation acts on the hub's PostRef, so only posts that came from the hub's feed
+  const canModerateHere = !!(threadRingContext && canModerateRing && post.ringHubPostId);
 
   // Welcome ring tracking
   const { trackCommentCreated } = useWelcomeRingTracking(threadRingContext?.slug);
@@ -336,31 +334,37 @@ export default function PostItem({
   }
 
 
+  // The ring's own routes; the hub decides who may (the ring's host and moderators)
+  async function moderateInRing(path: "pin" | "remove", method: "POST" | "DELETE"): Promise<any> {
+    const res = await csrfFetch(
+      `/api/threadrings/${encodeURIComponent(threadRingContext!.slug)}/posts/${encodeURIComponent(post.ringHubPostId!)}/${path}`,
+      { method, headers: { "Content-Type": "application/json" } }
+    );
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || "That didn't work. Try again in a minute.");
+    return data;
+  }
+
   async function handlePinToggle() {
-    if (!threadRingContext || !canModerateRing) return;
+    if (!canModerateHere) return;
 
     setBusy(true);
     setErr(null);
     try {
-      const method = post.isPinned ? "DELETE" : "POST";
-      const res = await csrfFetch(`/api/threadrings/${threadRingContext.slug}/posts/${post.id}/pin`, {
-        method,
-        headers: { "Content-Type": "application/json" },
-      });
-      if (!res.ok) throw new Error(`pin toggle ${res.status}`);
-
-      await onChanged?.();
+      const data = await moderateInRing("pin", post.isPinned ? "DELETE" : "POST");
+      await onChanged?.({ isPinned: !!data.isPinned });
     } catch (e: any) {
-      setErr(e?.message || "Failed to toggle pin");
+      setErr(e.message);
     } finally {
       setBusy(false);
     }
   }
 
   async function handleRemoveFromRing() {
-    if (!threadRingContext || !canModerateRing) return;
+    if (!canModerateHere) return;
     if (!(await confirm({
-      title: `Remove this post from ${threadRingContext.name}?`,
+      title: `Remove this post from ${threadRingContext!.name}?`,
+      message: "It stays on its author's page.",
       confirmText: "Remove",
       variant: "danger",
     }))) return;
@@ -368,24 +372,14 @@ export default function PostItem({
     setBusy(true);
     setErr(null);
     try {
-      const res = await csrfFetch(`/api/threadrings/${threadRingContext.slug}/posts/${post.id}/remove`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-      });
-      if (!res.ok) throw new Error(`remove ${res.status}`);
-
-      await onChanged?.();
+      await moderateInRing("remove", "DELETE");
+      await onChanged?.({ removed: true });
     } catch (e: any) {
-      setErr(e?.message || "Failed to remove from ThreadRing");
+      setErr(e.message);
     } finally {
       setBusy(false);
     }
   }
-
-  const handleRingHubModerationAction = async (action: PostModerationAction, reason?: string) => {
-    // Refresh the post data to reflect the moderation change
-    await onChanged?.();
-  };
 
   const authorName = post.author?.profile?.displayName || post.author?.primaryHandle || "Anonymous";
   const authorUsername = post.author?.primaryHandle?.split('@')[0] || null;
@@ -482,13 +476,14 @@ export default function PostItem({
                     profile: {
                       displayName: post.author?.profile?.displayName
                     }
-                  }
+                  },
+                  isPinned: post.isPinned,
                 }}
                 isOwner={isOwner}
                 isAdmin={isAdmin}
                 busy={busy}
                 threadRingContext={threadRingContext}
-                canModerateRing={canModerateRing}
+                canModerateRing={canModerateHere}
                 onEdit={handleEdit}
                 onDelete={remove}
                 onAdminDelete={adminDelete}
@@ -764,16 +759,6 @@ export default function PostItem({
                 />
               )}
 
-              {/* Ring Hub moderation actions */}
-              {showRingHubModeration && (
-                <PostModerationActions
-                  postId={post.ringHubPostId!}
-                  currentStatus={post.moderationStatus}
-                  isPinned={post.isPinned}
-                  canModerate={moderationPermissions.canModerate}
-                  onModerationAction={handleRingHubModerationAction}
-                />
-              )}
             </>
           );
         })()}

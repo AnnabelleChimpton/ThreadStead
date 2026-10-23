@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface ThreadRingFeedScopeProps {
-  threadRingSlug: string;
   hasParent: boolean;
   hasChildren: boolean;
   hasSiblings: boolean;
@@ -10,20 +9,14 @@ interface ThreadRingFeedScopeProps {
   currentScope?: 'current' | 'parent' | 'children' | 'siblings' | 'family';
 }
 
+/** Which rings' posts the feed shows. The page holds the scope. */
 export default function ThreadRingFeedScope({
-  threadRingSlug,
   hasParent,
   hasChildren,
   hasSiblings,
   onScopeChange,
-  currentScope = 'current'
+  currentScope: scope = 'current'
 }: ThreadRingFeedScopeProps) {
-  const [scope, setScope] = useState<'current' | 'parent' | 'children' | 'siblings' | 'family'>(currentScope);
-
-  const handleScopeChange = (newScope: 'current' | 'parent' | 'children' | 'siblings' | 'family') => {
-    setScope(newScope);
-    onScopeChange(newScope);
-  };
 
   const getScopeLabel = (scopeValue: string) => {
     switch (scopeValue) {
@@ -38,7 +31,7 @@ export default function ThreadRingFeedScope({
 
   const getScopeDescription = (scopeValue: string) => {
     switch (scopeValue) {
-      case 'current': return 'Posts from members of this ThreadRing only';
+      case 'current': return 'Posts in this ring';
       case 'parent': return 'Posts from the parent ThreadRing';
       case 'children': return 'Posts from all direct descendant ThreadRings';
       case 'siblings': return 'Posts from sibling ThreadRings (same parent)';
@@ -96,7 +89,7 @@ export default function ThreadRingFeedScope({
               name="feedScope"
               value={scopeOption}
               checked={scope === scopeOption}
-              onChange={() => handleScopeChange(scopeOption)}
+              onChange={() => onScopeChange(scopeOption)}
               className="tr-scope-radio sr-only"
             />
             <span className="tr-scope-icon">{getScopeIcon(scopeOption)}</span>

@@ -28,7 +28,7 @@ export default function ThreadRingAboutWidget({
             {curatorNote && (
                 <div className="mt-4 pt-4 border-t border-[#D4C4A8]/50">
                     <h4 className="font-bold text-sm text-[#2E4B3F] mb-2 flex items-center gap-1">
-                        <span>Curator&apos;s Note</span>
+                        <span>Host&apos;s Note</span>
                     </h4>
                     <div className="prose prose-sm prose-p:text-thread-sage prose-a:text-thread-pine prose-a:font-semibold max-w-none bg-[#F5F1E6] p-3 rounded-md border border-[#D4C4A8]/30">
                         <MarkdownWithEmojis markdown={curatorNote} />
