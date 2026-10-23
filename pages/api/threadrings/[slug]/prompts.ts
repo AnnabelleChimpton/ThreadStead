@@ -3,6 +3,7 @@ import { apiHandler, ApiError } from '@/lib/api/handler'
 import { rateLimitCheck } from '@/lib/server/http/rate-limit'
 import { createPromptService, promptFeedReader } from '@/lib/utils/data/prompt-service'
 import { hubWriteError, requireRingAs } from '@/lib/domain/threadrings/ring-access'
+import { residentsByDid } from '@/lib/rings/page-data'
 import type { PromptPostRefMetadata, ThreadRingPostRef } from '@/types/threadrings'
 
 const schema = z.object({
@@ -13,8 +14,8 @@ const schema = z.object({
   isPinned: z.boolean().optional(),
 })
 
-/** A prompt PostRef in the shape the prompt components read. */
-function promptView(postRef: ThreadRingPostRef, responseCount: number) {
+/** A prompt PostRef in the shape the prompt components read. `author` is who posted it, when they live here. */
+function promptView(postRef: ThreadRingPostRef, responseCount: number, author?: { username: string; displayName: string | null }) {
   const prompt = (postRef.metadata as PromptPostRefMetadata).prompt
   return {
     id: prompt.promptId,
@@ -26,7 +27,11 @@ function promptView(postRef: ThreadRingPostRef, responseCount: number) {
     isPinned: prompt.isPinned,
     responseCount,
     createdById: prompt.createdById,
-    createdBy: { id: prompt.createdBy, handles: [], profile: { displayName: null } },
+    createdBy: {
+      id: prompt.createdBy,
+      handles: author ? [{ handle: author.username }] : [],
+      profile: { displayName: author ? author.displayName || author.username : null },
+    },
     createdAt: postRef.submittedAt,
     updatedAt: postRef.submittedAt,
   }
@@ -54,9 +59,12 @@ export default apiHandler(
         throw new ApiError(503, "We can't reach Ring Hub right now. Try again in a minute.")
       }
       // One feed read covers the responses too
-      const counts = await Promise.all(prompts.map((p) => service.getPromptResponses((p.metadata as PromptPostRefMetadata).prompt.promptId)))
+      const [counts, authors] = await Promise.all([
+        Promise.all(prompts.map((p) => service.getPromptResponses((p.metadata as PromptPostRefMetadata).prompt.promptId))),
+        residentsByDid(prompts.map((p) => p.submittedBy).filter(Boolean), user?.id ?? null),
+      ])
       res.setHeader('Cache-Control', 'no-store')
-      return res.json(prompts.map((p, i) => promptView(p, counts[i].length)))
+      return res.json(prompts.map((p, i) => promptView(p, counts[i].length, authors.get(p.submittedBy))))
     }
 
     if (!user) throw new ApiError(401, 'Authentication required')

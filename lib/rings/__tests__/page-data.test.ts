@@ -9,7 +9,7 @@
  */
 jest.mock('@/lib/config/database/connection', () => ({
   db: {
-    user: { findFirst: jest.fn(async () => ({ primaryHandle: 'sam@HomePageAgain', profile: { displayName: 'Sam' } })) },
+    user: { findMany: jest.fn(async ({ where }: any) => where.AND[0].id.in.map((id: string) => ({ id, primaryHandle: 'sam@HomePageAgain', profile: { displayName: 'Sam' } }))) },
     threadRing: { findUnique: jest.fn() },
   },
 }))
@@ -20,7 +20,7 @@ jest.mock('@/lib/domain/users/profile-access', () => ({ visibleResidentWhere: ()
 jest.mock('@/lib/api/ringhub/ringhub-client', () => ({ getPublicRingHubClient: jest.fn() }))
 jest.mock('@/lib/api/ringhub/ringhub-user-operations', () => ({ createAuthenticatedRingHubClient: jest.fn() }))
 
-import { loadRingForPage } from '@/lib/rings/page-data'
+import { loadRingForPage, residentsByDid } from '@/lib/rings/page-data'
 import { getPublicRingHubClient } from '@/lib/api/ringhub/ringhub-client'
 import { createAuthenticatedRingHubClient } from '@/lib/api/ringhub/ringhub-user-operations'
 import { RingHubAuthError } from '@/lib/api/ringhub/ringhub-errors'
@@ -92,4 +92,10 @@ test("a slow hub with nothing kept says so, and a kept private ring doesn't coun
 test("the Spool counts every ring but itself", async () => {
   const load = await loadRingForPage('spool', null)
   expect(load).toMatchObject({ status: 'ok', ring: { isSystemRing: true, totalRings: 9 } })
+})
+
+test('residents are named by DID; one the database leaves out (hidden, or not here) is not', async () => {
+  ;(db as any).user.findMany.mockResolvedValueOnce([{ id: 'user-of-did:web:sam', primaryHandle: 'sam@HomePageAgain', profile: { displayName: null } }])
+  const names = await residentsByDid(['did:web:sam', 'did:web:hidden'], 'u1')
+  expect([...names]).toEqual([['did:web:sam', { username: 'sam', displayName: null }]])
 })

@@ -143,16 +143,34 @@ async function keptRing(slug: string): Promise<RingDescriptor | null> {
 /** The owner's name and address, unless they're hidden from this viewer. */
 async function hostOf(ownerDid: string | undefined, viewerId: string | null): Promise<RingPageRing['host']> {
   if (!ownerDid) return null
+  return (await residentsByDid([ownerDid], viewerId)).get(ownerDid) ?? null
+}
+
+/**
+ * Residents here behind these DIDs, by DID: username and display name. Anyone
+ * hidden from this viewer, and anyone who doesn't live here, is left out.
+ */
+export async function residentsByDid(
+  dids: string[],
+  viewerId: string | null
+): Promise<Map<string, { username: string; displayName: string | null }>> {
+  const found = new Map<string, { username: string; displayName: string | null }>()
   try {
-    const userId = (await mapDIDsToUserIds([ownerDid])).get(ownerDid)
-    if (!userId) return null
-    const user = await db.user.findFirst({
-      where: { AND: [{ id: userId }, visibleResidentWhere(viewerId)] },
-      select: { primaryHandle: true, profile: { select: { displayName: true } } },
+    const userIds = await mapDIDsToUserIds([...new Set(dids)])
+    const ids = [...new Set(userIds.values())]
+    if (ids.length === 0) return found
+    const users = await db.user.findMany({
+      where: { AND: [{ id: { in: ids } }, visibleResidentWhere(viewerId)] },
+      select: { id: true, primaryHandle: true, profile: { select: { displayName: true } } },
     })
-    const username = usernameFromHandle(user?.primaryHandle)
-    return username ? { username, displayName: user?.profile?.displayName ?? null } : null
+    const byId = new Map(users.map((user) => [user.id, user]))
+    for (const [did, userId] of userIds) {
+      const user = byId.get(userId)
+      const username = usernameFromHandle(user?.primaryHandle)
+      if (username) found.set(did, { username, displayName: user?.profile?.displayName ?? null })
+    }
   } catch {
-    return null
+    // Names are a nicety: without them, nobody is named
   }
+  return found
 }
