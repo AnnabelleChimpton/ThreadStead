@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import Head from "next/head";
 import Layout from "@/components/ui/layout/Layout";
 import { recoverFromSeedPhrase, loginWithPassword } from "@/lib/api/did/did-client";
+import PageMeta from "@/components/ui/layout/PageMeta";
 
 type LoginMethod = 'main' | 'password-login' | 'seed-phrase' | 'email-login' | 'email-sent';
 
@@ -123,10 +123,7 @@ export default function LoginPage() {
 
   return (
     <>
-      <Head>
-        <title>Sign In - ThreadStead</title>
-        <meta name="description" content="Sign in to ThreadStead with your seed phrase or email" />
-      </Head>
+      <PageMeta title="Sign in" description="Sign in to HomePageAgain with your password, seed phrase or an email link." path="/login" />
       <Layout>
         <div className="auth-container max-w-md mx-auto p-6 mt-8">
           {/* Main Login Options */}

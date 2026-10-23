@@ -1,10 +1,10 @@
 import React from "react";
-import Head from "next/head";
 import Layout from "../components/ui/layout/Layout";
 import NotificationList from "../components/ui/feedback/NotificationList";
 import ErrorDisplay from "../components/ui/feedback/ErrorDisplay";
 import { getSessionUser } from "@/lib/auth/server";
 import type { GetServerSideProps, NextApiRequest } from "next";
+import PageMeta from "@/components/ui/layout/PageMeta";
 
 interface NotificationsPageProps {
   user?: {
@@ -18,9 +18,7 @@ export default function NotificationsPage({ user }: NotificationsPageProps) {
   if (!user) {
     return (
       <Layout>
-        <Head>
-          <title>Notifications | ThreadStead</title>
-        </Head>
+        <PageMeta title="Notifications" noIndex />
         <div className="max-w-2xl mx-auto">
           <ErrorDisplay
             variant="notice"
@@ -37,9 +35,7 @@ export default function NotificationsPage({ user }: NotificationsPageProps) {
 
   return (
     <Layout>
-      <Head>
-        <title>Notifications | ThreadStead</title>
-      </Head>
+      <PageMeta title="Notifications" noIndex />
       <div className="max-w-4xl mx-auto">
         <div className="thread-module p-4 sm:p-6">
           {/* NotificationList updates its own state optimistically on

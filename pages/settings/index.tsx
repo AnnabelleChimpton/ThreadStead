@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { GetServerSideProps, NextApiRequest } from "next";
 import { useRouter } from "next/router";
-import Head from "next/head";
 import Layout from "@/components/ui/layout/Layout";
 import RetroCard from "@/components/ui/layout/RetroCard";
 import Tabs, { TabSpec } from "@/components/ui/navigation/Tabs";
@@ -50,6 +49,7 @@ import YourAddress from "@/components/features/profile/YourAddress";
 import { STATUS_MAX } from "@/lib/domain/profile/status";
 import { layoutFields } from "@/lib/domain/profile/layout";
 import LeaveHomePageAgain from "@/components/features/account/LeaveHomePageAgain";
+import PageMeta from "@/components/ui/layout/PageMeta";
 
 // We'll need to extract blocks functionality into a component
 interface UserSettingsProps {
@@ -1789,9 +1789,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled, siteUr
 
   return (
     <>
-      <Head>
-        <title>Settings | ThreadStead</title>
-      </Head>
+      <PageMeta title="Settings" noIndex />
       <Layout fullWidth={true}>
         <RetroCard className="ts-phone-sheet">
           <div className="flex items-center justify-between gap-3 mb-4 sm:mb-6">

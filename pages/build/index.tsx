@@ -1,12 +1,11 @@
-import { getSiteBaseUrl } from '@/lib/config/site-url';
 import { GetServerSideProps, NextApiRequest } from 'next';
-import Head from 'next/head';
 import Link from 'next/link';
 import Layout from '@/components/ui/layout/Layout';
 import ButtonLink from '@/components/ui/ButtonLink';
 import PageHeader from '@/components/ui/layout/PageHeader';
 import RetroCard from '@/components/ui/layout/RetroCard';
 import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
+import PageMeta from '@/components/ui/layout/PageMeta';
 
 interface BuildHubProps {
   siteConfig: SiteConfig;
@@ -17,17 +16,7 @@ export default function BuildHub({ siteConfig, username }: BuildHubProps) {
   const description = "Two ways to change how your page looks: CSS on the normal page, or a page you write yourself.";
   return (
     <>
-      <Head>
-        <title>{`Build your page | ${siteConfig.site_name}`}</title>
-        <meta name="description" content={description} />
-        <link rel="canonical" href={`${getSiteBaseUrl()}/build`} />
-        <meta name="robots" content="index, follow" />
-
-        <meta property="og:title" content={`Build your page | ${siteConfig.site_name}`} />
-        <meta property="og:description" content={description} />
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content={`${getSiteBaseUrl()}/build`} />
-      </Head>
+      <PageMeta title="Build your page" description={description} path="/build" />
 
       <Layout siteConfig={siteConfig}>
         <div className="space-y-6 max-w-4xl mx-auto">

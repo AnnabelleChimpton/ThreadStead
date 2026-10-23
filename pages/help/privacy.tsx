@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import Head from 'next/head';
 import Layout from '@/components/ui/layout/Layout';
 import RetroCard from '@/components/ui/layout/RetroCard';
 import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
 import { GetServerSideProps } from 'next';
 import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner';
 import ErrorDisplay from '@/components/ui/feedback/ErrorDisplay';
+import PageMeta from '@/components/ui/layout/PageMeta';
 
 interface PolicyData {
   privacy_full: string;
@@ -83,10 +83,7 @@ export default function PrivacyPolicyPage({ siteConfig }: PrivacyPolicyPageProps
 
   return (
     <>
-      <Head>
-        <title>Privacy Policy | {siteConfig.site_name}</title>
-        <meta name="description" content={`${siteConfig.site_name} Privacy Policy - Learn how we collect, use, and protect your personal information.`} />
-      </Head>
+      <PageMeta title="Privacy policy" description={`What ${siteConfig.site_name} keeps about you, why, and what you can do about it.`} path="/help/privacy" />
       <Layout siteConfig={siteConfig}>
         <RetroCard>
           <div className="prose prose-lg max-w-none">

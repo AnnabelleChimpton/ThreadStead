@@ -3,6 +3,7 @@ import Layout from "@/components/ui/layout/Layout";
 import UserCard, { DirectoryUser } from "@/components/ui/feedback/UserCard";
 import { UserCardSkeletonGrid } from "@/components/ui/feedback/UserCardSkeleton";
 import { useSiteConfig } from "@/hooks/useSiteConfig";
+import PageMeta from "@/components/ui/layout/PageMeta";
 
 type SortOption = "recent" | "updated" | "alphabetical" | "posts";
 
@@ -94,6 +95,7 @@ export default function Directory() {
   return (
     <Layout>
       {/* Header */}
+      <PageMeta title={config.directory_title} description="Everyone who lives here, newest first." path="/neighborhood/residents" />
       <div className="thread-module p-4 sm:p-5 md:p-6 mb-3 sm:mb-4 md:mb-6">
         <div className="mb-4">
           <h1 className="thread-headline text-3xl font-bold mb-2">{config.directory_title}</h1>

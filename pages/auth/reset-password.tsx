@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import Head from "next/head";
 import Link from "next/link";
 import Layout from "@/components/ui/layout/Layout";
 import RetroCard from "@/components/ui/layout/RetroCard";
 // No custom Button/Input found, falling back to HTML + RetroButton if needed
 import RetroButton from "@/components/ui/feedback/RetroButton";
+import PageMeta from "@/components/ui/layout/PageMeta";
 
 export default function ResetPasswordPage() {
     const router = useRouter();
@@ -48,9 +48,7 @@ export default function ResetPasswordPage() {
     if (status === "success") {
         return (
             <Layout>
-                <Head>
-                    <title>Password Reset | ThreadStead</title>
-                </Head>
+                <PageMeta title="Reset your password" noIndex />
                 <div className="max-w-md mx-auto mt-10 p-4">
                     <RetroCard title="Password Reset">
                         <div className="p-6 text-center space-y-4">
@@ -72,9 +70,7 @@ export default function ResetPasswordPage() {
 
     return (
         <Layout>
-            <Head>
-                <title>Reset Password | ThreadStead</title>
-            </Head>
+            <PageMeta title="Reset your password" noIndex />
             <div className="max-w-md mx-auto mt-10 p-4">
                 <RetroCard title="Reset Password">
                     <form onSubmit={handleSubmit} className="p-6 space-y-6">

@@ -1,8 +1,8 @@
-import Head from 'next/head'
 import Link from 'next/link'
 import Layout from '@/components/ui/layout/Layout'
 import { publicEnv } from '@/lib/config/public-env'
 import { botUserAgent, KAGI_SMALLWEB_HOME, LIMITS } from '@/lib/indie-index/public'
+import PageMeta from '@/components/ui/layout/PageMeta'
 
 /**
  * /indie/about: what the Indie Index bot fetches, how to keep a site out,
@@ -15,10 +15,7 @@ const link = 'underline underline-offset-2'
 export default function IndieAboutPage() {
   return (
     <Layout>
-      <Head>
-        <title>About the Indie Index | ThreadStead</title>
-        <meta name="description" content="What ThreadsteadBot fetches, how often, and how to keep your site out of the Indie Index." />
-      </Head>
+      <PageMeta title="About the Indie Index" description="What ThreadsteadBot fetches, how often, and how to keep your site out of the Indie Index." path="/indie/about" />
 
       <article className="thread-module p-4 sm:p-6 max-w-3xl mx-auto space-y-4 text-nb-ink">
         <h1 className="thread-headline text-2xl sm:text-3xl font-bold">About the Indie Index</h1>

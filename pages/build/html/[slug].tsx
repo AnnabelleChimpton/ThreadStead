@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { GetServerSideProps, NextApiRequest } from 'next';
-import Head from 'next/head';
 import Layout from '@/components/ui/layout/Layout';
 import PageHeader from '@/components/ui/layout/PageHeader';
 import ButtonLink from '@/components/ui/ButtonLink';
@@ -10,6 +9,7 @@ import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
 import { getLesson, nextLesson, type Lesson } from '@/lib/templates-docs/lessons';
 import { autoLinkComponents } from '@/lib/templates-docs/tutorialLinkProcessor';
 import { markdownToSafeHtml } from '@/lib/utils/sanitization/html';
+import PageMeta from '@/components/ui/layout/PageMeta';
 
 interface LessonPageProps {
   siteConfig: SiteConfig;
@@ -28,10 +28,7 @@ export default function LessonPage({ siteConfig, lesson, examples, next, usernam
 
   return (
     <Layout siteConfig={siteConfig}>
-      <Head>
-        <title>{`${lesson.title} | ${siteConfig.site_name}`}</title>
-        <meta name="description" content={lesson.lede} />
-      </Head>
+      <PageMeta title={lesson.title} description={lesson.lede} path={`/build/html/${lesson.slug}`} type="article" />
       <div className="space-y-6 max-w-3xl mx-auto">
         <PageHeader title={lesson.title} back={{ href: '/build/html', label: 'All lessons' }}>
           <p>{lesson.lede}</p>

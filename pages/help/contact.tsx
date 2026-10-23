@@ -1,12 +1,11 @@
-import { getSiteBaseUrl } from '@/lib/config/site-url';
 import { GetServerSideProps } from 'next';
-import Head from 'next/head';
 import Link from 'next/link';
 import Layout from '@/components/ui/layout/Layout';
 import PageHeader from '@/components/ui/layout/PageHeader';
 import Callout from '@/components/ui/feedback/Callout';
 import ButtonLink from '@/components/ui/ButtonLink';
 import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
+import PageMeta from '@/components/ui/layout/PageMeta';
 
 interface ContactProps {
   siteConfig: SiteConfig;
@@ -16,17 +15,7 @@ export default function Contact({ siteConfig }: ContactProps) {
   const link = 'text-thread-sunset hover:underline font-medium break-words';
   return (
     <>
-      <Head>
-        <title>{`${siteConfig.site_name} — Help: Contact`}</title>
-        <meta name="description" content="It's just me running this site, so anything you send here comes straight to me." />
-        <link rel="canonical" href={`${getSiteBaseUrl()}/help/contact`} />
-        <meta name="robots" content="index, follow" />
-
-        <meta property="og:title" content={`${siteConfig.site_name} — Help: Contact`} />
-        <meta property="og:description" content="It's just me running this site, so anything you send here comes straight to me." />
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content={`${getSiteBaseUrl()}/help/contact`} />
-      </Head>
+      <PageMeta title="Contact" description="It's just me running this site, so anything you send here comes straight to me." path="/help/contact" />
 
       <Layout siteConfig={siteConfig}>
         <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-8 sm:py-12">

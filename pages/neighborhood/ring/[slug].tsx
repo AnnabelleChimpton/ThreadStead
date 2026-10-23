@@ -1,7 +1,6 @@
 // A ThreadRing's street: its members' pixel homes, each with its number from
 // the main street (lib/pixel-homes/ring-street.ts). Linked from the ring page.
 import type { GetServerSideProps } from 'next'
-import Head from 'next/head'
 import Link from 'next/link'
 import Layout from '@/components/ui/layout/Layout'
 import Street from '@/components/pixel-homes/Street'
@@ -11,6 +10,7 @@ import { getSessionUser } from '@/lib/auth/server'
 import { getRingStreet, type RingStreetRing } from '@/lib/pixel-homes/ring-street'
 import type { StreetHome } from '@/lib/pixel-homes/street'
 import { getStreetRingSigns, type RingSign } from '@/lib/pixel-homes/street-rings'
+import PageMeta from '@/components/ui/layout/PageMeta'
 
 type RingStreetProps =
   | { kind: 'street'; ring: RingStreetRing; homes: StreetHome[]; at: string | null; ringSigns: RingSign[] }
@@ -22,9 +22,7 @@ export default function RingStreetPage(props: RingStreetProps) {
   if (props.kind === 'unavailable') {
     return (
       <Layout>
-        <Head>
-          <title>The ring street</title>
-        </Head>
+        <PageMeta title="The ring street" noIndex />
         <div className="max-w-3xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
           <h1 className="thread-headline text-2xl sm:text-3xl font-bold mb-2">The ring street</h1>
           <p className="text-nb-ink-mid">
@@ -42,10 +40,12 @@ export default function RingStreetPage(props: RingStreetProps) {
 
   return (
     <Layout>
-      <Head>
-        <title>{`${ring.name} - The ring street`}</title>
-        <meta name="description" content={`The pixel homes of ${ring.name}'s members.`} />
-      </Head>
+      <PageMeta
+        title={`${ring.name}'s street`}
+        description={`The pixel homes of ${ring.name}'s members.`}
+        path={`/neighborhood/ring/${encodeURIComponent(ring.slug)}`}
+        image={{ url: `/api/share/ring/${encodeURIComponent(ring.slug)}.png`, width: 1200, height: 630, alt: `The ${ring.name} ring's badge` }}
+      />
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
         <header className="mb-4 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
           <div>

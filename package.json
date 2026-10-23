@@ -18,6 +18,7 @@
     "typecheck": "tsc --noEmit",
     "env:docs": "tsx scripts/generate-env-docs.ts",
     "env:check": "tsx scripts/check-env.ts",
+    "check:previews": "tsx scripts/check-link-previews.ts",
     "seed": "prisma db seed",
     "setup:admin": "tsx scripts/setup-admin.ts",
     "beta:generate": "tsx scripts/generate-beta-key.ts",

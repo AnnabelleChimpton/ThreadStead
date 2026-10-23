@@ -1,5 +1,4 @@
 import type { GetServerSideProps } from "next";
-import Head from "next/head";
 import Layout from "@/components/ui/layout/Layout";
 import RetroCard from "@/components/ui/layout/RetroCard";
 import { db } from "@/lib/config/database/connection";
@@ -12,6 +11,7 @@ import ProfilePage, {
   getServerSideProps as profileServerSideProps,
   type ProfileProps,
 } from "@/pages/resident/[username]/index";
+import PageMeta from "@/components/ui/layout/PageMeta";
 
 /**
  * A resident's page on their own address: GET https://alice.homepageagain.com/
@@ -39,10 +39,7 @@ export default function SitePage(props: SiteProps) {
 function ClosedAddress({ mainSiteUrl }: { mainSiteUrl: string }) {
   return (
     <>
-      <Head>
-        <title>{`This page has closed | ${SITE_TITLE}`}</title>
-        <meta name="robots" content="noindex" />
-      </Head>
+      <PageMeta title="This page has closed" noIndex />
       <Layout>
         <div className="max-w-2xl mx-auto px-4 py-8">
           <RetroCard>

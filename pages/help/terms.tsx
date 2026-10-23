@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import Head from 'next/head';
 import Layout from '@/components/ui/layout/Layout';
 import RetroCard from '@/components/ui/layout/RetroCard';
 import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
 import { GetServerSideProps } from 'next';
 import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner';
 import ErrorDisplay from '@/components/ui/feedback/ErrorDisplay';
+import PageMeta from '@/components/ui/layout/PageMeta';
 
 interface PolicyData {
   terms_full: string;
@@ -83,10 +83,7 @@ export default function TermsOfServicePage({ siteConfig }: TermsOfServicePagePro
 
   return (
     <>
-      <Head>
-        <title>Terms of Service | {siteConfig.site_name}</title>
-        <meta name="description" content={`${siteConfig.site_name} Terms of Service - Rules and conditions for using our platform.`} />
-      </Head>
+      <PageMeta title="Terms of service" description={`The rules for using ${siteConfig.site_name}.`} path="/help/terms" />
       <Layout siteConfig={siteConfig}>
         <RetroCard>
           <div className="prose prose-lg max-w-none">

@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import Head from 'next/head'
 import Link from 'next/link'
 import Layout from '@/components/ui/layout/Layout'
 import Button from '@/components/ui/Button'
@@ -8,6 +7,7 @@ import IndieList from '@/components/features/search/IndieList'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { csrfFetch } from '@/lib/api/client/csrf-fetch'
 import { searchHref } from '@/lib/search/url-state'
+import PageMeta from '@/components/ui/layout/PageMeta'
 
 /**
  * /indie: the Indie Index's front door (SEARCH_PLAN.md §3.5). Add a site by
@@ -16,10 +16,7 @@ import { searchHref } from '@/lib/search/url-state'
 export default function IndieIndexPage() {
   return (
     <Layout>
-      <Head>
-        <title>Indie Index | ThreadStead</title>
-        <meta name="description" content="Personal sites that people on HomePageAgain link to and vouch for, searchable by their latest posts." />
-      </Head>
+      <PageMeta title="Indie Index" description="Personal sites that people on HomePageAgain link to and vouch for, searchable by their latest posts." path="/indie" />
 
       <div className="max-w-3xl mx-auto space-y-6">
         <header className="thread-module p-4 sm:p-6">

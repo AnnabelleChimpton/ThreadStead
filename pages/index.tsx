@@ -1,7 +1,5 @@
-import { getSiteBaseUrl } from '@/lib/config/site-url';
 import Layout from "../components/ui/layout/Layout";
 import CustomPageLayout from "../components/ui/layout/CustomPageLayout";
-import Head from "next/head";
 import { getSiteConfig, SiteConfig } from "@/lib/config/site/dynamic";
 import { GetServerSideProps } from "next";
 import { db } from "@/lib/config/database/connection";
@@ -27,6 +25,7 @@ import { getFirstSteps, FirstSteps } from "@/lib/domain/users/first-steps";
 import { DEMO_YARD, demoYardWithArt } from "@/lib/pixel-homes/demo-yard";
 import { loadCatalogArt } from "@/lib/pixel-homes/home-scene";
 import { countNeighbors } from '@/lib/domain/users/profile-access';
+import PageMeta from "@/components/ui/layout/PageMeta";
 
 interface HomeProps {
   siteConfig: SiteConfig;
@@ -286,33 +285,12 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
 
   return (
     <>
-      <Head>
-        <title>{homepageMetadata.title}</title>
-        <meta name="description" content={homepageMetadata.description} />
-        {homepageMetadata.keywords && (
-          <meta name="keywords" content={homepageMetadata.keywords.join(', ')} />
-        )}
-        <link rel="canonical" href={getSiteBaseUrl()} />
-        <meta name="robots" content="index, follow" />
-
-        {/* OpenGraph meta tags */}
-        <meta property="og:title" content={homepageMetadata.title} />
-        <meta property="og:description" content={homepageMetadata.description} />
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content={getSiteBaseUrl()} />
-        <meta key="og:image" property="og:image" content={`${getSiteBaseUrl()}${ogImageUrl}`} />
-        <meta key="og:image:width" property="og:image:width" content="1200" />
-        <meta key="og:image:height" property="og:image:height" content="630" />
-        <meta key="og:image:alt" property="og:image:alt" content={`${siteConfig.site_name} - Your page, your way`} />
-        <meta property="og:site_name" content={siteConfig.site_name} />
-        <meta property="og:locale" content="en_US" />
-
-        {/* Social media card meta tags */}
-        <meta key="twitter:card" name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={homepageMetadata.title} />
-        <meta name="twitter:description" content={homepageMetadata.description} />
-        <meta key="twitter:image" name="twitter:image" content={`${getSiteBaseUrl()}${ogImageUrl}`} />
-
+      <PageMeta
+        title={homepageMetadata.title}
+        description={homepageMetadata.description}
+        path="/"
+        image={{ url: ogImageUrl, width: 1200, height: 630, alt: `${siteConfig.site_name}: your page, your way` }}
+      >
         {/* Structured data */}
         <script
           type="application/ld+json"
@@ -320,7 +298,7 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
             __html: serializeJsonLd(homepageMetadata.structuredData)
           }}
         />
-      </Head>
+      </PageMeta>
 
       <Layout siteConfig={siteConfig} fullWidth={true} homepageLayout={true}>
         {/* Signup's welcome music: first in the page so Tab reaches it early */}

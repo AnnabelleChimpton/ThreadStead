@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
-import Head from "next/head";
 import Layout from "@/components/ui/layout/Layout";
 import { createNewIdentityWithSeedPhrase, createNewIdentityWithPassword } from "@/lib/api/did/did-client";
 import { PixelIcon } from '@/components/ui/PixelIcon';
@@ -28,6 +27,7 @@ import { csrfFetch } from "@/lib/api/client/csrf-fetch";
 import { requestCapability } from "@/lib/api/client/capability";
 import Button from "@/components/ui/Button";
 import { buttonClasses } from "@/components/ui/ButtonLink";
+import PageMeta from "@/components/ui/layout/PageMeta";
 
 interface SignupPageProps {
   betaKey?: string | null;
@@ -702,9 +702,7 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
 
   return (
     <>
-      <Head>
-        <title>{`${COPY.pageTitle} | ${siteConfig.site_name}`}</title>
-      </Head>
+      <PageMeta title={COPY.pageTitle} description="Move in: pick a pixel house, make a page that looks however you want, and join the street." path="/signup" />
       <Layout siteConfig={siteConfig}>
         {/* The house step is wider on a big screen: preview and choices side by side */}
         <div className={`max-w-full sm:max-w-2xl ${currentStep === 'house' ? 'lg:max-w-4xl' : ''} mx-auto px-0 sm:px-6 py-6`}>

@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react'
-import Head from 'next/head'
 import type { GetServerSideProps } from 'next'
 import Layout from '@/components/ui/layout/Layout'
 import AdminHeader from '@/components/ui/navigation/AdminHeader'
@@ -10,6 +9,7 @@ import { csrfFetch } from '@/lib/api/client/csrf-fetch'
 import { useToast } from '@/contexts/ToastContext'
 import { useConfirm } from '@/contexts/ConfirmContext'
 import { PixelIcon } from '@/components/ui/PixelIcon'
+import PageMeta from "@/components/ui/layout/PageMeta";
 
 /**
  * /admin/indie: the Indie Index for the admin (SEARCH_PLAN.md §3.5). The
@@ -155,9 +155,7 @@ export default function IndieAdminPage() {
 
   return (
     <Layout>
-      <Head>
-        <title>Indie Index | Admin</title>
-      </Head>
+      <PageMeta title="Indie Index admin" noIndex />
       <AdminHeader current="index">
         <p>Sites in the index, the nightly runs, and opt-outs. The job runs as the pm2 process threadstead-index.</p>
       </AdminHeader>

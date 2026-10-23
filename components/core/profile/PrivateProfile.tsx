@@ -1,9 +1,9 @@
 import React from "react";
 import Layout from "@/components/ui/layout/Layout";
 import RetroCard from "@/components/ui/layout/RetroCard";
-import Head from "next/head";
 import { mainSiteProfileUrl, useResidentHost } from "@/contexts/ResidentHostContext";
 import { useSiteConfig } from "@/hooks/useSiteConfig";
+import PageMeta from "@/components/ui/layout/PageMeta";
 
 type PrivateProfileProps = {
   username: string;
@@ -41,10 +41,7 @@ export default function PrivateProfile({
 
   return (
     <>
-      <Head>
-        <title>{name} - Private Profile | ThreadStead</title>
-        <meta name="robots" content="noindex, nofollow" />
-      </Head>
+      <PageMeta title={`${name} (private)`} noIndex />
       <Layout>
         <div className="max-w-2xl mx-auto px-4 py-8">
           <RetroCard>

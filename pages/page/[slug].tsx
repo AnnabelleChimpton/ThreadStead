@@ -4,6 +4,7 @@ import Layout from "@/components/ui/layout/Layout";
 import CustomPageLayout from "@/components/ui/layout/CustomPageLayout";
 import RetroCard from "@/components/ui/layout/RetroCard";
 import { db } from "@/lib/config/database/connection";
+import PageMeta from "@/components/ui/layout/PageMeta";
 
 type Props = {
   page: {
@@ -19,9 +20,10 @@ type Props = {
 };
 
 export default function CustomPage({ page, error }: Props) {
-  if (error) {
+  if (error || !page) {
     return (
       <Layout>
+        <PageMeta title="Page not found" noIndex />
         <RetroCard title="Page Not Found">
           <p>The page you&apos;re looking for doesn&apos;t exist or isn&apos;t published.</p>
         </RetroCard>
@@ -29,18 +31,9 @@ export default function CustomPage({ page, error }: Props) {
     );
   }
 
-  if (!page) {
-    return (
-      <Layout>
-        <RetroCard title="Page Not Found">
-          <p>The page you&apos;re looking for doesn&apos;t exist.</p>
-        </RetroCard>
-      </Layout>
-    );
-  }
-
   return (
     <CustomPageLayout hideNavbar={page.hideNavbar}>
+      <PageMeta title={page.title} path={`/page/${page.slug}`} />
       <div 
         className="custom-page-content flex-1"
         dangerouslySetInnerHTML={{ __html: page.content }}

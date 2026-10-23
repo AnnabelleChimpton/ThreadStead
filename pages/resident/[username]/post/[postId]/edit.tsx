@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { getInternalBaseUrl } from "@/lib/utils/api/internal-base-url";
 import type { GetServerSideProps } from "next";
-import Head from "next/head";
 import { useRouter } from "next/router";
 import Layout from "@/components/ui/layout/Layout";
 import PostEditor from "@/components/ui/forms/PostEditor";
@@ -11,6 +10,7 @@ import { Post } from "@/components/core/content/PostItem";
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import { requestCapability } from '@/lib/api/client/capability';
 import LoadingSpinner from "@/components/ui/feedback/LoadingSpinner";
+import PageMeta from "@/components/ui/layout/PageMeta";
 
 interface EditPostPageProps {
   siteConfig: SiteConfig;
@@ -152,11 +152,7 @@ export default function EditPostPage({ siteConfig, post, username }: EditPostPag
 
   return (
     <>
-      <Head>
-        <title>Edit Post - {post.title || 'Untitled'} - ThreadStead</title>
-        <meta name="description" content="Edit your post on ThreadStead" />
-        <meta name="robots" content="noindex, nofollow" />
-      </Head>
+      <PageMeta title={`Editing ${post.title || "a post"}`} noIndex />
 
       <Layout siteConfig={siteConfig}>
         <div className="w-full p-4">

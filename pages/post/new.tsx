@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
-import Head from "next/head";
 import Layout from "@/components/ui/layout/Layout";
 import { getSiteConfig, SiteConfig } from "@/lib/config/site/dynamic";
 import PostEditor from "@/components/ui/forms/PostEditor";
@@ -11,6 +10,7 @@ import { requestCapability } from '@/lib/api/client/capability';
 import Link from "next/link";
 import type { RingPostResult } from "@/lib/domain/posts/ring-submission";
 import RingResultsList from "@/components/core/threadring/RingResultsList";
+import PageMeta from "@/components/ui/layout/PageMeta";
 
 interface RingOutcome {
   postId: string;
@@ -105,9 +105,7 @@ export default function PostEditorPage({ siteConfig, ringSlug }: PostEditorPageP
 
   return (
     <Layout siteConfig={siteConfig}>
-      <Head>
-        <title>{`New post | ${siteConfig.site_name}`}</title>
-      </Head>
+      <PageMeta title="New post" noIndex />
       <div className="w-full p-4">
         <div className="post-editor-container ts-editor-head p-6 mb-4 bg-[#FCFAF7] border border-[#A18463] rounded-lg shadow-[3px_3px_0_#A18463]">
           <h1 className="thread-headline text-2xl font-bold mb-2">Create New Post</h1>

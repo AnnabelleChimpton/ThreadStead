@@ -1,11 +1,10 @@
 import React, { useState } from 'react'
-import Head from 'next/head'
-import { getSiteBaseUrl } from '@/lib/config/site-url'
 import Link from 'next/link'
 import Layout from '../../components/ui/layout/Layout'
 import EnhancedHouseCanvas from '../../components/pixel-homes/EnhancedHouseCanvas'
 import { HouseTemplate, ColorPalette, HouseCustomizations } from '../../components/pixel-homes/HouseSVG'
 import { PixelIcon } from '@/components/ui/PixelIcon'
+import PageMeta from '@/components/ui/layout/PageMeta'
 
 /**
  * Demo Pixel Home Landing Page
@@ -77,19 +76,10 @@ export default function DemoPixelHome() {
     timeOfDay: isNight ? ('night' as const) : ('midday' as const)
   }
 
-  const pageTitle = 'Demo Pixel Home | ThreadStead'
-  const pageDescription = 'A sample pixel home showing what you can build on ThreadStead: house styles, colors, decorations, and atmosphere.'
 
   return (
     <>
-      <Head>
-        <title>{pageTitle}</title>
-        <meta name="description" content={pageDescription} />
-        <meta property="og:title" content={pageTitle} />
-        <meta property="og:description" content={pageDescription} />
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content={`${getSiteBaseUrl()}/home/demo`} />
-      </Head>
+      <PageMeta title="Demo pixel home" description="A sample pixel home showing what you can build here: house styles, colors, decorations and the sky above it." path="/home/demo" />
 
       <Layout>
         <div className="min-h-screen bg-gradient-to-br from-thread-paper via-thread-cream to-thread-sky bg-opacity-10">

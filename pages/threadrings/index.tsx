@@ -1,6 +1,5 @@
 import { getSiteBaseUrl } from '@/lib/config/site-url';
 import { useState, useEffect } from "react";
-import Head from "next/head";
 import Layout from "../../components/ui/layout/Layout";
 import ThreadRingCard from "../../components/core/threadring/ThreadRingCard";
 import { getSiteConfig, SiteConfig } from "@/lib/config/site/dynamic";
@@ -17,6 +16,7 @@ import { useToast } from "@/contexts/ToastContext";
 import LoadingSpinner from "@/components/ui/feedback/LoadingSpinner";
 import EmptyState from "@/components/ui/feedback/EmptyState";
 import ErrorDisplay from "@/components/ui/feedback/ErrorDisplay";
+import PageMeta from "@/components/ui/layout/PageMeta";
 
 type RingsTab = 'discover' | 'mine';
 
@@ -65,7 +65,7 @@ export default function ThreadRingsPage({ siteConfig, initialTab }: ThreadRingsP
   const metadataGenerator = new MetadataGenerator(getSiteBaseUrl(), siteConfig);
   const threadRingsMetadata = {
     title: 'ThreadRings',
-    description: 'Discover and join ThreadRing communities on ThreadStead. Find themed communities organized around shared interests, like modern WebRings or digital clubhouses.',
+    description: 'Find and join ThreadRings on HomePageAgain: little groups around a shared interest, like old webrings or a clubhouse.',
     keywords: ['threadrings', 'communities', 'webring', 'threadstead', 'social', 'groups'],
     url: '/threadrings',
     type: 'website' as const
@@ -208,26 +208,7 @@ export default function ThreadRingsPage({ siteConfig, initialTab }: ThreadRingsP
 
   return (
     <>
-      <Head>
-        <title>{threadRingsMetadata.title} | ThreadStead</title>
-        <meta name="description" content={threadRingsMetadata.description} />
-        <meta name="keywords" content={threadRingsMetadata.keywords.join(', ')} />
-        <link rel="canonical" href={`${getSiteBaseUrl()}${threadRingsMetadata.url}`} />
-        <meta name="robots" content="index, follow" />
-
-        {/* OpenGraph meta tags */}
-        <meta property="og:title" content={`${threadRingsMetadata.title} | ThreadStead`} />
-        <meta property="og:description" content={threadRingsMetadata.description} />
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content={`${getSiteBaseUrl()}${threadRingsMetadata.url}`} />
-        <meta property="og:site_name" content="ThreadStead" />
-        <meta property="og:locale" content="en_US" />
-
-        {/* Social media card meta tags */}
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={`${threadRingsMetadata.title} | ThreadStead`} />
-        <meta name="twitter:description" content={threadRingsMetadata.description} />
-
+      <PageMeta title={threadRingsMetadata.title} description={threadRingsMetadata.description} path={threadRingsMetadata.url}>
         {/* Structured data */}
         <script
           type="application/ld+json"
@@ -241,12 +222,12 @@ export default function ThreadRingsPage({ siteConfig, initialTab }: ThreadRingsP
               mainEntity: {
                 '@type': 'ItemList',
                 name: 'ThreadRings',
-                description: 'Community-driven ThreadRings on ThreadStead'
+                description: 'ThreadRings on HomePageAgain'
               }
             })
           }}
         />
-      </Head>
+      </PageMeta>
 
       <Layout siteConfig={siteConfig}>
       <div className="max-w-4xl mx-auto">

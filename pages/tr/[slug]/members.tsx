@@ -17,6 +17,7 @@ import { useToast } from "@/contexts/ToastContext";
 import { useConfirm } from "@/contexts/ConfirmContext";
 import { badgeHandlesFor } from "@/lib/pixel-homes/house-badge";
 import { calendarDate } from "@/lib/utils/dates";
+import PageMeta from "@/components/ui/layout/PageMeta";
 
 interface Member {
   id: string;
@@ -206,6 +207,7 @@ export default function ThreadRingMembersPage({
 
   return (
     <Layout siteConfig={siteConfig}>
+      <PageMeta title={`${ring.name} members`} path={`/tr/${ring.slug}/members`} />
       <div className="max-w-4xl mx-auto py-8">
         {/* Header */}
         <div className="mb-6">

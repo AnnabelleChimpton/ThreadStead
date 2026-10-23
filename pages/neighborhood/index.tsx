@@ -2,7 +2,6 @@
 // HOUSES_PER_STREET at a time (?street=2). /neighborhood/explore/* redirects
 // here. Ring and mutual-friend streets still use ./[type]/[param].
 import type { GetServerSideProps } from 'next'
-import Head from 'next/head'
 import Link from 'next/link'
 import Layout from '@/components/ui/layout/Layout'
 import Street from '@/components/pixel-homes/Street'
@@ -18,6 +17,7 @@ import {
 } from '@/lib/pixel-homes/street'
 import { getStreetRingSigns, type RingSign } from '@/lib/pixel-homes/street-rings'
 import { getCollectionNotice, noticeText } from '@/lib/pixel-homes/collections'
+import PageMeta from '@/components/ui/layout/PageMeta'
 
 interface NeighborhoodProps {
   street: StreetPage
@@ -37,10 +37,7 @@ export default function Neighborhood({ street, recent, at, ringSigns, collection
 
   return (
     <Layout>
-      <Head>
-        <title>{`${street.name} - The street`}</title>
-        <meta name="description" content="Everyone's pixel homes, in the order they moved in." />
-      </Head>
+      <PageMeta title={street.name} description="Everyone's pixel homes, in the order they moved in." path={streetHref(street.index)} />
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
         <header className="mb-4 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
           <div>

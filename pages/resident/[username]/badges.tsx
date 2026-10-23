@@ -1,7 +1,6 @@
 // pages/resident/[username]/badges.tsx
 import React from 'react'
 import type { GetServerSideProps } from 'next'
-import Head from 'next/head'
 import Link from 'next/link'
 import ProfileLayout from '@/components/ui/layout/ProfileLayout'
 import RetroCard from '@/components/ui/layout/RetroCard'
@@ -14,6 +13,7 @@ import { raceHubCall, HUB_TIMEOUT } from '@/lib/api/ringhub/ringhub-ssr'
 import { getUserDID } from '@/lib/api/did/server-did-client'
 import PrivateProfile from '@/components/core/profile/PrivateProfile'
 import { residentAccess } from '@/lib/domain/users/profile-access'
+import PageMeta from '@/components/ui/layout/PageMeta'
 
 interface BadgeWithThreadRing {
   id: string
@@ -73,10 +73,7 @@ function UserBadgesPage({
 
   return (
     <>
-      <Head>
-        <title>{title} | ThreadStead</title>
-        <meta name="description" content={`View ${displayName || username}'s ThreadRing badge collection`} />
-      </Head>
+      <PageMeta title={title} description={`${displayName || username}'s ThreadRing badges.`} path={`/resident/${username}/badges`} />
 
       <ProfileLayout>
         <RetroCard>

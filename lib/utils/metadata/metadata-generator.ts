@@ -5,6 +5,7 @@
 
 import { getSiteBaseUrl } from "@/lib/config/site-url";
 import { serializeJsonLd } from "../sanitization/json-ld";
+import { SITE_TITLE } from "@/lib/config/site/constants";
 
 export interface MetadataConfig {
   title: string;
@@ -42,8 +43,7 @@ export class MetadataGenerator {
     siteConfig?: SiteConfig
   ) {
     this.baseUrl = baseUrl.replace(/\/$/, ''); // Remove trailing slash
-    // ThreadStead is the platform name - fallback when site_name unavailable
-    this.siteName = siteConfig?.site_name || 'ThreadStead';
+    this.siteName = siteConfig?.site_name || SITE_TITLE;
     this.defaultDescription = siteConfig?.site_description || 'A community platform for connecting through ThreadRings and sharing content.';
     this.defaultImage = siteConfig?.default_og_image || '/assets/default-og-image.png';
   }

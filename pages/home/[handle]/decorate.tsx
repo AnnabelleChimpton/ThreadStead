@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { GetServerSideProps } from 'next'
-import Head from 'next/head'
 import { getSessionUser } from '@/lib/auth/server'
 import { db } from '@/lib/config/database/connection'
 import DecorationMode from '@/components/pixel-homes/DecorationMode'
@@ -12,6 +11,7 @@ import type { SavePayload } from '@/lib/pixel-homes/editor-doc'
 import { customArtUrl, customSlotOf, customSlotUrls } from '@/lib/pixel-homes/custom-art'
 import { CATALOG_ART_SELECT, catalogArtFields, catalogArtMap } from '@/lib/pixel-homes/catalog-art'
 import { csrfFetch } from '@/lib/api/client/csrf-fetch'
+import PageMeta from "@/components/ui/layout/PageMeta";
 
 interface DecorationPageProps {
   handle: string
@@ -85,11 +85,7 @@ export default function DecoratePage({
 
   return (
     <>
-      <Head>
-        <title>Decorate Home - ThreadStead</title>
-        <meta name="description" content={`Customize and decorate @${handle}'s pixel home`} />
-        <meta name="robots" content="noindex" />
-      </Head>
+      <PageMeta title="Decorate your home" noIndex />
 
       {/* No site layout: the editor has its own slim header, so the site's
           nav can't be clicked by accident or tabbed through underneath */}

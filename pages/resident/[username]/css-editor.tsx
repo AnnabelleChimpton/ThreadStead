@@ -5,7 +5,6 @@ import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import { css as cssLang } from '@codemirror/lang-css';
 import type { EditorView } from '@codemirror/view';
-import Head from 'next/head';
 
 // CodeMirror is editor-page-only — loaded dynamically so it never lands in
 // the shared bundle (first-load JS is already heavy, see C2).
@@ -46,6 +45,7 @@ import EditorWorkspace, {
 } from '@/components/features/templates/editor/EditorWorkspace';
 import { insertCSSIntoView, planCSSInsertion } from '@/components/features/templates/css-generators/shared/insertCSS';
 import { layoutFields, layoutOf, siteStylesCSSMode, siteStylesOn, type Layout as PageLayout } from '@/lib/domain/profile/layout';
+import PageMeta from "@/components/ui/layout/PageMeta";
 
 type CSSEditorTab = 'css' | 'generators' | 'reference';
 
@@ -419,9 +419,7 @@ export default function CSSEditorPage({
   if (!isOwner) {
     return (
       <Layout>
-        <Head>
-          <title>Access Denied | ThreadStead</title>
-        </Head>
+        <PageMeta title="Not your page" noIndex />
         <div className="flex items-center justify-center min-h-screen bg-gray-50">
           <div className="max-w-md mx-auto bg-white rounded-lg shadow-lg p-8">
             <div className="text-center">
@@ -534,9 +532,7 @@ export default function CSSEditorPage({
   return (
     <>
       <Layout workspace>
-        <Head>
-          <title>{`CSS for your page - ${username} | ThreadStead`}</title>
-        </Head>
+        <PageMeta title="CSS for your page" noIndex />
         <EditorWorkspace
           toolbar={
             <EditorToolbar

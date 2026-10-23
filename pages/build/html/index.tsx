@@ -1,6 +1,5 @@
 import React from 'react';
 import { GetServerSideProps, NextApiRequest } from 'next';
-import Head from 'next/head';
 import Link from 'next/link';
 import Layout from '@/components/ui/layout/Layout';
 import PageHeader from '@/components/ui/layout/PageHeader';
@@ -8,6 +7,7 @@ import RetroCard from '@/components/ui/layout/RetroCard';
 import ButtonLink from '@/components/ui/ButtonLink';
 import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
 import { lessons, type Lesson } from '@/lib/templates-docs/lessons';
+import PageMeta from '@/components/ui/layout/PageMeta';
 
 interface HtmlLessonsProps {
   siteConfig: SiteConfig;
@@ -37,10 +37,7 @@ export default function HtmlLessons({ siteConfig, username }: HtmlLessonsProps) 
   const further = lessons.filter((l) => l.shelf === 'further');
   return (
     <Layout siteConfig={siteConfig}>
-      <Head>
-        <title>{`Your own HTML page | ${siteConfig.site_name}`}</title>
-        <meta name="description" content="Lessons for writing your own page here, from your first few words to buttons that remember things." />
-      </Head>
+      <PageMeta title="Your own HTML page" description="Lessons for writing your own page here, from your first few words to buttons that remember things." path="/build/html" />
       <div className="space-y-6 max-w-3xl mx-auto">
         <PageHeader
           title="Your own HTML page"

@@ -1,8 +1,7 @@
-import { getSiteBaseUrl } from "@/lib/config/site-url";
 import React, { useState, useEffect } from "react";
 import { getInternalBaseUrl } from "@/lib/utils/api/internal-base-url";
 import type { GetServerSideProps } from "next";
-import Head from "next/head";
+import PageMeta, { type PageImage } from "@/components/ui/layout/PageMeta";
 import RetroCard from "@/components/ui/layout/RetroCard";
 import PostItem, { Post as PostType } from "@/components/core/content/PostItem";
 import ProfileLayout from "@/components/ui/layout/ProfileLayout";
@@ -15,6 +14,8 @@ import { PixelIcon } from "@/components/ui/PixelIcon";
 import { pageCSS } from "@/lib/domain/profile/layout";
 import { residentFeedUrl } from "@/lib/feeds/urls";
 import { webmentionEndpoint } from "@/lib/webmentions/urls";
+import { postFirstImage } from "@/lib/templates/core/post-body";
+import { db } from "@/lib/config/database/connection";
 
 type PostPageProps = {
   username: string;
@@ -30,6 +31,8 @@ type PostPageProps = {
   feedUrl?: string;
   /** Where outside sites send webmentions about this post (public posts on public profiles only) */
   webmentionUrl?: string;
+  /** Its link preview's picture: its own first image, else the author's house (public posts on public profiles only) */
+  shareImage?: PageImage;
 };
 
 type PrivatePostPageProps = {
@@ -40,10 +43,7 @@ type PrivatePostPageProps = {
 function PrivatePostPage({ username }: { username: string }) {
   return (
     <>
-      <Head>
-        <title>Private post | ThreadStead</title>
-        <meta name="robots" content="noindex, nofollow" />
-      </Head>
+      <PageMeta title="Private post" noIndex />
       <Layout>
         <div className="max-w-2xl mx-auto px-4 py-8">
           <RetroCard>
@@ -69,7 +69,7 @@ export default function PostPageRoute(props: PostPageProps | PrivatePostPageProp
   return <PostPage {...props} />;
 }
 
-function PostPage({ username, post, authorDisplayName, initialCommentsOpen = true, highlightCommentId, hideNavigation = false, feedUrl, webmentionUrl }: PostPageProps) {
+function PostPage({ username, post, authorDisplayName, initialCommentsOpen = true, highlightCommentId, hideNavigation = false, feedUrl, webmentionUrl, shareImage }: PostPageProps) {
   // Generate metadata for this post
   const adaptedPost = {
     ...post,
@@ -119,49 +119,30 @@ function PostPage({ username, post, authorDisplayName, initialCommentsOpen = tru
 
   return (
     <>
-      <Head>
-        <title>{postMetadata.title}</title>
-        <meta name="description" content={postMetadata.description} />
-        {postMetadata.keywords && (
-          <meta name="keywords" content={postMetadata.keywords.join(', ')} />
-        )}
-        <meta name="author" content={postMetadata.author} />
-        <link rel="canonical" href={`${getSiteBaseUrl()}${postMetadata.url}`} />
+      <PageMeta
+        title={postMetadata.title}
+        description={postMetadata.description}
+        path={postMetadata.url}
+        type="article"
+        // Without a picture of its own or a house, the author's avatar as a small card
+        image={shareImage ?? { url: adaptedPost.author.avatarUrl || '/assets/default-avatar.gif', alt: postMetadata.imageAlt }}
+      >
         {feedUrl && (
           <link rel="alternate" type="application/rss+xml" title={`${displayName}'s posts`} href={feedUrl} />
         )}
         {webmentionUrl && <link rel="webmention" href={webmentionUrl} />}
-        <meta name="robots" content="index, follow" />
-
-        {/* OpenGraph meta tags */}
-        <meta property="og:title" content={postMetadata.title} />
-        <meta property="og:description" content={postMetadata.description} />
-        <meta property="og:type" content="article" />
-        <meta key="og:image" property="og:image" content={adaptedPost.author.avatarUrl || '/assets/default-avatar.gif'} />
-        <meta key="og:image:alt" property="og:image:alt" content={postMetadata.imageAlt} />
-        <meta property="og:url" content={`${getSiteBaseUrl()}${postMetadata.url}`} />
-        <meta property="og:site_name" content="ThreadStead" />
-        <meta property="og:locale" content="en_US" />
         <meta property="article:author" content={postMetadata.author} />
         <meta property="article:published_time" content={postMetadata.publishedTime} />
         {postMetadata.modifiedTime && (
           <meta property="article:modified_time" content={postMetadata.modifiedTime} />
         )}
-
-        {/* Social media card meta tags */}
-        <meta key="twitter:card" name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={postMetadata.title} />
-        <meta name="twitter:description" content={postMetadata.description} />
-        <meta key="twitter:image" name="twitter:image" content={adaptedPost.author.avatarUrl || '/assets/default-avatar.gif'} />
-
-        {/* Structured data */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
             __html: serializeJsonLd(postMetadata.structuredData)
           }}
         />
-      </Head>
+      </PageMeta>
 
       <ProfileLayout
         hideNavigation={hideNavigation}
@@ -255,7 +236,24 @@ export const getServerSideProps: GetServerSideProps<PostPageProps | PrivatePostP
 
     if (authorProfile?.profile?.visibility === 'public') {
       props.feedUrl = residentFeedUrl(authorUsername);
-      if (post.visibility === 'public') props.webmentionUrl = webmentionEndpoint();
+      if (post.visibility === 'public') {
+        props.webmentionUrl = webmentionEndpoint();
+        // Link previews reach signed-out visitors, so only here
+        const ownImage = postFirstImage(post);
+        if (ownImage) {
+          // A photo they uploaded knows its shape, so a wide one gets the large card
+          const upload = await db.media.findFirst({
+            where: { userId: authorProfile.userId, OR: [{ mediumUrl: ownImage }, { fullUrl: ownImage }] },
+            select: { width: true, height: true },
+          });
+          props.shareImage = upload?.width && upload.height ? { url: ownImage, width: upload.width, height: upload.height } : { url: ownImage };
+        } else if (authorProfile.hasPixelHome) {
+          const { homeShareImage } = await import('@/lib/pixel-homes/snapshot/share-image');
+          const house = await homeShareImage(authorProfile.userId, authorUsername).catch(() => undefined);
+          const name = post.author?.profile?.displayName || `@${authorUsername}`;
+          if (house) props.shareImage = { url: house, width: 1200, height: 630, alt: `${name}'s house and yard` };
+        }
+      }
     }
 
     // Fetch admin default CSS from public site config

@@ -3,12 +3,12 @@ import Layout from "../../components/ui/layout/Layout";
 import { getSiteConfig, SiteConfig } from "@/lib/config/site/dynamic";
 import { GetServerSideProps } from "next";
 import Link from "next/link";
-import Head from "next/head";
 import { contentMetadataGenerator } from "@/lib/utils/metadata/content-metadata";
 import Image from "next/image";
 import { PixelIcon } from "@/components/ui/PixelIcon";
 import CustomPageLayout from "@/components/ui/layout/CustomPageLayout";
 import { db } from "@/lib/config/database/connection";
+import PageMeta from "@/components/ui/layout/PageMeta";
 
 interface CustomLanding {
   title: string;
@@ -29,15 +29,7 @@ export default function LandingPage({ siteConfig, customLanding }: LandingPagePr
   if (customLanding) {
     return (
       <>
-        <Head>
-          <title>{homepageMetadata.title}</title>
-          <meta name="description" content={homepageMetadata.description} />
-          <meta property="og:title" content={homepageMetadata.title} />
-          <meta property="og:description" content={homepageMetadata.description} />
-          {homepageMetadata.image && (
-            <meta key="og:image" property="og:image" content={homepageMetadata.image} />
-          )}
-        </Head>
+        <PageMeta title={homepageMetadata.title} description={homepageMetadata.description} path="/landing" />
         <CustomPageLayout siteConfig={siteConfig} hideNavbar={customLanding.hideNavbar}>
           <div
             className="custom-page-content flex-1"
@@ -50,27 +42,7 @@ export default function LandingPage({ siteConfig, customLanding }: LandingPagePr
 
   return (
     <>
-      <Head>
-        <title>{homepageMetadata.title}</title>
-        <meta name="description" content={homepageMetadata.description} />
-        {homepageMetadata.keywords && (
-          <meta name="keywords" content={homepageMetadata.keywords.join(', ')} />
-        )}
-        <meta property="og:title" content={homepageMetadata.title} />
-        <meta property="og:description" content={homepageMetadata.description} />
-        {homepageMetadata.image && (
-          <meta key="og:image" property="og:image" content={homepageMetadata.image} />
-        )}
-        <meta property="og:type" content={homepageMetadata.type || 'website'} />
-        {homepageMetadata.url && (
-          <meta property="og:url" content={homepageMetadata.url} />
-        )}
-        <meta key="twitter:card" name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={homepageMetadata.title} />
-        <meta name="twitter:description" content={homepageMetadata.description} />
-        {homepageMetadata.image && (
-          <meta key="twitter:image" name="twitter:image" content={homepageMetadata.image} />
-        )}
+      <PageMeta title={homepageMetadata.title} description={homepageMetadata.description} path="/landing">
         <style>{`
           /* Custom styles matching retro aesthetic */
           .thread-module {
@@ -113,7 +85,7 @@ export default function LandingPage({ siteConfig, customLanding }: LandingPagePr
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
           }
         `}</style>
-      </Head>
+      </PageMeta>
       <Layout>
         <div className="container mx-auto px-4 py-8 max-w-4xl">
           {/* Hero Section */}

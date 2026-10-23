@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { GetServerSideProps } from 'next';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
 import Layout from '@/components/ui/layout/Layout';
 import RetroCard from '@/components/ui/layout/RetroCard';
 import ThreadRing88x31Badge from '@/components/core/threadring/ThreadRing88x31Badge';
@@ -14,6 +13,7 @@ import { db } from '@/lib/config/database/connection';
 import { BADGE_TEMPLATES, type BadgeTemplate } from '@/lib/domain/threadrings/badges';
 import { generateBadge, type BadgeGenerationOptions } from '@/lib/badge-generator';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+import PageMeta from "@/components/ui/layout/PageMeta";
 
 interface BadgeManagerPageProps {
   ring: {
@@ -261,9 +261,7 @@ export default function BadgeManagerPage({ ring, user, canManage, hubUnavailable
   if (hubUnavailable) {
     return (
       <>
-        <Head>
-          <title>Badge Manager Unavailable | ThreadStead</title>
-        </Head>
+        <PageMeta title="Badge manager" noIndex />
         <Layout>
           <RetroCard>
             <div className="text-center py-12">
@@ -281,9 +279,7 @@ export default function BadgeManagerPage({ ring, user, canManage, hubUnavailable
   if (!canManageBadge) {
     return (
       <>
-        <Head>
-          <title>Access Denied - Badge Manager | ThreadStead</title>
-        </Head>
+        <PageMeta title="Badge manager" noIndex />
         <Layout>
           <RetroCard>
             <div className="text-center py-12">
@@ -306,9 +302,7 @@ export default function BadgeManagerPage({ ring, user, canManage, hubUnavailable
 
   return (
     <>
-      <Head>
-        <title>Badge Manager - {ring.name} | ThreadStead</title>
-      </Head>
+      <PageMeta title={`${ring.name} badge`} noIndex />
       <Layout>
         <RetroCard>
           <div className="mb-6">

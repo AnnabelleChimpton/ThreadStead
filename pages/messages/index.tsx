@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import Layout from '@/components/ui/layout/Layout'; // Corrected path
@@ -8,6 +7,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { useConversations } from '@/hooks/useConversations';
 import { useDirectMessages } from '@/hooks/useDirectMessages';
 import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner';
+import PageMeta from "@/components/ui/layout/PageMeta";
 
 export default function MessagesPage() {
     const router = useRouter();
@@ -36,9 +36,7 @@ export default function MessagesPage() {
 
     return (
         <Layout>
-            <Head>
-                <title>Messages | ThreadStead</title>
-            </Head>
+            <PageMeta title="Messages" noIndex />
 
             <div className="max-w-6xl mx-auto p-4 h-[calc(100vh-80px)]">
                 <div className="bg-thread-paper border border-thread-sage rounded-lg shadow-sm h-full flex overflow-hidden">

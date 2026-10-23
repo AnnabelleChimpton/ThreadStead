@@ -1,12 +1,11 @@
-import { getSiteBaseUrl } from '@/lib/config/site-url';
 import { GetServerSideProps } from 'next';
-import Head from 'next/head';
 import Link from 'next/link';
 import Layout from '@/components/ui/layout/Layout';
 import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
 import PageHeader from '@/components/ui/layout/PageHeader';
 import Callout from '@/components/ui/feedback/Callout';
 import ButtonLink from '@/components/ui/ButtonLink';
+import PageMeta from '@/components/ui/layout/PageMeta';
 
 interface HelpHubProps {
   siteConfig: SiteConfig;
@@ -24,17 +23,7 @@ export default function HelpHub({ siteConfig }: HelpHubProps) {
 
   return (
     <>
-      <Head>
-        <title>{`${siteConfig.site_name} — Help`}</title>
-        <meta name="description" content="Most of the usual questions are answered in the FAQ. If yours isn't, write to me! I read every message." />
-        <link rel="canonical" href={`${getSiteBaseUrl()}/help`} />
-        <meta name="robots" content="index, follow" />
-
-        <meta property="og:title" content={`${siteConfig.site_name} — Help`} />
-        <meta property="og:description" content="Most of the usual questions are answered in the FAQ. If yours isn't, write to me! I read every message." />
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content={`${getSiteBaseUrl()}/help`} />
-      </Head>
+      <PageMeta title="Help" description="Most of the usual questions are answered in the FAQ. If yours isn't, write to me! I read every message." path="/help" />
 
       <Layout siteConfig={siteConfig}>
         <div className="w-full max-w-6xl mx-auto px-3 sm:px-4 py-8 sm:py-12">

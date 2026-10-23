@@ -35,6 +35,8 @@ import { ConversationsProvider } from "@/contexts/ConversationsContext";
 import GlobalChatToggle from "@/components/chat/GlobalChatToggle";
 import GlobalChatPopup from "@/components/chat/GlobalChatPopup";
 import { ResidentHostProvider, type ResidentHost } from "@/contexts/ResidentHostContext";
+import { getSiteBaseUrl } from "@/lib/config/site-url";
+import { SITE_TITLE } from "@/lib/config/site/constants";
 
 type MyAppProps = AppProps & {
   /** Site CSS fetched on the server for the first page load (see getInitialProps) */
@@ -168,14 +170,15 @@ export default function MyApp({ Component, pageProps, appSiteCSS }: MyAppProps) 
               {/* ... existing head content ... */}
               <meta name="viewport" content="width=device-width, initial-scale=1.0" />
               <meta name="color-scheme" content="light" />
-              {/* Default share image. Keyed so a page's own og:image or
-                  twitter:image (same key) replaces it instead of adding a
-                  second one. Size hints stay off: they'd be wrong for
-                  pages that use an avatar. */}
-              <meta key="og:image" property="og:image" content="/og-image.png?v=2" />
+              {/* Link-preview defaults, keyed so a page's own (PageMeta, same
+                  keys) replaces each one instead of sending a second copy.
+                  Absolute, as previews need. Size hints stay off: they'd be
+                  wrong for a page that brings its own image without them. */}
+              <meta key="og:site_name" property="og:site_name" content={SITE_TITLE} />
+              <meta key="og:image" property="og:image" content={`${getSiteBaseUrl()}/og-image.png?v=2`} />
               <meta key="og:image:alt" property="og:image:alt" content="HomePageAgain: The internet doesn't have to suck. A pixel-art house with a pink roof and door." />
               <meta key="twitter:card" name="twitter:card" content="summary_large_image" />
-              <meta key="twitter:image" name="twitter:image" content="/og-image.png?v=2" />
+              <meta key="twitter:image" name="twitter:image" content={`${getSiteBaseUrl()}/og-image.png?v=2`} />
 
               {needsCSSResets && (
                 <style dangerouslySetInnerHTML={{

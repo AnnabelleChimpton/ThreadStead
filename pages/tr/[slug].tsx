@@ -2,7 +2,7 @@ import { getSiteBaseUrl } from '@/lib/config/site-url';
 import { useRouter } from "next/router";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import Head from "next/head";
+import PageMeta from "@/components/ui/layout/PageMeta";
 import Layout from "../../components/ui/layout/Layout";
 import { getSiteConfig, SiteConfig } from "@/lib/config/site/dynamic";
 import { GetServerSideProps } from "next";
@@ -915,11 +915,7 @@ export default function ThreadRingPage({ siteConfig, ring, error, cameFrom = nul
   if (error || !ring) {
     return (
       <>
-        <Head>
-          <title>ThreadRing Not Found | ThreadStead</title>
-          <meta name="description" content="The requested ThreadRing could not be found." />
-          <meta name="robots" content="noindex, nofollow" />
-        </Head>
+        <PageMeta title="Ring not found" noIndex />
         <Layout siteConfig={siteConfig} fullWidth={true}>
           <div className="max-w-2xl mx-auto py-8 px-4">
             <ErrorDisplay title={error || "ThreadRing not found"} actionLabel="Browse rings" actionHref="/threadrings" />
@@ -931,7 +927,12 @@ export default function ThreadRingPage({ siteConfig, ring, error, cameFrom = nul
 
   // Check if this is The Spool
   if (ring.isSystemRing) {
-    return <SpoolLandingPage ring={ring} siteConfig={siteConfig} />;
+    return (
+      <>
+        <PageMeta title={ring.name} description={ringMetadata?.description} path={`/tr/${ring.slug}`} />
+        <SpoolLandingPage ring={ring} siteConfig={siteConfig} />
+      </>
+    );
   }
 
   const curatorHandle = ring.curator?.handles.find(h => h.host === "local")?.handle ||
@@ -940,49 +941,25 @@ export default function ThreadRingPage({ siteConfig, ring, error, cameFrom = nul
 
   return (
     <>
-      <Head>
-        {ringMetadata && (
-          <>
-            <title>{ringMetadata.title}</title>
-            <meta name="description" content={ringMetadata.description} />
-            {ringMetadata.keywords && (
-              <meta name="keywords" content={ringMetadata.keywords.join(', ')} />
-            )}
-            <link rel="canonical" href={`${getSiteBaseUrl()}${ringMetadata.url}`} />
-            {feedUrl && (
-              <link rel="alternate" type="application/rss+xml" title={`${ring.name} ring posts`} href={feedUrl} />
-            )}
-            <meta name="robots" content="index, follow" />
-
-            {/* OpenGraph meta tags */}
-            <meta property="og:title" content={ringMetadata.title} />
-            <meta property="og:description" content={ringMetadata.description} />
-            <meta property="og:type" content="website" />
-            <meta property="og:url" content={`${getSiteBaseUrl()}${ringMetadata.url}`} />
-            <meta property="og:site_name" content="ThreadStead" />
-            <meta property="og:locale" content="en_US" />
-            {/* The ring's badge, big (pages/api/share/ring/[file].ts) */}
-            <meta key="og:image" property="og:image" content={shareImage} />
-            <meta key="og:image:width" property="og:image:width" content="1200" />
-            <meta key="og:image:height" property="og:image:height" content="630" />
-            <meta key="og:image:alt" property="og:image:alt" content={`The ${ring.name} ring's badge`} />
-
-            {/* Social media card meta tags */}
-            <meta key="twitter:card" name="twitter:card" content="summary_large_image" />
-            <meta name="twitter:title" content={ringMetadata.title} />
-            <meta name="twitter:description" content={ringMetadata.description} />
-            <meta key="twitter:image" name="twitter:image" content={shareImage} />
-
-            {/* Structured data */}
-            <script
-              type="application/ld+json"
-              dangerouslySetInnerHTML={{
-                __html: serializeJsonLd(ringMetadata.structuredData)
-              }}
-            />
-          </>
-        )}
-      </Head>
+      {ringMetadata && (
+        <PageMeta
+          title={ringMetadata.title}
+          description={ringMetadata.description}
+          path={ringMetadata.url}
+          // The ring's badge, big (pages/api/share/ring/[file].ts)
+          image={shareImage ? { url: shareImage, width: 1200, height: 630, alt: `The ${ring.name} ring's badge` } : undefined}
+        >
+          {feedUrl && (
+            <link rel="alternate" type="application/rss+xml" title={`${ring.name} ring posts`} href={feedUrl} />
+          )}
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: serializeJsonLd(ringMetadata.structuredData)
+            }}
+          />
+        </PageMeta>
+      )}
 
       {ring.themeColor && (
         <style jsx global>{`

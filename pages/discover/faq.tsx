@@ -10,6 +10,7 @@ import Callout from '@/components/ui/feedback/Callout';
 import ButtonLink from '@/components/ui/ButtonLink';
 import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
 import Link from 'next/link';
+import PageMeta from '@/components/ui/layout/PageMeta';
 
 interface FAQProps {
   siteConfig: SiteConfig;
@@ -58,6 +59,7 @@ export default function SearchFAQ({ siteConfig }: FAQProps) {
 
   return (
     <Layout siteConfig={siteConfig}>
+      <PageMeta title="How search works" description="Where search results here come from: people, posts and pages, and the Indie Index of personal sites." path="/discover/faq" />
       <div className="w-full max-w-4xl mx-auto px-4 py-8">
         <PageHeader title="How search works" back={{ href: '/search', label: 'Back to search' }}>
           <p>

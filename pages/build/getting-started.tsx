@@ -6,13 +6,13 @@ import ButtonLink, { buttonClasses } from '@/components/ui/ButtonLink';
 import { getSiteConfig, SiteConfig } from "@/lib/config/site/dynamic";
 import { GetServerSideProps } from "next";
 import Link from "next/link";
-import Head from "next/head";
 import FeatureGate, { NewUserTooltip } from "@/components/features/onboarding/FeatureGate";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { PixelIcon } from "@/components/ui/PixelIcon";
 import ThemeSwatch from '@/components/features/profile/ThemeSwatch';
 import { THEMES } from '@/lib/templates/appearance';
 import { useWelcomeRingMissing, WELCOME_RING_PATH } from "@/components/features/onboarding/useWelcomeRing";
+import PageMeta from "@/components/ui/layout/PageMeta";
 
 interface GettingStartedProps {
   siteConfig: SiteConfig;
@@ -46,9 +46,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
 
   return (
     <Layout siteConfig={siteConfig}>
-      <Head>
-        <title>{`Getting started | ${siteConfig.site_name}`}</title>
-      </Head>
+      <PageMeta title="Getting started" description="Everyone here gets a pixel house on the street and a page you can make look however you want, and you can join little groups called ThreadRings. This walks through all of it." path="/build/getting-started" />
       <div className="space-y-6">
         <PageHeader title={`Getting started on ${siteConfig.site_name}`} className="mb-0 sm:mb-0">
           {!user ? (

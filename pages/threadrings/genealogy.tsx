@@ -1,9 +1,9 @@
-import Head from 'next/head';
 import Link from 'next/link';
 import { GetServerSideProps } from 'next';
 import ThreadRingGenealogy from '@/components/core/threadring/ThreadRingGenealogy';
 import Layout from '@/components/ui/layout/Layout';
 import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
+import PageMeta from '@/components/ui/layout/PageMeta';
 
 interface GenealogyPageProps {
   siteConfig: SiteConfig;
@@ -12,10 +12,7 @@ interface GenealogyPageProps {
 export default function GenealogyPage({ siteConfig }: GenealogyPageProps) {
   return (
     <Layout siteConfig={siteConfig}>
-      <Head>
-        <title>ThreadRing Genealogy - ThreadStead</title>
-        <meta name="description" content="Explore the family tree of all ThreadRing communities" />
-      </Head>
+      <PageMeta title="ThreadRing family tree" description="Every ThreadRing and the rings it grew from, as one family tree." path="/threadrings/genealogy" />
       
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

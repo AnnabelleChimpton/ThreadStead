@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from "react";
 import { GetServerSideProps } from "next";
-import Head from "next/head";
 import Link from "next/link";
 import Layout from "@/components/ui/layout/Layout";
 import Button from "@/components/ui/Button";
@@ -16,6 +15,7 @@ import {
 import { componentRegistry } from "@/lib/templates/core/template-registry";
 import { BEGINNER_SECTIONS } from "@/lib/templates-docs/beginner-set";
 import { getCachedTutorialsForComponent } from "@/lib/templates-docs/componentTutorialMap";
+import PageMeta from "@/components/ui/layout/PageMeta";
 
 interface TutorialLink {
   slug: string;
@@ -177,9 +177,7 @@ export default function ComponentsPage({ siteConfig, components, tutorials }: Co
 
   return (
     <Layout siteConfig={siteConfig}>
-      <Head>
-        <title>{`Components | ${siteConfig.site_name}`}</title>
-      </Head>
+      <PageMeta title="Components" description="Every component you can use in a page of your own HTML, with what each one does and the options it takes." path="/build/templates/components" />
       <div className="w-full px-4 sm:px-6 py-8 max-w-4xl mx-auto">
         <nav className="mb-4 text-sm text-thread-sage" aria-label="Breadcrumb">
           <Link href="/build/html" className="underline hover:text-thread-pine">

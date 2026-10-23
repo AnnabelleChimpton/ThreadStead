@@ -5,6 +5,7 @@
 
 import { MetadataGenerator, MetadataConfig } from './metadata-generator';
 import { countOf } from '@/lib/utils/count-of';
+import { SITE_TITLE } from '@/lib/config/site/constants';
 
 export interface UserProfile {
   handle: string;
@@ -68,7 +69,7 @@ export class ContentMetadataGenerator extends MetadataGenerator {
       description = MetadataGenerator.cleanText(user.bio);
       description = MetadataGenerator.truncateText(description, 155);
     } else {
-      description = `${displayName}'s profile on ThreadStead. Join the community to connect and discover their content.`;
+      description = `${displayName}'s page on ${SITE_TITLE}.`;
     }
 
     // Extract keywords from bio
@@ -90,7 +91,7 @@ export class ContentMetadataGenerator extends MetadataGenerator {
         ...(user.joinedAt && {
           memberOf: {
             '@type': 'Organization',
-            name: 'ThreadStead',
+            name: SITE_TITLE,
             url: this.baseUrl
           }
         })
@@ -116,18 +117,9 @@ export class ContentMetadataGenerator extends MetadataGenerator {
     const authorDisplayName = post.author.displayName || post.author.handle;
     const authorHandle = post.author.handle.startsWith('@') ? post.author.handle : `@${post.author.handle}`;
 
-    // Extract title from content if not provided
-    let title = post.title;
-    if (!title) {
-      const content = post.bodyMarkdown || post.bodyText || post.bodyHtml || '';
-      const lines = content.split('\n').filter(line => line.trim());
-      if (lines.length > 0) {
-        title = MetadataGenerator.cleanText(lines[0]);
-        title = MetadataGenerator.truncateText(title, 60);
-      } else {
-        title = `Post by ${authorDisplayName}`;
-      }
-    }
+    // A post saved without a title is stored as "Untitled Post" (pages/api/posts/create.ts).
+    // Its words go in the description, so the title doesn't repeat them
+    const title = post.title && post.title !== 'Untitled Post' ? post.title : `A post by ${authorDisplayName}`;
 
     // Create description from post content
     let description = '';
@@ -139,6 +131,7 @@ export class ContentMetadataGenerator extends MetadataGenerator {
         .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold
         .replace(/\*(.*?)\*/g, '$1') // Remove italic
         .replace(/<[^>]*>/g, '') // Remove HTML tags
+        .replace(/!\[[^\]]*\]\([^)]*\)/g, '') // Remove markdown images
         .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1'); // Remove markdown links
 
       description = MetadataGenerator.cleanText(cleanContent);
@@ -146,7 +139,7 @@ export class ContentMetadataGenerator extends MetadataGenerator {
     }
 
     if (!description) {
-      description = `A post by ${authorDisplayName} on ThreadStead.`;
+      description = `A post by ${authorDisplayName} on ${SITE_TITLE}.`;
     }
 
     // Extract keywords from content
@@ -175,7 +168,7 @@ export class ContentMetadataGenerator extends MetadataGenerator {
       ...(post.updatedAt && { dateModified: post.updatedAt }),
       publisher: {
         '@type': 'Organization',
-        name: 'ThreadStead',
+        name: SITE_TITLE,
         url: this.baseUrl
       },
       url: `${this.baseUrl}/resident/${userHandle}/post/${post.id}`,
@@ -250,7 +243,7 @@ export class ContentMetadataGenerator extends MetadataGenerator {
       ...(ring.createdAt && { foundingDate: ring.createdAt }),
       parentOrganization: {
         '@type': 'Organization',
-        name: 'ThreadStead',
+        name: SITE_TITLE,
         url: this.baseUrl
       }
     };
@@ -269,9 +262,9 @@ export class ContentMetadataGenerator extends MetadataGenerator {
    * Generate metadata for homepage
    */
   generateHomepageMetadata(siteConfig?: any): MetadataConfig {
-    const title = siteConfig?.site_name || 'ThreadStead';
+    const title = siteConfig?.site_name || SITE_TITLE;
     const description = siteConfig?.site_description ||
-      'Join ThreadStead - a community platform where you can connect through ThreadRings, share content, and discover new voices. Create your profile and start building connections today.';
+      `Join ${SITE_TITLE}, a community platform where you can connect through ThreadRings, share content, and discover new voices. Create your profile and start building connections today.`;
 
     const keywords = [
       'threadstead', 'community', 'social', 'threadrings', 'blogging',
@@ -320,8 +313,8 @@ export class ContentMetadataGenerator extends MetadataGenerator {
       : 'Discover Communities';
 
     const description = searchQuery
-      ? `Find ThreadRings, users, and content related to "${searchQuery}" on ThreadStead.`
-      : 'Explore ThreadRings, discover new communities, and find interesting content on ThreadStead. Search the indie web and connect with like-minded people.';
+      ? `Find ThreadRings, users, and content related to "${searchQuery}" on ${SITE_TITLE}.`
+      : `Explore ThreadRings, discover new communities, and find interesting content on ${SITE_TITLE}. Search the indie web and connect with like-minded people.`;
 
     const keywords = searchQuery
       ? ['search', 'discover', 'results', 'threadstead', ...searchQuery.split(' ').filter(word => word.length > 2)]

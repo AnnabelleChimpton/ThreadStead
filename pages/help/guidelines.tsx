@@ -1,19 +1,16 @@
 import React from 'react';
-import Head from 'next/head';
 import Link from 'next/link';
 import Layout from '@/components/ui/layout/Layout';
 import RetroCard from '@/components/ui/layout/RetroCard';
 import ButtonLink, { buttonClasses } from '@/components/ui/ButtonLink';
 import PageHeader from '@/components/ui/layout/PageHeader';
 import { PixelIcon } from '@/components/ui/PixelIcon';
+import PageMeta from '@/components/ui/layout/PageMeta';
 
 export default function CommunityGuidelines() {
   return (
     <>
-      <Head>
-        <title>Community Guidelines - Threadstead</title>
-        <meta name="description" content="The house rules that keep Threadstead creative, welcoming, and safe for everyone." />
-      </Head>
+      <PageMeta title="Community guidelines" description="The house rules that keep HomePageAgain creative, welcoming and safe for everyone." path="/help/guidelines" />
 
       <Layout>
         <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">

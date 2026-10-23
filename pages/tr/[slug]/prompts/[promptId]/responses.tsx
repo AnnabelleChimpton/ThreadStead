@@ -13,6 +13,7 @@ import { PixelIcon } from '@/components/ui/PixelIcon'
 import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner'
 import EmptyState from '@/components/ui/feedback/EmptyState'
 import ErrorDisplay from '@/components/ui/feedback/ErrorDisplay'
+import PageMeta from "@/components/ui/layout/PageMeta"
 
 interface PromptResponse {
   id: string
@@ -215,6 +216,13 @@ export default function PromptResponsesPage({
 
   return (
     <Layout siteConfig={siteConfig}>
+      {prompt && (
+        <PageMeta
+          title={`${prompt.title}: answers in ${threadRing.name}`}
+          description={prompt.description}
+          path={`/tr/${threadRing.slug}/prompts/${prompt.id}/responses`}
+        />
+      )}
       <div className="max-w-6xl mx-auto py-8 px-4">
         {/* Navigation */}
         <div className="mb-6">

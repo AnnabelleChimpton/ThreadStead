@@ -3,7 +3,6 @@
 // otherwise their pixel home. Ring owners and moderators also see sites
 // waiting for a yes and sites they hid, and set the ring's rule.
 import { useState } from "react";
-import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import type { GetServerSideProps } from "next";
@@ -16,7 +15,7 @@ import { useToast } from "@/contexts/ToastContext";
 import { useConfirm } from "@/contexts/ConfirmContext";
 import { csrfFetch } from "@/lib/api/client/csrf-fetch";
 import { getSiteConfig, type SiteConfig } from "@/lib/config/site/dynamic";
-import { getSiteBaseUrl } from "@/lib/config/site-url";
+import PageMeta from "@/components/ui/layout/PageMeta";
 
 type StopStatus = "listed" | "pending" | "hidden";
 
@@ -194,10 +193,12 @@ export default function RingSitesPage({ siteConfig, ring, stops, viewerId, stewa
   const sites = stops?.filter((s) => s.site).length ?? 0;
   return (
     <Layout siteConfig={siteConfig}>
-      <Head>
-        <title>{`${ring.name}: every stop | ${siteConfig.site_name}`}</title>
-        <link rel="canonical" href={`${getSiteBaseUrl()}${ringHref}/sites`} />
-      </Head>
+      <PageMeta
+        title={`Every stop in ${ring.name}`}
+        description={`The members of ${ring.name} and their sites, in the order the ring's webring strip walks them.`}
+        path={`${ringHref}/sites`}
+        image={{ url: `/api/share/ring/${encodeURIComponent(ring.slug)}.png`, width: 1200, height: 630, alt: `The ${ring.name} ring's badge` }}
+      />
       <div className="max-w-3xl mx-auto py-6 space-y-6">
         <div>
           <Link href={ringHref} className="text-sm underline text-nb-ink-mid">← {ring.name}</Link>

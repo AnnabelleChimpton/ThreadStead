@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { getInternalBaseUrl } from "@/lib/utils/api/internal-base-url";
 import type { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
-import Head from "next/head";
 import Link from "next/link";
 import ProfileLayout from "@/components/ui/layout/ProfileLayout";
 import RetroCard from "@/components/ui/layout/RetroCard";
@@ -15,6 +14,7 @@ import { useConfirm } from "@/contexts/ConfirmContext";
 import { useToast } from "@/contexts/ToastContext";
 import Modal from "@/components/ui/feedback/Modal";
 import PrivateProfile from "@/components/core/profile/PrivateProfile";
+import PageMeta from "@/components/ui/layout/PageMeta";
 
 interface MediaItem {
   id: string;
@@ -232,9 +232,7 @@ function MediaGalleryPage({
 
   return (
     <>
-      <Head>
-        <title>{`Media Gallery - ${username} | ThreadStead`}</title>
-      </Head>
+      <PageMeta title={`${username}'s media`} description={`Pictures and music ${username} has shared on HomePageAgain.`} path={`/resident/${username}/media`} />
       <ProfileLayout>
         <RetroCard className="ts-phone-sheet">
           <div className="space-y-6">

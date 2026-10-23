@@ -2,12 +2,11 @@ import React, { useState, useEffect, useCallback } from "react";
 import { getInternalBaseUrl } from "@/lib/utils/api/internal-base-url";
 import { GetServerSideProps } from "next";
 import Layout from "@/components/ui/layout/Layout";
-import Head from "next/head";
 import CommunityHeader from "@/components/ui/navigation/CommunityHeader";
 import Callout from "@/components/ui/feedback/Callout";
-import { getSiteBaseUrl } from "@/lib/config/site-url";
 import { getSiteConfig, SiteConfig } from "@/lib/config/site/dynamic";
 import Link from "next/link";
+import PageMeta from "@/components/ui/layout/PageMeta";
 
 interface NewsItem {
   id: string;
@@ -84,11 +83,7 @@ export default function NewsPage({ siteConfig, initialNews, hasMore: initialHasM
 
   return (
     <Layout siteConfig={siteConfig} fullWidth={true}>
-      <Head>
-        <title>{`${siteConfig.site_name} — News`}</title>
-        <meta name="description" content={`Site news and announcements from ${siteConfig.site_name}.`} />
-        <link rel="canonical" href={`${getSiteBaseUrl()}/community/news`} />
-      </Head>
+      <PageMeta title="News" description={`Site news and announcements from ${siteConfig.site_name}.`} path="/community/news" />
       <div className="w-full max-w-full sm:max-w-7xl mx-auto px-0 sm:px-4 py-4 sm:py-6">
         <CommunityHeader current="news" />
 

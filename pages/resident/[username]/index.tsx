@@ -3,7 +3,7 @@ import { getSiteBaseUrl } from '@/lib/config/site-url';
 import React from "react";
 import { getInternalBaseUrl } from "@/lib/utils/api/internal-base-url";
 import type { GetServerSideProps } from "next";
-import Head from "next/head";
+import PageMeta from "@/components/ui/layout/PageMeta";
 
 import Layout from "@/components/ui/layout/Layout";
 import RetroCard from "@/components/ui/layout/RetroCard";
@@ -170,17 +170,21 @@ export default function ProfilePage({
   // its own <title> keeps it.
   const documentTitle =
     templateMode === 'advanced' ? compiledTemplate?.ast?.head?.title?.trim() : undefined;
-  const pageTitle = documentTitle || profileMetadata.title;
+  const name = displayName || `@${username}`;
   const pageUrl = canonicalUrl || `${getSiteBaseUrl()}${profileMetadata.url}`;
   const head = (
-    <Head>
-      <title>{pageTitle}</title>
-      <meta name="description" content={profileMetadata.description} />
-      {profileMetadata.keywords && (
-        <meta name="keywords" content={profileMetadata.keywords.join(', ')} />
-      )}
-      <meta name="author" content={displayName || username} />
-      <link rel="canonical" href={pageUrl} />
+    <PageMeta
+      title={profileMetadata.title}
+      tabTitle={documentTitle}
+      description={profileMetadata.description}
+      path={pageUrl}
+      type="profile"
+      // A link to their page previews as their house when they have one;
+      // else their avatar, which PageMeta shows as a small square card
+      image={shareImage
+        ? { url: shareImage, width: 1200, height: 630, alt: `${name}'s house and yard` }
+        : { url: photoUrl, alt: profileMetadata.imageAlt }}
+    >
       {feedUrl && (
         <link rel="alternate" type="application/rss+xml" title={`${displayName || username}'s posts`} href={feedUrl} />
       )}
@@ -189,40 +193,13 @@ export default function ProfilePage({
       {websites.filter((w) => w.mine && /^https?:\/\//i.test(w.url)).map((w) => (
         <link key={`me-${w.id}`} rel="me" href={w.url} />
       ))}
-      <meta name="robots" content="index, follow" />
-
-      {/* OpenGraph meta tags */}
-      <meta property="og:title" content={pageTitle} />
-      <meta property="og:description" content={profileMetadata.description} />
-      <meta property="og:type" content="profile" />
-      {/* A link to their page previews as their house when they have one;
-          else their avatar, as a small square card rather than a stretched banner */}
-      <meta key="og:image" property="og:image" content={shareImage || photoUrl} />
-      {shareImage && <meta key="og:image:width" property="og:image:width" content="1200" />}
-      {shareImage && <meta key="og:image:height" property="og:image:height" content="630" />}
-      <meta
-        key="og:image:alt"
-        property="og:image:alt"
-        content={shareImage ? `${displayName || `@${username}`}'s house and yard` : profileMetadata.imageAlt}
-      />
-      <meta property="og:url" content={pageUrl} />
-      <meta property="og:site_name" content="ThreadStead" />
-      <meta property="og:locale" content="en_US" />
-
-      {/* Social media card meta tags */}
-      <meta key="twitter:card" name="twitter:card" content={shareImage ? "summary_large_image" : "summary"} />
-      <meta name="twitter:title" content={pageTitle} />
-      <meta name="twitter:description" content={profileMetadata.description} />
-      <meta key="twitter:image" name="twitter:image" content={shareImage || photoUrl} />
-
-      {/* Structured data */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: serializeJsonLd(profileMetadata.structuredData)
         }}
       />
-    </Head>
+    </PageMeta>
   );
 
   // The profile's song, floating in the corner as site chrome. On your own

@@ -4,7 +4,6 @@
 // Content-Security-Policy: images, fonts, frames, forms), lib/templates/
 // limits.ts (size) and lib/templates/embeds.ts (<Embed> hosts). Change this
 // page when one of those changes.
-import Head from "next/head";
 import Link from "next/link";
 import { GetServerSideProps } from "next";
 import Layout from "@/components/ui/layout/Layout";
@@ -13,6 +12,7 @@ import PageHeader from "@/components/ui/layout/PageHeader";
 import ButtonLink from "@/components/ui/ButtonLink";
 import { getSiteConfig, SiteConfig } from "@/lib/config/site/dynamic";
 import { MAX_CSS_CHARS, MAX_TEMPLATE_CHARS } from "@/lib/templates/limits";
+import PageMeta from "@/components/ui/layout/PageMeta";
 
 interface WhatWorksHereProps {
   siteConfig: SiteConfig;
@@ -35,13 +35,7 @@ function Example({ children }: { children: string }) {
 export default function WhatWorksHere({ siteConfig }: WhatWorksHereProps) {
   return (
     <>
-      <Head>
-        <title>{`What works here | ${siteConfig.site_name}`}</title>
-        <meta
-          name="description"
-          content="What a page of your own HTML can do here: the tags, CSS, images, fonts and embeds that work, and the few things that don't."
-        />
-      </Head>
+      <PageMeta title="What works here" description="What a page of your own HTML can do here: the tags, CSS, images, fonts and embeds that work, and the few things that don't." path="/build/what-works-here" />
       <Layout siteConfig={siteConfig}>
         <div className="space-y-6">
           <PageHeader title="What works here">

@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react';
 import { GetServerSideProps } from 'next';
-import Head from 'next/head';
 import Layout from '@/components/ui/layout/Layout';
 import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
 import { getSessionUser } from '@/lib/auth/server';
 import CommunityHeader from '@/components/ui/navigation/CommunityHeader';
-import { getSiteBaseUrl } from '@/lib/config/site-url';
 import { buttonClasses } from '@/components/ui/ButtonLink';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { csrfFetchJson } from '@/lib/api/client/csrf-fetch';
@@ -19,6 +17,7 @@ import {
   getAllBulletinCategories,
   type BulletinCategory,
 } from '@/lib/helpers/bulletinHelpers';
+import PageMeta from '@/components/ui/layout/PageMeta';
 
 interface Bulletin {
   id: string;
@@ -185,14 +184,7 @@ export default function BulletinBoard({ siteConfig, user }: BulletinPageProps) {
 
   return (
     <>
-      <Head>
-        <title>{`${siteConfig.site_name} — Community`}</title>
-        <meta
-          name="description"
-          content={`The board, chat, site news and polls on ${siteConfig.site_name}.`}
-        />
-        <link rel="canonical" href={`${getSiteBaseUrl()}/community`} />
-      </Head>
+      <PageMeta title="Community" description={`The board, chat, site news and polls on ${siteConfig.site_name}.`} path="/community" />
 
       <Layout siteConfig={siteConfig} fullWidth={true}>
         <div className="w-full max-w-full sm:max-w-7xl mx-auto px-0 sm:px-4 py-4 sm:py-6">

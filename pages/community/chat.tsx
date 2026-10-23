@@ -1,11 +1,10 @@
-import { getSiteBaseUrl } from '@/lib/config/site-url';
 import { GetServerSideProps } from 'next';
-import Head from 'next/head';
 import Layout from '@/components/ui/layout/Layout';
 import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
 import { getSessionUser } from '@/lib/auth/server';
 import CommunityHeader from '@/components/ui/navigation/CommunityHeader';
 import CommunityChatPanel from '@/components/community/CommunityChatPanel';
+import PageMeta from '@/components/ui/layout/PageMeta';
 
 interface ChatPageProps {
   siteConfig: SiteConfig;
@@ -19,11 +18,7 @@ interface ChatPageProps {
 export default function ChatPage({ siteConfig, user }: ChatPageProps) {
   return (
     <>
-      <Head>
-        <title>{`${siteConfig.site_name} — Chat`}</title>
-        <meta name="description" content={`Chat with your neighbors on ${siteConfig.site_name}.`} />
-        <link rel="canonical" href={`${getSiteBaseUrl()}/community/chat`} />
-      </Head>
+      <PageMeta title="Chat" description={`Chat with your neighbors on ${siteConfig.site_name}.`} path="/community/chat" />
 
       <Layout siteConfig={siteConfig} fullWidth={true}>
         <div className="w-full max-w-full sm:max-w-7xl mx-auto px-0 sm:px-4 py-4 sm:py-6">

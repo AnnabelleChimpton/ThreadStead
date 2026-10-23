@@ -1,12 +1,11 @@
-import { getSiteBaseUrl } from '@/lib/config/site-url';
 import { GetServerSideProps } from 'next';
-import Head from 'next/head';
 import Link from 'next/link';
 import Layout from '@/components/ui/layout/Layout';
 import PageHeader from '@/components/ui/layout/PageHeader';
 import Callout from '@/components/ui/feedback/Callout';
 import ButtonLink from '@/components/ui/ButtonLink';
 import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
+import PageMeta from '@/components/ui/layout/PageMeta';
 
 interface MusicGuideProps {
   siteConfig: SiteConfig;
@@ -15,17 +14,7 @@ interface MusicGuideProps {
 export default function MusicGuide({ siteConfig }: MusicGuideProps) {
   return (
     <>
-      <Head>
-        <title>{`${siteConfig.site_name} — Making music for your page`}</title>
-        <meta name="description" content="Adding MIDI music to your page: how it sounds, where to find songs, making your own, and turning music off as a visitor." />
-        <link rel="canonical" href={`${getSiteBaseUrl()}/help/music-guide`} />
-        <meta name="robots" content="index, follow" />
-
-        <meta property="og:title" content={`${siteConfig.site_name} — Making music for your page`} />
-        <meta property="og:description" content="Adding MIDI music to your page: how it sounds, where to find songs, making your own, and turning music off as a visitor." />
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content={`${getSiteBaseUrl()}/help/music-guide`} />
-      </Head>
+      <PageMeta title="Making music for your page" description="Adding MIDI music to your page: how it sounds, where to find songs, making your own, and turning music off as a visitor." path="/help/music-guide" />
 
       <Layout siteConfig={siteConfig}>
         <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-8 sm:py-12">

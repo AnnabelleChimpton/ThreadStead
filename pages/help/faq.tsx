@@ -1,12 +1,11 @@
-import { getSiteBaseUrl } from '@/lib/config/site-url';
 import { GetServerSideProps } from 'next';
-import Head from 'next/head';
 import Link from 'next/link';
 import Layout from '@/components/ui/layout/Layout';
 import PageHeader from '@/components/ui/layout/PageHeader';
 import Callout from '@/components/ui/feedback/Callout';
 import ButtonLink from '@/components/ui/ButtonLink';
 import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
+import PageMeta from '@/components/ui/layout/PageMeta';
 
 interface FAQProps {
   siteConfig: SiteConfig;
@@ -270,17 +269,7 @@ export default function FAQ({ siteConfig }: FAQProps) {
 
   return (
     <>
-      <Head>
-        <title>HomePageAgain — Help: FAQ</title>
-        <meta name="description" content="How the houses, rings and pages on HomePageAgain work, and what happens with your data." />
-        <link rel="canonical" href={`${getSiteBaseUrl()}/help/faq`} />
-        <meta name="robots" content="index, follow" />
-
-        <meta property="og:title" content="HomePageAgain — Help: FAQ" />
-        <meta property="og:description" content="How the houses, rings and pages on HomePageAgain work, and what happens with your data." />
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content={`${getSiteBaseUrl()}/help/faq`} />
-      </Head>
+      <PageMeta title="FAQ" description="How the houses, rings and pages on HomePageAgain work, and what happens with your data." path="/help/faq" />
 
       <Layout siteConfig={siteConfig}>
         <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-8 sm:py-12">

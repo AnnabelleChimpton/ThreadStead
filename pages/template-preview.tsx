@@ -5,7 +5,6 @@ import ProfileModeRenderer, { ProfileUser } from '@/components/core/profile/Prof
 import ProfileLayout from '@/components/ui/layout/ProfileLayout';
 import { ResidentDataProvider } from '@/components/features/templates/ResidentDataProvider';
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
-import Head from 'next/head';
 import NavigationPreview from '@/components/features/templates/NavigationPreview';
 import { ADVANCED_NAV_SURFACE } from '@/components/core/profile/AdvancedNavFrame';
 import RetroCard from '@/components/ui/layout/RetroCard';
@@ -19,6 +18,7 @@ import Guestbook from '@/components/shared/Guestbook';
 import { cleanCss, escapeCssForStyleTag } from '@/lib/utils/sanitization/css';
 import { transformAdvancedCss } from '@/lib/utils/css/css-transform';
 import { documentHeadCss, extractDocument } from '@/lib/templates/compilation/document-head';
+import PageMeta from "@/components/ui/layout/PageMeta";
 // Removed unused imports - now using ProfileModeRenderer like production
 
 interface PreviewData {
@@ -128,9 +128,7 @@ export default function PreviewTemp() {
   if (!isReady || !previewData) {
     return (
       <>
-        <Head>
-          <title>Preview Loading... | ThreadStead</title>
-        </Head>
+        <PageMeta title="Preview" noIndex />
         <div className="min-h-screen flex items-center justify-center bg-thread-cream">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-thread-pine mx-auto mb-4"></div>
@@ -274,10 +272,7 @@ export default function PreviewTemp() {
     
     return (
       <>
-        <Head>
-          <title>Template Preview | ThreadStead</title>
-          <meta name="robots" content="noindex, nofollow" />
-        </Head>
+        <PageMeta title="Preview" noIndex />
         
         {/* Add preview indicator with save button - hidden when embedded in the editor */}
         {!isEmbedded && (
@@ -333,9 +328,7 @@ export default function PreviewTemp() {
   // NO external CSS, NO Tailwind, NO system styles - just user's template and CSS
   return (
     <>
-      <Head>
-        <title>Advanced Template Preview | ThreadStead</title>
-        <meta name="robots" content="noindex, nofollow" />
+      <PageMeta title="Preview" noIndex>
         {/* ONLY style the preview banner - nothing else */}
         <style>{`
           /* Preview banner ONLY - completely isolated from page */
@@ -354,7 +347,7 @@ export default function PreviewTemp() {
             font-family: system-ui, sans-serif !important;
           }
         `}</style>
-      </Head>
+      </PageMeta>
       
       {/* Preview indicator with save button - hidden when embedded in the editor */}
       {!isEmbedded && (

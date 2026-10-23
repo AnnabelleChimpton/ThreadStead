@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import type { GetServerSideProps } from 'next';
-import Head from 'next/head';
 import Link from 'next/link';
 import Layout from '@/components/ui/layout/Layout';
 import { PixelIcon } from '@/components/ui/PixelIcon';
@@ -8,6 +7,7 @@ import ButtonLink from '@/components/ui/ButtonLink';
 import PrivateProfile from '@/components/core/profile/PrivateProfile';
 import { canStartFrom, lookUpSource } from '@/lib/domain/profile/shared-source';
 import { startFromHref } from '@/lib/domain/profile/start-from-link';
+import PageMeta from "@/components/ui/layout/PageMeta";
 
 interface SourcePageProps {
   username: string;
@@ -70,7 +70,7 @@ function ViewSourcePage({
   if (!sharing && !isOwner) {
     return (
       <Layout>
-        <Head><title>{`Source | ThreadStead`}</title></Head>
+        <PageMeta title="Page source" noIndex />
         <div className="max-w-lg mx-auto mt-16 p-8 bg-thread-paper border-2 border-thread-sage rounded-lg text-center">
           <div className="flex justify-center mb-3"><PixelIcon name="lock" size={32} /></div>
           <h1 className="text-xl font-semibold text-thread-charcoal mb-2">
@@ -89,10 +89,7 @@ function ViewSourcePage({
 
   return (
     <Layout>
-      <Head>
-        <title>{`@${username}'s page source | ThreadStead`}</title>
-        <meta name="robots" content="noindex" />
-      </Head>
+      <PageMeta title={`@${username}'s page source`} noIndex />
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-thread-charcoal flex items-center gap-2">

@@ -3,7 +3,6 @@
 // or start your own page from it. Which pages are listed, and why only
 // public ones, is in lib/domain/profile/showcase.ts.
 import React, { useEffect, useRef, useState } from "react";
-import Head from "next/head";
 import type { GetServerSideProps, NextApiRequest } from "next";
 import Layout from "@/components/ui/layout/Layout";
 import PageHeader from "@/components/ui/layout/PageHeader";
@@ -17,6 +16,7 @@ import { startFromHref } from "@/lib/domain/profile/start-from-link";
 import { listShowcase, type ShowcaseList, type ShowcasePage } from "@/lib/domain/profile/showcase";
 import { getSessionUser } from "@/lib/auth/server";
 import { db } from "@/lib/config/database/connection";
+import PageMeta from "@/components/ui/layout/PageMeta";
 
 interface ShowcaseProps {
   siteConfig: SiteConfig;
@@ -113,13 +113,7 @@ export default function Showcase({ siteConfig, initial, signedIn, viewerUsername
 
   return (
     <>
-      <Head>
-        <title>{`Showcase | ${siteConfig.site_name}`}</title>
-        <meta
-          name="description"
-          content="Pages people here wrote in their own HTML and share the source of. Look at how they're made, or start your own page from one."
-        />
-      </Head>
+      <PageMeta title="Showcase" description="Pages people here wrote in their own HTML and share the source of. Look at how they're made, or start your own page from one." path="/build/showcase" />
       <Layout siteConfig={siteConfig}>
         <div className="space-y-6">
           <PageHeader title="Showcase" back={{ href: "/build", label: "Build your page" }}>

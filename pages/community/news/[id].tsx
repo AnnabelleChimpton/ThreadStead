@@ -2,13 +2,12 @@ import React from "react";
 import { getInternalBaseUrl } from "@/lib/utils/api/internal-base-url";
 import type { GetServerSideProps } from "next";
 import Layout from "@/components/ui/layout/Layout";
-import Head from "next/head";
 import CommunityHeader from "@/components/ui/navigation/CommunityHeader";
-import { getSiteBaseUrl } from "@/lib/config/site-url";
 import { getSiteConfig, SiteConfig } from "@/lib/config/site/dynamic";
 import Link from "next/link";
 import { marked } from 'marked';
 import DOMPurify from 'isomorphic-dompurify';
+import PageMeta from '@/components/ui/layout/PageMeta';
 
 interface NewsItem {
   id: string;
@@ -66,11 +65,7 @@ export default function NewsArticlePage({ siteConfig, article }: NewsArticlePage
 
   return (
     <Layout siteConfig={siteConfig} fullWidth={true}>
-      <Head>
-        <title>{`${article.title} — ${siteConfig.site_name}`}</title>
-        <meta name="description" content={article.summary} />
-        <link rel="canonical" href={`${getSiteBaseUrl()}/community/news/${article.id}`} />
-      </Head>
+      <PageMeta title={article.title} description={article.summary} path={`/community/news/${article.id}`} type="article" />
       <div className="w-full max-w-full sm:max-w-7xl mx-auto px-0 sm:px-4 py-4 sm:py-6">
         <CommunityHeader current="news" />
 

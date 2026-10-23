@@ -1,4 +1,3 @@
-import Head from 'next/head'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import type { GetServerSideProps } from 'next'
@@ -24,6 +23,7 @@ import {
   searchHref,
   type SearchScope,
 } from '@/lib/search/url-state'
+import PageMeta from '@/components/ui/layout/PageMeta'
 
 /**
  * /search — the one search page. Query and scope live in the URL
@@ -40,10 +40,7 @@ export default function SearchPage() {
 
   return (
     <Layout>
-      <Head>
-        <title>{`${title} | ThreadStead`}</title>
-        <meta name="robots" content={q ? 'noindex, follow' : 'index, follow'} />
-      </Head>
+      <PageMeta title={title} description="Search people, posts and rings here, and the small web around them." path="/search" noIndex={!!q} />
 
       <div className="max-w-4xl mx-auto">
         <div className="mb-3 sm:mb-4">

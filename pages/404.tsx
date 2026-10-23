@@ -1,13 +1,11 @@
 import Link from 'next/link';
 import Layout from '@/components/ui/layout/Layout';
-import Head from 'next/head';
+import PageMeta from "@/components/ui/layout/PageMeta";
 
 export default function Custom404() {
   return (
     <Layout>
-      <Head>
-        <title>404 - Page Not Found</title>
-      </Head>
+      <PageMeta title="Page not found" noIndex />
 
       <div className="max-w-2xl mx-auto px-4 py-16 text-center">
         <div className="border-4 border-black bg-white p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">

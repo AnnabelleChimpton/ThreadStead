@@ -2,7 +2,6 @@ import React, { useEffect } from "react";
 import { getInternalBaseUrl } from "@/lib/utils/api/internal-base-url";
 import type { GetServerSideProps, NextApiRequest } from "next";
 import { useRouter } from "next/router";
-import Head from "next/head";
 import Link from "next/link";
 
 import Layout from "@/components/ui/layout/Layout";
@@ -13,6 +12,7 @@ import { csrfFetch } from "@/lib/api/client/csrf-fetch";
 import { requestCapability } from "@/lib/api/client/capability";
 import { layoutFields, layoutOf } from "@/lib/domain/profile/layout";
 import type { StartFromResult } from "@/lib/domain/profile/shared-source";
+import PageMeta from "@/components/ui/layout/PageMeta";
 
 type StartFromFailure = Extract<StartFromResult, { ok: false }>["reason"];
 
@@ -219,9 +219,7 @@ export default function TemplateEditorPage({
 
   return (
     <>
-      <Head>
-        <title>{`Your own HTML page - ${username} | ThreadStead`}</title>
-      </Head>
+      <PageMeta title="Your own HTML page" noIndex />
       <Layout workspace>
         <EnhancedTemplateEditor
           user={editorUser}

@@ -1,7 +1,7 @@
 import { getSiteBaseUrl } from '@/lib/config/site-url';
 import { GetServerSideProps } from 'next'
 import { db } from '@/lib/config/database/connection'
-import Head from 'next/head'
+import PageMeta from '@/components/ui/layout/PageMeta'
 import Layout from '../../components/ui/layout/Layout'
 import PixelHomePage from '../../components/pixel-homes/PixelHomePage'
 import { HouseTemplate, ColorPalette } from '../../components/pixel-homes/HouseSVG'
@@ -91,35 +91,17 @@ function PixelHome({
   streetHref,
   decorations
 }: PixelHomeProps) {
-  const pageTitle = `${userDisplayName || `@${username}`}'s Pixel Home`
-  const pageDescription = userBio
-    ? `${userBio.slice(0, 150)}...`
-    : `Visit @${username}'s interactive Pixel Home on ThreadStead - explore their ThreadRing connections and discover their content.`
+  const name = userDisplayName || `@${username}`
 
   return (
     <>
-      <Head>
-        <title>{pageTitle}</title>
-        <meta name="description" content={pageDescription} />
-        <meta property="og:title" content={pageTitle} />
-        <meta property="og:description" content={pageDescription} />
-        <meta property="og:type" content="profile" />
-        <meta property="og:url" content={`${getSiteBaseUrl()}/home/${username}`} />
-        {shareImage && (
-          <>
-            <meta key="og:image" property="og:image" content={shareImage} />
-            <meta key="og:image:width" property="og:image:width" content="1200" />
-            <meta key="og:image:height" property="og:image:height" content="630" />
-            <meta key="og:image:alt" property="og:image:alt" content={`${userDisplayName || `@${username}`}'s house and yard`} />
-            <meta key="twitter:card" name="twitter:card" content="summary_large_image" />
-            <meta key="twitter:image" name="twitter:image" content={shareImage} />
-          </>
-        )}
-
-        {/* Pixel Home specific meta tags */}
-        <meta name="pixel-home:template" content={homeConfig.houseTemplate} />
-        <meta name="pixel-home:palette" content={homeConfig.palette} />
-
+      <PageMeta
+        title={`${name}'s pixel home`}
+        description={userBio || `Come see ${name}'s little house, yard and neighbors on HomePageAgain.`}
+        path={`/home/${username}`}
+        type="profile"
+        image={shareImage ? { url: shareImage, width: 1200, height: 630, alt: `${name}'s house and yard` } : undefined}
+      >
         {/* Structured data for rich snippets */}
         <script
           type="application/ld+json"
@@ -129,16 +111,16 @@ function PixelHome({
               '@type': 'ProfilePage',
               mainEntity: {
                 '@type': 'Person',
-                name: userDisplayName || `@${username}`,
+                name,
                 alternateName: `@${username}`,
-                description: userBio || `${username}'s profile on ThreadStead`,
+                description: userBio || `${username}'s profile on HomePageAgain`,
                 url: `${getSiteBaseUrl()}/resident/${username}`,
                 sameAs: `${getSiteBaseUrl()}/home/${username}`
               }
             })
           }}
         />
-      </Head>
+      </PageMeta>
 
       <Layout>
         {/* Keyed by resident: a neighbor link is a client-side move to this

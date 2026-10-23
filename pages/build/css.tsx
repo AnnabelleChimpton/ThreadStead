@@ -1,6 +1,5 @@
 import React from 'react';
 import { GetServerSideProps, NextApiRequest } from 'next';
-import Head from 'next/head';
 import Link from 'next/link';
 import Layout from '@/components/ui/layout/Layout';
 import PageHeader from '@/components/ui/layout/PageHeader';
@@ -11,6 +10,7 @@ import ThemeSwatch from '@/components/features/profile/ThemeSwatch';
 import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
 import { THEMES } from '@/lib/templates/appearance';
 import { CSS_CLASSES } from '@/lib/templates-docs/css-classes';
+import PageMeta from '@/components/ui/layout/PageMeta';
 
 interface CssGuideProps {
   siteConfig: SiteConfig;
@@ -43,10 +43,7 @@ const TRY = [
 export default function CssGuide({ siteConfig, username }: CssGuideProps) {
   return (
     <Layout siteConfig={siteConfig}>
-      <Head>
-        <title>{`CSS guide | ${siteConfig.site_name}`}</title>
-        <meta name="description" content="The class names on the normal page, how your CSS fits with the site's, and the themes to start from." />
-      </Head>
+      <PageMeta title="CSS guide" description="The class names on the normal page, how your CSS fits with the site's, and the themes to start from." path="/build/css" />
       <div className="space-y-6 max-w-4xl mx-auto">
         <PageHeader
           title="CSS guide"

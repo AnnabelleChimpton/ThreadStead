@@ -22,3 +22,9 @@ export function postBodyHtml(post: PostBody): string {
   if (post.bodyText?.trim()) return `<p>${escapeHtml(post.bodyText).replace(/\n/g, '<br/>')}</p>`;
   return "<p class='opacity-60'>(Nothing to preview)</p>";
 }
+
+/** The first picture in a post, for its link preview: a web address, never a data: URL. */
+export function postFirstImage(post: PostBody): string | undefined {
+  const src = postBodyHtml(post).match(/<img\b[^>]*\bsrc="([^"]+)"/i)?.[1]?.replace(/&amp;/g, '&');
+  return src && /^(https?:\/\/|\/(?!\/))/i.test(src) ? src : undefined;
+}
