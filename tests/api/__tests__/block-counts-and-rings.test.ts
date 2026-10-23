@@ -125,6 +125,8 @@ const hubClient = {
     total: hub.feed.length,
   })),
   getTrendingFeed: jest.fn(async () => ({ posts: hub.feed, generatedAt: 'now' })),
+  // The ring page's feed, signed as the viewer
+  getRingFeedAsMember: jest.fn(async (slug: string, options: any) => hubClient.getRingFeed(slug, options)),
 }
 jest.mock('@/lib/api/ringhub/ringhub-user-operations', () => ({ createAuthenticatedRingHubClient: () => hubClient }))
 jest.mock('@/lib/api/ringhub/ringhub-client', () => ({
@@ -280,8 +282,8 @@ describe('ring feeds', () => {
     expect([...first.body.posts, ...second.body.posts, ...third.body.posts].map((p: any) => p.id)).toEqual(['h1', 'h6', 'h7'])
   })
 
-  test('people who blocked nobody get the hub feed as is', async () => {
-    expect((await call(myRingsHandler, { limit: '20' }, 'friend')).body.posts).toHaveLength(7)
+  test('people who blocked nobody get the hub feed, minus fork notices', async () => {
+    expect((await call(myRingsHandler, { limit: '20' }, 'friend')).body.posts.map((p: any) => p.id)).toEqual(['h1', 'h2', 'h4', 'h5', 'h6', 'h7'])
   })
 
   test('trending hides blocked people for signed-in viewers only', async () => {

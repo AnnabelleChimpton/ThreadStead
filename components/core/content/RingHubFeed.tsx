@@ -47,7 +47,7 @@ type RingHubFeedProps = {
 export default function RingHubFeed({
   type,
   timeWindow = "day",
-  includeNotifications = true
+  includeNotifications = false
 }: RingHubFeedProps) {
   const { user: currentUser } = useCurrentUser();
   const [posts, setPosts] = useState<RingHubPost[]>([]);
@@ -69,6 +69,9 @@ export default function RingHubFeed({
   // changes, so late responses from a previous feed's in-flight load can't
   // append the wrong feed's posts.
   const generationRef = useRef(0);
+  // Post URIs already shown: a post sent to several rings comes back once per
+  // ring, sometimes on different pages, and shows once.
+  const seenUrisRef = useRef<Set<string>>(new Set());
 
   const endpoint = type === "my-rings" ? "/api/feed/my-rings" : "/api/feed/trending";
 
@@ -106,6 +109,15 @@ export default function RingHubFeed({
       if (!includeNotifications) {
         filteredPosts = data.posts.filter(post => !post.isNotification);
       }
+
+      // One card per post, however many rings it's in
+      const seenUris = isInitial ? new Set<string>() : seenUrisRef.current;
+      filteredPosts = filteredPosts.filter(post => {
+        if (seenUris.has(post.uri)) return false;
+        seenUris.add(post.uri);
+        return true;
+      });
+      seenUrisRef.current = seenUris;
       
       // Fetch actual post content for ThreadStead posts
       const enrichedPosts = await Promise.all(
@@ -371,7 +383,7 @@ export default function RingHubFeed({
     );
   }
 
-  if (posts.length === 0) {
+  if (posts.length === 0 && !hasMore) {
     return (
       <div className="bg-gray-50 border border-gray-300 p-8 text-center">
         <div className="text-gray-600 mb-2">

@@ -25,7 +25,6 @@ export default apiHandler(
       const {
         since,
         until,
-        includeNotifications = "false",
         ringId,
         sort = "newest"
       } = req.query;
@@ -43,21 +42,26 @@ export default apiHandler(
         });
       }
 
-      // Fetch feed from RingHub
+      // Fetch feed from RingHub. Fork notices are dropped below, not with the
+      // hub's includeNotifications=false: its JSON-path `not` filter may also
+      // drop posts whose metadata has no `type` (unverified on prod).
       const feedResponse = await authenticatedClient.getMyFeed({
         limit: limitNum,
         offset: offsetNum,
         since: since ? String(since) : undefined,
         until: until ? String(until) : undefined,
-        includeNotifications: includeNotifications === "true",
         ringId: ringId ? String(ringId) : undefined,
         sort: sortValue
       });
 
-      // Leave out posts and activity from people the viewer blocked. Paging
-      // follows the hub's items, so the next page starts at nextOffset.
+      // Leave out fork notices, and posts and activity from people the viewer
+      // blocked. Paging follows the hub's items, so the next page starts at
+      // nextOffset.
       const { blockedUserIds } = await getHiddenIds(user.id);
-      const posts = await filterBlockedRingHubItems(feedResponse.posts ?? [], blockedUserIds);
+      const posts = await filterBlockedRingHubItems(
+        (feedResponse.posts ?? []).filter((post) => !post.isNotification),
+        blockedUserIds
+      );
 
       return res.json({
         ...feedResponse,
