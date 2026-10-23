@@ -104,6 +104,8 @@ let actorDid: string
 
 const POST_URI = 'https://threadstead-itest.invalid/posts/itest-post-1'
 const POST_DIGEST = 'sha256:itest-digest-1'
+// The post's title once its author has edited it (post submission block)
+const EDITED_TITLE = 'Integration test post, edited'
 // Owned by the main actor; forked in the 0.5 block, managed in the 0.8 block
 // (the hub's fork quality gate allows one empty fork per actor).
 const FORK_SLUG = 'itest-fork-nodesc'
@@ -237,6 +239,8 @@ describe('ring signposts on the street (lib/pixel-homes/street-rings, ring-walk)
 })
 
 describe('post submission (the `{}` regression)', () => {
+  let postRefId: string
+
   test('submitPost returns a usable PostRef id — not a stripped {}', async () => {
     const result = await client.submitPost(ringSlug, {
       uri: POST_URI,
@@ -251,12 +255,30 @@ describe('post submission (the `{}` regression)', () => {
     expect(result.status).toBe('ACCEPTED')
     expect(result.ringSlug).toBe(ringSlug)
     expect(result.uri).toBe(POST_URI)
+    postRefId = result.id
   })
 
-  test('duplicate submission is rejected with 409', async () => {
+  test("its author re-submitting it is an edit: the same PostRef, with the new metadata (pages/api/posts/update.ts)", async () => {
+    const edited = await client.submitPost(ringSlug, {
+      uri: POST_URI,
+      digest: POST_DIGEST,
+      actorDid,
+      metadata: { title: EDITED_TITLE, textPreview: 'Now with more words', tags: ['itest'] },
+    })
+    expect(edited).toMatchObject({ id: postRefId, status: 'ACCEPTED', actorDid })
+    expect(edited.metadata).toMatchObject({ title: EDITED_TITLE, textPreview: 'Now with more words' })
+    const inFeed = (await client.getRingFeed(ringSlug, { limit: 20 })).posts.filter((p) => p.uri === POST_URI)
+    expect(inFeed).toHaveLength(1)
+    expect(inFeed[0].metadata).toMatchObject({ title: EDITED_TITLE })
+  })
+
+  test("anyone else submitting the same post is rejected with 409, and it isn't changed", async () => {
+    // The hub admin passes the members-only check, so this reaches the duplicate check.
     await expect(
-      client.submitPost(ringSlug, { uri: POST_URI, digest: POST_DIGEST })
+      makeTestClient('admin').submitPost(ringSlug, { uri: POST_URI, digest: POST_DIGEST, metadata: { title: 'Hijacked' } })
     ).rejects.toMatchObject({ status: 409 })
+    const post = (await client.getRingFeed(ringSlug, { limit: 20 })).posts.find((p) => p.uri === POST_URI)
+    expect(post?.metadata).toMatchObject({ title: EDITED_TITLE })
   })
 
   test('the post appears in the ring feed', async () => {
@@ -470,7 +492,7 @@ describe('aggregated feeds + memberships (audit 0.5: stripped metadata, null →
   test('getMyFeed returns full post metadata, not {}', async () => {
     const feed = await client.getMyFeed({ limit: 50 })
     const post = feed.posts.find((p) => p.uri === POST_URI)
-    expect(post?.metadata).toMatchObject({ title: 'Integration test post', tags: ['itest'] })
+    expect(post?.metadata).toMatchObject({ title: EDITED_TITLE, tags: ['itest'] })
 
     const note = feed.posts.find((p) => p.uri === FORK_NOTE_URI)
     expect(note?.isNotification).toBe(true)
@@ -482,7 +504,7 @@ describe('aggregated feeds + memberships (audit 0.5: stripped metadata, null →
   test('getTrendingFeed returns full post metadata, not {}', async () => {
     const feed = await client.getTrendingFeed({ timeWindow: 'hour', limit: 50 })
     const post = feed.posts.find((p) => p.uri === POST_URI)
-    expect(post?.metadata).toMatchObject({ title: 'Integration test post' })
+    expect(post?.metadata).toMatchObject({ title: EDITED_TITLE })
     expect(feed.posts.find((p) => p.uri === FORK_NOTE_URI)?.metadata).toMatchObject(forkNoteMetadata)
   })
 
