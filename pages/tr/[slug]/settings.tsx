@@ -3,15 +3,11 @@ import { useRouter } from "next/router";
 import Layout from "../../../components/ui/layout/Layout";
 import { getSiteConfig, SiteConfig } from "@/lib/config/site/dynamic";
 import { GetServerSideProps } from "next";
-import { db } from "@/lib/config/database/connection";
 import { getSessionUser } from "@/lib/auth/server";
-import { featureFlags } from "@/lib/utils/features/feature-flags";
-import { ringOwnerSource } from "@/lib/domain/threadrings/ring-owner";
-import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
 import { raceHubCall, HUB_TIMEOUT } from "@/lib/api/ringhub/ringhub-ssr";
-import ThreadRingInviteForm from "../../../components/ui/forms/ThreadRingInviteForm";
+import { ringSettingsFromHub, type RingSettings } from "@/lib/api/ringhub/ringhub-transformers";
+import { readRingAs } from "@/lib/domain/threadrings/ring-access";
 import ThreadRingPromptManager from "../../../components/core/threadring/ThreadRingPromptManager";
-import ThreadRingBlockManager from "../../../components/core/threadring/ThreadRingBlockManager";
 import { csrfFetch } from "@/lib/api/client/csrf-fetch";
 import { PixelIcon } from "../../../components/ui/PixelIcon";
 import { useConfirm } from "@/contexts/ConfirmContext";
@@ -20,43 +16,63 @@ import { RING_THEMES, ringThemeHex } from "@/lib/rings/theme";
 interface ThreadRingSettingsPageProps {
   siteConfig: SiteConfig;
   ring: {
-    id: string;
     name: string;
     slug: string;
-    description?: string | null;
-    shortCode?: string | null;
-    joinType: string;
-    visibility: string;
-    postPolicy?: string;
-    curatorNote?: string | null;
-    bannerUrl?: string | null;
-    themeColor?: string | null;
     memberCount: number;
     postCount: number;
   } | null;
-  canManage: boolean;
+  /** As Ring Hub has them; never the local mirror's placeholders */
+  settings: RingSettings | null;
+  /** May change the ring's settings (the Host, or a site admin) */
+  canEdit: boolean;
+  /** Host or moderator: runs the ring's prompts */
+  isSteward: boolean;
+  isHost: boolean;
   error?: string;
+}
+
+type Form = Omit<RingSettings, "themeColor"> & { themeColor: string };
+
+function formFrom(settings: RingSettings | null): Form {
+  return {
+    name: settings?.name ?? "",
+    description: settings?.description ?? "",
+    curatorNote: settings?.curatorNote ?? "",
+    bannerUrl: settings?.bannerUrl ?? "",
+    themeColor: ringThemeHex(settings?.themeColor) ?? "",
+    joinType: settings?.joinType ?? "open",
+    visibility: settings?.visibility ?? "public",
+    postPolicy: settings?.postPolicy ?? "members",
+  };
+}
+
+// Emptied, these are cleared on Ring Hub (sent as null)
+const CLEARABLE = new Set<keyof Form>(["description", "curatorNote", "bannerUrl"]);
+
+/** Only what changed since the form loaded: a save never rewrites what wasn't touched. */
+function changesFrom(saved: Form, form: Form): Record<string, string | null> {
+  const changes: Record<string, string | null> = {};
+  for (const key of Object.keys(form) as (keyof Form)[]) {
+    if (form[key] === saved[key]) continue;
+    changes[key] = CLEARABLE.has(key) && form[key].trim() === "" ? null : form[key];
+  }
+  return changes;
 }
 
 export default function ThreadRingSettingsPage({
   siteConfig,
   ring,
-  canManage,
+  settings,
+  canEdit,
+  isSteward,
+  isHost,
   error
 }: ThreadRingSettingsPageProps) {
   const router = useRouter();
-  const [formData, setFormData] = useState({
-    name: ring?.name || "",
-    description: ring?.description || "",
-    shortCode: ring?.shortCode || "",
-    joinType: ring?.joinType || "open",
-    visibility: ring?.visibility || "public",
-    postPolicy: ring?.postPolicy || "members",
-    curatorNote: ring?.curatorNote || "",
-    bannerUrl: ring?.bannerUrl || "",
-    themeColor: ringThemeHex(ring?.themeColor) || RING_THEMES[0].hex
-  });
+  const [saved, setSaved] = useState<Form>(() => formFrom(settings));
+  const [formData, setFormData] = useState<Form>(() => formFrom(settings));
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const confirm = useConfirm();
@@ -66,27 +82,27 @@ export default function ThreadRingSettingsPage({
       <Layout siteConfig={siteConfig}>
         <div className="max-w-4xl mx-auto py-8">
           <div className="text-center text-red-600">
-            {error || "ThreadRing not found"}
+            {error || "Ring not found"}
           </div>
         </div>
       </Layout>
     );
   }
 
-  if (!canManage) {
+  if (!canEdit && !isSteward) {
     return (
       <Layout siteConfig={siteConfig}>
         <div className="max-w-4xl mx-auto py-8">
           <div className="text-center">
-            <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
+            <h1 className="text-2xl font-bold mb-4">Only the Host changes this</h1>
             <p className="text-gray-600">
-              Only the Ring Host can access ThreadRing settings.
+              A ring&apos;s settings are its Host&apos;s to change.
             </p>
             <button
               onClick={() => router.push(`/tr/${ring.slug}`)}
               className="mt-4 border border-black px-4 py-2 bg-white hover:bg-gray-100 shadow-[2px_2px_0_#000]"
             >
-              Back to ThreadRing
+              Back to the ring
             </button>
           </div>
         </div>
@@ -94,7 +110,7 @@ export default function ThreadRingSettingsPage({
     );
   }
 
-  const handleChange = (field: string, value: string) => {
+  const handleChange = (field: keyof Form, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     setSaveSuccess(false);
   };
@@ -110,21 +126,44 @@ export default function ThreadRingSettingsPage({
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(changesFrom(saved, formData)),
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to save settings");
+        throw new Error(data.error || "Couldn't save. Try again.");
       }
 
+      const now = formFrom(data.settings);
+      setSaved(now);
+      setFormData(now);
       setSaveSuccess(true);
-    } catch (error: any) {
-      console.error("Error saving settings:", error);
-      setSaveError(error.message || "Failed to save settings");
+    } catch (error) {
+      setSaveError(error instanceof Error && error.message ? error.message : "Couldn't save. Try again.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!(await confirm({
+      title: `Delete ${ring.name}?`,
+      message: "It's gone for good, with its posts list and badge. Your posts stay on your page.",
+      confirmText: "Delete",
+      variant: "danger",
+    }))) return;
+
+    setDeleting(true);
+    setSaveError(null);
+    try {
+      const response = await csrfFetch(`/api/threadrings/${ring.slug}/settings`, { method: "DELETE" });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "Couldn't delete it. Try again.");
+      await router.push("/threadrings");
+    } catch (error) {
+      setSaveError(error instanceof Error && error.message ? error.message : "Couldn't delete it. Try again.");
+      setDeleting(false);
     }
   };
 
@@ -160,6 +199,12 @@ export default function ThreadRingSettingsPage({
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Settings */}
           <div className="lg:col-span-2 space-y-6">
+            {!canEdit && (
+              <p className="text-sm text-gray-600">
+                You moderate this ring, so its prompts are yours to run. The rest is the Host&apos;s.
+              </p>
+            )}
+            {canEdit && (<>
             {/* Basic Settings */}
             <div className="bg-white border border-black p-6 shadow-[2px_2px_0_#000]">
               <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
@@ -216,7 +261,7 @@ export default function ThreadRingSettingsPage({
 
                 <div>
                   <label htmlFor="curatorNote" className="block text-sm font-medium mb-2">
-                    Ring Host&apos;s Note (Optional)
+                    Host&apos;s note (optional)
                   </label>
                   <textarea
                     id="curatorNote"
@@ -261,7 +306,7 @@ export default function ThreadRingSettingsPage({
 
                 <div>
                   <label htmlFor="themeColor" className="block text-sm font-medium mb-2">
-                    Theme Color
+                    Theme colour
                   </label>
                   <div className="flex gap-2 flex-wrap">
                     {RING_THEMES.map((color) => (
@@ -279,7 +324,7 @@ export default function ThreadRingSettingsPage({
                     ))}
                   </div>
                   <div className="mt-2 text-sm text-gray-600">
-                    Selected: <span className="font-medium">{RING_THEMES.find((color) => color.hex === formData.themeColor)?.name ?? formData.themeColor}</span>
+                    Selected: <span className="font-medium">{RING_THEMES.find((color) => color.hex === formData.themeColor)?.name ?? (formData.themeColor || "Pine, the site's own")}</span>
                   </div>
                 </div>
               </div>
@@ -304,7 +349,6 @@ export default function ThreadRingSettingsPage({
                     className="w-full border border-black p-3 bg-white focus:outline-none"
                   >
                     <option value="open">Open - Anyone can join</option>
-                    <option value="application">Application - Requires approval</option>
                     <option value="invite">Invite Only - Members by invitation</option>
                     <option value="closed">Closed - No new members</option>
                   </select>
@@ -336,9 +380,11 @@ export default function ThreadRingSettingsPage({
                     onChange={(e) => handleChange("postPolicy", e.target.value)}
                     className="w-full border border-black p-3 bg-white focus:outline-none"
                   >
-                    <option value="open">Open - Anyone can post</option>
+                    {/* Not offered any more; shown while a ring still has it */}
+                    {saved.postPolicy === "open" && (
+                      <option value="open">Anyone - Members or not</option>
+                    )}
                     <option value="members">Members - Only members can post</option>
-                    <option value="curated">Curated - Posts require approval</option>
                     <option value="closed">Closed - No new posts allowed</option>
                   </select>
                 </div>
@@ -362,6 +408,8 @@ export default function ThreadRingSettingsPage({
               </a>
             </div>
 
+            </>)}
+
             {/* Prompts & Challenges Manager */}
             <div className="bg-white border border-black p-6 shadow-[2px_2px_0_#000]">
               <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
@@ -370,22 +418,12 @@ export default function ThreadRingSettingsPage({
               </h2>
               <ThreadRingPromptManager
                 threadRingSlug={ring.slug}
-                canManage={canManage}
-              />
-            </div>
-
-            {/* Block Management */}
-            <div className="bg-white border border-black p-6 shadow-[2px_2px_0_#000]">
-              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                <PixelIcon name="shield" className="w-6 h-6" />
-                Blocked Users
-              </h2>
-              <ThreadRingBlockManager
-                threadRingSlug={ring.slug}
+                canManage={isSteward}
               />
             </div>
 
             {/* Save Button */}
+            {canEdit && (
             <div className="flex items-center gap-4 sticky bottom-4 bg-white/90 backdrop-blur border border-black p-4 shadow-[2px_2px_0_#000] z-10">
               <button
                 onClick={handleSave}
@@ -418,6 +456,7 @@ export default function ThreadRingSettingsPage({
                 </div>
               )}
             </div>
+            )}
           </div>
 
           {/* Sidebar */}
@@ -440,47 +479,47 @@ export default function ThreadRingSettingsPage({
               </dl>
             </div>
 
-            {/* Invite Members (for invite-only) */}
-            {formData.joinType === "invite" && (
-              <div className="bg-white border border-black p-6 shadow-[2px_2px_0_#000]">
-                <h3 className="font-bold mb-4 flex items-center gap-2">
-                  <PixelIcon name="user-plus" className="w-5 h-5" />
-                  Invite Members
-                </h3>
-                <ThreadRingInviteForm
-                  threadRingSlug={ring.slug}
-                  threadRingName={ring.name}
-                />
-              </div>
-            )}
+            {/* Inviting is on the members page, for the Host and moderators */}
+            <a
+              href={`/tr/${ring.slug}/members`}
+              className="block bg-white border border-black p-4 shadow-[2px_2px_0_#000] no-underline hover:bg-gray-50"
+            >
+              <span className="font-bold flex items-center gap-2">
+                <PixelIcon name="user-plus" className="w-5 h-5" />
+                Invite someone
+              </span>
+              <span className="text-sm text-gray-600">On the members page</span>
+            </a>
 
             {/* Danger Zone */}
+            {isHost && (
             <div className="bg-red-50 border border-red-300 p-6">
               <h3 className="font-bold text-red-800 mb-4 flex items-center gap-2">
                 <PixelIcon name="alert" className="w-5 h-5" />
                 Danger Zone
               </h3>
-              <p className="text-sm text-red-700 mb-4">
-                Careful! These actions cannot be undone.
-              </p>
-              <button
-                className="w-full border border-red-300 px-4 py-2 bg-white text-red-700 hover:bg-red-100 flex items-center justify-center gap-2"
-                onClick={async () => {
-                  if (await confirm({
-                    title: "Delete this ThreadRing?",
-                    message: "This action cannot be undone.",
-                    confirmText: "Delete",
-                    variant: "danger",
-                  })) {
-                    // TODO: Implement delete
-                    // TODO: Implement delete functionality
-                  }
-                }}
-              >
-                <PixelIcon name="trash" className="w-4 h-4" />
-                Delete ThreadRing
-              </button>
+              {ring.memberCount <= 1 ? (
+                <>
+                  <p className="text-sm text-red-700 mb-4">
+                    You&apos;re the only one here, so you can delete the ring. It can&apos;t be undone.
+                  </p>
+                  <button
+                    className="w-full border border-red-300 px-4 py-2 bg-white text-red-700 hover:bg-red-100 flex items-center justify-center gap-2 disabled:opacity-50"
+                    onClick={handleDelete}
+                    disabled={deleting}
+                  >
+                    <PixelIcon name="trash" className="w-4 h-4" />
+                    {deleting ? "Deleting..." : "Delete ring"}
+                  </button>
+                </>
+              ) : (
+                <p className="text-sm text-red-700">
+                  Others are in this ring, so it can&apos;t be deleted. If you&apos;re stepping away, hand it to one of them on the{" "}
+                  <a href={`/tr/${ring.slug}/members`} className="underline">members page</a>.
+                </p>
+              )}
             </div>
+            )}
           </div>
         </div>
       </div>
@@ -488,169 +527,40 @@ export default function ThreadRingSettingsPage({
   );
 }
 
+const empty = { ring: null, settings: null, canEdit: false, isSteward: false, isHost: false };
+
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const siteConfig = await getSiteConfig();
   const { slug } = context.query;
+  if (typeof slug !== "string") return { notFound: true };
 
-  if (typeof slug !== "string") {
+  const viewer = await getSessionUser(context.req as any);
+  if (!viewer) return { redirect: { destination: "/login", permanent: false } };
+
+  // Signed as the viewer, so a private ring's Host can read it. A slow or
+  // failing hub shows as such: the form never fills from the local mirror,
+  // whose placeholders a Save would push to the hub.
+  const access = await raceHubCall(readRingAs(viewer, slug));
+  if (access === HUB_TIMEOUT) {
     return {
       props: {
         siteConfig,
-        ring: null,
-        canManage: false,
-        error: "Invalid ThreadRing slug"
-      }
+        ...empty,
+        error: "We can't reach Ring Hub right now, so the settings can't be shown. Try again in a minute.",
+      },
     };
   }
+  if (!access) return { notFound: true };
 
-  try {
-    // Session validation and viewer parsing
-    const viewer = await getSessionUser(context.req as any);
-
-    // Try Ring Hub first if enabled
-    if (featureFlags.ringhub()) {
-      const client = getRingHubClient();
-      if (client) {
-        try {
-          // Short SSR deadline; timeout -> local DB fallback.
-          const ringHubRing = await raceHubCall(client.getRing(slug));
-          if (ringHubRing === HUB_TIMEOUT) {
-            throw new Error('Ring Hub SSR timeout (getRing)');
-          }
-
-          if (ringHubRing) {
-            // Found Ring Hub ring
-
-            // Check ownership via local database tracking (source of truth)
-            let canManage = false;
-
-            if (viewer) {
-              // Checking permissions
-
-              try {
-                // Check local ownership tracking first (this is our source of truth)
-                const ringHubOwnership = await db.ringHubOwnership.findUnique({
-                  where: { ringSlug: slug }
-                });
-                // Local ownership record found
-
-                if (viewer.role === 'admin') {
-                  canManage = true;
-                } else if (ringHubOwnership && ringHubOwnership.ownerUserId === viewer.id) {
-                  canManage = true;
-                  // User is owner via local ownership tracking
-                } else {
-                  // No local ownership found
-                }
-
-              } catch (ownershipError: any) {
-                console.warn('⚠️ [SETTINGS] Error checking local ownership:', ownershipError.message);
-              }
-
-              // Permission check complete
-            } else {
-              // No viewer found
-            }
-
-            return {
-              props: {
-                siteConfig,
-                ring: {
-                  id: ringHubRing.id,
-                  name: ringHubRing.name,
-                  slug: ringHubRing.slug,
-                  description: ringHubRing.description,
-                  shortCode: ringHubRing.shortCode || null,
-                  joinType: (() => {
-                    const policyMap = {
-                      'OPEN': 'open',
-                      'INVITATION': 'invite',
-                      'APPLICATION': 'application',
-                      'CLOSED': 'closed'
-                    } as const;
-                    return policyMap[ringHubRing.joinPolicy as keyof typeof policyMap] || 'open';
-                  })(),
-                  visibility: ringHubRing.visibility?.toLowerCase() || 'public',
-                  postPolicy: (() => {
-                    const policyMap = {
-                      'OPEN': 'open',
-                      'MEMBERS': 'members',
-                      'CURATED': 'curated',
-                      'CLOSED': 'closed'
-                    } as const;
-                    return policyMap[ringHubRing.postPolicy as keyof typeof policyMap] || 'members';
-                  })(),
-                  curatorNote: ringHubRing.curatorNote || null,
-                  bannerUrl: ringHubRing.bannerUrl || null,
-                  themeColor: ringHubRing.themeColor || null,
-                  memberCount: ringHubRing.memberCount || 0,
-                  postCount: ringHubRing.postCount || 0
-                },
-                canManage
-              }
-            };
-          }
-        } catch (ringHubError) {
-          console.error("Ring Hub error:", ringHubError);
-        }
-      }
-    }
-
-    // Fall back to local database
-    const ring = await db.threadRing.findUnique({
-      where: { slug },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        description: true,
-        joinType: true,
-        visibility: true,
-        curatorNote: true,
-        bannerUrl: true,
-        themeColor: true,
-        curatorId: true,
-        memberCount: true,
-        postCount: true
-      }
-    });
-
-    if (!ring) {
-      return {
-        props: {
-          siteConfig,
-          ring: null,
-          canManage: false,
-          error: "ThreadRing not found"
-        }
-      };
-    }
-
-    // Curator (Ring Hub off) or the hub's owner (Ring Hub on and the hub
-    // didn't answer), or an admin. See ring-owner.ts.
-    const canManage = viewer?.role === 'admin' ||
-      (!!viewer && (await ringOwnerSource(slug as string, viewer.id)) !== null);
-
-    return {
-      props: {
-        siteConfig,
-        ring: {
-          ...ring,
-          shortCode: null,
-          postPolicy: 'members'
-        },
-        canManage
-      }
-    };
-  } catch (error) {
-    console.error("Error fetching ThreadRing settings:", error);
-    return {
-      props: {
-        siteConfig,
-        ring: null,
-        canManage: false,
-        error: "Failed to load ThreadRing settings"
-      }
-    };
-  }
+  const { ring } = access;
+  return {
+    props: {
+      siteConfig,
+      ring: { name: ring.name, slug: ring.slug, memberCount: ring.memberCount ?? 0, postCount: ring.postCount ?? 0 },
+      settings: ringSettingsFromHub(ring),
+      canEdit: access.manageAs !== null,
+      isSteward: access.isSteward,
+      isHost: access.isHost,
+    },
+  };
 };

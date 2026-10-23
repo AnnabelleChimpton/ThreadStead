@@ -1,240 +1,104 @@
-import type { NextApiRequest, NextApiResponse } from "next";
-import { db } from "@/lib/config/database/connection";
-import { getSessionUser } from "@/lib/auth/server";
-import { withThreadRingSupport } from "@/lib/api/ringhub/ringhub-middleware";
-import { AuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
-import { withCsrfProtection } from "@/lib/server/http/csrf";
-import { withRateLimit } from "@/lib/server/http/rate-limit";
+import { z } from "zod";
+import { apiHandler, ApiError } from "@/lib/api/handler";
+import { getRingHubClient, type RingDescriptor } from "@/lib/api/ringhub/ringhub-client";
+import { createAuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
+import { forgetRingReads } from "@/lib/api/ringhub/forget-ring-reads";
+import { mapJoinTypeToJoinPolicy, ringSettingsFromHub } from "@/lib/api/ringhub/ringhub-transformers";
+import { deleteEmptyRing } from "@/lib/domain/threadrings/empty-rings";
+import { hubWriteError, requireRingAs, ringManager } from "@/lib/domain/threadrings/ring-access";
 import { ringThemeHex } from "@/lib/rings/theme";
 
-// Apply CSRF protection and rate limiting
-export default withRateLimit('threadring_operations')(
-  withCsrfProtection(
-    withThreadRingSupport(async function handler(
-      req: NextApiRequest,
-      res: NextApiResponse,
-      system: 'ringhub' | 'local'
-    ) {
-      if (req.method !== "PUT") {
-        res.setHeader("Allow", ["PUT"]);
-        return res.status(405).json({ error: "Method Not Allowed" });
+/** Text a host may empty: "" or null clears it on the hub (an omitted field stays as it is). */
+const clearable = (max: number, label: string) =>
+  z.string().max(max, `${label} must be ${max} characters or less`).nullable()
+    .transform((value) => value?.trim() || null);
+
+/**
+ * Only the fields the form changed. Application joining and curated posting
+ * aren't offered (nothing could approve either), and new posting rules are
+ * members or nobody.
+ */
+const schema = z.object({
+  name: z.string().trim().min(1, "Give the ring a name").max(100, "The name must be 100 characters or less").optional(),
+  description: clearable(500, "The description").optional(),
+  curatorNote: clearable(1000, "The host's note").optional(),
+  bannerUrl: z.string().trim().max(500).nullable()
+    .refine((url) => !url || /^https?:\/\/\S+$/i.test(url), "The banner needs to be a web address, like https://example.com/banner.png")
+    .transform((url) => url || null)
+    .optional(),
+  themeColor: z.string().nullable()
+    .refine((color) => color === null || ringThemeHex(color) !== null, "The theme colour must be a colour like #2e4b3f")
+    .transform((color) => (color === null ? null : ringThemeHex(color)))
+    .optional(),
+  joinType: z.enum(["open", "invite", "closed"]).optional(),
+  visibility: z.enum(["public", "unlisted", "private"]).optional(),
+  postPolicy: z.enum(["members", "closed"]).optional(),
+}).strict();
+
+/**
+ * A ring's settings, on Ring Hub.
+ *   PUT    the changed fields; signed as the Host (or as this site for a site
+ *          admin, which the hub lets change a ring).
+ *   DELETE the ring, when its Host is its only member. Anyone else in it
+ *          means handing it over first.
+ */
+export default apiHandler(
+  { methods: ["PUT", "DELETE"], auth: "user", rateLimit: "threadring_operations" },
+  async (req, res, { user }) => {
+    const slug = req.query.slug;
+    if (typeof slug !== "string") throw new ApiError(400, "Invalid slug");
+    const access = await requireRingAs(user, slug);
+
+    if (req.method === "DELETE") {
+      if (!access.isHost) throw new ApiError(403, "Only the ring's Host can delete it.");
+      if ((access.ring.memberCount ?? 2) > 1) {
+        throw new ApiError(409, "Others are still in this ring. Hand it to one of them on the members page instead.");
       }
-
-      const { slug } = req.query;
-      const {
-        name,
-        description,
-        shortCode,
-        joinType,
-        visibility,
-        postPolicy,
-        curatorNote,
-        bannerUrl,
-        themeColor,
-        badgeImageUrl,
-        badgeImageHighResUrl
-      } = req.body;
-
-      if (typeof slug !== "string") {
-        return res.status(400).json({ error: "Invalid slug" });
-      }
-
-      // Validate inputs
-      if (name !== undefined) {
-        if (typeof name !== "string" || name.trim().length === 0) {
-          return res.status(400).json({ error: "ThreadRing name must be a non-empty string" });
-        }
-        if (name.trim().length > 100) {
-          return res.status(400).json({ error: "ThreadRing name must be 100 characters or less" });
-        }
-      }
-
-      if (description !== undefined && description.length > 500) {
-        return res.status(400).json({ error: "Description must be 500 characters or less" });
-      }
-
-      if (shortCode !== undefined && shortCode !== null && shortCode !== "") {
-        if (typeof shortCode !== "string" || shortCode.length < 2 || shortCode.length > 10) {
-          return res.status(400).json({ error: "Short code must be 2-10 characters" });
-        }
-        const shortCodePattern = /^[a-zA-Z0-9-]+$/;
-        if (!shortCodePattern.test(shortCode)) {
-          return res.status(400).json({ error: "Short code can only contain alphanumeric characters and hyphens" });
-        }
-      }
-
-      if (curatorNote !== undefined && curatorNote.length > 1000) {
-        return res.status(400).json({ error: "Curator note must be 1000 characters or less" });
-      }
-
-      if (joinType !== undefined && !["open", "invite", "application", "closed"].includes(joinType)) {
-        return res.status(400).json({ error: "Invalid join type" });
-      }
-
-      if (visibility !== undefined && !["public", "unlisted", "private"].includes(visibility)) {
-        return res.status(400).json({ error: "Invalid visibility" });
-      }
-
-      // Only a colour: it goes into the ring page's stylesheet
-      if (themeColor !== undefined && themeColor !== "" && !ringThemeHex(themeColor)) {
-        return res.status(400).json({ error: "Theme colour must be a colour like #2e4b3f" });
-      }
-
-      if (postPolicy !== undefined && !["open", "members", "curated", "closed"].includes(postPolicy)) {
-        return res.status(400).json({ error: "Invalid post policy" });
-      }
-
+      const deleter = access.manageAs === "site" ? getRingHubClient() : createAuthenticatedRingHubClient(user.id);
+      if (!deleter) throw new ApiError(503, "We can't reach Ring Hub right now. Try again in a minute.");
+      let outcome;
       try {
-        const viewer = await getSessionUser(req);
-        if (!viewer) {
-          return res.status(401).json({ error: "Authentication required" });
-        }
-
-        // Use Ring Hub if enabled
-        if (system === 'ringhub') {
-          try {
-            const authenticatedClient = new AuthenticatedRingHubClient(viewer.id);
-
-            // Map local values to RingHub format
-            const joinPolicyMap = {
-              'open': 'OPEN',
-              'invite': 'INVITATION',
-              'application': 'APPLICATION',
-              'closed': 'CLOSED'
-            } as const;
-
-            const postPolicyMap = {
-              'open': 'OPEN',
-              'members': 'MEMBERS',
-              'curated': 'CURATED',
-              'closed': 'CLOSED'
-            } as const;
-
-            // Build updates object - only include fields that were provided
-            const updates: any = {};
-
-            if (name !== undefined) updates.name = name.trim();
-            if (description !== undefined) updates.description = description.trim() || undefined;
-            if (shortCode !== undefined) updates.shortCode = shortCode.trim() || undefined;
-            if (joinType !== undefined) updates.joinPolicy = joinPolicyMap[joinType as keyof typeof joinPolicyMap];
-            if (visibility !== undefined) updates.visibility = visibility.toUpperCase() as 'PUBLIC' | 'UNLISTED' | 'PRIVATE';
-            if (postPolicy !== undefined) updates.postPolicy = postPolicyMap[postPolicy as keyof typeof postPolicyMap];
-            if (curatorNote !== undefined) updates.curatorNote = curatorNote.trim() || undefined;
-            if (bannerUrl !== undefined) updates.bannerUrl = bannerUrl.trim() || undefined;
-            if (themeColor !== undefined) updates.themeColor = ringThemeHex(themeColor) || undefined;
-            if (badgeImageUrl !== undefined) updates.badgeImageUrl = badgeImageUrl;
-            if (badgeImageHighResUrl !== undefined) updates.badgeImageHighResUrl = badgeImageHighResUrl;
-
-            // Update ring in Ring Hub
-            const updatedRing = await authenticatedClient.updateRing(slug as string, updates);
-
-            return res.json({
-              success: true,
-              message: "Settings updated successfully",
-              threadRing: {
-                id: updatedRing.id,
-                slug: updatedRing.slug,
-                name: updatedRing.name,
-                description: updatedRing.description,
-                shortCode: updatedRing.shortCode,
-                visibility: updatedRing.visibility?.toLowerCase(),
-                joinType: (() => {
-                  const policyMap = {
-                    'OPEN': 'open',
-                    'INVITATION': 'invite',
-                    'APPLICATION': 'application',
-                    'CLOSED': 'closed'
-                  } as const;
-                  return policyMap[updatedRing.joinPolicy as keyof typeof policyMap] || 'open';
-                })(),
-                postPolicy: (() => {
-                  const policyMap = {
-                    'OPEN': 'open',
-                    'MEMBERS': 'members',
-                    'CURATED': 'curated',
-                    'CLOSED': 'closed'
-                  } as const;
-                  return policyMap[updatedRing.postPolicy as keyof typeof policyMap] || 'members';
-                })(),
-                curatorNote: updatedRing.curatorNote || updatedRing.curatorNotes,
-                bannerUrl: updatedRing.bannerUrl,
-                themeColor: updatedRing.themeColor,
-                badgeImageUrl: updatedRing.badgeImageUrl,
-                badgeImageHighResUrl: updatedRing.badgeImageHighResUrl
-              }
-            });
-
-          } catch (ringHubError: any) {
-            console.error("Ring Hub settings update error:", ringHubError);
-            if (ringHubError.status === 404) {
-              return res.status(404).json({ error: "ThreadRing not found" });
-            }
-            if (ringHubError.status === 403) {
-              return res.status(403).json({ error: "Insufficient permissions to update settings" });
-            }
-            return res.status(500).json({
-              error: "Failed to update ThreadRing settings"
-            });
-          }
-        }
-
-        // Original local database logic (keeping slug immutable per Ring Hub spec)
-        const threadRing = await db.threadRing.findUnique({
-          where: { slug },
-          select: {
-            id: true,
-            curatorId: true,
-            name: true,
-            slug: true
-          }
-        });
-
-        if (!threadRing) {
-          return res.status(404).json({ error: "ThreadRing not found" });
-        }
-
-        // Check if viewer is the curator
-        if (threadRing.curatorId !== viewer.id) {
-          return res.status(403).json({ error: "Only the curator can update settings" });
-        }
-
-        // Build update data - only include fields that were provided
-        const updateData: any = {};
-        if (name !== undefined) updateData.name = name.trim();
-        if (description !== undefined) updateData.description = description.trim() || null;
-        if (joinType !== undefined) updateData.joinType = joinType;
-        if (visibility !== undefined) updateData.visibility = visibility;
-        if (curatorNote !== undefined) updateData.curatorNote = curatorNote.trim() || null;
-        if (bannerUrl !== undefined) updateData.bannerUrl = bannerUrl.trim() || null;
-        if (themeColor !== undefined) updateData.themeColor = ringThemeHex(themeColor);
-        // Note: postPolicy, shortCode, and badge URLs not supported in local database
-
-        // Update the ThreadRing
-        const updated = await db.threadRing.update({
-          where: { id: threadRing.id },
-          data: updateData
-        });
-
-        return res.json({
-          success: true,
-          message: "Settings updated successfully",
-          threadRing: {
-            id: updated.id,
-            slug: updated.slug,
-            name: updated.name,
-            description: updated.description,
-            visibility: updated.visibility,
-            joinType: updated.joinType,
-            curatorNote: updated.curatorNote,
-            bannerUrl: updated.bannerUrl,
-            themeColor: updated.themeColor
-          }
-        });
-
+        outcome = await deleteEmptyRing(
+          {
+            slug,
+            visibility: access.ring.visibility,
+            ownerDid: access.ring.ownerDid,
+            activeMemberDids: [access.ring.ownerDid],
+          },
+          deleter,
+          // Read again just before it goes, as the Host sees it
+          { getRing: () => createAuthenticatedRingHubClient(user.id).getRingAsMember(slug) }
+        );
       } catch (error) {
-        console.error("Error updating ThreadRing settings:", error);
-        return res.status(500).json({ error: "Internal server error" });
+        throw hubWriteError(error, access.manageAs);
       }
-    })
-  )
+      if (outcome === "changed") {
+        throw new ApiError(409, "Someone joined just now. Hand the ring to them on the members page instead.");
+      }
+      forgetRingReads(slug, [user.id]);
+      return res.json({ deleted: true });
+    }
+
+    const body = schema.parse(req.body ?? {});
+    const updates: Partial<RingDescriptor> = {};
+    if (body.name !== undefined) updates.name = body.name;
+    if (body.description !== undefined) updates.description = body.description;
+    if (body.curatorNote !== undefined) updates.curatorNote = body.curatorNote;
+    if (body.bannerUrl !== undefined) updates.bannerUrl = body.bannerUrl;
+    if (body.themeColor !== undefined) updates.themeColor = body.themeColor;
+    if (body.joinType !== undefined) updates.joinPolicy = mapJoinTypeToJoinPolicy(body.joinType);
+    if (body.visibility !== undefined) updates.visibility = body.visibility.toUpperCase() as RingDescriptor["visibility"];
+    if (body.postPolicy !== undefined) updates.postPolicy = body.postPolicy === "members" ? "MEMBERS" : "CLOSED";
+    if (Object.keys(updates).length === 0) return res.json({ settings: ringSettingsFromHub(access.ring) });
+
+    const manager = ringManager(access, user.id);
+    let updated: RingDescriptor;
+    try {
+      updated = await manager.updateRing(slug, updates);
+    } catch (error) {
+      throw hubWriteError(error, access.manageAs);
+    }
+    forgetRingReads(slug);
+    res.json({ settings: ringSettingsFromHub({ ...access.ring, ...updated }) });
+  }
 );

@@ -22,7 +22,9 @@ import type {
 } from '@/lib/api/ringhub/ringhub-client'
 
 /**
- * Map Ring Hub join policy to ThreadStead join type
+ * Map Ring Hub join policy to ThreadStead join type. Application rings show
+ * as invite-only: nothing could ever approve an application, and it's no
+ * longer offered.
  */
 export function mapJoinPolicyToJoinType(policy: string): ThreadRingJoinType {
   switch (policy) {
@@ -37,7 +39,7 @@ export function mapJoinPolicyToJoinType(policy: string): ThreadRingJoinType {
 /**
  * Map ThreadStead join type to Ring Hub join policy
  */
-export function mapJoinTypeToJoinPolicy(joinType: ThreadRingJoinType): 'OPEN' | 'APPLICATION' | 'INVITATION' | 'CLOSED' {
+export function mapJoinTypeToJoinPolicy(joinType: ThreadRingJoinType): 'OPEN' | 'INVITATION' | 'CLOSED' {
   switch (joinType) {
     case 'open': return 'OPEN'
     case 'invite': return 'INVITATION'  // Updated to match RingHub spec
@@ -49,8 +51,9 @@ export function mapJoinTypeToJoinPolicy(joinType: ThreadRingJoinType): 'OPEN' | 
 /**
  * Maps Ring Hub member role to ThreadStead ThreadRingRole
  */
-function mapRingHubRoleToThreadRingRole(ringHubRole: string): ThreadRingRole {
-  switch (ringHubRole.toLowerCase()) {
+function mapRingHubRoleToThreadRingRole(ringHubRole: string | null | undefined): ThreadRingRole {
+  // The hub sends null for a membership with no role
+  switch ((ringHubRole ?? '').toLowerCase()) {
     case 'owner':
       return 'curator';
     case 'moderator':
@@ -61,16 +64,43 @@ function mapRingHubRoleToThreadRingRole(ringHubRole: string): ThreadRingRole {
   }
 }
 
+export type RingPostPolicy = 'open' | 'members' | 'closed'
+
 /**
- * Map Ring Hub post policy to display string
+ * Map Ring Hub post policy to ThreadStead's. Curated rings show as
+ * members-only: their held posts were never shown to anyone, and it's no
+ * longer offered.
  */
-export function mapPostPolicy(policy: string): string {
+export function mapPostPolicy(policy: string): RingPostPolicy {
   switch (policy) {
     case 'OPEN': return 'open'
-    case 'MEMBERS': return 'members'
-    case 'CURATED': return 'curated'
     case 'CLOSED': return 'closed'
     default: return 'members'
+  }
+}
+
+/** A ring's settings as the settings form edits them, from the hub's descriptor. */
+export interface RingSettings {
+  name: string
+  description: string
+  curatorNote: string
+  bannerUrl: string
+  themeColor: string | null
+  joinType: ThreadRingJoinType
+  visibility: ThreadRingVisibility
+  postPolicy: RingPostPolicy
+}
+
+export function ringSettingsFromHub(ring: RingDescriptor): RingSettings {
+  return {
+    name: ring.name,
+    description: ring.description ?? '',
+    curatorNote: ring.curatorNote ?? '',
+    bannerUrl: ring.bannerUrl ?? '',
+    themeColor: ring.themeColor ?? null,
+    joinType: mapJoinPolicyToJoinType(ring.joinPolicy),
+    visibility: mapVisibility(ring.visibility),
+    postPolicy: mapPostPolicy(ring.postPolicy),
   }
 }
 
