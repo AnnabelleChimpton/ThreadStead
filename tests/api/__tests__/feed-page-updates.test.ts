@@ -16,6 +16,7 @@ type Person = {
   visibility: 'public' | 'followers' | 'friends' | 'private'
   moderationStatus: 'active' | 'suspended' | 'banned'
   suspendedUntil: Date | null
+  deletesAt: Date | null
   noProfile?: boolean
 }
 type Follow = { followerId: string; followeeId: string; status: string }
@@ -36,6 +37,7 @@ function userRow(id: string) {
     id,
     moderationStatus: p.moderationStatus,
     suspendedUntil: p.suspendedUntil,
+    deletesAt: p.deletesAt,
     handles: [{ handle: id, host: 'local' }],
     profile: p.noProfile ? null : { displayName: id.toUpperCase(), avatarUrl: null, visibility: p.visibility },
     followers: state.follows.filter((f) => f.followeeId === id),
@@ -79,7 +81,7 @@ import { getSessionUser } from '@/lib/auth/server'
 import { pageUpdateWindow } from '@/lib/feed/page-updates'
 
 function person(id: string, visibility: Person['visibility'] = 'public', extra: Partial<Person> = {}): Person {
-  return { id, visibility, moderationStatus: 'active', suspendedUntil: null, ...extra }
+  return { id, visibility, moderationStatus: 'active', suspendedUntil: null, deletesAt: null, ...extra }
 }
 const follow = (followerId: string, followeeId: string) => state.follows.push({ followerId, followeeId, status: 'accepted' })
 const block = (blockerId: string, blockedUserId: string) =>

@@ -26,9 +26,9 @@ export default apiHandler(
         }
 
         try {
-            // Nothing from a suspended or banned account (the conversation
-            // list leaves those out too).
-            const restricted = await getRestrictedUserIds();
+            // Nothing from a suspended, banned or leaving account (the
+            // conversation list leaves those out too), but your own stay yours.
+            const restricted = (await getRestrictedUserIds()).filter((id) => id !== user.id);
             const messages = await db.directMessage.findMany({
                 where: { conversationId, ...(restricted.length ? { senderId: { notIn: restricted } } : {}) },
                 orderBy: { createdAt: 'desc' },

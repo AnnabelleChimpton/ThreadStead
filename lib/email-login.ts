@@ -383,6 +383,40 @@ export async function sendVerificationEmail(email: string, userName: string, tok
 }
 
 /**
+ * Tell someone their account is set to be deleted (lib/domain/users/leaving.ts),
+ * so a stolen session can't quietly delete it.
+ */
+export async function sendLeavingEmail(email: string, userName: string, deletesAt: Date): Promise<void> {
+  const fromEmail = process.env.RESEND_FROM_EMAIL;
+  if (!fromEmail) {
+    throw new Error('RESEND_FROM_EMAIL environment variable is required');
+  }
+
+  const siteName = process.env.NEXT_PUBLIC_SITE_NAME || 'Threadstead';
+  const settingsUrl = `${getSiteBaseUrl()}/settings?tab=privacy`;
+  const day = deletesAt.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+
+  await resend.emails.send({
+    from: fromEmail,
+    to: email,
+    subject: `Your ${siteName} account is set to be deleted`,
+    html: `
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <p>Hi <strong>${escapeHtml(userName)}</strong>,</p>
+      <p>You asked to delete your ${siteName} account. Your page, house and posts are hidden now, and everything goes for good on <strong>${day}</strong>.</p>
+      <p>Changed your mind? Sign in before then and press <strong>Keep my account</strong> in <a href="${settingsUrl}" style="color: #007cba;">Settings</a>.</p>
+      <p>If this wasn't you, sign in, keep your account, and tell me.</p>
+      <p>- Annabelle</p>
+    </body>
+    </html>
+  `,
+  });
+}
+
+/**
  * Send password reset email
  */
 export async function sendPasswordResetEmail(email: string, userName: string, token: string): Promise<void> {

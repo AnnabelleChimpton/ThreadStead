@@ -20,6 +20,7 @@ type User = {
   profile: { displayName: string | null; bio: string | null; avatarUrl: string | null; visibility: string; pageUpdatedAt: Date | null } | null
   moderationStatus: 'active' | 'suspended' | 'banned'
   suspendedUntil: Date | null
+  deletesAt: Date | null
   blocksCreated: { blockedUserId: string }[]
   blocksReceived: { blockerId: string }[]
   followers: never[]
@@ -82,6 +83,7 @@ function user(id: string, pageUpdatedAt: Date | null, opts: { visibility?: strin
     profile: { displayName: null, bio: null, avatarUrl: null, visibility: opts.visibility ?? 'public', pageUpdatedAt },
     moderationStatus: opts.banned ? 'banned' : 'active',
     suspendedUntil: null,
+    deletesAt: null,
     blocksCreated: [],
     blocksReceived: [],
     followers: [],

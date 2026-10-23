@@ -164,7 +164,7 @@ describe('transferRingOwnership', () => {
   })
 
   test.each([
-    ['a banned account', 'spam', 400, /suspended or banned/],
+    ['a banned account', 'spam', 400, /suspended, banned or leaving/],
     ['someone with no key here', 'nokey', 400, /member of the ring first/],
     ['the current owner', 'alice', 400, /already own it/],
     ['an unknown account', 'ghost', 404, /User not found/],

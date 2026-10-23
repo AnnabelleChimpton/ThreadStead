@@ -33,7 +33,7 @@ import { RingHubAuthError, RingHubUnavailableError } from "@/lib/api/ringhub/rin
 import { createAuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
 import { readAllRingMembers } from "@/lib/api/ringhub/ring-members";
 import { HUB_TIMEOUT } from "@/lib/api/ringhub/ringhub-ssr";
-import { activeUserWhere, isRestricted, MAX_REASON_LENGTH, MODERATION_SELECT } from "@/lib/domain/users/moderation";
+import { activeUserWhere, isHidden, MAX_REASON_LENGTH, MODERATION_SELECT } from "@/lib/domain/users/moderation";
 
 export interface TransferActor {
   id: string;
@@ -157,7 +157,7 @@ export async function transferRingOwnership({
     select: { id: true, primaryHandle: true, ...MODERATION_SELECT },
   });
   if (!newOwner) throw new ApiError(404, "User not found");
-  if (isRestricted(newOwner)) throw new ApiError(400, "They're suspended or banned, so they can't take a ring over.");
+  if (isHidden(newOwner)) throw new ApiError(400, "They're suspended, banned or leaving, so they can't take a ring over.");
   // Without a key here they never joined the ring as themselves.
   const newKey = await db.userDID.findUnique({ where: { userId: newOwner.id }, select: { did: true } });
   if (!newKey) throw new ApiError(400, "They need to be a member of the ring first.");

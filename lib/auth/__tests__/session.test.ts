@@ -231,7 +231,7 @@ describe('getSessionUser', () => {
     expect(user).toEqual({ id: 'u1', did: 'did:x' });
     // plus the moderation fields it needs, which it doesn't hand back
     expect(findUnique.mock.calls[0][0].select.user).toEqual({
-      select: { id: true, did: true, moderationStatus: true, suspendedUntil: true },
+      select: { id: true, did: true, moderationStatus: true, suspendedUntil: true, deletesAt: true },
     });
   });
 
@@ -264,6 +264,20 @@ describe('getSessionUser', () => {
     expect(await getSessionUser(req('retro_session=u1.s'))).toBeNull();
     findUnique.mockResolvedValueOnce(session(new Date(Date.now() - 1000)));
     expect(await getSessionUser(req('retro_session=u1.s'))).toMatchObject({ id: 'u1' });
+  });
+
+  test('a resident who is leaving can look around and stay after all, but not write', async () => {
+    findUnique.mockResolvedValue({
+      userId: 'u1',
+      expiresAt: future(),
+      user: { id: 'u1', moderationStatus: 'active', suspendedUntil: null, deletesAt: future() },
+    });
+    const as = (method: string) => ({ ...req('retro_session=u1.s'), method });
+    expect(await getSessionUser(req('retro_session=u1.s'))).toMatchObject({ id: 'u1' });
+    expect(await getSessionUser(as('GET'))).toMatchObject({ id: 'u1' });
+    expect(await getSessionUser(as('POST'))).toBeNull();
+    expect(await getSessionUser(as('DELETE'))).toBeNull();
+    expect(await getSessionUser(as('DELETE'), { whileLeaving: true })).toMatchObject({ id: 'u1' });
   });
 
   test('expired session → null', async () => {

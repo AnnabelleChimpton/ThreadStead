@@ -11,9 +11,9 @@ export default apiHandler(
 
         if (req.method === 'GET') {
             try {
-                // Conversations with a suspended or banned account drop out
-                // while the restriction lasts (they come back after a lift).
-                const restricted = await getRestrictedUserIds();
+                // Conversations with a suspended, banned or leaving account drop
+                // out while that lasts (they come back after a lift), unless it's you.
+                const restricted = (await getRestrictedUserIds()).filter((id) => id !== userId);
                 const conversations = await prisma.conversation.findMany({
                     where: {
                         participants: {

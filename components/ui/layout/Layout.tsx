@@ -6,6 +6,7 @@ import ScrollToTop from "../feedback/ScrollToTop";
 import { useSiteConfig, SiteConfig } from "@/hooks/useSiteConfig";
 import { useIdentitySync } from "@/hooks/useIdentitySync";
 import { PixelIcon } from '@/components/ui/PixelIcon';
+import LeavingBanner from "@/components/features/account/LeavingBanner";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -46,6 +47,8 @@ export default function Layout({ children, siteConfig, fullWidth = false, advanc
         >
           Skip to main content
         </a>
+
+        <LeavingBanner raised />
 
         {/* Identity Sync Issue Banner */}
         {hasMismatch && (
@@ -131,6 +134,8 @@ export default function Layout({ children, siteConfig, fullWidth = false, advanc
       >
         Skip to main content
       </a>
+
+      <LeavingBanner />
 
       {/* Identity Sync Issue Banner */}
       {hasMismatch && (

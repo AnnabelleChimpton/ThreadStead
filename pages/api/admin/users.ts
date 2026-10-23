@@ -51,6 +51,8 @@ export default apiHandler(
           suspendedUntil: user.suspendedUntil,
           moderationReason: user.moderationReason,
           moderatedAt: user.moderatedAt,
+          // Leaving (lib/domain/users/leaving.ts): when it goes; past it, deleting is stuck and retried hourly
+          deletesAt: user.deletesAt,
         }));
 
         res.json({ users: formattedUsers });

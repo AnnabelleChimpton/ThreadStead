@@ -17,6 +17,13 @@
  * A suspension ends by itself at suspendedUntil; nothing has to run. Every
  * action leaves a ModerationAction row. Hard delete is a separate, later step
  * (lib/domain/users/account-removal.ts) and only for a banned account.
+ *
+ * A resident who is leaving (deletesAt set, lib/domain/users/leaving.ts) is
+ * hidden the same way, so the list and lookup helpers here (activeUserWhere,
+ * restrictedUserWhere, activeAccountSql, getRestrictedUserIds,
+ * isUserRestricted, isHidden) count them out too. They can still sign in, to
+ * stay after all: isRestricted, which sign-in and sessions use, is moderation
+ * only.
  */
 import { Prisma, type ModerationActionType, type ModerationStatus } from "@prisma/client";
 import { db } from "@/lib/config/database/connection";
@@ -27,9 +34,10 @@ import { invalidateServedDids } from "@/lib/domain/bluesky/served-dids";
 export type ModerationFields = {
   moderationStatus: ModerationStatus;
   suspendedUntil: Date | null;
+  deletesAt?: Date | null;
 };
 
-export const MODERATION_SELECT = { moderationStatus: true, suspendedUntil: true } as const;
+export const MODERATION_SELECT = { moderationStatus: true, suspendedUntil: true, deletesAt: true } as const;
 
 /** Longest reason we keep (the hub's curate reason allows 500 too). */
 export const MAX_REASON_LENGTH = 500;
@@ -42,24 +50,31 @@ export function isRestricted(user: ModerationFields | null | undefined, now = ne
   return false;
 }
 
+/** Hidden from everyone else: suspended, banned, or leaving. */
+export function isHidden(user: ModerationFields | null | undefined, now = new Date()): boolean {
+  return isRestricted(user, now) || !!user?.deletesAt;
+}
+
 /** What the account is right now: a suspension past its end date reads as active. */
 export function effectiveStatus(user: ModerationFields, now = new Date()): ModerationStatus {
   return isRestricted(user, now) ? user.moderationStatus : "active";
 }
 
-/** Prisma filter: accounts that aren't suspended or banned. */
+/** Prisma filter: accounts that aren't suspended, banned or leaving. */
 export function activeUserWhere(now = new Date()): Prisma.UserWhereInput {
   return {
+    deletesAt: null,
     OR: [{ moderationStatus: "active" }, { moderationStatus: "suspended", suspendedUntil: { lte: now } }],
   };
 }
 
-/** Prisma filter: accounts that are suspended or banned right now. */
+/** Prisma filter: accounts that are suspended, banned or leaving right now. */
 export function restrictedUserWhere(now = new Date()): Prisma.UserWhereInput {
   return {
     OR: [
       { moderationStatus: "banned" },
       { moderationStatus: "suspended", OR: [{ suspendedUntil: null }, { suspendedUntil: { gt: now } }] },
+      { deletesAt: { not: null } },
     ],
   };
 }
@@ -73,20 +88,22 @@ export function activeAccountSql(userId: Prisma.Sql): Prisma.Sql {
   return Prisma.sql`EXISTS (
     SELECT 1 FROM "User" mu
     WHERE mu.id = ${userId}
+      AND mu."deletesAt" IS NULL
       AND (mu."moderationStatus" = 'active'
         OR (mu."moderationStatus" = 'suspended' AND mu."suspendedUntil" <= (now() AT TIME ZONE 'UTC')))
   )`;
 }
 
-/** Ids of every account suspended or banned right now. Usually a handful. */
+/** Ids of every account suspended, banned or leaving right now. Usually a handful. */
 export async function getRestrictedUserIds(): Promise<string[]> {
   const rows = await db.user.findMany({ where: restrictedUserWhere(), select: { id: true } });
   return rows.map((row) => row.id);
 }
 
+/** Hidden from everyone else (isHidden), by id. */
 export async function isUserRestricted(userId: string): Promise<boolean> {
   const user = await db.user.findUnique({ where: { id: userId }, select: MODERATION_SELECT });
-  return isRestricted(user);
+  return isHidden(user);
 }
 
 function formatDay(date: Date): string {
@@ -163,21 +180,21 @@ function resolutionText(input: ModerationActionInput): string {
   }
 }
 
-/** Kick the account's open chat sockets (lib/chat/socket-server.ts registers this). */
-function disconnectChat(userId: string): void {
+/** Kick the account's open chat sockets, so they reconnect as what they are now (lib/chat/socket-server.ts registers this). */
+export function disconnectChat(userId: string): void {
   try {
     globalThis.__threadsteadChatDisconnectUser?.(userId);
   } catch (error) {
-    console.error("Couldn't disconnect chat sockets after moderation:", error);
+    console.error("Couldn't disconnect chat sockets:", error);
   }
 }
 
 /** Re-tier the account's Indie Index sites now instead of at the next nightly run. */
-async function retierIndieSites(userId: string, now: Date): Promise<void> {
+export async function retierIndieSites(userId: string, now = new Date()): Promise<void> {
   try {
     await recomputeSites(db, await sitesTouchedBy(db, userId), now);
   } catch (error) {
-    console.error("Couldn't update Indie Index tiers after moderation:", error);
+    console.error("Couldn't update Indie Index tiers:", error);
   }
 }
 

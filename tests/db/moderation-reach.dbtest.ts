@@ -14,6 +14,7 @@ jest.mock('@/lib/server/http/rate-limit', () => ({
   withRateLimit: () => (handler: any) => handler,
 }))
 jest.mock('@/lib/server/http/csrf', () => ({
+  ...jest.requireActual('@/lib/server/http/csrf'),
   csrfProtection: jest.fn(async () => true),
   withCsrfProtection: (handler: any) => handler,
   createCsrfCookie: () => 'csrf=x',
@@ -21,7 +22,8 @@ jest.mock('@/lib/server/http/csrf', () => ({
   getCookieSecureFlag: () => '',
 }))
 
-import { createSession } from '@/lib/auth/server'
+import { createSession, getSessionUser } from '@/lib/auth/server'
+import { finishDueLeaves, startLeaving, stayAfterAll } from '@/lib/domain/users/leaving'
 import { moderateUser } from '@/lib/domain/users/moderation'
 import { browseIndie } from '@/lib/search/indie'
 import roomMessagesRoute from '@/pages/api/chat/rooms/[roomId]/messages'
@@ -83,6 +85,64 @@ afterAll(() => db.$disconnect())
 
 const ban = (userId: string) => moderateUser({ action: 'ban', reason: 'spam' }, { actorId: ADMIN, userId })
 const lift = (userId: string) => moderateUser({ action: 'lift' }, { actorId: ADMIN, userId })
+
+// -------------------------------------------------------------- leaving --
+
+describe('leaving (lib/domain/users/leaving.ts)', () => {
+  beforeEach(async () => {
+    await db.chatRoom.create({ data: { id: 'lounge', name: 'Lounge' } })
+    await db.chatMessage.createMany({
+      data: [
+        { roomId: 'lounge', userId: NEIGHBOR, body: 'hello' },
+        { roomId: 'lounge', userId: FRIEND, body: 'hi neighbor' },
+      ],
+    })
+  })
+  const bodies = async () => (await call(roomMessagesRoute, { query: { roomId: 'lounge' } })).body.messages.map((m: any) => m.body)
+
+  it('hides them at once, keeps their sign-in so they can stay, and staying brings them back', async () => {
+    const cookie = await signIn(NEIGHBOR)
+    await startLeaving(NEIGHBOR, 'neighbor')
+
+    expect(await bodies()).toEqual(['hi neighbor'])
+    const req = { headers: { cookie } } as unknown as NextApiRequest
+    expect(await getSessionUser(req)).toMatchObject({ id: NEIGHBOR })
+
+    await stayAfterAll(NEIGHBOR)
+    expect(await bodies()).toEqual(['hello', 'hi neighbor'])
+  })
+
+  it('deletes them once their time is up, with the notes they signed elsewhere, and holds their name', async () => {
+    // A claimed decoration used to block any delete (ON DELETE RESTRICT); an email login token has no relation
+    const decoration = await db.decorationItem.create({
+      data: { itemId: `gnome-${seq++}`, name: 'Gnome', type: 'furniture', category: 'furniture', zone: 'front_yard' },
+    })
+    await db.userDecorationClaim.create({ data: { userId: NEIGHBOR, decorationId: decoration.id } })
+    await db.emailLoginToken.create({
+      data: { token: `t-${seq++}`, encryptedEmail: 'x', expiresAt: new Date(Date.now() + DAY), userId: NEIGHBOR },
+    })
+    await db.guestbookEntry.createMany({
+      data: [
+        { profileOwner: FRIEND, authorId: NEIGHBOR, message: 'lovely yard!' },
+        { profileOwner: NEIGHBOR, authorId: FRIEND, message: 'hi!' },
+        { profileOwner: FRIEND, authorId: ADMIN, message: 'welcome' },
+      ],
+    })
+    const deletesAt = await startLeaving(NEIGHBOR, 'neighbor')
+
+    expect(await finishDueLeaves(new Date(deletesAt.getTime() - 1000))).toEqual({ deleted: 0, waiting: 0 })
+    expect(await finishDueLeaves(deletesAt)).toEqual({ deleted: 1, waiting: 0 })
+
+    expect(await db.user.findUnique({ where: { id: NEIGHBOR } })).toBeNull()
+    expect(await db.userDecorationClaim.count({ where: { userId: NEIGHBOR } })).toBe(0)
+    expect(await db.emailLoginToken.count({ where: { userId: NEIGHBOR } })).toBe(0)
+    expect((await db.guestbookEntry.findMany({ select: { message: true } })).map((e) => e.message)).toEqual(['welcome'])
+    expect(await db.moderationAction.count()).toBe(0)
+    const tombstone = await db.handleTombstone.findFirst({ where: { handle: 'neighbor' } })
+    expect(tombstone).toMatchObject({ removedForAbuse: false })
+    expect(tombstone?.expiresAt).not.toBeNull()
+  })
+})
 
 // ----------------------------------------------------------------- chat --
 

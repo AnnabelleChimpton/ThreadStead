@@ -14,6 +14,8 @@ interface ExportMetadata {
     followers: number;
     following: number;
     guestbookEntries: number;
+    chatMessages: number;
+    conversations: number;
   };
 }
 
@@ -30,6 +32,12 @@ interface UserDataExport {
     blocks: any[];
   };
   guestbook: any[];
+  /** Notes you signed in other people's guestbooks */
+  guestbookSigned: { onPageOf: string | null; message: string; signature: string | null; createdAt: string }[];
+  /** What you said in the chat lounge */
+  chatMessages: { room: string; body: string; isAction: boolean; createdAt: string }[];
+  /** Your direct message conversations, both sides */
+  conversations: { with: (string | null)[]; messages: { from: string | null; body: string; createdAt: string }[] }[];
   /** Days you shared a page update in the feed */
   pageUpdates: { day: string; sharedAt: string }[];
   account: {
@@ -188,6 +196,31 @@ async function generateUserExport(userId: string): Promise<UserDataExport> {
     throw new Error('User not found');
   }
 
+  const handleOf = (u: { primaryHandle: string | null } | null) => u?.primaryHandle ?? null;
+  const [signed, chatMessages, conversations] = await Promise.all([
+    db.guestbookEntry.findMany({
+      where: { authorId: userId },
+      select: { message: true, signature: true, createdAt: true, owner: { select: { primaryHandle: true } } },
+      orderBy: { createdAt: 'desc' },
+    }),
+    db.chatMessage.findMany({
+      where: { userId },
+      select: { roomId: true, body: true, isAction: true, createdAt: true },
+      orderBy: { createdAt: 'asc' },
+    }),
+    db.conversation.findMany({
+      where: { participants: { some: { userId } } },
+      select: {
+        participants: { select: { user: { select: { id: true, primaryHandle: true } } } },
+        messages: {
+          select: { body: true, createdAt: true, sender: { select: { primaryHandle: true } } },
+          orderBy: { createdAt: 'asc' },
+        },
+      },
+      orderBy: { updatedAt: 'desc' },
+    }),
+  ]);
+
   // Transform data for export
   const exportData: UserDataExport = {
     exportMetadata: {
@@ -202,7 +235,9 @@ async function generateUserExport(userId: string): Promise<UserDataExport> {
         media: user.media.length,
         followers: user.followers.length,
         following: user.following.length,
-        guestbookEntries: user.guestbook.length
+        guestbookEntries: user.guestbook.length,
+        chatMessages: chatMessages.length,
+        conversations: conversations.length
       }
     },
     profile: user.profile ? {
@@ -337,6 +372,26 @@ async function generateUserExport(userId: string): Promise<UserDataExport> {
       signature: entry.signature,
       status: entry.status,
       createdAt: entry.createdAt.toISOString()
+    })),
+    guestbookSigned: signed.map(entry => ({
+      onPageOf: handleOf(entry.owner),
+      message: entry.message,
+      signature: entry.signature,
+      createdAt: entry.createdAt.toISOString()
+    })),
+    chatMessages: chatMessages.map(message => ({
+      room: message.roomId,
+      body: message.body,
+      isAction: message.isAction,
+      createdAt: message.createdAt.toISOString()
+    })),
+    conversations: conversations.map(conversation => ({
+      with: conversation.participants.filter(p => p.user.id !== userId).map(p => handleOf(p.user)),
+      messages: conversation.messages.map(message => ({
+        from: handleOf(message.sender),
+        body: message.body,
+        createdAt: message.createdAt.toISOString()
+      }))
     })),
     pageUpdates: user.pageUpdates.map(update => ({
       day: update.day.toISOString().slice(0, 10),

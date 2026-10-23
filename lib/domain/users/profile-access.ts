@@ -45,8 +45,9 @@ export async function residentAccess(
   ownerId: string,
   knownVisibility?: Visibility | null
 ): Promise<ResidentAccess> {
-  if (await isUserRestricted(ownerId)) return SUSPENDED;
+  // Owner first: someone leaving still sees their own page (a suspended or banned one can't sign in)
   if (viewer?.id === ownerId) return VISIBLE;
+  if (await isUserRestricted(ownerId)) return SUSPENDED;
 
   if (viewer) {
     const [viewerBlocked, ownerBlocked] = await Promise.all([

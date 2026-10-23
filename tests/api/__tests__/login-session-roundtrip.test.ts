@@ -155,7 +155,7 @@ test('email link login → cookie → /me → logout', async () => {
   const meRes = await call(me, { cookie });
   expect(meRes.body).toEqual({
     loggedIn: true,
-    user: { id: 'user-1', did: 'did:key:one', role: 'member', primaryHandle: 'alice' },
+    user: { id: 'user-1', did: 'did:key:one', role: 'member', primaryHandle: 'alice', deletesAt: null },
   });
 
   const out = await call(logout, { method: 'POST', cookie });

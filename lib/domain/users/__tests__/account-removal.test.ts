@@ -17,6 +17,11 @@ jest.mock('@/lib/config/database/connection', () => ({
     userDID: { findUnique: jest.fn() },
     moderationAction: { create: jest.fn() },
     handleTombstone: { createMany: jest.fn() },
+    guestbookEntry: { deleteMany: jest.fn() },
+    emailLoginToken: { deleteMany: jest.fn() },
+    media: { findMany: jest.fn(async () => []) },
+    profile: { findUnique: jest.fn(async () => null) },
+    userHomeConfig: { findUnique: jest.fn(async () => null) },
     $executeRaw: jest.fn(),
     $transaction: jest.fn(),
   },
@@ -29,6 +34,10 @@ jest.mock('@/lib/api/ringhub/ringhub-client', () => ({
 jest.mock('@/lib/api/ringhub/ringhub-user-operations', () => ({
   createAuthenticatedRingHubClient: jest.fn(),
 }))
+jest.mock('@/lib/storage/r2', () => ({
+  keyFromPublicUrl: (url: string) => (url.startsWith('https://cdn.test/') ? url.slice('https://cdn.test/'.length) : null),
+  deleteObjects: jest.fn(async () => ({ deleted: [], failed: [] })),
+}))
 jest.mock('@/lib/indie-index/tiers', () => ({
   recomputeSites: jest.fn(async () => 0),
   sitesTouchedBy: jest.fn(async () => ['site-1']),
@@ -38,6 +47,7 @@ import { db } from '@/lib/config/database/connection'
 import { getPublicRingHubClient, getRingHubClient, shouldUseRingHub } from '@/lib/api/ringhub/ringhub-client'
 import { createAuthenticatedRingHubClient } from '@/lib/api/ringhub/ringhub-user-operations'
 import { buildPostUri } from '@/lib/domain/posts/ringhub-metadata'
+import { deleteObjects } from '@/lib/storage/r2'
 import {
   deleteUserAccount,
   leaveUserRingsOnHub,
@@ -301,6 +311,9 @@ describe('deleteUserAccount', () => {
       data: { action: 'delete', userId: 'spammer', userHandle: 'spammer@local', actorId: 'admin', reason: 'spam' },
     })
     expect(mockDb.user.delete).toHaveBeenCalledWith({ where: { id: 'spammer' } })
+    // The notes they signed in other people's guestbooks go too, and their email login tokens
+    expect(mockDb.guestbookEntry.deleteMany).toHaveBeenCalledWith({ where: { authorId: 'spammer' } })
+    expect(mockDb.emailLoginToken.deleteMany).toHaveBeenCalledWith({ where: { userId: 'spammer' } })
     // Removed for abuse: the name is held for good
     expect(mockDb.handleTombstone.createMany).toHaveBeenCalledWith({
       data: [expect.objectContaining({ handle: 'spammer', subdomainLabel: 'spammer', removedForAbuse: true, expiresAt: null })],
@@ -308,6 +321,45 @@ describe('deleteUserAccount', () => {
     // the delete is the last write in the transaction
     const ops = mockDb.$transaction.mock.calls[0][0]
     expect(ops[ops.length - 1]).toBe('delete-op')
+  })
+
+  it('deletes their own files from storage after the commit, and never anyone else\'s', async () => {
+    mockDb.user.findUnique.mockResolvedValue(banned)
+    mockDb.post.findMany.mockResolvedValue([])
+    mockDb.media.findMany.mockResolvedValue([
+      {
+        thumbnailUrl: 'https://cdn.test/media/spammer/1_thumb.webp',
+        mediumUrl: 'https://cdn.test/media/spammer/1_medium.webp',
+        fullUrl: 'https://cdn.test/media/spammer/1_full.mid',
+        soundBankUrl: 'https://cdn.test/media/spammer/1_full.sf2',
+      },
+    ])
+    mockDb.profile.findUnique.mockResolvedValue({
+      avatarUrl: 'https://cdn.test/profile-photos/spammer/2_medium.webp?v=3',
+      avatarFullUrl: null,
+      avatarMediumUrl: 'https://cdn.test/profile-photos/spammer/2_medium.webp',
+      avatarThumbnailUrl: 'https://cdn.test/media/someone-else/9_thumb.webp',
+      bannerUrl: 'https://elsewhere.example/banner.png',
+    })
+    mockDb.userHomeConfig.findUnique.mockResolvedValue({
+      customAssets: [{ slot: 0, url: 'https://cdn.test/pixel-homes/custom/spammer-1-a.png' }],
+      snapshotUrl: 'https://cdn.test/pixel-homes/snapshots/spammer.h.png',
+      snapshotCardUrl: 'https://cdn.test/pixel-homes/snapshots/spammer-impostor.h.card.png',
+    })
+
+    expect((await deleteUserAccount({ actorId: 'admin', userId: 'spammer' })).deleted).toBe(true)
+    expect(deleteObjects).toHaveBeenCalledWith(
+      [
+        'media/spammer/1_thumb.webp',
+        'media/spammer/1_medium.webp',
+        'media/spammer/1_full.mid',
+        'media/spammer/1_full.sf2',
+        'profile-photos/spammer/2_medium.webp',
+        'pixel-homes/custom/spammer-1-a.png',
+        'pixel-homes/snapshots/spammer.h.png',
+      ],
+      { context: 'account:spammer' }
+    )
   })
 
   it("deletes nothing when a ring post couldn't come off the hub, unless forced", async () => {

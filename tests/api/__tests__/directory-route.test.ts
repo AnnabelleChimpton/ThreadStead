@@ -14,6 +14,7 @@ type User = {
   profile: { displayName: string | null; bio: string | null; avatarUrl: string | null; visibility: string } | null
   moderationStatus: 'active' | 'suspended' | 'banned'
   suspendedUntil: Date | null
+  deletesAt: Date | null
 }
 const state: { users: User[] } = { users: [] }
 
@@ -43,6 +44,7 @@ function user(
     id,
     moderationStatus: opts.moderation?.moderationStatus ?? 'active',
     suspendedUntil: opts.moderation?.suspendedUntil ?? null,
+    deletesAt: null,
     createdAt: new Date(Date.UTC(2026, 0, 1, 0, 0, clock++)),
     handles: [{ handle: id, host: 'local' }],
     profile: opts.noProfile

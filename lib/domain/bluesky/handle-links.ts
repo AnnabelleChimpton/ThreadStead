@@ -15,7 +15,7 @@
  */
 import { db } from '@/lib/config/database/connection';
 import { ApiError } from '@/lib/api/errors';
-import { activeUserWhere, isRestricted, MODERATION_SELECT } from '@/lib/domain/users/moderation';
+import { activeUserWhere, isHidden, MODERATION_SELECT } from '@/lib/domain/users/moderation';
 import { INFRA_LABELS, residentAddress, residentApex } from '@/lib/subdomains/host';
 import {
   BlueskyLookupError,
@@ -275,7 +275,7 @@ export async function verifiedBlueskyHandle(userId: string, now = new Date()): P
     where: { id: userId },
     select: { subdomainLabel: true, ...MODERATION_SELECT, blueskyHandleLink: { select: { status: true } } },
   });
-  if (!user || isRestricted(user, now) || user.blueskyHandleLink?.status !== 'verified') return null;
+  if (!user || isHidden(user, now) || user.blueskyHandleLink?.status !== 'verified') return null;
   return addressForLabel(user.subdomainLabel).address;
 }
 

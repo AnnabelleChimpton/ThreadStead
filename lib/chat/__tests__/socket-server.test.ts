@@ -46,6 +46,8 @@ const USERS = {
   alice: { id: 'u-alice', primaryHandle: 'alice@threadstead', role: 'member', profile: { displayName: 'Alice', avatarUrl: '/a.png', avatarThumbnailUrl: null } },
   bob: { id: 'u-bob', primaryHandle: 'bob@threadstead', role: 'member', profile: { displayName: 'Bob', avatarUrl: null, avatarThumbnailUrl: '/b-thumb.png' } },
   admin: { id: 'u-admin', primaryHandle: 'admin@threadstead', role: 'admin', profile: null },
+  // Leaving (lib/domain/users/leaving.ts): signed in, but hidden from everyone else
+  leaving: { id: 'u-leaving', primaryHandle: 'leaving@threadstead', role: 'member', deletesAt: new Date('2099-01-01'), profile: null },
 };
 type UserName = keyof typeof USERS;
 
@@ -298,6 +300,15 @@ describe('messages', () => {
     const empty = next(alice, 'system:notice');
     alice.emit('chat:message', { roomId: ROOM, body: '<i></i>' });
     expect(await empty).toEqual({ message: 'Message cannot be empty', type: 'error' });
+    expect(mockDb.chatMessage.create).not.toHaveBeenCalled();
+  });
+
+  it("treats someone who is leaving as a guest: they can read, not post", async () => {
+    const leaving = await connect('leaving');
+    await join(leaving, []);
+    const notice = next(leaving, 'system:notice');
+    leaving.emit('chat:message', { roomId: ROOM, body: 'hello' });
+    expect(await notice).toEqual({ message: 'You must be logged in to send messages', type: 'error' });
     expect(mockDb.chatMessage.create).not.toHaveBeenCalled();
   });
 

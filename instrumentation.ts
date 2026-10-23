@@ -23,5 +23,9 @@ export async function register() {
     // Daily re-check of residents' Bluesky handles (production only)
     const { startBlueskyRecheck } = await import('./lib/domain/bluesky/recheck-scheduler');
     startBlueskyRecheck();
+
+    // Deleting the accounts of residents who left, once their 14 days are up (production only)
+    const { startLeaveScheduler } = await import('./lib/domain/users/leave-scheduler');
+    startLeaveScheduler();
   }
 }

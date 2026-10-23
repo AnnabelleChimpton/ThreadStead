@@ -126,20 +126,31 @@ const DEFAULT_USER_INCLUDE = { betaKey: true } as const;
 
 export type SessionUser = Prisma.UserGetPayload<{ include: typeof DEFAULT_USER_INCLUDE }>;
 
+type SessionRequest = Pick<NextApiRequest, "headers"> & { method?: string };
+/** whileLeaving: a resident who is leaving may write here (staying after all). */
+type SessionOptions = { whileLeaving?: boolean };
+
+const READS = new Set(["GET", "HEAD", "OPTIONS"]);
+
 /**
  * The signed-in user, or null when there is no valid, unexpired session, or
  * the account is suspended or banned (its sessions are deleted when that
  * happens; this covers any made in between). By default the full user with `betaKey`; pass `select` to load only some
  * fields.
+ *
+ * Someone leaving (lib/domain/users/leaving.ts) stays signed in to look
+ * around and to stay after all, but they're hidden from everyone else, so a
+ * write from them (any method but GET/HEAD/OPTIONS) reads as signed out
+ * unless the route says `whileLeaving`.
  */
-export async function getSessionUser(req: Pick<NextApiRequest, "headers">): Promise<SessionUser | null>;
+export async function getSessionUser(req: SessionRequest, options?: SessionOptions): Promise<SessionUser | null>;
 export async function getSessionUser<S extends Prisma.UserSelect>(
-  req: Pick<NextApiRequest, "headers">,
-  options: { select: S }
+  req: SessionRequest,
+  options: SessionOptions & { select: S }
 ): Promise<Prisma.UserGetPayload<{ select: S }> | null>;
 export async function getSessionUser(
-  req: Pick<NextApiRequest, "headers">,
-  options?: { select: Prisma.UserSelect }
+  req: SessionRequest,
+  options?: SessionOptions & { select?: Prisma.UserSelect }
 ): Promise<unknown> {
   const cookie = readSessionCookie(req);
   if (!cookie) return null;
@@ -160,6 +171,7 @@ export async function getSessionUser(
 
   const user = session.user as unknown as ModerationFields & Record<string, unknown>;
   if (isRestricted(user)) return null;
+  if (user.deletesAt && !options?.whileLeaving && req.method && !READS.has(req.method.toUpperCase())) return null;
   if (options?.select) {
     // Hand back only what the caller asked for.
     for (const key of Object.keys(MODERATION_SELECT)) {

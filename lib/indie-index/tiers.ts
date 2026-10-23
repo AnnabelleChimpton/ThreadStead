@@ -27,14 +27,14 @@ export const RESIDENT_MIN_AGE_DAYS = 7
 export const LISTED_TIERS = ['resident', 'vouched', 'community', 'pool'] as const
 
 /**
- * `alias` is a "User" row that isn't suspended or banned at `now`. The same
+ * `alias` is a "User" row that isn't suspended, banned or leaving at `now`. The same
  * rule as activeAccountSql in lib/domain/users/moderation.ts, written against
  * a joined row and the run's own clock (this file runs from scripts too).
  */
 function activeAt(alias: string, now: Date): Prisma.Sql {
   const u = Prisma.raw(alias)
-  return Prisma.sql`(${u}."moderationStatus" = 'active'
-    OR (${u}."moderationStatus" = 'suspended' AND ${u}."suspendedUntil" <= ${utc(now)}))`
+  return Prisma.sql`(${u}."deletesAt" IS NULL AND (${u}."moderationStatus" = 'active'
+    OR (${u}."moderationStatus" = 'suspended' AND ${u}."suspendedUntil" <= ${utc(now)})))`
 }
 
 /**

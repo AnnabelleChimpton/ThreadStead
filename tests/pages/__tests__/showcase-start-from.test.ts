@@ -81,6 +81,7 @@ function resident(name: string, profile: Row | null, extra: Row = {}): Row {
     id: `u_${name}`,
     moderationStatus: 'active',
     suspendedUntil: null,
+    deletesAt: null,
     handles: [{ handle: name, host: SITE_NAME }],
     profile:
       profile === null
@@ -120,6 +121,7 @@ const RESIDENTS: Row[] = [
   resident('blockedme', {}, { blocksCreated: [{ blockedUserId: VIEWER }] }),
   resident('banned', {}, { moderationStatus: 'banned' }),
   resident('suspended', {}, { moderationStatus: 'suspended', suspendedUntil: new Date(Date.now() + 86_400_000) }),
+  resident('leaving', {}, { deletesAt: new Date(Date.now() + 86_400_000) }),
   resident('remote', {}, { handles: [{ handle: 'remote', host: 'elsewhere.example' }] }),
 ]
 

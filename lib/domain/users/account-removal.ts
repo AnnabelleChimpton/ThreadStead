@@ -48,6 +48,9 @@ import { isRestricted, MAX_REASON_LENGTH, MODERATION_SELECT } from "@/lib/domain
 import { tombstonesForUser } from "@/lib/domain/users/handle-tombstones";
 import { invalidateServedDids } from "@/lib/domain/bluesky/served-dids";
 import { recomputeSites, sitesTouchedBy } from "@/lib/indie-index/tiers";
+import { deleteObjects, keyFromPublicUrl } from "@/lib/storage/r2";
+import { ownUploadPrefixes } from "@/lib/storage/own-files";
+import { customSlotUrls } from "@/lib/pixel-homes/custom-art";
 
 export interface RingPostRemoval {
   postId: string;
@@ -370,6 +373,36 @@ function failureLines(posts: UserHubCleanup, rings: UserRingMemberships, leaves:
   ];
 }
 
+/**
+ * Their files in storage, from every row that points at one: media (with
+ * each song's sound bank), profile photos and banner, home art and its
+ * snapshots. Only keys under their own upload prefixes, so a URL that names
+ * someone else's file can never take it with them.
+ */
+async function accountFileKeys(userId: string): Promise<string[]> {
+  const [media, profile, home] = await Promise.all([
+    db.media.findMany({ where: { userId }, select: { thumbnailUrl: true, mediumUrl: true, fullUrl: true, soundBankUrl: true } }),
+    db.profile.findUnique({
+      where: { userId },
+      select: { avatarUrl: true, avatarFullUrl: true, avatarMediumUrl: true, avatarThumbnailUrl: true, bannerUrl: true },
+    }),
+    db.userHomeConfig.findUnique({ where: { userId }, select: { customAssets: true, snapshotUrl: true, snapshotCardUrl: true } }),
+  ]);
+  const urls = [
+    ...media.flatMap((m) => Object.values(m)),
+    ...Object.values(profile ?? {}),
+    ...customSlotUrls(home?.customAssets),
+    home?.snapshotUrl,
+    home?.snapshotCardUrl,
+  ];
+  const own = ownUploadPrefixes(userId);
+  const keys = urls.flatMap((url) => {
+    const key = url ? keyFromPublicUrl(url.split(/[?#]/)[0]) : null;
+    return key && own.some((prefix) => key.startsWith(prefix)) ? [key] : [];
+  });
+  return [...new Set(keys)];
+}
+
 /** Re-tier the Indie Index sites the account touched, once its signals are gone. */
 async function retierIndieSites(siteIds: string[]): Promise<void> {
   try {
@@ -381,12 +414,8 @@ async function retierIndieSites(siteIds: string[]): Promise<void> {
 
 /**
  * Hard-delete a banned account. Refuses (deletes nothing, changes nothing)
- * while it owns rings, unless forced. Then the hub cleanup: ring posts off,
- * rings left. Then one transaction that tombstones its username for good
- * (lib/domain/users/handle-tombstones.ts), writes the "delete"
- * ModerationAction row (it outlives the account, with userId nulled and the
- * handle kept), fixes local ring post and member counts, and deletes the
- * User (posts, memberships, sessions, UserDID and the rest cascade).
+ * while it owns rings, unless forced, then erases it (eraseAccount) with a
+ * "delete" ModerationAction row and its username tombstoned for good.
  */
 export async function deleteUserAccount({
   actorId,
@@ -418,33 +447,72 @@ export async function deleteUserAccount({
   }
 
   const note = reason?.trim() || undefined;
-  const posts = await removeUserPostsFromRingHub(userId, `Account removed by an admin${note ? `: ${note}` : ""}`);
+  return eraseAccount(userId, target.primaryHandle, rings, {
+    hubReason: `Account removed by an admin${note ? `: ${note}` : ""}`,
+    // Banned first, so this is a removal for abuse: the name is never given out again
+    removedForAbuse: true,
+    audit: { actorId, reason: note },
+    force,
+  });
+}
+
+export interface EraseOptions {
+  /** Why the hub takes the posts down, for its audit row. */
+  hubReason: string;
+  removedForAbuse: boolean;
+  /** An admin's delete leaves a ModerationAction row; a resident leaving doesn't. */
+  audit?: { actorId: string; reason?: string };
+  /** Delete even though a hub step failed or a ring still needs its owner. */
+  force?: boolean;
+}
+
+/**
+ * The hub cleanup (ring posts off, rings left), then one transaction that
+ * tombstones the username (lib/domain/users/handle-tombstones.ts), writes
+ * the audit row if any (it outlives the account, with userId nulled and the
+ * handle kept), fixes local ring post and member counts, removes the
+ * guestbook notes they signed on other pages and their email login tokens
+ * (neither has a relation to cascade), and deletes the User (posts,
+ * comments, memberships, sessions, UserDID and the rest cascade). Then their
+ * files leave storage. Deletes nothing, unless forced, when a hub step
+ * failed or an owned ring still has other members.
+ */
+export async function eraseAccount(
+  userId: string,
+  handle: string | null,
+  rings: UserRingMemberships,
+  { hubReason, removedForAbuse, audit, force = false }: EraseOptions
+): Promise<DeleteAccountResult> {
+  const posts = await removeUserPostsFromRingHub(userId, hubReason);
   const leaves = await leaveUserRingsOnHub(userId, rings.memberships);
   const report: AccountRemovalReport = {
     posts,
     memberships: rings.memberships,
-    ownedRings: owned,
+    ownedRings: ownedRings(rings.memberships),
     leaves,
     failures: failureLines(posts, rings, leaves),
   };
-  if (report.failures.length > 0 && !force) {
-    return { deleted: false, blockedBy: "hub_failures", handle: target.primaryHandle, report };
-  }
+  if (!force && report.failures.length > 0) return { deleted: false, blockedBy: "hub_failures", handle, report };
+  if (!force && leaves.some((l) => l.outcome === "still_owner")) return { deleted: false, blockedBy: "owns_rings", handle, report };
 
   const indieSites = await sitesTouchedBy(db, userId);
-  // Banned first, so this is a removal for abuse: the name is never given out again
-  const tombstones = await tombstonesForUser(db, userId, { removedForAbuse: true });
+  const files = await accountFileKeys(userId);
+  const tombstones = await tombstonesForUser(db, userId, { removedForAbuse });
   await db.$transaction([
     db.handleTombstone.createMany({ data: tombstones }),
-    db.moderationAction.create({
-      data: {
-        action: "delete",
-        userId,
-        userHandle: target.primaryHandle,
-        actorId,
-        reason: note?.slice(0, MAX_REASON_LENGTH) ?? null,
-      },
-    }),
+    ...(audit
+      ? [
+          db.moderationAction.create({
+            data: {
+              action: "delete",
+              userId,
+              userHandle: handle,
+              actorId: audit.actorId,
+              reason: audit.reason?.slice(0, MAX_REASON_LENGTH) ?? null,
+            },
+          }),
+        ]
+      : []),
     // Same as pages/api/posts/delete.ts: the cascade drops PostThreadRing
     // rows but not ThreadRing.postCount.
     db.$executeRaw`
@@ -465,10 +533,14 @@ export async function deleteUserAccount({
       FROM "ThreadRingMember" m
       WHERE m."threadRingId" = tr.id AND m."userId" = ${userId}
     `,
+    db.guestbookEntry.deleteMany({ where: { authorId: userId } }),
+    db.emailLoginToken.deleteMany({ where: { userId } }),
     db.user.delete({ where: { id: userId } }),
   ]);
   invalidateServedDids();
   await retierIndieSites(indieSites);
+  // After the commit: a file that won't delete is an orphan, logged, not a reason to keep the account
+  await deleteObjects(files, { context: `account:${userId}` });
 
-  return { deleted: true, handle: target.primaryHandle, report };
+  return { deleted: true, handle, report };
 }

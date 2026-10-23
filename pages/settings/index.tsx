@@ -47,6 +47,7 @@ import BlueskyHandleSettings from "@/components/features/bluesky/BlueskyHandleSe
 import YourAddress from "@/components/features/profile/YourAddress";
 import { STATUS_MAX } from "@/lib/domain/profile/status";
 import { layoutFields } from "@/lib/domain/profile/layout";
+import LeaveHomePageAgain from "@/components/features/account/LeaveHomePageAgain";
 
 // We'll need to extract blocks functionality into a component
 interface UserSettingsProps {
@@ -1699,6 +1700,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled, siteUr
                 <li><PixelIcon name="check" size={16} className="inline-block align-middle" /> Media library (photos, MIDI files)</li>
                 <li><PixelIcon name="check" size={16} className="inline-block align-middle" /> Profile and customization settings</li>
                 <li><PixelIcon name="check" size={16} className="inline-block align-middle" /> Social connections (followers, following)</li>
+                <li><PixelIcon name="check" size={16} className="inline-block align-middle" /> Guestbook notes you&apos;ve signed, chat messages and your DM conversations</li>
                 <li><PixelIcon name="check" size={16} className="inline-block align-middle" /> Account data and consent records</li>
               </ul>
             </div>
@@ -1760,6 +1762,8 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled, siteUr
               Manage Blocked Users & Communities →
             </Link>
           </div>
+
+          <LeaveHomePageAgain />
         </div>
       )
     },

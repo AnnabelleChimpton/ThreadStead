@@ -19,8 +19,8 @@ export default apiHandler(
     if (!handle) return res.status(404).json({ error: "not found" });
 
     const authorId = handle.user.id;
-    // A suspended or banned account's pages are gone, posts included.
-    if (await isUserRestricted(authorId)) return res.status(404).json({ error: "not found" });
+    // A suspended, banned or leaving account's pages are gone, posts included (for everyone but themselves).
+    if (viewer?.id !== authorId && (await isUserRestricted(authorId))) return res.status(404).json({ error: "not found" });
 
     const allowed = await getAllowedVisibilities(viewer?.id, authorId);
 

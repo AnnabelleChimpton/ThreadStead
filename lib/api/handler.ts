@@ -74,6 +74,8 @@ export interface ApiHandlerOptions {
    * cookie auth) and the auth check, and get ctx.user = null.
    */
   apiKey?: () => string | undefined;
+  /** A resident who is leaving may write here; elsewhere their writes read as signed out (getSessionUser). */
+  whileLeaving?: boolean;
 }
 
 type UserFor<O extends ApiHandlerOptions> = O extends { apiKey: () => string | undefined }
@@ -114,7 +116,7 @@ export function apiHandler<const O extends ApiHandlerOptions>(
   options: O,
   handler: ApiRouteHandler<O>
 ) {
-  const { methods, auth, csrf = true, rateLimit, schema, apiKey } = options;
+  const { methods, auth, csrf = true, rateLimit, schema, apiKey, whileLeaving } = options;
 
   return async function route(req: NextApiRequest, res: NextApiResponse): Promise<void> {
     const method = (req.method ?? 'GET').toUpperCase();
@@ -126,7 +128,7 @@ export function apiHandler<const O extends ApiHandlerOptions>(
       const viaApiKey = apiKey ? bearerMatches(req, apiKey()) : false;
 
       const needsSession = !viaApiKey && (auth !== 'none' || rateLimit !== undefined);
-      const user = needsSession ? await getSessionUser(req) : null;
+      const user = needsSession ? await getSessionUser(req, { whileLeaving }) : null;
 
       if (rateLimit && !(await rateLimitCheck(req, res, rateLimit, user?.id))) return;
 

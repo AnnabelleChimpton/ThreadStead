@@ -22,6 +22,7 @@ import ModerationDialog, { statusText, type ModeratedAccount, type ModerationSta
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import { useToast } from "@/contexts/ToastContext";
 import { useConfirm } from "@/contexts/ConfirmContext";
+import { leavingDay } from "@/components/features/account/leaving-day";
 
 // Collapsible Section Component
 function CollapsibleSection({
@@ -292,6 +293,7 @@ type User = {
   moderationStatus: ModerationStatus;
   suspendedUntil: string | null;
   moderationReason: string | null;
+  deletesAt: string | null;
 };
 
 type SiteConfig = {
@@ -1993,6 +1995,13 @@ We collect information you provide when creating an account..."
                             ) : (
                               <span className="font-bold text-red-800" title={user.moderationReason || undefined}>
                                 {statusText(user)}
+                              </span>
+                            )}
+                            {user.deletesAt && (
+                              <span className="block text-xs text-red-800">
+                                {new Date(user.deletesAt) <= new Date()
+                                  ? "Leaving, overdue: the delete is stuck (see server logs); it's forced a week after the date"
+                                  : `Leaving, deleted ${leavingDay(user.deletesAt)}`}
                               </span>
                             )}
                           </td>

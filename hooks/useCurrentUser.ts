@@ -6,6 +6,8 @@ export interface CurrentUser {
   did: string;
   role: UserRole;
   primaryHandle: string | null;
+  /** When their account goes, while they're leaving (lib/domain/users/leaving.ts) */
+  deletesAt?: string | null;
 }
 
 export interface UseCurrentUserResult {

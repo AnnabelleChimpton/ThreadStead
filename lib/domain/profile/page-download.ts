@@ -18,6 +18,7 @@
  * PAGE_DOWNLOAD_MAX_BYTES; pictures past the cap keep their web address.
  */
 import { createStoredZip, type ZipEntry } from '@/lib/utils/zip/stored-zip';
+import { ownUploadPrefixes } from '@/lib/storage/own-files';
 
 export const PAGE_DOWNLOAD_MAX_BYTES = 50 * 1024 * 1024;
 export const PAGE_DOWNLOAD_MAX_IMAGES = 200;
@@ -52,11 +53,6 @@ export interface PageDownload {
   leftOut: number;
 }
 
-/** Upload folders that hold only this person's files (pages/api/media/upload.ts, profile/upload-photo.ts, profile/upload-banner.ts) */
-function ownFolders(userId: string): string[] {
-  return [`media/${userId}/`, `profile-photos/${userId}/`, `profile-banners/${userId}/`];
-}
-
 /** Absolute web addresses in some HTML or CSS, each once, in order. */
 export function findUrls(text: string): string[] {
   const found = text.match(/https?:\/\/[^\s"'<>()\\`]+/g) ?? [];
@@ -75,7 +71,7 @@ export function ownImageKey(url: string, userId: string, storage: PageDownloadSt
   if (!/^[A-Za-z0-9._\-/]+$/.test(key) || key.split('/').some((part) => part === '..' || part === '.' || part === '')) {
     return null;
   }
-  return ownFolders(userId).some((folder) => key.startsWith(folder)) ? key : null;
+  return ownUploadPrefixes(userId).some((prefix) => key.startsWith(prefix)) ? key : null;
 }
 
 /** images/<folder>-<file>, kept unique */

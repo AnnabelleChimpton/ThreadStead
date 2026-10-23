@@ -10,7 +10,9 @@ export default apiHandler(
         id: user.id, 
         did: user.did, 
         role: user.role,
-        primaryHandle: user.primaryHandle ?? null 
+        primaryHandle: user.primaryHandle ?? null,
+        // Set while their account is set to be deleted (lib/domain/users/leaving.ts)
+        deletesAt: user.deletesAt ?? null,
       },
     });
   }

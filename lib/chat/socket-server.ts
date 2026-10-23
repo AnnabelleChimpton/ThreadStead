@@ -27,6 +27,7 @@ const CHAT_USER_SELECT = {
   id: true,
   primaryHandle: true,
   role: true,
+  deletesAt: true,
   profile: { select: { displayName: true, avatarUrl: true, avatarThumbnailUrl: true } },
 } satisfies Prisma.UserSelect;
 
@@ -56,11 +57,15 @@ const SLOW_DOWN = {
   sustained: "You've sent too many messages. Please wait a moment.",
 };
 
-/** The signed-in user behind a handshake, or null (guest). Never throws. */
+/**
+ * The signed-in user behind a handshake, or null (guest). Never throws. Someone
+ * leaving (lib/domain/users/leaving.ts) is hidden from everyone else, so here
+ * they read like a guest and can't post or DM.
+ */
 async function resolveChatUser(headers: IncomingMessage["headers"]): Promise<ChatMember | null> {
   try {
     const user = await getSessionUser({ headers }, { select: CHAT_USER_SELECT });
-    return user ? { ...user, isGuest: false } : null;
+    return user && !user.deletesAt ? { ...user, isGuest: false } : null;
   } catch (error) {
     console.error("Session validation error:", error);
     return null;
