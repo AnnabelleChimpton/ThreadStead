@@ -1,4 +1,5 @@
 import { getBadgeTemplate, BADGE_TEMPLATES, type BadgeTemplate } from './domain/threadrings/badges';
+import { escapeHtml } from '@/lib/utils/sanitization/escape';
 
 export interface BadgeGenerationOptions {
   title: string;
@@ -166,9 +167,15 @@ async function generateBadgeImageDataUrl(
 ): Promise<string> {
   const sharp = (await import('sharp')).default;
   
-  // Truncate title for badge display
-  const displayTitle = title.length > 12 ? title.substring(0, 11) + '…' : title;
-  const displaySubtitle = subtitle && subtitle.length > 10 ? subtitle.substring(0, 9) + '…' : subtitle;
+  // Truncate title for badge display. Escaped, so "Dungeons & Dragons" draws
+  // (a bare & made the SVG invalid and the ring got no badge) and a name
+  // can't add markup to the SVG
+  const displayTitle = escapeHtml(title.length > 12 ? title.substring(0, 11) + '…' : title);
+  const displaySubtitle = subtitle && escapeHtml(subtitle.length > 10 ? subtitle.substring(0, 9) + '…' : subtitle);
+  // Owners pick these; anything but a hex colour gets the defaults
+  const hex = (color: string, fallback: string) => (/^#[0-9a-f]{3}([0-9a-f]{3})?$/i.test(color) ? color : fallback);
+  backgroundColor = hex(backgroundColor, '#4A90E2');
+  textColor = hex(textColor, '#FFFFFF');
   
   // Create SVG with text
   const fontSize = subtitle ? 8 : 10;
