@@ -260,7 +260,9 @@ describe('post submission (the `{}` regression)', () => {
   })
 
   test('the post appears in the ring feed', async () => {
-    const feed = await client.getRingFeed(ringSlug)
+    // Always with an option: with none, getRingFeed signs `/feed?` but fetch
+    // sends `/feed`, and the hub now checks the signature on feed reads.
+    const feed = await client.getRingFeed(ringSlug, { limit: 20 })
     const post = feed.posts.find((p) => p.uri === POST_URI)
     expect(post).toBeDefined()
     expect(post!.status).toBe('ACCEPTED')
@@ -330,7 +332,7 @@ describe('posting into rings from the composer (create.ts → postToRings)', () 
     expect(results[1]).toMatchObject({ slug: 'itest-never-joined', status: 'failed', reason: NOT_A_MEMBER_REASON })
     postedRefIds.push(results[0].hubPostId!)
 
-    const feed = await client.getRingFeed(ringSlug)
+    const feed = await client.getRingFeed(ringSlug, { limit: 20 })
     expect(feed.posts.find((p) => p.id === results[0].hubPostId)?.uri).toBe(`${HOST}/resident/itest/post/composer-1`)
   })
 
@@ -340,7 +342,7 @@ describe('posting into rings from the composer (create.ts → postToRings)', () 
       buildSubmission: () => submission('composer-friends-only'),
     })
     expect(results).toEqual([{ slug: ringSlug, name: ringSlug, status: 'failed', reason: PUBLIC_ONLY_REASON }])
-    const feed = await client.getRingFeed(ringSlug)
+    const feed = await client.getRingFeed(ringSlug, { limit: 20 })
     expect(feed.posts.some((p) => p.uri.endsWith('/composer-friends-only'))).toBe(false)
   })
 
@@ -426,7 +428,7 @@ describe('sending an existing post to a ring it missed (POST /api/posts/rings �
     expect(mockLocalDb.links).toEqual([expect.objectContaining({ postId: post.id, threadRingId: `local-${ringSlug}` })])
 
     // The ring feed shows it with the metadata built from the post.
-    const feed = await client.getRingFeed(ringSlug)
+    const feed = await client.getRingFeed(ringSlug, { limit: 20 })
     const ref = feed.posts.find((p) => p.id === hubPostId)
     expect(ref?.uri).toMatch(/\/resident\/itest2\/post\/retry-1$/)
     expect(ref?.metadata).toMatchObject({ title: post.title, publishedAt: '2026-10-17T12:00:00.000Z' })
@@ -644,7 +646,7 @@ describe('orphaned PostRefs reconcile (A3)', () => {
 
     const after = await scan()
     expect(after.orphans).toEqual([])
-    const feed = await client.getRingFeed(ringSlug)
+    const feed = await client.getRingFeed(ringSlug, { limit: 20 })
     expect(feed.posts.find((p) => p.uri === LIVE_URI)).toBeDefined()
   })
 })
@@ -1225,6 +1227,31 @@ describe('related-ring feeds show only rings the reader could open (scope=childr
     expect((await feedUris(pub, QUIET, 'family')).sort()).toEqual([postIn(PARENT), postIn(QUIET)].sort())
     expect(await feedUris(pub, LOWER, 'parent')).toEqual([])
   })
+
+  test("a private ring's ACTIVE members read its feed, members and lineage, signed; anyone else gets 404", async () => {
+    const member = makeTestClient('second')
+    expect((await member.getRingFeed(SECRET, { limit: 20 })).posts.map((p) => p.uri)).toEqual([postIn(SECRET)])
+    expect((await member.getRingMembers(SECRET)).members.map((m) => m.actorDid)).toEqual([getRuntime().secondActorDid])
+    expect((await member.getRingLineage(SECRET)).ring.slug).toBe(SECRET)
+    // Unsigned, or signed by someone who isn't in it (the main actor)
+    for (const reader of [makePublicTestClient(), client]) {
+      await expect(reader.getRingFeed(SECRET, { limit: 20 })).rejects.toMatchObject({ status: 404 })
+      await expect(reader.getRingMembers(SECRET)).rejects.toMatchObject({ status: 404 })
+      await expect(reader.getRingLineage(SECRET)).rejects.toMatchObject({ status: 404 })
+    }
+  })
+
+  test('signed, the related-ring scopes and lineage include a private ring for its members only', async () => {
+    const member = makeTestClient('second')
+    expect((await feedUris(member, PARENT, 'children')).sort()).toEqual([postIn(QUIET), postIn(SECRET)].sort())
+    expect(await feedUris(member, LOWER, 'parent')).toEqual([postIn(SECRET)])
+    expect(await feedUris(client, PARENT, 'children')).toEqual([postIn(QUIET)])
+
+    const forks = async (reader: RingHubClient) => (await reader.getRingLineage(PARENT)).descendants.map((d) => d.slug).sort()
+    expect(await forks(member)).toEqual([QUIET, SECRET].sort())
+    expect(await forks(client)).toEqual([QUIET])
+    expect(await forks(makePublicTestClient())).toEqual([QUIET])
+  })
 })
 
 describe('badges (the `badge: {}` regression)', () => {
@@ -1244,7 +1271,7 @@ describe('badges (the `badge: {}` regression)', () => {
 
 describe('post removal and leave', () => {
   test('curatePost(remove) as author removes the post', async () => {
-    const feed = await client.getRingFeed(ringSlug)
+    const feed = await client.getRingFeed(ringSlug, { limit: 20 })
     const post = feed.posts.find((p) => p.uri === POST_URI)
     // PostRef.id is optional in the client type (some local transformers build
     // PostRefs without it), but the hub always sends it — assert before using.
@@ -1255,10 +1282,9 @@ describe('post removal and leave', () => {
   })
 
   test('the removed post disappears from the feed', async () => {
-    // The feed route has no authenticateActor preHandler, so every request is
-    // anonymous and only ACCEPTED posts are visible — REMOVED posts vanish
-    // for members and non-members alike.
-    const feed = await client.getRingFeed(ringSlug)
+    // Signed by a member: the feed is ACCEPTED posts unless a member asks for
+    // another status, so REMOVED posts vanish for members and non-members alike.
+    const feed = await client.getRingFeed(ringSlug, { limit: 20 })
     expect(feed.posts.find((p) => p.uri === POST_URI)).toBeUndefined()
   })
 
