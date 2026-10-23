@@ -307,7 +307,12 @@ export class RingHubClient {
     criteria?: string;
     badgesUpdated?: number; // Number of existing badges regenerated
   }> {
-    return this.put(`/trp/rings/${slug}/badge`, updates)
+    const { description, criteria, ...rest } = updates
+    return this.put(`/trp/rings/${slug}/badge`, {
+      ...rest,
+      // The hub reads these nested; sent flat, its schema quietly dropped them
+      ...((description || criteria) && { badgeMetadata: { description, criteria } }),
+    })
   }
 
   /**

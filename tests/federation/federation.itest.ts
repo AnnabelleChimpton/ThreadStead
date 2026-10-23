@@ -569,6 +569,30 @@ describe('owner member management (audit 0.8)', () => {
   })
 })
 
+describe('a ring owner updates its badge (badge manager → PUT /trp/rings/:slug/badge)', () => {
+  test('the new images are stored, and the ring reads them back', async () => {
+    // The exact body pages/tr/[slug]/badge-manager.tsx sends through /api/threadrings/[slug]/update-badge
+    const result = await client.updateRingBadge(FORK_SLUG, {
+      badgeImageUrl: 'https://cdn.example/media/u1/1_medium.png',
+      badgeImageHighResUrl: 'https://cdn.example/media/u1/1_full.png',
+      description: `Badge for ${FORK_SLUG} ThreadRing`,
+      criteria: 'Active participation in the ThreadRing community',
+      updateExistingBadges: true,
+    })
+    expect(result.success).toBe(true)
+    clearCache()
+    const ring = await client.getRing(FORK_SLUG)
+    expect(ring?.badgeImageUrl).toBe('https://cdn.example/media/u1/1_medium.png')
+    expect(ring?.badgeImageHighResUrl).toBe('https://cdn.example/media/u1/1_full.png')
+    // The owner's own badge was redone with the description and criteria (sent as badgeMetadata)
+    const owners = (await client.getActorBadges(actorDid)).badges.find((b) => b.ring.slug === FORK_SLUG)
+    expect((owners?.badge as any).credentialSubject.achievement).toMatchObject({
+      description: `Badge for ${FORK_SLUG} ThreadRing`,
+      criteria: { narrative: 'Active participation in the ThreadRing community' },
+    })
+  })
+})
+
 describe('orphaned PostRefs reconcile (A3)', () => {
   // URIs on a host the scan treats as "this instance"; the local DB is
   // stubbed by existingPostIds. Everything hub-side is real.

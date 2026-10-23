@@ -5,102 +5,60 @@ import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface BadgeUploadProps {
   onUploadSuccess: (badgeUrls: { badgeImageUrl: string; badgeImageHighResUrl: string }) => void;
+  /** While a picked image is still on its way up (the badge manager holds Save until it's there) */
+  onUploadingChange?: (uploading: boolean) => void;
   disabled?: boolean;
   ringSlug: string;
 }
 
-export default function BadgeUpload({ onUploadSuccess, disabled = false, ringSlug }: BadgeUploadProps) {
+const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+const MAX_BYTES = 10 * 1024 * 1024;
+
+/**
+ * Picking (or dropping) an image uploads it straight away. It used to wait
+ * for a second "Upload" button, and a Save pressed before that one quietly
+ * made a template badge instead.
+ */
+export default function BadgeUpload({ onUploadSuccess, onUploadingChange, disabled = false, ringSlug }: BadgeUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const validateImageFile = (file: File): boolean => {
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-    return allowedTypes.includes(file.type) || file.name.toLowerCase().endsWith('.jpg') ||
-      file.name.toLowerCase().endsWith('.jpeg') || file.name.toLowerCase().endsWith('.png') ||
-      file.name.toLowerCase().endsWith('.gif') || file.name.toLowerCase().endsWith('.webp');
+  const setBusy = (busy: boolean) => {
+    setUploading(busy);
+    onUploadingChange?.(busy);
   };
 
-  const handleFileSelect = (file: File) => {
-    if (!file) return;
-
-    if (!validateImageFile(file)) {
-      setError('Please select a valid image file (JPEG, PNG, GIF, or WebP)');
+  const upload = async (file: File) => {
+    if (!IMAGE_TYPES.includes(file.type) && !/\.(jpe?g|png|gif|webp)$/i.test(file.name)) {
+      setError('That needs to be a PNG, JPEG, GIF or WebP image.');
+      return;
+    }
+    if (file.size > MAX_BYTES) {
+      setError('A badge image has to be under 10MB.');
       return;
     }
 
-    if (file.size > 10 * 1024 * 1024) { // 10MB limit for badges
-      setError('Badge image must be less than 10MB');
-      return;
-    }
-
-    setSelectedFile(file);
+    setBusy(true);
     setError(null);
-
-    // Create preview
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setPreviewUrl(e.target?.result as string);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragOver(false);
-
-    const files = e.dataTransfer.files;
-    if (files.length > 0) {
-      handleFileSelect(files[0]);
-    }
-  };
-
-  const handleUpload = async () => {
-    if (!selectedFile) return;
-
-    setUploading(true);
-    setError(null);
-
     try {
-      const token = await requestCapability('media');
-
-      // Upload using media API with badge context
       const formData = new FormData();
-      formData.append('file', selectedFile);
-      formData.append('cap', token);
+      formData.append('file', file);
+      formData.append('cap', await requestCapability('media'));
       formData.append('context', 'threadring_badge');
-      formData.append('ringSlug', ringSlug); // Include ring slug for badge processing
+      formData.append('ringSlug', ringSlug);
 
-      const response = await csrfFetch('/api/media/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      const result = await response.json();
-
-      if (response.ok) {
-        // For badges, we need both standard and high-res URLs
-        onUploadSuccess({
-          badgeImageUrl: result.media.mediumUrl, // Use medium for standard badge
-          badgeImageHighResUrl: result.media.fullUrl // Use full for high-res badge
-        });
-
-        // Reset form
-        setSelectedFile(null);
-        setPreviewUrl(null);
-        if (fileInputRef.current) {
-          fileInputRef.current.value = '';
-        }
-      } else {
-        throw new Error(result.error || 'Upload failed');
-      }
-    } catch (err: any) {
-      setError(err.message || 'Failed to upload badge image');
+      const response = await csrfFetch('/api/media/upload', { method: 'POST', body: formData });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || "Couldn't upload that image. Try again in a moment.");
+      // The badge-sized copy and its 4× version (pages/api/media/upload.ts)
+      onUploadSuccess({ badgeImageUrl: result.media.mediumUrl, badgeImageHighResUrl: result.media.fullUrl });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't upload that image. Try again in a moment.");
     } finally {
-      setUploading(false);
+      setBusy(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -112,71 +70,31 @@ export default function BadgeUpload({ onUploadSuccess, disabled = false, ringSlu
             ? 'border-thread-pine bg-thread-cream'
             : 'border-thread-sage hover:border-thread-pine'
           }`}
-        onDrop={handleDrop}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragOver(false);
+          const file = e.dataTransfer.files[0];
+          if (file && !uploading && !disabled) upload(file);
+        }}
         onDragOver={(e) => {
           e.preventDefault();
           setDragOver(true);
         }}
         onDragLeave={() => setDragOver(false)}
       >
-        {selectedFile ? (
-          <div className="space-y-4">
-            {previewUrl && (
-              <div className="flex justify-center">
-                <img
-                  src={previewUrl}
-                  alt="Badge preview"
-                  className="max-w-32 max-h-16 object-contain border border-thread-sage"
-                  style={{ imageRendering: 'pixelated' }}
-                />
-              </div>
-            )}
-            <div>
-              <p className="font-medium text-thread-pine">{selectedFile.name}</p>
-              <p className="text-sm text-thread-sage">
-                {(selectedFile.size / 1024).toFixed(1)} KB
-              </p>
-            </div>
-            <div className="flex gap-2 justify-center">
-              <button
-                onClick={handleUpload}
-                disabled={uploading || disabled}
-                className="px-4 py-2 border border-black bg-green-200 hover:bg-green-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] disabled:opacity-50 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[2px_2px_0_#000]"
-              >
-                {uploading ? <><PixelIcon name="reload" /> Uploading...</> : <><PixelIcon name="zap" /> Upload Badge</>}
-              </button>
-              <button
-                onClick={() => {
-                  setSelectedFile(null);
-                  setPreviewUrl(null);
-                  if (fileInputRef.current) {
-                    fileInputRef.current.value = '';
-                  }
-                }}
-                disabled={uploading}
-                className="px-4 py-2 border border-black bg-gray-200 hover:bg-gray-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] disabled:opacity-50"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div>
-            <p className="text-thread-pine font-medium mb-2">
-              Drop your badge image here or click to browse
-            </p>
-            <p className="text-sm text-thread-sage mb-4">
-              Best results with 88x31 pixels. PNG, JPEG, GIF, or WebP. Max 10MB.
-            </p>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={disabled}
-              className="px-4 py-2 border border-black bg-white hover:bg-yellow-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] disabled:opacity-50"
-            >
-              Choose Badge Image
-            </button>
-          </div>
-        )}
+        <p className="text-thread-pine font-medium mb-2">
+          Drop your badge image here or click to browse
+        </p>
+        <p className="text-sm text-thread-sage mb-4">
+          Best results with 88x31 pixels. PNG, JPEG, GIF, or WebP. Max 10MB.
+        </p>
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={disabled || uploading}
+          className="px-4 py-2 border border-black bg-white hover:bg-yellow-100 shadow-[2px_2px_0_#000] font-medium transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] disabled:opacity-50"
+        >
+          {uploading ? <><PixelIcon name="reload" /> Uploading...</> : 'Choose Badge Image'}
+        </button>
       </div>
 
       {/* Hidden File Input */}
@@ -186,7 +104,7 @@ export default function BadgeUpload({ onUploadSuccess, disabled = false, ringSlu
         accept="image/*"
         onChange={(e) => {
           const file = e.target.files?.[0];
-          if (file) handleFileSelect(file);
+          if (file) upload(file);
         }}
         className="hidden"
       />

@@ -54,7 +54,9 @@ export default function BadgeManagerPage({ ring, user, canManage, hubUnavailable
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  // Which badge Save makes: a template, custom colors, or an image of their own
   const [previewMode, setPreviewMode] = useState<'template' | 'custom' | 'upload'>('template');
+  const [uploading, setUploading] = useState(false);
 
   // Access control based on server-side permission check
   const canManageBadge = canManage;
@@ -85,6 +87,8 @@ export default function BadgeManagerPage({ ring, user, canManage, hubUnavailable
           };
           setCurrentBadge(badge);
           setEditedBadge(badge);
+          // A badge made from neither a template nor colors is an image of their own
+          if (!badge.templateId && !badge.backgroundColor && badge.customImageUrl) setPreviewMode('upload');
           return;
         }
       }
@@ -108,19 +112,23 @@ export default function BadgeManagerPage({ ring, user, canManage, hubUnavailable
     setSuccess(null);
 
     try {
-      // Step 1: Generate the badge (either from template or use custom image)
-      let generatedBadgeUrl: string | undefined;
-      let generatedHighResUrl: string | undefined;
+      // Step 1: The badge image: their own (upload mode), else one generated from the template or colors
+      let badgeUrl: string | undefined;
+      let highResUrl: string | undefined;
+      const ownImage = previewMode === 'upload';
 
-      if (editedBadge.customImageUrl) {
-        // User provided custom image URL - validate and use it
-        const isValidUrl = editedBadge.customImageUrl.startsWith('https://');
-        if (!isValidUrl) {
+      if (ownImage) {
+        if (!editedBadge.customImageUrl) {
+          setError('Pick an image first.');
+          return;
+        }
+        if (!editedBadge.customImageUrl.startsWith('https://')) {
           setError('Custom image URL must be a valid HTTPS URL');
           return;
         }
-        generatedBadgeUrl = editedBadge.customImageUrl;
-        generatedHighResUrl = editedBadge.customImageHighResUrl;
+        badgeUrl = editedBadge.customImageUrl;
+        // A pasted URL has no 4× copy: the same image stands in, rather than the old badge's
+        highResUrl = editedBadge.customImageHighResUrl || editedBadge.customImageUrl;
       } else {
         // Generate badge from template/colors and upload to S3
         const response = await csrfFetch(`/api/threadrings/${ring.slug}/generate-and-upload-badge`, {
@@ -144,19 +152,19 @@ export default function BadgeManagerPage({ ring, user, canManage, hubUnavailable
         }
 
         const uploadResult = await response.json();
-        generatedBadgeUrl = uploadResult.badgeImageUrl;
-        generatedHighResUrl = uploadResult.badgeImageHighResUrl;
+        badgeUrl = uploadResult.badgeImageUrl;
+        highResUrl = uploadResult.badgeImageHighResUrl;
       }
 
       // Step 2: Update RingHub with the generated/provided image URL
       const ringHubUpdateData: any = {};
 
-      if (generatedBadgeUrl) {
-        ringHubUpdateData.badgeImageUrl = generatedBadgeUrl;
+      if (badgeUrl) {
+        ringHubUpdateData.badgeImageUrl = badgeUrl;
       }
 
-      if (generatedHighResUrl) {
-        ringHubUpdateData.badgeImageHighResUrl = generatedHighResUrl;
+      if (highResUrl) {
+        ringHubUpdateData.badgeImageHighResUrl = highResUrl;
       }
 
       if (editedBadge.description?.trim()) {
@@ -185,10 +193,11 @@ export default function BadgeManagerPage({ ring, user, canManage, hubUnavailable
         const localBadgeData = {
           title: editedBadge.title || ring.name,
           subtitle: editedBadge.subtitle,
-          templateId: editedBadge.templateId || null,
-          backgroundColor: editedBadge.backgroundColor || null,
-          textColor: editedBadge.textColor || null,
-          imageUrl: editedBadge.customImageUrl || generatedBadgeUrl,
+          // Neither, for an image of their own: that's how the next visit knows it's one
+          templateId: ownImage ? null : editedBadge.templateId || null,
+          backgroundColor: ownImage ? null : editedBadge.backgroundColor || null,
+          textColor: ownImage ? null : editedBadge.textColor || null,
+          imageUrl: badgeUrl,
           isActive: true
         };
 
@@ -202,8 +211,9 @@ export default function BadgeManagerPage({ ring, user, canManage, hubUnavailable
 
         const finalBadge = {
           ...editedBadge,
-          customImageUrl: editedBadge.customImageUrl || generatedBadgeUrl,
-          customImageHighResUrl: editedBadge.customImageHighResUrl || generatedHighResUrl
+          ...(ownImage && { templateId: undefined, backgroundColor: undefined, textColor: undefined }),
+          customImageUrl: badgeUrl,
+          customImageHighResUrl: highResUrl
         };
 
         setCurrentBadge(finalBadge as BadgeDesign);
@@ -231,9 +241,7 @@ export default function BadgeManagerPage({ ring, user, canManage, hubUnavailable
         ...editedBadge,
         templateId: template.id,
         backgroundColor: undefined,
-        textColor: undefined,
-        customImageUrl: undefined,
-        customImageHighResUrl: undefined
+        textColor: undefined
       });
       setPreviewMode('template');
     }
@@ -243,7 +251,7 @@ export default function BadgeManagerPage({ ring, user, canManage, hubUnavailable
     const badge: any = {
       title: editedBadge.title || ring.name,
       subtitle: editedBadge.subtitle,
-      imageUrl: editedBadge.customImageUrl,
+      imageUrl: previewMode === 'upload' ? editedBadge.customImageUrl : undefined,
       isGenerated: false,
       isActive: true
     };
@@ -486,14 +494,15 @@ export default function BadgeManagerPage({ ring, user, canManage, hubUnavailable
                       <h4 className="font-bold text-lg mb-3">Upload Badge Image</h4>
                       <BadgeUpload
                         ringSlug={ring.slug}
+                        onUploadingChange={setUploading}
                         onUploadSuccess={(badgeUrls) => {
-                          setEditedBadge({
-                            ...editedBadge,
+                          // The upload took a moment: keep anything typed meanwhile
+                          setEditedBadge((badge) => ({
+                            ...badge,
                             customImageUrl: badgeUrls.badgeImageUrl,
-                            customImageHighResUrl: badgeUrls.badgeImageHighResUrl,
-                            templateId: undefined
-                          });
-                          setSuccess('Badge image uploaded.');
+                            customImageHighResUrl: badgeUrls.badgeImageHighResUrl
+                          }));
+                          setSuccess('Image uploaded. Save to use it as the badge.');
                         }}
                         disabled={isLoading}
                       />
@@ -588,10 +597,10 @@ export default function BadgeManagerPage({ ring, user, canManage, hubUnavailable
                   <div className="flex gap-3 pt-4">
                     <button
                       onClick={handleSave}
-                      disabled={isLoading}
+                      disabled={isLoading || uploading}
                       className="px-6 py-2 border border-black bg-green-200 hover:bg-green-100 shadow-[2px_2px_0_#000] font-bold transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_#000] disabled:opacity-50 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[2px_2px_0_#000]"
                     >
-                      {isLoading ? 'Generating & Uploading...' : 'Generate & Update Badge'}
+                      {isLoading ? 'Saving...' : uploading ? 'Uploading...' : 'Save badge'}
                     </button>
                     {isEditing && (
                       <button
