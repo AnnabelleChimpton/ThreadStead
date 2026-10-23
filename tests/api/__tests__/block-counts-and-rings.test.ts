@@ -287,9 +287,10 @@ describe('ring feeds', () => {
     expect((await call(myRingsHandler, { limit: '20' }, 'friend')).body.posts.map((p: any) => p.id)).toEqual(['h1', 'h2', 'h4', 'h5', 'h6', 'h7'])
   })
 
-  test('trending hides blocked people for signed-in viewers only', async () => {
+  test('trending hides blocked people for signed-in viewers only, and notices for everyone', async () => {
     expect((await call(trendingHandler, {}, 'me')).body.posts.map((p: any) => p.id)).toEqual(['h1', 'h6', 'h7'])
-    expect((await call(trendingHandler, {}, null)).body.posts).toHaveLength(7)
+    // Everything but the one notice (h3)
+    expect((await call(trendingHandler, {}, null)).body.posts).toHaveLength(6)
   })
 
   test('a ring’s own feed leaves out the blocked person’s posts and fixes the total', async () => {
