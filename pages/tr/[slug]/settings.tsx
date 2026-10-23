@@ -15,6 +15,7 @@ import ThreadRingBlockManager from "../../../components/core/threadring/ThreadRi
 import { csrfFetch } from "@/lib/api/client/csrf-fetch";
 import { PixelIcon } from "../../../components/ui/PixelIcon";
 import { useConfirm } from "@/contexts/ConfirmContext";
+import { RING_THEMES, ringThemeHex } from "@/lib/rings/theme";
 
 interface ThreadRingSettingsPageProps {
   siteConfig: SiteConfig;
@@ -53,7 +54,7 @@ export default function ThreadRingSettingsPage({
     postPolicy: ring?.postPolicy || "members",
     curatorNote: ring?.curatorNote || "",
     bannerUrl: ring?.bannerUrl || "",
-    themeColor: ring?.themeColor || "thread-pine"
+    themeColor: ringThemeHex(ring?.themeColor) || RING_THEMES[0].hex
   });
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -263,27 +264,22 @@ export default function ThreadRingSettingsPage({
                     Theme Color
                   </label>
                   <div className="flex gap-2 flex-wrap">
-                    {[
-                      { id: 'thread-pine', name: 'Pine', hex: '#2C5F2D' },
-                      { id: 'thread-sage', name: 'Sage', hex: '#97BC62' },
-                      { id: 'thread-clay', name: 'Clay', hex: '#D4A373' },
-                      { id: 'thread-stone', name: 'Stone', hex: '#A9A9A9' },
-                      { id: 'thread-ocean', name: 'Ocean', hex: '#4A90E2' },
-                      { id: 'thread-berry', name: 'Berry', hex: '#C2185B' },
-                    ].map((color) => (
+                    {RING_THEMES.map((color) => (
                       <button
                         key={color.id}
                         type="button"
-                        onClick={() => handleChange("themeColor", color.id)}
-                        className={`w-8 h-8 rounded-full border-2 ${formData.themeColor === color.id ? 'border-black ring-2 ring-offset-2 ring-black' : 'border-transparent'
+                        onClick={() => handleChange("themeColor", color.hex)}
+                        className={`w-8 h-8 rounded-full border-2 ${formData.themeColor === color.hex ? 'border-black ring-2 ring-offset-2 ring-black' : 'border-transparent'
                           }`}
                         style={{ backgroundColor: color.hex }}
                         title={color.name}
+                        aria-label={color.name}
+                        aria-pressed={formData.themeColor === color.hex}
                       />
                     ))}
                   </div>
                   <div className="mt-2 text-sm text-gray-600">
-                    Selected: <span className="font-medium">{formData.themeColor}</span>
+                    Selected: <span className="font-medium">{RING_THEMES.find((color) => color.hex === formData.themeColor)?.name ?? formData.themeColor}</span>
                   </div>
                 </div>
               </div>

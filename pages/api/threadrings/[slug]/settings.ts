@@ -5,6 +5,7 @@ import { withThreadRingSupport } from "@/lib/api/ringhub/ringhub-middleware";
 import { AuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
 import { withCsrfProtection } from "@/lib/server/http/csrf";
 import { withRateLimit } from "@/lib/server/http/rate-limit";
+import { ringThemeHex } from "@/lib/rings/theme";
 
 // Apply CSRF protection and rate limiting
 export default withRateLimit('threadring_operations')(
@@ -74,6 +75,11 @@ export default withRateLimit('threadring_operations')(
         return res.status(400).json({ error: "Invalid visibility" });
       }
 
+      // Only a colour: it goes into the ring page's stylesheet
+      if (themeColor !== undefined && themeColor !== "" && !ringThemeHex(themeColor)) {
+        return res.status(400).json({ error: "Theme colour must be a colour like #2e4b3f" });
+      }
+
       if (postPolicy !== undefined && !["open", "members", "curated", "closed"].includes(postPolicy)) {
         return res.status(400).json({ error: "Invalid post policy" });
       }
@@ -115,7 +121,7 @@ export default withRateLimit('threadring_operations')(
             if (postPolicy !== undefined) updates.postPolicy = postPolicyMap[postPolicy as keyof typeof postPolicyMap];
             if (curatorNote !== undefined) updates.curatorNote = curatorNote.trim() || undefined;
             if (bannerUrl !== undefined) updates.bannerUrl = bannerUrl.trim() || undefined;
-            if (themeColor !== undefined) updates.themeColor = themeColor.trim() || undefined;
+            if (themeColor !== undefined) updates.themeColor = ringThemeHex(themeColor) || undefined;
             if (badgeImageUrl !== undefined) updates.badgeImageUrl = badgeImageUrl;
             if (badgeImageHighResUrl !== undefined) updates.badgeImageHighResUrl = badgeImageHighResUrl;
 
@@ -200,7 +206,7 @@ export default withRateLimit('threadring_operations')(
         if (visibility !== undefined) updateData.visibility = visibility;
         if (curatorNote !== undefined) updateData.curatorNote = curatorNote.trim() || null;
         if (bannerUrl !== undefined) updateData.bannerUrl = bannerUrl.trim() || null;
-        if (themeColor !== undefined) updateData.themeColor = themeColor.trim() || null;
+        if (themeColor !== undefined) updateData.themeColor = ringThemeHex(themeColor);
         // Note: postPolicy, shortCode, and badge URLs not supported in local database
 
         // Update the ThreadRing

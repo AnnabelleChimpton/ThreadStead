@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import PageMeta from "@/components/ui/layout/PageMeta";
 import { ringShareImage } from "@/lib/share-images";
+import { ringThemeHex } from "@/lib/rings/theme";
 import Layout from "../../components/ui/layout/Layout";
 import { getSiteConfig, SiteConfig } from "@/lib/config/site/dynamic";
 import { GetServerSideProps } from "next";
@@ -915,6 +916,7 @@ export default function ThreadRingPage({ siteConfig, ring, error, cameFrom = nul
     createdAt: ring.createdAt
   });
   const feedUrl = ring.visibility === 'public' ? ringFeedUrl(ring.slug) : undefined;
+  const themeHex = ringThemeHex(ring.themeColor);
 
   // Check if this is The Spool
   if (ring.isSystemRing) {
@@ -949,19 +951,17 @@ export default function ThreadRingPage({ siteConfig, ring, error, cameFrom = nul
         />
       </PageMeta>
 
-      {ring.themeColor && (
+      {/* The ring's own accent, on its page only (never the site chrome) */}
+      {themeHex && (
         <style jsx global>{`
-          :root {
-            --ring-theme-color: ${ring.themeColor};
+          .tr-page-container .text-thread-pine {
+            color: ${themeHex} !important;
           }
-          .text-thread-pine {
-            color: var(--ring-theme-color) !important;
+          .tr-page-container .bg-thread-pine {
+            background-color: ${themeHex} !important;
           }
-          .bg-thread-pine {
-            background-color: var(--ring-theme-color) !important;
-          }
-          .border-thread-pine {
-            border-color: var(--ring-theme-color) !important;
+          .tr-page-container .border-thread-pine {
+            border-color: ${themeHex} !important;
           }
         `}</style>
       )}
