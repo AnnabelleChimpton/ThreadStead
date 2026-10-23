@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { servedDidFor } from "@/lib/domain/bluesky/served-dids";
-import { isValidLabel } from "@/lib/subdomains/host";
+import { isValidLabel, requestedLabel } from "@/lib/subdomains/host";
 
 /**
  * https://<label>.homepageagain.com/.well-known/atproto-did, rewritten here
@@ -13,7 +13,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.setHeader("Allow", "GET, HEAD");
     return res.status(405).end();
   }
-  const label = typeof req.query.label === "string" ? req.query.label : "";
+  const label = requestedLabel(req);
   res.setHeader("Content-Type", "text/plain; charset=utf-8");
   // Browser-based atproto clients resolve handles with fetch
   res.setHeader("Access-Control-Allow-Origin", "*");

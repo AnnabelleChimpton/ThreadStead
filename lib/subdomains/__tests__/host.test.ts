@@ -7,6 +7,7 @@
 import {
   INFRA_LABELS,
   residentAddress,
+  requestedLabel,
   residentApex,
   routeSubdomainRequest,
   subdomainLabelFor,
@@ -104,5 +105,15 @@ describe('labels', () => {
     for (const name of ['cdn', 'staging', 'postmaster', 'noreply', 'autodiscover', 'neighborhood', 'bsky', 'shop', 'accounts']) {
       expect(validateUsername(name)).toMatchObject({ ok: false, code: 'reserved' })
     }
+  })
+})
+
+describe('requestedLabel', () => {
+  test("middleware's header first, then the path's [label], lowercased; junk is empty", () => {
+    expect(requestedLabel({ headers: { 'x-resident-label': 'a-b' }, query: {} })).toBe('a-b')
+    expect(requestedLabel({ headers: { 'x-resident-label': 'a-b' }, query: { label: 'other' } })).toBe('a-b')
+    expect(requestedLabel({ headers: {}, query: { label: 'Alice' } })).toBe('alice')
+    expect(requestedLabel({ headers: {}, query: {} })).toBe('')
+    expect(requestedLabel({ headers: {}, query: { label: '[label]' } })).toBe('')
   })
 })

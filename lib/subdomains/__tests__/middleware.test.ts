@@ -60,3 +60,13 @@ test('the main site passes straight through', () => {
     expect(rewriteOf(res)).toBeNull()
   }
 })
+
+test('the label goes to the route as a header too (production builds drop the [label] param)', () => {
+  const res = middleware(request('a-b.homepageagain.com', '/', 'GET'))
+  expect(res.headers.get('x-middleware-request-x-resident-label')).toBe('a-b')
+  // A visitor's own copy of the header is replaced
+  const spoofed = new NextRequest('https://alice.homepageagain.com/.well-known/atproto-did', {
+    headers: { host: 'alice.homepageagain.com', 'x-resident-label': 'someone-else' },
+  })
+  expect(middleware(spoofed).headers.get('x-middleware-request-x-resident-label')).toBe('alice')
+})

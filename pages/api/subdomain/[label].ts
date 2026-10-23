@@ -3,7 +3,7 @@ import { db } from "@/lib/config/database/connection";
 import { getSiteBaseUrl } from "@/lib/config/site-url";
 import { SITE_TITLE } from "@/lib/config/site/constants";
 import { isLabelTombstoned } from "@/lib/domain/users/handle-tombstones";
-import { isValidLabel } from "@/lib/subdomains/host";
+import { isValidLabel, requestedLabel } from "@/lib/subdomains/host";
 
 /**
  * Any page on a resident's address (alice.homepageagain.com/anything),
@@ -17,7 +17,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).end();
   }
   const base = getSiteBaseUrl().replace(/\/+$/, "");
-  const label = typeof req.query.label === "string" ? req.query.label : "";
+  const label = requestedLabel(req);
 
   const user = isValidLabel(label)
     ? await db.user.findUnique({ where: { subdomainLabel: label }, select: { primaryHandle: true } })

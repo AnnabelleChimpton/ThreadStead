@@ -71,6 +71,24 @@ export function residentAddress(label: string | null | undefined, apex = residen
 
 export const ATPROTO_DID_PATH = '/.well-known/atproto-did';
 
+/** How middleware.ts tells the rewritten routes which address was asked for. */
+export const RESIDENT_LABEL_HEADER = 'x-resident-label';
+
+/**
+ * The label a rewritten route was called for: middleware's header, else
+ * the [label] in the path (a direct call, or dev). Empty when neither is a label.
+ */
+export function requestedLabel(req: {
+  headers: Record<string, string | string[] | undefined>;
+  query: Record<string, string | string[] | undefined>;
+}): string {
+  const header = req.headers[RESIDENT_LABEL_HEADER];
+  const fromHeader = Array.isArray(header) ? header[0] : header;
+  const fromQuery = typeof req.query.label === 'string' ? req.query.label : '';
+  const label = (fromHeader || fromQuery).trim().toLowerCase();
+  return isValidLabel(label) ? label : '';
+}
+
 export type SubdomainRoute =
   /** Not a resident's host: the main site carries on as usual */
   | { kind: 'main' }

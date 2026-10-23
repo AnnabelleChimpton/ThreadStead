@@ -8,7 +8,7 @@
  *   anything else              → 405 (nothing on these hosts changes anything)
  */
 import { NextResponse, type NextRequest } from 'next/server';
-import { residentApex, routeSubdomainRequest } from '@/lib/subdomains/host';
+import { RESIDENT_LABEL_HEADER, residentApex, routeSubdomainRequest } from '@/lib/subdomains/host';
 
 function plain(status: number, body: string, headers: Record<string, string> = {}) {
   return new NextResponse(body, { status, headers: { 'Content-Type': 'text/plain; charset=utf-8', ...headers } });
@@ -28,5 +28,10 @@ export function middleware(request: NextRequest) {
     route.kind === 'atproto-did'
       ? `/api/atproto-did/${route.label}`
       : `/api/subdomain/${route.label}`;
-  return NextResponse.rewrite(url);
+  // The label also goes as a header: in a production build the rewritten
+  // path's [label] doesn't reach req.query (dev fills it in), so the routes
+  // read this first. Whatever the visitor sent under this name is replaced.
+  const headers = new Headers(request.headers);
+  headers.set(RESIDENT_LABEL_HEADER, route.label);
+  return NextResponse.rewrite(url, { request: { headers } });
 }
