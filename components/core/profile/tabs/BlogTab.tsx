@@ -8,9 +8,11 @@ import LoadingSpinner from "@/components/ui/feedback/LoadingSpinner";
 interface BlogTabProps {
   username: string;
   ownerUserId: string;
+  /** Their public posts as RSS, when the profile is public */
+  feedUrl?: string;
 }
 
-export default function BlogTab({ username, ownerUserId }: BlogTabProps) {
+export default function BlogTab({ username, ownerUserId, feedUrl }: BlogTabProps) {
   const [loading, setLoading] = useState(true);
   const [posts, setPosts] = useState<PostType[]>([]);
   const [blocked, setBlocked] = useState(false);
@@ -95,6 +97,11 @@ export default function BlogTab({ username, ownerUserId }: BlogTabProps) {
           ))
         )}
       </div>
+      {feedUrl && !blocked && posts.length > 0 && (
+        <p className="ts-blog-feed-link text-sm opacity-80">
+          Follow along in your feed reader: <a href={feedUrl} className="underline">RSS</a>
+        </p>
+      )}
     </div>
   );
 }

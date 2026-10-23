@@ -13,6 +13,7 @@ import { serializeJsonLd } from "@/lib/utils/sanitization/json-ld";
 import Layout from "@/components/ui/layout/Layout";
 import { PixelIcon } from "@/components/ui/PixelIcon";
 import { pageCSS } from "@/lib/domain/profile/layout";
+import { residentFeedUrl } from "@/lib/feeds/urls";
 
 type PostPageProps = {
   username: string;
@@ -24,6 +25,8 @@ type PostPageProps = {
   /** The author's page CSS. Not rendered here: _app only applies profile CSS on the profile page itself. */
   customCSS?: string;
   hideNavigation?: boolean;
+  /** The author's public posts as RSS (public profiles only), for feed readers given this post's URL */
+  feedUrl?: string;
 };
 
 type PrivatePostPageProps = {
@@ -63,7 +66,7 @@ export default function PostPageRoute(props: PostPageProps | PrivatePostPageProp
   return <PostPage {...props} />;
 }
 
-function PostPage({ username, post, authorDisplayName, initialCommentsOpen = true, highlightCommentId, hideNavigation = false }: PostPageProps) {
+function PostPage({ username, post, authorDisplayName, initialCommentsOpen = true, highlightCommentId, hideNavigation = false, feedUrl }: PostPageProps) {
   // Generate metadata for this post
   const adaptedPost = {
     ...post,
@@ -121,6 +124,9 @@ function PostPage({ username, post, authorDisplayName, initialCommentsOpen = tru
         )}
         <meta name="author" content={postMetadata.author} />
         <link rel="canonical" href={`${getSiteBaseUrl()}${postMetadata.url}`} />
+        {feedUrl && (
+          <link rel="alternate" type="application/rss+xml" title={`${displayName}'s posts`} href={feedUrl} />
+        )}
         <meta name="robots" content="index, follow" />
 
         {/* OpenGraph meta tags */}
@@ -242,6 +248,8 @@ export const getServerSideProps: GetServerSideProps<PostPageProps | PrivatePostP
     if (post.author?.profile?.displayName) {
       props.authorDisplayName = post.author.profile.displayName;
     }
+
+    if (authorProfile?.profile?.visibility === 'public') props.feedUrl = residentFeedUrl(authorUsername);
 
     // Fetch admin default CSS from public site config
     let adminDefaultCSS = "";

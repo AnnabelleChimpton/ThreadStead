@@ -41,6 +41,15 @@ const nextConfig: NextConfig = {
         source: '/ring/:slug/:action',
         destination: '/api/ring/:slug/:action',
       },
+      // RSS: a resident's public posts, and a public ring's (pages/api/feeds/*)
+      {
+        source: '/resident/:username/feed.xml',
+        destination: '/api/feeds/resident/:username',
+      },
+      {
+        source: '/tr/:slug/feed.xml',
+        destination: '/api/feeds/ring/:slug',
+      },
       // Server DID document
       {
         source: '/.well-known/did.json',

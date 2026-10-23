@@ -40,6 +40,7 @@ import ButtonLink, { buttonClasses } from '@/components/ui/ButtonLink';
 import { serializeJsonLd } from "@/lib/utils/sanitization/json-ld";
 import StripBuilder from "@/components/features/rings/StripBuilder";
 import { cameFromSite } from "@/lib/rings/sites";
+import { ringFeedUrl } from "@/lib/feeds/urls";
 
 // Helper function to count total descendants recursively
 function countTotalDescendants(descendants: any[]): number {
@@ -407,6 +408,7 @@ export default function ThreadRingPage({ siteConfig, ring, error, cameFrom = nul
   const shareImage = ring
     ? `${getSiteBaseUrl()}/api/share/ring/${ring.slug}.png${badgeFile ? `?v=${encodeURIComponent(badgeFile)}` : ''}`
     : undefined;
+  const feedUrl = ring?.visibility === 'public' ? ringFeedUrl(ring.slug) : undefined;
 
   const router = useRouter();
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -947,6 +949,9 @@ export default function ThreadRingPage({ siteConfig, ring, error, cameFrom = nul
               <meta name="keywords" content={ringMetadata.keywords.join(', ')} />
             )}
             <link rel="canonical" href={`${getSiteBaseUrl()}${ringMetadata.url}`} />
+            {feedUrl && (
+              <link rel="alternate" type="application/rss+xml" title={`${ring.name} ring posts`} href={feedUrl} />
+            )}
             <meta name="robots" content="index, follow" />
 
             {/* OpenGraph meta tags */}
@@ -1148,6 +1153,12 @@ export default function ThreadRingPage({ siteConfig, ring, error, cameFrom = nul
                         {loadingMore ? "Loading..." : "Load More Posts"}
                       </button>
                     </div>
+                  )}
+
+                  {feedUrl && (
+                    <p className="tr-feed-link text-sm opacity-80">
+                      Follow this ring in your feed reader: <a href={feedUrl} className="underline">RSS</a>
+                    </p>
                   )}
                 </div>
               )}

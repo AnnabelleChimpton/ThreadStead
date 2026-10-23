@@ -35,6 +35,7 @@ import { resolveCSSMode } from "@/lib/utils/css/css-mode";
 import { pageCSS, siteStylesOn } from "@/lib/domain/profile/layout";
 import { usesThemeVars } from "@/lib/templates/appearance";
 import { serializeJsonLd } from "@/lib/utils/sanitization/json-ld";
+import { residentFeedUrl } from "@/lib/feeds/urls";
 
 
 // The template runtime (every template component) loads only on the pages
@@ -91,6 +92,8 @@ export type ProfileProps = {
   canonicalUrl?: string;
   /** Their yard's share image, for link previews (public profiles with a pixel home) */
   shareImage?: string;
+  /** Their public posts as RSS (public profiles only) */
+  feedUrl?: string;
   /** Tabs the owner hid (Settings > Your page); Blog always shows */
   hiddenTabs?: string[];
   /** The widget slot under the header (standard layout only), already compiled */
@@ -127,6 +130,7 @@ export default function ProfilePage({
   blueskyHandle,
   canonicalUrl,
   shareImage,
+  feedUrl,
   widgetSlot,
   widgetSlotData,
   hiddenTabs = [],
@@ -177,6 +181,9 @@ export default function ProfilePage({
       )}
       <meta name="author" content={displayName || username} />
       <link rel="canonical" href={pageUrl} />
+      {feedUrl && (
+        <link rel="alternate" type="application/rss+xml" title={`${displayName || username}'s posts`} href={feedUrl} />
+      )}
       <meta name="robots" content="index, follow" />
 
       {/* OpenGraph meta tags */}
@@ -314,7 +321,7 @@ export default function ProfilePage({
 
   // built-in tabs
   const baseTabs: TabSpec[] = [
-    { id: "blog", label: "Blog", content: <BlogTab username={username} ownerUserId={ownerUserId} /> },
+    { id: "blog", label: "Blog", content: <BlogTab username={username} ownerUserId={ownerUserId} feedUrl={feedUrl} /> },
     {
       id: "media",
       label: "Media",
@@ -733,6 +740,8 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   if (featuredFriends.length > 0) props.featuredFriends = featuredFriends;
   if (data.profileMidi) props.profileMidi = data.profileMidi;
   props.hasPixelHome = data.hasPixelHome === true;
+  // A feed reaches anyone, signed out: public profiles only (lib/feeds/resident-feed.ts)
+  if (data.profile?.visibility === 'public') props.feedUrl = residentFeedUrl(data.username || usernameParam);
   // Link previews reach signed-out visitors: only a public profile's house goes in one
   if (props.hasPixelHome && data.profile?.visibility === 'public') {
     const { homeShareImage } = await import('@/lib/pixel-homes/snapshot/share-image');

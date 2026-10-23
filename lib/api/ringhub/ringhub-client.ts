@@ -129,7 +129,8 @@ export interface PostRef {
   id?: string              // Post ID (for curation operations)
   uri: string              // Post canonical URI
   digest: string           // Content hash
-  submittedBy: string      // Author DID
+  submittedBy: string      // Who submitted it (DID)
+  actorDid?: string        // Whose post it is (DID); can differ from submittedBy
   submittedAt: string      // ISO timestamp
   isPinned: boolean        // Pin status
   status?: 'ACCEPTED' | 'REJECTED' | 'REMOVED' | 'PENDING'  // Moderation status
