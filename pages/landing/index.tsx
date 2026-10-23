@@ -179,7 +179,7 @@ export default function LandingPage({ siteConfig, customLanding }: LandingPagePr
               <div className="faq-item">
                 <h3 className="font-bold text-base mb-2 text-gray-900">What happens after I sign up?</h3>
                 <p className="text-gray-700 text-sm leading-relaxed">
-                  After signing up, you'll create your pixel home (choose a house template and customize it), set up your profile page, and can start exploring neighborhoods, joining ThreadRings, and connecting with the community. You'll also automatically join the Welcome Ring to help you get started!
+                  After signing up, you'll create your pixel home (choose a house template and customize it), set up your profile page, and can start exploring neighborhoods, joining ThreadRings, and connecting with the community. Which rings you join is up to you; the Welcome Ring is a good first one.
                 </p>
               </div>
             </div>
