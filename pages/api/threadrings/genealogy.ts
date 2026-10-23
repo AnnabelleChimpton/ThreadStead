@@ -16,6 +16,8 @@ interface ThreadRingNode {
   lineageDepth: number;
   curatorHandle: string | null;
   createdAt: string;
+  badgeImageUrl: string | null;
+  themeColor: string | null;
   children?: ThreadRingNode[];
 }
 
@@ -90,6 +92,8 @@ export default async function handler(
         lineageDepth: depth,
         curatorHandle: null, // Will be resolved by transformers if needed
         createdAt: ring.createdAt || new Date().toISOString(),
+        badgeImageUrl: ring.badgeImageUrl ?? null,
+        themeColor: ring.themeColor ?? null,
         children: []
       };
     };
