@@ -1,6 +1,7 @@
 import { db } from "@/lib/config/database/connection";
 import { SITE_NAME } from "@/lib/config/site/constants";
 import { apiHandler } from "@/lib/api/handler";
+import { visibleNotificationsWhere } from "@/lib/domain/notifications";
 
 /**
  * API endpoint to check if a user has unread guestbook entries
@@ -32,11 +33,7 @@ export default apiHandler(
 
       // Check for unread guestbook notifications
       const unreadGuestbookNotifications = await db.notification.count({
-        where: {
-          recipientId: userHandle.user.id,
-          type: "guestbook",
-          status: "unread",
-        },
+        where: { ...(await visibleNotificationsWhere(userHandle.user.id)), type: "guestbook", status: "unread" },
       });
 
       return res.json({

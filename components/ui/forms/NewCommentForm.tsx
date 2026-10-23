@@ -349,8 +349,9 @@ export default function NewCommentForm({ postId, parentId, onCommentAdded, place
     try {
       const capRes = await fetch(`/api/cap/comments/${encodeURIComponent(postId)}`, { method: "POST" });
       if (capRes.status === 401) { setError("Please log in to comment."); return; }
-      if (!capRes.ok) { setError(`Couldn't get permission (status ${capRes.status}).`); return; }
-      const { token } = await capRes.json();
+      const cap = await capRes.json().catch(() => ({}));
+      if (!capRes.ok) { setError(cap?.error || `Couldn't get permission (status ${capRes.status}).`); return; }
+      const { token } = cap;
 
       const res = await csrfFetch(`/api/comments/${encodeURIComponent(postId)}`, {
         method: "POST",

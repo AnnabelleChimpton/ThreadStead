@@ -2,6 +2,7 @@ import { db } from "@/lib/config/database/connection";
 
 import { apiHandler } from "@/lib/api/handler";
 import { parseLimit } from "@/lib/server/http/pagination";
+import { visibleNotificationsWhere } from "@/lib/domain/notifications";
 
 const EXCERPT_LENGTH = 120;
 
@@ -22,9 +23,7 @@ export default apiHandler(
     if (req.method === "GET") {
       const { status } = req.query;
 
-      const whereClause: any = {
-        recipientId: user.id,
-      };
+      const whereClause: any = await visibleNotificationsWhere(user.id);
 
       if (status && status !== "all") {
         whereClause.status = status;

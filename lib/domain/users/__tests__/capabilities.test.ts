@@ -6,11 +6,13 @@
  */
 type Caps = typeof import('../capabilities');
 
-// requireAction asks whether the token's account is suspended or banned.
-// The real module loads the db client (and with it .env), so it's faked here;
-// tests/db/moderation.dbtest.ts runs it for real.
-const mockIsUserRestricted = jest.fn(async (_userId: string) => false);
-jest.mock('../moderation', () => ({ isUserRestricted: (id: string) => mockIsUserRestricted(id) }));
+// requireAction asks whether the token's account is suspended, banned or
+// leaving. The real modules load the db client (and with it .env), so they're
+// faked here; tests/db/moderation.dbtest.ts and moderation-reach.dbtest.ts
+// run them for real.
+const mockAssertCanWrite = jest.fn(async (_userId: string) => {});
+jest.mock('../moderation', () => ({ assertCanWrite: (id: string) => mockAssertCanWrite(id) }));
+jest.mock('@/lib/auth/server', () => ({ getSessionUser: jest.fn() }));
 
 function load(env: { CAP_JWT_SECRET?: string; NODE_ENV?: string } = {}): Caps {
   const saved = { CAP_JWT_SECRET: process.env.CAP_JWT_SECRET, NODE_ENV: process.env.NODE_ENV };
@@ -78,13 +80,14 @@ describe('requireAction', () => {
     await expect(guard(await caps.mintCapability('', ['write:comment'], 'post:p1'))).rejects.toThrow('no subject');
   });
 
-  it("refuses a token minted before its account was suspended or banned", async () => {
+  it("refuses a token minted before its account was hidden, with moderation's reason", async () => {
     const caps = load({ CAP_JWT_SECRET: 'test-secret' });
     const guard = caps.requireAction('write:comment', () => true);
     const token = await caps.mintCapability('u1', ['write:comment'], 'post:p1');
-    mockIsUserRestricted.mockResolvedValueOnce(true);
-    await expect(guard(token)).rejects.toThrow('account suspended');
-    expect(mockIsUserRestricted).toHaveBeenLastCalledWith('u1');
+    const refused = new Error('Your account is set to be deleted');
+    mockAssertCanWrite.mockRejectedValueOnce(refused);
+    await expect(guard(token)).rejects.toBe(refused);
+    expect(mockAssertCanWrite).toHaveBeenLastCalledWith('u1');
   });
 });
 

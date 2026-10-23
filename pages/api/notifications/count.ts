@@ -1,6 +1,7 @@
 import { db } from "@/lib/config/database/connection";
 
 import { apiHandler } from "@/lib/api/handler";
+import { visibleNotificationsWhere } from "@/lib/domain/notifications";
 
 
 
@@ -10,10 +11,7 @@ export default apiHandler(
   { methods: ["GET"], auth: "user" },
   async (req, res, { user }) => {
     const unreadCount = await db.notification.count({
-      where: {
-        recipientId: user.id,
-        status: "unread",
-      },
+      where: { ...(await visibleNotificationsWhere(user.id)), status: "unread" },
     });
 
     return res.json({ count: unreadCount });

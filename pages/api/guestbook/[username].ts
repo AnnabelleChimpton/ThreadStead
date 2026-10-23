@@ -2,6 +2,7 @@ import { db } from "@/lib/config/database/connection";
 
 import { apiHandler } from "@/lib/api/handler";
 import { requireAction } from "@/lib/domain/users/capabilities";
+import { AccountHiddenError } from "@/lib/domain/users/moderation";
 import { createGuestbookNotification } from "@/lib/domain/notifications";
 import { SITE_NAME } from "@/lib/config/site/constants";
 import { residentAccess, sendPrivateProfile } from "@/lib/domain/users/profile-access";
@@ -77,7 +78,11 @@ export default apiHandler(
 
     // validate capability
     const ok = await requireAction("write:guestbook", (resStr) => resStr === resource)(cap)
-      .catch(() => null);
+      .catch((error) => {
+        // Suspended, banned or leaving since the token was minted: apiHandler says which
+        if (error instanceof AccountHiddenError) throw error;
+        return null;
+      });
     if (!ok) return res.status(403).json({ error: "invalid capability" });
 
     // Nobody signs a guestbook they can't see, or across a block

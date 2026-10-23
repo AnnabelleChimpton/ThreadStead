@@ -19,6 +19,8 @@ jest.mock('@/lib/config/database/connection', () => ({
   },
 }))
 jest.mock('@/lib/auth/server', () => ({ getSessionUser: jest.fn() }))
+// No one hidden (visibleNotificationsWhere)
+jest.mock('@/lib/domain/users/blocks', () => ({ getHiddenIds: async () => ({ blockedUserIds: [], blockedThreadRingIds: [] }) }))
 jest.mock('@/lib/server/http/csrf', () => ({
   csrfProtection: jest.fn().mockResolvedValue(true),
   withCsrfProtection: (h: any) => h,

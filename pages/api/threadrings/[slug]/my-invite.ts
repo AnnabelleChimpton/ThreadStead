@@ -1,5 +1,6 @@
 import { db } from "@/lib/config/database/connection";
 import { apiHandler, ApiError } from "@/lib/api/handler";
+import { visibleNotificationsWhere } from "@/lib/domain/notifications";
 
 /**
  * Has the viewer been invited to this hub ring? The hub can't list someone's
@@ -15,7 +16,8 @@ export default apiHandler(
 
     const notification = await db.notification.findFirst({
       where: {
-        recipientId: user.id,
+        // Not from someone now hidden, like the notification itself
+        ...(await visibleNotificationsWhere(user.id)),
         type: "threadring_invite",
         data: { path: ["threadRingSlug"], equals: slug },
       },

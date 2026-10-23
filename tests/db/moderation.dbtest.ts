@@ -233,10 +233,11 @@ describe("a suspended or banned account can't write", () => {
 
     await ban(SPAMMER)
 
+    const banned = { statusCode: 403, body: { error: 'This account is banned.', code: 'account_restricted' } }
     const comment = await call(commentsRoute, { method: 'POST', query: { postId: 'post_neighbor' }, body: { content: 'spam', cap: commentCap } })
-    expect(comment.statusCode).toBe(401)
+    expect(comment).toMatchObject(banned)
     const sign = await call(guestbookRoute, { method: 'POST', query: { username: 'neighbor' }, body: { message: 'spam', cap: guestbookCap } })
-    expect(sign.statusCode).toBe(403)
+    expect(sign).toMatchObject(banned)
     expect(await db.comment.count({ where: { authorId: SPAMMER } })).toBe(1)
     expect(await db.guestbookEntry.count({ where: { authorId: SPAMMER } })).toBe(0)
   })

@@ -12,6 +12,8 @@ jest.mock('@/lib/config/database/connection', () => ({
   },
 }))
 jest.mock('@/lib/auth/server', () => ({ getSessionUser: jest.fn().mockResolvedValue({ id: 'owner', role: 'member', primaryHandle: 'owner@local' }) }))
+const mockHiddenIds = jest.fn(async (_viewerId: string) => ({ blockedUserIds: [] as string[], blockedThreadRingIds: [] }))
+jest.mock('@/lib/domain/users/blocks', () => ({ getHiddenIds: (id: string) => mockHiddenIds(id) }))
 
 import handler from '@/pages/api/notifications'
 import { db } from '@/lib/config/database/connection'
@@ -70,4 +72,15 @@ test('no guestbook notifications means no entry lookup', async () => {
   ;(db.notification.findMany as jest.Mock).mockResolvedValue([notif('n3', 'follow', {})])
   await call()
   expect(db.guestbookEntry.findMany).not.toHaveBeenCalled()
+})
+
+test("leaves out notifications from people hidden from the reader, without deleting them", async () => {
+  mockHiddenIds.mockResolvedValueOnce({ blockedUserIds: ['banned', 'blocked'], blockedThreadRingIds: [] })
+  ;(db.notification.findMany as jest.Mock).mockResolvedValue([])
+  await call()
+  expect(mockHiddenIds).toHaveBeenLastCalledWith('owner')
+  expect((db.notification.findMany as jest.Mock).mock.lastCall[0].where).toEqual({
+    recipientId: 'owner',
+    actorId: { notIn: ['banned', 'blocked'] },
+  })
 })

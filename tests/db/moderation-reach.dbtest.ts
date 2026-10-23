@@ -1,7 +1,8 @@
 /**
  * The places a suspended or banned account used to still show, against a
- * real Postgres: lounge history, DMs, and the Indie Index (its sites' tier
- * and the owner shown on them). The rest of moderation is in
+ * real Postgres: lounge history, DMs, notifications, and the Indie Index (its
+ * sites' tier and the owner shown on them); and what someone leaving hears
+ * when they try to write. The rest of moderation is in
  * moderation.dbtest.ts; hub ring memberships on delete are in
  * lib/domain/users/__tests__/account-removal.test.ts and the federation suite.
  */
@@ -23,12 +24,19 @@ jest.mock('@/lib/server/http/csrf', () => ({
 }))
 
 import { createSession, getSessionUser } from '@/lib/auth/server'
+import { mintCapability } from '@/lib/domain/users/capabilities'
 import { finishDueLeaves, startLeaving, stayAfterAll } from '@/lib/domain/users/leaving'
 import { moderateUser } from '@/lib/domain/users/moderation'
 import { browseIndie } from '@/lib/search/indie'
 import roomMessagesRoute from '@/pages/api/chat/rooms/[roomId]/messages'
 import conversationsRoute from '@/pages/api/messages/conversations'
 import conversationRoute from '@/pages/api/messages/[conversationId]'
+import notificationsRoute from '@/pages/api/notifications'
+import notificationCountRoute from '@/pages/api/notifications/count'
+import guestbookStatusRoute from '@/pages/api/users/[username]/guestbook-status'
+import capCommentsRoute from '@/pages/api/cap/comments/[postId]'
+import commentsRoute from '@/pages/api/comments/[postId]'
+import guestbookRoute from '@/pages/api/guestbook/[username]'
 
 const DAY = 24 * 60 * 60 * 1000
 let seq = 0
@@ -56,8 +64,11 @@ async function signIn(userId: string): Promise<string> {
   return (res.headers['Set-Cookie'] as string[])[0].split(';')[0]
 }
 
-async function call(handler: any, { query = {}, cookie }: { query?: Record<string, string>; cookie?: string } = {}) {
-  const req = { method: 'GET', query, headers: cookie ? { cookie } : {}, cookies: {}, url: '/test' } as unknown as NextApiRequest
+async function call(
+  handler: any,
+  { method = 'GET', query = {}, body, cookie }: { method?: string; query?: Record<string, string>; body?: any; cookie?: string } = {}
+) {
+  const req = { method, query, body, headers: cookie ? { cookie } : {}, cookies: {}, url: '/test' } as unknown as NextApiRequest
   const res: any = {
     statusCode: 200,
     body: undefined,
@@ -141,6 +152,78 @@ describe('leaving (lib/domain/users/leaving.ts)', () => {
     const tombstone = await db.handleTombstone.findFirst({ where: { handle: 'neighbor' } })
     expect(tombstone).toMatchObject({ removedForAbuse: false })
     expect(tombstone?.expiresAt).not.toBeNull()
+  })
+})
+
+describe('writing while leaving', () => {
+  it('a capability write says the account is set to be deleted and how to stay, not "not logged in"', async () => {
+    await db.post.create({ data: { id: 'post_friend', authorId: FRIEND, title: 'tea', bodyText: 'tea', visibility: 'public' } })
+    const cookie = await signIn(NEIGHBOR)
+    // Minted just before they chose to leave: still good for a few minutes
+    const commentCap = await mintCapability(NEIGHBOR, ['write:comment'], 'post:post_friend/comments')
+    const guestbookCap = await mintCapability(NEIGHBOR, ['write:guestbook'], `user:${FRIEND}/guestbook`)
+    const deletesAt = await startLeaving(NEIGHBOR, 'neighbor')
+    const day = deletesAt.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })
+    const leaving = {
+      error: `Your account is set to be deleted on ${day}. If you'd like to stay, press Keep my account at the top of the page.`,
+      code: 'account_leaving',
+    }
+    const mint = () => call(capCommentsRoute, { method: 'POST', query: { postId: 'post_friend' }, cookie })
+
+    expect(await mint()).toMatchObject({ statusCode: 403, body: leaving })
+    const comment = await call(commentsRoute, { method: 'POST', query: { postId: 'post_friend' }, body: { content: 'hi', cap: commentCap } })
+    expect(comment).toMatchObject({ statusCode: 403, body: leaving })
+    const sign = await call(guestbookRoute, { method: 'POST', query: { username: 'friend' }, body: { message: 'hi', cap: guestbookCap } })
+    expect(sign).toMatchObject({ statusCode: 403, body: leaving })
+    expect(await db.comment.count()).toBe(0)
+    expect(await db.guestbookEntry.count()).toBe(0)
+
+    await stayAfterAll(NEIGHBOR)
+    expect((await mint()).statusCode).toBe(200)
+  })
+})
+
+// -------------------------------------------------------- notifications --
+
+describe('notifications', () => {
+  const notify = (actorId: string, type: 'follow' | 'guestbook' = 'guestbook') =>
+    db.notification.create({ data: { recipientId: NEIGHBOR, actorId, type, data: {} } })
+  async function seen(cookie: string) {
+    const list = await call(notificationsRoute, { cookie })
+    const count = await call(notificationCountRoute, { cookie })
+    const guestbook = await call(guestbookStatusRoute, { query: { username: 'neighbor' }, cookie })
+    return {
+      actors: list.body.notifications.map((n: any) => n.actor.id).sort(),
+      count: count.body.count,
+      guestbook: guestbook.body.unreadCount,
+    }
+  }
+
+  it("leaves out a banned or leaving actor's, in the list and every count, and brings them back after", async () => {
+    await notify(SPAMMER)
+    await notify(FRIEND)
+    const cookie = await signIn(NEIGHBOR)
+    const everyone = { actors: [FRIEND, SPAMMER].sort(), count: 2, guestbook: 2 }
+    const friendOnly = { actors: [FRIEND], count: 1, guestbook: 1 }
+    expect(await seen(cookie)).toEqual(everyone)
+
+    await ban(SPAMMER)
+    expect(await seen(cookie)).toEqual(friendOnly)
+    await lift(SPAMMER)
+    expect(await seen(cookie)).toEqual(everyone)
+
+    await startLeaving(SPAMMER, 'spammer')
+    expect(await seen(cookie)).toEqual(friendOnly)
+    await stayAfterAll(SPAMMER)
+    expect(await seen(cookie)).toEqual(everyone)
+  })
+
+  it('leaves out people the reader blocked, like feeds and comments do, but not people who blocked the reader', async () => {
+    await notify(SPAMMER, 'follow')
+    await notify(FRIEND, 'follow')
+    await db.userBlock.create({ data: { blockerId: NEIGHBOR, blockedUserId: SPAMMER } })
+    await db.userBlock.create({ data: { blockerId: FRIEND, blockedUserId: NEIGHBOR } })
+    expect(await seen(await signIn(NEIGHBOR))).toEqual({ actors: [FRIEND], count: 1, guestbook: 0 })
   })
 })
 

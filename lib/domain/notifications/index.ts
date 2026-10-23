@@ -1,4 +1,6 @@
+import type { Prisma } from "@prisma/client";
 import { db } from "../../config/database/connection";
+import { getHiddenIds } from "../users/blocks";
 
 export type NotificationType = "comment" | "reply" | "photo_comment" | "photo_reply" | "follow" | "friend" | "guestbook";
 
@@ -12,6 +14,17 @@ export interface NotificationData {
   postAuthorHandle?: string;
   guestbookEntryId?: string;
   [key: string]: any;
+}
+
+/**
+ * The notifications `recipientId` sees: none from people they blocked or
+ * who are suspended, banned or leaving (getHiddenIds), so a name, avatar or
+ * link to someone hidden never shows. Filtered when read rather than
+ * deleted, so they come back if that's lifted.
+ */
+export async function visibleNotificationsWhere(recipientId: string): Promise<Prisma.NotificationWhereInput> {
+  const { blockedUserIds } = await getHiddenIds(recipientId);
+  return blockedUserIds.length ? { recipientId, actorId: { notIn: blockedUserIds } } : { recipientId };
 }
 
 export async function createNotification(

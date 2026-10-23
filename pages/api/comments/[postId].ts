@@ -8,6 +8,8 @@ import { withRateLimit } from "@/lib/server/http/rate-limit";
 import { updateCommentCount } from "@/lib/domain/posts/updateCommentCount";
 import { getSessionUser } from "@/lib/auth/server";
 import { getHiddenIds, filterBlockedComments } from "@/lib/domain/users/blocks";
+import { AccountHiddenError } from "@/lib/domain/users/moderation";
+import { sendError } from "@/lib/api/errors";
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
   const postId = String(req.query.postId || "");
@@ -193,7 +195,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
           },
         },
       });
-    } catch {
+    } catch (error) {
+      // Suspended, banned or leaving since the token was minted: say which
+      if (error instanceof AccountHiddenError) return sendError(res, error.status, error.message, error.extra);
       return res.status(401).json({ error: "invalid capability" });
     }
   }

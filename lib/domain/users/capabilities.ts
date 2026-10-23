@@ -1,5 +1,8 @@
+import type { NextApiRequest, NextApiResponse } from "next";
 import { SignJWT, jwtVerify } from "jose";
-import { isUserRestricted } from "./moderation";
+import { getSessionUser } from "@/lib/auth/server";
+import { sendError } from "@/lib/api/errors";
+import { AccountHiddenError, MODERATION_SELECT, assertCanWrite } from "./moderation";
 
 // Capability tokens are HMAC-signed with CAP_JWT_SECRET. If this secret is the
 // well-known dev fallback in production, anyone can forge capability tokens
@@ -44,6 +47,25 @@ export async function mintCapability(subUserId: string, act: string[], res: stri
     .setIssuedAt(now)
     .setExpirationTime(now + ttlSec)
     .sign(getSecret());
+}
+
+/**
+ * Who a capability route mints for: the signed-in account, or null once it
+ * has answered. Someone leaving is still signed in but can't write, so they
+ * hear that and how to stay rather than "not logged in".
+ */
+export async function capabilityHolder(req: NextApiRequest, res: NextApiResponse): Promise<{ id: string } | null> {
+  const user = await getSessionUser(req, { whileLeaving: true, select: { id: true, ...MODERATION_SELECT } });
+  if (!user) {
+    res.status(401).json({ error: "not logged in" });
+    return null;
+  }
+  if (user.deletesAt) {
+    const refused = new AccountHiddenError(user);
+    sendError(res, refused.status, refused.message, refused.extra);
+    return null;
+  }
+  return user;
 }
 
 export async function verifyCapability(token: string) {
@@ -96,8 +118,9 @@ export function requireAction(action: string, resourceOk: (res: string) => boole
     if (!cap.sub) throw new Error("cap: no subject");
     if (!Array.isArray(cap.act) || !cap.act.includes(action)) throw new Error("cap: missing action");
     if (!resourceOk(cap.res)) throw new Error("cap: bad resource");
-    // A token minted before a suspension or ban lives up to 15 minutes.
-    if (await isUserRestricted(cap.sub)) throw new Error("cap: account suspended");
+    // A token minted before a suspension, ban or leaving lives up to 15
+    // minutes: AccountHiddenError says which, for the route to pass on.
+    await assertCanWrite(cap.sub);
     return cap; // includes cap.sub (userId)
   };
 }

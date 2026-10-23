@@ -28,6 +28,8 @@ jest.mock('@/lib/config/database/connection', () => ({
   },
 }))
 jest.mock('@/lib/auth/server', () => ({ getSessionUser: jest.fn() }))
+// No one hidden (visibleNotificationsWhere)
+jest.mock('@/lib/domain/users/blocks', () => ({ getHiddenIds: async () => ({ blockedUserIds: [], blockedThreadRingIds: [] }) }))
 
 import profileHandler from '@/pages/api/profile/[username]'
 import quickViewHandler from '@/pages/api/users/[username]/quick-view'

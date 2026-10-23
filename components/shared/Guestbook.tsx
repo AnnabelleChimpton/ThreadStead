@@ -137,8 +137,9 @@ export default function Guestbook({ username, bio, signerLink = "profile", headi
         setSubmitting(false);
         return;
       }
-      if (!capRes.ok) throw new Error(`cap mint failed: ${capRes.status}`);
-      const { token } = await capRes.json();
+      const cap = await capRes.json().catch(() => ({}));
+      if (!capRes.ok) throw new Error(cap?.error || `cap mint failed: ${capRes.status}`);
+      const { token } = cap;
 
       // 2) use the capability in the POST
       const res = await csrfFetch(`/api/guestbook/${encodeURIComponent(username)}`, {
@@ -146,8 +147,8 @@ export default function Guestbook({ username, bio, signerLink = "profile", headi
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: msg.trim(), cap: token }),
       });
-      if (!res.ok) throw new Error(`POST failed: ${res.status}`);
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || `POST failed: ${res.status}`);
       setEntries(Array.isArray(data.entries) ? data.entries : []);
       setMsg("");
     } catch (e: unknown) {

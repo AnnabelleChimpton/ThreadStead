@@ -132,6 +132,26 @@ export async function assertCanSignIn(userId: string): Promise<void> {
   if (user && isRestricted(user)) throw new AccountRestrictedError(user);
 }
 
+/** What a hidden person (isHidden) is told when a write is refused: someone leaving hears how to stay. */
+export function hiddenMessage(user: ModerationFields): string {
+  if (isRestricted(user) || !user.deletesAt) return restrictionMessage(user);
+  return `Your account is set to be deleted on ${formatDay(user.deletesAt)}. If you'd like to stay, press Keep my account at the top of the page.`;
+}
+
+/** A write refused: 403 with the message above and `code` "account_restricted" or "account_leaving". */
+export class AccountHiddenError extends ApiError {
+  constructor(user: ModerationFields) {
+    super(403, hiddenMessage(user), { code: isRestricted(user) ? "account_restricted" : "account_leaving" });
+    this.name = "AccountHiddenError";
+  }
+}
+
+/** Throws AccountHiddenError when `userId` is hidden from everyone else and so may not write. */
+export async function assertCanWrite(userId: string): Promise<void> {
+  const user = await db.user.findUnique({ where: { id: userId }, select: MODERATION_SELECT });
+  if (user && isHidden(user)) throw new AccountHiddenError(user);
+}
+
 // ---------------------------------------------------------------- actions --
 
 export type ModerationActionInput =
