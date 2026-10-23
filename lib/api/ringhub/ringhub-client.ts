@@ -29,6 +29,16 @@ import {
 } from './ringhub-contract'
 
 // Types for Ring Hub API compatibility
+/**
+ * A path with its query, or without the `?` when there is none: fetch drops a
+ * bare trailing `?`, so the path signed has to drop it too, or the hub's
+ * signature check fails.
+ */
+function withQuery(path: string, params: URLSearchParams): string {
+  const query = params.toString()
+  return query ? `${path}?${query}` : path
+}
+
 export interface RingDescriptor {
   // Basic ring info
   id: string
@@ -349,7 +359,7 @@ export class RingHubClient {
     if (options?.offset) params.append('offset', options.offset.toString())
     if (options?.memberDid) params.append('memberDid', options.memberDid)
 
-    const response = await this.get(`/trp/rings?${params.toString()}`)
+    const response = await this.get(withQuery('/trp/rings', params))
     return validateRingHubResponse('GET /trp/rings', RingListResponseSchema, response)
   }
 
@@ -639,7 +649,7 @@ export class RingHubClient {
     if (options?.offset) params.append('offset', options.offset.toString())
     if (options?.scope) params.append('scope', options.scope)
 
-    const response = await this.get(`/trp/rings/${slug}/feed?${params.toString()}`)
+    const response = await this.get(withQuery(`/trp/rings/${slug}/feed`, params))
     return validateRingHubResponse(`GET /trp/rings/${slug}/feed`, RingFeedResponseSchema, response)
   }
 
