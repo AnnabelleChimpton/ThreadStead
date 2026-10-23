@@ -12,8 +12,15 @@ export function forgetRingReads(slug: string, userIds: string[] = []): void {
   invalidate(`ring:${slug}`)
   invalidate(`membership-info:${slug}`)
   invalidate(`street-rings:members:${slug}`)
-  // Every viewer's copy of this ring's members, and every directory listing
-  invalidateMatching((key) => (key.startsWith('ring-members-all:') && key.endsWith(`:${slug}`)) || key.startsWith('list-rings:'))
+  // Every viewer's copy of this ring's members, every directory listing, and
+  // the ring signs on members' streets (cached per member's DID, and they
+  // show the ring's name, so any write can change them)
+  invalidateMatching(
+    (key) =>
+      (key.startsWith('ring-members-all:') && key.endsWith(`:${slug}`)) ||
+      key.startsWith('list-rings:') ||
+      key.startsWith('street-rings:actor:')
+  )
   for (const userId of userIds) {
     invalidate(`my-memberships:${userId}`)
     invalidate(`ring-stops:my-rings:${userId}`)
