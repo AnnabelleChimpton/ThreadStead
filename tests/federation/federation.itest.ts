@@ -576,6 +576,14 @@ describe('owner member management (audit 0.8)', () => {
     await expect(second.removeMember(FORK_SLUG, actorDid)).rejects.toMatchObject({ status: 403 })
   })
 
+  test("a moderator's invite brings a removed member back (Manage › People)", async () => {
+    const admin = makeTestClient('admin')
+    await expect(admin.joinRing(FORK_SLUG)).rejects.toMatchObject({ status: 403 })
+    await second.inviteMember(FORK_SLUG, getRuntime().adminActorDid)
+    expect((await admin.joinRing(FORK_SLUG)).membership.status).toBe('ACTIVE')
+    await admin.leaveRing(FORK_SLUG)
+  })
+
   test('the owner can demote and then remove a member', async () => {
     const demoted = await client.updateMemberRole(FORK_SLUG, secondDid, 'member')
     expect(demoted.member.role).toBe('member')
