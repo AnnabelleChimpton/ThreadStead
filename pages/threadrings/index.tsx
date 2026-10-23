@@ -243,7 +243,7 @@ export default function ThreadRingsPage({ siteConfig, initialTab, signedIn }: Th
               <div>
                 <h1 className="text-3xl font-headline font-bold text-thread-pine">ThreadRings</h1>
                 <p className="text-thread-sage mt-1">
-                  {activeTab === 'mine' && 'Rings you belong to'}
+                  {!showSignIn && activeTab === 'mine' && 'Rings you belong to'}
                   {!showSignIn && activeTab === 'mine' && total !== null && ' · '}
                   {!showSignIn && total !== null && `${total} ${total === 1 ? 'ring' : 'rings'}`}
                 </p>

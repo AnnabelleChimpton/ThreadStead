@@ -124,7 +124,7 @@ export default function ThreadRingCard({
           ) : canJoin && !signedIn ? (
             <Link
               href="/login"
-              className="text-xs bg-thread-sunset text-thread-paper hover:bg-thread-sunset/90 border border-thread-pine px-3.5 py-1 rounded-full shadow-cozy-sm hover:shadow-cozy transition-all font-medium"
+              className="text-xs bg-thread-sunset text-thread-paper hover:bg-thread-sunset/90 border border-thread-pine px-3.5 py-1 rounded-full shadow-cozy-sm hover:shadow-cozy transition-all font-medium !no-underline"
             >
               Join
             </Link>
