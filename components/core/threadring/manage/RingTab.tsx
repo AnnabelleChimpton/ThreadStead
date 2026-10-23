@@ -160,7 +160,7 @@ export default function RingTab({ ring, settings, rights, people, viewer, onSave
                 role="radio"
                 aria-checked={on}
                 onClick={() => set("themeColor", theme.hex)}
-                className={`flex flex-col items-center gap-1 w-[52px] text-xs bg-transparent border-0 p-0 cursor-pointer ${
+                className={`ts-bare flex flex-col items-center gap-1 w-[52px] text-xs bg-transparent border-0 p-0 cursor-pointer ${
                   on ? "text-nb-ink font-bold" : "text-nb-ink-mid"
                 }`}
               >

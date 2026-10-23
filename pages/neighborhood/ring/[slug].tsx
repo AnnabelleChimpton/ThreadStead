@@ -50,7 +50,7 @@ function People({ ring, people, viewerId }: { ring: RingStreetRing; people: Ring
         In the order the ring&apos;s walk goes. A member&apos;s stop is their own site when they&apos;ve added one, and their
         pixel home otherwise.
       </p>
-      <ol className="m-0 p-0 list-none divide-y divide-dotted divide-nb-ink-mid/30">
+      <ol className="m-0 !p-0 list-none divide-y divide-dotted divide-nb-ink-mid/30 [&>li]:!ml-0 [&>li]:!pl-0">
         {people.map((person) => (
           <li key={person.key} className="flex items-center gap-3 py-3">
             <span className="w-14 flex-shrink-0 text-sm text-nb-ink-mid tabular-nums">{person.number ? `No. ${person.number}` : ''}</span>

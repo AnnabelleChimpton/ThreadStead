@@ -107,7 +107,7 @@ export default function StopsTab({ ring, stops }: { ring: ManageRing; stops: Sto
       {group("Waiting for a yes", "pending", ["approve", "hide"])}
       {group("In the ring", "listed", ["hide"])}
       {group("Hidden", "hidden", ["unhide"])}
-      {stops.rows.length === 0 && <p className="text-sm text-nb-ink-mid m-0">No member has added their own site to this ring yet.</p>}
+      {stops.rows.length === 0 && <p className="text-sm text-nb-ink-mid mt-0">No member has added their own site to this ring yet.</p>}
 
       {stops.busiest.length > 0 && (
         <div>

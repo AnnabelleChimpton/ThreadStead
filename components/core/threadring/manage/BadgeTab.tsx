@@ -6,7 +6,7 @@ type BadgeDesignerProps = React.ComponentProps<typeof BadgeDesigner>;
 export default function BadgeTab({ ring, onSaved }: BadgeDesignerProps) {
   return (
     <div className="space-y-6">
-      <p className="text-nb-ink-mid m-0">Members wear this on their profiles and put it on their own sites.</p>
+      <p className="text-nb-ink-mid mt-0">Members wear this on their profiles and put it on their own sites.</p>
       <BadgeDesigner ring={ring} onSaved={onSaved} />
     </div>
   );

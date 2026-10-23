@@ -6,7 +6,8 @@ export const FIELD =
 export const SELECT =
   "border-2 border-nb-ink-mid/60 rounded-md py-1.5 pl-2 pr-7 bg-white text-sm text-nb-ink focus:outline-none focus:border-nb-ink-mid";
 export const HELP = "text-sm text-nb-ink-mid m-0 mb-2";
-export const ROWS = "m-0 p-0 list-none divide-y-2 divide-dotted divide-nb-ink-mid/30";
+// !: the site theme indents list items on phones
+export const ROWS = "m-0 !p-0 list-none divide-y-2 divide-dotted divide-nb-ink-mid/30 [&>li]:!ml-0 [&>li]:!pl-0";
 
 export function Heading({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return <h2 className={`font-headline text-xl font-bold text-nb-ink m-0 mb-1 ${className}`}>{children}</h2>;
@@ -49,7 +50,7 @@ export function ChoiceCards<T extends string>({
   plain?: boolean;
 }) {
   return (
-    <fieldset className="m-0 p-0 border-0 min-w-0">
+    <fieldset className="mx-0 p-0 border-0 min-w-0">
       {legend && (
         <legend className="p-0">
           <Heading>{legend}</Heading>

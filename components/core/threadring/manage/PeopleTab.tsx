@@ -193,7 +193,7 @@ function Face({ person }: { person: ManageMember }) {
   return (
     <span
       aria-hidden="true"
-      className="w-10 h-10 rounded-full border border-nb-ink-mid/35 bg-nb-surface text-nb-ink-mid font-mono text-[15px] inline-flex items-center justify-center shrink-0"
+      className="w-10 h-10 rounded-full border border-nb-ink-mid/35 bg-thread-cream text-nb-ink-mid font-mono text-[15px] inline-flex items-center justify-center shrink-0"
     >
       {person.name.trim().charAt(0).toUpperCase() || "?"}
     </span>

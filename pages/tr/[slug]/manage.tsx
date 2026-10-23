@@ -139,24 +139,27 @@ function Manage({ ring: initialRing, settings: initialSettings, rights, people: 
             />
           )}
         </div>
-        <Tabs
-          variant="site"
-          compactOnPhone
-          initialId={tab}
-          tabs={rights.tabs.map((id) => ({
-            id,
-            label: (
-              <>
-                {/* No icons on a phone, so all five tabs fit */}
-                <span className="hidden sm:inline">
-                  <PixelIcon name={TAB_LABELS[id].icon} size={20} />
-                </span>
-                {TAB_LABELS[id].label}
-              </>
-            ),
-            content: content[id],
-          }))}
-        />
+        {/* Narrower tabs on a phone, so all five fit at 375 */}
+        <div className="max-sm:[&_.ts-tab]:!px-2">
+          <Tabs
+            variant="site"
+            compactOnPhone
+            initialId={tab}
+            tabs={rights.tabs.map((id) => ({
+              id,
+              label: (
+                <>
+                  {/* No icons on a phone, so all five tabs fit */}
+                  <span className="hidden sm:inline">
+                    <PixelIcon name={TAB_LABELS[id].icon} size={20} />
+                  </span>
+                  {TAB_LABELS[id].label}
+                </>
+              ),
+              content: content[id],
+            }))}
+          />
+        </div>
       </RetroCard>
     </Layout>
   );
