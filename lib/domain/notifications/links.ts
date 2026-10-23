@@ -20,6 +20,8 @@ type LinkableNotification = {
     /** Added by GET /api/notifications: null when the entry is gone or hidden. */
     excerpt?: string | null;
     threadRingSlug?: string;
+    /** Webmentions: the outside page that links to the post. */
+    sourceUrl?: string;
   } | null;
   actor?: { handle?: string | null } | null;
 };
@@ -101,6 +103,9 @@ export function notificationHref(notification: LinkableNotification): string | n
       return (data as { event?: string }).event === "waiting" && data.threadRingSlug
         ? `/tr/${encodeURIComponent(data.threadRingSlug)}/sites`
         : "/settings?tab=sites";
+    case "webmention":
+      // The outside page that links to the post
+      return data.sourceUrl ?? null;
     default:
       return null;
   }
@@ -130,6 +135,13 @@ export function ringSiteText(data: Record<string, unknown> | null | undefined, a
     default:
       return `News about ${site}.`;
   }
+}
+
+/** The words for a `webmention` notification (lib/webmentions/receive.ts): an outside page links to your post. */
+export function webmentionText(data: Record<string, unknown> | null | undefined): string {
+  const site = (typeof data?.sourceHost === "string" && data.sourceHost) || hostOfUrl(data?.sourceUrl) || "A website";
+  const post = typeof data?.postTitle === "string" && data.postTitle ? `"${data.postTitle}"` : "";
+  return post ? `${site} linked to your post ${post}` : `${site} linked to your post`;
 }
 
 function hostOfUrl(url: unknown): string | null {

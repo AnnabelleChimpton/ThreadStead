@@ -10,6 +10,7 @@ import { withCsrfProtection } from "@/lib/server/http/csrf";
 import { withRateLimit } from "@/lib/server/http/rate-limit";
 import type { RingPostResult } from "@/lib/domain/posts/ring-submission";
 import { sendPostToRings } from "@/lib/domain/posts/send-to-rings";
+import { queueTellLinkedSites } from "@/lib/webmentions/send";
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
@@ -108,6 +109,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     ringSlugs: Array.isArray(threadRingIds) ? threadRingIds : [],
     promptId,
   });
+
+  // Webmentions to the sites it links to, in the background (public posts only)
+  queueTellLinkedSites(db, post.id, { authorId: viewer.id });
 
   // 201 because the post exists; `rings` says where it landed. A ring with
   // status 'failed' did NOT get the post, and `reason` says why.

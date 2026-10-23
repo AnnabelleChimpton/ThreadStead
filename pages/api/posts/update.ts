@@ -9,6 +9,7 @@ import { createAuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user
 import { buildPostUri, generateTextPreview, generateExcerpt } from "@/lib/domain/posts/ringhub-metadata";
 import { withCsrfProtection } from "@/lib/server/http/csrf";
 import { withRateLimit } from "@/lib/server/http/rate-limit";
+import { queueTellLinkedSites } from "@/lib/webmentions/send";
 
 type PostIntent = "sharing" | "asking" | "feeling" | "announcing" | "showing" | "teaching" | "looking" | "celebrating" | "recommending";
 
@@ -211,6 +212,20 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       });
       // Non-fatal: the local edit already succeeded.
     }
+  }
+
+  // Webmentions when what readers see changed: to the sites it links to now,
+  // and to ones the old version linked to if that version was public too
+  const sendable = (p: { visibility: string; contentWarning: string | null; isSpoiler: boolean }) =>
+    p.visibility === "public" && !p.contentWarning && !p.isSpoiler;
+  if (
+    updated.bodyHtml !== existingPost.bodyHtml ||
+    sendable(updated) !== sendable(existingPost)
+  ) {
+    queueTellLinkedSites(db, updated.id, {
+      authorId: me.id,
+      previousHtml: sendable(existingPost) ? existingPost.bodyHtml : null,
+    });
   }
 
   res.json({ post: updated });

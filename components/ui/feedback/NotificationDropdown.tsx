@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useRouter } from "next/router";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import type { NotificationData } from "./NotificationList";
-import { notificationHref, ringSiteText } from "@/lib/domain/notifications/links";
+import { notificationHref, ringSiteText, webmentionText } from "@/lib/domain/notifications/links";
 import { PixelIcon, type PixelIconName } from '@/components/ui/PixelIcon';
 import LoadingSpinner from "@/components/ui/feedback/LoadingSpinner";
 import EmptyState from "@/components/ui/feedback/EmptyState";
@@ -154,6 +154,8 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
         return `${actorName} invited you to join ${notification.data?.threadRingName || "a ThreadRing"}`;
       case "ring_site":
         return ringSiteText(notification.data, actorName);
+      case "webmention":
+        return webmentionText(notification.data);
       default:
         return `New activity from ${actorName}`;
     }
@@ -176,6 +178,7 @@ export default function NotificationDropdown({ className = "" }: NotificationDro
       case "threadring_invite":
         return "mail";
       case "ring_site":
+      case "webmention":
         return "link";
       default:
         return "notification";

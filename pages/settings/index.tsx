@@ -24,6 +24,7 @@ import MidiManager from "@/components/ui/media/MidiManager";
 import MusicListeningSetting from "@/components/ui/media/MusicListeningSetting";
 import ThemePicker from "@/components/pixel-homes/ThemePicker";
 import ConsentManager from "@/components/features/auth/ConsentManager";
+import WebmentionsSetting from "@/components/features/account/WebmentionsSetting";
 // Full identity management imports
 import {
   getExistingDid,
@@ -1677,6 +1678,8 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled, siteUr
 
           {/* Consent Management */}
           <ConsentManager userId={initialUser.id} />
+
+          <WebmentionsSetting />
 
           {/* Data Export */}
           <div className="thread-module">

@@ -11,6 +11,8 @@ export interface PageLink {
   /** Absolute http(s) URL. */
   href: string
   rel: string[]
+  /** Its class names, when it has any (microformats like u-like-of live here). */
+  classes?: string[]
   /** The link wraps an image sized 88×31: a classic web button. */
   button?: { src: string }
 }
@@ -88,6 +90,8 @@ export function extractLinks(html: string, base: string): PageLink[] {
     const href = absoluteUrl(attrs.href, pageBase)
     if (!href) continue
     const link: PageLink = { href, rel: (attrs.rel ?? '').toLowerCase().split(/\s+/).filter(Boolean) }
+    const classes = (attrs.class ?? '').split(/\s+/).filter(Boolean)
+    if (classes.length) link.classes = classes
     for (const img of m[1].match(/<img\b[^>]*>/gi) ?? []) {
       const imgAttrs = attributesOf(img)
       const src = absoluteUrl(imgAttrs.src, pageBase)

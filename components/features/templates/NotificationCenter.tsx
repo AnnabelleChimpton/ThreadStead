@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import type { NotificationData } from "../../ui/feedback/NotificationList";
-import { notificationHref, ringSiteText } from "@/lib/domain/notifications/links";
+import { notificationHref, ringSiteText, webmentionText } from "@/lib/domain/notifications/links";
 import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
 interface NotificationCenterProps extends UniversalCSSProps {
@@ -43,6 +43,8 @@ export default function NotificationCenter(props: NotificationCenterProps) {
         return `${actorName} invited you to join ${notification.data?.threadRingName || "a ThreadRing"}`;
       case "ring_site":
         return ringSiteText(notification.data, actorName);
+      case "webmention":
+        return webmentionText(notification.data);
       default:
         return `New activity from ${actorName}`;
     }

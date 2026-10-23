@@ -34,6 +34,8 @@ const CSRF_OPT_OUTS = [
   'pages/api/beta-landing-pages/[slug]/track.ts',
   'pages/api/home/[handle]/visitors.ts',
   'pages/api/posts/view/[postId].ts',
+  // Outside sites' servers, which send no cookies; reads no session
+  'pages/api/webmention.ts',
 ];
 
 /** Hand-written routes that need neither: GET-only, a bearer-token cron, or no cookie use. */

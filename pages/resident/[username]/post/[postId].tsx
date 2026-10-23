@@ -14,6 +14,7 @@ import Layout from "@/components/ui/layout/Layout";
 import { PixelIcon } from "@/components/ui/PixelIcon";
 import { pageCSS } from "@/lib/domain/profile/layout";
 import { residentFeedUrl } from "@/lib/feeds/urls";
+import { webmentionEndpoint } from "@/lib/webmentions/urls";
 
 type PostPageProps = {
   username: string;
@@ -27,6 +28,8 @@ type PostPageProps = {
   hideNavigation?: boolean;
   /** The author's public posts as RSS (public profiles only), for feed readers given this post's URL */
   feedUrl?: string;
+  /** Where outside sites send webmentions about this post (public posts on public profiles only) */
+  webmentionUrl?: string;
 };
 
 type PrivatePostPageProps = {
@@ -66,7 +69,7 @@ export default function PostPageRoute(props: PostPageProps | PrivatePostPageProp
   return <PostPage {...props} />;
 }
 
-function PostPage({ username, post, authorDisplayName, initialCommentsOpen = true, highlightCommentId, hideNavigation = false, feedUrl }: PostPageProps) {
+function PostPage({ username, post, authorDisplayName, initialCommentsOpen = true, highlightCommentId, hideNavigation = false, feedUrl, webmentionUrl }: PostPageProps) {
   // Generate metadata for this post
   const adaptedPost = {
     ...post,
@@ -127,6 +130,7 @@ function PostPage({ username, post, authorDisplayName, initialCommentsOpen = tru
         {feedUrl && (
           <link rel="alternate" type="application/rss+xml" title={`${displayName}'s posts`} href={feedUrl} />
         )}
+        {webmentionUrl && <link rel="webmention" href={webmentionUrl} />}
         <meta name="robots" content="index, follow" />
 
         {/* OpenGraph meta tags */}
@@ -249,7 +253,10 @@ export const getServerSideProps: GetServerSideProps<PostPageProps | PrivatePostP
       props.authorDisplayName = post.author.profile.displayName;
     }
 
-    if (authorProfile?.profile?.visibility === 'public') props.feedUrl = residentFeedUrl(authorUsername);
+    if (authorProfile?.profile?.visibility === 'public') {
+      props.feedUrl = residentFeedUrl(authorUsername);
+      if (post.visibility === 'public') props.webmentionUrl = webmentionEndpoint();
+    }
 
     // Fetch admin default CSS from public site config
     let adminDefaultCSS = "";

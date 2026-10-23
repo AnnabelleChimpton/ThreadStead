@@ -40,6 +40,9 @@ export type RateLimitCategory =
   | "email_send" // Routes that email an address the caller typed, per user or IP
   | "email_recipient" // The same, per recipient address (short window)
   | "email_recipient_daily" // The same, per recipient address (one day)
+  | "webmention" // Webmentions sent to us, per IP
+  | "webmention_source" // The same, per source host (one day)
+  | "webmention_send" // Post saves that tell linked sites, per author
   | "default";
 
 interface RateLimitConfig {
@@ -78,6 +81,9 @@ export const RATE_LIMIT_CONFIGS: Record<RateLimitCategory, RateLimitConfig> = {
   // inbox can't be flooded from the site's domain by many IPs
   email_recipient: { limit: 5 * DEV_MULTIPLIER, windowMs: 15 * 60 * 1000 }, // 5 per 15 minutes (50 in dev)
   email_recipient_daily: { limit: 15 * DEV_MULTIPLIER, windowMs: 24 * 60 * 60 * 1000 }, // 15 per day (150 in dev)
+  webmention: { limit: 20 * DEV_MULTIPLIER, windowMs: 60 * 60 * 1000 }, // 20 per hour (200 in dev)
+  webmention_source: { limit: 20 * DEV_MULTIPLIER, windowMs: 24 * 60 * 60 * 1000 }, // 20 per day (200 in dev)
+  webmention_send: { limit: 10 * DEV_MULTIPLIER, windowMs: 60 * 60 * 1000 }, // 10 per hour (100 in dev)
   default: { limit: 60 * DEV_MULTIPLIER, windowMs: 60 * 1000 }, // 60 per minute (600 in dev)
 };
 
