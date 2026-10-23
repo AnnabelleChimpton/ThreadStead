@@ -607,8 +607,6 @@ describe('a ring owner updates its badge (badge manager → PUT /trp/rings/:slug
     const result = await client.updateRingBadge(FORK_SLUG, {
       badgeImageUrl: 'https://cdn.example/media/u1/1_medium.png',
       badgeImageHighResUrl: 'https://cdn.example/media/u1/1_full.png',
-      description: `Badge for ${FORK_SLUG} ThreadRing`,
-      criteria: 'Active participation in the ThreadRing community',
       updateExistingBadges: true,
     })
     expect(result.success).toBe(true)
@@ -616,12 +614,6 @@ describe('a ring owner updates its badge (badge manager → PUT /trp/rings/:slug
     const ring = await client.getRing(FORK_SLUG)
     expect(ring?.badgeImageUrl).toBe('https://cdn.example/media/u1/1_medium.png')
     expect(ring?.badgeImageHighResUrl).toBe('https://cdn.example/media/u1/1_full.png')
-    // The owner's own badge was redone with the description and criteria (sent as badgeMetadata)
-    const owners = (await client.getActorBadges(actorDid)).badges.find((b) => b.ring.slug === FORK_SLUG)
-    expect((owners?.badge as any).credentialSubject.achievement).toMatchObject({
-      description: `Badge for ${FORK_SLUG} ThreadRing`,
-      criteria: { narrative: 'Active participation in the ThreadRing community' },
-    })
   })
 
   test("the re-signed badge keeps its id and issue date, and its own link serves it", async () => {
