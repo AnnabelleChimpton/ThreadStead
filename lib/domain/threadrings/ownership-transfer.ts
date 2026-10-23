@@ -2,12 +2,12 @@
  * Handing a Ring Hub ring to another member.
  *
  * Ownership: Ring Hub owns it (Ring.ownerDid plus that member's `owner`
- * role; POST /trp/rings/:slug/transfer-ownership moves both). ThreadStead
- * keeps two mirrors that decide who may manage the ring here:
- * RingHubOwnership (settings, members and badge pages, member management)
+ * role; POST /trp/rings/:slug/transfer-ownership moves both), and who may
+ * hand it over is read from there, signed as the asker so a private ring's
+ * Host can. ThreadStead keeps two mirrors, which follow the hub after it
+ * answers: RingHubOwnership (fork, and who a site-owned ring is held for)
  * and the local ThreadRing row's curatorId (empty for a mirror row until a
- * transfer names someone; SET NULL if that account is deleted). Both follow
- * the hub, after it answers.
+ * transfer names someone; SET NULL if that account is deleted).
  *
  * Who signs:
  *  - the owner, with their own key;
@@ -31,6 +31,7 @@ import {
 } from "@/lib/api/ringhub/ringhub-client";
 import { RingHubAuthError, RingHubUnavailableError } from "@/lib/api/ringhub/ringhub-errors";
 import { createAuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
+import { forgetRingReads } from "@/lib/api/ringhub/forget-ring-reads";
 import { readAllRingMembers } from "@/lib/api/ringhub/ring-members";
 import { HUB_TIMEOUT } from "@/lib/api/ringhub/ringhub-ssr";
 import { activeUserWhere, isHidden, MAX_REASON_LENGTH, MODERATION_SELECT } from "@/lib/domain/users/moderation";
@@ -62,15 +63,29 @@ export interface OwnershipCandidate {
 
 type Transferrer = Pick<RingHubClient, "transferOwnership">;
 type Signer = { signer: TransferSigner; client: Transferrer };
+type Reader = Pick<RingHubClient, "getRing" | "getRingMembers">;
 
-function hubReader(): RingHubClient {
+/** Reads signed as the actor, so a private ring's Host sees it; unsigned without a key here. */
+async function hubReader(actor: TransferActor): Promise<Reader> {
   const reader = shouldUseRingHub() ? getPublicRingHubClient() : null;
   if (!reader) throw new ApiError(400, "Handing a ring over needs Ring Hub, and it's off here.");
-  return reader;
+  const key = await db.userDID.findUnique({ where: { userId: actor.id }, select: { did: true } });
+  if (!key) return reader;
+  const member = createAuthenticatedRingHubClient(actor.id);
+  return {
+    getRing: (slug) => member.getRingAsMember(slug),
+    getRingMembers: (slug, options) => member.getRingMembers(slug, options),
+  };
 }
 
-async function hubRing(reader: RingHubClient, slug: string) {
-  const ring = await reader.getRing(slug);
+async function hubRing(reader: Reader, slug: string) {
+  let ring;
+  try {
+    ring = await reader.getRing(slug);
+  } catch (error) {
+    console.error(`Couldn't read ${slug} to hand it over:`, error);
+    throw new ApiError(503, "We can't reach Ring Hub right now. Try again in a minute.");
+  }
   if (!ring?.ownerDid) throw new ApiError(404, "Ring not found");
   return ring;
 }
@@ -95,13 +110,9 @@ async function signerFor(actor: TransferActor, slug: string, ownerDid: string): 
   throw new ApiError(403, "Only the ring's owner can hand it over.");
 }
 
-/** Who may manage the ring here, for the candidates list: its owner, or an admin. */
+/** Who may hand the ring over, for the candidates list: who signerFor lets sign. */
 async function canManage(actor: TransferActor, slug: string, ownerDid: string): Promise<boolean> {
-  if (actor.role === "admin") return true;
-  const key = await db.userDID.findUnique({ where: { userId: actor.id }, select: { did: true } });
-  if (key?.did === ownerDid) return true;
-  const local = await db.ringHubOwnership.findUnique({ where: { ringSlug: slug }, select: { ownerUserId: true } });
-  return local?.ownerUserId === actor.id;
+  return signerFor(actor, slug, ownerDid).then(() => true, () => false);
 }
 
 /** The hub's refusal, in words for the person who asked. */
@@ -149,7 +160,7 @@ export async function transferRingOwnership({
   newOwnerUserId: string;
   reason?: string;
 }): Promise<RingOwnershipTransfer> {
-  const reader = hubReader();
+  const reader = await hubReader(actor);
   const ring = await hubRing(reader, slug);
 
   const newOwner = await db.user.findUnique({
@@ -197,6 +208,7 @@ export async function transferRingOwnership({
     localSynced = false;
     console.error(`Ring Hub handed ${slug} to ${newOwner.id}, but the local owner records didn't update:`, error);
   }
+  forgetRingReads(slug, [actor.id, newOwner.id]);
 
   return {
     slug,
@@ -211,10 +223,10 @@ export async function transferRingOwnership({
 /**
  * The members who could take `slug` over: ACTIVE on the hub, residents here
  * with a key, not suspended or banned, and not the current owner. Only for
- * the ring's owner or an admin.
+ * whoever may hand it over: its Host, or an admin.
  */
 export async function listOwnershipCandidates(slug: string, actor: TransferActor): Promise<OwnershipCandidate[]> {
-  const reader = hubReader();
+  const reader = await hubReader(actor);
   const ring = await hubRing(reader, slug);
   if (!(await canManage(actor, slug, ring.ownerDid))) throw new ApiError(403, "Only the ring's owner can hand it over.");
 

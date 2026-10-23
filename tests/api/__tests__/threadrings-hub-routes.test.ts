@@ -4,9 +4,10 @@
  *    (the 2026-10-17 outage: instance-key failures 503'd the whole directory),
  *    and signed results are cached per viewer (one viewer's membership used to
  *    be served to everyone with the same query).
- *  - PUT/DELETE /api/threadrings/[slug]/members/[userId] (audit 0.8): signed
- *    as the ring OWNER with the target's federation DID, and a hub failure is
- *    reported instead of falling through to a local-only write.
+ *  - PUT/DELETE /api/threadrings/[slug]/members/[userId] (audit 0.8): the
+ *    ring read and the change signed as the viewer, rights from the hub (not
+ *    the local owner row), the target's federation DID (or an outsider's own
+ *    DID), and a hub failure reported instead of a local-only write.
  */
 import type { NextApiRequest, NextApiResponse } from 'next'
 
@@ -23,8 +24,14 @@ jest.mock('@/lib/auth/server', () => ({ getSessionUser: jest.fn() }))
 jest.mock('@/lib/api/ringhub/ringhub-middleware', () => ({
   withThreadRingSupport: (handler: any) => (req: any, res: any) => handler(req, res, 'ringhub'),
 }))
-jest.mock('@/lib/server/http/csrf', () => ({ withCsrfProtection: (h: any) => h }))
-jest.mock('@/lib/server/http/rate-limit', () => ({ withRateLimit: () => (h: any) => h }))
+jest.mock('@/lib/server/http/csrf', () => ({
+  csrfProtection: jest.fn().mockResolvedValue(true),
+  withCsrfProtection: (h: any) => h,
+}))
+jest.mock('@/lib/server/http/rate-limit', () => ({
+  rateLimitCheck: jest.fn().mockResolvedValue(true),
+  withRateLimit: () => (h: any) => h,
+}))
 jest.mock('@/lib/api/ringhub/ringhub-client', () => ({
   ...jest.requireActual('@/lib/api/ringhub/ringhub-client'),
   getPublicRingHubClient: jest.fn(),
@@ -135,58 +142,90 @@ describe('GET /api/threadrings', () => {
 })
 
 describe('PUT/DELETE /api/threadrings/[slug]/members/[userId]', () => {
-  let ownerOps: { updateMemberRole: jest.Mock; removeMember: jest.Mock }
+  const OWNER_DID = 'did:web:homepageagain.com:users:owner'
+  const MOD_DID = 'did:web:homepageagain.com:users:mod'
+  const TARGET_DID = 'did:web:homepageagain.com:users:abc'
+  let ownerOps: Record<string, jest.Mock>
 
   beforeEach(() => {
-    ;(getSessionUser as jest.Mock).mockResolvedValue({ id: 'owner-1' })
-    ;(getPublicRingHubClient as jest.Mock).mockReturnValue({
-      getRing: jest.fn().mockResolvedValue(ring('my-ring')),
-    })
-    mockDb.ringHubOwnership.findUnique.mockResolvedValue({ ringSlug: 'my-ring', ownerUserId: 'owner-1' })
+    ;(getSessionUser as jest.Mock).mockResolvedValue({ id: 'owner-1', role: 'member' })
+    const keys: Record<string, string> = { 'owner-1': OWNER_DID, 'mod-1': MOD_DID, someone: 'did:web:homepageagain.com:users:someone' }
+    mockDb.userDID.findUnique.mockImplementation(async ({ where }: any) =>
+      where.userId && keys[where.userId] ? { did: keys[where.userId] } : null
+    )
     mockDb.user.findUnique.mockResolvedValue({
-      id: 'user-2', did: 'did:key:z-legacy', handles: [{ host: 'x', handle: 'pat' }],
+      id: 'user-2', did: 'did:key:z-legacy', primaryHandle: 'pat@HomePageAgain', userDID: { did: TARGET_DID },
     })
-    mockDb.userDID.findUnique.mockResolvedValue({ did: 'did:web:homepageagain.com:users:abc' })
+    // Nothing here says who owns it: the hub does
+    mockDb.ringHubOwnership.findUnique.mockResolvedValue(null)
     ownerOps = {
+      getRingAsMember: jest.fn().mockResolvedValue(ring('my-ring', { ownerDid: OWNER_DID, visibility: 'PRIVATE' })),
+      getRingMembers: jest.fn().mockResolvedValue({
+        members: [{ actorDid: MOD_DID, status: 'ACTIVE', role: 'moderator', joinedAt: '2026-01-01T00:00:00Z' }],
+        total: 1, limit: 100, offset: 0, hasMore: false,
+      }),
       updateMemberRole: jest.fn().mockResolvedValue({ message: 'ok', member: { role: 'moderator' } }),
       removeMember: jest.fn().mockResolvedValue({ success: true, message: 'ok' }),
     }
     ;(createAuthenticatedRingHubClient as jest.Mock).mockReturnValue(ownerOps)
   })
 
-  test("promotes as the ring owner, targeting the member's federation DID", async () => {
+  test("promotes as the ring's Host, read and signed as them, targeting the member's federation DID", async () => {
     const { req, res } = makeReqRes('PUT', { slug: 'my-ring', userId: 'user-2' }, { role: 'moderator' })
     await memberHandler(req, res)
 
     expect(res.statusCode).toBe(200)
     expect(createAuthenticatedRingHubClient).toHaveBeenCalledWith('owner-1')
-    expect(ownerOps.updateMemberRole).toHaveBeenCalledWith(
-      'my-ring', 'did:web:homepageagain.com:users:abc', 'moderator'
-    )
+    // A private ring: read as its Host, never as this site
+    expect(ownerOps.getRingAsMember).toHaveBeenCalledWith('my-ring')
+    expect(ownerOps.updateMemberRole).toHaveBeenCalledWith('my-ring', TARGET_DID, 'moderator')
   })
 
-  test('removes as the ring owner', async () => {
+  test('removes as the Host', async () => {
     const { req, res } = makeReqRes('DELETE', { slug: 'my-ring', userId: 'user-2' })
     await memberHandler(req, res)
     expect(res.statusCode).toBe(200)
-    expect(ownerOps.removeMember).toHaveBeenCalledWith('my-ring', 'did:web:homepageagain.com:users:abc')
+    expect(ownerOps.removeMember).toHaveBeenCalledWith('my-ring', TARGET_DID)
+  })
+
+  test('a member from another instance is removed by their DID', async () => {
+    const outsider = 'did:web:elsewhere.example:users:spam'
+    const { req, res } = makeReqRes('DELETE', { slug: 'my-ring', userId: outsider })
+    await memberHandler(req, res)
+    expect(res.statusCode).toBe(200)
+    expect(mockDb.user.findUnique).not.toHaveBeenCalled()
+    expect(ownerOps.removeMember).toHaveBeenCalledWith('my-ring', outsider)
   })
 
   test('a moderator removes too: signed as them, the hub decides', async () => {
-    ;(getSessionUser as jest.Mock).mockResolvedValue({ id: 'mod-1' })
+    ;(getSessionUser as jest.Mock).mockResolvedValue({ id: 'mod-1', role: 'member' })
     const { req, res } = makeReqRes('DELETE', { slug: 'my-ring', userId: 'user-2' })
     await memberHandler(req, res)
     expect(res.statusCode).toBe(200)
     expect(createAuthenticatedRingHubClient).toHaveBeenCalledWith('mod-1')
-    expect(ownerOps.removeMember).toHaveBeenCalledWith('my-ring', 'did:web:homepageagain.com:users:abc')
+    expect(ownerOps.removeMember).toHaveBeenCalledWith('my-ring', TARGET_DID)
   })
 
-  test('only the owner changes roles', async () => {
-    ;(getSessionUser as jest.Mock).mockResolvedValue({ id: 'mod-1' })
-    const { req, res } = makeReqRes('PUT', { slug: 'my-ring', userId: 'user-2' }, { role: 'moderator' })
-    await memberHandler(req, res)
-    expect(res.statusCode).toBe(403)
+  test('only the Host changes roles, and plain members remove nobody', async () => {
+    ;(getSessionUser as jest.Mock).mockResolvedValue({ id: 'mod-1', role: 'member' })
+    const put = makeReqRes('PUT', { slug: 'my-ring', userId: 'user-2' }, { role: 'moderator' })
+    await memberHandler(put.req, put.res)
+    expect(put.res.statusCode).toBe(403)
+
+    ;(getSessionUser as jest.Mock).mockResolvedValue({ id: 'someone', role: 'member' })
+    const del = makeReqRes('DELETE', { slug: 'my-ring', userId: 'user-2' })
+    await memberHandler(del.req, del.res)
+    expect(del.res.statusCode).toBe(403)
     expect(ownerOps.updateMemberRole).not.toHaveBeenCalled()
+    expect(ownerOps.removeMember).not.toHaveBeenCalled()
+  })
+
+  test('the Host themselves is never removed or re-roled here', async () => {
+    mockDb.user.findUnique.mockResolvedValue({ id: 'owner-1', did: 'did:key:x', primaryHandle: null, userDID: { did: OWNER_DID } })
+    const { req, res } = makeReqRes('DELETE', { slug: 'my-ring', userId: 'owner-1' })
+    await memberHandler(req, res)
+    expect(res.statusCode).toBe(400)
+    expect(ownerOps.removeMember).not.toHaveBeenCalled()
   })
 
   test("a hub rejection is reported with the hub's status — no local fallback", async () => {
@@ -207,5 +246,12 @@ describe('PUT/DELETE /api/threadrings/[slug]/members/[userId]', () => {
     await memberHandler(req, res)
     expect(res.statusCode).toBe(503)
     expect(res.jsonBody.degraded).toBe(true)
+  })
+
+  test('a ring the viewer can\'t see is a 404', async () => {
+    ownerOps.getRingAsMember.mockResolvedValue(null)
+    const { req, res } = makeReqRes('DELETE', { slug: 'my-ring', userId: 'user-2' })
+    await memberHandler(req, res)
+    expect(res.statusCode).toBe(404)
   })
 })

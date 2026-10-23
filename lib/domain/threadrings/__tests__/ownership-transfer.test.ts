@@ -85,7 +85,12 @@ beforeEach(() => {
       hasMore: false,
     })),
   }
-  ownerClient = { transferOwnership: jest.fn(async (_slug: string, to: string) => transferred(to)) }
+  // Signed as the asker: what they read is what the hub shows them
+  ownerClient = {
+    transferOwnership: jest.fn(async (_slug: string, to: string) => transferred(to)),
+    getRingAsMember: jest.fn((slug: string) => reader.getRing(slug)),
+    getRingMembers: jest.fn((slug: string, options: unknown) => reader.getRingMembers(slug, options)),
+  }
   siteClient = { transferOwnership: jest.fn(async (_slug: string, to: string) => ({ ...transferred(to), byAdmin: true })) }
   ;(shouldUseRingHub as jest.Mock).mockReturnValue(true)
   ;(getPublicRingHubClient as jest.Mock).mockReturnValue(reader)
@@ -210,6 +215,17 @@ describe('transferRingOwnership', () => {
   })
 })
 
+describe('reading the ring', () => {
+  test("a private ring is read signed as its Host, who can then hand it over", async () => {
+    // Unsigned, the hub shows nobody a private ring
+    reader.getRing.mockResolvedValue(null)
+    ownerClient.getRingAsMember.mockResolvedValue({ slug: 'garden', ownerDid, uri: 'https://hub.test/rings/garden' })
+    const result = await transferRingOwnership({ slug: 'garden', actor: { id: 'alice', role: 'member' }, newOwnerUserId: 'bob' })
+    expect(ownerClient.getRingAsMember).toHaveBeenCalledWith('garden')
+    expect(result.newOwnerDid).toBe(did('bob'))
+  })
+})
+
 describe('listOwnershipCandidates', () => {
   beforeEach(() => {
     mockDb.userDID.findMany.mockImplementation(async ({ where }: any) =>
@@ -229,5 +245,10 @@ describe('listOwnershipCandidates', () => {
   test('only for the owner or an admin', async () => {
     expect((await refusal(listOwnershipCandidates('garden', { id: 'bob', role: 'member' })))?.status).toBe(403)
     await expect(listOwnershipCandidates('garden', { id: 'bob', role: 'admin' })).resolves.toHaveLength(1)
+  })
+
+  test('a Host the local mirror never heard of may still hand it over', async () => {
+    mockDb.ringHubOwnership.findUnique.mockResolvedValue({ ownerUserId: 'someone-else' })
+    await expect(listOwnershipCandidates('garden', { id: 'alice', role: 'member' })).resolves.toHaveLength(1)
   })
 })

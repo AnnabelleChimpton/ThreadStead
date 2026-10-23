@@ -1,13 +1,12 @@
 /**
- * Route tests (mocked hub) for two routes that read a hub ring's members. The
- * hub lists them newest first, 20 by default, so one unparameterised read
- * missed everyone older:
- *  - POST /api/threadrings/[slug]/invite: the curator (usually the oldest
- *    member) got a 403 in any ring over 20. It also matched the viewer by
- *    User.did instead of their federation DID, and signed the invite as the
- *    server, which the hub rejects.
- *  - GET /api/threadrings/[slug]/members: the ring page reads the viewer's own
- *    role from this list, so older members showed as non-members.
+ * Route tests (mocked hub):
+ *  - POST /api/threadrings/[slug]/invite: the Host (Ring.ownerDid) and
+ *    moderators (the hub's moderator role) invite, matched by their
+ *    federation DID rather than User.did, with the ring read and the invite
+ *    signed as them, so a private ring's Host can too.
+ *  - GET /api/threadrings/[slug]/members: the hub lists members newest first,
+ *    20 by default, and the ring page reads the viewer's own role from this
+ *    list, so it reads every page.
  */
 import type { NextApiRequest, NextApiResponse } from 'next'
 
@@ -19,8 +18,14 @@ jest.mock('@/lib/config/database/connection', () => ({
   },
 }))
 jest.mock('@/lib/auth/server', () => ({ getSessionUser: jest.fn() }))
-jest.mock('@/lib/server/http/csrf', () => ({ withCsrfProtection: (h: any) => h }))
-jest.mock('@/lib/server/http/rate-limit', () => ({ withRateLimit: () => (h: any) => h }))
+jest.mock('@/lib/server/http/csrf', () => ({
+  csrfProtection: jest.fn().mockResolvedValue(true),
+  withCsrfProtection: (h: any) => h,
+}))
+jest.mock('@/lib/server/http/rate-limit', () => ({
+  rateLimitCheck: jest.fn().mockResolvedValue(true),
+  withRateLimit: () => (h: any) => h,
+}))
 jest.mock('@/lib/api/ringhub/ringhub-client', () => ({
   ...jest.requireActual('@/lib/api/ringhub/ringhub-client'),
   getRingHubClient: jest.fn(),
@@ -42,7 +47,7 @@ import inviteHandler from '@/pages/api/threadrings/[slug]/invite'
 import membersHandler from '@/pages/api/threadrings/[slug]/members'
 import { getSessionUser } from '@/lib/auth/server'
 import { db } from '@/lib/config/database/connection'
-import { getRingHubClient, RingHubClientError } from '@/lib/api/ringhub/ringhub-client'
+import { RingHubClientError } from '@/lib/api/ringhub/ringhub-client'
 import { createAuthenticatedRingHubClient } from '@/lib/api/ringhub/ringhub-user-operations'
 import { MEMBER_PAGE_SIZE } from '@/lib/api/ringhub/ring-members'
 
@@ -82,13 +87,15 @@ function hubRing(count: number, oldest: string, oldestRole: 'owner' | 'moderator
     joinedAt: new Date(Date.UTC(2026, 0, 1) - i * 60_000).toISOString(),
   }))
   return {
-    getRingMembers: jest.fn(async (_slug: string, opts?: { limit?: number; offset?: number }) => {
+    getRingMembers: jest.fn(async (_slug: string, opts?: { limit?: number; offset?: number; role?: string }) => {
       const limit = opts?.limit ?? 20
       const offset = opts?.offset ?? 0
-      const members = all.slice(offset, offset + limit)
-      return { members, total: count, limit, offset, hasMore: offset + members.length < count }
+      const matching = opts?.role ? all.filter((m) => m.role === opts.role) : all
+      const members = matching.slice(offset, offset + limit)
+      return { members, total: matching.length, limit, offset, hasMore: offset + members.length < matching.length }
     }),
     inviteMember: jest.fn().mockResolvedValue({ success: true, invitation: { id: 'inv-1' } }),
+    getRingAsMember: jest.fn().mockResolvedValue({ slug: 'big-ring', name: 'Big Ring', ownerDid: oldestRole === 'owner' ? oldest : 'did:web:elsewhere.example:host' }),
   }
 }
 
@@ -107,16 +114,13 @@ beforeEach(() => {
 
 describe('POST /api/threadrings/[slug]/invite', () => {
   beforeEach(() => {
-    ;(getRingHubClient as jest.Mock).mockReturnValue({
-      getRing: jest.fn().mockResolvedValue({ slug: 'big-ring' }),
-    })
     mockDb.userDID.findUnique.mockResolvedValue({ did: VIEWER_HUB_DID })
     mockDb.handle.findFirst.mockResolvedValue({
       handle: 'pat', user: { did: 'did:key:z-pat-login', userDID: { did: INVITEE_HUB_DID } },
     })
   })
 
-  test('the curator of a 130-member ring, the oldest member, can invite', async () => {
+  test("the Host of a 130-member ring invites, read and signed as themselves", async () => {
     const hub = hubRing(130, VIEWER_HUB_DID, 'owner')
     ;(createAuthenticatedRingHubClient as jest.Mock).mockReturnValue(hub)
 
@@ -124,13 +128,20 @@ describe('POST /api/threadrings/[slug]/invite', () => {
     await inviteHandler(req, res)
 
     expect(res.statusCode).toBe(200)
-    expect(hub.getRingMembers.mock.calls).toEqual([
-      ['big-ring', { limit: MEMBER_PAGE_SIZE, offset: 0 }],
-      ['big-ring', { limit: MEMBER_PAGE_SIZE, offset: MEMBER_PAGE_SIZE }],
-    ])
-    // Signed as the curator, to the invitee's federation DID
     expect(createAuthenticatedRingHubClient).toHaveBeenCalledWith(VIEWER.id)
+    expect(hub.getRingAsMember).toHaveBeenCalledWith('big-ring')
     expect(hub.inviteMember).toHaveBeenCalledWith('big-ring', INVITEE_HUB_DID)
+  })
+
+  test('a moderator invites too', async () => {
+    const hub = hubRing(130, VIEWER_HUB_DID, 'moderator')
+    ;(createAuthenticatedRingHubClient as jest.Mock).mockReturnValue(hub)
+
+    const { req, res } = makeReqRes('POST', { slug: 'big-ring' }, { username: 'pat' })
+    await inviteHandler(req, res)
+
+    expect(res.statusCode).toBe(200)
+    expect(hub.getRingMembers).toHaveBeenCalledWith('big-ring', { role: 'moderator', limit: 100 })
   })
 
   test('a plain member gets a 403 and nothing reaches the hub', async () => {
@@ -171,9 +182,9 @@ describe('POST /api/threadrings/[slug]/invite', () => {
     expect(mockDb.threadRing.findUnique).not.toHaveBeenCalled()
   })
 
-  test("a members read that fails is a degraded 503, not a 403", async () => {
+  test("a ring read that fails is a degraded 503, not a 403", async () => {
     const hub = hubRing(5, VIEWER_HUB_DID, 'owner')
-    hub.getRingMembers.mockRejectedValue(new Error('socket hang up'))
+    hub.getRingAsMember.mockRejectedValue(new Error('socket hang up'))
     ;(createAuthenticatedRingHubClient as jest.Mock).mockReturnValue(hub)
 
     const { req, res } = makeReqRes('POST', { slug: 'big-ring' }, { username: 'pat' })

@@ -6,11 +6,13 @@ import { GetServerSideProps } from "next";
 import { db } from "@/lib/config/database/connection";
 import { getSessionUser } from "@/lib/auth/server";
 import { SITE_NAME } from "@/lib/config/site/constants";
-import { featureFlags } from "@/lib/utils/features/feature-flags";
-import { ringOwnerSource } from "@/lib/domain/threadrings/ring-owner";
-import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
+import { getPublicRingHubClient } from "@/lib/api/ringhub/ringhub-client";
+import { createAuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
 import { raceHubCall, HUB_TIMEOUT } from "@/lib/api/ringhub/ringhub-ssr";
 import { readAllRingMembers } from "@/lib/api/ringhub/ring-members";
+import { transformRingMembersBatchWithUserResolution } from "@/lib/api/ringhub/ringhub-transformers";
+import { readRingAs } from "@/lib/domain/threadrings/ring-access";
+import ThreadRingInviteForm from "@/components/ui/forms/ThreadRingInviteForm";
 import UserMention from "@/components/ui/navigation/UserMention";
 import { csrfFetch } from "@/lib/api/client/csrf-fetch";
 import { useToast } from "@/contexts/ToastContext";
@@ -41,28 +43,34 @@ interface Member {
 interface ThreadRingMembersPageProps {
   siteConfig: SiteConfig;
   ring: {
-    id: string;
     name: string;
     slug: string;
     memberCount: number;
-    curatorId: string;
   } | null;
   members: Member[];
-  canManage: boolean;
-  /** A Ring Hub ring: only those can be handed to a new owner. */
-  hubRing?: boolean;
-  /** The viewer moderates this hub ring: they may remove plain members. */
-  viewerModerates?: boolean;
+  /** What Ring Hub lets the viewer do here (lib/domain/threadrings/ring-access.ts) */
+  rights: {
+    /** Change roles: the Host, or a site admin signing as this site */
+    roles: boolean;
+    /** Remove: the Host anyone, a moderator plain members */
+    remove: "any" | "members" | null;
+    /** Hand the ring over: the Host, or a site admin */
+    handOver: boolean;
+    /** Invite: the Host and moderators */
+    invite: boolean;
+  };
+  viewerId: string | null;
   error?: string;
 }
+
+const NO_RIGHTS: ThreadRingMembersPageProps["rights"] = { roles: false, remove: null, handOver: false, invite: false };
 
 export default function ThreadRingMembersPage({
   siteConfig,
   ring,
   members: initialMembers,
-  canManage,
-  hubRing = false,
-  viewerModerates = false,
+  rights = NO_RIGHTS,
+  viewerId,
   error
 }: ThreadRingMembersPageProps) {
   const router = useRouter();
@@ -78,7 +86,7 @@ export default function ThreadRingMembersPage({
       <Layout siteConfig={siteConfig}>
         <div className="max-w-4xl mx-auto py-8">
           <div className="text-center text-red-600">
-            {error || "ThreadRing not found"}
+            {error || "Ring not found"}
           </div>
         </div>
       </Layout>
@@ -100,7 +108,7 @@ export default function ThreadRingMembersPage({
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to update role");
+        throw new Error(data.error || "Couldn't change their role. Try again.");
       }
 
       // Update local state
@@ -113,7 +121,7 @@ export default function ThreadRingMembersPage({
       showSuccess(data.message);
     } catch (error: any) {
       console.error("Error updating role:", error);
-      showError(error.message || "Failed to update role");
+      showError(error.message || "Couldn't change their role. Try again.");
     } finally {
       setManaging(null);
     }
@@ -146,7 +154,7 @@ export default function ThreadRingMembersPage({
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to remove member");
+        throw new Error(data.error || "Couldn't remove them. Try again.");
       }
 
       // Update local state
@@ -155,7 +163,7 @@ export default function ThreadRingMembersPage({
       showSuccess(data.message);
     } catch (error: any) {
       console.error("Error removing member:", error);
-      showError(error.message || "Failed to remove member");
+      showError(error.message || "Couldn't remove them. Try again.");
     } finally {
       setManaging(null);
     }
@@ -165,7 +173,7 @@ export default function ThreadRingMembersPage({
     const handle = getMemberHandle(member);
     if (!(await confirm({
       title: `Hand ${ring.name} to @${handle}?`,
-      message: `@${handle} becomes the owner and can manage the ring. The current owner stays on as a member, and only @${handle} can hand it back.`,
+      message: `@${handle} becomes the Host and runs the ring. The current Host stays on as a member, and only @${handle} can hand it back.`,
       confirmText: "Hand it over",
     }))) return;
 
@@ -212,18 +220,25 @@ export default function ThreadRingMembersPage({
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h1 className="text-3xl font-bold">ThreadRing Members</h1>
+            <h1 className="text-3xl font-bold">Members</h1>
             <button
               onClick={() => router.push(`/tr/${ring.slug}`)}
               className="border border-black px-4 py-2 bg-white hover:bg-gray-100 shadow-[2px_2px_0_#000]"
             >
-              Back to ThreadRing
+              Back to the ring
             </button>
           </div>
           <p className="text-gray-600">
-            Managing members for <strong>{ring.name}</strong> • {members.length} total members
+            <strong>{ring.name}</strong> • {members.length} {members.length === 1 ? "member" : "members"}
           </p>
         </div>
+
+        {rights.invite && (
+          <div className="bg-white border border-black p-4 shadow-[2px_2px_0_#000] mb-6">
+            <h2 className="font-bold mb-3">Invite someone</h2>
+            <ThreadRingInviteForm threadRingSlug={ring.slug} threadRingName={ring.name} />
+          </div>
+        )}
 
         {/* Members List */}
         <div className="bg-white border border-black shadow-[2px_2px_0_#000]">
@@ -233,8 +248,10 @@ export default function ThreadRingMembersPage({
 
           <div className="divide-y divide-gray-200">
             {members.map((member) => {
-              const isCurrentUser = member.user.id === ring.curatorId; // We could pass current user ID
               const isCurator = member.role === "curator";
+              const isViewer = member.user.id === viewerId;
+              const canRemove = !isCurator && !isViewer &&
+                (rights.remove === "any" || (rights.remove === "members" && member.role === "member"));
               const removeButton = (
                 <button
                   onClick={() => handleRemoveMember(member.user.id)}
@@ -290,15 +307,16 @@ export default function ThreadRingMembersPage({
                         member.role === "moderator" ? "bg-blue-200" :
                           "bg-gray-200"
                       }`}>
-                      {member.role === "curator" ? "Curator" :
+                      {member.role === "curator" ? "Host" :
                         member.role === "moderator" ? "Moderator" :
                           "Member"}
                     </span>
 
                     {/* Management Controls */}
-                    {canManage && !isCurator && (
+                    {!isCurator && !isViewer && (rights.roles || rights.handOver || canRemove) && (
                       <div className="flex items-center gap-2">
                         {/* Role Toggle */}
+                        {rights.roles && (
                         <select
                           value={member.role}
                           onChange={(e) => handleRoleChange(member.user.id, e.target.value)}
@@ -308,29 +326,21 @@ export default function ThreadRingMembersPage({
                           <option value="member">Member</option>
                           <option value="moderator">Moderator</option>
                         </select>
+                        )}
 
                         {/* Hand the ring over: residents here only (others show by DID) */}
-                        {hubRing && !member.user.id.startsWith("did:") && (
+                        {rights.handOver && !member.user.id.startsWith("did:") && (
                           <button
                             onClick={() => handleMakeOwner(member)}
                             disabled={managing === member.user.id}
                             className="text-xs border border-black px-3 py-1 bg-white hover:bg-gray-100 shadow-[1px_1px_0_#000] hover:shadow-[2px_2px_0_#000] transition-all disabled:opacity-50"
                           >
-                            Make owner
+                            Make Host
                           </button>
                         )}
 
-                        {removeButton}
+                        {canRemove && removeButton}
                       </div>
-                    )}
-
-                    {/* Moderators remove plain members; roles stay with the curator */}
-                    {!canManage && viewerModerates && member.role === "member" && removeButton}
-
-                    {isCurator && canManage && (
-                      <span className="text-xs text-gray-500 italic">
-                        Curator
-                      </span>
                     )}
                   </div>
                 </div>
@@ -340,17 +350,15 @@ export default function ThreadRingMembersPage({
 
           {members.length === 0 && (
             <div className="p-8 text-center text-gray-600">
-              No members found.
+              Nobody here yet.
             </div>
           )}
         </div>
 
-        {!canManage && (
+        {rights.remove === "members" && (
           <div className="mt-4 p-4 bg-yellow-50 border border-yellow-300 rounded">
             <p className="text-sm text-yellow-800">
-              {hubRing
-                ? "Only the curator can change roles. The curator and moderators can remove members."
-                : "Only the curator can manage member roles and remove members."}
+              Only the Host changes roles. You can remove members and invite people.
             </p>
           </div>
         )}
@@ -359,193 +367,53 @@ export default function ThreadRingMembersPage({
   );
 }
 
+const UNREACHABLE = "We can't reach Ring Hub right now, so the members can't be shown. Try again in a minute.";
+
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const siteConfig = await getSiteConfig();
   const { slug } = context.params!;
-
-  if (typeof slug !== "string") {
-    return {
-      props: {
-        siteConfig,
-        ring: null,
-        members: [],
-        canManage: false,
-        error: "Invalid ThreadRing URL",
-      },
-    };
-  }
+  if (typeof slug !== "string") return { notFound: true };
 
   const viewer = await getSessionUser(context.req as any);
+  const failed = { props: { siteConfig, ring: null, members: [], rights: NO_RIGHTS, viewerId: viewer?.id ?? null, error: UNREACHABLE } };
 
-  try {
-    // Use Ring Hub if enabled
-    if (featureFlags.ringhub()) {
-      const client = getRingHubClient();
-      if (client) {
-        try {
-          // Short SSR deadline so a hung hub doesn't block TTFB; timeout -> local fallback.
-          const ringDescriptor = await raceHubCall(client.getRing(slug as string));
-          if (ringDescriptor === HUB_TIMEOUT) {
-            throw new Error('Ring Hub SSR timeout (getRing)');
-          }
-          if (ringDescriptor) {
-            // Every page of Ring Hub members
-            const ringHubMembers = await readAllRingMembers(client, slug as string);
-            if (ringHubMembers === HUB_TIMEOUT) {
-              throw new Error('Ring Hub SSR timeout (getRingMembers)');
-            }
+  // Signed as the viewer, so a private ring's members see it. No local fallback.
+  const access = await raceHubCall(readRingAs(viewer, slug));
+  if (access === HUB_TIMEOUT) return failed;
+  if (!access) return { notFound: true };
 
-            // Check if viewer owns this Ring Hub ring locally
-            let canManage = false;
-            if (viewer) {
-              if (viewer.role === 'admin') {
-                canManage = true;
-              } else {
-                const ownership = await db.ringHubOwnership.findUnique({
-                  where: { ringSlug: slug as string },
-                });
-                canManage = ownership?.ownerUserId === viewer.id;
-              }
-            }
+  const reader = viewer && access.viewerDid ? createAuthenticatedRingHubClient(viewer.id) : getPublicRingHubClient();
+  const read = reader ? await readAllRingMembers(reader, slug) : HUB_TIMEOUT;
+  if (read === HUB_TIMEOUT) return failed;
 
-            // Convert Ring Hub members to local format with batched user resolution (no N+1)
-            const { transformRingMembersBatchWithUserResolution } = await import('@/lib/api/ringhub/ringhub-transformers')
+  const resolved = await transformRingMembersBatchWithUserResolution(read.members, slug, db, viewer?.id ?? null);
+  const members = resolved.map((m) => ({
+    id: m.id,
+    role: m.role,
+    joinedAt: m.joinedAt,
+    user: {
+      id: m.user.id,
+      handles: m.user.handles,
+      profileUrl: m.user.profileUrl,
+      profile: { displayName: m.user.displayName, avatarUrl: m.user.avatarUrl },
+    },
+  }));
 
-            const resolvedMembers = await transformRingMembersBatchWithUserResolution(
-              ringHubMembers.members,
-              slug as string,
-              db,
-              viewer?.id ?? null
-            )
-
-            const members = resolvedMembers.map((transformedMember) => ({
-              id: transformedMember.id,
-              role: transformedMember.role,
-              joinedAt: transformedMember.joinedAt,
-              user: {
-                id: transformedMember.user.id,
-                handles: transformedMember.user.handles,
-                profileUrl: transformedMember.user.profileUrl,
-                profile: {
-                  displayName: transformedMember.user.displayName,
-                  avatarUrl: transformedMember.user.avatarUrl,
-                },
-              },
-            }));
-
-            const ring = {
-              id: ringDescriptor.slug,
-              name: ringDescriptor.name,
-              slug: ringDescriptor.slug,
-              memberCount: ringDescriptor.memberCount,
-              curatorId: '',
-            };
-
-            return {
-              props: {
-                siteConfig,
-                ring,
-                members: markExternal(await withHouseBadges(members, viewer?.id)),
-                canManage,
-                hubRing: true,
-                // The hub's roles decide: a moderator may remove plain members.
-                viewerModerates: !!viewer && members.some((m) => m.user.id === viewer.id && m.role === "moderator"),
-              },
-            };
-          }
-        } catch (ringHubError) {
-          console.error("Ring Hub error in members page:", ringHubError);
-          // Fall through to local database
-        }
-      }
-    }
-
-    // Fall back to local database
-    const ring = await db.threadRing.findUnique({
-      where: { slug },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        memberCount: true,
-        curatorId: true,
-        members: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                handles: {
-                  select: {
-                    handle: true,
-                    host: true,
-                  },
-                },
-                profile: {
-                  select: {
-                    displayName: true,
-                    avatarUrl: true,
-                  },
-                },
-              },
-            },
-          },
-          orderBy: [
-            { role: "desc" }, // Curator first, then moderators, then members
-            { joinedAt: "asc" },
-          ],
-        },
+  const isAdmin = viewer?.role === "admin";
+  return {
+    props: {
+      siteConfig,
+      ring: { name: access.ring.name, slug: access.ring.slug, memberCount: access.ring.memberCount ?? members.length },
+      members: markExternal(await withHouseBadges(members, viewer?.id)),
+      rights: {
+        roles: access.manageAs !== null,
+        remove: access.isHost ? "any" : access.isSteward ? "members" : null,
+        handOver: access.isHost || isAdmin,
+        invite: access.isSteward,
       },
-    });
-
-    if (!ring) {
-      return {
-        props: {
-          siteConfig,
-          ring: null,
-          members: [],
-          canManage: false,
-          error: "ThreadRing not found",
-        },
-      };
-    }
-
-    // Curator (Ring Hub off) or the hub's owner (Ring Hub on and the hub
-    // didn't answer), or an admin. See ring-owner.ts.
-    const canManage = viewer?.role === 'admin' ||
-      (!!viewer && (await ringOwnerSource(slug as string, viewer.id)) !== null);
-
-    // Serialize the data
-    const serializedMembers = ring.members.map(member => ({
-      ...member,
-      joinedAt: member.joinedAt.toISOString(),
-    }));
-
-    return {
-      props: {
-        siteConfig,
-        ring: {
-          id: ring.id,
-          name: ring.name,
-          slug: ring.slug,
-          memberCount: ring.memberCount,
-          curatorId: ring.curatorId,
-        },
-        members: markExternal(await withHouseBadges(serializedMembers, viewer?.id)),
-        canManage,
-      },
-    };
-  } catch (error: any) {
-    console.error("Members page error:", error);
-    return {
-      props: {
-        siteConfig,
-        ring: null,
-        members: [],
-        canManage: false,
-        error: "Failed to load ThreadRing",
-      },
-    };
-  }
+      viewerId: viewer?.id ?? null,
+    },
+  };
 };
 
 /** Each member's house badge handle, for homes this viewer may see. Never fails the page. */

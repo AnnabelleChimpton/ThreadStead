@@ -85,6 +85,8 @@ function makeReqRes(method: string, query: Record<string, string>, body?: any) {
 
 function curatorHub() {
   return {
+    // The ring as its Host reads it
+    getRingAsMember: jest.fn().mockResolvedValue({ slug: 'tea-ring', name: 'Tea Ring', ownerDid: VIEWER_HUB_DID }),
     getRingMembers: jest.fn().mockResolvedValue({
       members: [{ actorDid: VIEWER_HUB_DID, status: 'ACTIVE', role: 'owner', joinedAt: '2026-01-01T00:00:00.000Z' }],
       total: 1, limit: 100, offset: 0, hasMore: false,
