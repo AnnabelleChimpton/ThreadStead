@@ -1,14 +1,47 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/lib/config/database/connection";
 import { getSessionUser } from "@/lib/auth/server";
-import { SITE_NAME } from "@/lib/config/site/constants";
 import { withThreadRingSupport } from "@/lib/api/ringhub/ringhub-middleware";
-import { getRingHubClient, getPublicRingHubClient } from "@/lib/api/ringhub/ringhub-client";
+import { getPublicRingHubClient } from "@/lib/api/ringhub/ringhub-client";
+import { createAuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
 import { cached } from "@/lib/api/ringhub/ringhub-cache";
-import { RingHubAuthError, RingHubUnavailableError } from "@/lib/api/ringhub/ringhub-errors";
+import { mapDIDsToUserIds } from "@/lib/api/did/server-did-client";
+import { usernameFromHandle } from "@/lib/domain/notifications/links";
+import { visibleResidentWhere } from "@/lib/domain/users/profile-access";
+import { readAsViewer } from "@/lib/rings/read-as-viewer";
 
+const FRESH_MS = 30_000;
+const STALE_MS = 5 * 60_000;
+
+type Leader = { actorDid: string; actorName: string | null };
+/** Someone who looks after the ring; `username` when they live here and the viewer may see them. */
+type Person = { username: string | null; displayName: string };
+
+/** Hub DIDs to the residents behind them, leaving out anyone hidden from the viewer. */
+async function people(leaders: Leader[], viewerId: string | null): Promise<Person[]> {
+  if (leaders.length === 0) return [];
+  const userIds = await mapDIDsToUserIds(leaders.map((leader) => leader.actorDid));
+  const users = await db.user.findMany({
+    where: { AND: [{ id: { in: [...new Set(userIds.values())] } }, visibleResidentWhere(viewerId)] },
+    select: { id: true, primaryHandle: true, profile: { select: { displayName: true } } },
+  });
+  const byId = new Map(users.map((user) => [user.id, user]));
+  return leaders.flatMap((leader) => {
+    const userId = userIds.get(leader.actorDid);
+    if (!userId) return [{ username: null, displayName: leader.actorName || "Ring Hub member" }];
+    const user = byId.get(userId);
+    if (!user) return [];
+    const username = usernameFromHandle(user.primaryHandle);
+    return [{ username, displayName: user.profile?.displayName || username || "Member" }];
+  });
+}
+
+/**
+ * A ring's numbers, only the ones the hub keeps: members, posts, and who
+ * hosts and moderates it.
+ */
 export default withThreadRingSupport(async function handler(
-  req: NextApiRequest, 
+  req: NextApiRequest,
   res: NextApiResponse,
   system: 'ringhub' | 'local'
 ) {
@@ -22,267 +55,41 @@ export default withThreadRingSupport(async function handler(
     return res.status(400).json({ error: "Invalid slug" });
   }
 
-  try {
-    const viewer = await getSessionUser(req);
-
-    // Use Ring Hub if enabled
-    if (system === 'ringhub') {
-      const client = getRingHubClient();
-      if (!client) {
-        return res.status(500).json({ error: "Ring Hub client not configured" });
-      }
-
-      let ringDescriptor;
-      try {
-        // Use efficient root endpoint for spool. Both wrapped in SWR cache.
-        if (slug === 'spool') {
-          ringDescriptor = await cached('ring-root', 30_000, 5 * 60_000, () => client.getRootRing());
-        } else {
-          ringDescriptor = await cached(`ring:${slug}`, 30_000, 5 * 60_000, () => client.getRing(slug as string));
-        }
-      } catch (error) {
-        if (error instanceof RingHubAuthError || error instanceof RingHubUnavailableError) {
-          console.error('Ring Hub unavailable for stats:', error.name, error.message);
-          return res.status(503).json({ error: 'hub_unavailable', degraded: true });
-        }
-        throw error;
-      }
-
-      if (!ringDescriptor) {
-        return res.status(404).json({ error: "ThreadRing not found" });
-      }
-
-      // Try to get membership info for more detailed stats
-      let membershipInfo = null;
-      let moderatorCount = 1; // Default to 1 (curator)
-
-      try {
-        // Use public client for membership info (doesn't require authentication)
-        const publicClient = getPublicRingHubClient();
-        if (publicClient) {
-          membershipInfo = await cached(
-            `membership-info:${slug}`,
-            30_000,
-            5 * 60_000,
-            () => publicClient.getRingMembershipInfo(slug as string)
-          );
-          // Count owner + moderators
-          moderatorCount = 1 + (membershipInfo?.moderators?.length || 0);
-        }
-      } catch (error) {
-        // Non-fatal: stats still render from the descriptor. Membership detail is a bonus.
-        console.log(`Could not fetch membership info for ${slug}:`, error);
-      }
-
-      // For Ring Hub rings, return stats with membership info if available
-      const stats = {
-        memberCount: membershipInfo?.memberCount || ringDescriptor.memberCount,
-        postCount: ringDescriptor.postCount,
-        pinnedPostCount: 0, // Not available from Ring Hub basic descriptor
-        moderatorCount,
-        recentActivity: {
-          newMembersThisWeek: 0, // Not available from Ring Hub
-          newPostsThisWeek: 0 // Not available from Ring Hub
-        },
-        topPosters: [], // Not available from Ring Hub
-        membershipTrend: [], // Not available from Ring Hub
-        // Include membership info for non-members
-        // The hub can report no owner (e.g. an ownerless ring) — don't 500 on it
-        membershipInfo: membershipInfo ? {
-          owner: membershipInfo.owner ? {
-            ...membershipInfo.owner,
-            displayName: membershipInfo.owner.actorName || membershipInfo.owner.actorDid?.split(':').pop() || 'Owner'
-          } : null,
-          moderators: (membershipInfo.moderators || []).map(mod => ({
-            ...mod,
-            displayName: mod.actorName || mod.actorDid?.split(':').pop() || 'Moderator'
-          }))
-        } : null
-      };
-
-      return res.json(stats);
-    }
-
-    // Original local database logic
-    // Find the ThreadRing
-    const threadRing = await db.threadRing.findUnique({
-      where: { slug },
-      select: { 
-        id: true, 
-        name: true,
-        visibility: true,
-        memberCount: true,
-        postCount: true,
-        curatorId: true,
-        createdAt: true
-      }
-    });
-
-    if (!threadRing) {
-      return res.status(404).json({ error: "ThreadRing not found" });
-    }
-
-    // Check access permissions
-    if (threadRing.visibility === "private") {
-      if (!viewer) {
-        return res.status(403).json({ error: "Authentication required" });
-      }
-      
-      // Check if viewer is a member
-      const membership = await db.threadRingMember.findUnique({
-        where: {
-          threadRingId_userId: {
-            threadRingId: threadRing.id,
-            userId: viewer.id
-          }
-        }
-      });
-
-      if (!membership) {
-        return res.status(403).json({ error: "Access denied" });
-      }
-    }
-
-    // Calculate date ranges
-    const now = new Date();
-    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-
-    // Gather statistics
-    const [
-      pinnedPostCount,
-      moderatorCount,
-      newMembersThisWeek,
-      newPostsThisWeek,
-      topPosters
-    ] = await Promise.all([
-      // Count pinned posts
-      db.postThreadRing.count({
-        where: {
-          threadRingId: threadRing.id,
-          isPinned: true
-        }
-      }),
-
-      // Count moderators (including curator)
-      db.threadRingMember.count({
-        where: {
-          threadRingId: threadRing.id,
-          role: {
-            in: ["curator", "moderator"]
-          }
-        }
-      }),
-
-      // New members this week
-      db.threadRingMember.count({
-        where: {
-          threadRingId: threadRing.id,
-          joinedAt: {
-            gte: oneWeekAgo
-          }
-        }
-      }),
-
-      // New posts this week
-      db.postThreadRing.count({
-        where: {
-          threadRingId: threadRing.id,
-          addedAt: {
-            gte: oneWeekAgo
-          }
-        }
-      }),
-
-      // Top posters (users with most posts in this ring)
-      db.postThreadRing.groupBy({
-        by: ['addedBy'],
-        where: {
-          threadRingId: threadRing.id
-        },
-        _count: {
-          addedBy: true
-        },
-        orderBy: {
-          _count: {
-            addedBy: 'desc'
-          }
-        },
-        take: 10
-      })
-    ]);
-
-    // Get user details for top posters
-    const topPosterUserIds = topPosters.map(p => p.addedBy);
-    const topPosterUsers = await db.user.findMany({
-      where: {
-        id: { in: topPosterUserIds }
-      },
-      select: {
-        id: true,
-        handles: {
-          where: { host: SITE_NAME },
-          take: 1,
-          select: { handle: true }
-        },
-        profile: {
-          select: { displayName: true }
-        }
-      }
-    });
-
-    // Transform top posters data
-    const transformedTopPosters = topPosters.map(poster => {
-      const user = topPosterUsers.find(u => u.id === poster.addedBy);
-      const handle = user?.handles[0]?.handle || "unknown";
-      
-      return {
-        username: handle,
-        displayName: user?.profile?.displayName,
-        postCount: poster._count.addedBy
-      };
-    });
-
-    // Simple membership trend (count cumulative members by week)
-    const membershipTrendData = [];
-    const startDate = oneMonthAgo;
-    const currentDate = new Date(startDate);
-    
-    while (currentDate <= now) {
-      const memberCountAtDate = await db.threadRingMember.count({
-        where: {
-          threadRingId: threadRing.id,
-          joinedAt: {
-            lte: currentDate
-          }
-        }
-      });
-      
-      membershipTrendData.push({
-        date: currentDate.toISOString().split('T')[0],
-        count: memberCountAtDate
-      });
-      
-      currentDate.setDate(currentDate.getDate() + 7); // Weekly intervals
-    }
-
-    const stats = {
-      memberCount: threadRing.memberCount,
-      postCount: threadRing.postCount,
-      pinnedPostCount,
-      moderatorCount,
-      recentActivity: {
-        newMembersThisWeek,
-        newPostsThisWeek
-      },
-      topPosters: transformedTopPosters,
-      membershipTrend: membershipTrendData
-    };
-
-    return res.json(stats);
-
-  } catch (error) {
-    console.error("Error fetching ThreadRing stats:", error);
-    return res.status(500).json({ error: "Internal server error" });
+  const publicClient = system === 'ringhub' ? getPublicRingHubClient() : null;
+  if (!publicClient) {
+    return res.status(503).json({ error: 'hub_unavailable', degraded: true });
   }
+
+  const viewer = await getSessionUser(req);
+  let ring;
+  try {
+    ring = await readAsViewer(
+      viewer ? () => createAuthenticatedRingHubClient(viewer.id).getRingAsMember(slug) : null,
+      async () => {
+        const kept = await cached(`ring:${slug}`, FRESH_MS, STALE_MS, () => publicClient.getRing(slug));
+        // Read for someone who may be a member; unsigned, a private ring isn't there
+        return kept?.visibility === 'PRIVATE' ? null : kept;
+      }
+    );
+  } catch (error) {
+    console.error('Ring Hub unavailable for stats:', error);
+    return res.status(503).json({ error: 'hub_unavailable', degraded: true });
+  }
+  if (!ring) {
+    return res.status(404).json({ error: "Ring not found" });
+  }
+
+  let host: Person | null = null;
+  let moderators: Person[] = [];
+  try {
+    const info = await cached(`membership-info:${slug}`, FRESH_MS, STALE_MS, () => publicClient.getRingMembershipInfo(slug));
+    // The hub leaves the owner out of `moderators`
+    host = info.owner ? (await people([info.owner], viewer?.id ?? null))[0] ?? null : null;
+    moderators = await people(info.moderators, viewer?.id ?? null);
+  } catch (error) {
+    // The counts still stand without who looks after it
+    console.warn(`No membership info for ${slug}:`, error);
+  }
+
+  return res.json({ memberCount: ring.memberCount, postCount: ring.postCount, host, moderators });
 });
