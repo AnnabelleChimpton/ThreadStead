@@ -5,7 +5,7 @@
  * rest show when someone pastes a /tr/<slug> link. Server-only.
  *
  * The badge is the ring's uploaded image when it's one of ours (on our CDN),
- * else the drawn one from lib/rings/badge.ts. Nothing else is fetched.
+ * else the default one drawn by lib/rings/badge.ts. Nothing else is fetched.
  */
 import sharp from 'sharp'
 import { keyFromPublicUrl } from '@/lib/storage/r2'
@@ -63,17 +63,17 @@ async function ownBadge(url: string | null): Promise<Buffer | null> {
 const cards = new Map<string, Buffer>()
 
 /** The card for a ring, drawn once per badge (a new upload is a new URL). */
-export async function ringShareCard(name: string, badgeImageUrl: string | null): Promise<Buffer> {
-  const key = `${badgeImageUrl ?? ''}|${name}`
+export async function ringShareCard(name: string, slug: string, badgeImageUrl: string | null, themeColor?: string | null): Promise<Buffer> {
+  const key = `${badgeImageUrl ?? ''}|${slug}|${themeColor ?? ''}|${name}`
   const hit = cards.get(key)
   if (hit) return hit
-  const badge = (await ownBadge(badgeImageUrl)) ?? (await ringBadgePng(name))
+  const badge = (await ownBadge(badgeImageUrl)) ?? (await ringBadgePng(name, slug, themeColor))
   let card: Buffer
   try {
     card = await renderRingShareCard(badge)
   } catch {
     // An upload sharp can't read: the drawn badge instead
-    card = await renderRingShareCard(await ringBadgePng(name))
+    card = await renderRingShareCard(await ringBadgePng(name, slug, themeColor))
   }
   if (cards.size > 200) cards.clear()
   cards.set(key, card)

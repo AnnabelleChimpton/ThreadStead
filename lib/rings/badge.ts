@@ -1,51 +1,82 @@
 /**
- * The 88×31 a ring strip shows when the ring has no badge image of its own:
- * the ring's name in the house badges' pixel letters (lib/pixel-homes/
- * house-badge.ts) on cream, as a PNG. No fonts, so it draws the same
- * everywhere.
+ * Ring badges as PNGs (the art is lib/rings/badge-art.ts): the 88×31 and its
+ * 352×124 "HD", which is the same pixels at exactly 4×. Also the badge a
+ * ring strip or link preview shows when the ring has no image of its own:
+ * the default badge, so it looks like any new ring's. Server-only.
  */
 import sharp from 'sharp'
-import { BADGE_HEIGHT, BADGE_WIDTH, FRAME, INK, badgeText, textPixels, type Px } from '@/lib/pixel-homes/house-badge'
+import { z } from 'zod'
+import {
+  BADGE_GLYPH_IDS,
+  BADGE_HEIGHT,
+  BADGE_TEMPLATE_IDS,
+  BADGE_WIDTH,
+  badgeChoiceFor,
+  badgeDesignFor,
+  badgeRgba,
+  drawBadge,
+  type BadgeDesign,
+} from '@/lib/rings/badge-art'
+import { ringBadgePalette } from '@/lib/rings/theme'
+import { drawnBadgeChoice, uploadBadgeImage } from '@/lib/badge-uploader'
 
-const PAPER = '#f6efdc'
-const RULE = '#c9b998'
-const LABEL = '#8f7d5c'
-const LINE_CHARS = 20
+const HD_SCALE = 4
 
-/** The name over two lines of up to 20 letters, broken at a space when it can be. */
-export function nameLines(name: string): string[] {
-  const text = badgeText(name, LINE_CHARS * 2 + 1)
-  if (text.length <= LINE_CHARS) return [text]
-  const cut = text.slice(0, LINE_CHARS + 1).lastIndexOf(' ')
-  const first = cut > 0 ? text.slice(0, cut) : text.slice(0, LINE_CHARS)
-  return [first, badgeText(text.slice(first.length).trim(), LINE_CHARS)]
+/** A badge as a request sends it. No palette: that's the ring's theme colour. Empty words say the ring's name. */
+export const badgeChoiceSchema = z.object({
+  template: z.enum(BADGE_TEMPLATE_IDS),
+  glyph: z.enum(BADGE_GLYPH_IDS).nullable().optional(),
+  text: z.string().trim().max(100).optional(),
+})
+
+/** The 88×31 and the 4× HD, from one drawing. */
+export async function ringBadgePngs(design: BadgeDesign, slug: string): Promise<{ png: Buffer; hd: Buffer }> {
+  const image = sharp(Buffer.from(badgeRgba(drawBadge(design, slug))), {
+    raw: { width: BADGE_WIDTH, height: BADGE_HEIGHT, channels: 4 },
+  })
+  const [png, hd] = await Promise.all([
+    image.clone().png().toBuffer(),
+    image
+      .clone()
+      .resize(BADGE_WIDTH * HD_SCALE, BADGE_HEIGHT * HD_SCALE, { kernel: 'nearest' })
+      .png()
+      .toBuffer(),
+  ])
+  return { png, hd }
 }
 
-export function ringBadgeSvg(name: string): string {
-  const lines = nameLines(name)
-  const width = (s: string) => s.length * 4 - 1
-  const pixels: Px[] = [
-    { x: 0, y: 0, w: BADGE_WIDTH, h: BADGE_HEIGHT, fill: FRAME },
-    { x: 1, y: 1, w: BADGE_WIDTH - 2, h: BADGE_HEIGHT - 2, fill: PAPER },
-    { x: 3, y: 22, w: BADGE_WIDTH - 6, h: 1, fill: RULE },
-  ]
-  const top = lines.length === 1 ? 9 : 5
-  lines.forEach((line, i) => pixels.push(...textPixels(line, Math.round((BADGE_WIDTH - width(line)) / 2), top + i * 7, INK)))
-  pixels.push(...textPixels('THREADRING', Math.round((BADGE_WIDTH - width('THREADRING')) / 2), 24, LABEL))
-  const body = pixels.map((p) => `<rect x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" fill="${p.fill}"/>`).join('')
-  return (
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${BADGE_WIDTH}" height="${BADGE_HEIGHT}" ` +
-    `viewBox="0 0 ${BADGE_WIDTH} ${BADGE_HEIGHT}" shape-rendering="crispEdges">${body}</svg>`
-  )
+interface RingForBadge {
+  slug: string
+  name: string
+  themeColor?: string | null
+}
+
+/** Draw a ring's badge from these choices, in its theme colour's palette, and upload it. */
+export async function drawAndUploadRingBadge(ring: RingForBadge, choice: z.infer<typeof badgeChoiceSchema>) {
+  const saved = badgeChoiceFor({ ...choice, glyph: choice.glyph ?? null })
+  const design = badgeDesignFor(saved, ring.name, ringBadgePalette(ring.themeColor, ring.slug))
+  return uploadBadgeImage(await ringBadgePngs(design, ring.slug), ring.slug, saved)
+}
+
+/**
+ * After a ring's theme colour changes: its badge again in the new palette,
+ * when it's one we drew. null for an uploaded image or no badge, which stay.
+ */
+export async function redrawRingBadge(ring: RingForBadge & { badgeImageUrl?: string | null }) {
+  const choice = drawnBadgeChoice(ring.badgeImageUrl)
+  return choice ? drawAndUploadRingBadge(ring, choice) : null
 }
 
 const drawn = new Map<string, Buffer>()
 
-export async function ringBadgePng(name: string): Promise<Buffer> {
-  const hit = drawn.get(name)
+/** The default badge for a ring with no image of its own. */
+export async function ringBadgePng(name: string, slug: string, themeColor?: string | null): Promise<Buffer> {
+  const palette = ringBadgePalette(themeColor, slug)
+  const key = `${slug}|${palette}|${name}`
+  const hit = drawn.get(key)
   if (hit) return hit
-  const png = await sharp(Buffer.from(ringBadgeSvg(name))).png().toBuffer()
+  const { png } = await ringBadgePngs(badgeDesignFor({}, name, palette), slug)
   if (drawn.size > 500) drawn.clear()
-  drawn.set(name, png)
+  drawn.set(key, png)
   return png
 }

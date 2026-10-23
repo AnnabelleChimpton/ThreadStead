@@ -7,6 +7,7 @@ import { mapJoinTypeToJoinPolicy, ringSettingsFromHub } from "@/lib/api/ringhub/
 import { deleteEmptyRing } from "@/lib/domain/threadrings/empty-rings";
 import { hubWriteError, requireRingAs, ringManager } from "@/lib/domain/threadrings/ring-access";
 import { ringThemeHex } from "@/lib/rings/theme";
+import { redrawRingBadge } from "@/lib/rings/badge";
 
 /** Text a host may empty: "" or null clears it on the hub (an omitted field stays as it is). */
 const clearable = (max: number, label: string) =>
@@ -97,6 +98,16 @@ export default apiHandler(
       updated = await manager.updateRing(slug, updates);
     } catch (error) {
       throw hubWriteError(error, access.manageAs);
+    }
+    // A badge we drew is in the ring's colour, so it's redrawn in the new one
+    // (an uploaded image stays). The colour is saved either way.
+    if (updates.themeColor !== undefined && updates.themeColor !== ringThemeHex(access.ring.themeColor)) {
+      try {
+        const badge = await redrawRingBadge({ ...access.ring, ...updated, themeColor: updates.themeColor });
+        if (badge) await manager.updateRingBadge(slug, { ...badge, updateExistingBadges: true });
+      } catch (error) {
+        console.error("Badge redraw after a colour change failed:", error);
+      }
     }
     forgetRingReads(slug);
     res.json({ settings: ringSettingsFromHub({ ...access.ring, ...updated }) });

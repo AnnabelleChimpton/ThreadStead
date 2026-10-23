@@ -44,11 +44,12 @@ async function badge(res: NextApiResponse, slug: string) {
     return go(res, facts.badgeImageUrl, 'public, max-age=3600')
   }
   // No badge of its own, no such public ring, or no answer: draw one rather than break the <img>
-  const name = facts !== HUB_TIMEOUT && facts?.visibility === 'PUBLIC' ? facts.name : slug.replace(/-/g, ' ')
+  const known = facts !== HUB_TIMEOUT && facts?.visibility === 'PUBLIC' ? facts : null
+  const name = known ? known.name : slug.replace(/-/g, ' ')
   res.setHeader('Content-Type', 'image/png')
   res.setHeader('Cache-Control', facts === HUB_TIMEOUT ? 'public, max-age=60' : 'public, max-age=3600')
   res.setHeader('X-Content-Type-Options', 'nosniff')
-  res.status(200).send(await ringBadgePng(name))
+  res.status(200).send(await ringBadgePng(name, slug, known?.themeColor))
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {

@@ -1,7 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getSessionUser } from "@/lib/auth/server";
-import { generateThreadRingBadge } from "@/lib/badge-generator";
-import { uploadBadgeImage } from "@/lib/badge-uploader";
+import { badgeChoiceSchema, drawAndUploadRingBadge } from "@/lib/rings/badge";
 import { withThreadRingSupport } from "@/lib/api/ringhub/ringhub-middleware";
 import { AuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
 import { forgetRingReads } from "@/lib/api/ringhub/forget-ring-reads";
@@ -102,38 +101,12 @@ export default withRateLimit('threadring_operations')(
             badgeImageHighResUrl
           };
         } else {
-          // Generate badge for the fork using user's badge preferences
+          // The badge they picked in the form, else the default; a new ring has no
+          // theme colour yet, so its slug picks the palette
           try {
-            interface BadgeOptions {
-              templateId?: string;
-              backgroundColor?: string;
-              textColor?: string;
-              title?: string;
-              subtitle?: string;
-              autoColor?: boolean;
-            }
-            
-            const badgeOptions: BadgeOptions = {};
-            
-            // If user provided badge preferences, use them
-            if (badge) {
-              if (badge.templateId) badgeOptions.templateId = badge.templateId;
-              if (badge.backgroundColor) badgeOptions.backgroundColor = badge.backgroundColor;
-              if (badge.textColor) badgeOptions.textColor = badge.textColor;
-              if (badge.title) badgeOptions.title = badge.title;
-              if (badge.subtitle) badgeOptions.subtitle = badge.subtitle;
-              // Don't use autoColor if user specified preferences
-              badgeOptions.autoColor = false;
-            } else {
-              // No user preferences, use auto-color
-              badgeOptions.autoColor = true;
-            }
-            
-            const badgeData = await generateThreadRingBadge(name.trim(), forkSlug, badgeOptions);
-            
-            if (badgeData.imageDataUrl) {
-              badgeUrls = await uploadBadgeImage(badgeData.imageDataUrl, forkSlug);
-            }
+            const fallback = { template: 'label', glyph: 'rings' } as const;
+            const picked = badgeChoiceSchema.safeParse({ ...fallback, ...badge });
+            badgeUrls = await drawAndUploadRingBadge({ slug: forkSlug, name: name.trim() }, picked.success ? picked.data : fallback);
           } catch (uploadError) {
             console.error('Badge generation/upload failed for fork:', uploadError);
             // Continue without badge images - not a fatal error

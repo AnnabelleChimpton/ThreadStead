@@ -27,7 +27,8 @@ describe('badgeScale', () => {
 
 describe('renderRingShareCard', () => {
   it('is a 1200×630 card with the badge 10× in the middle, every badge pixel a 10×10 square', async () => {
-    const card = await renderRingShareCard(await ringBadgePng('Cozy Knits'))
+    const badge = await ringBadgePng('Cozy Knits', 'cozy-knits')
+    const card = await renderRingShareCard(badge)
     const meta = await sharp(card).metadata()
     expect([meta.width, meta.height]).toEqual([CARD_WIDTH, CARD_HEIGHT])
 
@@ -41,8 +42,9 @@ describe('renderRingShareCard', () => {
     for (const [dx, dy] of [[9, 0], [0, 9], [9, 9]]) {
       expect(await pixel(card, left + dx, top + dy)).toEqual(frame)
     }
-    // ...and the next badge pixel in is the paper inside the frame, not a blend
-    expect(await pixel(card, left + 10, top + 10)).toEqual([0xf6, 0xef, 0xdc])
+    // ...and the next badge pixel in is the badge's own next pixel, not a blend
+    expect(await pixel(card, left + 10, top + 10)).toEqual(await pixel(badge, 1, 1))
+    expect(frame).toEqual(await pixel(badge, 0, 0))
   })
 })
 
@@ -55,8 +57,8 @@ describe('ringShareCard', () => {
   it('draws the badge from the name when the uploaded one is not on our CDN, without fetching it', async () => {
     const fetchSpy = jest.fn()
     global.fetch = fetchSpy as unknown as typeof fetch
-    const card = await ringShareCard('Elsewhere Ring', 'https://example.com/badge.png')
+    const card = await ringShareCard('Elsewhere Ring', 'elsewhere', 'https://example.com/badge.png')
     expect(fetchSpy).not.toHaveBeenCalled()
-    expect(card).toEqual(await renderRingShareCard(await ringBadgePng('Elsewhere Ring')))
+    expect(card).toEqual(await renderRingShareCard(await ringBadgePng('Elsewhere Ring', 'elsewhere')))
   })
 })

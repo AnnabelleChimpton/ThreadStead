@@ -6,7 +6,8 @@
  *  - only the fields sent go to the hub, and an emptied one is sent as null
  *    so the hub clears it;
  *  - Application joining and curated posting aren't accepted any more;
- *  - deleting is for a Host alone in their ring.
+ *  - deleting is for a Host alone in their ring;
+ *  - a new theme colour redraws a badge we drew in its palette.
  */
 import type { NextApiRequest, NextApiResponse } from 'next'
 
@@ -27,6 +28,7 @@ jest.mock('@/lib/api/ringhub/ringhub-client', () => ({
 jest.mock('@/lib/api/ringhub/ringhub-user-operations', () => ({ createAuthenticatedRingHubClient: jest.fn() }))
 jest.mock('@/lib/domain/users/account-removal', () => ({ forgetRing: jest.fn() }))
 jest.mock('@/lib/api/ringhub/forget-ring-reads', () => ({ forgetRingReads: jest.fn() }))
+jest.mock('@/lib/rings/badge', () => ({ redrawRingBadge: jest.fn().mockResolvedValue(null) }))
 
 import handler from '@/pages/api/threadrings/[slug]/settings'
 import { getSessionUser } from '@/lib/auth/server'
@@ -35,6 +37,7 @@ import { getRingHubClient } from '@/lib/api/ringhub/ringhub-client'
 import { createAuthenticatedRingHubClient } from '@/lib/api/ringhub/ringhub-user-operations'
 import { forgetRing } from '@/lib/domain/users/account-removal'
 import { forgetRingReads } from '@/lib/api/ringhub/forget-ring-reads'
+import { redrawRingBadge } from '@/lib/rings/badge'
 
 const mockDb = db as any
 const HOST_DID = 'did:web:homepageagain.com:users:host'
@@ -77,6 +80,7 @@ beforeEach(() => {
     getRingMembers: jest.fn().mockResolvedValue({ members: [], total: 0, limit: 100, offset: 0, hasMore: false }),
     updateRing: jest.fn(async (_slug: string, updates: Record<string, unknown>) => ring(updates)),
     deleteRing: jest.fn().mockResolvedValue(undefined),
+    updateRingBadge: jest.fn().mockResolvedValue({ success: true, badgesUpdated: 3 }),
   }
   ;(createAuthenticatedRingHubClient as jest.Mock).mockReturnValue(member)
 })
@@ -114,6 +118,26 @@ describe('PUT', () => {
     expect(member.updateRing).toHaveBeenCalledWith('knits', {
       joinPolicy: 'INVITATION', visibility: 'UNLISTED', postPolicy: 'CLOSED', themeColor: '#5a4fb3',
     })
+  })
+
+  test('a new colour redraws the badge in it, for every member', async () => {
+    const urls = { badgeImageUrl: 'https://cdn.test/new.png', badgeImageHighResUrl: 'https://cdn.test/new-hd.png' }
+    ;(redrawRingBadge as jest.Mock).mockResolvedValueOnce(urls)
+    const res = await call('PUT', { themeColor: '#8c4a5b' })
+    expect(res.statusCode).toBe(200)
+    expect(redrawRingBadge).toHaveBeenCalledWith(expect.objectContaining({ slug: 'knits', name: 'Knits', themeColor: '#8c4a5b' }))
+    expect(member.updateRingBadge).toHaveBeenCalledWith('knits', { ...urls, updateExistingBadges: true })
+  })
+
+  test("an uploaded badge, the same colour, or a failed redraw leave the badge, and the colour still saves", async () => {
+    await call('PUT', { themeColor: '#8c4a5b' }) // redraw says: not one we drew
+    await call('PUT', { themeColor: '#2E4B3F' }) // what it already is
+    ;(redrawRingBadge as jest.Mock).mockRejectedValueOnce(new Error('R2 down'))
+    const res = await call('PUT', { themeColor: '#3f5f7a' })
+    expect(res.statusCode).toBe(200)
+    expect(redrawRingBadge).toHaveBeenCalledTimes(2)
+    expect(member.updateRingBadge).not.toHaveBeenCalled()
+    expect(member.updateRing).toHaveBeenCalledTimes(3)
   })
 
   test("a moderator can't change settings", async () => {
