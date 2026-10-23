@@ -152,6 +152,8 @@ export default withRateLimit('threadring_operations')(
           description: description?.trim() || undefined,
           joinPolicy: (joinPolicyMapping[joinType as keyof typeof joinPolicyMapping] || 'OPEN') as 'OPEN' | 'APPLICATION' | 'INVITATION' | 'CLOSED',
           visibility: visibility.toUpperCase() as 'PUBLIC' | 'UNLISTED' | 'PRIVATE',
+          // Members post; the hub's default lets anyone, member or not
+          postPolicy: 'MEMBERS' as const,
           // Add badge image URLs for Ring Hub
           ...badgeUrls
         };

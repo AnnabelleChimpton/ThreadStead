@@ -239,14 +239,9 @@ export class AuthenticatedRingHubClient {
     const userClient = await this.getUserClient()
     const userDIDMapping = await getOrCreateUserDID(this.userId)
 
-    // Add user identification to fork metadata
-    const enrichedForkData = {
-      ...forkData,
-      curatorNotes: `Created by user ${userDIDMapping.did} via ThreadStead`
-    }
-
+    // The hub signs this as the user, so it records them as the owner
     console.log(`User ${userDIDMapping.did} forking ring ${parentSlug}`)
-    const forkedRing = await userClient.forkRing(parentSlug, enrichedForkData)
+    const forkedRing = await userClient.forkRing(parentSlug, forkData)
 
     console.log('✅ Fork response from Ring Hub:', forkedRing);
 
