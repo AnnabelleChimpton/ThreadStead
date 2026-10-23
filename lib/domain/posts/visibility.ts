@@ -11,6 +11,7 @@
  */
 import type { Prisma, Visibility } from "@prisma/client";
 import { db } from "@/lib/config/database/connection";
+import { extractPostIdFromUri, isOurThreadSteadInstance } from "@/lib/domain/threadrings/orphan-postrefs";
 
 export interface ViewerRelationship {
   isAuthor: boolean;
@@ -99,4 +100,39 @@ export async function getFollowGraph(viewerId: string): Promise<{ followeeIds: s
     select: { followerId: true },
   });
   return { followeeIds, friendIds: followsBack.map((f) => f.followerId) };
+}
+
+/**
+ * Ring Hub items (the /feed ring tabs) less our own posts this viewer can't
+ * read: ones made followers-only, friends-only or private after they were
+ * shared to a ring, and ones deleted here. The hub still lists them, as a
+ * bare link with no words (pages/api/posts/update.ts), which showed as an
+ * empty placeholder. Posts from other sites pass through.
+ */
+export async function visibleRingHubItems<T extends { uri?: string | null }>(
+  items: T[],
+  viewerId: string | null | undefined
+): Promise<T[]> {
+  const localId = (item: T) => (item.uri && isOurThreadSteadInstance(item.uri) ? extractPostIdFromUri(item.uri) : null);
+  const ids = items.map(localId).filter((id): id is string => !!id);
+  if (ids.length === 0) return items;
+
+  const posts = new Map(
+    (await db.post.findMany({ where: { id: { in: ids } }, select: { id: true, authorId: true, visibility: true } })).map((p) => [p.id, p])
+  );
+  // One relationship lookup per author
+  const relationships = new Map<string, Promise<ViewerRelationship>>();
+  const canSee = async (id: string) => {
+    const post = posts.get(id);
+    if (!post) return false;
+    if (post.visibility === "public") return true;
+    if (!relationships.has(post.authorId)) relationships.set(post.authorId, getViewerRelationship(viewerId, post.authorId));
+    return canViewPost(post.visibility, await relationships.get(post.authorId)!);
+  };
+
+  const keep = await Promise.all(items.map((item) => {
+    const id = localId(item);
+    return id ? canSee(id) : true;
+  }));
+  return items.filter((_, i) => keep[i]);
 }

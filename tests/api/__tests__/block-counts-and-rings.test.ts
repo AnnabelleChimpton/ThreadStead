@@ -85,7 +85,7 @@ jest.mock('@/lib/config/database/connection', () => ({
           .filter((p) => matches(p, where))
           .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
           .slice(0, take)
-        if (select) return rows.map((p) => ({ id: p.id }))
+        if (select) return rows.map((p: any) => Object.fromEntries(Object.keys(select).map((key) => [key, p[key]])))
         return rows.map((p) => ({
           ...p,
           title: p.id,

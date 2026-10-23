@@ -4,6 +4,7 @@ import { RingHubAuthError, RingHubUnavailableError } from "@/lib/api/ringhub/rin
 import { apiHandler } from "@/lib/api/handler";
 import { parseLimit } from "@/lib/server/http/pagination";
 import { getHiddenIds, filterBlockedRingHubItems } from "@/lib/domain/users/blocks";
+import { visibleRingHubItems } from "@/lib/domain/posts/visibility";
 
 export default apiHandler(
   { methods: ["GET"], auth: "optional" },
@@ -47,7 +48,10 @@ export default apiHandler(
       return res.json({
         ...feedResponse,
         // Fork notices aren't posts (and are no longer sent; see my-rings.ts)
-        posts: await filterBlockedRingHubItems((feedResponse.posts ?? []).filter((post) => !post.isNotification), blockedUserIds),
+        posts: await visibleRingHubItems(
+          await filterBlockedRingHubItems((feedResponse.posts ?? []).filter((post) => !post.isNotification), blockedUserIds),
+          viewer?.id
+        ),
       });
     
     } catch (error: any) {

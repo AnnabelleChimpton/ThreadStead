@@ -5,6 +5,7 @@ import { apiHandler } from "@/lib/api/handler";
 import { sendUnauthenticated } from "@/lib/api/errors";
 import { parseOffsetPagination } from "@/lib/server/http/pagination";
 import { getHiddenIds, filterBlockedRingHubItems } from "@/lib/domain/users/blocks";
+import { visibleRingHubItems } from "@/lib/domain/posts/visibility";
 
 export default apiHandler(
   // optional, not 'user': the RingHub-disabled 503 below must still win over the signed-out 401
@@ -58,9 +59,9 @@ export default apiHandler(
       // blocked. Paging follows the hub's items, so the next page starts at
       // nextOffset.
       const { blockedUserIds } = await getHiddenIds(user.id);
-      const posts = await filterBlockedRingHubItems(
-        (feedResponse.posts ?? []).filter((post) => !post.isNotification),
-        blockedUserIds
+      const posts = await visibleRingHubItems(
+        await filterBlockedRingHubItems((feedResponse.posts ?? []).filter((post) => !post.isNotification), blockedUserIds),
+        user.id
       );
 
       return res.json({
