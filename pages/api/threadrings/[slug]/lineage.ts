@@ -2,12 +2,24 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { getSessionUser } from '@/lib/auth/server';
 import { createAuthenticatedRingHubClient } from '@/lib/api/ringhub/ringhub-user-operations';
 import { featureFlags } from '@/lib/utils/features/feature-flags';
-import { getRingHubClient } from '@/lib/api/ringhub/ringhub-client';
+import { getPublicRingHubClient } from '@/lib/api/ringhub/ringhub-client';
+import { RingHubUnavailableError } from '@/lib/api/ringhub/ringhub-errors';
+import { cached } from '@/lib/api/ringhub/ringhub-cache';
+import { readAsViewer } from '@/lib/rings/read-as-viewer';
+
+const FRESH_MS = 30_000;
+const STALE_MS = 5 * 60_000;
+
+/** Every ring under these, however deep */
+function countDescendants(nodes: any[]): number {
+  return nodes.reduce((count, node) => count + 1 + countDescendants(Array.isArray(node.children) ? node.children : []), 0);
+}
 
 /**
- * Get ThreadRing Lineage Data
- * 
- * Fetches lineage information for a ring using user-authenticated Ring Hub client
+ * A ring's family: where it branched from, what branched from it, and how
+ * many siblings it has. Read signed as the viewer, so a private ring's
+ * members see it, and cached per viewer: the hub walks the whole subtree for
+ * this, and the Spool's subtree is every ring.
  */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
@@ -20,128 +32,58 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: 'Invalid slug parameter' });
   }
 
+  const empty = { lineage: [], ancestors: [], descendants: [], parents: [], children: [], directChildrenCount: 0, totalDescendantsCount: 0, siblingsCount: 0, lineageDepth: 0, lineagePath: '' };
+  if (!featureFlags.ringhub()) return res.status(200).json(empty);
+
+  const viewer = await getSessionUser(req);
+  const publicClient = getPublicRingHubClient();
+  const asPublic = (ringSlug: string) => {
+    if (!publicClient) throw new RingHubUnavailableError('Ring Hub client not available');
+    return publicClient.getRingLineage(ringSlug);
+  };
+
   try {
-    // Get current user for optional authentication (enhanced genealogy tree if authenticated)
-    const viewer = await getSessionUser(req);
-
-    // Only fetch from Ring Hub if enabled
-    if (!featureFlags.ringhub()) {
-      return res.status(200).json({
-        lineage: [],
-        directChildrenCount: 0,
-        totalDescendantsCount: 0,
-        lineageDepth: 0,
-        lineagePath: ""
-      });
-    }
-    
-    try {
-      // Fetch lineage data (authenticated gets full genealogy tree, unauthenticated gets public data)
-      let lineageData;
-      
-      if (viewer) {
-        // Authenticated request - get full genealogy tree
-        const authenticatedClient = await createAuthenticatedRingHubClient(viewer.id);
-        lineageData = await authenticatedClient.getRingLineage(slug);
-      } else {
-        // Unauthenticated request - get public lineage data
-        const publicClient = getRingHubClient();
-        
-        if (!publicClient) {
-          throw new Error('Ring Hub client not available');
-        }
-        
-        lineageData = await publicClient.getRingLineage(slug);
-      }
-
-      // Extract data from Ring Hub response format
+    const body = await cached(`ring-lineage:${viewer?.id ?? 'public'}:${slug}`, FRESH_MS, STALE_MS, async () => {
+      const lineageData = await readAsViewer(
+        viewer ? () => createAuthenticatedRingHubClient(viewer.id).getRingLineage(slug) : null,
+        () => asPublic(slug)
+      );
       const ring = lineageData?.ring;
       const ancestors = lineageData?.ancestors || [];
       const descendants = lineageData?.descendants || [];
-
-      // Calculate parent (immediate ancestor) and children (immediate descendants)
       const parent = ancestors.length > 0 ? ancestors[ancestors.length - 1] : null;
-      const parents = parent ? [parent] : [];
-      const children = descendants; // Direct children are at the top level of descendants
 
-      const lineageDepth = ancestors.length;
-      const lineagePath = ancestors.map(r => r.name).join(' → ') || (ring?.name || 'Root');
-
-      // Count all descendants recursively
-      const countDescendants = (nodes: any[]): number => {
-        let count = 0;
-        for (const node of nodes) {
-          count++;
-          if (node.children && Array.isArray(node.children)) {
-            count += countDescendants(node.children);
-          }
-        }
-        return count;
-      };
-
-      const directChildrenCount = descendants.length;
-      const totalDescendantsCount = countDescendants(descendants);
-
-      // Fetch siblings if ring has a parent
-      let siblings: any[] = [];
+      // Siblings: the parent's direct children, less this ring. One ring read
+      // (cached for everyone), not the parent's whole subtree.
       let siblingsCount = 0;
-
-      if (parent && parent.slug) {
+      if (parent?.slug && publicClient) {
         try {
-          // Fetch parent's lineage to get all its descendants (siblings of current ring)
-          let parentLineageData;
-
-          if (viewer) {
-            const authenticatedClient = await createAuthenticatedRingHubClient(viewer.id);
-            parentLineageData = await authenticatedClient.getRingLineage(parent.slug);
-          } else {
-            const publicClient = getRingHubClient();
-            if (publicClient) {
-              parentLineageData = await publicClient.getRingLineage(parent.slug);
-            }
-          }
-
-          if (parentLineageData?.descendants) {
-            // Siblings are parent's descendants excluding current ring
-            siblings = parentLineageData.descendants.filter((d: any) => d.slug !== slug);
-            siblingsCount = siblings.length;
-          }
-        } catch (error) {
-          console.error('Error fetching siblings from Ring Hub:', error);
-          // Continue without siblings data rather than failing
+          const parentRing = await cached(`ring:${parent.slug}`, FRESH_MS, STALE_MS, () => publicClient.getRing(parent.slug));
+          siblingsCount = (parentRing?.children || []).filter((child) => child.slug !== slug).length;
+        } catch {
+          // Without it, the feed just doesn't offer "Sibling Rings"
         }
       }
 
-      return res.json({
-        lineage: ancestors, // Full lineage path from root to current
-        ring, // Current ring info
-        parents,
-        children,
-        siblings, // Sibling rings (other children of same parent)
+      return {
+        lineage: ancestors,
+        ring,
+        parents: parent ? [parent] : [],
+        children: descendants,
         ancestors,
-        descendants, // Full descendants tree
-        directChildrenCount,
-        totalDescendantsCount,
+        descendants,
+        directChildrenCount: descendants.length,
+        totalDescendantsCount: countDescendants(descendants),
         siblingsCount,
-        lineageDepth,
-        lineagePath,
-        authenticated: !!viewer,
-        fullGenealogy: !!viewer // Full genealogy tree available when authenticated
-      });
-
-    } catch (ringHubError) {
-      console.error('Ring Hub lineage fetch failed:', ringHubError);
-      return res.status(500).json({ 
-        error: "Failed to fetch lineage from Ring Hub",
-        message: ringHubError instanceof Error ? ringHubError.message : 'Unknown error'
-      });
-    }
-
-  } catch (error) {
-    console.error('Error fetching lineage:', error);
-    return res.status(500).json({ 
-      error: 'Internal server error',
-      message: 'Failed to fetch lineage data'
+        lineageDepth: ancestors.length,
+        lineagePath: ancestors.map((r) => r.name).join(' → ') || ring?.name || 'Root',
+      };
     });
+    return res.json(body);
+  } catch (error) {
+    const status = (error as { status?: number })?.status;
+    if (status === 404) return res.status(404).json({ error: 'Ring not found' });
+    console.error('Ring Hub lineage fetch failed:', error);
+    return res.status(503).json({ error: 'hub_unavailable', degraded: true });
   }
 }
