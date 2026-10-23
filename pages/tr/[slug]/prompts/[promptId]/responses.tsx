@@ -1,593 +1,238 @@
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/router'
+import { useEffect, useState, type CSSProperties } from 'react'
 import { GetServerSideProps } from 'next'
 import Link from 'next/link'
-import { formatDistanceToNow } from 'date-fns'
 import Layout from '@/components/ui/layout/Layout'
-import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic'
-import { db } from '@/lib/config/database/connection'
-import { featureFlags } from '@/lib/utils/features/feature-flags'
-import { getRingHubClient } from '@/lib/api/ringhub/ringhub-client'
-import { raceHubCall, HUB_TIMEOUT } from '@/lib/api/ringhub/ringhub-ssr'
+import PageMeta from '@/components/ui/layout/PageMeta'
+import ButtonLink from '@/components/ui/ButtonLink'
+import Button from '@/components/ui/Button'
 import { PixelIcon } from '@/components/ui/PixelIcon'
 import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner'
 import EmptyState from '@/components/ui/feedback/EmptyState'
 import ErrorDisplay from '@/components/ui/feedback/ErrorDisplay'
-import PageMeta from "@/components/ui/layout/PageMeta"
+import PostItem, { type Post } from '@/components/core/content/PostItem'
+import {
+  promptDates,
+  promptFrom,
+  respondHref,
+  responsesLabel,
+  type RingPrompt,
+} from '@/components/core/threadring/ThreadRingActivePrompt'
+import { useRingViewer } from '@/components/core/threadring/useRingViewer'
+import { useCurrentUser } from '@/hooks/useCurrentUser'
+import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic'
+import { getSessionUser } from '@/lib/auth/server'
+import { loadRingForPage, type RingPageRing } from '@/lib/rings/page-data'
+import { ringAccentHex } from '@/lib/rings/theme'
 
+const PAGE_SIZE = 20
+
+/** A response as /api/threadrings/[slug]/prompts/[promptId]/responses gives it. */
 interface PromptResponse {
   id: string
-  createdAt: string
   post: {
     id: string
     title: string | null
     bodyText: string | null
     bodyHtml: string | null
     bodyMarkdown: string | null
-    visibility: string
     createdAt: string
-    /** Its own page here, or the outside post's address; null when it has neither */
     url: string | null
-    author: {
-      id: string
-      handles: Array<{ handle: string }>
-      profile: {
-        displayName: string | null
-        avatarUrl: string | null
-      } | null
-    }
-    threadRings: Array<{
-      threadRing: {
-        id: string
-        name: string
-        slug: string
-      }
-      addedAt: string | null
-    }>
-    _count: {
-      comments: number
-    }
+    author: { id: string; handles: Array<{ handle: string }>; profile: { displayName: string | null; avatarUrl: string | null } | null }
   }
 }
 
-interface ThreadRingPrompt {
-  id: string
-  title: string
-  description: string
-  startsAt: string
-  endsAt: string | null
-  isActive: boolean
-  isPinned: boolean
-  responseCount: number
-  createdById: string
-  createdBy: {
-    id: string
-    handles: Array<{ handle: string }>
-    profile: {
-      displayName: string | null
-      avatarUrl: string | null
-    } | null
-  }
-}
+const escapeHtml = (text: string) =>
+  text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
-interface ThreadRing {
-  id: string
-  name: string
-  slug: string
-  description: string | null
+/**
+ * A response as the ring feed's post card shows it. Our own public posts come
+ * whole, with their author; anything else is the title and preview the ring
+ * was sent, linked to where it lives, and names nobody here.
+ */
+function asPost({ id, post }: PromptResponse): Post {
+  const handle = post.author.handles[0]?.handle
+  if (handle) {
+    return {
+      id: post.id,
+      title: post.title,
+      createdAt: post.createdAt,
+      bodyText: post.bodyText,
+      bodyHtml: post.bodyHtml,
+      bodyMarkdown: post.bodyMarkdown,
+      visibility: 'public',
+      author: { id: post.author.id, primaryHandle: handle, profile: { displayName: post.author.profile?.displayName ?? undefined, avatarUrl: post.author.profile?.avatarUrl } },
+    }
+  }
+  const preview = post.bodyText ? `<p>${escapeHtml(post.bodyText)}</p>` : ''
+  const away = post.url ? `<p><a href="${escapeHtml(post.url)}" rel="ugc noopener" target="_blank">Read it where it lives</a></p>` : ''
+  return {
+    id: `response-${id}`,
+    title: post.title,
+    createdAt: post.createdAt,
+    bodyHtml: preview + away,
+    visibility: 'public',
+    author: { id: 'external', profile: { displayName: post.author.profile?.displayName || 'Someone' } },
+  }
 }
 
 interface PromptResponsesPageProps {
   siteConfig: SiteConfig
-  threadRing: ThreadRing | null
-  prompt: ThreadRingPrompt | null
-  initialResponses: PromptResponse[]
-  canAccess: boolean
-  error?: string | null
+  ring: RingPageRing | null
+  promptId: string
+  unavailable?: 'not-found' | 'slow' | null
 }
 
-export default function PromptResponsesPage({
-  siteConfig,
-  threadRing,
-  prompt: initialPrompt,
-  initialResponses,
-  canAccess,
-  error
-}: PromptResponsesPageProps) {
-  const router = useRouter()
-  const { slug, promptId } = router.query
-  const [prompt, setPrompt] = useState<ThreadRingPrompt | null>(initialPrompt)
-  const [responses, setResponses] = useState<PromptResponse[]>(initialResponses || [])
-  const [loading, setLoading] = useState(false)
-  const [hasMore, setHasMore] = useState(initialResponses?.length === 20)
-  const [dataLoading, setDataLoading] = useState(!initialPrompt && canAccess)
+function Responses({ siteConfig, ring, promptId }: { siteConfig: SiteConfig; ring: RingPageRing; promptId: string }) {
+  const { user } = useCurrentUser()
+  const viewer = useRingViewer(ring, user)
+  const [prompt, setPrompt] = useState<RingPrompt | null>(null)
+  const [state, setState] = useState<'loading' | 'ready' | 'missing' | 'failed'>('loading')
+  const [responses, setResponses] = useState<Post[]>([])
+  const [total, setTotal] = useState(0)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const slug = encodeURIComponent(ring.slug)
+  const responsesUrl = `/api/threadrings/${slug}/prompts/${encodeURIComponent(promptId)}/responses`
 
-  // Load prompt and responses client-side for Ring Hub
   useEffect(() => {
-    if (!canAccess || !threadRing || !slug || !promptId || initialPrompt) return
-
-    const loadPromptData = async () => {
-      setDataLoading(true)
-      try {
-        // Load prompt details
-        const promptResponse = await fetch(`/api/threadrings/${slug}/prompts`)
-        if (promptResponse.ok) {
-          const prompts = await promptResponse.json()
-          const foundPrompt = Array.isArray(prompts) 
-            ? prompts.find(p => p.id === promptId)
-            : (prompts.id === promptId ? prompts : null)
-          
-          if (foundPrompt) {
-            setPrompt(foundPrompt)
-          }
-        }
-
-        // Load responses
-        const responsesResponse = await fetch(`/api/threadrings/${slug}/prompts/${promptId}/responses`)
-        if (responsesResponse.ok) {
-          const data = await responsesResponse.json()
-          setResponses(data.responses || [])
-          setHasMore(data.pagination?.totalCount > (data.responses?.length || 0))
-        }
-      } catch (error) {
-        console.error('Error loading prompt data:', error)
-      } finally {
-        setDataLoading(false)
-      }
+    let cancelled = false
+    Promise.all([
+      fetch(`/api/threadrings/${slug}/prompts?includeInactive=true`).then((r) => (r.ok ? r.json() : Promise.reject())),
+      fetch(`${responsesUrl}?page=1&limit=${PAGE_SIZE}`).then((r) => (r.ok ? r.json() : r.status === 404 ? { responses: [] } : Promise.reject())),
+    ])
+      .then(([prompts, data]) => {
+        if (cancelled) return
+        const found = Array.isArray(prompts) ? prompts.find((p: RingPrompt) => p.id === promptId) : null
+        if (!found) return setState('missing')
+        setPrompt(found)
+        setResponses((data.responses || []).map(asPost))
+        setTotal(data.pagination?.totalCount ?? 0)
+        setState('ready')
+      })
+      .catch(() => {
+        if (!cancelled) setState('failed')
+      })
+    return () => {
+      cancelled = true
     }
+  }, [slug, promptId, responsesUrl])
 
-    loadPromptData()
-  }, [canAccess, threadRing, slug, promptId, initialPrompt])
-
-  const loadMoreResponses = async () => {
-    if (!threadRing || !prompt || loading) return
-
-    setLoading(true)
+  async function loadMore() {
+    setLoadingMore(true)
     try {
-      const response = await fetch(
-        `/api/threadrings/${threadRing.slug}/prompts/${prompt.id}/responses?page=${Math.floor(responses.length / 20) + 1}&limit=20`
-      )
-      
+      const response = await fetch(`${responsesUrl}?page=${Math.floor(responses.length / PAGE_SIZE) + 1}&limit=${PAGE_SIZE}`)
       if (response.ok) {
         const data = await response.json()
-        setResponses(prev => [...prev, ...data.responses])
-        setHasMore(data.responses.length === 20)
+        setResponses((shown) => [...shown, ...(data.responses || []).map(asPost)])
       }
-    } catch (err) {
-      console.error('Failed to load more responses:', err)
     } finally {
-      setLoading(false)
+      setLoadingMore(false)
     }
   }
 
-  const getUserDisplayName = (author: PromptResponse['post']['author']) => {
-    return author.profile?.displayName || author.handles[0]?.handle || 'Unknown User'
-  }
-
-  const truncateText = (text: string | null, maxLength: number = 300) => {
-    if (!text) return ''
-    if (text.length <= maxLength) return text
-    return text.substring(0, maxLength) + '...'
-  }
-
-  if (error || !canAccess) {
-    return (
-      <Layout siteConfig={siteConfig}>
-        <div className="max-w-4xl mx-auto py-8 px-4">
-          <ErrorDisplay
-            title={error || 'You do not have permission to view this prompt.'}
-            actionLabel="← Back to ThreadRings"
-            actionHref="/threadrings"
-          />
-        </div>
-      </Layout>
-    )
-  }
-
-  if (!threadRing) {
-    return (
-      <Layout siteConfig={siteConfig}>
-        <div className="max-w-4xl mx-auto py-8 px-4">
-          <ErrorDisplay variant="notice" title="ThreadRing not found." />
-        </div>
-      </Layout>
-    )
-  }
-
-  if (dataLoading) {
-    return (
-      <Layout siteConfig={siteConfig}>
-        <div className="max-w-4xl mx-auto py-8 px-4">
-          <LoadingSpinner message="Loading prompt data..." className="py-8" />
-        </div>
-      </Layout>
-    )
-  }
-
-  if (!prompt) {
-    return (
-      <Layout siteConfig={siteConfig}>
-        <div className="max-w-4xl mx-auto py-8 px-4">
-          <ErrorDisplay variant="notice" title="Prompt not found." />
-        </div>
-      </Layout>
-    )
-  }
-
-  const isExpired = prompt.endsAt && new Date(prompt.endsAt) < new Date()
+  const ended = !!prompt?.endsAt && new Date(prompt.endsAt) < new Date()
 
   return (
     <Layout siteConfig={siteConfig}>
-      {prompt && (
-        <PageMeta
-          title={`${prompt.title}: answers in ${threadRing.name}`}
-          description={prompt.description}
-          path={`/tr/${threadRing.slug}/prompts/${prompt.id}/responses`}
-        />
-      )}
-      <div className="max-w-6xl mx-auto py-8 px-4">
-        {/* Navigation */}
-        <div className="mb-6">
-          <nav className="text-sm text-gray-600">
-            <Link href="/threadrings" className="hover:underline">ThreadRings</Link>
-            {' > '}
-            <Link href={`/tr/${threadRing.slug}`} className="hover:underline">
-              {threadRing.name}
-            </Link>
-            {' > '}
-            <span className="text-gray-400">Prompt Responses</span>
-          </nav>
-        </div>
-
-        {/* Prompt Header */}
-        <div className="mb-8 p-6 bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-400 rounded-lg">
-          <div className="flex items-start gap-4">
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-2">
-                <h1 className="text-2xl font-bold text-gray-900">{prompt.title}</h1>
-                {prompt.isActive && !isExpired && (
-                  <span className="px-3 py-1 bg-blue-600 text-white text-sm rounded-full">
-                    Active
-                  </span>
-                )}
-                {prompt.isPinned && (
-                  <span className="px-3 py-1 bg-yellow-500 text-white text-sm rounded-full">
-                    Pinned
-                  </span>
-                )}
-                {isExpired && (
-                  <span className="px-3 py-1 bg-gray-500 text-white text-sm rounded-full">
-                    Ended
-                  </span>
-                )}
-              </div>
-              
-              <p className="text-gray-700 mb-4 text-lg leading-relaxed whitespace-pre-wrap">
-                {prompt.description}
-              </p>
-              
-              <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
-                <span>ThreadRing Challenge • Started {formatDistanceToNow(new Date(prompt.startsAt))} ago</span>
-                <span className="font-medium text-purple-600">
-                  {prompt.responseCount} {prompt.responseCount === 1 ? 'response' : 'responses'}
-                </span>
-                {prompt.endsAt && !isExpired && (
-                  <span className="text-orange-600 font-medium">
-                    Ends {formatDistanceToNow(new Date(prompt.endsAt), { addSuffix: true })}
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Responses */}
-        <div className="space-y-6">
-          <h2 className="text-xl font-bold text-gray-900">
-            All Responses ({prompt.responseCount})
-          </h2>
-
-          {responses.length === 0 ? (
-            <EmptyState
-              icon="file"
-              title="No responses yet."
-              description="Be the first to respond to this challenge!"
-            />
+      <PageMeta
+        title={prompt ? `${prompt.title}: answers in ${ring.name}` : ring.name}
+        description={prompt?.description}
+        path={`/tr/${ring.slug}/prompts/${promptId}/responses`}
+        noIndex={ring.visibility !== 'public'}
+      />
+      <div className="max-w-3xl mx-auto" style={{ '--ring-accent': ringAccentHex(ring.themeColor, ring.slug) } as CSSProperties}>
+        <section className="thread-module p-5 sm:p-6 !mt-0 !mb-6 !border-t-4 !border-t-[color:var(--ring-accent)]">
+          <Link href={`/tr/${slug}`} className="text-sm text-nb-ink-mid">← {ring.name}</Link>
+          {state === 'loading' ? (
+            <LoadingSpinner message="Loading the prompt..." className="py-6" />
+          ) : state === 'missing' ? (
+            <ErrorDisplay variant="notice" title="That prompt isn't here any more." className="mt-3" />
+          ) : state === 'failed' || !prompt ? (
+            <ErrorDisplay title="Couldn't load this prompt. Try again in a minute." className="mt-3" />
           ) : (
-            <div className="space-y-4">
-              {responses.map((response) => (
-                <article 
-                  key={response.id}
-                  className="border border-gray-200 rounded-lg p-6 bg-white hover:shadow-md transition-shadow"
-                >
-                  {/* Author Header */}
-                  <div className="flex items-start gap-4 mb-4">
-                    {response.post.author.profile?.avatarUrl ? (
-                      <img 
-                        src={response.post.author.profile.avatarUrl} 
-                        alt={getUserDisplayName(response.post.author)}
-                        className="w-12 h-12 rounded-full"
-                      />
-                    ) : (
-                      <div className="w-12 h-12 rounded-full bg-gray-300 flex items-center justify-center">
-                        <span className="text-gray-600 font-semibold">
-                          {getUserDisplayName(response.post.author)[0]?.toUpperCase()}
-                        </span>
-                      </div>
-                    )}
-                    
-                    <div className="flex-1">
-                      <div className="flex items-baseline gap-2 mb-1">
-                        {response.post.author.handles[0] ? (
-                          <Link
-                            href={`/resident/${response.post.author.handles[0].handle}`}
-                            className="font-semibold text-gray-900 hover:underline"
-                          >
-                            {getUserDisplayName(response.post.author)}
-                          </Link>
-                        ) : (
-                          <span className="font-semibold text-gray-900">{getUserDisplayName(response.post.author)}</span>
-                        )}
-                        <span className="text-sm text-gray-500">
-                          {formatDistanceToNow(new Date(response.post.createdAt))} ago
-                        </span>
-                      </div>
-                      
-                      {response.post.title && response.post.url && (
-                        <Link
-                          href={response.post.url}
-                          className="text-xl font-semibold text-blue-600 hover:text-blue-800 hover:underline block mb-2"
-                        >
-                          {response.post.title}
-                        </Link>
-                      )}
-                    </div>
-                  </div>
-                  
-                  {/* Post Content */}
-                  {response.post.bodyHtml ? (
-                    <div 
-                      className="prose max-w-none mb-4"
-                      dangerouslySetInnerHTML={{ 
-                        __html: truncateText(response.post.bodyHtml, 500) 
-                      }} 
-                    />
-                  ) : response.post.bodyText && (
-                    <p className="text-gray-700 mb-4 whitespace-pre-wrap">
-                      {truncateText(response.post.bodyText)}
-                    </p>
-                  )}
-                  
-                  {/* Post Footer */}
-                  <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                    <div className="flex items-center gap-4 text-sm text-gray-500">
-                      <span>{response.post._count.comments} comments</span>
-                      
-                      {response.post.threadRings && response.post.threadRings.length > 0 && (
-                        <div className="flex items-center gap-1">
-                          <PixelIcon name="pin" size={12} />
-                          {response.post.threadRings
-                            .filter((tr) => tr && tr.threadRing && tr.threadRing.id)
-                            .map((tr, idx) => (
-                              <span key={tr.threadRing.id}>
-                                {idx > 0 && ', '}
-                                <Link 
-                                  href={`/tr/${tr.threadRing.slug}`}
-                                  className="hover:underline"
-                                >
-                                  {tr.threadRing.name}
-                                </Link>
-                              </span>
-                            ))}
-                        </div>
-                      )}
-                    </div>
-                    
-                    {response.post.url && (
-                      <Link
-                        href={response.post.url}
-                        className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                      >
-                        Read full post →
-                      </Link>
-                    )}
-                  </div>
-                </article>
-              ))}
-              
-              {/* Load More */}
-              {hasMore && (
-                <div className="text-center pt-6">
-                  <button
-                    onClick={loadMoreResponses}
-                    disabled={loading}
-                    className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {loading ? 'Loading...' : 'Load More Responses'}
-                  </button>
+            <>
+              <div className="mt-3">
+                <span className="thread-label !text-[color:var(--ring-accent)] !max-w-none">{promptFrom(prompt)}</span>
+              </div>
+              <h1 className="thread-headline text-2xl sm:text-3xl font-bold !text-nb-ink mt-2 mb-2">{prompt.title}</h1>
+              <p className="text-lg text-nb-ink m-0 whitespace-pre-wrap">{prompt.description}</p>
+              <p className="text-sm text-nb-ink-mid mt-3 mb-0">
+                {ended ? 'Ended' : promptDates(prompt)}
+                <span aria-hidden="true" className="px-1.5">·</span>
+                {responsesLabel(total)}
+              </p>
+              {viewer.isMember && !ended && (
+                <div className="mt-4">
+                  <ButtonLink href={respondHref(ring.slug, prompt)} className="w-full sm:w-auto text-center">
+                    <PixelIcon name="edit" size={16} className="inline-block align-[-3px] mr-1.5" />Write a response
+                  </ButtonLink>
                 </div>
               )}
-            </div>
+            </>
           )}
-        </div>
+        </section>
+
+        {state === 'ready' && (
+          responses.length === 0 ? (
+            <EmptyState variant="plain" className="py-8 px-3" title="No responses yet" />
+          ) : (
+            <>
+              {responses.map((post) => (
+                <PostItem
+                  key={post.id}
+                  post={post}
+                  isOwner={!!user && user.id === post.author?.id}
+                  currentUser={user}
+                  threadRingContext={{ slug: ring.slug, name: ring.name }}
+                  viewContext="ring"
+                />
+              ))}
+              {responses.length < total && (
+                <div className="text-center">
+                  <Button variant="secondary" size="sm" className="px-6" onClick={loadMore} disabled={loadingMore}>
+                    {loadingMore ? 'Loading...' : 'Load more'}
+                  </Button>
+                </div>
+              )}
+            </>
+          )
+        )}
       </div>
     </Layout>
   )
 }
 
+export default function PromptResponsesPage({ siteConfig, ring, promptId, unavailable = null }: PromptResponsesPageProps) {
+  if (!ring) {
+    const slow = unavailable === 'slow'
+    return (
+      <>
+        <PageMeta title={slow ? 'Ring Hub is slow' : 'Ring not found'} noIndex />
+        <Layout siteConfig={siteConfig}>
+          <div className="max-w-2xl mx-auto py-8 px-4">
+            {slow ? (
+              <ErrorDisplay variant="notice" title="Ring Hub is slow right now" message="Rings live on Ring Hub, and it didn't answer in time. Try again in a minute." />
+            ) : (
+              <ErrorDisplay title="Ring not found" actionLabel="Browse rings" actionHref="/threadrings" />
+            )}
+          </div>
+        </Layout>
+      </>
+    )
+  }
+  return <Responses key={`${ring.slug}/${promptId}`} siteConfig={siteConfig} ring={ring} promptId={promptId} />
+}
+
 export const getServerSideProps: GetServerSideProps<PromptResponsesPageProps> = async (context) => {
   const { slug, promptId } = context.params as { slug: string; promptId: string }
   const siteConfig = await getSiteConfig()
-
-  try {
-    // Loading responses page
-
-    // Use Ring Hub-based prompt system
-    if (featureFlags.ringhub()) {
-      const client = getRingHubClient();
-      if (client) {
-        try {
-          // Get Ring from Ring Hub with a short SSR deadline.
-          const ringDescriptor = await raceHubCall(client.getRing(slug));
-          if (ringDescriptor === HUB_TIMEOUT) {
-            return {
-              props: {
-                siteConfig,
-                threadRing: null,
-                prompt: null,
-                initialResponses: [],
-                canAccess: false,
-                error: 'ThreadRing service temporarily unavailable'
-              }
-            }
-          }
-          if (!ringDescriptor) {
-            return {
-              props: {
-                siteConfig,
-                threadRing: null,
-                prompt: null,
-                initialResponses: [],
-                canAccess: false,
-                error: 'ThreadRing not found'
-              }
-            }
-          }
-
-          // Create basic ThreadRing object from Ring Hub data
-          const threadRing = {
-            id: ringDescriptor.slug, // Use slug as ID for Ring Hub rings
-            name: ringDescriptor.name,
-            slug: ringDescriptor.slug,
-            description: ringDescriptor.description || '',
-            visibility: 'public' as const // Ring Hub rings are typically public
-          }
-
-          // Try to fetch the prompt and responses via API (which uses promptService)
-          // We can't use promptService directly in SSR due to authentication requirements
-          // ThreadRing found via Ring Hub
-          
-          return {
-            props: {
-              siteConfig,
-              threadRing,
-              prompt: null, // Will be loaded client-side
-              initialResponses: [],
-              canAccess: true,
-              error: null
-            }
-          }
-        } catch (ringHubError) {
-          // Ring Hub error occurred
-          return {
-            props: {
-              siteConfig,
-              threadRing: null,
-              prompt: null,
-              initialResponses: [],
-              canAccess: false,
-              error: 'Failed to load ThreadRing data'
-            }
-          }
-        }
-      }
-    }
-
-    // Fallback to local database (deprecated path)
-    const threadRing = await db.threadRing.findUnique({
-      where: { slug },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        description: true,
-        visibility: true
-      }
-    })
-
-    // ThreadRing validation complete
-
-    if (!threadRing) {
-      return {
-        props: {
-          siteConfig,
-          threadRing: null,
-          prompt: null,
-          initialResponses: [],
-          canAccess: false,
-          error: 'ThreadRing not found'
-        }
-      }
-    }
-
-    // Use API to get prompt and responses (works with new PostRef system)
-    let prompt: ThreadRingPrompt | null = null;
-    let responses: PromptResponse[] = [];
-
-    try {
-      // Get prompt details from API
-      const promptResponse = await fetch(`http://localhost:3000/api/threadrings/${slug}/prompts/${promptId}`, {
-        headers: {
-          'User-Agent': 'ThreadStead-SSR/1.0'
-        }
-      });
-      
-      if (promptResponse.ok) {
-        prompt = await promptResponse.json();
-      }
-
-      // Prompt validation complete
-
-      if (!prompt) {
-        return {
-          props: {
-            siteConfig,
-            threadRing,
-            prompt: null,
-            initialResponses: [],
-            canAccess: true,
-            error: 'Prompt not found'
-          }
-        }
-      }
-
-      // Get responses from API
-      const responsesResponse = await fetch(`http://localhost:3000/api/threadrings/${slug}/prompts/${promptId}/responses?page=1&limit=20`, {
-        headers: {
-          'User-Agent': 'ThreadStead-SSR/1.0'
-        }
-      });
-
-      if (responsesResponse.ok) {
-        const responsesData = await responsesResponse.json();
-        responses = responsesData.responses || [];
-      }
-    } catch (err) {
-      console.error('Error fetching prompt/responses via API:', err);
-      // Continue with empty data - the page will show appropriate error messages
-    }
-
-    return {
-      props: {
-        siteConfig,
-        threadRing,
-        prompt,
-        initialResponses: responses,
-        canAccess: true
-      }
-    }
-
-  } catch (error) {
-    console.error('Error loading prompt responses page:', error)
-    return {
-      props: {
-        siteConfig,
-        threadRing: null,
-        prompt: null,
-        initialResponses: [],
-        canAccess: false,
-        error: `Failed to load prompt responses: ${error instanceof Error ? error.message : String(error)}`
-      }
-    }
+  // As the viewer, so a private ring's members see it; never the local mirror
+  const viewer = await getSessionUser(context.req as any).catch(() => null)
+  const load = await loadRingForPage(slug, viewer?.id ?? null)
+  if (load.status !== 'ok') {
+    context.res.statusCode = load.status === 'slow' ? 503 : 404
+    return { props: { siteConfig, ring: null, promptId, unavailable: load.status } }
   }
+  // Next can't send undefined
+  const ring = JSON.parse(JSON.stringify(load.ring, (_key, value) => (value === undefined ? null : value)))
+  return { props: { siteConfig, ring, promptId } }
 }
