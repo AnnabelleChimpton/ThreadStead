@@ -595,6 +595,45 @@ describe('a ring owner updates its badge (badge manager → PUT /trp/rings/:slug
   })
 })
 
+describe('ring settings: theme colour and clearing fields (PUT /trp/rings/:slug)', () => {
+  // FORK_SLUG is the main actor's, made through /trp/fork in the 0.5 block.
+  const read = async () => {
+    clearCache()
+    return (await client.getRing(FORK_SLUG))!
+  }
+
+  test('a theme colour is #rgb or #rrggbb, nothing else, on update and create', async () => {
+    for (const themeColor of ['red} nav{display:none', 'thread-pine', '#12345', 'url(//tracker)']) {
+      await expect(client.updateRing(FORK_SLUG, { themeColor })).rejects.toMatchObject({ status: 400 })
+      await expect((client as any).post('/trp/rings', { name: 'Bad colour', themeColor })).rejects.toMatchObject({ status: 400 })
+    }
+    for (const themeColor of ['#abc', '#A1b2C3']) {
+      expect((await client.updateRing(FORK_SLUG, { themeColor })).themeColor).toBe(themeColor)
+    }
+  })
+
+  test('null clears description, host note, banner and theme colour; leaving a field out keeps it', async () => {
+    await client.updateRing(FORK_SLUG, {
+      description: 'A ring to clear',
+      curatorNote: 'House rules',
+      bannerUrl: 'https://cdn.example/banner.png',
+      themeColor: '#336699',
+    })
+    await client.updateRing(FORK_SLUG, { name: (await read()).name })
+    expect(await read()).toMatchObject({ description: 'A ring to clear', curatorNote: 'House rules', themeColor: '#336699' })
+
+    await client.updateRing(FORK_SLUG, { description: null, curatorNote: null, bannerUrl: null, themeColor: null } as any)
+    expect(await read()).toMatchObject({ description: null, curatorNote: null, bannerUrl: null, themeColor: null })
+  })
+
+  test("new metadata doesn't wipe a fork's lineage", async () => {
+    const before = ((await read()).metadata ?? {}) as Record<string, unknown>
+    expect(before.forkedFrom).toBeTruthy()
+    await client.updateRing(FORK_SLUG, { metadata: { mood: 'cosy', forkedFrom: 'elsewhere' } } as any)
+    expect((await read()).metadata).toEqual({ mood: 'cosy', forkedFrom: before.forkedFrom, forkedAt: before.forkedAt })
+  })
+})
+
 describe('orphaned PostRefs reconcile (A3)', () => {
   // URIs on a host the scan treats as "this instance"; the local DB is
   // stubbed by existingPostIds. Everything hub-side is real.
