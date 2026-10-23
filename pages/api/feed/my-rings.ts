@@ -25,7 +25,7 @@ export default apiHandler(
       const {
         since,
         until,
-        includeNotifications = "true",
+        includeNotifications = "false",
         ringId,
         sort = "newest"
       } = req.query;

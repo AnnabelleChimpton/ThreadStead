@@ -20,7 +20,7 @@ export default apiHandler(
       // Parse query parameters
       const {
         timeWindow = "day",
-        includeNotifications = "true"
+        includeNotifications = "false"
       } = req.query;
 
       // Validate parameters

@@ -1,6 +1,5 @@
 import { getSiteBaseUrl } from "@/lib/config/site-url";
 import type { NextApiRequest, NextApiResponse } from "next";
-import crypto from "crypto";
 import { db } from "@/lib/config/database/connection";
 import { getSessionUser } from "@/lib/auth/server";
 import { generateThreadRingBadge } from "@/lib/badge-generator";
@@ -161,43 +160,6 @@ export default withRateLimit('threadring_operations')(
         
         // Fork ring via Ring Hub
         const forkedRing = await authenticatedClient.forkRing(slug as string, forkData);
-        
-        // Create fork notification PostRef in parent ring
-        try {
-          const forkNotificationUri = `threadring://${new URL(process.env.RING_HUB_URL || 'https://ringhub.io').hostname}/rings/${forkedRing.slug}`;
-          
-          // Create metadata for the fork notification
-          const forkMetadata = {
-            type: "fork_notification",
-            forkedRing: {
-              id: forkedRing.id,
-              slug: forkedRing.slug,
-              name: forkedRing.name,
-              description: forkedRing.description
-            },
-            parentRing: {
-              slug: slug as string
-            },
-            forkedAt: new Date().toISOString()
-          };
-          
-          // Generate digest from the metadata
-          const metadataString = JSON.stringify(forkMetadata);
-          const digest = crypto.createHash('sha256').update(metadataString).digest('hex');
-          
-          // Submit fork notification PostRef to parent ring
-          // Note: AuthenticatedRingHubClient automatically includes the user's DID
-          const notificationPostRef = await authenticatedClient.submitPost(slug as string, {
-            uri: forkNotificationUri,
-            digest,
-            metadata: forkMetadata
-          });
-          
-          console.log('Fork notification PostRef created:', notificationPostRef.id);
-        } catch (notificationError) {
-          console.error('Failed to create fork notification:', notificationError);
-          // Don't fail the fork if notification creation fails
-        }
         
         return res.json({
           success: true,

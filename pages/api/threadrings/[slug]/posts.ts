@@ -246,9 +246,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         posts = await publicClient.getRingFeed(slug, feedOptions);
       }
 
-      // Filter out prompts from the posts feed (they're displayed separately as active prompts)
+      // Prompts show separately as the active prompt. Fork notices aren't
+      // posts, and named private forks on their parent's page, so they're no
+      // longer sent; older ones stay out of the feed.
       const nonPromptPosts = posts?.posts?.filter(post =>
-        post.metadata?.type !== 'threadring_prompt'
+        post.metadata?.type !== 'threadring_prompt' && post.metadata?.type !== 'fork_notification'
       ) || [];
 
       // Resolve Ring Hub post references to actual ThreadStead post objects
