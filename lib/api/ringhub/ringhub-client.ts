@@ -305,24 +305,17 @@ export class RingHubClient {
   async updateRingBadge(slug: string, updates: {
     badgeImageUrl?: string;
     badgeImageHighResUrl?: string;
-    description?: string;
-    criteria?: string;
     updateExistingBadges?: boolean; // Default: false
   }): Promise<{
     success: boolean;
     message: string;
     badgeImageUrl?: string;
     badgeImageHighResUrl?: string;
-    description?: string;
-    criteria?: string;
     badgesUpdated?: number; // Number of existing badges regenerated
   }> {
-    const { description, criteria, ...rest } = updates
-    return this.put(`/trp/rings/${slug}/badge`, {
-      ...rest,
-      // The hub reads these nested; sent flat, its schema quietly dropped them
-      ...((description || criteria) && { badgeMetadata: { description, criteria } }),
-    })
+    // No badgeMetadata (description, criteria): the hub kept it only on badges
+    // already given out, never for later members, so it's no longer sent.
+    return this.put(`/trp/rings/${slug}/badge`, updates)
   }
 
   /**

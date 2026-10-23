@@ -209,26 +209,9 @@ export class AuthenticatedRingHubClient {
   /**
    * Update ring badge as this user (dev: server proxy, prod: user DID)
    */
-  async updateRingBadge(slug: string, updates: {
-    badgeImageUrl?: string;
-    badgeImageHighResUrl?: string;
-    description?: string;
-    criteria?: string;
-    updateExistingBadges?: boolean;
-  }): Promise<{
-    success: boolean;
-    message: string;
-    badgeImageUrl?: string;
-    badgeImageHighResUrl?: string;
-    description?: string;
-    criteria?: string;
-    badgesUpdated?: number;
-  }> {
+  async updateRingBadge(slug: string, updates: Parameters<RingHubClient['updateRingBadge']>[1]) {
     const userClient = await this.getUserClient()
-    await this.ensureUserDID()
-
-    // Update badge via Ring Hub using user-authenticated client
-    // Ring Hub will verify the user owns the ring (ownerDid matches actorDid)
+    // The hub checks the signer owns the ring (ownerDid)
     return await userClient.updateRingBadge(slug, updates)
   }
 
@@ -245,15 +228,17 @@ export class AuthenticatedRingHubClient {
 
     console.log('✅ Fork response from Ring Hub:', forkedRing);
 
-    // Track ownership locally for user access control
-    // Note: Both Ring Hub and local tracking now show user as actual owner
-    await db.ringHubOwnership.create({
-      data: {
-        ringSlug: forkedRing.slug,
-        ringUri: forkedRing.uri || `https://ringhub.io/rings/${forkedRing.slug}`, // Fallback if uri not provided
-        ownerUserId: this.userId,
-        serverDID: userDIDMapping.did, // User's DID is now the Ring Hub owner too
-      }
+    // The local mirror of the owner. Upserted: a stale row for a reused slug
+    // mustn't turn a ring the hub already made into a "failed" fork.
+    const ownership = {
+      ringUri: forkedRing.uri || `https://ringhub.io/rings/${forkedRing.slug}`, // Fallback if uri not provided
+      ownerUserId: this.userId,
+      serverDID: userDIDMapping.did, // User's DID is now the Ring Hub owner too
+    }
+    await db.ringHubOwnership.upsert({
+      where: { ringSlug: forkedRing.slug },
+      update: ownership,
+      create: { ringSlug: forkedRing.slug, ...ownership },
     })
 
     console.log(`Created Ring Hub fork ownership tracking for user ${this.userId}, ring ${forkedRing.slug}`)
@@ -282,6 +267,15 @@ export class AuthenticatedRingHubClient {
     const userClient = await this.getUserClient()
 
     return await userClient.getRingMembers(slug, options)
+  }
+
+  /**
+   * A ring's feed signed as this user, so a PRIVATE ring's member can read it.
+   * getRingFeed below reads as this site.
+   */
+  async getRingFeedAsMember(slug: string, options?: Parameters<RingHubClient['getRingFeed']>[1]) {
+    const userClient = await this.getUserClient()
+    return await userClient.getRingFeed(slug, options)
   }
 
   async getRingFeed(slug: string, options?: Parameters<RingHubClient['getRingFeed']>[1]) {
