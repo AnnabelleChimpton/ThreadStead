@@ -233,6 +233,44 @@ describe('post submission (the `{}` regression)', () => {
   })
 })
 
+describe('post author comes from the signature (submit actorDid)', () => {
+  // The hub used to take the author from the request body, so any signer
+  // could post as anyone. Now only a hub admin (this site's own DID, posting
+  // for a resident) may name someone else as the author.
+  const HOST = 'https://post-author-itest.invalid'
+  const uri = (id: string) => `${HOST}/resident/itest/post/${id}`
+  const postedRefIds: string[] = []
+
+  afterAll(async () => {
+    for (const id of postedRefIds) await client.curatePost(id, 'remove')
+  })
+
+  test('a member naming someone else as the author is refused', async () => {
+    await expect(
+      client.submitPost(ringSlug, { uri: uri('spoof'), digest: 'sha256:author-spoof', actorDid: getRuntime().secondActorDid })
+    ).rejects.toMatchObject({ status: 403 })
+  })
+
+  test('naming themselves (what AuthenticatedRingHubClient sends) posts as them, and the refused try left nothing behind', async () => {
+    // Same URI as the refused try: a 409 here would mean it was stored after all.
+    const result = await client.submitPost(ringSlug, { uri: uri('spoof'), digest: 'sha256:author-spoof', actorDid })
+    postedRefIds.push(result.id)
+    expect(result.actorDid).toBe(actorDid)
+    expect(result.submittedBy).toBe(actorDid)
+  })
+
+  test('the site, as hub admin, may post on behalf of a resident', async () => {
+    const result = await makeTestClient('admin').submitPost(ringSlug, {
+      uri: uri('on-behalf'),
+      digest: 'sha256:author-on-behalf',
+      actorDid,
+    })
+    postedRefIds.push(result.id)
+    expect(result.actorDid).toBe(actorDid)
+    expect(result.submittedBy).toBe(getRuntime().adminActorDid)
+  })
+})
+
 describe('posting into rings from the composer (create.ts → postToRings)', () => {
   // A host the A3 orphan scan below ignores, so these refs can't skew it.
   const HOST = 'https://ring-posting-itest.invalid'
