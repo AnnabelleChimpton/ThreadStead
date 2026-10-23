@@ -2,7 +2,9 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { getSessionUser } from '@/lib/auth/server';
 import { createAuthenticatedRingHubClient } from '@/lib/api/ringhub/ringhub-user-operations';
 import { featureFlags } from '@/lib/utils/features/feature-flags';
-import { getRingHubClient } from '@/lib/api/ringhub/ringhub-client';
+import { getPublicRingHubClient, type RingHubClient } from '@/lib/api/ringhub/ringhub-client';
+import { RingHubAuthError, RingHubUnavailableError } from '@/lib/api/ringhub/ringhub-errors';
+import { readAsViewer } from '@/lib/rings/read-as-viewer';
 import { db } from '@/lib/config/database/connection';
 import {
   extractPostIdFromUri,
@@ -57,13 +59,16 @@ async function resolveRingHubPosts(ringHubPosts: any[], viewer: { id: string } |
           updatedAt: ringHubPost.submittedAt,
           author: {
             id: 'external',
-            displayName: ringHubPost.metadata?.actorName || ringHubPost.submittedBy.split(':').pop() || 'User',
-            avatarUrl: null,
+            profile: {
+              displayName: ringHubPost.metadata?.actorName || ringHubPost.submittedBy.split(':').pop() || 'User',
+              avatarUrl: null,
+            },
             handle: 'external',
             // Don't provide primaryHandle so PostHeader won't try to create local links
             primaryHandle: undefined
           },
           threadRings: [],
+          ...ringModeration(ringHubPost),
           // Include Ring Hub metadata
           ringHubData: {
             id: ringHubPost.id,
@@ -134,8 +139,10 @@ async function resolveRingHubPosts(ringHubPosts: any[], viewer: { id: string } |
           contentWarning: post.contentWarning,
           author: {
             id: post.author.id,
-            displayName: post.author.profile?.displayName,
-            avatarUrl: post.author.profile?.avatarUrl,
+            profile: {
+              displayName: post.author.profile?.displayName,
+              avatarUrl: post.author.profile?.avatarUrl,
+            },
             handle: post.author.handles.find(h => h.host === "local")?.handle ||
               post.author.handles[0]?.handle || 'unknown',
             primaryHandle: post.author.handles.find(h => h.host === "local")?.handle ||
@@ -148,6 +155,7 @@ async function resolveRingHubPosts(ringHubPosts: any[], viewer: { id: string } |
               slug: tr.threadRing.slug
             }
           })) || [],
+          ...ringModeration(ringHubPost),
           // Include Ring Hub metadata
           ringHubData: {
             id: ringHubPost.id,
@@ -175,10 +183,48 @@ async function resolveRingHubPosts(ringHubPosts: any[], viewer: { id: string } |
   return { posts: resolvedPosts, hidden };
 }
 
+/** What the ring's host and moderators act on: the hub's PostRef, and whether it's pinned. */
+function ringModeration(ringHubPost: any) {
+  return { ringHubPostId: ringHubPost.id as string, isPinned: !!ringHubPost.pinned };
+}
+
+/** Prompts show separately, as the active prompt; fork notices aren't posts. */
+function isFeedPost(ref: any) {
+  return ref.metadata?.type !== 'threadring_prompt' && ref.metadata?.type !== 'fork_notification';
+}
+
+/** Hub pages read for one request, at most, when the first ones have nothing this viewer can see */
+const MAX_HUB_PAGES = 5;
+
+type FeedOptions = Parameters<RingHubClient['getRingFeed']>[1];
+
+/** One page of the ring's feed, signed as the viewer so a private ring's members can read it. */
+function readFeedPage(slug: string, viewer: { id: string } | null, options: FeedOptions) {
+  const asPublic = () => {
+    const client = getPublicRingHubClient();
+    if (!client) throw new RingHubUnavailableError('Ring Hub client not available');
+    return client.getRingFeed(slug, options);
+  };
+  const asViewer = viewer
+    ? () => createAuthenticatedRingHubClient(viewer.id).getRingFeedAsMember(slug, options)
+    : null;
+  return readAsViewer(asViewer, asPublic);
+}
+
+/** The hub's answer, passed on: a ring that isn't there for this viewer, or a hub that isn't answering. */
+function hubFailure(error: unknown): [number, string] {
+  const status = (error as { status?: number })?.status;
+  if (status === 404) return [404, "This ring's posts aren't open to you."];
+  if (status === 403) return [403, "This ring's posts are for its members."];
+  if (error instanceof RingHubUnavailableError || error instanceof RingHubAuthError) {
+    return [503, 'Ring Hub is slow right now. Try again in a minute.'];
+  }
+  return [502, "Ring Hub didn't answer. Try again in a minute."];
+}
+
 /**
- * Get ThreadRing Posts
- * 
- * Fetches posts/feed for a ring using user-authenticated Ring Hub client
+ * A ring's posts, from the hub's feed: signed as the viewer, so a private
+ * ring's members can read it, and resolved to this site's posts.
  */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
@@ -209,81 +255,49 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
+    // Map our scope values to Ring Hub scope values
+    const hubScope = ({ current: 'ring', parent: 'parent', children: 'children', siblings: 'siblings', family: 'family' } as const)[
+      scope as 'current'
+    ] ?? 'ring';
+
+    // Pagination follows the hub's PostRefs, so filtering (prompts, posts
+    // this viewer can't read) never skips or repeats a page: the next page
+    // starts at nextOffset. When a whole page is filtered away, the next is
+    // read too (a few at most), so a ring with posts never says it has none.
+    // `total` drops what was hidden; hidden posts on later pages are only
+    // known once those pages are read.
+    const resolvedPosts: any[] = [];
+    let hidden = 0;
+    let total = 0;
+    let nextOffset = offset;
+    let hasMore = false;
     try {
-      // Create Ring Hub client (authenticated if user available, otherwise unauthenticated)
-      let posts;
-
-      // Map our scope values to Ring Hub scope values
-      const mapScope = (scope: string) => {
-        switch (scope) {
-          case 'current': return 'ring';
-          case 'parent': return 'parent';
-          case 'children': return 'children';
-          case 'siblings': return 'siblings';
-          case 'family': return 'family';
-          default: return 'ring';
-        }
-      };
-
-      const feedOptions = {
-        limit,
-        offset,
-        scope: mapScope(scope as string) as 'ring' | 'parent' | 'children' | 'siblings' | 'family'
-      };
-
-      if (viewer) {
-        // Authenticated request - get enhanced data
-        const authenticatedClient = createAuthenticatedRingHubClient(viewer.id);
-        posts = await authenticatedClient.getRingFeed(slug, feedOptions);
-      } else {
-        // Unauthenticated request - get public data only
-        const publicClient = getRingHubClient();
-
-        if (!publicClient) {
-          throw new Error('Ring Hub client not available');
-        }
-
-        posts = await publicClient.getRingFeed(slug, feedOptions);
+      for (let pages = 0; pages < MAX_HUB_PAGES && (pages === 0 || (resolvedPosts.length === 0 && hasMore)); pages++) {
+        const page = await readFeedPage(slug, viewer, { limit, offset: nextOffset, scope: hubScope });
+        const refs = page?.posts || [];
+        const resolved = await resolveRingHubPosts(refs.filter(isFeedPost), viewer);
+        resolvedPosts.push(...resolved.posts);
+        hidden += resolved.hidden;
+        total = page?.total || 0;
+        nextOffset += refs.length;
+        hasMore = refs.length > 0 && total > nextOffset;
       }
-
-      // Prompts show separately as the active prompt. Fork notices aren't
-      // posts, and named private forks on their parent's page, so they're no
-      // longer sent; older ones stay out of the feed.
-      const nonPromptPosts = posts?.posts?.filter(post =>
-        post.metadata?.type !== 'threadring_prompt' && post.metadata?.type !== 'fork_notification'
-      ) || [];
-
-      // Resolve Ring Hub post references to actual ThreadStead post objects
-      const { posts: resolvedPosts, hidden } = await resolveRingHubPosts(nonPromptPosts, viewer);
-
-      // Pagination follows the hub's PostRefs, so filtering (prompts, posts
-      // this viewer can't read) never skips or repeats a page: the next page
-      // starts at nextOffset. `total` drops what this page hid; hidden posts
-      // on other pages are only known once those pages are read.
-      const currentOffset = offset;
-      const currentLimit = limit;
-      const rawCount = posts?.posts?.length || 0;
-      const hasMore = (posts?.total || 0) > (currentOffset + rawCount);
-
-      return res.json({
-        posts: resolvedPosts,
-        total: Math.max((posts?.total || 0) - hidden, 0),
-        limit: currentLimit,
-        offset: currentOffset,
-        nextOffset: currentOffset + rawCount,
-        hasMore,
-        scope,
-        authenticated: !!viewer,
-        enhanced: !!viewer // Enhanced data available when authenticated
-      });
-
     } catch (ringHubError) {
       console.error('Ring Hub posts fetch failed:', ringHubError);
-      return res.status(500).json({
-        error: "Failed to fetch posts from Ring Hub",
-        message: ringHubError instanceof Error ? ringHubError.message : 'Unknown error'
-      });
+      const [status, message] = hubFailure(ringHubError);
+      return res.status(status).json({ error: message });
     }
+
+    return res.json({
+      posts: resolvedPosts,
+      total: Math.max(total - hidden, 0),
+      limit,
+      offset,
+      nextOffset,
+      hasMore,
+      scope,
+      authenticated: !!viewer,
+    });
 
   } catch (error) {
     console.error('Error fetching posts:', error);

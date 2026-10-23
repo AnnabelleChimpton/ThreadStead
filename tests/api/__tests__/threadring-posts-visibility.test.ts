@@ -39,12 +39,12 @@ jest.mock('@/lib/config/database/connection', () => ({
 }))
 jest.mock('@/lib/auth/server', () => ({ getSessionUser: jest.fn() }))
 jest.mock('@/lib/utils/features/feature-flags', () => ({ featureFlags: { ringhub: () => true } }))
-jest.mock('@/lib/api/ringhub/ringhub-client', () => ({ getRingHubClient: jest.fn() }))
+jest.mock('@/lib/api/ringhub/ringhub-client', () => ({ getPublicRingHubClient: jest.fn() }))
 jest.mock('@/lib/api/ringhub/ringhub-user-operations', () => ({ createAuthenticatedRingHubClient: jest.fn() }))
 
 import handler from '@/pages/api/threadrings/[slug]/posts'
 import { getSessionUser } from '@/lib/auth/server'
-import { getRingHubClient } from '@/lib/api/ringhub/ringhub-client'
+import { getPublicRingHubClient } from '@/lib/api/ringhub/ringhub-client'
 import { createAuthenticatedRingHubClient } from '@/lib/api/ringhub/ringhub-user-operations'
 
 const BASE = 'http://localhost:3000'
@@ -55,8 +55,8 @@ const refs = VISIBILITIES.map((v, i) => ({
 
 beforeEach(() => {
   const getRingFeed = jest.fn().mockResolvedValue({ posts: refs, total: refs.length })
-  ;(getRingHubClient as jest.Mock).mockReturnValue({ getRingFeed })
-  ;(createAuthenticatedRingHubClient as jest.Mock).mockReturnValue({ getRingFeed })
+  ;(getPublicRingHubClient as jest.Mock).mockReturnValue({ getRingFeed })
+  ;(createAuthenticatedRingHubClient as jest.Mock).mockReturnValue({ getRingFeedAsMember: getRingFeed })
 })
 
 async function viewAs(viewer: string | null) {

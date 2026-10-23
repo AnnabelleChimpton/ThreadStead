@@ -114,19 +114,20 @@ jest.mock('@/lib/domain/posts/visibility', () => ({
 }))
 
 const hub = { feed: [] as any[], total: 0 }
+const ringFeed = async (_slug: string, { offset = 0, limit }: any) => ({
+  posts: hub.feed.slice(offset, offset + limit),
+  total: hub.feed.length,
+})
 const hubClient = {
   getMyFeed: jest.fn(async ({ offset = 0, limit }: any) => ({
     posts: hub.feed.slice(offset, offset + limit),
     pagination: { total: hub.feed.length, limit, offset, hasMore: offset + limit < hub.feed.length },
     generatedAt: 'now',
   })),
-  getRingFeed: jest.fn(async (_slug: string, { offset = 0, limit }: any) => ({
-    posts: hub.feed.slice(offset, offset + limit),
-    total: hub.feed.length,
-  })),
+  getRingFeed: jest.fn(ringFeed),
   getTrendingFeed: jest.fn(async () => ({ posts: hub.feed, generatedAt: 'now' })),
   // The ring page's feed, signed as the viewer
-  getRingFeedAsMember: jest.fn(async (slug: string, options: any) => hubClient.getRingFeed(slug, options)),
+  getRingFeedAsMember: jest.fn(ringFeed),
 }
 jest.mock('@/lib/api/ringhub/ringhub-user-operations', () => ({ createAuthenticatedRingHubClient: () => hubClient }))
 jest.mock('@/lib/api/ringhub/ringhub-client', () => ({
