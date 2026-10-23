@@ -74,7 +74,7 @@ export default function LeaveHomePageAgain() {
               <ul className="list-disc pl-6">
                 {state.rings.map((ring) => (
                   <li key={ring.slug}>
-                    <Link href={`/tr/${ring.slug}/members`} className="underline">{ring.name}</Link>
+                    <Link href={`/tr/${ring.slug}/manage?tab=ring`} className="underline">{ring.name}</Link>
                   </li>
                 ))}
               </ul>

@@ -27,7 +27,7 @@ export default apiHandler(
     const handle = transfer.newOwner.handle?.split("@")[0] ?? "them";
     res.json({
       success: true,
-      message: `@${handle} owns it now.`,
+      message: `@${handle} is the host now.`,
       ...transfer,
     });
   }

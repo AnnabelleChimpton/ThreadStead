@@ -11,7 +11,6 @@ const schema = z.object({
   description: z.string().trim().min(1, 'Say what the prompt asks').max(1000, 'The description must be 1000 characters or less'),
   endsAt: z.string().datetime({ offset: true, local: true }).nullish(),
   isActive: z.boolean().optional(),
-  isPinned: z.boolean().optional(),
 })
 
 /** A prompt PostRef in the shape the prompt components read. `author` is who posted it, when they live here. */
@@ -82,7 +81,8 @@ export default apiHandler(
         startsAt: new Date(),
         endsAt: body.endsAt ? new Date(body.endsAt) : undefined,
         isActive: body.isActive ?? true,
-        isPinned: body.isPinned ?? false,
+        // Pinning a prompt isn't offered: "Show it on the ring page" is isActive
+        isPinned: false,
       })
     } catch (error) {
       throw hubWriteError(error)

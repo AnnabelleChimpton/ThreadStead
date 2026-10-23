@@ -108,6 +108,13 @@ test('the Host posts a prompt, signed as themselves', async () => {
   expect(member.submitPost).toHaveBeenCalledWith('knits', expect.objectContaining({ metadata: expect.objectContaining({ type: 'threadring_prompt' }) }))
 })
 
+test('prompts are never pinned: "Show it on the ring page" is all there is', async () => {
+  ;(getSessionUser as jest.Mock).mockResolvedValue({ id: 'host-1', role: 'member' })
+  await call(promptsRoute, 'POST', { slug: 'knits' }, { title: 'Socks', description: 'd', isActive: false, isPinned: true })
+  const sent = member.submitPost.mock.calls[0][1].metadata.prompt
+  expect(sent).toMatchObject({ isActive: false, isPinned: false })
+})
+
 test('a plain member, or someone signed out, is refused before the hub is asked', async () => {
   ;(getSessionUser as jest.Mock).mockResolvedValue({ id: 'member-1', role: 'member' })
   expect((await call(promptsRoute, 'POST', { slug: 'knits' }, { title: 'Mine', description: 'd' })).statusCode).toBe(403)

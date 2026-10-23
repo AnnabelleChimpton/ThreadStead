@@ -21,6 +21,7 @@ jest.mock('@/lib/api/ringhub/ring-members', () => ({ readAllRingMembers: jest.fn
 jest.mock('@/lib/api/ringhub/ringhub-transformers', () => ({ transformRingDescriptorToThreadRing: jest.fn() }));
 jest.mock('@/lib/pixel-homes/house-badge', () => ({ badgeHandlesFor: jest.fn() }));
 jest.mock('@/lib/rings/page-data', () => ({ loadRingForPage: jest.fn() }));
+jest.mock('@/lib/rings/manage', () => ({}));
 jest.mock('@/lib/utils/features/feature-flags', () => ({ featureFlags: { ringhub: () => true } }));
 jest.mock('@/hooks/useCurrentUser', () => ({
   useCurrentUser: () => ({ user: null, loading: false, loggedIn: false }),
@@ -140,35 +141,35 @@ afterEach(() => {
   document.body.innerHTML = '';
 });
 
-function member(handle: string, host: string, external: boolean) {
+function member(name: string, role: 'host' | 'member', external: boolean) {
   return {
-    id: 'ZGlkOndlYjpsb2Nh', // the hub transformer gives every member on one instance the same id
-    role: 'member',
+    key: external ? `did:web:${name}.example` : `u-${name}`,
+    name,
+    handle: external ? `@${name}@${name}.example` : `@${name}`,
+    profileHref: external ? `https://${name}.example/~${name}` : `/resident/${name}`,
+    role,
     joinedAt: LATE_EVENING_IN_LA,
-    user: {
-      id: `u-${handle}`,
-      handles: [{ handle, host }],
-      profileUrl: `https://${host}/resident/${handle}`,
-      profile: { displayName: handle, avatarUrl: null },
-    },
+    avatarUrl: null,
     homeHandle: null,
-    external,
+    local: !external,
   };
 }
 
 describe('ring pages hydrate without mismatches', () => {
-  it('members page', async () => {
-    const errors = await hydrationErrors('@/pages/tr/[slug]/members', {
-      siteConfig: {},
-      ring: { id: 'r1', name: 'Local test', slug: 'local-test', memberCount: 2, curatorId: '' },
-      members: [member('newcomer1', 'HomePageAgain', false), member('visitor', 'other.example', true)],
-      canManage: false,
-      hubRing: true,
+  it('Manage › People', async () => {
+    const errors = await hydrationErrors('@/pages/tr/[slug]/manage', {
+      kind: 'manage',
+      ring: { slug: 'local-test', name: 'Local test', memberCount: 2, badgeImageUrl: null },
+      settings: { name: 'Local test', description: '', curatorNote: '', bannerUrl: '', themeColor: null, joinType: 'open', visibility: 'public', postPolicy: 'members' },
+      rights: { tabs: ['people', 'prompts'], roles: false, remove: 'members', invite: true, handOver: false, delete: false },
+      people: [member('newcomer1', 'host', false), member('visitor', 'member', true)],
+      stops: null,
+      viewer: { id: 'u-newcomer1', username: 'newcomer1' },
+      tab: 'people',
     });
     expect(errors).toEqual([]);
-    expect(document.body.textContent).toContain('Joined Oct 18, 2026');
-    // Rows are keyed by user, not by that shared id.
-    expect((console.error as jest.Mock).mock.calls.flat().join(' ')).not.toMatch(/same key/);
+    expect(document.body.textContent).toContain('joined Oct 18, 2026');
+    expect(document.body.textContent).toContain("That's you");
   });
 
   it('ring page', async () => {

@@ -53,7 +53,7 @@ export default apiHandler(
     if (req.method === "DELETE") {
       if (!access.isHost) throw new ApiError(403, "Only the ring's Host can delete it.");
       if ((access.ring.memberCount ?? 2) > 1) {
-        throw new ApiError(409, "Others are still in this ring. Hand it to one of them on the members page instead.");
+        throw new ApiError(409, "Others are still in this ring, so hand it to one of them instead.");
       }
       const deleter = access.manageAs === "site" ? getRingHubClient() : createAuthenticatedRingHubClient(user.id);
       if (!deleter) throw new ApiError(503, "We can't reach Ring Hub right now. Try again in a minute.");
@@ -74,7 +74,7 @@ export default apiHandler(
         throw hubWriteError(error, access.manageAs);
       }
       if (outcome === "changed") {
-        throw new ApiError(409, "Someone joined just now. Hand the ring to them on the members page instead.");
+        throw new ApiError(409, "Someone joined just now, so hand the ring to them instead.");
       }
       forgetRingReads(slug, [user.id]);
       return res.json({ deleted: true });

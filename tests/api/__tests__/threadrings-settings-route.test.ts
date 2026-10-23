@@ -178,7 +178,7 @@ describe('DELETE', () => {
   test('with others in it, hand it over first', async () => {
     const res = await call('DELETE')
     expect(res.statusCode).toBe(409)
-    expect(res.body.error).toMatch(/Hand it to one of them/)
+    expect(res.body.error).toMatch(/hand it to one of them/)
     expect(member.deleteRing).not.toHaveBeenCalled()
   })
 

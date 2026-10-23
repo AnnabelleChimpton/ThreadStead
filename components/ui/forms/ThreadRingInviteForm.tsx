@@ -1,121 +1,54 @@
 import { useState } from "react";
-import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+import Button from "@/components/ui/Button";
+import { useToast } from "@/contexts/ToastContext";
+import { csrfFetch } from "@/lib/api/client/csrf-fetch";
 
-interface ThreadRingInviteFormProps {
-  threadRingSlug: string;
-  threadRingName: string;
-  onInviteSent?: () => void;
-  className?: string;
-}
-
-export default function ThreadRingInviteForm({ 
-  threadRingSlug, 
-  threadRingName, 
-  onInviteSent,
-  className = ""
-}: ThreadRingInviteFormProps) {
+/** Invite a resident to a ring by their exact username (Manage › People). */
+export default function ThreadRingInviteForm({ threadRingSlug }: { threadRingSlug: string }) {
   const [username, setUsername] = useState("");
   const [sending, setSending] = useState(false);
-  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const { showSuccess, showError } = useToast();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const send = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!username.trim()) {
-      setMessage({ type: "error", text: "Username is required" });
-      return;
-    }
-
+    if (!username.trim()) return;
+    setSending(true);
     try {
-      setSending(true);
-      setMessage(null);
-      
-      const response = await csrfFetch(`/api/threadrings/${threadRingSlug}/invite`, {
+      const res = await csrfFetch(`/api/threadrings/${encodeURIComponent(threadRingSlug)}/invite`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username: username.trim()
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: username.trim() }),
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to send invite");
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(res.status === 404 ? "There's nobody here by that username." : data.error || "Couldn't send the invite. Try again.");
       }
-
-      setMessage({ type: "success", text: data.message });
+      showSuccess(data.message);
       setUsername("");
-      onInviteSent?.();
-      
-    } catch (error: any) {
-      console.error("Error sending invite:", error);
-      setMessage({ type: "error", text: error.message || "Failed to send invite" });
+    } catch (error) {
+      showError(error instanceof Error && error.message ? error.message : "Couldn't send the invite. Try again.");
     } finally {
       setSending(false);
     }
   };
 
-  const handleReset = () => {
-    setUsername("");
-    setMessage(null);
-  };
-
   return (
-    <div className={`bg-white border border-black p-4 shadow-[2px_2px_0_#000] ${className}`}>
-      <h3 className="font-bold mb-3">Invite Member to {threadRingName}</h3>
-      
-      <form onSubmit={handleSubmit} className="space-y-3">
-        <div>
-          <label htmlFor="username" className="block text-sm font-medium mb-1">
-            Username
-          </label>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              id="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="Enter username (without @)"
-              className="flex-1 border border-black px-3 py-2 bg-white focus:outline-none focus:shadow-[2px_2px_0_#000]"
-              disabled={sending}
-            />
-            <button
-              type="submit"
-              disabled={sending || !username.trim()}
-              className="border border-black px-4 py-2 bg-yellow-200 hover:bg-yellow-300 shadow-[2px_2px_0_#000] hover:shadow-[3px_3px_0_#000] transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-            >
-              {sending ? "Sending..." : "Invite"}
-            </button>
-          </div>
-        </div>
-
-        {message && (
-          <div className={`text-sm p-2 border ${
-            message.type === "success" 
-              ? "bg-green-100 border-green-300 text-green-800" 
-              : "bg-red-100 border-red-300 text-red-800"
-          }`}>
-            {message.text}
-            {message.type === "success" && (
-              <button
-                type="button"
-                onClick={handleReset}
-                className="ml-2 underline hover:no-underline"
-              >
-                Send another
-              </button>
-            )}
-          </div>
-        )}
-      </form>
-      
-      <div className="mt-3 text-xs text-gray-600">
-        <p><strong>Tip:</strong> Enter just the username without the @ symbol.</p>
-        <p>Only the ring&apos;s host and moderators can send invites.</p>
-      </div>
-    </div>
+    <form onSubmit={send} className="flex flex-wrap gap-2 max-w-lg">
+      <input
+        type="text"
+        value={username}
+        onChange={(e) => setUsername(e.target.value)}
+        placeholder="Their username, like @bea"
+        aria-label="Their username"
+        autoCapitalize="none"
+        autoCorrect="off"
+        spellCheck={false}
+        disabled={sending}
+        className="flex-1 min-w-[12rem] border-2 border-nb-ink-mid/60 rounded-md p-3 bg-white text-nb-ink focus:outline-none focus:border-nb-ink-mid"
+      />
+      <Button type="submit" disabled={sending || !username.trim()} className="thread-button disabled:opacity-50">
+        {sending ? "Sending..." : "Send invite"}
+      </Button>
+    </form>
   );
 }

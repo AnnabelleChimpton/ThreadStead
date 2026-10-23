@@ -99,9 +99,9 @@ export function notificationHref(notification: LinkableNotification): string | n
       // The ring page shows invited people an Accept button
       return data.threadRingSlug ? `/tr/${encodeURIComponent(data.threadRingSlug)}` : null;
     case "ring_site":
-      // A site waiting for a yes: the ring's stops page has the buttons. Anything else is about your own site.
+      // A site waiting for a yes: the host says yes in Manage › Stops. Anything else is about your own site.
       return (data as { event?: string }).event === "waiting" && data.threadRingSlug
-        ? `/tr/${encodeURIComponent(data.threadRingSlug)}/sites`
+        ? `/tr/${encodeURIComponent(data.threadRingSlug)}/manage?tab=stops`
         : "/settings?tab=sites";
     case "webmention":
       // The outside page that links to the post
