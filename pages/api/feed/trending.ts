@@ -18,10 +18,7 @@ export default apiHandler(
 
     try {
       // Parse query parameters
-      const {
-        timeWindow = "day",
-        includeNotifications = "false"
-      } = req.query;
+      const { timeWindow = "day" } = req.query;
 
       // Validate parameters
       const limitNum = parseLimit(req.query.limit, { fallback: 20, max: 50 });
@@ -42,7 +39,6 @@ export default apiHandler(
       const feedResponse = await publicClient.getTrendingFeed({
         limit: limitNum,
         timeWindow: timeWindowValue,
-        includeNotifications: includeNotifications === "true" ? true : undefined
       });
 
       // Nobody sees suspended or banned accounts' posts; signed-in viewers
@@ -50,7 +46,8 @@ export default apiHandler(
       const { blockedUserIds } = await getHiddenIds(viewer?.id);
       return res.json({
         ...feedResponse,
-        posts: await filterBlockedRingHubItems(feedResponse.posts ?? [], blockedUserIds),
+        // Fork notices aren't posts (and are no longer sent; see my-rings.ts)
+        posts: await filterBlockedRingHubItems((feedResponse.posts ?? []).filter((post) => !post.isNotification), blockedUserIds),
       });
     
     } catch (error: any) {
