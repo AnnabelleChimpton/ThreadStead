@@ -16,7 +16,7 @@ export default function ProfilePhoto({ src, alt }: ProfilePhotoProps) {
             alt={alt}
             width={128}
             height={128}
-            className="profile-photo-image w-32 h-32 object-cover"
+            className="profile-photo-image u-photo w-32 h-32 object-cover"
             unoptimized={src?.endsWith('.gif')}
           />
         ) : (

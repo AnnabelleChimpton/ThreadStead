@@ -65,6 +65,22 @@ describe('WebsiteDisplay Component', () => {
     });
   });
 
+  describe('rel="me"', () => {
+    it('links their own site with rel="me" and others as plain links', () => {
+      renderWithTemplateContext(<WebsiteDisplay />, {
+        residentData: createMockResidentData({
+          websites: [
+            { id: '1', url: 'https://mine.example', label: 'My site', mine: true },
+            { id: '2', url: 'https://friend.example', label: 'A friend' },
+          ],
+        }),
+      });
+
+      expect(screen.getByRole('link', { name: 'My site' })).toHaveAttribute('rel', 'me noopener');
+      expect(screen.getByRole('link', { name: 'A friend' })).toHaveAttribute('rel', 'noopener noreferrer');
+    });
+  });
+
   describe('Website Display', () => {
     const mockWebsites = [
       {

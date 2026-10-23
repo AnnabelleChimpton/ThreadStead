@@ -46,7 +46,7 @@ export default function WebsiteDisplay(props: WebsiteDisplayProps) {
                   <a 
                     href={website.url || '#'}
                     target="_blank"
-                    rel="noopener noreferrer" 
+                    rel={website.mine ? "me noopener" : "noopener noreferrer"}
                     className="website-link text-blue-600 hover:text-blue-800 hover:underline"
                   >
                     {website.label || 'Untitled'}

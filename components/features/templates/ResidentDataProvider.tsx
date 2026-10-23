@@ -44,6 +44,8 @@ export interface ResidentData {
     label: string;
     url: string;
     blurb?: string;
+    /** "This is my site": linked with rel="me" */
+    mine?: boolean;
   }>;
   images?: Array<{
     id: string;

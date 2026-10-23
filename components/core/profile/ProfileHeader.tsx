@@ -28,6 +28,8 @@ interface ProfileHeaderProps {
   status?: string;
   /** Their address as their verified Bluesky handle (alice.homepageagain.com) */
   blueskyHandle?: string;
+  /** The page's own URL, for the h-card readers find here */
+  profileUrl?: string;
 }
 
 export default function ProfileHeader({
@@ -42,6 +44,7 @@ export default function ProfileHeader({
   bannerUrl,
   status,
   blueskyHandle,
+  profileUrl,
 }: ProfileHeaderProps) {
   const nameToShow = displayName || username;
   const { config } = useSiteConfig();
@@ -52,7 +55,9 @@ export default function ProfileHeader({
   const isOwner = !!currentUser && !!ownerUserId && currentUser.id === ownerUserId;
 
   return (
-    <div className="ts-profile-header" data-component="profile-header">
+    <div className="ts-profile-header h-card" data-component="profile-header">
+      {/* Their h-card (microformats): p-name, u-photo, p-note and this URL, for IndieWeb tools */}
+      {profileUrl && <data className="u-url u-uid" value={profileUrl} />}
       {bannerUrl && (
         <div className="ts-profile-banner mb-4">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -71,7 +76,7 @@ export default function ProfileHeader({
         </div>
         <div className="ts-profile-info-section flex-1">
           <div className="ts-profile-identity mb-4">
-            <h2 className="ts-profile-display-name thread-headline text-3xl font-bold text-thread-pine mb-1">
+            <h2 className="ts-profile-display-name p-name thread-headline text-3xl font-bold text-thread-pine mb-1">
               {nameToShow}
             </h2>
             <span className="ts-profile-status thread-label">
@@ -81,7 +86,7 @@ export default function ProfileHeader({
           </div>
           {bio ? (
             <div className="ts-profile-bio-section mb-4">
-              <p className="ts-profile-bio text-thread-charcoal leading-relaxed">
+              <p className="ts-profile-bio p-note text-thread-charcoal leading-relaxed">
                 {bio}
               </p>
             </div>

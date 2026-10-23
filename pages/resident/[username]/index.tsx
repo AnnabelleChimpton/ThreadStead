@@ -387,6 +387,7 @@ export default function ProfilePage({
             onRelStatusChange={setRelStatus}
             showPixelHomeLink={hasPixelHome}
             blueskyHandle={blueskyHandle}
+            profileUrl={pageUrl}
           />
         </RetroCard>
 
@@ -516,7 +517,8 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
             id: String(obj.id || `website-${websites.length}`),
             label: String(obj.label),
             url: String(obj.url),
-            blurb: String(obj.blurb || "")
+            blurb: String(obj.blurb || ""),
+            mine: obj.mine === true
           });
         }
       }

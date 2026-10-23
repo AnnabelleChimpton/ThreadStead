@@ -407,11 +407,13 @@ export default function PostItem({
     minute: '2-digit'
   });
 
+  // h-entry, p-name, u-url, dt-published, p-author, e-content: microformats, so
+  // IndieWeb tools can read the post. A content-warning post's body stays out.
   return (
     <article
       ref={viewportRef}
       id={`post-${post.id.slice(-6)}`}
-      className={`post-item blog-post-card bg-thread-paper border-y sm:border border-thread-sage/30 p-5 sm:p-8 mb-6 sm:rounded-cozy shadow-cozy-sm hover:shadow-cozy transition-all duration-300 ${post.isPinned ? 'border-yellow-500 border-2' : ''}`}
+      className={`post-item h-entry blog-post-card bg-thread-paper border-y sm:border border-thread-sage/30 p-5 sm:p-8 mb-6 sm:rounded-cozy shadow-cozy-sm hover:shadow-cozy transition-all duration-300 ${post.isPinned ? 'border-yellow-500 border-2' : ''}`}
       data-post-id={post.id.slice(-6)}
     >
       {/* Author Info & Header */}
@@ -435,16 +437,19 @@ export default function PostItem({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             {authorUsername ? (
-              <UserMention
-                username={authorUsername}
-                displayName={authorName}
-                className="blog-post-author font-bold text-lg text-thread-pine hover:text-thread-sunset transition-colors truncate"
-              />
+              <span className="p-author h-card">
+                <data className="u-url" value={`/resident/${authorUsername}`} />
+                <UserMention
+                  username={authorUsername}
+                  displayName={authorName}
+                  className="blog-post-author p-name font-bold text-lg text-thread-pine hover:text-thread-sunset transition-colors truncate"
+                />
+              </span>
             ) : (
-              <span className="blog-post-author font-bold text-lg text-thread-pine truncate">{authorName}</span>
+              <span className="blog-post-author p-author h-card font-bold text-lg text-thread-pine truncate">{authorName}</span>
             )}
             <span className="text-thread-sage text-sm" aria-hidden="true">•</span>
-            <span className="blog-post-date text-thread-sage text-sm font-medium">{postDate}</span>
+            <time className="blog-post-date dt-published text-thread-sage text-sm font-medium" dateTime={post.createdAt}>{postDate}</time>
             {isOwner && <VisibilityBadge visibility={post.visibility} />}
             {post.isPinned && (
               <span className="inline-flex items-center gap-1 text-xs bg-thread-cream text-thread-pine px-2 py-1 border border-thread-sage/50 rounded ml-2">
@@ -597,7 +602,7 @@ export default function PostItem({
                   {authorUsername ? (
                     <a
                       href={`/resident/${authorUsername}/post/${post.id}`}
-                      className="block group"
+                      className="block group u-url"
                     >
                       {post.intent ? (
                         <div className="space-y-2">
@@ -605,12 +610,12 @@ export default function PostItem({
                             <span className="font-semibold">{authorName}</span>
                             <span>is {post.intent}</span>
                           </div>
-                          <h2 className="blog-post-title text-2xl sm:text-3xl font-bold text-black leading-tight group-hover:text-thread-sunset transition-colors font-display tracking-tight">
+                          <h2 className="blog-post-title p-name text-2xl sm:text-3xl font-bold text-black leading-tight group-hover:text-thread-sunset transition-colors font-display tracking-tight">
                             {post.title}
                           </h2>
                         </div>
                       ) : (
-                        <h2 className="blog-post-title text-2xl sm:text-3xl font-bold text-black leading-tight group-hover:text-thread-sunset transition-colors font-display tracking-tight">
+                        <h2 className="blog-post-title p-name text-2xl sm:text-3xl font-bold text-black leading-tight group-hover:text-thread-sunset transition-colors font-display tracking-tight">
                           {post.title}
                         </h2>
                       )}
@@ -623,12 +628,12 @@ export default function PostItem({
                             <span className="font-semibold">{authorName}</span>
                             <span>is {post.intent}</span>
                           </div>
-                          <h2 className="blog-post-title text-2xl sm:text-3xl font-bold text-black leading-tight font-display tracking-tight">
+                          <h2 className="blog-post-title p-name text-2xl sm:text-3xl font-bold text-black leading-tight font-display tracking-tight">
                             {post.title}
                           </h2>
                         </div>
                       ) : (
-                        <h2 className="blog-post-title text-2xl sm:text-3xl font-bold text-black leading-tight font-display tracking-tight">
+                        <h2 className="blog-post-title p-name text-2xl sm:text-3xl font-bold text-black leading-tight font-display tracking-tight">
                           {post.title}
                         </h2>
                       )}
@@ -638,7 +643,7 @@ export default function PostItem({
               )}
 
               {/* Post Content */}
-              <div className={`thread-content mb-6 text-lg leading-relaxed text-gray-800 ${isSpoilerPost() && !spoilerRevealed ? 'spoiler-content hidden' : ''}`}>
+              <div className={`thread-content mb-6 text-lg leading-relaxed text-gray-800 ${isSpoilerPost() && !spoilerRevealed ? 'spoiler-content hidden' : ''} ${isSpoilerPost() ? '' : 'e-content'}`}>
                 {(() => {
                   // Determine content source and check if truncation is needed
                   const rawContent = post.bodyMarkdown || post.bodyHtml || post.bodyText || "";
