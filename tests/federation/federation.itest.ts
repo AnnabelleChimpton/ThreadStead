@@ -593,6 +593,32 @@ describe('owner member management (audit 0.8)', () => {
   })
 })
 
+describe('a host moderates their own post (POST /trp/curate)', () => {
+  // The main actor owns FORK_SLUG and is a plain member of ringSlug. The
+  // author branch used to run first, so a host couldn't pin their own post
+  // (403), and removing it took it out of every ring.
+  const OWN_URI = 'https://threadstead-itest.invalid/posts/itest-host-own'
+  const refIn = async (slug: string) =>
+    (await client.getRingFeed(slug, { limit: 100 })).posts.find((p) => p.uri === OWN_URI)
+
+  test('pins it, and removes it from that ring only', async () => {
+    const inFork = (await client.submitPost(FORK_SLUG, { uri: OWN_URI, digest: 'sha256:host-own' })).id!
+    await client.submitPost(ringSlug, { uri: OWN_URI, digest: 'sha256:host-own' })
+
+    await client.curatePost(inFork, 'pin')
+    clearCache()
+    expect((await refIn(FORK_SLUG))?.pinned).toBe(true)
+
+    await client.curatePost(inFork, 'remove')
+    clearCache()
+    expect(await refIn(FORK_SLUG)).toBeUndefined()
+    // Where they're only a member, it's still theirs to take out (everywhere)
+    const elsewhere = await refIn(ringSlug)
+    expect(elsewhere).toBeDefined()
+    await client.curatePost(elsewhere!.id!, 'remove')
+  })
+})
+
 describe('a ring owner updates its badge (badge manager → PUT /trp/rings/:slug/badge)', () => {
   const ownersBadge = async () =>
     (await client.getActorBadges(actorDid)).badges.find((b) => b.ring.slug === FORK_SLUG)!.badge as any
