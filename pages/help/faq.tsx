@@ -212,6 +212,10 @@ export default function FAQ({ siteConfig }: FAQProps) {
           answer: 'You pick for each post: Public, Followers, Friends or Only me. Every post goes on your page for whoever\'s allowed to see it. Your followers see it in their Following feed, and public posts also show up in Recent Posts for everyone. If you tick a ring when you post, it goes into that ring\'s feed too.'
         },
         {
+          question: 'Can people follow my posts without an account?',
+          answer: 'Yes, with a feed reader. Every public page has an RSS feed, and its address is in Settings → Profile, under your own address, with a copy button. Anyone can paste it into their feed reader and your new posts show up there. It only has your public posts, and only while your page is public.'
+        },
+        {
           question: 'Can I edit or delete posts?',
           answer: 'Yes, anytime. Deleting a post takes it off your page and out of any rings you sent it to.'
         },

@@ -147,7 +147,8 @@ export default function WebsiteManager({
                     <span>
                       This is my site
                       <span className="block text-xs text-nb-ink-mid">
-                        It goes in the Indie Index as yours, and search can find your posts there.
+                        Your page links back to it as yours. That&apos;s what Mastodon checks before it shows your page
+                        with a verified tick. It also goes in the Indie Index, where search can find your posts.
                       </span>
                     </span>
                   </label>

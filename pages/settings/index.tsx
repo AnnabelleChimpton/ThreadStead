@@ -53,6 +53,7 @@ import LeaveHomePageAgain from "@/components/features/account/LeaveHomePageAgain
 interface UserSettingsProps {
   /** Their address, https://alice.homepageagain.com/ (null without one) */
   siteUrl: string | null;
+  blueskyVerified: boolean;
   initialUser: {
     id: string;
     did: string;
@@ -77,7 +78,7 @@ interface UserSettingsProps {
   isBetaEnabled: boolean;
 }
 
-export default function UnifiedSettingsPage({ initialUser, isBetaEnabled, siteUrl }: UserSettingsProps) {
+export default function UnifiedSettingsPage({ initialUser, isBetaEnabled, siteUrl, blueskyVerified }: UserSettingsProps) {
   const router = useRouter();
   const { user: currentUser } = useCurrentUser();
   const { showSuccess, showError, showWarning, showInfo } = useToast();
@@ -702,6 +703,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled, siteUr
               siteUrl={siteUrl}
               username={initialUser.primaryHandle.split("@")[0]}
               visibility={visibility}
+              blueskyVerified={blueskyVerified}
             />
           )}
 
@@ -1834,6 +1836,7 @@ export const getServerSideProps: GetServerSideProps<UserSettingsProps> = async (
       where: { id: user.id },
       include: {
         profile: true,
+        blueskyHandleLink: { select: { status: true } },
       }
     });
 
@@ -1876,6 +1879,7 @@ export const getServerSideProps: GetServerSideProps<UserSettingsProps> = async (
         },
         isBetaEnabled: betaEnabled,
         siteUrl: residentSiteUrl(userData.subdomainLabel),
+        blueskyVerified: userData.blueskyHandleLink?.status === 'verified',
       },
     };
   } catch (error) {
