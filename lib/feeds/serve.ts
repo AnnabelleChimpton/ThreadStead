@@ -9,14 +9,13 @@ import { lastModified, renderRss, type Feed } from '@/lib/feeds/rss'
  */
 export function sendFeed(req: NextApiRequest, res: NextApiResponse, feed: Feed | null | 'unavailable') {
   res.setHeader('X-Content-Type-Options', 'nosniff')
-  if (feed === 'unavailable' || !feed) {
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8')
-    if (feed) {
-      res.setHeader('Retry-After', '300')
-      return res.status(503).send('This feed is resting for a moment. Try again soon.\n')
-    }
+  if (feed === 'unavailable') {
+    res.setHeader('Retry-After', '300')
+    return plain(res, 503, 'This feed is resting for a moment. Try again soon.')
+  }
+  if (!feed) {
     res.setHeader('Cache-Control', 'public, max-age=300')
-    return res.status(404).send('No feed here.\n')
+    return plain(res, 404, 'No feed here.')
   }
 
   // HTTP dates have whole seconds
@@ -28,4 +27,9 @@ export function sendFeed(req: NextApiRequest, res: NextApiResponse, feed: Feed |
 
   res.setHeader('Content-Type', 'application/rss+xml; charset=utf-8')
   return res.status(200).send(renderRss(feed, getSiteBaseUrl()))
+}
+
+function plain(res: NextApiResponse, status: number, text: string) {
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8')
+  return res.status(status).send(`${text}\n`)
 }

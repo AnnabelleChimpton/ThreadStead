@@ -1,6 +1,7 @@
 import type { Prisma } from '@prisma/client'
 import { cleanAndNormalizeHtml, markdownToSafeHtml } from '@/lib/utils/sanitization/html'
-import { escapeXml, type FeedItem } from '@/lib/feeds/rss'
+import { escapeHtml } from '@/lib/utils/sanitization/escape'
+import type { FeedItem } from '@/lib/feeds/rss'
 
 export const FEED_POST_SELECT = {
   id: true,
@@ -33,7 +34,7 @@ function bodyHtmlOf(post: FeedPost): string | undefined {
   if (post.bodyText) {
     return post.bodyText
       .split(/\n{2,}/)
-      .map((para) => `<p>${escapeXml(para).replace(/\n/g, '<br>')}</p>`)
+      .map((para) => `<p>${escapeHtml(para).replace(/\n/g, '<br>')}</p>`)
       .join('')
   }
   return undefined
@@ -54,7 +55,7 @@ export function postFeedItem(post: FeedPost, url: string, author?: string): Feed
       publishedAt: post.createdAt,
       author,
       summary: `Content warning: ${warning}`,
-      html: `<p>Content warning: ${escapeXml(warning)}. <a href="${escapeXml(url)}">Read it on HomePageAgain</a>.</p>`,
+      html: `<p>Content warning: ${escapeHtml(warning)}. <a href="${escapeHtml(url)}">Read it on HomePageAgain</a>.</p>`,
       tags: post.tags,
     }
   }

@@ -437,7 +437,8 @@ export default function PostItem({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             {authorUsername ? (
-              <span className="p-author h-card">
+              <span className="p-author h-card truncate">
+                {/* truncate: this span is now the flex item, so long names cut off here */}
                 <data className="u-url" value={`/resident/${authorUsername}`} />
                 <UserMention
                   username={authorUsername}
