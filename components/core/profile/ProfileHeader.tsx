@@ -10,6 +10,7 @@ import { trackNavigation } from "../../../lib/analytics/pixel-homes";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { PixelIcon } from "@/components/ui/PixelIcon";
 import { useChat } from "@/contexts/ChatContext";
+import BlueskyHandleMark from "./BlueskyHandleMark";
 
 interface ProfileHeaderProps {
   username: string;
@@ -25,6 +26,8 @@ interface ProfileHeaderProps {
   bannerUrl?: string;
   /** Their own status line, shown in place of the site's resident label */
   status?: string;
+  /** Their address as their verified Bluesky handle (alice.homepageagain.com) */
+  blueskyHandle?: string;
 }
 
 export default function ProfileHeader({
@@ -38,6 +41,7 @@ export default function ProfileHeader({
   showPixelHomeLink = true,
   bannerUrl,
   status,
+  blueskyHandle,
 }: ProfileHeaderProps) {
   const nameToShow = displayName || username;
   const { config } = useSiteConfig();
@@ -73,6 +77,7 @@ export default function ProfileHeader({
             <span className="ts-profile-status thread-label">
               {status || config.user_status_text}
             </span>
+            {blueskyHandle && <BlueskyHandleMark handle={blueskyHandle} />}
           </div>
           {bio ? (
             <div className="ts-profile-bio-section mb-4">

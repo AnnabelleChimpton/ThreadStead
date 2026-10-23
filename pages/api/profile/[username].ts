@@ -3,6 +3,7 @@ import { SITE_NAME } from "@/lib/config/site/constants";
 import { apiHandler } from "@/lib/api/handler";
 import { hasPixelHome, residentAccess } from "@/lib/domain/users/profile-access";
 import { publicWidgetSlot } from "@/lib/domain/profile/widget-slot/compile";
+import { verifiedBlueskyHandle } from "@/lib/domain/bluesky/handle-links";
 import type { Profile } from "@prisma/client";
 
 // What any viewer allowed to see a profile gets. The compiled page and the
@@ -103,6 +104,8 @@ export default apiHandler(
       widgetSlot: publicWidgetSlot(u.profile?.widgetSlot ?? null),
       // Past the access check above, so the viewer may see the house too
       hasPixelHome: await hasPixelHome(u.id),
+      // Their address as their Bluesky handle, once plc.directory confirms it
+      blueskyHandle: await verifiedBlueskyHandle(u.id),
       plugins: u.installs
         .filter(i => i.enabled)
         .map(i => ({ id: i.pluginId, mode: i.mode, label: undefined })),

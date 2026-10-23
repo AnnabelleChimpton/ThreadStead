@@ -2,7 +2,7 @@
 
 /**
  * Script to safely delete a user and all associated data
- * Usage: npx tsx scripts/delete-user.ts <user-id-or-handle>
+ * Usage: npx tsx scripts/delete-user.ts <user-id-or-handle> [--abuse]
  *
  * This script:
  * - Finds user by ID or handle
@@ -11,11 +11,14 @@
  * - Cleans up DID mappings and private keys from .threadstead-user-dids.json
  * - Performs cascading deletion in proper order
  * - Handles foreign key constraints safely
+ * - Tombstones the username (lib/domain/users/handle-tombstones.ts): held
+ *   for 12 months, or for good with --abuse or if they ever linked Bluesky
  */
 
 import { db } from '../lib/config/database/connection';
 import { SITE_NAME } from '../lib/config/site/constants';
 import { loadUserDIDMappings, storeUserDIDMappings } from '../lib/api/did/server-did-client';
+import { tombstonesForUser } from '../lib/domain/users/handle-tombstones';
 
 interface UserDeletionSummary {
   user: {
@@ -219,7 +222,7 @@ function displayDeletionSummary(summary: UserDeletionSummary) {
   console.log(`   Pixel Home Visits: ${summary.counts.pixelHomeVisits}`);
 }
 
-async function deleteUser(userId: string) {
+async function deleteUser(userId: string, removedForAbuse: boolean) {
   console.log('');
   console.log('🗑️  Starting user deletion...');
 
@@ -363,6 +366,13 @@ async function deleteUser(userId: string) {
     console.log('   🔄 Deleting profile...');
     await tx.profile.deleteMany({ where: { userId } });
     
+    console.log('   🔄 Tombstoning the username...');
+    const tombstones = await tombstonesForUser(tx, userId, { removedForAbuse });
+    await tx.handleTombstone.createMany({ data: tombstones });
+    for (const t of tombstones) {
+      console.log(`      ${t.handle}: held ${t.expiresAt ? `until ${new Date(t.expiresAt).toISOString().slice(0, 10)}` : 'for good'}`);
+    }
+
     console.log('   🔄 Deleting handles...');
     await tx.handle.deleteMany({ where: { userId } });
     
@@ -377,10 +387,14 @@ async function deleteUser(userId: string) {
 }
 
 async function main() {
-  const args = process.argv.slice(2);
+  const removedForAbuse = process.argv.includes('--abuse');
+  const args = process.argv.slice(2).filter((arg) => arg !== '--abuse');
   
   if (args.length !== 1) {
-    console.error('Usage: npx tsx scripts/delete-user.ts <user-id-or-handle>');
+    console.error('Usage: npx tsx scripts/delete-user.ts <user-id-or-handle> [--abuse]');
+    console.error('');
+    console.error('  --abuse   removed for abuse: the username is never given out again');
+    console.error('            (otherwise it is held for 12 months, or for good if they linked Bluesky)');
     console.error('');
     console.error('Examples:');
     console.error('  npx tsx scripts/delete-user.ts clxyz123');
@@ -444,7 +458,7 @@ async function main() {
       }
 
       // Perform the deletion
-      await deleteUser(user.id);
+      await deleteUser(user.id, removedForAbuse);
 
     } finally {
       rl.close();

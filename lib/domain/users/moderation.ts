@@ -22,6 +22,7 @@ import { Prisma, type ModerationActionType, type ModerationStatus } from "@prism
 import { db } from "@/lib/config/database/connection";
 import { ApiError } from "@/lib/api/errors";
 import { recomputeSites, sitesTouchedBy } from "@/lib/indie-index/tiers";
+import { invalidateServedDids } from "@/lib/domain/bluesky/served-dids";
 
 export type ModerationFields = {
   moderationStatus: ModerationStatus;
@@ -260,6 +261,9 @@ export async function moderateUser(
   ]);
 
   if (restricting) disconnectChat(userId);
+  // Their Bluesky handle stops (or starts again) answering straight away.
+  // Bluesky itself only looks again when they next post after a day.
+  invalidateServedDids();
   await retierIndieSites(userId, now);
 
   return {

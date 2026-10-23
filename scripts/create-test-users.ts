@@ -6,6 +6,7 @@
  */
 
 import { db } from "../lib/config/database/connection";
+import { subdomainLabelFor } from "../lib/subdomains/host";
 import { generateSeedPhrase, createKeypairFromSeedPhrase } from "../lib/api/did/did-client";
 
 interface TestUser {
@@ -91,6 +92,7 @@ async function createTestUser(testUser: TestUser): Promise<void> {
       data: {
         did: keypair.did,
         primaryHandle: testUser.handle,
+        subdomainLabel: subdomainLabelFor(testUser.handle),
         role: "member",
       },
     });

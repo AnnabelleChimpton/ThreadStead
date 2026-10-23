@@ -44,6 +44,7 @@ Unset, the branding falls back to "YourSiteHere". Set `SITE_HANDLE_DOMAIN` and `
 | `NEXT_PUBLIC_SITE_NAME` | — | `Threadstead` | Site name used in the subject and body of login/verification emails. |
 | `NEXT_PUBLIC_SITE_HANDLE_DOMAIN` | — | `YourSiteHere` | Client-side copy of SITE_HANDLE_DOMAIN (shown after the @ in the signup form). Set it to the same value. |
 | `SITE_HANDLE_DOMAIN` | — | — | Shown after the @ in every handle (alice@YourSite), and the fallback domain for DIDs. Keep it short, and set NEXT_PUBLIC_SITE_HANDLE_DOMAIN to the same value. Unset, call sites fall back inconsistently (YourSiteHere / HomePageAgain / localhost:3000), so set it. |
+| `RESIDENT_SUBDOMAIN_APEX` | — | — | The domain residents' addresses sit under (alice.<this>), used for Bluesky handles (middleware.ts). Defaults to NEXT_PUBLIC_BASE_URL's host; with that on localhost there are none. Set homepageagain.localhost to try addresses locally. |
 
 ## Auth & security
 

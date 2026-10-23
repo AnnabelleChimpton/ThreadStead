@@ -45,6 +45,8 @@ import { getPublicRingHubClient, getRingHubClient, shouldUseRingHub } from "@/li
 import { createAuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
 import { resolvePostRefId, type RingHubRemovablePost } from "@/lib/domain/posts/ringhub-removal";
 import { isRestricted, MAX_REASON_LENGTH, MODERATION_SELECT } from "@/lib/domain/users/moderation";
+import { tombstonesForUser } from "@/lib/domain/users/handle-tombstones";
+import { invalidateServedDids } from "@/lib/domain/bluesky/served-dids";
 import { recomputeSites, sitesTouchedBy } from "@/lib/indie-index/tiers";
 
 export interface RingPostRemoval {
@@ -380,7 +382,8 @@ async function retierIndieSites(siteIds: string[]): Promise<void> {
 /**
  * Hard-delete a banned account. Refuses (deletes nothing, changes nothing)
  * while it owns rings, unless forced. Then the hub cleanup: ring posts off,
- * rings left. Then one transaction that writes the "delete"
+ * rings left. Then one transaction that tombstones its username for good
+ * (lib/domain/users/handle-tombstones.ts), writes the "delete"
  * ModerationAction row (it outlives the account, with userId nulled and the
  * handle kept), fixes local ring post and member counts, and deletes the
  * User (posts, memberships, sessions, UserDID and the rest cascade).
@@ -429,7 +432,10 @@ export async function deleteUserAccount({
   }
 
   const indieSites = await sitesTouchedBy(db, userId);
+  // Banned first, so this is a removal for abuse: the name is never given out again
+  const tombstones = await tombstonesForUser(db, userId, { removedForAbuse: true });
   await db.$transaction([
+    db.handleTombstone.createMany({ data: tombstones }),
     db.moderationAction.create({
       data: {
         action: "delete",
@@ -461,6 +467,7 @@ export async function deleteUserAccount({
     `,
     db.user.delete({ where: { id: userId } }),
   ]);
+  invalidateServedDids();
   await retierIndieSites(indieSites);
 
   return { deleted: true, handle: target.primaryHandle, report };

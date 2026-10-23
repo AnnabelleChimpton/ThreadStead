@@ -43,6 +43,7 @@ import YourPage from "@/components/features/profile/YourPage";
 import DownloadMyPage from "@/components/features/profile/DownloadMyPage";
 import YourSites from "@/components/features/rings/YourSites";
 import BannerUpload from "@/components/core/profile/BannerUpload";
+import BlueskyHandleSettings from "@/components/features/bluesky/BlueskyHandleSettings";
 import { STATUS_MAX } from "@/lib/domain/profile/status";
 import { layoutFields } from "@/lib/domain/profile/layout";
 
@@ -1647,6 +1648,11 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
           />
         </div>
       )
+    },
+    {
+      id: "bluesky",
+      label: <><PixelIcon name="cloud" /> Bluesky</>,
+      content: <BlueskyHandleSettings />
     },
     {
       id: "privacy",

@@ -19,5 +19,9 @@ export async function register() {
     // Started here, once per process, rather than from _app, whose module
     // graph is evaluated once per page bundle in dev.
     await import('./lib/domain/threadrings/reconciliation-bootstrap');
+
+    // Daily re-check of residents' Bluesky handles (production only)
+    const { startBlueskyRecheck } = await import('./lib/domain/bluesky/recheck-scheduler');
+    startBlueskyRecheck();
   }
 }

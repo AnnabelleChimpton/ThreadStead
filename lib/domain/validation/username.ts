@@ -16,6 +16,17 @@ const RESERVED_USERNAMES: string[] = [
 
   // Common top-level routes / SEO pages
   "about","docs","api","www","mail","contact","privacy","terms","status","login","logout","signup",
+
+  // A username is also an address (alice.homepageagain.com), so the names a
+  // subdomain of the site's own might need (design/home-subdomains/SCOPE.md).
+  // Existing holders keep theirs.
+  "cdn","static","assets","media","img","files","uploads","hub","matrix","rtc","chat",
+  "staging","dev","test","beta","preview","app","auth","account","accounts","sso","oauth","id",
+  "security","abuse","postmaster","hostmaster","webmaster","noreply","no-reply",
+  "email","smtp","imap","pop","pop3","mx","mta-sts","ns","ns1","ns2",
+  "autoconfig","autodiscover","wpad","localhost","internal",
+  "blog","news","community","feed","home","neighborhood","resident",
+  "bsky","atproto","pds","did","social","secure","billing","pay","shop",
 ];
 
 // Re-export types for backward compatibility

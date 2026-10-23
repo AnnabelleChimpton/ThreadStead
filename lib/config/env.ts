@@ -69,6 +69,14 @@ export const SERVER_ENV_SPECS = [
       'Shown after the @ in every handle (alice@YourSite), and the fallback domain for DIDs. Keep it short, and set NEXT_PUBLIC_SITE_HANDLE_DOMAIN to the same value. Unset, call sites fall back inconsistently (YourSiteHere / HomePageAgain / localhost:3000), so set it.',
     example: 'YourSiteHere',
   },
+  {
+    name: 'RESIDENT_SUBDOMAIN_APEX',
+    kind: 'string',
+    scope: 'server',
+    group: 'Site',
+    description:
+      "The domain residents' addresses sit under (alice.<this>), used for Bluesky handles (middleware.ts). Defaults to NEXT_PUBLIC_BASE_URL's host; with that on localhost there are none. Set homepageagain.localhost to try addresses locally.",
+  },
 
   // ── Auth & security ─────────────────────────────────────────────────────
   {

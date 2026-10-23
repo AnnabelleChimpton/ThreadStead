@@ -6,6 +6,7 @@
  */
 
 import { db } from "../lib/config/database/connection";
+import { tombstonesForUser } from "../lib/domain/users/handle-tombstones";
 
 const TEST_USER_HANDLES = [
   "alice_blogger",
@@ -40,6 +41,11 @@ async function deleteTestUsers(): Promise<void> {
       for (const user of users) {
         console.log(`Deleting user: ${handle} (${user.id})...`);
         
+        // Hold the name like every other deletion does (create-test-users.ts
+        // writes Handle rows directly, so it can still make them again)
+        const tombstones = await tombstonesForUser(db, user.id, { removedForAbuse: false });
+        await db.handleTombstone.createMany({ data: tombstones });
+
         // Delete related data first
         await db.post.deleteMany({
           where: { authorId: user.id }

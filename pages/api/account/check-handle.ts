@@ -1,11 +1,7 @@
 // pages/api/account/check-handle.ts
 import { apiHandler } from "@/lib/api/handler";
-import { db } from "@/lib/config/database/connection";
 import { validateUsername } from "@/lib/domain/validation";
-import { SITE_NAME } from "@/lib/config/site/constants";
-
-
-const HOST = SITE_NAME;
+import { HANDLE_UNAVAILABLE_MESSAGES, handleUnavailableReason } from "@/lib/domain/users/handle-availability";
 
 export default apiHandler(
   { methods: ["GET"], auth: "none" },
@@ -26,13 +22,12 @@ export default apiHandler(
     }
 
     try {
-      const existing = await db.handle.findFirst({ where: { handle, host: HOST } });
-      const available = !existing;
-    
-      return res.status(200).json({ 
-        available, 
+      const unavailable = await handleUnavailableReason(handle);
+
+      return res.status(200).json({
+        available: !unavailable,
         handle,
-        message: available ? "Username is available" : "Username is already taken"
+        message: unavailable ? HANDLE_UNAVAILABLE_MESSAGES[unavailable] : "Username is available"
       });
     } catch (error) {
       console.error("Error checking handle availability:", error);

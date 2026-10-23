@@ -13,6 +13,9 @@ model User {
   originalDid               String?                   @unique // Original did:key (Seed Phrase) if migrated to did:web
   createdAt                 DateTime                  @default(now())
   primaryHandle             String?
+  // The username as a hostname label (alice.homepageagain.com): `_` becomes
+  // `-`. Unique, so a_b and a-b can't both exist (lib/domain/users/handle-availability.ts).
+  subdomainLabel            String?                   @unique
   publicBaseUrl             String?
   sharedBaseUrl             String?
   privateBaseUrl            String?
@@ -95,6 +98,7 @@ model User {
   conversations             ConversationParticipant[]
   messagesSent              DirectMessage[]
   userDID                   UserDID?
+  blueskyHandleLink         BlueskyHandleLink?
   moderatedBy               User?                     @relation("UserModeratedBy", fields: [moderatedById], references: [id], onDelete: SetNull)
   moderatedUsers            User[]                    @relation("UserModeratedBy")
   moderationActionsTaken    ModerationAction[]        @relation("ModerationActionsTaken")
@@ -1900,4 +1904,54 @@ model RingDoorwayCount {
 
   @@id([ringSlug, siteId, doorway, day])
   @@index([day])
+}
+
+enum BlueskyHandleStatus {
+  pending
+  verified
+  revoked
+}
+
+// A resident using their address as their Bluesky handle
+// (@alice.homepageagain.com). /.well-known/atproto-did on their subdomain
+// serves `did` while the account is active and the link is verified, or
+// pending and not past pendingUntil (lib/domain/bluesky). One per account.
+// The DID isn't unique: anyone can paste anyone's DID, and only the DID's
+// owner can make its document claim the handle, which is what "verified"
+// checks. Revoked rows are kept: a username that was ever a Bluesky handle is
+// never given out again (HandleTombstone).
+model BlueskyHandleLink {
+  id             String              @id @default(cuid())
+  userId         String              @unique
+  did            String
+  // Their Bluesky handle when they linked, to show back to them
+  previousHandle String?
+  status         BlueskyHandleStatus @default(pending)
+  pendingUntil   DateTime?
+  verifiedAt     DateTime?
+  lastCheckedAt  DateTime?
+  // Why the last check didn't confirm it, in words for the owner
+  lastCheckNote  String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+}
+
+// A deleted account's username, held back so a link to it (or a Bluesky
+// handle) can't start pointing at a stranger. expiresAt null = forever: the
+// account ever linked Bluesky, or was removed for abuse. Checked by label, so
+// it holds both a_b and a-b (lib/domain/users/handle-tombstones.ts).
+model HandleTombstone {
+  id              String    @id @default(cuid())
+  handle          String
+  subdomainLabel  String
+  blueskyLinked   Boolean   @default(false)
+  removedForAbuse Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  expiresAt       DateTime?
+
+  @@index([subdomainLabel])
 }

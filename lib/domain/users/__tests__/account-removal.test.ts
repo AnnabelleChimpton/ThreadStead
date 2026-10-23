@@ -16,6 +16,7 @@ jest.mock('@/lib/config/database/connection', () => ({
     user: { findUnique: jest.fn(), delete: jest.fn() },
     userDID: { findUnique: jest.fn() },
     moderationAction: { create: jest.fn() },
+    handleTombstone: { createMany: jest.fn() },
     $executeRaw: jest.fn(),
     $transaction: jest.fn(),
   },
@@ -262,7 +263,15 @@ describe('removeUserPostsFromRingHub', () => {
 })
 
 describe('deleteUserAccount', () => {
-  const banned = { id: 'spammer', role: 'member', primaryHandle: 'spammer@local', moderationStatus: 'banned', suspendedUntil: null }
+  const banned = {
+    id: 'spammer',
+    role: 'member',
+    primaryHandle: 'spammer@local',
+    moderationStatus: 'banned',
+    suspendedUntil: null,
+    handles: [{ handle: 'spammer' }],
+    blueskyHandleLink: null,
+  }
 
   it('refuses an account that is not banned: deleting is the second step', async () => {
     mockDb.user.findUnique.mockResolvedValue({ ...banned, moderationStatus: 'active' })
@@ -292,6 +301,10 @@ describe('deleteUserAccount', () => {
       data: { action: 'delete', userId: 'spammer', userHandle: 'spammer@local', actorId: 'admin', reason: 'spam' },
     })
     expect(mockDb.user.delete).toHaveBeenCalledWith({ where: { id: 'spammer' } })
+    // Removed for abuse: the name is held for good
+    expect(mockDb.handleTombstone.createMany).toHaveBeenCalledWith({
+      data: [expect.objectContaining({ handle: 'spammer', subdomainLabel: 'spammer', removedForAbuse: true, expiresAt: null })],
+    })
     // the delete is the last write in the transaction
     const ops = mockDb.$transaction.mock.calls[0][0]
     expect(ops[ops.length - 1]).toBe('delete-op')

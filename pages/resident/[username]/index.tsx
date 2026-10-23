@@ -85,6 +85,8 @@ type ProfileProps = {
   userJoinedAt?: string;
   /** They have a pixel home, and (past the profile's access check) the viewer may see it */
   hasPixelHome?: boolean;
+  /** Their address as their verified Bluesky handle (alice.homepageagain.com) */
+  blueskyHandle?: string;
   /** Tabs the owner hid (Settings > Your page); Blog always shows */
   hiddenTabs?: string[];
   /** The widget slot under the header (standard layout only), already compiled */
@@ -118,6 +120,7 @@ export default function ProfilePage({
   displayName,
   userJoinedAt,
   hasPixelHome = false,
+  blueskyHandle,
   widgetSlot,
   widgetSlotData,
   hiddenTabs = [],
@@ -361,6 +364,7 @@ export default function ProfilePage({
             relStatus={relStatus}
             onRelStatusChange={setRelStatus}
             showPixelHomeLink={hasPixelHome}
+            blueskyHandle={blueskyHandle}
           />
         </RetroCard>
 
@@ -469,6 +473,7 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
     };
     hasPixelHome?: boolean;
     widgetSlot?: PublicWidgetSlot | null;
+    blueskyHandle?: string | null;
   } = await res.json();
 
   const requested = typeof query.tab === "string" ? query.tab : undefined;
@@ -711,6 +716,7 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   if (featuredFriends.length > 0) props.featuredFriends = featuredFriends;
   if (data.profileMidi) props.profileMidi = data.profileMidi;
   props.hasPixelHome = data.hasPixelHome === true;
+  if (data.blueskyHandle) props.blueskyHandle = data.blueskyHandle;
 
   // The widget slot belongs to the standard layout; a page of your own HTML
   // has its own place for components.

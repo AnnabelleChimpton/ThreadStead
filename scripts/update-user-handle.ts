@@ -15,6 +15,8 @@
 import { db } from '../lib/config/database/connection';
 import { validateUsername } from '../lib/domain/validation';
 import { SITE_NAME } from '../lib/config/site/constants';
+import { subdomainLabelFor } from '../lib/subdomains/host';
+import { tombstonesForUser } from '../lib/domain/users/handle-tombstones';
 
 async function updateUserHandle(userIdOrHandle: string, newHandle: string, newDisplayName?: string) {
   console.log('🔄 Starting user handle update...');
@@ -79,6 +81,16 @@ async function updateUserHandle(userIdOrHandle: string, newHandle: string, newDi
     throw new Error(`Handle "${newHandle}@${SITE_NAME}" is already taken by another user`);
   }
 
+  // a_b and a-b share an address, so they can't both exist
+  const newLabel = subdomainLabelFor(newHandle);
+  const labelTaken = await db.user.findFirst({
+    where: { subdomainLabel: newLabel, id: { not: existingUser.id } },
+    select: { primaryHandle: true },
+  });
+  if (labelTaken) {
+    throw new Error(`"${newHandle}" has the same address as ${labelTaken.primaryHandle} (- and _ count as the same)`);
+  }
+
   console.log('   ✅ Handle is available');
   console.log('');
 
@@ -96,10 +108,22 @@ async function updateUserHandle(userIdOrHandle: string, newHandle: string, newDi
   const newPrimaryHandle = `${newHandle}@${SITE_NAME}`;
   
   await db.$transaction(async (tx) => {
+    // The old name is held like a deleted account's (12 months, or for good
+    // if it was ever their Bluesky handle), so links to it don't reach a stranger
+    const oldNames = (await tombstonesForUser(tx, existingUser.id, { removedForAbuse: false }))
+      .filter((t) => t.subdomainLabel !== newLabel);
+    if (oldNames.length > 0) {
+      console.log(`   📝 Holding the old name: ${oldNames.map((t) => t.handle).join(', ')}`);
+      await tx.handleTombstone.createMany({ data: oldNames });
+      if (oldNames.some((t) => t.blueskyLinked)) {
+        console.log('   ⚠️  They linked Bluesky: their handle there now needs changing to the new address.');
+      }
+    }
+
     console.log('   📝 Updating User.primaryHandle...');
     await tx.user.update({
       where: { id: existingUser.id },
-      data: { primaryHandle: newPrimaryHandle }
+      data: { primaryHandle: newPrimaryHandle, subdomainLabel: newLabel }
     });
 
     console.log('   📝 Updating Handle record...');

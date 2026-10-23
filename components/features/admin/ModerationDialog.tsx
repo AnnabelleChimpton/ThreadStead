@@ -30,6 +30,8 @@ interface Summary {
   posts: number;
   ringPosts: number;
   hasKey: boolean;
+  /** Their address as a Bluesky handle, if this site answers for one */
+  blueskyHandle?: string | null;
 }
 
 type Action = "suspend" | "ban" | "lift" | "reset_page";
@@ -394,6 +396,13 @@ export default function ModerationDialog({
             They&apos;re signed out and can&apos;t post, comment, sign guestbooks or chat. They drop out of the street,
             New Neighbors, the directory, search, feeds, chat and the Indie Index, and their pages show as not found.
             {action === "suspend" ? " It ends by itself on that day." : ""}
+          </p>
+        )}
+        {(action === "suspend" || action === "ban") && summary?.blueskyHandle && (
+          <p className="text-gray-700">
+            They use @{summary.blueskyHandle} as their Bluesky handle. This site stops vouching for it straight away,
+            but Bluesky only looks again when they next post a day or more later, so a quiet account can keep showing
+            it on Bluesky for a while. If it can&apos;t wait, report the account to Bluesky.
           </p>
         )}
         {reportId && <p className="text-gray-700">This also marks the report resolved.</p>}

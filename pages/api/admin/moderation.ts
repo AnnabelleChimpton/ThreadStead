@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { db } from "@/lib/config/database/connection";
 import { apiHandler } from "@/lib/api/handler";
+import { linkedBlueskyHandle } from "@/lib/domain/bluesky/handle-links";
 import { getModerationHistory, MAX_REASON_LENGTH, moderateUser } from "@/lib/domain/users/moderation";
 import { resetProfilePage } from "@/lib/domain/users/page-reset";
 
@@ -31,13 +32,14 @@ export default apiHandler(
       const userId = String(req.query.userId || "");
       if (!userId) return res.status(400).json({ error: "User ID is required" });
 
-      const [history, posts, ringPosts, key] = await Promise.all([
+      const [history, posts, ringPosts, key, blueskyHandle] = await Promise.all([
         getModerationHistory(userId),
         db.post.count({ where: { authorId: userId } }),
         db.post.count({ where: { authorId: userId, threadRings: { some: {} } } }),
         db.userDID.findUnique({ where: { userId }, select: { userId: true } }),
+        linkedBlueskyHandle(userId),
       ]);
-      return res.json({ history, posts, ringPosts, hasKey: !!key });
+      return res.json({ history, posts, ringPosts, hasKey: !!key, blueskyHandle });
     }
 
     const input = actionSchema.parse(req.body);

@@ -25,14 +25,21 @@ jest.mock('@/lib/config/database/connection', () => {
   }
 })
 jest.mock('@/lib/auth/server', () => ({ getSessionUser: jest.fn() }))
+jest.mock('@/lib/domain/users/handle-availability', () => ({
+  ...jest.requireActual('@/lib/domain/users/handle-availability'),
+  handleUnavailableReason: jest.fn(),
+}))
 
 import claimHandle from '@/pages/api/account/claim-handle'
 import { getSessionUser } from '@/lib/auth/server'
 import { db } from '@/lib/config/database/connection'
+import { Prisma } from '@prisma/client'
+import { handleUnavailableReason } from '@/lib/domain/users/handle-availability'
 
 const mockDb = db as any
 const tx = mockDb.__tx
 const mockSession = getSessionUser as jest.Mock
+const mockUnavailable = handleUnavailableReason as jest.Mock
 
 const CSRF = 'tok'
 
@@ -70,6 +77,7 @@ beforeEach(() => {
   mockSession.mockResolvedValue({ id: 'u1', primaryHandle: null })
   mockDb.handle.findFirst.mockResolvedValue(null)
   tx.user.updateMany.mockResolvedValue({ count: 1 })
+  mockUnavailable.mockResolvedValue(null)
 })
 
 test('a new account claims its first handle', async () => {
@@ -77,7 +85,7 @@ test('a new account claims its first handle', async () => {
   expect(res.statusCode).toBe(201)
   expect(tx.user.updateMany).toHaveBeenCalledWith({
     where: { id: 'u1', primaryHandle: null },
-    data: { primaryHandle: expect.stringMatching(/^alice@/) },
+    data: { primaryHandle: expect.stringMatching(/^alice@/), subdomainLabel: 'alice' },
   })
   expect(tx.handle.create).toHaveBeenCalledWith({ data: expect.objectContaining({ userId: 'u1', handle: 'alice' }) })
 })
@@ -106,8 +114,39 @@ test('two claims racing: the one that loses the row lock makes no Handle', async
 })
 
 test("a name someone else has is still 'taken'", async () => {
-  mockDb.handle.findFirst.mockImplementation(async ({ where }: any) => (where.handle === 'bob' ? { id: 'h2' } : null))
-  expect((await claim('bob')).statusCode).toBe(409)
+  mockUnavailable.mockImplementation(async (h: string) => (h === 'bob' ? 'taken' : null))
+  const res = await claim('bob')
+  expect(res.statusCode).toBe(409)
+  expect(res.body).toEqual({ error: 'Username is already taken' })
+  expect(mockDb.$transaction).not.toHaveBeenCalled()
+})
+
+test('an underscore name gets the hyphen address', async () => {
+  expect((await claim('a_b')).statusCode).toBe(201)
+  expect(tx.user.updateMany).toHaveBeenCalledWith(
+    expect.objectContaining({ data: expect.objectContaining({ subdomainLabel: 'a-b' }) })
+  )
+})
+
+test("the other spelling (a-b when a_b exists) and a tombstoned name are refused", async () => {
+  mockUnavailable.mockResolvedValueOnce('same-address')
+  expect(await claim('a-b')).toMatchObject({ statusCode: 409, body: { error: expect.stringContaining('- and _') } })
+  mockUnavailable.mockResolvedValueOnce('held')
+  expect(await claim('gone')).toMatchObject({ statusCode: 409, body: { error: "That username isn't available" } })
+  expect(mockDb.$transaction).not.toHaveBeenCalled()
+})
+
+test('a_b and a-b claimed at once: the unique label refuses the second', async () => {
+  tx.user.updateMany.mockRejectedValueOnce(
+    new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+      code: 'P2002',
+      clientVersion: 'test',
+      meta: { target: ['subdomainLabel'] },
+    })
+  )
+  const res = await claim('a-b')
+  expect(res.statusCode).toBe(409)
+  expect(res.body.error).toContain('- and _')
 })
 
 test('needs the CSRF token now (signup has the cookie from /api/auth/verify)', async () => {
