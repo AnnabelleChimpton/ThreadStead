@@ -20,9 +20,10 @@ export function signInHref(slug: string) {
  */
 export default function RingActions({ ring, viewer, signedIn }: { ring: RingPageRing; viewer: RingViewer; signedIn: boolean }) {
   const slug = encodeURIComponent(ring.slug);
-  const settingsLink = viewer.canManage && (
+  // Moderators run the ring's prompts from its settings page
+  const settingsLink = (viewer.canManage || viewer.canModerate) && (
     <ButtonLink href={`/tr/${slug}/settings`} variant="secondary" className="thread-button-secondary w-full text-center">
-      <PixelIcon name="sliders" size={16} className="inline-block align-[-3px] mr-1.5" />Manage Settings
+      <PixelIcon name="sliders" size={16} className="inline-block align-[-3px] mr-1.5" />{viewer.canManage ? "Manage Settings" : "Ring Prompts"}
     </ButtonLink>
   );
   const branchLink = (
