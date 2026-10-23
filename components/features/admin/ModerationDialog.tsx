@@ -274,9 +274,9 @@ export default function ModerationDialog({
       title: force ? `Delete @${name} anyway?` : `Delete @${name} for good?`,
       message: force
         ? blocked?.code === "owns_rings"
-          ? "Rings where they're the only member are left empty. The others stay on Ring Hub with nobody who can moderate them."
+          ? "These rings stay on Ring Hub with nobody who can moderate them."
           : "Whatever couldn't come off Ring Hub stays there until a ring owner removes it."
-        : `${ringPosts ? `Their ${ringPosts} ring post${ringPosts === 1 ? "" : "s"} come off Ring Hub and they leave their rings first. Then their` : "They leave their rings first. Then their"} posts, home, guestbook and everything else go. This can't be undone.`,
+        : `${ringPosts ? `Their ${ringPosts} ring post${ringPosts === 1 ? "" : "s"} come off Ring Hub and they leave their rings first (a ring only they are in is deleted). Then their` : "They leave their rings first (a ring only they are in is deleted). Then their"} posts, home, guestbook and everything else go. This can't be undone.`,
       confirmText: force ? "Delete anyway" : "Delete",
       variant: "danger",
     });

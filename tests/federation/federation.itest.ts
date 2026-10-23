@@ -26,8 +26,10 @@ import {
   listUserRingMemberships,
   ownedRings,
   removeUserPostsFromRingHub,
+  sharedOwnedRings,
 } from '@/lib/domain/users/account-removal'
 import { listOwnershipCandidates, transferRingOwnership } from '@/lib/domain/threadrings/ownership-transfer'
+import { deleteEmptyRing, LISTING_SQL, parseListing, reasonToKeep } from '@/lib/domain/threadrings/empty-rings'
 import { ApiError } from '@/lib/api/errors'
 import { execSync } from 'child_process'
 import { buildPostUri } from '@/lib/domain/posts/ringhub-metadata'
@@ -64,7 +66,12 @@ jest.mock('@/lib/config/database/connection', () => ({
     // transferRingOwnership / listOwnershipCandidates: residents and the local owner mirror (set per test)
     user: { findUnique: jest.fn(async () => null), findMany: jest.fn(async () => []) },
     // sendPostToRings reads findMany for new mirror rows' owners
-    ringHubOwnership: { findUnique: jest.fn(async () => null), findMany: jest.fn(async () => []), upsert: jest.fn(async () => ({})) },
+    ringHubOwnership: {
+      findUnique: jest.fn(async () => null),
+      findMany: jest.fn(async () => []),
+      upsert: jest.fn(async () => ({})),
+      deleteMany: jest.fn(async () => ({ count: 0 })),
+    },
     threadRingMember: { updateMany: jest.fn(async () => ({ count: 0 })) },
     threadRing: {
       findMany: jest.fn(async ({ where }: any) => mockLocalDb.rings.filter((r) => where.slug.in.includes(r.slug))),
@@ -74,7 +81,12 @@ jest.mock('@/lib/config/database/connection', () => ({
         return ring
       }),
       updateMany: jest.fn(async () => ({ count: 1 })),
+      // forgetRing, after the hub deletes a ring
+      deleteMany: jest.fn(async () => ({ count: 1 })),
     },
+    ringSiteSettings: { deleteMany: jest.fn(async () => ({ count: 0 })) },
+    ringStop: { deleteMany: jest.fn(async () => ({ count: 0 })) },
+    ringDoorwayCount: { deleteMany: jest.fn(async () => ({ count: 0 })) },
     postThreadRing: {
       findMany: jest.fn(async ({ where }: any) =>
         mockLocalDb.links.filter((l) => l.postId === where.postId && where.threadRingId.in.includes(l.threadRingId))
@@ -102,6 +114,15 @@ beforeAll(() => {
   ringSlug = rt.ringSlug
   actorDid = rt.testActorDid
 })
+
+/**
+ * A harness actor as createAuthenticatedRingHubClient hands it out: the real
+ * signed client, plus getRingAsMember, which there is getRing signed as them.
+ */
+function resident(as: 'main' | 'second'): RingHubClient {
+  const signed = as === 'main' ? client : makeTestClient(as)
+  return Object.assign(signed, { getRingAsMember: (slug: string) => signed.getRing(slug) })
+}
 
 describe('ring discovery', () => {
   test('listRings with search + sort finds the ring (the /api/search ring path)', async () => {
@@ -695,9 +716,7 @@ describe('deleting an account takes its ring posts off the hub (S-2)', () => {
     makePublicTestClient() // points the app's public client at the harness hub
     second = makeTestClient('second')
     gate = jest.spyOn(ringHubClientModule, 'shouldUseRingHub').mockReturnValue(true)
-    ;(createAuthenticatedRingHubClient as jest.Mock).mockImplementation((userId: 'main' | 'second') =>
-      userId === 'main' ? client : makeTestClient(userId)
-    )
+    ;(createAuthenticatedRingHubClient as jest.Mock).mockImplementation(resident)
   })
 
   afterAll(() => gate.mockRestore())
@@ -782,17 +801,33 @@ describe('deleting an account takes its ring posts off the hub (S-2)', () => {
     ])
   })
 
-  test("an owned ring with other members can't be left: still_owner, until it is the only member", async () => {
+  test("an owned ring with other members can't be left: still_owner, and it isn't deleted", async () => {
     localDb.userDID.findUnique.mockImplementation(keys(getRuntime().secondActorDid))
     const owned = { ringSlug: SECOND_RING, ringName: 'Second Owned', role: 'owner', status: 'ACTIVE' }
 
+    expect((await sharedOwnedRings('second', [owned])).map((r) => r.ringSlug)).toEqual([SECOND_RING])
     const [kept] = await leaveUserRingsOnHub('second', [owned])
     expect(kept).toMatchObject({ ringSlug: SECOND_RING, outcome: 'still_owner' })
     expect(kept.error).toContain('400')
+    expect(await memberCount(SECOND_RING)).toBe(2)
+  })
 
+  test('once it is the only member, its ring is deleted on the hub (DELETE /trp/rings/:slug, 204) and forgotten here', async () => {
+    localDb.userDID.findUnique.mockImplementation(keys(getRuntime().secondActorDid))
+    const owned = { ringSlug: SECOND_RING, ringName: 'Second Owned', role: 'owner', status: 'ACTIVE' }
     await client.leaveRing(SECOND_RING)
-    expect(await leaveUserRingsOnHub('second', [owned])).toEqual([{ ringSlug: SECOND_RING, outcome: 'left', signer: 'member' }])
-    expect(await memberCount(SECOND_RING)).toBe(0)
+    expect(await sharedOwnedRings('second', [owned])).toEqual([])
+    localDb.threadRing.deleteMany.mockClear()
+
+    expect(await leaveUserRingsOnHub('second', [owned])).toEqual([{ ringSlug: SECOND_RING, outcome: 'deleted' }])
+
+    clearCache()
+    expect(await client.getRing(SECOND_RING)).toBeNull()
+    expect(localDb.threadRing.deleteMany).toHaveBeenCalledWith({ where: { slug: SECOND_RING } })
+    const after = await second.getMyMemberships({ status: 'ACTIVE', limit: 100 })
+    expect(after.memberships.find((m) => m.ringSlug === SECOND_RING)).toBeUndefined()
+    // Run again (a retry with a stale list): the hub has nothing left to end
+    expect(await leaveUserRingsOnHub('second', [owned])).toEqual([{ ringSlug: SECOND_RING, outcome: 'not_member' }])
   })
 
   test("when the account's own leave fails, the ring owner removes it by DID", async () => {
@@ -809,13 +844,147 @@ describe('deleting an account takes its ring posts off the hub (S-2)', () => {
       const leaves = await leaveUserRingsOnHub('second', [{ ringSlug: FORK_SLUG, ringName: 'x', role: 'member', status: 'ACTIVE' }])
       expect(leaves).toEqual([{ ringSlug: FORK_SLUG, outcome: 'left', signer: 'owner' }])
     } finally {
-      ;(createAuthenticatedRingHubClient as jest.Mock).mockImplementation((userId: 'main' | 'second') =>
-        userId === 'main' ? client : makeTestClient(userId)
-      )
+      ;(createAuthenticatedRingHubClient as jest.Mock).mockImplementation(resident)
     }
     expect(await memberCount(FORK_SLUG)).toBe(before! - 1)
     const after = await second.getMyMemberships({ status: 'ACTIVE', limit: 100 })
     expect(after.memberships.find((m) => m.ringSlug === FORK_SLUG)).toBeUndefined()
+  })
+})
+
+describe('deleting a ring only its owner is in (DELETE /trp/rings/:slug)', () => {
+  // 'second' owns SOLO and is leaving; the main actor owns CHILD, a fork of
+  // it. The rings go straight into the hub's database with the hub's own
+  // owner permissions (the fork rate limit allows one per actor, used above);
+  // everything after that is the real API.
+  const { db: localDb } = jest.requireMock('@/lib/config/database/connection')
+  const SOLO = 'itest-solo-private'
+  const CHILD = 'itest-solo-child'
+  const OWNER_PERMISSIONS = JSON.stringify(['manage_ring', 'manage_members', 'manage_roles', 'moderate_posts', 'update_ring_info', 'delete_ring'])
+  const hubSql = (sql: string) =>
+    execSync(`psql "${getRuntime().databaseUrl}" -v ON_ERROR_STOP=1 -q -t -A`, { input: sql, stdio: ['pipe', 'pipe', 'pipe'] })
+      .toString()
+      .trim()
+  const owned = { ringSlug: SOLO, ringName: 'Solo', role: 'owner', status: 'ACTIVE' }
+  let second: RingHubClient
+  let secondDid: string
+  let gate: jest.SpyInstance
+
+  const makeRing = (slug: string, ownerDid: string, parentSql: string, visibility: string) =>
+    hubSql(`INSERT INTO "Ring" (id, slug, name, visibility, "joinPolicy", "ownerDid", "parentId", "updatedAt")
+        VALUES (gen_random_uuid()::text, '${slug}', '${slug}', '${visibility}', 'OPEN', '${ownerDid}', ${parentSql}, now());
+      INSERT INTO "RingRole" (id, "ringId", name, permissions)
+        SELECT gen_random_uuid()::text, r.id, 'owner', '${OWNER_PERMISSIONS}'::jsonb FROM "Ring" r WHERE r.slug = '${slug}';
+      INSERT INTO "RingRole" (id, "ringId", name, permissions)
+        SELECT gen_random_uuid()::text, r.id, 'member', '["submit_posts", "view_content"]'::jsonb FROM "Ring" r WHERE r.slug = '${slug}';
+      INSERT INTO "Membership" (id, "ringId", "actorDid", "roleId", status, "joinedAt", "updatedAt")
+        SELECT gen_random_uuid()::text, r.id, '${ownerDid}', rr.id, 'ACTIVE', now(), now()
+        FROM "Ring" r JOIN "RingRole" rr ON rr."ringId" = r.id AND rr.name = 'owner' WHERE r.slug = '${slug}';`)
+  const join = (slug: string, did: string, status: 'ACTIVE' | 'PENDING') =>
+    hubSql(`INSERT INTO "Membership" (id, "ringId", "actorDid", "roleId", status, "joinedAt", "updatedAt")
+      SELECT gen_random_uuid()::text, r.id, '${did}', rr.id, '${status}', now(), now()
+      FROM "Ring" r JOIN "RingRole" rr ON rr."ringId" = r.id AND rr.name = 'member' WHERE r.slug = '${slug}';`)
+  const parentSlugOf = (slug: string) =>
+    hubSql(`SELECT p.slug FROM "Ring" r LEFT JOIN "Ring" p ON p.id = r."parentId" WHERE r.slug = '${slug}';`)
+
+  beforeAll(() => {
+    makePublicTestClient()
+    second = makeTestClient('second')
+    secondDid = getRuntime().secondActorDid
+    gate = jest.spyOn(ringHubClientModule, 'shouldUseRingHub').mockReturnValue(true)
+    ;(createAuthenticatedRingHubClient as jest.Mock).mockImplementation(resident)
+    localDb.userDID.findUnique.mockImplementation(async ({ where }: any) =>
+      where.userId === 'second' ? { userId: 'second', did: secondDid } : where.did === actorDid ? { userId: 'main' } : null
+    )
+    makeRing(SOLO, secondDid, `(SELECT id FROM "Ring" WHERE slug = 'spool')`, 'PRIVATE')
+    makeRing(CHILD, actorDid, `(SELECT id FROM "Ring" WHERE slug = '${SOLO}')`, 'PUBLIC')
+    join(SOLO, actorDid, 'ACTIVE')
+  })
+
+  afterAll(() => {
+    gate.mockRestore()
+    hubSql(`DELETE FROM "Ring" WHERE slug IN ('${SOLO}', '${CHILD}');`)
+  })
+
+  test('a PRIVATE ring is invisible to the public reader, so its owner reads it: shared while someone else is in it', async () => {
+    clearCache()
+    expect(await ringHubClientModule.getPublicRingHubClient()!.getRing(SOLO)).toBeNull()
+
+    expect((await sharedOwnedRings('second', [owned])).map((r) => r.ringSlug)).toEqual([SOLO])
+    const [kept] = await leaveUserRingsOnHub('second', [owned])
+    expect(kept).toMatchObject({ ringSlug: SOLO, outcome: 'still_owner' })
+    expect(hubSql(`SELECT count(*) FROM "Ring" WHERE slug = '${SOLO}';`)).toBe('1')
+  })
+
+  test("someone waiting to be let in doesn't count: once the member leaves, it is the owner's alone", async () => {
+    await client.leaveRing(SOLO)
+    join(SOLO, getRuntime().adminActorDid, 'PENDING')
+    clearCache()
+    expect(await sharedOwnedRings('second', [owned])).toEqual([])
+  })
+
+  test('deleting it moves its fork up to its parent, and takes its memberships and PostRefs with it', async () => {
+    hubSql(`INSERT INTO "PostRef" (id, "ringId", "actorDid", uri, digest, "submittedBy", status)
+      SELECT gen_random_uuid()::text, id, '${actorDid}', 'https://threadstead-itest.invalid/posts/solo-old', 'sha256:solo-old', '${actorDid}', 'ACCEPTED'
+      FROM "Ring" WHERE slug = '${SOLO}';`)
+    const soloId = hubSql(`SELECT id FROM "Ring" WHERE slug = '${SOLO}';`)
+    expect(parentSlugOf(CHILD)).toBe(SOLO)
+
+    expect(await leaveUserRingsOnHub('second', [owned])).toEqual([{ ringSlug: SOLO, outcome: 'deleted' }])
+
+    expect(hubSql(`SELECT count(*) FROM "Ring" WHERE slug = '${SOLO}';`)).toBe('0')
+    for (const table of ['Membership', 'PostRef', 'RingRole']) {
+      expect(hubSql(`SELECT count(*) FROM "${table}" WHERE "ringId" = '${soloId}';`)).toBe('0')
+    }
+    expect(parentSlugOf(CHILD)).toBe('spool')
+    clearCache()
+    expect((await client.getRingLineage(CHILD)).ancestors.map((a) => a.slug)).toEqual(['spool'])
+  })
+
+  test('the hub answers 404 to a delete of a ring that is gone, which reads here as already done', async () => {
+    const attempt = second.deleteRing(SOLO)
+    await expect(attempt).rejects.toBeInstanceOf(RingHubClientError)
+    await expect(attempt).rejects.toMatchObject({ status: 404 })
+  })
+
+  test('the cleanup for rings earlier deletes left empty: listed from the hub database, deleted as the hub admin', async () => {
+    const SITE = 'did:web:threadstead-itest.invalid'
+    const GONE = `${SITE}:users:gone`
+    const noAccount = async () => null
+    makeRing('itest-left-empty', GONE, `(SELECT id FROM "Ring" WHERE slug = 'spool')`, 'PUBLIC')
+    makeRing('itest-left-private', GONE, `(SELECT id FROM "Ring" WHERE slug = 'spool')`, 'PRIVATE')
+    hubSql(`UPDATE "Membership" SET status = 'REVOKED' WHERE "actorDid" = '${GONE}' AND "ringId" IN
+      (SELECT id FROM "Ring" WHERE slug = 'itest-left-empty');`)
+    makeRing('itest-left-busy', GONE, `(SELECT id FROM "Ring" WHERE slug = 'spool')`, 'PUBLIC')
+    join('itest-left-busy', actorDid, 'ACTIVE')
+
+    const listed = parseListing(hubSql(LISTING_SQL))
+    const bySlug = Object.fromEntries(listed.map((r) => [r.slug, r]))
+    expect(bySlug['itest-left-empty']).toEqual({ slug: 'itest-left-empty', visibility: 'PUBLIC', ownerDid: GONE, activeMemberDids: [] })
+    expect(bySlug['itest-left-private'].activeMemberDids).toEqual([GONE])
+    expect(bySlug['itest-left-busy']).toBeUndefined()
+    expect(await reasonToKeep(bySlug.spool, SITE, noAccount)).toBe('the root ring')
+
+    const admin = makeTestClient('admin')
+    const reader = ringHubClientModule.getPublicRingHubClient()!
+    clearCache()
+    for (const slug of ['itest-left-empty', 'itest-left-private']) {
+      expect(await reasonToKeep(bySlug[slug], SITE, noAccount)).toBeNull()
+      expect(await deleteEmptyRing(bySlug[slug], admin, reader)).toBe('deleted')
+    }
+    expect(hubSql(`SELECT count(*) FROM "Ring" WHERE slug IN ('itest-left-empty', 'itest-left-private');`)).toBe('0')
+    // Run again with the same listing: nothing left to delete
+    expect(await deleteEmptyRing(bySlug['itest-left-empty'], admin, reader)).toBe('gone')
+    expect(await deleteEmptyRing(bySlug['itest-left-private'], admin, reader)).toBe('gone')
+    hubSql(`DELETE FROM "Ring" WHERE slug = 'itest-left-busy';`)
+  })
+
+  test("a member can't delete someone else's ring, and nobody can delete the root", async () => {
+    await expect(second.deleteRing(CHILD)).rejects.toMatchObject({ status: 403 })
+    await expect(makeTestClient('admin').deleteRing('spool')).rejects.toMatchObject({ status: 400 })
+    clearCache()
+    expect(await client.getRing('spool')).not.toBeNull()
+    expect(parentSlugOf(CHILD)).toBe('spool')
   })
 })
 

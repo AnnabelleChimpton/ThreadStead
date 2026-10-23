@@ -11,13 +11,12 @@
  *
  * A ring they own that still has other members needs a new owner first
  * (ring members page), so nobody is left with a ring no one can moderate. A
- * ring where they're the only member they simply leave.
+ * ring where they're the only member is deleted with them.
  */
 import { db } from "@/lib/config/database/connection";
 import { ApiError } from "@/lib/api/errors";
-import { getPublicRingHubClient } from "@/lib/api/ringhub/ringhub-client";
 import { invalidateServedDids } from "@/lib/domain/bluesky/served-dids";
-import { eraseAccount, listUserRingMemberships, ownedRings } from "@/lib/domain/users/account-removal";
+import { eraseAccount, listUserRingMemberships, sharedOwnedRings } from "@/lib/domain/users/account-removal";
 import { disconnectChat, retierIndieSites } from "@/lib/domain/users/moderation";
 import { decryptEmail } from "@/lib/utils/security/email-encryption";
 import { sendLeavingEmail } from "@/lib/email-login";
@@ -36,16 +35,9 @@ export interface RingToHandOver {
 export async function ringsToHandOver(userId: string): Promise<RingToHandOver[] | null> {
   const rings = await listUserRingMemberships(userId);
   if (rings.error) return null;
-  const owned = ownedRings(rings.memberships);
-  const hub = getPublicRingHubClient();
-  if (!hub || owned.length === 0) return [];
   try {
-    // A ring the hub has but won't count counts as shared: better asked than stuck
-    const shared = await Promise.all(owned.map(async (r) => {
-      const ring = await hub.getRing(r.ringSlug);
-      return !!ring && (ring.memberCount ?? 2) > 1;
-    }));
-    return owned.filter((_, i) => shared[i]).map((r) => ({ slug: r.ringSlug, name: r.ringName }));
+    const shared = await sharedOwnedRings(userId, rings.memberships);
+    return shared.map((r) => ({ slug: r.ringSlug, name: r.ringName }));
   } catch {
     return null;
   }

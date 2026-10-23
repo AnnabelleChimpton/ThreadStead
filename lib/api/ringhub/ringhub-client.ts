@@ -15,6 +15,7 @@ import {
   SubmitPostResponseSchema,
   JoinRingResponseSchema,
   LeaveRingResponseSchema,
+  DeleteRingResponseSchema,
   TransferOwnershipResponseSchema,
   MyMembershipsResponseSchema,
   RingFeedResponseSchema,
@@ -310,10 +311,12 @@ export class RingHubClient {
   }
 
   /**
-   * Delete ring
+   * Delete a ring, for good (owner or hub admin). Its forks move up to its
+   * parent; its memberships, badges and PostRefs go with it.
    */
   async deleteRing(slug: string): Promise<void> {
-    await this.delete(`/trp/rings/${slug}`)
+    const response = await this.delete(`/trp/rings/${slug}`)
+    validateRingHubResponse('DELETE /trp/rings/:slug', DeleteRingResponseSchema, response)
   }
 
   /**

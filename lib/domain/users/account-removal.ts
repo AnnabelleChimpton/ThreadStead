@@ -26,14 +26,17 @@
  * An account with no key here never joined a ring as itself, so it has
  * nothing to leave.
  *
- * Rings the account OWNS block the delete: the hub refuses an owner's leave
- * while other members remain, so after the delete nobody could moderate it.
- * The admin hands each one to another member first
- * (lib/domain/threadrings/ownership-transfer.ts, signed as this site, the
- * hub admin); the old owner is then a plain member and leaves like one. The
- * admin can still go ahead (`force`); then each owned ring is left if the
- * owner is its only member, and otherwise stays on the hub with an owner who
- * is gone.
+ * A ring the account OWNS and is the only member of goes with it:
+ * DELETE /trp/rings/:slug, signed as the owner while still a member (the hub
+ * wants delete_ring). The hub moves its forks up to its parent and drops its
+ * memberships, badges and PostRefs; here its mirror rows go too, or its page
+ * would still render from them. One that still has other members blocks the
+ * delete: the hub refuses an owner's leave while other members remain, so
+ * after the delete nobody could moderate it. The admin hands each one to
+ * another member first (lib/domain/threadrings/ownership-transfer.ts, signed
+ * as this site, the hub admin); the old owner is then a plain member and
+ * leaves like one. The admin can still go ahead (`force`); then those rings
+ * stay on the hub with an owner who is gone.
  *
  * If any hub step fails the account is NOT deleted unless the admin says so
  * (`force`), because after the delete only the ring owner can clean up.
@@ -74,10 +77,11 @@ export interface RingLeave {
   ringSlug: string;
   /**
    * left: off the member list (by the member, or removed by the ring owner);
+   * deleted: an owned ring they were the only member of, gone from the hub;
    * not_member: the hub had no membership to end; still_owner: an owned ring
    * with other members, which the hub won't let its owner leave.
    */
-  outcome: "left" | "not_member" | "still_owner" | "failed";
+  outcome: "left" | "deleted" | "not_member" | "still_owner" | "failed";
   signer?: "member" | "owner";
   error?: string;
 }
@@ -106,6 +110,10 @@ type MembershipReader = {
   }>;
 };
 type Leaver = { leaveRing(slug: string): Promise<void> };
+type OwnRingReader = {
+  getRingAsMember(slug: string): Promise<{ ownerDid?: string; memberCount?: number } | null>;
+};
+type Member = Leaver & OwnRingReader & { deleteRing(slug: string): Promise<void> };
 
 /**
  * Who can moderate each ring here: its owner's key, or the instance's own
@@ -279,9 +287,52 @@ export function ownedRings(memberships: RingMembership[]): RingMembership[] {
 }
 
 /**
+ * The rings it owns that still have other members: these need a new owner
+ * before it can go (the rest are deleted with it). Read as the owner, since a
+ * PRIVATE ring is 404 to anyone else. A ring the hub won't show or count
+ * counts as shared (an older hub hides every private ring, a stale key gets
+ * a 404 too): better asked up front than refused halfway through a delete.
+ * Throws when the hub can't say.
+ */
+export async function sharedOwnedRings(userId: string, memberships: RingMembership[]): Promise<RingMembership[]> {
+  const owned = ownedRings(memberships);
+  if (owned.length === 0) return [];
+  const owner: OwnRingReader = createAuthenticatedRingHubClient(userId);
+  const shared = await Promise.all(
+    owned.map(async (r) => {
+      const ring = await owner.getRingAsMember(r.ringSlug);
+      return !ring || (ring.memberCount ?? 2) > 1;
+    })
+  );
+  return owned.filter((_, i) => shared[i]);
+}
+
+/**
+ * Everything kept here under a ring's slug, once the hub has deleted it: its
+ * mirror (posts' links, members, badge and forks cascade), who owns it here,
+ * and its outside-site rule, stops and click counts, which a new ring with
+ * the same slug would otherwise inherit. Right away, not with the account: a
+ * retry won't list the ring again.
+ */
+export async function forgetRing(slug: string): Promise<void> {
+  try {
+    await db.$transaction([
+      db.threadRing.deleteMany({ where: { slug } }),
+      db.ringHubOwnership.deleteMany({ where: { ringSlug: slug } }),
+      db.ringSiteSettings.deleteMany({ where: { ringSlug: slug } }),
+      db.ringStop.deleteMany({ where: { ringSlug: slug } }),
+      db.ringDoorwayCount.deleteMany({ where: { ringSlug: slug } }),
+    ]);
+  } catch (error) {
+    console.error(`Couldn't remove ring ${slug} here after deleting it on Ring Hub:`, error);
+  }
+}
+
+/**
  * End each membership on the hub: left as the member, or removed by the ring
- * owner when that fails. An owned ring the hub won't let its owner leave
- * (other members remain) is reported as still_owner, not failed. Never throws.
+ * owner when that fails. An owned ring they're the only member of is deleted
+ * instead; one the hub won't let its owner leave (other members remain) is
+ * reported as still_owner, not failed. Never throws.
  */
 export async function leaveUserRingsOnHub(userId: string, memberships: RingMembership[]): Promise<RingLeave[]> {
   const reader = getPublicRingHubClient();
@@ -289,13 +340,34 @@ export async function leaveUserRingsOnHub(userId: string, memberships: RingMembe
   const key = await db.userDID.findUnique({ where: { userId }, select: { did: true } });
   if (!key) return [];
 
-  const member: Leaver = createAuthenticatedRingHubClient(userId);
+  const member: Member = createAuthenticatedRingHubClient(userId);
   const ownerOf = ringOwners(reader);
   const leaves: RingLeave[] = [];
 
   for (const membership of memberships) {
     const ringSlug = membership.ringSlug;
     const owns = membership.role === "owner";
+    if (owns) {
+      // Read just now, so a ring someone joined since is never deleted
+      try {
+        const ring = await member.getRingAsMember(ringSlug);
+        if (ring?.ownerDid === key.did && (ring.memberCount ?? 2) <= 1) {
+          try {
+            await member.deleteRing(ringSlug);
+          } catch (error: any) {
+            // The hub answers 404 for a ring that isn't there: already gone
+            if (error?.status !== 404) throw error;
+          }
+          await forgetRing(ringSlug);
+          leaves.push({ ringSlug, outcome: "deleted" });
+          continue;
+        }
+      } catch (error) {
+        leaves.push({ ringSlug, outcome: "failed", error: `deleting it: ${errorText(error)}` });
+        continue;
+      }
+    }
+
     let memberError: string;
     try {
       await member.leaveRing(ringSlug);
@@ -341,7 +413,7 @@ export async function leaveUserRingsOnHub(userId: string, memberships: RingMembe
 export interface DeleteAccountOptions {
   actorId: string;
   userId: string;
-  /** Delete even though some hub cleanup failed, or the account owns rings. */
+  /** Delete even though some hub cleanup failed, or the account owns rings with other members. */
   force?: boolean;
   reason?: string;
 }
@@ -350,7 +422,7 @@ export interface AccountRemovalReport {
   posts: UserHubCleanup;
   /** The memberships the hub listed (empty without a key or with the hub off). */
   memberships: RingMembership[];
-  /** Rings the account owns on the hub. */
+  /** Rings it owns that still have other members: these block the delete. */
   ownedRings: RingMembership[];
   leaves: RingLeave[];
   /** Every hub step that failed, posts and rings, as one readable line each. */
@@ -414,7 +486,7 @@ async function retierIndieSites(siteIds: string[]): Promise<void> {
 
 /**
  * Hard-delete a banned account. Refuses (deletes nothing, changes nothing)
- * while it owns rings, unless forced, then erases it (eraseAccount) with a
+ * while it owns rings with other members, unless forced, then erases it (eraseAccount) with a
  * "delete" ModerationAction row and its username tombstoned for good.
  */
 export async function deleteUserAccount({
@@ -435,8 +507,9 @@ export async function deleteUserAccount({
   }
 
   const rings = await listUserRingMemberships(userId);
-  const owned = ownedRings(rings.memberships);
-  if (owned.length > 0 && !force) {
+  // The hub couldn't say which are shared: ask about all of them
+  const owned = force ? [] : await sharedOwnedRings(userId, rings.memberships).catch(() => ownedRings(rings.memberships));
+  if (owned.length > 0) {
     const posts: UserHubCleanup = { hubEnabled: rings.hubEnabled, hadKey: rings.hadKey, removals: [], failed: [] };
     return {
       deleted: false,
@@ -467,7 +540,7 @@ export interface EraseOptions {
 }
 
 /**
- * The hub cleanup (ring posts off, rings left), then one transaction that
+ * The hub cleanup (ring posts off, rings left or deleted), then one transaction that
  * tombstones the username (lib/domain/users/handle-tombstones.ts), writes
  * the audit row if any (it outlives the account, with userId nulled and the
  * handle kept), fixes local ring post and member counts, removes the
@@ -488,7 +561,9 @@ export async function eraseAccount(
   const report: AccountRemovalReport = {
     posts,
     memberships: rings.memberships,
-    ownedRings: ownedRings(rings.memberships),
+    ownedRings: ownedRings(rings.memberships).filter((r) =>
+      leaves.some((l) => l.ringSlug === r.ringSlug && l.outcome === "still_owner")
+    ),
     leaves,
     failures: failureLines(posts, rings, leaves),
   };

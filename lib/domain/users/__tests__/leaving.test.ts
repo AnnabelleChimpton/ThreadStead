@@ -6,22 +6,19 @@
 jest.mock('@/lib/config/database/connection', () => ({
   db: { user: { findUnique: jest.fn(), update: jest.fn(), updateMany: jest.fn(), findMany: jest.fn() } },
 }))
-jest.mock('@/lib/api/ringhub/ringhub-client', () => ({ getPublicRingHubClient: jest.fn() }))
 jest.mock('@/lib/domain/bluesky/served-dids', () => ({ invalidateServedDids: jest.fn() }))
 jest.mock('@/lib/domain/users/account-removal', () => ({
   eraseAccount: jest.fn(),
   listUserRingMemberships: jest.fn(),
-  ownedRings: (memberships: { role: string; status: string }[]) =>
-    memberships.filter((m) => m.role === 'owner' && m.status === 'ACTIVE'),
+  sharedOwnedRings: jest.fn(),
 }))
 jest.mock('@/lib/utils/security/email-encryption', () => ({ decryptEmail: (e: string) => `plain:${e}` }))
 jest.mock('@/lib/email-login', () => ({ sendLeavingEmail: jest.fn() }))
 jest.mock('@/lib/domain/users/moderation', () => ({ disconnectChat: jest.fn(), retierIndieSites: jest.fn() }))
 
 import { db } from '@/lib/config/database/connection'
-import { getPublicRingHubClient } from '@/lib/api/ringhub/ringhub-client'
 import { invalidateServedDids } from '@/lib/domain/bluesky/served-dids'
-import { eraseAccount, listUserRingMemberships } from '@/lib/domain/users/account-removal'
+import { eraseAccount, listUserRingMemberships, sharedOwnedRings } from '@/lib/domain/users/account-removal'
 import { sendLeavingEmail } from '@/lib/email-login'
 import { disconnectChat, retierIndieSites } from '@/lib/domain/users/moderation'
 import { finishDueLeaves, LEAVE_GRACE_DAYS, startLeaving, stayAfterAll } from '@/lib/domain/users/leaving'
@@ -39,7 +36,7 @@ beforeEach(() => {
   jest.clearAllMocks()
   mockDb.user.findUnique.mockResolvedValue(resident)
   ;(listUserRingMemberships as jest.Mock).mockResolvedValue({ hubEnabled: true, hadKey: true, memberships: [] })
-  ;(getPublicRingHubClient as jest.Mock).mockReturnValue({ getRing: jest.fn(async () => ({ memberCount: 1 })) })
+  ;(sharedOwnedRings as jest.Mock).mockResolvedValue([])
 })
 
 describe('startLeaving', () => {
@@ -72,24 +69,21 @@ describe('startLeaving', () => {
   })
 
   it('asks for rings with other members to be handed over first; a ring of one is fine', async () => {
-    ;(listUserRingMemberships as jest.Mock).mockResolvedValue({
-      hubEnabled: true,
-      hadKey: true,
-      memberships: [membership('knits', 'owner'), membership('solo', 'owner'), membership('zines')],
-    })
-    const counts: Record<string, number> = { knits: 4, solo: 1 }
-    ;(getPublicRingHubClient as jest.Mock).mockReturnValue({ getRing: jest.fn(async (slug: string) => ({ memberCount: counts[slug] })) })
+    const memberships = [membership('knits', 'owner'), membership('solo', 'owner'), membership('zines')]
+    ;(listUserRingMemberships as jest.Mock).mockResolvedValue({ hubEnabled: true, hadKey: true, memberships })
+    ;(sharedOwnedRings as jest.Mock).mockResolvedValue([membership('knits', 'owner')])
 
     const error = await rejection(startLeaving('u1', 'alice', NOW))
     expect(error.status).toBe(409)
     expect(error.extra).toEqual({ rings: [{ slug: 'knits', name: 'KNITS' }] })
+    expect(sharedOwnedRings).toHaveBeenCalledWith('u1', memberships)
     expect(mockDb.user.update).not.toHaveBeenCalled()
   })
 
-  it('counts a ring the hub has but won\'t count as shared, rather than risk stranding it', async () => {
-    ;(listUserRingMemberships as jest.Mock).mockResolvedValue({ hubEnabled: true, hadKey: true, memberships: [membership('knits', 'owner')] })
-    ;(getPublicRingHubClient as jest.Mock).mockReturnValue({ getRing: jest.fn(async () => ({})) })
-    expect((await rejection(startLeaving('u1', 'alice', NOW))).status).toBe(409)
+  it("won't start when the hub can't say which of their rings are shared", async () => {
+    ;(sharedOwnedRings as jest.Mock).mockRejectedValue(new Error('hub down'))
+    expect((await rejection(startLeaving('u1', 'alice', NOW))).status).toBe(503)
+    expect(mockDb.user.update).not.toHaveBeenCalled()
   })
 
   it("won't start when the hub can't say which rings they own", async () => {

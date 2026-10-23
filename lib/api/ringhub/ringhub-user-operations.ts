@@ -387,6 +387,24 @@ export class AuthenticatedRingHubClient {
   }
 
   /**
+   * A ring as this user sees it. A PRIVATE ring is 404 to anyone who isn't
+   * an ACTIVE member, the server included, so its owner reads it this way.
+   */
+  async getRingAsMember(slug: string): Promise<RingDescriptor | null> {
+    const userClient = await this.getUserClient()
+    return await userClient.getRing(slug)
+  }
+
+  /**
+   * Delete a ring this user owns. The hub wants delete_ring (the owner
+   * role), so this is signed as the owner, while they are still a member.
+   */
+  async deleteRing(slug: string): Promise<void> {
+    const userClient = await this.getUserClient()
+    return await userClient.deleteRing(slug)
+  }
+
+  /**
    * Curate/moderate a post as this user (requires curator/moderator permissions)
    */
   async curatePost(postId: string, action: 'accept' | 'reject' | 'pin' | 'unpin' | 'remove', options?: {

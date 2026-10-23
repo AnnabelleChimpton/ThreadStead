@@ -9,8 +9,9 @@ import { leavingDay } from './leaving-day';
 
 /**
  * Settings > Privacy: delete your account (lib/domain/users/leaving.ts).
- * Rings you own that have other members are handed over first; you confirm
- * by typing your username; it all goes 14 days later.
+ * Rings you own that have other members are handed over first (the rest are
+ * deleted with you); you confirm by typing your username; it all goes 14 days
+ * later.
  */
 type State = { deletesAt: string | null; rings: RingToHandOver[] | null };
 
@@ -58,7 +59,8 @@ export default function LeaveHomePageAgain() {
         <>
           <p className="mb-2">
             Deleting your account removes your page, your house, your posts and comments, and the notes you&apos;ve
-            signed in other people&apos;s guestbooks. If you&apos;d like a copy, export your data above first.
+            signed in other people&apos;s guestbooks. Rings where you&apos;re the only member are deleted with it. If
+            you&apos;d like a copy, export your data above first.
           </p>
           <p className="mb-4">
             Your page is hidden as soon as you confirm, and everything is deleted for good 14 days later. Until then

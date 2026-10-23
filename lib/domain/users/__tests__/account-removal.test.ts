@@ -7,14 +7,21 @@
  * an author removal covers every ring with the same uri + actorDid. Without
  * the author's key, the ring owner removes it instead. Then the account
  * leaves its rings (POST /trp/leave as the member, DELETE
- * /trp/rings/:slug/members/:did as the ring owner when that fails), and
- * owning a ring blocks the delete unless forced.
+ * /trp/rings/:slug/members/:did as the ring owner when that fails). A ring
+ * it owns and is the only member of is deleted (DELETE /trp/rings/:slug, 204,
+ * signed as the owner) and forgotten here; owning one with other members
+ * blocks the delete unless forced.
  */
 jest.mock('@/lib/config/database/connection', () => ({
   db: {
     post: { findMany: jest.fn() },
     user: { findUnique: jest.fn(), delete: jest.fn() },
     userDID: { findUnique: jest.fn() },
+    threadRing: { deleteMany: jest.fn() },
+    ringHubOwnership: { deleteMany: jest.fn() },
+    ringSiteSettings: { deleteMany: jest.fn() },
+    ringStop: { deleteMany: jest.fn() },
+    ringDoorwayCount: { deleteMany: jest.fn() },
     moderationAction: { create: jest.fn() },
     handleTombstone: { createMany: jest.fn() },
     guestbookEntry: { deleteMany: jest.fn() },
@@ -53,6 +60,7 @@ import {
   leaveUserRingsOnHub,
   listUserRingMemberships,
   removeUserPostsFromRingHub,
+  sharedOwnedRings,
   type RingMembership,
 } from '@/lib/domain/users/account-removal'
 import { recomputeSites } from '@/lib/indie-index/tiers'
@@ -66,13 +74,19 @@ function hubError(status: number, message = 'nope') {
 
 /**
  * A signed hub client that records who signed: curate answers per PostRef
- * id, leave and removeMember per ring slug, and getMyMemberships pages
- * through `memberships` (none by default).
+ * id, leave, removeMember and deleteRing per ring slug, and getMyMemberships
+ * pages through `memberships` (none by default). getRingAsMember answers
+ * from `rings`; any other ring is theirs and shared.
  */
 function curator(
   name: string,
   answer: (refId: string) => any = () => ({}),
-  { memberships = [] as RingMembership[], leave = (_slug: string): any => undefined } = {}
+  {
+    memberships = [] as RingMembership[],
+    leave = (_slug: string): any => undefined,
+    rings = {} as Record<string, any>,
+    deleteRing = (_slug: string): any => undefined,
+  } = {}
 ) {
   const settle = (result: any) => {
     if (result instanceof Error) throw result
@@ -96,8 +110,18 @@ function curator(
       events.push(`${name}:remove-member:${slug}:${did}`)
       return settle(leave(slug))
     }),
+    getRingAsMember: jest.fn(async (slug: string) =>
+      settle(slug in rings ? rings[slug] : { slug, ownerDid: 'did:spammer', memberCount: 2 })
+    ),
+    deleteRing: jest.fn(async (slug: string) => {
+      events.push(`${name}:delete-ring:${slug}`)
+      return settle(deleteRing(slug))
+    }),
   }
 }
+
+/** Theirs, with nobody else in it. */
+const alone = (slug: string) => ({ slug, ownerDid: 'did:spammer', memberCount: 1 })
 
 const ring = (ringSlug: string, role: string = 'member', status = 'ACTIVE'): RingMembership => ({
   ringSlug,
@@ -142,8 +166,10 @@ beforeEach(() => {
     const owner = where.did?.match(/^did:owner:(.+)$/)
     return owner ? { userId: `owner-of-${owner[1]}` } : null
   })
+  // forgetRing's transaction shows as forget:<slug>, the account's as transaction
+  mockDb.threadRing.deleteMany.mockImplementation(({ where }: any) => `forget:${where.slug}`)
   mockDb.$transaction.mockImplementation(async (ops: any[]) => {
-    events.push('transaction')
+    events.push(ops.find((op) => typeof op === 'string' && op.startsWith('forget:')) ?? 'transaction')
     return ops
   })
   mockDb.user.delete.mockImplementation(() => 'delete-op')
@@ -409,23 +435,59 @@ describe('deleteUserAccount', () => {
     expect(mockDb.$transaction).not.toHaveBeenCalled()
   })
 
-  it('forced past owned rings: leaves the ones the hub allows, keeps going on the rest', async () => {
+  it('forced past shared rings: deletes the ones only they are in, leaves the rest with them as owner', async () => {
     mockDb.user.findUnique.mockResolvedValue(banned)
     mockDb.post.findMany.mockResolvedValue([])
     author = curator('author', () => ({}), {
       memberships: [ring('alone', 'owner'), ring('busy', 'owner'), ring('art')],
       leave: (slug) => (slug === 'busy' ? hubError(400, 'Transfer ownership required') : undefined),
+      rings: { alone: alone('alone') },
     })
 
     const result = await deleteUserAccount({ actorId: 'admin', userId: 'spammer', force: true })
 
     expect(result.deleted).toBe(true)
     expect(result.report.leaves).toEqual([
-      { ringSlug: 'alone', outcome: 'left', signer: 'member' },
+      { ringSlug: 'alone', outcome: 'deleted' },
       { ringSlug: 'busy', outcome: 'still_owner', error: '400 Transfer ownership required' },
       { ringSlug: 'art', outcome: 'left', signer: 'member' },
     ])
+    expect(result.report.ownedRings.map((r) => r.ringSlug)).toEqual(['busy'])
     expect(result.report.failures).toEqual([])
+  })
+
+  it('a ring only they are in is no reason to wait: deleted after the posts, before the account', async () => {
+    mockDb.user.findUnique.mockResolvedValue(banned)
+    mockDb.post.findMany.mockResolvedValue([post('p1', { art: 'ref-art' })])
+    author = curator('author', () => ({ affectedRings: [] }), {
+      memberships: [ring('solo', 'owner'), ring('art')],
+      rings: { solo: alone('solo') },
+    })
+
+    const result = await deleteUserAccount({ actorId: 'admin', userId: 'spammer' })
+
+    expect(result.deleted).toBe(true)
+    expect(events).toEqual(['author:remove:ref-art', 'author:delete-ring:solo', 'forget:solo', 'author:leave:art', 'transaction'])
+    expect(result.report.ownedRings).toEqual([])
+  })
+
+  it("lists only the shared rings when it refuses, and all of them when the hub can't say", async () => {
+    mockDb.user.findUnique.mockResolvedValue(banned)
+    mockDb.post.findMany.mockResolvedValue([])
+    author = curator('author', () => ({}), {
+      memberships: [ring('solo', 'owner'), ring('busy', 'owner')],
+      rings: { solo: alone('solo') },
+    })
+
+    const first = await deleteUserAccount({ actorId: 'admin', userId: 'spammer' })
+    expect(first).toMatchObject({ deleted: false, blockedBy: 'owns_rings' })
+    expect(first.report.ownedRings.map((r) => r.ringSlug)).toEqual(['busy'])
+
+    author.getRingAsMember.mockRejectedValue(hubError(503, 'down'))
+    const second = await deleteUserAccount({ actorId: 'admin', userId: 'spammer' })
+    expect(second.report.ownedRings.map((r) => r.ringSlug)).toEqual(['solo', 'busy'])
+    expect(events).toEqual([])
+    expect(mockDb.$transaction).not.toHaveBeenCalled()
   })
 
   it("deletes nothing when a ring couldn't be left, unless forced", async () => {
@@ -518,5 +580,90 @@ describe('leaveUserRingsOnHub', () => {
     mockDb.userDID.findUnique.mockResolvedValue(null)
     expect(await leaveUserRingsOnHub('spammer', [ring('art')])).toEqual([])
     expect(createAuthenticatedRingHubClient).not.toHaveBeenCalled()
+  })
+
+  it('deletes an owned ring they are the only member of, as themself, and forgets it here', async () => {
+    author = curator('author', () => ({}), { rings: { solo: alone('solo') } })
+
+    const leaves = await leaveUserRingsOnHub('spammer', [ring('solo', 'owner')])
+
+    expect(leaves).toEqual([{ ringSlug: 'solo', outcome: 'deleted' }])
+    expect(events).toEqual(['author:delete-ring:solo', 'forget:solo'])
+    expect(mockDb.threadRing.deleteMany).toHaveBeenCalledWith({ where: { slug: 'solo' } })
+    for (const table of ['ringHubOwnership', 'ringSiteSettings', 'ringStop', 'ringDoorwayCount']) {
+      expect(mockDb[table].deleteMany).toHaveBeenCalledWith({ where: { ringSlug: 'solo' } })
+    }
+  })
+
+  it('reads the ring just before: one someone joined since, or that the hub says is not theirs, is left instead', async () => {
+    author = curator('author', () => ({}), {
+      rings: { joined: { ...alone('joined'), memberCount: 2 }, uncounted: { ...alone('uncounted'), memberCount: undefined }, moved: { ...alone('moved'), ownerDid: 'did:someone' } },
+    })
+
+    await leaveUserRingsOnHub('spammer', ['joined', 'uncounted', 'moved'].map((slug) => ring(slug, 'owner')))
+
+    expect(events).toEqual(['author:leave:joined', 'author:leave:uncounted', 'author:leave:moved'])
+    expect(mockDb.threadRing.deleteMany).not.toHaveBeenCalled()
+  })
+
+  it("a ring the hub won't show them isn't deleted, and isn't forgotten here", async () => {
+    author = curator('author', () => ({}), { rings: { gone: null }, leave: () => hubError(404, 'Ring not found') })
+    expect(await leaveUserRingsOnHub('spammer', [ring('gone', 'owner')])).toEqual([{ ringSlug: 'gone', outcome: 'not_member' }])
+    expect(events).toEqual(['author:leave:gone'])
+    expect(mockDb.threadRing.deleteMany).not.toHaveBeenCalled()
+  })
+
+  it('a delete the hub answers 404 was already done: forgotten here all the same', async () => {
+    author = curator('author', () => ({}), { rings: { solo: alone('solo') }, deleteRing: () => hubError(404, 'Ring not found') })
+    expect(await leaveUserRingsOnHub('spammer', [ring('solo', 'owner')])).toEqual([{ ringSlug: 'solo', outcome: 'deleted' }])
+    expect(events).toEqual(['author:delete-ring:solo', 'forget:solo'])
+  })
+
+  it('a delete or a read that fails is a failure, nothing is forgotten, and it never falls back to leaving', async () => {
+    author = curator('author', () => ({}), {
+      rings: { solo: alone('solo'), unread: hubError(502, 'bad gateway') },
+      deleteRing: () => hubError(503, 'down'),
+    })
+
+    const leaves = await leaveUserRingsOnHub('spammer', [ring('solo', 'owner'), ring('unread', 'owner')])
+
+    expect(leaves).toEqual([
+      { ringSlug: 'solo', outcome: 'failed', error: 'deleting it: 503 down' },
+      { ringSlug: 'unread', outcome: 'failed', error: 'deleting it: 502 bad gateway' },
+    ])
+    expect(events).toEqual(['author:delete-ring:solo'])
+    expect(mockDb.threadRing.deleteMany).not.toHaveBeenCalled()
+  })
+
+  it('a ring deleted on the hub stays deleted when forgetting it here fails', async () => {
+    author = curator('author', () => ({}), { rings: { solo: alone('solo') } })
+    mockDb.$transaction.mockRejectedValueOnce(new Error('db down'))
+    const error = jest.spyOn(console, 'error').mockImplementation(() => {})
+
+    expect(await leaveUserRingsOnHub('spammer', [ring('solo', 'owner')])).toEqual([{ ringSlug: 'solo', outcome: 'deleted' }])
+    expect(error).toHaveBeenCalled()
+    error.mockRestore()
+  })
+})
+
+describe('sharedOwnedRings', () => {
+  it("reads each owned ring as its owner; one the hub won't show or count is shared", async () => {
+    author = curator('author', () => ({}), {
+      rings: { solo: alone('solo'), busy: { ...alone('busy'), memberCount: 3 }, uncounted: {}, gone: null },
+    })
+    const memberships = [ring('solo', 'owner'), ring('busy', 'owner'), ring('uncounted', 'owner'), ring('gone', 'owner'), ring('art')]
+
+    const shared = await sharedOwnedRings('spammer', memberships)
+
+    expect(shared.map((r) => r.ringSlug)).toEqual(['busy', 'uncounted', 'gone'])
+    expect(author.getRingAsMember.mock.calls.map(([slug]: any) => slug)).toEqual(['solo', 'busy', 'uncounted', 'gone'])
+  })
+
+  it('asks nothing of the hub when they own no rings, and throws when it cannot say', async () => {
+    expect(await sharedOwnedRings('spammer', [ring('art')])).toEqual([])
+    expect(createAuthenticatedRingHubClient).not.toHaveBeenCalled()
+
+    author = curator('author', () => ({}), { rings: { busy: hubError(503, 'down') } })
+    await expect(sharedOwnedRings('spammer', [ring('busy', 'owner')])).rejects.toMatchObject({ status: 503 })
   })
 })

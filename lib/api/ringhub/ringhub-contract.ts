@@ -197,6 +197,12 @@ export const LeaveRingResponseSchema = z.object({
 })
 
 /**
+ * DELETE /trp/rings/:slug → 204 with no body (rings.ts), which the client
+ * reads as null. Anything else is a hub that changed under us.
+ */
+export const DeleteRingResponseSchema = z.null()
+
+/**
  * POST /trp/rings/:slug/transfer-ownership → 200 (ring-management.ts).
  * `byAdmin`: a hub admin moved it, not the owner.
  */
