@@ -6,8 +6,9 @@
 
 User-agent: *
 Content-Signal: search=yes, ai-input=no, ai-train=no
-# Share images for link previews (the yard snapshot route)
+# Share images for link previews (the yard snapshot route, ring cards)
 Allow: /api/home/
+Allow: /api/share/
 Disallow: /api/
 # Ring strips' prev / next / random: redirects to other people's sites
 Disallow: /ring/

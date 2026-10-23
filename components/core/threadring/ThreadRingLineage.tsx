@@ -3,6 +3,7 @@ import Link from "next/link";
 import LoadingSpinner from "@/components/ui/feedback/LoadingSpinner";
 import EmptyState from "@/components/ui/feedback/EmptyState";
 import ErrorDisplay from "@/components/ui/feedback/ErrorDisplay";
+import { countOf } from "@/lib/utils/count-of";
 
 interface RingDescriptor {
   id: string;
@@ -129,8 +130,8 @@ export default function ThreadRingLineage({
         </div>
         
         <div className="text-xs text-nb-ink-mid text-right">
-          <div>{ring.memberCount || 0} members</div>
-          <div>{ring.postCount || 0} posts</div>
+          <div>{countOf(ring.memberCount || 0, 'member')}</div>
+          <div>{countOf(ring.postCount || 0, 'post')}</div>
         </div>
       </div>
     </div>

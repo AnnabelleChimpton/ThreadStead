@@ -402,6 +402,11 @@ export default function ThreadRingPage({ siteConfig, ring, error, cameFrom = nul
     createdAt: ring.createdAt
   } : null;
   const ringMetadata = adaptedRing ? contentMetadataGenerator.generateThreadRingMetadata(adaptedRing) : null;
+  // A new badge upload is a new file name, so previews cached elsewhere refresh
+  const badgeFile = ring?.badge?.imageUrl?.startsWith('http') ? ring.badge.imageUrl.split('/').pop() : undefined;
+  const shareImage = ring
+    ? `${getSiteBaseUrl()}/api/share/ring/${ring.slug}.png${badgeFile ? `?v=${encodeURIComponent(badgeFile)}` : ''}`
+    : undefined;
 
   const router = useRouter();
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -951,11 +956,17 @@ export default function ThreadRingPage({ siteConfig, ring, error, cameFrom = nul
             <meta property="og:url" content={`${getSiteBaseUrl()}${ringMetadata.url}`} />
             <meta property="og:site_name" content="ThreadStead" />
             <meta property="og:locale" content="en_US" />
+            {/* The ring's badge, big (pages/api/share/ring/[file].ts) */}
+            <meta key="og:image" property="og:image" content={shareImage} />
+            <meta key="og:image:width" property="og:image:width" content="1200" />
+            <meta key="og:image:height" property="og:image:height" content="630" />
+            <meta key="og:image:alt" property="og:image:alt" content={`The ${ring.name} ring's badge`} />
 
             {/* Social media card meta tags */}
-            <meta name="twitter:card" content="summary_large_image" />
+            <meta key="twitter:card" name="twitter:card" content="summary_large_image" />
             <meta name="twitter:title" content={ringMetadata.title} />
             <meta name="twitter:description" content={ringMetadata.description} />
+            <meta key="twitter:image" name="twitter:image" content={shareImage} />
 
             {/* Structured data */}
             <script

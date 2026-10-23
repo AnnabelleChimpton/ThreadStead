@@ -4,6 +4,7 @@
  */
 
 import { MetadataGenerator, MetadataConfig } from './metadata-generator';
+import { countOf } from '@/lib/utils/count-of';
 
 export interface UserProfile {
   handle: string;
@@ -217,8 +218,8 @@ export class ContentMetadataGenerator extends MetadataGenerator {
     // Add community stats to description
     if (ring.memberCount || ring.postCount) {
       const stats = [];
-      if (ring.memberCount) stats.push(`${ring.memberCount} members`);
-      if (ring.postCount) stats.push(`${ring.postCount} posts`);
+      if (ring.memberCount) stats.push(countOf(ring.memberCount, 'member'));
+      if (ring.postCount) stats.push(countOf(ring.postCount, 'post'));
       description += ` • ${stats.join(' • ')}`;
     }
 

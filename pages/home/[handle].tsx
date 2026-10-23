@@ -251,14 +251,8 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     // visitors: only a public home gets one, whoever is viewing now.
     let shareImage: string | null = null
     if ((user.profile?.visibility ?? 'public') === 'public') {
-      shareImage = homeConfig.snapshotUrl
-      if (!shareImage) {
-        // Not drawn yet: start it now, and point previews at the route
-        // that waits for it.
-        const { scheduleHomeSnapshot } = await import('@/lib/pixel-homes/snapshot/service')
-        void scheduleHomeSnapshot(user.id)
-        shareImage = `${getSiteBaseUrl()}/api/home/${encodeURIComponent(cleanHandle)}/snapshot`
-      }
+      const { homeShareImage } = await import('@/lib/pixel-homes/snapshot/share-image')
+      shareImage = await homeShareImage(user.id, cleanHandle, homeConfig)
     }
 
     return {

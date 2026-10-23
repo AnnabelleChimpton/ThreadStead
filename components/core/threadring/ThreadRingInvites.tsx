@@ -5,6 +5,7 @@ import { csrfFetch } from "@/lib/api/client/csrf-fetch";
 import { useToast } from "@/contexts/ToastContext";
 import LoadingSpinner from "@/components/ui/feedback/LoadingSpinner";
 import ErrorDisplay from "@/components/ui/feedback/ErrorDisplay";
+import { countOf } from "@/lib/utils/count-of";
 
 interface ThreadRingInvite {
   id: string;
@@ -145,9 +146,9 @@ export default function ThreadRingInvites({
                     className="text-gray-900"
                   />
                   {" • "}
-                  {invite.threadRing.memberCount} members
+                  {countOf(invite.threadRing.memberCount, 'member')}
                   {" • "}
-                  {invite.threadRing.postCount} posts
+                  {countOf(invite.threadRing.postCount, 'post')}
                 </div>
                 {invite.threadRing.description && (
                   <p className="text-xs text-gray-700 mt-1 line-clamp-1">

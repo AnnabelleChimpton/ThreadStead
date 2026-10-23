@@ -89,6 +89,8 @@ export type ProfileProps = {
   blueskyHandle?: string;
   /** Where the page canonically lives: their address for a public profile */
   canonicalUrl?: string;
+  /** Their yard's share image, for link previews (public profiles with a pixel home) */
+  shareImage?: string;
   /** Tabs the owner hid (Settings > Your page); Blog always shows */
   hiddenTabs?: string[];
   /** The widget slot under the header (standard layout only), already compiled */
@@ -124,6 +126,7 @@ export default function ProfilePage({
   hasPixelHome = false,
   blueskyHandle,
   canonicalUrl,
+  shareImage,
   widgetSlot,
   widgetSlotData,
   hiddenTabs = [],
@@ -180,17 +183,25 @@ export default function ProfilePage({
       <meta property="og:title" content={pageTitle} />
       <meta property="og:description" content={profileMetadata.description} />
       <meta property="og:type" content="profile" />
-      <meta key="og:image" property="og:image" content={photoUrl} />
-      <meta key="og:image:alt" property="og:image:alt" content={profileMetadata.imageAlt} />
+      {/* A link to their page previews as their house when they have one;
+          else their avatar, as a small square card rather than a stretched banner */}
+      <meta key="og:image" property="og:image" content={shareImage || photoUrl} />
+      {shareImage && <meta key="og:image:width" property="og:image:width" content="1200" />}
+      {shareImage && <meta key="og:image:height" property="og:image:height" content="630" />}
+      <meta
+        key="og:image:alt"
+        property="og:image:alt"
+        content={shareImage ? `${displayName || `@${username}`}'s house and yard` : profileMetadata.imageAlt}
+      />
       <meta property="og:url" content={pageUrl} />
       <meta property="og:site_name" content="ThreadStead" />
       <meta property="og:locale" content="en_US" />
 
       {/* Social media card meta tags */}
-      <meta key="twitter:card" name="twitter:card" content="summary_large_image" />
+      <meta key="twitter:card" name="twitter:card" content={shareImage ? "summary_large_image" : "summary"} />
       <meta name="twitter:title" content={pageTitle} />
       <meta name="twitter:description" content={profileMetadata.description} />
-      <meta key="twitter:image" name="twitter:image" content={photoUrl} />
+      <meta key="twitter:image" name="twitter:image" content={shareImage || photoUrl} />
 
       {/* Structured data */}
       <script
@@ -466,6 +477,7 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
       hiddenTabs?: string[];
       bannerUrl?: string | null;
       status?: string | null;
+      visibility?: 'public' | 'followers' | 'friends' | 'private';
     };
     profileMidi?: {
       url: string;
@@ -721,6 +733,12 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   if (featuredFriends.length > 0) props.featuredFriends = featuredFriends;
   if (data.profileMidi) props.profileMidi = data.profileMidi;
   props.hasPixelHome = data.hasPixelHome === true;
+  // Link previews reach signed-out visitors: only a public profile's house goes in one
+  if (props.hasPixelHome && data.profile?.visibility === 'public') {
+    const { homeShareImage } = await import('@/lib/pixel-homes/snapshot/share-image');
+    props.shareImage = await homeShareImage(data.userId, data.username || usernameParam).catch(() => undefined);
+    if (props.shareImage === undefined) delete props.shareImage;
+  }
   if (data.blueskyHandle) props.blueskyHandle = data.blueskyHandle;
   if (data.siteUrl) props.canonicalUrl = data.siteUrl;
 

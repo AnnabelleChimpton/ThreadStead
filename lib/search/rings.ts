@@ -11,6 +11,7 @@ import { createAuthenticatedRingHubClient } from '@/lib/api/ringhub/ringhub-user
 import { getUserBlockedIds } from '@/lib/domain/users/blocks'
 import { escapeLike } from './query'
 import type { SearchResult } from './types'
+import { countOf } from '@/lib/utils/count-of'
 
 export interface RingRow {
   id: string
@@ -140,7 +141,7 @@ export function ringResult(ring: RingRow): Omit<SearchResult, 'relevanceScore'> 
     title: ring.name,
     description: ring.description || undefined,
     url: `/tr/${ring.slug}`,
-    meta: `${ring.memberCount || 0} members • ${ring.postCount || 0} posts`,
+    meta: `${countOf(ring.memberCount || 0, 'member')} • ${countOf(ring.postCount || 0, 'post')}`,
     ring: {
       slug: ring.slug,
       badgeImageUrl: ring.badgeImageUrl || null,
