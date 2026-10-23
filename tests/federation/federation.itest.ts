@@ -63,7 +63,8 @@ jest.mock('@/lib/config/database/connection', () => ({
     userDID: { findUnique: jest.fn(async () => null), findMany: jest.fn(async () => []) },
     // transferRingOwnership / listOwnershipCandidates: residents and the local owner mirror (set per test)
     user: { findUnique: jest.fn(async () => null), findMany: jest.fn(async () => []) },
-    ringHubOwnership: { findUnique: jest.fn(async () => null), upsert: jest.fn(async () => ({})) },
+    // sendPostToRings reads findMany for new mirror rows' owners
+    ringHubOwnership: { findUnique: jest.fn(async () => null), findMany: jest.fn(async () => []), upsert: jest.fn(async () => ({})) },
     threadRingMember: { updateMany: jest.fn(async () => ({ count: 0 })) },
     threadRing: {
       findMany: jest.fn(async ({ where }: any) => mockLocalDb.rings.filter((r) => where.slug.in.includes(r.slug))),
