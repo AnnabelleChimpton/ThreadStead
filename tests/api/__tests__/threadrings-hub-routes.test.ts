@@ -21,9 +21,6 @@ jest.mock('@/lib/config/database/connection', () => ({
   },
 }))
 jest.mock('@/lib/auth/server', () => ({ getSessionUser: jest.fn() }))
-jest.mock('@/lib/api/ringhub/ringhub-middleware', () => ({
-  withThreadRingSupport: (handler: any) => (req: any, res: any) => handler(req, res, 'ringhub'),
-}))
 jest.mock('@/lib/server/http/csrf', () => ({
   csrfProtection: jest.fn().mockResolvedValue(true),
   withCsrfProtection: (h: any) => h,
@@ -78,13 +75,6 @@ function ring(slug: string, extra: Record<string, unknown> = {}) {
   }
 }
 
-const ORIGINAL_FLAG = process.env.NEXT_PUBLIC_USE_RING_HUB
-beforeAll(() => {
-  process.env.NEXT_PUBLIC_USE_RING_HUB = 'true'
-})
-afterAll(() => {
-  process.env.NEXT_PUBLIC_USE_RING_HUB = ORIGINAL_FLAG
-})
 beforeEach(() => {
   jest.clearAllMocks()
   jest.spyOn(console, 'error').mockImplementation(() => {})

@@ -34,7 +34,6 @@ jest.mock('@/lib/config/database/connection', () => ({
   },
 }))
 jest.mock('@/lib/api/ringhub/ringhub-client', () => ({
-  shouldUseRingHub: jest.fn(() => true),
   getPublicRingHubClient: jest.fn(),
   getRingHubClient: jest.fn(),
 }))
@@ -51,7 +50,7 @@ jest.mock('@/lib/indie-index/tiers', () => ({
 }))
 
 import { db } from '@/lib/config/database/connection'
-import { getPublicRingHubClient, getRingHubClient, shouldUseRingHub } from '@/lib/api/ringhub/ringhub-client'
+import { getPublicRingHubClient, getRingHubClient } from '@/lib/api/ringhub/ringhub-client'
 import { createAuthenticatedRingHubClient } from '@/lib/api/ringhub/ringhub-user-operations'
 import { buildPostUri } from '@/lib/domain/posts/ringhub-metadata'
 import { deleteObjects } from '@/lib/storage/r2'
@@ -152,7 +151,6 @@ let owners: Record<string, ReturnType<typeof curator>>
 beforeEach(() => {
   jest.clearAllMocks()
   events.length = 0
-  ;(shouldUseRingHub as jest.Mock).mockReturnValue(true)
   ;(getPublicRingHubClient as jest.Mock).mockReturnValue(reader)
   author = curator('author', () => ({ affectedRings: [] }))
   owners = {}
@@ -282,13 +280,6 @@ describe('removeUserPostsFromRingHub', () => {
 
     expect(result.failed).toHaveLength(1)
     expect(result.failed[0].error).toContain('503 unavailable')
-  })
-
-  it('does nothing when Ring Hub is off', async () => {
-    ;(shouldUseRingHub as jest.Mock).mockReturnValue(false)
-    const result = await removeUserPostsFromRingHub('spammer', 'r')
-    expect(result).toEqual({ hubEnabled: false, hadKey: false, removals: [], failed: [] })
-    expect(mockDb.post.findMany).not.toHaveBeenCalled()
   })
 
   it('keeps the hub reason within its 500-character limit', async () => {
@@ -534,14 +525,8 @@ describe('listUserRingMemberships', () => {
   it('without a key here: nothing to list, and no key gets minted', async () => {
     mockDb.userDID.findUnique.mockResolvedValue(null)
     const result = await listUserRingMemberships('spammer')
-    expect(result).toEqual({ hubEnabled: true, hadKey: false, memberships: [] })
+    expect(result).toEqual({ hadKey: false, memberships: [] })
     expect(createAuthenticatedRingHubClient).not.toHaveBeenCalled()
-  })
-
-  it('does nothing when Ring Hub is off', async () => {
-    ;(shouldUseRingHub as jest.Mock).mockReturnValue(false)
-    expect(await listUserRingMemberships('spammer')).toEqual({ hubEnabled: false, hadKey: false, memberships: [] })
-    expect(mockDb.userDID.findUnique).not.toHaveBeenCalled()
   })
 })
 

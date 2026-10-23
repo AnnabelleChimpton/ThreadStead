@@ -18,8 +18,7 @@ jest.mock('@/lib/auth/server', () => ({
 }))
 jest.mock('@/lib/server/http/rate-limit', () => ({ rateLimitCheck: jest.fn(async () => true) }))
 jest.mock('@/lib/server/http/csrf', () => ({ csrfProtection: jest.fn(async () => true) }))
-// Badges come from RingHub; with it off a visible profile answers { badges: [] }
-jest.mock('@/lib/utils/features/feature-flags', () => ({ featureFlags: { ringhub: () => false } }))
+// Badges come from RingHub; with no DID a visible profile answers { badges: [] }
 jest.mock('@/lib/api/did/server-did-client', () => ({ getUserDID: jest.fn() }))
 jest.mock('@/lib/api/ringhub/ringhub-client', () => ({ getPublicRingHubClient: jest.fn() }))
 

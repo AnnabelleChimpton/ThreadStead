@@ -2,7 +2,7 @@
  * Pin, unpin and remove from the ring page's post menu go to the hub's
  * /curate with the PostRef id, signed as the resident, and the hub decides
  * who may. They used to check local ThreadRingMember rows (which nothing
- * writes with Ring Hub on, so hosts got "remove 403") and send this site's
+ * writes any more, so hosts got "remove 403") and send this site's
  * post id, which the hub can't find.
  */
 import type { NextApiRequest, NextApiResponse } from 'next'

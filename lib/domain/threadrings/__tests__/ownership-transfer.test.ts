@@ -18,7 +18,6 @@ jest.mock('@/lib/config/database/connection', () => ({
 }))
 jest.mock('@/lib/api/ringhub/ringhub-client', () => ({
   ...jest.requireActual('@/lib/api/ringhub/ringhub-client'),
-  shouldUseRingHub: jest.fn(() => true),
   getPublicRingHubClient: jest.fn(),
   getRingHubClient: jest.fn(),
 }))
@@ -32,7 +31,6 @@ import {
   getPublicRingHubClient,
   getRingHubClient,
   RingHubClientError,
-  shouldUseRingHub,
 } from '@/lib/api/ringhub/ringhub-client'
 import { createAuthenticatedRingHubClient } from '@/lib/api/ringhub/ringhub-user-operations'
 import { listOwnershipCandidates, transferRingOwnership } from '@/lib/domain/threadrings/ownership-transfer'
@@ -92,7 +90,6 @@ beforeEach(() => {
     getRingMembers: jest.fn((slug: string, options: unknown) => reader.getRingMembers(slug, options)),
   }
   siteClient = { transferOwnership: jest.fn(async (_slug: string, to: string) => ({ ...transferred(to), byAdmin: true })) }
-  ;(shouldUseRingHub as jest.Mock).mockReturnValue(true)
   ;(getPublicRingHubClient as jest.Mock).mockReturnValue(reader)
   ;(getRingHubClient as jest.Mock).mockReturnValue(siteClient)
   ;(createAuthenticatedRingHubClient as jest.Mock).mockReturnValue(ownerClient)
@@ -180,10 +177,8 @@ describe('transferRingOwnership', () => {
     expect(ownerClient.transferOwnership).not.toHaveBeenCalled()
   })
 
-  test('an unknown ring is a 404 and Ring Hub being off is a 400', async () => {
+  test('an unknown ring is a 404', async () => {
     expect((await refusal(transferRingOwnership({ slug: 'nope', actor: { id: 'alice', role: 'admin' }, newOwnerUserId: 'bob' })))?.status).toBe(404)
-    ;(shouldUseRingHub as jest.Mock).mockReturnValue(false)
-    expect((await refusal(transferRingOwnership({ slug: 'garden', actor: { id: 'alice', role: 'admin' }, newOwnerUserId: 'bob' })))?.status).toBe(400)
   })
 
   test.each([

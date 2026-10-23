@@ -37,9 +37,6 @@ jest.mock('@/lib/api/ringhub/ringhub-user-operations', () => ({
   createAuthenticatedRingHubClient: jest.fn(),
   AuthenticatedRingHubClient: jest.fn(),
 }))
-jest.mock('@/lib/api/ringhub/ringhub-middleware', () => ({
-  withThreadRingSupport: (h: any) => (req: any, res: any) => h(req, res, 'ringhub'),
-}))
 jest.mock('@/lib/api/ringhub/ringhub-retry', () => ({
   retryWithBackoff: (fn: () => Promise<unknown>) => fn(),
 }))
@@ -102,13 +99,6 @@ function curatorHub() {
   }
 }
 
-const ORIGINAL_FLAG = process.env.NEXT_PUBLIC_USE_RING_HUB
-beforeAll(() => {
-  process.env.NEXT_PUBLIC_USE_RING_HUB = 'true'
-})
-afterAll(() => {
-  process.env.NEXT_PUBLIC_USE_RING_HUB = ORIGINAL_FLAG
-})
 beforeEach(() => {
   jest.clearAllMocks()
   jest.spyOn(console, 'error').mockImplementation(() => {})

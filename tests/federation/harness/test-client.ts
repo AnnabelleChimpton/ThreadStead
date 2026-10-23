@@ -33,9 +33,6 @@ export function makeTestClient(as: 'main' | 'second' | 'admin' | 'unresolvable' 
 /** The real unsigned public client (getPublicRingHubClient), pointed at the harness hub. */
 export function makePublicTestClient(): RingHubClient {
   const rt = readRuntime()
-  process.env.NEXT_PUBLIC_USE_RING_HUB = 'true'
   process.env.RING_HUB_URL = rt.hubUrl
-  const client = getPublicRingHubClient()
-  if (!client) throw new Error('getPublicRingHubClient() returned null')
-  return client
+  return getPublicRingHubClient()
 }

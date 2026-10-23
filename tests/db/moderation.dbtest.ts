@@ -23,7 +23,6 @@ jest.mock('@/lib/server/http/csrf', () => ({
   getCookieSecureFlag: () => '',
 }))
 jest.mock('@/lib/api/ringhub/ringhub-client', () => ({
-  shouldUseRingHub: () => false,
   getPublicRingHubClient: () => null,
   getRingHubClient: () => null,
 }))

@@ -23,7 +23,6 @@ jest.mock('@/lib/config/database/connection', () => ({
 }))
 jest.mock('@/lib/auth/server', () => ({ getSessionUser: jest.fn() }))
 jest.mock('@/lib/domain/users/profile-access', () => ({ residentAccess: jest.fn() }))
-jest.mock('@/lib/utils/features/feature-flags', () => ({ featureFlags: { ringhub: () => true } }))
 jest.mock('@/lib/api/did/server-did-client', () => ({ getUserDID: jest.fn(async () => 'did:test:shy') }))
 const getActorBadges = jest.fn(async () => ({
   badges: [

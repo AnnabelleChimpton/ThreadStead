@@ -19,7 +19,6 @@ jest.mock('@/lib/config/database/connection', () => ({
   },
 }))
 jest.mock('@/lib/auth/server', () => ({ getSessionUser: jest.fn(async () => ({ id: 'u1' })) }))
-jest.mock('@/lib/utils/features/feature-flags', () => ({ featureFlags: { ringhub: () => true } }))
 jest.mock('@/lib/api/ringhub/ringhub-user-operations', () => ({
   createAuthenticatedRingHubClient: () => ({ submitPost: (...a: unknown[]) => mockSubmit(...a) }),
 }))

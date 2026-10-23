@@ -125,7 +125,7 @@ describe('hub ring search through the real client', () => {
 
 describe('lib/search/rings.ts reading the hub live', () => {
   const search = (q: string, viewerId: string | null = null) =>
-    fetchRings({ search: q, viewerId, system: 'ringhub', limit: 50 })
+    fetchRings({ search: q, viewerId, limit: 50 })
 
   it('returns slim rows with the hub relevance, for anonymous and signed viewers', async () => {
     const anon = await search('sourdough')

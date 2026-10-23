@@ -79,7 +79,6 @@ jest.mock('@/lib/config/database/connection', () => ({
   },
 }))
 jest.mock('@/lib/auth/server', () => ({ getSessionUser: jest.fn() }))
-jest.mock('@/lib/api/ringhub/ringhub-middleware', () => ({ getThreadRingSystem: () => 'ringhub' }))
 jest.mock('@/lib/api/ringhub/ringhub-client', () => ({ getPublicRingHubClient: jest.fn() }))
 jest.mock('@/lib/api/ringhub/ringhub-user-operations', () => ({ createAuthenticatedRingHubClient: jest.fn() }))
 jest.mock('@/lib/domain/posts/visibility', () => ({

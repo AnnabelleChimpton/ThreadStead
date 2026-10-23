@@ -15,7 +15,6 @@ const mockHiddenDids = jest.fn()
 
 jest.mock('@/lib/config/site-url', () => ({ getSiteBaseUrl: () => BASE }))
 jest.mock('@/lib/config/database/connection', () => ({ db: { post: { findMany: (...a: unknown[]) => mockFindMany(...a) } } }))
-jest.mock('@/lib/utils/features/feature-flags', () => ({ featureFlags: { ringhub: () => true } }))
 jest.mock('@/lib/rings/walk', () => ({ ringFacts: (...a: unknown[]) => mockFacts(...a) }))
 jest.mock('@/lib/api/ringhub/ringhub-client', () => ({ getPublicRingHubClient: () => ({ getRingFeed: (...a: unknown[]) => mockGetRingFeed(...a) }) }))
 jest.mock('@/lib/domain/users/blocks', () => ({

@@ -787,7 +787,6 @@ describe('post deletion removes hub PostRefs (admin delete-post)', () => {
   const legacyUri = buildPostUri('itest', LEGACY_POST_ID)
   let storedRefId: string
   let second: RingHubClient
-  let gate: jest.SpyInstance
 
   const asPost = (id: string, threadRingPostIds: Record<string, string> | null, slugs: string[]) => ({
     id,
@@ -799,7 +798,6 @@ describe('post deletion removes hub PostRefs (admin delete-post)', () => {
 
   beforeAll(async () => {
     second = makeTestClient('second')
-    gate = jest.spyOn(ringHubClientModule, 'shouldUseRingHub').mockReturnValue(true)
     ;(createAuthenticatedRingHubClient as jest.Mock).mockImplementation((userId: 'main' | 'second') =>
       userId === 'main' ? client : makeTestClient(userId)
     )
@@ -808,10 +806,6 @@ describe('post deletion removes hub PostRefs (admin delete-post)', () => {
     await client.submitPost(FORK_SLUG, { uri: storedUri, digest: 'sha256:del-stored' })
     // A post from before threadRingPostIds existed: found only by its URI.
     await client.submitPost(ringSlug, { uri: legacyUri, digest: 'sha256:del-legacy' })
-  })
-
-  afterAll(() => {
-    gate.mockRestore()
   })
 
   test('the old call shape could never work: a local post id 404s, a non-author signer 403s', async () => {
@@ -863,16 +857,12 @@ describe('deleting an account takes its ring posts off the hub (S-2)', () => {
   const inFeed = async (slug: string, postUri: string) =>
     !!(await client.getRingFeed(slug, { limit: 100 })).posts.find((p) => p.uri === postUri)
   let second: RingHubClient
-  let gate: jest.SpyInstance
 
   beforeAll(() => {
     makePublicTestClient() // points the app's public client at the harness hub
     second = makeTestClient('second')
-    gate = jest.spyOn(ringHubClientModule, 'shouldUseRingHub').mockReturnValue(true)
     ;(createAuthenticatedRingHubClient as jest.Mock).mockImplementation(resident)
   })
-
-  afterAll(() => gate.mockRestore())
 
   test('with the key still here: removed as the author', async () => {
     await second.joinRing(ringSlug).catch(() => {}) // may still be a member from an earlier block
@@ -1021,7 +1011,6 @@ describe('deleting a ring only its owner is in (DELETE /trp/rings/:slug)', () =>
   const owned = { ringSlug: SOLO, ringName: 'Solo', role: 'owner', status: 'ACTIVE' }
   let second: RingHubClient
   let secondDid: string
-  let gate: jest.SpyInstance
 
   const makeRing = (slug: string, ownerDid: string, parentSql: string, visibility: string) =>
     hubSql(`INSERT INTO "Ring" (id, slug, name, visibility, "joinPolicy", "ownerDid", "parentId", "updatedAt")
@@ -1044,7 +1033,6 @@ describe('deleting a ring only its owner is in (DELETE /trp/rings/:slug)', () =>
     makePublicTestClient()
     second = makeTestClient('second')
     secondDid = getRuntime().secondActorDid
-    gate = jest.spyOn(ringHubClientModule, 'shouldUseRingHub').mockReturnValue(true)
     ;(createAuthenticatedRingHubClient as jest.Mock).mockImplementation(resident)
     localDb.userDID.findUnique.mockImplementation(async ({ where }: any) =>
       where.userId === 'second' ? { userId: 'second', did: secondDid } : where.did === actorDid ? { userId: 'main' } : null
@@ -1055,13 +1043,12 @@ describe('deleting a ring only its owner is in (DELETE /trp/rings/:slug)', () =>
   })
 
   afterAll(() => {
-    gate.mockRestore()
     hubSql(`DELETE FROM "Ring" WHERE slug IN ('${SOLO}', '${CHILD}');`)
   })
 
   test('a PRIVATE ring is invisible to the public reader, so its owner reads it: shared while someone else is in it', async () => {
     clearCache()
-    expect(await ringHubClientModule.getPublicRingHubClient()!.getRing(SOLO)).toBeNull()
+    expect(await ringHubClientModule.getPublicRingHubClient().getRing(SOLO)).toBeNull()
 
     expect((await sharedOwnedRings('second', [owned])).map((r) => r.ringSlug)).toEqual([SOLO])
     const [kept] = await leaveUserRingsOnHub('second', [owned])
@@ -1119,7 +1106,7 @@ describe('deleting a ring only its owner is in (DELETE /trp/rings/:slug)', () =>
     expect(await reasonToKeep(bySlug.spool, SITE, noAccount)).toBe('the root ring')
 
     const admin = makeTestClient('admin')
-    const reader = ringHubClientModule.getPublicRingHubClient()!
+    const reader = ringHubClientModule.getPublicRingHubClient()
     clearCache()
     for (const slug of ['itest-left-empty', 'itest-left-private']) {
       expect(await reasonToKeep(bySlug[slug], SITE, noAccount)).toBeNull()
@@ -1159,7 +1146,6 @@ describe('handing a ring to a new owner (POST /trp/rings/:slug/transfer-ownershi
   }
   let second: RingHubClient
   let secondDid: string
-  let gate: jest.SpyInstance
   let site: jest.SpyInstance
 
   // Residents here: 'main' and 'second', each with their hub key.
@@ -1186,7 +1172,6 @@ describe('handing a ring to a new owner (POST /trp/rings/:slug/transfer-ownershi
     makePublicTestClient()
     second = makeTestClient('second')
     secondDid = getRuntime().secondActorDid
-    gate = jest.spyOn(ringHubClientModule, 'shouldUseRingHub').mockReturnValue(true)
     // This site's own DID, as the hub admin.
     site = jest.spyOn(ringHubClientModule, 'getRingHubClient').mockReturnValue(makeTestClient('admin'))
     ;(createAuthenticatedRingHubClient as jest.Mock).mockImplementation((userId: 'main' | 'second') =>
@@ -1206,7 +1191,6 @@ describe('handing a ring to a new owner (POST /trp/rings/:slug/transfer-ownershi
   })
 
   afterAll(() => {
-    gate.mockRestore()
     site.mockRestore()
     hubSql(`DELETE FROM "Ring" WHERE slug IN ('${OWNER_SLUG}', '${ADMIN_SLUG}');`)
   })

@@ -23,7 +23,6 @@ jest.mock('@/pages/resident/[username]/index', () => ({
 }))
 
 jest.mock('@/lib/api/ringhub/ringhub-client', () => ({
-  shouldUseRingHub: () => false,
   getPublicRingHubClient: () => null,
   getRingHubClient: () => null,
 }))

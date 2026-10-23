@@ -30,7 +30,6 @@ jest.mock('@/lib/domain/users/capabilities', () => ({
   requireAction: () => async () => ({ ok: true }),
 }))
 jest.mock('@/lib/api/ringhub/ringhub-client', () => ({
-  shouldUseRingHub: jest.fn(() => true),
   getRingHubClient: jest.fn(() => {
     throw new Error('server-signed client must not be used for post removal')
   }),
@@ -43,7 +42,6 @@ import adminDeleteHandler from '@/pages/api/admin/delete-post'
 import authorDeleteHandler from '@/pages/api/posts/delete'
 import { getSessionUser } from '@/lib/auth/server'
 import { db } from '@/lib/config/database/connection'
-import { shouldUseRingHub } from '@/lib/api/ringhub/ringhub-client'
 import { createAuthenticatedRingHubClient } from '@/lib/api/ringhub/ringhub-user-operations'
 import { buildPostUri } from '@/lib/domain/posts/ringhub-metadata'
 
@@ -99,7 +97,6 @@ beforeEach(() => {
   jest.clearAllMocks()
   jest.spyOn(console, 'error').mockImplementation(() => {})
   jest.spyOn(console, 'warn').mockImplementation(() => {})
-  ;(shouldUseRingHub as jest.Mock).mockReturnValue(true)
   hub = { curatePost: jest.fn(), getRingFeed: jest.fn() }
   ;(createAuthenticatedRingHubClient as jest.Mock).mockReturnValue(hub)
   mockDb.post.delete.mockResolvedValue({})
@@ -178,16 +175,12 @@ describe('DELETE /api/admin/delete-post', () => {
     expect(res.jsonBody).toMatchObject({ success: true, ringHubSynced: false })
   })
 
-  test('posts in no rings, or Ring Hub disabled, never touch the hub', async () => {
+  test('posts in no rings never touch the hub', async () => {
     mockDb.post.findUnique.mockResolvedValue(makePost({ threadRings: [] }))
     await adminDeleteHandler(...Object.values(makeReqRes('DELETE', { postId: 'local-post-1' })) as [any, any])
 
-    ;(shouldUseRingHub as jest.Mock).mockReturnValue(false)
-    mockDb.post.findUnique.mockResolvedValue(makePost())
-    await adminDeleteHandler(...Object.values(makeReqRes('DELETE', { postId: 'local-post-1' })) as [any, any])
-
     expect(createAuthenticatedRingHubClient).not.toHaveBeenCalled()
-    expect(mockDb.post.delete).toHaveBeenCalledTimes(2)
+    expect(mockDb.post.delete).toHaveBeenCalledTimes(1)
   })
 
   test('non-admins are refused before anything is touched', async () => {

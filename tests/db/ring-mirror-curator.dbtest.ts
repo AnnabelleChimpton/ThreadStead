@@ -6,15 +6,20 @@
  * first time a post lands in a hub ring we haven't seen. Ring Hub owns the
  * ring (Ring.ownerDid), so the first poster isn't its curator, and deleting
  * their account (lib/domain/users/account-removal.ts) must not take the row,
- * or everyone else's PostThreadRing links, with it. Ring Hub is mocked off.
+ * or everyone else's PostThreadRing links, with it. Ring Hub is a stub that
+ * has already dropped the posts: this site owns the ring, and removing 404s.
  */
 import { db } from '@/lib/config/database/connection'
 import { SITE_NAME } from '@/lib/config/site/constants'
 
+const SITE_DID = 'did:web:threadstead.test'
 jest.mock('@/lib/api/ringhub/ringhub-client', () => ({
-  shouldUseRingHub: () => false,
-  getPublicRingHubClient: () => null,
-  getRingHubClient: () => null,
+  getPublicRingHubClient: () => ({ getRing: async () => ({ ownerDid: 'did:web:threadstead.test' }) }),
+  getRingHubClient: () => ({
+    curatePost: async () => {
+      throw Object.assign(new Error('Not found'), { status: 404 })
+    },
+  }),
 }))
 jest.mock('@/lib/domain/notifications', () => ({
   createGuestbookNotification: jest.fn(),
@@ -63,6 +68,10 @@ beforeEach(async () => {
   ADMIN = await person('admin', 'admin')
   FIRST = await person('first')
   LATER = await person('later')
+})
+
+beforeAll(() => {
+  process.env.THREADSTEAD_DID = SITE_DID
 })
 
 afterAll(() => db.$disconnect())

@@ -29,7 +29,6 @@ jest.mock('@/lib/config/database/connection', () => ({
   },
 }))
 jest.mock('@/lib/auth/server', () => ({ getSessionUser: jest.fn() }))
-jest.mock('@/lib/api/ringhub/ringhub-middleware', () => ({ getThreadRingSystem: () => 'ringhub' }))
 const hubRings = [
   { id: 'hub-cats', slug: 'cats', name: 'Cats', description: 'cats!', memberCount: 3, postCount: 9 },
   { id: 'hub-catnip', slug: 'catnip', name: 'Catnip', description: null, memberCount: 1, postCount: 0 },

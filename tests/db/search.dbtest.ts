@@ -11,7 +11,6 @@ import { db } from '@/lib/config/database/connection'
 import { allowedVisibilities } from '@/lib/domain/posts/visibility'
 
 jest.mock('@/lib/auth/server', () => ({ getSessionUser: jest.fn() }))
-jest.mock('@/lib/api/ringhub/ringhub-middleware', () => ({ getThreadRingSystem: () => 'ringhub' }))
 const hubClient = { listRings: jest.fn(async () => ({ rings: [] as any[] })) }
 jest.mock('@/lib/api/ringhub/ringhub-client', () => ({ getPublicRingHubClient: jest.fn(() => hubClient) }))
 jest.mock('@/lib/api/ringhub/ringhub-user-operations', () => ({

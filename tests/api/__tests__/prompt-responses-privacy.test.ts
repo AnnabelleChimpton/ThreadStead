@@ -15,9 +15,6 @@ jest.mock('@/lib/config/site-url', () => ({ getSiteBaseUrl: () => BASE }))
 jest.mock('@/lib/config/database/connection', () => ({ db: { post: { findMany: (...a: unknown[]) => mockFindMany(...a) } } }))
 jest.mock('@/lib/auth/server', () => ({ getSessionUser: jest.fn(async () => ({ id: 'viewer' })) }))
 jest.mock('@/lib/domain/users/blocks', () => ({ getHiddenIds: jest.fn(async () => ({ blockedUserIds: ['banned'] })) }))
-jest.mock('@/lib/api/ringhub/ringhub-middleware', () => ({
-  withThreadRingSupport: (handler: any) => (req: any, res: any) => handler(req, res, 'ringhub'),
-}))
 jest.mock('@/lib/utils/data/prompt-service', () => ({
   promptFeedReader: async () => null,
   createPromptService: () => ({

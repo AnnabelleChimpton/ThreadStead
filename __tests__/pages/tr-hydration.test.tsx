@@ -22,7 +22,6 @@ jest.mock('@/lib/api/ringhub/ringhub-transformers', () => ({ transformRingDescri
 jest.mock('@/lib/pixel-homes/house-badge', () => ({ badgeHandlesFor: jest.fn() }));
 jest.mock('@/lib/rings/page-data', () => ({ loadRingForPage: jest.fn() }));
 jest.mock('@/lib/rings/manage', () => ({}));
-jest.mock('@/lib/utils/features/feature-flags', () => ({ featureFlags: { ringhub: () => true } }));
 jest.mock('@/hooks/useCurrentUser', () => ({
   useCurrentUser: () => ({ user: null, loading: false, loggedIn: false }),
 }));

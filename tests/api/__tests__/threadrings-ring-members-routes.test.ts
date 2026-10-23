@@ -99,13 +99,6 @@ function hubRing(count: number, oldest: string, oldestRole: 'owner' | 'moderator
   }
 }
 
-const ORIGINAL_FLAG = process.env.NEXT_PUBLIC_USE_RING_HUB
-beforeAll(() => {
-  process.env.NEXT_PUBLIC_USE_RING_HUB = 'true'
-})
-afterAll(() => {
-  process.env.NEXT_PUBLIC_USE_RING_HUB = ORIGINAL_FLAG
-})
 beforeEach(() => {
   jest.clearAllMocks()
   jest.spyOn(console, 'error').mockImplementation(() => {})

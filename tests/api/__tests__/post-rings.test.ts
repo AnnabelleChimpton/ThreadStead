@@ -63,7 +63,6 @@ jest.mock('@/lib/server/http/csrf', () => ({ csrfProtection: jest.fn().mockResol
 jest.mock('@/lib/server/http/rate-limit', () => ({
   rateLimitCheck: jest.fn().mockResolvedValue(true),
 }))
-jest.mock('@/lib/utils/features/feature-flags', () => ({ featureFlags: { ringhub: () => true } }))
 jest.mock('@/lib/api/ringhub/ringhub-user-operations', () => ({ createAuthenticatedRingHubClient: jest.fn() }))
 
 import handler from '@/pages/api/posts/rings'

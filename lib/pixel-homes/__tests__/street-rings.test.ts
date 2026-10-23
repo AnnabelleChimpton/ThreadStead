@@ -163,9 +163,8 @@ describe('getStreetRingSigns', () => {
     expect(hub.getActorBadges).toHaveBeenCalledTimes(4)
   })
 
-  it('no hub configured, too few homes, or residents who never joined a ring: no hub calls at all', async () => {
+  it('too few homes, or residents who never joined a ring: no hub calls at all', async () => {
     const hub = fakeHub({})
-    expect(await getStreetRingSigns(fakeDb(), homes, { hub: null })).toEqual([])
     expect(await getStreetRingSigns(fakeDb(), homes.slice(0, 1), { hub })).toEqual([])
     expect(await getStreetRingSigns(fakeDb(['u1']), homes, { hub })).toEqual([])
     expect(hub.getActorBadges).not.toHaveBeenCalled()

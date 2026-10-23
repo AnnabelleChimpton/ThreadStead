@@ -107,7 +107,6 @@ jest.mock('@/lib/server/http/rate-limit', () => ({
   withRateLimit: () => (h: any) => h,
 }))
 jest.mock('@/lib/config/site-url', () => ({ getSiteBaseUrl: () => 'https://home.example' }))
-jest.mock('@/lib/utils/features/feature-flags', () => ({ featureFlags: { ringhub: () => true } }))
 jest.mock('@/lib/domain/posts/visibility', () => ({
   ...jest.requireActual('@/lib/domain/posts/visibility'),
   getAllowedVisibilities: jest.fn(async () => ['public']),

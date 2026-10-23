@@ -15,10 +15,6 @@ jest.mock('@/lib/config/database/connection', () => ({
   db: { userBlock: { findMany: jest.fn() } },
 }))
 jest.mock('@/lib/auth/server', () => ({ getSessionUser: jest.fn() }))
-jest.mock('@/lib/api/ringhub/ringhub-middleware', () => ({
-  withThreadRingSupport: (handler: any) => (req: any, res: any) => handler(req, res, 'ringhub'),
-}))
-jest.mock('@/lib/utils/features/feature-flags', () => ({ featureFlags: { ringhub: () => true } }))
 jest.mock('@/lib/api/ringhub/ringhub-client', () => ({
   ...jest.requireActual('@/lib/api/ringhub/ringhub-client'),
   getPublicRingHubClient: jest.fn(),

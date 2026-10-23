@@ -8,7 +8,6 @@ import type { Visibility } from '@prisma/client'
 import { db } from '@/lib/config/database/connection'
 
 jest.mock('@/lib/auth/server', () => ({ getSessionUser: jest.fn() }))
-jest.mock('@/lib/api/ringhub/ringhub-middleware', () => ({ getThreadRingSystem: () => 'ringhub' }))
 const hubClient = { listRings: jest.fn(async (_opts?: any) => ({ rings: [] as any[], total: 0 })) }
 jest.mock('@/lib/api/ringhub/ringhub-client', () => ({ getPublicRingHubClient: jest.fn(() => hubClient) }))
 jest.mock('@/lib/api/ringhub/ringhub-user-operations', () => ({

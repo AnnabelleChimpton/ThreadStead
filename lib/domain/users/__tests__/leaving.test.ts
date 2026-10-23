@@ -35,7 +35,7 @@ async function rejection(promise: Promise<unknown>) {
 beforeEach(() => {
   jest.clearAllMocks()
   mockDb.user.findUnique.mockResolvedValue(resident)
-  ;(listUserRingMemberships as jest.Mock).mockResolvedValue({ hubEnabled: true, hadKey: true, memberships: [] })
+  ;(listUserRingMemberships as jest.Mock).mockResolvedValue({ hadKey: true, memberships: [] })
   ;(sharedOwnedRings as jest.Mock).mockResolvedValue([])
 })
 
@@ -70,7 +70,7 @@ describe('startLeaving', () => {
 
   it('asks for rings with other members to be handed over first; a ring of one is fine', async () => {
     const memberships = [membership('knits', 'owner'), membership('solo', 'owner'), membership('zines')]
-    ;(listUserRingMemberships as jest.Mock).mockResolvedValue({ hubEnabled: true, hadKey: true, memberships })
+    ;(listUserRingMemberships as jest.Mock).mockResolvedValue({ hadKey: true, memberships })
     ;(sharedOwnedRings as jest.Mock).mockResolvedValue([membership('knits', 'owner')])
 
     const error = await rejection(startLeaving('u1', 'alice', NOW))
@@ -87,7 +87,7 @@ describe('startLeaving', () => {
   })
 
   it("won't start when the hub can't say which rings they own", async () => {
-    ;(listUserRingMemberships as jest.Mock).mockResolvedValue({ hubEnabled: true, hadKey: true, memberships: [], error: 'hub down' })
+    ;(listUserRingMemberships as jest.Mock).mockResolvedValue({ hadKey: true, memberships: [], error: 'hub down' })
     expect((await rejection(startLeaving('u1', 'alice', NOW))).status).toBe(503)
   })
 
@@ -165,7 +165,7 @@ describe('finishDueLeaves', () => {
 
   it('waits when the hub can\'t list their rings', async () => {
     mockDb.user.findMany.mockResolvedValue([{ id: 'u1', primaryHandle: 'alice@HomePageAgain', moderationStatus: 'active', deletesAt: NOW }])
-    ;(listUserRingMemberships as jest.Mock).mockResolvedValue({ hubEnabled: true, hadKey: true, memberships: [], error: 'hub down' })
+    ;(listUserRingMemberships as jest.Mock).mockResolvedValue({ hadKey: true, memberships: [], error: 'hub down' })
     expect(await finishDueLeaves(NOW)).toEqual({ deleted: 0, waiting: 1 })
     expect(eraseAccount).not.toHaveBeenCalled()
   })
