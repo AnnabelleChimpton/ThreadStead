@@ -26,7 +26,7 @@ async function main() {
   const admin = getRingHubClient()
   const reader = getPublicRingHubClient()
   const siteDid = process.env.THREADSTEAD_DID
-  if (!admin || !reader || !siteDid) throw new Error('Ring Hub is not set up here (RING_HUB_URL, THREADSTEAD_DID)')
+  if (!siteDid) throw new Error('Ring Hub is not set up here (THREADSTEAD_DID)')
 
   const rings = parseListing(readFileSync(file, 'utf8'))
   console.log(`Hub: ${process.env.RING_HUB_URL}  Site: ${siteDid}  Mode: ${apply ? 'APPLY' : 'dry run'}  Rings listed: ${rings.length}`)

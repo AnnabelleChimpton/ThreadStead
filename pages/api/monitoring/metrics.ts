@@ -25,7 +25,6 @@ interface Metrics {
     server_key_rotation_overdue: boolean
   }
   features: {
-    ring_hub_enabled: boolean
     threadrings_enabled: boolean
     encryption_enabled: boolean
   }
@@ -72,7 +71,6 @@ export default apiHandler({ methods: ['GET'], auth: 'admin' }, async (_req, res)
         server_key_rotation_overdue: keyRotationStatus?.server.needsRotation || false
       },
       features: {
-        ring_hub_enabled: env.NEXT_PUBLIC_USE_RING_HUB,
         threadrings_enabled: env.NEXT_PUBLIC_THREADRINGS_ENABLED,
         encryption_enabled: !!env.THREADSTEAD_KEY_ENCRYPTION_KEY
       },

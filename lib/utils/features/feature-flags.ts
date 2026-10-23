@@ -5,10 +5,8 @@ export interface UserWithRole {
   role: UserRole | string;
 }
 
-export function isFeatureEnabled(feature: 'ringhub' | 'template-islands' | 'template-compilation', user?: UserWithRole | null): boolean {
+export function isFeatureEnabled(feature: 'template-islands' | 'template-compilation', user?: UserWithRole | null): boolean {
   switch (feature) {
-    case 'ringhub':
-      return process.env.NEXT_PUBLIC_USE_RING_HUB === 'true';
     case 'template-islands':
       return process.env.ENABLE_TEMPLATE_ISLANDS === 'true';
     case 'template-compilation':
@@ -40,7 +38,6 @@ export function shouldUseTemplateIslands(user?: UserWithRole | null): boolean {
 }
 
 export const featureFlags = {
-  ringhub: () => isFeatureEnabled('ringhub'),
   templateIslands: (user?: UserWithRole | null) => shouldUseTemplateIslands(user),
   templateCompilation: () => isFeatureEnabled('template-compilation'),
 } as const;

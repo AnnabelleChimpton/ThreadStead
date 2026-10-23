@@ -59,7 +59,6 @@ async function main() {
   const args = parseArgs(process.argv.slice(2))
   const publicClient = getPublicRingHubClient()
   const serverClient = getRingHubClient()
-  if (!publicClient) throw new Error('Ring Hub is not enabled (NEXT_PUBLIC_USE_RING_HUB / RING_HUB_URL)')
 
   console.log(`Hub: ${process.env.RING_HUB_URL}  Mode: ${args.apply ? 'APPLY' : 'dry run'}`)
 

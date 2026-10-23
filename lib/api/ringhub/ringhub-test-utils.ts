@@ -4,7 +4,7 @@
  * Utilities for testing Ring Hub connectivity and client functionality
  */
 
-import { getRingHubClient, RingHubClient, RingHubClientError } from '@/lib/api/ringhub/ringhub-client'
+import { getRingHubClient, ringHubUrl, RingHubClient, RingHubClientError } from '@/lib/api/ringhub/ringhub-client'
 
 export interface ConnectionTestResult {
   success: boolean
@@ -24,20 +24,11 @@ export interface HealthCheckResult {
  * Test basic Ring Hub connectivity
  */
 export async function testRingHubConnection(): Promise<ConnectionTestResult> {
-  const client = getRingHubClient()
-  
-  if (!client) {
-    return {
-      success: false,
-      error: 'Ring Hub client not configured'
-    }
-  }
-
   const startTime = Date.now()
   
   try {
     // Test basic connectivity with a simple health check
-    const response = await fetch(`${process.env.RING_HUB_URL}/health`)
+    const response = await fetch(`${ringHubUrl()}/health`)
     const responseTime = Date.now() - startTime
     
     if (!response.ok) {
@@ -68,20 +59,11 @@ export async function testRingHubConnection(): Promise<ConnectionTestResult> {
  * Test Ring Hub API endpoints
  */
 export async function testRingHubAPI(): Promise<ConnectionTestResult> {
-  const client = getRingHubClient()
-  
-  if (!client) {
-    return {
-      success: false,
-      error: 'Ring Hub client not configured'
-    }
-  }
-
   const startTime = Date.now()
   
   try {
     // Test the rings listing endpoint
-    await client.listRings({ limit: 1 })
+    await getRingHubClient().listRings({ limit: 1 })
     
     return {
       success: true,
@@ -102,15 +84,6 @@ export async function testRingHubAPI(): Promise<ConnectionTestResult> {
  * Test Ring Hub authentication
  */
 export async function testRingHubAuth(): Promise<ConnectionTestResult> {
-  const client = getRingHubClient()
-  
-  if (!client) {
-    return {
-      success: false,
-      error: 'Ring Hub client not configured'
-    }
-  }
-
   const startTime = Date.now()
   
   try {
@@ -118,7 +91,7 @@ export async function testRingHubAuth(): Promise<ConnectionTestResult> {
     // signature. This used to fork (and then try to delete) a real ring on
     // every call — from a public endpoint, against production — which spent
     // the instance's fork rate limit and could leave test rings behind.
-    await client.getMyMemberships({ limit: 1 })
+    await getRingHubClient().getMyMemberships({ limit: 1 })
 
     return {
       success: true,
@@ -192,10 +165,6 @@ export function validateRingHubConfig(): {
     warnings.push('RING_HUB_API_KEY not set (authentication may fail)')
   }
 
-  if (process.env.NEXT_PUBLIC_USE_RING_HUB !== 'true') {
-    warnings.push('NEXT_PUBLIC_USE_RING_HUB is not enabled')
-  }
-
   return {
     valid: missing.length === 0,
     missing,
@@ -246,23 +215,6 @@ export async function benchmarkRingHubPerformance(): Promise<{
 }> {
   const client = getRingHubClient()
   const operations: any[] = []
-  
-  if (!client) {
-    return {
-      operations: [{
-        name: 'client_init',
-        duration: 0,
-        success: false,
-        error: 'Ring Hub client not configured'
-      }],
-      summary: {
-        total_operations: 1,
-        successful_operations: 0,
-        average_response_time: 0,
-        total_time: 0
-      }
-    }
-  }
 
   const benchmarkOperations = [
     {

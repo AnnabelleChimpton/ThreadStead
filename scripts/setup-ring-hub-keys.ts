@@ -291,7 +291,6 @@ async function generateEnvVars(keypair: KeypairData & { publicKeyMultibase?: str
     console.log(`THREADSTEAD_PUBLIC_KEY_MULTIBASE="${keypair.publicKeyMultibase}"`)
   }
   
-  console.log('NEXT_PUBLIC_USE_RING_HUB=true')
   console.log('RING_HUB_URL="https://ringhub.io"')
   console.log('')
 }

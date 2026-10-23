@@ -123,10 +123,6 @@ async function main() {
   let lookup: HubOwnerLookup | null = null
   if (args.hub) {
     const client = getPublicRingHubClient()
-    if (!client) {
-      console.error('Ring Hub isn\'t configured here. Pass --no-hub to repair only the rings with a RingHubOwnership row.')
-      process.exit(2)
-    }
     lookup = async (slug) => (await client.getRing(slug))?.ownerDid ?? null
   }
 

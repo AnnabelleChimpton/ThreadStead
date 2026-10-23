@@ -214,7 +214,8 @@ export const SERVER_ENV_SPECS = [
     kind: 'url',
     scope: 'server',
     group: 'Ring Hub & DID',
-    description: 'Ring Hub base URL. Ring Hub calls are skipped when unset.',
+    required: 'always',
+    description: 'Ring Hub base URL. ThreadStead always runs against a Ring Hub: every ring, membership and ring post lives there.',
     example: 'http://localhost:3100',
   },
   {

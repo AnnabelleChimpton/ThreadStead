@@ -11,7 +11,6 @@
 
 import { db } from "@/lib/config/database/connection";
 import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
-import { featureFlags } from "@/lib/utils/features/feature-flags";
 
 interface RingHubPost {
   id: string;
@@ -39,14 +38,7 @@ function extractPostIdFromUri(uri: string): string | null {
  * Get all posts from RingHub that reference ThreadStead posts
  */
 async function getAllThreadSteadPostsFromRingHub(): Promise<RingHubPost[]> {
-  if (!featureFlags.ringhub()) {
-    throw new Error("RingHub feature flag is not enabled");
-  }
-
   const client = getRingHubClient();
-  if (!client) {
-    throw new Error("RingHub client not available");
-  }
 
   console.log("🔍 Fetching all rings from RingHub...");
   

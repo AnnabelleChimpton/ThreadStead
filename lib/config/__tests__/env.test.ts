@@ -92,7 +92,12 @@ describe('parseEnv', () => {
 });
 
 describe('validateEnvAtBoot', () => {
-  const good = { DATABASE_URL: 'postgresql://x', NEXT_PUBLIC_BASE_URL: 'https://site.test', CAP_JWT_SECRET: 's' };
+  const good = {
+    DATABASE_URL: 'postgresql://x',
+    NEXT_PUBLIC_BASE_URL: 'https://site.test',
+    CAP_JWT_SECRET: 's',
+    RING_HUB_URL: 'https://hub.test',
+  };
   let errorSpy: jest.SpyInstance;
   let warnSpy: jest.SpyInstance;
   beforeEach(() => {

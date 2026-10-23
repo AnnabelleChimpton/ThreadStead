@@ -36,7 +36,6 @@ interface MonitoringStatus {
     /** API rate limits per category, live from the RateLimit table (null if unreadable). */
     rateLimiting: Record<RateLimitCategory, RateLimitCategoryStats> | null
     features: {
-      ringHubEnabled: boolean
       threadRingsEnabled: boolean
       encryptionEnabled: boolean
     }
@@ -152,7 +151,6 @@ export default apiHandler({ methods: ['GET'], auth: 'admin' }, async (_req, res)
         },
         rateLimiting,
         features: {
-          ringHubEnabled: env.NEXT_PUBLIC_USE_RING_HUB,
           threadRingsEnabled: env.NEXT_PUBLIC_THREADRINGS_ENABLED,
           encryptionEnabled: !!env.THREADSTEAD_KEY_ENCRYPTION_KEY
         }
@@ -202,7 +200,6 @@ export default apiHandler({ methods: ['GET'], auth: 'admin' }, async (_req, res)
         },
         rateLimiting: null,
         features: {
-          ringHubEnabled: false,
           threadRingsEnabled: false,
           encryptionEnabled: false
         }

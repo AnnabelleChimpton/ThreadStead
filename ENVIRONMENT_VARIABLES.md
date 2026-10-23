@@ -81,7 +81,7 @@ Unset, the branding falls back to "YourSiteHere". Set `SITE_HANDLE_DOMAIN` and `
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `RING_HUB_URL` | — | — | Ring Hub base URL. Ring Hub calls are skipped when unset. |
+| `RING_HUB_URL` | required | — | Ring Hub base URL. ThreadStead always runs against a Ring Hub: every ring, membership and ring post lives there. |
 | `RING_HUB_API_KEY` 🔒 | — | — | Only checked by the Ring Hub config validator (monitoring/test utils); requests are signed with the DID key. |
 | `RING_HUB_TIMEOUT_MS` | — | `15000` | Per-request timeout for RingHubClient. Integer. |
 | `RINGHUB_USER_AUTH_MODE` | — | `user` | How user actions authenticate to Ring Hub. 'user' signs with each user's DID; 'server-proxy' makes every user act as the server actor — only for local debugging. One of: `user`, `server-proxy`. |
@@ -109,7 +109,6 @@ Unset, the branding falls back to "YourSiteHere". Set `SITE_HANDLE_DOMAIN` and `
 |---|---|---|---|
 | `NEXT_PUBLIC_PNG_AUTO_LOAD` | — | `false` | Load pixel-home decoration PNGs from the CDN automatically instead of SVG fallbacks. `true`/`false`. |
 | `NEXT_PUBLIC_HOUSE_SPRITES` | — | — | House templates drawn from PNG layers instead of the code-drawn SVG, comma-separated (e.g. "cabin_v1"). Off when unset; a template only switches once its layer art exists (lib/pixel-homes/house-layers.ts). |
-| `NEXT_PUBLIC_USE_RING_HUB` | — | `false` | Route ThreadRing operations through Ring Hub (featureFlags.ringhub()). `true`/`false`. |
 | `NEXT_PUBLIC_THREADRINGS_ENABLED` | — | `false` | Reported by the monitoring endpoints only; nothing else reads it. `true`/`false`. |
 | `ENABLE_TEMPLATE_ISLANDS` | — | `false` | featureFlags.templateIslands() — currently read by nothing else. `true`/`false`. |
 | `ENABLE_TEMPLATE_COMPILATION` | — | `false` | featureFlags.templateCompilation() — currently read by nothing else. `true`/`false`. |

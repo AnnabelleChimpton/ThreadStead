@@ -49,7 +49,6 @@ const testScript = `#!/usr/bin/env node
  */
 
 // Set environment variables for ngrok testing
-process.env.NEXT_PUBLIC_USE_RING_HUB = 'true';
 process.env.RING_HUB_URL = 'https://ringhub.io';
 process.env.THREADSTEAD_DID = '${ngrokDID}';
 process.env.THREADSTEAD_PRIVATE_KEY_B64URL = 'ZHKcPS3yXew3cDBVwXdufAPXL6bT4E1-qVxrDnu2W2g';

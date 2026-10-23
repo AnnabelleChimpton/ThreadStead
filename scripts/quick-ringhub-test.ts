@@ -37,8 +37,7 @@ async function main() {
   console.log('✅ Environment variables configured')
   console.log(`   Ring Hub URL: ${process.env.RING_HUB_URL}`)
   console.log(`   ThreadStead DID: ${process.env.THREADSTEAD_DID}`)
-  console.log(`   Has API Key: ${!!process.env.RING_HUB_API_KEY}`)
-  console.log(`   Ring Hub Enabled: ${process.env.NEXT_PUBLIC_USE_RING_HUB}\n`)
+  console.log(`   Has API Key: ${!!process.env.RING_HUB_API_KEY}\n`)
 
   // Test 2: Check DID setup
   console.log('2. Checking DID configuration...')
@@ -57,12 +56,6 @@ async function main() {
   // Test 3: Test Ring Hub client
   console.log('3. Testing Ring Hub client...')
   const client = getRingHubClient()
-  
-  if (!client) {
-    console.log('❌ Ring Hub client not available')
-    process.exit(1)
-  }
-  
   console.log('✅ Ring Hub client created\n')
 
   // Test 4: Test Ring Hub connectivity
@@ -148,12 +141,6 @@ async function main() {
   console.log('✅ Ring Hub integration is ready for production')
   console.log('✅ Authentication is properly configured')
   console.log('✅ Read operations are working correctly')
-  console.log('')
-  console.log('🚀 You can safely enable Ring Hub by setting:')
-  console.log('   NEXT_PUBLIC_USE_RING_HUB=true')
-  console.log('')
-  console.log('📝 Note: Write operations (create, join, fork) will work')
-  console.log('   once Ring Hub integration is enabled in the UI.')
 }
 
 // Handle errors

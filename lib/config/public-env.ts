@@ -73,14 +73,6 @@ export const PUBLIC_ENV_SPECS = [
     example: 'cabin_v1',
   },
   {
-    name: 'NEXT_PUBLIC_USE_RING_HUB',
-    kind: 'flag',
-    scope: 'public',
-    group: 'Feature flags',
-    default: 'false',
-    description: 'Route ThreadRing operations through Ring Hub (featureFlags.ringhub()).',
-  },
-  {
     name: 'NEXT_PUBLIC_THREADRINGS_ENABLED',
     kind: 'flag',
     scope: 'public',
@@ -99,7 +91,6 @@ const rawPublicEnv: Record<string, string | undefined> = {
   NEXT_PUBLIC_R2_CDN_URL: process.env.NEXT_PUBLIC_R2_CDN_URL,
   NEXT_PUBLIC_PNG_AUTO_LOAD: process.env.NEXT_PUBLIC_PNG_AUTO_LOAD,
   NEXT_PUBLIC_HOUSE_SPRITES: process.env.NEXT_PUBLIC_HOUSE_SPRITES,
-  NEXT_PUBLIC_USE_RING_HUB: process.env.NEXT_PUBLIC_USE_RING_HUB,
   NEXT_PUBLIC_THREADRINGS_ENABLED: process.env.NEXT_PUBLIC_THREADRINGS_ENABLED,
 };
 
