@@ -38,12 +38,15 @@ interface ThreadRingCardProps {
   };
   showJoinButton?: boolean;
   onJoin?: (ringSlug: string) => Promise<void>;
+  /** Signed out, Join is a sign-in link */
+  signedIn?: boolean;
 }
 
 export default function ThreadRingCard({
   threadRing,
   showJoinButton = true,
-  onJoin
+  onJoin,
+  signedIn = true
 }: ThreadRingCardProps) {
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
@@ -118,6 +121,13 @@ export default function ThreadRingCard({
                   ? "Moderator"
                   : "Member"}
             </span>
+          ) : canJoin && !signedIn ? (
+            <Link
+              href="/login"
+              className="text-xs bg-thread-sunset text-thread-paper hover:bg-thread-sunset/90 border border-thread-pine px-3.5 py-1 rounded-full shadow-cozy-sm hover:shadow-cozy transition-all font-medium"
+            >
+              Join
+            </Link>
           ) : canJoin ? (
             <button
               onClick={handleJoin}

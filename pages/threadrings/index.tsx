@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import Layout from "../../components/ui/layout/Layout";
 import ThreadRingCard from "../../components/core/threadring/ThreadRingCard";
 import { getSiteConfig, SiteConfig } from "@/lib/config/site/dynamic";
-import { GetServerSideProps } from "next";
+import { GetServerSideProps, NextApiRequest } from "next";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import NoRingsEmptyState from "../../components/features/onboarding/NoRingsEmptyState";
@@ -17,6 +17,9 @@ import LoadingSpinner from "@/components/ui/feedback/LoadingSpinner";
 import EmptyState from "@/components/ui/feedback/EmptyState";
 import ErrorDisplay from "@/components/ui/feedback/ErrorDisplay";
 import PageMeta from "@/components/ui/layout/PageMeta";
+import Callout from "@/components/ui/feedback/Callout";
+import ButtonLink from "@/components/ui/ButtonLink";
+import { getSessionUser } from "@/lib/auth/server";
 
 type RingsTab = 'discover' | 'mine';
 
@@ -24,6 +27,7 @@ interface ThreadRingsPageProps {
   siteConfig: SiteConfig;
   /** From ?tab=mine, so "My rings" in the nav is a real link */
   initialTab: RingsTab;
+  signedIn: boolean;
 }
 
 interface ThreadRing {
@@ -59,7 +63,7 @@ interface ThreadRing {
   badgeImageHighResUrl?: string | null;
 }
 
-export default function ThreadRingsPage({ siteConfig, initialTab }: ThreadRingsPageProps) {
+export default function ThreadRingsPage({ siteConfig, initialTab, signedIn }: ThreadRingsPageProps) {
   const router = useRouter();
   const threadRingsMetadata = {
     title: 'ThreadRings',
@@ -71,6 +75,8 @@ export default function ThreadRingsPage({ siteConfig, initialTab }: ThreadRingsP
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
+  // Where the next page starts in the hub's list (the API can drop blocked rings)
+  const [nextOffset, setNextOffset] = useState(0);
   const [total, setTotal] = useState<number | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const { user } = useCurrentUser();
@@ -91,7 +97,7 @@ export default function ThreadRingsPage({ siteConfig, initialTab }: ThreadRingsP
 
   // Filters
   const [search, setSearch] = useState("");
-  const [sort, setSort] = useState("trending");
+  const [sort, setSort] = useState("newest");
   const [searchQuery, setSearchQuery] = useState(""); // Debounced search
 
   // Debounce search
@@ -103,8 +109,12 @@ export default function ThreadRingsPage({ siteConfig, initialTab }: ThreadRingsP
     return () => clearTimeout(timer);
   }, [search]);
 
+  // Signed out, "My rings" asks them to sign in instead
+  const showSignIn = activeTab === 'mine' && !signedIn;
+
   // Fetch ThreadRings
   useEffect(() => {
+    if (showSignIn) return;
     fetchThreadRings(true);
   }, [searchQuery, sort, activeTab]);
 
@@ -119,12 +129,14 @@ export default function ThreadRingsPage({ siteConfig, initialTab }: ThreadRingsP
 
       const params = new URLSearchParams({
         limit: "20",
-        offset: reset ? "0" : String(threadRings.length),
-        sort,
+        offset: reset ? "0" : String(nextOffset),
       });
 
+      // Searches come back best match first
       if (searchQuery) {
         params.set("search", searchQuery);
+      } else {
+        params.set("sort", sort);
       }
 
       // Add membership filter for "My ThreadRings" tab
@@ -150,7 +162,8 @@ export default function ThreadRingsPage({ siteConfig, initialTab }: ThreadRingsP
       } else {
         setThreadRings(prev => [...prev, ...data.threadRings]);
       }
-      
+
+      setNextOffset(data.nextOffset ?? (reset ? 0 : nextOffset) + data.threadRings.length);
       setHasMore(data.hasMore);
     } catch (error: any) {
       console.error("Error fetching ThreadRings:", error);
@@ -176,12 +189,10 @@ export default function ThreadRingsPage({ siteConfig, initialTab }: ThreadRingsP
         throw new Error(data.error || "Failed to join ThreadRing");
       }
 
-      // Refresh the list to update membership status
-      await fetchThreadRings(true);
-      
-      // You could show a success message here
-      // Success handled by UI refresh
-      
+      // Show the membership on the card right away
+      setThreadRings(prev => prev.map(ring => ring.slug === ringSlug
+        ? { ...ring, memberCount: ring.memberCount + 1, viewerMembership: { role: "member", joinedAt: new Date().toISOString() } }
+        : ring));
     } catch (error: any) {
       console.error("Error joining ThreadRing:", error);
       showError(error.message || "Failed to join ThreadRing");
@@ -195,10 +206,8 @@ export default function ThreadRingsPage({ siteConfig, initialTab }: ThreadRingsP
   };
 
   const sortOptions = [
-    { value: "trending", label: "Trending" },
     { value: "newest", label: "Newest" },
     { value: "members", label: "Most Members" },
-    { value: "posts", label: "Most Posts" },
     { value: "alphabetical", label: "Alphabetical" }
   ];
 
@@ -235,8 +244,8 @@ export default function ThreadRingsPage({ siteConfig, initialTab }: ThreadRingsP
                 <h1 className="text-3xl font-headline font-bold text-thread-pine">ThreadRings</h1>
                 <p className="text-thread-sage mt-1">
                   {activeTab === 'mine' && 'Rings you belong to'}
-                  {activeTab === 'mine' && total !== null && ' · '}
-                  {total !== null && `${total} ${total === 1 ? 'ring' : 'rings'}`}
+                  {!showSignIn && activeTab === 'mine' && total !== null && ' · '}
+                  {!showSignIn && total !== null && `${total} ${total === 1 ? 'ring' : 'rings'}`}
                 </p>
               </div>
               <div className="flex gap-2">
@@ -247,10 +256,10 @@ export default function ThreadRingsPage({ siteConfig, initialTab }: ThreadRingsP
                   Family tree
                 </Link>
                 <Link
-                  href="/tr/spool/fork"
+                  href={signedIn ? "/tr/spool/fork" : "/login"}
                   className="flex-1 sm:flex-none whitespace-nowrap btn btn--primary border border-thread-pine px-3 py-2 text-sm md:px-4 md:text-base bg-thread-sunset text-thread-paper hover:bg-thread-sunset/90 rounded-cozy shadow-cozy-sm hover:shadow-cozy transition-all font-medium text-center"
                 >
-                  Start a ring
+                  {signedIn ? "Start a ring" : "Sign in to start a ring"}
                 </Link>
               </div>
             </div>
@@ -295,6 +304,9 @@ export default function ThreadRingsPage({ siteConfig, initialTab }: ThreadRingsP
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value)}
+              disabled={!!search.trim()}
+              aria-label="Sort rings"
+              title={search.trim() ? "Searches show the best matches first" : undefined}
               className="flex-1 min-w-0 md:flex-none md:w-auto border border-thread-sage px-3 py-2 bg-thread-paper rounded-cozy focus:outline-none focus:border-thread-sunset"
             >
               {sortOptions.map(option => (
@@ -308,11 +320,16 @@ export default function ThreadRingsPage({ siteConfig, initialTab }: ThreadRingsP
         </div>
 
         {/* Content */}
-        {loading ? (
+        {showSignIn ? (
+          <Callout variant="framed" title="Sign in to see your rings">
+            <p>The rings you&apos;ve joined show up here.</p>
+            <p><ButtonLink href="/login">Sign in</ButtonLink></p>
+          </Callout>
+        ) : loading ? (
           <LoadingSpinner message="Loading ThreadRings…" className="py-8" />
         ) : error ? (
           <ErrorDisplay title={error} onRetry={() => fetchThreadRings(true)} retryLabel="Try Again" />
-        ) : threadRings.length === 0 ? (
+        ) : threadRings.length === 0 && !hasMore ? (
           activeTab === 'mine' && !searchQuery ? (
             // Use playful empty state for "My ThreadRings" when not searching
             <NoRingsEmptyState />
@@ -365,6 +382,7 @@ export default function ThreadRingsPage({ siteConfig, initialTab }: ThreadRingsP
                   threadRing={ring}
                   showJoinButton={activeTab === 'discover'}
                   onJoin={handleJoin}
+                  signedIn={signedIn}
                 />
               ))}
             </div>
@@ -390,12 +408,16 @@ export default function ThreadRingsPage({ siteConfig, initialTab }: ThreadRingsP
 }
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
-  const siteConfig = await getSiteConfig();
+  const [siteConfig, user] = await Promise.all([
+    getSiteConfig(),
+    getSessionUser(context.req as NextApiRequest),
+  ]);
 
   return {
     props: {
       siteConfig,
       initialTab: context.query.tab === 'mine' ? 'mine' : 'discover',
+      signedIn: !!user,
     },
   };
 };

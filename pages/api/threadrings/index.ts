@@ -21,13 +21,18 @@ export default withThreadRingSupport(async function handler(
   try {
     const { limit, offset } = parseOffsetPagination(req.query, { defaultLimit: 20, maxLimit: 50 });
     const search = String(req.query.search || "").trim();
-    const sort = String(req.query.sort || "trending"); // trending, newest, members, posts, alphabetical
+    const sort = String(req.query.sort || "newest"); // newest, members, alphabetical
     const membership = String(req.query.membership || "").trim() === "true"; // Filter to only user's memberships
 
     const viewer = await getSessionUser(req);
 
     // Use Ring Hub if enabled
     if (system === 'ringhub') {
+      // Signed out, nobody's rings are "yours"
+      if (membership && !viewer) {
+        return res.json({ threadRings: [], hasMore: false, total: 0, nextOffset: 0 });
+      }
+
       // Logged-in viewers get a user-signed client (for currentUserMembership).
       // Anonymous viewers get the UNSIGNED public client: signing as the instance
       // DID gains nothing here, and when the hub can't resolve that key it turns
@@ -44,41 +49,29 @@ export default withThreadRingSupport(async function handler(
 
       // Build Ring Hub parameters  
       const ringHubOptions: any = {};
-      if (search?.trim()) ringHubOptions.search = search.trim();
+      if (search) ringHubOptions.search = search;
       if (limit !== 20) ringHubOptions.limit = limit;
       if (offset > 0) ringHubOptions.offset = offset;
 
-      // If filtering by membership, pass memberDid to RingHub
+      // My rings: the hub filters to the viewer's memberships and counts them
       if (membership && viewer && ringHubClient && 'getUserDID' in ringHubClient) {
         // We must use the DID associated with the authenticated client, which may differ 
         // from the local DB DID (e.g. did:web vs did:key)
         ringHubOptions.memberDid = await ringHubClient.getUserDID();
       }
 
-      // Map sort parameters to Ring Hub format
-      if (sort) {
-        switch (sort) {
-          case 'newest':
-            ringHubOptions.sort = 'created';
-            ringHubOptions.order = 'desc';
-            break;
-          case 'members':
-            ringHubOptions.sort = 'members';
-            ringHubOptions.order = 'desc';
-            break;
-          case 'posts':
-            ringHubOptions.sort = 'posts';
-            ringHubOptions.order = 'desc';
-            break;
-          case 'alphabetical':
-            ringHubOptions.sort = 'name';
-            ringHubOptions.order = 'asc';
-            break;
-          case 'trending':
-          default:
-            ringHubOptions.sort = 'updated';
-            ringHubOptions.order = 'desc';
-            break;
+      // With search words, no sort: the hub puts the best matches first.
+      // The hub sorts by created/updated/name/members only (no post count).
+      if (!search) {
+        if (sort === 'members') {
+          ringHubOptions.sort = 'members';
+          ringHubOptions.order = 'desc';
+        } else if (sort === 'alphabetical') {
+          ringHubOptions.sort = 'name';
+          ringHubOptions.order = 'asc';
+        } else {
+          ringHubOptions.sort = 'created';
+          ringHubOptions.order = 'desc';
         }
       }
 
@@ -100,117 +93,74 @@ export default withThreadRingSupport(async function handler(
         throw error;
       }
 
-      // Fallback: Get memberships via old API if new API doesn't include them
-      const viewerMemberships: Map<string, any> = new Map();
-      if (viewer) {
-        const hasNewMembershipAPI = result.rings.some(ring => ring.currentUserMembership !== undefined);
+      // Rings this viewer blocked. UserBlock points at the local ThreadRing
+      // row; hub descriptors carry the hub's id, so match by slug.
+      const blockedSlugs = new Set(
+        viewer
+          ? (
+              await db.userBlock.findMany({
+                where: { blockerId: viewer.id, blockedThreadRingId: { not: null } },
+                select: { blockedThreadRing: { select: { slug: true } } },
+              })
+            ).map((block) => block.blockedThreadRing?.slug)
+          : []
+      );
 
-        if (!hasNewMembershipAPI) {
-          try {
-            const membershipsResult = await cached(
-              `my-memberships:${viewer.id}`,
-              30_000,
-              5 * 60_000,
-              () => ringHubClient.getMyMemberships({ status: 'ACTIVE', limit: 100 })
-            );
-            membershipsResult.memberships.forEach(membership => {
-              viewerMemberships.set(membership.ringSlug, {
-                role: (membership.role ?? '').toLowerCase(),
-                joinedAt: membership.joinedAt
-              });
-            });
-          } catch (e: any) {
-            // Membership resolution failed but we DID get the ring list. Rather than
-            // silently render every ring as "not joined" (which lets the user re-join
-            // rings they're already in), surface a degraded signal.
-            if (e instanceof RingHubAuthError || e instanceof RingHubUnavailableError) {
-              console.error('Ring Hub membership resolution unavailable for directory:', e.name, e.message);
-              return res.status(503).json({ error: 'hub_unavailable', degraded: true });
-            }
-            console.error('Failed to fetch memberships via fallback:', e?.message);
+      // Transform Ring Hub response to ThreadStead format. A signed listing
+      // carries currentUserMembership on every ring the viewer has a row in.
+      const transformedRings = result.rings
+        .filter((descriptor: any) => !blockedSlugs.has(descriptor.slug))
+        .map((descriptor: any) => {
+          const viewerMembership = viewer && descriptor.currentUserMembership?.status === 'ACTIVE'
+            ? {
+                role: descriptor.currentUserMembership.role?.toLowerCase() || 'member',
+                joinedAt: descriptor.currentUserMembership.joinedAt
+              }
+            : null;
+
+          // Map visibility from RingHub format (PUBLIC/UNLISTED/PRIVATE) to ThreadStead format
+          let visibility = 'public';
+          if (descriptor.visibility === 'UNLISTED') {
+            visibility = 'unlisted';
+          } else if (descriptor.visibility === 'PRIVATE') {
+            visibility = 'private';
           }
-        }
-      }
 
-      // Transform Ring Hub response to ThreadStead format
-      let transformedRings = result.rings.map((descriptor: any) => {
-        // Use new API data if available, otherwise fallback to old API data
-        let viewerMembership = null;
-        if (viewer && descriptor.currentUserMembership) {
-          // New API has membership data with updated structure
-          if (descriptor.currentUserMembership.status === 'ACTIVE') {
-            viewerMembership = {
-              role: descriptor.currentUserMembership.role?.toLowerCase() || 'member',
-              joinedAt: descriptor.currentUserMembership.joinedAt
-            };
+          // Map joinPolicy from RingHub format to ThreadStead joinType
+          let joinType = 'open';
+          if (descriptor.joinPolicy === 'CLOSED') {
+            joinType = 'closed';
+          } else if (descriptor.joinPolicy === 'INVITATION') {
+            joinType = 'invite';
+          } else if (descriptor.joinPolicy === 'APPLICATION') {
+            joinType = 'application';
           }
-        } else if (viewerMemberships.has(descriptor.slug)) {
-          // Fallback to old API data
-          viewerMembership = viewerMemberships.get(descriptor.slug);
-        }
 
-        // Map visibility from RingHub format (PUBLIC/UNLISTED/PRIVATE) to ThreadStead format
-        let visibility = 'public';
-        if (descriptor.visibility === 'UNLISTED') {
-          visibility = 'unlisted';
-        } else if (descriptor.visibility === 'PRIVATE') {
-          visibility = 'private';
-        }
+          return {
+            id: descriptor.id,
+            name: descriptor.name,
+            slug: descriptor.slug,
+            description: descriptor.description,
+            visibility,
+            joinType,
+            memberCount: descriptor.memberCount || 0,
+            postCount: descriptor.postCount || 0,
+            createdAt: descriptor.createdAt,
+            curator: null, // Ring Hub doesn't include curator in list responses
+            viewerMembership,
+            badgeImageUrl: descriptor.badgeImageUrl,
+            badgeImageHighResUrl: descriptor.badgeImageHighResUrl
+          };
+        });
 
-        // Map joinPolicy from RingHub format to ThreadStead joinType
-        let joinType = 'open';
-        if (descriptor.joinPolicy === 'CLOSED') {
-          joinType = 'closed';
-        } else if (descriptor.joinPolicy === 'INVITATION') {
-          joinType = 'invite';
-        } else if (descriptor.joinPolicy === 'APPLICATION') {
-          joinType = 'application';
-        }
-
-        const transformed = {
-          id: descriptor.id,
-          name: descriptor.name,
-          slug: descriptor.slug,
-          description: descriptor.description,
-          visibility,
-          joinType,
-          memberCount: descriptor.memberCount || 0,
-          postCount: descriptor.postCount || 0,
-          createdAt: descriptor.createdAt,
-          curator: null, // Ring Hub doesn't include curator in list responses
-          viewerMembership,
-          badgeImageUrl: descriptor.badgeImageUrl,
-          badgeImageHighResUrl: descriptor.badgeImageHighResUrl
-        };
-
-        return transformed;
-      });
-
-
-      // Filter based on tab selection
-      if (viewer) {
-        if (membership) {
-          // "My ThreadRings" tab - show only rings where user IS a member
-          transformedRings = transformedRings.filter(ring => ring.viewerMembership !== null);
-        } else {
-          // "Discover ThreadRings" tab - show only rings where user is NOT a member
-          transformedRings = transformedRings.filter(ring => ring.viewerMembership === null);
-        }
-      }
-
-      // For "My ThreadRings" tab, we need to estimate total since we're filtering after fetch
-      // This is a limitation we could improve with a dedicated RingHub endpoint
-      const filteredTotal = membership && viewer
-        ? transformedRings.length // Best we can do without server-side filtering
-        : result.total;
-
-      const hasMore = !membership && (offset + limit) < result.total;
-
-
+      // Paging follows the hub's list, so a dropped (blocked) ring doesn't
+      // make the next page repeat or skip one.
+      const nextOffset = offset + result.rings.length;
       return res.json({
         threadRings: transformedRings,
-        hasMore,
-        total: filteredTotal
+        hasMore: nextOffset < result.total,
+        total: result.total,
+        nextOffset,
       });
     }
 

@@ -16,6 +16,7 @@ jest.mock('@/lib/config/database/connection', () => ({
     user: { findUnique: jest.fn() },
     userDID: { findUnique: jest.fn() },
     threadRing: { findUnique: jest.fn().mockResolvedValue(null) },
+    userBlock: { findMany: jest.fn().mockResolvedValue([]) },
   },
 }))
 jest.mock('@/lib/auth/server', () => ({ getSessionUser: jest.fn() }))
@@ -109,13 +110,13 @@ describe('GET /api/threadrings', () => {
 
     // Viewer A (a member) fills the cache for this query…
     ;(getSessionUser as jest.Mock).mockResolvedValue({ id: 'viewer-a' })
-    const a = makeReqRes('GET', { search: 'shared', membership: 'true' })
+    const a = makeReqRes('GET', { search: 'shared' })
     await listHandler(a.req, a.res)
     expect(a.res.jsonBody.threadRings[0].viewerMembership).toMatchObject({ role: 'member' })
 
-    // …and an anonymous visitor with the same query must not get A's membership.
+    // …and an anonymous visitor with the same listing must not get A's membership.
     ;(getSessionUser as jest.Mock).mockResolvedValue(null)
-    const anon = makeReqRes('GET', { search: 'shared', membership: 'true' })
+    const anon = makeReqRes('GET', { search: 'shared' })
     await listHandler(anon.req, anon.res)
     expect(publicListRings).toHaveBeenCalledTimes(1)
     expect(anon.res.jsonBody.threadRings[0].viewerMembership).toBeNull()
