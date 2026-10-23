@@ -60,17 +60,20 @@ export default withThreadRingSupport(async function handler(
 
         const transformedResponses = paginatedResponses.map((response) => {
           const metadata = (response.metadata ?? {}) as Record<string, any>
-          const local = isOurThreadSteadInstance(response.uri) ? byId.get(extractPostIdFromUri(response.uri) ?? '') : undefined
-          const post = local
+          const ours = isOurThreadSteadInstance(response.uri)
+          const local = ours ? byId.get(extractPostIdFromUri(response.uri) ?? '') : undefined
+          // No username, no page to link: shown like a post that isn't public
+          const username = local?.author.primaryHandle?.split('@')[0]
+          const post = local && username
             ? {
                 ...local,
                 createdAt: local.createdAt.toISOString(),
                 author: {
                   id: local.author.id,
-                  handles: [{ handle: local.author.primaryHandle?.split('@')[0] ?? 'unknown' }],
+                  handles: [{ handle: username }],
                   profile: local.author.profile,
                 },
-                url: `/resident/${encodeURIComponent(local.author.primaryHandle?.split('@')[0] ?? '')}/post/${local.id}`,
+                url: `/resident/${encodeURIComponent(username)}/post/${local.id}`,
               }
             : {
                 id: response.id,
@@ -81,7 +84,12 @@ export default withThreadRingSupport(async function handler(
                 visibility: 'public',
                 createdAt: response.submittedAt,
                 authorId: response.submittedBy,
-                author: { id: response.submittedBy, handles: [], profile: { displayName: metadata.actorName || null, avatarUrl: null } },
+                author: {
+                  id: response.submittedBy,
+                  handles: [],
+                  // One of ours that isn't shown names nobody: the name could be a hidden resident's
+                  profile: { displayName: ours ? null : metadata.actorName || null, avatarUrl: null },
+                },
                 url: /^https?:\/\//i.test(response.uri) ? response.uri : null,
               }
 

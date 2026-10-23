@@ -77,6 +77,24 @@ it('reads only our public posts by residents the viewer may see', async () => {
   expect(outside).toMatchObject({ title: 'Stolen?', bodyText: 'nope', url: 'https://evil.example/resident/ann/post/postprivate1' })
 })
 
+it('names nobody for one of our posts that is not shown, or whose author has no handle', async () => {
+  mockResponses.mockResolvedValue([
+    ref('r1', `${BASE}/resident/ann/post/postprivate1`, { actorName: 'Ann (suspended)' }),
+    ref('r2', `${BASE}/resident/x/post/postnohandle`, { actorName: 'Nameless' }),
+  ])
+  mockFindMany.mockResolvedValue([
+    {
+      id: 'postnohandle', title: 'Hi', bodyText: 'full body', bodyHtml: null, bodyMarkdown: null, visibility: 'public',
+      createdAt: new Date('2026-10-20T00:00:00Z'), authorId: 'u_x',
+      author: { id: 'u_x', primaryHandle: null, profile: { displayName: 'X', avatarUrl: null } },
+    },
+  ])
+  const [hidden, nohandle] = (await get()).body.responses.map((r: any) => r.post)
+  expect(hidden.author.profile.displayName).toBeNull()
+  expect(nohandle).toMatchObject({ bodyText: null, url: expect.not.stringContaining('unknown') })
+  expect(nohandle.author).toMatchObject({ handles: [], profile: { displayName: null } })
+})
+
 it("never names a resident from the submitter's own metadata", async () => {
   mockResponses.mockResolvedValue([
     ref('r1', 'https://elsewhere.example/notes/1', { threadsteadUserId: 'u_ann', authorHandle: 'ann@HomePageAgain', actorName: 'Robin' }),
