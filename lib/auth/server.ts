@@ -10,7 +10,13 @@ import {
   LEGACY_CSRF_COOKIE,
   usesHostPrefixedCookies,
 } from "../server/http/csrf";
-import { assertCanSignIn, isRestricted, MODERATION_SELECT, type ModerationFields } from "../domain/users/moderation";
+import {
+  assertCanSignIn,
+  isRestricted,
+  MODERATION_SELECT,
+  writesWhileLeaving,
+  type ModerationFields,
+} from "../domain/users/moderation";
 
 /**
  * Sessions: a `Session` row plus an HttpOnly cookie `<name>=<userId>.<secret>`,
@@ -130,8 +136,6 @@ type SessionRequest = Pick<NextApiRequest, "headers"> & { method?: string };
 /** whileLeaving: a resident who is leaving may write here (staying after all). */
 type SessionOptions = { whileLeaving?: boolean };
 
-const READS = new Set(["GET", "HEAD", "OPTIONS"]);
-
 /**
  * The signed-in user, or null when there is no valid, unexpired session, or
  * the account is suspended or banned (its sessions are deleted when that
@@ -141,7 +145,9 @@ const READS = new Set(["GET", "HEAD", "OPTIONS"]);
  * Someone leaving (lib/domain/users/leaving.ts) stays signed in to look
  * around and to stay after all, but they're hidden from everyone else, so a
  * write from them (any method but GET/HEAD/OPTIONS) reads as signed out
- * unless the route says `whileLeaving`.
+ * unless the route says `whileLeaving`. apiHandler and withRateLimit load it
+ * with whileLeaving and refuse such a write with AccountHiddenError instead,
+ * so they can say why.
  */
 export async function getSessionUser(req: SessionRequest, options?: SessionOptions): Promise<SessionUser | null>;
 export async function getSessionUser<S extends Prisma.UserSelect>(
@@ -171,7 +177,7 @@ export async function getSessionUser(
 
   const user = session.user as unknown as ModerationFields & Record<string, unknown>;
   if (isRestricted(user)) return null;
-  if (user.deletesAt && !options?.whileLeaving && req.method && !READS.has(req.method.toUpperCase())) return null;
+  if (!options?.whileLeaving && writesWhileLeaving(req, user)) return null;
   if (options?.select) {
     // Hand back only what the caller asked for.
     for (const key of Object.keys(MODERATION_SELECT)) {

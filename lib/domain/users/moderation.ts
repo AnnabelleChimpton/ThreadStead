@@ -55,6 +55,13 @@ export function isHidden(user: ModerationFields | null | undefined, now = new Da
   return isRestricted(user, now) || !!user?.deletesAt;
 }
 
+const READS = new Set(["GET", "HEAD", "OPTIONS"]);
+
+/** True when `user` is leaving and `req` writes (any method but GET/HEAD/OPTIONS). */
+export function writesWhileLeaving(req: { method?: string }, user: { deletesAt?: Date | null } | null): boolean {
+  return !!user?.deletesAt && !!req.method && !READS.has(req.method.toUpperCase());
+}
+
 /** What the account is right now: a suspension past its end date reads as active. */
 export function effectiveStatus(user: ModerationFields, now = new Date()): ModerationStatus {
   return isRestricted(user, now) ? user.moderationStatus : "active";

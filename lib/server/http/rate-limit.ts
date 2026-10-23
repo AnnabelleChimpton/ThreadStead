@@ -2,6 +2,8 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/config/database/connection";
 import { getSessionUser } from "@/lib/auth/server";
+import { sendError } from "@/lib/api/errors";
+import { AccountHiddenError, MODERATION_SELECT, writesWhileLeaving } from "@/lib/domain/users/moderation";
 import { getClientIp } from "./client-ip";
 import { emailLimiterKey } from "@/lib/utils/security/email-encryption";
 import { randomUUID } from "crypto";
@@ -237,15 +239,21 @@ type Handler = (req: NextApiRequest, res: NextApiResponse) => Promise<void | Nex
 /**
  * Wrap a hand-written route with a category limit (per user when signed in,
  * else per IP). Routes on apiHandler use its `rateLimit` option instead.
+ * Like apiHandler, it refuses a write from someone leaving with
+ * AccountHiddenError's 403, so the route doesn't answer "not logged in".
  *
  *   export default withRateLimit('posts')(withCsrfProtection(handler));
  */
 export function withRateLimit(category: RateLimitCategory) {
   return (handler: Handler) => {
     return async (req: NextApiRequest, res: NextApiResponse) => {
-      const user = await getSessionUser(req);
+      const user = await getSessionUser(req, { whileLeaving: true, select: { id: true, ...MODERATION_SELECT } });
       // On failure the 429 has already been sent
       if (!(await rateLimitCheck(req, res, category, user?.id))) return;
+      if (user && writesWhileLeaving(req, user)) {
+        const refused = new AccountHiddenError(user);
+        return sendError(res, refused.status, refused.message, refused.extra);
+      }
       return handler(req, res);
     };
   };

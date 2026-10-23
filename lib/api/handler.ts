@@ -16,7 +16,8 @@
  *   5. refuses a cross-origin POST/PUT/PATCH/DELETE (always; see
  *      lib/server/http/same-origin.ts), then checks the CSRF token (on by
  *      default)
- *   6. enforces auth: 401 when signed out, 403 when not an admin
+ *   6. enforces auth: 401 when signed out, 403 when not an admin, and 403
+ *      (AccountHiddenError) for a write from someone leaving
  *   7. validates req.body against `schema` on POST/PUT/PATCH → 400
  *   8. runs the handler; a thrown ApiError becomes `{ error }` with its
  *      status, a ZodError a 400, anything else a logged 500
@@ -30,6 +31,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { ZodError, type ZodType, type z } from 'zod';
 import { UserRole } from '@prisma/client';
 import { getSessionUser, type SessionUser } from '@/lib/auth/server';
+import { AccountHiddenError, writesWhileLeaving } from '@/lib/domain/users/moderation';
 import { csrfProtection } from '@/lib/server/http/csrf';
 import { sameOriginProtection } from '@/lib/server/http/same-origin';
 import { rateLimitCheck, type RateLimitCategory } from '@/lib/server/http/rate-limit';
@@ -74,7 +76,10 @@ export interface ApiHandlerOptions {
    * cookie auth) and the auth check, and get ctx.user = null.
    */
   apiKey?: () => string | undefined;
-  /** A resident who is leaving may write here; elsewhere their writes read as signed out (getSessionUser). */
+  /**
+   * A resident who is leaving may write here. Elsewhere a write from them is
+   * refused with AccountHiddenError's 403; with auth 'none' it just has no user.
+   */
   whileLeaving?: boolean;
 }
 
@@ -128,14 +133,17 @@ export function apiHandler<const O extends ApiHandlerOptions>(
       const viaApiKey = apiKey ? bearerMatches(req, apiKey()) : false;
 
       const needsSession = !viaApiKey && (auth !== 'none' || rateLimit !== undefined);
-      const user = needsSession ? await getSessionUser(req, { whileLeaving }) : null;
+      const session = needsSession ? await getSessionUser(req, { whileLeaving: true }) : null;
+      const leaving = session && !whileLeaving && writesWhileLeaving(req, session) ? session : null;
+      const user = leaving ? null : session;
 
-      if (rateLimit && !(await rateLimitCheck(req, res, rateLimit, user?.id))) return;
+      if (rateLimit && !(await rateLimitCheck(req, res, rateLimit, session?.id))) return;
 
       if (!viaApiKey) {
         if (!sameOriginProtection(req, res)) return;
         if (csrf && !(await csrfProtection(req, res))) return;
 
+        if (leaving && auth !== 'none') throw new AccountHiddenError(leaving);
         if ((auth === 'user' || auth === 'admin') && !user) return sendUnauthenticated(res);
         if (auth === 'admin' && user?.role !== UserRole.admin) return sendForbiddenAdmin(res);
       }

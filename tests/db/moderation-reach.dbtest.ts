@@ -10,9 +10,10 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 import { db } from '@/lib/config/database/connection'
 import { SITE_NAME } from '@/lib/config/site/constants'
 
+// withRateLimit stays real: it's what refuses a leaving resident's write on hand-written routes
 jest.mock('@/lib/server/http/rate-limit', () => ({
+  ...jest.requireActual('@/lib/server/http/rate-limit'),
   rateLimitCheck: jest.fn(async () => true),
-  withRateLimit: () => (handler: any) => handler,
 }))
 jest.mock('@/lib/server/http/csrf', () => ({
   ...jest.requireActual('@/lib/server/http/csrf'),
@@ -37,6 +38,9 @@ import guestbookStatusRoute from '@/pages/api/users/[username]/guestbook-status'
 import capCommentsRoute from '@/pages/api/cap/comments/[postId]'
 import commentsRoute from '@/pages/api/comments/[postId]'
 import guestbookRoute from '@/pages/api/guestbook/[username]'
+import bulletinRoute from '@/pages/api/bulletin'
+import musicPreferencesRoute from '@/pages/api/user/music-preferences'
+import ringBlocksRoute from '@/pages/api/threadrings/[slug]/blocks'
 
 const DAY = 24 * 60 * 60 * 1000
 let seq = 0
@@ -156,18 +160,38 @@ describe('leaving (lib/domain/users/leaving.ts)', () => {
 })
 
 describe('writing while leaving', () => {
+  const leavingBody = (deletesAt: Date) => ({
+    error: `Your account is set to be deleted on ${deletesAt.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })}. If you'd like to stay, press Keep my account at the top of the page.`,
+    code: 'account_leaving',
+  })
+
+  it('an ordinary write says the same, on apiHandler routes and hand-written ones, and reads still work', async () => {
+    const cookie = await signIn(NEIGHBOR)
+    const leaving = leavingBody(await startLeaving(NEIGHBOR, 'neighbor'))
+    const bulletin = () =>
+      call(bulletinRoute, { method: 'POST', body: { category: 'SHARING', text: 'tea on the porch' }, cookie })
+    const saveSetting = () => call(musicPreferencesRoute, { method: 'POST', body: { autoplay: false }, cookie })
+    const blocks = () => call(ringBlocksRoute, { method: 'POST', query: { slug: 'no-such-ring' }, body: {}, cookie })
+
+    expect(await bulletin()).toMatchObject({ statusCode: 403, body: leaving })
+    expect(await saveSetting()).toMatchObject({ statusCode: 403, body: leaving })
+    expect(await blocks()).toMatchObject({ statusCode: 403, body: leaving })
+    expect(await db.bulletin.count()).toBe(0)
+    expect(await call(musicPreferencesRoute, { cookie })).toMatchObject({ statusCode: 200, body: { autoplay: true } })
+
+    await stayAfterAll(NEIGHBOR)
+    expect((await bulletin()).statusCode).toBe(201)
+    expect(await saveSetting()).toMatchObject({ statusCode: 200, body: { autoplay: false } })
+    expect(await blocks()).toMatchObject({ statusCode: 404, body: { error: 'ThreadRing not found' } })
+  })
+
   it('a capability write says the account is set to be deleted and how to stay, not "not logged in"', async () => {
     await db.post.create({ data: { id: 'post_friend', authorId: FRIEND, title: 'tea', bodyText: 'tea', visibility: 'public' } })
     const cookie = await signIn(NEIGHBOR)
     // Minted just before they chose to leave: still good for a few minutes
     const commentCap = await mintCapability(NEIGHBOR, ['write:comment'], 'post:post_friend/comments')
     const guestbookCap = await mintCapability(NEIGHBOR, ['write:guestbook'], `user:${FRIEND}/guestbook`)
-    const deletesAt = await startLeaving(NEIGHBOR, 'neighbor')
-    const day = deletesAt.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })
-    const leaving = {
-      error: `Your account is set to be deleted on ${day}. If you'd like to stay, press Keep my account at the top of the page.`,
-      code: 'account_leaving',
-    }
+    const leaving = leavingBody(await startLeaving(NEIGHBOR, 'neighbor'))
     const mint = () => call(capCommentsRoute, { method: 'POST', query: { postId: 'post_friend' }, cookie })
 
     expect(await mint()).toMatchObject({ statusCode: 403, body: leaving })

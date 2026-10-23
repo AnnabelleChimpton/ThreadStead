@@ -3,7 +3,7 @@
  *
  * apiHandler (TECH_DEBT_AUDIT §2.1): one session lookup per request, the
  * fixed check order (405 → api key → rate limit → same origin → CSRF →
- * 401/403 → schema),
+ * 401/403 → schema), a leaving resident's writes refused with the reason,
  * and consistent `{ error }` bodies.
  */
 import type { NextApiRequest, NextApiResponse } from 'next';
@@ -108,6 +108,47 @@ describe('auth', () => {
     const route = apiHandler({ methods: ['GET'], auth: 'none' }, async (_req, res) => res.json({ ok: true }));
     await call(route);
     expect(mockSession).not.toHaveBeenCalled();
+  });
+});
+
+describe('someone leaving', () => {
+  const LEAVING = { ...MEMBER, deletesAt: new Date('2026-11-06T12:00:00Z') };
+  const echo = async (_req: NextApiRequest, res: NextApiResponse, { user }: { user: { id: string } | null }) =>
+    res.json({ user: user?.id ?? null });
+  const post = { method: 'POST', headers: withCsrf };
+
+  beforeEach(() => mockSession.mockResolvedValue(LEAVING));
+
+  test('reads as before', async () => {
+    const route = apiHandler({ methods: ['GET'], auth: 'user' }, echo);
+    expect((await call(route)).body).toEqual({ user: 'u-1' });
+  });
+
+  test("a write is refused with the reason, on 'user' and 'optional' routes", async () => {
+    for (const auth of ['user', 'optional'] as const) {
+      const handler = jest.fn();
+      const res = await call(apiHandler({ methods: ['POST'], auth }, handler), post);
+      expect(res.statusCode).toBe(403);
+      expect(res.body).toEqual({ error: expect.stringContaining('Keep my account'), code: 'account_leaving' });
+      expect(handler).not.toHaveBeenCalled();
+    }
+    expect(mockSession).toHaveBeenCalledWith(expect.anything(), { whileLeaving: true });
+  });
+
+  test("'none' just has no user, and the limit is still theirs", async () => {
+    const route = apiHandler({ methods: ['POST'], auth: 'none', rateLimit: 'auth' }, echo);
+    expect((await call(route, post)).body).toEqual({ user: null });
+    expect(mockRateLimit).toHaveBeenCalledWith(expect.anything(), expect.anything(), 'auth', 'u-1');
+  });
+
+  test('a whileLeaving route lets them write', async () => {
+    const route = apiHandler({ methods: ['POST'], auth: 'user', whileLeaving: true }, echo);
+    expect((await call(route, post)).body).toEqual({ user: 'u-1' });
+  });
+
+  test('the CSRF check still comes first', async () => {
+    const route = apiHandler({ methods: ['POST'], auth: 'user' }, echo);
+    expect((await call(route, { method: 'POST' })).body).toMatchObject({ error: 'CSRF token validation failed' });
   });
 });
 
