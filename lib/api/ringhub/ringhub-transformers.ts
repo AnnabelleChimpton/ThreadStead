@@ -430,7 +430,7 @@ export function transformPostThreadRingToPostRef(
     uri: postUri,
     digest,
     submittedBy: submitterDID,
-    isPinned: postThreadRing.isPinned,
+    pinned: postThreadRing.isPinned,
     metadata: {
       threadsteadPostId: postThreadRing.postId,
       addedAt: postThreadRing.addedAt,
@@ -458,7 +458,7 @@ export function transformPostRefToPostThreadRing(
     threadRingId,
     addedAt: metadata.addedAt || postRef.submittedAt,
     addedBy: metadata.addedBy || postRef.submittedBy,
-    isPinned: postRef.isPinned,
+    isPinned: postRef.pinned,
     pinnedAt: metadata.pinnedAt,
     pinnedBy: metadata.pinnedBy,
     threadRing: {} as ThreadRing // Will be populated separately

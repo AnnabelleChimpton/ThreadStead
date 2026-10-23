@@ -144,7 +144,7 @@ export interface PostRef {
   submittedBy: string      // Who submitted it (DID)
   actorDid?: string        // Whose post it is (DID); can differ from submittedBy
   submittedAt: string      // ISO timestamp
-  isPinned: boolean        // Pin status
+  pinned: boolean          // Pin status
   status?: 'ACCEPTED' | 'REJECTED' | 'REMOVED' | 'PENDING'  // Moderation status
   moderatedAt?: string     // ISO timestamp when moderated
   moderatedBy?: string     // Moderator DID

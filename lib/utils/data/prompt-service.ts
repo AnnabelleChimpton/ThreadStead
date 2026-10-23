@@ -389,7 +389,7 @@ export class PromptService {
       digest: postRef.digest,
       submittedBy: postRef.submittedBy,
       submittedAt: postRef.submittedAt,
-      isPinned: postRef.isPinned,
+      isPinned: postRef.pinned,
       status: postRef.status,
       moderatedAt: postRef.moderatedAt,
       moderatedBy: postRef.moderatedBy,
