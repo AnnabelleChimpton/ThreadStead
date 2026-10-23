@@ -28,8 +28,8 @@ const LEGACY_IDS: Record<string, string> = {
  * id. null for anything else, so nothing but a colour ever reaches the page's
  * stylesheet.
  */
-export function ringThemeHex(value: string | null | undefined): string | null {
-  const theme = value?.trim().toLowerCase() ?? '';
+export function ringThemeHex(value: unknown): string | null {
+  const theme = typeof value === 'string' ? value.trim().toLowerCase() : '';
   if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/.test(theme)) return theme;
   return LEGACY_IDS[theme] ?? null;
 }

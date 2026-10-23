@@ -1,6 +1,6 @@
 /**
- * A ring's theme colour goes into its page's stylesheet, so only a colour
- * gets through. The settings form used to save ids like "thread-pine", which
+ * A ring's theme colour goes into its page's stylesheet (and its badge's
+ * SVG), so only a colour gets through, whatever a request sends. The settings form used to save ids like "thread-pine", which
  * the page wrote in as a CSS colour and broke.
  */
 import { RING_THEMES, ringThemeHex } from '@/lib/rings/theme'
@@ -16,7 +16,7 @@ it('reads the ids the form used to save', () => {
 })
 
 it('refuses anything else, so no CSS gets into the page', () => {
-  for (const value of ['red} nav{display:none', 'url(//tracker.example)', 'red', '#12345', '', null, undefined]) {
+  for (const value of ['red} nav{display:none', 'url(//tracker.example)', 'red', '#12345', '', null, undefined, 42, { a: 1 }]) {
     expect(ringThemeHex(value)).toBeNull()
   }
 })
