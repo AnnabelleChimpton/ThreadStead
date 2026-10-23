@@ -2,6 +2,10 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 import { createPromptService } from '@/lib/utils/data/prompt-service'
 import { withThreadRingSupport } from '@/lib/api/ringhub/ringhub-middleware'
 import { parsePagePagination } from '@/lib/server/http/pagination';
+import { db } from '@/lib/config/database/connection'
+import { getSessionUser } from '@/lib/auth/server'
+import { getHiddenIds } from '@/lib/domain/users/blocks'
+import { extractPostIdFromUri, isOurThreadSteadInstance } from '@/lib/domain/threadrings/orphan-postrefs'
 
 export default withThreadRingSupport(async function handler(
   req: NextApiRequest,
@@ -36,105 +40,62 @@ export default withThreadRingSupport(async function handler(
         // Apply pagination
         const paginatedResponses = responses.slice(skip, skip + limit)
         
-        // Transform responses to match old API format for frontend compatibility
-        const transformedResponses = await Promise.all(
-          paginatedResponses.map(async (response) => {
-            // Try to get real post data from the URI
-            let postData: any = {
-              id: response.uri.split('/').pop(),
-              title: (response.metadata as any)?.title || 'Response Post',
-              bodyText: (response.metadata as any)?.textPreview || null,
-              bodyHtml: null,
-              bodyMarkdown: null,
-              visibility: 'public',
-              createdAt: response.submittedAt,
-              authorId: response.submittedBy,
-            };
+        // Only our own public posts by residents this viewer may see are
+        // shown in full; anything else is the PostRef's own title and preview,
+        // as the ring feed shows it (lib/feeds/ring-feed.ts). The submitter
+        // writes the metadata, so it never names a resident here.
+        const viewer = await getSessionUser(req)
+        const { blockedUserIds } = await getHiddenIds(viewer?.id)
+        const localIds = paginatedResponses
+          .filter((response) => isOurThreadSteadInstance(response.uri))
+          .map((response) => extractPostIdFromUri(response.uri) ?? '')
+        const posts = await db.post.findMany({
+          where: { id: { in: localIds }, visibility: 'public', authorId: { notIn: blockedUserIds } },
+          select: {
+            id: true, title: true, bodyText: true, bodyHtml: true, bodyMarkdown: true, visibility: true, createdAt: true, authorId: true,
+            author: { select: { id: true, primaryHandle: true, profile: { select: { displayName: true, avatarUrl: true } } } },
+          },
+        })
+        const byId = new Map(posts.map((post) => [post.id, post]))
 
-            // Try to fetch actual post data if we can extract the post ID
-            const postId = response.uri.split('/').pop();
-            if (postId && postId.length > 10) { // Basic validation
-              try {
-                const { db } = await import('@/lib/config/database/connection');
-                const actualPost = await db.post.findUnique({
-                  where: { id: postId },
-                  select: {
-                    id: true,
-                    title: true,
-                    bodyText: true,
-                    bodyHtml: true,
-                    bodyMarkdown: true,
-                    visibility: true,
-                    createdAt: true,
-                    authorId: true,
-                    author: {
-                      select: {
-                        id: true,
-                        handles: {
-                          take: 1,
-                          select: { handle: true }
-                        },
-                        profile: {
-                          select: {
-                            displayName: true,
-                            avatarUrl: true
-                          }
-                        }
-                      }
-                    }
-                  }
-                });
-
-                if (actualPost) {
-                  postData = {
-                    ...postData,
-                    title: actualPost.title,
-                    bodyText: actualPost.bodyText,
-                    bodyHtml: actualPost.bodyHtml,
-                    bodyMarkdown: actualPost.bodyMarkdown,
-                    visibility: actualPost.visibility as any,
-                    createdAt: actualPost.createdAt.toISOString(),
-                    authorId: actualPost.authorId,
-                  };
-                }
-              } catch (dbError) {
-                console.log(`⚠️ Could not resolve post data for ${postId}:`, dbError);
-              }
-            }
-
-            // Extract user identification from metadata for dev mode
-            const responseUserId = (response.metadata as any)?.threadsteadUserId || 
-                                  (response.metadata as any)?.response?.threadsteadUserId;
-            const authorHandle = (response.metadata as any)?.authorHandle;
-
-            return {
-              id: response.id,
-              postId: postData.id,
-              createdAt: response.submittedAt,
-              post: {
-                ...postData,
+        const transformedResponses = paginatedResponses.map((response) => {
+          const metadata = (response.metadata ?? {}) as Record<string, any>
+          const local = isOurThreadSteadInstance(response.uri) ? byId.get(extractPostIdFromUri(response.uri) ?? '') : undefined
+          const post = local
+            ? {
+                ...local,
+                createdAt: local.createdAt.toISOString(),
                 author: {
-                  id: responseUserId || response.submittedBy,
-                  handles: [{ handle: authorHandle || 'Ring Hub User' }],
-                  profile: { 
-                    displayName: authorHandle ? authorHandle.split('@')[0] : null,
-                    avatarUrl: null
-                  }
+                  id: local.author.id,
+                  handles: [{ handle: local.author.primaryHandle?.split('@')[0] ?? 'unknown' }],
+                  profile: local.author.profile,
                 },
-                threadRings: [{
-                  threadRing: {
-                    id: slug,
-                    name: slug,
-                    slug: slug
-                  }
-                }],
-                _count: {
-                  comments: 0 // Not available from Ring Hub PostRef
-                }
+                url: `/resident/${encodeURIComponent(local.author.primaryHandle?.split('@')[0] ?? '')}/post/${local.id}`,
               }
-            };
-          })
-        )
+            : {
+                id: response.id,
+                title: metadata.title || 'A response from elsewhere',
+                bodyText: metadata.textPreview || null,
+                bodyHtml: null,
+                bodyMarkdown: null,
+                visibility: 'public',
+                createdAt: response.submittedAt,
+                authorId: response.submittedBy,
+                author: { id: response.submittedBy, handles: [], profile: { displayName: metadata.actorName || null, avatarUrl: null } },
+                url: /^https?:\/\//i.test(response.uri) ? response.uri : null,
+              }
+
+          return {
+            id: response.id,
+            postId: post.id,
+            createdAt: response.submittedAt,
+            post: {
+              ...post,
+              threadRings: [{ threadRing: { id: slug, name: slug, slug } }],
+              _count: { comments: 0 }, // Not available from Ring Hub PostRef
+            },
+          }
+        })
 
         return res.status(200).json({
           responses: transformedResponses,

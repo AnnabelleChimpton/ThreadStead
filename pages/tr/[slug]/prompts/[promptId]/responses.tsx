@@ -26,6 +26,8 @@ interface PromptResponse {
     bodyMarkdown: string | null
     visibility: string
     createdAt: string
+    /** Its own page here, or the outside post's address; null when it has neither */
+    url: string | null
     author: {
       id: string
       handles: Array<{ handle: string }>
@@ -316,20 +318,24 @@ export default function PromptResponsesPage({
                     
                     <div className="flex-1">
                       <div className="flex items-baseline gap-2 mb-1">
-                        <Link 
-                          href={`/resident/${response.post.author.handles[0]?.handle}`}
-                          className="font-semibold text-gray-900 hover:underline"
-                        >
-                          {getUserDisplayName(response.post.author)}
-                        </Link>
+                        {response.post.author.handles[0] ? (
+                          <Link
+                            href={`/resident/${response.post.author.handles[0].handle}`}
+                            className="font-semibold text-gray-900 hover:underline"
+                          >
+                            {getUserDisplayName(response.post.author)}
+                          </Link>
+                        ) : (
+                          <span className="font-semibold text-gray-900">{getUserDisplayName(response.post.author)}</span>
+                        )}
                         <span className="text-sm text-gray-500">
                           {formatDistanceToNow(new Date(response.post.createdAt))} ago
                         </span>
                       </div>
                       
-                      {response.post.title && (
-                        <Link 
-                          href={`/resident/${response.post.author.handles[0]?.handle}/post/${response.post.id}`}
+                      {response.post.title && response.post.url && (
+                        <Link
+                          href={response.post.url}
                           className="text-xl font-semibold text-blue-600 hover:text-blue-800 hover:underline block mb-2"
                         >
                           {response.post.title}
@@ -377,12 +383,14 @@ export default function PromptResponsesPage({
                       )}
                     </div>
                     
-                    <Link 
-                      href={`/resident/${response.post.author.handles[0]?.handle}/post/${response.post.id}`}
-                      className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                    >
-                      Read full post →
-                    </Link>
+                    {response.post.url && (
+                      <Link
+                        href={response.post.url}
+                        className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                      >
+                        Read full post →
+                      </Link>
+                    )}
                   </div>
                 </article>
               ))}
