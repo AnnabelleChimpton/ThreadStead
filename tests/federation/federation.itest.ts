@@ -572,6 +572,14 @@ describe('owner member management (audit 0.8)', () => {
 })
 
 describe('a ring owner updates its badge (badge manager → PUT /trp/rings/:slug/badge)', () => {
+  const ownersBadge = async () =>
+    (await client.getActorBadges(actorDid)).badges.find((b) => b.ring.slug === FORK_SLUG)!.badge as any
+  let before: { id: string; issuanceDate: string }
+
+  beforeAll(async () => {
+    before = await ownersBadge()
+  })
+
   test('the new images are stored, and the ring reads them back', async () => {
     // The exact body pages/tr/[slug]/badge-manager.tsx sends through /api/threadrings/[slug]/update-badge
     const result = await client.updateRingBadge(FORK_SLUG, {
@@ -591,6 +599,20 @@ describe('a ring owner updates its badge (badge manager → PUT /trp/rings/:slug
     expect((owners?.badge as any).credentialSubject.achievement).toMatchObject({
       description: `Badge for ${FORK_SLUG} ThreadRing`,
       criteria: { narrative: 'Active participation in the ThreadRing community' },
+    })
+  })
+
+  test("the re-signed badge keeps its id and issue date, and its own link serves it", async () => {
+    const after = await ownersBadge()
+    expect(after.credentialSubject.achievement.image).toBe('https://cdn.example/media/u1/1_medium.png')
+    expect(after.id).toBe(before.id)
+    expect(after.issuanceDate).toBe(before.issuanceDate)
+
+    const served = await fetch(after.id)
+    expect(served.status).toBe(200)
+    expect((await served.json()).badge).toMatchObject({
+      id: before.id,
+      credentialSubject: { achievement: { image: 'https://cdn.example/media/u1/1_medium.png' } },
     })
   })
 })
