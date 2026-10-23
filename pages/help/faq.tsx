@@ -254,11 +254,7 @@ export default function FAQ({ siteConfig }: FAQProps) {
         },
         {
           question: 'Can I delete my account?',
-          answer: (
-            <>
-              You can&apos;t do it yourself yet, sorry! <Link href="/help/contact" className={link}>Email me</Link> and I&apos;ll delete it for you.
-            </>
-          )
+          answer: 'Yes. Go to Settings → Privacy & Consent, and it\'s under Leave HomePageAgain. Your page is hidden as soon as you confirm, and everything is deleted for good 14 days later, so until then you can sign in and change your mind. If you look after a ring that has other members, you\'ll hand it to one of them first. Download a copy of your data on the same page before you go if you want one.'
         },
         {
           question: 'What\'s a decentralized identifier (DID)?',
