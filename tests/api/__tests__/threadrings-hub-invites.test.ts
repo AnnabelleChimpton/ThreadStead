@@ -47,6 +47,8 @@ jest.mock('@/lib/api/ringhub/ringhub-retry', () => ({
 import inviteHandler from '@/pages/api/threadrings/[slug]/invite'
 import myInviteHandler from '@/pages/api/threadrings/[slug]/my-invite'
 import joinHandler from '@/pages/api/threadrings/[slug]/join'
+import leaveHandler from '@/pages/api/threadrings/[slug]/leave'
+import { cached, clearCache } from '@/lib/api/ringhub/ringhub-cache'
 import { getSessionUser } from '@/lib/auth/server'
 import { db } from '@/lib/config/database/connection'
 import { getRingHubClient, RingHubClientError } from '@/lib/api/ringhub/ringhub-client'
@@ -272,5 +274,54 @@ describe('POST /api/threadrings/[slug]/join on an invite-only hub ring', () => {
 
     expect(res.statusCode).toBe(200)
     expect(res.jsonBody).toMatchObject({ success: true, badgeId: 'b1' })
+  })
+})
+
+describe('joining, accepting and leaving forget the cached reads', () => {
+  const kept = async (key: string) => {
+    const read = jest.fn().mockResolvedValue('fresh')
+    return { value: await cached(key, 60_000, 60_000, read), read }
+  }
+
+  beforeEach(async () => {
+    clearCache()
+    ;(getSessionUser as jest.Mock).mockResolvedValue(VIEWER)
+    await cached(`ring-members-all:${VIEWER.id}:tea-ring`, 60_000, 60_000, async () => 'before')
+    await cached(`my-memberships:${VIEWER.id}`, 60_000, 60_000, async () => 'before')
+  })
+
+  test('after a join, the next read asks the hub again, and the role comes back', async () => {
+    ;(AuthenticatedRingHubClient as unknown as jest.Mock).mockImplementation(() => ({
+      joinRing: jest.fn().mockResolvedValue({ membership: { role: 'member' }, badge: null }),
+    }))
+    const { req, res } = makeReqRes('POST', { slug: 'tea-ring' })
+    await joinHandler(req, res)
+
+    expect(res.jsonBody).toMatchObject({ success: true, role: 'member' })
+    expect((await kept(`ring-members-all:${VIEWER.id}:tea-ring`)).value).toBe('fresh')
+    expect((await kept(`my-memberships:${VIEWER.id}`)).value).toBe('fresh')
+  })
+
+  test('a refused join keeps them', async () => {
+    ;(AuthenticatedRingHubClient as unknown as jest.Mock).mockImplementation(() => ({
+      joinRing: jest.fn().mockRejectedValue(new RingHubClientError('Closed', 403, undefined, { message: 'Closed' })),
+    }))
+    const { req, res } = makeReqRes('POST', { slug: 'tea-ring' })
+    await joinHandler(req, res)
+
+    expect(res.statusCode).toBe(403)
+    expect((await kept(`ring-members-all:${VIEWER.id}:tea-ring`)).value).toBe('before')
+  })
+
+  test('after leaving, the next read asks the hub again', async () => {
+    ;(AuthenticatedRingHubClient as unknown as jest.Mock).mockImplementation(() => ({
+      leaveRing: jest.fn().mockResolvedValue(undefined),
+    }))
+    const { req, res } = makeReqRes('POST', { slug: 'tea-ring' })
+    await leaveHandler(req, res)
+
+    expect(res.jsonBody).toMatchObject({ success: true, role: null })
+    expect((await kept(`ring-members-all:${VIEWER.id}:tea-ring`)).value).toBe('fresh')
+    expect((await kept(`my-memberships:${VIEWER.id}`)).value).toBe('fresh')
   })
 })

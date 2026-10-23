@@ -5,6 +5,7 @@ import { withThreadRingSupport } from "@/lib/api/ringhub/ringhub-middleware";
 import { AuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
 import { withCsrfProtection } from "@/lib/server/http/csrf";
 import { withRateLimit } from "@/lib/server/http/rate-limit";
+import { forgetRingReads } from "@/lib/api/ringhub/forget-ring-reads";
 
 // Apply CSRF protection and rate limiting
 export default withRateLimit('threadring_operations')(
@@ -37,12 +38,14 @@ export default withRateLimit('threadring_operations')(
         
         // Leave ring via Ring Hub
         await authenticatedClient.leaveRing(slug as string);
-        
+        forgetRingReads(slug, [viewer.id]);
+
         return res.json({
           success: true,
-          message: `You have left the ThreadRing.`
+          message: "You've left this ring.",
+          role: null
         });
-        
+
       } catch (ringHubError: any) {
         console.error("Ring Hub leave error:", ringHubError);
         if (ringHubError.status === 404) {

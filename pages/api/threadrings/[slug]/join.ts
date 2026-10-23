@@ -7,6 +7,7 @@ import { AuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-opera
 import { withCsrfProtection } from "@/lib/server/http/csrf";
 import { withRateLimit } from "@/lib/server/http/rate-limit";
 import { retryWithBackoff } from "@/lib/api/ringhub/ringhub-retry";
+import { forgetRingReads } from "@/lib/api/ringhub/forget-ring-reads";
 
 // Apply CSRF protection and rate limiting
 export default withRateLimit('threadring_operations')(
@@ -35,15 +36,10 @@ export default withRateLimit('threadring_operations')(
     // Use Ring Hub if enabled
     if (system === 'ringhub') {
       try {
-        console.log('Attempting to join Ring Hub ring:', slug, 'for user:', viewer.id);
-
-        console.log('Creating AuthenticatedRingHubClient...');
         const authenticatedClient = new AuthenticatedRingHubClient(viewer.id);
 
-        // Join ring via Ring Hub with automatic retry for registration errors
-        // This handles the case where RingHub auto-registers the user on first request
-        // but needs a retry to complete the join operation successfully
-        console.log('Calling joinRing on authenticated client with retry logic...');
+        // Retried: the hub registers a first-time actor on its first request,
+        // and the join itself can need a second try.
         const joinResult = await retryWithBackoff(
           () => authenticatedClient.joinRing(slug as string),
           {
@@ -51,11 +47,13 @@ export default withRateLimit('threadring_operations')(
             baseDelay: 500, // 500ms, 1s, 2s exponential backoff
           }
         );
-        console.log('Join successful:', joinResult);
+        // So the page, the directory and the composer see the new member now
+        forgetRingReads(slug, [viewer.id]);
 
         return res.json({
           success: true,
-          message: `Successfully joined the ThreadRing!`,
+          message: "You're in.",
+          role: "member",
           // The hub nests the badge: { membership, badge: { id, url } | null }.
           // The old membership.badgeId read was always undefined on the wire.
           badgeId: joinResult.badge?.id
