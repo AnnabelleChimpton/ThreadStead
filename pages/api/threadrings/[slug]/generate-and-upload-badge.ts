@@ -1,71 +1,44 @@
-import type { NextApiRequest, NextApiResponse } from 'next'
-import { getSessionUser } from '@/lib/auth/server'
+import { z } from 'zod'
+import { apiHandler, ApiError } from '@/lib/api/handler'
 import { generateBadge } from '@/lib/badge-generator'
 import { uploadBadgeImage } from '@/lib/badge-uploader'
-import { db } from '@/lib/config/database/connection'
-import { withCsrfProtection } from "@/lib/server/http/csrf";
-import { withRateLimit } from "@/lib/server/http/rate-limit";
+import { requireRingAs } from '@/lib/domain/threadrings/ring-access'
 
-interface BadgeGenerationRequest {
-  title: string;
-  subtitle?: string;
-  templateId?: string;
-  backgroundColor?: string;
-  textColor?: string;
-}
+const schema = z.object({
+  title: z.string().trim().min(1, 'Badge title is required'),
+  subtitle: z.string().optional(),
+  templateId: z.string().optional(),
+  backgroundColor: z.string().optional(),
+  textColor: z.string().optional(),
+})
 
-async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const user = await getSessionUser(req)
-  if (!user) {
-    return res.status(401).json({ error: 'Authentication required' })
-  }
+/**
+ * Draw a ring badge and upload it, for the badge manager to save with
+ * update-badge. Only for whoever the hub lets change the ring's badge: its
+ * Host, or a site admin (ring-access.ts).
+ */
+export default apiHandler(
+  { methods: ['POST'], auth: 'user', rateLimit: 'threadring_operations', schema },
+  async (req, res, { user, body }) => {
+    const slug = req.query.slug
+    if (typeof slug !== 'string') throw new ApiError(400, 'Invalid ring slug')
 
-  const { slug } = req.query
-  if (typeof slug !== 'string') {
-    return res.status(400).json({ error: 'Invalid ring slug' })
-  }
+    const access = await requireRingAs(user, slug)
+    if (!access.manageAs) throw new ApiError(403, "Only the ring's Host can change its badge.")
 
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' })
-  }
+    const { title, subtitle, templateId, backgroundColor, textColor } = body
+    const generatedBadge = await generateBadge({ title, subtitle: subtitle?.trim(), templateId, backgroundColor, textColor })
+    if (!generatedBadge.imageDataUrl) throw new ApiError(500, "Couldn't draw the badge. Try again.")
 
-  try {
-    const { title, subtitle, templateId, backgroundColor, textColor } = req.body as BadgeGenerationRequest
-
-    // Validate input
-    if (!title || title.trim().length === 0) {
-      return res.status(400).json({ error: 'Badge title is required' })
+    let uploadResult
+    try {
+      uploadResult = await uploadBadgeImage(generatedBadge.imageDataUrl, slug)
+    } catch (error) {
+      console.error('Badge upload failed:', error)
+      throw new ApiError(500, "Couldn't upload the badge. Try again.")
     }
 
-    // Check if user owns this ThreadRing or is admin
-    const ringHubOwnership = await db.ringHubOwnership.findUnique({
-      where: { ringSlug: slug }
-    })
-
-    const isAdmin = user.role === 'admin';
-    const isOwner = ringHubOwnership && ringHubOwnership.ownerUserId === user.id;
-
-    if (!isOwner && !isAdmin) {
-      return res.status(403).json({ error: 'Not authorized to manage this ThreadRing badge' })
-    }
-
-    // Step 1: Generate the badge image
-    const generatedBadge = await generateBadge({
-      title: title.trim(),
-      subtitle: subtitle?.trim(),
-      templateId,
-      backgroundColor,
-      textColor
-    })
-
-    if (!generatedBadge.imageDataUrl) {
-      return res.status(500).json({ error: 'Failed to generate badge image' })
-    }
-
-    // Step 2: Upload to S3
-    const uploadResult = await uploadBadgeImage(generatedBadge.imageDataUrl, slug)
-
-    return res.json({
+    res.json({
       badgeImageUrl: uploadResult.badgeImageUrl,
       badgeImageHighResUrl: uploadResult.badgeImageHighResUrl,
       generatedBadge: {
@@ -73,22 +46,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         subtitle: generatedBadge.subtitle,
         templateId: generatedBadge.templateId,
         backgroundColor: generatedBadge.backgroundColor,
-        textColor: generatedBadge.textColor
-      }
+        textColor: generatedBadge.textColor,
+      },
     })
-
-  } catch (error) {
-    console.error('Badge generation error:', error)
-
-    if (error instanceof Error) {
-      if (error.message.includes('Missing required environment variable')) {
-        return res.status(500).json({ error: 'S3 configuration not available' })
-      }
-    }
-
-    return res.status(500).json({ error: 'Failed to generate and upload badge' })
   }
-}
-
-// Apply CSRF protection and rate limiting
-export default withRateLimit('threadring_operations')(withCsrfProtection(handler));
+)

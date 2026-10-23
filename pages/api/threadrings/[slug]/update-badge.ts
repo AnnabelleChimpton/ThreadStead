@@ -1,107 +1,34 @@
-import type { NextApiRequest, NextApiResponse } from 'next'
-import { getSessionUser } from '@/lib/auth/server'
-import { AuthenticatedRingHubClient } from '@/lib/api/ringhub/ringhub-user-operations'
-import { sameOriginProtection } from '@/lib/server/http/same-origin'
+import { z } from "zod";
+import { apiHandler, ApiError } from "@/lib/api/handler";
+import { forgetRingReads } from "@/lib/api/ringhub/forget-ring-reads";
+import { hubWriteError, requireRingAs, ringManager } from "@/lib/domain/threadrings/ring-access";
 
-interface BadgeUpdateRequest {
-  badgeImageUrl?: string;
-  badgeImageHighResUrl?: string;
-  description?: string;
-  criteria?: string;
-  updateExistingBadges?: boolean;
-}
+const httpsUrl = z.string().url().refine((url) => url.startsWith("https://"), "The badge needs an https:// image address");
 
-interface BadgeUpdateResponse {
-  success: boolean;
-  message: string;
-  badgeImageUrl?: string;
-  badgeImageHighResUrl?: string;
-  description?: string;
-  criteria?: string;
-  badgesUpdated?: number;
-}
+const schema = z.object({
+  badgeImageUrl: httpsUrl.optional(),
+  badgeImageHighResUrl: httpsUrl.optional(),
+  updateExistingBadges: z.boolean().optional(),
+});
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  // cookie-authed and not on apiHandler: refuse cross-origin posts here
-  if (!sameOriginProtection(req, res)) return
-  const user = await getSessionUser(req)
-  if (!user) {
-    return res.status(401).json({ error: 'Authentication required' })
-  }
-
-  const { slug } = req.query
-  if (typeof slug !== 'string') {
-    return res.status(400).json({ error: 'Invalid ring slug' })
-  }
-
-  switch (req.method) {
-    case 'PUT':
-      return updateRingBadge(req, res, user.id, slug)
-    default:
-      return res.status(405).json({ error: 'Method not allowed' })
-  }
-}
-
-async function updateRingBadge(
-  req: NextApiRequest,
-  res: NextApiResponse,
-  userId: string,
-  slug: string
-) {
-  try {
-    const updateData = req.body as BadgeUpdateRequest
-
-    // Validate the request data
-    if (!updateData || typeof updateData !== 'object') {
-      return res.status(400).json({ error: 'Invalid request body' })
+/**
+ * Set the ring's badge image on Ring Hub. The hub takes it from the ring's
+ * Host, or from this site for a site admin (its isAdmin), and redraws the
+ * badges members already have when asked.
+ */
+export default apiHandler(
+  { methods: ["PUT"], auth: "user", rateLimit: "threadring_operations", schema },
+  async (req, res, { user, body }) => {
+    const slug = req.query.slug;
+    if (typeof slug !== "string") throw new ApiError(400, "Invalid slug");
+    const access = await requireRingAs(user, slug);
+    const manager = ringManager(access, user.id);
+    try {
+      const result = await manager.updateRingBadge(slug, body);
+      forgetRingReads(slug);
+      res.json(result);
+    } catch (error) {
+      throw hubWriteError(error, access.manageAs);
     }
-
-    // Validate image URLs if provided
-    if (updateData.badgeImageUrl && !isValidHttpsUrl(updateData.badgeImageUrl)) {
-      return res.status(400).json({ error: 'Badge image URL must be a valid HTTPS URL' })
-    }
-
-    if (updateData.badgeImageHighResUrl && !isValidHttpsUrl(updateData.badgeImageHighResUrl)) {
-      return res.status(400).json({ error: 'High-res badge image URL must be a valid HTTPS URL' })
-    }
-
-    // Get user-authenticated RingHub client
-    const authenticatedClient = new AuthenticatedRingHubClient(userId)
-
-    // Update the badge via RingHub using the user's DID
-    const result = await authenticatedClient.updateRingBadge(slug, updateData)
-
-    return res.json(result)
-  } catch (error) {
-    console.error('Badge update error:', error)
-
-    // Handle RingHub API errors
-    // Handle RingHub API errors
-    if (error instanceof Error) {
-      const status = (error as any).status;
-
-      if (status === 403 || error.message.includes('403')) {
-        return res.status(403).json({ error: 'Not authorized to update this ring badge. Only ring owners can update badges.' })
-      }
-      if (status === 404 || error.message.includes('404')) {
-        return res.status(404).json({ error: 'ThreadRing not found' })
-      }
-
-      // Pass through other error messages if available
-      if (status && status >= 400 && status < 500) {
-        return res.status(status).json({ error: error.message })
-      }
-    }
-
-    return res.status(500).json({ error: 'Failed to update badge' })
   }
-}
-
-function isValidHttpsUrl(urlString: string): boolean {
-  try {
-    const url = new URL(urlString)
-    return url.protocol === 'https:'
-  } catch {
-    return false
-  }
-}
+);

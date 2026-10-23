@@ -7,9 +7,8 @@ import ThreadRing88x31Badge from '@/components/core/threadring/ThreadRing88x31Ba
 import BadgeUpload from '@/components/ui/media/BadgeUpload';
 import { getSessionUser } from '@/lib/auth/server';
 import { featureFlags } from '@/lib/utils/features/feature-flags';
-import { getRingHubClient } from '@/lib/api/ringhub/ringhub-client';
 import { raceHubCall, HUB_TIMEOUT } from '@/lib/api/ringhub/ringhub-ssr';
-import { db } from '@/lib/config/database/connection';
+import { readRingAs } from '@/lib/domain/threadrings/ring-access';
 import { BADGE_TEMPLATES, type BadgeTemplate } from '@/lib/domain/threadrings/badges';
 import { generateBadge, type BadgeGenerationOptions } from '@/lib/badge-generator';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
@@ -39,8 +38,6 @@ interface BadgeDesign {
   textColor?: string;
   customImageUrl?: string;
   customImageHighResUrl?: string;
-  description?: string;
-  criteria?: string;
 }
 
 export default function BadgeManagerPage({ ring, user, canManage, hubUnavailable }: BadgeManagerPageProps) {
@@ -69,35 +66,27 @@ export default function BadgeManagerPage({ ring, user, canManage, hubUnavailable
 
   const loadCurrentBadge = async () => {
     try {
-      // Try to load existing local badge configuration
+      // The badge image Ring Hub gives members
       const response = await fetch(`/api/threadrings/${ring.slug}/badge`);
       if (response.ok) {
         const data = await response.json();
-        if (data.badge) {
+        if (data.badge?.imageUrl) {
           const badge: BadgeDesign = {
             title: data.badge.title || ring.name,
-            subtitle: data.badge.subtitle,
-            templateId: data.badge.templateId,
-            backgroundColor: data.badge.backgroundColor,
-            textColor: data.badge.textColor,
             customImageUrl: data.badge.imageUrl,
-            customImageHighResUrl: data.badge.imageHighResUrl,
-            description: `Badge for ${ring.name} ThreadRing`,
-            criteria: 'Active participation in the ThreadRing community'
+            customImageHighResUrl: data.badge.imageHighResUrl ?? undefined,
           };
           setCurrentBadge(badge);
           setEditedBadge(badge);
-          // A badge made from neither a template nor colors is an image of their own
-          if (!badge.templateId && !badge.backgroundColor && badge.customImageUrl) setPreviewMode('upload');
+          // The hub keeps only the image: edit it as one
+          setPreviewMode('upload');
           return;
         }
       }
 
-      // If no existing badge, set up default
+      // No badge yet
       const defaultBadge: BadgeDesign = {
         title: ring.name,
-        description: `Badge for ${ring.name} ThreadRing`,
-        criteria: 'Active participation in the ThreadRing community'
       };
       setCurrentBadge(defaultBadge);
       setEditedBadge(defaultBadge);
@@ -167,14 +156,6 @@ export default function BadgeManagerPage({ ring, user, canManage, hubUnavailable
         ringHubUpdateData.badgeImageHighResUrl = highResUrl;
       }
 
-      if (editedBadge.description?.trim()) {
-        ringHubUpdateData.description = editedBadge.description.trim();
-      }
-
-      if (editedBadge.criteria?.trim()) {
-        ringHubUpdateData.criteria = editedBadge.criteria.trim();
-      }
-
       // Always regenerate existing badges when updating
       ringHubUpdateData.updateExistingBadges = true;
 
@@ -189,26 +170,6 @@ export default function BadgeManagerPage({ ring, user, canManage, hubUnavailable
       if (ringHubResponse.ok) {
         const result = await ringHubResponse.json();
 
-        // Step 3: Save the badge configuration locally for future editing
-        const localBadgeData = {
-          title: editedBadge.title || ring.name,
-          subtitle: editedBadge.subtitle,
-          // Neither, for an image of their own: that's how the next visit knows it's one
-          templateId: ownImage ? null : editedBadge.templateId || null,
-          backgroundColor: ownImage ? null : editedBadge.backgroundColor || null,
-          textColor: ownImage ? null : editedBadge.textColor || null,
-          imageUrl: badgeUrl,
-          isActive: true
-        };
-
-        await csrfFetch(`/api/threadrings/${ring.slug}/badge`, {
-          method: currentBadge ? 'PUT' : 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(localBadgeData),
-        });
-
         const finalBadge = {
           ...editedBadge,
           ...(ownImage && { templateId: undefined, backgroundColor: undefined, textColor: undefined }),
@@ -218,7 +179,8 @@ export default function BadgeManagerPage({ ring, user, canManage, hubUnavailable
 
         setCurrentBadge(finalBadge as BadgeDesign);
         setIsEditing(false);
-        const updatedCount = result.badgesUpdated?.updated || 0;
+        // The hub sends how many members' badges it redrew, as a number
+        const updatedCount = typeof result.badgesUpdated === 'number' ? result.badgesUpdated : 0;
         setSuccess(`Badge updated.${updatedCount > 0 ? ` ${updatedCount} member badges regenerated.` : ''}`);
       } else {
         const errorData = await ringHubResponse.json();
@@ -291,9 +253,9 @@ export default function BadgeManagerPage({ ring, user, canManage, hubUnavailable
         <Layout>
           <RetroCard>
             <div className="text-center py-12">
-              <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
+              <h1 className="text-2xl font-bold mb-4">Only the Host changes this</h1>
               <p className="text-gray-600 mb-6">
-                Only ThreadRing owners and Ring Hosts can manage badge designs.
+                A ring&apos;s badge is its Host&apos;s to change.
               </p>
               <button
                 onClick={() => router.push(`/tr/${ring.slug}`)}
@@ -370,7 +332,6 @@ export default function BadgeManagerPage({ ring, user, canManage, hubUnavailable
                       <p><strong>Title:</strong> {currentBadge.title}</p>
                       {currentBadge.subtitle && <p><strong>Subtitle:</strong> {currentBadge.subtitle}</p>}
                       <p><strong>Template:</strong> {currentBadge.templateId || 'Custom'}</p>
-                      {currentBadge.description && <p><strong>Description:</strong> {currentBadge.description}</p>}
                     </div>
                   </div>
                   <div className="mt-4">
@@ -566,33 +527,6 @@ export default function BadgeManagerPage({ ring, user, canManage, hubUnavailable
                     </div>
                   </div>
 
-                  {/* Badge Metadata */}
-                  <div>
-                    <h4 className="font-bold text-lg mb-3">Badge Information</h4>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block font-bold text-gray-800 mb-2">Description:</label>
-                        <textarea
-                          placeholder="Description of what this badge represents"
-                          value={editedBadge.description || ''}
-                          onChange={(e) => setEditedBadge({ ...editedBadge, description: e.target.value })}
-                          rows={3}
-                          className="w-full px-3 py-2 border border-black bg-white rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block font-bold text-gray-800 mb-2">Criteria:</label>
-                        <textarea
-                          placeholder="What does someone need to do to earn this badge?"
-                          value={editedBadge.criteria || ''}
-                          onChange={(e) => setEditedBadge({ ...editedBadge, criteria: e.target.value })}
-                          rows={3}
-                          className="w-full px-3 py-2 border border-black bg-white rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
                   {/* Action Buttons */}
                   <div className="flex gap-3 pt-4">
                     <button
@@ -663,83 +597,36 @@ export const getServerSideProps: GetServerSideProps<BadgeManagerPageProps> = asy
     };
   }
 
-  try {
-    // Try Ring Hub first if enabled
-    if (featureFlags.ringhub()) {
-      const ringHubClient = getRingHubClient();
-      if (ringHubClient) {
-        try {
-          // Short SSR deadline so a hung hub renders a graceful state, not a hang.
-          const ring = await raceHubCall(ringHubClient.getRing(slug));
-          if (ring === HUB_TIMEOUT) {
-            return {
-              props: {
-                ring: { id: '', slug, name: '', description: '', visibility: 'public' },
-                user: { id: user.id, primaryHandle: user.primaryHandle || '' },
-                canManage: false,
-                hubUnavailable: true,
-              },
-            };
-          }
-
-          if (ring) {
-            // Found RingHub ring
-
-            // Check ownership via local database tracking (source of truth)
-            let canManage = false;
-
-            try {
-              if (user.role === 'admin') {
-                canManage = true;
-              } else {
-                const ringHubOwnership = await db.ringHubOwnership.findUnique({
-                  where: { ringSlug: slug }
-                });
-                // Local ownership record found
-
-                if (ringHubOwnership && ringHubOwnership.ownerUserId === user.id) {
-                  canManage = true;
-                  // User is owner via local ownership tracking
-                } else {
-                  // User is not owner of this ring
-                }
-              }
-
-            } catch (ownershipError) {
-              console.warn('[Badge Manager SSR] Error checking local ownership:', ownershipError);
-            }
-
-            return {
-              props: {
-                ring: {
-                  id: ring.id,
-                  slug: ring.slug,
-                  name: ring.name,
-                  description: ring.description || '',
-                  visibility: ring.visibility,
-                },
-                user: {
-                  id: user.id,
-                  primaryHandle: user.primaryHandle || '',
-                },
-                canManage,
-              },
-            };
-          }
-        } catch (ringHubError) {
-          console.error('[Badge Manager SSR] RingHub error:', ringHubError);
-        }
-      }
-    }
-
-    // If we get here, ring was not found
+  // Signed as the viewer, so a private ring's Host can reach it; rights
+  // from the hub (ring-access.ts), not the local owner row
+  const access = await raceHubCall(readRingAs(user, slug));
+  if (access === HUB_TIMEOUT) {
     return {
-      notFound: true,
-    };
-  } catch (error) {
-    console.error('[Badge Manager SSR] Error loading ring for badge manager:', error);
-    return {
-      notFound: true,
+      props: {
+        ring: { id: '', slug, name: '', description: '', visibility: 'public' },
+        user: { id: user.id, primaryHandle: user.primaryHandle || '' },
+        canManage: false,
+        hubUnavailable: true,
+      },
     };
   }
+  if (!access) return { notFound: true };
+
+  const { ring } = access;
+  return {
+    props: {
+      ring: {
+        id: ring.id,
+        slug: ring.slug,
+        name: ring.name,
+        description: ring.description || '',
+        visibility: ring.visibility,
+      },
+      user: {
+        id: user.id,
+        primaryHandle: user.primaryHandle || '',
+      },
+      canManage: access.manageAs !== null,
+    },
+  };
 };
