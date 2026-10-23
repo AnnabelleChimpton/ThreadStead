@@ -46,14 +46,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               }
             }
 
-            // Transform Ring Hub memberships to ThreadStead format
-            return allMemberships.map(membership => ({
-              id: membership.ringSlug, // Use slug as ID for Ring Hub rings
-              name: membership.ringName,
-              slug: membership.ringSlug,
-              role: membership.role,
-              visibility: membership.ringVisibility.toLowerCase(), // Convert to lowercase
-            }));
+            // Transform Ring Hub memberships to ThreadStead format, A to Z
+            return allMemberships
+              .map(membership => ({
+                id: membership.ringSlug, // Use slug as ID for Ring Hub rings
+                name: membership.ringName,
+                slug: membership.ringSlug,
+                role: membership.role,
+                visibility: membership.ringVisibility.toLowerCase(), // Convert to lowercase
+              }))
+              .sort((a, b) => a.name.localeCompare(b.name));
           }
         );
 

@@ -130,6 +130,7 @@ export default function PostEditor({
   // "Only me" and a ring pull in opposite directions; say so where both choices are made
   const privateWithRing = mode === "create" && visibility === "private" && selectedRings.length > 0;
   const [ringsLoading, setRingsLoading] = useState(false);
+  const [ringsError, setRingsError] = useState(false);
 
   // Journal Metadata State
   const [mood, setMood] = useState(initialData?.metadata?.mood || "");
@@ -264,14 +265,15 @@ export default function PostEditor({
 
   const fetchThreadRingMemberships = async () => {
     setRingsLoading(true);
+    setRingsError(false);
     try {
       const response = await fetch("/api/threadrings/my-memberships");
-      if (response.ok) {
-        const { rings } = await response.json();
-        setThreadRings(rings);
-      }
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const { rings } = await response.json();
+      setThreadRings(Array.isArray(rings) ? rings : []);
     } catch (error) {
       console.error("Failed to fetch ThreadRing memberships:", error);
+      setRingsError(true);
     } finally {
       setRingsLoading(false);
     }
@@ -1176,16 +1178,21 @@ code block
                 <div className="border-2 border-nb-ink-mid p-3 bg-white rounded max-h-40 overflow-y-auto">
                   {ringsLoading ? (
                     <LoadingSpinner layout="row" message="Loading your ThreadRings..." className="justify-start" />
+                  ) : ringsError ? (
+                    <p role="alert" className="text-sm text-nb-ink">
+                      Couldn&apos;t load your rings. Try again later.
+                    </p>
                   ) : threadRings.length === 0 ? (
-                    <div className="text-sm text-nb-ink-mid italic">
-                      You&apos;re not a member of any ThreadRings yet
-                    </div>
+                    <p className="text-sm text-nb-ink-mid">
+                      You&apos;re not in any rings yet.{" "}
+                      <Link href="/threadrings" className="text-nb-ink underline">Find rings to join</Link>
+                    </p>
                   ) : (
                     <div className="space-y-2">
                       {threadRings.map((ring) => (
                         <label
                           key={ring.id}
-                          className={`checkbox - label flex items - center gap - 3 p - 2 rounded cursor - pointer transition - all ${selectedRings.includes(ring.slug)
+                          className={`checkbox-label flex items-center gap-3 p-2 rounded cursor-pointer transition-all ${selectedRings.includes(ring.slug)
                             ? 'bg-nb-paper border border-nb-ink-mid/50'
                             : 'hover:bg-gray-50 border border-transparent'
                             }`}
@@ -1201,8 +1208,7 @@ code block
                               }
                             }}
                             disabled={busy || uploadingImage || !!respondingToPrompt}
-                            className={`w - 4 h - 4 text - blue - 600 rounded focus: ring - blue - 500 ${respondingToPrompt ? 'opacity-50 cursor-not-allowed' : ''
-                              }`}
+                            className={`w-4 h-4 flex-shrink-0 rounded ${respondingToPrompt ? 'opacity-50 cursor-not-allowed' : ''}`}
                           />
                           <div className="flex-1">
                             <span className="font-medium text-nb-ink">{ring.name}</span>
@@ -1210,23 +1216,11 @@ code block
                               <span className="ml-2 text-xs text-nb-ink-mid">({ring.visibility})</span>
                             )}
                           </div>
-                          <div className="flex gap-1">
-                            {ring.role === "curator" && (
-                              <span className="thread-button btn btn--primary text-xs">
-                                Curator
-                              </span>
-                            )}
-                            {ring.role === "moderator" && (
-                              <span className="thread-button-secondary btn btn--secondary text-xs">
-                                Moderator
-                              </span>
-                            )}
-                            {ring.role === "member" && (
-                              <span className="thread-button-secondary btn btn--secondary text-xs">
-                                Member
-                              </span>
-                            )}
-                          </div>
+                          {(ring.role === "owner" || ring.role === "curator") ? (
+                            <span className="text-xs text-nb-ink-mid">Ring Host</span>
+                          ) : ring.role === "moderator" ? (
+                            <span className="text-xs text-nb-ink-mid">Moderator</span>
+                          ) : null}
                         </label>
                       ))}
                     </div>
@@ -1239,20 +1233,6 @@ code block
                       <PixelIcon name="check" size={16} />
                       <span>This post will be shared to <strong>{selectedRings.length}</strong> ThreadRing{selectedRings.length !== 1 ? 's' : ''}</span>
                     </div>
-                  </div>
-                )}
-
-                {threadRings.length === 0 && !ringsLoading && (
-                  <div className="text-center py-4">
-                    <div className="text-nb-ink-mid text-sm mb-2">
-                      Join Rings to share your posts with communities
-                    </div>
-                    <Link
-                      href="/threadrings"
-                      className="text-nb-ink hover:text-nb-ink text-sm font-medium underline"
-                    >
-                      Browse ThreadRings →
-                    </Link>
                   </div>
                 )}
               </div>
