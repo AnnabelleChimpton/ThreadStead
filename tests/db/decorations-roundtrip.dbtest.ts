@@ -26,6 +26,11 @@ import {
 
 jest.mock('@/lib/auth/server', () => ({ getSessionUser: jest.fn() }))
 jest.mock('@/lib/server/http/rate-limit', () => ({ rateLimitCheck: jest.fn(async () => true) }))
+// The CSRF token is the browser's job; these call the route directly
+jest.mock('@/lib/server/http/csrf', () => ({
+  ...jest.requireActual('@/lib/server/http/csrf'),
+  csrfProtection: jest.fn(async () => true),
+}))
 jest.mock('@/lib/pixel-homes/snapshot/service', () => ({ scheduleHomeSnapshot: jest.fn(async () => null) }))
 // Only the page's getServerSideProps runs here, not its React tree
 jest.mock('@/components/ui/layout/Layout', () => () => null)

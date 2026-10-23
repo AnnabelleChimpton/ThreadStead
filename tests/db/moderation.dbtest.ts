@@ -15,6 +15,7 @@ jest.mock('@/lib/server/http/rate-limit', () => ({
   withRateLimit: () => (handler: any) => handler,
 }))
 jest.mock('@/lib/server/http/csrf', () => ({
+  ...jest.requireActual('@/lib/server/http/csrf'),
   csrfProtection: jest.fn(async () => true),
   withCsrfProtection: (handler: any) => handler,
   createCsrfCookie: () => 'csrf=x',

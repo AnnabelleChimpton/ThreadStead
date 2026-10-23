@@ -29,6 +29,12 @@ jest.mock('@noble/ed25519', () => {
   }
 })
 
+// The CSRF token is the browser's job; these call the routes directly
+jest.mock('@/lib/server/http/csrf', () => ({
+  ...jest.requireActual('@/lib/server/http/csrf'),
+  csrfProtection: jest.fn(async () => true),
+}))
+
 import track from '@/pages/api/beta-landing-pages/[slug]/track'
 import complete from '@/pages/api/beta-landing-pages/[slug]/complete'
 import verify from '@/pages/api/auth/verify'

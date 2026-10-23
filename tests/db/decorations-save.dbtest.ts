@@ -10,6 +10,11 @@ import { SITE_NAME } from '@/lib/config/site/constants'
 
 jest.mock('@/lib/auth/server', () => ({ getSessionUser: jest.fn() }))
 jest.mock('@/lib/server/http/rate-limit', () => ({ rateLimitCheck: jest.fn(async () => true) }))
+// The CSRF token is the browser's job; these call the route directly
+jest.mock('@/lib/server/http/csrf', () => ({
+  ...jest.requireActual('@/lib/server/http/csrf'),
+  csrfProtection: jest.fn(async () => true),
+}))
 // The snapshot redraw after a save has its own tests (home-snapshot.dbtest.ts).
 jest.mock('@/lib/pixel-homes/snapshot/service', () => ({ scheduleHomeSnapshot: jest.fn(async () => null) }))
 
