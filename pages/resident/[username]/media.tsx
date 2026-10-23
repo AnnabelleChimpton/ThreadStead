@@ -15,6 +15,7 @@ import { useToast } from "@/contexts/ToastContext";
 import Modal from "@/components/ui/feedback/Modal";
 import PrivateProfile from "@/components/core/profile/PrivateProfile";
 import PageMeta from "@/components/ui/layout/PageMeta";
+import { SITE_TITLE } from "@/lib/config/site/constants";
 
 interface MediaItem {
   id: string;
@@ -232,7 +233,7 @@ function MediaGalleryPage({
 
   return (
     <>
-      <PageMeta title={`${username}'s media`} description={`Pictures and music ${username} has shared on HomePageAgain.`} path={`/resident/${username}/media`} />
+      <PageMeta title={`${username}'s media`} description={`Pictures and music ${username} has shared on ${SITE_TITLE}.`} path={`/resident/${username}/media`} />
       <ProfileLayout>
         <RetroCard className="ts-phone-sheet">
           <div className="space-y-6">

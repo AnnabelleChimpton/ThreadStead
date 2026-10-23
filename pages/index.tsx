@@ -26,6 +26,8 @@ import { DEMO_YARD, demoYardWithArt } from "@/lib/pixel-homes/demo-yard";
 import { loadCatalogArt } from "@/lib/pixel-homes/home-scene";
 import { countNeighbors } from '@/lib/domain/users/profile-access';
 import PageMeta from "@/components/ui/layout/PageMeta";
+import { SITE_TITLE } from "@/lib/config/site/constants";
+import { SHARE_CARD } from "@/lib/share-images";
 
 interface HomeProps {
   siteConfig: SiteConfig;
@@ -289,7 +291,7 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
         title={homepageMetadata.title}
         description={homepageMetadata.description}
         path="/"
-        image={{ url: ogImageUrl, width: 1200, height: 630, alt: `${siteConfig.site_name}: your page, your way` }}
+        image={{ url: ogImageUrl, ...SHARE_CARD, alt: `${SITE_TITLE}: your page, your way` }}
       >
         {/* Structured data */}
         <script

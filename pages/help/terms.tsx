@@ -6,6 +6,7 @@ import { GetServerSideProps } from 'next';
 import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner';
 import ErrorDisplay from '@/components/ui/feedback/ErrorDisplay';
 import PageMeta from '@/components/ui/layout/PageMeta';
+import { SITE_TITLE } from '@/lib/config/site/constants';
 
 interface PolicyData {
   terms_full: string;
@@ -83,7 +84,7 @@ export default function TermsOfServicePage({ siteConfig }: TermsOfServicePagePro
 
   return (
     <>
-      <PageMeta title="Terms of service" description={`The rules for using ${siteConfig.site_name}.`} path="/help/terms" />
+      <PageMeta title="Terms of service" description={`The rules for using ${SITE_TITLE}.`} path="/help/terms" />
       <Layout siteConfig={siteConfig}>
         <RetroCard>
           <div className="prose prose-lg max-w-none">

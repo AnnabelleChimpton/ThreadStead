@@ -16,11 +16,14 @@ import { featureFlags } from '@/lib/utils/features/feature-flags'
 import { getHomesOf, type StreetHome } from './street'
 import { ringMemberDids, WALK_DEADLINE_MS } from './ring-walk'
 import { RING_CACHE_FRESH_MS, RING_CACHE_STALE_MS } from './street-rings'
+import { badgeUrlOf } from '@/lib/rings/walk'
 
 export interface RingStreetRing {
   slug: string
   name: string
   description: string | null
+  /** For the street's link preview (lib/share-images); the hub's only */
+  badgeImageUrl: string | null
 }
 
 export type RingStreet =
@@ -58,7 +61,7 @@ export async function getRingStreet(
     })
     if (!local || local.visibility !== 'public') return { kind: 'none' }
     const homes = await getHomesOf(db, { userIds: local.members.map((m) => m.userId), viewerId, host })
-    return { kind: 'street', ring: { slug: local.slug, name: local.name, description: local.description }, homes }
+    return { kind: 'street', ring: { slug: local.slug, name: local.name, description: local.description, badgeImageUrl: null }, homes }
   }
 
   const read = await raceHubCall(
@@ -79,7 +82,7 @@ export async function getRingStreet(
   const homes = await getHomesOf(db, { userIds: local.map((row) => row.userId), viewerId, host })
   return {
     kind: 'street',
-    ring: { slug: descriptor.slug, name: descriptor.name, description: descriptor.description ?? null },
+    ring: { slug: descriptor.slug, name: descriptor.name, description: descriptor.description ?? null, badgeImageUrl: badgeUrlOf(descriptor) },
     homes,
   }
 }

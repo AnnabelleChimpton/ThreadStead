@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import PageMeta from "@/components/ui/layout/PageMeta";
+import { ringShareImage } from "@/lib/share-images";
 import Layout from "../../components/ui/layout/Layout";
 import { getSiteConfig, SiteConfig } from "@/lib/config/site/dynamic";
 import { GetServerSideProps } from "next";
@@ -384,32 +385,6 @@ function SpoolLandingPage({ ring, siteConfig }: { ring: ThreadRing; siteConfig: 
 }
 
 export default function ThreadRingPage({ siteConfig, ring, error, cameFrom = null }: ThreadRingPageProps) {
-  // Generate metadata for ThreadRing page
-  const adaptedRing = ring ? {
-    slug: ring.slug,
-    name: ring.name,
-    description: ring.description,
-
-    curatorNote: ring.curatorNote,
-    bannerUrl: ring.bannerUrl,
-    themeColor: ring.themeColor,
-    memberCount: ring.memberCount,
-    postCount: ring.postCount,
-    visibility: ring.visibility,
-    curator: ring.curator ? {
-      handle: ring.curator.handles.find(h => h.host === "local")?.handle || ring.curator.handles[0]?.handle || "unknown",
-      displayName: ring.curator.profile?.displayName
-    } : undefined,
-    createdAt: ring.createdAt
-  } : null;
-  const ringMetadata = adaptedRing ? contentMetadataGenerator.generateThreadRingMetadata(adaptedRing) : null;
-  // A new badge upload is a new file name, so previews cached elsewhere refresh
-  const badgeFile = ring?.badge?.imageUrl?.startsWith('http') ? ring.badge.imageUrl.split('/').pop() : undefined;
-  const shareImage = ring
-    ? `${getSiteBaseUrl()}/api/share/ring/${ring.slug}.png${badgeFile ? `?v=${encodeURIComponent(badgeFile)}` : ''}`
-    : undefined;
-  const feedUrl = ring?.visibility === 'public' ? ringFeedUrl(ring.slug) : undefined;
-
   const router = useRouter();
   const [loadError, setLoadError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
@@ -925,11 +900,27 @@ export default function ThreadRingPage({ siteConfig, ring, error, cameFrom = nul
     );
   }
 
+  const ringMetadata = contentMetadataGenerator.generateThreadRingMetadata({
+    slug: ring.slug,
+    name: ring.name,
+    description: ring.description,
+    curatorNote: ring.curatorNote,
+    memberCount: ring.memberCount,
+    postCount: ring.postCount,
+    visibility: ring.visibility,
+    curator: ring.curator ? {
+      handle: ring.curator.handles.find(h => h.host === "local")?.handle || ring.curator.handles[0]?.handle || "unknown",
+      displayName: ring.curator.profile?.displayName
+    } : undefined,
+    createdAt: ring.createdAt
+  });
+  const feedUrl = ring.visibility === 'public' ? ringFeedUrl(ring.slug) : undefined;
+
   // Check if this is The Spool
   if (ring.isSystemRing) {
     return (
       <>
-        <PageMeta title={ring.name} description={ringMetadata?.description} path={`/tr/${ring.slug}`} />
+        <PageMeta title={ring.name} description={ringMetadata.description} path={`/tr/${ring.slug}`} />
         <SpoolLandingPage ring={ring} siteConfig={siteConfig} />
       </>
     );
@@ -941,25 +932,22 @@ export default function ThreadRingPage({ siteConfig, ring, error, cameFrom = nul
 
   return (
     <>
-      {ringMetadata && (
-        <PageMeta
-          title={ringMetadata.title}
-          description={ringMetadata.description}
-          path={ringMetadata.url}
-          // The ring's badge, big (pages/api/share/ring/[file].ts)
-          image={shareImage ? { url: shareImage, width: 1200, height: 630, alt: `The ${ring.name} ring's badge` } : undefined}
-        >
-          {feedUrl && (
-            <link rel="alternate" type="application/rss+xml" title={`${ring.name} ring posts`} href={feedUrl} />
-          )}
-          <script
-            type="application/ld+json"
-            dangerouslySetInnerHTML={{
-              __html: serializeJsonLd(ringMetadata.structuredData)
-            }}
-          />
-        </PageMeta>
-      )}
+      <PageMeta
+        title={ringMetadata.title}
+        description={ringMetadata.description}
+        path={ringMetadata.url}
+        image={ringShareImage({ slug: ring.slug, name: ring.name, badgeImageUrl: ring.badge?.imageUrl })}
+      >
+        {feedUrl && (
+          <link rel="alternate" type="application/rss+xml" title={`${ring.name} ring posts`} href={feedUrl} />
+        )}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: serializeJsonLd(ringMetadata.structuredData)
+          }}
+        />
+      </PageMeta>
 
       {ring.themeColor && (
         <style jsx global>{`

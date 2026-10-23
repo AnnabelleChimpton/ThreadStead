@@ -2,13 +2,8 @@ import React from "react";
 import Head from "next/head";
 import { getSiteBaseUrl } from "@/lib/config/site-url";
 import { SITE_TITLE } from "@/lib/config/site/constants";
-
-export interface PageImage {
-  url: string;
-  width?: number;
-  height?: number;
-  alt?: string;
-}
+import type { PageImage } from "@/lib/share-images";
+import { previewText } from "@/lib/utils/metadata/preview-text";
 
 interface PageMetaProps {
   /** The page's own name; the tab reads "<title> | HomePageAgain" */
@@ -27,13 +22,6 @@ interface PageMetaProps {
 }
 
 const absolute = (url: string) => new URL(url, getSiteBaseUrl()).toString();
-const DESCRIPTION_CHARS = 200;
-
-/** One line, short enough for a preview card. */
-function tidy(text: string): string {
-  const line = text.replace(/\s+/g, " ").trim();
-  return line.length > DESCRIPTION_CHARS ? `${line.slice(0, DESCRIPTION_CHARS - 1).trimEnd()}…` : line;
-}
 
 /**
  * A page's title, description and link-preview tags (Open Graph, Twitter/X).
@@ -44,7 +32,7 @@ function tidy(text: string): string {
  * avatar) gets the small one rather than a stretched banner.
  */
 export default function PageMeta({ title, tabTitle, description: rawDescription, path, image, type = "website", noIndex = false, children }: PageMetaProps) {
-  const description = rawDescription ? tidy(rawDescription) : undefined;
+  const description = rawDescription ? previewText(rawDescription) : undefined;
   const fullTitle = tabTitle || (title === SITE_TITLE ? title : `${title} | ${SITE_TITLE}`);
   const url = path ? absolute(path) : undefined;
   const wide = !!image?.width && !!image?.height && image.width / image.height >= 1.3;

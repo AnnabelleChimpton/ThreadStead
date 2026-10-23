@@ -9,7 +9,7 @@ import { useRouter } from "next/router";
 import NoRingsEmptyState from "../../components/features/onboarding/NoRingsEmptyState";
 import FeatureGate, { NewUserTooltip } from "../../components/features/onboarding/FeatureGate";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
-import { MetadataGenerator } from "@/lib/utils/metadata/metadata-generator";
+import { SITE_TITLE } from "@/lib/config/site/constants";
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import { serializeJsonLd } from "@/lib/utils/sanitization/json-ld";
 import { useToast } from "@/contexts/ToastContext";
@@ -61,14 +61,10 @@ interface ThreadRing {
 
 export default function ThreadRingsPage({ siteConfig, initialTab }: ThreadRingsPageProps) {
   const router = useRouter();
-  // Generate metadata for ThreadRings page
-  const metadataGenerator = new MetadataGenerator(getSiteBaseUrl(), siteConfig);
   const threadRingsMetadata = {
     title: 'ThreadRings',
-    description: 'Find and join ThreadRings on HomePageAgain: little groups around a shared interest, like old webrings or a clubhouse.',
-    keywords: ['threadrings', 'communities', 'webring', 'threadstead', 'social', 'groups'],
+    description: `Find and join ThreadRings on ${SITE_TITLE}: little groups around a shared interest, like old webrings or a clubhouse.`,
     url: '/threadrings',
-    type: 'website' as const
   };
 
   const [threadRings, setThreadRings] = useState<ThreadRing[]>([]);
@@ -222,7 +218,7 @@ export default function ThreadRingsPage({ siteConfig, initialTab }: ThreadRingsP
               mainEntity: {
                 '@type': 'ItemList',
                 name: 'ThreadRings',
-                description: 'ThreadRings on HomePageAgain'
+                description: `ThreadRings on ${SITE_TITLE}`
               }
             })
           }}

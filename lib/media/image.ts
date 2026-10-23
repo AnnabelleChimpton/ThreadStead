@@ -75,12 +75,21 @@ export function renderBanner(input: Buffer): Promise<Buffer> {
     .toBuffer();
 }
 
+/** Post and gallery media's medium size fits inside this square; it's what the post editor puts in posts. */
+export const MEDIA_MEDIUM_MAX = 600;
+
+/** The medium's size for an upload this size, rounded as sharp's fit: 'inside' rounds it. */
+export function mediumSize(width: number, height: number): { width: number; height: number } {
+  const scale = Math.min(1, MEDIA_MEDIUM_MAX / width, MEDIA_MEDIUM_MAX / height);
+  return { width: Math.round(width * scale), height: Math.round(height * scale) };
+}
+
 /** Gallery/post media: square thumbnail, aspect-preserving medium and full, JPEG. */
 export async function renderMediaSizes(input: Buffer): Promise<ImageSizes> {
   const [thumbnail, medium, full] = await Promise.all([
     sharp(input).resize(150, 150, { fit: 'cover' }).jpeg({ quality: 80 }).toBuffer(),
     sharp(input)
-      .resize(600, 600, { fit: 'inside', withoutEnlargement: true })
+      .resize(MEDIA_MEDIUM_MAX, MEDIA_MEDIUM_MAX, { fit: 'inside', withoutEnlargement: true })
       .jpeg({ quality: 85 })
       .toBuffer(),
     sharp(input)
@@ -104,7 +113,7 @@ export async function renderMediaSizesKeepingFormat(input: Buffer, format: 'png'
     format === 'png' ? img.png({ compressionLevel: 9 }) : img.webp({ quality: 90, alphaQuality: 100 });
   const [thumbnail, medium, full] = await Promise.all([
     encode(sharp(input).rotate().resize(150, 150, { fit: 'cover' })).toBuffer(),
-    encode(sharp(input).rotate().resize(600, 600, { fit: 'inside', withoutEnlargement: true })).toBuffer(),
+    encode(sharp(input).rotate().resize(MEDIA_MEDIUM_MAX, MEDIA_MEDIUM_MAX, { fit: 'inside', withoutEnlargement: true })).toBuffer(),
     encode(sharp(input).rotate().resize(MEDIA_KEEP_MAX, MEDIA_KEEP_MAX, { fit: 'inside', withoutEnlargement: true })).toBuffer(),
   ]);
   return { thumbnail, medium, full };
@@ -162,7 +171,7 @@ export async function renderGifSizes(input: Buffer): Promise<GifSizes> {
 
   const [full, medium, thumbnail] = await Promise.all([
     fits(MEDIA_KEEP_MAX) ? input : fitInside(MEDIA_KEEP_MAX),
-    fits(600) || !canAnimate ? input : fitInside(600).then(noBigger),
+    fits(MEDIA_MEDIUM_MAX) || !canAnimate ? input : fitInside(MEDIA_MEDIUM_MAX).then(noBigger),
     (canAnimate ? animated() : sharp(input))
       .resize(150, 150, { fit: 'cover' })
       .gif()

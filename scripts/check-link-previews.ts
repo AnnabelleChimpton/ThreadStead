@@ -101,9 +101,8 @@ async function checkPage(base: string, path: string): Promise<string[]> {
     } else {
       const [w, h] = size
       if (one('twitter:card') === 'summary_large_image' && w / h < 1.3) problems.push(`large card for a ${w}×${h} image`)
-      // A smaller copy of the declared image is fine; another shape isn't
-      const [dw, dh] = [Number(one('og:image:width')), Number(one('og:image:height'))]
-      if (dw && dh && Math.abs(dw / dh - w / h) > 0.02) problems.push(`says ${dw}×${dh}, is ${w}×${h}`)
+      const declared = `${one('og:image:width')}×${one('og:image:height')}`
+      if (one('og:image:width') && declared !== `${w}×${h}`) problems.push(`says ${declared}, is ${w}×${h}`)
     }
   }
   return problems

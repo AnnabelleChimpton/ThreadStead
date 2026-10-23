@@ -2,6 +2,7 @@ import { getSiteBaseUrl } from '@/lib/config/site-url';
 import { GetServerSideProps } from 'next'
 import { db } from '@/lib/config/database/connection'
 import PageMeta from '@/components/ui/layout/PageMeta'
+import type { PageImage } from '@/lib/share-images'
 import Layout from '../../components/ui/layout/Layout'
 import PixelHomePage from '../../components/pixel-homes/PixelHomePage'
 import { HouseTemplate, ColorPalette } from '../../components/pixel-homes/HouseSVG'
@@ -12,6 +13,7 @@ import { getHomeNeighbors, type HomeNeighbors } from '@/lib/pixel-homes/neighbor
 import { streetIndexOf } from '@/lib/pixel-homes/street'
 import { loadCatalogArt, loadDecorationRows, toSceneDecorations, type SceneDecoration } from '@/lib/pixel-homes/home-scene'
 import { SITE_NAME } from '@/lib/config/site/constants'
+import { SITE_TITLE } from '@/lib/config/site/constants'
 
 interface UserHomeConfig {
   houseTemplate: HouseTemplate
@@ -60,7 +62,7 @@ interface PixelHomeProps {
   /** Back to this house's own street, with it in view */
   streetHref: string
   /** The yard's share image; null when a signed-out visitor couldn't see this home. */
-  shareImage: string | null
+  shareImage: PageImage | null
 }
 
 /** A home the viewer may not see shows the same page as the private profile. */
@@ -97,10 +99,10 @@ function PixelHome({
     <>
       <PageMeta
         title={`${name}'s pixel home`}
-        description={userBio || `Come see ${name}'s little house, yard and neighbors on HomePageAgain.`}
+        description={userBio || `Come see ${name}'s little house, yard and neighbors on ${SITE_TITLE}.`}
         path={`/home/${username}`}
         type="profile"
-        image={shareImage ? { url: shareImage, width: 1200, height: 630, alt: `${name}'s house and yard` } : undefined}
+        image={shareImage ?? undefined}
       >
         {/* Structured data for rich snippets */}
         <script
@@ -113,7 +115,7 @@ function PixelHome({
                 '@type': 'Person',
                 name,
                 alternateName: `@${username}`,
-                description: userBio || `${username}'s profile on HomePageAgain`,
+                description: userBio || `${username}'s profile on ${SITE_TITLE}`,
                 url: `${getSiteBaseUrl()}/resident/${username}`,
                 sameAs: `${getSiteBaseUrl()}/home/${username}`
               }
@@ -231,10 +233,11 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
     // The share image is for link previews, which reach signed-out
     // visitors: only a public home gets one, whoever is viewing now.
-    let shareImage: string | null = null
+    let shareImage: PageImage | null = null
     if ((user.profile?.visibility ?? 'public') === 'public') {
-      const { homeShareImage } = await import('@/lib/pixel-homes/snapshot/share-image')
-      shareImage = await homeShareImage(user.id, cleanHandle, homeConfig)
+      const { homeShareImage } = await import('@/lib/share-images/server')
+      const name = user.profile?.displayName || `@${cleanHandle}`
+      shareImage = await homeShareImage({ userId: user.id, username: cleanHandle, name }, homeConfig)
     }
 
     return {

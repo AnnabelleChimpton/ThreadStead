@@ -11,6 +11,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import ButtonLink from "@/components/ui/ButtonLink";
 import Callout from "@/components/ui/feedback/Callout";
 import PageMeta from "@/components/ui/layout/PageMeta";
+import { SITE_TITLE } from "@/lib/config/site/constants";
 
 interface FeedPageProps {
   siteConfig: SiteConfig;
@@ -65,7 +66,7 @@ export default function FeedPage({ siteConfig, signedIn, initialTab }: FeedPageP
 
   return (
     <Layout siteConfig={siteConfig}>
-      <PageMeta title="Feed" description={`The latest posts from everyone on ${siteConfig.site_name}.`} path="/feed" />
+      <PageMeta title="Feed" description={`The latest posts from everyone on ${SITE_TITLE}.`} path="/feed" />
       <div className="thread-module p-4 sm:p-5 md:p-6 mb-3 sm:mb-4 md:mb-6">
         <div className="mb-4">
           <h1 className="thread-headline text-3xl font-bold mb-2">Feed</h1>

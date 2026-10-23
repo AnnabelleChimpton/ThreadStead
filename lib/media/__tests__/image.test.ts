@@ -12,10 +12,12 @@ import {
   containPng,
   decodeImageDataUrl,
   inspectPixelArt,
+  mediumSize,
   preparePixelArtPng,
   renderAvatarSizes,
   renderEmoji,
   renderMediaSizes,
+  renderMediaSizesKeepingFormat,
 } from '@/lib/media/image';
 
 const image = (width: number, height: number) =>
@@ -41,6 +43,16 @@ test('media: 150 square thumb, aspect-kept 600/1200', async () => {
   expect(await dims(out.thumbnail)).toEqual(['jpeg', 150, 150]);
   expect(await dims(out.medium)).toEqual(['jpeg', 600, 300]);
   expect(await dims(out.full)).toEqual(['jpeg', 1200, 600]);
+});
+
+test("mediumSize is the medium's real size (a post photo's link preview declares it)", async () => {
+  for (const [w, h] of [[1000, 667], [333, 1001], [601, 599], [500, 300]]) {
+    const upload = await image(w, h);
+    const [jpeg, kept] = await Promise.all([renderMediaSizes(upload), renderMediaSizesKeepingFormat(upload, 'png')]);
+    const { width, height } = mediumSize(w, h);
+    expect((await dims(jpeg.medium)).slice(1)).toEqual([width, height]);
+    expect((await dims(kept.medium)).slice(1)).toEqual([width, height]);
+  }
 });
 
 test('badge and emoji are letterboxed PNGs at exact size', async () => {

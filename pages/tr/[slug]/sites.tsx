@@ -16,6 +16,7 @@ import { useConfirm } from "@/contexts/ConfirmContext";
 import { csrfFetch } from "@/lib/api/client/csrf-fetch";
 import { getSiteConfig, type SiteConfig } from "@/lib/config/site/dynamic";
 import PageMeta from "@/components/ui/layout/PageMeta";
+import { ringShareImage } from "@/lib/share-images";
 
 type StopStatus = "listed" | "pending" | "hidden";
 
@@ -38,7 +39,7 @@ interface StewardRow {
 
 interface Props {
   siteConfig: SiteConfig;
-  ring: { slug: string; name: string };
+  ring: { slug: string; name: string; badgeImageUrl: string | null };
   stops: StopRow[] | null;
   viewerId: string | null;
   steward: {
@@ -197,7 +198,7 @@ export default function RingSitesPage({ siteConfig, ring, stops, viewerId, stewa
         title={`Every stop in ${ring.name}`}
         description={`The members of ${ring.name} and their sites, in the order the ring's webring strip walks them.`}
         path={`${ringHref}/sites`}
-        image={{ url: `/api/share/ring/${encodeURIComponent(ring.slug)}.png`, width: 1200, height: 630, alt: `The ${ring.name} ring's badge` }}
+        image={ringShareImage(ring)}
       />
       <div className="max-w-3xl mx-auto py-6 space-y-6">
         <div>
@@ -302,9 +303,9 @@ export const getServerSideProps: GetServerSideProps<Props> = async ({ req, param
   const hub = walk.defaultHub();
   const facts = result.kind === "stops" ? result.ring : hub ? await walk.ringFacts(hub, slug).catch(() => null) : null;
   if (result.kind === "unavailable" && !facts) {
-    return { props: { siteConfig, ring: { slug, name: slug }, stops: null, viewerId: viewer?.id ?? null, steward: null } };
+    return { props: { siteConfig, ring: { slug, name: slug, badgeImageUrl: null }, stops: null, viewerId: viewer?.id ?? null, steward: null } };
   }
-  const ring = { slug, name: facts?.name ?? slug };
+  const ring = { slug, name: facts?.name ?? slug, badgeImageUrl: facts?.badgeImageUrl ?? null };
 
   // The sites' own 88×31s, from the Indie Index when it has one
   const siteRefs = result.kind === "stops" ? result.stops.flatMap((s) => (s.site ? [s.site.siteRef] : [])) : [];

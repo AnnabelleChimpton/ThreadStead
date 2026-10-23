@@ -6,6 +6,7 @@ import { GetServerSideProps } from 'next';
 import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner';
 import ErrorDisplay from '@/components/ui/feedback/ErrorDisplay';
 import PageMeta from '@/components/ui/layout/PageMeta';
+import { SITE_TITLE } from '@/lib/config/site/constants';
 
 interface PolicyData {
   privacy_full: string;
@@ -83,7 +84,7 @@ export default function PrivacyPolicyPage({ siteConfig }: PrivacyPolicyPageProps
 
   return (
     <>
-      <PageMeta title="Privacy policy" description={`What ${siteConfig.site_name} keeps about you, why, and what you can do about it.`} path="/help/privacy" />
+      <PageMeta title="Privacy policy" description={`What ${SITE_TITLE} keeps about you, why, and what you can do about it.`} path="/help/privacy" />
       <Layout siteConfig={siteConfig}>
         <RetroCard>
           <div className="prose prose-lg max-w-none">

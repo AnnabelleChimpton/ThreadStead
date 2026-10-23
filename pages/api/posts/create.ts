@@ -11,6 +11,7 @@ import { withRateLimit } from "@/lib/server/http/rate-limit";
 import type { RingPostResult } from "@/lib/domain/posts/ring-submission";
 import { sendPostToRings } from "@/lib/domain/posts/send-to-rings";
 import { queueTellLinkedSites } from "@/lib/webmentions/send";
+import { UNTITLED_POST } from "@/lib/domain/posts/title";
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
@@ -38,7 +39,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   }
 
   // Validate post title if provided
-  const finalTitle = title || "Untitled Post";
+  const finalTitle = title || UNTITLED_POST;
   const titleValidation = validatePostTitle(finalTitle);
   if (!titleValidation.ok) {
     return res.status(400).json({

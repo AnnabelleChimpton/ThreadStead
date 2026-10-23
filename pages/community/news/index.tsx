@@ -7,6 +7,7 @@ import Callout from "@/components/ui/feedback/Callout";
 import { getSiteConfig, SiteConfig } from "@/lib/config/site/dynamic";
 import Link from "next/link";
 import PageMeta from "@/components/ui/layout/PageMeta";
+import { SITE_TITLE } from "@/lib/config/site/constants";
 
 interface NewsItem {
   id: string;
@@ -83,7 +84,7 @@ export default function NewsPage({ siteConfig, initialNews, hasMore: initialHasM
 
   return (
     <Layout siteConfig={siteConfig} fullWidth={true}>
-      <PageMeta title="News" description={`Site news and announcements from ${siteConfig.site_name}.`} path="/community/news" />
+      <PageMeta title="News" description={`Site news and announcements from ${SITE_TITLE}.`} path="/community/news" />
       <div className="w-full max-w-full sm:max-w-7xl mx-auto px-0 sm:px-4 py-4 sm:py-6">
         <CommunityHeader current="news" />
 

@@ -27,6 +27,7 @@ import {
   hydrateHomes,
 } from "@/lib/search/local";
 import { getHiddenIds, countHiddenComments, visibleCommentCount } from "@/lib/domain/users/blocks";
+import { UNTITLED_POST } from "@/lib/domain/posts/title";
 
 /**
  * GET /api/search?q&type=all|threadrings|users|posts|pages|homes&limit&cursor
@@ -224,7 +225,7 @@ async function hydrate(
     display.set(`post:${p.id}`, {
       type: "post",
       id: p.id,
-      title: p.title || "Untitled Post",
+      title: p.title || UNTITLED_POST,
       description: buildExcerpt(source, query),
       url: `/resident/${handle}/post/${p.id}`,
       meta: `by ${authorName} • ${new Date(p.createdAt).toLocaleDateString()} • ${commentCount} comments`,

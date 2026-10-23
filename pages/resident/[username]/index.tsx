@@ -4,6 +4,7 @@ import React from "react";
 import { getInternalBaseUrl } from "@/lib/utils/api/internal-base-url";
 import type { GetServerSideProps } from "next";
 import PageMeta from "@/components/ui/layout/PageMeta";
+import type { PageImage } from "@/lib/share-images";
 
 import Layout from "@/components/ui/layout/Layout";
 import RetroCard from "@/components/ui/layout/RetroCard";
@@ -90,8 +91,8 @@ export type ProfileProps = {
   blueskyHandle?: string;
   /** Where the page canonically lives: their address for a public profile */
   canonicalUrl?: string;
-  /** Their yard's share image, for link previews (public profiles with a pixel home) */
-  shareImage?: string;
+  /** Their link preview's picture (lib/share-images/server.ts; public profiles only) */
+  shareImage?: PageImage;
   /** Their public posts as RSS (public profiles only) */
   feedUrl?: string;
   /** Tabs the owner hid (Settings > Your page); Blog always shows */
@@ -170,7 +171,6 @@ export default function ProfilePage({
   // its own <title> keeps it.
   const documentTitle =
     templateMode === 'advanced' ? compiledTemplate?.ast?.head?.title?.trim() : undefined;
-  const name = displayName || `@${username}`;
   const pageUrl = canonicalUrl || `${getSiteBaseUrl()}${profileMetadata.url}`;
   const head = (
     <PageMeta
@@ -179,11 +179,7 @@ export default function ProfilePage({
       description={profileMetadata.description}
       path={pageUrl}
       type="profile"
-      // A link to their page previews as their house when they have one;
-      // else their avatar, which PageMeta shows as a small square card
-      image={shareImage
-        ? { url: shareImage, width: 1200, height: 630, alt: `${name}'s house and yard` }
-        : { url: photoUrl, alt: profileMetadata.imageAlt }}
+      image={shareImage}
     >
       {feedUrl && (
         <link rel="alternate" type="application/rss+xml" title={`${displayName || username}'s posts`} href={feedUrl} />
@@ -724,13 +720,19 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   if (featuredFriends.length > 0) props.featuredFriends = featuredFriends;
   if (data.profileMidi) props.profileMidi = data.profileMidi;
   props.hasPixelHome = data.hasPixelHome === true;
-  // A feed reaches anyone, signed out: public profiles only (lib/feeds/resident-feed.ts)
-  if (data.profile?.visibility === 'public') props.feedUrl = residentFeedUrl(data.username || usernameParam);
-  // Link previews reach signed-out visitors: only a public profile's house goes in one
-  if (props.hasPixelHome && data.profile?.visibility === 'public') {
-    const { homeShareImage } = await import('@/lib/pixel-homes/snapshot/share-image');
-    props.shareImage = await homeShareImage(data.userId, data.username || usernameParam).catch(() => undefined);
-    if (props.shareImage === undefined) delete props.shareImage;
+  // A feed and a link preview reach anyone, signed out: public profiles only
+  if (data.profile?.visibility === 'public') {
+    const username = data.username || usernameParam;
+    props.feedUrl = residentFeedUrl(username);
+    const { residentShareImage } = await import('@/lib/share-images/server');
+    const image = await residentShareImage({
+      userId: data.userId,
+      username,
+      name: data.profile.displayName || `@${username}`,
+      hasPixelHome: props.hasPixelHome,
+      avatarUrl: data.profile.avatarUrl,
+    }).catch(() => null);
+    if (image) props.shareImage = image;
   }
   if (data.blueskyHandle) props.blueskyHandle = data.blueskyHandle;
   if (data.siteUrl) props.canonicalUrl = data.siteUrl;

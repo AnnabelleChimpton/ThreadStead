@@ -68,7 +68,7 @@ test("members' homes keep their numbers from the main street", async () => {
   const result = await street(fakeHub())
   expect(result.kind).toBe('street')
   if (result.kind !== 'street') return
-  expect(result.ring).toEqual({ slug: 'gardens', name: 'Gardens', description: 'Growing things' })
+  expect(result.ring).toEqual({ slug: 'gardens', name: 'Gardens', description: 'Growing things', badgeImageUrl: null })
   // bob isn't a member, dee's profile is private, eve has no home, and the
   // member from elsewhere has no account here
   expect(result.homes.map((h) => [h.number, h.username])).toEqual([[1, 'ann'], [3, 'cat']])

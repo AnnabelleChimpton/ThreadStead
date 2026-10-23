@@ -38,14 +38,19 @@ export function defaultHub(): HubReader | null {
 export async function ringFacts(hub: HubReader, slug: string): Promise<RingFacts | null> {
   const ring = await cached(`ring:${slug}`, RING_CACHE_FRESH_MS, RING_CACHE_STALE_MS, () => hub.getRing(slug))
   if (!ring) return null
-  const badge = ring.badgeImageUrl || ring.badgeImageHighResUrl || null
   return {
     slug: ring.slug,
     name: ring.name,
     visibility: ring.visibility,
     joinPolicy: ring.joinPolicy,
-    badgeImageUrl: badge && /^https?:\/\//i.test(badge) ? badge : null,
+    badgeImageUrl: badgeUrlOf(ring),
   } as RingFacts
+}
+
+/** A hub ring's badge image, when it's a web address. */
+export function badgeUrlOf(ring: { badgeImageUrl?: string | null; badgeImageHighResUrl?: string | null }): string | null {
+  const badge = ring.badgeImageUrl || ring.badgeImageHighResUrl || null
+  return badge && /^https?:\/\//i.test(badge) ? badge : null
 }
 
 /** The ring's rule for outside sites: its own setting, else its join rule (open rings allow, others ask). */

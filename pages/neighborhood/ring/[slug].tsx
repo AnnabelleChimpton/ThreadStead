@@ -11,6 +11,7 @@ import { getRingStreet, type RingStreetRing } from '@/lib/pixel-homes/ring-stree
 import type { StreetHome } from '@/lib/pixel-homes/street'
 import { getStreetRingSigns, type RingSign } from '@/lib/pixel-homes/street-rings'
 import PageMeta from '@/components/ui/layout/PageMeta'
+import { ringShareImage } from '@/lib/share-images'
 
 type RingStreetProps =
   | { kind: 'street'; ring: RingStreetRing; homes: StreetHome[]; at: string | null; ringSigns: RingSign[] }
@@ -44,7 +45,7 @@ export default function RingStreetPage(props: RingStreetProps) {
         title={`${ring.name}'s street`}
         description={`The pixel homes of ${ring.name}'s members.`}
         path={`/neighborhood/ring/${encodeURIComponent(ring.slug)}`}
-        image={{ url: `/api/share/ring/${encodeURIComponent(ring.slug)}.png`, width: 1200, height: 630, alt: `The ${ring.name} ring's badge` }}
+        image={ringShareImage(ring)}
       />
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
         <header className="mb-4 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">

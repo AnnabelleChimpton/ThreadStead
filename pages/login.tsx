@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import Layout from "@/components/ui/layout/Layout";
 import { recoverFromSeedPhrase, loginWithPassword } from "@/lib/api/did/did-client";
 import PageMeta from "@/components/ui/layout/PageMeta";
+import { SITE_TITLE } from "@/lib/config/site/constants";
 
 type LoginMethod = 'main' | 'password-login' | 'seed-phrase' | 'email-login' | 'email-sent';
 
@@ -123,7 +124,7 @@ export default function LoginPage() {
 
   return (
     <>
-      <PageMeta title="Sign in" description="Sign in to HomePageAgain with your password, seed phrase or an email link." path="/login" />
+      <PageMeta title="Sign in" description={`Sign in to ${SITE_TITLE} with your password, seed phrase or an email link.`} path="/login" />
       <Layout>
         <div className="auth-container max-w-md mx-auto p-6 mt-8">
           {/* Main Login Options */}

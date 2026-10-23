@@ -5,6 +5,7 @@ import { getSessionUser } from '@/lib/auth/server';
 import CommunityHeader from '@/components/ui/navigation/CommunityHeader';
 import CommunityChatPanel from '@/components/community/CommunityChatPanel';
 import PageMeta from '@/components/ui/layout/PageMeta';
+import { SITE_TITLE } from '@/lib/config/site/constants';
 
 interface ChatPageProps {
   siteConfig: SiteConfig;
@@ -18,7 +19,7 @@ interface ChatPageProps {
 export default function ChatPage({ siteConfig, user }: ChatPageProps) {
   return (
     <>
-      <PageMeta title="Chat" description={`Chat with your neighbors on ${siteConfig.site_name}.`} path="/community/chat" />
+      <PageMeta title="Chat" description={`Chat with your neighbors on ${SITE_TITLE}.`} path="/community/chat" />
 
       <Layout siteConfig={siteConfig} fullWidth={true}>
         <div className="w-full max-w-full sm:max-w-7xl mx-auto px-0 sm:px-4 py-4 sm:py-6">

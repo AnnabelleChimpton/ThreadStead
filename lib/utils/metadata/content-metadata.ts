@@ -1,18 +1,33 @@
 /**
- * Content-specific metadata generators
- * Specialized functions for user profiles, posts, ThreadRings, etc.
+ * The title, description and structured data (JSON-LD) of the pages people
+ * share most: profiles, posts, rings and the homepage. PageMeta puts them in
+ * the <head>.
  */
-
-import { MetadataGenerator, MetadataConfig } from './metadata-generator';
-import { countOf } from '@/lib/utils/count-of';
+import { getSiteBaseUrl } from '@/lib/config/site-url';
 import { SITE_TITLE } from '@/lib/config/site/constants';
+import { UNTITLED_POST } from '@/lib/domain/posts/title';
+import { countOf } from '@/lib/utils/count-of';
+import { previewText } from '@/lib/utils/metadata/preview-text';
+
+export interface PageMetadata {
+  title: string;
+  description: string;
+  /** The page's path */
+  url: string;
+  structuredData: Record<string, unknown>;
+}
+
+export interface PostMetadata extends PageMetadata {
+  author: string;
+  publishedTime: string;
+  modifiedTime?: string;
+}
 
 export interface UserProfile {
   handle: string;
   displayName?: string;
   bio?: string;
   avatarUrl?: string;
-  postCount?: number;
   joinedAt?: string;
 }
 
@@ -50,296 +65,141 @@ export interface ThreadRing {
   createdAt?: string;
 }
 
-export class ContentMetadataGenerator extends MetadataGenerator {
-  /**
-   * Generate metadata for user profile pages
-   */
-  generateUserProfileMetadata(user: UserProfile): MetadataConfig {
+/** A post's words without markdown or HTML. */
+function plainText(content: string): string {
+  return content
+    .replace(/#{1,6}\s+/g, '') // headers
+    .replace(/\*\*(.*?)\*\*/g, '$1') // bold
+    .replace(/\*(.*?)\*/g, '$1') // italic
+    .replace(/<[^>]*>/g, '') // HTML tags
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, '') // images
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1'); // links
+}
+
+export class ContentMetadataGenerator {
+  private baseUrl: string;
+
+  constructor(baseUrl: string = getSiteBaseUrl()) {
+    this.baseUrl = baseUrl.replace(/\/$/, '');
+  }
+
+  private get site() {
+    return { '@type': 'Organization', name: SITE_TITLE, url: this.baseUrl };
+  }
+
+  generateUserProfileMetadata(user: UserProfile): PageMetadata {
     const displayName = user.displayName || user.handle;
     const handle = user.handle.startsWith('@') ? user.handle : `@${user.handle}`;
-
-    // Create title
-    const title = user.displayName && user.displayName !== user.handle
-      ? `${displayName} (${handle})`
-      : handle;
-
-    // Create description
-    let description = '';
-    if (user.bio) {
-      description = MetadataGenerator.cleanText(user.bio);
-      description = MetadataGenerator.truncateText(description, 155);
-    } else {
-      description = `${displayName}'s page on ${SITE_TITLE}.`;
-    }
-
-    // Extract keywords from bio
-    const keywords = user.bio
-      ? ['profile', 'user', 'threadstead', 'community', ...MetadataGenerator.extractKeywords(user.bio, 5)]
-      : ['profile', 'user', 'threadstead', 'community'];
-
-    // Generate structured data
-    const structuredData = {
-      '@context': 'https://schema.org',
-      '@type': 'ProfilePage',
-      mainEntity: {
-        '@type': 'Person',
-        name: displayName,
-        alternateName: handle,
-        description: user.bio || `${displayName}'s profile`,
-        url: `${this.baseUrl}/resident/${user.handle}`,
-        image: user.avatarUrl,
-        ...(user.joinedAt && {
-          memberOf: {
-            '@type': 'Organization',
-            name: SITE_TITLE,
-            url: this.baseUrl
-          }
-        })
-      }
-    };
+    const title = user.displayName && user.displayName !== user.handle ? `${displayName} (${handle})` : handle;
 
     return {
       title,
-      description,
-      keywords,
-      image: user.avatarUrl,
-      imageAlt: `${displayName}'s profile picture`,
+      description: user.bio ? previewText(user.bio) : `${displayName}'s page on ${SITE_TITLE}.`,
       url: `/resident/${user.handle}`,
-      type: 'profile',
-      structuredData
+      structuredData: {
+        '@context': 'https://schema.org',
+        '@type': 'ProfilePage',
+        mainEntity: {
+          '@type': 'Person',
+          name: displayName,
+          alternateName: handle,
+          description: user.bio || `${displayName}'s profile`,
+          url: `${this.baseUrl}/resident/${user.handle}`,
+          image: user.avatarUrl,
+          ...(user.joinedAt && { memberOf: this.site }),
+        },
+      },
     };
   }
 
-  /**
-   * Generate metadata for individual blog posts
-   */
-  generateBlogPostMetadata(post: BlogPost, userHandle: string): MetadataConfig {
+  generateBlogPostMetadata(post: BlogPost, userHandle: string): PostMetadata {
     const authorDisplayName = post.author.displayName || post.author.handle;
-    const authorHandle = post.author.handle.startsWith('@') ? post.author.handle : `@${post.author.handle}`;
-
-    // A post saved without a title is stored as "Untitled Post" (pages/api/posts/create.ts).
-    // Its words go in the description, so the title doesn't repeat them
-    const title = post.title && post.title !== 'Untitled Post' ? post.title : `A post by ${authorDisplayName}`;
-
-    // Create description from post content
-    let description = '';
+    // An untitled post's words go in the description, so the title doesn't repeat them
+    const title = post.title && post.title !== UNTITLED_POST ? post.title : `A post by ${authorDisplayName}`;
     const content = post.bodyMarkdown || post.bodyText || post.bodyHtml || '';
-    if (content) {
-      // Remove markdown/HTML formatting for description
-      const cleanContent = content
-        .replace(/#{1,6}\s+/g, '') // Remove markdown headers
-        .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold
-        .replace(/\*(.*?)\*/g, '$1') // Remove italic
-        .replace(/<[^>]*>/g, '') // Remove HTML tags
-        .replace(/!\[[^\]]*\]\([^)]*\)/g, '') // Remove markdown images
-        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1'); // Remove markdown links
-
-      description = MetadataGenerator.cleanText(cleanContent);
-      description = MetadataGenerator.truncateText(description, 155);
-    }
-
-    if (!description) {
-      description = `A post by ${authorDisplayName} on ${SITE_TITLE}.`;
-    }
-
-    // Extract keywords from content
-    const keywords = content
-      ? ['post', 'blog', 'threadstead', authorHandle.replace('@', ''), ...MetadataGenerator.extractKeywords(content, 6)]
-      : ['post', 'blog', 'threadstead', authorHandle.replace('@', '')];
-
-    // Add ThreadRing keywords if available
-    if (post.threadRings && post.threadRings.length > 0) {
-      keywords.push(...post.threadRings.map(ring => ring.name.toLowerCase()));
-    }
-
-    // Generate structured data
-    const structuredData = {
-      '@context': 'https://schema.org',
-      '@type': 'BlogPosting',
-      headline: title,
-      description,
-      author: {
-        '@type': 'Person',
-        name: authorDisplayName,
-        url: `${this.baseUrl}/resident/${post.author.handle}`,
-        ...(post.author.avatarUrl && { image: post.author.avatarUrl })
-      },
-      datePublished: post.createdAt,
-      ...(post.updatedAt && { dateModified: post.updatedAt }),
-      publisher: {
-        '@type': 'Organization',
-        name: SITE_TITLE,
-        url: this.baseUrl
-      },
-      url: `${this.baseUrl}/resident/${userHandle}/post/${post.id}`,
-      ...(post.threadRings && post.threadRings.length > 0 && {
-        keywords: post.threadRings.map(ring => ring.name).join(', ')
-      })
-    };
+    const description = previewText(plainText(content)) || `A post by ${authorDisplayName} on ${SITE_TITLE}.`;
 
     return {
       title,
       description,
-      keywords,
-      image: post.author.avatarUrl || undefined,
-      imageAlt: `${authorDisplayName}'s avatar`,
       url: `/resident/${userHandle}/post/${post.id}`,
-      type: 'article',
       author: authorDisplayName,
       publishedTime: post.createdAt,
       modifiedTime: post.updatedAt,
-      structuredData
+      structuredData: {
+        '@context': 'https://schema.org',
+        '@type': 'BlogPosting',
+        headline: title,
+        description,
+        author: {
+          '@type': 'Person',
+          name: authorDisplayName,
+          url: `${this.baseUrl}/resident/${post.author.handle}`,
+          ...(post.author.avatarUrl && { image: post.author.avatarUrl }),
+        },
+        datePublished: post.createdAt,
+        ...(post.updatedAt && { dateModified: post.updatedAt }),
+        publisher: this.site,
+        url: `${this.baseUrl}/resident/${userHandle}/post/${post.id}`,
+        ...(post.threadRings?.length && { keywords: post.threadRings.map((ring) => ring.name).join(', ') }),
+      },
     };
   }
 
-  /**
-   * Generate metadata for ThreadRing pages
-   */
-  generateThreadRingMetadata(ring: ThreadRing): MetadataConfig {
-    const title = ring.name;
-
-    // Create description from ring description and stats
-    let description = '';
-    if (ring.description) {
-      description = MetadataGenerator.cleanText(ring.description);
-    } else if (ring.curatorNote) {
-      description = MetadataGenerator.cleanText(ring.curatorNote);
-    } else {
-      description = `${ring.name} - A ThreadRing community`;
-    }
-
-    // Add community stats to description
-    if (ring.memberCount || ring.postCount) {
-      const stats = [];
-      if (ring.memberCount) stats.push(countOf(ring.memberCount, 'member'));
-      if (ring.postCount) stats.push(countOf(ring.postCount, 'post'));
-      description += ` • ${stats.join(' • ')}`;
-    }
-
-    description = MetadataGenerator.truncateText(description, 155);
-
-    // Extract keywords from ring content
-    const keywords = ['threadring', 'community', 'threadstead'];
-    if (ring.description) {
-      keywords.push(...MetadataGenerator.extractKeywords(ring.description, 5));
-    }
-    keywords.push(ring.name.toLowerCase().replace(/\s+/g, ''));
-
-    // Generate structured data
-    const structuredData = {
-      '@context': 'https://schema.org',
-      '@type': 'Organization',
-      name: ring.name,
-      description: ring.description || ring.curatorNote || `${ring.name} ThreadRing community`,
-      url: `${this.baseUrl}/tr/${ring.slug}`,
-      ...(ring.curator && {
-        founder: {
-          '@type': 'Person',
-          name: ring.curator.displayName || ring.curator.handle,
-          url: `${this.baseUrl}/resident/${ring.curator.handle}`
-        }
-      }),
-      ...(ring.memberCount && { numberOfEmployees: ring.memberCount }),
-      ...(ring.createdAt && { foundingDate: ring.createdAt }),
-      parentOrganization: {
-        '@type': 'Organization',
-        name: SITE_TITLE,
-        url: this.baseUrl
-      }
-    };
+  generateThreadRingMetadata(ring: ThreadRing): PageMetadata {
+    const about = ring.description || ring.curatorNote || `${ring.name} - A ThreadRing community`;
+    const stats = [
+      ring.memberCount ? countOf(ring.memberCount, 'member') : null,
+      ring.postCount ? countOf(ring.postCount, 'post') : null,
+    ].filter(Boolean);
 
     return {
-      title,
-      description,
-      keywords,
+      title: ring.name,
+      description: previewText([about, ...stats].join(' • ')),
       url: `/tr/${ring.slug}`,
-      type: 'website',
-      structuredData
+      structuredData: {
+        '@context': 'https://schema.org',
+        '@type': 'Organization',
+        name: ring.name,
+        description: ring.description || ring.curatorNote || `${ring.name} ThreadRing community`,
+        url: `${this.baseUrl}/tr/${ring.slug}`,
+        ...(ring.curator && {
+          founder: {
+            '@type': 'Person',
+            name: ring.curator.displayName || ring.curator.handle,
+            url: `${this.baseUrl}/resident/${ring.curator.handle}`,
+          },
+        }),
+        ...(ring.memberCount && { numberOfEmployees: ring.memberCount }),
+        ...(ring.createdAt && { foundingDate: ring.createdAt }),
+        parentOrganization: this.site,
+      },
     };
   }
 
-  /**
-   * Generate metadata for homepage
-   */
-  generateHomepageMetadata(siteConfig?: any): MetadataConfig {
-    const title = siteConfig?.site_name || SITE_TITLE;
+  generateHomepageMetadata(siteConfig?: { site_description?: string }): PageMetadata {
     const description = siteConfig?.site_description ||
       `Join ${SITE_TITLE}, a community platform where you can connect through ThreadRings, share content, and discover new voices. Create your profile and start building connections today.`;
 
-    const keywords = [
-      'threadstead', 'community', 'social', 'threadrings', 'blogging',
-      'connections', 'profiles', 'content sharing', 'indie web'
-    ];
-
-    const structuredData = {
-      '@context': 'https://schema.org',
-      '@type': 'WebSite',
-      name: title,
-      description,
-      url: this.baseUrl,
-      potentialAction: {
-        '@type': 'SearchAction',
-        target: {
-          '@type': 'EntryPoint',
-          urlTemplate: `${this.baseUrl}/discover?q={search_term_string}`
-        },
-        'query-input': 'required name=search_term_string'
-      },
-      ...(siteConfig?.site_name && {
-        publisher: {
-          '@type': 'Organization',
-          name: siteConfig.site_name,
-          url: this.baseUrl
-        }
-      })
-    };
-
     return {
-      title,
+      title: SITE_TITLE,
       description,
-      keywords,
       url: '/',
-      type: 'website',
-      structuredData
-    };
-  }
-
-  /**
-   * Generate metadata for discover/search pages
-   */
-  generateDiscoverMetadata(searchQuery?: string): MetadataConfig {
-    const title = searchQuery
-      ? `Search results for "${searchQuery}"`
-      : 'Discover Communities';
-
-    const description = searchQuery
-      ? `Find ThreadRings, users, and content related to "${searchQuery}" on ${SITE_TITLE}.`
-      : `Explore ThreadRings, discover new communities, and find interesting content on ${SITE_TITLE}. Search the indie web and connect with like-minded people.`;
-
-    const keywords = searchQuery
-      ? ['search', 'discover', 'results', 'threadstead', ...searchQuery.split(' ').filter(word => word.length > 2)]
-      : ['discover', 'explore', 'community', 'threadrings', 'search', 'threadstead'];
-
-    const structuredData = {
-      '@context': 'https://schema.org',
-      '@type': 'SearchResultsPage',
-      name: title,
-      description,
-      url: searchQuery
-        ? `${this.baseUrl}/discover?q=${encodeURIComponent(searchQuery)}`
-        : `${this.baseUrl}/discover`
-    };
-
-    return {
-      title,
-      description,
-      keywords,
-      url: searchQuery ? `/discover?q=${encodeURIComponent(searchQuery)}` : '/discover',
-      type: 'website',
-      structuredData
+      structuredData: {
+        '@context': 'https://schema.org',
+        '@type': 'WebSite',
+        name: SITE_TITLE,
+        description,
+        url: this.baseUrl,
+        potentialAction: {
+          '@type': 'SearchAction',
+          target: { '@type': 'EntryPoint', urlTemplate: `${this.baseUrl}/search?q={search_term_string}` },
+          'query-input': 'required name=search_term_string',
+        },
+        publisher: this.site,
+      },
     };
   }
 }
 
-// Default content metadata generator instance
 export const contentMetadataGenerator = new ContentMetadataGenerator();

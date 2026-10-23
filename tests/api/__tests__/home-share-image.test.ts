@@ -59,19 +59,19 @@ beforeEach(() => {
 
 test('a public home with a snapshot uses it, and draws nothing', async () => {
   snapshotUrl = 'https://cdn.test/pixel-homes/snapshots/u_ada.abc.png'
-  expect((await props('ada')).shareImage).toBe(snapshotUrl)
+  expect((await props('ada')).shareImage).toEqual({ url: snapshotUrl, width: 1200, height: 630, alt: "Ada's house and yard" })
   expect(scheduleHomeSnapshot).not.toHaveBeenCalled()
 })
 
 test('a public home without one starts drawing it and points at the route that waits for it', async () => {
-  expect((await props('ada')).shareImage).toMatch(/^https?:\/\/[^/]+\/api\/home\/ada\/snapshot$/)
+  expect((await props('ada')).shareImage.url).toMatch(/^https?:\/\/[^/]+\/api\/home\/ada\/snapshot$/)
   expect(scheduleHomeSnapshot).toHaveBeenCalledWith('u_ada')
 })
 
 test('no profile row counts as public', async () => {
   profile = null
   snapshotUrl = 'https://cdn.test/s.png'
-  expect((await props('ada')).shareImage).toBe(snapshotUrl)
+  expect((await props('ada')).shareImage.url).toBe(snapshotUrl)
 })
 
 test.each(['followers', 'friends', 'private'])(

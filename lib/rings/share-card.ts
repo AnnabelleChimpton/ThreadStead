@@ -10,9 +10,10 @@
 import sharp from 'sharp'
 import { keyFromPublicUrl } from '@/lib/storage/r2'
 import { ringBadgePng } from '@/lib/rings/badge'
+import { SHARE_CARD } from '@/lib/share-images'
 
-export const CARD_WIDTH = 1200
-export const CARD_HEIGHT = 630
+export const CARD_WIDTH = SHARE_CARD.width
+export const CARD_HEIGHT = SHARE_CARD.height
 const PAPER = '#f6efdc'
 // The badge may fill this much of the card; the rest is paper
 const MAX_BADGE_WIDTH = 960

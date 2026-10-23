@@ -18,6 +18,7 @@ import {
   type BulletinCategory,
 } from '@/lib/helpers/bulletinHelpers';
 import PageMeta from '@/components/ui/layout/PageMeta';
+import { SITE_TITLE } from '@/lib/config/site/constants';
 
 interface Bulletin {
   id: string;
@@ -184,7 +185,7 @@ export default function BulletinBoard({ siteConfig, user }: BulletinPageProps) {
 
   return (
     <>
-      <PageMeta title="Community" description={`The board, chat, site news and polls on ${siteConfig.site_name}.`} path="/community" />
+      <PageMeta title="Community" description={`The board, chat, site news and polls on ${SITE_TITLE}.`} path="/community" />
 
       <Layout siteConfig={siteConfig} fullWidth={true}>
         <div className="w-full max-w-full sm:max-w-7xl mx-auto px-0 sm:px-4 py-4 sm:py-6">

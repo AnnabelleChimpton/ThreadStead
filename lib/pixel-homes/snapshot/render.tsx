@@ -63,6 +63,7 @@ import { DEFAULT_DECORATION_GRID } from '@/lib/pixel-homes/decoration-grid-utils
 import { getDecorationDimensions, sizeScale } from '@/lib/pixel-homes/decoration-dimensions'
 import { decorationText, type HomeScene, type SceneDecoration } from '@/lib/pixel-homes/home-scene'
 import { decorationDepth, houseDepth } from '@/lib/pixel-homes/depth'
+import { SHARE_CARD } from '@/lib/share-images'
 
 // --- EnhancedHouseCanvas's layout, in canvas units --------------------------
 export const CANVAS_WIDTH = 512
@@ -96,7 +97,7 @@ const NIGHT_STARS: Array<[number, number, number, number]> = [
 ]
 
 // --- The share image ----------------------------------------------------------
-export const OG_SIZE = { width: 1200, height: 630 } as const
+export const OG_SIZE = SHARE_CARD
 export const CARD_SIZE = { width: CANVAS_WIDTH, height: CANVAS_HEIGHT } as const
 const OG_SCALE = 2
 /** Canvas units of sky and grass carried past each side of the yard. */

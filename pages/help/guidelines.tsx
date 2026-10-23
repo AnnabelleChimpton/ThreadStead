@@ -6,11 +6,12 @@ import ButtonLink, { buttonClasses } from '@/components/ui/ButtonLink';
 import PageHeader from '@/components/ui/layout/PageHeader';
 import { PixelIcon } from '@/components/ui/PixelIcon';
 import PageMeta from '@/components/ui/layout/PageMeta';
+import { SITE_TITLE } from '@/lib/config/site/constants';
 
 export default function CommunityGuidelines() {
   return (
     <>
-      <PageMeta title="Community guidelines" description="The house rules that keep HomePageAgain creative, welcoming and safe for everyone." path="/help/guidelines" />
+      <PageMeta title="Community guidelines" description={`The house rules that keep ${SITE_TITLE} creative, welcoming and safe for everyone.`} path="/help/guidelines" />
 
       <Layout>
         <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">

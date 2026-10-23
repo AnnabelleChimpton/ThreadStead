@@ -6,6 +6,7 @@ import Callout from '@/components/ui/feedback/Callout';
 import ButtonLink from '@/components/ui/ButtonLink';
 import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
 import PageMeta from '@/components/ui/layout/PageMeta';
+import { SITE_TITLE } from '@/lib/config/site/constants';
 
 interface FAQProps {
   siteConfig: SiteConfig;
@@ -269,7 +270,7 @@ export default function FAQ({ siteConfig }: FAQProps) {
 
   return (
     <>
-      <PageMeta title="FAQ" description="How the houses, rings and pages on HomePageAgain work, and what happens with your data." path="/help/faq" />
+      <PageMeta title="FAQ" description={`How the houses, rings and pages on ${SITE_TITLE} work, and what happens with your data.`} path="/help/faq" />
 
       <Layout siteConfig={siteConfig}>
         <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-8 sm:py-12">

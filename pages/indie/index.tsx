@@ -8,6 +8,7 @@ import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { csrfFetch } from '@/lib/api/client/csrf-fetch'
 import { searchHref } from '@/lib/search/url-state'
 import PageMeta from '@/components/ui/layout/PageMeta'
+import { SITE_TITLE } from '@/lib/config/site/constants'
 
 /**
  * /indie: the Indie Index's front door (SEARCH_PLAN.md §3.5). Add a site by
@@ -16,7 +17,7 @@ import PageMeta from '@/components/ui/layout/PageMeta'
 export default function IndieIndexPage() {
   return (
     <Layout>
-      <PageMeta title="Indie Index" description="Personal sites that people on HomePageAgain link to and vouch for, searchable by their latest posts." path="/indie" />
+      <PageMeta title="Indie Index" description={`Personal sites that people on ${SITE_TITLE} link to and vouch for, searchable by their latest posts.`} path="/indie" />
 
       <div className="max-w-3xl mx-auto space-y-6">
         <header className="thread-module p-4 sm:p-6">
