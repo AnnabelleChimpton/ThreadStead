@@ -16,7 +16,6 @@ jest.mock('@/lib/storage/r2', () => ({
 }))
 import {
   BADGE_PALETTES,
-  BADGE_PALETTE_IDS,
   BADGE_TEMPLATE_IDS,
   autoPalette,
   badgeChoiceFor,
