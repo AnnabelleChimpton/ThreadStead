@@ -1,11 +1,10 @@
-import { getSiteBaseUrl } from "@/lib/config/site-url";
 import type { NextApiRequest, NextApiResponse } from "next";
-import { db } from "@/lib/config/database/connection";
 import { getSessionUser } from "@/lib/auth/server";
 import { generateThreadRingBadge } from "@/lib/badge-generator";
 import { uploadBadgeImage } from "@/lib/badge-uploader";
 import { withThreadRingSupport } from "@/lib/api/ringhub/ringhub-middleware";
 import { AuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
+import { forgetRingReads } from "@/lib/api/ringhub/forget-ring-reads";
 import { withCsrfProtection } from "@/lib/server/http/csrf";
 import { withRateLimit } from "@/lib/server/http/rate-limit";
 
@@ -24,10 +23,7 @@ export default withRateLimit('threadring_operations')(
 
   const { slug } = req.query;
   const { name, slug: customSlug, description, joinType, visibility, badge, badgeImageUrl, badgeImageHighResUrl } = req.body;
-  
-  // Debug logging
-  console.log("Fork API - req.body:", req.body);
-  console.log("Fork API - customSlug extracted:", customSlug);
+
 
   if (typeof slug !== "string") {
     return res.status(400).json({ error: "Invalid slug" });
@@ -90,7 +86,6 @@ export default withRateLimit('threadring_operations')(
           // Generate slug from name
           forkSlug = name.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
         }
-        console.log("Fork API - customSlug:", customSlug, "generated forkSlug:", forkSlug);
         
         // Map ThreadStead values to Ring Hub format
         const joinPolicyMapping = {
@@ -158,11 +153,12 @@ export default withRateLimit('threadring_operations')(
           ...badgeUrls
         };
         
-        console.log('Ring Hub fork request:', { parentSlug: slug, forkData });
-        
         // Fork ring via Ring Hub
         const forkedRing = await authenticatedClient.forkRing(slug as string, forkData);
-        
+        // The new ring in their lists and the directory, and in the parent's children
+        forgetRingReads(forkedRing.slug, [viewer.id]);
+        forgetRingReads(slug);
+
         return res.json({
           success: true,
           threadRing: {
@@ -174,7 +170,7 @@ export default withRateLimit('threadring_operations')(
             visibility: forkedRing.visibility?.toLowerCase() || 'public',
             uri: forkedRing.uri
           },
-          message: `Successfully forked as "${forkedRing.name}"`
+          message: `"${forkedRing.name}" is ready.`
         });
         
       } catch (ringHubError: any) {
@@ -207,204 +203,8 @@ export default withRateLimit('threadring_operations')(
       }
     }
 
-    // Original local database logic
-
-    // Find the original ThreadRing to fork
-    const originalRing = await db.threadRing.findUnique({
-      where: { slug },
-      select: { 
-        id: true, 
-        name: true,
-        description: true,
-        visibility: true,
-        curatorId: true,
-        lineageDepth: true,
-        lineagePath: true,
-        isSystemRing: true
-      }
-    });
-
-    if (!originalRing) {
-      return res.status(404).json({ error: "ThreadRing not found" });
-    }
-
-    // Check if the original ThreadRing is visible to the viewer
-    if (originalRing.visibility === "private") {
-      // Check if viewer is a member of the original ring
-      const membership = await db.threadRingMember.findUnique({
-        where: {
-          threadRingId_userId: {
-            threadRingId: originalRing.id,
-            userId: viewer.id
-          }
-        }
-      });
-
-      if (!membership) {
-        return res.status(403).json({ error: "Cannot fork a private ThreadRing you're not a member of" });
-      }
-    }
-
-    // Use custom slug or generate from name
-    let baseSlug;
-    if (customSlug?.trim()) {
-      // Use custom slug as-is (already validated by frontend)
-      baseSlug = customSlug.trim();
-    } else {
-      // Generate slug from name
-      baseSlug = name.trim()
-        .toLowerCase()
-        .replace(/[^a-z0-9\s-]/g, '')
-        .replace(/\s+/g, '-')
-        .replace(/-+/g, '-')
-        .replace(/^-|-$/g, '')
-        .substring(0, 50);
-    }
-      
-    console.log("Local fork API - customSlug:", customSlug, "baseSlug:", baseSlug);
-
-    let finalSlug = baseSlug;
-    let counter = 1;
-
-    // Ensure slug uniqueness
-    while (true) {
-      const existing = await db.threadRing.findUnique({
-        where: { slug: finalSlug }
-      });
-      
-      if (!existing) break;
-      
-      finalSlug = `${baseSlug}-${counter}`;
-      counter++;
-      
-      if (counter > 100) {
-        return res.status(400).json({ 
-          error: "Unable to generate unique slug. Please choose a different name." 
-        });
-      }
-    }
-
-    // Calculate lineage data for the forked ring
-    const newLineageDepth = originalRing.lineageDepth + 1;
-    const newLineagePath = originalRing.lineagePath 
-      ? `${originalRing.lineagePath},${originalRing.id}`
-      : originalRing.id;
-
-    // Get all ancestor IDs from the lineage path for counter updates
-    const ancestorIds = originalRing.lineagePath 
-      ? originalRing.lineagePath.split(',').filter(Boolean)
-      : [];
-    ancestorIds.push(originalRing.id); // Include the direct parent
-
-    // Create the forked ThreadRing
-    const forkedRing = await db.$transaction(async (tx) => {
-      // Create the new ThreadRing with hierarchical data
-      const ring = await tx.threadRing.create({
-        data: {
-          name: name.trim(),
-          slug: finalSlug,
-          description: description?.trim() || null,
-          joinType,
-          visibility,
-          curatorId: viewer.id,
-          uri: `${getSiteBaseUrl()}/threadrings/${finalSlug}`,
-          memberCount: 1, // Curator is automatically a member
-          // Hierarchical fields
-          parentId: originalRing.id,
-          lineageDepth: newLineageDepth,
-          lineagePath: newLineagePath,
-          directChildrenCount: 0, // New ring has no children
-          totalDescendantsCount: 0, // New ring has no descendants
-        },
-      });
-
-      // Create the curator membership
-      await tx.threadRingMember.create({
-        data: {
-          threadRingId: ring.id,
-          userId: viewer.id,
-          role: "curator",
-        },
-      });
-
-      // Create the fork relationship
-      await tx.threadRingFork.create({
-        data: {
-          parentId: originalRing.id,
-          childId: ring.id,
-          createdBy: viewer.id
-        }
-      });
-
-      // Update parent's direct children count
-      await tx.threadRing.update({
-        where: { id: originalRing.id },
-        data: { 
-          directChildrenCount: { increment: 1 }
-        }
-      });
-
-      // Update ALL ancestors' total descendant counts (including the parent)
-      if (ancestorIds.length > 0) {
-        await tx.threadRing.updateMany({
-          where: { 
-            id: { in: ancestorIds }
-          },
-          data: { 
-            totalDescendantsCount: { increment: 1 }
-          }
-        });
-      }
-
-      // Create badge if provided or generate default
-      let badgeData;
-      if (badge && (badge.templateId || badge.backgroundColor)) {
-        // Use provided badge data
-        badgeData = {
-          templateId: badge.templateId,
-          title: badge.title || name.trim(),
-          subtitle: badge.subtitle,
-          backgroundColor: badge.backgroundColor || '#4A90E2',
-          textColor: badge.textColor || '#FFFFFF',
-          isGenerated: false
-        };
-      } else {
-        // Generate default badge
-        badgeData = await generateThreadRingBadge(name.trim(), finalSlug);
-      }
-
-      await tx.threadRingBadge.create({
-        data: {
-          threadRingId: ring.id,
-          title: badgeData.title,
-          subtitle: badgeData.subtitle,
-          templateId: badgeData.templateId,
-          backgroundColor: badgeData.backgroundColor,
-          textColor: badgeData.textColor,
-          isGenerated: badgeData.isGenerated,
-          isActive: true
-        }
-      });
-
-      // Note: No notification created - forks should be discoverable through the ring's fork page
-      // This keeps ThreadRing activity ambient rather than invasive
-
-      return ring;
-    });
-
-    return res.json({
-      success: true,
-      threadRing: {
-        id: forkedRing.id,
-        name: forkedRing.name,
-        slug: forkedRing.slug,
-        description: forkedRing.description,
-        joinType: forkedRing.joinType,
-        visibility: forkedRing.visibility,
-        uri: forkedRing.uri
-      },
-      message: `Successfully forked "${originalRing.name}" as "${forkedRing.name}"`
-    });
+    // Rings live on Ring Hub; there's no local-only ring to start any more
+    return res.status(503).json({ error: "Starting a ring needs Ring Hub, and it's off here." });
 
   } catch (error) {
     console.error("Error forking ThreadRing:", error);

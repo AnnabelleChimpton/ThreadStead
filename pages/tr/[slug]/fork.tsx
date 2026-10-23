@@ -4,11 +4,9 @@ import Layout from "../../../components/ui/layout/Layout";
 import ForkThreadRingForm from "../../../components/ui/forms/ForkThreadRingForm";
 import { getSiteConfig, SiteConfig } from "@/lib/config/site/dynamic";
 import { GetServerSideProps } from "next";
-import { db } from "@/lib/config/database/connection";
 import { getSessionUser } from "@/lib/auth/server";
-import { featureFlags } from "@/lib/utils/features/feature-flags";
-import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
 import { raceHubCall, HUB_TIMEOUT } from "@/lib/api/ringhub/ringhub-ssr";
+import { readRingAs } from "@/lib/domain/threadrings/ring-access";
 
 interface ForkPageProps {
   siteConfig: SiteConfig;
@@ -96,101 +94,32 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     };
   }
 
-  try {
-    let ring = null;
-
-    // Use Ring Hub if enabled
-    if (featureFlags.ringhub()) {
-      const client = getRingHubClient();
-      if (client) {
-        try {
-          // Short SSR deadline; timeout -> local DB fallback.
-          const ringDescriptor = await raceHubCall(client.getRing(slug as string));
-          if (ringDescriptor !== HUB_TIMEOUT && ringDescriptor) {
-            ring = {
-              id: ringDescriptor.slug,
-              name: ringDescriptor.name,
-              slug: ringDescriptor.slug,
-              description: ringDescriptor.description,
-              visibility: ringDescriptor.visibility?.toLowerCase() || 'public',
-            };
-          }
-        } catch (error) {
-          console.error("Error fetching ring from Ring Hub for fork page:", error);
-          // Fall through to local database as fallback
-        }
-      }
-    }
-
-    // Fallback to local database if Ring Hub is not available or failed
-    if (!ring) {
-      ring = await db.threadRing.findUnique({
-        where: { slug },
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          description: true,
-          visibility: true,
-        },
-      });
-    }
-
-    if (!ring) {
-      return {
-        props: {
-          siteConfig,
-          originalRing: null,
-          error: "ThreadRing not found",
-          isAuthenticated: true,
-        },
-      };
-    }
-
-    // Check if the ring is visible to the viewer
-    if (ring.visibility === "private" && viewer.role !== 'admin') {
-      // Check if viewer is a member
-      const membership = await db.threadRingMember.findUnique({
-        where: {
-          threadRingId_userId: {
-            threadRingId: ring.id,
-            userId: viewer.id
-          }
-        }
-      });
-
-      if (!membership) {
-        return {
-          props: {
-            siteConfig,
-            originalRing: null,
-            error: "You cannot start a new Ring from a private ThreadRing you're not a member of",
-            isAuthenticated: true,
-          },
-        };
-      }
-    }
-
-    return {
-      props: {
-        siteConfig,
-        originalRing: {
-          name: ring.name,
-          slug: ring.slug,
-          description: ring.description,
-        },
-        isAuthenticated: true,
-      },
-    };
-  } catch (error: any) {
-    console.error("Fork page error:", error);
+  // Signed as the viewer: a private ring is there only for its members, and
+  // nothing falls back to the local mirror row
+  const access = await raceHubCall(readRingAs(viewer, slug));
+  if (access === HUB_TIMEOUT) {
     return {
       props: {
         siteConfig,
         originalRing: null,
-        error: "Failed to load ThreadRing",
+        error: "We can't reach Ring Hub right now. Try again in a minute.",
         isAuthenticated: true,
       },
     };
   }
+  if (!access) {
+    return { props: { siteConfig, originalRing: null, error: "Ring not found", isAuthenticated: true } };
+  }
+
+  return {
+    props: {
+      siteConfig,
+      originalRing: {
+        name: access.ring.name,
+        slug: access.ring.slug,
+        description: access.ring.description,
+      },
+      isAuthenticated: true,
+    },
+  };
 };
