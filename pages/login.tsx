@@ -24,6 +24,12 @@ export default function LoginPage() {
   const [emailInput, setEmailInput] = useState('');
   const [usernameInput, setUsernameInput] = useState('');
 
+  // Back to where they came from (?next=, a path on this site only), else their page
+  function afterSignIn() {
+    const next = typeof router.query.next === 'string' ? router.query.next : '';
+    window.location.href = /^\/(?![/\\])/.test(next) ? next : '/me';
+  }
+
   // Auto-populate username from URL if provided
   useEffect(() => {
     if (router.query.username && typeof router.query.username === 'string') {
@@ -45,8 +51,7 @@ export default function LoginPage() {
       await recoverFromSeedPhrase(seedPhrase.trim());
       
       // The recoverFromSeedPhrase function should handle authentication
-      // Redirect to profile or reload to update auth state
-      window.location.href = '/me';
+      afterSignIn();
     } catch (e) {
       setError((e as Error).message || 'Invalid seed phrase or login failed');
     } finally {
@@ -67,8 +72,7 @@ export default function LoginPage() {
       // Use the new password login function
       await loginWithPassword(usernameForPassword.trim(), passwordInput.trim());
       
-      // Redirect to profile on success
-      window.location.href = '/me';
+      afterSignIn();
     } catch (e) {
       setError((e as Error).message || 'Login failed');
     } finally {
