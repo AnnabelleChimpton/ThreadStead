@@ -6,6 +6,7 @@ import { useToast } from '@/contexts/ToastContext';
 import { useConfirm } from '@/contexts/ConfirmContext';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import type { BlueskySettingsState } from '@/lib/domain/bluesky/handle-links';
+import KnownHere from './KnownHere';
 
 /**
  * Settings → Bluesky: use your address here (alice.homepageagain.com) as
@@ -186,6 +187,8 @@ export default function BlueskyHandleSettings() {
           </div>
         </div>
       )}
+
+      {address && status === 'verified' && <KnownHere />}
 
       {address && status === 'pending' && current && (
         <div className="thread-module flex flex-col gap-4">
