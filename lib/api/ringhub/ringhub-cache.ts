@@ -113,6 +113,11 @@ export function invalidate(key: string): void {
   store.delete(key);
 }
 
+/** Remove every key the test matches (per-viewer keys for one ring, say). */
+export function invalidateMatching(test: (key: string) => boolean): void {
+  for (const key of store.keys()) if (test(key)) store.delete(key);
+}
+
 /** Clear the entire cache. Primarily for tests. */
 export function clearCache(): void {
   store.clear();
