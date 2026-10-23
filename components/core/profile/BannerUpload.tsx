@@ -6,14 +6,8 @@
 import React, { useRef, useState } from 'react';
 import Button from '@/components/ui/Button';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+import { requestCapability } from '@/lib/api/client/capability';
 import { useToast } from '@/contexts/ToastContext';
-
-async function capToken(): Promise<string> {
-  const res = await csrfFetch('/api/cap/profile', { method: 'POST' });
-  if (!res.ok) throw new Error('Sign in again to change your banner.');
-  const { token } = await res.json();
-  return token;
-}
 
 export default function BannerUpload({ initialUrl }: { initialUrl?: string | null }) {
   const { showSuccess, showError } = useToast();
@@ -26,7 +20,7 @@ export default function BannerUpload({ initialUrl }: { initialUrl?: string | nul
     try {
       const form = new FormData();
       form.append('banner', file);
-      form.append('cap', await capToken());
+      form.append('cap', await requestCapability('profile'));
       const res = await csrfFetch('/api/profile/upload-banner', { method: 'POST', body: form });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Couldn't save the banner. Try again.");
@@ -43,14 +37,16 @@ export default function BannerUpload({ initialUrl }: { initialUrl?: string | nul
   async function remove() {
     setBusy(true);
     try {
-      const res = await csrfFetch(`/api/profile/upload-banner?cap=${encodeURIComponent(await capToken())}`, {
+      const cap = await requestCapability('profile');
+      const res = await csrfFetch(`/api/profile/upload-banner?cap=${encodeURIComponent(cap)}`, {
         method: 'DELETE',
       });
-      if (!res.ok) throw new Error();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Couldn't remove the banner. Try again.");
       setUrl(null);
       showSuccess('Banner removed.');
-    } catch {
-      showError("Couldn't remove the banner. Try again.");
+    } catch (error) {
+      showError(error instanceof Error ? error.message : "Couldn't remove the banner. Try again.");
     } finally {
       setBusy(false);
     }

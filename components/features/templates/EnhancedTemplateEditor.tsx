@@ -32,6 +32,7 @@ import ValidationFeedbackPanel, { hasStrippedNeedingAttention, type StrippedEntr
 import ProblemsStrip, { NO_PROBLEMS, firstProblemLine, type LiveProblems } from './ProblemsStrip';
 import { extractDocument } from '@/lib/templates/compilation/document-head';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+import { requestCapability } from '@/lib/api/client/capability';
 import { useRouter } from 'next/router';
 import { PixelIcon } from '@/components/ui/PixelIcon';
 import Modal from '@/components/ui/feedback/Modal';
@@ -396,14 +397,13 @@ export default function EnhancedTemplateEditor({
           });
 
           // 3. Back to the standard layout
-          const capRes = await csrfFetch("/api/cap/profile", { method: "POST" });
-          const { token } = await capRes.json();
-
-          await csrfFetch("/api/profile/update", {
+          const token = await requestCapability('profile');
+          const layoutRes = await csrfFetch("/api/profile/update", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ ...layoutFields({ layout: 'standard' }), cap: token }),
           });
+          if (!layoutRes.ok) throw new Error((await layoutRes.json().catch(() => ({}))).error || 'Failed to reset to default');
 
           setSaveState('saved');
           setSavedCSS('');
@@ -423,7 +423,7 @@ export default function EnhancedTemplateEditor({
           }, 500);
         } catch (error) {
           setSaveState('error');
-          setSaveMessage({ text: 'Failed to reset to default', tone: 'error' });
+          setSaveMessage({ text: error instanceof Error ? error.message : 'Failed to reset to default', tone: 'error' });
           setTimeout(() => setSaveMessage(null), 3000);
         }
       },

@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+import { requestCapability } from '@/lib/api/client/capability';
 import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface BadgeUploadProps {
@@ -64,12 +65,7 @@ export default function BadgeUpload({ onUploadSuccess, disabled = false, ringSlu
     setError(null);
 
     try {
-      // Get upload capability
-      const capRes = await csrfFetch('/api/cap/media', { method: 'POST' });
-      if (!capRes.ok) {
-        throw new Error('Failed to get upload permission');
-      }
-      const { token } = await capRes.json();
+      const token = await requestCapability('media');
 
       // Upload using media API with badge context
       const formData = new FormData();

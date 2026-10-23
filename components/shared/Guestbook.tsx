@@ -6,6 +6,7 @@ import ImprovedBadgeDisplay from "./ImprovedBadgeDisplay";
 import { CommentMarkupWithEmojis } from "@/lib/comment-markup";
 import Link from "next/link";
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+import { requestCapability } from '@/lib/api/client/capability';
 import { PixelIcon } from '@/components/ui/PixelIcon';
 import Modal from '@/components/ui/feedback/Modal';
 import Router from "next/router";
@@ -129,17 +130,7 @@ export default function Guestbook({ username, bio, signerLink = "profile", headi
     setError(null);
     try {
       // 1) mint a short-lived capability for this profile's guestbook
-      const capRes = await fetch(`/api/cap/guestbook/${encodeURIComponent(username)}`, {
-        method: "POST",
-      });
-      if (capRes.status === 401) {
-        setError("Please log in to sign the guestbook.");
-        setSubmitting(false);
-        return;
-      }
-      const cap = await capRes.json().catch(() => ({}));
-      if (!capRes.ok) throw new Error(cap?.error || `cap mint failed: ${capRes.status}`);
-      const { token } = cap;
+      const token = await requestCapability(`guestbook/${encodeURIComponent(username)}`);
 
       // 2) use the capability in the POST
       const res = await csrfFetch(`/api/guestbook/${encodeURIComponent(username)}`, {

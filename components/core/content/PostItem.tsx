@@ -17,6 +17,7 @@ import PostActionsDropdown from "./PostActionsDropdown";
 import { useWelcomeRingTracking } from "@/hooks/useWelcomeRingTracking";
 import { useViewportTracking, trackEngagement } from "@/hooks/usePostView";
 import { csrfFetch } from "@/lib/api/client/csrf-fetch";
+import { requestCapability } from "@/lib/api/client/capability";
 import { PixelIcon } from "@/components/ui/PixelIcon";
 import VisibilityBadge from "./VisibilityBadge";
 import { useConfirm } from "@/contexts/ConfirmContext";
@@ -278,14 +279,6 @@ export default function PostItem({
     };
   }, [post.id]);
 
-  async function mintPostCap(): Promise<string> {
-    const capRes = await fetch("/api/cap/post", { method: "POST" });
-    if (capRes.status === 401) throw new Error("Please log in.");
-    if (!capRes.ok) throw new Error(`cap mint failed: ${capRes.status}`);
-    const { token } = await capRes.json();
-    return token;
-  }
-
   function handleEdit() {
     // Navigate to edit page
     const authorUsername = post.author?.primaryHandle?.split('@')[0];
@@ -299,13 +292,13 @@ export default function PostItem({
     setBusy(true);
     setErr(null);
     try {
-      const token = await mintPostCap();
+      const token = await requestCapability("post");
       const res = await csrfFetch("/api/posts/delete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: post.id, cap: token }),
       });
-      if (!res.ok) throw new Error(`delete ${res.status}`);
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Failed to delete");
 
       // Notify parent component that the post was removed
       await onChanged?.();

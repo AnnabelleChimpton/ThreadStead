@@ -29,11 +29,14 @@ const SONGS = [
   { id: 's2', title: null, caption: null, originalName: 'second-song.midi', fileSize: 4096, createdAt: '2026-10-02T00:00:00Z' },
 ];
 
-function serve(profile: { profileMidiId: string | null; midiAutoplay?: boolean; midiLoop?: boolean }) {
+type Reply = { ok: boolean; status: number; json: () => Promise<unknown> };
+const MINTED: Reply = { ok: true, status: 200, json: async () => ({ token: 'cap' }) };
+
+function serve(profile: { profileMidiId: string | null; midiAutoplay?: boolean; midiLoop?: boolean }, cap = MINTED) {
   global.fetch = jest.fn(async (url: string) => {
     if (url.startsWith('/api/media/midi/')) return { ok: true, json: async () => ({ files: SONGS }) };
     if (url.startsWith('/api/profile/')) return { ok: true, json: async () => ({ profile }) };
-    if (url.startsWith('/api/cap/')) return { ok: true, json: async () => ({ token: 'cap' }) };
+    if (url.startsWith('/api/cap/')) return cap;
     return { ok: false, json: async () => ({}) };
   }) as unknown as typeof fetch;
 }
@@ -149,4 +152,15 @@ test('when the order can’t be saved, the list goes back', async () => {
   fireEvent.click(await screen.findByRole('button', { name: 'Move “Little tune” down' }));
   await waitFor(() => expect(toast.showError).toHaveBeenCalledWith("Couldn't save the new order. Try again in a moment."));
   expect(screen.getAllByRole('radio')[1].closest('li')?.textContent).toMatch(/Little tune/);
+});
+
+test('someone leaving hears how to stay, and nothing changes', async () => {
+  const leaving = "Your account is set to be deleted on 6 November. If you'd like to stay, press Keep my account at the top of the page.";
+  serve({ profileMidiId: 's1' }, { ok: false, status: 403, json: async () => ({ error: leaving, code: 'account_leaving' }) });
+  render(<MidiManager username="me" />);
+  fireEvent.click(await screen.findByRole('radio', { name: 'No music' }));
+
+  await waitFor(() => expect(toast.showError).toHaveBeenCalledWith(leaving));
+  expect(posted()).toEqual([]);
+  expect(screen.getByRole('radio', { name: /Little tune/ })).toBeChecked();
 });

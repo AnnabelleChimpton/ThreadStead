@@ -25,6 +25,7 @@ import { avatarUploadsAsIs } from '@/lib/media/media-types';
 import { fetchAuthMe } from "@/hooks/useCurrentUser";
 import { unlockAudio } from "@/lib/audio/context";
 import { csrfFetch } from "@/lib/api/client/csrf-fetch";
+import { requestCapability } from "@/lib/api/client/capability";
 import Button from "@/components/ui/Button";
 import { buttonClasses } from "@/components/ui/ButtonLink";
 
@@ -611,8 +612,7 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
       if (profilePhoto) {
         const formData = new FormData();
         formData.append('photo', profilePhoto);
-        const capRes = await csrfFetch('/api/cap/profile', { method: 'POST' });
-        if (capRes.ok) formData.append('cap', (await capRes.json()).token);
+        formData.append('cap', await requestCapability('profile'));
 
         const photoResponse = await csrfFetch('/api/profile/upload-photo', {
           method: 'POST',

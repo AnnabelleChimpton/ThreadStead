@@ -10,6 +10,7 @@ import EnhancedTemplateEditor from '@/components/features/templates/EnhancedTemp
 import type { CompiledTemplate } from '@/lib/templates/compilation/compiler';
 import { PixelIcon } from "@/components/ui/PixelIcon";
 import { csrfFetch } from "@/lib/api/client/csrf-fetch";
+import { requestCapability } from "@/lib/api/client/capability";
 import { layoutFields, layoutOf } from "@/lib/domain/profile/layout";
 import type { StartFromResult } from "@/lib/domain/profile/shared-source";
 
@@ -159,11 +160,7 @@ export default function TemplateEditorPage({
       }
 
       // Enable template mode
-      const capRes = await csrfFetch("/api/cap/profile", { method: "POST" });
-      if (capRes.status === 401) {
-        throw new Error("Failed to update layout mode. Please check Layout Settings.");
-      }
-      const { token } = await capRes.json();
+      const token = await requestCapability("profile");
 
       const layout = explicitTemplateMode
         ? layoutOf(explicitTemplateMode)
@@ -180,7 +177,7 @@ export default function TemplateEditorPage({
       });
 
       if (!layoutResponse.ok) {
-        throw new Error("Template saved, but failed to enable template mode.");
+        throw new Error((await layoutResponse.json().catch(() => ({}))).error || "Template saved, but failed to enable template mode.");
       }
     } catch (error) {
       throw error;

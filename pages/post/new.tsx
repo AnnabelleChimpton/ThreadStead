@@ -7,6 +7,7 @@ import { getSiteConfig, SiteConfig } from "@/lib/config/site/dynamic";
 import PostEditor from "@/components/ui/forms/PostEditor";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+import { requestCapability } from '@/lib/api/client/capability';
 import Link from "next/link";
 import type { RingPostResult } from "@/lib/domain/posts/ring-submission";
 import RingResultsList from "@/components/core/threadring/RingResultsList";
@@ -73,15 +74,7 @@ export default function PostEditorPage({ siteConfig, ringSlug }: PostEditorPageP
 
   const handleSubmit = async (payload: any) => {
     try {
-      const capRes = await fetch("/api/cap/post", { method: "POST" });
-      if (capRes.status === 401) {
-        throw new Error("Please log in to post.");
-      }
-      if (!capRes.ok) throw new Error(`cap mint failed: ${capRes.status}`);
-      const { token } = await capRes.json();
-
-      // Add capability token to payload
-      payload.cap = token;
+      payload.cap = await requestCapability("post");
 
       // Add prompt ID if responding to a prompt
       if (respondingToPrompt) {
@@ -94,7 +87,7 @@ export default function PostEditorPage({ siteConfig, ringSlug }: PostEditorPageP
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) throw new Error(`create failed: ${res.status}`);
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `create failed: ${res.status}`);
 
       const { post, rings } = await res.json() as { post: any; rings?: RingPostResult[] };
       const postUrl = `/resident/${post.authorUsername}/post/${post.id}`;

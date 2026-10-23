@@ -22,6 +22,7 @@ import CSSGeneratorTools from '@/components/features/templates/CSSGeneratorTools
 import { fetchResidentData } from '@/lib/templates/core/template-data';
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+import { requestCapability } from '@/lib/api/client/capability';
 import { useToast } from '@/contexts/ToastContext';
 import { useConfirm } from '@/contexts/ConfirmContext';
 import DraftRestoreBanner from '@/components/ui/feedback/DraftRestoreBanner';
@@ -246,11 +247,7 @@ export default function CSSEditorPage({
       }
 
       // Back to the standard layout
-      const capRes = await csrfFetch("/api/cap/profile", { method: "POST" });
-      if (capRes.status === 401) {
-        throw new Error("Failed to update layout mode. Please log in again.");
-      }
-      const { token } = await capRes.json();
+      const token = await requestCapability("profile");
 
       const layoutResponse = await csrfFetch("/api/profile/update", {
         method: "POST",
@@ -262,7 +259,7 @@ export default function CSSEditorPage({
       });
 
       if (!layoutResponse.ok) {
-        throw new Error("Failed to set default mode.");
+        throw new Error((await layoutResponse.json().catch(() => ({}))).error || "Failed to set default mode.");
       }
 
       // Update local state - stay on CSS editor with cleared CSS

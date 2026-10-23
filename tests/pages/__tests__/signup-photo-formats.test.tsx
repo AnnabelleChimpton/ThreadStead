@@ -33,12 +33,13 @@ beforeEach(() => {
   jest.clearAllMocks();
   // Signed in, with signup saved at the profile step
   window.localStorage.setItem('ts-signup-progress', JSON.stringify({ username: 'newbie', step: 'profile' }));
-  global.fetch = jest.fn(async () => ({ ok: true, status: 200, json: async () => ({}) })) as unknown as typeof fetch;
-  window.scrollTo = jest.fn();
-  (csrfFetch as jest.Mock).mockImplementation(async (url: string) => ({
+  global.fetch = jest.fn(async (url: string) => ({
     ok: true,
+    status: 200,
     json: async () => (url === '/api/cap/profile' ? { token: 'cap' } : {}),
-  }));
+  })) as unknown as typeof fetch;
+  window.scrollTo = jest.fn();
+  (csrfFetch as jest.Mock).mockResolvedValue({ ok: true, json: async () => ({}) });
 });
 
 async function chooseAndSave(file: File) {

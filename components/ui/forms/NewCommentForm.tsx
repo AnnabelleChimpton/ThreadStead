@@ -2,6 +2,7 @@ import React, { useState, useRef } from "react";
 import EmojiPicker from "../feedback/EmojiPicker";
 import { PixelIcon } from "@/components/ui/PixelIcon";
 import { csrfFetch, getCsrfToken } from '@/lib/api/client/csrf-fetch';
+import { CapabilityError, requestCapability } from '@/lib/api/client/capability';
 import imageCompression from 'browser-image-compression';
 import { uploadsAsIs } from '@/lib/media/media-types';
 
@@ -174,11 +175,7 @@ export default function NewCommentForm({ postId, parentId, onCommentAdded, place
     }
 
     try {
-      const capRes = await fetch('/api/cap/media', { method: 'POST' });
-      if (!capRes.ok) {
-        throw new Error(`Failed to get upload permission (${capRes.status}). Please refresh and try again.`);
-      }
-      const { token } = await capRes.json();
+      const token = await requestCapability('media');
 
       const formData = new FormData();
       formData.append('file', fileToUpload);
@@ -347,11 +344,7 @@ export default function NewCommentForm({ postId, parentId, onCommentAdded, place
     setError(null);
 
     try {
-      const capRes = await fetch(`/api/cap/comments/${encodeURIComponent(postId)}`, { method: "POST" });
-      if (capRes.status === 401) { setError("Please log in to comment."); return; }
-      const cap = await capRes.json().catch(() => ({}));
-      if (!capRes.ok) { setError(cap?.error || `Couldn't get permission (status ${capRes.status}).`); return; }
-      const { token } = cap;
+      const token = await requestCapability(`comments/${encodeURIComponent(postId)}`);
 
       const res = await csrfFetch(`/api/comments/${encodeURIComponent(postId)}`, {
         method: "POST",
@@ -370,8 +363,8 @@ export default function NewCommentForm({ postId, parentId, onCommentAdded, place
         parentId,
         createdAt: new Date().toISOString()
       });
-    } catch {
-      setError("Network error. Please try again.");
+    } catch (err) {
+      setError(err instanceof CapabilityError ? err.message : "Network error. Please try again.");
     } finally {
       setLoading(false);
     }

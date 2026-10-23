@@ -10,6 +10,7 @@ import MediaUpload from "@/components/ui/media/MediaUpload";
 import PhotoComments from "@/components/core/content/PhotoComments";
 import { PixelIcon } from "@/components/ui/PixelIcon";
 import { csrfFetch } from "@/lib/api/client/csrf-fetch";
+import { CapabilityError, requestCapability } from "@/lib/api/client/capability";
 import { useConfirm } from "@/contexts/ConfirmContext";
 import { useToast } from "@/contexts/ToastContext";
 import Modal from "@/components/ui/feedback/Modal";
@@ -101,17 +102,6 @@ function MediaGalleryPage({
     router.replace(`/resident/${username}/media`, undefined, { shallow: true });
   };
 
-  // Media writes need a short-lived capability token, same as uploads.
-  const getMediaCap = async (): Promise<string | null> => {
-    const capRes = await csrfFetch("/api/cap/media", { method: "POST" });
-    if (!capRes.ok) {
-      setActionError(capRes.status === 401 ? "Please log in again." : "Couldn't check your permissions. Try again.");
-      return null;
-    }
-    const { token } = await capRes.json();
-    return token;
-  };
-
   const startEditing = (item: MediaItem) => {
     setEditTitle(item.title || "");
     setEditCaption(item.caption || "");
@@ -125,15 +115,15 @@ function MediaGalleryPage({
     setBusy(true);
     setActionError(null);
     try {
-      const cap = await getMediaCap();
-      if (!cap) return;
+      // Media writes need a short-lived capability token, same as uploads.
+      const cap = await requestCapability("media");
       const res = await csrfFetch(`/api/media/${selectedImage.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ cap, title: editTitle, caption: editCaption }),
       });
       if (!res.ok) {
-        setActionError("Couldn't save your changes. Try again.");
+        setActionError((await res.json().catch(() => ({}))).error || "Couldn't save your changes. Try again.");
         return;
       }
       const { media: updated } = await res.json();
@@ -143,7 +133,7 @@ function MediaGalleryPage({
       setEditing(false);
     } catch (error) {
       console.error("Failed to update media:", error);
-      setActionError("Couldn't save your changes. Try again.");
+      setActionError(error instanceof CapabilityError ? error.message : "Couldn't save your changes. Try again.");
     } finally {
       setBusy(false);
     }
@@ -161,15 +151,14 @@ function MediaGalleryPage({
     setBusy(true);
     setActionError(null);
     try {
-      const cap = await getMediaCap();
-      if (!cap) return;
+      const cap = await requestCapability("media");
       const res = await csrfFetch(`/api/media/${selectedImage.id}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ cap }),
       });
       if (!res.ok) {
-        setActionError("Couldn't delete this image. Try again.");
+        setActionError((await res.json().catch(() => ({}))).error || "Couldn't delete this image. Try again.");
         return;
       }
       const deletedId = selectedImage.id;
@@ -178,7 +167,7 @@ function MediaGalleryPage({
       closeLightbox();
     } catch (error) {
       console.error("Failed to delete media:", error);
-      setActionError("Couldn't delete this image. Try again.");
+      setActionError(error instanceof CapabilityError ? error.message : "Couldn't delete this image. Try again.");
     } finally {
       setBusy(false);
     }

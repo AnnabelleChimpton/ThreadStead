@@ -3,6 +3,7 @@ import ImprovedBadgeDisplay from '../../shared/ImprovedBadgeDisplay';
 import { CommentMarkupWithEmojis } from '@/lib/comment-markup';
 import UserMention from '@/components/ui/navigation/UserMention';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+import { CapabilityError, requestCapability } from '@/lib/api/client/capability';
 import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner';
 import EmptyState from '@/components/ui/feedback/EmptyState';
 import ErrorDisplay from '@/components/ui/feedback/ErrorDisplay';
@@ -78,19 +79,7 @@ export default function PhotoComments({ photoId, highlightCommentId }: PhotoComm
     setError(null);
 
     try {
-      // Get capability token
-      const capRes = await fetch("/api/cap/photo-comment", { 
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ photoId })
-      });
-      
-      if (capRes.status === 401) {
-        setError("Please log in to comment");
-        return;
-      }
-      
-      const { token } = await capRes.json();
+      const token = await requestCapability('photo-comment', { photoId });
 
       // Submit comment
       const response = await csrfFetch(`/api/photos/comments/${photoId}`, {
@@ -115,11 +104,11 @@ export default function PhotoComments({ photoId, highlightCommentId }: PhotoComm
         // Reload comments
         await loadComments();
       } else {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
         setError(errorData.error || 'Failed to submit comment');
       }
     } catch (err) {
-      setError('Failed to submit comment');
+      setError(err instanceof CapabilityError ? err.message : 'Failed to submit comment');
     } finally {
       setSubmitting(false);
     }

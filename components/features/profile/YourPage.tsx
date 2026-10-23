@@ -21,6 +21,7 @@ import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner';
 import WidgetSlotPicker from '@/components/features/profile/WidgetSlotPicker';
 import ThemeSwatch from '@/components/features/profile/ThemeSwatch';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+import { requestCapability } from '@/lib/api/client/capability';
 import { useToast } from '@/contexts/ToastContext';
 import { useConfirm } from '@/contexts/ConfirmContext';
 import {
@@ -213,14 +214,14 @@ export default function YourPage({ username }: { username: string }) {
   }, [applyPreviewOptions]);
 
   async function setLayout(layout: Layout) {
-    const capRes = await csrfFetch('/api/cap/profile', { method: 'POST' });
-    const { token } = await capRes.json();
+    const token = await requestCapability('profile');
     const res = await csrfFetch('/api/profile/update', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...layoutFields({ layout }), cap: token }),
     });
-    if (!res.ok) throw new Error('layout');
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'layout');
   }
 
   async function saveCSS(customCSS: string) {
@@ -274,8 +275,12 @@ export default function YourPage({ username }: { username: string }) {
       setPreviewKey((k) => k + 1);
       setUndo(null);
       showSuccess('Put back.');
-    } catch {
-      showError("Couldn't undo that. Your old look is in the CSS editor's History.");
+    } catch (error) {
+      showError(
+        error instanceof Error && error.message !== 'css' && error.message !== 'layout'
+          ? error.message
+          : "Couldn't undo that. Your old look is in the CSS editor's History."
+      );
     } finally {
       setBusy(false);
     }
@@ -348,18 +353,18 @@ export default function YourPage({ username }: { username: string }) {
     const hiddenTabs = hidden ? [...page.hiddenTabs, id] : page.hiddenTabs.filter((t) => t !== id);
     setBusy(true);
     try {
-      const capRes = await csrfFetch('/api/cap/profile', { method: 'POST' });
-      const { token } = await capRes.json();
+      const token = await requestCapability('profile');
       const res = await csrfFetch('/api/profile/update', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ hiddenTabs, cap: token }),
       });
-      if (!res.ok) throw new Error('tabs');
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Couldn't save that. Try again.");
       setPage({ ...page, hiddenTabs });
       setPreviewKey((k) => k + 1);
-    } catch {
-      showError("Couldn't save that. Try again.");
+    } catch (error) {
+      showError(error instanceof Error ? error.message : "Couldn't save that. Try again.");
     } finally {
       setBusy(false);
     }

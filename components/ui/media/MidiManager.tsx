@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+import { requestCapability } from '@/lib/api/client/capability';
 import { useToast } from '@/contexts/ToastContext';
 import { useConfirm } from '@/contexts/ConfirmContext';
 import Button from '@/components/ui/Button';
@@ -30,13 +31,6 @@ interface MidiManagerProps {
 
 const MAX_BYTES = 1024 * 1024;
 const songName = (song: Song) => song.title || song.originalName?.replace(/\.midi?$/i, '') || 'Untitled song';
-
-async function capability(kind: 'media' | 'profile'): Promise<string> {
-  const res = await fetch(`/api/cap/${kind}`, { method: 'POST' });
-  if (!res.ok) throw new Error(res.status === 401 ? 'Sign in again to change your music.' : "Couldn't save that. Try again in a moment.");
-  const { token } = await res.json();
-  return token;
-}
 
 /**
  * Your songs, in Settings → Music (MIDI plan Phase 5): pick the one on your
@@ -98,13 +92,13 @@ export default function MidiManager({ username }: MidiManagerProps) {
     setLoop(next.loop);
     setSaving(true);
     try {
-      const cap = await capability('profile');
+      const cap = await requestCapability('profile');
       const res = await csrfFetch('/api/profile/midi', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ midiId: next.song, autoplay: next.autoplay, loop: next.loop, cap }),
       });
-      if (!res.ok) throw new Error("Couldn't save that. Try again in a moment.");
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Couldn't save that. Try again in a moment.");
       showSuccess(done);
     } catch (error) {
       setProfileSong(before.song);
@@ -128,7 +122,7 @@ export default function MidiManager({ username }: MidiManagerProps) {
   const upload = async (files: FileList) => {
     setUploading(true);
     try {
-      const cap = await capability('media');
+      const cap = await requestCapability('media');
       for (const file of Array.from(files)) {
         if (!/\.midi?$/i.test(file.name)) {
           showError(`“${file.name}” isn't a MIDI file (.mid or .midi).`);
@@ -164,13 +158,13 @@ export default function MidiManager({ username }: MidiManagerProps) {
 
   const saveDetails = async (song: Song, title: string, credit: string) => {
     try {
-      const cap = await capability('media');
+      const cap = await requestCapability('media');
       const res = await csrfFetch(`/api/media/${song.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cap, title: title.trim() || null, caption: credit.trim() || null }),
       });
-      if (!res.ok) throw new Error("Couldn't save that. Try again in a moment.");
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Couldn't save that. Try again in a moment.");
       const { media } = await res.json();
       setSongs((prev) => prev.map((s) => (s.id === song.id ? { ...s, title: media.title, caption: media.caption } : s)));
       setEditing(null);
@@ -192,13 +186,13 @@ export default function MidiManager({ username }: MidiManagerProps) {
     });
     if (!ok) return;
     try {
-      const cap = await capability('media');
+      const cap = await requestCapability('media');
       const res = await csrfFetch(`/api/media/${song.id}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cap }),
       });
-      if (!res.ok) throw new Error("Couldn't delete it. Try again in a moment.");
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Couldn't delete it. Try again in a moment.");
       setSongs((prev) => prev.filter((s) => s.id !== song.id));
       if (onProfile) setProfileSong(null);
       if (previewing === song.id) setPreviewing(null);

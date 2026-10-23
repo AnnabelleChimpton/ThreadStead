@@ -17,6 +17,7 @@ import ImprovedBadgeDisplay from "../../shared/ImprovedBadgeDisplay";
 import { useMe } from "@/hooks/useMe";
 import UserMention from "@/components/ui/navigation/UserMention";
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+import { CapabilityError, requestCapability } from '@/lib/api/client/capability';
 import VisibilityBadge, { type PostVisibility } from "./VisibilityBadge";
 import { useToast } from "@/contexts/ToastContext";
 import { useConfirm } from "@/contexts/ConfirmContext";
@@ -181,14 +182,6 @@ export default function FeedPost({ post, showActivity = false, showVisibility = 
     }
   }
 
-  async function mintPostCap(): Promise<string> {
-    const capRes = await fetch("/api/cap/post", { method: "POST" });
-    if (capRes.status === 401) throw new Error("Please log in.");
-    if (!capRes.ok) throw new Error(`cap mint failed: ${capRes.status}`);
-    const { token } = await capRes.json();
-    return token;
-  }
-
   async function deletePost() {
     if (!(await confirm({
       title: "Delete this post?",
@@ -198,7 +191,7 @@ export default function FeedPost({ post, showActivity = false, showVisibility = 
     }))) return;
 
     try {
-      const token = await mintPostCap();
+      const token = await requestCapability("post");
       const res = await csrfFetch("/api/posts/delete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -209,11 +202,12 @@ export default function FeedPost({ post, showActivity = false, showVisibility = 
         // Refresh the page to remove the deleted post from feed
         window.location.reload();
       } else {
-        showError("Failed to delete post");
+        const data = await res.json().catch(() => ({}));
+        showError(data.error || "Failed to delete post");
       }
     } catch (error) {
       console.error("Failed to delete post:", error);
-      showError("Failed to delete post");
+      showError(error instanceof CapabilityError ? error.message : "Failed to delete post");
     }
   }
 

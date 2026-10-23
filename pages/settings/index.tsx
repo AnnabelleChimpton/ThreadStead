@@ -8,6 +8,7 @@ import Tabs, { TabSpec } from "@/components/ui/navigation/Tabs";
 import { getSessionUser } from "@/lib/auth/server";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+import { requestCapability } from '@/lib/api/client/capability';
 import { useToast } from '@/contexts/ToastContext';
 import { useConfirm } from '@/contexts/ConfirmContext';
 import { PixelIcon } from '@/components/ui/PixelIcon';
@@ -237,13 +238,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled, siteUr
     const savingSnapshot = profileSnapshot;
 
     try {
-      const capRes = await fetch("/api/cap/profile", { method: "POST" });
-      if (capRes.status === 401) {
-        notify("Error: Please log in.");
-        setSaving(false);
-        return;
-      }
-      const { token } = await capRes.json();
+      const token = await requestCapability("profile");
 
       const blogroll = websites.filter(w => w.label.trim() && w.url.trim()).map(w => ({
         id: w.id,
@@ -279,11 +274,11 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled, siteUr
         setSavedProfileSnapshot(savingSnapshot);
         notify("Saved.");
       } else {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
         notify(`Error: ${errorData.error || "Failed to save profile"}`);
       }
     } catch (error) {
-      notify(`Error: ${error}`);
+      notify(`Error: ${error instanceof Error ? error.message : error}`);
     } finally {
       setSaving(false);
     }
@@ -611,8 +606,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled, siteUr
       });
 
       // Back to the standard layout
-      const capRes = await csrfFetch("/api/cap/profile", { method: "POST" });
-      const { token } = await capRes.json();
+      const token = await requestCapability("profile");
 
       const layoutResponse = await csrfFetch("/api/profile/update", {
         method: "POST",
@@ -620,13 +614,14 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled, siteUr
         body: JSON.stringify({ ...layoutFields({ layout: 'standard' }), cap: token }),
       });
 
-      if (cssResponse.ok && templateResponse.ok && layoutResponse.ok) {
+      const failed = [cssResponse, templateResponse, layoutResponse].find((r) => !r.ok);
+      if (!failed) {
         showSuccess('Reset to default.');
         setTimeout(() => {
           window.location.href = `/resident/${username}`;
         }, 1000);
       } else {
-        showError('Failed to reset. Please try again.');
+        showError((await failed.json().catch(() => ({}))).error || 'Failed to reset. Please try again.');
       }
     } catch (error) {
       showError(error instanceof Error ? error.message : 'Failed to reset');

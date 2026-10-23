@@ -9,6 +9,7 @@ import { getSiteConfig, SiteConfig } from "@/lib/config/site/dynamic";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Post } from "@/components/core/content/PostItem";
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+import { requestCapability } from '@/lib/api/client/capability';
 import LoadingSpinner from "@/components/ui/feedback/LoadingSpinner";
 
 interface EditPostPageProps {
@@ -78,16 +79,7 @@ export default function EditPostPage({ siteConfig, post, username }: EditPostPag
 
   const handleSubmit = async (payload: any) => {
     try {
-      // Get capability token for post updates
-      const capRes = await fetch("/api/cap/post", { method: "POST" });
-      if (capRes.status === 401) {
-        throw new Error("Please log in to edit this post.");
-      }
-      if (!capRes.ok) throw new Error(`cap mint failed: ${capRes.status}`);
-      const { token } = await capRes.json();
-
-      // Add capability token to payload
-      payload.cap = token;
+      payload.cap = await requestCapability("post");
 
       const res = await csrfFetch("/api/posts/update", {
         method: "POST",
@@ -95,7 +87,7 @@ export default function EditPostPage({ siteConfig, post, username }: EditPostPag
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) throw new Error(`update failed: ${res.status}`);
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `update failed: ${res.status}`);
 
       const { post: updatedPost } = await res.json();
 

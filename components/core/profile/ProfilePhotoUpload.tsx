@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import ImageCropper from '../../ui/feedback/ImageCropper';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+import { CapabilityError, requestCapability } from '@/lib/api/client/capability';
 import imageCompression from 'browser-image-compression';
 import { avatarUploadsAsIs } from '@/lib/media/media-types';
 
@@ -84,14 +85,7 @@ export default function ProfilePhotoUpload({
     setError(null);
 
     try {
-      // Get capability token
-      const capRes = await fetch("/api/cap/profile", { method: "POST" });
-      if (capRes.status === 401) {
-        setError("Please log in to upload a photo");
-        setUploading(false);
-        return;
-      }
-      const { token } = await capRes.json();
+      const token = await requestCapability('profile');
 
       // Create form data with cropped image
       const formData = new FormData();
@@ -113,7 +107,7 @@ export default function ProfilePhotoUpload({
         setError(result.error || 'Upload failed');
       }
     } catch (err) {
-      setError('Upload failed. Please try again.');
+      setError(err instanceof CapabilityError ? err.message : 'Upload failed. Please try again.');
     } finally {
       setUploading(false);
       // Clean up object URL

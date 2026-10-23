@@ -8,6 +8,7 @@ import EmojiPicker from "@/components/ui/feedback/EmojiPicker";
 import SmartUrlShortener from "@/components/ui/forms/SmartUrlShortener";
 import Link from "next/link";
 import { getCsrfToken } from '@/lib/api/client/csrf-fetch';
+import { requestCapability } from '@/lib/api/client/capability';
 import imageCompression from 'browser-image-compression';
 import { uploadsAsIs } from '@/lib/media/media-types';
 import { PixelIcon } from '@/components/ui/PixelIcon';
@@ -334,12 +335,7 @@ export default function PostEditor({
     }
 
     try {
-      const capRes = await fetch('/api/cap/media', { method: 'POST' });
-      if (!capRes.ok) {
-        const errorText = await capRes.text();
-        throw new Error(`Failed to get upload permission (${capRes.status}). Please refresh and try again.`);
-      }
-      const { token } = await capRes.json();
+      const token = await requestCapability('media');
 
       const formData = new FormData();
       formData.append('file', fileToUpload);

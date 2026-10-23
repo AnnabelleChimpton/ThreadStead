@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+import { CapabilityError, requestCapability } from '@/lib/api/client/capability';
 import imageCompression from 'browser-image-compression';
 import { uploadsAsIs } from '@/lib/media/media-types';
 import { PixelIcon } from '@/components/ui/PixelIcon';
@@ -124,14 +125,7 @@ export default function MediaUpload({ onUploadSuccess, disabled = false }: Media
     setShowCaptionWarning(false);
 
     try {
-      // Get capability token
-      const capRes = await fetch("/api/cap/media", { method: "POST" });
-      if (capRes.status === 401) {
-        setError("Please log in to upload media");
-        setUploading(false);
-        return;
-      }
-      const { token } = await capRes.json();
+      const token = await requestCapability('media');
 
       // Create form data
       const formData = new FormData();
@@ -160,7 +154,7 @@ export default function MediaUpload({ onUploadSuccess, disabled = false }: Media
         setError(result.error || 'Upload failed');
       }
     } catch (err) {
-      setError('Upload failed. Please try again.');
+      setError(err instanceof CapabilityError ? err.message : 'Upload failed. Please try again.');
     } finally {
       setUploading(false);
     }

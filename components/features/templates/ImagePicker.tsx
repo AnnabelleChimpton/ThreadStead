@@ -6,6 +6,7 @@ import EmptyState from '@/components/ui/feedback/EmptyState';
 import ErrorDisplay from '@/components/ui/feedback/ErrorDisplay';
 import { PixelIcon } from '@/components/ui/PixelIcon';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+import { CapabilityError, requestCapability } from '@/lib/api/client/capability';
 import { useToast } from '@/contexts/ToastContext';
 
 /** One of the person's own pictures (/api/photos/[username]?scope=mine). */
@@ -147,12 +148,7 @@ export default function ImagePicker({ pane, username, onClose, onPick }: ImagePi
     }
     setUploading(true);
     try {
-      const capRes = await csrfFetch('/api/cap/media', { method: 'POST' });
-      if (!capRes.ok) {
-        showError(capRes.status === 401 ? 'Please log in again.' : "Couldn't upload that image. Try again.");
-        return;
-      }
-      const { token } = await capRes.json();
+      const token = await requestCapability('media');
       const form = new FormData();
       form.append('file', file);
       form.append('cap', token);
@@ -163,8 +159,8 @@ export default function ImagePicker({ pane, username, onClose, onPick }: ImagePi
         return;
       }
       pick(result.media as PickerImage);
-    } catch {
-      showError("Couldn't upload that image. Try again.");
+    } catch (error) {
+      showError(error instanceof CapabilityError ? error.message : "Couldn't upload that image. Try again.");
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
