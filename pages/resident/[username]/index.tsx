@@ -184,6 +184,11 @@ export default function ProfilePage({
       {feedUrl && (
         <link rel="alternate" type="application/rss+xml" title={`${displayName || username}'s posts`} href={feedUrl} />
       )}
+      {/* "This is my site" in the head too, so Mastodon and IndieWeb tools
+          find it whichever tab (or template) the page shows */}
+      {websites.filter((w) => w.mine && /^https?:\/\//i.test(w.url)).map((w) => (
+        <link key={`me-${w.id}`} rel="me" href={w.url} />
+      ))}
       <meta name="robots" content="index, follow" />
 
       {/* OpenGraph meta tags */}
