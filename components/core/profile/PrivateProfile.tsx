@@ -2,6 +2,8 @@ import React from "react";
 import Layout from "@/components/ui/layout/Layout";
 import RetroCard from "@/components/ui/layout/RetroCard";
 import Head from "next/head";
+import { mainSiteProfileUrl, useResidentHost } from "@/contexts/ResidentHostContext";
+import { useSiteConfig } from "@/hooks/useSiteConfig";
 
 type PrivateProfileProps = {
   username: string;
@@ -32,6 +34,9 @@ export default function PrivateProfile({
   visibility,
 }: PrivateProfileProps) {
   const message = visibilityMessages[visibility] || visibilityMessages.private;
+  // On their own address nobody's signed in; on the main site the visitor may be
+  const residentHost = useResidentHost();
+  const { config } = useSiteConfig();
   const name = displayName || username;
 
   return (
@@ -89,6 +94,13 @@ export default function PrivateProfile({
               {/* Message */}
               <h2 className="text-lg font-semibold mb-2">{message.title}</h2>
               <p className="text-gray-600 max-w-md">{message.description}</p>
+              {residentHost && (
+                <p className="mt-4">
+                  <a href={mainSiteProfileUrl(residentHost)} className="thread-button inline-block">
+                    Open it on {config.site_name}
+                  </a>
+                </p>
+              )}
             </div>
           </RetroCard>
         </div>

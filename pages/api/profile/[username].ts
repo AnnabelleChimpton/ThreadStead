@@ -4,6 +4,7 @@ import { apiHandler } from "@/lib/api/handler";
 import { hasPixelHome, residentAccess } from "@/lib/domain/users/profile-access";
 import { publicWidgetSlot } from "@/lib/domain/profile/widget-slot/compile";
 import { verifiedBlueskyHandle } from "@/lib/domain/bluesky/handle-links";
+import { residentSiteUrl } from "@/lib/subdomains/host";
 import type { Profile } from "@prisma/client";
 
 // What any viewer allowed to see a profile gets. The compiled page and the
@@ -106,6 +107,9 @@ export default apiHandler(
       hasPixelHome: await hasPixelHome(u.id),
       // Their address as their Bluesky handle, once plc.directory confirms it
       blueskyHandle: await verifiedBlueskyHandle(u.id),
+      // Their address (https://alice.homepageagain.com/), for public profiles
+      // only: it's their page's canonical URL. Others stay on /resident/<u>.
+      siteUrl: u.profile?.visibility === "public" ? residentSiteUrl(u.subdomainLabel) : null,
       plugins: u.installs
         .filter(i => i.enabled)
         .map(i => ({ id: i.pluginId, mode: i.mode, label: undefined })),

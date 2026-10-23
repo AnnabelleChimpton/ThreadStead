@@ -53,7 +53,7 @@ const MidiPlayer = dynamic(() => import('@/components/ui/media/MidiPlayer'), {
 
 
 /* ---------------- types ---------------- */
-type ProfileProps = {
+export type ProfileProps = {
   username: string;
   ownerUserId: string;
   bio?: string;
@@ -87,6 +87,8 @@ type ProfileProps = {
   hasPixelHome?: boolean;
   /** Their address as their verified Bluesky handle (alice.homepageagain.com) */
   blueskyHandle?: string;
+  /** Where the page canonically lives: their address for a public profile */
+  canonicalUrl?: string;
   /** Tabs the owner hid (Settings > Your page); Blog always shows */
   hiddenTabs?: string[];
   /** The widget slot under the header (standard layout only), already compiled */
@@ -121,6 +123,7 @@ export default function ProfilePage({
   userJoinedAt,
   hasPixelHome = false,
   blueskyHandle,
+  canonicalUrl,
   widgetSlot,
   widgetSlotData,
   hiddenTabs = [],
@@ -161,6 +164,7 @@ export default function ProfilePage({
   const documentTitle =
     templateMode === 'advanced' ? compiledTemplate?.ast?.head?.title?.trim() : undefined;
   const pageTitle = documentTitle || profileMetadata.title;
+  const pageUrl = canonicalUrl || `${getSiteBaseUrl()}${profileMetadata.url}`;
   const head = (
     <Head>
       <title>{pageTitle}</title>
@@ -169,7 +173,7 @@ export default function ProfilePage({
         <meta name="keywords" content={profileMetadata.keywords.join(', ')} />
       )}
       <meta name="author" content={displayName || username} />
-      <link rel="canonical" href={`${getSiteBaseUrl()}${profileMetadata.url}`} />
+      <link rel="canonical" href={pageUrl} />
       <meta name="robots" content="index, follow" />
 
       {/* OpenGraph meta tags */}
@@ -178,7 +182,7 @@ export default function ProfilePage({
       <meta property="og:type" content="profile" />
       <meta key="og:image" property="og:image" content={photoUrl} />
       <meta key="og:image:alt" property="og:image:alt" content={profileMetadata.imageAlt} />
-      <meta property="og:url" content={`${getSiteBaseUrl()}${profileMetadata.url}`} />
+      <meta property="og:url" content={pageUrl} />
       <meta property="og:site_name" content="ThreadStead" />
       <meta property="og:locale" content="en_US" />
 
@@ -474,6 +478,7 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
     hasPixelHome?: boolean;
     widgetSlot?: PublicWidgetSlot | null;
     blueskyHandle?: string | null;
+    siteUrl?: string | null;
   } = await res.json();
 
   const requested = typeof query.tab === "string" ? query.tab : undefined;
@@ -717,6 +722,7 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   if (data.profileMidi) props.profileMidi = data.profileMidi;
   props.hasPixelHome = data.hasPixelHome === true;
   if (data.blueskyHandle) props.blueskyHandle = data.blueskyHandle;
+  if (data.siteUrl) props.canonicalUrl = data.siteUrl;
 
   // The widget slot belongs to the standard layout; a page of your own HTML
   // has its own place for components.

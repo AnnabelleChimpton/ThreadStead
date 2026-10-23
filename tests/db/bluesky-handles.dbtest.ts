@@ -11,6 +11,17 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 
 process.env.RESIDENT_SUBDOMAIN_APEX = 'homepageagain.test'
 
+// The site page renders through the resident page's loader, which reads
+// /api/profile over HTTP; here it's a stand-in that records what it was asked
+const mockProfileProps = jest.fn(async (ctx: { params: { username: string } }) => ({
+  props: { username: ctx.params.username, ownerUserId: 'x' },
+}))
+jest.mock('@/pages/resident/[username]/index', () => ({
+  __esModule: true,
+  default: () => null,
+  getServerSideProps: (ctx: never) => mockProfileProps(ctx),
+}))
+
 jest.mock('@/lib/api/ringhub/ringhub-client', () => ({
   shouldUseRingHub: () => false,
   getPublicRingHubClient: () => null,
@@ -34,7 +45,8 @@ import { moderateUser } from '@/lib/domain/users/moderation'
 import { deleteUserAccount } from '@/lib/domain/users/account-removal'
 import { handleUnavailableReason } from '@/lib/domain/users/handle-availability'
 import atprotoDidRoute from '@/pages/api/atproto-did/[label]'
-import subdomainRoute from '@/pages/api/subdomain/[label]'
+import { getServerSideProps as sitePageProps } from '@/pages/site/[label]'
+import profileRoute from '@/pages/api/profile/[username]'
 
 const HOUR = 60 * 60 * 1000
 const DID_A = 'did:plc:aaaaaaaaaaaaaaaaaaaaaaaa'
@@ -335,19 +347,68 @@ describe('deleting an account', () => {
     expect(await servedDidFor('dl-spam')).toBeNull()
     expect(await handleUnavailableReason('dl-spam')).toBe('held')
 
-    const page = await get(subdomainRoute, 'dl-spam')
+    const page = await sitePage('dl-spam')
     expect(page.statusCode).toBe(410)
-    expect(String(page.body)).toContain('This page has closed')
+    expect(page.result).toEqual({ props: { closed: true, mainSiteUrl: expect.any(String), onResidentHost: true } })
+  })
+})
+
+/** The site page's server side, as middleware calls it for https://<label>.<apex>/ */
+async function sitePage(label: string | null, extraHeaders: Record<string, string> = {}, query: Record<string, string> = {}) {
+  const res = { statusCode: 200 }
+  const headers: Record<string, string> = { ...extraHeaders }
+  if (label) headers['x-resident-label'] = label
+  const result = await sitePageProps({ req: { headers }, res, query, params: {}, resolvedUrl: '/' } as never)
+  return { statusCode: res.statusCode, result }
+}
+
+describe('their page on their address', () => {
+  beforeEach(() => mockProfileProps.mockClear())
+
+  test("renders the resident page's props for them, signed out, marked as on their own host", async () => {
+    await resident('st_a_b')
+    const page = await sitePage('st-a-b', { cookie: 'retro_session=someone.secret' }, { tab: 'guestbook' })
+    expect(mockProfileProps).toHaveBeenCalledTimes(1)
+    const ctx = mockProfileProps.mock.calls[0][0] as unknown as {
+      params: unknown
+      query: unknown
+      req: { headers: Record<string, string> }
+    }
+    expect(ctx.params).toEqual({ username: 'st_a_b' })
+    expect(ctx.query).toEqual({ tab: 'guestbook' })
+    expect(ctx.req.headers.cookie).toBeUndefined()
+    expect(page.result).toEqual({
+      props: { username: 'st_a_b', ownerUserId: 'x', residentHost: { mainSiteUrl: expect.any(String), username: 'st_a_b' } },
+    })
   })
 
-  test('the address of someone who lives here goes to their profile; an unknown one to the front page', async () => {
-    await resident('rd_a_b')
-    const there = await get(subdomainRoute, 'rd-a-b')
-    expect(there.statusCode).toBe(302)
-    expect(there.headers.location).toMatch(/\/resident\/rd_a_b$/)
-    const nowhere = await get(subdomainRoute, 'rd-nobody')
-    expect(nowhere.statusCode).toBe(302)
-    expect(nowhere.headers.location).toMatch(/\/$/)
+  test('nobody at that address goes to the front page; no label at all is a 404', async () => {
+    expect((await sitePage('st-nobody')).result).toEqual({ redirect: { destination: expect.stringMatching(/\/$/), statusCode: 302 } })
+    expect((await sitePage(null)).result).toEqual({ notFound: true })
+    expect(mockProfileProps).not.toHaveBeenCalled()
+  })
+})
+
+describe('the profile API names the address as canonical for public profiles only', () => {
+  async function profile(username: string) {
+    const res = fakeRes()
+    await profileRoute({ method: 'GET', query: { username }, headers: {} } as unknown as NextApiRequest, res as unknown as NextApiResponse)
+    return res
+  }
+
+  test('public: https://<label>.<apex>/; not public: no address; an infra label: none', async () => {
+    const pub = await resident('cn_pub')
+    await db.profile.create({ data: { userId: pub, visibility: 'public' } })
+    expect((await profile('cn_pub')).body).toMatchObject({ siteUrl: expect.stringMatching(/^https?:\/\/cn-pub\.homepageagain\.test(:\d+)?\/$/) })
+
+    const friends = await resident('cn_friends')
+    await db.profile.create({ data: { userId: friends, visibility: 'friends' } })
+    expect((await profile('cn_friends')).statusCode).toBe(403)
+
+    const infra = await resident('cn_infra')
+    await db.profile.create({ data: { userId: infra, visibility: 'public' } })
+    await db.user.update({ where: { id: infra }, data: { subdomainLabel: 'matrix' } })
+    expect((await profile('cn_infra')).body).toMatchObject({ siteUrl: null })
   })
 })
 

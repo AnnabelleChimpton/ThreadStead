@@ -1,8 +1,8 @@
 /**
  * Residents' addresses: alice.homepageagain.com
- * (design/home-subdomains/SCOPE.md). Phase 1 serves only
- * /.well-known/atproto-did there, so the address works as a Bluesky handle;
- * every other path goes to the resident's profile on the main site.
+ * (design/home-subdomains/SCOPE.md). The address serves the resident's page
+ * at /, signed out and read-only, and /.well-known/atproto-did, so it works
+ * as their Bluesky handle. Every other page is on the main site.
  *
  * No Node or Prisma imports: middleware.ts runs this on the edge runtime.
  */
@@ -89,15 +89,62 @@ export function requestedLabel(req: {
   return isValidLabel(label) ? label : '';
 }
 
+/**
+ * Static files a resident's page loads from its own host. Everything here
+ * is public and reads no session.
+ */
+const STATIC_PREFIXES = [
+  '/_next/static/', '/_next/image', '/assets/', '/fonts/', '/audio/', '/pixel-homes/',
+  '/uploads/', '/_local-r2/',
+];
+const STATIC_FILES = new Set([
+  '/favicon.ico', '/favicon-16x16.png', '/favicon-32x32.png', '/og-image.png', '/image-icon-square.png', '/robots.txt',
+]);
+
+/**
+ * The public GET reads a resident's page makes from the browser: the site
+ * chrome, the profile tabs and the template components. On a resident's
+ * host they run signed out (middleware strips the Cookie header), so they
+ * answer what anyone could read on the main site. Any other /api path is a
+ * 404 there.
+ */
+const RESIDENT_API_READS: RegExp[] = [
+  /^\/api\/(auth\/me|site-config|site-css|custom-pages|emojis|signup-audio|image-proxy)$/,
+  /^\/api\/(posts|guestbook|mutuals|rel|profile)\/[^/]+$/,
+  /^\/api\/profile\/[^/]+\/source$/,
+  /^\/api\/photos\/(featured\/)?[^/]+$/,
+  /^\/api\/users\/[^/]+\/badges$/,
+  /^\/api\/home\/[^/]+\/badge$/,
+  /^\/api\/media\/(serve|midi)\/[^/]+$/,
+];
+
+export function isResidentApiRead(pathname: string): boolean {
+  return RESIDENT_API_READS.some((re) => re.test(pathname));
+}
+
+function isStaticPath(pathname: string): boolean {
+  if (STATIC_FILES.has(pathname)) return true;
+  // Next's page data would let a client-side link render any page here
+  // (/login, /settings); a 404 makes the router load the page for real,
+  // which middleware sends to the main site.
+  if (pathname.startsWith('/_next/data/')) return false;
+  if (pathname.startsWith('/_next/') || pathname.startsWith('/__nextjs')) return true;
+  return STATIC_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+}
+
 export type SubdomainRoute =
   /** Not a resident's host: the main site carries on as usual */
   | { kind: 'main' }
   /** The Bluesky handle check. Never redirected. */
   | { kind: 'atproto-did'; label: string }
-  /** Federation paths, API paths and malformed hosts */
+  /** GET /: the resident's page, signed out and read-only (pages/site/[label].tsx) */
+  | { kind: 'site'; label: string }
+  /** Static files and the public API reads the page needs, signed out */
+  | { kind: 'pass'; label: string }
+  /** Federation paths, other API paths and malformed hosts */
   | { kind: 'not-found' }
-  /** Anything else on a resident's host: off to their profile */
-  | { kind: 'resident'; label: string };
+  /** Any other page: the same path on the main site, where sessions live */
+  | { kind: 'main-site'; label: string };
 
 function hostname(hostHeader: string | null | undefined): string {
   let host = (hostHeader ?? '').trim().toLowerCase();
@@ -107,10 +154,12 @@ function hostname(hostHeader: string | null | undefined): string {
 }
 
 /**
- * Where a request goes, from its Host header and path. The atproto path is
+ * Where a request goes, from its Host header and path. Deny by default: a
+ * resident's host serves their page, the files and reads it needs, and the
+ * Bluesky check; every other page is on the main site. The atproto path is
  * checked before anything that redirects: Bluesky's resolver follows
- * redirects, so if this path ever ended up on the main site, every
- * address would "resolve" to whatever the main site answered.
+ * redirects, so if this path ever ended up on the main site, every address
+ * would "resolve" to whatever the main site answered.
  */
 export function routeSubdomainRequest(
   hostHeader: string | null | undefined,
@@ -128,10 +177,38 @@ export function routeSubdomainRequest(
 
   if (pathname === ATPROTO_DID_PATH || pathname === `${ATPROTO_DID_PATH}/`) return { kind: 'atproto-did', label };
   // Federation stays on the main site: no DID documents here (did.json,
-  // users/*/did.json) and no API.
-  if (pathname.startsWith('/.well-known/') || pathname.startsWith('/api/') || pathname === '/api') {
-    return { kind: 'not-found' };
-  }
+  // users/*/did.json)
+  if (pathname.startsWith('/.well-known/')) return { kind: 'not-found' };
   if (/^\/users\/[^/]+\/did\.json$/.test(pathname)) return { kind: 'not-found' };
-  return { kind: 'resident', label };
+
+  if (pathname === '/') return { kind: 'site', label };
+  if (isStaticPath(pathname)) return { kind: 'pass', label };
+  if (pathname === '/api' || pathname.startsWith('/api/')) {
+    return isResidentApiRead(pathname) ? { kind: 'pass', label } : { kind: 'not-found' };
+  }
+  return { kind: 'main-site', label };
+}
+
+/**
+ * A resident's address as a URL (https://alice.homepageagain.com/), for
+ * links and canonical URLs. Null without one, or for a label the site may
+ * need for itself (INFRA_LABELS).
+ */
+export function residentSiteUrl(
+  label: string | null | undefined,
+  apex = residentApex(),
+  baseUrl = process.env.NEXT_PUBLIC_BASE_URL
+): string | null {
+  if (!label || !apex || !isValidLabel(label) || INFRA_LABELS.has(label) || MAIN_SITE_LABELS.has(label)) return null;
+  let url: URL;
+  try {
+    url = new URL(baseUrl || 'http://localhost');
+  } catch {
+    return null;
+  }
+  url.hostname = `${label}.${apex}`;
+  url.pathname = '/';
+  url.search = '';
+  url.hash = '';
+  return url.toString();
 }

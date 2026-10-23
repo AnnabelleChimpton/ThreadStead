@@ -1,6 +1,7 @@
 // components/Guestbook.tsx
 import React, { useEffect, useId, useRef, useState } from "react";
 import { useSiteConfig } from "@/hooks/useSiteConfig";
+import { mainSiteProfileUrl, useResidentHost } from "@/contexts/ResidentHostContext";
 import ImprovedBadgeDisplay from "./ImprovedBadgeDisplay";
 import { CommentMarkupWithEmojis } from "@/lib/comment-markup";
 import Link from "next/link";
@@ -32,6 +33,8 @@ interface GuestbookProps {
 
 export default function Guestbook({ username, bio, signerLink = "profile", heading = "Guestbook" }: GuestbookProps) {
   const { config } = useSiteConfig();
+  // On their own address the guestbook is read-only; signing happens on the main site
+  const residentHost = useResidentHost();
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState("");
@@ -230,6 +233,13 @@ export default function Guestbook({ username, bio, signerLink = "profile", headi
 
       <div className="thread-divider"></div>
       
+      {residentHost ? (
+        <p className="mb-6">
+          <a href={mainSiteProfileUrl(residentHost, "guestbook")} className="thread-button inline-block">
+            Sign it on {config.site_name}
+          </a>
+        </p>
+      ) : (
       <form onSubmit={onSubmit} className="mb-6">
         <label className="block mb-3">
           <span className="thread-label block mb-2">your message</span>
@@ -249,6 +259,7 @@ export default function Guestbook({ username, bio, signerLink = "profile", headi
           {submitting ? "Posting…" : "Sign Guestbook"}
         </button>
       </form>
+      )}
 
       {loading ? (
         <div className="text-thread-sage italic">Loading entries…</div>

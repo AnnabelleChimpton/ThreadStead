@@ -44,11 +44,14 @@ import DownloadMyPage from "@/components/features/profile/DownloadMyPage";
 import YourSites from "@/components/features/rings/YourSites";
 import BannerUpload from "@/components/core/profile/BannerUpload";
 import BlueskyHandleSettings from "@/components/features/bluesky/BlueskyHandleSettings";
+import YourAddress from "@/components/features/profile/YourAddress";
 import { STATUS_MAX } from "@/lib/domain/profile/status";
 import { layoutFields } from "@/lib/domain/profile/layout";
 
 // We'll need to extract blocks functionality into a component
 interface UserSettingsProps {
+  /** Their address, https://alice.homepageagain.com/ (null without one) */
+  siteUrl: string | null;
   initialUser: {
     id: string;
     did: string;
@@ -73,7 +76,7 @@ interface UserSettingsProps {
   isBetaEnabled: boolean;
 }
 
-export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: UserSettingsProps) {
+export default function UnifiedSettingsPage({ initialUser, isBetaEnabled, siteUrl }: UserSettingsProps) {
   const router = useRouter();
   const { user: currentUser } = useCurrentUser();
   const { showSuccess, showError, showWarning, showInfo } = useToast();
@@ -692,6 +695,14 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled }: User
               Manage your public profile, photo, and personal information.
             </p>
           </div>
+
+          {siteUrl && initialUser.primaryHandle && (
+            <YourAddress
+              siteUrl={siteUrl}
+              username={initialUser.primaryHandle.split("@")[0]}
+              visibility={visibility}
+            />
+          )}
 
           <div className="space-y-4">
             <div>
@@ -1833,6 +1844,7 @@ export const getServerSideProps: GetServerSideProps<UserSettingsProps> = async (
 
     // Check if beta keys are enabled
     const { isBetaKeysEnabled } = await import('@/lib/config/beta-keys');
+    const { residentSiteUrl } = await import('@/lib/subdomains/host');
     const betaEnabled = isBetaKeysEnabled();
 
     return {
@@ -1859,6 +1871,7 @@ export const getServerSideProps: GetServerSideProps<UserSettingsProps> = async (
           } : null,
         },
         isBetaEnabled: betaEnabled,
+        siteUrl: residentSiteUrl(userData.subdomainLabel),
       },
     };
   } catch (error) {

@@ -9,6 +9,7 @@ import {
   residentAddress,
   requestedLabel,
   residentApex,
+  residentSiteUrl,
   routeSubdomainRequest,
   subdomainLabelFor,
 } from '@/lib/subdomains/host'
@@ -36,7 +37,7 @@ describe('routeSubdomainRequest', () => {
     expect(route('alice.homepageagain.com.', '/.well-known/atproto-did/')).toEqual({ kind: 'atproto-did', label: 'alice' })
   })
 
-  test('DID documents and the API are 404 on resident hosts: federation stays on the main site', () => {
+  test('DID documents and other API paths are 404 on resident hosts: federation stays on the main site', () => {
     for (const path of [
       '/.well-known/did.json',
       '/.well-known/did/users/abc/did.json',
@@ -44,16 +45,48 @@ describe('routeSubdomainRequest', () => {
       '/api/did/abc/document',
       '/api/.well-known/did.json',
       '/api/account/bluesky',
+      '/api/auth/logout',
+      '/api/posts/view/abc',
+      '/api/guestbook/delete/abc',
       '/api',
       '/.well-known/anything-else',
     ]) {
-      expect(route('alice.homepageagain.com', path)).toEqual({ kind: 'not-found' })
+      expect({ path, route: route('alice.homepageagain.com', path) }).toEqual({ path, route: { kind: 'not-found' } })
     }
   })
 
-  test('everything else on a resident host goes to their profile', () => {
-    for (const path of ['/', '/home', '/resident/alice', '/settings', '/login', '/ring/x/next', '/users/abc']) {
-      expect(route('alice.homepageagain.com', path)).toEqual({ kind: 'resident', label: 'alice' })
+  test('GET / is their page', () => {
+    expect(route('alice.homepageagain.com', '/')).toEqual({ kind: 'site', label: 'alice' })
+  })
+
+  test("static files and the page's public reads are served there", () => {
+    for (const path of [
+      '/_next/static/chunks/main.js',
+      '/_next/image',
+      '/assets/default-avatar.gif',
+      '/fonts/x.woff2',
+      '/favicon.ico',
+      '/robots.txt',
+      '/api/auth/me',
+      '/api/site-config',
+      '/api/posts/alice',
+      '/api/guestbook/alice',
+      '/api/profile/alice',
+      '/api/profile/alice/source',
+      '/api/photos/featured/alice',
+      '/api/users/alice/badges',
+      '/api/home/alice/badge',
+      '/api/media/serve/abc123',
+      '/api/rel/alice',
+      '/api/mutuals/alice',
+    ]) {
+      expect({ path, route: route('alice.homepageagain.com', path) }).toEqual({ path, route: { kind: 'pass', label: 'alice' } })
+    }
+  })
+
+  test('every other page is on the main site, Next page data included (so client links reload there)', () => {
+    for (const path of ['/login', '/signup', '/settings', '/home/alice', '/resident/alice', '/feed', '/ring/x/next', '/users/abc', '/_next/data/build/settings.json']) {
+      expect({ path, route: route('alice.homepageagain.com', path) }).toEqual({ path, route: { kind: 'main-site', label: 'alice' } })
     }
   })
 
@@ -91,7 +124,7 @@ describe('labels', () => {
   test('every valid username makes a valid label', () => {
     for (const name of ['abc', 'a_b', 'a-b-c', 'x_1_y', 'z'.repeat(32)]) {
       expect(validateUsername(name).ok).toBe(true)
-      expect(route(`${subdomainLabelFor(name)}.${APEX}`, '/')).toEqual({ kind: 'resident', label: subdomainLabelFor(name) })
+      expect(route(`${subdomainLabelFor(name)}.${APEX}`, '/')).toEqual({ kind: 'site', label: subdomainLabelFor(name) })
     }
   })
 
@@ -115,5 +148,21 @@ describe('requestedLabel', () => {
     expect(requestedLabel({ headers: {}, query: { label: 'Alice' } })).toBe('alice')
     expect(requestedLabel({ headers: {}, query: {} })).toBe('')
     expect(requestedLabel({ headers: {}, query: { label: '[label]' } })).toBe('')
+  })
+})
+
+describe('residentSiteUrl', () => {
+  test("their address as a URL, with the main site's scheme and port", () => {
+    expect(residentSiteUrl('a-b', APEX, 'https://homepageagain.com')).toBe('https://a-b.homepageagain.com/')
+    expect(residentSiteUrl('maple', 'homepageagain.localhost', 'http://homepageagain.localhost:3120')).toBe(
+      'http://maple.homepageagain.localhost:3120/'
+    )
+  })
+
+  test('none for no label, no apex, or a label the site may need', () => {
+    expect(residentSiteUrl(null, APEX, 'https://homepageagain.com')).toBeNull()
+    expect(residentSiteUrl('alice', null, 'https://homepageagain.com')).toBeNull()
+    expect(residentSiteUrl('cdn', APEX, 'https://homepageagain.com')).toBeNull()
+    expect(residentSiteUrl('www', APEX, 'https://homepageagain.com')).toBeNull()
   })
 })

@@ -34,6 +34,7 @@ import { ChatProvider } from "@/contexts/ChatContext";
 import { ConversationsProvider } from "@/contexts/ConversationsContext";
 import GlobalChatToggle from "@/components/chat/GlobalChatToggle";
 import GlobalChatPopup from "@/components/chat/GlobalChatPopup";
+import { ResidentHostProvider, type ResidentHost } from "@/contexts/ResidentHostContext";
 
 type MyAppProps = AppProps & {
   /** Site CSS fetched on the server for the first page load (see getInitialProps) */
@@ -139,7 +140,11 @@ export default function MyApp({ Component, pageProps, appSiteCSS }: MyAppProps) 
   // Check if we're on a user profile page or preview page that might have custom CSS
   const isProfilePage = router.pathname === '/resident/[username]' ||
     router.pathname === '/resident/[username]/index' ||
+    router.pathname === '/site/[label]' ||
     router.pathname === '/template-preview';
+  // On a resident's own address (pages/site/[label].tsx): signed out, read-only
+  const residentHost: ResidentHost | null = pageProps.residentHost ?? null;
+  const onResidentHost = !!residentHost || pageProps.onResidentHost === true;
   const hasCustomCSS = pageProps.customCSS && pageProps.customCSS.trim() !== '';
   // Google Fonts <link>s, <body bgcolor…> and theme options (<meta name="color:…">)
   // from the page's source, kept by the compiler and re-checked here
@@ -153,6 +158,7 @@ export default function MyApp({ Component, pageProps, appSiteCSS }: MyAppProps) 
 
 
   return (
+    <ResidentHostProvider value={residentHost}>
     <GlobalAudioProvider>
       <ToastProvider>
        <ConfirmProvider>
@@ -265,7 +271,8 @@ ${rest}`)
                 {/* Cookie Consent Banner */}
                 {/* Not inside the editor's live preview, where it covered the
                     page being edited */}
-                {router.pathname !== '/template-preview' && <CookieConsentBanner userId={user?.id} />}
+                {/* Nor on a resident's own address, which sets no cookies */}
+                {router.pathname !== '/template-preview' && !onResidentHost && <CookieConsentBanner userId={user?.id} />}
 
                 {/* Global Chat - Only show for authenticated users */}
                 {user && (
@@ -281,6 +288,7 @@ ${rest}`)
        </ConfirmProvider>
       </ToastProvider>
     </GlobalAudioProvider>
+    </ResidentHostProvider>
   );
 }
 

@@ -1,6 +1,7 @@
 // components/FollowButton.tsx
 import React, { useEffect, useState, useCallback } from "react";
 import { csrfFetch } from "@/lib/api/client/csrf-fetch";
+import { mainSiteProfileUrl, useResidentHost } from "@/contexts/ResidentHostContext";
 
 type Rel = "loading" | "anon" | "owner" | "none" | "following" | "followed_by" | "friends";
 
@@ -15,6 +16,7 @@ export default function FollowButton({
       ts-profile-button, so a theme styles it like Message and Block */
   buttonClassName?: string;
 }) {
+  const residentHost = useResidentHost();
   const [status, setStatus] = useState<Rel>("loading");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -60,7 +62,17 @@ export default function FollowButton({
 
   if (status === "loading") return <div className="text-sm opacity-70">…</div>;
   if (status === "owner") return null;
-  if (status === "anon") return <span className="thread-label">log in to follow</span>;
+  if (status === "anon") {
+    // On their own address nobody's signed in: following happens on the main site
+    if (residentHost) {
+      return (
+        <a href={mainSiteProfileUrl(residentHost)} className={`thread-button text-sm ${buttonClassName}`}>
+          Follow
+        </a>
+      );
+    }
+    return <span className="thread-label">log in to follow</span>;
+  }
 
   // Decide label & action
   const showFollow = status === "none" || status === "followed_by";

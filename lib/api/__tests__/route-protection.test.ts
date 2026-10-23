@@ -43,9 +43,8 @@ const NOT_COOKIE_WRITES = [
   'pages/api/did/[hash]/document.ts',
   // GET/HEAD only, reads no session: ring strips on residents' own sites
   'pages/api/ring/[slug]/[action].ts',
-  // GET/HEAD only, read no session: residents' addresses (middleware.ts)
+  // GET/HEAD only, reads no session: the Bluesky check on residents' addresses (middleware.ts)
   'pages/api/atproto-did/[label].ts',
-  'pages/api/subdomain/[label].ts',
   'pages/api/ringhub/health-check.ts',
   'pages/api/threadrings/[slug].ts',
   'pages/api/threadrings/[slug]/lineage.ts',
