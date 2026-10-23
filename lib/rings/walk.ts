@@ -28,6 +28,8 @@ export interface RingFacts {
   visibility: 'PUBLIC' | 'UNLISTED' | 'PRIVATE'
   joinPolicy: 'OPEN' | 'APPLICATION' | 'INVITATION' | 'CLOSED'
   badgeImageUrl: string | null
+  /** Its theme colour, which its drawn badge is in */
+  themeColor: string | null
 }
 
 export function defaultHub(): HubReader | null {
@@ -44,6 +46,7 @@ export async function ringFacts(hub: HubReader, slug: string): Promise<RingFacts
     visibility: ring.visibility,
     joinPolicy: ring.joinPolicy,
     badgeImageUrl: badgeUrlOf(ring),
+    themeColor: ring.themeColor ?? null,
   } as RingFacts
 }
 
@@ -60,6 +63,20 @@ export async function outsideSitesRule(
 ): Promise<RingOutsideSites> {
   const row = await db.ringSiteSettings.findUnique({ where: { ringSlug: ring.slug } })
   return row?.outsideSites ?? (ring.joinPolicy === 'OPEN' ? 'allow' : 'ask')
+}
+
+/** Members' own sites that are their stops in this ring (listed, proved, and the ring takes them), by member. */
+export async function stopSites(
+  db: Pick<PrismaClient, 'ringStop' | 'ringSiteSettings'>,
+  ring: Pick<RingFacts, 'slug' | 'joinPolicy'>,
+  userIds: string[]
+): Promise<Map<string, NonNullable<RingStopView['site']>>> {
+  if (userIds.length === 0 || (await outsideSitesRule(db, ring)) === 'off') return new Map()
+  const rows = await db.ringStop.findMany({
+    where: { ringSlug: ring.slug, status: 'listed', userId: { in: userIds }, site: { state: 'verified' } },
+    select: { userId: true, site: { select: { id: true, url: true, title: true, siteRef: true } } },
+  })
+  return new Map(rows.map((s) => [s.userId, s.site]))
 }
 
 export interface RingStopView {
@@ -110,17 +127,7 @@ export async function ringStops(
     },
   })
   const numbers = await houseNumbersOf(db, visible.map((u) => u.id), host)
-  const rule = await outsideSitesRule(db, ring)
-  const sites = new Map(
-    rule === 'off'
-      ? []
-      : (
-          await db.ringStop.findMany({
-            where: { ringSlug: slug, status: 'listed', userId: { in: [...numbers.keys()] }, site: { state: 'verified' } },
-            select: { userId: true, site: { select: { id: true, url: true, title: true, siteRef: true } } },
-          })
-        ).map((s) => [s.userId, s.site])
-  )
+  const sites = await stopSites(db, ring, [...numbers.keys()])
 
   const stops = visible
     .filter((u) => u.handles[0] && numbers.has(u.id))

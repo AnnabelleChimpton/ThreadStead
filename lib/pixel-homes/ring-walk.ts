@@ -25,18 +25,35 @@ export const MAX_MEMBER_PAGES = 10
 const PAGE_SIZE = 100
 export const WALK_DEADLINE_MS = 3000
 
-/** What the walk reads from the hub's members list (rings.ts, GET /rings/:slug/members). */
+/** What the walk and the ring street read from the hub's members list (rings.ts, GET /rings/:slug/members). */
 const MembersPage = z.object({
-  members: z.array(z.object({ actorDid: z.string(), status: z.string().nullish() })),
+  members: z.array(
+    z.object({
+      actorDid: z.string(),
+      status: z.string().nullish(),
+      role: z.string().nullish(),
+      actorName: z.string().nullish(),
+      profileUrl: z.string().nullish(),
+    })
+  ),
   hasMore: z.boolean(),
 })
 
 type HubReader = Pick<RingHubClient, 'getRingMembers'>
 
-/** Every ACTIVE member's DID, or null when the hub has no such (public) ring. Cached per ring. */
-export function ringMemberDids(hub: HubReader, slug: string): Promise<string[] | null> {
+/** One ACTIVE member as the hub's public list has them. */
+export interface HubRingMember {
+  did: string
+  role: 'owner' | 'moderator' | 'member'
+  /** The name their own instance gives (members from elsewhere have no account here) */
+  name: string | null
+  profileUrl: string | null
+}
+
+/** Every ACTIVE member, or null when the hub has no such (public) ring. Cached per ring. */
+export function ringMembers(hub: HubReader, slug: string): Promise<HubRingMember[] | null> {
   return cached(`street-rings:members:${slug}`, RING_CACHE_FRESH_MS, RING_CACHE_STALE_MS, async () => {
-    const dids = new Set<string>()
+    const byDid = new Map<string, HubRingMember>()
     for (let page = 0; page < MAX_MEMBER_PAGES; page++) {
       let raw: unknown
       try {
@@ -47,11 +64,25 @@ export function ringMemberDids(hub: HubReader, slug: string): Promise<string[] |
         throw error
       }
       const parsed = MembersPage.parse(raw)
-      for (const m of parsed.members) if (!m.status || m.status === 'ACTIVE') dids.add(m.actorDid)
+      for (const m of parsed.members) {
+        if ((m.status && m.status !== 'ACTIVE') || byDid.has(m.actorDid)) continue
+        byDid.set(m.actorDid, {
+          did: m.actorDid,
+          role: m.role === 'owner' || m.role === 'moderator' ? m.role : 'member',
+          name: m.actorName ?? null,
+          profileUrl: m.profileUrl ?? null,
+        })
+      }
       if (!parsed.hasMore) break
     }
-    return [...dids]
+    return [...byDid.values()]
   })
+}
+
+/** Every ACTIVE member's DID, or null when the hub has no such (public) ring. */
+export async function ringMemberDids(hub: HubReader, slug: string): Promise<string[] | null> {
+  const members = await ringMembers(hub, slug)
+  return members && members.map((m) => m.did)
 }
 
 /**

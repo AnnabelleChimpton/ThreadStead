@@ -326,3 +326,13 @@ export async function cameFromSite(db: PrismaClient, ringSlug: string, from: unk
   await countDoorway(db, ringSlug, site.id, 'ring')
   return { id: site.id, url: site.url, name: site.title || siteRefOf(site.url)?.key || site.url }
 }
+
+/** A site's address as people read it: host and path, no www. or trailing slash. */
+export function siteAddress(url: string): string {
+  try {
+    const u = new URL(url)
+    return (u.host + u.pathname).replace(/^www\./, '').replace(/\/$/, '')
+  } catch {
+    return url
+  }
+}

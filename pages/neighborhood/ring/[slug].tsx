@@ -1,5 +1,6 @@
 // A ThreadRing's street: its members' pixel homes, each with its number from
-// the main street (lib/pixel-homes/ring-street.ts). Linked from the ring page.
+// the main street, then everyone in the ring (lib/pixel-homes/ring-street.ts).
+// Linked from the ring page; the old members and "every stop" pages land here.
 import type { GetServerSideProps } from 'next'
 import Link from 'next/link'
 import Layout from '@/components/ui/layout/Layout'
@@ -7,17 +8,74 @@ import Street from '@/components/pixel-homes/Street'
 import { db } from '@/lib/config/database/connection'
 import { SITE_NAME } from '@/lib/config/site/constants'
 import { getSessionUser } from '@/lib/auth/server'
-import { getRingStreet, type RingStreetRing } from '@/lib/pixel-homes/ring-street'
+import { getRingStreet, type RingPerson, type RingStreetRing } from '@/lib/pixel-homes/ring-street'
 import type { StreetHome } from '@/lib/pixel-homes/street'
 import { getStreetRingSigns, type RingSign } from '@/lib/pixel-homes/street-rings'
 import PageMeta from '@/components/ui/layout/PageMeta'
 import { ringShareImage } from '@/lib/share-images'
+import ReportButton from '@/components/ui/feedback/ReportButton'
 
 type RingStreetProps =
-  | { kind: 'street'; ring: RingStreetRing; homes: StreetHome[]; at: string | null; ringSigns: RingSign[] }
+  | {
+      kind: 'street'
+      ring: RingStreetRing
+      homes: StreetHome[]
+      people: RingPerson[]
+      at: string | null
+      ringSigns: RingSign[]
+      viewerId: string | null
+    }
   | { kind: 'unavailable'; slug: string }
 
 const SLUG = /^[a-z0-9][a-z0-9-]{0,99}$/
+const ROLE_NAMES = { host: 'Host', moderator: 'Moderator', member: 'Member' }
+
+function PersonName({ person }: { person: RingPerson }) {
+  const className = 'font-semibold text-nb-ink underline decoration-dotted'
+  if (person.handle) {
+    const href = person.number ? `/home/${encodeURIComponent(person.handle)}` : `/resident/${encodeURIComponent(person.handle)}`
+    return <Link href={href} className={className}>{person.name}</Link>
+  }
+  if (person.profileUrl && /^https?:\/\//i.test(person.profileUrl)) {
+    return <a href={person.profileUrl} rel="ugc nofollow" className={className}>{person.name}</a>
+  }
+  return <span className="font-semibold text-nb-ink">{person.name}</span>
+}
+
+function People({ ring, people, viewerId }: { ring: RingStreetRing; people: RingPerson[]; viewerId: string | null }) {
+  return (
+    <section id="people" className="thread-module mt-6 max-w-3xl">
+      <h2 className="thread-headline text-xl font-bold mb-1">Everyone in {ring.name}</h2>
+      <p className="text-sm text-nb-ink-mid mb-2">
+        In the order the ring&apos;s walk goes. A member&apos;s stop is their own site when they&apos;ve added one, and their
+        pixel home otherwise.
+      </p>
+      <ol className="m-0 p-0 list-none divide-y divide-dotted divide-nb-ink-mid/30">
+        {people.map((person) => (
+          <li key={person.key} className="flex items-center gap-3 py-3">
+            <span className="w-14 flex-shrink-0 text-sm text-nb-ink-mid tabular-nums">{person.number ? `No. ${person.number}` : ''}</span>
+            <div className="min-w-0 flex-1">
+              <PersonName person={person} />
+              <div className="text-sm text-nb-ink-mid break-words">
+                {ROLE_NAMES[person.role]}
+                {person.site && (
+                  <>
+                    {' · '}
+                    <a href={person.site.url} rel="ugc" className="underline text-nb-ink">{person.site.title || person.site.address}</a>
+                    {person.site.title && <> · {person.site.address}</>}
+                  </>
+                )}
+              </div>
+            </div>
+            {person.site && viewerId && viewerId !== person.key && (
+              <ReportButton reportType="site" targetId={person.site.id} reportedUserId={person.key} contentPreview={person.site.url} size="small" />
+            )}
+          </li>
+        ))}
+      </ol>
+    </section>
+  )
+}
 
 export default function RingStreetPage(props: RingStreetProps) {
   if (props.kind === 'unavailable') {
@@ -35,7 +93,7 @@ export default function RingStreetPage(props: RingStreetProps) {
     )
   }
 
-  const { ring, homes, at, ringSigns } = props
+  const { ring, homes, people, at, ringSigns, viewerId } = props
   const ringHref = `/tr/${encodeURIComponent(ring.slug)}`
   const count = homes.length
 
@@ -75,6 +133,8 @@ export default function RingStreetPage(props: RingStreetProps) {
         ) : (
           <Street homes={homes} at={at} ringSigns={ringSigns} />
         )}
+
+        {people.length > 0 && <People ring={ring} people={people} viewerId={viewerId} />}
       </div>
     </Layout>
   )
@@ -97,5 +157,15 @@ export const getServerSideProps: GetServerSideProps<RingStreetProps> = async (co
   // Other rings these members share; this ring doesn't sign its own street
   const ringSigns = await getStreetRingSigns(db, street.homes, { viewerId: viewer?.id, exceptSlugs: [slug] })
 
-  return { props: { kind: 'street', ring: street.ring, homes: street.homes, at, ringSigns } }
+  return {
+    props: {
+      kind: 'street',
+      ring: street.ring,
+      homes: street.homes,
+      people: street.people,
+      at,
+      ringSigns,
+      viewerId: viewer?.id ?? null,
+    },
+  }
 }
