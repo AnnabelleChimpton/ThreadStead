@@ -593,6 +593,15 @@ describe('owner member management (audit 0.8)', () => {
   })
 })
 
+describe('signed reads with no options (9b3fbfe)', () => {
+  // The client signed `/feed?` but fetched `/feed`, so a bare signed read
+  // failed its signature check once the hub started checking feed callers.
+  test('a signed feed read with no options passes the signature check', async () => {
+    const feed = await client.getRingFeed(ringSlug)
+    expect(Array.isArray(feed.posts)).toBe(true)
+  })
+})
+
 describe('a host moderates their own post (POST /trp/curate)', () => {
   // The main actor owns FORK_SLUG and is a plain member of ringSlug. The
   // author branch used to run first, so a host couldn't pin their own post
