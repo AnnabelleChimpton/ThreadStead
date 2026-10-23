@@ -11,14 +11,12 @@
  * the hub accepted.
  */
 import { db } from '@/lib/config/database/connection'
-import { featureFlags } from '@/lib/utils/features/feature-flags'
 import { createAuthenticatedRingHubClient } from '@/lib/api/ringhub/ringhub-user-operations'
 import { getSiteBaseUrl } from '@/lib/config/site-url'
 import { buildPostUri, generateTextPreview, generateExcerpt } from '@/lib/domain/posts/ringhub-metadata'
 import {
   postToRings,
   refuseNonPublicPost,
-  NOT_A_MEMBER_REASON,
   type RingPostResult,
 } from '@/lib/domain/posts/ring-submission'
 
@@ -44,7 +42,7 @@ export interface SendPostToRingsInput {
   authorHandle: string | null | undefined
   /** The author's user id. Only the author may send their post to a ring. */
   userId: string
-  /** Ring slugs (Ring Hub) or ring ids/slugs (local-only mode). */
+  /** Ring slugs. */
   ringSlugs: string[]
   /** Set when the post answers a ring prompt. */
   promptId?: string
@@ -58,13 +56,13 @@ export async function sendPostToRings(input: SendPostToRingsInput): Promise<Ring
   const { post, ringSlugs } = input
   if (ringSlugs.length === 0) return []
 
-  // Rings are public spaces: a non-public post goes to none of them (hub or local).
+  // Rings are public spaces: a non-public post goes to none of them.
   const nonPublicRefusal = refuseNonPublicPost(ringSlugs, post.visibility)
   if (nonPublicRefusal) return nonPublicRefusal
 
   let results: RingPostResult[] = []
   try {
-    results = featureFlags.ringhub() ? await sendViaRingHub(input) : await sendLocalOnly(input)
+    results = await sendViaRingHub(input)
   } catch (error) {
     console.error('ThreadRing association error:', error)
     // Don't fail the caller; report the rings we couldn't finish.
@@ -168,36 +166,10 @@ async function lookUpPrompt(slug: string, promptId: string, isLocalhost: boolean
   }
 }
 
-/** Ring Hub off: rings live in ThreadStead's own tables. */
-async function sendLocalOnly({ post, userId, ringSlugs }: SendPostToRingsInput): Promise<RingPostResult[]> {
-  // The composer sends slugs (it selects by ring.slug), so match on either id or slug.
-  const userMemberships = await db.threadRingMember.findMany({
-    where: {
-      userId,
-      OR: [{ threadRingId: { in: ringSlugs } }, { threadRing: { slug: { in: ringSlugs } } }],
-    },
-    select: { threadRing: { select: { id: true, slug: true, name: true } } },
-  })
-  const memberRings = userMemberships.map((m) => m.threadRing)
-
-  const results: RingPostResult[] = Array.from(new Set(ringSlugs)).map((requested) => {
-    const ring = memberRings.find((r) => r.id === requested || r.slug === requested)
-    return ring
-      ? { slug: ring.slug, name: ring.name, status: 'posted' as const }
-      : { slug: requested, name: requested, status: 'failed' as const, reason: NOT_A_MEMBER_REASON }
-  })
-
-  // The rings exist locally, so this only links them and bumps their counts.
-  await mirrorRingResults({ postId: post.id, userId, results, throwOnLinkError: true })
-  return results
-}
-
 export interface MirrorRingResultsInput {
   postId: string
   userId: string
   results: RingPostResult[]
-  /** Local-only mode: the link IS the post's place in the ring, so a failure is real. */
-  throwOnLinkError?: boolean
 }
 
 /**
@@ -211,7 +183,7 @@ export interface MirrorRingResultsInput {
  * Only 'posted' rings get a link. A 'pending' ring keeps its PostRef id (so
  * removal can find it) but isn't shown as "Posted to" until it's accepted.
  */
-export async function mirrorRingResults({ postId, userId, results, throwOnLinkError = false }: MirrorRingResultsInput): Promise<void> {
+export async function mirrorRingResults({ postId, userId, results }: MirrorRingResultsInput): Promise<void> {
   const newIds: Record<string, string> = {}
   for (const r of results) {
     if (r.hubPostId) newIds[r.slug] = r.hubPostId
@@ -294,7 +266,6 @@ export async function mirrorRingResults({ postId, userId, results, throwOnLinkEr
       }),
     ])
   } catch (localAssocError) {
-    if (throwOnLinkError) throw localAssocError
     // The hub has the post, so the ring feed shows it; only the local
     // "Posted to" mirror is missing. Don't fail the caller over it.
     console.error('Failed to create local PostThreadRing associations:', localAssocError)

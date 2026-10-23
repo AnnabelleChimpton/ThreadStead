@@ -25,7 +25,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const hub = defaultHub()
-    const facts = hub ? await raceHubCall(ringFacts(hub, slug), HUB_DEADLINE_MS) : HUB_TIMEOUT
+    const facts = await raceHubCall(ringFacts(hub, slug), HUB_DEADLINE_MS)
     const isPublic = facts !== HUB_TIMEOUT && facts?.visibility === 'PUBLIC'
     const name = isPublic ? facts.name : slug.replace(/-/g, ' ')
     const card = await ringShareCard(name, slug, isPublic ? facts.badgeImageUrl : null, isPublic ? facts.themeColor : null)

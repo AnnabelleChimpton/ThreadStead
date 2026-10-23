@@ -44,7 +44,7 @@
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/config/database/connection";
 import { ApiError } from "@/lib/api/errors";
-import { getPublicRingHubClient, getRingHubClient, shouldUseRingHub } from "@/lib/api/ringhub/ringhub-client";
+import { getPublicRingHubClient, getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
 import { createAuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
 import { resolvePostRefId, type RingHubRemovablePost } from "@/lib/domain/posts/ringhub-removal";
 import { isRestricted, MAX_REASON_LENGTH, MODERATION_SELECT } from "@/lib/domain/users/moderation";
@@ -65,8 +65,6 @@ export interface RingPostRemoval {
 }
 
 export interface UserHubCleanup {
-  /** False when Ring Hub is off: nothing to clean up. */
-  hubEnabled: boolean;
   /** Whether the account still has its signing key here. */
   hadKey: boolean;
   removals: RingPostRemoval[];
@@ -94,7 +92,6 @@ export interface RingMembership {
 }
 
 export interface UserRingMemberships {
-  hubEnabled: boolean;
   hadKey: boolean;
   memberships: RingMembership[];
   /** The hub wouldn't list them; set instead of throwing. */
@@ -153,9 +150,8 @@ function ringSlugsOf(post: RingHubRemovablePost): string[] {
  * failure: each one comes back in `failed`.
  */
 export async function removeUserPostsFromRingHub(userId: string, reason: string): Promise<UserHubCleanup> {
-  const result: UserHubCleanup = { hubEnabled: shouldUseRingHub(), hadKey: false, removals: [], failed: [] };
-  const reader = result.hubEnabled ? getPublicRingHubClient() : null;
-  if (!reader) return { ...result, hubEnabled: false };
+  const result: UserHubCleanup = { hadKey: false, removals: [], failed: [] };
+  const reader = getPublicRingHubClient();
 
   const posts = await db.post.findMany({
     where: { authorId: userId, OR: [{ threadRings: { some: {} } }, { threadRingPostIds: { not: Prisma.DbNull } }] },
@@ -258,8 +254,7 @@ const MEMBERSHIP_PAGE_SIZE = 100;
  * account. Never throws: a hub failure comes back in `error`.
  */
 export async function listUserRingMemberships(userId: string): Promise<UserRingMemberships> {
-  const result: UserRingMemberships = { hubEnabled: shouldUseRingHub(), hadKey: false, memberships: [] };
-  if (!result.hubEnabled || !getPublicRingHubClient()) return { ...result, hubEnabled: false };
+  const result: UserRingMemberships = { hadKey: false, memberships: [] };
 
   result.hadKey = !!(await db.userDID.findUnique({ where: { userId }, select: { userId: true } }));
   if (!result.hadKey) return result;
@@ -335,8 +330,8 @@ export async function forgetRing(slug: string): Promise<void> {
  * reported as still_owner, not failed. Never throws.
  */
 export async function leaveUserRingsOnHub(userId: string, memberships: RingMembership[]): Promise<RingLeave[]> {
+  if (memberships.length === 0) return [];
   const reader = getPublicRingHubClient();
-  if (!reader || memberships.length === 0) return [];
   const key = await db.userDID.findUnique({ where: { userId }, select: { did: true } });
   if (!key) return [];
 
@@ -420,7 +415,7 @@ export interface DeleteAccountOptions {
 
 export interface AccountRemovalReport {
   posts: UserHubCleanup;
-  /** The memberships the hub listed (empty without a key or with the hub off). */
+  /** The memberships the hub listed (empty without a key). */
   memberships: RingMembership[];
   /** Rings it owns that still have other members: these block the delete. */
   ownedRings: RingMembership[];
@@ -510,7 +505,7 @@ export async function deleteUserAccount({
   // The hub couldn't say which are shared: ask about all of them
   const owned = force ? [] : await sharedOwnedRings(userId, rings.memberships).catch(() => ownedRings(rings.memberships));
   if (owned.length > 0) {
-    const posts: UserHubCleanup = { hubEnabled: rings.hubEnabled, hadKey: rings.hadKey, removals: [], failed: [] };
+    const posts: UserHubCleanup = { hadKey: rings.hadKey, removals: [], failed: [] };
     return {
       deleted: false,
       blockedBy: "owns_rings",

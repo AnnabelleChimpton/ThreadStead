@@ -55,10 +55,10 @@ export interface PromptDetails {
 
 export class PromptService {
   private ringSlug: string;
-  private reader: FeedReader | null;
+  private reader: FeedReader;
   private feed: Promise<ThreadRingPostRef[]> | null = null;
 
-  constructor(ringSlug: string, reader: FeedReader | null = getRingHubClient()) {
+  constructor(ringSlug: string, reader: FeedReader = getRingHubClient()) {
     this.ringSlug = ringSlug;
     this.reader = reader;
   }
@@ -71,7 +71,6 @@ export class PromptService {
    */
   private readFeed(): Promise<ThreadRingPostRef[]> {
     const reader = this.reader;
-    if (!reader) return Promise.reject(new Error('Ring Hub client not available'));
     this.feed ??= (async () => {
       const posts: ThreadRingPostRef[] = [];
       for (let page = 0; page < MAX_FEED_PAGES; page++) {
@@ -429,7 +428,7 @@ export class PromptService {
  * so a private ring's members see its prompts; this site otherwise, or when
  * the viewer's key is stale.
  */
-export async function promptFeedReader(viewerId: string | null | undefined): Promise<FeedReader | null> {
+export async function promptFeedReader(viewerId: string | null | undefined): Promise<FeedReader> {
   const site = getRingHubClient();
   if (!viewerId) return site;
   const key = await db.userDID.findUnique({ where: { userId: viewerId }, select: { did: true } });
@@ -438,7 +437,7 @@ export async function promptFeedReader(viewerId: string | null | undefined): Pro
   return {
     getRingFeed: (slug, options) =>
       member.getRingFeedAsMember(slug, options).catch((error) => {
-        if (error instanceof RingHubAuthError && site) return site.getRingFeed(slug, options);
+        if (error instanceof RingHubAuthError) return site.getRingFeed(slug, options);
         throw error;
       }),
   };
@@ -447,7 +446,7 @@ export async function promptFeedReader(viewerId: string | null | undefined): Pro
 /**
  * Helper function to create a PromptService instance
  */
-export function createPromptService(ringSlug: string, reader?: FeedReader | null): PromptService {
+export function createPromptService(ringSlug: string, reader?: FeedReader): PromptService {
   return new PromptService(ringSlug, reader);
 }
 

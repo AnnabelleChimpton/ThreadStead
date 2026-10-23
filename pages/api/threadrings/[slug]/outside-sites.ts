@@ -23,7 +23,6 @@ export default apiHandler(
   async (req, res, { user }) => {
     const slug = typeof req.query.slug === 'string' ? req.query.slug : ''
     const hub = defaultHub()
-    if (!hub) throw new ApiError(503, "Rings aren't reachable right now. Try again in a bit.")
     const ring = await ringFacts(hub, slug)
     if (!ring) throw new ApiError(404, 'Not found')
     try {

@@ -4,7 +4,6 @@ import { getPublicRingHubClient } from '@/lib/api/ringhub/ringhub-client'
 import { raceHubCall, HUB_TIMEOUT } from '@/lib/api/ringhub/ringhub-ssr'
 import { extractPostIdFromUri, isOurThreadSteadInstance } from '@/lib/domain/threadrings/orphan-postrefs'
 import { getBlockedUserDids, getHiddenIds } from '@/lib/domain/users/blocks'
-import { featureFlags } from '@/lib/utils/features/feature-flags'
 import { ringFacts } from '@/lib/rings/walk'
 import { FEED_POST_SELECT, postFeedItem } from '@/lib/feeds/post-content'
 import { FEED_LENGTH, type Feed, type FeedItem } from '@/lib/feeds/rss'
@@ -18,8 +17,7 @@ const HUB_DEADLINE_MS = 4000
  * public ring; 'unavailable' when the hub didn't answer.
  */
 export async function ringFeed(slug: string): Promise<Feed | null | 'unavailable'> {
-  const hub = featureFlags.ringhub() ? getPublicRingHubClient() : null
-  if (!hub) return null
+  const hub = getPublicRingHubClient()
   const facts = await raceHubCall(ringFacts(hub, slug), HUB_DEADLINE_MS)
   if (facts === HUB_TIMEOUT) return 'unavailable'
   if (facts?.visibility !== 'PUBLIC') return null

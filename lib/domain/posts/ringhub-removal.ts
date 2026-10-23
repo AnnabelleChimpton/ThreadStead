@@ -14,7 +14,6 @@
  * Never throws: a hub failure must not block local deletion.
  */
 
-import { shouldUseRingHub } from "@/lib/api/ringhub/ringhub-client";
 import { createAuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
 import { buildPostUri } from "@/lib/domain/posts/ringhub-metadata";
 
@@ -66,7 +65,7 @@ export async function removePostFromRingHub(
   reason: string
 ): Promise<RingHubRemovalResult> {
   const result: RingHubRemovalResult = { synced: false, affectedRings: [] };
-  if (post.threadRings.length === 0 || !shouldUseRingHub()) return result;
+  if (post.threadRings.length === 0) return result;
 
   const client = createAuthenticatedRingHubClient(post.authorId);
   const covered = new Set<string>();

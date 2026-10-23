@@ -13,7 +13,6 @@ import { z } from 'zod'
 import { cached } from '@/lib/api/ringhub/ringhub-cache'
 import { RingHubClientError, getPublicRingHubClient, type RingHubClient } from '@/lib/api/ringhub/ringhub-client'
 import { raceHubCall, HUB_TIMEOUT } from '@/lib/api/ringhub/ringhub-ssr'
-import { featureFlags } from '@/lib/utils/features/feature-flags'
 import { visibleResidentWhere } from '@/lib/domain/users/profile-access'
 import { houseNumbersOf } from './street'
 import { RING_CACHE_FRESH_MS, RING_CACHE_STALE_MS } from './street-rings'
@@ -115,7 +114,7 @@ export type WalkResult =
   | { kind: 'home'; handle: string }
   /** No member home this viewer may visit (or no such public ring). */
   | { kind: 'none' }
-  /** The hub didn't answer in time, or isn't configured. */
+  /** The hub didn't answer in time. */
   | { kind: 'unavailable' }
 
 /** Where the walk goes from a sign. */
@@ -136,13 +135,12 @@ export async function walkTarget(
     go: WalkDirection
     viewerId: string | null | undefined
     host: string
-    hub?: HubReader | null
+    hub?: HubReader
     deadlineMs?: number
     random?: () => number
   }
 ): Promise<WalkResult> {
-  const client = hub !== undefined ? hub : featureFlags.ringhub() ? getPublicRingHubClient() : null
-  if (!client) return { kind: 'unavailable' }
+  const client = hub ?? getPublicRingHubClient()
 
   const dids = await raceHubCall(ringMemberDids(client, slug), deadlineMs)
   if (dids === HUB_TIMEOUT) return { kind: 'unavailable' }

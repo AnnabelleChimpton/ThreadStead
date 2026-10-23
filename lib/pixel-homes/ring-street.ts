@@ -2,11 +2,10 @@
  * A ThreadRing's street: its members' pixel homes, each with the house
  * number it has on the main street (pages/neighborhood/ring/[slug].tsx).
  *
- * With Ring Hub on, the ring and its members come from the hub's public
- * reads, cached and bounded like the street's ring signs and the ring walk
+ * The ring and its members come from the hub's public reads, cached and
+ * bounded like the street's ring signs and the ring walk
  * (lib/pixel-homes/ring-walk.ts), so only PUBLIC rings have a street.
- * ThreadStead keeps no copy of who's in a ring. With Ring Hub off, the local
- * ThreadRing tables answer instead.
+ * ThreadStead keeps no copy of who's in a ring.
  *
  * The street is also the one list of a ring's people (owner decision
  * 2026-10-23): everyone in it, with their role, house number and their own
@@ -16,7 +15,6 @@ import type { PrismaClient } from '@prisma/client'
 import { cached } from '@/lib/api/ringhub/ringhub-cache'
 import { getPublicRingHubClient, type RingHubClient } from '@/lib/api/ringhub/ringhub-client'
 import { raceHubCall, HUB_TIMEOUT } from '@/lib/api/ringhub/ringhub-ssr'
-import { featureFlags } from '@/lib/utils/features/feature-flags'
 import { getHomesOf, type StreetHome } from './street'
 import { ringMembers, WALK_DEADLINE_MS, type HubRingMember } from './ring-walk'
 import { RING_CACHE_FRESH_MS, RING_CACHE_STALE_MS } from './street-rings'
@@ -55,7 +53,7 @@ export type RingStreet =
   | { kind: 'unavailable' }
 
 type Db = Parameters<typeof getHomesOf>[0] &
-  Pick<PrismaClient, 'userDID' | 'threadRing' | 'ringHubOwnership' | 'ringStop' | 'ringSiteSettings'>
+  Pick<PrismaClient, 'userDID' | 'ringHubOwnership' | 'ringStop' | 'ringSiteSettings'>
 type HubReader = Pick<RingHubClient, 'getRing' | 'getRingMembers'>
 
 export async function getRingStreet(
@@ -70,30 +68,11 @@ export async function getRingStreet(
     slug: string
     viewerId: string | null | undefined
     host: string
-    hub?: HubReader | null
+    hub?: HubReader
     deadlineMs?: number
   }
 ): Promise<RingStreet> {
-  const client = hub !== undefined ? hub : featureFlags.ringhub() ? getPublicRingHubClient() : null
-
-  if (!client) {
-    const local = await db.threadRing.findUnique({
-      where: { slug },
-      select: { slug: true, name: true, description: true, visibility: true, members: { select: { userId: true } } },
-    })
-    if (!local || local.visibility !== 'public') return { kind: 'none' }
-    const homes = await getHomesOf(db, { userIds: local.members.map((m) => m.userId), viewerId, host })
-    const people = homes.map((h) => ({
-      key: h.userId,
-      name: h.displayName || h.username,
-      role: 'member' as const,
-      handle: h.username,
-      number: h.number,
-      profileUrl: null,
-      site: null,
-    }))
-    return { kind: 'street', ring: { slug: local.slug, name: local.name, description: local.description, badgeImageUrl: null }, homes, people }
-  }
+  const client = hub ?? getPublicRingHubClient()
 
   const read = await raceHubCall(
     Promise.all([

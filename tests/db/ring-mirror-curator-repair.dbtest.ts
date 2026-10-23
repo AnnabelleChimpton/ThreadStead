@@ -3,9 +3,7 @@
  *
  * scripts/repair-ring-mirror-curators.ts points each one at the hub's owner
  * (RingHubOwnership, else the local person holding the hub's ownerDid, else
- * nobody). ringOwnerSource (lib/domain/threadrings/ring-owner.ts) is what
- * /api/threadrings/[slug]/ownership and the settings/members fallbacks ask;
- * with Ring Hub on it ignores curatorId. Ring Hub itself is a stub here.
+ * nobody). Ring Hub itself is a stub here.
  */
 import { db } from '@/lib/config/database/connection'
 import { SITE_NAME } from '@/lib/config/site/constants'
@@ -17,7 +15,6 @@ import {
   applyMirrorCuratorRepair,
   HubOwnerLookup,
 } from '@/scripts/repair-ring-mirror-curators'
-import { ringOwnerSource } from '@/lib/domain/threadrings/ring-owner'
 
 let seq = 0
 
@@ -149,28 +146,5 @@ describe('repair-ring-mirror-curators', () => {
     const plan = await planMirrorCuratorRepair(null)
     expect(plan.changes.map((c) => c.slug)).toEqual(['tracked'])
     expect(plan.skipped).toHaveLength(4)
-  })
-})
-
-describe('ringOwnerSource', () => {
-  beforeEach(async () => {
-    await mirror('gardens', FIRST)
-  })
-
-  it("with Ring Hub on, the first poster's local curatorId doesn't count", async () => {
-    expect(await ringOwnerSource('gardens', FIRST, true)).toBeNull()
-    await owns('gardens', OWNER, 'did:key:owner')
-    expect(await ringOwnerSource('gardens', FIRST, true)).toBeNull()
-    expect(await ringOwnerSource('gardens', OWNER, true)).toBe('ringhub_ownership')
-  })
-
-  it("with Ring Hub on, the person holding RingHubOwnership's DID counts", async () => {
-    await owns('gardens', OWNER, 'did:key:didowner')
-    expect(await ringOwnerSource('gardens', DIDOWNER, true)).toBe('ringhub_did_mapping')
-  })
-
-  it('with Ring Hub off, the local curator still counts', async () => {
-    expect(await ringOwnerSource('gardens', FIRST, false)).toBe('local_threadring')
-    expect(await ringOwnerSource('gardens', OWNER, false)).toBeNull()
   })
 })

@@ -67,7 +67,6 @@ export async function loadRingForPage(
   deadlineMs: number = HUB_SSR_TIMEOUT_MS
 ): Promise<RingPageLoad> {
   const publicClient = getPublicRingHubClient()
-  if (!publicClient) return { status: 'slow' }
 
   // The shared cache can hold a private ring someone else could see; unsigned, that's a 404.
   const asPublic = async () => notPrivate(await cached(`ring:${slug}`, RING_FRESH_MS, RING_STALE_MS, () => publicClient.getRing(slug)))

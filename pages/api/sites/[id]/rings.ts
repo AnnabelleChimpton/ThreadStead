@@ -19,7 +19,6 @@ export default apiHandler(
     const site = await db.externalSite.findFirst({ where: { id, userId: user.id } })
     if (!site) throw new ApiError(404, 'Not found')
     const hub = defaultHub()
-    if (!hub) throw new ApiError(503, "Rings aren't reachable right now. Try again in a bit.")
     try {
       const stop = await setStop(db, { userId: user.id, site, ringSlug: body.ringSlug, on: body.on, hub })
       return res.status(200).json({ stop: stop && { ringSlug: stop.ringSlug, status: stop.status, reason: stop.reason } })

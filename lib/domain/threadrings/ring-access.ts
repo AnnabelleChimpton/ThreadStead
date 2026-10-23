@@ -62,10 +62,10 @@ export async function readRingAs(viewer: RingViewer | null, slug: string): Promi
   // A stale or unresolvable key never hides a public ring: read it unsigned
   const ring = member
     ? await member.getRingAsMember(slug).catch((error) => {
-        if (error instanceof RingHubAuthError) return publicReader().getRing(slug)
+        if (error instanceof RingHubAuthError) return getPublicRingHubClient().getRing(slug)
         throw error
       })
-    : await publicReader().getRing(slug)
+    : await getPublicRingHubClient().getRing(slug)
   if (!ring) return null
 
   const viewerDid = key?.did ?? null
@@ -96,11 +96,7 @@ type RingManager = Pick<RingHubClient, 'updateRing' | 'updateRingBadge' | 'updat
 /** The client that signs changes to the ring itself, or a 403 when the viewer may not make them. */
 export function ringManager(access: RingAccess, viewerId: string): RingManager {
   if (access.manageAs === 'self') return createAuthenticatedRingHubClient(viewerId)
-  if (access.manageAs === 'site') {
-    const site = getRingHubClient()
-    if (!site) throw new ApiError(503, HUB_UNREACHABLE)
-    return site
-  }
+  if (access.manageAs === 'site') return getRingHubClient()
   throw new ApiError(403, 'Only the ring’s Host can change that.')
 }
 
@@ -127,12 +123,6 @@ export function hubWriteError(error: unknown, signer: RingAccess['manageAs'] = '
     default:
       return new ApiError(error.status, error.data?.message || error.message)
   }
-}
-
-function publicReader(): RingHubClient {
-  const reader = getPublicRingHubClient()
-  if (!reader) throw new RingHubUnavailableError('Ring Hub is not configured')
-  return reader
 }
 
 /** A ring this site owns on the hub, held here for this resident. */

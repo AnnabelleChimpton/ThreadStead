@@ -38,7 +38,7 @@ function go(res: NextApiResponse, destination: string, cache = 'no-store') {
 
 async function badge(res: NextApiResponse, slug: string) {
   const hub = defaultHub()
-  const facts = hub ? await raceHubCall(ringFacts(hub, slug), BADGE_DEADLINE_MS) : HUB_TIMEOUT
+  const facts = await raceHubCall(ringFacts(hub, slug), BADGE_DEADLINE_MS)
   // The R2 key changes on every badge edit, so pasted strips point here
   if (facts !== HUB_TIMEOUT && facts?.visibility === 'PUBLIC' && facts.badgeImageUrl) {
     return go(res, facts.badgeImageUrl, 'public, max-age=3600')

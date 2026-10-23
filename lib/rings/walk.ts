@@ -14,7 +14,6 @@ import type { PrismaClient, RingOutsideSites } from '@prisma/client'
 import { cached } from '@/lib/api/ringhub/ringhub-cache'
 import { getPublicRingHubClient, type RingHubClient } from '@/lib/api/ringhub/ringhub-client'
 import { raceHubCall, HUB_TIMEOUT } from '@/lib/api/ringhub/ringhub-ssr'
-import { featureFlags } from '@/lib/utils/features/feature-flags'
 import { visibleResidentWhere } from '@/lib/domain/users/profile-access'
 import { houseNumbersOf } from '@/lib/pixel-homes/street'
 import { pickWalkTarget, ringMemberDids, WALK_DEADLINE_MS, type WalkDirection } from '@/lib/pixel-homes/ring-walk'
@@ -32,8 +31,8 @@ export interface RingFacts {
   themeColor: string | null
 }
 
-export function defaultHub(): HubReader | null {
-  return featureFlags.ringhub() ? getPublicRingHubClient() : null
+export function defaultHub(): HubReader {
+  return getPublicRingHubClient()
 }
 
 /** The ring's name, visibility and join rule (cached like the street's ring reads); null when the hub has no such ring. */
@@ -94,7 +93,7 @@ export type StopsResult =
   | { kind: 'stops'; ring: RingFacts; stops: RingStopView[] }
   /** No such ring, or not a public one. */
   | { kind: 'none' }
-  /** The hub didn't answer in time, or isn't configured. */
+  /** The hub didn't answer in time. */
   | { kind: 'unavailable' }
 
 /** Every stop of a public ring this viewer may see, in order. */
@@ -106,9 +105,8 @@ export async function ringStops(
     host,
     hub = defaultHub(),
     deadlineMs = WALK_DEADLINE_MS,
-  }: { slug: string; viewerId: string | null | undefined; host: string; hub?: HubReader | null; deadlineMs?: number }
+  }: { slug: string; viewerId: string | null | undefined; host: string; hub?: HubReader; deadlineMs?: number }
 ): Promise<StopsResult> {
-  if (!hub) return { kind: 'unavailable' }
   const read = await raceHubCall(Promise.all([ringFacts(hub, slug), ringMemberDids(hub, slug)]), deadlineMs)
   if (read === HUB_TIMEOUT) return { kind: 'unavailable' }
   const [ring, dids] = read
@@ -169,7 +167,7 @@ export async function walkFromSite(
     from: string | null
     go: WalkDirection
     host: string
-    hub?: HubReader | null
+    hub?: HubReader
     deadlineMs?: number
     random?: () => number
   }

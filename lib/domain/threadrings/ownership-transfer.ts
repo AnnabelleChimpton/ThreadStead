@@ -26,7 +26,6 @@ import {
   getPublicRingHubClient,
   getRingHubClient,
   RingHubClientError,
-  shouldUseRingHub,
   type RingHubClient,
 } from "@/lib/api/ringhub/ringhub-client";
 import { RingHubAuthError, RingHubUnavailableError } from "@/lib/api/ringhub/ringhub-errors";
@@ -67,8 +66,7 @@ type Reader = Pick<RingHubClient, "getRing" | "getRingMembers">;
 
 /** Reads signed as the actor, so a private ring's Host sees it; unsigned without a key here. */
 async function hubReader(actor: TransferActor): Promise<Reader> {
-  const reader = shouldUseRingHub() ? getPublicRingHubClient() : null;
-  if (!reader) throw new ApiError(400, "Handing a ring over needs Ring Hub, and it's off here.");
+  const reader = getPublicRingHubClient();
   const key = await db.userDID.findUnique({ where: { userId: actor.id }, select: { did: true } });
   if (!key) return reader;
   const member = createAuthenticatedRingHubClient(actor.id);
@@ -91,9 +89,7 @@ async function hubRing(reader: Reader, slug: string) {
 }
 
 function siteClient(): Transferrer {
-  const client = getRingHubClient();
-  if (!client) throw new ApiError(503, "This site can't sign Ring Hub requests right now.");
-  return client;
+  return getRingHubClient();
 }
 
 /** The signer for this actor and ring, or a 403 when they may not hand it over. */

@@ -25,7 +25,6 @@ import type { PrismaClient } from '@prisma/client'
 import { z } from 'zod'
 import { cached } from '@/lib/api/ringhub/ringhub-cache'
 import { getPublicRingHubClient, type RingHubClient } from '@/lib/api/ringhub/ringhub-client'
-import { featureFlags } from '@/lib/utils/features/feature-flags'
 
 /** How long the street waits on the hub, in all, before drawing without it. */
 export const STREET_HUB_DEADLINE_MS = 1500
@@ -160,7 +159,7 @@ export async function getStreetRingSigns(
     exceptSlugs = [],
   }: {
     viewerId?: string | null
-    hub?: HubReader | null
+    hub?: HubReader
     deadlineMs?: number
     /** Rings that get no sign here (a ring's own street doesn't sign itself) */
     exceptSlugs?: string[]
@@ -168,8 +167,7 @@ export async function getStreetRingSigns(
 ): Promise<RingSign[]> {
   if (homes.length < MIN_MEMBERS_FOR_SIGN) return []
   try {
-    const client = hub !== undefined ? hub : featureFlags.ringhub() ? getPublicRingHubClient() : null
-    if (!client) return []
+    const client = hub ?? getPublicRingHubClient()
     const deadline = Date.now() + deadlineMs
 
     // Read-only: a resident with no DID row has never joined a ring
