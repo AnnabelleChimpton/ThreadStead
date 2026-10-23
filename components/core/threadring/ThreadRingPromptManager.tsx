@@ -36,6 +36,9 @@ interface ThreadRingPromptManagerProps {
   canManage: boolean
 }
 
+// A new prompt is the ring's current one unless the host unticks it
+const EMPTY_FORM = { title: '', description: '', endsAt: '', isActive: true, isPinned: false }
+
 export default function ThreadRingPromptManager({ 
   threadRingSlug, 
   canManage 
@@ -43,16 +46,11 @@ export default function ThreadRingPromptManager({
   const [prompts, setPrompts] = useState<ThreadRingPrompt[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  // A failed save or delete shows here, without losing the form
+  const [actionError, setActionError] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
-  const [editingPrompt, setEditingPrompt] = useState<ThreadRingPrompt | null>(null)
   const [expandedPromptId, setExpandedPromptId] = useState<string | null>(null)
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    endsAt: '',
-    isActive: false,
-    isPinned: false
-  })
+  const [formData, setFormData] = useState(EMPTY_FORM)
   const confirm = useConfirm()
 
   useEffect(() => {
@@ -62,7 +60,8 @@ export default function ThreadRingPromptManager({
   const fetchPrompts = async () => {
     try {
       setLoading(true)
-      const response = await fetch(`/api/threadrings/${threadRingSlug}/prompts`)
+      // Inactive ones too: hosts manage every prompt, not only the current one
+      const response = await fetch(`/api/threadrings/${threadRingSlug}/prompts?includeInactive=true`)
       if (!response.ok) throw new Error('Failed to fetch prompts')
       const data = await response.json()
       setPrompts(data)
@@ -75,14 +74,11 @@ export default function ThreadRingPromptManager({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+    setActionError(null)
+
     try {
-      const url = editingPrompt 
-        ? `/api/threadrings/${threadRingSlug}/prompts/${editingPrompt.id}`
-        : `/api/threadrings/${threadRingSlug}/prompts`
-      
-      const response = await csrfFetch(url, {
-        method: editingPrompt ? 'PUT' : 'POST',
+      const response = await csrfFetch(`/api/threadrings/${threadRingSlug}/prompts`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
@@ -91,65 +87,47 @@ export default function ThreadRingPromptManager({
       })
 
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to save prompt')
+        const error = await response.json().catch(() => ({}))
+        throw new Error(error.error || "Couldn't save the prompt. Try again.")
       }
 
       await fetchPrompts()
       resetForm()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save prompt')
+      setActionError(err instanceof Error ? err.message : "Couldn't save the prompt. Try again.")
     }
   }
 
   const handleDelete = async (promptId: string) => {
     if (!(await confirm({
       title: 'Delete this prompt?',
-      message: 'This will also remove all responses.',
+      message: 'Posts written for it stay where they are.',
       confirmText: 'Delete',
       variant: 'danger'
     }))) {
       return
     }
 
+    setActionError(null)
     try {
       const response = await csrfFetch(`/api/threadrings/${threadRingSlug}/prompts/${promptId}`, {
         method: 'DELETE'
       })
 
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to delete prompt')
+        const error = await response.json().catch(() => ({}))
+        throw new Error(error.error || "Couldn't delete the prompt. Try again.")
       }
 
       await fetchPrompts()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete prompt')
+      setActionError(err instanceof Error ? err.message : "Couldn't delete the prompt. Try again.")
     }
-  }
-
-  const handleEdit = (prompt: ThreadRingPrompt) => {
-    setEditingPrompt(prompt)
-    setFormData({
-      title: prompt.title,
-      description: prompt.description,
-      endsAt: prompt.endsAt ? new Date(prompt.endsAt).toISOString().slice(0, 16) : '',
-      isActive: prompt.isActive,
-      isPinned: prompt.isPinned
-    })
-    setShowForm(true)
   }
 
   const resetForm = () => {
     setShowForm(false)
-    setEditingPrompt(null)
-    setFormData({
-      title: '',
-      description: '',
-      endsAt: '',
-      isActive: false,
-      isPinned: false
-    })
+    setFormData(EMPTY_FORM)
   }
 
   const toggleResponses = (promptId: string) => {
@@ -174,11 +152,15 @@ export default function ThreadRingPromptManager({
         )}
       </div>
 
+      {actionError && (
+        <p className="text-sm text-red-600" role="alert">{actionError}</p>
+      )}
+
       {/* Form */}
       {showForm && canManage && (
         <form onSubmit={handleSubmit} className="bg-gray-50 p-6 rounded-lg space-y-4">
           <h3 className="text-lg font-semibold">
-            {editingPrompt ? 'Edit Prompt' : 'Create New Prompt'}
+            Create New Prompt
           </h3>
           
           <div>
@@ -251,7 +233,7 @@ export default function ThreadRingPromptManager({
               type="submit"
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
             >
-              {editingPrompt ? 'Update Prompt' : 'Create Prompt'}
+              Create Prompt
             </button>
             <button
               type="button"
@@ -325,21 +307,14 @@ export default function ThreadRingPromptManager({
                       View All →
                     </Link>
                   )}
+                  {/* No editing: Ring Hub can't change a prompt once posted */}
                   {canManage && (
-                    <>
-                      <button
-                        onClick={() => handleEdit(prompt)}
-                        className="px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(prompt.id)}
-                        className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
-                      >
-                        Delete
-                      </button>
-                    </>
+                    <button
+                      onClick={() => handleDelete(prompt.id)}
+                      className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                    >
+                      Delete
+                    </button>
                   )}
                 </div>
               </div>

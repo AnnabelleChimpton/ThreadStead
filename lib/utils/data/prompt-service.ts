@@ -8,13 +8,23 @@
 import crypto from 'crypto';
 import { getRingHubClient } from '../../api/ringhub/ringhub-client';
 import { AuthenticatedRingHubClient } from '../../api/ringhub/ringhub-user-operations';
+import { RingHubAuthError } from '../../api/ringhub/ringhub-errors';
+import { db } from '../../config/database/connection';
 import type { 
   PromptPostRefMetadata, 
   PromptResponsePostRefMetadata,
   ThreadRingPostRef,
   ThreadRingPostRefMetadata
 } from '@/types/threadrings';
-import type { PostRef } from '../../api/ringhub/ringhub-client';
+import type { PostRef, RingHubClient } from '../../api/ringhub/ringhub-client';
+
+/** Reads a ring's feed: this site by default, or the viewer for a private ring. */
+export type FeedReader = Pick<RingHubClient, 'getRingFeed'>;
+
+/** The hub's largest feed page */
+const FEED_PAGE = 100;
+/** Pages read at most (2,000 posts), so a huge ring can't hold a request up */
+const MAX_FEED_PAGES = 20;
 
 export interface CreatePromptRequest {
   title: string;
@@ -45,9 +55,33 @@ export interface PromptDetails {
 
 export class PromptService {
   private ringSlug: string;
+  private reader: FeedReader | null;
+  private feed: Promise<ThreadRingPostRef[]> | null = null;
 
-  constructor(ringSlug: string) {
+  constructor(ringSlug: string, reader: FeedReader | null = getRingHubClient()) {
     this.ringSlug = ringSlug;
+    this.reader = reader;
+  }
+
+  /**
+   * The ring's whole feed, read once per service. Prompts and responses are
+   * PostRefs among the ring's posts, and the hub has no filter by type, so
+   * one page of the newest posts lost a prompt once enough newer posts came
+   * after it.
+   */
+  private readFeed(): Promise<ThreadRingPostRef[]> {
+    const reader = this.reader;
+    if (!reader) return Promise.reject(new Error('Ring Hub client not available'));
+    this.feed ??= (async () => {
+      const posts: ThreadRingPostRef[] = [];
+      for (let page = 0; page < MAX_FEED_PAGES; page++) {
+        const { posts: batch } = await reader.getRingFeed(this.ringSlug, { limit: FEED_PAGE, offset: page * FEED_PAGE });
+        posts.push(...batch.map((postRef) => this.convertPostRefToThreadRingPostRef(postRef)));
+        if (batch.length < FEED_PAGE) break;
+      }
+      return posts;
+    })();
+    return this.feed;
   }
 
   /**
@@ -118,25 +152,9 @@ export class PromptService {
    * Get all prompts for a ring
    */
   async getPrompts(options: PromptSearchOptions = {}): Promise<ThreadRingPostRef[]> {
-    const client = getRingHubClient();
-    if (!client) {
-      throw new Error('Ring Hub client not available');
-    }
-
-    // Get ring feed and filter for prompts
-    const feedResult = await client.getRingFeed(this.ringSlug, {
-      limit: options.limit || 50,
-      offset: options.offset || 0
-    });
-    
-
-    // Filter for prompt PostRefs
-    let prompts = feedResult.posts
-      .map(postRef => this.convertPostRefToThreadRingPostRef(postRef))
-      .filter(postRef => 
-        postRef.metadata?.type === 'threadring_prompt'
-      ) as ThreadRingPostRef[];
-      
+    let prompts = (await this.readFeed()).filter(
+      (postRef) => postRef.metadata?.type === 'threadring_prompt'
+    );
 
     // Apply filters
     if (!options.includeInactive) {
@@ -181,7 +199,8 @@ export class PromptService {
       }
     });
 
-    return prompts;
+    const offset = options.offset ?? 0;
+    return options.limit ? prompts.slice(offset, offset + options.limit) : prompts.slice(offset);
   }
 
   /**
@@ -230,19 +249,7 @@ export class PromptService {
    * Get responses to a specific prompt
    */
   async getPromptResponses(promptId: string): Promise<ThreadRingPostRef[]> {
-    const client = getRingHubClient();
-    if (!client) {
-      throw new Error('Ring Hub client not available');
-    }
-
-    // Get ring feed
-    const feedResult = await client.getRingFeed(this.ringSlug, {
-      limit: 50 // Use same limit as other calls to avoid validation errors
-    });
-
-    // Filter for responses to this prompt
-    return feedResult.posts
-      .map(postRef => this.convertPostRefToThreadRingPostRef(postRef))
+    return (await this.readFeed())
       .filter(postRef => 
         postRef.metadata?.type === 'prompt_response' &&
         (postRef.metadata as PromptResponsePostRefMetadata).response.promptId === promptId
@@ -304,19 +311,6 @@ export class PromptService {
   ): Promise<void> {    
     // Update the response count after the association
     await this.updatePromptResponseCount(promptId);
-  }
-
-  /**
-   * Update an existing prompt (via Ring Hub curation)
-   */
-  async updatePrompt(
-    userId: string,
-    promptId: string,
-    updates: Partial<CreatePromptRequest>
-  ): Promise<ThreadRingPostRef | null> {
-    // Ring Hub doesn't support direct PostRef updates
-    // This would need to be implemented as a new version or via curation tools
-    throw new Error('Prompt updates not yet supported - would require Ring Hub curation features');
   }
 
   /**
@@ -431,10 +425,30 @@ export class PromptService {
 }
 
 /**
+ * Who reads a ring's feed for prompts: the viewer, when they have a key here,
+ * so a private ring's members see its prompts; this site otherwise, or when
+ * the viewer's key is stale.
+ */
+export async function promptFeedReader(viewerId: string | null | undefined): Promise<FeedReader | null> {
+  const site = getRingHubClient();
+  if (!viewerId) return site;
+  const key = await db.userDID.findUnique({ where: { userId: viewerId }, select: { did: true } });
+  if (!key) return site;
+  const member = new AuthenticatedRingHubClient(viewerId);
+  return {
+    getRingFeed: (slug, options) =>
+      member.getRingFeedAsMember(slug, options).catch((error) => {
+        if (error instanceof RingHubAuthError && site) return site.getRingFeed(slug, options);
+        throw error;
+      }),
+  };
+}
+
+/**
  * Helper function to create a PromptService instance
  */
-export function createPromptService(ringSlug: string): PromptService {
-  return new PromptService(ringSlug);
+export function createPromptService(ringSlug: string, reader?: FeedReader | null): PromptService {
+  return new PromptService(ringSlug, reader);
 }
 
 /**

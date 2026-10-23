@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { createPromptService } from '@/lib/utils/data/prompt-service'
+import { createPromptService, promptFeedReader } from '@/lib/utils/data/prompt-service'
 import { withThreadRingSupport } from '@/lib/api/ringhub/ringhub-middleware'
 import { parsePagePagination } from '@/lib/server/http/pagination';
 import { db } from '@/lib/config/database/connection'
@@ -22,7 +22,9 @@ export default withThreadRingSupport(async function handler(
     // Ring Hub system - use PostRef-based prompts
     if (system === 'ringhub') {
       try {
-        const promptService = createPromptService(slug)
+        // Read as the viewer, so a private ring's members see its prompts
+        const viewer = await getSessionUser(req)
+        const promptService = createPromptService(slug, await promptFeedReader(viewer?.id))
         
         // Get prompt details and responses
         const promptDetails = await promptService.getPromptDetails(promptId)
@@ -44,7 +46,6 @@ export default withThreadRingSupport(async function handler(
         // shown in full; anything else is the PostRef's own title and preview,
         // as the ring feed shows it (lib/feeds/ring-feed.ts). The submitter
         // writes the metadata, so it never names a resident here.
-        const viewer = await getSessionUser(req)
         const { blockedUserIds } = await getHiddenIds(viewer?.id)
         const localIds = paginatedResponses
           .filter((response) => isOurThreadSteadInstance(response.uri))

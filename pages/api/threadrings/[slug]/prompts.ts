@@ -1,173 +1,84 @@
-import type { NextApiRequest, NextApiResponse } from 'next'
-import { getSessionUser } from '@/lib/auth/server'
-import { createPromptService } from '@/lib/utils/data/prompt-service'
-import { withThreadRingSupport } from '@/lib/api/ringhub/ringhub-middleware'
-import { withCsrfProtection } from "@/lib/server/http/csrf";
-import { withRateLimit } from "@/lib/server/http/rate-limit";
+import { z } from 'zod'
+import { apiHandler, ApiError } from '@/lib/api/handler'
+import { rateLimitCheck } from '@/lib/server/http/rate-limit'
+import { createPromptService, promptFeedReader } from '@/lib/utils/data/prompt-service'
+import { hubWriteError, requireRingAs } from '@/lib/domain/threadrings/ring-access'
+import type { PromptPostRefMetadata, ThreadRingPostRef } from '@/types/threadrings'
 
-export default withRateLimit('threadring_operations')(
-  withCsrfProtection(
-    withThreadRingSupport(async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse,
-  system: 'ringhub' | 'local'
-) {
-  const { slug } = req.query
+const schema = z.object({
+  title: z.string().trim().min(1, 'Give the prompt a title').max(200, 'The title must be 200 characters or less'),
+  description: z.string().trim().min(1, 'Say what the prompt asks').max(1000, 'The description must be 1000 characters or less'),
+  endsAt: z.string().datetime({ offset: true, local: true }).nullish(),
+  isActive: z.boolean().optional(),
+  isPinned: z.boolean().optional(),
+})
 
-  if (typeof slug !== 'string') {
-    return res.status(400).json({ error: 'Invalid slug parameter' })
+/** A prompt PostRef in the shape the prompt components read. */
+function promptView(postRef: ThreadRingPostRef, responseCount: number) {
+  const prompt = (postRef.metadata as PromptPostRefMetadata).prompt
+  return {
+    id: prompt.promptId,
+    title: prompt.title,
+    description: prompt.description,
+    startsAt: prompt.startsAt,
+    endsAt: prompt.endsAt,
+    isActive: prompt.isActive,
+    isPinned: prompt.isPinned,
+    responseCount,
+    createdById: prompt.createdById,
+    createdBy: { id: prompt.createdBy, handles: [], profile: { displayName: null } },
+    createdAt: postRef.submittedAt,
+    updatedAt: postRef.submittedAt,
   }
+}
 
-  const viewer = await getSessionUser(req)
-
-  // Ring Hub system - use PostRef-based prompts
-  if (system === 'ringhub') {
-    const promptService = createPromptService(slug)
+/**
+ * A ring's prompts: PostRefs in its Ring Hub feed.
+ *   GET   the active ones (?includeInactive=true for all), read as the viewer
+ *         so a private ring's members see them.
+ *   POST  a new prompt, posted as the viewer: the Host and moderators only.
+ */
+export default apiHandler(
+  { methods: ['GET', 'POST'], auth: 'optional' },
+  async (req, res, { user }) => {
+    const slug = req.query.slug
+    if (typeof slug !== 'string') throw new ApiError(400, 'Invalid slug')
 
     if (req.method === 'GET') {
-      try {  
-        const prompts = await promptService.getPrompts({
-          includeInactive: false,
-          includePinned: true,
-          limit: 50
-        })
-
-        // Transform to match old API format for frontend compatibility
-        const response = prompts.map(postRef => {
-          if (postRef.metadata?.type !== 'threadring_prompt') {
-            return null
-          }
-
-          const promptMeta = postRef.metadata.prompt
-          
-          return {
-            id: promptMeta.promptId,
-            title: promptMeta.title,
-            description: promptMeta.description,
-            startsAt: promptMeta.startsAt,
-            endsAt: promptMeta.endsAt,
-            isActive: promptMeta.isActive,
-            isPinned: promptMeta.isPinned,
-            responseCount: 0, // Will be calculated dynamically below
-            createdById: promptMeta.createdById,
-            createdBy: {
-              id: promptMeta.createdBy,
-              // Note: DID-based user info would need resolution
-              handles: [],
-              profile: { displayName: null }
-            },
-            createdAt: postRef.submittedAt,
-            updatedAt: postRef.submittedAt
-          }
-        }).filter(Boolean)
-
-        // Calculate actual response counts dynamically for each prompt
-        for (const prompt of response) {
-          if (!prompt) continue; // Skip null entries
-          try {
-            const responses = await promptService.getPromptResponses(prompt.id);
-            const actualCount = responses.length;
-            prompt.responseCount = actualCount;
-          } catch (error) {
-            console.log(`⚠️ Could not get response count for prompt ${prompt.id}, keeping 0`);
-          }
-        }
-        
-        // Prevent caching of prompt data
-        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
-        res.setHeader('Pragma', 'no-cache');
-        res.setHeader('Expires', '0');
-        
-        return res.status(200).json(response)
+      const service = createPromptService(slug, await promptFeedReader(user?.id))
+      let prompts
+      try {
+        prompts = await service.getPrompts({ includeInactive: req.query.includeInactive === 'true', includePinned: true })
       } catch (error) {
         console.error('Error fetching prompts:', error)
-        return res.status(500).json({ error: 'Failed to fetch prompts' })
+        throw new ApiError(503, "We can't reach Ring Hub right now. Try again in a minute.")
       }
+      // One feed read covers the responses too
+      const counts = await Promise.all(prompts.map((p) => service.getPromptResponses((p.metadata as PromptPostRefMetadata).prompt.promptId)))
+      res.setHeader('Cache-Control', 'no-store')
+      return res.json(prompts.map((p, i) => promptView(p, counts[i].length)))
     }
 
-    if (req.method === 'POST') {
-      // Create a new prompt
-      if (!viewer) {
-        return res.status(401).json({ error: 'Authentication required' })
-      }
+    if (!user) throw new ApiError(401, 'Authentication required')
+    // Writes only: reading prompts shouldn't spend the write budget
+    if (!(await rateLimitCheck(req, res, 'threadring_operations', user.id))) return
+    const body = schema.parse(req.body ?? {})
+    const access = await requireRingAs(user, slug)
+    if (!access.isSteward) throw new ApiError(403, 'Only the Host and moderators can post prompts.')
 
-      try {
-        const { title, description, endsAt, isActive, isPinned } = req.body
-
-        // Validate input
-        if (!title || typeof title !== 'string' || title.trim().length === 0) {
-          return res.status(400).json({ error: 'Title is required' })
-        }
-
-        if (!description || typeof description !== 'string' || description.trim().length === 0) {
-          return res.status(400).json({ error: 'Description is required' })
-        }
-
-        if (title.length > 200) {
-          return res.status(400).json({ error: 'Title must be 200 characters or less' })
-        }
-
-        if (description.length > 1000) {
-          return res.status(400).json({ error: 'Description must be 1000 characters or less' })
-        }
-
-        // TODO: Check if user is curator/moderator of the ring
-        // This would require checking Ring Hub membership
-
-        const promptData = {
-          title: title.trim(),
-          description: description.trim(),
-          startsAt: new Date(),
-          endsAt: endsAt ? new Date(endsAt) : undefined,
-          isActive: isActive ?? true,
-          isPinned: isPinned ?? false
-        }
-
-        const prompt = await promptService.createPrompt(viewer.id, promptData)
-
-        // Transform response to match old API format
-        if (prompt.metadata?.type === 'threadring_prompt') {
-          const promptMeta = prompt.metadata.prompt
-          
-          const response = {
-            id: promptMeta.promptId,
-            title: promptMeta.title,
-            description: promptMeta.description,
-            startsAt: promptMeta.startsAt,
-            endsAt: promptMeta.endsAt,
-            isActive: promptMeta.isActive,
-            isPinned: promptMeta.isPinned,
-            responseCount: promptMeta.responseCount,
-            createdById: promptMeta.createdById,
-            createdBy: {
-              id: promptMeta.createdBy,
-              handles: [],
-              profile: { displayName: null }
-            },
-            createdAt: prompt.submittedAt,
-            updatedAt: prompt.submittedAt
-          }
-
-          return res.status(201).json(response)
-        }
-
-        return res.status(500).json({ error: 'Failed to create prompt' })
-      } catch (error) {
-        console.error('Error creating prompt:', error)
-        
-        if (error instanceof Error && error.message.includes('Ring Hub')) {
-          return res.status(400).json({ error: error.message })
-        }
-        
-        return res.status(500).json({ error: 'Failed to create prompt' })
-      }
+    let prompt
+    try {
+      prompt = await createPromptService(slug).createPrompt(user.id, {
+        title: body.title,
+        description: body.description,
+        startsAt: new Date(),
+        endsAt: body.endsAt ? new Date(body.endsAt) : undefined,
+        isActive: body.isActive ?? true,
+        isPinned: body.isPinned ?? false,
+      })
+    } catch (error) {
+      throw hubWriteError(error)
     }
-
-    return res.status(405).json({ error: 'Method not allowed' })
+    res.status(201).json(promptView(prompt, 0))
   }
-
-  // Local system fallback (deprecated)
-  return res.status(404).json({ error: 'Local prompt system no longer supported' })
-    })
-  )
 )

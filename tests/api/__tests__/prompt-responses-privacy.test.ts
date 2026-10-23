@@ -19,6 +19,7 @@ jest.mock('@/lib/api/ringhub/ringhub-middleware', () => ({
   withThreadRingSupport: (handler: any) => (req: any, res: any) => handler(req, res, 'ringhub'),
 }))
 jest.mock('@/lib/utils/data/prompt-service', () => ({
+  promptFeedReader: async () => null,
   createPromptService: () => ({
     getPromptDetails: async () => ({ prompt: { id: 'p1' } }),
     getPromptResponses: (...a: unknown[]) => mockResponses(...a),
