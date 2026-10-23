@@ -137,25 +137,20 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   // ThreadRing associations cannot be updated after post creation
   // They are set during initial post creation and are immutable
 
-  // Propagate the edited content to Ring Hub so hub-driven feeds/discovery show
-  // the updated title/preview/excerpt instead of the original snapshot.
+  // Propagate the edit to Ring Hub. Re-submitting the same uri as its author
+  // updates the PostRef's metadata (the hub's /trp/submit edit path), keyed on
+  // the canonical post URI, so we reuse create.ts's buildPostUri and preview
+  // helpers to keep the URI and metadata shape the same.
   //
-  // Ring Hub has NO dedicated post-update/re-curate endpoint: curatePost only
-  // does moderation actions (accept/reject/pin/unpin/remove) with no metadata,
-  // and there is no PUT for a PostRef. The submit endpoint (/trp/submit) is the
-  // only way to push post metadata, and it is keyed on the canonical post URI
-  // (which is deterministic per post) — so re-submitting the same uri/digest
-  // with fresh metadata refreshes the existing PostRef. We reuse the EXACT
-  // buildPostUri/generateTextPreview/generateExcerpt logic create.ts uses so
-  // the URI matches and the metadata shape stays consistent.
+  // Hub metadata is served to anyone, so a post that isn't public sends none
+  // of its words: its title, preview and journal fields are blanked, and the
+  // PostRef stays in its rings as a bare link (the post page says it's
+  // private). Making it public again sends them back. Taking it out of its
+  // rings instead would be for good: the hub keeps removed posts out.
   //
   // Best-effort per ring, non-fatal on failure (log, don't 500), mirroring
   // create.ts's submit loop.
-  //
-  // Only public posts are refreshed: hub PostRef metadata (title, preview) is
-  // served to anyone, so an edit to a followers/friends/private post must not
-  // reach it. The ring page hides such posts (see /api/threadrings/[slug]/posts).
-  if (featureFlags.ringhub() && updated.visibility === "public") {
+  if (featureFlags.ringhub()) {
     try {
       const threadRingPostIds = (updated.threadRingPostIds as Record<string, string>) || {};
       const ringSlugs = updated.threadRings
@@ -178,14 +173,13 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
               (ptr) => ptr.threadRing.slug === slug
             )?.threadRing;
 
-            const metadata = {
+            const shared = { platform: "blog", threadRingSlug: slug, threadRingName: membership?.name || slug };
+            const metadata = updated.visibility !== "public" ? { ...shared, title: "", textPreview: "", excerpt: "" } : {
+              ...shared,
               title: updated.title.length > 200 ? updated.title.substring(0, 197) + "..." : updated.title,
               textPreview,
               excerpt,
               publishedAt: (updated.publishedAt ?? updated.createdAt).toISOString(),
-              platform: "blog",
-              threadRingSlug: slug,
-              threadRingName: membership?.name || slug,
               threadsteadUserId: me.id,
               authorHandle: updated.author.primaryHandle,
               isSpoiler: updated.isSpoiler || false,
