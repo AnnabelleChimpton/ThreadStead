@@ -40,7 +40,7 @@ import commentsRoute from '@/pages/api/comments/[postId]'
 import guestbookRoute from '@/pages/api/guestbook/[username]'
 import bulletinRoute from '@/pages/api/bulletin'
 import musicPreferencesRoute from '@/pages/api/user/music-preferences'
-import ringBlocksRoute from '@/pages/api/threadrings/[slug]/blocks'
+import ringForkRoute from '@/pages/api/threadrings/[slug]/fork'
 
 const DAY = 24 * 60 * 60 * 1000
 let seq = 0
@@ -171,18 +171,18 @@ describe('writing while leaving', () => {
     const bulletin = () =>
       call(bulletinRoute, { method: 'POST', body: { category: 'SHARING', text: 'tea on the porch' }, cookie })
     const saveSetting = () => call(musicPreferencesRoute, { method: 'POST', body: { autoplay: false }, cookie })
-    const blocks = () => call(ringBlocksRoute, { method: 'POST', query: { slug: 'no-such-ring' }, body: {}, cookie })
+    const fork = () => call(ringForkRoute, { method: 'POST', query: { slug: 'no-such-ring' }, body: {}, cookie })
 
     expect(await bulletin()).toMatchObject({ statusCode: 403, body: leaving })
     expect(await saveSetting()).toMatchObject({ statusCode: 403, body: leaving })
-    expect(await blocks()).toMatchObject({ statusCode: 403, body: leaving })
+    expect(await fork()).toMatchObject({ statusCode: 403, body: leaving })
     expect(await db.bulletin.count()).toBe(0)
     expect(await call(musicPreferencesRoute, { cookie })).toMatchObject({ statusCode: 200, body: { autoplay: true } })
 
     await stayAfterAll(NEIGHBOR)
     expect((await bulletin()).statusCode).toBe(201)
     expect(await saveSetting()).toMatchObject({ statusCode: 200, body: { autoplay: false } })
-    expect(await blocks()).toMatchObject({ statusCode: 404, body: { error: 'ThreadRing not found' } })
+    expect(await fork()).toMatchObject({ statusCode: 400, body: { error: 'ThreadRing name is required' } })
   })
 
   it('a capability write says the account is set to be deleted and how to stay, not "not logged in"', async () => {
