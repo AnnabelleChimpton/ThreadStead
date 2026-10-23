@@ -508,6 +508,15 @@ describe('aggregated feeds + memberships (audit 0.5: stripped metadata, null →
     expect(feed.posts.find((p) => p.uri === FORK_NOTE_URI)?.metadata).toMatchObject(forkNoteMetadata)
   })
 
+  test('includeNotifications=false leaves out fork notices, not ordinary posts', async () => {
+    // The client never sends false (ringhub-client.ts): this hub's filter
+    // dropped every post whose metadata had no `type`, which is most of them
+    const feed = await (client as any).get('/trp/trending/feed?timeWindow=hour&limit=50&includeNotifications=false')
+    const uris = (feed.posts as Array<{ uri: string }>).map((p) => p.uri)
+    expect(uris).toContain(POST_URI)
+    expect(uris).not.toContain(FORK_NOTE_URI)
+  })
+
   test('getMyMemberships sends real values and null — never "" for missing ones', async () => {
     // A ring with no description, owned by the test actor (rings are created
     // by forking the spool, as ringhub-user-operations.createRing does).
