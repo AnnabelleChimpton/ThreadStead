@@ -137,7 +137,8 @@ export default async function handler(
         const resolvedMembers = await transformRingMembersBatchWithUserResolution(
           membersResponse.members || [],
           slug as string,
-          db
+          db,
+          viewer.id
         )
 
         const transformedMembers = resolvedMembers.map(resolvedMember => ({

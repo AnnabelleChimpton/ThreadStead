@@ -414,7 +414,8 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
             const resolvedMembers = await transformRingMembersBatchWithUserResolution(
               ringHubMembers.members,
               slug as string,
-              db
+              db,
+              viewer?.id ?? null
             )
 
             const members = resolvedMembers.map((transformedMember) => ({

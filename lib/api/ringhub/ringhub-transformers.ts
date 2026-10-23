@@ -289,15 +289,23 @@ export async function transformRingMemberWithUserResolution(
  *
  * Behavior matches transformRingMemberWithUserResolution on the happy path
  * (same display-name fallbacks and handle extraction).
+ *
+ * Residents who are suspended, banned or leaving, and anyone the viewer
+ * blocks or is blocked by, are left out, as every other list of residents
+ * does: the hub knows nothing of local moderation. The viewer always sees
+ * themselves, since their own role is read from this list.
  */
 export async function transformRingMembersBatchWithUserResolution(
   members: RingMember[],
   threadRingId: string,
-  db: any // Import from lib/db
+  db: any, // Import from lib/db
+  viewerId: string | null = null
 ): Promise<ThreadRingMember[]> {
   if (members.length === 0) return []
 
   const { mapDIDsToUserIds } = await import('../did/server-did-client')
+  const { getHiddenIds } = await import('@/lib/domain/users/blocks')
+  const hidden = new Set((await getHiddenIds(viewerId)).blockedUserIds)
 
   // 1. One bulk DID -> userId map for all members.
   const dids = [...new Set(members.map(m => m.actorDid))]
@@ -324,7 +332,11 @@ export async function transformRingMembersBatchWithUserResolution(
   }
 
   // 3. Assemble each member in memory (no per-item DB calls).
-  return members.map(member => {
+  const shown = members.filter((member) => {
+    const userId = didToUserId.get(member.actorDid)
+    return !userId || userId === viewerId || !hidden.has(userId)
+  })
+  return shown.map(member => {
     const resolvedUserId = didToUserId.get(member.actorDid) || null
     const threadSteadUser = resolvedUserId ? usersById.get(resolvedUserId) : null
 
