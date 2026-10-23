@@ -91,12 +91,9 @@ export default function ProfileBadges(props: ProfileBadgesProps) {
       title={`Member of ${badge.threadRing?.name || 'ThreadRing'}`}
     >
       <ThreadRing88x31Badge
+        slug={badge.threadRing?.slug}
         title={badge.title}
-        subtitle={badge.subtitle}
         imageUrl={badge.imageUrl}
-        templateId={badge.templateId}
-        backgroundColor={badge.backgroundColor}
-        textColor={badge.textColor}
       />
     </div>
   ));

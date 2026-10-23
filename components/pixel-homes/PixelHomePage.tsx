@@ -329,9 +329,8 @@ export default function PixelHomePage({
                 className="ts-card-link block"
               >
                 <ThreadRing88x31Badge
+                  slug={badge.threadRing.slug}
                   title={badge.title}
-                  backgroundColor={badge.backgroundColor}
-                  textColor={badge.textColor}
                   imageUrl={badge.imageUrl}
                 />
               </Link>

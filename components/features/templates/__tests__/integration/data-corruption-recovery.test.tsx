@@ -156,7 +156,7 @@ describe('Data Corruption & Recovery Integration', () => {
 
       // Valid data should still render where possible
       expect(screen.getByText('Valid Website')).toBeInTheDocument();
-      expect(screen.getByText('Valid Badge')).toBeInTheDocument();
+      expect(screen.getByRole('img', { name: 'Valid Badge ThreadRing Badge' })).toBeInTheDocument();
     });
 
     it('should handle undefined and null ResidentData gracefully', () => {

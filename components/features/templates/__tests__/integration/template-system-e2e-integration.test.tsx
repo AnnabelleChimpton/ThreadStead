@@ -365,7 +365,8 @@ describe('Template System End-to-End Integration', () => {
       expect(container.querySelector('[data-post-id="comp1"]')).toBeInTheDocument();
       // Note: Guestbook component uses OriginalGuestbook which fetches data independently, not using mock data
       expect(screen.getByText('My Website')).toBeInTheDocument();
-      expect(screen.getByText('Early Adopter')).toBeInTheDocument();
+      // Drawn as pixels, not text: no image of its own, so the default badge
+      expect(screen.getByRole('img', { name: 'Early Adopter ThreadRing Badge' })).toBeInTheDocument();
     });
 
     it('should handle error cases gracefully without crashing', () => {

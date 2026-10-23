@@ -79,11 +79,9 @@ function SpoolLandingPage({ ring, siteConfig }: { ring: RingPageRing; siteConfig
                       title="Click to show copy options"
                     >
                       <ThreadRing88x31Badge
-                        templateId={ring.badge.templateId ?? undefined}
+                        themeColor={ring.themeColor}
+                        slug={ring.slug}
                         title={ring.badge.title}
-                        subtitle={ring.badge.subtitle ?? undefined}
-                        backgroundColor={ring.badge.backgroundColor}
-                        textColor={ring.badge.textColor}
                         imageUrl={ring.badge.imageUrl ?? undefined}
                       />
                     </div>
@@ -404,11 +402,9 @@ function RingPage({ siteConfig, ring, cameFrom }: { siteConfig: SiteConfig; ring
                   {ring.badge && ring.badge.isActive && (
                     <div className="flex-shrink-0">
                       <ThreadRing88x31Badge
-                        templateId={ring.badge.templateId ?? undefined}
+                        themeColor={ring.themeColor}
+                        slug={ring.slug}
                         title={ring.badge.title}
-                        subtitle={ring.badge.subtitle ?? undefined}
-                        backgroundColor={ring.badge.backgroundColor}
-                        textColor={ring.badge.textColor}
                         imageUrl={ring.badge.imageUrl ?? undefined}
                       />
                     </div>

@@ -144,12 +144,9 @@ function UserBadgesPage({
                       {/* Badge Display */}
                       <div className="flex justify-center mb-4">
                         <ThreadRing88x31Badge
+                          slug={badge.threadRing.slug}
                           title={badge.title}
-                          subtitle={badge.subtitle}
                           imageUrl={badge.imageUrl}
-                          templateId={badge.templateId}
-                          backgroundColor={badge.backgroundColor}
-                          textColor={badge.textColor}
                           className="transform hover:scale-105 transition-transform"
                         />
                       </div>

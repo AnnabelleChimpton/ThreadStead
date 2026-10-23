@@ -100,12 +100,9 @@ export default function ProfileBadgeDisplay({
       title={`Member of ${badge.threadRing.name}`}
     >
       <ThreadRing88x31Badge
+        slug={badge.threadRing.slug}
         title={badge.title}
-        subtitle={badge.subtitle}
         imageUrl={badge.imageUrl}
-        templateId={badge.templateId}
-        backgroundColor={badge.backgroundColor}
-        textColor={badge.textColor}
       />
     </Link>
   ))

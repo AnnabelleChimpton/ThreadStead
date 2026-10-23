@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/router";
 import BadgeSelector from "../../shared/BadgeSelector";
+import { autoPalette, type BadgeChoice } from "@/lib/rings/badge-art";
 import { useToast } from "@/contexts/ToastContext";
 import { PixelIcon } from "@/components/ui/PixelIcon";
 import { validateThreadRingName } from "@/lib/domain/validation";
@@ -108,13 +109,8 @@ export default function ForkThreadRingForm({
       type: 'error' as const
     };
   }, []);
-  const [badgeData, setBadgeData] = useState<{
-    templateId?: string;
-    backgroundColor?: string;
-    textColor?: string;
-    title?: string;
-    subtitle?: string;
-  }>({ templateId: 'classic_blue' });
+  // Anything not picked is the default badge
+  const [badgeData, setBadgeData] = useState<Partial<BadgeChoice>>({});
 
   // Slug validation state
   const [slugStatus, setSlugStatus] = useState<{
@@ -446,12 +442,9 @@ export default function ForkThreadRingForm({
 
         {/* Badge Selection */}
         <div>
-          <BadgeSelector
-            threadRingName={formData.name}
-            onBadgeChange={setBadgeData}
-            initialBadge={badgeData}
-            compact={true}
-          />
+          <h3 className="block text-sm font-medium mb-2">Badge</h3>
+          {/* A new ring has no theme colour yet, so its slug picks the badge's */}
+          <BadgeSelector value={badgeData} onChange={setBadgeData} name={formData.name} slug={formData.slug} palette={autoPalette(formData.slug)} />
         </div>
 
         {/* Error */}

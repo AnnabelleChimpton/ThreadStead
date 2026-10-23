@@ -279,12 +279,9 @@ export default function ProfileBadgeSelector({ onSave, className = '' }: Profile
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center space-x-4">
                         <ThreadRing88x31Badge
+                          slug={badge.threadRingSlug}
                           title={badge.badge.title}
-                          subtitle={badge.badge.subtitle}
                           imageUrl={badge.badge.imageUrl}
-                          templateId={badge.badge.templateId}
-                          backgroundColor={badge.badge.backgroundColor}
-                          textColor={badge.badge.textColor}
                           className="flex-shrink-0"
                         />
                         <div className="flex-1 min-w-0">

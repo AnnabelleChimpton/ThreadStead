@@ -89,11 +89,8 @@ export default function ThreadRingCard({
           {hasBadge && (
             <div className="mt-2 mb-2">
               <ThreadRing88x31Badge
+                slug={threadRing.slug}
                 title={threadRing.badge?.title || threadRing.name}
-                subtitle={threadRing.badge?.subtitle || undefined}
-                templateId={threadRing.badge?.templateId || undefined}
-                backgroundColor={threadRing.badge?.backgroundColor}
-                textColor={threadRing.badge?.textColor}
                 imageUrl={badgeImageUrl || undefined}
                 linkUrl={`/tr/${threadRing.slug}`}
               />

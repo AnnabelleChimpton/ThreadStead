@@ -1,160 +1,47 @@
 import React from 'react';
-import { getBadgeTemplate, generateBadgeCSS } from '@/lib/domain/threadrings/badges';
+import { badgeDesignFor } from '@/lib/rings/badge-art';
+import { ringBadgePalette } from '@/lib/rings/theme';
+import RingBadgeArt from './RingBadgeArt';
 
 interface ThreadRing88x31BadgeProps {
-  templateId?: string;
   title: string;
-  subtitle?: string;
-  backgroundColor?: string;
-  textColor?: string;
+  slug?: string;
+  /** The ring's theme colour: the default badge is in its palette (else the slug picks one) */
+  themeColor?: string | null;
   imageUrl?: string;
   linkUrl?: string;
   className?: string;
   onClick?: () => void;
 }
 
-export default function ThreadRing88x31Badge({
-  templateId,
-  title,
-  subtitle,
-  backgroundColor,
-  textColor,
-  imageUrl,
-  linkUrl,
-  className = '',
-  onClick
-}: ThreadRing88x31BadgeProps) {
-  // If we have a custom image, use that
-  if (imageUrl) {
-    const BadgeElement = linkUrl ? 'a' : 'div';
-    const props = linkUrl ? {
-      href: linkUrl,
-      target: '_blank',
-      rel: 'noopener noreferrer'
-    } : {};
+/** A ring's 88×31: its badge image, or the default badge when it has none. */
+export default function ThreadRing88x31Badge({ title, slug, themeColor, imageUrl, linkUrl, className = '', onClick }: ThreadRing88x31BadgeProps) {
+  const BadgeElement = linkUrl ? 'a' : 'div';
+  const linkProps = linkUrl ? { href: linkUrl, target: '_blank', rel: 'noopener noreferrer' } : {};
+  const alt = `${title} ThreadRing Badge`;
 
-    return (
-      <BadgeElement
-        {...props}
-        className={`inline-block cursor-pointer ${className}`}
-        onClick={onClick}
-        style={{ width: '88px', height: '31px' }}
-      >
+  return (
+    <BadgeElement
+      {...linkProps}
+      className={`inline-block cursor-pointer ${className}`}
+      onClick={onClick}
+      style={{ width: '88px', height: '31px' }}
+    >
+      {imageUrl ? (
         <img
           src={imageUrl}
-          alt={`${title} ThreadRing Badge`}
+          alt={alt}
           width={88}
           height={31}
           className="threadring-badge-image"
           style={{ imageRendering: 'pixelated' }}
         />
-      </BadgeElement>
-    );
-  }
-
-  // Use template or custom colors
-  let template;
-  if (templateId) {
-    template = getBadgeTemplate(templateId);
-    if (!template) {
-      console.warn(`Badge template '${templateId}' not found, available templates:`, 
-        ['classic_blue', 'retro_green', 'neon_pink', 'sunset_orange', 'deep_purple', 'matrix_black', 'cyber_teal', 'golden_yellow']);
-      console.warn('Using default colors instead');
-    }
-  }
-
-  // If no template found, create a basic one with provided colors or defaults
-  if (!template) {
-    template = {
-      id: 'custom',
-      name: 'Custom',
-      description: 'Custom badge',
-      backgroundColor: backgroundColor || '#4A90E2',
-      textColor: textColor || '#FFFFFF',
-      textStyle: {
-        fontSize: '10px',
-        fontWeight: 'bold',
-        fontFamily: 'Arial, sans-serif'
-      }
-    };
-  }
-
-  const BadgeElement = linkUrl ? 'a' : 'div';
-  const linkProps = linkUrl ? {
-    href: linkUrl,
-    target: '_blank',
-    rel: 'noopener noreferrer'
-  } : {};
-
-  const badgeStyle: React.CSSProperties = {
-    width: '88px',
-    height: '31px',
-    minWidth: '88px',
-    minHeight: '31px',
-    maxWidth: '88px',
-    maxHeight: '31px',
-    background: template.gradient 
-      ? `linear-gradient(${
-          template.gradient.direction === 'vertical' ? 'to bottom' :
-          template.gradient.direction === 'diagonal' ? 'to bottom right' :
-          'to right'
-        }, ${template.gradient.from}, ${template.gradient.to})`
-      : template.backgroundColor,
-    color: template.textColor,
-    border: 'none',
-    fontFamily: template.textStyle?.fontFamily || 'Arial, sans-serif',
-    fontSize: subtitle ? '8px' : (template.textStyle?.fontSize || '10px'),
-    fontWeight: template.textStyle?.fontWeight || 'bold',
-    textShadow: template.textStyle?.textShadow || 'none',
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    alignItems: 'center',
-    textAlign: 'center',
-    lineHeight: 1,
-    boxSizing: 'border-box',
-    textDecoration: 'none',
-    overflow: 'hidden',
-    position: 'relative'
-  };
-
-  return (
-    <BadgeElement
-      {...linkProps}
-      style={badgeStyle}
-      className={`inline-block cursor-pointer transition-all duration-200 hover:opacity-90 ${className}`}
-      onClick={onClick}
-    >
-      <div 
-        style={{ 
-          fontSize: subtitle ? '8px' : (template.textStyle?.fontSize || '10px'),
-          lineHeight: 1,
-          margin: 0,
-          padding: 0,
-          maxWidth: '86px',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap'
-        }}
-      >
-        {title}
-      </div>
-      {subtitle && (
-        <div 
-          style={{ 
-            fontSize: '7px',
-            lineHeight: 1,
-            margin: 0,
-            padding: 0,
-            maxWidth: '86px',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            opacity: 0.9
-          }}
-        >
-          {subtitle}
-        </div>
+      ) : (
+        <RingBadgeArt
+          design={badgeDesignFor({}, title || '', ringBadgePalette(themeColor, slug || title || ''))}
+          slug={slug || ''}
+          label={alt}
+        />
       )}
     </BadgeElement>
   );

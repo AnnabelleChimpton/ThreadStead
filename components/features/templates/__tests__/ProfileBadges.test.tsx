@@ -19,10 +19,10 @@ jest.mock('@/components/ui/PixelIcon', () => ({
 
 // Mock the ThreadRing88x31Badge component
 jest.mock('../../../core/threadring/ThreadRing88x31Badge', () => {
-  return function MockThreadRing88x31Badge({ title, subtitle, className }: any) {
+  return function MockThreadRing88x31Badge({ title, slug, className }: any) {
     return (
       <div className={`mock-badge ${className}`} data-testid="mock-badge">
-        {title} - {subtitle}
+        {title} - {slug}
       </div>
     );
   };
@@ -211,9 +211,9 @@ describe('ProfileBadges Component', () => {
       );
       
       const badges = screen.getAllByTestId('mock-badge');
-      expect(badges[0]).toHaveTextContent('Contributor - Active Member');
-      expect(badges[1]).toHaveTextContent('Creator - Original Content');
-      expect(badges[5]).toHaveTextContent('Helper - Always Available');
+      expect(badges[0]).toHaveTextContent('Contributor - tech-community');
+      expect(badges[1]).toHaveTextContent('Creator - art-circle');
+      expect(badges[5]).toHaveTextContent('Helper - support-network');
     });
 
     it('should pass correct props to ThreadRing88x31Badge', () => {
@@ -223,7 +223,7 @@ describe('ProfileBadges Component', () => {
       );
       
       const badge = screen.getByTestId('mock-badge');
-      expect(badge).toHaveTextContent('Contributor - Active Member');
+      expect(badge).toHaveTextContent('Contributor - tech-community');
     });
 
     it('should show indicator for additional badges', () => {
@@ -585,7 +585,7 @@ describe('ProfileBadges Component', () => {
         { residentData: createMockResidentData({ badges: [specialBadge] }) }
       );
       
-      expect(screen.getByText('Special & Badge (2024) "Test" - With symbols! 🎉')).toBeInTheDocument();
+      expect(screen.getByText('Special & Badge (2024) "Test" - tech-community')).toBeInTheDocument();
     });
 
     it('should handle null/undefined owner', () => {

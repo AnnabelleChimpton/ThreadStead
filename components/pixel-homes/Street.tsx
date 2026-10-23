@@ -44,12 +44,11 @@ function RingSignpost({ sign }: { sign: RingSign }) {
     <li className="ts-street-stop" aria-label={`${sign.name}, a ThreadRing`}>
       <span className="ts-street-stop-yard">
         <a href={`/tr/${encodeURIComponent(sign.slug)}`} className="ts-street-stop-board" title={sign.name}>
-          {/* A ring with no badge of its own gets one in the site's pine and cream */}
+          {/* A ring with no badge of its own gets the default one */}
           <ThreadRing88x31Badge
+            slug={sign.slug}
             title={sign.name}
             imageUrl={sign.badgeImageUrl ?? undefined}
-            backgroundColor="#2E4B3F"
-            textColor="#F5E9D4"
           />
         </a>
         <span className="ts-street-stop-post" aria-hidden="true" />

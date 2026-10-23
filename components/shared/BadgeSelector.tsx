@@ -1,295 +1,115 @@
-import React, { useState, useEffect } from 'react';
-import { BADGE_TEMPLATES } from '@/lib/domain/threadrings/badges';
-import ThreadRing88x31Badge from '../core/threadring/ThreadRing88x31Badge';
+import React from 'react';
+import RingBadgeArt from '@/components/core/threadring/RingBadgeArt';
+import {
+  BADGE_GLYPH_IDS,
+  BADGE_PALETTES,
+  BADGE_TEMPLATE_IDS,
+  badgeDesignFor,
+  glyphPixels,
+  type BadgeChoice,
+  type BadgePaletteId,
+} from '@/lib/rings/badge-art';
 
 interface BadgeSelectorProps {
-  threadRingName: string;
-  onBadgeChange: (badgeData: {
-    templateId?: string;
-    backgroundColor?: string;
-    textColor?: string;
-    title?: string;
-    subtitle?: string;
-  }) => void;
-  initialBadge?: {
-    templateId?: string;
-    backgroundColor?: string;
-    textColor?: string;
-    title?: string;
-    subtitle?: string;
-  };
-  compact?: boolean;
+  /** What's been picked; anything left out is the default badge's */
+  value: Partial<BadgeChoice>;
+  onChange: (value: Partial<BadgeChoice>) => void;
+  /** The ring's name, which the badge says unless other words are typed */
+  name: string;
+  slug: string;
+  /** The ring's colour (lib/rings/theme.ts ringBadgePalette); it's chosen with the ring, not here */
+  palette: BadgePaletteId;
 }
 
-export default function BadgeSelector({
-  threadRingName,
-  onBadgeChange,
-  initialBadge,
-  compact = false
-}: BadgeSelectorProps) {
-  const [selectedTemplate, setSelectedTemplate] = useState<string | undefined>(
-    initialBadge?.templateId || 'classic_blue'
+const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+// ts-bare: out of the site CSS's button bevel, so the tile and its outline show
+function Tile({ selected, onClick, title, className, children }: {
+  selected: boolean;
+  onClick: () => void;
+  title?: string;
+  className: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={selected}
+      title={title}
+      className={`ts-bare ${selected ? 'outline outline-2 outline-offset-2 outline-black' : ''}`}
+    >
+      <span className={`flex border border-black bg-white p-1 text-xs ${className}`}>{children}</span>
+    </button>
   );
-  const [customColors, setCustomColors] = useState({
-    backgroundColor: initialBadge?.backgroundColor || '#4A90E2',
-    textColor: initialBadge?.textColor || '#FFFFFF'
-  });
-  const [badgeText, setBadgeText] = useState({
-    title: initialBadge?.title || threadRingName,
-    subtitle: initialBadge?.subtitle || ''
-  });
-  const [mode, setMode] = useState<'template' | 'custom'>('template');
-  const [hasUserEditedTitle, setHasUserEditedTitle] = useState(false);
+}
 
-  // Update badge text when threadRingName changes (unless user has manually edited it)
-  useEffect(() => {
-    if (!hasUserEditedTitle) {
-      setBadgeText(prev => ({
-        ...prev,
-        title: threadRingName || ''
-      }));
-    }
-  }, [threadRingName, hasUserEditedTitle]);
+/**
+ * A ring badge's choices: style, picture and words, with the badge
+ * drawn as it will be saved, at 1× and 2×. The fork form and the badge
+ * designer both use it.
+ */
+export default function BadgeSelector({ value, onChange, name, slug, palette: paletteId }: BadgeSelectorProps) {
+  const design = badgeDesignFor(value, name || 'ThreadRing', paletteId);
+  const palette = BADGE_PALETTES[paletteId];
+  const pick = (patch: Partial<BadgeChoice>) => onChange({ ...value, ...patch });
 
-  // Notify parent of changes
-  useEffect(() => {
-    if (mode === 'template' && selectedTemplate) {
-      onBadgeChange({
-        templateId: selectedTemplate,
-        title: badgeText.title,
-        subtitle: badgeText.subtitle
-      });
-    } else {
-      onBadgeChange({
-        backgroundColor: customColors.backgroundColor,
-        textColor: customColors.textColor,
-        title: badgeText.title,
-        subtitle: badgeText.subtitle
-      });
-    }
-  }, [mode, selectedTemplate, customColors, badgeText, onBadgeChange]);
-
-  const handleTemplateSelect = (templateId: string) => {
-    setSelectedTemplate(templateId);
-    setMode('template');
-  };
-
-  const handleCustomColorChange = (field: 'backgroundColor' | 'textColor', value: string) => {
-    setCustomColors(prev => ({
-      ...prev,
-      [field]: value
-    }));
-    setMode('custom');
-  };
-
-  const getCurrentBadgeProps = () => {
-    // Use threadRingName as fallback if title is empty (for better preview)
-    const displayTitle = badgeText.title || threadRingName || 'ThreadRing';
-    
-    if (mode === 'template' && selectedTemplate) {
-      return {
-        templateId: selectedTemplate,
-        title: displayTitle,
-        subtitle: badgeText.subtitle
-      };
-    } else {
-      return {
-        backgroundColor: customColors.backgroundColor,
-        textColor: customColors.textColor,
-        title: displayTitle,
-        subtitle: badgeText.subtitle
-      };
-    }
-  };
-
-  if (compact) {
-    return (
-      <div className="space-y-3">
-        <div>
-          <label className="block text-sm font-medium mb-2">
-            88x31 Badge Preview:
-          </label>
-          <div className="flex items-center gap-3">
-            <ThreadRing88x31Badge {...getCurrentBadgeProps()} />
-            <div className="text-xs text-gray-600">
-              <p>Classic webring badge</p>
-              <p>Customize after creation</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Quick template selector */}
-        <div>
-          <label className="block text-sm font-medium mb-1">Style:</label>
-          <select
-            value={selectedTemplate || 'custom'}
-            onChange={(e) => {
-              if (e.target.value === 'custom') {
-                setMode('custom');
-              } else {
-                handleTemplateSelect(e.target.value);
-              }
-            }}
-            className="w-full border border-black p-2 bg-white text-sm"
-          >
-            {BADGE_TEMPLATES.map((template) => (
-              <option key={template.id} value={template.id}>
-                {template.name}
-              </option>
-            ))}
-            <option value="custom">Custom Colors</option>
-          </select>
-        </div>
-
-        {mode === 'custom' && (
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="block text-xs font-medium mb-1">Background:</label>
-              <input
-                type="color"
-                value={customColors.backgroundColor}
-                onChange={(e) => handleCustomColorChange('backgroundColor', e.target.value)}
-                className="w-full h-8 border border-gray-300 rounded"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium mb-1">Text:</label>
-              <input
-                type="color"
-                value={customColors.textColor}
-                onChange={(e) => handleCustomColorChange('textColor', e.target.value)}
-                className="w-full h-8 border border-gray-300 rounded"
-              />
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // Full badge selector
   return (
     <div className="space-y-4">
+      <div className="flex items-end gap-4 flex-wrap">
+        <RingBadgeArt design={design} slug={slug} label={`${design.text} badge`} />
+        <RingBadgeArt design={design} slug={slug} scale={2} label={`${design.text} badge, twice the size`} />
+      </div>
+
+      <fieldset>
+        <legend className="block text-sm font-medium mb-2">Style</legend>
+        <div className="flex gap-2 flex-wrap">
+          {BADGE_TEMPLATE_IDS.map((template) => (
+            <Tile key={template} selected={design.template === template} onClick={() => pick({ template })} className="flex-col items-center gap-1">
+              <RingBadgeArt design={{ ...design, template }} slug={slug} label={null} />
+              {capitalize(template)}
+            </Tile>
+          ))}
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend className="block text-sm font-medium mb-2">Picture</legend>
+        <div className="flex gap-2 flex-wrap">
+          <Tile selected={design.glyph === null} onClick={() => pick({ glyph: null })} className="w-12 h-12 items-center justify-center">
+            None
+          </Tile>
+          {BADGE_GLYPH_IDS.map((glyph) => (
+            <Tile
+              key={glyph}
+              selected={design.glyph === glyph}
+              onClick={() => pick({ glyph })}
+              title={capitalize(glyph)}
+              className="w-12 h-12 items-center justify-center"
+            >
+              <svg width={36} height={36} viewBox="-1 -1 10 10" shapeRendering="crispEdges" role="img" aria-label={capitalize(glyph)}>
+                <rect x={-1} y={-1} width={10} height={10} fill={palette.field} />
+                {glyphPixels(glyph, palette.text, palette.hi).map((p, i) => (
+                  <rect key={i} x={p.x} y={p.y} width={p.w} height={p.h} fill={p.fill} />
+                ))}
+              </svg>
+            </Tile>
+          ))}
+        </div>
+      </fieldset>
+
       <div>
-        <label className="block text-sm font-medium mb-2">
-          88x31 Webring Badge
-        </label>
-        <div className="flex items-center gap-4 mb-3">
-          <ThreadRing88x31Badge {...getCurrentBadgeProps()} />
-          <div className="text-sm text-gray-600">
-            <p>This classic webring badge will represent your ThreadRing</p>
-            <p>Members can use it to link back to your community</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Mode Selection */}
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={() => setMode('template')}
-          className={`px-3 py-2 text-sm rounded border ${
-            mode === 'template' 
-              ? 'bg-blue-500 text-white border-blue-500' 
-              : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200'
-          }`}
-        >
-          Use Template
-        </button>
-        <button
-          type="button"
-          onClick={() => setMode('custom')}
-          className={`px-3 py-2 text-sm rounded border ${
-            mode === 'custom' 
-              ? 'bg-blue-500 text-white border-blue-500' 
-              : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200'
-          }`}
-        >
-          Custom Colors
-        </button>
-      </div>
-
-      {/* Template Selection */}
-      {mode === 'template' && (
-        <div>
-          <label className="block text-sm font-medium mb-2">Choose Template:</label>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            {BADGE_TEMPLATES.map((template) => (
-              <div
-                key={template.id}
-                onClick={() => handleTemplateSelect(template.id)}
-                className={`p-1 border rounded cursor-pointer text-center transition-colors ${
-                  selectedTemplate === template.id
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-300 hover:border-gray-400'
-                }`}
-              >
-                <ThreadRing88x31Badge
-                  templateId={template.id}
-                  title={badgeText.title}
-                  subtitle={badgeText.subtitle}
-                />
-                <p className="text-xs mt-1">{template.name}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Custom Colors */}
-      {mode === 'custom' && (
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Background Color:</label>
-            <input
-              type="color"
-              value={customColors.backgroundColor}
-              onChange={(e) => handleCustomColorChange('backgroundColor', e.target.value)}
-              className="w-full h-10 border border-gray-300 rounded"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Text Color:</label>
-            <input
-              type="color"
-              value={customColors.textColor}
-              onChange={(e) => handleCustomColorChange('textColor', e.target.value)}
-              className="w-full h-10 border border-gray-300 rounded"
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Badge Text Customization */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium mb-1">Badge Title:</label>
-          <input
-            type="text"
-            placeholder={threadRingName}
-            maxLength={15}
-            value={badgeText.title}
-            onChange={(e) => {
-              setBadgeText(prev => ({ ...prev, title: e.target.value }));
-              // If user clears the field, let it sync with threadRingName again
-              setHasUserEditedTitle(e.target.value !== '');
-            }}
-            className="w-full px-3 py-2 border border-gray-300 rounded"
-          />
-          <p className="text-xs text-gray-500 mt-1">Max 15 characters</p>
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Subtitle (optional):</label>
-          <input
-            type="text"
-            placeholder="@threadring"
-            maxLength={12}
-            value={badgeText.subtitle}
-            onChange={(e) => setBadgeText(prev => ({ ...prev, subtitle: e.target.value }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded"
-          />
-          <p className="text-xs text-gray-500 mt-1">Max 12 characters</p>
-        </div>
+        <label htmlFor="badge-text" className="block text-sm font-medium mb-2">Badge text</label>
+        <input
+          id="badge-text"
+          type="text"
+          placeholder={name}
+          maxLength={100}
+          value={value.text ?? ''}
+          onChange={(e) => pick({ text: e.target.value })}
+          className="w-full border border-black p-2 bg-white focus:outline-none focus:shadow-[2px_2px_0_#000]"
+        />
+        <p className="text-xs text-gray-600 mt-1">Leave it empty to use the ring&apos;s name.</p>
       </div>
     </div>
   );

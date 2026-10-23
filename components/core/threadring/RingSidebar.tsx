@@ -77,11 +77,9 @@ export default function RingSidebar({ ring, viewer, signedIn, lineage, onGetStri
               title="Ways to share this ring"
             >
               <ThreadRing88x31Badge
-                templateId={badge.templateId ?? undefined}
+                themeColor={ring.themeColor}
+                slug={ring.slug}
                 title={badge.title}
-                subtitle={badge.subtitle ?? undefined}
-                backgroundColor={badge.backgroundColor}
-                textColor={badge.textColor}
                 imageUrl={badge.imageUrl ?? undefined}
               />
             </div>
