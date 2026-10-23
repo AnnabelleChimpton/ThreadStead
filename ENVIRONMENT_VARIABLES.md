@@ -86,8 +86,8 @@ Unset, the branding falls back to "YourSiteHere". Set `SITE_HANDLE_DOMAIN` and `
 | `RING_HUB_TIMEOUT_MS` | — | `15000` | Per-request timeout for RingHubClient. Integer. |
 | `RINGHUB_USER_AUTH_MODE` | — | `user` | How user actions authenticate to Ring Hub. 'user' signs with each user's DID; 'server-proxy' makes every user act as the server actor — only for local debugging. One of: `user`, `server-proxy`. |
 | `RINGHUB_CONTRACT_MODE` | — | — | What to do when a hub response breaks the wire contract. Unset: warn in production, enforce elsewhere. One of: `enforce`, `warn`, `off`. |
-| `THREADSTEAD_DID` | — | — | This instance’s DID (did:web:…). Generate with scripts/setup-ring-hub-keys.ts. |
-| `THREADSTEAD_PRIVATE_KEY_B64URL` 🔒 | — | — | Ed25519 private key for the instance DID, base64url. |
+| `THREADSTEAD_DID` | required | — | This instance’s DID (did:web:…), which signs its Ring Hub requests. Generate with scripts/setup-ring-hub-keys.ts. |
+| `THREADSTEAD_PRIVATE_KEY_B64URL` 🔒 | required | — | Ed25519 private key for the instance DID, base64url. |
 | `THREADSTEAD_PUBLIC_KEY_MULTIBASE` | — | — | Public key for the instance DID, multibase. |
 | `THREADSTEAD_KEY_ENCRYPTION_KEY` 🔒 | — | — | Encrypts stored user DID keys at rest. |
 | `THREADSTEAD_DID_SALT` 🔒 | — | — | Salt for user DID hashes. NEVER change it once users exist — every user DID would change. Unset, the code hashes with the literal string 'undefined' (kept for compatibility). |

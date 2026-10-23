@@ -97,6 +97,8 @@ describe('validateEnvAtBoot', () => {
     NEXT_PUBLIC_BASE_URL: 'https://site.test',
     CAP_JWT_SECRET: 's',
     RING_HUB_URL: 'https://hub.test',
+    THREADSTEAD_DID: 'did:web:site.test',
+    THREADSTEAD_PRIVATE_KEY_B64URL: 'k',
   };
   let errorSpy: jest.SpyInstance;
   let warnSpy: jest.SpyInstance;
