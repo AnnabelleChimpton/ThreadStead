@@ -157,7 +157,7 @@ export default function ThreadRingGenealogy({
         return Math.min(Math.max(size, 4), 20);
       })
       .style("fill", d => {
-        if (d.data.id === 'the-spool' || d.data.id === 'virtual-root') return "#6366f1";
+        if (d.depth === 0) return "#6366f1";
         if (d.data.totalDescendantsCount > 10) return "#8b5cf6";
         if (d.data.totalDescendantsCount > 5) return "#ec4899";
         if (d.data.totalDescendantsCount > 0) return "#f97316";

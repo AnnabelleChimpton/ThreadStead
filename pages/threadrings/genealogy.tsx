@@ -1,15 +1,17 @@
 import Link from 'next/link';
-import { GetServerSideProps } from 'next';
+import { GetServerSideProps, NextApiRequest } from 'next';
 import ThreadRingGenealogy from '@/components/core/threadring/ThreadRingGenealogy';
 import Layout from '@/components/ui/layout/Layout';
 import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
 import PageMeta from '@/components/ui/layout/PageMeta';
+import { getSessionUser } from '@/lib/auth/server';
 
 interface GenealogyPageProps {
   siteConfig: SiteConfig;
+  signedIn: boolean;
 }
 
-export default function GenealogyPage({ siteConfig }: GenealogyPageProps) {
+export default function GenealogyPage({ siteConfig, signedIn }: GenealogyPageProps) {
   return (
     <Layout siteConfig={siteConfig}>
       <PageMeta title="ThreadRing family tree" description="Every ThreadRing and the rings it grew from, as one family tree." path="/threadrings/genealogy" />
@@ -18,7 +20,7 @@ export default function GenealogyPage({ siteConfig }: GenealogyPageProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="mb-8">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-              <h1 className="text-3xl font-bold text-gray-900">ThreadRing Genealogy</h1>
+              <h1 className="text-3xl font-bold text-gray-900">Family tree</h1>
               <div className="flex flex-col sm:flex-row gap-2">
                 <Link
                   href="/threadrings"
@@ -27,43 +29,20 @@ export default function GenealogyPage({ siteConfig }: GenealogyPageProps) {
                   Browse All
                 </Link>
                 <Link
-                  href="/tr/spool/fork"
+                  href={signedIn ? "/tr/spool/fork" : "/login"}
                   className="px-3 py-2.5 text-sm md:px-4 md:py-2 min-h-[2.5rem] font-medium !text-white bg-indigo-600 rounded-md hover:bg-indigo-700 text-center"
                 >
-                  Create ThreadRing
+                  {signedIn ? "Start a ring" : "Sign in to start a ring"}
                 </Link>
               </div>
             </div>
-            
             <p className="text-gray-600 mb-4">
-              Explore the interconnected family tree of all ThreadRing communities. 
-              Each node represents a ThreadRing, with lines showing fork relationships.
-              Larger nodes have more descendants, and colors indicate the depth of their lineage.
+              Every ring grew from another one, all the way back to The Spool. Click a ring to visit it.
             </p>
-
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-              <h3 className="text-sm font-semibold text-blue-900 mb-2">How to Navigate</h3>
-              <ul className="text-sm text-blue-800 space-y-1">
-                <li>• <strong>Click</strong> on any node to visit that ThreadRing</li>
-                <li>• <strong>Scroll</strong> to zoom in and out</li>
-                <li>• <strong>Drag</strong> to pan around the tree</li>
-                <li>• <strong>Hover</strong> over nodes to see details</li>
-              </ul>
-            </div>
           </div>
 
           <div className="genealogy-container bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <ThreadRingGenealogy maxInitialDepth={5} />
-          </div>
-
-          <div className="mt-8 text-center">
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">About ThreadRing Genealogy</h2>
-            <p className="text-gray-600 max-w-3xl mx-auto">
-              ThreadRings can be forked to create derivative communities, forming a genealogical tree. 
-              The Spool sits at the root as the universal parent, with all ThreadRings tracing their lineage 
-              back to this origin point. This visualization helps you discover related communities and 
-              understand how different ThreadRings evolved from one another.
-            </p>
           </div>
         </div>
       </div>
@@ -72,11 +51,15 @@ export default function GenealogyPage({ siteConfig }: GenealogyPageProps) {
 }
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
-  const siteConfig = await getSiteConfig();
+  const [siteConfig, user] = await Promise.all([
+    getSiteConfig(),
+    getSessionUser(context.req as NextApiRequest),
+  ]);
 
   return {
     props: {
       siteConfig,
+      signedIn: !!user,
     },
   };
 };

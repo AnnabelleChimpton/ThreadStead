@@ -66,13 +66,8 @@ export default async function handler(
     const lineageData = await ringHubClient.getRingLineage(rootSlug);
 
     // Transform Ring Hub data to our format
-    const transformRingToNode = (ring: any): ThreadRingNode => {
-      // Calculate lineage depth from parent hierarchy
-      const calculateDepth = (node: any, depth = 0): number => {
-        if (!node.parentId) return depth;
-        return depth + 1;
-      };
-
+    // `depth` is how many rings up the tree this one sits from the root shown
+    const transformRingToNode = (ring: any, depth = 0): ThreadRingNode => {
       // Count total descendants recursively
       const countDescendants = (node: any): number => {
         if (!Array.isArray(node.children)) return 0;
@@ -95,7 +90,7 @@ export default async function handler(
         postCount: ring.postCount || 0,
         directChildrenCount: children.length,
         totalDescendantsCount: totalDescendants,
-        lineageDepth: calculateDepth(ring),
+        lineageDepth: depth,
         curatorHandle: null, // Will be resolved by transformers if needed
         createdAt: ring.createdAt || new Date().toISOString(),
         children: []
@@ -103,10 +98,10 @@ export default async function handler(
     };
 
     // Build tree structure recursively
-    const buildTreeStructure = (node: any): ThreadRingNode => {
-      const transformedNode = transformRingToNode(node);
+    const buildTreeStructure = (node: any, depth = 0): ThreadRingNode => {
+      const transformedNode = transformRingToNode(node, depth);
       if (Array.isArray(node.children)) {
-        transformedNode.children = node.children.map(buildTreeStructure);
+        transformedNode.children = node.children.map((child: unknown) => buildTreeStructure(child, depth + 1));
       }
       return transformedNode;
     };
@@ -116,7 +111,7 @@ export default async function handler(
     if (rootSlug === 'spool' && lineageData.descendants && lineageData.descendants.length > 0) {
       // For the spool, create a virtual root with all top-level rings as children
       const spoolRing = transformRingToNode(lineageData.ring);
-      spoolRing.children = lineageData.descendants.map(buildTreeStructure);
+      spoolRing.children = lineageData.descendants.map((desc) => buildTreeStructure(desc, 1));
       spoolRing.directChildrenCount = lineageData.descendants.length;
       spoolRing.totalDescendantsCount = lineageData.descendants.reduce((sum: number, desc: any) => {
         return sum + 1 + (desc.children ? countDescendants(desc) : 0);
