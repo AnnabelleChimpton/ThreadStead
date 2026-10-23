@@ -2,7 +2,7 @@
  * Rings for any site against a real Postgres (the hub and the web are
  * fakes): which stop each member is (lib/rings/walk.ts), proving and
  * re-checking a site (lib/rings/sites.ts), adding it to a ring by the ring's
- * rule and what ring owners can do (lib/rings/stops.ts), and the counters.
+ * rule and what the ring's host can do (lib/rings/stops.ts), and the counters.
  */
 import type { Visibility } from '@prisma/client'
 import { db } from '@/lib/config/database/connection'
@@ -243,7 +243,7 @@ describe('proving a site and the weekly check', () => {
 
     expect(await check(new Date(t0.getTime() + 14 * DAY))).toMatchObject({ state: 'resting' })
     expect(await check(new Date(t0.getTime() + 38 * DAY))).toMatchObject({ state: 'removed' })
-    // Its listing goes; a ring owner's hide stays theirs
+    // Its listing goes; the host's hide stays theirs
     expect(await db.ringStop.findMany({ where: { externalSiteId: s.id }, select: { ringSlug: true } })).toEqual([{ ringSlug: 'other' }])
 
     const back = web({ 'https://ann.neocities.org/': strip(s.id) })
@@ -251,7 +251,7 @@ describe('proving a site and the weekly check', () => {
   })
 })
 
-describe("a site joining a ring, and the ring's owner and moderators", () => {
+describe("a site joining a ring, and the ring's host", () => {
   test('an open ring lists a proved site right away; it has to be proved and theirs, one per ring', async () => {
     const pending = await site('u_cat', 'cat.example.org', 'pending')
     await expect(setStop(db, { userId: 'u_cat', site: pending, ringSlug: 'knits', on: true, hub, memberships: everyoneIn })).rejects.toThrow('Prove the site')
@@ -268,25 +268,26 @@ describe("a site joining a ring, and the ring's owner and moderators", () => {
     expect(await db.ringStop.count()).toBe(0)
   })
 
-  test('an invitation ring holds it for a yes, and tells its owner and moderators', async () => {
+  test('an invitation ring holds it for a yes, and tells its host (not its moderators)', async () => {
     joinPolicy = 'INVITATION'
     const s = await site('u_cat', 'cat.example.org')
     expect(await setStop(db, { userId: 'u_cat', site: s, ringSlug: 'knits', on: true, hub, memberships: everyoneIn })).toMatchObject({ status: 'pending' })
     const told = await db.notification.findMany({ where: { type: 'ring_site' }, orderBy: { recipientId: 'asc' }, select: { recipientId: true, actorId: true, data: true } })
     expect(told).toEqual([
       { recipientId: 'u_ann', actorId: 'u_cat', data: expect.objectContaining({ event: 'waiting', threadRingSlug: 'knits', threadRingName: 'Cozy Knits' }) },
-      { recipientId: 'u_bob', actorId: 'u_cat', data: expect.objectContaining({ event: 'waiting' }) },
     ])
     expect((await stopsOf())[2]).toEqual(['cat', 3, 'home'])
-    // The ring's own owner doesn't wait for themself
+    // The ring's own host doesn't wait for themself
     const own = await site('u_ann', 'ann.example.org')
     expect(await setStop(db, { userId: 'u_ann', site: own, ringSlug: 'knits', on: true, hub, memberships: everyoneIn })).toMatchObject({ status: 'listed' })
 
     const stop = await db.ringStop.findFirstOrThrow({ where: { userId: 'u_cat' } })
-    await expect(stewardStop(db, { stewardId: 'u_cat', stopId: stop.id, ringSlug: 'knits', action: 'approve', hub, ring: { name: 'Cozy Knits' } })).rejects.toThrow('Only ring owners')
-    await stewardStop(db, { stewardId: 'u_bob', stopId: stop.id, ringSlug: 'knits', action: 'approve', hub, ring: { name: 'Cozy Knits' } })
+    for (const stewardId of ['u_cat', 'u_bob']) {
+      await expect(stewardStop(db, { stewardId, stopId: stop.id, ringSlug: 'knits', action: 'approve', hub, ring: { name: 'Cozy Knits' } })).rejects.toThrow("Only the ring's host")
+    }
+    await stewardStop(db, { stewardId: 'u_ann', stopId: stop.id, ringSlug: 'knits', action: 'approve', hub, ring: { name: 'Cozy Knits' } })
     expect((await stopsOf())[2]).toEqual(['cat', 3, 'https://cat.example.org/'])
-    expect(await db.notification.count({ where: { recipientId: 'u_cat', actorId: 'u_bob', type: 'ring_site' } })).toBe(1)
+    expect(await db.notification.count({ where: { recipientId: 'u_cat', actorId: 'u_ann', type: 'ring_site' } })).toBe(1)
   })
 
   test("hiding is for good: the member falls back to their home and can't swap the site out or remove it", async () => {
@@ -301,8 +302,10 @@ describe("a site joining a ring, and the ring's owner and moderators", () => {
     await expect(setStop(db, { userId: 'u_cat', site: s2, ringSlug: 'knits', on: true, hub, memberships: everyoneIn })).rejects.toThrow('hid your other site')
   })
 
-  test("a ring that's off takes no sites; only its owner and moderators set that", async () => {
-    await expect(setOutsideSitesRule(db, { stewardId: 'u_cat', ringSlug: 'knits', rule: 'off', hub })).rejects.toThrow('Only ring owners')
+  test("a ring that's off takes no sites; only its host sets that", async () => {
+    for (const stewardId of ['u_cat', 'u_bob']) {
+      await expect(setOutsideSitesRule(db, { stewardId, ringSlug: 'knits', rule: 'off', hub })).rejects.toThrow("Only the ring's host")
+    }
     await setOutsideSitesRule(db, { stewardId: 'u_ann', ringSlug: 'knits', rule: 'off', hub })
     const s = await site('u_cat', 'cat.example.org')
     await expect(setStop(db, { userId: 'u_cat', site: s, ringSlug: 'knits', on: true, hub, memberships: everyoneIn })).rejects.toThrow("doesn't take outside sites")

@@ -1,16 +1,18 @@
 /**
- * A member's own site as their stop in one ring (RingStop), and what a
- * ring's owner and moderators can do about it (SCOPE.md §4).
+ * A member's own site as their stop in one ring (RingStop), and what the
+ * ring's host can do about it (SCOPE.md §4; host only, owner decision
+ * 2026-10-23: moderators look after people and prompts).
  *
  * Outside sites follow the ring's join rule unless its owner set one
  * (owner decision 2026-10-22): open rings list a proved site right away and
- * can hide it after; application and invitation rings hold it as pending
- * until an owner or moderator says yes. Hiding is kept here, for good: the
- * member falls back to their pixel home and is told plainly.
+ * can hide it after; invitation rings hold it as pending until the host
+ * says yes. Hiding is kept here, for good: the member falls back to their
+ * pixel home and is told plainly.
  *
  * The hub says who is in a ring and who runs it. Membership is the
- * member's own signed list (my memberships); owners and moderators come
- * from the public members list, read fresh by role.
+ * member's own signed list (my memberships); the host comes from the public
+ * members list, read fresh by role, or from RingHubOwnership for a ring this
+ * site holds on the hub for a resident (as in ring-access.ts).
  */
 import type { ExternalSite, PrismaClient, RingOutsideSites, RingStop } from '@prisma/client'
 import { cached } from '@/lib/api/ringhub/ringhub-cache'
@@ -44,32 +46,25 @@ export function myRings(userId: string): Promise<MyRing[]> {
   })
 }
 
-/** DIDs that are this ring's owner or moderators, read fresh. */
-export async function ringStewardDids(hub: Pick<HubReader, 'getRingMembers'>, slug: string): Promise<Set<string>> {
-  const [owners, moderators] = await Promise.all(
-    ['owner', 'moderator'].map((role) => hub.getRingMembers(slug, { limit: 100, role }))
-  )
-  return new Set([...owners.members, ...moderators.members].filter((m) => m.status === 'ACTIVE').map((m) => m.actorDid))
+type HostDb = Pick<PrismaClient, 'userDID' | 'ringHubOwnership'>
+
+/** The local resident(s) who host this ring, read fresh. */
+export async function ringHosts(db: HostDb, hub: Pick<HubReader, 'getRingMembers'>, slug: string): Promise<string[]> {
+  const { members } = await hub.getRingMembers(slug, { limit: 100, role: 'owner' })
+  const dids = members.filter((m) => m.status === 'ACTIVE').map((m) => m.actorDid)
+  if (dids.length === 0) return []
+  const rows = await db.userDID.findMany({ where: { did: { in: dids } }, select: { userId: true } })
+  const hosts = rows.map((r) => r.userId)
+  const siteDid = process.env.THREADSTEAD_DID
+  if (siteDid && dids.includes(siteDid)) {
+    const held = await db.ringHubOwnership.findUnique({ where: { ringSlug: slug }, select: { ownerUserId: true } })
+    if (held) hosts.push(held.ownerUserId)
+  }
+  return [...new Set(hosts)]
 }
 
-/** Local residents who are this ring's owner or moderators. */
-export async function ringStewards(db: Pick<PrismaClient, 'userDID'>, hub: Pick<HubReader, 'getRingMembers'>, slug: string): Promise<string[]> {
-  const dids = await ringStewardDids(hub, slug)
-  if (dids.size === 0) return []
-  const rows = await db.userDID.findMany({ where: { did: { in: [...dids] } }, select: { userId: true } })
-  return [...new Set(rows.map((r) => r.userId))]
-}
-
-export async function isRingSteward(
-  db: Pick<PrismaClient, 'userDID'>,
-  hub: Pick<HubReader, 'getRingMembers'>,
-  slug: string,
-  userId: string
-): Promise<boolean> {
-  const mine = await db.userDID.findMany({ where: { userId }, select: { did: true } })
-  if (mine.length === 0) return false
-  const dids = await ringStewardDids(hub, slug)
-  return mine.some((d) => dids.has(d.did))
+export async function isRingHost(db: HostDb, hub: Pick<HubReader, 'getRingMembers'>, slug: string, userId: string): Promise<boolean> {
+  return (await ringHosts(db, hub, slug)).includes(userId)
 }
 
 /** What a site's stop in a new ring starts as, by the ring's rule. */
@@ -98,7 +93,7 @@ export async function setStop(
 
   if (!on) {
     if (!existing || existing.externalSiteId !== site.id) return null
-    if (existing.status === 'hidden') throw new SiteError("A ring owner hid this site from that ring, so it stays as it is.")
+    if (existing.status === 'hidden') throw new SiteError("The ring's host hid this site from that ring, so it stays as it is.")
     await db.ringStop.delete({ where: { id: existing.id } })
     return null
   }
@@ -106,7 +101,7 @@ export async function setStop(
   if (site.state !== 'verified') throw new SiteError('Prove the site is yours first, then it can join your rings.')
   if (existing?.externalSiteId === site.id) return existing
   if (existing?.status === 'hidden') {
-    throw new SiteError('A ring owner hid your other site from that ring, so it can only be your pixel home there.')
+    throw new SiteError("The ring's host hid your other site from that ring, so it can only be your pixel home there.")
   }
 
   const ring = await ringFacts(hub, ringSlug)
@@ -116,14 +111,14 @@ export async function setStop(
   let status = firstStatus(await outsideSitesRule(db, ring))
   if (!status) throw new SiteError("That ring doesn't take outside sites. Your pixel home is your stop there.")
   // Nobody needs to ask themself
-  if (status === 'pending' && (await isRingSteward(db, hub, ringSlug, userId).catch(() => false))) status = 'listed'
+  if (status === 'pending' && (await isRingHost(db, hub, ringSlug, userId).catch(() => false))) status = 'listed'
 
   const stop = await db.$transaction(async (tx) => {
     if (existing) await tx.ringStop.delete({ where: { id: existing.id } })
     return tx.ringStop.create({ data: { ringSlug, externalSiteId: site.id, userId, status } })
   })
   if (status === 'pending') {
-    for (const recipientId of await ringStewards(db, hub, ringSlug).catch(() => [])) {
+    for (const recipientId of await ringHosts(db, hub, ringSlug).catch(() => [])) {
       if (recipientId === userId) continue
       await notifyRingSite(db, { recipientId, actorId: userId, event: 'waiting', site, ringSlug, ringName: ring.name })
     }
@@ -133,7 +128,7 @@ export async function setStop(
 
 export type StewardAction = 'approve' | 'hide' | 'unhide'
 
-/** A ring owner's or moderator's say on one member's site in their ring. */
+/** The host's say on one member's site in their ring. */
 export async function stewardStop(
   db: PrismaClient,
   {
@@ -146,7 +141,7 @@ export async function stewardStop(
     ring,
   }: { stewardId: string; stopId: string; ringSlug: string; action: StewardAction; reason?: string | null; hub: HubReader; ring: Pick<RingFacts, 'name'> }
 ): Promise<RingStop> {
-  if (!(await isRingSteward(db, hub, ringSlug, stewardId))) throw new SiteError('Only ring owners and moderators can do that.', 403)
+  if (!(await isRingHost(db, hub, ringSlug, stewardId))) throw new SiteError("Only the ring's host can do that.", 403)
   const stop = await db.ringStop.findFirst({ where: { id: stopId, ringSlug }, include: { site: true } })
   if (!stop) throw new SiteError('That site isn\'t in this ring any more.', 404)
 
@@ -175,7 +170,7 @@ export async function setOutsideSitesRule(
   db: PrismaClient,
   { stewardId, ringSlug, rule, hub }: { stewardId: string; ringSlug: string; rule: RingOutsideSites; hub: HubReader }
 ) {
-  if (!(await isRingSteward(db, hub, ringSlug, stewardId))) throw new SiteError('Only ring owners and moderators can do that.', 403)
+  if (!(await isRingHost(db, hub, ringSlug, stewardId))) throw new SiteError("Only the ring's host can do that.", 403)
   return db.ringSiteSettings.upsert({
     where: { ringSlug },
     create: { ringSlug, outsideSites: rule },
@@ -183,7 +178,7 @@ export async function setOutsideSitesRule(
   })
 }
 
-/** Every outside site in a ring with its state, for the ring's sites page (stewards see pending and hidden too). */
+/** Every outside site in a ring with its state, for Manage › Stops (pending and hidden too). */
 export async function ringSiteRows(db: PrismaClient, ringSlug: string) {
   return db.ringStop.findMany({
     where: { ringSlug },

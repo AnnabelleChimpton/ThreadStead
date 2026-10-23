@@ -1,6 +1,6 @@
 /**
- * A ring owner's or moderator's say on members' own sites in their ring
- * (lib/rings/stops.ts). Who runs the ring comes from the hub's members list.
+ * The ring host's say on members' own sites in their ring
+ * (lib/rings/stops.ts), Manage › Stops. Who hosts comes from the hub.
  *   POST  { stopId, action: approve | hide | unhide, reason? }
  *   PUT   { rule: allow | ask | off }
  */
