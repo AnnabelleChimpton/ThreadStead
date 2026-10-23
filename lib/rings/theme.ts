@@ -38,3 +38,12 @@ export function ringBadgePalette(themeColor: unknown, slug: string): BadgePalett
   const hex = ringThemeHex(themeColor);
   return BADGE_PALETTE_IDS.find((id) => BADGE_PALETTES[id].field === hex) ?? autoPalette(slug);
 }
+
+/**
+ * The colour a ring's page is in. One choice with its badge: the theme colour
+ * when it has one, else the palette its slug picks (never butter, too light
+ * for text), so a ring without a theme still matches its default badge.
+ */
+export function ringAccentHex(themeColor: unknown, slug: string): string {
+  return ringThemeHex(themeColor) ?? BADGE_PALETTES[ringBadgePalette(themeColor, slug)].field;
+}

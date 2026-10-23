@@ -637,9 +637,13 @@ function crc32(s: string): number {
   return (c ^ 0xffffffff) >>> 0
 }
 
-/** A ring's palette while it has no theme colour: steady per slug, so a list of rings varies. */
+/**
+ * A ring's palette while it has no theme colour: steady per slug, so a list
+ * of rings varies. Only the page colours, since it's the page's accent too.
+ */
+const AUTO_PALETTES = BADGE_PALETTE_IDS.filter((id) => BADGE_PALETTES[id].theme)
 export function autoPalette(slug: string): BadgePaletteId {
-  return BADGE_PALETTE_IDS[crc32(slug) % BADGE_PALETTE_IDS.length]
+  return AUTO_PALETTES[crc32(slug) % AUTO_PALETTES.length]
 }
 
 /** These choices, with the default for anything not chosen: Label with linked rings, saying the ring's name (""). */

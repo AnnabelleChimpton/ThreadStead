@@ -148,9 +148,14 @@ describe('palettes', () => {
     for (const none of [null, undefined, '', '#123456', 'red']) expect(ringBadgePalette(none, 'writing')).toBe(autoPalette('writing'))
   })
 
-  it('pick the same auto palette for a slug as the drafts did', () => {
-    expect(['writing', 'video-games', 'ttrpgs', 'homepageagain'].map(autoPalette)).toEqual(['lavender', 'moss', 'sky', 'pine'])
-    expect(BADGE_PALETTE_IDS).toContain(autoPalette('ねこ'))
+  it('pick a steady auto palette per slug, always one a page can use', () => {
+    const slugs = ['writing', 'video-games', 'ttrpgs', 'homepageagain', 'cozy-knits', 'ねこ', ...Array.from({ length: 50 }, (_, i) => `ring-${i}`)]
+    for (const slug of slugs) {
+      expect(autoPalette(slug)).toBe(autoPalette(slug))
+      // It's the ring page's accent too (ringAccentHex), so never butter
+      expect(BADGE_PALETTES[autoPalette(slug)].theme).toBe(true)
+    }
+    expect(new Set(slugs.map(autoPalette)).size).toBeGreaterThan(3)
   })
 })
 
