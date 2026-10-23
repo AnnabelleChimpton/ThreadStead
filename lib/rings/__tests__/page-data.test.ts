@@ -18,6 +18,10 @@ jest.mock('@/lib/api/did/server-did-client', () => ({
 }))
 jest.mock('@/lib/domain/users/profile-access', () => ({ visibleResidentWhere: () => ({}) }))
 jest.mock('@/lib/api/ringhub/ringhub-client', () => ({ getPublicRingHubClient: jest.fn() }))
+jest.mock('@/lib/storage/r2', () => ({
+  keyFromPublicUrl: (url: string) => (url.startsWith('https://cdn.test/') ? url.slice('https://cdn.test/'.length) : null),
+  putObject: jest.fn(),
+}))
 jest.mock('@/lib/api/ringhub/ringhub-user-operations', () => ({ createAuthenticatedRingHubClient: jest.fn() }))
 
 import { loadRingForPage, residentsByDid } from '@/lib/rings/page-data'
@@ -98,4 +102,20 @@ test('residents are named by DID; one the database leaves out (hidden, or not he
   ;(db as any).user.findMany.mockResolvedValueOnce([{ id: 'user-of-did:web:sam', primaryHandle: 'sam@HomePageAgain', profile: { displayName: null } }])
   const names = await residentsByDid(['did:web:sam', 'did:web:hidden'], 'u1')
   expect([...names]).toEqual([['did:web:sam', { username: 'sam', displayName: null }]])
+})
+
+test("a host is offered the new badge styles only for a badge the old generator drew", async () => {
+  const withBadge = (url: string | null) => publicGetRing.mockResolvedValueOnce({ ...descriptor('knits'), badgeImageUrl: url })
+  const oldBadge = async (url: string | null) => {
+    clearCache()
+    withBadge(url)
+    const load = await loadRingForPage('knits', null)
+    return load.status === 'ok' && load.ring.oldBadge
+  }
+  expect(await oldBadge('https://cdn.test/badges/knits-1729000000000-a1b2c3d4.png')).toBe(true)
+  // Drawn badges name their choices; uploads, other hosts and no badge are left alone
+  expect(await oldBadge('https://cdn.test/badges/knits-1729000000000-a1b2c3d4.label.rings.S25pdHM.png')).toBe(false)
+  expect(await oldBadge('https://cdn.test/media/u1/badge.png')).toBe(false)
+  expect(await oldBadge('https://imgur.example/badges/x.png')).toBe(false)
+  expect(await oldBadge(null)).toBe(false)
 })

@@ -39,12 +39,9 @@ jest.mock('@/lib/api/client/csrf-fetch', () => ({ csrfFetch: jest.fn() }));
 // Child components are not under test; render nothing (Layout passes children through).
 jest.mock('@/components/ui/layout/Layout', () => ({ __esModule: true, default: ({ children }: any) => children }));
 jest.mock('@/components/core/content/PostItem', () => ({ __esModule: true, default: () => null }));
-jest.mock('@/components/core/threadring/ThreadRingStats', () => ({ __esModule: true, default: () => null }));
-jest.mock('@/components/core/threadring/ThreadRingLineage', () => ({ __esModule: true, default: () => null }));
 jest.mock('@/components/core/threadring/ThreadRingFeedScope', () => ({ __esModule: true, default: () => null }));
 jest.mock('@/components/core/threadring/ThreadRingActivePrompt', () => ({ __esModule: true, default: () => null }));
 jest.mock('@/components/core/threadring/ThreadRing88x31Badge', () => ({ __esModule: true, default: () => null }));
-jest.mock('@/components/core/threadring/ThreadRingAboutWidget', () => ({ __esModule: true, default: () => null }));
 jest.mock('@/components/ui/feedback/UserQuickView', () => ({ __esModule: true, default: () => null }));
 jest.mock('@/components/ui/feedback/ExternalUserPopup', () => ({ __esModule: true, default: () => null }));
 jest.mock('@/components/features/onboarding/WelcomeRingGuide', () => ({ __esModule: true, default: () => null }));

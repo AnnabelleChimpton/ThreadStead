@@ -1,55 +1,100 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useToast } from "@/contexts/ToastContext";
-import type { PostChange } from "@/components/core/content/PostItem";
+import type { Post, PostChange } from "@/components/core/content/PostItem";
 
+/** The posts API's scopes: which rings' posts a page holds. */
 export type FeedScope = "current" | "parent" | "children" | "siblings" | "family";
 
 const COULD_NOT_LOAD = "Couldn't load posts. Try again in a minute.";
 
+/** One scope's place in the feed: where its next page starts, and posts read but not shown yet. */
+interface Stream {
+  scope: FeedScope;
+  offset: number;
+  hasMore: boolean;
+  waiting: Post[];
+}
+
+const postedAt = (post: Post) => Date.parse(post.ringHubData?.submittedAt ?? post.createdAt) || 0;
+
 /**
- * A ring's posts for one scope, a page at a time. A new scope starts over and
- * cancels the read still in flight, so a slow answer can't land on top of a
- * newer one. A changed post is patched where it sits, so the pages already
- * loaded and the scope stay put.
+ * A ring's posts, a page at a time: "This ring" alone, or "with" its
+ * relatives, read from the scopes in `withScopes` and merged newest first.
+ * Switching starts over and cancels the read still in flight, so a slow
+ * answer can't land on top of a newer one. A changed post is patched where it
+ * sits, so the pages already loaded stay put.
  */
-export function useRingFeed(slug: string) {
+export function useRingFeed(slug: string, withScopes: FeedScope[] = ["family"]) {
   const { showError } = useToast();
-  const [scope, setScope] = useState<FeedScope>("current");
+  const [scope, setScope] = useState<"current" | "with">("current");
   const [posts, setPosts] = useState<any[]>([]);
   const [hasMore, setHasMore] = useState(false);
-  // Where the next hub page starts (the API's nextOffset; it counts PostRefs, not shown posts)
-  const [nextOffset, setNextOffset] = useState(0);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const current = useRef<AbortController | null>(null);
+  const current = useRef<{ controller: AbortController; streams: Stream[] } | null>(null);
+  const scopesKey = (scope === "current" ? ["current"] : withScopes).join(",");
 
   const readPage = useCallback(
-    async (offset: number, signal: AbortSignal) => {
+    async (stream: Stream, signal: AbortSignal) => {
       const response = await fetch(
-        `/api/threadrings/${encodeURIComponent(slug)}/posts?scope=${scope}&offset=${offset}`,
+        `/api/threadrings/${encodeURIComponent(slug)}/posts?scope=${stream.scope}&offset=${stream.offset}`,
         { signal }
       );
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || COULD_NOT_LOAD);
-      return data;
+      const next = data.nextOffset ?? stream.offset;
+      stream.waiting.push(...(data.posts || []));
+      // A page that doesn't move on would be read forever
+      stream.hasMore = !!data.hasMore && next > stream.offset;
+      stream.offset = next;
     },
-    [slug, scope]
+    [slug]
+  );
+
+  /**
+   * The next posts across the streams, newest first. A stream whose waiting
+   * posts run out is read again only before anything is taken, so one page
+   * is one read per stream at most and the order never skips a newer post.
+   */
+  const nextPage = useCallback(
+    async (streams: Stream[], signal: AbortSignal, seen: Set<string>) => {
+      const page: Post[] = [];
+      for (;;) {
+        const dry = streams.filter((stream) => stream.waiting.length === 0 && stream.hasMore);
+        if (dry.length > 0) {
+          if (page.length > 0) break;
+          await Promise.all(dry.map((stream) => readPage(stream, signal)));
+          continue;
+        }
+        const ready = streams.filter((stream) => stream.waiting.length > 0);
+        if (ready.length === 0) break;
+        const newest = ready.reduce((a, b) => (postedAt(b.waiting[0]) > postedAt(a.waiting[0]) ? b : a));
+        const post = newest.waiting.shift()!;
+        // A post in this ring and a branch is shown once
+        if (!seen.has(post.id)) {
+          seen.add(post.id);
+          page.push(post);
+        }
+      }
+      return { page, more: streams.some((stream) => stream.waiting.length > 0 || stream.hasMore) };
+    },
+    [readPage]
   );
 
   useEffect(() => {
     const controller = new AbortController();
-    current.current = controller;
+    const streams: Stream[] = scopesKey.split(",").map((s) => ({ scope: s as FeedScope, offset: 0, hasMore: true, waiting: [] }));
+    current.current = { controller, streams };
     setLoading(true);
     setError(null);
     setPosts([]);
     setHasMore(false);
-    readPage(0, controller.signal)
-      .then((data) => {
+    nextPage(streams, controller.signal, new Set())
+      .then(({ page, more }) => {
         if (controller.signal.aborted) return;
-        setPosts(data.posts || []);
-        setHasMore(!!data.hasMore);
-        setNextOffset(data.nextOffset ?? 0);
+        setPosts(page);
+        setHasMore(more);
       })
       .catch((e) => {
         if (!controller.signal.aborted) setError(e.message || COULD_NOT_LOAD);
@@ -58,23 +103,19 @@ export function useRingFeed(slug: string) {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [readPage]);
+  }, [scopesKey, nextPage]);
 
   async function loadMore() {
-    const controller = current.current;
-    if (!controller || loadingMore || !hasMore) return;
+    const feed = current.current;
+    if (!feed || loadingMore || !hasMore) return;
     setLoadingMore(true);
     try {
-      const data = await readPage(nextOffset, controller.signal);
-      if (controller.signal.aborted) return;
-      setPosts((shown) => {
-        const seen = new Set(shown.map((post) => post.id));
-        return [...shown, ...(data.posts || []).filter((post: any) => !seen.has(post.id))];
-      });
-      setHasMore(!!data.hasMore);
-      setNextOffset(data.nextOffset ?? nextOffset);
+      const { page, more } = await nextPage(feed.streams, feed.controller.signal, new Set(posts.map((post) => post.id)));
+      if (feed.controller.signal.aborted) return;
+      setPosts((shown) => [...shown, ...page]);
+      setHasMore(more);
     } catch (e: any) {
-      if (!controller.signal.aborted) showError(e.message || COULD_NOT_LOAD);
+      if (!feed.controller.signal.aborted) showError(e.message || COULD_NOT_LOAD);
     } finally {
       setLoadingMore(false);
     }

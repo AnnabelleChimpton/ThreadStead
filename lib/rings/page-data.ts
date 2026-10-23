@@ -8,6 +8,8 @@ import { db } from '@/lib/config/database/connection'
 import { usernameFromHandle } from '@/lib/domain/notifications/links'
 import { visibleResidentWhere } from '@/lib/domain/users/profile-access'
 import { readAsViewer } from '@/lib/rings/read-as-viewer'
+import { drawnBadgeChoice } from '@/lib/badge-uploader'
+import { keyFromPublicUrl } from '@/lib/storage/r2'
 
 const RING_FRESH_MS = 30_000
 const RING_STALE_MS = 5 * 60_000
@@ -44,6 +46,8 @@ export interface RingPageRing {
   } | null
   /** The ring's owner, when they live here */
   host?: { username: string; displayName: string | null } | null
+  /** Its badge is one the old generator drew, from before the badge styles: its host is offered them */
+  oldBadge?: boolean
 }
 
 export type RingPageLoad =
@@ -119,8 +123,14 @@ export async function loadRingForPage(
           }
         : null,
       host,
+      oldBadge: isOldBadge(descriptor.badgeImageUrl),
     },
   }
+}
+
+/** One of our badge files that isn't a drawn badge (uploads live under media/, not badges/). */
+function isOldBadge(url: string | null | undefined): boolean {
+  return !!url && !!keyFromPublicUrl(url)?.startsWith('badges/') && !drawnBadgeChoice(url)
 }
 
 function notPrivate(ring: RingDescriptor | null): RingDescriptor | null {

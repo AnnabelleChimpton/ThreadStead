@@ -1,178 +1,99 @@
-import { useState } from "react";
-import { getSiteBaseUrl } from "@/lib/config/site-url";
+import Link from "next/link";
 import Button from "@/components/ui/Button";
-import ButtonLink, { buttonClasses } from "@/components/ui/ButtonLink";
 import { PixelIcon } from "@/components/ui/PixelIcon";
-import { useToast } from "@/contexts/ToastContext";
 import { calendarDate } from "@/lib/utils/dates";
 import type { RingPageRing } from "@/lib/rings/page-data";
-import ThreadRingAboutWidget from "./ThreadRingAboutWidget";
 import ThreadRing88x31Badge from "./ThreadRing88x31Badge";
-import ThreadRingStats from "./ThreadRingStats";
-import ThreadRingLineage, { type LineageData } from "./ThreadRingLineage";
-import RingActions from "./RingActions";
-import RingMembersPreview from "./RingMembersPreview";
+import RingPeople from "./RingPeople";
 import type { RingViewer } from "./useRingViewer";
+import type { RelativeRing, RingFamily } from "./useRingFamily";
+
+const CARD = "thread-module p-4 sm:p-5 !mt-0 !mb-5";
+const HEADING = "thread-headline !text-[1.05rem] !leading-snug font-bold !text-nb-ink m-0";
+const BLURB = "text-sm text-nb-ink-mid mt-1 mb-3";
 
 interface RingSidebarProps {
   ring: RingPageRing;
   viewer: RingViewer;
-  signedIn: boolean;
-  /** The page's one lineage read; null while it loads */
-  lineage: LineageData | null;
+  viewerId: string | null;
+  family: RingFamily;
   onGetStrip: () => void;
-  /** Phones show the ring's About at the top of the page instead */
-  showAbout?: boolean;
+}
+
+function Relative({ ring }: { ring: RelativeRing }) {
+  return (
+    <Link href={`/tr/${encodeURIComponent(ring.slug)}`} className="flex items-center gap-3 no-underline">
+      <ThreadRing88x31Badge title={ring.name} slug={ring.slug} themeColor={ring.themeColor} imageUrl={ring.badgeImageUrl ?? undefined} className="shrink-0" />
+      <span className="text-nb-ink underline decoration-dotted min-w-0 break-words">{ring.name}</span>
+    </Link>
+  );
 }
 
 /**
- * Everything beside a ring's posts, once: the desktop column and the phone's
- * "Ring info" sheet both render this.
+ * Everything beside a ring's posts, once: on a phone it stacks under them.
+ * Who's here, the ring on your own site, and its branches; a member who can
+ * start a branch finds the link at the bottom.
  */
-export default function RingSidebar({ ring, viewer, signedIn, lineage, onGetStrip, showAbout = true }: RingSidebarProps) {
-  const { showSuccess } = useToast();
-  const [showBadgeOptions, setShowBadgeOptions] = useState(false);
-  const [tab, setTab] = useState<"stats" | "lineage">("stats");
+export default function RingSidebar({ ring, viewer, viewerId, family, onGetStrip }: RingSidebarProps) {
   const slug = encodeURIComponent(ring.slug);
-  const badge = ring.badge?.isActive ? ring.badge : null;
+  const hasFamily = !!family.parent || family.branches.length > 0;
+  const startBranch = viewer.isMember && (
+    <Link href={`/tr/${slug}/fork`} className="text-nb-ink">Start a branch</Link>
+  );
+  const started = <p className="text-xs text-nb-ink-mid mt-3 mb-0">{ring.name} started on {calendarDate(ring.createdAt)}.</p>;
 
   return (
-    <div className="space-y-4">
-      {showAbout && <ThreadRingAboutWidget description={ring.description} curatorNote={ring.curatorNote} />}
-
-      <RingActions ring={ring} viewer={viewer} signedIn={signedIn} />
+    <aside className="tr-sidebar col-span-1">
+      <RingPeople ring={ring} viewer={viewer} viewerId={viewerId} />
 
       {ring.visibility === "public" && (
-        <div className="widget-container bg-thread-paper border border-thread-sage rounded-cozy shadow-cozy-sm p-4">
-          <div className="text-sm font-bold text-nb-ink mb-1">Members&apos; own sites</div>
-          <p className="text-xs text-nb-ink-mid mb-3">
-            Members can make their own site, out on the web, their stop in this ring. Everyone else&apos;s stop is their pixel home.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <ButtonLink href={`/tr/${slug}/sites`} variant="secondary" size="sm" className="thread-button-secondary text-xs flex-1 text-center">
-              All the stops
-            </ButtonLink>
-            <a href={`/ring/${slug}/random`} className={`${buttonClasses("secondary", "sm")} thread-button-secondary text-xs flex-1 text-center`}>
-              Random stop
-            </a>
+        <section className={CARD}>
+          <h2 className={HEADING}>On your own site</h2>
+          <p className={BLURB}>Each member is a stop on this webring: their own site if they&apos;ve added one, their pixel home if not.</p>
+          <div className="flex items-center gap-3 mb-3">
+            <ThreadRing88x31Badge title={ring.name} slug={ring.slug} themeColor={ring.themeColor} imageUrl={ring.badge?.imageUrl ?? undefined} className="shrink-0" />
+            <span className="text-sm text-nb-ink-mid">The ring&apos;s badge, for your page</span>
           </div>
-          {!badge && (
-            <Button
-              variant="secondary"
-              onClick={onGetStrip}
-              className="thread-button-secondary text-xs w-full mt-2 flex items-center justify-center gap-1"
-            >
-              <PixelIcon name="clipboard" size={12} /> Get a strip for your site
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <Button variant="secondary" size="sm" onClick={onGetStrip} className="inline-flex items-center gap-1.5">
+              <PixelIcon name="clipboard" size={14} /> Get a strip
             </Button>
-          )}
-        </div>
+            <a href={`/ring/${slug}/random`} className="text-sm text-nb-ink">Random stop</a>
+          </div>
+        </section>
       )}
 
-      {badge && (
-        <div className="widget-container bg-thread-paper border border-thread-sage rounded-cozy shadow-cozy-sm p-4">
-          <div className="flex items-center justify-center mb-3">
-            <div
-              onClick={() => setShowBadgeOptions(!showBadgeOptions)}
-              className="cursor-pointer"
-              title="Ways to share this ring"
-            >
-              <ThreadRing88x31Badge
-                themeColor={ring.themeColor}
-                slug={ring.slug}
-                title={badge.title}
-                imageUrl={badge.imageUrl ?? undefined}
-              />
-            </div>
-          </div>
-
-          <div className="text-center mb-2">
-            <div className="text-xs font-bold text-nb-ink mb-1 flex items-center justify-center gap-1"><PixelIcon name="map" size={12} /> Official Badge</div>
-            <p className="text-xs text-nb-ink-mid">
-              {showBadgeOptions ? "Classic webring badge" : "Click for the strip and link"}
-            </p>
-          </div>
-
-          {showBadgeOptions && (
-            <div className="space-y-2 mt-3">
-              {ring.visibility === "public" && (
-                <Button
-                  variant="secondary"
-                  onClick={onGetStrip}
-                  className="thread-button-secondary text-xs w-full flex items-center justify-center gap-1"
-                >
-                  <PixelIcon name="clipboard" size={12} /> Get a strip for your site
-                </Button>
-              )}
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  navigator.clipboard.writeText(`${getSiteBaseUrl()}/tr/${ring.slug}`);
-                  showSuccess("Link copied.");
-                }}
-                className="thread-button-secondary text-xs w-full flex items-center justify-center gap-1"
-              >
-                <PixelIcon name="link" size={12} /> Copy Link
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={() => setShowBadgeOptions(false)}
-                className="thread-button-secondary text-xs w-full flex items-center justify-center gap-1"
-              >
-                <PixelIcon name="close" size={12} /> Close
-              </Button>
-            </div>
+      {hasFamily ? (
+        <section className={CARD}>
+          <h2 className={HEADING}>Branches</h2>
+          {family.parent && (
+            <>
+              <p className={BLURB}>Started from</p>
+              <Relative ring={family.parent} />
+            </>
           )}
-
-          {viewer.canManage && (
-            <ButtonLink href={`/tr/${slug}/badge-manager`} variant="secondary" size="sm" className="thread-button-secondary text-xs w-full text-center mt-2">
-              <PixelIcon name="sliders" size={12} className="inline-block align-[-2px] mr-1" />Edit badge
-            </ButtonLink>
+          {family.branches.length > 0 && (
+            <>
+              <p className={`${BLURB} ${family.parent ? "!mt-4" : ""}`}>Rings started from this one.</p>
+              <ul className="list-none !m-0 !p-0 flex flex-col gap-2">
+                {family.branches.map((branch) => (
+                  <li key={branch.id} className="!m-0 !p-0"><Relative ring={branch} /></li>
+                ))}
+              </ul>
+            </>
           )}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-4 text-sm">
+            <Link href="/threadrings/genealogy" className="text-nb-ink">Family tree</Link>
+            {startBranch}
+          </div>
+          {started}
+        </section>
+      ) : (
+        <div className="px-4 sm:px-0 text-sm">
+          {startBranch}
+          {started}
         </div>
       )}
-
-      <RingMembersPreview slug={ring.slug} viewer={viewer} signedIn={signedIn} />
-
-      <div className="widget-container bg-thread-paper border border-thread-sage rounded-cozy shadow-cozy-sm p-0 overflow-hidden">
-        <div className="flex border-b-2 border-dotted border-nb-ink-mid/40" role="tablist">
-          <button
-            onClick={() => setTab("stats")}
-            role="tab"
-            aria-selected={tab === "stats"}
-            className="ts-tab flex-1 min-h-[44px] text-sm inline-flex items-center justify-center gap-1"
-          >
-            <PixelIcon name="chart" size={14} /> Stats
-          </button>
-          <button
-            onClick={() => setTab("lineage")}
-            role="tab"
-            aria-selected={tab === "lineage"}
-            className="ts-tab flex-1 min-h-[44px] text-sm inline-flex items-center justify-center gap-1"
-          >
-            <PixelIcon name="archive" size={14} /> Tree
-          </button>
-        </div>
-        {tab === "stats" ? (
-          <ThreadRingStats threadRingSlug={ring.slug} className="border-none shadow-none" />
-        ) : (
-          <ThreadRingLineage ringName={ring.name} data={lineage} className="border-none shadow-none" />
-        )}
-      </div>
-
-      <div className="widget-container widget--flat bg-thread-paper border border-thread-sage rounded-cozy p-3 text-xs space-y-1">
-        <div className="flex justify-between">
-          <span className="text-nb-ink-mid">Created:</span>
-          <span className="font-medium">{calendarDate(ring.createdAt)}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-nb-ink-mid">Visibility:</span>
-          <span className="font-medium capitalize">{ring.visibility}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-nb-ink-mid">Join Type:</span>
-          <span className="font-medium capitalize">{ring.joinType}</span>
-        </div>
-      </div>
-    </div>
+    </aside>
   );
 }

@@ -55,7 +55,6 @@ const NOT_COOKIE_WRITES = [
   'pages/api/threadrings/[slug]/members.ts',
   'pages/api/threadrings/[slug]/posts.ts',
   'pages/api/threadrings/[slug]/prompts/[promptId]/responses.ts',
-  'pages/api/threadrings/[slug]/stats.ts',
   'pages/api/threadrings/check-availability/[slug].ts',
   'pages/api/threadrings/genealogy.ts',
   'pages/api/threadrings/index.ts',

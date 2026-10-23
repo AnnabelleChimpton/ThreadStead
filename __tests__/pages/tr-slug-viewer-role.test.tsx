@@ -33,12 +33,9 @@ jest.mock('@/lib/api/client/csrf-fetch', () => ({ csrfFetch: jest.fn() }));
 // Child components are not under test; render nothing (Layout passes children through).
 jest.mock('@/components/ui/layout/Layout', () => ({ __esModule: true, default: ({ children }: any) => children }));
 jest.mock('@/components/core/content/PostItem', () => ({ __esModule: true, default: () => null }));
-jest.mock('@/components/core/threadring/ThreadRingStats', () => ({ __esModule: true, default: () => null }));
-jest.mock('@/components/core/threadring/ThreadRingLineage', () => ({ __esModule: true, default: () => null }));
 jest.mock('@/components/core/threadring/ThreadRingFeedScope', () => ({ __esModule: true, default: () => null }));
 jest.mock('@/components/core/threadring/ThreadRingActivePrompt', () => ({ __esModule: true, default: () => null }));
 jest.mock('@/components/core/threadring/ThreadRing88x31Badge', () => ({ __esModule: true, default: () => null }));
-jest.mock('@/components/core/threadring/ThreadRingAboutWidget', () => ({ __esModule: true, default: () => null }));
 jest.mock('@/components/ui/feedback/UserQuickView', () => ({ __esModule: true, default: () => null }));
 jest.mock('@/components/ui/feedback/ExternalUserPopup', () => ({ __esModule: true, default: () => null }));
 jest.mock('@/components/features/onboarding/WelcomeRingGuide', () => ({ __esModule: true, default: () => null }));
@@ -91,8 +88,9 @@ function respond(urlPart: string, body: unknown, ok = true) {
 }
 
 const siteConfig = {} as any;
-const settingsLink = () => screen.queryByRole('link', { name: /manage settings/i });
-const joinButton = () => screen.queryByRole('button', { name: /join ring/i });
+const manageLink = () => screen.queryByRole('link', { name: /^manage$/i });
+const joinButton = () => screen.queryByRole('button', { name: /^join ring/i });
+const leaveButton = () => screen.queryByRole('button', { name: /^leave$/i });
 
 beforeEach(() => {
   pending = [];
@@ -107,30 +105,34 @@ beforeEach(() => {
 });
 
 describe('ThreadRing page viewer role', () => {
-  it('a member sees their role, Write and Leave, and no settings', async () => {
+  it('a member sees Write and Leave, and no Manage', async () => {
     render(<ThreadRingPage siteConfig={siteConfig} ring={makeRing('alpha')} />);
     await respond('/api/threadrings/alpha/members', membersBody(VIEWER.id, 'member'));
 
-    expect(screen.getByText('Member')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /leave ring/i })).toBeInTheDocument();
-    expect(settingsLink()).not.toBeInTheDocument();
+    expect(screen.getByText(/You're a member/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /write in this ring/i })).toHaveAttribute('href', '/post/new?threadRing=alpha');
+    expect(leaveButton()).toBeInTheDocument();
+    expect(manageLink()).not.toBeInTheDocument();
     expect(joinButton()).not.toBeInTheDocument();
   });
 
-  it("the hub's owner is the Host, with settings", async () => {
+  it("the hub's owner is the Host, with Manage, and hands the ring over there rather than leaving", async () => {
     render(<ThreadRingPage siteConfig={siteConfig} ring={makeRing('alpha')} />);
     await respond('/api/threadrings/alpha/members', membersBody(VIEWER.id, 'curator'));
 
     expect(screen.getByText('Host')).toBeInTheDocument();
-    expect(settingsLink()).toHaveAttribute('href', '/tr/alpha/settings');
+    expect(manageLink()).toHaveAttribute('href', '/tr/alpha/manage');
+    expect(leaveButton()).not.toBeInTheDocument();
   });
 
-  it('shows the moderator role from the members list', async () => {
+  it('a moderator, from the members list, gets Manage (people and prompts) and can leave', async () => {
     render(<ThreadRingPage siteConfig={siteConfig} ring={makeRing('alpha')} />);
     await respond('/api/threadrings/alpha/members', membersBody(VIEWER.id, 'moderator'));
 
     expect(screen.getByText('Moderator')).toBeInTheDocument();
-    expect(settingsLink()).not.toBeInTheDocument();
+    expect(screen.getByText(/You're a moderator/)).toBeInTheDocument();
+    expect(manageLink()).toHaveAttribute('href', '/tr/alpha/manage');
+    expect(leaveButton()).toBeInTheDocument();
   });
 
   it("an admin who isn't in the ring can manage it, isn't its Host, and can join", async () => {
@@ -138,10 +140,10 @@ describe('ThreadRing page viewer role', () => {
     render(<ThreadRingPage siteConfig={siteConfig} ring={makeRing('alpha')} />);
     await respond('/api/threadrings/alpha/members', membersBody('u-someone-else', 'curator'));
 
-    expect(settingsLink()).toBeInTheDocument();
-    expect(screen.queryByText('Host')).not.toBeInTheDocument();
+    expect(manageLink()).toBeInTheDocument();
+    expect(screen.queryByText(/You're a/)).not.toBeInTheDocument();
     expect(joinButton()).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /leave ring/i })).not.toBeInTheDocument();
+    expect(leaveButton()).not.toBeInTheDocument();
   });
 
   it('joining updates the page in place and reads the members again', async () => {
@@ -154,7 +156,7 @@ describe('ThreadRing page viewer role', () => {
     });
 
     expect(csrfFetch).toHaveBeenCalledWith('/api/threadrings/alpha/join', expect.objectContaining({ method: 'POST' }));
-    expect(screen.getByText('Member')).toBeInTheDocument();
+    expect(screen.getByText(/You're a member/)).toBeInTheDocument();
     expect(screen.getByText('3 members')).toBeInTheDocument();
     expect(showSuccess).toHaveBeenCalledWith("You're in.");
     // Read again, now that the route has forgotten the cached list
@@ -190,7 +192,7 @@ describe('ThreadRing page viewer role', () => {
     // Alpha's answer arrives late: the viewer hosts alpha, not beta.
     await respond('/api/threadrings/alpha/members', membersBody(VIEWER.id, 'curator'));
 
-    expect(settingsLink()).not.toBeInTheDocument();
+    expect(manageLink()).not.toBeInTheDocument();
     expect(joinButton()).toBeInTheDocument();
   });
 });

@@ -1,107 +1,29 @@
-import React from 'react';
-import { PixelIcon } from '@/components/ui/PixelIcon';
-
 interface ThreadRingFeedScopeProps {
-  hasParent: boolean;
-  hasChildren: boolean;
-  hasSiblings: boolean;
-  onScopeChange: (scope: 'current' | 'parent' | 'children' | 'siblings' | 'family') => void;
-  currentScope?: 'current' | 'parent' | 'children' | 'siblings' | 'family';
+  /** The second choice's words: "With Sock Club", or "Whole family" */
+  withLabel: string;
+  scope: "current" | "with";
+  onScopeChange: (scope: "current" | "with") => void;
 }
 
-/** Which rings' posts the feed shows. The page holds the scope. */
-export default function ThreadRingFeedScope({
-  hasParent,
-  hasChildren,
-  hasSiblings,
-  onScopeChange,
-  currentScope: scope = 'current'
-}: ThreadRingFeedScopeProps) {
+const OPTION = "ts-bare !px-2.5 !py-1 text-[0.85rem] !font-semibold";
+const ON = "!bg-nb-ink !text-nb-paper";
+const OFF = "!bg-nb-paper !text-nb-ink-mid hover:!text-nb-ink";
 
-  const getScopeLabel = (scopeValue: string) => {
-    switch (scopeValue) {
-      case 'current': return 'This Ring';
-      case 'parent': return 'Parent Ring';
-      case 'children': return 'Descendant Rings';
-      case 'siblings': return 'Sibling Rings';
-      case 'family': return 'Family Feed';
-      default: return scopeValue;
-    }
-  };
-
-  const getScopeDescription = (scopeValue: string) => {
-    switch (scopeValue) {
-      case 'current': return 'Posts in this ring';
-      case 'parent': return 'Posts from the parent ThreadRing';
-      case 'children': return 'Posts from all direct descendant ThreadRings';
-      case 'siblings': return 'Posts from sibling ThreadRings (same parent)';
-      case 'family': return 'Posts from parent, siblings, current, and descendant ThreadRings';
-      default: return '';
-    }
-  };
-
-  const getScopeIcon = (scopeValue: string): React.ReactNode => {
-    switch (scopeValue) {
-      case 'current': return <PixelIcon name="gps" size={14} />;
-      case 'parent': return <PixelIcon name="arrow-up" size={14} />;
-      case 'children': return <PixelIcon name="arrow-down" size={14} />;
-      case 'siblings': return <PixelIcon name="link" size={14} />;
-      case 'family': return <PixelIcon name="users" size={14} />;
-      default: return <PixelIcon name="gps" size={14} />;
-    }
-  };
-
-  // Available scope options based on ring relationships
-  const availableScopes: Array<'current' | 'parent' | 'children' | 'siblings' | 'family'> = [
-    'current',
-    ...(hasParent ? ['parent'] as const : []),
-    ...(hasChildren ? ['children'] as const : []),
-    ...(hasSiblings ? ['siblings'] as const : []),
-    ...(hasParent || hasChildren || hasSiblings ? ['family'] as const : [])
-  ];
-
-  if (availableScopes.length <= 1) {
-    // Don't show scope selector if there's only one option
-    return null;
-  }
-
+/** Whose posts the ring's feed shows: this ring's, or with its relatives'. The page holds the choice. */
+export default function ThreadRingFeedScope({ withLabel, scope, onScopeChange }: ThreadRingFeedScopeProps) {
   return (
-    <div className="tr-feed-scope tr-widget widget-container widget--flat bg-thread-paper border border-thread-sage rounded-cozy shadow-cozy-sm p-3 mb-4">
-      <div className="tr-feed-scope-header flex items-center justify-between mb-2">
-        <h3 className="tr-feed-scope-title font-bold text-sm">Feed:</h3>
-        <span className="tr-current-scope text-xs text-nb-ink-mid">
-          <span className="tr-scope-icon">{getScopeIcon(scope)}</span> <span className="tr-scope-label">{getScopeLabel(scope)}</span>
-        </span>
-      </div>
-      
-      <div className="tr-scope-options flex flex-wrap gap-2">
-        {availableScopes.map((scopeOption) => (
-          <label
-            key={scopeOption}
-            className={`tr-scope-option flex items-center gap-1 text-xs cursor-pointer ${
-              scope === scopeOption
-                ? 'tr-scope-active badge badge--butter font-semibold'
-                : 'tr-scope-inactive tag hover:border-nb-ink'
-            }`}
-          >
-            <input
-              type="radio"
-              name="feedScope"
-              value={scopeOption}
-              checked={scope === scopeOption}
-              onChange={() => onScopeChange(scopeOption)}
-              className="tr-scope-radio sr-only"
-            />
-            <span className="tr-scope-icon">{getScopeIcon(scopeOption)}</span>
-            <span className="tr-scope-label font-medium">{getScopeLabel(scopeOption)}</span>
-          </label>
-        ))}
-      </div>
-
-      {/* Show description for current selection */}
-      <div className="tr-scope-description mt-2 text-xs text-nb-ink-mid">
-        {getScopeDescription(scope)}
-      </div>
+    <div role="group" aria-label="Whose posts" className="tr-feed-scope inline-flex shrink-0 border-2 border-nb-ink-mid rounded-md overflow-hidden">
+      <button type="button" aria-pressed={scope === "current"} onClick={() => onScopeChange("current")} className={`${OPTION} ${scope === "current" ? ON : OFF}`}>
+        This ring
+      </button>
+      <button
+        type="button"
+        aria-pressed={scope === "with"}
+        onClick={() => onScopeChange("with")}
+        className={`${OPTION} !border-l-2 !border-l-nb-ink-mid ${scope === "with" ? ON : OFF}`}
+      >
+        {withLabel}
+      </button>
     </div>
   );
 }
