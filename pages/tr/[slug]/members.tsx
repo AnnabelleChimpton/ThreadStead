@@ -50,6 +50,8 @@ interface ThreadRingMembersPageProps {
   canManage: boolean;
   /** A Ring Hub ring: only those can be handed to a new owner. */
   hubRing?: boolean;
+  /** The viewer moderates this hub ring: they may remove plain members. */
+  viewerModerates?: boolean;
   error?: string;
 }
 
@@ -59,6 +61,7 @@ export default function ThreadRingMembersPage({
   members: initialMembers,
   canManage,
   hubRing = false,
+  viewerModerates = false,
   error
 }: ThreadRingMembersPageProps) {
   const router = useRouter();
@@ -230,6 +233,15 @@ export default function ThreadRingMembersPage({
             {members.map((member) => {
               const isCurrentUser = member.user.id === ring.curatorId; // We could pass current user ID
               const isCurator = member.role === "curator";
+              const removeButton = (
+                <button
+                  onClick={() => handleRemoveMember(member.user.id)}
+                  disabled={managing === member.user.id}
+                  className="text-xs border border-black px-3 py-1 bg-red-100 hover:bg-red-200 shadow-[1px_1px_0_#000] hover:shadow-[2px_2px_0_#000] transition-all disabled:opacity-50"
+                >
+                  {managing === member.user.id ? "..." : "Remove"}
+                </button>
+              );
 
               return (
                 <div key={member.user.id} className="p-4 flex items-center justify-between">
@@ -306,16 +318,12 @@ export default function ThreadRingMembersPage({
                           </button>
                         )}
 
-                        {/* Remove Button */}
-                        <button
-                          onClick={() => handleRemoveMember(member.user.id)}
-                          disabled={managing === member.user.id}
-                          className="text-xs border border-black px-3 py-1 bg-red-100 hover:bg-red-200 shadow-[1px_1px_0_#000] hover:shadow-[2px_2px_0_#000] transition-all disabled:opacity-50"
-                        >
-                          {managing === member.user.id ? "..." : "Remove"}
-                        </button>
+                        {removeButton}
                       </div>
                     )}
+
+                    {/* Moderators remove plain members; roles stay with the curator */}
+                    {!canManage && viewerModerates && member.role === "member" && removeButton}
 
                     {isCurator && canManage && (
                       <span className="text-xs text-gray-500 italic">
@@ -338,7 +346,9 @@ export default function ThreadRingMembersPage({
         {!canManage && (
           <div className="mt-4 p-4 bg-yellow-50 border border-yellow-300 rounded">
             <p className="text-sm text-yellow-800">
-              Only the curator can manage member roles and remove members.
+              {hubRing
+                ? "Only the curator can change roles. The curator and moderators can remove members."
+                : "Only the curator can manage member roles and remove members."}
             </p>
           </div>
         )}
@@ -435,6 +445,8 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
                 members: markExternal(await withHouseBadges(members, viewer?.id)),
                 canManage,
                 hubRing: true,
+                // The hub's roles decide: a moderator may remove plain members.
+                viewerModerates: !!viewer && members.some((m) => m.user.id === viewer.id && m.role === "moderator"),
               },
             };
           }

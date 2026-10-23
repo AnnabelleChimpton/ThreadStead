@@ -43,13 +43,16 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
           // This is a hub ring: the hub owns its memberships and roles, so a
           // hub failure is reported as-is — never written to the local mirror.
           try {
-            // Check if viewer owns this ring locally
-            const ownership = await db.ringHubOwnership.findUnique({
-              where: { ringSlug: slug }
-            });
+            // Role changes are the owner's. Removal the hub decides by the
+            // signer's role: the owner removes anyone, a moderator plain members.
+            if (req.method === "PUT") {
+              const ownership = await db.ringHubOwnership.findUnique({
+                where: { ringSlug: slug }
+              });
 
-            if (!ownership || ownership.ownerUserId !== viewer.id) {
-              return res.status(403).json({ error: "Only ring owner can manage members" });
+              if (!ownership || ownership.ownerUserId !== viewer.id) {
+                return res.status(403).json({ error: "Only ring owner can manage members" });
+              }
             }
 
             // Get the target user's DID
@@ -69,8 +72,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
               select: { did: true }
             });
             const targetDid = userDid?.did ?? targetUser.did;
-            // Signed as the ring owner: the hub authorizes by the caller's membership.
-            const ownerClient = createAuthenticatedRingHubClient(viewer.id);
+            // Signed as the viewer: the hub authorizes by the caller's membership.
+            const viewerClient = createAuthenticatedRingHubClient(viewer.id);
 
             if (req.method === "PUT") {
               // Update role
@@ -80,7 +83,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
                 return res.status(400).json({ error: "Invalid role. Must be 'member' or 'moderator'" });
               }
 
-              await ownerClient.updateMemberRole(slug, targetDid, role as 'member' | 'moderator');
+              await viewerClient.updateMemberRole(slug, targetDid, role as 'member' | 'moderator');
 
               const memberHandle = targetUser.handles.find(h => h.host === SITE_NAME)?.handle ||
                 targetUser.handles[0]?.handle ||
@@ -94,7 +97,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
             } else {
               // Remove member (DELETE)
-              await ownerClient.removeMember(slug, targetDid);
+              await viewerClient.removeMember(slug, targetDid);
 
               const memberHandle = targetUser.handles.find(h => h.host === SITE_NAME)?.handle ||
                 targetUser.handles[0]?.handle ||

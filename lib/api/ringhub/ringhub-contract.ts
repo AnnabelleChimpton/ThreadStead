@@ -184,7 +184,9 @@ export const JoinRingResponseSchema = z.object({
     joinedAt: z.string().nullish(),
     requiresApproval: z.boolean(),
   }),
-  badge: z.object({ id: z.string(), url: z.string() }).nullable(),
+  // url is the credential id itself, a /trp/badges/:id URL. It once pointed
+  // at /badges/<credential id>, which no route served.
+  badge: z.object({ id: z.string(), url: z.string().regex(/\/trp\/badges\/[^/]+$/) }).nullable(),
   message: z.string(),
 })
 
@@ -372,4 +374,14 @@ export const InviteMemberResponseSchema = z.object({
     createdAt: z.string(),
     expiresAt: z.string(),
   }),
+})
+
+/**
+ * DELETE /trp/rings/:slug/members/:did → 200 (ring-management.ts). The owner
+ * removes anyone but themselves, a moderator plain members only; a removed
+ * member comes back only by invitation (/trp/join 403s with error 'Removed').
+ */
+export const RemoveMemberResponseSchema = z.object({
+  success: z.literal(true),
+  message: z.string(),
 })

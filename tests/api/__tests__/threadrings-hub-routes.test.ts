@@ -171,6 +171,23 @@ describe('PUT/DELETE /api/threadrings/[slug]/members/[userId]', () => {
     expect(ownerOps.removeMember).toHaveBeenCalledWith('my-ring', 'did:web:homepageagain.com:users:abc')
   })
 
+  test('a moderator removes too: signed as them, the hub decides', async () => {
+    ;(getSessionUser as jest.Mock).mockResolvedValue({ id: 'mod-1' })
+    const { req, res } = makeReqRes('DELETE', { slug: 'my-ring', userId: 'user-2' })
+    await memberHandler(req, res)
+    expect(res.statusCode).toBe(200)
+    expect(createAuthenticatedRingHubClient).toHaveBeenCalledWith('mod-1')
+    expect(ownerOps.removeMember).toHaveBeenCalledWith('my-ring', 'did:web:homepageagain.com:users:abc')
+  })
+
+  test('only the owner changes roles', async () => {
+    ;(getSessionUser as jest.Mock).mockResolvedValue({ id: 'mod-1' })
+    const { req, res } = makeReqRes('PUT', { slug: 'my-ring', userId: 'user-2' }, { role: 'moderator' })
+    await memberHandler(req, res)
+    expect(res.statusCode).toBe(403)
+    expect(ownerOps.updateMemberRole).not.toHaveBeenCalled()
+  })
+
   test("a hub rejection is reported with the hub's status — no local fallback", async () => {
     ownerOps.updateMemberRole.mockRejectedValue(
       new RingHubClientError('Invalid role', 400, undefined, { message: 'Role not found in this ring' })

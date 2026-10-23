@@ -23,6 +23,7 @@ import {
   MyFeedResponseSchema,
   TrendingFeedResponseSchema,
   InviteMemberResponseSchema,
+  RemoveMemberResponseSchema,
   RingMembersResponseSchema,
 } from './ringhub-contract'
 
@@ -516,13 +517,15 @@ export class RingHubClient {
   }
 
   /**
-   * Remove a member from a ring
+   * Remove a member from a ring. Signed as the owner (anyone but themselves)
+   * or a moderator (plain members only). They can come back only by invite.
    */
   async removeMember(slug: string, actorDid: string): Promise<{
     success: boolean
     message: string
   }> {
-    return this.delete(`/trp/rings/${slug}/members/${encodeURIComponent(actorDid)}`)
+    const response = await this.delete(`/trp/rings/${slug}/members/${encodeURIComponent(actorDid)}`)
+    return validateRingHubResponse('DELETE /trp/rings/:slug/members/:did', RemoveMemberResponseSchema, response)
   }
 
   // Content Operations

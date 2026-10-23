@@ -162,7 +162,20 @@ describe('membership lifecycle', () => {
     // undefined on the wire. This pins the real shape.
     expect(result.badge).not.toBeNull()
     expect(typeof result.badge!.id).toBe('string')
-    expect(result.badge!.url).toContain('/badges/')
+    // The link is the credential id itself, and the hub serves it. It once
+    // pointed at /badges/<credential id>, which no route answered.
+    expect(result.badge!.url).toBe(result.badge!.id)
+    expect(new URL(result.badge!.url).pathname).toMatch(/^\/trp\/badges\/[^/]+$/)
+    const served = await fetch(result.badge!.url)
+    expect(served.status).toBe(200)
+    expect((await served.json()).badge.id).toBe(result.badge!.id)
+  })
+
+  test('the pre-2026-10 /badges/:id form redirects to the badge', async () => {
+    const shortId = new URL((await client.getActorBadges(actorDid)).badges[0].badge.id as string).pathname.split('/').pop()
+    const served = await fetch(`${getRuntime().hubUrl}/badges/${shortId}`)
+    expect(served.redirected).toBe(true)
+    expect(served.status).toBe(200)
   })
 
   test('getMyMemberships reflects the join', async () => {
@@ -499,6 +512,16 @@ describe('owner member management (audit 0.8)', () => {
     await expect(second.updateMemberRole(FORK_SLUG, actorDid, 'member')).rejects.toMatchObject({ status: 403 })
   })
 
+  test('a moderator removes a plain member, but not the owner', async () => {
+    const admin = makeTestClient('admin') // here just a plain member
+    await admin.joinRing(FORK_SLUG)
+    const removed = await second.removeMember(FORK_SLUG, getRuntime().adminActorDid)
+    expect(removed.success).toBe(true)
+    expect((await admin.getMyMemberships({ status: 'ACTIVE' })).memberships.find((m) => m.ringSlug === FORK_SLUG)).toBeUndefined()
+
+    await expect(second.removeMember(FORK_SLUG, actorDid)).rejects.toMatchObject({ status: 403 })
+  })
+
   test('the owner can demote and then remove a member', async () => {
     const demoted = await client.updateMemberRole(FORK_SLUG, secondDid, 'member')
     expect(demoted.member.role).toBe('member')
@@ -507,6 +530,18 @@ describe('owner member management (audit 0.8)', () => {
     expect(removed.success).toBe(true)
     const memberships = await second.getMyMemberships({ status: 'ACTIVE' })
     expect(memberships.memberships.find((m) => m.ringSlug === FORK_SLUG)).toBeUndefined()
+  })
+
+  test('a removed member cannot rejoin the open ring on their own', async () => {
+    await expect(second.joinRing(FORK_SLUG)).rejects.toMatchObject({ status: 403, data: { error: 'Removed' } })
+  })
+
+  test('an invite brings them back, and after that leaving and rejoining is free', async () => {
+    await client.inviteMember(FORK_SLUG, secondDid)
+    expect((await second.joinRing(FORK_SLUG)).membership.status).toBe('ACTIVE')
+
+    await second.leaveRing(FORK_SLUG)
+    expect((await second.joinRing(FORK_SLUG)).membership.status).toBe('ACTIVE')
   })
 })
 
