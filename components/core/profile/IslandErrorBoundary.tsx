@@ -32,13 +32,19 @@ export class IslandErrorBoundary extends React.Component<IslandErrorBoundaryProp
     console.error(`Island ${this.props.islandId} rendering error:`, error, errorInfo);
   }
 
+  // Each component draws inside a <ts-island>, which has no box of its own
+  // (styles/page-defaults.css): the site's reset applies inside it, and the
+  // browser's defaults on the page around it (styles/preflight.css)
   render() {
-    if (!this.state.hasError) return this.props.children;
-    if (!this.props.ownerSees) return null;
-    return (
-      <p className="island-error-fallback" role="status" style={{ padding: '8px 12px', border: '1px dashed currentColor', fontSize: '14px' }}>
-        {this.props.component ? `<${this.props.component}>` : 'This part'} couldn&apos;t show here. Only you see this note.
-      </p>
+    if (this.state.hasError && !this.props.ownerSees) return null;
+    return React.createElement(
+      'ts-island',
+      null,
+      this.state.hasError ? (
+        <p className="island-error-fallback" role="status" style={{ padding: '8px 12px', border: '1px dashed currentColor', fontSize: '14px' }}>
+          {this.props.component ? `<${this.props.component}>` : 'This part'} couldn&apos;t show here. Only you see this note.
+        </p>
+      ) : this.props.children
     );
   }
 }

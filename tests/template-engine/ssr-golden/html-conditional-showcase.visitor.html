@@ -10,12 +10,16 @@
         " "
         <p class="page-subtitle">
           "Live examples with "
-          <span class="ts-profile-display-name thread-headline text-3xl font-bold mb-1 text-thread-pine">
-            "Pat Example"
+          <ts-island>
+            <span class="ts-profile-display-name thread-headline text-3xl font-bold mb-1 text-thread-pine">
+              "Pat Example"
           "'s actual profile data"
         " "
-        <div class="user-level-banner">
-          "🌱 BEGINNER Level - You have 1-9 posts!"
+        <ts-island>
+          " "
+          <div class="user-level-banner" data-ts-page="">
+            "🌱 BEGINNER Level - You have 1-9 posts!"
+          " "
         " "
       " "
       <div class="content-grid">
@@ -37,7 +41,10 @@
               " "
               <span class="data-label">
                 "Your post count:"
-              " 2 "
+              " "
+              <ts-island>
+                "2"
+              " "
             " "
             <div class="condition-check">
               " "
@@ -45,11 +52,14 @@
                 "Checking:"
               " Is post count > 5? "
             " "
-            <span class="result-badge result-false">
-              "✗ FALSE - You have 5 or fewer posts"
-            " "
-            <div class="explanation">
-              " This content shows when you have 5 or fewer posts. "
+            <ts-island>
+              " "
+              <span class="result-badge result-false" data-ts-page="">
+                "✗ FALSE - You have 5 or fewer posts"
+              " "
+              <div class="explanation" data-ts-page="">
+                " This content shows when you have 5 or fewer posts. "
+              " "
             " "
           " "
           <div class="example-item">
@@ -64,7 +74,10 @@
               " "
               <span class="data-label">
                 "Your post count:"
-              " 2 "
+              " "
+              <ts-island>
+                "2"
+              " "
             " "
             <div class="condition-check">
               " "
@@ -72,11 +85,14 @@
                 "Checking:"
               " Is post count < 100? "
             " "
-            <span class="result-badge result-true">
-              "✓ TRUE - You have under 100 posts"
-            " "
-            <div class="explanation">
-              " This shows because you haven't reached 100 posts yet. "
+            <ts-island>
+              " "
+              <span class="result-badge result-true" data-ts-page="">
+                "✓ TRUE - You have under 100 posts"
+              " "
+              <div class="explanation" data-ts-page="">
+                " This shows because you haven't reached 100 posts yet. "
+              " "
             " "
           " "
           <div class="example-item">
@@ -91,7 +107,10 @@
               " "
               <span class="data-label">
                 "Your post count:"
-              " 2 "
+              " "
+              <ts-island>
+                "2"
+              " "
             " "
             <div class="condition-check">
               " "
@@ -99,11 +118,14 @@
                 "Checking:"
               " Is post count exactly 0? "
             " "
-            <span class="result-badge result-false">
-              "✗ FALSE - You have posts!"
-            " "
-            <div class="explanation">
-              " You've already started posting. Great work! "
+            <ts-island>
+              " "
+              <span class="result-badge result-false" data-ts-page="">
+                "✗ FALSE - You have posts!"
+              " "
+              <div class="explanation" data-ts-page="">
+                " You've already started posting. Great work! "
+              " "
             " "
           " "
           <div class="example-item">
@@ -118,7 +140,10 @@
               " "
               <span class="data-label">
                 "Your post count:"
-              " 2 "
+              " "
+              <ts-island>
+                "2"
+              " "
             " "
             <div class="condition-check">
               " "
@@ -126,11 +151,14 @@
                 "Checking:"
               " Is post count NOT equal to 0? "
             " "
-            <span class="result-badge result-true">
-              "✓ TRUE - You have at least one post"
-            " "
-            <div class="explanation">
-              " Perfect! This shows any content you want visible only when users have posts. "
+            <ts-island>
+              " "
+              <span class="result-badge result-true" data-ts-page="">
+                "✓ TRUE - You have at least one post"
+              " "
+              <div class="explanation" data-ts-page="">
+                " Perfect! This shows any content you want visible only when users have posts. "
+              " "
             " "
           " "
         " "
@@ -152,11 +180,12 @@
               <span class="data-label">
                 "Your bio:"
               " "
-              <div class="ts-profile-bio-section mb-4">
-                <h3 class="ts-bio-heading thread-headline text-xl font-bold mb-2 text-thread-pine">
-                  "About Me"
-                <p class="ts-bio-text ts-profile-bio leading-relaxed">
-                  "I make small websites."
+              <ts-island>
+                <div class="ts-profile-bio-section mb-4">
+                  <h3 class="ts-bio-heading thread-headline text-xl font-bold mb-2 text-thread-pine">
+                    "About Me"
+                  <p class="ts-bio-text ts-profile-bio leading-relaxed">
+                    "I make small websites."
               " "
             " "
             <div class="condition-check">
@@ -165,11 +194,14 @@
                 "Checking:"
               " Does bio contain "developer"? "
             " "
-            <span class="result-badge result-false">
-              "✗ FALSE - Your bio doesn't mention "developer""
-            " "
-            <div class="explanation">
-              " Your bio exists but doesn't contain the word "developer". "
+            <ts-island>
+              " "
+              <span class="result-badge result-false" data-ts-page="">
+                "✗ FALSE - Your bio doesn't mention "developer""
+              " "
+              <div class="explanation" data-ts-page="">
+                " Your bio exists but doesn't contain the word "developer". "
+              " "
             " "
           " "
           <div class="example-item">
@@ -185,8 +217,9 @@
               <span class="data-label">
                 "Your username:"
               " "
-              <h2 class="ts-profile-display-name thread-headline text-3xl font-bold mb-1 text-thread-pine">
-                "Pat Example"
+              <ts-island>
+                <h2 class="ts-profile-display-name thread-headline text-3xl font-bold mb-1 text-thread-pine">
+                  "Pat Example"
               " "
             " "
             <div class="condition-check">
@@ -195,11 +228,19 @@
                 "Checking:"
               " Does username start with "admin"? "
             " "
-            <span class="result-badge result-false">
-              "✗ FALSE - Username doesn't start with "admin""
+            <ts-island>
             " "
-            <div class="explanation">
-              " Your username exists but doesn't start with "admin". "
+            <ts-island>
+              " "
+              <ts-island>
+                " "
+                <span class="result-badge result-false" data-ts-page="">
+                  "✗ FALSE - Username doesn't start with "admin""
+                " "
+                <div class="explanation" data-ts-page="">
+                  " Your username exists but doesn't start with "admin". "
+                " "
+              " "
             " "
           " "
           <div class="example-item">
@@ -215,8 +256,9 @@
               <span class="data-label">
                 "Your username:"
               " "
-              <h2 class="ts-profile-display-name thread-headline text-3xl font-bold mb-1 text-thread-pine">
-                "Pat Example"
+              <ts-island>
+                <h2 class="ts-profile-display-name thread-headline text-3xl font-bold mb-1 text-thread-pine">
+                  "Pat Example"
               " "
             " "
             <div class="condition-check">
@@ -225,11 +267,19 @@
                 "Checking:"
               " Does username end with "_test"? "
             " "
-            <span class="result-badge result-false">
-              "✗ FALSE - Username doesn't end with "_test""
+            <ts-island>
             " "
-            <div class="explanation">
-              " Your username exists but doesn't end with "_test". This is a regular account. "
+            <ts-island>
+              " "
+              <ts-island>
+                " "
+                <span class="result-badge result-false" data-ts-page="">
+                  "✗ FALSE - Username doesn't end with "_test""
+                " "
+                <div class="explanation" data-ts-page="">
+                  " Your username exists but doesn't end with "_test". This is a regular account. "
+                " "
+              " "
             " "
           " "
         " "
@@ -251,15 +301,19 @@
               <span class="data-label">
                 "Has posts?"
               " "
-              <span class="data-value">
-                "YES"
+              <ts-island>
+                <span class="data-value" data-ts-page="">
+                  "YES"
+              <ts-island>
               <br>
               " "
               <span class="data-label">
                 "Has bio?"
               " "
-              <span class="data-value">
-                "YES"
+              <ts-island>
+                <span class="data-value" data-ts-page="">
+                  "YES"
+              <ts-island>
               " "
             " "
             <div class="condition-check">
@@ -268,11 +322,18 @@
                 "Checking:"
               " Does user have BOTH posts AND bio? "
             " "
-            <span class="result-badge result-true">
-              "✓ TRUE - You have both posts AND bio"
+            <ts-island>
+              " "
+              <span class="result-badge result-true" data-ts-page="">
+                "✓ TRUE - You have both posts AND bio"
+              " "
+              <div class="explanation" data-ts-page="">
+                " Both conditions are true! This is a complete profile. "
+              " "
             " "
-            <div class="explanation">
-              " Both conditions are true! This is a complete profile. "
+            <ts-island>
+            " "
+            <ts-island>
             " "
           " "
           <div class="example-item">
@@ -288,15 +349,19 @@
               <span class="data-label">
                 "Has posts?"
               " "
-              <span class="data-value">
-                "YES"
+              <ts-island>
+                <span class="data-value" data-ts-page="">
+                  "YES"
+              <ts-island>
               <br>
               " "
               <span class="data-label">
                 "Has guestbook?"
               " "
-              <span class="data-value">
-                "YES"
+              <ts-island>
+                <span class="data-value" data-ts-page="">
+                  "YES"
+              <ts-island>
               " "
             " "
             <div class="condition-check">
@@ -305,11 +370,14 @@
                 "Checking:"
               " Does user have posts OR guestbook (or both)? "
             " "
-            <span class="result-badge result-true">
-              "✓ TRUE - Has posts OR guestbook (or both)"
-            " "
-            <div class="explanation">
-              " At least one condition is true! Your profile has some content. "
+            <ts-island>
+              " "
+              <span class="result-badge result-true" data-ts-page="">
+                "✓ TRUE - Has posts OR guestbook (or both)"
+              " "
+              <div class="explanation" data-ts-page="">
+                " At least one condition is true! Your profile has some content. "
+              " "
             " "
           " "
           <div class="example-item">
@@ -325,8 +393,10 @@
               <span class="data-label">
                 "Has featured friends?"
               " "
-              <span class="data-value">
-                "NO"
+              <ts-island>
+              <ts-island>
+                <span class="data-value" data-ts-page="">
+                  "NO"
               " "
             " "
             <div class="condition-check">
@@ -335,11 +405,16 @@
                 "Checking:"
               " Does user NOT have featured friends? "
             " "
-            <span class="result-badge result-true">
-              "✓ TRUE - No featured friends set"
+            <ts-island>
+              " "
+              <span class="result-badge result-true" data-ts-page="">
+                "✓ TRUE - No featured friends set"
+              " "
+              <div class="explanation" data-ts-page="">
+                " This shows when the condition is FALSE (no featured friends). "
+              " "
             " "
-            <div class="explanation">
-              " This shows when the condition is FALSE (no featured friends). "
+            <ts-island>
             " "
           " "
         " "
@@ -360,7 +435,10 @@
               " "
               <span class="data-label">
                 "Your post count:"
-              " 2 "
+              " "
+              <ts-island>
+                "2"
+              " "
             " "
             <div class="condition-check">
               " "
@@ -374,14 +452,17 @@
               <br>
               " • 0-9 posts = Beginner "
             " "
-            <span class="level-badge" style="background: linear-gradient(135deg, #84fab0, #8fd3f4); color: rgb(6, 95, 70);">
-              "🌱 BEGINNER"
-            " "
-            <div class="explanation">
+            <ts-island>
               " "
-              <strong>
-                "Third When matched!"
-              " You have 1-9 posts. "
+              <span class="level-badge" data-ts-page="" style="background: linear-gradient(135deg, #84fab0, #8fd3f4); color: rgb(6, 95, 70);">
+                "🌱 BEGINNER"
+              " "
+              <div class="explanation" data-ts-page="">
+                " "
+                <strong>
+                  "Third When matched!"
+                " You have 1-9 posts. "
+              " "
             " "
             <div class="explanation" style="margin-top: 15px; background: rgb(230, 255, 250); border-left-color: rgb(56, 178, 172);">
               " "
@@ -411,11 +492,16 @@
               "Checking:"
             " Is the current viewer the profile owner? "
           " "
-          <span class="result-badge result-false">
-            "✗ Hidden from you (you're a visitor)"
+          <ts-island>
           " "
-          <div class="explanation">
-            " Visitors don't see this content. "
+          <ts-island>
+            " "
+            <span class="result-badge result-false" data-ts-page="">
+              "✗ Hidden from you (you're a visitor)"
+            " "
+            <div class="explanation" data-ts-page="">
+              " Visitors don't see this content. "
+            " "
           " "
         " "
         <div class="example-item">
@@ -432,17 +518,22 @@
               "Checking:"
             " Is the current viewer NOT the profile owner? "
           " "
-          <div style="background: rgb(219, 234, 254); padding: 15px; border-radius: 8px; border: 2px solid rgb(59, 130, 246); margin: 10px 0px;">
+          <ts-island>
             " "
-            <strong>
-              "👋 Visitor View:"
-            " You see this because you're VISITING this profile. "
+            <div data-ts-page="" style="background: rgb(219, 234, 254); padding: 15px; border-radius: 8px; border: 2px solid rgb(59, 130, 246); margin: 10px 0px;">
+              " "
+              <strong>
+                "👋 Visitor View:"
+              " You see this because you're VISITING this profile. "
+            " "
+            <span class="result-badge result-true" data-ts-page="">
+              "✓ TRUE - You are a visitor"
+            " "
+            <div class="explanation" data-ts-page="">
+              " Use this to show welcome messages, follow buttons, or guest-specific content. "
+            " "
           " "
-          <span class="result-badge result-true">
-            "✓ TRUE - You are a visitor"
-          " "
-          <div class="explanation">
-            " Use this to show welcome messages, follow buttons, or guest-specific content. "
+          <ts-island>
           " "
         " "
         <div class="explanation" style="background: rgb(255, 245, 245); border-left-color: rgb(252, 129, 129); margin-top: 15px;">
@@ -471,11 +562,21 @@
               "Checking:"
             " Is the viewer a friend (mutual follows)? "
           " "
-          <span class="result-badge result-false">
-            "✗ FALSE - Not friends yet"
+          <ts-island>
+            " "
+            <ts-island>
+            " "
+            <ts-island>
+              " "
+              <span class="result-badge result-false" data-ts-page="">
+                "✗ FALSE - Not friends yet"
+              " "
+              <div class="explanation" data-ts-page="">
+                " This content is hidden because you're not friends with the profile owner. "
+              " "
+            " "
           " "
-          <div class="explanation">
-            " This content is hidden because you're not friends with the profile owner. "
+          <ts-island>
           " "
         " "
         <div class="example-item">
@@ -492,11 +593,21 @@
               "Checking:"
             " Is the viewer following this profile? "
           " "
-          <span class="result-badge result-false">
-            "✗ FALSE - Not following"
+          <ts-island>
+            " "
+            <ts-island>
+            " "
+            <ts-island>
+              " "
+              <span class="result-badge result-false" data-ts-page="">
+                "✗ FALSE - Not following"
+              " "
+              <div class="explanation" data-ts-page="">
+                " Could show a "Follow me!" button here for non-followers. "
+              " "
+            " "
           " "
-          <div class="explanation">
-            " Could show a "Follow me!" button here for non-followers. "
+          <ts-island>
           " "
         " "
         <div class="example-item">
@@ -513,17 +624,27 @@
               "Checking:"
             " Is viewer NOT a friend (to show "Add Friend" CTA)? "
           " "
-          <div style="background: rgb(254, 243, 199); padding: 15px; border-radius: 8px; border: 2px solid rgb(245, 158, 11); margin: 10px 0px;">
+          <ts-island>
             " "
-            <strong>
-              "👋 Hey there!"
-            " We're not friends yet. Want to add me? "
+            <ts-island>
+              " "
+              <div data-ts-page="" style="background: rgb(254, 243, 199); padding: 15px; border-radius: 8px; border: 2px solid rgb(245, 158, 11); margin: 10px 0px;">
+                " "
+                <strong>
+                  "👋 Hey there!"
+                " We're not friends yet. Want to add me? "
+              " "
+              <span class="result-badge result-true" data-ts-page="">
+                "✓ TRUE - Not friends (CTA visible)"
+              " "
+              <div class="explanation" data-ts-page="">
+                " Perfect for showing "Add Friend" or "Follow" buttons only to non-friends. "
+              " "
+            " "
+            <ts-island>
+            " "
           " "
-          <span class="result-badge result-true">
-            "✓ TRUE - Not friends (CTA visible)"
-          " "
-          <div class="explanation">
-            " Perfect for showing "Add Friend" or "Follow" buttons only to non-friends. "
+          <ts-island>
           " "
         " "
         <div class="explanation" style="background: rgb(236, 253, 245); border-left-color: rgb(16, 185, 129); margin-top: 15px;">

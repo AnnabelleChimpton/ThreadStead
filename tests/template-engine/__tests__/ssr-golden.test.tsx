@@ -200,7 +200,7 @@ describe("a page's <Var>s on the server", () => {
     const html = renderToString(page(nightWindow(), 'u_visitor'))
     expect(html).toContain('the lamp is on')
     expect(html).not.toContain('lights out')
-    expect(html).toMatch(/you(&#x27;|')ve left <!-- -->0<!-- --> on this sill/)
+    expect(html).toMatch(/you(&#x27;|')ve left <ts-island>0<\/ts-island> on this sill/)
   })
 
   test('never land in the module-wide store (it would carry them into the next request)', () => {
@@ -219,7 +219,7 @@ describe("a page's <Var>s on the server", () => {
     expect(result.hydrationErrors.map(String)).toEqual([])
     expect(result.settled).toContain('lights out')
     expect(result.settled).not.toContain('the lamp is on')
-    expect(result.settled).toMatch(/left\s*"?\s*7/)
+    expect(result.settled).toMatch(/left\s*"?\s*<ts-island>\s*"?7/)
   })
 })
 

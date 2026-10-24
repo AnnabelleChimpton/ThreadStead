@@ -77,8 +77,9 @@
 /* ---------------- 4. Ink: headings, labels, links, rules ---------------- */
 .thread-headline { color: var(--ha-ink-dark); }
 .thread-label { color: var(--ha-ink-mid); }
-a { color: var(--ha-ink-dark); text-decoration-color: var(--ha-ink-mid); }
-a:hover { color: var(--ha-rose-ink); text-decoration-color: currentColor; }
+/* In a page of someone's own HTML only real links: an <a name> anchor is text */
+a:where(:not([data-template-root] *), :any-link) { color: var(--ha-ink-dark); text-decoration-color: var(--ha-ink-mid); }
+a:where(:not([data-template-root] *), :any-link):hover { color: var(--ha-rose-ink); text-decoration-color: currentColor; }
 
 .thread-divider {
   border: 0;

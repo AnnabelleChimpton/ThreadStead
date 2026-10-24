@@ -57,8 +57,10 @@
   letter-spacing: -0.02em;
 }
 
-/* Warm, neighborly link styles */
-a {
+/* Warm, neighborly link styles. In a page of someone's own HTML only real
+   links get them (an <a name> anchor isn't a link), and with site styles
+   off none do (template audit 02 R2). */
+a:where(:not([data-template-root] *), :any-link:not([data-site-styles="off"] *)) {
   color: #2E4B3F;
   text-decoration: underline;
   text-decoration-color: #A18463;
@@ -66,7 +68,7 @@ a {
   text-underline-offset: 2px;
 }
 
-a:hover {
+a:where(:not([data-template-root] *), :any-link:not([data-site-styles="off"] *)):hover {
   color: #E27D60;
   text-decoration-color: #E27D60;
 }
@@ -632,33 +634,63 @@ html {
   overflow: hidden;
 }
 
-/* Enhanced form styling for directory */
-input[type="text"],
-input[type="email"],
-input[type="password"],
-select,
-textarea {
+/* Enhanced form styling for directory. Not with site styles off. */
+input[type="text"]:where(:not([data-site-styles="off"] *)),
+input[type="email"]:where(:not([data-site-styles="off"] *)),
+input[type="password"]:where(:not([data-site-styles="off"] *)),
+select:where(:not([data-site-styles="off"] *)),
+textarea:where(:not([data-site-styles="off"] *)) {
   color: #2F2F2F;
   background-color: #FFFFFF;
   border: 1px solid #A18463;
 }
 
-input[type="text"]::placeholder,
-input[type="email"]::placeholder,
-input[type="password"]::placeholder,
-textarea::placeholder {
+input[type="text"]:where(:not([data-site-styles="off"] *))::placeholder,
+input[type="email"]:where(:not([data-site-styles="off"] *))::placeholder,
+input[type="password"]:where(:not([data-site-styles="off"] *))::placeholder,
+textarea:where(:not([data-site-styles="off"] *))::placeholder {
   color: #A18463;
   opacity: 0.7;
 }
 
-input[type="text"]:focus, 
-input[type="email"]:focus, 
-input[type="password"]:focus, 
-select:focus, 
-textarea:focus {
+input[type="text"]:where(:not([data-site-styles="off"] *)):focus,
+input[type="email"]:where(:not([data-site-styles="off"] *)):focus,
+input[type="password"]:where(:not([data-site-styles="off"] *)):focus,
+select:where(:not([data-site-styles="off"] *)):focus,
+textarea:where(:not([data-site-styles="off"] *)):focus {
   outline: none;
   border-color: #2E4B3F;
   box-shadow: 0 0 0 1px #2E4B3F;
+}
+
+/* The components in a page with site styles off keep these, and the link
+   look above (globals.css says why) */
+@scope ([data-site-styles="off"] ts-island) to ([data-ts-page]) {
+  a {
+    color: #2E4B3F;
+    text-decoration: underline;
+    text-decoration-color: #A18463;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+  }
+  a:hover {
+    color: #E27D60;
+    text-decoration-color: #E27D60;
+  }
+  input[type="text"], input[type="email"], input[type="password"], select, textarea {
+    color: #2F2F2F;
+    background-color: #FFFFFF;
+    border: 1px solid #A18463;
+  }
+  input[type="text"]::placeholder, input[type="email"]::placeholder, input[type="password"]::placeholder, textarea::placeholder {
+    color: #A18463;
+    opacity: 0.7;
+  }
+  input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: #2E4B3F;
+    box-shadow: 0 0 0 1px #2E4B3F;
+  }
 }
 
 /* Mobile-first responsive improvements */
@@ -793,11 +825,12 @@ textarea:focus {
     min-height: 44px; /* Touch target minimum */
   }
   
-  input[type="text"], 
-  input[type="email"], 
-  input[type="password"], 
-  select, 
-  textarea {
+  /* Not in a page of someone's own HTML (components.css) */
+  input[type="text"]:where(:not([data-template-root] *)),
+  input[type="email"]:where(:not([data-template-root] *)),
+  input[type="password"]:where(:not([data-template-root] *)),
+  select:where(:not([data-template-root] *)),
+  textarea:where(:not([data-template-root] *)) {
     font-size: 16px; /* Prevent zoom on iOS */
     padding: 0.75rem;
     min-height: 44px;
@@ -1041,9 +1074,14 @@ textarea:focus {
   }
   
   /* Typography adjustments for mobile */
-  h1 { font-size: 1.75rem; }
-  h2 { font-size: 1.5rem; }
-  h3 { font-size: 1.25rem; }
+  h1:where(:not([data-site-styles="off"] *)) { font-size: 1.75rem; }
+  h2:where(:not([data-site-styles="off"] *)) { font-size: 1.5rem; }
+  h3:where(:not([data-site-styles="off"] *)) { font-size: 1.25rem; }
+  @scope ([data-site-styles="off"] ts-island) to ([data-ts-page]) {
+    h1 { font-size: 1.75rem; }
+    h2 { font-size: 1.5rem; }
+    h3 { font-size: 1.25rem; }
+  }
   
   /* Content spacing mobile */
   .thread-content {
@@ -1098,7 +1136,7 @@ textarea:focus {
     transform: none;
   }
   
-  a:hover {
+  a:where(:not([data-template-root] *)):hover {
     color: #2E4B3F;
     background: none;
     padding: 0;

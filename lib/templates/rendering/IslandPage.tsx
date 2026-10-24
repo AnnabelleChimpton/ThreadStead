@@ -52,7 +52,7 @@ function renderNode(node: PageTreeNode, ctx: WalkContext, key: string): React.Re
   if (island) {
     const Component = getComponent(island.component);
     if (Component) {
-      const children = renderChildren(node.c, ctx, key);
+      const children = renderChildren(node.c, ctx, key).map(markPageHTML);
       return renderIsland(island, Component, children.length > 0 ? children : undefined, ctx);
     }
     console.error(`Template component "${island.component}" isn't registered`);
@@ -80,6 +80,19 @@ function renderNode(node: PageTreeNode, ctx: WalkContext, key: string): React.Re
     return React.createElement(node.t, props);
   }
   return React.createElement(node.t, props, ...children);
+}
+
+/**
+ * The page's own HTML handed to a component (a <Show>'s scene, a card's
+ * text) is the page's again: data-ts-page ends the component's part, where
+ * the site's reset applies (styles/preflight.css), so it gets the browser's
+ * defaults like the rest of the page. Each component draws inside a
+ * <ts-island> (IslandErrorBoundary).
+ */
+function markPageHTML(child: React.ReactNode): React.ReactNode {
+  return React.isValidElement(child) && typeof child.type === 'string'
+    ? React.cloneElement(child as React.ReactElement<Record<string, unknown>>, { 'data-ts-page': '' })
+    : child;
 }
 
 /** Old-web HTML attributes React doesn't know (it would drop or warn on their camelCase props) */
