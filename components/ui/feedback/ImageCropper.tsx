@@ -41,14 +41,17 @@ export default function ImageCropper({
     const x = (width - size) / 2;
     const y = (height - size) / 2;
     
-    // Set initial crop to center square
-    setCrop({
+    // Set initial crop to center square. It counts as done: "Apply Crop"
+    // used to stay greyed out until the crop area was dragged.
+    const initial: PixelCrop = {
       unit: 'px',
       width: size * 0.8,
       height: size * 0.8,
       x: x + (size * 0.1),
       y: y + (size * 0.1),
-    });
+    };
+    setCrop(initial);
+    setCompletedCrop(initial);
   }, []);
 
   const getCroppedImg = useCallback(async (
