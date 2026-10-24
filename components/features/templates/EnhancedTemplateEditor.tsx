@@ -29,6 +29,7 @@ import { useSiteConfig } from '@/hooks/useSiteConfig';
 import { useSiteCSS } from '@/hooks/useSiteCSS';
 import NavigationPreview from '@/components/features/templates/NavigationPreview';
 import ValidationFeedbackPanel, { hasStrippedNeedingAttention, type StrippedEntry } from './ValidationFeedbackPanel';
+import { cssProblems } from '@/lib/utils/css/css-problems';
 import ProblemsStrip, { NO_PROBLEMS, firstProblemLine, type LiveProblems } from './ProblemsStrip';
 import { extractDocument } from '@/lib/templates/compilation/document-head';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
@@ -599,6 +600,12 @@ export default function EnhancedTemplateEditor({
 
   // What the live compile found, shown under the code as you type
   const [liveProblems, setLiveProblems] = useState<LiveProblems>(NO_PROBLEMS);
+  // The CSS's own problems, checked here as you type (nothing to compile)
+  const deferredCSS = React.useDeferredValue(customCSS);
+  const cssProblemList = React.useMemo<LiveProblems>(
+    () => (deferredCSS.trim() ? { ...NO_PROBLEMS, status: 'ok', warnings: cssProblems(deferredCSS) } : NO_PROBLEMS),
+    [deferredCSS]
+  );
 
   // Compile template function (using real compilation API like production)
   const compileTemplateForPreview = useCallback(async (forceCompile: boolean = false) => {
@@ -804,14 +811,16 @@ export default function EnhancedTemplateEditor({
   // Captured via onCreateEditor: next/dynamic doesn't forward refs, so a
   // ref on the <CodeMirror> wrapper would stay null forever.
   const templateViewRef = useRef<EditorView | null>(null);
+  const cssViewRef = useRef<EditorView | null>(null);
   // A problem's "Line N": put the cursor at the start of that line, in view
-  const jumpToLine = useCallback((lineNumber: number) => {
-    const view = templateViewRef.current;
+  const jumpTo = useCallback((view: EditorView | null, lineNumber: number) => {
     if (!view) return;
     const line = view.state.doc.line(Math.min(Math.max(lineNumber, 1), view.state.doc.lines));
     view.dispatch({ selection: { anchor: line.from }, scrollIntoView: true });
     view.focus();
   }, []);
+  const jumpToLine = useCallback((line: number) => jumpTo(templateViewRef.current, line), [jumpTo]);
+  const jumpToCssLine = useCallback((line: number) => jumpTo(cssViewRef.current, line), [jumpTo]);
   const [componentSchemas, setComponentSchemas] = useState<ComponentSchema[] | null>(null);
 
   useEffect(() => {
@@ -829,8 +838,6 @@ export default function EnhancedTemplateEditor({
     ],
     [componentSchemas]
   );
-
-  const cssViewRef = useRef<EditorView | null>(null);
 
   // Drop a snippet in at the cursor (or append if the editor isn't mounted).
   // `cursor` is where the cursor lands, counted from the snippet's start.
@@ -1777,6 +1784,7 @@ body {
             }}
           />
         </div>
+        <ProblemsStrip problems={cssProblemList} onJump={jumpToCssLine} where="CSS" />
       </>
     ),
   };

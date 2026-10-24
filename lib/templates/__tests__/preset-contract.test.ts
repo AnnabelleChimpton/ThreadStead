@@ -12,7 +12,7 @@ import fs from 'fs'
 import path from 'path'
 import { getDefaultProfileTemplate, PROFILE_THEME_IDS } from '@/lib/templates/default-profile-templates'
 import { PRESET_CHROME_CSS } from '@/lib/templates/preset-chrome'
-import { sanitizeCss } from '@/lib/utils/sanitization/css'
+import { cssProblems } from '@/lib/utils/css/css-problems'
 
 const PRESETS = PROFILE_THEME_IDS
 const VARIABLES = ['ground', 'card', 'ink', 'accent', 'on-accent', 'font-head', 'font-body']
@@ -49,7 +49,7 @@ describe.each(PRESETS)('%s', (preset) => {
     expect(css.trimEnd().endsWith(PRESET_CHROME_CSS.trimEnd())).toBe(true)
   })
 
-  test('comes through the CSS sanitizer with nothing removed', () => {
-    expect(sanitizeCss(css).removed).toEqual([])
+  test('has nothing in the CSS pane\'s problems list (the sanitizer removes nothing)', () => {
+    expect(cssProblems(css)).toEqual([])
   })
 })

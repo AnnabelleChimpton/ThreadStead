@@ -32,7 +32,16 @@ export function firstProblemLine(problems: LiveProblems): number | undefined {
   return undefined;
 }
 
-export default function ProblemsStrip({ problems, onJump }: { problems: LiveProblems; onJump: (line: number) => void }) {
+export default function ProblemsStrip({
+  problems,
+  onJump,
+  where = 'Page',
+}: {
+  problems: LiveProblems;
+  onJump: (line: number) => void;
+  /** What a problem with no line is about */
+  where?: string;
+}) {
   if (problems.status === 'idle') return null;
   const taken = problems.stripped.filter((s) => s.category !== 'document');
   const count = problems.errors.length + problems.warnings.length + taken.length;
@@ -52,7 +61,7 @@ export default function ProblemsStrip({ problems, onJump }: { problems: LiveProb
             Line {at}
           </button>
         ) : (
-          <span className="shrink-0 font-mono text-xs text-nb-ink-mid">Page</span>
+          <span className="shrink-0 font-mono text-xs text-nb-ink-mid">{where}</span>
         )}
         <span className="text-sm text-nb-ink whitespace-pre-wrap">
           <span className="font-semibold">{kind}: </span>
