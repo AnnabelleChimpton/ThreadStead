@@ -474,7 +474,9 @@ const PREFIX = 'user-content-';
 const URL_REFERENCE_PROPERTIES = ['fill', 'stroke', 'filter', 'clipPath', 'mask', 'style'];
 
 function prefixFragment(value: unknown): unknown {
-  return typeof value === 'string' && value.length > 1 && value.startsWith('#') && !value.startsWith('#' + PREFIX)
+  // #top is the browser's own "back to the top", with or without an element
+  // called top; prefixed, every back-to-top link did nothing
+  return typeof value === 'string' && value.length > 1 && value.startsWith('#') && !value.startsWith('#' + PREFIX) && value !== '#top'
     ? '#' + PREFIX + value.slice(1)
     : value;
 }
@@ -486,10 +488,13 @@ function prefixFragment(value: unknown): unknown {
  *    `usemap="#m"` and `url(#blur)` in SVG attributes and inline styles
  *    (htmlFor, list and the aria id lists are prefixed by the sanitizer);
  *  - links that open a new tab get rel="noopener";
+ *  - form fields keep their own names (the sanitizer prefixes every name);
  *  - autoplay only survives on muted media;
  *  - a form's action can't point at /api/ (form-action.ts).
  * Returns whether it took out any form action.
  */
+const FORM_FIELDS = new Set(['input', 'select', 'textarea', 'button', 'output']);
+
 function finishSanitizedTree(node: HastLike): boolean {
   let removedFormAction = false;
   if (node.type === 'element') {
@@ -513,6 +518,11 @@ function finishSanitizedTree(node: HastLike): boolean {
         const rel: string[] = Array.isArray(props.rel) ? props.rel : props.rel ? String(props.rel).split(/\s+/) : [];
         if (!rel.includes('noopener')) rel.push('noopener');
         props.rel = rel;
+      }
+      // A field's name is what its form sends (q=…, not user-content-q=…), and it
+      // can't shadow anything on document the way a form's or image's name can
+      if (FORM_FIELDS.has(node.tagName ?? '') && typeof props.name === 'string' && props.name.startsWith(PREFIX)) {
+        props.name = props.name.slice(PREFIX.length);
       }
       if ((node.tagName === 'audio' || node.tagName === 'video') && props.autoPlay && !props.muted) {
         delete props.autoPlay;

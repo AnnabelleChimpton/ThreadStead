@@ -11,6 +11,7 @@ import { ResidentDataProvider } from '@/components/features/templates/ResidentDa
 import { PixelIcon } from '@/components/ui/PixelIcon';
 import { StaticHTMLWithIslands } from './HTMLIslandHydration';
 import { siteStylesOn } from '@/lib/domain/profile/layout';
+import { pageHash } from '@/components/features/templates/state/actions/page-targets';
 import type { AdvancedProfileRendererProps } from './types';
 
 export type { AdvancedProfileRendererProps, StaticHTMLWithIslandsProps } from './types';
@@ -42,10 +43,29 @@ export function declaredVariables(islands: Island[]): VariableConfig[] {
     });
 }
 
+/**
+ * A link to /resident/x#about lands on the page's #about, which the
+ * sanitizer renamed #user-content-about: on arrival and on every hash
+ * change. Replacing the hash (not adding one) keeps Back as it was, and
+ * makes :target apply.
+ */
+function useLandOnPageIds() {
+  React.useEffect(() => {
+    const land = () => {
+      const hash = pageHash(window.location.hash);
+      if (hash !== window.location.hash) window.location.replace(hash);
+    };
+    land();
+    window.addEventListener('hashchange', land);
+    return () => window.removeEventListener('hashchange', land);
+  }, []);
+}
+
 export default function AdvancedProfileRenderer({ user, residentData }: AdvancedProfileRendererProps) {
   const compiled = user.profile?.compiledTemplate as RenderableTemplate | null | undefined;
   const islands = compiled?.islands ?? NO_ISLANDS;
   const declared = React.useMemo(() => declaredVariables(islands), [islands]);
+  useLandOnPageIds();
 
   if (!compiled?.tree && !compiled?.staticHTML?.trim()) {
     console.error('AdvancedProfileRenderer: No compiled template available');

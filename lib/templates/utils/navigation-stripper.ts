@@ -35,8 +35,8 @@ export function stripNavigationFromTemplate(html: string): string {
     ''
   );
 
-  // Clean up extra whitespace left behind
-  cleaned = cleaned.replace(/\n\s*\n\s*\n/g, '\n\n');
+  // Blank lines stay as written: squeezing every run of them, on every page,
+  // took the blank lines out of <pre> ASCII art (template audit 11 #5)
   cleaned = cleaned.trim();
 
   return cleaned;

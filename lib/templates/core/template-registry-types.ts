@@ -165,7 +165,9 @@ export function coercePropValue(value: unknown, schema: PropSchema, name: string
 
   switch (schema.type) {
     case 'string':
-      return { value: String(value) };
+      // The parser keeps space-separated attributes (class) as a list; String()
+      // made class="a b" into "a,b"
+      return { value: Array.isArray(value) ? value.join(' ') : String(value) };
 
     case 'url': {
       const text = String(value).trim();

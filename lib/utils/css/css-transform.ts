@@ -270,7 +270,7 @@ export function prefixUserContentIds(css: string): string {
     /url\(\s*(['"]?)#(?!user-content-)([^'")\s]+)\1\s*\)/g,
     (_m, quote: string, id: string) => `url(${quote}#${USER_CONTENT_PREFIX}${id}${quote})`
   )
-  return mapSelectors(withUrls, prefixSelectorIds)
+  return mapSelectors(withUrls, prefixSelectorIds, { nested: true })
 }
 
 /** `#a.b:not(#c)` → `#user-content-a.b:not(#user-content-c)`; leaves `[href="#a"]` alone. */
@@ -418,7 +418,7 @@ export function transformAdvancedCss(
 export function mapSelectors(
   css: string,
   mapSelector: (selector: string) => string,
-  options: { recurseGroups?: boolean } = {}
+  options: { recurseGroups?: boolean; nested?: boolean } = {}
 ): string {
   const recurseGroups = options.recurseGroups !== false
   const GROUP_AT_RULES = new Set(['media', 'supports', 'container', 'layer', 'scope'])
@@ -426,7 +426,9 @@ export function mapSelectors(
   const out = statements.map((s) => {
     if (s.kind === 'rule') {
       const mapped = splitSelectorList(s.prelude).map(mapSelector).join(', ')
-      return { ...s, prelude: mapped }
+      // `nested`: rules nested inside this one (CSS nesting) too
+      const body = options.nested && s.body !== undefined ? mapNestedSelectors(s.body, mapSelector) : s.body
+      return { ...s, prelude: mapped, body }
     }
     if (recurseGroups && s.kind === 'at' && s.body !== undefined && GROUP_AT_RULES.has(s.atName || '')) {
       return { ...s, body: '\n' + mapSelectors(s.body, mapSelector, options) + '\n' }
@@ -434,6 +436,62 @@ export function mapSelectors(
     return s
   })
   return serializeStatements(out)
+}
+
+/**
+ * The selectors of the rules nested in a rule body (`.card { #title { … } }`),
+ * at any depth; declarations and at-rule preludes are copied as written.
+ * Nested `#id` rules weren't prefixed, so they matched nothing (template
+ * audit 05, 10). Not for scoping: a nested selector is relative to its parent.
+ */
+function mapNestedSelectors(body: string, mapSelector: (selector: string) => string): string {
+  if (!body.includes('{')) return body
+  let out = ''
+  let emitted = 0 // body before this is in out
+  let statement = 0 // where the current declaration or rule starts
+  let i = 0
+  while (i < body.length) {
+    const ch = body[i]
+    if (ch === "'" || ch === '"') {
+      i = skipString(body, i)
+    } else if (ch === '(') {
+      i = skipParens(body, i)
+    } else if (ch === ';') {
+      statement = ++i
+    } else if (ch === '{') {
+      const close = closingBrace(body, i)
+      const prelude = body.slice(statement, i)
+      const selectors = prelude.trim()
+      const mapped = selectors.startsWith('@')
+        ? prelude
+        : prelude.replace(selectors, splitSelectorList(selectors).map(mapSelector).join(', '))
+      out += body.slice(emitted, statement) + mapped + '{' + mapNestedSelectors(body.slice(i + 1, close), mapSelector) + '}'
+      i = emitted = statement = close + 1
+    } else {
+      i++
+    }
+  }
+  return out + body.slice(emitted)
+}
+
+/** The index of the } that closes the { at `open` (or the end) */
+function closingBrace(css: string, open: number): number {
+  let depth = 0
+  for (let i = open; i < css.length; ) {
+    const ch = css[i]
+    if (ch === "'" || ch === '"') {
+      i = skipString(css, i)
+      continue
+    }
+    if (ch === '(') {
+      i = skipParens(css, i)
+      continue
+    }
+    if (ch === '{') depth++
+    if (ch === '}' && --depth === 0) return i
+    i++
+  }
+  return css.length
 }
 
 /**

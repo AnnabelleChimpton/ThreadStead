@@ -120,3 +120,20 @@ html body::before,
 html body::after {
   pointer-events: none !important;
 }
+
+/* ---------- printing a page of someone's own HTML ----------
+   Only the page goes on paper: the nav, "Step back outside", the cookie
+   notice and chat stay off, and so does the room left under the nav (it
+   printed on every page, with an empty second page; template audit 09).
+   The page's own @media print rules still apply. */
+@media print {
+  body:has(.profile-template-root) [data-site-chrome] {
+    display: none !important;
+  }
+  body:has(.profile-template-root) .ts-under-nav {
+    margin-top: 0 !important;
+  }
+  .profile-template-root {
+    min-height: 0 !important;
+  }
+}

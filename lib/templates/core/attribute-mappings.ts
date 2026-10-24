@@ -533,6 +533,20 @@ export function getDuplicatePropPairs(): [string, string][] {
 }
 
 /**
+ * Where React spells a property differently from property-information. Only
+ * these five, by a sweep of every allowed attribute; with the hast spelling
+ * React dropped them, so dashed and round-capped SVG lines drew solid and
+ * square (template audit 11 #1).
+ */
+const REACT_SPELLING: Readonly<Record<string, string>> = {
+  strokeDashArray: 'strokeDasharray',
+  strokeDashOffset: 'strokeDashoffset',
+  strokeLineCap: 'strokeLinecap',
+  strokeLineJoin: 'strokeLinejoin',
+  strokeMiterLimit: 'strokeMiterlimit',
+};
+
+/**
  * One attribute of a page's own (non-component) HTML element, as a React
  * prop. Used when compiled HTML is turned back into React elements around
  * hydrated islands. property-information knows every HTML and SVG
@@ -552,7 +566,7 @@ export function domAttributeToReactProp(
   const lower = name.toLowerCase();
   if (lower.startsWith('aria-') || lower.startsWith('data-')) return [lower, value];
   const info = find(inSvg ? svgSpace : htmlSpace, name);
-  const prop = info.property;
+  const prop = REACT_SPELLING[info.property] ?? info.property;
   if (info.boolean) {
     return [prop === 'checked' && tagName === 'input' ? 'defaultChecked' : prop, true];
   }

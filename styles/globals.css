@@ -14,6 +14,7 @@
 @import "./islands.css";
 @import "./theme-parts.css";
 @import "./chrome-layers.css";
+@import "./page-defaults.css";
 
 /* CSS Layer declarations for proper cascade order */
 @layer threadstead-browser, threadstead-reset, threadstead-global, threadstead-site, threadstead-components, threadstead-template, threadstead-user-base, threadstead-user-custom, threadstead-user-override;

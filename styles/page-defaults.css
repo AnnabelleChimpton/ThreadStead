@@ -1,0 +1,23 @@
+/*
+ * What a browser gives a page of someone's own HTML, where the site would
+ * otherwise give it nothing. In threadstead-browser, the site's first
+ * layer, so anything the page's own CSS says wins.
+ */
+@layer threadstead-browser {
+  /* <blink> blinks, the way it did: no browser does it any more, and the
+     tag was allowed but did nothing (template audit 15 #18). Not for
+     anyone who asked for less motion. */
+  [data-template-root] blink {
+    animation: ts-blink 1s step-end infinite;
+  }
+  @keyframes ts-blink {
+    50% {
+      visibility: hidden;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    [data-template-root] blink {
+      animation: none;
+    }
+  }
+}

@@ -214,3 +214,39 @@ describe("a page of your own HTML gets the browser's html and body", () => {
     expect(css).not.toMatch(/^html, body \{ height: 100%; \}/m)
   })
 })
+
+describe('CSS nesting: #id rules inside other rules find the renamed ids', () => {
+  // Nested rules kept #title, which matches nothing on the page (template audit 05, 10)
+  test('nested at any depth, with declarations and nested @media left as written', () => {
+    const out = prefixUserContentIds(
+      '.card { color: red; background: url("a;b.png"); #title { margin: 0; & #sub:hover { color: blue } } @media (width < 40em) { #title { margin: 1px } } }'
+    )
+    expect(out).toContain('color: red; background: url("a;b.png");')
+    expect(out).toContain('#user-content-title { margin: 0;')
+    expect(out).toContain('& #user-content-sub:hover { color: blue }')
+    expect(out).toContain('@media (width < 40em) { #user-content-title { margin: 1px } }')
+    expect(out).not.toMatch(/#title|#sub/)
+  })
+
+  test('nested selectors are not scoped (they are relative to their parent)', () => {
+    const out = transformAdvancedCss('.card { #title { color: red } }')
+    expect(out).toContain(':scope body .card {')
+    expect(out).toContain('#user-content-title { color: red }')
+    expect(out).not.toContain(':scope body #user-content-title')
+  })
+})
+
+describe('page defaults and printing', () => {
+  const chrome = fs.readFileSync(path.join(ROOT, 'styles/chrome-layers.css'), 'utf8')
+  const defaults = fs.readFileSync(path.join(ROOT, 'styles/page-defaults.css'), 'utf8')
+
+  test("printing a page of your own HTML leaves the site's chrome off the paper (template audit 09)", () => {
+    expect(chrome).toMatch(/@media print \{[\s\S]*body:has\(\.profile-template-root\) \[data-site-chrome\] \{\s*display: none !important;/)
+  })
+
+  test("<blink> blinks, in the site's first layer, and not for reduced motion (template audit 15)", () => {
+    expect(defaults).toMatch(/^@layer threadstead-browser \{/m)
+    expect(defaults).toMatch(/\[data-template-root\] blink \{\s*animation: ts-blink/)
+    expect(defaults).toMatch(/prefers-reduced-motion: reduce\)[\s\S]*blink \{\s*animation: none;/)
+  })
+})

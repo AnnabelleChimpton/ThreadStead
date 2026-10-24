@@ -4,6 +4,7 @@ import React from 'react';
 import { useTemplateState } from '@/lib/templates/state/TemplateStateProvider';
 import { evaluateExpression } from '@/lib/templates/state/expression-evaluator';
 import { globalTemplateStateManager } from '@/lib/templates/state/TemplateStateManager';
+import { pageHash } from './page-targets';
 
 /**
  * SetURLHash Component - Set the URL hash (anchor)
@@ -93,7 +94,8 @@ export function executeSetURLHashAction(
   // Update URL hash
   try {
     // Remove leading # if present
-    const cleanHash = hashValue.startsWith('#') ? hashValue.slice(1) : hashValue;
+    // An element's id here carries the sanitizer's prefix
+    const cleanHash = pageHash(hashValue.startsWith('#') ? hashValue : `#${hashValue}`).slice(1);
     window.location.hash = cleanHash;
     console.log(`[SetURLHash] Set hash to #${cleanHash}`);
   } catch (error) {

@@ -11,8 +11,12 @@ export const TEMPLATE_LIMITS = {
   maxChars: MAX_TEMPLATE_CHARS,
   /** HTML tags and components; text between them doesn't count */
   maxElements: 10_000,
-  /** Tags inside tags; the <tbody> the browser adds to every table doesn't count */
-  maxDepth: 60,
+  /**
+   * Tags inside tags; the <tbody> the browser adds to every table doesn't
+   * count. Old pages that never close their <font> tags nest a few hundred
+   * deep in any browser (60 refused them).
+   */
+  maxDepth: 256,
   maxComponents: 400,
 } as const;
 

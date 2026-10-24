@@ -182,7 +182,12 @@ describe('compiled output', () => {
     const { staticHTML } = compileTemplateToArtifacts(
       '<form name="config"><input type="text" name="user" id="settings"></form><a name="top"></a>'
     )
-    expect(staticHTML).not.toMatch(/\s(id|name)="(?!user-content-)/)
+    // Every id, and every name a browser puts on window or document (form, a, img…)
+    expect(staticHTML).not.toMatch(/\sid="(?!user-content-)/)
+    expect(staticHTML).toContain('<form name="user-content-config"')
+    expect(staticHTML).toContain('<a name="user-content-top"')
+    // A form field's name is only what its form sends; it shadows nothing
+    expect(staticHTML).toContain('name="user"')
   })
 })
 

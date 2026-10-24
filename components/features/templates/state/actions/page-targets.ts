@@ -5,6 +5,8 @@
  * around it: its nav, menus, footer and report buttons stay out of reach,
  * whatever selector the page uses.
  */
+import { USER_CONTENT_PREFIX } from '@/lib/utils/css/css-transform';
+
 export const TEMPLATE_ROOT = '[data-template-root]';
 
 /** The page's own elements matching a selector. An #id also finds the sanitizer's #user-content-id. */
@@ -35,4 +37,21 @@ export function pageRoots(): HTMLElement[] {
  */
 export function isSafePageAttribute(name: string): boolean {
   return /^(aria-[a-z-]+|data-[a-z0-9-]+|hidden|disabled|open|checked|selected|readonly|required|title)$/i.test(name);
+}
+
+/**
+ * The hash to use for `#about` on this page: `#user-content-about` when only
+ * the sanitizer's renamed id is here. A link from elsewhere to
+ * /resident/x#about (or SetURLHash) otherwise found nothing and opened the
+ * top of the page (template audit 01 #14, 15 #1, 16 #4).
+ */
+export function pageHash(hash: string): string {
+  let id: string;
+  try {
+    id = decodeURIComponent(hash.replace(/^#/, ''));
+  } catch {
+    return hash;
+  }
+  if (!id || id.startsWith(USER_CONTENT_PREFIX) || document.getElementById(id)) return hash;
+  return document.getElementById(USER_CONTENT_PREFIX + id) ? `#${USER_CONTENT_PREFIX}${id}` : hash;
 }

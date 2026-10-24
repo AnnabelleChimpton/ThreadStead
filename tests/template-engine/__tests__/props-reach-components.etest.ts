@@ -283,3 +283,9 @@ describe('url props take only web, mailto and relative addresses', () => {
     }
   })
 })
+
+test('a component with several classes keeps them all, space-separated (template audit 06 #2)', () => {
+  const { islands } = compileTemplateToArtifacts('<Button className="big pink"><OnClick></OnClick>Hi</Button>')
+  const props = flatten(islands).find((island) => island.component.toLowerCase() === 'button')!._precomputed!.componentProps
+  expect(props.className).toBe('big pink')
+})

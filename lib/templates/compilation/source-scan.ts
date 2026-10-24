@@ -306,10 +306,11 @@ function embedCodeToLink(token: Extract<SourceToken, { type: 'open' }>, attrs: s
 }
 
 /**
- * `<font size="+3">` is relative to the default size 3 (HTML's legacy font
- * size rules). The HTML parser reads `size` as a number and drops the plus
- * sign, which turned +3 (size 6) into size 3, so write it as the absolute
- * size browsers compute.
+ * `<font size="+3">` and `size="-1"` are relative to the default size 3
+ * (HTML's legacy font size rules). The HTML parser reads `size` as a number
+ * and drops the plus sign, which turned +3 (size 6) into size 3, and React
+ * leaves out a negative size, so write it as the absolute size browsers
+ * compute.
  */
 function absoluteFontSize(
   token: Extract<SourceToken, { type: 'open' }>,
@@ -317,9 +318,9 @@ function absoluteFontSize(
   attrs: string
 ): string {
   const size = token.attributes.find((a) => a.name.toLowerCase() === 'size')
-  const m = size?.value?.trim().match(/^\+(\d+)/)
+  const m = size?.value?.trim().match(/^([+-])(\d+)/)
   if (!size || !m) return attrs
-  const absolute = Math.min(7, 3 + parseInt(m[1], 10))
+  const absolute = Math.max(1, Math.min(7, 3 + (m[1] === '-' ? -1 : 1) * parseInt(m[2], 10)))
   const offset = token.nameEnd
   return attrs.slice(0, size.start - offset) + `size="${absolute}"` + attrs.slice(size.end - offset)
 }

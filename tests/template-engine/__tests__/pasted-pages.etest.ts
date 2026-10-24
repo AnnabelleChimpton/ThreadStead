@@ -205,9 +205,11 @@ describe('the allowlist follows how people write pages', () => {
     }
   })
 
-  test('<font size="+3"> keeps its meaning (size 6)', () => {
+  test('<font size="+3"> and size="-1" keep their meaning (sizes 6 and 2)', () => {
     expect(compile('<font size="+3">big</font>').staticHTML).toContain('size="6"')
-    expect(compile('<font size="-1">small</font>').staticHTML).toContain('size="-1"')
+    // React left a negative size out entirely (template audit 02 R8)
+    expect(compile('<font size="-1">small</font>').staticHTML).toContain('size="2"')
+    expect(compile('<font size="-5">tiny</font>').staticHTML).toContain('size="1"')
   })
 
   test('inline SVG art keeps its shapes and viewBox', () => {
@@ -549,4 +551,37 @@ test('an SVG foreignObject goes with its HTML (unwrapped into the svg, it failed
   const { staticHTML } = compileTemplateToArtifacts('<svg viewBox="0 0 10 10"><circle r="4"/><foreignObject><div>inside</div></foreignObject></svg>')
   expect(staticHTML).toContain('<circle')
   expect(staticHTML).not.toMatch(/foreignObject|inside/i)
+})
+
+test('SVG dashes and line caps reach the page under the names React knows (template audit 11 #1)', () => {
+  const props = Object.fromEntries(
+    ['stroke-dasharray', 'stroke-dashoffset', 'stroke-linecap', 'stroke-linejoin', 'stroke-miterlimit'].map((name) =>
+      domAttributeToReactProp('line', name, '4', true)
+    )
+  )
+  expect(props).toEqual({ strokeDasharray: '4', strokeDashoffset: '4', strokeLinecap: '4', strokeLinejoin: '4', strokeMiterlimit: '4' })
+})
+
+test("#top stays #top, the browser's own back-to-top (template audit 01 #14)", () => {
+  const { staticHTML } = compileTemplateToArtifacts('<p id="intro">hi</p><a href="#top">back to top</a> <a href="#intro">intro</a>')
+  expect(staticHTML).toContain('href="#top"')
+  expect(staticHTML).toContain('href="#user-content-intro"')
+})
+
+test('form fields keep their own names, so a search form sends q=… (template audit 01 #17)', () => {
+  const { staticHTML } = compileTemplateToArtifacts('<form action="/search"><input name="q"><select name="where"></select><textarea name="note"></textarea></form><img name="pic" src="a.gif" alt="">')
+  expect(staticHTML).toContain('name="q"')
+  expect(staticHTML).toContain('name="where"')
+  expect(staticHTML).toContain('name="note"')
+  // An image's name could shadow something on document: it stays prefixed
+  expect(staticHTML).toContain('name="user-content-pic"')
+})
+
+test('<pre> keeps its blank lines (ASCII art), through the save path (template audit 11 #5)', async () => {
+  const { compileForEditor } = jest.requireActual('@/lib/templates/compilation/compile-for-editor')
+  const art = '<pre>  /\\_/\\\n ( o.o )\n\n\n\n  > ^ <</pre>'
+  const saved = await compileForEditor(art)
+  expect(saved.ok).toBe(true)
+  expect(saved.template).toContain('( o.o )\n\n\n\n')
+  expect(saved.compiled.staticHTML).toContain('( o.o )\n\n\n\n  &gt; ^ &lt;')
 })

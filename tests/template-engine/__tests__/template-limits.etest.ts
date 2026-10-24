@@ -112,8 +112,12 @@ describe('a page over a limit says so plainly', () => {
     const levels = TEMPLATE_LIMITS.maxDepth + 1
     failsWith(
       `${'<div>'.repeat(levels)}deep${'</div>'.repeat(levels)}`,
-      /^Your page has tags nested 6\d deep; the most is 60\. Look for tags that were opened but never closed/
+      /^Your page has tags nested 25\d deep; the most is 256\. Look for tags that were opened but never closed/
     )
+  })
+
+  it('an old page that never closes its <font> tags still fits (template audit 01 #18)', () => {
+    expect(compileTemplate('text<br><font color=red>word '.repeat(200)).success).toBe(true)
   })
 
   it('components', () => {

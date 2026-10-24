@@ -3,7 +3,7 @@
  * design/template-audit/04-security.md). Selectors used to run against the
  * whole document, so a page could restyle or rewrite the site's own nav.
  */
-import { isSafePageAttribute, pageElements } from '../page-targets';
+import { isSafePageAttribute, pageElements, pageHash } from '../page-targets';
 import { executeAddClassAction } from '../AddClass';
 import { executeConditionalAttrAction } from '../ConditionalAttr';
 import { executeSetCSSVarAction } from '../SetCSSVar';
@@ -61,4 +61,14 @@ it("never sets a worked-out value that loads a file", () => {
   expect(root.style.getPropertyValue('--bg')).toBe('url(cat.png)');
   executeSetCSSVarAction({ name: '--size', expression: '2 * 8 + "px"' }, {} as any);
   expect(root.style.getPropertyValue('--size')).toBe('16px');
+});
+
+it("finds the page's renamed id for a link's #hash, and leaves other hashes alone", () => {
+  // <p id="hello"> on the page is #user-content-hello in the DOM
+  expect(pageHash('#hello')).toBe('#user-content-hello');
+  expect(pageHash('#user-content-hello')).toBe('#user-content-hello');
+  expect(pageHash('#site-nav')).toBe('#site-nav'); // an element by that very id
+  expect(pageHash('#tab-2')).toBe('#tab-2'); // no element: a hash a page uses as state
+  expect(pageHash('')).toBe('');
+  expect(pageHash('#%E0%A4%A')).toBe('#%E0%A4%A'); // malformed
 });
