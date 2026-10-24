@@ -68,6 +68,7 @@ export async function resetProfilePage({ actorId, userId, reason, reportId }: Re
           ...layoutFields({ layout: "standard", siteStyles: true }),
           customTemplate: null,
           compiledTemplate: Prisma.DbNull,
+          pageArtifact: null,
           templateCompiledAt: null,
           customCSS: null,
           hideNavigation: false,

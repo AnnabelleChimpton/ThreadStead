@@ -1,5 +1,5 @@
 /**
- * A profile without its page: the source, CSS, compiled copy and widget
+ * A profile without its page: the source, CSS, stored copies and widget
  * slot, up to a few MB each. Wherever a profile comes along with a user
  * (chat messages, ring posts, author cards, quick views), it's
  * `profile: PROFILE_WITHOUT_PAGE`; `profile: true` read every author's
@@ -7,7 +7,7 @@
  * profile-fields.test.ts keeps `profile: true` out of the code.
  */
 export const PROFILE_WITHOUT_PAGE = {
-  omit: { customTemplate: true, customCSS: true, compiledTemplate: true, widgetSlot: true },
+  omit: { customTemplate: true, customCSS: true, compiledTemplate: true, pageArtifact: true, widgetSlot: true },
 } as const;
 
 type PagePart = keyof typeof PROFILE_WITHOUT_PAGE.omit;

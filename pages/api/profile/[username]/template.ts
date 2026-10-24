@@ -1,6 +1,7 @@
 import { db } from "@/lib/config/database/connection";
 import { Prisma } from '@prisma/client';
 import { compileForEditor } from '@/lib/templates/compilation/compile-for-editor';
+import { artifactFor, serializeArtifact } from '@/lib/templates/rendering/page-artifact';
 
 import { SITE_NAME } from '@/lib/config/site/constants';
 import { snapshotProfileBeforeSave } from '@/lib/templates/revisions/template-revisions';
@@ -108,11 +109,13 @@ export default apiHandler(
         // Keep a restore point of what this save is about to overwrite
         await snapshotProfileBeforeSave(handle.user.id, 'template-save');
 
-        // Update or create the profile with its source and compiled copy
+        // Update or create the profile with its source and what it renders from
         const fields = {
           customTemplate: cleanedTemplate, // Save cleaned template without navigation
-          // The page's one compiled copy: what it renders from
-          compiledTemplate: JSON.parse(JSON.stringify(compiledResult)),
+          // The page's one stored copy: its tree, components and head, as text
+          pageArtifact: serializeArtifact(artifactFor(compiledResult)),
+          // The old copy, AST and all, goes (it's what failed to save when deeply nested)
+          compiledTemplate: Prisma.DbNull,
           // No page, no save time (as a reset leaves it: lib/domain/users/page-reset.ts)
           templateCompiledAt: cleanedTemplate.trim() ? new Date() : null,
           ...(safeCSS !== undefined && { customCSS: safeCSS }),
@@ -165,12 +168,13 @@ export default apiHandler(
         // Keep a restore point before wiping the template
         await snapshotProfileBeforeSave(handle.user.id, 'reset');
 
-        // Remove the template and its compiled copy
+        // Remove the template and its stored copies
         await db.profile.updateMany({
           where: { userId: handle.user.id },
           data: {
             customTemplate: null,
-            compiledTemplate: Prisma.JsonNull,
+            pageArtifact: null,
+            compiledTemplate: Prisma.DbNull,
             templateCompiledAt: null,
             ...(changesPageLook(before, { customTemplate: null }) && pageUpdatedNow())
           }

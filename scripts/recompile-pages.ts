@@ -12,14 +12,19 @@
  *   npx tsx scripts/recompile-pages.ts --apply        # store the new compiled copies
  *   npx tsx scripts/recompile-pages.ts --user alice   # one resident (repeatable)
  *
- * Only the compiled copy changes: the source, the save time (which the
+ * A page still on its old stored copy (Profile.compiledTemplate, AST and
+ * all) gets its artifact (Profile.pageArtifact) and the old copy goes.
+ *
+ * Only the stored copy changes: the source, the save time (which the
  * editor's other-tab check reads) and the restore points stay as they are.
- * A page that no longer compiles keeps its old copy and is listed, for its
+ * A page that no longer compiles keeps what it had and is listed, for its
  * owner to fix in the editor.
  */
 import './load-env'
+import { Prisma } from '@prisma/client'
 import { db } from '@/lib/config/database/connection'
-import { compileForEditor, type CompiledPage } from '@/lib/templates/compilation/compile-for-editor'
+import { compileForEditor } from '@/lib/templates/compilation/compile-for-editor'
+import { artifactFor, serializeArtifact } from '@/lib/templates/rendering/page-artifact'
 import { compileWidgetSlot, storedSlot } from '@/lib/domain/profile/widget-slot/compile'
 
 const BATCH = 50
@@ -47,10 +52,6 @@ const canonical = (value: unknown) =>
     v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => (a < b ? -1 : 1))) : v
   )
 
-/** What a page renders from, without the compile time */
-const rendered = (page: Partial<CompiledPage> | null) =>
-  canonical(page ? [page.staticHTML, page.islands, page.ast, page.warnings, page.strippedComponents] : null)
-
 async function main() {
   const args = parseArgs(process.argv.slice(2))
   const where = args.users.length ? { user: { handles: { some: { handle: { in: args.users } } } } } : {}
@@ -66,6 +67,7 @@ async function main() {
       select: {
         userId: true,
         customTemplate: true,
+        pageArtifact: true,
         compiledTemplate: true,
         widgetSlot: true,
         user: { select: { primaryHandle: true } },
@@ -78,19 +80,22 @@ async function main() {
       const who = profile.user.primaryHandle ?? profile.userId
 
       // Only pages saved through the editor have a stored copy; older rows compile as they're shown
-      if (profile.customTemplate?.trim() && profile.compiledTemplate) {
+      if (profile.customTemplate?.trim() && (profile.pageArtifact || profile.compiledTemplate)) {
         tally.pages++
         const result = await compileForEditor(profile.customTemplate)
         if (!result.ok) {
           tally.failed.push(`${who} (page): ${result.body.errors[0]}`)
-        } else if (rendered(result.compiled) !== rendered(profile.compiledTemplate as Partial<CompiledPage>)) {
-          tally.pagesChanged++
-          console.log(`page  ${who}`)
-          if (args.apply) {
-            await db.profile.update({
-              where: { userId: profile.userId },
-              data: { compiledTemplate: JSON.parse(JSON.stringify(result.compiled)) },
-            })
+        } else {
+          const artifact = serializeArtifact(artifactFor(result.compiled))
+          if (artifact !== profile.pageArtifact || profile.compiledTemplate !== null) {
+            tally.pagesChanged++
+            console.log(`page  ${who}${profile.compiledTemplate !== null ? ' (from its old copy)' : ''}`)
+            if (args.apply) {
+              await db.profile.update({
+                where: { userId: profile.userId },
+                data: { pageArtifact: artifact, compiledTemplate: Prisma.DbNull },
+              })
+            }
           }
         }
       }

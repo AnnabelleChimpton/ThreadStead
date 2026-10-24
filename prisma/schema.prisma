@@ -153,7 +153,11 @@ model Profile {
   // As a visitor: whether other people's profile music may start on its
   // own (the "Don't play music automatically for me" switch)
   playProfileMusicAutomatically Boolean                  @default(true)
+  // Only pages saved before pageArtifact, until scripts/recompile-pages.ts --apply
   compiledTemplate              Json?
+  // What a page of your own HTML renders from: JSON text of its tree,
+  // components and head (lib/templates/rendering/page-artifact.ts)
+  pageArtifact                  String?
   templateCompiledAt            DateTime?
   // When the owner last changed their page's look: an HTML or CSS save, a
   // theme, a layout switch (lib/domain/profile/page-updates.ts). Not bumped by

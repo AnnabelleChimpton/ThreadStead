@@ -25,6 +25,6 @@ test('`profile: true` is nowhere in the code: it is PROFILE_WITHOUT_PAGE or prof
 })
 
 test('profileWith keeps the parts asked for and leaves out the rest', () => {
-  expect(profileWith('customCSS')).toEqual({ omit: { customTemplate: true, compiledTemplate: true, widgetSlot: true } })
+  expect(profileWith('customCSS')).toEqual({ omit: { customTemplate: true, compiledTemplate: true, pageArtifact: true, widgetSlot: true } })
   expect(profileWith()).toEqual(PROFILE_WITHOUT_PAGE)
 })

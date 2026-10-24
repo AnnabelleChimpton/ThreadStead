@@ -1,9 +1,11 @@
 /**
- * Server only: turns a stored compile result (Profile.compiledTemplate) into
- * what the profile page sends to the browser for a page of your own HTML.
+ * Server only: turns what a page of your own HTML stores into what the
+ * profile page sends to the browser for it.
  *
- * The page tree comes from the stored AST. Rows saved before the AST was kept
- * alongside have only staticHTML; that is parsed here with the same HTML
+ * A page's artifact (Profile.pageArtifact, page-artifact.ts) already holds
+ * its tree. A page not yet recompiled has its old compile result
+ * (Profile.compiledTemplate): the tree comes from its AST, or, for rows from
+ * before the AST was kept, from its staticHTML, parsed with the same HTML
  * parser the browser uses, so those pages render on the server too.
  *
  * <IfOwner> / <IfVisitor> are decided here for the viewer: the other side's
@@ -17,6 +19,7 @@ import type { Island } from '@/lib/templates/compilation/compiler';
 import type { TemplateNode } from '@/lib/templates/compilation/template-parser';
 import type { DocumentHead } from '@/lib/templates/compilation/document-head';
 import { treeFromHast, islandIdOf, type PageTreeNode } from './page-tree';
+import { isPageArtifact } from './page-artifact';
 
 export interface PageForRender {
   tree: PageTreeNode[];
@@ -42,6 +45,7 @@ interface StoredCompileResult {
  * went through here (the profile API sends a visitor theirs) comes back as is.
  */
 export function pageForRender(compiled: unknown, viewer: PageViewer = { isOwner: false }): PageForRender | null {
+  if (isPageArtifact(compiled)) return forViewer(compiled.tree, compiled.islands, compiled.head, viewer);
   const stored = compiled as StoredCompileResult | null | undefined;
   if (!stored || typeof stored !== 'object') return null;
   if (Array.isArray((stored as Partial<PageForRender>).tree)) return stored as unknown as PageForRender;
@@ -55,21 +59,11 @@ export function pageForRender(compiled: unknown, viewer: PageViewer = { isOwner:
   } else {
     return null;
   }
-
-  const allIslands = (Array.isArray(stored.islands) ? stored.islands : []) as Island[];
-  const pruned = forViewer(tree, allIslands, viewer);
-  const islands = allIslands.filter((island) => !pruned.droppedIslands.has(island.id));
-  return {
-    tree: pruned.tree,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    islands: islands.map(({ children, placeholder, ...island }) => island as Island),
-    // Next can't serialize undefined
-    ast: stored.ast?.head ? { head: stored.ast.head } : {},
-  };
+  return forViewer(tree, (Array.isArray(stored.islands) ? stored.islands : []) as Island[], stored.ast?.head, viewer);
 }
 
-/** The tree with the other side's IfOwner / IfVisitor content left out, and the islands only that content used */
-function forViewer(tree: PageTreeNode[], islands: Island[], viewer: PageViewer) {
+/** The page with the other side's IfOwner / IfVisitor content left out, and the islands only that content used */
+function forViewer(tree: PageTreeNode[], islands: Island[], head: DocumentHead | undefined, viewer: PageViewer): PageForRender {
   const componentOf = new Map<string, string>();
   for (const island of islands) {
     if (!componentOf.has(island.id)) componentOf.set(island.id, island.component.toLowerCase());
@@ -101,6 +95,12 @@ function forViewer(tree: PageTreeNode[], islands: Island[], viewer: PageViewer) 
 
   const pruned = prune(tree);
   // An island also used outside the dropped content stays
-  const droppedIslands = new Set([...removed].filter((id) => !kept.has(id)));
-  return { tree: pruned, droppedIslands };
+  const dropped = new Set([...removed].filter((id) => !kept.has(id)));
+  return {
+    tree: pruned,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    islands: islands.filter((island) => !dropped.has(island.id)).map(({ children, placeholder, ...island }) => island as Island),
+    // Next can't serialize undefined
+    ast: head ? { head } : {},
+  };
 }

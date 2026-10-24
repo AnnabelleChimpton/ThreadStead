@@ -14,6 +14,7 @@ import { verifiedBlueskyHandle } from '@/lib/domain/bluesky/handle-links';
 import { residentSiteUrl } from '@/lib/subdomains/host';
 import { compileForEditor } from '@/lib/templates/compilation/compile-for-editor';
 import { pageForRender, type PageForRender } from '@/lib/templates/rendering/page-tree-server';
+import { parseArtifact } from '@/lib/templates/rendering/page-artifact';
 
 /** What anyone allowed to see the profile gets. The CSS is public anyway: every visitor's browser receives it. */
 const PUBLIC_PROFILE_SELECT = {
@@ -75,9 +76,9 @@ export async function loadResidentPage(username: string, viewer: { id: string; r
         select: {
           id: true, did: true, primaryHandle: true, subdomainLabel: true,
           installs: { where: { enabled: true }, select: { pluginId: true, mode: true } },
-          // Read here, never sent as they are: the source, the stored
-          // compiled page and the widget slot's picks
-          profile: { select: { ...PUBLIC_PROFILE_SELECT, customTemplate: true, compiledTemplate: true, widgetSlot: true } },
+          // Read here, never sent as they are: the source, the page's
+          // stored copy (or the old one) and the widget slot's picks
+          profile: { select: { ...PUBLIC_PROFILE_SELECT, customTemplate: true, pageArtifact: true, compiledTemplate: true, widgetSlot: true } },
         },
       },
     },
@@ -104,9 +105,9 @@ export async function loadResidentPage(username: string, viewer: { id: string; r
   let profile: PublicProfile | null = null;
   let page: PageForRender | null = null;
   if (stored) {
-    const { customTemplate, compiledTemplate, widgetSlot: _slot, ...visible } = stored;
+    const { customTemplate, pageArtifact, compiledTemplate, widgetSlot: _slot, ...visible } = stored;
     profile = { ...visible, ...((isOwner || stored.showTemplateSource) && { customTemplate }) };
-    if (stored.templateMode === 'advanced') page = await pageFor(compiledTemplate, customTemplate, isOwner);
+    if (stored.templateMode === 'advanced') page = await pageFor(parseArtifact(pageArtifact) ?? compiledTemplate, customTemplate, isOwner);
   }
 
   const [profileMidi, pixelHome, blueskyHandle] = await Promise.all([
@@ -136,9 +137,10 @@ export async function loadResidentPage(username: string, viewer: { id: string; r
 }
 
 /**
- * The page a viewer sees, from its one compiled copy. A page saved before
- * compiled copies were stored is compiled from its source (cached by
- * source), the same compile the editor and a save run.
+ * The page a viewer sees, from its stored copy: its artifact, or the old
+ * compile result of a page not yet recompiled. A page saved before either
+ * was stored is compiled from its source (cached by source), the same
+ * compile the editor and a save run.
  */
 async function pageFor(compiled: unknown, source: string | null, isOwner: boolean): Promise<PageForRender | null> {
   if (compiled == null && source?.trim()) {
