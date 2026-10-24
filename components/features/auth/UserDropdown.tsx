@@ -109,7 +109,7 @@ export default function UserDropdown() {
               return (
                 <React.Fragment key={item.key}>
                   {item.groupStart && <div className="border-t border-thread-sage my-1"></div>}
-                  <Link
+                  <Link prefetch={false}
                     href={item.href}
                     className={`user-dropdown-item flex items-center gap-2 px-3 py-2 text-xs sm:text-sm hover:bg-thread-cream ${current ? "text-thread-sunset font-medium" : "text-thread-charcoal"}`}
                     aria-current={current ? "page" : undefined}

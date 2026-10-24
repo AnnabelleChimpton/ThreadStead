@@ -24,7 +24,7 @@ export default function ViewSourceBadge({ username }: ViewSourceBadgeProps) {
   if (!sharing) return null;
 
   return (
-    <Link
+    <Link prefetch={false}
       href={`/resident/${username}/source`}
       data-site-chrome
       className="ts-view-source-badge fixed bottom-3 right-3 z-[900] flex items-center gap-1.5 px-2.5 py-1.5 bg-white/90 hover:bg-white text-gray-700 hover:text-gray-900 border border-gray-300 rounded-full shadow-sm text-xs font-mono transition-colors"

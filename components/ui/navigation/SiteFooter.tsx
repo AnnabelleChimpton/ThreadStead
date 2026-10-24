@@ -23,7 +23,7 @@ export default function SiteFooter({ siteDescription, raised = false }: SiteFoot
               <ul className="space-y-2">
                 {column.links.map((link) => (
                   <li key={link.href}>
-                    <Link href={link.href} className="text-sm text-thread-sage hover:text-thread-pine hover:underline">
+                    <Link prefetch={false} href={link.href} className="text-sm text-thread-sage hover:text-thread-pine hover:underline">
                       {link.label}
                     </Link>
                   </li>

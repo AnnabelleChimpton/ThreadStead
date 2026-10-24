@@ -44,7 +44,7 @@ export default function CustomPageLayout({ children, siteConfig, hideNavbar = fa
               >
                 Fix Now
               </button>
-              <Link
+              <Link prefetch={false}
                 href="/settings"
                 className="px-3 py-1 text-xs bg-amber-200 hover:bg-amber-300 text-amber-800 rounded"
               >

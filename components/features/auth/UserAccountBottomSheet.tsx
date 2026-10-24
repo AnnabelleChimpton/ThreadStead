@@ -95,7 +95,7 @@ export default function UserAccountBottomSheet({ isOpen, onClose }: UserAccountB
               return (
                 <React.Fragment key={item.key}>
                   {item.groupStart && <div className="border-t border-thread-sage/40 my-2"></div>}
-                  <Link
+                  <Link prefetch={false}
                     href={item.href}
                     className={`block px-3 py-3 hover:bg-thread-background hover:text-thread-sunset rounded flex items-center gap-3 min-h-[48px] ${current ? "bg-thread-background text-thread-sunset" : "text-thread-pine"}`}
                     aria-current={current ? "page" : undefined}

@@ -67,7 +67,7 @@ export default function Layout({ children, siteConfig, fullWidth = false, advanc
                 >
                   Fix Now
                 </button>
-                <Link
+                <Link prefetch={false}
                   href="/settings"
                   className="px-3 py-1 text-xs bg-thread-paper hover:bg-thread-background border border-thread-sage text-thread-pine rounded"
                 >
@@ -154,7 +154,7 @@ export default function Layout({ children, siteConfig, fullWidth = false, advanc
               >
                 Fix Now
               </button>
-              <Link
+              <Link prefetch={false}
                 href="/settings"
                 className="px-3 py-1 text-xs bg-thread-paper hover:bg-thread-background border border-thread-sage text-thread-pine rounded"
               >

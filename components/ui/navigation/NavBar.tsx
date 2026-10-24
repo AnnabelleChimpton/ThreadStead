@@ -254,7 +254,7 @@ function DropdownMenu({ section, active, isCurrent, activeDropdown, setActiveDro
           onKeyDown={handleMenuKeyDown}
         >
           {/* Hub page first, visually separated from the section's children */}
-          <Link
+          <Link prefetch={false}
             href={section.href}
             className={`${itemClass(isCurrent(section.href))} flex items-center justify-between gap-3 font-medium border-b border-thread-sage/40 mb-1`}
             role="menuitem"
@@ -265,7 +265,7 @@ function DropdownMenu({ section, active, isCurrent, activeDropdown, setActiveDro
             <span aria-hidden="true">→</span>
           </Link>
           {section.items.map((item) => (
-            <Link
+            <Link prefetch={false}
               key={item.href}
               href={item.href}
               className={itemClass(isCurrent(item.href))}
@@ -344,6 +344,10 @@ export function useSiteNav() {
   };
 }
 
+// The site's chrome links (here, the footer, the nav on pages of someone's
+// own HTML, the account menus) don't prefetch: in view on every page, they
+// fetched and ran the code of ~11 other pages (~250 KB) after each load.
+// A hover still prefetches the one being reached for.
 export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate = false }: NavBarProps) {
   const { config: hookConfig } = useSiteConfig();
   const config = siteConfig || hookConfig;
@@ -413,7 +417,7 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
     <>
       <HeaderSearch className="hidden 2xl:block" />
       <span className="2xl:hidden">
-        <ButtonLink
+        <ButtonLink prefetch={false}
           href={SEARCH_HREF}
           size="sm"
           variant="secondary"
@@ -433,7 +437,7 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
       <header ref={navRef} className={headerClasses} data-site-chrome>
         <nav className={`${navClasses} mobile-nav-enhanced`} aria-label="Main">
           <div className="site-branding flex-shrink-0 min-w-0">
-            <Link href="/" className="block hover:opacity-80 transition-opacity" aria-label={`${config.site_name} home`}>
+            <Link prefetch={false} href="/" className="block hover:opacity-80 transition-opacity" aria-label={`${config.site_name} home`}>
               {/* On a resident's page the page's own heading is its h1, not the
                   site's name (template audit 14 #7); same look either way */}
               {onResidentPage ? (
@@ -459,7 +463,7 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
                     setActiveDropdown={setActiveDropdown}
                   />
                 ) : (
-                  <Link
+                  <Link prefetch={false}
                     key={section.key}
                     className={navLinkClass(isSectionActive(section, currentPath))}
                     href={section.href}
@@ -473,7 +477,7 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
 
               {/* Admin-configured top-level custom pages */}
               {topLevelPages.map((page) => (
-                <Link
+                <Link prefetch={false}
                   key={page.id}
                   className={navLinkClass(pathStartsWith(currentPath, `/page/${page.slug}`))}
                   href={`/page/${page.slug}`}
@@ -491,7 +495,7 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
               ) : me?.loggedIn ? (
                 <>
                   {/* Icon-only until xl so the bar fits at 1024px */}
-                  <ButtonLink
+                  <ButtonLink prefetch={false}
                     href={WRITE_HREF}
                     size="sm"
                     className="whitespace-nowrap"
@@ -640,7 +644,7 @@ export function MobileNavMenu() {
                 {mobileDropdownOpen === section.key && (
                   <div id={`mobile-section-${section.key}`} className="ml-4 mt-1 space-y-1">
                     {[{ href: section.href, label: `${section.hubLabel} →` }, ...section.items].map((item) => (
-                      <Link
+                      <Link prefetch={false}
                         key={item.href}
                         href={item.href}
                         className={mobileSubLinkClass(isCurrent(item.href))}
@@ -654,7 +658,7 @@ export function MobileNavMenu() {
                 )}
               </div>
             ) : (
-              <Link
+              <Link prefetch={false}
                 key={section.key}
                 href={section.href}
                 className={mobileNavLinkClass(isSectionActive(section, currentPath))}
@@ -669,7 +673,7 @@ export function MobileNavMenu() {
 
           {/* Admin-configured top-level custom pages */}
           {topLevelPages.map((page) => (
-            <Link
+            <Link prefetch={false}
               key={page.id}
               href={`/page/${page.slug}`}
               className={mobileNavLinkClass(pathStartsWith(currentPath, `/page/${page.slug}`))}
@@ -681,7 +685,7 @@ export function MobileNavMenu() {
           ))}
 
           <div className="border-t border-thread-sage/40 pt-2 space-y-2">
-            <Link
+            <Link prefetch={false}
               href={SEARCH_HREF}
               className={mobileNavLinkClass(searchActive)}
               aria-current={searchActive ? 'page' : undefined}
@@ -692,7 +696,7 @@ export function MobileNavMenu() {
             </Link>
 
             {me?.loggedIn && (
-              <Link
+              <Link prefetch={false}
                 href={WRITE_HREF}
                 className={mobileNavLinkClass(writeActive)}
                 aria-current={writeActive ? 'page' : undefined}

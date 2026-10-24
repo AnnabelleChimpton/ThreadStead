@@ -112,7 +112,7 @@ function UnstyledDropdown({
       {/* Split button: Link + toggle */}
       <div ref={splitButtonRef} style={{ display: 'flex', alignItems: 'center' }}>
         {/* Left side: Link to hub page */}
-        <Link href={href} style={linkStyle}>
+        <Link prefetch={false} href={href} style={linkStyle}>
           {title}
         </Link>
 
@@ -165,7 +165,7 @@ function UnstyledDropdown({
           }}
         >
           {items.map((item) => (
-            <Link
+            <Link prefetch={false}
               key={item.href}
               href={item.href}
               style={itemStyle}
@@ -362,7 +362,7 @@ function NavigationContent({
       padding: '16px 32px',
       margin: 0
     }}>
-      <Link href="/" style={{ textDecoration: 'none', display: 'block' }}>
+      <Link prefetch={false} href="/" style={{ textDecoration: 'none', display: 'block' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           {/* Not a heading: the page's own heading is its one <h1>
               (template audit 14 #7). Styled as the h1 it was. */}
@@ -401,7 +401,7 @@ function NavigationContent({
               ...customPageItems(section.customPagesKey),
             ];
             if (!section.hubLabel) {
-              return <Link key={section.key} href={section.href} style={linkStyle}>{section.title}</Link>;
+              return <Link prefetch={false} key={section.key} href={section.href} style={linkStyle}>{section.title}</Link>;
             }
             return (
               <UnstyledDropdown
@@ -419,7 +419,7 @@ function NavigationContent({
           })}
 
           {topLevelPages.map((page) => (
-            <Link key={page.id} href={`/page/${page.slug}`} style={linkStyle}>{page.title}</Link>
+            <Link prefetch={false} key={page.id} href={`/page/${page.slug}`} style={linkStyle}>{page.title}</Link>
           ))}
         </div>
 
@@ -439,8 +439,8 @@ function NavigationContent({
             </>
           ) : (
             <div style={{ display: 'flex', gap: '16px' }}>
-              <Link href="/login" style={linkStyle}>Login</Link>
-              <Link href="/signup" style={buttonStyle}>Sign Up</Link>
+              <Link prefetch={false} href="/login" style={linkStyle}>Login</Link>
+              <Link prefetch={false} href="/signup" style={buttonStyle}>Sign Up</Link>
             </div>
           )}
         </div>

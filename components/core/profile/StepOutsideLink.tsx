@@ -19,7 +19,7 @@ interface StepOutsideLinkProps {
 export default function StepOutsideLink({ username, showBadge = true }: StepOutsideLinkProps) {
   return (
     <div data-site-chrome className="ts-step-outside">
-      <Link
+      <Link prefetch={false}
         href={`/home/${encodeURIComponent(username)}`}
         onClick={() => trackNavigation("profile", "pixel_home", username)}
       >
