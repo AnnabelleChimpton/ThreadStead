@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useMe } from "@/hooks/useMe";
 import { useRouter } from "next/router";
@@ -31,7 +32,10 @@ export default function UserAccountBottomSheet({ isOpen, onClose }: UserAccountB
     window.location.href = "/";
   }
 
-  if (!me?.loggedIn) {
+  // The header that renders this is blurred (backdrop-filter), which makes
+  // it the box a fixed child is placed in: from body, the sheet is fixed to
+  // the screen
+  if (!me?.loggedIn || typeof document === "undefined") {
     return null;
   }
 
@@ -39,7 +43,7 @@ export default function UserAccountBottomSheet({ isOpen, onClose }: UserAccountB
   const isAdmin = me.user?.role === "admin";
   const currentPath = pathOnly(router.asPath);
 
-  return (
+  return createPortal(
     <>
       {/* Backdrop */}
       <div
@@ -125,6 +129,7 @@ export default function UserAccountBottomSheet({ isOpen, onClose }: UserAccountB
           </button>
         </div>
       </div>
-    </>
+    </>,
+    document.body
   );
 }
