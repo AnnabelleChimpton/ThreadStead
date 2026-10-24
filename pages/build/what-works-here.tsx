@@ -169,8 +169,10 @@ h1 { color: var(--color-accent); font-family: var(--font-headings); }`}</Example
           <RetroCard title="One page, and the bits that stay">
             <div className="space-y-3 px-4 sm:px-0">
               <p>
-                You get one page. Your posts, media and guestbook have their own tabs, and you can link to anything
-                with a normal link. A page can be up to {kb(MAX_TEMPLATE_CHARS)} KB of HTML and{" "}
+                You get one page. Your posts, pictures and guestbook show up wherever you put{" "}
+                <Code>&lt;BlogPosts /&gt;</Code>, <Code>&lt;MediaGrid /&gt;</Code> and <Code>&lt;Guestbook /&gt;</Code>,
+                and every post has its own page too, where people can comment. You can link to anything with a
+                normal link. A page can be up to {kb(MAX_TEMPLATE_CHARS)} KB of HTML and{" "}
                 {kb(MAX_CSS_CHARS)} KB of CSS, which is a lot more than it sounds.
               </p>
               <p>

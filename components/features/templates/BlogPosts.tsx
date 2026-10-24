@@ -90,6 +90,9 @@ export default function BlogPosts(props: BlogPostsProps) {
             onChanged={() => {}} // No refresh needed in preview
             currentUser={null} // No current user in template preview
             viewContext="widget"
+            // Counted with the page's posts, so there's no request per post
+            // (without one, PostItem asks for it)
+            commentCount={post.commentCount}
           />
         ))}
       </div>

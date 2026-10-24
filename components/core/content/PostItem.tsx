@@ -789,10 +789,13 @@ export default function PostItem({
               <div className="flex items-center gap-3">
                 {authorLink && (
                   <Link
-                    href={`${authorLink}?tab=blog`}
+                    // On a page of someone's own HTML (BlogPosts) there's no
+                    // blog tab: ?tab=blog reloaded the same page, so the post
+                    // and its comments were out of reach
+                    href={viewContext === 'widget' ? `${authorLink}/post/${post.id}` : `${authorLink}?tab=blog`}
                     className="text-sm font-medium text-thread-sage hover:text-thread-pine transition-colors flex items-center gap-1 group"
                   >
-                    <span>View on profile</span>
+                    <span>{viewContext === 'widget' ? 'Open post' : 'View on profile'}</span>
                     <span className="transform group-hover:translate-x-1 transition-transform">→</span>
                   </Link>
                 )}

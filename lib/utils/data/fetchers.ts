@@ -4,7 +4,7 @@
 import { db } from "../../config/database/connection";
 import { SITE_NAME } from "../../config/site/constants";
 import { getAllowedVisibilities } from "../../domain/posts/visibility";
-import { getUserBlockedIds, addBlockFiltersToWhere } from "../../domain/users/blocks";
+import { getUserBlockedIds, addBlockFiltersToWhere, countHiddenComments, visibleCommentCount } from "../../domain/users/blocks";
 import { PICTURE_MEDIA_TYPES } from "../../media/media-types";
 
 export async function getPostsForUser(username: string, viewerId?: string) {
@@ -44,10 +44,17 @@ export async function getPostsForUser(username: string, viewerId?: string) {
           },
         },
       },
+      // Counted as /api/posts/[username] counts them: visible ones, less
+      // those from people the viewer blocked
+      _count: { select: { comments: { where: { status: "visible" } } } },
     },
   });
 
-  return { posts, blocked: false };
+  const hidden = await countHiddenComments(posts.map((post) => post.id), blockedUserIds);
+  return {
+    posts: posts.map(({ _count, ...post }) => ({ ...post, commentCount: visibleCommentCount(post.id, _count.comments, hidden) })),
+    blocked: false,
+  };
 }
 
 export async function getGuestbookForUser(username: string) {

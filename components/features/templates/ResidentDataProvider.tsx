@@ -19,6 +19,8 @@ export interface ResidentData {
   };
   posts: Array<{
     id: string;
+    title?: string | null;
+    commentCount?: number;
     bodyHtml: string;
     createdAt: string;
   }>;

@@ -600,12 +600,15 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
       ]);
 
       // Handle posts data
-      let posts: Array<{ id: string; bodyHtml: string; createdAt: string }> = [];
+      let posts: ResidentData['posts'] = [];
       if (postsData.status === 'fulfilled' && postsData.value) {
 
         const { postBodyHtml } = await import("@/lib/templates/core/post-body");
         posts = postsData.value.posts?.map((post: any) => ({
           id: post.id || '',
+          // Its title is its link to its own page, and its comments are counted
+          title: post.title ?? null,
+          commentCount: post.commentCount ?? 0,
           bodyHtml: postBodyHtml(post),
           createdAt: post.createdAt ? new Date(post.createdAt).toISOString() : new Date().toISOString()
         })) || [];
