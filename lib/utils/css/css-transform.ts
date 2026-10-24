@@ -202,36 +202,58 @@ export function extractImports(css: string): { imports: string[]; rest: string }
  * The site chrome profile CSS must never reach: everything marked
  * data-site-chrome (header with its nav and menus, footer, cookie notice,
  * chat, toasts, "step outside", "view source", the nav bar on your-own-HTML
- * pages). Used as the exclusive lower boundary of the profile @scope below.
- * By attribute only: a page's own class="site-header" used to count as the
- * site's, and every rule for it and inside it was dead.
+ * pages). By attribute only: a page's own class="site-header" used to count
+ * as the site's, and every rule for it and inside it was dead.
  */
 export const SITE_CHROME_SELECTOR = '[data-site-chrome]'
 
-// At-rules that are invalid or global inside @scope — hoisted above the block.
-const GLOBAL_AT_RULES = new Set([
-  'import', 'charset', 'namespace', 'font-face', 'keyframes', '-webkit-keyframes',
-  '-moz-keyframes', 'property', 'page', 'counter-style', 'font-feature-values',
-  'font-palette-values', 'view-transition', 'position-try',
-])
+/** Anything but the site chrome and what's inside it, weighing nothing */
+const OUTSIDE_CHROME = `:where(:not(${SITE_CHROME_SELECTOR}, ${SITE_CHROME_SELECTOR} *))`
 
 /**
- * Wrap whole-page profile CSS in a donut scope — `@scope (html) to (chrome)` —
- * so it styles the profile but cannot match the site header, footer or other
- * chrome. Without this, presets that restyle `.nav-link` / `.site-footer`
- * pushed the user menu off-screen and left footer links unreadable.
- *
- * Selectors that name the root (`:root`, `html …`) become `:scope …`: inside
- * @scope, plain selectors only match descendants of the scope root.
- * Inherited properties (font, color) still flow into the chrome from body —
+ * Standard-layout profile CSS styles the profile, and the site's own
+ * wrappers around it, but never the site header, footer or other chrome:
+ * presets that restyled `.nav-link` / `.site-footer` pushed the user menu
+ * off-screen and left footer links unreadable. Each selector's subject gets
+ * OUTSIDE_CHROME. This was an `@scope (html) to (chrome)` block, which
+ * Safari before 17.4 drops whole, profile CSS and all.
+ * Inherited properties (font, color) still flow into the chrome from body;
  * the chrome roots reset those themselves (styles/retro.css).
  */
 export function scopeAwayFromSiteChrome(css: string): string {
-  return wrapInChromeScope(clampZIndex(css), (sel) =>
-    sel
-      .replace(/^html(?![\w-])/, ':scope')
-      .replace(/:root(?![\w-])/g, ':scope')
-  )
+  return mapSelectors(clampZIndex(css), outsideChrome, { nested: true })
+}
+
+/**
+ * `nav a:hover::after` → `nav a:hover:where(:not(chrome…))::after`: the
+ * boundary on the selector's subject, before any pseudo-element.
+ */
+export function outsideChrome(selector: string): string {
+  const sel = selector.trim()
+  let subject = 0 // where the last compound starts
+  let pseudo = -1 // its first pseudo-element
+  let i = 0
+  while (i < sel.length) {
+    const ch = sel[i]
+    if (ch === '\\') {
+      i += 2
+    } else if (ch === '"' || ch === "'") {
+      i = skipString(sel, i)
+    } else if (ch === '(') {
+      i = skipParens(sel, i)
+    } else if (ch === '[') {
+      while (i < sel.length && sel[i] !== ']') i = sel[i] === '"' || sel[i] === "'" ? skipString(sel, i) : i + 1
+      i++
+    } else if (/[\s>+~]/.test(ch)) {
+      subject = ++i
+      pseudo = -1
+    } else {
+      if (ch === ':' && pseudo === -1 && /^:(?::|(?:before|after|first-line|first-letter)(?![\w-]))/i.test(sel.slice(i))) pseudo = i
+      i++
+    }
+  }
+  const at = pseudo === -1 ? sel.length : pseudo
+  return `${sel.slice(0, at)}${OUTSIDE_CHROME}${sel.slice(at)}`
 }
 
 /**
@@ -253,25 +275,6 @@ export function clampZIndex(css: string): string {
         ? whole
         : `${prop}min(${value.trim()}, ${PROFILE_Z_INDEX_MAX})${end}`
   )
-}
-
-/**
- * Hoist the at-rules that can't live inside @scope, then wrap the rest in
- * the chrome donut with each selector rewritten by `scopeSelector`.
- */
-function wrapInChromeScope(css: string, scopeSelector: (selector: string) => string): string {
-  if (!css.trim()) return ''
-  const hoisted: CSSStatement[] = []
-  const scoped: CSSStatement[] = []
-  for (const s of splitTopLevelStatements(css)) {
-    const isGlobal = s.kind === 'at' && (GLOBAL_AT_RULES.has(s.atName || '') || s.body === undefined)
-    ;(isGlobal ? hoisted : scoped).push(s)
-  }
-  if (scoped.length === 0) return serializeStatements(hoisted)
-
-  const inner = mapSelectors(serializeStatements(scoped), scopeSelector, { authorScopes: true })
-  const head = serializeStatements(hoisted)
-  return `${head}${head ? '\n' : ''}@scope (html) to (${SITE_CHROME_SELECTOR}) {\n${inner}\n}`
 }
 
 /**
@@ -352,18 +355,19 @@ function prefixSelectorIds(selector: string): string {
 }
 
 /**
- * One selector of advanced-mode CSS, scoped under `@scope (html)` where
- * `:scope` is the html element. Everything below html and body is the
+ * One selector of advanced-mode CSS. Everything below html and body is the
  * page's own HTML: those parts must be inside the page root, so a page's
  * `div {}`, `*`, `div:has(...)` or `.ts-page-frame` can't match the site's
  * wrappers around it (raising one put the page over the site's nav;
- * template audit 02 X2, 03 F6b):
- *   `html`, `:root`, `body` → themselves (`html:scope:is(html)`,
- *                             `:scope:is(html) body`)
+ * template audit 02 X2, 03 F6b), and nothing the page writes reaches the
+ * site's chrome, which is all outside the root (pinned by
+ * page-components-ssr.test.tsx):
+ *   `html`, `:root`, `body` → themselves (`html:root:is(html)`,
+ *                             `:root:is(html) body`)
  *   `body > header`, `body .x`, `html .x` → `… body :where(.profile-template-root) > header`
  *                             (the page's top level, as its author meant)
- *   `::selection` etc.     → the root and everything in body
- *   anything else, `*` included → `:scope body :where(.profile-template-root) …`
+ *   `::selection` etc.     → html and the page
+ *   anything else, `*` included → `:root body :where(.profile-template-root) …`
  * The page root itself answers to its class (whole-page effects moved onto
  * it, overlays, a page that names it); what it mustn't do is pinned in
  * styles/chrome-layers.css.
@@ -377,20 +381,21 @@ export function scopeAdvancedSelector(selector: string): string {
   // A whole-page overlay (scanlines, sparkles) drawn on body::before is the
   // page root's: over the page, never over the site's nav (it tinted it)
   const overlay = sel.match(/^(?::root|html|body|html\s+body)(::?(?:before|after))$/i)
-  if (overlay) return `:scope body ${PAGE_ROOT}${overlay[1]}`
-  if (sel.startsWith('::')) return `:scope:root${sel}, :scope body ${sel}`
-  if (sel.startsWith(PAGE_ROOT)) return `:scope body ${sel}`
+  if (overlay) return `:root body ${PAGE_ROOT}${overlay[1]}`
+  if (sel.startsWith('::')) return `:root${sel}, :root body ${INSIDE_PAGE} ${sel}`
+  if (sel.startsWith(PAGE_ROOT)) return `:root body ${sel}`
 
   // The html and body compounds a selector starts with, and the rest
   const lead = sel.match(/^((?::root|html)(?![\w-])[^\s>+~]*)?\s*>?\s*(body(?![\w-])[^\s>+~]*)?\s*/i)!
   const [whole, rootCompound, bodyCompound] = lead
-  if (!rootCompound && !bodyCompound) return `:scope body ${INSIDE_PAGE} ${sel}`
+  if (!rootCompound && !bodyCompound) return `:root body ${INSIDE_PAGE} ${sel}`
   // Classes, ids and attributes written on html or body are the page root's
   // (document-head.ts puts a pasted page's there); pseudo-classes stay put
   const root = rootCompound ? splitCompound(rootCompound) : null
   const body = bodyCompound ? splitCompound(bodyCompound) : null
   const onRoot = `${root?.moved ?? ''}${body?.moved ?? ''}`
-  const top = root ? `${root.name}:scope:is(html)${root.kept}` : ':scope:is(html)'
+  // `:root` twice for `:root` itself keeps every selector's weight as it was
+  const top = root ? `${root.name}:root:is(html)${root.kept}` : ':root:is(html)'
   const bodyPart = body ? ` ${body.name}${body.kept}` : ''
   const rest = sel.slice(whole.length)
   // An effect moved onto the page root keeps its condition (moveWholePageEffects)
@@ -557,9 +562,10 @@ export function renameCollidingKeyframes(css: string): string {
  *   threadstead-page (namePageLayers).
  * - Whole-page effects and overlays on html/body go on the page root, out
  *   of the site chrome's way (moveWholePageEffects, scopeAdvancedSelector).
- * - Everything is scoped away from the site header, footer and other chrome,
- *   the way standard-layout CSS already is, so a page's `nav a {}` or
- *   `h1::after {}` can't restyle or fake the site's own navigation.
+ * - Every selector is confined to the page root, which the site's header,
+ *   footer and other chrome are all outside of, so a page's `nav a {}` or
+ *   `h1::after {}` can't restyle or fake the site's own navigation. No
+ *   @scope: Safari before 17.4 dropped the whole page's CSS with it.
  */
 export function transformAdvancedCss(
   css: string,
@@ -576,7 +582,7 @@ export function transformAdvancedCss(
   // says so, before its own rules, so they can say otherwise: with nothing
   // declared, light-dark() and form controls stayed light (template audit 13 #9)
   const schemes = /light-dark\(|prefers-color-scheme/i.test(rest) && !/(?<![\w-])color-scheme\s*:/i.test(rest) ? ':root { color-scheme: light dark; }\n' : ''
-  const scoped = wrapInChromeScope(namePageLayers(moveWholePageEffects(schemes + rest)), scopeAdvancedSelector)
+  const scoped = mapSelectors(namePageLayers(moveWholePageEffects(schemes + rest)), scopeAdvancedSelector, { authorScopes: true })
   if (!scoped && allImports.length === 0) return ''
   // Layer statements are the one thing allowed before @import
   return [SITE_LAYER_ORDER, ...allImports, scoped].filter(Boolean).join('\n')

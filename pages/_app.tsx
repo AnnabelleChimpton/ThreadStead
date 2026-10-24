@@ -158,6 +158,25 @@ export default function MyApp({ Component, pageProps, appSiteCSS }: MyAppProps) 
   const siteStyles = pageProps.siteStyles !== false && siteStylesOn(actualCSSMode);
 
 
+  // Site-wide CSS (admin panel): the ONE delivery point. DELIBERATELY
+  // UNLAYERED and in <body>: the admin CSS shares specificity with rules in
+  // the compiled stylesheet (globals.css also styles .thread-surface etc.),
+  // so document ORDER decides the winner. In <head> this tag sat BEFORE the
+  // compiled CSS <link> and lost every tie: the admin panel's CSS was in the
+  // DOM but visually absent (live-diagnosed via the cascade on
+  // homepageagain.com). Never wrap it in @layer: layered normal declarations
+  // lose to Tailwind's unlayered utilities. SSR-primed via initialSiteCSS on
+  // profile pages; the useSiteCSS hook updates it by id on client fetches.
+  const siteCssStyle = (!isProfilePage || siteStyles) && (
+    <style
+      id="site-wide-css"
+      key="site-css"
+      dangerouslySetInnerHTML={{
+        __html: escapeCssForStyleTag(css) || '/* Site CSS loading... */'
+      }}
+    />
+  );
+
   return (
     <ResidentHostProvider value={residentHost}>
     <GlobalAudioProvider>
@@ -185,13 +204,30 @@ export default function MyApp({ Component, pageProps, appSiteCSS }: MyAppProps) 
 
 
 
+            </Head>
+            <div
+              className={`${pageProps.templateMode === 'advanced'
+                // No font-body here: it re-set the font under <body>, so a
+                // page's own body { font-family } and font: pickers did nothing
+                ? 'min-h-screen'
+                : 'min-h-screen font-body thread-surface text-thread-charcoal'
+              }`}
+            >
+              {/* A profile's own CSS: after the site's, so where the two tie
+                  (unlayered rules of the same weight, @keyframes named spin,
+                  pulse or bounce, which Tailwind defines too) the profile's
+                  wins, as it did inside the @scope block it used to be in.
+                  Before the page, so nothing paints unstyled. The editor's
+                  preview (pages/template-preview.tsx) uses the same order
+                  and the same transforms. */}
+              {isProfilePage && siteCssStyle}
               {isProfilePage && hasCustomCSS && pageProps.templateMode !== 'advanced' && (() => {
                 // Hoist user @imports above our preamble rule: per the CSS
                 // spec, browsers IGNORE @import statements that appear after
                 // any other rule — with the preamble first, users' Google
                 // Fonts imports silently never loaded.
-                // Scoped away from the site header/footer: profile CSS styles
-                // the profile, never the site chrome around it.
+                // Kept off the site header/footer: profile CSS styles the
+                // profile, never the site chrome around it.
                 const { imports, rest } = extractImports(scopeAwayFromSiteChrome(pageProps.customCSS || ''));
                 return (
                 <style
@@ -211,20 +247,6 @@ ${rest}`)
                 />
                 );
               })()}
-            </Head>
-            <div
-              className={`${pageProps.templateMode === 'advanced'
-                // No font-body here: it re-set the font under <body>, so a
-                // page's own body { font-family } and font: pickers did nothing
-                ? 'min-h-screen'
-                : 'min-h-screen font-body thread-surface text-thread-charcoal'
-              }`}
-            >
-              {/* The page's own CSS: the same transform the editor preview uses,
-                  and in the same place, after the site's stylesheets. In the
-                  <head> it came before them, so where the two tie (unlayered
-                  rules, and @keyframes named spin, pulse or bounce, which
-                  Tailwind defines too) the site's won and the preview's didn't. */}
               {isProfilePage && pageProps.templateMode === 'advanced' &&
                 (hasCustomCSS || advancedDocumentCss.fontImports.length > 0 || advancedDocumentCss.bodyCss || advancedDocumentCss.styleCss) && (
                 <style
@@ -238,28 +260,7 @@ ${rest}`)
               )}
               <Component {...pageProps} />
 
-              {/* Site-wide CSS (admin panel): the ONE delivery point.
-                  DELIBERATELY UNLAYERED and rendered at the END OF BODY:
-                  the admin CSS shares specificity with rules in the
-                  compiled stylesheet (globals.css also styles
-                  .thread-surface etc.), so document ORDER decides the
-                  winner. In <head> this tag sat BEFORE the compiled CSS
-                  <link> and lost every tie — the admin panel's CSS was in
-                  the DOM but visually absent (live-diagnosed via the
-                  cascade on homepageagain.com). Last-in-body wins those
-                  ties. Also: never wrap this in @layer — layered normal
-                  declarations lose to Tailwind's unlayered utilities.
-                  SSR-primed via initialSiteCSS on profile pages; the
-                  useSiteCSS hook updates it by id on client fetches. */}
-              {(!isProfilePage || siteStyles) && (
-                <style
-                  id="site-wide-css"
-                  key="site-css"
-                  dangerouslySetInnerHTML={{
-                    __html: escapeCssForStyleTag(css) || '/* Site CSS loading... */'
-                  }}
-                />
-              )}
+              {!isProfilePage && siteCssStyle}
 
               {/* Site chrome: profile CSS is scoped away from data-site-chrome */}
               <div data-site-chrome style={{ display: 'contents' }}>

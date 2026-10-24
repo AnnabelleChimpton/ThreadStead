@@ -204,17 +204,17 @@ describe('the CSS they become', () => {
     const documentCss = documentCssFromCompiledTemplate({ ast })
     expect(documentCss.bodyCss).toBe(':root {\n  --color-accent: #c96633;\n  --font-headings: Georgia, serif;\n}')
     const css = transformAdvancedCss('h1 { color: var(--color-accent); }', documentCss)
-    expect(css).toMatch(/:root:scope:is\(html\) \{\s*--color-accent: #c96633;\s*--font-headings: Georgia, serif;\s*\}/)
+    expect(css).toMatch(/:root:root:is\(html\) \{\s*--color-accent: #c96633;\s*--font-headings: Georgia, serif;\s*\}/)
     expect(css.indexOf('--color-accent: #c96633')).toBeLessThan(css.indexOf('color: var(--color-accent)'))
   })
 
-  test('a self-hosted font brings its @font-face rules, hoisted out of the scope', () => {
+  test('a self-hosted font brings its @font-face rules, untouched by the transform', () => {
     const css = themeOptionsCss([{ type: 'font', name: 'Body', value: "'Fraunces', Georgia, serif" }])
     expect(css).toContain("font-family: 'Fraunces'")
     expect(css).toContain('@font-face')
     expect(themeOptionsCss([{ type: 'font', name: 'Body', value: 'Georgia, serif' }])).not.toContain('@font-face')
     const page = transformAdvancedCss('', { bodyCss: css })
-    expect(page.indexOf('@font-face')).toBeLessThan(page.indexOf('@scope'))
+    expect(page).toMatch(/@font-face \{\s*font-family: 'Fraunces'/)
   })
 
   test('a tampered stored copy is checked again: nothing but values reaches the CSS', () => {

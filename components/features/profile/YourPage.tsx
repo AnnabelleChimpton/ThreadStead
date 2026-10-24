@@ -182,15 +182,16 @@ export default function YourPage({ username }: { username: string }) {
   const optionsChanged = shownOptions.some((o, i) => o.value !== pageOptions[i].value);
 
   // Unsaved knob changes show in the preview straight away, through the same
-  // scoping the real page applies (so they win exactly as the saved ones will)
+  // scoping the real page applies, last in its body (so they win exactly as
+  // the saved ones will: after the site's CSS)
   const applyPreviewKnobs = useCallback(() => {
     const doc = previewRef.current?.contentDocument;
-    if (!doc?.head) return;
+    if (!doc?.body) return;
     let style = doc.getElementById(PREVIEW_STYLE_ID);
     if (!style) {
       style = doc.createElement('style');
       style.id = PREVIEW_STYLE_ID;
-      doc.head.appendChild(style);
+      doc.body.appendChild(style);
     }
     style.textContent = knobsChanged ? scopeAwayFromSiteChrome(knobsBlock(knobs)) : '';
   }, [knobs, knobsChanged]);
@@ -202,12 +203,12 @@ export default function YourPage({ username }: { username: string }) {
   // Unsaved theme option values, as the live page will write them (pages/_app.tsx)
   const applyPreviewOptions = useCallback(() => {
     const doc = previewRef.current?.contentDocument;
-    if (!doc?.head) return;
+    if (!doc?.body) return;
     let style = doc.getElementById(OPTIONS_PREVIEW_STYLE_ID);
     if (!style) {
       style = doc.createElement('style');
       style.id = OPTIONS_PREVIEW_STYLE_ID;
-      doc.head.appendChild(style);
+      doc.body.appendChild(style);
     }
     style.textContent = optionsChanged ? escapeCssForStyleTag(transformAdvancedCss(themeOptionsCss(shownOptions))) : '';
   }, [shownOptions, optionsChanged]);

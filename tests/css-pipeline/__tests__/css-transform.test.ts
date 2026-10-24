@@ -14,6 +14,7 @@ import {
   splitSelectorList,
   stripComments,
   scopeAwayFromSiteChrome,
+  outsideChrome,
   SITE_CHROME_SELECTOR,
 } from '@/lib/utils/css/css-transform'
 
@@ -170,29 +171,35 @@ html body .thread-surface, body { color: #222; }
 
   const out = scopeAwayFromSiteChrome(css)
 
-  test('wraps rules in a donut scope that excludes the site chrome', () => {
-    expect(out).toContain(`@scope (html) to (${SITE_CHROME_SELECTOR}) {`)
-    expect(out).toContain('.site-header { background: black !important; }')
-    expect(out.indexOf('.site-header {')).toBeGreaterThan(out.indexOf('@scope'))
+  const OUTSIDE = `:where(:not(${SITE_CHROME_SELECTOR}, ${SITE_CHROME_SELECTOR} *))`
+
+  test('every subject stays off the site chrome, with no @scope (Safari before 17.4 drops it whole)', () => {
+    expect(out).not.toContain('@scope')
+    expect(out).toContain(`.site-header${OUTSIDE} { background: black !important; }`)
+    expect(out).toContain(`html body .thread-surface${OUTSIDE}, body${OUTSIDE} { color: #222; }`)
+    expect(out).toContain(`:root .x${OUTSIDE} { margin: 0; }`)
   })
 
-  test('hoists @import, @font-face and @keyframes above the scope, imports first', () => {
-    const scopeAt = out.indexOf('@scope')
+  test('@import, @font-face and @keyframes come through as written', () => {
     expect(out.startsWith(GOOGLE_FONTS_IMPORT)).toBe(true)
-    expect(out.indexOf('@font-face')).toBeLessThan(scopeAt)
-    expect(out.indexOf('@keyframes spin')).toBeLessThan(scopeAt)
+    expect(out).toContain('@font-face { font-family: X; src: url(x.woff2); }')
     expect(out).toContain('from { transform: rotate(0); }')
   })
 
-  test('rewrites root selectors to :scope, inside @media too', () => {
-    expect(out).toContain(':scope { --accent: red; }')
-    expect(out).toContain(':scope body .thread-surface, body')
-    expect(out).toContain(':scope .x { margin: 0; }')
-    expect(out).not.toMatch(/(^|[\s,{]):root/)
+  test('the boundary goes before a pseudo-element, after pseudo-classes and escapes', () => {
+    expect(outsideChrome('nav a:hover::after')).toBe(`nav a:hover${OUTSIDE}::after`)
+    expect(outsideChrome('p:first-line')).toBe(`p${OUTSIDE}:first-line`)
+    expect(outsideChrome('.md\\:flex > li:not(.a b)')).toBe(`.md\\:flex > li:not(.a b)${OUTSIDE}`)
+    expect(outsideChrome('a[title="x > y"]')).toBe(`a[title="x > y"]${OUTSIDE}`)
+    expect(outsideChrome('::-webkit-scrollbar')).toBe(`${OUTSIDE}::-webkit-scrollbar`)
+  })
+
+  test('rules nested in rules stay off the chrome too', () => {
+    expect(scopeAwayFromSiteChrome('.card { a { color: red } }')).toContain(`a${OUTSIDE} { color: red }`)
   })
 
   test('leaves html-prefixed class names alone and handles empty input', () => {
-    expect(scopeAwayFromSiteChrome('.html-box { color: red; }')).toContain('.html-box {')
+    expect(scopeAwayFromSiteChrome('.html-box { color: red; }')).toMatch(/^\.html-box:where/)
     expect(scopeAwayFromSiteChrome('   ')).toBe('')
   })
 })

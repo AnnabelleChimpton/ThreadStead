@@ -176,6 +176,10 @@ describe.each(corpus())('%s', (id, source) => {
       expect({ from, serverErrors: result.serverErrors }).toEqual({ from, serverErrors: [] })
       expect({ from, hydrationErrors: result.hydrationErrors.map(String) }).toEqual({ from, hydrationErrors: [] })
       expect({ from, dom: result.settled }).toEqual({ from, dom: golden })
+      // Nothing of the site's chrome is inside the page root: the page's CSS
+      // is kept off the chrome only by being confined to the root
+      // (scopeAdvancedSelector), with no @scope boundary any more
+      expect(result.settled).not.toContain('data-site-chrome')
     }
   })
 })

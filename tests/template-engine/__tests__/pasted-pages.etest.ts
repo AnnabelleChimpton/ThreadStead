@@ -354,9 +354,9 @@ describe('whole documents', () => {
     const { bodyCss } = documentCssFromCompiledTemplate({ ast: artifacts.ast })
     const out = transformAdvancedCss('body { color: white }', { bodyCss })
     expect(out).toContain(
-      ':scope:is(html) body { background-color: #000000; color: #00FF00; background-image: url("https://example.neocities.org/stars.gif"); }'
+      ':root:is(html) body { background-color: #000000; color: #00FF00; background-image: url("https://example.neocities.org/stars.gif"); }'
     )
-    expect(out).toContain(':scope:is(html) body :where(.profile-template-root) :where(a:link) { color: #FF00FF; }')
+    expect(out).toContain(':root:is(html) body :where(.profile-template-root) :where(a:link) { color: #FF00FF; }')
     // the page's own rule comes after, so it wins the tie
     expect(out.indexOf('color: white')).toBeGreaterThan(out.indexOf('color: #00FF00'))
   })
@@ -781,13 +781,14 @@ describe('CSS the transform used to get wrong (audit cross-check C)', () => {
 
   test("a page's own @scope keeps its rules relative to its root", () => {
     const out = transformAdvancedCss('@scope (.card) { img { border: 1px solid } }')
-    expect(out).toContain('@scope (:scope body :where(.profile-template-root) .card) { img { border: 1px solid } }')
+    expect(out).toContain('@scope (:root body :where(.profile-template-root) .card) { img { border: 1px solid } }')
   })
 
-  test('@starting-style rules are scoped like any other; @view-transition stays global', () => {
+  test('@starting-style rules are confined like any other; @view-transition stays as written', () => {
     const out = transformAdvancedCss('@starting-style { .pop { opacity: 0 } } @view-transition { navigation: auto; }')
-    expect(out).toMatch(/@starting-style \{\s*:scope body :where\(\.profile-template-root\) \.pop \{/)
-    expect(out.indexOf('@view-transition')).toBeLessThan(out.indexOf('@scope (html)'))
+    expect(out).toMatch(/@starting-style \{\s*:root body :where\(\.profile-template-root\) \.pop \{/)
+    expect(out).toContain('@view-transition { navigation: auto; }')
+    expect(out).not.toMatch(/:where\(\.profile-template-root\)[^{]*navigation/)
   })
 
   test('a page written for light and dark says so, unless it already does', () => {

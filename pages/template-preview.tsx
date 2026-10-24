@@ -405,13 +405,13 @@ export default function PreviewTemp() {
 
       {/* User content with optional navigation and ResidentDataProvider */}
       <div style={{ paddingTop: isEmbedded ? (showNavigation ? '80px' : 0) : (showNavigation ? '120px' : '40px') }}>
-        {/* The page's own CSS, transformed exactly as on the live page */}
-        {advancedCSS && (
-          <style id="advanced-template-css" dangerouslySetInnerHTML={{ __html: escapeCssForStyleTag(advancedCSS) }} />
-        )}
-        {/* After the page's, as on the live page (pages/_app.tsx) */}
+        {/* The site's CSS, then the page's own, transformed exactly as on
+            the live page and in the same order (pages/_app.tsx) */}
         {siteStylesOn(typedCSSMode) && !siteCssLoading && siteCss && (
           <style id="preview-site-css" dangerouslySetInnerHTML={{ __html: escapeCssForStyleTag(siteCss) }} />
+        )}
+        {advancedCSS && (
+          <style id="advanced-template-css" dangerouslySetInnerHTML={{ __html: escapeCssForStyleTag(advancedCSS) }} />
         )}
 
         {/* Show site navigation if toggle is enabled */}
