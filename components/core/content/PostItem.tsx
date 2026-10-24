@@ -12,7 +12,6 @@ import { UserWithRole } from "@/lib/utils/features/feature-flags";
 import { PostModerationStatus } from "@/types/threadrings";
 import ReportButton from "../../ui/feedback/ReportButton";
 import PostActionsDropdown from "./PostActionsDropdown";
-import { useWelcomeRingTracking } from "@/hooks/useWelcomeRingTracking";
 import { useViewportTracking, trackEngagement } from "@/hooks/usePostView";
 import { csrfFetch } from "@/lib/api/client/csrf-fetch";
 import { requestCapability } from "@/lib/api/client/capability";
@@ -179,9 +178,6 @@ export default function PostItem({
   // Ring moderation acts on the hub's PostRef, so only posts that came from the hub's feed
   const canModerateHere = !!(threadRingContext && canModerateRing && post.ringHubPostId);
 
-  // Welcome ring tracking
-  const { trackCommentCreated } = useWelcomeRingTracking(threadRingContext?.slug);
-
   // Viewport tracking for feed views
   const getViewType = () => {
     if (threadRingContext) return 'ring_view';
@@ -224,9 +220,6 @@ export default function PostItem({
     // show instantly
     setOptimistic((arr) => [c, ...arr]);
     setCommentsOpen(true);
-
-    // Track comment creation for Welcome Ring progress
-    trackCommentCreated();
 
     // optional: kick a background sync next time (or immediately if you prefer)
     // setCommentsVersion((v) => v + 1);

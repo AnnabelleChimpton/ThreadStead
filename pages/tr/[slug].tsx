@@ -24,8 +24,6 @@ import EmptyState from "@/components/ui/feedback/EmptyState";
 import ErrorDisplay from "@/components/ui/feedback/ErrorDisplay";
 import Button from "@/components/ui/Button";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
-import WelcomeRingGuide from "../../components/features/onboarding/WelcomeRingGuide";
-import { useWelcomeTracking } from "../../hooks/useWelcomeTracking";
 import { contentMetadataGenerator } from "@/lib/utils/metadata/content-metadata";
 import { serializeJsonLd } from "@/lib/utils/sanitization/json-ld";
 import StripBuilder from "@/components/features/rings/StripBuilder";
@@ -49,7 +47,6 @@ interface ThreadRingPageProps {
 function RingPage({ siteConfig, ring, cameFrom }: { siteConfig: SiteConfig; ring: RingPageRing; cameFrom: ThreadRingPageProps["cameFrom"] }) {
   const router = useRouter();
   const { user: currentUser } = useCurrentUser();
-  useWelcomeTracking();
   const viewer = useRingViewer(ring, currentUser);
   const family = useRingFamily(ring.slug);
   const feed = useRingFeed(ring.slug, family.feed?.scopes);
@@ -98,15 +95,6 @@ function RingPage({ siteConfig, ring, cameFrom }: { siteConfig: SiteConfig; ring
       </PageMeta>
 
       <Layout siteConfig={siteConfig} fullWidth={true}>
-        {/* Welcome Ring Guide - shows only on welcome ring */}
-        {ring.slug === 'welcome' && (
-          <WelcomeRingGuide
-            ringSlug={ring.slug}
-            viewer={currentUser}
-            ring={{ curator: viewer.role === "curator" && currentUser ? { id: currentUser.id } : null }}
-          />
-        )}
-
         {cameFrom && (
           <div className="mx-0 sm:mx-4 lg:mx-6 mb-4 px-4 py-2 bg-thread-paper border border-thread-sage/40 rounded-cozy text-sm text-nb-ink flex flex-wrap items-center gap-x-3 gap-y-1">
             <span>

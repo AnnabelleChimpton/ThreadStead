@@ -41,12 +41,11 @@ export default function WelcomeRingOptIn({
       <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-cozy p-5 mb-6">
         <div className="text-center">
           <h3 className="thread-headline text-xl font-bold mb-3">
-            Want a guided tour?
+            Start with the Welcome Ring?
           </h3>
           <p className="text-nb-ink mb-0 leading-relaxed">
-            The Welcome Ring is a little practice ring. Once you&apos;re in, a tour at the top of the page walks you
-            through reading a post, leaving a comment, visiting someone&apos;s page and looking around the other rings.
-            It takes about five minutes, and you can leave whenever you want.
+            It&apos;s where new people say hi, so it&apos;s a good first ring. Post a hello, read what everyone else
+            wrote, and you&apos;ll see how rings work. You can leave whenever you want.
           </p>
         </div>
       </div>
@@ -63,7 +62,7 @@ export default function WelcomeRingOptIn({
               Joining Welcome Ring...
             </span>
           ) : (
-            <>Yes, start the tour</>
+            <>Yes, join it</>
           )}
         </button>
         

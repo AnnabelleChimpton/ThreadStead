@@ -20,10 +20,6 @@ jest.mock('@/lib/config/site/dynamic', () => ({ getSiteConfig: jest.fn() }));
 jest.mock('@/lib/rings/page-data', () => ({ loadRingForPage: jest.fn() }));
 jest.mock('@/lib/rings/sites', () => ({ cameFromSite: jest.fn() }));
 jest.mock('@/hooks/useCurrentUser', () => ({ useCurrentUser: jest.fn() }));
-jest.mock('@/hooks/useWelcomeTracking', () => ({ useWelcomeTracking: jest.fn() }));
-jest.mock('@/hooks/useWelcomeRingTracking', () => ({
-  useWelcomeRingTracking: () => ({ trackCommentCreated: jest.fn() }),
-}));
 const showError = jest.fn();
 const showSuccess = jest.fn();
 jest.mock('@/contexts/ToastContext', () => ({ useToast: () => ({ showError, showSuccess }) }));
@@ -38,7 +34,6 @@ jest.mock('@/components/core/threadring/ThreadRingActivePrompt', () => ({ __esMo
 jest.mock('@/components/core/threadring/ThreadRing88x31Badge', () => ({ __esModule: true, default: () => null }));
 jest.mock('@/components/ui/feedback/UserQuickView', () => ({ __esModule: true, default: () => null }));
 jest.mock('@/components/ui/feedback/ExternalUserPopup', () => ({ __esModule: true, default: () => null }));
-jest.mock('@/components/features/onboarding/WelcomeRingGuide', () => ({ __esModule: true, default: () => null }));
 jest.mock('@/components/features/rings/StripBuilder', () => ({ __esModule: true, default: () => null }));
 
 import ThreadRingPage from '@/pages/tr/[slug]';

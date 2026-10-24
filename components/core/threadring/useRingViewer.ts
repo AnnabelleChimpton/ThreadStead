@@ -111,12 +111,6 @@ export function useRingViewer(ring: { slug: string; joinType: string; memberCoun
       setInvite(null);
       setMembersVersion((version) => version + 1);
       showSuccess(data.message || "You're in.");
-      if (slug === "welcome") {
-        const { updateWelcomeProgress } = await import("@/lib/welcome/progress");
-        const { celebrateAction } = await import("@/lib/welcome/celebrations");
-        updateWelcomeProgress({ joinedRing: true });
-        celebrateAction("joinedRing");
-      }
     } catch {
       showError("Couldn't join. Try again in a minute.");
     } finally {

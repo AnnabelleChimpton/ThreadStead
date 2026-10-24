@@ -146,7 +146,7 @@ export default function GettingStarted({ siteConfig }: GettingStartedProps) {
                             className="ts-card-link block p-3 border-2 border-dotted border-nb-ink-mid/60 rounded-md hover:border-solid hover:border-nb-ink-mid"
                           >
                             <div className="font-medium">Try Welcome Ring</div>
-                            <div className="text-sm text-nb-ink-mid">A five-step tour of how rings work</div>
+                            <div className="text-sm text-nb-ink-mid">Where new people say hi</div>
                           </Link>
                         )}
                         <Link 

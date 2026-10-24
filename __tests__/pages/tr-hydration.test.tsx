@@ -25,10 +25,6 @@ jest.mock('@/lib/rings/manage', () => ({}));
 jest.mock('@/hooks/useCurrentUser', () => ({
   useCurrentUser: () => ({ user: null, loading: false, loggedIn: false }),
 }));
-jest.mock('@/hooks/useWelcomeTracking', () => ({ useWelcomeTracking: jest.fn() }));
-jest.mock('@/hooks/useWelcomeRingTracking', () => ({
-  useWelcomeRingTracking: () => ({ trackCommentCreated: jest.fn() }),
-}));
 jest.mock('@/contexts/ToastContext', () => ({
   useToast: () => ({ showError: jest.fn(), showSuccess: jest.fn(), showWarning: jest.fn() }),
 }));
@@ -43,7 +39,6 @@ jest.mock('@/components/core/threadring/ThreadRingActivePrompt', () => ({ __esMo
 jest.mock('@/components/core/threadring/ThreadRing88x31Badge', () => ({ __esModule: true, default: () => null }));
 jest.mock('@/components/ui/feedback/UserQuickView', () => ({ __esModule: true, default: () => null }));
 jest.mock('@/components/ui/feedback/ExternalUserPopup', () => ({ __esModule: true, default: () => null }));
-jest.mock('@/components/features/onboarding/WelcomeRingGuide', () => ({ __esModule: true, default: () => null }));
 
 // 04:31 UTC on Oct 18 is still Oct 17 in Los Angeles.
 const LATE_EVENING_IN_LA = '2026-10-18T04:31:43.364Z';
