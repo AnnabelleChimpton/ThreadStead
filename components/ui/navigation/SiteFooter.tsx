@@ -35,6 +35,9 @@ export default function SiteFooter({ siteDescription, raised = false }: SiteFoot
 
         <div className="border-t border-thread-sage pt-6 text-center">
           <p className="footer-tagline thread-label mb-2">{siteDescription}</p>
+          <p className="footer-cookies text-sm text-thread-sage mb-2">
+            I only use cookies to keep you logged in. No tracking, analytics or marketing.
+          </p>
           <p className="footer-copyright text-sm text-thread-sage">
             © {new Date().getFullYear()} HomePageAgain — powered by ThreadStead Technologies LLC
           </p>

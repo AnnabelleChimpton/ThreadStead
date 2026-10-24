@@ -23,7 +23,6 @@ import Layout from "@/components/ui/layout/Layout";
 import { GlobalAudioProvider } from "@/contexts/GlobalAudioContext";
 
 // Import Cookie Consent Banner
-import CookieConsentBanner from "@/components/ui/feedback/CookieConsentBanner";
 
 // Toasts and confirm dialogs for the whole app
 import { ToastProvider } from "@/contexts/ToastContext";
@@ -146,7 +145,6 @@ export default function MyApp({ Component, pageProps, appSiteCSS }: MyAppProps) 
     router.pathname === '/template-preview';
   // On a resident's own address (pages/site/[label].tsx): signed out, read-only
   const residentHost: ResidentHost | null = pageProps.residentHost ?? null;
-  const onResidentHost = !!residentHost || pageProps.onResidentHost === true;
   const hasCustomCSS = pageProps.customCSS && pageProps.customCSS.trim() !== '';
   // Google Fonts <link>s, <body bgcolor…> and theme options (<meta name="color:…">)
   // from the page's source, kept by the compiler and re-checked here
@@ -264,11 +262,10 @@ ${rest}`)
 
               {/* Site chrome: profile CSS is scoped away from data-site-chrome */}
               <div data-site-chrome style={{ display: 'contents' }}>
-                {/* Cookie Consent Banner */}
-                {/* Not inside the editor's live preview, where it covered the
-                    page being edited */}
-                {/* Nor on a resident's own address, which sets no cookies */}
-                {router.pathname !== '/template-preview' && !onResidentHost && <CookieConsentBanner userId={user?.id} />}
+                {/* No cookie banner: the only cookies are the ones that keep
+                    you logged in, which need no notice, and the banner was the
+                    last thing to paint on a first visit. The footer says it
+                    (SiteFooter). CookieConsentBanner is kept, unused. */}
 
                 {/* Global Chat - Only show for authenticated users */}
                 {user && (
