@@ -68,7 +68,7 @@ function MobileLoginStatus({ onAccountClick }: { onAccountClick: () => void }) {
 // so the hamburger persists through tablet widths.
 // Must match the lg: classes on site-nav-container / the mobile toggle.
 // Returns null before hydration so exactly one branch renders after mount.
-function useIsDesktop() {
+export function useIsDesktop() {
   const [isDesktop, setIsDesktop] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -282,54 +282,21 @@ function DropdownMenu({ section, active, isCurrent, activeDropdown, setActiveDro
   );
 }
 
-export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate = false }: NavBarProps) {
-  const { config: hookConfig } = useSiteConfig();
+/**
+ * The site's sections as this visitor sees them (sign-in-only items, admin
+ * custom pages) and which link is the current page. Shared by the site
+ * header and the nav on pages of someone's own HTML (NavigationPreview).
+ */
+export function useSiteNav() {
   const { pages: navPages } = useNavPages();
   const { me, isLoading: meLoading } = useMe();
   const router = useRouter();
-  const config = siteConfig || hookConfig;
-
-  // State to track which dropdown is open (only one at a time)
-  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
-  // State for mobile menu
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [mobileDropdownOpen, setMobileDropdownOpen] = useState<string | null>(null);
-  // State for mobile account bottom sheet
-  const [accountSheetOpen, setAccountSheetOpen] = useState(false);
 
   // Prevent hydration mismatch by only rendering user-dependent content after hydration
   const [isClient, setIsClient] = useState(false);
-
-  // Track breakpoint so exactly one NotificationDropdown mounts (avoids duplicate polling)
-  const isDesktop = useIsDesktop();
-
-  // Ref to measure nav bar height
-  const navRef = useRef<HTMLElement>(null);
-
   useEffect(() => {
     setIsClient(true);
   }, []);
-
-  // Set CSS variable for nav bar height (for mobile chat positioning)
-  useEffect(() => {
-    const updateNavHeight = () => {
-      if (navRef.current) {
-        const height = navRef.current.offsetHeight;
-        document.documentElement.style.setProperty('--nav-height', `${height}px`);
-      }
-    };
-
-    updateNavHeight();
-    window.addEventListener('resize', updateNavHeight);
-    return () => window.removeEventListener('resize', updateNavHeight);
-  }, []);
-
-  // Add swipe gesture support
-  const swipeHandlers = useSwipeGesture((direction) => {
-    if (direction === 'left' && mobileMenuOpen) {
-      setMobileMenuOpen(false);
-    }
-  });
 
   const signedIn = isClient && !!me?.loggedIn;
 
@@ -363,26 +330,47 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
     return !sections.some((s) => s.items.some((i) => i.href.includes('?') && i.href === currentFull));
   };
 
-  const searchActive = isSearchActive(currentPath);
-  const writeActive = pathStartsWith(currentPath, WRITE_HREF);
+  return {
+    me,
+    meLoading,
+    isClient,
+    sections,
+    topLevelPages,
+    currentPath,
+    currentFull,
+    isCurrent,
+    searchActive: isSearchActive(currentPath),
+    writeActive: pathStartsWith(currentPath, WRITE_HREF),
+  };
+}
 
-  // Close mobile menu when clicking outside
+export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate = false }: NavBarProps) {
+  const { config: hookConfig } = useSiteConfig();
+  const config = siteConfig || hookConfig;
+  const { me, meLoading, isClient, sections, topLevelPages, currentPath, currentFull, isCurrent, searchActive, writeActive } = useSiteNav();
+
+  // State to track which dropdown is open (only one at a time)
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+
+  // Track breakpoint so exactly one NotificationDropdown mounts (avoids duplicate polling)
+  const isDesktop = useIsDesktop();
+
+  // Ref to measure nav bar height
+  const navRef = useRef<HTMLElement>(null);
+
+  // Set CSS variable for nav bar height (for mobile chat positioning)
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      const target = event.target as HTMLElement;
-      const mobileMenu = document.getElementById('mobile-menu');
-      const hamburger = document.getElementById('hamburger-button');
-
-      if (mobileMenuOpen &&
-          mobileMenu && !mobileMenu.contains(target) &&
-          hamburger && !hamburger.contains(target)) {
-        setMobileMenuOpen(false);
+    const updateNavHeight = () => {
+      if (navRef.current) {
+        const height = navRef.current.offsetHeight;
+        document.documentElement.style.setProperty('--nav-height', `${height}px`);
       }
-    }
+    };
 
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, [mobileMenuOpen]);
+    updateNavHeight();
+    window.addEventListener('resize', updateNavHeight);
+    return () => window.removeEventListener('resize', updateNavHeight);
+  }, []);
 
   // Close desktop dropdowns when clicking outside - single handler for all dropdowns
   useEffect(() => {
@@ -405,8 +393,6 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
   // Close any open dropdown after navigating
   useEffect(() => {
     setActiveDropdown(null);
-    setMobileMenuOpen(false);
-    setMobileDropdownOpen(null);
   }, [currentFull]);
 
   // Advanced template mode: ZERO styling to avoid conflicts
@@ -417,20 +403,6 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
   const navClasses = advancedTemplate
     ? "" // Completely unstyled for advanced templates
     : "site-navigation w-full px-0 sm:px-4 lg:px-0 xl:px-4 flex items-center justify-between gap-3"; // Always full-width
-
-  const mobileNavLinkClass = (active: boolean) =>
-    `mobile-nav-item block px-4 py-3 rounded font-medium ${
-      active
-        ? "bg-thread-background text-thread-sunset"
-        : "text-thread-pine hover:bg-thread-background hover:text-thread-sunset"
-    }`;
-
-  const mobileSubLinkClass = (current: boolean) =>
-    `mobile-nav-item px-3 py-2 rounded text-sm block ${
-      current
-        ? "bg-thread-background text-thread-sunset font-medium"
-        : "text-thread-pine hover:bg-thread-background hover:text-thread-sunset"
-    }`;
 
   // Search: the search session's input from 2xl (1536px) up; below that an
   // icon link to /search. At 1280 the input + its button run ~30px past the
@@ -534,156 +506,216 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
             </div>
           </div>
 
-          {/* Mobile Navigation Controls */}
-          <div className="flex lg:hidden items-center gap-1 flex-shrink-0">
-            {isDesktop === false && <NotificationDropdown className="nav-link" />}
-            <button
-              id="hamburger-button"
-              className="p-3 text-thread-pine hover:text-thread-sunset focus:outline-none focus:ring-2 focus:ring-thread-sunset focus:ring-offset-2"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
-              aria-expanded={mobileMenuOpen}
-              aria-controls="mobile-menu"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                {mobileMenuOpen ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                )}
-              </svg>
-            </button>
-          </div>
+          <MobileNavMenu />
         </nav>
+      </header>
+    </>
+  );
+}
 
-        {/* Mobile Menu Drawer: the same five sections, in the same order */}
-        {mobileMenuOpen && (
-          <div
-            id="mobile-menu"
-            className="lg:hidden absolute left-0 right-0 top-full z-[9997] bg-thread-cream border-b border-thread-sage shadow-lg overflow-y-auto mobile-menu-animated"
-            style={{
-              maxHeight: 'calc(100vh - 64px)',
-              WebkitOverflowScrolling: 'touch'
-            }}
-            role="navigation"
-            aria-label="Mobile navigation menu"
-            {...swipeHandlers}
-          >
-          <div className="px-4 py-2 pb-[calc(3rem+env(safe-area-inset-bottom))] space-y-2">
-            {sections.map((section) =>
-              section.hubLabel ? (
-                <div key={section.key}>
-                  <button
-                    className={`w-full px-4 py-3 text-left rounded flex items-center justify-between font-medium ${
-                      isSectionActive(section, currentPath)
-                        ? 'text-thread-sunset'
-                        : 'text-thread-pine hover:bg-thread-background hover:text-thread-sunset'
-                    }`}
-                    onClick={() => setMobileDropdownOpen(mobileDropdownOpen === section.key ? null : section.key)}
-                    aria-expanded={mobileDropdownOpen === section.key}
-                    aria-controls={`mobile-section-${section.key}`}
+/**
+ * The nav below lg (1024px): the menu button, its drawer with the same
+ * sections in the same order, and the account sheet. Renders the button in
+ * place; the drawer hangs from the nearest positioned ancestor (the header).
+ */
+export function MobileNavMenu() {
+  const { me, sections, topLevelPages, currentPath, currentFull, isCurrent, searchActive, writeActive } = useSiteNav();
+  const isDesktop = useIsDesktop();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileDropdownOpen, setMobileDropdownOpen] = useState<string | null>(null);
+  // State for mobile account bottom sheet
+  const [accountSheetOpen, setAccountSheetOpen] = useState(false);
+
+  // Add swipe gesture support
+  const swipeHandlers = useSwipeGesture((direction) => {
+    if (direction === 'left' && mobileMenuOpen) {
+      setMobileMenuOpen(false);
+    }
+  });
+
+  // Close mobile menu when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      const target = event.target as HTMLElement;
+      const mobileMenu = document.getElementById('mobile-menu');
+      const hamburger = document.getElementById('hamburger-button');
+
+      if (mobileMenuOpen &&
+          mobileMenu && !mobileMenu.contains(target) &&
+          hamburger && !hamburger.contains(target)) {
+        setMobileMenuOpen(false);
+      }
+    }
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [mobileMenuOpen]);
+
+  // Close the menu after navigating
+  useEffect(() => {
+    setMobileMenuOpen(false);
+    setMobileDropdownOpen(null);
+  }, [currentFull]);
+
+  const mobileNavLinkClass = (active: boolean) =>
+    `mobile-nav-item block px-4 py-3 rounded font-medium ${
+      active
+        ? "bg-thread-background text-thread-sunset"
+        : "text-thread-pine hover:bg-thread-background hover:text-thread-sunset"
+    }`;
+
+  const mobileSubLinkClass = (current: boolean) =>
+    `mobile-nav-item px-3 py-2 rounded text-sm block ${
+      current
+        ? "bg-thread-background text-thread-sunset font-medium"
+        : "text-thread-pine hover:bg-thread-background hover:text-thread-sunset"
+    }`;
+
+  // One box in the nav row; the drawer hangs from the header below it
+  return (
+    <div className="flex lg:hidden items-center gap-1 flex-shrink-0">
+      {isDesktop === false && <NotificationDropdown className="nav-link" />}
+      <button
+        id="hamburger-button"
+        className="p-3 text-thread-pine hover:text-thread-sunset focus:outline-none focus:ring-2 focus:ring-thread-sunset focus:ring-offset-2"
+        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+        aria-expanded={mobileMenuOpen}
+        aria-controls="mobile-menu"
+      >
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          {mobileMenuOpen ? (
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          ) : (
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          )}
+        </svg>
+      </button>
+
+      {/* Mobile Menu Drawer: the same five sections, in the same order */}
+      {mobileMenuOpen && (
+        <div
+          id="mobile-menu"
+          className="lg:hidden absolute left-0 right-0 top-full z-[9997] bg-thread-cream border-b border-thread-sage shadow-lg overflow-y-auto mobile-menu-animated"
+          style={{
+            maxHeight: 'calc(100vh - 64px)',
+            WebkitOverflowScrolling: 'touch'
+          }}
+          role="navigation"
+          aria-label="Mobile navigation menu"
+          {...swipeHandlers}
+        >
+        <div className="px-4 py-2 pb-[calc(3rem+env(safe-area-inset-bottom))] space-y-2">
+          {sections.map((section) =>
+            section.hubLabel ? (
+              <div key={section.key}>
+                <button
+                  className={`w-full px-4 py-3 text-left rounded flex items-center justify-between font-medium ${
+                    isSectionActive(section, currentPath)
+                      ? 'text-thread-sunset'
+                      : 'text-thread-pine hover:bg-thread-background hover:text-thread-sunset'
+                  }`}
+                  onClick={() => setMobileDropdownOpen(mobileDropdownOpen === section.key ? null : section.key)}
+                  aria-expanded={mobileDropdownOpen === section.key}
+                  aria-controls={`mobile-section-${section.key}`}
+                >
+                  <span>{section.title}</span>
+                  <svg
+                    className={`w-4 h-4 transition-transform ${mobileDropdownOpen === section.key ? 'rotate-180' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
                   >
-                    <span>{section.title}</span>
-                    <svg
-                      className={`w-4 h-4 transition-transform ${mobileDropdownOpen === section.key ? 'rotate-180' : ''}`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      aria-hidden="true"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-                  {mobileDropdownOpen === section.key && (
-                    <div id={`mobile-section-${section.key}`} className="ml-4 mt-1 space-y-1">
-                      {[{ href: section.href, label: `${section.hubLabel} →` }, ...section.items].map((item) => (
-                        <Link
-                          key={item.href}
-                          href={item.href}
-                          className={mobileSubLinkClass(isCurrent(item.href))}
-                          aria-current={isCurrent(item.href) ? 'page' : undefined}
-                          onClick={() => setMobileMenuOpen(false)}
-                        >
-                          {item.label}
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <Link
-                  key={section.key}
-                  href={section.href}
-                  className={mobileNavLinkClass(isSectionActive(section, currentPath))}
-                  aria-current={isCurrent(section.href) ? 'page' : undefined}
-                  data-active={isSectionActive(section, currentPath) ? 'true' : undefined}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  {section.title}
-                </Link>
-              )
-            )}
-
-            {/* Admin-configured top-level custom pages */}
-            {topLevelPages.map((page) => (
-              <Link
-                key={page.id}
-                href={`/page/${page.slug}`}
-                className={mobileNavLinkClass(pathStartsWith(currentPath, `/page/${page.slug}`))}
-                aria-current={isCurrent(`/page/${page.slug}`) ? 'page' : undefined}
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                {page.title}
-              </Link>
-            ))}
-
-            <div className="border-t border-thread-sage/40 pt-2 space-y-2">
-              <Link
-                href={SEARCH_HREF}
-                className={mobileNavLinkClass(searchActive)}
-                aria-current={searchActive ? 'page' : undefined}
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <PixelIcon name="search" size={16} className="inline-block align-[-3px] mr-2" />
-                Search
-              </Link>
-
-              {me?.loggedIn && (
-                <Link
-                  href={WRITE_HREF}
-                  className={mobileNavLinkClass(writeActive)}
-                  aria-current={writeActive ? 'page' : undefined}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <PixelIcon name="edit" size={16} className="inline-block align-[-3px] mr-2" />
-                  Write
-                </Link>
-              )}
-            </div>
-
-            {/* Login Status */}
-            <div className="border-t border-thread-sage pt-3 mt-3">
-              <div className="px-3 py-2">
-                <MobileLoginStatus
-                  onAccountClick={() => {
-                    setMobileMenuOpen(false);
-                    setAccountSheetOpen(true);
-                  }}
-                />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {mobileDropdownOpen === section.key && (
+                  <div id={`mobile-section-${section.key}`} className="ml-4 mt-1 space-y-1">
+                    {[{ href: section.href, label: `${section.hubLabel} →` }, ...section.items].map((item) => (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={mobileSubLinkClass(isCurrent(item.href))}
+                        aria-current={isCurrent(item.href) ? 'page' : undefined}
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        {item.label}
+                      </Link>
+                    ))}
+                  </div>
+                )}
               </div>
+            ) : (
+              <Link
+                key={section.key}
+                href={section.href}
+                className={mobileNavLinkClass(isSectionActive(section, currentPath))}
+                aria-current={isCurrent(section.href) ? 'page' : undefined}
+                data-active={isSectionActive(section, currentPath) ? 'true' : undefined}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {section.title}
+              </Link>
+            )
+          )}
+
+          {/* Admin-configured top-level custom pages */}
+          {topLevelPages.map((page) => (
+            <Link
+              key={page.id}
+              href={`/page/${page.slug}`}
+              className={mobileNavLinkClass(pathStartsWith(currentPath, `/page/${page.slug}`))}
+              aria-current={isCurrent(`/page/${page.slug}`) ? 'page' : undefined}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              {page.title}
+            </Link>
+          ))}
+
+          <div className="border-t border-thread-sage/40 pt-2 space-y-2">
+            <Link
+              href={SEARCH_HREF}
+              className={mobileNavLinkClass(searchActive)}
+              aria-current={searchActive ? 'page' : undefined}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              <PixelIcon name="search" size={16} className="inline-block align-[-3px] mr-2" />
+              Search
+            </Link>
+
+            {me?.loggedIn && (
+              <Link
+                href={WRITE_HREF}
+                className={mobileNavLinkClass(writeActive)}
+                aria-current={writeActive ? 'page' : undefined}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <PixelIcon name="edit" size={16} className="inline-block align-[-3px] mr-2" />
+                Write
+              </Link>
+            )}
+          </div>
+
+          {/* Login Status */}
+          <div className="border-t border-thread-sage pt-3 mt-3">
+            <div className="px-3 py-2">
+              <MobileLoginStatus
+                onAccountClick={() => {
+                  setMobileMenuOpen(false);
+                  setAccountSheetOpen(true);
+                }}
+              />
             </div>
           </div>
         </div>
-        )}
-      </header>
-
-      {/* Mobile Account Bottom Sheet - Hidden on desktop */}
-      <div className="lg:hidden">
-        <UserAccountBottomSheet
-          isOpen={accountSheetOpen}
-          onClose={() => setAccountSheetOpen(false)}
-        />
       </div>
-    </>
+      )}
+      {/* Mobile Account Bottom Sheet */}
+      <UserAccountBottomSheet
+        isOpen={accountSheetOpen}
+        onClose={() => setAccountSheetOpen(false)}
+      />
+    </div>
   );
 }

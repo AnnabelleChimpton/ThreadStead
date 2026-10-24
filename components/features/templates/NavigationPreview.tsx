@@ -7,6 +7,7 @@ import NotificationDropdown from '@/components/ui/feedback/NotificationDropdown'
 import { useSiteConfig } from '@/hooks/useSiteConfig';
 import { useNavPages } from '@/hooks/useNavPages';
 import { NAV_SECTIONS } from '@/components/ui/navigation/siteNav';
+import { MobileNavMenu, useIsDesktop } from '@/components/ui/navigation/NavBar';
 
 interface NavigationPreviewProps extends UniversalCSSProps {
   // Visual Builder styling props
@@ -306,6 +307,8 @@ function NavigationContent({
 }) {
   const [me, setMe] = React.useState<{ loggedIn: boolean; user?: { primaryHandle?: string } }>({ loggedIn: false });
   const { config } = useSiteConfig();
+  // One notification bell at a time: the phone menu has its own
+  const isDesktop = useIsDesktop();
   const { pages: navPages } = useNavPages();
 
   // Admin-configured custom pages, placed the same way the site header places them
@@ -378,7 +381,8 @@ function NavigationContent({
         </span>
       </Link>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
+      {/* From lg (1024px), as the site header does; below it, the site's own phone menu */}
+      <div className="hidden lg:flex" style={{ alignItems: 'center', gap: '2rem' }}>
         {/* Main Navigation Links with Dropdowns */}
         <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
           {/* Same sections as the site header (siteNav.ts) */}
@@ -414,9 +418,11 @@ function NavigationContent({
           {me.loggedIn ? (
             <>
               {/* Notification Bell - wrapped for inline style compatibility */}
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <NotificationDropdown />
-              </div>
+              {isDesktop === true && (
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <NotificationDropdown />
+                </div>
+              )}
               {/* User Dropdown - wrapped for inline style compatibility */}
               <div style={{ display: 'flex', alignItems: 'center' }}>
                 <UserDropdown />
@@ -430,6 +436,7 @@ function NavigationContent({
           )}
         </div>
       </div>
+      <MobileNavMenu />
     </nav>
   );
 }

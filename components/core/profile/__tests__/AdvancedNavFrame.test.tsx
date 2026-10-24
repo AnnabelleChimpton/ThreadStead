@@ -38,6 +38,14 @@ describe('AdvancedNavFrame', () => {
     const css = pageCss()
     expect(css).toMatch(/\.ts-under-nav[^{]*\{ ?margin-top: ?var\(--ts-nav-height, ?90px\) ?!important/)
     expect(css).toMatch(/@media ?\(max-width: ?1132px\) ?\{ ?\.ts-under-nav[^{]*\{ ?margin-top: ?var\(--ts-nav-height, ?101px\) ?!important/)
+    // Below 1024px the links fold into the phone menu and the bar is shorter
+    expect(css).toMatch(/@media ?\(max-width: ?1023px\) ?\{ ?\.ts-under-nav[^{]*\{ ?margin-top: ?var\(--ts-nav-height, ?89px\) ?!important/)
+  })
+
+  test('on a phone a page wider than the screen pans inside its own box', () => {
+    // Not by widening the document, which pushed the fixed nav and its menu off an Android screen
+    expect(serverRender(true)).toMatch(/<div style="position:relative" class="[^"]*ts-page-frame[^"]*">/)
+    expect(pageCss()).toMatch(/@media ?\(max-width: ?1023px\) ?\{ ?\.ts-page-frame[^{]*\{ ?overflow-x: ?auto/)
   })
 
   test('without the nav there is no room to leave', () => {
