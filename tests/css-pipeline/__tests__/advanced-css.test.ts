@@ -11,6 +11,8 @@ import {
   scopeAdvancedSelector,
   transformAdvancedCss,
   namePageLayers,
+  moveWholePageEffects,
+  PAGE_ROOT,
   SITE_CHROME_SELECTOR,
   SITE_LAYER_ORDER,
 } from '@/lib/utils/css/css-transform'
@@ -248,5 +250,41 @@ describe('page defaults and printing', () => {
     expect(defaults).toMatch(/^@layer threadstead-browser \{/m)
     expect(defaults).toMatch(/\[data-template-root\] blink \{\s*animation: ts-blink/)
     expect(defaults).toMatch(/prefers-reduced-motion: reduce\)[\s\S]*blink \{\s*animation: none;/)
+  })
+})
+
+describe("the page's CSS stays off the site's chrome", () => {
+  // template audit 03 #5 #6, 10 #1 #3 #4
+  test('whole-page effects on html or body go on the page root; the rest stays', () => {
+    const out = moveWholePageEffects('body { background: black; filter: sepia(1); transform: rotate(1deg) } html { opacity: .9 } p { filter: blur(1px) }')
+    expect(out).toContain('body { background: black; }')
+    expect(out).toContain(`${PAGE_ROOT} { filter: sepia(1); transform: rotate(1deg); }`)
+    expect(out).toContain(`${PAGE_ROOT} { opacity: .9; }`)
+    expect(out).toContain('p { filter: blur(1px) }')
+    // Inside @media too, and through the whole transform
+    expect(transformAdvancedCss('@media print { body { visibility: hidden } }')).toContain(':scope body .profile-template-root { visibility: hidden; }')
+  })
+
+  test("overlays on body::before are the page root's", () => {
+    expect(scopeAdvancedSelector('body::before')).toBe(':scope body .profile-template-root::before')
+    expect(scopeAdvancedSelector('html::after')).toBe(':scope body .profile-template-root::after')
+  })
+
+  test("only data-site-chrome is the site's: a page's own class=\"site-header\" is the page's", () => {
+    expect(SITE_CHROME_SELECTOR).toBe('[data-site-chrome]')
+    const marked = ['components/ui/navigation/NavBar.tsx', 'components/ui/navigation/SiteFooter.tsx', 'components/ui/layout/CustomPageLayout.tsx',
+      'components/core/profile/ViewSourceBadge.tsx', 'contexts/ToastContext.tsx', 'components/features/templates/NavigationPreview.tsx']
+    for (const file of marked) expect(fs.readFileSync(path.join(ROOT, file), 'utf8')).toContain('data-site-chrome')
+  })
+
+  test("the chrome doesn't inherit visibility, word-break or the page's --spacing", () => {
+    const globals = fs.readFileSync(path.join(ROOT, 'styles/globals.css'), 'utf8')
+    const reset = globals.match(/\.site-header, \.site-footer, \[data-site-chrome\] \{([^}]*)\}/)?.[1] ?? ''
+    for (const decl of ['visibility: visible', 'word-break: normal', '--spacing: 4px']) expect(reset).toContain(decl)
+  })
+
+  test("the page's CSS comes after the site's stylesheets, like the preview's", () => {
+    const app = fs.readFileSync(path.join(ROOT, 'pages/_app.tsx'), 'utf8')
+    expect(app.indexOf('id="advanced-template-css"')).toBeGreaterThan(app.indexOf('</Head>'))
   })
 })

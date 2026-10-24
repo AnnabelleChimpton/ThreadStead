@@ -169,7 +169,11 @@ export default function MyApp({ Component, pageProps, appSiteCSS }: MyAppProps) 
             <Head>
               {/* ... existing head content ... */}
               <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-              <meta name="color-scheme" content="light" />
+              {/* A page of someone's own HTML picks its own colour scheme
+                  (light-dark(), dark backgrounds); the site is light */}
+              {!(isProfilePage && pageProps.templateMode === 'advanced') && (
+                <meta name="color-scheme" content="light" />
+              )}
               {/* Link-preview defaults, keyed so a page's own (PageMeta, same
                   keys) replaces each one instead of sending a second copy.
                   Absolute, as previews need. Size hints stay off: they'd be
@@ -196,18 +200,6 @@ export default function MyApp({ Component, pageProps, appSiteCSS }: MyAppProps) 
                 }} />
               )}
 
-              {/* Advanced template CSS: the same transform the editor preview uses */}
-              {isProfilePage && pageProps.templateMode === 'advanced' &&
-                (hasCustomCSS || advancedDocumentCss.fontImports.length > 0 || advancedDocumentCss.bodyCss) && (
-                <style
-                  id="advanced-template-css"
-                  dangerouslySetInnerHTML={{
-                    __html: escapeCssForStyleTag(
-                      transformAdvancedCss(pageProps.customCSS || '', advancedDocumentCss)
-                    ),
-                  }}
-                />
-              )}
 
               {isProfilePage && hasCustomCSS && pageProps.templateMode !== 'advanced' && (() => {
                 // Hoist user @imports above our preamble rule: per the CSS
@@ -244,6 +236,22 @@ ${rest}`)
                 : 'min-h-screen font-body thread-surface text-thread-charcoal'
               }`}
             >
+              {/* The page's own CSS: the same transform the editor preview uses,
+                  and in the same place, after the site's stylesheets. In the
+                  <head> it came before them, so where the two tie (unlayered
+                  rules, and @keyframes named spin, pulse or bounce, which
+                  Tailwind defines too) the site's won and the preview's didn't. */}
+              {isProfilePage && pageProps.templateMode === 'advanced' &&
+                (hasCustomCSS || advancedDocumentCss.fontImports.length > 0 || advancedDocumentCss.bodyCss) && (
+                <style
+                  id="advanced-template-css"
+                  dangerouslySetInnerHTML={{
+                    __html: escapeCssForStyleTag(
+                      transformAdvancedCss(pageProps.customCSS || '', advancedDocumentCss)
+                    ),
+                  }}
+                />
+              )}
               <Component {...pageProps} />
 
               {/* Site-wide CSS (admin panel): the ONE delivery point.

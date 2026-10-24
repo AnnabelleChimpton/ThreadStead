@@ -65,7 +65,7 @@ export default function CustomPageLayout({ children, siteConfig, hideNavbar = fa
         {children}
       </div>
 
-      <footer className="site-footer border-t border-thread-sage bg-thread-cream px-6 py-4 mt-auto">
+      <footer data-site-chrome className="site-footer border-t border-thread-sage bg-thread-cream px-6 py-4 mt-auto">
         <div className="footer-content mx-auto max-w-5xl text-center">
           <span className="footer-tagline thread-label">{config.site_description}</span>
           <p className="footer-copyright text-sm text-thread-sage mt-1">© {new Date().getFullYear()} {config.footer_text}</p>

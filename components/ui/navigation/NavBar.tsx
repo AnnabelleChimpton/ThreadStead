@@ -429,7 +429,7 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
 
   return (
     <>
-      <header ref={navRef} className={headerClasses}>
+      <header ref={navRef} className={headerClasses} data-site-chrome>
         <nav className={`${navClasses} mobile-nav-enhanced`} aria-label="Main">
           <div className="site-branding flex-shrink-0 min-w-0">
             <Link href="/" className="block hover:opacity-80 transition-opacity" aria-label={`${config.site_name} home`}>

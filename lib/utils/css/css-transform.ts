@@ -199,12 +199,14 @@ export function extractImports(css: string): { imports: string[]; rest: string }
 }
 
 /**
- * The site chrome profile CSS must never reach: header (with its nav and
- * menus), footer, and anything else marked data-site-chrome (cookie notice,
- * chat, "step outside", the nav bar on your-own-HTML pages). Used as the
- * exclusive lower boundary of the profile @scope below.
+ * The site chrome profile CSS must never reach: everything marked
+ * data-site-chrome (header with its nav and menus, footer, cookie notice,
+ * chat, toasts, "step outside", "view source", the nav bar on your-own-HTML
+ * pages). Used as the exclusive lower boundary of the profile @scope below.
+ * By attribute only: a page's own class="site-header" used to count as the
+ * site's, and every rule for it and inside it was dead.
  */
-export const SITE_CHROME_SELECTOR = '.site-header, .site-footer, [data-site-chrome]'
+export const SITE_CHROME_SELECTOR = '[data-site-chrome]'
 
 // At-rules that are invalid or global inside @scope — hoisted above the block.
 const GLOBAL_AT_RULES = new Set([
@@ -326,6 +328,10 @@ function prefixSelectorIds(selector: string): string {
  */
 export function scopeAdvancedSelector(selector: string): string {
   const sel = selector.trim()
+  // A whole-page overlay (scanlines, sparkles) drawn on body::before is the
+  // page root's: over the page, never over the site's nav (it tinted it)
+  const overlay = sel.match(/^(?::root|html|body|html\s+body)(::?(?:before|after))$/i)
+  if (overlay) return `:scope body ${PAGE_ROOT}${overlay[1]}`
   const root = sel.match(/^(?::root|html)(?![\w-])/i)
   if (root) {
     let rest = sel.slice(root[0].length)
@@ -375,6 +381,47 @@ export function namePageLayers(css: string): string {
   return serializeStatements(out)
 }
 
+/** The element a page of your own HTML is drawn in (AdvancedProfileRenderer) */
+export const PAGE_ROOT = '.profile-template-root'
+
+/**
+ * On html or body, these reach the site's chrome, which lives in body: a
+ * filter, transform, perspective, zoom, contain or will-change makes body
+ * the nav's containing block (it scrolls away) or applies to it, and
+ * visibility and opacity hide or fade it (template audit 10 #1).
+ */
+const WHOLE_PAGE_EFFECTS = /^(?:filter|backdrop-filter|transform|translate|rotate|scale|perspective|zoom|contain|will-change|visibility|opacity)$/i
+const ROOT_OR_BODY = /^(?::root|html|body|html\s+body)$/i
+
+/**
+ * "Do this to my whole page" on html or body (a vintage filter, a tilted
+ * page) goes on the page root instead, where it does exactly that; the rest
+ * of the rule stays put. Rules with nested rules are left alone.
+ */
+export function moveWholePageEffects(css: string): string {
+  if (!/(?:html|body|:root)/i.test(css)) return css
+  const GROUP_AT_RULES = new Set(['media', 'supports', 'container', 'layer'])
+  const out: CSSStatement[] = []
+  for (const s of splitTopLevelStatements(css)) {
+    if (s.kind === 'at' && s.body !== undefined && GROUP_AT_RULES.has(s.atName || '')) {
+      out.push({ ...s, body: '\n' + moveWholePageEffects(s.body) + '\n' })
+      continue
+    }
+    const onRoot = s.kind === 'rule' && s.body !== undefined && !s.body.includes('{') &&
+      splitSelectorList(s.prelude).every((selector) => ROOT_OR_BODY.test(selector.trim()))
+    const declarations = onRoot ? splitDeclarations(s.body!) : []
+    const effects = declarations.filter((d) => WHOLE_PAGE_EFFECTS.test(d.slice(0, d.indexOf(':')).trim()))
+    if (effects.length === 0) {
+      out.push(s)
+      continue
+    }
+    const rest = declarations.filter((d) => !effects.includes(d))
+    if (rest.length > 0) out.push({ ...s, body: ` ${rest.join('; ')}; ` })
+    out.push({ kind: 'rule', prelude: PAGE_ROOT, body: ` ${effects.join('; ')}; ` })
+  }
+  return serializeStatements(out)
+}
+
 /**
  * THE transform for advanced-mode (your own HTML page) CSS. The live page
  * (pages/_app.tsx) and the editor preview (pages/template-preview.tsx) both
@@ -388,6 +435,8 @@ export function namePageLayers(css: string): string {
  * - Root selectors stay roots (scopeAdvancedSelector).
  * - The site's layer order comes first, and the page's own layers go into
  *   threadstead-page (namePageLayers).
+ * - Whole-page effects and overlays on html/body go on the page root, out
+ *   of the site chrome's way (moveWholePageEffects, scopeAdvancedSelector).
  * - Everything is scoped away from the site header, footer and other chrome,
  *   the way standard-layout CSS already is, so a page's `nav a {}` or
  *   `h1::after {}` can't restyle or fake the site's own navigation.
@@ -403,7 +452,7 @@ export function transformAdvancedCss(
     ...(options.fontImports ?? []).filter((line) => !imports.includes(line)),
     ...imports,
   ]
-  const scoped = wrapInChromeScope(namePageLayers(rest), scopeAdvancedSelector)
+  const scoped = wrapInChromeScope(namePageLayers(moveWholePageEffects(rest)), scopeAdvancedSelector)
   if (!scoped && allImports.length === 0) return ''
   // Layer statements are the one thing allowed before @import
   return [SITE_LAYER_ORDER, ...allImports, scoped].filter(Boolean).join('\n')

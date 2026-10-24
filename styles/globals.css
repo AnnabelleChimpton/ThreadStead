@@ -110,6 +110,14 @@ html:not(:has(.profile-template-root)), body:not(:has(.profile-template-root)) {
     text-align: start;
     color: var(--ha-ink-dark, #2F2F2F);
     -webkit-text-fill-color: currentColor;
+    /* Inherited too: a page's visibility: hidden on body hid the nav, and
+       its word-break set the phone nav one letter per line */
+    visibility: visible;
+    word-break: normal;
+    overflow-wrap: normal;
+    /* Tailwind's unit for every spacing utility, which a page's --spacing
+       on :root used to change in the nav too (89px to 153px) */
+    --spacing: 4px;
   }
 }
 

@@ -109,6 +109,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
           <div
             role="status"
             aria-live="polite"
+            data-site-chrome
             className="toast-region fixed z-[10050] top-3 left-3 right-3 sm:left-auto sm:right-6 sm:top-6 sm:w-96 flex flex-col gap-2 pointer-events-none"
           >
             {toasts.map((t) => (

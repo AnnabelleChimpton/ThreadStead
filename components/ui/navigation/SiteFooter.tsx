@@ -12,6 +12,7 @@ interface SiteFooterProps {
 export default function SiteFooter({ siteDescription, raised = false }: SiteFooterProps) {
   return (
     <footer
+      data-site-chrome
       className={`site-footer border-t border-thread-sage bg-thread-cream px-4 sm:px-6 py-8 mt-auto${raised ? " relative z-[9998]" : ""}`}
     >
       <div className="footer-content mx-auto max-w-6xl">

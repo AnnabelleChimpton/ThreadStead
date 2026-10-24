@@ -117,7 +117,9 @@ body:has(.ts-chat-toggle) .ts-view-source-badge {
    took every click meant for what's under them. A click on a pseudo-element
    only ever reaches body, so the page loses nothing. */
 html body::before,
-html body::after {
+html body::after,
+.profile-template-root::before,
+.profile-template-root::after {
   pointer-events: none !important;
 }
 

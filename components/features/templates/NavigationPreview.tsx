@@ -146,7 +146,9 @@ function UnstyledDropdown({
 
       {/* Portal the dropdown to document.body to bypass stacking context issues */}
       {isOpen && buttonRect && typeof document !== 'undefined' && ReactDOM.createPortal(
+        // data-site-chrome: portalled out of the nav, it's still the site's
         <div
+          data-site-chrome
           style={{
             position: 'fixed',
             top: `${buttonRect.bottom + 8}px`,
