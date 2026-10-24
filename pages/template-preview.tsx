@@ -17,8 +17,10 @@ import ProfileBadgeDisplay from '@/components/core/profile/ProfileBadgeDisplay';
 import Guestbook from '@/components/shared/Guestbook';
 import { cleanCss, escapeCssForStyleTag } from '@/lib/utils/sanitization/css';
 import { transformAdvancedCss } from '@/lib/utils/css/css-transform';
-import { documentHeadCss, extractDocument } from '@/lib/templates/compilation/document-head';
+import { documentHeadCss, documentStyleCss, extractDocument } from '@/lib/templates/compilation/document-head';
 import PageMeta from "@/components/ui/layout/PageMeta";
+import { useSiteCSS } from '@/hooks/useSiteCSS';
+import { siteStylesOn } from '@/lib/domain/profile/layout';
 // Removed unused imports - now using ProfileModeRenderer like production
 
 interface PreviewData {
@@ -106,6 +108,11 @@ export default function PreviewTemp() {
     };
   }, []);
 
+  // The site's own CSS (the admin theme), which the live page has when its
+  // site styles are on: this page turns the site's off for itself
+  // (getServerSideProps), so it adds it back to match (template audit 01 #10)
+  const { css: siteCss, loading: siteCssLoading } = useSiteCSS({ skipDOMInjection: true });
+
   // Sanitize custom CSS to prevent XSS attacks (must be before early return)
   const sanitizedCSS = useMemo(() => {
     if (!previewData?.customCSS) return '';
@@ -117,11 +124,11 @@ export default function PreviewTemp() {
   // with a pasted page's Google Fonts links, <body bgcolor…> and theme options as CSS
   const documentCss = useMemo(() => {
     const { head } = extractDocument(previewData?.template || '');
-    return { fontImports: head.fontImports, bodyCss: documentHeadCss(head) };
+    return { fontImports: head.fontImports, bodyCss: documentHeadCss(head), styleCss: documentStyleCss(head) };
   }, [previewData?.template]);
   const advancedCSS = useMemo(() => {
     const css = previewData?.customCSS ? cleanCss(previewData.customCSS) : '';
-    if (!css && documentCss.fontImports.length === 0 && !documentCss.bodyCss) return '';
+    if (!css && documentCss.fontImports.length === 0 && !documentCss.bodyCss && !documentCss.styleCss) return '';
     return transformAdvancedCss(css, documentCss);
   }, [previewData?.customCSS, documentCss]);
 
@@ -401,6 +408,10 @@ export default function PreviewTemp() {
         {/* The page's own CSS, transformed exactly as on the live page */}
         {advancedCSS && (
           <style id="advanced-template-css" dangerouslySetInnerHTML={{ __html: escapeCssForStyleTag(advancedCSS) }} />
+        )}
+        {/* After the page's, as on the live page (pages/_app.tsx) */}
+        {siteStylesOn(typedCSSMode) && !siteCssLoading && siteCss && (
+          <style id="preview-site-css" dangerouslySetInnerHTML={{ __html: escapeCssForStyleTag(siteCss) }} />
         )}
 
         {/* Show site navigation if toggle is enabled */}

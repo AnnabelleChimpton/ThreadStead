@@ -7,6 +7,8 @@
  *  - Google Fonts <link>s, turned into the @import lines the CSS would need;
  *  - `<body bgcolor text link vlink alink background>`, turned into CSS.
  *    Live and preview CSS both add these (transformAdvancedCss);
+ *  - the class, lang, dir and data-* of <html> and <body>, which go on the
+ *    page root (pageRootAttributes), and their style="…", turned into CSS;
  *  - theme options, `<meta name="color:Accent" content="#c96633">`, from
  *    anywhere in the source (head or not), taken out before the page is
  *    parsed and turned into CSS variables (theme-options.ts).
@@ -21,6 +23,7 @@
  */
 import { tokenizeSource, type SourceToken } from './source-scan'
 import { scanThemeOptions, themeOptionsCss, type ThemeOption } from './theme-options'
+import { isReservedDataAttribute } from './html-allowlist'
 
 export interface DocumentHead {
   title?: string
@@ -32,6 +35,24 @@ export interface DocumentHead {
   body?: LegacyBodyAttributes
   /** Theme options the page declares (only present when it declares some) */
   options?: ThemeOption[]
+  /** <html> and <body>'s class, lang, dir and data-*, for the page root */
+  root?: PageRootAttributes
+  /** Their style="…" declarations */
+  htmlStyle?: string
+  bodyStyle?: string
+}
+
+/**
+ * What <html> and <body> carried that the page's CSS reads (`body.dark .x`,
+ * `html[data-theme="dark"]`), put on the page root instead, since a page
+ * doesn't own the real ones; its CSS is pointed there (scopeAdvancedSelector).
+ * They used to be dropped without a word (template audit 02 R7, 03 F8a).
+ */
+export interface PageRootAttributes {
+  className?: string
+  lang?: string
+  dir?: string
+  data?: Record<string, string>
 }
 
 /** `<body bgcolor text link vlink alink background>` */
@@ -98,6 +119,50 @@ export function legacyBodyCss(body: LegacyBodyAttributes | undefined): string {
   return rules.join('\n')
 }
 
+/** Class names, a language tag, a direction and data-* that can go on the page root as they are */
+export function validRootAttributes(raw: unknown): PageRootAttributes | undefined {
+  if (!raw || typeof raw !== 'object') return undefined
+  const r = raw as Record<string, unknown>
+  const out: PageRootAttributes = {}
+  if (typeof r.className === 'string') {
+    const names = r.className.split(/\s+/).filter((name) => /^-?[_a-zA-Z][\w-]{0,60}$/.test(name))
+    if (names.length) out.className = [...new Set(names)].slice(0, 20).join(' ')
+  }
+  if (typeof r.lang === 'string' && /^[a-zA-Z]{2,8}(?:-[a-zA-Z0-9]{1,8}){0,3}$/.test(r.lang.trim())) out.lang = r.lang.trim()
+  if (typeof r.dir === 'string' && /^(?:ltr|rtl|auto)$/i.test(r.dir.trim())) out.dir = r.dir.trim().toLowerCase()
+  if (r.data && typeof r.data === 'object') {
+    const data = Object.entries(r.data as Record<string, unknown>).filter(
+      (entry): entry is [string, string] =>
+        /^data-[a-z0-9-]{1,40}$/.test(entry[0]) && !isReservedDataAttribute(entry[0]) && typeof entry[1] === 'string' && entry[1].length <= 200
+    )
+    if (data.length) out.data = Object.fromEntries(data.slice(0, 20))
+  }
+  return Object.keys(out).length ? out : undefined
+}
+
+/** A style="…" value that can sit inside a CSS rule: nothing that closes or opens one */
+function safeDeclarations(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined
+  const v = value.trim().replace(/;+$/, '')
+  return v && v.length <= 2000 && !/[{}<]|\/\*/.test(v) ? v : undefined
+}
+
+/**
+ * <html style> and <body style> as CSS, written after the page's own CSS:
+ * an inline style beats a stylesheet in a browser.
+ */
+export function documentStyleCss(head: { htmlStyle?: unknown; bodyStyle?: unknown } | null | undefined): string {
+  return [
+    safeDeclarations(head?.htmlStyle) && `html { ${safeDeclarations(head?.htmlStyle)}; }`,
+    safeDeclarations(head?.bodyStyle) && `body { ${safeDeclarations(head?.bodyStyle)}; }`,
+  ].filter(Boolean).join('\n')
+}
+
+/** The page root's class, lang, dir and data-* from a stored compiled page, re-validated */
+export function pageRootAttributes(compiled: unknown): PageRootAttributes | undefined {
+  return validRootAttributes((compiled as { ast?: { head?: { root?: unknown } } } | null | undefined)?.ast?.head?.root)
+}
+
 export interface ExtractedDocument {
   isFullDocument: boolean
   /** The markup that becomes the page */
@@ -151,7 +216,7 @@ export function extractDocument(source: string): ExtractedDocument {
   let bodyOpen: Extract<SourceToken, { type: 'open' }> | undefined
   let bodyClose: SourceToken | undefined
   let headClose: SourceToken | undefined
-  let htmlOpen: SourceToken | undefined
+  let htmlOpen: Extract<SourceToken, { type: 'open' }> | undefined
   let htmlClose: SourceToken | undefined
 
   for (let t = 0; t < tokens.length; t++) {
@@ -205,6 +270,22 @@ export function extractDocument(source: string): ExtractedDocument {
     }
   }
 
+  const attrs = (token: typeof htmlOpen) =>
+    Object.fromEntries((token?.attributes ?? []).map((a) => [a.name.toLowerCase(), decodeBasicEntities(a.value ?? '')]))
+  const htmlAttrs = attrs(htmlOpen)
+  const bodyAttrs = attrs(bodyOpen)
+  const root = validRootAttributes({
+    className: [htmlAttrs.class, bodyAttrs.class].filter(Boolean).join(' '),
+    lang: htmlAttrs.lang ?? bodyAttrs.lang,
+    dir: htmlAttrs.dir ?? bodyAttrs.dir,
+    data: Object.fromEntries(Object.entries({ ...htmlAttrs, ...bodyAttrs }).filter(([name]) => name.startsWith('data-'))),
+  })
+  if (root) head.root = root
+  const htmlStyle = safeDeclarations(htmlAttrs.style)
+  const bodyStyle = safeDeclarations(bodyAttrs.style)
+  if (htmlStyle) head.htmlStyle = htmlStyle
+  if (bodyStyle) head.bodyStyle = bodyStyle
+
   // Theme options can sit anywhere; they never become part of the page
   const themeOptions = scanThemeOptions(source, tokens)
   if (themeOptions.options.length > 0) head.options = themeOptions.options
@@ -249,11 +330,12 @@ export function documentHeadCss(head: { body?: unknown; options?: unknown } | nu
  * the stored AST and re-validated (this comes straight from the profile row
  * on every page view).
  */
-export function documentCssFromCompiledTemplate(compiled: unknown): { fontImports: string[]; bodyCss: string } {
-  const head = (compiled as { ast?: { head?: { body?: unknown; options?: unknown } } } | null | undefined)?.ast?.head
+export function documentCssFromCompiledTemplate(compiled: unknown): { fontImports: string[]; bodyCss: string; styleCss: string } {
+  const head = (compiled as { ast?: { head?: { body?: unknown; options?: unknown; htmlStyle?: unknown; bodyStyle?: unknown } } } | null | undefined)?.ast?.head
   return {
     fontImports: fontImportsFromCompiledTemplate(compiled),
     bodyCss: documentHeadCss(head),
+    styleCss: documentStyleCss(head),
   }
 }
 

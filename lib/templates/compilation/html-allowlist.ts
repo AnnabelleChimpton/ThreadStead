@@ -51,8 +51,8 @@ export const HTML_AUTHORING_TAGS = [
 export const SVG_TAGS = [
   'svg', 'g', 'defs', 'desc',
   'path', 'circle', 'ellipse', 'line', 'polyline', 'polygon', 'rect',
-  'text', 'tspan',
-  'linearGradient', 'radialGradient', 'stop', 'pattern', 'clipPath', 'mask',
+  'text', 'tspan', 'textPath',
+  'linearGradient', 'radialGradient', 'stop', 'pattern', 'clipPath', 'mask', 'marker',
   'filter', 'feBlend', 'feColorMatrix', 'feComponentTransfer', 'feComposite',
   'feConvolveMatrix', 'feDiffuseLighting', 'feDisplacementMap', 'feDistantLight',
   'feDropShadow', 'feFlood', 'feFuncA', 'feFuncB', 'feFuncG', 'feFuncR',
@@ -150,6 +150,12 @@ export const SVG_ATTRIBUTES = [
   'divisor', 'bias', 'targetX', 'targetY', 'edgeMode', 'preserveAlpha', 'surfaceScale',
   'diffuseConstant', 'specularConstant', 'specularExponent', 'lightingColor',
   'azimuth', 'elevation', 'z', 'pointsAtX', 'pointsAtY', 'pointsAtZ', 'limitingConeAngle',
+  // markers (arrowheads) and text on a path
+  'markerStart', 'markerMid', 'markerEnd', 'markerWidth', 'markerHeight', 'markerUnits',
+  'refX', 'refY', 'orient', 'startOffset', 'side', 'method', 'spacing',
+  // one gradient or pattern building on another, text on a path: only a
+  // #fragment in the page (template-parser.ts drops anything else)
+  'href',
 ] as const
 
 /**

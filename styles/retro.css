@@ -12,9 +12,10 @@
   background-color: #F5E9D4; /* thread-cream color */
 }
 
-/* Site header and footer backgrounds - default styling that users can override */
-.site-header,
-.site-footer {
+/* Site header and footer backgrounds - default styling that users can override.
+   The site's own, never a page's class="site-header" (template audit 03 F7). */
+.site-header:where(:not([data-template-root] *)),
+.site-footer:where(:not([data-template-root] *)) {
   background-color: #F5E9D4; /* thread-cream color - users can override this */
 }
 
@@ -771,7 +772,7 @@ textarea:where(:not([data-site-styles="off"] *)):focus {
   }
   
   /* Header navigation adjustments */
-  .site-header {
+  .site-header:where(:not([data-template-root] *)) {
     padding: 0.75rem 1rem;
   }
   
@@ -979,8 +980,10 @@ textarea:where(:not([data-site-styles="off"] *)):focus {
     min-height: 44px;
   }
   
-  /* Prevent any element from causing horizontal overflow */
-  * {
+  /* Prevent any element from causing horizontal overflow. Not in a page of
+     someone's own HTML, which sizes boxes the browser's way (its components
+     get border-box from styles/preflight.css). */
+  *:where(:not([data-template-root] *)) {
     box-sizing: border-box;
   }
   

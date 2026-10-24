@@ -347,8 +347,10 @@ export function validateAndCoerceProps(
     // Allow special props to pass through for all components without warning
     // Note: data-* attributes get converted to camelCase (data-component-id -> dataComponentId) by HTML parser
     if (key === 'className' || key.startsWith('_') || key.startsWith('data-') || key.startsWith('data')) {
-      // Allow className, internal props (like _onContentChange), and data attributes
-      result[key] = value;
+      // Allow className, internal props (like _onContentChange), and data attributes.
+      // The parser gives a class list as an array: one string, or a component
+      // that writes `x ${className}` rendered "a,b" (template audit 06 #2)
+      result[key] = key === 'className' && Array.isArray(value) ? value.join(' ') : value;
       continue;
     }
 

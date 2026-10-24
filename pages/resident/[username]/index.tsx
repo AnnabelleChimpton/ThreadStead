@@ -212,8 +212,8 @@ export default function ProfilePage({
   ) : null;
   const pagePlaysSong = pageUsesAny(compiledTemplate, ['ProfileMusic']);
 
-  // Your own HTML page. Without residentData (no compiled page, or its data
-  // didn't load) an advanced page falls through to the standard layout below.
+  // Your own HTML page (residentData is always set for one: ownerOnly in
+  // getServerSideProps)
   if (templateMode === 'advanced' && residentData) {
     // Create ProfileUser object with Islands data
     const profileUser: ProfileUser = {
@@ -562,6 +562,29 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
     }
   }
 
+  // Who the page belongs to, with nothing else loaded: a page of your own
+  // HTML whose data didn't load still renders as itself (its lists empty),
+  // and one with no compiled copy shows its own "couldn't be shown" note.
+  // Without it both fell through to the standard layout, still wearing the
+  // page's own CSS (template audit 01 #11c/d).
+  const ownerOnly = (): ResidentData => ({
+    owner: {
+      id: data.userId,
+      handle: data.username || usernameParam,
+      displayName: data.profile?.displayName || data.username || usernameParam,
+      avatarUrl: data.profile?.avatarUrl || "/assets/default-avatar.gif",
+    },
+    viewer: { id: null },
+    posts: [],
+    guestbook: [],
+    images: [],
+    capabilities: { bio: data.profile?.bio || "" },
+    featuredFriends: [],
+    websites: [],
+    cssRenderMode: mapProfileCSSModeToComponentMode(cssMode),
+  });
+  if (data.profile?.templateMode === 'advanced' && compiledTemplate == null) residentData = ownerOnly();
+
   // Load what the page's components read
   if (data.profile?.templateMode === 'advanced' && compiledTemplate != null) {
     try {
@@ -671,7 +694,7 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
       if (pixelHome !== undefined) residentData.pixelHome = pixelHome;
     } catch (error) {
       console.error('Error preparing custom template:', error);
-      residentData = undefined;
+      residentData = ownerOnly();
     }
   }
 

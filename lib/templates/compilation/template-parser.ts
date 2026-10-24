@@ -536,7 +536,10 @@ function reportStrippedTags(source: string, tree: Root, head: DocumentHead): Str
 
 const PREFIX = 'user-content-';
 /** Attributes whose values may hold `url(#id)` (SVG paint servers, filters, clip paths) */
-const URL_REFERENCE_PROPERTIES = ['fill', 'stroke', 'filter', 'clipPath', 'mask', 'style'];
+const URL_REFERENCE_PROPERTIES = ['fill', 'stroke', 'filter', 'clipPath', 'mask', 'markerStart', 'markerMid', 'markerEnd', 'style'];
+
+/** SVG elements: an href may only point at an element in the page (`#id`) */
+const SVG_TAG_NAMES = new Set<string>(SVG_TAGS);
 
 function prefixFragment(value: unknown): unknown {
   // #top is the browser's own "back to the top", with or without an element
@@ -574,6 +577,8 @@ function finishSanitizedTree(node: HastLike): boolean {
       node.data = { ...(node.data || {}), component: true };
     } else {
       const props = node.properties || (node.properties = {});
+      // A gradient, pattern or textPath may build on another one in the page, never a file elsewhere
+      if (SVG_TAG_NAMES.has(node.tagName ?? '') && 'href' in props && !String(props.href).startsWith('#')) delete props.href;
       if ('href' in props) props.href = prefixFragment(props.href);
       if ('useMap' in props) props.useMap = prefixFragment(props.useMap);
       for (const key of URL_REFERENCE_PROPERTIES) {

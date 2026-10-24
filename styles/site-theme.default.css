@@ -65,14 +65,15 @@
 }
 
 /* ---------------- 3. Header / footer: peach band with bevel ---------------- */
-.site-header, .site-footer {
+/* The site's own, never a page's class="site-header" */
+.site-header:where(:not([data-template-root] *)), .site-footer:where(:not([data-template-root] *)) {
   background: linear-gradient(to bottom, #fbe2c9, var(--ha-header) 70%, var(--ha-peach-lo));
   border-top: 2px solid #fff3e7;
   border-bottom: 2px solid var(--ha-peach-edge);
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 2px 0 rgba(0,0,0,0.06);
   color: var(--ha-ink-dark);
 }
-.site-footer a { color: var(--ha-ink-dark); text-underline-offset: .15em; }
+.site-footer:where(:not([data-template-root] *)) a { color: var(--ha-ink-dark); text-underline-offset: .15em; }
 
 /* ---------------- 4. Ink: headings, labels, links, rules ---------------- */
 .thread-headline { color: var(--ha-ink-dark); }

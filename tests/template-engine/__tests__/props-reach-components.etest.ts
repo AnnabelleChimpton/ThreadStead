@@ -288,6 +288,13 @@ test('a component with several classes keeps them all, space-separated (template
   const { islands } = compileTemplateToArtifacts('<Button className="big pink"><OnClick></OnClick>Hi</Button>')
   const props = flatten(islands).find((island) => island.component.toLowerCase() === 'button')!._precomputed!.componentProps
   expect(props.className).toBe('big pink')
+  // also on components whose registry doesn't declare className (an array before)
+  for (const tag of ['Embed src="https://www.youtube.com/watch?v=abc"', 'GlitchText text="hi"', 'StickyNote']) {
+    const name = tag.split(' ')[0]
+    const found = flatten(compileTemplateToArtifacts(`<${tag} className="big pink"></${name}>`).islands)
+      .find((island) => island.component.toLowerCase() === name.toLowerCase())!
+    expect(found._precomputed!.componentProps.className).toBe('big pink')
+  }
 })
 
 test("a component's aria-* attributes reach it, dashed, with ids prefixed (template audit 14 #4)", () => {

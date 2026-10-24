@@ -18,6 +18,9 @@ export interface BoomboxProps extends UniversalCSSProps {
   children?: React.ReactNode;
 }
 
+
+/** Playing equalizer bar heights, in percent */
+const EQUALIZER_HEIGHTS = [45, 80, 60, 95, 35, 70, 55, 85, 40, 65];
 export default function Boombox(props: BoomboxProps) {
   const { cssProps, componentProps } = separateCSSProps(props);
   const {
@@ -186,11 +189,12 @@ export default function Boombox(props: BoomboxProps) {
     ? `boombox-container ${normalizedCustomClassName}`
     : 'boombox-container';
 
-  // Generate equalizer bars
+  // Generate equalizer bars. Fixed heights (the bars animate anyway): random
+  // ones differed between the server's render and the browser's
   const generateEqualizerBars = () => {
     const bars = [];
     for (let i = 0; i < 10; i++) {
-      const height = normalizedIsPlaying ? Math.random() * 80 + 20 : 20;
+      const height = normalizedIsPlaying ? EQUALIZER_HEIGHTS[i] : 20;
       bars.push(
         <div
           key={i}

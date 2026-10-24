@@ -116,7 +116,7 @@ html:not(:has(.profile-template-root)), body:not(:has(.profile-template-root)) {
      header or footer. Profile CSS itself is scoped away from these elements
      (scopeAwayFromSiteChrome in lib/utils/css/css-transform.ts); the admin
      site CSS is unlayered and still themes them. */
-  .site-header, .site-footer, [data-site-chrome] {
+  .site-header:where(:not([data-template-root] *)), .site-footer:where(:not([data-template-root] *)), [data-site-chrome] {
     font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     font-size: 16px;
     font-weight: 400;
@@ -134,9 +134,44 @@ html:not(:has(.profile-template-root)), body:not(:has(.profile-template-root)) {
     visibility: visible;
     word-break: normal;
     overflow-wrap: normal;
+    /* The rest a page's body can hand down: right-to-left, a custom cursor,
+       nowrap, an indent, a text stroke, vertical writing */
+    direction: ltr;
+    white-space: normal;
+    text-indent: 0;
+    hyphens: manual;
+    font-variant: normal;
+    font-feature-settings: normal;
+    -webkit-text-stroke: 0;
+    cursor: auto;
+    writing-mode: horizontal-tb;
     /* Tailwind's unit for every spacing utility, which a page's --spacing
-       on :root used to change in the nav too (89px to 153px) */
+       on :root used to change in the nav too (89px to 153px). Text sizes and
+       corners too, and in px: they were rem, so a page that set html's
+       font-size to 62.5% shrank the nav, and its own --text-sm resized it (template
+       audit 01 #7, 03 F5b, 10 #4) */
     --spacing: 4px;
+    --text-xs: 12px;
+    --text-sm: 14px;
+    --text-base: 16px;
+    --text-lg: 18px;
+    --text-xl: 20px;
+    --text-2xl: 24px;
+    --text-3xl: 30px;
+    --text-4xl: 36px;
+    --text-5xl: 48px;
+    --text-6xl: 60px;
+    --text-7xl: 72px;
+    --text-8xl: 96px;
+    --text-9xl: 128px;
+    --radius-xs: 2px;
+    --radius-sm: 4px;
+    --radius-md: 6px;
+    --radius-lg: 8px;
+    --radius-xl: 12px;
+    --radius-2xl: 16px;
+    --radius-3xl: 24px;
+    --radius-4xl: 32px;
   }
 }
 

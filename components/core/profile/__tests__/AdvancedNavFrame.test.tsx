@@ -36,10 +36,17 @@ describe('AdvancedNavFrame', () => {
     expect(html).toMatch(/<div class="[^"]*ts-under-nav[^"]*">/)
     expect(html).not.toMatch(/margin-top|--ts-nav-height|70px/)
     const css = pageCss()
-    expect(css).toMatch(/\.ts-under-nav[^{]*\{ ?margin-top: ?var\(--ts-nav-height, ?90px\) ?!important/)
-    expect(css).toMatch(/@media ?\(max-width: ?1132px\) ?\{ ?\.ts-under-nav[^{]*\{ ?margin-top: ?var\(--ts-nav-height, ?101px\) ?!important/)
+    // the bar's height per width, on html, so the page's own CSS can use it too
+    expect(css).toMatch(/html:has\(\.ts-under-nav\)[^{]*\{ ?--ts-nav-height: ?90px/)
+    expect(css).toMatch(/@media ?\(max-width: ?1132px\) ?\{ ?html:has\(\.ts-under-nav\)[^{]*\{ ?--ts-nav-height: ?101px/)
     // Below 1024px the links fold into the phone menu and the bar is shorter
-    expect(css).toMatch(/@media ?\(max-width: ?1023px\) ?\{ ?\.ts-under-nav[^{]*\{ ?margin-top: ?var\(--ts-nav-height, ?89px\) ?!important/)
+    expect(css).toMatch(/@media ?\(max-width: ?1023px\) ?\{ ?html:has\(\.ts-under-nav\)[^{]*\{ ?--ts-nav-height: ?89px/)
+    expect(css).toMatch(/\.ts-under-nav[^{]*\{ ?margin-top: ?var\(--ts-nav-height\) ?!important/)
+    expect(css).toMatch(/scroll-padding-top: ?calc\(var\(--ts-nav-height\) \+ 8px\)/)
+  })
+
+  test('in a short window (400% zoom) the bar scrolls away instead of covering the page', () => {
+    expect(pageCss()).toMatch(/@media ?\(max-height: ?500px\) ?\{ ?\.ts-nav-holder[^{]*\{ ?position: ?relative ?!important/)
   })
 
   test('on a phone a page wider than the screen pans inside its own box', () => {
@@ -65,7 +72,7 @@ describe('AdvancedNavFrame', () => {
         </AdvancedNavFrame>
       )
       const under = container.querySelector('.ts-under-nav') as HTMLElement
-      expect(under.style.getPropertyValue('--ts-nav-height')).toBe('96px')
+      expect(document.documentElement.style.getPropertyValue('--ts-nav-height')).toBe('96px')
       expect(under.style.marginTop).toBe('')
     } finally {
       rect.mockRestore()
@@ -103,7 +110,7 @@ describe('landmarks and focus (template audit 14 #1 #2)', () => {
     expect(document.querySelector('a.skip-link')).toBeNull()
   })
 
-  test('focus and anchor jumps stop below the fixed nav', () => {
-    expect(pageCss()).toMatch(/html:has\(\.ts-under-nav\)[^{]*\{ ?scroll-padding-top: ?98px/)
+  test('focus and anchor jumps stop below the fixed nav, measured or not', () => {
+    expect(pageCss()).toMatch(/html:has\(\.ts-under-nav\)[^{]*\{ ?scroll-padding-top: ?calc\(var\(--ts-nav-height\) \+ 8px\)/)
   })
 })

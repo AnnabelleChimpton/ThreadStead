@@ -366,13 +366,44 @@ export function scopeAdvancedSelector(selector: string): string {
 
   // The html and body compounds a selector starts with, and the rest
   const lead = sel.match(/^((?::root|html)(?![\w-])[^\s>+~]*)?\s*>?\s*(body(?![\w-])[^\s>+~]*)?\s*/i)!
-  const [whole, root, body] = lead
-  if (!root && !body) return `:scope body ${INSIDE_PAGE} ${sel}`
-  const name = root?.match(/^(?::root|html)/i)![0] ?? ''
-  const top = root ? `${name}:scope:is(html)${root.slice(name.length)}` : ':scope:is(html)'
+  const [whole, rootCompound, bodyCompound] = lead
+  if (!rootCompound && !bodyCompound) return `:scope body ${INSIDE_PAGE} ${sel}`
+  // Classes, ids and attributes written on html or body are the page root's
+  // (document-head.ts puts a pasted page's there); pseudo-classes stay put
+  const root = rootCompound ? splitCompound(rootCompound) : null
+  const body = bodyCompound ? splitCompound(bodyCompound) : null
+  const onRoot = `${root?.moved ?? ''}${body?.moved ?? ''}`
+  const top = root ? `${root.name}:scope:is(html)${root.kept}` : ':scope:is(html)'
+  const bodyPart = body ? ` ${body.name}${body.kept}` : ''
   const rest = sel.slice(whole.length)
-  if (!rest) return body ? `${top} ${body}` : top
-  return `${top}${body ? ` ${body}` : ''} ${INSIDE_PAGE} ${rest}`
+  // An effect moved onto the page root keeps its condition (moveWholePageEffects)
+  if (rest.startsWith(PAGE_ROOT)) return `${top}${bodyPart} ${PAGE_ROOT}${onRoot}${rest.slice(PAGE_ROOT.length)}`
+  if (rest) return `${top}${bodyPart} ${INSIDE_PAGE}${onRoot} ${rest}`
+  // html or body itself, when the page root carries those classes
+  const has = onRoot ? `:has(${INSIDE_PAGE}${onRoot})` : ''
+  return `${top}${bodyPart}${has}`
+}
+
+/** `body.dark:hover` → name `body`, moved `.dark`, kept `:hover` */
+function splitCompound(compound: string): { name: string; moved: string; kept: string } {
+  const name = compound.match(/^(?::root|html|body)/i)![0]
+  let moved = ''
+  let kept = ''
+  let i = name.length
+  while (i < compound.length) {
+    let end = i + 1
+    if (compound[i] === '[') {
+      while (end < compound.length && compound[end] !== ']') end = compound[end] === '"' || compound[end] === "'" ? skipString(compound, end) : end + 1
+      end++
+    } else {
+      while (end < compound.length && !/[.#[:]/.test(compound[end])) end = compound[end] === '(' ? skipParens(compound, end) : end + 1
+    }
+    const part = compound.slice(i, end)
+    if (/^[.#[]/.test(part)) moved += part
+    else kept += part
+    i = end
+  }
+  return { name, moved, kept }
 }
 
 /** Inside the page root, weighing nothing */
@@ -427,11 +458,14 @@ export const PAGE_ROOT = '.profile-template-root'
  */
 const WHOLE_PAGE_EFFECTS = /^(?:filter|backdrop-filter|transform|translate|rotate|scale|perspective|zoom|contain|will-change|visibility|opacity)$/i
 const ROOT_OR_BODY = /^(?::root|html|body|html\s+body)$/i
+/** html or body with a condition: `html:has(#dark:checked)`, `body.night`, `body:hover` */
+const ROOT_OR_BODY_WHEN = /^(?::root|html|body)(?![\w-])[^\s>+~]*(?:\s*>?\s*body(?![\w-])[^\s>+~]*)?$/i
 
 /**
  * "Do this to my whole page" on html or body (a vintage filter, a tilted
- * page) goes on the page root instead, where it does exactly that; the rest
- * of the rule stays put. Rules with nested rules are left alone.
+ * page, a checkbox dark-mode toggle on html:has(#dark:checked)) goes on the
+ * page root instead, where it does exactly that; the rest of the rule stays
+ * put. Rules with nested rules are left alone.
  */
 export function moveWholePageEffects(css: string): string {
   if (!/(?:html|body|:root)/i.test(css)) return css
@@ -442,8 +476,9 @@ export function moveWholePageEffects(css: string): string {
       out.push({ ...s, body: '\n' + moveWholePageEffects(s.body) + '\n' })
       continue
     }
+    const selectors = s.kind === 'rule' ? splitSelectorList(s.prelude).map((selector) => selector.trim()) : []
     const onRoot = s.kind === 'rule' && s.body !== undefined && !s.body.includes('{') &&
-      splitSelectorList(s.prelude).every((selector) => ROOT_OR_BODY.test(selector.trim()))
+      selectors.every((selector) => ROOT_OR_BODY_WHEN.test(selector))
     const declarations = onRoot ? splitDeclarations(s.body!) : []
     const effects = declarations.filter((d) => WHOLE_PAGE_EFFECTS.test(d.slice(0, d.indexOf(':')).trim()))
     if (effects.length === 0) {
@@ -452,9 +487,41 @@ export function moveWholePageEffects(css: string): string {
     }
     const rest = declarations.filter((d) => !effects.includes(d))
     if (rest.length > 0) out.push({ ...s, body: ` ${rest.join('; ')}; ` })
-    out.push({ kind: 'rule', prelude: PAGE_ROOT, body: ` ${effects.join('; ')}; ` })
+    // A condition goes with it: html:has(#dark:checked) inverts the page, not the nav
+    const prelude = selectors.every((selector) => ROOT_OR_BODY.test(selector))
+      ? PAGE_ROOT
+      : selectors.map((selector) => `${selector} ${PAGE_ROOT}`).join(', ')
+    out.push({ kind: 'rule', prelude, body: ` ${effects.join('; ')}; ` })
   }
   return serializeStatements(out)
+}
+
+/**
+ * The site's own @keyframes names (styles/*.css and Tailwind's theme; a test
+ * keeps this list complete). A page's @keyframes of the same name replaced
+ * the site's everywhere on that page, the nav's loading spinner included
+ * (template audit 01 #16e), so the page's is renamed, with its uses.
+ */
+export const SITE_KEYFRAMES: ReadonlySet<string> = new Set([
+  'bounce', 'curtain-flutter', 'excited-wave', 'fadeInDown', 'flag-raise', 'float-cloud', 'float-note',
+  'gentle-wave', 'mobileErrorShake', 'mobilePageEnter', 'mobilePullRefreshSpin', 'mobilePulse',
+  'mobileSuccessBounce', 'nb-wiggle', 'ping', 'pulse', 'pulse-glow', 'pulse-light', 'retro-flicker',
+  'shimmer', 'skeleton-shimmer-animation', 'slideInFromTop', 'slideUpFromBottom', 'smoke-rise', 'spin',
+  'swipe-in-from-left', 'swipe-in-from-right', 'swipe-out-left', 'swipe-out-right', 'swipe-out-up',
+  'ts-arrive-fade', 'ts-arrive-sign', 'ts-blink', 'ts-house-arrive', 'ts-pixel-hop', 'ts-sprite-strip',
+  'userDropdownSlideIn', 'window-glow',
+])
+
+/** `@keyframes spin` and `animation: spin 1s` → `page-spin`, for the names the site uses too */
+export function renameCollidingKeyframes(css: string): string {
+  const defined = new Set(
+    [...css.matchAll(/@(?:-webkit-|-moz-)?keyframes\s+([\w-]+)/gi)].map((m) => m[1]).filter((name) => SITE_KEYFRAMES.has(name))
+  )
+  if (defined.size === 0) return css
+  const names = new RegExp(`(?<![\\w-])(${[...defined].join('|')})(?![\\w-])`, 'g')
+  return css
+    .replace(/(@(?:-webkit-|-moz-)?keyframes\s+)([\w-]+)/gi, (whole, at: string, name: string) => (defined.has(name) ? `${at}page-${name}` : whole))
+    .replace(/((?<![\w-])animation(?:-name)?\s*:)([^;{}]*)/gi, (_whole, prop: string, value: string) => prop + value.replace(names, 'page-$1'))
 }
 
 /**
@@ -465,7 +532,8 @@ export function moveWholePageEffects(css: string): string {
  * - @import / @charset are hoisted intact, after `fontImports` (Google Fonts
  *   <link>s pulled out of a pasted document's head, see document-head.ts).
  * - `bodyCss` (a pasted page's <body bgcolor text link…>) comes before the
- *   page's own rules, so those still win.
+ *   page's own rules, so those still win; `styleCss` (its <html style> and
+ *   <body style>) after them, as an inline style beats a stylesheet.
  * - Ids and url(#…) references follow the user-content- prefix.
  * - Root selectors stay roots (scopeAdvancedSelector).
  * - The site's layer order comes first, and the page's own layers go into
@@ -478,11 +546,11 @@ export function moveWholePageEffects(css: string): string {
  */
 export function transformAdvancedCss(
   css: string,
-  options: { fontImports?: readonly string[]; bodyCss?: string } = {}
+  options: { fontImports?: readonly string[]; bodyCss?: string; styleCss?: string } = {}
 ): string {
   // <body bgcolor…> rules go first so the page's own CSS wins over them
-  const source = options.bodyCss ? `${options.bodyCss}\n${css || ''}` : css || ''
-  const { imports, rest } = extractImports(prefixUserContentIds(source))
+  const source = [options.bodyCss, css, options.styleCss].filter(Boolean).join('\n')
+  const { imports, rest } = extractImports(renameCollidingKeyframes(prefixUserContentIds(source)))
   const allImports = [
     ...(options.fontImports ?? []).filter((line) => !imports.includes(line)),
     ...imports,

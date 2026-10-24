@@ -13,6 +13,8 @@ import {
   transformAdvancedCss,
   namePageLayers,
   moveWholePageEffects,
+  renameCollidingKeyframes,
+  SITE_KEYFRAMES,
   PAGE_ROOT,
   SITE_CHROME_SELECTOR,
   SITE_LAYER_ORDER,
@@ -30,7 +32,7 @@ function sadgrlCss(): string {
 describe('scopeAdvancedSelector: root selectors stay roots', () => {
   test.each([
     ['body', ':scope:is(html) body'],
-    ['body.dark', ':scope:is(html) body.dark'],
+    ['body.dark', ':scope:is(html) body:has(:where(.profile-template-root).dark)'],
     ['body > .wrap', ':scope:is(html) body :where(.profile-template-root) > .wrap'],
     ['BODY', ':scope:is(html) BODY'],
     ['html', 'html:scope:is(html)'],
@@ -60,7 +62,7 @@ describe('scopeAdvancedSelector: root selectors stay roots', () => {
         return sum.map((n, i) => n + w[i])
       }, [0, 0, 0])).reduce(larger)
     const weight = (selector: string) => weightOf(parse(selector))
-    for (const sel of ['body .nav a', '.nav a', 'html', ':root', 'html body .x', 'body', 'a:hover', '#main p', 'ul > li + li']) {
+    for (const sel of ['body .nav a', '.nav a', 'html', ':root', 'html body .x', 'body', 'a:hover', '#main p', 'ul > li + li', 'body.dark .x', 'body.dark', 'html[data-theme="dark"]']) {
       const [a, b, c] = weight(sel)
       expect(weight(scopeAdvancedSelector(sel))).toEqual([a, b + 1, c + 1])
     }
@@ -74,7 +76,23 @@ describe('scopeAdvancedSelector: root selectors stay roots', () => {
     }
     // `body > header` is the page's top level, as its author meant
     expect(scopeAdvancedSelector('body > header')).toBe(':scope:is(html) body :where(.profile-template-root) > header')
-    expect(scopeAdvancedSelector('body.dark .x')).toBe(':scope:is(html) body.dark :where(.profile-template-root) .x')
+    expect(scopeAdvancedSelector('body.dark .x')).toBe(':scope:is(html) body :where(.profile-template-root).dark .x')
+  })
+
+  // Template audit 02 R7, 03 F8a: a pasted page's <body class="dark"> goes on
+  // the page root (document-head.ts), and its CSS follows it there
+  test("classes and attributes on html or body are the page root's; pseudo-classes stay", () => {
+    expect(scopeAdvancedSelector('body.dark .x')).toBe(':scope:is(html) body :where(.profile-template-root).dark .x')
+    expect(scopeAdvancedSelector('html[data-theme="dark"] a')).toBe('html:scope:is(html) :where(.profile-template-root)[data-theme="dark"] a')
+    // the rule still paints the real body, when the root has the class
+    expect(scopeAdvancedSelector('body.dark')).toBe(':scope:is(html) body:has(:where(.profile-template-root).dark)')
+    expect(scopeAdvancedSelector('body:has(#d:checked) .x')).toBe(':scope:is(html) body:has(#d:checked) :where(.profile-template-root) .x')
+  })
+
+  test('a whole-page effect behind a condition moves with it (template audit 10 #1)', () => {
+    const out = transformAdvancedCss('html:has(#dark:checked) { filter: invert(1); background: black }')
+    expect(out).toContain('html:scope:is(html):has(#user-content-dark:checked) { background: black; }')
+    expect(out).toContain('html:scope:is(html):has(#user-content-dark:checked) .profile-template-root { filter: invert(1); }')
   })
 
   test('a body-ish class or element name is not mistaken for the root', () => {
@@ -311,12 +329,33 @@ describe("the page's CSS stays off the site's chrome", () => {
 
   test("the chrome doesn't inherit visibility, word-break or the page's --spacing", () => {
     const globals = fs.readFileSync(path.join(ROOT, 'styles/globals.css'), 'utf8')
-    const reset = globals.match(/\.site-header, \.site-footer, \[data-site-chrome\] \{([^}]*)\}/)?.[1] ?? ''
-    for (const decl of ['visibility: visible', 'word-break: normal', '--spacing: 4px']) expect(reset).toContain(decl)
+    const reset = globals.match(/\.site-footer[^,{]*, \[data-site-chrome\] \{([^}]*)\}/)?.[1] ?? ''
+    for (const decl of ['visibility: visible', 'word-break: normal', '--spacing: 4px', 'direction: ltr', 'cursor: auto', '--text-sm: 14px', '--radius-lg: 8px']) {
+      expect(reset).toContain(decl)
+    }
   })
 
   test("the page's CSS comes after the site's stylesheets, like the preview's", () => {
     const app = fs.readFileSync(path.join(ROOT, 'pages/_app.tsx'), 'utf8')
     expect(app.indexOf('id="advanced-template-css"')).toBeGreaterThan(app.indexOf('</Head>'))
+  })
+})
+
+// Template audit 01 #16e: a page's @keyframes spin replaced the site's, nav spinner included
+describe('keyframes the site uses too', () => {
+  test("the page's own is renamed, with its uses; names it only uses keep the site's", () => {
+    const out = renameCollidingKeyframes('@keyframes spin { to { rotate: 1turn } } .a { animation: spin 2s infinite } .b { animation-name: spin } .c { animation: pulse 1s } @keyframes mine {} .d { animation: mine 1s }')
+    expect(out).toContain('@keyframes page-spin')
+    expect(out).toContain('.a { animation: page-spin 2s infinite }')
+    expect(out).toContain('.b { animation-name: page-spin }')
+    expect(out).toContain('.c { animation: pulse 1s }')
+    expect(out).toContain('.d { animation: mine 1s }')
+  })
+
+  test('the list holds every @keyframes the site defines', () => {
+    const files = [...fs.readdirSync(path.join(ROOT, 'styles')).filter((f) => f.endsWith('.css')).map((f) => path.join(ROOT, 'styles', f)),
+      path.join(ROOT, 'node_modules/tailwindcss/theme.css')]
+    const names = new Set(files.flatMap((f) => [...fs.readFileSync(f, 'utf8').matchAll(/@keyframes\s+([\w-]+)/g)].map((m) => m[1])))
+    expect([...names].filter((name) => !SITE_KEYFRAMES.has(name))).toEqual([])
   })
 })

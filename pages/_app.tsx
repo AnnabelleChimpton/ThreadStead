@@ -153,7 +153,6 @@ export default function MyApp({ Component, pageProps, appSiteCSS }: MyAppProps) 
   const advancedDocumentCss = documentCssFromCompiledTemplate(pageProps.compiledTemplate);
 
   const actualCSSMode = cssMode;
-  const needsCSSResets = isProfilePage && pageProps.templateMode === 'advanced' && actualCSSMode !== 'inherit';
   // Site styles on a profile page follow its cssMode (lib/domain/profile/layout.ts).
   // The editor's preview page turns them off for itself (siteStyles: false).
   const siteStyles = pageProps.siteStyles !== false && siteStylesOn(actualCSSMode);
@@ -184,21 +183,6 @@ export default function MyApp({ Component, pageProps, appSiteCSS }: MyAppProps) 
               <meta key="twitter:card" name="twitter:card" content="summary_large_image" />
               <meta key="twitter:image" name="twitter:image" content={`${getSiteBaseUrl()}/og-image.png?v=2`} />
 
-              {needsCSSResets && (
-                <style dangerouslySetInnerHTML={{
-                  __html: `
-                    /* Advanced template mode - complete CSS control */
-                    /* Only reset classes that advanced templates commonly override */
-                    
-                    /* Reset ThreadStead colors for complete control */  
-                    .bg-thread-cream { background-color: unset; }
-                    .bg-thread-paper { background-color: unset; }
-                    .text-thread-pine { color: unset; }
-                    .text-thread-sage { color: unset; }
-                    .border-thread-sage { border-color: unset; }
-                  `
-                }} />
-              )}
 
 
               {isProfilePage && hasCustomCSS && pageProps.templateMode !== 'advanced' && (() => {
@@ -242,7 +226,7 @@ ${rest}`)
                   rules, and @keyframes named spin, pulse or bounce, which
                   Tailwind defines too) the site's won and the preview's didn't. */}
               {isProfilePage && pageProps.templateMode === 'advanced' &&
-                (hasCustomCSS || advancedDocumentCss.fontImports.length > 0 || advancedDocumentCss.bodyCss) && (
+                (hasCustomCSS || advancedDocumentCss.fontImports.length > 0 || advancedDocumentCss.bodyCss || advancedDocumentCss.styleCss) && (
                 <style
                   id="advanced-template-css"
                   dangerouslySetInnerHTML={{

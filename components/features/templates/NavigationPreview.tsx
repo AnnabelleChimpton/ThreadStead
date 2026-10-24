@@ -68,10 +68,12 @@ function UnstyledDropdown({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Sizes in px, not rem: a page's own html font-size mustn't resize the
+  // site's nav (template audit 03 F5b)
   const linkStyle = {
     textDecoration: 'none',
     color: textColor === 'inherit' ? 'inherit' : textColor,
-    padding: '0.5rem 0.75rem',
+    padding: '8px 12px',
     cursor: 'pointer',
     fontSize: 'inherit',
     fontFamily: 'inherit'
@@ -79,7 +81,7 @@ function UnstyledDropdown({
 
   const buttonStyle = {
     color: textColor === 'inherit' ? 'inherit' : textColor,
-    padding: '0.5rem 0.75rem',
+    padding: '8px 12px',
     borderRadius: '0 4px 4px 0',
     transition: 'background-color 0.2s',
     display: 'flex',
@@ -339,7 +341,7 @@ function NavigationContent({
   const linkStyle = {
     textDecoration: 'none',
     color: textColor === 'inherit' ? 'inherit' : textColor,
-    padding: '0.5rem 1rem',
+    padding: '8px 16px',
     borderRadius: '4px',
     transition: 'background-color 0.2s'
   };
@@ -357,17 +359,17 @@ function NavigationContent({
       width: '100%',
       minWidth: '100%',
       boxSizing: 'border-box',
-      padding: '1rem 2rem',
+      padding: '16px 32px',
       margin: 0
     }}>
       <Link href="/" style={{ textDecoration: 'none', display: 'block' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           {/* Not a heading: the page's own heading is its one <h1>
               (template audit 14 #7). Styled as the h1 it was. */}
           <span style={{
             display: 'block',
             margin: 0,
-            fontSize: '1.5rem',
+            fontSize: '24px',
             fontWeight: 'bold',
             letterSpacing: '-0.02em',
             lineHeight: 1.2,
@@ -379,9 +381,9 @@ function NavigationContent({
         </div>
         <span style={{
           display: 'inline-block',
-          fontSize: '0.875rem',
+          fontSize: '14px',
           opacity: 0.8,
-          marginTop: '0.25rem',
+          marginTop: '4px',
           color: textColor === 'inherit' ? '#2E4B3F' : textColor
         }}>
           {config.site_tagline}
@@ -389,9 +391,9 @@ function NavigationContent({
       </Link>
 
       {/* From lg (1024px), as the site header does; below it, the site's own phone menu */}
-      <div className="hidden lg:flex" style={{ alignItems: 'center', gap: '2rem' }}>
+      <div className="hidden lg:flex" style={{ alignItems: 'center', gap: '32px' }}>
         {/* Main Navigation Links with Dropdowns */}
-        <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
           {/* Same sections as the site header (siteNav.ts) */}
           {NAV_SECTIONS.map((section) => {
             const items = [
@@ -421,7 +423,7 @@ function NavigationContent({
           ))}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           {me.loggedIn ? (
             <>
               {/* Notification Bell - wrapped for inline style compatibility */}
@@ -436,7 +438,7 @@ function NavigationContent({
               </div>
             </>
           ) : (
-            <div style={{ display: 'flex', gap: '1rem' }}>
+            <div style={{ display: 'flex', gap: '16px' }}>
               <Link href="/login" style={linkStyle}>Login</Link>
               <Link href="/signup" style={buttonStyle}>Sign Up</Link>
             </div>

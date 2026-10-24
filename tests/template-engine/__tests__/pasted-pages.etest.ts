@@ -664,3 +664,41 @@ describe('why a tag was taken out (template audit 09, 16)', () => {
     expect(tags.find((t) => t.name === 'object')?.reason).not.toMatch(/Taken out with the/)
   })
 })
+
+describe('SVG that builds on itself (template audit 11 #5a, #7a, #7b)', () => {
+  test('a gradient building on another, arrowheads and text on a path come through, pointing at the renamed ids', () => {
+    const { staticHTML, strippedComponents } = compile(`<svg viewBox="0 0 100 100"><defs>
+<linearGradient id="base"><stop offset="0" stop-color="red"/></linearGradient>
+<linearGradient id="tilt" href="#base"/>
+<marker id="arrow" refX="5" refY="5" orient="auto"><path d="M0 0L10 5L0 10z"/></marker>
+<path id="curve" d="M10 80 Q 50 10 90 80"/></defs>
+<line x2="50" y2="50" stroke="black" marker-end="url(#arrow)"/>
+<text><textPath href="#curve" startOffset="10%">along the curve</textPath></text></svg>`)
+    expect(strippedComponents).toEqual([])
+    expect(staticHTML).toContain('<linearGradient id="user-content-tilt" href="#user-content-base">')
+    expect(staticHTML).toContain('marker-end="url(#user-content-arrow)"')
+    expect(staticHTML).toContain('<textPath href="#user-content-curve" startOffset="10%">along the curve</textPath>')
+  })
+
+  test('an href to anywhere but the page is dropped', () => {
+    expect(compile('<svg><linearGradient id="g" href="https://elsewhere.example/a.svg#g"/></svg>').staticHTML).not.toContain('href')
+  })
+})
+
+describe("<html> and <body>'s own attributes (template audit 02 R7, 03 F8a)", () => {
+  test('class, lang, dir and data-* are kept for the page root; style becomes CSS after the page\'s own', () => {
+    const { ast } = compile(`<!doctype html><html lang="fr" data-theme="dark" data-island="x"><head><title>t</title></head>
+<body class="index dark" dir="rtl" style="background:#000; color: #0f0" onload="go()"><p>hi</p></body></html>`)
+    expect(ast.head?.root).toEqual({ className: 'index dark', lang: 'fr', dir: 'rtl', data: { 'data-theme': 'dark' } })
+    expect(documentCssFromCompiledTemplate({ ast }).styleCss).toBe('body { background:#000; color: #0f0; }')
+    // after the page's own CSS, as an inline style beats a stylesheet
+    const out = transformAdvancedCss('body { background: white }', documentCssFromCompiledTemplate({ ast }))
+    expect(out.indexOf('background:#000')).toBeGreaterThan(out.indexOf('background: white'))
+  })
+
+  test('nothing that could leave a CSS rule or the class attribute gets through', () => {
+    const { ast } = compile('<html><body class="ok <b>x" style="color:red} body{x:y"><p>hi</p></body></html>')
+    expect(ast.head?.root).toEqual({ className: 'ok' })
+    expect(ast.head?.bodyStyle).toBeUndefined()
+  })
+})

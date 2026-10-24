@@ -11,6 +11,7 @@ import { ResidentDataProvider } from '@/components/features/templates/ResidentDa
 import { PixelIcon } from '@/components/ui/PixelIcon';
 import { StaticHTMLWithIslands } from './HTMLIslandHydration';
 import { siteStylesOn } from '@/lib/domain/profile/layout';
+import { pageRootAttributes } from '@/lib/templates/compilation/document-head';
 import { pageHash } from '@/components/features/templates/state/actions/page-targets';
 import type { AdvancedProfileRendererProps } from './types';
 
@@ -73,6 +74,7 @@ export default function AdvancedProfileRenderer({ user, residentData }: Advanced
   }
 
   const profileId = `profile-${user.id}`;
+  const rootAttributes = pageRootAttributes(compiled);
   return (
     <TemplateErrorBoundary
       componentName="AdvancedProfileRenderer"
@@ -86,7 +88,11 @@ export default function AdvancedProfileRenderer({ user, residentData }: Advanced
                 (styles/chrome-layers.css): its own stacking context, no clipping */}
             <div
               id={profileId}
-              className="profile-template-root"
+              // A pasted page's <html>/<body> class, lang, dir and data-* (document-head.ts)
+              className={rootAttributes?.className ? `profile-template-root ${rootAttributes.className}` : 'profile-template-root'}
+              lang={rootAttributes?.lang}
+              dir={rootAttributes?.dir}
+              {...rootAttributes?.data}
               // What the page's own actions may reach (components/features/templates/state/actions/page-targets.ts)
               data-template-root
               // styles/theme-parts.css: with site styles off, the site's parts

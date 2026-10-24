@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useRef, useState } from "react";
+import React, { useLayoutEffect, useRef } from "react";
 import NavigationPreview from "@/components/features/templates/NavigationPreview";
 
 /**
@@ -33,23 +33,29 @@ const NAV_HEIGHT = { wide: 90, narrow: 101, narrowBelow: 1133, phone: 89, phoneB
 // has to leave room under it. The room comes from CSS (NAV_HEIGHT), so it's
 // right in the server's HTML; a flat 70px used to sit under the taller bar
 // until hydration measured it, a ~19px jump. The measurement stays, for a
-// bar that comes out another height (a long site name, a larger root font
-// size, the signed-in bar). The margin is !important because a pasted page's
-// `* { margin: 0 }` would otherwise take it away, so the measured value goes
-// in through the custom property.
+// bar that comes out another height (a long site name, the signed-in bar).
+// Both go in --ts-nav-height on html, which a page can use too (a sticky
+// header at top: var(--ts-nav-height)), and which the room under the bar
+// and the scroll padding follow. The margin is !important because a pasted
+// page's `* { margin: 0 }` would otherwise take it away.
 export default function AdvancedNavFrame({ showNavigation, pageHasMain = false, afterNav, children }: AdvancedNavFrameProps) {
   const navRef = useRef<HTMLDivElement>(null);
-  const [navHeight, setNavHeight] = useState<number | null>(null);
 
   useLayoutEffect(() => {
     const bar = navRef.current?.firstElementChild as HTMLElement | null;
     if (!showNavigation || !bar) return;
-    const measure = () => setNavHeight(Math.ceil(bar.getBoundingClientRect().height) || null);
+    const root = document.documentElement;
+    const measure = () => {
+      const height = Math.ceil(bar.getBoundingClientRect().height);
+      if (height) root.style.setProperty("--ts-nav-height", `${height}px`);
+    };
     measure();
-    if (typeof ResizeObserver === "undefined") return;
-    const observer = new ResizeObserver(measure);
-    observer.observe(bar);
-    return () => observer.disconnect();
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(measure);
+    observer?.observe(bar);
+    return () => {
+      observer?.disconnect();
+      root.style.removeProperty("--ts-nav-height");
+    };
   }, [showNavigation]);
 
   return (
@@ -64,14 +70,11 @@ export default function AdvancedNavFrame({ showNavigation, pageHasMain = false, 
       {/* The wrapper takes no space: its only child is position: fixed */}
       {/* data-site-chrome: the page's CSS can't reach or restyle the nav */}
       {showNavigation && (
-        <div ref={navRef} data-site-chrome="true">
+        <div ref={navRef} data-site-chrome="true" className="ts-nav-holder">
           <NavigationPreview navBackgroundColor={ADVANCED_NAV_SURFACE} />
         </div>
       )}
-      <div
-        className={showNavigation ? "ts-under-nav" : undefined}
-        style={navHeight ? ({ "--ts-nav-height": `${navHeight}px` } as React.CSSProperties) : undefined}
-      >
+      <div className={showNavigation ? "ts-under-nav" : undefined}>
         {afterNav}
         {/* Absolute template children position from here, below afterNav */}
         {/* The page's landmark, unless it has its own <main> (a role, so the
@@ -87,18 +90,22 @@ export default function AdvancedNavFrame({ showNavigation, pageHasMain = false, 
         </div>
       </div>
       <style jsx>{`
-        .ts-under-nav {
-          margin-top: var(--ts-nav-height, ${NAV_HEIGHT.wide}px) !important;
+        /* The bar's height before it's measured (inline on html after) */
+        :global(html:has(.ts-under-nav)) {
+          --ts-nav-height: ${NAV_HEIGHT.wide}px;
         }
         @media (max-width: ${NAV_HEIGHT.narrowBelow - 1}px) {
-          .ts-under-nav {
-            margin-top: var(--ts-nav-height, ${NAV_HEIGHT.narrow}px) !important;
+          :global(html:has(.ts-under-nav)) {
+            --ts-nav-height: ${NAV_HEIGHT.narrow}px;
           }
         }
         @media (max-width: ${NAV_HEIGHT.phoneBelow - 1}px) {
-          .ts-under-nav {
-            margin-top: var(--ts-nav-height, ${NAV_HEIGHT.phone}px) !important;
+          :global(html:has(.ts-under-nav)) {
+            --ts-nav-height: ${NAV_HEIGHT.phone}px;
           }
+        }
+        .ts-under-nav {
+          margin-top: var(--ts-nav-height) !important;
         }
         /* A page wider than a phone (an 800px table from 2003) pans inside
            this box. Clipped by body, its right side was out of reach on
@@ -109,16 +116,21 @@ export default function AdvancedNavFrame({ showNavigation, pageHasMain = false, 
         /* Focus and #anchor jumps stop below the fixed nav, not under it
            (WCAG focus not obscured: template audit 14 #2) */
         :global(html:has(.ts-under-nav)) {
-          scroll-padding-top: ${NAV_HEIGHT.wide + 8}px;
+          scroll-padding-top: calc(var(--ts-nav-height) + 8px);
         }
-        @media (max-width: ${NAV_HEIGHT.narrowBelow - 1}px) {
-          :global(html:has(.ts-under-nav)) {
-            scroll-padding-top: ${NAV_HEIGHT.narrow + 8}px;
+        /* A short window (zoomed to 400%, a phone on its side): the bar
+           scrolls away with the page instead of covering most of it
+           (WCAG reflow: template audit 14 #2c). Relative, so its menus still
+           drop down from it. */
+        @media (max-height: 500px) {
+          .ts-nav-holder > :global(*) {
+            position: relative !important;
           }
-        }
-        @media (max-width: ${NAV_HEIGHT.phoneBelow - 1}px) {
+          .ts-under-nav {
+            margin-top: 0 !important;
+          }
           :global(html:has(.ts-under-nav)) {
-            scroll-padding-top: ${NAV_HEIGHT.phone + 8}px;
+            scroll-padding-top: 8px;
           }
         }
         .ts-page-frame:focus {
