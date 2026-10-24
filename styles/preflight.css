@@ -9,8 +9,9 @@
  * Components inside the page keep the reset they're built on: each draws
  * inside a <ts-island> (IslandErrorBoundary.tsx), and the @scope at the end
  * gives it back to them, up to any of the page's HTML they hold, which
- * IslandPage.tsx marks data-ts-page. Browsers without @scope also drop a
- * page's own CSS (css-transform.ts), so they lose nothing more here.
+ * IslandPage.tsx marks data-ts-page. In a browser without @scope those
+ * components go without the reset; such a browser already drops the page's
+ * own CSS (css-transform.ts), so the page is plain there either way.
  * Template audit 01 #1, 02 R1, 03 F1.
  *
  * Each selector only gains a :where(), so it weighs what Tailwind's does.

@@ -31,17 +31,17 @@ describe('scopeAdvancedSelector: root selectors stay roots', () => {
   test.each([
     ['body', ':scope:is(html) body'],
     ['body.dark', ':scope:is(html) body.dark'],
-    ['body > .wrap', ':scope:is(html) body > .wrap'],
+    ['body > .wrap', ':scope:is(html) body :where(.profile-template-root) > .wrap'],
     ['BODY', ':scope:is(html) BODY'],
     ['html', 'html:scope:is(html)'],
     [':root', ':root:scope:is(html)'],
     ['html:root', 'html:scope:is(html):root'],
-    [':root .x', ':root:scope:is(html) .x'],
-    ['html body .x', 'html:scope:is(html) body .x'],
-    ['*', ':scope body *'],
-    ['*::before', ':scope body *::before'],
-    ['.layout', ':scope body .layout'],
-    ['nav ul li a:hover::before', ':scope body nav ul li a:hover::before'],
+    [':root .x', ':root:scope:is(html) :where(.profile-template-root) .x'],
+    ['html body .x', 'html:scope:is(html) body :where(.profile-template-root) .x'],
+    ['*', ':scope body :where(.profile-template-root) *'],
+    ['*::before', ':scope body :where(.profile-template-root) *::before'],
+    ['.layout', ':scope body :where(.profile-template-root) .layout'],
+    ['nav ul li a:hover::before', ':scope body :where(.profile-template-root) nav ul li a:hover::before'],
     ['::selection', ':scope:root::selection, :scope body ::selection'],
   ])('%s → %s', (input, expected) => {
     expect(scopeAdvancedSelector(input)).toBe(expected)
@@ -66,10 +66,21 @@ describe('scopeAdvancedSelector: root selectors stay roots', () => {
     }
   })
 
+  // Template audit 02 X2: a page raised .ts-page-frame (or any div:has() around
+  // its root) and sat over the site's nav
+  test("the page's selectors only reach its own HTML, never the site's wrappers", () => {
+    for (const sel of ['.ts-page-frame', 'div:has(.profile-template-root)', '#__next', 'body > div', 'html div', '*']) {
+      expect(scopeAdvancedSelector(sel)).toContain(':where(.profile-template-root) ')
+    }
+    // `body > header` is the page's top level, as its author meant
+    expect(scopeAdvancedSelector('body > header')).toBe(':scope:is(html) body :where(.profile-template-root) > header')
+    expect(scopeAdvancedSelector('body.dark .x')).toBe(':scope:is(html) body.dark :where(.profile-template-root) .x')
+  })
+
   test('a body-ish class or element name is not mistaken for the root', () => {
-    expect(scopeAdvancedSelector('.body')).toBe(':scope body .body')
-    expect(scopeAdvancedSelector('html-viewer')).toBe(':scope body html-viewer')
-    expect(scopeAdvancedSelector('bodytext')).toBe(':scope body bodytext')
+    expect(scopeAdvancedSelector('.body')).toBe(':scope body :where(.profile-template-root) .body')
+    expect(scopeAdvancedSelector('html-viewer')).toBe(':scope body :where(.profile-template-root) html-viewer')
+    expect(scopeAdvancedSelector('bodytext')).toBe(':scope body :where(.profile-template-root) bodytext')
   })
 })
 
@@ -116,8 +127,8 @@ describe('transformAdvancedCss', () => {
     expect(out.indexOf('@keyframes')).toBeLessThan(scopeAt)
     // keyframe stops are not selectors
     expect(out).toContain('from { transform: rotate(0) }')
-    expect(out).not.toContain(':scope body from')
-    expect(out.slice(scopeAt)).toContain(':scope body h1::after {')
+    expect(out).not.toContain(':scope body :where(.profile-template-root) from')
+    expect(out.slice(scopeAt)).toContain(':scope body :where(.profile-template-root) h1::after {')
   })
 
   test('font imports from a pasted <head> come first, without duplicates', () => {
@@ -138,7 +149,7 @@ describe('transformAdvancedCss', () => {
   test('@media rules are scoped and boosted like top-level ones', () => {
     const out = transformAdvancedCss('@media (max-width: 800px) { body { margin: 0 } .layout { width: 100% } }')
     expect(out).toContain(':scope:is(html) body {')
-    expect(out).toContain(':scope body .layout {')
+    expect(out).toContain(':scope body :where(.profile-template-root) .layout {')
   })
 })
 
@@ -164,7 +175,7 @@ describe('golden: the sadgrl layout stylesheet', () => {
 
   test('element rules for header, nav and footer stay inside the chrome donut', () => {
     const inside = out.slice(out.indexOf(SCOPE_OPEN))
-    for (const sel of [':scope body header {', ':scope body nav {', ':scope body footer {', ':scope body a {']) {
+    for (const sel of [':scope body :where(.profile-template-root) header {', ':scope body :where(.profile-template-root) nav {', ':scope body :where(.profile-template-root) footer {', ':scope body :where(.profile-template-root) a {']) {
       expect(inside).toContain(sel)
     }
     // the only rule outside the scope is the @font-face
@@ -194,10 +205,11 @@ describe("the page's own layers can't join the site's", () => {
   test("the page root's stacking guard is !important in the site's first layer", () => {
     // Nothing a page's CSS says, !important included, can lift its root over the nav
     const chrome = fs.readFileSync(path.join(ROOT, 'styles/chrome-layers.css'), 'utf8')
-    const guard = chrome.match(/@layer threadstead-browser \{\s*\.profile-template-root \{([^}]*)\}/)?.[1] ?? ''
-    for (const decl of ['isolation: isolate !important', 'position: static !important', 'z-index: auto !important']) {
-      expect(guard).toContain(decl)
-    }
+    const block = chrome.match(/\/\* -+ the page can't cover chrome[\s\S]*?@layer threadstead-browser \{([\s\S]*?)\n\}/)?.[1] ?? ''
+    const rule = (selector: string) => block.match(new RegExp(`${selector.replace(/[[\].]/g, '\\$&')} \\{([^}]*)\\}`))?.[1] ?? ''
+    // display too: display: contents took the root's box, and its stacking context (02 X2)
+    for (const decl of ['display: block !important', 'isolation: isolate !important']) expect(rule('[data-template-root]')).toContain(decl)
+    for (const decl of ['position: static !important', 'z-index: auto !important']) expect(rule('.profile-template-root')).toContain(decl)
     const renderer = fs.readFileSync(path.join(ROOT, 'components/core/profile/AdvancedProfileRenderer.tsx'), 'utf8')
     expect(renderer).not.toMatch(/isolation:\s*'auto'/)
   })
@@ -252,9 +264,9 @@ describe('CSS nesting: #id rules inside other rules find the renamed ids', () =>
 
   test('nested selectors are not scoped (they are relative to their parent)', () => {
     const out = transformAdvancedCss('.card { #title { color: red } }')
-    expect(out).toContain(':scope body .card {')
+    expect(out).toContain(':scope body :where(.profile-template-root) .card {')
     expect(out).toContain('#user-content-title { color: red }')
-    expect(out).not.toContain(':scope body #user-content-title')
+    expect(out).not.toContain(':scope body :where(.profile-template-root) #user-content-title')
   })
 })
 

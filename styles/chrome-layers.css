@@ -105,10 +105,18 @@ body:has(.ts-chat-toggle) .ts-view-source-badge {
    itself can't be lifted above them. !important in the site's first layer
    (globals.css) outranks anything the page's CSS says, !important included:
    the page's own @layers are renamed into threadstead-page, the last layer
-   (lib/utils/css/css-transform.ts). */
+   (lib/utils/css/css-transform.ts). Its display too: display: contents took
+   the root's box away, and its stacking context with it (template audit 02
+   X2). The site's wrappers around it are out of the page CSS's reach
+   (scopeAdvancedSelector). */
 @layer threadstead-browser {
-  .profile-template-root {
+  /* Both kinds of resident HTML: the whole page, and the widget slot on the
+     standard layout */
+  [data-template-root] {
+    display: block !important;
     isolation: isolate !important;
+  }
+  .profile-template-root {
     position: static !important;
     z-index: auto !important;
   }

@@ -3,6 +3,8 @@
  * regex transforms (lib/utils/css/css-transform.ts).
  */
 import {
+  clampZIndex,
+  PROFILE_Z_INDEX_MAX,
   splitTopLevelStatements,
   serializeStatements,
   extractImports,
@@ -194,3 +196,19 @@ html body .thread-surface, body { color: #222; }
     expect(scopeAwayFromSiteChrome('   ')).toBe('')
   })
 })
+
+// Template audit 02 X2: standard-layout CSS restyles the site's own parts, so
+// any of them raised high enough went over the site header
+describe('clampZIndex', () => {
+  test('numbers and expressions stay under the site header; keywords stay', () => {
+    expect(clampZIndex('.site-main{position:relative;z-index:99999}')).toBe(`.site-main{position:relative;z-index:min(99999, ${PROFILE_Z_INDEX_MAX})}`)
+    expect(clampZIndex('a { z-index: var(--z) !important; }')).toBe(`a { z-index: min(var(--z), ${PROFILE_Z_INDEX_MAX}) !important; }`)
+    expect(clampZIndex('a{z-index:auto} b{z-index: inherit}')).toBe('a{z-index:auto} b{z-index: inherit}')
+    expect(clampZIndex('a{--z-index: 5}')).toBe('a{--z-index: 5}')
+  })
+
+  test('standard-layout CSS gets it', () => {
+    expect(scopeAwayFromSiteChrome('.x{z-index:20000}')).toContain(`z-index:min(20000, ${PROFILE_Z_INDEX_MAX})`)
+  })
+})
+

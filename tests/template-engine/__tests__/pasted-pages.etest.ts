@@ -355,7 +355,7 @@ describe('whole documents', () => {
     expect(out).toContain(
       ':scope:is(html) body { background-color: #000000; color: #00FF00; background-image: url("https://example.neocities.org/stars.gif"); }'
     )
-    expect(out).toContain(':scope:is(html) body :where(a:link) { color: #FF00FF; }')
+    expect(out).toContain(':scope:is(html) body :where(.profile-template-root) :where(a:link) { color: #FF00FF; }')
     // the page's own rule comes after, so it wins the tie
     expect(out.indexOf('color: white')).toBeGreaterThan(out.indexOf('color: #00FF00'))
   })

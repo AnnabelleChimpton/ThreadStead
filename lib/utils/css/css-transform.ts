@@ -227,10 +227,31 @@ const GLOBAL_AT_RULES = new Set([
  * the chrome roots reset those themselves (styles/retro.css).
  */
 export function scopeAwayFromSiteChrome(css: string): string {
-  return wrapInChromeScope(css, (sel) =>
+  return wrapInChromeScope(clampZIndex(css), (sel) =>
     sel
       .replace(/^html(?![\w-])/, ':scope')
       .replace(/:root(?![\w-])/g, ':scope')
+  )
+}
+
+/**
+ * The highest z-index standard-layout CSS may give anything: one under the
+ * site header's (NavBar.tsx, z-[9999]). That CSS restyles the site's own
+ * parts, any of them, so `.site-main { position: relative; z-index: 99999 }`
+ * put a whole profile over the nav (template audit 02 X2, B1 follow-up).
+ * Your-own-HTML pages are kept under it another way (scopeAdvancedSelector,
+ * styles/chrome-layers.css).
+ */
+export const PROFILE_Z_INDEX_MAX = 9998
+
+/** `z-index: 99999` → `z-index: min(99999, 9998)`; keywords stay as they are */
+export function clampZIndex(css: string): string {
+  return css.replace(
+    /(?<![\w-])(z-index\s*:\s*)([^;{}!]+?)(\s*(?:!\s*important)?\s*)(?=[;}]|$)/gi,
+    (whole, prop: string, value: string, end: string) =>
+      /^(?:auto|inherit|initial|unset|revert|revert-layer)$/i.test(value.trim())
+        ? whole
+        : `${prop}min(${value.trim()}, ${PROFILE_Z_INDEX_MAX})${end}`
   )
 }
 
@@ -315,18 +336,24 @@ function prefixSelectorIds(selector: string): string {
 
 /**
  * One selector of advanced-mode CSS, scoped under `@scope (html)` where
- * `:scope` is the html element:
- *   `:root …`, `html …` → `:root:scope:is(html) …`, `html:scope:is(html) …`
- *   `body …`            → `:scope:is(html) body …`
- *   `::selection` etc.  → the root and everything in body
- *   anything else, `*` included → `:scope body …`
+ * `:scope` is the html element. Everything below html and body is the
+ * page's own HTML: those parts must be inside the page root, so a page's
+ * `div {}`, `*`, `div:has(...)` or `.ts-page-frame` can't match the site's
+ * wrappers around it (raising one put the page over the site's nav;
+ * template audit 02 X2, 03 F6b):
+ *   `html`, `:root`, `body` → themselves (`html:scope:is(html)`,
+ *                             `:scope:is(html) body`)
+ *   `body > header`, `body .x`, `html .x` → `… body :where(.profile-template-root) > header`
+ *                             (the page's top level, as its author meant)
+ *   `::selection` etc.     → the root and everything in body
+ *   anything else, `*` included → `:scope body :where(.profile-template-root) …`
+ * The page root itself answers to its class (whole-page effects moved onto
+ * it, overlays, a page that names it); what it mustn't do is pinned in
+ * styles/chrome-layers.css.
  * Every selector gains the same weight, one class and one element, so the
  * author's own rules rank among themselves as in a browser (`body .nav a`
  * still beats a later `.nav a`; template audit 01 #9), and each beats the
- * site's rules of its own shape (the theme's `a:hover`). Before 2026-10
- * every selector got a bare `html body` prefix, which turned `body {}` into
- * `html body body` and `:root {}` into `html body :root`: dead rules, and
- * every CSS variable a pasted page declared on :root came out undefined.
+ * site's rules of its own shape (the theme's `a:hover`).
  */
 export function scopeAdvancedSelector(selector: string): string {
   const sel = selector.trim()
@@ -334,12 +361,22 @@ export function scopeAdvancedSelector(selector: string): string {
   // page root's: over the page, never over the site's nav (it tinted it)
   const overlay = sel.match(/^(?::root|html|body|html\s+body)(::?(?:before|after))$/i)
   if (overlay) return `:scope body ${PAGE_ROOT}${overlay[1]}`
-  const root = sel.match(/^(?::root|html)(?![\w-])/i)
-  if (root) return `${root[0]}:scope:is(html)${sel.slice(root[0].length)}`
-  if (/^body(?![\w-])/i.test(sel)) return `:scope:is(html) ${sel}`
   if (sel.startsWith('::')) return `:scope:root${sel}, :scope body ${sel}`
-  return `:scope body ${sel}`
+  if (sel.startsWith(PAGE_ROOT)) return `:scope body ${sel}`
+
+  // The html and body compounds a selector starts with, and the rest
+  const lead = sel.match(/^((?::root|html)(?![\w-])[^\s>+~]*)?\s*>?\s*(body(?![\w-])[^\s>+~]*)?\s*/i)!
+  const [whole, root, body] = lead
+  if (!root && !body) return `:scope body ${INSIDE_PAGE} ${sel}`
+  const name = root?.match(/^(?::root|html)/i)![0] ?? ''
+  const top = root ? `${name}:scope:is(html)${root.slice(name.length)}` : ':scope:is(html)'
+  const rest = sel.slice(whole.length)
+  if (!rest) return body ? `${top} ${body}` : top
+  return `${top}${body ? ` ${body}` : ''} ${INSIDE_PAGE} ${rest}`
 }
+
+/** Inside the page root, weighing nothing */
+const INSIDE_PAGE = ':where(.profile-template-root)'
 
 /**
  * The site's cascade layers, in order (styles/globals.css declares the same
