@@ -28,6 +28,7 @@ import {
   SVG_ATTRIBUTES,
   SVG_TAGS,
 } from './html-allowlist';
+import { paragraphSafe } from './paragraph-safe';
 
 // QUICK WIN #2: Cache schema to avoid recreating on every parse
 // Schema is only rebuilt when component registry changes
@@ -528,6 +529,39 @@ function finishSanitizedTree(node: HastLike): boolean {
   return removedFormAction;
 }
 
+/**
+ * A <p> holding a component that draws a box becomes a <div> with the same
+ * attributes. A browser ends a paragraph at the first box inside it, so the
+ * page it built didn't match the server's and hydration failed for the
+ * whole page (template audit 01 #4). Returns the components that did it.
+ */
+function boxesOutOfParagraphs(node: HastLike, found = new Set<string>()): Set<string> {
+  if (node.type === 'element' && node.tagName === 'p') {
+    const boxes = componentsIn(node).filter(({ name, attributes }) => !paragraphSafe(name, attributes));
+    if (boxes.length > 0) {
+      node.tagName = 'div';
+      boxes.forEach(({ name }) => found.add(name));
+    }
+  }
+  for (const child of node.children ?? []) boxesOutOfParagraphs(child, found);
+  return found;
+}
+
+/** The components inside a node: registered name and attributes as written */
+function componentsIn(node: HastLike): Array<{ name: string; attributes: Record<string, unknown> }> {
+  return (node.children ?? []).flatMap((child) => [
+    ...(child.type === 'element' && child.data?.component
+      ? [{ name: componentRegistry.get(String(child.tagName))?.name ?? String(child.tagName), attributes: child.properties ?? {} }]
+      : []),
+    ...componentsIn(child),
+  ]);
+}
+
+function paragraphBoxesNote(components: Set<string>): string {
+  const names = [...components].map((name) => `<${name}>`).join(', ');
+  return `A paragraph (<p>) holding ${names} is a <div> on your page: things that draw a box can't sit inside a paragraph. Your p { } CSS doesn't reach it; use div, or give it a class.`;
+}
+
 /** How many images load straight away; the rest as they're scrolled to */
 const EAGER_IMAGES = 3;
 
@@ -578,6 +612,7 @@ export function parseTemplate(htmlString: string): Root & {
   const processed = processor.runSync(tree) as Root;
   const removedFormAction = finishSanitizedTree(processed as HastLike);
   lazyLoadLaterImages(processed as HastLike);
+  const boxedParagraphs = boxesOutOfParagraphs(processed as HastLike);
 
   const strippedComponents = reportStrippedTags(htmlString, processed, document.head);
 
@@ -587,6 +622,7 @@ export function parseTemplate(htmlString: string): Root & {
     ...reportPageProblems(htmlString),
     ...(document.warnings ?? []),
     ...(removedFormAction ? [FORM_ACTION_REMOVED] : []),
+    ...(boxedParagraphs.size > 0 ? [paragraphBoxesNote(boxedParagraphs)] : []),
   ];
 
   // Attach stripped components and attribute warnings to the result
