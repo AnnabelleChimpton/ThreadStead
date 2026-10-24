@@ -2,22 +2,30 @@
 
 import React from 'react';
 
-// Error boundary for islands rendering (P3.3 - Per-Island Error Boundaries)
-export class IslandErrorBoundary extends React.Component<
-  { children: React.ReactNode; islandId: string },
-  { hasError: boolean; error: Error | null }
-> {
+interface IslandErrorBoundaryProps {
+  children: React.ReactNode;
+  islandId: string;
+  /** The component's name, for the owner's note */
+  component?: string;
+  /** The page's owner is looking: they get a note, visitors get nothing */
+  ownerSees?: boolean;
+}
+
+// Error boundary for islands rendering (P3.3 - Per-Island Error Boundaries).
+// A component that fails leaves its spot empty for visitors, who used to see
+// "Island Error (island-…)", and a plain note for the page's owner.
+export class IslandErrorBoundary extends React.Component<IslandErrorBoundaryProps, { hasError: boolean }> {
   // The action/event system unwraps this boundary by name; minified class
   // names break that in production without an explicit displayName.
   static displayName = 'IslandErrorBoundary';
 
-  constructor(props: { children: React.ReactNode; islandId: string }) {
+  constructor(props: IslandErrorBoundaryProps) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false };
   }
 
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error };
+  static getDerivedStateFromError() {
+    return { hasError: true };
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
@@ -25,36 +33,12 @@ export class IslandErrorBoundary extends React.Component<
   }
 
   render() {
-    if (this.state.hasError) {
-      return (
-        <div className="island-error-fallback" style={{
-          padding: '16px',
-          background: '#fee',
-          border: '1px solid #fcc',
-          borderRadius: '4px',
-          color: '#c33'
-        }}>
-          <h4>Island Error ({this.props.islandId})</h4>
-          <p>Something went wrong rendering this component.</p>
-          {process.env.NODE_ENV === 'development' && this.state.error && (
-            <details style={{ marginTop: '8px' }}>
-              <summary style={{ cursor: 'pointer' }}>Error Details</summary>
-              <pre style={{
-                marginTop: '8px',
-                padding: '8px',
-                background: '#fdd',
-                borderRadius: '4px',
-                fontSize: '12px',
-                overflow: 'auto'
-              }}>
-                {this.state.error.stack}
-              </pre>
-            </details>
-          )}
-        </div>
-      );
-    }
-
-    return this.props.children;
+    if (!this.state.hasError) return this.props.children;
+    if (!this.props.ownerSees) return null;
+    return (
+      <p className="island-error-fallback" role="status" style={{ padding: '8px 12px', border: '1px dashed currentColor', fontSize: '14px' }}>
+        {this.props.component ? `<${this.props.component}>` : 'This part'} couldn&apos;t show here. Only you see this note.
+      </p>
+    );
   }
 }

@@ -10,7 +10,7 @@
  * ImageCarousel…) look through it to find their children.
  */
 import React from 'react';
-import { parseStyleString } from '@/lib/utils/css/parse-style-string';
+import { importantStyleRef, parseStyleString } from '@/lib/utils/css/parse-style-string';
 import type { Island } from '@/lib/templates/compilation/compiler';
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
 import { ResidentDataProvider } from '@/components/features/templates/ResidentDataProvider';
@@ -64,6 +64,7 @@ function renderNode(node: PageTreeNode, ctx: WalkContext, key: string): React.Re
   for (const [name, value] of node.a ?? []) {
     if (name === 'style') {
       props.style = parseStyleString(value);
+      props.ref = importantStyleRef(props.style as Record<string, string>);
     } else if (!node.svg && LEGACY_ATTRIBUTES.has(name.toLowerCase())) {
       // React has no prop for these: as a plain attribute they render as written
       props[name.toLowerCase()] = value;
@@ -116,7 +117,12 @@ function renderIsland(
   }
 
   return (
-    <IslandErrorBoundary islandId={island.id} key={island.id}>
+    <IslandErrorBoundary
+      islandId={island.id}
+      key={island.id}
+      component={island.component}
+      ownerSees={ctx.residentData.viewer?.id != null && ctx.residentData.viewer.id === ctx.residentData.owner?.id}
+    >
       <ResidentDataProvider data={ctx.residentData}>
         <Component {...componentProps}>{children}</Component>
       </ResidentDataProvider>

@@ -71,8 +71,8 @@ export default function RadioGroup(props: RadioGroupProps) {
   const value = templateState.getVariable(varName);
   const currentValue = value !== undefined ? value : '';
 
-  // Generate unique group name
-  const groupName = React.useMemo(() => `radio-group-${varName}-${Math.random().toString(36).slice(2)}`, [varName]);
+  // The group's name: the same on the server and in the browser (a random one failed hydration)
+  const groupName = `radio-group-${varName}-${React.useId()}`;
 
   // Handle value changes (memoized to prevent unnecessary re-renders)
   const handleChange = React.useCallback((value: any) => {

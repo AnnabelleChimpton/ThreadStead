@@ -140,10 +140,14 @@ export const SVG_ATTRIBUTES = [
   'azimuth', 'elevation', 'z', 'pointsAtX', 'pointsAtY', 'pointsAtZ', 'limitingConeAngle',
 ] as const
 
-/** Raw-text elements whose CONTENT goes too, so CSS or a title never shows as text. */
+/**
+ * Elements whose CONTENT goes too: raw text (so CSS or a title never shows
+ * as text), and foreignObject, whose HTML unwrapped into an <svg> made the
+ * browser's page differ from the server's and failed hydration.
+ */
 export const STRIPPED_WITH_CONTENT = [
   'script', 'style', 'title', 'iframe', 'object', 'embed', 'noscript', 'template',
-  'frame', 'frameset', 'noframes', 'noembed', 'applet',
+  'frame', 'frameset', 'noframes', 'noembed', 'applet', 'foreignObject',
 ] as const
 
 /**

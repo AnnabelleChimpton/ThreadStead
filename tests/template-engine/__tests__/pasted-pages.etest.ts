@@ -544,3 +544,9 @@ describe('images further down load as they are scrolled to', () => {
     expect(loading).toEqual([null, null, null, 'lazy', 'lazy', 'eager'])
   })
 })
+
+test('an SVG foreignObject goes with its HTML (unwrapped into the svg, it failed hydration)', () => {
+  const { staticHTML } = compileTemplateToArtifacts('<svg viewBox="0 0 10 10"><circle r="4"/><foreignObject><div>inside</div></foreignObject></svg>')
+  expect(staticHTML).toContain('<circle')
+  expect(staticHTML).not.toMatch(/foreignObject|inside/i)
+})
