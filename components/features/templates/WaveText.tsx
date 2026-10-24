@@ -52,10 +52,14 @@ export default function WaveText(props: WaveTextProps) {
         }
       `}</style>
       <span className={customClassName} style={mergedStyle}>
+        {/* The words once, for screen readers, which spelled the letter
+            spans out one by one */}
+        <span className="sr-only">{text}</span>
         {/* Array.from splits by code point; split('') broke emoji into halves */}
         {Array.from(text).map((letter, index) => (
           <span
             key={index}
+            aria-hidden="true"
             className="wave-letter"
             style={{
               animationDelay: `${index * 0.1}s`

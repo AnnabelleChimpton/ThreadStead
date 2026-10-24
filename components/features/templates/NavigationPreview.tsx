@@ -362,15 +362,20 @@ function NavigationContent({
     }}>
       <Link href="/" style={{ textDecoration: 'none', display: 'block' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <h1 style={{
+          {/* Not a heading: the page's own heading is its one <h1>
+              (template audit 14 #7). Styled as the h1 it was. */}
+          <span style={{
+            display: 'block',
             margin: 0,
             fontSize: '1.5rem',
             fontWeight: 'bold',
+            letterSpacing: '-0.02em',
+            lineHeight: 1.2,
             color: textColor === 'inherit' ? '#2E4B3F' : textColor,
             fontFamily: 'Georgia, Times New Roman, serif'
           }}>
             {config.site_name}
-          </h1>
+          </span>
         </div>
         <span style={{
           display: 'inline-block',

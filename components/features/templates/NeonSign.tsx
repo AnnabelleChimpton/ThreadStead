@@ -224,9 +224,10 @@ export default function NeonSign(props: NeonSignProps) {
       >
         {displayText}
 
-        {/* Text outline */}
+        {/* Text outline: a copy, hidden from screen readers (it read the sign out three times) */}
         {outline && (
           <div
+            aria-hidden="true"
             style={{
               position: 'absolute',
               top: 0,
@@ -248,8 +249,9 @@ export default function NeonSign(props: NeonSignProps) {
         )}
       </div>
 
-      {/* Reflection effect */}
+      {/* Reflection effect: a copy too */}
       <div
+        aria-hidden="true"
         style={{
           position: 'absolute',
           bottom: `-${parseInt(fontSizeMap[textSize]) * 0.1}px`,

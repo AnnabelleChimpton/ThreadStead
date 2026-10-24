@@ -289,3 +289,10 @@ test('a component with several classes keeps them all, space-separated (template
   const props = flatten(islands).find((island) => island.component.toLowerCase() === 'button')!._precomputed!.componentProps
   expect(props.className).toBe('big pink')
 })
+
+test("a component's aria-* attributes reach it, dashed, with ids prefixed (template audit 14 #4)", () => {
+  const { islands } = compileTemplateToArtifacts('<p id="drawer">x</p><Button aria-pressed="false" aria-controls="drawer"><OnClick></OnClick>Lamp</Button>')
+  const props = flatten(islands).find((island) => island.component.toLowerCase() === 'button')!._precomputed!.componentProps
+  expect(props['aria-pressed']).toBe('false')
+  expect(props['aria-controls']).toBe('user-content-drawer')
+})

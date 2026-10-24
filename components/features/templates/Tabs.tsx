@@ -4,6 +4,8 @@ import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConfl
 interface TabsProps extends UniversalCSSProps {
   children: React.ReactNode;
   className?: string;
+  /** What screen readers call the row of tabs */
+  label?: string;
 }
 
 interface TabProps {
@@ -19,7 +21,10 @@ export function Tab({ title, children }: TabProps) {
 
 export default function Tabs(props: TabsProps) {
   const { cssProps, componentProps } = separateCSSProps(props);
-  const { children, className: customClassName } = componentProps;
+  const { children, className: customClassName, label = 'Sections' } = componentProps;
+  // Ids of its own: two Tabs on a page shared tab-0/panel-0 (template audit 14 #6)
+  const baseId = React.useId();
+  const tabRefs = React.useRef<Array<HTMLButtonElement | null>>([]);
   // Handle both direct Tab components and children from Islands rendering
   const childArray = React.Children.toArray(children);
   
@@ -105,16 +110,33 @@ export default function Tabs(props: TabsProps) {
   return (
     <div className={wrapperClassName} style={style}>
       <div className="profile-tabs thread-module p-0 overflow-hidden">
-        <div role="tablist" aria-label="Profile sections" className="profile-tab-list flex md:flex-wrap border-b border-thread-sage/30">
+        <div
+          role="tablist"
+          aria-label={label}
+          className="profile-tab-list flex md:flex-wrap border-b border-thread-sage/30"
+          // Arrow keys move between tabs, Home and End to the ends; only the
+          // open tab is a Tab stop
+          onKeyDown={(event) => {
+            const last = tabs.length - 1;
+            const next = { ArrowRight: activeIndex + 1, ArrowLeft: activeIndex - 1, Home: 0, End: last }[event.key];
+            if (next === undefined) return;
+            event.preventDefault();
+            const index = next > last ? 0 : next < 0 ? last : next;
+            setActiveIndex(index);
+            tabRefs.current[index]?.focus();
+          }}
+        >
           {tabs.map((tab, index) => {
             const isActive = index === activeIndex;
             return (
               <button
                 key={index}
+                ref={(el) => { tabRefs.current[index] = el; }}
                 role="tab"
                 aria-selected={isActive}
-                aria-controls={`panel-${index}`}
-                id={`tab-${index}`}
+                aria-controls={`${baseId}-panel-${index}`}
+                id={`${baseId}-tab-${index}`}
+                tabIndex={isActive ? 0 : -1}
                 onClick={() => setActiveIndex(index)}
                 className={`profile-tab-button px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border-r border-thread-sage/20 focus:outline-none transition-all min-w-fit ${
                   isActive
@@ -129,8 +151,9 @@ export default function Tabs(props: TabsProps) {
         </div>
         <div
           role="tabpanel"
-          id={`panel-${activeIndex}`}
-          aria-labelledby={`tab-${activeIndex}`}
+          id={`${baseId}-panel-${activeIndex}`}
+          aria-labelledby={`${baseId}-tab-${activeIndex}`}
+          tabIndex={0}
           className="profile-tab-panel p-4 sm:p-5 md:p-6"
         >
           {tabs[activeIndex]?.content}

@@ -79,7 +79,7 @@ describe('Tabs Component', () => {
       );
 
       const tablist = screen.getByRole('tablist');
-      expect(tablist).toHaveAttribute('aria-label', 'Profile sections');
+      expect(tablist).toHaveAttribute('aria-label', 'Sections');
 
       const tab1 = screen.getByRole('tab', { name: 'Tab 1' });
       const tab2 = screen.getByRole('tab', { name: 'Tab 2' });
@@ -87,15 +87,44 @@ describe('Tabs Component', () => {
       // Check tab attributes
       expect(tab1).toHaveAttribute('aria-selected', 'true');
       expect(tab2).toHaveAttribute('aria-selected', 'false');
-      expect(tab1).toHaveAttribute('id', 'tab-0');
-      expect(tab2).toHaveAttribute('id', 'tab-1');
-      expect(tab1).toHaveAttribute('aria-controls', 'panel-0');
-      expect(tab2).toHaveAttribute('aria-controls', 'panel-1');
-
-      // Check panel attributes
+      // Each tab controls its own panel, and the panel names its tab
       const panel = screen.getByRole('tabpanel');
-      expect(panel).toHaveAttribute('id', 'panel-0');
-      expect(panel).toHaveAttribute('aria-labelledby', 'tab-0');
+      expect(tab1.getAttribute('aria-controls')).toBe(panel.id);
+      expect(panel.getAttribute('aria-labelledby')).toBe(tab1.id);
+      expect(tab1.id).not.toBe(tab2.id);
+      // Only the open tab is a Tab stop
+      expect(tab1).toHaveAttribute('tabindex', '0');
+      expect(tab2).toHaveAttribute('tabindex', '-1');
+    });
+
+    it('two Tabs on one page have ids of their own, and a label can be given', () => {
+      render(
+        <>
+          <Tabs label="My pages"><Tab title="A">a</Tab></Tabs>
+          <Tabs><Tab title="B">b</Tab></Tabs>
+        </>
+      );
+      const [first, second] = screen.getAllByRole('tab');
+      expect(first.id).not.toBe(second.id);
+      expect(screen.getAllByRole('tablist')[0]).toHaveAttribute('aria-label', 'My pages');
+    });
+
+    it('arrow keys, Home and End move between tabs', () => {
+      render(
+        <Tabs>
+          <Tab title="Tab 1">Content 1</Tab>
+          <Tab title="Tab 2">Content 2</Tab>
+          <Tab title="Tab 3">Content 3</Tab>
+        </Tabs>
+      );
+      const tablist = screen.getByRole('tablist');
+      fireEvent.keyDown(tablist, { key: 'ArrowRight' });
+      expect(screen.getByRole('tab', { name: 'Tab 2' })).toHaveAttribute('aria-selected', 'true');
+      expect(document.activeElement).toBe(screen.getByRole('tab', { name: 'Tab 2' }));
+      fireEvent.keyDown(tablist, { key: 'End' });
+      expect(screen.getByText('Content 3')).toBeInTheDocument();
+      fireEvent.keyDown(tablist, { key: 'ArrowRight' });
+      expect(screen.getByRole('tab', { name: 'Tab 1' })).toHaveAttribute('aria-selected', 'true');
     });
 
     it('should update ARIA attributes when switching tabs', () => {
@@ -117,8 +146,7 @@ describe('Tabs Component', () => {
       expect(tab2).toHaveAttribute('aria-selected', 'true');
 
       const panel = screen.getByRole('tabpanel');
-      expect(panel).toHaveAttribute('id', 'panel-1');
-      expect(panel).toHaveAttribute('aria-labelledby', 'tab-1');
+      expect(panel.getAttribute('aria-labelledby')).toBe(tab2.id);
     });
   });
 

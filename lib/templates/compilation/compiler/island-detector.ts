@@ -158,7 +158,16 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
         // inline style, the way those attributes work on plain HTML.
         const { declaredProps, undeclared } = splitDeclaredProps(islandProps, registration.props);
         const { cssProps, componentProps: otherComponentProps } = separateCSSProps(undeclared);
-        const separatedComponentProps = { ...otherComponentProps, ...declaredProps };
+        // aria-* as written reach the component too (a Button's aria-expanded,
+        // aria-controls): no registry lists them, so they were dropped and a
+        // toggle couldn't say whether it was on (template audit 14 #4).
+        // The sanitizer camel-cases them and prefixes the ids they point at.
+        const ariaProps = Object.fromEntries(
+          Object.entries(rawProps)
+            .filter(([key]) => /^aria[A-Z]/.test(key))
+            .map(([key, value]) => [`aria-${key.slice(4).toLowerCase()}`, Array.isArray(value) ? value.join(' ') : String(value)])
+        );
+        const separatedComponentProps = { ...otherComponentProps, ...declaredProps, ...ariaProps };
 
         // Convert CSS props to inline styles
         const generatedStyles = applyCSSProps(cssProps);

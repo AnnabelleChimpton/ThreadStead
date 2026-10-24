@@ -34,10 +34,10 @@ describe('RevealBox Component', () => {
       expect(button).toHaveClass(
         'px-4',
         'py-2',
-        'bg-blue-500',
+        'bg-blue-700',
         'text-white',
         'rounded',
-        'hover:bg-blue-600',
+        'hover:bg-blue-800',
         'transition-colors'
       );
     });
@@ -122,10 +122,10 @@ describe('RevealBox Component', () => {
       expect(button).toHaveClass(
         'px-4',
         'py-2',
-        'bg-blue-500',
+        'bg-blue-700',
         'text-white',
         'rounded',
-        'hover:bg-blue-600',
+        'hover:bg-blue-800',
         'transition-colors'
       );
     });
@@ -137,8 +137,8 @@ describe('RevealBox Component', () => {
       
       const button = screen.getByRole('button');
       expect(button).toHaveClass(
-        'text-blue-500',
-        'hover:text-blue-700',
+        'text-blue-700',
+        'hover:text-blue-900',
         'underline'
       );
     });
@@ -442,7 +442,7 @@ describe('RevealBox Component', () => {
       const button = screen.getByRole('button', { name: 'Expand details' });
       
       // Check button style
-      expect(button).toHaveClass('text-blue-500', 'hover:text-blue-700', 'underline');
+      expect(button).toHaveClass('text-blue-700', 'hover:text-blue-900', 'underline');
       
       // Click to reveal
       fireEvent.click(button);
@@ -621,7 +621,7 @@ describe('RevealBox Component', () => {
         backgroundColor: '#eeeeee'
       });
       // Button styling is unaffected by wrapper CSS props
-      expect(screen.getByRole('button')).toHaveClass('bg-blue-500', 'text-white');
+      expect(screen.getByRole('button')).toHaveClass('bg-blue-700', 'text-white');
     });
   });
 
@@ -648,7 +648,17 @@ describe('RevealBox Component', () => {
       
       rerender(<RevealBox buttonStyle="link">Final content</RevealBox>);
       const button = screen.getByRole('button');
-      expect(button).toHaveClass('text-blue-500', 'underline');
+      expect(button).toHaveClass('text-blue-700', 'underline');
     });
+  });
+});
+describe('says whether it is open (template audit 14 #6)', () => {
+  it('aria-expanded follows the box, and points at what it opens', () => {
+    renderWithTemplateContext(<RevealBox buttonText="Show" revealText="Hide"><p>secret</p></RevealBox>);
+    const button = screen.getByRole('button');
+    expect(button).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(button);
+    expect(button).toHaveAttribute('aria-expanded', 'true');
+    expect(document.getElementById(button.getAttribute('aria-controls')!)).toHaveTextContent('secret');
   });
 });

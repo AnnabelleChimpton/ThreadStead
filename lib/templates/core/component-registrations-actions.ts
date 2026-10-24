@@ -592,7 +592,8 @@ export function registerActionComponents(registry: ComponentRegistry) {
       element: { type: 'string', required: true, description: 'A CSS selector for the element or elements, like #thanks or .note. "this" doesn\'t work here.' },
       attribute: { type: 'string', required: true, description: 'The attribute to set, like hidden, disabled or aria-expanded.' },
       when: { type: 'string', required: false, description: 'The test. With =, !, < or > in it, it\'s worked out as a calculation, like $vars.likes === 0. Otherwise it names a value that must be on, like $vars.open. Leave it out and the attribute is never set.' },
-      value: { type: 'string', default: 'true', description: 'The attribute\'s value while the test passes. Default true.' }
+      value: { type: 'string', default: 'true', description: 'The attribute\'s value while the test passes. Default true.' },
+      otherwise: { type: 'string', description: 'Its value while the test fails, like false for aria-expanded. Leave it out and the attribute is taken off.' }
     },
     relationship: {
       type: 'interactive',

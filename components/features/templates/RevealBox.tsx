@@ -20,10 +20,12 @@ export default function RevealBox(props: RevealBoxProps) {
   } = componentProps;
 
   const [isRevealed, setIsRevealed] = useState(false);
+  const contentId = React.useId();
 
+  // Blue dark enough for its text (blue-500 was 3.7:1 against white)
   const buttonClasses = {
-    'button': 'px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors',
-    'link': 'text-blue-500 hover:text-blue-700 underline',
+    'button': 'px-4 py-2 bg-blue-700 text-white rounded hover:bg-blue-800 transition-colors',
+    'link': 'text-blue-700 hover:text-blue-900 underline',
     'minimal': 'text-gray-600 hover:text-gray-800 border-b border-dashed border-gray-400'
   }[buttonStyle];
 
@@ -50,7 +52,11 @@ export default function RevealBox(props: RevealBoxProps) {
 
   return (
     <div className={filteredClasses} style={appliedStyles}>
+      {/* Says whether it's open, not only by its words changing */}
       <button
+        type="button"
+        aria-expanded={isRevealed}
+        aria-controls={contentId}
         onClick={() => setIsRevealed(!isRevealed)}
         className={buttonClasses}
       >
@@ -58,7 +64,7 @@ export default function RevealBox(props: RevealBoxProps) {
       </button>
 
       {isRevealed && (
-        <div className={`mt-4 ${getRevealAnimation()}`}>
+        <div id={contentId} className={`mt-4 ${getRevealAnimation()}`}>
           {children}
         </div>
       )}

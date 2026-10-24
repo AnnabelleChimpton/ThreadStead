@@ -109,12 +109,14 @@ a {
 
   <div class="room-header">
     <DisplayName as="h1" />
-    <Button>
+    <Button id="lamp-switch" aria-pressed="true">
       <OnClick>
         <Toggle var="lampOn" />
       </OnClick>
       Switch the lamp
     </Button>
+    <!-- Tells screen readers whether the lamp is on -->
+    <ConditionalAttr element="#lamp-switch" attribute="aria-pressed" when="$vars.lampOn" value="true" otherwise="false" />
   </div>
 
   <If data="$vars.lampOn">

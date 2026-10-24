@@ -49,6 +49,9 @@ export default function Button(props: ButtonProps) {
     disabled = false,
   } = componentProps;
 
+  // aria-* as the page wrote them (aria-pressed, aria-expanded, aria-controls)
+  const ariaProps = Object.fromEntries(Object.entries(props).filter(([name]) => name.startsWith('aria-')));
+
   // Extract OnClick handler from children
   const clickHandler = useOnClickHandler(children);
 
@@ -67,6 +70,7 @@ export default function Button(props: ButtonProps) {
 
   return (
     <button
+      {...ariaProps}
       id={id}
       type={type}
       disabled={disabled}

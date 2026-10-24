@@ -29,6 +29,9 @@ export default function GlitchText(props: GlitchTextProps) {
   // Apply CSS props as inline styles
   const style = applyCSSProps(cssProps);
 
+  // The text as a CSS string: an apostrophe or backslash ended it early
+  const cssText = String(text ?? '').replace(/[\\']/g, (c) => `\\${c}`).replace(/[\r\n]+/g, ' ');
+
   return (
     <>
       <style jsx>{`
@@ -41,7 +44,11 @@ export default function GlitchText(props: GlitchTextProps) {
         
         .glitch::before,
         .glitch::after {
-          content: '${text}';
+          content: '${cssText}';
+          /* The copies have empty alt text, so screen readers say the words
+             once (they said them three times); a browser that doesn't know
+             the / syntax keeps the line above */
+          content: '${cssText}' / '';
           position: absolute;
           top: 0;
           left: 0;

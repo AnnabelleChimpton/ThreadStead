@@ -585,7 +585,9 @@ export function registerDisplayComponents(registry: ComponentRegistry) {
     group: 'layout',
     description: 'A row of tab buttons with one panel underneath. Each Tab inside becomes a button; the first is open when the page loads, and clicking another swaps the panel.',
     example: '<Tabs>\n  <Tab title="About"><p>I keep bees and write about it.</p></Tab>\n  <Tab title="Reading list"><ul><li>Piranesi</li><li>A Wizard of Earthsea</li></ul></Tab>\n</Tabs>',
-    props: {},
+    props: {
+      label: { type: 'string', default: 'Sections', description: 'What screen readers call the row of tabs, like "My pages". Defaults to Sections.' }
+    },
     relationship: {
       type: 'parent',
       acceptsChildren: ['Tab'],

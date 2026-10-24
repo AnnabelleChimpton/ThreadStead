@@ -69,7 +69,7 @@ describe('WaveText Component', () => {
       
       const letterSpans = container.querySelectorAll('.wave-letter');
       expect(letterSpans).toHaveLength(1);
-      expect(screen.getByText('A')).toBeInTheDocument();
+      expect(letterSpans[0]).toHaveTextContent('A');
     });
 
     it('should handle spaces with non-breaking spaces', () => {
@@ -421,19 +421,19 @@ describe('WaveText Component', () => {
         <WaveText text="Accessible Text" />
       );
       
-      // Text should still be readable as a whole
-      const containerSpan = container.querySelector('span:not(.wave-letter)');
-      expect(containerSpan?.textContent).toBe('Accessible\u00A0Text');
+      // Read as a whole, once: a hidden copy of the words (the letters
+      // were spelled out one by one: template audit 14 #5)
+      expect(container.querySelector('.sr-only')?.textContent).toBe('Accessible Text');
     });
 
-    it('should not add unnecessary ARIA attributes', () => {
+    it('hides the letter spans from screen readers, without extra roles', () => {
       const { container } = renderWithTemplateContext(
         <WaveText text="Test" />
       );
       
       const letterSpans = container.querySelectorAll('.wave-letter');
       letterSpans.forEach(span => {
-        expect(span).not.toHaveAttribute('aria-hidden');
+        expect(span).toHaveAttribute('aria-hidden', 'true');
         expect(span).not.toHaveAttribute('role');
       });
     });

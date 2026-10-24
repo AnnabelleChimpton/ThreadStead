@@ -57,6 +57,13 @@ export interface ConditionalAttrProps {
   /** Attribute value when condition is true (default: "true") */
   value?: string;
 
+  /**
+   * Its value while the test fails. Left out, the attribute is removed;
+   * aria-expanded and aria-pressed need "false" instead, since without the
+   * attribute a toggle isn't one (template audit 14 #4).
+   */
+  otherwise?: string;
+
   // Condition operators (like Show component)
   condition?: string;
   data?: string;
@@ -85,6 +92,7 @@ export default function ConditionalAttr(props: ConditionalAttrProps) {
     attribute,
     when,
     value = 'true',
+    otherwise,
     ...conditionProps
   } = props;
 
@@ -152,6 +160,8 @@ export default function ConditionalAttr(props: ConditionalAttrProps) {
           elements.forEach(el => {
             if (conditionMet) {
               el.setAttribute(attribute, value);
+            } else if (otherwise !== undefined) {
+              el.setAttribute(attribute, otherwise);
             } else {
               el.removeAttribute(attribute);
             }
@@ -179,7 +189,7 @@ export default function ConditionalAttr(props: ConditionalAttrProps) {
         unsubscribe();
       }
     };
-  }, [element, attribute, value, when, JSON.stringify(conditionProps), residentData, forEachContext]);
+  }, [element, attribute, value, otherwise, when, JSON.stringify(conditionProps), residentData, forEachContext]);
 
   // Normal mode - component doesn't render
   return null;
@@ -199,6 +209,7 @@ export function executeConditionalAttrAction(
     attribute,
     when,
     value = 'true',
+    otherwise,
     ...conditionProps
   } = props;
 
@@ -250,6 +261,8 @@ export function executeConditionalAttrAction(
     elements.forEach(el => {
       if (conditionMet) {
         el.setAttribute(attribute, value);
+      } else if (otherwise !== undefined) {
+        el.setAttribute(attribute, otherwise);
       } else {
         el.removeAttribute(attribute);
       }
