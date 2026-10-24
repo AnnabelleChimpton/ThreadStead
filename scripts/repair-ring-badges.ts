@@ -1,14 +1,13 @@
 #!/usr/bin/env tsx
 /**
- * One-off (2026-10-23): repair the ring badges that are wrong today, as
- * found in the ThreadRing audit (design/threadring-audit/08-badges.md).
+ * Bring every ring's badge onto the new badges (design/threadring-audit/08-badges.md).
  *
- * - REDRAW: badges showing another ring's name ("The Spool F…"), the one
- *   stored inline as a data: URL, and the two hotlinked from other sites.
- *   Each is drawn again as the default Label, in the ring's colour.
- * - Every other ring whose badge is an image its host uploaded, but whose
- *   HD points at a different, older picture: the HD becomes the same
- *   upload's full size, so the host's art stays.
+ * - Redrawn as the default Label (linked-rings picture, the ring's colour,
+ *   its full name): badges from the old generator, ones stored inline as a
+ *   data: URL, and ones hotlinked from other sites.
+ * - Badges the host uploaded stay. If their HD points at a different, older
+ *   picture, it becomes the same upload's full size.
+ * - Badges drawn by the new system stay as their host chose them.
  *
  * Signed as this site, which the hub lets act as an admin. Every member's
  * badge picks up the change (the hub keeps each badge's id and date).
@@ -20,10 +19,17 @@
  */
 import './load-env'
 import { getPublicRingHubClient, getRingHubClient } from '@/lib/api/ringhub/ringhub-client'
+import { drawnBadgeChoice } from '@/lib/badge-uploader'
 import { drawAndUploadRingBadge } from '@/lib/rings/badge'
 import { badgeChoiceFor } from '@/lib/rings/badge-art'
+import { keyFromPublicUrl } from '@/lib/storage/r2'
 
-const REDRAW = ['television', 'technology', 'pets', 'threadstead', 'big-brother', 'music']
+/** Old generator output, inline data: badges and hotlinks: anything that isn't a new drawing or one of our uploads. */
+function needsRedraw(url: string): boolean {
+  const key = keyFromPublicUrl(url)
+  if (!key) return true
+  return key.startsWith('badges/') && !drawnBadgeChoice(url)
+}
 
 /** The full-size copy of one of our uploads, from its medium (or full) size's address. */
 const fullSizeOf = (url: string) => (/\/media\/.+_(medium|full)\.\w+$/.test(url) ? url.replace(/_medium(\.\w+)$/, '_full$1') : null)
@@ -39,15 +45,16 @@ async function main() {
   const { rings } = await getPublicRingHubClient().listRings({ limit: 100 })
 
   for (const ring of rings) {
-    if (REDRAW.includes(ring.slug)) {
-      console.log(`redraw  ${ring.slug}: ${ring.badgeImageUrl?.slice(0, 80) ?? 'none'} → Label`)
+    const url = ring.badgeImageUrl
+    if (!url) continue
+    if (needsRedraw(url)) {
+      console.log(`redraw  ${ring.slug}: ${url.slice(0, 80)} → Label`)
       if (!apply) continue
-      // The default badge: Label with its linked-rings picture (no picture also drops the coloured tab)
       const badge = await drawAndUploadRingBadge(ring, badgeChoiceFor({}))
       await hub.updateRingBadge(ring.slug, { ...badge, updateExistingBadges: true })
       continue
     }
-    const full = ring.badgeImageUrl ? fullSizeOf(ring.badgeImageUrl) : null
+    const full = fullSizeOf(url)
     if (!full || ring.badgeImageHighResUrl === full) continue
     if (!(await exists(full))) {
       console.log(`skip    ${ring.slug}: no full size at ${full}`)
