@@ -1,7 +1,6 @@
 // pages/resident/[username]/index.tsx
 import { getSiteBaseUrl } from '@/lib/config/site-url';
 import React from "react";
-import { getInternalBaseUrl } from "@/lib/utils/api/internal-base-url";
 import type { GetServerSideProps } from "next";
 import PageMeta from "@/components/ui/layout/PageMeta";
 import type { PageImage } from "@/lib/share-images";
@@ -383,111 +382,64 @@ export default function ProfilePage({
   );
 }
 
-/* ---------------- SSR: call /api/profile and omit undefined keys ---------------- */
+/* ---------------- SSR: the resident's page, as this viewer sees it ---------------- */
 export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ params, query, req }) => {
   const usernameParam = Array.isArray(params?.username) ? params.username[0] : String(params?.username || "");
   if (!usernameParam) return { notFound: true };
 
-  const base = getInternalBaseUrl();
+  const [{ getSessionUser }, { loadResidentPage, pageReads }, { db }] = await Promise.all([
+    import('@/lib/auth/server'),
+    import('@/lib/domain/profile/load-resident-page'),
+    import('@/lib/config/database/connection'),
+  ]);
 
-  const res = await fetch(`${base}/api/profile/${encodeURIComponent(usernameParam)}`, {
-    headers: {
-      cookie: req.headers.cookie || '',
-    },
-  });
-  if (res.status === 404) return { notFound: true };
+  // Who's looking, once: it was looked up again for the profile, the music,
+  // the page's data and the widget slot
+  const viewer = await getSessionUser(req as any);
+  let lookup: Awaited<ReturnType<typeof loadResidentPage>>;
+  try {
+    lookup = await loadResidentPage(usernameParam, viewer);
+  } catch (error) {
+    console.error('Failed to load the profile:', error);
+    // Still a page, with its owner unknown, rather than an error
+    return { props: { username: usernameParam, ownerUserId: "unknown", bio: "Profile unavailable right now.", initialTabId: "blog" } };
+  }
+  if (lookup.status === 'not-found') return { notFound: true };
 
-  // Handle private profile - show a custom page instead of 404
-  if (res.status === 403) {
-    const privateData = await res.json();
-    if (privateData.error === 'private_profile') {
-      const props: ProfileProps = {
-        username: privateData.username || usernameParam,
+  // A private profile shows its own page instead of a 404
+  if (lookup.status === 'private') {
+    return {
+      props: {
+        username: lookup.username,
         ownerUserId: 'private',
         isPrivateProfile: true,
-        privateProfileVisibility: privateData.visibility,
-        displayName: privateData.displayName,
-        photoUrl: privateData.avatarUrl || '/assets/default-avatar.gif',
-      };
-      return { props };
-    }
-  }
-
-  if (!res.ok) {
-    // Fallback: we still must supply ownerUserId, but we don't have it.
-    // You can 404 here, but we'll set a dummy and keep page usable.
-    const props: ProfileProps = {
-      username: usernameParam,
-      ownerUserId: "unknown",            // minimal fallback
-      bio: "Profile unavailable right now.",
-      initialTabId: "blog",
+        privateProfileVisibility: lookup.visibility,
+        displayName: lookup.displayName,
+        photoUrl: lookup.avatarUrl || '/assets/default-avatar.gif',
+      },
     };
-    return { props };
   }
+  const data = lookup.resident;
+  const profile = data.profile;
+  const username = data.username || usernameParam;
+  const advanced = profile?.templateMode === 'advanced';
 
-  // Fetch admin default CSS from public site config
-  let adminDefaultCSS = "";
-  try {
-    const configRes = await fetch(`${base}/api/site-config`);
-    if (configRes.ok) {
-      const configData = await configRes.json();
-      adminDefaultCSS = configData.config?.default_profile_css || "";
-    }
-  } catch (error) {
-    console.error("Failed to fetch admin default CSS:", error);
-  }
-
-  // Fetch site-wide CSS server-side to prevent hydration mismatches
-  const siteWideCSS = await getSiteCSS();
-
-  // If no admin default CSS is set, leave empty to use clean ThreadStead styling
-  // (removing automatic fallback to professional template)
-
-  const data: {
-    userId: string;                      // <-- expecting this from /api/profile
-    username?: string;
-    profile?: {
-      bio?: string;
-      avatarUrl?: string;
-      displayName?: string;
-      customCSS?: string;
-      customTemplate?: string;
-      templateMode?: 'default' | 'enhanced' | 'advanced';
-      cssMode?: 'inherit' | 'override' | 'disable';
-      hideNavigation?: boolean;
-      // Islands compilation data
-      compiledTemplate?: any;
-      templateCompiledAt?: string;
-      blogroll?: unknown[];
-      featuredFriends?: unknown[];
-      hiddenTabs?: string[];
-      bannerUrl?: string | null;
-      status?: string | null;
-      visibility?: 'public' | 'followers' | 'friends' | 'private';
-    };
-    profileMidi?: {
-      url: string;
-      title?: string;
-      /** The owner's credit line for the song */
-      credit?: string | null;
-      autoplay?: boolean;
-      loop?: boolean;
-    };
-    hasPixelHome?: boolean;
-    widgetSlot?: PublicWidgetSlot | null;
-    blueskyHandle?: string | null;
-    siteUrl?: string | null;
-  } = await res.json();
+  const [adminDefault, siteWideCSS] = await Promise.all([
+    // The CSS a profile without its own wears (Admin > Site settings)
+    db.siteConfig.findUnique({ where: { key: 'default_profile_css' }, select: { value: true } }).catch(() => null),
+    // Site-wide CSS server-side to prevent hydration mismatches
+    getSiteCSS(),
+  ]);
 
   const requested = typeof query.tab === "string" ? query.tab : undefined;
-  const hiddenTabs = Array.isArray(data.profile?.hiddenTabs) ? data.profile.hiddenTabs : [];
+  const hiddenTabs = Array.isArray(profile?.hiddenTabs) ? profile.hiddenTabs : [];
   const allowedBaseIds = new Set(["blog", "media", "friends", "badges", "guestbook"].filter((id) => !hiddenTabs.includes(id)));
   const initialTabId = requested && allowedBaseIds.has(requested) ? requested : "blog";
 
   // Convert blogroll to websites
   const websites: Website[] = [];
-  if (data.profile?.blogroll && Array.isArray(data.profile.blogroll)) {
-    data.profile.blogroll.forEach((item: unknown) => {
+  if (Array.isArray(profile?.blogroll)) {
+    profile.blogroll.forEach((item: unknown) => {
       if (typeof item === 'object' && item !== null) {
         const obj = item as Record<string, unknown>;
         if (typeof obj.label === 'string' && typeof obj.url === 'string') {
@@ -505,9 +457,8 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
 
   // Convert featuredFriends to SelectedFriend[]
   const featuredFriends: SelectedFriend[] = [];
-
-  if (Array.isArray(data.profile?.featuredFriends)) {
-    data.profile.featuredFriends.forEach((item: unknown) => {
+  if (Array.isArray(profile?.featuredFriends)) {
+    profile.featuredFriends.forEach((item: unknown) => {
       if (typeof item === 'object' && item !== null) {
         const obj = item as Record<string, unknown>;
         if (typeof obj.id === 'string' && typeof obj.handle === 'string') {
@@ -522,86 +473,57 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
     });
   }
 
-  // Handle custom template data
-  let residentData: ResidentData | undefined;
-
   // Shared resolver: server and client MUST resolve identically (this used
   // to diverge between SSR, ProfileLayout, and ProfileModeRenderer).
-  const cssMode = resolveCSSMode(data.profile?.cssMode);
-
-  // A page of your own HTML renders from its one compiled copy. A page saved
-  // before compiled copies were stored is compiled here from its source
-  // (cached by source), the same compile the editor and a save run.
-  // The source is read here on the server: the profile API only shows it to
-  // the owner.
-  let compiledTemplate: unknown = data.profile?.compiledTemplate ?? null;
-  if (data.profile?.templateMode === 'advanced' && compiledTemplate == null) {
-    const { db } = await import('@/lib/config/database/connection');
-    const source = await db.profile.findUnique({ where: { userId: data.userId }, select: { customTemplate: true } });
-    if (source?.customTemplate?.trim()) {
-      const { compileForEditor } = await import('@/lib/templates/compilation/compile-for-editor');
-      const compiled = await compileForEditor(source.customTemplate);
-      if (compiled.ok) compiledTemplate = compiled.compiled;
-    }
-  }
+  const cssMode = resolveCSSMode(profile?.cssMode);
+  const owner = {
+    id: data.userId,
+    handle: username,
+    displayName: profile?.displayName || username,
+    avatarUrl: profile?.avatarUrl || "/assets/default-avatar.gif",
+  };
 
   // A signed-in visitor who said "don't play music automatically for me"
   // gets the song paused, wherever the page plays it. (A signed-out
   // visitor's choice lives in their browser; the player reads it there.)
-  if (data.profileMidi?.autoplay) {
-    const { getSessionUser } = await import('@/lib/auth/server');
-    const visitor = await getSessionUser(req as any);
-    if (visitor) {
-      const { db } = await import('@/lib/config/database/connection');
-      const own = await db.profile
-        .findUnique({ where: { userId: visitor.id }, select: { playProfileMusicAutomatically: true } })
-        .catch(() => null);
-      if (own && !own.playProfileMusicAutomatically) {
-        data.profileMidi = { ...data.profileMidi, autoplay: false };
-      }
-    }
+  let profileMidi = data.profileMidi;
+  if (profileMidi?.autoplay && viewer) {
+    const own = await db.profile
+      .findUnique({ where: { userId: viewer.id }, select: { playProfileMusicAutomatically: true } })
+      .catch(() => null);
+    if (own && !own.playProfileMusicAutomatically) profileMidi = { ...profileMidi, autoplay: false };
   }
 
-  // Who the page belongs to, with nothing else loaded: a page of your own
-  // HTML whose data didn't load still renders as itself (its lists empty),
-  // and one with no compiled copy shows its own "couldn't be shown" note.
-  // Without it both fell through to the standard layout, still wearing the
-  // page's own CSS (template audit 01 #11c/d).
+  // A page of your own HTML: what its components read. Who the page belongs
+  // to, with nothing else loaded, when its data didn't load or it has no
+  // compiled copy: it still renders as itself, its lists empty, or shows its
+  // own "couldn't be shown" note. Without it both fell through to the
+  // standard layout, still wearing the page's own CSS (template audit 01 #11c/d).
+  let residentData: ResidentData | undefined;
   const ownerOnly = (): ResidentData => ({
-    owner: {
-      id: data.userId,
-      handle: data.username || usernameParam,
-      displayName: data.profile?.displayName || data.username || usernameParam,
-      avatarUrl: data.profile?.avatarUrl || "/assets/default-avatar.gif",
-    },
+    owner,
     viewer: { id: null },
     posts: [],
     guestbook: [],
     images: [],
-    capabilities: { bio: data.profile?.bio || "" },
+    capabilities: { bio: profile?.bio || "" },
     featuredFriends: [],
     websites: [],
     cssRenderMode: mapProfileCSSModeToComponentMode(cssMode),
   });
-  if (data.profile?.templateMode === 'advanced' && compiledTemplate == null) residentData = ownerOnly();
+  const page = advanced ? data.page : null;
+  if (advanced && !page) residentData = ownerOnly();
 
-  // Load what the page's components read
-  if (data.profile?.templateMode === 'advanced' && compiledTemplate != null) {
+  if (page) {
     try {
-      // Fetch posts and guestbook data for template rendering using direct DB calls
-      const { getSessionUser } = await import('@/lib/auth/server');
       const { getPostsForUser, getGuestbookForUser, getPhotosForUser } = await import('@/lib/utils/data/fetchers');
-
-      const currentUser = await getSessionUser(req as any);
-      const viewerId = currentUser?.id;
+      const viewerId = viewer?.id;
 
       // Compute viewer relationship to profile owner
       let isFriend = false;
       let isFollowing = false;
       let isFollower = false;
-
-      if (viewerId && data.userId && viewerId !== data.userId) {
-        const { db } = await import('@/lib/config/database/connection');
+      if (viewerId && viewerId !== data.userId) {
         const [viewerFollowsOwner, ownerFollowsViewer] = await Promise.all([
           db.follow.findUnique({
             where: { followerId_followeeId: { followerId: viewerId, followeeId: data.userId } },
@@ -610,22 +532,21 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
             where: { followerId_followeeId: { followerId: data.userId, followeeId: viewerId } },
           })
         ]);
-
         isFollowing = viewerFollowsOwner?.status === "accepted";
         isFollower = ownerFollowsViewer?.status === "accepted";
         isFriend = isFollowing && isFollower;
       }
 
+      // Only the lists the page reads (pageReads)
       const [postsData, guestbookData, imagesData] = await Promise.allSettled([
-        getPostsForUser(usernameParam, viewerId),
-        getGuestbookForUser(usernameParam),
-        getPhotosForUser(usernameParam, 1, 20)
+        pageReads(page, 'posts') ? getPostsForUser(usernameParam, viewerId) : null,
+        pageReads(page, 'guestbook') ? getGuestbookForUser(usernameParam) : null,
+        pageReads(page, 'images') ? getPhotosForUser(usernameParam, 1, 20) : null,
       ]);
 
       // Handle posts data
       let posts: ResidentData['posts'] = [];
       if (postsData.status === 'fulfilled' && postsData.value) {
-
         const { postBodyHtml } = await import("@/lib/templates/core/post-body");
         posts = postsData.value.posts?.map((post: any) => ({
           id: post.id || '',
@@ -660,14 +581,8 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
         })) || [];
       }
 
-      // Create resident data from existing profile data
       residentData = {
-        owner: {
-          id: data.userId,
-          handle: data.username || usernameParam,
-          displayName: data.profile?.displayName || data.username || usernameParam,
-          avatarUrl: data.profile?.avatarUrl || "/assets/default-avatar.gif"
-        },
+        owner,
         viewer: {
           id: viewerId || null,
           isFriend,
@@ -679,18 +594,18 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
         guestbook,
         images,
         capabilities: {
-          bio: data.profile?.bio || ""
+          bio: profile?.bio || ""
         },
         featuredFriends,
         websites,
         // Map profile CSS mode to component CSS render mode
         cssRenderMode: mapProfileCSSModeToComponentMode(cssMode),
         // For <ProfileMusic />: the song plays where the page puts it
-        ...(data.profileMidi ? { profileMidi: data.profileMidi } : {}),
+        ...(profileMidi ? { profileMidi } : {}),
       };
       // <MyHouse /> <HouseBadge /> <RingNav />: the owner's home, read only when the page uses one
       const { pageHomeIfUsed } = await import('@/lib/templates/page-home');
-      const pixelHome = await pageHomeIfUsed(compiledTemplate, data.userId, data.hasPixelHome === true).catch(() => undefined);
+      const pixelHome = await pageHomeIfUsed(page, data.userId, data.hasPixelHome).catch(() => undefined);
       if (pixelHome !== undefined) residentData.pixelHome = pixelHome;
     } catch (error) {
       console.error('Error preparing custom template:', error);
@@ -700,63 +615,46 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
 
   // Build typed props; omit undefined fields
   const props: ProfileProps = {
-    username: data.username || usernameParam,
-    ownerUserId: data.userId,            // <-- set it
+    username,
+    ownerUserId: data.userId,
     initialTabId,
     hiddenTabs,
   };
-  if (data.profile?.bio != null) props.bio = data.profile.bio;
-  if (data.profile?.avatarUrl != null) props.photoUrl = data.profile.avatarUrl;
-  if (data.profile?.bannerUrl) props.bannerUrl = data.profile.bannerUrl;
-  if (data.profile?.status) props.status = data.profile.status;
+  if (profile?.bio != null) props.bio = profile.bio;
+  if (profile?.avatarUrl != null) props.photoUrl = profile.avatarUrl;
+  if (profile?.bannerUrl) props.bannerUrl = profile.bannerUrl;
+  if (profile?.status) props.status = profile.status;
   if (residentData != null) props.residentData = residentData;
-  // hideNavigation should only apply to advanced templates, always show navigation in standard mode
-  if (data.profile?.hideNavigation != null && data.profile?.templateMode === 'advanced') {
-    props.hideNavigation = data.profile.hideNavigation;
-  } else {
-    props.hideNavigation = false; // Always show navigation for standard/enhanced modes
-  }
-  if (data.profile?.templateMode != null) props.templateMode = data.profile.templateMode;
-
+  // hideNavigation only applies to a page of your own HTML; the standard layout always has the nav
+  props.hideNavigation = advanced && profile?.hideNavigation != null ? profile.hideNavigation : false;
+  if (profile?.templateMode != null) props.templateMode = profile.templateMode;
 
   // A page of your own HTML: the tree it renders from on the server and in
   // the browser, its components, and its <head> bits (title, fonts, <body>
-  // colours). Only what rendering reads, not the three stored copies, and
-  // only this viewer's side of IfOwner / IfVisitor. Without residentData the
-  // tree isn't rendered; it goes out as a visitor's.
-  if (data.profile?.templateMode === 'advanced' && compiledTemplate != null) {
-    const { pageForRender } = await import('@/lib/templates/rendering/page-tree-server');
-    const { viewerIsOwner } = await import('@/components/features/templates/conditional/IfOwner');
-    const page = pageForRender(compiledTemplate, {
-      isOwner: residentData != null && viewerIsOwner(residentData),
-    });
-    if (page) props.compiledTemplate = page;
-  }
+  // colours), as this viewer sees it (the loader's pageForRender). Without
+  // residentData the tree isn't rendered.
+  if (page) props.compiledTemplate = page;
 
   // The page's CSS: theirs if they have some, else the admin default
   // (lib/domain/profile/layout.ts). Site styles follow cssMode, in _app.
-  const templateMode = data.profile?.templateMode || 'default';
-
   props.cssMode = cssMode;
-
-  const css = pageCSS(data.profile, adminDefaultCSS);
+  const css = pageCSS(profile, adminDefault?.value || "");
   if (css !== undefined) props.customCSS = css;
 
   if (websites.length > 0) props.websites = websites;
   if (featuredFriends.length > 0) props.featuredFriends = featuredFriends;
-  if (data.profileMidi) props.profileMidi = data.profileMidi;
-  props.hasPixelHome = data.hasPixelHome === true;
+  if (profileMidi) props.profileMidi = profileMidi;
+  props.hasPixelHome = data.hasPixelHome;
   // A feed and a link preview reach anyone, signed out: public profiles only
-  if (data.profile?.visibility === 'public') {
-    const username = data.username || usernameParam;
+  if (profile?.visibility === 'public') {
     props.feedUrl = residentFeedUrl(username);
     const { residentShareImage } = await import('@/lib/share-images/server');
     const image = await residentShareImage({
       userId: data.userId,
       username,
-      name: data.profile.displayName || `@${username}`,
+      name: profile.displayName || `@${username}`,
       hasPixelHome: props.hasPixelHome,
-      avatarUrl: data.profile.avatarUrl,
+      avatarUrl: profile.avatarUrl,
     }).catch(() => null);
     if (image) props.shareImage = image;
   }
@@ -765,33 +663,23 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
 
   // The widget slot belongs to the standard layout; a page of your own HTML
   // has its own place for components.
-  if (data.widgetSlot && templateMode !== 'advanced') {
-    const { getSessionUser } = await import('@/lib/auth/server');
-    const viewer = await getSessionUser(req as any);
+  if (data.widgetSlot && !advanced) {
     props.widgetSlot = data.widgetSlot;
     props.widgetSlotData = {
-      owner: {
-        id: data.userId,
-        handle: data.username || usernameParam,
-        displayName: data.profile?.displayName || data.username || usernameParam,
-        avatarUrl: data.profile?.avatarUrl || "/assets/default-avatar.gif",
-      },
+      owner,
       viewer: { id: viewer?.id ?? null },
       // Widgets that need posts or pictures can't go in the slot (compile.ts)
       posts: [],
       guestbook: [],
-      capabilities: { bio: data.profile?.bio || "" },
+      capabilities: { bio: profile?.bio || "" },
       featuredFriends,
       websites,
       cssRenderMode: mapProfileCSSModeToComponentMode(cssMode),
-      ...(data.profileMidi ? { profileMidi: data.profileMidi } : {}),
+      ...(profileMidi ? { profileMidi } : {}),
     };
   }
 
-  // Add metadata props
-  if (data.profile?.displayName) props.displayName = data.profile.displayName;
-  // Note: We don't have user creation date in the current API response,
-  // but we can add it if needed in the future
+  if (profile?.displayName) props.displayName = profile.displayName;
 
   // Add site-wide CSS for SSR (prevents hydration mismatch)
   props.initialSiteCSS = siteWideCSS;

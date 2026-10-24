@@ -13,9 +13,16 @@
  */
 jest.mock('@/lib/config/database/connection', () => ({
   db: {
-    profile: { findUnique: jest.fn(async () => ({ customTemplate: '<h1>My own page</h1>' })) },
+    handle: { findFirst: jest.fn() },
+    siteConfig: { findUnique: jest.fn(async () => ({ value: '.ts-profile-header { color: teal; }' })) },
+    media: { findUnique: jest.fn(async () => null) },
   },
 }))
+jest.mock('@/lib/domain/users/profile-access', () => ({
+  residentAccess: jest.fn(async () => ({ visible: true })),
+  hasPixelHome: jest.fn(async () => false),
+}))
+jest.mock('@/lib/domain/bluesky/handle-links', () => ({ verifiedBlueskyHandle: jest.fn(async () => null) }))
 jest.mock('@/lib/auth/server', () => ({ getSessionUser: jest.fn(async () => null) }))
 jest.mock('@/lib/utils/css/site-css-server', () => ({ getSiteCSS: jest.fn(async () => '') }))
 jest.mock('@/lib/utils/data/fetchers', () => ({
@@ -25,6 +32,7 @@ jest.mock('@/lib/utils/data/fetchers', () => ({
 }))
 
 import type { GetServerSidePropsContext } from 'next'
+import { db } from '@/lib/config/database/connection'
 import { getServerSideProps as profilePageProps } from '@/pages/resident/[username]/index'
 import { getServerSideProps as postPageProps } from '@/pages/resident/[username]/post/[postId]'
 
@@ -33,8 +41,16 @@ const OWN_CSS = 'body { background: plum; }'
 
 const json = (status: number, body: unknown) => ({ ok: status < 400, status, json: async () => body }) as Response
 
-/** /api/profile answers with this profile; /api/site-config with the admin default */
+/**
+ * The stored row the profile page's loader reads (lib/domain/profile/load-resident-page.ts),
+ * and what /api/profile answers the post page with. A page of your own HTML
+ * with no compiled copy is compiled from its source, as an old row is.
+ */
 function serve(profile: Record<string, unknown>) {
+  const row = { visibility: 'public', templateMode: 'default', customTemplate: '<h1>My own page</h1>', compiledTemplate: null, widgetSlot: null, profileMidiId: null, ...profile }
+  ;(db.handle.findFirst as jest.Mock).mockResolvedValue({
+    user: { id: 'u_pigeon', did: 'did:key:pigeon', primaryHandle: 'pigeon@local', subdomainLabel: 'pigeon', installs: [], profile: row },
+  })
   global.fetch = jest.fn(async (url: string) => {
     if (url.includes('/api/site-config')) return json(200, { config: { default_profile_css: ADMIN_CSS } })
     if (url.includes('/api/posts/single/')) {

@@ -22,7 +22,7 @@ import { canViewPost, getViewerRelationship } from "@/lib/domain/posts/visibilit
 import { isUserBlocked } from "@/lib/domain/users/blocks";
 import { activeUserWhere, isUserRestricted } from "@/lib/domain/users/moderation";
 
-type HiddenVisibility = Exclude<Visibility, "public">;
+export type HiddenVisibility = Exclude<Visibility, "public">;
 
 export type ResidentAccess =
   | { visible: true }

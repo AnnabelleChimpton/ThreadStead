@@ -101,7 +101,8 @@ describe('GET /api/profile/[username]', () => {
     await profileHandler(req, res)
     expect(res.statusCode).toBe(200)
     expect(res.body.profile).not.toHaveProperty('customTemplate')
-    expect(res.body.profile).not.toHaveProperty('showInVisitorTrails')
+    // Settings never leave: the read selects the public fields (lib/domain/profile/load-resident-page.ts)
+    expect(mockDb.handle.findFirst.mock.calls[0][0].select.user.select.profile.select).not.toHaveProperty('showInVisitorTrails')
     // What the page needs to draw itself is still there
     expect(res.body.profile).toMatchObject({ displayName: 'Pat', customCSS: 'body { color: plum; }', templateMode: 'advanced' })
     expect(res.body.profile.compiledTemplate).toEqual(pageForRender({ staticHTML: '<h1>hi</h1>' }))
@@ -125,12 +126,12 @@ describe('GET /api/profile/[username]', () => {
     expect(pageForRender(sent, { isOwner: false })).toBe(sent)
   })
 
-  test('the owner gets the stored compile result as it is', async () => {
+  test('the owner gets the page as they see it, not the stored copy', async () => {
     ;(getSessionUser as jest.Mock).mockResolvedValue(OWNER)
     mockDb.handle.findFirst.mockResolvedValue(profileRow())
     const { req, res } = makeReqRes('GET', { username: 'pat' })
     await profileHandler(req, res)
-    expect(res.body.profile.compiledTemplate).toEqual({ staticHTML: '<h1>hi</h1>' })
+    expect(res.body.profile.compiledTemplate).toEqual(pageForRender({ staticHTML: '<h1>hi</h1>' }, { isOwner: true }))
   })
 
   test('a signed-out visitor gets the same', async () => {
@@ -149,12 +150,12 @@ describe('GET /api/profile/[username]', () => {
     expect(res.body.profile.customTemplate).toBe('<h1>my secret draft notes</h1>')
   })
 
-  test('the owner gets everything', async () => {
+  test('the owner gets their source too', async () => {
     ;(getSessionUser as jest.Mock).mockResolvedValue(OWNER)
     mockDb.handle.findFirst.mockResolvedValue(profileRow())
     const { req, res } = makeReqRes('GET', { username: 'pat' })
     await profileHandler(req, res)
-    expect(res.body.profile).toMatchObject({ customTemplate: '<h1>my secret draft notes</h1>', showInVisitorTrails: true })
+    expect(res.body.profile).toMatchObject({ customTemplate: '<h1>my secret draft notes</h1>' })
   })
 })
 

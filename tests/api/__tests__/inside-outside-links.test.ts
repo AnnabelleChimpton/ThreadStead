@@ -25,9 +25,12 @@ jest.mock('@/lib/config/database/connection', () => ({
     post: { count: jest.fn(async () => 0) },
     notification: { findMany: jest.fn() },
     guestbookEntry: { findMany: jest.fn() },
+    siteConfig: { findUnique: jest.fn(async () => null) },
   },
 }))
 jest.mock('@/lib/auth/server', () => ({ getSessionUser: jest.fn() }))
+// The page's link-preview picture isn't what these tests are about
+jest.mock('@/lib/share-images/server', () => ({ residentShareImage: async () => null }))
 // No one hidden (visibleNotificationsWhere)
 jest.mock('@/lib/domain/users/blocks', () => ({ getHiddenIds: async () => ({ blockedUserIds: [], blockedThreadRingIds: [] }) }))
 
@@ -103,30 +106,23 @@ describe('/api/profile/[username]', () => {
 })
 
 describe('/resident/[username] getServerSideProps', () => {
-  const json = (status: number, body: any) => ({ ok: status < 400, status, json: async () => body }) as Response
-  const ctx = { params: { username: 'pigeon' }, query: {}, req: { headers: {} } } as any
+  // The same read as the profile API (lib/domain/profile/load-resident-page.ts), in process
+  const ctx = (username: string) => ({ params: { username }, query: {}, req: { headers: {} } }) as any
 
-  function serveProfile(status: number, body: any) {
-    global.fetch = jest.fn(async (url: string) =>
-      url.includes('/api/site-config') ? json(200, { config: {} }) : json(status, body)
-    ) as any
-  }
-
-  test('passes hasPixelHome on from the profile API', async () => {
-    serveProfile(200, { userId: 'u_pigeon', username: 'pigeon', profile: {}, hasPixelHome: true })
-    const result: any = await residentPageProps(ctx)
+  test('passes hasPixelHome on', async () => {
+    homes.add('u_pigeon')
+    const result: any = await residentPageProps(ctx('pigeon'))
     expect(result.props.hasPixelHome).toBe(true)
   })
 
   test('no home, no link', async () => {
-    serveProfile(200, { userId: 'u_pigeon', username: 'pigeon', profile: {}, hasPixelHome: false })
-    const result: any = await residentPageProps(ctx)
+    const result: any = await residentPageProps(ctx('pigeon'))
     expect(result.props.hasPixelHome).toBe(false)
   })
 
   test('a private profile page never gets the link', async () => {
-    serveProfile(403, { error: 'private_profile', visibility: 'private', username: 'pigeon' })
-    const result: any = await residentPageProps(ctx)
+    homes.add('u_shy')
+    const result: any = await residentPageProps(ctx('shy'))
     expect(result.props.isPrivateProfile).toBe(true)
     expect(result.props.hasPixelHome).toBeFalsy()
   })
