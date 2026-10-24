@@ -15,9 +15,12 @@ async function report(source: string) {
   }
 }
 
-test('an iframe or embed points at <Embed>', async () => {
-  for (const source of ['<iframe src="https://www.youtube.com/embed/abc"></iframe>', '<embed src="song.mid">']) {
+test('an iframe or embed points at <Embed>; a MIDI embed or <bgsound> at <ProfileMusic>', async () => {
+  for (const source of ['<iframe src="https://www.youtube.com/embed/abc"></iframe>', '<embed src="https://www.youtube.com/v/abc">']) {
     expect((await report(source)).stripped[0]).toContain('use <Embed src="…" />')
+  }
+  for (const source of ['<embed src="song.mid">', '<bgsound src="song.mid">']) {
+    expect((await report(source)).stripped[0]).toContain('<ProfileMusic />')
   }
 })
 

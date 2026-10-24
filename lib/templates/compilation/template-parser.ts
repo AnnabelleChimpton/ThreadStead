@@ -5,7 +5,7 @@ import { FORM_ACTION_REMOVED, offSiteHost, postsToApi } from './form-action';
 import { find, html as htmlSchema } from 'property-information';
 import type { Root } from 'hast';
 import { componentRegistry } from '../core/template-registry';
-import { coercePropValue, findPropSchema, propNameKey, type PropSchema } from '../core/template-registry-types';
+import { coercePropValue, findPropSchema, propNameKey, UNIVERSAL_CSS_ATTRIBUTES, type PropSchema } from '../core/template-registry-types';
 import { getAllowedAttributes } from '../core/attribute-mappings';
 import { TEMPLATE_LIMITS, formatLimitError, runawayPageError } from './template-limits';
 import {
@@ -25,6 +25,7 @@ import {
   HTML_AUTHORING_TAGS,
   ID_REFERENCE_ATTRIBUTES,
   isReservedDataAttribute,
+  NEVER_ALLOWED_TAGS,
   STRIPPED_WITH_CONTENT,
   SVG_ATTRIBUTES,
   SVG_TAGS,
@@ -104,7 +105,8 @@ export function createCustomSchema() {
 
   // Allow placeholder URLs like "#"
   schema.protocols.src = ['http', 'https', 'mailto', 'tel', 'data', '#'];
-  schema.protocols.href = ['http', 'https', 'mailto', 'tel', '#'];
+  // Plus the small web's own: text-message, Gemini and IRC links (template audit 11 #5c)
+  schema.protocols.href = ['http', 'https', 'mailto', 'tel', 'sms', 'gemini', 'irc', 'ircs', '#'];
 
   // defaultSchema only protocol-checks href/src/cite/longDesc, but allows
   // `action` on every tag, so `<form action="javascript:…">` used to survive
@@ -370,9 +372,10 @@ const SAFETY_TAGS = new Set([
 function strippedReason(
   name: string,
   head: DocumentHead,
-  where: { rel?: string; inSvg?: boolean; inside?: string } = {}
+  where: { rel?: string; src?: string; inSvg?: boolean; inside?: string } = {}
 ): { category: StrippedCategory; reason: string } {
   const lower = name.toLowerCase();
+  const src = (where.src ?? '').toLowerCase();
 
   // Inside something taken out with everything in it (<object>'s fallback <img>)
   if (where.inside) {
@@ -383,6 +386,26 @@ function strippedReason(
       category: 'unsupported',
       reason: 'Not kept: an SVG’s <title> goes with page titles. To name the picture for screen readers, put role="img" and aria-label="…" on the <svg>.',
     };
+  }
+  // Inside an <svg>: what each does and what to do instead (template audit 11 #7)
+  if (where.inSvg && lower === 'switch') {
+    return { category: 'unsupported', reason: 'Not supported here: <switch> picks a version for old SVG viewers. Keep just the one you want.' };
+  }
+  if (lower === 'use') {
+    return { category: 'safety', reason: 'Removed for safety: <use> can load shapes from other files. Copy the shape’s <path> in where you want it.' };
+  }
+  if (where.inSvg && lower === 'image') {
+    return { category: 'safety', reason: 'Removed for safety: an SVG <image> can load from anywhere. Put the picture in an <img> next to the SVG.' };
+  }
+  if (['animate', 'set', 'animatemotion', 'animatetransform'].includes(lower)) {
+    return { category: 'safety', reason: 'Removed for safety: SVG animation can rewrite links as it runs. Animate it with CSS @keyframes instead.' };
+  }
+  // Old ways to play music, and old widgets with a component of their own
+  if (lower === 'bgsound' || (lower === 'embed' && /\.midi?(?:[?#]|$)/.test(src))) {
+    return { category: 'unsupported', reason: 'Not supported here: for music, add a song in Settings and put <ProfileMusic /> where its player goes.' };
+  }
+  if (lower === 'script' && /onionring|webring|ring\.js/.test(src)) {
+    return { category: 'safety', reason: 'Removed for safety: scripts don’t run on pages here. For a webring’s links, use <RingNav />.' };
   }
   if (lower === 'base') {
     return {
@@ -404,6 +427,14 @@ function strippedReason(
   }
   if (lower === 'link' && /(^|\s)(icon|shortcut|apple-touch-icon)(\s|$)/i.test(where.rel ?? '')) {
     return { category: 'unsupported', reason: 'Not supported here: pages show the site’s icon in the tab.' };
+  }
+  // Feeds, canonical links, manifests, webmention endpoints: the site writes those
+  if (lower === 'link' && where.rel && !/(^|\s)stylesheet(\s|$)/i.test(where.rel)) {
+    return { category: 'document', reason: 'Document wrapper (expected): the site writes your page’s <head>, links like this one included.' };
+  }
+  // Taken out with everything in them (noscript has its own reason above)
+  if (lower === 'template' || lower === 'noframes' || lower === 'noembed') {
+    return { category: 'unsupported', reason: `Taken out with what’s in it: <${lower}> isn’t one pages can use.` };
   }
 
   if (lower === 'link') {
@@ -468,7 +499,7 @@ const VOID_TAGS = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'i
 const STRIPPED_WITH_CONTENT_TAGS = new Set<string>(STRIPPED_WITH_CONTENT.map((tag) => tag.toLowerCase()));
 
 /** Source tags that didn't make it into the sanitized tree, one entry per tag name. */
-function reportStrippedTags(source: string, tree: Root, head: DocumentHead): StrippedTag[] {
+function reportStrippedTags(source: string, tree: Root, head: DocumentHead, renamed: ReadonlySet<string> = new Set()): StrippedTag[] {
   // What survived: component nodes by name, everything else by lowercase tag
   const survived = new Set<string>();
   const walk = (node: HastLike) => {
@@ -513,10 +544,11 @@ function reportStrippedTags(source: string, tree: Root, head: DocumentHead): Str
       else if (!container && STRIPPED_WITH_CONTENT_TAGS.has(lower)) container = { name: lower, open: 1 };
     }
     // Anything inside a removed container is gone, even if the same tag survives elsewhere
-    if (!inside && survived.has(key)) continue;
+    // A <p> made a <div> around a box component isn't gone (its own note says why)
+    if (!inside && (survived.has(key) || renamed.has(key))) continue;
 
-    const rel = token.type === 'open' ? token.attributes.find((a) => a.name.toLowerCase() === 'rel')?.value : undefined;
-    const { category, reason } = strippedReason(name, head, { rel, inSvg, inside });
+    const attr = (n: string) => (token.type === 'open' ? token.attributes.find((a) => a.name.toLowerCase() === n)?.value : undefined);
+    const { category, reason } = strippedReason(name, head, { rel: attr('rel'), src: attr('src'), inSvg, inside });
     // One entry per tag and reason: a rel=me link and an icon link are told apart
     const existing = byKey.get(`${key} ${reason}`);
     if (existing) {
@@ -602,9 +634,12 @@ function finishSanitizedTree(node: HastLike): boolean {
       }
       if ((node.tagName === 'audio' || node.tagName === 'video') && props.autoPlay && !props.muted) {
         delete props.autoPlay;
+        // <audio autoplay loop> with no controls was an invisible, silent box:
+        // visitors can start it themselves (the editor says why, reportHtmlProblems)
+        props.controls = true;
       }
       if (node.tagName === 'form' && postsToApi(props.action)) {
-        // Another site's /api/ goes too, but reportAddressesAndAlt says why
+        // Another site's /api/ goes too, but reportHtmlProblems says why
         if (!offSiteHost(props.action)) removedFormAction = true;
         delete props.action;
       }
@@ -701,13 +736,13 @@ export function parseTemplate(htmlString: string): Root & {
   lazyLoadLaterImages(processed as HastLike);
   const boxedParagraphs = boxesOutOfParagraphs(processed as HastLike);
 
-  const strippedComponents = reportStrippedTags(htmlString, processed, document.head);
+  const strippedComponents = reportStrippedTags(htmlString, processed, document.head, boxedParagraphs.size > 0 ? new Set(['p']) : undefined);
 
   // Component props that won't do what the author meant, for the editor
   const attributeWarnings = [
     ...reportComponentProps(htmlString),
     ...reportPageProblems(htmlString),
-    ...reportAddressesAndAlt(htmlString),
+    ...reportHtmlProblems(htmlString),
     ...(document.warnings ?? []),
     ...(removedFormAction ? [FORM_ACTION_REMOVED] : []),
     ...(boxedParagraphs.size > 0 ? [paragraphBoxesNote(boxedParagraphs)] : []),
@@ -754,6 +789,12 @@ function decodeAttributeValue(value: string): string {
 }
 
 /** Does the sanitizer keep this attribute on this tag? Mirrors hast-util-sanitize's lookup. */
+/** A style or HTML prop any component takes (className, backgroundColor, font-size…) */
+function isUniversalProp(attrName: string): boolean {
+  const camel = attrName.replace(/-([a-z])/g, (_m, c: string) => c.toUpperCase());
+  return attrName === 'class' || attrName === 'key' || UNIVERSAL_CSS_ATTRIBUTES.some((name) => name.toLowerCase() === camel.toLowerCase() || name === attrName);
+}
+
 function keptBySanitizer(attrName: string, allowed: readonly unknown[]): boolean {
   // parse5 lowercases the name; hast keys it by property name (class → className)
   const property = find(htmlSchema, attrName.toLowerCase()).property;
@@ -876,7 +917,6 @@ function reportComponentProps(source: string): string[] {
 
     const name = registration.name;
     const line = lineAt(source, token.start);
-    const allowed = [...(schema.attributes[COMPONENT_TAG_PREFIX + name.toLowerCase()] || []), ...globalAttributes];
     const written = new Set<string>();
 
     for (const attr of token.attributes) {
@@ -899,7 +939,10 @@ function reportComponentProps(source: string): string[] {
         messages.push(`${asWritten} ${name} says which variable with ${other}="…", not ${attr.name}=. Write ${other}="${attr.value ?? ''}".`);
         continue;
       }
-      if (!keptBySanitizer(attr.name, allowed)) {
+      // Not this component's, not an HTML attribute every tag takes, not a
+      // style prop: left out. (The sanitizer keeps every component's props on
+      // every component, so <ConditionalAttr not="…"> said nothing.)
+      if (!keptBySanitizer(attr.name, globalAttributes) && !isUniversalProp(attr.name)) {
         const meant = closestProp(attr.name, registration.props);
         messages.push(
           `${asWritten} ${name} has no ${attr.name} setting, so it's left out.` +
@@ -958,36 +1001,91 @@ const SCRIPT_IN_CONDITION = /==|!=|<=|>=|&&|\|\||(?<![\w-])[<>](?!=)/;
 /** Attributes that point at a file or page */
 const ADDRESS_ATTRIBUTES = new Set(['src', 'href', 'background', 'poster', 'action']);
 
+/** The site's own files, which a page may link to by path */
+const SITE_FILE_PATHS = /^\/(?:assets|fonts|uploads|pixel-homes|starters|examples|audio)\/|^\/(?:favicon|og-image|image-icon)/i;
+/** Link schemes a page keeps (template-parser's schema.protocols.href) */
+const KEPT_SCHEMES = /^(?:https?|mailto|tel|sms|gemini|ircs?)$/i;
+/** Taken out whole, with their own reason in the list: their addresses don't matter */
+const REMOVED_TAGS = new Set<string>([...NEVER_ALLOWED_TAGS.filter((tag) => tag !== 'image'), 'bgsound'].map((tag) => tag.toLowerCase()));
+/** Page data a loop can't go through, and the component that shows it */
+const PAGE_DATA_COMPONENTS: Record<string, string> = {
+  guestbook: 'Guestbook', posts: 'BlogPosts', images: 'MediaGrid', featuredFriends: 'FriendDisplay', websites: 'WebsiteDisplay',
+};
+/** Tags a component can't sit straight inside: the browser moves it out of the table */
+const TABLE_ROWS = new Set(['table', 'thead', 'tbody', 'tfoot', 'tr']);
+
 /**
- * Two things pasted pages get wrong without a word (template audit 01 #5,
- * 08, 14 #8, 16 #3), said once each with the first line and how many:
- *  - addresses relative to an old site (images/me.gif, about.html,
- *    <body background="bg.gif">): here they point at pages that aren't there;
- *  - pictures with no alt text at all (alt="" is fine: it says "decoration").
+ * What pasted pages get wrong without a word, said once each with the first
+ * line and how many (template audit 01 #5, 08, 11, 14 #8, 16 #3):
+ * addresses on an old site (images/me.gif, /about.html, url(bg.gif)), http://
+ * pictures, pictures and picture links with no alt text, and what the page
+ * loses quietly: popovers, editable areas, password boxes, autoplay, links
+ * of a kind that isn't kept, a component straight inside a table row, a
+ * stray </p>, a comment that never closes.
  */
-function reportAddressesAndAlt(source: string): string[] {
+function reportHtmlProblems(source: string): string[] {
   const relative: Array<{ line: number; value: string; link: boolean }> = [];
-  const noAlt: number[] = [];
-  const offSite: Array<{ line: number; host: string }> = [];
+  const found = new Map<string, { line: number; count: number; detail: string }>();
+  const note = (kind: string, line: number, detail = '') => {
+    const seen = found.get(kind);
+    if (seen) seen.count++;
+    else found.set(kind, { line, count: 1, detail });
+  };
+  const addressProblem = (value: string, line: number, link: boolean) => {
+    if (/^http:\/\//i.test(value)) {
+      if (!link) note('http', line, value.slice(7).split(/[/?#]/)[0]);
+      return;
+    }
+    // Web, site and in-page addresses, schemes, a query, a loop's {placeholder}
+    const siteFile = value.startsWith('/') && !value.startsWith('//') && /\.[a-z0-9]{2,5}(?:[?#]|$)/i.test(value) && !SITE_FILE_PATHS.test(value);
+    if (!siteFile && /^(?:[a-z][a-z0-9+.-]*:|\/|#|\?|\{)/i.test(value)) return;
+    relative.push({ line, value, link });
+  };
+
+  const open: string[] = [];
   for (const token of tokenizeSource(source)) {
-    if (token.type !== 'open' || looksLikeComponentName(token.name)) continue;
+    const line = lineAt(source, token.start);
+    if (token.type === 'comment') {
+      if (!source.slice(token.start, token.end).endsWith('-->')) note('comment', line);
+      continue;
+    }
+    if (token.type === 'close') {
+      const name = token.name.toLowerCase();
+      const at = open.lastIndexOf(name);
+      if (at !== -1) open.length = at;
+      else if (name === 'p') note('strayP', line);
+      continue;
+    }
+    if (token.type !== 'open') continue;
+    if (looksLikeComponentName(token.name)) {
+      if (TABLE_ROWS.has(open[open.length - 1] ?? '') && isRegisteredComponent(token.name)) note('tableRow', line, `<${token.name}>|<${open[open.length - 1]}>`);
+      continue;
+    }
     const tag = token.name.toLowerCase();
     // Taken out anyway, and listed with their own reason
-    if (tag === 'link' || tag === 'base') continue;
-    const action = tag === 'form' ? token.attributes.find((a) => a.name.toLowerCase() === 'action') : undefined;
-    const host = action && offSiteHost(decodeAttributeValue(action.value ?? ''));
-    if (host) offSite.push({ line: lineAt(source, token.start), host });
-    for (const attr of token.attributes) {
-      const value = decodeAttributeValue(attr.value ?? '').trim();
-      if (!ADDRESS_ATTRIBUTES.has(attr.name.toLowerCase()) || !value) continue;
-      // Web, site and in-page addresses, schemes, a query, a loop's {placeholder}
-      if (/^(?:[a-z][a-z0-9+.-]*:|\/|#|\?|\{)/i.test(value)) continue;
-      relative.push({ line: lineAt(source, token.start), value, link: /^(href|action)$/i.test(attr.name) });
+    if (REMOVED_TAGS.has(tag)) continue;
+    const attrs = new Map(token.attributes.map((a) => [a.name.toLowerCase(), decodeAttributeValue(a.value ?? '').trim()]));
+
+    const host = tag === 'form' && offSiteHost(attrs.get('action') ?? '');
+    if (host) note('offSite', line, host);
+    for (const [name, value] of attrs) {
+      if (ADDRESS_ATTRIBUTES.has(name) && value) addressProblem(value, line, name === 'href' || name === 'action');
     }
-    if (tag === 'img' && !token.attributes.some((a) => a.name.toLowerCase() === 'alt')) {
-      noAlt.push(lineAt(source, token.start));
-    }
+    for (const match of (attrs.get('style') ?? '').matchAll(/url\(\s*['"]?([^'")\s]+)/gi)) addressProblem(match[1], line, false);
+
+    if (attrs.has('popover') || attrs.has('popovertarget')) note('popover', line);
+    if (attrs.has('contenteditable')) note('editable', line);
+    if (attrs.has('autofocus')) note('autofocus', line);
+    if (Number(attrs.get('tabindex')) > 0) note('tabindex', line, attrs.get('tabindex'));
+    if (tag === 'input' && /^(?:password|file|image)$/i.test(attrs.get('type') ?? '')) note('inputType', line, attrs.get('type')!.toLowerCase());
+    if ((tag === 'audio' || tag === 'video') && attrs.has('autoplay') && !attrs.has('muted')) note('autoplay', line, tag);
+    const scheme = (attrs.get('href') ?? '').match(/^([a-z][a-z0-9+.-]*):/i)?.[1];
+    if (tag === 'a' && scheme && !KEPT_SCHEMES.test(scheme) && !/^(?:javascript|vbscript|data)$/i.test(scheme)) note('scheme', line, scheme);
+    if (tag === 'img' && !attrs.has('alt')) note(open[open.length - 1] === 'a' ? 'linkNoAlt' : 'noAlt', line);
+
+    if (!token.selfClosing && !VOID_TAGS.has(tag)) open.push(tag);
   }
+
   const more = (count: number, what: string) => (count > 1 ? ` (${count - 1} more ${what} too.)` : '');
   const messages: string[] = [];
   if (relative.length > 0) {
@@ -1000,18 +1098,23 @@ function reportAddressesAndAlt(source: string): string[] {
       more(relative.length, 'like it')
     );
   }
-  if (offSite.length > 0) {
-    messages.push(
-      `Line ${offSite[0].line}: this form sends to ${offSite[0].host}, and forms here can only send to this site, ` +
-      `so it won't go anywhere. Link to its page on ${offSite[0].host} instead.` + more(offSite.length, 'forms like it')
-    );
-  }
-  if (noAlt.length > 0) {
-    messages.push(
-      `Line ${noAlt[0]}: this picture has no alt text, so screen readers can't say what it shows. ` +
-      `Add alt="what it shows", or alt="" if it's only decoration.` + more(noAlt.length, 'pictures need it')
-    );
-  }
+  const say: Record<string, (f: { line: number; count: number; detail: string }) => string> = {
+    http: (f) => `this picture's address starts with http://, so browsers ask ${f.detail} for https:// instead, and it won't show if that site has none. Use its https:// address.${more(f.count, 'like it')}`,
+    offSite: (f) => `this form sends to ${f.detail}, and forms here can only send to this site, so it won't go anywhere. Link to its page on ${f.detail} instead.${more(f.count, 'forms like it')}`,
+    noAlt: (f) => `this picture has no alt text, so screen readers can't say what it shows. Add alt="what it shows", or alt="" if it's only decoration.${more(f.count, 'pictures need it')}`,
+    linkNoAlt: (f) => `this link is only a picture with no alt text, so screen readers can't say where it goes. Give the <img> an alt saying where.${more(f.count, 'links like it')}`,
+    popover: (f) => `popover isn't kept here, so this part always shows. A <details> opens and closes without it.${more(f.count, 'like it')}`,
+    editable: (f) => `contenteditable isn't kept here: visitors can't change your page.${more(f.count, 'like it')}`,
+    autofocus: () => `autofocus isn't kept here: your page doesn't take the cursor when it opens.`,
+    tabindex: (f) => `tabindex="${f.detail}" changes the order the Tab key goes through your page. 0 (or leaving it out) keeps the order the page is written in.${more(f.count, 'like it')}`,
+    inputType: (f) => `<input type="${f.detail}"> shows as a plain text box here${f.detail === 'password' ? ': pages can\'t ask for passwords' : f.detail === 'file' ? ': pages can\'t take uploads' : ''}.${more(f.count, 'like it')}`,
+    autoplay: (f) => `autoplay only works on muted video here, so this <${f.detail}> gets controls and waits for a click.${more(f.count, 'like it')}`,
+    scheme: (f) => `a ${f.detail}: link isn't kept here, so its text shows without the link.${more(f.count, 'like it')}`,
+    tableRow: (f) => `${f.detail.split('|')[0]} can't sit straight inside a ${f.detail.split('|')[1]}: browsers move it out of the table, above it. Put it inside a <td>.${more(f.count, 'like it')}`,
+    strayP: (f) => `this </p> has no <p> to close, so browsers add an empty paragraph there.${more(f.count, 'like it')}`,
+    comment: () => `a comment opens here (<!--) and never closes (-->), so everything after it is hidden.`,
+  };
+  for (const [kind, f] of found) messages.push(`Line ${f.line}: ${say[kind](f)}`);
   return messages;
 }
 
@@ -1137,6 +1240,14 @@ function reportPageProblems(source: string): string[] {
     }
     // e.tags: a list inside a loop's item (or a Var's) isn't one this can use
     const root = use.name.split('.')[0];
+    // The page's own data has components of its own (template audit 06 #9b)
+    const shownBy = PAGE_DATA_COMPONENTS[root];
+    if (shownBy && !declared.has(root)) {
+      messages.push(
+        `Line ${use.line}: <${use.tag}> goes through a page variable (a <Var>), not page data like ${root}. <${shownBy}> shows ${root}.`
+      );
+      continue;
+    }
     if (root !== use.name && declared.has(root)) {
       messages.push(
         `Line ${use.line}: <${use.tag}> can't use ${use.name}, a list inside ${root}. ` +

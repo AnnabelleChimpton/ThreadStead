@@ -25,6 +25,18 @@ test('an @import from elsewhere and an http:// font say why, with their line', (
   // Fonts load from any https address; only http:// ones fail
   expect(problems).toEqual([
     expect.stringMatching(/^Line 2: @import from https:\/\/cdn\.example\/style\.css \(only Google Fonts can be imported\) is taken out when you save\.$/),
-    expect.stringMatching(/^Line 3: the font from old\.example won't load, because its address starts with http:\/\//),
+    expect.stringMatching(/^Line 3: "http:\/\/old\.example\/x\.ttf" starts with http:\/\/, so browsers ask for https:\/\/ instead, and it won't load/),
   ])
 })
+
+test('pictures by old-site address or http:// say so, once each', () => {
+  const problems = cssProblems(`body { background: url(stars.gif) }
+.a { background: url("../img/a.png") }
+.b { background: url(http://old.example/b.gif) }
+.ok { background: url(https://x.example/c.gif), url(/assets/d.gif), url(data:image/png;base64,AA) }`)
+  expect(problems).toEqual([
+    expect.stringMatching(/^Line 1: "stars\.gif" is an address on your old site.*\(1 more like it too\.\)$/),
+    expect.stringMatching(/^Line 3: "http:\/\/old\.example\/b\.gif" starts with http:\/\//),
+  ])
+})
+

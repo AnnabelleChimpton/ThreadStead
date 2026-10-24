@@ -50,7 +50,7 @@ export function registerStateComponents(registry: ComponentRegistry) {
         values: ['number', 'string', 'boolean', 'array', 'object', 'date', 'computed', 'random', 'urlParam']
       },
       initial: { type: 'string', description: 'The starting value. For array or object, write JSON in single quotes, like initial=\'["a", "b"]\'; JSON that doesn\'t parse gives an empty one. For date, a day alone like 2024-03-14 counts as midnight UTC and can show as the day before, so add a time: 2024-03-14T12:00.' },
-      persist: { type: 'boolean', default: false, description: 'When true, the value is saved in the visitor\'s own browser and comes back on their next visit. Each visitor has their own copy that nobody else sees. Not used for computed, random or urlParam.' },
+      persist: { type: 'boolean', default: false, description: 'When true, the value is saved in the visitor\'s own browser and comes back on their next visit (up to 100 KB; a bigger value isn\'t saved). Each visitor has their own copy that nobody else sees. Not used for computed, random or urlParam.' },
       expression: { type: 'string', description: 'For type computed: a sum worked out from other variables, like $vars.price * $vars.qty. It updates when they change. You can use + - * / %, comparisons, a ? b : c, Math.round, floor, ceil, min, max, abs, sqrt and pow, Number(), String(), and text and list methods like .toUpperCase(), .trim(), .includes(), .slice(), .replace(), .split(), .padStart(), .join() and .toFixed().' },
       param: { type: 'string', description: 'For type urlParam: the name to read from the page address, like mood for ?mood=sunny.' },
       default: { type: 'string', description: 'For type urlParam: the value to use when the address doesn\'t have that param.' },

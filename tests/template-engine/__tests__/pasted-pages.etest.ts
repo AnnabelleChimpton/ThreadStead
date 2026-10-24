@@ -382,9 +382,10 @@ describe('whole documents', () => {
       expect(byName[name]).toMatchObject({ category: 'document' })
       expect(byName[name].reason).toMatch(/^Document wrapper \(expected\)/)
     }
-    expect(byName.link).toMatchObject({ category: 'unsupported' })
-    expect(byName.link.reason).toMatch(/CSS tab/)
-    expect(byName.link.count).toBe(2)
+    // the stylesheet link has its reason; the preconnect hint is the head's (site-written)
+    const links = strippedComponents.filter((s) => s.name === 'link')
+    expect(links.find((l) => /CSS tab/.test(l.reason ?? ''))).toMatchObject({ category: 'unsupported' })
+    expect(links.find((l) => /writes your page’s <head>/.test(l.reason ?? ''))).toMatchObject({ category: 'document' })
     expect(byName.blinky).toMatchObject({ category: 'unsupported' })
     expect(byName.iframe).toMatchObject({ category: 'safety' })
     expect(byName.iframe.reason).toMatch(/^Removed for safety/)
@@ -654,6 +655,20 @@ describe('why a tag was taken out (template audit 09, 16)', () => {
     expect(links.map((l) => l.reason)).toEqual([expect.stringMatching(/This is my site/), expect.stringMatching(/site’s icon/)])
   })
 
+  test('inside an SVG, <switch>, <use>, <image> and SMIL animation say what to do instead', () => {
+    const why = reasons('<svg><switch><g/></switch><use href="#a"/><image href="https://x.example/a.png"/><animate attributeName="x"/></svg>')
+    expect(why.switch).toMatch(/Keep just the one you want/)
+    expect(why.use).toMatch(/Copy the shape’s <path> in/)
+    expect(why.image).toMatch(/Put the picture in an <img> next to the SVG/)
+    expect(why.animate).toMatch(/CSS @keyframes/)
+  })
+
+  test("a webring script points at <RingNav>; feed and other head links are the site's", () => {
+    expect(reasons('<script src="https://x.example/onionring-widget.js"></script>').script).toMatch(/<RingNav \/>/)
+    expect(reasons('<link rel="alternate" type="application/rss+xml" href="/feed.xml">').link).toMatch(/the site writes your page’s <head>/)
+    expect(reasons('<template><p>x</p></template>').template).toMatch(/Taken out with what’s in it/)
+  })
+
   test("an SVG's <title> says how to name the picture", () => {
     expect(reasons('<svg viewBox="0 0 1 1"><title>Moon</title><circle r="1"/></svg>').title).toMatch(/aria-label/)
   })
@@ -700,5 +715,55 @@ describe("<html> and <body>'s own attributes (template audit 02 R7, 03 F8a)", ()
     const { ast } = compile('<html><body class="ok <b>x" style="color:red} body{x:y"><p>hi</p></body></html>')
     expect(ast.head?.root).toEqual({ className: 'ok' })
     expect(ast.head?.bodyStyle).toBeUndefined()
+  })
+})
+
+describe('what a page loses quietly is said (audit cross-check B)', () => {
+  const warnings = (source: string) => compileTemplateToArtifacts(source).warnings.join('\n')
+
+  test.each([
+    ['<div popover id="p">hi</div>', /Line 1: popover isn't kept here, so this part always shows/],
+    ['<p contenteditable>edit me</p>', /contenteditable isn't kept here/],
+    ['<a href="#x" tabindex="5">x</a>', /tabindex="5" changes the order the Tab key goes/],
+    ['<form><input type="password" name="pw"></form>', /<input type="password"> shows as a plain text box here: pages can't ask for passwords/],
+    ['<audio src="https://a.example/s.mp3" autoplay loop></audio>', /autoplay only works on muted video here, so this <audio> gets controls/],
+    ['<a href="foo:bar">x</a>', /a foo: link isn't kept here/],
+    ['<a href="https://a.example"><img src="https://a.example/b.gif"></a>', /this link is only a picture with no alt text/],
+    ['<table><tr><Guestbook /></tr></table>', /<Guestbook> can't sit straight inside a <tr>/],
+    ['<p>hi</p></p>', /this <\/p> has no <p> to close/],
+    ['<p>hi</p>\n<!-- old stuff\n<p>gone</p>', /Line 2: a comment opens here \(<!--\) and never closes/],
+    ['<img src="http://old.example/me.gif" alt="me">', /starts with http:\/\/, so browsers ask old\.example for https:\/\//],
+    ['<img src="/images/me.gif" alt="me">', /"\/images\/me\.gif" is an address on your old site/],
+    ['<div style="background: url(stars.gif)">x</div>', /"stars\.gif" is an address on your old site/],
+  ])('%s', (source, message) => {
+    expect(warnings(source)).toMatch(message)
+  })
+
+  test('kept now: sms:, gemini: and irc: links, download, inert; site files and site pages by path', () => {
+    const { staticHTML } = compile('<a href="sms:+15551234">t</a><a href="gemini://x.example">g</a><a href="irc://irc.libera.chat/x" download>i</a><div inert>x</div>')
+    for (const kept of ['href="sms:+15551234"', 'href="gemini://x.example"', 'href="irc://irc.libera.chat/x"', 'download', 'inert']) expect(staticHTML).toContain(kept)
+    expect(warnings('<img src="/assets/default-avatar.gif" alt="me"><a href="/feed">feed</a><a href="/resident/pat">pat</a>')).toBe('')
+  })
+
+  test('the autoplay audio left without autoplay can be played', () => {
+    expect(compile('<audio src="https://a.example/s.mp3" autoplay loop></audio>').staticHTML).toMatch(/<audio[^>]* controls/)
+  })
+
+  test("a <p> made a <div> around a box isn't also listed as taken out (B5)", () => {
+    expect(compile('<p>Sign: <Guestbook /></p>').strippedComponents.map((s) => s.name)).not.toContain('p')
+  })
+
+  test("another component's setting on a component is said (ConditionalAttr has no not=)", () => {
+    expect(warnings('<p id="a">x</p><ConditionalAttr element="#a" attribute="hidden" when="$vars.n" not="true" />')).toMatch(/<ConditionalAttr not="true"> ConditionalAttr has no not setting, so it's left out/)
+    // style props and HTML attributes every component takes are fine
+    expect(warnings('<StickyNote color="yellow" className="x" font-size="20px" aria-label="note">hi</StickyNote>')).toBe('')
+  })
+
+  test('a loop over page data says which component shows it', () => {
+    expect(warnings('<ForEach var="guestbook" item="e"><p>{e.message}</p></ForEach>')).toMatch(/not page data like guestbook\. <Guestbook> shows guestbook/)
+  })
+
+  test('a removed tag gets no address warning on top of its reason', () => {
+    expect(warnings('<bgsound src="song.mid">')).not.toMatch(/old site/)
   })
 })

@@ -380,6 +380,24 @@ export function LivePreviewPane({ frameRef, src = '/template-preview?embed=1', s
 
   const pick = (d: Device) => { setDevice(d); store(DEVICE_KEY, d); };
 
+  // On the phone, how wide the page really is: a page wider than the phone
+  // makes its visitors scroll sideways, and the preview's scaling hid that
+  // (template audit 09 J6). Read from the preview's own document (same site).
+  const [phoneWidth, setPhoneWidth] = useState<number | null>(null);
+  useEffect(() => {
+    if (device !== 'phone') { setPhoneWidth(null); return; }
+    const measure = () => {
+      const doc = frameRef.current?.contentDocument;
+      const root = doc?.querySelector<HTMLElement>('.profile-template-root');
+      if (!doc || !root) return;
+      const width = Math.max(root.scrollWidth, doc.documentElement.scrollWidth);
+      setPhoneWidth(width > DEVICE_WIDTH.phone + 1 ? width : null);
+    };
+    measure();
+    const timer = window.setInterval(measure, 1000);
+    return () => window.clearInterval(timer);
+  }, [device, frameRef]);
+
   // Wider than the device: draw at the pane's width, unscaled
   const pageWidth = Math.max(DEVICE_WIDTH[device], device === 'laptop' ? box.width : 0);
   const scale = box.width > 0 ? Math.min(1, box.width / pageWidth) : 1;
@@ -424,6 +442,11 @@ export function LivePreviewPane({ frameRef, src = '/template-preview?embed=1', s
         </div>
       </div>
       {notice}
+      {phoneWidth && (
+        <p role="status" className="m-0 px-3 py-2 text-sm bg-thread-paper border-b border-thread-sage text-nb-ink flex-shrink-0">
+          Your page is {phoneWidth}px wide and a phone shows {DEVICE_WIDTH.phone}px, so visitors on phones scroll sideways to see it all.
+        </p>
+      )}
       <div
         ref={boxRef}
         className={`relative flex-1 min-h-0 overflow-hidden ${device === 'phone' ? 'bg-thread-cream' : 'bg-white'}`}

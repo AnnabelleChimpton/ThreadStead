@@ -63,7 +63,7 @@ export const SVG_TAGS = [
 /** Every element may carry these (plus aria-*, added from property-information). */
 export const GLOBAL_ATTRIBUTES = [
   'className', 'style', 'id', 'title', 'lang', 'dir', 'hidden', 'tabIndex', 'role',
-  'translate', 'spellCheck',
+  'translate', 'spellCheck', 'inert', 'draggable', 'inputMode', 'enterKeyHint', 'autoCapitalize',
   // presentational attributes the old web uses everywhere
   'align', 'bgColor', 'width', 'height', 'border', 'color',
 ] as const
@@ -84,7 +84,7 @@ const media = ['src', 'controls', 'loop', 'muted', 'preload', 'autoPlay']
 
 /** Per-element attributes (hast property names). */
 export const ELEMENT_ATTRIBUTES: Record<string, AttributeDefinition[]> = {
-  a: ['href', ['target', ...LINK_TARGETS], 'rel', 'hrefLang', 'type', 'name'],
+  a: ['href', ['target', ...LINK_TARGETS], 'rel', 'hrefLang', 'type', 'name', 'download'],
   area: ['href', 'alt', 'shape', 'coords', ['target', ...LINK_TARGETS], 'rel'],
   img: ['src', 'srcSet', 'sizes', 'alt', 'loading', 'decoding', 'useMap', 'isMap', 'hSpace', 'vSpace'],
   source: ['src', 'srcSet', 'sizes', 'type', 'media'],
@@ -117,13 +117,13 @@ export const ELEMENT_ATTRIBUTES: Record<string, AttributeDefinition[]> = {
   input: [
     ['type', ...INPUT_TYPES],
     'name', 'value', 'placeholder', 'required', 'min', 'max', 'step', 'minLength', 'maxLength',
-    'pattern', 'checked', 'disabled', 'readOnly', 'size', 'multiple', 'list', 'alt',
+    'pattern', 'checked', 'disabled', 'readOnly', 'size', 'multiple', 'list', 'alt', 'autoComplete',
   ],
   button: [['type', 'button', 'submit', 'reset'], 'name', 'value', 'disabled'],
-  select: ['name', 'multiple', 'size', 'required', 'disabled'],
+  select: ['name', 'multiple', 'size', 'required', 'disabled', 'autoComplete'],
   option: ['value', 'selected', 'disabled', 'label'],
   optgroup: ['label', 'disabled'],
-  textarea: ['name', 'rows', 'cols', 'placeholder', 'required', 'readOnly', 'disabled', 'minLength', 'maxLength', 'wrap'],
+  textarea: ['name', 'rows', 'cols', 'placeholder', 'required', 'readOnly', 'disabled', 'minLength', 'maxLength', 'wrap', 'autoComplete'],
   label: ['htmlFor'],
   output: ['htmlFor', 'name'],
   fieldset: ['name', 'disabled'],

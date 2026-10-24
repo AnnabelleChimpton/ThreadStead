@@ -8,5 +8,7 @@ export const MAX_CSS_CHARS = 200_000;
 export function sourceTooLong(kind: 'CSS' | 'template', text: unknown): string | null {
   const limit = kind === 'CSS' ? MAX_CSS_CHARS : MAX_TEMPLATE_CHARS;
   if (typeof text !== 'string' || text.length <= limit) return null;
-  return `Your ${kind} is over ${Math.round(limit / 1000)} KB. Trim it and save again.`;
+  // Rounded up: just over the cap never reads as "200 KB; the most is 200 KB"
+  const size = `${Math.ceil(text.length / 1000)} KB`;
+  return `Your ${kind === 'CSS' ? 'CSS' : 'HTML'} is ${size}; the most is ${Math.round(limit / 1000)} KB. Trim it and save again.`;
 }
