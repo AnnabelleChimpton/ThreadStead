@@ -47,7 +47,7 @@ describe('ValidationFeedbackPanel stripped report', () => {
     renderPanel(wrappers);
 
     expect(screen.queryByText(/Components? Stripped/i)).toBeNull();
-    expect(screen.getByText('Template is valid!')).toBeInTheDocument();
+    expect(screen.getByText('Nothing in the way: it can save.')).toBeInTheDocument();
     // 5 entries, <meta> twice
     expect(screen.getByText('Document wrappers (expected) (6)')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
@@ -95,7 +95,7 @@ describe('ValidationFeedbackPanel component prop warnings', () => {
   it('shows the tag as written, its line, and what happened', () => {
     renderPanel([], [propWarning, 'Template is getting large']);
 
-    expect(screen.getByText('2 Warnings')).toBeInTheDocument();
+    expect(screen.getByText("2 things won't work as written")).toBeInTheDocument();
     expect(screen.getByText('<StickyNote color="teal">')).toBeInTheDocument();
     expect(screen.getByText('Line 3')).toBeInTheDocument();
     expect(screen.getByText('color can be yellow, pink, blue, green, orange or purple. Using yellow.')).toBeInTheDocument();

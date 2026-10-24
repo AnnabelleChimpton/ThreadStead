@@ -24,6 +24,11 @@ export default apiHandler(
         if (source.status === "hidden") {
           return sendPrivateProfile(res, source.visibility);
         }
+        // The view-source badge only asks whether to show: every visit to a
+        // page that doesn't share used to log a 403 (template audit 02 R14c)
+        if (req.query.peek === "1") {
+          return res.status(200).json({ sharing: source.sharing });
+        }
         if (!source.sharing && !source.isOwner) {
           return res.status(403).json({ error: "This resident hasn't shared their source" });
         }

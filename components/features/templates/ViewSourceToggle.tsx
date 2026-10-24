@@ -51,7 +51,11 @@ export default function ViewSourceToggle({ username }: ViewSourceToggleProps) {
           disabled={saving}
           className="h-4 w-4"
         />
-        Visitors can view my source
+        <span>
+          Share my page’s code
+          {/* What sharing does, all of it (template audit 16 #7a) */}
+          <span className="block text-xs text-nb-ink-mid">Anyone can see it, find your page in the Showcase, and start their own from a copy.</span>
+        </span>
       </label>
       {sharing && (
         <Link

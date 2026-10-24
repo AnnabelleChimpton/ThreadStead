@@ -14,7 +14,7 @@ export default function ViewSourceBadge({ username }: ViewSourceBadgeProps) {
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`/api/profile/${encodeURIComponent(username)}/source`)
+    fetch(`/api/profile/${encodeURIComponent(username)}/source?peek=1`)
       .then(res => res.ok ? res.json() : null)
       .then(data => { if (!cancelled && data?.sharing) setSharing(true); })
       .catch(() => { /* badge stays hidden */ });

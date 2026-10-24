@@ -21,30 +21,6 @@ export default function MediaUpload({ onUploadSuccess, disabled = false }: Media
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Inspirational placeholders that rotate
-  const placeholders = [
-    "What's on your mind today?",
-    "Every image has a story — what's yours?",
-    "Write a note to go with your photo...",
-    "What made you capture this moment?",
-    "Share the story behind this image...",
-  ];
-  
-  const uploadButtonTexts = [
-    "Attach an image",
-    "Illustrate your thought", 
-    "Add a picture to your note",
-    "Choose your image",
-  ];
-
-  const [currentPlaceholder] = useState(() => 
-    placeholders[Math.floor(Math.random() * placeholders.length)]
-  );
-  
-  const [currentButtonText] = useState(() =>
-    uploadButtonTexts[Math.floor(Math.random() * uploadButtonTexts.length)]
-  );
-
   const handleFileSelect = async (file: File) => {
     if (!file) return;
 
@@ -201,9 +177,9 @@ export default function MediaUpload({ onUploadSuccess, disabled = false }: Media
   return (
     <div className="space-y-6 bg-thread-cream/30 border border-thread-sage/50 rounded-lg p-6">
       <div className="text-center">
-        <h3 className="text-lg font-semibold text-thread-pine mb-2">Share a moment</h3>
+        <h3 className="text-lg font-semibold text-thread-pine mb-2">Add a picture</h3>
         <p className="text-thread-sage text-sm">
-          {currentPlaceholder}
+          A title and a few words are optional, and help people who can&apos;t see the picture.
         </p>
       </div>
 
@@ -218,7 +194,7 @@ export default function MediaUpload({ onUploadSuccess, disabled = false }: Media
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             className="w-full border border-thread-sage p-3 bg-thread-paper rounded focus:border-thread-pine focus:ring-1 focus:ring-thread-pine"
-            placeholder="Give your image a title..."
+            placeholder="Title (optional)"
             disabled={disabled || uploading}
             maxLength={100}
           />
@@ -233,7 +209,7 @@ export default function MediaUpload({ onUploadSuccess, disabled = false }: Media
             onChange={(e) => setCaption(e.target.value)}
             rows={3}
             className="w-full border border-thread-sage p-3 bg-thread-paper rounded focus:border-thread-pine focus:ring-1 focus:ring-thread-pine"
-            placeholder={currentPlaceholder}
+            placeholder="A few words about it (optional)"
             disabled={disabled || uploading}
             maxLength={500}
           />
@@ -268,7 +244,7 @@ export default function MediaUpload({ onUploadSuccess, disabled = false }: Media
           <div className="space-y-3">
             <div>
               <p className="text-thread-pine font-medium mb-1">
-                {dragOver ? 'Drop your file here!' : currentButtonText}
+                {dragOver ? 'Drop it here' : 'Choose a picture'}
               </p>
               <p className="text-xs text-thread-sage">
                 JPEG, PNG, WebP, GIF or HEIC, up to 25 MB
@@ -306,7 +282,7 @@ export default function MediaUpload({ onUploadSuccess, disabled = false }: Media
       {showCaptionWarning && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
           <p className="text-yellow-800 text-sm mb-3">
-            Your photo will look even better with a caption. Want to add a line about it?
+            No caption yet. Want to add a line about it?
           </p>
           <div className="flex gap-2">
             <button
@@ -334,7 +310,7 @@ export default function MediaUpload({ onUploadSuccess, disabled = false }: Media
             disabled={disabled || uploading}
             className="thread-button"
           >
-            {uploading ? "Sharing your moment..." : "Share this moment"}
+            {uploading ? "Adding it..." : "Add it"}
           </button>
         </div>
       )}

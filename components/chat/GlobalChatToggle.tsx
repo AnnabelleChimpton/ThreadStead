@@ -16,11 +16,13 @@ export default function GlobalChatToggle() {
   if (pathname === '/community/chat') {
     return null;
   }
+  // In the page editors on a phone it sat on top of the code
+  const inEditor = /\/(?:template|css)-editor$/.test(pathname ?? '');
 
   return (
     <button
       onClick={toggleChat}
-      className={`ts-chat-toggle fixed right-5 z-40 rounded-full bg-thread-pine text-thread-paper shadow-lg hover:bg-thread-sage transition-all hover:scale-105 active:scale-95 w-[56px] h-[56px] md:w-[60px] md:h-[60px] ${isChatOpen ? 'md:hidden' : ''}`}
+      className={`ts-chat-toggle fixed right-5 z-40 rounded-full bg-thread-pine text-thread-paper shadow-lg hover:bg-thread-sage transition-all hover:scale-105 active:scale-95 w-[56px] h-[56px] md:w-[60px] md:h-[60px] ${isChatOpen ? 'md:hidden' : ''} ${inEditor ? 'max-lg:hidden' : ''}`}
       style={{
         bottom: 'calc(1.25rem + var(--ts-bottom-bar, 0px) + env(safe-area-inset-bottom, 0px))'
       }}

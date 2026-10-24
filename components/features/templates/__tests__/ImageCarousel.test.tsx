@@ -357,6 +357,22 @@ describe('ImageCarousel', () => {
       expect(screen.getByLabelText('Play slideshow')).toBeInTheDocument();
     });
 
+    it('holds still while the pointer or focus is on it, and only speaks up when it is not moving by itself', () => {
+      const mockData = createMockResidentData({ images: mockImagesData });
+      renderWithTemplateContext(<ImageCarousel autoplay interval={2} />, { residentData: mockData });
+      const region = screen.getByRole('region');
+      const live = screen.getByText('Image 1 of 3: Test image 1');
+      expect(live).toHaveAttribute('aria-live', 'off');
+
+      fireEvent.mouseEnter(region);
+      act(() => { jest.advanceTimersByTime(4000); });
+      expect(screen.getByText('Image 1 of 3: Test image 1')).toHaveAttribute('aria-live', 'polite');
+
+      fireEvent.mouseLeave(region);
+      act(() => { jest.advanceTimersByTime(2000); });
+      expect(screen.getByText('Image 2 of 3: Test image 2')).toBeInTheDocument();
+    });
+
     it('should pause autoplay when manual navigation occurs', () => {
       const mockData = createMockResidentData({ images: mockImagesData });
 

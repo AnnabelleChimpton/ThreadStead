@@ -66,6 +66,8 @@ export default function ImageCarousel(props: ImageCarouselProps) {
   const { images } = useResidentData();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(autoplay);
+  // Held still while the pointer is on it or something in it has focus (WCAG pause)
+  const [held, setHeld] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const carouselRef = useRef<HTMLDivElement>(null);
 
@@ -158,7 +160,7 @@ export default function ImageCarousel(props: ImageCarouselProps) {
 
   // Autoplay functionality
   useEffect(() => {
-    if (isPlaying && carouselImages.length > 1) {
+    if (isPlaying && !held && carouselImages.length > 1) {
       intervalRef.current = setInterval(() => {
         setCurrentIndex(prev => 
           loop ? (prev + 1) % carouselImages.length : 
@@ -177,7 +179,7 @@ export default function ImageCarousel(props: ImageCarouselProps) {
         clearInterval(intervalRef.current);
       }
     };
-  }, [isPlaying, interval, carouselImages.length, loop]);
+  }, [isPlaying, held, interval, carouselImages.length, loop]);
 
   // Navigation functions
   const goToSlide = useCallback((index: number) => {
@@ -330,6 +332,10 @@ export default function ImageCarousel(props: ImageCarouselProps) {
       role="region"
       aria-label="Image carousel"
       tabIndex={0}
+      onMouseEnter={() => setHeld(true)}
+      onMouseLeave={() => setHeld(false)}
+      onFocus={() => setHeld(true)}
+      onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setHeld(false); }}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
@@ -457,26 +463,31 @@ export default function ImageCarousel(props: ImageCarouselProps) {
 
       {/* Dot indicators */}
       {shouldShowDots && carouselImages.length > 1 && (
-        <div className="ts-carousel-dots flex justify-center gap-2 p-3">
+        <div className="ts-carousel-dots flex justify-center gap-1 p-2">
           {carouselImages.map((_, index) => (
+            // A 24px target around the 12px dot (WCAG target size)
             <button
               key={index}
               onClick={() => goToSlide(index)}
-              className={`ts-carousel-dot w-3 h-3 rounded-full transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                index === currentIndex 
-                  ? 'bg-blue-500' 
-                  : 'bg-gray-300 hover:bg-gray-400'
-              }`}
+              className="ts-carousel-dot-target group inline-flex items-center justify-center w-6 h-6 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
               aria-label={`Go to image ${index + 1}`}
-            />
+              aria-current={index === currentIndex ? 'true' : undefined}
+            >
+              <span
+                className={`ts-carousel-dot block w-3 h-3 rounded-full transition-all ${
+                  index === currentIndex ? 'bg-blue-500' : 'bg-gray-300 group-hover:bg-gray-400'
+                }`}
+              />
+            </button>
           ))}
         </div>
       )}
 
       {/* Screen reader announcements */}
-      <div 
-        aria-live="polite" 
-        aria-atomic="true" 
+      {/* Quiet while it plays by itself: a slide every few seconds talked over everything */}
+      <div
+        aria-live={isPlaying && !held ? 'off' : 'polite'}
+        aria-atomic="true"
         className="sr-only"
       >
         Image {currentIndex + 1} of {carouselImages.length}: {currentImage.alt}

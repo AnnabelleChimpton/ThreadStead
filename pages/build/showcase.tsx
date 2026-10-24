@@ -126,7 +126,7 @@ export default function Showcase({ siteConfig, initial, signedIn, viewerUsername
               your page changes until you save.
             </p>
             <p className="text-base text-thread-sage">
-              Want yours in here? Tick &ldquo;Visitors can view my source&rdquo; in your HTML editor.
+              Want yours in here? Tick &ldquo;Share my page&rsquo;s code&rdquo; in your HTML editor.
             </p>
           </PageHeader>
 
@@ -135,7 +135,7 @@ export default function Showcase({ siteConfig, initial, signedIn, viewerUsername
               title="No shared pages yet"
               description={
                 <p>
-                  When someone writes their own page and turns on &ldquo;Visitors can view my source&rdquo;, it
+                  When someone writes their own page and turns on &ldquo;Share my page&rsquo;s code&rdquo;, it
                   shows up here.
                 </p>
               }

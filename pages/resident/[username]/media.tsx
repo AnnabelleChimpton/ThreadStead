@@ -369,16 +369,16 @@ function MediaGalleryPage({
                 {isOwner ? (
                   <div>
                     <h3 className="text-lg font-medium text-thread-pine mb-2">
-                      Your gallery is waiting for its first story
+                      No pictures yet
                     </h3>
                     <p className="text-thread-sage mb-6">
-                      Every image has a story. What&apos;s yours?
+                      Pictures you add show up here, and you can use them on your page.
                     </p>
                     <button
                       onClick={() => setShowUpload(true)}
                       className="thread-button"
                     >
-                      Share your first photo
+                      Add a picture
                     </button>
                   </div>
                 ) : (

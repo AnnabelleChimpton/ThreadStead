@@ -73,7 +73,9 @@ describe('a page of your own HTML', () => {
     )
 
     const html = files['index.html']
-    expect(html.startsWith('<!--\n  @pat\'s page on HomePageAgain, downloaded 2026-10-19.\n')).toBe(true)
+    // A piece of a page opens as a whole one, its CSS linked, the note after the doctype (16 #6)
+    expect(html.startsWith('<!doctype html>\n<!--\n  @pat\'s page on HomePageAgain, downloaded 2026-10-19.\n')).toBe(true)
+    expect(html).toContain('<link rel="stylesheet" href="style.css">\n</head>')
     expect(html).toContain('Your CSS is in style.css.')
     expect(html).toContain('Pictures it uses that you uploaded are in images/.')
     expect(html).not.toContain('standard layout')
@@ -85,7 +87,8 @@ describe('a page of your own HTML', () => {
     expect(html).toContain(`<img src="${ELSEWHERE}"`)
     expect(html).toContain(`<img src="${SNAPSHOT}"`)
     expect(html).toContain('<Guestbook />')
-    expect(html.endsWith(template.replace(MINE + '?v=2', 'images/media-1700000000_medium.png').replace(MINE, 'images/media-1700000000_medium.png'))).toBe(true)
+    expect(html).toContain(template.replace(MINE + '?v=2', 'images/media-1700000000_medium.png').replace(MINE, 'images/media-1700000000_medium.png'))
+    expect(html.endsWith('</body>\n</html>')).toBe(true)
 
     expect(files['style.css']).toBe(
       'body { background: url("images/profile-banners-1700000002.jpg"); }\n' +

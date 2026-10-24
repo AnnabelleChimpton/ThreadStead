@@ -186,15 +186,15 @@ export default function MediaGrid({ username, isOwner = false }: MediaGridProps)
                 <div className="mb-4 flex justify-center">
                   <PixelIcon name="camera" size={48} />
                 </div>
-                <h3 className="text-lg font-medium text-thread-pine mb-2">Start sharing your moments</h3>
+                <h3 className="text-lg font-medium text-thread-pine mb-2">No pictures yet</h3>
                 <p className="text-thread-sage mb-4">
-                  Every image has a story. What&apos;s yours?
+                  Pictures you add show up here.
                 </p>
                 <button
                   onClick={() => setShowUpload(true)}
                   className="thread-button"
                 >
-                  Share your first photo
+                  Add a picture
                 </button>
               </>
             ) : (

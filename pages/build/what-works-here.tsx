@@ -117,8 +117,8 @@ export default function WhatWorksHere({ siteConfig }: WhatWorksHereProps) {
             <div className="space-y-3 px-4 sm:px-0">
               <p>
                 Upload pictures on your Media page and press Copy link to get a link you can use in an{" "}
-                <Code>&lt;img&gt;</Code> tag or in your CSS. PNG, GIF and WebP stay exactly as you uploaded them, so
-                pixel art stays crisp and GIFs keep moving. The editor has an Insert image button too.
+                <Code>&lt;img&gt;</Code> tag or in your CSS. PNG, GIF and WebP keep their format and size, so pixel art
+                stays crisp and animations keep moving. JPEGs keep their size too. The editor has an Insert image button too.
               </p>
               <p>
                 Pictures, audio and video from other sites work as long as the link starts with https. The site
@@ -145,6 +145,15 @@ h1 { font-family: "VT323", monospace; }`}</Example>
   src: url("https://yoursite.neocities.org/fonts/pixel.woff2");
 }`}</Example>
               <p>
+                The site&apos;s own fonts are yours to use as well: Archivo, Fraunces, Inter, Nunito, Righteous,
+                Silkscreen, Source Serif 4 and Space Mono. They live under <Code>/fonts/presets/</Code>, named like
+                this:
+              </p>
+              <Example>{`@font-face {
+  font-family: "Silkscreen";
+  src: url("/fonts/presets/silkscreen-latin-400-normal.woff2");
+}`}</Example>
+              <p>
                 The site&apos;s bar sits over the top of your page. Its height is in a variable, so a header that
                 sticks as you scroll can sit just under it (on phones it scrolls with the page):
               </p>
@@ -152,6 +161,11 @@ h1 { font-family: "VT323", monospace; }`}</Example>
   position: sticky;
   top: var(--ts-nav-height);
 }`}</Example>
+              <p>
+                Phones and tablets have no hover, so anything that only shows on <Code>:hover</Code> stays hidden
+                there. A tap counts as hover on some phones and not others. If it matters, show it another way too,
+                with <Code>:focus</Code> or a <Code>&lt;details&gt;</Code>.
+              </p>
               <p>
                 The site&apos;s own styles can be on or off. On, your CSS adds to
                 them. Off, the site&apos;s theme is left out and your CSS does the rest. That&apos;s the Site styles

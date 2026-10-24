@@ -204,7 +204,7 @@ export default function TemplateEditorPage({
       });
 
       if (!layoutResponse.ok) {
-        throw new Error((await layoutResponse.json().catch(() => ({}))).error || "Template saved, but failed to enable template mode.");
+        throw new Error((await layoutResponse.json().catch(() => ({}))).error || "Your HTML saved, but your page didn't switch over to it. Save again to finish.");
       }
     } catch (error) {
       throw error;

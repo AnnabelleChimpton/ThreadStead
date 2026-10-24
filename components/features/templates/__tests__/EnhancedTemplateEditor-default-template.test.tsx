@@ -122,7 +122,7 @@ describe('A new HTML page (?mode=template on a standard-layout profile)', () => 
   it('says before saving that the old look stays in History, and saves the starter', async () => {
     const { onSave } = renderEditor();
     await waitForPlainPage();
-    expect(screen.getByText('Saving changes your CSS. The old look stays in History.')).toBeInTheDocument();
+    expect(screen.getByText('Saving changes how your page looks. The old look stays in History.')).toBeInTheDocument();
     await waitFor(() =>
       expect(global.fetch).toHaveBeenCalledWith('/api/templates/compile', expect.anything())
     );
@@ -147,7 +147,7 @@ describe('A save that changes the CSS', () => {
     expect(screen.queryByText(/old look/i)).not.toBeInTheDocument();
     fireEvent.change(openCSSTab(), { target: { value: '/* something new */' } });
 
-    expect(screen.getByText('Saving changes your CSS. The old look stays in History.')).toBeInTheDocument();
+    expect(screen.getByText('Saving changes how your page looks. The old look stays in History.')).toBeInTheDocument();
 
     await act(async () => {});
     fireEvent.click(screen.getByRole('button', { name: 'Save & Go Live' }));
@@ -156,7 +156,7 @@ describe('A save that changes the CSS', () => {
     expect(onSave.mock.calls[0][1]).toBe('/* something new */');
     await waitFor(() => expect(screen.getByText('Saved. Your old look is in History.')).toBeInTheDocument());
     // Now the new CSS is the saved one; the "before" note goes away.
-    expect(screen.queryByText('Saving changes your CSS. The old look stays in History.')).not.toBeInTheDocument();
+    expect(screen.queryByText('Saving changes how your page looks. The old look stays in History.')).not.toBeInTheDocument();
   });
 });
 

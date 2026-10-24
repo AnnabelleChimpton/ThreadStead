@@ -507,7 +507,9 @@ export default function CSSEditorPage({
     ),
   };
 
-  const tabs: WorkspaceTab[] = [
+  // The generators and the class list aim at the standard layout's classes,
+  // which an HTML page of your own doesn't have
+  const tabs: WorkspaceTab[] = pageLook === 'html' ? [cssTab] : [
     cssTab,
     {
       id: 'generators',
@@ -633,7 +635,7 @@ export default function CSSEditorPage({
             </>
           }
           tabs={tabs}
-          activeTab={activeTab}
+          activeTab={tabs.some((tab) => tab.id === activeTab) ? activeTab : 'css'}
           onTabChange={(id) => setActiveTab(id as CSSEditorTab)}
           tabsEnd={
             <>

@@ -82,7 +82,7 @@ export const lessons: Lesson[] = [
       {
         id: 'words',
         title: 'Start with a few words',
-        body: "Open Settings, go to Your page, and pick \"Write your own HTML page\". It opens with a starter page already in it. Whatever is in the HTML box is your page, so swap the words for your own. Normal HTML works here, the same as on Neocities or anywhere else.",
+        body: "Whatever is in the editor's HTML box is your page (it's in Settings, under Your page, if you're not there yet). It opens with a starter page already in it, so swap the words for your own. Normal HTML works here, the same as on Neocities or anywhere else.",
         code: PAT_PAGE,
         tips: [
           'The preview next to the editor updates as you type, so you see it before anyone else does.',

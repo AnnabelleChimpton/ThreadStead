@@ -17,6 +17,7 @@
  * folders are fetched; anything else stays as it was. The zip is capped at
  * PAGE_DOWNLOAD_MAX_BYTES; pictures past the cap keep their web address.
  */
+import { WHOLE_PAGE } from '@/lib/templates/editor/pasted-styles';
 import { createStoredZip, type ZipEntry } from '@/lib/utils/zip/stored-zip';
 import { ownUploadPrefixes } from '@/lib/storage/own-files';
 
@@ -118,7 +119,19 @@ function indexHtml(
   ];
   // "--" would end the comment early
   const comment = lines.map((line) => `  ${line.replace(/--/g, '- -')}`).join('\n');
-  return `<!--\n${comment}\n-->\n${template}`;
+  // A page written as a piece of one opens as a whole page, with its CSS
+  // linked: as it was, it opened unstyled (template audit 16 #6)
+  let page = WHOLE_PAGE.test(template)
+    ? template
+    : `<!doctype html>\n<html>\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>@${source.handle}</title>\n</head>\n<body>\n${template}\n</body>\n</html>`;
+  if (hasCss && !/href\s*=\s*["']?style\.css/i.test(page)) {
+    page = /<\/head\s*>/i.test(page)
+      ? page.replace(/<\/head\s*>/i, '<link rel="stylesheet" href="style.css">\n</head>')
+      : `<link rel="stylesheet" href="style.css">\n${page}`;
+  }
+  // After the doctype: a comment before it puts browsers in quirks mode
+  const doctype = page.match(/^\s*<!doctype[^>]*>\s*/i)?.[0] ?? '';
+  return `${doctype}<!--\n${comment}\n-->\n${page.slice(doctype.length)}`;
 }
 
 function readme(source: PageDownloadSource, hasCss: boolean, images: number, leftOut: number, siteName: string, now: Date): string {

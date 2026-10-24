@@ -41,12 +41,12 @@ const STRIPPED_GROUPS: Array<{
     title: 'Document wrappers (expected)',
     summary: 'set aside',
     reasonPrefix: /^Document wrapper \(expected\):\s*/,
-    header: 'bg-gray-50 hover:bg-gray-100 text-gray-800',
-    body: 'bg-gray-50',
-    card: 'border-gray-200',
-    tagText: 'text-gray-900',
-    noteText: 'text-gray-600',
-    lineBadge: 'text-gray-600 bg-gray-100',
+    header: 'bg-thread-cream hover:bg-thread-paper text-nb-ink',
+    body: 'bg-thread-cream',
+    card: 'border-thread-sage/40',
+    tagText: 'text-nb-ink',
+    noteText: 'text-nb-ink-mid',
+    lineBadge: 'text-nb-ink-mid bg-thread-paper',
   },
   {
     category: 'unsupported',
@@ -144,13 +144,13 @@ export default function ValidationFeedbackPanel({
   const hasStripped = hasStrippedNeedingAttention(stripped);
 
   return (
-    <div className="fixed right-4 top-20 bottom-4 w-96 bg-white border-2 border-gray-300 rounded-lg shadow-2xl overflow-hidden flex flex-col z-[10000]">
+    <div className="fixed right-4 top-20 bottom-4 w-96 bg-thread-paper border-2 border-thread-sage rounded-lg shadow-retro overflow-hidden flex flex-col z-[10000]">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-3 flex items-center justify-between">
-        <h3 className="font-semibold text-lg !text-white">Validation Results</h3>
+      <div className="bg-thread-cream border-b-2 border-thread-sage text-nb-ink px-4 py-3 flex items-center justify-between">
+        <h3 className="font-semibold text-lg text-nb-ink">What the save found</h3>
         <button
           onClick={onDismiss}
-          className="text-white hover:bg-blue-800 rounded p-1 transition-colors"
+          className="ts-bare text-nb-ink rounded p-1"
           aria-label="Close"
         >
           <PixelIcon name="close" size={16} />
@@ -158,18 +158,18 @@ export default function ValidationFeedbackPanel({
       </div>
 
       {/* Summary */}
-      <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
+      <div className="px-4 py-3 border-b border-thread-sage/40 bg-thread-cream">
         <div className="space-y-1">
           {hasErrors && (
             <div className="text-red-700 font-medium flex items-center gap-2">
               <PixelIcon name="close" size={20} />
-              <span>{validationResult.errors.length} Error{validationResult.errors.length !== 1 ? 's' : ''} (Must Fix)</span>
+              <span>{validationResult.errors.length === 1 ? 'One thing to fix before it can save' : `${validationResult.errors.length} things to fix before it can save`}</span>
             </div>
           )}
           {hasWarnings && (
             <div className="text-yellow-700 font-medium flex items-center gap-2">
               <PixelIcon name="warning-box" size={20} />
-              <span>{validationResult.warnings.length} Warning{validationResult.warnings.length !== 1 ? 's' : ''}</span>
+              <span>{validationResult.warnings.length === 1 ? "One thing won't work as written" : `${validationResult.warnings.length} things won't work as written`}</span>
             </div>
           )}
           {strippedGroups
@@ -183,11 +183,11 @@ export default function ValidationFeedbackPanel({
           {!hasErrors && !hasWarnings && !hasStripped && (
             <div className="text-green-700 font-medium flex items-center gap-2">
               <PixelIcon name="check" size={20} />
-              <span>Template is valid!</span>
+              <span>Nothing in the way: it can save.</span>
             </div>
           )}
           {documentGroup && (
-            <div className="text-gray-600 text-sm">
+            <div className="text-nb-ink-mid text-sm">
               Only what’s inside &lt;body&gt; becomes your page; the {documentGroup.total} document tag{documentGroup.total !== 1 ? 's' : ''} around it {documentGroup.total !== 1 ? 'were' : 'was'} set aside.
             </div>
           )}
@@ -198,7 +198,7 @@ export default function ValidationFeedbackPanel({
       <div className="flex-1 overflow-y-auto">
         {/* Errors Section */}
         {hasErrors && (
-          <div className="border-b border-gray-200">
+          <div className="border-b border-thread-sage/40">
             <button
               onClick={() => toggleSection('errors')}
               className="w-full px-4 py-3 bg-red-50 hover:bg-red-100 transition-colors text-left flex items-center justify-between"
@@ -211,7 +211,7 @@ export default function ValidationFeedbackPanel({
             {expandedSections.errors && (
               <div className="px-4 py-3 bg-red-50 space-y-2">
                 {validationResult.errors.map((error, index) => (
-                  <div key={index} className="bg-white border border-red-200 rounded p-3">
+                  <div key={index} className="bg-thread-paper border border-red-200 rounded p-3">
                     <p className="text-sm text-red-800 whitespace-pre-wrap">{error}</p>
                   </div>
                 ))}
@@ -222,7 +222,7 @@ export default function ValidationFeedbackPanel({
 
         {/* Warnings Section */}
         {hasWarnings && (
-          <div className="border-b border-gray-200">
+          <div className="border-b border-thread-sage/40">
             <button
               onClick={() => toggleSection('warnings')}
               className="w-full px-4 py-3 bg-yellow-50 hover:bg-yellow-100 transition-colors text-left flex items-center justify-between"
@@ -238,13 +238,13 @@ export default function ValidationFeedbackPanel({
                   const tagWarning = splitTagWarning(warning);
                   if (!tagWarning) {
                     return (
-                      <div key={index} className="bg-white border border-yellow-200 rounded p-3">
+                      <div key={index} className="bg-thread-paper border border-yellow-200 rounded p-3">
                         <p className="text-sm text-yellow-800 whitespace-pre-wrap">{warning}</p>
                       </div>
                     );
                   }
                   return (
-                    <div key={index} className="bg-white border border-yellow-200 rounded p-3">
+                    <div key={index} className="bg-thread-paper border border-yellow-200 rounded p-3">
                       <div className="flex items-start gap-2 flex-wrap">
                         <span className="font-mono text-sm font-semibold text-yellow-900 break-all">{tagWarning.tag}</span>
                         <span className="text-xs text-yellow-700 bg-yellow-100 px-2 py-0.5 rounded">Line {tagWarning.line}</span>
@@ -260,7 +260,7 @@ export default function ValidationFeedbackPanel({
 
         {/* Stripped tags, grouped: expected wrappers, not supported here, removed for safety */}
         {strippedGroups.map((group) => (
-          <div key={group.category} className="border-b border-gray-200">
+          <div key={group.category} className="border-b border-thread-sage/40">
             <button
               onClick={() => toggleSection(group.category)}
               className={`w-full px-4 py-3 ${group.header} transition-colors text-left flex items-center justify-between`}
@@ -278,7 +278,7 @@ export default function ValidationFeedbackPanel({
                   const rest = entry.reason?.replace(group.reasonPrefix, '').trim();
                   const note = rest && rest.charAt(0).toUpperCase() + rest.slice(1);
                   return (
-                    <div key={index} className={`bg-white border ${group.card} rounded p-3`}>
+                    <div key={index} className={`bg-thread-paper border ${group.card} rounded p-3`}>
                       <div className="flex items-start gap-2 flex-wrap">
                         <span className={`font-mono text-sm font-semibold ${group.tagText}`}>&lt;{entry.name}&gt;</span>
                         {times > 1 && (
@@ -305,36 +305,36 @@ export default function ValidationFeedbackPanel({
 
         {/* Template Stats Section */}
         {validationResult.stats && (
-          <div className="border-b border-gray-200">
+          <div className="border-b border-thread-sage/40">
             <button
               onClick={() => toggleSection('stats')}
-              className="w-full px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors text-left flex items-center justify-between"
+              className="w-full px-4 py-3 bg-thread-cream hover:bg-thread-paper transition-colors text-left flex items-center justify-between"
             >
-              <span className="font-semibold text-gray-800 flex items-center gap-2">
+              <span className="font-semibold text-nb-ink flex items-center gap-2">
                 <span>Template Stats</span>
               </span>
-              <span className="text-gray-600">{expandedSections.stats ? '▼' : '▶'}</span>
+              <span className="text-nb-ink-mid">{expandedSections.stats ? '▼' : '▶'}</span>
             </button>
             {expandedSections.stats && (
-              <div className="px-4 py-3 bg-gray-50 space-y-2">
+              <div className="px-4 py-3 bg-thread-cream space-y-2">
                 <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div className="bg-white border border-gray-200 rounded p-2">
-                    <div className="text-gray-600 text-xs">Nodes</div>
-                    <div className="text-gray-900 font-semibold">{validationResult.stats.nodeCount}</div>
+                  <div className="bg-thread-paper border border-thread-sage/40 rounded p-2">
+                    <div className="text-nb-ink-mid text-xs">Nodes</div>
+                    <div className="text-nb-ink font-semibold">{validationResult.stats.nodeCount}</div>
                   </div>
-                  <div className="bg-white border border-gray-200 rounded p-2">
-                    <div className="text-gray-600 text-xs">Max Depth</div>
-                    <div className="text-gray-900 font-semibold">{validationResult.stats.maxDepth}</div>
+                  <div className="bg-thread-paper border border-thread-sage/40 rounded p-2">
+                    <div className="text-nb-ink-mid text-xs">Max Depth</div>
+                    <div className="text-nb-ink font-semibold">{validationResult.stats.maxDepth}</div>
                   </div>
                 </div>
                 {Object.keys(validationResult.stats.componentCounts).length > 0 && (
-                  <div className="bg-white border border-gray-200 rounded p-2">
-                    <div className="text-gray-600 text-xs mb-2">Components Used</div>
+                  <div className="bg-thread-paper border border-thread-sage/40 rounded p-2">
+                    <div className="text-nb-ink-mid text-xs mb-2">Components Used</div>
                     <div className="space-y-1 max-h-40 overflow-y-auto">
                       {Object.entries(validationResult.stats.componentCounts).map(([name, count]) => (
                         <div key={name} className="flex justify-between text-xs">
-                          <span className="text-gray-700">{name}</span>
-                          <span className="text-gray-900 font-semibold">{count}</span>
+                          <span className="text-nb-ink">{name}</span>
+                          <span className="text-nb-ink font-semibold">{count}</span>
                         </div>
                       ))}
                     </div>
@@ -347,10 +347,10 @@ export default function ValidationFeedbackPanel({
       </div>
 
       {/* Action Buttons */}
-      <div className="border-t border-gray-200 px-4 py-3 bg-gray-50 flex gap-2">
+      <div className="border-t border-thread-sage/40 px-4 py-3 bg-thread-cream flex gap-2">
         <button
           onClick={onDismiss}
-          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors font-medium"
+          className="flex-1 px-4 py-2 border border-thread-sage rounded-lg text-nb-ink hover:bg-thread-paper transition-colors font-medium"
         >
           {hasErrors ? 'Close' : 'OK'}
         </button>

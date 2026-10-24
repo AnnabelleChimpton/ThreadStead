@@ -105,7 +105,7 @@ function DataLossWarning({
   onConfirm,
   title,
   message,
-  confirmText = "Yes, Continue",
+  confirmText = "Replace it",
   preservedItems,
   clearedItems
 }: DataLossWarningProps) {
@@ -356,8 +356,8 @@ export default function EnhancedTemplateEditor({
   
   const useStandardLayoutOption = () => {
     showDataLossWarning(
-      "Switch to Standard Layout",
-      "This will replace your current HTML template and CSS with a clean standard layout. Any unsaved changes will be lost.",
+      "Switch to the standard layout?",
+      "This swaps your HTML and CSS for the standard layout. Anything you haven't saved goes.",
       () => {
         setUseStandardLayout(true);
         setTemplate(''); // Clear template since we're using standard layout
@@ -373,7 +373,7 @@ export default function EnhancedTemplateEditor({
     // Always asks: this saves straight away, so "nothing unsaved" doesn't
     // mean nothing is lost.
     showDataLossWarning(
-      "Reset to Default Template",
+      "Reset your page?",
       "Your page goes back to the standard layout and the site's default look, and this takes effect right away. Your current HTML and CSS stay in History.",
       async () => {
         // Get username from user prop
@@ -477,8 +477,8 @@ export default function EnhancedTemplateEditor({
     };
 
     showDataLossWarning(
-      "Load Default Template",
-      "This replaces your HTML with the default layout. Your CSS stays as it is. Unsaved HTML changes will be lost.",
+      "Load the default layout?",
+      "This replaces your HTML with the default layout. Your CSS stays as it is. HTML you haven't saved goes.",
       doLoad
     );
   };
@@ -527,6 +527,7 @@ export default function EnhancedTemplateEditor({
     isOpen: boolean;
     title: string;
     message: string;
+    confirmText?: string;
     confirmAction: () => void;
   }>({
     isOpen: false,
@@ -548,7 +549,7 @@ export default function EnhancedTemplateEditor({
     title: string,
     message: string,
     confirmAction: () => void,
-    { always = false }: { always?: boolean } = {}
+    { always = false, confirmText }: { always?: boolean; confirmText?: string } = {}
   ) => {
     // Skip warning if content is empty or nothing's changed since the last save
     // (the same test as the Save button's: the starter a new page opens on isn't an edit)
@@ -559,6 +560,7 @@ export default function EnhancedTemplateEditor({
         isOpen: true,
         title,
         message,
+        confirmText,
         confirmAction
       });
     }
@@ -585,6 +587,12 @@ export default function EnhancedTemplateEditor({
 
   // What the live compile found, shown under the code as you type
   const [liveProblems, setLiveProblems] = useState<LiveProblems>(NO_PROBLEMS);
+  // A blocked save's panel goes once the live check finds the page fixed: it
+  // kept listing the old errors (template audit 07 #9)
+  const liveStatus = liveProblems.status;
+  useEffect(() => {
+    if (liveStatus === 'ok' && validationResult && !validationResult.isValid) setShowValidationPanel(false);
+  }, [liveStatus, validationResult]);
   // The CSS's own problems, checked here as you type (nothing to compile)
   const deferredCSS = React.useDeferredValue(customCSS);
   const cssProblemList = React.useMemo<LiveProblems>(
@@ -984,7 +992,7 @@ export default function EnhancedTemplateEditor({
         // For standard layout, we save with empty template to indicate using default layout
         // Standard layout always shows navigation (hideNavigation = false)
         await onSave('', previewCSS || '', undefined, previewCSSMode || 'inherit', false);
-        setSaveMessage({ text: 'Standard layout saved', tone: 'ok' });
+        setSaveMessage({ text: 'Saved.', tone: 'ok' });
       } else {
         // For advanced templates, we need compiled template data
         // Use existing compiled template or compile the preview template
@@ -997,12 +1005,12 @@ export default function EnhancedTemplateEditor({
         }
         
         if (!templateToSave) {
-          setSaveMessage({ text: 'Preview the template first, then save', tone: 'warn' });
+          setSaveMessage({ text: "I couldn't build the page to save it. Check the preview for what's wrong.", tone: 'warn' });
           return;
         }
         
         await onSave(previewTemplate || '', previewCSS || '', templateToSave, previewCSSMode || 'inherit', previewHideNavigation);
-        setSaveMessage({ text: 'Advanced template saved', tone: 'ok' });
+        setSaveMessage({ text: 'Saved.', tone: 'ok' });
       }
 
       if (savedCSS.trim() !== '' && (previewCSS || '').trim() !== savedCSS.trim()) {
@@ -1343,7 +1351,7 @@ export default function EnhancedTemplateEditor({
         setSaveMessage({ text: "Saved. A few things won't work as written; they're listed under the code.", tone: 'ok' });
         setTimeout(() => setSaveMessage(null), 8000);
       } else {
-        setSaveMessage({ text: replacedCSS ? 'Saved. Your old look is in History.' : 'Template saved', tone: 'ok' });
+        setSaveMessage({ text: replacedCSS ? 'Saved. Your old look is in History.' : 'Saved.', tone: 'ok' });
         setTimeout(() => setSaveMessage(null), 3000);
       }
     } catch (error) {
@@ -1352,7 +1360,7 @@ export default function EnhancedTemplateEditor({
       setHasUnsavedChanges(true); // Restore unsaved state on error
 
       // Extract error message and display in ValidationFeedbackPanel
-      const errorMessage = error instanceof Error ? error.message : 'Save failed - please try again';
+      const errorMessage = error instanceof Error ? error.message : "That didn't save. Try again in a moment.";
 
       // Create validation result to display in panel
       setValidationResult({
@@ -1365,7 +1373,7 @@ export default function EnhancedTemplateEditor({
       setShowValidationPanel(true);
 
       // Also show toast for quick feedback
-      setSaveMessage({ text: 'Save failed - see details in validation panel', tone: 'error' });
+      setSaveMessage({ text: "That didn't save. What went wrong is under the code.", tone: 'error' });
       setTimeout(() => setSaveMessage(null), 5000);
     }
   }, [onSave, template, customCSS, compiledTemplate, compileTemplateForPreview, cssMode, hideNavigation, validationResult, markSaved, cssWillChange, shareToFeed, sharePageUpdate]);
@@ -1405,6 +1413,21 @@ export default function EnhancedTemplateEditor({
       console.error('Error in handleSave:', error);
     }
   }, [handleValidate, performSave]);
+
+  // Cmd/Ctrl+S saves, as in any editor: it opened the browser's "Save page
+  // as" instead (template audit 07 #7)
+  const saveRef = useRef(handleSave);
+  saveRef.current = handleSave;
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && !event.altKey && event.key.toLowerCase() === 's') {
+        event.preventDefault();
+        void saveRef.current();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   // Sample templates - unified Islands approach (matches default exactly)
   const sampleTemplates = {
@@ -1502,7 +1525,7 @@ export default function EnhancedTemplateEditor({
   const handleTemplateChange = (newValue: string) => {
     setTemplate(newValue);
     if (newValue.trim() && /<[^>]+>|\{\{[^}]+\}\}/.test(newValue) && switchToOwnHTML()) {
-      setSaveMessage({ text: 'Switched to Advanced Template mode', tone: 'ok' });
+      setSaveMessage({ text: 'This is your own HTML page now.', tone: 'ok' });
       setTimeout(() => setSaveMessage(null), 3000);
     }
   };
@@ -1546,7 +1569,7 @@ export default function EnhancedTemplateEditor({
     content: (
       <>
         {learn && (
-          <div className="px-3 pt-3 flex-shrink-0 max-h-[45%] overflow-auto border-b border-thread-sage/40">
+          <div className="px-3 pt-3 flex-shrink-0 max-h-[60%] lg:max-h-[45%] overflow-auto overscroll-contain border-b border-thread-sage/40">
             <LearnPanel
               slug={learn.slug}
               step={learn.step}
@@ -1891,7 +1914,7 @@ body {
                   </span>
                 )}
                 {cssWillChange && (
-                  <span className="text-nb-ink-mid">Saving changes your CSS. The old look stays in History.</span>
+                  <span className="text-nb-ink-mid">Saving changes how your page looks. The old look stays in History.</span>
                 )}
               </p>
             )}
@@ -1947,8 +1970,8 @@ body {
           currentCSS={customCSS}
           onSelectTemplate={(css, templateName) => {
             showDataLossWarning(
-              "Apply Template",
-              `This will replace your current CSS with the "${templateName}" template. Any unsaved changes will be lost.`,
+              "Use this theme?",
+              `This replaces your CSS with "${templateName}". Anything you haven't saved goes.`,
               () => {
                 setCustomCSS(css);
                 setCSSMode('inherit'); // Templates work best with inherit mode
@@ -1969,6 +1992,7 @@ body {
         onConfirm={confirmWarningAction}
         title={warningDialog.title}
         message={warningDialog.message}
+        confirmText={warningDialog.confirmText}
       />
 
 
@@ -1979,8 +2003,8 @@ body {
           onClose={() => setShowHistoryPanel(false)}
           onLoadRevision={(rev: FullRevision) => {
             showDataLossWarning(
-              "Load This Version",
-              "This will replace what's in the editor with the version you picked. Any unsaved changes will be lost — your live page stays as-is until you save.",
+              "Load this version?",
+              "This puts the version you picked in the editor. Anything you haven't saved goes; your live page stays as it is until you save.",
               () => {
                 setTemplate(rev.customTemplate || '');
                 setCustomCSS(rev.customCSS || '');

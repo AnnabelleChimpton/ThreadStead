@@ -27,9 +27,9 @@ interface TemplateHistoryPanelProps {
 }
 
 const TRIGGER_LABELS: Record<string, string> = {
-  'template-save': 'before a template save',
-  'css-save': 'before a CSS save',
-  'reset': 'before a reset',
+  'template-save': 'before you saved',
+  'css-save': 'before you saved your CSS',
+  'reset': 'before you reset your page',
   'moderator-reset': 'before a moderator reset your page',
   'layout-merge': "when the site cleared CSS your page wasn't showing",
   'vb-convert': 'before the old Visual Builder layout was converted',
