@@ -313,7 +313,11 @@ describe('evaluateExpression', () => {
       for (const key of ['constructor', '__proto__', 'toString', 'hasOwnProperty']) {
         expect(evaluateExpression(`user.${key}`, context)).toBeUndefined();
         expect(evaluateExpression(`items.${key}`, context)).toBeUndefined();
+        // and the page's variables themselves, by $vars or by name
+        expect(evaluateExpression(`$vars.${key}`, context)).toBeUndefined();
+        expect(evaluateExpression(key, context)).toBeUndefined();
       }
+      expect(evaluateExpression('$vars.text', context)).toBe('hi');
     });
 
     it('calls only the safe methods of strings, arrays and numbers', () => {

@@ -226,7 +226,7 @@ export function evaluateExpression(
     }
 
     // Check if it's a direct variable reference
-    if (ctx.hasOwnProperty(name)) {
+    if (Object.prototype.hasOwnProperty.call(ctx, name)) {
       return ctx[name];
     }
 
@@ -429,8 +429,8 @@ export function evaluateExpression(
     // $vars.counter -> look up "counter" in context
     if (object.type === 'Identifier' && (object as jsep.Identifier).name === '$vars') {
       if (!computed && property.type === 'Identifier') {
-        const varName = (property as jsep.Identifier).name;
-        return ctx[varName];
+        // Own variables only: never constructor, __proto__ and the like
+        return ownValue(ctx, (property as jsep.Identifier).name);
       }
     }
 
