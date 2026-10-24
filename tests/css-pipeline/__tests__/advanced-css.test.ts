@@ -197,3 +197,20 @@ describe('preview equals live', () => {
     expect(app).not.toMatch(/`html body \$\{/)
   })
 })
+
+describe("a page of your own HTML gets the browser's html and body", () => {
+  // The exemptions named .user-profile-page, which nothing ever set: html was
+  // painted cream and body one screen tall, so a dark page turned
+  // light-on-cream below the first screen (template audit 02 R3, 13 #5)
+  const css = ['styles/globals.css', 'styles/retro.css'].map((f) => fs.readFileSync(path.join(ROOT, f), 'utf8')).join('\n')
+
+  test('no html or body rule waits on the class nothing sets', () => {
+    expect(css).not.toMatch(/(?:html|body):not\(\.user-profile-page\)/)
+  })
+
+  test('the height, light-mode and phone background rules skip own-HTML pages', () => {
+    expect(css).toMatch(/html:not\(:has\(\.profile-template-root\)\), body:not\(:has\(\.profile-template-root\)\) \{ height: 100%; \}/)
+    expect(css.match(/html:not\(:has\(\.profile-template-root\)\)/g)!.length).toBeGreaterThanOrEqual(3)
+    expect(css).not.toMatch(/^html, body \{ height: 100%; \}/m)
+  })
+})

@@ -122,7 +122,9 @@ export default function RetroTV(props: RetroTVProps) {
   // Component default styles
   const componentStyle: React.CSSProperties = {
     display: 'inline-block',
-    position: 'static'
+    position: 'static',
+    // Never wider than the page: on a phone it shrinks instead of zooming the page out
+    maxWidth: '100%'
   };
 
   // Merge component styles with CSS props (CSS props win)
@@ -140,7 +142,8 @@ export default function RetroTV(props: RetroTVProps) {
       <style jsx>{`
         .retro-tv-shell {
           width: 400px;
-          height: 320px;
+          max-width: 100%;
+          aspect-ratio: 400 / 320;
           background: ${currentTVStyle.shellColor};
           border: 3px solid ${currentTVStyle.accentColor};
           border-radius: ${currentTVStyle.cornerRadius};

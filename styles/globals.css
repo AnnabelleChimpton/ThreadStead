@@ -18,13 +18,17 @@
 /* CSS Layer declarations for proper cascade order */
 @layer threadstead-browser, threadstead-reset, threadstead-global, threadstead-site, threadstead-components, threadstead-template, threadstead-user-base, threadstead-user-custom, threadstead-user-override;
 
-/* Base HTML/body styles - essential for page structure */
-html, body { height: 100%; }
+/* Base HTML/body styles - essential for page structure.
+   A page of someone's own HTML (.profile-template-root) is left the way a
+   browser draws it: body as tall as its content, html unpainted so a body
+   background reaches the whole window. With these, a dark page turned
+   light-on-cream below the first screen (template audit 02 R3, 13 #5). */
+html:not(:has(.profile-template-root)), body:not(:has(.profile-template-root)) { height: 100%; }
 
 /* Force light mode - prevent browser dark mode from applying black backgrounds */
-/* Excludes user profile pages to allow custom backgrounds */
+/* Not on pages of someone's own HTML, which bring their own backgrounds */
 @media (prefers-color-scheme: dark) {
-  html:not(.user-profile-page), body:not(.user-profile-page) {
+  html:not(:has(.profile-template-root)), body:not(:has(.profile-template-root)) {
     background-color: #FCFAF7;
     color-scheme: light;
   }

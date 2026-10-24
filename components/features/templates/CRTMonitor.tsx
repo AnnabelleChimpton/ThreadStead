@@ -70,6 +70,9 @@ export default function CRTMonitor(props: CRTMonitorProps) {
   const componentStyle = {
     position: 'relative' as const,
     display: 'inline-block',
+    // Never wider than the page: on a phone it shrinks instead of zooming the page out
+    maxWidth: '100%',
+    boxSizing: 'border-box' as const,
     padding: '40px',
     background: 'linear-gradient(145deg, #2a2a2a, #1a1a1a)',
     borderRadius: '20px',
@@ -98,7 +101,8 @@ export default function CRTMonitor(props: CRTMonitorProps) {
         style={{
           position: 'relative', // Needed for effects positioning
           width: '400px',
-          height: '300px',
+          maxWidth: '100%',
+          aspectRatio: '4 / 3',
           background: '#000000',
           borderRadius: curvature ? '15px' : '8px',
           overflow: 'visible', // Always visible to allow nested component positioning
@@ -219,10 +223,8 @@ export default function CRTMonitor(props: CRTMonitorProps) {
       {children && (
         <div style={{
           position: 'absolute',
-          top: '40px', // Offset by container padding
-          left: '40px', // Offset by container padding
-          width: '400px', // Match screen width
-          height: '300px', // Match screen height
+          // Over the screen: the container less its padding
+          inset: '40px',
           pointerEvents: 'auto',
           zIndex: 3 // Above effects
         }}>

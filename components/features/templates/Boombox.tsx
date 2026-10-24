@@ -174,7 +174,9 @@ export default function Boombox(props: BoomboxProps) {
   // Component default styles
   const componentStyle: React.CSSProperties = {
     display: 'inline-block',
-    position: 'static'
+    position: 'static',
+    // Never wider than the page: on a phone it shrinks instead of zooming the page out
+    maxWidth: '100%'
   };
 
   // Merge component styles with CSS props (CSS props win)
@@ -211,6 +213,7 @@ export default function Boombox(props: BoomboxProps) {
       <style jsx>{`
         .boombox-shell {
           width: ${currentStyle.width};
+          max-width: 100%;
           height: ${currentStyle.height};
           background: linear-gradient(145deg, ${currentColor.primary} 0%, ${currentColor.secondary} 100%);
           border: 2px solid ${currentColor.accent};

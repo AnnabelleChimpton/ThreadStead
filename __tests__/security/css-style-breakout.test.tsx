@@ -55,10 +55,16 @@ describe('escapeCssForStyleTag', () => {
     expect(parseServerHTML(html).getElementById('breakout-marker')).not.toBeNull()
   })
 
-  test('turns every < into the CSS escape, which CSS reads as the same character', () => {
-    expect(escapeCssForStyleTag('a::after{content:"<3"}')).toBe('a::after{content:"\\3c 3"}')
+  test('escapes only the < of a closing style tag, as a CSS escape CSS reads as the same character', () => {
+    expect(escapeCssForStyleTag('a::after{content:"</style"}')).toBe('a::after{content:"\\3c /style"}')
+    expect(escapeCssForStyleTag('a::after{content:"<3"}')).toBe('a::after{content:"<3"}')
     expect(escapeCssForStyleTag('a{color:red}')).toBe('a{color:red}')
     expect(escapeCssForStyleTag(null)).toBe('')
+  })
+
+  test('range media queries keep their < (escaped, they never matched: template audit 03 #4)', () => {
+    const css = '@media (width < 40em) { .nav { display: none } } @media (400px <= width <= 700px) { a { color: red } }'
+    expect(escapeCssForStyleTag(css)).toBe(css)
   })
 })
 

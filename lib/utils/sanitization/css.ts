@@ -72,12 +72,14 @@ export function cleanCss(input: string): string {
 
 /**
  * Make CSS safe to place inside a <style> tag. HTML ends a style element at
- * "</style", wherever it appears, so every "<" becomes the CSS escape
- * "\3c " (with its terminating space). CSS reads that as "<" inside strings,
- * urls and content, and "<" has no other meaning in CSS, so the stylesheet
- * is unchanged. Use it at every dangerouslySetInnerHTML for a <style>.
+ * "</style" (any case), wherever it appears, and nothing else in a style
+ * element means anything to HTML. So only that "<" becomes the CSS escape
+ * "\3c " (with its terminating space), which CSS reads as "<" inside strings,
+ * urls and content. Every other "<" stays: range media queries need it
+ * (`@media (width < 40em)`), and escaping it there made them never match.
+ * Use it at every dangerouslySetInnerHTML for a <style>.
  */
 export function escapeCssForStyleTag(css: string | null | undefined): string {
   if (!css) return "";
-  return css.replace(/</g, "\\3c ");
+  return css.replace(/<(?=\/style)/gi, "\\3c ");
 }

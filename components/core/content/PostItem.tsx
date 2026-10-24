@@ -414,7 +414,9 @@ export default function PostItem({
             </span>
           </div>
         )}
-        <div className="flex-1 min-w-0">
+        {/* contain: a long name is cut off here, and its full width doesn't
+            set the minimum width of a page's grid around the post (phones) */}
+        <div className="flex-1 min-w-0 [contain:inline-size]">
           <div className="flex items-center gap-2 flex-wrap">
             {authorUsername ? (
               <span className="p-author h-card truncate">

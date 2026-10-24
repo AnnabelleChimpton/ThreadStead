@@ -665,13 +665,14 @@ textarea:focus {
 
 /* Mobile optimizations */
 @media (max-width: 767px) {
-  /* Default background on mobile devices - can be overridden by user CSS */
-  html:not(.user-profile-page) {
+  /* Default background on mobile devices - can be overridden by user CSS.
+     Not on pages of someone's own HTML (globals.css says why). */
+  html:not(:has(.profile-template-root)) {
     background-color: #FCFAF7;
     background: #FCFAF7;
   }
 
-  body:not(.user-profile-page) {
+  body:not(:has(.profile-template-root)) {
     background-color: #FCFAF7;
     background: #FCFAF7;
   }
