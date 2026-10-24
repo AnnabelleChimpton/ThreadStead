@@ -10,6 +10,8 @@ export default apiHandler(
   {
     methods: ['POST'],
     auth: 'user',
+    // Compiling a big page is real work for the server (security audit H1)
+    rateLimit: 'template_compile',
   },
   async (req, res) => {
     const { template } = req.body ?? {};

@@ -67,12 +67,31 @@ export function looksLikeComponentName(name: string): boolean {
   return /^[A-Z]/.test(name) && /[a-z]/.test(name)
 }
 
+// Where each line starts, for the last source asked about. Callers ask for
+// every tag's line in one source; counting newlines from the top each time
+// made compiling quadratic (a 199 KB page took 2.1 s, 500 KB 12 s, and the
+// server answered nobody else meanwhile: template audit 12 #2).
+let indexed: { source: string; starts: number[] } | null = null
+
+/** The 1-based line `index` is on */
 export function lineAt(source: string, index: number): number {
-  let line = 1
-  for (let i = 0; i < index && i < source.length; i++) {
-    if (source.charCodeAt(i) === 10) line++
+  if (indexed?.source !== source) {
+    const starts = [0]
+    for (let i = 0; i < source.length; i++) {
+      if (source.charCodeAt(i) === 10) starts.push(i + 1)
+    }
+    indexed = { source, starts }
   }
-  return line
+  const { starts } = indexed
+  // The last line starting at or before index
+  let low = 0
+  let high = starts.length - 1
+  while (low < high) {
+    const mid = (low + high + 1) >> 1
+    if (starts[mid] <= index) low = mid
+    else high = mid - 1
+  }
+  return low + 1
 }
 
 export function tokenizeSource(source: string): SourceToken[] {

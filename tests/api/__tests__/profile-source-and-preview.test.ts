@@ -195,6 +195,15 @@ describe('POST /api/templates/compile (the live preview and problems panel)', ()
     expect(res.statusCode).toBe(401)
     expect(compileTemplateToArtifacts).not.toHaveBeenCalled()
   })
+
+  test('is rate limited per person, before any compile (security audit H1)', async () => {
+    const { rateLimitCheck } = jest.requireMock('@/lib/server/http/rate-limit')
+    ;(rateLimitCheck as jest.Mock).mockResolvedValueOnce(false)
+    const { req, res } = makeReqRes('POST', {}, { template: '<p>draft</p>' })
+    await compileHandler(req, res)
+    expect((rateLimitCheck as jest.Mock).mock.calls[0]).toContain('template_compile')
+    expect(compileTemplateToArtifacts).not.toHaveBeenCalled()
+  })
 })
 
 describe('size caps on saves', () => {

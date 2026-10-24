@@ -28,6 +28,7 @@ export type RateLimitCategory =
   | "uploads"
   | "profile_updates" // Legacy - use more specific categories below
   | "template_editing" // Template and CSS saves
+  | "template_compile" // The HTML editor's live preview compile
   | "profile_metadata" // Bio, avatar, display name, settings
   | "profile_toggles" // Enable/disable operations
   | "threadring_operations"
@@ -66,6 +67,8 @@ export const RATE_LIMIT_CONFIGS: Record<RateLimitCategory, RateLimitConfig> = {
   uploads: { limit: 5 * DEV_MULTIPLIER, windowMs: 60 * 60 * 1000 }, // 5 per hour (50 in dev)
   profile_updates: { limit: 10 * DEV_MULTIPLIER, windowMs: 60 * 60 * 1000 }, // 10 per hour (100 in dev) - LEGACY
   template_editing: { limit: 100 * DEV_MULTIPLIER, windowMs: 60 * 60 * 1000 }, // 100 per hour (1000 in dev)
+  // The HTML editor's live preview compiles on every pause in typing
+  template_compile: { limit: 120 * DEV_MULTIPLIER, windowMs: 60 * 1000 }, // 120 per minute (1200 in dev)
   profile_metadata: { limit: 30 * DEV_MULTIPLIER, windowMs: 60 * 60 * 1000 }, // 30 per hour (300 in dev)
   profile_toggles: { limit: 50 * DEV_MULTIPLIER, windowMs: 60 * 60 * 1000 }, // 50 per hour (500 in dev)
   threadring_operations: { limit: 200 * DEV_MULTIPLIER, windowMs: 60 * 60 * 1000 }, // 200 per hour (2000 in dev)

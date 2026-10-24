@@ -6,9 +6,12 @@ import crypto from 'crypto';
 import type { TemplateNode } from './template-parser';
 import type { Island } from './compiler/types';
 
-// Cache configuration
-const CACHE_TTL = 60 * 60 * 24 * 7 * 1000; // 7 days in milliseconds
-const MAX_CACHE_SIZE = 100; // Maximum number of cached templates
+// Cache configuration. Its job is "a save right after a check doesn't compile
+// twice", which needs a handful of recent entries. 100 entries for 7 days
+// held ~263 MB of server memory once one person edited a big page (template
+// audit 12 #4).
+const CACHE_TTL = 60 * 60 * 1000; // 1 hour in milliseconds
+const MAX_CACHE_SIZE = 20; // Maximum number of cached templates
 const CACHE_VERSION = 'v1'; // Bump to invalidate all caches globally
 
 // Cached compilation entry
@@ -143,7 +146,7 @@ export function resetCacheStats() {
  * - HIT: Template hash found in cache, returns in <2ms
  * - MISS: Template not in cache or expired, compiles (50-500ms), then caches result
  * - Automatic LRU eviction when cache exceeds MAX_CACHE_SIZE
- * - Automatic TTL expiration after 7 days
+ * - Automatic TTL expiration after an hour
  *
  * @param templateContent - Raw HTML template content
  * @param compileFunction - Function that performs actual compilation (only called on cache miss)
