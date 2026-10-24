@@ -7,7 +7,7 @@ import type { Root } from 'hast';
 import { componentRegistry } from '../core/template-registry';
 import { coercePropValue, findPropSchema, propNameKey, type PropSchema } from '../core/template-registry-types';
 import { getAllowedAttributes } from '../core/attribute-mappings';
-import { TEMPLATE_LIMITS, formatLimitError } from './template-limits';
+import { TEMPLATE_LIMITS, formatLimitError, runawayPageError } from './template-limits';
 import {
   COMPONENT_TAG_PREFIX,
   lineAt,
@@ -1287,6 +1287,9 @@ export function compileTemplate(htmlString: string): CompilationResult {
         errors: [formatLimitError('size', htmlString.length, TEMPLATE_LIMITS.maxChars)]
       };
     }
+
+    const runaway = runawayPageError(htmlString);
+    if (runaway) return { success: false, errors: [runaway] };
 
     // Pre-validate syntax before parsing
     const syntaxCheck = detectSyntaxErrors(htmlString);

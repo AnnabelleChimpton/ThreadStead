@@ -151,3 +151,31 @@ describe('compiling a big page takes time in proportion to its size', () => {
     expect(performance.now() - started).toBeLessThan(1000)
   })
 })
+
+describe('a runaway page is refused before parsing (template audit 04 H1)', () => {
+  // The parser slows with every level (30,000 unclosed <div>s took 2 s) and
+  // the tree conversion overflowed the stack near 3,000, answering
+  // "Template parsing failed" instead of the depth limit
+  const refusedQuickly = (source: string) => {
+    const started = performance.now()
+    const result = compileTemplate(source)
+    expect(performance.now() - started).toBeLessThan(200)
+    expect(result.success).toBe(false)
+    return result.errors![0]
+  }
+
+  test('deep nesting gets the depth message, however it nests', () => {
+    for (const source of ['<div>'.repeat(9000), '<ul><li>'.repeat(5000), '<div>'.repeat(9000) + '</x>'.repeat(9000)]) {
+      expect(refusedQuickly(source)).toMatch(/^Your page has tags nested more than 1,024 deep; the most is 256/)
+    }
+  })
+
+  test('a flood of tags gets the tag message', () => {
+    expect(refusedQuickly('<div>'.repeat(30000))).toMatch(/^Your page has 30,000 tags; the most is 10,000/)
+  })
+
+  test("old pages' unclosed tags don't count as nesting", () => {
+    expect(compileTemplate('<table>' + '<tr><td><font size=2>cell</td></tr>'.repeat(1500) + '</table>').success).toBe(true)
+    expect(compileTemplate('<p>para'.repeat(1500)).success).toBe(true)
+  })
+})
