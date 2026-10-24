@@ -137,7 +137,15 @@ export default function WhatWorksHere({ siteConfig }: WhatWorksHereProps) {
 
 h1 { font-family: "VT323", monospace; }`}</Example>
               <p>
-                Font files from other font sites won&apos;t load. The site&apos;s own styles can be on or off. On, your CSS adds to
+                Font files can come from anywhere with an https address, as long as the site they&apos;re on lets other
+                sites use them:
+              </p>
+              <Example>{`@font-face {
+  font-family: "Pixel";
+  src: url("https://yoursite.neocities.org/fonts/pixel.woff2");
+}`}</Example>
+              <p>
+                The site&apos;s own styles can be on or off. On, your CSS adds to
                 them. Off, the site&apos;s theme is left out and your CSS does the rest. That&apos;s the Site styles
                 menu in the editor.
               </p>

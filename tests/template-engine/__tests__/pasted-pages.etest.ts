@@ -394,6 +394,10 @@ describe('whole documents', () => {
       ['document', 'unsupported', 'safety'].indexOf(a!) - ['document', 'unsupported', 'safety'].indexOf(b!)))
   })
 
+  test('a <title> in a fragment is kept for the tab (cross-check A7)', () => {
+    expect(compile('<title>My Room</title>\n<p>hi</p>').ast.head?.title).toBe('My Room')
+  })
+
   test('a stray <style> or <title> never turns into visible text', () => {
     const { staticHTML } = compile('<div><title>my site</title><style>.a{color:red}</style><p>x</p></div>')
     expect(staticHTML).not.toContain('my site')

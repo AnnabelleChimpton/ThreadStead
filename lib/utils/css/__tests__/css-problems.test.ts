@@ -18,12 +18,13 @@ test('a stray } and an unclosed comment are said once', () => {
   expect(cssProblems('a { color: red }\n/* old')).toEqual([expect.stringMatching(/^Line 2: this \/\* comment is never closed/)])
 })
 
-test('an @import from elsewhere and a font from elsewhere say why, with their line', () => {
+test('an @import from elsewhere and an http:// font say why, with their line', () => {
   const problems = cssProblems(`a { color: red }
 @import url("https://cdn.example/style.css");
-@font-face { font-family: X; src: url(https://fonts.gstatic.com/x.woff2), url("https://cdn.example/x.woff2"); }`)
+@font-face { font-family: X; src: url(https://fonts.gstatic.com/x.woff2), url("https://cdn.example/x.woff2"), url(http://old.example/x.ttf); }`)
+  // Fonts load from any https address; only http:// ones fail
   expect(problems).toEqual([
     expect.stringMatching(/^Line 2: @import from https:\/\/cdn\.example\/style\.css \(only Google Fonts can be imported\) is taken out when you save\.$/),
-    expect.stringMatching(/^Line 3: the font from cdn\.example won't load/),
+    expect.stringMatching(/^Line 3: the font from old\.example won't load, because its address starts with http:\/\//),
   ])
 })

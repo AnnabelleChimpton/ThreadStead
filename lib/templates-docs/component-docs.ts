@@ -125,8 +125,27 @@ export function componentDoc(registration: ComponentRegistration): ComponentDoc 
 }
 
 /** Every registered component, in reference order: by group, connected ones first, featured ones first in each. */
+/**
+ * Left out of the palette, autocomplete and reference, and so out of new
+ * pages; pages that use them keep working (template audit PLAN, "Bloat"):
+ * logic that misbehaves or repeats another tag, layout HTML already does,
+ * the site's own chrome, and one-offs. The ones that misbehave also get a
+ * line in the editor (template-parser.ts reportPageProblems). Sequence and
+ * Step stay: they're the one way to wait between actions, and a lesson uses them.
+ */
+export const HIDDEN_COMPONENTS: ReadonlySet<string> = new Set([
+  'Continue', 'Choose', 'When', 'Otherwise', 'Switch', 'Case', 'Default', 'OnHover', 'Timeout', 'OnTimeout',
+  'FlexContainer', 'GridLayout', 'Grid', 'GridItem', 'SplitLayout', 'CenteredBox', 'GradientBox',
+  'TextElement', 'Heading', 'Paragraph', 'CustomHTMLElement',
+  'NotificationCenter', 'NotificationBell', 'UserAccount', 'SiteBranding', 'Breadcrumb', 'ThreadsteadNavigation',
+  'ProgressTracker', 'SkillChart', 'ContactCard', 'ArcadeButton', 'FloatingBadge',
+  'DebugValue',
+])
+
 export function buildComponentDocs(registrations: Map<string, ComponentRegistration>): ComponentDoc[] {
-  const docs = Array.from(registrations.values()).map(componentDoc);
+  const docs = Array.from(registrations.values())
+    .filter((registration) => !HIDDEN_COMPONENTS.has(registration.name))
+    .map(componentDoc);
   const groupOrder = new Map(COMPONENT_GROUPS.map((group, index) => [group.id, index]));
   const position = (doc: ComponentDoc) => doc.featured ?? Number.MAX_SAFE_INTEGER;
   // Array.prototype.sort is stable, so registry order holds within a group

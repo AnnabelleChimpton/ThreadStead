@@ -24,6 +24,7 @@ import {
   GLOBAL_ATTRIBUTES,
   HTML_AUTHORING_TAGS,
   ID_REFERENCE_ATTRIBUTES,
+  isReservedDataAttribute,
   STRIPPED_WITH_CONTENT,
   SVG_ATTRIBUTES,
   SVG_TAGS,
@@ -66,14 +67,14 @@ export function createCustomSchema() {
     attributes[tag] = Array.isArray(attrs)
       // defaultSchema pins className to GitHub's own values (task lists,
       // footnotes) and allows its footnote data-* markers; pages use any
-      // class they like, and data-* stays out (island markers are ours)
+      // class they like, and any data-* but the site's own (below)
       ? attrs.filter((attr) => {
           const name = Array.isArray(attr) ? String(attr[0]) : String(attr);
           return name !== 'className' && !/^data[A-Z]/.test(name);
         })
       : attrs;
   }
-  attributes['*'] = Array.from(new Set([...(attributes['*'] || []), ...GLOBAL_ATTRIBUTES, ...ARIA_ATTRIBUTES]));
+  attributes['*'] = Array.from(new Set([...(attributes['*'] || []), ...GLOBAL_ATTRIBUTES, ...ARIA_ATTRIBUTES, 'data*']));
   for (const [tag, attrs] of Object.entries(ELEMENT_ATTRIBUTES)) {
     // A tag's own list replaces defaultSchema's (input's checkbox-only rule goes)
     attributes[tag] = [...attrs];
@@ -423,7 +424,7 @@ function strippedReason(
     return {
       category: 'document',
       reason: lower === 'title'
-        ? 'Document wrapper (expected): the title isn’t shown on the page itself.'
+        ? 'Document wrapper (expected): the title goes in the browser tab, before your name.'
         : 'Document wrapper (expected): only what’s inside <body> becomes your page.',
     };
   }
@@ -562,6 +563,12 @@ const FORM_FIELDS = new Set(['input', 'select', 'textarea', 'button', 'output'])
 function finishSanitizedTree(node: HastLike): boolean {
   let removedFormAction = false;
   if (node.type === 'element') {
+    // The site's own data-* names (island markers, the page root) aren't a page's to set
+    for (const key of Object.keys(node.properties ?? {})) {
+      if (/^data[A-Z]/.test(key) && isReservedDataAttribute(`data${key.slice(4).replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}`)) {
+        delete node.properties![key];
+      }
+    }
     if (typeof node.tagName === 'string' && node.tagName.startsWith(COMPONENT_TAG_PREFIX)) {
       node.tagName = node.tagName.slice(COMPONENT_TAG_PREFIX.length);
       node.data = { ...(node.data || {}), component: true };
@@ -716,7 +723,8 @@ export function parseTemplate(htmlString: string): Root & {
     result._attributeWarnings = attributeWarnings;
   }
 
-  if (document.isFullDocument || document.head.fontImports.length > 0 || document.head.options) {
+  // A <title> counts in a fragment too: it goes first in the tab (PageMeta)
+  if (document.isFullDocument || document.head.fontImports.length > 0 || document.head.options || document.head.title) {
     result._documentHead = document.head;
   }
 
@@ -915,7 +923,7 @@ function reportComponentProps(source: string): string[] {
  * single tag on its own leave these out.
  */
 export function isPageProblem(message: string): boolean {
-  return /uses a variable called|only works (straight )?inside|reads (condition|data|when) as a name|needs name="…" \(or var="…"\)/.test(message);
+  return /uses a variable called|only works (straight )?inside|reads (condition|data|when) as a name|needs name="…" \(or var="…"\)|doesn't do anything yet|doesn't change when a page variable does/.test(message);
 }
 
 /** Components that run what's inside them when something happens (OnClick, OnChange, OnMount…) */
@@ -1049,6 +1057,17 @@ function reportPageProblems(source: string): string[] {
       messages.push(
         `Line ${line}: <${name}> only works inside an event like <OnClick>. On the page it does nothing; use another <If> for the other case.`
       );
+    }
+
+    // Retired components that still misbehave (component-docs.ts HIDDEN_COMPONENTS)
+    if (name === 'Continue') {
+      messages.push(`Line ${line}: <Continue> doesn't do anything yet. To leave an item out of a <ForEach>, put its HTML inside an <If>.`);
+    }
+    if (name === 'Switch' && !stack.some(isEvent)) {
+      messages.push(`Line ${line}: <Switch> only works inside an event like <OnClick>; on the page it can show more than one case. Use <If> there.`);
+    }
+    if (name === 'When' && [...attrs.values()].some((value) => value.includes('$vars'))) {
+      messages.push(`Line ${line}: <When> doesn't change when a page variable does, so this stays as the page loaded. <If> follows variables.`);
     }
 
     // A calculation the page can't run: said here, with its line, not only

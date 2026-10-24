@@ -8,7 +8,11 @@ import { previewText } from "@/lib/utils/metadata/preview-text";
 interface PageMetaProps {
   /** The page's own name; the tab reads "<title> | HomePageAgain" */
   title: string;
-  /** The tab's exact text instead (a resident's page with its own <title>) */
+  /**
+   * A resident's own <title>, put first in the tab: "My Room · Pat (@pat) |
+   * HomePageAgain". Never the whole tab text, so a page can't pass itself
+   * off as another site's or the site's own.
+   */
   tabTitle?: string;
   description?: string;
   /** The page's one true address (a path, or a full URL), for canonical and og:url */
@@ -33,7 +37,7 @@ const absolute = (url: string) => new URL(url, getSiteBaseUrl()).toString();
  */
 export default function PageMeta({ title, tabTitle, description: rawDescription, path, image, type = "website", noIndex = false, children }: PageMetaProps) {
   const description = rawDescription ? previewText(rawDescription) : undefined;
-  const fullTitle = tabTitle || (title === SITE_TITLE ? title : `${title} | ${SITE_TITLE}`);
+  const fullTitle = `${tabTitle ? `${tabTitle} · ` : ''}${title === SITE_TITLE ? title : `${title} | ${SITE_TITLE}`}`;
   const url = path ? absolute(path) : undefined;
   const wide = !!image?.width && !!image?.height && image.width / image.height >= 1.3;
 

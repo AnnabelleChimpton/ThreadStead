@@ -15,6 +15,18 @@
  * below) against the real schema; change both together.
  */
 
+/**
+ * data-* names the site's own code reads: island placeholders
+ * (data-island, data-component), the page root and chrome markers
+ * (data-template-root, data-site-chrome, data-ts-page), component state
+ * (data-state, data-active). A page may use any other data-* (attr(),
+ * [data-theme] switches, glitch-text tutorials); these are taken out.
+ * Takes the attribute's HTML name (data-foo-bar).
+ */
+export function isReservedDataAttribute(name: string): boolean {
+  return /^data-(?:ts-|site-|template-|island|component|state$|active$)/i.test(name);
+}
+
 /** Ordinary HTML elements beyond defaultSchema's tag list. */
 export const HTML_AUTHORING_TAGS = [
   // structure

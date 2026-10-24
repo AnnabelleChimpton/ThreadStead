@@ -40,10 +40,11 @@ it('gives a wide image the large card, and anything else the small one', () => {
   expect(card({ title: 'Help' })).toBeUndefined();
 });
 
-it('names the site once in the tab, and keeps a page\'s own tab title', () => {
+it('names the site once in the tab, and puts a page\'s own title first', () => {
   expect(html({ title: 'Help' })).toContain(`<title>Help | ${SITE_TITLE}</title>`);
   expect(html({ title: SITE_TITLE })).toContain(`<title>${SITE_TITLE}</title>`);
-  expect(html({ title: 'Robin', tabTitle: 'my corner' })).toContain('<title>my corner</title>');
+  // never the whole tab: the person and the site stay named
+  expect(html({ title: 'Robin (@robin)', tabTitle: 'my corner' })).toContain(`<title>my corner · Robin (@robin) | ${SITE_TITLE}</title>`);
 });
 
 it('keeps the description to one short line', () => {

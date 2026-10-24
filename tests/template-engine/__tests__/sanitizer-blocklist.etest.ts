@@ -73,11 +73,12 @@ describe('the schema', () => {
     expect(offenders).toEqual([])
   })
 
-  test('data-* is not allowed on plain HTML (island markers and the chrome marker stay ours)', () => {
-    const offenders = htmlTags().filter((tag) =>
-      attributeNames(schema.attributes[tag]).some((name) => name === 'data*' || /^data[A-Z]/.test(name))
-    )
-    expect(offenders).toEqual([])
+  test("a page's data-* stays; the site's own data-* names never do (island markers, the page root, chrome)", () => {
+    const reserved = ['data-island="x"', 'data-component="Guestbook"', 'data-template-root', 'data-site-chrome', 'data-ts-page', 'data-state="on"', 'data-active="1"']
+    const { staticHTML } = compileTemplateToArtifacts(`<span data-text="hi" data-theme="dark" ${reserved.join(' ')}>x</span>`)
+    expect(staticHTML).toBe('<span data-text="hi" data-theme="dark">x</span>')
+    // custom HTML inside a component attribute goes through the same clean-up
+    expect(sanitizeCustomHTML('<b data-island="x" data-note="y">z</b>')).toBe('<b data-note="y">z</b>')
   })
 
   test('every URL-bearing attribute is protocol-checked against http(s)', () => {

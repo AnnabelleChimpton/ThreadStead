@@ -6,6 +6,7 @@
  * whatever selector the page uses.
  */
 import { USER_CONTENT_PREFIX } from '@/lib/utils/css/css-transform';
+import { isReservedDataAttribute } from '@/lib/templates/compilation/html-allowlist';
 
 export const TEMPLATE_ROOT = '[data-template-root]';
 
@@ -36,7 +37,8 @@ export function pageRoots(): HTMLElement[] {
  * that runs code or loads something (on…, href, src, style, srcdoc, action).
  */
 export function isSafePageAttribute(name: string): boolean {
-  return /^(aria-[a-z-]+|data-[a-z0-9-]+|hidden|disabled|open|checked|selected|readonly|required|title)$/i.test(name);
+  return /^(aria-[a-z-]+|data-[a-z0-9-]+|hidden|disabled|open|checked|selected|readonly|required|title)$/i.test(name) &&
+    !isReservedDataAttribute(name);
 }
 
 /**

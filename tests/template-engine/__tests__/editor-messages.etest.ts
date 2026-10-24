@@ -112,3 +112,20 @@ test('name= where a tag wants var= says so, once', async () => {
   const { warnings } = await report('<Var name="n" initial="0" />\n<Button><OnClick><Increment name="n" /></OnClick>Go</Button>')
   expect(warnings).toEqual(['Line 2: <Increment name="n"> Increment says which variable with var="…", not name=. Write var="n".'])
 })
+
+// Retired components still work on the pages that use them; the ones that
+// misbehave say so (cross-check A8, component-docs.ts HIDDEN_COMPONENTS)
+test('retired logic that misbehaves says what to use instead', async () => {
+  const { warnings } = await report(`<Var name="n" type="number" initial="1" />
+<ForEach var="xs" item="x"><Continue /></ForEach>
+<Switch value="n"><Case value="1"><p>one</p></Case><Default><p>other</p></Default></Switch>
+<Choose><When data="$vars.n" equals="1"><p>one</p></When></Choose>`)
+  expect(warnings).toEqual(expect.arrayContaining([
+    expect.stringMatching(/^Line 2: <Continue> doesn't do anything yet.*<If>/),
+    expect.stringMatching(/^Line 3: <Switch> only works inside an event like <OnClick>/),
+    expect.stringMatching(/^Line 4: <When> doesn't change when a page variable does.*<If> follows variables/),
+  ]))
+  // inside an event, Switch is fine
+  const inEvent = await report('<Var name="n" type="number" initial="1" /><Button><OnClick><Switch value="n"><Case value="1"><Set var="n" value="2" /></Case></Switch></OnClick>Go</Button>')
+  expect(inEvent.warnings.join()).not.toMatch(/<Switch>/)
+})

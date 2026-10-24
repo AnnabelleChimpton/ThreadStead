@@ -167,8 +167,8 @@ export default function ProfilePage({
   // The way back out to the house, in the site chrome above every layout
   const stepOutside = hasPixelHome ? <StepOutsideLink username={username} /> : null;
 
-  // Every layout gets the same <head>. A page of your own HTML that came with
-  // its own <title> keeps it.
+  // Every layout gets the same <head>. A page of your own HTML with its own
+  // <title> puts it first in the tab.
   const documentTitle =
     templateMode === 'advanced' ? compiledTemplate?.ast?.head?.title?.trim() : undefined;
   const pageUrl = canonicalUrl || `${getSiteBaseUrl()}${profileMetadata.url}`;

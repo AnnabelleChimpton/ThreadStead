@@ -21,13 +21,16 @@ jest.mock('@noble/ed25519', () => ({
 import { compileTemplateToArtifacts } from '@/lib/templates/compilation/compile-pipeline'
 import { componentRegistry } from '@/lib/templates/core/template-registry'
 import { ComponentRegistry } from '@/lib/templates/core/template-registry-class'
-import { buildComponentDocs, componentExample, COMPONENT_GROUPS } from '@/lib/templates-docs/component-docs'
+import { buildComponentDocs, componentExample, COMPONENT_GROUPS, HIDDEN_COMPONENTS } from '@/lib/templates-docs/component-docs'
 import { COMPONENT_NAMES } from '@/lib/templates-docs/component-names'
 
 const docs = buildComponentDocs(componentRegistry.getAllRegistrations())
 
-test('every registered component is in the reference', () => {
-  expect(docs.map((d) => d.name).sort()).toEqual([...componentRegistry.getAllRegistrations().keys()].sort())
+test('every registered component is in the reference, but the hidden ones', () => {
+  const names = [...componentRegistry.getAllRegistrations().keys()]
+  expect(docs.map((d) => d.name).sort()).toEqual(names.filter((n) => !HIDDEN_COMPONENTS.has(n)).sort())
+  // a hidden name that isn't registered is a typo
+  for (const name of HIDDEN_COMPONENTS) expect(names).toContain(name)
 })
 
 test('the browser-side list of names matches the registry', () => {

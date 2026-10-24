@@ -33,6 +33,8 @@ it('leaves the site alone when a page targets it', () => {
 it('sets only state and accessibility attributes', () => {
   for (const name of ['aria-expanded', 'data-mood', 'hidden', 'open', 'title']) expect(isSafePageAttribute(name)).toBe(true);
   for (const name of ['onclick', 'href', 'src', 'style', 'srcdoc', 'action', 'formaction', 'class']) expect(isSafePageAttribute(name)).toBe(false);
+  // nor the site's own data-* names (island markers, the page root)
+  for (const name of ['data-island', 'data-component', 'data-template-root', 'data-site-chrome', 'data-ts-page', 'data-state']) expect(isSafePageAttribute(name)).toBe(false);
 
   const hello = document.querySelector('#user-content-hello')!;
   executeConditionalAttrAction({ element: '#hello', attribute: 'href', value: 'x', when: '1 === 1' }, {});

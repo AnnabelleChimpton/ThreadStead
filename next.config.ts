@@ -359,7 +359,8 @@ const nextConfig: NextConfig = {
               // starts its decoder before it will load any sound bank (lib/audio/engines/sampler.ts)
               `script-src 'self' 'wasm-unsafe-eval' ${process.env.NODE_ENV !== 'production' ? "'unsafe-eval' " : ''}'unsafe-inline'`,
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com", // unsafe-inline needed for styled-components/CSS-in-JS
-              "font-src 'self' https://fonts.gstatic.com data:",
+              // Fonts from any https host: a page's own @font-face (its Neocities pixel font) loads, like its images
+              "font-src 'self' https: data:",
               "img-src 'self' https: data: blob:",
               "media-src 'self' https: data:",
               "connect-src 'self' https:",

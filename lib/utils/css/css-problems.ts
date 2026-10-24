@@ -17,12 +17,12 @@ export function cssProblems(css: string): string[] {
     problems.push(`${at >= 0 ? `Line ${lineAt(at)}: ` : ''}${what} is taken out when you save.`);
   }
 
+  // Fonts load from any https address (CSP font-src https:), not plain http
   for (const face of css.matchAll(/@font-face\s*\{[^}]*\}/gi)) {
-    for (const src of face[0].matchAll(/url\(\s*["']?\s*(?:https?:)?\/\/([^/"')\s]+)/gi)) {
-      if (/^fonts\.gstatic\.com$/i.test(src[1])) continue;
+    for (const src of face[0].matchAll(/url\(\s*["']?\s*http:\/\/([^/"')\s]+)/gi)) {
       problems.push(
-        `Line ${lineAt(face.index! + src.index!)}: the font from ${src[1]} won't load, because fonts here can only come from Google Fonts. ` +
-        'Pick one at fonts.google.com and @import it.'
+        `Line ${lineAt(face.index! + src.index!)}: the font from ${src[1]} won't load, because its address starts with http://. ` +
+        'Use its https:// address.'
       );
     }
   }
