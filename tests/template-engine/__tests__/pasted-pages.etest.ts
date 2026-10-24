@@ -353,9 +353,9 @@ describe('whole documents', () => {
     const { bodyCss } = documentCssFromCompiledTemplate({ ast: artifacts.ast })
     const out = transformAdvancedCss('body { color: white }', { bodyCss })
     expect(out).toContain(
-      ':scope body { background-color: #000000; color: #00FF00; background-image: url("https://example.neocities.org/stars.gif"); }'
+      ':scope:is(html) body { background-color: #000000; color: #00FF00; background-image: url("https://example.neocities.org/stars.gif"); }'
     )
-    expect(out).toContain(':scope body :where(a:link) { color: #FF00FF; }')
+    expect(out).toContain(':scope:is(html) body :where(a:link) { color: #FF00FF; }')
     // the page's own rule comes after, so it wins the tie
     expect(out.indexOf('color: white')).toBeGreaterThan(out.indexOf('color: #00FF00'))
   })

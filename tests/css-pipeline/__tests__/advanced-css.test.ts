@@ -5,6 +5,7 @@
  * rules that find the prefixed ids, and nothing reaching the site chrome.
  */
 import fs from 'fs'
+import { parse, type Selector } from 'css-what'
 import path from 'path'
 import {
   prefixUserContentIds,
@@ -28,15 +29,15 @@ function sadgrlCss(): string {
 
 describe('scopeAdvancedSelector: root selectors stay roots', () => {
   test.each([
-    ['body', ':scope body'],
-    ['body.dark', ':scope body.dark'],
-    ['body > .wrap', ':scope body > .wrap'],
-    ['BODY', ':scope BODY'],
-    ['html', ':scope:root'],
-    [':root', ':scope:root'],
-    ['html:root', ':scope:root'],
-    [':root .x', ':scope:root .x'],
-    ['html body .x', ':scope:root body .x'],
+    ['body', ':scope:is(html) body'],
+    ['body.dark', ':scope:is(html) body.dark'],
+    ['body > .wrap', ':scope:is(html) body > .wrap'],
+    ['BODY', ':scope:is(html) BODY'],
+    ['html', 'html:scope:is(html)'],
+    [':root', ':root:scope:is(html)'],
+    ['html:root', 'html:scope:is(html):root'],
+    [':root .x', ':root:scope:is(html) .x'],
+    ['html body .x', 'html:scope:is(html) body .x'],
     ['*', ':scope body *'],
     ['*::before', ':scope body *::before'],
     ['.layout', ':scope body .layout'],
@@ -44,6 +45,25 @@ describe('scopeAdvancedSelector: root selectors stay roots', () => {
     ['::selection', ':scope:root::selection, :scope body ::selection'],
   ])('%s → %s', (input, expected) => {
     expect(scopeAdvancedSelector(input)).toBe(expected)
+  })
+
+  // Template audit 01 #9: in a browser `body .nav a` beats a later `.nav a`,
+  // and `:root` beats `html`; scoping must not change who wins
+  test('every selector gains the same weight, one class and one element', () => {
+    const larger = (a: number[], b: number[]) => ((a[0] - b[0] || a[1] - b[1] || a[2] - b[2]) >= 0 ? a : b)
+    const weightOf = (lists: Selector[][]): number[] =>
+      lists.map((tokens) => tokens.reduce((sum, t) => {
+        const w = t.type === 'tag' || t.type === 'pseudo-element' ? [0, 0, 1]
+          : t.type === 'attribute' ? (t.name === 'id' && t.action === 'equals' ? [1, 0, 0] : [0, 1, 0])
+          : t.type === 'pseudo' ? (Array.isArray(t.data) ? (t.name === 'where' ? [0, 0, 0] : weightOf(t.data)) : [0, 1, 0])
+          : [0, 0, 0]
+        return sum.map((n, i) => n + w[i])
+      }, [0, 0, 0])).reduce(larger)
+    const weight = (selector: string) => weightOf(parse(selector))
+    for (const sel of ['body .nav a', '.nav a', 'html', ':root', 'html body .x', 'body', 'a:hover', '#main p', 'ul > li + li']) {
+      const [a, b, c] = weight(sel)
+      expect(weight(scopeAdvancedSelector(sel))).toEqual([a, b + 1, c + 1])
+    }
   })
 
   test('a body-ish class or element name is not mistaken for the root', () => {
@@ -117,7 +137,7 @@ describe('transformAdvancedCss', () => {
 
   test('@media rules are scoped and boosted like top-level ones', () => {
     const out = transformAdvancedCss('@media (max-width: 800px) { body { margin: 0 } .layout { width: 100% } }')
-    expect(out).toContain(':scope body {')
+    expect(out).toContain(':scope:is(html) body {')
     expect(out).toContain(':scope body .layout {')
   })
 })
@@ -132,14 +152,14 @@ describe('golden: the sadgrl layout stylesheet', () => {
   })
 
   test(':root custom properties land on the root, so every var() resolves', () => {
-    const rootRule = out.match(/:scope:root \{([^}]*)\}/)
+    const rootRule = out.match(/:root:scope:is\(html\) \{([^}]*)\}/)
     expect(rootRule).not.toBeNull()
     expect(rootRule![1]).toContain('--sidebar-width: 200px')
     expect(rootRule![1]).toContain('--header-bg-color: #FDA4BA')
   })
 
   test('body background and font apply to the page body', () => {
-    expect(out).toMatch(/:scope body \{[^}]*background-color: #08031A/)
+    expect(out).toMatch(/:scope:is\(html\) body \{[^}]*background-color: #08031A/)
   })
 
   test('element rules for header, nav and footer stay inside the chrome donut', () => {

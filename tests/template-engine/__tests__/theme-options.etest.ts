@@ -204,7 +204,7 @@ describe('the CSS they become', () => {
     const documentCss = documentCssFromCompiledTemplate({ ast })
     expect(documentCss.bodyCss).toBe(':root {\n  --color-accent: #c96633;\n  --font-headings: Georgia, serif;\n}')
     const css = transformAdvancedCss('h1 { color: var(--color-accent); }', documentCss)
-    expect(css).toMatch(/:scope:root \{\s*--color-accent: #c96633;\s*--font-headings: Georgia, serif;\s*\}/)
+    expect(css).toMatch(/:root:scope:is\(html\) \{\s*--color-accent: #c96633;\s*--font-headings: Georgia, serif;\s*\}/)
     expect(css.indexOf('--color-accent: #c96633')).toBeLessThan(css.indexOf('color: var(--color-accent)'))
   })
 

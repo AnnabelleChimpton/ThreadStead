@@ -316,15 +316,17 @@ function prefixSelectorIds(selector: string): string {
 /**
  * One selector of advanced-mode CSS, scoped under `@scope (html)` where
  * `:scope` is the html element:
- *   `:root …`, `html …` → `:scope:root …`   (the page root)
- *   `body …`            → `:scope body …`
+ *   `:root …`, `html …` → `:root:scope:is(html) …`, `html:scope:is(html) …`
+ *   `body …`            → `:scope:is(html) body …`
  *   `::selection` etc.  → the root and everything in body
  *   anything else, `*` included → `:scope body …`
- * The `:scope body` prefix is the specificity boost that lets plain element
- * rules beat Tailwind's single-class utilities. Before 2026-10 every selector
- * got a bare `html body` prefix, which turned `body {}` into `html body body`
- * and `:root {}` into `html body :root`: dead rules, and every CSS variable
- * a pasted page declared on :root came out undefined.
+ * Every selector gains the same weight, one class and one element, so the
+ * author's own rules rank among themselves as in a browser (`body .nav a`
+ * still beats a later `.nav a`; template audit 01 #9), and each beats the
+ * site's rules of its own shape (the theme's `a:hover`). Before 2026-10
+ * every selector got a bare `html body` prefix, which turned `body {}` into
+ * `html body body` and `:root {}` into `html body :root`: dead rules, and
+ * every CSS variable a pasted page declared on :root came out undefined.
  */
 export function scopeAdvancedSelector(selector: string): string {
   const sel = selector.trim()
@@ -333,12 +335,8 @@ export function scopeAdvancedSelector(selector: string): string {
   const overlay = sel.match(/^(?::root|html|body|html\s+body)(::?(?:before|after))$/i)
   if (overlay) return `:scope body ${PAGE_ROOT}${overlay[1]}`
   const root = sel.match(/^(?::root|html)(?![\w-])/i)
-  if (root) {
-    let rest = sel.slice(root[0].length)
-    if (/^:root(?![\w-])/i.test(rest)) rest = rest.slice(5) // `html:root`
-    return `:scope:root${rest}`
-  }
-  if (/^body(?![\w-])/i.test(sel)) return `:scope ${sel}`
+  if (root) return `${root[0]}:scope:is(html)${sel.slice(root[0].length)}`
+  if (/^body(?![\w-])/i.test(sel)) return `:scope:is(html) ${sel}`
   if (sel.startsWith('::')) return `:scope:root${sel}, :scope body ${sel}`
   return `:scope body ${sel}`
 }
