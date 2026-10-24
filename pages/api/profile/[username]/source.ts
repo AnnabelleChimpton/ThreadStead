@@ -4,6 +4,7 @@ import { apiHandler } from "@/lib/api/handler";
 import { sendUnauthenticated } from "@/lib/api/errors";
 import { sendPrivateProfile } from "@/lib/domain/users/profile-access";
 import { lookUpSource } from "@/lib/domain/profile/shared-source";
+import { PROFILE_WITHOUT_PAGE } from "@/lib/domain/profile/profile-fields";
 
 // Neocities-style view source.
 // GET  -> the profile's template + CSS, readable by anyone who may see the
@@ -50,7 +51,7 @@ export default apiHandler(
         }
         const handle = await db.handle.findFirst({
           where: { handle: username, host: SITE_NAME },
-          include: { user: { include: { profile: true } } }
+          include: { user: { include: { profile: PROFILE_WITHOUT_PAGE } } }
         });
         if (!handle || !handle.user.profile) {
           return res.status(404).json({ error: "Profile not found" });

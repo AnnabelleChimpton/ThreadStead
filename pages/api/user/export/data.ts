@@ -1,5 +1,6 @@
 import { apiHandler } from '@/lib/api/handler';
 import { db } from '@/lib/config/database/connection';
+import { profileWith } from '@/lib/domain/profile/profile-fields';
 
 interface ExportMetadata {
   exportDate: string;
@@ -90,7 +91,7 @@ async function generateUserExport(userId: string): Promise<UserDataExport> {
   const user = await db.user.findUnique({
     where: { id: userId },
     include: {
-      profile: true,
+      profile: profileWith('customTemplate', 'customCSS'),
       handles: true,
       posts: {
         orderBy: { createdAt: 'desc' }

@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { Visibility } from "@prisma/client";
 import { db } from "@/lib/config/database/connection";
+import { PROFILE_WITHOUT_PAGE } from "@/lib/domain/profile/profile-fields";
 
 import { getSessionUser } from "@/lib/auth/server";
 import { cleanAndNormalizeHtml, markdownToSafeHtml } from "@/lib/utils/sanitization/html";
@@ -122,7 +123,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     include: {
       author: {
         include: {
-          profile: true
+          profile: PROFILE_WITHOUT_PAGE
         }
       },
       threadRings: {

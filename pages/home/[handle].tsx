@@ -14,6 +14,7 @@ import { streetIndexOf } from '@/lib/pixel-homes/street'
 import { loadCatalogArt, loadDecorationRows, toSceneDecorations, type SceneDecoration } from '@/lib/pixel-homes/home-scene'
 import { SITE_NAME } from '@/lib/config/site/constants'
 import { SITE_TITLE } from '@/lib/config/site/constants'
+import { PROFILE_WITHOUT_PAGE } from '@/lib/domain/profile/profile-fields';
 
 interface UserHomeConfig {
   houseTemplate: HouseTemplate
@@ -160,7 +161,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       include: {
         user: {
           include: {
-            profile: true
+            profile: PROFILE_WITHOUT_PAGE
           }
         }
       }

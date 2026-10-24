@@ -1,4 +1,5 @@
 import { db } from "@/lib/config/database/connection";
+import { PROFILE_WITHOUT_PAGE } from "@/lib/domain/profile/profile-fields";
 
 import { apiHandler } from "@/lib/api/handler";
 import { SITE_NAME } from "@/lib/config/site/constants";
@@ -72,7 +73,7 @@ export default apiHandler(
       where: { id: { in: Array.from(mutualIds) } },
       take: 12,
       include: {
-        profile: true,
+        profile: PROFILE_WITHOUT_PAGE,
         handles: {
           where: { host: SITE_NAME },
           take: 1,

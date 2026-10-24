@@ -12,6 +12,7 @@ import { useToast } from '@/contexts/ToastContext';
 import { useConfirm } from '@/contexts/ConfirmContext';
 import { PixelIcon } from '@/components/ui/PixelIcon';
 import PasswordRules from '@/components/features/auth/PasswordRules';
+import { profileWith } from "@/lib/domain/profile/profile-fields";
 
 // Import existing components
 import ProfilePhotoUpload from "@/components/core/profile/ProfilePhotoUpload";
@@ -1831,7 +1832,7 @@ export const getServerSideProps: GetServerSideProps<UserSettingsProps> = async (
     const userData = await db.user.findUnique({
       where: { id: user.id },
       include: {
-        profile: true,
+        profile: profileWith('customCSS'),
         blueskyHandleLink: { select: { status: true } },
       }
     });

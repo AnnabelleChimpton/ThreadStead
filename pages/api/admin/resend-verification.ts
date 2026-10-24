@@ -1,6 +1,7 @@
 import { db } from "@/lib/config/database/connection";
 import { apiHandler } from "@/lib/api/handler";
 import { createEmailVerificationToken, sendVerificationEmail } from "@/lib/email-login";
+import { PROFILE_WITHOUT_PAGE } from "@/lib/domain/profile/profile-fields";
 // Import dynamically in handler to match other files, or top level if safe.
 // email-encryption seems to be server-only.
 
@@ -17,7 +18,7 @@ export default apiHandler(
             const user = await db.user.findUnique({
                 where: { id: userId },
                 include: {
-                    profile: true
+                    profile: PROFILE_WITHOUT_PAGE
                 }
             });
 

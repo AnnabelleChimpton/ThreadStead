@@ -2,6 +2,7 @@ import { db } from '@/lib/config/database/connection';
 import { apiHandler } from '@/lib/api/handler';
 import { parseLimit } from '@/lib/server/http/pagination';
 import { getHiddenIds } from '@/lib/domain/users/blocks';
+import { PROFILE_WITHOUT_PAGE } from '@/lib/domain/profile/profile-fields';
 
 export default apiHandler(
   { methods: ['GET'], auth: 'optional' },
@@ -43,7 +44,7 @@ export default apiHandler(
         include: {
           user: {
             include: {
-              profile: true,
+              profile: PROFILE_WITHOUT_PAGE,
             },
           },
         },

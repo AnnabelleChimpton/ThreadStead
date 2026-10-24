@@ -10,6 +10,7 @@
  *             presence:update, system:notice,
  *             dm:new_message, dm:read_receipt, dm:typing, dm:stop_typing
  */
+import { PROFILE_WITHOUT_PAGE } from "@/lib/domain/profile/profile-fields";
 import type { IncomingMessage } from "http";
 import type { Server, Socket } from "socket.io";
 import type { Prisma } from "@prisma/client";
@@ -252,7 +253,7 @@ export function attachChatServer(io: ChatServer, { log = () => {} }: ChatServerO
           include: {
             user: {
               include: {
-                profile: true,
+                profile: PROFILE_WITHOUT_PAGE,
               },
             },
           },
@@ -481,7 +482,7 @@ export function attachChatServer(io: ChatServer, { log = () => {} }: ChatServerO
           },
           include: {
             sender: {
-              include: { profile: true },
+              include: { profile: PROFILE_WITHOUT_PAGE },
             },
           },
         });

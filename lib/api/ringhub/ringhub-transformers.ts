@@ -5,6 +5,7 @@
  * and Ring Hub's RingDescriptor format during the migration period.
  */
 
+import { PROFILE_WITHOUT_PAGE } from '@/lib/domain/profile/profile-fields';
 import type {
   ThreadRing,
   ThreadRingMember,
@@ -245,7 +246,7 @@ export async function transformRingMemberWithUserResolution(
         where: { id: resolvedUserId },
         include: {
           handles: true,
-          profile: true
+          profile: PROFILE_WITHOUT_PAGE
         }
       })
     }
@@ -353,7 +354,7 @@ export async function transformRingMembersBatchWithUserResolution(
     try {
       const users = await db.user.findMany({
         where: { id: { in: userIds } },
-        include: { handles: true, profile: true }
+        include: { handles: true, profile: PROFILE_WITHOUT_PAGE }
       })
       for (const u of users) usersById.set(u.id, u)
     } catch (error) {

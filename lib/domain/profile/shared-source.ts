@@ -9,6 +9,7 @@
  * the owner must have turned on Profile.showTemplateSource ("Visitors can
  * view my source"). Owners always see their own.
  */
+import { profileWith } from "@/lib/domain/profile/profile-fields";
 import type { Visibility } from "@prisma/client";
 import { db } from "@/lib/config/database/connection";
 import { SITE_NAME } from "@/lib/config/site/constants";
@@ -45,7 +46,7 @@ export type SourceLookup =
 export async function lookUpSource(viewer: Viewer, username: string): Promise<SourceLookup> {
   const handle = await db.handle.findFirst({
     where: { handle: username, host: SITE_NAME },
-    include: { user: { include: { profile: true } } },
+    include: { user: { include: { profile: profileWith('customTemplate', 'customCSS') } } },
   });
   if (!handle || !handle.user.profile) return { status: "not_found" };
   const profile = handle.user.profile;

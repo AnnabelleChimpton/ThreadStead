@@ -1,4 +1,5 @@
 // pages/api/users/[username]/quick-view.ts
+import { PROFILE_WITHOUT_PAGE } from "@/lib/domain/profile/profile-fields";
 import type { NextApiResponse } from "next";
 import { db } from "@/lib/config/database/connection";
 import { apiHandler } from "@/lib/api/handler";
@@ -20,7 +21,7 @@ export default apiHandler(
         include: {
           user: {
             include: {
-              profile: true,
+              profile: PROFILE_WITHOUT_PAGE,
               handles: {
                 where: { host: SITE_NAME },
                 take: 1,

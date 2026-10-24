@@ -5,6 +5,7 @@ import { getPublicRingHubClient, type RingHubClient } from '@/lib/api/ringhub/ri
 import { RingHubAuthError, RingHubUnavailableError } from '@/lib/api/ringhub/ringhub-errors';
 import { readAsViewer } from '@/lib/rings/read-as-viewer';
 import { db } from '@/lib/config/database/connection';
+import { PROFILE_WITHOUT_PAGE } from '@/lib/domain/profile/profile-fields';
 import {
   extractPostIdFromUri,
   isOurThreadSteadInstance,
@@ -99,7 +100,7 @@ async function resolveRingHubPosts(ringHubPosts: any[], viewer: { id: string } |
           author: {
             include: {
               handles: true,
-              profile: true
+              profile: PROFILE_WITHOUT_PAGE
             }
           },
           threadRings: {

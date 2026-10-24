@@ -6,6 +6,7 @@ import { apiHandler } from "@/lib/api/handler";
 import { sourceTooLong } from "@/lib/templates/limits";
 import { layoutFields, siteStylesOn } from "@/lib/domain/profile/layout";
 import { changesPageLook, pageUpdatedNow, sharePageUpdate } from "@/lib/domain/profile/page-updates";
+import { profileWith } from "@/lib/domain/profile/profile-fields";
 
 export default apiHandler(
   { methods: ['POST'], auth: 'user', rateLimit: 'template_editing' },
@@ -22,7 +23,7 @@ export default apiHandler(
         include: {
           user: {
             include: {
-              profile: true
+              profile: profileWith('customCSS')
             }
           }
         }

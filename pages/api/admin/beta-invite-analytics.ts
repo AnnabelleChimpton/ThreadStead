@@ -1,5 +1,6 @@
 import { db } from "@/lib/config/database/connection";
 import { apiHandler } from "@/lib/api/handler";
+import { PROFILE_WITHOUT_PAGE } from "@/lib/domain/profile/profile-fields";
 
 export default apiHandler(
   { methods: ["GET"], auth: "admin" },
@@ -47,7 +48,7 @@ export default apiHandler(
           const user = await db.user.findUnique({
             where: { id: item.sharedBy },
             include: {
-              profile: true,
+              profile: PROFILE_WITHOUT_PAGE,
               handles: true,
             },
           });
@@ -70,7 +71,7 @@ export default apiHandler(
         include: {
           sharer: {
             include: {
-              profile: true,
+              profile: PROFILE_WITHOUT_PAGE,
               handles: true,
             },
           },
