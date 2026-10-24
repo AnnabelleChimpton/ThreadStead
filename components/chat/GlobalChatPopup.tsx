@@ -7,7 +7,7 @@ import CommunityChatPanel from '@/components/community/CommunityChatPanel';
 import DirectMessagesPanel from '@/components/chat/DirectMessagesPanel';
 import Link from 'next/link';
 import { retroSFX } from '@/lib/audio/retro-sfx';
-import { usePathname } from 'next/navigation';
+import { useRouter } from 'next/router';
 import { useConversations } from '@/hooks/useConversations';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 
@@ -41,7 +41,7 @@ function useIsMobileViewport(): boolean {
 
 export default function GlobalChatPopup() {
   const { isChatOpen, closeChat, activeConversationId } = useChat();
-  const pathname = usePathname();
+  const { pathname } = useRouter();
   const isMobileViewport = useIsMobileViewport();
   const { conversations, createConversation } = useConversations();
   const [sfxEnabled, setSfxEnabled] = useState(true);

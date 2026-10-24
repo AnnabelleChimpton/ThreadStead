@@ -1,4 +1,5 @@
 import App, { type AppContext, type AppProps } from "next/app";
+import dynamic from "next/dynamic";
 import Head from "next/head";
 import React, { useEffect, useRef } from "react";
 import 'highlight.js/styles/github.css'; // Restore highlight.js for non-profile pages
@@ -31,8 +32,10 @@ import { ConfirmProvider } from "@/contexts/ConfirmContext";
 // Import Chat Provider and global chat components
 import { ChatProvider } from "@/contexts/ChatContext";
 import { ConversationsProvider } from "@/contexts/ConversationsContext";
-import GlobalChatToggle from "@/components/chat/GlobalChatToggle";
-import GlobalChatPopup from "@/components/chat/GlobalChatPopup";
+// Only someone signed in sees chat, so its code loads only for them: it was
+// in every visitor's JavaScript (the panels, their socket client and sounds)
+const GlobalChatToggle = dynamic(() => import("@/components/chat/GlobalChatToggle"), { ssr: false });
+const GlobalChatPopup = dynamic(() => import("@/components/chat/GlobalChatPopup"), { ssr: false });
 import { ResidentHostProvider, type ResidentHost } from "@/contexts/ResidentHostContext";
 import { getSiteBaseUrl } from "@/lib/config/site-url";
 import { SITE_TITLE } from "@/lib/config/site/constants";

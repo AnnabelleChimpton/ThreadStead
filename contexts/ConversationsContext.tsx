@@ -1,6 +1,6 @@
 import { publicEnv } from '@/lib/config/public-env';
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo, ReactNode } from 'react';
-import { io, Socket } from 'socket.io-client';
+import type { Socket } from 'socket.io-client';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { requestConversation } from '@/lib/chat/create-conversation';
 
@@ -88,49 +88,54 @@ export function ConversationsProvider({ children }: { children: ReactNode }) {
         }
 
         let cancelled = false;
+        let newSocket: Socket | null = null;
 
-        // Connect socket
-        const newSocket = io(publicEnv.NEXT_PUBLIC_BASE_URL ?? '', {
-            withCredentials: true,
-        });
-
-        newSocket.on('dm:new_message', (message: Message) => {
+        // Connect: socket.io's client loads only for someone signed in (it
+        // was in every visitor's JavaScript)
+        import('socket.io-client').then(({ io }) => {
             if (cancelled) return;
+            newSocket = io(publicEnv.NEXT_PUBLIC_BASE_URL ?? '', {
+                withCredentials: true,
+            });
 
-            // If new conversation, refetch the list (side-effect kept outside
-            // the setState updater so it cannot multi-fire).
-            const exists = conversationsRef.current.some(c => c.id === message.conversationId);
-            if (!exists) {
-                refetchConversations();
-                return;
-            }
+            newSocket.on('dm:new_message', (message: Message) => {
+                if (cancelled) return;
 
-            setConversations(prev => {
-                const idx = prev.findIndex(c => c.id === message.conversationId);
-                if (idx === -1) return prev;
-
-                const updated = { ...prev[idx] };
-                updated.lastMessage = {
-                    body: message.body,
-                    createdAt: message.createdAt,
-                    senderId: message.senderId,
-                    isRead: false
-                };
-                updated.updatedAt = message.createdAt;
-
-                // Increment unread count if message is from other user
-                if (message.senderId === updated.otherUser.id) {
-                    updated.unreadCount = (updated.unreadCount || 0) + 1;
+                // If new conversation, refetch the list (side-effect kept outside
+                // the setState updater so it cannot multi-fire).
+                const exists = conversationsRef.current.some(c => c.id === message.conversationId);
+                if (!exists) {
+                    refetchConversations();
+                    return;
                 }
 
-                // Move to top
-                const newList = [...prev];
-                newList.splice(idx, 1);
-                return [updated, ...newList];
-            });
-        });
+                setConversations(prev => {
+                    const idx = prev.findIndex(c => c.id === message.conversationId);
+                    if (idx === -1) return prev;
 
-        setSocket(newSocket);
+                    const updated = { ...prev[idx] };
+                    updated.lastMessage = {
+                        body: message.body,
+                        createdAt: message.createdAt,
+                        senderId: message.senderId,
+                        isRead: false
+                    };
+                    updated.updatedAt = message.createdAt;
+
+                    // Increment unread count if message is from other user
+                    if (message.senderId === updated.otherUser.id) {
+                        updated.unreadCount = (updated.unreadCount || 0) + 1;
+                    }
+
+                    // Move to top
+                    const newList = [...prev];
+                    newList.splice(idx, 1);
+                    return [updated, ...newList];
+                });
+            });
+
+            setSocket(newSocket);
+        });
 
         // Initial fetch
         fetch('/api/messages/conversations')
@@ -151,7 +156,7 @@ export function ConversationsProvider({ children }: { children: ReactNode }) {
 
         return () => {
             cancelled = true;
-            newSocket.disconnect();
+            newSocket?.disconnect();
         };
     }, [user, refetchConversations]);
 

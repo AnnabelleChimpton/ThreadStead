@@ -9,7 +9,9 @@
  * Add a variable: add its spec here AND its literal read to `rawPublicEnv`,
  * then run `npm run env:docs`.
  */
-import { parseEnv, type EnvVarSpec } from './env-core';
+// Types only: env-core's zod schema stays on the server (it was ~200 KB of
+// every page's JavaScript)
+import type { EnvValues, EnvVarSpec } from './env-core';
 
 export const PUBLIC_ENV_SPECS = [
   {
@@ -95,7 +97,18 @@ const rawPublicEnv: Record<string, string | undefined> = {
 };
 
 /**
- * Parsed once per bundle. Invalid values never throw here (the server reports
- * them at boot from instrumentation.ts); see parseEnv for the fallbacks.
+ * One value, as parseEnv (env-core.ts) resolves it, for the kinds used here:
+ * blank is unset; a string or URL is kept as written, else its default; a
+ * flag is true or false as written, else its default. Invalid values never
+ * throw here: the server reports them at boot (BOOT_SPECS in env.ts), and
+ * env.test.ts keeps this equal to parseEnv.
  */
-export const publicEnv = parseEnv(PUBLIC_ENV_SPECS, rawPublicEnv).values;
+export function publicValue(spec: EnvVarSpec, raw: string | undefined): string | boolean | undefined {
+  const value = raw?.trim() ? raw : undefined;
+  if (spec.kind === 'flag') return value === 'true' || value === 'false' ? value === 'true' : spec.default === 'true';
+  return value ?? spec.default;
+}
+
+export const publicEnv = Object.fromEntries(
+  PUBLIC_ENV_SPECS.map((spec) => [spec.name, publicValue(spec, rawPublicEnv[spec.name])])
+) as EnvValues<typeof PUBLIC_ENV_SPECS>;

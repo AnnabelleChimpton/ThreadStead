@@ -3,12 +3,12 @@
 import { useChat } from '@/contexts/ChatContext';
 import { useConversations } from '@/hooks/useConversations';
 import { PixelIcon } from '@/components/ui/PixelIcon';
-import { usePathname } from 'next/navigation';
+import { useRouter } from 'next/router';
 
 export default function GlobalChatToggle() {
   const { toggleChat, isChatOpen } = useChat();
   const { conversations } = useConversations();
-  const pathname = usePathname();
+  const { pathname } = useRouter();
 
   const unreadCount = conversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
 
@@ -17,7 +17,7 @@ export default function GlobalChatToggle() {
     return null;
   }
   // In the page editors on a phone it sat on top of the code
-  const inEditor = /\/(?:template|css)-editor$/.test(pathname ?? '');
+  const inEditor = /\/(?:template|css)-editor$/.test(pathname);
 
   return (
     <button

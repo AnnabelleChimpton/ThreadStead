@@ -18,7 +18,7 @@ import {
   resetServerEnvCache,
   validateEnvAtBoot,
 } from '../env';
-import { PUBLIC_ENV_SPECS } from '../public-env';
+import { PUBLIC_ENV_SPECS, publicValue } from '../public-env';
 import { renderEnvExample, renderEnvMarkdown } from '../env-docs';
 
 const ROOT = join(__dirname, '..', '..', '..');
@@ -89,6 +89,17 @@ describe('parseEnv', () => {
     const { issues } = parseEnv(SPECS, { ...ok, A_URL: secret, A_INT: secret, A_FLAG: secret });
     expect(JSON.stringify(issues)).not.toContain(secret);
   });
+});
+
+describe('publicValue (the browser\'s zod-free reading)', () => {
+  test.each([undefined, '', '  ', 'true', 'false', 'yes', 'http://localhost:3000', 'not a url', ' padded '])(
+    'agrees with parseEnv for every public variable given %p',
+    (raw) => {
+      const source = Object.fromEntries(PUBLIC_ENV_SPECS.map((spec) => [spec.name, raw]));
+      const parsed = parseEnv(PUBLIC_ENV_SPECS, source).values as Record<string, unknown>;
+      for (const spec of PUBLIC_ENV_SPECS) expect([spec.name, publicValue(spec, raw)]).toEqual([spec.name, parsed[spec.name]]);
+    }
+  );
 });
 
 describe('validateEnvAtBoot', () => {

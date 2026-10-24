@@ -3,26 +3,15 @@ import * as ed from "@noble/ed25519";
 import { toBase64Url, fromBase64Url } from "@/lib/utils/encoding/base64url";
 import * as bip39 from "bip39";
 import { csrfFetch } from "@/lib/api/client/csrf-fetch";
+import { KEY_STORAGE, getExistingDid, type LocalKeypair } from "./local-identity";
 
-const KEY_STORAGE = "retro_did_keypair_v1";
+export { hasExistingDid, getExistingDid, type LocalKeypair } from "./local-identity";
+
 const SEED_STORAGE = "retro_seed_phrase_v1";
 const ENCRYPTED_SEED_STORAGE = "retro_encrypted_seed_v1";
 const AUTH_METHOD_STORAGE = "retro_auth_method_v1";
 
-export type LocalKeypair = { publicKey: string; secretKey: string; did: string };
 export type SeedPhrase = { mnemonic: string; created: number };
-
-export function hasExistingDid(): boolean {
-  if (typeof window === "undefined") return false;
-  const existing = localStorage.getItem(KEY_STORAGE);
-  return !!existing;
-}
-
-export function getExistingDid(): LocalKeypair | null {
-  if (typeof window === "undefined") return null;
-  const existing = localStorage.getItem(KEY_STORAGE);
-  return existing ? JSON.parse(existing) : null;
-}
 
 export async function getOrCreateLocalDid(): Promise<LocalKeypair> {
   const existing = typeof window !== "undefined" ? localStorage.getItem(KEY_STORAGE) : null;
