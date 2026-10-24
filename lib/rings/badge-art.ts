@@ -487,17 +487,19 @@ function drawText(cv: Canvas, fit: { font: Font; lines: string[] }, x0: number, 
 
 type Template = (text: string, slug: string, p: Palette, glyph: BadgeGlyphId | null) => Canvas
 
-/** Index card: paper, espresso frame, a coloured tab with the glyph. */
+/**
+ * Index card: paper, espresso frame, a coloured tab with the glyph. With no
+ * glyph the tab narrows to a strip, so the badge still carries the ring's
+ * colour (the drafts dropped it, leaving a plain cream box).
+ */
 const label: Template = (text, slug, p, glyph) => {
   const cv = new Canvas(PAPER)
   cv.rect(0, 0, W, H, INK1)
   cv.rect(1, 1, W - 2, H - 2, PAPER)
-  const tab = glyph ? 15 : 0
-  if (glyph) {
-    cv.rect(1, 1, tab - 1, H - 2, p.field)
-    cv.vline(tab, 1, H - 2, INK1)
-    cv.glyph(glyph, Math.floor((tab - glyphWidth(glyph)) / 2) + 1, 12, p.text, p.hi)
-  }
+  const tab = glyph ? 15 : 6
+  cv.rect(1, 1, tab - 1, H - 2, p.field)
+  cv.vline(tab, 1, H - 2, INK1)
+  if (glyph) cv.glyph(glyph, Math.floor((tab - glyphWidth(glyph)) / 2) + 1, 12, p.text, p.hi)
   const x0 = tab + 3
   const w = W - tab - 6
   drawText(cv, fitName(text, slug, w, H - 8), x0, 4, w, H - 8, INK1)

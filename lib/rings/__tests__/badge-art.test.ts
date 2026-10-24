@@ -64,6 +64,14 @@ describe('the PNGs', () => {
     expect(data[3]).toBe(0)
   })
 
+  it("keeps Label's colour without a picture, as a strip", () => {
+    const rgba = badgeRgba(drawBadge({ template: 'label', palette: 'rose', glyph: null, text: 'Cozy Knits' }, 'cozy-knits'))
+    const hex = (x: number, y: number) =>
+      '#' + Array.from(rgba.slice((y * 88 + x) * 4, (y * 88 + x) * 4 + 3), (v) => v.toString(16).padStart(2, '0')).join('')
+    expect(hex(3, 15)).toBe(BADGE_PALETTES.rose.field)
+    expect(hex(10, 15)).not.toBe(BADGE_PALETTES.rose.field)
+  })
+
   it('draws the approved drafts, pixel for pixel', () => {
     // Checked against design/threadring-audit/badges/drafts when ported
     const hashes = Object.fromEntries(
