@@ -21,6 +21,7 @@
 import './load-env'
 import { getPublicRingHubClient, getRingHubClient } from '@/lib/api/ringhub/ringhub-client'
 import { drawAndUploadRingBadge } from '@/lib/rings/badge'
+import { badgeChoiceFor } from '@/lib/rings/badge-art'
 
 const REDRAW = ['television', 'technology', 'pets', 'threadstead', 'big-brother', 'music']
 
@@ -41,7 +42,8 @@ async function main() {
     if (REDRAW.includes(ring.slug)) {
       console.log(`redraw  ${ring.slug}: ${ring.badgeImageUrl?.slice(0, 80) ?? 'none'} → Label`)
       if (!apply) continue
-      const badge = await drawAndUploadRingBadge(ring, { template: 'label' })
+      // The default badge: Label with its linked-rings picture (no picture also drops the coloured tab)
+      const badge = await drawAndUploadRingBadge(ring, badgeChoiceFor({}))
       await hub.updateRingBadge(ring.slug, { ...badge, updateExistingBadges: true })
       continue
     }
