@@ -12,7 +12,7 @@ const updateMediaSchema = z.object({
 });
 
 export default apiHandler(
-  { methods: ['DELETE', 'PATCH'], auth: 'user', rateLimit: 'uploads' },
+  { methods: ['DELETE', 'PATCH'], auth: 'user', rateLimit: 'media_edits' },
   async (req, res, { user: me }) => {
     const mediaId = String(req.query.id || "");
     if (!mediaId) {

@@ -5,8 +5,10 @@ import { requireAction } from "@/lib/domain/users/capabilities";
 import multer from "multer";
 import { promisify } from "util";
 import { apiHandler } from "@/lib/api/handler";
+import { rateLimitCheck } from "@/lib/server/http/rate-limit";
 import { putObject } from "@/lib/storage/r2";
 import { trimSoundBank } from "@/lib/audio/server/trim-sound-bank";
+import { PAGE_ASSET_CONTEXT, PAGE_ASSET_UPLOAD } from "@/lib/media/upload-context";
 import { checkSong, SongCheckError } from "@/lib/audio/server/check-song";
 import {
   BADGE_HD_SIZE,
@@ -216,15 +218,10 @@ async function processAndUploadMedia(
 }
 
 export default apiHandler(
-  { methods: ['POST'], auth: 'user', rateLimit: 'uploads' },
+  // Rate limited below, once the file has passed its checks: a refused
+  // upload used to use up the hourly and daily allowance too
+  { methods: ['POST'], auth: 'user' },
   async (req, res, { user: me }) => {
-    // Check rate limiting
-    if (!checkRateLimit(me.id)) {
-      return res.status(429).json({ 
-        error: "Rate limit exceeded. Maximum 30 uploads per day." 
-      });
-    }
-
     try {
       // Handle file upload
       await uploadOne(req as any, res as any);
@@ -278,6 +275,17 @@ export default apiHandler(
         }
       }
 
+      // A picture has to be one we can read before it counts against anything
+      // (the full check runs while it's processed)
+      if (!treatedAsMidi) {
+        const { width } = await imageDimensions(file.buffer).catch(() => ({ width: undefined }));
+        if (!width) {
+          return res.status(400).json({
+            error: file.mimetype === 'image/gif' ? "That doesn't look like a GIF." : "That file isn't a picture we can read.",
+          });
+        }
+      }
+
       // Photos and songs each have their own monthly allowance
       if (!(await checkUserQuota(me.id, treatedAsMidi ? 'song' : 'photo'))) {
         return res.status(413).json({
@@ -299,10 +307,19 @@ export default apiHandler(
         return res.status(403).json({ error: "Invalid capability" });
       }
 
+      // Counted only now, for an upload that's going ahead
+      if (!(await rateLimitCheck(req, res, 'uploads', me.id))) return;
+      if (!checkRateLimit(me.id)) {
+        return res.status(429).json({
+          error: "Rate limit exceeded. Maximum 30 uploads per day."
+        });
+      }
+
       // Determine upload context and gallery visibility
       const uploadContext: UploadContext =
         context === 'post_embed' ? 'post_embed' :
         context === 'threadring_badge' ? 'threadring_badge' :
+        context === PAGE_ASSET_UPLOAD ? PAGE_ASSET_CONTEXT :
         'media_collection';
       const isGalleryItem = uploadContext === 'media_collection';
 

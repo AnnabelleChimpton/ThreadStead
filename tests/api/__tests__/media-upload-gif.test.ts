@@ -220,3 +220,25 @@ test('a file under some other field name is a 400, not a server error', async ()
   expect(res.body.error).toBe('Send one file, in the "file" field.');
   expect(db.media.create).not.toHaveBeenCalled();
 });
+
+describe('pictures for the page, and what counts against the limits (template audit 08)', () => {
+  test("a picture uploaded for the page isn't a gallery photo, and never Featured", async () => {
+    const res = await upload(await twoFrameGif(8, 8), 'image/gif', 'tile.gif', 'page_asset');
+    expect(res.statusCode).toBe(200);
+    expect((db.media.create as jest.Mock).mock.calls[0][0].data).toMatchObject({
+      uploadContext: 'other',
+      isGalleryItem: false,
+      featured: false,
+    });
+  });
+
+  test('only an upload that goes ahead counts against the hourly limit', async () => {
+    const { rateLimitCheck } = jest.requireMock('@/lib/server/http/rate-limit');
+    const refused = await upload(Buffer.from('not a gif at all'), 'image/gif', 'broken.gif');
+    expect(refused.statusCode).toBe(400);
+    expect(rateLimitCheck).not.toHaveBeenCalled();
+
+    await upload(await twoFrameGif(8, 8));
+    expect((rateLimitCheck as jest.Mock).mock.calls[0]).toContain('uploads');
+  });
+});

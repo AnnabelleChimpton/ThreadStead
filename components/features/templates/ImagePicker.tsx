@@ -8,6 +8,8 @@ import { PixelIcon } from '@/components/ui/PixelIcon';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import { CapabilityError, requestCapability } from '@/lib/api/client/capability';
 import { useToast } from '@/contexts/ToastContext';
+import { PAGE_ASSET_CONTEXT, PAGE_ASSET_UPLOAD } from "@/lib/media/upload-context";
+import { useConfirm } from '@/contexts/ConfirmContext';
 
 /** One of the person's own pictures (/api/photos/[username]?scope=mine). */
 export interface PickerImage {
@@ -17,6 +19,8 @@ export interface PickerImage {
   title?: string | null;
   caption?: string | null;
   createdAt: string;
+  /** PAGE_ASSET_CONTEXT for pictures uploaded for the page, which this picker manages */
+  uploadContext?: string;
 }
 
 export type ImagePane = 'html' | 'css';
@@ -107,7 +111,35 @@ interface ImageLibraryProps {
  */
 export function ImageLibrary({ isOpen, username, onClose, onChoose, title, hint, emptyHint }: ImageLibraryProps) {
   const { showError } = useToast();
+  const confirm = useConfirm();
   const [images, setImages] = useState<PickerImage[]>([]);
+
+  // Pictures uploaded for the page aren't on the media page, so they're
+  // deleted from here
+  const remove = async (item: PickerImage) => {
+    const ok = await confirm({
+      title: 'Delete this picture for good?',
+      message: 'Anywhere your page uses it will show a broken image.',
+      confirmText: 'Delete',
+      variant: 'danger',
+    });
+    if (!ok) return;
+    try {
+      const cap = await requestCapability('media');
+      const res = await csrfFetch(`/api/media/${item.id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cap }),
+      });
+      if (!res.ok) {
+        showError((await res.json().catch(() => ({}))).error || "Couldn't delete that picture. Try again.");
+        return;
+      }
+      setImages((prev) => prev.filter((image) => image.id !== item.id));
+    } catch (error) {
+      showError(error instanceof CapabilityError ? error.message : "Couldn't delete that picture. Try again.");
+    }
+  };
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
@@ -178,6 +210,8 @@ export function ImageLibrary({ isOpen, username, onClose, onChoose, title, hint,
       const form = new FormData();
       form.append('file', file);
       form.append('cap', token);
+      // For the page, not the gallery: never a "Featured" photo
+      form.append('context', PAGE_ASSET_UPLOAD);
       const res = await csrfFetch('/api/media/upload', { method: 'POST', body: form });
       const result = await res.json().catch(() => ({}));
       if (!res.ok || !result.media) {
@@ -276,6 +310,16 @@ export function ImageLibrary({ isOpen, username, onClose, onChoose, title, hint,
                       className="w-full h-full object-cover"
                     />
                   </button>
+                  {item.uploadContext === PAGE_ASSET_CONTEXT && (
+                    <button
+                      type="button"
+                      onClick={() => remove(item)}
+                      className="mt-1 w-full text-xs underline text-nb-ink-mid hover:text-thread-sunset"
+                      aria-label={`Delete ${imageLabel(item)}`}
+                    >
+                      Delete
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>

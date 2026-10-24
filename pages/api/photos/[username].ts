@@ -6,6 +6,7 @@ import { SITE_NAME } from "@/lib/config/site/constants";
 import { parsePagePagination } from "@/lib/server/http/pagination";
 import { residentAccess, sendPrivateProfile } from "@/lib/domain/users/profile-access";
 import { PICTURE_MEDIA_TYPES } from "@/lib/media/media-types";
+import { PAGE_ASSET_CONTEXT } from "@/lib/media/upload-context";
 
 /**
  * GET /api/photos/<username>: that person's public gallery pictures, for
@@ -65,9 +66,9 @@ export default apiHandler(
         ? {
             userId: handle.user.id,
             mediaType: { in: PICTURE_MEDIA_TYPES },
-            // Gallery uploads plus pictures added to posts and comments
-            // (badges and other one-off uploads stay out)
-            OR: [{ isGalleryItem: true }, { uploadContext: "post_embed" }],
+            // Gallery uploads, pictures added to posts and comments, and
+            // pictures uploaded for the page itself (badges stay out)
+            OR: [{ isGalleryItem: true }, { uploadContext: "post_embed" }, { uploadContext: PAGE_ASSET_CONTEXT }],
           }
         : {
             userId: handle.user.id,
@@ -85,6 +86,7 @@ export default apiHandler(
           skip: offset,
           take: limit,
           select: {
+            uploadContext: true,
             id: true,
             title: true,
             caption: true,

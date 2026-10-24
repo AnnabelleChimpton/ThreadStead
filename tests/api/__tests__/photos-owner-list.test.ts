@@ -65,7 +65,7 @@ beforeEach(() => {
 });
 
 describe('scope=mine', () => {
-  test('the owner gets gallery and post images, any visibility, newest first, paged', async () => {
+  test('the owner gets gallery, post and page images, any visibility, newest first, paged', async () => {
     const res = await call({ username: 'annie', scope: 'mine', page: '2', limit: '30' }, 'u_annie');
 
     expect(res.status).toBe(200);
@@ -76,7 +76,7 @@ describe('scope=mine', () => {
     const where = {
       userId: 'u_annie',
       mediaType: { in: ['image', 'gif'] },
-      OR: [{ isGalleryItem: true }, { uploadContext: 'post_embed' }],
+      OR: [{ isGalleryItem: true }, { uploadContext: 'post_embed' }, { uploadContext: 'other' }],
     };
     expect(db.media.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where, orderBy: { createdAt: 'desc' }, skip: 30, take: 30 })
