@@ -5,12 +5,15 @@ import { hasPixelHome, residentAccess } from "@/lib/domain/users/profile-access"
 import { publicWidgetSlot } from "@/lib/domain/profile/widget-slot/compile";
 import { verifiedBlueskyHandle } from "@/lib/domain/bluesky/handle-links";
 import { residentSiteUrl } from "@/lib/subdomains/host";
+import { pageForRender } from "@/lib/templates/rendering/page-tree-server";
 import type { Profile } from "@prisma/client";
 
-// What any viewer allowed to see a profile gets. The compiled page and the
-// CSS are public anyway (every visitor's browser receives them); the raw
-// template source is the owner's, shown to others only when they share it
-// (showTemplateSource, the same switch as /resident/[username]/source).
+// What any viewer allowed to see a profile gets. The CSS is public anyway
+// (every visitor's browser receives it). The compiled page goes out as a
+// visitor's: without <IfOwner> content, warnings that quote the source, or the
+// other stored copies (pageForRender). The raw template source is the owner's,
+// shown to others only when they share it (showTemplateSource, the same switch
+// as /resident/[username]/source).
 const PUBLIC_PROFILE_FIELDS = [
   "id", "userId", "displayName", "bio", "visibility", "updatedAt",
   "avatarUrl", "avatarFullUrl", "avatarMediumUrl", "avatarThumbnailUrl", "bannerUrl",
@@ -27,6 +30,7 @@ function profileFor(profile: Profile | null, isOwner: boolean) {
   for (const field of PUBLIC_PROFILE_FIELDS) {
     (visible as Record<string, unknown>)[field] = profile[field];
   }
+  visible.compiledTemplate = pageForRender(profile.compiledTemplate) as Profile["compiledTemplate"];
   if (profile.showTemplateSource) visible.customTemplate = profile.customTemplate;
   return visible;
 }

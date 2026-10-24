@@ -37,10 +37,14 @@ interface StoredCompileResult {
   ast?: TemplateNode & { head?: DocumentHead };
 }
 
-/** Without a viewer, the page is rendered for a visitor */
+/**
+ * Without a viewer, the page is rendered for a visitor. A page that already
+ * went through here (the profile API sends a visitor theirs) comes back as is.
+ */
 export function pageForRender(compiled: unknown, viewer: PageViewer = { isOwner: false }): PageForRender | null {
   const stored = compiled as StoredCompileResult | null | undefined;
   if (!stored || typeof stored !== 'object') return null;
+  if (Array.isArray((stored as Partial<PageForRender>).tree)) return stored as unknown as PageForRender;
 
   let tree: PageTreeNode[];
   if (stored.ast && stored.ast.type === 'root') {

@@ -2,7 +2,8 @@
  * Phase 0 of the profile-editing plan (design/profile-editing-audit/PLAN.md):
  *  - GET /api/profile/[username] gives other viewers an explicit list of
  *    fields. The raw template source is the owner's, shown to others only
- *    when they share it (showTemplateSource).
+ *    when they share it (showTemplateSource). The compiled page goes out as
+ *    a visitor's (security audit M2, design/template-audit/04-security.md).
  *  - POST /api/templates/compile is the editor's live preview and problems
  *    panel: it compiles and never writes. The old preview route stored every
  *    preview as the live page, so half-typed templates went public mid-edit.
@@ -53,6 +54,7 @@ import templateSaveHandler from '@/pages/api/profile/[username]/template'
 import { getSessionUser } from '@/lib/auth/server'
 import { db } from '@/lib/config/database/connection'
 import { MAX_CSS_CHARS, MAX_TEMPLATE_CHARS } from '@/lib/templates/limits'
+import { pageForRender } from '@/lib/templates/rendering/page-tree-server'
 
 const mockDb = db as any
 const OWNER = { id: 'u-pat', primaryHandle: 'pat@HomePageAgain', role: 'member' }
@@ -102,6 +104,32 @@ describe('GET /api/profile/[username]', () => {
     expect(res.body.profile).not.toHaveProperty('showInVisitorTrails')
     // What the page needs to draw itself is still there
     expect(res.body.profile).toMatchObject({ displayName: 'Pat', customCSS: 'body { color: plum; }', templateMode: 'advanced' })
+    expect(res.body.profile.compiledTemplate).toEqual(pageForRender({ staticHTML: '<h1>hi</h1>' }))
+  })
+
+  test("someone else gets the page as a visitor sees it: no IfOwner content, no warnings quoting the source", async () => {
+    ;(getSessionUser as jest.Mock).mockResolvedValue(STRANGER)
+    const stored = {
+      staticHTML: '<h1>hi</h1>',
+      islands: [],
+      warnings: ['Line 3: <h1>my secret draft notes</h1>'],
+      strippedComponents: [{ name: 'script', line: 3 }],
+    }
+    mockDb.handle.findFirst.mockResolvedValue(profileRow({ compiledTemplate: stored }))
+    const { req, res } = makeReqRes('GET', { username: 'pat' })
+    await profileHandler(req, res)
+    const sent = res.body.profile.compiledTemplate
+    expect(sent).toEqual(pageForRender(stored, { isOwner: false }))
+    expect(JSON.stringify(sent)).not.toContain('secret')
+    // The resident page renders from this same response: passing it through again changes nothing
+    expect(pageForRender(sent, { isOwner: false })).toBe(sent)
+  })
+
+  test('the owner gets the stored compile result as it is', async () => {
+    ;(getSessionUser as jest.Mock).mockResolvedValue(OWNER)
+    mockDb.handle.findFirst.mockResolvedValue(profileRow())
+    const { req, res } = makeReqRes('GET', { username: 'pat' })
+    await profileHandler(req, res)
     expect(res.body.profile.compiledTemplate).toEqual({ staticHTML: '<h1>hi</h1>' })
   })
 
