@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { pageElements } from './page-targets';
 
 /**
  * RemoveClass Component - Remove a CSS class from an element
@@ -72,26 +73,6 @@ function resolveTarget(target: string, currentElement?: HTMLElement): HTMLElemen
     return [currentElement];
   }
 
-  // Query selector with automatic prefix handling for IDs
-  try {
-    let elements = document.querySelectorAll(target);
-
-    // If no elements found and target is an ID selector, try with user-content- prefix
-    // (rehype-sanitize automatically prefixes IDs for security)
-    if (elements.length === 0 && target.startsWith('#')) {
-      const idWithoutHash = target.substring(1);
-      if (!idWithoutHash.startsWith('user-content-')) {
-        const prefixedSelector = `#user-content-${idWithoutHash}`;
-        elements = document.querySelectorAll(prefixedSelector);
-        if (elements.length > 0) {
-          console.log(`[RemoveClass] Found elements with prefixed selector: ${prefixedSelector}`);
-        }
-      }
-    }
-
-    return Array.from(elements) as HTMLElement[];
-  } catch (error) {
-    console.error(`[RemoveClass] Invalid selector: ${target}`, error);
-    return [];
-  }
+  // Only the page's own elements, never the site around it
+  return pageElements(target);
 }

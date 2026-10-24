@@ -102,6 +102,7 @@ export default function WidgetSlot({
     <section
       className={`ts-profile-widget-slot thread-module template-card p-4 sm:p-5 md:p-6 ${preview ? "" : "mb-3 sm:mb-4 md:mb-6"}`}
       data-component="widget-slot"
+      data-template-root
     >
       {content}
     </section>

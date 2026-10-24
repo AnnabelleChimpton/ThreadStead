@@ -4,6 +4,7 @@ import React from 'react';
 import { useTemplateState } from '@/lib/templates/state/TemplateStateProvider';
 import { evaluateExpression } from '@/lib/templates/state/expression-evaluator';
 import { globalTemplateStateManager } from '@/lib/templates/state/TemplateStateManager';
+import { pageElements, pageRoots } from './page-targets';
 
 /**
  * SetCSSVar Component - Set a CSS custom property (variable)
@@ -94,19 +95,9 @@ export function executeSetCSSVarAction(
     return;
   }
 
-  // Resolve target element
-  let targetElement: HTMLElement;
-
-  if (target === ':root') {
-    targetElement = document.documentElement;
-  } else {
-    const el = document.querySelector(target);
-    if (!el) {
-      return;
-    }
-    targetElement = el as HTMLElement;
-  }
-
-  // Set the CSS variable
-  targetElement.style.setProperty(name, cssValue);
+  // Only custom properties, and only on the page: ":root" is the page's own
+  // root, so the site's variables (and its nav) stay as they are
+  if (!name.startsWith('--')) return;
+  const targets = target === ':root' ? pageRoots() : pageElements(target).slice(0, 1);
+  targets.forEach((el) => el.style.setProperty(name, cssValue));
 }

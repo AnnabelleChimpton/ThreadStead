@@ -6,6 +6,7 @@ import { evaluateExpression } from '@/lib/templates/state/expression-evaluator';
 import { globalTemplateStateManager } from '@/lib/templates/state/TemplateStateManager';
 import { useResidentData } from '@/components/features/templates/ResidentDataProvider';
 import { useForEachContext } from '../loops/ForEach';
+import { isSafePageAttribute, pageElements } from './page-targets';
 
 /**
  * ConditionalAttr Component - Conditionally set/remove element attributes
@@ -91,7 +92,7 @@ export default function ConditionalAttr(props: ConditionalAttrProps) {
   const forEachContext = useForEachContext();
 
   useEffect(() => {
-    if (!element || !attribute) {
+    if (!element || !attribute || !isSafePageAttribute(attribute)) {
       return;
     }
 
@@ -107,20 +108,8 @@ export default function ConditionalAttr(props: ConditionalAttrProps) {
       if (element === 'this') {
         return;
       } else {
-        // Use querySelector/querySelectorAll with automatic prefix handling
-        const found = document.querySelectorAll(element);
-        elements.push(...Array.from(found));
-
-        // If no elements found and target is an ID selector, try with user-content- prefix
-        // (rehype-sanitize automatically prefixes IDs for security)
-        if (elements.length === 0 && element.startsWith('#')) {
-          const idWithoutHash = element.substring(1);
-          if (!idWithoutHash.startsWith('user-content-')) {
-            const prefixedSelector = `#user-content-${idWithoutHash}`;
-            const prefixedFound = document.querySelectorAll(prefixedSelector);
-            elements.push(...Array.from(prefixedFound));
-          }
-        }
+        // Only the page's own elements, never the site around it
+        elements.push(...pageElements(element));
       }
 
       if (elements.length === 0) {
@@ -213,8 +202,8 @@ export function executeConditionalAttrAction(
     ...conditionProps
   } = props;
 
-  // Validate required props
-  if (!element || !attribute) {
+  // Validate required props: only state and accessibility attributes
+  if (!element || !attribute || !isSafePageAttribute(attribute)) {
     return;
   }
 
@@ -225,20 +214,8 @@ export function executeConditionalAttrAction(
     if (element === 'this') {
       return;
     } else {
-      // Use querySelector/querySelectorAll with automatic prefix handling
-      const found = document.querySelectorAll(element);
-      elements.push(...Array.from(found));
-
-      // If no elements found and target is an ID selector, try with user-content- prefix
-      // (rehype-sanitize automatically prefixes IDs for security)
-      if (elements.length === 0 && element.startsWith('#')) {
-        const idWithoutHash = element.substring(1);
-        if (!idWithoutHash.startsWith('user-content-')) {
-          const prefixedSelector = `#user-content-${idWithoutHash}`;
-          const prefixedFound = document.querySelectorAll(prefixedSelector);
-          elements.push(...Array.from(prefixedFound));
-        }
-      }
+      // Only the page's own elements, never the site around it
+      elements.push(...pageElements(element));
     }
 
     if (elements.length === 0) {

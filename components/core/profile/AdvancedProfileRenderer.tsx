@@ -66,6 +66,8 @@ export default function AdvancedProfileRenderer({ user, residentData }: Advanced
             <div
               id={profileId}
               className="profile-template-root"
+              // What the page's own actions may reach (components/features/templates/state/actions/page-targets.ts)
+              data-template-root
               // styles/theme-parts.css: with site styles off, the site's parts
               // take the page's own colours
               data-site-styles={siteStylesOn(user.profile?.cssMode) ? 'on' : 'off'}
