@@ -13,7 +13,7 @@ export default function FriendDisplay(props: FriendDisplayProps) {
   const { cssProps, componentProps } = separateCSSProps(props);
   const { className: customClassName, heading } = componentProps;
   const headingText = componentHeading(heading, 'Friends');
-  const { featuredFriends } = useResidentData();
+  const { featuredFriends, owner, viewer } = useResidentData();
 
   const baseClasses = "border border-black p-3 bg-white shadow-[2px_2px_0_#000]";
   const filteredClasses = removeTailwindConflicts(baseClasses, cssProps);
@@ -24,6 +24,8 @@ export default function FriendDisplay(props: FriendDisplayProps) {
     : filteredClasses;
 
   if (!featuredFriends || featuredFriends.length === 0) {
+    // Only the owner hears there are none yet; visitors see nothing
+    if (!viewer?.id || viewer.id !== owner?.id) return null;
     return (
       <div className={`featured-friends ${containerClassName}`} style={style}>
         {headingText && <h4 className="section-heading font-bold mb-2">{headingText}</h4>}

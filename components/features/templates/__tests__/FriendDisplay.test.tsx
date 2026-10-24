@@ -14,6 +14,9 @@ jest.mock('next/link', () => {
   };
 });
 
+// The page's owner looking at their own page
+const OWNER_VIEWING = { id: 'test-user-123' };
+
 describe('FriendDisplay Component', () => {
   describe('Basic Functionality', () => {
     it('should render featured friends when data is available', () => {
@@ -43,9 +46,16 @@ describe('FriendDisplay Component', () => {
       expect(screen.getByText('@bob')).toBeInTheDocument();
     });
 
+    it('shows visitors nothing when there are none (the empty state is for the owner)', () => {
+      const residentData = createMockResidentData({ featuredFriends: [] });
+      const { container } = renderWithTemplateContext(<FriendDisplay />, { residentData });
+      expect(container.textContent).toBe('');
+    });
+
     it('should show empty state when no featured friends', () => {
       const residentData = createMockResidentData({
-        featuredFriends: []
+        featuredFriends: [],
+        viewer: OWNER_VIEWING
       });
       
       renderWithTemplateContext(<FriendDisplay />, { residentData });
@@ -56,7 +66,8 @@ describe('FriendDisplay Component', () => {
 
     it('should show empty state when featuredFriends is undefined', () => {
       const residentData = createMockResidentData({
-        featuredFriends: undefined
+        featuredFriends: undefined,
+        viewer: OWNER_VIEWING
       });
       
       renderWithTemplateContext(<FriendDisplay />, { residentData });
@@ -67,7 +78,8 @@ describe('FriendDisplay Component', () => {
 
     it('should show empty state when featuredFriends is null', () => {
       const residentData = createMockResidentData({
-        featuredFriends: null
+        featuredFriends: null,
+        viewer: OWNER_VIEWING
       });
       
       renderWithTemplateContext(<FriendDisplay />, { residentData });
@@ -264,7 +276,8 @@ describe('FriendDisplay Component', () => {
 
     it('should have correct empty state styling', () => {
       const residentData = createMockResidentData({
-        featuredFriends: []
+        featuredFriends: [],
+        viewer: OWNER_VIEWING
       });
       
       const { container } = renderWithTemplateContext(<FriendDisplay />, { residentData });

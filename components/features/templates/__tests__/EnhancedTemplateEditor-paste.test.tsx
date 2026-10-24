@@ -106,6 +106,16 @@ describe('EnhancedTemplateEditor paste handling', () => {
     );
   });
 
+  it("a whole page with its own <style> replaces the old CSS, so the starter's rules don't restyle it", async () => {
+    const { css } = await renderAndPaste(pasted(''), 'h2 { font-size: 1rem; }')
+    expect(css).toBe('body { color: pink; }')
+  })
+
+  it('a piece of a page adds its CSS once, even when the same <style> comes back', async () => {
+    const { css } = await renderAndPaste('<p>hi</p>\n<style>p { color: teal; }</style>', 'p { color: teal; }')
+    expect(css).toBe('p { color: teal; }')
+  })
+
   it('leaves other stylesheet links, and preconnects with no font to go with them, in the HTML', async () => {
     const { template, css } = await renderAndPaste(
       pasted('<link rel="preconnect" href="https://fonts.googleapis.com">\n<link rel="stylesheet" href="https://example.neocities.org/style.css">', '')
@@ -116,3 +126,22 @@ describe('EnhancedTemplateEditor paste handling', () => {
     expect(css).toBe('');
   });
 });
+
+describe('afterEnclosingTag: inserts never land inside a tag', () => {
+  // After Insert image the cursor sits in alt="", and the next palette
+  // insert went into the attribute: <img alt="<FriendDisplay />"> (template audit 07 #6)
+  const { afterEnclosingTag } = jest.requireActual('../EnhancedTemplateEditor')
+  const at = (marked: string) => {
+    const pos = marked.indexOf('|')
+    const html = marked.replace('|', '')
+    const out = afterEnclosingTag(html, pos)
+    return html.slice(0, out) + '|' + html.slice(out)
+  }
+  test.each([
+    ['<img src="cat.png" alt="|">', '<img src="cat.png" alt="">|'],
+    ['<p class="a|b">hi</p>', '<p class="ab">|hi</p>'],
+    ['<p>hi |there</p>', '<p>hi |there</p>'],
+    ['<p>2 < 3 and |more</p>', '<p>2 < 3 and |more</p>'],
+    ['<img alt="">|<p>x</p>', '<img alt="">|<p>x</p>'],
+  ])('%s → %s', (marked, expected) => expect(at(marked)).toBe(expected))
+})

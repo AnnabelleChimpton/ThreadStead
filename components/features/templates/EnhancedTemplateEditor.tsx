@@ -57,6 +57,20 @@ import EditorWorkspace, {
 import ShareToFeedCheckbox from '@/components/features/profile/ShareToFeedCheckbox';
 import { layoutFields, layoutOf, siteStylesCSSMode } from '@/lib/domain/profile/layout';
 
+/**
+ * Where an insert at `pos` goes: `pos` itself, or just past the tag it's
+ * inside (`<img src="cat.png" alt="|">` → after the `>`).
+ */
+export function afterEnclosingTag(html: string, pos: number): number {
+  const open = html.slice(0, pos).search(/<[a-zA-Z/!][^<>]*$/);
+  if (open === -1) return pos;
+  const close = html.indexOf('>', pos);
+  return close === -1 ? pos : close + 1;
+}
+
+/** A whole HTML document pasted in, not a piece of one */
+const WHOLE_PAGE = /<!doctype\s+html|<html[\s>]/i;
+
 // CodeMirror is editor-page-only — loaded dynamically so it never lands in
 // the shared bundle (same pattern as css-editor.tsx).
 const CodeMirror = dynamic(() => import('@uiw/react-codemirror'), {
@@ -823,7 +837,10 @@ export default function EnhancedTemplateEditor({
   const insertAtCursor = useCallback((pane: ImagePane, snippet: string, cursor = snippet.length) => {
     const view = (pane === 'html' ? templateViewRef : cssViewRef).current;
     if (view) {
-      const { from, to } = view.state.selection.main;
+      let { from, to } = view.state.selection.main;
+      // A cursor inside a tag (Insert image leaves it in alt="") puts the
+      // snippet after that tag, not in the middle of it
+      if (pane === 'html' && from === to) from = to = afterEnclosingTag(view.state.doc.toString(), from);
       view.dispatch({
         changes: { from, to, insert: snippet },
         selection: { anchor: from + cursor },
@@ -1521,9 +1538,14 @@ export default function EnhancedTemplateEditor({
       // Set the cleaned HTML
       setTemplate(cleanedHTML);
 
-      // Append extracted CSS to existing CSS (don't overwrite)
-      if (extractedCSS.trim()) {
-        const combinedCSS = existingCSS.trim()
+      // A whole page pasted in with its own <style> brings its own stylesheet:
+      // it replaces the old one (under it, the starter's rules restyled the
+      // pasted page; the saved CSS stays in History). Anything else is added
+      // to the CSS, once: an undo that brings a moved <style> back used to
+      // add it again each time.
+      const bringsWholePage = Boolean(styleMatch) && WHOLE_PAGE.test(newValue) && !WHOLE_PAGE.test(template);
+      if (extractedCSS.trim() && (bringsWholePage || !existingCSS.includes(extractedCSS.trim()))) {
+        const combinedCSS = existingCSS.trim() && !bringsWholePage
           ? `${existingCSS}\n\n/* Extracted from HTML */\n${extractedCSS.trim()}`
           : extractedCSS.trim();
         setCustomCSS(combinedCSS);
