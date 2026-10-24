@@ -260,3 +260,26 @@ describe('each declared prop is a name its component reads', () => {
     expect(new RegExp(`\\b${prop}\\b`).test(sourceWithLocalImports(file))).toBe(true)
   })
 })
+
+describe('url props take only web, mailto and relative addresses', () => {
+  // Security audit L1 (design/template-audit/04-security.md): CarouselImage's
+  // link and ArcadeButton's href relied on React's script-URL block alone
+  const schema: PropSchema = { type: 'url' }
+  test.each(['https://example.com/a', 'http://example.com', 'mailto:me@example.com', '/resident/pat', '#top', 'cat.png', '//cdn.example/x.png'])(
+    'keeps %s',
+    (value) => expect(coercePropValue(value, schema, 'link')).toEqual({ value })
+  )
+  test.each(['javascript:void 0', ' JavaScript:void 0', 'java\tscript:void 0', 'data:text/html,x', 'vbscript:x', 'file:///etc'])(
+    'refuses %s with a plain message',
+    (value) => {
+      const coerced = coercePropValue(value, schema, 'link')
+      expect(coerced.value).toBeUndefined()
+      expect(coerced.problem).toMatch(/needs a web address/)
+    }
+  )
+  test('the link-valued props are url props', () => {
+    for (const [component, prop] of [['CarouselImage', 'link'], ['CarouselImage', 'src'], ['UserImage', 'src'], ['ArcadeButton', 'href']]) {
+      expect(componentRegistry.get(component)?.props[prop]?.type).toBe('url')
+    }
+  })
+})

@@ -34,9 +34,8 @@ export default apiHandler(
           return res.status(404).json({ error: 'User not found' });
         }
 
-        // Only allow access to own template
-        const currentUsername = user.primaryHandle ? user.primaryHandle.split('@')[0] : null;
-        if (currentUsername !== username && user.id !== handle.user.id) {
+        // Only your own template
+        if (user.id !== handle.user.id) {
           return res.status(403).json({ error: 'Access denied' });
         }
 
@@ -65,13 +64,7 @@ export default apiHandler(
         // Same sanitizer as every other CSS save
         const safeCSS = customCSS === undefined ? undefined : cleanCss(customCSS);
 
-        // The same compile the editor's preview runs; it takes out site
-        // navigation tags, which come from the profile's settings instead
-        const compiledSource = await compileForEditor(template);
-        if (!compiledSource.ok) return res.status(400).json(compiledSource.body);
-        const { template: cleanedTemplate, compiled: compiledResult } = compiledSource;
-
-        // Check if user can modify this profile
+        // Only your own page, checked before the compile so nobody else can make the server work
         const handle = await db.handle.findFirst({
           where: { handle: username, host: SITE_NAME },
           include: { user: { select: { id: true, primaryHandle: true } } }
@@ -81,10 +74,15 @@ export default apiHandler(
           return res.status(404).json({ error: 'User not found' });
         }
 
-        const currentUsername = user.primaryHandle ? user.primaryHandle.split('@')[0] : null;
-        if (currentUsername !== username && user.id !== handle.user.id) {
+        if (user.id !== handle.user.id) {
           return res.status(403).json({ error: 'Access denied' });
         }
+
+        // The same compile the editor's preview runs; it takes out site
+        // navigation tags, which come from the profile's settings instead
+        const compiledSource = await compileForEditor(template);
+        if (!compiledSource.ok) return res.status(400).json(compiledSource.body);
+        const { template: cleanedTemplate, compiled: compiledResult } = compiledSource;
 
         const before = await db.profile.findUnique({
           where: { userId: handle.user.id },

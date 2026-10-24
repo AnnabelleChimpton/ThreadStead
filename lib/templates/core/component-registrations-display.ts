@@ -734,7 +734,7 @@ export function registerDisplayComponents(registry: ComponentRegistry) {
     description: 'Shows one image, from a web address or from your page data such as your uploads. Without width or height it sits in a square box set by size.',
     example: '<UserImage src="https://moss.neocities.org/cat.jpg" alt="My cat asleep on the radiator" size="lg" rounded="full" border="true" />',
     props: {
-      src: { type: 'string', description: 'Web address of the image.' },
+      src: { type: 'url', description: 'Web address of the image.' },
       data: { type: 'string', description: 'Where to find the image in your page data when src is empty, like owner.avatarUrl or images (your uploaded images). If nothing is found there, nothing shows.' },
       index: { type: 'number', default: 0, description: 'Which image to take when data points at a list, counting from 0 (default).' },
       alt: { type: 'string', default: '', description: 'Text describing the image, for screen readers and for when it does not load.' },
@@ -832,10 +832,10 @@ export function registerDisplayComponents(registry: ComponentRegistry) {
     description: 'One image in an ImageCarousel. Only works inside ImageCarousel.',
     example: '<ImageCarousel>\n  <CarouselImage src="https://moss.neocities.org/hive.jpg" alt="The blue hive in spring" caption="Hive one" />\n  <CarouselImage src="https://moss.neocities.org/honey.jpg" alt="Jars of honey on a shelf" caption="First harvest" link="https://moss.neocities.org/honey.html" />\n</ImageCarousel>',
     props: {
-      src: { type: 'string', required: true, description: 'Web address of the image. Required.' },
+      src: { type: 'url', required: true, description: 'Web address of the image. Required.' },
       alt: { type: 'string', description: 'Text describing the image.' },
       caption: { type: 'string', description: 'Text laid over the bottom of the image.' },
-      link: { type: 'string', description: 'Web address that opens in a new tab when the image is clicked.' }
+      link: { type: 'url', description: 'Web address that opens in a new tab when the image is clicked.' }
     },
     relationship: {
       type: 'child',
@@ -1004,7 +1004,7 @@ export function registerDisplayComponents(registry: ComponentRegistry) {
       glowing: { type: 'boolean', default: false, description: 'Adds a glow around the button in its own color.' },
       clickEffect: { type: 'boolean', default: true, description: 'Makes the button sink and darken while it\'s pressed.' },
       sound: { type: 'boolean', default: false, description: 'Plays a short beep when it\'s clicked.' },
-      href: { type: 'string', description: 'A link to open in a new tab when someone clicks the button.' }
+      href: { type: 'url', description: 'A link to open in a new tab when someone clicks the button.' }
     },
     relationship: {
       type: 'leaf',

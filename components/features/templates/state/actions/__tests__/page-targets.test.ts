@@ -49,3 +49,16 @@ it('sets :root variables on the page, never the whole site', () => {
   expect(roots.map((el) => el.style.getPropertyValue('--accent'))).toEqual(['pink', 'pink']);
   expect(roots[0].style.color).toBe('');
 });
+
+it("never sets a worked-out value that loads a file", () => {
+  const root = document.querySelector<HTMLElement>('[data-template-root]')!;
+  executeSetCSSVarAction({ name: '--bg', expression: '"url(https://elsewhere.example/p.png)"' }, {} as any);
+  executeSetCSSVarAction({ name: '--set', expression: '"image-set(\\"a.png\\" 1x)"' }, {} as any);
+  expect(root.style.getPropertyValue('--bg')).toBe('');
+  expect(root.style.getPropertyValue('--set')).toBe('');
+  // Written out in the page, it's the same as the page's own CSS
+  executeSetCSSVarAction({ name: '--bg', value: 'url(cat.png)' }, {} as any);
+  expect(root.style.getPropertyValue('--bg')).toBe('url(cat.png)');
+  executeSetCSSVarAction({ name: '--size', expression: '2 * 8 + "px"' }, {} as any);
+  expect(root.style.getPropertyValue('--size')).toBe('16px');
+});

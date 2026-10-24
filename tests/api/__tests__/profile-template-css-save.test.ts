@@ -98,3 +98,14 @@ test('refuses CSS that is not a string', async () => {
   expect(res.statusCode).toBe(400)
   expect(mockDb.profile.upsert).not.toHaveBeenCalled()
 })
+
+test('only the page owner can save, decided by account and before any compile', async () => {
+  // Same handle name on another host: used to pass the old name-or-id check (security audit L5)
+  ;(getSessionUser as jest.Mock).mockResolvedValue({ id: 'u-other', primaryHandle: 'pat@elsewhere.example', role: 'member' })
+  const { getCompiledTemplateWithMetrics } = jest.requireMock('@/lib/templates/compilation/template-cache')
+  const { req, res } = makeReqRes({ template: '<p>hi</p>' })
+  await handler(req, res)
+  expect(res.statusCode).toBe(403)
+  expect(getCompiledTemplateWithMetrics).not.toHaveBeenCalled()
+  expect(mockDb.profile.upsert).not.toHaveBeenCalled()
+})

@@ -39,6 +39,9 @@ export interface SetCSSVarProps {
   target?: string;
 }
 
+/** CSS functions that fetch a file */
+const LOADS_SOMETHING = /(?:url|src|image|image-set|cross-fade)\s*\(/i;
+
 export default function SetCSSVar(props: SetCSSVarProps) {
 
   // Normal mode - render nothing (executed by event handler)
@@ -89,6 +92,10 @@ export function executeSetCSSVarAction(
 
     const result = evaluateExpression(expression, context);
     cssValue = String(result);
+    // A worked-out value never loads anything: with a visitor's own values
+    // (persisted Vars, ?var= links) in a url() it would be a tracking pixel.
+    // A value written out in the page is the same as its CSS, so it may.
+    if (LOADS_SOMETHING.test(cssValue)) return;
   } else if (value !== undefined) {
     cssValue = value;
   } else {

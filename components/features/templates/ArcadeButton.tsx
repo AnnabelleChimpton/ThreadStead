@@ -166,7 +166,7 @@ export default function ArcadeButton(props: ArcadeButtonProps) {
     }
 
     if (href && typeof window !== 'undefined') {
-      window.open(href, '_blank');
+      window.open(href, '_blank', 'noopener,noreferrer');
     }
 
     if (onClick) {
