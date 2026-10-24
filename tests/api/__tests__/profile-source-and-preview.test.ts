@@ -15,11 +15,12 @@ jest.mock('@/lib/config/database/connection', () => ({
   db: {
     handle: { findFirst: jest.fn() },
     user: { findUnique: jest.fn() },
-    profile: { update: jest.fn(), upsert: jest.fn() },
+    profile: { update: jest.fn(), upsert: jest.fn(), findUnique: jest.fn() },
     media: { findUnique: jest.fn() },
   },
 }))
 jest.mock('@/lib/auth/server', () => ({ getSessionUser: jest.fn() }))
+jest.mock('@/lib/templates/revisions/template-revisions', () => ({ snapshotProfileBeforeSave: jest.fn() }))
 jest.mock('@/lib/server/http/csrf', () => ({
   csrfProtection: jest.fn().mockResolvedValue(true),
   withCsrfProtection: (h: any) => h,
@@ -55,6 +56,7 @@ import { getSessionUser } from '@/lib/auth/server'
 import { db } from '@/lib/config/database/connection'
 import { MAX_CSS_CHARS, MAX_TEMPLATE_CHARS } from '@/lib/templates/limits'
 import { pageForRender } from '@/lib/templates/rendering/page-tree-server'
+import { serializeArtifact } from '@/lib/templates/rendering/page-artifact'
 
 const mockDb = db as any
 const OWNER = { id: 'u-pat', primaryHandle: 'pat@HomePageAgain', role: 'member' }
@@ -168,7 +170,9 @@ describe('POST /api/templates/compile (the live preview and problems panel)', ()
     const { req, res } = makeReqRes('POST', {}, { template: '<p>draft</p>' })
     await compileHandler(req, res)
     expect(res.statusCode).toBe(200)
-    expect(res.body.compiled.staticHTML).toBe('<p>draft</p>')
+    // The artifact a save would store (lib/templates/rendering/page-artifact.ts), no AST
+    expect(res.body.artifact).toMatchObject({ v: 1, tree: [], islands: [] })
+    expect(res.body).not.toHaveProperty('compiled')
     expect(mockDb.profile.update).not.toHaveBeenCalled()
     expect(mockDb.profile.upsert).not.toHaveBeenCalled()
   })
@@ -215,5 +219,21 @@ describe('size caps on saves', () => {
     expect(res.statusCode).toBe(413)
     expect(res.body.error).toBe('Your CSS is 201 KB; the most is 200 KB. Trim it and save again.')
     expect(mockDb.profile.upsert).not.toHaveBeenCalled()
+  })
+})
+
+describe('the preview shows what a save stores', () => {
+  test("the compile route's artifact is byte for byte the one a save stores", async () => {
+    ;(getSessionUser as jest.Mock).mockResolvedValue(OWNER)
+    mockDb.handle.findFirst.mockResolvedValue({ user: { id: 'u-pat', primaryHandle: 'pat@HomePageAgain' } })
+    mockDb.profile.findUnique.mockResolvedValue(null)
+
+    const compiled = makeReqRes('POST', {}, { template: '<p>draft</p>' })
+    await compileHandler(compiled.req, compiled.res)
+    const saved = makeReqRes('POST', { username: 'pat' }, { template: '<p>draft</p>' })
+    await templateSaveHandler(saved.req, saved.res)
+
+    expect(saved.res.statusCode).toBe(200)
+    expect(mockDb.profile.upsert.mock.calls[0][0].update.pageArtifact).toBe(serializeArtifact(compiled.res.body.artifact))
   })
 })

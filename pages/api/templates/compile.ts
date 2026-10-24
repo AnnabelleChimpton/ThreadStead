@@ -1,7 +1,7 @@
-// Compiles template source for the editor: the live preview and the problems
-// panel both come from here. It never writes; POST /api/profile/[username]/
-// template saves, through the same compileForEditor, so what the preview
-// shows is what gets stored.
+// Builds a draft for the editor: the live preview renders the artifact this
+// returns, the problems panel shows its warnings. It never writes; a save
+// (POST /api/profile/[username]/template) stores the same artifact, from the
+// same compileForEditor, so what the preview shows is what gets stored.
 import { apiHandler } from '@/lib/api/handler';
 import { compileForEditor } from '@/lib/templates/compilation/compile-for-editor';
 import { sourceTooLong } from '@/lib/templates/limits';
@@ -26,10 +26,10 @@ export default apiHandler(
 
     return res.status(200).json({
       success: true,
-      compiled: result.compiled,
+      artifact: result.artifact,
       errors: [],
-      warnings: result.compiled.warnings,
-      strippedComponents: result.compiled.strippedComponents,
+      warnings: result.warnings,
+      strippedComponents: result.strippedComponents,
       stats: result.stats,
     });
   }

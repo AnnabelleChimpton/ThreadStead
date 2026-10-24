@@ -1,27 +1,23 @@
 /**
  * "Check my work" in the editor's Learn panel: a lesson step's checks
- * (lessons.ts), read from the compile the editor's preview already runs.
+ * (lessons.ts), read from the artifact the editor's preview already renders
+ * (lib/templates/rendering/page-artifact.ts).
  * The first check that isn't met gives its hint; when the ones that can be
  * read from the page are all met, a step's self-check asks the person.
  */
 import type { LessonCheck } from './lessons';
+import { islandIdOf, type PageTreeElement, type PageTreeNode } from '@/lib/templates/rendering/page-tree';
 
 interface IslandLike {
+  id: string;
   component: string;
   props?: Record<string, unknown>;
-  children?: IslandLike[];
-}
-
-interface NodeLike {
-  type?: string;
-  tagName?: string;
-  value?: string;
-  children?: NodeLike[];
 }
 
 export interface CheckablePage {
+  /** The artifact's tree and components */
+  tree?: PageTreeNode[];
   islands?: IslandLike[];
-  ast?: NodeLike;
   warnings?: string[];
   /** Taken-out tags; 'document' ones (html, head, body) don't count */
   stripped?: Array<{ category?: string }>;
@@ -32,26 +28,40 @@ export type CheckResult =
   | { status: 'hint'; hint: string }
   | { status: 'ask'; question: string };
 
-function* walkIslands(islands: IslandLike[] = [], parent?: IslandLike): Generator<{ island: IslandLike; parent?: IslandLike }> {
-  for (const island of islands) {
-    yield { island, parent };
-    yield* walkIslands(island.children ?? [], island);
+function* walkElements(nodes: PageTreeNode[] = []): Generator<PageTreeElement> {
+  for (const node of nodes) {
+    if (typeof node === 'string') continue;
+    yield node;
+    yield* walkElements(node.c);
   }
 }
 
-function* walkNodes(node: NodeLike | undefined): Generator<NodeLike> {
-  if (!node) return;
-  yield node;
-  for (const child of node.children ?? []) yield* walkNodes(child);
+/** Each component, with the one it sits in: where its placeholder sits in the tree */
+function* walkIslands(page: CheckablePage): Generator<{ island: IslandLike; parent?: IslandLike }> {
+  const byId = new Map((page.islands ?? []).map((island) => [island.id, island]));
+  const seen = new Set<string>();
+  function* walk(nodes: PageTreeNode[] = [], parent?: IslandLike): Generator<{ island: IslandLike; parent?: IslandLike }> {
+    for (const node of nodes) {
+      if (typeof node === 'string') continue;
+      const id = islandIdOf(node);
+      const island = id ? byId.get(id) : undefined;
+      if (island) {
+        seen.add(island.id);
+        yield { island, parent };
+      }
+      yield* walk(node.c, island ?? parent);
+    }
+  }
+  yield* walk(page.tree);
+  for (const island of page.islands ?? []) if (!seen.has(island.id)) yield { island };
 }
 
-const textOf = (node: NodeLike): string =>
-  node.type === 'text' ? node.value ?? '' : (node.children ?? []).map(textOf).join('');
+const textOf = (node: PageTreeNode): string => (typeof node === 'string' ? node : (node.c ?? []).map(textOf).join(''));
 
 const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 
 function met(check: LessonCheck, page: CheckablePage): boolean {
-  const islands = [...walkIslands(page.islands)];
+  const islands = [...walkIslands(page)];
   if ('uses' in check) {
     return islands.some(({ island }) =>
       same(island.component, check.uses) &&
@@ -65,10 +75,10 @@ function met(check: LessonCheck, page: CheckablePage): boolean {
     return islands.some(({ island }) => same(island.component, 'Var') && island.props?.name === check.varDeclared);
   }
   if ('tag' in check) {
-    return [...walkNodes(page.ast)].some((node) => node.tagName === check.tag);
+    return [...walkElements(page.tree)].some((node) => node.t === check.tag);
   }
   if ('textChanged' in check) {
-    const first = [...walkNodes(page.ast)].find((node) => node.tagName === check.textChanged.tag);
+    const first = [...walkElements(page.tree)].find((node) => node.t === check.textChanged.tag);
     return !!first && textOf(first).trim() !== '' && textOf(first).trim() !== check.textChanged.from;
   }
   if ('noProblems' in check) {

@@ -12,8 +12,8 @@ export default function GlobalChatToggle() {
 
   const unreadCount = conversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
 
-  // Don't show toggle button on the /chat page
-  if (pathname === '/community/chat') {
+  // Not on the chat page, nor inside the editor's preview, over the page being edited
+  if (pathname === '/community/chat' || pathname === '/template-preview') {
     return null;
   }
   // In the page editors on a phone it sat on top of the code

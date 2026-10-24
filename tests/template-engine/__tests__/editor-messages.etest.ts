@@ -10,8 +10,8 @@ async function report(source: string) {
   return {
     errors: [] as string[],
     details: undefined,
-    warnings: result.compiled.warnings,
-    stripped: result.compiled.strippedComponents.map((s) => s.reason ?? ''),
+    warnings: result.warnings,
+    stripped: result.strippedComponents.map((s) => s.reason ?? ''),
   }
 }
 

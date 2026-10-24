@@ -135,16 +135,29 @@ describe('every <style dangerouslySetInnerHTML> escapes what it injects', () => 
 
   const root = path.resolve(__dirname, '../..')
   const files = ['pages', 'components', 'lib', 'hooks'].flatMap((d) => sourceFiles(path.join(root, d)))
-  const injections = files.flatMap((file) => {
-    const text = fs.readFileSync(file, 'utf8')
-    return [...text.matchAll(/<style\b[^>]*?dangerouslySetInnerHTML=\{\{\s*__html:\s*([\s\S]*?)\}\}\s*\/?>/g)].map((m) => ({
-      where: `${path.relative(root, file)}`,
-      html: m[1].trim(),
-    }))
-  })
+  const texts = files.map((file) => ({ where: path.relative(root, file), text: fs.readFileSync(file, 'utf8') }))
+  const injections = texts.flatMap(({ where, text }) =>
+    [...text.matchAll(/<style\b[^>]*?dangerouslySetInnerHTML=\{\{\s*__html:\s*([\s\S]*?)\}\}\s*\/?>/g)].map((m) => ({ where, html: m[1].trim() }))
+  )
+  // `dangerouslySetInnerHTML={name}`: name is a memoized { __html } (so a
+  // re-render doesn't rewrite the <style>), built in the same file
+  const memoized = texts.flatMap(({ where, text }) =>
+    [...text.matchAll(/<style\b[^>]*?dangerouslySetInnerHTML=\{(\w+)\}/g)].map((m) => {
+      const built = text.match(new RegExp(`const ${m[1]} = useMemo\\(([\\s\\S]*?)\\}\\)?, \\[`))?.[1] ?? ''
+      return { where: `${where} (${m[1]})`, built }
+    })
+  )
 
   test('finds the injections it checks', () => {
-    expect(injections.length).toBeGreaterThanOrEqual(5)
+    expect(injections.length + memoized.length).toBeGreaterThanOrEqual(5)
+    expect(memoized.length).toBeGreaterThanOrEqual(4)
+  })
+
+  test.each(memoized.map((i) => [i.where, i.built]))('%s is escaped where it is built', (_where, built) => {
+    // Every { __html } the memo can return is escaped
+    const values = [...built.matchAll(/__html:\s*([^,}]+)/g)].map((m) => m[1].trim())
+    expect(values.length).toBeGreaterThan(0)
+    for (const value of values) expect(value.startsWith('escapeCssForStyleTag(')).toBe(true)
   })
 
   test.each(injections.map((i) => [i.where, i.html]))('%s', (_where, html) => {

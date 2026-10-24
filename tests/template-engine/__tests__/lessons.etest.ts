@@ -5,6 +5,7 @@
  * exception for stripped tags: showing what gets taken out is its point.
  */
 import { compileTemplateToArtifacts } from '@/lib/templates/compilation/compile-pipeline'
+import { artifactFor } from '@/lib/templates/rendering/page-artifact'
 import { componentRegistry } from '@/lib/templates/core/template-registry'
 import { lessons, OLD_TUTORIALS, getLesson } from '@/lib/templates-docs/lessons'
 
@@ -41,7 +42,7 @@ describe('Check my work', () => {
   const { checkStep } = require('@/lib/templates-docs/lesson-checks') as typeof import('@/lib/templates-docs/lesson-checks')
   const page = (code: string) => {
     const a = compileTemplateToArtifacts(code)
-    return { islands: a.islands, ast: a.ast, warnings: a.warnings, stripped: a.strippedComponents }
+    return { ...artifactFor(a), warnings: a.warnings, stripped: a.strippedComponents }
   }
 
   // Each step's own code meets its checks (all but "change the words": the

@@ -17,7 +17,7 @@ jest.mock('@/components/ui/PixelIcon', () => ({ PixelIcon: () => null }));
 jest.mock('@/components/ui/layout/Layout', () => ({ __esModule: true, default: ({ children }: { children: React.ReactNode }) => children }));
 jest.mock('@/components/features/templates/TemplateHistoryPanel', () => ({ __esModule: true, default: () => null }));
 jest.mock('@/components/features/templates/TemplatePanelSelector', () => ({ __esModule: true, default: () => null }));
-jest.mock('@/lib/templates/core/template-data', () => ({ fetchResidentData: jest.fn(() => new Promise(() => {})) }));
+jest.mock('@/lib/templates/core/template-data', () => ({ fetchPageData: jest.fn(() => new Promise(() => {})) }));
 jest.mock('@/lib/api/client/csrf-fetch', () => ({ csrfFetch: jest.fn() }));
 
 import CSSEditorPage from '@/pages/resident/[username]/css-editor';

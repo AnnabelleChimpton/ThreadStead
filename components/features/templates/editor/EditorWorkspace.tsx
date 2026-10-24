@@ -352,13 +352,15 @@ type Device = keyof typeof DEVICE_WIDTH;
  * The preview iframe, drawn at a real screen width and scaled to fit, so a
  * narrow pane still shows the laptop layout instead of the phone one.
  */
-export function LivePreviewPane({ frameRef, src = '/template-preview?embed=1', status, notice, onPopOut, onHide }: {
+export function LivePreviewPane({ frameRef, src = '/template-preview?embed=1', status, notice, onPopOut, onHide, viewAs }: {
   frameRef: React.MutableRefObject<HTMLIFrameElement | null>;
   src?: string;
   status?: React.ReactNode;
   notice?: React.ReactNode;
   onPopOut?: () => void;
   onHide?: () => void;
+  /** Whose view of the page: the owner's, or a signed-out visitor's (IfOwner / IfVisitor, their data) */
+  viewAs?: { value: 'owner' | 'visitor'; onChange: (value: 'owner' | 'visitor') => void };
 }) {
   const boxRef = useRef<HTMLDivElement | null>(null);
   const [box, setBox] = useState({ width: 0, height: 0 });
@@ -427,6 +429,15 @@ export function LivePreviewPane({ frameRef, src = '/template-preview?embed=1', s
             </button>
           ))}
         </div>
+        {viewAs && (
+          <div className="inline-flex gap-1" role="group" aria-label="See the page as">
+            {(['owner', 'visitor'] as const).map((v) => (
+              <button key={v} type="button" className="ts-chip text-xs" aria-pressed={viewAs.value === v} onClick={() => viewAs.onChange(v)}>
+                {v === 'owner' ? 'As me' : 'As a visitor'}
+              </button>
+            ))}
+          </div>
+        )}
         {status && <span className="text-xs text-nb-ink-mid">{status}</span>}
         <div className="ml-auto flex items-center gap-3">
           {onPopOut && (

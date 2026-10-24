@@ -18,7 +18,8 @@ import Link from 'next/link';
 import Layout from '@/components/ui/layout/Layout';
 import CSSClassReference from '@/components/features/templates/CSSClassReference';
 import CSSGeneratorTools from '@/components/features/templates/CSSGeneratorTools';
-import { fetchResidentData } from '@/lib/templates/core/template-data';
+import { fetchPageData } from '@/lib/templates/core/template-data';
+import type { PreviewPayload } from '@/lib/templates/editor/preview-payload';
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import { requestCapability } from '@/lib/api/client/capability';
@@ -279,79 +280,50 @@ export default function CSSEditorPage({
   };
 
 
-  // Load resident data for preview
+  // The preview's data, built as the live page builds it (/api/profile/[username]/page-data)
+  const [adminDefaultCss, setAdminDefaultCss] = useState('');
   useEffect(() => {
-    async function loadData() {
-      setLoadingData(true);
-      try {
-        const data = await fetchResidentData(username);
-        setResidentData(data);
-      } catch (error) {
-        console.error('Failed to load resident data for preview:', error);
-        // Set minimal resident data so preview can still work
-        setResidentData({
-          owner: {
-            id: currentUser?.id || 'unknown',
-            handle: username,
-            displayName: username,
-            avatarUrl: '/assets/default-avatar.gif'
-          },
-          viewer: { id: currentUser?.id || null },
+    if (!currentUser) return;
+    let alive = true;
+    setLoadingData(true);
+    fetchPageData(username).then((data) => {
+      if (!alive) return;
+      // Without it the page still previews, its lists empty
+      setResidentData(
+        data?.residentData ?? {
+          owner: { id: currentUser.id, handle: username, displayName: username, avatarUrl: '/assets/default-avatar.gif' },
+          viewer: { id: currentUser.id },
           posts: [],
           guestbook: [],
-          featuredFriends: [],
-          websites: [],
-          badges: [],
-          images: []
-        });
-      } finally {
-        setLoadingData(false);
-      }
-    }
-
-    // Only load if we have user info
-    if (currentUser) {
-      loadData();
-    }
+        }
+      );
+      setAdminDefaultCss(data?.adminDefaultCss ?? '');
+      setLoadingData(false);
+    });
+    return () => {
+      alive = false;
+    };
   }, [username, currentUser]);
 
   // Send preview data to popup window
   const sendPreviewData = useCallback((targetWindow: Window) => {
-    if (!residentData || !currentUser) {
-      return;
-    }
-
-    // On your own HTML page the CSS styles that page, so that's what shows
+    if (!residentData || !currentUser) return;
+    // On your own HTML page the CSS styles that page (as you see it), so that's what shows
     const asHtml = layout === 'html' && !!htmlPage;
-    const previewData = {
-      user: {
-        id: currentUser.id,
-        handle: currentUser.primaryHandle || `${username}@threadstead`,
-        profile: {
-          templateMode: asHtml ? 'advanced' : 'enhanced',
-          customCSS: css,
-          cssMode,
-          ...(asHtml && {
-            customTemplate: htmlPage.template,
-            compiledTemplate: htmlPage.compiledTemplate,
-            hideNavigation: htmlPage.hideNavigation,
-          }),
-          templateCompiledAt: new Date()
-        }
-      },
-      residentData: residentData,
+    const payload: PreviewPayload = {
+      ownerId: currentUser.id,
+      handle: currentUser.primaryHandle || `${username}@threadstead`,
+      page: asHtml ? (htmlPage.compiledTemplate as PreviewPayload['page']) : null,
+      as: 'owner',
+      residentData,
       customCSS: css,
+      adminDefaultCss,
       cssMode,
-      useStandardLayout: !asHtml,
-      hideNavigation: asHtml ? htmlPage.hideNavigation : true,
-      ...(asHtml && { template: htmlPage.template }),
+      hideNavigation: asHtml ? htmlPage.hideNavigation : false,
+      template: asHtml ? htmlPage.template : '',
     };
-
-    targetWindow.postMessage({
-      type: 'PREVIEW_DATA',
-      payload: previewData
-    }, window.location.origin);
-  }, [css, cssMode, layout, htmlPage, residentData, currentUser, username]);
+    targetWindow.postMessage({ type: 'PREVIEW_DATA', payload }, window.location.origin);
+  }, [css, cssMode, adminDefaultCss, layout, htmlPage, residentData, currentUser, username]);
 
   // The preview beside the code, open wherever there's room for it
   const [showPreviewPane, setShowPreviewPane] = useState(false);

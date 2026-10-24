@@ -13,9 +13,10 @@ import {
 } from '@/lib/templates/editor/component-autocomplete';
 import ComponentPalette from '@/components/features/templates/ComponentPalette';
 import ImagePicker, { type ImagePane } from '@/components/features/templates/ImagePicker';
-import { fetchResidentData } from '@/lib/templates/core/template-data';
+import { fetchPageData, type PreviewViewer } from '@/lib/templates/core/template-data';
+import type { PreviewPayload } from '@/lib/templates/editor/preview-payload';
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
-import type { CompiledTemplate } from '@/lib/templates/compilation/compiler';
+import type { PageArtifact } from '@/lib/templates/rendering/page-artifact';
 import { getDefaultProfileTemplate } from '@/lib/templates/default-profile-templates';
 import { THEMES, detectTheme } from '@/lib/templates/appearance';
 import TemplatePanelSelector from './TemplatePanelSelector';
@@ -185,7 +186,7 @@ interface EnhancedTemplateEditorProps {
   savedCSS?: string;
   /** Under the toolbar, e.g. "Started from @someone's page" */
   notice?: React.ReactNode;
-  onSave?: (template: string, css: string, compiledTemplate?: CompiledTemplate, cssMode?: 'inherit' | 'override' | 'disable', hideNavigation?: boolean, templateMode?: 'default' | 'enhanced' | 'advanced') => void;
+  onSave?: (template: string, css: string, compiledTemplate?: PageArtifact, cssMode?: 'inherit' | 'override' | 'disable', hideNavigation?: boolean, templateMode?: 'default' | 'enhanced' | 'advanced') => void;
 }
 
 export default function EnhancedTemplateEditor({
@@ -353,6 +354,10 @@ export default function EnhancedTemplateEditor({
 
   // Always use islands mode - legacy mode removed
   const [residentData, setResidentData] = useState<ResidentData | null>(null);
+  // Whose view the preview shows: the owner's, or a signed-out visitor's
+  const [previewAs, setPreviewAs] = useState<PreviewViewer>('owner');
+  // The admin's default CSS, worn by a page without its own
+  const [adminDefaultCss, setAdminDefaultCss] = useState('');
   
   const useStandardLayoutOption = () => {
     showDataLossWarning(
@@ -482,8 +487,8 @@ export default function EnhancedTemplateEditor({
       doLoad
     );
   };
-  const [isLoading, setIsLoading] = useState(true);
-  const [compiledTemplate, setCompiledTemplate] = useState<CompiledTemplate | null>(null);
+  // The draft's artifact: what the preview renders, and what a save would store
+  const [compiledTemplate, setCompiledTemplate] = useState<PageArtifact | null>(null);
   // Smart default tab selection based on URL mode param or layout mode
   const [activeTab, setActiveTab] = useState<EditorTab>(() => {
     // Priority 1: URL parameter
@@ -656,11 +661,11 @@ export default function EnhancedTemplateEditor({
 
       const result = await response.json();
 
-      if (!result.success || !result.compiled) {
+      if (!result.success || !result.artifact) {
         return null;
       }
 
-      setCompiledTemplate(result.compiled);
+      setCompiledTemplate(result.artifact);
       setLastCompiledTemplate(template); // Track what we compiled
       setLiveProblems({
         status: 'ok',
@@ -668,7 +673,7 @@ export default function EnhancedTemplateEditor({
         warnings: Array.isArray(result.warnings) ? result.warnings : [],
         stripped: Array.isArray(result.strippedComponents) ? result.strippedComponents : [],
       });
-      return result.compiled;
+      return result.artifact as PageArtifact;
     } catch (error) {
       // Check if it's a network error specifically
       if (error instanceof TypeError && error.message.includes('fetch')) {
@@ -682,41 +687,23 @@ export default function EnhancedTemplateEditor({
 
   // Send preview data to popup window
   const sendPreviewData = useCallback((targetWindow: Window) => {
-    if (!residentData) {
-      return;
-    }
-    
-    // Determine template mode based on layout type, not CSS presence
-    // Standard layout = enhanced mode, Custom HTML = advanced mode
-    const templateMode = useStandardLayout ? 'enhanced' : 'advanced';
-    
-    const previewData = {
-      user: {
-        id: user.id,
-        handle: user.primaryHandle || 'preview-user',
-        profile: {
-          templateMode: templateMode,
-          customCSS: customCSS,
-          customTemplate: template,
-          cssMode: cssMode,
-          compiledTemplate: compiledTemplate,
-          templateCompiledAt: new Date(),
-          hideNavigation: hideNavigation // Add navigation toggle setting
-        }
-      },
-      residentData: residentData,
-      customCSS: customCSS,
-      useStandardLayout: useStandardLayout,
-      hideNavigation: hideNavigation, // Also add at top level for easy access
-      template: template, // Add template data for save functionality
-      cssMode: cssMode // Add CSS mode for save functionality
+    if (!residentData) return;
+    // The draft's artifact (the compile route's, as a save would store it)
+    // on your own HTML page; nothing on the standard layout
+    const payload: PreviewPayload = {
+      ownerId: user.id,
+      handle: user.primaryHandle || 'preview-user',
+      page: useStandardLayout ? null : compiledTemplate,
+      as: previewAs,
+      residentData,
+      customCSS,
+      adminDefaultCss,
+      cssMode,
+      hideNavigation,
+      template,
     };
-    
-    targetWindow.postMessage({ 
-      type: 'PREVIEW_DATA', 
-      payload: previewData 
-    }, window.location.origin);
-  }, [user, customCSS, template, cssMode, compiledTemplate, residentData, useStandardLayout, hideNavigation]);
+    targetWindow.postMessage({ type: 'PREVIEW_DATA', payload }, window.location.origin);
+  }, [user, customCSS, adminDefaultCss, template, cssMode, compiledTemplate, residentData, useStandardLayout, hideNavigation, previewAs]);
 
   // Pop-up preview management
   const openPopupPreview = useCallback(async () => {
@@ -870,98 +857,27 @@ export default function EnhancedTemplateEditor({
     setPendingImage(null);
   }, [pendingImage, insertAtCursor]);
 
-  // Feature flag for islands mode
-  // Islands are always enabled - legacy mode removed
-
-  // Load resident data
+  // The preview's data, built as the live page builds it
   useEffect(() => {
-    async function loadData() {
-      setIsLoading(true);
-      
-      try {
-        const fullHandle = user.primaryHandle || user.handles?.[0]?.handle;
-        const username = fullHandle ? fullHandle.split('@')[0] : 'user';
-        
-        // For test users or if handle doesn't exist, use mock data directly
-        if (!username || username === 'testuser' || user.id === 'test-user-123') {
-          const mockData = {
-            owner: {
-              id: user.id,
-              handle: username,
-              displayName: user.profile?.displayName || 'Test User',
-              avatarUrl: user.profile?.avatarUrl || '/assets/default-avatar.gif'
-            },
-            viewer: { id: null },
-            posts: [
-              { id: '1', bodyHtml: 'This is a test post from the enhanced editor', createdAt: new Date().toISOString() },
-              { id: '2', bodyHtml: 'Another test post with some content', createdAt: new Date(Date.now() - 86400000).toISOString() }
-            ],
-            guestbook: [
-              { id: '1', message: 'Great profile!', authorUsername: 'visitor1', createdAt: new Date().toISOString() }
-            ],
-            capabilities: { bio: user.profile?.bio || 'This is a test bio for the enhanced template editor!' },
-            images: [],
-            profileImages: []
-          };
-          setResidentData(mockData);
-          return;
-        }
-        
-        // For real users, try to fetch data using just the username
-        const data = await fetchResidentData(username);
-        
-        if (data) {
-          setResidentData(data);
-        } else {
-          // Profile not found, use mock data for template editing
-          const mockData = {
-            owner: {
-              id: user.id,
-              handle: user.primaryHandle || 'user',
-              displayName: user.profile?.displayName || 'User',
-              avatarUrl: user.profile?.avatarUrl || '/assets/default-avatar.gif'
-            },
-            viewer: { id: null },
-            posts: [
-              { id: '1', bodyHtml: 'This is a sample post for template preview', createdAt: new Date().toISOString() },
-              { id: '2', bodyHtml: 'Another sample post to show multiple entries', createdAt: new Date(Date.now() - 86400000).toISOString() }
-            ],
-            guestbook: [
-              { id: '1', message: 'Welcome to the site!', authorUsername: 'visitor1', createdAt: new Date().toISOString() }
-            ],
-            capabilities: { bio: user.profile?.bio || 'This is a sample bio for template preview' },
-            images: [],
-            profileImages: []
-          };
-          setResidentData(mockData);
-        }
-      } catch (error) {
-        console.error('EnhancedTemplateEditor: Failed to load resident data:', error);
-        // Use mock data as fallback
-        const mockData = {
-          owner: {
-            id: user.id,
-            handle: user.primaryHandle || user.handles?.[0]?.handle || 'user',
-            displayName: user.profile?.displayName || 'User',
-            avatarUrl: user.profile?.avatarUrl || '/assets/default-avatar.gif'
-          },
+    let alive = true;
+    const handle = (user.primaryHandle || user.handles?.[0]?.handle || '').split('@')[0];
+    fetchPageData(handle, previewAs).then((data) => {
+      if (!alive) return;
+      // Without it the page still previews as itself, its lists empty
+      setResidentData(
+        data?.residentData ?? {
+          owner: { id: user.id, handle, displayName: user.profile?.displayName || handle, avatarUrl: user.profile?.avatarUrl || '/assets/default-avatar.gif' },
           viewer: { id: null },
-          posts: [
-            { id: '1', bodyHtml: 'This is a test post', createdAt: new Date().toISOString() }
-          ],
+          posts: [],
           guestbook: [],
-          capabilities: { bio: user.profile?.bio || 'This is a test bio' },
-          images: [],
-          profileImages: []
-        };
-        setResidentData(mockData);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    
-    loadData();
-  }, [user]);
+        }
+      );
+      setAdminDefaultCss(data?.adminDefaultCss ?? '');
+    });
+    return () => {
+      alive = false;
+    };
+  }, [user, previewAs]);
 
 
   // Handle save requests from preview window
@@ -1055,11 +971,6 @@ export default function EnhancedTemplateEditor({
     };
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, []);
-
-  // Stable callback for template compilation
-  const handleCompile = useCallback((compiled: CompiledTemplate | null) => {
-    setCompiledTemplate(compiled);
   }, []);
 
   // Stable callback for compilation errors
@@ -1502,14 +1413,6 @@ export default function EnhancedTemplateEditor({
 </div>`
   };
 
-  if (isLoading) {
-    return (
-      <div className="template-editor-loading p-8 text-center">
-        <p>Loading editor...</p>
-      </div>
-    );
-  }
-
   // Template edits: move pasted <style> blocks and Google Fonts <link>s into
   // the CSS field and auto-switch to advanced mode when HTML shows up in
   // standard-layout mode.
@@ -1575,7 +1478,9 @@ export default function EnhancedTemplateEditor({
               step={learn.step}
               onStep={(step) => setLearn({ slug: learn.slug, step })}
               // A page that doesn't compile right now can't be checked
-              page={liveProblems.status === 'failed' ? null : (compiledTemplate as unknown as CheckablePage | null)}
+              page={liveProblems.status === 'failed' || !compiledTemplate
+                ? null
+                : { ...compiledTemplate, warnings: liveProblems.warnings, stripped: liveProblems.stripped as CheckablePage['stripped'] }}
               onShowMe={(step: LessonStep) =>
                 showDataLossWarning(
                   'Show me',
@@ -1952,6 +1857,7 @@ body {
             )}
             onPopOut={openPopupPreview}
             onHide={() => setShowPreviewPane(false)}
+            viewAs={useStandardLayout ? undefined : { value: previewAs, onChange: setPreviewAs }}
           />
         ) : null}
       />

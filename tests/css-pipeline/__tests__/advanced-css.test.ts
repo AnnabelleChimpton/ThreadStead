@@ -234,11 +234,13 @@ describe('preview equals live', () => {
   const app = fs.readFileSync(path.join(ROOT, 'pages/_app.tsx'), 'utf8')
   const preview = fs.readFileSync(path.join(ROOT, 'pages/template-preview.tsx'), 'utf8')
 
-  test('the live advanced-CSS block and the preview both call transformAdvancedCss', () => {
-    expect(app).toMatch(/advancedPage\) \{[\s\S]{0,300}transformAdvancedCss\(/)
-    expect(app).toMatch(/'advanced-template-css'/)
-    expect(preview).toMatch(/transformAdvancedCss\(/)
-    expect(preview).toMatch(/id="advanced-template-css"/)
+  test('the live page and the preview build the page CSS with the same helpers (page-css.ts)', () => {
+    for (const file of [app, preview]) {
+      expect(file).toMatch(/advancedPageCss\(/)
+      expect(file).toMatch(/standardPageCss\(/)
+      expect(file).not.toMatch(/transformAdvancedCss\(/)
+      expect(file).toMatch(/'advanced-template-css'/)
+    }
   })
 
   test('no hand-rolled html body boost is left in _app.tsx', () => {
@@ -338,7 +340,7 @@ describe("the page's CSS stays off the site's chrome", () => {
     expect(pageStyle).toBeGreaterThan(app.indexOf('{isProfilePage && siteCssStyle}'))
     expect(pageStyle).toBeLessThan(app.indexOf('<Component {...pageProps} />'))
     const preview = fs.readFileSync(path.join(ROOT, 'pages/template-preview.tsx'), 'utf8')
-    expect(preview.indexOf('id="advanced-template-css"')).toBeGreaterThan(preview.indexOf('id="preview-site-css"'))
+    expect(preview.indexOf("'advanced-template-css'")).toBeGreaterThan(preview.indexOf('id="preview-site-css"'))
   })
 })
 

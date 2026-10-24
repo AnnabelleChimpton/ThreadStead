@@ -6,7 +6,7 @@ import Link from "next/link";
 
 import Layout from "@/components/ui/layout/Layout";
 import EnhancedTemplateEditor from '@/components/features/templates/EnhancedTemplateEditor';
-import type { CompiledTemplate } from '@/lib/templates/compilation/compiler';
+import type { PageArtifact } from '@/lib/templates/rendering/page-artifact';
 import { PixelIcon } from "@/components/ui/PixelIcon";
 import { csrfFetch } from "@/lib/api/client/csrf-fetch";
 import { requestCapability } from "@/lib/api/client/capability";
@@ -139,7 +139,7 @@ export default function TemplateEditorPage({
   // out of the editor (and drops off on the next save).
   const cleanedCssContent = extractedCssContent.replace(/\/\* CSS_MODE:\w+ \*\/\n?/, '');
 
-  const handleSave = async (template: string, css: string, compiledTemplate?: CompiledTemplate, cssMode?: 'inherit' | 'override' | 'disable', hideNavigation?: boolean, explicitTemplateMode?: 'default' | 'enhanced' | 'advanced') => {
+  const handleSave = async (template: string, css: string, compiledTemplate?: PageArtifact, cssMode?: 'inherit' | 'override' | 'disable', hideNavigation?: boolean, explicitTemplateMode?: 'default' | 'enhanced' | 'advanced') => {
     // The server compiles the template itself. The compiled copy went along
     // too, unread: 3-5 times the source, it pushed pages over ~170 KB past
     // the request size limit, so they couldn't be saved.

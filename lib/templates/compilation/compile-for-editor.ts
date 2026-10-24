@@ -1,33 +1,26 @@
 /**
- * The one compile behind the template editor. Checking (the live preview and
- * the problems panel) and saving both call this, so the preview shows exactly
- * what a save would store. It never writes; only the save route stores the
- * result, as the profile's single compiled copy.
+ * The one build of a page of your own HTML: the editor's live preview and
+ * problems panel, a save, the recompile script and a visit to a page with
+ * no stored copy all call this, and get the same artifact
+ * (lib/templates/rendering/page-artifact.ts). The preview renders that
+ * artifact; a save stores it. It never writes.
  */
 import { compileTemplateToArtifacts, TemplateCompilationError, type StrippedComponentReport } from './compile-pipeline';
 import { getCompiledTemplateWithMetrics, type CompilationResult } from './template-cache';
-import type { TemplateNode } from './template-parser';
-import type { Island } from './compiler/types';
+import { artifactFor, type PageArtifact } from '@/lib/templates/rendering/page-artifact';
 import { stripNavigationFromTemplate } from '@/lib/templates/utils/navigation-stripper';
 import { parseTemplateError, formatTemplateErrorForAPI } from '@/lib/templates/errors/template-error-handler';
-
-/** What Profile.compiledTemplate holds, and what the preview renders */
-export interface CompiledPage {
-  mode: 'advanced';
-  staticHTML: string;
-  islands: Island[];
-  ast: TemplateNode;
-  warnings: string[];
-  strippedComponents: StrippedComponentReport[];
-  compiledAt: string;
-}
 
 export type EditorCompile =
   | {
       ok: true;
       /** The source as stored: site navigation tags taken out */
       template: string;
-      compiled: CompiledPage;
+      /** What the page renders from: stored by a save, rendered by the preview */
+      artifact: PageArtifact;
+      /** For the editor to say, never stored */
+      warnings: string[];
+      strippedComponents: StrippedComponentReport[];
       stats?: CompilationResult['stats'];
     }
   | {
@@ -54,15 +47,9 @@ export async function compileForEditor(source: string): Promise<EditorCompile> {
     return {
       ok: true,
       template,
-      compiled: {
-        mode: 'advanced',
-        staticHTML: result.staticHTML,
-        islands: result.islands,
-        ast: result.ast,
-        warnings: result.warnings ?? [],
-        strippedComponents: result.strippedComponents ?? [],
-        compiledAt: new Date().toISOString(),
-      },
+      artifact: artifactFor(result),
+      warnings: result.warnings ?? [],
+      strippedComponents: result.strippedComponents ?? [],
       stats: result.stats,
     };
   } catch (error) {

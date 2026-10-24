@@ -590,7 +590,8 @@ test('<pre> keeps its blank lines (ASCII art), through the save path (template a
   const saved = await compileForEditor(art)
   expect(saved.ok).toBe(true)
   expect(saved.template).toContain('( o.o )\n\n\n\n')
-  expect(saved.compiled.staticHTML).toContain('( o.o )\n\n\n\n  &gt; ^ &lt;')
+  // The stored artifact's <pre> text, blank lines and all
+  expect(JSON.stringify(saved.artifact.tree)).toContain(JSON.stringify('( o.o )\n\n\n\n  > ^ <').slice(1, -1))
 })
 
 test('a text Var may start with "{"; an object Var still needs JSON (template audit 06 #12)', () => {

@@ -145,7 +145,7 @@ export async function loadResidentPage(username: string, viewer: { id: string; r
 async function pageFor(compiled: unknown, source: string | null, isOwner: boolean): Promise<PageForRender | null> {
   if (compiled == null && source?.trim()) {
     const result = await compileForEditor(source);
-    if (result.ok) compiled = result.compiled;
+    if (result.ok) compiled = result.artifact;
   }
   return compiled == null ? null : pageForRender(compiled, { isOwner });
 }

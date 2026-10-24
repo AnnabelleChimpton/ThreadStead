@@ -1,7 +1,7 @@
 import { db } from "@/lib/config/database/connection";
 import { Prisma } from '@prisma/client';
 import { compileForEditor } from '@/lib/templates/compilation/compile-for-editor';
-import { artifactFor, serializeArtifact } from '@/lib/templates/rendering/page-artifact';
+import { serializeArtifact } from '@/lib/templates/rendering/page-artifact';
 
 import { SITE_NAME } from '@/lib/config/site/constants';
 import { snapshotProfileBeforeSave } from '@/lib/templates/revisions/template-revisions';
@@ -83,7 +83,7 @@ export default apiHandler(
         // navigation tags, which come from the profile's settings instead
         const compiledSource = await compileForEditor(template);
         if (!compiledSource.ok) return res.status(400).json(compiledSource.body);
-        const { template: cleanedTemplate, compiled: compiledResult } = compiledSource;
+        const { template: cleanedTemplate } = compiledSource;
 
         const before = await db.profile.findUnique({
           where: { userId: handle.user.id },
@@ -113,7 +113,7 @@ export default apiHandler(
         const fields = {
           customTemplate: cleanedTemplate, // Save cleaned template without navigation
           // The page's one stored copy: its tree, components and head, as text
-          pageArtifact: serializeArtifact(artifactFor(compiledResult)),
+          pageArtifact: serializeArtifact(compiledSource.artifact),
           // The old copy, AST and all, goes (it's what failed to save when deeply nested)
           compiledTemplate: Prisma.DbNull,
           // No page, no save time (as a reset leaves it: lib/domain/users/page-reset.ts)
@@ -141,8 +141,8 @@ export default apiHandler(
           savedAt: fields.templateCompiledAt,
           shared,
           pageChanged: changed,
-          warnings: compiledResult?.warnings ?? [],
-          strippedComponents: compiledResult?.strippedComponents ?? []
+          warnings: compiledSource.warnings,
+          strippedComponents: compiledSource.strippedComponents
         });
 
       } else if (req.method === 'DELETE') {

@@ -12,8 +12,7 @@ import "../styles/pixel-homes-animations.css"; // Visual polish and animations f
 import { useSiteCSS } from "@/hooks/useSiteCSS";
 import { useRouter } from "next/router";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { extractImports, scopeAwayFromSiteChrome, transformAdvancedCss } from "@/lib/utils/css/css-transform";
-import { documentCssFromCompiledTemplate } from "@/lib/templates/compilation/document-head";
+import { advancedPageCss, standardPageCss } from "@/lib/templates/rendering/page-css";
 import { escapeCssForStyleTag } from "@/lib/utils/sanitization/css";
 import { siteStylesOn } from "@/lib/domain/profile/layout";
 
@@ -175,36 +174,14 @@ export default function MyApp({ Component, pageProps, appSiteCSS }: MyAppProps) 
     <style id="site-wide-css" key="site-css" dangerouslySetInnerHTML={siteCssHtml} />
   );
 
-  // The profile's own CSS. A page of its own HTML: the transform the editor
-  // preview uses, with the Google Fonts <link>s, <body bgcolor…> and theme
-  // options (<meta name="color:…">) its source carried, re-checked here.
-  // The standard layout: kept off the site header/footer (profile CSS styles
-  // the profile, never the site chrome around it), with its @imports hoisted
-  // above the preamble rule: browsers ignore @import after any other rule, so
-  // with the preamble first users' Google Fonts imports never loaded.
+  // The profile's own CSS, built as the editor's preview builds it
+  // (lib/templates/rendering/page-css.ts)
   const advancedPage = pageProps.templateMode === 'advanced';
   const customCSS: string = pageProps.customCSS || '';
   const pageCssHtml = useMemo(() => {
     if (!isProfilePage) return null;
-    if (advancedPage) {
-      const documentCss = documentCssFromCompiledTemplate(pageProps.compiledTemplate);
-      const css = transformAdvancedCss(customCSS, documentCss);
-      return css ? { __html: escapeCssForStyleTag(css) } : null;
-    }
-    if (!customCSS.trim()) return null;
-    const { imports, rest } = extractImports(scopeAwayFromSiteChrome(customCSS));
-    return {
-      __html: escapeCssForStyleTag(`${imports.join('\n')}
-/* Profile page - Clean canvas for user customization */
-.profile-container {
-margin-top: 0;
-padding-top: 0;
-}
-
-
-/* Custom CSS - User or Admin Default (imports hoisted above) */
-${rest}`),
-    };
+    const css = advancedPage ? advancedPageCss(customCSS, pageProps.compiledTemplate) : customCSS.trim() && standardPageCss(customCSS);
+    return css ? { __html: escapeCssForStyleTag(css) } : null;
   }, [isProfilePage, advancedPage, customCSS, pageProps.compiledTemplate]);
 
   return (

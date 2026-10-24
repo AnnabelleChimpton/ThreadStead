@@ -18,13 +18,13 @@ import MediaGrid from "@/components/core/profile/tabs/MediaGrid";
 import FriendsWebsitesGrid from "@/components/core/profile/tabs/FriendsWebsitesGrid";
 import ProfileBadgeDisplay from "@/components/core/profile/ProfileBadgeDisplay";
 import type { ProfileUser } from "@/components/core/profile/ProfileModeRenderer";
+import ResidentHtmlBody from "@/components/core/profile/ResidentHtmlBody";
 import type { PageForRender } from "@/lib/templates/rendering/page-tree-server";
 import ViewSourceBadge from "@/components/core/profile/ViewSourceBadge";
 import StepOutsideLink from "@/components/core/profile/StepOutsideLink";
 import PrivateProfile from "@/components/core/profile/PrivateProfile";
 import type { PublicWidgetSlot } from "@/lib/domain/profile/widget-slot/compile";
 import type { ResidentData } from "@/components/features/templates/ResidentDataProvider";
-import { mapProfileCSSModeToComponentMode } from "@/lib/utils/css/css-mode-mapper";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import dynamic from 'next/dynamic';
 import { pageUsesAny } from '@/lib/templates/page-home';
@@ -226,74 +226,21 @@ export default function ProfilePage({
       }
     };
 
-    // Islands mode: Handle CSS based on navigation and CSS settings
-    if (hideNavigation) {
-      if (siteStylesOn(cssMode)) {
-        return (
-          <div className="min-h-screen flex flex-col">
-            {head}
-            {stepOutside}
-            {/* Full bleed: your own page decides its width and margins, as
-                it does with navigation shown (this used to box it at 1024px).
-                A div, not <main>: the page's own `main {}` rules are for its
-                own <main>. */}
-            <div className="flex-1">
-              <ProfileModeRenderer
-                user={profileUser}
-                residentData={residentData}
-                hideNavigation={true}
-                fallbackContent={
-                  <div className="p-8 text-center text-gray-500">
-                    <p>Template failed to load</p>
-                  </div>
-                }
-                />
-              </div>
-              <ViewSourceBadge username={username} />
-              {!pagePlaysSong && floatingSong}
-            </div>
-          );
-      } else {
-        // Hide navigation and disable site CSS - no wrapper constraints
-        return (
-          <>
-            {head}
-            <ProfileModeRenderer
-              user={profileUser}
-              residentData={residentData}
-              hideNavigation={true}
-              afterNav={stepOutside}
-              fallbackContent={
-                <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>
-                  <p>Template failed to load</p>
-                </div>
-              }
-            />
-            <ViewSourceBadge username={username} />
-            {!pagePlaysSong && floatingSong}
-          </>
-        );
-      }
-    } else {
-      // Show navigation for advanced templates - no wrapper styling, no constraints
-      return (
-        <>
-          {head}
-          <ProfileModeRenderer
-            user={profileUser}
-            residentData={residentData}
-            afterNav={stepOutside}
-            fallbackContent={
-              <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>
-                <p>Template failed to load</p>
-              </div>
-            }
-          />
-          <ViewSourceBadge username={username} />
-          {!pagePlaysSong && floatingSong}
-        </>
-      );
-    }
+    // The page with what the site puts around it, as the editor's preview renders it
+    return (
+      <>
+        {head}
+        <ResidentHtmlBody
+          user={profileUser}
+          residentData={residentData}
+          hideNavigation={hideNavigation}
+          siteStyles={siteStylesOn(cssMode)}
+          afterNav={stepOutside}
+        />
+        <ViewSourceBadge username={username} />
+        {!pagePlaysSong && floatingSong}
+      </>
+    );
   }
 
   // built-in tabs
@@ -387,9 +334,10 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   const usernameParam = Array.isArray(params?.username) ? params.username[0] : String(params?.username || "");
   if (!usernameParam) return { notFound: true };
 
-  const [{ getSessionUser }, { loadResidentPage, pageReads }, { db }] = await Promise.all([
+  const [{ getSessionUser }, { loadResidentPage }, { residentDataFor, ownerOnlyData, musicFor, websitesOf, featuredFriendsOf }, { db }] = await Promise.all([
     import('@/lib/auth/server'),
     import('@/lib/domain/profile/load-resident-page'),
+    import('@/lib/domain/profile/resident-data'),
     import('@/lib/config/database/connection'),
   ]);
 
@@ -436,181 +384,24 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   const allowedBaseIds = new Set(["blog", "media", "friends", "badges", "guestbook"].filter((id) => !hiddenTabs.includes(id)));
   const initialTabId = requested && allowedBaseIds.has(requested) ? requested : "blog";
 
-  // Convert blogroll to websites
-  const websites: Website[] = [];
-  if (Array.isArray(profile?.blogroll)) {
-    profile.blogroll.forEach((item: unknown) => {
-      if (typeof item === 'object' && item !== null) {
-        const obj = item as Record<string, unknown>;
-        if (typeof obj.label === 'string' && typeof obj.url === 'string') {
-          websites.push({
-            id: String(obj.id || `website-${websites.length}`),
-            label: String(obj.label),
-            url: String(obj.url),
-            blurb: String(obj.blurb || ""),
-            mine: obj.mine === true
-          });
-        }
-      }
-    });
-  }
-
-  // Convert featuredFriends to SelectedFriend[]
-  const featuredFriends: SelectedFriend[] = [];
-  if (Array.isArray(profile?.featuredFriends)) {
-    profile.featuredFriends.forEach((item: unknown) => {
-      if (typeof item === 'object' && item !== null) {
-        const obj = item as Record<string, unknown>;
-        if (typeof obj.id === 'string' && typeof obj.handle === 'string') {
-          featuredFriends.push({
-            id: String(obj.id),
-            handle: String(obj.handle),
-            displayName: String(obj.displayName || obj.handle),
-            avatarUrl: String(obj.avatarUrl || "/assets/default-avatar.gif")
-          });
-        }
-      }
-    });
-  }
-
+  const websites = websitesOf(profile);
+  const featuredFriends = featuredFriendsOf(profile);
   // Shared resolver: server and client MUST resolve identically (this used
   // to diverge between SSR, ProfileLayout, and ProfileModeRenderer).
   const cssMode = resolveCSSMode(profile?.cssMode);
-  const owner = {
-    id: data.userId,
-    handle: username,
-    displayName: profile?.displayName || username,
-    avatarUrl: profile?.avatarUrl || "/assets/default-avatar.gif",
-  };
+  const profileMidi = await musicFor(data, viewer);
 
-  // A signed-in visitor who said "don't play music automatically for me"
-  // gets the song paused, wherever the page plays it. (A signed-out
-  // visitor's choice lives in their browser; the player reads it there.)
-  let profileMidi = data.profileMidi;
-  if (profileMidi?.autoplay && viewer) {
-    const own = await db.profile
-      .findUnique({ where: { userId: viewer.id }, select: { playProfileMusicAutomatically: true } })
-      .catch(() => null);
-    if (own && !own.playProfileMusicAutomatically) profileMidi = { ...profileMidi, autoplay: false };
-  }
-
-  // A page of your own HTML: what its components read. Who the page belongs
-  // to, with nothing else loaded, when its data didn't load or it has no
-  // compiled copy: it still renders as itself, its lists empty, or shows its
-  // own "couldn't be shown" note. Without it both fell through to the
-  // standard layout, still wearing the page's own CSS (template audit 01 #11c/d).
-  let residentData: ResidentData | undefined;
-  const ownerOnly = (): ResidentData => ({
-    owner,
-    viewer: { id: null },
-    posts: [],
-    guestbook: [],
-    images: [],
-    capabilities: { bio: profile?.bio || "" },
-    featuredFriends: [],
-    websites: [],
-    cssRenderMode: mapProfileCSSModeToComponentMode(cssMode),
-  });
+  // A page of your own HTML: what its components read, built as the
+  // editor's preview builds it (lib/domain/profile/resident-data.ts)
   const page = advanced ? data.page : null;
-  if (advanced && !page) residentData = ownerOnly();
-
-  if (page) {
-    try {
-      const { getPostsForUser, getGuestbookForUser, getPhotosForUser } = await import('@/lib/utils/data/fetchers');
-      const viewerId = viewer?.id;
-
-      // Compute viewer relationship to profile owner
-      let isFriend = false;
-      let isFollowing = false;
-      let isFollower = false;
-      if (viewerId && viewerId !== data.userId) {
-        const [viewerFollowsOwner, ownerFollowsViewer] = await Promise.all([
-          db.follow.findUnique({
-            where: { followerId_followeeId: { followerId: viewerId, followeeId: data.userId } },
-          }),
-          db.follow.findUnique({
-            where: { followerId_followeeId: { followerId: data.userId, followeeId: viewerId } },
-          })
-        ]);
-        isFollowing = viewerFollowsOwner?.status === "accepted";
-        isFollower = ownerFollowsViewer?.status === "accepted";
-        isFriend = isFollowing && isFollower;
-      }
-
-      // Only the lists the page reads (pageReads)
-      const [postsData, guestbookData, imagesData] = await Promise.allSettled([
-        pageReads(page, 'posts') ? getPostsForUser(usernameParam, viewerId) : null,
-        pageReads(page, 'guestbook') ? getGuestbookForUser(usernameParam) : null,
-        pageReads(page, 'images') ? getPhotosForUser(usernameParam, 1, 20) : null,
-      ]);
-
-      // Handle posts data
-      let posts: ResidentData['posts'] = [];
-      if (postsData.status === 'fulfilled' && postsData.value) {
-        const { postBodyHtml } = await import("@/lib/templates/core/post-body");
-        posts = postsData.value.posts?.map((post: any) => ({
-          id: post.id || '',
-          // Its title is its link to its own page, and its comments are counted
-          title: post.title ?? null,
-          commentCount: post.commentCount ?? 0,
-          bodyHtml: postBodyHtml(post),
-          createdAt: post.createdAt ? new Date(post.createdAt).toISOString() : new Date().toISOString()
-        })) || [];
-      }
-
-      // Handle images data
-      let images: Array<{ id: string; url: string; alt: string; caption: string; createdAt: string; }> = [];
-      if (imagesData.status === 'fulfilled' && imagesData.value) {
-        images = imagesData.value.media?.map((img: any) => ({
-          id: img.id || '',
-          url: img.fullUrl || img.url || '',
-          alt: img.title || img.alt || '',
-          caption: img.caption || '',
-          createdAt: img.createdAt ? new Date(img.createdAt).toISOString() : new Date().toISOString()
-        })) || [];
-      }
-
-      // Handle guestbook data
-      let guestbook: Array<{ id: string; message: string; authorUsername?: string; createdAt: string }> = [];
-      if (guestbookData.status === 'fulfilled' && guestbookData.value) {
-        guestbook = guestbookData.value.entries?.map((entry: any) => ({
-          id: entry.id || '',
-          message: entry.message || '',
-          authorUsername: entry.authorUsername || null,
-          createdAt: entry.createdAt ? new Date(entry.createdAt).toISOString() : new Date().toISOString()
-        })) || [];
-      }
-
-      residentData = {
-        owner,
-        viewer: {
-          id: viewerId || null,
-          isFriend,
-          isFollowing,
-          isFollower,
-          blockedOwner: postsData.status === 'fulfilled' && postsData.value?.blocked === true
-        },
-        posts,
-        guestbook,
-        images,
-        capabilities: {
-          bio: profile?.bio || ""
-        },
-        featuredFriends,
-        websites,
-        // Map profile CSS mode to component CSS render mode
-        cssRenderMode: mapProfileCSSModeToComponentMode(cssMode),
-        // For <ProfileMusic />: the song plays where the page puts it
-        ...(profileMidi ? { profileMidi } : {}),
-      };
-      // <MyHouse /> <HouseBadge /> <RingNav />: the owner's home, read only when the page uses one
-      const { pageHomeIfUsed } = await import('@/lib/templates/page-home');
-      const pixelHome = await pageHomeIfUsed(page, data.userId, data.hasPixelHome).catch(() => undefined);
-      if (pixelHome !== undefined) residentData.pixelHome = pixelHome;
-    } catch (error) {
-      console.error('Error preparing custom template:', error);
-      residentData = ownerOnly();
-    }
+  let residentData: ResidentData | undefined;
+  if (advanced) {
+    residentData = page
+      ? await residentDataFor(data, viewer, { reads: page, profileMidi }).catch((error) => {
+          console.error('Error preparing custom template:', error);
+          return ownerOnlyData(data);
+        })
+      : ownerOnlyData(data);
   }
 
   // Build typed props; omit undefined fields
@@ -665,16 +456,12 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   // has its own place for components.
   if (data.widgetSlot && !advanced) {
     props.widgetSlot = data.widgetSlot;
+    // Widgets that need posts or pictures can't go in the slot (compile.ts)
     props.widgetSlotData = {
-      owner,
+      ...ownerOnlyData(data),
       viewer: { id: viewer?.id ?? null },
-      // Widgets that need posts or pictures can't go in the slot (compile.ts)
-      posts: [],
-      guestbook: [],
-      capabilities: { bio: profile?.bio || "" },
       featuredFriends,
       websites,
-      cssRenderMode: mapProfileCSSModeToComponentMode(cssMode),
       ...(profileMidi ? { profileMidi } : {}),
     };
   }

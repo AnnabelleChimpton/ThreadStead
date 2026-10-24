@@ -41,7 +41,7 @@ function installFetch() {
       return {
         ok: true,
         status: 200,
-        json: async () => ({ success: true, compiled: { compiledFrom: body.template, islands: [] } }),
+        json: async () => ({ success: true, artifact: { v: 1, tree: [], islands: [], compiledFrom: body.template } }),
       } as any;
     }
     return { ok: true, status: 200, json: async () => ({}) } as any;
@@ -150,7 +150,7 @@ describe('EnhancedTemplateEditor pop-out preview messaging', () => {
     const opener = { closed: false, postMessage: jest.fn() };
     Object.defineProperty(window, 'opener', { value: opener, configurable: true });
     try {
-      render(<TemplatePreviewPage />);
+      render(<TemplatePreviewPage initialSiteCSS="" />);
       act(() => {
         window.dispatchEvent(new MessageEvent('message', { data: dataMsg, origin: ORIGIN }));
       });

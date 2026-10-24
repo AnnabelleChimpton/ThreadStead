@@ -24,7 +24,7 @@ import './load-env'
 import { Prisma } from '@prisma/client'
 import { db } from '@/lib/config/database/connection'
 import { compileForEditor } from '@/lib/templates/compilation/compile-for-editor'
-import { artifactFor, serializeArtifact } from '@/lib/templates/rendering/page-artifact'
+import { serializeArtifact } from '@/lib/templates/rendering/page-artifact'
 import { compileWidgetSlot, storedSlot } from '@/lib/domain/profile/widget-slot/compile'
 
 const BATCH = 50
@@ -86,7 +86,7 @@ async function main() {
         if (!result.ok) {
           tally.failed.push(`${who} (page): ${result.body.errors[0]}`)
         } else {
-          const artifact = serializeArtifact(artifactFor(result.compiled))
+          const artifact = serializeArtifact(result.artifact)
           if (artifact !== profile.pageArtifact || profile.compiledTemplate !== null) {
             tally.pagesChanged++
             console.log(`page  ${who}${profile.compiledTemplate !== null ? ' (from its old copy)' : ''}`)

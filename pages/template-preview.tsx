@@ -1,12 +1,10 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
+import type { GetServerSideProps } from 'next';
 import { useRouter } from 'next/router';
 import { PixelIcon } from '@/components/ui/PixelIcon';
-import ProfileModeRenderer, { ProfileUser } from '@/components/core/profile/ProfileModeRenderer';
+import ResidentHtmlBody from '@/components/core/profile/ResidentHtmlBody';
 import ProfileLayout from '@/components/ui/layout/ProfileLayout';
 import { ResidentDataProvider } from '@/components/features/templates/ResidentDataProvider';
-import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
-import NavigationPreview from '@/components/features/templates/NavigationPreview';
-import { ADVANCED_NAV_SURFACE } from '@/components/core/profile/AdvancedNavFrame';
 import RetroCard from '@/components/ui/layout/RetroCard';
 import ProfileHeader from '@/components/core/profile/ProfileHeader';
 import Tabs, { TabSpec } from '@/components/ui/navigation/Tabs';
@@ -16,22 +14,21 @@ import FriendsWebsitesGrid from '@/components/core/profile/tabs/FriendsWebsitesG
 import ProfileBadgeDisplay from '@/components/core/profile/ProfileBadgeDisplay';
 import Guestbook from '@/components/shared/Guestbook';
 import { cleanCss, escapeCssForStyleTag } from '@/lib/utils/sanitization/css';
-import { transformAdvancedCss } from '@/lib/utils/css/css-transform';
-import { documentHeadCss, documentStyleCss, extractDocument } from '@/lib/templates/compilation/document-head';
+import { advancedPageCss, standardPageCss } from '@/lib/templates/rendering/page-css';
+import { isPageArtifact, renderArtifact } from '@/lib/templates/rendering/page-artifact';
+import type { PreviewPayload } from '@/lib/templates/editor/preview-payload';
 import PageMeta from "@/components/ui/layout/PageMeta";
 import { useSiteCSS } from '@/hooks/useSiteCSS';
-import { siteStylesOn } from '@/lib/domain/profile/layout';
-// Removed unused imports - now using ProfileModeRenderer like production
+import { pageCSS, siteStylesOn } from '@/lib/domain/profile/layout';
 
-interface PreviewData {
-  user: ProfileUser;
-  residentData: ResidentData;
-  customCSS: string;
-  useStandardLayout: boolean;
-  hideNavigation?: boolean;
-  template?: string; // For advanced templates
-  cssMode?: string;
-}
+/**
+ * The editors' live preview, popup or pane. It renders what the editor sends
+ * (PreviewPayload) the way the live page renders a saved page: the artifact
+ * pruned for the viewer (renderArtifact), the same page body
+ * (ResidentHtmlBody), the same CSS (page-css.ts, after the site's), the same
+ * data (/api/profile/[username]/page-data). preview-parity.test.tsx keeps
+ * the two the same.
+ */
 
 // The preview runs either as a popup (window.opener) or embedded in the
 // editor as an iframe (window.parent). Same protocol either way.
@@ -42,16 +39,17 @@ function getHostWindow(): Window | null {
   return null;
 }
 
-export default function PreviewTemp() {
+export default function TemplatePreview({ initialSiteCSS }: { initialSiteCSS: string }) {
   const router = useRouter();
-  const [previewData, setPreviewData] = useState<PreviewData | null>(null);
-  const [isReady, setIsReady] = useState(false);
+  const [payload, setPayload] = useState<PreviewPayload | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<{ text: string; ok: boolean } | null>(null);
   // Embedded in the editor's preview pane: the editor chrome already labels
-  // and saves things, so the banner would just be noise.
+  // and saves things, so the bar would just be noise.
   const isEmbedded = router.query.embed === '1';
-  
+  // The site's CSS from the server, as the live page has it, not fetched after load
+  const { css: siteCss } = useSiteCSS({ initialCSS: initialSiteCSS, skipDOMInjection: true });
+
   // This effect must arm exactly ONCE. Its old deps ([isReady, previewData])
   // re-ran it on every received message, and the unconditional PREVIEW_READY
   // it posts turned the handshake into an infinite READY -> DATA -> READY
@@ -60,45 +58,25 @@ export default function PreviewTemp() {
   // through a ref instead of the closure so it never needs deps.
   const hasDataRef = useRef(false);
   useEffect(() => {
-    // Listen for preview data from parent window
     const handleMessage = (event: MessageEvent) => {
-      // Security: Only accept messages from same origin
+      // Only from this site
       if (event.origin !== window.location.origin) return;
-
       if (event.data.type === 'PREVIEW_DATA') {
         hasDataRef.current = true;
-        setPreviewData(event.data.payload);
-        setIsReady(true);
+        setPayload(event.data.payload);
       }
-
       if (event.data.type === 'CSS_UPDATE') {
-        setPreviewData(prev => prev ? {
-          ...prev,
-          customCSS: event.data.customCSS
-        } : null);
+        setPayload((prev) => (prev ? { ...prev, customCSS: event.data.customCSS } : null));
       }
     };
-
     window.addEventListener('message', handleMessage);
 
-    // Signal to the host (popup opener or iframe parent) that we're ready
-    const requestData = () => {
-      const host = getHostWindow();
-      if (host) {
-        host.postMessage({ type: 'PREVIEW_READY' }, window.location.origin);
-      }
-    };
-
-    // Initial request
+    // Tell the host (popup opener or iframe parent) the preview is ready,
+    // every 2 seconds until the first data arrives
+    const requestData = () => getHostWindow()?.postMessage({ type: 'PREVIEW_READY' }, window.location.origin);
     requestData();
-
-    // Retry every 2 seconds until the first data arrives
     const retryInterval = setInterval(() => {
-      const host = getHostWindow();
-      if (hasDataRef.current || !host) {
-        clearInterval(retryInterval);
-        return;
-      }
+      if (hasDataRef.current || !getHostWindow()) return clearInterval(retryInterval);
       requestData();
     }, 2000);
 
@@ -108,357 +86,162 @@ export default function PreviewTemp() {
     };
   }, []);
 
-  // The site's own CSS (the admin theme), which the live page has when its
-  // site styles are on: this page turns the site's off for itself
-  // (getServerSideProps), so it adds it back to match (template audit 01 #10)
-  const { css: siteCss, loading: siteCssLoading } = useSiteCSS({ skipDOMInjection: true });
+  // The page as this viewer sees it: an artifact pruned for them, or the
+  // owner's page as saved (the CSS editor)
+  const page = useMemo(() => {
+    if (!payload?.page) return null;
+    return isPageArtifact(payload.page) ? renderArtifact(payload.page, { isOwner: payload.as !== 'visitor' }) : payload.page;
+  }, [payload?.page, payload?.as]);
 
-  // Sanitize custom CSS to prevent XSS attacks (must be before early return)
-  const sanitizedCSS = useMemo(() => {
-    if (!previewData?.customCSS) return '';
-    // Sanitized like a save, then escaped for the <style> tags below
-    return escapeCssForStyleTag(cleanCss(previewData.customCSS));
-  }, [previewData?.customCSS]);
-
-  // Your own HTML page: exactly what the live page injects (pages/_app.tsx),
-  // with a pasted page's Google Fonts links, <body bgcolor…> and theme options as CSS
-  const documentCss = useMemo(() => {
-    const { head } = extractDocument(previewData?.template || '');
-    return { fontImports: head.fontImports, bodyCss: documentHeadCss(head), styleCss: documentStyleCss(head) };
-  }, [previewData?.template]);
-  const advancedCSS = useMemo(() => {
-    const css = previewData?.customCSS ? cleanCss(previewData.customCSS) : '';
-    if (!css && documentCss.fontImports.length === 0 && !documentCss.bodyCss && !documentCss.styleCss) return '';
-    return transformAdvancedCss(css, documentCss);
-  }, [previewData?.customCSS, documentCss]);
-  // The same {__html} objects until the CSS changes, so a re-render doesn't
-  // rewrite the <style>s (pages/_app.tsx says why)
-  const advancedCssHtml = useMemo(() => ({ __html: escapeCssForStyleTag(advancedCSS) }), [advancedCSS]);
+  // The page's CSS: the draft, sanitized as a save sanitizes it, else the
+  // admin default; built as the live page builds it. The same {__html}
+  // objects until it changes (pages/_app.tsx says why).
+  const customCSS = payload?.customCSS;
+  const adminDefaultCss = payload?.adminDefaultCss;
+  const pageCssHtml = useMemo(() => {
+    if (customCSS === undefined) return null;
+    const css = pageCSS({ customCSS: cleanCss(customCSS) }, adminDefaultCss) ?? '';
+    const built = page ? advancedPageCss(css, page) : css.trim() && standardPageCss(css);
+    return built ? { __html: escapeCssForStyleTag(built) } : null;
+  }, [customCSS, adminDefaultCss, page]);
   const siteCssHtml = useMemo(() => ({ __html: escapeCssForStyleTag(siteCss) }), [siteCss]);
 
-  if (!isReady || !previewData) {
+  if (!payload) {
     return (
       <>
         <PageMeta title="Preview" noIndex />
         <div className="min-h-screen flex items-center justify-center bg-thread-cream">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-thread-pine mx-auto mb-4"></div>
-            <h1 className="text-xl font-semibold text-thread-pine">Loading Preview...</h1>
-            <p className="text-thread-sage mt-2">Waiting for template data...</p>
+            <h1 className="text-xl font-semibold text-thread-pine">Loading the preview…</h1>
           </div>
         </div>
       </>
     );
   }
 
-  const { user, residentData, customCSS, hideNavigation = false, template, cssMode } = previewData;
-  const showNavigation = !hideNavigation;
+  const { residentData, cssMode, hideNavigation, template } = payload;
+  const username = payload.handle.split('@')[0];
+  const siteStyles = siteStylesOn(cssMode);
 
-  // Ensure cssMode is properly typed
-  const typedCSSMode: 'inherit' | 'override' | 'disable' = (cssMode as 'inherit' | 'override' | 'disable') || 'inherit';
-
-  // Save function - communicates with the host window to trigger save
-  const handleSave = async () => {
+  // The popup's Save goes through the editor that opened it
+  const handleSave = () => {
     const host = getHostWindow();
     if (!host) {
       setSaveMessage({ text: "Can't save. The editor window is closed.", ok: false });
       return;
     }
-
     setIsSaving(true);
-    setSaveMessage(null);
-
-    try {
-      // Send save request to the host window
-      host.postMessage({
-        type: 'SAVE_REQUEST',
-        data: {
-          template: template || '',
-          customCSS: customCSS || '',
-          cssMode: typedCSSMode,
-          hideNavigation,
-          useStandardLayout: previewData.useStandardLayout
-        }
-      }, window.location.origin);
-
-      // Show success message
-      setSaveMessage({ text: 'Save request sent', ok: true });
-      
-      // Clear message after 3 seconds
-      setTimeout(() => setSaveMessage(null), 3000);
-    } catch (error) {
-      setSaveMessage({ text: "Couldn't save", ok: false });
-      console.error('Save error:', error);
-    } finally {
-      setIsSaving(false);
-    }
+    host.postMessage({
+      type: 'SAVE_REQUEST',
+      data: { template, customCSS: payload.customCSS, cssMode, hideNavigation, useStandardLayout: !page },
+    }, window.location.origin);
+    setSaveMessage({ text: 'Saving in the editor', ok: true });
+    setTimeout(() => setSaveMessage(null), 3000);
+    setIsSaving(false);
   };
 
-  // Create user object with updated CSS for ProfileModeRenderer
-  const previewUser: ProfileUser = {
-    ...user,
-    profile: {
-      ...user.profile,
-      customCSS: customCSS
-    }
-  };
+  // The site's CSS, then the page's own, as on the live page (pages/_app.tsx)
+  const styles = (
+    <>
+      {siteStyles && <style id="preview-site-css" dangerouslySetInnerHTML={siteCssHtml} />}
+      {pageCssHtml && <style id={page ? 'advanced-template-css' : 'profile-page-styles'} dangerouslySetInnerHTML={pageCssHtml} />}
+    </>
+  );
 
+  // A popup has a bar at the bottom of the window, out of the page's way
+  const saveBar = !isEmbedded && (
+    <div
+      data-site-chrome
+      className="fixed bottom-0 left-0 right-0 z-[10000] flex items-center justify-between gap-3 px-4 py-2 text-sm bg-thread-cream border-t-2 border-thread-sage text-nb-ink"
+    >
+      <span>Preview. It updates as you type in the editor.</span>
+      <span className="flex items-center gap-3">
+        {saveMessage && (
+          <span className="text-xs inline-flex items-center gap-1">
+            <PixelIcon name={saveMessage.ok ? 'check' : 'close'} size={12} />{saveMessage.text}
+          </span>
+        )}
+        <button type="button" onClick={handleSave} disabled={isSaving} className="btn btn--primary px-3 py-1 text-xs">
+          Save
+        </button>
+      </span>
+    </div>
+  );
 
-  // Create the profile tabs - needed for standard layout preview
-  const baseTabs: TabSpec[] = [
-    { 
-      id: "blog", 
-      label: "Blog", 
-      content: <BlogTab username={user.handle.split('@')[0]} ownerUserId={user.id} /> 
-    },
+  if (page) {
+    return (
+      <>
+        <PageMeta title="Preview" noIndex />
+        {styles}
+        <ResidentHtmlBody
+          user={{ id: payload.ownerId, handle: payload.handle, profile: { templateMode: 'advanced', cssMode, compiledTemplate: page } }}
+          residentData={residentData}
+          hideNavigation={hideNavigation}
+          siteStyles={siteStyles}
+        />
+        {saveBar}
+      </>
+    );
+  }
+
+  // The standard layout: the profile's parts with the CSS on them
+  const tabs: TabSpec[] = [
+    { id: 'blog', label: 'Blog', content: <BlogTab username={username} ownerUserId={payload.ownerId} /> },
+    { id: 'media', label: 'Media', content: <MediaGrid username={username} isOwner={true} /> },
+    { id: 'friends', label: 'Friends / Websites', content: <FriendsWebsitesGrid friends={residentData.featuredFriends ?? []} websites={residentData.websites ?? []} /> },
     {
-      id: "media",
-      label: "Media",
-      content: <MediaGrid username={user.handle.split('@')[0]} isOwner={true} />,
-    },
-    {
-      id: "friends",
-      label: "Friends / Websites",
-      content: <FriendsWebsitesGrid friends={[]} websites={[]} />,
-    },
-    {
-      id: "badges",
-      label: "Badges",
+      id: 'badges',
+      label: 'Badges',
       content: (
         <div className="profile-tab-content p-4">
-          <ProfileBadgeDisplay 
-            username={user.handle.split('@')[0]} 
-            showTitle={false}
-            layout="grid"
-            className="max-w-2xl"
-          />
+          <ProfileBadgeDisplay username={username} showTitle={false} layout="grid" className="max-w-2xl" />
         </div>
       ),
     },
     {
-      id: "guestbook",
-      label: "Guestbook",
+      id: 'guestbook',
+      label: 'Guestbook',
       content: (
         <div className="ts-guestbook-tab-content profile-tab-content" data-component="guestbook-tab">
-          <Guestbook username={user.handle.split('@')[0]} bio={""} />
+          <Guestbook username={username} bio={residentData.capabilities?.bio ?? ''} />
         </div>
       ),
     },
   ];
-
-  // Removed renderCompiledTemplateWithIslands function - now using ProfileModeRenderer like production
-
-  // Create fallback content for enhanced/standard mode
-  const profileFallbackContent = (
-    <>
-      <RetroCard>
-        <ProfileHeader
-          username={user.handle.split('@')[0]}
-          photoUrl=""
-          bio=""
-          relStatus=""
-          onRelStatusChange={() => {}}
-        />
-      </RetroCard>
-
-      <div className="profile-tabs-wrapper">
-        <Tabs tabs={baseTabs} initialId="blog" />
-      </div>
-    </>
-  );
-
-  // Check template mode - CRITICAL for backwards compatibility
-  const templateMode = previewUser.profile?.templateMode || 'default';
-  // cssMode is already destructured from previewData above
-  
-  // Use the useStandardLayout flag from the editor - this is the source of truth
-  // If useStandardLayout is false AND we have template content, it's advanced mode
-  const hasCustomTemplate = previewUser.profile?.customTemplate && 
-                           previewUser.profile.customTemplate.trim() !== '';
-  const isReallyAdvancedMode = !previewData.useStandardLayout && hasCustomTemplate;
-  
-  
-  // For standard layout (enhanced mode), always use ProfileLayout for consistency
-  if (!isReallyAdvancedMode) {
-    
-    return (
-      <>
-        <PageMeta title="Preview" noIndex />
-        
-        {/* Add preview indicator with save button - hidden when embedded in the editor */}
-        {!isEmbedded && (
-          <div
-            className="fixed top-0 left-0 right-0 z-[10000] bg-blue-600 text-white text-center py-2 text-sm font-medium flex items-center justify-between px-4"
-            style={{ zIndex: 999999 }}
-          >
-            <div></div>
-            <span>STANDARD LAYOUT PREVIEW - CSS updates automatically</span>
-            <div>
-              {saveMessage && (
-                <span className="mr-3 text-xs inline-flex items-center gap-1 align-middle">
-                  <PixelIcon name={saveMessage.ok ? 'check' : 'close'} size={12} />{saveMessage.text}
-                </span>
-              )}
-              <button
-                onClick={handleSave}
-                disabled={isSaving}
-                className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-3 py-1 rounded text-xs font-semibold transition-colors"
-                style={{ fontSize: '11px' }}
-              >
-                {isSaving ? 'Saving...' : 'Save'}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Add top padding to account for preview banner */}
-        <div style={{ paddingTop: isEmbedded ? 0 : '40px' }}>
-          <ResidentDataProvider data={residentData}>
-            <ProfileLayout 
-              hideNavigation={false}
-              templateMode={templateMode}
-              cssMode={typedCSSMode}
-            >
-              {profileFallbackContent}
-            </ProfileLayout>
-          </ResidentDataProvider>
-          
-          {/* EMERGENCY CSS INJECTION - Force user CSS to win no matter what */}
-          {sanitizedCSS && (
-            <style dangerouslySetInnerHTML={{ __html: `
-              /* EMERGENCY OVERRIDE - USER CSS MUST WIN - SANITIZED INJECTION */
-              ${sanitizedCSS}
-            ` }} />
-          )}
-        </div>
-      </>
-    );
-  }
-  
-  // Advanced template mode - COMPLETELY BLANK PAGE with only user content
-  // NO external CSS, NO Tailwind, NO system styles - just user's template and CSS
   return (
     <>
-      <PageMeta title="Preview" noIndex>
-        {/* ONLY style the preview banner - nothing else */}
-        <style>{`
-          /* Preview banner ONLY - completely isolated from page */
-          #preview-banner {
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            right: 0 !important;
-            z-index: 999999 !important;
-            background: #7c3aed !important;
-            color: white !important;
-            text-align: center !important;
-            padding: 8px !important;
-            font-size: 14px !important;
-            font-weight: 500 !important;
-            font-family: system-ui, sans-serif !important;
-          }
-        `}</style>
-      </PageMeta>
-      
-      {/* Preview indicator with save button - hidden when embedded in the editor */}
-      {!isEmbedded && (
-      <div
-        id="preview-banner"
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          paddingLeft: '16px',
-          paddingRight: '16px'
-        }}
-      >
-        <div></div>
-        <span>ADVANCED TEMPLATE PREVIEW - Live CSS Updates</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          {saveMessage && (
-            <span style={{ fontSize: '11px', opacity: 0.9, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-              <PixelIcon name={saveMessage.ok ? 'check' : 'close'} size={12} />{saveMessage.text}
-            </span>
-          )}
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            style={{
-              backgroundColor: isSaving ? '#6b7280' : '#059669',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              padding: '4px 12px',
-              fontSize: '11px',
-              fontWeight: '600',
-              cursor: isSaving ? 'not-allowed' : 'pointer',
-              transition: 'background-color 0.2s'
-            }}
-            onMouseOver={(e) => {
-              if (!isSaving) e.currentTarget.style.backgroundColor = '#047857';
-            }}
-            onMouseOut={(e) => {
-              if (!isSaving) e.currentTarget.style.backgroundColor = '#059669';
-            }}
-          >
-            {isSaving ? 'Saving...' : 'Save'}
-          </button>
-        </div>
-      </div>
-      )}
-
-      {/* User content with optional navigation and ResidentDataProvider */}
-      <div style={{ paddingTop: isEmbedded ? (showNavigation ? '80px' : 0) : (showNavigation ? '120px' : '40px') }}>
-        {/* The site's CSS, then the page's own, transformed exactly as on
-            the live page and in the same order (pages/_app.tsx) */}
-        {siteStylesOn(typedCSSMode) && !siteCssLoading && siteCss && (
-          <style id="preview-site-css" dangerouslySetInnerHTML={siteCssHtml} />
-        )}
-        {advancedCSS && (
-          <style id="advanced-template-css" dangerouslySetInnerHTML={advancedCssHtml} />
-        )}
-
-        {/* Show site navigation if toggle is enabled */}
-        {showNavigation && (
-          <div data-site-chrome="true" style={{ position: 'fixed', top: isEmbedded ? 0 : '40px', left: 0, right: 0, zIndex: 999998, height: '80px' }}>
-            <NavigationPreview navBackgroundColor={ADVANCED_NAV_SURFACE} />
+      <PageMeta title="Preview" noIndex />
+      {styles}
+      <ResidentDataProvider data={residentData}>
+        <ProfileLayout hideNavigation={false} templateMode="enhanced" cssMode={cssMode}>
+          <RetroCard>
+            <ProfileHeader
+              username={username}
+              photoUrl={residentData.owner.avatarUrl ?? ''}
+              bio={residentData.capabilities?.bio ?? ''}
+              relStatus=""
+              onRelStatusChange={() => {}}
+            />
+          </RetroCard>
+          <div className="profile-tabs-wrapper">
+            <Tabs tabs={tabs} initialId="blog" />
           </div>
-        )}
-        
-        {/* Use the same ProfileModeRenderer as production for consistency */}
-        <div 
-          id="preview-container"
-          style={{ 
-            minHeight: 'calc(100vh - 80px)', // Account for both banners
-            position: 'relative' // Ensure content flows properly
-          }}
-        >
-          <ProfileModeRenderer
-            user={previewUser}
-            residentData={residentData}
-            hideNavigation={true}
-            fallbackContent={
-              <div style={{ padding: '20px', textAlign: 'center' }}>
-                <h2 style={{ fontSize: '24px', marginBottom: '10px' }}>Advanced Template Mode</h2>
-                <p>Your custom HTML template will render here.</p>
-                <p style={{ fontSize: '14px', color: '#666', marginTop: '10px' }}>
-                  Start adding HTML in the editor to see it appear.
-                </p>
-              </div>
-            }
-          />
-        </div>
-      </div>
+        </ProfileLayout>
+      </ResidentDataProvider>
+      {saveBar}
     </>
   );
 }
 
-export async function getServerSideProps() {
+export const getServerSideProps: GetServerSideProps = async () => {
+  const { getSiteCSS } = await import('@/lib/utils/css/site-css-server');
   return {
     props: {
-      // Tell _app.tsx this is an advanced template preview - no default styles
+      // _app: a profile page, whose site and page CSS this page places itself
       templateMode: 'advanced',
-      siteStyles: false
-    }
+      siteStyles: false,
+      initialSiteCSS: await getSiteCSS(),
+    },
   };
-}
+};
