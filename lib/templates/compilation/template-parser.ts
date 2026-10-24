@@ -528,6 +528,23 @@ function finishSanitizedTree(node: HastLike): boolean {
   return removedFormAction;
 }
 
+/** How many images load straight away; the rest as they're scrolled to */
+const EAGER_IMAGES = 3;
+
+/**
+ * Images past the first few get loading="lazy", unless the page says how
+ * they load: fifty at once pushed a page's start on slow 3G from 3.9 s to
+ * 6.7 s (template audit 12).
+ */
+function lazyLoadLaterImages(node: HastLike, seen = { images: 0 }): void {
+  if (node.type === 'element' && node.tagName === 'img') {
+    seen.images++;
+    const props = node.properties || (node.properties = {});
+    if (seen.images > EAGER_IMAGES && props.loading === undefined) props.loading = 'lazy';
+  }
+  for (const child of node.children ?? []) lazyLoadLaterImages(child, seen);
+}
+
 // Parse HTML to HAST (Hypertext Abstract Syntax Tree)
 // Returns both the parsed tree and information about stripped components
 export function parseTemplate(htmlString: string): Root & {
@@ -542,18 +559,11 @@ export function parseTemplate(htmlString: string): Root & {
   // attributes, exactly once. Decoding the whole source first turned
   // `&lt;div&gt;` in a code sample into a real <div>, `&lt;Guestbook /&gt;`
   // into a second working guestbook, and cut `title="said &quot;hi&quot;"` short.
-  let processedHtml = prepareSourceForParse(document.body, isRegisteredComponent);
-
-  // Detect if we have multiple root-level components after conversion and wrap them
-  const trimmedHtml = processedHtml.trim();
-  const hasMultipleRootElements = /<[^>]+><\/[^>]+>[\s\S]*<[^>]+><\/[^>]+>/.test(trimmedHtml) &&
-                                  !trimmedHtml.startsWith('<div') &&
-                                  !trimmedHtml.startsWith('<section') &&
-                                  !trimmedHtml.startsWith('<main');
-
-  if (hasMultipleRootElements) {
-    processedHtml = `<div>${processedHtml}</div>`;
-  }
+  // A fragment parse takes any number of top-level elements as they are. A
+  // leftover step used to wrap them in a <div> and unwrap any lone plain
+  // <div> afterwards, deleting the spaces between them ("home about" became
+  // "homeabout") and the author's own wrapper (template audit 01 #2).
+  const processedHtml = prepareSourceForParse(document.body, isRegisteredComponent);
 
   // Parse as fragment (now we have clean body content)
   const processor = unified()
@@ -567,6 +577,7 @@ export function parseTemplate(htmlString: string): Root & {
   const tree = processor.parse(processedHtml);
   const processed = processor.runSync(tree) as Root;
   const removedFormAction = finishSanitizedTree(processed as HastLike);
+  lazyLoadLaterImages(processed as HastLike);
 
   const strippedComponents = reportStrippedTags(htmlString, processed, document.head);
 
@@ -957,34 +968,9 @@ export function astToJson(node: unknown): TemplateNode {
   }
 
   if (typedNode.type === 'root') {
-    const children = typedNode.children?.map(astToJson) || [];
-
-    // Check if we have a single auto-added div wrapper to unwrap
-    if (children.length === 1 &&
-        children[0].type === 'element' &&
-        children[0].tagName === 'div' &&
-        !children[0].component) {
-
-      const divElement = children[0];
-      const hasEmptyProperties = !divElement.properties || Object.keys(divElement.properties).length === 0;
-      const hasMultipleChildren = divElement.children && divElement.children.length > 1;
-
-      if (hasEmptyProperties && hasMultipleChildren) {
-        // This looks like our auto-added wrapper, unwrap it
-        const divChildren = divElement.children?.filter((child) =>
-          child.type !== 'text' || (child.value && child.value.trim())
-        ) || [];
-
-        return {
-          type: 'root',
-          children: divChildren
-        };
-      }
-    }
-    
     return {
       type: 'root',
-      children: children
+      children: typedNode.children?.map(astToJson) || []
     };
   }
 

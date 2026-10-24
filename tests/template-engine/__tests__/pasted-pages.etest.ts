@@ -519,3 +519,28 @@ describe('pages with components: compiled HTML back into React keeps attribute m
     expect(domAttributeToReactProp(tag, name, value, inSvg)).toEqual(expected)
   })
 })
+
+describe('the page is parsed as written', () => {
+  // A leftover step wrapped several top-level elements in a <div>, then
+  // unwrapped any lone plain <div>, dropping the spaces between them and the
+  // author's own wrapper (template audit 01 #2)
+  test('spaces between top-level elements stay: a row of 88x31 buttons keeps its gaps', () => {
+    const { staticHTML } = compileTemplateToArtifacts('<a href="/1"><img src="1.gif" alt="one"></a> <a href="/2"><img src="2.gif" alt="two"></a>')
+    expect(staticHTML).toContain('</a> <a')
+  })
+
+  test("the author's own plain wrapper <div> stays", () => {
+    const { ast } = compileTemplateToArtifacts('<div><p>one</p><p>two</p></div>')
+    expect(ast.children).toHaveLength(1)
+    expect(ast.children?.[0]).toMatchObject({ type: 'element', tagName: 'div' })
+  })
+})
+
+describe('images further down load as they are scrolled to', () => {
+  test('the first three load straight away, the rest lazily, unless the page says', () => {
+    const imgs = [1, 2, 3, 4, 5].map((i) => `<img src="${i}.gif" alt="${i}">`).join('') + '<img src="6.gif" alt="6" loading="eager">'
+    const { staticHTML } = compileTemplateToArtifacts(`<p>${imgs}</p>`)
+    const loading = [...staticHTML.matchAll(/<img[^>]*>/g)].map(([tag]) => tag.match(/loading="(\w+)"/)?.[1] ?? null)
+    expect(loading).toEqual([null, null, null, 'lazy', 'lazy', 'eager'])
+  })
+})

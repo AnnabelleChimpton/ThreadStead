@@ -71,9 +71,9 @@ describe('compile limits fit ordinary pages', () => {
 
   it('leaves the parser-added <tbody> out of the depth', () => {
     const result = compileTemplate(nestedTables(12))
-    // The wrapper <div> the parser keeps around a single top-level tag, then
-    // table > tr > td for each level, then the <p>
-    expect(result.validation?.stats.maxDepth).toBe(1 + 12 * 3 + 1)
+    // table > tr > td for each level, then the <p> (no wrapper <div> around
+    // the page any more: template audit 01 #2)
+    expect(result.validation?.stats.maxDepth).toBe(12 * 3 + 1)
   })
 
   it('matches the save limit on size', () => {
@@ -121,5 +121,29 @@ describe('a page over a limit says so plainly', () => {
       range(TEMPLATE_LIMITS.maxComponents + 1).map(() => '<Bio />').join('\n'),
       /^Your page uses 401 components; the most is 400\. Try removing a few\.$/
     )
+  })
+})
+
+describe('compiling a big page takes time in proportion to its size', () => {
+  // Every tag's line was counted from the top of the page, so compile time
+  // grew with the square of the size: a 199 KB page took 2.1 s, 500 KB 12 s,
+  // and the server answered nobody else meanwhile (template audit 12 #2)
+  const { lineAt } = jest.requireActual('@/lib/templates/compilation/source-scan')
+
+  test('lineAt gives the same lines as counting newlines', () => {
+    const source = 'a\nbb\n\nccc\n<p>\nend'
+    for (let i = 0; i <= source.length + 2; i++) {
+      const counted = source.slice(0, i).split('\n').length
+      expect(lineAt(source, i)).toBe(counted)
+    }
+    expect(lineAt('', 0)).toBe(1)
+  })
+
+  test('a page near the size cap compiles in well under a second', () => {
+    const big = `<ul>\n${range(3000).map((i) => `<li><a href="https://e${i}.neocities.org/">site ${i}</a></li>`).join('\n')}\n</ul>`
+    expect(big.length).toBeLessThan(MAX_TEMPLATE_CHARS)
+    const started = performance.now()
+    compileTemplate(big)
+    expect(performance.now() - started).toBeLessThan(1000)
   })
 })

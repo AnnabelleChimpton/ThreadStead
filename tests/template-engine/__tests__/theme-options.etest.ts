@@ -353,7 +353,10 @@ describe('old gallery starters (now test fixtures)', () => {
       const { ast } = compileTemplateToArtifacts(template)
       const { head, ...page } = ast
       expect(head).toEqual({ fontImports: [], otherStylesheets: [], options })
-      expect(JSON.parse(JSON.stringify(page))).toEqual(fixture.ast)
+      // The fixture may keep the head too (UPDATE_SSR_GOLDEN writes it); checked above
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { head: _frozenHead, ...frozen } = fixture.ast
+      expect(JSON.parse(JSON.stringify(page))).toEqual(frozen)
     })
   })
 })
