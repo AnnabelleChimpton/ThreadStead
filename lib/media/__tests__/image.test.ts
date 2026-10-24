@@ -38,11 +38,13 @@ test('avatar: square 64/200/800 JPEGs, never enlarged past the source', async ()
   expect(await dims(small.full)).toEqual(['jpeg', 300, 300]);
 });
 
-test('media: 150 square thumb, aspect-kept 600/1200', async () => {
+test('media: 150 square thumb, aspect-kept 600, full kept up to 4096', async () => {
+  // The full size was cut to 1200, so wallpapers came out soft (template audit 08)
   const out = await renderMediaSizes(await image(2400, 1200));
   expect(await dims(out.thumbnail)).toEqual(['jpeg', 150, 150]);
   expect(await dims(out.medium)).toEqual(['jpeg', 600, 300]);
-  expect(await dims(out.full)).toEqual(['jpeg', 1200, 600]);
+  expect(await dims(out.full)).toEqual(['jpeg', 2400, 1200]);
+  expect(await dims((await renderMediaSizes(await image(5000, 1000))).full)).toEqual(['jpeg', 4096, 819]);
 });
 
 test("mediumSize is the medium's real size (a post photo's link preview declares it)", async () => {

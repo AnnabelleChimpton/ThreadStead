@@ -84,7 +84,11 @@ export function mediumSize(width: number, height: number): { width: number; heig
   return { width: Math.round(width * scale), height: Math.round(height * scale) };
 }
 
-/** Gallery/post media: square thumbnail, aspect-preserving medium and full, JPEG. */
+/**
+ * Gallery/post media: square thumbnail, aspect-preserving medium and full,
+ * JPEG. The full size is shrunk only past MEDIA_KEEP_MAX, as PNG and WebP
+ * are (it was 1200 px, so wallpapers and banners came out soft).
+ */
 export async function renderMediaSizes(input: Buffer): Promise<ImageSizes> {
   const [thumbnail, medium, full] = await Promise.all([
     sharp(input).resize(150, 150, { fit: 'cover' }).jpeg({ quality: 80 }).toBuffer(),
@@ -93,7 +97,7 @@ export async function renderMediaSizes(input: Buffer): Promise<ImageSizes> {
       .jpeg({ quality: 85 })
       .toBuffer(),
     sharp(input)
-      .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
+      .resize(MEDIA_KEEP_MAX, MEDIA_KEEP_MAX, { fit: 'inside', withoutEnlargement: true })
       .jpeg({ quality: 90 })
       .toBuffer(),
   ]);
@@ -105,18 +109,64 @@ export async function renderMediaSizes(input: Buffer): Promise<ImageSizes> {
  * pixels, survive (the JPEG pipeline above flattened and blurred both). Still
  * re-encoded, so hidden metadata like location is dropped. PNG is lossless;
  * WebP keeps full alpha. The full size is only shrunk past MEDIA_KEEP_MAX.
+ *
+ * Animation stays (it used to be cut to the first frame): an animated WebP
+ * is read with every frame, within GIF_ANIMATE_PIXEL_BUDGET. sharp can't
+ * read an APNG's frames, so its full size is the upload itself, as a GIF's
+ * is, with its metadata chunks taken out; its smaller sizes are still.
+ * Thumbnails of art smaller than the thumbnail grow with hard edges.
  */
 export const MEDIA_KEEP_MAX = 4096;
 
 export async function renderMediaSizesKeepingFormat(input: Buffer, format: 'png' | 'webp'): Promise<ImageSizes> {
+  const meta = await sharp(input, { animated: true }).metadata();
+  const width = meta.width ?? 0;
+  const height = meta.pageHeight ?? meta.height ?? 0;
+  const frames = meta.pages ?? 1;
+  const animatedWebp = format === 'webp' && frames > 1 && width * height * frames <= GIF_ANIMATE_PIXEL_BUDGET;
+  const read = () => sharp(input, { animated: animatedWebp }).rotate();
   const encode = (img: sharp.Sharp) =>
     format === 'png' ? img.png({ compressionLevel: 9 }) : img.webp({ quality: 90, alphaQuality: 100 });
+  const smallArt = width < 150 || height < 150;
+  const fitInside = (max: number) => read().resize(max, max, { fit: 'inside', withoutEnlargement: true });
+
   const [thumbnail, medium, full] = await Promise.all([
-    encode(sharp(input).rotate().resize(150, 150, { fit: 'cover' })).toBuffer(),
-    encode(sharp(input).rotate().resize(MEDIA_MEDIUM_MAX, MEDIA_MEDIUM_MAX, { fit: 'inside', withoutEnlargement: true })).toBuffer(),
-    encode(sharp(input).rotate().resize(MEDIA_KEEP_MAX, MEDIA_KEEP_MAX, { fit: 'inside', withoutEnlargement: true })).toBuffer(),
+    encode(read().resize(150, 150, { fit: 'cover', kernel: smallArt ? 'nearest' : 'lanczos3' })).toBuffer(),
+    encode(fitInside(MEDIA_MEDIUM_MAX)).toBuffer(),
+    format === 'png' && isApng(input) && width <= MEDIA_KEEP_MAX && height <= MEDIA_KEEP_MAX
+      ? withoutPngMetadata(input)
+      : encode(fitInside(MEDIA_KEEP_MAX)).toBuffer(),
   ]);
   return { thumbnail, medium, full };
+}
+
+/** PNG chunks: [length][type][data][crc], after the 8-byte signature. */
+function pngChunks(png: Buffer): Array<{ type: string; start: number; end: number }> {
+  const chunks: Array<{ type: string; start: number; end: number }> = [];
+  for (let at = 8; at + 12 <= png.length; ) {
+    const length = png.readUInt32BE(at);
+    const end = at + 12 + length;
+    if (end > png.length) break;
+    chunks.push({ type: png.toString('ascii', at + 4, at + 8), start: at, end });
+    at = end;
+  }
+  return chunks;
+}
+
+/** An animated PNG: an acTL chunk before the image data. */
+export function isApng(png: Buffer): boolean {
+  for (const { type } of pngChunks(png)) {
+    if (type === 'acTL') return true;
+    if (type === 'IDAT') return false;
+  }
+  return false;
+}
+
+/** The PNG without its text, time and EXIF chunks (where a location can hide). */
+export function withoutPngMetadata(png: Buffer): Buffer {
+  const DROPPED = new Set(['tEXt', 'iTXt', 'zTXt', 'tIME', 'eXIf']);
+  const kept = pngChunks(png).filter(({ type }) => !DROPPED.has(type));
+  return Buffer.concat([png.subarray(0, 8), ...kept.map(({ start, end }) => png.subarray(start, end))]);
 }
 
 /**
