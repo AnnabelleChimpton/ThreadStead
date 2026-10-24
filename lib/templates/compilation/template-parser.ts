@@ -1,7 +1,7 @@
 import { unified } from 'unified';
 import rehypeParse from 'rehype-parse';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
-import { FORM_ACTION_REMOVED, postsToApi } from './form-action';
+import { FORM_ACTION_REMOVED, offSiteHost, postsToApi } from './form-action';
 import { find, html as htmlSchema } from 'property-information';
 import type { Root } from 'hast';
 import { componentRegistry } from '../core/template-registry';
@@ -29,6 +29,7 @@ import {
   SVG_TAGS,
 } from './html-allowlist';
 import { paragraphSafe } from './paragraph-safe';
+import { expressionProblem } from '../state/expression-evaluator';
 
 // QUICK WIN #2: Cache schema to avoid recreating on every parse
 // Schema is only rebuilt when component registry changes
@@ -367,9 +368,42 @@ const SAFETY_TAGS = new Set([
 
 function strippedReason(
   name: string,
-  head: DocumentHead
+  head: DocumentHead,
+  where: { rel?: string; inSvg?: boolean; inside?: string } = {}
 ): { category: StrippedCategory; reason: string } {
   const lower = name.toLowerCase();
+
+  // Inside something taken out with everything in it (<object>'s fallback <img>)
+  if (where.inside) {
+    return { category: 'unsupported', reason: `Taken out with the <${where.inside}> around it.` };
+  }
+  if (lower === 'title' && where.inSvg) {
+    return {
+      category: 'unsupported',
+      reason: 'Not kept: an SVG’s <title> goes with page titles. To name the picture for screen readers, put role="img" and aria-label="…" on the <svg>.',
+    };
+  }
+  if (lower === 'base') {
+    return {
+      category: 'unsupported',
+      reason: 'Not supported here: <base> would send every link and picture on the page somewhere else. Use full addresses (https://…).',
+    };
+  }
+  if (lower === 'noscript') {
+    return {
+      category: 'unsupported',
+      reason: 'Taken out with what’s in it: pages here don’t run scripts, so there’s nothing for it to stand in for.',
+    };
+  }
+  if (lower === 'link' && /(^|\s)me(\s|$)/i.test(where.rel ?? '')) {
+    return {
+      category: 'document',
+      reason: 'Made for you: add your site in Settings and tick “This is my site”, and its rel="me" link goes in your page’s head.',
+    };
+  }
+  if (lower === 'link' && /(^|\s)(icon|shortcut|apple-touch-icon)(\s|$)/i.test(where.rel ?? '')) {
+    return { category: 'unsupported', reason: 'Not supported here: pages show the site’s icon in the tab.' };
+  }
 
   if (lower === 'link') {
     if (head.fontImports.length > 0 && head.otherStylesheets.length === 0) {
@@ -428,6 +462,10 @@ function strippedReason(
 
 const CATEGORY_ORDER: Record<StrippedCategory, number> = { document: 0, unsupported: 1, safety: 2 };
 
+/** Tags with no closing tag, which don't open anything */
+const VOID_TAGS = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'source', 'track', 'wbr', 'param', 'image']);
+const STRIPPED_WITH_CONTENT_TAGS = new Set<string>(STRIPPED_WITH_CONTENT.map((tag) => tag.toLowerCase()));
+
 /** Source tags that didn't make it into the sanitized tree, one entry per tag name. */
 function reportStrippedTags(source: string, tree: Root, head: DocumentHead): StrippedTag[] {
   // What survived: component nodes by name, everything else by lowercase tag
@@ -441,27 +479,50 @@ function reportStrippedTags(source: string, tree: Root, head: DocumentHead): Str
   walk(tree as HastLike);
 
   const byKey = new Map<string, StrippedTag>();
+  let svgDepth = 0;
+  // An element taken out with everything in it, while we're inside it
+  let container = null as { name: string; open: number } | null;
   for (const token of tokenizeSource(source)) {
     let key: string | undefined;
     let name: string | undefined;
+    if (token.type === 'close') {
+      const closing = token.name.toLowerCase();
+      if (closing === 'svg') svgDepth = Math.max(0, svgDepth - 1);
+      if (container && closing === container.name && --container.open === 0) container = null;
+      continue;
+    }
     if (token.type === 'open') {
       name = token.name;
       const component = looksLikeComponentName(name) && isRegisteredComponent(name);
       key = component ? `component:${name.toLowerCase()}` : name.toLowerCase();
+      // The HTML parser reads <image> as <img>: kept, so nothing to say
+      if (key === 'image' && svgDepth === 0) key = 'img';
     } else if (token.type === 'doctype' && /^<!doctype/i.test(source.slice(token.start, token.start + 9))) {
       continue; // a doctype isn't a tag anyone expects to see
     }
     // Theme options report their own problems (theme-options.ts)
     if (isThemeOptionMeta(token)) continue;
-    if (!key || !name || survived.has(key)) continue;
+    if (!key || !name) continue;
+    const lower = name.toLowerCase();
+    const inside = container?.name;
+    const inSvg = svgDepth > 0;
+    if (token.type === 'open' && !token.selfClosing && !VOID_TAGS.has(lower)) {
+      if (lower === 'svg') svgDepth++;
+      if (container?.name === lower) container.open++;
+      else if (!container && STRIPPED_WITH_CONTENT_TAGS.has(lower)) container = { name: lower, open: 1 };
+    }
+    // Anything inside a removed container is gone, even if the same tag survives elsewhere
+    if (!inside && survived.has(key)) continue;
 
-    const existing = byKey.get(key);
+    const rel = token.type === 'open' ? token.attributes.find((a) => a.name.toLowerCase() === 'rel')?.value : undefined;
+    const { category, reason } = strippedReason(name, head, { rel, inSvg, inside });
+    // One entry per tag and reason: a rel=me link and an icon link are told apart
+    const existing = byKey.get(`${key} ${reason}`);
     if (existing) {
       existing.count = (existing.count || 0) + 1;
       continue;
     }
-    const { category, reason } = strippedReason(name, head);
-    byKey.set(key, { name, line: lineAt(source, token.start), reason, category });
+    byKey.set(`${key} ${reason}`, { name, line: lineAt(source, token.start), reason, category });
   }
   return Array.from(byKey.values()).sort(
     (a, b) => CATEGORY_ORDER[a.category!] - CATEGORY_ORDER[b.category!] || (a.line || 0) - (b.line || 0)
@@ -494,7 +555,7 @@ function prefixFragment(value: unknown): unknown {
  *  - form fields keep their own names (the sanitizer prefixes every name);
  *  - autoplay only survives on muted media;
  *  - a form's action can't point at /api/ (form-action.ts).
- * Returns whether it took out any form action.
+ * Returns whether it took out an action pointing at this site's /api/.
  */
 const FORM_FIELDS = new Set(['input', 'select', 'textarea', 'button', 'output']);
 
@@ -531,8 +592,9 @@ function finishSanitizedTree(node: HastLike): boolean {
         delete props.autoPlay;
       }
       if (node.tagName === 'form' && postsToApi(props.action)) {
+        // Another site's /api/ goes too, but reportAddressesAndAlt says why
+        if (!offSiteHost(props.action)) removedFormAction = true;
         delete props.action;
-        removedFormAction = true;
       }
     }
   }
@@ -633,6 +695,7 @@ export function parseTemplate(htmlString: string): Root & {
   const attributeWarnings = [
     ...reportComponentProps(htmlString),
     ...reportPageProblems(htmlString),
+    ...reportAddressesAndAlt(htmlString),
     ...(document.warnings ?? []),
     ...(removedFormAction ? [FORM_ACTION_REMOVED] : []),
     ...(boxedParagraphs.size > 0 ? [paragraphBoxesNote(boxedParagraphs)] : []),
@@ -879,6 +942,77 @@ const SCRIPT_IN_CONDITION = /==|!=|<=|>=|&&|\|\||(?<![\w-])[<>](?!=)/;
  *    the one it has to sit in (Tab outside Tabs, Case outside Switch);
  *  - ShowVar with nothing to show.
  */
+/** Attributes that point at a file or page */
+const ADDRESS_ATTRIBUTES = new Set(['src', 'href', 'background', 'poster', 'action']);
+
+/**
+ * Two things pasted pages get wrong without a word (template audit 01 #5,
+ * 08, 14 #8, 16 #3), said once each with the first line and how many:
+ *  - addresses relative to an old site (images/me.gif, about.html,
+ *    <body background="bg.gif">): here they point at pages that aren't there;
+ *  - pictures with no alt text at all (alt="" is fine: it says "decoration").
+ */
+function reportAddressesAndAlt(source: string): string[] {
+  const relative: Array<{ line: number; value: string; link: boolean }> = [];
+  const noAlt: number[] = [];
+  const offSite: Array<{ line: number; host: string }> = [];
+  for (const token of tokenizeSource(source)) {
+    if (token.type !== 'open' || looksLikeComponentName(token.name)) continue;
+    const tag = token.name.toLowerCase();
+    // Taken out anyway, and listed with their own reason
+    if (tag === 'link' || tag === 'base') continue;
+    const action = tag === 'form' ? token.attributes.find((a) => a.name.toLowerCase() === 'action') : undefined;
+    const host = action && offSiteHost(decodeAttributeValue(action.value ?? ''));
+    if (host) offSite.push({ line: lineAt(source, token.start), host });
+    for (const attr of token.attributes) {
+      const value = decodeAttributeValue(attr.value ?? '').trim();
+      if (!ADDRESS_ATTRIBUTES.has(attr.name.toLowerCase()) || !value) continue;
+      // Web, site and in-page addresses, schemes, a query, a loop's {placeholder}
+      if (/^(?:[a-z][a-z0-9+.-]*:|\/|#|\?|\{)/i.test(value)) continue;
+      relative.push({ line: lineAt(source, token.start), value, link: /^(href|action)$/i.test(attr.name) });
+    }
+    if (tag === 'img' && !token.attributes.some((a) => a.name.toLowerCase() === 'alt')) {
+      noAlt.push(lineAt(source, token.start));
+    }
+  }
+  const more = (count: number, what: string) => (count > 1 ? ` (${count - 1} more ${what} too.)` : '');
+  const messages: string[] = [];
+  if (relative.length > 0) {
+    const [first] = relative;
+    messages.push(
+      `Line ${first.line}: "${first.value}" is an address on your old site, and here it points at a page that isn't there. ` +
+      (first.link
+        ? 'Link to its full address (https://…), or bring that part onto this page.'
+        : 'Upload the file and use its address (Insert image does this).') +
+      more(relative.length, 'like it')
+    );
+  }
+  if (offSite.length > 0) {
+    messages.push(
+      `Line ${offSite[0].line}: this form sends to ${offSite[0].host}, and forms here can only send to this site, ` +
+      `so it won't go anywhere. Link to its page on ${offSite[0].host} instead.` + more(offSite.length, 'forms like it')
+    );
+  }
+  if (noAlt.length > 0) {
+    messages.push(
+      `Line ${noAlt[0]}: this picture has no alt text, so screen readers can't say what it shows. ` +
+      `Add alt="what it shows", or alt="" if it's only decoration.` + more(noAlt.length, 'pictures need it')
+    );
+  }
+  return messages;
+}
+
+/** A JSON list or object, which Set and Push read as it is */
+function isJson(value: string): boolean {
+  if (!/^[[{]/.test(value)) return false;
+  try {
+    JSON.parse(value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function reportPageProblems(source: string): string[] {
   const messages: string[] = [];
   const declared = new Set<string>();
@@ -915,6 +1049,16 @@ function reportPageProblems(source: string): string[] {
       messages.push(
         `Line ${line}: <${name}> only works inside an event like <OnClick>. On the page it does nothing; use another <If> for the other case.`
       );
+    }
+
+    // A calculation the page can't run: said here, with its line, not only
+    // in the console (a loop's {placeholders} are filled in at run time, and
+    // a JSON list or object is read as it is)
+    for (const key of ['expression', ...(name === 'ConditionalAttr' ? ['when'] : [])]) {
+      const value = attrs.get(key)?.trim();
+      if (!value || (key === 'when' && !/[=!<>]/.test(value)) || /\{[\w$.]+\}/.test(value) || isJson(value)) continue;
+      const problem = expressionProblem(value);
+      if (problem) messages.push(`Line ${line}: <${name} ${key}="${value}"> ${problem}, so it does nothing.`);
     }
 
     // JavaScript in a condition

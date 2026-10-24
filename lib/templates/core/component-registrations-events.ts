@@ -65,7 +65,7 @@ export function registerEventComponents(registry: ComponentRegistry) {
     name: 'OnMount',
     component: OnMount,
     group: 'logic',
-    description: 'Runs the actions inside once, when the page loads. Put it after the Var tags it changes, or they won\'t exist yet. Increment, Decrement, Toggle and Cycle don\'t work here because the variable isn\'t found yet; use Set instead, like expression="$vars.visits + 1".',
+    description: 'Runs the actions inside once, when the page loads. Put it after the Var tags it changes, or they won\'t exist yet.',
     example: '<Var name="visits" type="number" initial="0" persist="true" />\n<OnMount><Set var="visits" expression="$vars.visits + 1" /></OnMount>\n<p>You\'ve visited from this browser <ShowVar name="visits" /> times.</p>',
     props: {},
     relationship: {

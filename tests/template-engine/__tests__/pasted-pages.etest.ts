@@ -456,9 +456,10 @@ describe.each([
   const page = readCorpus(file)
   const { template, css } = splitLikeTheEditor(page)
 
-  test('compiles without errors or warnings, losing only the document wrappers', () => {
+  test('compiles without errors, losing only the document wrappers; the only notes are about its old-site addresses and alt text', () => {
     const artifacts = compile(template)
-    expect(artifacts.warnings).toEqual([])
+    // A pasted page's relative links and missing alt text are said once each
+    for (const warning of artifacts.warnings) expect(warning).toMatch(/an address on your old site|has no alt text/)
     expect(artifacts.islands).toEqual([])
     expect(artifacts.strippedComponents.map((s) => s.category)).toEqual(
       artifacts.strippedComponents.map(() => 'document')
@@ -589,4 +590,73 @@ test('<pre> keeps its blank lines (ASCII art), through the save path (template a
 test('a text Var may start with "{"; an object Var still needs JSON (template audit 06 #12)', () => {
   expect(compileTemplate('<Var name="greeting" type="string" initial="{hello}" />').success).toBe(true)
   expect(compileTemplate('<Var name="pet" type="object" initial="{name: Mo}" />').success).toBe(false)
+})
+
+describe("what a pasted page is told (template audit 01 #5, 14 #8, 16 #3)", () => {
+  const warnings = (source: string) => compileTemplateToArtifacts(source).warnings
+
+  test("an old site's relative addresses are said once, with how many, and the right advice", () => {
+    const [note] = warnings('<p><img src="images/me.gif" alt="me"> <a href="about.html">about</a> <img src="x.png" alt=""></p>')
+    expect(note).toMatch(/^Line 1: "images\/me\.gif" is an address on your old site/)
+    expect(note).toMatch(/Upload the file/)
+    expect(note).toMatch(/2 more like it/)
+    expect(warnings('<a href="about.html">about</a>')[0]).toMatch(/Link to its full address/)
+  })
+
+  test('web, site and in-page addresses are fine', () => {
+    expect(warnings('<a href="https://x.example">a</a><a href="/feed">b</a><a href="#top">c</a><a href="mailto:a@b.c">d</a><a href="?tab=2">e</a>')).toEqual([])
+  })
+
+  test('pictures with no alt are counted; alt="" is a choice', () => {
+    const notes = warnings('<img src="https://x.example/a.png"><img src="https://x.example/b.png" alt="">\n<img src="https://x.example/c.png">')
+    expect(notes).toHaveLength(1)
+    expect(notes[0]).toMatch(/^Line 1: this picture has no alt text.*1 more pictures need it/)
+  })
+
+  test("a calculation the page can't run is said with its line (it only reached the console)", () => {
+    const notes = warnings('<Var name="roll" type="number" initial="1" />\n<Button><OnClick><Set var="roll" expression="Math.floor(Math.random() * 6) + 1" /></OnClick>Roll</Button>')
+    expect(notes.join('\n')).toMatch(/Line 2: <Set expression="[^"]+"> uses Math\.random, which pages can't use/)
+    expect(warnings('<Var name="n" type="number" initial="1" /><Button><OnClick><Set var="n" expression="$vars.n + 1" /></OnClick>+</Button>')).toEqual([])
+  })
+
+  test('a method pages lack is named; the ones they have pass', () => {
+    expect(warnings('<Var name="xs" type="array" initial="[]" /><Var name="s" type="computed" expression="$vars.xs.map(1)" />').join()).toMatch(/uses \.map\(\), which pages can't use/)
+    expect(warnings('<Var name="t" type="string" initial="hi" /><Var name="s" type="computed" expression="$vars.t.trim().toUpperCase().padStart(4, \'.\')" />')).toEqual([])
+  })
+
+  test("a form sending to another site is told it won't go, not about /api/ (audit 09)", () => {
+    const notes = warnings('<form action="https://buttondown.example/api/emails/subscribe" method="post"><input name="email"></form>')
+    expect(notes).toEqual([expect.stringMatching(/^Line 1: this form sends to buttondown\.example.*won't go anywhere/)])
+    expect(notes.join()).not.toContain('/api/ addresses')
+    expect(warnings('<form action="subscribe.php"></form>')[0]).toMatch(/Link to its full address/)
+  })
+})
+
+describe('why a tag was taken out (template audit 09, 16)', () => {
+  const reasons = (source: string) =>
+    Object.fromEntries(compile(source).strippedComponents.map((s) => [s.name.toLowerCase(), s.reason]))
+
+  test("<image> is read as <img> and kept, so it isn't listed", () => {
+    expect(reasons('<p><image src="https://x.example/a.png" alt="a"></p>')).toEqual({})
+  })
+
+  test('<base>, rel=me, icons and <noscript> get their own reasons', () => {
+    const why = reasons(
+      '<base href="https://old.example/">\n<link rel="me" href="https://social.example/@me">\n<link rel="icon" href="/f.ico">\n<noscript><p>Turn on JS</p></noscript>'
+    )
+    expect(why.base).toMatch(/full addresses/)
+    expect(why.noscript).toMatch(/don’t run scripts/)
+    const links = compile('<link rel="me" href="https://social.example/@me"><link rel="shortcut icon" href="/f.ico">').strippedComponents
+    expect(links.map((l) => l.reason)).toEqual([expect.stringMatching(/This is my site/), expect.stringMatching(/site’s icon/)])
+  })
+
+  test("an SVG's <title> says how to name the picture", () => {
+    expect(reasons('<svg viewBox="0 0 1 1"><title>Moon</title><circle r="1"/></svg>').title).toMatch(/aria-label/)
+  })
+
+  test('what was inside a removed container says so, even when the tag is kept elsewhere', () => {
+    const tags = compile('<img src="https://x.example/a.png" alt="a"><object data="x.swf"><img src="https://x.example/b.png" alt="b"></object>').strippedComponents
+    expect(tags.find((t) => t.name === 'img')?.reason).toBe('Taken out with the <object> around it.')
+    expect(tags.find((t) => t.name === 'object')?.reason).not.toMatch(/Taken out with the/)
+  })
 })

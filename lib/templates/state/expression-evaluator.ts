@@ -585,3 +585,41 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
   (window as any).__expressionCacheStats = getExpressionCacheStats;
   (window as any).__clearExpressionCaches = clearExpressionCaches;
 }
+
+/**
+ * What's wrong with an expression a page writes, said plainly, or undefined
+ * when it's fine. The editor shows it with its line: these only reached the
+ * console, so a dice roll on Math.random was "always 0" with no word why
+ * (template audit 06 #10). Same parser and allowed functions as above.
+ */
+export function expressionProblem(expression: string): string | undefined {
+  let ast: jsep.Expression;
+  try {
+    ast = jsep(expression);
+  } catch {
+    return "can't be read as a calculation";
+  }
+  let problem: string | undefined;
+  const visit = (node: unknown): void => {
+    if (problem || !node || typeof node !== 'object') return;
+    const n = node as { type?: string; callee?: { type: string; name?: string; object?: { type: string; name?: string }; property?: { name?: string } } };
+    if (n.type === 'CallExpression' && n.callee) {
+      const { callee } = n;
+      if (callee.type === 'Identifier' && !ALLOWED_FUNCTIONS.has(callee.name ?? '')) {
+        problem = `uses ${callee.name}(), which pages can't use`;
+      } else if (callee.type === 'MemberExpression' && callee.object?.type === 'Identifier' && callee.object.name === 'Math' &&
+        !ALLOWED_FUNCTIONS.has(`Math.${callee.property?.name}`)) {
+        problem = `uses Math.${callee.property?.name}, which pages can't use (these work: Math.round, floor, ceil, min, max, abs, sqrt and pow)`;
+      } else if (callee.type === 'MemberExpression' && callee.object?.name !== 'Math' && callee.property?.name &&
+        !Object.values(SAFE_METHODS).some((methods) => methods.has(callee.property!.name!))) {
+        problem = `uses .${callee.property.name}(), which pages can't use`;
+      }
+    }
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else visit(value);
+    }
+  };
+  visit(ast);
+  return problem;
+}

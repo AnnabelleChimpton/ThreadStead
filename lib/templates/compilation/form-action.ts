@@ -32,3 +32,16 @@ export function postsToApi(action: unknown): boolean {
   }
   return /^\/+api(\/|$)/i.test(path);
 }
+
+/**
+ * The host a form sends to when that's another site (`https://x/…`, `//x/…`).
+ * CSP form-action 'self' stops it posting, whatever the path.
+ */
+export function offSiteHost(action: unknown): string | undefined {
+  if (typeof action !== 'string' || !/^\s*(?:https?:)?\/\//i.test(action)) return undefined;
+  try {
+    return new URL(action.trim(), 'https://site.invalid/').hostname || undefined;
+  } catch {
+    return undefined;
+  }
+}
