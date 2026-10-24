@@ -150,6 +150,12 @@ export default function ImageCarousel(props: ImageCarouselProps) {
     }
   }, [carouselImages.length, currentIndex]);
 
+  // Autoplay waits to be started by visitors who asked for less motion
+  // (after mount, so the server's page and the first render agree)
+  useEffect(() => {
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) setIsPlaying(false);
+  }, []);
+
   // Autoplay functionality
   useEffect(() => {
     if (isPlaying && carouselImages.length > 1) {

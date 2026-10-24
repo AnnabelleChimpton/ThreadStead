@@ -12,6 +12,8 @@ export const ADVANCED_NAV_SURFACE = "#E3E1DE";
 
 interface AdvancedNavFrameProps {
   showNavigation: boolean;
+  /** The page has its own <main>: the frame isn't marked as one too */
+  pageHasMain?: boolean;
   /** Site chrome under the nav, e.g. "Step back outside" */
   afterNav?: React.ReactNode;
   children: React.ReactNode;
@@ -35,7 +37,7 @@ const NAV_HEIGHT = { wide: 90, narrow: 101, narrowBelow: 1133, phone: 89, phoneB
 // size, the signed-in bar). The margin is !important because a pasted page's
 // `* { margin: 0 }` would otherwise take it away, so the measured value goes
 // in through the custom property.
-export default function AdvancedNavFrame({ showNavigation, afterNav, children }: AdvancedNavFrameProps) {
+export default function AdvancedNavFrame({ showNavigation, pageHasMain = false, afterNav, children }: AdvancedNavFrameProps) {
   const navRef = useRef<HTMLDivElement>(null);
   const [navHeight, setNavHeight] = useState<number | null>(null);
 
@@ -52,6 +54,13 @@ export default function AdvancedNavFrame({ showNavigation, afterNav, children }:
 
   return (
     <>
+      {/* Past the nav's links to the page, for keyboards and screen readers,
+          as on every other page (template audit 14 #1) */}
+      {showNavigation && (
+        <div data-site-chrome style={{ display: "contents" }}>
+          <a href="#main-content" className="skip-link">Skip to main content</a>
+        </div>
+      )}
       {/* The wrapper takes no space: its only child is position: fixed */}
       {/* data-site-chrome: the page's CSS can't reach or restyle the nav */}
       {showNavigation && (
@@ -65,7 +74,17 @@ export default function AdvancedNavFrame({ showNavigation, afterNav, children }:
       >
         {afterNav}
         {/* Absolute template children position from here, below afterNav */}
-        <div className="ts-page-frame" style={{ position: "relative" }}>{children}</div>
+        {/* The page's landmark, unless it has its own <main> (a role, so the
+            page's own main {} rules still only match its own <main>) */}
+        <div
+          id="main-content"
+          role={pageHasMain ? undefined : "main"}
+          tabIndex={-1}
+          className="ts-page-frame"
+          style={{ position: "relative" }}
+        >
+          {children}
+        </div>
       </div>
       <style jsx>{`
         .ts-under-nav {
@@ -87,6 +106,24 @@ export default function AdvancedNavFrame({ showNavigation, afterNav, children }:
            the fixed nav and its menu button off the screen. (Inside the box,
            the page's own position: sticky sticks to the box, so this stays
            off where pages fit: below the site's phone breakpoint only.) */
+        /* Focus and #anchor jumps stop below the fixed nav, not under it
+           (WCAG focus not obscured: template audit 14 #2) */
+        :global(html:has(.ts-under-nav)) {
+          scroll-padding-top: ${NAV_HEIGHT.wide + 8}px;
+        }
+        @media (max-width: ${NAV_HEIGHT.narrowBelow - 1}px) {
+          :global(html:has(.ts-under-nav)) {
+            scroll-padding-top: ${NAV_HEIGHT.narrow + 8}px;
+          }
+        }
+        @media (max-width: ${NAV_HEIGHT.phoneBelow - 1}px) {
+          :global(html:has(.ts-under-nav)) {
+            scroll-padding-top: ${NAV_HEIGHT.phone + 8}px;
+          }
+        }
+        .ts-page-frame:focus {
+          outline: none;
+        }
         @media (max-width: ${NAV_HEIGHT.phoneBelow - 1}px) {
           .ts-page-frame {
             overflow-x: auto;

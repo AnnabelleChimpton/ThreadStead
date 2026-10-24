@@ -44,7 +44,7 @@ describe('AdvancedNavFrame', () => {
 
   test('on a phone a page wider than the screen pans inside its own box', () => {
     // Not by widening the document, which pushed the fixed nav and its menu off an Android screen
-    expect(serverRender(true)).toMatch(/<div style="position:relative" class="[^"]*ts-page-frame[^"]*">/)
+    expect(serverRender(true)).toMatch(/<div[^>]*class="[^"]*ts-page-frame[^"]*"[^>]*>/)
     expect(pageCss()).toMatch(/@media ?\(max-width: ?1023px\) ?\{ ?\.ts-page-frame[^{]*\{ ?overflow-x: ?auto/)
   })
 
@@ -70,5 +70,40 @@ describe('AdvancedNavFrame', () => {
     } finally {
       rect.mockRestore()
     }
+  })
+})
+
+describe('landmarks and focus (template audit 14 #1 #2)', () => {
+  function frame(props: { showNavigation: boolean; pageHasMain?: boolean }) {
+    document.body.innerHTML = renderToString(
+      <AdvancedNavFrame {...props}>
+        <p>my page</p>
+      </AdvancedNavFrame>
+    )
+    return document.getElementById('main-content')!
+  }
+
+  test('the page is the main landmark, and a skip link leads to it past the nav', () => {
+    const main = frame({ showNavigation: true })
+    expect(main.getAttribute('role')).toBe('main')
+    expect(main.getAttribute('tabindex')).toBe('-1')
+    const skip = document.querySelector('a.skip-link')!
+    expect(skip.getAttribute('href')).toBe('#main-content')
+    // First in the page, before the nav; the site's own, out of the page's CSS
+    expect(document.body.querySelector('a, [data-component-type="navigation"]')).toBe(skip)
+    expect(skip.closest('[data-site-chrome]')).not.toBeNull()
+  })
+
+  test("a page with its own <main> isn't given a second", () => {
+    expect(frame({ showNavigation: true, pageHasMain: true }).hasAttribute('role')).toBe(false)
+  })
+
+  test('with the nav hidden there is nothing to skip', () => {
+    frame({ showNavigation: false })
+    expect(document.querySelector('a.skip-link')).toBeNull()
+  })
+
+  test('focus and anchor jumps stop below the fixed nav', () => {
+    expect(pageCss()).toMatch(/html:has\(\.ts-under-nav\)[^{]*\{ ?scroll-padding-top: ?98px/)
   })
 })

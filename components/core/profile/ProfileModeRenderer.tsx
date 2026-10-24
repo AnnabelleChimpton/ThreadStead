@@ -5,6 +5,7 @@ import React from 'react';
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
 import AdvancedNavFrame from './AdvancedNavFrame';
 import AdvancedProfileRenderer from './AdvancedProfileRenderer';
+import { pageHasMain } from '@/lib/templates/rendering/page-tree';
 
 // Profile mode types
 export type ProfileMode = 'default' | 'enhanced' | 'advanced';
@@ -44,7 +45,7 @@ export default function ProfileModeRenderer({
   if (user.profile?.compiledTemplate) {
     const shouldShowNavigation = !hideNavigation && !user.profile?.hideNavigation;
     return (
-      <AdvancedNavFrame showNavigation={shouldShowNavigation} afterNav={afterNav}>
+      <AdvancedNavFrame showNavigation={shouldShowNavigation} afterNav={afterNav} pageHasMain={pageHasMain(user.profile.compiledTemplate)}>
         <AdvancedProfileRenderer user={user} residentData={residentData} />
       </AdvancedNavFrame>
     );

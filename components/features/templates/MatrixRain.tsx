@@ -5,6 +5,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { UniversalCSSProps, separateCSSProps, applyCSSProps } from '@/lib/templates/styling/universal-css-props';
 
+const prefersReducedMotion = () =>
+  typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
+
 export interface MatrixRainProps extends UniversalCSSProps {
   matrixColor?: 'green' | 'blue' | 'red' | 'purple' | 'cyan' | 'white';
   speed?: 'slow' | 'medium' | 'fast' | 'ultra';
@@ -207,7 +210,8 @@ export default function MatrixRain(props: MatrixRainProps) {
         lastTime = currentTime;
       }
 
-      if (isVisible) {
+      // One still frame for visitors who asked for less motion
+      if (isVisible && !prefersReducedMotion()) {
         animationRef.current = requestAnimationFrame(animate);
       }
     };
@@ -309,20 +313,6 @@ export default function MatrixRain(props: MatrixRainProps) {
           transform: scale(1.1);
         }
 
-        .matrix-info {
-          position: absolute;
-          bottom: 10px;
-          left: 10px;
-          z-index: 11;
-          color: ${currentColor.primary};
-          font-family: 'Courier New', monospace;
-          font-size: 10px;
-          background: rgba(0,0,0,0.7);
-          padding: 5px 10px;
-          border-radius: 4px;
-          border: 1px solid ${currentColor.primary};
-          backdrop-filter: blur(4px);
-        }
 
         @keyframes matrix-glitch {
           0%, 100% { transform: translate(0, 0); }
@@ -353,9 +343,11 @@ export default function MatrixRain(props: MatrixRainProps) {
       `}</style>
 
       <div className="matrix-rain-wrapper">
+        {/* Decoration: nothing for a screen reader to read */}
         <canvas
           ref={canvasRef}
           className="matrix-canvas"
+          aria-hidden="true"
         />
 
         {/* Content overlay */}
@@ -365,10 +357,6 @@ export default function MatrixRain(props: MatrixRainProps) {
           </div>
         )}
 
-        {/* Info display */}
-        <div className="matrix-info">
-          {matrixColor.toUpperCase()} | {speed.toUpperCase()} | {density.toUpperCase()} | {characters.toUpperCase()}
-        </div>
       </div>
     </div>
   );

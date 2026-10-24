@@ -20,4 +20,19 @@
       animation: none;
     }
   }
+
+  /* For visitors who asked for less motion, nothing on the page keeps
+     moving: animations and transitions jump to where they end (so what
+     fades in still shows). !important in this first layer outranks the
+     page's own !important (template audit 14 #3). */
+  @media (prefers-reduced-motion: reduce) {
+    [data-template-root] *,
+    [data-template-root] *::before,
+    [data-template-root] *::after {
+      animation-duration: 1ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 1ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 }

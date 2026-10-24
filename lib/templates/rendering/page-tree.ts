@@ -33,6 +33,22 @@ export function islandIdOf(el: PageTreeElement): string | null {
 }
 
 /**
+ * Whether a compiled page has its own <main> (or role="main"): then the
+ * frame around it doesn't add one (AdvancedNavFrame). Reads a page tree, or
+ * a stored compile AST.
+ */
+export function pageHasMain(compiled: unknown): boolean {
+  const page = compiled as { tree?: unknown[]; ast?: { children?: unknown[] } } | null | undefined;
+  type Node = { t?: string; a?: Array<[string, string]>; c?: Node[]; tagName?: string; properties?: Record<string, unknown>; children?: Node[] };
+  const isMain = (node: Node) =>
+    node.t === 'main' || node.tagName === 'main' ||
+    (node.a ?? []).some(([name, value]) => name === 'role' && value === 'main') || node.properties?.role === 'main';
+  const has = (nodes: unknown[] = []): boolean =>
+    nodes.some((node) => typeof node === 'object' && node !== null && (isMain(node as Node) || has((node as Node).c ?? (node as Node).children)));
+  return has(page?.tree ?? page?.ast?.children);
+}
+
+/**
  * A stored compile AST (hast) → page tree. Attribute names and values follow
  * generateStaticHTML (html-optimizer.ts), so the result equals what the
  * browser builds from the stored staticHTML.
