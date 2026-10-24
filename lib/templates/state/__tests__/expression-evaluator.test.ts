@@ -306,6 +306,28 @@ describe('evaluateExpression', () => {
       expect(consoleErrorSpy).toHaveBeenCalled();
     });
 
+    it('reads only own properties, never the prototype chain', () => {
+      const context = { user: { name: 'Robin' }, items: [1, 2], text: 'hi' };
+      expect(evaluateExpression('user.name', context)).toBe('Robin');
+      expect(evaluateExpression('items[1]', context)).toBe(2);
+      for (const key of ['constructor', '__proto__', 'toString', 'hasOwnProperty']) {
+        expect(evaluateExpression(`user.${key}`, context)).toBeUndefined();
+        expect(evaluateExpression(`items.${key}`, context)).toBeUndefined();
+      }
+    });
+
+    it('calls only the safe methods of strings, arrays and numbers', () => {
+      const context = { user: { name: 'Robin' }, items: ['a', 'b'], text: 'hi', n: 1.5 };
+      expect(evaluateExpression('text.toUpperCase()', context)).toBe('HI');
+      expect(evaluateExpression('items.join("-")', context)).toBe('a-b');
+      expect(evaluateExpression('n.toFixed(2)', context)).toBe('1.50');
+      expect(evaluateExpression('user.hasOwnProperty("name")', context)).toBeUndefined();
+      expect(evaluateExpression('text.constructor("x")', context)).toBeUndefined();
+      expect(evaluateExpression('String.fromCharCode(72)', context)).toBeUndefined();
+      // A variable named Math is just a variable
+      expect(evaluateExpression('Math.constructor()', { Math: {} })).toBeUndefined();
+    });
+
     it('should reject non-whitelisted Math functions', () => {
       expect(() => evaluateExpression('Math.random()', {})).toThrow();
       expect(() => evaluateExpression('Math.sin(1)', {})).toThrow();

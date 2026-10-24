@@ -52,6 +52,25 @@ const ALLOWED_UNARY_OPERATORS = new Set([
 ]);
 
 // Allowed functions
+/**
+ * The methods an expression may call, by the kind of value: only strings,
+ * arrays and numbers, and nothing that takes a function or walks the
+ * prototype chain (constructor, __proto__). Expressions also run on the
+ * server, so anything reachable here runs there too.
+ */
+const SAFE_METHODS: Record<string, ReadonlySet<string>> = {
+  string: new Set(['toUpperCase', 'toLowerCase', 'trim', 'includes', 'startsWith', 'endsWith', 'slice', 'substring', 'split', 'replace', 'padStart', 'padEnd', 'indexOf', 'lastIndexOf', 'charAt', 'repeat', 'at', 'toString']),
+  array: new Set(['includes', 'indexOf', 'lastIndexOf', 'join', 'slice', 'concat', 'at']),
+  number: new Set(['toFixed', 'toString']),
+};
+
+/** A value's own property: never one inherited from its prototype. */
+function ownValue(object: object, key: unknown): any {
+  return (typeof key === 'string' || typeof key === 'number') && Object.prototype.hasOwnProperty.call(object, key)
+    ? (object as Record<string | number, unknown>)[key]
+    : undefined;
+}
+
 const ALLOWED_FUNCTIONS = new Map<string, (...args: any[]) => any>([
   // Math functions
   ['Math.min', Math.min],
@@ -330,13 +349,18 @@ export function evaluateExpression(
         return undefined;
       }
 
-      // Get property/method name
+      // Get property/method name: Math's allowed functions, or the safe
+      // methods of strings, arrays and numbers
       const propertyName = (memberExpr.property as jsep.Identifier).name;
-      const method = objectValue[propertyName];
+      const isMath = memberExpr.object.type === 'Identifier' && (memberExpr.object as jsep.Identifier).name === 'Math'
+        && !Object.prototype.hasOwnProperty.call(ctx, 'Math');
+      const kind = Array.isArray(objectValue) ? 'array' : typeof objectValue;
+      const method = isMath
+        ? objectValue[propertyName] // the Math proxy: allowed functions, or it throws
+        : SAFE_METHODS[kind]?.has(propertyName) ? objectValue[propertyName] : undefined;
 
-      // DEFENSIVE: Method doesn't exist on object
       if (typeof method !== 'function') {
-        console.warn(`[Expression] Method '${propertyName}' not found on object:`, objectValue);
+        console.warn(`[Expression] Method '${propertyName}' isn't available here.`);
         return undefined;
       }
 
@@ -426,9 +450,9 @@ export function evaluateExpression(
       propertyName = (property as jsep.Identifier).name;
     }
 
-    // Access property safely
-    if (typeof objectValue === 'object' || Array.isArray(objectValue)) {
-      return objectValue[propertyName];
+    // Only the value's own properties (an array's items and length too)
+    if (typeof objectValue === 'object') {
+      return ownValue(objectValue, propertyName);
     }
 
     // Special handling for string length, array length, etc.
