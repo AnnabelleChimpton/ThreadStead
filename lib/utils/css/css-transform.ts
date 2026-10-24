@@ -212,7 +212,7 @@ export const SITE_CHROME_SELECTOR = '[data-site-chrome]'
 const GLOBAL_AT_RULES = new Set([
   'import', 'charset', 'namespace', 'font-face', 'keyframes', '-webkit-keyframes',
   '-moz-keyframes', 'property', 'page', 'counter-style', 'font-feature-values',
-  'font-palette-values',
+  'font-palette-values', 'view-transition', 'position-try',
 ])
 
 /**
@@ -269,7 +269,7 @@ function wrapInChromeScope(css: string, scopeSelector: (selector: string) => str
   }
   if (scoped.length === 0) return serializeStatements(hoisted)
 
-  const inner = mapSelectors(serializeStatements(scoped), scopeSelector)
+  const inner = mapSelectors(serializeStatements(scoped), scopeSelector, { authorScopes: true })
   const head = serializeStatements(hoisted)
   return `${head}${head ? '\n' : ''}@scope (html) to (${SITE_CHROME_SELECTOR}) {\n${inner}\n}`
 }
@@ -296,7 +296,25 @@ export function prefixUserContentIds(css: string): string {
   return mapSelectors(withUrls, prefixSelectorIds, { nested: true })
 }
 
-/** `#a.b:not(#c)` → `#user-content-a.b:not(#user-content-c)`; leaves `[href="#a"]` alone. */
+/**
+ * Attribute selectors that compare an id the page's elements carry renamed:
+ * `[href="#about"]` and `[for="name"]`, `[id="x"]`, `[aria-controls="x"]`
+ * (a skip link styled by `a[href="#main"]` showed for good: template audit
+ * 03 F13). Any other attribute compares text and is left alone.
+ */
+function prefixAttributeId(attribute: string): string {
+  const m = attribute.match(/^\[\s*([\w-]+)\s*([~|^$*]?=)\s*(["']?)(.*?)\3(\s+[is])?\s*\]$/i)
+  if (!m) return attribute
+  const [, name, op, quote, value, flag = ''] = m
+  const lower = name.toLowerCase()
+  const fragment = lower === 'href' && value.startsWith('#') && value.length > 1 && value !== '#top'
+  const idName = /^(?:id|for|name|list|headers|aria-(?:controls|describedby|labelledby|owns|activedescendant|errormessage|flowto|details))$/.test(lower)
+  if ((!fragment && !idName) || value.slice(fragment ? 1 : 0).startsWith(USER_CONTENT_PREFIX) || !value) return attribute
+  const renamed = fragment ? `#${USER_CONTENT_PREFIX}${value.slice(1)}` : `${USER_CONTENT_PREFIX}${value}`
+  return `[${name}${op}${quote || '"'}${renamed}${quote || '"'}${flag}]`
+}
+
+/** `#a.b:not(#c)` → `#user-content-a.b:not(#user-content-c)`; `[href="#a"]` too. */
 function prefixSelectorIds(selector: string): string {
   let out = ''
   let i = 0
@@ -309,12 +327,11 @@ function prefixSelectorIds(selector: string): string {
       continue
     }
     if (ch === '[') {
-      // Attribute selectors compare text, not ids
       let end = i + 1
       while (end < selector.length && selector[end] !== ']') {
         end = selector[end] === '"' || selector[end] === "'" ? skipString(selector, end) : end + 1
       }
-      out += selector.slice(i, end + 1)
+      out += prefixAttributeId(selector.slice(i, end + 1))
       i = end + 1
       continue
     }
@@ -555,7 +572,11 @@ export function transformAdvancedCss(
     ...(options.fontImports ?? []).filter((line) => !imports.includes(line)),
     ...imports,
   ]
-  const scoped = wrapInChromeScope(namePageLayers(moveWholePageEffects(rest)), scopeAdvancedSelector)
+  // A page written for light and dark (light-dark(), prefers-color-scheme)
+  // says so, before its own rules, so they can say otherwise: with nothing
+  // declared, light-dark() and form controls stayed light (template audit 13 #9)
+  const schemes = /light-dark\(|prefers-color-scheme/i.test(rest) && !/(?<![\w-])color-scheme\s*:/i.test(rest) ? ':root { color-scheme: light dark; }\n' : ''
+  const scoped = wrapInChromeScope(namePageLayers(moveWholePageEffects(schemes + rest)), scopeAdvancedSelector)
   if (!scoped && allImports.length === 0) return ''
   // Layer statements are the one thing allowed before @import
   return [SITE_LAYER_ORDER, ...allImports, scoped].filter(Boolean).join('\n')
@@ -570,12 +591,21 @@ export function transformAdvancedCss(
 export function mapSelectors(
   css: string,
   mapSelector: (selector: string) => string,
-  options: { recurseGroups?: boolean; nested?: boolean } = {}
+  options: { recurseGroups?: boolean; nested?: boolean; authorScopes?: boolean } = {}
 ): string {
   const recurseGroups = options.recurseGroups !== false
-  const GROUP_AT_RULES = new Set(['media', 'supports', 'container', 'layer', 'scope'])
+  const GROUP_AT_RULES = new Set(['media', 'supports', 'container', 'layer', 'scope', 'starting-style'])
   const statements = splitTopLevelStatements(css)
   const out = statements.map((s) => {
+    // `authorScopes`: a page's own @scope (.card) { img {} }: only its root
+    // selector is mapped; the rules inside are relative to it (template audit 01 #16b)
+    if (options.authorScopes && s.kind === 'at' && s.atName === 'scope') {
+      const open = s.prelude.indexOf('(')
+      if (open === -1) return s
+      const close = skipParens(s.prelude, open)
+      const root = s.prelude.slice(open + 1, close - 1)
+      return { ...s, prelude: `${s.prelude.slice(0, open + 1)}${splitSelectorList(root).map(mapSelector).join(', ')}${s.prelude.slice(close - 1)}` }
+    }
     if (s.kind === 'rule') {
       const mapped = splitSelectorList(s.prelude).map(mapSelector).join(', ')
       // `nested`: rules nested inside this one (CSS nesting) too

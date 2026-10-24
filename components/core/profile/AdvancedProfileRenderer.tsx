@@ -110,25 +110,14 @@ export default function AdvancedProfileRenderer({ user, residentData }: Advanced
                   instead, where the island error boundaries catch it. One
                   boundary, so the page still hydrates in one pass. */}
               <React.Suspense fallback={null}>
-                {islands.length > 0 ? (
-                  <StaticHTMLWithIslands
-                    tree={compiled.tree}
-                    staticHTML={compiled.staticHTML}
-                    islands={islands}
-                    residentData={residentData}
-                    profileId={profileId}
-                  />
-                ) : (
-                  // Plain HTML, no components: one bare div, as it has always been
-                  <div>
-                    <StaticHTMLWithIslands
-                      tree={compiled.tree}
-                      staticHTML={compiled.staticHTML}
-                      islands={islands}
-                      residentData={residentData}
-                    />
-                  </div>
-                )}
+                {/* The page's top-level elements are the root's children, as they'd
+                    be body's on their own site: no wrapper between them */}
+                <StaticHTMLWithIslands
+                  tree={compiled.tree}
+                  staticHTML={compiled.staticHTML}
+                  islands={islands}
+                  residentData={residentData}
+                />
               </React.Suspense>
             </div>
           </ToastProvider>

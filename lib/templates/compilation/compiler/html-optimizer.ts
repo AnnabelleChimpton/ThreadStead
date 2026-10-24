@@ -41,7 +41,10 @@ export function generateStaticHTML(ast: TemplateNode, islands: Island[]): string
         return `<${node.tagName}${attrs ? ` ${attrs}` : ''} />`;
       }
       
-      return `<${node.tagName}${attrs ? ` ${attrs}` : ''}>${children}</${node.tagName}>`;
+      // The parser drops one line break right after <pre> or <textarea>: a
+      // block that starts with a blank line keeps it only if we write one more
+      const lead = /^(?:pre|textarea|listing)$/i.test(node.tagName) && children.startsWith('\n') ? '\n' : '';
+      return `<${node.tagName}${attrs ? ` ${attrs}` : ''}>${lead}${children}</${node.tagName}>`;
     }
     
     if (node.type === 'root') {

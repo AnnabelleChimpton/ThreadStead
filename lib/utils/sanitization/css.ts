@@ -55,6 +55,8 @@ export function sanitizeCss(input: string): CssSanitizeResult {
   disable(/expression\s*\(/gi, "x-removed(", "an expression() (old Internet Explorer scripting)");
   disable(/(?<![\w-])behavior\s*:/gi, "x-removed-ie:", "a behavior: property (old Internet Explorer scripting)");
   disable(/-moz-binding\s*:/gi, "x-removed-moz:", "a -moz-binding property (old Firefox scripting)");
+  // Dots or discs over ordinary text: a look-alike password box (template audit 04 L3)
+  disable(/-webkit-text-security\s*:/gi, "x-removed-text-security:", "-webkit-text-security (it makes text look like a password box)");
   disable(/url\(\s*(["']?)\s*javascript\s*:/gi, "url($1x-removed:", "a javascript: url");
 
   // CSS is written into a <style> tag, and the HTML parser ends that tag at

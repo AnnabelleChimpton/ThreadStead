@@ -22,6 +22,4 @@ export interface StaticHTMLWithIslandsProps {
   /** Unused; kept so existing callers (WidgetSlot) type-check */
   onIslandRender?: (islandId: string) => void;
   onIslandError?: (error: Error, islandId: string) => void;
-  /** Wraps the page in its `#profile-<id>` root */
-  profileId?: string;
 }

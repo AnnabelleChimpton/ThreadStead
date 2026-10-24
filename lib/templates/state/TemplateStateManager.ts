@@ -18,6 +18,16 @@ import { evaluateExpression, extractVariableNames } from './expression-evaluator
  * Singleton instance that manages all template variables globally.
  * Islands subscribe to changes and re-render when variables update.
  */
+/** A urlParam variable's value from the address bar: its param, coerced; else its default */
+function urlParamValue(config: { param?: string; coerce?: string; separator?: string; default?: unknown }): unknown {
+  const raw = config.param ? new URLSearchParams(window.location.search).get(config.param) : null;
+  if (raw === null) return config.default;
+  if (config.coerce === 'number') return Number(raw);
+  if (config.coerce === 'boolean') return raw === 'true';
+  if (config.coerce === 'array') return raw.split(config.separator || ',').map((part) => part.trim());
+  return raw;
+}
+
 class TemplateStateManager {
   private variables: Record<string, TemplateVariable> = {};
   /** Whose page persisted variables belong to (GlobalTemplateStateProvider's page) */
@@ -224,6 +234,22 @@ class TemplateStateManager {
    * @param config Variable configuration
    * @param silent If true, don't notify listeners (for internal variables)
    */
+  /**
+   * Back and Forward change the address without reloading: urlParam
+   * variables follow it, as they would on a fresh load (a SetURLParam's
+   * history step came back with the old value showing: template audit 16 #4d).
+   */
+  private followingAddress = false;
+  private followBackAndForward(): void {
+    if (this.followingAddress) return;
+    this.followingAddress = true;
+    window.addEventListener('popstate', () => {
+      for (const variable of Object.values(this.variables)) {
+        if (variable.type === 'urlParam' && variable.param) this.setVariable(variable.name, urlParamValue(variable) ?? variable.initial);
+      }
+    });
+  }
+
   registerVariable(config: VariableConfig, silent: boolean = false): void {
     // If variable already exists, don't re-register
     if (this.variables[config.name]) {
@@ -237,24 +263,8 @@ class TemplateStateManager {
       case 'urlParam':
         // Get value from URL parameter
         if (typeof window !== 'undefined' && config.param) {
-          const params = new URLSearchParams(window.location.search);
-          const paramValue = params.get(config.param);
-
-          if (paramValue !== null) {
-            // Apply coercion if specified
-            if (config.coerce === 'number') {
-              initialValue = Number(paramValue);
-            } else if (config.coerce === 'boolean') {
-              initialValue = paramValue === 'true';
-            } else if (config.coerce === 'array') {
-              const separator = config.separator || ',';
-              initialValue = paramValue.split(separator).map(s => s.trim());
-            } else {
-              initialValue = paramValue;
-            }
-          } else {
-            initialValue = config.default ?? initialValue;
-          }
+          initialValue = urlParamValue(config) ?? initialValue;
+          this.followBackAndForward();
         }
         break;
 

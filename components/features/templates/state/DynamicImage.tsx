@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 import { useTemplateState } from '@/lib/templates/state/TemplateStateProvider';
 import { useForEachContext } from './loops/ForEach';
 import { globalTemplateStateManager } from '@/lib/templates/state/TemplateStateManager';
@@ -90,6 +91,10 @@ export default function DynamicImage(props: DynamicImageProps) {
     imageUrl = variable?.value ? String(variable.value) : '';
   }
 
+  // A picture's address only: a variable set from a link (?var=…) could
+  // otherwise put anything here (template audit 04 L1)
+  if (!/^(?:https?:\/\/|\/(?!\/)|data:image\/)/i.test(imageUrl)) imageUrl = '';
+
   // Build style object if width/height provided
   const style: React.CSSProperties = {};
   if (width) {
@@ -114,7 +119,7 @@ export default function DynamicImage(props: DynamicImageProps) {
         style={style}
       >
         <div className="text-center text-gray-400 dark:text-gray-500 text-sm">
-          <div className="text-2xl mb-1">🖼️</div>
+          <div className="mb-1"><PixelIcon name="image" size={24} /></div>
           <div>No image</div>
         </div>
       </div>

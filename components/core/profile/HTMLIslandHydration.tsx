@@ -7,7 +7,7 @@
 
 import React from 'react';
 import IslandPage from '@/lib/templates/rendering/IslandPage';
-import { treeFromDom, withProfileRoot, type PageTreeNode } from '@/lib/templates/rendering/page-tree';
+import { treeFromDom, type PageTreeNode } from '@/lib/templates/rendering/page-tree';
 import type { StaticHTMLWithIslandsProps } from './types';
 
 export function StaticHTMLWithIslands({
@@ -15,7 +15,6 @@ export function StaticHTMLWithIslands({
   tree,
   islands,
   residentData,
-  profileId,
 }: StaticHTMLWithIslandsProps) {
   const [parsed, setParsed] = React.useState<PageTreeNode[] | null>(null);
 
@@ -26,11 +25,11 @@ export function StaticHTMLWithIslands({
     setParsed(treeFromDom(container));
   }, [tree, staticHTML]);
 
-  const source = tree ?? parsed;
-  const page = React.useMemo(
-    () => (source && profileId ? withProfileRoot(source, profileId) : source),
-    [source, profileId]
-  );
+  // The page as written: the root around it (AdvancedProfileRenderer) has
+  // the #profile-<id>. A second wrapper with the same id used to go inside,
+  // so the id was there twice and `body > header` never found the page's
+  // own top level (template audit 01 #21, 14 #6d).
+  const page = tree ?? parsed;
   if (!page) return null;
 
   return <IslandPage tree={page} islands={islands} residentData={residentData} />;

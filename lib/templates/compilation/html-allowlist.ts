@@ -45,6 +45,9 @@ export const HTML_AUTHORING_TAGS = [
   'img', 'picture', 'source', 'audio', 'video', 'track', 'canvas',
   // misc
   'strong', 'em', 'code', 'pre', 'blockquote', 'var', 'samp', 'kbd',
+  // a list of commands, and a dialog that's open on the page (never a modal:
+  // that needs a script, so nothing reaches the top layer)
+  'menu', 'dialog',
 ] as const
 
 /** Inline SVG for drawings, icons and filters. No scripting, animation or embedding. */
@@ -113,6 +116,7 @@ export const ELEMENT_ATTRIBUTES: Record<string, AttributeDefinition[]> = {
   del: ['cite', 'dateTime'],
   ins: ['cite', 'dateTime'],
   details: ['open', 'name'],
+  dialog: ['open'],
   form: ['action', ['method', 'get', 'post', 'GET', 'POST'], 'name', 'noValidate', 'acceptCharset', 'encType'],
   input: [
     ['type', ...INPUT_TYPES],

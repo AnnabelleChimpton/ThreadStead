@@ -306,3 +306,26 @@ test('the profile page reads the home only for a page that uses one of them', ()
   expect(pageUsesAny(stored('<RingNav ring="tiny-gardens" />'), PAGE_HOME_COMPONENTS)).toBe(true)
   expect(pageUsesAny(stored('<MyRings /><Guestbook />'), PAGE_HOME_COMPONENTS)).toBe(false)
 })
+
+describe('plain HTML renders and hydrates as written (audit cross-check C)', () => {
+  test('a table laid out on lines, a chosen option and a find-in-page section hydrate cleanly', async () => {
+    const result = await visit(`<table>
+  <tr>
+    <td>a</td>
+  </tr>
+</table>
+<select><option>one</option><option selected>two</option></select>
+<div hidden="until-found">found it</div>
+<pre>
+first line</pre>`, VISITOR)
+    clean(result)
+    expect(result.html).toMatch(/<option selected="">two<\/option>/)
+    expect(result.after).toContain('hidden="until-found"')
+    expect(result.text).toContain('first line')
+  })
+
+  test('the page root has its id once', async () => {
+    const result = await visit('<p>hi</p>', VISITOR)
+    expect(result.html.match(/id="profile-/g)).toHaveLength(1)
+  })
+})

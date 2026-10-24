@@ -18,7 +18,7 @@ import { componentRegistry } from '@/lib/templates/core/template-registry';
 import { domAttributeToReactProp } from '@/lib/templates/core/attribute-mappings';
 import { separateCSSProps, applyCSSProps } from '@/lib/templates/styling/universal-css-props';
 import { IslandErrorBoundary } from '@/components/core/profile/IslandErrorBoundary';
-import { islandIdOf, type PageTreeNode } from './page-tree';
+import { islandIdOf, type PageTreeElement, type PageTreeNode } from './page-tree';
 
 export interface IslandPageProps {
   tree: PageTreeNode[];
@@ -73,6 +73,21 @@ function renderNode(node: PageTreeNode, ctx: WalkContext, key: string): React.Re
       props[propName] = propValue;
     }
   }
+  // hidden="until-found": React only writes hidden="", which find-in-page can't open
+  if ((node.a ?? []).some(([name, value]) => name === 'hidden' && value === 'until-found')) {
+    props.hidden = true;
+    const styleRef = props.ref as ((el: HTMLElement | null) => void) | undefined;
+    props.ref = (el: HTMLElement | null) => {
+      styleRef?.(el);
+      el?.setAttribute('hidden', 'until-found');
+    };
+  }
+  // A select starts on its selected option, the way React wants it said
+  if (node.t === 'select') {
+    const chosen = selectedOptions(node);
+    if (chosen.length) props.defaultValue = props.multiple ? chosen : chosen[0];
+  }
+  if (node.t === 'option') delete props.selected;
   const children = renderChildren(node.c, ctx, key);
   // A textarea's text is its starting value
   if (node.t === 'textarea' && children.every((child) => typeof child === 'string')) {
@@ -80,6 +95,17 @@ function renderNode(node: PageTreeNode, ctx: WalkContext, key: string): React.Re
     return React.createElement(node.t, props);
   }
   return React.createElement(node.t, props, ...children);
+}
+
+/** The values of a <select>'s options marked selected (its value, or else its text) */
+function selectedOptions(select: PageTreeElement): string[] {
+  const text = (node: PageTreeNode): string => (typeof node === 'string' ? node : (node.c ?? []).map(text).join(''));
+  const options = (select.c ?? []).flatMap((child) =>
+    typeof child === 'string' ? [] : child.t === 'optgroup' ? (child.c ?? []).filter((o): o is PageTreeElement => typeof o !== 'string') : [child]
+  );
+  return options
+    .filter((option) => option.t === 'option' && option.a?.some(([name]) => name === 'selected'))
+    .map((option) => option.a?.find(([name]) => name === 'value')?.[1] ?? text(option).trim());
 }
 
 /**

@@ -92,7 +92,7 @@ function nodeFromHast(node: TemplateNode, inSvg: boolean): PageTreeNode | null {
 
   const el: PageTreeElement = { t: node.tagName };
   if (attrs.length) el.a = attrs;
-  const children = childrenFromHast(node.children, svg);
+  const children = withoutTableWhitespace(node.tagName, childrenFromHast(node.children, svg));
   if (children.length) el.c = children;
   if (svg) el.svg = 1;
   return el;
@@ -116,7 +116,7 @@ export function treeFromDom(parent: ParentNode): PageTreeNode[] {
         ([name, value]) => !(name === 'action' && el.t === 'form' && postsToApi(value))
       );
     }
-    const children = treeFromDom(element);
+    const children = withoutTableWhitespace(el.t, treeFromDom(element));
     if (children.length) el.c = children;
     if (element.namespaceURI === SVG_NS) el.svg = 1;
     out.push(el);
@@ -124,46 +124,12 @@ export function treeFromDom(parent: ParentNode): PageTreeNode[] {
   return out;
 }
 
-const ROOT_CONTAINER = /pure-absolute-container|advanced-template-container/;
-
 /**
- * Give the page its `#profile-<id>` root. An old Visual Builder page has a
- * root container already and takes the id there; any other page gets a new
- * `<div id class="pure-absolute-container">` around it.
+ * The line breaks between a table's rows and cells aren't the table's: the
+ * browser keeps them, and React warns about every one (whitespace text
+ * can't be a child of <tr>), so they're left out.
  */
-export function withProfileRoot(tree: PageTreeNode[], profileId: string): PageTreeNode[] {
-  if (containsId(tree, profileId)) return tree;
-  const container = findFirst(tree, (el) => el.t === 'div' && ROOT_CONTAINER.test(attr(el, 'class') ?? ''));
-  if (!container) {
-    return [{ t: 'div', a: [['id', profileId], ['class', 'pure-absolute-container']], c: tree }];
-  }
-  return mapTree(tree, (el) =>
-    el === container ? { ...el, a: [['id', profileId], ...(el.a ?? []).filter(([n]) => n !== 'id')] } : el
-  );
-}
-
-function attr(el: PageTreeElement, name: string): string | undefined {
-  return el.a?.find(([n]) => n === name)?.[1];
-}
-
-function containsId(tree: PageTreeNode[], id: string): boolean {
-  return findFirst(tree, (el) => attr(el, 'id') === id) !== null;
-}
-
-function findFirst(tree: PageTreeNode[], test: (el: PageTreeElement) => boolean): PageTreeElement | null {
-  for (const node of tree) {
-    if (typeof node === 'string') continue;
-    if (test(node)) return node;
-    const inner = findFirst(node.c ?? [], test);
-    if (inner) return inner;
-  }
-  return null;
-}
-
-function mapTree(tree: PageTreeNode[], fn: (el: PageTreeElement) => PageTreeElement): PageTreeNode[] {
-  return tree.map((node) => {
-    if (typeof node === 'string') return node;
-    const mapped = fn(node);
-    return mapped.c ? { ...mapped, c: mapTree(mapped.c, fn) } : mapped;
-  });
+const TABLE_PARTS = new Set(['table', 'thead', 'tbody', 'tfoot', 'tr', 'colgroup']);
+function withoutTableWhitespace(tag: string, children: PageTreeNode[]): PageTreeNode[] {
+  return TABLE_PARTS.has(tag) ? children.filter((child) => typeof child !== 'string' || child.trim() !== '') : children;
 }

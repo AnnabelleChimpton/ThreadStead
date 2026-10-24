@@ -36,6 +36,7 @@ import {
 } from '@/lib/templates/compilation/document-head'
 import { transformAdvancedCss, SITE_LAYER_ORDER } from '@/lib/utils/css/css-transform'
 import { domAttributeToReactProp } from '@/lib/templates/core/attribute-mappings'
+import { sanitizeCss } from '@/lib/utils/sanitization/css'
 
 const compile = (template: string) => compileTemplateToArtifacts(template)
 
@@ -765,5 +766,60 @@ describe('what a page loses quietly is said (audit cross-check B)', () => {
 
   test('a removed tag gets no address warning on top of its reason', () => {
     expect(warnings('<bgsound src="song.mid">')).not.toMatch(/old site/)
+  })
+})
+
+describe('CSS the transform used to get wrong (audit cross-check C)', () => {
+  test('an attribute selector naming an id follows the rename; one comparing text is left alone', () => {
+    const out = transformAdvancedCss('a[href="#main"] { top: 0 } label[for=name] { x: y } [aria-controls="menu"] { x: y } a[href="#"] { x: y } [title="#main"] { x: y }')
+    expect(out).toContain('a[href="#user-content-main"]')
+    expect(out).toContain('label[for="user-content-name"]')
+    expect(out).toContain('[aria-controls="user-content-menu"]')
+    expect(out).toContain('a[href="#"]')
+    expect(out).toContain('[title="#main"]')
+  })
+
+  test("a page's own @scope keeps its rules relative to its root", () => {
+    const out = transformAdvancedCss('@scope (.card) { img { border: 1px solid } }')
+    expect(out).toContain('@scope (:scope body :where(.profile-template-root) .card) { img { border: 1px solid } }')
+  })
+
+  test('@starting-style rules are scoped like any other; @view-transition stays global', () => {
+    const out = transformAdvancedCss('@starting-style { .pop { opacity: 0 } } @view-transition { navigation: auto; }')
+    expect(out).toMatch(/@starting-style \{\s*:scope body :where\(\.profile-template-root\) \.pop \{/)
+    expect(out.indexOf('@view-transition')).toBeLessThan(out.indexOf('@scope (html)'))
+  })
+
+  test('a page written for light and dark says so, unless it already does', () => {
+    expect(transformAdvancedCss('p { color: light-dark(black, white) }')).toContain('color-scheme: light dark')
+    expect(transformAdvancedCss('@media (prefers-color-scheme: dark) { p { color: white } }')).toContain('color-scheme: light dark')
+    expect(transformAdvancedCss(':root { color-scheme: dark } p { color: light-dark(black, white) }')).not.toContain('color-scheme: light dark')
+    expect(transformAdvancedCss('p { color: red }')).not.toContain('color-scheme')
+  })
+
+  test('password-look text is taken out, in CSS and inline', () => {
+    expect(sanitizeCss('p { -webkit-text-security: disc }').css).not.toMatch(/(?<!x-removed)-webkit-text-security\s*:/)
+    expect(compile('<p style="-webkit-text-security: disc; color: red">x</p>').staticHTML).not.toContain('text-security')
+  })
+})
+
+describe('old tags and the HTML that comes out (audit cross-check C)', () => {
+  test('acronym, nobr, xmp, listing and dir become the tags that mean the same now, not listed as taken out', () => {
+    const { staticHTML, strippedComponents } = compile('<acronym title="HyperText">HTML</acronym><nobr>one line</nobr><xmp>mono</xmp><dir><li>a</li></dir>')
+    expect(staticHTML).toContain('<abbr title="HyperText">HTML</abbr>')
+    expect(staticHTML).toMatch(/<span style="white-space: nowrap;">one line<\/span>/)
+    expect(staticHTML).toContain('<pre>mono</pre>')
+    expect(staticHTML).toContain('<ul><li>a</li></ul>')
+    expect(strippedComponents).toEqual([])
+  })
+
+  test('menu and an open dialog are kept', () => {
+    expect(compile('<menu><li>a</li></menu><dialog open>hi</dialog>').staticHTML).toContain('<dialog open>hi</dialog>')
+  })
+
+  test("a <pre>'s first blank line survives the trip through HTML", () => {
+    const html = compile('<pre>\n\nindented</pre>').staticHTML
+    const reparsed = new (require('jsdom').JSDOM)(`<body>${html}`).window.document.querySelector('pre')
+    expect(reparsed.textContent).toBe('\nindented')
   })
 })

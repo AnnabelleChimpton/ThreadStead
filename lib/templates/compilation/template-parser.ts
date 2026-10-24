@@ -612,6 +612,10 @@ function finishSanitizedTree(node: HastLike): boolean {
       // A gradient, pattern or textPath may build on another one in the page, never a file elsewhere
       if (SVG_TAG_NAMES.has(node.tagName ?? '') && 'href' in props && !String(props.href).startsWith('#')) delete props.href;
       if ('href' in props) props.href = prefixFragment(props.href);
+      // Inline, as in the CSS: no look-alike password text (sanitizeCss)
+      if (typeof props.style === 'string' && /text-security/i.test(props.style)) {
+        props.style = props.style.replace(/-webkit-text-security\s*:[^;]*;?/gi, '');
+      }
       if ('useMap' in props) props.useMap = prefixFragment(props.useMap);
       for (const key of URL_REFERENCE_PROPERTIES) {
         const value = props[key];
@@ -684,6 +688,24 @@ function paragraphBoxesNote(components: Set<string>): string {
   return `A paragraph (<p>) holding ${names} is a <div> on your page: things that draw a box can't sit inside a paragraph. Your p { } CSS doesn't reach it; use div, or give it a class.`;
 }
 
+/**
+ * Old tags browsers still draw, as the tags that mean the same now: they
+ * were unwrapped, losing an acronym's tooltip, a nobr's one line and an
+ * xmp's monospace (template audit 11 #6a, 02 R14a).
+ */
+const OLD_TAG_NAMES: Record<string, string> = { acronym: 'abbr', nobr: 'span', xmp: 'pre', listing: 'pre', dir: 'ul' };
+function renameOldTags(node: HastLike): void {
+  const renamed = node.type === 'element' && node.tagName ? OLD_TAG_NAMES[node.tagName] : undefined;
+  if (renamed) {
+    if (node.tagName === 'nobr') {
+      const props = node.properties || (node.properties = {});
+      props.style = `white-space: nowrap;${typeof props.style === 'string' ? ` ${props.style}` : ''}`;
+    }
+    node.tagName = renamed;
+  }
+  for (const child of node.children ?? []) renameOldTags(child);
+}
+
 /** How many images load straight away; the rest as they're scrolled to */
 const EAGER_IMAGES = 3;
 
@@ -731,12 +753,15 @@ export function parseTemplate(htmlString: string): Root & {
     .use(rehypeSanitize, createCustomSchema());
 
   const tree = processor.parse(processedHtml);
+  renameOldTags(tree as HastLike);
   const processed = processor.runSync(tree) as Root;
   const removedFormAction = finishSanitizedTree(processed as HastLike);
   lazyLoadLaterImages(processed as HastLike);
   const boxedParagraphs = boxesOutOfParagraphs(processed as HastLike);
 
-  const strippedComponents = reportStrippedTags(htmlString, processed, document.head, boxedParagraphs.size > 0 ? new Set(['p']) : undefined);
+  // Renamed, not taken out: a boxed <p> (now a <div>) and the old tags
+  const renamed = new Set([...Object.keys(OLD_TAG_NAMES), ...(boxedParagraphs.size > 0 ? ['p'] : [])]);
+  const strippedComponents = reportStrippedTags(htmlString, processed, document.head, renamed);
 
   // Component props that won't do what the author meant, for the editor
   const attributeWarnings = [

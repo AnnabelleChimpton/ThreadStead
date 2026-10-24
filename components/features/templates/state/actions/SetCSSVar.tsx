@@ -95,7 +95,8 @@ export function executeSetCSSVarAction(
     // A worked-out value never loads anything: with a visitor's own values
     // (persisted Vars, ?var= links) in a url() it would be a tracking pixel.
     // A value written out in the page is the same as its CSS, so it may.
-    if (LOADS_SOMETHING.test(cssValue)) return;
+    // A backslash can spell url( as an escape (u\72l), so worked-out values can't have one
+    if (LOADS_SOMETHING.test(cssValue) || cssValue.includes('\\')) return;
   } else if (value !== undefined) {
     cssValue = value;
   } else {
