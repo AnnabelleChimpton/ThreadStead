@@ -25,11 +25,26 @@ test("RemoveAt in a ForEach removes the loop's own item", () => {
   expect(setVariable).toHaveBeenCalledWith('books', ['a', 'c'])
 })
 
-test('AddClass target="this" reaches the element the event happened on', () => {
+const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve))
+
+test('AddClass target="this" reaches the element the event happened on', async () => {
   const { templateState } = stateWith([])
   const button = document.createElement('button')
   executeActions(<AddClass target="this" className="pressed" />, templateState, {}, null, button)
+  await nextFrame()
   expect(button.className).toBe('pressed')
+})
+
+// Template audit 06 §3: a <Set> that shows an element, then <AddClass> for it,
+// in one click: the class actions run once React has drawn it
+test('AddClass reaches an element the same click put on the page', async () => {
+  const { templateState } = stateWith([])
+  document.body.innerHTML = '<div data-template-root></div>'
+  executeActions(<AddClass target="#late" className="lit" />, templateState, {}, null)
+  // what React draws for the click, after the actions ran
+  document.querySelector('[data-template-root]')!.innerHTML = '<p id="user-content-late"></p>'
+  await nextFrame()
+  expect(document.querySelector('#user-content-late')!.className).toBe('lit')
 })
 
 test('ConditionalAttr gets the resident data, not the template state', () => {

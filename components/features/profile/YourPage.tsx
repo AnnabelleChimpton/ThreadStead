@@ -19,6 +19,8 @@ import Link from 'next/link';
 import Button from '@/components/ui/Button';
 import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner';
 import WidgetSlotPicker from '@/components/features/profile/WidgetSlotPicker';
+import { ImageLibrary } from '@/components/features/templates/ImagePicker';
+import { PixelIcon } from '@/components/ui/PixelIcon';
 import ThemeSwatch from '@/components/features/profile/ThemeSwatch';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import { requestCapability } from '@/lib/api/client/capability';
@@ -121,6 +123,7 @@ export default function YourPage({ username }: { username: string }) {
   const [busy, setBusy] = useState(false);
   const [undo, setUndo] = useState<{ label: string; previous: PageState } | null>(null);
   const [knobs, setKnobs] = useState<Knobs>({});
+  const [pickingGround, setPickingGround] = useState(false);
   const [previewKey, setPreviewKey] = useState(0);
   const previewRef = useRef<HTMLIFrameElement>(null);
   // Your own HTML page: its source, and unsaved theme option values by optionKey
@@ -498,18 +501,37 @@ export default function YourPage({ username }: { username: string }) {
                     <span className="font-mono text-xs">{shown.ground}</span>
                   </span>
                 </label>
-                <label className="block text-sm text-nb-ink sm:col-span-2">
-                  Background image (optional)
-                  <input
-                    type="url"
-                    inputMode="url"
-                    placeholder="https://…"
-                    value={knobs.groundImage || ''}
-                    onChange={(e) => setKnobs({ ...knobs, groundImage: e.target.value || undefined })}
-                    className="block w-full mt-1 border border-black p-2 bg-white"
+                <div className="block text-sm text-nb-ink sm:col-span-2">
+                  <label htmlFor="your-page-ground-image">Background image (optional)</label>
+                  <span className="flex gap-2 items-center mt-1">
+                    <input
+                      id="your-page-ground-image"
+                      type="url"
+                      inputMode="url"
+                      placeholder="https://…"
+                      value={knobs.groundImage || ''}
+                      onChange={(e) => setKnobs({ ...knobs, groundImage: e.target.value || undefined })}
+                      className="block w-full border border-black p-2 bg-white"
+                    />
+                    <Button variant="secondary" size="sm" onClick={() => setPickingGround(true)} className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                      <PixelIcon name="image" size={14} /> Choose
+                    </Button>
+                  </span>
+                  <span className="text-xs text-nb-ink-mid">One of your pictures, or a link that starts with https://. It covers the page behind your cards.</span>
+                  {/* Uploads from here are page pictures, not gallery posts (template audit 09 G1) */}
+                  <ImageLibrary
+                    isOpen={pickingGround}
+                    username={username}
+                    onClose={() => setPickingGround(false)}
+                    onChoose={(url) => {
+                      setKnobs({ ...knobs, groundImage: url });
+                      setPickingGround(false);
+                    }}
+                    title="Choose a background"
+                    hint="Pick one of your pictures, or upload a new one."
+                    emptyHint="Upload one and it becomes your background."
                   />
-                  <span className="text-xs text-nb-ink-mid">A link to an image that starts with https://. It covers the page behind your cards.</span>
-                </label>
+                </div>
                 <label className="block text-sm text-nb-ink">
                   Heading font
                   <select
@@ -625,7 +647,7 @@ export default function YourPage({ username }: { username: string }) {
             <section aria-labelledby="your-page-widgets">
               <h3 id="your-page-widgets" className="text-lg font-bold mb-1 text-nb-ink scroll-mt-24">Under your header</h3>
               <p className="text-sm text-nb-ink-mid mb-3">A sticky note, your song or a few buttons, on your page as it is.</p>
-              <WidgetSlotPicker />
+              <WidgetSlotPicker username={username} />
             </section>
           )}
 

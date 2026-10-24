@@ -49,7 +49,7 @@ beforeEach(() => {
 
 afterEach(() => jest.restoreAllMocks());
 
-async function renderAndPaste(value: string, initialCSS = '') {
+async function renderAndPaste(value: string, initialCSS = '', how: 'paste' | 'type' = 'paste') {
   const onSave = jest.fn().mockResolvedValue(undefined);
   render(
     <ToastProvider>
@@ -63,7 +63,9 @@ async function renderAndPaste(value: string, initialCSS = '') {
       />
     </ToastProvider>
   );
-  fireEvent.change(screen.getByLabelText('template-code'), { target: { value } });
+  const code = screen.getByLabelText('template-code');
+  if (how === 'paste') fireEvent.paste(code, { clipboardData: { getData: () => value } });
+  else fireEvent.change(code, { target: { value } });
   // The save message replaces it once saved
   const message = document.body.textContent || '';
   fireEvent.click(screen.getByRole('button', { name: /save/i }));
@@ -116,16 +118,31 @@ describe('EnhancedTemplateEditor paste handling', () => {
     expect(css).toBe('p { color: teal; }')
   })
 
-  it('leaves other stylesheet links, and preconnects with no font to go with them, in the HTML', async () => {
-    const { template, css } = await renderAndPaste(
-      pasted('<link rel="preconnect" href="https://fonts.googleapis.com">\n<link rel="stylesheet" href="https://example.neocities.org/style.css">', '')
-    );
-
-    expect(template).toContain('https://example.neocities.org/style.css');
-    expect(template).toContain('<link rel="preconnect" href="https://fonts.googleapis.com">');
-    expect(css).toBe('');
+  it('leaves other stylesheet links, and preconnects with no font to go with them, in the HTML', () => {
+    // Nothing to move: the paste goes in as it is
+    const { movePastedStyles } = jest.requireActual('@/lib/templates/editor/pasted-styles')
+    expect(movePastedStyles(
+      pasted('<link rel="preconnect" href="https://fonts.googleapis.com">\n<link rel="stylesheet" href="https://example.neocities.org/style.css">', ''),
+      ''
+    )).toBeNull()
   });
 });
+
+describe('only a paste moves them (template audit 07 #3)', () => {
+  it('a <style> typed by hand stays where it was written', async () => {
+    const { template, css } = await renderAndPaste('<p>hi</p>\n<style>p { color: teal; }</style>', '', 'type')
+    expect(template).toContain('<style>p { color: teal; }</style>')
+    expect(css).toBe('')
+  })
+
+  it('a <style media> keeps its media, and a whole page replaces the CSS even over another whole page', () => {
+    const { movePastedStyles } = jest.requireActual('@/lib/templates/editor/pasted-styles')
+    expect(movePastedStyles('<p>x</p><style media="print">nav { display: none }</style>', '').css)
+      .toBe('@media print {\nnav { display: none }\n}')
+    expect(movePastedStyles(pasted(''), 'h2 { color: red }').css).toBe('body { color: pink; }')
+    expect(movePastedStyles('<p>no styles</p>', 'x')).toBeNull()
+  })
+})
 
 describe('afterEnclosingTag: inserts never land inside a tag', () => {
   // After Insert image the cursor sits in alt="", and the next palette

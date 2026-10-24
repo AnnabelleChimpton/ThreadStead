@@ -31,6 +31,22 @@ describe('useLocalDraft', () => {
     expect(window.localStorage.getItem(KEY)).toBeNull();
   });
 
+  it('drops the stored draft when the editor goes back to clean without a save', () => {
+    const { rerender } = renderHook(({ value, dirty }) => useLocalDraft(KEY, value, dirty), {
+      initialProps: { value: { css: 'edited' }, dirty: true },
+    });
+    act(() => { jest.advanceTimersByTime(1000); });
+    expect(window.localStorage.getItem(KEY)).not.toBeNull();
+    rerender({ value: { css: 'saved' }, dirty: false });
+    expect(window.localStorage.getItem(KEY)).toBeNull();
+  });
+
+  it('keeps an older draft when the editor opens clean', () => {
+    window.localStorage.setItem(KEY, JSON.stringify({ data: { css: 'draft!' }, savedAt: 123 }));
+    renderHook(() => useLocalDraft(KEY, { css: 'server value' }, false));
+    expect(window.localStorage.getItem(KEY)).not.toBeNull();
+  });
+
   it('drops corrupt drafts without crashing', () => {
     window.localStorage.setItem(KEY, 'not json{');
     const { result } = renderHook(() => useLocalDraft(KEY, { css: 'a' }, false));

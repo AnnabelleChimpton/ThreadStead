@@ -51,7 +51,8 @@ interface FieldBase {
 }
 export type WidgetField =
   | (FieldBase & { type: 'text' | 'textarea'; maxLength: number; required?: boolean })
-  | (FieldBase & { type: 'url'; required?: boolean })
+  /** picture: a "Choose a picture" button opens your own images (WidgetSlotPicker) */
+  | (FieldBase & { type: 'url'; required?: boolean; picture?: boolean })
   | (FieldBase & { type: 'choice'; options: ReadonlyArray<{ value: string; label: string }> })
   | (FieldBase & { type: 'images'; maxItems: number });
 
@@ -180,11 +181,12 @@ export const WIDGETS: Record<WidgetType, WidgetDefinition> = {
     fields: [
       {
         key: 'image',
-        label: 'Picture link',
+        label: 'Picture',
         type: 'url',
+        picture: true,
         required: true,
         placeholder: 'https://…',
-        hint: 'Copy an image link from your Media tab, or any https:// image.',
+        hint: 'Choose one of your pictures, or paste any https:// image link.',
       },
       { key: 'caption', label: 'Caption', type: 'text', maxLength: 60 },
       { key: 'tilt', label: 'Tilt', type: 'choice', options: TILT },

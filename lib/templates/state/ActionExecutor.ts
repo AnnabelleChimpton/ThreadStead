@@ -80,9 +80,15 @@ type ActionExecutorFn = (call: ActionCall) => void | Promise<void>;
 // State, list and text actions: (props, templateState, forEachContext)
 const withState = (fn: (props: any, templateState: any, forEachContext?: any) => void | Promise<void>): ActionExecutorFn =>
   (call) => fn(call.props, call.templateState, call.forEachContext);
-// Class actions: (props, the element the event happened on)
+// Class actions: (props, the element the event happened on), once React has
+// drawn what the same click changed: a <Set> that shows an element, then an
+// <AddClass> for it, found nothing (template audit 06 §3)
 const onElement = (fn: (props: any, currentElement?: HTMLElement) => void): ActionExecutorFn =>
-  (call) => fn(call.props, call.currentElement);
+  (call) => {
+    const run = () => fn(call.props, call.currentElement);
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(run);
+    else run();
+  };
 
 /**
  * Action registry for O(1) lookup

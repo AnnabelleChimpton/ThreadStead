@@ -115,6 +115,8 @@ export default function Slider(props: SliderProps) {
         onInput={handleInput}
         onMouseUp={handleRelease}
         onTouchEnd={handleRelease}
+        // Arrow keys move it too; OnChange runs when the key comes up (template audit 06 #14e)
+        onKeyUp={(e) => /^(?:Arrow|Page|Home$|End$)/.test(e.key) && handleRelease()}
         className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600 hover:accent-blue-700"
       />
       <div className="flex justify-between text-xs text-gray-500 dark:text-gray-500">

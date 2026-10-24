@@ -10,6 +10,7 @@ import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import { useToast } from '@/contexts/ToastContext';
 import { useConfirm } from '@/contexts/ConfirmContext';
 import WidgetSlot, { type WidgetSlotContent } from '@/components/core/profile/WidgetSlot';
+import { ImageLibrary } from '@/components/features/templates/ImagePicker';
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
 import {
   MAX_WIDGETS,
@@ -60,7 +61,40 @@ function residentDataFor(resident: Resident): ResidentData {
   };
 }
 
-export default function WidgetSlotPicker() {
+/** Whose images "Choose a picture" opens */
+const OwnerContext = React.createContext('');
+
+/**
+ * Pick one of your own images (or upload one) for a picture field. Uploads
+ * from here are page pictures, not gallery posts; the Media page's route made
+ * a public "Featured" post of every 88×31 (template audit 09 G1).
+ */
+function ChoosePicture({ label = 'Choose a picture', onChoose }: { label?: string; onChoose: (url: string) => void }) {
+  const username = React.useContext(OwnerContext);
+  const [open, setOpen] = React.useState(false);
+  if (!username) return null;
+  return (
+    <>
+      <Button variant="secondary" size="sm" onClick={() => setOpen(true)} className="inline-flex items-center gap-1.5 whitespace-nowrap">
+        <PixelIcon name="image" size={14} /> {label}
+      </Button>
+      <ImageLibrary
+        isOpen={open}
+        username={username}
+        onClose={() => setOpen(false)}
+        onChoose={(url) => {
+          onChoose(url);
+          setOpen(false);
+        }}
+        title="Choose a picture"
+        hint="Pick one of your pictures, or upload a new one."
+        emptyHint="Upload one and it goes right in."
+      />
+    </>
+  );
+}
+
+export default function WidgetSlotPicker({ username = '' }: { username?: string }) {
   const toast = useToast();
   const confirm = useConfirm();
 
@@ -221,140 +255,142 @@ export default function WidgetSlotPicker() {
   }
 
   return (
-    <div className="ts-widget-slot-picker space-y-5">
-      {/* The slot as it will look (site colours here; your theme applies on your page) */}
-      <div>
-        <h4 className="font-semibold text-nb-ink mb-2">Preview</h4>
-        {preview && !empty ? (
-          <WidgetSlot slot={preview} residentData={residentData} preview="card" />
+    <OwnerContext.Provider value={username}>
+      <div className="ts-widget-slot-picker space-y-5">
+        {/* The slot as it will look (site colours here; your theme applies on your page) */}
+        <div>
+          <h4 className="font-semibold text-nb-ink mb-2">Preview</h4>
+          {preview && !empty ? (
+            <WidgetSlot slot={preview} residentData={residentData} preview="card" />
+          ) : (
+            <div className="border-2 border-dashed border-nb-ink-mid/50 rounded-md p-6 text-center text-nb-ink-mid">
+              Nothing in the slot yet. Add a widget below.
+            </div>
+          )}
+          {problem && (
+            <p className="mt-2 text-sm text-nb-rose-ink flex items-start gap-1" role="alert">
+              <PixelIcon name="alert" size={16} className="mt-0.5 flex-shrink-0" /> {problem}
+            </p>
+          )}
+          {stripped.length > 0 && (
+            <div className="mt-2 text-sm text-nb-ink" role="status">
+              <p className="font-semibold">Left out of the slot:</p>
+              <ul className="list-disc pl-5">
+                {stripped.map((s, i) => (
+                  <li key={`${s.name}-${i}`}>
+                    {s.name}
+                    {s.reason ? `: ${s.reason}` : ''}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <p className="mt-2 text-sm text-nb-ink-mid">
+            Your theme applies on your page.{' '}
+            {loaded.resident.handle && <Link href={`/resident/${loaded.resident.handle}`}>See your page</Link>}
+          </p>
+        </div>
+
+        {/* The widgets in the slot, each with its form */}
+        {handSource === null ? (
+          widgets.length > 0 && (
+            <ol className="space-y-3 list-none p-0 m-0">
+              {widgets.map((widget, index) => (
+                <WidgetForm
+                  key={`${widget.type}-${index}`}
+                  widget={widget}
+                  index={index}
+                  count={widgets.length}
+                  hasSong={hasSong}
+                  onChange={(next) => update(index, next)}
+                  onMove={(by) => move(index, by)}
+                  onRemove={() => remove(index)}
+                />
+              ))}
+            </ol>
+          )
         ) : (
-          <div className="border-2 border-dashed border-nb-ink-mid/50 rounded-md p-6 text-center text-nb-ink-mid">
-            Nothing in the slot yet. Add a widget below.
+          <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-4 text-sm text-nb-ink">
+            <p className="mb-2">You’re editing the code by hand, so the forms are put away.</p>
+            <Button variant="secondary" size="sm" onClick={backToForms}>
+              Use the forms again
+            </Button>
           </div>
         )}
-        {problem && (
-          <p className="mt-2 text-sm text-nb-rose-ink flex items-start gap-1" role="alert">
-            <PixelIcon name="alert" size={16} className="mt-0.5 flex-shrink-0" /> {problem}
-          </p>
-        )}
-        {stripped.length > 0 && (
-          <div className="mt-2 text-sm text-nb-ink" role="status">
-            <p className="font-semibold">Left out of the slot:</p>
-            <ul className="list-disc pl-5">
-              {stripped.map((s, i) => (
-                <li key={`${s.name}-${i}`}>
-                  {s.name}
-                  {s.reason ? `: ${s.reason}` : ''}
-                </li>
-              ))}
+
+        {/* Save */}
+        <div className="flex flex-wrap items-center gap-3">
+          <Button onClick={save} disabled={saving || !dirty || (!!problem && !empty)} className="min-h-[44px]">
+            {saving ? 'Saving…' : 'Save widgets'}
+          </Button>
+          {!empty && (
+            <Button variant="secondary" onClick={clearAll} className="min-h-[44px]">
+              Take them all out
+            </Button>
+          )}
+          <span className="text-sm text-nb-ink-mid" aria-live="polite">
+            {dirty ? 'Not saved yet' : ''}
+          </span>
+        </div>
+
+        {/* The gallery */}
+        {handSource === null && (
+          <div>
+            <h4 className="font-semibold text-nb-ink mb-1">Add a widget</h4>
+            <p className="text-sm text-nb-ink-mid mb-3">
+              {full ? `That’s ${MAX_WIDGETS}, the most the slot holds.` : `Up to ${MAX_WIDGETS}. They sit side by side, or stacked on a phone.`}
+            </p>
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 list-none p-0 m-0">
+              {WIDGET_LIST.map((def) => {
+                const blocked = def.needsSong && !hasSong;
+                const sample = loaded.previews[def.type];
+                return (
+                  <li key={def.type} className="border-2 border-nb-ink-mid/40 rounded-md bg-white/60 p-3 flex flex-col gap-2">
+                    <div className="flex items-start gap-2">
+                      <PixelIcon name={def.icon} size={20} className="mt-0.5 flex-shrink-0" />
+                      <div className="min-w-0">
+                        <p className="font-semibold text-nb-ink leading-tight">{def.name}</p>
+                        <p className="text-sm text-nb-ink-mid">{def.blurb}</p>
+                      </div>
+                    </div>
+                    {sample && !blocked && (
+                      <div className="ts-widget-gallery-preview h-36 overflow-hidden flex items-center justify-center pointer-events-none" aria-hidden="true">
+                        <WidgetSlot slot={sample} residentData={residentData} preview="bare" />
+                      </div>
+                    )}
+                    {blocked ? (
+                      <p className="text-sm text-nb-ink-mid mt-auto">
+                        Pick a song in <Link href="/settings?tab=music">Music</Link> first.
+                      </p>
+                    ) : (
+                      <Button variant="secondary" size="sm" onClick={() => add(def.type)} disabled={full} className="mt-auto self-start">
+                        Add
+                      </Button>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}
-        <p className="mt-2 text-sm text-nb-ink-mid">
-          Your theme applies on your page.{' '}
-          {loaded.resident.handle && <Link href={`/resident/${loaded.resident.handle}`}>See your page</Link>}
-        </p>
-      </div>
 
-      {/* The widgets in the slot, each with its form */}
-      {handSource === null ? (
-        widgets.length > 0 && (
-          <ol className="space-y-3 list-none p-0 m-0">
-            {widgets.map((widget, index) => (
-              <WidgetForm
-                key={`${widget.type}-${index}`}
-                widget={widget}
-                index={index}
-                count={widgets.length}
-                hasSong={hasSong}
-                onChange={(next) => update(index, next)}
-                onMove={(by) => move(index, by)}
-                onRemove={() => remove(index)}
-              />
-            ))}
-          </ol>
-        )
-      ) : (
-        <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-4 text-sm text-nb-ink">
-          <p className="mb-2">You’re editing the code by hand, so the forms are put away.</p>
-          <Button variant="secondary" size="sm" onClick={backToForms}>
-            Use the forms again
-          </Button>
-        </div>
-      )}
-
-      {/* Save */}
-      <div className="flex flex-wrap items-center gap-3">
-        <Button onClick={save} disabled={saving || !dirty || (!!problem && !empty)} className="min-h-[44px]">
-          {saving ? 'Saving…' : 'Save widgets'}
-        </Button>
-        {!empty && (
-          <Button variant="secondary" onClick={clearAll} className="min-h-[44px]">
-            Take them all out
-          </Button>
-        )}
-        <span className="text-sm text-nb-ink-mid" aria-live="polite">
-          {dirty ? 'Not saved yet' : ''}
-        </span>
-      </div>
-
-      {/* The gallery */}
-      {handSource === null && (
-        <div>
-          <h4 className="font-semibold text-nb-ink mb-1">Add a widget</h4>
-          <p className="text-sm text-nb-ink-mid mb-3">
-            {full ? `That’s ${MAX_WIDGETS}, the most the slot holds.` : `Up to ${MAX_WIDGETS}. They sit side by side, or stacked on a phone.`}
+        {/* The fragment itself, for anyone who wants it */}
+        <details className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-3">
+          <summary className="cursor-pointer font-semibold text-nb-ink">Edit the code</summary>
+          <p className="text-sm text-nb-ink-mid mt-2 mb-2">
+            The slot is a small piece of a page, with the same HTML and components as a page of your own. Editing it here puts the forms away.
           </p>
-          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 list-none p-0 m-0">
-            {WIDGET_LIST.map((def) => {
-              const blocked = def.needsSong && !hasSong;
-              const sample = loaded.previews[def.type];
-              return (
-                <li key={def.type} className="border-2 border-nb-ink-mid/40 rounded-md bg-white/60 p-3 flex flex-col gap-2">
-                  <div className="flex items-start gap-2">
-                    <PixelIcon name={def.icon} size={20} className="mt-0.5 flex-shrink-0" />
-                    <div className="min-w-0">
-                      <p className="font-semibold text-nb-ink leading-tight">{def.name}</p>
-                      <p className="text-sm text-nb-ink-mid">{def.blurb}</p>
-                    </div>
-                  </div>
-                  {sample && !blocked && (
-                    <div className="ts-widget-gallery-preview h-36 overflow-hidden flex items-center justify-center pointer-events-none" aria-hidden="true">
-                      <WidgetSlot slot={sample} residentData={residentData} preview="bare" />
-                    </div>
-                  )}
-                  {blocked ? (
-                    <p className="text-sm text-nb-ink-mid mt-auto">
-                      Pick a song in <Link href="/settings?tab=music">Music</Link> first.
-                    </p>
-                  ) : (
-                    <Button variant="secondary" size="sm" onClick={() => add(def.type)} disabled={full} className="mt-auto self-start">
-                      Add
-                    </Button>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      )}
-
-      {/* The fragment itself, for anyone who wants it */}
-      <details className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-3">
-        <summary className="cursor-pointer font-semibold text-nb-ink">Edit the code</summary>
-        <p className="text-sm text-nb-ink-mid mt-2 mb-2">
-          The slot is a small piece of a page, with the same HTML and components as a page of your own. Editing it here puts the forms away.
-        </p>
-        <textarea
-          className={`${INPUT} font-mono text-sm h-48`}
-          value={handSource ?? previewSource}
-          maxLength={MAX_SLOT_SOURCE_CHARS}
-          spellCheck={false}
-          aria-label="The slot’s code"
-          onChange={(e) => setHandSource(e.target.value)}
-        />
-      </details>
-    </div>
+          <textarea
+            className={`${INPUT} font-mono text-sm h-48`}
+            value={handSource ?? previewSource}
+            maxLength={MAX_SLOT_SOURCE_CHARS}
+            spellCheck={false}
+            aria-label="The slot’s code"
+            onChange={(e) => setHandSource(e.target.value)}
+          />
+        </details>
+      </div>
+    </OwnerContext.Provider>
   );
 }
 
@@ -472,16 +508,19 @@ function Field({
   return (
     <div>
       {label}
-      <input
-        id={id}
-        type={field.type === 'url' ? 'url' : 'text'}
-        inputMode={field.type === 'url' ? 'url' : undefined}
-        className={INPUT}
-        value={text}
-        placeholder={field.placeholder}
-        maxLength={field.type === 'text' ? field.maxLength : 2000}
-        onChange={(e) => onChange(e.target.value)}
-      />
+      <div className="flex gap-2 items-center">
+        <input
+          id={id}
+          type={field.type === 'url' ? 'url' : 'text'}
+          inputMode={field.type === 'url' ? 'url' : undefined}
+          className={INPUT}
+          value={text}
+          placeholder={field.placeholder}
+          maxLength={field.type === 'text' ? field.maxLength : 2000}
+          onChange={(e) => onChange(e.target.value)}
+        />
+        {field.type === 'url' && field.picture && <ChoosePicture onChoose={onChange} />}
+      </div>
       {hint}
     </div>
   );
@@ -506,7 +545,7 @@ function ImagesField({
       <p className="text-xs text-nb-ink-mid mb-2">An image link for each button (88×31 pixels), and where it goes if you like.</p>
       <ol className="space-y-2 list-none p-0 m-0">
         {rows.map((row, i) => (
-          <li key={i} className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2 items-center">
+          <li key={i} className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr_auto] gap-2 items-center">
             <input
               id={i === 0 ? id : undefined}
               type="url"
@@ -517,6 +556,7 @@ function ImagesField({
               value={row.image}
               onChange={(e) => setRow(i, { ...row, image: e.target.value })}
             />
+            <ChoosePicture label="Choose" onChoose={(url) => setRow(i, { ...row, image: url })} />
             <input
               type="url"
               inputMode="url"

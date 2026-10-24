@@ -15,7 +15,9 @@ const WRITE_DEBOUNCE_MS = 800;
  * loaded is surfaced as `pendingDraft` so the page can offer to restore it.
  *
  * The caller owns the draft lifecycle at save time: call `clearDraft()` after
- * a successful save or reset so a stale draft never shadows saved work.
+ * a successful save or reset so a stale draft never shadows saved work. When
+ * the editor goes back to clean without a save (every edit undone), the
+ * stored draft goes too: it used to come back as "unsaved work" next time.
  */
 export function useLocalDraft<T>(key: string, liveValue: T, isDirty: boolean) {
   const [pendingDraft, setPendingDraft] = useState<LocalDraft<T> | null>(null);
@@ -58,6 +60,14 @@ export function useLocalDraft<T>(key: string, liveValue: T, isDirty: boolean) {
     }, WRITE_DEBOUNCE_MS);
     return () => window.clearTimeout(timer);
   }, [key, isDirty, liveValue]);
+
+  const wasDirty = useRef(isDirty);
+  useEffect(() => {
+    if (wasDirty.current && !isDirty && typeof window !== 'undefined') {
+      try { window.localStorage.removeItem(key); } catch { /* unavailable */ }
+    }
+    wasDirty.current = isDirty;
+  }, [key, isDirty]);
 
   const clearDraft = useCallback(() => {
     try { window.localStorage.removeItem(key); } catch { /* unavailable */ }

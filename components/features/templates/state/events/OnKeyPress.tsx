@@ -50,6 +50,10 @@ export default function OnKeyPress(props: OnKeyPressProps) {
     }
 
     const handleKeyPress = (event: KeyboardEvent) => {
+      // Not while someone types: a letter key went off in the guestbook box,
+      // the site's search and chat too (template audit Rafa R23)
+      const target = event.target as HTMLElement | null;
+      if (target?.closest?.('input, textarea, select, [contenteditable]:not([contenteditable="false"])')) return;
       // Check if the pressed key matches
       if (event.key === keyToWatch) {
         executeActions(children, templateState, residentData, forEachContext);

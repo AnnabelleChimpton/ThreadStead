@@ -31,7 +31,7 @@ import NavigationPreview from '@/components/features/templates/NavigationPreview
 import ValidationFeedbackPanel, { hasStrippedNeedingAttention, type StrippedEntry } from './ValidationFeedbackPanel';
 import { cssProblems } from '@/lib/utils/css/css-problems';
 import ProblemsStrip, { NO_PROBLEMS, firstProblemLine, type LiveProblems } from './ProblemsStrip';
-import { extractDocument } from '@/lib/templates/compilation/document-head';
+import { movePastedStyles } from '@/lib/templates/editor/pasted-styles';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import { requestCapability } from '@/lib/api/client/capability';
 import { useRouter } from 'next/router';
@@ -68,9 +68,6 @@ export function afterEnclosingTag(html: string, pos: number): number {
   const close = html.indexOf('>', pos);
   return close === -1 ? pos : close + 1;
 }
-
-/** A whole HTML document pasted in, not a piece of one */
-const WHOLE_PAGE = /<!doctype\s+html|<html[\s>]/i;
 
 // CodeMirror is editor-page-only — loaded dynamically so it never lands in
 // the shared bundle (same pattern as css-editor.tsx).
@@ -538,19 +535,6 @@ export default function EnhancedTemplateEditor({
     confirmAction: () => {}
   });
 
-  // Check if user has unsaved content that would be lost
-  const hasUnsavedContent = () => {
-    // Trim both sides: saved CSS usually ends in a newline, and comparing it
-    // untrimmed made every saved theme look like an unsaved edit.
-    const hasCustomTemplate = template && template.trim() !== '' && template.trim() !== unwrappedTemplate.trim();
-    const hasCustomCSS = customCSS && customCSS.trim() !== '' &&
-      customCSS.trim() !== '/* Add your custom CSS here */' &&
-      customCSS.trim() !== '/* Add your custom CSS here to style the standard layout */' &&
-      customCSS.trim() !== initialCSS.trim();
-    
-    return hasCustomTemplate || hasCustomCSS;
-  };
-  
   // Smart check for whether content is essentially empty
   const isContentEmpty = () => {
     const isTemplateEmpty = !template || template.trim() === '';
@@ -566,8 +550,9 @@ export default function EnhancedTemplateEditor({
     confirmAction: () => void,
     { always = false }: { always?: boolean } = {}
   ) => {
-    // Skip warning if content is empty or matches initial values
-    if (!always && (isContentEmpty() || !hasUnsavedContent())) {
+    // Skip warning if content is empty or nothing's changed since the last save
+    // (the same test as the Save button's: the starter a new page opens on isn't an edit)
+    if (!always && (isContentEmpty() || !hasUnsavedChanges)) {
       confirmAction();
     } else {
       setWarningDialog({
@@ -1135,11 +1120,14 @@ export default function EnhancedTemplateEditor({
   // Plain page starter (never a blank box). Once, guarded by the ref. Nothing
   // is saved until Save, and the page's old CSS stays in History then.
   const initialModeHandledRef = useRef(false);
+  // The starter's HTML, until the change tracking below takes it as the starting point
+  const starterBaselineRef = useRef<string | null>(null);
   useEffect(() => {
     if (initialModeHandledRef.current) return;
     if (initialEditorMode === 'template' && savedOnStandardLayout && !template.trim()) {
       initialModeHandledRef.current = true;
       const { html, css } = splitStarter(STARTERS[0].template);
+      starterBaselineRef.current = html;
       setTemplate(html);
       setCustomCSS(css);
       setCSSMode('disable');
@@ -1155,6 +1143,15 @@ export default function EnhancedTemplateEditor({
   const currentSnapshot = JSON.stringify({ template, customCSS, cssMode, useStandardLayout, hideNavigation });
   const savedSnapshotRef = useRef<string | null>(null);
   useEffect(() => {
+    // The starter a page with no HTML opens on is where it starts, not an
+    // edit: no "unsaved" state, draft or data-loss warnings until the person
+    // changes something (template audit 07 #2, 09 J1)
+    if (starterBaselineRef.current !== null && template === starterBaselineRef.current) {
+      starterBaselineRef.current = null;
+      savedSnapshotRef.current = currentSnapshot;
+      setHasUnsavedChanges(false);
+      return;
+    }
     if (savedSnapshotRef.current === null) {
       // A started-from page is never the saved one, so it opens unsaved
       savedSnapshotRef.current = startsUnsaved ? '' : currentSnapshot;
@@ -1493,111 +1490,50 @@ export default function EnhancedTemplateEditor({
   // Template edits: move pasted <style> blocks and Google Fonts <link>s into
   // the CSS field and auto-switch to advanced mode when HTML shows up in
   // standard-layout mode.
+  // Leaving the standard layout: typing HTML makes this an own-HTML page
+  const switchToOwnHTML = () => {
+    if (!useStandardLayout) return false;
+    setUseStandardLayout(false);
+    // Set CSS mode to 'disable' for full control, like gallery templates
+    if (cssMode === 'inherit') setCSSMode('disable');
+    return true;
+  };
+
   const handleTemplateChange = (newValue: string) => {
-    // Check if the pasted/typed content has embedded style tags
-    const styleMatch = newValue.match(/<style[^>]*>([\s\S]*?)<\/style>/gi);
-    // Google Fonts stylesheet links become @import lines, and the preconnect
-    // hints Google's snippet pastes with them go too (other <link>s stay, the
-    // report covers them)
-    const linkTags = newValue.match(/<link\b[^>]*>/gi) || [];
-    const fontLinks = linkTags
-      .map((tag) => ({ tag, imports: extractDocument(tag).head.fontImports }))
-      .filter((link) => link.imports.length > 0);
-    const fontHints = fontLinks.length > 0
-      ? linkTags.filter((tag) =>
-          /\brel\s*=\s*["']?(?:preconnect|dns-prefetch)\b/i.test(tag) &&
-          /\bhref\s*=\s*["']?https:\/\/fonts\.(?:googleapis|gstatic)\.com\/?["'\s>]/i.test(tag))
-      : [];
-    if (styleMatch || fontLinks.length > 0) {
-      // Extract all CSS from style tags
-      let extractedCSS = '';
-      styleMatch?.forEach(styleTag => {
-        const cssMatch = styleTag.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
-        if (cssMatch && cssMatch[1]) {
-          extractedCSS += cssMatch[1].trim() + '\n\n';
-        }
-      });
-
-      const existingCSS = customCSS || '';
-      const fontImports = Array.from(new Set(fontLinks.flatMap((link) => link.imports)))
-        .filter((line) => !existingCSS.includes(line));
-      if (fontImports.length > 0) {
-        extractedCSS = `${fontImports.join('\n')}\n\n${extractedCSS}`;
-      }
-
-      // Remove style tags and font links from HTML, with their line when they had one to themselves
-      let cleanedHTML = newValue;
-      [...(styleMatch || []), ...fontLinks.map(({ tag }) => tag), ...fontHints].forEach((tag) => {
-        const at = cleanedHTML.indexOf(tag);
-        if (at === -1) return;
-        let start = at;
-        let end = at + tag.length;
-        const lineStart = cleanedHTML.lastIndexOf('\n', at - 1) + 1;
-        const lineEnd = cleanedHTML.indexOf('\n', end);
-        if (!cleanedHTML.slice(lineStart, at).trim() && !cleanedHTML.slice(end, lineEnd === -1 ? undefined : lineEnd).trim()) {
-          start = lineStart;
-          end = lineEnd === -1 ? cleanedHTML.length : lineEnd + 1;
-        }
-        cleanedHTML = cleanedHTML.slice(0, start) + cleanedHTML.slice(end);
-      });
-      cleanedHTML = cleanedHTML.trim();
-
-      // Set the cleaned HTML
-      setTemplate(cleanedHTML);
-
-      // A whole page pasted in with its own <style> brings its own stylesheet:
-      // it replaces the old one (under it, the starter's rules restyled the
-      // pasted page; the saved CSS stays in History). Anything else is added
-      // to the CSS, once: an undo that brings a moved <style> back used to
-      // add it again each time.
-      const bringsWholePage = Boolean(styleMatch) && WHOLE_PAGE.test(newValue) && !WHOLE_PAGE.test(template);
-      if (extractedCSS.trim() && (bringsWholePage || !existingCSS.includes(extractedCSS.trim()))) {
-        const combinedCSS = existingCSS.trim() && !bringsWholePage
-          ? `${existingCSS}\n\n/* Extracted from HTML */\n${extractedCSS.trim()}`
-          : extractedCSS.trim();
-        setCustomCSS(combinedCSS);
-        const movedStyles = Boolean(styleMatch);
-        setSaveMessage({
-          text: movedStyles && fontLinks.length > 0
-            ? 'Moved your <style> CSS and Google Fonts links to the CSS tab'
-            : movedStyles
-              ? 'Extracted CSS from <style> tags and moved to CSS tab'
-              : 'Moved your Google Fonts links to the CSS tab as @import lines',
-          tone: 'ok',
-        });
-        setTimeout(() => setSaveMessage(null), 3000);
-      }
-
-      // Switch to advanced mode
-      if (useStandardLayout) {
-        setUseStandardLayout(false);
-        if (cssMode === 'inherit') {
-          setCSSMode('disable');
-        }
-      }
-    } else {
-      // No style tags, just set the template as-is
-      setTemplate(newValue);
-
-      // Auto-detect when user types HTML and switch to advanced mode
-      if (useStandardLayout && newValue.trim()) {
-        // Check if the user is typing HTML-like content
-        const hasHTMLTags = /<[^>]+>/.test(newValue);
-        const hasIslandTags = /\{\{[^}]+\}\}/.test(newValue);
-
-        if (hasHTMLTags || hasIslandTags) {
-          // User is typing HTML/template content, switch to advanced mode
-          // Match gallery behavior exactly
-          setUseStandardLayout(false);
-          // Set CSS mode to 'disable' for full control, like gallery templates
-          if (cssMode === 'inherit') {
-            setCSSMode('disable');
-          }
-          setSaveMessage({ text: 'Switched to Advanced Template mode', tone: 'ok' });
-          setTimeout(() => setSaveMessage(null), 3000);
-        }
-      }
+    setTemplate(newValue);
+    if (newValue.trim() && /<[^>]+>|\{\{[^}]+\}\}/.test(newValue) && switchToOwnHTML()) {
+      setSaveMessage({ text: 'Switched to Advanced Template mode', tone: 'ok' });
+      setTimeout(() => setSaveMessage(null), 3000);
     }
+  };
+
+  // A paste with <style> blocks or Google Fonts links: they go to the CSS tab
+  // and the rest goes in as one edit, so one undo takes it back
+  // (lib/templates/editor/pasted-styles.ts). Caught before CodeMirror's own
+  // paste handling, on the way down.
+  const handleTemplatePaste = (event: React.ClipboardEvent) => {
+    const moved = movePastedStyles(event.clipboardData.getData('text/plain'), customCSS);
+    if (!moved) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const view = templateViewRef.current;
+    if (view) {
+      view.dispatch(view.state.replaceSelection(moved.html), { scrollIntoView: true });
+    } else {
+      handleTemplateChange(template ? `${template}\n${moved.html}` : moved.html);
+    }
+    switchToOwnHTML();
+    if (moved.css === customCSS) return;
+    setCustomCSS(moved.css);
+    setSaveMessage({
+      text: moved.movedStyles && moved.movedFonts
+        ? 'Moved your <style> CSS and Google Fonts links to the CSS tab'
+        : moved.movedStyles
+          ? 'Extracted CSS from <style> tags and moved to CSS tab'
+          : 'Moved your Google Fonts links to the CSS tab as @import lines',
+      tone: 'ok',
+    });
+    setTimeout(() => setSaveMessage(null), 3000);
   };
 
   const username = user.primaryHandle?.split('@')[0] || user.handles?.[0]?.handle?.split('@')[0] || '';
@@ -1658,7 +1594,7 @@ export default function EnhancedTemplateEditor({
             <PixelIcon name="image" size={14} /> <span className="hidden sm:inline">Insert image</span>
           </Button>
         </div>
-        <div className="flex-1 min-h-0 overflow-hidden bg-white">
+        <div className="flex-1 min-h-0 overflow-hidden bg-white" onPasteCapture={handleTemplatePaste}>
           <CodeMirror
             onCreateEditor={(view) => { templateViewRef.current = view; }}
             value={template}
