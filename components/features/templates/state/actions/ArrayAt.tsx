@@ -1,7 +1,10 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { useTemplateState } from '@/lib/templates/state/TemplateStateProvider';
+import { globalTemplateStateManager } from '@/lib/templates/state/TemplateStateManager';
+
+/** A variable's name, as written in the page */
+const NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
 /**
  * ArrayAt Component - Reactively get an array element at a specific index
@@ -46,89 +49,25 @@ export default function ArrayAt(props: ArrayAtProps) {
     index: indexProp
   } = props;
 
-  // IMPORTANT: Always call hooks before any conditional returns
-  const templateState = useTemplateState();
-
-  // Normal mode - reactive effect to update target variable
+  // The item is a computed variable, worked out the moment the list or the
+  // index changes, so the next action in the same click already sees it.
+  // An effect used to copy it over after the click: one step behind (the
+  // Boombox showed the previous track: template audit 06 #13).
   useEffect(() => {
-
-    // Validate required props inside effect
-    if (!targetVarName || !arrayVarName || indexProp === undefined) {
-      return;
-    }
-
-    // Check if array variable exists
-    const arrayVariable = templateState.variables[arrayVarName];
-    if (!arrayVariable) {
-      console.warn(`[ArrayAt] Array variable "${arrayVarName}" not found`);
-      return;
-    }
-
-    // Get the array value
-    const arrayValue = arrayVariable.value;
-    if (!Array.isArray(arrayValue)) {
-      console.warn(`[ArrayAt] Variable "${arrayVarName}" is not an array (type: ${typeof arrayValue})`);
-      return;
-    }
-
-    // Resolve index value
-    let indexValue: number;
-    if (typeof indexProp === 'number') {
-      indexValue = indexProp;
-    } else if (typeof indexProp === 'string') {
-      // Check if it's a variable reference
-      const indexVariable = templateState.variables[indexProp];
-      if (indexVariable !== undefined) {
-        indexValue = typeof indexVariable.value === 'number'
-          ? indexVariable.value
-          : parseInt(String(indexVariable.value), 10);
-      } else {
-        // Try parsing as literal number
-        indexValue = parseInt(indexProp, 10);
-      }
-    } else {
-      console.warn(`[ArrayAt] Invalid index type: ${typeof indexProp}`);
-      return;
-    }
-
-    // Validate index
-    if (isNaN(indexValue)) {
+    if (!targetVarName || !NAME.test(arrayVarName ?? '') || indexProp === undefined) return;
+    const index = String(indexProp).trim();
+    const at = /^-?\d+$/.test(index) ? index : NAME.test(index) ? `$vars.${index}` : null;
+    if (at === null) {
       console.warn(`[ArrayAt] Invalid index value: ${indexProp}`);
       return;
     }
-
-    // Get element at index (allow negative indices like array.at())
-    let element: any;
-    if (indexValue < 0) {
-      // Negative index: count from end
-      element = arrayValue[arrayValue.length + indexValue];
-    } else {
-      element = arrayValue[indexValue];
-    }
-
-    // Register target variable if it doesn't exist
-    if (!templateState.variables[targetVarName]) {
-      templateState.registerVariable({
-        name: targetVarName,
-        type: 'string', // Default to string, will be coerced based on value
-        initial: element !== undefined ? element : ''
-      });
-    }
-
-    // Update target variable with the element value
-    templateState.setVariable(targetVarName, element !== undefined ? element : '');
-
-  }, [
-    targetVarName,
-    arrayVarName,
-    indexProp,
-    // CRITICAL: Watch the actual array and index values, not the entire variables object
-    templateState.variables[arrayVarName]?.value,
-    typeof indexProp === 'string' ? templateState.variables[indexProp]?.value : indexProp,
-    templateState.getVariable,
-    templateState.setVariable,
-    templateState.registerVariable
-  ]);
+    globalTemplateStateManager.unregisterVariable(targetVarName);
+    globalTemplateStateManager.registerVariable({
+      name: targetVarName,
+      type: 'computed',
+      computed: `$vars.${arrayVarName}.at(${at})`,
+    });
+  }, [targetVarName, arrayVarName, indexProp]);
 
   // CRITICAL: Validate required props (after hooks)
   if (!targetVarName) {

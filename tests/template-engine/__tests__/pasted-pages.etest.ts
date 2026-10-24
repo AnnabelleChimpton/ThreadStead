@@ -585,3 +585,8 @@ test('<pre> keeps its blank lines (ASCII art), through the save path (template a
   expect(saved.template).toContain('( o.o )\n\n\n\n')
   expect(saved.compiled.staticHTML).toContain('( o.o )\n\n\n\n  &gt; ^ &lt;')
 })
+
+test('a text Var may start with "{"; an object Var still needs JSON (template audit 06 #12)', () => {
+  expect(compileTemplate('<Var name="greeting" type="string" initial="{hello}" />').success).toBe(true)
+  expect(compileTemplate('<Var name="pet" type="object" initial="{name: Mo}" />').success).toBe(false)
+})

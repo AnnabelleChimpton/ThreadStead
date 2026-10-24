@@ -79,7 +79,7 @@ export default function AdvancedProfileRenderer({ user, residentData }: Advanced
       fallbackMessage="The template could not be rendered due to an error. This may be caused by invalid template syntax or missing required properties."
     >
       {/* Renders with each <Var>'s starting value, here and at hydration */}
-      <GlobalTemplateStateProvider declared={declared}>
+      <GlobalTemplateStateProvider declared={declared} page={user.id}>
         <ResidentDataProvider data={residentData}>
           <ToastProvider>
             {/* A neutral box that the page can't lift over the site's chrome

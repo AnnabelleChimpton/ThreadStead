@@ -211,8 +211,9 @@ describe("a page's <Var>s on the server", () => {
 
   test("a visitor's saved value still loads after the page hydrates, without a mismatch", async () => {
     const result = await visit(nightWindow(), 'u_visitor', (dom) => {
-      dom.window.localStorage.setItem('threadstead_template_lampOn', 'false')
-      dom.window.localStorage.setItem('threadstead_template_kudos', '7')
+      // Kept per page: the page's owner, then the name
+      dom.window.localStorage.setItem(`threadstead_template_${OWNER_ID}_lampOn`, 'false')
+      dom.window.localStorage.setItem(`threadstead_template_${OWNER_ID}_kudos`, '7')
     })
     expect(result.html).toContain('the lamp is on')
     expect(result.hydrationErrors.map(String)).toEqual([])

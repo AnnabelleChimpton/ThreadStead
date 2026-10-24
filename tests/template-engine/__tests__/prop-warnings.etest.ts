@@ -169,3 +169,19 @@ describe('where the messages go', () => {
     warn.mockRestore()
   })
 })
+
+describe('loops get true messages (template audit 06 #9)', () => {
+  const { compileTemplate } = jest.requireActual('@/lib/templates/compilation/template-parser')
+  const warningsFor = (source: string) => (compileTemplate(source).validation?.warnings ?? []).join('\n')
+  const songs = `<Var name="songs" type="array" initial='[{"url":"https://youtu.be/jNQXAC9IVRw","tags":["a"]}]' />`
+
+  test('an Embed filled in by a loop is not called empty', () => {
+    expect(warningsFor(`${songs}<ForEach var="songs" item="s"><Embed src="{s.url}" /></ForEach>`)).not.toMatch(/Visitors see nothing/)
+  })
+
+  test('a list inside an item is said to be one, not a missing Var', () => {
+    const w = warningsFor(`${songs}<ForEach var="songs" item="s"><ForEach var="s.tags" item="t">{t}</ForEach></ForEach>`)
+    expect(w).toMatch(/can't use s\.tags, a list inside s/)
+    expect(w).not.toMatch(/Add <Var name="s\.tags"/)
+  })
+})

@@ -6,6 +6,23 @@ import { useForEachContext } from './loops/ForEach';
 import { globalTemplateStateManager } from '@/lib/templates/state/TemplateStateManager';
 
 /**
+ * How a value reads on the page: lists and objects as JSON, dates as ISO
+ * text, the rest as written. format="{value}" used to show a list as
+ * [object Object],… (template audit 06 #11).
+ */
+function asText(value: unknown): string {
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === 'object' && value !== null) {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return String(value);
+    }
+  }
+  return String(value);
+}
+
+/**
  * ShowVar Component - Display a template variable value
  *
  * Shows the current value of a declared variable.
@@ -117,7 +134,7 @@ export default function ShowVar(props: ShowVarProps) {
     displayValue = format.replace(/\{value(\.[a-zA-Z0-9_.]+)?\}/g, (match, propertyPath) => {
       if (!propertyPath) {
         // Just {value}
-        return String(value);
+        return asText(value);
       }
 
       // {value.property} - access nested property
@@ -131,26 +148,10 @@ export default function ShowVar(props: ShowVarProps) {
         current = current[key];
       }
 
-      return String(current ?? '');
+      return current === null || current === undefined ? '' : asText(current);
     });
   } else {
-    // Convert value to string for display
-    if (value instanceof Date) {
-      // Dates default to ISO string if no dateFormat specified
-      displayValue = value.toISOString();
-    } else if (typeof value === 'object') {
-      // For objects and arrays, use JSON representation
-      try {
-        displayValue = JSON.stringify(value);
-      } catch {
-        displayValue = String(value);
-      }
-    } else if (typeof value === 'boolean') {
-      // Booleans as lowercase strings
-      displayValue = value ? 'true' : 'false';
-    } else {
-      displayValue = String(value);
-    }
+    displayValue = asText(value);
   }
 
   // Normal mode - just show the value

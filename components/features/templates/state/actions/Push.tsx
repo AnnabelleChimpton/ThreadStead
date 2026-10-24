@@ -90,17 +90,23 @@ export function executePushAction(
   const value_data = getVariableValue(varName, forEachContext);
   const currentArray = Array.isArray(value_data) ? value_data : [];
 
-  // Evaluate value if it's a string that might be an expression
-  let itemToAdd = actualValue;
-  if (typeof actualValue === 'string' && actualValue.includes('$vars')) {
-    // Build context with FRESH variables and scoped variables
-    const context = buildExpressionContext(forEachContext);
-
+  // value= is pushed as written. expression= is read the way Set reads it:
+  // a JSON list or object as it is, anything else worked out. Only text with
+  // $vars in it used to be worked out, and what couldn't be was pushed as
+  // its own text, so {n.text} showed literally (template audit 06 #10).
+  let itemToAdd: unknown = actualValue;
+  if (expression !== undefined) {
+    const trimmed = expression.trim();
+    const looksLikeJson = /^[[{][\s\S]*[\]}]$/.test(trimmed);
     try {
-      itemToAdd = evaluateExpression(actualValue, context);
-    } catch (error) {
-      console.error(`[Push] Expression evaluation failed for "${actualValue}":`, error);
-      itemToAdd = actualValue; // Fallback to literal value
+      itemToAdd = looksLikeJson ? JSON.parse(trimmed) : evaluateExpression(expression, buildExpressionContext(forEachContext));
+    } catch {
+      try {
+        itemToAdd = evaluateExpression(expression, buildExpressionContext(forEachContext));
+      } catch (error) {
+        console.error(`[Push] Couldn't read expression "${expression}", so nothing was added:`, error);
+        return;
+      }
     }
   }
 

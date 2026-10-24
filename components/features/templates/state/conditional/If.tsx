@@ -4,6 +4,7 @@ import React, { useMemo } from 'react';
 import { evaluateFullCondition, type ConditionConfig } from '@/lib/templates/conditional/condition-evaluator';
 import { useResidentData } from '@/components/features/templates/ResidentDataProvider';
 import { useTemplateStateWithDeps } from '@/lib/templates/state/TemplateStateProvider';
+import { useForEachContext } from '../loops/ForEach';
 
 /**
  * If Component - Universal conditional component
@@ -140,6 +141,17 @@ export default function If(props: IfProps) {
   } = props;
 
   const residentData = useResidentData();
+  // Inside a ForEach its item (and index) are in reach, read from the loop
+  // itself: its scope is only registered after this renders, and ForEach
+  // passed a scopeId to ShowVar alone, so an If couldn't test the item
+  // (template audit 06 #3)
+  const loop = useForEachContext();
+  const conditionData = useMemo(
+    () => loop
+      ? { ...residentData, [loop.itemName]: loop.item, ...(loop.indexName ? { [loop.indexName]: loop.index } : {}) }
+      : residentData,
+    [residentData, loop]
+  );
 
   // PHASE 1.1: Extract variable dependencies and use selective subscription
   const dependencies = useMemo(() => extractVariableDependencies(props), [
@@ -186,7 +198,7 @@ export default function If(props: IfProps) {
   // Normal mode - evaluate condition and render conditionally
   // Evaluate condition using centralized engine
   // Pass scopeId for ForEach loop variable resolution
-  const shouldShow = evaluateFullCondition(config, residentData, scopeId, templateState);
+  const shouldShow = evaluateFullCondition(config, conditionData, scopeId ?? loop?.scopeId, templateState);
 
   // Return children if condition is true, null otherwise
   // NOTE: ActionExecutor will still intercept If components inside event handlers

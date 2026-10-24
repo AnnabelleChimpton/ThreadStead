@@ -349,7 +349,8 @@ export function registerActionComponents(registry: ComponentRegistry) {
     description: 'Sets a ?name=value part of the page address without reloading the page. Runs inside an event like OnClick or OnMount.',
     example: '<Button>\n  <OnClick><SetURLParam key="tab" value="guestbook" /></OnClick>\n  Guestbook tab\n</Button>',
     props: {
-      key: { type: 'string', required: true, description: 'The name in the address, like tab in ?tab=guestbook.' },
+      // React keeps `key` for itself, so the component gets it as param
+      key: { type: 'string', required: true, componentProp: 'param', description: 'The name in the address, like tab in ?tab=guestbook.' },
       value: { type: 'string', description: 'The value, used as written.' },
       expression: { type: 'string', description: 'A calculation from page variables to use instead, like $vars.page + 1. Wins over value.' }
     },

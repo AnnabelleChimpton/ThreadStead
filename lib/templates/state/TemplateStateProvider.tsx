@@ -580,7 +580,9 @@ export function coerceVarInitial(type: VariableType, initial: unknown): unknown 
       }
       return typeof initial === 'object' && initial !== null && !Array.isArray(initial) ? initial : {};
     case 'date':
-      return initial instanceof Date ? initial : new Date(String(initial));
+      if (initial instanceof Date) return initial;
+      // "now" is the moment the page opens (new Date("now") is Invalid Date)
+      return String(initial ?? '').trim().toLowerCase() === 'now' ? new Date() : new Date(String(initial));
     default:
       return initial;
   }
@@ -627,6 +629,8 @@ export function seedVariables(declared: VariableConfig[] = []): Record<string, T
 export interface GlobalTemplateStateProviderProps extends TemplateStateProviderProps {
   /** The page's <Var> declarations, so it renders with their starting values (seedVariables) */
   declared?: VariableConfig[];
+  /** Whose page this is (their user id): persisted variables are kept per page */
+  page?: string;
 }
 
 /**
@@ -645,7 +649,10 @@ export interface GlobalTemplateStateProviderProps extends TemplateStateProviderP
  * holds in the browser before hydration can't make the two differ. Once
  * mounted, a registered variable wins and the seed covers the rest.
  */
-export function GlobalTemplateStateProvider({ children, initialVariables, declared }: GlobalTemplateStateProviderProps) {
+export function GlobalTemplateStateProvider({ children, initialVariables, declared, page }: GlobalTemplateStateProviderProps) {
+  // Set while rendering, so it's in place before any <Var> registers (their
+  // effects run before this provider's)
+  globalTemplateStateManager.setStoragePage(page ?? null);
   // Force re-render when global state changes
   const [, forceUpdate] = useState({});
   const [mounted, setMounted] = useState(false);

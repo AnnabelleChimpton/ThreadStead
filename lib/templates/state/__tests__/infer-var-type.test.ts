@@ -25,3 +25,11 @@ test('a Var without a type starts with its value as that type', () => {
   expect(seed.open.value).toBe(false)
   expect(seed.mood.value).toBe('0')
 })
+
+test('a date Var can start at "now" (template audit 06: it was Invalid Date)', () => {
+  const { coerceVarInitial } = jest.requireActual('../TemplateStateProvider')
+  const before = Date.now()
+  const now = coerceVarInitial('date', 'now') as Date
+  expect(now.getTime()).toBeGreaterThanOrEqual(before)
+  expect((coerceVarInitial('date', '2026-12-25T00:00') as Date).getFullYear()).toBe(2026)
+})

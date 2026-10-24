@@ -73,7 +73,7 @@ export default function WidgetSlot({
       componentName="WidgetSlot"
       fallbackMessage="These widgets couldn't be shown right now."
     >
-      <GlobalTemplateStateProvider>
+      <GlobalTemplateStateProvider page={residentData.owner.id}>
         <ResidentDataProvider data={residentData}>
           <div className={ITEMS}>
             {ready && slot.islands.length > 0 ? (

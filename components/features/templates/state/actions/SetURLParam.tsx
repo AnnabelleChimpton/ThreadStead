@@ -30,8 +30,12 @@ import { globalTemplateStateManager } from '@/lib/templates/state/TemplateStateM
  */
 
 export interface SetURLParamProps {
-  /** URL parameter key */
-  key: string;
+  /**
+   * The name in the address. Written key="…" in a page; React keeps `key`
+   * for itself, so it arrives as param (the registry maps it). It never
+   * arrived as key, so this action never did anything.
+   */
+  param: string;
 
   /** Static value to set */
   value?: string;
@@ -55,7 +59,7 @@ export function executeSetURLParamAction(
   templateState: ReturnType<typeof useTemplateState>,
   forEachContext?: { scopeId?: string } | null
 ): void {
-  const { key, value, expression } = props;
+  const { param: key, value, expression } = props;
 
   if (!key) {
     console.warn('[SetURLParam] Missing key prop');

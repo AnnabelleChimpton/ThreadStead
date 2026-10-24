@@ -522,6 +522,11 @@ function processForEachChildren(
           // Special handling for index prop in RemoveAt and similar components
           if (key === 'index' && propValue === `{${indexName}}`) {
             processedProps[key] = currentIndex;
+          } else if (CONDITION_PROPS.has(key) && /^\{\s*[\w$.]+\s*\}$/.test(propValue)) {
+            // A condition names what to test: {p.kind} stays the path p.kind,
+            // read from this loop's scope. As its value ("cat") it was read as
+            // a path that doesn't exist, so <If data="{p.kind}"> never showed.
+            processedProps[key] = propValue.slice(1, -1).trim();
           } else {
             processedProps[key] = replaceTemplatePlaceholders(
               propValue,
@@ -559,6 +564,9 @@ function processForEachChildren(
     return child;
   });
 }
+
+/** Props that name what a condition tests (If, ConditionalAttr, Break) */
+const CONDITION_PROPS = new Set(['data', 'condition', 'when']);
 
 /**
  * Replace template placeholders in a string

@@ -20,6 +20,21 @@ import { evaluateExpression, extractVariableNames } from './expression-evaluator
  */
 class TemplateStateManager {
   private variables: Record<string, TemplateVariable> = {};
+  /** Whose page persisted variables belong to (GlobalTemplateStateProvider's page) */
+  private storagePage: string | null = null;
+
+  /**
+   * Persisted variables are kept per page. One key per name for the whole
+   * site meant two residents' "visits" counters were one, and one page's
+   * <Reset/> wiped another's (template audit 06 #5).
+   */
+  setStoragePage(page: string | null): void {
+    this.storagePage = page;
+  }
+
+  private storageKey(name: string): string {
+    return this.storagePage ? `threadstead_template_${this.storagePage}_${name}` : `threadstead_template_${name}`;
+  }
   private listeners: Set<() => void> = new Set();
   private computedDepsRef: Record<string, Set<string>> = {};
 
@@ -184,7 +199,7 @@ class TemplateStateManager {
       try {
         const serialized = JSON.stringify(coercedValue);
         if (serialized.length <= 100 * 1024) { // 100KB limit per variable
-          localStorage.setItem(`threadstead_template_${name}`, serialized);
+          localStorage.setItem(this.storageKey(name), serialized);
         }
       } catch (error) {
         console.error(`[TemplateStateManager] Failed to persist variable ${name}:`, error);
@@ -261,7 +276,7 @@ class TemplateStateManager {
         // Load from localStorage if persist is enabled
         if (config.persist && typeof window !== 'undefined') {
           try {
-            const stored = localStorage.getItem(`threadstead_template_${config.name}`);
+            const stored = localStorage.getItem(this.storageKey(config.name));
             if (stored !== null) {
               initialValue = JSON.parse(stored);
             }
@@ -395,7 +410,7 @@ class TemplateStateManager {
     // Clear from localStorage if persisted
     if (typeof window !== 'undefined') {
       try {
-        localStorage.removeItem(`threadstead_template_${name}`);
+        localStorage.removeItem(this.storageKey(name));
       } catch (error) {
         console.error(`[TemplateStateManager] Failed to remove persisted variable ${name}:`, error);
       }
@@ -417,7 +432,7 @@ class TemplateStateManager {
       // Clear from localStorage if persisted
       if (variable.persist && typeof window !== 'undefined') {
         try {
-          localStorage.removeItem(`threadstead_template_${name}`);
+          localStorage.removeItem(this.storageKey(name));
         } catch (error) {
           console.error(`[TemplateStateManager] Failed to remove persisted variable ${name}:`, error);
         }

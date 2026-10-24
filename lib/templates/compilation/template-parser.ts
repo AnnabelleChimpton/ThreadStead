@@ -261,9 +261,12 @@ function detectSyntaxErrors(htmlString: string): { errors: string[]; warnings: s
     }
 
     if (token.type === 'open') {
-      // Invalid JSON in a component's initial attribute (entities decoded first)
+      // Invalid JSON in a component's initial attribute (entities decoded first).
+      // Only where it's read as an object: a type="string" Var can start with
+      // "{" (initial="{hello}" was a save error: template audit 06 #12)
       const initial = token.attributes.find((a) => a.name.toLowerCase() === 'initial')?.value;
-      if (initial !== undefined && initial.trim().startsWith('{')) {
+      const type = token.attributes.find((a) => a.name.toLowerCase() === 'type')?.value?.trim().toLowerCase();
+      if (initial !== undefined && initial.trim().startsWith('{') && (type === undefined || type === 'object')) {
         const jsonStr = initial
           .replace(/&quot;/g, '"')
           .replace(/&#0*39;|&apos;/g, "'")
@@ -760,7 +763,8 @@ function valueProblem(
       if (!fits) return `initial needs to be ${kind}, so it starts empty.`;
     }
   }
-  if (component === 'Embed' && prop === 'src') {
+  // A loop fills in src="{s.url}" when the page runs: it can't be judged here
+  if (component === 'Embed' && prop === 'src' && !/\{[^}]+\}/.test(value)) {
     const why = whyNoEmbed(value);
     if (why) return `${why} Visitors see nothing there.`;
   }
@@ -962,6 +966,15 @@ function reportPageProblems(source: string): string[] {
     for (const candidate of declared) {
       const distance = editDistance(use.name.toLowerCase(), candidate.toLowerCase());
       if (distance <= 2 && (!best || distance < best.distance)) best = { name: candidate, distance };
+    }
+    // e.tags: a list inside a loop's item (or a Var's) isn't one this can use
+    const root = use.name.split('.')[0];
+    if (root !== use.name && declared.has(root)) {
+      messages.push(
+        `Line ${use.line}: <${use.tag}> can't use ${use.name}, a list inside ${root}. ` +
+        `It works with a page variable's own list, like <Var name="tags" type="array" …>.`
+      );
+      continue;
     }
     messages.push(
       `Line ${use.line}: <${use.tag}> uses a variable called ${use.name}, but nothing makes one, so it does nothing.` +

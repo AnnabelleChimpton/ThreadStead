@@ -58,20 +58,31 @@ import { executeObjectSetAction } from '@/components/features/templates/state/ac
 import { executeExtractAction } from '@/components/features/templates/state/actions/Extract';
 import { executeConditionalAttrAction } from '@/components/features/templates/state/actions/ConditionalAttr';
 
-/**
- * Action executor function signature
- *
- * Different actions have different signatures:
- * - State actions: (props, templateState, residentData?, forEachContext?)
- * - CSS actions: (props, currentElement?)
- * - Collection actions: (props, templateState)
- *
- * We use a flexible signature to accommodate all patterns.
+/** Everything an action can be given, from its event handler */
+interface ActionCall {
+  props: any;
+  templateState: ReturnType<typeof useTemplateState>;
+  residentData: any;
+  forEachContext?: any;
+  currentElement?: HTMLElement;
+}
+
+type ActionExecutorFn = (call: ActionCall) => void | Promise<void>;
+
+/*
+ * Actions take what they use, in one of three orders. Every one used to be
+ * called (props, templateState, residentData, forEachContext, element), so
+ * inside a ForEach most got residentData as their loop (RemoveAt did
+ * nothing: the shipped "Cross one off" lesson), and the class actions got
+ * the template state as their element ("this" never worked) (template
+ * audit 06 #1).
  */
-type ActionExecutorFn = (
-  props: any,
-  ...args: any[]
-) => void | Promise<void>;
+// State, list and text actions: (props, templateState, forEachContext)
+const withState = (fn: (props: any, templateState: any, forEachContext?: any) => void | Promise<void>): ActionExecutorFn =>
+  (call) => fn(call.props, call.templateState, call.forEachContext);
+// Class actions: (props, the element the event happened on)
+const onElement = (fn: (props: any, currentElement?: HTMLElement) => void): ActionExecutorFn =>
+  (call) => fn(call.props, call.currentElement);
 
 /**
  * Action registry for O(1) lookup
@@ -79,54 +90,54 @@ type ActionExecutorFn = (
  */
 const actionRegistry = new Map<string, ActionExecutorFn>([
   // Basic state actions
-  ['Set', executeSetAction],
-  ['Increment', executeIncrementAction],
-  ['Decrement', executeDecrementAction],
-  ['Toggle', executeToggleAction],
-  ['ShowToast', executeShowToastAction],
-  ['Reset', executeResetAction],
+  ['Set', withState(executeSetAction)],
+  ['Increment', withState(executeIncrementAction)],
+  ['Decrement', withState(executeDecrementAction)],
+  ['Toggle', withState(executeToggleAction)],
+  ['ShowToast', withState(executeShowToastAction)],
+  ['Reset', withState(executeResetAction)],
 
   // Array actions
-  ['Push', executePushAction],
-  ['Pop', executePopAction],
-  ['RemoveAt', executeRemoveAtAction],
+  ['Push', withState(executePushAction)],
+  ['Pop', withState(executePopAction)],
+  ['RemoveAt', withState(executeRemoveAtAction)],
 
   // String actions
-  ['Append', executeAppendAction],
-  ['Prepend', executePrependAction],
+  ['Append', withState(executeAppendAction)],
+  ['Prepend', withState(executePrependAction)],
 
   // Cycle action
-  ['Cycle', executeCycleAction],
+  ['Cycle', withState(executeCycleAction)],
 
   // CSS manipulation actions
-  ['AddClass', executeAddClassAction],
-  ['RemoveClass', executeRemoveClassAction],
-  ['ToggleClass', executeToggleClassAction],
-  ['SetCSSVar', executeSetCSSVarAction],
+  ['AddClass', onElement(executeAddClassAction)],
+  ['RemoveClass', onElement(executeRemoveClassAction)],
+  ['ToggleClass', onElement(executeToggleClassAction)],
+  ['SetCSSVar', withState(executeSetCSSVarAction)],
 
   // Utility actions
-  ['CopyToClipboard', executeCopyToClipboardAction],
-  ['SetURLParam', executeSetURLParamAction],
-  ['SetURLHash', executeSetURLHashAction],
+  ['CopyToClipboard', withState(executeCopyToClipboardAction)],
+  ['SetURLParam', withState(executeSetURLParamAction)],
+  ['SetURLHash', withState(executeSetURLHashAction)],
 
   // Collection operations
-  ['Count', executeCountAction],
-  ['Sum', executeSumAction],
-  ['Get', executeGetAction],
-  ['Filter', executeFilterAction],
-  ['Find', executeFindAction],
-  ['Transform', executeTransformAction],
-  ['Sort', executeSortAction],
+  ['Count', withState(executeCountAction)],
+  ['Sum', withState(executeSumAction)],
+  ['Get', withState(executeGetAction)],
+  ['Filter', withState(executeFilterAction)],
+  ['Find', withState(executeFindAction)],
+  ['Transform', withState(executeTransformAction)],
+  ['Sort', withState(executeSortAction)],
 
   // Loop control
-  ['Continue', executeContinueAction],
+  ['Continue', withState(executeContinueAction)],
 
   // Advanced state management
-  ['Clone', executeCloneAction],
-  ['Merge', executeMergeAction],
-  ['ObjectSet', executeObjectSetAction],
-  ['Extract', executeExtractAction],
-  ['ConditionalAttr', executeConditionalAttrAction],
+  ['Clone', withState(executeCloneAction)],
+  ['Merge', withState(executeMergeAction)],
+  ['ObjectSet', withState(executeObjectSetAction)],
+  ['Extract', withState(executeExtractAction)],
+  ['ConditionalAttr', (call) => executeConditionalAttrAction(call.props, call.residentData, call.forEachContext)],
 ]);
 
 /**
@@ -273,7 +284,7 @@ export function executeActions(
     const executor = actionRegistry.get(componentName);
     if (executor) {
       try {
-        executor(actualChild.props, templateState, residentData, forEachContext, currentElement);
+        executor({ props: actualChild.props, templateState, residentData, forEachContext, currentElement });
       } catch (error) {
         console.error(`[ActionExecutor] Error executing ${componentName}:`, error);
         console.error('[ActionExecutor] Props were:', actualChild.props);
@@ -298,7 +309,7 @@ export function executeActions(
  * @param executor Function to execute the action
  *
  * @example
- * registerAction('MyCustomAction', (props, templateState) => {
+ * registerAction('MyCustomAction', ({ props, templateState }) => {
  *   templateState.setVariable(props.var, props.value);
  * });
  */
