@@ -147,6 +147,24 @@
   color: inherit;
 }
 
+/* ---------- an embed waiting for its Play click ---------- */
+/* The same for <Embed>'s placeholder: on the site's cream it took the page's
+   (often light) ink, and its button came out white on white (template audit
+   09, 15 #7). */
+:where([data-ts-theme], .profile-template-root[data-site-styles="off"]) .ts-embed-placeholder {
+  background: color-mix(in srgb, currentColor 6%, transparent);
+  border-color: color-mix(in srgb, currentColor 30%, transparent);
+  color: inherit;
+}
+:where([data-ts-theme], .profile-template-root[data-site-styles="off"]) .ts-embed-placeholder :is(span, button) {
+  color: inherit;
+}
+:where([data-ts-theme], .profile-template-root[data-site-styles="off"]) .ts-embed-placeholder button {
+  background: transparent;
+  border-color: currentColor;
+  box-shadow: 2px 2px 0 color-mix(in srgb, currentColor 35%, transparent);
+}
+
 /* ---------- friends and websites ---------- */
 :where([data-ts-theme]) :is(.featured-friends, .websites-section) {
   background: var(--ts-card);
@@ -224,6 +242,11 @@
 }
 :where(.profile-template-root[data-site-styles="off"]) :is(.text-thread-pine, .text-thread-sage) {
   color: unset;
+}
+/* A field whose paper box went see-through above kept the site's dark ink:
+   typed text 1.22:1 on Night Window's navy (template audit 14 #10) */
+:where(.profile-template-root[data-site-styles="off"]) :is(textarea, input, select):is(.bg-thread-cream, .bg-thread-paper) {
+  color: inherit;
 }
 :where(.profile-template-root[data-site-styles="off"]) .border-thread-sage {
   border-color: unset;
