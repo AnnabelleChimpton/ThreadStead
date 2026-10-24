@@ -11,6 +11,7 @@ import { PixelIcon } from '@/components/ui/PixelIcon';
 import Modal from '@/components/ui/feedback/Modal';
 import Router from "next/router";
 import { guestbookEntryAnchor } from "@/lib/domain/notifications/links";
+import LocalTime from "@/components/ui/LocalTime";
 
 type Entry = {
   id: string;
@@ -280,13 +281,7 @@ export default function Guestbook({ username, bio, signerLink = "profile", headi
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
                     <div className="thread-label mb-2">
-                      {new Date(e.createdAt).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                        hour: 'numeric',
-                        minute: '2-digit'
-                      })}
+                      <LocalTime iso={e.createdAt} />
                       {e.authorUsername ? (
                         <>
                           {" · by "}

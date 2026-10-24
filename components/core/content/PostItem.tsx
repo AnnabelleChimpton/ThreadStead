@@ -23,6 +23,7 @@ import Image from "next/image";
 import { formatDistanceToNow } from "date-fns";
 import ImprovedBadgeDisplay from "../../shared/ImprovedBadgeDisplay";
 import UserMention from "@/components/ui/navigation/UserMention";
+import LocalTime from "@/components/ui/LocalTime";
 
 // Helper function to format time ago (keeping for fallback or specific uses, but preferring formatDistanceToNow)
 function formatTimeAgo(date: Date): string {
@@ -379,14 +380,6 @@ export default function PostItem({
   const authorLink = authorUsername ? `/resident/${authorUsername}` : null;
   const authorAvatarUrl = post.author?.profile?.avatarUrl;
 
-  const postDate = new Date(post.createdAt).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit'
-  });
-
   // h-entry, p-name, u-url, dt-published, p-author, e-content: microformats, so
   // IndieWeb tools can read the post. A content-warning post's body stays out.
   return (
@@ -432,7 +425,7 @@ export default function PostItem({
               <span className="blog-post-author p-author h-card font-bold text-lg text-thread-pine truncate">{authorName}</span>
             )}
             <span className="text-thread-sage text-sm" aria-hidden="true">•</span>
-            <time className="blog-post-date dt-published text-thread-sage text-sm font-medium" dateTime={post.createdAt}>{postDate}</time>
+            <LocalTime iso={post.createdAt} className="blog-post-date dt-published text-thread-sage text-sm font-medium" />
             {isOwner && <VisibilityBadge visibility={post.visibility} />}
             {post.isPinned && (
               <span className="inline-flex items-center gap-1 text-xs bg-thread-cream text-thread-pine px-2 py-1 border border-thread-sage/50 rounded ml-2">
