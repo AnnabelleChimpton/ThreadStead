@@ -338,6 +338,44 @@ export function scopeAdvancedSelector(selector: string): string {
 }
 
 /**
+ * The site's cascade layers, in order (styles/globals.css declares the same
+ * list; a test keeps them equal). A page's CSS can sit before the site's
+ * stylesheet in the document, so it states the order first: otherwise its
+ * own layer names would be the first ever declared and rank under, or for
+ * !important over, everything the site layers.
+ */
+export const SITE_LAYER_ORDER =
+  '@layer theme, base, threadstead-browser, threadstead-reset, threadstead-global, components, utilities, threadstead-site, threadstead-components, threadstead-template, threadstead-user-base, threadstead-user-custom, threadstead-user-override, threadstead-user-nuclear, threadstead-page;'
+
+/** Where a page's own @layers go: the site's last layer */
+export const PAGE_LAYER = 'threadstead-page'
+
+/**
+ * `@layer a, b;` and `@layer a {…}` → `@layer threadstead-page.a…`, an
+ * unnamed `@layer {…}` → `@layer threadstead-page {…}`. Without this a page's
+ * `@layer theme` was the site's own theme layer, and its !important rules
+ * there outranked the site's (the guard in styles/chrome-layers.css). Layers
+ * nested in a page layer are already inside it and keep their names.
+ */
+export function namePageLayers(css: string): string {
+  if (!/@layer/i.test(css)) return css
+  const GROUP_AT_RULES = new Set(['media', 'supports', 'container', 'scope'])
+  const out = splitTopLevelStatements(css).map((s) => {
+    if (s.kind !== 'at') return s
+    if (s.atName === 'layer') {
+      const names = s.prelude.replace(/^@layer/i, '').split(',').map((n) => n.trim()).filter(Boolean)
+      const prelude = names.length ? `@layer ${names.map((n) => `${PAGE_LAYER}.${n}`).join(', ')}` : `@layer ${PAGE_LAYER}`
+      return { ...s, prelude }
+    }
+    if (s.body !== undefined && GROUP_AT_RULES.has(s.atName || '')) {
+      return { ...s, body: '\n' + namePageLayers(s.body) + '\n' }
+    }
+    return s
+  })
+  return serializeStatements(out)
+}
+
+/**
  * THE transform for advanced-mode (your own HTML page) CSS. The live page
  * (pages/_app.tsx) and the editor preview (pages/template-preview.tsx) both
  * call this, so the preview can't show a page the live site won't.
@@ -348,6 +386,8 @@ export function scopeAdvancedSelector(selector: string): string {
  *   page's own rules, so those still win.
  * - Ids and url(#…) references follow the user-content- prefix.
  * - Root selectors stay roots (scopeAdvancedSelector).
+ * - The site's layer order comes first, and the page's own layers go into
+ *   threadstead-page (namePageLayers).
  * - Everything is scoped away from the site header, footer and other chrome,
  *   the way standard-layout CSS already is, so a page's `nav a {}` or
  *   `h1::after {}` can't restyle or fake the site's own navigation.
@@ -363,8 +403,10 @@ export function transformAdvancedCss(
     ...(options.fontImports ?? []).filter((line) => !imports.includes(line)),
     ...imports,
   ]
-  const scoped = wrapInChromeScope(rest, scopeAdvancedSelector)
-  return [...allImports, scoped].filter(Boolean).join('\n')
+  const scoped = wrapInChromeScope(namePageLayers(rest), scopeAdvancedSelector)
+  if (!scoped && allImports.length === 0) return ''
+  // Layer statements are the one thing allowed before @import
+  return [SITE_LAYER_ORDER, ...allImports, scoped].filter(Boolean).join('\n')
 }
 
 /**

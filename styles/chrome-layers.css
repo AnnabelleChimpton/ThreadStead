@@ -101,9 +101,17 @@ body:has(.ts-chat-toggle) .ts-view-source-badge {
 
 /* ---------- the page can't cover chrome ----------
    A person's HTML page gets its own stacking context, so nothing in it,
-   whatever its z-index, can rise over the nav, chat or music. */
-.profile-template-root {
-  isolation: isolate;
+   whatever its z-index, can rise over the nav, chat or music, and the page
+   itself can't be lifted above them. !important in the site's first layer
+   (globals.css) outranks anything the page's CSS says, !important included:
+   the page's own @layers are renamed into threadstead-page, the last layer
+   (lib/utils/css/css-transform.ts). */
+@layer threadstead-browser {
+  .profile-template-root {
+    isolation: isolate !important;
+    position: static !important;
+    z-index: auto !important;
+  }
 }
 /* Full-page decorations drawn on body::before/::after (sparkles, scanlines)
    took every click meant for what's under them. A click on a pseudo-element

@@ -62,7 +62,8 @@ export default function AdvancedProfileRenderer({ user, residentData }: Advanced
       <GlobalTemplateStateProvider declared={declared}>
         <ResidentDataProvider data={residentData}>
           <ToastProvider>
-            {/* A neutral box: no positioning, stacking or clipping context */}
+            {/* A neutral box that the page can't lift over the site's chrome
+                (styles/chrome-layers.css): its own stacking context, no clipping */}
             <div
               id={profileId}
               className="profile-template-root"
@@ -72,10 +73,7 @@ export default function AdvancedProfileRenderer({ user, residentData }: Advanced
               // take the page's own colours
               data-site-styles={siteStylesOn(user.profile?.cssMode) ? 'on' : 'off'}
               style={{
-                position: 'static',
-                zIndex: 'auto',
                 overflow: 'visible',
-                isolation: 'auto',
                 minHeight: '100vh',
                 width: '100%',
                 display: 'block'

@@ -34,7 +34,7 @@ import {
   fontImportsFromCompiledTemplate,
   legacyBodyCss,
 } from '@/lib/templates/compilation/document-head'
-import { transformAdvancedCss } from '@/lib/utils/css/css-transform'
+import { transformAdvancedCss, SITE_LAYER_ORDER } from '@/lib/utils/css/css-transform'
 import { domAttributeToReactProp } from '@/lib/templates/core/attribute-mappings'
 
 const compile = (template: string) => compileTemplateToArtifacts(template)
@@ -323,7 +323,7 @@ describe('whole documents', () => {
     expect(artifacts.head).toMatchObject({ title: 'tiny site', fontImports: [fontLine] })
     // stored on the AST root, which the save API keeps, and read back by _app.tsx
     expect(fontImportsFromCompiledTemplate({ ast: artifacts.ast })).toEqual([fontLine])
-    expect(transformAdvancedCss('', { fontImports: fontImportsFromCompiledTemplate({ ast: artifacts.ast }) })).toBe(fontLine)
+    expect(transformAdvancedCss('', { fontImports: fontImportsFromCompiledTemplate({ ast: artifacts.ast }) })).toBe(`${SITE_LAYER_ORDER}\n${fontLine}`)
   })
 
   test('only Google Fonts URLs can come back out of a stored page as imports', () => {

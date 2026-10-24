@@ -10,7 +10,9 @@ import {
   prefixUserContentIds,
   scopeAdvancedSelector,
   transformAdvancedCss,
+  namePageLayers,
   SITE_CHROME_SELECTOR,
+  SITE_LAYER_ORDER,
 } from '@/lib/utils/css/css-transform'
 
 const ROOT = path.join(__dirname, '..', '..', '..')
@@ -86,7 +88,8 @@ describe('transformAdvancedCss', () => {
        h1::after { content: " *" }`
     )
     const scopeAt = out.indexOf(SCOPE_OPEN)
-    expect(out.indexOf('@import')).toBe(0)
+    expect(out.indexOf(SITE_LAYER_ORDER)).toBe(0)
+    expect(out.indexOf('@import')).toBe(SITE_LAYER_ORDER.length + 1)
     expect(out.indexOf('@font-face')).toBeLessThan(scopeAt)
     expect(out.indexOf('@keyframes')).toBeLessThan(scopeAt)
     // keyframe stops are not selectors
@@ -106,7 +109,8 @@ describe('transformAdvancedCss', () => {
 
   test('font imports alone still produce CSS (a page with no <style>)', () => {
     const line = '@import url("https://fonts.googleapis.com/css2?family=VT323");'
-    expect(transformAdvancedCss('', { fontImports: [line] })).toBe(line)
+    expect(transformAdvancedCss('', { fontImports: [line] })).toBe(`${SITE_LAYER_ORDER}\n${line}`)
+    expect(transformAdvancedCss('')).toBe('')
   })
 
   test('@media rules are scoped and boosted like top-level ones', () => {
@@ -142,7 +146,38 @@ describe('golden: the sadgrl layout stylesheet', () => {
       expect(inside).toContain(sel)
     }
     // the only rule outside the scope is the @font-face
-    expect(out.slice(0, out.indexOf(SCOPE_OPEN)).trim()).toMatch(/^@font-face \{[^}]*\}$/)
+    expect(out.slice(SITE_LAYER_ORDER.length, out.indexOf(SCOPE_OPEN)).trim()).toMatch(/^@font-face \{[^}]*\}$/)
+  })
+})
+
+describe("the page's own layers can't join the site's", () => {
+  test('page layers go into threadstead-page, the last layer', () => {
+    expect(namePageLayers('@layer base, theme;')).toBe('@layer threadstead-page.base, threadstead-page.theme;')
+    const out = namePageLayers('@layer theme { a { color: red } } @media (min-width: 1px) { @layer { b { color: blue } } }')
+    expect(out).toContain('@layer threadstead-page.theme {')
+    expect(out).toContain('@layer threadstead-page {')
+    expect(out).not.toMatch(/@layer theme\b/)
+  })
+
+  test('layers nested in a page layer keep their names', () => {
+    expect(namePageLayers('@layer a { @layer b { p { color: red } } }')).toContain('@layer b {')
+  })
+
+  test('the transform states the same layer order as styles/globals.css', () => {
+    const globals = fs.readFileSync(path.join(ROOT, 'styles/globals.css'), 'utf8')
+    expect(globals.match(/^@layer theme,[^;]*;/m)?.[0]).toBe(SITE_LAYER_ORDER)
+    expect(SITE_LAYER_ORDER.trim().endsWith('threadstead-page;')).toBe(true)
+  })
+
+  test("the page root's stacking guard is !important in the site's first layer", () => {
+    // Nothing a page's CSS says, !important included, can lift its root over the nav
+    const chrome = fs.readFileSync(path.join(ROOT, 'styles/chrome-layers.css'), 'utf8')
+    const guard = chrome.match(/@layer threadstead-browser \{\s*\.profile-template-root \{([^}]*)\}/)?.[1] ?? ''
+    for (const decl of ['isolation: isolate !important', 'position: static !important', 'z-index: auto !important']) {
+      expect(guard).toContain(decl)
+    }
+    const renderer = fs.readFileSync(path.join(ROOT, 'components/core/profile/AdvancedProfileRenderer.tsx'), 'utf8')
+    expect(renderer).not.toMatch(/isolation:\s*'auto'/)
   })
 })
 

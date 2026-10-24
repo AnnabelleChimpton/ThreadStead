@@ -4,7 +4,7 @@
    Element defaults (browser/reset/global: headings, body, p margins) sit
    below utilities so `text-base` or `mb-0` on an element actually applies;
    site, template and user layers stay above so profile CSS can still win. */
-@layer theme, base, threadstead-browser, threadstead-reset, threadstead-global, components, utilities, threadstead-site, threadstead-components, threadstead-template, threadstead-user-base, threadstead-user-custom, threadstead-user-override, threadstead-user-nuclear;
+@layer theme, base, threadstead-browser, threadstead-reset, threadstead-global, components, utilities, threadstead-site, threadstead-components, threadstead-template, threadstead-user-base, threadstead-user-custom, threadstead-user-override, threadstead-user-nuclear, threadstead-page;
 
 @import "tailwindcss";
 @config "../tailwind.config.js";
