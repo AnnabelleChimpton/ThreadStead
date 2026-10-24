@@ -82,8 +82,8 @@ export function registerEventComponents(registry: ComponentRegistry) {
     description: 'Runs the actions inside over and over on a timer, for as long as the page is open.',
     example: '<Var name="weather" type="string" initial="sunny" />\n<p>Outside my window it\'s <ShowVar name="weather" /></p>\n<OnInterval seconds="3"><Cycle var="weather" values="sunny, rainy, foggy, snowy" /></OnInterval>',
     props: {
-      seconds: { type: 'number', description: 'How many seconds between runs. If you set neither this nor milliseconds, it\'s 1 second.' },
-      milliseconds: { type: 'number', description: 'How many milliseconds between runs. Wins over seconds if you set both.' }
+      seconds: { type: 'number', min: 0.05, description: 'How many seconds between runs, at least 0.05. If you set neither this nor milliseconds, it\'s 1 second.' },
+      milliseconds: { type: 'number', min: 50, description: 'How many milliseconds between runs, at least 50. Wins over seconds if you set both.' }
     },
     relationship: {
       type: 'action',

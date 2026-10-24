@@ -6,6 +6,9 @@ import { useResidentData } from '@/components/features/templates/ResidentDataPro
 import { useForEachContext } from '../loops/ForEach';
 import { executeActions } from './OnClick';
 
+/** The shortest time between runs */
+export const MIN_INTERVAL_MS = 50;
+
 /**
  * OnInterval Component - Event handler for periodic execution
  *
@@ -60,8 +63,9 @@ export default function OnInterval(props: OnIntervalProps) {
     childrenRef.current = children;
   }, [templateState, residentData, forEachContext, children]);
 
-  // Calculate interval in milliseconds
-  const intervalMs = milliseconds || (seconds ? seconds * 1000 : 1000);
+  // Calculate interval in milliseconds. At least 50: fifty timers at 16ms
+  // kept a phone half busy (template audit 12), and CSS animates smoother anyway
+  const intervalMs = Math.max(MIN_INTERVAL_MS, milliseconds || (seconds ? seconds * 1000 : 1000));
 
   // Execute actions on interval
   useEffect(() => {
