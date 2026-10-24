@@ -131,6 +131,10 @@ export default function PreviewTemp() {
     if (!css && documentCss.fontImports.length === 0 && !documentCss.bodyCss && !documentCss.styleCss) return '';
     return transformAdvancedCss(css, documentCss);
   }, [previewData?.customCSS, documentCss]);
+  // The same {__html} objects until the CSS changes, so a re-render doesn't
+  // rewrite the <style>s (pages/_app.tsx says why)
+  const advancedCssHtml = useMemo(() => ({ __html: escapeCssForStyleTag(advancedCSS) }), [advancedCSS]);
+  const siteCssHtml = useMemo(() => ({ __html: escapeCssForStyleTag(siteCss) }), [siteCss]);
 
   if (!isReady || !previewData) {
     return (
@@ -408,10 +412,10 @@ export default function PreviewTemp() {
         {/* The site's CSS, then the page's own, transformed exactly as on
             the live page and in the same order (pages/_app.tsx) */}
         {siteStylesOn(typedCSSMode) && !siteCssLoading && siteCss && (
-          <style id="preview-site-css" dangerouslySetInnerHTML={{ __html: escapeCssForStyleTag(siteCss) }} />
+          <style id="preview-site-css" dangerouslySetInnerHTML={siteCssHtml} />
         )}
         {advancedCSS && (
-          <style id="advanced-template-css" dangerouslySetInnerHTML={{ __html: escapeCssForStyleTag(advancedCSS) }} />
+          <style id="advanced-template-css" dangerouslySetInnerHTML={advancedCssHtml} />
         )}
 
         {/* Show site navigation if toggle is enabled */}

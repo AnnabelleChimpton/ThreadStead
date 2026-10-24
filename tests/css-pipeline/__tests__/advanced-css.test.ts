@@ -235,7 +235,8 @@ describe('preview equals live', () => {
   const preview = fs.readFileSync(path.join(ROOT, 'pages/template-preview.tsx'), 'utf8')
 
   test('the live advanced-CSS block and the preview both call transformAdvancedCss', () => {
-    expect(app).toMatch(/id="advanced-template-css"[\s\S]{0,400}transformAdvancedCss\(/)
+    expect(app).toMatch(/advancedPage\) \{[\s\S]{0,300}transformAdvancedCss\(/)
+    expect(app).toMatch(/'advanced-template-css'/)
     expect(preview).toMatch(/transformAdvancedCss\(/)
     expect(preview).toMatch(/id="advanced-template-css"/)
   })
@@ -330,9 +331,14 @@ describe("the page's CSS stays off the site's chrome", () => {
     }
   })
 
-  test("the page's CSS comes after the site's stylesheets, like the preview's", () => {
+  test("the page's CSS comes after the site's, before the page, like the preview's", () => {
     const app = fs.readFileSync(path.join(ROOT, 'pages/_app.tsx'), 'utf8')
-    expect(app.indexOf('id="advanced-template-css"')).toBeGreaterThan(app.indexOf('</Head>'))
+    const pageStyle = app.indexOf("'advanced-template-css'")
+    expect(pageStyle).toBeGreaterThan(app.indexOf('</Head>'))
+    expect(pageStyle).toBeGreaterThan(app.indexOf('{isProfilePage && siteCssStyle}'))
+    expect(pageStyle).toBeLessThan(app.indexOf('<Component {...pageProps} />'))
+    const preview = fs.readFileSync(path.join(ROOT, 'pages/template-preview.tsx'), 'utf8')
+    expect(preview.indexOf('id="advanced-template-css"')).toBeGreaterThan(preview.indexOf('id="preview-site-css"'))
   })
 })
 

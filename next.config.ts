@@ -7,6 +7,12 @@ const nextConfig: NextConfig = {
   distDir: process.env.NEXT_DIST_DIR || ".next",
   reactStrictMode: true,
   poweredByHeader: false,
+  // Cloudflare compresses what node sends (Brotli for browsers that take it),
+  // so node doesn't spend the one process's time gzipping every response,
+  // and a cache in front of it keeps one copy, not one per encoding.
+  // After a deploy: `curl -sI -H 'Accept-Encoding: br' <a page or chunk>`
+  // shows content-encoding: br.
+  compress: false,
 
   eslint: {
     ignoreDuringBuilds: false,

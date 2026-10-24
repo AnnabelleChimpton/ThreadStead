@@ -1,7 +1,7 @@
 import App, { type AppContext, type AppProps } from "next/app";
 import dynamic from "next/dynamic";
 import Head from "next/head";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import 'highlight.js/styles/github.css'; // Restore highlight.js for non-profile pages
 import "../styles/globals.css"; // Restore global CSS
 import "../styles/components.css"; // Component-specific styles (including bottom sheets)
@@ -148,10 +148,6 @@ export default function MyApp({ Component, pageProps, appSiteCSS }: MyAppProps) 
     router.pathname === '/template-preview';
   // On a resident's own address (pages/site/[label].tsx): signed out, read-only
   const residentHost: ResidentHost | null = pageProps.residentHost ?? null;
-  const hasCustomCSS = pageProps.customCSS && pageProps.customCSS.trim() !== '';
-  // Google Fonts <link>s, <body bgcolor…> and theme options (<meta name="color:…">)
-  // from the page's source, kept by the compiler and re-checked here
-  const advancedDocumentCss = documentCssFromCompiledTemplate(pageProps.compiledTemplate);
 
   const actualCSSMode = cssMode;
   // Site styles on a profile page follow its cssMode (lib/domain/profile/layout.ts).
@@ -168,15 +164,48 @@ export default function MyApp({ Component, pageProps, appSiteCSS }: MyAppProps) 
   // homepageagain.com). Never wrap it in @layer: layered normal declarations
   // lose to Tailwind's unlayered utilities. SSR-primed via initialSiteCSS on
   // profile pages; the useSiteCSS hook updates it by id on client fetches.
+  //
+  // Each <style> below keeps the same {__html} object until its CSS changes:
+  // React rewrites a <style> whose object is new, and the browser re-parses
+  // all of it. A new one on every render did that twice after each page's
+  // hydration, and transformed the page's CSS again each time (half the
+  // main-thread blocking on a big page, on a phone).
+  const siteCssHtml = useMemo(() => ({ __html: escapeCssForStyleTag(css) || '/* Site CSS loading... */' }), [css]);
   const siteCssStyle = (!isProfilePage || siteStyles) && (
-    <style
-      id="site-wide-css"
-      key="site-css"
-      dangerouslySetInnerHTML={{
-        __html: escapeCssForStyleTag(css) || '/* Site CSS loading... */'
-      }}
-    />
+    <style id="site-wide-css" key="site-css" dangerouslySetInnerHTML={siteCssHtml} />
   );
+
+  // The profile's own CSS. A page of its own HTML: the transform the editor
+  // preview uses, with the Google Fonts <link>s, <body bgcolor…> and theme
+  // options (<meta name="color:…">) its source carried, re-checked here.
+  // The standard layout: kept off the site header/footer (profile CSS styles
+  // the profile, never the site chrome around it), with its @imports hoisted
+  // above the preamble rule: browsers ignore @import after any other rule, so
+  // with the preamble first users' Google Fonts imports never loaded.
+  const advancedPage = pageProps.templateMode === 'advanced';
+  const customCSS: string = pageProps.customCSS || '';
+  const pageCssHtml = useMemo(() => {
+    if (!isProfilePage) return null;
+    if (advancedPage) {
+      const documentCss = documentCssFromCompiledTemplate(pageProps.compiledTemplate);
+      const css = transformAdvancedCss(customCSS, documentCss);
+      return css ? { __html: escapeCssForStyleTag(css) } : null;
+    }
+    if (!customCSS.trim()) return null;
+    const { imports, rest } = extractImports(scopeAwayFromSiteChrome(customCSS));
+    return {
+      __html: escapeCssForStyleTag(`${imports.join('\n')}
+/* Profile page - Clean canvas for user customization */
+.profile-container {
+margin-top: 0;
+padding-top: 0;
+}
+
+
+/* Custom CSS - User or Admin Default (imports hoisted above) */
+${rest}`),
+    };
+  }, [isProfilePage, advancedPage, customCSS, pageProps.compiledTemplate]);
 
   return (
     <ResidentHostProvider value={residentHost}>
@@ -222,42 +251,8 @@ export default function MyApp({ Component, pageProps, appSiteCSS }: MyAppProps) 
                   preview (pages/template-preview.tsx) uses the same order
                   and the same transforms. */}
               {isProfilePage && siteCssStyle}
-              {isProfilePage && hasCustomCSS && pageProps.templateMode !== 'advanced' && (() => {
-                // Hoist user @imports above our preamble rule: per the CSS
-                // spec, browsers IGNORE @import statements that appear after
-                // any other rule — with the preamble first, users' Google
-                // Fonts imports silently never loaded.
-                // Kept off the site header/footer: profile CSS styles the
-                // profile, never the site chrome around it.
-                const { imports, rest } = extractImports(scopeAwayFromSiteChrome(pageProps.customCSS || ''));
-                return (
-                <style
-                  id="profile-page-styles"
-                  dangerouslySetInnerHTML={{
-                    __html: escapeCssForStyleTag(`${imports.join('\n')}
-/* Profile page - Clean canvas for user customization */
-.profile-container {
-margin-top: 0;
-padding-top: 0;
-}
-
-
-/* Custom CSS - User or Admin Default (imports hoisted above) */
-${rest}`)
-                  }}
-                />
-                );
-              })()}
-              {isProfilePage && pageProps.templateMode === 'advanced' &&
-                (hasCustomCSS || advancedDocumentCss.fontImports.length > 0 || advancedDocumentCss.bodyCss || advancedDocumentCss.styleCss) && (
-                <style
-                  id="advanced-template-css"
-                  dangerouslySetInnerHTML={{
-                    __html: escapeCssForStyleTag(
-                      transformAdvancedCss(pageProps.customCSS || '', advancedDocumentCss)
-                    ),
-                  }}
-                />
+              {pageCssHtml && (
+                <style id={advancedPage ? 'advanced-template-css' : 'profile-page-styles'} dangerouslySetInnerHTML={pageCssHtml} />
               )}
               <Component {...pageProps} />
 
