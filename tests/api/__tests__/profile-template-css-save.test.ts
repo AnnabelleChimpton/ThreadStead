@@ -109,3 +109,42 @@ test('only the page owner can save, decided by account and before any compile', 
   expect(getCompiledTemplateWithMetrics).not.toHaveBeenCalled()
   expect(mockDb.profile.upsert).not.toHaveBeenCalled()
 })
+
+describe('a save from another tab since the editor opened', () => {
+  // Two tabs open: the last save used to win silently (template audit 07 #7)
+  const SAVED_AT = new Date('2026-10-24T10:00:00Z')
+  beforeEach(() => mockDb.profile.findUnique.mockResolvedValue({ templateCompiledAt: SAVED_AT }))
+
+  test('is refused with 409, so the editor can ask', async () => {
+    const { req, res } = makeReqRes({ template: '<p>mine</p>', basedOn: '2026-10-24T09:00:00.000Z' })
+    await handler(req, res)
+    expect(res.statusCode).toBe(409)
+    expect(res.body.error).toBe('changed_elsewhere')
+    expect(mockDb.profile.upsert).not.toHaveBeenCalled()
+  })
+
+  test('is overwritten when the owner says so', async () => {
+    const { req, res } = makeReqRes({ template: '<p>mine</p>', basedOn: '2026-10-24T09:00:00.000Z', overwrite: true })
+    await handler(req, res)
+    expect(res.statusCode).toBe(200)
+  })
+
+  test('nothing to ask when the editor is up to date, and the reply says what the next save is based on', async () => {
+    const { req, res } = makeReqRes({ template: '<p>mine</p>', basedOn: SAVED_AT.toISOString() })
+    await handler(req, res)
+    expect(res.statusCode).toBe(200)
+    expect(res.body.savedAt).toBeInstanceOf(Date)
+  })
+
+  test('an editor opened before there was any page counts as out of date once there is one', async () => {
+    const { req, res } = makeReqRes({ template: '<p>mine</p>', basedOn: null })
+    await handler(req, res)
+    expect(res.statusCode).toBe(409)
+  })
+
+  test('saving no HTML leaves no save time, the way a reset does', async () => {
+    const { req, res } = makeReqRes({ template: '' })
+    await handler(req, res)
+    expect(mockDb.profile.upsert.mock.calls[0][0].update.templateCompiledAt).toBeNull()
+  })
+})

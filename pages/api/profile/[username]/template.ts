@@ -86,8 +86,18 @@ export default apiHandler(
 
         const before = await db.profile.findUnique({
           where: { userId: handle.user.id },
-          select: PAGE_LOOK_SELECT
+          select: { ...PAGE_LOOK_SELECT, templateCompiledAt: true }
         });
+
+        // Saved from somewhere else (another tab) since this editor opened:
+        // say so instead of quietly overwriting it, unless the owner says to
+        if ('basedOn' in req.body && req.body.overwrite !== true) {
+          const savedAt = before?.templateCompiledAt?.getTime() ?? null;
+          const basedOn = typeof req.body.basedOn === 'string' ? Date.parse(req.body.basedOn) : null;
+          if (savedAt !== null && (basedOn === null || savedAt > basedOn)) {
+            return res.status(409).json({ error: 'changed_elsewhere', savedAt: before!.templateCompiledAt });
+          }
+        }
         const siteStyles = cssMode !== undefined ? layoutFields({ siteStyles: siteStylesOn(cssMode) }) : {};
         const changed = changesPageLook(before, {
           customTemplate: cleanedTemplate,
@@ -103,7 +113,8 @@ export default apiHandler(
           customTemplate: cleanedTemplate, // Save cleaned template without navigation
           // The page's one compiled copy: what it renders from
           compiledTemplate: JSON.parse(JSON.stringify(compiledResult)),
-          templateCompiledAt: new Date(),
+          // No page, no save time (as a reset leaves it: lib/domain/users/page-reset.ts)
+          templateCompiledAt: cleanedTemplate.trim() ? new Date() : null,
           ...(safeCSS !== undefined && { customCSS: safeCSS }),
           ...siteStyles,
           ...(changed && pageUpdatedNow())
@@ -123,6 +134,8 @@ export default apiHandler(
         // user what was stripped or warned about, not just "saved".
         return res.status(200).json({
           success: true,
+          // What the next save from this editor is based on
+          savedAt: fields.templateCompiledAt,
           shared,
           pageChanged: changed,
           warnings: compiledResult?.warnings ?? [],
@@ -140,8 +153,7 @@ export default apiHandler(
           return res.status(404).json({ error: 'User not found' });
         }
 
-        const currentUsername = user.primaryHandle ? user.primaryHandle.split('@')[0] : null;
-        if (currentUsername !== username && user.id !== handle.user.id) {
+        if (user.id !== handle.user.id) {
           return res.status(403).json({ error: 'Access denied' });
         }
 

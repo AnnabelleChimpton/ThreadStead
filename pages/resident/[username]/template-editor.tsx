@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { getInternalBaseUrl } from "@/lib/utils/api/internal-base-url";
 import type { GetServerSideProps, NextApiRequest } from "next";
 import { useRouter } from "next/router";
@@ -13,6 +13,7 @@ import { requestCapability } from "@/lib/api/client/capability";
 import { layoutFields, layoutOf } from "@/lib/domain/profile/layout";
 import type { StartFromResult } from "@/lib/domain/profile/shared-source";
 import PageMeta from "@/components/ui/layout/PageMeta";
+import { useConfirm } from "@/contexts/ConfirmContext";
 
 type StartFromFailure = Extract<StartFromResult, { ok: false }>["reason"];
 
@@ -42,6 +43,8 @@ interface TemplateEditorPageProps {
   startedFrom?: StartedFrom | null;
   /** Your own saved CSS, when the editor opens on someone else's page */
   ownCSS?: string;
+  /** When the page was last saved: a save from another tab since then is asked about */
+  templateSavedAt?: string | null;
 }
 
 function StartedFromNotice({ startedFrom }: { startedFrom: StartedFrom }) {
@@ -87,9 +90,14 @@ export default function TemplateEditorPage({
   hideNavigation = false,
   currentUser,
   startedFrom = null,
-  ownCSS
+  ownCSS,
+  templateSavedAt = null
 }: TemplateEditorPageProps) {
   const router = useRouter();
+  const confirm = useConfirm();
+  // When the page was last saved, as far as this editor knows: a save from
+  // another tab since then is asked about, not quietly overwritten
+  const basedOn = useRef(templateSavedAt);
 
   // ?from= has done its job once the page loads. Without it, a reload (or
   // coming back after saving) opens your own page, not theirs again; unsaved
@@ -132,22 +140,39 @@ export default function TemplateEditorPage({
   const cleanedCssContent = extractedCssContent.replace(/\/\* CSS_MODE:\w+ \*\/\n?/, '');
 
   const handleSave = async (template: string, css: string, compiledTemplate?: CompiledTemplate, cssMode?: 'inherit' | 'override' | 'disable', hideNavigation?: boolean, explicitTemplateMode?: 'default' | 'enhanced' | 'advanced') => {
+    // The server compiles the template itself. The compiled copy went along
+    // too, unread: 3-5 times the source, it pushed pages over ~170 KB past
+    // the request size limit, so they couldn't be saved.
     const requestBody = {
       template: template,
       customCSS: css,
-      ...(compiledTemplate && { ast: compiledTemplate }),
-      ...(cssMode && { cssMode })
+      ...(cssMode && { cssMode }),
+      basedOn: basedOn.current,
     };
+    const send = (overwrite: boolean) => csrfFetch(`/api/profile/${username}/template`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(overwrite ? { ...requestBody, overwrite } : requestBody),
+    });
     try {
-      const response = await csrfFetch(`/api/profile/${username}/template`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestBody),
-      });
+      let response = await send(false);
+      if (response.status === 409) {
+        const overwrite = await confirm({
+          title: "Your page was saved somewhere else",
+          message: "It changed after you opened this editor, maybe in another tab. Save this version over it? The other one stays in History.",
+          confirmText: "Save this version",
+          cancelText: "Not now",
+        });
+        if (!overwrite) throw new Error("Not saved. Your edits are still here.");
+        response = await send(true);
+      }
 
       if (!response.ok) {
-        const errorData = await response.json();
-        let errorMessage = errorData.error || 'Failed to save template';
+        // Not every refusal is JSON (a body over the server's size limit is plain text)
+        const errorData = await response.json().catch(() => ({}));
+        let errorMessage = errorData.error || (response.status === 413
+          ? 'Your page is too big to save in one go.'
+          : 'Failed to save template');
         if (errorData.suggestion) errorMessage += `\n\n${errorData.suggestion}`;
         if (errorData.details) errorMessage += `\n\n${errorData.details}`;
         if (errorData.line) {
@@ -158,6 +183,8 @@ export default function TemplateEditorPage({
         }
         throw new Error(errorMessage);
       }
+      const saved = await response.json().catch(() => ({}));
+      if ('savedAt' in saved) basedOn.current = saved.savedAt;
 
       // Enable template mode
       const token = await requestCapability("profile");
@@ -273,15 +300,8 @@ export const getServerSideProps: GetServerSideProps<TemplateEditorPageProps> = a
     }
 
     const profileData = await profileRes.json();
-    let currentUsername = null;
-    if (currentUser.primaryHandle) {
-      currentUsername = currentUser.primaryHandle.split("@")[0];
-    }
-
-    const isOwner = (
-      (currentUsername && currentUsername.toLowerCase() === username.toLowerCase()) ||
-      (currentUser.id && profileData.userId && currentUser.id === profileData.userId)
-    );
+    // The account, not the name (a same-name handle on another host isn't the owner)
+    const isOwner = Boolean(currentUser.id && profileData.userId && currentUser.id === profileData.userId);
 
     let existingTemplate = "";
     let customCSS = "";
@@ -340,6 +360,7 @@ export const getServerSideProps: GetServerSideProps<TemplateEditorPageProps> = a
         currentUser: currentUser ? JSON.parse(JSON.stringify(currentUser)) : null,
         startedFrom,
         ...(ownCSS !== null && { ownCSS }),
+        templateSavedAt: profileData.profile?.templateCompiledAt ?? null,
       },
     };
   } catch (error) {
