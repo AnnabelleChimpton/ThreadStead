@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
+import type { EditorView } from '@codemirror/view';
 import Button from '@/components/ui/Button';
 import { PixelIcon } from '@/components/ui/PixelIcon';
 
@@ -21,6 +22,105 @@ function store(key: string, value: string | number) {
   try { window.localStorage.setItem(key, String(value)); } catch { /* not remembered, that's all */ }
 }
 
+// ── Code panes: wrap and text size ──
+
+export type CodePane = 'html' | 'css';
+
+const TEXT_SIZES = [11, 12, 13, 14, 15, 16, 18, 20];
+const SIZE_KEY = 'ts-editor-text-size';
+const wrapKey = (pane: CodePane) => `ts-editor-wrap-${pane}`;
+
+/**
+ * Line wrap for each code pane and one text size for both, remembered like
+ * the split. HTML wraps until you turn it off and CSS doesn't; on a phone
+ * both wrap and the text starts bigger.
+ */
+export function useCodeSettings() {
+  const [wrap, setWrapState] = useState<Record<CodePane, boolean>>({ html: true, css: false });
+  const [size, setSize] = useState(13);
+  useEffect(() => {
+    const phone = window.matchMedia?.('(max-width: 639px)').matches ?? false;
+    const stored = (pane: CodePane, fallback: boolean) =>
+      readStored(wrapKey(pane), String(fallback), (v) => v === 'true' || v === 'false') === 'true';
+    setWrapState({ html: stored('html', true), css: stored('css', phone) });
+    setSize(readStored(SIZE_KEY, phone ? 15 : 13, (v) => TEXT_SIZES.includes(Number(v))));
+  }, []);
+  const setWrap = useCallback((pane: CodePane, on: boolean) => {
+    store(wrapKey(pane), String(on));
+    setWrapState((current) => ({ ...current, [pane]: on }));
+  }, []);
+  const resize = useCallback((by: 1 | -1) => {
+    const next = TEXT_SIZES[Math.min(TEXT_SIZES.length - 1, Math.max(0, TEXT_SIZES.indexOf(size) + by))];
+    store(SIZE_KEY, next);
+    setSize(next);
+  }, [size]);
+  return { wrap, size, setWrap, resize };
+}
+
+/** Wrap lines, and A− / A+, in a code pane's row of tools */
+export function CodeSettings({ pane, settings }: { pane: CodePane; settings: ReturnType<typeof useCodeSettings> }) {
+  const { wrap, size, setWrap, resize } = settings;
+  return (
+    <span className="inline-flex items-center gap-3">
+      <label className="inline-flex items-center gap-1.5 cursor-pointer">
+        <input type="checkbox" checked={wrap[pane]} onChange={(e) => setWrap(pane, e.target.checked)} className="h-4 w-4" />
+        Wrap lines
+      </label>
+      <span role="group" aria-label={`Text size: ${size}px`} className="inline-flex items-center gap-1">
+        <Button variant="secondary" size="sm" aria-label="Smaller text" disabled={size === TEXT_SIZES[0]} onClick={() => resize(-1)}>
+          A−
+        </Button>
+        <Button variant="secondary" size="sm" aria-label="Bigger text" disabled={size === TEXT_SIZES[TEXT_SIZES.length - 1]} onClick={() => resize(1)}>
+          A+
+        </Button>
+      </span>
+    </span>
+  );
+}
+
+/**
+ * Tidy (More): the pane's code re-indented (lib/templates/editor/tidy.ts,
+ * loaded now) as one edit, so Undo puts it back. Whether anything changed.
+ */
+export async function tidyCode(view: EditorView, pane: CodePane): Promise<boolean> {
+  const { tidyHtml, tidyCss } = await import('@/lib/templates/editor/tidy');
+  const before = view.state.doc.toString();
+  const after = (pane === 'html' ? tidyHtml : tidyCss)(before);
+  if (after === before) return false;
+  view.dispatch({ changes: { from: 0, to: before.length, insert: after } });
+  return true;
+}
+
+/** What the editors say after Tidy */
+export const tidyNote = (changed: boolean): SaveNote =>
+  changed ? { text: 'Tidied. Undo puts it back.', tone: 'note' } : { text: "It's already tidy.", tone: 'note' };
+
+/**
+ * Find, Undo and Redo, for phones, where there's no keyboard for them. On
+ * the code you're looking at; CodeMirror's commands load when first pressed.
+ */
+export function PhoneCodeTools({ view }: { view: () => EditorView | null }) {
+  const run = async (action: 'find' | 'undo' | 'redo') => {
+    const target = view();
+    if (!target) return;
+    if (action === 'find') (await import('@codemirror/search')).openSearchPanel(target);
+    else (await import('@codemirror/commands'))[action](target);
+  };
+  return (
+    <span className="inline-flex items-center gap-1">
+      <Button variant="secondary" size="sm" className="ts-icon-only" aria-label="Find" onClick={() => run('find')}>
+        <PixelIcon name="search" size={14} />
+      </Button>
+      <Button variant="secondary" size="sm" className="ts-icon-only" aria-label="Undo" onClick={() => run('undo')}>
+        <PixelIcon name="undo" size={14} />
+      </Button>
+      <Button variant="secondary" size="sm" className="ts-icon-only" aria-label="Redo" onClick={() => run('redo')}>
+        <PixelIcon name="redo" size={14} />
+      </Button>
+    </span>
+  );
+}
+
 // ── Toolbar ──
 
 /**
@@ -29,7 +129,7 @@ function store(key: string, value: string | number) {
  * Share and Save go in a bar stuck to the bottom of the screen, and History
  * moves into More (see PhoneOnly).
  */
-export function EditorToolbar({ title, handle, status, message, share, laptopOnly, save, children }: {
+export function EditorToolbar({ title, handle, status, message, share, laptopOnly, phoneTools, save, children }: {
   title: string;
   handle: string;
   status?: React.ReactNode;
@@ -39,6 +139,8 @@ export function EditorToolbar({ title, handle, status, message, share, laptopOnl
   share?: React.ReactNode;
   /** Buttons that are in More on a phone */
   laptopOnly?: React.ReactNode;
+  /** In the bar at the bottom of a phone's screen, before Save (PhoneCodeTools) */
+  phoneTools?: React.ReactNode;
   save: React.ReactNode;
   /** The More menu */
   children: React.ReactNode;
@@ -57,6 +159,7 @@ export function EditorToolbar({ title, handle, status, message, share, laptopOnl
         <div className="ts-editor-actions fixed inset-x-0 bottom-0 z-30 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 bg-thread-paper border-t-2 border-thread-sage px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] sm:static sm:contents">
           {message && <div className="flex items-center basis-full sm:basis-auto sm:order-1">{message}</div>}
           {share && <div className="flex items-center sm:order-2">{share}</div>}
+          {phoneTools && <div className="flex items-center sm:hidden">{phoneTools}</div>}
           <div className="flex items-center ml-auto sm:ml-0 sm:order-5">{save}</div>
         </div>
         {laptopOnly && <div className="hidden sm:flex sm:order-3 items-center gap-2">{laptopOnly}</div>}

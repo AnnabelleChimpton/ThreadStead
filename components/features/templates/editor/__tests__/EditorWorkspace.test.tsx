@@ -4,8 +4,11 @@
  * still be there. Hidden ones are out of the accessibility tree.
  */
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
-import EditorWorkspace, { EditorMenu, MenuItem } from '../EditorWorkspace';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { EditorState } from '@codemirror/state';
+import { EditorView } from '@codemirror/view';
+import { history, undo } from '@codemirror/commands';
+import EditorWorkspace, { CodeSettings, EditorMenu, MenuItem, PhoneCodeTools, tidyCode, useCodeSettings } from '../EditorWorkspace';
 
 jest.mock('@/components/ui/PixelIcon', () => ({ PixelIcon: () => null }));
 
@@ -78,4 +81,64 @@ test('More opens, runs an item, and closes on Escape or after a pick', () => {
   fireEvent.click(screen.getByRole('button', { name: 'Reset to default' }));
   expect(reset).toHaveBeenCalledTimes(1);
   expect(screen.queryByRole('button', { name: 'Reset to default' })).not.toBeInTheDocument();
+});
+
+describe('code pane comforts', () => {
+  function Settings() {
+    const settings = useCodeSettings();
+    return (
+      <>
+        <CodeSettings pane="html" settings={settings} />
+        <output>{`${settings.wrap.html} ${settings.wrap.css} ${settings.size}`}</output>
+      </>
+    );
+  }
+
+  test('wrap and text size, remembered for next time', () => {
+    const { unmount } = render(<Settings />);
+    expect(screen.getByRole('status')).toHaveTextContent('true false 13');
+    fireEvent.click(screen.getByLabelText('Wrap lines'));
+    fireEvent.click(screen.getByRole('button', { name: 'Bigger text' }));
+    expect(screen.getByRole('status')).toHaveTextContent('false false 14');
+    unmount();
+
+    render(<Settings />);
+    expect(screen.getByRole('status')).toHaveTextContent('false false 14');
+  });
+
+  test("text size stops at the smallest, and says what it's at", () => {
+    render(<Settings />);
+    for (let i = 0; i < 5; i++) fireEvent.click(screen.getByRole('button', { name: 'Smaller text' }));
+    expect(screen.getByRole('button', { name: 'Smaller text' })).toBeDisabled();
+    expect(screen.getByRole('group', { name: 'Text size: 11px' })).toBeInTheDocument();
+  });
+
+  // jsdom lays nothing out, and CodeMirror measures text once a frame
+  beforeAll(() => {
+    Range.prototype.getClientRects = () => [] as unknown as DOMRectList;
+    Range.prototype.getBoundingClientRect = () => ({ x: 0, y: 0, width: 0, height: 0, top: 0, left: 0, right: 0, bottom: 0, toJSON: () => ({}) });
+  });
+
+  const editor = (doc: string) => new EditorView({ state: EditorState.create({ doc, extensions: [history()] }), parent: document.body });
+
+  test('Tidy is one edit: Undo puts it back', async () => {
+    const view = editor('<main>\n<p>hi</p>\n</main>');
+    expect(await tidyCode(view, 'html')).toBe(true);
+    expect(view.state.doc.toString()).toBe('<main>\n  <p>hi</p>\n</main>');
+    expect(await tidyCode(view, 'html')).toBe(false);
+    undo(view);
+    expect(view.state.doc.toString()).toBe('<main>\n<p>hi</p>\n</main>');
+    view.destroy();
+  });
+
+  test("a phone's Undo and Find act on the code", async () => {
+    const view = editor('one');
+    view.dispatch({ changes: { from: 3, insert: ' two' } });
+    render(<PhoneCodeTools view={() => view} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    await waitFor(() => expect(view.state.doc.toString()).toBe('one'));
+    fireEvent.click(screen.getByRole('button', { name: 'Find' }));
+    await waitFor(() => expect(view.dom.querySelector('.cm-search')).not.toBeNull());
+    view.destroy();
+  });
 });

@@ -9,8 +9,11 @@ import { markdownToSafeHtml } from '@/lib/utils/sanitization/html';
  * A lesson, one step at a time, beside your own page in the editor
  * (?learn=<lesson>&step=<n>). "Show me" puts the step's code in; "Check my
  * work" reads the page the preview already compiled. Nothing is saved until
- * Save, like any other edit.
+ * Save, like any other edit. It folds to one line, to give the code room,
+ * and stays folded next time.
  */
+
+const FOLDED_KEY = 'ts-learn-folded';
 export default function LearnPanel({ slug, step: stepNumber, onStep, page, onShowMe, onClose }: {
   slug: string;
   /** From 1 */
@@ -23,6 +26,14 @@ export default function LearnPanel({ slug, step: stepNumber, onStep, page, onSho
   const lesson = getLesson(slug);
   const [result, setResult] = useState<CheckResult | null>(null);
   const [answered, setAnswered] = useState<'yes' | 'not-yet' | null>(null);
+  const [folded, setFolded] = useState(false);
+  useEffect(() => {
+    try { setFolded(window.localStorage.getItem(FOLDED_KEY) === 'true'); } catch { /* open, then */ }
+  }, []);
+  const fold = (on: boolean) => {
+    setFolded(on);
+    try { window.localStorage.setItem(FOLDED_KEY, String(on)); } catch { /* not remembered, that's all */ }
+  };
   useEffect(() => {
     setResult(null);
     setAnswered(null);
@@ -33,6 +44,27 @@ export default function LearnPanel({ slug, step: stepNumber, onStep, page, onSho
   const step = lesson.steps[index];
   const last = index === lesson.steps.length - 1;
   const after = nextLesson(lesson.slug);
+  const check = () => {
+    setAnswered(null);
+    setResult(checkStep(step.checks, page));
+  };
+
+  if (folded) {
+    return (
+      <section aria-label="Lesson" className="mb-3 border-2 border-thread-sage bg-thread-paper px-3 py-2 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-nb-ink">
+        {/* Its own line on a phone, rather than squeezed to nothing by the buttons */}
+        <span className="min-w-[12rem] flex-1 truncate">
+          <strong>Step {index + 1} of {lesson.steps.length}:</strong> {step.title}
+        </span>
+        {/* The answer shows in the open panel */}
+        <Button size="sm" onClick={() => { check(); fold(false); }}>Check my work</Button>
+        <Button size="sm" variant="secondary" onClick={() => onShowMe(step)}>Show me</Button>
+        <button type="button" className="ts-bare underline" aria-expanded="false" onClick={() => fold(false)}>
+          Open
+        </button>
+      </section>
+    );
+  }
 
   return (
     <section aria-label="Lesson" className="mb-4 border-2 border-thread-sage bg-thread-paper p-3 sm:p-4">
@@ -40,9 +72,14 @@ export default function LearnPanel({ slug, step: stepNumber, onStep, page, onSho
         <p className="thread-label m-0">
           {lesson.title}: step {index + 1} of {lesson.steps.length}
         </p>
-        <button type="button" className="ts-bare text-sm underline text-nb-ink" onClick={onClose}>
-          Close the lesson
-        </button>
+        <span className="inline-flex gap-3">
+          <button type="button" className="ts-bare text-sm underline text-nb-ink" aria-expanded="true" onClick={() => fold(true)}>
+            Fold
+          </button>
+          <button type="button" className="ts-bare text-sm underline text-nb-ink" onClick={onClose}>
+            Close the lesson
+          </button>
+        </span>
       </div>
       <h3 className="text-lg font-semibold text-nb-ink mt-1 mb-2">{step.title}</h3>
       <div
@@ -51,7 +88,7 @@ export default function LearnPanel({ slug, step: stepNumber, onStep, page, onSho
       />
 
       <div className="flex flex-wrap gap-2 mt-3">
-        <Button size="sm" onClick={() => { setAnswered(null); setResult(checkStep(step.checks, page)); }}>
+        <Button size="sm" onClick={check}>
           Check my work
         </Button>
         <Button size="sm" variant="secondary" onClick={() => onShowMe(step)}>

@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import dynamic from 'next/dynamic';
 import { html as htmlLang, htmlLanguage } from '@codemirror/lang-html';
 import { css as cssLang } from '@codemirror/lang-css';
-import type { EditorView } from '@codemirror/view';
+import { EditorView } from '@codemirror/view';
 import {
   fetchComponentSchemas,
   buildExtraTags,
@@ -45,14 +45,20 @@ import { useToast } from '@/contexts/ToastContext';
 import TemplateHistoryPanel, { type FullRevision } from '@/components/features/templates/TemplateHistoryPanel';
 import ViewSourceToggle from '@/components/features/templates/ViewSourceToggle';
 import EditorWorkspace, {
+  CodeSettings,
+  type CodePane,
   EditorMenu,
   EditorToolbar,
   LivePreviewPane,
   MenuItem,
+  PhoneCodeTools,
   PhoneOnly,
   SaveNoteText,
   SaveStatus,
   type SaveNote,
+  tidyCode,
+  tidyNote,
+  useCodeSettings,
   useEmbeddedPreview,
   type WorkspaceTab,
 } from '@/components/features/templates/editor/EditorWorkspace';
@@ -821,14 +827,29 @@ export default function EnhancedTemplateEditor({
       });
   }, []);
 
+  // Wrap and text size for the code panes, remembered (EditorWorkspace)
+  const codeSettings = useCodeSettings();
   const templateExtensions = React.useMemo(
     () => [
       htmlLang(componentSchemas ? { extraTags: buildExtraTags(componentSchemas) } : {}),
       htmlLanguage.data.of({ autocomplete: nicknameCompletions }),
       pastedCSSHistory(setCustomCSS),
+      ...(codeSettings.wrap.html ? [EditorView.lineWrapping] : []),
     ],
-    [componentSchemas]
+    [componentSchemas, codeSettings.wrap.html]
   );
+  const cssExtensions = React.useMemo(
+    () => [cssLang(), ...(codeSettings.wrap.css ? [EditorView.lineWrapping] : [])],
+    [codeSettings.wrap.css]
+  );
+  const codeStyle = { height: '100%', fontSize: `${codeSettings.size}px` };
+
+  const tidy = useCallback(async (pane: CodePane) => {
+    const view = (pane === 'html' ? templateViewRef : cssViewRef).current;
+    if (!view) return;
+    setSaveMessage(tidyNote(await tidyCode(view, pane)));
+    setTimeout(() => setSaveMessage(null), 3000);
+  }, []);
 
   // Drop a snippet in at the cursor (or append if the editor isn't mounted).
   // `cursor` is where the cursor lands, counted from the snippet's start.
@@ -1482,6 +1503,8 @@ export default function EnhancedTemplateEditor({
   };
 
   const username = user.primaryHandle?.split('@')[0] || user.handles?.[0]?.handle?.split('@')[0] || '';
+  // The code you're looking at, if any (Tidy, and Find/Undo/Redo on a phone)
+  const codePane: CodePane | null = activeTab === 'template' ? 'html' : activeTab === 'css' ? 'css' : null;
   const startedFromTheme = useStandardLayout ? THEMES.find((t) => t.id === detectTheme(customCSS)) : undefined;
 
   const htmlTab: WorkspaceTab = {
@@ -1530,6 +1553,7 @@ export default function EnhancedTemplateEditor({
             />
             Show site navigation
           </label>
+          <CodeSettings pane="html" settings={codeSettings} />
           <Button
             variant="secondary"
             size="sm"
@@ -1548,7 +1572,7 @@ export default function EnhancedTemplateEditor({
             onChange={handleTemplateChange}
             extensions={templateExtensions}
             height="100%"
-            style={{ height: '100%', fontSize: '13px' }}
+            style={codeStyle}
             placeholder={loadingDefault
               ? 'Loading the default layout…'
               : 'Write your page here. Plain HTML works, and so do components like <ProfilePhoto /> or <RetroCard>…</RetroCard>'}
@@ -1618,6 +1642,7 @@ export default function EnhancedTemplateEditor({
               <option value="disable">Off</option>
             </select>
           </label>
+          <CodeSettings pane="css" settings={codeSettings} />
           <Button
             variant="secondary"
             size="sm"
@@ -1641,9 +1666,9 @@ export default function EnhancedTemplateEditor({
             onCreateEditor={(view) => { cssViewRef.current = view; }}
             value={customCSS}
             onChange={(value: string) => setCustomCSS(value)}
-            extensions={[cssLang()]}
+            extensions={cssExtensions}
             height="100%"
-            style={{ height: '100%', fontSize: '13px' }}
+            style={codeStyle}
             placeholder={cssMode === 'inherit'
               ? `/* Site styles are on: add to them here */
 
@@ -1762,6 +1787,7 @@ body {
                 <PixelIcon name="clock" size={12} /> History
               </Button>
             }
+            phoneTools={codePane && <PhoneCodeTools view={() => (codePane === 'html' ? templateViewRef : cssViewRef).current} />}
             save={
               <Button size="sm" onClick={handleSave} disabled={isSaving}>
                 {isSaving ? 'Saving...' : 'Save & Go Live'}
@@ -1771,6 +1797,11 @@ body {
             <EditorMenu>
               {(close) => (
                 <>
+                  {codePane && (
+                    <MenuItem onClick={() => { close(); void tidy(codePane); }}>
+                      <PixelIcon name="code" size={12} /> Tidy the {codePane === 'html' ? 'HTML' : 'CSS'}
+                    </MenuItem>
+                  )}
                   <PhoneOnly>
                     <MenuItem onClick={() => { close(); setShowHistoryPanel(true); }}>
                       <PixelIcon name="clock" size={12} /> History

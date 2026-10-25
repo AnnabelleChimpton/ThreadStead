@@ -51,8 +51,11 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.864.0",
+    "@codemirror/commands": "6.10.4",
     "@codemirror/lang-css": "^6.3.1",
     "@codemirror/lang-html": "^6.4.11",
+    "@codemirror/search": "6.7.1",
+    "@codemirror/view": "6.43.5",
     "@jsep-plugin/object": "1.2.2",
     "@noble/ed25519": "^2.3.0",
     "@noble/hashes": "^1.8.0",

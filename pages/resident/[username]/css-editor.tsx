@@ -4,7 +4,7 @@ import type { GetServerSideProps, NextApiRequest } from 'next';
 import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import { css as cssLang } from '@codemirror/lang-css';
-import type { EditorView } from '@codemirror/view';
+import { EditorView } from '@codemirror/view';
 
 // CodeMirror is editor-page-only — loaded dynamically so it never lands in
 // the shared bundle (first-load JS is already heavy, see C2).
@@ -33,13 +33,18 @@ import { PixelIcon } from '@/components/ui/PixelIcon';
 import ShareToFeedCheckbox from '@/components/features/profile/ShareToFeedCheckbox';
 import Button from '@/components/ui/Button';
 import EditorWorkspace, {
+  CodeSettings,
   EditorMenu,
   EditorToolbar,
   LivePreviewPane,
   MenuItem,
+  PhoneCodeTools,
   PhoneOnly,
   SaveNoteText,
   SaveStatus,
+  tidyCode,
+  tidyNote,
+  useCodeSettings,
   useEmbeddedPreview,
   type SaveNote,
   type WorkspaceTab,
@@ -179,6 +184,17 @@ export default function CSSEditorPage({
   // Captured via onCreateEditor: next/dynamic doesn't forward refs, so a
   // ref on the <CodeMirror> wrapper would stay null forever.
   const editorViewRef = useRef<EditorView | null>(null);
+  // Wrap and text size, remembered (EditorWorkspace)
+  const codeSettings = useCodeSettings();
+  const cssExtensions = useMemo(
+    () => [cssLang(), ...(codeSettings.wrap.css ? [EditorView.lineWrapping] : [])],
+    [codeSettings.wrap.css]
+  );
+  const tidy = async () => {
+    if (!editorViewRef.current) return;
+    setSaveMessage(tidyNote(await tidyCode(editorViewRef.current, 'css')));
+    setTimeout(() => setSaveMessage(null), 3000);
+  };
   // Until the person clicks into the editor its cursor sits at 0; inserting
   // there would put new rules above (and under) everything already written.
   const cursorPlacedRef = useRef(false);
@@ -434,6 +450,7 @@ export default function CSSEditorPage({
               <option value="disable">Off</option>
             </select>
           </label>
+          <CodeSettings pane="css" settings={codeSettings} />
         </div>
         <p className="m-0 px-3 py-1.5 text-xs text-nb-ink-mid border-b border-thread-sage/40 flex-shrink-0">
           {cssMode === 'inherit'
@@ -449,9 +466,9 @@ export default function CSSEditorPage({
               cursorPlacedRef.current = false;
               view.contentDOM.addEventListener('focus', () => { cursorPlacedRef.current = true; });
             }}
-            extensions={[cssLang()]}
+            extensions={cssExtensions}
             height="100%"
-            style={{ height: '100%', fontSize: '13px' }}
+            style={{ height: '100%', fontSize: `${codeSettings.size}px` }}
             placeholder={`/* Add your custom CSS here */
 
 /* Example: cozy pine-to-meadow profile header */
@@ -533,6 +550,7 @@ export default function CSSEditorPage({
                   <PixelIcon name="clock" size={12} /> History
                 </Button>
               }
+              phoneTools={activeTab === 'css' && <PhoneCodeTools view={() => editorViewRef.current} />}
               save={
                 <Button size="sm" onClick={handleSave} disabled={saving} className="inline-flex items-center gap-1">
                   {saving ? 'Saving...' : <><PixelIcon name="save" size={14} /> Save CSS</>}
@@ -542,6 +560,11 @@ export default function CSSEditorPage({
               <EditorMenu>
                 {(close) => (
                   <>
+                    {activeTab === 'css' && (
+                      <MenuItem onClick={() => { close(); void tidy(); }}>
+                        <PixelIcon name="code" size={12} /> Tidy the CSS
+                      </MenuItem>
+                    )}
                     <PhoneOnly>
                       <MenuItem onClick={() => { close(); setShowHistoryPanel(true); }}>
                         <PixelIcon name="clock" size={12} /> History
