@@ -69,6 +69,17 @@ describe('values that do not fit', () => {
   })
 })
 
+describe('a calculation in value=, which is used as written', () => {
+  test('says to use expression=, with the line', () => {
+    const warnings = warningsFor('<Var name="books" type="array" initial="[]" />\n<Button><OnClick><Push var="books" value="$vars.newBook" /></OnClick>Add</Button>')
+    expect(warnings).toContainEqual(expect.stringMatching(/^Line 2: <Push value="\$vars\.newBook"> value is used as written, so this puts in the words "\$vars\.newBook"\. For what the variable holds, write expression="\$vars\.newBook"\.$/))
+  })
+  test('plain words in value=, and $vars in expression=, say nothing', () => {
+    const page = '<Var name="n" type="string" initial="" />\n<Button><OnClick><Set var="n" value="hello" /><Push var="l" expression="$vars.n" /></OnClick>Go</Button>'
+    expect(warningsFor(page).filter((w) => /used as written/.test(w))).toEqual([])
+  })
+})
+
 describe('attributes a component does not have', () => {
   test('a typo is named, with what was probably meant', () => {
     expect(warningsFor('<StickyNote colour="pink">hi</StickyNote>')).toEqual([

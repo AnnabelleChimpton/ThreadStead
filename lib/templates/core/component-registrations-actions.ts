@@ -133,7 +133,7 @@ export function registerActionComponents(registry: ComponentRegistry) {
     component: Push,
     group: 'logic',
     description: 'Adds an item to the end of a list page variable. Runs inside an event like OnClick or OnMount.',
-    example: '<Var name="books" type="array" initial=\'["Kindred"]\' />\n<Var name="newBook" type="string" initial="" />\n<TInput var="newBook" placeholder="Book title" />\n<Button>\n  <OnClick><Push var="books" value="$vars.newBook" /></OnClick>\n  Add to my list\n</Button>\n<p><ShowVar name="books" format="{value.length} books to read" /></p>',
+    example: '<Var name="books" type="array" initial=\'["Kindred"]\' />\n<Var name="newBook" type="string" initial="" />\n<TInput var="newBook" placeholder="Book title" />\n<Button>\n  <OnClick><Push var="books" expression="$vars.newBook" /></OnClick>\n  Add to my list\n</Button>\n<p><ShowVar name="books" format="{value.length} books to read" /></p>',
     props: {
       var: { type: 'string', required: true, description: 'The list page variable to add to.' },
       value: { type: 'string', description: 'The item to add. If it has $vars in it, like $vars.newBook, it\'s worked out first; otherwise it\'s used as written.' },

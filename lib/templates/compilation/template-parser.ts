@@ -915,6 +915,11 @@ function valueProblem(
       return `${prop} isn't a pattern this can read${reason ? ` (${reason})` : ''}, so it never matches.`;
     }
   }
+  // value= goes in as written; a calculation is expression= (the lessons' own
+  // book list pushed the words "$vars.newBook")
+  if (prop === 'value' && /\$vars\./.test(value) && componentRegistry.get(component)?.props.expression) {
+    return `value is used as written, so this puts in the words "${value}". For what the variable holds, write expression="${value}".`;
+  }
   if (component === 'Var' && prop === 'initial') {
     const type = attributes.find((a) => a.name.toLowerCase() === 'type')?.value?.toLowerCase();
     if (type === 'array' || type === 'object') {

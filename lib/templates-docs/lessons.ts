@@ -631,13 +631,13 @@ a {
       {
         id: 'add',
         title: 'Add to it',
-        body: "A <TInput> is a text box that fills a variable as someone types. <Push> adds that to the end of the list.",
+        body: "A <TInput> is a text box that fills a variable as someone types. <Push> adds what's in it to the end of the list: expression= reads the variable, where value= would add the words exactly as written.",
         code: `<Var name="books" type="array" initial='["Piranesi"]' />
 <Var name="newBook" type="string" initial="" />
 
 <TInput var="newBook" placeholder="A book" />
 <Button>
-  <OnClick><Push var="books" value="$vars.newBook" /></OnClick>
+  <OnClick><Push var="books" expression="$vars.newBook" /></OnClick>
   Add it
 </Button>
 
@@ -650,7 +650,7 @@ a {
           "Anyone can add to it, but only in their own browser. It isn't saved to your page.",
         ],
         checks: [
-          { uses: 'Push', props: { var: 'books' }, hint: 'Add a <Push var="books" value="$vars.newBook"> to the button.' },
+          { uses: 'Push', props: { var: 'books' }, hint: 'Add a <Push var="books" expression="$vars.newBook"> to the button.' },
         ],
       },
       {

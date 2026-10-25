@@ -15,7 +15,7 @@ import { getVariableValue, getVariableObject, buildExpressionContext } from '@/l
  * ```xml
  * <button>
  *   <OnClick>
- *     <Push var="todoList" value="$vars.newTodo" />
+ *     <Push var="todoList" expression="$vars.newTodo" />
  *   </OnClick>
  *   Add Todo
  * </button>
