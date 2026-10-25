@@ -3,6 +3,9 @@
 // shows everything the page's look depends on. Only on paste, as one edit:
 // run on every change it re-added CSS on undo and ate a <style> typed by hand
 // (template audit 07 #3).
+import { StateEffect } from '@codemirror/state';
+import { EditorView } from '@codemirror/view';
+import { invertedEffects } from '@codemirror/commands';
 import { extractDocument } from '@/lib/templates/compilation/document-head';
 
 /** A whole HTML document pasted in, not a piece of one */
@@ -74,4 +77,27 @@ export function movePastedStyles(pasted: string, existingCSS: string): MovedStyl
         ? existingCSS
         : `${existingCSS}\n\n/* Extracted from HTML */\n${extracted}`;
   return { html: html.trim(), css, movedStyles: styleTags.length > 0, movedFonts: fontLinks.length > 0 };
+}
+
+/** The CSS tab's side of a paste, carried on the HTML pane's paste edit */
+export const pastedCSS = StateEffect.define<{ from: string; to: string }>();
+
+/**
+ * For the HTML pane: the CSS a paste moved goes with the paste through undo
+ * and redo, so one undo takes back both (it left the pasted page's CSS, with
+ * the old CSS gone). CSS edited since the paste is left as it is.
+ */
+export function pastedCSSHistory(setCSS: (update: (css: string) => string) => void) {
+  return [
+    invertedEffects.of((tr) =>
+      tr.effects.filter((e) => e.is(pastedCSS)).map((e) => pastedCSS.of({ from: e.value.to, to: e.value.from }))
+    ),
+    EditorView.updateListener.of((update) => {
+      for (const tr of update.transactions) {
+        for (const e of tr.effects) {
+          if (e.is(pastedCSS)) setCSS((css) => (css === e.value.from ? e.value.to : css));
+        }
+      }
+    }),
+  ];
 }

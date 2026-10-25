@@ -142,6 +142,41 @@ describe('only a paste moves them (template audit 07 #3)', () => {
     expect(movePastedStyles(pasted(''), 'h2 { color: red }').css).toBe('body { color: pink; }')
     expect(movePastedStyles('<p>no styles</p>', 'x')).toBeNull()
   })
+
+})
+
+describe('one undo takes back a paste and the CSS it moved (template audit 07 #3)', () => {
+  // A real CodeMirror: the editor dispatches the paste with the CSS on it
+  const { EditorView } = jest.requireActual('@codemirror/view')
+  const { history, undo, redo } = jest.requireActual('@codemirror/commands')
+  const { movePastedStyles, pastedCSS, pastedCSSHistory } = jest.requireActual('@/lib/templates/editor/pasted-styles')
+
+  function pasteInto(css: string) {
+    let current = css
+    const setCSS = (update: (css: string) => string) => { current = update(current) }
+    const view = new EditorView({ doc: '<p>starter</p>', extensions: [history(), pastedCSSHistory(setCSS)] })
+    const moved = movePastedStyles(pasted(''), css)
+    view.dispatch(view.state.replaceSelection(moved.html), { effects: pastedCSS.of({ from: css, to: moved.css }) })
+    return { view, css: () => current, edit: (next: string) => { current = next } }
+  }
+
+  it('undo puts the old CSS back with the old HTML, and redo moves it again', () => {
+    const { view, css } = pasteInto('h2 { font-size: 1rem; }')
+    expect(css()).toBe('body { color: pink; }')
+    undo(view)
+    expect(view.state.doc.toString()).toBe('<p>starter</p>')
+    expect(css()).toBe('h2 { font-size: 1rem; }')
+    redo(view)
+    expect(view.state.doc.toString()).toContain('<p>hello</p>')
+    expect(css()).toBe('body { color: pink; }')
+  })
+
+  it('CSS edited since the paste stays as it is', () => {
+    const { view, css, edit } = pasteInto('h2 { font-size: 1rem; }')
+    edit('body { color: teal; }')
+    undo(view)
+    expect(css()).toBe('body { color: teal; }')
+  })
 })
 
 describe('afterEnclosingTag: inserts never land inside a tag', () => {

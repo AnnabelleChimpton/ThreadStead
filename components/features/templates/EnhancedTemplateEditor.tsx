@@ -32,7 +32,7 @@ import NavigationPreview from '@/components/features/templates/NavigationPreview
 import ValidationFeedbackPanel, { hasStrippedNeedingAttention, type StrippedEntry } from './ValidationFeedbackPanel';
 import { cssProblems } from '@/lib/utils/css/css-problems';
 import ProblemsStrip, { NO_PROBLEMS, firstProblemLine, type LiveProblems } from './ProblemsStrip';
-import { movePastedStyles } from '@/lib/templates/editor/pasted-styles';
+import { movePastedStyles, pastedCSS, pastedCSSHistory } from '@/lib/templates/editor/pasted-styles';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import { requestCapability } from '@/lib/api/client/capability';
 import { useRouter } from 'next/router';
@@ -815,6 +815,7 @@ export default function EnhancedTemplateEditor({
     () => [
       htmlLang(componentSchemas ? { extraTags: buildExtraTags(componentSchemas) } : {}),
       htmlLanguage.data.of({ autocomplete: nicknameCompletions }),
+      pastedCSSHistory(setCustomCSS),
     ],
     [componentSchemas]
   );
@@ -1434,7 +1435,7 @@ export default function EnhancedTemplateEditor({
   };
 
   // A paste with <style> blocks or Google Fonts links: they go to the CSS tab
-  // and the rest goes in as one edit, so one undo takes it back
+  // and the rest goes in as one edit, so one undo takes both back
   // (lib/templates/editor/pasted-styles.ts). Caught before CodeMirror's own
   // paste handling, on the way down.
   const handleTemplatePaste = (event: React.ClipboardEvent) => {
@@ -1443,14 +1444,19 @@ export default function EnhancedTemplateEditor({
     event.preventDefault();
     event.stopPropagation();
     const view = templateViewRef.current;
+    const cssMoves = moved.css !== customCSS;
     if (view) {
-      view.dispatch(view.state.replaceSelection(moved.html), { scrollIntoView: true });
+      // The CSS rides on the same edit (pastedCSSHistory sets it), so undo takes both
+      view.dispatch(view.state.replaceSelection(moved.html), {
+        scrollIntoView: true,
+        effects: cssMoves ? pastedCSS.of({ from: customCSS, to: moved.css }) : [],
+      });
     } else {
       handleTemplateChange(template ? `${template}\n${moved.html}` : moved.html);
+      setCustomCSS(moved.css);
     }
     switchToOwnHTML();
-    if (moved.css === customCSS) return;
-    setCustomCSS(moved.css);
+    if (!cssMoves) return;
     setSaveMessage({
       text: moved.movedStyles && moved.movedFonts
         ? 'Moved your <style> CSS and Google Fonts links to the CSS tab'
