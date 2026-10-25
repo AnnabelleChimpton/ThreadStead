@@ -3,6 +3,7 @@ import { PixelIcon } from '@/components/ui/PixelIcon';
 import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner';
 import EmptyState from '@/components/ui/feedback/EmptyState';
 import ErrorDisplay from '@/components/ui/feedback/ErrorDisplay';
+import { layoutOf } from '@/lib/domain/profile/layout';
 
 export interface RevisionSummary {
   id: string;
@@ -27,13 +28,23 @@ interface TemplateHistoryPanelProps {
 }
 
 const TRIGGER_LABELS: Record<string, string> = {
-  'template-save': 'before you saved',
-  'css-save': 'before you saved your CSS',
-  'reset': 'before you reset your page',
-  'moderator-reset': 'before a moderator reset your page',
-  'layout-merge': "when the site cleared CSS your page wasn't showing",
-  'vb-convert': 'before the old Visual Builder layout was converted',
+  'template-save': 'Before a save',
+  'css-save': 'Before a CSS save',
+  'reset': 'Before you reset your page',
+  'moderator-reset': 'Before a moderator reset your page',
+  'layout-merge': "When the site cleared CSS your page wasn't showing",
+  'vb-convert': 'Before the old Visual Builder layout was converted',
 };
+
+// What a version holds, in the words Settings uses: "Saved before you saved
+// · template + CSS · advanced" said it in the code's (template audit 07 #12)
+function describeVersion(rev: RevisionSummary): string {
+  const holds = rev.templateChars > 0
+    ? rev.cssChars > 0 ? 'HTML and CSS' : 'HTML, no CSS'
+    : rev.cssChars > 0 ? 'CSS only' : 'empty';
+  const layout = layoutOf(rev.templateMode) === 'html' ? 'your own HTML page' : 'the standard layout';
+  return `${TRIGGER_LABELS[rev.trigger] || rev.trigger} · ${holds} · ${layout}`;
+}
 
 function describeWhen(iso: string): string {
   const minutes = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
@@ -120,15 +131,7 @@ export default function TemplateHistoryPanel({ username, onLoadRevision, onClose
               <p className="text-sm text-thread-charcoal font-medium">
                 {describeWhen(rev.createdAt)}
               </p>
-              <p className="text-xs text-thread-sage">
-                Saved {TRIGGER_LABELS[rev.trigger] || rev.trigger}
-                {' · '}
-                {rev.templateChars > 0
-                  ? `template + ${rev.cssChars > 0 ? 'CSS' : 'no CSS'}`
-                  : rev.cssChars > 0 ? 'CSS only' : 'empty'}
-                {' · '}
-                {rev.templateMode}
-              </p>
+              <p className="text-xs text-thread-sage">{describeVersion(rev)}</p>
             </div>
             <button
               onClick={() => loadRevision(rev.id)}
