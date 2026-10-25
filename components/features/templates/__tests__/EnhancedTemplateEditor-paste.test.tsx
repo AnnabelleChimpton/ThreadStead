@@ -275,3 +275,42 @@ describe('dropping an .html file on the HTML pane', () => {
     expect(template).toContain('<p>a piece</p>')
   })
 })
+
+describe('Bring in my page from my site (Starter pages)', () => {
+  it('lists your verified sites, and brings the page in like a dropped one', async () => {
+    global.fetch = jest.fn(async (url: string, init?: { method?: string }) => {
+      if (String(url).includes('/api/sites/import')) {
+        return init?.method === 'POST'
+          ? { ok: true, status: 200, json: async () => ({ html: pasted('', '<style>h1 { color: crimson; }</style>') }) }
+          : { ok: true, status: 200, json: async () => ({ sites: [{ id: 's1', address: 'pat.neocities.org' }] }) }
+      }
+      return { ok: true, status: 200, json: async () => ({ success: true, compiled: { islands: [] } }) }
+    }) as unknown as typeof fetch
+    const onSave = jest.fn().mockResolvedValue(undefined)
+    render(
+      <ToastProvider>
+        <EnhancedTemplateEditor user={user} initialTemplate="<p>before</p>" initialCSS="" initialTemplateMode="advanced" initialEditorMode="template" onSave={onSave} />
+      </ToastProvider>
+    )
+    fireEvent.click(screen.getByRole('tab', { name: 'Starter pages' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Bring in pat.neocities.org' }))
+    await waitFor(() => expect((screen.getByLabelText('template-code') as HTMLTextAreaElement).value).toContain('<p>hello</p>'))
+    expect(screen.getByRole('tab', { name: 'HTML' })).toHaveAttribute('aria-selected', 'true')
+    fireEvent.click(screen.getByRole('button', { name: /save/i }))
+    await waitFor(() => expect(onSave).toHaveBeenCalled())
+    const [template, css] = onSave.mock.calls[0]
+    expect(template).not.toContain('before')
+    expect(css).toBe('h1 { color: crimson; }')
+  })
+
+  it('with no verified site, points to Settings', async () => {
+    global.fetch = jest.fn(async () => ({ ok: true, status: 200, json: async () => ({ sites: [] }) })) as unknown as typeof fetch
+    render(
+      <ToastProvider>
+        <EnhancedTemplateEditor user={user} initialTemplate="<p>before</p>" initialTemplateMode="advanced" initialEditorMode="template" onSave={jest.fn()} />
+      </ToastProvider>
+    )
+    fireEvent.click(screen.getByRole('tab', { name: 'Starter pages' }))
+    expect(await screen.findByRole('link', { name: 'Add it in Settings' })).toHaveAttribute('href', '/settings?tab=sites')
+  })
+})

@@ -1564,6 +1564,40 @@ export default function EnhancedTemplateEditor({
     void putInTemplate(text);
   };
 
+  // Your own verified sites (Settings → Your sites), to bring a page in from:
+  // asked for the first time the starter pages are open
+  const [ownSites, setOwnSites] = useState<Array<{ id: string; address: string }> | null>(null);
+  const [bringingIn, setBringingIn] = useState(false);
+  useEffect(() => {
+    if (activeTab !== 'starters' || ownSites) return;
+    fetch('/api/sites/import', { credentials: 'include' })
+      .then((response) => (response.ok ? response.json() : { sites: [] }))
+      .then((data) => setOwnSites(Array.isArray(data.sites) ? data.sites : []))
+      .catch(() => setOwnSites([]));
+  }, [activeTab, ownSites]);
+
+  // The site's homepage, its own CSS and pictures and links still coming from
+  // the site, in place of what's in the HTML tab (lib/templates/editor/site-import.ts)
+  const bringIn = async (site: { id: string; address: string }) => {
+    setBringingIn(true);
+    try {
+      const response = await csrfFetch('/api/sites/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: site.id }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || typeof data.html !== 'string') {
+        setSaveMessage({ text: data.error || `I couldn't bring in ${site.address}.`, tone: 'error' });
+        return;
+      }
+      setActiveTab('template');
+      await putInTemplate(data.html, true);
+    } finally {
+      setBringingIn(false);
+    }
+  };
+
   // A dropped .html file: a whole page takes the place of what's there, a
   // piece of one goes in at the cursor (the other way round from Download my page)
   const handleTemplateDrop = (event: React.DragEvent) => {
@@ -1778,6 +1812,26 @@ body {
           <p className="mt-0 mb-3 text-sm text-nb-ink">
             Pick a starter, or paste a page you already have into the HTML tab.
           </p>
+        )}
+        {ownSites && (
+          <div className="mb-4 text-sm text-nb-ink">
+            {ownSites.length > 0 ? (
+              <>
+                <p className="mt-0 mb-2">Bring in your page from your own site. Its pictures and links keep coming from there, and you can bring it in again whenever you change it.</p>
+                <div className="flex flex-wrap gap-2">
+                  {ownSites.map((site) => (
+                    <Button key={site.id} variant="secondary" size="sm" disabled={bringingIn} onClick={() => void bringIn(site)}>
+                      {bringingIn ? 'Bringing it in…' : `Bring in ${site.address}`}
+                    </Button>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <p className="m-0 text-nb-ink-mid">
+                Have a site somewhere else, like Neocities? <Link href="/settings?tab=sites" className="underline">Add it in Settings</Link>, and you can bring its page in here.
+              </p>
+            )}
+          </div>
         )}
         <StarterTemplateGallery
           onSelect={(starterTemplate, starterCSS, name) => {
