@@ -1108,58 +1108,6 @@
     transition: background-color 0.3s ease;
   }
 
-  /* Mobile bottom sheet animation */
-  .mobile-bottom-sheet {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    transform: translateY(100%);
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    z-index: 10000;
-    max-height: 85vh;
-    background: white;
-    border-radius: 1.5rem 1.5rem 0 0;
-    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.15);
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .mobile-bottom-sheet.open {
-    transform: translateY(0);
-  }
-
-  /* Bottom sheet drag handle */
-  .bottom-sheet-handle {
-    width: 40px;
-    height: 4px;
-    background: #D1D5DB;
-    border-radius: 2px;
-    margin: 0.75rem auto 0.5rem;
-    flex-shrink: 0;
-  }
-
-  /* Bottom sheet content area */
-  .bottom-sheet-content {
-    flex: 1;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
-  }
-
-  /* Bottom sheet backdrop */
-  .bottom-sheet-backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.4);
-    z-index: 9999;
-    opacity: 0;
-    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    pointer-events: none;
-  }
-
-
   /* Mobile fab (floating action button) */
   .mobile-fab {
     position: fixed;
@@ -1181,6 +1129,60 @@
     transform: scale(0.9);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   }
+}
+
+/* Bottom sheets (the phone menu's account sheet, a house's details): out
+   here, not in the phone-only block above, because the menu that opens the
+   account sheet runs up to 1024px; from 768px the sheet had no styles and
+   sat at the bottom of every page */
+.mobile-bottom-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 10000;
+  max-height: 85vh;
+  background: white;
+  border-radius: 1.5rem 1.5rem 0 0;
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.mobile-bottom-sheet.open {
+  transform: translateY(0);
+}
+
+/* Bottom sheet drag handle */
+.bottom-sheet-handle {
+  width: 40px;
+  height: 4px;
+  background: #D1D5DB;
+  border-radius: 2px;
+  margin: 0.75rem auto 0.5rem;
+  flex-shrink: 0;
+}
+
+/* Bottom sheet content area */
+.bottom-sheet-content {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Bottom sheet backdrop */
+.bottom-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 9999;
+  opacity: 0;
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
 }
 
 /* Desktop badge sizing - larger for better visibility */

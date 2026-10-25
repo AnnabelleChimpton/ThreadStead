@@ -722,11 +722,14 @@ export function MobileNavMenu() {
         </div>
       </div>
       )}
-      {/* Mobile Account Bottom Sheet */}
-      <UserAccountBottomSheet
-        isOpen={accountSheetOpen}
-        onClose={() => setAccountSheetOpen(false)}
-      />
+      {/* Mobile Account Bottom Sheet: portalled to body, so the lg:hidden
+          around the menu doesn't keep it off a desktop page */}
+      {isDesktop === false && (
+        <UserAccountBottomSheet
+          isOpen={accountSheetOpen}
+          onClose={() => setAccountSheetOpen(false)}
+        />
+      )}
     </div>
   );
 }
