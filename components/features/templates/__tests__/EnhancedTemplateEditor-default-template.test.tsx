@@ -1,12 +1,16 @@
 /**
- * Opening the HTML editor on a standard-layout profile starts from the Plain
- * page starter, never a blank box. It once replaced the saved CSS with a
- * blank stylesheet with no warning, so one "Save & Go Live" silently dropped
- * the person's theme; now the starter brings its own CSS, and the editor
- * says before the save that the old look stays in History.
+ * Opening the HTML editor on a standard-layout profile starts empty on the
+ * starter pages: pick one, or paste a page you already have. A starter
+ * loaded behind them put its CSS under a pasted page (template audit 07 #2).
+ * A lesson starts from the Plain page starter, which its steps change. It
+ * once replaced the saved CSS with a blank stylesheet with no warning, so
+ * one "Save & Go Live" silently dropped the person's theme; the editor says
+ * before the save that the old look stays in History.
  *
  * Pins:
- *  - a new HTML page opens with Plain page, saying the old look is kept
+ *  - a new HTML page opens empty on the starter pages, nothing unsaved
+ *  - a lesson opens on Plain page
+ *  - a picked starter saves, saying the old look is kept
  *  - a save that changes the CSS says the old look is in History
  *  - Reset to Default always asks, since it saves straight away
  *  - the header shows no developer text
@@ -110,17 +114,30 @@ afterEach(() => {
 });
 
 describe('A new HTML page (?mode=template on a standard-layout profile)', () => {
-  it('opens with the Plain page starter, HTML and CSS', async () => {
+  it('opens empty on the starter pages, with nothing unsaved', async () => {
+    renderEditor();
+    await waitFor(() => expect(screen.getByRole('tab', { name: 'Starter pages' })).toHaveAttribute('aria-selected', 'true'));
+    expect(screen.getByText('Pick a starter, or paste a page you already have into the HTML tab.')).toBeInTheDocument();
+    expect((screen.getByLabelText('template-code') as HTMLTextAreaElement).value).toBe('');
+    expect(screen.getByText('Saved')).toBeInTheDocument();
+    expect(screen.queryByText('Unsaved')).toBeNull();
+    expect(openCSSTab().value).toBe('');
+  });
+
+  it('a lesson opens on the Plain page starter, which its steps change', async () => {
+    const nextRouter = jest.requireMock('next/router');
+    const router = nextRouter.useRouter();
+    jest.spyOn(nextRouter, 'useRouter').mockReturnValue({ ...router, query: { learn: 'make-it-yours', step: '1' } });
     renderEditor();
     await waitForPlainPage();
     expect(STARTERS[0].id).toBe('plain-page');
-    // With the other starters to pick from first
-    expect(screen.getByRole('tab', { name: 'Starter pages' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'HTML' })).toHaveAttribute('aria-selected', 'true');
     expect(openCSSTab().value).toBe(PLAIN.css);
   });
 
-  it('says before saving that the old look stays in History, and saves the starter', async () => {
+  it('a picked starter: says before saving that the old look stays in History, and saves it', async () => {
     const { onSave } = renderEditor();
+    fireEvent.click(await screen.findByRole('button', { name: new RegExp(STARTERS[0].name) }));
     await waitForPlainPage();
     expect(screen.getByText('Saving changes how your page looks. The old look stays in History.')).toBeInTheDocument();
     await waitFor(() =>

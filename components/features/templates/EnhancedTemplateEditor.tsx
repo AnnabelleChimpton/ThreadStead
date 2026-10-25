@@ -32,7 +32,8 @@ import NavigationPreview from '@/components/features/templates/NavigationPreview
 import ValidationFeedbackPanel, { hasStrippedNeedingAttention, type StrippedEntry } from './ValidationFeedbackPanel';
 import { cssProblems } from '@/lib/utils/css/css-problems';
 import ProblemsStrip, { NO_PROBLEMS, firstProblemLine, type LiveProblems } from './ProblemsStrip';
-import { movePastedStyles, pastedCSS, pastedCSSHistory } from '@/lib/templates/editor/pasted-styles';
+import { bringsOwnStylesheet, movePastedStyles, pastedCSS, pastedCSSHistory, WHOLE_PAGE } from '@/lib/templates/editor/pasted-styles';
+import { useConfirm } from '@/contexts/ConfirmContext';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import { requestCapability } from '@/lib/api/client/capability';
 import { useRouter } from 'next/router';
@@ -127,6 +128,13 @@ interface DataLossWarningProps {
 const PREVIEW_DELAY_MS = 200;
 /** …and no sooner than this after its last compile: the compile route allows 120 a minute (rate-limit.ts) */
 const PREVIEW_GAP_MS = 500;
+
+// The starters' own CSS: in the CSS tab untouched, it isn't the person's
+const STARTER_CSS = new Set(STARTERS.map((starter) => splitStarter(starter.template).css.trim()));
+
+/** The editor's state as a save would compare it */
+const snapshotOf = (state: { template: string; customCSS: string; cssMode: string; useStandardLayout: boolean; hideNavigation: boolean }) =>
+  JSON.stringify(state);
 
 // CSS of the person's own, past the editor's empty-stylesheet comment
 function hasOwnCSS(css: string | undefined): boolean {
@@ -1099,37 +1107,39 @@ export default function EnhancedTemplateEditor({
     // Users should be able to manually navigate to CSS tab in advanced mode
   }, [useStandardLayout, activeTab]);
 
-  // Opened as the HTML editor on a page with no HTML yet: start from the
-  // Plain page starter (never a blank box). Once, guarded by the ref. Nothing
-  // is saved until Save, and the page's old CSS stays in History then.
+  // Opened as the HTML editor on a page with no HTML yet: it starts empty on
+  // the starter pages, to pick one or paste a page you already have. A
+  // starter loaded behind them put its CSS under a pasted page (template
+  // audit 07 #2). A lesson starts from the Plain page starter, which its
+  // steps change. Once, guarded by the ref. Nothing is saved until Save,
+  // and the page's old CSS stays in History then.
   const initialModeHandledRef = useRef(false);
-  // The starter's HTML, until the change tracking below takes it as the starting point
+  // Where it starts, until the change tracking below takes it as the saved state
   const starterBaselineRef = useRef<string | null>(null);
   useEffect(() => {
     if (initialModeHandledRef.current) return;
     if (initialEditorMode === 'template' && savedOnStandardLayout && !template.trim()) {
       initialModeHandledRef.current = true;
-      const { html, css } = splitStarter(STARTERS[0].template);
-      starterBaselineRef.current = html;
+      const learning = typeof router.query.learn === 'string';
+      const { html, css } = learning ? splitStarter(STARTERS[0].template) : { html: '', css: '' };
+      starterBaselineRef.current = snapshotOf({ template: html, customCSS: css, cssMode: 'disable', useStandardLayout, hideNavigation });
       setTemplate(html);
       setCustomCSS(css);
       setCSSMode('disable');
-      // A page with no HTML of its own yet opens on the starter pages
-      // (straight to the code during a lesson)
-      setActiveTab(typeof router.query.learn === 'string' ? 'template' : 'starters');
+      setActiveTab(learning ? 'template' : 'starters');
     }
-  }, [initialEditorMode, savedOnStandardLayout, template, router.query.learn]);
+  }, [initialEditorMode, savedOnStandardLayout, template, router.query.learn, useStandardLayout, hideNavigation]);
 
   // Track changes against the last-saved snapshot (manual save required now).
   // Comparing to a snapshot (instead of blindly marking dirty) keeps a fresh
   // page, a just-saved page, and a just-reset page all reading as clean.
-  const currentSnapshot = JSON.stringify({ template, customCSS, cssMode, useStandardLayout, hideNavigation });
+  const currentSnapshot = snapshotOf({ template, customCSS, cssMode, useStandardLayout, hideNavigation });
   const savedSnapshotRef = useRef<string | null>(null);
   useEffect(() => {
-    // The starter a page with no HTML opens on is where it starts, not an
-    // edit: no "unsaved" state, draft or data-loss warnings until the person
-    // changes something (template audit 07 #2, 09 J1)
-    if (starterBaselineRef.current !== null && template === starterBaselineRef.current) {
+    // Where a page with no HTML starts (empty, or a lesson's starter) isn't
+    // an edit: no "unsaved" state, draft or data-loss warnings until the
+    // person changes something (template audit 07 #2, 09 J1)
+    if (starterBaselineRef.current !== null && currentSnapshot === starterBaselineRef.current) {
       starterBaselineRef.current = null;
       savedSnapshotRef.current = currentSnapshot;
       setHasUnsavedChanges(false);
@@ -1497,38 +1507,71 @@ export default function EnhancedTemplateEditor({
     }
   };
 
-  // A paste with <style> blocks or Google Fonts links: they go to the CSS tab
-  // and the rest goes in as one edit, so one undo takes both back
-  // (lib/templates/editor/pasted-styles.ts). Caught before CodeMirror's own
-  // paste handling, on the way down.
-  const handleTemplatePaste = (event: React.ClipboardEvent) => {
-    const moved = movePastedStyles(event.clipboardData.getData('text/plain'), customCSS);
-    if (!moved) return;
-    event.preventDefault();
-    event.stopPropagation();
+  // HTML from a paste or a dropped file: <style> blocks and Google Fonts
+  // links go to the CSS tab and the rest goes in as one edit, so one undo
+  // takes both back (lib/templates/editor/pasted-styles.ts). A whole page
+  // with its own CSS takes the CSS tab's place when that's empty or an
+  // untouched starter, and asks when it's the person's own. `whole`: it
+  // takes the place of everything in the HTML tab (a dropped page).
+  const confirm = useConfirm();
+  const putInTemplate = async (text: string, whole = false) => {
+    const brings = bringsOwnStylesheet(text);
+    const replace = brings && hasOwnCSS(customCSS) && !STARTER_CSS.has(customCSS.trim())
+      ? await confirm({
+          title: 'Use this page’s CSS?',
+          message: "It's a whole page with its own CSS. It can take the place of what's in your CSS tab, or go under it. Undo takes the paste back either way.",
+          confirmText: 'Use its CSS',
+          cancelText: 'Add it to mine',
+        })
+      : brings;
+    const moved = movePastedStyles(text, customCSS, replace);
+    const html = moved?.html ?? text;
+    const css = moved?.css ?? customCSS;
+    const cssMoves = css !== customCSS;
     const view = templateViewRef.current;
-    const cssMoves = moved.css !== customCSS;
     if (view) {
       // The CSS rides on the same edit (pastedCSSHistory sets it), so undo takes both
-      view.dispatch(view.state.replaceSelection(moved.html), {
+      view.dispatch(whole ? { changes: { from: 0, to: view.state.doc.length, insert: html } } : view.state.replaceSelection(html), {
         scrollIntoView: true,
-        effects: cssMoves ? pastedCSS.of({ from: customCSS, to: moved.css }) : [],
+        effects: cssMoves ? pastedCSS.of({ from: customCSS, to: css }) : [],
       });
     } else {
-      handleTemplateChange(template ? `${template}\n${moved.html}` : moved.html);
-      setCustomCSS(moved.css);
+      handleTemplateChange(whole || !template ? html : `${template}\n${html}`);
+      setCustomCSS(css);
     }
     switchToOwnHTML();
-    if (!cssMoves) return;
+    if (!cssMoves && !whole) return;
     setSaveMessage({
-      text: moved.movedStyles && moved.movedFonts
-        ? 'Moved your <style> CSS and Google Fonts links to the CSS tab'
-        : moved.movedStyles
-          ? 'Extracted CSS from <style> tags and moved to CSS tab'
-          : 'Moved your Google Fonts links to the CSS tab as @import lines',
+      text: whole
+        ? 'Your page is in. Undo puts back what was there.'
+        : moved?.movedStyles && moved.movedFonts
+          ? 'Moved your <style> CSS and Google Fonts links to the CSS tab'
+          : moved?.movedStyles
+            ? 'Extracted CSS from <style> tags and moved to CSS tab'
+            : 'Moved your Google Fonts links to the CSS tab as @import lines',
       tone: 'ok',
     });
     setTimeout(() => setSaveMessage(null), 3000);
+  };
+
+  // Caught before CodeMirror's own paste handling, on the way down; a paste
+  // with nothing to move goes in as CodeMirror pastes it
+  const handleTemplatePaste = (event: React.ClipboardEvent) => {
+    const text = event.clipboardData.getData('text/plain');
+    if (!movePastedStyles(text, customCSS)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    void putInTemplate(text);
+  };
+
+  // A dropped .html file: a whole page takes the place of what's there, a
+  // piece of one goes in at the cursor (the other way round from Download my page)
+  const handleTemplateDrop = (event: React.DragEvent) => {
+    const file = Array.from(event.dataTransfer.files).find((f) => /\.html?$/i.test(f.name));
+    if (!file) return;
+    event.preventDefault();
+    event.stopPropagation();
+    void file.text().then((text) => putInTemplate(text, WHOLE_PAGE.test(text)));
   };
 
   const username = user.primaryHandle?.split('@')[0] || user.handles?.[0]?.handle?.split('@')[0] || '';
@@ -1594,7 +1637,7 @@ export default function EnhancedTemplateEditor({
             <PixelIcon name="image" size={14} /> <span className="hidden sm:inline">Insert image</span>
           </Button>
         </div>
-        <div className="flex-1 min-h-0 overflow-hidden bg-white" onPasteCapture={handleTemplatePaste}>
+        <div className="flex-1 min-h-0 overflow-hidden bg-white" onPasteCapture={handleTemplatePaste} onDropCapture={handleTemplateDrop}>
           <CodeMirror
             onCreateEditor={(view) => { templateViewRef.current = view; }}
             value={template}
@@ -1604,7 +1647,7 @@ export default function EnhancedTemplateEditor({
             style={codeStyle}
             placeholder={loadingDefault
               ? 'Loading the default layout…'
-              : 'Write your page here. Plain HTML works, and so do components like <ProfilePhoto /> or <RetroCard>…</RetroCard>'}
+              : 'Write your page here, paste one you already have (or drop its .html file here), or pick a starter page. Plain HTML works, and so do components like <ProfilePhoto /> or <RetroCard>…</RetroCard>'}
             basicSetup={{
               lineNumbers: true,
               foldGutter: true,
@@ -1731,6 +1774,11 @@ body {
     label: 'Starter pages',
     content: (
       <div className="p-4">
+        {!template.trim() && (
+          <p className="mt-0 mb-3 text-sm text-nb-ink">
+            Pick a starter, or paste a page you already have into the HTML tab.
+          </p>
+        )}
         <StarterTemplateGallery
           onSelect={(starterTemplate, starterCSS, name) => {
             showDataLossWarning(

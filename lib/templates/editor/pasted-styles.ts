@@ -20,8 +20,22 @@ export interface MovedStyles {
   movedFonts: boolean;
 }
 
-/** null when the paste has nothing to move */
-export function movePastedStyles(pasted: string, existingCSS: string): MovedStyles | null {
+/**
+ * A whole page with its own <style>: it brings its own stylesheet, which can
+ * replace the CSS tab's (under it, a starter's rules restyled the pasted
+ * page). The editor decides, asking when the CSS tab holds CSS of the
+ * person's own.
+ */
+export function bringsOwnStylesheet(pasted: string): boolean {
+  return WHOLE_PAGE.test(pasted) && /<style\b/i.test(pasted);
+}
+
+/**
+ * null when the paste has nothing to move. `replace`: its stylesheet takes
+ * the CSS tab's place (the saved CSS stays in History); otherwise it's
+ * added, once.
+ */
+export function movePastedStyles(pasted: string, existingCSS: string, replace = bringsOwnStylesheet(pasted)): MovedStyles | null {
   const styleTags = pasted.match(/<style\b[^>]*>[\s\S]*?<\/style\s*>/gi) || [];
   // Google Fonts stylesheet links become @import lines, and the preconnect
   // hints Google's snippet pastes with them go too (other <link>s stay, the
@@ -46,10 +60,7 @@ export function movePastedStyles(pasted: string, existingCSS: string): MovedStyl
     })
     .filter(Boolean)
     .join('\n\n');
-  // A whole page pasted with its own <style> brings its own stylesheet: it
-  // replaces the old one (under it, the starter's rules restyled the pasted
-  // page; the saved CSS stays in History). Anything else is added, once.
-  const replaces = styleTags.length > 0 && WHOLE_PAGE.test(pasted);
+  const replaces = replace && styleTags.length > 0;
   // Imports the old CSS has are skipped only when it stays
   const fontImports = Array.from(new Set(fontLinks.flatMap((link) => link.imports)))
     .filter((line) => replaces || !existingCSS.includes(line));

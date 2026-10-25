@@ -4,9 +4,10 @@
  * the page's look depends on.
  */
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import EnhancedTemplateEditor from '../EnhancedTemplateEditor';
 import { ToastProvider } from '@/contexts/ToastContext';
+import { STARTERS, splitStarter } from '@/lib/templates/starters';
 
 // CodeMirror (the only next/dynamic import the editor uses) becomes a textarea
 jest.mock('next/dynamic', () => () => {
@@ -49,6 +50,12 @@ beforeEach(() => {
 
 afterEach(() => jest.restoreAllMocks());
 
+// jsdom lays nothing out, and a real CodeMirror (pasteInto) measures text once a frame
+beforeAll(() => {
+  Range.prototype.getClientRects = () => [] as unknown as DOMRectList;
+  Range.prototype.getBoundingClientRect = () => ({ x: 0, y: 0, width: 0, height: 0, top: 0, left: 0, right: 0, bottom: 0, toJSON: () => ({}) });
+});
+
 async function renderAndPaste(value: string, initialCSS = '', how: 'paste' | 'type' = 'paste') {
   const onSave = jest.fn().mockResolvedValue(undefined);
   render(
@@ -66,6 +73,8 @@ async function renderAndPaste(value: string, initialCSS = '', how: 'paste' | 'ty
   const code = screen.getByLabelText('template-code');
   if (how === 'paste') fireEvent.paste(code, { clipboardData: { getData: () => value } });
   else fireEvent.change(code, { target: { value } });
+  // An answer to "Use this page's CSS?" lands a tick later
+  await act(async () => {});
   // The save message replaces it once saved
   const message = document.body.textContent || '';
   fireEvent.click(screen.getByRole('button', { name: /save/i }));
@@ -108,9 +117,19 @@ describe('EnhancedTemplateEditor paste handling', () => {
     );
   });
 
-  it("a whole page with its own <style> replaces the old CSS, so the starter's rules don't restyle it", async () => {
-    const { css } = await renderAndPaste(pasted(''), 'h2 { font-size: 1rem; }')
+  it("a whole page with its own <style> replaces an untouched starter's CSS, so its rules don't restyle it", async () => {
+    const { css } = await renderAndPaste(pasted(''), splitStarter(STARTERS[0].template).css)
     expect(css).toBe('body { color: pink; }')
+  })
+
+  it('over CSS of your own, it asks first: Use its CSS replaces it, Add it to mine keeps it', async () => {
+    jest.spyOn(window, 'confirm').mockReturnValueOnce(true)
+    expect((await renderAndPaste(pasted(''), 'h2 { font-size: 1rem; }')).css).toBe('body { color: pink; }')
+  })
+
+  it('Add it to mine puts it under your CSS', async () => {
+    jest.spyOn(window, 'confirm').mockReturnValueOnce(false)
+    expect((await renderAndPaste(pasted(''), 'h2 { font-size: 1rem; }')).css).toBe('h2 { font-size: 1rem; }\n\n/* Extracted from HTML */\nbody { color: pink; }')
   })
 
   it('a piece of a page adds its CSS once, even when the same <style> comes back', async () => {
@@ -222,5 +241,37 @@ describe('onItsOwnLine: an insert at the end or start of a line gets a line of i
 
   test('a snippet over several lines keeps them indented, and the cursor lands inside', () => {
     expect(insert('  <p>hi</p>|', '<RetroCard>\n  \n</RetroCard>', 14)).toBe('  <p>hi</p>\n  <RetroCard>\n    |\n  </RetroCard>')
+  })
+})
+
+describe('dropping an .html file on the HTML pane', () => {
+  async function drop(contents: string, name = 'index.html') {
+    const onSave = jest.fn().mockResolvedValue(undefined)
+    render(
+      <ToastProvider>
+        <EnhancedTemplateEditor user={user} initialTemplate="<p>before</p>" initialCSS="" initialTemplateMode="advanced" initialEditorMode="template" onSave={onSave} />
+      </ToastProvider>
+    )
+    // jsdom's File has no text(); every browser's does
+    const file = { name, type: 'text/html', text: async () => contents }
+    fireEvent.drop(screen.getByLabelText('template-code'), { dataTransfer: { files: [file] } })
+    await waitFor(() => expect((screen.getByLabelText('template-code') as HTMLTextAreaElement).value).not.toBe('<p>before</p>'))
+    fireEvent.click(screen.getByRole('button', { name: /save/i }))
+    await waitFor(() => expect(onSave).toHaveBeenCalled())
+    const [template, css] = onSave.mock.calls[0]
+    return { template: template as string, css: css as string }
+  }
+
+  it('a whole page takes the place of what was there, its CSS to the CSS tab', async () => {
+    const { template, css } = await drop(pasted(''))
+    expect(template).not.toContain('before')
+    expect(template).toContain('<p>hello</p>')
+    expect(css).toBe('body { color: pink; }')
+  })
+
+  it('a piece of a page goes in with what was there', async () => {
+    const { template } = await drop('<p>a piece</p>', 'piece.htm')
+    expect(template).toContain('<p>before</p>')
+    expect(template).toContain('<p>a piece</p>')
   })
 })
