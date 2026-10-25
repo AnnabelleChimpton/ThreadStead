@@ -49,8 +49,13 @@ function page(source: string) {
 
 const settle = (ms = 40) => new Promise((resolve) => setTimeout(resolve, ms))
 
+/** Until `ready` (components hydrate in their own time when the machine is busy), for up to 2 s */
+async function until(ready: () => boolean) {
+  for (let waited = 0; !ready() && waited < 2000; waited += 20) await settle(20)
+}
+
 /** Server HTML, then the page hydrated in a browser; `during` runs while it's open */
-async function visit(source: string, { css = '', during }: { css?: string; during?: (dom: JSDOM) => Promise<void> } = {}) {
+async function visit(source: string, { css = '', during, ready }: { css?: string; during?: (dom: JSDOM) => Promise<void>; ready?: (text: (id: string) => string) => boolean } = {}) {
   const html = renderToString(page(source))
   const dom = new JSDOM(`<!doctype html><html><head><style id="advanced-template-css">${css}</style></head><body><div id="app">${html}</div></body></html>`, {
     url: 'http://localhost/resident/pat',
@@ -64,9 +69,10 @@ async function visit(source: string, { css = '', during }: { css?: string; durin
     const app = hydrateRoot(dom.window.document.getElementById('app')!, page(source), {
       onRecoverableError: (error) => hydrationErrors.push(String(error)),
     })
-    await settle()
-    await during?.(dom)
     const text = (id: string) => dom.window.document.getElementById(`user-content-${id}`)?.textContent ?? ''
+    await settle()
+    if (ready) await until(() => ready(text))
+    await during?.(dom)
     const root = dom.window.document.getElementById(`profile-${OWNER_ID}`)!
     const vars = Object.fromEntries(['--hour', '--minute', '--weekday', '--month', '--seed', '--pointer-x', '--pointer-y'].map((name) => [name, root.style.getPropertyValue(name)]))
     const result = { html, hydrationErrors, roll: text('roll'), hour: text('hour'), pet: text('pet'), dice: text('dice'), vars }
@@ -79,7 +85,7 @@ async function visit(source: string, { css = '', during }: { css?: string; durin
 }
 
 test('the server and hydration agree, then the page goes live', async () => {
-  const visited = await visit(PAGE)
+  const visited = await visit(PAGE, { ready: (text) => text('roll') !== '1' && text('dice') !== '0' })
   // The server's render: lowest roll, first pick, no time yet
   const served = (id: string) => new RegExp(`id="user-content-${id}"><ts-island><!--\\$-->([^<]*)<`).exec(visited.html)?.[1]
   expect([served('roll'), served('hour'), served('pet')]).toEqual(['1', '', 'cat'])

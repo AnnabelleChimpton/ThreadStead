@@ -635,6 +635,8 @@ export function seedVariables(declared: VariableConfig[] = []): Record<string, T
 function ChanceAndTime() {
   useEffect(() => {
     goLive();
+    // Anything already worked out held still: work it out again
+    globalTemplateStateManager.refresh();
     let timer: ReturnType<typeof setTimeout>;
     const nextMinute = () => {
       timer = setTimeout(() => {
