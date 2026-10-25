@@ -1,4 +1,5 @@
 import { useContext, useEffect, useState, useMemo, useRef } from 'react';
+import { siteClassClashes } from '@/lib/templates/editor/class-clashes';
 import type { GetServerSideProps } from 'next';
 import { useRouter } from 'next/router';
 import { PixelIcon } from '@/components/ui/PixelIcon';
@@ -108,6 +109,17 @@ export default function TemplatePreview() {
     return pageStyles?.css ? { __html: escapeCssForStyleTag(pageStyles.css) } : null;
   }, [pageStyles]);
   const siteCssHtml = useMemo(() => ({ __html: escapeCssForStyleTag(siteCss) }), [siteCss]);
+
+  // Once it's drawn: the page's class names the site's CSS styles too, for
+  // the editor's problem list (lib/templates/editor/class-clashes.ts). A
+  // timer, not a frame: a hidden pane never draws a frame.
+  useEffect(() => {
+    if (!page) return;
+    const timer = setTimeout(() => {
+      getHostWindow()?.postMessage({ type: 'PAGE_CLASS_CLASHES', classes: siteClassClashes(document) }, window.location.origin);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [page, pageCssHtml, siteCssHtml, payload?.cssMode]);
 
   if (!payload) {
     return (

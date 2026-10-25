@@ -49,6 +49,7 @@ import DraftRestoreBanner from '@/components/ui/feedback/DraftRestoreBanner';
 import { useLocalDraft } from '@/hooks/useLocalDraft';
 import { useSaveChannel, type PageSaved } from '@/hooks/useSaveChannel';
 import { byFileName, picturesOnOwnSites, rewritePictures } from '@/lib/templates/editor/picture-refs';
+import { classClashWarnings } from '@/lib/templates/editor/class-clashes';
 import { COPY_BATCH } from '@/lib/media/upload-context';
 import { useToast } from '@/contexts/ToastContext';
 import TemplateHistoryPanel, { fetchRevision, LookingNotice, type FullRevision } from '@/components/features/templates/TemplateHistoryPanel';
@@ -843,6 +844,23 @@ export default function EnhancedTemplateEditor({
     send: sendPreviewData,
   });
 
+  // The page's class names the site's CSS styles too, as the preview found
+  // them (lib/templates/editor/class-clashes.ts): from the preview pane or
+  // the pop-out, never while it shows a version from History
+  const [classClashes, setClassClashes] = useState<string[]>([]);
+  const lookingRef = useRef(false);
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin || event.data?.type !== 'PAGE_CLASS_CLASHES') return;
+      const source = event.source;
+      if (!source || (source !== previewFrameRef.current?.contentWindow && source !== popupWindowRef.current)) return;
+      if (lookingRef.current || !Array.isArray(event.data.classes)) return;
+      setClassClashes(event.data.classes.filter((name: unknown): name is string => typeof name === 'string').slice(0, 50));
+    };
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, [previewFrameRef]);
+
   // Open beside the code wherever there's room for it (decided after mount
   // so SSR and the first client render agree).
   useEffect(() => {
@@ -899,7 +917,12 @@ export default function EnhancedTemplateEditor({
   const markProblems = useCallback((view: EditorView | null, problems: LiveProblems) => {
     if (view) view.dispatch(setDiagnostics(view.state, problemMarks(view.state.doc, problems)));
   }, []);
-  useEffect(() => markProblems(templateViewRef.current, liveProblems), [markProblems, liveProblems]);
+  // The compile's problems, and the class names the site styles too
+  const pageProblems = React.useMemo<LiveProblems>(() => {
+    if (useStandardLayout || classClashes.length === 0 || liveProblems.status === 'idle') return liveProblems;
+    return { ...liveProblems, warnings: [...liveProblems.warnings, ...classClashWarnings(template, classClashes)] };
+  }, [liveProblems, classClashes, template, useStandardLayout]);
+  useEffect(() => markProblems(templateViewRef.current, pageProblems), [markProblems, pageProblems]);
   useEffect(() => markProblems(cssViewRef.current, cssProblemList), [markProblems, cssProblemList]);
 
   // The page's colour and font options (<meta name="color:…">), as pickers
@@ -1819,6 +1842,7 @@ export default function EnhancedTemplateEditor({
   };
   // An edit (or a load) puts the preview back on the code
   useEffect(() => setLooking(null), [currentSnapshot]);
+  lookingRef.current = !!looking;
 
   const loadRevision = (rev: FullRevision) => {
     showDataLossWarning(
@@ -1917,7 +1941,7 @@ export default function EnhancedTemplateEditor({
         </div>
         <div className="flex-1 min-h-0 overflow-hidden bg-white" onPasteCapture={handleTemplatePaste} onDropCapture={handleTemplateDrop}>
           <CodeMirror
-            onCreateEditor={(view) => { templateViewRef.current = view; markProblems(view, liveProblems); foldOptionLines(view); }}
+            onCreateEditor={(view) => { templateViewRef.current = view; markProblems(view, pageProblems); foldOptionLines(view); }}
             value={template}
             onChange={handleTemplateChange}
             extensions={templateExtensions}
@@ -1934,7 +1958,7 @@ export default function EnhancedTemplateEditor({
             }}
           />
         </div>
-        <ProblemsStrip problems={liveProblems} onJump={jumpToLine} />
+        <ProblemsStrip problems={pageProblems} onJump={jumpToLine} />
       </>
     ),
   };
