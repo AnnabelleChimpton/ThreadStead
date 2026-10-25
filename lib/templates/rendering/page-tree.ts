@@ -21,6 +21,8 @@ export interface PageTreeElement {
   /** Attributes as [name, value] pairs */
   a?: Array<[string, string]>;
   c?: PageTreeNode[];
+  /** Its children as HTML, in place of `c`: nothing in them is a component (page-html.ts) */
+  h?: string;
   /** In the SVG namespace */
   svg?: 1;
 }
@@ -38,7 +40,9 @@ export function islandIdOf(el: PageTreeElement): string | null {
  * a stored compile AST.
  */
 export function pageHasMain(compiled: unknown): boolean {
-  const page = compiled as { tree?: unknown[]; ast?: { children?: unknown[] } } | null | undefined;
+  const page = compiled as { tree?: unknown[]; ast?: { children?: unknown[] }; hasMain?: boolean } | null | undefined;
+  // Worked out before parts of the page became HTML (page-html.ts)
+  if (typeof page?.hasMain === 'boolean') return page.hasMain;
   type Node = { t?: string; a?: Array<[string, string]>; c?: Node[]; tagName?: string; properties?: Record<string, unknown>; children?: Node[] };
   const isMain = (node: Node) =>
     node.t === 'main' || node.tagName === 'main' ||

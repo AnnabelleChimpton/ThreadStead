@@ -29,13 +29,14 @@ const readBack = new Map<string, string>();
  * props; in the browser, what the server wrote into the element. `key` tells
  * pages apart (the page's owner), so a value read back stays that page's.
  */
-export function readServerOnly(props: object, id: string, key = ''): string | undefined {
+export function readServerOnly(props: object, id: string, key = '', read: 'text' | 'html' = 'text'): string | undefined {
   const fromServer = (props as WithServerOnly)[SERVER_ONLY]?.[id];
   if (fromServer !== undefined) return fromServer;
   if (typeof document === 'undefined') return undefined;
   const cacheKey = `${id}\u0000${key}`;
   if (!readBack.has(cacheKey)) {
-    const text = document.getElementById(id)?.textContent;
+    const element = document.getElementById(id);
+    const text = read === 'html' ? element?.innerHTML : element?.textContent;
     if (text == null) return undefined;
     readBack.set(cacheKey, text);
   }

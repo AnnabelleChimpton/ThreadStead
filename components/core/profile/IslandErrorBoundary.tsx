@@ -44,7 +44,13 @@ export class IslandErrorBoundary extends React.Component<IslandErrorBoundaryProp
         <p className="island-error-fallback" role="status" style={{ padding: '8px 12px', border: '1px dashed currentColor', fontSize: '14px' }}>
           {this.props.component ? `<${this.props.component}>` : 'This part'} couldn&apos;t show here. Only you see this note.
         </p>
-      ) : this.props.children
+      ) : (
+        // The island's own Suspense boundary: one that throws while the
+        // server renders is rendered in the browser alone, not the whole
+        // page. Here in the render, not around the element, so components
+        // that look through an island's elements find the same shape.
+        <React.Suspense fallback={null}>{this.props.children}</React.Suspense>
+      )
     );
   }
 }

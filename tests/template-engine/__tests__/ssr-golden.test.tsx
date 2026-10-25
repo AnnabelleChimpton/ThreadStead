@@ -46,6 +46,7 @@ import { JSDOM, VirtualConsole } from 'jsdom'
 import AdvancedProfileRenderer from '@/components/core/profile/AdvancedProfileRenderer'
 import { compileTemplateToArtifacts } from '@/lib/templates/compilation/compile-pipeline'
 import { pageForRender } from '@/lib/templates/rendering/page-tree-server'
+import { collapsePage } from '@/lib/templates/rendering/page-html'
 import { generateStaticHTML } from '@/lib/templates/compilation/compiler/html-optimizer'
 import {
   AppProviders,
@@ -170,6 +171,8 @@ describe.each(corpus())('%s', (id, source) => {
     const sources = {
       ast: pageForRender(stored, viewer),
       staticHTML: pageForRender({ staticHTML: stored.staticHTML, islands: stored.islands }, viewer),
+      // What a visit gets: the parts with no component as HTML (page-html.ts)
+      collapsed: collapsePage(pageForRender(stored, viewer)!),
     }
     for (const [from, compiled] of Object.entries(sources)) {
       expect(compiled).not.toBeNull()
@@ -207,7 +210,8 @@ describe("a page's <Var>s on the server", () => {
     const html = renderToString(page(nightWindow(), 'u_visitor'))
     expect(html).toContain('the lamp is on')
     expect(html).not.toContain('lights out')
-    expect(html).toMatch(/you(&#x27;|')ve left <ts-island>0<\/ts-island> on this sill/)
+    // (each island has its own Suspense boundary, marked <!--$--> … <!--/$--> in server HTML)
+    expect(html).toMatch(/you(&#x27;|')ve left <ts-island>(<!--\$-->)?0(<!--\/\$-->)?<\/ts-island> on this sill/)
   })
 
   test('never land in the module-wide store (it would carry them into the next request)', () => {

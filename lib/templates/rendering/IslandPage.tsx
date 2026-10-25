@@ -58,6 +58,8 @@ function renderNode(node: PageTreeNode, ctx: WalkContext, key: string): React.Re
   // The page's own HTML. Attribute → prop the same way for every element:
   // class → className, controls → controls: true, aria-label stays.
   const props: Record<string, unknown> = { key };
+  // Its children are HTML, with no component in them (page-html.ts)
+  if (node.h !== undefined) props.dangerouslySetInnerHTML = stableHtml(node);
   for (const [name, value] of node.a ?? []) {
     if (name === 'style') {
       props.style = parseStyleString(value);
@@ -85,6 +87,7 @@ function renderNode(node: PageTreeNode, ctx: WalkContext, key: string): React.Re
     if (chosen.length) props.defaultValue = props.multiple ? chosen : chosen[0];
   }
   if (node.t === 'option') delete props.selected;
+  if (node.h !== undefined) return React.createElement(node.t, props);
   const children = renderChildren(node.c, ctx, key);
   // A textarea's text is its starting value
   if (node.t === 'textarea' && children.every((child) => typeof child === 'string')) {
@@ -92,6 +95,18 @@ function renderNode(node: PageTreeNode, ctx: WalkContext, key: string): React.Re
     return React.createElement(node.t, props);
   }
   return React.createElement(node.t, props, ...children);
+}
+
+/**
+ * The same { __html } object for a node every render: React rewrites an
+ * element's HTML whenever the object is new, which restarted GIFs, closed
+ * <details> and emptied inputs on every re-render.
+ */
+const htmlObjects = new WeakMap<PageTreeElement, { __html: string }>();
+export function stableHtml(node: PageTreeElement): { __html: string } {
+  let html = htmlObjects.get(node);
+  if (!html) htmlObjects.set(node, (html = { __html: node.h ?? '' }));
+  return html;
 }
 
 /** The values of a <select>'s options marked selected (its value, or else its text) */

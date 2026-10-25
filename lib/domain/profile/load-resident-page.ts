@@ -16,6 +16,7 @@ import { compileForEditor } from '@/lib/templates/compilation/compile-for-editor
 import { pageForRender, type PageForRender } from '@/lib/templates/rendering/page-tree-server';
 import { parseArtifact } from '@/lib/templates/rendering/page-artifact';
 import { cleanCustomHtmlIslands } from '@/lib/templates/compilation/custom-html';
+import { collapsePage } from '@/lib/templates/rendering/page-html';
 
 /** What anyone allowed to see the profile gets. The CSS is public anyway: every visitor's browser receives it. */
 const PUBLIC_PROFILE_SELECT = {
@@ -149,8 +150,10 @@ async function pageFor(compiled: unknown, source: string | null, isOwner: boolea
     if (result.ok) compiled = result.artifact;
   }
   const page = compiled == null ? null : pageForRender(compiled, { isOwner });
-  // Pages stored before CustomHTMLElement's HTML was cleaned at build: cleaned here (custom-html.ts)
-  return page && { ...page, islands: cleanCustomHtmlIslands(page.islands) };
+  // Pages stored before CustomHTMLElement's HTML was cleaned at build: cleaned
+  // here (custom-html.ts). Then the parts with no component become HTML,
+  // which React leaves alone (page-html.ts).
+  return page && collapsePage({ ...page, islands: cleanCustomHtmlIslands(page.islands) });
 }
 
 async function midiFor(profile: { profileMidiId: string | null; midiAutoplay: boolean; midiLoop: boolean } | null): Promise<ProfileMidi | null> {

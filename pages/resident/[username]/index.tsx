@@ -419,7 +419,16 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   // the browser, its components, and its <head> bits (title, fonts, <body>
   // colours), as this viewer sees it (the loader's pageForRender). Without
   // residentData the tree isn't rendered.
-  if (page) props.compiledTemplate = page;
+  if (page) {
+    props.compiledTemplate = page;
+    // A page with no components is its HTML: on a full load it goes into the
+    // page once, not into the page data too (lib/utils/server-only.ts)
+    if (page.html !== undefined && !isDataRequest(req)) {
+      const { html, ...rest } = page;
+      props.compiledTemplate = rest;
+      putServerOnly(rest, `profile-${data.userId}`, html);
+    }
+  }
 
   // The page's CSS: theirs if they have some, else the admin default
   // (lib/domain/profile/layout.ts). Site styles follow cssMode, in _app.

@@ -13,6 +13,7 @@ import { StaticHTMLWithIslands } from './HTMLIslandHydration';
 import { siteStylesOn } from '@/lib/domain/profile/layout';
 import { pageRootAttributes } from '@/lib/templates/compilation/document-head';
 import { pageHash } from '@/components/features/templates/state/actions/page-targets';
+import { readServerOnly } from '@/lib/utils/server-only';
 import type { AdvancedProfileRendererProps } from './types';
 
 export type { AdvancedProfileRendererProps, StaticHTMLWithIslandsProps } from './types';
@@ -21,8 +22,10 @@ export type { AdvancedProfileRendererProps, StaticHTMLWithIslandsProps } from '.
 export interface RenderableTemplate {
   /** Built on the server from the stored compile result (page-tree-server.ts) */
   tree?: PageTreeNode[];
-  /** The compiled HTML: only when there's no tree (the editor's preview) */
+  /** The compiled HTML: only when there's no tree (a lesson's example) */
   staticHTML?: string;
+  /** A page with no components, as HTML (page-html.ts); its tree is empty */
+  html?: string;
   islands?: Island[];
 }
 
@@ -67,13 +70,22 @@ export default function AdvancedProfileRenderer({ user, residentData }: Advanced
   const islands = compiled?.islands ?? NO_ISLANDS;
   const declared = React.useMemo(() => declaredVariables(islands), [islands]);
   useLandOnPageIds();
+  const profileId = `profile-${user.id}`;
+  // A page with no components is its HTML, which React leaves as the server
+  // wrote it (page-html.ts). Sent once: read back in the browser from the
+  // root it went into (lib/utils/server-only.ts), as a prop after a
+  // client-side navigation. The same object while it's the same HTML.
+  const staticHtml =
+    compiled && islands.length === 0 && compiled.tree?.length === 0
+      ? compiled.html ?? readServerOnly(compiled, profileId, user.id, 'html')
+      : undefined;
+  const rootHtml = React.useMemo(() => (staticHtml === undefined ? undefined : { __html: staticHtml }), [staticHtml]);
 
   if (!compiled?.tree && !compiled?.staticHTML?.trim()) {
     console.error('AdvancedProfileRenderer: No compiled template available');
     return <AdvancedProfileFallback />;
   }
 
-  const profileId = `profile-${user.id}`;
   const rootAttributes = pageRootAttributes(compiled);
   return (
     <TemplateErrorBoundary
@@ -104,12 +116,12 @@ export default function AdvancedProfileRenderer({ user, residentData }: Advanced
                 width: '100%',
                 display: 'block'
               }}
+              dangerouslySetInnerHTML={rootHtml}
             >
-              {/* A component that throws while the server renders the page
-                  doesn't take it down: React renders the page in the browser
-                  instead, where the island error boundaries catch it. One
-                  boundary, so the page still hydrates in one pass. */}
-              <React.Suspense fallback={null}>
+              {/* Each component has its own boundary (PageWithComponents): one
+                  that throws on the server is rendered in the browser alone.
+                  This one is for anything else. */}
+              {rootHtml ? undefined : <React.Suspense fallback={null}>
                 {/* The page's top-level elements are the root's children, as they'd
                     be body's on their own site: no wrapper between them */}
                 <StaticHTMLWithIslands
@@ -118,7 +130,7 @@ export default function AdvancedProfileRenderer({ user, residentData }: Advanced
                   islands={islands}
                   residentData={residentData}
                 />
-              </React.Suspense>
+              </React.Suspense>}
             </div>
           </ToastProvider>
         </ResidentDataProvider>

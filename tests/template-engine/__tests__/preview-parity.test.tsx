@@ -3,8 +3,8 @@
  * (design/template-audit/perf/FINAL.md, "The preview never drifts").
  *
  * For every starter and pasted page, as owner and as visitor, with the site
- * nav and without: the live path (the stored artifact, read back as the
- * loader reads it, rendered through ResidentHtmlBody) and the real preview
+ * nav and without: the live path (the stored artifact, read back and
+ * collapsed as the loader does, rendered through ResidentHtmlBody) and the real preview
  * page fed what the editor sends (the compile route's artifact) render the
  * same page root, under the same ancestors, with the same CSS.
  */
@@ -27,6 +27,7 @@ import TemplatePreview from '@/pages/template-preview'
 import { compileForEditor } from '@/lib/templates/compilation/compile-for-editor'
 import { parseArtifact, serializeArtifact } from '@/lib/templates/rendering/page-artifact'
 import { pageForRender } from '@/lib/templates/rendering/page-tree-server'
+import { collapsePage } from '@/lib/templates/rendering/page-html'
 import { advancedPageCss } from '@/lib/templates/rendering/page-css'
 import { escapeCssForStyleTag } from '@/lib/utils/sanitization/css'
 import { corpus, residentData, serializeDom, installBrowserStubs, AppProviders, OWNER_ID } from '../ssr-golden-support'
@@ -63,7 +64,7 @@ describe.each(corpus())('%s', (_id, source) => {
     const data = residentData(as === 'owner' ? OWNER_ID : null)
 
     // The live page: the artifact a save stored, read back, for this viewer
-    const livePage = pageForRender(parseArtifact(serializeArtifact(result.artifact)), { isOwner: as === 'owner' })!
+    const livePage = collapsePage(pageForRender(parseArtifact(serializeArtifact(result.artifact)), { isOwner: as === 'owner' })!)
     const live = render(
       <AppProviders>
         <ResidentHtmlBody

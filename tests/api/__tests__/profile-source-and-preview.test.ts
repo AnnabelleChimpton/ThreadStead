@@ -56,6 +56,7 @@ import { getSessionUser } from '@/lib/auth/server'
 import { db } from '@/lib/config/database/connection'
 import { MAX_CSS_CHARS, MAX_TEMPLATE_CHARS } from '@/lib/templates/limits'
 import { pageForRender } from '@/lib/templates/rendering/page-tree-server'
+import { collapsePage } from '@/lib/templates/rendering/page-html'
 import { serializeArtifact } from '@/lib/templates/rendering/page-artifact'
 
 const mockDb = db as any
@@ -107,7 +108,7 @@ describe('GET /api/profile/[username]', () => {
     expect(mockDb.handle.findFirst.mock.calls[0][0].select.user.select.profile.select).not.toHaveProperty('showInVisitorTrails')
     // What the page needs to draw itself is still there
     expect(res.body.profile).toMatchObject({ displayName: 'Pat', customCSS: 'body { color: plum; }', templateMode: 'advanced' })
-    expect(res.body.profile.compiledTemplate).toEqual(pageForRender({ staticHTML: '<h1>hi</h1>' }))
+    expect(res.body.profile.compiledTemplate).toEqual(collapsePage(pageForRender({ staticHTML: '<h1>hi</h1>' })!))
   })
 
   test("someone else gets the page as a visitor sees it: no IfOwner content, no warnings quoting the source", async () => {
@@ -122,7 +123,7 @@ describe('GET /api/profile/[username]', () => {
     const { req, res } = makeReqRes('GET', { username: 'pat' })
     await profileHandler(req, res)
     const sent = res.body.profile.compiledTemplate
-    expect(sent).toEqual(pageForRender(stored, { isOwner: false }))
+    expect(sent).toEqual(collapsePage(pageForRender(stored, { isOwner: false })!))
     expect(JSON.stringify(sent)).not.toContain('secret')
     // The resident page renders from this same response: passing it through again changes nothing
     expect(pageForRender(sent, { isOwner: false })).toBe(sent)
@@ -133,7 +134,7 @@ describe('GET /api/profile/[username]', () => {
     mockDb.handle.findFirst.mockResolvedValue(profileRow())
     const { req, res } = makeReqRes('GET', { username: 'pat' })
     await profileHandler(req, res)
-    expect(res.body.profile.compiledTemplate).toEqual(pageForRender({ staticHTML: '<h1>hi</h1>' }, { isOwner: true }))
+    expect(res.body.profile.compiledTemplate).toEqual(collapsePage(pageForRender({ staticHTML: '<h1>hi</h1>' }, { isOwner: true })!))
   })
 
   test('a signed-out visitor gets the same', async () => {

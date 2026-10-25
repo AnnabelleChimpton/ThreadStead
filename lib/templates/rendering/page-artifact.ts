@@ -64,6 +64,10 @@ export interface PageForRender {
   islands: Island[];
   /** Read by _app.tsx (documentCssFromCompiledTemplate) and the page's <title> */
   ast: { head?: DocumentHead };
+  /** A page with no components, as HTML (page-html.ts): its tree is empty */
+  html?: string;
+  /** Whether it has its own <main>, worked out before it became HTML */
+  hasMain?: boolean;
 }
 
 /** Who the page is rendered for (IfOwner's own test: viewerIsOwner) */
