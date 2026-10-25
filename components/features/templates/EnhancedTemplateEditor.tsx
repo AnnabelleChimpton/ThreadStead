@@ -280,7 +280,8 @@ export default function EnhancedTemplateEditor({
   // The CSS live on the page right now. Every save keeps the old version as a
   // revision, so when a save would change it the editor says so.
   const [savedCSS, setSavedCSS] = useState(savedCSSProp ?? initialCSS);
-  const cssWillChange = savedCSS.trim() !== '' && customCSS.trim() !== savedCSS.trim();
+  // A first page's CSS is only the empty-stylesheet comment: no old look to keep
+  const cssWillChange = hasOwnCSS(savedCSS) && customCSS.trim() !== savedCSS.trim();
   // Site styles on ('inherit') or off ('disable'); an older 'override' reads as on
   const [cssMode, setCSSMode] = useState<'inherit' | 'disable'>(siteStylesCSSMode(initialCSSMode));
   // The standard layout with no CSS of its own shows the site's default look
@@ -930,7 +931,7 @@ export default function EnhancedTemplateEditor({
         setSaveMessage({ text: 'Saved.', tone: 'ok' });
       }
 
-      if (savedCSS.trim() !== '' && (previewCSS || '').trim() !== savedCSS.trim()) {
+      if (hasOwnCSS(savedCSS) && (previewCSS || '').trim() !== savedCSS.trim()) {
         setSaveMessage({ text: 'Saved. Your old look is in History.', tone: 'ok' });
       }
       setSavedCSS(previewCSS || '');
