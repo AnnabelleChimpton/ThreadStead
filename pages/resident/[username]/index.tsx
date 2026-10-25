@@ -329,11 +329,11 @@ export default function ProfilePage({
 }
 
 /* ---------------- SSR: the resident's page, as this viewer sees it ---------------- */
-export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ params, query, req }) => {
+export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ params, query, req, res }) => {
   const usernameParam = Array.isArray(params?.username) ? params.username[0] : String(params?.username || "");
   if (!usernameParam) return { notFound: true };
 
-  const [{ getSessionUser }, { loadResidentPage }, { residentDataFor, ownerOnlyData, musicFor, websitesOf, featuredFriendsOf }, { db }] = await Promise.all([
+  const [{ getSessionUser, hasSessionCookie }, { loadResidentPage }, { residentDataFor, ownerOnlyData, musicFor, websitesOf, featuredFriendsOf }, { db }] = await Promise.all([
     import('@/lib/auth/server'),
     import('@/lib/domain/profile/load-resident-page'),
     import('@/lib/domain/profile/resident-data'),
@@ -481,5 +481,17 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
 
   if (profile?.displayName) props.displayName = profile.displayName;
 
+  // nginx may keep this response for a few seconds and hand it to the next
+  // signed-out visitors (design/template-audit/perf/CACHE_STEPS.md): one
+  // process serves every page and the chat, and a page shared widely would
+  // otherwise queue it. Only for a public profile with no session cookie at
+  // all, which is the same page for anyone: nothing in it depends on who's
+  // looking. nginx checks the cookie too, and keeps the header to itself, so
+  // browsers still get Next's private, no-store.
+  if (profile?.visibility === 'public' && !hasSessionCookie(req)) res.setHeader('X-Accel-Expires', String(PAGE_CACHE_SECONDS));
+
   return { props };
 };
+
+/** How long nginx may keep a signed-out visitor's page: a change shows to visitors within this */
+const PAGE_CACHE_SECONDS = 10;

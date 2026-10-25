@@ -81,6 +81,20 @@ if [ -z "$ok" ]; then
 fi
 echo "Site is up."
 
+# nginx keeps signed-out visitors' resident pages for a few seconds
+# (design/template-audit/perf/CACHE_STEPS.md), and would hand out a stale one
+# while it fetches the new build's: its <script> tags name the old build's
+# chunks, which are gone now.
+RESIDENT_CACHE=/var/cache/nginx/resident
+if [ -d "$RESIDENT_CACHE" ]; then
+  step "Emptying nginx's page cache"
+  if sudo -n find "$RESIDENT_CACHE" -mindepth 1 -delete 2>/dev/null; then
+    echo "Emptied."
+  else
+    echo "WARNING: couldn't empty $RESIDENT_CACHE (sudoers line in CACHE_STEPS.md). An old page refreshes on its next visit."
+  fi
+fi
+
 step "RingHub connection"
 if curl -sf "http://127.0.0.1:$PORT/api/ringhub/health-check" | grep -q '"authenticated":true'; then
   echo "RingHub: authenticated."

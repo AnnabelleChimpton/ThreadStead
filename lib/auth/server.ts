@@ -96,6 +96,17 @@ function readSessionCookie(req: Pick<NextApiRequest, "headers">): [string, strin
 }
 
 /**
+ * Whether the request has a session cookie of either name, valid or not,
+ * empty or not: what the anonymous page cache counts as signed in. The same
+ * test as nginx's (design/template-audit/perf/CACHE_STEPS.md), so a mistake
+ * in one still leaves the other; a stale cookie errs on the side of no cache.
+ */
+export const SESSION_COOKIE_PRESENT = /(?:^|;)\s*(?:__Host-)?retro_session=/;
+export function hasSessionCookie(req: Pick<NextApiRequest, "headers">): boolean {
+  return SESSION_COOKIE_PRESENT.test(req.headers?.cookie || "");
+}
+
+/**
  * Log out: delete the request's Session row, so a copied cookie stops
  * working too, and expire the session cookie on `res`.
  */

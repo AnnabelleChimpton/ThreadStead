@@ -28,7 +28,7 @@ jest.mock('@/lib/config/database/connection', () => ({
     siteConfig: { findUnique: jest.fn(async () => null) },
   },
 }))
-jest.mock('@/lib/auth/server', () => ({ getSessionUser: jest.fn() }))
+jest.mock('@/lib/auth/server', () => ({ getSessionUser: jest.fn(), hasSessionCookie: () => false }))
 // The page's link-preview picture isn't what these tests are about
 jest.mock('@/lib/share-images/server', () => ({ residentShareImage: async () => null }))
 // No one hidden (visibleNotificationsWhere)
@@ -107,7 +107,7 @@ describe('/api/profile/[username]', () => {
 
 describe('/resident/[username] getServerSideProps', () => {
   // The same read as the profile API (lib/domain/profile/load-resident-page.ts), in process
-  const ctx = (username: string) => ({ params: { username }, query: {}, req: { headers: {} } }) as any
+  const ctx = (username: string) => ({ params: { username }, query: {}, req: { headers: {} }, res: { setHeader: jest.fn() } }) as any
 
   test('passes hasPixelHome on', async () => {
     homes.add('u_pigeon')

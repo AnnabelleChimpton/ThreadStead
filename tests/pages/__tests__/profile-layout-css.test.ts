@@ -23,7 +23,7 @@ jest.mock('@/lib/domain/users/profile-access', () => ({
   hasPixelHome: jest.fn(async () => false),
 }))
 jest.mock('@/lib/domain/bluesky/handle-links', () => ({ verifiedBlueskyHandle: jest.fn(async () => null) }))
-jest.mock('@/lib/auth/server', () => ({ getSessionUser: jest.fn(async () => null) }))
+jest.mock('@/lib/auth/server', () => ({ getSessionUser: jest.fn(async () => null), hasSessionCookie: () => false }))
 jest.mock('@/lib/utils/css/site-css-server', () => ({ getSiteCSS: jest.fn(async () => '') }))
 jest.mock('@/lib/utils/data/fetchers', () => ({
   getPostsForUser: jest.fn(async () => ({ posts: [] })),
@@ -63,7 +63,7 @@ function serve(profile: Record<string, unknown>) {
 }
 
 const ctx = (params: Record<string, string>) =>
-  ({ params, query: {}, req: { headers: {} } }) as unknown as GetServerSidePropsContext
+  ({ params, query: {}, req: { headers: {} }, res: { setHeader: jest.fn() } }) as unknown as GetServerSidePropsContext
 
 /** The props a page's getServerSideProps returned */
 function propsOf(result: unknown): Record<string, unknown> {
@@ -153,6 +153,6 @@ describe('site styles', () => {
 
 test('a client-side navigation gets the page CSS as a prop, since it arrives as JSON', async () => {
   serve({ templateMode: 'advanced', cssMode: 'disable', customCSS: OWN_CSS })
-  const props = propsOf(await profilePageProps({ params: { username: 'pigeon' }, query: {}, req: { headers: { 'x-nextjs-data': '1' } } } as unknown as GetServerSidePropsContext))
+  const props = propsOf(await profilePageProps({ params: { username: 'pigeon' }, query: {}, req: { headers: { 'x-nextjs-data': '1' } }, res: { setHeader: jest.fn() } } as unknown as GetServerSidePropsContext))
   expect(props.pageCss).toBe(advancedPageCss(OWN_CSS, props.compiledTemplate))
 })
