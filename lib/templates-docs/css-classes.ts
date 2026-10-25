@@ -13,7 +13,7 @@ export const CSS_CLASSES: Record<string, Array<{ name: string; description: stri
     { name: '.ts-profile-header', description: 'Main profile header container' },
     { name: '.ts-profile-header-layout', description: 'Flex layout for header elements' },
     { name: '.ts-profile-photo-section', description: 'Profile photo container' },
-    { name: '.ts-profile-photo-image', description: 'The actual profile image element' },
+    { name: '.profile-photo-image', description: 'The profile picture itself' },
     { name: '.ts-profile-info-section', description: 'Name and bio container' },
     { name: '.ts-profile-display-name', description: 'Profile display name' },
     { name: '.ts-profile-bio', description: 'Profile bio text' },
@@ -45,7 +45,6 @@ export const CSS_CLASSES: Record<string, Array<{ name: string; description: stri
     { name: '.media-grid', description: 'Grid layout for media items' },
     { name: '.media-item', description: 'Individual media item' },
     { name: '.profile-badges', description: 'Main badges container' },
-    { name: '.badge-item', description: 'Individual badge container' },
     { name: '.threadring-badge-image', description: '88x31 badge styling' },
   ],
   'ThreadRing Pages': [

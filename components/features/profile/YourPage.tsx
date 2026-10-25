@@ -38,9 +38,9 @@ import {
   type Theme,
 } from '@/lib/templates/appearance';
 import { PRESET_FONT_FACES } from '@/lib/templates/preset-fonts';
+import ThemeOptionPicker from './ThemeOptionPicker';
 import { scopeAwayFromSiteChrome, transformAdvancedCss } from '@/lib/utils/css/css-transform';
 import {
-  fontFamilies,
   optionKey,
   scanThemeOptions,
   themeOptionsCss,
@@ -64,26 +64,6 @@ const SWATCH_FONTS = Object.values(PRESET_FONT_FACES).join('\n');
 
 const PREVIEW_STYLE_ID = 'your-page-preview-knobs';
 const OPTIONS_PREVIEW_STYLE_ID = 'your-page-preview-options';
-
-/** What a colour input can show for a theme option's colour (#rrggbb only). */
-function colorInputValue(value: string): string {
-  const v = value.trim().toLowerCase();
-  if (/^#[0-9a-f]{6}$/.test(v)) return v;
-  if (/^#[0-9a-f]{8}$/.test(v)) return v.slice(0, 7);
-  if (/^#[0-9a-f]{3,4}$/.test(v)) return `#${v[1]}${v[1]}${v[2]}${v[2]}${v[3]}${v[3]}`;
-  // rgb(), hsl() and names: let the browser work it out
-  try {
-    const ctx = typeof document !== 'undefined' ? document.createElement('canvas').getContext('2d') : null;
-    if (ctx) {
-      ctx.fillStyle = '#000000';
-      ctx.fillStyle = v;
-      if (/^#[0-9a-f]{6}$/i.test(String(ctx.fillStyle))) return String(ctx.fillStyle);
-    }
-  } catch {
-    // no canvas: fall through
-  }
-  return '#000000';
-}
 
 interface Door {
   title: string;
@@ -588,40 +568,13 @@ export default function YourPage({ username }: { username: string }) {
               <div className="grid gap-4 sm:grid-cols-2">
                 {shownOptions.map((option, i) => {
                   const key = optionKey(option);
-                  const set = (value: string) => setOptionDraft({ ...optionDraft, [key]: value });
-                  if (option.type === 'color') {
-                    return (
-                      <label key={key} className="block text-sm text-nb-ink min-w-0">
-                        {option.name}
-                        <span className="flex items-center gap-2 mt-1">
-                          <input
-                            type="color"
-                            value={colorInputValue(option.value)}
-                            onChange={(e) => set(e.target.value)}
-                            className="h-10 w-14 border border-black p-0.5 bg-white"
-                          />
-                          <span className="font-mono text-xs break-all">{option.value}</span>
-                        </span>
-                      </label>
-                    );
-                  }
-                  const saved = pageOptions[i].value;
                   return (
-                    <label key={key} className="block text-sm text-nb-ink min-w-0">
-                      {option.name}
-                      <select
-                        value={option.value}
-                        onChange={(e) => set(e.target.value)}
-                        className="block w-full mt-1 border border-black p-2 bg-white"
-                      >
-                        {!FONT_CHOICES.some((f) => f.stack === saved) && (
-                          <option value={saved}>Your page&apos;s font ({fontFamilies(saved)[0]})</option>
-                        )}
-                        {FONT_CHOICES.map((f) => (
-                          <option key={f.stack} value={f.stack}>{f.label}</option>
-                        ))}
-                      </select>
-                    </label>
+                    <ThemeOptionPicker
+                      key={key}
+                      option={option}
+                      saved={pageOptions[i].value}
+                      onChange={(value) => setOptionDraft({ ...optionDraft, [key]: value })}
+                    />
                   );
                 })}
               </div>

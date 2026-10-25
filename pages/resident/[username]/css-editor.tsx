@@ -5,6 +5,7 @@ import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import { css as cssLang } from '@codemirror/lang-css';
 import { EditorView } from '@codemirror/view';
+import { colorSwatches } from '@/lib/templates/editor/color-swatches';
 
 // CodeMirror is editor-page-only — loaded dynamically so it never lands in
 // the shared bundle (first-load JS is already heavy, see C2).
@@ -17,7 +18,6 @@ const CodeMirror = dynamic(() => import('@uiw/react-codemirror'), {
 import Link from 'next/link';
 import Layout from '@/components/ui/layout/Layout';
 import CSSClassReference from '@/components/features/templates/CSSClassReference';
-import CSSGeneratorTools from '@/components/features/templates/CSSGeneratorTools';
 import { fetchPageData } from '@/lib/templates/core/template-data';
 import type { PreviewPayload } from '@/lib/templates/editor/preview-payload';
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
@@ -53,7 +53,7 @@ import { insertCSSIntoView, planCSSInsertion } from '@/components/features/templ
 import { layoutFields, layoutOf, siteStylesCSSMode, siteStylesOn, type Layout as PageLayout } from '@/lib/domain/profile/layout';
 import PageMeta from "@/components/ui/layout/PageMeta";
 
-type CSSEditorTab = 'css' | 'generators' | 'reference';
+type CSSEditorTab = 'css' | 'reference';
 
 /** Your own HTML page, for the preview when that's what the CSS styles */
 interface HtmlPage {
@@ -187,7 +187,7 @@ export default function CSSEditorPage({
   // Wrap and text size, remembered (EditorWorkspace)
   const codeSettings = useCodeSettings();
   const cssExtensions = useMemo(
-    () => [cssLang(), ...(codeSettings.wrap.css ? [EditorView.lineWrapping] : [])],
+    () => [cssLang(), colorSwatches(), ...(codeSettings.wrap.css ? [EditorView.lineWrapping] : [])],
     [codeSettings.wrap.css]
   );
   const tidy = async () => {
@@ -199,7 +199,7 @@ export default function CSSEditorPage({
   // there would put new rules above (and under) everything already written.
   const cursorPlacedRef = useRef(false);
 
-  // Generators and the class reference drop their CSS in through here.
+  // The class reference drops its CSS in through here.
   const insertCSSAtCursor = useCallback((cssToInsert: string) => {
     const view = editorViewRef.current;
     if (view) {
@@ -496,19 +496,11 @@ export default function CSSEditorPage({
     ),
   };
 
-  // The generators and the class list aim at the standard layout's classes,
-  // which an HTML page of your own doesn't have
+  // The class list aims at the standard layout's classes, which an HTML
+  // page of your own doesn't have. (The Generators tab went: the swatch by
+  // each colour in the CSS does the part of it people used.)
   const tabs: WorkspaceTab[] = pageLook === 'html' ? [cssTab] : [
     cssTab,
-    {
-      id: 'generators',
-      label: 'Generators',
-      content: (
-        <div className="p-4">
-          <CSSGeneratorTools onInsertCSS={insertCSSAtCursor} />
-        </div>
-      ),
-    },
     {
       id: 'reference',
       label: 'Class names',

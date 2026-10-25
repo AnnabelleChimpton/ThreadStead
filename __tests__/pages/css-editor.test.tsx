@@ -3,9 +3,9 @@
  *  - Reset wiped CSS and template with no question asked; it confirms now
  *    (one Reset, in the More menu), and the dialog says History can bring
  *    the old version back (it can).
- *  - generator "Insert CSS" and reference "Insert" looked for a <textarea>
- *    that went away when the editor became CodeMirror, so they did nothing.
- *    These run the real CodeMirror so the insert path is the production one.
+ *  - the class reference's "Insert" looked for a <textarea> that went away
+ *    when the editor became CodeMirror, so it did nothing. This runs the
+ *    real CodeMirror so the insert path is the production one.
  */
 import React from 'react';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
@@ -101,18 +101,6 @@ describe('Reset to default (in More)', () => {
 });
 
 describe('inserting CSS', () => {
-  it('generator Insert CSS adds the rule to the editor, after what is there', async () => {
-    renderEditor();
-    expect(await editorText()).toBe(INITIAL_CSS);
-
-    // Color Palette is the generator open by default.
-    fireEvent.click(screen.getByRole('tab', { name: 'Generators' }));
-    fireEvent.change(screen.getByDisplayValue('Select an element...'), { target: { value: '.thread-surface' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Insert CSS' }));
-
-    expect(await editorText()).toBe(`${INITIAL_CSS}.thread-surface {\n  background-color: #3b82f6;\n}\n`);
-  });
-
   it('reference Insert adds a starter rule to the editor', async () => {
     renderEditor();
     await editorText();

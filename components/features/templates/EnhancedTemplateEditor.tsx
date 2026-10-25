@@ -33,6 +33,10 @@ import { cssProblems } from '@/lib/utils/css/css-problems';
 import ProblemsStrip from './ProblemsStrip';
 import { NO_PROBLEMS, firstProblemLine, hasStrippedNeedingAttention, problemMarks, type LiveProblems, type StrippedEntry } from '@/lib/templates/editor/live-problems';
 import { lintGutter, setDiagnostics } from '@codemirror/lint';
+import { foldOptionLines, optionFolding } from '@/lib/templates/editor/option-fold';
+import { colorSwatches } from '@/lib/templates/editor/color-swatches';
+import { optionKey, scanThemeOptions, writeThemeOptions, type ThemeOption } from '@/lib/templates/compilation/theme-options';
+import ThemeOptionPicker from '@/components/features/profile/ThemeOptionPicker';
 import { bringsOwnStylesheet, movePastedStyles, pastedCSS, pastedCSSHistory, WHOLE_PAGE } from '@/lib/templates/editor/pasted-styles';
 import { useConfirm } from '@/contexts/ConfirmContext';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
@@ -860,12 +864,13 @@ export default function EnhancedTemplateEditor({
       htmlLanguage.data.of({ autocomplete: nicknameCompletions }),
       pastedCSSHistory(setCustomCSS),
       lintGutter(),
+      optionFolding(),
       ...(codeSettings.wrap.html ? [EditorView.lineWrapping] : []),
     ],
     [componentSchemas, codeSettings.wrap.html]
   );
   const cssExtensions = React.useMemo(
-    () => [cssLang(), lintGutter(), ...(codeSettings.wrap.css ? [EditorView.lineWrapping] : [])],
+    () => [cssLang(), lintGutter(), colorSwatches(), ...(codeSettings.wrap.css ? [EditorView.lineWrapping] : [])],
     [codeSettings.wrap.css]
   );
 
@@ -877,6 +882,24 @@ export default function EnhancedTemplateEditor({
   }, []);
   useEffect(() => markProblems(templateViewRef.current, liveProblems), [markProblems, liveProblems]);
   useEffect(() => markProblems(cssViewRef.current, cssProblemList), [markProblems, cssProblemList]);
+
+  // The page's colour and font options (<meta name="color:…">), as pickers
+  // above the code (lib/templates/compilation/theme-options.ts). A change is
+  // the smallest edit that makes it, so the code stays put, and a drag
+  // through a colour picker is one step for Undo.
+  const pageOptions = React.useMemo(() => scanThemeOptions(template).options, [template]);
+  const setPageOption = useCallback((option: ThemeOption, value: string) => {
+    const view = templateViewRef.current;
+    const before = view ? view.state.doc.toString() : template;
+    const after = writeThemeOptions(before, { [optionKey(option)]: value });
+    if (after === before) return;
+    if (!view) return handleTemplateChange(after);
+    let start = 0;
+    while (start < before.length && before[start] === after[start]) start++;
+    let end = 0;
+    while (end < before.length - start && before[before.length - 1 - end] === after[after.length - 1 - end]) end++;
+    view.dispatch({ changes: { from: start, to: before.length - end, insert: after.slice(start, after.length - end) }, userEvent: 'input.type.option' });
+  }, [template]);
   const codeStyle = { height: '100%', fontSize: `${codeSettings.size}px` };
 
   const tidy = useCallback(async (pane: CodePane) => {
@@ -1655,6 +1678,21 @@ export default function EnhancedTemplateEditor({
             />
           </div>
         )}
+        {pageOptions.length > 0 && (
+          <details className="ts-editor-options px-3 py-1.5 border-b border-thread-sage/40 flex-shrink-0 text-sm text-nb-ink">
+            <summary className="cursor-pointer">
+              Your page&apos;s colours and fonts
+              {pageOptions.filter((o) => o.type === 'color').map((o) => (
+                <span key={optionKey(o)} aria-hidden="true" className="inline-block align-middle ml-1.5 h-3 w-3 border border-black/50" style={{ background: o.value }} />
+              ))}
+            </summary>
+            <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 mt-2 pb-1">
+              {pageOptions.map((option) => (
+                <ThemeOptionPicker key={optionKey(option)} option={option} saved={option.value} onChange={(value) => setPageOption(option, value)} compact />
+              ))}
+            </div>
+          </details>
+        )}
         <div className="ts-editor-tools flex flex-wrap items-center gap-x-4 gap-y-2 px-3 py-1.5 border-b border-thread-sage/40 flex-shrink-0 text-sm text-nb-ink">
           <label className="inline-flex items-center gap-1.5 cursor-pointer">
             <input
@@ -1679,7 +1717,7 @@ export default function EnhancedTemplateEditor({
         </div>
         <div className="flex-1 min-h-0 overflow-hidden bg-white" onPasteCapture={handleTemplatePaste} onDropCapture={handleTemplateDrop}>
           <CodeMirror
-            onCreateEditor={(view) => { templateViewRef.current = view; markProblems(view, liveProblems); }}
+            onCreateEditor={(view) => { templateViewRef.current = view; markProblems(view, liveProblems); foldOptionLines(view); }}
             value={template}
             onChange={handleTemplateChange}
             extensions={templateExtensions}
