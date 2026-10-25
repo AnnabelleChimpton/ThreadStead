@@ -1405,8 +1405,9 @@ function countElements(node: TemplateNode, depth = 0): { count: number; maxDepth
 
 function countComponents(node: TemplateNode, counts: Record<string, number> = {}): Record<string, number> {
   if (node.type === 'element' && node.tagName && node.component) {
-    const isComponent = componentRegistry.get(node.tagName);
-    if (isComponent) {
+    // Logic tags render nothing of their own, so they don't count (TEMPLATE_LIMITS)
+    const registration = componentRegistry.get(node.tagName);
+    if (registration && registration.group !== 'logic') {
       counts[node.tagName] = (counts[node.tagName] || 0) + 1;
     }
   }

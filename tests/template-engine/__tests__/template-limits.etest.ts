@@ -98,14 +98,14 @@ describe('a page over a limit says so plainly', () => {
   it('size', () => {
     failsWith(
       `<p>${'a'.repeat(MAX_TEMPLATE_CHARS)}</p>`,
-      /^Your page is 200 KB of HTML; the most is 200 KB\. Big <style> blocks can move to the CSS tab/
+      /^Your page is 500 KB of HTML; the most is 500 KB\. Big <style> blocks can move to the CSS tab/
     )
   })
 
   it('tags', () => {
     failsWith(
       range(TEMPLATE_LIMITS.maxElements + 1).map(() => '<b>x</b>').join(''),
-      /^Your page has 10,00\d tags; the most is 10,000\. Try trimming a long list or table\.$/
+      /^Your page has 25,00\d tags; the most is 25,000\. Try trimming a long list or table\.$/
     )
   })
 
@@ -126,6 +126,12 @@ describe('a page over a limit says so plainly', () => {
       range(TEMPLATE_LIMITS.maxComponents + 1).map(() => '<Bio />').join('\n'),
       /^Your page uses 401 components; the most is 400\. Try removing a few\.$/
     )
+  })
+
+  it("logic tags don't count as components: they show nothing of their own", () => {
+    const button = '<Button><OnClick><Increment var="n" /><ShowToast message="hi" /></OnClick>Wave</Button>'
+    const page = '<Var name="n" type="number" initial="0" />\n' + range(TEMPLATE_LIMITS.maxComponents / 2).map(() => button).join('\n')
+    expect(compileTemplate(page).success).toBe(true)
   })
 })
 
@@ -172,7 +178,7 @@ describe('a runaway page is refused before or while parsing (template audit 04 H
   })
 
   test('a flood of tags gets the tag message', () => {
-    expect(refusedQuickly('<div>'.repeat(30000))).toMatch(/^Your page has 30,000 tags; the most is 10,000/)
+    expect(refusedQuickly('<div>'.repeat(60000))).toMatch(/^Your page has 60,000 tags; the most is 25,000/)
   })
 
   test('the depth guard stays put when the cap goes up: the stack, not the cap, is the limit', () => {

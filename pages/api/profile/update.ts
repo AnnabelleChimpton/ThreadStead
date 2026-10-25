@@ -155,3 +155,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
 // Apply CSRF protection and rate limiting
 export default withRateLimit('profile_metadata')(withCsrfProtection(handler));
+
+// Page source: HTML and CSS up to their caps (PAGE_SOURCE_BODY_LIMIT)
+export const config = { api: { bodyParser: { sizeLimit: '4mb' } } };

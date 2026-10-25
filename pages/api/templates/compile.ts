@@ -34,3 +34,6 @@ export default apiHandler(
     });
   }
 );
+
+// Page source: HTML and CSS up to their caps (PAGE_SOURCE_BODY_LIMIT)
+export const config = { api: { bodyParser: { sizeLimit: '4mb' } } };

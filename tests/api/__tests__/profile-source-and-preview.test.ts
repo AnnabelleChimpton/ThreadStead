@@ -218,7 +218,7 @@ describe('size caps on saves', () => {
     const { req, res } = makeReqRes('POST', { username: 'pat' }, { template: '<p>hi</p>', customCSS: 'a'.repeat(MAX_CSS_CHARS + 1) })
     await templateSaveHandler(req, res)
     expect(res.statusCode).toBe(413)
-    expect(res.body.error).toBe('Your CSS is 201 KB; the most is 200 KB. Trim it and save again.')
+    expect(res.body.error).toBe('Your CSS is 501 KB; the most is 500 KB. Trim it and save again.')
     expect(mockDb.profile.upsert).not.toHaveBeenCalled()
   })
 })

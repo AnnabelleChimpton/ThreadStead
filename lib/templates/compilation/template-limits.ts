@@ -1,7 +1,7 @@
 // How much one "your own HTML" page may hold, checked on every compile. Set
-// for ordinary old-web pages: a links page of 400 links, a 150-row table, a
-// journal of 150 entries, a dozen layout tables nested inside each other.
-// A flat 199 KB links page compiles in under 100 ms, so tags and nesting are
+// well past ordinary old-web pages: a links page of 400 links, a 150-row
+// table, a journal of 150 entries, a dozen layout tables nested inside each
+// other. A flat 500 KB links page compiles in about 50 ms, so tags and nesting are
 // capped only against runaway pages (runawayPageError and depthGuard, below,
 // refuse those before or while parsing); components are the real cost, since
 // each one renders (and some hydrate) on every visit.
@@ -12,13 +12,17 @@ export const TEMPLATE_LIMITS = {
   /** Same number the save checks, so the editor and the save agree */
   maxChars: MAX_TEMPLATE_CHARS,
   /** HTML tags and components; text between them doesn't count */
-  maxElements: 10_000,
+  maxElements: 25_000,
   /**
    * Tags inside tags; the <tbody> the browser adds to every table doesn't
    * count. Old pages that never close their <font> tags nest a few hundred
    * deep in any browser (60 refused them).
    */
   maxDepth: 256,
+  /**
+   * Components that show something. Logic tags (the registry's 'logic'
+   * group: OnClick, Set, If…) don't count; they render nothing of their own.
+   */
   maxComponents: 400,
 } as const;
 
