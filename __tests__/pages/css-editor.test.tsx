@@ -6,6 +6,7 @@
  *  - the class reference's "Insert" looked for a <textarea> that went away
  *    when the editor became CodeMirror, so it did nothing. This runs the
  *    real CodeMirror so the insert path is the production one.
+ *  - an HTML page's CSS is the HTML editor's CSS tab: one editor, one Save.
  */
 import React from 'react';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
@@ -19,8 +20,9 @@ jest.mock('@/components/features/templates/TemplateHistoryPanel', () => ({ __esM
 jest.mock('@/components/features/templates/TemplatePanelSelector', () => ({ __esModule: true, default: () => null }));
 jest.mock('@/lib/templates/core/template-data', () => ({ fetchPageData: jest.fn(() => new Promise(() => {})) }));
 jest.mock('@/lib/api/client/csrf-fetch', () => ({ csrfFetch: jest.fn() }));
+jest.mock('@/lib/auth/server', () => ({ getSessionUser: jest.fn(async () => ({ id: 'u1', primaryHandle: 'tester@local' })) }));
 
-import CSSEditorPage from '@/pages/resident/[username]/css-editor';
+import CSSEditorPage, { getServerSideProps } from '@/pages/resident/[username]/css-editor';
 import { ToastProvider } from '@/contexts/ToastContext';
 import { ConfirmProvider } from '@/contexts/ConfirmContext';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
@@ -42,7 +44,6 @@ function renderEditor(props: Partial<React.ComponentProps<typeof CSSEditorPage>>
           username="tester"
           isOwner
           initialCSS={INITIAL_CSS}
-          templateMode="enhanced"
           currentUser={{ id: 'u1', primaryHandle: 'tester@local' }}
           {...props}
         />
@@ -110,5 +111,27 @@ describe('inserting CSS', () => {
 
     expect(await editorText()).toMatch(new RegExp(`^${INITIAL_CSS.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\.site-layout \\{`));
     expect(screen.getByRole('button', { name: 'Inserted' })).toBeInTheDocument();
+  });
+});
+
+describe('which editor', () => {
+  const ssr = (templateMode: string) => {
+    global.fetch = jest.fn(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ userId: 'u1', profile: { templateMode, customCSS: 'p {}', cssMode: 'inherit' } }),
+    })) as unknown as typeof fetch;
+    return getServerSideProps({ params: { username: 'tester' }, req: { headers: {} }, query: {} } as never);
+  };
+
+  it("sends an HTML page to the HTML editor's CSS tab", async () => {
+    expect(await ssr('advanced')).toEqual({
+      redirect: { destination: '/resident/tester/template-editor?tab=css', permanent: false },
+    });
+  });
+
+  it('keeps the standard layout here', async () => {
+    const result = await ssr('enhanced');
+    expect(result).toMatchObject({ props: { username: 'tester', isOwner: true, initialCSS: 'p {}' } });
   });
 });

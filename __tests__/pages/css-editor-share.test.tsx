@@ -34,7 +34,6 @@ function renderEditor() {
           username="tester"
           isOwner
           initialCSS={'body { color: plum; }\n'}
-          templateMode="enhanced"
           currentUser={{ id: 'u1', primaryHandle: 'tester@local' }}
         />
       </ConfirmProvider>

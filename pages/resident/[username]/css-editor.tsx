@@ -27,7 +27,8 @@ import { useToast } from '@/contexts/ToastContext';
 import { useConfirm } from '@/contexts/ConfirmContext';
 import DraftRestoreBanner from '@/components/ui/feedback/DraftRestoreBanner';
 import { useLocalDraft } from '@/hooks/useLocalDraft';
-import TemplateHistoryPanel, { type FullRevision } from '@/components/features/templates/TemplateHistoryPanel';
+import { useSaveChannel } from '@/hooks/useSaveChannel';
+import TemplateHistoryPanel, { fetchRevision, LookingNotice, type FullRevision } from '@/components/features/templates/TemplateHistoryPanel';
 import TemplatePanelSelector from '@/components/features/templates/TemplatePanelSelector';
 import { PixelIcon } from '@/components/ui/PixelIcon';
 import ShareToFeedCheckbox from '@/components/features/profile/ShareToFeedCheckbox';
@@ -50,39 +51,33 @@ import EditorWorkspace, {
   type WorkspaceTab,
 } from '@/components/features/templates/editor/EditorWorkspace';
 import { insertCSSIntoView, planCSSInsertion } from '@/components/features/templates/css-generators/shared/insertCSS';
-import { layoutFields, layoutOf, siteStylesCSSMode, siteStylesOn, type Layout as PageLayout } from '@/lib/domain/profile/layout';
+import { layoutFields, layoutOf, siteStylesCSSMode, siteStylesOn } from '@/lib/domain/profile/layout';
 import PageMeta from "@/components/ui/layout/PageMeta";
 
 type CSSEditorTab = 'css' | 'reference';
-
-/** Your own HTML page, for the preview when that's what the CSS styles */
-interface HtmlPage {
-  template: string;
-  compiledTemplate: unknown;
-  hideNavigation: boolean;
-}
 
 interface CSSEditorPageProps {
   username: string;
   isOwner: boolean;
   initialCSS: string;
   initialCSSMode?: 'inherit' | 'override' | 'disable';
-  templateMode?: 'default' | 'enhanced' | 'advanced';
   currentUser?: {
     id: string;
     primaryHandle?: string;
   };
-  htmlPage?: HtmlPage | null;
 }
+
+/**
+ * The standard layout's CSS. An HTML page of your own has its CSS in the
+ * HTML editor's CSS tab, one editor and one Save, so it's sent there.
+ */
 
 export default function CSSEditorPage({
   username,
   isOwner,
   initialCSS,
   initialCSSMode = 'inherit',
-  templateMode = 'default',
   currentUser,
-  htmlPage = null,
 }: CSSEditorPageProps) {
   const router = useRouter();
   const { showSuccess, showError, showInfo } = useToast();
@@ -108,11 +103,29 @@ export default function CSSEditorPage({
   const [previewWindow, setPreviewWindow] = useState<Window | null>(null);
   const [residentData, setResidentData] = useState<ResidentData | null>(null);
   const [loadingData, setLoadingData] = useState(true);
-  const [layout, setLayout] = useState<PageLayout>(layoutOf(templateMode));
   // The standard layout shows the site's default look until there's saved CSS
   const hasSavedCSS = savedSnapshot.css.trim() !== '' && savedSnapshot.css.trim() !== emptyCSS.trim();
-  const pageLook: 'html' | 'css' | 'default' = layout === 'html' ? 'html' : hasSavedCSS ? 'css' : 'default';
+  const pageLook: 'css' | 'default' = hasSavedCSS ? 'css' : 'default';
   const [showHistoryPanel, setShowHistoryPanel] = useState(false);
+  // History's Look: a version's CSS in the preview, the code untouched
+  const [looking, setLooking] = useState<{ id: string; revision: FullRevision | null } | null>(null);
+  useEffect(() => setLooking(null), [css, cssMode]);
+
+  // Saves in other tabs (hooks/useSaveChannel): with nothing unsaved here,
+  // this editor takes the saved CSS; with unsaved edits, it says so
+  const announceSave = useSaveChannel(currentUser?.id, (saved) => {
+    if (isDirty) {
+      setSaveMessage({ text: 'Your CSS was saved in another tab. Saving here puts this version over it.', tone: 'note' });
+      setTimeout(() => setSaveMessage(null), 6000);
+      return;
+    }
+    const next = { css: saved.css || emptyCSS, cssMode: siteStylesCSSMode(saved.cssMode) };
+    setSavedSnapshot(next);
+    setCSS(next.css);
+    setCSSMode(next.cssMode);
+    setSaveMessage({ text: 'Saved in another tab. This is that version.', tone: 'note' });
+    setTimeout(() => setSaveMessage(null), 4000);
+  });
   const [showThemeGallery, setShowThemeGallery] = useState(false);
 
   // Warn before navigating away with unsaved CSS.
@@ -158,6 +171,7 @@ export default function CSSEditorPage({
       // The layout stays as it is: saved CSS shows on either layout
       setSavedSnapshot({ css: cssToSave, cssMode });
       clearDraft();
+      announceSave({ css: cssToSave, cssMode });
 
       if (shareToFeed && saved.shared) {
         setShareToFeed(false);
@@ -282,9 +296,9 @@ export default function CSSEditorPage({
       // Update local state - stay on CSS editor with cleared CSS
       setCSS(emptyCSS);
       setCSSMode('inherit');
-      setLayout('standard');
       setSavedSnapshot({ css: emptyCSS, cssMode: 'inherit' });
       clearDraft();
+      announceSave({ css: '', cssMode: 'inherit', page: { template: '', useStandardLayout: true, hideNavigation: false }, savedAt: null });
 
       // Show success toast
       showSuccess('Reset complete — your profile is back on the site default template.');
@@ -324,22 +338,22 @@ export default function CSSEditorPage({
   // Send preview data to popup window
   const sendPreviewData = useCallback((targetWindow: Window) => {
     if (!residentData || !currentUser) return;
-    // On your own HTML page the CSS styles that page (as you see it), so that's what shows
-    const asHtml = layout === 'html' && !!htmlPage;
+    // The editor's CSS, or the version History's Look is showing
+    const old = looking?.revision;
     const payload: PreviewPayload = {
       ownerId: currentUser.id,
       handle: currentUser.primaryHandle || `${username}@threadstead`,
-      page: asHtml ? (htmlPage.compiledTemplate as PreviewPayload['page']) : null,
+      page: null,
       as: 'owner',
       residentData,
-      customCSS: css,
+      customCSS: old ? old.customCSS || '' : css,
       adminDefaultCss,
-      cssMode,
-      hideNavigation: asHtml ? htmlPage.hideNavigation : false,
-      template: asHtml ? htmlPage.template : '',
+      cssMode: old ? siteStylesCSSMode(old.cssMode) : cssMode,
+      hideNavigation: false,
+      template: '',
     };
     targetWindow.postMessage({ type: 'PREVIEW_DATA', payload }, window.location.origin);
-  }, [css, cssMode, adminDefaultCss, layout, htmlPage, residentData, currentUser, username]);
+  }, [css, cssMode, adminDefaultCss, residentData, currentUser, username, looking]);
 
   // The preview beside the code, open wherever there's room for it
   const [showPreviewPane, setShowPreviewPane] = useState(false);
@@ -403,6 +417,32 @@ export default function CSSEditorPage({
   useEffect(() => {
     if (previewWindow && !previewWindow.closed) sendPreviewData(previewWindow);
   }, [previewWindow, sendPreviewData]);
+
+  // History's Look: the preview beside the code shows it, or on a phone the
+  // pop-out (opened now, while it's still the click). Again goes back.
+  const lookAt = (id: string) => {
+    if (looking?.id === id) return setLooking(null);
+    if (window.innerWidth >= 1024) setShowPreviewPane(true);
+    else openPreview();
+    setLooking({ id, revision: null });
+    fetchRevision(username, id)
+      .then((revision) => setLooking((current) => current?.id === id ? { id, revision } : current))
+      .catch(() => {
+        setLooking((current) => current?.id === id ? null : current);
+        showError("I couldn't get that version. Try again in a moment.");
+      });
+  };
+
+  const loadRevision = async (rev: FullRevision) => {
+    if (isDirty && !(await confirm({ title: 'Load this version?', message: 'Loading this version will replace your unsaved CSS.', confirmText: 'Load version' }))) {
+      return;
+    }
+    setCSS(rev.customCSS || emptyCSS);
+    setCSSMode(siteStylesCSSMode(rev.cssMode));
+    setShowHistoryPanel(false);
+    setLooking(null);
+    showSuccess('That version is in the editor. Save to put it on your page.');
+  };
 
   if (!isOwner) {
     return (
@@ -496,10 +536,9 @@ export default function CSSEditorPage({
     ),
   };
 
-  // The class list aims at the standard layout's classes, which an HTML
-  // page of your own doesn't have. (The Generators tab went: the swatch by
-  // each colour in the CSS does the part of it people used.)
-  const tabs: WorkspaceTab[] = pageLook === 'html' ? [cssTab] : [
+  // (The Generators tab went: the swatch by each colour in the CSS does the
+  // part of it people used.)
+  const tabs: WorkspaceTab[] = [
     cssTab,
     {
       id: 'reference',
@@ -536,7 +575,7 @@ export default function CSSEditorPage({
                   variant="secondary"
                   size="sm"
                   onClick={() => setShowHistoryPanel(true)}
-                  title="Load an earlier version of your CSS"
+                  title="Look at or load an earlier version of your CSS"
                   className="inline-flex items-center gap-1"
                 >
                   <PixelIcon name="clock" size={12} /> History
@@ -603,20 +642,11 @@ export default function CSSEditorPage({
                   onDiscard={clearDraft}
                 />
               )}
-              {pageLook !== 'css' && (
+              {pageLook === 'default' && (
                 <p className="ts-editor-note m-0 px-4 py-1.5 text-sm bg-thread-cream border-b border-thread-sage text-nb-ink flex-shrink-0">
-                  {pageLook === 'html' ? (
-                    <>
-                      This CSS styles your own HTML page.{' '}
-                      <Link href={`/resident/${encodeURIComponent(username)}/template-editor`} className="underline">Edit the HTML</Link>
-                    </>
-                  ) : (
-                    <>
-                      <strong>Your page has the site&apos;s default look.</strong> Start from a theme and change it from there.
-                      Want your own layout?{' '}
-                      <Link href="/build/html" className="underline">Write your own HTML page</Link>.
-                    </>
-                  )}
+                  <strong>Your page has the site&apos;s default look.</strong> Start from a theme and change it from there.
+                  Want your own layout?{' '}
+                  <Link href="/build/html" className="underline">Write your own HTML page</Link>.
                 </p>
               )}
             </>
@@ -638,7 +668,14 @@ export default function CSSEditorPage({
           preview={showPreviewPane ? (
             <LivePreviewPane
               frameRef={previewFrameRef}
-              status={loadingData ? 'Loading your page…' : previewFrameReady ? 'Updates as you type' : 'Warming up…'}
+              status={looking ? 'A version from History' : loadingData ? 'Loading your page…' : previewFrameReady ? 'Updates as you type' : 'Warming up…'}
+              notice={looking && (
+                <LookingNotice
+                  revision={looking.revision}
+                  onLoad={() => looking.revision && void loadRevision(looking.revision)}
+                  onBack={() => setLooking(null)}
+                />
+              )}
               onPopOut={openPreview}
               onHide={() => setShowPreviewPane(false)}
             />
@@ -666,16 +703,13 @@ export default function CSSEditorPage({
       {showHistoryPanel && (
         <TemplateHistoryPanel
           username={username}
-          onClose={() => setShowHistoryPanel(false)}
-          onLoadRevision={async (rev: FullRevision) => {
-            if (isDirty && !(await confirm({ title: 'Load this version?', message: 'Loading this version will replace your unsaved CSS.', confirmText: 'Load version' }))) {
-              return;
-            }
-            setCSS(rev.customCSS || emptyCSS);
-            setCSSMode(siteStylesCSSMode(rev.cssMode));
+          onClose={() => {
             setShowHistoryPanel(false);
-            showSuccess('That version is in the editor. Save to put it on your page.');
+            setLooking(null);
           }}
+          onLoadRevision={loadRevision}
+          onLook={lookAt}
+          lookingAt={looking?.id ?? null}
         />
       )}
 
@@ -734,27 +768,8 @@ export const getServerSideProps: GetServerSideProps<CSSEditorPageProps> = async 
     const initialCSS = profileData.profile?.customCSS || '';
     const initialCSSMode = (profileData.profile?.cssMode as 'inherit' | 'override' | 'disable') || 'inherit';
     const templateMode = (profileData.profile?.templateMode as 'default' | 'enhanced' | 'advanced') || 'default';
-
-    // Your own HTML page: the preview shows the CSS on it
-    let htmlPage: HtmlPage | null = null;
-    if (isOwner && layoutOf(templateMode) === 'html' && profileData.profile?.compiledTemplate) {
-      try {
-        const templateRes = await fetch(`${base}/api/profile/${encodeURIComponent(username)}/template`, {
-          headers: { cookie: req.headers.cookie || '' },
-        });
-        if (templateRes.ok) {
-          const { template } = await templateRes.json();
-          if (typeof template === 'string' && template.trim()) {
-            htmlPage = {
-              template,
-              compiledTemplate: profileData.profile.compiledTemplate,
-              hideNavigation: !!profileData.profile?.hideNavigation,
-            };
-          }
-        }
-      } catch (error) {
-        console.error('Failed to fetch the page for the preview:', error);
-      }
+    if (isOwner && layoutOf(templateMode) === 'html') {
+      return { redirect: { destination: `/resident/${encodeURIComponent(username)}/template-editor?tab=css`, permanent: false } };
     }
 
     return {
@@ -763,9 +778,7 @@ export const getServerSideProps: GetServerSideProps<CSSEditorPageProps> = async 
         isOwner,
         initialCSS,
         initialCSSMode,
-        templateMode,
         currentUser: currentUser ? JSON.parse(JSON.stringify(currentUser)) : null,
-        htmlPage,
       },
     };
   } catch (error) {

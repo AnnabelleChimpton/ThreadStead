@@ -47,8 +47,9 @@ import Modal from '@/components/ui/feedback/Modal';
 import Button from '@/components/ui/Button';
 import DraftRestoreBanner from '@/components/ui/feedback/DraftRestoreBanner';
 import { useLocalDraft } from '@/hooks/useLocalDraft';
+import { useSaveChannel, type PageSaved } from '@/hooks/useSaveChannel';
 import { useToast } from '@/contexts/ToastContext';
-import TemplateHistoryPanel, { type FullRevision } from '@/components/features/templates/TemplateHistoryPanel';
+import TemplateHistoryPanel, { fetchRevision, LookingNotice, type FullRevision } from '@/components/features/templates/TemplateHistoryPanel';
 import ViewSourceToggle from '@/components/features/templates/ViewSourceToggle';
 import EditorWorkspace, {
   CodeSettings,
@@ -224,6 +225,8 @@ interface EnhancedTemplateEditorProps {
   initialTemplateMode?: 'default' | 'enhanced' | 'advanced';
   initialShowNavigation?: boolean;
   initialEditorMode?: 'template' | 'css'; // URL mode parameter
+  /** The tab it opens on (?tab=css: an HTML page's CSS, from /css-editor) */
+  initialTab?: 'css';
   /**
    * The initial contents aren't what's saved (a page started from someone
    * else's): the editor opens unsaved, so it warns before leaving and keeps a
@@ -233,7 +236,10 @@ interface EnhancedTemplateEditorProps {
   savedCSS?: string;
   /** Under the toolbar, e.g. "Started from @someone's page" */
   notice?: React.ReactNode;
-  onSave?: (template: string, css: string, compiledTemplate?: PageArtifact, cssMode?: 'inherit' | 'override' | 'disable', hideNavigation?: boolean, templateMode?: 'default' | 'enhanced' | 'advanced') => void;
+  /** Resolves to the save time the next save is based on, when there is one */
+  onSave?: (template: string, css: string, compiledTemplate?: PageArtifact, cssMode?: 'inherit' | 'override' | 'disable', hideNavigation?: boolean, templateMode?: 'default' | 'enhanced' | 'advanced') => Promise<string | null | void> | void;
+  /** This editor took a save made in another tab; the next save is based on it */
+  onSavedElsewhere?: (savedAt: string | null) => void;
 }
 
 export default function EnhancedTemplateEditor({
@@ -244,10 +250,12 @@ export default function EnhancedTemplateEditor({
   initialTemplateMode = 'default',
   initialShowNavigation = true,
   initialEditorMode,
+  initialTab,
   startsUnsaved = false,
   savedCSS: savedCSSProp,
   notice,
-  onSave
+  onSave,
+  onSavedElsewhere
 }: EnhancedTemplateEditorProps) {
   const router = useRouter();
 
@@ -474,13 +482,10 @@ export default function EnhancedTemplateEditor({
           setSavedCSS('');
           setShowsDefaultLook(true);
           setSaveMessage({ text: 'Reset to default template', tone: 'ok' });
-          markSaved(JSON.stringify({
-            template: '',
-            customCSS: '',
-            cssMode: 'inherit',
-            useStandardLayout: true,
-            hideNavigation: false
-          }));
+          const resetTo = { template: '', customCSS: '', cssMode: 'inherit', useStandardLayout: true, hideNavigation: false };
+          markSaved(JSON.stringify(resetTo));
+          // A reset leaves no save time
+          announce(resetTo, null);
 
           // Refresh page data to show updated mode without full reload
           setTimeout(() => {
@@ -542,6 +547,7 @@ export default function EnhancedTemplateEditor({
   // Smart default tab selection based on URL mode param or layout mode
   const [activeTab, setActiveTab] = useState<EditorTab>(() => {
     // Priority 1: URL parameter
+    if (initialTab === 'css') return 'css';
     if (initialEditorMode === 'template') return 'template';
     if (initialEditorMode === 'css') return 'css';
 
@@ -575,6 +581,10 @@ export default function EnhancedTemplateEditor({
   const [loadingDefault, setLoadingDefault] = useState(false);
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
   const [showHistoryPanel, setShowHistoryPanel] = useState(false);
+  // History's Look: a version shown in the preview, the code untouched.
+  // `revision` is null while it's fetched; `page` its compile (HTML ones);
+  // `failed`: it wouldn't compile, so the preview stays on the code
+  const [looking, setLooking] = useState<{ id: string; revision: FullRevision | null; page: PageArtifact | null; failed?: boolean } | null>(null);
   
   // Data loss warning state
   const [warningDialog, setWarningDialog] = useState<{
@@ -735,20 +745,27 @@ export default function EnhancedTemplateEditor({
     if (!residentData) return;
     // The draft's artifact (the compile route's, as a save would store it)
     // on your own HTML page; nothing on the standard layout
+    // or the version History's Look is showing
+    const old = looking?.revision && !looking.failed ? looking.revision : null;
+    const shown = old
+      ? {
+          page: old.templateMode === 'advanced' ? looking!.page : null,
+          customCSS: old.customCSS || '',
+          cssMode: siteStylesCSSMode(old.cssMode),
+          hideNavigation: old.hideNavigation,
+          template: old.customTemplate || '',
+        }
+      : { page: useStandardLayout ? null : compiledTemplate, customCSS, cssMode, hideNavigation, template };
     const payload: PreviewPayload = {
       ownerId: user.id,
       handle: user.primaryHandle || 'preview-user',
-      page: useStandardLayout ? null : compiledTemplate,
       as: previewAs,
       residentData,
-      customCSS,
       adminDefaultCss,
-      cssMode,
-      hideNavigation,
-      template,
+      ...shown,
     };
     targetWindow.postMessage({ type: 'PREVIEW_DATA', payload }, window.location.origin);
-  }, [user, customCSS, adminDefaultCss, template, cssMode, compiledTemplate, residentData, useStandardLayout, hideNavigation, previewAs]);
+  }, [user, customCSS, adminDefaultCss, template, cssMode, compiledTemplate, residentData, useStandardLayout, hideNavigation, previewAs, looking]);
 
   // Pop-up preview management
   const openPopupPreview = useCallback(async () => {
@@ -999,11 +1016,12 @@ export default function EnhancedTemplateEditor({
       setHideNavigation(previewHideNavigation);
       setUseStandardLayout(previewUseStandardLayout !== undefined ? previewUseStandardLayout : true);
 
+      let popupSavedAt: string | null | void;
       // Handle standard layout mode differently
       if (previewUseStandardLayout) {
         // For standard layout, we save with empty template to indicate using default layout
         // Standard layout always shows navigation (hideNavigation = false)
-        await onSave('', previewCSS || '', undefined, previewCSSMode || 'inherit', false);
+        popupSavedAt = await onSave('', previewCSS || '', undefined, previewCSSMode || 'inherit', false);
         setSaveMessage({ text: 'Saved.', tone: 'ok' });
       } else {
         // For advanced templates, we need compiled template data
@@ -1021,7 +1039,7 @@ export default function EnhancedTemplateEditor({
           return;
         }
         
-        await onSave(previewTemplate || '', previewCSS || '', templateToSave, previewCSSMode || 'inherit', previewHideNavigation);
+        popupSavedAt = await onSave(previewTemplate || '', previewCSS || '', templateToSave, previewCSSMode || 'inherit', previewHideNavigation);
         setSaveMessage({ text: 'Saved.', tone: 'ok' });
       }
 
@@ -1029,13 +1047,15 @@ export default function EnhancedTemplateEditor({
         setSaveMessage({ text: 'Saved. Your old look is in History.', tone: 'ok' });
       }
       setSavedCSS(previewCSS || '');
-      markSaved(JSON.stringify({
+      const popupSaved = {
         template: previewTemplate || '',
         customCSS: previewCSS || '',
         cssMode: previewCSSMode || 'inherit',
         useStandardLayout: previewUseStandardLayout !== undefined ? previewUseStandardLayout : true,
         hideNavigation: previewHideNavigation
-      }));
+      };
+      markSaved(JSON.stringify(popupSaved));
+      announce(popupSaved, popupSavedAt);
       setTimeout(() => setSaveMessage(null), 3000);
     } catch (error) {
       setSaveMessage({ text: 'Failed to save template from preview', tone: 'error' });
@@ -1203,6 +1223,43 @@ export default function EnhancedTemplateEditor({
     clearDraft();
   }, [draftData, clearDraft]);
 
+  // Saves in other tabs (hooks/useSaveChannel). With nothing unsaved here,
+  // this editor takes the saved version, so it doesn't sit on an old one
+  // that a save from here would put back. With unsaved edits, it says so.
+  // (The draft is left alone: it may be another tab's unsaved work.)
+  const announceSave = useSaveChannel(user?.id, (saved: PageSaved) => {
+    if (hasUnsavedChanges) {
+      setSaveMessage({ text: 'Your page was saved in another tab. Saving here puts this version over it.', tone: 'note' });
+      setTimeout(() => setSaveMessage(null), 6000);
+      return;
+    }
+    const next = {
+      template: saved.page ? saved.page.template : template,
+      customCSS: saved.css,
+      cssMode: siteStylesCSSMode(saved.cssMode),
+      useStandardLayout: saved.page ? saved.page.useStandardLayout : useStandardLayout,
+      hideNavigation: saved.page ? saved.page.hideNavigation : hideNavigation,
+    };
+    savedSnapshotRef.current = snapshotOf(next);
+    setTemplate(next.template);
+    setCustomCSS(next.customCSS);
+    setCSSMode(next.cssMode);
+    setUseStandardLayout(next.useStandardLayout);
+    setHideNavigation(next.hideNavigation);
+    setSavedCSS(next.customCSS);
+    setShowsDefaultLook(next.useStandardLayout && !hasOwnCSS(next.customCSS));
+    if (saved.savedAt !== undefined) onSavedElsewhere?.(saved.savedAt);
+    setSaveMessage({ text: 'Saved in another tab. This is that version.', tone: 'note' });
+    setTimeout(() => setSaveMessage(null), 4000);
+  });
+  const announce = (state: { template: string; customCSS: string; cssMode: string; useStandardLayout: boolean; hideNavigation: boolean }, savedAt: string | null | void) =>
+    announceSave({
+      css: state.customCSS,
+      cssMode: siteStylesCSSMode(state.cssMode),
+      page: { template: state.template, useStandardLayout: state.useStandardLayout, hideNavigation: state.hideNavigation },
+      ...(savedAt !== undefined && { savedAt }),
+    });
+
   // Warn user about unsaved changes before leaving page
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -1352,9 +1409,10 @@ export default function EnhancedTemplateEditor({
 
     try {
       const compiledTemplateData = compiledTemplate || (await compileTemplateForPreview(true));
-      await onSave(template, customCSS, compiledTemplateData || undefined, cssMode, hideNavigation);
+      const savedAt = await onSave(template, customCSS, compiledTemplateData || undefined, cssMode, hideNavigation);
       setSaveState('saved');
       markSaved();
+      announce(draftData, savedAt);
       if (shareToFeed) await sharePageUpdate();
       const replacedCSS = cssWillChange;
       setSavedCSS(customCSS);
@@ -1389,7 +1447,7 @@ export default function EnhancedTemplateEditor({
       setSaveMessage({ text: "That didn't save. What went wrong is under the code.", tone: 'error' });
       setTimeout(() => setSaveMessage(null), 5000);
     }
-  }, [onSave, template, customCSS, compiledTemplate, compileTemplateForPreview, cssMode, hideNavigation, validationResult, markSaved, cssWillChange, shareToFeed, sharePageUpdate, showProblems]);
+  }, [onSave, template, customCSS, compiledTemplate, compileTemplateForPreview, cssMode, hideNavigation, validationResult, markSaved, cssWillChange, shareToFeed, sharePageUpdate, showProblems, announce, draftData]);
 
   // Main save handler with validation
   const handleSave = useCallback(async () => {
@@ -1638,6 +1696,58 @@ export default function EnhancedTemplateEditor({
   };
 
   const username = user.primaryHandle?.split('@')[0] || user.handles?.[0]?.handle?.split('@')[0] || '';
+
+  // History's Look (state above, by sendPreviewData). The preview beside
+  // the code shows it; with none (a phone), the pop-out does, opened now
+  // while it's still the click. Clicking Look again goes back.
+  const lookAt = (id: string) => {
+    if (looking?.id === id) return setLooking(null);
+    if (window.innerWidth >= 1024) setShowPreviewPane(true);
+    else void openPopupPreview();
+    setLooking({ id, revision: null, page: null });
+    void (async () => {
+      try {
+        const revision = await fetchRevision(username, id);
+        let page: PageArtifact | null = null;
+        const hasHTML = revision.templateMode === 'advanced' && !!revision.customTemplate?.trim();
+        if (hasHTML) {
+          const res = await csrfFetch('/api/templates/compile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ template: revision.customTemplate }),
+          });
+          const result = res.ok ? await res.json().catch(() => null) : null;
+          page = result?.success && result.artifact ? result.artifact : null;
+        }
+        setLooking((current) => current?.id === id ? { id, revision, page, failed: hasHTML && !page } : current);
+      } catch {
+        setLooking((current) => current?.id === id ? null : current);
+        showError("I couldn't get that version. Try again in a moment.");
+      }
+    })();
+  };
+  // An edit (or a load) puts the preview back on the code
+  useEffect(() => setLooking(null), [currentSnapshot]);
+
+  const loadRevision = (rev: FullRevision) => {
+    showDataLossWarning(
+      "Load this version?",
+      "This puts the version you picked in the editor. Anything you haven't saved goes; your live page stays as it is until you save.",
+      () => {
+        setTemplate(rev.customTemplate || '');
+        setCustomCSS(rev.customCSS || '');
+        setCSSMode(siteStylesCSSMode(rev.cssMode));
+        setUseStandardLayout(rev.templateMode !== 'advanced');
+        setHideNavigation(rev.hideNavigation);
+        setShowHistoryPanel(false);
+        setLooking(null);
+        setSaveMessage({ text: 'Version loaded into the editor', tone: 'ok' });
+        setTimeout(() => setSaveMessage(null), 3000);
+      }
+    );
+  };
+
   // The code you're looking at, if any (Tidy, and Find/Undo/Redo on a phone)
   const codePane: CodePane | null = activeTab === 'template' ? 'html' : activeTab === 'css' ? 'css' : null;
   const startedFromTheme = useStandardLayout ? THEMES.find((t) => t.id === detectTheme(customCSS)) : undefined;
@@ -1957,7 +2067,7 @@ body {
                 variant="secondary"
                 size="sm"
                 onClick={() => setShowHistoryPanel(true)}
-                title="Load an earlier version of your page"
+                title="Look at or load an earlier version of your page"
                 className="inline-flex items-center gap-1"
               >
                 <PixelIcon name="clock" size={12} /> History
@@ -2072,8 +2182,15 @@ body {
         preview={showPreviewPane ? (
           <LivePreviewPane
             frameRef={previewFrameRef}
-            status={previewFrameReady ? 'Updates as you type' : 'Warming up…'}
-            notice={liveProblems.status === 'failed' && (
+            status={looking ? 'A version from History' : previewFrameReady ? 'Updates as you type' : 'Warming up…'}
+            notice={looking ? (
+              <LookingNotice
+                revision={looking.revision}
+                failed={looking.failed}
+                onLoad={() => looking.revision && loadRevision(looking.revision)}
+                onBack={() => setLooking(null)}
+              />
+            ) : liveProblems.status === 'failed' && (
               <p role="status" className="m-0 px-3 py-2 text-sm bg-thread-paper border-b border-thread-sage text-nb-ink flex-shrink-0">
                 Showing your last working version.{' '}
                 {firstProblemLine(liveProblems)
@@ -2131,24 +2248,14 @@ body {
       {/* Revision History Panel */}
       {showHistoryPanel && (
         <TemplateHistoryPanel
-          username={user.primaryHandle?.split('@')[0] || user.handles?.[0]?.handle?.split('@')[0] || ''}
-          onClose={() => setShowHistoryPanel(false)}
-          onLoadRevision={(rev: FullRevision) => {
-            showDataLossWarning(
-              "Load this version?",
-              "This puts the version you picked in the editor. Anything you haven't saved goes; your live page stays as it is until you save.",
-              () => {
-                setTemplate(rev.customTemplate || '');
-                setCustomCSS(rev.customCSS || '');
-                setCSSMode(siteStylesCSSMode(rev.cssMode));
-                setUseStandardLayout(rev.templateMode !== 'advanced');
-                setHideNavigation(rev.hideNavigation);
-                setShowHistoryPanel(false);
-                setSaveMessage({ text: 'Version loaded into the editor', tone: 'ok' });
-                setTimeout(() => setSaveMessage(null), 3000);
-              }
-            );
+          username={username}
+          onClose={() => {
+            setShowHistoryPanel(false);
+            setLooking(null);
           }}
+          onLoadRevision={loadRevision}
+          onLook={lookAt}
+          lookingAt={looking?.id ?? null}
         />
       )}
 

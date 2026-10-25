@@ -633,7 +633,7 @@ export default function YourPage({ username }: { username: string }) {
             <h3 id="your-page-diy" className="text-lg font-bold mb-1 text-nb-ink">Do it yourself</h3>
             <ul className="text-sm text-nb-ink space-y-2 list-none p-0 m-0">
               <li>
-                <Link href={`/resident/${encodeURIComponent(username)}/css-editor`}>Edit the CSS yourself</Link>
+                <Link href={`/resident/${encodeURIComponent(username)}/${ownHTML ? "template-editor?tab=css" : "css-editor"}`}>Edit the CSS yourself</Link>
                 <span className="text-nb-ink-mid">. Your theme&apos;s CSS is already in there to change.</span>
               </li>
               {ownHTML && source !== null && pageOptions.length === 0 && (

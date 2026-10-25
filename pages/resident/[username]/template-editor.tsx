@@ -45,6 +45,8 @@ interface TemplateEditorPageProps {
   ownCSS?: string;
   /** When the page was last saved: a save from another tab since then is asked about */
   templateSavedAt?: string | null;
+  /** ?tab=css: open on the CSS tab (where /css-editor sends an HTML page) */
+  openOnCSS?: boolean;
 }
 
 function StartedFromNotice({ startedFrom }: { startedFrom: StartedFrom }) {
@@ -91,7 +93,8 @@ export default function TemplateEditorPage({
   currentUser,
   startedFrom = null,
   ownCSS,
-  templateSavedAt = null
+  templateSavedAt = null,
+  openOnCSS = false
 }: TemplateEditorPageProps) {
   const router = useRouter();
   const confirm = useConfirm();
@@ -206,6 +209,8 @@ export default function TemplateEditorPage({
       if (!layoutResponse.ok) {
         throw new Error((await layoutResponse.json().catch(() => ({}))).error || "Your HTML saved, but your page didn't switch over to it. Save again to finish.");
       }
+      // For the editor's other tabs (hooks/useSaveChannel)
+      return basedOn.current;
     } catch (error) {
       throw error;
     }
@@ -256,13 +261,16 @@ export default function TemplateEditorPage({
           // A page started from someone else's is HTML, whatever yours is now
           initialTemplateMode={startedFrom?.ok ? 'advanced' : templateMode}
           initialShowNavigation={!hideNavigation}
-          // Always the HTML editor. CSS-only editing is the CSS editor
-          // (?mode=css redirects there in next.config.ts).
+          // Always the HTML editor. The standard layout's CSS-only editing
+          // is the CSS editor (?mode=css redirects there in next.config.ts),
+          // which sends an HTML page back here with ?tab=css.
           initialEditorMode="template"
+          initialTab={openOnCSS ? 'css' : undefined}
           startsUnsaved={!!startedFrom?.ok}
           savedCSS={ownCSS}
           notice={startedFrom && <StartedFromNotice startedFrom={startedFrom} />}
           onSave={handleSave}
+          onSavedElsewhere={(savedAt) => { basedOn.current = savedAt; }}
         />
       </Layout>
     </>
@@ -361,6 +369,7 @@ export const getServerSideProps: GetServerSideProps<TemplateEditorPageProps> = a
         startedFrom,
         ...(ownCSS !== null && { ownCSS }),
         templateSavedAt: profileData.profile?.templateCompiledAt ?? null,
+        openOnCSS: query?.tab === 'css',
       },
     };
   } catch (error) {
