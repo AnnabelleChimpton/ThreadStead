@@ -1,6 +1,7 @@
 /**
  * The phone menu's account sheet is portalled to body, out of the lg:hidden
- * menu: on a desktop page it sat under everything, "signed in as" and all.
+ * menu and the header: on a desktop page it sat under everything, "signed
+ * in as" and all, and on a page of your own HTML it took the page's fonts.
  */
 import React from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
@@ -34,5 +35,11 @@ describe('MobileNavMenu account sheet', () => {
     at(800)
     const close = await screen.findByRole('button', { name: 'Close account menu' })
     expect(close.closest('.mobile-bottom-sheet')).not.toHaveClass('open')
+  })
+
+  it("is the site's chrome, so a page of your own HTML doesn't restyle it", async () => {
+    at(375)
+    const close = await screen.findByRole('button', { name: 'Close account menu' })
+    expect(close.closest('[data-site-chrome]')).toHaveClass('mobile-bottom-sheet')
   })
 })

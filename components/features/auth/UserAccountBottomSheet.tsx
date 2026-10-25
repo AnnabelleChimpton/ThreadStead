@@ -45,8 +45,10 @@ export default function UserAccountBottomSheet({ isOpen, onClose }: UserAccountB
 
   return createPortal(
     <>
-      {/* Backdrop */}
+      {/* Backdrop. data-site-chrome on both: out of the header, they're
+          still the site's, and a page's own CSS mustn't restyle them */}
       <div
+        data-site-chrome
         className={`bottom-sheet-backdrop ${isOpen ? 'visible' : ''}`}
         onClick={onClose}
         aria-hidden="true"
@@ -54,6 +56,7 @@ export default function UserAccountBottomSheet({ isOpen, onClose }: UserAccountB
 
       {/* Bottom Sheet */}
       <div
+        data-site-chrome
         className={`mobile-bottom-sheet ${isOpen ? 'open' : ''} bg-thread-paper border-t-2 border-thread-sage`}
         style={{
           maxHeight: '80vh',
