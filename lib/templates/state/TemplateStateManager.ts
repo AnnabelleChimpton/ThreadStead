@@ -634,6 +634,14 @@ class TemplateStateManager {
   }
 
   /**
+   * Work computed variables out again and tell everyone: for what changes
+   * by itself ($time in an expression, each minute)
+   */
+  refresh(): void {
+    this.notifyListeners();
+  }
+
+  /**
    * Notify all listeners of state change
    */
   private notifyListeners(): void {
@@ -669,7 +677,7 @@ class TemplateStateManager {
       return;
     }
 
-    let hasChanges = false;
+    const changed: string[] = [];
 
     computedVars.forEach(([name, variable]) => {
       try {
@@ -683,7 +691,7 @@ class TemplateStateManager {
 
         // Only update if value changed (prevent infinite loops)
         if (result !== variable.value) {
-          hasChanges = true;
+          changed.push(name);
           this.variables[name] = {
             ...variable,
             value: result
@@ -696,7 +704,7 @@ class TemplateStateManager {
 
         // Set to undefined to prevent cascade errors
         if (variable.value !== undefined) {
-          hasChanges = true;
+          changed.push(name);
           this.variables[name] = {
             ...variable,
             value: undefined
@@ -705,10 +713,13 @@ class TemplateStateManager {
       }
     });
 
-    // If any computed variables changed, notify listeners again (but don't loop infinitely)
-    if (hasChanges) {
+    // If any computed variables changed, notify listeners again (but don't loop
+    // infinitely), and those watching just that variable: an If on a computed
+    // variable stayed as it was
+    if (changed.length > 0) {
       // Notify without triggering another evaluation cycle
       this.listeners.forEach(fn => fn());
+      changed.forEach((name) => this.notifyVariableListeners(name));
     }
   }
 

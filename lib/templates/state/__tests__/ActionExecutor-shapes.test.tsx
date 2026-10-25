@@ -84,8 +84,14 @@ describe('Push (template audit 06 #10)', () => {
   test('a calculation is worked out, even without $vars', async () => {
     expect(await push({ expression: '1 + 2' })).toEqual([3])
   })
+  test('an object written out, with page variables in it, is pushed as an object', async () => {
+    const { globalTemplateStateManager } = await import('@/lib/templates/state/TemplateStateManager')
+    globalTemplateStateManager.registerVariable({ name: 'draft', type: 'string', initial: 'hello' })
+    expect(await push({ expression: '{ text: $vars.draft }' })).toEqual([{ text: 'hello' }])
+    globalTemplateStateManager.unregisterVariable('draft')
+  })
   test("what can't be read adds nothing, rather than its own text", async () => {
-    expect(await push({ expression: '{ text: $vars.draft }' })).toBeUndefined()
+    expect(await push({ expression: '{ text: ' })).toBeUndefined()
   })
   test('value= is pushed as written', async () => {
     expect(await push({ value: '{hello}' })).toEqual(['{hello}'])

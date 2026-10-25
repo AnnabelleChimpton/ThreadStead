@@ -50,7 +50,7 @@ export function registerActionComponents(registry: ComponentRegistry) {
     props: {
       var: { type: 'string', required: true, description: 'The page variable to change.' },
       value: { type: 'string', description: 'The new value, used as written.' },
-      expression: { type: 'string', description: 'A calculation from page variables to use instead, like $vars.likes * 2. Text wrapped in [ ] or { } is read as a list or object. Wins over value.' }
+      expression: { type: 'string', description: 'A calculation from page variables to use instead, like $vars.likes * 2, or random(1, 6) for a dice roll. Text wrapped in [ ] or { } is read as a list or object. Wins over value.' }
     },
     relationship: {
       type: 'leaf',

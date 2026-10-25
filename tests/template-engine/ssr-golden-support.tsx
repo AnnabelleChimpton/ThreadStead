@@ -90,7 +90,8 @@ export function serializeDom(root: Element): string {
     const attrs = Array.from(el.attributes)
       .map((a) => {
         let value = a.value
-        if (a.name === 'style') value = el.style.cssText
+        // The root's clock, seed and pointer (page-variables.ts) change from run to run
+        if (a.name === 'style') value = el.style.cssText.replace(/\s*--(?:seed|hour|minute|weekday|month|pointer-[xy]): [^;]*;/g, '')
         value = maskIds(value)
         return `${a.name}="${value}"`
       })

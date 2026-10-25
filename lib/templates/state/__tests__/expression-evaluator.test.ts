@@ -2,7 +2,7 @@
  * Tests for Safe Expression Evaluator
  */
 
-import { evaluateExpression, isSafeExpression, extractVariableNames } from '../expression-evaluator';
+import { evaluateExpression, isSafeExpression, extractVariableNames, expressionProblem, goLive } from '../expression-evaluator';
 
 describe('evaluateExpression', () => {
   describe('Basic Arithmetic', () => {
@@ -429,5 +429,66 @@ describe('extractVariableNames', () => {
     expect(extractVariableNames('')).toEqual([]);
     expect(extractVariableNames('2 + 2')).toEqual([]);
     expect(extractVariableNames('invalid syntax +')).toEqual([]);
+  });
+});
+
+describe('chance and time: random(), pick(), $time', () => {
+  const roll = (expression: string, times = 300) => new Set(Array.from({ length: times }, () => evaluateExpression(expression, {})));
+
+  // Before goLive, as on the server and at hydration: the same answer every time
+  it('hold still until the page has mounted', () => {
+    expect(evaluateExpression('random(1, 6)', {})).toBe(1);
+    expect(evaluateExpression('random(6)', {})).toBe(1);
+    expect(evaluateExpression('random()', {})).toBe(0);
+    expect(evaluateExpression("pick(['cat', 'dog'])", {})).toBe('cat');
+    expect(evaluateExpression('$time.hour', {})).toBeUndefined();
+  });
+
+  describe('once live', () => {
+    beforeAll(() => goLive());
+
+    it('random(a, b) is a whole number from a to b, both included, either way round', () => {
+      expect([...roll('random(1, 6)')].sort()).toEqual([1, 2, 3, 4, 5, 6]);
+      expect([...roll('random(6, 1)')].sort()).toEqual([1, 2, 3, 4, 5, 6]);
+      expect([...roll('random(3)')].sort()).toEqual([1, 2, 3]);
+      const fraction = evaluateExpression('random()', {});
+      expect(fraction).toBeGreaterThanOrEqual(0);
+      expect(fraction).toBeLessThan(1);
+    });
+
+    it("isn't remembered like other calculations with no variables in them", () => {
+      expect(roll('random(1, 1000000)', 20).size).toBeGreaterThan(1);
+    });
+
+    it('pick(list) picks any of them; nothing from an empty list or a non-list', () => {
+      expect(roll("pick(['cat', 'dog', 'owl'])")).toEqual(new Set(['cat', 'dog', 'owl']));
+      expect(evaluateExpression('pick($vars.none)', { none: [] })).toBeUndefined();
+      expect(evaluateExpression("pick('cat')", {})).toBeUndefined();
+    });
+
+    it("$time is the visitor's clock", () => {
+      const now = new Date();
+      expect(evaluateExpression('$time.hour', {})).toBe(now.getHours());
+      expect(evaluateExpression('$time.month', {})).toBe(now.getMonth() + 1);
+      expect(evaluateExpression('$time.weekday', {})).toBe(now.getDay());
+      expect(evaluateExpression('$time.hour >= 18 ? "evening" : "day"', {})).toBe(now.getHours() >= 18 ? 'evening' : 'day');
+    });
+  });
+
+  it('the editor says nothing about them, and points Math.random at random()', () => {
+    for (const ok of ['random(1, 6)', 'pick($vars.list)', '$time.hour < 6']) expect(expressionProblem(ok)).toBeUndefined();
+    expect(expressionProblem('Math.floor(Math.random() * 6)')).toMatch(/random\(1, 6\) rolls a number from 1 to 6/);
+  });
+});
+
+describe('objects written in a calculation', () => {
+  it('{name: value} pairs, names as written', () => {
+    expect(evaluateExpression("{name: $vars.n, 'with space': 2, n}", { n: 'Pat' })).toEqual({ name: 'Pat', 'with space': 2, n: 'Pat' });
+  });
+
+  it('refuses names that would reach the prototype, and worked-out names', () => {
+    expect(() => evaluateExpression('{__proto__: 1}', {})).toThrow(/can't be a name/);
+    expect(() => evaluateExpression("{'constructor': 1}", {})).toThrow(/can't be a name/);
+    expect(() => evaluateExpression('{[$vars.k]: 1}', { k: 'a' })).toThrow(/name: value pairs/);
   });
 });

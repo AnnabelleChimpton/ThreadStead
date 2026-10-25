@@ -14,6 +14,7 @@ import { siteStylesOn } from '@/lib/domain/profile/layout';
 import { pageRootAttributes } from '@/lib/templates/compilation/document-head';
 import { pageHash } from '@/components/features/templates/state/actions/page-targets';
 import { readServerOnly } from '@/lib/utils/server-only';
+import { usePageVariables } from './page-variables';
 import type { AdvancedProfileRendererProps } from './types';
 
 export type { AdvancedProfileRendererProps, StaticHTMLWithIslandsProps } from './types';
@@ -71,6 +72,8 @@ export default function AdvancedProfileRenderer({ user, residentData }: Advanced
   const declared = React.useMemo(() => declaredVariables(islands), [islands]);
   useLandOnPageIds();
   const profileId = `profile-${user.id}`;
+  // The clock, the pointer and a seed, as CSS variables on the root
+  usePageVariables(profileId, compiled);
   // A page with no components is its HTML, which React leaves as the server
   // wrote it (page-html.ts). Sent once: read back in the browser from the
   // root it went into (lib/utils/server-only.ts), as a prop after a

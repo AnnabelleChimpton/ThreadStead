@@ -8,6 +8,7 @@
  * - Ternary operator: ? :
  * - Math functions: round, floor, ceil, min, max, abs, sqrt, pow
  * - Type conversion: Number, String, Boolean
+ * - Chance and time: random(), pick(list), $time (the visitor's clock)
  *
  * SECURITY:
  * - AST parsing (NOT eval or new Function)
@@ -18,6 +19,10 @@
  */
 
 import jsep from 'jsep';
+import jsepObject from '@jsep-plugin/object';
+
+// {name: $vars.n}: an object written in a calculation (evaluateObjectExpression)
+jsep.plugins.register(jsepObject);
 
 // P1.2: Expression caching - AST cache
 const astCache = new Map<string, jsep.Expression>();
@@ -71,6 +76,60 @@ function ownValue(object: object, key: unknown): any {
     : undefined;
 }
 
+/**
+ * random(), pick() and $time change from one moment to the next, so they
+ * hold still until the page's state has mounted (goLive): the server's
+ * render and the browser's first one (hydration) have to agree. Until then
+ * random(a, b) is a, pick(list) its first item and $time nothing.
+ */
+let live = false;
+
+/** The page has mounted in the browser: chance and time from now on */
+export function goLive(): void {
+  live = true;
+}
+
+/** Never on the server, which has no window: its render must be the same every time */
+const isLive = () => live && typeof window !== 'undefined';
+
+let clockRead = false;
+
+/** Whether an expression has read $time, so it's worth working out again each minute */
+export function clockWasRead(): boolean {
+  return clockRead;
+}
+
+/** random() is 0 to 1; random(6) a whole number from 1 to 6; random(a, b) from a to b, both included */
+function random(a?: unknown, b?: unknown): number {
+  if (a === undefined) return isLive() ? Math.random() : 0;
+  const [from, to] = b === undefined ? [1, Number(a)] : [Number(a), Number(b)];
+  const low = Math.ceil(Math.min(from, to));
+  const high = Math.floor(Math.max(from, to));
+  if (!isLive() || !(high > low)) return low;
+  return low + Math.floor(Math.random() * (high - low + 1));
+}
+
+/** One item of a list, at random */
+function pick(list: unknown): unknown {
+  if (!Array.isArray(list) || list.length === 0) return undefined;
+  return list[isLive() ? Math.floor(Math.random() * list.length) : 0];
+}
+
+/** $time: the visitor's own clock */
+function timeNow() {
+  const now = new Date();
+  return {
+    hour: now.getHours(),
+    minute: now.getMinutes(),
+    second: now.getSeconds(),
+    weekday: now.getDay(), // 0 is Sunday
+    day: now.getDate(),
+    month: now.getMonth() + 1,
+    year: now.getFullYear(),
+    ms: now.getTime(),
+  };
+}
+
 const ALLOWED_FUNCTIONS = new Map<string, (...args: any[]) => any>([
   // Math functions
   ['Math.min', Math.min],
@@ -84,7 +143,10 @@ const ALLOWED_FUNCTIONS = new Map<string, (...args: any[]) => any>([
   // Type conversion
   ['Number', Number],
   ['String', String],
-  ['Boolean', Boolean]
+  ['Boolean', Boolean],
+  // Chance
+  ['random', random],
+  ['pick', pick]
 ]);
 
 /**
@@ -125,7 +187,9 @@ export function evaluateExpression(
   // Only literals and constants are pure (e.g., "5 + 10", "true", "'hello'")
   const hasDollarVars = expression.includes('$vars');
   const hasContextVars = /\b(item|index|i)\b/.test(expression);
-  const isPure = !hasDollarVars && !hasContextVars && Object.keys(context).length === 0;
+  // Chance and time give a new answer each time
+  const changesByItself = /\b(?:random|pick)\s*\(|\$time\b/.test(expression);
+  const isPure = !hasDollarVars && !hasContextVars && !changesByItself && Object.keys(context).length === 0;
 
   // P1.2: For pure expressions, check result cache first
   if (isPure) {
@@ -210,6 +274,9 @@ export function evaluateExpression(
       case 'ArrayExpression':
         return evaluateArrayExpression(node as jsep.ArrayExpression, ctx);
 
+      case 'ObjectExpression':
+        return evaluateObjectExpression(node, ctx);
+
       default:
         throw new Error(`Unsupported expression type: ${node.type}`);
     }
@@ -228,6 +295,11 @@ export function evaluateExpression(
     // Check if it's a direct variable reference
     if (Object.prototype.hasOwnProperty.call(ctx, name)) {
       return ctx[name];
+    }
+
+    if (name === '$time') {
+      clockRead = true;
+      return isLive() ? timeNow() : undefined;
     }
 
     // Check if it's a Math function (allowed)
@@ -391,7 +463,7 @@ export function evaluateExpression(
           console.error(`[Expression] Function '${funcName}' is not available in expressions. Use it as an action component instead.`);
           return undefined;
         }
-        console.error(`[Expression] Function '${funcName}' is not allowed. Only Math functions (round, floor, ceil, min, max, abs, sqrt, pow) and type conversions (Number, String, Boolean) are supported.`);
+        console.error(`[Expression] Function '${funcName}' is not allowed. Only Math functions (round, floor, ceil, min, max, abs, sqrt, pow), type conversions (Number, String, Boolean), random and pick are supported.`);
         return undefined;
       }
 
@@ -417,6 +489,26 @@ export function evaluateExpression(
     // Unsupported call type
     console.error('[Expression] Unsupported function call type');
     return undefined;
+  }
+
+  /**
+   * An object written out, {name: $vars.n, 'score': 2}: names as written,
+   * never worked out, and none that would reach the prototype
+   */
+  function evaluateObjectExpression(node: jsep.Expression, ctx: EvaluationContext): Record<string, unknown> {
+    const object: Record<string, unknown> = {};
+    for (const property of node.properties as jsep.Expression[]) {
+      const { key, value, computed } = property as { key?: jsep.Expression; value?: jsep.Expression; computed?: boolean };
+      const name = key?.type === 'Identifier' ? (key as jsep.Identifier).name : key?.type === 'Literal' ? String((key as jsep.Literal).value) : undefined;
+      if (property.type !== 'Property' || computed || !value || name === undefined) {
+        throw new Error('An object can only hold name: value pairs');
+      }
+      if (name === '__proto__' || name === 'constructor' || name === 'prototype') {
+        throw new Error(`"${name}" can't be a name in an object`);
+      }
+      object[name] = evaluateNode(value, ctx);
+    }
+    return object;
   }
 
   /**
@@ -609,7 +701,9 @@ export function expressionProblem(expression: string): string | undefined {
         problem = `uses ${callee.name}(), which pages can't use`;
       } else if (callee.type === 'MemberExpression' && callee.object?.type === 'Identifier' && callee.object.name === 'Math' &&
         !ALLOWED_FUNCTIONS.has(`Math.${callee.property?.name}`)) {
-        problem = `uses Math.${callee.property?.name}, which pages can't use (these work: Math.round, floor, ceil, min, max, abs, sqrt and pow)`;
+        problem = callee.property?.name === 'random'
+          ? "uses Math.random, which pages can't use: random(1, 6) rolls a number from 1 to 6"
+          : `uses Math.${callee.property?.name}, which pages can't use (these work: Math.round, floor, ceil, min, max, abs, sqrt and pow)`;
       } else if (callee.type === 'MemberExpression' && callee.object?.name !== 'Math' && callee.property?.name &&
         !Object.values(SAFE_METHODS).some((methods) => methods.has(callee.property!.name!))) {
         problem = `uses .${callee.property.name}(), which pages can't use`;

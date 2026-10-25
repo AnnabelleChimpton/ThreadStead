@@ -515,7 +515,7 @@ a {
   {
     slug: 'little-surprises',
     title: 'Little surprises',
-    lede: 'A fortune that changes every visit, a button that recolours the page, and a count of your own visits.',
+    lede: 'A fortune that changes every visit, a button that recolours the page, a count of your own visits, a die to roll, and a sky that knows what time it is.',
     shelf: 'start',
     steps: [
       {
@@ -564,6 +564,40 @@ a {
         checks: [
           { uses: 'Var', props: { persist: 'true' }, hint: 'Give your Var persist="true" so it\'s kept.' },
           { selfCheck: 'Reload the preview. Did the number go up?' },
+        ],
+      },
+      {
+        id: 'dice',
+        title: 'Roll a die',
+        body: "random(1, 6) is a whole number from 1 to 6, different each time. Put it in a <Set>'s expression and every click rolls again. pick() does the same for a list: pick(['heads', 'tails']) flips a coin.",
+        code: `<Var name="roll" type="number" initial="1" />
+<Button>
+  <OnClick><Set var="roll" expression="random(1, 6)" /></OnClick>
+  Roll
+</Button>
+
+<p>You rolled a <ShowVar name="roll" />.</p>`,
+        checks: [
+          { uses: 'Set', hint: 'Put a <Set var="roll" expression="random(1, 6)" /> inside the button\'s OnClick.' },
+          { selfCheck: 'Click Roll a few times. Does the number change?' },
+        ],
+      },
+      {
+        id: 'sky',
+        title: 'A sky that knows the time',
+        body: "Your page gets each visitor's own clock as CSS variables: --hour (0 to 23), --minute, --weekday (0 is Sunday) and --month (1 to 12). Here the sky is bright at noon and dark at midnight, wherever they are. The clock arrives just after the page appears, so always give a fallback: var(--hour, 12).",
+        code: `<div class="sky">
+  <p>Whatever time it is where you are, this sky is roughly that.</p>
+</div>`,
+        css: `.sky {
+  padding: 2rem;
+  color: white;
+  /* sin() is 0 at midnight and 1 at noon */
+  background: hsl(220 60% calc(12% + 48% * sin(var(--hour, 12) * 7.5deg)));
+}`,
+        tips: ['In a calculation it\'s $time.hour (and .minute, .weekday, .day, .month, .year): <Var name="hour" type="computed" expression="$time.hour" /> gives you a variable to use in an <If>.'],
+        checks: [
+          { selfCheck: 'Does the sky look about right for the time where you are?' },
         ],
       },
     ],

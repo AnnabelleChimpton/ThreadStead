@@ -498,7 +498,7 @@ export function useTemplateStateWithDeps(dependencies?: string[]): TemplateState
  * Uses the global TemplateStateManager for true cross-island state sharing
  */
 import { globalTemplateStateManager } from './TemplateStateManager';
-import { evaluateExpression } from './expression-evaluator';
+import { clockWasRead, evaluateExpression, goLive } from './expression-evaluator';
 
 /**
  * Get global template state for use in non-React contexts
@@ -626,6 +626,28 @@ export function seedVariables(declared: VariableConfig[] = []): Record<string, T
   return seed;
 }
 
+/**
+ * Chance and time come on (goLive) before the rest of the page runs its
+ * effects, an OnMount's Set expression="random(1, 6)" included: effects run
+ * in order, and this is the provider's first child. From then on, a page
+ * that reads $time has it worked out again at the turn of each minute.
+ */
+function ChanceAndTime() {
+  useEffect(() => {
+    goLive();
+    let timer: ReturnType<typeof setTimeout>;
+    const nextMinute = () => {
+      timer = setTimeout(() => {
+        if (clockWasRead()) globalTemplateStateManager.refresh();
+        nextMinute();
+      }, 60_000 - (Date.now() % 60_000));
+    };
+    nextMinute();
+    return () => clearTimeout(timer);
+  }, []);
+  return null;
+}
+
 export interface GlobalTemplateStateProviderProps extends TemplateStateProviderProps {
   /** The page's <Var> declarations, so it renders with their starting values (seedVariables) */
   declared?: VariableConfig[];
@@ -721,6 +743,7 @@ export function GlobalTemplateStateProvider({ children, initialVariables, declar
       resetVariable,
       resetAll
     }}>
+      <ChanceAndTime />
       {children}
     </TemplateStateContext.Provider>
   );
