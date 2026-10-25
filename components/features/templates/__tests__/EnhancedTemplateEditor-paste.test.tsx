@@ -143,6 +143,11 @@ describe('only a paste moves them (template audit 07 #3)', () => {
     expect(movePastedStyles('<p>no styles</p>', 'x')).toBeNull()
   })
 
+  it('a whole page keeps its Google Fonts even when the CSS it replaces had them too', () => {
+    const { movePastedStyles } = jest.requireActual('@/lib/templates/editor/pasted-styles')
+    expect(movePastedStyles(pasted(`<link rel="stylesheet" href="${FONT_HREF}">`), `${FONT_IMPORT}\nh2 { color: red }`).css)
+      .toBe(`${FONT_IMPORT}\n\nbody { color: pink; }`)
+  })
 })
 
 describe('one undo takes back a paste and the CSS it moved (template audit 07 #3)', () => {

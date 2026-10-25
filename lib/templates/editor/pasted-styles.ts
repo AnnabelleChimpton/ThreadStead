@@ -46,7 +46,13 @@ export function movePastedStyles(pasted: string, existingCSS: string): MovedStyl
     })
     .filter(Boolean)
     .join('\n\n');
-  const fontImports = Array.from(new Set(fontLinks.flatMap((link) => link.imports))).filter((line) => !existingCSS.includes(line));
+  // A whole page pasted with its own <style> brings its own stylesheet: it
+  // replaces the old one (under it, the starter's rules restyled the pasted
+  // page; the saved CSS stays in History). Anything else is added, once.
+  const replaces = styleTags.length > 0 && WHOLE_PAGE.test(pasted);
+  // Imports the old CSS has are skipped only when it stays
+  const fontImports = Array.from(new Set(fontLinks.flatMap((link) => link.imports)))
+    .filter((line) => replaces || !existingCSS.includes(line));
   if (fontImports.length > 0) extracted = [fontImports.join('\n'), extracted].filter(Boolean).join('\n\n');
 
   // Take the tags out, with their line when they had one to themselves
@@ -65,10 +71,6 @@ export function movePastedStyles(pasted: string, existingCSS: string): MovedStyl
     html = html.slice(0, start) + html.slice(end);
   }
 
-  // A whole page pasted with its own <style> brings its own stylesheet: it
-  // replaces the old one (under it, the starter's rules restyled the pasted
-  // page; the saved CSS stays in History). Anything else is added, once.
-  const replaces = styleTags.length > 0 && WHOLE_PAGE.test(pasted);
   const css = !extracted
     ? existingCSS
     : replaces || !existingCSS.trim()
