@@ -15,6 +15,7 @@ import { useToast } from "@/contexts/ToastContext";
 import Modal from "@/components/ui/feedback/Modal";
 import PrivateProfile from "@/components/core/profile/PrivateProfile";
 import PageMeta from "@/components/ui/layout/PageMeta";
+import PagePictures from "@/components/features/profile/PagePictures";
 import { SITE_TITLE } from "@/lib/config/site/constants";
 
 interface MediaItem {
@@ -402,6 +403,9 @@ function MediaGalleryPage({
             )}
           </div>
         </RetroCard>
+
+        {/* Pictures uploaded for the page itself, not gallery photos */}
+        {isOwner && <PagePictures username={username} />}
 
         {/* Full Size Image Modal */}
         <Modal

@@ -15,7 +15,7 @@ jest.mock('@/lib/config/database/connection', () => ({
         where.handle === 'ghost' ? null : { handle: where.handle, user: { id: `u_${where.handle}` } }
       ),
     },
-    media: { findMany: jest.fn(), count: jest.fn() },
+    media: { findMany: jest.fn(), count: jest.fn(), aggregate: jest.fn(async () => ({ _sum: { fileSize: 3 * 1024 * 1024 } })) },
   },
 }));
 jest.mock('@/lib/auth/server', () => ({ getSessionUser: jest.fn() }));
@@ -36,7 +36,7 @@ async function call(query: Record<string, string>, viewer: string | null) {
   (getSessionUser as jest.Mock).mockResolvedValue(viewer ? { id: viewer, role: 'member' } : null);
   const req = { method: 'GET', url: '/api/photos/x', query, headers: {} } as unknown as NextApiRequest;
   const headers: Record<string, string> = {};
-  type Reply = { media: Array<{ id: string }>; pagination: Record<string, unknown>; error?: string };
+  type Reply = { media: Array<{ id: string }>; pagination: Record<string, unknown>; usage?: { bytes: number; limit: number }; error?: string };
   const res = {
     statusCode: 200,
     body: undefined as Reply | undefined,
@@ -102,6 +102,24 @@ describe('scope=mine', () => {
   test('an unknown username is still a 404', async () => {
     const res = await call({ username: 'ghost', scope: 'mine' }, 'u_annie');
     expect(res.status).toBe(404);
+    expect(db.media.findMany).not.toHaveBeenCalled();
+  });
+});
+
+describe('scope=page', () => {
+  test("the owner gets only their page's pictures, with their names and how much room they take", async () => {
+    const res = await call({ username: 'annie', scope: 'page' }, 'u_annie');
+    expect(res.status).toBe(200);
+    expect(res.headers['cache-control']).toBe('private, no-store');
+    expect(res.body.usage).toEqual({ bytes: 3 * 1024 * 1024, limit: 50 * 1024 * 1024 });
+    const call0 = (db.media.findMany as jest.Mock).mock.calls[0][0];
+    expect(call0.where).toEqual({ userId: 'u_annie', uploadContext: 'other' });
+    expect(call0.select.originalName).toBe(true);
+  });
+
+  test('nobody else gets it', async () => {
+    expect((await call({ username: 'annie', scope: 'page' }, 'u_stranger')).status).toBe(403);
+    expect((await call({ username: 'annie', scope: 'page' }, null)).status).toBe(401);
     expect(db.media.findMany).not.toHaveBeenCalled();
   });
 });

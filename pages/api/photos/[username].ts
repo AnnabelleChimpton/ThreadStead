@@ -7,6 +7,7 @@ import { parsePagePagination } from "@/lib/server/http/pagination";
 import { residentAccess, sendPrivateProfile } from "@/lib/domain/users/profile-access";
 import { PICTURE_MEDIA_TYPES } from "@/lib/media/media-types";
 import { PAGE_ASSET_CONTEXT } from "@/lib/media/upload-context";
+import { PAGE_PICTURE_BYTES, pagePictureBytes } from "@/lib/media/page-pictures";
 
 /**
  * GET /api/photos/<username>: that person's public gallery pictures, for
@@ -16,6 +17,10 @@ import { PAGE_ASSET_CONTEXT } from "@/lib/media/upload-context";
  * gallery and post/comment images together, whatever their visibility (the
  * editor's image picker). Only that person gets it: signed out is a 401,
  * anyone else a 403. Without scope=mine nothing changes.
+ *
+ * GET /api/photos/<username>?scope=page: the owner's pictures for their page
+ * only (the media page lists them so they can be found and deleted), with
+ * how many of the page pictures' bytes they use. Owner only, as scope=mine.
  */
 export default apiHandler(
   { methods: ["GET"], auth: "optional" },
@@ -43,7 +48,8 @@ export default apiHandler(
         return res.status(404).json({ error: "User not found" });
       }
 
-      const mine = req.query.scope === "mine";
+      const forPage = req.query.scope === "page";
+      const mine = req.query.scope === "mine" || forPage;
       if (mine) {
         if (!viewer) return res.status(401).json({ error: "Please log in." });
         if (viewer.id !== handle.user.id) {
@@ -62,7 +68,9 @@ export default apiHandler(
       // Calculate offset for pagination
       const offset = (page - 1) * limit;
 
-      const where: Prisma.MediaWhereInput = mine
+      const where: Prisma.MediaWhereInput = forPage
+        ? { userId: handle.user.id, uploadContext: PAGE_ASSET_CONTEXT }
+        : mine
         ? {
             userId: handle.user.id,
             mediaType: { in: PICTURE_MEDIA_TYPES },
@@ -99,7 +107,8 @@ export default apiHandler(
             visibility: true,
             width: true,
             height: true,
-            fileSize: true
+            fileSize: true,
+            originalName: forPage,
           }
         }),
         db.media.count({ where })
@@ -111,6 +120,7 @@ export default apiHandler(
 
       return res.status(200).json({
         media,
+        ...(forPage && { usage: { bytes: await pagePictureBytes(db, handle.user.id), limit: PAGE_PICTURE_BYTES } }),
         pagination: {
           page,
           limit,

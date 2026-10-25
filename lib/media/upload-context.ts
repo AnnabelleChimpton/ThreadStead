@@ -10,3 +10,6 @@ export const PAGE_ASSET_CONTEXT: UploadContext = "other";
 
 /** What the editor's picker sends as the upload's context */
 export const PAGE_ASSET_UPLOAD = "page_asset";
+
+/** Pictures copied from the resident's own site per request (/api/media/copy-pictures) */
+export const COPY_BATCH = 6;

@@ -605,7 +605,7 @@ describe("what a pasted page is told (template audit 01 #5, 14 #8, 16 #3)", () =
   test("an old site's relative addresses are said once, with how many, and the right advice", () => {
     const [note] = warnings('<p><img src="images/me.gif" alt="me"> <a href="about.html">about</a> <img src="x.png" alt=""></p>')
     expect(note).toMatch(/^Line 1: "images\/me\.gif" is an address on your old site/)
-    expect(note).toMatch(/Upload the file/)
+    expect(note).toMatch(/Upload it with Insert image and it goes in by its file name/)
     expect(note).toMatch(/2 more like it/)
     expect(warnings('<a href="about.html">about</a>')[0]).toMatch(/Link to its full address/)
   })

@@ -20,6 +20,7 @@ jest.mock('@/lib/config/database/connection', () => ({
   db: {
     media: {
       count: jest.fn().mockResolvedValue(0),
+      aggregate: jest.fn().mockResolvedValue({ _sum: { fileSize: 0 } }),
       create: jest.fn(async ({ data }: { data: Record<string, unknown> }) => ({ id: 'media-1', createdAt: new Date(0), ...data })),
     },
   },
@@ -240,5 +241,30 @@ describe('pictures for the page, and what counts against the limits (template au
 
     await upload(await twoFrameGif(8, 8));
     expect((rateLimitCheck as jest.Mock).mock.calls[0]).toContain('uploads');
+  });
+
+  test("a page picture comes out of the page pictures' bytes, not the photos a month or the five an hour", async () => {
+    const { rateLimitCheck } = jest.requireMock('@/lib/server/http/rate-limit');
+    // A month's photos used up: the gallery would refuse, the page doesn't
+    (db.media.count as jest.Mock).mockResolvedValueOnce(50);
+    const res = await upload(await twoFrameGif(8, 8), 'image/gif', 'tile.gif', 'page_asset');
+    expect(res.statusCode).toBe(200);
+    expect(db.media.count).not.toHaveBeenCalled();
+    expect((rateLimitCheck as jest.Mock).mock.calls[0]).toContain('page_pictures');
+    expect((db.media.aggregate as jest.Mock).mock.calls[0][0].where).toMatchObject({ uploadContext: 'other' });
+  });
+
+  test('a page picture that would go past the page pictures’ bytes is refused, and nothing is stored', async () => {
+    (db.media.aggregate as jest.Mock).mockResolvedValueOnce({ _sum: { fileSize: 50 * 1024 * 1024 - 10 } });
+    const res = await upload(await twoFrameGif(8, 8), 'image/gif', 'tile.gif', 'page_asset');
+    expect(res.statusCode).toBe(413);
+    expect(res.body.error).toBe('Your page pictures are full (50 MB). Delete some on your media page to make room.');
+    expect(send).not.toHaveBeenCalled();
+    expect(db.media.create).not.toHaveBeenCalled();
+  });
+
+  test("the gallery's monthly count leaves page pictures out", async () => {
+    await upload(await twoFrameGif(8, 8));
+    expect((db.media.count as jest.Mock).mock.calls[0][0].where).toMatchObject({ uploadContext: { not: 'other' } });
   });
 });

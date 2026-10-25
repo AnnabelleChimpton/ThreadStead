@@ -26,6 +26,7 @@ export type RateLimitCategory =
   | "reads" // Public list reads that pages fetch on load (the board)
   | "comments"
   | "uploads"
+  | "page_pictures" // Pictures for your own page (upload or copy from your site)
   | "profile_updates" // Legacy - use more specific categories below
   | "template_editing" // Template and CSS saves
   | "template_compile" // The HTML editor's live preview compile
@@ -66,6 +67,9 @@ export const RATE_LIMIT_CONFIGS: Record<RateLimitCategory, RateLimitConfig> = {
   reads: { limit: 120 * DEV_MULTIPLIER, windowMs: 60 * 1000 }, // 120 per minute (1200 in dev)
   comments: { limit: 100 * DEV_MULTIPLIER, windowMs: 60 * 1000 }, // 100 per minute (1000 in dev)
   uploads: { limit: 5 * DEV_MULTIPLIER, windowMs: 60 * 60 * 1000 }, // 5 per hour (50 in dev)
+  // A page brought in from Neocities can have dozens; the byte allowance
+  // (lib/media/page-pictures.ts) is what holds them in
+  page_pictures: { limit: 100 * DEV_MULTIPLIER, windowMs: 60 * 60 * 1000 }, // 100 per hour (1000 in dev)
   profile_updates: { limit: 10 * DEV_MULTIPLIER, windowMs: 60 * 60 * 1000 }, // 10 per hour (100 in dev) - LEGACY
   template_editing: { limit: 100 * DEV_MULTIPLIER, windowMs: 60 * 60 * 1000 }, // 100 per hour (1000 in dev)
   // The HTML editor's live preview compiles on every pause in typing

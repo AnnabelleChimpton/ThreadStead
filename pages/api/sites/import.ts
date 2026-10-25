@@ -1,7 +1,7 @@
 /**
  * "Bring in my page from my site", for the HTML editor
  * (lib/templates/editor/site-import.ts).
- *   GET   your verified sites, to bring in from
+ *   GET   your verified sites, to bring in from (and copy pictures from)
  *   POST  { id } that site's homepage, ready to go in like a pasted page
  * Your own verified sites only, fetched when you ask, through the ring
  * checks' guarded fetcher: a few a minute per person, one at a time per site.
@@ -28,9 +28,10 @@ export default apiHandler({ methods: ['GET', 'POST'], auth: 'user' }, async (req
     const sites = await db.externalSite.findMany({
       where: { userId: user.id, state: 'verified' },
       orderBy: { createdAt: 'asc' },
-      select: { id: true, url: true },
+      select: { id: true, url: true, siteRef: true },
     })
-    return res.status(200).json({ sites: sites.map((s) => ({ id: s.id, address: siteAddress(s.url) })) })
+    // ref: the site's key, so the editor can tell which pictures are on it
+    return res.status(200).json({ sites: sites.map((s) => ({ id: s.id, address: siteAddress(s.url), ref: s.siteRef })) })
   }
 
   const { id } = Body.parse(req.body)

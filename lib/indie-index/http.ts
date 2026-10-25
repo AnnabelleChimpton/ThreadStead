@@ -18,6 +18,8 @@ export interface FetchRequest {
   maxBytes: number
   /** Keep the first maxBytes instead of failing (homepages: only the start matters). */
   truncate?: boolean
+  /** The bytes as they came (a picture), in `bytes`, not decoded into `body`. */
+  raw?: boolean
   etag?: string | null
   lastModified?: string | null
 }
@@ -27,8 +29,10 @@ export interface FetchResponse {
   /** Final URL after redirects. */
   url: string
   headers: { get(name: string): string | null }
-  /** Decoded text; '' for 304 and HEAD-like empty bodies. */
+  /** Decoded text; '' for 304 and HEAD-like empty bodies, and for `raw` requests. */
   body: string
+  /** For `raw` requests: the body's bytes. */
+  bytes?: Uint8Array
 }
 
 export type Fetcher = (req: FetchRequest) => Promise<FetchResponse>
@@ -142,6 +146,7 @@ export function createHttpFetcher({ userAgent, timeoutMs = 15_000, maxRedirects 
           return { status: response.status, url: current, headers: response.headers, body: '' }
         }
         const bytes = await readBody(response, req.maxBytes, req.truncate ?? false)
+        if (req.raw) return { status: response.status, url: current, headers: response.headers, body: '', bytes }
         return { status: response.status, url: current, headers: response.headers, body: decodeBody(bytes, response.headers.get('content-type')) }
       }
     } catch (error) {

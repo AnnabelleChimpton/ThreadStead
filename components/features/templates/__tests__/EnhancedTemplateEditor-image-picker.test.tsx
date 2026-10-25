@@ -189,7 +189,7 @@ describe('EnhancedTemplateEditor image picker', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Insert image' }));
     expect(await screen.findByText('No images yet')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Upload an image' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Upload pictures' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Your media page' })).toHaveAttribute('href', '/resident/testuser/media');
   });
 
@@ -202,7 +202,7 @@ describe('EnhancedTemplateEditor image picker', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Insert image' }));
     await screen.findByText('No images yet');
     const file = new File([new Uint8Array([71, 73, 70])], 'sparkles.gif', { type: 'image/gif' });
-    fireEvent.change(screen.getByLabelText('Image to upload'), { target: { files: [file] } });
+    fireEvent.change(screen.getByLabelText('Pictures to upload'), { target: { files: [file] } });
 
     await waitFor(() =>
       expect(screen.getByLabelText('template-code')).toHaveValue('<img src="https://cdn.example.com/media/u/2.gif" alt="">')

@@ -70,13 +70,21 @@ interface ImagePickerProps {
   onClose: () => void;
   /** Called with the snippet to insert at the cursor */
   onPick: (pane: ImagePane, snippet: { text: string; cursor: number }) => void;
+  /** Several uploaded at once: each file's name and its new address */
+  onUploadedMany?: (uploads: UploadedPicture[]) => void;
+}
+
+/** A picture just uploaded: the file's own name, and its address here */
+export interface UploadedPicture {
+  name: string;
+  url: string;
 }
 
 /**
  * Pick one of your own images (or upload a new one) to put in your page's
  * HTML or CSS, at the cursor.
  */
-export default function ImagePicker({ pane, username, onClose, onPick }: ImagePickerProps) {
+export default function ImagePicker({ pane, username, onClose, onPick, onUploadedMany }: ImagePickerProps) {
   return (
     <ImageLibrary
       isOpen={pane !== null}
@@ -84,9 +92,10 @@ export default function ImagePicker({ pane, username, onClose, onPick }: ImagePi
       onClose={onClose}
       // An untitled image gets an empty alt to fill in, not the "Untitled image" label
       onChoose={(url, item) => pane && onPick(pane, imageSnippet(pane, url, item.title?.trim() || ''))}
+      onUploadedMany={onUploadedMany}
       title="Insert an image"
-      hint="Pick one to put it where your cursor is."
-      emptyHint="Upload one and it goes right where your cursor is."
+      hint="Pick one to put it where your cursor is. Upload several at once, and each takes the place of a picture with the same file name in your page."
+      emptyHint="Upload one and it goes right where your cursor is. Upload several, and each takes the place of a picture with the same file name in your page."
     />
   );
 }
@@ -97,6 +106,8 @@ interface ImageLibraryProps {
   onClose: () => void;
   /** The image picked (or just uploaded), and its address */
   onChoose: (url: string, item: PickerImage) => void;
+  /** Takes several uploads at once (the file picker lets you choose more than one) */
+  onUploadedMany?: (uploads: UploadedPicture[]) => void;
   title: string;
   /** Above the images, and when there are none yet */
   hint: string;
@@ -109,13 +120,13 @@ interface ImageLibraryProps {
  * media page's API. ImagePicker puts one in your page's code; a ring's
  * banner just takes its address.
  */
-export function ImageLibrary({ isOpen, username, onClose, onChoose, title, hint, emptyHint }: ImageLibraryProps) {
+export function ImageLibrary({ isOpen, username, onClose, onChoose, onUploadedMany, title, hint, emptyHint }: ImageLibraryProps) {
   const { showError } = useToast();
   const confirm = useConfirm();
   const [images, setImages] = useState<PickerImage[]>([]);
 
-  // Pictures uploaded for the page aren't on the media page, so they're
-  // deleted from here
+  // Pictures uploaded for the page can be deleted here, and on the media
+  // page (they aren't gallery photos)
   const remove = async (item: PickerImage) => {
     const ok = await confirm({
       title: 'Delete this picture for good?',
@@ -145,6 +156,8 @@ export function ImageLibrary({ isOpen, username, onClose, onChoose, title, hint,
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [uploading, setUploading] = useState(false);
+  // "2 of 5" while several go up
+  const [uploadCount, setUploadCount] = useState<{ done: number; of: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchPage = useCallback(
@@ -193,36 +206,52 @@ export function ImageLibrary({ isOpen, username, onClose, onChoose, title, hint,
 
   const pick = (item: PickerImage) => onChoose(imageAddress(item), item);
 
-  // Same API and capability token as the media page's upload; the new image
-  // goes straight into the page.
-  const upload = async (file: File) => {
-    if (!UPLOAD_TYPES.includes(file.type)) {
-      showError('Only JPEG, PNG, WebP and GIF images work here.');
-      return;
-    }
-    if (file.size > UPLOAD_MAX_BYTES) {
-      showError('That file is over 25MB. Try a smaller one.');
-      return;
-    }
+  // Same API and capability token as the media page's upload. One file
+  // goes straight into the page; several each take the place of the
+  // picture with their name (onUploadedMany).
+  const sendFile = async (file: File, token: string): Promise<{ media: PickerImage } | { error: string; full?: boolean }> => {
+    if (!UPLOAD_TYPES.includes(file.type)) return { error: 'Only JPEG, PNG, WebP and GIF images work here.' };
+    if (file.size > UPLOAD_MAX_BYTES) return { error: 'That file is over 25MB. Try a smaller one.' };
+    const form = new FormData();
+    form.append('file', file);
+    form.append('cap', token);
+    // For the page, not the gallery: never a "Featured" photo
+    form.append('context', PAGE_ASSET_UPLOAD);
+    const res = await csrfFetch('/api/media/upload', { method: 'POST', body: form });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok || !result.media) return { error: result.error || "Couldn't upload that image. Try again.", full: res.status === 413 || res.status === 429 };
+    return { media: result.media as PickerImage };
+  };
+
+  const upload = async (files: File[]) => {
+    if (files.length === 0) return;
     setUploading(true);
     try {
       const token = await requestCapability('media');
-      const form = new FormData();
-      form.append('file', file);
-      form.append('cap', token);
-      // For the page, not the gallery: never a "Featured" photo
-      form.append('context', PAGE_ASSET_UPLOAD);
-      const res = await csrfFetch('/api/media/upload', { method: 'POST', body: form });
-      const result = await res.json().catch(() => ({}));
-      if (!res.ok || !result.media) {
-        showError(result.error || "Couldn't upload that image. Try again.");
+      if (files.length === 1 || !onUploadedMany) {
+        const sent = await sendFile(files[0], token);
+        if ('error' in sent) showError(sent.error);
+        else pick(sent.media);
         return;
       }
-      pick(result.media as PickerImage);
+      const uploaded: UploadedPicture[] = [];
+      for (const [i, file] of files.entries()) {
+        setUploadCount({ done: i, of: files.length });
+        const sent = await sendFile(file, token);
+        if ('error' in sent) {
+          showError(`${file.name}: ${sent.error}`);
+          // Full, or too many too fast: the rest would say the same
+          if (sent.full) break;
+          continue;
+        }
+        uploaded.push({ name: file.name, url: imageAddress(sent.media) });
+      }
+      if (uploaded.length > 0) onUploadedMany(uploaded);
     } catch (error) {
       showError(error instanceof CapabilityError ? error.message : "Couldn't upload that image. Try again.");
     } finally {
       setUploading(false);
+      setUploadCount(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
@@ -236,7 +265,7 @@ export function ImageLibrary({ isOpen, username, onClose, onChoose, title, hint,
       className="inline-flex items-center gap-2"
     >
       <PixelIcon name="upload" size={14} />
-      {uploading ? 'Uploading...' : 'Upload an image'}
+      {uploadCount ? `Uploading ${uploadCount.done + 1} of ${uploadCount.of}…` : uploading ? 'Uploading...' : onUploadedMany ? 'Upload pictures' : 'Upload an image'}
     </Button>
   );
 
@@ -247,13 +276,11 @@ export function ImageLibrary({ isOpen, username, onClose, onChoose, title, hint,
         ref={fileInputRef}
         type="file"
         accept={UPLOAD_TYPES.join(',')}
+        multiple={!!onUploadedMany}
         className="hidden"
-        aria-label="Image to upload"
+        aria-label={onUploadedMany ? 'Pictures to upload' : 'Image to upload'}
         tabIndex={-1}
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) upload(file);
-        }}
+        onChange={(e) => void upload(Array.from(e.target.files ?? []))}
       />
       <Modal
         isOpen={isOpen}

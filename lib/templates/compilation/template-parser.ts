@@ -1148,7 +1148,7 @@ function reportHtmlProblems(source: string): string[] {
       `Line ${first.line}: "${first.value}" is an address on your old site, and here it points at a page that isn't there. ` +
       (first.link
         ? 'Link to its full address (https://…), or bring that part onto this page.'
-        : 'Upload the file and use its address (Insert image does this).') +
+        : 'Upload it with Insert image and it goes in by its file name (several at once work too).') +
       more(relative.length, 'like it')
     );
   }

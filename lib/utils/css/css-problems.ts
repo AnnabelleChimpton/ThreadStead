@@ -27,7 +27,7 @@ export function cssProblems(css: string): string[] {
   if (oldSite.length) {
     problems.push(
       `Line ${lineAt(oldSite[0].index!)}: "${oldSite[0][2]}" is an address on your old site, and here it points at a file that isn't there. ` +
-      `Upload it and use its address (Insert image does this).${more(oldSite.length)}`
+      `Upload it with Insert image and it goes in by its file name (several at once work too).${more(oldSite.length)}`
     );
   }
   if (http.length) {

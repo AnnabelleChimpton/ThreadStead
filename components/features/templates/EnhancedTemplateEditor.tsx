@@ -12,7 +12,7 @@ import {
   type ComponentSchema,
 } from '@/lib/templates/editor/component-autocomplete';
 import ComponentPalette from '@/components/features/templates/ComponentPalette';
-import ImagePicker, { type ImagePane } from '@/components/features/templates/ImagePicker';
+import ImagePicker, { type ImagePane, type UploadedPicture } from '@/components/features/templates/ImagePicker';
 import { fetchPageData, type PreviewViewer } from '@/lib/templates/core/template-data';
 import type { PreviewPayload } from '@/lib/templates/editor/preview-payload';
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
@@ -40,7 +40,7 @@ import ThemeOptionPicker from '@/components/features/profile/ThemeOptionPicker';
 import { bringsOwnStylesheet, movePastedStyles, pastedCSS, pastedCSSHistory, WHOLE_PAGE } from '@/lib/templates/editor/pasted-styles';
 import { useConfirm } from '@/contexts/ConfirmContext';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
-import { requestCapability } from '@/lib/api/client/capability';
+import { CapabilityError, requestCapability } from '@/lib/api/client/capability';
 import { useRouter } from 'next/router';
 import { PixelIcon } from '@/components/ui/PixelIcon';
 import Modal from '@/components/ui/feedback/Modal';
@@ -48,6 +48,8 @@ import Button from '@/components/ui/Button';
 import DraftRestoreBanner from '@/components/ui/feedback/DraftRestoreBanner';
 import { useLocalDraft } from '@/hooks/useLocalDraft';
 import { useSaveChannel, type PageSaved } from '@/hooks/useSaveChannel';
+import { byFileName, picturesOnOwnSites, rewritePictures } from '@/lib/templates/editor/picture-refs';
+import { COPY_BATCH } from '@/lib/media/upload-context';
 import { useToast } from '@/contexts/ToastContext';
 import TemplateHistoryPanel, { fetchRevision, LookingNotice, type FullRevision } from '@/components/features/templates/TemplateHistoryPanel';
 import ViewSourceToggle from '@/components/features/templates/ViewSourceToggle';
@@ -905,18 +907,31 @@ export default function EnhancedTemplateEditor({
   // the smallest edit that makes it, so the code stays put, and a drag
   // through a colour picker is one step for Undo.
   const pageOptions = React.useMemo(() => scanThemeOptions(template).options, [template]);
-  const setPageOption = useCallback((option: ThemeOption, value: string) => {
+  // New HTML (and CSS) for the whole page as the smallest edit that makes
+  // it, so the code stays put and one undo takes both panes back
+  const replaceCode = (after: string, afterCSS: string, userEvent: string) => {
     const view = templateViewRef.current;
-    const before = view ? view.state.doc.toString() : template;
-    const after = writeThemeOptions(before, { [optionKey(option)]: value });
-    if (after === before) return;
-    if (!view) return handleTemplateChange(after);
+    if (!view) {
+      if (after !== template) handleTemplateChange(after);
+      if (afterCSS !== customCSS) setCustomCSS(afterCSS);
+      return;
+    }
+    const before = view.state.doc.toString();
     let start = 0;
     while (start < before.length && before[start] === after[start]) start++;
     let end = 0;
-    while (end < before.length - start && before[before.length - 1 - end] === after[after.length - 1 - end]) end++;
-    view.dispatch({ changes: { from: start, to: before.length - end, insert: after.slice(start, after.length - end) }, userEvent: 'input.type.option' });
-  }, [template]);
+    while (end < before.length - start && end < after.length - start && before[before.length - 1 - end] === after[after.length - 1 - end]) end++;
+    view.dispatch({
+      changes: after === before ? [] : { from: start, to: before.length - end, insert: after.slice(start, after.length - end) },
+      effects: afterCSS !== customCSS ? pastedCSS.of({ from: customCSS, to: afterCSS }) : [],
+      userEvent,
+    });
+  };
+  const setPageOption = (option: ThemeOption, value: string) => {
+    const before = templateViewRef.current?.state.doc.toString() ?? template;
+    const after = writeThemeOptions(before, { [optionKey(option)]: value });
+    if (after !== before) replaceCode(after, customCSS, 'input.type.option');
+  };
   const codeStyle = { height: '100%', fontSize: `${codeSettings.size}px` };
 
   const tidy = useCallback(async (pane: CodePane) => {
@@ -1653,15 +1668,17 @@ export default function EnhancedTemplateEditor({
 
   // Your own verified sites (Settings → Your sites), to bring a page in from:
   // asked for the first time the starter pages are open
-  const [ownSites, setOwnSites] = useState<Array<{ id: string; address: string }> | null>(null);
+  const [ownSites, setOwnSites] = useState<Array<{ id: string; address: string; ref?: string }> | null>(null);
   const [bringingIn, setBringingIn] = useState(false);
+  // and when the page has whole addresses, which may be on one of them
+  const hasWholeAddresses = !useStandardLayout && /https?:\/\//.test(template);
   useEffect(() => {
-    if (activeTab !== 'starters' || ownSites) return;
+    if ((activeTab !== 'starters' && !hasWholeAddresses) || ownSites) return;
     fetch('/api/sites/import', { credentials: 'include' })
       .then((response) => (response.ok ? response.json() : { sites: [] }))
       .then((data) => setOwnSites(Array.isArray(data.sites) ? data.sites : []))
       .catch(() => setOwnSites([]));
-  }, [activeTab, ownSites]);
+  }, [activeTab, ownSites, hasWholeAddresses]);
 
   // The site's homepage, its own CSS and pictures and links still coming from
   // the site, in place of what's in the HTML tab (lib/templates/editor/site-import.ts)
@@ -1683,6 +1700,79 @@ export default function EnhancedTemplateEditor({
     } finally {
       setBringingIn(false);
     }
+  };
+
+  // The sites' keys, to tell which of the page's pictures are on them
+  const ownSiteRefs = React.useMemo(() => new Set((ownSites ?? []).map((site) => site.ref).filter((ref): ref is string => !!ref)), [ownSites]);
+
+  // Several pictures uploaded at once (the image picker): each takes the
+  // place of the page's pictures with its file name, in the HTML and CSS,
+  // as one edit (lib/templates/editor/picture-refs.ts)
+  const putInPictures = (uploads: UploadedPicture[]) => {
+    setImagePickerPane(null);
+    const { to, used } = byFileName(uploads, ownSiteRefs);
+    const before = templateViewRef.current?.state.doc.toString() ?? template;
+    replaceCode(rewritePictures(before, 'html', to), rewritePictures(customCSS, 'css', to), 'input.type.pictures');
+    const rest = uploads.length - [...new Set(uploads.map((u) => u.name.toLowerCase()))].filter((name) => used.has(name)).length;
+    setSaveMessage({
+      text: used.size === 0
+        ? `Uploaded ${uploads.length}. None of their names are in your page, so they're waiting in Insert image.`
+        : `Uploaded ${uploads.length} and put ${used.size} in your page by name.${rest > 0 ? ` ${rest} more ${rest === 1 ? 'is' : 'are'} waiting in Insert image.` : ''}`,
+      tone: 'ok',
+    });
+    setTimeout(() => setSaveMessage(null), 6000);
+  };
+
+  // Pictures the page still loads from the resident's own site (a page
+  // brought in): "Copy them here" keeps them if the site goes away
+  const deferredTemplate = React.useDeferredValue(template);
+  const sitePictures = React.useMemo(
+    () => (useStandardLayout ? [] : picturesOnOwnSites(deferredTemplate, deferredCSS, ownSiteRefs)),
+    [deferredTemplate, deferredCSS, ownSiteRefs, useStandardLayout]
+  );
+  const [leaveSitePictures, setLeaveSitePictures] = useState(false);
+  const [copying, setCopying] = useState<{ done: number; of: number } | null>(null);
+  const copySitePictures = async () => {
+    const urls = sitePictures;
+    setCopying({ done: 0, of: urls.length });
+    const copied: Record<string, string> = {};
+    const left: Array<{ url: string; reason: string }> = [];
+    try {
+      const cap = await requestCapability('media');
+      for (let i = 0; i < urls.length; i += COPY_BATCH) {
+        setCopying({ done: i, of: urls.length });
+        const response = await csrfFetch('/api/media/copy-pictures', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ urls: urls.slice(i, i + COPY_BATCH), cap }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          left.push({ url: urls[i], reason: data.error || "I couldn't copy them. Try again in a moment." });
+          break;
+        }
+        for (const [from, stored] of Object.entries(data.copied ?? {})) copied[from] = new URL(String(stored), window.location.origin).href;
+        left.push(...(data.left ?? []));
+        if (data.full) break;
+      }
+    } catch (error) {
+      left.push({ url: '', reason: error instanceof CapabilityError ? error.message : "I couldn't copy them. Try again in a moment." });
+    } finally {
+      setCopying(null);
+    }
+    const n = Object.keys(copied).length;
+    if (n > 0) {
+      const to = (url: string) => copied[url] ?? null;
+      const before = templateViewRef.current?.state.doc.toString() ?? template;
+      replaceCode(rewritePictures(before, 'html', to), rewritePictures(customCSS, 'css', to), 'input.type.pictures');
+    }
+    setSaveMessage({
+      text: n > 0
+        ? `Copied ${n} picture${n === 1 ? '' : 's'} here. Your page uses ${n === 1 ? 'it' : 'them'} from here once you save.${left.length > 0 ? ` ${left.length} stayed where ${left.length === 1 ? 'it was' : 'they were'}: ${left[0].reason}` : ''}`
+        : `Nothing copied: ${left[0]?.reason ?? "I couldn't copy them."}`,
+      tone: n > 0 && left.length === 0 ? 'ok' : 'warn',
+    });
+    setTimeout(() => setSaveMessage(null), 10000);
   };
 
   // A dropped .html file: a whole page takes the place of what's there, a
@@ -2129,6 +2219,23 @@ body {
         notices={
           <>
             {notice}
+            {sitePictures.length > 0 && !leaveSitePictures && (
+              <div role="status" className="ts-editor-note flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-1.5 text-sm bg-thread-cream border-b border-thread-sage text-nb-ink flex-shrink-0">
+                <span className="flex-1 min-w-0">
+                  {sitePictures.length === 1
+                    ? 'A picture on this page still loads from your site. Copy it here and it stays if the site goes away.'
+                    : `${sitePictures.length} pictures on this page still load from your site. Copy them here and they stay if the site goes away.`}
+                </span>
+                <Button size="sm" variant="secondary" disabled={!!copying} onClick={() => void copySitePictures()}>
+                  {copying ? `Copying ${Math.min(copying.done + COPY_BATCH, copying.of)} of ${copying.of}…` : sitePictures.length === 1 ? 'Copy it here' : 'Copy them here'}
+                </Button>
+                {!copying && (
+                  <button type="button" className="ts-bare text-xs underline text-nb-ink" onClick={() => setLeaveSitePictures(true)}>
+                    {sitePictures.length === 1 ? 'Leave it there' : 'Leave them there'}
+                  </button>
+                )}
+              </div>
+            )}
             {pendingDraft && (
               <DraftRestoreBanner
                 savedAt={pendingDraft.savedAt}
@@ -2210,6 +2317,7 @@ body {
         username={username}
         onClose={() => setImagePickerPane(null)}
         onPick={pickImage}
+        onUploadedMany={putInPictures}
       />
 
 
