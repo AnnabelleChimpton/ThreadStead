@@ -2,12 +2,11 @@
 // for ordinary old-web pages: a links page of 400 links, a 150-row table, a
 // journal of 150 entries, a dozen layout tables nested inside each other.
 // A flat 199 KB links page compiles in under 100 ms, so tags and nesting are
-// capped only against runaway pages (runawayPageError, below, refuses those
-// before parsing); components are the real cost, since each one renders
-// (and some hydrate) on every visit.
-import { defaultTreeAdapter, parseFragment } from 'parse5';
+// capped only against runaway pages (runawayPageError and depthGuard, below,
+// refuse those before or while parsing); components are the real cost, since
+// each one renders (and some hydrate) on every visit.
 import { MAX_TEMPLATE_CHARS } from '../limits';
-import { tokenizeSource, VOID_ELEMENTS } from './source-scan';
+import { tokenizeSource } from './source-scan';
 
 export const TEMPLATE_LIMITS = {
   /** Same number the save checks, so the editor and the save agree */
@@ -45,48 +44,46 @@ export function formatLimitError(limitType: LimitType, currentValue: number, max
   }
 }
 
-/** Far past the limits above, short of where parsing gets slow or overflows */
-const RUNAWAY = { elements: TEMPLATE_LIMITS.maxElements * 2, depth: TEMPLATE_LIMITS.maxDepth * 4 };
-
-class TooDeep extends Error {}
+/**
+ * Far past the limits above, short of where parsing gets slow or overflows.
+ * Depth is absolute: the tree conversion after parsing overflows the stack
+ * near 3,000 levels, whatever the cap is set to.
+ */
+const RUNAWAY = { elements: TEMPLATE_LIMITS.maxElements * 2, depth: 1_024 };
 
 /**
- * The limit message for a runaway page, found before the real parse. The
- * HTML parser slows with every level a page nests (30,000 unclosed <div>s
- * took 2 s, blocking every other request) and the tree conversion after it
- * overflows the stack near 3,000 levels, so the exact checks after parsing
- * came too late (template audit 04 H1). Tags are counted from the source;
- * depth is the browser's own, from a parse that stops as soon as it's
- * too deep, and runs only when there are enough tags to get there.
+ * The limit message for a page with far too many tags, counted from the
+ * source before it's parsed. The HTML parser slows with every level a page
+ * nests (30,000 unclosed <div>s took 2 s, blocking every other request), so
+ * the exact checks after parsing came too late (template audit 04 H1); depth
+ * is checked during the parse itself (depthGuard).
  */
 export function runawayPageError(source: string): string | undefined {
   let elements = 0;
-  let opening = 0;
-  for (const token of tokenizeSource(source)) {
-    if (token.type !== 'open') continue;
-    elements++;
-    if (!VOID_ELEMENTS.has(token.name.toLowerCase())) opening++;
-  }
+  for (const token of tokenizeSource(source)) if (token.type === 'open') elements++;
   if (elements > RUNAWAY.elements) return formatLimitError('elements', elements, TEMPLATE_LIMITS.maxElements);
-  if (opening <= RUNAWAY.depth) return undefined;
-
-  let depth = 0;
-  try {
-    parseFragment(source, {
-      treeAdapter: {
-        ...defaultTreeAdapter,
-        onItemPush: () => {
-          if (++depth > RUNAWAY.depth) throw new TooDeep();
-        },
-        onItemPop: () => {
-          depth--;
-        },
-      },
-    });
-  } catch (error) {
-    if (error instanceof TooDeep) return formatLimitError('depth', RUNAWAY.depth, TEMPLATE_LIMITS.maxDepth, true);
-    throw error;
-  }
   return undefined;
 }
 
+/** What the page's parse throws once the page nests far too deep */
+export class RunawayDepth extends Error {
+  constructor() {
+    super(formatLimitError('depth', RUNAWAY.depth, TEMPLATE_LIMITS.maxDepth, true));
+  }
+}
+
+/**
+ * Tree-adapter hooks that stop a parse as soon as it's too deep: the
+ * browser's own depth, as it builds the tree
+ */
+export function depthGuard() {
+  let depth = 0;
+  return {
+    onItemPush: () => {
+      if (++depth > RUNAWAY.depth) throw new RunawayDepth();
+    },
+    onItemPop: () => {
+      depth--;
+    },
+  };
+}

@@ -1,5 +1,6 @@
 import { unified } from 'unified';
-import rehypeParse from 'rehype-parse';
+import { defaultTreeAdapter, Parser, type DefaultTreeAdapterMap } from 'parse5';
+import { fromParse5 } from 'hast-util-from-parse5';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import { FORM_ACTION_REMOVED, offSiteHost, postsToApi } from './form-action';
 import { find, html as htmlSchema } from 'property-information';
@@ -7,7 +8,7 @@ import type { Root } from 'hast';
 import { componentRegistry } from '../core/template-registry';
 import { coercePropValue, findPropSchema, propNameKey, UNIVERSAL_CSS_ATTRIBUTES, type PropSchema } from '../core/template-registry-types';
 import { getAllowedAttributes } from '../core/attribute-mappings';
-import { TEMPLATE_LIMITS, formatLimitError, runawayPageError } from './template-limits';
+import { TEMPLATE_LIMITS, depthGuard, formatLimitError, runawayPageError, RunawayDepth } from './template-limits';
 import {
   COMPONENT_TAG_PREFIX,
   lineAt,
@@ -723,6 +724,38 @@ function lazyLoadLaterImages(node: HastLike, seen = { images: 0 }): void {
   for (const child of node.children ?? []) lazyLoadLaterImages(child, seen);
 }
 
+type ParentNode = DefaultTreeAdapterMap['parentNode'];
+
+/**
+ * parse5's parser, moving a node's children all at once. Its own move takes
+ * them one at a time from the front of an array, and a fragment parse moves
+ * every top-level node that way, so flat pages were quadratic (20,000 tags
+ * in a row took 252 ms). Same nodes, same order, same tree: parse5 is pinned
+ * for it, and parse-html.etest.ts holds the tree to parse5's own.
+ */
+class LinearParser extends Parser<DefaultTreeAdapterMap> {
+  override _adoptNodes(donor: ParentNode, recipient: ParentNode): void {
+    for (const child of donor.childNodes) {
+      child.parentNode = recipient;
+      recipient.childNodes.push(child);
+    }
+    donor.childNodes = [];
+  }
+}
+
+/**
+ * HTML as the browser parses a fragment of it (parseFragment's steps), in
+ * one pass that also stops a runaway page (depthGuard)
+ */
+export function parseHtml(html: string): Root {
+  const parser = LinearParser.getFragmentParser<DefaultTreeAdapterMap>(null, {
+    scriptingEnabled: false,
+    treeAdapter: { ...defaultTreeAdapter, ...depthGuard() },
+  });
+  parser.tokenizer.write(html, true);
+  return fromParse5(parser.getFragment()) as Root;
+}
+
 // Parse HTML to HAST (Hypertext Abstract Syntax Tree)
 // Returns both the parsed tree and information about stripped components
 export function parseTemplate(htmlString: string): Root & {
@@ -743,18 +776,9 @@ export function parseTemplate(htmlString: string): Root & {
   // "homeabout") and the author's own wrapper (template audit 01 #2).
   const processedHtml = prepareSourceForParse(document.body, isRegisteredComponent);
 
-  // Parse as fragment (now we have clean body content)
-  const processor = unified()
-    .use(rehypeParse, {
-      fragment: true,
-      emitParseErrors: false,
-      duplicateAttribute: false
-    })
-    .use(rehypeSanitize, createCustomSchema());
-
-  const tree = processor.parse(processedHtml);
+  const tree = parseHtml(processedHtml);
   renameOldTags(tree as HastLike);
-  const processed = processor.runSync(tree) as Root;
+  const processed = unified().use(rehypeSanitize, createCustomSchema()).runSync(tree) as Root;
   const removedFormAction = finishSanitizedTree(processed as HastLike);
   lazyLoadLaterImages(processed as HastLike);
   const boxedParagraphs = boxesOutOfParagraphs(processed as HastLike);
@@ -1489,6 +1513,7 @@ export function compileTemplate(htmlString: string): CompilationResult {
       strippedComponents: strippedComponents || undefined
     };
   } catch (error) {
+    if (error instanceof RunawayDepth) return { success: false, errors: [error.message] };
     // Extract meaningful error details from rehype/parser errors
     const errorMessage = error instanceof Error ? error.message : String(error);
 

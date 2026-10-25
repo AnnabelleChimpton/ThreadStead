@@ -115,14 +115,18 @@ async function settle(ms = Number(process.env.SETTLE_MS) || 60) {
 
 /**
  * Settle, then keep waiting while the page still says it's loading (the
- * guestbook and posts fetch after hydration). A fixed wait came up short
- * when the machine was busy. No fixture contains "Loading", and pages
- * without it are compared after the same single settle as before.
+ * guestbook and posts fetch after hydration, and the owner's Follow button
+ * shows "…" until its status arrives). A fixed wait came up short when the
+ * machine was busy. No fixture contains "Loading", and pages without it are
+ * compared after the same single settle as before.
  */
+const stillLoading = (root: Element) =>
+  /Loading/.test(root.textContent || '') || root.querySelector('.follow-button-wrapper')?.textContent === '…'
+
 async function settleLoaded(root: Element, maxMs = 3000) {
   await settle()
   const start = Date.now()
-  while (/Loading/.test(root.textContent || '') && Date.now() - start < maxMs) await settle(30)
+  while (stillLoading(root) && Date.now() - start < maxMs) await settle(30)
 }
 
 /** Server HTML → browser DOM → hydrate → settled DOM, plus hydration errors */

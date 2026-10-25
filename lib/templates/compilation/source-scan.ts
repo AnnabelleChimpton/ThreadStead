@@ -94,7 +94,22 @@ export function lineAt(source: string, index: number): number {
   return low + 1
 }
 
+// The tokens of the last two sources asked about (a page, and its body when
+// it's a whole pasted document). A compile asks about one page from seven
+// places; each used to tokenize it again. Callers never change the tokens.
+const scanned = new Map<string, SourceToken[]>()
+
 export function tokenizeSource(source: string): SourceToken[] {
+  let tokens = scanned.get(source)
+  if (!tokens) {
+    tokens = scan(source)
+    if (scanned.size === 2) scanned.delete(scanned.keys().next().value!)
+    scanned.set(source, tokens)
+  }
+  return tokens
+}
+
+function scan(source: string): SourceToken[] {
   const tokens: SourceToken[] = []
   const len = source.length
   let i = 0

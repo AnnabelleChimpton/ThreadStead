@@ -19,6 +19,7 @@ jest.mock('@noble/ed25519', () => ({
 import { compileTemplate } from '@/lib/templates/compilation/template-parser'
 import { TEMPLATE_LIMITS } from '@/lib/templates/compilation/template-limits'
 import { MAX_TEMPLATE_CHARS } from '@/lib/templates/limits'
+import { sanitizeCustomHTML } from '@/lib/templates/compilation/custom-html'
 
 const range = (count: number) => Array.from({ length: count }, (_, i) => i + 1)
 
@@ -152,7 +153,7 @@ describe('compiling a big page takes time in proportion to its size', () => {
   })
 })
 
-describe('a runaway page is refused before parsing (template audit 04 H1)', () => {
+describe('a runaway page is refused before or while parsing (template audit 04 H1)', () => {
   // The parser slows with every level (30,000 unclosed <div>s took 2 s) and
   // the tree conversion overflowed the stack near 3,000, answering
   // "Template parsing failed" instead of the depth limit
@@ -172,6 +173,22 @@ describe('a runaway page is refused before parsing (template audit 04 H1)', () =
 
   test('a flood of tags gets the tag message', () => {
     expect(refusedQuickly('<div>'.repeat(30000))).toMatch(/^Your page has 30,000 tags; the most is 10,000/)
+  })
+
+  test('the depth guard stays put when the cap goes up: the stack, not the cap, is the limit', () => {
+    const cap = TEMPLATE_LIMITS.maxDepth
+    Object.assign(TEMPLATE_LIMITS, { maxDepth: 2000 })
+    try {
+      expect(refusedQuickly('<div>'.repeat(1100))).toMatch(/^Your page has tags nested more than 1,024 deep/)
+    } finally {
+      Object.assign(TEMPLATE_LIMITS, { maxDepth: cap })
+    }
+  })
+
+  test("HTML inside a CustomHTMLElement's content is guarded too", () => {
+    const started = performance.now()
+    expect(sanitizeCustomHTML('<div>'.repeat(9000))).toBe('')
+    expect(performance.now() - started).toBeLessThan(200)
   })
 
   test("old pages' unclosed tags don't count as nesting", () => {
