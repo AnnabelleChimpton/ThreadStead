@@ -94,6 +94,11 @@ interface DataLossWarningProps {
   clearedItems?: string[];
 }
 
+/** The live preview compiles this long after the last key… */
+const PREVIEW_DELAY_MS = 200;
+/** …and no sooner than this after its last compile: the compile route allows 120 a minute (rate-limit.ts) */
+const PREVIEW_GAP_MS = 500;
+
 // CSS of the person's own, past the editor's empty-stylesheet comment
 function hasOwnCSS(css: string | undefined): boolean {
   const trimmed = (css || '').trim();
@@ -490,6 +495,8 @@ export default function EnhancedTemplateEditor({
   };
   // The draft's artifact: what the preview renders, and what a save would store
   const [compiledTemplate, setCompiledTemplate] = useState<PageArtifact | null>(null);
+  // When the live preview last asked for a compile (PREVIEW_GAP_MS)
+  const lastPreviewCompile = useRef(0);
   // Smart default tab selection based on URL mode param or layout mode
   const [activeTab, setActiveTab] = useState<EditorTab>(() => {
     // Priority 1: URL parameter
@@ -606,8 +613,9 @@ export default function EnhancedTemplateEditor({
     [deferredCSS]
   );
 
-  // Compile template function (using real compilation API like production)
-  const compileTemplateForPreview = useCallback(async (forceCompile: boolean = false) => {
+  // Compile template function (using real compilation API like production).
+  // `signal`: the live preview's, so a newer edit drops this request
+  const compileTemplateForPreview = useCallback(async (forceCompile: boolean = false, signal?: AbortSignal) => {
     // Force compile when saving, even if in standard layout mode
     if (!template.trim() || (!forceCompile && useStandardLayout)) {
       setCompiledTemplate(null);
@@ -632,7 +640,8 @@ export default function EnhancedTemplateEditor({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include', // Ensure cookies are sent with the request
-        body: JSON.stringify({ template })
+        body: JSON.stringify({ template }),
+        signal
       });
 
       if (!response.ok) {
@@ -1008,19 +1017,22 @@ export default function EnhancedTemplateEditor({
     }
   }, [useStandardLayout, defaultTemplateForPreview, loadingDefaultTemplate, loadDefaultTemplateForPreview]);
 
-  // Auto-compile template when it changes (for advanced templates)
+  // Auto-compile template when it changes (for advanced templates): soon
+  // after you stop typing, but no more often than the compile route allows
   useEffect(() => {
     if (!useStandardLayout && template.trim()) {
-      // Only recompile if template content actually changed
-      const timer = setTimeout(async () => {
-        const result = await compileTemplateForPreview();
-
-        // If compilation failed, editor continues to work
-        if (result === null && template.trim()) {
-          // Could show a toast notification here if needed
-        }
-      }, 500);
-      return () => clearTimeout(timer);
+      const controller = new AbortController();
+      const wait = Math.max(PREVIEW_DELAY_MS, lastPreviewCompile.current + PREVIEW_GAP_MS - Date.now());
+      const timer = setTimeout(() => {
+        lastPreviewCompile.current = Date.now();
+        compileTemplateForPreview(false, controller.signal);
+      }, wait);
+      // A newer edit drops this one's request: an older answer arriving late
+      // put a stale page back in the preview
+      return () => {
+        clearTimeout(timer);
+        controller.abort();
+      };
     } else if (useStandardLayout) {
       // Clear compiled template when switching to standard layout
       setCompiledTemplate(null);
