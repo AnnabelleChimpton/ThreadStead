@@ -19,7 +19,8 @@ export const PAGE_SOURCE_BODY_LIMIT = '4mb';
 export function sourceTooLong(kind: 'CSS' | 'template', text: unknown): string | null {
   const limit = kind === 'CSS' ? MAX_CSS_CHARS : MAX_TEMPLATE_CHARS;
   if (typeof text !== 'string' || text.length <= limit) return null;
-  // Rounded up: just over the cap never reads as "200 KB; the most is 200 KB"
+  // Rounded up: just over the cap never reads as "500 KB; the most is 500 KB".
+  // The editor shows it before any save, so no "save again" (template audit 07 #12)
   const size = `${Math.ceil(text.length / 1000)} KB`;
-  return `Your ${kind === 'CSS' ? 'CSS' : 'HTML'} is ${size}; the most is ${Math.round(limit / 1000)} KB. Trim it and save again.`;
+  return `Your ${kind === 'CSS' ? 'CSS' : 'HTML'} is ${size}; the most is ${Math.round(limit / 1000)} KB. Trim it down, then save.`;
 }
