@@ -13,7 +13,8 @@ import { useSiteCSS, SiteCssContext } from "@/hooks/useSiteCSS";
 import { putServerOnly, readServerOnly } from "@/lib/utils/server-only";
 import { useRouter } from "next/router";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { advancedPageCss, standardPageCss } from "@/lib/templates/rendering/page-css";
+import { advancedPageStyles, standardPageStyles } from "@/lib/templates/rendering/page-css";
+import PageFonts from "@/components/ui/layout/PageFonts";
 import { escapeCssForStyleTag } from "@/lib/utils/sanitization/css";
 import { siteStylesOn } from "@/lib/domain/profile/layout";
 
@@ -173,16 +174,18 @@ export default function MyApp({ Component, pageProps }: AppProps) {
   // (lib/templates/rendering/page-css.ts)
   const advancedPage = pageProps.templateMode === 'advanced';
   const customCSS: string = pageProps.customCSS || '';
-  const pageCssHtml = useMemo(() => {
+  const pageStyles = useMemo(() => {
     if (!isProfilePage) return null;
+    if (!advancedPage) return customCSS.trim() ? standardPageStyles(customCSS) : null;
     // A page of your own HTML: transformed on the server, sent once
     // (getServerSideProps puts it with putServerOnly, or as pageCss on a
-    // client-side navigation)
-    const css = advancedPage
-      ? pageProps.pageCss ?? readServerOnly(pageProps, 'advanced-template-css', pageProps.ownerUserId) ?? advancedPageCss(customCSS, pageProps.compiledTemplate)
-      : customCSS.trim() && standardPageCss(customCSS);
-    return css ? { __html: escapeCssForStyleTag(css) } : null;
+    // client-side navigation), its fonts as pageFonts
+    const sent = pageProps.pageCss ?? readServerOnly(pageProps, 'advanced-template-css', pageProps.ownerUserId);
+    return sent !== undefined ? { css: sent, fonts: pageProps.pageFonts ?? [] } : advancedPageStyles(customCSS, pageProps.compiledTemplate);
   }, [isProfilePage, advancedPage, customCSS, pageProps]);
+  const pageCssHtml = useMemo(() => {
+    return pageStyles?.css ? { __html: escapeCssForStyleTag(pageStyles.css) } : null;
+  }, [pageStyles]);
 
   return (
     <SiteCssContext.Provider value={loading ? undefined : css}>
@@ -213,6 +216,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
 
 
             </Head>
+            {pageStyles && <PageFonts hrefs={pageStyles.fonts} />}
             <div
               className={`${pageProps.templateMode === 'advanced'
                 // No font-body here: it re-set the font under <body>, so a

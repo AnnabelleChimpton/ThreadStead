@@ -30,45 +30,33 @@ export default function WaveText(props: WaveTextProps) {
     'large': '15px'
   }[amplitude];
 
-  // Component-specific styles
-  const componentStyle = { color: waveColor };
-
-  // Merge with CSS props (CSS props win)
+  // Its speed and height for the shared stylesheet (styles/template-components.css),
+  // then CSS props, which win
   const mergedStyle = {
-    ...componentStyle,
+    color: waveColor,
+    '--ts-wave-speed': speedValues,
+    '--ts-wave-amplitude': amplitudeValues,
     ...applyCSSProps(cssProps)
-  };
+  } as React.CSSProperties;
 
   return (
-    <>
-      <style jsx>{`
-        @keyframes wave {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-${amplitudeValues}); }
-        }
-        .wave-letter {
-          display: inline-block;
-          animation: wave ${speedValues} ease-in-out infinite;
-        }
-      `}</style>
-      <span className={customClassName} style={mergedStyle}>
-        {/* The words once, for screen readers, which spelled the letter
-            spans out one by one */}
-        <span className="sr-only">{text}</span>
-        {/* Array.from splits by code point; split('') broke emoji into halves */}
-        {Array.from(text).map((letter, index) => (
-          <span
-            key={index}
-            aria-hidden="true"
-            className="wave-letter"
-            style={{
-              animationDelay: `${index * 0.1}s`
-            }}
-          >
-            {letter === ' ' ? '\u00A0' : letter}
-          </span>
-        ))}
-      </span>
-    </>
+    <span className={customClassName ? `ts-wave ${customClassName}` : 'ts-wave'} style={mergedStyle}>
+      {/* The words once, for screen readers, which spelled the letter
+          spans out one by one */}
+      <span className="sr-only">{text}</span>
+      {/* Array.from splits by code point; split('') broke emoji into halves */}
+      {Array.from(text).map((letter, index) => (
+        <span
+          key={index}
+          aria-hidden="true"
+          className="wave-letter"
+          style={{
+            animationDelay: `${index * 0.1}s`
+          }}
+        >
+          {letter === ' ' ? '\u00A0' : letter}
+        </span>
+      ))}
+    </span>
   );
 }

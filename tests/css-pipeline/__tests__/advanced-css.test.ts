@@ -19,6 +19,7 @@ import {
   SITE_CHROME_SELECTOR,
   SITE_LAYER_ORDER,
 } from '@/lib/utils/css/css-transform'
+import { advancedPageStyles, standardPageStyles } from '@/lib/templates/rendering/page-css'
 
 const ROOT = path.join(__dirname, '..', '..', '..')
 
@@ -236,10 +237,11 @@ describe('preview equals live', () => {
 
   test('the live page and the preview build the page CSS with the same helpers (page-css.ts)', () => {
     for (const file of [app, preview]) {
-      expect(file).toMatch(/advancedPageCss\(/)
-      expect(file).toMatch(/standardPageCss\(/)
+      expect(file).toMatch(/advancedPageStyles\(/)
+      expect(file).toMatch(/standardPageStyles\(/)
       expect(file).not.toMatch(/transformAdvancedCss\(/)
       expect(file).toMatch(/'advanced-template-css'/)
+      expect(file).toMatch(/<PageFonts hrefs=\{pageStyles\.fonts\} \/>/)
     }
   })
 
@@ -360,5 +362,33 @@ describe('keyframes the site uses too', () => {
       path.join(ROOT, 'node_modules/tailwindcss/theme.css')]
     const names = new Set(files.flatMap((f) => [...fs.readFileSync(f, 'utf8').matchAll(/@keyframes\s+([\w-]+)/g)].map((m) => m[1])))
     expect([...names].filter((name) => !SITE_KEYFRAMES.has(name))).toEqual([])
+  })
+})
+
+describe('Google Fonts load as links in the head, not @imports in the page CSS', () => {
+  const roboto = 'https://fonts.googleapis.com/css2?family=Roboto:wght@400;700'
+  const pixel = 'https://fonts.googleapis.com/css?family=Press+Start+2P&display=block'
+
+  test('out of a page of your own HTML, its CSS and its pasted head alike, once each', () => {
+    const css = `@import url("${roboto}");\n@import '${pixel}';\nh1 { font-family: Roboto }`
+    const head = { ast: { head: { fontImports: [`@import url("${roboto}");`] } } }
+    const { css: out, fonts } = advancedPageStyles(css, head)
+    // display=swap unless the page picked its own
+    expect(fonts).toEqual([`${roboto}&display=swap`, pixel])
+    expect(out).not.toMatch(/@import/)
+    expect(out).toContain('font-family: Roboto')
+  })
+
+  test('the standard layout too', () => {
+    const { css, fonts } = standardPageStyles(`@import url(${roboto});\nbody { color: red }`)
+    expect(fonts).toEqual([`${roboto}&display=swap`])
+    expect(css).not.toMatch(/@import/)
+  })
+
+  test('an import with a media query, and CSS with no fonts, stay as they were', () => {
+    const media = `@import url("${roboto}") screen;`
+    expect(advancedPageStyles(`${media}\np { margin: 0 }`, null)).toEqual({ css: transformAdvancedCss(`${media}\np { margin: 0 }`), fonts: [] })
+    expect(advancedPageStyles('p { margin: 0 }', null)).toEqual({ css: transformAdvancedCss('p { margin: 0 }'), fonts: [] })
+    expect(standardPageStyles('p { margin: 0 }').fonts).toEqual([])
   })
 })

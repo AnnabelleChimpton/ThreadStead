@@ -124,7 +124,16 @@ describe('a page over a limit says so plainly', () => {
   it('components', () => {
     failsWith(
       range(TEMPLATE_LIMITS.maxComponents + 1).map(() => '<Bio />').join('\n'),
-      /^Your page uses 401 components; the most is 400\. Try removing a few\.$/
+      /^Your page uses 1,001 components; the most is 1,000\. Try removing a few\.$/
+    )
+  })
+
+  it('moving components: a phone can only keep so many going', () => {
+    const waves = (count: number) => range(count).map((i) => `<WaveText text="hello ${i}" />`).join('\n')
+    expect(compileTemplate(waves(TEMPLATE_LIMITS.maxAnimated)).success).toBe(true)
+    failsWith(
+      waves(TEMPLATE_LIMITS.maxAnimated + 1),
+      /^Your page has 51 moving components, like WaveText and GlitchText; the most is 50\. Each one keeps a phone busy, so try removing a few\.$/
     )
   })
 

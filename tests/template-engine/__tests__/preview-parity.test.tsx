@@ -28,7 +28,7 @@ import { compileForEditor } from '@/lib/templates/compilation/compile-for-editor
 import { parseArtifact, serializeArtifact } from '@/lib/templates/rendering/page-artifact'
 import { pageForRender } from '@/lib/templates/rendering/page-tree-server'
 import { collapsePage } from '@/lib/templates/rendering/page-html'
-import { advancedPageCss } from '@/lib/templates/rendering/page-css'
+import { advancedPageStyles } from '@/lib/templates/rendering/page-css'
 import { escapeCssForStyleTag } from '@/lib/utils/sanitization/css'
 import { corpus, residentData, serializeDom, installBrowserStubs, AppProviders, OWNER_ID } from '../ssr-golden-support'
 
@@ -99,6 +99,6 @@ describe.each(corpus())('%s', (_id, source) => {
 
     expect(serializeDom(previewRoot!)).toBe(liveDom)
     expect(ancestry(previewRoot)).toEqual(liveAncestry)
-    expect(preview.container.querySelector('#advanced-template-css')?.textContent).toBe(escapeCssForStyleTag(advancedPageCss(CSS, livePage)))
+    expect(preview.container.querySelector('#advanced-template-css')?.textContent).toBe(escapeCssForStyleTag(advancedPageStyles(CSS, livePage).css))
   })
 })

@@ -543,3 +543,19 @@ describe('GlitchText Component', () => {
     });
   });
 });
+describe('GlitchText on the shared stylesheet', () => {
+  it('brings no stylesheet of its own; its copies come from data-text', () => {
+    const { container } = renderWithTemplateContext(
+      <GlitchText text={`it's a "test" \\ here`} intensity="high" glitchColor1="pink" />
+    );
+
+    // styles/template-components.css, by the ts-glitch class: twenty copies
+    // sent twenty stylesheets, their text in each
+    expect(container.querySelector('style')).toBeNull();
+    const glitch = container.querySelector('.ts-glitch') as HTMLElement;
+    expect(glitch.dataset.text).toBe(`it's a "test" \\ here`);
+    expect(glitch.style.getPropertyValue('--ts-glitch-duration')).toBe('1s');
+    expect(glitch.style.getPropertyValue('--ts-glitch-offset')).toBe('5px');
+    expect(glitch.style.getPropertyValue('--ts-glitch-color-1')).toBe('pink');
+  });
+});

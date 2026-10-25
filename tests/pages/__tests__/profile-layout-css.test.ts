@@ -36,7 +36,7 @@ import { db } from '@/lib/config/database/connection'
 import { getServerSideProps as profilePageProps } from '@/pages/resident/[username]/index'
 import { getServerSideProps as postPageProps } from '@/pages/resident/[username]/post/[postId]'
 import { readServerOnly } from '@/lib/utils/server-only'
-import { advancedPageCss } from '@/lib/templates/rendering/page-css'
+import { advancedPageStyles } from '@/lib/templates/rendering/page-css'
 
 const ADMIN_CSS = '.ts-profile-header { color: teal; }'
 const OWN_CSS = 'body { background: plum; }'
@@ -123,7 +123,7 @@ describe('your own HTML page', () => {
     // Its CSS goes once, transformed, for the server render only (not in the page data)
     expect(props).not.toHaveProperty('customCSS')
     expect(JSON.stringify(props)).not.toContain('plum')
-    expect(readServerOnly(props, 'advanced-template-css')).toBe(advancedPageCss(OWN_CSS, props.compiledTemplate))
+    expect(readServerOnly(props, 'advanced-template-css')).toBe(advancedPageStyles(OWN_CSS, props.compiledTemplate).css)
     expect(props.cssMode).toBe('disable')
     expect(props.hideNavigation).toBe(true)
   })
@@ -154,5 +154,13 @@ describe('site styles', () => {
 test('a client-side navigation gets the page CSS as a prop, since it arrives as JSON', async () => {
   serve({ templateMode: 'advanced', cssMode: 'disable', customCSS: OWN_CSS })
   const props = propsOf(await profilePageProps({ params: { username: 'pigeon' }, query: {}, req: { headers: { 'x-nextjs-data': '1' } }, res: { setHeader: jest.fn() } } as unknown as GetServerSidePropsContext))
-  expect(props.pageCss).toBe(advancedPageCss(OWN_CSS, props.compiledTemplate))
+  expect(props.pageCss).toBe(advancedPageStyles(OWN_CSS, props.compiledTemplate).css)
+})
+
+test("a page's Google Fonts go as links for the head, out of its CSS", async () => {
+  const font = 'https://fonts.googleapis.com/css2?family=Roboto'
+  serve({ templateMode: 'advanced', cssMode: 'disable', customCSS: `@import url("${font}");\n${OWN_CSS}` })
+  const props = propsOf(await profilePageProps(ctx({ username: 'pigeon' })))
+  expect(props.pageFonts).toEqual([`${font}&display=swap`])
+  expect(readServerOnly(props, 'advanced-template-css')).not.toContain('@import')
 })

@@ -1442,6 +1442,11 @@ export function validateTemplate(ast: TemplateNode): ValidationResult {
     errors.push(formatLimitError('components', totalComponents, TEMPLATE_LIMITS.maxComponents));
   }
 
+  const animated = Object.entries(componentCounts).reduce((sum, [name, count]) => sum + (componentRegistry.get(name)?.animated ? count : 0), 0);
+  if (animated > TEMPLATE_LIMITS.maxAnimated) {
+    errors.push(formatLimitError('animated', animated, TEMPLATE_LIMITS.maxAnimated));
+  }
+
   return {
     isValid: errors.length === 0,
     errors,

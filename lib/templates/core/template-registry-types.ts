@@ -74,6 +74,11 @@ export interface ComponentRegistration {
   /** Section in the component reference. Without one, it's listed under its registration file's area. */
   group?: ComponentGroup;
   /**
+   * It moves for as long as the page is open (with its usual props): the
+   * kind a page can have only so many of (TEMPLATE_LIMITS.maxAnimated)
+   */
+  animated?: boolean;
+  /**
    * Puts it at the top of its group in the component reference and the
    * editor palette, lowest number first: the ones people reach for first.
    * The rest follow in registry order.

@@ -446,6 +446,7 @@ export function registerDisplayComponents(registry: ComponentRegistry) {
     name: 'NeonBorder',
     component: NeonBorder,
     group: 'decorative',
+    animated: true,
     description: 'Draws a glowing colored border around what\'s inside. The glow pulses gently the whole time.',
     example: '<NeonBorder color="pink" intensity="soft">\n  <p>currently: repotting the monstera</p>\n</NeonBorder>',
     props: {
@@ -538,6 +539,7 @@ export function registerDisplayComponents(registry: ComponentRegistry) {
     name: 'FloatingBadge',
     component: FloatingBadge,
     group: 'decorative',
+    animated: true,
     description: 'A small rounded label like a sticker, with your text between the tags. It\'s fixed to a corner of the browser window, so it stays in place while visitors scroll.',
     example: '<FloatingBadge color="pink" animation="float" position="bottom-right">new zine up</FloatingBadge>',
     props: {
@@ -553,6 +555,7 @@ export function registerDisplayComponents(registry: ComponentRegistry) {
     name: 'WaveText',
     component: WaveText,
     group: 'decorative',
+    animated: true,
     description: 'Text whose letters bob up and down one after another, like a wave passing through.',
     example: '<WaveText text="thanks for stopping by" speed="slow" amplitude="small" />',
     props: {
@@ -567,10 +570,11 @@ export function registerDisplayComponents(registry: ComponentRegistry) {
     name: 'GlitchText',
     component: GlitchText,
     group: 'decorative',
+    animated: true,
     description: 'Bold text that jitters, with two colored copies shifting behind it like a bad video signal.',
     example: '<GlitchText text="under construction" intensity="low" />',
     props: {
-      text: { type: 'string', required: true, description: 'The words to show. An apostrophe in the text stops the colored copies from appearing.' },
+      text: { type: 'string', required: true, description: 'The words to show.' },
       intensity: { type: 'enum', values: ['low', 'medium', 'high'], default: 'medium', description: 'How far and how fast it jitters. high shakes the most.' },
       color: { type: 'string', default: 'currentColor', componentProp: 'glitchColor', description: 'Color of the main text. Left out, it matches the text around it.' },
       glitchColor1: { type: 'string', default: '#ff0000', description: 'Color of the first shifted copy. Red unless you change it.' },
@@ -948,6 +952,7 @@ export function registerDisplayComponents(registry: ComponentRegistry) {
     name: 'CRTMonitor',
     component: CRTMonitor,
     group: 'decorative',
+    animated: true,
     description: 'An old computer monitor: a 400 by 300 pixel black screen with glowing text, scanlines and a blinking cursor, in a dark plastic case. Anything you put between the tags sits on top of the screen but keeps your page\'s own text color, so set its color yourself.',
     example: '<CRTMonitor screenColor="amber" intensity="high">\n  <p style="color: #ffb000; font-family: monospace; padding: 20px;">&gt; now reading: Piranesi<br>&gt; tea: genmaicha</p>\n</CRTMonitor>',
     props: {
@@ -971,6 +976,7 @@ export function registerDisplayComponents(registry: ComponentRegistry) {
     name: 'NeonSign',
     component: NeonSign,
     group: 'decorative',
+    animated: true,
     description: 'Glowing neon-tube lettering with a faint reflection underneath. Use the text attribute, or put words between the tags.',
     example: '<NeonSign text="kettle\'s on" color="cyan" intensity="dim" animation="flicker" />',
     props: {
@@ -1019,6 +1025,7 @@ export function registerDisplayComponents(registry: ComponentRegistry) {
     name: 'PixelArtFrame',
     component: PixelArtFrame,
     group: 'decorative',
+    animated: true,
     description: 'A chunky frame around what\'s inside, for pixel art and small pictures. Images inside are drawn with crisp pixels instead of being blurred when scaled up.',
     example: '<PixelArtFrame frameColor="gold" cornerStyle="beveled">\n  <img src="https://example.neocities.org/cat-sprite.png" alt="my cat as a tiny sprite" width="128">\n</PixelArtFrame>',
     props: {
@@ -1044,6 +1051,7 @@ export function registerDisplayComponents(registry: ComponentRegistry) {
     name: 'RetroGrid',
     component: RetroGrid,
     group: 'decorative',
+    animated: true,
     description: 'A 300 pixel tall panel with a glowing grid stretching back to a horizon, like an 80s album cover. Text or HTML inside is centered on top in the grid\'s color.',
     example: '<RetroGrid gridStyle="vaporwave" horizon="low">\n  <h2>you found my corner of the web</h2>\n</RetroGrid>',
     props: {
@@ -1091,6 +1099,7 @@ export function registerDisplayComponents(registry: ComponentRegistry) {
     name: 'CassetteTape',
     component: CassetteTape,
     group: 'decorative',
+    animated: true,
     description: 'A picture of an audio cassette with a label for the title, artist, side, length and year. It\'s only a picture and doesn\'t play anything.',
     example: '<CassetteTape title="rainy day mix" artist="made by me" side="B" duration="60 min" labelStyle="handwritten" />',
     props: {
@@ -1116,6 +1125,7 @@ export function registerDisplayComponents(registry: ComponentRegistry) {
     name: 'RetroTV',
     component: RetroTV,
     group: 'decorative',
+    animated: true,
     description: 'An old television set, 400 by 320 pixels, showing whatever you put inside on its screen in the screen color. With nothing inside, the screen says RETRO TV. The knobs are only drawings.',
     example: '<RetroTV tvStyle="vintage" screenColor="amber" channelNumber="7">\n  <p>now showing: the garden, live</p>\n</RetroTV>',
     props: {
@@ -1139,6 +1149,7 @@ export function registerDisplayComponents(registry: ComponentRegistry) {
     name: 'Boombox',
     component: Boombox,
     group: 'decorative',
+    animated: true,
     description: 'A picture of an 80s boombox with two speakers, a tape deck, a track display, a radio strip, an equalizer and a row of buttons. It doesn\'t play any sound and the buttons do nothing. Anything between the tags is laid over its middle and can\'t be clicked.',
     example: '<Boombox color="silver" currentTrack="Linger" isPlaying="true" volume="60" />',
     props: {
@@ -1162,6 +1173,7 @@ export function registerDisplayComponents(registry: ComponentRegistry) {
     name: 'MatrixRain',
     component: MatrixRain,
     group: 'decorative',
+    animated: true,
     description: 'A 400 pixel tall black panel with characters raining down in columns, like the film. Anything between the tags is shown centered in a dim box on top and can\'t be clicked. A small label in the bottom corner always names the current settings.',
     example: '<MatrixRain color="green" speed="slow" characters="binary">\n  <p>wake up, neighbor</p>\n</MatrixRain>',
     props: {

@@ -72,6 +72,8 @@ export type ProfileProps = {
   cssMode?: 'inherit' | 'override' | 'disable';
   /** A page of your own HTML's CSS, transformed, on a client-side navigation (else read back: lib/utils/server-only.ts) */
   pageCss?: string;
+  /** The Google Fonts its CSS loads, as links in the head (components/ui/layout/PageFonts.tsx) */
+  pageFonts?: string[];
   /** A page of your own HTML, ready to render (lib/templates/rendering/page-tree-server.ts) */
   compiledTemplate?: PageForRender;
   profileMidi?: {
@@ -437,8 +439,9 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   if (advanced) {
     // Transformed here, once, and sent once: in its <style>, read back in the
     // browser, or as pageCss on a client-side navigation (lib/utils/server-only.ts)
-    const { advancedPageCss } = await import('@/lib/templates/rendering/page-css');
-    const pageCss = advancedPageCss(css ?? '', page);
+    const { advancedPageStyles } = await import('@/lib/templates/rendering/page-css');
+    const { css: pageCss, fonts } = advancedPageStyles(css ?? '', page);
+    if (fonts.length > 0) props.pageFonts = fonts;
     if (isDataRequest(req)) props.pageCss = pageCss;
     else putServerOnly(props, 'advanced-template-css', pageCss);
   } else if (css !== undefined) {

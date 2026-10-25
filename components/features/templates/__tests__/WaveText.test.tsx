@@ -29,14 +29,15 @@ describe('WaveText Component', () => {
       expect(letterSpans).toHaveLength(4);
     });
 
-    it('should include styled-jsx style tag', () => {
+    it('brings no stylesheet of its own: one shared one serves every copy', () => {
       const { container } = renderWithTemplateContext(
         <WaveText text="Wave" />
       );
-      
-      // styled-jsx creates style tags in the document head
-      const styles = document.head.querySelectorAll('style');
-      expect(styles.length).toBeGreaterThan(0);
+
+      // styles/template-components.css, by the ts-wave class
+      expect(container.querySelector('style')).toBeNull();
+      expect(document.head.querySelectorAll('style')).toHaveLength(0);
+      expect(container.querySelector('.ts-wave')).toBeInTheDocument();
     });
 
     it('should wrap letters in container span', () => {
@@ -322,14 +323,14 @@ describe('WaveText Component', () => {
   });
 
   describe('Animation Keyframes', () => {
-    it('should define wave keyframes correctly', () => {
-      renderWithTemplateContext(
-        <WaveText text="Test" />
+    it('gives the shared keyframes its speed and height as CSS variables', () => {
+      const { container } = renderWithTemplateContext(
+        <WaveText text="Test" speed="slow" amplitude="large" />
       );
-      
-      // styled-jsx injects styles into document head
-      const styles = document.head.querySelectorAll('style');
-      expect(styles.length).toBeGreaterThan(0);
+
+      const wave = container.querySelector('.ts-wave') as HTMLElement;
+      expect(wave.style.getPropertyValue('--ts-wave-speed')).toBe('3s');
+      expect(wave.style.getPropertyValue('--ts-wave-amplitude')).toBe('15px');
     });
 
     it('should apply ease-in-out timing', () => {

@@ -14,10 +14,11 @@ import FriendsWebsitesGrid from '@/components/core/profile/tabs/FriendsWebsitesG
 import ProfileBadgeDisplay from '@/components/core/profile/ProfileBadgeDisplay';
 import Guestbook from '@/components/shared/Guestbook';
 import { cleanCss, escapeCssForStyleTag } from '@/lib/utils/sanitization/css';
-import { advancedPageCss, standardPageCss } from '@/lib/templates/rendering/page-css';
+import { advancedPageStyles, standardPageStyles } from '@/lib/templates/rendering/page-css';
 import { isPageArtifact, renderArtifact } from '@/lib/templates/rendering/page-artifact';
 import type { PreviewPayload } from '@/lib/templates/editor/preview-payload';
 import PageMeta from "@/components/ui/layout/PageMeta";
+import PageFonts from "@/components/ui/layout/PageFonts";
 import { useSiteCSS, SiteCssContext } from '@/hooks/useSiteCSS';
 import { pageCSS, siteStylesOn } from '@/lib/domain/profile/layout';
 
@@ -98,12 +99,14 @@ export default function TemplatePreview() {
   // objects until it changes (pages/_app.tsx says why).
   const customCSS = payload?.customCSS;
   const adminDefaultCss = payload?.adminDefaultCss;
-  const pageCssHtml = useMemo(() => {
+  const pageStyles = useMemo(() => {
     if (customCSS === undefined) return null;
     const css = pageCSS({ customCSS: cleanCss(customCSS) }, adminDefaultCss) ?? '';
-    const built = page ? advancedPageCss(css, page) : css.trim() && standardPageCss(css);
-    return built ? { __html: escapeCssForStyleTag(built) } : null;
+    return page ? advancedPageStyles(css, page) : css.trim() ? standardPageStyles(css) : null;
   }, [customCSS, adminDefaultCss, page]);
+  const pageCssHtml = useMemo(() => {
+    return pageStyles?.css ? { __html: escapeCssForStyleTag(pageStyles.css) } : null;
+  }, [pageStyles]);
   const siteCssHtml = useMemo(() => ({ __html: escapeCssForStyleTag(siteCss) }), [siteCss]);
 
   if (!payload) {
@@ -144,6 +147,7 @@ export default function TemplatePreview() {
   // The site's CSS, then the page's own, as on the live page (pages/_app.tsx)
   const styles = (
     <>
+      {pageStyles && <PageFonts hrefs={pageStyles.fonts} />}
       {siteStyles && <style id="preview-site-css" dangerouslySetInnerHTML={siteCssHtml} />}
       {pageCssHtml && <style id={page ? 'advanced-template-css' : 'profile-page-styles'} dangerouslySetInnerHTML={pageCssHtml} />}
     </>

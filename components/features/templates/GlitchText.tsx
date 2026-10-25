@@ -26,75 +26,21 @@ export default function GlitchText(props: GlitchTextProps) {
     'high': { duration: '1s', offset: '5px' }
   }[intensity];
 
-  // Apply CSS props as inline styles
-  const style = applyCSSProps(cssProps);
-
-  // The text as a CSS string: an apostrophe or backslash ended it early
-  const cssText = String(text ?? '').replace(/[\\']/g, (c) => `\\${c}`).replace(/[\r\n]+/g, ' ');
+  // Its colours, speed and shake for the shared stylesheet
+  // (styles/template-components.css), which shows the text from data-text;
+  // then CSS props, which win
+  const style = {
+    '--ts-glitch-color': glitchColor,
+    '--ts-glitch-color-1': glitchColor1,
+    '--ts-glitch-color-2': glitchColor2,
+    '--ts-glitch-duration': intensityValues.duration,
+    '--ts-glitch-offset': intensityValues.offset,
+    ...applyCSSProps(cssProps)
+  } as React.CSSProperties;
 
   return (
-    <>
-      <style jsx>{`
-        .glitch {
-          position: relative;
-          color: ${glitchColor};
-          font-weight: bold;
-          animation: glitch ${intensityValues.duration} infinite;
-        }
-        
-        .glitch::before,
-        .glitch::after {
-          content: '${cssText}';
-          /* The copies have empty alt text, so screen readers say the words
-             once (they said them three times); a browser that doesn't know
-             the / syntax keeps the line above */
-          content: '${cssText}' / '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-        }
-        
-        .glitch::before {
-          animation: glitchBefore ${intensityValues.duration} infinite;
-          color: ${glitchColor1};
-          z-index: -1;
-        }
-        
-        .glitch::after {
-          animation: glitchAfter ${intensityValues.duration} infinite;
-          color: ${glitchColor2};
-          z-index: -2;
-        }
-        
-        @keyframes glitch {
-          0%, 100% { transform: translate(0); }
-          20% { transform: translate(-${intensityValues.offset}, ${intensityValues.offset}); }
-          40% { transform: translate(-${intensityValues.offset}, -${intensityValues.offset}); }
-          60% { transform: translate(${intensityValues.offset}, ${intensityValues.offset}); }
-          80% { transform: translate(${intensityValues.offset}, -${intensityValues.offset}); }
-        }
-        
-        @keyframes glitchBefore {
-          0%, 100% { transform: translate(0); }
-          20% { transform: translate(${intensityValues.offset}, ${intensityValues.offset}); }
-          40% { transform: translate(${intensityValues.offset}, -${intensityValues.offset}); }
-          60% { transform: translate(-${intensityValues.offset}, ${intensityValues.offset}); }
-          80% { transform: translate(-${intensityValues.offset}, -${intensityValues.offset}); }
-        }
-        
-        @keyframes glitchAfter {
-          0%, 100% { transform: translate(0); }
-          20% { transform: translate(-${intensityValues.offset}, -${intensityValues.offset}); }
-          40% { transform: translate(${intensityValues.offset}, ${intensityValues.offset}); }
-          60% { transform: translate(-${intensityValues.offset}, -${intensityValues.offset}); }
-          80% { transform: translate(${intensityValues.offset}, ${intensityValues.offset}); }
-        }
-      `}</style>
-      <span className={customClassName ? `glitch ${customClassName}` : 'glitch'} style={style}>
-        {text}
-      </span>
-    </>
+    <span className={customClassName ? `ts-glitch glitch ${customClassName}` : 'ts-glitch glitch'} data-text={text} style={style}>
+      {text}
+    </span>
   );
 }
