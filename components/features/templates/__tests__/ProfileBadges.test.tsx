@@ -35,7 +35,15 @@ describe('ProfileBadges Component', () => {
       { residentData: mockResidentData({ badges: [] }) }
     );
     expect(container).toBeEmptyDOMElement();
-    expect(screen.queryByText('No badges yet')).not.toBeInTheDocument();
+    expect(screen.queryByText(/No ring badges yet/)).not.toBeInTheDocument();
+  });
+
+  it('shows a signed-in visitor who is not the owner nothing', () => {
+    const { container } = renderWithTemplateContext(
+      <ProfileBadges />,
+      { residentData: mockResidentData({ badges: [], viewer: { id: 'someone-else' } }) }
+    );
+    expect(container).toBeEmptyDOMElement();
   });
 
   const mockBadges = [
@@ -122,23 +130,27 @@ describe('ProfileBadges Component', () => {
       expect(screen.getAllByTestId('mock-badge')).toHaveLength(3);
     });
 
-    it('should render empty state when no badges', () => {
+    it('should show the owner a note when no badges', () => {
       renderWithTemplateContext(
         <ProfileBadges />,
         { residentData: createMockResidentData({ badges: [] }) }
       );
-      
-      expect(screen.getByText('No badges yet')).toBeInTheDocument();
-      expect(screen.getByText(/hasn't earned any ThreadRing badges yet/)).toBeInTheDocument();
+
+      const note = screen.getByText(/No ring badges yet\. They come with the rings you join:/);
+      expect(note.tagName).toBe('P');
+      expect(note).toHaveClass('profile-badges', 'profile-badges--empty');
+      expect(note).toHaveTextContent(/Only you see this note\.$/);
+      expect(screen.getByRole('link', { name: 'find one' })).toHaveAttribute('href', '/threadrings');
+      expect(screen.queryByText('ThreadRing Badges')).not.toBeInTheDocument();
     });
 
-    it('should render empty state when badges is null', () => {
+    it('should show the owner the note when badges is null', () => {
       renderWithTemplateContext(
         <ProfileBadges />,
         { residentData: createMockResidentData({ badges: null }) }
       );
-      
-      expect(screen.getByText('No badges yet')).toBeInTheDocument();
+
+      expect(screen.getByText(/No ring badges yet/)).toBeInTheDocument();
     });
 
     describe('when the page did not preload badges', () => {
@@ -160,13 +172,22 @@ describe('ProfileBadges Component', () => {
         expect(global.fetch).toHaveBeenCalledWith(expect.stringMatching(/^\/api\/users\/[^/]+\/badges$/));
       });
 
-      it('shows the empty state only once the API says there are none', async () => {
+      it('renders nothing while the badges are loading', () => {
+        global.fetch = jest.fn(() => new Promise(() => {})) as unknown as typeof fetch;
+        const { container } = renderWithTemplateContext(
+          <ProfileBadges />,
+          { residentData: createMockResidentData({ badges: undefined }) }
+        );
+        expect(container).toBeEmptyDOMElement();
+      });
+
+      it('shows the owner note only once the API says there are none', async () => {
         answer(true, { badges: [] });
         renderWithTemplateContext(
           <ProfileBadges />,
           { residentData: createMockResidentData({ badges: undefined }) }
         );
-        expect(await screen.findByText('No badges yet')).toBeInTheDocument();
+        expect(await screen.findByText(/No ring badges yet/)).toBeInTheDocument();
       });
 
       it('says nothing when the hub is unavailable, rather than "no badges"', async () => {
@@ -176,7 +197,7 @@ describe('ProfileBadges Component', () => {
           { residentData: createMockResidentData({ badges: undefined }) }
         );
         await new Promise((r) => setTimeout(r, 0));
-        expect(screen.queryByText('No badges yet')).not.toBeInTheDocument();
+        expect(screen.queryByText(/No ring badges yet/)).not.toBeInTheDocument();
         expect(container.querySelector('.profile-badges')).toBeNull();
       });
     });
@@ -402,7 +423,7 @@ describe('ProfileBadges Component', () => {
     it('should handle empty className', () => {
       const { container } = renderWithTemplateContext(
         <ProfileBadges className="" />,
-        { residentData: createMockResidentData({ badges: [] }) }
+        { residentData: createMockResidentData({ badges: mockBadges }) }
       );
       
       const profileBadges = container.querySelector('.profile-badges');
@@ -412,7 +433,7 @@ describe('ProfileBadges Component', () => {
     it('should handle undefined className', () => {
       const { container } = renderWithTemplateContext(
         <ProfileBadges />,
-        { residentData: createMockResidentData({ badges: [] }) }
+        { residentData: createMockResidentData({ badges: mockBadges }) }
       );
       
       const profileBadges = container.querySelector('.profile-badges');
@@ -467,42 +488,13 @@ describe('ProfileBadges Component', () => {
   });
 
   describe('Empty State', () => {
-    it('should show correct empty state message with displayName', () => {
+    it('keeps a custom className on the owner note', () => {
       renderWithTemplateContext(
-        <ProfileBadges />,
-        { residentData: createMockResidentData({ 
-          badges: [],
-          owner: { displayName: 'Alice' }
-        })}
-      );
-      
-      expect(screen.getByText("Alice hasn't earned any ThreadRing badges yet.")).toBeInTheDocument();
-    });
-
-    it('should show correct empty state message with handle', () => {
-      renderWithTemplateContext(
-        <ProfileBadges />,
-        { residentData: createMockResidentData({ 
-          badges: [],
-          owner: { handle: '@alice' }
-        })}
-      );
-      
-      expect(screen.getByText("@alice hasn't earned any ThreadRing badges yet.")).toBeInTheDocument();
-    });
-
-    it('should have correct empty state styling', () => {
-      const { container } = renderWithTemplateContext(
-        <ProfileBadges />,
+        <ProfileBadges className="my-badges" />,
         { residentData: createMockResidentData({ badges: [] }) }
       );
-      
-      const emptyState = container.querySelector('.text-center.py-12');
-      expect(emptyState).toBeInTheDocument();
 
-      // Icon is now a PixelIcon rendered inside a centered wrapper
-      const iconWrapper = container.querySelector('.mb-4.flex.justify-center');
-      expect(iconWrapper).toBeInTheDocument();
+      expect(screen.getByText(/No ring badges yet/)).toHaveClass('my-badges', 'profile-badges--empty');
     });
   });
 
@@ -637,7 +629,7 @@ describe('ProfileBadges Component', () => {
         { residentData: createMockResidentData({ badges: [] }) }
       );
       
-      expect(screen.getByText('No badges yet')).toBeInTheDocument();
+      expect(screen.getByText(/No ring badges yet/)).toBeInTheDocument();
       
       rerender(<ProfileBadges />);
       renderWithTemplateContext(
@@ -666,8 +658,10 @@ describe('ProfileBadges Component', () => {
         { residentData: createMockResidentData({ badges: [] }) }
       );
       
-      expect(screen.getByText('No badges yet')).toBeInTheDocument();
-      expect(screen.getByText(/hasn't earned any ThreadRing badges yet/)).toBeInTheDocument();
+      // The owner's note says what's missing and where to fix it, in words
+      expect(screen.getByText(/No ring badges yet/)).toHaveTextContent(
+        'No ring badges yet. They come with the rings you join: find one. Only you see this note.'
+      );
     });
 
     it('should have descriptive tooltips', () => {

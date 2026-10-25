@@ -3,6 +3,7 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useResidentData } from './ResidentDataProvider';
 import { UniversalCSSProps, separateCSSProps, applyCSSProps } from '@/lib/templates/styling/universal-css-props';
+import OwnerNote from './OwnerNote';
 
 // The real profile player (Web Audio synth), client-only like on the
 // standard layout.
@@ -25,9 +26,9 @@ export default function ProfileMusic(props: ProfileMusicProps) {
     // Only the owner hears about a missing song; visitors see nothing.
     if (!viewer?.id || viewer.id !== owner?.id) return null;
     return (
-      <p className={`ts-profile-music ts-profile-music--empty text-sm ${className ?? ''}`} style={applyCSSProps(cssProps)}>
+      <OwnerNote className={`ts-profile-music ts-profile-music--empty ${className ?? ''}`} style={applyCSSProps(cssProps)}>
         No profile song yet. <Link href="/settings?tab=music">Pick one in Settings</Link> and it plays here.
-      </p>
+      </OwnerNote>
     );
   }
 

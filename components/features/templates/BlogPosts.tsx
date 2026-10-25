@@ -2,6 +2,8 @@ import React from 'react';
 import Link from 'next/link';
 import { useResidentData } from './ResidentDataProvider';
 import { componentHeading } from './component-heading';
+import OwnerNote from './OwnerNote';
+import { WRITE_HREF } from '@/components/ui/navigation/siteNav';
 import PostItem, { Post as PostType } from '../../core/content/PostItem';
 import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
@@ -32,6 +34,16 @@ export default function BlogPosts(props: BlogPostsProps) {
   // Apply CSS properties as inline styles
   const appliedStyles = applyCSSProps(cssProps);
 
+  if (displayPosts.length === 0 && !viewer?.blockedOwner) {
+    // Only the owner hears there are none yet; visitors see nothing
+    if (!viewer?.id || viewer.id !== owner?.id) return null;
+    return (
+      <OwnerNote className={`blog-posts-empty ${customClassName ?? ''}`} style={appliedStyles}>
+        No posts yet. <Link href={WRITE_HREF}>Write your first one</Link>.
+      </OwnerNote>
+    );
+  }
+
   if (displayPosts.length === 0) {
     const baseEmptyClasses = "blog-posts-empty profile-tab-content italic opacity-70 text-center py-4";
     const filteredEmptyClasses = removeTailwindConflicts(baseEmptyClasses, cssProps);
@@ -39,14 +51,8 @@ export default function BlogPosts(props: BlogPostsProps) {
 
     return (
       <div className={emptyClassName} style={appliedStyles}>
-        {viewer?.blockedOwner ? (
-          <>
-            You blocked {owner.handle}, so their posts are hidden from you. You can undo that from{" "}
-            <Link href="/settings/blocks" className="underline">your block list</Link>.
-          </>
-        ) : (
-          "No posts yet."
-        )}
+        You blocked {owner.handle}, so their posts are hidden from you. You can undo that from{" "}
+        <Link href="/settings/blocks" className="underline">your block list</Link>.
       </div>
     );
   }

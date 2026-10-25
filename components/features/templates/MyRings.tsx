@@ -2,6 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import { useResidentData } from './ResidentDataProvider';
 import { viewerIsOwner } from './conditional/IfOwner';
+import OwnerNote from './OwnerNote';
 import { UniversalCSSProps, separateCSSProps, applyCSSProps } from '@/lib/templates/styling/universal-css-props';
 import { useOwnerRings, ringPath } from '@/lib/templates/owner-rings';
 
@@ -33,12 +34,9 @@ export default function MyRings(props: MyRingsProps) {
   if (rings.length === 0) {
     if (!viewerIsOwner(data)) return null;
     return (
-      <p
-        className={`ts-my-rings ts-my-rings--empty text-sm text-thread-sage border border-dashed border-thread-sage/60 rounded p-2 ${className ?? ''}`}
-        style={applyCSSProps(cssProps)}
-      >
-        You&apos;re not in any rings yet. <Link href="/threadrings">Find one</Link>. Only you see this note.
-      </p>
+      <OwnerNote className={`ts-my-rings ts-my-rings--empty ${className ?? ''}`} style={applyCSSProps(cssProps)}>
+        You&apos;re not in any rings yet. <Link href="/threadrings">Find one</Link>.
+      </OwnerNote>
     );
   }
 

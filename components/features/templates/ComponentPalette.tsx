@@ -1,6 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { PixelIcon } from '@/components/ui/PixelIcon';
+import Button from '@/components/ui/Button';
+import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
 import {
   type ComponentSchema,
   componentSnippet,
@@ -9,18 +12,29 @@ import {
 import { COMPONENT_GROUPS } from '@/lib/templates-docs/component-docs';
 import { BEGINNER_SECTIONS } from '@/lib/templates-docs/beginner-set';
 
+// The component running for real: loaded when one is picked
+const ComponentPreview = dynamic(() => import('./ComponentPreview'), {
+  ssr: false,
+  loading: () => <p className="m-0 text-xs text-nb-ink-mid">Getting it ready…</p>,
+});
+
 interface ComponentPaletteProps {
   schemas: ComponentSchema[] | null;
   onInsert: (snippet: string) => void;
+  /** Your page's data, so the preview shows your own guestbook, posts and friends */
+  residentData?: ResidentData | null;
 }
 
 // Clickable components, fed by the registry via /api/templates/
 // component-schemas. It starts with the ones to learn first (beginner-set.ts);
 // "Show all" lists every one in the reference's groups, and search always
-// looks through all of them.
-export default function ComponentPalette({ schemas, onInsert }: ComponentPaletteProps) {
+// looks through all of them. Picking one shows what it does, its example and
+// the example running with your own data, with a button to put it in: a
+// tooltip said what it did, which a phone never shows.
+export default function ComponentPalette({ schemas, onInsert, residentData }: ComponentPaletteProps) {
   const [query, setQuery] = useState('');
   const [showAll, setShowAll] = useState(false);
+  const [picked, setPicked] = useState<ComponentSchema | null>(null);
 
   const filtered = useMemo(() => {
     if (!schemas) return [];
@@ -60,7 +74,6 @@ export default function ComponentPalette({ schemas, onInsert }: ComponentPalette
           disabled={!schemas}
         />
         <span className="text-xs text-thread-sage">
-          Click one to drop it in at your cursor.{' '}
           <Link href="/build/templates/components" target="_blank" className="underline hover:text-thread-pine">
             What each one does
           </Link>
@@ -84,9 +97,10 @@ export default function ComponentPalette({ schemas, onInsert }: ComponentPalette
                 <button
                   key={c.name}
                   type="button"
-                  onClick={() => onInsert(componentSnippet(c))}
+                  onClick={() => setPicked(c)}
+                  aria-pressed={picked?.name === c.name}
                   title={describeProps(c)}
-                  className="bg-thread-paper hover:bg-thread-cream px-2 py-1 rounded text-xs border border-thread-sage/30 hover:border-thread-pine font-mono transition-colors"
+                  className="ts-chip text-xs font-mono"
                 >
                   &lt;{c.name}{c.acceptsChildren ? '>' : ' />'}
                 </button>
@@ -103,6 +117,30 @@ export default function ComponentPalette({ schemas, onInsert }: ComponentPalette
         >
           {showAll ? 'Just the ones to start with' : `Show all ${schemas.length}`}
         </button>
+      )}
+
+      {picked && (
+        <section aria-label={picked.name} className="mt-3 border-2 border-thread-sage bg-thread-paper p-3">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h4 className="m-0 font-mono text-sm text-nb-ink">&lt;{picked.name}{picked.acceptsChildren ? '>' : ' />'}</h4>
+            <Link href={`/build/templates/components#${picked.id}`} target="_blank" className="text-xs underline text-thread-pine">
+              All its settings
+            </Link>
+          </div>
+          {picked.description && <p className="mt-1 mb-2 text-sm text-nb-ink">{picked.description}</p>}
+          {picked.parent && <p className="mt-0 mb-2 text-xs text-nb-ink-mid">It goes inside &lt;{picked.parent}&gt;.</p>}
+          <pre className="m-0 mb-2 p-2 bg-white border border-thread-sage/40 text-xs overflow-x-auto whitespace-pre-wrap">{picked.example}</pre>
+          <div className="mb-2 p-3 bg-white border-2 border-dashed border-thread-sage max-h-64 overflow-auto">
+            {picked.group === 'logic'
+              ? <p className="m-0 text-xs text-nb-ink-mid">It shows nothing by itself: it works with the components around it, as in the example.</p>
+              : residentData
+                ? <ComponentPreview example={picked.example} residentData={residentData} />
+                : <p className="m-0 text-xs text-nb-ink-mid">Getting your page&apos;s data…</p>}
+          </div>
+          <Button size="sm" onClick={() => onInsert(componentSnippet(picked))}>
+            Put it in my page
+          </Button>
+        </section>
       )}
     </div>
   );

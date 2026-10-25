@@ -76,6 +76,29 @@ export function afterEnclosingTag(html: string, pos: number): number {
   return close === -1 ? pos : close + 1;
 }
 
+/**
+ * An insert at `pos` on a line of its own when the cursor is at the end or
+ * the start of a line with something else on it, indented like that line,
+ * rather than jammed against `</p>`. In the middle of text it goes in where
+ * the cursor is, as written; on an empty line it takes that line's indent.
+ * `cursor` (counted from the snippet's start) becomes where it lands in the
+ * document.
+ */
+export function onItsOwnLine(doc: string, pos: number, snippet: string, cursor: number): { from: number; insert: string; cursor: number } {
+  const lineStart = doc.lastIndexOf('\n', pos - 1) + 1;
+  const lineEnd = doc.indexOf('\n', pos) === -1 ? doc.length : doc.indexOf('\n', pos);
+  const before = doc.slice(lineStart, pos);
+  const after = doc.slice(pos, lineEnd);
+  if (before.trim() && after.trim()) return { from: pos, insert: snippet, cursor: pos + cursor };
+  const indent = /^[ \t]*/.exec(doc.slice(lineStart, lineEnd))![0];
+  // Its later lines indented like its first
+  const body = snippet.split('\n').join(`\n${indent}`);
+  const landing = cursor + (snippet.slice(0, cursor).match(/\n/g)?.length ?? 0) * indent.length;
+  if (before.trim()) return { from: pos, insert: `\n${indent}${body}`, cursor: pos + 1 + indent.length + landing };
+  if (after.trim()) return { from: lineStart, insert: `${indent}${body}\n`, cursor: lineStart + indent.length + landing };
+  return { from: pos, insert: body, cursor: pos + landing };
+}
+
 // CodeMirror is editor-page-only — loaded dynamically so it never lands in
 // the shared bundle (same pattern as css-editor.tsx).
 const CodeMirror = dynamic(() => import('@uiw/react-codemirror'), {
@@ -856,14 +879,15 @@ export default function EnhancedTemplateEditor({
   const insertAtCursor = useCallback((pane: ImagePane, snippet: string, cursor = snippet.length) => {
     const view = (pane === 'html' ? templateViewRef : cssViewRef).current;
     if (view) {
-      let { from, to } = view.state.selection.main;
-      // A cursor inside a tag (Insert image leaves it in alt="") puts the
-      // snippet after that tag, not in the middle of it
-      if (pane === 'html' && from === to) from = to = afterEnclosingTag(view.state.doc.toString(), from);
-      view.dispatch({
-        changes: { from, to, insert: snippet },
-        selection: { anchor: from + cursor },
-      });
+      const { from, to } = view.state.selection.main;
+      // HTML: a cursor inside a tag (Insert image leaves it in alt="") puts
+      // the snippet after that tag, not in the middle of it, and at a line's
+      // end or start it gets a line of its own
+      const doc = view.state.doc.toString();
+      const placed = pane === 'html' && from === to ? onItsOwnLine(doc, afterEnclosingTag(doc, from), snippet, cursor) : null;
+      view.dispatch(placed
+        ? { changes: { from: placed.from, insert: placed.insert }, selection: { anchor: placed.cursor } }
+        : { changes: { from, to, insert: snippet }, selection: { anchor: from + cursor } });
       view.focus();
     } else if (pane === 'html') {
       handleTemplateChange(template ? `${template}\n${snippet}` : snippet);
@@ -886,6 +910,11 @@ export default function EnhancedTemplateEditor({
   useEffect(() => {
     if (!pendingImage) return;
     insertAtCursor(pendingImage.pane, pendingImage.text, pendingImage.cursor);
+    // The cursor waits in alt="": say what goes there
+    if (pendingImage.cursor < pendingImage.text.length) {
+      setSaveMessage({ text: 'Now describe the picture, for people who can’t see it.', tone: 'note' });
+      setTimeout(() => setSaveMessage(null), 6000);
+    }
     setPendingImage(null);
   }, [pendingImage, insertAtCursor]);
 
@@ -1727,10 +1756,11 @@ body {
     content: (
       <div className="p-4 text-sm text-nb-ink">
         <p className="mt-0 mb-3 text-nb-ink-mid">
-          Point at one to see what it does. Typing &lt; in the code suggests them too.
+          Pick one to see what it does and how it looks with your own stuff. Typing &lt; in the code suggests them too.
         </p>
         <ComponentPalette
           schemas={componentSchemas}
+          residentData={residentData}
           onInsert={(snippet) => {
             insertIntoTemplate(snippet);
             setActiveTab('template');

@@ -202,3 +202,25 @@ describe('afterEnclosingTag: inserts never land inside a tag', () => {
     ['<img alt="">|<p>x</p>', '<img alt="">|<p>x</p>'],
   ])('%s → %s', (marked, expected) => expect(at(marked)).toBe(expected))
 })
+
+describe('onItsOwnLine: an insert at the end or start of a line gets a line of its own', () => {
+  const { onItsOwnLine } = jest.requireActual('../EnhancedTemplateEditor')
+  // `|` is the cursor before, and where it lands after
+  const insert = (marked: string, snippet: string, cursor = snippet.length) => {
+    const pos = marked.indexOf('|')
+    const doc = marked.replace('|', '')
+    const placed = onItsOwnLine(doc, pos, snippet, cursor)
+    const out = doc.slice(0, placed.from) + placed.insert + doc.slice(placed.from)
+    return out.slice(0, placed.cursor) + '|' + out.slice(placed.cursor)
+  }
+  test.each([
+    ['at the end of a line, indented like it', '  <p>hi</p>|\n</main>', '<Guestbook />', '  <p>hi</p>\n  <Guestbook />|\n</main>'],
+    ['at the start of a line, above it', '<main>\n  |<p>hi</p>', '<Guestbook />', '<main>\n  <Guestbook />|\n  <p>hi</p>'],
+    ['in the middle of text, where the cursor is', '<p>You rolled |today</p>', '<ShowVar name="roll" />', '<p>You rolled <ShowVar name="roll" />|today</p>'],
+    ['on an empty line, as it is', '<main>\n  |\n</main>', '<Bio />', '<main>\n  <Bio />|\n</main>'],
+  ])('%s', (_case, marked, snippet, expected) => expect(insert(marked, snippet)).toBe(expected))
+
+  test('a snippet over several lines keeps them indented, and the cursor lands inside', () => {
+    expect(insert('  <p>hi</p>|', '<RetroCard>\n  \n</RetroCard>', 14)).toBe('  <p>hi</p>\n  <RetroCard>\n    |\n  </RetroCard>')
+  })
+})

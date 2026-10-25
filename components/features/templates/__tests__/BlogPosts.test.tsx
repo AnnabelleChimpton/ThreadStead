@@ -101,26 +101,52 @@ describe('BlogPosts Component', () => {
   });
 
   describe('Empty State', () => {
-    it('should show empty state when no posts exist', () => {
+    const ownerViewing = (overrides = {}) => createMockResidentData({
+      viewer: { id: 'test-user-123' },
+      posts: [],
+      ...overrides
+    });
+
+    it('shows a visitor nothing when no posts exist', () => {
       const mockData = createMockResidentData({
         posts: []
       });
 
-      renderWithTemplateContext(
+      const { container } = renderWithTemplateContext(
         <BlogPosts />,
         { residentData: mockData }
       );
 
-      expect(screen.getByText('No posts yet.')).toBeInTheDocument();
+      expect(container).toBeEmptyDOMElement();
       expect(screen.queryByText('Recent Posts')).not.toBeInTheDocument();
-      
-      const emptyDiv = screen.getByText('No posts yet.');
-      expect(emptyDiv).toHaveClass('blog-posts-empty');
-      expect(emptyDiv).toHaveClass('profile-tab-content');
-      expect(emptyDiv).toHaveClass('italic');
-      expect(emptyDiv).toHaveClass('opacity-70');
-      expect(emptyDiv).toHaveClass('text-center');
-      expect(emptyDiv).toHaveClass('py-4');
+    });
+
+    it('shows a signed-in visitor who is not the owner nothing', () => {
+      const mockData = createMockResidentData({
+        viewer: { id: 'someone-else' },
+        posts: []
+      });
+
+      const { container } = renderWithTemplateContext(
+        <BlogPosts />,
+        { residentData: mockData }
+      );
+
+      expect(container).toBeEmptyDOMElement();
+    });
+
+    it('shows the owner a note with a link to write a post', () => {
+      renderWithTemplateContext(
+        <BlogPosts />,
+        { residentData: ownerViewing() }
+      );
+
+      const note = screen.getByText(/No posts yet\./);
+      expect(note.tagName).toBe('P');
+      expect(note).toHaveClass('blog-posts-empty');
+      expect(note).toHaveTextContent(/Only you see this note\.$/);
+      expect(screen.getByRole('link', { name: 'Write your first one' })).toHaveAttribute('href', '/post/new');
+      expect(screen.queryByText('Recent Posts')).not.toBeInTheDocument();
     });
 
     it('says plainly when the viewer blocked the owner', () => {
@@ -138,37 +164,31 @@ describe('BlogPosts Component', () => {
       const message = screen.getByText(/You blocked troll, so their posts are hidden from you/);
       expect(message).toHaveClass('blog-posts-empty');
       expect(screen.getByRole('link', { name: 'your block list' })).toHaveAttribute('href', '/settings/blocks');
-      expect(screen.queryByText('No posts yet.')).not.toBeInTheDocument();
+      expect(screen.queryByText(/No posts yet\./)).not.toBeInTheDocument();
     });
 
-    it('should apply custom className to empty state', () => {
-      const mockData = createMockResidentData({
-        posts: []
-      });
-
+    it('should apply custom className to the owner note', () => {
       renderWithTemplateContext(
         <BlogPosts className="custom-empty-class" />,
-        { residentData: mockData }
+        { residentData: ownerViewing() }
       );
 
-      const emptyDiv = screen.getByText('No posts yet.');
-      expect(emptyDiv).toHaveClass('custom-empty-class');
-      expect(emptyDiv).toHaveClass('blog-posts-empty');
+      const note = screen.getByText(/No posts yet\./);
+      expect(note).toHaveClass('custom-empty-class');
+      expect(note).toHaveClass('blog-posts-empty');
     });
 
-    it('should show empty state when posts exist but limit is 0', () => {
-      const mockData = createMockResidentData({
-        posts: [
-          { id: '1', bodyHtml: 'Hidden post', createdAt: '2023-01-01' }
-        ]
-      });
-
+    it('should show the owner note when posts exist but limit is 0', () => {
       renderWithTemplateContext(
         <BlogPosts limit={0} />,
-        { residentData: mockData }
+        { residentData: ownerViewing({
+          posts: [
+            { id: '1', bodyHtml: 'Hidden post', createdAt: '2023-01-01' }
+          ]
+        }) }
       );
 
-      expect(screen.getByText('No posts yet.')).toBeInTheDocument();
+      expect(screen.getByText(/No posts yet\./)).toBeInTheDocument();
       expect(screen.queryByTestId('mock-post-item-1')).not.toBeInTheDocument();
     });
   });
@@ -253,12 +273,13 @@ describe('BlogPosts Component', () => {
         ]
       });
 
-      renderWithTemplateContext(
+      const { container } = renderWithTemplateContext(
         <BlogPosts limit={-1} />,
         { residentData: mockData }
       );
 
-      expect(screen.getByText('No posts yet.')).toBeInTheDocument();
+      // Nothing to show, and visitors don't get the owner's note
+      expect(container).toBeEmptyDOMElement();
       expect(screen.queryByTestId('mock-post-item-1')).not.toBeInTheDocument();
     });
 

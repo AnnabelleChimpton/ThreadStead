@@ -1,8 +1,9 @@
 import React from 'react';
+import Link from 'next/link';
 import { useResidentData, type ResidentData } from './ResidentDataProvider';
+import OwnerNote from './OwnerNote';
 import ThreadRing88x31Badge from '../../core/threadring/ThreadRing88x31Badge';
 import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
-import { PixelIcon } from '@/components/ui/PixelIcon';
 
 interface ProfileBadgesProps extends UniversalCSSProps {
   showTitle?: boolean;
@@ -66,17 +67,9 @@ export default function ProfileBadges(props: ProfileBadgesProps) {
     // owner gets the hint
     if (!viewer?.id || viewer.id !== owner?.id) return null;
     return (
-      <div className={containerClassName} style={appliedStyles}>
-        <div className="text-center py-12">
-          <div className="mb-4 flex justify-center">
-            <PixelIcon name="trophy" size={48} />
-          </div>
-          <h3 className="text-lg font-medium text-thread-pine mb-2">No badges yet</h3>
-          <p className="text-thread-sage">
-            {owner?.displayName || owner?.handle || 'This user'} hasn&apos;t earned any ThreadRing badges yet.
-          </p>
-        </div>
-      </div>
+      <OwnerNote className={`profile-badges profile-badges--empty ${normalizedCustomClassName ?? ''}`} style={appliedStyles}>
+        No ring badges yet. They come with the rings you join: <Link href="/threadrings">find one</Link>.
+      </OwnerNote>
     );
   }
 

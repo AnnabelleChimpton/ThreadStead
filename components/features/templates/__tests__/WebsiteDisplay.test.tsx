@@ -5,63 +5,80 @@ import { renderWithTemplateContext, createMockResidentData } from './test-utils'
 
 describe('WebsiteDisplay Component', () => {
   describe('Empty State', () => {
-    it('should render empty state when no websites provided', () => {
-      renderWithTemplateContext(
-        <WebsiteDisplay />,
-        { residentData: createMockResidentData({ websites: [] }) }
-      );
-      
-      expect(screen.getByText('Website Recommendations')).toBeInTheDocument();
-      expect(screen.getByText('No websites added yet.')).toBeInTheDocument();
+    const ownerViewing = (overrides = {}) => createMockResidentData({
+      viewer: { id: 'test-user-123' },
+      websites: [],
+      ...overrides
     });
 
-    it('should render empty state when websites is null', () => {
-      renderWithTemplateContext(
-        <WebsiteDisplay />,
-        { residentData: createMockResidentData({ websites: null }) }
-      );
-      
-      expect(screen.getByText('Website Recommendations')).toBeInTheDocument();
-      expect(screen.getByText('No websites added yet.')).toBeInTheDocument();
-    });
-
-    it('should render empty state when websites is undefined', () => {
-      renderWithTemplateContext(
-        <WebsiteDisplay />
-      );
-      
-      expect(screen.getByText('Website Recommendations')).toBeInTheDocument();
-      expect(screen.getByText('No websites added yet.')).toBeInTheDocument();
-    });
-
-    it('should apply correct styling to empty state', () => {
+    it('shows a visitor nothing when no websites provided', () => {
       const { container } = renderWithTemplateContext(
         <WebsiteDisplay />,
         { residentData: createMockResidentData({ websites: [] }) }
       );
-      
-      const emptyContainer = container.querySelector('div');
-      expect(emptyContainer).toHaveClass(
-        'border',
-        'border-black',
-        'p-3',
-        'bg-white',
-        'shadow-[2px_2px_0_#000]'
-      );
-      
-      const emptyText = screen.getByText('No websites added yet.');
-      expect(emptyText).toHaveClass('text-gray-500', 'text-sm');
+
+      expect(container).toBeEmptyDOMElement();
+      expect(screen.queryByText('Website Recommendations')).not.toBeInTheDocument();
+      expect(screen.queryByText(/No websites/)).not.toBeInTheDocument();
     });
 
-    it('should have proper heading in empty state', () => {
+    it('shows a visitor nothing when websites is null', () => {
+      const { container } = renderWithTemplateContext(
+        <WebsiteDisplay />,
+        { residentData: createMockResidentData({ websites: null }) }
+      );
+
+      expect(container).toBeEmptyDOMElement();
+    });
+
+    it('shows a visitor nothing when websites is undefined', () => {
+      const { container } = renderWithTemplateContext(
+        <WebsiteDisplay />
+      );
+
+      expect(container).toBeEmptyDOMElement();
+    });
+
+    it('shows a signed-in visitor who is not the owner nothing', () => {
+      const { container } = renderWithTemplateContext(
+        <WebsiteDisplay />,
+        { residentData: createMockResidentData({ viewer: { id: 'someone-else' }, websites: [] }) }
+      );
+
+      expect(container).toBeEmptyDOMElement();
+    });
+
+    it('shows the owner a note with a link to Settings', () => {
       renderWithTemplateContext(
         <WebsiteDisplay />,
-        { residentData: createMockResidentData({ websites: [] }) }
+        { residentData: ownerViewing() }
       );
-      
-      const heading = screen.getByText('Website Recommendations');
-      expect(heading.tagName).toBe('H4');
-      expect(heading).toHaveClass('font-bold', 'mb-2');
+
+      const note = screen.getByText(/No websites yet\./);
+      expect(note.tagName).toBe('P');
+      expect(note).toHaveClass('websites-section', 'websites-section--empty');
+      expect(note).toHaveTextContent(/Only you see this note\.$/);
+      expect(screen.getByRole('link', { name: 'Add the ones you like in Settings' }))
+        .toHaveAttribute('href', '/settings?tab=profile');
+      expect(screen.queryByText('Website Recommendations')).not.toBeInTheDocument();
+    });
+
+    it('shows the owner the note when websites is null', () => {
+      renderWithTemplateContext(
+        <WebsiteDisplay />,
+        { residentData: ownerViewing({ websites: null }) }
+      );
+
+      expect(screen.getByText(/No websites yet\./)).toBeInTheDocument();
+    });
+
+    it('keeps a custom className on the owner note', () => {
+      renderWithTemplateContext(
+        <WebsiteDisplay className="my-sites" />,
+        { residentData: ownerViewing() }
+      );
+
+      expect(screen.getByText(/No websites yet\./)).toHaveClass('my-sites', 'websites-section--empty');
     });
   });
 
@@ -498,11 +515,12 @@ describe('WebsiteDisplay Component', () => {
       
       renderWithTemplateContext(
         <WebsiteDisplay />,
-        { residentData: createMockResidentData({ websites: [noIdWebsite] }) }
+        { residentData: createMockResidentData({ viewer: { id: 'test-user-123' }, websites: [noIdWebsite] }) }
       );
-      
-      // Website without ID should be filtered out, so we should see empty state
-      expect(screen.getByText('No websites added yet.')).toBeInTheDocument();
+
+      // Website without ID should be filtered out, so the owner sees the empty note
+      expect(screen.queryByText('No ID Site')).not.toBeInTheDocument();
+      expect(screen.getByText(/No websites yet\./)).toBeInTheDocument();
       
       consoleSpy.mockRestore();
     });

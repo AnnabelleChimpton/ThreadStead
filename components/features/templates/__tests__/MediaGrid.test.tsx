@@ -24,7 +24,15 @@ describe('MediaGrid Component', () => {
       { residentData: mockResidentData({ images: [] }) }
     );
     expect(container).toBeEmptyDOMElement();
-    expect(screen.queryByText('No featured photos')).not.toBeInTheDocument();
+    expect(screen.queryByText(/No featured photos/)).not.toBeInTheDocument();
+  });
+
+  it('shows a signed-in visitor who is not the owner nothing', () => {
+    const { container } = renderWithTemplateContext(
+      <MediaGrid />,
+      { residentData: mockResidentData({ images: [], viewer: { id: 'someone-else' } }) }
+    );
+    expect(container).toBeEmptyDOMElement();
   });
 
   beforeEach(() => {
@@ -55,32 +63,37 @@ describe('MediaGrid Component', () => {
       expect(screen.getAllByRole('img')).toHaveLength(3);
     });
 
-    it('should render empty state when no images', () => {
+    it('should show the owner a note when no images', () => {
       renderWithTemplateContext(
         <MediaGrid />,
         { residentData: createMockResidentData({ images: [] }) }
       );
-      
-      expect(screen.getByText('No featured photos')).toBeInTheDocument();
-      expect(screen.getByText(/hasn't featured any photos yet/)).toBeInTheDocument();
+
+      const note = screen.getByText(/No featured photos yet\./);
+      expect(note.tagName).toBe('P');
+      expect(note).toHaveClass('media-grid', 'media-grid--empty');
+      expect(note).toHaveTextContent(/Only you see this note\.$/);
+      expect(screen.getByRole('link', { name: 'Pick some on your media page' }))
+        .toHaveAttribute('href', '/resident/testuser/media');
+      expect(screen.queryByText('Featured Photos')).not.toBeInTheDocument();
     });
 
-    it('should render empty state when images is null', () => {
+    it('should show the owner the note when images is null', () => {
       renderWithTemplateContext(
         <MediaGrid />,
         { residentData: createMockResidentData({ images: null }) }
       );
-      
-      expect(screen.getByText('No featured photos')).toBeInTheDocument();
+
+      expect(screen.getByText(/No featured photos yet\./)).toBeInTheDocument();
     });
 
-    it('should render empty state when images is undefined', () => {
+    it('should show the owner the note when images is undefined', () => {
       renderWithTemplateContext(
         <MediaGrid />,
         { residentData: createMockResidentData({ images: undefined }) }
       );
-      
-      expect(screen.getByText('No featured photos')).toBeInTheDocument();
+
+      expect(screen.getByText(/No featured photos yet\./)).toBeInTheDocument();
     });
 
     it('should have correct container structure', () => {
@@ -383,42 +396,26 @@ describe('MediaGrid Component', () => {
   });
 
   describe('Empty State', () => {
-    it('should show correct empty state message with displayName', () => {
+    it('links the owner to their media page by handle', () => {
       renderWithTemplateContext(
         <MediaGrid />,
-        { residentData: createMockResidentData({ 
-          images: [],
-          owner: { displayName: 'Alice' }
-        })}
-      );
-      
-      expect(screen.getByText("Alice hasn't featured any photos yet.")).toBeInTheDocument();
-    });
-
-    it('should show correct empty state message with handle', () => {
-      renderWithTemplateContext(
-        <MediaGrid />,
-        { residentData: createMockResidentData({ 
+        { residentData: createMockResidentData({
           images: [],
           owner: { handle: '@alice' }
         })}
       );
-      
-      expect(screen.getByText("@alice hasn't featured any photos yet.")).toBeInTheDocument();
+
+      expect(screen.getByRole('link', { name: 'Pick some on your media page' }))
+        .toHaveAttribute('href', '/resident/%40alice/media');
     });
 
-    it('should have correct empty state styling', () => {
-      const { container } = renderWithTemplateContext(
-        <MediaGrid />,
+    it('keeps a custom className on the owner note', () => {
+      renderWithTemplateContext(
+        <MediaGrid className="my-photos" />,
         { residentData: createMockResidentData({ images: [] }) }
       );
-      
-      const emptyState = container.querySelector('.text-center.py-12');
-      expect(emptyState).toBeInTheDocument();
 
-      // Icon is now a PixelIcon rendered inside a centered wrapper
-      const iconWrapper = container.querySelector('.mb-4.flex.justify-center');
-      expect(iconWrapper).toBeInTheDocument();
+      expect(screen.getByText(/No featured photos yet\./)).toHaveClass('my-photos', 'media-grid--empty');
     });
   });
 
@@ -512,7 +509,7 @@ describe('MediaGrid Component', () => {
         { residentData: createMockResidentData({ images: [] }) }
       );
       
-      expect(screen.getByText('No featured photos')).toBeInTheDocument();
+      expect(screen.getByText(/No featured photos yet\./)).toBeInTheDocument();
       
       rerender(<MediaGrid />);
       renderWithTemplateContext(
@@ -552,9 +549,11 @@ describe('MediaGrid Component', () => {
         <MediaGrid />,
         { residentData: createMockResidentData({ images: [] }) }
       );
-      
-      expect(screen.getByText('No featured photos')).toBeInTheDocument();
-      expect(screen.getByText(/hasn't featured any photos yet/)).toBeInTheDocument();
+
+      // The owner's note says what's missing and where to fix it, in words
+      expect(screen.getByText(/No featured photos yet\./)).toHaveTextContent(
+        'No featured photos yet. Pick some on your media page. Only you see this note.'
+      );
     });
   });
 });

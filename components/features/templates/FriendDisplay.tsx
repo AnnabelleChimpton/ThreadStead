@@ -2,6 +2,7 @@ import React from "react";
 import Link from "next/link";
 import { useResidentData } from './ResidentDataProvider';
 import { componentHeading } from './component-heading';
+import OwnerNote from './OwnerNote';
 import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
 interface FriendDisplayProps extends UniversalCSSProps {
@@ -27,10 +28,9 @@ export default function FriendDisplay(props: FriendDisplayProps) {
     // Only the owner hears there are none yet; visitors see nothing
     if (!viewer?.id || viewer.id !== owner?.id) return null;
     return (
-      <div className={`featured-friends ${containerClassName}`} style={style}>
-        {headingText && <h4 className="section-heading font-bold mb-2">{headingText}</h4>}
-        <p className="text-gray-500 text-sm">No featured friends yet.</p>
-      </div>
+      <OwnerNote className={`featured-friends featured-friends--empty ${customClassName ?? ''}`} style={style}>
+        No featured friends yet. <Link href="/settings?tab=profile">Pick them in Settings</Link>.
+      </OwnerNote>
     );
   }
 

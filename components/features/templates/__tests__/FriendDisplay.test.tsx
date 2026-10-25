@@ -49,43 +49,55 @@ describe('FriendDisplay Component', () => {
     it('shows visitors nothing when there are none (the empty state is for the owner)', () => {
       const residentData = createMockResidentData({ featuredFriends: [] });
       const { container } = renderWithTemplateContext(<FriendDisplay />, { residentData });
-      expect(container.textContent).toBe('');
+      expect(container).toBeEmptyDOMElement();
     });
 
-    it('should show empty state when no featured friends', () => {
+    it('shows a signed-in visitor who is not the owner nothing', () => {
+      const residentData = createMockResidentData({
+        featuredFriends: [],
+        viewer: { id: 'someone-else' }
+      });
+      const { container } = renderWithTemplateContext(<FriendDisplay />, { residentData });
+      expect(container).toBeEmptyDOMElement();
+    });
+
+    it('should show the owner a note when no featured friends', () => {
       const residentData = createMockResidentData({
         featuredFriends: [],
         viewer: OWNER_VIEWING
       });
-      
+
       renderWithTemplateContext(<FriendDisplay />, { residentData });
-      
-      expect(screen.getByText('Friends')).toBeInTheDocument();
-      expect(screen.getByText('No featured friends yet.')).toBeInTheDocument();
+
+      const note = screen.getByText(/No featured friends yet\./);
+      expect(note.tagName).toBe('P');
+      expect(note).toHaveClass('featured-friends', 'featured-friends--empty');
+      expect(note).toHaveTextContent(/Only you see this note\.$/);
+      expect(screen.getByRole('link', { name: 'Pick them in Settings' }))
+        .toHaveAttribute('href', '/settings?tab=profile');
+      expect(screen.queryByText('Friends')).not.toBeInTheDocument();
     });
 
-    it('should show empty state when featuredFriends is undefined', () => {
+    it('should show the owner the note when featuredFriends is undefined', () => {
       const residentData = createMockResidentData({
         featuredFriends: undefined,
         viewer: OWNER_VIEWING
       });
-      
+
       renderWithTemplateContext(<FriendDisplay />, { residentData });
-      
-      expect(screen.getByText('Friends')).toBeInTheDocument();
-      expect(screen.getByText('No featured friends yet.')).toBeInTheDocument();
+
+      expect(screen.getByText(/No featured friends yet\./)).toBeInTheDocument();
     });
 
-    it('should show empty state when featuredFriends is null', () => {
+    it('should show the owner the note when featuredFriends is null', () => {
       const residentData = createMockResidentData({
         featuredFriends: null,
         viewer: OWNER_VIEWING
       });
-      
+
       renderWithTemplateContext(<FriendDisplay />, { residentData });
-      
-      expect(screen.getByText('Friends')).toBeInTheDocument();
-      expect(screen.getByText('No featured friends yet.')).toBeInTheDocument();
+
+      expect(screen.getByText(/No featured friends yet\./)).toBeInTheDocument();
     });
   });
 
@@ -272,27 +284,6 @@ describe('FriendDisplay Component', () => {
         'shadow-[1px_1px_0_#000]',
         'transition-colors'
       );
-    });
-
-    it('should have correct empty state styling', () => {
-      const residentData = createMockResidentData({
-        featuredFriends: [],
-        viewer: OWNER_VIEWING
-      });
-      
-      const { container } = renderWithTemplateContext(<FriendDisplay />, { residentData });
-      
-      const container_div = container.querySelector('div');
-      expect(container_div).toHaveClass(
-        'border',
-        'border-black',
-        'p-3',
-        'bg-white',
-        'shadow-[2px_2px_0_#000]'
-      );
-      
-      const emptyText = container.querySelector('p');
-      expect(emptyText).toHaveClass('text-gray-500', 'text-sm');
     });
   });
 

@@ -1,7 +1,8 @@
 import React from 'react';
+import Link from 'next/link';
 import { useResidentData } from './ResidentDataProvider';
+import OwnerNote from './OwnerNote';
 import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
-import { PixelIcon } from '@/components/ui/PixelIcon';
 import { componentHeading } from './component-heading';
 
 interface MediaGridProps extends UniversalCSSProps {
@@ -33,17 +34,9 @@ export default function MediaGrid(props: MediaGridProps) {
     // owner gets the hint
     if (!viewer?.id || viewer.id !== owner?.id) return null;
     return (
-      <div className={containerClassName} style={style}>
-        <div className="text-center py-12">
-          <div className="mb-4 flex justify-center">
-            <PixelIcon name="image" size={48} />
-          </div>
-          <h3 className="text-lg font-medium text-thread-pine mb-2">No featured photos</h3>
-          <p className="text-thread-sage">
-            {owner?.displayName || owner?.handle || 'This user'} hasn&apos;t featured any photos yet.
-          </p>
-        </div>
-      </div>
+      <OwnerNote className={`media-grid media-grid--empty ${normalizedCustomClassName ?? ''}`} style={style}>
+        No featured photos yet. <Link href={`/resident/${encodeURIComponent(owner.handle)}/media`}>Pick some on your media page</Link>.
+      </OwnerNote>
     );
   }
 

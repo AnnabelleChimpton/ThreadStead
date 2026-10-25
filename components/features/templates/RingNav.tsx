@@ -4,6 +4,7 @@ import { useResidentData } from './ResidentDataProvider';
 import { viewerIsOwner } from './conditional/IfOwner';
 import { UniversalCSSProps, separateCSSProps, applyCSSProps } from '@/lib/templates/styling/universal-css-props';
 import { useOwnerRings, ringPath } from '@/lib/templates/owner-rings';
+import OwnerNote from './OwnerNote';
 
 interface RingNavProps extends UniversalCSSProps {
   /** The ring's slug, the last part of its address (/tr/<slug>) */
@@ -46,12 +47,9 @@ export default function RingNav(props: RingNavProps) {
   const slug = typeof ringProp === 'string' ? ringProp.trim().toLowerCase() : '';
 
   const note = (text: string) => (
-    <p
-      className={`ts-ring-nav ts-ring-nav--note text-sm text-thread-sage border border-dashed border-thread-sage/60 rounded p-2 ${className ?? ''}`}
-      style={applyCSSProps(cssProps)}
-    >
-      {text} Only you see this note.
-    </p>
+    <OwnerNote className={`ts-ring-nav ts-ring-nav--note ${className ?? ''}`} style={applyCSSProps(cssProps)}>
+      {text}
+    </OwnerNote>
   );
 
   if (!SLUG.test(slug)) {

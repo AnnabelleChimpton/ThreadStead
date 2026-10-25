@@ -162,6 +162,8 @@ describe('EnhancedTemplateEditor image picker', () => {
     const expected = '<img src="https://cdn.example.com/media/u/2.gif" alt="">';
     await waitFor(() => expect(screen.getByLabelText('template-code')).toHaveValue(expected));
     expect(mockViews['template-code'].state.selection.main.anchor).toBe(expected.indexOf('alt="') + 'alt="'.length);
+    // and it says what goes there
+    expect(screen.getAllByText('Now describe the picture, for people who can’t see it.').length).toBeGreaterThan(0);
   });
 
   it('CSS: a picked image goes in at the cursor as url("...")', async () => {

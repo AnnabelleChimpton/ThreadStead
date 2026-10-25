@@ -1,6 +1,8 @@
 import React from "react";
+import Link from "next/link";
 import { useResidentData } from './ResidentDataProvider';
 import { componentHeading } from './component-heading';
+import OwnerNote from './OwnerNote';
 import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
 interface WebsiteDisplayProps extends UniversalCSSProps {
@@ -12,7 +14,7 @@ export default function WebsiteDisplay(props: WebsiteDisplayProps) {
   const { cssProps, componentProps } = separateCSSProps(props);
   const { className: customClassName, heading } = componentProps;
   const headingText = componentHeading(heading, 'Website Recommendations');
-  const { websites } = useResidentData();
+  const { websites, owner, viewer } = useResidentData();
 
   // Filter valid websites first
   const validWebsites = websites?.filter(website => website && website.id) || [];
@@ -26,11 +28,12 @@ export default function WebsiteDisplay(props: WebsiteDisplayProps) {
     : filteredClasses;
 
   if (!websites || websites.length === 0 || validWebsites.length === 0) {
+    // Only the owner hears there are none yet; visitors see nothing
+    if (!viewer?.id || viewer.id !== owner?.id) return null;
     return (
-      <div className={`websites-section ${containerClassName}`} style={style}>
-        {headingText && <h4 className="section-heading font-bold mb-2">{headingText}</h4>}
-        <p className="text-gray-500 text-sm">No websites added yet.</p>
-      </div>
+      <OwnerNote className={`websites-section websites-section--empty ${customClassName ?? ''}`} style={style}>
+        No websites yet. <Link href="/settings?tab=profile">Add the ones you like in Settings</Link>.
+      </OwnerNote>
     );
   }
 
