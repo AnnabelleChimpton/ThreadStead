@@ -11,11 +11,13 @@ jest.mock('@noble/ed25519', () => ({
   utils: {},
   etc: {},
 }))
-// next/dynamic doesn't resolve under jest, and the only dynamic component
-// here is ProfileMusic's MidiPlayer (a Web Audio synth): stand in for it.
+// next/dynamic doesn't resolve under jest. The component runtime loads at
+// once; the other dynamic component here is ProfileMusic's MidiPlayer (a Web
+// Audio synth): stand in for it.
 jest.mock('next/dynamic', () => ({
   __esModule: true,
-  default: () =>
+  // The component runtime loads at once (as in Next's server render)
+  default: (loader: () => unknown) => String(loader).includes('PageWithComponents') ? jest.requireActual('@/lib/templates/rendering/PageWithComponents').default :
     function MidiPlayerStandIn({ title, placement }: { title?: string; placement?: string }) {
       return (
         <div data-testid="midi-player" data-placement={placement ?? 'floating'}>

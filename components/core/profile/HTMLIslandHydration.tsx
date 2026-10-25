@@ -1,14 +1,21 @@
 // A compiled page (or widget slot) with its components in place.
 //
-// With a page tree (built on the server from the stored compile result) it
+// With a page tree (built on the server from the stored artifact) it
 // renders on the server and hydrates like any React page. With only the
-// compiled HTML (the editor's live preview, the widget slot) the browser
-// parses it after mount into the same tree. Either way IslandPage renders it.
+// compiled HTML (the widget slot, a lesson's example) the browser parses it
+// after mount into the same tree. Either way IslandPage renders it, and the
+// component registry (PageWithComponents, every component's code) loads only
+// for a page that has components.
 
 import React from 'react';
+import dynamic from 'next/dynamic';
 import IslandPage from '@/lib/templates/rendering/IslandPage';
 import { treeFromDom, type PageTreeNode } from '@/lib/templates/rendering/page-tree';
 import type { StaticHTMLWithIslandsProps } from './types';
+
+const PageWithComponents = dynamic(
+  () => import(/* webpackChunkName: "template-runtime" */ '@/lib/templates/rendering/PageWithComponents')
+);
 
 export function StaticHTMLWithIslands({
   staticHTML,
@@ -32,5 +39,7 @@ export function StaticHTMLWithIslands({
   const page = tree ?? parsed;
   if (!page) return null;
 
-  return <IslandPage tree={page} islands={islands} residentData={residentData} />;
+  return islands.length > 0
+    ? <PageWithComponents tree={page} islands={islands} residentData={residentData} />
+    : <IslandPage tree={page} islands={islands} residentData={residentData} />;
 }

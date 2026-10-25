@@ -1,4 +1,7 @@
-import { useEffect, useState, useRef } from "react";
+import { createContext, useEffect, useState, useRef } from "react";
+
+/** The site's CSS as _app has it (sent once with the page): for ProfileLayout and the editor's preview */
+export const SiteCssContext = createContext<string | undefined>(undefined);
 
 interface UseSiteCSSOptions {
   skipDOMInjection?: boolean; // For Visual Builder templates that manage their own CSS

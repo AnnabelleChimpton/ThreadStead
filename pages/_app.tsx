@@ -9,7 +9,8 @@ import "../styles/neighborhood.css"; // Neighborhood street view styles
 import "../styles/neighborhood-card-view.css"; // Card view mobile experience styles
 import "../styles/pixel-homes-interactive.css"; // Interactive elements for pixel homes
 import "../styles/pixel-homes-animations.css"; // Visual polish and animations for pixel homes
-import { useSiteCSS } from "@/hooks/useSiteCSS";
+import { useSiteCSS, SiteCssContext } from "@/hooks/useSiteCSS";
+import { putServerOnly, readServerOnly } from "@/lib/utils/server-only";
 import { useRouter } from "next/router";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { advancedPageCss, standardPageCss } from "@/lib/templates/rendering/page-css";
@@ -39,28 +40,22 @@ import { ResidentHostProvider, type ResidentHost } from "@/contexts/ResidentHost
 import { getSiteBaseUrl } from "@/lib/config/site-url";
 import { SITE_TITLE } from "@/lib/config/site/constants";
 
-type MyAppProps = AppProps & {
-  /** Site CSS fetched on the server for the first page load (see getInitialProps) */
-  appSiteCSS?: string;
-};
-
-export default function MyApp({ Component, pageProps, appSiteCSS }: MyAppProps) {
+export default function MyApp({ Component, pageProps }: AppProps) {
   const router = useRouter();
   const { user } = useCurrentUser();
 
   // Extract CSS mode information from pageProps
   const cssMode = pageProps.cssMode || 'inherit';
 
-  // Conditionally load site CSS. Profile pages pre-fetch site CSS in SSR
-  // (initialSiteCSS) — passing it through avoids the "Site CSS loading..."
-  // placeholder flash on advanced pages, which render #site-wide-css below.
-  // The first load's server-rendered site CSS; kept across client navigations
-  // (getInitialProps only fetches it on the server).
-  const serverSiteCSS = useRef(appSiteCSS);
+  // The site's CSS, from the first load's server render (getInitialProps):
+  // on the server from the props, in the browser read back from the
+  // #site-wide-css it wrote, so the page data doesn't carry it too
+  // (lib/utils/server-only.ts). Kept across client navigations.
+  const serverSiteCSS = useRef(readServerOnly(pageProps, 'site-wide-css'));
   const { css, loading } = useSiteCSS({
     skipDOMInjection: false,
     cssMode: cssMode,
-    initialCSS: pageProps.initialSiteCSS ?? serverSiteCSS.current
+    initialCSS: serverSiteCSS.current
   });
 
   // Ensure Layout component is bundled to include its CSS dependencies
@@ -180,11 +175,17 @@ export default function MyApp({ Component, pageProps, appSiteCSS }: MyAppProps) 
   const customCSS: string = pageProps.customCSS || '';
   const pageCssHtml = useMemo(() => {
     if (!isProfilePage) return null;
-    const css = advancedPage ? advancedPageCss(customCSS, pageProps.compiledTemplate) : customCSS.trim() && standardPageCss(customCSS);
+    // A page of your own HTML: transformed on the server, sent once
+    // (getServerSideProps puts it with putServerOnly, or as pageCss on a
+    // client-side navigation)
+    const css = advancedPage
+      ? pageProps.pageCss ?? readServerOnly(pageProps, 'advanced-template-css', pageProps.ownerUserId) ?? advancedPageCss(customCSS, pageProps.compiledTemplate)
+      : customCSS.trim() && standardPageCss(customCSS);
     return css ? { __html: escapeCssForStyleTag(css) } : null;
-  }, [isProfilePage, advancedPage, customCSS, pageProps.compiledTemplate]);
+  }, [isProfilePage, advancedPage, customCSS, pageProps]);
 
   return (
+    <SiteCssContext.Provider value={loading ? undefined : css}>
     <ResidentHostProvider value={residentHost}>
     <GlobalAudioProvider>
       <ToastProvider>
@@ -257,6 +258,7 @@ export default function MyApp({ Component, pageProps, appSiteCSS }: MyAppProps) 
       </ToastProvider>
     </GlobalAudioProvider>
     </ResidentHostProvider>
+    </SiteCssContext.Provider>
   );
 }
 
@@ -272,8 +274,8 @@ MyApp.getInitialProps = async (appContext: AppContext) => {
     // the build saw until the next deploy, so it gets the bundled theme and
     // the browser loads the current site CSS. It also keeps the build off the
     // database.
-    const appSiteCSS = appContext.ctx.req ? await getSiteCSS() : getDefaultSiteCSS();
-    return { ...appProps, appSiteCSS };
+    // Rendered into #site-wide-css; not in the page data (lib/utils/server-only.ts)
+    putServerOnly(appProps.pageProps, 'site-wide-css', appContext.ctx.req ? await getSiteCSS() : getDefaultSiteCSS());
   }
   return appProps;
 };

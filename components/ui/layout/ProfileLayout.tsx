@@ -1,9 +1,9 @@
-import React from "react";
+import React, { useContext } from "react";
 import Layout from "./Layout";
 import AdvancedNavFrame from "@/components/core/profile/AdvancedNavFrame";
 import type { CSSMode, TemplateMode } from "@/lib/utils/css/layers";
 import { resolveCSSMode } from "@/lib/utils/css/css-mode";
-import { useSiteCSS } from "@/hooks/useSiteCSS";
+import { useSiteCSS, SiteCssContext } from "@/hooks/useSiteCSS";
 
 interface ProfileLayoutProps {
   children: React.ReactNode;
@@ -12,7 +12,6 @@ interface ProfileLayoutProps {
   hideNavigation?: boolean;
   templateMode?: TemplateMode;
   cssMode?: CSSMode;
-  initialSiteCSS?: string; // Pre-fetched site CSS from SSR to prevent hydration mismatches
   /** Site chrome under the nav (or at the very top when the nav is hidden) */
   afterNav?: React.ReactNode;
   /** The page's CSS is a theme (it sets --ts-ink…): styles/theme-parts.css
@@ -27,7 +26,6 @@ export default function ProfileLayout({
   hideNavigation = false,
   templateMode = 'default',
   cssMode = 'inherit',
-  initialSiteCSS,
   afterNav,
   themed = false
 }: ProfileLayoutProps) {
@@ -40,7 +38,8 @@ export default function ProfileLayout({
   useSiteCSS({
     skipDOMInjection: templateMode === 'advanced', // Advanced templates manage their own CSS
     cssMode: actualCSSMode,
-    initialCSS: initialSiteCSS // Pass SSR-fetched CSS to prevent hydration mismatch
+    // The site's CSS as _app has it (sent once with the page), so it isn't fetched again
+    initialCSS: useContext(SiteCssContext)
   });
 
   // An advanced page whose own HTML is switched off or missing: the standard

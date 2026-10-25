@@ -18,7 +18,6 @@ import MediaGrid from "@/components/core/profile/tabs/MediaGrid";
 import FriendsWebsitesGrid from "@/components/core/profile/tabs/FriendsWebsitesGrid";
 import ProfileBadgeDisplay from "@/components/core/profile/ProfileBadgeDisplay";
 import type { ProfileUser } from "@/components/core/profile/ProfileModeRenderer";
-import ResidentHtmlBody from "@/components/core/profile/ResidentHtmlBody";
 import type { PageForRender } from "@/lib/templates/rendering/page-tree-server";
 import ViewSourceBadge from "@/components/core/profile/ViewSourceBadge";
 import StepOutsideLink from "@/components/core/profile/StepOutsideLink";
@@ -30,7 +29,7 @@ import dynamic from 'next/dynamic';
 import { pageUsesAny } from '@/lib/templates/page-home';
 import WelcomeMusicControl from "@/components/features/onboarding/WelcomeMusicControl";
 import { contentMetadataGenerator } from "@/lib/utils/metadata/content-metadata";
-import { getSiteCSS } from "@/lib/utils/css/site-css-server";
+import { isDataRequest, putServerOnly } from "@/lib/utils/server-only";
 import { resolveCSSMode } from "@/lib/utils/css/css-mode";
 import { pageCSS, siteStylesOn } from "@/lib/domain/profile/layout";
 import { usesThemeVars } from "@/lib/templates/appearance";
@@ -41,7 +40,8 @@ import { residentFeedUrl } from "@/lib/feeds/urls";
 // The template runtime (every template component) loads only on the pages
 // that use it: a page of your own HTML, or a profile with a widget slot.
 // Both still render on the server.
-const ProfileModeRenderer = dynamic(() => import("@/components/core/profile/ProfileModeRenderer"));
+// A page of your own HTML: its own chunk, not every profile's
+const ResidentHtmlBody = dynamic(() => import("@/components/core/profile/ResidentHtmlBody"));
 const WidgetSlot = dynamic(() => import("@/components/core/profile/WidgetSlot"));
 
 // Dynamically import components to avoid SSR issues
@@ -70,7 +70,8 @@ export type ProfileProps = {
   hideNavigation?: boolean;
   templateMode?: 'default' | 'enhanced' | 'advanced';
   cssMode?: 'inherit' | 'override' | 'disable';
-  initialSiteCSS?: string; // Pre-fetched site CSS from SSR to prevent hydration mismatches
+  /** A page of your own HTML's CSS, transformed, on a client-side navigation (else read back: lib/utils/server-only.ts) */
+  pageCss?: string;
   /** A page of your own HTML, ready to render (lib/templates/rendering/page-tree-server.ts) */
   compiledTemplate?: PageForRender;
   profileMidi?: {
@@ -121,7 +122,6 @@ export default function ProfilePage({
   hideNavigation = false,
   templateMode = 'default',
   cssMode = 'inherit',
-  initialSiteCSS,
   compiledTemplate,
   profileMidi,
   displayName,
@@ -291,7 +291,6 @@ export default function ProfilePage({
         hideNavigation={hideNavigation}
         templateMode={templateMode}
         cssMode={cssMode}
-        initialSiteCSS={initialSiteCSS}
         afterNav={stepOutside}
         themed={usesThemeVars(customCSS)}
       >
@@ -372,12 +371,8 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   const username = data.username || usernameParam;
   const advanced = profile?.templateMode === 'advanced';
 
-  const [adminDefault, siteWideCSS] = await Promise.all([
-    // The CSS a profile without its own wears (Admin > Site settings)
-    db.siteConfig.findUnique({ where: { key: 'default_profile_css' }, select: { value: true } }).catch(() => null),
-    // Site-wide CSS server-side to prevent hydration mismatches
-    getSiteCSS(),
-  ]);
+  // The CSS a profile without its own wears (Admin > Site settings)
+  const adminDefault = await db.siteConfig.findUnique({ where: { key: 'default_profile_css' }, select: { value: true } }).catch(() => null);
 
   const requested = typeof query.tab === "string" ? query.tab : undefined;
   const hiddenTabs = Array.isArray(profile?.hiddenTabs) ? profile.hiddenTabs : [];
@@ -430,7 +425,16 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   // (lib/domain/profile/layout.ts). Site styles follow cssMode, in _app.
   props.cssMode = cssMode;
   const css = pageCSS(profile, adminDefault?.value || "");
-  if (css !== undefined) props.customCSS = css;
+  if (advanced) {
+    // Transformed here, once, and sent once: in its <style>, read back in the
+    // browser, or as pageCss on a client-side navigation (lib/utils/server-only.ts)
+    const { advancedPageCss } = await import('@/lib/templates/rendering/page-css');
+    const pageCss = advancedPageCss(css ?? '', page);
+    if (isDataRequest(req)) props.pageCss = pageCss;
+    else putServerOnly(props, 'advanced-template-css', pageCss);
+  } else if (css !== undefined) {
+    props.customCSS = css;
+  }
 
   if (websites.length > 0) props.websites = websites;
   if (featuredFriends.length > 0) props.featuredFriends = featuredFriends;
@@ -467,9 +471,6 @@ export const getServerSideProps: GetServerSideProps<ProfileProps> = async ({ par
   }
 
   if (profile?.displayName) props.displayName = profile.displayName;
-
-  // Add site-wide CSS for SSR (prevents hydration mismatch)
-  props.initialSiteCSS = siteWideCSS;
 
   return { props };
 };

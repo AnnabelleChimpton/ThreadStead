@@ -22,7 +22,7 @@ jest.mock('@/components/core/profile/AdvancedProfileRenderer', () => function Ad
 // The advanced branch is a dynamic import: load it for real. Anything else
 // dynamic (the MIDI player) renders nothing here.
 jest.mock('next/dynamic', () => (loader: () => unknown) => {
-  const path = String(loader).match(/require\("([^"]+ProfileModeRenderer)"\)/)?.[1]
+  const path = String(loader).match(/require\("([^"]+(?:ResidentHtmlBody|PageWithComponents))"\)/)?.[1]
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   if (path) return require(path).default
   return function DynamicStub() {
@@ -37,7 +37,7 @@ jest.mock('next/router', () => ({
 jest.mock('@/hooks/useCurrentUser', () => ({ useCurrentUser: () => ({ user: null, loading: false }) }))
 jest.mock('@/hooks/useSiteConfig', () => ({ useSiteConfig: () => ({ config: { site_description: '', user_status_text: 'resident' } }) }))
 jest.mock('@/hooks/useIdentitySync', () => ({ useIdentitySync: () => ({ hasMismatch: false, fixMismatch: jest.fn() }) }))
-jest.mock('@/hooks/useSiteCSS', () => ({ useSiteCSS: () => ({ css: '', loading: false }) }))
+jest.mock('@/hooks/useSiteCSS', () => ({ useSiteCSS: () => ({ css: '', loading: false }), SiteCssContext: jest.requireActual('react').createContext(undefined) }))
 jest.mock('@/contexts/ChatContext', () => ({ useChat: () => ({ openDM: jest.fn() }) }))
 jest.mock('@/components/ui/navigation/NavBar', () => function NavBar() { return <header data-testid="site-nav">nav</header> })
 jest.mock('@/components/ui/navigation/SiteFooter', () => () => null)

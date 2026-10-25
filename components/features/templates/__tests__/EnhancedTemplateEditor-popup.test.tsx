@@ -150,7 +150,7 @@ describe('EnhancedTemplateEditor pop-out preview messaging', () => {
     const opener = { closed: false, postMessage: jest.fn() };
     Object.defineProperty(window, 'opener', { value: opener, configurable: true });
     try {
-      render(<TemplatePreviewPage initialSiteCSS="" />);
+      render(<TemplatePreviewPage />);
       act(() => {
         window.dispatchEvent(new MessageEvent('message', { data: dataMsg, origin: ORIGIN }));
       });

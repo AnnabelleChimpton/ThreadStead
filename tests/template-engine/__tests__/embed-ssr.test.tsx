@@ -26,6 +26,9 @@ jest.mock('@/components/ui/PixelIcon', () => {
   return { PixelIcon, default: PixelIcon }
 })
 
+// The component runtime loads at once, as in Next's server render
+jest.mock('next/dynamic', () => require('../sync-dynamic').syncDynamic)
+
 import React from 'react'
 import { renderToString } from 'react-dom/server'
 import { JSDOM, VirtualConsole } from 'jsdom'

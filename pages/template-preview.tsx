@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useRef } from 'react';
+import { useContext, useEffect, useState, useMemo, useRef } from 'react';
 import type { GetServerSideProps } from 'next';
 import { useRouter } from 'next/router';
 import { PixelIcon } from '@/components/ui/PixelIcon';
@@ -18,7 +18,7 @@ import { advancedPageCss, standardPageCss } from '@/lib/templates/rendering/page
 import { isPageArtifact, renderArtifact } from '@/lib/templates/rendering/page-artifact';
 import type { PreviewPayload } from '@/lib/templates/editor/preview-payload';
 import PageMeta from "@/components/ui/layout/PageMeta";
-import { useSiteCSS } from '@/hooks/useSiteCSS';
+import { useSiteCSS, SiteCssContext } from '@/hooks/useSiteCSS';
 import { pageCSS, siteStylesOn } from '@/lib/domain/profile/layout';
 
 /**
@@ -39,7 +39,7 @@ function getHostWindow(): Window | null {
   return null;
 }
 
-export default function TemplatePreview({ initialSiteCSS }: { initialSiteCSS: string }) {
+export default function TemplatePreview() {
   const router = useRouter();
   const [payload, setPayload] = useState<PreviewPayload | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -47,8 +47,8 @@ export default function TemplatePreview({ initialSiteCSS }: { initialSiteCSS: st
   // Embedded in the editor's preview pane: the editor chrome already labels
   // and saves things, so the bar would just be noise.
   const isEmbedded = router.query.embed === '1';
-  // The site's CSS from the server, as the live page has it, not fetched after load
-  const { css: siteCss } = useSiteCSS({ initialCSS: initialSiteCSS, skipDOMInjection: true });
+  // The site's CSS as _app has it (sent once with the page), as the live page has it
+  const { css: siteCss } = useSiteCSS({ initialCSS: useContext(SiteCssContext), skipDOMInjection: true });
 
   // This effect must arm exactly ONCE. Its old deps ([isReady, previewData])
   // re-ran it on every received message, and the unconditional PREVIEW_READY
@@ -234,14 +234,7 @@ export default function TemplatePreview({ initialSiteCSS }: { initialSiteCSS: st
   );
 }
 
-export const getServerSideProps: GetServerSideProps = async () => {
-  const { getSiteCSS } = await import('@/lib/utils/css/site-css-server');
-  return {
-    props: {
-      // _app: a profile page, whose site and page CSS this page places itself
-      templateMode: 'advanced',
-      siteStyles: false,
-      initialSiteCSS: await getSiteCSS(),
-    },
-  };
-};
+export const getServerSideProps: GetServerSideProps = async () => ({
+  // _app: a profile page, whose site and page CSS this page places itself
+  props: { templateMode: 'advanced', siteStyles: false },
+});

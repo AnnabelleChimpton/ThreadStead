@@ -2,38 +2,13 @@ import React, { useCallback, useMemo } from 'react';
 import { useUniversalStyles, type UniversalStyleProps, separateUniversalStyleProps } from '@/lib/templates/core/universal-styling';
 import { useResidentCSSRenderMode } from './ResidentDataProvider';
 import { getDefaultComponentCSSRenderMode } from '@/lib/utils/css/css-mode-mapper';
-import { astToJson, parseTemplate, type TemplateNode } from '@/lib/templates/compilation/template-parser';
-import { generateStaticHTML } from '@/lib/templates/compilation/compiler/html-optimizer';
 
 /** The tags tagName can be. Anything else (script, iframe, …) renders as a div. */
 export const CUSTOM_HTML_TAGS = ['div', 'span', 'section', 'article', 'aside', 'header', 'footer', 'main'] as const;
 
-function unwrapComponents(node: TemplateNode): TemplateNode[] {
-  const children = (node.children || []).flatMap(unwrapComponents);
-  if (node.component) return children;
-  return [{ ...node, children }];
-}
-
-/**
- * innerHTML/content is HTML written inside an attribute, so the page
- * sanitizer never looked at it when the page was saved. Clean it here, at
- * render, with the same parser and allowlist as the page itself, which
- * covers rows saved before this check existed. Components inside can't run
- * from a string, so they unwrap to their children.
- */
-export function sanitizeCustomHTML(html: string): string {
-  if (!html.trim()) return '';
-  try {
-    const [root] = unwrapComponents(astToJson(parseTemplate(html)));
-    return generateStaticHTML(root, []);
-  } catch {
-    return '';
-  }
-}
-
 export interface CustomHTMLElementProps extends UniversalStyleProps {
   tagName?: string;          // div, span, section, etc. (default: 'div')
-  innerHTML?: string;        // HTML content, cleaned by sanitizeCustomHTML
+  innerHTML?: string;        // HTML content, cleaned on the server (lib/templates/compilation/custom-html.ts)
   content?: string;          // Alias for innerHTML (used by CanvasRenderer)
   className?: string;        // CSS classes
   style?: React.CSSProperties | string; // Inline styles (object or JSON string)
@@ -136,28 +111,11 @@ export default function CustomHTMLElement({
     ...universalStyles,
   };
 
-  // Determine content to display - consistent between environments
-  const resolvedContent = useMemo(() => {
-    // Priority: content > innerHTML > children (string)
-    const activeContent = content || innerHTML || (typeof children === 'string' ? children : '');
-
-    const cleaned = activeContent ? sanitizeCustomHTML(activeContent) : '';
-    if (cleaned.trim()) {
-      return {
-        content: cleaned,
-        useInnerHTML: true
-      };
-    }
-
-    // Consistent fallback for both environments - empty content
-    // Visual builder placeholder only shown via title attribute
-    return {
-      content: '',
-      useInnerHTML: false
-    };
-  }, [content, innerHTML, children]);
-
-  const { content: contentToShow, useInnerHTML } = resolvedContent;
+  // content, else innerHTML: HTML, cleaned on the server when the page was
+  // built and again when it's rendered (custom-html.ts). A text child is text.
+  const html = (content || innerHTML || '').trim() ? content || innerHTML || '' : '';
+  const contentToShow = html || (typeof children === 'string' ? children : '');
+  const useInnerHTML = !!html;
 
 
   // Create element props. Only the cleaned content may set inner HTML.

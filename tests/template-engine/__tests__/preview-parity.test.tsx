@@ -17,6 +17,9 @@ jest.mock('@/components/ui/PixelIcon', () => {
 jest.mock('next/router', () => ({ useRouter: () => ({ query: { embed: '1' }, pathname: '/template-preview', asPath: '/template-preview', events: { on() {}, off() {} } }) }))
 jest.mock('@/components/features/templates/NavigationPreview', () => ({ __esModule: true, default: () => null }))
 
+// The component runtime loads at once, as in Next's server render
+jest.mock('next/dynamic', () => require('../sync-dynamic').syncDynamic)
+
 import React from 'react'
 import { render, act, cleanup } from '@testing-library/react'
 import ResidentHtmlBody from '@/components/core/profile/ResidentHtmlBody'
@@ -80,7 +83,7 @@ describe.each(corpus())('%s', (_id, source) => {
     // The preview: the real page, sent what the editor sends
     const preview = render(
       <AppProviders>
-        <TemplatePreview initialSiteCSS="" />
+        <TemplatePreview />
       </AppProviders>
     )
     const payload = {

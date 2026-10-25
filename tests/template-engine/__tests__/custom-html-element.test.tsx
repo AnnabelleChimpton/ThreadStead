@@ -1,12 +1,13 @@
 /**
  * @jest-environment node
  *
- * <CustomHTMLElement content="…"> (and innerHTML="…", and a text child)
- * carries HTML inside an attribute value, where the page sanitizer never
- * looks. The component cleans it at render with the page's own sanitizer,
- * so rows saved before that check are covered too. These render the way a
- * visit does (server HTML, parsed into a browser DOM) and check that event
- * handlers and scripts don't reach the DOM. Payloads are inert on purpose.
+ * <CustomHTMLElement content="…"> (and innerHTML="…") carries HTML inside
+ * an attribute value, where the page sanitizer never looks. It's cleaned on
+ * the server, with the page's own sanitizer (lib/templates/compilation/custom-html.ts):
+ * when the page is built, and when a stored page is rendered, so rows saved
+ * before that check are covered too. A text child is text. These render the
+ * way a visit does (server HTML, parsed into a browser DOM) and check that
+ * event handlers and scripts don't reach the DOM. Payloads are inert on purpose.
  */
 jest.mock('@noble/ed25519', () => ({
   getPublicKey: jest.fn(),
@@ -17,13 +18,19 @@ jest.mock('@noble/ed25519', () => ({
   etc: {},
 }))
 
+// The component runtime loads at once, as in Next's server render
+jest.mock('next/dynamic', () => require('../sync-dynamic').syncDynamic)
+
 import React from 'react'
 import { renderToString } from 'react-dom/server'
 import { JSDOM } from 'jsdom'
-import CustomHTMLElement, { CUSTOM_HTML_TAGS, sanitizeCustomHTML } from '@/components/features/templates/CustomHTMLElement'
+import CustomHTMLElement, { CUSTOM_HTML_TAGS } from '@/components/features/templates/CustomHTMLElement'
 import AdvancedProfileRenderer from '@/components/core/profile/AdvancedProfileRenderer'
 import { compileTemplateToArtifacts } from '@/lib/templates/compilation/compile-pipeline'
-import { pageForRender } from '@/lib/templates/rendering/page-tree-server'
+import { compileForEditor } from '@/lib/templates/compilation/compile-for-editor'
+import { sanitizeCustomHTML, cleanCustomHtmlIslands } from '@/lib/templates/compilation/custom-html'
+import { loadResidentPage } from '@/lib/domain/profile/load-resident-page'
+import { db } from '@/lib/config/database/connection'
 import { componentRegistry } from '@/lib/templates/core/template-registry'
 import { AppProviders, OWNER_ID, residentData } from '../ssr-golden-support'
 
@@ -44,13 +51,27 @@ function expectNothingRuns(doc: Document) {
   expect(doc.body.textContent).not.toContain('kept-out')
 }
 
-function renderPage(source: string) {
-  const a = compileTemplateToArtifacts(source)
-  // As the save API stores it, then as getServerSideProps hands it over
-  const compiledTemplate = pageForRender(
-    JSON.parse(JSON.stringify({ mode: 'advanced', staticHTML: a.staticHTML, islands: a.islands, ast: a.ast }))
-  )
-  const user = { id: OWNER_ID, handle: 'pat', profile: { templateMode: 'advanced' as const, compiledTemplate } }
+/**
+ * The page as a visit gets it: stored as a save stores it (the build's
+ * artifact) or, for a row from before, as the old compile result, then read
+ * by the loader getServerSideProps uses.
+ */
+async function renderPage(source: string, stored: 'artifact' | 'old copy' = 'artifact') {
+  let row: Record<string, unknown>
+  if (stored === 'artifact') {
+    const built = await compileForEditor(source)
+    if (!built.ok) throw new Error(built.body.errors[0])
+    row = { pageArtifact: JSON.stringify(built.artifact), compiledTemplate: null }
+  } else {
+    const a = compileTemplateToArtifacts(source)
+    row = { pageArtifact: null, compiledTemplate: JSON.parse(JSON.stringify({ staticHTML: a.staticHTML, islands: a.islands, ast: a.ast })) }
+  }
+  ;(db.handle.findFirst as jest.Mock).mockResolvedValue({
+    user: { id: OWNER_ID, did: 'did:x', primaryHandle: 'pat@local', subdomainLabel: 'pat', installs: [], profile: { templateMode: 'advanced', visibility: 'public', customTemplate: source, widgetSlot: null, profileMidiId: null, ...row } },
+  })
+  const lookup = await loadResidentPage('pat', null)
+  if (lookup.status !== 'ok') throw new Error(lookup.status)
+  const user = { id: OWNER_ID, handle: 'pat', profile: { templateMode: 'advanced' as const, compiledTemplate: lookup.resident.page } }
   return renderToString(
     <AppProviders>
       <AdvancedProfileRenderer user={user} residentData={residentData('u_visitor')} />
@@ -66,17 +87,24 @@ afterEach(() => {
   console.error = realError
 })
 
-describe('CustomHTMLElement on its own (rows already saved)', () => {
+describe('CustomHTMLElement and the HTML in its props', () => {
   test.each([
     ['content', { content: UNSAFE }],
     ['innerHTML', { innerHTML: UNSAFE }],
-    ['a text child', { children: UNSAFE }],
-  ])('%s: handlers and scripts are dropped, the rest stays', (_label, props) => {
-    const doc = domOf(renderToString(<CustomHTMLElement {...props} />))
+  ])('%s, cleaned on the server: handlers and scripts are dropped, the rest stays', (_label, props) => {
+    const [island] = cleanCustomHtmlIslands([{ id: 'i1', component: 'CustomHTMLElement', props } as never])
+    const doc = domOf(renderToString(<CustomHTMLElement {...island.props} />))
     expectNothingRuns(doc)
     expect(doc.querySelector('p')?.textContent).toBe('stays')
     expect(doc.querySelector('b')?.textContent).toBe('bold')
     expect(doc.querySelector('img')?.getAttribute('src')).toBe('/a.png')
+  })
+
+  test('a text child is text', () => {
+    const doc = domOf(renderToString(<CustomHTMLElement>{UNSAFE}</CustomHTMLElement>))
+    // Shown as written, so nothing in it is an element at all
+    expect(doc.querySelector('script, img, b, p')).toBeNull()
+    expect(doc.body.textContent).toContain(UNSAFE)
   })
 
   test('script links are dropped', () => {
@@ -117,6 +145,10 @@ describe('CustomHTMLElement on its own (rows already saved)', () => {
   })
 })
 
+jest.mock('@/lib/config/database/connection', () => ({ db: { handle: { findFirst: jest.fn() }, media: { findUnique: jest.fn() } } }))
+jest.mock('@/lib/domain/users/profile-access', () => ({ residentAccess: async () => ({ visible: true }), hasPixelHome: async () => false }))
+jest.mock('@/lib/domain/bluesky/handle-links', () => ({ verifiedBlueskyHandle: async () => null }))
+
 describe('CustomHTMLElement on a page, server-rendered', () => {
   test.each([
     ['content, entity-escaped', `<CustomHTMLElement content="${ESCAPED}" />`],
@@ -124,14 +156,16 @@ describe('CustomHTMLElement on a page, server-rendered', () => {
     ['content, raw in single quotes', `<CustomHTMLElement content='${UNSAFE}' />`],
     ['an escaped text child', `<CustomHTMLElement>${ESCAPED}</CustomHTMLElement>`],
     ['tagName set to script', '<CustomHTMLElement tagName="script" content="shown as text" />'],
-  ])('%s', (_label, source) => {
-    const doc = domOf(renderPage(`<div><h1>My page</h1>${source}</div>`))
-    expectNothingRuns(doc)
-    expect(doc.body.textContent).toContain('My page')
+  ])('%s', async (_label, source) => {
+    for (const stored of ['artifact', 'old copy'] as const) {
+      const doc = domOf(await renderPage(`<div><h1>My page</h1>${source}</div>`, stored))
+      expectNothingRuns(doc)
+      expect(doc.body.textContent).toContain('My page')
+    }
   })
 
-  test('a harmless value still shows', () => {
-    const doc = domOf(renderPage('<CustomHTMLElement tagName="aside" content="Now playing: Cocteau Twins" />'))
+  test('a harmless value still shows', async () => {
+    const doc = domOf(await renderPage('<CustomHTMLElement tagName="aside" content="Now playing: Cocteau Twins" />'))
     expect(doc.querySelector('aside')?.textContent).toBe('Now playing: Cocteau Twins')
   })
 })

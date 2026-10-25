@@ -13,6 +13,9 @@ jest.mock('@noble/ed25519', () => ({
   etc: {},
 }))
 
+// The component runtime loads at once, as in Next's server render
+jest.mock('next/dynamic', () => require('../../../../tests/template-engine/sync-dynamic').syncDynamic)
+
 import React from 'react'
 import { render, waitFor } from '@testing-library/react'
 import { StaticHTMLWithIslands } from '@/components/core/profile/HTMLIslandHydration'

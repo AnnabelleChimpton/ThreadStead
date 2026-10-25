@@ -335,7 +335,7 @@ describe("the page's CSS stays off the site's chrome", () => {
 
   test("the page's CSS comes after the site's, before the page, like the preview's", () => {
     const app = fs.readFileSync(path.join(ROOT, 'pages/_app.tsx'), 'utf8')
-    const pageStyle = app.indexOf("'advanced-template-css'")
+    const pageStyle = app.indexOf("<style id={advancedPage ? 'advanced-template-css'")
     expect(pageStyle).toBeGreaterThan(app.indexOf('</Head>'))
     expect(pageStyle).toBeGreaterThan(app.indexOf('{isProfilePage && siteCssStyle}'))
     expect(pageStyle).toBeLessThan(app.indexOf('<Component {...pageProps} />'))

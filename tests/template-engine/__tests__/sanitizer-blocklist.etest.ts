@@ -21,7 +21,8 @@ import { compileTemplateToArtifacts } from '@/lib/templates/compilation/compile-
 import { createCustomSchema } from '@/lib/templates/compilation/template-parser'
 import { COMPONENT_TAG_PREFIX } from '@/lib/templates/compilation/source-scan'
 import { NEVER_ALLOWED_ATTRIBUTES, NEVER_ALLOWED_TAGS } from '@/lib/templates/compilation/html-allowlist'
-import { CUSTOM_HTML_TAGS, sanitizeCustomHTML } from '@/components/features/templates/CustomHTMLElement'
+import { CUSTOM_HTML_TAGS } from '@/components/features/templates/CustomHTMLElement'
+import { sanitizeCustomHTML } from '@/lib/templates/compilation/custom-html'
 
 type Schema = {
   tagNames: string[]

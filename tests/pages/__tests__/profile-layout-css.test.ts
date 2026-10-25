@@ -35,6 +35,8 @@ import type { GetServerSidePropsContext } from 'next'
 import { db } from '@/lib/config/database/connection'
 import { getServerSideProps as profilePageProps } from '@/pages/resident/[username]/index'
 import { getServerSideProps as postPageProps } from '@/pages/resident/[username]/post/[postId]'
+import { readServerOnly } from '@/lib/utils/server-only'
+import { advancedPageCss } from '@/lib/templates/rendering/page-css'
 
 const ADMIN_CSS = '.ts-profile-header { color: teal; }'
 const OWN_CSS = 'body { background: plum; }'
@@ -118,7 +120,10 @@ describe('your own HTML page', () => {
     expect(props.templateMode).toBe('advanced')
     expect(props.residentData).toBeDefined()
     expect(props.compiledTemplate).toBeDefined()
-    expect(props.customCSS).toBe(OWN_CSS)
+    // Its CSS goes once, transformed, for the server render only (not in the page data)
+    expect(props).not.toHaveProperty('customCSS')
+    expect(JSON.stringify(props)).not.toContain('plum')
+    expect(readServerOnly(props, 'advanced-template-css')).toBe(advancedPageCss(OWN_CSS, props.compiledTemplate))
     expect(props.cssMode).toBe('disable')
     expect(props.hideNavigation).toBe(true)
   })
@@ -144,4 +149,10 @@ describe('site styles', () => {
     const props = await postProps({ templateMode: 'enhanced', cssMode: 'disable', includeSiteCSS: false })
     expect(props).not.toHaveProperty('includeSiteCSS')
   })
+})
+
+test('a client-side navigation gets the page CSS as a prop, since it arrives as JSON', async () => {
+  serve({ templateMode: 'advanced', cssMode: 'disable', customCSS: OWN_CSS })
+  const props = propsOf(await profilePageProps({ params: { username: 'pigeon' }, query: {}, req: { headers: { 'x-nextjs-data': '1' } } } as unknown as GetServerSidePropsContext))
+  expect(props.pageCss).toBe(advancedPageCss(OWN_CSS, props.compiledTemplate))
 })

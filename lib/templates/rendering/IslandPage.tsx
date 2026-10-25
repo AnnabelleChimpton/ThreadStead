@@ -1,43 +1,42 @@
 /**
- * Renders a page of your own HTML from its page tree (page-tree.ts), putting
- * each registered component where the compiler left its island placeholder.
+ * Renders a page of your own HTML from its page tree (page-tree.ts). Its
+ * components, where the compiler left their island placeholders, are drawn
+ * by `renderIsland` (PageWithComponents.tsx), which brings the component
+ * registry: a page with none never loads it.
  *
  * Pure: the same props give the same elements on the server and in the
  * browser, so the page is server-rendered and hydrated like any React page.
- *
- * Each island is `IslandErrorBoundary > ResidentDataProvider > Component`.
- * Keep that shape: event and layout components (OnClick, Timeout,
- * ImageCarousel…) look through it to find their children.
  */
 import React from 'react';
 import { importantStyleRef, parseStyleString } from '@/lib/utils/css/parse-style-string';
 import type { Island } from '@/lib/templates/compilation/compiler';
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider';
-import { ResidentDataProvider } from '@/components/features/templates/ResidentDataProvider';
-import { componentRegistry } from '@/lib/templates/core/template-registry';
 import { domAttributeToReactProp } from '@/lib/templates/core/attribute-mappings';
-import { separateCSSProps, applyCSSProps } from '@/lib/templates/styling/universal-css-props';
-import { IslandErrorBoundary } from '@/components/core/profile/IslandErrorBoundary';
 import { islandIdOf, type PageTreeElement, type PageTreeNode } from './page-tree';
+
+/** Draws one component with what the page put inside it, or null when it isn't registered */
+export type RenderIsland = (island: Island, children: React.ReactNode[] | undefined, residentData: ResidentData) => React.ReactNode | null;
 
 export interface IslandPageProps {
   tree: PageTreeNode[];
   islands: Island[];
   residentData: ResidentData;
+  renderIsland?: RenderIsland;
 }
 
-export default function IslandPage({ tree, islands, residentData }: IslandPageProps) {
+export default function IslandPage({ tree, islands, residentData, renderIsland }: IslandPageProps) {
   const islandMap = React.useMemo(() => {
     const map = new Map<string, Island>();
     for (const island of islands) if (!map.has(island.id)) map.set(island.id, island);
     return map;
   }, [islands]);
-  return <>{renderChildren(tree, { islandMap, residentData }, 'n')}</>;
+  return <>{renderChildren(tree, { islandMap, residentData, renderIsland }, 'n')}</>;
 }
 
 interface WalkContext {
   islandMap: Map<string, Island>;
   residentData: ResidentData;
+  renderIsland?: RenderIsland;
 }
 
 function renderChildren(nodes: PageTreeNode[] | undefined, ctx: WalkContext, keyPrefix: string): React.ReactNode[] {
@@ -49,12 +48,10 @@ function renderNode(node: PageTreeNode, ctx: WalkContext, key: string): React.Re
 
   const islandId = islandIdOf(node);
   const island = islandId ? ctx.islandMap.get(islandId) : undefined;
-  if (island) {
-    const Component = getComponent(island.component);
-    if (Component) {
-      const children = renderChildren(node.c, ctx, key).map(markPageHTML);
-      return renderIsland(island, Component, children.length > 0 ? children : undefined, ctx);
-    }
+  if (island && ctx.renderIsland) {
+    const children = renderChildren(node.c, ctx, key).map(markPageHTML);
+    const drawn = ctx.renderIsland(island, children.length > 0 ? children : undefined, ctx.residentData);
+    if (drawn) return drawn;
     console.error(`Template component "${island.component}" isn't registered`);
   }
 
@@ -125,61 +122,3 @@ function markPageHTML(child: React.ReactNode): React.ReactNode {
 const LEGACY_ATTRIBUTES = new Set([
   'bgcolor', 'valign', 'nowrap', 'hspace', 'vspace', 'alink', 'vlink', 'charoff', 'axis', 'compact', 'noshade',
 ]);
-
-function renderIsland(
-  island: Island,
-  Component: React.ComponentType<Record<string, unknown>>,
-  children: React.ReactNode[] | undefined,
-  ctx: WalkContext
-): React.ReactNode {
-  let componentProps: Record<string, unknown>;
-
-  if (island._precomputed) {
-    // Props split into component props and styles at save time
-    componentProps = {
-      ...island._precomputed.componentProps,
-      style: island._precomputed.styles,
-    };
-  } else {
-    // Islands stored before the split was precomputed
-    const props = island.props;
-    const { cssProps } = separateCSSProps(props);
-    const existingStyle =
-      typeof props.style === 'string' ? parseStyleString(props.style) : (props.style as React.CSSProperties) || {};
-    componentProps = {
-      ...props,
-      style: {
-        ...existingStyle,
-        ...applyCSSProps(cssProps),
-      },
-    };
-  }
-
-  return (
-    <IslandErrorBoundary
-      islandId={island.id}
-      key={island.id}
-      component={island.component}
-      ownerSees={ctx.residentData.viewer?.id != null && ctx.residentData.viewer.id === ctx.residentData.owner?.id}
-    >
-      <ResidentDataProvider data={ctx.residentData}>
-        <Component {...componentProps}>{children}</Component>
-      </ResidentDataProvider>
-    </IslandErrorBoundary>
-  );
-}
-
-function getComponent(name: string): React.ComponentType<Record<string, unknown>> | null {
-  const registration = componentRegistry.get(name);
-  if (registration) return registration.component as React.ComponentType<Record<string, unknown>>;
-  // Choose's branches live on Choose
-  const lower = name.toLowerCase();
-  if (lower === 'when' || lower === 'otherwise') {
-    const choose = componentRegistry.get('Choose')?.component as unknown as
-      | Record<string, React.ComponentType<Record<string, unknown>>>
-      | undefined;
-    return (lower === 'when' ? choose?.When : choose?.Otherwise) ?? null;
-  }
-  return null;
-}
-
