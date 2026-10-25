@@ -1,37 +1,13 @@
 import React from 'react';
-import type { StrippedEntry } from './ValidationFeedbackPanel';
+import { splitLine, type LiveProblems } from '@/lib/templates/editor/live-problems';
 
 /**
  * What's wrong with the page as you type it, under the code: the editor
  * compiles on every pause for the preview anyway, and this shows what that
- * compile found, with each line number taking you to the line. Before, these
- * only showed after Save, by which time the page was already live.
+ * compile found, with each line number taking you to the line (and the line
+ * marked in the gutter: lib/templates/editor/live-problems.ts). Before,
+ * these only showed after Save, by which time the page was already live.
  */
-export interface LiveProblems {
-  /** 'failed': the page can't be saved as it is; the preview shows the last version that worked */
-  status: 'idle' | 'ok' | 'failed';
-  errors: string[];
-  warnings: string[];
-  stripped: StrippedEntry[];
-}
-
-export const NO_PROBLEMS: LiveProblems = { status: 'idle', errors: [], warnings: [], stripped: [] };
-
-/** "Line 3: …" → 3 and the rest; the first line only (errors carry the code and a Tip below it) */
-export function splitLine(message: string): { line?: number; text: string } {
-  const m = message.match(/^Line (\d+):\s*([\s\S]*)$/);
-  return m ? { line: Number(m[1]), text: m[2] } : { text: message };
-}
-
-/** The first line a problem is on, for the preview's "Line N has a problem" */
-export function firstProblemLine(problems: LiveProblems): number | undefined {
-  for (const e of problems.errors) {
-    const { line } = splitLine(e);
-    if (line) return line;
-  }
-  return undefined;
-}
-
 export default function ProblemsStrip({
   problems,
   onJump,

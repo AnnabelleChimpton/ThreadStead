@@ -29,9 +29,10 @@ import Link from 'next/link';
 import { useSiteConfig } from '@/hooks/useSiteConfig';
 import { useSiteCSS } from '@/hooks/useSiteCSS';
 import NavigationPreview from '@/components/features/templates/NavigationPreview';
-import ValidationFeedbackPanel, { hasStrippedNeedingAttention, type StrippedEntry } from './ValidationFeedbackPanel';
 import { cssProblems } from '@/lib/utils/css/css-problems';
-import ProblemsStrip, { NO_PROBLEMS, firstProblemLine, type LiveProblems } from './ProblemsStrip';
+import ProblemsStrip from './ProblemsStrip';
+import { NO_PROBLEMS, firstProblemLine, hasStrippedNeedingAttention, problemMarks, type LiveProblems, type StrippedEntry } from '@/lib/templates/editor/live-problems';
+import { lintGutter, setDiagnostics } from '@codemirror/lint';
 import { bringsOwnStylesheet, movePastedStyles, pastedCSS, pastedCSSHistory, WHOLE_PAGE } from '@/lib/templates/editor/pasted-styles';
 import { useConfirm } from '@/contexts/ConfirmContext';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
@@ -561,7 +562,6 @@ export default function EnhancedTemplateEditor({
       componentCounts: Record<string, number>;
     };
   } | null>(null);
-  const [showValidationPanel, setShowValidationPanel] = useState(false);
 
 
   const [isSaving, setIsSaving] = useState(false);
@@ -637,12 +637,6 @@ export default function EnhancedTemplateEditor({
 
   // What the live compile found, shown under the code as you type
   const [liveProblems, setLiveProblems] = useState<LiveProblems>(NO_PROBLEMS);
-  // A blocked save's panel goes once the live check finds the page fixed: it
-  // kept listing the old errors (template audit 07 #9)
-  const liveStatus = liveProblems.status;
-  useEffect(() => {
-    if (liveStatus === 'ok' && validationResult && !validationResult.isValid) setShowValidationPanel(false);
-  }, [liveStatus, validationResult]);
   // The CSS's own problems, checked here as you type (nothing to compile)
   const deferredCSS = React.useDeferredValue(customCSS);
   const cssProblemList = React.useMemo<LiveProblems>(
@@ -865,14 +859,24 @@ export default function EnhancedTemplateEditor({
       htmlLang(componentSchemas ? { extraTags: buildExtraTags(componentSchemas) } : {}),
       htmlLanguage.data.of({ autocomplete: nicknameCompletions }),
       pastedCSSHistory(setCustomCSS),
+      lintGutter(),
       ...(codeSettings.wrap.html ? [EditorView.lineWrapping] : []),
     ],
     [componentSchemas, codeSettings.wrap.html]
   );
   const cssExtensions = React.useMemo(
-    () => [cssLang(), ...(codeSettings.wrap.css ? [EditorView.lineWrapping] : [])],
+    () => [cssLang(), lintGutter(), ...(codeSettings.wrap.css ? [EditorView.lineWrapping] : [])],
     [codeSettings.wrap.css]
   );
+
+  // Each problem with a line, marked on it in the gutter too
+  // (lib/templates/editor/live-problems.ts): when the problems change, and
+  // when the code pane first appears
+  const markProblems = useCallback((view: EditorView | null, problems: LiveProblems) => {
+    if (view) view.dispatch(setDiagnostics(view.state, problemMarks(view.state.doc, problems)));
+  }, []);
+  useEffect(() => markProblems(templateViewRef.current, liveProblems), [markProblems, liveProblems]);
+  useEffect(() => markProblems(cssViewRef.current, cssProblemList), [markProblems, cssProblemList]);
   const codeStyle = { height: '100%', fontSize: `${codeSettings.size}px` };
 
   const tidy = useCallback(async (pane: CodePane) => {
@@ -1195,11 +1199,22 @@ export default function EnhancedTemplateEditor({
 
   // Validate template and update validation result
   // Returns the full validation data so caller can check warnings/stripped components
-  const handleValidate = useCallback(async (): Promise<{ isValid: boolean; hasWarnings: boolean; hasStripped: boolean }> => {
+  // A save that can't go: the list under the code says what, and the HTML
+  // goes to the first one with a line (the panel it opened kept them apart,
+  // and went stale once the page was fixed)
+  const showProblems = useCallback((errors: string[]) => {
+    setLiveProblems((current) => ({ ...current, status: 'failed', errors }));
+    setActiveTab('template');
+    const line = firstProblemLine({ errors });
+    // Once the HTML pane is the one showing
+    if (line) setTimeout(() => jumpToLine(line), 0);
+  }, [jumpToLine]);
+
+  const handleValidate = useCallback(async (): Promise<{ isValid: boolean; hasWarnings: boolean; hasStripped: boolean; errors: string[] }> => {
     // Don't validate empty templates or standard layout
     if (!template.trim() || useStandardLayout) {
       setValidationResult(null);
-      return { isValid: true, hasWarnings: false, hasStripped: false };
+      return { isValid: true, hasWarnings: false, hasStripped: false, errors: [] };
     }
 
     try {
@@ -1250,7 +1265,7 @@ export default function EnhancedTemplateEditor({
           warnings
         };
         setValidationResult(errorValidation);
-        return { isValid: false, hasWarnings: warnings.length > 0, hasStripped: false };
+        return { isValid: false, hasWarnings: warnings.length > 0, hasStripped: false, errors };
       }
 
       const result = await response.json();
@@ -1270,7 +1285,8 @@ export default function EnhancedTemplateEditor({
         isValid: validationData.isValid,
         hasWarnings: validationData.warnings.length > 0,
         // Document wrappers from a pasted whole page are expected, not a problem
-        hasStripped: hasStrippedNeedingAttention(validationData.strippedComponents)
+        hasStripped: hasStrippedNeedingAttention(validationData.strippedComponents),
+        errors: validationData.errors as string[]
       };
     } catch (error) {
       console.error('Validation failed:', error);
@@ -1280,7 +1296,7 @@ export default function EnhancedTemplateEditor({
         warnings: []
       };
       setValidationResult(errorValidation);
-      return { isValid: false, hasWarnings: false, hasStripped: false };
+      return { isValid: false, hasWarnings: false, hasStripped: false, errors: errorValidation.errors };
     }
   }, [template, customCSS, user.id, useStandardLayout]);
 
@@ -1331,7 +1347,6 @@ export default function EnhancedTemplateEditor({
             hasStrippedNeedingAttention(validationResult.strippedComponents)
           ));
 
-      setShowValidationPanel(false);
       if (hasIssues) {
         setSaveMessage({ text: "Saved. A few things won't work as written; they're listed under the code.", tone: 'ok' });
         setTimeout(() => setSaveMessage(null), 8000);
@@ -1344,33 +1359,24 @@ export default function EnhancedTemplateEditor({
       setSaveState('error');
       setHasUnsavedChanges(true); // Restore unsaved state on error
 
-      // Extract error message and display in ValidationFeedbackPanel
+      // What went wrong goes in the list under the code, with the page's own
+      // problems (the Validation Results panel kept it apart, and went stale)
       const errorMessage = error instanceof Error ? error.message : "That didn't save. Try again in a moment.";
-
-      // Create validation result to display in panel
-      setValidationResult({
-        isValid: false,
-        errors: [errorMessage],
-        warnings: []
-      });
-
-      // Show the validation panel with the error
-      setShowValidationPanel(true);
-
-      // Also show toast for quick feedback
+      showProblems([errorMessage]);
       setSaveMessage({ text: "That didn't save. What went wrong is under the code.", tone: 'error' });
       setTimeout(() => setSaveMessage(null), 5000);
     }
-  }, [onSave, template, customCSS, compiledTemplate, compileTemplateForPreview, cssMode, hideNavigation, validationResult, markSaved, cssWillChange, shareToFeed, sharePageUpdate]);
+  }, [onSave, template, customCSS, compiledTemplate, compileTemplateForPreview, cssMode, hideNavigation, validationResult, markSaved, cssWillChange, shareToFeed, sharePageUpdate, showProblems]);
 
   // Main save handler with validation
   const handleSave = useCallback(async () => {
     // Validate template first
     const validationInfo = await handleValidate();
 
-    // If validation has errors, block save and show panel
+    // If validation has errors, block save: the list under the code says
+    // what, and the code goes to the first one
     if (!validationInfo.isValid) {
-      setShowValidationPanel(true);
+      showProblems(validationInfo.errors);
       setSaveMessage({ text: "Not saved yet: fix what's listed first.", tone: 'warn' });
       setTimeout(() => setSaveMessage(null), 5000);
       return;
@@ -1397,7 +1403,7 @@ export default function EnhancedTemplateEditor({
       // Error is already handled by performSave's internal catch block
       console.error('Error in handleSave:', error);
     }
-  }, [handleValidate, performSave]);
+  }, [handleValidate, performSave, showProblems]);
 
   // Cmd/Ctrl+S saves, as in any editor: it opened the browser's "Save page
   // as" instead (template audit 07 #7)
@@ -1673,7 +1679,7 @@ export default function EnhancedTemplateEditor({
         </div>
         <div className="flex-1 min-h-0 overflow-hidden bg-white" onPasteCapture={handleTemplatePaste} onDropCapture={handleTemplateDrop}>
           <CodeMirror
-            onCreateEditor={(view) => { templateViewRef.current = view; }}
+            onCreateEditor={(view) => { templateViewRef.current = view; markProblems(view, liveProblems); }}
             value={template}
             onChange={handleTemplateChange}
             extensions={templateExtensions}
@@ -1769,7 +1775,7 @@ export default function EnhancedTemplateEditor({
         </p>
         <div className="flex-1 min-h-0 overflow-hidden bg-white">
           <CodeMirror
-            onCreateEditor={(view) => { cssViewRef.current = view; }}
+            onCreateEditor={(view) => { cssViewRef.current = view; markProblems(view, cssProblemList); }}
             value={customCSS}
             onChange={(value: string) => setCustomCSS(value)}
             extensions={cssExtensions}
@@ -2108,14 +2114,6 @@ body {
         />
       )}
 
-      {/* Validation Feedback Panel */}
-      {showValidationPanel && validationResult && (
-        <ValidationFeedbackPanel
-          validationResult={validationResult}
-          onDismiss={() => setShowValidationPanel(false)}
-          onSaveAnyway={undefined}
-        />
-      )}
     </div>
     </>
   );

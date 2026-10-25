@@ -4,7 +4,7 @@
  * A value that doesn't fit used to become the default with nothing said, or
  * a console.warn on the server; the enum check only worked for all-lowercase
  * prop names; a misspelt attribute vanished in the sanitizer. Now each one is
- * a validation warning with its line: the editor's ValidationFeedbackPanel
+ * a validation warning with its line: the editor's list under the code
  * shows it to the page's owner. Visitors get the same page as before, and
  * nothing of the message reaches the compiled page.
  */
