@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import { useTemplateState } from '@/lib/templates/state/TemplateStateProvider';
 import { useResidentData } from '@/components/features/templates/ResidentDataProvider';
 import { useForEachContext } from '../loops/ForEach';
@@ -53,14 +53,11 @@ export function useKeyEvent(type: 'keydown' | 'keyup', props: OnKeyPressProps) {
   const residentData = useResidentData();
   const forEachContext = useForEachContext();
 
-  // Whether the key is down: kept across renders, since the listener is
-  // set up again whenever the page's state changes (as a press changes it)
-  const down = useRef(false);
-
   useEffect(() => {
     if (!keyToWatch) {
       return;
     }
+    trackKeys();
 
     // Whether this key: a letter in either case, since Shift turns the
     // keyup of "a" into "A" and a held key never let go (bug bash 2026-10-26)
@@ -68,15 +65,9 @@ export function useKeyEvent(type: 'keydown' | 'keyup', props: OnKeyPressProps) {
     const run = () => executeActions(children, templateState, residentData, forEachContext);
 
     const handleKey = (event: KeyboardEvent) => {
-      if (!isKey(event.key)) return;
-      if (event.type === 'keydown') down.current = true;
-      if (event.type !== type) {
-        return;
-      }
+      if (!isKey(event.key) || event.type !== type) return;
       if (type === 'keyup') {
         // Let go: whatever it was pressed in, so a held key is never stuck
-        if (!down.current) return;
-        down.current = false;
         run();
         return;
       }
@@ -97,9 +88,7 @@ export function useKeyEvent(type: 'keydown' | 'keyup', props: OnKeyPressProps) {
     // A key let go while the page wasn't looking (another tab or window)
     // never sends its keyup: count it let go when the page loses focus
     const letGo = () => {
-      if (type !== 'keyup' || !down.current) return;
-      down.current = false;
-      run();
+      if (type === 'keyup' && letGoUnseen.has(keyToWatch.toLowerCase())) run();
     };
     const hidden = () => {
       if (document.visibilityState === 'hidden') letGo();
@@ -116,6 +105,32 @@ export function useKeyEvent(type: 'keydown' | 'keyup', props: OnKeyPressProps) {
       document.removeEventListener('visibilitychange', hidden);
     };
   }, [type, keyToWatch, keepsScroll, children, templateState, residentData, forEachContext]);
+}
+
+/**
+ * The keys down right now, for the whole page: one listener, set up once,
+ * so a key pressed is always seen. Per OnKeyUp, the press that changed the
+ * page's state re-rendered it inside the key event in Chromium, its
+ * listener was swapped out before it saw the key go down, and the first
+ * release was missed (Firefox/Safari check, 2026-10-26). `letGoUnseen`:
+ * the ones down when the page lost focus, which never send their keyup.
+ */
+const keysDown = new Set<string>();
+let letGoUnseen = new Set<string>();
+const tracked = new WeakSet<Document>();
+
+/** Start tracking, once per document, from the first key component that mounts; never taken down */
+function trackKeys() {
+  if (tracked.has(document)) return;
+  tracked.add(document);
+  document.addEventListener('keydown', (event) => keysDown.add(event.key.toLowerCase()), true);
+  document.addEventListener('keyup', (event) => keysDown.delete(event.key.toLowerCase()), true);
+  const lostFocus = () => {
+    letGoUnseen = new Set(keysDown);
+    keysDown.clear();
+  };
+  window.addEventListener('blur', lostFocus);
+  document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && lostFocus(), true);
 }
 
 /** Where keys are typing: text fields, not checkboxes, sliders or radios */
