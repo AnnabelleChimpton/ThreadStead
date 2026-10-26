@@ -1,5 +1,7 @@
 import { db } from "@/lib/config/database/connection";
+import { ZodError } from "zod";
 import { apiHandler } from "@/lib/api/handler";
+import { customPageSchema, saveCustomPage } from "@/lib/domain/custom-pages/save";
 
 export default apiHandler(
   { methods: ["GET", "PUT", "DELETE"], auth: "admin", rateLimit: "admin" },
@@ -27,57 +29,15 @@ export default apiHandler(
       }
     } else if (req.method === "PUT") {
       try {
-        const { slug, title, content, published, showInNav, navOrder, navDropdown, hideNavbar, isHomepage, isLandingPage } = req.body;
-      
-        if (!slug || !title) {
-          return res.status(400).json({ error: "Slug and title are required" });
-        }
-
-        // Validate slug format (alphanumeric and hyphens only)
-        if (!/^[a-z0-9-]+$/.test(slug)) {
-          return res.status(400).json({ error: "Slug must contain only lowercase letters, numbers, and hyphens" });
-        }
-
-        // If setting as homepage, unset any existing homepage (except this one)
-        if (Boolean(isHomepage)) {
-          await db.customPage.updateMany({
-            where: {
-              isHomepage: true,
-              NOT: { id }
-            },
-            data: { isHomepage: false },
-          });
-        }
-
-        // If setting as landing page, unset any existing landing page (except this one)
-        if (Boolean(isLandingPage)) {
-          await db.customPage.updateMany({
-            where: {
-              isLandingPage: true,
-              NOT: { id }
-            },
-            data: { isLandingPage: false },
-          });
-        }
-
-        const page = await db.customPage.update({
-          where: { id },
-          data: {
-            slug,
-            title,
-            content: content || "",
-            published: Boolean(published),
-            showInNav: Boolean(showInNav),
-            navOrder: Number(navOrder) || 0,
-            navDropdown: navDropdown || null,
-            hideNavbar: hideNavbar !== undefined ? Boolean(hideNavbar) : false,
-            isHomepage: Boolean(isHomepage),
-            isLandingPage: Boolean(isLandingPage),
-          },
-        });
+        const parsed = customPageSchema.safeParse(req.body);
+        if (!parsed.success) throw parsed.error;
+        const body = parsed.data;
+        // The other page's homepage/landing flag moves with the save, or not at all
+        const page = await saveCustomPage(body, id);
 
         res.json({ page });
       } catch (error: any) {
+        if (error instanceof ZodError) throw error;
         console.error("Error updating custom page:", error);
         if (error.code === "P2002") {
           res.status(400).json({ error: "A page with this slug already exists" });
