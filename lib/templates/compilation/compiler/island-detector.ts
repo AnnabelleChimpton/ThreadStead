@@ -257,7 +257,8 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
           // NEW: Preserve event component props (OnKeyPress, OnChange, etc.)
           // These components need their config props in the static HTML for domToReact
           const eventComponentProps: Record<string, string[]> = {
-            'OnKeyPress': ['keyname', 'keyName'],
+            'OnKeyPress': ['keyname', 'keyName', 'scroll'],
+            'OnKeyUp': ['keyname', 'keyName'],
             'OnChange': ['var'],
             'OnMount': [],
             'OnInterval': ['seconds', 'milliseconds'],

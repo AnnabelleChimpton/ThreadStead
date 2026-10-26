@@ -10,6 +10,7 @@ import OnHover from '@/components/features/templates/state/events/OnHover';
 import OnMouseEnter from '@/components/features/templates/state/events/OnMouseEnter';
 import OnMouseLeave from '@/components/features/templates/state/events/OnMouseLeave';
 import OnKeyPress from '@/components/features/templates/state/events/OnKeyPress';
+import OnKeyUp from '@/components/features/templates/state/events/OnKeyUp';
 import OnVisible from '@/components/features/templates/state/events/OnVisible';
 
 // Import loop components
@@ -81,7 +82,7 @@ export function registerEventComponents(registry: ComponentRegistry) {
     name: 'OnInterval',
     component: OnInterval,
     group: 'logic',
-    description: 'Runs the actions inside over and over on a timer, for as long as the page is open.',
+    description: 'Runs the actions inside over and over on a timer, for as long as it\'s on the page. Inside an If it only runs while the If shows, so an If pauses it and starts it again: a game clock that stops at zero, or something that moves only while a key is held.',
     example: '<Var name="weather" type="string" initial="sunny" />\n<p>Outside my window it\'s <ShowVar name="weather" /></p>\n<OnInterval seconds="3"><Cycle var="weather" values="sunny, rainy, foggy, snowy" /></OnInterval>',
     props: {
       seconds: { type: 'number', min: 0.05, description: 'How many seconds between runs, at least 0.05. If you set neither this nor milliseconds, it\'s 1 second.' },
@@ -143,10 +144,26 @@ export function registerEventComponents(registry: ComponentRegistry) {
     name: 'OnKeyPress',
     component: OnKeyPress,
     group: 'logic',
-    description: 'Runs the actions inside when a certain key is pressed anywhere on the page, including while someone is typing in a text box.',
+    description: 'Runs the actions inside when a certain key is pressed anywhere on the page, but not while someone is typing in a text box. Holding a key down runs it again and again, as fast as the keyboard repeats. To know a key is held, set a variable here and clear it in an OnKeyUp.',
     example: '<Var name="jumps" type="number" initial="0" />\n<OnKeyPress keyName="j"><Increment var="jumps" /></OnKeyPress>\n<p>Press j to jump. Jumps: <ShowVar name="jumps" /></p>',
     props: {
-      keyName: { type: 'string', required: true, description: 'The key to listen for, named the way browsers name keys: Enter, Escape, ArrowUp, j, J (a capital means with Shift) and so on. It has to match exactly.' }
+      keyName: { type: 'string', required: true, description: 'The key to listen for, named the way browsers name keys: Enter, Escape, ArrowUp, j, J (a capital means with Shift), " " for Space and so on. It has to match exactly.' },
+      scroll: { type: 'boolean', default: true, description: 'Set false so the key doesn\'t also scroll the page, for arrow keys and Space in a game. It still presses a button or link that has the focus.' }
+    },
+    relationship: {
+      type: 'action',
+      acceptsChildren: true
+    }
+  });
+
+  registry.register({
+    name: 'OnKeyUp',
+    component: OnKeyUp,
+    group: 'logic',
+    description: 'Runs the actions inside when a certain key is let go, anywhere on the page but not while someone is typing in a text box. With an OnKeyPress for the same key it tells you a key is held down: set a variable when it goes down, clear it when it comes up, and move things on an OnInterval while it\'s set.',
+    example: '<Var name="x" type="number" initial="0" />\n<Var name="right" type="boolean" initial="false" />\n<OnKeyPress keyName="ArrowRight" scroll="false"><Set var="right" value="true" /></OnKeyPress>\n<OnKeyUp keyName="ArrowRight"><Set var="right" value="false" /></OnKeyUp>\n<If data="$vars.right">\n  <OnInterval milliseconds="50"><Set var="x" expression="Math.min(x + 1, 100)" /></OnInterval>\n</If>\n<p>Hold the right arrow: <ShowVar name="x" /></p>',
+    props: {
+      keyName: { type: 'string', required: true, description: 'The key to listen for, named the way browsers name keys: ArrowLeft, Shift, a and so on. It has to match exactly.' }
     },
     relationship: {
       type: 'action',

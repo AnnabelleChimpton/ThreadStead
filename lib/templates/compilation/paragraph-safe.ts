@@ -20,7 +20,7 @@ export const PARAGRAPH_SAFE_COMPONENTS: ReadonlySet<string> = new Set([
   // Conditions: only their children
   'If', 'ElseIf', 'Else', 'IfOwner', 'IfVisitor', 'Choose', 'When', 'Otherwise', 'Switch', 'Case', 'Default',
   // Events: only their children
-  'OnClick', 'OnChange', 'OnHover', 'OnInterval', 'OnKeyPress', 'OnMount', 'OnMouseEnter', 'OnMouseLeave',
+  'OnClick', 'OnChange', 'OnHover', 'OnInterval', 'OnKeyPress', 'OnKeyUp', 'OnMount', 'OnMouseEnter', 'OnMouseLeave',
   'OnTimeout', 'Timeout', 'Delay', 'Sequence', 'Step', 'Validate',
   // State and actions: nothing
   'Var', 'Set', 'Increment', 'Decrement', 'Toggle', 'Cycle', 'Reset', 'Push', 'Pop', 'Append', 'Prepend',

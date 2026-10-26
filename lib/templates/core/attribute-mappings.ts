@@ -266,7 +266,7 @@ export const ATTRIBUTE_MAP = {
   // EVENT HANDLERS
   // ============================================================================
 
-  // OnKeyPress
+  // OnKeyPress, OnKeyUp
   'keyname': 'keyName',
   'key-name': 'keyName',
 

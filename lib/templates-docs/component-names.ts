@@ -16,7 +16,7 @@ export const COMPONENT_NAMES: readonly string[] = [
   'FriendDisplay', 'Get', 'GlitchText', 'GradientBox', 'Grid', 'GridItem', 'GridLayout',
   'Guestbook', 'Heading', 'HouseBadge', 'If', 'IfOwner', 'IfVisitor', 'ImageCarousel', 'Increment', 'MatrixRain',
   'MediaGrid', 'Merge', 'MutualFriends', 'MyHouse', 'MyRings', 'NeonBorder', 'NeonSign', 'NotificationBell',
-  'NotificationCenter', 'ObjectSet', 'OnChange', 'OnClick', 'OnHover', 'OnInterval', 'OnKeyPress',
+  'NotificationCenter', 'ObjectSet', 'OnChange', 'OnClick', 'OnHover', 'OnInterval', 'OnKeyPress', 'OnKeyUp',
   'OnMount', 'OnMouseEnter', 'OnMouseLeave', 'OnTimeout', 'OnVisible', 'Option', 'Otherwise',
   'Paragraph', 'PixelArtFrame', 'PolaroidFrame', 'Pop', 'Prepend', 'ProfileBadges',
   'ProfileHeader', 'ProfileHero', 'ProfileMusic', 'ProfilePhoto', 'ProgressItem',
