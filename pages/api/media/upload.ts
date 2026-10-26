@@ -5,6 +5,8 @@ import { requireAction } from "@/lib/domain/users/capabilities";
 import multer from "multer";
 import { promisify } from "util";
 import { apiHandler } from "@/lib/api/handler";
+import { validationMessage } from "@/lib/api/validation";
+import { z } from "zod";
 import { rateLimitCheck } from "@/lib/server/http/rate-limit";
 import { PAGE_ASSET_CONTEXT, PAGE_ASSET_UPLOAD } from "@/lib/media/upload-context";
 import { checkSong, SongCheckError } from "@/lib/audio/server/check-song";
@@ -47,6 +49,18 @@ const upload = multer({
 // it's still accepted so a page loaded before a deploy can upload.
 const uploadOne = promisify(upload.fields([{ name: 'file', maxCount: 1 }, { name: 'image', maxCount: 1 }]));
 type UploadedFiles = { file?: Express.Multer.File[]; image?: Express.Multer.File[] };
+
+/**
+ * The form's text fields, with the limits the edit route and MediaUpload.tsx
+ * use. multer makes a field sent twice an array, which threw on .trim()
+ * after the files were already in storage; any length went in.
+ */
+const uploadFieldsSchema = z.object({
+  cap: z.string().max(5000).optional(),
+  caption: z.string().trim().max(500).optional(),
+  title: z.string().trim().max(100).optional(),
+  context: z.string().max(50).optional(),
+});
 
 // Rate limiting storage (in production, use Redis or database)
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
@@ -108,6 +122,10 @@ export default apiHandler(
         return res.status(400).json({ error: "No file uploaded" });
       }
 
+      const fields = uploadFieldsSchema.safeParse(req.body ?? {});
+      if (!fields.success) return res.status(400).json({ error: validationMessage(fields.error.issues) });
+      const { cap, caption, title, context } = fields.data;
+
       // Validate file type and size (HEIC removed - handled by client-side compression)
       const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
       const allowedMidiTypes = ['audio/midi', 'audio/x-midi', 'application/x-midi', 'audio/mid'];
@@ -164,7 +182,7 @@ export default apiHandler(
 
       // A picture for the page (the editor's picker) comes out of the page
       // pictures' bytes, not the gallery's photos a month
-      const forPage = req.body.context === PAGE_ASSET_UPLOAD && !treatedAsMidi;
+      const forPage = context === PAGE_ASSET_UPLOAD && !treatedAsMidi;
       if (forPage) {
         if ((await pagePictureBytes(db, me.id)) + file.size > PAGE_PICTURE_BYTES) {
           return res.status(413).json({ error: pagePicturesFull() });
@@ -179,7 +197,6 @@ export default apiHandler(
       }
 
       // Check capability
-      const { cap, caption, title, context, ringSlug } = req.body;
       if (!cap) {
         return res.status(401).json({ error: "Capability required" });
       }
@@ -233,8 +250,8 @@ export default apiHandler(
       const mediaRecord = await db.media.create({
         data: {
           userId: me.id,
-          caption: caption?.trim() || null,
-          title: title?.trim() || null,
+          caption: caption || null,
+          title: title || null,
           thumbnailUrl,
           mediumUrl,
           fullUrl,

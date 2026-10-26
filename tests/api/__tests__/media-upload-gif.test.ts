@@ -51,11 +51,12 @@ const ENV = {
 };
 const savedEnv: Record<string, string | undefined> = {};
 
-function multipart(file: Buffer, type: string, filename: string, context?: string, field = 'file') {
+function multipart(file: Buffer, type: string, filename: string, context?: string, field = 'file', extra: Array<[string, string]> = []) {
   return Buffer.concat([
     Buffer.from(
       `--${BOUNDARY}\r\nContent-Disposition: form-data; name="cap"\r\n\r\ngood-cap\r\n` +
         (context ? `--${BOUNDARY}\r\nContent-Disposition: form-data; name="context"\r\n\r\n${context}\r\n` : '') +
+        extra.map(([name, value]) => `--${BOUNDARY}\r\nContent-Disposition: form-data; name="${name}"\r\n\r\n${value}\r\n`).join('') +
         `--${BOUNDARY}\r\nContent-Disposition: form-data; name="${field}"; filename="${filename}"\r\nContent-Type: ${type}\r\n\r\n`
     ),
     file,
@@ -63,8 +64,8 @@ function multipart(file: Buffer, type: string, filename: string, context?: strin
   ]);
 }
 
-async function upload(file: Buffer, type = 'image/gif', filename = 'dance.gif', context?: string, field?: string) {
-  const body = multipart(file, type, filename, context, field);
+async function upload(file: Buffer, type = 'image/gif', filename = 'dance.gif', context?: string, field?: string, extra?: Array<[string, string]>) {
+  const body = multipart(file, type, filename, context, field, extra);
   const req = Readable.from([body]) as unknown as NextApiRequest & Record<string, unknown>;
   Object.assign(req, {
     method: 'POST',
@@ -267,4 +268,23 @@ describe('pictures for the page, and what counts against the limits (template au
     await upload(await twoFrameGif(8, 8));
     expect((db.media.count as jest.Mock).mock.calls[0][0].where).toMatchObject({ uploadContext: { not: 'other' } });
   });
+});
+
+// multer makes a field sent twice an array: .trim() threw after the files
+// were already in storage, and a caption of any length went in
+test.each([
+  [[['caption', 'one'], ['caption', 'two']] as Array<[string, string]>, "Caption isn't the right kind of value."],
+  [[['title', 'x'.repeat(101)]] as Array<[string, string]>, 'Title is too long: 100 characters at most.'],
+])('%#: text fields the form wouldn\'t send are a 400 before anything is stored', async (extra, error) => {
+  const res = await upload(await twoFrameGif(40, 40), 'image/gif', 'dance.gif', undefined, undefined, extra);
+  expect(res.statusCode).toBe(400);
+  expect(res.body.error).toBe(error);
+  expect(send).not.toHaveBeenCalled();
+  expect(db.media.create).not.toHaveBeenCalled();
+});
+
+test('a caption and title are saved trimmed', async () => {
+  const res = await upload(await twoFrameGif(40, 40), 'image/gif', 'dance.gif', undefined, undefined, [['caption', ' Hi there '], ['title', ' Dance ']]);
+  expect(res.statusCode).toBe(200);
+  expect(db.media.create).toHaveBeenCalledWith({ data: expect.objectContaining({ caption: 'Hi there', title: 'Dance' }) });
 });
