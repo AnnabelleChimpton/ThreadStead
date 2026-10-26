@@ -334,3 +334,25 @@ describe('Tabs Component', () => {
     });
   });
 });
+// A production build shortens function names: the island wrappers are
+// found by displayName, or a live page's Tabs showed "No tabs to display"
+describe('inside islands, with production (shortened) names', () => {
+  it('unwraps the island boundary and data provider to find each Tab', () => {
+    const E = ({ children }: { children: React.ReactNode }) => <>{children}</>;
+    E.displayName = 'IslandErrorBoundary';
+    const R = ({ children }: { children: React.ReactNode }) => <>{children}</>;
+    R.displayName = 'ResidentDataProvider';
+    render(
+      <Tabs>
+        {'\n  '}
+        <E><R><Tab title="One"><p>First</p></Tab></R></E>
+        {'\n  '}
+        <E><R><Tab title="Two"><p>Second</p></Tab></R></E>
+      </Tabs>
+    );
+    expect(screen.getByRole('tab', { name: 'One' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Two' })).toBeInTheDocument();
+    expect(screen.getByText('First')).toBeInTheDocument();
+    expect(screen.queryByText(/No tabs to display/)).toBeNull();
+  });
+});

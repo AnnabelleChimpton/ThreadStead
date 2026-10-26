@@ -18,6 +18,17 @@ export function Tab({ title, children }: TabProps) {
   // The Tabs parent will handle the actual rendering
   return <div data-tab-title={title}>{children}</div>;
 }
+Tab.displayName = 'Tab';
+
+/**
+ * A component's name, its displayName first: a production build shortens
+ * function names (IslandErrorBoundary becomes "e"), so reading `name` first
+ * never unwrapped an island and Tabs found no tabs on a live page.
+ */
+function typeNameOf(type: unknown): string | undefined {
+  const t = type as { displayName?: string; name?: string } | null | undefined;
+  return t?.displayName || t?.name;
+}
 
 export default function Tabs(props: TabsProps) {
   const { cssProps, componentProps } = separateCSSProps(props);
@@ -38,14 +49,14 @@ export default function Tabs(props: TabsProps) {
         let actualProps = child.props as any;
 
         // First, unwrap IslandErrorBoundary if present
-        const typeName = (child.type as any)?.name || (child.type as any)?.displayName;
+        const typeName = typeNameOf(child.type);
         if (typeName === 'IslandErrorBoundary' && actualProps.children && React.isValidElement(actualProps.children)) {
           actualChild = actualProps.children;
           actualProps = actualChild.props as any;
         }
 
         // Then, unwrap ResidentDataProvider if present
-        const actualTypeName = (actualChild.type as any)?.name || (actualChild.type as any)?.displayName;
+        const actualTypeName = typeNameOf(actualChild.type);
         if (actualTypeName === 'ResidentDataProvider' && actualProps.children && React.isValidElement(actualProps.children)) {
           actualChild = actualProps.children;
           actualProps = actualChild.props as any;
@@ -61,7 +72,7 @@ export default function Tabs(props: TabsProps) {
         }
 
         // Check if it's a Tab component by name/displayName (for compiled components)
-        const finalTypeName = (actualChild.type as any)?.name || (actualChild.type as any)?.displayName;
+        const finalTypeName = typeNameOf(actualChild.type);
         if (finalTypeName === 'Tab') {
           return {
             title: actualProps.title,
