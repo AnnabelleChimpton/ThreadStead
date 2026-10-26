@@ -65,7 +65,7 @@ it('an edit the code no longer matches writes nothing, says so, and asks the pre
   const posted = jest.spyOn(frame.contentWindow!, 'postMessage');
   send({ type: 'WORDS_EDIT', changes: [{ range: [28, 33], before: 'Goodbye', after: 'x' }] });
   expect(code().value).toBe(SOURCE);
-  expect(screen.getByText(/That changed in the code since the preview drew it/)).toBeInTheDocument();
+  expect(screen.getByText(/doesn't read the way the code has it/)).toBeInTheDocument();
   expect(posted).toHaveBeenCalledWith({ type: 'WORDS_RESET' }, window.location.origin);
 });
 

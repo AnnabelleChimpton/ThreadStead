@@ -21,7 +21,7 @@ export default function PageWithComponents(props: Omit<IslandPageProps, 'renderI
   return <IslandPage {...props} renderIsland={renderIsland} />;
 }
 
-function renderIsland(island: Island, children: React.ReactNode[] | undefined, residentData: ResidentData): React.ReactNode | null {
+function renderIsland(island: Island, children: React.ReactNode[] | undefined, residentData: ResidentData, sourceAt?: string): React.ReactNode | null {
   const Component = getComponent(island.component);
   if (!Component) return null;
 
@@ -52,6 +52,7 @@ function renderIsland(island: Island, children: React.ReactNode[] | undefined, r
       islandId={island.id}
       key={island.id}
       component={island.component}
+      sourceAt={sourceAt}
       ownerSees={residentData.viewer?.id != null && residentData.viewer.id === residentData.owner?.id}
     >
       <ResidentDataProvider data={residentData}>

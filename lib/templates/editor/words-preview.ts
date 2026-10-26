@@ -1,6 +1,7 @@
 /**
  * Words on the preview, the preview's side (design/words-on-preview/DESIGN.md).
- * Browser only, for pages/template-preview.tsx.
+ * Browser only, for pages/template-preview.tsx. Words inside components
+ * count when they're the page's HTML handed to the component (pageOwns).
  *
  * An editor compile marks each element with where its words are in the
  * source (data-ts-text: a range for each text node in it, "x" where it
@@ -31,8 +32,19 @@ const STYLE = `
 [data-words-host]:focus { outline: 2px solid #e27d60 !important; outline-offset: 2px !important; box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.35) !important; }
 `;
 
-/** Components and the site's chrome aren't the page's words */
-const NOT_WORDS = 'ts-island, [data-site-chrome], textarea, select, option, script, style';
+/** The site's chrome and form fields aren't the page's words */
+const NOT_WORDS = '[data-site-chrome], textarea, select, option, script, style';
+
+/**
+ * The page's own HTML: outside any component, or HTML a component was
+ * handed (a card's text, an <If>'s scene), which IslandPage marks
+ * data-ts-page. What a component draws itself (inside its <ts-island>,
+ * below no data-ts-page) is the component's.
+ */
+function pageOwns(el: Element): boolean {
+  if (el.closest(NOT_WORDS)) return false;
+  return el.closest('ts-island, [data-ts-page]')?.localName !== 'ts-island';
+}
 
 export function wordsOnPage(doc: Document, send: (message: WordsMessage) => void, revert: () => void) {
   let on = false;
@@ -53,7 +65,7 @@ export function wordsOnPage(doc: Document, send: (message: WordsMessage) => void
     const page = root();
     if (!page) return;
     for (const el of Array.from(page.querySelectorAll<HTMLElement>('[data-ts-text]'))) {
-      if (el.closest(NOT_WORDS)) continue;
+      if (!pageOwns(el)) continue;
       const ranges = el.getAttribute('data-ts-text')!.split(',');
       const texts = Array.from(el.childNodes).filter((n): n is Text => n.nodeType === 3);
       // The browser read the HTML into different text nodes than the compile: leave it be
@@ -82,13 +94,16 @@ export function wordsOnPage(doc: Document, send: (message: WordsMessage) => void
     if (!on) return;
     const owners = new Set(runs.map((run) => run.node.parentElement!));
     for (const el of owners) {
+      // The outermost block with words, not reaching out of a component:
+      // HTML handed to one is a block of its own inside it
       let up = el.parentElement;
-      while (up && !owners.has(up)) up = up.parentElement;
-      if (up) continue;
+      while (up && !owners.has(up) && up.localName !== 'ts-island') up = up.parentElement;
+      if (up && owners.has(up)) continue;
       el.setAttribute('contenteditable', 'plaintext-only');
       el.setAttribute('data-words-host', '');
       hosts.push(el);
-      // A component inside stays the component's
+      // A component inside stays the component's (the page's HTML handed
+      // to it gets blocks of its own)
       for (const inner of Array.from(el.querySelectorAll<HTMLElement>('ts-island'))) {
         inner.setAttribute('contenteditable', 'false');
         shut.push(inner);
@@ -167,16 +182,33 @@ export function wordsOnPage(doc: Document, send: (message: WordsMessage) => void
     const target = event.target instanceof Element ? event.target : null;
     if (!target || !root()?.contains(target)) return;
     if (event.altKey) {
+      // The nearest tag: the page's element, or the component it's in
       const el = target.closest('[data-ts-at]');
-      if (el && !target.closest('ts-island')) {
+      if (el) {
         event.preventDefault();
         send({ type: 'GO_TO_SOURCE', at: Number(el.getAttribute('data-ts-at')) });
       }
       return;
     }
     // Links stay put while you write in them
-    if (on && target.closest('a') && !target.closest('ts-island')) event.preventDefault();
+    const link = target.closest('a');
+    if (on && link && pageOwns(link)) event.preventDefault();
   };
+
+  // A component showing other words (a tab picked, an <If> coming true):
+  // their blocks become editable too, a moment after, never mid-sentence
+  let soon: ReturnType<typeof setTimeout> | null = null;
+  const watcher = typeof MutationObserver !== 'undefined'
+    ? new MutationObserver((records) => {
+        if (!on || editing || soon) return;
+        if (!records.some((record) => record.addedNodes.length > 0)) return;
+        soon = setTimeout(() => {
+          soon = null;
+          if (on && !editing) apply();
+        }, 150);
+      })
+    : null;
+  watcher?.observe(doc.body, { childList: true, subtree: true });
 
   doc.addEventListener('focusin', onFocusIn);
   doc.addEventListener('focusout', onFocusOut);
@@ -203,6 +235,8 @@ export function wordsOnPage(doc: Document, send: (message: WordsMessage) => void
     destroy() {
       clear();
       style.remove();
+      watcher?.disconnect();
+      if (soon) clearTimeout(soon);
       doc.removeEventListener('focusin', onFocusIn);
       doc.removeEventListener('focusout', onFocusOut);
       doc.removeEventListener('keydown', onKeyDown);

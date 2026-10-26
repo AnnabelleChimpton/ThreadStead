@@ -21,7 +21,8 @@ const flush = () => new Promise((r) => setTimeout(r, 0))
 
 const PAGE = `<h1 data-ts-text="4-6" data-ts-at="0">Hi</h1>` +
   `<p data-ts-text="13-19,28-35" data-ts-at="10">Hello <em data-ts-text="23-27">dear</em> friend</p>` +
-  `<div data-ts-text="40-44">text <ts-island><span data-ts-text="50-55">comp</span></ts-island></div>` +
+  `<div data-ts-text="40-44">text <ts-island data-ts-at="45"><span data-ts-text="50-55">comp</span>` +
+  `<p data-ts-page="" data-ts-text="58-64" data-ts-at="56">handed</p></ts-island></div>` +
   `<a href="/x" data-ts-text="60-64" data-ts-at="57">link</a>`
 
 afterEach(() => { live?.destroy(); live = null; document.body.innerHTML = '' })
@@ -30,7 +31,8 @@ test('with Words on, the outermost blocks holding words are editable, components
   const { words } = setup(PAGE)
   words.set(true)
   const hosts = Array.from(document.querySelectorAll('[data-words-host]')).map((h) => h.localName)
-  expect(hosts).toEqual(['h1', 'p', 'div', 'a'])
+  // The <p> handed to the component is a block of its own; the component's own <span> isn't
+  expect(hosts).toEqual(['h1', 'p', 'div', 'p', 'a'])
   expect(document.querySelector('p')!.getAttribute('contenteditable')).toBe('plaintext-only')
   expect(document.querySelector('em')!.hasAttribute('data-words-host')).toBe(false)
   expect(document.querySelector('ts-island')!.getAttribute('contenteditable')).toBe('false')
@@ -85,7 +87,11 @@ test('Alt-click sends where the tag is; a plain click on a link goes nowhere onl
   const { words, sent } = setup(PAGE)
   const em = document.querySelector('em')!
   em.dispatchEvent(new MouseEvent('click', { bubbles: true, altKey: true }))
-  expect(sent).toEqual([{ type: 'GO_TO_SOURCE', at: 10 }])
+  // A component's own part: the component's tag
+  document.querySelector('ts-island span')!.dispatchEvent(new MouseEvent('click', { bubbles: true, altKey: true }))
+  // The page's HTML handed to it: its own tag
+  document.querySelector('[data-ts-page]')!.dispatchEvent(new MouseEvent('click', { bubbles: true, altKey: true }))
+  expect(sent).toEqual([{ type: 'GO_TO_SOURCE', at: 10 }, { type: 'GO_TO_SOURCE', at: 45 }, { type: 'GO_TO_SOURCE', at: 56 }])
 
   const a = document.querySelector('a')!
   const plain = () => { const e = new MouseEvent('click', { bubbles: true, cancelable: true }); a.dispatchEvent(e); return e.defaultPrevented }
@@ -98,4 +104,29 @@ test("an element whose text nodes don't match its marks is left alone", () => {
   const { words } = setup(`<p data-ts-text="3-8">one<b>x</b>two</p>`)
   words.set(true)
   expect(document.querySelectorAll('[data-words-host]')).toHaveLength(0)
+})
+
+test('words handed to a component send their changes like any others', () => {
+  const { words, sent } = setup(PAGE)
+  words.set(true)
+  const handed = document.querySelector('[data-ts-page]')!
+  expect(handed.getAttribute('contenteditable')).toBe('plaintext-only')
+  focus(handed)
+  ;(handed.firstChild as Text).data = 'handed over'
+  leave(handed)
+  expect(sent).toEqual([{ type: 'WORDS_EDIT', changes: [{ range: [58, 64], before: 'handed', after: 'handed over' }] }])
+})
+
+test('words a component shows later (another tab) become editable a moment after', async () => {
+  const { words } = setup(`<ts-island data-ts-at="0"><p data-ts-page="" data-ts-text="10-15">first</p></ts-island>`)
+  words.set(true)
+  const island = document.querySelector('ts-island')!
+  const second = document.createElement('p')
+  second.setAttribute('data-ts-page', '')
+  second.setAttribute('data-ts-text', '20-26')
+  second.textContent = 'second'
+  island.replaceChildren(second)
+  expect(second.hasAttribute('data-words-host')).toBe(false)
+  await new Promise((r) => setTimeout(r, 200))
+  expect(second.getAttribute('contenteditable')).toBe('plaintext-only')
 })

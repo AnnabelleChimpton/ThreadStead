@@ -279,7 +279,9 @@ export function identifyIslandsWithTransform(ast: TemplateNode): { islands: Isla
           type: 'element',
           tagName: 'div',
           properties: preservedProperties,
-          children: processedChildren
+          children: processedChildren,
+          // An editor compile: where the component's tag is (Alt-click on it)
+          ...(node.tsAt !== undefined && { tsAt: node.tsAt }),
         };
 
         return placeholder;

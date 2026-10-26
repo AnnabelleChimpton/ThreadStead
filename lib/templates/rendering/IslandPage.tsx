@@ -15,7 +15,8 @@ import { domAttributeToReactProp } from '@/lib/templates/core/attribute-mappings
 import { islandIdOf, type PageTreeElement, type PageTreeNode } from './page-tree';
 
 /** Draws one component with what the page put inside it, or null when it isn't registered */
-export type RenderIsland = (island: Island, children: React.ReactNode[] | undefined, residentData: ResidentData) => React.ReactNode | null;
+/** `sourceAt`: where the component's tag is in the editor's source (an editor preview only) */
+export type RenderIsland = (island: Island, children: React.ReactNode[] | undefined, residentData: ResidentData, sourceAt?: string) => React.ReactNode | null;
 
 export interface IslandPageProps {
   tree: PageTreeNode[];
@@ -50,7 +51,8 @@ function renderNode(node: PageTreeNode, ctx: WalkContext, key: string): React.Re
   const island = islandId ? ctx.islandMap.get(islandId) : undefined;
   if (island && ctx.renderIsland) {
     const children = renderChildren(node.c, ctx, key).map(markPageHTML);
-    const drawn = ctx.renderIsland(island, children.length > 0 ? children : undefined, ctx.residentData);
+    const sourceAt = node.a?.find(([name]) => name === 'data-ts-at')?.[1];
+    const drawn = ctx.renderIsland(island, children.length > 0 ? children : undefined, ctx.residentData, sourceAt);
     if (drawn) return drawn;
     console.error(`Template component "${island.component}" isn't registered`);
   }

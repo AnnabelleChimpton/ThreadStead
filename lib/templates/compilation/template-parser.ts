@@ -762,11 +762,14 @@ export function parseHtml(html: string, positions = false): Root {
 }
 
 /**
- * Words on the preview (source-positions.ts): each text node of plain HTML
- * gets `tsRange`, where it is in the editor's source, and each element
- * `tsAt`, where its start tag is. Not inside components: they clone and
- * rewrite what they're given. astToJson keeps both; treeFromHast turns
- * them into the preview's data-ts-text and data-ts-at.
+ * Words on the preview (source-positions.ts): each text node gets
+ * `tsRange`, where it is in the editor's source, and each element `tsAt`,
+ * where its start tag is, components and the HTML handed to them
+ * included. astToJson keeps both; treeFromHast turns them into the
+ * preview's data-ts-text and data-ts-at. The preview edits only the
+ * page's own HTML (not a component's own drawing), and the editor writes
+ * nothing that doesn't read as the code does, so text a component
+ * rewrites can't go back wrong.
  */
 type Positioned = HastLike & {
   value?: string;
@@ -783,7 +786,6 @@ function markSourcePositions(node: Positioned, at: SourcePositions): void {
       const range = start !== undefined && end !== undefined ? at.text(start, end, child.value ?? '') : null;
       if (range) child.tsRange = range;
     } else if (child.type === 'element') {
-      if (child.data?.component) continue;
       const tag = start !== undefined ? at.tag(start) : null;
       if (tag !== null) child.tsAt = tag;
       markSourcePositions(child, at);

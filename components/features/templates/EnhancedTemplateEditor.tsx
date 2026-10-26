@@ -1906,7 +1906,7 @@ export default function EnhancedTemplateEditor({
       });
       const edits = changes.map((change) => wordsSourceEdit(current, lastCompiledTemplate, change));
       if (edits.length === 0 || edits.some((edit) => edit === null)) {
-        note('That changed in the code since the preview drew it, so nothing was written. The preview shows the code again.');
+        note("That doesn't read the way the code has it (the code changed, or a component shows it differently), so nothing was written. The preview shows the code again.");
         from.postMessage({ type: 'WORDS_RESET' }, window.location.origin);
         return;
       }
