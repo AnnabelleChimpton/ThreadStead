@@ -175,12 +175,12 @@ export function registerEventComponents(registry: ComponentRegistry) {
     name: 'ForEach',
     component: ForEach,
     group: 'logic',
-    description: 'Repeats what\'s inside once for each item in a list variable. Inside, write {book} (your item name in curly brackets) in text or attributes for the item, {book.title} for one field of an object, and {i} or {i + 1} for the position if you set index. ShowVar can\'t show the item; use the curly brackets.',
+    description: 'Repeats what\'s inside once for each item in a list variable. Inside, write {book} (your item name in curly brackets) in text or attributes, class and style too, for the item, {book.title} for one field of an object, and {i} or {i + 1} for the position if you set index. In a calculation, like Set expression="…" inside an OnClick, write the names without brackets: book, i. A ForEach inside another can use the outer one\'s names too. ShowVar can\'t show the item; use the curly brackets.',
     example: '<Var name="books" type="array" initial=\'["Earthsea", "Piranesi", "Momo"]\' />\n<ul>\n  <ForEach var="books" item="book" index="i">\n    <li>{i + 1}. {book}</li>\n  </ForEach>\n</ul>',
     props: {
       var: { type: 'string', required: true, description: 'The list variable to go through. If it isn\'t a list, nothing shows.' },
       item: { type: 'string', required: true, description: 'The name for the current item inside the loop, like book for {book}.' },
-      index: { type: 'string', description: 'A name for the current position, counting from 0, like i for {i}. {i + 1} counts from 1; only + works there.' },
+      index: { type: 'string', description: 'A name for the current position, counting from 0, like i for {i}. {i + 1} counts from 1; only + works in the brackets, so for more use CSS: style="left: calc({i} * 2em)". In a calculation it\'s just i, like expression="i * 2".' },
       className: { type: 'string', description: 'Not used yet.' }
     },
     relationship: {

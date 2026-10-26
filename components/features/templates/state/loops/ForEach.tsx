@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext } from 'react';
+import { importantStyleRef } from '@/lib/utils/css/parse-style-string';
 import { useTemplateState } from '@/lib/templates/state/TemplateStateProvider';
 import { getVariable } from '@/lib/templates/state/variable-utils';
 import { globalTemplateStateManager } from '@/lib/templates/state/TemplateStateManager';
@@ -236,6 +237,10 @@ export default function ForEach(props: ForEachProps) {
   } = props;
 
   const templateState = useTemplateState();
+  // A loop inside another sees the outer one's item and index too, and its
+  // scopes are its own for each outer item (two inner loops over the same
+  // list shared one scope before)
+  const outer = useForEachContext();
 
   // Get array from template state with prefix fallback
   // IMPORTANT: This must be before any conditional returns to avoid breaking React Hooks rules
@@ -301,12 +306,13 @@ export default function ForEach(props: ForEachProps) {
   return (
     <>
       {arrayValue.slice(0, maxIndex).map((itemValue, idx) => {
-        const scopeId = `forEach-${varName}-${idx}`;
+        const scopeId = `${outer ? `${outer.scopeId}/` : ''}forEach-${varName}-${idx}`;
 
         return (
           <ForEachIteration
             key={idx}
             scopeId={scopeId}
+            parentScopeId={outer?.scopeId}
             itemValue={itemValue}
             idx={idx}
             itemName={itemName}
@@ -334,6 +340,7 @@ export default function ForEach(props: ForEachProps) {
  */
 interface ForEachIterationProps {
   scopeId: string;
+  parentScopeId?: string;
   itemValue: any;
   idx: number;
   itemName: string;
@@ -348,6 +355,7 @@ interface ForEachIterationProps {
 function ForEachIteration(props: ForEachIterationProps) {
   const {
     scopeId,
+    parentScopeId,
     itemValue,
     idx,
     itemName,
@@ -362,8 +370,8 @@ function ForEachIteration(props: ForEachIterationProps) {
   // Register scope and variables in useLayoutEffect (runs before paint, on every render)
   // This ensures scopes are always available when Show components evaluate
   React.useLayoutEffect(() => {
-    // Ensure scope exists
-    globalTemplateStateManager.registerScope(scopeId);
+    // Ensure scope exists, inside an outer loop's
+    globalTemplateStateManager.registerScope(scopeId, parentScopeId);
 
     // Register/update item variable in this scope
     globalTemplateStateManager.registerScopedVariable(scopeId, itemName, {
@@ -385,7 +393,7 @@ function ForEachIteration(props: ForEachIterationProps) {
 
       globalTemplateStateManager.setScopedVariable(scopeId, indexName, idx, true);
     }
-  }, [scopeId, itemName, itemValue, idx, indexName]);
+  }, [scopeId, parentScopeId, itemName, itemValue, idx, indexName]);
 
   // P3.2: Cleanup - recursively delete scope and all child scopes when unmounting
   // This prevents memory leaks from nested ForEach loops
@@ -536,6 +544,15 @@ function processForEachChildren(
               indexName
             );
           }
+        } else if (key === 'style' && propValue && typeof propValue === 'object') {
+          // The page's style="left: calc({i} * 2em)" arrives as an object
+          // (IslandPage.tsx), so it was never filled in
+          const style = loopStyle(propValue, itemValue, itemName, currentIndex, indexName);
+          processedProps.style = style;
+          if (style !== propValue) {
+            const important = importantStyleRef(style as Record<string, string>);
+            if (important) processedProps.ref = important;
+          }
         } else {
           processedProps[key] = propValue;
         }
@@ -563,6 +580,34 @@ function processForEachChildren(
 
     return child;
   });
+}
+
+/**
+ * A style object with the loop's {item} and {i} filled in, or the same
+ * object when there was nothing to fill. A value a list item brought in
+ * can't load anything (url(), image-set()): that declaration is left out,
+ * since a list can come from the page address (a urlParam Var).
+ */
+function loopStyle(
+  style: Record<string, unknown>,
+  itemValue: any,
+  itemName: string,
+  currentIndex: number,
+  indexName?: string
+): Record<string, unknown> {
+  if (!Object.values(style).some((value) => typeof value === 'string' && value.includes('{'))) return style;
+  const filled: Record<string, unknown> = {};
+  for (const [name, value] of Object.entries(style)) {
+    if (typeof value !== 'string' || !value.includes('{')) {
+      filled[name] = value;
+      continue;
+    }
+    const replaced = replaceTemplatePlaceholders(value, itemValue, itemName, currentIndex, indexName);
+    const loads = /url\(|image-set\(|image\(|expression\(|\\/i;
+    if (loads.test(replaced) && !loads.test(value)) continue;
+    filled[name] = replaced;
+  }
+  return filled;
 }
 
 /** Props that name what a condition tests (If, ConditionalAttr, Break) */

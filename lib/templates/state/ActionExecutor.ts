@@ -18,6 +18,8 @@
 
 import React from 'react';
 import type { useTemplateState } from './TemplateStateProvider';
+import { globalTemplateStateManager } from './TemplateStateManager';
+import { withLoopNames } from './loop-names';
 import { evaluateIfCondition } from '@/components/features/templates/state/conditional/If';
 import { evaluateElseIfCondition } from '@/components/features/templates/state/conditional/ElseIf';
 import { executeSwitchActions } from '@/components/features/templates/state/conditional/Switch';
@@ -163,6 +165,18 @@ export function executeActions(
   templateState: ReturnType<typeof useTemplateState>,
   residentData: any,
   forEachContext: any = null,
+  currentElement?: HTMLElement
+): void {
+  // A loop's names (cell, i) in the calculations these actions make
+  const names = forEachContext?.scopeId ? globalTemplateStateManager.getScopeValues(forEachContext.scopeId) : null;
+  withLoopNames(names, () => runActions(children, templateState, residentData, forEachContext, currentElement));
+}
+
+function runActions(
+  children: React.ReactNode,
+  templateState: ReturnType<typeof useTemplateState>,
+  residentData: any,
+  forEachContext: any,
   currentElement?: HTMLElement
 ): void {
   const childArray = React.Children.toArray(children);

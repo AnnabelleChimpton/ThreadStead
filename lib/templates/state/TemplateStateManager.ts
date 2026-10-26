@@ -591,6 +591,21 @@ class TemplateStateManager {
   }
 
   /**
+   * Every name a scope can see, outer scopes first so inner ones win:
+   * a ForEach's item and index, and its outer loops' (lib/templates/state/loop-names.ts)
+   */
+  getScopeValues(scopeId: string | null | undefined): Record<string, unknown> {
+    const chain: Map<string, TemplateVariable>[] = [];
+    for (let id = scopeId; id; id = this.scopeParents.get(id)) {
+      const scope = this.scopes.get(id);
+      if (scope) chain.unshift(scope);
+    }
+    const values: Record<string, unknown> = {};
+    for (const scope of chain) for (const [name, variable] of scope) values[name] = variable.value;
+    return values;
+  }
+
+  /**
    * Subscribe to variable changes
    * Returns unsubscribe function
    */

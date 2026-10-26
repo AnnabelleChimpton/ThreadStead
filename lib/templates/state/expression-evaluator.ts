@@ -18,6 +18,7 @@
  * - No prototype pollution
  */
 
+import { loopNames } from './loop-names';
 import jsep from 'jsep';
 import jsepObject from '@jsep-plugin/object';
 
@@ -179,6 +180,10 @@ export function evaluateExpression(
     console.warn('[evaluateExpression] Invalid context:', context);
     return undefined;
   }
+
+  // Inside a loop, its names (cell, i) as well, under what the caller gave
+  const loop = loopNames();
+  if (loop) context = { ...loop, ...context };
 
   // P1.2: Check if expression is pure (no variables at all)
   // CRITICAL: An expression is only pure if it has NO variables, including:
