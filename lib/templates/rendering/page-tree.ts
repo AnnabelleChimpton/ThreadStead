@@ -71,13 +71,20 @@ function childrenFromHast(children: TemplateNode[] | undefined, inSvg: boolean):
  * DOM text node), or null for an element. Ranges only come from an editor
  * compile (compile-for-editor.ts positions).
  */
+/** A loop's {item}, {p.name} or {i + 1} in text */
+const PLACEHOLDER = /\{\s*[\w$.]+(?:\s*\+\s*\d+)?\s*\}/;
+
 function childrenWithRanges(children: TemplateNode[] | undefined, inSvg: boolean): { nodes: PageTreeNode[]; ranges: Array<string | null> } {
   const nodes: PageTreeNode[] = [];
   const ranges: Array<string | null> = [];
   for (const child of children ?? []) {
     const converted = nodeFromHast(child, inSvg);
     if (converted === null || converted === '') continue;
-    const range = typeof converted === 'string' ? (child.tsRange ? `${child.tsRange[0]}-${child.tsRange[1]}` : 'x') : null;
+    // A loop's {placeholder} shows each item's words, not the code's: offered
+    // for editing, every change was refused (bug bash 2026-10-26)
+    const range = typeof converted === 'string'
+      ? (child.tsRange && !PLACEHOLDER.test(converted) ? `${child.tsRange[0]}-${child.tsRange[1]}` : 'x')
+      : null;
     // Adjacent text is one text node in the DOM
     if (typeof converted === 'string' && typeof nodes[nodes.length - 1] === 'string') {
       nodes[nodes.length - 1] += converted;

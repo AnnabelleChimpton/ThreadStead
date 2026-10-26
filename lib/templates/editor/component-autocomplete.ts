@@ -4,6 +4,7 @@
 // implementations into the editor bundle.
 import type { CompletionContext, CompletionResult } from '@codemirror/autocomplete';
 import { COMPONENT_NICKNAMES } from './component-nicknames';
+import { HTML_AUTHORING_TAGS } from '@/lib/templates/compilation/html-allowlist';
 import type { TagSpec } from '@codemirror/lang-html';
 
 import type { ComponentDoc, ComponentPropDoc } from '@/lib/templates-docs/component-docs';
@@ -63,18 +64,26 @@ export function describeProps(c: ComponentSchema): string {
 }
 
 /**
- * Completions for what people call a component (<top → FriendDisplay,
- * <song → ProfileMusic), on top of lang-html's own tag list, which only
- * matches the real names.
+ * Components by what people might call them ("iframe" → Embed), offered
+ * only when no real tag or component starts with what's typed: <If and
+ * Enter gave <Embed (for iframe), <sec gave <RevealBox (bug bash
+ * 2026-10-26). `componentNames`: the page's components (the API's schemas).
  */
-export function nicknameCompletions(context: CompletionContext): CompletionResult | null {
-  const typed = context.matchBefore(/<[A-Za-z][\w-]*$/);
-  if (!typed || typed.text.length < 3) return null;
-  const word = typed.text.slice(1).toLowerCase().replace(/[-_]/g, '');
-  const seen = new Set<string>();
-  const options = Object.entries(COMPONENT_NICKNAMES)
-    .filter(([nickname, component]) => nickname.startsWith(word) && !component.toLowerCase().startsWith(word))
-    .filter(([, component]) => !seen.has(component) && !!seen.add(component))
-    .map(([nickname, component]) => ({ label: component, detail: `for ${nickname}`, type: 'type', boost: 20 }));
-  return options.length ? { from: typed.from + 1, options, filter: false } : null;
+export function nicknameCompletionsFor(componentNames: readonly string[]) {
+  const real = [...HTML_AUTHORING_TAGS, ...componentNames].map((name) => name.toLowerCase());
+  return (context: CompletionContext): CompletionResult | null => {
+    const typed = context.matchBefore(/<[A-Za-z][\w-]*$/);
+    if (!typed || typed.text.length < 3) return null;
+    const word = typed.text.slice(1).toLowerCase().replace(/[-_]/g, '');
+    if (real.some((name) => name.startsWith(typed.text.slice(1).toLowerCase()))) return null;
+    const seen = new Set<string>();
+    const options = Object.entries(COMPONENT_NICKNAMES)
+      .filter(([nickname, component]) => nickname.startsWith(word) && !component.toLowerCase().startsWith(word))
+      .filter(([, component]) => !seen.has(component) && !!seen.add(component))
+      .map(([nickname, component]) => ({ label: component, detail: `for ${nickname}`, type: 'type', boost: 20 }));
+    return options.length ? { from: typed.from + 1, options, filter: false } : null;
+  };
 }
+
+/** Nicknames with only HTML's own tags counted as real (before the component list loads) */
+export const nicknameCompletions = nicknameCompletionsFor([]);

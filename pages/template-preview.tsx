@@ -154,6 +154,29 @@ export default function TemplatePreview() {
     return () => clearTimeout(timer);
   }, [page, pageCssHtml, siteCssHtml, payload?.cssMode]);
 
+  // Links and forms stay put: followed, the preview went to the saved page
+  // (and stopped showing edits) or went blank for good, until a reload (bug
+  // bash 2026-10-26). A link to a spot on the page, or one that opens a new
+  // tab, still works.
+  useEffect(() => {
+    const hold = (event: Event) => {
+      const target = event.target as Element | null;
+      if (event.type === 'submit') {
+        event.preventDefault();
+        return;
+      }
+      const link = target?.closest?.('a[href]') as HTMLAnchorElement | null;
+      if (!link || link.target === '_blank' || link.getAttribute('href')?.startsWith('#')) return;
+      event.preventDefault();
+    };
+    document.addEventListener('click', hold);
+    document.addEventListener('submit', hold);
+    return () => {
+      document.removeEventListener('click', hold);
+      document.removeEventListener('submit', hold);
+    };
+  }, []);
+
   // After each drawing: which words can be changed, if Words is on
   useEffect(() => {
     const words = wordsRef.current;

@@ -81,7 +81,8 @@ export default function TInput(props: TInputProps) {
   if (!varName) {
     console.error('[TInput] Missing required "var" prop');
     return (
-      <div style={{
+      <span style={{
+        display: 'block',
         padding: '12px',
         margin: '8px 0',
         backgroundColor: '#fef2f2',
@@ -92,7 +93,7 @@ export default function TInput(props: TInputProps) {
       }}>
         ⚠️ <strong>TInput Error:</strong> Missing required <code>var</code> prop.
         Example: <code>&lt;TInput var=&quot;myVariable&quot; /&gt;</code>
-      </div>
+      </span>
     );
   }
 

@@ -13,31 +13,37 @@ export function stripNavigationFromTemplate(html: string): string {
   let cleaned = html;
 
   // Strip <ThreadsteadNavigation> component tags (self-closing and with children)
+  // Each goes, but its line breaks stay, so every line after it keeps its
+  // number in the editor's messages (bug bash 2026-10-26)
+  const keepLines = (removed: string) => removed.replace(/[^\n]/g, '');
+
   cleaned = cleaned.replace(
     /<ThreadsteadNavigation[^>]*\/>/gi,
-    ''
+    keepLines
   );
 
   cleaned = cleaned.replace(
     /<ThreadsteadNavigation[^>]*>[\s\S]*?<\/ThreadsteadNavigation>/gi,
-    ''
+    keepLines
   );
 
   // Strip any divs with data-component-id="system-navigation"
   cleaned = cleaned.replace(
     /<div[^>]*data-component-id=["']system-navigation["'][^>]*>[\s\S]*?<\/div>/gi,
-    ''
+    keepLines
   );
 
   // Strip any divs with data-component-type="navigation"
   cleaned = cleaned.replace(
     /<div[^>]*data-component-type=["']navigation["'][^>]*>[\s\S]*?<\/div>/gi,
-    ''
+    keepLines
   );
 
   // Blank lines stay as written: squeezing every run of them, on every page,
-  // took the blank lines out of <pre> ASCII art (template audit 11 #5)
-  cleaned = cleaned.trim();
+  // took the blank lines out of <pre> ASCII art (template audit 11 #5). Those
+  // at the top too: trimmed, every line number the editor gave was off by
+  // them (bug bash 2026-10-26)
+  cleaned = cleaned.trimEnd();
 
   return cleaned;
 }

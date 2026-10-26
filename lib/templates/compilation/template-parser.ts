@@ -1073,6 +1073,19 @@ const isEvent = (name: string) => /^On[A-Z]/.test(name);
 
 /** Events that attach to the element they sit in, or to target="…" (element-events.tsx) */
 const ELEMENT_EVENTS = new Set(['OnClick', 'OnMouseEnter', 'OnMouseLeave', 'OnSwipe']);
+
+/**
+ * A component that doesn't show what's put inside it: acceptsChildren false
+ * or an empty list (ShowVar), or, with no relationship metadata, an example
+ * that never wraps anything (Guestbook, DisplayName). An OnClick put in one
+ * never mounted, without a word (bug bash 2026-10-26).
+ */
+function dropsChildren(registration: ReturnType<typeof componentRegistry.get>): boolean {
+  if (!registration) return false;
+  const accepts = registration.relationship?.acceptsChildren;
+  if (registration.relationship) return accepts === false || (Array.isArray(accepts) && accepts.length === 0);
+  return registration.group !== 'logic' && !registration.example?.includes(`</${registration.name}>`);
+}
 /** Where only rows and cells can sit: anything else is moved out of the table (warned about on its own) */
 const TABLE_PARTS = new Set(['table', 'thead', 'tbody', 'tfoot', 'tr', 'colgroup']);
 
@@ -1284,7 +1297,7 @@ function reportPageProblems(source: string): string[] {
       for (let i = elements.length - 1; i >= 0; i--) {
         const element = elements[i];
         const holder = element.component ? componentRegistry.get(element.name) : undefined;
-        if (!element.component || isEvent(element.name) || holder?.relationship?.acceptsChildren === false || holder?.group !== 'logic') {
+        if (!element.component || isEvent(element.name) || dropsChildren(holder) || holder?.group !== 'logic') {
           around = element;
           break;
         }
@@ -1296,7 +1309,7 @@ function reportPageProblems(source: string): string[] {
           `Line ${line}: <${name}> sits at the top of the page, not inside anything, so there's nothing for it to attach to. ` +
           `Put it inside the thing people ${people}, or point it at something with target="…".`
         );
-      } else if (holder?.relationship?.acceptsChildren === false && !isEvent(around.name)) {
+      } else if (dropsChildren(holder) && !isEvent(around.name)) {
         messages.push(
           `Line ${line}: <${name}> is inside <${around.name}>, which doesn't show what's put inside it, so nothing happens. ` +
           `Put it in the element around the <${around.name}>, or point it at something with target="…".`

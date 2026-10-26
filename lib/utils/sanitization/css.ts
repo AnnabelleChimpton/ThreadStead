@@ -64,7 +64,9 @@ export function sanitizeCss(input: string): CssSanitizeResult {
   // the same thing to CSS (a backslash-escaped "/"), and nothing to HTML.
   rest = rest.replace(/<\/(style)/gi, "<\\/$1");
 
-  const css = imports.join("\n") + (imports.length > 0 ? "\n" : "") + rest;
+  // The imports' own lines went with them: at most one blank line before
+  // the rest, so saving again doesn't add another each time (bug bash 2026-10-26)
+  const css = imports.length > 0 ? `${imports.join("\n")}\n${rest.replace(/^\n+/, "\n")}` : rest;
   return { css, removed };
 }
 

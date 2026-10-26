@@ -8,7 +8,7 @@ import { EditorView } from '@codemirror/view';
 import {
   fetchComponentSchemas,
   buildExtraTags,
-  nicknameCompletions,
+  nicknameCompletionsFor,
   type ComponentSchema,
 } from '@/lib/templates/editor/component-autocomplete';
 import ComponentPalette from '@/components/features/templates/ComponentPalette';
@@ -918,7 +918,7 @@ export default function EnhancedTemplateEditor({
   const templateExtensions = React.useMemo(
     () => [
       htmlLang(componentSchemas ? { extraTags: buildExtraTags(componentSchemas) } : {}),
-      htmlLanguage.data.of({ autocomplete: nicknameCompletions }),
+      htmlLanguage.data.of({ autocomplete: nicknameCompletionsFor(componentSchemas?.map((c) => c.name) ?? []) }),
       pastedCSSHistory(setCustomCSS),
       lintGutter(),
       optionFolding(),

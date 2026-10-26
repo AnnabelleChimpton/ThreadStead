@@ -15,7 +15,9 @@
 export const PARAGRAPH_SAFE_COMPONENTS: ReadonlySet<string> = new Set([
   // Text and inline pieces
   'ShowVar', 'Count', 'Sum', 'UserImage', 'HouseBadge', 'FriendBadge',
-  'Button', 'Checkbox', 'Select', 'Option', 'CopyToClipboard',
+  'Button', 'Checkbox', 'Select', 'Option', 'CopyToClipboard', 'TInput',
+  // A loop: only its children, again and again (bug bash 2026-10-26)
+  'ForEach',
   // Conditions: only their children
   'If', 'ElseIf', 'Else', 'IfOwner', 'IfVisitor',   // Events: only their children
   'OnClick', 'OnChange', 'OnInterval', 'OnKeyPress', 'OnKeyUp', 'OnMount', 'OnMouseEnter', 'OnMouseLeave', 'OnSwipe',

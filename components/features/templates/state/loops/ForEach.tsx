@@ -209,7 +209,8 @@ export default function ForEach(props: ForEachProps) {
   // CRITICAL: Validate required props
   if (!varName) {
     return (
-      <div style={{
+      <span style={{
+        display: 'block',
         padding: '12px',
         margin: '8px 0',
         backgroundColor: '#fef2f2',
@@ -220,13 +221,14 @@ export default function ForEach(props: ForEachProps) {
       }}>
         ⚠️ <strong>ForEach Error:</strong> Missing required <code>var</code> prop.
         Example: <code>&lt;ForEach var=&quot;myArray&quot; item=&quot;item&quot;&gt;...&lt;/ForEach&gt;</code>
-      </div>
+      </span>
     );
   }
 
   if (!itemName) {
     return (
-      <div style={{
+      <span style={{
+        display: 'block',
         padding: '12px',
         margin: '8px 0',
         backgroundColor: '#fef2f2',
@@ -237,7 +239,7 @@ export default function ForEach(props: ForEachProps) {
       }}>
         ⚠️ <strong>ForEach Error:</strong> Missing required <code>item</code> prop.
         Example: <code>&lt;ForEach var=&quot;myArray&quot; item=&quot;item&quot;&gt;...&lt;/ForEach&gt;</code>
-      </div>
+      </span>
     );
   }
 
