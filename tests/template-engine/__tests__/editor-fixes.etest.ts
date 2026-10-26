@@ -98,3 +98,11 @@ test('style="position: sticky; top: 0" sticks below the site nav, like the page 
     '"style","top: 0"',
   ])
 })
+
+test('@import only counts at the top level: not inside @media, a string or a comment (bug bash 2026-10-26)', () => {
+  const { sanitizeCss } = jest.requireActual('@/lib/utils/sanitization/css') as typeof import('@/lib/utils/sanitization/css')
+  expect(sanitizeCss('@media print { @import url("https://fonts.googleapis.com/css2?family=Lora"); }').css).not.toMatch(/^@import/)
+  expect(sanitizeCss('p::after { content: "@import is cool" } /* @import url(x) */').css).toBe('p::after { content: "@import is cool" } /* @import url(x) */')
+  const once = '@import url("https://fonts.googleapis.com/css2?family=Lora");\np { color: red }'
+  expect(sanitizeCss(once).css).toBe(once)
+})

@@ -11,8 +11,11 @@ export default function FollowButton({
   username,
   onStatus,
   buttonClassName = "",
+  asVisitor = false,
 }: {
   username: string;
+  /** Show what someone signed out sees, without asking the server (the editor's "As a visitor" preview) */
+  asVisitor?: boolean;
   onStatus?: (status: Rel) => void;
   /** Added to the Follow/Unfollow button: the profile header passes
       ts-profile-button, so a theme styles it like Message and Block */
@@ -20,7 +23,7 @@ export default function FollowButton({
 }) {
   const residentHost = useResidentHost();
   const { config } = useSiteConfig();
-  const [status, setStatus] = useState<Rel>("loading");
+  const [status, setStatus] = useState<Rel>(asVisitor ? "anon" : "loading");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -34,7 +37,10 @@ export default function FollowButton({
     onStatus?.(s);
   }, [username, onStatus]);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => {
+    if (asVisitor) setStatus("anon");
+    else refresh();
+  }, [refresh, asVisitor]);
 
   async function follow() {
     setBusy(true); setErr(null);

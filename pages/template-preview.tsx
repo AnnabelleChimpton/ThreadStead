@@ -1,6 +1,7 @@
 import { useContext, useEffect, useState, useMemo, useRef } from 'react';
 import { siteClassClashes } from '@/lib/templates/editor/class-clashes';
 import { wordsOnPage } from '@/lib/templates/editor/words-preview';
+import { PreviewAsVisitor } from '@/components/features/templates/preview-as-visitor';
 import type { GetServerSideProps } from 'next';
 import { useRouter } from 'next/router';
 import { PixelIcon } from '@/components/ui/PixelIcon';
@@ -251,7 +252,7 @@ export default function TemplatePreview() {
 
   if (page) {
     return (
-      <>
+      <PreviewAsVisitor.Provider value={payload.as === 'visitor'}>
         <PageMeta title="Preview" noIndex />
         {styles}
         <ResidentHtmlBody
@@ -262,7 +263,7 @@ export default function TemplatePreview() {
           siteStyles={siteStyles}
         />
         {saveBar}
-      </>
+      </PreviewAsVisitor.Provider>
     );
   }
 

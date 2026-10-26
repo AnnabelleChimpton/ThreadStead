@@ -29,7 +29,12 @@ export function sanitizeCss(input: string): CssSanitizeResult {
   const removed: string[] = [];
   const imports: string[] = [];
 
-  let rest = input.replace(IMPORT_STATEMENT, (statement, u1, u2, u3, s1, s2) => {
+  // Only an @import at the top level is one: inside @media a browser skips
+  // it (hoisted, it began to load), and in a string or comment it's words
+  // (content: "@import" became "@x-removed-import"; bug bash 2026-10-26)
+  const where = codeDepths(input);
+  let rest = input.replace(IMPORT_STATEMENT, (statement, u1, u2, u3, s1, s2, offset: number) => {
+    if (where(offset) !== 0) return statement;
     const url = (u1 ?? u2 ?? u3 ?? s1 ?? s2 ?? "").trim();
     if (SAFE_IMPORT_HOST.test(url)) {
       imports.push(statement.trim().endsWith(";") ? statement.trim() : `${statement.trim()};`);
@@ -39,10 +44,14 @@ export function sanitizeCss(input: string): CssSanitizeResult {
     return "";
   });
 
-  // Anything still spelled @import didn't parse as a statement above; the
-  // browser would still try it, so turn it into an unknown at-rule it skips.
-  rest = rest.replace(/@import\b/gi, () => {
-    removed.push("an @import the sanitizer couldn't read");
+  // Anything still spelled @import in the CSS itself didn't parse as a
+  // statement above, or sits inside a block; turn it into an unknown at-rule
+  // the browser skips.
+  const restWhere = codeDepths(rest);
+  rest = rest.replace(/@import\b/gi, (word: string, offset: number) => {
+    const depth = restWhere(offset);
+    if (depth === null) return word;
+    if (depth === 0) removed.push("an @import the sanitizer couldn't read");
     return "@x-removed-import";
   });
 
@@ -64,10 +73,40 @@ export function sanitizeCss(input: string): CssSanitizeResult {
   // the same thing to CSS (a backslash-escaped "/"), and nothing to HTML.
   rest = rest.replace(/<\/(style)/gi, "<\\/$1");
 
-  // The imports' own lines went with them: at most one blank line before
-  // the rest, so saving again doesn't add another each time (bug bash 2026-10-26)
-  const css = imports.length > 0 ? `${imports.join("\n")}\n${rest.replace(/^\n+/, "\n")}` : rest;
+  // The rest as written after the imports: a line break only where it
+  // had none, so saving again doesn't add a blank line each time (bug bash 2026-10-26)
+  const css = imports.length > 0 ? `${imports.join("\n")}${rest.startsWith("\n") ? "" : "\n"}${rest}` : rest;
   return { css, removed };
+}
+
+/**
+ * For a place in the CSS: how many blocks deep it is, or null inside a
+ * string or comment. Brackets in strings and comments don't count.
+ */
+function codeDepths(css: string): (at: number) => number | null {
+  const depth: Array<number | null> = new Array(css.length);
+  let level = 0;
+  for (let i = 0; i < css.length; i++) {
+    const c = css[i];
+    if (c === "/" && css[i + 1] === "*") {
+      const end = css.indexOf("*/", i + 2);
+      const stop = end === -1 ? css.length : end + 2;
+      for (; i < stop; i++) depth[i] = null;
+      i--;
+    } else if (c === '"' || c === "'") {
+      depth[i] = null;
+      for (i++; i < css.length && css[i] !== c && css[i] !== "\n"; i++) {
+        depth[i] = null;
+        if (css[i] === "\\") depth[++i] = null;
+      }
+      if (i < css.length) depth[i] = null;
+    } else {
+      if (c === "}") level = Math.max(0, level - 1);
+      depth[i] = level;
+      if (c === "{") level++;
+    }
+  }
+  return (at) => (at < css.length ? depth[at] : level);
 }
 
 export function cleanCss(input: string): string {

@@ -39,8 +39,15 @@ beforeAll(() => {
   // jsdom has no media playback (ProfileMusic, Boombox)
   window.HTMLMediaElement.prototype.pause = () => {}
   window.HTMLMediaElement.prototype.load = () => {}
-  global.fetch = jest.fn(async () => ({ ok: true, status: 200, json: async () => [] })) as unknown as typeof fetch
+  // /api/rel answers as the server does for this test's viewer: the
+  // owner, or someone signed out (the visitor has no id)
+  global.fetch = jest.fn(async (url: string) => ({
+    ok: true,
+    status: 200,
+    json: async () => (String(url).startsWith('/api/rel/') ? { status: viewer === 'owner' ? 'owner' : 'anon' } : []),
+  })) as unknown as typeof fetch
 })
+let viewer: 'owner' | 'visitor' = 'owner'
 afterEach(cleanup)
 
 /** The page root and the elements above it, by tag and class */
@@ -59,6 +66,7 @@ describe.each(corpus())('%s', (_id, source) => {
     ['owner', true],
     ['visitor', true],
   ] as const)('as %s, nav hidden: %s', async (as, hideNavigation) => {
+    viewer = as
     const result = await compileForEditor(source)
     if (!result.ok) throw new Error(result.body.errors[0])
     const data = residentData(as === 'owner' ? OWNER_ID : null)
