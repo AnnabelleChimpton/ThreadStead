@@ -37,6 +37,7 @@ import {
   getMinimalProfileTemplate,
 } from '@/lib/templates/default-profile-template'
 import { TEMPLATE_EXAMPLES } from '../fixtures/old-starters/examples'
+import { notRetired } from '../fixtures/old-starters/retired'
 import { componentRegistry } from '@/lib/templates/core/template-registry'
 
 describe('environment canary', () => {
@@ -98,21 +99,21 @@ describe('shipped default templates compile end-to-end', () => {
     // HTML parser lowercases element names; the hydrator maps them back
     // through the registry's case-insensitive lookup).
     const components = new Set(islands!.map((i) => i.component))
-    expect(components.has('choose')).toBe(true)
     expect(components.has('if')).toBe(true)
     expect(components.has('displayname')).toBe(true)
   })
 
   // A starter that loses components on load teaches users a broken API
   // (conditional-showcase shipped with 26 stripped <Show> blocks before this
-  // was pinned). Every shipped starter must survive sanitization intact.
+  // was pinned). Every old starter survives sanitization intact, except for
+  // the components retired since (fixtures/old-starters/retired.ts).
   test.each(HTML_TEMPLATES.map((t) => [t.id, t.template] as const))(
-    '%s ships with zero stripped components',
+    '%s loses nothing but retired components',
     (_id, template) => {
       // Mirror the editor gallery loader: <style> moves to the CSS field.
       const withoutStyles = template.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '').trim()
       const result = compileTemplateToArtifacts(withoutStyles)
-      expect(result.strippedComponents).toEqual([])
+      expect(notRetired(result.strippedComponents)).toEqual([])
       expect(result.warnings).toEqual([])
     }
   )
@@ -120,11 +121,11 @@ describe('shipped default templates compile end-to-end', () => {
 
 describe('shipped starter examples (TEMPLATE_EXAMPLES) compile end-to-end', () => {
   test.each(Object.entries(TEMPLATE_EXAMPLES).map(([key, t]) => [key, t.template] as const))(
-    '%s compiles with islands and zero stripped components',
+    '%s compiles with islands, losing nothing but retired components',
     (_key, template) => {
       const result = compileTemplateToArtifacts(template)
       expect(result.islands.length).toBeGreaterThan(0)
-      expect(result.strippedComponents).toEqual([])
+      expect(notRetired(result.strippedComponents)).toEqual([])
       expect(result.warnings).toEqual([])
     }
   )

@@ -41,6 +41,7 @@ import {
   getMinimalProfileTemplate,
 } from '@/lib/templates/default-profile-template'
 import { TEMPLATE_EXAMPLES } from '../fixtures/old-starters/examples'
+import { notRetired } from '../fixtures/old-starters/retired'
 import { isPageProblem } from '@/lib/templates/compilation/template-parser'
 
 // About each tag's own settings: how the page fits together (variables made,
@@ -97,7 +98,7 @@ describe('every declared prop reaches its component', () => {
   }
 
   test('there are props to check', () => {
-    expect(cases.length).toBeGreaterThan(300)
+    expect(cases.length).toBeGreaterThan(250)
   })
 
   test.each(cases)('<%s %s>', (name, prop, schema) => {
@@ -131,11 +132,6 @@ describe('props marked css are still CSS', () => {
     expect(islands[0]._precomputed!.styles).toEqual({ color: '#123456' })
   })
 
-  test('<Grid gridTemplateColumns> is the grid template', () => {
-    const { islands } = compileTemplateToArtifacts('<Grid gridTemplateColumns="200px 1fr"></Grid>')
-    expect(islands[0]._precomputed!.styles.gridTemplateColumns).toBe('200px 1fr')
-  })
-
   test('an undeclared CSS-named attribute is still inline style', () => {
     const { islands, warnings } = compileTemplateToArtifacts('<RetroCard backgroundColor="#fff">Hi</RetroCard>')
     expect(warnings).toEqual([])
@@ -145,9 +141,9 @@ describe('props marked css are still CSS', () => {
 
 describe('the implementation name works as an attribute too', () => {
   test.each([
-    ['NeonBorder', 'neonColor', 'pink', 'neonColor'],
+    ['StickyNote', 'noteColor', 'pink', 'noteColor'],
     ['FlexContainer', 'gapSize', 'lg', 'gapSize'],
-    ['SkillChart', 'displayMode', 'radial', 'displayMode'],
+    ['CenteredBox', 'containerPadding', 'xl', 'containerPadding'],
   ])('<%s %s>', (name, attr, value, receivedAs) => {
     const artifacts = compileTemplateToArtifacts(`<${name} ${attr}="${value}"></${name}>`)
     expect(propWarnings(artifacts.warnings)).toEqual([])
@@ -169,7 +165,7 @@ const STARTERS: Array<[string, string]> = [
 describe('every starter hands each prop it writes to its component', () => {
   test.each(STARTERS)('%s', (_id, source) => {
     const artifacts = compileTemplateToArtifacts(source)
-    expect(artifacts.strippedComponents).toEqual([])
+    expect(notRetired(artifacts.strippedComponents)).toEqual([])
     expect(propWarnings(artifacts.warnings)).toEqual([])
     const islands = flatten(artifacts.islands)
 
@@ -204,8 +200,8 @@ describe('every starter hands each prop it writes to its component', () => {
 
   test('the starters set props named like CSS, so this is not vacuous', () => {
     const toybox = compileTemplateToArtifacts(TEMPLATE_EXAMPLES.retroToybox.template)
-    const sign = toybox.islands.find((i) => i.component === 'neonsign')!
-    expect(sign._precomputed!.componentProps).toMatchObject({ neonColor: 'pink', textSize: 'large' })
+    const note = flatten(toybox.islands).find((i) => i.component === 'stickynote')!
+    expect(note._precomputed!.componentProps).toMatchObject({ noteColor: 'pink' })
   })
 })
 
@@ -289,7 +285,7 @@ test('a component with several classes keeps them all, space-separated (template
   const props = flatten(islands).find((island) => island.component.toLowerCase() === 'button')!._precomputed!.componentProps
   expect(props.className).toBe('big pink')
   // also on components whose registry doesn't declare className (an array before)
-  for (const tag of ['Embed src="https://www.youtube.com/watch?v=abc"', 'GlitchText text="hi"', 'StickyNote']) {
+  for (const tag of ['Embed src="https://www.youtube.com/watch?v=abc"', 'PolaroidFrame', 'StickyNote']) {
     const name = tag.split(' ')[0]
     const found = flatten(compileTemplateToArtifacts(`<${tag} className="big pink"></${name}>`).islands)
       .find((island) => island.component.toLowerCase() === name.toLowerCase())!

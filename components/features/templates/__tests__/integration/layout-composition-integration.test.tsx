@@ -2,9 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { renderWithTemplateContext, createMockResidentData } from '../test-utils';
 import GridLayout from '../../GridLayout';
-import SplitLayout from '../../SplitLayout';
 import FlexContainer from '../../FlexContainer';
-import GradientBox from '../../GradientBox';
 import CenteredBox from '../../CenteredBox';
 import { IfOwner, IfVisitor } from '../../conditional/IfOwner';
 import DisplayName from '../../DisplayName';
@@ -75,76 +73,6 @@ describe('Layout Component Composition Integration', () => {
       expect(gridContainer?.children).toHaveLength(6);
     });
 
-    it('should handle SplitLayout with nested FlexContainer and mixed content', () => {
-      const mockData = createMockResidentData();
-
-      const { container } = renderWithTemplateContext(
-        <SplitLayout ratio="2:1" spacing="lg">
-          <FlexContainer direction="column" gapSize="md">
-            <div className="static-header bg-yellow-100 p-3" data-testid="nested-static-1">
-              <h1>Nested Static Header</h1>
-              <div className="inline-meta">
-                By: <DisplayName />
-              </div>
-            </div>
-            <GradientBox gradient="sunset" containerPadding="sm">
-              <p className="nested-text" data-testid="nested-static-2">
-                Static text inside gradient box
-              </p>
-              <ProfilePhoto />
-            </GradientBox>
-            <div className="static-footer border-t pt-2" data-testid="nested-static-3">
-              Footer content
-            </div>
-          </FlexContainer>
-          <div className="right-side bg-gray-50 p-4" data-testid="right-static">
-            <h2>Right Side Static</h2>
-            <Bio />
-            <div className="static-controls mt-4">
-              <button data-testid="static-button">Static Button</button>
-              <input data-testid="static-input" placeholder="Static Input" />
-            </div>
-          </div>
-        </SplitLayout>,
-        { residentData: mockData }
-      );
-
-      // Verify left side FlexContainer structure
-      const leftFlex = container.querySelector('.flex.flex-col.gap-4');
-      expect(leftFlex).toHaveClass('flex', 'flex-col', 'items-start', 'justify-start', 'gap-4');
-
-      // Verify nested static content in FlexContainer
-      expect(screen.getByTestId('nested-static-1')).toBeInTheDocument();
-      expect(screen.getByText('Nested Static Header')).toBeInTheDocument();
-      expect(screen.getByText('By:')).toBeInTheDocument();
-      expect(screen.getByText('Test User')).toBeInTheDocument(); // DisplayName
-
-      // Verify GradientBox with mixed content
-      const gradientBox = container.querySelector('.bg-gradient-to-br');
-      expect(gradientBox).toBeInTheDocument();
-      expect(screen.getByTestId('nested-static-2')).toBeInTheDocument();
-      expect(screen.getByText('Static text inside gradient box')).toBeInTheDocument();
-
-      // Verify ProfilePhoto inside GradientBox
-      const profilePhoto = container.querySelector('.profile-photo-wrapper');
-      expect(profilePhoto).toBeInTheDocument();
-
-      // Verify footer
-      expect(screen.getByTestId('nested-static-3')).toBeInTheDocument();
-      expect(screen.getByText('Footer content')).toBeInTheDocument();
-
-      // Verify right side static content
-      expect(screen.getByTestId('right-static')).toBeInTheDocument();
-      expect(screen.getByText('Right Side Static')).toBeInTheDocument();
-      expect(screen.getByText('About Me')).toBeInTheDocument(); // Bio
-      expect(screen.getByTestId('static-button')).toBeInTheDocument();
-      expect(screen.getByTestId('static-input')).toBeInTheDocument();
-
-      // Verify SplitLayout structure
-      const splitContainer = container.querySelector('.w-full.flex');
-      expect(splitContainer).toHaveClass('w-full', 'flex', 'flex-col', 'lg:flex-row', 'gap-6');
-    });
-
     it('should handle deeply nested layout composition without breaking', () => {
       const mockData = createMockResidentData({
         viewer: { id: 'user123' },
@@ -153,9 +81,9 @@ describe('Layout Component Composition Integration', () => {
 
       const { container } = renderWithTemplateContext(
         <GridLayout columns={1} gapSize="xl" data-testid="level-1-grid">
-          <SplitLayout ratio="1:2" spacing="lg" data-testid="level-2-split">
+          <div className="split-layout">
             <CenteredBox containerMaxWidth="md" containerPadding="md" data-testid="level-3-center">
-              <GradientBox gradient="forest" containerPadding="sm" data-testid="level-4-gradient">
+              <div className="gradient-box">
                 <FlexContainer direction="column" align="center" gapSize="sm" data-testid="level-5-flex">
                   <div className="deeply-nested-static bg-white rounded p-2" data-testid="level-6-static">
                     <h3>6 Levels Deep</h3>
@@ -167,13 +95,13 @@ describe('Layout Component Composition Integration', () => {
                     </div>
                   </IfOwner>
                 </FlexContainer>
-              </GradientBox>
+              </div>
             </CenteredBox>
             <div className="right-content p-4" data-testid="level-3-static">
               <ProfilePhoto />
               <Bio />
             </div>
-          </SplitLayout>
+          </div>
         </GridLayout>,
         { residentData: mockData }
       );
@@ -182,14 +110,10 @@ describe('Layout Component Composition Integration', () => {
       const level1 = container.querySelector('.grid');
       expect(level1).toHaveClass('grid', 'grid-cols-1', 'gap-8');
 
-      const level2 = container.querySelector('.w-full.flex.lg\\:flex-row');
-      expect(level2).toHaveClass('w-full', 'flex', 'flex-col', 'lg:flex-row', 'gap-6');
 
       const level3 = container.querySelector('.mx-auto.max-w-md');
       expect(level3).toHaveClass('mx-auto', 'max-w-md', 'p-6');
 
-      const level4 = container.querySelector('.bg-gradient-to-br.from-green-400');
-      expect(level4).toHaveClass('bg-gradient-to-br', 'from-green-400', 'via-green-500', 'to-green-600', 'p-4', 'rounded-lg');
 
       const level5 = container.querySelector('.flex.items-center');
       expect(level5).toHaveClass('flex', 'flex-col', 'items-center', 'justify-start', 'gap-2');
@@ -219,9 +143,9 @@ describe('Layout Component Composition Integration', () => {
 
       renderWithTemplateContext(
         <GridLayout columns={1} onClick={gridClickHandler} data-testid="clickable-grid">
-          <SplitLayout ratio="1:1">
+          <div className="split-layout">
             <FlexContainer direction="column">
-              <GradientBox gradient="neon">
+              <div className="gradient-box">
                 <div className="content-area p-4">
                   <h2>Nested Content</h2>
                   <button 
@@ -232,12 +156,12 @@ describe('Layout Component Composition Integration', () => {
                   </button>
                   <DisplayName />
                 </div>
-              </GradientBox>
+              </div>
             </FlexContainer>
             <div className="static-side p-4">
               <Bio />
             </div>
-          </SplitLayout>
+          </div>
         </GridLayout>,
         { residentData: mockData }
       );
@@ -257,19 +181,19 @@ describe('Layout Component Composition Integration', () => {
 
       renderWithTemplateContext(
         <GridLayout columns={2} gapSize="md">
-          <SplitLayout ratio="1:1">
+          <div className="split-layout">
             <FlexContainer direction="column" gapSize="sm">
               <input data-testid="input-1" placeholder="Input 1" />
-              <GradientBox gradient="ocean" containerPadding="sm">
+              <div className="gradient-box">
                 <button data-testid="button-1">Button in Gradient</button>
                 <input data-testid="input-2" placeholder="Input in Gradient" />
-              </GradientBox>
+              </div>
             </FlexContainer>
             <CenteredBox containerMaxWidth="sm">
               <textarea data-testid="textarea-1" placeholder="Textarea in Center" />
               <button data-testid="button-2">Button in Center</button>
             </CenteredBox>
-          </SplitLayout>
+          </div>
           <div className="static-controls">
             <button data-testid="button-3">Static Button</button>
             <select data-testid="select-1">
@@ -337,11 +261,11 @@ describe('Layout Component Composition Integration', () => {
         <GridLayout columns={2}>
           <FlexContainer direction="column">
             <TestComponentWithState testId="component-1" />
-            <GradientBox gradient="sunset">
+            <div className="gradient-box">
               <TestComponentWithState testId="component-2" />
-            </GradientBox>
+            </div>
           </FlexContainer>
-          <SplitLayout ratio="1:1">
+          <div className="split-layout">
             <CenteredBox>
               <TestComponentWithState testId="component-3" />
             </CenteredBox>
@@ -349,7 +273,7 @@ describe('Layout Component Composition Integration', () => {
               <TestComponentWithState testId="component-4" />
               <DisplayName />
             </div>
-          </SplitLayout>
+          </div>
         </GridLayout>,
         { residentData: mockData }
       );
@@ -380,7 +304,7 @@ describe('Layout Component Composition Integration', () => {
 
       const { container } = renderWithTemplateContext(
         <GridLayout columns={3} responsive={true}>
-          <SplitLayout ratio="1:2" responsive={true}>
+          <div className="split-layout">
             <FlexContainer direction="row" responsive={true}>
               <div className="responsive-child" data-testid="flex-child-1">Flex Child 1</div>
               <div className="responsive-child" data-testid="flex-child-2">Flex Child 2</div>
@@ -388,12 +312,12 @@ describe('Layout Component Composition Integration', () => {
             <CenteredBox containerMaxWidth="lg">
               <ProfilePhoto />
             </CenteredBox>
-          </SplitLayout>
-          <GradientBox gradient="rainbow" containerPadding="md">
+          </div>
+          <div className="gradient-box">
             <div className="gradient-content" data-testid="gradient-content">
               Content in gradient
             </div>
-          </GradientBox>
+          </div>
           <div className="static-responsive" data-testid="static-responsive">
             <Bio />
             <DisplayName />
@@ -406,8 +330,6 @@ describe('Layout Component Composition Integration', () => {
       const gridContainer = container.querySelector('.grid');
       expect(gridContainer).toHaveClass('grid-cols-1', 'sm:grid-cols-2', 'md:grid-cols-3');
 
-      const splitContainer = container.querySelector('.w-full.flex.lg\\:flex-row');
-      expect(splitContainer).toHaveClass('flex-col', 'lg:flex-row');
 
       const flexContainer = container.querySelector('.flex.flex-col.md\\:flex-row');
       expect(flexContainer).toHaveClass('flex-col', 'md:flex-row');
@@ -427,14 +349,14 @@ describe('Layout Component Composition Integration', () => {
       const ComplexLayout = ({ rerenderTrigger }: { rerenderTrigger: number }) => (
         <GridLayout columns={2} gapSize="lg">
           {Array.from({ length: 4 }, (_, i) => (
-            <SplitLayout key={i} ratio="1:1" spacing="md">
+            <div className="split-layout">
               <FlexContainer direction="column" gapSize="sm">
-                <GradientBox gradient={i % 2 === 0 ? 'sunset' : 'ocean'} containerPadding="xs">
+                <div className="gradient-box">
                   <div data-testid={`complex-content-${i}`}>
                     Content {i} - Render {rerenderTrigger}
                   </div>
                   {i % 2 === 0 ? <DisplayName /> : <ProfilePhoto />}
-                </GradientBox>
+                </div>
               </FlexContainer>
               <CenteredBox containerMaxWidth="sm" containerPadding="sm">
                 <div data-testid={`simple-content-${i}`}>
@@ -442,7 +364,7 @@ describe('Layout Component Composition Integration', () => {
                 </div>
                 {i === 0 && <Bio />}
               </CenteredBox>
-            </SplitLayout>
+            </div>
           ))}
         </GridLayout>
       );

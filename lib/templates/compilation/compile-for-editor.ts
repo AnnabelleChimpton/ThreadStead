@@ -8,7 +8,6 @@
 import { compileTemplateToArtifacts, TemplateCompilationError, type StrippedComponentReport } from './compile-pipeline';
 import { getCompiledTemplateWithMetrics, type CompilationResult } from './template-cache';
 import { artifactFor, type PageArtifact } from '@/lib/templates/rendering/page-artifact';
-import { cleanCustomHtmlIslands } from './custom-html';
 import { stripNavigationFromTemplate } from '@/lib/templates/utils/navigation-stripper';
 import { parseTemplateError, formatTemplateErrorForAPI } from '@/lib/templates/errors/template-error-handler';
 
@@ -54,7 +53,7 @@ export async function compileForEditor(source: string, { positions = false }: { 
     return {
       ok: true,
       template,
-      artifact: withCleanCustomHtml(artifactFor(result)),
+      artifact: artifactFor(result),
       warnings: result.warnings ?? [],
       strippedComponents: result.strippedComponents ?? [],
       stats: result.stats,
@@ -76,7 +75,3 @@ export async function compileForEditor(source: string, { positions = false }: { 
   }
 }
 
-/** CustomHTMLElement's HTML props, cleaned once here instead of in every browser (custom-html.ts) */
-function withCleanCustomHtml(artifact: PageArtifact): PageArtifact {
-  return { ...artifact, islands: cleanCustomHtmlIslands(artifact.islands) };
-}

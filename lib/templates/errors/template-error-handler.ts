@@ -76,9 +76,9 @@ function generateSuggestion(
           'Post': 'BlogPosts',
           'Friend': 'FriendDisplay',
           'Friends': 'FriendDisplay',
-          'Profile': 'ProfilePhoto or ProfileHero',
-          'Image': 'ProfilePhoto or UserImage',
-          'Text': 'TextElement or Paragraph',
+          'Profile': 'ProfilePhoto or DisplayName',
+          'Image': 'ProfilePhoto, or a plain <img>',
+          'Text': 'a plain <p>',
         };
 
         if (suggestions[component]) {

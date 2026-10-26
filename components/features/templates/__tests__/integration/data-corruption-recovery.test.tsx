@@ -30,7 +30,6 @@ import WebsiteDisplay from '../../WebsiteDisplay';
 import ProfileBadges from '../../ProfileBadges';
 import MutualFriends from '../../MutualFriends';
 import GridLayout from '../../GridLayout';
-import SplitLayout from '../../SplitLayout';
 import FlexContainer from '../../FlexContainer';
 import { IfOwner, IfVisitor } from '../../conditional/IfOwner';
 import type { ResidentData } from '../../ResidentDataProvider';
@@ -134,7 +133,7 @@ describe('Data Corruption & Recovery Integration', () => {
       const { container } = renderWithTemplateContext(
         <div className="partial-corruption-test">
           <h1>Partial Corruption Test</h1>
-          <SplitLayout ratio="2:1" spacing="lg">
+          <div className="split-layout">
             <FlexContainer direction="column" gapSize="md">
               <DisplayName /> {/* Should handle corrupted owner data */}
               <ProfilePhoto /> {/* Should handle corrupted avatarUrl */}
@@ -145,7 +144,7 @@ describe('Data Corruption & Recovery Integration', () => {
               <WebsiteDisplay /> {/* Should handle mixed valid/invalid websites */}
               <ProfileBadges /> {/* Should handle mixed valid/invalid badges */}
             </div>
-          </SplitLayout>
+          </div>
         </div>,
         { residentData: partiallyCorruptedData }
       );
@@ -389,7 +388,7 @@ describe('Data Corruption & Recovery Integration', () => {
               <span data-testid="update-count">Updates: {updateCount}</span>
             </div>
 
-            <SplitLayout ratio="1:1" spacing="lg">
+            <div className="split-layout">
               <div>
                 <DisplayName /> {/* Should update when owner changes */}
                 <ProfilePhoto /> {/* Should update when owner.avatarUrl changes */}
@@ -398,7 +397,7 @@ describe('Data Corruption & Recovery Integration', () => {
                 <Bio /> {/* Should update when capabilities.bio changes */}
                 <BlogPosts /> {/* Should update when posts change */}
               </div>
-            </SplitLayout>
+            </div>
           </div>
         );
       };
@@ -430,7 +429,6 @@ describe('Data Corruption & Recovery Integration', () => {
 
       // Components should remain stable throughout updates
       expect(container.querySelector('.data-sync-test')).toBeInTheDocument();
-      expect(container.querySelector('.w-full.flex')).toBeInTheDocument(); // SplitLayout
     });
 
     it('should handle race conditions in data updates', async () => {

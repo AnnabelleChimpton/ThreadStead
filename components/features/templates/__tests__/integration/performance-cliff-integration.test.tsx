@@ -15,9 +15,7 @@ import Bio from '../../Bio';
 import ProfilePhoto from '../../ProfilePhoto';
 import BlogPosts from '../../BlogPosts';
 import GridLayout from '../../GridLayout';
-import SplitLayout from '../../SplitLayout';
 import FlexContainer from '../../FlexContainer';
-import GradientBox from '../../GradientBox';
 import CenteredBox from '../../CenteredBox';
 
 describe('Performance Cliff Edge Detection Integration', () => {
@@ -70,13 +68,13 @@ describe('Performance Cliff Edge Detection Integration', () => {
           return <GridLayout columns={2} gapSize="sm">{children}</GridLayout>;
         }
         if (depth % 4 === 0) {
-          return <SplitLayout ratio="1:1" spacing="md">{children}</SplitLayout>;
+          return <div className="split-layout">{children}</div>;
         }
         if (depth % 3 === 0) {
           return <FlexContainer direction="column" gapSize="sm">{children}</FlexContainer>;
         }
         if (depth % 2 === 0) {
-          return <GradientBox gradient="sunset" containerPadding="sm">{children}</GradientBox>;
+          return <div className="gradient-box">{children}</div>;
         }
         return <CenteredBox containerMaxWidth="md" containerPadding="sm">{children}</CenteredBox>;
       };
@@ -128,12 +126,12 @@ describe('Performance Cliff Edge Detection Integration', () => {
       
       const templates = [
         <GridLayout key="template-0" columns={2} gapSize="lg"><DisplayName /><Bio /></GridLayout>,
-        <SplitLayout key="template-1" ratio="1:2" spacing="md"><ProfilePhoto /><BlogPosts /></SplitLayout>,
+        <div className="split-layout"><ProfilePhoto /><BlogPosts /></div>,
         <FlexContainer key="template-2" direction="column" gapSize="sm">
-          <GradientBox gradient="sunset" containerPadding="md">
+          <div className="gradient-box">
             <DisplayName />
             <Bio />
-          </GradientBox>
+          </div>
         </FlexContainer>,
         <CenteredBox key="template-3" containerMaxWidth="lg" containerPadding="xl">
           <GridLayout columns={3} gapSize="xs">
@@ -316,16 +314,16 @@ describe('Performance Cliff Edge Detection Integration', () => {
       const complexTemplate = (
         <GridLayout columns={2} gapSize="lg">
           {Array.from({ length: 10 }, (_, i) => (
-            <SplitLayout key={i} ratio="1:1" spacing="md">
+            <div className="split-layout">
               <FlexContainer direction="column" gapSize="sm">
                 <ResourceComponent />
                 <DisplayName />
               </FlexContainer>
-              <GradientBox gradient="ocean" containerPadding="md">
+              <div className="gradient-box">
                 <ResourceComponent />
                 <Bio />
-              </GradientBox>
-            </SplitLayout>
+              </div>
+            </div>
           ))}
         </GridLayout>
       );

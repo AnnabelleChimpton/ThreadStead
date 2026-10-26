@@ -7,24 +7,17 @@
  * new list when a component is added or renamed.
  */
 export const COMPONENT_NAMES: readonly string[] = [
-  'AddClass', 'Append', 'ArcadeButton', 'ArrayAt', 'Bio', 'BlogPosts', 'Boombox', 'Breadcrumb',
-  'Break', 'Button', 'CRTMonitor', 'CarouselImage', 'Case', 'CassetteTape', 'CenteredBox',
-  'Checkbox', 'Choose', 'Clone', 'ColorPicker', 'ConditionalAttr', 'ContactCard', 'ContactMethod',
-  'Continue', 'CopyToClipboard', 'Count', 'CustomHTMLElement', 'Cycle', 'DebugValue', 'Decrement',
-  'Default', 'Delay', 'DisplayName', 'DynamicImage', 'Else', 'ElseIf', 'Embed', 'EventDiv', 'Extract',
-  'Filter', 'Find', 'FlexContainer', 'FloatingBadge', 'FollowButton', 'ForEach', 'FriendBadge',
-  'FriendDisplay', 'Get', 'GlitchText', 'GradientBox', 'Grid', 'GridItem', 'GridLayout',
-  'Guestbook', 'Heading', 'HouseBadge', 'If', 'IfOwner', 'IfVisitor', 'ImageCarousel', 'Increment', 'MatrixRain',
-  'MediaGrid', 'Merge', 'MutualFriends', 'MyHouse', 'MyRings', 'NeonBorder', 'NeonSign', 'NotificationBell',
-  'NotificationCenter', 'ObjectSet', 'OnChange', 'OnClick', 'OnHover', 'OnInterval', 'OnKeyPress', 'OnKeyUp',
-  'OnMount', 'OnMouseEnter', 'OnMouseLeave', 'OnSwipe', 'OnTimeout', 'OnVisible', 'Option', 'Otherwise',
-  'Paragraph', 'PixelArtFrame', 'PolaroidFrame', 'Pop', 'Prepend', 'ProfileBadges',
-  'ProfileHeader', 'ProfileHero', 'ProfileMusic', 'ProfilePhoto', 'ProgressItem',
-  'ProgressTracker', 'Property', 'Push', 'Radio', 'RadioGroup', 'RemoveAt', 'RemoveClass', 'Reset',
-  'RetroCard', 'RetroGrid', 'RetroTV', 'RetroTerminal', 'RevealBox', 'RingNav', 'Select', 'Sequence', 'Set',
-  'SetCSSVar', 'SetURLHash', 'SetURLParam', 'ShowToast', 'ShowVar', 'SiteBranding', 'Skill',
-  'SkillChart', 'Slider', 'Sort', 'SplitLayout', 'Step', 'StickyNote', 'Sum', 'Switch', 'TInput',
-  'Tab', 'Tabs', 'TextElement', 'ThreadsteadNavigation', 'Timeout', 'Toggle', 'ToggleClass',
-  'Transform', 'UserAccount', 'UserImage', 'VHSTape', 'Validate', 'Var', 'WaveText',
-  'WebsiteDisplay', 'When'
+  'AddClass', 'Append', 'ArcadeButton', 'Bio', 'BlogPosts', 'Break', 'Button', 'CarouselImage',
+  'CenteredBox', 'Checkbox', 'ColorPicker', 'ConditionalAttr', 'CopyToClipboard', 'Count', 'Cycle',
+  'Decrement', 'Delay', 'DisplayName', 'DynamicImage', 'Else', 'ElseIf', 'Embed', 'Filter', 'Find',
+  'FlexContainer', 'FollowButton', 'ForEach', 'FriendBadge', 'FriendDisplay', 'GridLayout',
+  'Guestbook', 'Heading', 'HouseBadge', 'If', 'IfOwner', 'IfVisitor', 'ImageCarousel', 'Increment',
+  'MediaGrid', 'Merge', 'MutualFriends', 'MyHouse', 'MyRings', 'ObjectSet', 'OnChange', 'OnClick',
+  'OnInterval', 'OnKeyPress', 'OnKeyUp', 'OnMount', 'OnMouseEnter', 'OnMouseLeave', 'OnSwipe',
+  'OnVisible', 'Option', 'PolaroidFrame', 'Pop', 'Prepend', 'ProfileBadges', 'ProfileHeader',
+  'ProfileHero', 'ProfileMusic', 'ProfilePhoto', 'Push', 'Radio', 'RadioGroup', 'RemoveAt',
+  'RemoveClass', 'Reset', 'RetroCard', 'RevealBox', 'RingNav', 'Select', 'Sequence', 'Set',
+  'SetCSSVar', 'SetURLHash', 'SetURLParam', 'ShowToast', 'ShowVar', 'Slider', 'Sort', 'Step',
+  'StickyNote', 'Sum', 'TInput', 'Tab', 'Tabs', 'Toggle', 'ToggleClass', 'Transform', 'UserImage',
+  'Validate', 'Var', 'WebsiteDisplay'
 ];

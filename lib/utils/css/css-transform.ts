@@ -530,8 +530,7 @@ export const SITE_KEYFRAMES: ReadonlySet<string> = new Set([
   'mobileSuccessBounce', 'nb-wiggle', 'ping', 'pulse', 'pulse-glow', 'pulse-light', 'retro-flicker',
   'shimmer', 'skeleton-shimmer-animation', 'slideInFromTop', 'slideUpFromBottom', 'smoke-rise', 'spin',
   'swipe-in-from-left', 'swipe-in-from-right', 'swipe-out-left', 'swipe-out-right', 'swipe-out-up',
-  'ts-arrive-fade', 'ts-arrive-sign', 'ts-blink', 'ts-glitch', 'ts-glitch-after', 'ts-glitch-before', 'ts-house-arrive',
-  'ts-pixel-hop', 'ts-sprite-strip', 'ts-wave',
+  'ts-arrive-fade', 'ts-arrive-sign', 'ts-blink', 'ts-house-arrive', 'ts-pixel-hop', 'ts-sprite-strip',
   'userDropdownSlideIn', 'window-glow',
 ])
 

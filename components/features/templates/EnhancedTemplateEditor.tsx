@@ -302,7 +302,7 @@ export default function EnhancedTemplateEditor({
       const componentType = firstComponentMatch[1];
 
       // Only check components that can be used in both modes
-      const flowCapableComponents = ['GradientBox', 'CenteredBox', 'FlexBox', 'Card', 'RetroCard'];
+      const flowCapableComponents = ['CenteredBox', 'RetroCard'];
 
       if (!flowCapableComponents.includes(componentType)) {
         // Not a flow-capable component, keep wrapper

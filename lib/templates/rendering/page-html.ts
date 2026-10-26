@@ -8,7 +8,7 @@
  *
  * Done once per server render (load-resident-page.ts), after the page is
  * pruned for its viewer. Never inside a component: those read and clone the
- * HTML they're given (WaveText, OnClick, Tabs…).
+ * HTML they're given (OnClick, Tabs, RevealBox…).
  */
 import { islandIdOf, pageHasMain, type PageTreeElement, type PageTreeNode } from './page-tree';
 import type { PageForRender } from './page-artifact';

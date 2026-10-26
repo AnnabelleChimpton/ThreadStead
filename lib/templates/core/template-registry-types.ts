@@ -74,11 +74,6 @@ export interface ComponentRegistration {
   /** Section in the component reference. Without one, it's listed under its registration file's area. */
   group?: ComponentGroup;
   /**
-   * It moves for as long as the page is open (with its usual props): the
-   * kind a page can have only so many of (TEMPLATE_LIMITS.maxAnimated)
-   */
-  animated?: boolean;
-  /**
    * Puts it at the top of its group in the component reference and the
    * editor palette, lowest number first: the ones people reach for first.
    * The rest follow in registry order.
@@ -377,7 +372,7 @@ export function validateAndCoerceProps(
       }
       if (schema.default !== undefined) {
         // Skip content defaults for text components when children are present
-        const isTextComponent = options?.componentType && ['TextElement', 'Heading', 'Paragraph'].includes(options.componentType);
+        const isTextComponent = options?.componentType && options.componentType === 'Heading';
         const isContentProp = key === 'content';
         const shouldSkipDefault = isTextComponent && isContentProp && options?.hasChildren;
 

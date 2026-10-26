@@ -36,8 +36,8 @@ function propsOf(source: string, component: string) {
 describe('values that do not fit', () => {
   test('a choice that is not one of the choices, on a camelCase prop', () => {
     // tvStyle arrives from the HTML parser as tvstyle; the old check looked it up exactly
-    expect(warningsFor('<RetroTV tvStyle="modern"></RetroTV>')).toEqual([
-      'Line 1: <RetroTV tvStyle="modern"> tvStyle can be crt, vintage, portable or console. Using crt.',
+    expect(warningsFor('<CenteredBox maxWidth="huge"><p>a</p></CenteredBox>')).toEqual([
+      'Line 1: <CenteredBox maxWidth="huge"> maxWidth can be sm, md, lg, xl, 2xl or full. Using lg.',
     ])
   })
 
@@ -65,7 +65,7 @@ describe('values that do not fit', () => {
   })
 
   test('a required prop left out', () => {
-    expect(warningsFor('<WaveText speed="fast" />')).toEqual(['Line 1: <WaveText> needs text="…" to work.'])
+    expect(warningsFor('<RingNav />')).toEqual(['Line 1: <RingNav> needs ring="…" to work.'])
   })
 })
 
@@ -108,7 +108,7 @@ describe('attributes a component does not have', () => {
   })
 
   test('the implementation\'s own name is accepted', () => {
-    expect(warningsFor('<NeonBorder neonColor="pink">hi</NeonBorder>')).toEqual([])
+    expect(warningsFor('<StickyNote noteColor="pink">hi</StickyNote>')).toEqual([])
   })
 })
 

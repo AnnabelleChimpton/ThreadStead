@@ -1069,14 +1069,14 @@ function reportComponentProps(source: string): string[] {
  * single tag on its own leave these out.
  */
 export function isPageProblem(message: string): boolean {
-  return /uses a variable called|only works (straight )?inside|reads (condition|data|when) as a name|needs name="…" \(or var="…"\)|doesn't do anything yet|doesn't change when a page variable does|nothing for it to attach to|doesn't show what's put inside it|nothing on your page (has|is)/.test(message);
+  return /uses a variable called|only works (straight )?inside|reads (condition|data|when) as a name|needs name="…" \(or var="…"\)|nothing for it to attach to|doesn't show what's put inside it|nothing on your page (has|is)/.test(message);
 }
 
 /** Components that run what's inside them when something happens (OnClick, OnChange, OnMount…) */
 const isEvent = (name: string) => /^On[A-Z]/.test(name);
 
 /** Events that attach to the element they sit in, or to target="…" (element-events.tsx) */
-const ELEMENT_EVENTS = new Set(['OnClick', 'OnHover', 'OnMouseEnter', 'OnMouseLeave', 'OnSwipe']);
+const ELEMENT_EVENTS = new Set(['OnClick', 'OnMouseEnter', 'OnMouseLeave', 'OnSwipe']);
 
 /** A prop that makes a page variable for you ("Made for you if it doesn't exist") */
 function declaresVariable(prop: PropSchema | undefined): boolean {
@@ -1313,17 +1313,6 @@ function reportPageProblems(source: string): string[] {
       );
     }
 
-    // Retired components that still misbehave (component-docs.ts HIDDEN_COMPONENTS)
-    if (name === 'Continue') {
-      messages.push(`Line ${line}: <Continue> doesn't do anything yet. To leave an item out of a <ForEach>, put its HTML inside an <If>.`);
-    }
-    if (name === 'Switch' && !stack.some(isEvent)) {
-      messages.push(`Line ${line}: <Switch> only works inside an event like <OnClick>; on the page it can show more than one case. Use <If> there.`);
-    }
-    if (name === 'When' && [...attrs.values()].some((value) => value.includes('$vars'))) {
-      messages.push(`Line ${line}: <When> doesn't change when a page variable does, so this stays as the page loaded. <If> follows variables.`);
-    }
-
     // A calculation the page can't run: said here, with its line, not only
     // in the console (a loop's {placeholders} are filled in at run time, and
     // a JSON list or object is read as it is)
@@ -1335,7 +1324,7 @@ function reportPageProblems(source: string): string[] {
     }
 
     // JavaScript in a condition
-    if (['If', 'ElseIf', 'When', 'Show'].includes(name)) {
+    if (['If', 'ElseIf', 'Show'].includes(name)) {
       for (const key of ['condition', 'data', 'when']) {
         const value = attrs.get(key);
         if (value && SCRIPT_IN_CONDITION.test(value)) {
@@ -1362,7 +1351,7 @@ function reportPageProblems(source: string): string[] {
       if (value && declaresVariable(prop)) declared.add(value);
     }
     if (attrs.get('var')) used.push({ name: attrs.get('var')!, line, tag: name, attr: 'var' });
-    if ((name === 'ShowVar' || name === 'DebugValue') && attrs.get('name')) {
+    if (name === 'ShowVar' && attrs.get('name')) {
       used.push({ name: attrs.get('name')!, line, tag: name, attr: 'name' });
     }
     for (const value of attrs.values()) {
@@ -1566,10 +1555,6 @@ export function validateTemplate(ast: TemplateNode): ValidationResult {
     errors.push(formatLimitError('components', totalComponents, TEMPLATE_LIMITS.maxComponents));
   }
 
-  const animated = Object.entries(componentCounts).reduce((sum, [name, count]) => sum + (componentRegistry.get(name)?.animated ? count : 0), 0);
-  if (animated > TEMPLATE_LIMITS.maxAnimated) {
-    errors.push(formatLimitError('animated', animated, TEMPLATE_LIMITS.maxAnimated));
-  }
 
   return {
     isValid: errors.length === 0,

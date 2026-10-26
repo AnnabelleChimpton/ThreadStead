@@ -9,7 +9,6 @@
  * - OnChange.tsx
  * - OnMount.tsx
  * - OnInterval.tsx
- * - OnHover.tsx
  * - OnKeyPress.tsx
  * - OnVisible.tsx
  * - OnMouseEnter.tsx
@@ -22,7 +21,6 @@ import { globalTemplateStateManager } from './TemplateStateManager';
 import { withLoopNames } from './loop-names';
 import { evaluateIfCondition } from '@/components/features/templates/state/conditional/If';
 import { evaluateElseIfCondition } from '@/components/features/templates/state/conditional/ElseIf';
-import { executeSwitchActions } from '@/components/features/templates/state/conditional/Switch';
 
 // Import all action executors
 import { executeSetAction } from '@/components/features/templates/state/actions/Set';
@@ -46,18 +44,14 @@ import { executeSetURLHashAction } from '@/components/features/templates/state/a
 import { executeResetAction } from '@/components/features/templates/state/actions/Reset';
 import { executeCountAction } from '@/components/features/templates/state/actions/Count';
 import { executeSumAction } from '@/components/features/templates/state/actions/Sum';
-import { executeGetAction } from '@/components/features/templates/state/actions/Get';
 import { executeFilterAction } from '@/components/features/templates/state/actions/Filter';
 import { executeFindAction } from '@/components/features/templates/state/actions/Find';
 import { executeTransformAction } from '@/components/features/templates/state/actions/Transform';
 import { executeSortAction } from '@/components/features/templates/state/actions/Sort';
 import { executeDelayAction } from '@/components/features/templates/state/temporal/Delay';
 import { executeSequenceActions } from '@/components/features/templates/state/temporal/Sequence';
-import { executeContinueAction } from '@/components/features/templates/state/loops/Continue';
-import { executeCloneAction } from '@/components/features/templates/state/actions/Clone';
 import { executeMergeAction } from '@/components/features/templates/state/actions/Merge';
 import { executeObjectSetAction } from '@/components/features/templates/state/actions/ObjectSet';
-import { executeExtractAction } from '@/components/features/templates/state/actions/Extract';
 import { executeConditionalAttrAction } from '@/components/features/templates/state/actions/ConditionalAttr';
 
 /** Everything an action can be given, from its event handler */
@@ -131,20 +125,15 @@ const actionRegistry = new Map<string, ActionExecutorFn>([
   // Collection operations
   ['Count', withState(executeCountAction)],
   ['Sum', withState(executeSumAction)],
-  ['Get', withState(executeGetAction)],
   ['Filter', withState(executeFilterAction)],
   ['Find', withState(executeFindAction)],
   ['Transform', withState(executeTransformAction)],
   ['Sort', withState(executeSortAction)],
 
-  // Loop control
-  ['Continue', withState(executeContinueAction)],
 
   // Advanced state management
-  ['Clone', withState(executeCloneAction)],
   ['Merge', withState(executeMergeAction)],
   ['ObjectSet', withState(executeObjectSetAction)],
-  ['Extract', withState(executeExtractAction)],
   ['ConditionalAttr', (call) => executeConditionalAttrAction(call.props, call.residentData, call.forEachContext, call.currentElement)],
 ]);
 
@@ -152,7 +141,7 @@ const actionRegistry = new Map<string, ActionExecutorFn>([
  * Execute action components from children
  *
  * Iterates through children and executes recognized actions using O(1) Map lookup.
- * Supports conditional chains (If/ElseIf/Else) and Switch/Case/Default patterns.
+ * Supports conditional chains (If/ElseIf/Else).
  *
  * @param children React children (action components)
  * @param templateState Template state context
@@ -250,18 +239,6 @@ function runActions(
     if (inConditionalChain && !['If', 'ElseIf', 'Else'].includes(componentName)) {
       inConditionalChain = false;
       conditionMatched = false;
-    }
-
-    // Handle Switch/Case/Default pattern matching
-    if (componentName === 'Switch') {
-      executeSwitchActions(
-        actualChild.props as any,
-        templateState,
-        residentData,
-        forEachContext,
-        executeActions
-      );
-      continue;
     }
 
     // Handle Delay (temporal control - asynchronous)

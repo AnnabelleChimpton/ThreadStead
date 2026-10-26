@@ -1,12 +1,10 @@
 // State and Interactive Component Registrations
 import { ComponentRegistry } from './template-registry-class';
-import { mergeWithUniversalProps } from '@/lib/templates/core/universal-styling';
 
 // Import state/interactive components
 import Var, { Option } from '@/components/features/templates/state/Var';
 import ShowVar from '@/components/features/templates/state/ShowVar';
 import Button from '@/components/features/templates/Button';
-import EventDiv from '@/components/features/templates/EventDiv';
 import TInput from '@/components/features/templates/state/inputs/TInput';
 import Checkbox from '@/components/features/templates/state/inputs/Checkbox';
 import DynamicImage from '@/components/features/templates/state/DynamicImage';
@@ -14,27 +12,11 @@ import RadioGroup, { Radio } from '@/components/features/templates/state/inputs/
 import Slider from '@/components/features/templates/state/inputs/Slider';
 import Select from '@/components/features/templates/state/inputs/Select';
 import ColorPicker from '@/components/features/templates/state/inputs/ColorPicker';
-import CustomHTMLElement from '@/components/features/templates/CustomHTMLElement';
-import DebugValue from '@/components/features/templates/DebugValue';
 
 /**
  * Register all state and interactive components
  */
 export function registerStateComponents(registry: ComponentRegistry) {
-  // Debug Components
-  registry.register({
-    name: 'DebugValue',
-    component: DebugValue,
-    group: 'logic',
-    description: 'Shows a page variable or a piece of page data, with its type, in a small grey box. Handy while you build; take it out when you\'re done.',
-    example: '<Var name="books" type="array" initial=\'["Kindred", "Piranesi"]\' />\n<DebugValue var="books" />\n<DebugValue path="guestbook.length" />',
-    props: {
-      path: { type: 'string', description: 'Page data to show, like owner.displayName or guestbook.length. $vars.name works too.' },
-      name: { type: 'string', description: 'A page variable to show.' },
-      var: { type: 'string', description: 'Same as name. Wins if you give both.' }
-    }
-  });
-
   // Variable Components
   registry.register({
     name: 'Var',
@@ -117,23 +99,6 @@ export function registerStateComponents(registry: ComponentRegistry) {
       type: { type: 'enum', values: ['button', 'submit', 'reset'], default: 'button', description: 'button, submit or reset, as in HTML. Leave it as button unless it\'s inside a form.' },
       disabled: { type: 'boolean', default: false, description: 'When true, the button is greyed out and can\'t be clicked.' },
       className: { type: 'string', description: 'Extra classes for your own CSS. It always has the class template-button as well.' }
-    },
-    relationship: {
-      type: 'container',
-      acceptsChildren: true
-    }
-  });
-
-  registry.register({
-    name: 'EventDiv',
-    component: EventDiv,
-    group: 'interactive',
-    description: 'A box like a div that reacts to the mouse. A plain div does this now: OnHover, OnMouseEnter, OnMouseLeave and OnClick work inside any element.',
-    example: '<Var name="pets" type="number" initial="0" />\n<EventDiv style="padding: 1em; border: 2px dashed pink">\n  <OnMouseEnter><Increment var="pets" /></OnMouseEnter>\n  Pet the cat. Pets so far: <ShowVar name="pets" />\n</EventDiv>',
-    props: {
-      className: { type: 'string', description: 'Extra classes for your own CSS. It always has the class template-event-div as well.' },
-      id: { type: 'string', description: 'An id for the box, as on any HTML tag.' },
-      style: { type: 'string', css: true, description: 'Inline CSS, written the same way as a div\'s style attribute.' }
     },
     relationship: {
       type: 'container',
@@ -297,26 +262,6 @@ export function registerStateComponents(registry: ComponentRegistry) {
       type: 'leaf',
       acceptsChildren: true,
       childrenLabel: 'OnChange Handler'
-    }
-  });
-
-  // Custom HTML
-  registry.register({
-    name: 'CustomHTMLElement',
-    component: CustomHTMLElement,
-    group: 'interactive',
-    description: 'Left from an older editor. For new pages, write the HTML straight into your page instead.',
-    example: '<CustomHTMLElement tagName="aside" content="Now playing: Cocteau Twins" />',
-    props: mergeWithUniversalProps({
-      tagName: { type: 'enum', values: ['div', 'span', 'section', 'article', 'aside', 'header', 'footer', 'main'], default: 'div', description: 'Which tag wraps the HTML: div (the default), span, section, article, aside, header, footer or main.' },
-      innerHTML: { type: 'string', default: '', description: 'What goes inside, written as text in the attribute.' },
-      content: { type: 'string', default: '', description: 'Same as innerHTML. If both are set, content wins.' },
-      className: { type: 'string', default: '', description: 'Extra classes for your own CSS.' },
-      cssRenderMode: { type: 'enum', values: ['auto', 'inherit', 'custom'], description: 'How headings, paragraphs and lists inside are styled: auto (the default) gives them normal browser-like sizes and spacing, custom does a lighter version of that, and inherit leaves them to your own CSS.' },
-    }, 'container'),
-    relationship: {
-      type: 'container',
-      acceptsChildren: [],
     }
   });
 }

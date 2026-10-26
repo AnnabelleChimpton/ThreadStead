@@ -1,8 +1,8 @@
 'use client';
 
 /**
- * OnClick, OnHover, OnMouseEnter and OnMouseLeave on any element of a page,
- * not only inside a Button or EventDiv (template audit 06 §8). The event
+ * OnClick, OnMouseEnter, OnMouseLeave and OnSwipe on any element of a page,
+ * not only inside a Button (template audit 06 §8). The event
  * renders a hidden marker; once the page has hydrated, it finds the element
  * it sits in (the parent of its <ts-island>) and listens there. With
  * target="…" it listens from the document instead, for the page's elements

@@ -334,12 +334,12 @@ describe('template parser (compileTemplate)', () => {
     expect(json).toContain(`"action":"${url}"`);
   });
 
-  // Protocol keys apply to every tag, including component props that reuse a
-  // URL attribute's name (NeonSign's boolean `background`): still checked,
-  // and ordinary values pass.
+  // Protocol keys apply to every tag, components' link props too
+  // (ArcadeButton's href): a script URL is dropped, a web address passes.
   it('protocol-checks URL-named component props too', () => {
-    expect(templateProblems('<NeonSign background="javascript:alert(1)">hi</NeonSign>')).toEqual([]);
-    expect(JSON.stringify(compileTemplate('<NeonSign background="true">hi</NeonSign>').ast)).toContain('"background":"true"');
+    expect(templateProblems('<ArcadeButton href="javascript:alert(1)">go</ArcadeButton>')).toEqual([]);
+    expect(JSON.stringify(compileTemplate('<ArcadeButton href="javascript:alert(1)">go</ArcadeButton>').ast)).not.toContain('javascript');
+    expect(JSON.stringify(compileTemplate('<ArcadeButton href="https://example.com/x">go</ArcadeButton>').ast)).toContain('"href":"https://example.com/x"');
   });
 });
 

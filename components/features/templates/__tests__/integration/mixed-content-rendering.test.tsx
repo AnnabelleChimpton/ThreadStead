@@ -2,9 +2,7 @@ import React from 'react';
 import { screen, render } from '@testing-library/react';
 import { renderWithTemplateContext, createMockResidentData } from '../test-utils';
 import GridLayout from '../../GridLayout';
-import SplitLayout from '../../SplitLayout';
 import FlexContainer from '../../FlexContainer';
-import GradientBox from '../../GradientBox';
 import { IfOwner, IfVisitor } from '../../conditional/IfOwner';
 import DisplayName from '../../DisplayName';
 import ProfilePhoto from '../../ProfilePhoto';
@@ -137,13 +135,13 @@ describe('Mixed Content Rendering Integration', () => {
       });
 
       renderWithTemplateContext(
-        <SplitLayout>
+        <div className="split-layout">
           <FlexContainer direction="column" gapSize="md">
-            <GradientBox>
+            <div className="gradient-box">
               <h2 data-testid="static-heading">Static heading in gradient box</h2>
               <DisplayName />
               <p data-testid="static-text">Static paragraph text</p>
-            </GradientBox>
+            </div>
           </FlexContainer>
           <div className="right-side" data-testid="right-static">
             <IfVisitor>
@@ -153,7 +151,7 @@ describe('Mixed Content Rendering Integration', () => {
               <h3>Static content on right</h3>
             </div>
           </div>
-        </SplitLayout>,
+        </div>,
         { residentData: mockData }
       );
 
@@ -310,11 +308,11 @@ describe('Mixed Content Rendering Integration', () => {
 
       const { container } = renderWithTemplateContext(
         <GridLayout columns={1}>
-          <SplitLayout>
+          <div className="split-layout">
             <FlexContainer direction="column">
               <div className="level-1-static" data-testid="level-1">
                 <h1>Level 1 Static</h1>
-                <GradientBox>
+                <div className="gradient-box">
                   <div className="level-2-static" data-testid="level-2">
                     <p>Level 2 Static in GradientBox</p>
                     <IfOwner>
@@ -327,14 +325,14 @@ describe('Mixed Content Rendering Integration', () => {
                       </div>
                     </IfOwner>
                   </div>
-                </GradientBox>
+                </div>
               </div>
             </FlexContainer>
             <div className="right-static" data-testid="right-side">
               <ProfilePhoto />
               <Bio />
             </div>
-          </SplitLayout>
+          </div>
         </GridLayout>,
         { residentData: mockData }
       );

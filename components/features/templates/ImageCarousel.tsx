@@ -27,7 +27,7 @@ interface CarouselImageProps {
 
 export function CarouselImage({ src, alt, caption, link }: CarouselImageProps) {
   // This component is rendered by the parent ImageCarousel
-  // We use a data attribute approach similar to ProgressTracker
+  // A data attribute approach
   return (
     <div 
       data-carousel-src={src}

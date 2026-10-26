@@ -55,13 +55,10 @@ import WebsiteDisplay from '../../WebsiteDisplay';
 import FollowButton from '../../FollowButton';
 import StickyNote from '../../StickyNote';
 import CenteredBox from '../../CenteredBox';
-import GradientBox from '../../GradientBox';
 import FlexContainer from '../../FlexContainer';
-import SplitLayout from '../../SplitLayout';
 import GridLayout from '../../GridLayout';
 import Tabs, { Tab } from '../../Tabs';
 import { IfOwner, IfVisitor } from '../../conditional/IfOwner';
-import Choose, { When, Otherwise } from '../../conditional/Choose';
 
 // CSS from the elegant showcase template (trimmed to the parts asserted below)
 const templateCSS = `
@@ -112,7 +109,7 @@ function ElegantShowcase() {
 
       <CenteredBox containerMaxWidth="xl" containerPadding="lg">
         <div className="content-section">
-          <GradientBox gradient="sunset" direction="br" containerPadding="lg" rounded>
+          <div className="gradient-box">
             <FlexContainer direction="row" align="center" justify="between" gapSize="lg">
               <div style={{ flex: 1 }}>
                 <h2 className="section-title">About Me</h2>
@@ -122,10 +119,10 @@ function ElegantShowcase() {
                 <ProfilePhoto size="lg" shape="circle" />
               </div>
             </FlexContainer>
-          </GradientBox>
+          </div>
         </div>
 
-        <SplitLayout ratio="2:1" spacing="xl">
+        <div className="split-layout">
           <div>
             <div className="content-section">
               <Tabs>
@@ -159,7 +156,7 @@ function ElegantShowcase() {
               <DisplayName as="span" />
             </div>
           </aside>
-        </SplitLayout>
+        </div>
 
         <div className="content-section">
           <h2 className="section-title">Leave Your Mark</h2>
@@ -167,16 +164,10 @@ function ElegantShowcase() {
         </div>
 
         <footer className="content-section">
-          <Choose>
-            <When when="has:websites">
-              <WebsiteDisplay />
-            </When>
-            <Otherwise>
-              <p className="footer-quote">
-                In the garden of digital creativity, every visit plants a seed of inspiration.
-              </p>
-            </Otherwise>
-          </Choose>
+          <WebsiteDisplay />
+          <p className="footer-quote">
+            In the garden of digital creativity, every visit plants a seed of inspiration.
+          </p>
         </footer>
       </CenteredBox>
     </>
@@ -231,19 +222,13 @@ describe('Elegant Showcase Template Integration', () => {
       const centeredBox = container.querySelector('.mx-auto');
       expect(centeredBox).toBeInTheDocument();
 
-      const splitLayout = centeredBox?.querySelector('.w-full.flex.flex-col');
-      expect(splitLayout).toBeInTheDocument();
 
-      // SplitLayout keeps its two column wrappers (2:1 ratio)
-      expect(splitLayout?.querySelector('.lg\\:w-2\\/3')).toBeInTheDocument();
-      expect(splitLayout?.querySelector('.lg\\:w-1\\/3')).toBeInTheDocument();
 
       // GradientBox + FlexContainer inside the intro section
-      expect(container.querySelector('.bg-gradient-to-br.from-orange-400')).toBeInTheDocument();
       expect(container.querySelector('.flex.items-center.justify-between')).toBeInTheDocument();
     });
 
-    it('should handle conditional rendering (IfOwner, IfVisitor, Choose/When/Otherwise)', () => {
+    it('should handle conditional rendering (IfOwner, IfVisitor)', () => {
       // Test as owner
       const ownerData = createMockResidentData({
         viewer: { id: 'user123' },
@@ -262,7 +247,7 @@ describe('Elegant Showcase Template Integration', () => {
       ).toBeInTheDocument();
       expect(ownerContainer.querySelector('.follow-button-wrapper')).not.toBeInTheDocument();
 
-      // No websites -> Otherwise branch renders
+      // The footer quote shows either way
       expect(ownerContainer.querySelector('.footer-quote')).toBeInTheDocument();
 
       // Test as visitor

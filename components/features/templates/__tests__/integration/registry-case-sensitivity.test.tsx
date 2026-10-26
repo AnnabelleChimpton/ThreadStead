@@ -23,17 +23,9 @@ describe('Component Registry Case Sensitivity Test', () => {
   });
 
   test('should find nested components with lowercase match', () => {
-    const skill = componentRegistry.get('skill');
-    expect(skill).toBeDefined();
-    expect(skill?.name).toBe('Skill');
-    
     const carouselImage = componentRegistry.get('carouselimage');
     expect(carouselImage).toBeDefined();
     expect(carouselImage?.name).toBe('CarouselImage');
-    
-    const contactMethod = componentRegistry.get('contactmethod');
-    expect(contactMethod).toBeDefined();
-    expect(contactMethod?.name).toBe('ContactMethod');
   });
 
   test('should return undefined for non-existent components', () => {
@@ -46,10 +38,8 @@ describe('Component Registry Case Sensitivity Test', () => {
     console.log('Allowed tags:', allowedTags);
     
     expect(allowedTags).toContain('ProfileHero');
-    expect(allowedTags).toContain('Skill');
     expect(allowedTags).toContain('CarouselImage');
-    expect(allowedTags).toContain('ContactMethod');
-    expect(allowedTags).toContain('ProgressItem');
+    expect(allowedTags).toContain('Tab');
     expect(allowedTags.length).toBeGreaterThan(20);
   });
 

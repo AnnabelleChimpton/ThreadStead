@@ -6,7 +6,6 @@
  * reads the stored static HTML and islands, and renders them with the same
  * islands renderer as a whole custom page.
  */
-import { cleanCustomHtmlIslands } from '@/lib/templates/compilation/custom-html';
 import {
   compileTemplateToArtifacts,
   TemplateCompilationError,
@@ -88,7 +87,7 @@ export function compileWidgetSlot(source: string): CompileSlotResult {
     return {
       ok: true,
       staticHTML: artifacts.staticHTML,
-      islands: cleanCustomHtmlIslands(artifacts.islands),
+      islands: artifacts.islands,
       strippedComponents: artifacts.strippedComponents,
       warnings: artifacts.warnings,
     };
@@ -118,9 +117,7 @@ export function storedSlot(value: unknown): StoredWidgetSlot | null {
 /** The stored slot as a profile page renders it, or null when there's nothing to show */
 export function publicWidgetSlot(value: unknown): PublicWidgetSlot | null {
   if (!isStoredSlot(value) || !value.staticHTML.trim()) return null;
-  // Cleaned again for slots stored before the build cleaned them (custom-html.ts)
-  const islands = cleanCustomHtmlIslands(value.islands);
-  return { staticHTML: value.staticHTML, islands, playsSong: islandsPlaySong(islands) };
+  return { staticHTML: value.staticHTML, islands: value.islands, playsSong: islandsPlaySong(value.islands) };
 }
 
 export type SlotInput =

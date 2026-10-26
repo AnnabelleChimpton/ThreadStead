@@ -15,11 +15,10 @@ import { componentRegistry } from '@/lib/templates/core/template-registry';
 
 describe('Component Case Sensitivity Test', () => {
   test('registry resolves PascalCase components from lowercased tag names', () => {
-    // What the HTML parser actually emits for <ProfileHero>, <SkillChart>, etc.
+    // What the HTML parser actually emits for <ProfileHero>, <CarouselImage>, etc.
     expect(componentRegistry.get('profilehero')?.name).toBe('ProfileHero');
     expect(componentRegistry.get('centeredbox')?.name).toBe('CenteredBox');
-    expect(componentRegistry.get('skillchart')?.name).toBe('SkillChart');
-    expect(componentRegistry.get('skill')?.name).toBe('Skill');
+    expect(componentRegistry.get('carouselimage')?.name).toBe('CarouselImage');
     expect(componentRegistry.get('gridlayout')?.name).toBe('GridLayout');
   });
 });

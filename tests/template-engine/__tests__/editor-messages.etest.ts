@@ -104,7 +104,7 @@ describe('mistakes that compile and then do nothing', () => {
       '<div class="card"><OnClick><Increment var="n" /></OnClick>Card</div>',
       '<a href="/x"><img src="https://example.com/a.png" alt="a"><OnClick><Increment var="n" /></OnClick></a>',
       '<Var name="xs" type="array" initial="[1]" /><ul><ForEach var="xs" item="x"><li><If condition="n"><OnClick><Increment var="n" /></OnClick></If></li></ForEach></ul>',
-      '<RetroCard><OnHover><Increment var="n" /></OnHover>x</RetroCard>',
+      '<RetroCard><OnMouseEnter><Increment var="n" /></OnMouseEnter>x</RetroCard>',
       '<Button><OnClick><Increment var="n" /></OnClick>Go</Button>',
       '<img id="cat" src="https://example.com/a.png" alt="cat">\n<OnClick target="#cat"><Increment var="n" /></OnClick>',
       '<p class="note">x</p><OnMouseEnter target=".note"><Increment var="n" /></OnMouseEnter>',
@@ -132,11 +132,11 @@ describe('mistakes that compile and then do nothing', () => {
   test('a target that matches nothing on the page is reported', async () => {
     const { warnings } = await report(
       '<Var name="n" type="number" initial="0" />\n<img id="cat" src="https://example.com/a.png" alt="cat">\n<OnClick target="#dog"><Increment var="n" /></OnClick>\n' +
-      '<OnHover target=".nope"><Increment var="n" /></OnHover>\n<OnClick target="cat"><Increment var="n" /></OnClick>'
+      '<OnMouseEnter target=".nope"><Increment var="n" /></OnMouseEnter>\n<OnClick target="cat"><Increment var="n" /></OnClick>'
     )
     expect(warnings).toEqual([
       'Line 3: <OnClick target="#dog">: nothing on your page has id="dog", so nothing happens.',
-      'Line 4: <OnHover target=".nope">: nothing on your page has class="nope", so nothing happens.',
+      'Line 4: <OnMouseEnter target=".nope">: nothing on your page has class="nope", so nothing happens.',
       'Line 5: <OnClick target="cat">: nothing on your page is a <cat>. For an id, write target="#cat".',
     ])
   })
@@ -165,19 +165,12 @@ test('name= where a tag wants var= says so, once', async () => {
   expect(warnings).toEqual(['Line 2: <Increment name="n"> Increment says which variable with var="…", not name=. Write var="n".'])
 })
 
-// Retired components still work on the pages that use them; the ones that
-// misbehave say so (cross-check A8, component-docs.ts HIDDEN_COMPONENTS)
-test('retired logic that misbehaves says what to use instead', async () => {
-  const { warnings } = await report(`<Var name="n" type="number" initial="1" />
-<ForEach var="xs" item="x"><Continue /></ForEach>
-<Switch value="n"><Case value="1"><p>one</p></Case><Default><p>other</p></Default></Switch>
-<Choose><When data="$vars.n" equals="1"><p>one</p></When></Choose>`)
-  expect(warnings).toEqual(expect.arrayContaining([
-    expect.stringMatching(/^Line 2: <Continue> doesn't do anything yet.*<If>/),
-    expect.stringMatching(/^Line 3: <Switch> only works inside an event like <OnClick>/),
-    expect.stringMatching(/^Line 4: <When> doesn't change when a page variable does.*<If> follows variables/),
-  ]))
-  // inside an event, Switch is fine
-  const inEvent = await report('<Var name="n" type="number" initial="1" /><Button><OnClick><Switch value="n"><Case value="1"><Set var="n" value="2" /></Case></Switch></OnClick>Go</Button>')
-  expect(inEvent.warnings.join()).not.toMatch(/<Switch>/)
+// Components retired on 2026-10-25: the editor says there's no such
+// component, on its line, and keeps what was inside
+test('a retired component is named as not a component, with its line', async () => {
+  const result = await report('<Var name="n" type="number" initial="1" />\n<Switch value="n"><p>one</p></Switch>\n<Boombox />')
+  expect(result.stripped).toEqual([
+    expect.stringMatching(/no component called <Switch>/),
+    expect.stringMatching(/no component called <Boombox>/),
+  ])
 })

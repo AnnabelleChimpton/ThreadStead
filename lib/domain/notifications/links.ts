@@ -1,7 +1,7 @@
 /**
  * Where a notification goes when you click it. Shared by the bell
- * (NotificationDropdown), the /notifications page (NotificationList) and the
- * template NotificationCenter, so the three can't drift apart again.
+ * (NotificationDropdown) and the /notifications page (NotificationList), so
+ * they can't drift apart again.
  *
  * Client-safe: no db imports.
  */

@@ -1,11 +1,10 @@
 /**
- * StickyNote and NeonSign props through THE compile pipeline, pinned at the
- * island: what the compile step hands the component at hydration.
+ * StickyNote's props through THE compile pipeline, pinned at the island:
+ * what the compile step hands the component at hydration.
  *
- * Their props `color`, `fontSize` and `fontWeight` are named like CSS. They
- * used to be compiled into inline style (engine R2); now declared props reach
- * the component, under the names it reads (noteColor, neonColor, textSize,
- * textWeight), and only the author's own `style` is style. Islands saved
+ * Its `color` is named like CSS. It used to be compiled into inline style
+ * (engine R2); now declared props reach the component, under the name it
+ * reads (noteColor), and only the author's own `style` is style. Islands saved
  * before that still carry the old shape; the components read those back
  * (decorative-islands.test.tsx). Every component: props-reach-components.etest.ts.
  */
@@ -61,38 +60,9 @@ describe('StickyNote', () => {
   })
 })
 
-describe('NeonSign', () => {
-  test('color, fontSize and fontWeight reach the component as its own props', () => {
-    const { hydrated } = onlyIsland('<NeonSign text="hi" color="pink" fontSize="large" fontWeight="black" />')
-    expect(hydrated.styles).toEqual({})
-    expect(hydrated.componentProps).toMatchObject({
-      text: 'hi',
-      uppercase: true,
-      neonColor: 'pink',
-      textSize: 'large',
-      textWeight: 'black',
-    })
-  })
-
-  test('without them, the defaults are props and nothing is put in style', () => {
-    const { hydrated } = onlyIsland('<NeonSign text="hi" />')
-    expect(hydrated.styles).toEqual({})
-    expect(hydrated.componentProps).toMatchObject({ neonColor: 'blue', textSize: 'medium', textWeight: 'bold' })
-  })
-
-  test('element children stay in the placeholder for hydration, with no CSS from the props', () => {
-    const { staticHTML } = onlyIsland('<NeonSign color="green">Hi <b>there</b></NeonSign>')
-    expect(staticHTML).toMatch(/data-component="neonsign"[^>]*>Hi <b>there<\/b><\/span>/)
-    expect(staticHTML).not.toMatch(/style="color/)
-  })
-})
-
-test('the Retro Toybox starter hands its pink note and pink sign their colours', () => {
+test('the Retro Toybox starter hands its pink note its colour', () => {
   const { islands } = compileTemplateToArtifacts(TEMPLATE_EXAMPLES.retroToybox.template)
   const note = islands.find((i) => i.component === 'stickynote')!
-  const sign = islands.find((i) => i.component === 'neonsign')!
   expect(note._precomputed!.componentProps.noteColor).toBe('pink')
-  expect(sign._precomputed!.componentProps).toMatchObject({ neonColor: 'pink', textSize: 'large' })
   expect(note._precomputed!.styles).toEqual({})
-  expect(sign._precomputed!.styles).toEqual({})
 })

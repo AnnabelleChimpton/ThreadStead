@@ -80,85 +80,11 @@ export const ATTRIBUTE_MAP = {
   // COMPONENT-SPECIFIC PROPERTIES
   // ============================================================================
 
-  // CRTMonitor
-  'screencolor': 'screenColor',
-  'screen-color': 'screenColor',
-  'phosphorglow': 'phosphorGlow',
-  'phosphor-glow': 'phosphorGlow',
-
   // ArcadeButton
   'style3d': 'style3D',
   'style-3d': 'style3D',
   'clickeffect': 'clickEffect',
   'click-effect': 'clickEffect',
-
-  // PixelArtFrame
-  'framecolor': 'frameColor',
-  'frame-color': 'frameColor',
-  'framewidth': 'frameWidth',
-  'frame-width': 'frameWidth',
-  'cornerstyle': 'cornerStyle',
-  'corner-style': 'cornerStyle',
-  'shadoweffect': 'shadowEffect',
-  'shadow-effect': 'shadowEffect',
-  'gloweffect': 'glowEffect',
-  'glow-effect': 'glowEffect',
-  'innerpadding': 'innerPadding',
-  'inner-padding': 'innerPadding',
-
-  // RetroGrid
-  'gridstyle': 'gridStyle',
-  'grid-style': 'gridStyle',
-
-  // VHSTape
-  'tapecolor': 'tapeColor',
-  'tape-color': 'tapeColor',
-  'labelstyle': 'labelStyle',
-  'label-style': 'labelStyle',
-  'showbarcode': 'showBarcode',
-  'show-barcode': 'showBarcode',
-
-  // CassetteTape
-  'showspokestorotate': 'showSpokesToRotate',
-  'show-spokes-to-rotate': 'showSpokesToRotate',
-
-  // RetroTV
-  'tvstyle': 'tvStyle',
-  'tv-style': 'tvStyle',
-  'channelnumber': 'channelNumber',
-  'channel-number': 'channelNumber',
-  'showstatic': 'showStatic',
-  'show-static': 'showStatic',
-  'showscanlines': 'showScanlines',
-  'show-scanlines': 'showScanlines',
-
-  // Boombox
-  'showequalizer': 'showEqualizer',
-  'show-equalizer': 'showEqualizer',
-  'showcassettedeck': 'showCassetteDeck',
-  'show-cassette-deck': 'showCassetteDeck',
-  'showradio': 'showRadio',
-  'show-radio': 'showRadio',
-  'isplaying': 'isPlaying',
-  'is-playing': 'isPlaying',
-  'currenttrack': 'currentTrack',
-  'current-track': 'currentTrack',
-
-  // MatrixRain
-  'customcharacters': 'customCharacters',
-  'custom-characters': 'customCharacters',
-  'fadeeffect': 'fadeEffect',
-  'fade-effect': 'fadeEffect',
-  'backgroundopacity': 'backgroundOpacity',
-  'background-opacity': 'backgroundOpacity',
-
-  // CustomHTMLElement
-  'tagname': 'tagName',
-  'tag-name': 'tagName',
-  'innerhtml': 'innerHTML',
-  'inner-html': 'innerHTML',
-  'cssrendermode': 'cssRenderMode',
-  'css-render-mode': 'cssRenderMode',
 
   // ============================================================================
   // TEMPLATE VARIABLE & STATE COMPONENTS
@@ -302,7 +228,7 @@ export const ATTRIBUTE_MAP = {
   // ADVANCED STATE MANAGEMENT
   // ============================================================================
 
-  // Extract, Property, Merge, Clone, ObjectSet, ConditionalAttr
+  // Merge, ObjectSet, ConditionalAttr
   'path': 'path',
   'as': 'as',
   'sources': 'sources',

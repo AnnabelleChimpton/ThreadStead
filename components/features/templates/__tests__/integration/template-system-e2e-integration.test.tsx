@@ -43,13 +43,10 @@ import WebsiteDisplay from '../../WebsiteDisplay';
 import ProfileBadges from '../../ProfileBadges';
 import MutualFriends from '../../MutualFriends';
 import GridLayout from '../../GridLayout';
-import SplitLayout from '../../SplitLayout';
 import FlexContainer from '../../FlexContainer';
-import GradientBox from '../../GradientBox';
 import CenteredBox from '../../CenteredBox';
 import ProfileHeader from '../../ProfileHeader';
 import { IfOwner, IfVisitor } from '../../conditional/IfOwner';
-import ProgressTracker, { ProgressItem } from '../../ProgressTracker';
 import ImageCarousel, { CarouselImage } from '../../ImageCarousel';
 
 describe('Template System End-to-End Integration', () => {
@@ -99,19 +96,19 @@ describe('Template System End-to-End Integration', () => {
     it('should handle complex nested layout template', () => {
       // Simulate what the template system would produce for a complex nested layout:
       // <GridLayout columns="2" gapSize="lg">
-      //   <SplitLayout ratio="1:2" spacing="md">
+      //   <div className="split-layout">
       //     <FlexContainer direction="column" gapSize="sm">
-      //       <GradientBox gradient="sunset" containerPadding="md">
+      //       <div className="gradient-box">
       //         <h2>Welcome Section</h2>
       //         <DisplayName />
       //         <Bio />
-      //       </GradientBox>
+      //       </div>
       //     </FlexContainer>
       //     <CenteredBox containerMaxWidth="md" containerPadding="lg">
       //       <ProfilePhoto />
       //       <p class="description">Profile photo section</p>
       //     </CenteredBox>
-      //   </SplitLayout>
+      //   </div>
       //   <div class="sidebar">
       //     <h3>My Blog Posts</h3>
       //     <BlogPosts />
@@ -141,19 +138,19 @@ describe('Template System End-to-End Integration', () => {
 
       const { container } = renderWithTemplateContext(
         <GridLayout columns={2} gapSize="lg">
-          <SplitLayout ratio="1:2" spacing="md">
+          <div className="split-layout">
             <FlexContainer direction="column" gapSize="sm">
-              <GradientBox gradient="sunset" containerPadding="md">
+              <div className="gradient-box">
                 <h2>Welcome Section</h2>
                 <DisplayName />
                 <Bio />
-              </GradientBox>
+              </div>
             </FlexContainer>
             <CenteredBox containerMaxWidth="md" containerPadding="lg">
               <ProfilePhoto />
               <p className="description">Profile photo section</p>
             </CenteredBox>
-          </SplitLayout>
+          </div>
           <div className="sidebar">
             <h3>My Blog Posts</h3>
             <BlogPosts />
@@ -164,9 +161,7 @@ describe('Template System End-to-End Integration', () => {
 
       // Verify layout structure
       expect(container.querySelector('.grid.grid-cols-1.sm\\:grid-cols-2.gap-6')).toBeInTheDocument(); // GridLayout
-      expect(container.querySelector('.w-full.flex.flex-col.lg\\:flex-row.gap-4')).toBeInTheDocument(); // SplitLayout
       expect(container.querySelector('.flex.flex-col.items-start.justify-start.gap-2')).toBeInTheDocument(); // FlexContainer
-      expect(container.querySelector('.bg-gradient-to-br.from-orange-400')).toBeInTheDocument(); // GradientBox
       expect(container.querySelector('.mx-auto.max-w-md.p-8')).toBeInTheDocument(); // CenteredBox
 
       // Verify nested content
@@ -448,18 +443,18 @@ describe('Template System End-to-End Integration', () => {
 
       const { container } = renderWithTemplateContext(
         <GridLayout columns={1}>
-          <SplitLayout ratio="1:1">
+          <div className="split-layout">
             <FlexContainer direction="column">
-              <GradientBox gradient="sunset">
+              <div className="gradient-box">
                 <CenteredBox containerMaxWidth="md">
                   <div className="level-5">
                     <h1>Deep Nesting Test</h1>
                     <FlexContainer direction="row">
                       <div className="level-6">
-                        <GradientBox gradient="ocean" containerPadding="sm">
+                        <div className="gradient-box">
                           <div className="level-7">
                             <DisplayName />
-                            <SplitLayout ratio="1:2">
+                            <div className="split-layout">
                               <ProfilePhoto />
                               <div className="level-8">
                                 <GridLayout columns={2} gapSize="xs">
@@ -467,17 +462,17 @@ describe('Template System End-to-End Integration', () => {
                                   <div className="final-level">Final Level Content</div>
                                 </GridLayout>
                               </div>
-                            </SplitLayout>
+                            </div>
                           </div>
-                        </GradientBox>
+                        </div>
                       </div>
                     </FlexContainer>
                   </div>
                 </CenteredBox>
-              </GradientBox>
+              </div>
             </FlexContainer>
             <BlogPosts />
-          </SplitLayout>
+          </div>
         </GridLayout>,
         { residentData: mockData }
       );
@@ -495,157 +490,6 @@ describe('Template System End-to-End Integration', () => {
 
       // Verify complex layout structures are maintained
       expect(container.querySelector('.grid')).toBeInTheDocument();
-      expect(container.querySelector('.bg-gradient-to-br.from-orange-400')).toBeInTheDocument(); // Sunset gradient
-      expect(container.querySelector('.bg-gradient-to-br.from-blue-400')).toBeInTheDocument(); // Ocean gradient
-    });
-  });
-
-  describe('New Component Integration (ProgressTracker)', () => {
-    it('should integrate ProgressTracker with other template components', () => {
-      const mockData = createMockResidentData({
-        owner: { 
-          id: 'dev123', 
-          handle: 'developer', 
-          displayName: 'Jane Developer',
-          avatarUrl: '/assets/jane-dev.jpg'
-        },
-        capabilities: {
-          bio: 'Full-stack developer with 5 years of experience'
-        }
-      });
-
-      const { container } = renderWithTemplateContext(
-        <div className="developer-profile">
-          <ProfileHeader showPhoto showBio />
-          
-          <GridLayout columns={2} gapSize="lg">
-            <div className="skills-section">
-              <ProgressTracker title="Technical Skills" displayMode="bars" theme="modern">
-                <ProgressItem label="React" value={85} color="blue" />
-                <ProgressItem label="TypeScript" value={80} color="green" />
-                <ProgressItem label="Node.js" value={75} color="purple" />
-                <ProgressItem label="Python" value={60} color="yellow" />
-              </ProgressTracker>
-            </div>
-            
-            <div className="ratings-section">
-              <ProgressTracker title="Project Ratings" displayMode="stars" theme="retro">
-                <ProgressItem label="E-commerce Site" value={4} max={5} />
-                <ProgressItem label="Mobile App" value={5} max={5} />
-                <ProgressItem label="Dashboard" value={3} max={5} />
-              </ProgressTracker>
-            </div>
-          </GridLayout>
-
-          <FlexContainer direction="row" gapSize="lg">
-            <GradientBox gradient="neon" containerPadding="md">
-              <ProgressTracker title="2024 Goals" displayMode="circles" theme="neon" showValues size="sm">
-                <ProgressItem label="Learning" value={75} color="pink" />
-                <ProgressItem label="Projects" value={60} color="blue" />
-              </ProgressTracker>
-            </GradientBox>
-            
-            <CenteredBox containerMaxWidth="md">
-              <ProgressTracker title="Skill Levels" displayMode="dots" layout="horizontal" theme="minimal">
-                <ProgressItem label="JavaScript" value={9} max={10} />
-                <ProgressItem label="CSS" value={8} max={10} />
-                <ProgressItem label="Design" value={6} max={10} />
-              </ProgressTracker>
-            </CenteredBox>
-          </FlexContainer>
-
-          <BlogPosts />
-        </div>,
-        { residentData: mockData }
-      );
-
-      // Verify ProgressTracker components render
-      expect(screen.getByText('Technical Skills')).toBeInTheDocument();
-      expect(screen.getByText('Project Ratings')).toBeInTheDocument();
-      expect(screen.getByText('2024 Goals')).toBeInTheDocument();
-      expect(screen.getByText('Skill Levels')).toBeInTheDocument();
-
-      // Verify progress items render
-      expect(screen.getByText('React')).toBeInTheDocument();
-      expect(screen.getByText('85%')).toBeInTheDocument();
-      expect(screen.getByText('E-commerce Site')).toBeInTheDocument();
-      expect(screen.getByText('4/5')).toBeInTheDocument();
-      expect(screen.getByText('Learning')).toBeInTheDocument();
-      expect(screen.getByText('JavaScript')).toBeInTheDocument();
-
-      // Verify layout integration
-      expect(container.querySelector('.ts-progress-tracker')).toBeInTheDocument();
-      expect(container.querySelector('.ts-progress-bar-fill')).toBeInTheDocument();
-      expect(container.querySelector('.ts-progress-stars')).toBeInTheDocument();
-      expect(container.querySelector('.ts-progress-circle')).toBeInTheDocument();
-      expect(container.querySelector('.ts-progress-dots')).toBeInTheDocument();
-
-      // Verify other components still work alongside ProgressTracker
-      // (rendered by ProfileHeader and again by the PostItem author line)
-      expect(screen.getAllByText('Jane Developer').length).toBeGreaterThan(0);
-      expect(screen.getByText('Full-stack developer with 5 years of experience')).toBeInTheDocument();
-      expect(screen.getByText('Recent Posts')).toBeInTheDocument();
-    });
-
-    it('should handle ProgressTracker with conditional rendering', () => {
-      const ownerData = createMockResidentData({
-        owner: { id: 'owner123', handle: 'owner', displayName: 'Owner User' },
-        viewer: { id: 'owner123' } // Owner viewing their own profile
-      });
-
-      renderWithTemplateContext(
-        <div className="conditional-progress">
-          <IfOwner>
-            <ProgressTracker title="Private Skills (Owner Only)">
-              <ProgressItem label="Secret Skill" value={95} />
-            </ProgressTracker>
-          </IfOwner>
-          
-          <IfVisitor>
-            <ProgressTracker title="Public Skills (Visitors)">
-              <ProgressItem label="Public Skill" value={75} />
-            </ProgressTracker>
-          </IfVisitor>
-        </div>,
-        { residentData: ownerData }
-      );
-
-      // Owner should see their private skills
-      expect(screen.getByText('Private Skills (Owner Only)')).toBeInTheDocument();
-      expect(screen.getByText('Secret Skill')).toBeInTheDocument();
-      expect(screen.queryByText('Public Skills (Visitors)')).not.toBeInTheDocument();
-    });
-
-    it('should handle ProgressTracker performance with many items', () => {
-      const mockData = createMockResidentData();
-      
-      const startTime = Date.now();
-
-      const { container } = renderWithTemplateContext(
-        <ProgressTracker title="All My Skills" displayMode="bars" size="sm">
-          {Array.from({ length: 50 }, (_, i) => (
-            <ProgressItem 
-              key={i}
-              label={`Skill ${i + 1}`} 
-              value={Math.floor(Math.random() * 100)} 
-              color={['blue', 'green', 'red', 'purple', 'pink', 'yellow'][i % 6]}
-            />
-          ))}
-        </ProgressTracker>,
-        { residentData: mockData }
-      );
-
-      const endTime = Date.now();
-      const processingTime = endTime - startTime;
-
-      // Should handle many progress items efficiently
-      expect(processingTime).toBeLessThan(500);
-      expect(screen.getByText('All My Skills')).toBeInTheDocument();
-      expect(screen.getByText('Skill 1')).toBeInTheDocument();
-      expect(screen.getByText('Skill 50')).toBeInTheDocument();
-
-      const progressBars = container.querySelectorAll('.ts-progress-bar-fill');
-      expect(progressBars).toHaveLength(50);
     });
   });
 
@@ -693,7 +537,7 @@ describe('Template System End-to-End Integration', () => {
               <ImageCarousel carouselHeight="lg" transition="fade" autoplay interval={4} />
             </div>
             
-            <SplitLayout ratio="2:1" spacing="md">
+            <div className="split-layout">
               <div className="custom-gallery">
                 <h3>Featured Work</h3>
                 <ImageCarousel carouselHeight="md" controls="dots">
@@ -711,14 +555,7 @@ describe('Template System End-to-End Integration', () => {
                 </ImageCarousel>
               </div>
               
-              <div className="skills-section">
-                <ProgressTracker title="Photography Skills" displayMode="bars" size="sm">
-                  <ProgressItem label="Portrait" value={95} color="blue" />
-                  <ProgressItem label="Landscape" value={90} color="green" />
-                  <ProgressItem label="Event" value={85} color="purple" />
-                </ProgressTracker>
-              </div>
-            </SplitLayout>
+            </div>
           </GridLayout>
         </div>,
         { residentData: mockData }
@@ -744,14 +581,10 @@ describe('Template System End-to-End Integration', () => {
 
       // Verify integration with other components
       expect(screen.getByText('Jane Photographer')).toBeInTheDocument();
-      expect(screen.getByText('Photography Skills')).toBeInTheDocument();
-      expect(screen.getByText('Portrait')).toBeInTheDocument();
 
       // Verify layout integration
       const gridLayout = container.querySelector('.grid');
-      const splitLayout = container.querySelector('.w-full.flex.flex-col');
       expect(gridLayout).toBeInTheDocument();
-      expect(splitLayout).toBeInTheDocument();
     });
 
     it('should handle ImageCarousel with empty image data gracefully', () => {

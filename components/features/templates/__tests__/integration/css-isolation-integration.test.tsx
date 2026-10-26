@@ -2,12 +2,9 @@ import React from 'react';
 import { screen, render } from '@testing-library/react';
 import { renderWithTemplateContext, createMockResidentData } from '../test-utils';
 import GridLayout from '../../GridLayout';
-import SplitLayout from '../../SplitLayout';
 import FlexContainer from '../../FlexContainer';
-import GradientBox from '../../GradientBox';
 import CenteredBox from '../../CenteredBox';
 import DisplayName from '../../DisplayName';
-import ProfilePhoto from '../../ProfilePhoto';
 import Bio from '../../Bio';
 
 describe('CSS Isolation Integration', () => {
@@ -57,52 +54,6 @@ describe('CSS Isolation Integration', () => {
       const bioSection = container.querySelector('.ts-profile-bio-section');
       expect(bioSection).toHaveClass('ts-profile-bio-section', 'mb-4');
       expect(bioSection).not.toHaveClass('grid', 'gap-6');
-    });
-
-    it('should prevent SplitLayout styles from affecting child components', () => {
-      const mockData = createMockResidentData();
-
-      const { container } = renderWithTemplateContext(
-        <SplitLayout ratio="2:1" spacing="xl">
-          <div 
-            className="left-child bg-blue-300 border-2 border-solid border-black"
-            data-testid="left-child"
-            style={{ fontSize: '14px', lineHeight: '1.2' }}
-          >
-            <h3 className="text-red-600 font-bold">Left Side Title</h3>
-            <DisplayName />
-          </div>
-          <div 
-            className="right-child grid grid-cols-2 gap-2"
-            data-testid="right-child"
-          >
-            <ProfilePhoto />
-            <Bio />
-          </div>
-        </SplitLayout>,
-        { residentData: mockData }
-      );
-
-      const splitContainer = container.querySelector('.w-full.flex.flex-col');
-      const leftChild = screen.getByTestId('left-child');
-      const rightChild = screen.getByTestId('right-child');
-
-      // Verify SplitLayout has its flex styles
-      expect(splitContainer).toHaveClass('w-full', 'flex', 'flex-col', 'lg:flex-row', 'gap-8');
-
-      // Verify left child maintains its styles and is not affected by parent flex
-      expect(leftChild).toHaveClass('left-child', 'bg-blue-300', 'border-2', 'border-solid', 'border-black');
-      expect(leftChild).not.toHaveClass('w-full', 'flex', 'flex-col', 'gap-8');
-      expect(leftChild).toHaveStyle({ fontSize: '14px', lineHeight: '1.2' });
-
-      // Verify right child has its own grid styles, unaffected by parent flex
-      expect(rightChild).toHaveClass('right-child', 'grid', 'grid-cols-2', 'gap-2');
-      expect(rightChild).not.toHaveClass('w-full', 'flex', 'flex-col', 'lg:flex-row', 'gap-8');
-
-      // Verify child components inside maintain their own styles
-      const title = screen.getByText('Left Side Title');
-      expect(title).toHaveClass('text-red-600', 'font-bold');
-      expect(title).not.toHaveClass('w-full', 'flex', 'gap-8');
     });
 
     it('should prevent FlexContainer styles from affecting child components', () => {
@@ -157,58 +108,6 @@ describe('CSS Isolation Integration', () => {
       const displayName = screen.getByText('Test User');
       expect(displayName).toHaveClass('ts-profile-display-name');
       expect(displayName).not.toHaveClass('flex', 'items-center', 'justify-between', 'gap-4');
-    });
-
-    it('should prevent GradientBox styles from affecting child components', () => {
-      const mockData = createMockResidentData();
-
-      const { container } = renderWithTemplateContext(
-        <GradientBox gradient="sunset" containerPadding="lg" rounded>
-          <div 
-            className="child-with-own-bg bg-white text-black border rounded-none"
-            data-testid="white-bg-child"
-          >
-            Child with white background
-          </div>
-          <div 
-            className="child-with-transparent bg-transparent text-blue-600"
-            data-testid="transparent-child"
-          >
-            Transparent child
-          </div>
-          <DisplayName data-testid="display-name-in-gradient" />
-          <div 
-            className="child-with-custom-padding p-1 m-2"
-            data-testid="custom-padding-child"
-          >
-            Custom padding child
-          </div>
-        </GradientBox>,
-        { residentData: mockData }
-      );
-
-      const gradientContainer = container.querySelector('.bg-gradient-to-br');
-      const whiteBgChild = screen.getByTestId('white-bg-child');
-      const transparentChild = screen.getByTestId('transparent-child');
-      const customPaddingChild = screen.getByTestId('custom-padding-child');
-
-      // Verify GradientBox has its background and styling
-      expect(gradientContainer).toHaveClass('bg-gradient-to-br', 'from-orange-400', 'via-red-500', 'to-pink-500', 'p-8', 'rounded-lg');
-
-      // Verify children maintain their own backgrounds and don't inherit gradient
-      expect(whiteBgChild).toHaveClass('child-with-own-bg', 'bg-white', 'text-black', 'border', 'rounded-none');
-      expect(whiteBgChild).not.toHaveClass('bg-gradient-to-br', 'from-orange-400', 'p-8', 'rounded-lg');
-
-      expect(transparentChild).toHaveClass('child-with-transparent', 'bg-transparent', 'text-blue-600');
-      expect(transparentChild).not.toHaveClass('bg-gradient-to-br', 'from-orange-400', 'p-8', 'rounded-lg');
-
-      expect(customPaddingChild).toHaveClass('child-with-custom-padding', 'p-1', 'm-2');
-      expect(customPaddingChild).not.toHaveClass('bg-gradient-to-br', 'p-8', 'rounded-lg');
-
-      // Verify DisplayName keeps its own styles
-      const displayName = screen.getByText('Test User');
-      expect(displayName).toHaveClass('ts-profile-display-name');
-      expect(displayName).not.toHaveClass('bg-gradient-to-br', 'p-8', 'rounded-lg');
     });
 
     it('should prevent CenteredBox styles from affecting child components', () => {
@@ -305,36 +204,6 @@ describe('CSS Isolation Integration', () => {
       expect(gridContainer).not.toHaveClass('gap-8');
     });
 
-    it('should prevent child styles from breaking SplitLayout ratios', () => {
-      const mockData = createMockResidentData();
-
-      const { container } = renderWithTemplateContext(
-        <SplitLayout ratio="1:3" spacing="md">
-          <div className="left-child-with-fixed-width w-96 min-w-max">
-            Fixed width left child that tries to break ratio
-          </div>
-          <div className="right-child-with-flex-grow flex-grow-0 flex-shrink-0">
-            Right child that tries to prevent flex
-          </div>
-        </SplitLayout>,
-        { residentData: mockData }
-      );
-
-      const splitContainer = container.querySelector('.w-full.flex');
-      const leftWrapper = splitContainer?.firstElementChild;
-      const rightWrapper = splitContainer?.lastElementChild;
-
-      // Verify SplitLayout maintains its flex structure
-      expect(splitContainer).toHaveClass('w-full', 'flex', 'flex-col', 'lg:flex-row', 'gap-4');
-      
-      // Verify wrappers maintain their width classes despite child attempts to override
-      expect(leftWrapper).toHaveClass('w-full', 'lg:w-1/4'); // 1:3 ratio = 1/4
-      expect(rightWrapper).toHaveClass('w-full', 'lg:w-3/4'); // 1:3 ratio = 3/4
-      
-      // Verify container is not affected by child positioning attempts
-      expect(splitContainer).not.toHaveClass('w-96', 'min-w-max', 'flex-grow-0');
-    });
-
     it('should prevent child styles from breaking FlexContainer alignment', () => {
       const mockData = createMockResidentData();
 
@@ -369,18 +238,18 @@ describe('CSS Isolation Integration', () => {
 
       const { container } = renderWithTemplateContext(
         <GridLayout columns={2} gapSize="lg" data-testid="outer-grid">
-          <SplitLayout ratio="1:1" spacing="md" data-testid="nested-split">
+          <div className="split-layout">
             <FlexContainer direction="column" gapSize="sm" data-testid="nested-flex">
-              <GradientBox gradient="ocean" containerPadding="sm" data-testid="nested-gradient">
+              <div className="gradient-box">
                 <CenteredBox containerMaxWidth="sm" containerPadding="xs" data-testid="nested-center">
                   <div className="deeply-nested-child bg-white p-1 text-black" data-testid="final-child">
                     Deeply nested content
                   </div>
                 </CenteredBox>
-              </GradientBox>
+              </div>
             </FlexContainer>
             <DisplayName />
-          </SplitLayout>
+          </div>
           <Bio />
         </GridLayout>,
         { residentData: mockData }
@@ -388,9 +257,7 @@ describe('CSS Isolation Integration', () => {
 
       // Verify each wrapper maintains its own styles independently
       const outerGrid = container.querySelector('.grid');
-      const nestedSplit = container.querySelector('.w-full.flex.lg\\:flex-row');
       const nestedFlex = container.querySelector('.flex.items-start'); // FlexContainer has items-start by default
-      const nestedGradient = container.querySelector('.bg-gradient-to-br');
       const nestedCenter = container.querySelector('.mx-auto.max-w-sm');
       const finalChild = screen.getByTestId('final-child');
 
@@ -398,14 +265,10 @@ describe('CSS Isolation Integration', () => {
       expect(outerGrid).toHaveClass('grid', 'grid-cols-1', 'sm:grid-cols-2', 'gap-6');
       expect(outerGrid).not.toHaveClass('flex', 'bg-gradient-to-br', 'mx-auto');
 
-      expect(nestedSplit).toHaveClass('w-full', 'flex', 'flex-col', 'lg:flex-row', 'gap-4');
-      expect(nestedSplit).not.toHaveClass('grid', 'items-center', 'bg-gradient-to-br', 'mx-auto');
 
       expect(nestedFlex).toHaveClass('flex', 'flex-col', 'items-start', 'justify-start', 'gap-2');
       expect(nestedFlex).not.toHaveClass('grid', 'lg:flex-row', 'bg-gradient-to-br', 'mx-auto');
 
-      expect(nestedGradient).toHaveClass('bg-gradient-to-br', 'from-blue-400', 'via-blue-500', 'to-blue-600', 'p-4', 'rounded-lg');
-      expect(nestedGradient).not.toHaveClass('grid', 'flex', 'lg:flex-row', 'mx-auto');
 
       expect(nestedCenter).toHaveClass('mx-auto', 'max-w-sm', 'p-2');
       expect(nestedCenter).not.toHaveClass('grid', 'flex', 'bg-gradient-to-br', 'rounded-lg');

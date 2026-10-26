@@ -127,19 +127,12 @@ export function componentDoc(registration: ComponentRegistration): ComponentDoc 
 /** Every registered component, in reference order: by group, connected ones first, featured ones first in each. */
 /**
  * Left out of the palette, autocomplete and reference, and so out of new
- * pages; pages that use them keep working (template audit PLAN, "Bloat"):
- * logic that misbehaves or repeats another tag, layout HTML already does,
- * the site's own chrome, and one-offs. The ones that misbehave also get a
- * line in the editor (template-parser.ts reportPageProblems). Sequence and
- * Step stay: they're the one way to wait between actions, and a lesson uses them.
+ * pages, but kept because live pages use them (2026-10-25 census): layout
+ * HTML and CSS already do, a second ProfilePhoto, an <img> by another name.
+ * Retired components nobody used were deleted then.
  */
 export const HIDDEN_COMPONENTS: ReadonlySet<string> = new Set([
-  'Continue', 'Choose', 'When', 'Otherwise', 'Switch', 'Case', 'Default', 'OnHover', 'Timeout', 'OnTimeout',
-  'FlexContainer', 'GridLayout', 'Grid', 'GridItem', 'SplitLayout', 'CenteredBox', 'GradientBox',
-  'TextElement', 'Heading', 'Paragraph', 'CustomHTMLElement',
-  'NotificationCenter', 'NotificationBell', 'UserAccount', 'SiteBranding', 'Breadcrumb', 'ThreadsteadNavigation',
-  'ProgressTracker', 'SkillChart', 'ContactCard', 'ArcadeButton', 'FloatingBadge',
-  'DebugValue', 'EventDiv',
+  'FlexContainer', 'GridLayout', 'CenteredBox', 'Heading', 'ArcadeButton', 'ProfileHero', 'UserImage',
 ])
 
 export function buildComponentDocs(registrations: Map<string, ComponentRegistration>): ComponentDoc[] {

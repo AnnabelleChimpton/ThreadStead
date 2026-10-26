@@ -10,7 +10,6 @@ import ShowToast from '@/components/features/templates/state/actions/ShowToast';
 import Push from '@/components/features/templates/state/actions/Push';
 import Pop from '@/components/features/templates/state/actions/Pop';
 import RemoveAt from '@/components/features/templates/state/actions/RemoveAt';
-import ArrayAt from '@/components/features/templates/state/actions/ArrayAt';
 import Append from '@/components/features/templates/state/actions/Append';
 import Prepend from '@/components/features/templates/state/actions/Prepend';
 import Cycle from '@/components/features/templates/state/actions/Cycle';
@@ -24,16 +23,12 @@ import SetURLParam from '@/components/features/templates/state/actions/SetURLPar
 import SetURLHash from '@/components/features/templates/state/actions/SetURLHash';
 import Count from '@/components/features/templates/state/actions/Count';
 import Sum from '@/components/features/templates/state/actions/Sum';
-import Get from '@/components/features/templates/state/actions/Get';
 import Filter from '@/components/features/templates/state/actions/Filter';
 import Find from '@/components/features/templates/state/actions/Find';
 import Transform from '@/components/features/templates/state/actions/Transform';
 import Sort from '@/components/features/templates/state/actions/Sort';
-import Clone from '@/components/features/templates/state/actions/Clone';
 import Merge from '@/components/features/templates/state/actions/Merge';
 import ObjectSet from '@/components/features/templates/state/actions/ObjectSet';
-import Extract from '@/components/features/templates/state/actions/Extract';
-import Property from '@/components/features/templates/state/actions/Property';
 import ConditionalAttr from '@/components/features/templates/state/actions/ConditionalAttr';
 
 /**
@@ -169,23 +164,6 @@ export function registerActionComponents(registry: ComponentRegistry) {
     props: {
       var: { type: 'string', required: true, description: 'The list page variable to remove from.' },
       index: { type: 'string', description: 'The position to remove, counting from 0. Can be $vars.name to use a number page variable. Inside a ForEach you can leave it out to remove the current item.' }
-    },
-    relationship: {
-      type: 'action',
-      acceptsChildren: false
-    }
-  });
-
-  registry.register({
-    name: 'ArrayAt',
-    component: ArrayAt,
-    group: 'logic',
-    description: 'Keeps a page variable set to one item of a list, and updates it whenever the list or the position changes. Put it on the page, not inside an event; inside an event it does nothing.',
-    example: '<Var name="quotes" type="array" initial=\'["Stay weird", "Drink water", "Call a friend"]\' />\n<Var name="n" type="number" initial="0" />\n<Var name="quote" type="string" initial="" />\n<ArrayAt var="quote" array="quotes" index="n" />\n<p><ShowVar name="quote" /></p>\n<Button><OnClick><Increment var="n" max="2" /></OnClick>Another one</Button>',
-    props: {
-      var: { type: 'string', required: true, description: 'The page variable to keep filled with the item.' },
-      array: { type: 'string', required: true, description: 'The name of the list page variable.' },
-      index: { type: 'string', required: true, description: 'Which item, counting from 0: a number, or the name of a number page variable. Negative numbers count back from the end.' }
     },
     relationship: {
       type: 'action',
@@ -412,23 +390,6 @@ export function registerActionComponents(registry: ComponentRegistry) {
   });
 
   registry.register({
-    name: 'Get',
-    component: Get,
-    group: 'logic',
-    description: 'Copies one item from a list, or one field from an object, into another page variable. An object comes out as text. Runs inside an event like OnClick or OnMount.',
-    example: '<Var name="moods" type="array" initial=\'["sleepy", "cozy", "wired"]\' />\n<Var name="pick" type="number" initial="0" />\n<Var name="mood" type="string" initial="sleepy" />\n<Button>\n  <OnClick><Increment var="pick" max="2" /><Get from="moods" at="$vars.pick" target="mood" /></OnClick>\n  Next mood\n</Button>\n<p>Today: <ShowVar name="mood" /></p>',
-    props: {
-      from: { type: 'string', required: true, description: 'The list or object page variable, by name or as $vars.name.' },
-      at: { type: 'string', required: true, description: 'Which item: a position counting from 0, a field name, or $vars.name to use another page variable\'s value.' },
-      target: { type: 'string', required: true, description: 'The page variable to put it in. Made for you if it doesn\'t exist.' }
-    },
-    relationship: {
-      type: 'action',
-      acceptsChildren: false
-    }
-  });
-
-  registry.register({
     name: 'Filter',
     component: Filter,
     group: 'logic',
@@ -498,23 +459,6 @@ export function registerActionComponents(registry: ComponentRegistry) {
     }
   });
 
-  // Advanced State Management
-  registry.register({
-    name: 'Clone',
-    component: Clone,
-    group: 'logic',
-    description: 'Copies a page variable into another one, so later changes to one don\'t touch the other. Runs inside an event like OnClick or OnMount.',
-    example: '<Var name="note" type="string" initial="gone fishing" />\n<Var name="saved" type="string" initial="" />\n<TInput var="note" />\n<Button>\n  <OnClick><Clone var="note" target="saved" /></OnClick>\n  Save\n</Button>\n<p>Saved: <ShowVar name="saved" /></p>',
-    props: {
-      var: { type: 'string', required: true, description: 'The page variable to copy.' },
-      target: { type: 'string', required: true, description: 'The page variable to copy it into. Made for you if it doesn\'t exist.' }
-    },
-    relationship: {
-      type: 'action',
-      acceptsChildren: false
-    }
-  });
-
   registry.register({
     name: 'Merge',
     component: Merge,
@@ -545,39 +489,6 @@ export function registerActionComponents(registry: ComponentRegistry) {
     },
     relationship: {
       type: 'action',
-      acceptsChildren: false
-    }
-  });
-
-  registry.register({
-    name: 'Extract',
-    component: Extract,
-    group: 'logic',
-    description: 'Copies fields out of an object into their own page variables, one Property inside it per field. Runs inside an event like OnClick or OnMount.',
-    example: '<Var name="song" type="object" initial=\'{"title": "Teardrop", "artist": "Massive Attack"}\' />\n<Var name="artist" type="string" initial="?" />\n<Button>\n  <OnClick><Extract from="song"><Property path="artist" as="artist" /></Extract></OnClick>\n  Who made my song?\n</Button>\n<p>By: <ShowVar name="artist" /></p>',
-    props: {
-      from: { type: 'string', required: true, description: 'The object to read: a page variable name, or a path like $vars.song.album.' }
-    },
-    relationship: {
-      type: 'container',
-      acceptsChildren: ['Property'],
-      childrenLabel: 'Properties to Extract'
-    }
-  });
-
-  registry.register({
-    name: 'Property',
-    component: Property,
-    group: 'logic',
-    description: 'Goes inside Extract and copies one field of its object into a page variable. If the field is missing, nothing changes.',
-    example: '<Var name="song" type="object" initial=\'{"title": "Teardrop", "by": {"name": "Massive Attack"}}\' />\n<Var name="title" type="string" initial="" />\n<Var name="artist" type="string" initial="" />\n<Button>\n  <OnClick><Extract from="song"><Property path="title" as="title" /><Property path="by.name" as="artist" /></Extract></OnClick>\n  Now playing\n</Button>\n<p><ShowVar name="title" /> by <ShowVar name="artist" /></p>',
-    props: {
-      path: { type: 'string', required: true, description: 'The field to copy, with dots for fields inside fields, like by.name.' },
-      as: { type: 'string', required: true, description: 'The page variable to copy it into. Made for you if it doesn\'t exist.' }
-    },
-    relationship: {
-      type: 'child',
-      requiresParent: 'Extract',
       acceptsChildren: false
     }
   });

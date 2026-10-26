@@ -6,7 +6,6 @@ import OnClick from '@/components/features/templates/state/events/OnClick';
 import OnChange from '@/components/features/templates/state/events/OnChange';
 import OnMount from '@/components/features/templates/state/events/OnMount';
 import OnInterval from '@/components/features/templates/state/events/OnInterval';
-import OnHover from '@/components/features/templates/state/events/OnHover';
 import OnMouseEnter from '@/components/features/templates/state/events/OnMouseEnter';
 import OnMouseLeave from '@/components/features/templates/state/events/OnMouseLeave';
 import OnKeyPress from '@/components/features/templates/state/events/OnKeyPress';
@@ -17,7 +16,6 @@ import OnVisible from '@/components/features/templates/state/events/OnVisible';
 // Import loop components
 import ForEach from '@/components/features/templates/state/loops/ForEach';
 import Break from '@/components/features/templates/state/loops/Break';
-import Continue from '@/components/features/templates/state/loops/Continue';
 
 // Import validation
 import Validate from '@/components/features/templates/state/validation/Validate';
@@ -26,8 +24,6 @@ import Validate from '@/components/features/templates/state/validation/Validate'
 import Delay from '@/components/features/templates/state/temporal/Delay';
 import Sequence from '@/components/features/templates/state/temporal/Sequence';
 import Step from '@/components/features/templates/state/temporal/Step';
-import Timeout from '@/components/features/templates/state/temporal/Timeout';
-import OnTimeout from '@/components/features/templates/state/temporal/OnTimeout';
 
 /**
  * Register all event handler, loop, and temporal components
@@ -93,21 +89,6 @@ export function registerEventComponents(registry: ComponentRegistry) {
       type: 'action',
       acceptsChildren: true,
       childrenLabel: 'Actions to Execute'
-    }
-  });
-
-  registry.register({
-    name: 'OnHover',
-    component: OnHover,
-    group: 'logic',
-    description: 'Runs the actions inside each time the mouse moves onto the element it sits in, or the ones target points at. Nothing happens when it leaves. OnMouseEnter does the same.',
-    example: '<Var name="boops" type="number" initial="0" />\n<div style="padding: 1em; border: 1px solid">\n  <OnHover><Increment var="boops" /></OnHover>\n  Boop the snoot. Boops: <ShowVar name="boops" />\n</div>',
-    props: {
-      target: { type: 'string', description: 'A CSS selector, like #cat or .card, for what to watch instead of the element it sits in. Put it anywhere on the page.' }
-    },
-    relationship: {
-      type: 'action',
-      acceptsChildren: true
     }
   });
 
@@ -240,21 +221,6 @@ export function registerEventComponents(registry: ComponentRegistry) {
     }
   });
 
-  registry.register({
-    name: 'Continue',
-    component: Continue,
-    group: 'logic',
-    description: 'Meant to skip one item in a ForEach, but it doesn\'t do anything yet, on the page or inside an event. To leave items out, put the item\'s HTML inside an If instead.',
-    example: '<Var name="books" type="array" initial=\'["Earthsea", "Momo"]\' />\n<ul>\n  <ForEach var="books" item="book">\n    <Continue />\n    <li>{book}</li>\n  </ForEach>\n</ul>',
-    props: {
-      when: { type: 'string', required: false, description: 'Not used yet.' }
-    },
-    relationship: {
-      type: 'action',
-      acceptsChildren: false
-    }
-  });
-
   // Validation
   registry.register({
     name: 'Validate',
@@ -320,36 +286,6 @@ export function registerEventComponents(registry: ComponentRegistry) {
     relationship: {
       type: 'action',
       acceptsChildren: true
-    }
-  });
-
-  registry.register({
-    name: 'Timeout',
-    component: Timeout,
-    group: 'logic',
-    description: 'Waits once after the page loads, then runs the OnTimeout inside it. It shows nothing, and anything inside other than OnTimeout isn\'t shown either.',
-    example: '<Var name="welcome" type="string" initial="Welcome in, take your shoes off." />\n<p><ShowVar name="welcome" /></p>\n<Timeout seconds="10"><OnTimeout><Set var="welcome" value="Still here? Put the kettle on." /></OnTimeout></Timeout>',
-    props: {
-      seconds: { type: 'number', required: false, description: 'How many seconds to wait. If you set neither this nor milliseconds, it\'s 5 seconds.' },
-      milliseconds: { type: 'number', required: false, description: 'How many milliseconds to wait. Wins over seconds if you set both.' }
-    },
-    relationship: {
-      type: 'container',
-      acceptsChildren: true
-    }
-  });
-
-  registry.register({
-    name: 'OnTimeout',
-    component: OnTimeout,
-    group: 'logic',
-    description: 'Holds the actions a Timeout runs when its time is up. It must sit directly inside a Timeout.',
-    example: '<Timeout seconds="30">\n  <OnTimeout>\n    <ShowToast message="Thanks for staying a while" type="info" />\n  </OnTimeout>\n</Timeout>',
-    props: {},
-    relationship: {
-      type: 'action',
-      acceptsChildren: true,
-      childrenLabel: 'Actions to Execute'
     }
   });
 }

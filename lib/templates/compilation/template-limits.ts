@@ -24,14 +24,9 @@ export const TEMPLATE_LIMITS = {
    * group: OnClick, Set, If…) don't count; they render nothing of their own.
    */
   maxComponents: 1_000,
-  /**
-   * Of those, ones that keep moving (registered `animated`: WaveText,
-   * GlitchText, MatrixRain…). They're what keeps a phone busy, not the count.
-   */
-  maxAnimated: 50,
 } as const;
 
-export type LimitType = 'size' | 'elements' | 'depth' | 'components' | 'animated';
+export type LimitType = 'size' | 'elements' | 'depth' | 'components';
 
 const n = (value: number) => value.toLocaleString('en-US');
 const kb = (chars: number) => Math.round(chars / 1000);
@@ -50,8 +45,6 @@ export function formatLimitError(limitType: LimitType, currentValue: number, max
       return `Your page has tags nested ${moreThan ? 'more than ' : ''}${n(currentValue)} deep; the most is ${maxValue}. Look for tags that were opened but never closed, or tables inside tables.`;
     case 'components':
       return `Your page uses ${n(currentValue)} components; the most is ${n(maxValue)}. Try removing a few.`;
-    case 'animated':
-      return `Your page has ${n(currentValue)} moving components, like WaveText and GlitchText; the most is ${n(maxValue)}. Each one keeps a phone busy, so try removing a few.`;
   }
 }
 

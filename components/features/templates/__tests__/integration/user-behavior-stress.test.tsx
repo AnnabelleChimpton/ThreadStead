@@ -28,9 +28,7 @@ import ProfilePhoto from '../../ProfilePhoto';
 import BlogPosts from '../../BlogPosts';
 import Guestbook from '../../Guestbook';
 import GridLayout from '../../GridLayout';
-import SplitLayout from '../../SplitLayout';
 import FlexContainer from '../../FlexContainer';
-import GradientBox from '../../GradientBox';
 import { IfOwner, IfVisitor } from '../../conditional/IfOwner';
 
 describe('Real-World User Behavior Stress Tests', () => {
@@ -232,9 +230,9 @@ describe('Real-World User Behavior Stress Tests', () => {
             )}
 
             {layout === 'split' && (
-              <SplitLayout ratio="1:1" spacing="lg">
+              <div className="split-layout">
                 {renderContent()}
-              </SplitLayout>
+              </div>
             )}
 
             {layout === 'flex' && (
@@ -420,7 +418,7 @@ describe('Real-World User Behavior Stress Tests', () => {
       };
 
       const { unmount } = renderWithTemplateContext(
-        <SplitLayout ratio="1:1" spacing="md">
+        <div className="split-layout">
           <div>
             <DisplayName />
             <AsyncComponent />
@@ -428,7 +426,7 @@ describe('Real-World User Behavior Stress Tests', () => {
           <div>
             <Bio />
           </div>
-        </SplitLayout>,
+        </div>,
         { residentData: mockData }
       );
 
@@ -503,15 +501,15 @@ describe('Real-World User Behavior Stress Tests', () => {
 
             <main className="current-template">
               <GridLayout columns={2} gapSize="lg">
-                <SplitLayout ratio="2:1" spacing="md">
+                <div className="split-layout">
                   <FlexContainer direction="column" gapSize="sm">
                     <DisplayName />
                     <Bio />
                   </FlexContainer>
-                  <GradientBox gradient="sunset" containerPadding="md">
+                  <div className="gradient-box">
                     <ProfilePhoto />
-                  </GradientBox>
-                </SplitLayout>
+                  </div>
+                </div>
                 <div>
                   <BlogPosts />
                 </div>
@@ -550,7 +548,6 @@ describe('Real-World User Behavior Stress Tests', () => {
       // Template structure should remain intact throughout navigation
       expect(container.querySelector('.navigation-simulator')).toBeInTheDocument();
       expect(container.querySelector('.grid')).toBeInTheDocument(); // GridLayout
-      expect(container.querySelector('.w-full.flex')).toBeInTheDocument(); // SplitLayout
     });
   });
 });

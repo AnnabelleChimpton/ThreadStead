@@ -13,9 +13,7 @@ import React from 'react';
 const componentLoaders: Record<string, () => Promise<{ default: React.ComponentType<any> }>> = {
   // ========== Display Components ==========
   // Text Elements
-  TextElement: () => import('@/components/features/templates/TextElement'),
   Heading: () => import('@/components/features/templates/Heading'),
-  Paragraph: () => import('@/components/features/templates/Paragraph'),
 
   // Profile Components
   ProfilePhoto: () => import('@/components/features/templates/ProfilePhoto'),
@@ -29,32 +27,18 @@ const componentLoaders: Record<string, () => Promise<{ default: React.ComponentT
   ProfileMusic: () => import('@/components/features/templates/ProfileMusic'),
   FriendDisplay: () => import('@/components/features/templates/FriendDisplay'),
   WebsiteDisplay: () => import('@/components/features/templates/WebsiteDisplay'),
-  NotificationCenter: () => import('@/components/features/templates/NotificationCenter'),
-  NotificationBell: () => import('@/components/features/templates/NotificationBell'),
-  UserAccount: () => import('@/components/features/templates/UserAccount'),
-  SiteBranding: () => import('@/components/features/templates/SiteBranding'),
-  Breadcrumb: () => import('@/components/features/templates/Breadcrumb'),
 
   // Layout Components
   FlexContainer: () => import('@/components/features/templates/FlexContainer'),
   GridLayout: () => import('@/components/features/templates/GridLayout'),
-  Grid: () => import('@/components/features/templates/layout/Grid').then(m => ({ default: m.Grid })),
-  GridItem: () => import('@/components/features/templates/layout/Grid').then(m => ({ default: m.GridItem })),
-  SplitLayout: () => import('@/components/features/templates/SplitLayout'),
   CenteredBox: () => import('@/components/features/templates/CenteredBox'),
 
   // Decorative Components
-  GradientBox: () => import('@/components/features/templates/GradientBox'),
-  NeonBorder: () => import('@/components/features/templates/NeonBorder'),
-  RetroTerminal: () => import('@/components/features/templates/RetroTerminal'),
   PolaroidFrame: () => import('@/components/features/templates/PolaroidFrame'),
   StickyNote: () => import('@/components/features/templates/StickyNote'),
   RevealBox: () => import('@/components/features/templates/RevealBox'),
-  FloatingBadge: () => import('@/components/features/templates/FloatingBadge'),
 
   // Text Effects
-  WaveText: () => import('@/components/features/templates/WaveText'),
-  GlitchText: () => import('@/components/features/templates/GlitchText'),
 
   // Tabs
   Tabs: () => import('@/components/features/templates/Tabs'),
@@ -73,34 +57,17 @@ const componentLoaders: Record<string, () => Promise<{ default: React.ComponentT
   UserImage: () => import('@/components/features/templates/UserImage'),
 
   // Complex Display Components
-  ProgressTracker: () => import('@/components/features/templates/ProgressTracker'),
-  ProgressItem: () => import('@/components/features/templates/ProgressTracker').then(m => ({ default: m.ProgressItem })),
   ImageCarousel: () => import('@/components/features/templates/ImageCarousel'),
   CarouselImage: () => import('@/components/features/templates/ImageCarousel').then(m => ({ default: m.CarouselImage })),
   Embed: () => import('@/components/features/templates/Embed'),
-  ContactCard: () => import('@/components/features/templates/ContactCard'),
-  ContactMethod: () => import('@/components/features/templates/ContactCard').then(m => ({ default: m.ContactMethod })),
-  SkillChart: () => import('@/components/features/templates/SkillChart'),
-  Skill: () => import('@/components/features/templates/SkillChart').then(m => ({ default: m.Skill })),
 
   // Retro Components
-  CRTMonitor: () => import('@/components/features/templates/CRTMonitor'),
-  NeonSign: () => import('@/components/features/templates/NeonSign'),
   ArcadeButton: () => import('@/components/features/templates/ArcadeButton'),
-  PixelArtFrame: () => import('@/components/features/templates/PixelArtFrame'),
-  RetroGrid: () => import('@/components/features/templates/RetroGrid'),
-  VHSTape: () => import('@/components/features/templates/VHSTape'),
-  CassetteTape: () => import('@/components/features/templates/CassetteTape'),
-  RetroTV: () => import('@/components/features/templates/RetroTV'),
-  Boombox: () => import('@/components/features/templates/Boombox'),
-  MatrixRain: () => import('@/components/features/templates/MatrixRain'),
 
   // Navigation
-  ThreadsteadNavigation: () => import('@/components/features/templates/NavigationPreview'),
 
   // ========== State Components ==========
   // Debug
-  DebugValue: () => import('@/components/features/templates/DebugValue'),
 
   // Variables
   Var: () => import('@/components/features/templates/state/Var'),
@@ -109,7 +76,6 @@ const componentLoaders: Record<string, () => Promise<{ default: React.ComponentT
 
   // Interactive
   Button: () => import('@/components/features/templates/Button'),
-  EventDiv: () => import('@/components/features/templates/EventDiv'),
 
   // Inputs
   TInput: () => import('@/components/features/templates/state/inputs/TInput'),
@@ -122,7 +88,6 @@ const componentLoaders: Record<string, () => Promise<{ default: React.ComponentT
   ColorPicker: () => import('@/components/features/templates/state/inputs/ColorPicker'),
 
   // Custom HTML
-  CustomHTMLElement: () => import('@/components/features/templates/CustomHTMLElement'),
 
   // ========== Action Components ==========
   // Basic Actions
@@ -136,7 +101,6 @@ const componentLoaders: Record<string, () => Promise<{ default: React.ComponentT
   Push: () => import('@/components/features/templates/state/actions/Push'),
   Pop: () => import('@/components/features/templates/state/actions/Pop'),
   RemoveAt: () => import('@/components/features/templates/state/actions/RemoveAt'),
-  ArrayAt: () => import('@/components/features/templates/state/actions/ArrayAt'),
 
   // String Actions
   Append: () => import('@/components/features/templates/state/actions/Append'),
@@ -160,25 +124,18 @@ const componentLoaders: Record<string, () => Promise<{ default: React.ComponentT
   // Collection Operations
   Count: () => import('@/components/features/templates/state/actions/Count'),
   Sum: () => import('@/components/features/templates/state/actions/Sum'),
-  Get: () => import('@/components/features/templates/state/actions/Get'),
   Filter: () => import('@/components/features/templates/state/actions/Filter'),
   Find: () => import('@/components/features/templates/state/actions/Find'),
   Transform: () => import('@/components/features/templates/state/actions/Transform'),
   Sort: () => import('@/components/features/templates/state/actions/Sort'),
 
   // Advanced State Management
-  Clone: () => import('@/components/features/templates/state/actions/Clone'),
   Merge: () => import('@/components/features/templates/state/actions/Merge'),
   ObjectSet: () => import('@/components/features/templates/state/actions/ObjectSet'),
-  Extract: () => import('@/components/features/templates/state/actions/Extract'),
-  Property: () => import('@/components/features/templates/state/actions/Property'),
   ConditionalAttr: () => import('@/components/features/templates/state/actions/ConditionalAttr'),
 
   // ========== Conditional Components ==========
   // Display Conditionals
-  Choose: () => import('@/components/features/templates/conditional/Choose'),
-  When: () => import('@/components/features/templates/conditional/Choose').then(m => ({ default: m.When })),
-  Otherwise: () => import('@/components/features/templates/conditional/Choose').then(m => ({ default: m.Otherwise })),
   IfOwner: () => import('@/components/features/templates/conditional/IfOwner'),
   IfVisitor: () => import('@/components/features/templates/conditional/IfOwner').then(m => ({ default: m.IfVisitor })),
 
@@ -186,9 +143,6 @@ const componentLoaders: Record<string, () => Promise<{ default: React.ComponentT
   If: () => import('@/components/features/templates/state/conditional/If'),
   ElseIf: () => import('@/components/features/templates/state/conditional/ElseIf'),
   Else: () => import('@/components/features/templates/state/conditional/Else'),
-  Switch: () => import('@/components/features/templates/state/conditional/Switch'),
-  Case: () => import('@/components/features/templates/state/conditional/Case'),
-  Default: () => import('@/components/features/templates/state/conditional/Default'),
 
   // ========== Event & Loop Components ==========
   // Event Handlers
@@ -196,7 +150,6 @@ const componentLoaders: Record<string, () => Promise<{ default: React.ComponentT
   OnChange: () => import('@/components/features/templates/state/events/OnChange'),
   OnMount: () => import('@/components/features/templates/state/events/OnMount'),
   OnInterval: () => import('@/components/features/templates/state/events/OnInterval'),
-  OnHover: () => import('@/components/features/templates/state/events/OnHover'),
   OnMouseEnter: () => import('@/components/features/templates/state/events/OnMouseEnter'),
   OnMouseLeave: () => import('@/components/features/templates/state/events/OnMouseLeave'),
   OnSwipe: () => import('@/components/features/templates/state/events/OnSwipe'),
@@ -207,7 +160,6 @@ const componentLoaders: Record<string, () => Promise<{ default: React.ComponentT
   // Loops
   ForEach: () => import('@/components/features/templates/state/loops/ForEach'),
   Break: () => import('@/components/features/templates/state/loops/Break'),
-  Continue: () => import('@/components/features/templates/state/loops/Continue'),
 
   // Validation
   Validate: () => import('@/components/features/templates/state/validation/Validate'),
@@ -216,8 +168,6 @@ const componentLoaders: Record<string, () => Promise<{ default: React.ComponentT
   Delay: () => import('@/components/features/templates/state/temporal/Delay'),
   Sequence: () => import('@/components/features/templates/state/temporal/Sequence'),
   Step: () => import('@/components/features/templates/state/temporal/Step'),
-  Timeout: () => import('@/components/features/templates/state/temporal/Timeout'),
-  OnTimeout: () => import('@/components/features/templates/state/temporal/OnTimeout'),
 };
 
 /**

@@ -53,39 +53,19 @@ async function renderSource(source: string): Promise<string> {
 const CASES: Array<[string, string, string, string?]> = [
   ['FlexContainer', 'gap', 'xl', '<p>a</p><p>b</p>'],
   ['GridLayout', 'gap', 'xl', '<p>a</p><p>b</p>'],
-  ['SplitLayout', 'gap', 'xl', '<p>a</p><p>b</p>'],
   ['CenteredBox', 'maxWidth', 'sm', '<p>a</p>'],
   ['CenteredBox', 'padding', 'xl', '<p>a</p>'],
-  ['GradientBox', 'padding', 'xl', '<p>a</p>'],
-  ['NeonBorder', 'color', 'pink', '<p>a</p>'],
-  ['NeonBorder', 'padding', 'xl', '<p>a</p>'],
-  ['RetroTerminal', 'padding', 'xl', '<p>a</p>'],
   ['StickyNote', 'color', 'pink', '<p>a</p>'],
-  ['FloatingBadge', 'color', 'pink', 'new'],
-  ['FloatingBadge', 'position', 'bottom-left', 'new'],
-  ['WaveText', 'color', 'hotpink'],
-  ['GlitchText', 'color', 'hotpink'],
-  ['ProgressTracker', 'display', 'stars', '<ProgressItem label="Knitting" value="3" max="5" />'],
-  ['SkillChart', 'display', 'tags', '<Skill name="Knitting" level="80" />'],
-  ['CRTMonitor', 'fontSize', 'large'],
-  ['CRTMonitor', 'fontFamily', 'terminal'],
-  ['NeonSign', 'color', 'pink'],
-  ['NeonSign', 'fontSize', 'xl'],
-  ['NeonSign', 'fontWeight', 'normal'],
   ['ArcadeButton', 'color', 'blue'],
-  ['PixelArtFrame', 'backgroundColor', '#ffeecc', '<p>a</p>'],
-  ['RetroGrid', 'opacity', 'intense'],
-  ['RetroGrid', 'size', 'xlarge'],
-  ['Boombox', 'color', 'red'],
   ['UserImage', 'size', 'xl'],
   ['UserImage', 'border', 'true'],
   ['UserImage', 'shadow', 'lg'],
 ]
 
 // The component applies these exactly as the CSS would, so the old way happened to look right
-const SAME_AS_CSS = new Set(['WaveText.color', 'PixelArtFrame.backgroundColor'])
+const SAME_AS_CSS = new Set<string>([])
 
-const WITH_SRC: Record<string, string> = { UserImage: ' src="/a.png"', WaveText: ' text="hi"', GlitchText: ' text="hi"', NeonSign: ' text="hi"' }
+const WITH_SRC: Record<string, string> = { UserImage: ' src="/a.png"' }
 
 describe('a prop named like CSS changes what the component draws', () => {
   test.each(CASES)('<%s %s="%s">', async (name, attr, value, children = '') => {
@@ -98,12 +78,4 @@ describe('a prop named like CSS changes what the component draws', () => {
     expect(withProp).not.toEqual(without)
     if (!SAME_AS_CSS.has(`${name}.${attr}`)) expect(withProp).not.toEqual(asCss)
   })
-})
-
-test('ProgressItem color colours the bar (a child component)', async () => {
-  const bar = (color?: string) =>
-    renderSource(
-      `<ProgressTracker><ProgressItem label="Knitting" value="3" max="5"${color ? ` color="${color}"` : ''} /></ProgressTracker>`
-    )
-  expect(await bar('pink')).not.toEqual(await bar())
 })

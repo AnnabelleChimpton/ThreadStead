@@ -8,7 +8,7 @@
 // Profile-level CSS modes (used by ProfileLayout and ProfileModeRenderer)
 export type ProfileCSSMode = 'inherit' | 'override' | 'disable';
 
-// Component-level CSS render modes (used by CustomHTMLElement and other template components)
+// Component-level CSS render modes (template components)
 export type ComponentCSSRenderMode = 'auto' | 'inherit' | 'custom';
 
 /**
@@ -62,26 +62,4 @@ export function mapComponentModeToProfileCSSMode(
  */
 export function isValidProfileCSSMode(mode: string): mode is ProfileCSSMode {
   return ['inherit', 'override', 'disable'].includes(mode);
-}
-
-/**
- * Validates that a CSS mode is a valid component CSS render mode
- */
-export function isValidComponentCSSRenderMode(mode: string): mode is ComponentCSSRenderMode {
-  return ['auto', 'inherit', 'custom'].includes(mode);
-}
-
-/**
- * Gets the default CSS render mode for a component based on context
- */
-export function getDefaultComponentCSSRenderMode(
-  profileCSSMode?: ProfileCSSMode
-): ComponentCSSRenderMode {
-  // If profile has a CSS mode preference, use that
-  if (profileCSSMode) {
-    return mapProfileCSSModeToComponentMode(profileCSSMode);
-  }
-
-  // Default fallback
-  return 'auto';
 }

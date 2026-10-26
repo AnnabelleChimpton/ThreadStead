@@ -6,7 +6,7 @@
  * - Deep clone (copying objects)
  * - Nested property access/mutation
  *
- * Used by Phase 6 components: Extract, Property, Merge, Clone, ObjectSet
+ * Used by Merge, ObjectSet and ForEach
  */
 
 /**
@@ -75,46 +75,6 @@ function deepMergeTwo(target: any, source: any): any {
   }
 
   return output;
-}
-
-/**
- * Deep clone an object or array
- *
- * @param obj Object or array to clone
- * @returns Deep cloned copy
- *
- * @example
- * const original = { a: 1, b: { c: 2 } };
- * const copy = cloneObject(original);
- * copy.b.c = 3;
- * console.log(original.b.c); // => 2 (unchanged)
- */
-export function cloneObject(obj: any): any {
-  if (obj === null || obj === undefined) {
-    return obj;
-  }
-
-  // For primitives, return as-is
-  if (typeof obj !== 'object') {
-    return obj;
-  }
-
-  // Use structured clone if available (modern browsers)
-  if (typeof structuredClone !== 'undefined') {
-    try {
-      return structuredClone(obj);
-    } catch (error) {
-      console.warn('[cloneObject] structuredClone failed, falling back to JSON clone:', error);
-    }
-  }
-
-  // Fallback to JSON clone (works for most cases)
-  try {
-    return JSON.parse(JSON.stringify(obj));
-  } catch (error) {
-    console.error('[cloneObject] Failed to clone object:', error);
-    return obj;
-  }
 }
 
 /**
@@ -207,43 +167,3 @@ export function setNestedProperty(obj: any, path: string, value: any): any {
   return result;
 }
 
-/**
- * Extract properties from object into a new object
- *
- * @param obj Source object
- * @param paths Array of property paths to extract
- * @returns New object with extracted properties
- *
- * @example
- * extractProperties(
- *   { name: 'Alice', age: 25, city: 'NYC' },
- *   ['name', 'age']
- * )
- * // => { name: 'Alice', age: 25 }
- */
-export function extractProperties(obj: any, paths: string[]): Record<string, any> {
-  if (!obj || typeof obj !== 'object') {
-    console.warn('[extractProperties] Object is not valid:', obj);
-    return {};
-  }
-
-  if (!Array.isArray(paths)) {
-    console.warn('[extractProperties] Paths is not an array:', paths);
-    return {};
-  }
-
-  const result: Record<string, any> = {};
-
-  for (const path of paths) {
-    if (typeof path === 'string') {
-      const value = getNestedProperty(obj, path);
-      if (value !== undefined) {
-        // Use the last segment of the path as the key
-        const key = path.split('.').pop() || path;
-        result[key] = value;
-      }
-    }
-  }
-
-  return result;
-}

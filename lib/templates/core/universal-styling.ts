@@ -288,10 +288,10 @@ export function processUniversalStyles(
  * Get the appropriate style category for a component type
  */
 export function getComponentStyleCategory(componentType: string): ComponentStyleCategory {
-  const textComponents = ['TextElement', 'Heading', 'Paragraph', 'DisplayName', 'Bio'];
-  const containerComponents = ['GradientBox', 'CenteredBox', 'NeonBorder', 'RevealBox', 'CustomHTMLElement'];
+  const textComponents = ['Heading', 'DisplayName', 'Bio'];
+  const containerComponents = ['CenteredBox', 'RevealBox'];
   const mediaComponents = ['ProfilePhoto', 'UserImage', 'MediaGrid'];
-  const interactiveComponents = ['FollowButton', 'ContactCard', 'Tabs'];
+  const interactiveComponents = ['FollowButton', 'Tabs'];
 
   if (textComponents.includes(componentType)) return 'text';
   if (containerComponents.includes(componentType)) return 'container';

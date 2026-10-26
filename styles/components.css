@@ -1519,38 +1519,6 @@
   transform: translateY(-1px);
 }
 
-/* Breadcrumb Styles (shared by template and navigation components) */
-.breadcrumb {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  margin-bottom: 1rem;
-}
-
-.breadcrumb-separator {
-  color: #A18463;
-  margin: 0 0.5rem;
-}
-
-.breadcrumb-link {
-  color: #2E4B3F;
-  text-decoration: none;
-  transition: color 0.2s ease;
-}
-
-.breadcrumb-link:hover {
-  color: #D97B5A;
-}
-
-.breadcrumb-active {
-  color: #2F2F2F;
-  font-weight: 500;
-}
-
-.breadcrumb-item {
-  color: #2F2F2F;
-}
-
 /* Account Bottom Sheet Styles */
 .account-sheet-header {
   background: rgba(248, 245, 240, 0.5);

@@ -1,7 +1,7 @@
 /**
  * @jest-environment node
  *
- * OnClick, OnHover, OnMouseEnter and OnMouseLeave inside any element, or on
+ * OnClick, OnMouseEnter and OnMouseLeave inside any element, or on
  * target="…" (components/features/templates/state/events/element-events.tsx),
  * the way a visit goes: compiled, server-rendered with no window, hydrated in
  * a browser DOM, then clicked and pressed. The first page is the owner's
@@ -234,7 +234,7 @@ test('the mouse events work inside any element and on a target; Checkbox takes a
   <span id="door">door</span>
 </section>
 <p class="snoot" id="snoot"><b id="nose">nose</b></p>
-<OnHover target=".snoot"><Increment var="boops" /></OnHover>
+<OnMouseEnter target=".snoot"><Increment var="boops" /></OnMouseEnter>
 <Checkbox var="ticked" label="Watered"><OnChange><Increment var="ticks" /></OnChange></Checkbox>
 <p id="out"><ShowVar name="sign" />|<ShowVar name="boops" />|<ShowVar name="ticks" /></p>
 <p id="anchor">x<OnClick><Increment var="ticks" /></OnClick></p>`

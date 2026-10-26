@@ -42,80 +42,9 @@ export default function OnMouseLeave(props: OnMouseLeaveProps) {
   const residentData = useResidentData();
   const forEachContext = useForEachContext();
 
-  // Inside an EventDiv, the EventDiv runs it (useOnMouseLeaveHandler).
-  // Anywhere else: on the element it sits in, or the elements matching target
+  // On the element it sits in, or the elements matching target
   const marker = useElementEvent('leave', target, (element) => {
     executeActions(children, templateState, residentData, forEachContext, element);
   });
   return eventMarker(marker);
-}
-
-/**
- * Hook to create a mouse leave handler
- * Used by parent elements to attach onMouseLeave handlers
- *
- * @param children Component children to search for OnMouseLeave
- * @returns Mouse leave handler function
- */
-export function useOnMouseLeaveHandler(children: React.ReactNode): ((event: React.MouseEvent) => void) | null {
-  const templateState = useTemplateState();
-  const residentData = useResidentData();
-  const forEachContext = useForEachContext();
-
-  // P1.4: Memoize finding OnMouseLeave child
-  const onMouseLeaveChild = React.useMemo(() => {
-    let found: React.ReactElement | null = null;
-
-    React.Children.forEach(children, (child) => {
-      if (!React.isValidElement(child)) return;
-
-      // P3.3 FIX: Unwrap IslandErrorBoundary if present (islands architecture)
-      let actualChild = child;
-      if (typeof child.type === 'function' &&
-          (child.type.name === 'IslandErrorBoundary' ||
-           (child.type as any).displayName === 'IslandErrorBoundary')) {
-        const boundaryChildren = React.Children.toArray((child.props as any).children);
-        if (boundaryChildren.length > 0 && React.isValidElement(boundaryChildren[0])) {
-          actualChild = boundaryChildren[0];
-        }
-      }
-
-      // Unwrap ResidentDataProvider if present (islands architecture)
-      if (typeof actualChild.type === 'function' &&
-          (actualChild.type.name === 'ResidentDataProvider' ||
-           (actualChild.type as any).displayName === 'ResidentDataProvider')) {
-        const providerChildren = React.Children.toArray((actualChild.props as any).children);
-        if (providerChildren.length > 0 && React.isValidElement(providerChildren[0])) {
-          actualChild = providerChildren[0];
-        }
-      }
-
-      // Check if this is OnMouseLeave component
-      const componentName = typeof actualChild.type === 'function'
-        ? (actualChild.type as any).displayName || actualChild.type.name
-        : '';
-
-      if (componentName === 'OnMouseLeave') {
-        found = actualChild;
-      }
-    });
-
-    return found;
-  }, [children]);
-
-  // P1.4: Memoize handler with useCallback
-  const handler = React.useCallback((event: React.MouseEvent) => {
-    if (!onMouseLeaveChild) return;
-    // Get the current element from the event for AddClass/RemoveClass target="this"
-    const currentElement = event.currentTarget as HTMLElement;
-    executeActions(
-      (onMouseLeaveChild as React.ReactElement<OnMouseLeaveProps>).props.children,
-      templateState,
-      residentData,
-      forEachContext,
-      currentElement
-    );
-  }, [onMouseLeaveChild, templateState, residentData, forEachContext]);
-
-  return onMouseLeaveChild ? handler : null;
 }

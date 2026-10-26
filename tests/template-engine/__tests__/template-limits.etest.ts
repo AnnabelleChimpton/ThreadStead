@@ -19,7 +19,6 @@ jest.mock('@noble/ed25519', () => ({
 import { compileTemplate } from '@/lib/templates/compilation/template-parser'
 import { TEMPLATE_LIMITS } from '@/lib/templates/compilation/template-limits'
 import { MAX_TEMPLATE_CHARS } from '@/lib/templates/limits'
-import { sanitizeCustomHTML } from '@/lib/templates/compilation/custom-html'
 
 const range = (count: number) => Array.from({ length: count }, (_, i) => i + 1)
 
@@ -128,15 +127,6 @@ describe('a page over a limit says so plainly', () => {
     )
   })
 
-  it('moving components: a phone can only keep so many going', () => {
-    const waves = (count: number) => range(count).map((i) => `<WaveText text="hello ${i}" />`).join('\n')
-    expect(compileTemplate(waves(TEMPLATE_LIMITS.maxAnimated)).success).toBe(true)
-    failsWith(
-      waves(TEMPLATE_LIMITS.maxAnimated + 1),
-      /^Your page has 51 moving components, like WaveText and GlitchText; the most is 50\. Each one keeps a phone busy, so try removing a few\.$/
-    )
-  })
-
   it("logic tags don't count as components: they show nothing of their own", () => {
     const button = '<Button><OnClick><Increment var="n" /><ShowToast message="hi" /></OnClick>Wave</Button>'
     const page = '<Var name="n" type="number" initial="0" />\n' + range(TEMPLATE_LIMITS.maxComponents / 2).map(() => button).join('\n')
@@ -198,12 +188,6 @@ describe('a runaway page is refused before or while parsing (template audit 04 H
     } finally {
       Object.assign(TEMPLATE_LIMITS, { maxDepth: cap })
     }
-  })
-
-  test("HTML inside a CustomHTMLElement's content is guarded too", () => {
-    const started = performance.now()
-    expect(sanitizeCustomHTML('<div>'.repeat(9000))).toBe('')
-    expect(performance.now() - started).toBeLessThan(200)
   })
 
   test("old pages' unclosed tags don't count as nesting", () => {

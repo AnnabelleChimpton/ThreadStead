@@ -56,10 +56,8 @@ describe('Component Registry Case-Insensitive Matching', () => {
       'tabs',
       'tab',
       'centeredbox',
-      'splitlayout',
       'gridlayout',
-      'flexcontainer',
-      'gradientbox'
+      'flexcontainer'
     ];
     
     console.log('Testing component registration for elegant template...');

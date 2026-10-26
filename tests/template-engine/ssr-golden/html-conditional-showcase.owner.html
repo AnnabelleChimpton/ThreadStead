@@ -14,11 +14,17 @@
             "Pat Example"
         "'s actual profile data"
       " "
-      <ts-island>
-        " "
-        <div class="user-level-banner" data-ts-page="">
-          "🌱 BEGINNER Level - You have 1-9 posts!"
-        " "
+      <div class="user-level-banner">
+        "⭐ EXPERT Level - You have 50+ posts!"
+      " "
+      <div class="user-level-banner">
+        "✨ INTERMEDIATE Level - You have 10-49 posts!"
+      " "
+      <div class="user-level-banner">
+        "🌱 BEGINNER Level - You have 1-9 posts!"
+      " "
+      <div class="user-level-banner">
+        "🆕 NEW - Create your first post to start leveling up!"
       " "
     " "
     <div class="content-grid">
@@ -51,14 +57,17 @@
               "Checking:"
             " Is post count > 5? "
           " "
-          <ts-island>
-            " "
-            <span class="result-badge result-false" data-ts-page="">
-              "✗ FALSE - You have 5 or fewer posts"
-            " "
-            <div class="explanation" data-ts-page="">
-              " This content shows when you have 5 or fewer posts. "
-            " "
+          <span class="result-badge result-true">
+            "✓ TRUE - You have MORE than 5 posts"
+          " "
+          <div class="explanation">
+            " This content shows because your post count is greater than 5. "
+          " "
+          <span class="result-badge result-false">
+            "✗ FALSE - You have 5 or fewer posts"
+          " "
+          <div class="explanation">
+            " This content shows when you have 5 or fewer posts. "
           " "
         " "
         <div class="example-item">
@@ -84,14 +93,17 @@
               "Checking:"
             " Is post count < 100? "
           " "
-          <ts-island>
-            " "
-            <span class="result-badge result-true" data-ts-page="">
-              "✓ TRUE - You have under 100 posts"
-            " "
-            <div class="explanation" data-ts-page="">
-              " This shows because you haven't reached 100 posts yet. "
-            " "
+          <span class="result-badge result-true">
+            "✓ TRUE - You have under 100 posts"
+          " "
+          <div class="explanation">
+            " This shows because you haven't reached 100 posts yet. "
+          " "
+          <span class="result-badge result-false">
+            "✗ FALSE - You have 100+ posts!"
+          " "
+          <div class="explanation">
+            " Wow! This shows if you have 100 or more posts. You're a prolific creator! "
           " "
         " "
         <div class="example-item">
@@ -117,14 +129,17 @@
               "Checking:"
             " Is post count exactly 0? "
           " "
-          <ts-island>
-            " "
-            <span class="result-badge result-false" data-ts-page="">
-              "✗ FALSE - You have posts!"
-            " "
-            <div class="explanation" data-ts-page="">
-              " You've already started posting. Great work! "
-            " "
+          <span class="result-badge result-true">
+            "✓ TRUE - No posts yet"
+          " "
+          <div class="explanation">
+            " You haven't created any posts. Start sharing your thoughts! "
+          " "
+          <span class="result-badge result-false">
+            "✗ FALSE - You have posts!"
+          " "
+          <div class="explanation">
+            " You've already started posting. Great work! "
           " "
         " "
         <div class="example-item">
@@ -150,14 +165,17 @@
               "Checking:"
             " Is post count NOT equal to 0? "
           " "
-          <ts-island>
-            " "
-            <span class="result-badge result-true" data-ts-page="">
-              "✓ TRUE - You have at least one post"
-            " "
-            <div class="explanation" data-ts-page="">
-              " Perfect! This shows any content you want visible only when users have posts. "
-            " "
+          <span class="result-badge result-true">
+            "✓ TRUE - You have at least one post"
+          " "
+          <div class="explanation">
+            " Perfect! This shows any content you want visible only when users have posts. "
+          " "
+          <span class="result-badge result-false">
+            "✗ FALSE - No posts yet"
+          " "
+          <div class="explanation">
+            " This shows the empty state message when you have no posts. "
           " "
         " "
       " "
@@ -193,14 +211,23 @@
               "Checking:"
             " Does bio contain "developer"? "
           " "
-          <ts-island>
-            " "
-            <span class="result-badge result-false" data-ts-page="">
-              "✗ FALSE - Your bio doesn't mention "developer""
-            " "
-            <div class="explanation" data-ts-page="">
-              " Your bio exists but doesn't contain the word "developer". "
-            " "
+          <span class="result-badge result-true">
+            "✓ TRUE - Your bio mentions "developer""
+          " "
+          <div class="explanation">
+            " Your bio contains the word "developer" - you could show developer-specific content! "
+          " "
+          <span class="result-badge result-false">
+            "✗ FALSE - Your bio doesn't mention "developer""
+          " "
+          <div class="explanation">
+            " Your bio exists but doesn't contain the word "developer". "
+          " "
+          <span class="result-badge result-false">
+            "✗ No bio to check"
+          " "
+          <div class="explanation">
+            " Add a bio to see string matching in action! "
           " "
         " "
         <div class="example-item">
@@ -231,14 +258,11 @@
           " "
           <ts-island>
             " "
-            <ts-island>
-              " "
-              <span class="result-badge result-false" data-ts-page="">
-                "✗ FALSE - Username doesn't start with "admin""
-              " "
-              <div class="explanation" data-ts-page="">
-                " Your username exists but doesn't start with "admin". "
-              " "
+            <span class="result-badge result-false" data-ts-page="">
+              "✗ FALSE - Username doesn't start with "admin""
+            " "
+            <div class="explanation" data-ts-page="">
+              " Your username exists but doesn't start with "admin". "
             " "
           " "
         " "
@@ -270,14 +294,11 @@
           " "
           <ts-island>
             " "
-            <ts-island>
-              " "
-              <span class="result-badge result-false" data-ts-page="">
-                "✗ FALSE - Username doesn't end with "_test""
-              " "
-              <div class="explanation" data-ts-page="">
-                " Your username exists but doesn't end with "_test". This is a regular account. "
-              " "
+            <span class="result-badge result-false" data-ts-page="">
+              "✗ FALSE - Username doesn't end with "_test""
+            " "
+            <div class="explanation" data-ts-page="">
+              " Your username exists but doesn't end with "_test". This is a regular account. "
             " "
           " "
         " "
@@ -451,17 +472,41 @@
             <br>
             " • 0-9 posts = Beginner "
           " "
-          <ts-island>
+          <span class="level-badge" style="background: linear-gradient(135deg, #ff9a9e, #fecfef); color: rgb(124, 45, 18);">
+            "⭐ EXPERT LEVEL"
+          " "
+          <div class="explanation">
             " "
-            <span class="level-badge" data-ts-page="" style="background: linear-gradient(135deg, #84fab0, #8fd3f4); color: rgb(6, 95, 70);">
-              "🌱 BEGINNER"
+            <strong>
+              "First When matched!"
+            " You have 50+ posts, so this is the result shown. "
+          " "
+          <span class="level-badge" style="background: linear-gradient(135deg, #a8edea, #fed6e3); color: rgb(124, 45, 18);">
+            "✨ INTERMEDIATE"
+          " "
+          <div class="explanation">
             " "
-            <div class="explanation" data-ts-page="">
-              " "
-              <strong>
-                "Third When matched!"
-              " You have 1-9 posts. "
+            <strong>
+              "Second When matched!"
+            " You have 10-49 posts. "
+          " "
+          <span class="level-badge" style="background: linear-gradient(135deg, #84fab0, #8fd3f4); color: rgb(6, 95, 70);">
+            "🌱 BEGINNER"
+          " "
+          <div class="explanation">
             " "
+            <strong>
+              "Third When matched!"
+            " You have 1-9 posts. "
+          " "
+          <span class="level-badge" style="background: linear-gradient(135deg, #ffecd2, #fcb69f); color: rgb(124, 45, 18);">
+            "🆕 NEW USER"
+          " "
+          <div class="explanation">
+            " "
+            <strong>
+              "Otherwise matched!"
+            " None of the When conditions were true (no posts). "
           " "
           <div class="explanation" style="margin-top: 15px; background: rgb(230, 255, 250); border-left-color: rgb(56, 178, 172);">
             " "

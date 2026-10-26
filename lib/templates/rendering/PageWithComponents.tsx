@@ -64,14 +64,5 @@ function renderIsland(island: Island, children: React.ReactNode[] | undefined, r
 
 function getComponent(name: string): React.ComponentType<Record<string, unknown>> | null {
   const registration = componentRegistry.get(name);
-  if (registration) return registration.component as React.ComponentType<Record<string, unknown>>;
-  // Choose's branches live on Choose
-  const lower = name.toLowerCase();
-  if (lower === 'when' || lower === 'otherwise') {
-    const choose = componentRegistry.get('Choose')?.component as unknown as
-      | Record<string, React.ComponentType<Record<string, unknown>>>
-      | undefined;
-    return (lower === 'when' ? choose?.When : choose?.Otherwise) ?? null;
-  }
-  return null;
+  return registration ? (registration.component as React.ComponentType<Record<string, unknown>>) : null;
 }

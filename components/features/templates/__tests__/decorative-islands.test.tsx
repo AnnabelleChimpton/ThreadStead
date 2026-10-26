@@ -1,9 +1,8 @@
 /**
- * StickyNote and NeonSign as a profile page shows them: compiled by the real
- * pipeline (or stored by an earlier compile), then hydrated by the islands
- * renderer. Their `color`/`fontSize`/`fontWeight` arrive as their own props
- * (noteColor, neonColor, textSize, textWeight). Islands saved before that
- * carry them as styles instead; the components read those back.
+ * StickyNote as a profile page shows it: compiled by the real pipeline (or
+ * stored by an earlier compile), then hydrated by the islands renderer. Its
+ * `color` arrives as its own prop (noteColor). Islands saved before that
+ * carry it as a style instead; the component reads that back.
  * (Compile side: tests/template-engine/__tests__/decorative-props.etest.ts)
  */
 jest.mock('@noble/ed25519', () => ({
@@ -33,7 +32,6 @@ const residentData = {
 } as unknown as ResidentData
 
 const INK = 'rgb(59, 47, 30)' // #3b2f1e
-const PINK_NEON = 'rgb(255, 20, 147)' // #ff1493
 
 async function hydrate(staticHTML: string, islands: Island[]) {
   const { container } = render(
@@ -58,10 +56,6 @@ function note(container: HTMLElement) {
   return container.querySelector('.font-handwriting') as HTMLElement
 }
 
-/** The sign's main text: the first div inside the container (no background). */
-function neonText(container: HTMLElement) {
-  return container.querySelector('.neon-sign-container > div') as HTMLElement
-}
 
 describe('StickyNote', () => {
   test('color="pink" makes a pink note with dark ink', async () => {
@@ -131,49 +125,5 @@ describe('StickyNote', () => {
       expect(note(c)).toHaveClass('bg-green-200')
       expect(note(c).style.color).toBe(INK)
     })
-  })
-})
-
-describe('NeonSign', () => {
-  test('color and fontSize set the sign, not the container', async () => {
-    const c = await hydrateSource('<NeonSign text="welcome" color="pink" fontSize="large" />')
-    expect(neonText(c).style.color).toBe(PINK_NEON)
-    expect(neonText(c).style.fontSize).toBe('48px')
-    const container = c.querySelector('.neon-sign-container') as HTMLElement
-    expect(container.style.color).toBe('')
-    expect(container.style.fontSize).toBe('')
-  })
-
-  test('element children render as themselves, in capitals by CSS', async () => {
-    const c = await hydrateSource('<NeonSign color="green">Hi <b>there</b></NeonSign>')
-    expect(c).not.toHaveTextContent('[object Object]')
-    expect(neonText(c).querySelector('b')).toHaveTextContent('there')
-    expect(neonText(c)).toHaveTextContent(/^Hi there/)
-    expect((c.querySelector('.neon-sign-container') as HTMLElement).style.textTransform).toBe('uppercase')
-  })
-
-  test('the text prop shows when there are no children', async () => {
-    const c = await hydrateSource('<NeonSign text="open late" uppercase="false" />')
-    expect(neonText(c)).toHaveTextContent(/^open late/)
-    expect((c.querySelector('.neon-sign-container') as HTMLElement).style.textTransform).toBe('')
-  })
-
-  test('an island saved before the fix gets its colour, size and weight', async () => {
-    // What the old registry defaults compiled `color="pink" fontSize="large"` to
-    const island: Island = {
-      id: 'island-neonsign-old',
-      component: 'neonsign',
-      props: { text: 'welcome', color: 'pink', fontSize: 'large', fontWeight: 'black' },
-      children: [],
-      placeholder: '',
-      _precomputed: {
-        styles: { color: 'pink', fontSize: 'large', fontWeight: 'black' },
-        componentProps: { text: 'welcome', intensity: 'bright', animation: 'pulse', uppercase: true, outline: true, background: false },
-      },
-    }
-    const c = await hydrate('<span data-island="island-neonsign-old" data-component="neonsign"></span>', [island])
-    expect(neonText(c).style.color).toBe(PINK_NEON)
-    expect(neonText(c).style.fontSize).toBe('48px')
-    expect(neonText(c).style.fontWeight).toBe('900')
   })
 })
