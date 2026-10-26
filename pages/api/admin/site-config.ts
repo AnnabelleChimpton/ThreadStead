@@ -25,6 +25,17 @@ const DEFAULT_CONFIG = {
   founders_note: "",
 };
 
+/**
+ * Kept by their own routes and Admin sections: site CSS (site-css.ts), the
+ * founder's note (founders-note.ts) and the policies (policies.ts). Saving
+ * the site settings sent every key back as the page loaded them: with no
+ * site CSS saved (the bundled theme), that wrote an empty one, which turns
+ * the theme off, and it put back whatever note and policies the page had.
+ * Listed in GET for whoever reads them, never written here.
+ */
+const OWN_ROUTE_KEYS = new Set(["site_custom_css", "founders_note", "terms_simple", "terms_full", "privacy_simple", "privacy_full"]);
+const MAX_VALUE_LENGTH = 200_000;
+
 export default apiHandler(
   { methods: ["GET", "PUT"], auth: "admin", rateLimit: "admin" },
   async (req, res) => {
@@ -72,9 +83,13 @@ export default apiHandler(
           });
         }
 
-        // Update or create each config value
+        if (providedKeys.some((key) => typeof config[key] !== "string" || config[key].length > MAX_VALUE_LENGTH)) {
+          return res.status(400).json({ error: "Each setting is text, 200,000 characters at most." });
+        }
+
+        // Update or create each config value this route owns
         const updates = await Promise.all(
-          providedKeys.map(async (key) => {
+          providedKeys.filter((key) => !OWN_ROUTE_KEYS.has(key)).map(async (key) => {
             const value = String(config[key] || "").trim();
 
             return db.siteConfig.upsert({

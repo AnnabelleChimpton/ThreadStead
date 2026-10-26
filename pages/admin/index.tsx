@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import type { GetServerSideProps } from "next";
 import Link from "next/link";
 import Layout from "@/components/ui/layout/Layout";
@@ -364,6 +364,8 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
   const [moderating, setModerating] = useState<User | null>(null);
   const [resendingEmailUserId, setResendingEmailUserId] = useState<string | null>(null);
   const [siteConfig, setSiteConfig] = useState<SiteConfig | null>(null);
+  // The settings as last loaded or saved: a save sends only what differs
+  const loadedConfigRef = useRef<SiteConfig | null>(null);
   const [loadingConfig, setLoadingConfig] = useState(false);
   const [savingConfig, setSavingConfig] = useState(false);
   const [configMessage, setConfigMessage] = useState<string | null>(null);
@@ -537,6 +539,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
       if (res.ok) {
         const data = await res.json();
         setSiteConfig(data.config);
+        loadedConfigRef.current = data.config;
       }
     } catch (error) {
       console.error("Failed to load site config:", error);
@@ -549,18 +552,33 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
   async function saveSiteConfig() {
     if (!siteConfig) return;
 
+    // Only what changed on this form since it loaded: sending everything put
+    // back other sections' saves (and wrote an empty site CSS)
+    const loaded = loadedConfigRef.current;
+    const changed = Object.fromEntries(
+      (Object.keys(siteConfig) as (keyof SiteConfig)[])
+        .filter((key) => !loaded || siteConfig[key] !== loaded[key])
+        .map((key) => [key, siteConfig[key]])
+    );
+    if (Object.keys(changed).length === 0) {
+      setConfigMessage("Nothing's changed.");
+      setTimeout(() => setConfigMessage(null), 3000);
+      return;
+    }
+
     setSavingConfig(true);
     setConfigMessage(null);
     try {
       const res = await csrfFetch("/api/admin/site-config", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ config: siteConfig }),
+        body: JSON.stringify({ config: changed }),
       });
 
       if (res.ok) {
         const data = await res.json();
         setSiteConfig(data.config);
+        loadedConfigRef.current = data.config;
         setConfigMessage("Site settings saved.");
         setTimeout(() => setConfigMessage(null), 3000);
       } else {
