@@ -526,3 +526,21 @@ test("Slider's OnChange runs when the visitor moved it, not for a click that mov
     expect(text('changes')).toBe('1')
   })
 })
+
+test('<If condition="!a"> and <ConditionalAttr when="on"> do what they say (bug bash 2026-10-26)', async () => {
+  await visit(`<div>
+<Var name="a" type="boolean" initial="false" />
+<Var name="on" type="boolean" initial="true" />
+<p id="not"><If condition="!a">not a</If></p>
+<p id="box">box</p>
+<ConditionalAttr element="#box" attribute="data-on" value="yes" when="on" />
+<p class="c"><OnClick><Set var="a" value="true" /></OnClick>.</p>
+</div>`, async ({ $, text }) => {
+    expect(text('not')).toBe('not a')
+    await until(() => $('#user-content-box')?.getAttribute('data-on') === 'yes')
+    expect($('#user-content-box')?.getAttribute('data-on')).toBe('yes')
+    click($('.c'))
+    await settle()
+    expect(text('not')).toBe('')
+  })
+})

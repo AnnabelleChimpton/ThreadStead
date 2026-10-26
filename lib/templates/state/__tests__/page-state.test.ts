@@ -112,3 +112,25 @@ describe('smaller page-state fixes', () => {
     expect(mergeObjects([{ a: 1 }, { hasOwnProperty: 2 }])).toEqual({ a: 1, hasOwnProperty: 2 })
   })
 })
+
+describe('the editor says when a calculation will fail on the page (bug bash 2026-10-26)', () => {
+  const { expressionProblem, evaluateExpression } = jest.requireActual('../expression-evaluator') as typeof import('../expression-evaluator')
+  test.each([
+    ['n ** 2', 'Math.pow'],
+    ['a ?? b', '||'],
+    ['a & b', '&&'],
+    ['typeof a', 'one calculation'],
+    ['Math.PI * n', '3.14159'],
+    ['this.x', 'this'],
+  ])('%s', (expression, says) => {
+    expect(expressionProblem(expression)).toContain(says)
+  })
+
+  test('what works still passes, and word[0] and $vars["x"] work', () => {
+    for (const ok of ['Math.round(n * 2)', "list.filter(x => x > 1).length", "board.map(() => '')", 'a ? b : c', '!done']) {
+      expect(expressionProblem(ok)).toBeUndefined()
+    }
+    expect(evaluateExpression('word[0]', { word: 'hello' })).toBe('h')
+    expect(evaluateExpression("$vars['my']", { my: 3 })).toBe(3)
+  })
+})

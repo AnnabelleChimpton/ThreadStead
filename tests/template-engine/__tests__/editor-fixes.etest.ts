@@ -42,3 +42,31 @@ test("a loop's {placeholder} text isn't offered to Words (every change to it was
   expect(tree).toMatch(/"t":"p","a":\[\["data-ts-text"/)
   expect(tree).not.toMatch(/"t":"li","a":\[\["data-ts-text"/)
 })
+
+describe('things that silently did nothing now get a word (bug bash 2026-10-26)', () => {
+  const says = (source: string) => compileTemplateToArtifacts(source).warnings.join('\n')
+
+  test.each([
+    ['<Var name="n" type="number" initial="0" /><Increment var="n" />', '<Increment> only runs inside an event'],
+    ['<OnMount><Increment var="n" /></OnMount>\n<Var name="n" type="number" initial="5" />', 'runs before <Var name="n"> on line 2'],
+    ['<Var name="d" initial="1" />\n<Var name="d" initial="2" />', 'already a <Var name="d"> on line 1'],
+    ['<Var name="n" type="number" initial="abc" />', 'initial needs to be a number'],
+    ['<OnKeyPress keyName="space"><Set var="a" value="1" /></OnKeyPress><Var name="a" initial="" />', 'Did you mean keyName=" "?'],
+    ['<OnKeyUp keyName="up"><Set var="a" value="1" /></OnKeyUp><Var name="a" initial="" />', 'Did you mean keyName="ArrowUp"?'],
+    ['<div id="x">x</div><Var name="on" type="boolean" initial="true" /><ConditionalAttr element="#x" attribute="class" value="big" when="on" />', 'For a class, use <ToggleClass>'],
+    ['<Var name="pets" type="array" initial=\'[{"name":"Rex"}]\' /><ul><ForEach var="pets" item="p"><li><ShowVar name="p.name" /></li></ForEach></ul>', 'Write {p.name} in the text'],
+    ['<Var name="n" type="computed" expression="n2 ** 2" />', 'Math.pow'],
+  ])('%s', (source, expected) => {
+    expect(says(source)).toContain(expected)
+  })
+
+  test('no "Did you mean i?" for an unknown one-letter name', () => {
+    const out = says('<Var name="list" type="array" initial=\'["a"]\' /><ul><ForEach var="list" item="x" index="i"><li><OnClick><Set var="l" value="1" /></OnClick>{x}</li></ForEach></ul>')
+    expect(out).toContain('a variable called l')
+    expect(out).not.toContain('Did you mean')
+  })
+
+  test('what works says nothing', () => {
+    expect(says('<Var name="n" type="number" initial="0" /><Button><OnClick><Increment var="n" /></OnClick>+</Button><OnKeyPress keyName=" " scroll="false"><Increment var="n" /></OnKeyPress><OnMount><Set var="n" value="1" /></OnMount>')).toBe('')
+  })
+})

@@ -444,6 +444,9 @@ export function evaluateFullCondition(
   if (config.data || config.condition) {
     // PHASE 4 FIX: Auto-prefix template variables if not already prefixed
     let dataPath = config.data || config.condition;
+    // condition="!done": not done (it read a name "!done", never true; bug bash 2026-10-26)
+    const negated = !!dataPath && /^!\s*[\w$]/.test(dataPath.trim());
+    if (negated) dataPath = dataPath!.trim().slice(1).trim();
 
     if (dataPath && !dataPath.includes('.') && !dataPath.startsWith('$vars.')) {
       // Check if this is a template variable
@@ -503,7 +506,7 @@ export function evaluateFullCondition(
     }
     // Default: truthy check (only if no other conditions present)
     else if (conditionResults.length === 0) {
-      conditionResults.push(isTruthy(value));
+      conditionResults.push(negated ? !isTruthy(value) : isTruthy(value));
     }
   }
 

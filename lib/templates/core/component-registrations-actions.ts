@@ -501,7 +501,7 @@ export function registerActionComponents(registry: ComponentRegistry) {
     example: '<Var name="likes" type="number" initial="0" />\n<Button><OnClick><Increment var="likes" /></OnClick>Like</Button>\n<p id="thanks">Thank you, that made my day.</p>\n<ConditionalAttr element="#thanks" attribute="hidden" when="$vars.likes === 0" />',
     props: {
       element: { type: 'string', required: true, description: 'A CSS selector for the element or elements, like #thanks or .note. Inside an OnClick or a mouse event, "this" is the thing that was clicked or pointed at; on the page on its own, "this" does nothing.' },
-      attribute: { type: 'string', required: true, description: 'The attribute to set, like hidden, disabled or aria-expanded.' },
+      attribute: { type: 'string', required: true, description: 'The attribute to set, like hidden, disabled or aria-expanded.', example: 'aria-expanded' },
       when: { type: 'string', required: false, description: 'The test. With =, !, < or > in it, it\'s worked out as a calculation, like $vars.likes === 0. Otherwise it names a value that must be on, like $vars.open. Leave it out and the attribute is never set.' },
       value: { type: 'string', default: 'true', description: 'The attribute\'s value while the test passes. Default true.' },
       otherwise: { type: 'string', description: 'Its value while the test fails, like false for aria-expanded. Leave it out and the attribute is taken off.' }

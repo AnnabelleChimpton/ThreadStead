@@ -73,6 +73,18 @@ function toArrows(node: unknown): void {
  * evaluator for each item: board.some(c => c == ''), stars.filter(s => s.y < 90).
  * Only these, and only with an arrow, so no other function is ever called.
  */
+/** What evaluateNode works out; anything else jsep reads fails when it runs */
+const WORKED_OUT = new Set(['Literal', 'Identifier', 'BinaryExpression', 'UnaryExpression', 'ConditionalExpression', 'CallExpression', 'MemberExpression', 'ArrayExpression', 'ObjectExpression', 'Property', ARROW]);
+
+/** What to write instead of an operator pages can't use */
+const OPERATOR_INSTEAD: Record<string, string> = {
+  '**': 'Math.pow(n, 2) squares n',
+  '??': 'a || b gives b when a is empty',
+  '&': 'a && b is true when both are',
+  '|': 'a || b is true when either is',
+  in: 'list.includes(x) says whether x is in it',
+};
+
 /** In an arrow's names, the context outside every arrow: what $vars reads */
 const OUTSIDE_ARROWS = Symbol('outside arrows');
 
@@ -712,7 +724,11 @@ export function evaluateExpression(
     // Special handling for $vars namespace
     // $vars.counter -> look up "counter" in context
     if (object.type === 'Identifier' && (object as jsep.Identifier).name === '$vars') {
-      if (!computed && property.type === 'Identifier') {
+      // $vars['my name'] too (it gave undefined; bug bash 2026-10-26)
+      if (computed) {
+        return ownValue((ctx as Record<symbol, EvaluationContext>)[OUTSIDE_ARROWS] ?? ctx, evaluateNode(property, ctx));
+      }
+      if (property.type === 'Identifier') {
         // Own variables only: never constructor, __proto__ and the like.
         // The page's, not an arrow's names (list.map(x => $vars.x) read the item)
         return ownValue((ctx as Record<symbol, EvaluationContext>)[OUTSIDE_ARROWS] ?? ctx, (property as jsep.Identifier).name);
@@ -745,6 +761,11 @@ export function evaluateExpression(
       if (typeof objectValue === 'string' || Array.isArray(objectValue)) {
         return objectValue.length;
       }
+    }
+
+    // A letter of a text by its place, word[0]
+    if (typeof objectValue === 'string' && typeof propertyName === 'number' && Number.isInteger(propertyName)) {
+      return objectValue[propertyName];
     }
 
     return undefined;
@@ -906,13 +927,45 @@ export function expressionProblem(expression: string): string | undefined {
   let problem: string | undefined;
   // Arrows where they work: the first thing given to a list check
   const placed = new Set<unknown>();
+  // Math.round and the like as called: Math.PI on its own is nothing
+  const called = new Set<unknown>();
   const visit = (node: unknown): void => {
     if (problem || !node || typeof node !== 'object') return;
-    const n = node as { type?: string; arguments?: { type: string }[]; callee?: { type: string; name?: string; object?: { type: string; name?: string }; property?: { name?: string } } };
+    const n = node as {
+      type?: string; operator?: string; name?: string; body?: unknown;
+      object?: { type: string; name?: string }; property?: { name?: string }; computed?: boolean;
+      arguments?: { type: string }[]; callee?: { type: string; name?: string; object?: { type: string; name?: string }; property?: { name?: string } };
+    };
     if (n.type === ARROW && !placed.has(node)) {
       problem = 'has an arrow (item => …) on its own: it only works inside .some(), .every(), .filter(), .map(), .find(), .findIndex() or .reduce()';
       return;
     }
+    // What runs on the page fails on these; said here, not found blank there (bug bash 2026-10-26)
+    if (n.type === ARROW) {
+      visit(n.body); // its names are names, not a calculation
+      return;
+    }
+    if (n.type === 'BinaryExpression' && n.operator && !ALLOWED_BINARY_OPERATORS.has(n.operator)) {
+      problem = `uses ${n.operator}, which pages can't use${OPERATOR_INSTEAD[n.operator] ? `: ${OPERATOR_INSTEAD[n.operator]}` : ''}`;
+      return;
+    }
+    if (n.type === 'UnaryExpression' && n.operator && !ALLOWED_UNARY_OPERATORS.has(n.operator)) {
+      problem = `uses ${n.operator}, which pages can't use`;
+      return;
+    }
+    if (n.type && !WORKED_OUT.has(n.type)) {
+      problem = n.type === 'ThisExpression' || (n.type === 'Identifier' && n.name === 'this')
+        ? "uses this, which pages can't use: name the variable"
+        : "can't be worked out here: write one calculation (typeof, new, ; and , don't work)";
+      return;
+    }
+    if (n.type === 'MemberExpression' && !called.has(node) && n.object?.type === 'Identifier' && n.object.name === 'Math' && !n.computed) {
+      problem = n.property?.name === 'PI'
+        ? 'uses Math.PI, which pages can\'t use: write 3.14159'
+        : `uses Math.${n.property?.name}, which pages can't use (these work: Math.round, floor, ceil, min, max, abs, sqrt and pow)`;
+      return;
+    }
+    if (n.type === 'CallExpression' && n.callee) called.add(n.callee);
     if (n.type === 'CallExpression' && n.callee?.type === 'MemberExpression' && LIST_CHECKS.has(n.callee.property?.name ?? '')) {
       const name = n.callee.property!.name;
       if (n.arguments?.[0]?.type !== ARROW) {

@@ -129,7 +129,7 @@ export function registerEventComponents(registry: ComponentRegistry) {
     description: 'Runs the actions inside when a certain key is pressed anywhere on the page, but not while someone is typing in a text box. Holding a key down runs it again and again, as fast as the keyboard repeats. To know a key is held, set a variable here and clear it in an OnKeyUp. Shortcuts like Ctrl+C don\'t count, and Space or Enter on a focused button presses that button instead.',
     example: '<Var name="jumps" type="number" initial="0" />\n<OnKeyPress keyName="j"><Increment var="jumps" /></OnKeyPress>\n<p>Press j to jump. Jumps: <ShowVar name="jumps" /></p>',
     props: {
-      keyName: { type: 'string', required: true, description: 'The key to listen for, named the way browsers name keys: Enter, Escape, ArrowUp, j, J (a capital means with Shift), " " for Space and so on. It has to match exactly.' },
+      keyName: { type: 'string', required: true, description: 'The key to listen for, named the way browsers name keys: Enter, Escape, ArrowUp, j, " " for Space and so on. A letter works with or without Shift.', example: 'ArrowUp' },
       scroll: { type: 'boolean', default: true, description: 'Set false so the key doesn\'t also scroll the page, for arrow keys and Space in a game. It still presses a button or link that has the focus.' }
     },
     relationship: {
@@ -145,7 +145,7 @@ export function registerEventComponents(registry: ComponentRegistry) {
     description: 'Runs the actions inside when a certain key is let go, anywhere on the page but not while someone is typing in a text box. With an OnKeyPress for the same key it tells you a key is held down: set a variable when it goes down, clear it when it comes up, and move things on an OnInterval while it\'s set.',
     example: '<Var name="x" type="number" initial="0" />\n<Var name="right" type="boolean" initial="false" />\n<OnKeyPress keyName="ArrowRight" scroll="false"><Set var="right" value="true" /></OnKeyPress>\n<OnKeyUp keyName="ArrowRight"><Set var="right" value="false" /></OnKeyUp>\n<If data="$vars.right">\n  <OnInterval milliseconds="50"><Set var="x" expression="Math.min(x + 1, 100)" /></OnInterval>\n</If>\n<p>Hold the right arrow: <ShowVar name="x" /></p>',
     props: {
-      keyName: { type: 'string', required: true, description: 'The key to listen for, named the way browsers name keys: ArrowLeft, Shift, a and so on. It has to match exactly.' }
+      keyName: { type: 'string', required: true, description: 'The key to listen for, named the way browsers name keys: ArrowLeft, Shift, a and so on. A letter works with or without Shift.', example: 'ArrowLeft' }
     },
     relationship: {
       type: 'action',

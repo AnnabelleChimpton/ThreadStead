@@ -132,8 +132,9 @@ export default function ConditionalAttr(props: ConditionalAttrProps) {
         try {
           let conditionMet: boolean;
 
-          // If 'when' contains operators (===, !==, >, <, etc.), use expression evaluator
-          if (when && /[=!<>]/.test(when)) {
+          // when is a calculation: $vars.open, a bare name (when="on" was
+          // read as a path and never true; bug bash 2026-10-26), or a comparison
+          if (when) {
             // Build context from global variables
             const freshVariables = globalTemplateStateManager.getAllVariables();
             const context: Record<string, any> = {};
@@ -236,8 +237,8 @@ export function executeConditionalAttrAction(
     // Evaluate condition
     let conditionMet: boolean;
 
-    // If 'when' contains operators (===, !==, >, <, etc.), use expression evaluator
-    if (when && /[=!<>]/.test(when)) {
+    // when is a calculation: $vars.open, a bare name, or a comparison
+    if (when) {
       // Build context from global variables
       const freshVariables = globalTemplateStateManager.getAllVariables();
       const context: Record<string, any> = {};

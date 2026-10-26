@@ -35,6 +35,7 @@ import {
 } from './html-allowlist';
 import { paragraphSafe } from './paragraph-safe';
 import { expressionProblem } from '../state/expression-evaluator';
+import { isSafePageAttribute } from '@/components/features/templates/state/actions/page-targets';
 
 // QUICK WIN #2: Cache schema to avoid recreating on every parse
 // Schema is only rebuilt when component registry changes
@@ -965,6 +966,9 @@ function valueProblem(
   }
   if (component === 'Var' && prop === 'initial') {
     const type = attributes.find((a) => a.name.toLowerCase() === 'type')?.value?.toLowerCase();
+    if (type === 'number' && value.trim() !== '' && isNaN(Number(value))) {
+      return `initial needs to be a number, so it starts at 0.`;
+    }
     if (type === 'array' || type === 'object') {
       const kind = type === 'array' ? 'a list like ["a", "b"]' : 'an object like {"a": 1}';
       let parsed: unknown;
@@ -1065,7 +1069,7 @@ function reportComponentProps(source: string): string[] {
  * single tag on its own leave these out.
  */
 export function isPageProblem(message: string): boolean {
-  return /uses a variable called|only works (straight )?inside|reads (condition|data|when) as a name|needs name="…" \(or var="…"\)|nothing for it to attach to|doesn't show what's put inside it|nothing on your page (has|is)/.test(message);
+  return /uses a variable called|only works (straight )?inside|reads (condition|data|when) as a name|needs name="…" \(or var="…"\)|nothing for it to attach to|doesn't show what's put inside it|nothing on your page (has|is)|only runs inside an event|runs before <Var|there's already a <Var|can't reach into a loop's item|straight inside <ForEach>/.test(message);
 }
 
 /** Components that run what's inside them when something happens (OnClick, OnChange, OnMount…) */
@@ -1073,6 +1077,29 @@ const isEvent = (name: string) => /^On[A-Z]/.test(name);
 
 /** Events that attach to the element they sit in, or to target="…" (element-events.tsx) */
 const ELEMENT_EVENTS = new Set(['OnClick', 'OnMouseEnter', 'OnMouseLeave', 'OnSwipe']);
+
+/** Actions: they run when an event does, and on their own do nothing */
+const NEEDS_EVENT = new Set([
+  'Set', 'Increment', 'Decrement', 'Toggle', 'Cycle', 'Reset', 'Push', 'Pop', 'Append', 'Prepend', 'RemoveAt', 'Merge',
+  'Filter', 'Find', 'Sort', 'Transform', 'ObjectSet', 'AddClass', 'RemoveClass', 'ToggleClass', 'SetCSSVar',
+  'SetURLHash', 'SetURLParam', 'ShowToast', 'CopyToClipboard', 'Delay', 'Sequence',
+]);
+
+/** What a browser calls keys (KeyboardEvent.key): one character, or one of these */
+const KEY_NAMES = new Set([
+  'Enter', 'Escape', 'Tab', 'Backspace', 'Delete', 'Insert', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
+  'Home', 'End', 'PageUp', 'PageDown', 'Shift', 'Control', 'Alt', 'Meta', 'CapsLock',
+  ...Array.from({ length: 12 }, (_, i) => `F${i + 1}`),
+]);
+const isKeyName = (key: string) => [...key].length === 1 || KEY_NAMES.has(key);
+
+/** What people write for a key, and what the browser calls it */
+const KEY_NAMES_MEANT: Record<string, string> = {
+  space: ' ', spacebar: ' ', up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight',
+  enter: 'Enter', return: 'Enter', esc: 'Escape', escape: 'Escape', tab: 'Tab', backspace: 'Backspace',
+  delete: 'Delete', del: 'Delete', arrowup: 'ArrowUp', arrowdown: 'ArrowDown', arrowleft: 'ArrowLeft', arrowright: 'ArrowRight',
+  pageup: 'PageUp', pagedown: 'PageDown', home: 'Home', end: 'End',
+};
 
 /**
  * A component that doesn't show what's put inside it: acceptsChildren false
@@ -1248,6 +1275,10 @@ function reportPageProblems(source: string): string[] {
   const messages: string[] = [];
   const declared = new Set<string>();
   const used: Array<{ name: string; line: number; tag: string; attr: string }> = [];
+  const varLines = new Map<string, number>();
+  const loopItems = new Set<string>();
+  // Variables an OnMount changes before their <Var> is made
+  const mountUses: Array<{ name: string; line: number }> = [];
   const stack: string[] = [];
   // Every open tag, HTML too: what an OnClick would attach to
   const elements: Array<{ name: string; component: boolean }> = [];
@@ -1338,7 +1369,7 @@ function reportPageProblems(source: string): string[] {
     const calculations = name === 'ConditionalAttr' ? ['when'] : name === 'Break' ? ['when', 'condition'] : [];
     for (const key of ['expression', ...calculations]) {
       const value = attrs.get(key)?.trim();
-      if (!value || (key === 'when' && name === 'ConditionalAttr' && !/[=!<>]/.test(value)) || /\{[\w$.]+\}/.test(value) || isJson(value)) continue;
+      if (!value || /\{[\w$.]+\}/.test(value) || isJson(value)) continue;
       const problem = expressionProblem(value);
       if (problem) messages.push(`Line ${line}: <${name} ${key}="${value}"> ${problem}, so it does nothing.`);
     }
@@ -1357,8 +1388,42 @@ function reportPageProblems(source: string): string[] {
       }
     }
 
+    // ConditionalAttr only sets state and accessibility attributes
+    const attribute = attrs.get('attribute')?.trim();
+    if (name === 'ConditionalAttr' && attribute && !isSafePageAttribute(attribute)) {
+      const instead = /^class$/i.test(attribute) ? ' For a class, use <ToggleClass> or <AddClass>.' : /^style$/i.test(attribute) ? ' For a style, use <SetCSSVar>.' : '';
+      messages.push(`Line ${line}: <ConditionalAttr attribute="${attribute}"> can't set ${attribute}, so it does nothing (aria-…, data-…, hidden, disabled, title and the like work).${instead}`);
+    }
+
+    // A key the browser never calls by that name
+    const keyName = attrs.get('keyname');
+    if ((name === 'OnKeyPress' || name === 'OnKeyUp') && keyName !== undefined && !isKeyName(keyName)) {
+      const meant = KEY_NAMES_MEANT[keyName.trim().toLowerCase()];
+      messages.push(`Line ${line}: <${name} keyName="${keyName}"> never goes off: no key is called that.${meant ? ` Did you mean keyName="${meant}"?` : ''}`);
+    }
+
+    // Actions only run inside an event (OnClick, OnMount…)
+    if (NEEDS_EVENT.has(name) && !stack.some(isEvent)) {
+      messages.push(`Line ${line}: <${name}> only runs inside an event like <OnClick> or <OnMount>; here it does nothing.`);
+    }
+    if (stack.includes('OnMount')) {
+      for (const key of ['var', ...[...attrs.keys()].filter((k) => k === 'expression' || k === 'value')]) {
+        const value = attrs.get(key) ?? '';
+        const names = key === 'var' ? [value] : [...value.matchAll(/\$vars\.([A-Za-z_][\w-]*)/g)].map((m) => m[1]);
+        for (const used of names) if (used && !declared.has(used)) mountUses.push({ name: used, line });
+      }
+    }
+
     // Variables made and used
-    if (name === 'Var' && attrs.get('name')) declared.add(attrs.get('name')!);
+    if (name === 'Var' && attrs.get('name')) {
+      const varName = attrs.get('name')!;
+      const first = varLines.get(varName);
+      if (first !== undefined) {
+        messages.push(`Line ${line}: there's already a <Var name="${varName}"> on line ${first}. Two with one name are one variable, and only one starting value counts; give this one its own name.`);
+      } else varLines.set(varName, line);
+      declared.add(varName);
+    }
+    if (name === 'ForEach' && attrs.get('item')) loopItems.add(attrs.get('item')!);
     if (name === 'ForEach') {
       for (const key of ['item', 'index']) if (attrs.get(key)) declared.add(attrs.get(key)!);
     }
@@ -1408,7 +1473,9 @@ function reportPageProblems(source: string): string[] {
     if (declared.has(use.name) || reported.has(use.name)) continue;
     reported.add(use.name);
     let best: { name: string; distance: number } | undefined;
-    for (const candidate of declared) {
+    // Not for short names: an unknown l isn't the loop's i
+    for (const candidate of use.name.length > 2 ? declared : []) {
+      if (candidate.length <= 2) continue;
       const distance = editDistance(use.name.toLowerCase(), candidate.toLowerCase());
       if (distance <= 2 && (!best || distance < best.distance)) best = { name: candidate, distance };
     }
@@ -1422,6 +1489,10 @@ function reportPageProblems(source: string): string[] {
       );
       continue;
     }
+    if (root !== use.name && loopItems.has(root) && use.tag === 'ShowVar') {
+      messages.push(`Line ${use.line}: <ShowVar name="${use.name}"> can't reach into a loop's item. Write {${use.name}} in the text instead.`);
+      continue;
+    }
     if (root !== use.name && declared.has(root)) {
       messages.push(
         `Line ${use.line}: <${use.tag}> can't use ${use.name}, a list inside ${root}. ` +
@@ -1433,6 +1504,13 @@ function reportPageProblems(source: string): string[] {
       `Line ${use.line}: <${use.tag}> uses a variable called ${use.name}, but nothing makes one, so it does nothing.` +
       (best ? ` Did you mean ${best.name}?` : ` Add <Var name="${use.name}" initial="…" /> near the top.`)
     );
+  }
+
+  for (const { name, line } of mountUses) {
+    const made = varLines.get(name);
+    if (made !== undefined && made > line) {
+      messages.push(`Line ${line}: <OnMount> runs before <Var name="${name}"> on line ${made} is made, so it does nothing to it. Put the <Var> above it.`);
+    }
   }
 
   return messages.length > MAX_PROP_MESSAGES
