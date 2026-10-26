@@ -3,10 +3,11 @@ import { sanitizeCss } from '@/lib/utils/sanitization/css';
 /**
  * What in a page's CSS won't work, for the list under the CSS pane: what the
  * sanitizer takes out, files by an old site's address or http://, and an
- * unclosed { or comment, which silently swallows the rest of the file.
+ * unclosed { or comment, which silently swallows the rest of the file, and
+ * property names the browser doesn't know (text-color).
  * Messages start "Line N:" when there's a line to point at.
  */
-export function cssProblems(css: string): string[] {
+export function cssProblems(css: string, knows: (property: string) => boolean | undefined = browserKnows): string[] {
   if (!css.trim()) return [];
   const lineAt = (index: number) => css.slice(0, index).split('\n').length;
   const problems: string[] = [];
@@ -61,5 +62,92 @@ export function cssProblems(css: string): string[] {
   if (open.length > 0) {
     problems.push(`Line ${lineAt(open[open.length - 1])}: this { is never closed, so everything after it counts as part of this rule.`);
   }
+
+  // Property names the browser doesn't know do nothing, without a word:
+  // text-color looked right and the text stayed the same colour. Said once
+  // per name, with its first line
+  const unknown = new Map<string, { index: number; count: number }>();
+  for (const { property, index } of declaredProperties(css)) {
+    if (knows(property) !== false) continue;
+    const seen = unknown.get(property);
+    if (seen) seen.count++;
+    else unknown.set(property, { index, count: 1 });
+  }
+  for (const [property, { index, count }] of unknown) {
+    const meant = MEANT[property] ?? (property.includes('colour') && knows(property.replace(/colour/g, 'color')) ? property.replace(/colour/g, 'color') : undefined);
+    problems.push(
+      `Line ${lineAt(index)}: your browser doesn't know "${property}", so that line does nothing.` +
+      `${meant ? ` Did you mean "${meant}"?` : ''}${more(count)}`
+    );
+  }
   return problems;
+}
+
+/** Names people reach for that CSS spells another way */
+const MEANT: Record<string, string> = {
+  'text-color': 'color',
+  'font-color': 'color',
+  'text-colour': 'color',
+  'font-colour': 'color',
+  'colour': 'color',
+  'text-size': 'font-size',
+  'font-bold': 'font-weight',
+  'text-font': 'font-family',
+  'bgcolor': 'background-color',
+  'background-colour': 'background-color',
+  'align': 'text-align',
+  'valign': 'vertical-align',
+};
+
+/**
+ * Whether this browser knows a property, the way the CSS pane's autocomplete
+ * does (@codemirror/lang-css reads document.body.style). Undefined where
+ * there's no browser to ask (the server, tests), so nothing is said.
+ */
+function browserKnows(property: string): boolean | undefined {
+  if (typeof CSS === 'undefined' || typeof CSS.supports !== 'function') return undefined;
+  return CSS.supports(property, 'inherit');
+}
+
+/** Blocks of descriptors, not properties (src, unicode-range, syntax…) */
+const DESCRIPTOR_BLOCKS = /^@(?:font-face|font-feature-values|font-palette-values|counter-style|property|page|view-transition|-?[\w-]*viewport)\b/i;
+
+/**
+ * Every declaration's property name and where it is, in rules at any depth
+ * (CSS nesting, @media), skipping comments, strings, descriptor blocks,
+ * custom properties (--x), vendor prefixes (another browser's) and old IE
+ * hacks (*zoom, _height).
+ */
+function declaredProperties(css: string): { property: string; index: number }[] {
+  const found: { property: string; index: number }[] = [];
+  const skipping: boolean[] = []; // per open block: inside a descriptor block
+  let start = 0; // where the current declaration or prelude starts
+  for (let i = 0; i < css.length; i++) {
+    const c = css[i];
+    if (c === '/' && css[i + 1] === '*') {
+      const end = css.indexOf('*/', i + 2);
+      if (end < 0) break;
+      i = end + 1;
+      if (css.slice(start, i + 1).trim().startsWith('/*')) start = i + 1;
+    } else if (c === '"' || c === "'") {
+      while (++i < css.length && css[i] !== c && css[i] !== '\n') if (css[i] === '\\') i++;
+    } else if (c === '(') {
+      let depth = 1;
+      while (++i < css.length && depth > 0) if (css[i] === '(') depth++; else if (css[i] === ')') depth--;
+      i--;
+    } else if (c === '{') {
+      const prelude = css.slice(start, i).replace(/\/\*[\s\S]*?\*\//g, '').trim();
+      skipping.push((skipping.length > 0 && skipping[skipping.length - 1]) || DESCRIPTOR_BLOCKS.test(prelude));
+      start = i + 1;
+    } else if (c === ';' || c === '}') {
+      if (skipping.length > 0 && !skipping[skipping.length - 1]) {
+        const text = css.slice(start, i);
+        const m = text.match(/^(\s*(?:\/\*[\s\S]*?\*\/\s*)*)([a-zA-Z][a-zA-Z-]*)\s*:/);
+        if (m) found.push({ property: m[2].toLowerCase(), index: start + m[1].length });
+      }
+      if (c === '}') skipping.pop();
+      start = i + 1;
+    }
+  }
+  return found;
 }

@@ -40,3 +40,35 @@ test('pictures by old-site address or http:// say so, once each', () => {
   ])
 })
 
+
+describe('property names the browser does not know', () => {
+  const KNOWN = new Set(['color', 'background', 'background-color', 'margin', 'padding', 'border', 'font-size', 'filter', 'content', 'font-family'])
+  const knows = (property: string) => KNOWN.has(property)
+
+  it('says which, on which line, with what was probably meant', () => {
+    const problems = cssProblems('body {\n  background: #A1E3D6;\n  text-color: #008A6C;\n  margin: 0;\n}', knows)
+    expect(problems).toEqual(['Line 3: your browser doesn\'t know "text-color", so that line does nothing. Did you mean "color"?'])
+  })
+
+  it('once per name, inside nesting and @media, and not for selectors', () => {
+    const css = `.a { colour: red; .b:hover { colour: blue } }
+@media (max-width: 600px) { .c { wibble: 1 } }
+.d { &:focus-visible { color: red } }`
+    expect(cssProblems(css, knows)).toEqual([
+      'Line 1: your browser doesn\'t know "colour", so that line does nothing. Did you mean "color"? (1 more like it too.)',
+      'Line 2: your browser doesn\'t know "wibble", so that line does nothing.',
+    ])
+  })
+
+  it('leaves alone custom properties, vendor prefixes, IE hacks, descriptors, strings and comments', () => {
+    const css = `:root { --edge: red; }
+.a { -webkit-text-stroke: 1px; *zoom: 1; _height: 1px; content: "x: y; z"; /* nope: 1 */ filter: progid:DXImageTransform.Microsoft.gradient(a=1); }
+@font-face { font-family: X; src: url(https://example.com/x.woff2); unicode-range: U+0-FF; }
+@property --x { syntax: '<color>'; inherits: false; initial-value: red; }`
+    expect(cssProblems(css, knows)).toEqual([])
+  })
+
+  it('says nothing without a browser to ask', () => {
+    expect(cssProblems('a { text-color: red }')).toEqual([])
+  })
+})
