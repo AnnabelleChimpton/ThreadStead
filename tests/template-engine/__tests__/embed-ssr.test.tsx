@@ -36,7 +36,7 @@ import AdvancedProfileRenderer from '@/components/core/profile/AdvancedProfileRe
 import { compileTemplateToArtifacts } from '@/lib/templates/compilation/compile-pipeline'
 import { pageForRender } from '@/lib/templates/rendering/page-tree-server'
 import { embedFor, EMBED_HOSTS } from '@/lib/templates/embeds'
-import { AppProviders, residentData, OWNER_ID, enterBrowser } from '../ssr-golden-support'
+import { AppProviders, residentData, OWNER_ID, enterBrowser, hydrateNow } from '../ssr-golden-support'
 
 const VISITOR = 'u_visitor'
 
@@ -90,8 +90,7 @@ async function visit(source: string, viewerId: string, inBrowser: (doc: Document
   const leave = enterBrowser(dom)
   const hydrationErrors: unknown[] = []
   try {
-    const { hydrateRoot } = require('react-dom/client') as typeof import('react-dom/client')
-    const root = hydrateRoot(dom.window.document.getElementById('root')!, page(compiled, viewerId), {
+    const root = await hydrateNow(dom.window.document.getElementById('root')!, page(compiled, viewerId), {
       onRecoverableError: (error) => hydrationErrors.push(error),
     })
     await settle()

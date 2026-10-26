@@ -56,6 +56,7 @@ import {
   GOLDEN_DIR,
   OWNER_ID,
   enterBrowser,
+  hydrateNow,
 } from '../ssr-golden-support'
 
 const VIEWERS = [
@@ -114,14 +115,16 @@ async function settle(ms = Number(process.env.SETTLE_MS) || 60) {
 }
 
 /**
- * Settle, then keep waiting while the page still says it's loading (the
- * guestbook and posts fetch after hydration, and the owner's Follow button
- * shows "…" until its status arrives). A fixed wait came up short when the
- * machine was busy. No fixture contains "Loading", and pages without it are
- * compared after the same single settle as before.
+ * Settle, then keep waiting while the page still shows it's loading: the
+ * guestbook and posts fetch after hydration, the owner's Follow button shows
+ * "…" until its status arrives, and badges pulse until theirs do. A fixed
+ * wait came up short when the machine was busy. No golden contains any of
+ * these, so a settled page always stops waiting.
  */
 const stillLoading = (root: Element) =>
-  /Loading/.test(root.textContent || '') || root.querySelector('.follow-button-wrapper')?.textContent === '…'
+  /Loading/.test(root.textContent || '') ||
+  root.querySelector('.follow-button-wrapper')?.textContent === '…' ||
+  root.querySelector('.animate-pulse, [aria-busy="true"]') !== null
 
 async function settleLoaded(root: Element, maxMs = 3000) {
   await settle()
@@ -145,10 +148,7 @@ async function visit(compiledTemplate: unknown, viewerId: string, beforeHydrate?
   const hydrationErrors: unknown[] = []
   try {
     beforeHydrate?.(dom)
-    // Loaded here, with a browser present, as the client bundle would be
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { hydrateRoot } = require('react-dom/client') as typeof import('react-dom/client')
-    const root = hydrateRoot(dom.window.document.getElementById('root')!, page(compiledTemplate, viewerId), {
+    const root = await hydrateNow(dom.window.document.getElementById('root')!, page(compiledTemplate, viewerId), {
       onRecoverableError: (error) => hydrationErrors.push(error),
     })
     const rootEl = dom.window.document.getElementById('root')!

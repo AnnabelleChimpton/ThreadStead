@@ -39,7 +39,7 @@ import { forgetOwnerRings } from '@/lib/templates/owner-rings'
 import { componentRegistry } from '@/lib/templates/core/template-registry'
 import { buildComponentDocs, type ComponentDoc } from '@/lib/templates-docs/component-docs'
 import { PARTS, DRAWS_ALSO } from '@/lib/templates/styling/component-parts'
-import { AppProviders, residentData, OWNER_ID, enterBrowser } from '../ssr-golden-support'
+import { AppProviders, residentData, OWNER_ID, enterBrowser, hydrateNow } from '../ssr-golden-support'
 
 const VISITOR = 'u_visitor'
 const FRIEND = 'u_friend'
@@ -121,9 +121,8 @@ async function classesDrawn(source: string, viewerId: string | null): Promise<Se
     }
   }
   try {
-    const { hydrateRoot } = require('react-dom/client') as typeof import('react-dom/client')
     const root = dom.window.document.getElementById('root')!
-    const app = hydrateRoot(root, page, { onRecoverableError: () => {} })
+    const app = await hydrateNow(root, page, { onRecoverableError: () => {} })
     await settle()
     collect(root)
     // Open what opens (RevealBox, MutualFriends), and press Play (Embed)

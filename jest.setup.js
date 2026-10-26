@@ -1,5 +1,14 @@
 // Jest setup file - minimal setup for template testing
 import '@testing-library/jest-dom'
+// From the DOM library, not @testing-library/react: importing that here would
+// switch React's act environment on for the node-environment page tests too
+import { configure } from '@testing-library/dom'
+
+// findBy*/waitFor give up after 4 s, not 1: on a busy full run (the whole
+// suite in parallel, a dev server compiling) a mocked save took longer than
+// 1 s to show its message. A wait ends as soon as its check passes, so
+// passing tests are no slower.
+configure({ asyncUtilTimeout: 4000 })
 
 // Mock Next.js router
 jest.mock('next/router', () => ({

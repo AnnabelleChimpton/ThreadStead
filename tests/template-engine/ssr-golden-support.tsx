@@ -14,7 +14,8 @@ import { TEMPLATE_EXAMPLES } from './fixtures/old-starters/examples'
 import { HTML_TEMPLATES } from './fixtures/old-starters/html-templates'
 import { STARTERS, splitStarter } from '@/lib/templates/starters'
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider'
-import React from 'react'
+import React, { act } from 'react'
+import type { HydrationOptions, Root } from 'react-dom/client'
 import type { JSDOM } from 'jsdom'
 import { GlobalAudioProvider } from '@/contexts/GlobalAudioContext'
 import { ToastProvider } from '@/contexts/ToastContext'
@@ -182,4 +183,30 @@ export function enterBrowser(dom: JSDOM): () => void {
       else delete g[name]
     }
   }
+}
+
+/**
+ * hydrateRoot inside React's act: when it returns, every render and effect
+ * hydration scheduled has run. A fixed wait after hydrateRoot sometimes ended
+ * before hydration did on a busy full test run (dates still as the server
+ * wrote them, badges still pulsing), and React work left over once a test
+ * took its browser away crashed the run ("window is not defined").
+ * Call it inside enterBrowser, like hydrateRoot.
+ */
+export async function hydrateNow(container: Element, element: React.ReactNode, options?: HydrationOptions): Promise<Root> {
+  // Loaded here, with a browser present, as the client bundle would be
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { hydrateRoot } = require('react-dom/client') as typeof import('react-dom/client')
+  const g = globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
+  const was = g.IS_REACT_ACT_ENVIRONMENT
+  g.IS_REACT_ACT_ENVIRONMENT = true
+  let root!: Root
+  try {
+    await act(async () => {
+      root = hydrateRoot(container, element, options)
+    })
+  } finally {
+    g.IS_REACT_ACT_ENVIRONMENT = was
+  }
+  return root
 }

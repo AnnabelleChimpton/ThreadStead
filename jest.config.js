@@ -35,6 +35,8 @@ const transformEsmPackages = [`node_modules/(?!(${ESM_PACKAGES})/)`]
 const unit = {
   displayName: 'unit',
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+  // Room for jest.setup.js's 4 s async waits inside one test
+  testTimeout: 15000,
   testEnvironment: 'jsdom',
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',

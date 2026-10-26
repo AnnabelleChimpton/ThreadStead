@@ -40,7 +40,7 @@ import { compileTemplateToArtifacts } from '@/lib/templates/compilation/compile-
 import { pageForRender } from '@/lib/templates/rendering/page-tree-server'
 import { forgetOwnerRings } from '@/lib/templates/owner-rings'
 import { pageUsesAny, PAGE_HOME_COMPONENTS, type PageHome } from '@/lib/templates/page-home'
-import { AppProviders, residentData, OWNER_ID, enterBrowser } from '../ssr-golden-support'
+import { AppProviders, residentData, OWNER_ID, enterBrowser, hydrateNow } from '../ssr-golden-support'
 
 const VISITOR = 'u_visitor'
 
@@ -126,9 +126,8 @@ async function visit(
   let text = ''
   let after = ''
   try {
-    const { hydrateRoot } = require('react-dom/client') as typeof import('react-dom/client')
     root = dom.window.document.getElementById('root')!
-    const app = hydrateRoot(root, page(compiled, data), {
+    const app = await hydrateNow(root, page(compiled, data), {
       onRecoverableError: (error) => hydrationErrors.push(error),
     })
     await settle()
