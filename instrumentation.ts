@@ -27,5 +27,9 @@ export async function register() {
     // Deleting the accounts of residents who left, once their 14 days are up (production only)
     const { startLeaveScheduler } = await import('./lib/domain/users/leave-scheduler');
     startLeaveScheduler();
+
+    // Forgetting stored IP addresses once they've done their job (production only)
+    const { startIpRetention } = await import('./lib/privacy/ip-retention');
+    startIpRetention();
   }
 }
