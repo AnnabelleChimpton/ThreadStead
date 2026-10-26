@@ -6,7 +6,8 @@ import { createFollowNotification, createFriendNotification, checkForMutualFollo
 import { SITE_NAME } from "@/lib/config/site/constants";
 
 export default apiHandler(
-  { methods: ["POST", "DELETE"], auth: "user" },
+  // Following had no limit at all (subdomain-actions review)
+  { methods: ["POST", "DELETE"], auth: "user", rateLimit: "follows" },
   async (req, res, { user: viewer }) => {
     const username = String(req.query.username || "");
     const handle = await db.handle.findFirst({

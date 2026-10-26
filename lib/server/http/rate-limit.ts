@@ -34,7 +34,10 @@ export type RateLimitCategory =
   | "profile_metadata" // Bio, avatar, display name, settings
   | "profile_toggles" // Enable/disable operations
   | "threadring_operations"
-  | "guestbook"
+  | "guestbook" // Signing guestbooks, per person
+  | "guestbook_pair" // One person signing one guestbook, per day
+  | "guestbook_target" // One guestbook being signed, by anyone, per day
+  | "follows" // Following and unfollowing
   | "polls" // Poll voting
   | "search" // External (paid) web search
   | "password_checks" // Current-password checks before a password change
@@ -80,6 +83,10 @@ export const RATE_LIMIT_CONFIGS: Record<RateLimitCategory, RateLimitConfig> = {
   profile_toggles: { limit: 50 * DEV_MULTIPLIER, windowMs: 60 * 60 * 1000 }, // 50 per hour (500 in dev)
   threadring_operations: { limit: 200 * DEV_MULTIPLIER, windowMs: 60 * 60 * 1000 }, // 200 per hour (2000 in dev)
   guestbook: { limit: 50 * DEV_MULTIPLIER, windowMs: 60 * 60 * 1000 }, // 50 per hour (500 in dev)
+  // A few notes to one friend a day; a ceiling one spammer can't reach under that cap
+  guestbook_pair: { limit: 5 * DEV_MULTIPLIER, windowMs: 24 * 60 * 60 * 1000 }, // 5 per day (50 in dev)
+  guestbook_target: { limit: 200 * DEV_MULTIPLIER, windowMs: 24 * 60 * 60 * 1000 }, // 200 per day (2000 in dev)
+  follows: { limit: 60 * DEV_MULTIPLIER, windowMs: 60 * 60 * 1000 }, // 60 per hour (600 in dev)
   polls: { limit: 30 * DEV_MULTIPLIER, windowMs: 60 * 1000 }, // 30 per minute (300 in dev)
   search: { limit: 20 * DEV_MULTIPLIER, windowMs: 60 * 1000 }, // 20 per minute (200 in dev)
   password_checks: { limit: 5 * DEV_MULTIPLIER, windowMs: 15 * 60 * 1000 }, // 5 per 15 minutes (50 in dev)

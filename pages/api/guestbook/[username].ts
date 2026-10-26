@@ -6,13 +6,18 @@ import { AccountHiddenError } from "@/lib/domain/users/moderation";
 import { createGuestbookNotification } from "@/lib/domain/notifications";
 import { SITE_NAME } from "@/lib/config/site/constants";
 import { residentAccess, sendPrivateProfile } from "@/lib/domain/users/profile-access";
+import { limitIdentifier, rateLimitCheck } from "@/lib/server/http/rate-limit";
 
 
 export default apiHandler(
   // GET follows the profile's visibility; POST is gated by the
   // write:guestbook capability below, not by the session.
-  { methods: ["GET", "POST"], auth: "optional", rateLimit: "guestbook" },
+  // Rate limits are by method (below): reading counted against signing,
+  // so readers sharing an IP (everyone on a resident's own address is
+  // signed out) ran out of reads.
+  { methods: ["GET", "POST"], auth: "optional" },
   async (req, res, { user: viewer }) => {
+    if (!(await rateLimitCheck(req, res, req.method === "GET" ? "reads" : "guestbook", viewer?.id))) return;
     const username = String(req.query.username || "");
     if (!username) return res.status(400).json({ error: "username required" });
 
@@ -88,6 +93,13 @@ export default apiHandler(
     // Nobody signs a guestbook they can't see, or across a block
     const access = await residentAccess({ id: ok.sub }, ownerHandle.user.id);
     if (!access.visible) return sendPrivateProfile(res, access.visibility);
+
+    // A few notes to one guestbook a day each, and a ceiling for the
+    // guestbook that one person can't reach under that cap
+    if (!(await limitIdentifier(res, `${ok.sub}:${ownerHandle.user.id}`, "guestbook_pair",
+      () => `You've signed ${ownerHandle.handle}'s guestbook a few times today. Try again tomorrow.`))) return;
+    if (!(await limitIdentifier(res, ownerHandle.user.id, "guestbook_target",
+      () => `${ownerHandle.handle}'s guestbook has had lots of notes today. Try again tomorrow.`))) return;
 
     const entry = await db.guestbookEntry.create({
       data: {

@@ -10,6 +10,7 @@ import { useSiteConfig, SiteConfig } from "@/hooks/useSiteConfig";
 import { useNavPages } from "@/hooks/useNavPages";
 import { useMe } from "@/hooks/useMe";
 import { PixelIcon } from "@/components/ui/PixelIcon";
+import { mainSiteProfileUrl, useResidentHost, type ResidentHost } from "@/contexts/ResidentHostContext";
 import ButtonLink from "@/components/ui/ButtonLink";
 import HeaderSearch from "@/components/features/search/HeaderSearch";
 import {
@@ -24,9 +25,27 @@ import {
   pathStartsWith,
 } from "./siteNav";
 
+/**
+ * On a resident's own address (alice.homepageagain.com) nobody is signed in:
+ * that address never sees a session, so asking would always say "signed
+ * out" and the nav told signed-in residents they were in visitor mode. It
+ * offers the page on the main site instead, where their account is.
+ */
+function ResidentHostAccount({ host, siteName }: { host: ResidentHost; siteName: string }) {
+  return (
+    <a href={mainSiteProfileUrl(host)} className="nav-link whitespace-nowrap text-sm">
+      Open on {siteName}
+    </a>
+  );
+}
+
 // Mobile-specific login status component
 function MobileLoginStatus({ onAccountClick }: { onAccountClick: () => void }) {
   const { me, isLoading } = useMe();
+  const residentHost = useResidentHost();
+  const { config } = useSiteConfig();
+
+  if (residentHost) return <ResidentHostAccount host={residentHost} siteName={config.site_name} />;
 
   if (isLoading) {
     // Hold the space until /api/auth/me answers, so signed-in users never see "visitor mode"
@@ -353,6 +372,7 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
   const config = siteConfig || hookConfig;
   const { me, meLoading, isClient, sections, topLevelPages, currentPath, currentFull, isCurrent, searchActive, writeActive } = useSiteNav();
   const onResidentPage = useRouter().pathname.startsWith('/resident/[username]');
+  const residentHost = useResidentHost();
 
   // State to track which dropdown is open (only one at a time)
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
@@ -489,7 +509,9 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
             </div>
             <div className="site-nav-actions flex items-center gap-2 xl:gap-3">
               {searchSlot}
-              {!isClient || meLoading ? (
+              {residentHost ? (
+                <ResidentHostAccount host={residentHost} siteName={config.site_name} />
+              ) : !isClient || meLoading ? (
                 // Placeholder keeps layout stable until we know the auth state
                 <div className="w-24 h-8" aria-hidden="true" />
               ) : me?.loggedIn ? (
