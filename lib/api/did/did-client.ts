@@ -289,7 +289,8 @@ export async function recoverFromSeedPhrase(mnemonic: string, username?: string)
   
   if (!loginRes.ok) {
     const errorData = await loginRes.json();
-    if (errorData?.error === "Beta key required for account creation") {
+    // Words that match no account: verify won't make one (no agreement, or no beta key)
+    if (errorData?.code === "agreement_required" || errorData?.error === "Beta key required for account creation") {
       throw new Error("This seed phrase doesn't match any existing account. You can only recover accounts that were previously created with this seed phrase.");
     }
     throw new Error(errorData?.error || `Login failed: ${loginRes.status}`);
@@ -348,7 +349,8 @@ export async function createNewIdentityWithUsername(username: string, betaKey?: 
 }
 
 // Enhanced version that also creates a seed phrase
-export async function createNewIdentityWithSeedPhrase(username: string, betaKey?: string): Promise<{ mnemonic: string }> {
+/** `agreedToTerms`: the resident ticked the house rules, terms and privacy policy; verify makes no account without it */
+export async function createNewIdentityWithSeedPhrase(username: string, betaKey: string | undefined, agreedToTerms: boolean): Promise<{ mnemonic: string }> {
   // Generate seed phrase first
   const mnemonic = await generateSeedPhrase();
   
@@ -384,7 +386,8 @@ export async function createNewIdentityWithSeedPhrase(username: string, betaKey?
       did: kp.did, 
       publicKey: kp.publicKey, 
       signature: sig,
-      betaKey 
+      betaKey,
+      agreedToTerms
     }),
   });
   
@@ -413,10 +416,12 @@ export async function createNewIdentityWithSeedPhrase(username: string, betaKey?
 /**
  * Create a new identity with password-based authentication
  */
+/** `agreedToTerms`: the resident ticked the house rules, terms and privacy policy; verify makes no account without it */
 export async function createNewIdentityWithPassword(
   username: string, 
   password: string, 
-  betaKey?: string
+  betaKey: string | undefined,
+  agreedToTerms: boolean
 ): Promise<{ mnemonic: string }> {
   // Import encryption functions
   const { encryptSeedPhraseWithPassword } = await import('../../auth/password');
@@ -450,7 +455,8 @@ export async function createNewIdentityWithPassword(
       publicKey: kp.publicKey, 
       signature: sig,
       betaKey,
-      authMethod: 'password'
+      authMethod: 'password',
+      agreedToTerms
     }),
   });
   

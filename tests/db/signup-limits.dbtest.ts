@@ -82,6 +82,8 @@ async function signIn(key: Key, ip: string, betaKey?: string, ua?: string) {
       publicKey: toBase64Url(key.publicKey),
       signature: toBase64Url(crypto.sign(null, Buffer.from(nonce), key.privateKey)),
       betaKey,
+      // Signup ticks the rules before the account exists; a sign-in ignores it
+      agreedToTerms: true,
     },
   })
 }

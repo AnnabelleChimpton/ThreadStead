@@ -107,6 +107,7 @@ const COPY = {
   agreeLabel: 'I agree to the community guidelines, terms of service and privacy policy',
   rulesShort: 'House rules, short version:',
   agreeFirst: 'Check the box first, then you can keep going.',
+  agreeFailed: 'That didn\'t go through. Try again in a moment.',
   continue: 'Continue',
 
   profileHeading: 'Set up your profile',
@@ -405,11 +406,11 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
     setIsLoading(true);
     try {
       if (selectedAuthMethod === 'password') {
-        await createNewIdentityWithPassword(name, password, betaKey || undefined);
+        await createNewIdentityWithPassword(name, password, betaKey || undefined, agreedToGuidelines);
         setAccountCreated(true);
         setCurrentStep('email');
       } else {
-        const result = await createNewIdentityWithSeedPhrase(name, betaKey || undefined);
+        const result = await createNewIdentityWithSeedPhrase(name, betaKey || undefined, agreedToGuidelines);
         setGeneratedSeedPhrase(result.mnemonic);
         setAccountCreated(true);
         setCurrentStep('seed-phrase');
@@ -437,14 +438,26 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
     setCurrentStep('email');
   }
 
-  function handleGuidelinesAgreement() {
+  // Only a signup resumed from before the rules moved onto the account form
+  // gets here: its account exists, so the agreement is recorded now
+  async function handleGuidelinesAgreement() {
+    if (isLoading) return;
     if (!agreedToGuidelines) {
       setError(COPY.agreeFirst);
       agreeRef.current?.focus();
       return;
     }
+    setIsLoading(true);
     setError(null);
-    setCurrentStep('profile');
+    try {
+      const res = await csrfFetch('/api/account/agree-to-terms', { method: 'POST' });
+      if (!res.ok) throw new Error();
+      setCurrentStep('profile');
+    } catch {
+      setError(COPY.agreeFailed);
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   // Everyone agrees on the account form now; a signup resumed from before

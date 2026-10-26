@@ -11,6 +11,7 @@ import { getClientIp } from "@/lib/server/http/client-ip";
 import { recordSignup, SignupLimitError } from "@/lib/domain/users/signup-limits";
 import { isRestricted, restrictionMessage } from "@/lib/domain/users/moderation";
 import { sameOriginProtection } from "@/lib/server/http/same-origin";
+import { AGREEMENT_REQUIRED, recordTermsAgreement } from "@/lib/domain/users/terms-agreement";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   // cookie-authed and not on apiHandler: refuse cross-origin posts here
@@ -20,8 +21,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // Every sign-in and signup lands here; cap attempts per IP
   if (!(await rateLimitCheck(req, res, "auth"))) return;
 
-  const { did, publicKey, signature, betaKey, authMethod } = (req.body || {}) as {
+  const { did, publicKey, signature, betaKey, authMethod, agreedToTerms } = (req.body || {}) as {
     did?: string; publicKey?: string; signature?: string; betaKey?: string; authMethod?: string;
+    /** A new account only: the resident ticked the house rules, terms and privacy policy */
+    agreedToTerms?: boolean;
   };
   if (!did || !publicKey || !signature) return res.status(400).json({ error: "bad body" });
 
@@ -71,6 +74,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
   // If creating a new user, check beta key requirements
   else if (!user) {
+    // No account without agreement (signup asks on the account form). This
+    // is also what someone recovering with words that match no account
+    // hears, instead of quietly getting a new empty one.
+    if (agreedToTerms !== true) {
+      return res.status(400).json({
+        error: "Agree to the house rules, terms and privacy policy first.",
+        code: AGREEMENT_REQUIRED,
+      });
+    }
+
     // Per-IP signup caps; sign-ins above don't count against them
     if (!(await signupLimitCheck(req, res))) return;
 
@@ -116,6 +129,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             });
           }
         }
+
+        // What they agreed to, with the account or not at all
+        await recordTermsAgreement(newUser.id, tx);
 
         // Counts against this IP's signup caps; over one, the User rolls back
         await recordSignup(tx, {

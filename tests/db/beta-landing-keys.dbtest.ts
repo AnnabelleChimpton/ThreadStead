@@ -97,6 +97,7 @@ async function signUp(betaKey: string, ip: string) {
       publicKey: toBase64Url(publicKey),
       signature: toBase64Url(signature),
       betaKey,
+      agreedToTerms: true,
     },
   })
   const cookie = ((res.headers['set-cookie'] ?? []) as string[]).map((c) => c.split(';')[0]).join('; ')

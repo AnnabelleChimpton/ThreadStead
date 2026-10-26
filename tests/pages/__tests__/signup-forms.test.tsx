@@ -32,6 +32,7 @@ jest.mock('@/hooks/useCurrentUser', () => ({
 }));
 
 import { createNewIdentityWithPassword, createNewIdentityWithSeedPhrase } from '@/lib/api/did/did-client';
+import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import { fetchAuthMe, refreshAuthMe } from '@/hooks/useCurrentUser';
 import SignupPage from '@/pages/signup';
 
@@ -76,7 +77,7 @@ test('Return on the account form makes the account and focuses the email step he
   await user.click(screen.getByRole('checkbox', { name: /I agree/ }));
   await user.type(screen.getByLabelText('Password again'), 'Lawnchair42{Enter}');
 
-  await waitFor(() => expect(createNewIdentityWithPassword).toHaveBeenCalledWith('newbie', 'Lawnchair42', undefined));
+  await waitFor(() => expect(createNewIdentityWithPassword).toHaveBeenCalledWith('newbie', 'Lawnchair42', undefined, true));
   const heading = await screen.findByRole('heading', { name: 'Add an email?' });
   // The header stops saying "Sign In" now the account exists (signup audit #9)
   expect(refreshAuthMe).toHaveBeenCalled();
@@ -140,7 +141,7 @@ test('the 12 words sit behind "Other ways to sign in", and copying them says so'
 
   await user.click(screen.getByRole('checkbox', { name: /I agree/ }));
   await user.type(screen.getByLabelText('Username'), '{Enter}');
-  await waitFor(() => expect(createNewIdentityWithSeedPhrase).toHaveBeenCalledWith('keeper', undefined));
+  await waitFor(() => expect(createNewIdentityWithSeedPhrase).toHaveBeenCalledWith('keeper', undefined, true));
   const heading = await screen.findByRole('heading', { name: 'Write these down' });
   await waitFor(() => expect(heading).toHaveFocus());
 
@@ -174,10 +175,13 @@ describe('after the account exists', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('Check the box first');
     expect(screen.getByRole('checkbox')).toHaveFocus();
 
+    (csrfFetch as jest.Mock).mockResolvedValueOnce({ ok: true, json: async () => ({ agreed: true }) });
     await user.click(screen.getByRole('checkbox'));
     await user.keyboard('{Enter}');
     const profile = await screen.findByRole('heading', { name: 'Set up your profile' });
     await waitFor(() => expect(profile).toHaveFocus());
+    // Its account was made before signup asked first: the agreement is recorded now
+    expect(csrfFetch).toHaveBeenCalledWith('/api/account/agree-to-terms', { method: 'POST' });
   });
 
   test('the photo picker is a real file input you can Tab to', async () => {

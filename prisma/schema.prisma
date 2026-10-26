@@ -83,6 +83,7 @@ model User {
   signupAttempts            SignupAttempt[]           @relation("SignupAttempts")
   consents                  UserConsent[]             @relation("UserConsents")
   consentLogs               ConsentLog[]              @relation("ConsentLogs")
+  termsAgreements           TermsAgreement[]
   templateRevisions         ProfileTemplateRevision[] @relation("ProfileTemplateRevisions")
   pageUpdates               PageUpdate[]
   userCollections           UserCollection[]          @relation("UserCollections")
@@ -1414,6 +1415,22 @@ model IndexRun {
   error       String?
 
   @@index([startedAt(sort: Desc)])
+}
+
+/// A resident agreeing to the house rules, terms and privacy policy: at
+/// signup, before the account exists (pages/api/auth/verify.ts), or later
+/// for an account made before that (lib/domain/users/terms-agreement.ts).
+/// Not a cookie choice, so not in UserConsent. No IP address.
+model TermsAgreement {
+  id       String   @id @default(cuid())
+  userId   String
+  agreedAt DateTime @default(now())
+  /// Which texts: when the ones in Admin last changed ("policies 2026-10-20T14:03Z"), or "built-in"
+  version  String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, agreedAt])
 }
 
 model ConsentLog {
