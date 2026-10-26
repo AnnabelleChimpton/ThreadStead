@@ -13,7 +13,6 @@ body {
 }
 
 .profile-template-root {
-  background: var(--color-sky) url('/assets/stars-bg.gif');
   color: var(--color-text);
   font-family: var(--font-text);
   font-size: 1.1rem;

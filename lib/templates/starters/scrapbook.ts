@@ -10,16 +10,15 @@ export const SCRAPBOOK = `<meta name="color:Paper" content="#fdf3d9">
 <style>
 /* Graph paper: two faint grids of lines over cream */
 body {
-  background: var(--color-paper);
-  margin: 0;
-}
-
-.profile-template-root {
   background-color: var(--color-paper);
   background-image:
     linear-gradient(rgba(178, 67, 47, 0.08) 1px, transparent 1px),
     linear-gradient(90deg, rgba(178, 67, 47, 0.08) 1px, transparent 1px);
   background-size: 24px 24px;
+  margin: 0;
+}
+
+.profile-template-root {
   color: var(--color-ink);
   font-family: var(--font-text);
   line-height: 1.6;

@@ -14,7 +14,6 @@ body {
 }
 
 .profile-template-root {
-  background: var(--color-paper);
   color: var(--color-ink);
   font-family: var(--font-text);
   line-height: 1.7;
