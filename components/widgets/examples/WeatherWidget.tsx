@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { WidgetProps, WidgetConfig } from '../types/widget';
-import { PixelIcon, PixelIconName } from '@/components/ui/PixelIcon';
+import { PixelIcon } from '@/components/ui/PixelIcon';
+import Button from '@/components/ui/Button';
+import type { Weather, WeatherPlace } from '@/lib/weather/open-meteo';
 
 const weatherConfig: WidgetConfig = {
   id: 'weather',
   title: 'Weather',
-  description: 'Local weather conditions',
+  description: 'The weather in a town you pick',
   category: 'utility',
   size: 'small',
   requiresAuth: false,
@@ -13,23 +15,35 @@ const weatherConfig: WidgetConfig = {
   refreshInterval: 1800000 // 30 minutes
 };
 
-interface WeatherData {
-  location: string;
-  temperature: number;
-  condition: string;
-  icon: PixelIconName;
-  high: number;
-  low: number;
-  humidity: number;
-  windSpeed: number;
-  countryCode?: string; // ISO country code for unit detection
-  forecast: {
-    day: string;
-    high: number;
-    low: number;
-    condition: string;
-    icon: PixelIconName;
-  }[];
+/** The card's town, kept in this browser only (lib/weather/open-meteo.ts) */
+const PLACE_STORAGE = 'ts-weather-place-v1';
+
+function savedPlace(): WeatherPlace | null {
+  try {
+    const stored = JSON.parse(localStorage.getItem(PLACE_STORAGE) ?? 'null');
+    return stored && typeof stored.latitude === 'number' && typeof stored.longitude === 'number' ? stored : null;
+  } catch {
+    return null;
+  }
+}
+
+function savePlace(place: WeatherPlace | null) {
+  try {
+    if (place) localStorage.setItem(PLACE_STORAGE, JSON.stringify(place));
+    else localStorage.removeItem(PLACE_STORAGE);
+  } catch {
+    // Private window: the card asks again next time
+  }
+}
+
+type WeatherCardData = { place: null } | { place: WeatherPlace; weather: Weather };
+
+/** The weather for a typed town, or why not */
+async function weatherFor(query: string): Promise<{ place: WeatherPlace; weather: Weather }> {
+  const res = await fetch(`/api/weather?place=${encodeURIComponent(query)}`);
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.error || "Couldn't get the weather just now.");
+  return body;
 }
 
 // Helper function to determine if a country uses metric system
@@ -44,29 +58,59 @@ const shouldUseMetric = (countryCode?: string): boolean => {
   return !imperialCountries.includes(countryCode.toUpperCase());
 };
 
-// Mock weather data for demo
-const mockWeatherData: WeatherData = {
-  location: 'Threadstead',
-  temperature: 72,
-  condition: 'Partly Cloudy',
-  icon: 'cloud',
-  high: 78,
-  low: 65,
-  humidity: 45,
-  windSpeed: 8,
-  forecast: [
-    { day: 'Tomorrow', high: 75, low: 62, condition: 'Sunny', icon: 'sun' },
-    { day: 'Thursday', high: 73, low: 60, condition: 'Rainy', icon: 'drop' },
-    { day: 'Friday', high: 76, low: 64, condition: 'Cloudy', icon: 'cloud' }
-  ]
-};
+/** Asks for a town: nothing guesses where a visitor is */
+function PlaceForm({ onPlace, onCancel }: { onPlace: () => void; onCancel?: () => void }) {
+  const [query, setQuery] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+  const inputId = React.useId();
 
-function WeatherWidget({ data, isLoading, error }: WidgetProps & { data?: WeatherData }) {
-  // Use mock data if no real data provided
-  const weatherData = data || mockWeatherData;
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!query.trim()) return;
+    setBusy(true);
+    setProblem(null);
+    try {
+      const { place } = await weatherFor(query);
+      savePlace(place);
+      onPlace();
+    } catch (error) {
+      setProblem(error instanceof Error ? error.message : "Couldn't get the weather just now.");
+    } finally {
+      setBusy(false);
+    }
+  };
 
-  // Determine default unit based on country code (smart default)
-  const [useMetric, setUseMetric] = useState(shouldUseMetric(weatherData.countryCode));
+  return (
+    <form onSubmit={submit} className="space-y-2">
+      <label htmlFor={inputId} className="block text-sm text-nb-ink">Weather for which town?</label>
+      <div className="flex gap-2">
+        <input
+          id={inputId}
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Portland"
+          autoComplete="address-level2"
+          maxLength={80}
+          className="min-w-0 flex-1 px-2 py-1 text-sm border border-nb-ink-mid/40 rounded bg-white"
+        />
+        <Button type="submit" size="sm" disabled={busy || !query.trim()}>{busy ? 'Looking…' : 'Show'}</Button>
+      </div>
+      {problem && <p className="m-0 text-xs text-nb-rose-ink" role="status">{problem}</p>}
+      <p className="m-0 text-xs text-nb-ink-mid">
+        Only this browser remembers it.
+        {onCancel && <> <button type="button" className="ts-bare underline" onClick={onCancel}>Keep the old one</button></>}
+      </p>
+    </form>
+  );
+}
+
+function WeatherWidget({ data, isLoading, error, onRefresh }: WidgetProps & { data?: WeatherCardData }) {
+  const [changing, setChanging] = useState(false);
+  const place = data?.place ?? null;
+  // °F or °C from the town's country, until the visitor flips it
+  const [useMetric, setUseMetric] = useState(shouldUseMetric(place?.countryCode));
+  useEffect(() => setUseMetric(shouldUseMetric(place?.countryCode)), [place?.countryCode]);
 
   const convertTemp = (fahrenheit: number) => {
     if (!useMetric) return `${fahrenheit}°F`;
@@ -76,6 +120,11 @@ function WeatherWidget({ data, isLoading, error }: WidgetProps & { data?: Weathe
   const convertSpeed = (mph: number) => {
     if (!useMetric) return `${mph} mph`;
     return `${Math.round(mph * 1.60934)} km/h`;
+  };
+
+  const picked = () => {
+    setChanging(false);
+    onRefresh?.();
   };
 
   if (isLoading && !data) {
@@ -96,20 +145,31 @@ function WeatherWidget({ data, isLoading, error }: WidgetProps & { data?: Weathe
   if (error) {
     return (
       <div className="text-center py-4 text-nb-ink-mid">
-        <p className="text-sm">Unable to load weather</p>
+        <p className="text-sm">Couldn&apos;t get the weather just now.</p>
       </div>
     );
   }
+
+  if (!data || !('weather' in data) || changing) {
+    return <PlaceForm onPlace={picked} onCancel={changing ? () => setChanging(false) : undefined} />;
+  }
+
+  const weatherData = { ...data.weather, location: data.place.name };
 
   return (
     <div className="space-y-2.5 sm:space-y-3">
       {/* Current Weather */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <p className="text-sm font-medium text-nb-ink-mid">{weatherData.location}</p>
+          <p className="text-sm font-medium text-nb-ink-mid m-0">
+            {weatherData.location}{' '}
+            <button type="button" className="ts-bare text-xs underline" onClick={() => setChanging(true)}>Change</button>
+          </p>
           <button
+            type="button"
             onClick={() => setUseMetric(!useMetric)}
             className="ts-icon-button text-xs"
+            aria-label={useMetric ? 'Show °F' : 'Show °C'}
           >
             {useMetric ? '°F' : '°C'}
           </button>
@@ -167,149 +227,16 @@ function WeatherWidget({ data, isLoading, error }: WidgetProps & { data?: Weathe
   );
 }
 
-// Weather code to condition mapping for Open-Meteo
-const getWeatherCondition = (weatherCode: number, isDay: boolean): { condition: string; icon: PixelIconName } => {
-  const conditions: Record<number, { condition: string; icon: PixelIconName }> = {
-    0: { condition: 'Clear', icon: isDay ? 'sun' : 'cloud-moon' },
-    1: { condition: 'Mostly Clear', icon: isDay ? 'cloud' : 'cloud-moon' },
-    2: { condition: 'Partly Cloudy', icon: isDay ? 'cloud' : 'cloud' },
-    3: { condition: 'Overcast', icon: 'cloud' },
-    45: { condition: 'Foggy', icon: 'cloud' },
-    48: { condition: 'Foggy', icon: 'cloud' },
-    51: { condition: 'Light Drizzle', icon: 'cloud' },
-    53: { condition: 'Drizzle', icon: 'cloud' },
-    55: { condition: 'Heavy Drizzle', icon: 'drop' },
-    61: { condition: 'Light Rain', icon: 'cloud' },
-    63: { condition: 'Rain', icon: 'drop' },
-    65: { condition: 'Heavy Rain', icon: 'drop' },
-    71: { condition: 'Light Snow', icon: 'cloud' },
-    73: { condition: 'Snow', icon: 'cloud' },
-    75: { condition: 'Heavy Snow', icon: 'cloud' },
-    80: { condition: 'Rain Showers', icon: 'cloud' },
-    81: { condition: 'Rain Showers', icon: 'drop' },
-    82: { condition: 'Heavy Rain Showers', icon: 'drop' },
-    95: { condition: 'Thunderstorm', icon: 'zap' },
-    96: { condition: 'Thunderstorm', icon: 'zap' },
-    99: { condition: 'Severe Thunderstorm', icon: 'zap' }
-  };
-
-  return conditions[weatherCode] || { condition: 'Unknown', icon: 'sun' };
-};
-
 export const weatherWidget = {
   config: weatherConfig,
   component: WeatherWidget as React.ComponentType<WidgetProps & { data?: any }>,
-  fetchData: async (user?: any) => {
-    try {
-      let latitude = user?.latitude;
-      let longitude = user?.longitude;
-      let locationName = user?.location;
-      let countryCode: string | undefined;
-
-      // If no user location data, try IP geolocation
-      if (!latitude || !longitude) {
-        try {
-          // Using ipapi.co - free service with generous limits
-          const geoResponse = await fetch('https://ipapi.co/json/');
-          if (geoResponse.ok) {
-            const geoData = await geoResponse.json();
-            latitude = geoData.latitude;
-            longitude = geoData.longitude;
-            countryCode = geoData.country_code; // ISO 2-letter country code
-            locationName = geoData.city && geoData.region
-              ? `${geoData.city}, ${geoData.region}`
-              : geoData.city || geoData.region || 'Your Location';
-          }
-        } catch (geoError) {
-          console.warn('IP geolocation failed:', geoError);
-        }
-      }
-
-      // Final fallback to New York if geolocation fails
-      if (!latitude || !longitude) {
-        latitude = 40.7128;
-        longitude = -74.0060;
-        locationName = 'New York';
-        countryCode = 'US'; // Default to US for New York fallback
-      }
-
-      // Fetch current weather and 3-day forecast from Open-Meteo
-      const response = await fetch(
-        `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=4`
-      );
-
-      if (!response.ok) {
-        throw new Error('Weather API request failed');
-      }
-
-      const data = await response.json();
-
-      // Process current weather
-      const current = data.current;
-      const currentCondition = getWeatherCondition(current.weather_code, current.is_day);
-
-      // Process daily forecast
-      const daily = data.daily;
-      const forecast = [];
-
-      // Skip today (index 0) and get next 3 days
-      for (let i = 1; i <= 3; i++) {
-        const date = new Date(daily.time[i]);
-        const dayName = i === 1 ? 'Tomorrow' :
-          date.toLocaleDateString('en-US', { weekday: 'long' });
-
-        const condition = getWeatherCondition(daily.weather_code[i], true); // Use day version for forecast
-
-        forecast.push({
-          day: dayName,
-          high: Math.round(daily.temperature_2m_max[i] * 9 / 5 + 32), // Convert C to F
-          low: Math.round(daily.temperature_2m_min[i] * 9 / 5 + 32), // Convert C to F
-          condition: condition.condition,
-          icon: condition.icon
-        });
-      }
-
-      return {
-        location: locationName,
-        temperature: Math.round(current.temperature_2m * 9 / 5 + 32), // Convert C to F
-        condition: currentCondition.condition,
-        icon: currentCondition.icon,
-        high: Math.round(daily.temperature_2m_max[0] * 9 / 5 + 32), // Today's high
-        low: Math.round(daily.temperature_2m_min[0] * 9 / 5 + 32), // Today's low
-        humidity: Math.round(current.relative_humidity_2m),
-        windSpeed: Math.round(current.wind_speed_10m * 0.621371), // Convert km/h to mph
-        countryCode, // Include country code for unit detection
-        forecast
-      };
-
-    } catch (error) {
-      console.error('Error fetching weather data:', error);
-
-      // Fallback to mock data if API fails
-      const conditions: { condition: string; icon: PixelIconName }[] = [
-        { condition: 'Partly Cloudy', icon: 'cloud' },
-        { condition: 'Sunny', icon: 'sun' },
-        { condition: 'Cloudy', icon: 'cloud' }
-      ];
-
-      const randomCondition = conditions[Math.floor(Math.random() * conditions.length)];
-      const baseTemp = 65 + Math.floor(Math.random() * 20);
-
-      return {
-        location: user?.location || 'Threadstead',
-        temperature: baseTemp,
-        condition: randomCondition.condition,
-        icon: randomCondition.icon,
-        high: baseTemp + 8,
-        low: baseTemp - 12,
-        humidity: 45,
-        windSpeed: 7,
-        forecast: [
-          { day: 'Tomorrow', high: baseTemp + 2, low: baseTemp - 10, ...randomCondition },
-          { day: 'Thursday', high: baseTemp - 1, low: baseTemp - 13, ...randomCondition },
-          { day: 'Friday', high: baseTemp + 4, low: baseTemp - 8, ...randomCondition }
-        ]
-      };
-    }
+  // The town this browser picked, through this site's server; none picked: the card asks
+  fetchData: async (): Promise<WeatherCardData> => {
+    const place = savedPlace();
+    if (!place) return { place: null };
+    const res = await fetch(`/api/weather?lat=${place.latitude}&lon=${place.longitude}`);
+    if (!res.ok) throw new Error("Couldn't get the weather just now.");
+    const { weather } = await res.json();
+    return { place, weather };
   }
 };
