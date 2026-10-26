@@ -99,6 +99,9 @@ export function executeSetCSSVarAction(
     if (LOADS_SOMETHING.test(cssValue) || cssValue.includes('\\')) return;
   } else if (value !== undefined) {
     cssValue = value;
+    // In a loop, {item} filled it from the list, which a ?var= link can
+    // supply: the same rule as a worked-out value (bug bash 2026-10-26)
+    if (forEachContext && (LOADS_SOMETHING.test(cssValue) || cssValue.includes('\\'))) return;
   } else {
     return;
   }

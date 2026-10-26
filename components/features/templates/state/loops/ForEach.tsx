@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext } from 'react';
 import { importantStyleRef } from '@/lib/utils/css/parse-style-string';
+import { isWebAddress } from '@/lib/templates/core/template-registry-types';
 import { useTemplateState } from '@/lib/templates/state/TemplateStateProvider';
 import { getVariable } from '@/lib/templates/state/variable-utils';
 import { globalTemplateStateManager } from '@/lib/templates/state/TemplateStateManager';
@@ -536,13 +537,19 @@ function processForEachChildren(
             // a path that doesn't exist, so <If data="{p.kind}"> never showed.
             processedProps[key] = propValue.slice(1, -1).trim();
           } else {
-            processedProps[key] = replaceTemplatePlaceholders(
+            const filled = replaceTemplatePlaceholders(
               propValue,
               itemValue,
               itemName,
               currentIndex,
               indexName
             );
+            // An address filled in from the list (which a ?var= link can
+            // supply) is checked like one written in the page: the page's
+            // own href="javascript:…" is refused when it compiles, but
+            // href="{u}" reached window.open (bug bash 2026-10-26)
+            const address = URL_PROPS.has(key) && filled !== propValue && !isWebAddress(filled.trim()) && !(IMAGE_PROPS.has(key) && DATA_IMAGE.test(filled.trim()));
+            processedProps[key] = address ? undefined : filled;
           }
         } else if (key === 'style' && propValue && typeof propValue === 'object') {
           // The page's style="left: calc({i} * 2em)" arrives as an object
@@ -671,6 +678,11 @@ function replaceTemplatePlaceholders(
  * Get nested property from object using dot notation
  * Example: getNestedProperty({user: {name: 'John'}}, 'user.name') => 'John'
  */
+/** Props that are addresses: links, and images (which may also be data: pictures) */
+const URL_PROPS = new Set(['href', 'src', 'link', 'action', 'formAction', 'poster', 'background', 'cite']);
+const IMAGE_PROPS = new Set(['src', 'poster', 'background']);
+const DATA_IMAGE = /^data:image\/(?:png|gif|jpe?g|webp|avif|bmp);/i;
+
 const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 function getNestedProperty(obj: any, path: string): any {

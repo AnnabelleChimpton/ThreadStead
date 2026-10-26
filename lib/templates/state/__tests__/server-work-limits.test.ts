@@ -6,7 +6,7 @@
  * computed Var of 'ab'.repeat(1e8).split('') took the whole server down,
  * and 10,000 computed Vars took 11 s a visit. (bug bash 2026-10-26, P0 #1)
  */
-import { evaluateExpression, valueSize, MAX_VALUE_SIZE } from '../expression-evaluator'
+import { evaluateExpression, extractVariableNames, valueSize, MAX_VALUE_SIZE } from '../expression-evaluator'
 import { seedVariables } from '../TemplateStateProvider'
 
 const tooBig = /too big/
@@ -108,4 +108,10 @@ describe("the server's starting values (seedVariables)", () => {
     expect(seed.boom.value).toBeUndefined()
     expect(seed.twice.value).toBe(4)
   })
+})
+
+test("the node limit holds after extractVariableNames has seen the expression (it shares the parse cache)", () => {
+  const huge = Array.from({ length: 3000 }, () => '1').join(' + ')
+  expect(extractVariableNames(huge)).toEqual([])
+  expect(() => evaluateExpression(huge, {})).toThrow(/node limit/)
 })

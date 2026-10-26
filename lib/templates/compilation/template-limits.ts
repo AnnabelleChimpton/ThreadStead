@@ -53,7 +53,7 @@ export function formatLimitError(limitType: LimitType, currentValue: number, max
  * Depth is absolute: the tree conversion after parsing overflows the stack
  * near 3,000 levels, whatever the cap is set to.
  */
-const RUNAWAY = { elements: TEMPLATE_LIMITS.maxElements * 2, depth: 1_024 };
+const RUNAWAY = { elements: TEMPLATE_LIMITS.maxElements * 2, depth: 1_024, attributes: 1_000 };
 
 /**
  * The limit message for a page with far too many tags, counted from the
@@ -64,7 +64,15 @@ const RUNAWAY = { elements: TEMPLATE_LIMITS.maxElements * 2, depth: 1_024 };
  */
 export function runawayPageError(source: string): string | undefined {
   let elements = 0;
-  for (const token of tokenizeSource(source)) if (token.type === 'open') elements++;
+  for (const token of tokenizeSource(source)) {
+    if (token.type !== 'open') continue;
+    elements++;
+    // The parser checks each attribute against all the others on its tag:
+    // one <div> with 30,000 took 1.2 s a compile (bug bash 2026-10-26)
+    if (token.attributes.length > RUNAWAY.attributes) {
+      return `One <${token.name}> tag has ${n(token.attributes.length)} attributes; the most is ${n(RUNAWAY.attributes)}.`;
+    }
+  }
   if (elements > RUNAWAY.elements) return formatLimitError('elements', elements, TEMPLATE_LIMITS.maxElements);
   return undefined;
 }

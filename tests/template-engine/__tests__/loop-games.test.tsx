@@ -171,3 +171,38 @@ test('{item} puts text in as typed, "$" and all, and a loop name is never a patt
   expect(text('notes')).toBe('0: pay $$51: a $& b2: $1')
   expect(text('named')).toBe('one {aaa}')
 })
+
+describe('what a loop fills in is checked like what the page writes (bug bash 2026-10-26)', () => {
+  test('a loop-filled address that is not a web address never reaches window.open', async () => {
+    const scheme = ['java', 'script'].join('') + ':'
+    const opened: unknown[] = []
+    await visit(`<div>
+<Var name="links" type="array" initial='["${scheme}void(0)", "https://example.com/ok"]' />
+<ForEach var="links" item="u"><ArcadeButton href="{u}">go</ArcadeButton></ForEach>
+<p data-x="1"><OnClick><Set var="links" expression="links" /></OnClick>x</p>
+</div>`, async ({ dom }) => {
+      ;(dom.window as unknown as { open: (...args: unknown[]) => void }).open = (...args) => opened.push(args[0])
+      ;(globalThis as unknown as { window: { open: unknown } }).window.open = dom.window.open
+      for (const button of dom.window.document.querySelectorAll('.arcade-button-container')) click(button as HTMLElement)
+      await settle()
+    })
+    expect(opened).toEqual(['https://example.com/ok'])
+  })
+
+  test("a loop-filled SetCSSVar value can't load anything", async () => {
+    await visit(`<div>
+<Var name="bgs" type="array" initial='["url(https://example.com/x.png)", "red"]' />
+<ForEach var="bgs" item="b" index="i"><p class="pick{i}"><OnClick><SetCSSVar name="--bg" value="{b}" /></OnClick>{i}</p></ForEach>
+</div>`, async ({ $ }) => {
+      const root = () => $('.profile-template-root') as HTMLElement
+      click($('.pick0'))
+      await settle()
+      expect(root().style.getPropertyValue('--bg')).toBe('')
+      click($('.pick1'))
+      await settle()
+      expect(root().style.getPropertyValue('--bg')).toBe('red')
+    })
+  })
+
+
+})

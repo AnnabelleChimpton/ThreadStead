@@ -775,6 +775,9 @@ export function extractVariableNames(expression: string): string[] {
     let ast = astCache.get(expression);
     if (!ast) {
       ast = jsep(expression);
+      // Never cached past the size limit: evaluateExpression trusts the
+      // cache, and skipped its own check for what this put there (bug bash 2026-10-26)
+      if (sizeOf(ast) > MAX_NODES) return [];
       if (astCache.size < AST_CACHE_MAX_SIZE) {
         astCache.set(expression, ast);
       }

@@ -56,12 +56,14 @@ export async function executeCopyToClipboardAction(
 ): Promise<void> {
   const { value, expression } = props;
 
-  console.log('[CopyToClipboard] executeCopyToClipboardAction called with:', {
-    value,
-    expression,
-    scopeId: forEachContext?.scopeId,
-    allProps: props
-  });
+  // Only right after the visitor clicked or pressed a key: from OnInterval
+  // or OnMouseEnter, a page could swap what's on their clipboard without
+  // them knowing (bug bash 2026-10-26). Browsers without userActivation
+  // ask for a click themselves.
+  const activation = typeof navigator !== 'undefined'
+    ? (navigator as Navigator & { userActivation?: { isActive: boolean } }).userActivation
+    : undefined;
+  if (activation && !activation.isActive) return;
 
   // Determine the value to copy
   let textToCopy: string;
@@ -89,7 +91,6 @@ export async function executeCopyToClipboardAction(
         const scopedValue = globalTemplateStateManager.getVariableInScope(scopeId, varName);
         if (scopedValue !== undefined) {
           context[varName] = scopedValue;
-          console.log(`[CopyToClipboard] Using scoped variable "${varName}":`, scopedValue);
         }
       }
     }
@@ -106,7 +107,6 @@ export async function executeCopyToClipboardAction(
   // Copy to clipboard
   try {
     await navigator.clipboard.writeText(textToCopy);
-    console.log('[CopyToClipboard] Copied to clipboard:', textToCopy);
   } catch (error) {
     console.error('[CopyToClipboard] Failed to copy:', error);
 

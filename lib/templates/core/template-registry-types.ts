@@ -7,6 +7,13 @@ import {
 } from '@/lib/templates/core/standard-component-interface';
 
 // Define the shape of prop schemas
+/** A web, mailto or relative address: never javascript:, data: and the like */
+export function isWebAddress(text: string): boolean {
+  // Browsers skip spaces and control characters inside a scheme ("java script:")
+  const scheme = text.replace(/[\u0000-\u0020]/g, '').match(/^([a-z][a-z0-9+.-]*):/i)?.[1].toLowerCase();
+  return !scheme || ['http', 'https', 'mailto'].includes(scheme);
+}
+
 /** 'url': a link or image address; only web, mailto and relative ones get through */
 export type PropType = 'string' | 'number' | 'boolean' | 'enum' | 'url';
 
@@ -171,9 +178,7 @@ export function coercePropValue(value: unknown, schema: PropSchema, name: string
 
     case 'url': {
       const text = String(value).trim();
-      // Browsers skip spaces and control characters inside a scheme ("java script:")
-      const scheme = text.replace(/[\u0000-\u0020]/g, '').match(/^([a-z][a-z0-9+.-]*):/i)?.[1].toLowerCase();
-      if (!scheme || ['http', 'https', 'mailto'].includes(scheme)) return { value: text };
+      if (isWebAddress(text)) return { value: text };
       return { value: schema.default, problem: `${name} needs a web address (https://…). ${using(schema.default)}` };
     }
 

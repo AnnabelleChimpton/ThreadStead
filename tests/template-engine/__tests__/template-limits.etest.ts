@@ -176,6 +176,14 @@ describe('a runaway page is refused before or while parsing (template audit 04 H
     }
   })
 
+  test('one tag with a flood of attributes is refused before parsing (bug bash 2026-10-26)', () => {
+    // The parser compares each attribute with all the others: 30,000 took 1.2 s
+    const attrs = Array.from({ length: 30_000 }, (_, i) => `data-a${i}="x"`).join(' ')
+    expect(refusedQuickly(`<div ${attrs}>hi</div>`)).toBe('One <div> tag has 30,000 attributes; the most is 1,000.')
+    const fine = Array.from({ length: 40 }, (_, i) => `data-a${i}="x"`).join(' ')
+    expect(compileTemplate(`<div ${fine}>hi</div>`).success).toBe(true)
+  })
+
   test('a flood of tags gets the tag message', () => {
     expect(refusedQuickly('<div>'.repeat(60000))).toMatch(/^Your page has 60,000 tags; the most is 25,000/)
   })
