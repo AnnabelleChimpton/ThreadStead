@@ -55,8 +55,14 @@ export default function ForkThreadRingForm({
   const formatRateLimitError = useCallback((errorData: any) => {
     const { details } = errorData;
     
+    // This site's own limit has no details (only the hub's does): this used
+    // to come back as a bare string, and the toast showed nothing
     if (!details) {
-      return errorData.message || "Rate limit exceeded";
+      return {
+        title: "Ring Creation Limit Exceeded",
+        message: errorData.error || errorData.message || "That's a lot of rings at once. Try again in a little while.",
+        type: 'warning' as const
+      };
     }
 
     const resetDate = new Date(details.resetTime);

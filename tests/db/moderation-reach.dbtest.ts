@@ -182,7 +182,7 @@ describe('writing while leaving', () => {
     await stayAfterAll(NEIGHBOR)
     expect((await bulletin()).statusCode).toBe(201)
     expect(await saveSetting()).toMatchObject({ statusCode: 200, body: { autoplay: false } })
-    expect(await fork()).toMatchObject({ statusCode: 400, body: { error: 'ThreadRing name is required' } })
+    expect(await fork()).toMatchObject({ statusCode: 400, body: { error: 'Name is missing.' } })
   })
 
   it('a capability write says the account is set to be deleted and how to stay, not "not logged in"', async () => {
