@@ -78,7 +78,7 @@ describe('auth', () => {
     mockSession.mockResolvedValue(null);
     const res = await call(route);
     expect(res.statusCode).toBe(401);
-    expect(res.body).toEqual({ error: 'Authentication required' });
+    expect(res.body).toEqual({ error: 'Sign in first.' });
   });
 
   test('403 for a non-admin', async () => {

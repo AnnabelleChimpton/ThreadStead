@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { apiHandler, ApiError } from '@/lib/api/handler'
+import { API_ERRORS } from '@/lib/api/errors'
 import { rateLimitCheck } from '@/lib/server/http/rate-limit'
 import { createPromptService, promptFeedReader } from '@/lib/utils/data/prompt-service'
 import { hubWriteError, requireRingAs } from '@/lib/domain/threadrings/ring-access'
@@ -66,7 +67,7 @@ export default apiHandler(
       return res.json(prompts.map((p, i) => promptView(p, counts[i].length, authors.get(p.submittedBy))))
     }
 
-    if (!user) throw new ApiError(401, 'Authentication required')
+    if (!user) throw new ApiError(401, API_ERRORS.unauthenticated)
     // Writes only: reading prompts shouldn't spend the write budget
     if (!(await rateLimitCheck(req, res, 'threadring_operations', user.id))) return
     const body = schema.parse(req.body ?? {})

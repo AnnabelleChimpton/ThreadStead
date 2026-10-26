@@ -51,7 +51,7 @@ test('signed out → 401 when given res', async () => {
   const { req, res } = reqRes();
   expect(await requireAdmin(req, res)).toBeNull();
   expect(res.statusCode).toBe(401);
-  expect(res.body).toEqual({ error: 'Authentication required' });
+  expect(res.body).toEqual({ error: 'Sign in first.' });
 });
 
 test('non-admin → 403 when given res', async () => {

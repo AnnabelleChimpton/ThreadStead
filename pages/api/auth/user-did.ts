@@ -16,7 +16,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // Verify user authentication
   const user = await getSessionUser(req)
   if (!user) {
-    return res.status(401).json({ error: 'Authentication required' })
+    return res.status(401).json({ error: 'Sign in first.' })
   }
 
   const userId = user.id

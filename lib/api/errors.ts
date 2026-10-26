@@ -6,7 +6,7 @@ import type { NextApiResponse } from 'next';
  * `data.error`.
  */
 export const API_ERRORS = {
-  unauthenticated: 'Authentication required',
+  unauthenticated: 'Sign in first.',
   forbiddenAdmin: 'Admin access required',
   methodNotAllowed: 'Method not allowed',
   validation: 'Validation error',
