@@ -64,7 +64,7 @@ const COPY = {
   createFailed: 'I couldn\'t make your account. Try again?',
   otherWays: 'Other ways to sign in',
   seedHeading: 'Sign in with 12 words instead',
-  seedBody: 'Instead of a password, you get 12 words to sign in with. Write them down somewhere safe. If you lose them and haven\'t added an email, I can\'t get you back in. This browser remembers them too, so only do this on your own device.',
+  seedBody: 'Instead of a password, you get 12 words to sign in with. Write them down somewhere safe. If you lose them and haven\'t added an email, I can\'t get you back in. This browser keeps the key they make, so it can sign you in again: only do this on your own device.',
   seedLater: 'You can add a password later in Settings.',
   seedButton: 'Make my 12 words',
   usePassword: 'Use a password instead',
@@ -105,6 +105,7 @@ const COPY = {
     'If something\'s wrong, report it and I\'ll take a look',
   ],
   agreeLabel: 'I agree to the community guidelines, terms of service and privacy policy',
+  rulesShort: 'House rules, short version:',
   agreeFirst: 'Check the box first, then you can keep going.',
   continue: 'Continue',
 
@@ -394,6 +395,12 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
         return;
       }
     }
+    // Agreed before the account exists, not three steps after it (signup audit #6)
+    if (!agreedToGuidelines) {
+      setError(COPY.agreeFirst);
+      agreeRef.current?.focus();
+      return;
+    }
 
     setIsLoading(true);
     try {
@@ -438,11 +445,15 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
     setCurrentStep('profile');
   }
 
+  // Everyone agrees on the account form now; a signup resumed from before
+  // that (its account made, nothing agreed) still gets the rules
+  const afterEmail: SignupStep = agreedToGuidelines ? 'profile' : 'guidelines';
+
   async function handleEmailSetup() {
     if (isLoading) return;
     if (!email.trim()) {
       // Skip email step
-      setCurrentStep('guidelines');
+      setCurrentStep(afterEmail);
       return;
     }
 
@@ -457,7 +468,7 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
       });
 
       if (response.ok) {
-        setCurrentStep('guidelines');
+        setCurrentStep(afterEmail);
       } else {
         const error = await response.json();
         setError(error.error || COPY.emailFailed);
@@ -465,7 +476,7 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
     } catch (err) {
       setError(COPY.emailFailed);
       // Continue to guidelines even if email fails
-      setTimeout(() => setCurrentStep('guidelines'), 2000);
+      setTimeout(() => setCurrentStep(afterEmail), 2000);
     } finally {
       setIsLoading(false);
     }
@@ -696,9 +707,46 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
       ? { tone: 'error', text: COPY.mismatch }
       : null;
   const betaMsg: FieldMsg | null = attempted && isBetaEnabled && !betaKey.trim() ? { tone: 'error', text: COPY.betaEmpty } : null;
+  // The house rules and the agreement: on the account form, before the
+  // account exists (signup audit #6), and on the Rules step for a signup
+  // resumed from before that
+  const houseRules = (
+    <>
+      <section aria-labelledby="signup-rules-heading" className="border-2 border-dotted border-nb-ink-mid/60 rounded-cozy p-5">
+        <h2 id="signup-rules-heading" className="font-bold text-lg mb-3 text-nb-ink">{COPY.rulesShort}</h2>
+        <p className="text-sm text-nb-ink">Be kind, post your own stuff, no harassment or hate, keep it all-ages.</p>
+
+        <h3 className="font-bold text-base mt-4 mb-2 text-nb-ink">In practice:</h3>
+        <ul className="space-y-1 text-sm text-nb-ink list-disc pl-5">
+          {COPY.rulesInPractice.map((line) => <li key={line}>{line}</li>)}
+        </ul>
+
+        <p className="mt-4 mb-0 flex flex-wrap justify-center gap-x-4 gap-y-1 text-sm">
+          <NewTabLink href="/community-guidelines">Community guidelines</NewTabLink>
+          <NewTabLink href="/terms">Terms of service</NewTabLink>
+          <NewTabLink href="/privacy">Privacy policy</NewTabLink>
+        </p>
+      </section>
+      <label htmlFor="signup-agree" className="flex items-start gap-3 cursor-pointer py-1">
+        <input
+          ref={agreeRef}
+          id="signup-agree"
+          type="checkbox"
+          checked={agreedToGuidelines}
+          onChange={(e) => {
+            setAgreedToGuidelines(e.target.checked);
+            if (e.target.checked) setError(null);
+          }}
+          className="mt-0.5 w-6 h-6 shrink-0 accent-nb-ink"
+        />
+        <span className="text-sm text-nb-ink">{COPY.agreeLabel}</span>
+      </label>
+    </>
+  );
+
   const readyToCreate =
     !!usernameCheck?.ok && usernameAvailable !== false && (!isBetaEnabled || !!betaKey.trim()) &&
-    (selectedAuthMethod !== 'password' || (passwordOk && password === confirmPassword));
+    (selectedAuthMethod !== 'password' || (passwordOk && password === confirmPassword)) && agreedToGuidelines;
 
   return (
     <>
@@ -717,7 +765,7 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
               { label: 'Account', covers: ['welcome', 'auth-method', 'password-setup'] },
               ...(words ? [{ label: 'Words', covers: ['seed-phrase'] as SignupStep[] }] : []),
               { label: 'Email', covers: ['email'] },
-              { label: 'Rules', covers: ['guidelines'] },
+              ...(currentStep === 'guidelines' ? [{ label: 'Rules', covers: ['guidelines'] as SignupStep[] }] : []),
               { label: 'Profile', covers: ['profile'] },
               { label: 'House', covers: ['house', 'finale'] },
             ];
@@ -885,6 +933,8 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
                   </section>
                 )}
 
+                {houseRules}
+
                 <ErrorAlert error={error} />
 
                 <Button type="submit" size="lg" aria-disabled={isLoading || !readyToCreate} className={PRIMARY}>
@@ -991,7 +1041,7 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
                   {email.trim() && (
                     <button
                       type="button"
-                      onClick={() => setCurrentStep('guidelines')}
+                      onClick={() => setCurrentStep(afterEmail)}
                       className="ts-bare text-sm underline self-center"
                     >
                       {COPY.skipForNow}
@@ -1060,38 +1110,8 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
                 <p className="text-nb-ink-mid max-w-lg mx-auto">{COPY.rulesIntro}</p>
               </div>
 
-              {/* TODO: Make community guidelines content configurable via admin portal */}
-              <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-cozy p-5 mb-6">
-                <h2 className="font-bold text-lg mb-3 text-nb-ink">House rules, short version:</h2>
-                <p className="text-sm text-nb-ink">Be kind, post your own stuff, no harassment or hate, keep it all-ages.</p>
-
-                <h2 className="font-bold text-lg mt-4 mb-3 text-nb-ink">In practice:</h2>
-                <ul className="space-y-1 text-sm text-nb-ink list-disc pl-5">
-                  {COPY.rulesInPractice.map((line) => <li key={line}>{line}</li>)}
-                </ul>
-
-                <p className="mt-4 flex flex-wrap justify-center gap-x-4 gap-y-1 text-sm">
-                  <NewTabLink href="/community-guidelines">Community guidelines</NewTabLink>
-                  <NewTabLink href="/terms">Terms of service</NewTabLink>
-                  <NewTabLink href="/privacy">Privacy policy</NewTabLink>
-                </p>
-              </div>
-
               <div className="space-y-4">
-                <label htmlFor="signup-agree" className="flex items-start gap-3 cursor-pointer py-1">
-                  <input
-                    ref={agreeRef}
-                    id="signup-agree"
-                    type="checkbox"
-                    checked={agreedToGuidelines}
-                    onChange={(e) => {
-                      setAgreedToGuidelines(e.target.checked);
-                      if (e.target.checked) setError(null);
-                    }}
-                    className="mt-0.5 w-6 h-6 shrink-0 accent-nb-ink"
-                  />
-                  <span className="text-sm text-nb-ink">{COPY.agreeLabel}</span>
-                </label>
+                {houseRules}
 
                 <ErrorAlert error={error} />
 

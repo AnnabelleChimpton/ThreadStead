@@ -70,6 +70,7 @@ test('Return on the account form makes the account and focuses the email step he
   await user.type(screen.getByLabelText('Username'), 'newbie');
   await screen.findByText('@newbie is available');
   await user.type(screen.getByLabelText('Password'), 'Lawnchair42');
+  await user.click(screen.getByRole('checkbox', { name: /I agree/ }));
   await user.type(screen.getByLabelText('Password again'), 'Lawnchair42{Enter}');
 
   await waitFor(() => expect(createNewIdentityWithPassword).toHaveBeenCalledWith('newbie', 'Lawnchair42', undefined));
@@ -78,6 +79,27 @@ test('Return on the account form makes the account and focuses the email step he
   // Password users never hear about a recovery phrase
   expect(screen.queryByText(/recovery phrase/i)).toBeNull();
   expect(screen.getByLabelText('Email')).toHaveAttribute('autocomplete', 'email');
+});
+
+test('the rules are agreed on the account form: without the box, no account', async () => {
+  const user = await openSignup();
+  expect(screen.getByRole('heading', { name: 'House rules, short version:' })).toBeInTheDocument();
+  await user.type(screen.getByLabelText('Username'), 'newbie');
+  await screen.findByText('@newbie is available');
+  await user.type(screen.getByLabelText('Password'), 'Lawnchair42');
+  await user.type(screen.getByLabelText('Password again'), 'Lawnchair42{Enter}');
+
+  expect(screen.getByRole('alert')).toHaveTextContent('Check the box first');
+  expect(screen.getByRole('checkbox', { name: /I agree/ })).toHaveFocus();
+  expect(createNewIdentityWithPassword).not.toHaveBeenCalled();
+
+  // Agreed, made, and no rules step after the email
+  await user.click(screen.getByRole('checkbox', { name: /I agree/ }));
+  await user.click(screen.getByRole('button', { name: 'Create account' }));
+  await screen.findByRole('heading', { name: 'Add an email?' });
+  await user.type(screen.getByLabelText('Email'), '{Enter}');
+  await screen.findByRole('heading', { name: 'Set up your profile' });
+  expect(screen.queryByRole('heading', { name: 'Before you move in' })).toBeNull();
 });
 
 test('an empty submit says what is missing and focuses the field, without making an account', async () => {
@@ -111,6 +133,7 @@ test('the 12 words sit behind "Other ways to sign in", and copying them says so'
   await waitFor(() => expect(screen.getByRole('heading', { name: 'Sign in with 12 words instead' })).toHaveFocus());
   expect(screen.queryByLabelText('Password')).toBeNull();
 
+  await user.click(screen.getByRole('checkbox', { name: /I agree/ }));
   await user.type(screen.getByLabelText('Username'), '{Enter}');
   await waitFor(() => expect(createNewIdentityWithSeedPhrase).toHaveBeenCalledWith('keeper', undefined));
   const heading = await screen.findByRole('heading', { name: 'Write these down' });
@@ -128,6 +151,8 @@ describe('after the account exists', () => {
     (fetchAuthMe as jest.Mock).mockResolvedValue({ loggedIn: true, user: { primaryHandle: 'newbie@local' } });
   });
 
+  // A signup resumed from before the rules moved onto the account form: its
+  // account exists and nothing was agreed, so it still gets them
   test('Return on an empty email skips to the rules, and the rules ask for the box first', async () => {
     const user = userEvent.setup();
     render(<SignupPage betaRequired={false} siteConfig={siteConfig} />);
