@@ -1,5 +1,6 @@
 import { db } from "@/lib/config/database/connection";
 import { apiHandler } from "@/lib/api/handler";
+import { DEFAULT_POLICIES } from "@/lib/config/site/policies";
 
 // Default site configuration values
 const DEFAULT_CONFIG = {
@@ -17,10 +18,7 @@ const DEFAULT_CONFIG = {
   disable_default_home: "false",
   disable_default_landing: "false",
   default_profile_css: "",
-  terms_simple: "By creating an account, you agree to use our platform respectfully and responsibly.",
-  terms_full: "Full terms and conditions not yet configured.",
-  privacy_simple: "We protect your privacy and use reasonable security measures to protect your information.",
-  privacy_full: "Full privacy policy not yet configured.",
+  ...DEFAULT_POLICIES,
   site_custom_css: "",
   founders_note: "",
 };

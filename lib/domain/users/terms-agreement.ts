@@ -8,9 +8,10 @@
  */
 import type { Prisma } from '@prisma/client';
 import { db } from '@/lib/config/database/connection';
+import { POLICY_KEYS } from '@/lib/config/site/policies';
 
-/** The texts agreed to: the ones in Admin (pages/api/policies.ts) */
-export const POLICY_KEYS = ['terms_simple', 'terms_full', 'privacy_simple', 'privacy_full'] as const;
+/** The texts agreed to: the ones in Admin (pages/api/admin/policies.ts) */
+export { POLICY_KEYS } from '@/lib/config/site/policies';
 
 /** What verify answers when a new account comes without agreement */
 export const AGREEMENT_REQUIRED = 'agreement_required';
@@ -20,7 +21,7 @@ type Tx = Pick<Prisma.TransactionClient, 'siteConfig' | 'termsAgreement'>;
 /**
  * Which texts someone agrees to now: when the ones in Admin last changed, to
  * the minute ("policies 2026-10-20T14:03Z"), or "built-in" before any were
- * saved (pages/api/policies.ts has defaults).
+ * saved (the defaults in lib/config/site/policies.ts).
  */
 export async function currentPolicyVersion(client: Tx = db): Promise<string> {
   const latest = await client.siteConfig.findFirst({

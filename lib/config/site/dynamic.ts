@@ -1,4 +1,5 @@
 import { db } from "../database/connection";
+import { DEFAULT_POLICIES } from "./policies";
 
 export type SiteConfig = {
   site_name: string;
@@ -39,10 +40,7 @@ const DEFAULT_CONFIG: SiteConfig = {
   disable_default_home: "false",
   disable_default_landing: "false",
   default_profile_css: "",
-  terms_simple: "By creating an account, you agree to use our platform respectfully and responsibly.",
-  terms_full: "Full terms and conditions not yet configured.",
-  privacy_simple: "We protect your privacy and use reasonable security measures to protect your information.",
-  privacy_full: "Full privacy policy not yet configured.",
+  ...DEFAULT_POLICIES,
   site_custom_css: "",
   founders_note: "",
 };

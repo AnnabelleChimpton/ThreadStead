@@ -18,13 +18,14 @@ jest.mock('@/lib/server/http/rate-limit', () => ({
 }))
 
 import policiesRoute from '@/pages/api/admin/policies'
+import publicPoliciesRoute from '@/pages/api/policies'
 import { createSession } from '@/lib/auth/server'
 import { POLICY_KEYS, currentPolicyVersion } from '@/lib/domain/users/terms-agreement'
 
 const stamp = Date.now()
 let cookie: string
 
-async function call(method: string, body?: unknown) {
+async function call(method: string, body?: unknown, route: (req: NextApiRequest, res: NextApiResponse) => Promise<unknown> = policiesRoute) {
   const req = { method, url: '/api/admin/policies', query: {}, body, headers: { cookie }, cookies: {}, socket: { remoteAddress: '127.0.0.1' } } as unknown as NextApiRequest
   const res: any = {
     statusCode: 200,
@@ -36,7 +37,7 @@ async function call(method: string, body?: unknown) {
     getHeader(k: string) { return this.headers[k.toLowerCase()] },
     end() { return this },
   }
-  await policiesRoute(req, res as NextApiResponse)
+  await route(req, res as NextApiResponse)
   return res as { statusCode: number; body: any }
 }
 
@@ -54,6 +55,15 @@ afterAll(async () => {
   await db.siteConfig.deleteMany({ where: { key: { in: [...POLICY_KEYS] } } })
   await db.user.deleteMany({ where: { did: `did:key:policy-admin-${stamp}` } })
   await db.$disconnect()
+})
+
+// Admin's editor showed long boilerplate residents never saw (signup and
+// /help/terms read the public route), so saving it "unchanged" published it
+test('before anything is saved, Admin shows the texts residents see', async () => {
+  const admin = (await call('GET')).body.policies
+  const residents = (await call('GET', undefined, publicPoliciesRoute)).body.policies
+  expect(admin).toEqual(residents)
+  expect(admin.terms_full).toBe('Full terms and conditions not yet configured.')
 })
 
 test('saving the built-in texts unchanged writes nothing: still "built-in"', async () => {

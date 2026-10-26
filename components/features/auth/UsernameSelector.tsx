@@ -1,13 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { PixelIcon } from '@/components/ui/PixelIcon';
 import LoadingSpinner from "@/components/ui/feedback/LoadingSpinner";
-
-type PolicyDocuments = {
-  terms_simple: string;
-  terms_full: string;
-  privacy_simple: string;
-  privacy_full: string;
-};
+import { DEFAULT_POLICIES, type PolicyTexts as PolicyDocuments } from "@/lib/config/site/policies";
 
 interface UsernameSelectorProps {
   onUsernameConfirmed: (username: string, betaKey?: string) => void;
@@ -95,12 +89,7 @@ export default function UsernameSelector({
       setPolicies(data.policies);
     } catch (e) {
       // Set fallback policies
-      setPolicies({
-        terms_simple: "By creating an account, you agree to use our platform respectfully and responsibly.",
-        terms_full: "Full terms and conditions not yet configured.",
-        privacy_simple: "We protect your privacy and use reasonable security measures to protect your information.",
-        privacy_full: "Full privacy policy not yet configured."
-      });
+      setPolicies(DEFAULT_POLICIES);
     } finally {
       setLoadingPolicies(false);
     }

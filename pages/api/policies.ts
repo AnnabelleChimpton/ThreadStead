@@ -1,26 +1,13 @@
 import { db } from '@/lib/config/database/connection';
 import { apiHandler } from '@/lib/api/handler';
+import { POLICY_KEYS, policyTexts } from '@/lib/config/site/policies';
 
 export default apiHandler(
   { methods: ['GET'], auth: 'none' },
   async (_req, res) => {
     try {
-      // Get all policy documents
-      const policies = await db.siteConfig.findMany({
-        where: {
-          key: {
-            in: ['terms_simple', 'terms_full', 'privacy_simple', 'privacy_full']
-          }
-        }
-      });
-
-      // Transform to object with default values if not found
-      const policyData = {
-        terms_simple: policies.find(p => p.key === 'terms_simple')?.value || 'By creating an account, you agree to use our platform respectfully and responsibly.',
-        terms_full: policies.find(p => p.key === 'terms_full')?.value || 'Full terms and conditions not yet configured.',
-        privacy_simple: policies.find(p => p.key === 'privacy_simple')?.value || 'We protect your privacy and use reasonable security measures to protect your information.',
-        privacy_full: policies.find(p => p.key === 'privacy_full')?.value || 'Full privacy policy not yet configured.'
-      };
+      const saved = await db.siteConfig.findMany({ where: { key: { in: [...POLICY_KEYS] } } });
+      const policyData = policyTexts(saved);
 
       return res.status(200).json({ policies: policyData });
     } catch (error) {
