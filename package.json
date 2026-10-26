@@ -101,6 +101,7 @@
     "zod": "^4.1.5"
   },
   "devDependencies": {
+    "@csstools/css-tokenizer": "3.0.4",
     "@eslint/eslintrc": "^3",
     "@resvg/resvg-js": "^2.6.2",
     "@svgr/webpack": "^8.1.0",

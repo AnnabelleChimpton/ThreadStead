@@ -1,7 +1,9 @@
 /*
  * Site chrome over a person's page: what sits in the bottom corners, and
  * what the page's own CSS can't cover. Unlayered, like retro.css, so it
- * beats Tailwind's utilities.
+ * beats Tailwind's utilities. In px, not rem: a page's html { font-size }
+ * set rem, and at 1px the chat and music buttons were 3px across (bug
+ * bash 2026-10-26; globals.css does the same for Tailwind's sizes).
  */
 
 /* ---------- the bottom corners, in one order ----------
@@ -11,18 +13,18 @@
    --ts-bottom-bar to its height, MidiPlayer sets --ts-music-height. */
 .ts-music-dock {
   position: fixed;
-  left: 1rem;
-  bottom: calc(1rem + var(--ts-bottom-bar, 0px) + env(safe-area-inset-bottom, 0px));
+  left: 16px;
+  bottom: calc(16px + var(--ts-bottom-bar, 0px) + env(safe-area-inset-bottom, 0px));
   z-index: 60;
   width: max-content;
 }
 .ts-music-dock section.ts-music {
-  width: min(22rem, calc(100vw - 2rem));
+  width: min(352px, calc(100vw - 32px));
 }
 /* A phone with the chat button: stop short of it */
 @media (max-width: 767px) {
   body:has(.ts-chat-toggle) .ts-music-dock section.ts-music {
-    width: calc(100vw - 2rem - 56px - 0.75rem);
+    width: calc(100vw - 32px - 56px - 12px);
   }
 }
 
@@ -30,8 +32,8 @@
   margin-bottom: var(--ts-bottom-bar, 0px);
 }
 body:has(.ts-music-dock) .ts-scroll-top {
-  left: 1rem;
-  bottom: calc(1rem + var(--ts-music-height, 3.75rem) + 0.75rem);
+  left: 16px;
+  bottom: calc(16px + var(--ts-music-height, 60px) + 12px);
 }
 
 .ts-view-source-badge {
@@ -39,7 +41,7 @@ body:has(.ts-music-dock) .ts-scroll-top {
 }
 /* Above the chat button instead of on it */
 body:has(.ts-chat-toggle) .ts-view-source-badge {
-  bottom: calc(1.25rem + 60px + 0.75rem);
+  bottom: calc(20px + 60px + 12px);
 }
 
 /* ---------- the music player's own controls ----------
@@ -51,8 +53,8 @@ body:has(.ts-chat-toggle) .ts-view-source-badge {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  width: 2.75rem;
-  height: 2.75rem;
+  width: 44px;
+  height: 44px;
   padding: 0;
   border: 2px outset var(--ha-ink-mid, #5c6e70);
   border-radius: 6px;
@@ -89,9 +91,9 @@ body:has(.ts-chat-toggle) .ts-view-source-badge {
 }
 .ts-music-dock .ts-music-pill {
   width: auto;
-  gap: 0.5rem;
-  padding: 0 0.875rem;
-  font-size: 0.875rem;
+  gap: 8px;
+  padding: 0 14px;
+  font-size: 14px;
   font-weight: 600;
 }
 .ts-music input[type="range"],

@@ -638,7 +638,7 @@ export function MobileNavMenu() {
           aria-label="Mobile navigation menu"
           {...swipeHandlers}
         >
-        <div className="px-4 py-2 pb-[calc(3rem+env(safe-area-inset-bottom))] space-y-2">
+        <div className="px-4 py-2 pb-[calc(48px+env(safe-area-inset-bottom))] space-y-2">
           {sections.map((section) =>
             section.hubLabel ? (
               <div key={section.key}>

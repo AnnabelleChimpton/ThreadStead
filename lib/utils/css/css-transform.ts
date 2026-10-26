@@ -18,6 +18,18 @@
  * heavy for the client bundle; these functions run in preview paths).
  */
 
+import { normalizeCss } from './css-normalize'
+import { sanitizeCss } from '@/lib/utils/sanitization/css'
+
+/**
+ * A page's CSS as every transform here starts from: read the way a browser
+ * reads it (normalizeCss), then re-checked, since an escaped @import or
+ * property name got past the check at save (bug bash 2026-10-26, P0 #2)
+ */
+export function pageCssAsBrowserReads(css: string): string {
+  return sanitizeCss(normalizeCss(css)).css
+}
+
 export interface CSSStatement {
   /** 'at' for @-rules, 'rule' for qualified rules, 'other' for stray text */
   kind: 'at' | 'rule' | 'other'
@@ -221,7 +233,7 @@ const OUTSIDE_CHROME = `:where(:not(${SITE_CHROME_SELECTOR}, ${SITE_CHROME_SELEC
  * the chrome roots reset those themselves (styles/retro.css).
  */
 export function scopeAwayFromSiteChrome(css: string): string {
-  return mapSelectors(clampZIndex(css), outsideChrome, { nested: true })
+  return mapSelectors(clampZIndex(pageCssAsBrowserReads(css)), outsideChrome, { nested: true })
 }
 
 /**
@@ -476,9 +488,18 @@ export const PAGE_ROOT = '.profile-template-root'
  * On html or body, these reach the site's chrome, which lives in body: a
  * filter, transform, perspective, zoom, contain or will-change makes body
  * the nav's containing block (it scrolls away) or applies to it, and
- * visibility and opacity hide or fade it (template audit 10 #1).
+ * visibility and opacity hide or fade it (template audit 10 #1). A clip,
+ * mask or content-visibility hides it too, html's writing-mode turns it on
+ * its side, and an animation or motion path moves it (bug bash 2026-10-26).
+ * With the -webkit- spellings browsers still take. display: none took the
+ * whole site away; on the page root its guard (chrome-layers.css) ignores it.
  */
-const WHOLE_PAGE_EFFECTS = /^(?:filter|backdrop-filter|transform|translate|rotate|scale|perspective|zoom|contain|will-change|visibility|opacity)$/i
+const WHOLE_PAGE_EFFECTS = /^(?:-webkit-|-moz-)?(?:filter|backdrop-filter|transform|translate|rotate|scale|perspective|zoom|contain|will-change|visibility|opacity|clip-path|mask(?:-[\w-]+)?|content-visibility|writing-mode|animation(?:-[\w-]+)?|offset(?:-[\w-]+)?)$/i
+const isWholePageEffect = (declaration: string) => {
+  const colon = declaration.indexOf(':')
+  const name = declaration.slice(0, colon).trim()
+  return WHOLE_PAGE_EFFECTS.test(name) || (/^display$/i.test(name) && /^none\s*(?:!\s*important)?$/i.test(declaration.slice(colon + 1).trim()))
+}
 const ROOT_OR_BODY = /^(?::root|html|body|html\s+body)$/i
 /** html or body with a condition: `html:has(#dark:checked)`, `body.night`, `body:hover` */
 const ROOT_OR_BODY_WHEN = /^(?::root|html|body)(?![\w-])[^\s>+~]*(?:\s*>?\s*body(?![\w-])[^\s>+~]*)?$/i
@@ -487,35 +508,100 @@ const ROOT_OR_BODY_WHEN = /^(?::root|html|body)(?![\w-])[^\s>+~]*(?:\s*>?\s*body
  * "Do this to my whole page" on html or body (a vintage filter, a tilted
  * page, a checkbox dark-mode toggle on html:has(#dark:checked)) goes on the
  * page root instead, where it does exactly that; the rest of the rule stays
- * put. Rules with nested rules are left alone.
+ * put. Rules nested in an html or body rule that are still html or body
+ * (`&:hover`, `body` in html, `@media` around declarations) come out to the
+ * top level first, so their effects move too: kept nested, a filter in
+ * them stayed on the real body, nav and all (bug bash 2026-10-26).
  */
 export function moveWholePageEffects(css: string): string {
   if (!/(?:html|body|:root)/i.test(css)) return css
-  const GROUP_AT_RULES = new Set(['media', 'supports', 'container', 'layer'])
+  return serializeStatements(splitTopLevelStatements(css).flatMap((s) => effectsMoved(s) ?? s))
+}
+
+const EFFECT_GROUPS = new Set(['media', 'supports', 'container', 'layer'])
+
+/** The statement with its effects moved, or null when it has none to move */
+function effectsMoved(s: CSSStatement): CSSStatement[] | null {
+  if (s.kind === 'at' && s.body !== undefined && EFFECT_GROUPS.has(s.atName || '')) {
+    return [{ ...s, body: '\n' + moveWholePageEffects(s.body) + '\n' }]
+  }
+  if (s.kind !== 'rule' || s.body === undefined) return null
+  const selectors = splitSelectorList(s.prelude).map((selector) => selector.trim())
+  if (!selectors.every((selector) => ROOT_OR_BODY_WHEN.test(selector))) return null
+
+  const { declarations, nested } = splitRuleBody(s.body)
+  const stays: string[] = [] // nested rules kept as written: the page's own, scoped later
+  const outside: CSSStatement[] = [] // html or body ones holding effects, out at the top level
+  for (const rule of nested) {
+    const atName = rule.prelude.startsWith('@') ? atRuleName(rule.prelude) : null
+    const resolved = atName === null
+      ? splitSelectorList(rule.prelude).flatMap((selector) => selectors.map((parent) => unnested(selector, parent)))
+      : []
+    const comesOut = hasEffects(rule.body) &&
+      (atName === null ? resolved.every((selector) => ROOT_OR_BODY_WHEN.test(selector)) : EFFECT_GROUPS.has(atName))
+    if (!comesOut) stays.push(`${rule.prelude} {${rule.body}}`)
+    // body { @media (x) { opacity: 0 } } is @media (x) { body { opacity: 0 } }
+    else if (atName !== null) outside.push(...effectsMoved({ kind: 'at', atName, prelude: rule.prelude, body: `${s.prelude} {${rule.body}}` })!)
+    else outside.push(...(effectsMoved({ kind: 'rule', prelude: resolved.join(', '), body: rule.body }) ?? [{ kind: 'rule', prelude: resolved.join(', '), body: rule.body }]))
+  }
+
+  const effects = declarations.filter(isWholePageEffect)
+  if (effects.length === 0 && outside.length === 0) return null
+  const rest = declarations.filter((d) => !effects.includes(d))
   const out: CSSStatement[] = []
-  for (const s of splitTopLevelStatements(css)) {
-    if (s.kind === 'at' && s.body !== undefined && GROUP_AT_RULES.has(s.atName || '')) {
-      out.push({ ...s, body: '\n' + moveWholePageEffects(s.body) + '\n' })
-      continue
-    }
-    const selectors = s.kind === 'rule' ? splitSelectorList(s.prelude).map((selector) => selector.trim()) : []
-    const onRoot = s.kind === 'rule' && s.body !== undefined && !s.body.includes('{') &&
-      selectors.every((selector) => ROOT_OR_BODY_WHEN.test(selector))
-    const declarations = onRoot ? splitDeclarations(s.body!) : []
-    const effects = declarations.filter((d) => WHOLE_PAGE_EFFECTS.test(d.slice(0, d.indexOf(':')).trim()))
-    if (effects.length === 0) {
-      out.push(s)
-      continue
-    }
-    const rest = declarations.filter((d) => !effects.includes(d))
-    if (rest.length > 0) out.push({ ...s, body: ` ${rest.join('; ')}; ` })
+  if (rest.length > 0 || stays.length > 0) {
+    out.push({ ...s, body: ` ${[rest.length > 0 ? `${rest.join('; ')};` : '', ...stays].filter(Boolean).join(' ')} ` })
+  }
+  if (effects.length > 0) {
     // A condition goes with it: html:has(#dark:checked) inverts the page, not the nav
     const prelude = selectors.every((selector) => ROOT_OR_BODY.test(selector))
       ? PAGE_ROOT
       : selectors.map((selector) => `${selector} ${PAGE_ROOT}`).join(', ')
     out.push({ kind: 'rule', prelude, body: ` ${effects.join('; ')}; ` })
   }
-  return serializeStatements(out)
+  return [...out, ...outside]
+}
+
+/** Any effect declared in a rule body, at any depth */
+function hasEffects(body: string): boolean {
+  return [...body.matchAll(/(?:^|[;{}])\s*([-\w]+\s*:[^;{}]*)/g)].some((m) => isWholePageEffect(m[1]))
+}
+
+/** A nested selector written out in full: `&:hover` in body is `body:hover`, `body` in html is `html body` */
+function unnested(selector: string, parent: string): string {
+  const sel = selector.trim()
+  return sel.includes('&') ? sel.replace(/&/g, parent) : `${parent} ${sel}`
+}
+
+/** A rule's own declarations, and the rules nested in it ({ prelude, body }), as written */
+function splitRuleBody(body: string): { declarations: string[]; nested: { prelude: string; body: string }[] } {
+  const declarations: string[] = []
+  const nested: { prelude: string; body: string }[] = []
+  let statement = 0
+  let i = 0
+  const declaration = (end: number) => {
+    const text = body.slice(statement, end).trim()
+    if (text) declarations.push(text)
+  }
+  while (i < body.length) {
+    const ch = body[i]
+    if (ch === "'" || ch === '"') {
+      i = skipString(body, i)
+    } else if (ch === '(') {
+      i = skipParens(body, i)
+    } else if (ch === ';') {
+      declaration(i)
+      statement = ++i
+    } else if (ch === '{') {
+      const close = closingBrace(body, i)
+      nested.push({ prelude: body.slice(statement, i).trim(), body: body.slice(i + 1, close) })
+      i = statement = close + 1
+    } else {
+      i++
+    }
+  }
+  declaration(body.length)
+  return { declarations, nested }
 }
 
 /**
@@ -547,6 +633,38 @@ export function renameCollidingKeyframes(css: string): string {
 }
 
 /**
+ * Font families the site's own chrome is set in (styles/*.css and
+ * Tailwind's theme; a test keeps this list complete), lowercased. A page's
+ * @font-face of one of these names replaced it everywhere on that page,
+ * the site's logo included (bug bash 2026-10-26).
+ */
+export const SITE_FONTS: ReadonlySet<string> = new Set([
+  '-apple-system', 'apple color emoji', 'blinkmacsystemfont', 'cambria', 'consolas', 'courier new', 'fira code',
+  'georgia', 'liberation mono', 'menlo', 'monaco', 'noto color emoji', 'roboto', 'segoe ui', 'segoe ui emoji',
+  'segoe ui symbol', 'sfmono-regular', 'times', 'times new roman',
+])
+
+/** `@font-face { font-family: Georgia }` and its uses → `"page-Georgia"`, for the names the site uses too */
+export function renameSiteFonts(css: string): string {
+  if (!/@font-face/i.test(css)) return css
+  const familyName = (value: string) => value.trim().replace(/^(["'])(.*)\1$/, '$2').replace(/\s+/g, ' ')
+  const defined = new Map<string, string>() // lowercased → as written
+  for (const face of css.matchAll(/@font-face\s*\{([^}]*)\}/gi)) {
+    const family = /(?<![\w-])font-family\s*:\s*([^;}]+)/i.exec(face[1])?.[1]
+    const name = family ? familyName(family) : ''
+    if (SITE_FONTS.has(name.toLowerCase())) defined.set(name.toLowerCase(), name)
+  }
+  if (defined.size === 0) return css
+  const names = new RegExp(
+    `(["']?)(?<![\\w-])(${[...defined.keys()].map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/ /g, '\\s+')).join('|')})(?![\\w-])\\1`,
+    'gi'
+  )
+  return css.replace(/((?<![\w-])font(?:-family)?\s*:)([^;{}]*)/gi, (_whole, prop: string, value: string) =>
+    prop + value.replace(names, (_m, _q: string, name: string) => `"page-${defined.get(familyName(name).toLowerCase()) ?? name}"`)
+  )
+}
+
+/**
  * THE transform for advanced-mode (your own HTML page) CSS. The live page
  * (pages/_app.tsx) and the editor preview (pages/template-preview.tsx) both
  * call this, so the preview can't show a page the live site won't.
@@ -571,9 +689,10 @@ export function transformAdvancedCss(
   css: string,
   options: { fontImports?: readonly string[]; bodyCss?: string; styleCss?: string } = {}
 ): string {
-  // <body bgcolor…> rules go first so the page's own CSS wins over them
-  const source = [options.bodyCss, css, options.styleCss].filter(Boolean).join('\n')
-  const { imports, rest } = extractImports(renameCollidingKeyframes(prefixUserContentIds(source)))
+  // <body bgcolor…> rules go first so the page's own CSS wins over them.
+  // Each read as the browser reads it, so one left open can't take in the next
+  const source = [options.bodyCss, css, options.styleCss].filter((part): part is string => !!part).map(pageCssAsBrowserReads).join('\n')
+  const { imports, rest } = extractImports(renameSiteFonts(renameCollidingKeyframes(prefixUserContentIds(source))))
   const allImports = [
     ...(options.fontImports ?? []).filter((line) => !imports.includes(line)),
     ...imports,
@@ -605,12 +724,21 @@ export function mapSelectors(
   const out = statements.flatMap((s): CSSStatement | CSSStatement[] => {
     // `authorScopes`: a page's own @scope (.card) { img {} }: only its root
     // selector is mapped; the rules inside are relative to it (template audit 01 #16b)
+    // Its root can't be html or body, whose scope is the whole document
+    // nav and all: those are the page root. Nor can it be left out, which
+    // makes it the <style>'s parent, outside the page (bug bash 2026-10-26)
     if (options.authorScopes && s.kind === 'at' && s.atName === 'scope') {
       const open = s.prelude.indexOf('(')
-      if (open === -1) return s
+      const pageRoot = mapSelector(PAGE_ROOT)
+      if (open === -1 || /^@scope\s+to\b/i.test(s.prelude)) {
+        return { ...s, prelude: `@scope (${pageRoot})${s.prelude.replace(/^@scope/i, '')}` }
+      }
       const close = skipParens(s.prelude, open)
-      const root = s.prelude.slice(open + 1, close - 1)
-      return { ...s, prelude: `${s.prelude.slice(0, open + 1)}${splitSelectorList(root).map(mapSelector).join(', ')}${s.prelude.slice(close - 1)}` }
+      const roots = splitSelectorList(s.prelude.slice(open + 1, close - 1)).map((selector) => {
+        const mapped = mapSelector(selector)
+        return isWholeDocument(mapped) ? mapSelector(`${selector} ${PAGE_ROOT}`) : mapped
+      })
+      return { ...s, prelude: `${s.prelude.slice(0, open + 1)}${roots.join(', ')}${s.prelude.slice(close - 1)}` }
     }
     if (s.kind === 'rule') {
       const selectors = splitSelectorList(s.prelude).map(mapSelector)
@@ -618,10 +746,9 @@ export function mapSelectors(
       // rule stay inside the page too, as written at the top level would
       if (options.authorScopes && s.body?.includes('{')) {
         // html or body itself (`body.dark` → body:has(the page root.dark))
-        const isRoot = (selector: string) => !selector.replace(/:has\(.*\)$/, '').includes(PAGE_ROOT)
-        const roots = selectors.filter(isRoot)
+        const roots = selectors.filter(isWholeDocument)
         if (roots.length > 0) {
-          const inside = selectors.filter((selector) => !isRoot(selector))
+          const inside = selectors.filter((selector) => !isWholeDocument(selector))
           const rootRule = { ...s, prelude: roots.join(', '), body: nestedInsidePage(s.body) }
           return inside.length > 0 ? [{ ...s, prelude: inside.join(', ') }, rootRule] : rootRule
         }
@@ -637,6 +764,9 @@ export function mapSelectors(
   })
   return serializeStatements(out)
 }
+
+/** A mapped selector that is html or body itself, not inside the page root (`body.dark` → body:has(the page root.dark)) */
+const isWholeDocument = (selector: string) => !selector.replace(/:has\(.*\)$/, '').includes(PAGE_ROOT)
 
 /**
  * The selectors of the rules nested in a rule body (`.card { #title { … } }`),
