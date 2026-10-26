@@ -127,8 +127,12 @@ export default function CommunityTicker() {
 
   if (items.length === 0) return null;
 
-  // Duplicate items for seamless infinite scroll
-  const displayItems = [...items, ...items];
+  // Nothing going on: one still line that wraps, not a scrolling pair cut
+  // off on a phone and read out twice (signup audit #11)
+  const quiet = items.length === 1 && items[0].type === 'empty';
+
+  // Duplicate items for seamless infinite scroll; the copy is for the eye only
+  const displayItems = quiet ? items : [...items, ...items];
 
   // Scale scroll speed with content so short lists don't crawl
   const scrollDuration = Math.max(30, items.length * 15);
@@ -149,11 +153,11 @@ export default function CommunityTicker() {
       >
         <div className="relative py-3 px-4 overflow-hidden">
           <div
-            className="flex items-center gap-64 whitespace-nowrap text-sm text-nb-ink animate-scroll"
-            style={{ animationDuration: `${scrollDuration}s` }}
+            className={quiet ? 'flex items-center text-sm text-nb-ink' : 'flex items-center gap-64 whitespace-nowrap text-sm text-nb-ink animate-scroll'}
+            style={quiet ? undefined : { animationDuration: `${scrollDuration}s` }}
           >
             {displayItems.map((item, index) => (
-              <div key={`${item.id}-${index}`} className="flex items-center gap-2">
+              <div key={`${item.id}-${index}`} className="flex items-center gap-2" aria-hidden={index >= items.length ? true : undefined}>
                 <PixelIcon name={item.icon} size={16} className="text-nb-ink-mid flex-shrink-0" />
                 <span className="font-medium">{item.text}</span>
               </div>

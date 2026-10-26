@@ -44,6 +44,15 @@ body:has(.ts-chat-toggle) .ts-view-source-badge {
   bottom: calc(20px + 60px + 12px);
 }
 
+/* A phone: the chat button steps aside while someone types, so it doesn't
+   sit on the field they're filling in (signup audit #11). Not while chat is
+   open: on a phone it's the chat's close button. */
+@media (max-width: 767px) {
+  body:has(:is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"]), textarea, select, [contenteditable="true"]):focus) .ts-chat-toggle[aria-label="Open chat"] {
+    display: none;
+  }
+}
+
 /* ---------- the music player's own controls ----------
    The site bevel comes from the site theme, which a page with site styles
    off doesn't load, so the player carries its own: the same look on every

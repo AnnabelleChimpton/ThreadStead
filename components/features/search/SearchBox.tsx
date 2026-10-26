@@ -77,7 +77,8 @@ export default function SearchBox({
   size = 'md',
   label = 'Search ThreadStead',
   showLabel = false,
-  placeholder = 'People, rings, posts, homes…',
+  // Short enough for a phone's search box (signup audit #11)
+  placeholder = 'People, rings, posts…',
   autoFocus = false,
   suggest = true,
   className = '',
