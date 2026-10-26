@@ -289,10 +289,10 @@ describe('schema', () => {
     async (_req, res, { body }) => res.json({ body })
   );
 
-  test('400 with details for an invalid body', async () => {
+  test('400 that says what to fix, with details, for an invalid body', async () => {
     const res = await call(route, { method: 'POST', body: { name: '' }, headers: withCsrf });
     expect(res.statusCode).toBe(400);
-    expect(res.body.error).toBe('Validation error');
+    expect(res.body.error).toBe("Name can't be empty.");
     expect(res.body.details[0].path).toEqual(['name']);
   });
 

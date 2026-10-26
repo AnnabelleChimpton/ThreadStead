@@ -29,6 +29,7 @@
 import { timingSafeEqual } from 'crypto';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { ZodError, type ZodType, type z } from 'zod';
+import { validationMessage } from './validation';
 import { UserRole } from '@prisma/client';
 import { getSessionUser, type SessionUser } from '@/lib/auth/server';
 import { AccountHiddenError, writesWhileLeaving } from '@/lib/domain/users/moderation';
@@ -113,8 +114,9 @@ function bearerMatches(req: NextApiRequest, expected: string | undefined): boole
   return given.length === want.length && timingSafeEqual(given, want);
 }
 
+/** The first problem, in plain words (lib/api/validation.ts), and all of them as details */
 function sendValidationError(res: NextApiResponse, error: ZodError): void {
-  sendError(res, 400, API_ERRORS.validation, { details: error.issues });
+  sendError(res, 400, validationMessage(error.issues), { details: error.issues });
 }
 
 export function apiHandler<const O extends ApiHandlerOptions>(
