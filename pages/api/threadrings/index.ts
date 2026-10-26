@@ -1,28 +1,17 @@
-import type { NextApiRequest, NextApiResponse } from "next";
+import { apiHandler } from "@/lib/api/handler";
 import { db } from "@/lib/config/database/connection";
-import { getSessionUser } from "@/lib/auth/server";
 import { getPublicRingHubClient } from "@/lib/api/ringhub/ringhub-client";
 import { createAuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
 import { cached } from "@/lib/api/ringhub/ringhub-cache";
 import { RingHubAuthError, RingHubUnavailableError } from "@/lib/api/ringhub/ringhub-errors";
 import { parseOffsetPagination } from "@/lib/server/http/pagination";
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
-  if (req.method !== "GET") {
-    res.setHeader("Allow", ["GET"]);
-    return res.status(405).json({ error: "Method Not Allowed" });
-  }
-
+export default apiHandler({ methods: ["GET"], auth: "optional" }, async (req, res, { user: viewer }) => {
   try {
     const { limit, offset } = parseOffsetPagination(req.query, { defaultLimit: 20, maxLimit: 50 });
     const search = String(req.query.search || "").trim();
     const sort = String(req.query.sort || "newest"); // newest, members, alphabetical
     const membership = String(req.query.membership || "").trim() === "true"; // Filter to only user's memberships
-
-    const viewer = await getSessionUser(req);
 
     // Signed out, nobody's rings are "yours"
     if (membership && !viewer) {
@@ -159,4 +148,4 @@ export default async function handler(
     console.error("Error fetching ThreadRings:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
-}
+});

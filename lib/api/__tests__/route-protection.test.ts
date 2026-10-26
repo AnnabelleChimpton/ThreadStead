@@ -50,16 +50,6 @@ const NOT_COOKIE_WRITES = [
   // GET/HEAD only, reads no session: the Bluesky check on residents' addresses (middleware.ts)
   'pages/api/atproto-did/[label].ts',
   'pages/api/ringhub/health-check.ts',
-  'pages/api/threadrings/[slug].ts',
-  'pages/api/threadrings/[slug]/lineage.ts',
-  'pages/api/threadrings/[slug]/members.ts',
-  'pages/api/threadrings/[slug]/posts.ts',
-  'pages/api/threadrings/[slug]/prompts/[promptId]/responses.ts',
-  'pages/api/threadrings/check-availability/[slug].ts',
-  'pages/api/threadrings/genealogy.ts',
-  'pages/api/threadrings/index.ts',
-  'pages/api/threadrings/my-memberships.ts',
-  'pages/api/threadrings/stats.ts',
   'pages/api/users/resolve-dids.ts',
 ];
 

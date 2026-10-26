@@ -1,5 +1,4 @@
-import { NextApiRequest, NextApiResponse } from 'next';
-import { getSessionUser } from '@/lib/auth/server';
+import { apiHandler } from '@/lib/api/handler';
 import { createAuthenticatedRingHubClient } from '@/lib/api/ringhub/ringhub-user-operations';
 import { getPublicRingHubClient } from '@/lib/api/ringhub/ringhub-client';
 import { cached } from '@/lib/api/ringhub/ringhub-cache';
@@ -19,18 +18,12 @@ function countDescendants(nodes: any[]): number {
  * members see it, and cached per viewer: the hub walks the whole subtree for
  * this, and the Spool's subtree is every ring.
  */
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'GET') {
-    res.setHeader('Allow', ['GET']);
-    return res.status(405).json({ error: 'Method Not Allowed' });
-  }
-
+export default apiHandler({ methods: ['GET'], auth: 'optional' }, async (req, res, { user: viewer }) => {
   const { slug } = req.query;
   if (typeof slug !== 'string') {
     return res.status(400).json({ error: 'Invalid slug parameter' });
   }
 
-  const viewer = await getSessionUser(req);
   const publicClient = getPublicRingHubClient();
 
   try {
@@ -77,4 +70,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.error('Ring Hub lineage fetch failed:', error);
     return res.status(503).json({ error: 'hub_unavailable', degraded: true });
   }
-}
+});

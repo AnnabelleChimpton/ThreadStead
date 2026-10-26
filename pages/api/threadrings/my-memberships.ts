@@ -1,15 +1,12 @@
-import type { NextApiRequest, NextApiResponse } from "next";
-import { getSessionUser } from "@/lib/auth/server";
+import { apiHandler } from "@/lib/api/handler";
 import { createAuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
 import { cached } from "@/lib/api/ringhub/ringhub-cache";
 import { RingHubAuthError, RingHubUnavailableError } from "@/lib/api/ringhub/ringhub-errors";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "GET") return res.status(405).json({ error: "Method Not Allowed" });
+/** Pages read at most: 2000 rings. A hub that kept saying "more" looped here for good. */
+const MAX_PAGES = 40;
 
-  const viewer = await getSessionUser(req);
-  if (!viewer) return res.status(401).json({ error: "not logged in" });
-
+export default apiHandler({ methods: ["GET"], auth: "user" }, async (_req, res, { user: viewer }) => {
   try {
     const authenticatedClient = createAuthenticatedRingHubClient(viewer.id);
 
@@ -25,7 +22,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         let hasMore = true;
         const limit = 50; // Fetch in batches of 50
 
-        while (hasMore) {
+        for (let pages = 0; hasMore && pages < MAX_PAGES; pages++) {
           const response = await authenticatedClient.getMyMemberships({
             status: 'ACTIVE',
             limit,
@@ -66,4 +63,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.error('Failed to fetch Ring Hub memberships:', error);
     return res.status(503).json({ error: 'hub_unavailable', degraded: true });
   }
-}
+});

@@ -1,17 +1,9 @@
-import type { NextApiRequest, NextApiResponse } from "next";
+import { apiHandler } from "@/lib/api/handler";
 import { getPublicRingHubClient } from "@/lib/api/ringhub/ringhub-client";
 import { cached } from "@/lib/api/ringhub/ringhub-cache";
 
 /** Ring Hub's network-wide counts (rings, actors, posts). */
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
-  if (req.method !== "GET") {
-    res.setHeader("Allow", ["GET"]);
-    return res.status(405).json({ error: "Method Not Allowed" });
-  }
-
+export default apiHandler({ methods: ["GET"], auth: "none" }, async (_req, res) => {
   const client = getPublicRingHubClient();
 
   try {
@@ -21,4 +13,4 @@ export default async function handler(
     console.error("Error fetching Ring Hub stats:", error);
     return res.status(503).json({ error: "hub_unavailable", degraded: true });
   }
-}
+});

@@ -1,5 +1,5 @@
-import { NextApiRequest, NextApiResponse } from 'next';
-import { getSessionUser } from '@/lib/auth/server';
+import { apiHandler } from '@/lib/api/handler';
+import { externalPostBody } from '@/lib/rings/external-post';
 import { createAuthenticatedRingHubClient } from '@/lib/api/ringhub/ringhub-user-operations';
 import { getPublicRingHubClient, type RingHubClient } from '@/lib/api/ringhub/ringhub-client';
 import { RingHubAuthError, RingHubUnavailableError } from '@/lib/api/ringhub/ringhub-errors';
@@ -50,9 +50,7 @@ async function resolveRingHubPosts(ringHubPosts: any[], viewer: { id: string } |
           id: `external-${ringHubPost.ringSlug}-${ringHubPost.id}`,
           title: ringHubPost.metadata?.title || 'External Post',
           isExternal: true,
-          externalUrl: ringHubPost.uri,
-          bodyHtml: `<p>This post is from an external source. <a href="${ringHubPost.uri}" target="_blank" rel="noopener noreferrer">View original post</a></p>`,
-          bodyMarkdown: `This post is from an external source. [View original post](${ringHubPost.uri})`,
+          ...externalPostBody(ringHubPost.uri),
           intent: null,
           visibility: 'public',
           createdAt: ringHubPost.submittedAt,
@@ -222,12 +220,7 @@ function hubFailure(error: unknown): [number, string] {
  * A ring's posts, from the hub's feed: signed as the viewer, so a private
  * ring's members can read it, and resolved to this site's posts.
  */
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'GET') {
-    res.setHeader('Allow', ['GET']);
-    return res.status(405).json({ error: 'Method Not Allowed' });
-  }
-
+export default apiHandler({ methods: ['GET'], auth: 'optional' }, async (req, res, { user: viewer }) => {
   const { slug } = req.query;
   const { scope = 'current' } = req.query;
   const { limit, offset } = parseOffsetPagination(req.query, { defaultLimit: 20 });
@@ -237,9 +230,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // Get current user for optional authentication (enhanced data if authenticated)
-    const viewer = await getSessionUser(req);
-
     // Map our scope values to Ring Hub scope values
     const hubScope = ({ current: 'ring', parent: 'parent', children: 'children', siblings: 'siblings', family: 'family' } as const)[
       scope as 'current'
@@ -291,4 +281,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       message: 'Failed to fetch posts data'
     });
   }
-}
+});

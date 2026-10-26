@@ -1,15 +1,10 @@
-import type { NextApiRequest, NextApiResponse } from "next";
+import { apiHandler } from "@/lib/api/handler";
 import { getRingHubClient } from "@/lib/api/ringhub/ringhub-client";
 import { transformRingDescriptorToThreadRing } from "@/lib/api/ringhub/ringhub-transformers";
 import { cached } from "@/lib/api/ringhub/ringhub-cache";
 import { RingHubAuthError, RingHubUnavailableError } from "@/lib/api/ringhub/ringhub-errors";
 
-export default async function handler(
-  req: NextApiRequest, 
-  res: NextApiResponse
-) {
-  if (req.method !== "GET") return res.status(405).json({ error: "Method Not Allowed" });
-
+export default apiHandler({ methods: ["GET"], auth: "none" }, async (req, res) => {
   const { slug } = req.query;
 
   if (typeof slug !== "string") {
@@ -56,4 +51,4 @@ export default async function handler(
     console.error("ThreadRing fetch error:", error);
     res.status(500).json({ error: "Failed to fetch ThreadRing" });
   }
-}
+});

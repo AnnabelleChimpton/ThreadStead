@@ -1,14 +1,7 @@
-import type { NextApiRequest, NextApiResponse } from "next";
+import { apiHandler } from "@/lib/api/handler";
 import { ringHubUrl } from "@/lib/api/ringhub/ringhub-client";
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
-  if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method Not Allowed" });
-  }
-
+export default apiHandler({ methods: ["GET"], auth: "none" }, async (req, res) => {
   const { slug } = req.query;
 
   if (typeof slug !== "string") {
@@ -70,4 +63,4 @@ export default async function handler(
       message: "Failed to check slug availability"
     });
   }
-}
+});

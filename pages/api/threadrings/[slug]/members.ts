@@ -1,5 +1,4 @@
-import type { NextApiRequest, NextApiResponse } from "next";
-import { getSessionUser } from "@/lib/auth/server";
+import { apiHandler } from "@/lib/api/handler";
 import { createAuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
 import { getPublicRingHubClient, RingHubClient } from "@/lib/api/ringhub/ringhub-client";
 import { readAllRingMembers } from "@/lib/api/ringhub/ring-members";
@@ -8,23 +7,13 @@ import { db } from "@/lib/config/database/connection";
 import { cached } from "@/lib/api/ringhub/ringhub-cache";
 import { RingHubAuthError, RingHubUnavailableError } from "@/lib/api/ringhub/ringhub-errors";
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
-  if (req.method !== "GET") {
-    res.setHeader("Allow", ["GET"]);
-    return res.status(405).json({ error: "Method Not Allowed" });
-  }
-
+export default apiHandler({ methods: ["GET"], auth: "optional" }, async (req, res, { user: viewer }) => {
   const { slug } = req.query;
   if (typeof slug !== "string") {
     return res.status(400).json({ error: "Invalid slug" });
   }
 
   try {
-    const viewer = await getSessionUser(req);
-
     // If user is not authenticated, use public membership info endpoint
     if (!viewer) {        
       try {
@@ -173,4 +162,4 @@ export default async function handler(
     console.error("Error fetching ThreadRing members:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
-}
+});
