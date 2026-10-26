@@ -290,9 +290,11 @@ export function evaluateExpression(
     return undefined;
   }
 
-  // Inside a loop, its names (cell, i) as well, under what the caller gave
+  // Inside a loop, its names (cell, i) as well, over the page's Vars the
+  // caller gave: a Var named i hid the loop's i (bug bash 2026-10-26).
+  // A caller with names of its own (a Filter's item) sets them itself
   const loop = loopNames();
-  if (loop) context = { ...loop, ...context };
+  if (loop) context = { ...context, ...loop };
 
   // P1.2: Check if expression is pure (no variables at all)
   // CRITICAL: An expression is only pure if it has NO variables, including:

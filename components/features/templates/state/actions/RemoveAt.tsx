@@ -80,23 +80,9 @@ export function executeRemoveAtAction(
     const parts = varPath.split('.');
     const referencedVarName = parts[0];
 
-    console.log('[RemoveAt] Resolving $vars reference:', {
-      index,
-      varPath,
-      referencedVarName,
-      availableVars: Object.keys(templateState.variables)
-    });
-
     // Get referenced variable with FRESH state from global manager
     const freshVariables = globalTemplateStateManager.getAllVariables();
     const referencedVar = freshVariables[referencedVarName];
-
-    console.log('[RemoveAt] Variable lookup result:', {
-      referencedVarName,
-      found: !!referencedVar,
-      value: referencedVar?.value,
-      type: typeof referencedVar?.value
-    });
 
     let varValue = referencedVar?.value;
 
@@ -110,7 +96,6 @@ export function executeRemoveAtAction(
     }
 
     resolvedIndex = varValue;
-    console.log('[RemoveAt] Final resolved value:', { resolvedIndex, type: typeof resolvedIndex });
   } else if (typeof index === 'number' || (typeof index === 'string' && !index.startsWith('{'))) {
     // Direct index value (not a placeholder like {i})
     resolvedIndex = index;
@@ -121,31 +106,16 @@ export function executeRemoveAtAction(
     resolvedIndex = forEachContext?.index;
   }
 
-  console.log('[RemoveAt] executeRemoveAtAction called:', {
-    varName,
-    propIndex: index,
-    contextIndex: forEachContext?.index,
-    resolvedIndex,
-    indexType: typeof resolvedIndex,
-    hasContext: !!forEachContext
-  });
 
-  // Get current array
-  const variable = templateState.variables[varName];
+  // The list as it is now: a Push or RemoveAt just before this in the
+  // same click isn't in the render's copy yet (bug bash 2026-10-26)
+  const variable = globalTemplateStateManager.getAllVariables()[varName] ?? templateState.variables[varName];
   const currentArray = Array.isArray(variable?.value) ? variable.value : [];
 
-  console.log('[RemoveAt] Array state:', {
-    currentArray,
-    arrayLength: currentArray.length
-  });
 
   // Convert index to number
   const indexNum = typeof resolvedIndex === 'number' ? resolvedIndex : parseInt(String(resolvedIndex), 10);
 
-  console.log('[RemoveAt] Parsed index:', {
-    indexNum,
-    isValid: !isNaN(indexNum)
-  });
 
   // Validate index
   if (isNaN(indexNum) || indexNum < 0 || indexNum >= currentArray.length) {

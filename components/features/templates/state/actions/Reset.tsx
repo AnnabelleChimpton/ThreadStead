@@ -57,7 +57,6 @@ export function executeResetAction(
     // Reset specific variable
     if (templateState.resetVariable) {
       templateState.resetVariable(varName);
-      console.log(`[Reset] Reset variable: ${varName}`);
     } else {
       console.warn('[Reset] resetVariable function not available on templateState');
     }
@@ -65,7 +64,6 @@ export function executeResetAction(
     // Reset all variables
     if (templateState.resetAll) {
       templateState.resetAll();
-      console.log('[Reset] Reset all variables');
     } else {
       console.warn('[Reset] resetAll function not available on templateState');
     }

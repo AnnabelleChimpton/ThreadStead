@@ -6,6 +6,7 @@
  */
 
 import { evaluateExpression } from './expression-evaluator';
+import { loopNames, withLoopNames } from './loop-names';
 
 /**
  * Evaluation context for collection operations
@@ -41,16 +42,18 @@ export function evaluateCollectionExpression(
     return undefined;
   }
 
-  // Build context with item, index, and all template variables
+  // Build context with item, index, and all template variables: a loop
+  // this runs in has its names over the Vars, and this item and index over both
   const context = {
     ...varsContext,
+    ...loopNames(),
     item: itemValue,
     index: itemIndex,
     i: itemIndex  // Shorthand alias
   };
 
   try {
-    const result = evaluateExpression(expression, context);
+    const result = withLoopNames(null, () => evaluateExpression(expression, context));
     return result;
   } catch (error) {
     console.error('[Collection] Expression evaluation failed:', expression, error);

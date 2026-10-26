@@ -252,3 +252,46 @@ describe('loops keep to themselves (bug bash 2026-10-26)', () => {
     })
   })
 })
+
+describe('page state in a click (bug bash 2026-10-26)', () => {
+  test('RemoveAt sees a Push, and another RemoveAt, made just before it in the same click', async () => {
+    await visit(`<div>
+<Var name="list" type="array" initial='["a","b","c"]' />
+<Var name="two" type="array" initial='["a","b","c"]' />
+<p id="go"><OnClick><Push var="list" value="z" /><RemoveAt var="list" index="0" /><RemoveAt var="two" index="0" /><RemoveAt var="two" index="0" /></OnClick>go</p>
+<p id="list"><ShowVar name="list" /></p><p id="two"><ShowVar name="two" /></p>
+</div>`, async ({ $, text }) => {
+      click($('#user-content-go'))
+      await settle()
+      expect(JSON.parse(text('list'))).toEqual(['b', 'c', 'z'])
+      expect(JSON.parse(text('two'))).toEqual(['c'])
+    })
+  })
+
+  test("a loop's index beats a page Var with the same name", async () => {
+    await visit(`<div>
+<Var name="i" type="number" initial="99" />
+<Var name="got" type="string" initial="" />
+<ul><ForEach var="list" item="x" index="i"><li class="x{i}"><OnClick><Set var="got" expression="i" /></OnClick>{x}</li></ForEach></ul>
+<Var name="list" type="array" initial='["a","b"]' />
+<p id="got"><ShowVar name="got" /></p>
+</div>`, async ({ $, text }) => {
+      click($('.x1'))
+      await settle()
+      expect(text('got')).toBe('1')
+    })
+  })
+
+  test('a boolean Var set from a count or a name is true', async () => {
+    await visit(`<div>
+<Var name="list" type="array" initial='["a","b"]' />
+<Var name="has" type="boolean" initial="false" />
+<p id="go"><OnClick><Set var="has" expression="list.length" /></OnClick>go</p>
+<p id="has"><If data="has">yes</If></p>
+</div>`, async ({ $, text }) => {
+      click($('#user-content-go'))
+      await settle()
+      expect(text('has')).toBe('yes')
+    })
+  })
+})

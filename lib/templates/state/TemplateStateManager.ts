@@ -18,14 +18,76 @@ import { evaluateExpression, extractVariableNames, MAX_COMPUTED_TOTAL, valueSize
  * Singleton instance that manages all template variables globally.
  * Islands subscribe to changes and re-render when variables update.
  */
-/** A urlParam variable's value from the address bar: its param, coerced; else its default */
-function urlParamValue(config: { param?: string; coerce?: string; separator?: string; default?: unknown }): unknown {
-  const raw = config.param ? new URLSearchParams(window.location.search).get(config.param) : null;
-  if (raw === null) return config.default;
+/**
+ * What a boolean Var holds once set: text as written ("false", "0" and ""
+ * are false, any other text true), anything else as a condition reads it.
+ * list.length or a name made false before (bug bash 2026-10-26)
+ */
+export function toBoolean(value: unknown): boolean {
+  if (typeof value === 'string') return !/^(?:|false|0)$/i.test(value.trim());
+  return Boolean(value);
+}
+
+/**
+ * Computed Vars in an order they can be worked out in: each after the
+ * computed Vars it reads, whatever order they're declared in. Worked out as
+ * declared, b = a * 10 before a = n + 1 showed NaN on the server and stayed
+ * one change behind in the browser. `cyclic`: ones that read themselves,
+ * through others or not; worked out each time, they crept up by one on
+ * every change (bug bash 2026-10-26).
+ */
+export function computedOrder(vars: { name: string; computed?: string }[]): { order: string[]; cyclic: string[] } {
+  const names = new Set(vars.map((v) => v.name));
+  const reads = new Map(vars.map((v) => [v.name, v.computed ? extractVariableNames(v.computed).filter((n) => names.has(n)) : []]));
+  const order: string[] = [];
+  const cyclic = new Set<string>();
+  const state = new Map<string, 'visiting' | 'done'>();
+  // Depth first, without recursion: a page can chain thousands
+  for (const root of vars) {
+    if (state.has(root.name)) continue;
+    const path: { name: string; next: number }[] = [{ name: root.name, next: 0 }];
+    state.set(root.name, 'visiting');
+    while (path.length > 0) {
+      const top = path[path.length - 1];
+      const deps = reads.get(top.name) ?? [];
+      if (top.next < deps.length) {
+        const dep = deps[top.next++];
+        if (state.get(dep) === 'visiting') {
+          const from = path.findIndex((step) => step.name === dep);
+          for (const step of path.slice(from)) cyclic.add(step.name);
+        } else if (!state.has(dep)) {
+          state.set(dep, 'visiting');
+          path.push({ name: dep, next: 0 });
+        }
+        continue;
+      }
+      state.set(top.name, 'done');
+      order.push(top.name);
+      path.pop();
+    }
+  }
+  return { order: order.filter((name) => !cyclic.has(name)), cyclic: [...cyclic] };
+}
+
+type UrlParamConfig = { param?: string; coerce?: string; separator?: string; default?: unknown };
+
+/**
+ * A urlParam's text as its coerce says. Its default too: default="3" with
+ * coerce="number" was the text "3", so n + 1 made "31", and
+ * default="false" showed an If (bug bash 2026-10-26)
+ */
+export function coerceUrlParam(raw: unknown, config: UrlParamConfig): unknown {
+  if (typeof raw !== 'string') return raw;
   if (config.coerce === 'number') return Number(raw);
   if (config.coerce === 'boolean') return raw === 'true';
   if (config.coerce === 'array') return raw.split(config.separator || ',').map((part) => part.trim());
   return raw;
+}
+
+/** A urlParam variable's value from the address bar: its param, coerced; else its default */
+function urlParamValue(config: UrlParamConfig): unknown {
+  const raw = config.param ? new URLSearchParams(window.location.search).get(config.param) : null;
+  return coerceUrlParam(raw ?? config.default, config);
 }
 
 class TemplateStateManager {
@@ -181,7 +243,7 @@ class TemplateStateManager {
           coercedValue = isNaN(num) ? 0 : num;
           break;
         case 'boolean':
-          coercedValue = value === true || value === 'true' || value === '1';
+          coercedValue = toBoolean(value);
           break;
         case 'string':
           coercedValue = String(value);
@@ -688,25 +750,30 @@ class TemplateStateManager {
    * P3.1 FIX: Use synchronous evaluation instead of async import
    */
   private evaluateComputedVariables(): void {
-    const computedVars = Object.entries(this.variables).filter(
-      ([_, v]) => v.type === 'computed' && v.computed
-    );
+    const computedVars = Object.values(this.variables).filter((v) => v.type === 'computed' && v.computed);
 
     if (computedVars.length === 0) {
       return;
     }
 
     const changed: string[] = [];
+    // Each after the ones it reads; ones in a loop of their own stay empty
+    const { order, cyclic } = computedOrder(computedVars.map((v) => ({ name: v.name, computed: v.computed })));
+    for (const name of cyclic) {
+      if (this.variables[name].value !== undefined) {
+        changed.push(name);
+        this.variables[name] = { ...this.variables[name], value: undefined };
+      }
+    }
+    // One context, kept up to date as each is worked out
+    const context = Object.fromEntries(Object.entries(this.variables).map(([k, v]) => [k, v.value]));
 
-    computedVars.forEach(([name, variable]) => {
+    order.forEach((name) => {
+      const variable = this.variables[name];
       try {
-        // Build context with all variable values
-        const context = Object.fromEntries(
-          Object.entries(this.variables).map(([k, v]) => [k, v.value])
-        );
-
         // Evaluate the expression
         const result = this.keepComputed(name, evaluateExpression(variable.computed!, context));
+        context[name] = result;
 
         // Only update if value changed (prevent infinite loops)
         if (result !== variable.value) {
@@ -722,6 +789,7 @@ class TemplateStateManager {
         console.error(`[TemplateStateManager] Expression: "${variable.computed}"`);
 
         // Set to undefined to prevent cascade errors
+        context[name] = undefined;
         if (variable.value !== undefined) {
           changed.push(name);
           this.variables[name] = {

@@ -108,7 +108,7 @@ export function TemplateStateProvider({ children, initialVariables = {} }: Templ
             coercedValue = isNaN(num) ? 0 : num;
             break;
           case 'boolean':
-            coercedValue = value === true || value === 'true' || value === '1';
+            coercedValue = toBoolean(value);
             break;
           case 'string':
             coercedValue = String(value);
@@ -169,21 +169,7 @@ export function TemplateStateProvider({ children, initialVariables = {} }: Templ
             const params = new URLSearchParams(window.location.search);
             const paramValue = params.get(config.param);
 
-            if (paramValue !== null) {
-              // Apply coercion if specified
-              if (config.coerce === 'number') {
-                initialValue = Number(paramValue);
-              } else if (config.coerce === 'boolean') {
-                initialValue = paramValue === 'true';
-              } else if (config.coerce === 'array') {
-                const separator = config.separator || ',';
-                initialValue = paramValue.split(separator).map(s => s.trim());
-              } else {
-                initialValue = paramValue;
-              }
-            } else {
-              initialValue = config.default ?? initialValue;
-            }
+            initialValue = coerceUrlParam(paramValue ?? config.default ?? initialValue, config);
           }
           break;
 
@@ -497,7 +483,7 @@ export function useTemplateStateWithDeps(dependencies?: string[]): TemplateState
  *
  * Uses the global TemplateStateManager for true cross-island state sharing
  */
-import { globalTemplateStateManager } from './TemplateStateManager';
+import { coerceUrlParam, computedOrder, globalTemplateStateManager, toBoolean } from './TemplateStateManager';
 import { clockWasRead, evaluateExpression, goLive, MAX_COMPUTED_TOTAL, valueSize } from './expression-evaluator';
 
 /**
@@ -555,7 +541,7 @@ export function coerceVarInitial(type: VariableType, initial: unknown): unknown 
       return typeof initial === 'number' ? initial : (isNaN(parsed) ? 0 : parsed);
     }
     case 'boolean':
-      return initial === true || initial === 'true' || initial === '1';
+      return toBoolean(initial);
     case 'string':
       return String(initial);
     case 'array':
@@ -610,7 +596,7 @@ export function seedVariables(declared: VariableConfig[] = []): Record<string, T
     }
     const initial = coerceVarInitial(config.type, config.initial);
     // Before the browser reads the URL, a URL param is its default
-    const value = config.type === 'urlParam' ? (config.default ?? initial) : initial;
+    const value = config.type === 'urlParam' ? coerceUrlParam(config.default ?? initial, config) : initial;
     seed[config.name] = { name: config.name, type: config.type, value, initial };
   }
   // One context, added to as each computed Var is worked out (built afresh
@@ -618,7 +604,13 @@ export function seedVariables(declared: VariableConfig[] = []): Record<string, T
   const context: Record<string, unknown> = Object.create(null);
   for (const [name, v] of Object.entries(seed)) context[name] = v.value;
   let held = 0;
-  for (const config of computed.values()) {
+  // Each after the computed Vars it reads; ones in a loop of their own stay empty
+  const { order, cyclic } = computedOrder([...computed.values()].map((c) => ({ name: c.name, computed: c.computed })));
+  for (const name of cyclic) {
+    const config = computed.get(name)!;
+    seed[name] = { name, type: 'computed', value: undefined, initial: undefined, computed: config.computed };
+  }
+  for (const config of order.map((name) => computed.get(name)!)) {
     let value: unknown;
     try {
       value = evaluateExpression(config.computed!, context);
