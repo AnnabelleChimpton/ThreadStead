@@ -111,7 +111,7 @@ export function TemplateStateProvider({ children, initialVariables = {} }: Templ
             coercedValue = toBoolean(value);
             break;
           case 'string':
-            coercedValue = String(value);
+            coercedValue = value === undefined || value === null ? '' : String(value);
             break;
           case 'array':
             if (!Array.isArray(value)) {
@@ -519,7 +519,8 @@ export function inferVarType(initial: unknown): VariableType {
   if (Array.isArray(initial)) return 'array';
   if (typeof initial === 'object' && initial !== null) return 'object';
   const text = String(initial ?? '').trim();
-  if (/^-?\d+(\.\d+)?$/.test(text)) return 'number';
+  // Not "02134" (a zip code) or digits past what a number holds exactly: those stay text
+  if (/^-?(?:0|[1-9]\d{0,14})(\.\d+)?$/.test(text)) return 'number';
   if (text === 'true' || text === 'false') return 'boolean';
   if (/^[[{]/.test(text)) {
     try {
@@ -583,7 +584,7 @@ export function coerceVarInitial(type: VariableType, initial: unknown): unknown 
  * Declarations come with their `initial` as written (coerced here).
  */
 export function seedVariables(declared: VariableConfig[] = []): Record<string, TemplateVariable> {
-  const seed: Record<string, TemplateVariable> = {};
+  const seed: Record<string, TemplateVariable> = Object.create(null);
   const computed = new Map<string, VariableConfig>();
   for (let config of declared) {
     if (!config.name || seed[config.name] || computed.has(config.name)) continue;

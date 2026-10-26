@@ -64,3 +64,51 @@ describe('computed Vars are worked out after what they read', () => {
     expect(order[0]).toBe('v19999')
   })
 })
+
+describe('smaller page-state fixes', () => {
+  test('"02134" and long digit strings stay text; ordinary numbers are numbers', () => {
+    const { inferVarType } = jest.requireActual('../TemplateStateProvider') as typeof import('../TemplateStateProvider')
+    expect(inferVarType('02134')).toBe('string')
+    expect(inferVarType('12345678901234567890')).toBe('string')
+    expect(['0', '0.5', '-3', '42'].map(inferVarType)).toEqual(['number', 'number', 'number', 'number'])
+  })
+
+  test('Vars named like what every object has register like any other', () => {
+    const seed = seedVariables([
+      { name: 'constructor', type: 'number', initial: '5' },
+      { name: 'toString', type: 'string', initial: 'hi' },
+      { name: '__proto__', type: 'number', initial: '1' },
+      { name: 'value', type: 'number', initial: '7' },
+    ])
+    const own = seed as Record<string, { value: unknown }>
+    expect(own['constructor'].value).toBe(5)
+    expect(own['toString'].value).toBe('hi')
+    expect(Object.getOwnPropertyDescriptor(seed, '__proto__')?.value.value).toBe(1)
+    expect(seed.value.value).toBe(7)
+  })
+
+  test('$vars.price style calculations are ordered by what they read too', () => {
+    const { extractVariableNames } = jest.requireActual('../expression-evaluator') as typeof import('../expression-evaluator')
+    expect(extractVariableNames('$vars.price * $vars.qty').sort()).toEqual(['price', 'qty'])
+    const seed = seedVariables([
+      { name: 'total', type: 'computed', computed: '$vars.each * 2' },
+      { name: 'each', type: 'computed', computed: '$vars.n + 1' },
+      { name: 'n', type: 'number', initial: '4' },
+    ])
+    expect(seed.total.value).toBe(10)
+  })
+
+  test("an arrow with no names, and arrow names that stay out of $vars", () => {
+    const { evaluateExpression } = jest.requireActual('../expression-evaluator') as typeof import('../expression-evaluator')
+    expect(evaluateExpression("board.map(() => '')", { board: ['X', 'O'] })).toEqual(['', ''])
+    expect(evaluateExpression('list.map(x => $vars.x)', { list: [1, 2], x: 'page' })).toEqual(['page', 'page'])
+  })
+
+  test('Sort puts numbers and number text in order by size; Merge takes a hasOwnProperty key', () => {
+    const { sortArray } = jest.requireActual('../collection-utils') as typeof import('../collection-utils')
+    const { mergeObjects } = jest.requireActual('../object-utils') as typeof import('../object-utils')
+    expect(sortArray([2, '100', 10, '9'], 'item', 'asc', {})).toEqual([2, '9', 10, '100'])
+    expect(sortArray(['item 10', 'item 2'], 'item', 'asc', {})).toEqual(['item 2', 'item 10'])
+    expect(mergeObjects([{ a: 1 }, { hasOwnProperty: 2 }])).toEqual({ a: 1, hasOwnProperty: 2 })
+  })
+})

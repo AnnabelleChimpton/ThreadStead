@@ -8,6 +8,13 @@
 import { evaluateExpression } from './expression-evaluator';
 import { loopNames, withLoopNames } from './loop-names';
 
+/** A number, or text that is exactly one; null for anything else */
+function asNumber(value: unknown): number | null {
+  if (typeof value === 'number') return isNaN(value) ? null : value;
+  if (typeof value === 'string' && value.trim() !== '' && !isNaN(Number(value))) return Number(value);
+  return null;
+}
+
 /**
  * Evaluation context for collection operations
  */
@@ -156,20 +163,19 @@ export function sortArray(
       if (aValue === undefined || aValue === null) return 1;
       if (bValue === undefined || bValue === null) return -1;
 
-      // Numeric comparison
-      if (typeof aValue === 'number' && typeof bValue === 'number') {
-        return order === 'asc' ? aValue - bValue : bValue - aValue;
+      // Numbers, and text that is one ("100" from an input), by size:
+      // [2, 10, "100", "9"] sorted as text before
+      const aNum = asNumber(aValue);
+      const bNum = asNumber(bValue);
+      if (aNum !== null && bNum !== null) {
+        return order === 'asc' ? aNum - bNum : bNum - aNum;
       }
 
-      // String comparison
+      // Text, with the numbers in it in order too ("item 2" before "item 10")
       const aStr = String(aValue);
       const bStr = String(bValue);
-
-      if (order === 'asc') {
-        return aStr.localeCompare(bStr);
-      } else {
-        return bStr.localeCompare(aStr);
-      }
+      const compared = aStr.localeCompare(bStr, undefined, { numeric: true });
+      return order === 'asc' ? compared : -compared;
     });
 
     return sortedArray;

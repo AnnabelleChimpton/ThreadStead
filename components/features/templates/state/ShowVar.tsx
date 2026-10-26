@@ -145,7 +145,10 @@ export default function ShowVar(props: ShowVarProps) {
         if (current === null || current === undefined) {
           return '';
         }
-        current = current[key];
+        // Its own fields, and a text's or list's length: never what every
+        // object has ({value.constructor} printed native code)
+        if (key === 'length' && (typeof current === 'string' || Array.isArray(current))) current = current.length;
+        else current = typeof current === 'object' && Object.prototype.hasOwnProperty.call(current, key) ? current[key] : undefined;
       }
 
       return current === null || current === undefined ? '' : asText(current);

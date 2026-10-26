@@ -73,7 +73,7 @@ export function executeAppendAction(
 
   // Resolve value: check for $vars. references (handles scoped variables)
   const resolvedValue = typeof value === 'string' && value.startsWith('$vars.')
-    ? String(resolveVarsReference(value, forEachContext) || '')
+    ? String(resolveVarsReference(value, forEachContext) ?? '') // 0 is a digit, not nothing
     : value;
 
   // Append value

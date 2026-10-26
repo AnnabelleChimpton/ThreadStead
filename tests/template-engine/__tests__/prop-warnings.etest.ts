@@ -131,11 +131,13 @@ describe('values the page would give up on when it runs', () => {
   })
 
   test('a Break condition it cannot read', () => {
-    expect(warningsFor('<ForEach var="items" item="item"><Break when="item.error === true" /></ForEach>')).toEqual([
-      'Line 1: <Break when="item.error === true"> when compares the loop count with a number, like when="i >= 5". To stop on anything else, put <Break /> inside an <If>.',
+    expect(warningsFor('<ForEach var="items" item="item"><Break when="item.error ===" /></ForEach>')).toEqual([
+      'Line 1: <Break when="item.error ==="> can\'t be read as a calculation, so it does nothing.',
     ])
     expect(warningsFor('<ForEach var="items" item="item"><Break when="i >= 5" /></ForEach>')).toEqual([])
+    expect(warningsFor('<ForEach var="items" item="item"><Break when="item.error === true" /></ForEach>')).toEqual([])
   })
+
 })
 
 describe('where the messages go', () => {

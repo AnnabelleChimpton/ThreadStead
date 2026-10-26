@@ -37,6 +37,16 @@ jsep.plugins.register({
   init() {
     jsep.addBinaryOp('=>', 0.1, true);
     jsep.hooks.add('after-expression', (env: { node?: jsep.Expression }) => toArrows(env.node));
+    // () => '' (no names, as in "New game": board.map(() => '')) is an
+    // arrow with no params; jsep can't read an empty () on its own
+    jsep.hooks.add('gobble-token', (env: { context?: { code: number; expr: string; index: number }; node?: jsep.Expression }) => {
+      const parser = env.context;
+      if (!parser || parser.code !== 40) return;
+      const empty = /^\(\s*\)\s*(?==>)/.exec(parser.expr.slice(parser.index));
+      if (!empty) return;
+      parser.index += empty[0].length;
+      env.node = { type: 'SequenceExpression', expressions: [] } as unknown as jsep.Expression;
+    });
   },
 });
 
@@ -63,6 +73,9 @@ function toArrows(node: unknown): void {
  * evaluator for each item: board.some(c => c == ''), stars.filter(s => s.y < 90).
  * Only these, and only with an arrow, so no other function is ever called.
  */
+/** In an arrow's names, the context outside every arrow: what $vars reads */
+const OUTSIDE_ARROWS = Symbol('outside arrows');
+
 const LIST_CHECKS = new Set(['some', 'every', 'filter', 'map', 'find', 'findIndex', 'reduce']);
 
 /** How many nodes an expression has as written */
@@ -654,7 +667,7 @@ export function evaluateExpression(
     });
     const body = arrow.body;
     const run = (...values: unknown[]) => {
-      const inner: EvaluationContext = { ...ctx };
+      const inner: EvaluationContext = { ...ctx, [OUTSIDE_ARROWS]: (ctx as Record<symbol, EvaluationContext>)[OUTSIDE_ARROWS] ?? ctx };
       names.forEach((paramName, k) => {
         inner[paramName] = values[k];
       });
@@ -700,8 +713,9 @@ export function evaluateExpression(
     // $vars.counter -> look up "counter" in context
     if (object.type === 'Identifier' && (object as jsep.Identifier).name === '$vars') {
       if (!computed && property.type === 'Identifier') {
-        // Own variables only: never constructor, __proto__ and the like
-        return ownValue(ctx, (property as jsep.Identifier).name);
+        // Own variables only: never constructor, __proto__ and the like.
+        // The page's, not an arrow's names (list.map(x => $vars.x) read the item)
+        return ownValue((ctx as Record<symbol, EvaluationContext>)[OUTSIDE_ARROWS] ?? ctx, (property as jsep.Identifier).name);
       }
     }
 
@@ -815,6 +829,11 @@ export function extractVariableNames(expression: string): string[] {
         callNode.arguments.forEach(walk);
       } else if (node.type === 'MemberExpression') {
         const memberNode = node as jsep.MemberExpression;
+        // $vars.price is price
+        if (memberNode.object.type === 'Identifier' && (memberNode.object as jsep.Identifier).name === '$vars' && !memberNode.computed && memberNode.property.type === 'Identifier') {
+          variables.add((memberNode.property as jsep.Identifier).name);
+          return;
+        }
         walk(memberNode.object);
         if (memberNode.computed) {
           walk(memberNode.property);

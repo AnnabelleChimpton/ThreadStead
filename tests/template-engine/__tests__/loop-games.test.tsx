@@ -295,3 +295,68 @@ describe('page state in a click (bug bash 2026-10-26)', () => {
     })
   })
 })
+
+describe('smaller page-state fixes, in a click (bug bash 2026-10-26)', () => {
+  test('25 Increments in one click count 25; Append adds a 0; Cycle from empty starts at the first value', async () => {
+    const increments = '<Increment var="n" />'.repeat(25)
+    await visit(`<div>
+<Var name="n" type="number" initial="0" />
+<Var name="zero" type="number" initial="0" />
+<Var name="display" type="string" initial="1" />
+<Var name="c" type="string" initial="" />
+<p id="go"><OnClick>${increments}<Append var="display" value="$vars.zero" /><Cycle var="c" values="0,1,2" /></OnClick>go</p>
+<p id="n"><ShowVar name="n" /></p><p id="display"><ShowVar name="display" /></p><p id="c"><ShowVar name="c" /></p>
+</div>`, async ({ $, text }) => {
+      click($('#user-content-go'))
+      await settle()
+      expect(text('n')).toBe('25')
+      expect(text('display')).toBe('10')
+      expect(text('c')).toBe('0')
+    })
+  })
+
+  test('Reset on a random Var picks again instead of going blank', async () => {
+    await visit(`<div>
+<Var name="tip" type="random"><Option value="one" /><Option value="two" /></Var>
+<p id="go"><OnClick><Reset /></OnClick>go</p>
+<p id="tip"><ShowVar name="tip" /></p>
+</div>`, async ({ $, text }) => {
+      click($('#user-content-go'))
+      await settle()
+      expect(['one', 'two']).toContain(text('tip'))
+    })
+  })
+
+  test('a validator in an If that goes away takes its result with it', async () => {
+    await visit(`<div>
+<Var name="email" type="string" initial="a@b.co" />
+<Var name="strict" type="boolean" initial="true" />
+<Validate var="email" pattern="email" message="Not an email" />
+<If data="strict"><Validate var="email" minLength="20" message="Too short" /></If>
+<p id="off"><OnClick><Set var="strict" value="false" /></OnClick>off</p>
+<p id="error"><ShowVar name="email_error" /></p>
+</div>`, async ({ $, text }) => {
+      await until(() => text('error') === 'Too short')
+      click($('#user-content-off'))
+      await settle()
+      expect(text('error')).toBe('')
+    })
+  })
+
+  test("Break's when and condition are calculations; {w.length} on text items; ShowVar reads own fields only", async () => {
+    const { html } = await visit(`<div>
+<Var name="limit" type="number" initial="5" />
+<Var name="words" type="array" initial='["ab","cde","f","gh"]' />
+<Var name="obj" type="object" initial='{"a": 1}' />
+<div id="when"><ForEach var="words" item="w"><Break when="w == 'f'" /><span>{w}:{w.length} </span></ForEach></div>
+<div id="cond"><ForEach var="words" item="w"><Break condition="$vars.limit > 100" /><span>{w}</span></ForEach></div>
+<p id="ctor"><ShowVar name="obj" format="{value.constructor}" /></p>
+<p class="c"><OnClick><Set var="limit" expression="limit" /></OnClick>.</p>
+</div>`, async ({ text }) => {
+      expect(text('when')).toBe('ab:2 cde:3 ')
+      expect(text('cond')).toBe('abcdefgh')
+      expect(text('ctor')).not.toContain('native code')
+    })
+    expect(html).not.toContain('native code')
+  })
+})

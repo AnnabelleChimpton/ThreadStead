@@ -69,6 +69,22 @@ export function computedOrder(vars: { name: string; computed?: string }[]): { or
   return { order: order.filter((name) => !cyclic.has(name)), cyclic: [...cyclic] };
 }
 
+/** A date from a Date, its text or a timestamp; undefined for anything that isn't one */
+function toDate(value: unknown): Date | undefined {
+  if (value instanceof Date) return isNaN(value.getTime()) ? undefined : value;
+  if (typeof value !== 'string' && typeof value !== 'number') return undefined;
+  const date = String(value).trim().toLowerCase() === 'now' ? new Date() : new Date(value);
+  return isNaN(date.getTime()) ? undefined : date;
+}
+
+/** What Reset puts back: a random Var picks again (it has no starting value to go back to) */
+function resetValue(variable: TemplateVariable): unknown {
+  if (variable.type === 'random' && variable.options && variable.options.length > 0) {
+    return variable.options[Math.floor(Math.random() * variable.options.length)];
+  }
+  return variable.initial;
+}
+
 type UrlParamConfig = { param?: string; coerce?: string; separator?: string; default?: unknown };
 
 /**
@@ -91,7 +107,10 @@ function urlParamValue(config: UrlParamConfig): unknown {
 }
 
 class TemplateStateManager {
-  private variables: Record<string, TemplateVariable> = {};
+  // No prototype: a Var named constructor or toString found Object's and
+  // never registered, and one named __proto__ replaced the store's own
+  // prototype (bug bash 2026-10-26)
+  private variables: Record<string, TemplateVariable> = Object.create(null);
   /** Whose page persisted variables belong to (GlobalTemplateStateProvider's page) */
   private storagePage: string | null = null;
 
@@ -123,8 +142,11 @@ class TemplateStateManager {
 
   // QUICK WIN #4: Update cycle detection and circuit breaker
   private updateDepth: Map<string, number> = new Map();
-  private readonly MAX_UPDATE_DEPTH = 10; // Warning threshold
-  private readonly CIRCUIT_BREAKER_DEPTH = 20; // Hard limit to prevent runaway updates
+  // Updates to one Var in one go (one click, before the browser's next
+  // turn). At 20, one click of 25 <Increment>s lost its 21st; a real
+  // runaway still stops in well under a millisecond (bug bash 2026-10-26)
+  private readonly MAX_UPDATE_DEPTH = 200; // Warning threshold
+  private readonly CIRCUIT_BREAKER_DEPTH = 1000; // Hard limit to prevent runaway updates
 
   // P3.1: Stack trace tracking for enhanced cycle debugging (dev mode only)
   private updateCallStacks: Map<string, string[]> = new Map();
@@ -246,7 +268,12 @@ class TemplateStateManager {
           coercedValue = toBoolean(value);
           break;
         case 'string':
-          coercedValue = String(value);
+          // A calculation that found nothing (list.find(…).name) is empty, not the word "undefined"
+          coercedValue = value === undefined || value === null ? '' : String(value);
+          break;
+        case 'date':
+          // Set value="2025-01-01" makes a date, so dateFormat still works on it
+          coercedValue = toDate(value) ?? variable.value;
           break;
         case 'array':
           if (!Array.isArray(value)) {
@@ -276,6 +303,9 @@ class TemplateStateManager {
         const serialized = JSON.stringify(coercedValue);
         if (serialized.length <= 100 * 1024) { // 100KB limit per variable
           localStorage.setItem(this.storageKey(name), serialized);
+        } else {
+          // Kept, an older value came back on the next visit; gone, the page starts fresh
+          localStorage.removeItem(this.storageKey(name));
         }
       } catch (error) {
         console.error(`[TemplateStateManager] Failed to persist variable ${name}:`, error);
@@ -355,6 +385,8 @@ class TemplateStateManager {
             const stored = localStorage.getItem(this.storageKey(config.name));
             if (stored !== null) {
               initialValue = JSON.parse(stored);
+              // A date is kept as its text
+              if (config.type === 'date') initialValue = toDate(initialValue) ?? config.initial;
             }
           } catch (error) {
             console.error(`[TemplateStateManager] Failed to load persisted variable ${config.name}:`, error);
@@ -480,7 +512,7 @@ class TemplateStateManager {
 
     this.variables[name] = {
       ...variable,
-      value: variable.initial
+      value: resetValue(variable)
     };
 
     // Clear from localStorage if persisted
@@ -502,7 +534,7 @@ class TemplateStateManager {
     for (const [name, variable] of Object.entries(this.variables)) {
       this.variables[name] = {
         ...variable,
-        value: variable.initial
+        value: resetValue(variable)
       };
 
       // Clear from localStorage if persisted
@@ -827,7 +859,7 @@ class TemplateStateManager {
    * Clear all state (useful for cleanup/testing)
    */
   clear(): void {
-    this.variables = {};
+    this.variables = Object.create(null);
     this.listeners.clear();
     this.computedDepsRef = {};
     this.computedSizes.clear();
@@ -837,7 +869,7 @@ class TemplateStateManager {
    * Initialize with variables (used by provider)
    */
   initialize(initialVariables: Record<string, TemplateVariable> = {}): void {
-    this.variables = { ...initialVariables };
+    this.variables = Object.assign(Object.create(null), initialVariables);
     this.notifyListeners();
   }
 

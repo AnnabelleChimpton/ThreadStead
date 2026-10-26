@@ -90,8 +90,8 @@ export function executeCycleAction(
   let currentIndex = valuesList.findIndex(v => {
     // Try to match as-is
     if (v === String(currentValue)) return true;
-    // Try to match as number
-    if (!isNaN(Number(v)) && Number(v) === Number(currentValue)) return true;
+    // Try to match as number (not "": Number("") is 0, so an empty Var started at the second value)
+    if (String(currentValue ?? '').trim() !== '' && !isNaN(Number(v)) && Number(v) === Number(currentValue)) return true;
     return false;
   });
 

@@ -938,7 +938,6 @@ function closestProp(attrName: string, props: Record<string, PropSchema>): strin
 }
 
 /** What `<Break when>` understands: the loop count compared with a number (ForEach evaluateWhenCondition). */
-const BREAK_WHEN = /^\s*(i|index|\d+)\s*(>=|<=|>|<|===|!==|==|!=)\s*(i|index|\d+)\s*$/;
 
 /**
  * Values a component would quietly give up on when the page runs (a
@@ -982,9 +981,6 @@ function valueProblem(
   if (component === 'Embed' && prop === 'src' && !/\{[^}]+\}/.test(value)) {
     const why = whyNoEmbed(value);
     if (why) return `${why} Visitors see nothing there.`;
-  }
-  if (component === 'Break' && prop === 'when' && !BREAK_WHEN.test(value)) {
-    return 'when compares the loop count with a number, like when="i >= 5". To stop on anything else, put <Break /> inside an <If>.';
   }
   return undefined;
 }
@@ -1316,9 +1312,10 @@ function reportPageProblems(source: string): string[] {
     // A calculation the page can't run: said here, with its line, not only
     // in the console (a loop's {placeholders} are filled in at run time, and
     // a JSON list or object is read as it is)
-    for (const key of ['expression', ...(name === 'ConditionalAttr' ? ['when'] : [])]) {
+    const calculations = name === 'ConditionalAttr' ? ['when'] : name === 'Break' ? ['when', 'condition'] : [];
+    for (const key of ['expression', ...calculations]) {
       const value = attrs.get(key)?.trim();
-      if (!value || (key === 'when' && !/[=!<>]/.test(value)) || /\{[\w$.]+\}/.test(value) || isJson(value)) continue;
+      if (!value || (key === 'when' && name === 'ConditionalAttr' && !/[=!<>]/.test(value)) || /\{[\w$.]+\}/.test(value) || isJson(value)) continue;
       const problem = expressionProblem(value);
       if (problem) messages.push(`Line ${line}: <${name} ${key}="${value}"> ${problem}, so it does nothing.`);
     }

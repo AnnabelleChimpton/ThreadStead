@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useMemo } from 'react';
 import { useTemplateState } from '@/lib/templates/state/TemplateStateProvider';
+import { globalTemplateStateManager } from '@/lib/templates/state/TemplateStateManager';
 
 /**
  * Validate Component - Input validation that creates derivative variables
@@ -218,6 +219,24 @@ export default function Validate(props: ValidateProps) {
     templateState.setVariable,
     templateState.registerVariable
   ]);
+
+  // A validator that goes away (in an If switched off) takes its result
+  // with it: kept, "Too short" showed and _valid stayed false for good (bug bash 2026-10-26)
+  useEffect(() => {
+    if (!actualVarName) return;
+    return () => {
+      const trackingVarName = `_${actualVarName}_validations`;
+      const tracking = globalTemplateStateManager.getVariable(trackingVarName) as Record<string, { valid: boolean; message: string }> | undefined;
+      if (!tracking || !(validatorId in tracking)) return;
+      const rest = { ...tracking };
+      delete rest[validatorId];
+      const errors = Object.values(rest).filter((r) => !r.valid).map((r) => r.message);
+      globalTemplateStateManager.setVariable(trackingVarName, rest);
+      globalTemplateStateManager.setVariable(`${actualVarName}_valid`, errors.length === 0);
+      globalTemplateStateManager.setVariable(`${actualVarName}_error`, errors[0] || '');
+      globalTemplateStateManager.setVariable(`${actualVarName}_errors`, errors);
+    };
+  }, [actualVarName, validatorId]);
 
   // Normal mode - render nothing
   return null;

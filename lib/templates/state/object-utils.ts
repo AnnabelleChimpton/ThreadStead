@@ -53,7 +53,8 @@ function deepMergeTwo(target: any, source: any): any {
   const output = { ...target };
 
   for (const key in source) {
-    if (source.hasOwnProperty(key)) {
+    // Not source.hasOwnProperty: a source can have its own key by that name
+    if (Object.prototype.hasOwnProperty.call(source, key)) {
       const sourceValue = source[key];
       const targetValue = output[key];
 

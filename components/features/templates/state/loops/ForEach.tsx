@@ -3,6 +3,7 @@
 import React, { createContext, useContext } from 'react';
 import { importantStyleRef } from '@/lib/utils/css/parse-style-string';
 import { isWebAddress } from '@/lib/templates/core/template-registry-types';
+import { evaluateExpression } from '@/lib/templates/state/expression-evaluator';
 import { useTemplateState } from '@/lib/templates/state/TemplateStateProvider';
 import { getVariable } from '@/lib/templates/state/variable-utils';
 import { globalTemplateStateManager } from '@/lib/templates/state/TemplateStateManager';
@@ -44,45 +45,14 @@ export function useForEachContext(): ForEachContextValue | null {
 }
 
 /**
- * Evaluate a 'when' condition by directly parsing and replacing index variable
- * Supports simple comparisons like "i >= 5", "index < 10"
- */
-function evaluateWhenCondition(condition: string, index: number): boolean {
-  // Replace 'i' or 'index' with actual value
-  const normalized = condition.replace(/\bi\b/g, String(index))
-                              .replace(/\bindex\b/g, String(index));
-
-  // Parse comparison (e.g., "5 >= 5")
-  const match = normalized.match(/^\s*(\d+)\s*(>=|<=|>|<|===|!==|==|!=)\s*(\d+)\s*$/);
-  if (!match) {
-    return false;
-  }
-
-  const [, left, operator, right] = match;
-  const leftNum = Number(left);
-  const rightNum = Number(right);
-
-  switch (operator) {
-    case '>=': return leftNum >= rightNum;
-    case '<=': return leftNum <= rightNum;
-    case '>': return leftNum > rightNum;
-    case '<': return leftNum < rightNum;
-    case '===':
-    case '==': return leftNum === rightNum;
-    case '!==':
-    case '!=': return leftNum !== rightNum;
-    default: return false;
-  }
-}
-
-/**
  * Calculate break index by pre-processing Break components in children
  * Returns the index where the loop should break, or null if no break
  */
 function calculateBreakIndex(
   children: React.ReactNode,
   arrayValue: any[],
-  varName: string,
+  itemName: string,
+  indexName: string | undefined,
   templateState: ReturnType<typeof useTemplateState>
 ): number | null {
   // Find all Break components in children (including those wrapped in ResidentDataProvider)
@@ -124,57 +94,31 @@ function calculateBreakIndex(
     return null;
   }
 
+  // condition: a calculation on the page's Vars ($vars.limit > 100);
+  // when: one on this item and its place too (i >= 5, n.done). Only the
+  // first $vars name's truth, and only i or index, counted before (bug bash 2026-10-26)
+  const vars: Record<string, unknown> = {};
+  for (const [name, variable] of Object.entries(templateState?.variables ?? {})) vars[name] = variable?.value;
+  const holds = (expression: string, context: Record<string, unknown>) => {
+    try {
+      return Boolean(evaluateExpression(expression, context));
+    } catch {
+      return false;
+    }
+  };
+
   // Iterate through array and check if any Break would trigger at each index
   for (let idx = 0; idx < arrayValue.length; idx++) {
-    // Check each Break component
     for (const breakComp of breakComponents) {
-      // Warn about unconditional Break (no conditions specified)
-      if (!breakComp.condition && !breakComp.when) {
-        return 0; // Break immediately at index 0
-      }
-
-      let shouldBreak = true;
-
-      // Evaluate outer 'condition' (global variables like $vars.breakAtFive)
-      if (breakComp.condition) {
-        // Simple evaluation: extract variable name and check its value
-        const varMatch = breakComp.condition.match(/\$vars\.(\w+)/);
-        if (varMatch) {
-          const varName = varMatch[1];
-          const variable = templateState?.variables?.[varName];
-          const varValue = variable?.value; // Access the .value property
-
-          if (!varValue) {
-            shouldBreak = false;
-            continue; // Skip this Break component
-          }
-        } else {
-          shouldBreak = false;
-          continue;
-        }
-      }
-
-      // Evaluate inner 'when' condition (scoped variables like i >= 5)
+      // No conditions: break straight away
+      if (!breakComp.condition && !breakComp.when) return 0;
+      if (breakComp.condition && !holds(breakComp.condition, vars)) continue;
       if (breakComp.when) {
-        try {
-          // Directly evaluate the condition by replacing 'i' with the current index
-          // This avoids registering scopes during render
-          const whenResult = evaluateWhenCondition(breakComp.when, idx);
-
-          if (!whenResult) {
-            shouldBreak = false;
-            continue; // Skip this Break component
-          }
-        } catch (error) {
-          shouldBreak = false;
-          continue;
-        }
+        const loop: Record<string, unknown> = { ...vars, i: idx, index: idx, [itemName]: arrayValue[idx] };
+        if (indexName) loop[indexName] = idx;
+        if (!holds(breakComp.when, loop)) continue;
       }
-
-      // Both conditions passed - break at this index
-      if (shouldBreak) {
-        return idx;
-      }
+      return idx;
     }
   }
 
@@ -253,17 +197,14 @@ export default function ForEach(props: ForEachProps) {
   const arrayValue = Array.isArray(variable?.value) ? variable.value : [];
 
   // Pre-process children to find Break components and calculate break index
-  // Serialize variables for stable dependency comparison
-  // IMPORTANT: These hooks must be called before any conditional returns
-  const variablesHash = React.useMemo(() => {
-    return JSON.stringify(templateState?.variables);
-  }, [templateState?.variables]);
-
+  // IMPORTANT: These hooks must be called before any conditional returns.
+  // (No JSON.stringify of every Var for the deps: it cost a copy of the
+  // page's state each render, and a Var holding Math made it throw.)
   const breakAtIndex = React.useMemo(() => {
     // Only calculate if we have valid props
     if (!varName || !itemName) return null;
-    return calculateBreakIndex(children, arrayValue, varName, templateState);
-  }, [children, arrayValue.length, varName, itemName, variablesHash, templateState]);
+    return calculateBreakIndex(children, arrayValue, itemName, indexName, templateState);
+  }, [children, arrayValue, varName, itemName, indexName, templateState]);
 
   // CRITICAL: Validate required props
   if (!varName) {
@@ -662,6 +603,11 @@ function replaceTemplatePlaceholders(
 
   // No item name: an inner loop has taken it (processForEachChildren)
   if (!itemName) return result;
+
+  // {word.length} for text items
+  if (typeof itemValue === 'string') {
+    result = result.replace(new RegExp(`\\{${item}\\.length\\}`, 'g'), () => String(itemValue.length));
+  }
 
   // Replace {item.property} for object items
   if (typeof itemValue === 'object' && itemValue !== null) {

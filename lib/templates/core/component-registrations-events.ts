@@ -212,8 +212,8 @@ export function registerEventComponents(registry: ComponentRegistry) {
     description: 'Stops a ForEach early, so only the items before that point show. It must sit directly inside the ForEach, or inside plain HTML tags there; inside an If or an event it does nothing. With neither when nor condition set, the list shows no items at all.',
     example: '<Var name="books" type="array" initial=\'["Earthsea", "Piranesi", "Momo", "Watership Down"]\' />\n<ul>\n  <ForEach var="books" item="book">\n    <Break when="i >= 3" />\n    <li>{book}</li>\n  </ForEach>\n</ul>',
     props: {
-      when: { type: 'string', description: 'Stop when the loop count reaches this, like i >= 5.', example: 'i >= 5' },
-      condition: { type: 'string', description: 'Stop when this page variable is set, like $vars.done.', example: '$vars.done' }
+      when: { type: 'string', description: 'Stop at the first item this is true for: a calculation on the item, its place (i) and your page variables, like i >= 5 or item.done.', example: 'i >= 5' },
+      condition: { type: 'string', description: 'Only stop when this calculation on your page variables is true, like $vars.done or $vars.limit > 3.', example: '$vars.done' }
     },
     relationship: {
       type: 'action',

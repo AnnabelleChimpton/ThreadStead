@@ -26,15 +26,16 @@ import React from 'react';
  * </ForEach>
  * ```
  *
- * `when` only compares the loop count (`i` or `index`) with a number. To
- * stop on anything else, put <Break /> inside an <If>, as in the first example.
+ * `when` is a calculation on the loop's item and place (`i`, `index`, or the
+ * names the ForEach gives them) and the page's Vars, like `item.done` or
+ * `i >= 5`; `condition` one on the page's Vars alone, like `$vars.limit > 3`.
  */
 
 export interface BreakProps {
-  /** The loop count compared with a number, like "i >= 5" (the compiler warns about anything else) */
+  /** A calculation on this item, its place and the page's Vars, like "i >= 5" or "item.done" */
   when?: string;
 
-  /** Optional outer condition (e.g., "$vars.enabled") - uses global variables */
+  /** A calculation on the page's Vars alone, like "$vars.enabled" or "$vars.limit > 3" */
   condition?: string;
 
   /** Internal: Scoped variable resolution (injected by ForEach) */
