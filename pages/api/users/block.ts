@@ -1,26 +1,33 @@
 import { apiHandler } from '@/lib/api/handler';
 import { db as prisma } from '@/lib/config/database/connection';
 import { forgetChatBlocks } from '@/lib/chat/block-cache';
+import { z } from 'zod';
+
+/** What BlockButton and the chat panel send; an object id went into the unblock filter as a condition */
+const blockSchema = z.object({
+    targetUserId: z.string().min(1).max(200),
+    action: z.enum(['block', 'unblock']),
+});
 
 // CSRF protection (apiHandler default) skips safe methods (GET/HEAD/OPTIONS) and validates POST
 export default apiHandler(
-    { methods: ['GET', 'POST'], auth: 'user' },
-    async (req, res, { user }) => {
+    { methods: ['GET', 'POST'], auth: 'user', schema: blockSchema },
+    async (req, res, { user, body }) => {
         const userId = user.id;
 
         if (req.method === 'POST') {
-            const { targetUserId, action } = req.body;
-
-            if (!targetUserId || !['block', 'unblock'].includes(action)) {
-                return res.status(400).json({ error: 'Invalid request' });
-            }
+            const { targetUserId, action } = body;
 
             if (targetUserId === userId) {
-                return res.status(400).json({ error: 'Cannot block yourself' });
+                return res.status(400).json({ error: "You can't block yourself." });
             }
 
             try {
                 if (action === 'block') {
+                    // A made-up id was a foreign-key 500
+                    if (!(await prisma.user.findUnique({ where: { id: targetUserId }, select: { id: true } }))) {
+                        return res.status(404).json({ error: "There's nobody here by that id." });
+                    }
                     await prisma.userBlock.upsert({
                         where: {
                             blockerId_blockedUserId: {

@@ -1,6 +1,13 @@
 import { db } from "@/lib/config/database/connection";
 import { apiHandler } from "@/lib/api/handler";
 import { forgetChatBlocks } from "@/lib/chat/block-cache";
+import { z } from "zod";
+
+// Ids are text: an object id went into the filters as a Prisma condition,
+// so unblocking one person could clear your whole list (pages/settings/blocks)
+const target = z.string().min(1).max(200);
+const removeBlockSchema = z.object({ blockedUserId: target.optional(), blockedThreadRingId: target.optional() });
+const createBlockSchema = removeBlockSchema.extend({ reason: z.string().max(500).optional() });
 
 export default apiHandler(
   {
@@ -47,8 +54,8 @@ export default apiHandler(
 
     else if (req.method === "POST") {
       // Create a new block
+      const { blockedUserId, blockedThreadRingId, reason } = createBlockSchema.parse(req.body ?? {});
       try {
-        const { blockedUserId, blockedThreadRingId, reason } = req.body;
 
         if (!blockedUserId && !blockedThreadRingId) {
           return res.status(400).json({ error: "Must specify either blockedUserId or blockedThreadRingId" });
@@ -60,7 +67,7 @@ export default apiHandler(
 
         // Prevent self-blocking
         if (blockedUserId === user.id) {
-          return res.status(400).json({ error: "Cannot block yourself" });
+          return res.status(400).json({ error: "You can't block yourself." });
         }
 
         // Check if block already exists
@@ -122,7 +129,7 @@ export default apiHandler(
         forgetChatBlocks(user.id, blockedUserId);
 
         res.status(201).json({ 
-          message: "Block created successfully",
+          message: "Blocked.",
           block 
         });
 
@@ -134,8 +141,8 @@ export default apiHandler(
 
     else if (req.method === "DELETE") {
       // Remove a block
+      const { blockedUserId, blockedThreadRingId } = removeBlockSchema.parse(req.body ?? {});
       try {
-        const { blockedUserId, blockedThreadRingId } = req.body;
 
         if (!blockedUserId && !blockedThreadRingId) {
           return res.status(400).json({ error: "Must specify either blockedUserId or blockedThreadRingId" });
@@ -154,7 +161,7 @@ export default apiHandler(
         }
         forgetChatBlocks(user.id, blockedUserId);
 
-        res.status(200).json({ message: "Block removed successfully" });
+        res.status(200).json({ message: "Unblocked." });
 
       } catch (error) {
         console.error("Error removing block:", error);
