@@ -5,6 +5,7 @@
 
 import { getGlobalTemplateState, type TemplateStateContextType } from '../state/TemplateStateProvider';
 import { globalTemplateStateManager } from '../state/TemplateStateManager';
+import { isLive } from '../state/expression-evaluator';
 
 /**
  * Where `$vars` are read from. A component rendering a page passes its
@@ -215,6 +216,10 @@ export function compare(
     }
 
     case 'matches': {
+      // The resident's own pattern, which can be made to take minutes on
+      // a short text: only ever in the visitor's browser, once the page is
+      // live, never in the server's render (and so not in hydration either)
+      if (!isLive()) return false;
       try {
         const regex = new RegExp(String(compareValue));
         return regex.test(String(value));

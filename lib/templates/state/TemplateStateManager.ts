@@ -10,7 +10,7 @@
  */
 
 import type { TemplateVariable, VariableType, VariableConfig } from './TemplateStateProvider';
-import { evaluateExpression, extractVariableNames } from './expression-evaluator';
+import { evaluateExpression, extractVariableNames, MAX_COMPUTED_TOTAL, valueSize } from './expression-evaluator';
 
 /**
  * Global Template State Manager Class
@@ -47,6 +47,10 @@ class TemplateStateManager {
   }
   private listeners: Set<() => void> = new Set();
   private computedDepsRef: Record<string, Set<string>> = {};
+  // How big each computed Var's value is (valueSize). Each is capped by the
+  // evaluator; this caps them all together, so a page of thousands of
+  // computed Vars can't fill the server's memory between them
+  private computedSizes: Map<string, number> = new Map();
 
   // PHASE 1.1: Per-variable listeners for selective subscriptions
   private variableListeners: Map<string, Set<() => void>> = new Map();
@@ -345,7 +349,7 @@ class TemplateStateManager {
           Object.entries(this.variables).map(([k, v]) => [k, v.value])
         );
 
-        const result = evaluateExpression(config.computed, context);
+        const result = this.keepComputed(config.name, evaluateExpression(config.computed, context));
 
         this.variables[config.name] = {
           ...this.variables[config.name],
@@ -702,7 +706,7 @@ class TemplateStateManager {
         );
 
         // Evaluate the expression
-        const result = evaluateExpression(variable.computed!, context);
+        const result = this.keepComputed(name, evaluateExpression(variable.computed!, context));
 
         // Only update if value changed (prevent infinite loops)
         if (result !== variable.value) {
@@ -738,6 +742,19 @@ class TemplateStateManager {
     }
   }
 
+  /** A computed Var's new value, if the computed Vars still fit together */
+  private keepComputed<T>(name: string, value: T): T {
+    let others = 0;
+    this.computedSizes.forEach((size, other) => { if (other !== name) others += size; });
+    const size = valueSize(value, MAX_COMPUTED_TOTAL - others);
+    if (size === Infinity) {
+      this.computedSizes.delete(name);
+      throw new Error(`The computed Vars together hold too much (over ${MAX_COMPUTED_TOTAL.toLocaleString('en-US')} letters or list items)`);
+    }
+    this.computedSizes.set(name, size);
+    return value;
+  }
+
   /**
    * Clear all state (useful for cleanup/testing)
    */
@@ -745,6 +762,7 @@ class TemplateStateManager {
     this.variables = {};
     this.listeners.clear();
     this.computedDepsRef = {};
+    this.computedSizes.clear();
   }
 
   /**

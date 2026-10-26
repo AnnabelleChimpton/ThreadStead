@@ -626,19 +626,23 @@ function replaceTemplatePlaceholders(
 ): string {
 
   let result = text;
+  // Names as written, never a pattern of their own (item="a+"); and the
+  // values go in by function, so a "$" in them stays as typed ("pay $$5")
+  const item = escapeRegExp(itemName);
+  const index = indexName ? escapeRegExp(indexName) : '';
 
   // Replace {index} or {i} with actual index
   if (indexName) {
     // Replace index expressions like {i + 1}
     result = result.replace(
-      new RegExp(`\\{${indexName}\\s*\\+\\s*(\\d+)\\}`, 'g'),
+      new RegExp(`\\{${index}\\s*\\+\\s*(\\d+)\\}`, 'g'),
       (_, offset) => String(currentIndex + parseInt(offset, 10))
     );
 
     // Replace simple {index}
     result = result.replace(
-      new RegExp(`\\{${indexName}\\}`, 'g'),
-      String(currentIndex)
+      new RegExp(`\\{${index}\\}`, 'g'),
+      () => String(currentIndex)
     );
   }
 
@@ -646,7 +650,7 @@ function replaceTemplatePlaceholders(
   if (typeof itemValue === 'object' && itemValue !== null) {
     // Match {item.property} or {item.nested.property}
     result = result.replace(
-      new RegExp(`\\{${itemName}\\.([\\w.]+)\\}`, 'g'),
+      new RegExp(`\\{${item}\\.([\\w.]+)\\}`, 'g'),
       (_, propertyPath) => {
         const value = getNestedProperty(itemValue, propertyPath);
         return value !== undefined ? String(value) : '';
@@ -656,8 +660,8 @@ function replaceTemplatePlaceholders(
 
   // Replace {item} for primitive items
   result = result.replace(
-    new RegExp(`\\{${itemName}\\}`, 'g'),
-    typeof itemValue === 'object' ? JSON.stringify(itemValue) : String(itemValue)
+    new RegExp(`\\{${item}\\}`, 'g'),
+    () => (typeof itemValue === 'object' ? JSON.stringify(itemValue) : String(itemValue))
   );
 
   return result;
@@ -667,12 +671,16 @@ function replaceTemplatePlaceholders(
  * Get nested property from object using dot notation
  * Example: getNestedProperty({user: {name: 'John'}}, 'user.name') => 'John'
  */
+const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 function getNestedProperty(obj: any, path: string): any {
   const parts = path.split('.');
   let current = obj;
 
   for (const part of parts) {
-    if (current === null || current === undefined) {
+    // The item's own fields only, never what every object has (constructor)
+    if (typeof current === 'string' && part === 'length') return current.length;
+    if (current === null || typeof current !== 'object' || !Object.prototype.hasOwnProperty.call(current, part)) {
       return undefined;
     }
     current = current[part];

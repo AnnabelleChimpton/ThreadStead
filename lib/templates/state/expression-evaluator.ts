@@ -90,6 +90,57 @@ const MAX_NODES = 1000;
 // Most steps one evaluation may take: an arrow runs once for each item of
 // a list, so a short expression can do a lot of work
 const MAX_STEPS = 100_000;
+// Most a calculation may make: text this long, or a list or object that
+// comes to this written out. Expressions run in the server render, where
+// 'ab'.repeat(1e8).split('') took the whole process down. Making or
+// reading something big also counts toward MAX_STEPS: one step a hundred
+export const MAX_VALUE_SIZE = 1_000_000;
+// All of a page's computed Vars together: thousands of them can't each fill one
+export const MAX_COMPUTED_TOTAL = 5 * MAX_VALUE_SIZE;
+const TOO_MUCH_WORK = 'Expression does too much work (over 100,000 steps): a list check on a very long list?';
+const TOO_BIG = `That makes something too big (over ${MAX_VALUE_SIZE.toLocaleString('en-US')} letters or list items)`;
+
+/**
+ * How big a value is written out: its text, plus one for each list item
+ * and object field, and an item counted again wherever it appears again
+ * (as join and String would write it). Infinity once past `limit`, so it
+ * never walks further than that.
+ */
+export function valueSize(value: unknown, limit = MAX_VALUE_SIZE): number {
+  let size = 0;
+  const pending: unknown[] = [value];
+  while (pending.length) {
+    const v = pending.pop();
+    if (typeof v === 'string') size += v.length;
+    else if (v !== null && typeof v === 'object') {
+      const items = Array.isArray(v) ? v : Object.values(v);
+      size += items.length + 1;
+      if (size > limit) return Infinity;
+      for (const item of items) if (item !== null && (typeof item === 'object' || typeof item === 'string')) pending.push(item);
+    } else size += 1;
+    if (size > limit) return Infinity;
+  }
+  return size;
+}
+
+/** What a method can make, at most, worked out before it runs */
+function madeBy(object: string | unknown[], method: string, args: unknown[]): number {
+  const count = (n: unknown) => Math.max(0, Number(n) || 0);
+  switch (method) {
+    case 'repeat': return object.length * count(args[0]);
+    case 'padStart':
+    case 'padEnd': return Math.max(object.length, count(args[0]));
+    case 'split': return object.length * 2 + 1;
+    case 'concat': return args.reduce<number>((n, arg) => n + valueSize(arg), valueSize(object));
+    case 'join': return valueSize(object) + (args[0] === undefined ? 1 : valueSize(args[0])) * object.length;
+    // "$&" and "$'" put back what matched and what follows, as often as written
+    case 'replace': {
+      const insert = valueSize(args[1]);
+      return object.length + (typeof args[1] === 'string' && args[1].includes('$') ? insert * Math.max(1, object.length) : insert);
+    }
+    default: return 0;
+  }
+}
 
 // Allowed binary operators
 const ALLOWED_BINARY_OPERATORS = new Set([
@@ -122,6 +173,12 @@ const SAFE_METHODS: Record<string, ReadonlySet<string>> = {
   number: new Set(['toFixed', 'toString']),
 };
 
+/** No names at all; without counting them (a page can have thousands) */
+function isEmpty(context: EvaluationContext): boolean {
+  for (const _ in context) return false;
+  return true;
+}
+
 /** A value's own property: never one inherited from its prototype. */
 function ownValue(object: object, key: unknown): any {
   return (typeof key === 'string' || typeof key === 'number') && Object.prototype.hasOwnProperty.call(object, key)
@@ -143,7 +200,7 @@ export function goLive(): void {
 }
 
 /** Never on the server, which has no window: its render must be the same every time */
-const isLive = () => live && typeof window !== 'undefined';
+export const isLive = () => live && typeof window !== 'undefined';
 
 let clockRead = false;
 
@@ -246,7 +303,7 @@ export function evaluateExpression(
   const hasContextVars = /\b(item|index|i)\b/.test(expression);
   // Chance and time give a new answer each time
   const changesByItself = /\b(?:random|pick)\s*\(|\$time\b/.test(expression);
-  const isPure = !hasDollarVars && !hasContextVars && !changesByItself && Object.keys(context).length === 0;
+  const isPure = !hasDollarVars && !hasContextVars && !changesByItself && isEmpty(context);
 
   // P1.2: For pure expressions, check result cache first
   if (isPure) {
@@ -284,6 +341,16 @@ export function evaluateExpression(
 
   // Evaluate AST
   let nodeCount = 0;
+  /** `size` letters or items made or read: refused past MAX_VALUE_SIZE, counted as steps */
+  const spend = (size: number) => {
+    if (size > MAX_VALUE_SIZE) throw new Error(TOO_BIG);
+    nodeCount += Math.floor(size / 100);
+    if (nodeCount > MAX_STEPS) throw new Error(TOO_MUCH_WORK);
+  };
+  /** A list or object turned into text or a number (+, <, Number…) is written out first */
+  const spendOnObjects = (...values: unknown[]) => {
+    for (const v of values) if (v !== null && typeof v === 'object') spend(valueSize(v));
+  };
   const result = evaluateNode(ast, context);
 
   // P1.2: Cache pure results
@@ -304,7 +371,7 @@ export function evaluateExpression(
     // Check node limit
     nodeCount++;
     if (nodeCount > MAX_STEPS) {
-      throw new Error('Expression does too much work (over 100,000 steps): a list check on a very long list?');
+      throw new Error(TOO_MUCH_WORK);
     }
 
     switch (node.type) {
@@ -398,6 +465,12 @@ export function evaluateExpression(
 
     const leftValue = evaluateNode(left, ctx);
     const rightValue = evaluateNode(right, ctx);
+    if (operator !== '&&' && operator !== '||' && operator !== '===' && operator !== '!==') {
+      spendOnObjects(leftValue, rightValue);
+      if (operator === '+' && (typeof leftValue === 'string' || typeof rightValue === 'string')) {
+        spend(valueSize(leftValue, Infinity) + valueSize(rightValue, Infinity));
+      }
+    }
 
     switch (operator) {
       // Arithmetic
@@ -437,6 +510,7 @@ export function evaluateExpression(
     }
 
     const value = evaluateNode(argument, ctx);
+    if (operator !== '!') spendOnObjects(value);
 
     switch (operator) {
       case '-': return -value;
@@ -501,6 +575,13 @@ export function evaluateExpression(
       // Evaluate arguments
       const evaluatedArgs = args.map(arg => evaluateNode(arg, ctx));
 
+      // Text and lists: what it reads and what it would make, before it runs
+      spendOnObjects(...evaluatedArgs);
+      if (!isMath && (typeof objectValue === 'string' || Array.isArray(objectValue))) {
+        spend(objectValue.length);
+        spend(madeBy(objectValue, propertyName, evaluatedArgs));
+      }
+
       // Try to call the native method (string/array methods are safe)
       try {
         return method.apply(objectValue, evaluatedArgs);
@@ -538,6 +619,7 @@ export function evaluateExpression(
 
       // Evaluate arguments
       const evaluatedArgs = args.map(arg => evaluateNode(arg, ctx));
+      spendOnObjects(...evaluatedArgs);
 
       // Call function
       try {
@@ -577,7 +659,13 @@ export function evaluateExpression(
       return evaluateNode(body, inner);
     };
     if (name === 'reduce') return args.length > 1 ? list.reduce(run, evaluateNode(args[1], ctx)) : list.reduce(run);
-    return (list as unknown as Record<string, (fn: typeof run) => unknown>)[name](run);
+    return made((list as unknown as Record<string, (fn: typeof run) => unknown>)[name](run));
+  }
+
+  /** A new list or object: a thousand copies of one long text in it is still a lot of text */
+  function made<T>(value: T): T {
+    spendOnObjects(value);
+    return value;
   }
 
   /**
@@ -597,7 +685,7 @@ export function evaluateExpression(
       }
       object[name] = evaluateNode(value, ctx);
     }
-    return object;
+    return made(object);
   }
 
   /**
@@ -651,7 +739,7 @@ export function evaluateExpression(
    */
   function evaluateArrayExpression(node: jsep.ArrayExpression, ctx: EvaluationContext): any {
     const { elements } = node;
-    return elements.map(element => element ? evaluateNode(element, ctx) : undefined);
+    return made(elements.map(element => element ? evaluateNode(element, ctx) : undefined));
   }
 }
 

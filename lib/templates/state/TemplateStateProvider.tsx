@@ -498,7 +498,7 @@ export function useTemplateStateWithDeps(dependencies?: string[]): TemplateState
  * Uses the global TemplateStateManager for true cross-island state sharing
  */
 import { globalTemplateStateManager } from './TemplateStateManager';
-import { clockWasRead, evaluateExpression, goLive } from './expression-evaluator';
+import { clockWasRead, evaluateExpression, goLive, MAX_COMPUTED_TOTAL, valueSize } from './expression-evaluator';
 
 /**
  * Get global template state for use in non-React contexts
@@ -598,14 +598,14 @@ export function coerceVarInitial(type: VariableType, initial: unknown): unknown 
  */
 export function seedVariables(declared: VariableConfig[] = []): Record<string, TemplateVariable> {
   const seed: Record<string, TemplateVariable> = {};
-  const computed: VariableConfig[] = [];
+  const computed = new Map<string, VariableConfig>();
   for (let config of declared) {
-    if (!config.name || seed[config.name] || computed.some((c) => c.name === config.name)) continue;
+    if (!config.name || seed[config.name] || computed.has(config.name)) continue;
     if (!config.type) config = { ...config, type: inferVarType(config.initial) };
     // The pick is random; a date shows in the reader's own time zone
     if (config.type === 'random' || config.type === 'date') continue;
     if (config.type === 'computed') {
-      if (config.computed) computed.push(config);
+      if (config.computed) computed.set(config.name, config);
       continue;
     }
     const initial = coerceVarInitial(config.type, config.initial);
@@ -613,14 +613,23 @@ export function seedVariables(declared: VariableConfig[] = []): Record<string, T
     const value = config.type === 'urlParam' ? (config.default ?? initial) : initial;
     seed[config.name] = { name: config.name, type: config.type, value, initial };
   }
-  for (const config of computed) {
-    const context = Object.fromEntries(Object.entries(seed).map(([name, v]) => [name, v.value]));
+  // One context, added to as each computed Var is worked out (built afresh
+  // for each, 10,000 of them took 11 s of the server's render)
+  const context: Record<string, unknown> = Object.create(null);
+  for (const [name, v] of Object.entries(seed)) context[name] = v.value;
+  let held = 0;
+  for (const config of computed.values()) {
     let value: unknown;
     try {
       value = evaluateExpression(config.computed!, context);
+      // Each is capped by the evaluator; together they're capped here
+      const size = valueSize(value, MAX_COMPUTED_TOTAL - held);
+      if (size === Infinity) value = undefined;
+      else held += size;
     } catch {
       value = undefined;
     }
+    context[config.name] = value;
     seed[config.name] = { name: config.name, type: 'computed', value, initial: undefined, computed: config.computed };
   }
   return seed;

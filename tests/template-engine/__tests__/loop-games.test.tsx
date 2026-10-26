@@ -156,3 +156,18 @@ test("a loop inside a loop sees the outer one's names, with scopes of its own pe
     expect(text('picked')).toBe('0-1')
   })
 })
+
+test('{item} puts text in as typed, "$" and all, and a loop name is never a pattern', () => {
+  // String replacements read "$$" as "$" and "$&" as the placeholder;
+  // item="a+" made {aaa} a placeholder too (bug bash 2026-10-26)
+  const html = renderToString(page(`<div>
+<Var name="notes" type="array" initial='["pay $$5", "a $& b", "$1"]' />
+<ul id="notes"><ForEach var="notes" item="note" index="n"><li>{n}: {note}</li></ForEach></ul>
+<Var name="xs" type="array" initial='["one"]' />
+<div id="named"><ForEach var="xs" item="a+"><span>{a+} {aaa}</span></ForEach></div>
+</div>`))
+  const dom = new JSDOM(html)
+  const text = (id: string) => dom.window.document.getElementById(`user-content-${id}`)?.textContent
+  expect(text('notes')).toBe('0: pay $$51: a $& b2: $1')
+  expect(text('named')).toBe('one {aaa}')
+})

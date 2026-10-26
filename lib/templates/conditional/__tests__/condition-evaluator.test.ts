@@ -5,6 +5,7 @@ import {
   isTruthy
 } from '../condition-evaluator';
 import { globalTemplateStateManager } from '../../state/TemplateStateManager';
+import { goLive } from '../../state/expression-evaluator';
 
 describe('getNestedValue', () => {
   test('returns 0 for .length when parent is undefined', () => {
@@ -283,3 +284,19 @@ describe('evaluateFullCondition - with $vars support', () => {
     expect(evaluateFullCondition(config2, residentData)).toBe(true);
   });
 });
+
+describe('compare - matches (a pattern of the page\'s own)', () => {
+  // A pattern can be made to take minutes on a short text, so it only runs
+  // in the visitor's browser once the page is live: never in the server's
+  // render, which every visit shares (bug bash 2026-10-26, P0 #1)
+  test('does not run before the page is live (the server, and hydration)', () => {
+    expect(compare('https://example.com', 'matches', '^https')).toBe(false)
+  })
+
+  test('runs once the page is live', () => {
+    goLive()
+    expect(compare('https://example.com', 'matches', '^https')).toBe(true)
+    expect(compare('http://example.com', 'matches', '^https')).toBe(false)
+    expect(compare('x', 'matches', '(')).toBe(false)
+  })
+})
