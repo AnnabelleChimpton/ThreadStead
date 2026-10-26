@@ -6,6 +6,15 @@ import { createNotification } from "@/lib/domain/notifications";
 import { apiHandler, type SessionUser } from "@/lib/api/handler";
 import { sendUnauthenticated } from "@/lib/api/errors";
 import { getHiddenIds, filterBlockedComments } from "@/lib/domain/users/blocks";
+import { validationMessage } from "@/lib/api/validation";
+import { z } from "zod";
+
+/** What PhotoComments sends; a parentId that wasn't text was a 500 */
+const commentSchema = z.object({
+  content: z.string().trim().min(1, "Write something first.").max(1000),
+  parentId: z.string().min(1).max(200).nullable().optional(),
+  cap: z.string().max(5000).optional(),
+});
 
 // GET is public; POST checks the session itself (CSRF only applies to POST)
 export default apiHandler(
@@ -102,15 +111,9 @@ async function handleCreateComment(req: NextApiRequest, res: NextApiResponse, ph
     return sendUnauthenticated(res);
   }
 
-  const { content, parentId, cap } = req.body;
-
-  if (!content || typeof content !== "string" || content.trim().length === 0) {
-    return res.status(400).json({ error: "Comment content is required" });
-  }
-
-  if (content.trim().length > 1000) {
-    return res.status(400).json({ error: "Comment too long (max 1000 characters)" });
-  }
+  const parsed = commentSchema.safeParse(req.body ?? {});
+  if (!parsed.success) return res.status(400).json({ error: validationMessage(parsed.error.issues) });
+  const { content, parentId, cap } = parsed.data;
 
   if (!cap) {
     return res.status(401).json({ error: "Capability required" });
@@ -146,15 +149,17 @@ async function handleCreateComment(req: NextApiRequest, res: NextApiResponse, ph
         include: { author: true }
       });
       
-      if (!parentComment || parentComment.mediaId !== photoId) {
-        return res.status(400).json({ error: "Invalid parent comment" });
+      // Replies go under a visible top-level comment: the list shows one
+      // level, so a reply to a reply (or to a hidden one) was never seen
+      if (!parentComment || parentComment.mediaId !== photoId || parentComment.parentId || parentComment.status !== "visible") {
+        return res.status(400).json({ error: "That comment can't take a reply." });
       }
     }
 
     // Create the comment
     const comment = await db.photoComment.create({
       data: {
-        content: content.trim(),
+        content,
         mediaId: photoId,
         authorId: me.id,
         parentId: parentId || undefined,
@@ -185,7 +190,7 @@ async function handleCreateComment(req: NextApiRequest, res: NextApiResponse, ph
         {
           mediaId: photoId,
           commentId: comment.id,
-          parentCommentId: parentId,
+          parentCommentId: parentComment.id,
           mediaTitle: media.title || media.caption || "Untitled photo",
           mediaOwnerHandle: media.user.primaryHandle || undefined // Add owner handle for proper link generation
         }
@@ -207,7 +212,7 @@ async function handleCreateComment(req: NextApiRequest, res: NextApiResponse, ph
 
     return res.status(201).json({
       comment,
-      message: "Comment added successfully"
+      message: "Comment added."
     });
 
   } catch (error) {
