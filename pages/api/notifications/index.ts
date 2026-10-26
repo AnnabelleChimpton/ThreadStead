@@ -3,6 +3,8 @@ import { db } from "@/lib/config/database/connection";
 import { apiHandler } from "@/lib/api/handler";
 import { parseLimit } from "@/lib/server/http/pagination";
 import { visibleNotificationsWhere } from "@/lib/domain/notifications";
+import { NotificationStatus } from "@prisma/client";
+import { z } from "zod";
 
 const EXCERPT_LENGTH = 120;
 
@@ -13,6 +15,11 @@ function excerpt(message: string): string {
 }
 
 
+/** What NotificationList and the bell's dropdown send to mark some read */
+const markSchema = z.object({
+  notificationIds: z.array(z.string().min(1).max(200)).max(100),
+  status: z.enum(NotificationStatus),
+});
 
 export default apiHandler(
   {
@@ -25,8 +32,11 @@ export default apiHandler(
 
       const whereClause: any = await visibleNotificationsWhere(user.id);
 
+      // A status that isn't one (or ?status twice) went to Prisma: a 500
       if (status && status !== "all") {
-        whereClause.status = status;
+        const known = z.enum(NotificationStatus).safeParse(status);
+        if (!known.success) return res.status(400).json({ error: "That's not a notification status." });
+        whereClause.status = known.data;
       }
 
       const notifications = await db.notification.findMany({
@@ -92,13 +102,9 @@ export default apiHandler(
     }
 
     if (req.method === "PATCH") {
-      const { notificationIds, status } = req.body;
+      const { notificationIds, status } = markSchema.parse(req.body ?? {});
 
-      if (!Array.isArray(notificationIds) || !status) {
-        return res.status(400).json({ error: "notificationIds and status required" });
-      }
-
-      const updateData: any = { status };
+      const updateData: { status: NotificationStatus; readAt?: Date } = { status };
       if (status === "read") {
         updateData.readAt = new Date();
       }
