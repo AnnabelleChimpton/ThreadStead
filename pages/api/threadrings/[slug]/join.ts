@@ -1,32 +1,19 @@
-import type { NextApiRequest, NextApiResponse } from "next";
-import { getSessionUser } from "@/lib/auth/server";
+import { apiHandler } from "@/lib/api/handler";
 import { AuthenticatedRingHubClient } from "@/lib/api/ringhub/ringhub-user-operations";
-import { withCsrfProtection } from "@/lib/server/http/csrf";
-import { withRateLimit } from "@/lib/server/http/rate-limit";
 import { retryWithBackoff } from "@/lib/api/ringhub/ringhub-retry";
 import { forgetRingReads } from "@/lib/api/ringhub/forget-ring-reads";
+import { joinFailure } from "@/lib/rings/membership-errors";
 
-// Apply CSRF protection and rate limiting
-export default withRateLimit('threadring_operations')(
-  withCsrfProtection(
-    async function handler(
-      req: NextApiRequest,
-      res: NextApiResponse
-    ) {
-  if (req.method !== "POST") {
-    res.setHeader("Allow", ["POST"]);
-    return res.status(405).json({ error: "Method Not Allowed" });
-  }
-
-  const { slug } = req.query;
-  if (typeof slug !== "string") {
-    return res.status(400).json({ error: "Invalid slug" });
-  }
-
-  try {
-    const viewer = await getSessionUser(req);
-    if (!viewer) {
-      return res.status(401).json({ error: "Authentication required" });
+/**
+ * Join a ring, signed as the resident: the hub decides (open, invite-only,
+ * closed, or someone it removed) and owns the membership.
+ */
+export default apiHandler(
+  { methods: ["POST"], auth: "user", rateLimit: "threadring_operations" },
+  async (req, res, { user: viewer }) => {
+    const { slug } = req.query;
+    if (typeof slug !== "string") {
+      return res.status(400).json({ error: "Invalid slug" });
     }
 
     try {
@@ -35,7 +22,7 @@ export default withRateLimit('threadring_operations')(
       // Retried: the hub registers a first-time actor on its first request,
       // and the join itself can need a second try.
       const joinResult = await retryWithBackoff(
-        () => authenticatedClient.joinRing(slug as string),
+        () => authenticatedClient.joinRing(slug),
         {
           maxRetries: 3,
           baseDelay: 500, // 500ms, 1s, 2s exponential backoff
@@ -52,37 +39,10 @@ export default withRateLimit('threadring_operations')(
         // The old membership.badgeId read was always undefined on the wire.
         badgeId: joinResult.badge?.id
       });
-
-    } catch (ringHubError: any) {
+    } catch (ringHubError) {
       console.error("Ring Hub join error:", ringHubError);
-      if (ringHubError.status === 404) {
-        return res.status(404).json({ error: "ThreadRing not found" });
-      }
-      if (ringHubError.status === 403) {
-        if (ringHubError.data?.error === "Invitation required") {
-          return res.status(403).json({
-            error: "This ring needs an invite, and there isn't an open one for you. Invites last a week, so ask the ring host for a new one."
-          });
-        }
-        return res.status(403).json({ error: ringHubError.data?.message || ringHubError.message || "Cannot join this ThreadRing" });
-      }
-      if (ringHubError.status === 400) {
-        return res.status(400).json({ error: ringHubError.message || "Already a member or invalid request" });
-      }
-      if (ringHubError.status === 409) {
-        // Already a member, or an application is waiting for review
-        return res.status(409).json({ error: ringHubError.data?.message || ringHubError.message || "You're already in this ThreadRing" });
-      }
-      return res.status(500).json({
-        error: "Failed to join ThreadRing via Ring Hub",
-        details: ringHubError.message
-      });
+      const [status, error, extra] = joinFailure(ringHubError);
+      return res.status(status).json({ error, ...extra });
     }
-
-  } catch (error) {
-    console.error("Error joining ThreadRing:", error);
-    return res.status(500).json({ error: "Internal server error" });
   }
-    }
-  )
 );

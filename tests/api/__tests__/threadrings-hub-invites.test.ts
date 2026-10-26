@@ -250,7 +250,7 @@ describe('POST /api/threadrings/[slug]/join on an invite-only hub ring', () => {
     await joinHandler(req, res)
 
     expect(res.statusCode).toBe(409)
-    expect(res.jsonBody.error).toBe('You are already a member of this ring')
+    expect(res.jsonBody.error).toBe("You're already in this ring.")
   })
 
   test('an accepted invite joins', async () => {
