@@ -119,6 +119,22 @@ export const DEFAULT_BLOCKED_SITES: BlockedSiteData[] = [
  */
 export const EXACT_ONLY = new Set(['tumblr.com'])
 
+/**
+ * The host a block is matched on (isBlockedHost compares hosts): lowercase,
+ * no www., no scheme, path or port. A pasted address used to be stored
+ * whole ("https://www.example.com/page"), and so it never matched anything.
+ */
+export function blockedDomainOf(text: string): string | null {
+  let url: URL;
+  try {
+    url = new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(text) ? text : `https://${text}`);
+  } catch {
+    return null;
+  }
+  const host = url.hostname.toLowerCase().replace(/\.$/, '').replace(/^www\./, '');
+  return host.includes('.') ? host : null;
+}
+
 /** The baseline plus the BlockedSite table, as bare lowercase domains. */
 export async function loadBlockedSet(db: Pick<PrismaClient, 'blockedSite'>): Promise<Set<string>> {
   const rows = await db.blockedSite.findMany({ select: { domain: true } })

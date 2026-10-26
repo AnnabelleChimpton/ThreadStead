@@ -1,6 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '@/lib/config/database/connection';
 import { apiHandler } from '@/lib/api/handler';
+import { z } from 'zod';
+import { blockedDomainOf } from '@/lib/indie-index/blocklist';
 
 /**
  * API endpoint for managing blocked sites
@@ -24,11 +26,12 @@ interface GetBlockedSitesResponse {
   categories: { category: string; count: number }[];
 }
 
-interface CreateBlockedSiteRequest {
-  domain: string;
-  category: string;
-  reason?: string;
-}
+/** What Admin > Indie Index's block form sends */
+const createBlockedSiteSchema = z.object({
+  domain: z.string().trim().min(1).max(300),
+  category: z.string().trim().min(1).max(50),
+  reason: z.string().max(500).nullable().optional(),
+});
 
 async function handleGet(
   req: NextApiRequest,
@@ -87,16 +90,13 @@ async function handlePost(
   req: NextApiRequest,
   res: NextApiResponse<BlockedSiteResponse | { error: string }>
 ) {
+  const { domain, category, reason } = createBlockedSiteSchema.parse(req.body ?? {});
+  const normalizedDomain = blockedDomainOf(domain);
+  if (!normalizedDomain) {
+    return res.status(400).json({ error: "That doesn't look like a site's address." });
+  }
+
   try {
-    const { domain, category, reason }: CreateBlockedSiteRequest = req.body;
-
-    // Validate input
-    if (!domain || !category) {
-      return res.status(400).json({ error: 'Domain and category are required' });
-    }
-
-    // Normalize domain (lowercase, remove www.)
-    const normalizedDomain = domain.toLowerCase().replace(/^www\./, '');
 
     // Check if already exists
     const existing = await db.blockedSite.findUnique({
