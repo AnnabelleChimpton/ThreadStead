@@ -603,7 +603,7 @@ export function mapSelectors(
   const recurseGroups = options.recurseGroups !== false
   const GROUP_AT_RULES = new Set(['media', 'supports', 'container', 'layer', 'scope', 'starting-style'])
   const statements = splitTopLevelStatements(css)
-  const out = statements.map((s) => {
+  const out = statements.flatMap((s): CSSStatement | CSSStatement[] => {
     // `authorScopes`: a page's own @scope (.card) { img {} }: only its root
     // selector is mapped; the rules inside are relative to it (template audit 01 #16b)
     if (options.authorScopes && s.kind === 'at' && s.atName === 'scope') {
@@ -614,10 +614,22 @@ export function mapSelectors(
       return { ...s, prelude: `${s.prelude.slice(0, open + 1)}${splitSelectorList(root).map(mapSelector).join(', ')}${s.prelude.slice(close - 1)}` }
     }
     if (s.kind === 'rule') {
-      const mapped = splitSelectorList(s.prelude).map(mapSelector).join(', ')
+      const selectors = splitSelectorList(s.prelude).map(mapSelector)
+      // `authorScopes` (a page's own CSS): rules nested in an html or body
+      // rule stay inside the page too, as written at the top level would
+      if (options.authorScopes && s.body?.includes('{')) {
+        // html or body itself (`body.dark` → body:has(the page root.dark))
+        const isRoot = (selector: string) => !selector.replace(/:has\(.*\)$/, '').includes(PAGE_ROOT)
+        const roots = selectors.filter(isRoot)
+        if (roots.length > 0) {
+          const inside = selectors.filter((selector) => !isRoot(selector))
+          const rootRule = { ...s, prelude: roots.join(', '), body: nestedInsidePage(s.body) }
+          return inside.length > 0 ? [{ ...s, prelude: inside.join(', ') }, rootRule] : rootRule
+        }
+      }
       // `nested`: rules nested inside this one (CSS nesting) too
       const body = options.nested && s.body !== undefined ? mapNestedSelectors(s.body, mapSelector) : s.body
-      return { ...s, prelude: mapped, body }
+      return { ...s, prelude: selectors.join(', '), body }
     }
     if (recurseGroups && s.kind === 'at' && s.body !== undefined && GROUP_AT_RULES.has(s.atName || '')) {
       return { ...s, body: '\n' + mapSelectors(s.body, mapSelector, options) + '\n' }
@@ -661,6 +673,102 @@ function mapNestedSelectors(body: string, mapSelector: (selector: string) => str
     }
   }
   return out + body.slice(emitted)
+}
+
+/**
+ * The body of a page's html or body rule, with the rules nested in it kept
+ * inside the page root: `body { nav a {} }` meant `body nav a`, which top
+ * level gets as `… body :where(.profile-template-root) nav a`, but nested
+ * it stayed relative to body and reached the site's own nav (component
+ * styling audit R6). `&:hover`, `&.dark` and a nested `body` are still
+ * html or body, and what's nested in them is treated the same; nested
+ * @media and the like too. Declarations are copied as written.
+ */
+function nestedInsidePage(body: string): string {
+  let out = ''
+  let emitted = 0
+  let statement = 0
+  let i = 0
+  while (i < body.length) {
+    const ch = body[i]
+    if (ch === "'" || ch === '"') {
+      i = skipString(body, i)
+    } else if (ch === '(') {
+      i = skipParens(body, i)
+    } else if (ch === ';') {
+      statement = ++i
+    } else if (ch === '{') {
+      const close = closingBrace(body, i)
+      const prelude = body.slice(statement, i).trim()
+      const inner = body.slice(i + 1, close)
+      let rules: string
+      if (prelude.startsWith('@')) {
+        rules = `${prelude} {${nestedInsidePage(inner)}}`
+      } else {
+        const mapped = splitSelectorList(prelude).map(nestedUnderRoot)
+        const roots = mapped.filter((m) => m.root).map((m) => m.selector)
+        const inside = mapped.filter((m) => !m.root).map((m) => m.selector)
+        rules = [
+          inside.length > 0 ? `${inside.join(', ')} {${inner}}` : '',
+          roots.length > 0 ? `${roots.join(', ')} {${nestedInsidePage(inner)}}` : '',
+        ].filter(Boolean).join(' ')
+      }
+      out += `${body.slice(emitted, statement)} ${rules}`
+      i = emitted = statement = close + 1
+    } else {
+      i++
+    }
+  }
+  return out + body.slice(emitted)
+}
+
+/**
+ * One selector nested in an html or body rule: whether it's still html or
+ * body (`&:hover`, `body`), or else the same selector inside the page root.
+ * What it picks out past html or body goes inside the root, as top level
+ * (`> header` the page's top level; a sibling of body, `+ x`, is inside it).
+ */
+function nestedUnderRoot(selector: string): { selector: string; root: boolean } {
+  const sel = selector.trim()
+  const amp = lastTopLevel(sel, '&')
+  const lead = amp === -1 ? sel.match(/^body(?![\w-])/i) : null
+  if (amp === -1 && !lead) return { selector: `${INSIDE_PAGE} ${pastRoot(sel)}`, root: false }
+  const end = compoundEnd(sel, amp === -1 ? 0 : amp)
+  const rest = sel.slice(end).trim()
+  if (!rest) return { selector: sel, root: true }
+  return { selector: `${sel.slice(0, end)} ${INSIDE_PAGE} ${pastRoot(rest)}`, root: false }
+}
+
+/** `> x` stays a child of the page root; `+ x` and `~ x` go inside it */
+const pastRoot = (rest: string) => rest.replace(/^[+~]\s*/, '')
+
+/** The last index of `ch` outside parens, brackets and strings, or -1 */
+function lastTopLevel(selector: string, ch: string): number {
+  let found = -1
+  for (let i = 0; i < selector.length; ) {
+    const c = selector[i]
+    if (c === "'" || c === '"') i = skipString(selector, i)
+    else if (c === '(') i = skipParens(selector, i)
+    else if (c === '[') i = selector.indexOf(']', i) === -1 ? selector.length : selector.indexOf(']', i) + 1
+    else {
+      if (c === ch) found = i
+      i++
+    }
+  }
+  return found
+}
+
+/** Where the compound selector holding index `at` ends */
+function compoundEnd(selector: string, at: number): number {
+  let i = at
+  while (i < selector.length && !/[\s>+~]/.test(selector[i])) {
+    const c = selector[i]
+    if (c === "'" || c === '"') i = skipString(selector, i)
+    else if (c === '(') i = skipParens(selector, i)
+    else if (c === '[') i = selector.indexOf(']', i) === -1 ? selector.length : selector.indexOf(']', i) + 1
+    else i++
+  }
+  return i
 }
 
 /** The index of the } that closes the { at `open` (or the end) */

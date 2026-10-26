@@ -288,6 +288,34 @@ describe('CSS nesting: #id rules inside other rules find the renamed ids', () =>
   })
 })
 
+describe('CSS nesting inside html and body rules stays inside the page', () => {
+  // body { nav a {} } is body nav a: nested, it reached the site's nav
+  // (component styling audit R6)
+  test('a rule nested in body goes inside the page root', () => {
+    const out = transformAdvancedCss('body { color: red; nav a { color: blue } }')
+    expect(out).toContain(':root:is(html) body { color: red; :where(.profile-template-root) nav a { color: blue } }')
+  })
+
+  test('&:hover and a nested body are still body; what they hold goes inside', () => {
+    const out = transformAdvancedCss('html { body { margin: 0; .x { z-index: 1 } } } body { &:hover { color: red } & > header { color: blue } }')
+    expect(out).toContain('body { margin: 0; :where(.profile-template-root) .x { z-index: 1 } }')
+    expect(out).toContain('&:hover { color: red }')
+    expect(out).toContain('& :where(.profile-template-root) > header { color: blue }')
+  })
+
+  test('nested @media, body.dark and #ids', () => {
+    expect(transformAdvancedCss('body { @media (width < 40em) { nav { color: red } } }')).toContain('@media (width < 40em) { :where(.profile-template-root) nav { color: red } }')
+    expect(transformAdvancedCss('body.dark { .x { color: red } }')).toContain('body:has(:where(.profile-template-root).dark) { :where(.profile-template-root) .x { color: red } }')
+    expect(transformAdvancedCss('body { #title { color: red } }')).toContain(':where(.profile-template-root) #user-content-title { color: red }')
+  })
+
+  test('a list of body and a page selector splits, so .card keeps its own nesting', () => {
+    const out = transformAdvancedCss('body, .card { .x { color: red } }')
+    expect(out).toContain(':root body :where(.profile-template-root) .card { .x { color: red } }')
+    expect(out).toContain(':root:is(html) body { :where(.profile-template-root) .x { color: red } }')
+  })
+})
+
 describe('page defaults and printing', () => {
   const chrome = fs.readFileSync(path.join(ROOT, 'styles/chrome-layers.css'), 'utf8')
   const defaults = fs.readFileSync(path.join(ROOT, 'styles/page-defaults.css'), 'utf8')
