@@ -14,7 +14,7 @@
  * ([data-template-root]), never the page root or the site around it.
  */
 import React, { useEffect, useRef } from 'react';
-import { TEMPLATE_ROOT, pageElements, pageRoots } from '../actions/page-targets';
+import { TEMPLATE_ROOT, pageElements, pageRoots, pageSelector } from '../actions/page-targets';
 
 export type ElementEvent = 'click' | 'enter' | 'leave';
 
@@ -80,9 +80,7 @@ export function elementAround(marker: Element | null): HTMLElement | null {
  * matches the sanitizer's #user-content-id. Null when it isn't a selector.
  */
 function matchSelector(selector: string): string | null {
-  const full = selector.startsWith('#') && !selector.startsWith('#user-content-')
-    ? `${selector}, #user-content-${selector.slice(1)}`
-    : selector;
+  const full = pageSelector(selector);
   try {
     document.createDocumentFragment().querySelector(full);
     return full;

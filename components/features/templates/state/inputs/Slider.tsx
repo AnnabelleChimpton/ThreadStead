@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { useTemplateStateWithDeps } from '@/lib/templates/state/TemplateStateProvider';
 import { useOnChangeHandler, filterOnChangeChildren } from '../events/OnChange';
 
@@ -76,8 +76,19 @@ export default function Slider(props: SliderProps) {
     templateState.setVariable(varName, newValue);
   };
 
+  // Where the slider was when the visitor took hold of it: OnChange runs
+  // only when they let go somewhere else. It ran for a click on the thumb
+  // that moved nothing, and for a drag that only ended over it (bug bash 2026-10-26)
+  const heldFrom = useRef<number | null>(null);
+  const takeHold = () => {
+    heldFrom.current = currentValue;
+  };
+
   // Handle when user releases the slider (mouse or touch)
   const handleRelease = () => {
+    const from = heldFrom.current;
+    heldFrom.current = null;
+    if (from === null || from === currentValue) return;
     // Execute OnChange handler if present
     if (onChangeHandler) {
       onChangeHandler(currentValue);
@@ -113,9 +124,12 @@ export default function Slider(props: SliderProps) {
         disabled={disabled}
         value={currentValue}
         onInput={handleInput}
+        onMouseDown={takeHold}
+        onTouchStart={takeHold}
         onMouseUp={handleRelease}
         onTouchEnd={handleRelease}
         // Arrow keys move it too; OnChange runs when the key comes up (template audit 06 #14e)
+        onKeyDown={(e) => heldFrom.current === null && /^(?:Arrow|Page|Home$|End$)/.test(e.key) && takeHold()}
         onKeyUp={(e) => /^(?:Arrow|Page|Home$|End$)/.test(e.key) && handleRelease()}
         className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600 hover:accent-blue-700"
       />

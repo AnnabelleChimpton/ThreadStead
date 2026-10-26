@@ -53,6 +53,13 @@ export default function OnVisible(props: OnVisibleProps) {
   const thresholdValue = typeof threshold === 'string' ? parseFloat(threshold) : threshold;
   const onceValue = once === true || once === 'true';
 
+  // The actions as of the latest render, read when the box comes into
+  // view. In the effect's deps they rebuilt the observer on every change
+  // to the page's state, and a new observer reports "visible" at once: with
+  // once="false" its actions ran again and again (bug bash 2026-10-26)
+  const latest = useRef({ children, templateState, residentData, forEachContext });
+  latest.current = { children, templateState, residentData, forEachContext };
+
   useEffect(() => {
     if (!targetRef.current) {
       return;
@@ -61,17 +68,17 @@ export default function OnVisible(props: OnVisibleProps) {
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            // Element is visible
-            if (!hasExecutedRef.current || !onceValue) {
-              executeActions(children, templateState, residentData, forEachContext);
-              hasExecutedRef.current = true;
-            }
+          // Only when it comes into view, not on every report while it stays there
+          if (!entry.isIntersecting) return;
+          if (!hasExecutedRef.current || !onceValue) {
+            const now = latest.current;
+            executeActions(now.children, now.templateState, now.residentData, now.forEachContext);
+            hasExecutedRef.current = true;
+          }
 
-            // If once=true, disconnect observer after first execution
-            if (onceValue) {
-              observer.disconnect();
-            }
+          // If once=true, disconnect observer after first execution
+          if (onceValue) {
+            observer.disconnect();
           }
         });
       },
@@ -86,7 +93,7 @@ export default function OnVisible(props: OnVisibleProps) {
     return () => {
       observer.disconnect();
     };
-  }, [children, thresholdValue, onceValue, templateState, residentData, forEachContext]);
+  }, [thresholdValue, onceValue]);
 
   // Normal mode - render invisible marker element
   // The observer watches this element for visibility

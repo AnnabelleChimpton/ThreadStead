@@ -42,7 +42,12 @@ async function until(ready: () => boolean) {
 }
 
 /** Server HTML, then the page hydrated in a browser; `during` gets the page while it's open */
-async function visit(source: string, during: (p: { $: (selector: string) => HTMLElement | null; dom: JSDOM; text: (id: string) => string }) => Promise<void>) {
+async function visit(
+  source: string,
+  during: (p: { $: (selector: string) => HTMLElement | null; dom: JSDOM; text: (id: string) => string }) => Promise<void>,
+  /** Runs in the browser before hydration: stand-ins for what jsdom lacks */
+  setup?: (dom: JSDOM) => void
+) {
   const html = renderToString(page(source))
   const dom = new JSDOM(`<!doctype html><html><body><div id="app">${html}</div></body></html>`, {
     url: 'http://localhost/resident/pat',
@@ -50,6 +55,7 @@ async function visit(source: string, during: (p: { $: (selector: string) => HTML
     virtualConsole: new VirtualConsole(),
   })
   const leave = enterBrowser(dom)
+  setup?.(dom)
   const hydrationErrors: unknown[] = []
   try {
     const { hydrateRoot } = require('react-dom/client') as typeof import('react-dom/client')
@@ -358,5 +364,165 @@ describe('smaller page-state fixes, in a click (bug bash 2026-10-26)', () => {
       expect(text('ctor')).not.toContain('native code')
     })
     expect(html).not.toContain('native code')
+  })
+})
+
+describe('events and games (bug bash 2026-10-26)', () => {
+  const key = (element: Element, type: 'keydown' | 'keyup', init: KeyboardEventInit) => {
+    const event = new element.ownerDocument!.defaultView!.KeyboardEvent(type, { bubbles: true, cancelable: true, ...init })
+    element.dispatchEvent(event)
+    return event
+  }
+
+  test('OnVisible once="false" runs when it comes into view, not on every change while it stays there', async () => {
+    let observers = 0
+    await visit(`<div>
+<Var name="seen" type="number" initial="0" />
+<Var name="other" type="number" initial="0" />
+<div><OnVisible once="false"><Increment var="seen" /></OnVisible>box</div>
+<p id="other"><OnClick><Increment var="other" /></OnClick>other</p>
+<p id="seen"><ShowVar name="seen" /></p>
+</div>`, async ({ $, text }) => {
+      await until(() => text('seen') === '1')
+      for (let n = 0; n < 3; n++) {
+        click($('#user-content-other'))
+        await settle()
+      }
+      expect(text('seen')).toBe('1')
+      expect(observers).toBe(1)
+    }, (dom) => {
+      // A browser's: a new observer reports "visible" straight away
+      class Seen {
+        constructor(private report: (entries: { isIntersecting: boolean }[]) => void) {
+          observers++
+        }
+        observe() {
+          setTimeout(() => this.report([{ isIntersecting: true }]), 0)
+        }
+        unobserve() {}
+        disconnect() {}
+      }
+      ;(globalThis as unknown as Record<string, unknown>).IntersectionObserver = Seen
+      ;(dom.window as unknown as Record<string, unknown>).IntersectionObserver = Seen
+    })
+  })
+
+  test('game keys: a focused button still keeps the page still, a ticked checkbox leaves keys working, shortcuts and Space on a button are theirs', async () => {
+    await visit(`<div>
+<Var name="y" type="number" initial="0" />
+<Var name="j" type="number" initial="0" />
+<Var name="sound" type="boolean" initial="false" />
+<OnKeyPress keyName="ArrowDown" scroll="false"><Increment var="y" /></OnKeyPress>
+<OnKeyPress keyName="j"><Increment var="j" /></OnKeyPress>
+<OnKeyPress keyName=" " scroll="false"><Increment var="j" /></OnKeyPress>
+<Button><OnClick><Set var="y" value="0" /></OnClick>Start</Button>
+<Checkbox var="sound" label="Sound" />
+<p id="y"><ShowVar name="y" /></p><p id="j"><ShowVar name="j" /></p>
+<p class="c"><OnClick><Set var="y" expression="y" /></OnClick>.</p>
+</div>`, async ({ dom, text }) => {
+      const doc = dom.window.document
+      const button = doc.querySelector('button')!
+      const checkbox = doc.querySelector('input[type="checkbox"]')!
+      expect(key(button, 'keydown', { key: 'ArrowDown' }).defaultPrevented).toBe(true)
+      await settle()
+      expect(text('y')).toBe('1')
+      key(checkbox, 'keydown', { key: 'j' })
+      await settle()
+      expect(text('j')).toBe('1')
+      key(doc.body, 'keydown', { key: 'j', ctrlKey: true })
+      key(doc.body, 'keydown', { key: 'j', metaKey: true })
+      key(button, 'keydown', { key: ' ' })
+      await settle()
+      expect(text('j')).toBe('1')
+    })
+  })
+
+  test('a held key lets go with Shift down, and when the page loses focus', async () => {
+    await visit(`<div>
+<Var name="held" type="boolean" initial="false" />
+<OnKeyPress keyName="a"><Set var="held" value="true" /></OnKeyPress>
+<OnKeyUp keyName="a"><Set var="held" value="false" /></OnKeyUp>
+<p id="held"><If data="held">held</If></p>
+<p class="c"><OnClick><Set var="held" value="false" /></OnClick>.</p>
+</div>`, async ({ dom, text }) => {
+      const body = dom.window.document.body
+      key(body, 'keydown', { key: 'a' })
+      await settle()
+      expect(text('held')).toBe('held')
+      key(body, 'keyup', { key: 'A', shiftKey: true })
+      await settle()
+      expect(text('held')).toBe('')
+      key(body, 'keydown', { key: 'a' })
+      await settle()
+      dom.window.dispatchEvent(new dom.window.Event('blur'))
+      await settle()
+      expect(text('held')).toBe('')
+    })
+  })
+
+  test('Else in a Sequence runs; target finds every #id, wherever it sits; two OnClicks in a Button both run', async () => {
+    await visit(`<div>
+<Var name="flag" type="boolean" initial="false" />
+<Var name="a" type="number" initial="0" />
+<Var name="b" type="number" initial="0" />
+<Var name="hits" type="number" initial="0" />
+<p id="seq"><OnClick><Sequence><If data="flag"><Increment var="a" /></If><Else><Increment var="b" /></Else></Sequence></OnClick>seq</p>
+<OnClick target="#one, #two"><Increment var="hits" /></OnClick>
+<OnClick target=".g #cat"><Increment var="hits" /></OnClick>
+<p id="one">1</p><p id="two">2</p><div class="g"><p id="cat">cat</p></div>
+<Button><OnClick><Increment var="a" /></OnClick><OnClick><Increment var="b" /></OnClick>both</Button>
+<p id="a"><ShowVar name="a" /></p><p id="b"><ShowVar name="b" /></p><p id="hits"><ShowVar name="hits" /></p>
+</div>`, async ({ $, dom, text }) => {
+      click($('#user-content-seq'))
+      await settle(80)
+      expect([text('a'), text('b')]).toEqual(['0', '1'])
+      click($('#user-content-one'))
+      click($('#user-content-two'))
+      click($('#user-content-cat'))
+      await settle()
+      expect(text('hits')).toBe('3')
+      click(dom.window.document.querySelector('button'))
+      await settle()
+      expect([text('a'), text('b')]).toEqual(['1', '2'])
+    })
+  })
+})
+
+// (An OnClick straight inside a <tr> already gets "browsers move it out of the table")
+describe('events the browser would move or merge get a warning (bug bash 2026-10-26)', () => {
+  const warnings = (source: string) => compileTemplateToArtifacts(source).warnings
+  test('an OnClick straight inside a ForEach', () => {
+    expect(warnings('<Var name="items" type="array" initial=\'["a"]\' /><div><ForEach var="items" item="it"><OnClick><Set var="a" value="1" /></OnClick><span>{it}</span></ForEach></div>').join('\n'))
+      .toContain('is straight inside <ForEach>')
+    expect(warnings('<Var name="items" type="array" initial=\'["a"]\' /><ul><ForEach var="items" item="it"><li><OnClick><Set var="a" value="1" /></OnClick>{it}</li></ForEach></ul>').join('\n')).not.toContain('ForEach')
+  })
+})
+
+test("Slider's OnChange runs when the visitor moved it, not for a click that moved nothing (bug bash 2026-10-26)", async () => {
+  await visit(`<div>
+<Var name="vol" type="number" initial="5" />
+<Var name="changes" type="number" initial="0" />
+<Slider var="vol" min="0" max="10"><OnChange><Increment var="changes" /></OnChange></Slider>
+<p id="changes"><ShowVar name="changes" /></p>
+<p class="c"><OnClick><Set var="vol" expression="vol" /></OnClick>.</p>
+</div>`, async ({ dom, text }) => {
+    const w = dom.window
+    const range = w.document.querySelector('input[type="range"]') as HTMLInputElement
+    const mouse = (type: string) => range.dispatchEvent(new w.MouseEvent(type, { bubbles: true }))
+    mouse('mousedown')
+    mouse('mouseup')
+    await settle()
+    expect(text('changes')).toBe('0')
+    mouse('mouseup') // a drag that only ended over it
+    await settle()
+    expect(text('changes')).toBe('0')
+    mouse('mousedown')
+    const setValue = Object.getOwnPropertyDescriptor(w.HTMLInputElement.prototype, 'value')!.set!
+    setValue.call(range, '8')
+    range.dispatchEvent(new w.Event('input', { bubbles: true }))
+    await settle()
+    mouse('mouseup')
+    await settle()
+    expect(text('changes')).toBe('1')
   })
 })

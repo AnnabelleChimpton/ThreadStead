@@ -80,8 +80,9 @@ export function useOnClickHandler(children: React.ReactNode): ((event?: React.Mo
   const forEachContext = useForEachContext();
 
   // P1.4: Memoize finding OnClick child to avoid repeated traversal
-  const onClickChild = React.useMemo(() => {
-    let found: React.ReactElement | null = null;
+  // Every one, in order: with two, only the last ran (bug bash 2026-10-26)
+  const onClickChildren = React.useMemo(() => {
+    const found: React.ReactElement[] = [];
 
     React.Children.forEach(children, (child) => {
       if (!React.isValidElement(child)) {
@@ -118,7 +119,7 @@ export function useOnClickHandler(children: React.ReactNode): ((event?: React.Mo
 
       // One with a target clicks that instead, and renders itself
       if (componentName === 'OnClick' && !(actualChild.props as OnClickProps).target) {
-        found = actualChild;
+        found.push(actualChild);
       }
     });
 
@@ -127,13 +128,14 @@ export function useOnClickHandler(children: React.ReactNode): ((event?: React.Mo
 
   // P1.4: Memoize handler with useCallback
   const handler = React.useCallback((event?: React.MouseEvent) => {
-    if (!onClickChild) return;
     // The button itself, for target="this"
     const currentElement = event?.currentTarget as HTMLElement | undefined;
-    executeActions((onClickChild as React.ReactElement<OnClickProps>).props.children, templateState, residentData, forEachContext, currentElement);
-  }, [onClickChild, templateState, residentData, forEachContext]);
+    for (const onClick of onClickChildren) {
+      executeActions((onClick as React.ReactElement<OnClickProps>).props.children, templateState, residentData, forEachContext, currentElement);
+    }
+  }, [onClickChildren, templateState, residentData, forEachContext]);
 
-  return onClickChild ? handler : null;
+  return onClickChildren.length > 0 ? handler : null;
 }
 
 /**

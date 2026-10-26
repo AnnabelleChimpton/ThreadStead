@@ -10,21 +10,42 @@ import { isReservedDataAttribute } from '@/lib/templates/compilation/html-allowl
 
 export const TEMPLATE_ROOT = '[data-template-root]';
 
-/** The page's own elements matching a selector. An #id also finds the sanitizer's #user-content-id. */
+/**
+ * A page's selector, with every #id also finding the sanitizer's
+ * #user-content-id: `#a, #b` and `.g #cat` too, not only a leading one
+ * (bug bash 2026-10-26). An # inside [attr="…"] or quotes is left alone.
+ */
+export function pageSelector(selector: string): string {
+  let out = '';
+  for (let i = 0; i < selector.length; ) {
+    const ch = selector[i];
+    if (ch === '"' || ch === "'" || ch === '[') {
+      const close = ch === '[' ? ']' : ch;
+      let end = i + 1;
+      while (end < selector.length && selector[end] !== close) end += selector[end] === '\\' ? 2 : 1;
+      out += selector.slice(i, end + 1);
+      i = end + 1;
+    } else if (ch === '#') {
+      const id = /^#((?:[\w-]|\\.|[^\x00-\x7f])+)/.exec(selector.slice(i))?.[1] ?? '';
+      out += id && !id.startsWith(USER_CONTENT_PREFIX) ? `:is(#${id}, #${USER_CONTENT_PREFIX}${id})` : `#${id}`;
+      i += 1 + id.length;
+    } else {
+      out += ch;
+      i++;
+    }
+  }
+  return out;
+}
+
+/** The page's own elements matching a selector (an #id also finds the sanitizer's #user-content-id) */
 export function pageElements(selector: string): HTMLElement[] {
   const roots = Array.from(document.querySelectorAll<HTMLElement>(TEMPLATE_ROOT));
-  const find = (query: string) => {
-    try {
-      return roots.flatMap((root) => Array.from(root.querySelectorAll<HTMLElement>(query)));
-    } catch {
-      return []; // not a valid selector
-    }
-  };
-  const found = find(selector);
-  if (found.length === 0 && selector.startsWith('#') && !selector.startsWith('#user-content-')) {
-    return find(`#user-content-${selector.slice(1)}`);
+  try {
+    const query = pageSelector(selector);
+    return roots.flatMap((root) => Array.from(root.querySelectorAll<HTMLElement>(query)));
+  } catch {
+    return []; // not a valid selector
   }
-  return found;
 }
 
 /** The page's roots themselves: where ":root" means the page, not the whole site. */

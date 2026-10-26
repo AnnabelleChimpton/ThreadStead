@@ -126,7 +126,7 @@ export function registerEventComponents(registry: ComponentRegistry) {
     name: 'OnKeyPress',
     component: OnKeyPress,
     group: 'logic',
-    description: 'Runs the actions inside when a certain key is pressed anywhere on the page, but not while someone is typing in a text box. Holding a key down runs it again and again, as fast as the keyboard repeats. To know a key is held, set a variable here and clear it in an OnKeyUp.',
+    description: 'Runs the actions inside when a certain key is pressed anywhere on the page, but not while someone is typing in a text box. Holding a key down runs it again and again, as fast as the keyboard repeats. To know a key is held, set a variable here and clear it in an OnKeyUp. Shortcuts like Ctrl+C don\'t count, and Space or Enter on a focused button presses that button instead.',
     example: '<Var name="jumps" type="number" initial="0" />\n<OnKeyPress keyName="j"><Increment var="jumps" /></OnKeyPress>\n<p>Press j to jump. Jumps: <ShowVar name="jumps" /></p>',
     props: {
       keyName: { type: 'string', required: true, description: 'The key to listen for, named the way browsers name keys: Enter, Escape, ArrowUp, j, J (a capital means with Shift), " " for Space and so on. It has to match exactly.' },

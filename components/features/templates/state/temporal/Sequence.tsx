@@ -206,9 +206,20 @@ export async function executeSequenceActions(
   }
   // PATTERN 2: Direct children execution (better UX)
   else {
-    // Execute children sequentially, handling Delay components specially
-    for (let i = 0; i < childArray.length; i++) {
-      const child = childArray[i];
+    // The actions between Delays run together, as one event's would: run one
+    // at a time, an If lost its Else and ElseIf (bug bash 2026-10-26)
+    let run: React.ReactNode[] = [];
+    const runActions = () => {
+      if (run.length === 0) return;
+      try {
+        executeActions(run, templateState, residentData, forEachContext, currentElement);
+      } catch (error) {
+        console.error('[Sequence] Error executing actions:', error);
+      }
+      run = [];
+    };
+
+    for (const child of childArray) {
       const actualChild = unwrapChild(child);
 
       if (!React.isValidElement(actualChild)) continue;
@@ -219,6 +230,7 @@ export async function executeSequenceActions(
 
       // Handle Delay component specially - await the timeout
       if (componentName === 'Delay') {
+        runActions();
         const delayProps = actualChild.props as any;
         const milliseconds = delayProps.milliseconds || (delayProps.seconds ? delayProps.seconds * 1000 : 0);
 
@@ -234,16 +246,10 @@ export async function executeSequenceActions(
             console.error('[Sequence] Error executing Delay children:', error);
           }
         }
-      }
-      // Execute other actions immediately
-      else {
-        try {
-          executeActions(actualChild, templateState, residentData, forEachContext, currentElement);
-        } catch (error) {
-          console.error(`[Sequence] Error executing action ${i + 1}:`, error);
-          // Continue to next action despite error
-        }
+      } else {
+        run.push(actualChild);
       }
     }
+    runActions();
   }
 }

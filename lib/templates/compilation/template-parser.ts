@@ -1073,6 +1073,8 @@ const isEvent = (name: string) => /^On[A-Z]/.test(name);
 
 /** Events that attach to the element they sit in, or to target="…" (element-events.tsx) */
 const ELEMENT_EVENTS = new Set(['OnClick', 'OnMouseEnter', 'OnMouseLeave', 'OnSwipe']);
+/** Where only rows and cells can sit: anything else is moved out of the table (warned about on its own) */
+const TABLE_PARTS = new Set(['table', 'thead', 'tbody', 'tfoot', 'tr', 'colgroup']);
 
 /** A prop that makes a page variable for you ("Made for you if it doesn't exist") */
 function declaresVariable(prop: PropSchema | undefined): boolean {
@@ -1278,6 +1280,7 @@ function reportPageProblems(source: string): string[] {
     if (ELEMENT_EVENTS.has(name) && !target && !(name === 'OnClick' && parent === 'Button')) {
       const people = name === 'OnClick' ? 'click' : name === 'OnSwipe' ? 'swipe across' : 'point at';
       let around: { name: string; component: boolean } | undefined;
+      let inLoop = false;
       for (let i = elements.length - 1; i >= 0; i--) {
         const element = elements[i];
         const holder = element.component ? componentRegistry.get(element.name) : undefined;
@@ -1285,6 +1288,7 @@ function reportPageProblems(source: string): string[] {
           around = element;
           break;
         }
+        if (element.name === 'ForEach') inLoop = true;
       }
       const holder = around?.component ? componentRegistry.get(around.name) : undefined;
       if (!around) {
@@ -1296,6 +1300,12 @@ function reportPageProblems(source: string): string[] {
         messages.push(
           `Line ${line}: <${name}> is inside <${around.name}>, which doesn't show what's put inside it, so nothing happens. ` +
           `Put it in the element around the <${around.name}>, or point it at something with target="…".`
+        );
+      } else if (inLoop && !TABLE_PARTS.has(around.name)) {
+        // Each item's lands on the same element, so one click ran them all
+        messages.push(
+          `Line ${line}: <${name}> is straight inside <ForEach>, so every item's lands on the <${around.name}> around the loop and one ${people} runs them all. ` +
+          `Put it inside an element for each item, like <li>.`
         );
       }
     }
