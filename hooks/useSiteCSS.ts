@@ -9,11 +9,16 @@ interface UseSiteCSSOptions {
   initialCSS?: string; // Pre-fetched CSS from SSR to prevent hydration mismatches
 }
 
+const PLACEHOLDER = "/* Site CSS loading... */";
+
 export function useSiteCSS(options: UseSiteCSSOptions = {}) {
+  // The placeholder read back from a server render that had no site CSS
+  // isn't the site's CSS: fetch it
+  const initialCSS = options.initialCSS === PLACEHOLDER ? undefined : options.initialCSS;
   // Use initialCSS if provided (from SSR), otherwise use loading placeholder
   // Use ?? instead of || to treat empty string as valid "no CSS" state
-  const [css, setCSS] = useState(options.initialCSS ?? "/* Site CSS loading... */");
-  const [loading, setLoading] = useState(options.initialCSS === undefined);
+  const [css, setCSS] = useState(initialCSS ?? PLACEHOLDER);
+  const [loading, setLoading] = useState(initialCSS === undefined);
   const hasInitialized = useRef(false);
   const [isClient, setIsClient] = useState(false);
 
@@ -24,7 +29,7 @@ export function useSiteCSS(options: UseSiteCSSOptions = {}) {
 
   useEffect(() => {
     // Skip fetching if initialCSS was provided (SSR case)
-    if (options.initialCSS) {
+    if (initialCSS) {
       setLoading(false);
       return;
     }
@@ -75,7 +80,7 @@ export function useSiteCSS(options: UseSiteCSSOptions = {}) {
     }
 
     fetchSiteCSS();
-  }, [isClient, options.skipDOMInjection, options.cssMode, options.initialCSS]);
+  }, [isClient, options.skipDOMInjection, options.cssMode, initialCSS]);
 
   return { css, loading };
 }

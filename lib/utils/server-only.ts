@@ -11,15 +11,19 @@
  * (isDataRequest). Read back once, a value is kept per key: Back to the first
  * page can hand it its original props again, by when the element shows
  * another page's text.
+ *
+ * One symbol per id, not one holder for them all: Next merges _app's
+ * pageProps with getServerSideProps' with Object.assign, which copies symbol
+ * keys too, so a shared holder from the page replaced _app's and the site's
+ * CSS server-rendered as its placeholder on every page of someone's own HTML.
  */
-const SERVER_ONLY = Symbol.for('threadstead.serverOnly');
+const keyFor = (id: string) => Symbol.for(`threadstead.serverOnly:${id}`);
 
-type WithServerOnly = { [SERVER_ONLY]?: Record<string, string> };
+type WithServerOnly = Record<symbol, string | undefined>;
 
 /** Put `text` on `props` for the server render only */
 export function putServerOnly(props: object, id: string, text: string): void {
-  const holder = props as WithServerOnly;
-  (holder[SERVER_ONLY] ??= {})[id] = text;
+  (props as WithServerOnly)[keyFor(id)] = text;
 }
 
 const readBack = new Map<string, string>();
@@ -30,7 +34,7 @@ const readBack = new Map<string, string>();
  * pages apart (the page's owner), so a value read back stays that page's.
  */
 export function readServerOnly(props: object, id: string, key = '', read: 'text' | 'html' = 'text'): string | undefined {
-  const fromServer = (props as WithServerOnly)[SERVER_ONLY]?.[id];
+  const fromServer = (props as WithServerOnly)[keyFor(id)];
   if (fromServer !== undefined) return fromServer;
   if (typeof document === 'undefined') return undefined;
   const cacheKey = `${id}\u0000${key}`;
