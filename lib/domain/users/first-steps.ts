@@ -5,6 +5,7 @@
  */
 import { db } from '@/lib/config/database/connection';
 import { layoutOf } from '@/lib/domain/profile/layout';
+import { visibleResidentWhere } from '@/lib/domain/users/profile-access';
 
 export interface FirstSteps {
   house: boolean;
@@ -13,6 +14,22 @@ export interface FirstSteps {
   guestbook: boolean;
   /** Made their page their own: a theme, CSS, their own HTML or widgets */
   page: boolean;
+  /**
+   * Whose guestbook "Sign a neighbor's guestbook" opens: whoever posted most
+   * recently and is around to see it (null: the street instead). Was the
+   * street, which left a newcomer at Pine Street #1 (signup audit #8).
+   */
+  neighbor?: string | null;
+}
+
+/** The username of the resident who posted most recently, other than this one */
+async function recentNeighbor(userId: string): Promise<string | null> {
+  const post = await db.post.findFirst({
+    where: { authorId: { not: userId }, visibility: 'public', author: visibleResidentWhere(userId) },
+    orderBy: { createdAt: 'desc' },
+    select: { author: { select: { primaryHandle: true } } },
+  });
+  return post?.author.primaryHandle?.split('@')[0] ?? null;
 }
 
 // Saves the person makes from Settings > Your page and the two editors each
@@ -43,7 +60,7 @@ export async function getFirstSteps(userId: string, now: Date = new Date()): Pro
   const ageDays = (now.getTime() - user.createdAt.getTime()) / 86_400_000;
   if (ageDays > FIRST_STEPS_MAX_AGE_DAYS) return null;
 
-  const [config, decoration, post, signed, profile, pageSave] = await Promise.all([
+  const [config, decoration, post, signed, profile, pageSave, neighbor] = await Promise.all([
     db.userHomeConfig.findUnique({
       where: { userId },
       select: { createdAt: true, updatedAt: true, terrain: true },
@@ -59,6 +76,7 @@ export async function getFirstSteps(userId: string, now: Date = new Date()): Pro
       where: { userId, trigger: { in: OWN_PAGE_SAVE_TRIGGERS } },
       select: { id: true },
     }),
+    recentNeighbor(userId).catch(() => null),
   ]);
 
   return {
@@ -67,5 +85,6 @@ export async function getFirstSteps(userId: string, now: Date = new Date()): Pro
     post: !!post,
     guestbook: !!signed,
     page: !!pageSave || layoutOf(profile?.templateMode) === 'html' || profile?.widgetSlot != null,
+    neighbor,
   };
 }

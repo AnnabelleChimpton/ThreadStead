@@ -1693,6 +1693,10 @@ img.ts-emoji {
 .ts-street-number {
   font-weight: 700;
 }
+.ts-street-you {
+  color: #8c4a5b;
+  font-weight: 700;
+}
 /* A ThreadRing signpost between lots: the ring's 88×31 badge at 1x on a
    post, the same ground as a lot without a picture, and prev / random /
    next on the sidewalk below. Wood is the master palette's bark ramp. */

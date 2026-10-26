@@ -26,12 +26,14 @@ interface NeighborhoodProps {
   ringSigns: RingSign[]
   /** "Autumn 2026 decorations are out until Nov 30.", while the current collection is out */
   collectionLine: string | null
+  /** The viewer's username, so their own lot says so */
+  mine: string | null
 }
 
 /** ?street= is 1-based for people; StreetPage.index is 0-based. */
 const streetHref = (index: number) => (index === 0 ? '/neighborhood' : `/neighborhood?street=${index + 1}`)
 
-export default function Neighborhood({ street, recent, at, ringSigns, collectionLine }: NeighborhoodProps) {
+export default function Neighborhood({ street, recent, at, ringSigns, collectionLine, mine }: NeighborhoodProps) {
   const first = street.index * HOUSES_PER_STREET + 1
   const last = Math.min(first + HOUSES_PER_STREET - 1, street.totalHomes)
 
@@ -54,7 +56,7 @@ export default function Neighborhood({ street, recent, at, ringSigns, collection
           </p>
         </header>
 
-        <Street homes={street.homes} at={at} ringSigns={ringSigns} />
+        <Street homes={street.homes} at={at} ringSigns={ringSigns} mine={mine} />
 
         <nav aria-label="Streets" className="mt-4 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 text-sm sm:text-base">
           {street.previous ? (
@@ -112,5 +114,6 @@ export const getServerSideProps: GetServerSideProps<NeighborhoodProps> = async (
   // One look at the hub per street, cached and bounded; no hub, no signs
   const ringSigns = await getStreetRingSigns(db, street.homes, { viewerId: viewer?.id })
 
-  return { props: { street, recent, at, ringSigns, collectionLine: collection ? noticeText(collection) : null } }
+  const mine = viewer?.primaryHandle?.split('@')[0] ?? null
+  return { props: { street, recent, at, ringSigns, collectionLine: collection ? noticeText(collection) : null, mine } }
 }

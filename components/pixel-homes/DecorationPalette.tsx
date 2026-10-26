@@ -1023,6 +1023,12 @@ export default function DecorationPalette({
         {isMobile && currentItems.length > 6 && (
           <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-white to-transparent pointer-events-none" />
         )}
+        {currentItems.length > 0 && (
+          // How placing works, for someone decorating for the first time (signup audit #8)
+          <div className="mt-4 text-xs text-thread-sage text-center">
+            Pick one, then click or tap your yard to set it down.
+          </div>
+        )}
       </div>
     )
   }

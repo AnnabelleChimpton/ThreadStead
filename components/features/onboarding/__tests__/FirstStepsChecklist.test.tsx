@@ -49,6 +49,14 @@ describe('FirstStepsChecklist', () => {
     expect(screen.queryByText('Hide this list')).not.toBeInTheDocument();
   });
 
+  it("opens a neighbor's guestbook who posted lately, and says what a ring is", async () => {
+    mockRings([]);
+    await renderList(<FirstStepsChecklist username="newbie" steps={{ ...none, neighbor: 'moss' }} />);
+    expect(screen.getByText("Sign a neighbor's guestbook").closest('a')).toHaveAttribute('href', '/resident/moss?tab=guestbook');
+    expect(screen.getByText(/@moss posted lately/)).toBeInTheDocument();
+    expect(screen.getByText(/small groups around one topic/)).toBeInTheDocument();
+  });
+
   it('ticks done steps and stops linking them', async () => {
     mockRings([]);
     await renderList(<FirstStepsChecklist username="newbie" steps={{ ...none, house: true, page: true, post: true }} />);

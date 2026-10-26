@@ -34,6 +34,8 @@ interface StreetProps {
   ringSigns?: RingSign[]
   /** Username whose house is being set down into its lot (signup's "Move in") */
   arriving?: string | null
+  /** The viewer's username: their lot says "you live here" (signup audit #8) */
+  mine?: string | null
 }
 
 const walkHref = (sign: RingSign, go: 'prev' | 'random' | 'next') =>
@@ -62,7 +64,7 @@ function RingSignpost({ sign }: { sign: RingSign }) {
   )
 }
 
-export default function Street({ homes, at, ringSigns = [], arriving }: StreetProps) {
+export default function Street({ homes, at, ringSigns = [], arriving, mine }: StreetProps) {
   useEffect(() => {
     if (!at) return
     const lot = document.getElementById(`lot-${at}`)
@@ -79,6 +81,7 @@ export default function Street({ homes, at, ringSigns = [], arriving }: StreetPr
         <ol className="ts-street-lots">
           {homes.map((home) => {
             const name = home.displayName || home.username
+            const yours = !!mine && home.username === mine
             const signsHere = ringSigns.filter((sign) => sign.afterUserId === home.userId)
             return (
               <React.Fragment key={home.userId}>
@@ -89,7 +92,7 @@ export default function Street({ homes, at, ringSigns = [], arriving }: StreetPr
                   <Link
                     href={`/home/${encodeURIComponent(home.username)}`}
                     className="ts-street-lot-link"
-                    aria-label={`${home.number}, ${name}'s house`}
+                    aria-label={`${home.number}, ${name}'s house${yours ? ', where you live' : ''}`}
                   >
                     <span className="ts-street-yard" aria-hidden="true">
                       {home.snapshotCardUrl ? (
@@ -122,6 +125,7 @@ export default function Street({ homes, at, ringSigns = [], arriving }: StreetPr
                     </span>
                     <span className="ts-street-sign">
                       <span className="ts-street-number">{home.number}</span> {name}
+                      {yours && <span className="ts-street-you"> · you live here</span>}
                     </span>
                   </Link>
                 </li>

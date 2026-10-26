@@ -30,11 +30,16 @@ function newcomer({
   // What signup leaves: a theme's CSS on the standard layout, no History yet
   profile = { templateMode: 'enhanced', widgetSlot: null } as { templateMode: string; widgetSlot: unknown } | null,
   pageSave = null as { id: string } | null,
+  // Someone else's latest public post, for the guestbook step
+  latest = null as { author: { primaryHandle: string | null } } | null,
 } = {}) {
   db.user.findUnique.mockResolvedValue({ createdAt });
   db.userHomeConfig.findUnique.mockResolvedValue(config);
   db.userHomeDecoration.findFirst.mockResolvedValue(decoration);
-  db.post.findFirst.mockResolvedValue(post);
+  // Their own post, or the latest one by someone else
+  db.post.findFirst.mockImplementation(async ({ where }: { where: { authorId: unknown } }) =>
+    typeof where.authorId === 'string' ? post : latest
+  );
   db.guestbookEntry.findFirst.mockResolvedValue(signed);
   db.profile.findUnique.mockResolvedValue(profile);
   db.profileTemplateRevision.findFirst.mockResolvedValue(pageSave);
@@ -60,7 +65,7 @@ describe('housePicked', () => {
 describe('getFirstSteps', () => {
   it('starts with nothing done for a brand-new account', async () => {
     newcomer();
-    await expect(getFirstSteps('u1', NOW)).resolves.toEqual({ house: false, yard: false, post: false, guestbook: false, page: false });
+    await expect(getFirstSteps('u1', NOW)).resolves.toEqual({ house: false, yard: false, post: false, guestbook: false, page: false, neighbor: null });
   });
 
   it('ticks each item from the matching data', async () => {
@@ -71,7 +76,7 @@ describe('getFirstSteps', () => {
       signed: { id: 'g1' },
       pageSave: { id: 'r1' },
     });
-    await expect(getFirstSteps('u1', NOW)).resolves.toEqual({ house: true, yard: true, post: true, guestbook: true, page: true });
+    await expect(getFirstSteps('u1', NOW)).resolves.toEqual({ house: true, yard: true, post: true, guestbook: true, page: true, neighbor: null });
   });
 
   it("counts the page as theirs once they've saved a look over signup's", async () => {
@@ -106,6 +111,17 @@ describe('getFirstSteps', () => {
   it('counts a painted path as a decorated yard', async () => {
     newcomer({ config: { createdAt: daysAgo(1), updatedAt: daysAgo(1), terrain: { '5,18': 'dirt_path' } } });
     expect((await getFirstSteps('u1', NOW))?.yard).toBe(true);
+  });
+
+  it("offers the guestbook of whoever else posted most recently, among residents they can see", async () => {
+    newcomer({ latest: { author: { primaryHandle: 'moss@local' } } });
+    expect((await getFirstSteps('u1', NOW))?.neighbor).toBe('moss');
+    expect(db.post.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ authorId: { not: 'u1' }, visibility: 'public', author: expect.objectContaining({ AND: expect.any(Array) }) }),
+        orderBy: { createdAt: 'desc' },
+      })
+    );
   });
 
   it("only counts guestbooks that aren't your own", async () => {

@@ -923,29 +923,8 @@ export default function PostEditor({
                   className={`w-full border border-nb-ink-mid p-3 font-mono text-sm leading-relaxed resize-vertical ${isDragging ? 'border-green-500 border-2 border-dotted border-nb-ink-mid/60 rounded-md' : ''
                     }`}
                   rows={20}
-                  placeholder="Write your post in Markdown format...
-
-# Heading 1
-## Heading 2
-
-**Bold text** and *italic text*
-
-- Bullet point
-- Another point
-
-1. Numbered list
-2. Second item
-
-> Blockquote
-
-`inline code` and code blocks:
-
-```
-code block
-    ```
-
-[Link text](https://example.com)
-![Image alt](image-url)"
+                  // One line, not a wall of Markdown: the toolbar above does the formatting (signup audit #8)
+                  placeholder="Write whatever's on your mind. The buttons above do bold, lists, links and pictures."
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
                   onKeyDown={handleKeyDown}

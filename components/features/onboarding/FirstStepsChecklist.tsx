@@ -33,13 +33,19 @@ export default function FirstStepsChecklist({ username, steps, foundersNote }: F
     return () => { alive = false; };
   }, []);
 
-  const items = [
+  // Each lands where the step happens (signup audit #8)
+  const items: { done: boolean; label: string; href: string; hint?: string }[] = [
     { done: steps.house, label: 'Pick your house', href: `/home/${username}/decorate` },
     { done: steps.yard, label: 'Decorate your yard', href: `/home/${username}/decorate` },
     { done: steps.page, label: 'Make your page yours', href: '/settings?tab=appearance' },
     { done: steps.post, label: 'Write a first post', href: '/post/new' },
-    { done: steps.guestbook, label: "Sign a neighbor's guestbook", href: '/neighborhood' },
-    { done: inRing === true, label: 'Join a ring', href: '/threadrings' },
+    {
+      done: steps.guestbook,
+      label: "Sign a neighbor's guestbook",
+      href: steps.neighbor ? `/resident/${encodeURIComponent(steps.neighbor)}?tab=guestbook` : '/neighborhood',
+      hint: steps.neighbor ? `@${steps.neighbor} posted lately` : undefined,
+    },
+    { done: inRing === true, label: 'Join a ring', href: '/threadrings', hint: 'small groups around one topic, like the old webrings' },
   ];
   const doneCount = items.filter((i) => i.done).length;
   const allDone = doneCount === items.length;
@@ -82,9 +88,12 @@ export default function FirstStepsChecklist({ username, steps, foundersNote }: F
                 <span className="sr-only"> (done)</span>
               </span>
             ) : (
-              <Link href={item.href} className="font-semibold text-nb-ink">
-                {item.label}
-              </Link>
+              <span>
+                <Link href={item.href} className="font-semibold text-nb-ink">
+                  {item.label}
+                </Link>
+                {item.hint && <span className="text-nb-ink-mid">: {item.hint}</span>}
+              </span>
             )}
           </li>
         ))}
