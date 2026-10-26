@@ -15,6 +15,15 @@ export const config = {
 };
 
 const MAX_SLOTS = 5;
+const SLOT_PROBLEM = `Pick a slot from 0 to ${MAX_SLOTS - 1}.`;
+
+/**
+ * A whole slot number. 1.5 passed the old typeof check, so the upload went
+ * to storage and then slots[1.5] threw: a 500 and a file nothing pointed at.
+ */
+function isSlot(slot: unknown): slot is number {
+  return Number.isInteger(slot) && (slot as number) >= 0 && (slot as number) < MAX_SLOTS;
+}
 
 interface CustomAssetSlot {
   slot: number;
@@ -80,14 +89,11 @@ export default apiHandler(
 
     // POST - Upload to a specific slot
     if (req.method === "POST") {
-      const { slot, imageDataUrl } = req.body as { slot: number; imageDataUrl: string };
+      const { slot, imageDataUrl } = (req.body ?? {}) as { slot: unknown; imageDataUrl: unknown };
 
-      // Validate slot number
-      if (typeof slot !== 'number' || slot < 0 || slot >= MAX_SLOTS) {
-        return res.status(400).json({ error: `Invalid slot number. Must be 0-${MAX_SLOTS - 1}` });
-      }
+      if (!isSlot(slot)) return res.status(400).json({ error: SLOT_PROBLEM });
 
-      if (!imageDataUrl) {
+      if (!imageDataUrl || typeof imageDataUrl !== "string") {
         return res.status(400).json({ error: "No image data provided" });
       }
 
@@ -128,12 +134,9 @@ export default apiHandler(
 
     // DELETE - Remove from a specific slot
     if (req.method === "DELETE") {
-      const { slot } = req.body as { slot: number };
+      const { slot } = (req.body ?? {}) as { slot: unknown };
 
-      // Validate slot number
-      if (typeof slot !== 'number' || slot < 0 || slot >= MAX_SLOTS) {
-        return res.status(400).json({ error: `Invalid slot number. Must be 0-${MAX_SLOTS - 1}` });
-      }
+      if (!isSlot(slot)) return res.status(400).json({ error: SLOT_PROBLEM });
 
       try {
         // Get current slots

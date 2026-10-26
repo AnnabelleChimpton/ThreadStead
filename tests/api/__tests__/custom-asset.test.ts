@@ -90,3 +90,17 @@ test('remove: clear the slot first, then delete the file', async () => {
   expect(res.statusCode).toBe(200)
   expect(calls).toEqual(['save []', 'delete https://cdn.test/pixel-homes/custom/u1-old.png'])
 })
+
+test.each([[1.5], [-1], [5], ['1'], [null]])('slot %p is a 400, before anything is uploaded or saved', async (slot) => {
+  const post = await call('POST', { slot, imageDataUrl: 'data:image/png;base64,AAAA' })
+  expect(post.statusCode).toBe(400)
+  expect(post.body.error).toBe('Pick a slot from 0 to 4.')
+  expect((await call('DELETE', { slot })).statusCode).toBe(400)
+  expect(calls).toEqual([])
+})
+
+test('image data that isn\'t text is a 400, not a 500', async () => {
+  const res = await call('POST', { slot: 1, imageDataUrl: { not: 'text' } })
+  expect(res.statusCode).toBe(400)
+  expect(calls).toEqual([])
+})
