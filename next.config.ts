@@ -22,7 +22,9 @@ function contentSecurityPolicy(frameAncestors: string): string {
     "base-uri 'self'",
     "form-action 'self'",
     `frame-ancestors ${frameAncestors}`,
-    "upgrade-insecure-requests",
+    // Production only: Safari upgrades even localhost, so in the dev server
+    // every script went to an https:// that isn't there and pages never started
+    ...(process.env.NODE_ENV === 'production' ? ["upgrade-insecure-requests"] : []),
   ].join('; ');
 }
 
