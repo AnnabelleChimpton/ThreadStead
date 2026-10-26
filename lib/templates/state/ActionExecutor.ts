@@ -156,9 +156,14 @@ export function executeActions(
   forEachContext: any = null,
   currentElement?: HTMLElement
 ): void {
-  // A loop's names (cell, i) in the calculations these actions make
-  const names = forEachContext?.scopeId ? globalTemplateStateManager.getScopeValues(forEachContext.scopeId) : null;
-  withLoopNames(names, () => runActions(children, templateState, residentData, forEachContext, currentElement));
+  // A loop's names (cell, i) in the calculations these actions make, as
+  // they were at the click: a Delay or a later Sequence step runs this
+  // again after the list may have moved on (a RemoveAt before it), and
+  // read the next item (bug bash 2026-10-26)
+  const names = forEachContext?.loopNames ??
+    (forEachContext?.scopeId ? globalTemplateStateManager.getScopeValues(forEachContext.scopeId) : null);
+  const context = names && forEachContext ? { ...forEachContext, loopNames: names } : forEachContext;
+  withLoopNames(names, () => runActions(children, templateState, residentData, context, currentElement));
 }
 
 function runActions(

@@ -242,6 +242,10 @@ export default function ForEach(props: ForEachProps) {
   // scopes are its own for each outer item (two inner loops over the same
   // list shared one scope before)
   const outer = useForEachContext();
+  // This loop's own, the same in the server's render and the browser's: two
+  // loops over one list shared ids, so one going away took the other's names
+  // with it ("NaN" on its clicks; bug bash 2026-10-26)
+  const loopId = React.useId();
 
   // Get array from template state with prefix fallback
   // IMPORTANT: This must be before any conditional returns to avoid breaking React Hooks rules
@@ -307,7 +311,7 @@ export default function ForEach(props: ForEachProps) {
   return (
     <>
       {arrayValue.slice(0, maxIndex).map((itemValue, idx) => {
-        const scopeId = `${outer ? `${outer.scopeId}/` : ''}forEach-${varName}-${idx}`;
+        const scopeId = `${outer ? `${outer.scopeId}/` : ''}forEach-${varName}-${loopId}-${idx}`;
 
         return (
           <ForEachIteration
@@ -504,13 +508,16 @@ function processForEachChildren(
         }
       }
 
-      // Process the actual component's children
+      // Process the actual component's children. An inner loop that names
+      // its item or index the same as this one gets those placeholders for
+      // itself: filled here first, {item} showed the outer item (bug bash 2026-10-26)
+      const inner = actualChild.type === ForEach ? (actualChild.props as ForEachProps) : null;
       const processedChildren = processForEachChildren(
         (actualChild.props as any).children,
         itemValue,
-        itemName,
+        inner && (inner.item === itemName || inner.index === itemName) ? '' : itemName,
         currentIndex,
-        indexName,
+        inner && indexName && (inner.item === indexName || inner.index === indexName) ? undefined : indexName,
         scopeId
       );
 
@@ -652,6 +659,9 @@ function replaceTemplatePlaceholders(
       () => String(currentIndex)
     );
   }
+
+  // No item name: an inner loop has taken it (processForEachChildren)
+  if (!itemName) return result;
 
   // Replace {item.property} for object items
   if (typeof itemValue === 'object' && itemValue !== null) {

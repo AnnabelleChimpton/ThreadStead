@@ -206,3 +206,49 @@ describe('what a loop fills in is checked like what the page writes (bug bash 20
 
 
 })
+
+describe('loops keep to themselves (bug bash 2026-10-26)', () => {
+  test("two loops over one list: one going away leaves the other's names alone", async () => {
+    await visit(`<div>
+<Var name="list" type="array" initial='["a","b","c"]' />
+<Var name="show" type="boolean" initial="true" />
+<Var name="picked" type="string" initial="" />
+<ul><ForEach var="list" item="x" index="k"><li class="a{k}"><OnClick><Set var="picked" expression="x + k" /></OnClick>{x}</li></ForEach></ul>
+<If data="show"><ul><ForEach var="list" item="x" index="k"><li>{x}</li></ForEach></ul></If>
+<p id="hide"><OnClick><Set var="show" value="false" /></OnClick>hide</p>
+<p id="picked"><ShowVar name="picked" /></p>
+</div>`, async ({ $, text }) => {
+      click($('#user-content-hide'))
+      await settle()
+      click($('.a2'))
+      await settle()
+      expect(text('picked')).toBe('c2')
+    })
+  })
+
+  test('an inner loop with the same names shows its own item and index', async () => {
+    await visit(`<div>
+<Var name="outer" type="array" initial='["A","B"]' />
+<Var name="inner" type="array" initial='["x","y"]' />
+<div id="grid"><ForEach var="outer" item="item" index="i"><ForEach var="inner" item="item" index="i"><span>{item}{i}</span></ForEach></ForEach></div>
+<p class="c"><OnClick><Set var="outer" expression="outer" /></OnClick>.</p>
+</div>`, async ({ text }) => {
+      expect(text('grid')).toBe('x0y1x0y1')
+    })
+  })
+
+  test('a Delay in a loop click reads the item as it was at the click', async () => {
+    await visit(`<div>
+<Var name="items" type="array" initial='["a","b","c"]' />
+<Var name="now" type="string" initial="" />
+<Var name="picked" type="string" initial="" />
+<ul><ForEach var="items" item="it" index="i"><li class="it{i}"><OnClick><Set var="now" expression="it" /><RemoveAt var="items" index="{i}" /><Delay milliseconds="50"><Set var="picked" expression="it" /></Delay></OnClick>{it}</li></ForEach></ul>
+<p id="now"><ShowVar name="now" /></p><p id="picked"><ShowVar name="picked" /></p>
+</div>`, async ({ $, text }) => {
+      click($('.it1'))
+      await settle(150)
+      expect(text('now')).toBe('b')
+      expect(text('picked')).toBe('b')
+    })
+  })
+})
