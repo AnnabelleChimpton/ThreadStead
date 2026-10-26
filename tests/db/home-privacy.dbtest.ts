@@ -15,7 +15,10 @@ jest.mock('@/lib/auth/server', () => ({
   getSessionUser: jest.fn(),
   isAdmin: (u: any) => u?.role === 'admin',
 }))
-jest.mock('@/lib/server/http/rate-limit', () => ({ rateLimitCheck: jest.fn(async () => true) }))
+jest.mock('@/lib/server/http/rate-limit', () => ({
+  ...jest.requireActual('@/lib/server/http/rate-limit'),
+  rateLimitCheck: jest.fn(async () => true),
+}))
 jest.mock('@/lib/server/http/csrf', () => ({ csrfProtection: jest.fn(async () => true) }))
 // The capability is just the signer's user id here; minting is tested elsewhere.
 jest.mock('@/lib/domain/users/capabilities', () => ({
