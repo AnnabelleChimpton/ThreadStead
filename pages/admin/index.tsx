@@ -918,7 +918,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
       });
 
       if (res.ok) {
-        setPolicyMessage("Policies saved.");
+        setPolicyMessage((await res.json().catch(() => null))?.message || "Policies saved.");
         setTimeout(() => setPolicyMessage(null), 3000);
       } else {
         const error = await res.json();
