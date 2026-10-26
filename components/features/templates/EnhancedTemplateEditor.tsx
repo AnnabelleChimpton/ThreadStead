@@ -659,9 +659,15 @@ export default function EnhancedTemplateEditor({
   const [liveProblems, setLiveProblems] = useState<LiveProblems>(NO_PROBLEMS);
   // The CSS's own problems, checked here as you type (nothing to compile)
   const deferredCSS = React.useDeferredValue(customCSS);
+  // Only the browser can say which property names it knows, so that check
+  // waits for mount: the server render and the first client one must agree
+  const [canAskBrowser, setCanAskBrowser] = useState(false);
+  useEffect(() => setCanAskBrowser(true), []);
   const cssProblemList = React.useMemo<LiveProblems>(
-    () => (deferredCSS.trim() ? { ...NO_PROBLEMS, status: 'ok', warnings: cssProblems(deferredCSS) } : NO_PROBLEMS),
-    [deferredCSS]
+    () => (deferredCSS.trim()
+      ? { ...NO_PROBLEMS, status: 'ok', warnings: canAskBrowser ? cssProblems(deferredCSS) : cssProblems(deferredCSS, () => undefined) }
+      : NO_PROBLEMS),
+    [deferredCSS, canAskBrowser]
   );
 
   // Compile template function (using real compilation API like production).
