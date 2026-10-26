@@ -145,6 +145,20 @@ html:not(:has(.profile-template-root)), body:not(:has(.profile-template-root)) {
     -webkit-text-stroke: 0;
     cursor: auto;
     writing-mode: horizontal-tb;
+    /* And what else inherits: font-stretch drew the nav condensed, and
+       user-select, image-rendering, colour scheme, accent and caret colours,
+       quote marks reached it too (bug bash 2026-10-26) */
+    font-stretch: normal;
+    font-variation-settings: normal;
+    font-kerning: auto;
+    text-rendering: auto;
+    user-select: auto;
+    -webkit-user-select: auto;
+    image-rendering: auto;
+    color-scheme: light;
+    accent-color: auto;
+    caret-color: auto;
+    quotes: auto;
     /* Tailwind's unit for every spacing utility, which a page's --spacing
        on :root used to change in the nav too (89px to 153px). Text sizes and
        corners too, and in px: they were rem, so a page that set html's

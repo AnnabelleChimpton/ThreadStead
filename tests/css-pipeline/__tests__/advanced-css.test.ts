@@ -358,7 +358,8 @@ describe("the page's CSS stays off the site's chrome", () => {
   test("the chrome doesn't inherit visibility, word-break or the page's --spacing", () => {
     const globals = fs.readFileSync(path.join(ROOT, 'styles/globals.css'), 'utf8')
     const reset = globals.match(/\.site-footer[^,{]*, \[data-site-chrome\] \{([^}]*)\}/)?.[1] ?? ''
-    for (const decl of ['visibility: visible', 'word-break: normal', '--spacing: 4px', 'direction: ltr', 'cursor: auto', '--text-sm: 14px', '--radius-lg: 8px']) {
+    for (const decl of ['visibility: visible', 'word-break: normal', '--spacing: 4px', 'direction: ltr', 'cursor: auto', '--text-sm: 14px', '--radius-lg: 8px',
+      'font-stretch: normal', 'user-select: auto', 'image-rendering: auto', 'color-scheme: light', 'accent-color: auto', 'caret-color: auto', 'quotes: auto']) {
       expect(reset).toContain(decl)
     }
   })

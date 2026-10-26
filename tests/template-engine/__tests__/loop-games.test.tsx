@@ -544,3 +544,31 @@ test('<If condition="!a"> and <ConditionalAttr when="on"> do what they say (bug 
     expect(text('not')).toBe('')
   })
 })
+
+describe('clickables and screen readers (bug bash 2026-10-26)', () => {
+  test('a clickable heading stays a heading, still reached with Tab', async () => {
+    await visit(`<div>
+<Var name="n" type="number" initial="0" />
+<h2 id="title"><OnClick><Increment var="n" /></OnClick>Title</h2>
+<div id="card"><OnClick><Increment var="n" /></OnClick>Card</div>
+</div>`, async ({ $ }) => {
+      expect([$('#user-content-title')?.getAttribute('role'), $('#user-content-title')?.getAttribute('tabindex')]).toEqual([null, '0'])
+      expect($('#user-content-card')?.getAttribute('role')).toBe('button')
+    })
+  })
+
+  test('pressing a clickable that hides itself leaves focus on the page, not nowhere', async () => {
+    await visit(`<div>
+<Var name="open" type="boolean" initial="true" />
+<section id="box"><If data="open"><div id="close"><OnClick><Set var="open" value="false" /></OnClick>Close</div></If></section>
+</div>`, async ({ $, dom }) => {
+      const close = $('#user-content-close')!
+      close.focus()
+      close.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }))
+      await settle(150)
+      expect($('#user-content-close')).toBeNull()
+      expect(dom.window.document.activeElement).not.toBe(dom.window.document.body)
+      expect(dom.window.document.activeElement?.closest('[data-template-root]')).not.toBeNull()
+    })
+  })
+})

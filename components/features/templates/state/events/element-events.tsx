@@ -20,6 +20,8 @@ export type ElementEvent = 'click' | 'enter' | 'leave';
 
 /** What a browser already clicks and reaches with Tab: it keeps its own keyboard and role */
 const INTERACTIVE = 'a[href], area[href], button, input, select, textarea, summary, label, [contenteditable]:not([contenteditable="false"])';
+/** Elements whose own role matters more than "button" */
+const KEEPS_ITS_ROLE = 'h1, h2, h3, h4, h5, h6, li, dt, dd, dl, ol, ul, td, th, tr, table, pre, blockquote, figure, nav, main, header, footer, article, aside, section, form';
 /** Something a click inside an element is for instead: the innermost one runs */
 const CLICKABLE = `${INTERACTIVE}, [data-ts-clickable]`;
 
@@ -37,7 +39,11 @@ function makeClickable(element: HTMLElement) {
     return;
   }
   const native = element.matches(INTERACTIVE);
-  const added = { count: 1, tabindex: !native && !element.hasAttribute('tabindex'), role: !native && !element.hasAttribute('role') };
+  // A heading, list item, cell or the like keeps what it is to a screen
+  // reader: role=button made a clickable <h1> stop being a heading (bug
+  // bash 2026-10-26). It's still reached with Tab and pressed with Enter.
+  const meaningful = element.matches(KEEPS_ITS_ROLE);
+  const added = { count: 1, tabindex: !native && !element.hasAttribute('tabindex'), role: !native && !meaningful && !element.hasAttribute('role') };
   if (added.tabindex) element.setAttribute('tabindex', '0');
   if (added.role) element.setAttribute('role', 'button');
   // cursor: pointer (styles/page-defaults.css)
@@ -55,6 +61,28 @@ function unmakeClickable(element: HTMLElement) {
 }
 
 const isElement = (node: EventTarget | null): node is Element => !!node && typeof (node as Element).closest === 'function';
+
+/**
+ * A clickable that had focus and goes away when pressed (an If hiding it,
+ * "close") left focus nowhere, on the page's body, and the next Tab
+ * started from the top (bug bash 2026-10-26). Focus goes to the nearest
+ * part of the page still there: what's around it, or the page itself.
+ */
+function keepFocusNear(element: HTMLElement): () => void {
+  if (!element.contains(document.activeElement)) return () => {};
+  const around: HTMLElement[] = [];
+  for (let up = element.parentElement; up; up = up.parentElement) around.push(up);
+  return () => {
+    setTimeout(() => {
+      if (element.isConnected || (document.activeElement && document.activeElement !== document.body)) return;
+      const near = around.find((candidate) => candidate.isConnected && (candidate.matches(CLICKABLE) || candidate.tabIndex >= 0 || candidate.id === 'main-content'))
+        ?? around.find((candidate) => candidate.isConnected && candidate.matches(TEMPLATE_ROOT));
+      if (!near) return;
+      if (!near.hasAttribute('tabindex') && !near.matches(CLICKABLE)) near.setAttribute('tabindex', '-1');
+      near.focus({ preventScroll: true });
+    }, 50);
+  };
+}
 
 /** Whether a click on `node` is for `element`, not for a button, link, field or clickable inside it */
 function clickIsFor(element: HTMLElement, node: EventTarget | null): boolean {
@@ -103,7 +131,11 @@ export function useElementEvent(event: ElementEvent, target: string | undefined,
   });
 
   useEffect(() => {
-    const go = (element: HTMLElement) => runRef.current(element);
+    const go = (element: HTMLElement) => {
+      const settle = keepFocusNear(element);
+      runRef.current(element);
+      settle();
+    };
     const selector = target?.trim();
 
     if (!selector) {
@@ -292,9 +324,16 @@ export function useSwipe(direction: SwipeDirection | undefined, target: string |
     const onCancel = (e: PointerEvent) => {
       if (start && e.pointerId === start.id) start = null;
     };
+    // A mouse drag that starts on a picture or link is the swipe's: the
+    // browser began dragging the picture instead, and the swipe never came
+    // (bug bash 2026-10-26)
+    const onDragStart = (e: DragEvent) => {
+      if (start && swiped(e.target)) e.preventDefault();
+    };
 
     const listenOn: EventTarget = own ?? document;
     listenOn.addEventListener('pointerdown', onDown as EventListener);
+    listenOn.addEventListener('dragstart', onDragStart as EventListener);
     window.addEventListener('pointerup', onUp);
     window.addEventListener('pointercancel', onCancel);
 
@@ -323,6 +362,7 @@ export function useSwipe(direction: SwipeDirection | undefined, target: string |
     return () => {
       observer?.disconnect();
       listenOn.removeEventListener('pointerdown', onDown as EventListener);
+      listenOn.removeEventListener('dragstart', onDragStart as EventListener);
       window.removeEventListener('pointerup', onUp);
       window.removeEventListener('pointercancel', onCancel);
       for (const element of held) holdAxes(element, direction, -1);

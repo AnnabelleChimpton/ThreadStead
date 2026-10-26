@@ -74,6 +74,20 @@ function childrenFromHast(children: TemplateNode[] | undefined, inSvg: boolean):
 /** A loop's {item}, {p.name} or {i + 1} in text */
 const PLACEHOLDER = /\{\s*[\w$.]+(?:\s*\+\s*\d+)?\s*\}/;
 
+/**
+ * style="position: sticky; top: 0" counts its top from below the site's
+ * fixed nav, as the page's CSS does (css-transform.ts): at 0 it stuck
+ * under the nav, out of sight (bug bash 2026-10-26)
+ */
+function stickyBelowNav(style: string): string {
+  if (!/position\s*:\s*(?:-webkit-)?sticky/i.test(style)) return style;
+  return style.replace(/(^|;)(\s*top\s*:\s*)([^;!]+?)(\s*(?:!\s*important\s*)?)(?=;|$)/i, (whole, before: string, prop: string, value: string, end: string) =>
+    /^auto$/i.test(value.trim())
+      ? whole
+      : `${before}${prop}${/^[+-]?0*\.?0*$/.test(value.trim()) ? 'var(--ts-nav-height, 0px)' : `calc(${value.trim()} + var(--ts-nav-height, 0px))`}${end}`
+  );
+}
+
 function childrenWithRanges(children: TemplateNode[] | undefined, inSvg: boolean): { nodes: PageTreeNode[]; ranges: Array<string | null> } {
   const nodes: PageTreeNode[] = [];
   const ranges: Array<string | null> = [];
@@ -112,7 +126,7 @@ function nodeFromHast(node: TemplateNode, inSvg: boolean): PageTreeNode | null {
     const info = find(space, key);
     if (value === true) attrs.push([info.attribute, '']);
     else if (Array.isArray(value)) attrs.push([info.attribute, value.join(info.commaSeparated ? ', ' : ' ')]);
-    else attrs.push([info.attribute, String(value)]);
+    else attrs.push([info.attribute, info.attribute === 'style' ? stickyBelowNav(String(value)) : String(value)]);
   }
 
   const el: PageTreeElement = { t: node.tagName };

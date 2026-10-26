@@ -88,3 +88,13 @@ test("<body id=\"home\"> reaches the page root, so body#home and #home rules app
   const artifacts = compileTemplateToArtifacts('<!doctype html><html><body id="home" class="night"><h1>Hi</h1></body></html>')
   expect(pageRootAttributes({ ast: artifacts.ast })).toMatchObject({ id: 'home', className: 'night' })
 })
+
+test('style="position: sticky; top: 0" sticks below the site nav, like the page CSS does (bug bash 2026-10-26)', async () => {
+  const result = await compileForEditor('<div style="position: sticky; top: 0; background: gold">bar</div><div style="position:sticky;top:12px">b</div><p style="top: 0">x</p>')
+  const styles = JSON.stringify(result.ok && result.artifact).match(/"style","[^"]*"/g)
+  expect(styles).toEqual([
+    '"style","position: sticky; top: var(--ts-nav-height, 0px); background: gold"',
+    '"style","position:sticky;top:calc(12px + var(--ts-nav-height, 0px))"',
+    '"style","top: 0"',
+  ])
+})
