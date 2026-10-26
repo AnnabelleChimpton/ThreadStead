@@ -116,10 +116,13 @@ export default function AdvancedProfileRenderer({ user, residentData }: Advanced
               // styles/theme-parts.css: with site styles off, the site's parts
               // take the page's own colours
               data-site-styles={siteStylesOn(user.profile?.cssMode) ? 'on' : 'off'}
+              // A browser's 8px around the page, as body's margin
+              // (css-transform.ts setsBodyMargin: 0 when the page sets
+              // body's own), and the window's height below the nav
               style={{
                 overflow: 'visible',
-                minHeight: '100vh',
-                width: '100%',
+                margin: 'var(--ts-page-margin, 8px)',
+                minHeight: 'calc(100vh - var(--ts-nav-height, 0px) - 2 * var(--ts-page-margin, 8px))',
                 display: 'block'
               }}
               dangerouslySetInnerHTML={rootHtml}

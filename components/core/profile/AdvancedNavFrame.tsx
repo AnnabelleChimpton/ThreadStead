@@ -136,6 +136,13 @@ export default function AdvancedNavFrame({ showNavigation, pageHasMain = false, 
         .ts-page-frame:focus {
           outline: none;
         }
+        /* The page's first heading keeps its margin inside the page, as
+           under body: it went into the room under the nav, so the heading
+           sat against the bar on desktop, and phones (where the box below
+           does the same) showed it differently (bug bash 2026-10-26) */
+        .ts-page-frame {
+          display: flow-root;
+        }
         @media (max-width: ${NAV_HEIGHT.phoneBelow - 1}px) {
           .ts-page-frame {
             overflow-x: auto;

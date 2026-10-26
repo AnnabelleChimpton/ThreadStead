@@ -20,6 +20,7 @@
 
 import { normalizeCss } from './css-normalize'
 import { sanitizeCss } from '@/lib/utils/sanitization/css'
+import type { PageRootAttributes } from '@/lib/templates/compilation/document-head'
 
 /**
  * A page's CSS as every transform here starts from: read the way a browser
@@ -393,7 +394,7 @@ function prefixSelectorIds(selector: string): string {
  * still beats a later `.nav a`; template audit 01 #9), and each beats the
  * site's rules of its own shape (the theme's `a:hover`).
  */
-export function scopeAdvancedSelector(selector: string): string {
+export function scopeAdvancedSelector(selector: string, pageRoot?: PageRootAttributes): string {
   const sel = selector.trim()
   // A whole-page overlay (scanlines, sparkles) drawn on body::before is the
   // page root's: over the page, never over the site's nav (it tinted it)
@@ -404,7 +405,14 @@ export function scopeAdvancedSelector(selector: string): string {
 
   // The html and body compounds a selector starts with, and the rest
   const { whole, rootCompound, bodyCompound } = rootLead(sel)
-  if (!rootCompound && !bodyCompound) return `:root body ${INSIDE_PAGE} ${sel}`
+  if (!rootCompound && !bodyCompound) {
+    const inside = `:root body ${INSIDE_PAGE} ${sel}`
+    // `.night h1` when <body class="night">: the class is on the page root
+    // now, so the first part can be the root itself, not only inside it
+    // (it matched nothing; bug bash 2026-10-26)
+    const first = sel.slice(0, compoundEnd(sel, 0))
+    return pageRoot && onRootToo(first, pageRoot) ? `:root body ${INSIDE_PAGE}${first}${sel.slice(first.length)}, ${inside}` : inside
+  }
   // Classes, ids and attributes written on html or body are the page root's
   // (document-head.ts puts a pasted page's there); pseudo-classes stay put
   const root = rootCompound ? splitCompound(rootCompound) : null
@@ -452,6 +460,29 @@ function rootLead(sel: string): { whole: string; rootCompound?: string; bodyComp
 const isRootOrBodyWhen = (selector: string) => {
   const { whole, rootCompound, bodyCompound } = rootLead(selector.trim())
   return !!(rootCompound || bodyCompound) && whole.trim() === selector.trim()
+}
+
+/**
+ * Whether a compound with no element name (`.night`, `[data-theme="dark"]`,
+ * `#home.x:hover`) asks only for what the page root carries from <html>
+ * and <body>: its classes, data-* and id. Pseudo-classes don't count against it.
+ */
+function onRootToo(compound: string, root: PageRootAttributes): boolean {
+  if (!compound || /^[a-z*|]/i.test(compound)) return false
+  const classes = new Set((root.className ?? '').split(/\s+/).filter(Boolean))
+  let asked = 0
+  for (const part of compound.match(/\.(?:[\w-]|\\.)+|#(?:[\w-]|\\.)+|\[[^\]]*\]|::?[\w-]+(?:\([^)]*\))?/g) ?? []) {
+    if (part.startsWith(':')) continue
+    asked++
+    if (part.startsWith('.') && !classes.has(part.slice(1))) return false
+    if (part.startsWith('#') && (!root.id || part.slice(1) !== `${USER_CONTENT_PREFIX}${root.id}`)) return false
+    if (part.startsWith('[')) {
+      const m = /^\[\s*([\w-]+)\s*(?:=\s*(["']?)(.*?)\2)?\s*\]$/.exec(part)
+      if (!m || !root.data || !(m[1].toLowerCase() in root.data)) return false
+      if (m[3] !== undefined && root.data[m[1].toLowerCase()] !== m[3]) return false
+    }
+  }
+  return asked > 0
 }
 
 /** `body.dark:hover` → name `body`, moved `.dark`, kept `:hover` */
@@ -639,6 +670,84 @@ function splitRuleBody(body: string): { declarations: string[]; nested: { prelud
 }
 
 /**
+ * html, body { height: 100% }: on its own site, body is the window's height,
+ * and a sidebar or column of height: 100% reaches the bottom. Here the
+ * page sits in the page root, whose height was its content's, so they
+ * stopped at their text (bug bash 2026-10-26). The root is the window less
+ * the nav then; past that the page scrolls as before.
+ */
+export function fullHeightPage(css: string): boolean {
+  if (!/height/i.test(css)) return false
+  return splitTopLevelStatements(css).some((s) =>
+    s.kind === 'rule' && s.body !== undefined &&
+    splitSelectorList(s.prelude).some((selector) => /^(?::root|html|body|html\s*>?\s*body)$/i.test(selector.trim()) && !/^(?::root|html)$/i.test(selector.trim())) &&
+    splitDeclarations(s.body).some((d) => /^(?:min-)?height\s*:\s*100(?:%|d?vh)\s*(?:!\s*important)?$/i.test(d.trim()))
+  )
+}
+
+/**
+ * A browser puts 8px around a page (body's margin); the page root does too
+ * (AdvancedProfileRenderer, --ts-page-margin), unless the page sets body's
+ * margin itself (body { margin: 0 }, a * { margin: 0 } reset): then that's
+ * the real body's, and the root has none. Without it, pages sat flush
+ * against the nav and the window's edge (bug bash 2026-10-26).
+ */
+export function setsBodyMargin(css: string): boolean {
+  if (!/margin/i.test(css)) return false
+  const sets = (statements: CSSStatement[]): boolean => statements.some((s) => {
+    if (s.kind === 'at' && s.body !== undefined && EFFECT_GROUPS.has(s.atName || '')) return sets(splitTopLevelStatements(s.body))
+    if (s.kind !== 'rule' || s.body === undefined) return false
+    const onBody = splitSelectorList(s.prelude).some((selector) => {
+      const sel = selector.trim()
+      if (sel === '*') return true
+      const lead = rootLead(sel)
+      return !!lead.bodyCompound && lead.whole.trim() === sel
+    })
+    return onBody && splitDeclarations(s.body).some((d) => /^margin(?:-(?:top|right|bottom|left|block|inline)(?:-(?:start|end))?)?\s*:/i.test(d.trim()))
+  })
+  return sets(splitTopLevelStatements(css))
+}
+
+const NO_PAGE_MARGIN = `:root body ${PAGE_ROOT} { --ts-page-margin: 0px; }`
+
+/** position: sticky anywhere in the page's CSS */
+export function usesSticky(css: string): boolean {
+  return /position\s*:\s*(?:-webkit-)?sticky/i.test(css)
+}
+
+/**
+ * A sticky bar's top: 0 is under the site's fixed nav, so it stuck where
+ * nobody could see it: its top counts from the nav's bottom instead
+ * (bug bash 2026-10-26). In the rules that make something sticky, at any depth.
+ */
+function stickyBelowNav(css: string): string {
+  return serializeStatements(splitTopLevelStatements(css).map((s) => {
+    if (s.kind === 'at' && s.body !== undefined && EFFECT_GROUPS.has(s.atName || '')) return { ...s, body: '\n' + stickyBelowNav(s.body) + '\n' }
+    if (s.kind !== 'rule' || s.body === undefined || s.body.includes('{')) return s
+    const declarations = splitDeclarations(s.body)
+    if (!declarations.some((d) => /^position\s*:\s*(?:-webkit-)?sticky/i.test(d.trim()))) return s
+    const moved = declarations.map((d) => {
+      const m = /^top\s*:\s*(.+?)(\s*!\s*important)?$/i.exec(d.trim())
+      if (!m || /^auto$/i.test(m[1].trim())) return d
+      // A bare 0 can't be added to a length: calc(0 + …) is no top at all
+      const offset = /^[+-]?0*\.?0*$/.test(m[1].trim()) ? 'var(--ts-nav-height, 0px)' : `calc(${m[1].trim()} + var(--ts-nav-height, 0px))`
+      return `top: ${offset}${m[2] ?? ''}`
+    })
+    return { ...s, body: ` ${moved.join('; ')}; ` }
+  }))
+}
+
+/**
+ * On phones the page pans sideways inside its frame (AdvancedNavFrame),
+ * which makes the frame what scrolls, so nothing in it ever stuck. A page
+ * that uses sticky clips sideways instead: its bars stick, and a page
+ * wider than the phone is cut off at the edge rather than panned.
+ */
+const STICKY_FRAME = `:root body .ts-page-frame { overflow-x: clip !important; }`
+
+const FULL_HEIGHT_ROOT = `:root body ${PAGE_ROOT} { height: calc(100vh - var(--ts-nav-height, 0px)) !important; min-height: 0 !important; }`
+
+/**
  * The site's own @keyframes names (styles/*.css and Tailwind's theme; a test
  * keeps this list complete). A page's @keyframes of the same name replaced
  * the site's everywhere on that page, the nav's loading spinner included
@@ -721,7 +830,7 @@ export function renameSiteFonts(css: string): string {
  */
 export function transformAdvancedCss(
   css: string,
-  options: { fontImports?: readonly string[]; bodyCss?: string; styleCss?: string } = {}
+  options: { fontImports?: readonly string[]; bodyCss?: string; styleCss?: string; root?: PageRootAttributes } = {}
 ): string {
   // <body bgcolor…> rules go first so the page's own CSS wins over them.
   // Each read as the browser reads it, so one left open can't take in the next
@@ -737,7 +846,11 @@ export function transformAdvancedCss(
   // prefers-color-scheme: a page that only tweaked a border there went
   // near-black for dark-mode visitors, its own dark text unreadable (bug bash 2026-10-26)
   const schemes = /light-dark\(/i.test(rest) && !/(?<![\w-])color-scheme\s*:/i.test(rest) ? ':root { color-scheme: light dark; }\n' : ''
-  const scoped = mapSelectors(namePageLayers(moveWholePageEffects(schemes + rest)), scopeAdvancedSelector, { authorScopes: true })
+  const sticky = usesSticky(rest)
+  const scoped = mapSelectors(namePageLayers(moveWholePageEffects(schemes + (sticky ? stickyBelowNav(rest) : rest))), (selector) => scopeAdvancedSelector(selector, options.root), { authorScopes: true }) +
+    (fullHeightPage(rest) ? `\n${FULL_HEIGHT_ROOT}` : '') +
+    (setsBodyMargin(rest) ? `\n${NO_PAGE_MARGIN}` : '') +
+    (sticky ? `\n${STICKY_FRAME}` : '')
   if (!scoped && allImports.length === 0) return ''
   // Layer statements are the one thing allowed before @import
   return [SITE_LAYER_ORDER, ...allImports, scoped].filter(Boolean).join('\n')

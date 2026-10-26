@@ -335,3 +335,51 @@ describe('rendering fixes from the bug bash (2026-10-26)', () => {
     expect(css).not.toMatch(/^\s*select \{/m)
   })
 })
+
+describe('pasted pages laid out as on their own site (bug bash 2026-10-26)', () => {
+  test('a class or data-* from <body>/<html> matches the page root itself, not only inside it', () => {
+    const root = { className: 'js night', data: { 'data-theme': 'dark' } }
+    const out = transformAdvancedCss('.night h1 { color: red } .js .note { border: 1px } [data-theme="dark"] p { color: white } .other h1 { color: blue } div p { margin: 0 }', { root })
+    expect(out).toContain(':root body :where(.profile-template-root).night h1, :root body :where(.profile-template-root) .night h1 { color: red }')
+    expect(out).toContain(':root body :where(.profile-template-root).js .note,')
+    expect(out).toContain(':root body :where(.profile-template-root)[data-theme="dark"] p,')
+    // Not for a class the root doesn't have, or an element name (the root is a div; body isn't)
+    expect(out).toContain('\n:root body :where(.profile-template-root) .other h1 { color: blue }')
+    expect(out).toContain('\n:root body :where(.profile-template-root) div p { margin: 0 }')
+    expectContained(out)
+  })
+
+  test('the whole way through: a pasted page with <body class> gets its rules', async () => {
+    const { compileTemplateToArtifacts } = await import('@/lib/templates/compilation/compile-pipeline')
+    const artifacts = compileTemplateToArtifacts('<!doctype html><html><body class="night"><h1>Hi</h1></body></html>')
+    expect(advancedPageStyles('.night h1 { color: red }', { ast: artifacts.ast }).css).toContain(':where(.profile-template-root).night h1')
+  })
+
+  test('html, body { height: 100% } makes the page root the window less the nav, so 100% columns reach the bottom', () => {
+    expect(page('html, body { height: 100%; margin: 0 } #wrap { height: 100% }')).toContain('.profile-template-root { height: calc(100vh - var(--ts-nav-height, 0px)) !important; min-height: 0 !important; }')
+    expect(page('#wrap { height: 100% }')).not.toContain('calc(100vh')
+  })
+
+  test("the page root has a browser's 8px margin unless the page sets body's (or a * reset's)", () => {
+    for (const css of ['body { margin: 0 }', '* { margin: 0; padding: 0 }', '@media screen { body { margin-top: 4px } }', 'html, body { margin: 0 }']) {
+      expect(page(css)).toContain('.profile-template-root { --ts-page-margin: 0px; }')
+    }
+    for (const css of ['h1 { margin: 0 }', 'p { color: red }', 'html { margin: 0 }']) {
+      expect(page(css)).not.toContain('--ts-page-margin')
+    }
+  })
+
+  test('a sticky bar sticks under the nav, and the phone frame lets it', () => {
+    const out = page('.bar { position: sticky; top: 0 } .side { position: -webkit-sticky; top: 10px } .x { top: 0 }')
+    expect(out).toContain('.bar { position: sticky; top: var(--ts-nav-height, 0px); }')
+    expect(out).toContain('top: calc(10px + var(--ts-nav-height, 0px))')
+    expect(out).toContain('.x { top: 0 }')
+    expect(out).toContain(':root body .ts-page-frame { overflow-x: clip !important; }')
+    expect(page('.x { top: 0 }')).not.toContain('ts-page-frame')
+  })
+
+  test("the frame keeps a first heading's margin inside the page", () => {
+    const frame = fs.readFileSync(path.join(__dirname, '..', '..', '..', 'components/core/profile/AdvancedNavFrame.tsx'), 'utf8')
+    expect(frame).toMatch(/\.ts-page-frame \{\s*display: flow-root;/)
+  })
+})

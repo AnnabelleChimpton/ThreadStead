@@ -335,12 +335,13 @@ export function documentHeadCss(head: { body?: unknown; options?: unknown } | nu
  * the stored AST and re-validated (this comes straight from the profile row
  * on every page view).
  */
-export function documentCssFromCompiledTemplate(compiled: unknown): { fontImports: string[]; bodyCss: string; styleCss: string } {
+export function documentCssFromCompiledTemplate(compiled: unknown): { fontImports: string[]; bodyCss: string; styleCss: string; root?: PageRootAttributes } {
   const head = (compiled as { ast?: { head?: { body?: unknown; options?: unknown; htmlStyle?: unknown; bodyStyle?: unknown } } } | null | undefined)?.ast?.head
   return {
     fontImports: fontImportsFromCompiledTemplate(compiled),
     bodyCss: documentHeadCss(head),
     styleCss: documentStyleCss(head),
+    root: pageRootAttributes(compiled),
   }
 }
 

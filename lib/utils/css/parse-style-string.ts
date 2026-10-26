@@ -16,13 +16,23 @@ export function parseStyleString(styleString: string): Record<string, string> {
     const property = declaration.slice(0, colon).trim();
     const value = declaration.slice(colon + 1).trim();
     if (!property || !value) continue;
+    // *display and _height: old Internet Explorer hacks every other browser skips
+    if (!property.startsWith('--') && !/^-?[a-zA-Z][a-zA-Z-]*$/.test(property)) continue;
     const name = property.startsWith('--')
       ? property
       : property.toLowerCase().replace(/-([a-z])/g, (_, letter: string) => letter.toUpperCase());
+    // background: red; background: -moz-linear-gradient(…): a browser keeps
+    // the red, since it can't read the second. An object keeps one value
+    // per name, so an old browser's own spelling doesn't replace one that
+    // works (the box went transparent; bug bash 2026-10-26)
+    if (name in styles && OLD_BROWSER_VALUE.test(value)) continue;
     styles[name] = value;
   }
   return styles;
 }
+
+/** A value only an old browser reads: -moz-, -ms-, -o- and -khtml- spellings, -webkit-gradient() */
+const OLD_BROWSER_VALUE = /(?:^|[\s,(])-(?:moz|ms|o|khtml)-|-webkit-gradient\(/i;
 
 function splitDeclarations(style: string): string[] {
   const parts: string[] = [];
