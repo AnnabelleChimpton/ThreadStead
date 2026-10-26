@@ -4,6 +4,7 @@ import Layout from "@/components/ui/layout/Layout";
 import { recoverFromSeedPhrase, loginWithPassword } from "@/lib/api/did/did-client";
 import PageMeta from "@/components/ui/layout/PageMeta";
 import { SITE_TITLE } from "@/lib/config/site/constants";
+import { sameSitePath } from '@/lib/utils/security/same-site-path';
 
 type LoginMethod = 'main' | 'password-login' | 'seed-phrase' | 'email-login' | 'email-sent';
 
@@ -27,7 +28,7 @@ export default function LoginPage() {
   // Back to where they came from (?next=, a path on this site only), else their page
   function afterSignIn() {
     const next = typeof router.query.next === 'string' ? router.query.next : '';
-    window.location.href = /^\/(?![/\\])/.test(next) ? next : '/me';
+    window.location.href = sameSitePath(next, window.location.origin) ?? '/me';
   }
 
   // Auto-populate username from URL if provided
