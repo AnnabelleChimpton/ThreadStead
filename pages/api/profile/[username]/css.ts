@@ -13,7 +13,9 @@ export default apiHandler(
   async (req, res, { user: currentUser }) => {
     try {
       const username = String(req.query.username);
-      const { customCSS, cssMode } = req.body;
+      const { customCSS, cssMode } = req.body ?? {};
+      // Every editor sends it (empty to clear); left out, it wiped the page's CSS
+      if (typeof customCSS !== 'string') return res.status(400).json({ error: "The CSS is missing. Send it empty to clear it." });
       const tooLong = sourceTooLong('CSS', customCSS);
       if (tooLong) return res.status(413).json({ error: tooLong });
 
@@ -43,7 +45,7 @@ export default apiHandler(
       }
 
       // Sanitize CSS to prevent XSS attacks
-      const sanitizedCSS = cleanCss(customCSS || '');
+      const sanitizedCSS = cleanCss(customCSS);
 
       // Build update data object. Site styles are on or off: 'override'
       // (an older on) is written as 'inherit'.

@@ -144,6 +144,21 @@ describe('CSS save', () => {
     expect(res.statusCode).toBe(403)
     expect(mockDb.pageUpdate.upsert).not.toHaveBeenCalled()
   })
+
+  // Every editor sends the CSS (empty to clear); left out, it was wiped
+  test.each([[{ cssMode: 'disable' }], [{ customCSS: { not: 'css' } }]])('%j: a 400, and the CSS is kept', async (body) => {
+    const { req, res } = makeReqRes(body)
+    await cssHandler(req, res)
+    expect(res.statusCode).toBe(400)
+    expect(mockDb.profile.update).not.toHaveBeenCalled()
+  })
+
+  test('an empty CSS still clears it', async () => {
+    const { req, res } = makeReqRes({ customCSS: '' })
+    await cssHandler(req, res)
+    expect(res.statusCode).toBe(200)
+    expect(mockDb.profile.update.mock.calls[0][0].data.customCSS).toBe('')
+  })
 })
 
 describe('HTML save', () => {
