@@ -3,15 +3,11 @@ import * as ed from "@noble/ed25519";
 import { toBase64Url, fromBase64Url } from "@/lib/utils/encoding/base64url";
 import * as bip39 from "bip39";
 import { csrfFetch } from "@/lib/api/client/csrf-fetch";
-import { KEY_STORAGE, getExistingDid, type LocalKeypair } from "./local-identity";
+import { KEY_STORAGE, SEED_STORAGE, ENCRYPTED_SEED_STORAGE, getExistingDid, markRecoveryPhraseSet, type LocalKeypair } from "./local-identity";
 
-export { hasExistingDid, getExistingDid, type LocalKeypair } from "./local-identity";
+export { hasExistingDid, getExistingDid, recoveryPhraseSet, type LocalKeypair, type RecoveryPhraseSet } from "./local-identity";
 
-const SEED_STORAGE = "retro_seed_phrase_v1";
-const ENCRYPTED_SEED_STORAGE = "retro_encrypted_seed_v1";
 const AUTH_METHOD_STORAGE = "retro_auth_method_v1";
-
-export type SeedPhrase = { mnemonic: string; created: number };
 
 export async function getOrCreateLocalDid(): Promise<LocalKeypair> {
   const existing = typeof window !== "undefined" ? localStorage.getItem(KEY_STORAGE) : null;
@@ -200,29 +196,6 @@ export async function createKeypairFromSeedPhrase(mnemonic: string): Promise<Loc
   return { publicKey: pkb64u, secretKey: skb64u, did };
 }
 
-export function hasSeedPhrase(): boolean {
-  if (typeof window === "undefined") return false;
-  const existing = localStorage.getItem(SEED_STORAGE);
-  return !!existing;
-}
-
-export function getSeedPhrase(): SeedPhrase | null {
-  if (typeof window === "undefined") return null;
-  const existing = localStorage.getItem(SEED_STORAGE);
-  return existing ? JSON.parse(existing) : null;
-}
-
-export function storeSeedPhrase(mnemonic: string): void {
-  if (typeof window === "undefined") return;
-  const seedData: SeedPhrase = { mnemonic, created: Date.now() };
-  localStorage.setItem(SEED_STORAGE, JSON.stringify(seedData));
-}
-
-export function clearSeedPhrase(): void {
-  if (typeof window === "undefined") return;
-  localStorage.removeItem(SEED_STORAGE);
-}
-
 // Update an existing identity with a new seed phrase (for upgrade/attach flow)
 export async function updateIdentityWithSeedPhrase(mnemonic: string, isLegacyUser: boolean = false): Promise<void> {
   // Validate the seed phrase first
@@ -249,7 +222,7 @@ export async function updateIdentityWithSeedPhrase(mnemonic: string, isLegacyUse
     // Store the new keypair and seed phrase
     if (typeof window !== "undefined") {
       localStorage.setItem(KEY_STORAGE, JSON.stringify(kp));
-      storeSeedPhrase(mnemonic);
+      markRecoveryPhraseSet();
     }
 
     // Log in with the new identity
@@ -273,7 +246,7 @@ export async function updateIdentityWithSeedPhrase(mnemonic: string, isLegacyUse
   } else {
     // For non-legacy users, just store the seed phrase
     if (typeof window !== "undefined") {
-      storeSeedPhrase(mnemonic);
+      markRecoveryPhraseSet();
     }
   }
 }
@@ -297,7 +270,7 @@ export async function recoverFromSeedPhrase(mnemonic: string, username?: string)
   // Store the keypair and seed phrase
   if (typeof window !== "undefined") {
     localStorage.setItem(KEY_STORAGE, JSON.stringify(kp));
-    storeSeedPhrase(mnemonic);
+    markRecoveryPhraseSet();
   }
 
   // Attempt login (no beta key needed for recovery of existing account)
@@ -398,7 +371,7 @@ export async function createNewIdentityWithSeedPhrase(username: string, betaKey?
   // Store both keypair and seed phrase
   if (typeof window !== "undefined") {
     localStorage.setItem(KEY_STORAGE, JSON.stringify(kp));
-    storeSeedPhrase(mnemonic);
+    markRecoveryPhraseSet();
   }
 
   // Perform login
@@ -641,17 +614,23 @@ export async function changePassword(currentPassword: string, newPassword: strin
 /**
  * Add password authentication to existing seed phrase user
  */
-export async function addPasswordToAccount(password: string): Promise<void> {
+export async function addPasswordToAccount(password: string, mnemonic: string): Promise<void> {
   // Must be seed phrase user
   if (isPasswordAuth()) {
     throw new Error('This account already uses password authentication');
   }
-  
-  // Get current seed phrase
-  const seedData = getSeedPhrase();
-  if (!seedData) {
-    throw new Error('No seed phrase found. Cannot add password to account.');
+
+  // The words, typed by the resident (this browser no longer keeps them),
+  // must be this account's: checked here so a slip says so plainly
+  const words = mnemonic.trim().toLowerCase().split(/\s+/).join(' ');
+  if (!bip39.validateMnemonic(words)) {
+    throw new Error("Those aren't 12 recovery words. Check the spelling and the order.");
   }
+  const existing = getExistingDid();
+  if (!existing || (await createKeypairFromSeedPhrase(words)).did !== existing.did) {
+    throw new Error("Those words are for a different account than the one you're signed in with.");
+  }
+  const seedData = { mnemonic: words };
   
   // Call API to add password
   const res = await fetch('/api/auth/add-password', {

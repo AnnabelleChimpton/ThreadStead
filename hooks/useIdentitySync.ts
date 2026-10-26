@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getExistingDid } from "@/lib/api/did/local-identity";
+import { getExistingDid, recoveryPhraseSet } from "@/lib/api/did/local-identity";
 import { useMe } from "@/hooks/useMe";
 
 export function useIdentitySync() {
@@ -14,6 +14,9 @@ export function useIdentitySync() {
       return;
     }
     
+    // Forgets the recovery words an older version kept in plain text
+    recoveryPhraseSet();
+
     // Only check if user is logged in on server
     if (me?.loggedIn && me.user) {
       const localIdentity = getExistingDid();

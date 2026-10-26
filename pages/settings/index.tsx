@@ -30,11 +30,11 @@ import {
   getExistingDid,
   createNewIdentityWithSeedPhrase,
   recoverFromSeedPhrase,
-  getSeedPhrase,
+  recoveryPhraseSet,
   generateSeedPhrase,
   updateIdentityWithSeedPhrase,
   LocalKeypair,
-  SeedPhrase,
+  type RecoveryPhraseSet,
   isPasswordAuth,
   addPasswordToAccount
 } from "@/lib/api/did/did-client";
@@ -139,7 +139,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled, siteUr
 
   // Identity management state
   const [currentIdentity, setCurrentIdentity] = useState<LocalKeypair | null>(null);
-  const [currentSeedPhrase, setCurrentSeedPhrase] = useState<SeedPhrase | null>(null);
+  const [currentSeedPhrase, setCurrentSeedPhrase] = useState<RecoveryPhraseSet | null>(null);
   const [seedPhrase, setSeedPhrase] = useState<string>("");
   const [recoveryPhrase, setRecoveryPhrase] = useState<string>("");
   const [showRecovery, setShowRecovery] = useState(false);
@@ -189,6 +189,8 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled, siteUr
   const [showPasswordSection, setShowPasswordSection] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  // Adding a password: the recovery words, typed (this browser doesn't keep them)
+  const [passwordWords, setPasswordWords] = useState('');
   const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
   const [hasPasswordAuth, setHasPasswordAuth] = useState(false);
 
@@ -291,8 +293,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled, siteUr
     try {
       const identity = getExistingDid();
       setCurrentIdentity(identity);
-      const seedData = getSeedPhrase();
-      setCurrentSeedPhrase(seedData);
+      setCurrentSeedPhrase(recoveryPhraseSet());
       setHasPasswordAuth(isPasswordAuth());
 
       // Also check if user has password auth enabled by checking if they have encrypted seed phrase
@@ -483,10 +484,11 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled, siteUr
     try {
       setIsLoading(true);
       showInfo("Adding password authentication...");
-      await addPasswordToAccount(newPassword);
+      await addPasswordToAccount(newPassword, passwordWords);
       await loadCurrentIdentity();
       setNewPassword('');
       setConfirmNewPassword('');
+      setPasswordWords('');
       setShowPasswordSection(false);
       setHasPasswordAuth(true); // Update state immediately
       notify("Password added. You can sign in with either your password or your seed phrase.");
@@ -1164,7 +1166,7 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled, siteUr
               <div className="border-2 border-dotted border-nb-ink-mid/60 rounded-md p-4 mb-4">
                 <p className="text-nb-ink font-medium mb-2"><PixelIcon name="lightbulb" /> Enable password login</p>
                 <p className="text-nb-ink text-sm mb-3">
-                  Add a password to your account for easier login. Your seed phrase will still work and remains the most secure option.
+                  Add a password and you can sign in with it on any computer. Your 12 words keep working too.
                 </p>
 
                 {!showPasswordSection ? (
@@ -1205,13 +1207,30 @@ export default function UnifiedSettingsPage({ initialUser, isBetaEnabled, siteUr
                       />
                     </div>
 
+                    <div>
+                      <label htmlFor="password-words" className="block text-sm font-bold mb-2">Your 12 recovery words</label>
+                      <textarea
+                        id="password-words"
+                        value={passwordWords}
+                        onChange={(e) => setPasswordWords(e.target.value)}
+                        placeholder="The words you wrote down, in order"
+                        autoComplete="off"
+                        spellCheck={false}
+                        className="w-full h-20 px-3 py-2 text-sm border border-nb-ink-mid/40 rounded bg-white resize-none"
+                        disabled={isLoading}
+                      />
+                      <p className="text-xs text-nb-ink-mid mt-1 mb-0">
+                        Your password keeps a locked copy of them, so you can sign in with either. This browser doesn&apos;t keep the words.
+                      </p>
+                    </div>
+
                     {/* Password Requirements */}
                     <PasswordRules password={newPassword} />
 
                     <div className="flex gap-3 flex-wrap">
                       <Button
                         onClick={handleAddPassword}
-                        disabled={isLoading || !newPassword || !confirmNewPassword || passwordErrors.length > 0}
+                        disabled={isLoading || !newPassword || !confirmNewPassword || !passwordWords.trim() || passwordErrors.length > 0}
                         className="thread-button disabled:opacity-50 min-h-[48px]"
                       >
                         {isLoading ? "Adding..." : "Add Password"}
