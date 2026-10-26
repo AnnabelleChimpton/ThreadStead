@@ -417,35 +417,39 @@
   }
 
   /* The components inside such a page keep them, up to the page's own HTML
-     they hold (data-ts-page; styles/preflight.css). Buttons in :where():
-     a scoped rule beats an unscoped one of the same weight, and the button
-     rule lost that tie to the site theme's before. */
-  @scope ([data-template-root] ts-island) to ([data-ts-page]) {
-    input[type="text"], input[type="email"], input[type="password"], input[type="url"], textarea, select {
-      min-height: 48px;
-      font-size: 16px !important;
-      padding: 0.875rem;
-      border-radius: 0.375rem;
-      transition: all 0.2s ease;
-      color: #2F2F2F !important;
-      background-color: #FFFFFF !important;
-      border: 1px solid #A18463 !important;
-    }
-    input::placeholder, textarea::placeholder {
-      color: #A18463 !important;
-      opacity: 0.8 !important;
-    }
-    :where(button, .btn, [role="button"]) {
-      min-height: 48px;
-      min-width: 48px;
-      padding: 0.875rem 1.25rem;
-      font-size: 1rem;
-      font-weight: 500;
-      touch-action: manipulation;
-      transition: all 0.15s ease;
-    }
-    :where(button, .btn, [role="button"]):active {
-      transform: scale(0.98);
+     they hold (data-ts-page; styles/preflight.css). In a layer, as defaults:
+     the page's own CSS wins over all of it, on phones too (component
+     styling audit R3: it was unlayered, the fields' colours !important).
+     16px keeps iOS from zooming into a field; a page that wants smaller
+     text can have it. */
+  @layer threadstead-components {
+    @scope ([data-template-root] ts-island) to ([data-ts-page]) {
+      input[type="text"], input[type="email"], input[type="password"], input[type="url"], textarea, select {
+        min-height: 48px;
+        font-size: 16px;
+        padding: 0.875rem;
+        border-radius: 0.375rem;
+        transition: all 0.2s ease;
+        color: #2F2F2F;
+        background-color: #FFFFFF;
+        border: 1px solid #A18463;
+      }
+      input::placeholder, textarea::placeholder {
+        color: #A18463;
+        opacity: 0.8;
+      }
+      button, .btn, [role="button"] {
+        min-height: 48px;
+        min-width: 48px;
+        padding: 0.875rem 1.25rem;
+        font-size: 1rem;
+        font-weight: 500;
+        touch-action: manipulation;
+        transition: all 0.15s ease;
+      }
+      :is(button, .btn, [role="button"]):active {
+        transform: scale(0.98);
+      }
     }
   }
 

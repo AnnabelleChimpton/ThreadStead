@@ -185,8 +185,10 @@ a:where(:not([data-template-root] *), :any-link):hover { color: var(--ha-rose-in
 
 /* ---------------- 6. Buttons: peach bevel, press to push ---------------- */
 /* Default for plain <button>s (specificity of `button`, so any class wins).
-   Opt out with .ts-tab / .ts-bare. Never sets `display`. */
-button:where(:not(.ts-tab, .ts-bare, .threadring-tab, .site-nav-links *)),
+   Opt out with .ts-tab / .ts-bare. Never sets `display`. Not in a page of
+   someone's own HTML: its buttons, <Button> too, look the same with site
+   styles on or off, and its CSS doesn't have to undo a bevel it can't see. */
+button:where(:not(.ts-tab, .ts-bare, .threadring-tab, .site-nav-links *, [data-template-root] *)),
 .btn {
   background: linear-gradient(to bottom, var(--ha-peach-hi), var(--ha-header));
   border: 2px outset var(--ha-ink-mid);
@@ -208,7 +210,7 @@ a.btn { display: inline-block; }   /* links only: buttons keep their own display
   color: var(--ha-ink-dark); text-decoration: underline; text-shadow: none;
 }
 
-button:where(:not(.ts-tab, .ts-bare, .threadring-tab, .site-nav-links *)):hover,
+button:where(:not(.ts-tab, .ts-bare, .threadring-tab, .site-nav-links *, [data-template-root] *)):hover,
 .btn:hover {
   background: linear-gradient(to bottom, var(--ha-peach-hover), #f6d2aa);
   color: var(--ha-ink-dark);
@@ -216,7 +218,7 @@ button:where(:not(.ts-tab, .ts-bare, .threadring-tab, .site-nav-links *)):hover,
 .btn--secondary:hover { background: linear-gradient(to bottom, #ffffff, #fff1df); }
 .btn--link:hover { background: none; color: var(--ha-rose-ink); }
 
-button:where(:not(.ts-tab, .ts-bare, .threadring-tab, .site-nav-links *)):active,
+button:where(:not(.ts-tab, .ts-bare, .threadring-tab, .site-nav-links *, [data-template-root] *)):active,
 .btn:active {
   border-style: inset;
   background: var(--ha-peach-press);
@@ -225,8 +227,8 @@ button:where(:not(.ts-tab, .ts-bare, .threadring-tab, .site-nav-links *)):active
 }
 .btn--link:active { background: none; transform: none; }
 
-button:where(:not(.ts-tab, .ts-bare, .threadring-tab, .site-nav-links *)):disabled,
-button:where(:not(.ts-tab, .ts-bare, .threadring-tab, .site-nav-links *)):disabled:hover {
+button:where(:not(.ts-tab, .ts-bare, .threadring-tab, .site-nav-links *, [data-template-root] *)):disabled,
+button:where(:not(.ts-tab, .ts-bare, .threadring-tab, .site-nav-links *, [data-template-root] *)):disabled:hover {
   opacity: .55;
   cursor: not-allowed;
   background: linear-gradient(to bottom, var(--ha-peach-hi), var(--ha-header));
