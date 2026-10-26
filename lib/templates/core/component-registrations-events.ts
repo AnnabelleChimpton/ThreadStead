@@ -11,6 +11,7 @@ import OnMouseEnter from '@/components/features/templates/state/events/OnMouseEn
 import OnMouseLeave from '@/components/features/templates/state/events/OnMouseLeave';
 import OnKeyPress from '@/components/features/templates/state/events/OnKeyPress';
 import OnKeyUp from '@/components/features/templates/state/events/OnKeyUp';
+import OnSwipe from '@/components/features/templates/state/events/OnSwipe';
 import OnVisible from '@/components/features/templates/state/events/OnVisible';
 
 // Import loop components
@@ -164,6 +165,23 @@ export function registerEventComponents(registry: ComponentRegistry) {
     example: '<Var name="x" type="number" initial="0" />\n<Var name="right" type="boolean" initial="false" />\n<OnKeyPress keyName="ArrowRight" scroll="false"><Set var="right" value="true" /></OnKeyPress>\n<OnKeyUp keyName="ArrowRight"><Set var="right" value="false" /></OnKeyUp>\n<If data="$vars.right">\n  <OnInterval milliseconds="50"><Set var="x" expression="Math.min(x + 1, 100)" /></OnInterval>\n</If>\n<p>Hold the right arrow: <ShowVar name="x" /></p>',
     props: {
       keyName: { type: 'string', required: true, description: 'The key to listen for, named the way browsers name keys: ArrowLeft, Shift, a and so on. It has to match exactly.' }
+    },
+    relationship: {
+      type: 'action',
+      acceptsChildren: true
+    }
+  });
+
+  registry.register({
+    name: 'OnSwipe',
+    component: OnSwipe,
+    group: 'logic',
+    description: 'Runs the actions inside when someone swipes across the element it sits in: a finger on a phone or tablet, or dragging with the mouse held down. Put one inside the thing to swipe, or point it at something with target="…". Swiping across it doesn\'t scroll the page that way (left and right swipes still let the page scroll up and down), and a swipe doesn\'t count as a click too. Keyboards can\'t swipe, so give a game OnKeyPress arrows as well.',
+    example: '<Var name="x" type="number" initial="0" />\n<div class="pad">\n  <OnSwipe direction="left"><Decrement var="x" /></OnSwipe>\n  <OnSwipe direction="right"><Increment var="x" /></OnSwipe>\n  Swipe me left or right: <ShowVar name="x" />\n</div>\n<OnKeyPress keyName="ArrowLeft"><Decrement var="x" /></OnKeyPress>\n<OnKeyPress keyName="ArrowRight"><Increment var="x" /></OnKeyPress>',
+    props: {
+      direction: { type: 'string', values: ['left', 'right', 'up', 'down'], description: 'Which way: left, right, up or down. Without it, a swipe any way counts. Use one OnSwipe for each way.' },
+      distance: { type: 'number', default: 30, min: 1, description: 'How far the swipe has to go, in pixels, before it counts. 30 by default.' },
+      target: { type: 'string', description: 'A selector for what to swipe across instead of the element it sits in, like #board or .card. Things the page shows later count too.' }
     },
     relationship: {
       type: 'action',

@@ -1076,7 +1076,7 @@ export function isPageProblem(message: string): boolean {
 const isEvent = (name: string) => /^On[A-Z]/.test(name);
 
 /** Events that attach to the element they sit in, or to target="…" (element-events.tsx) */
-const ELEMENT_EVENTS = new Set(['OnClick', 'OnHover', 'OnMouseEnter', 'OnMouseLeave']);
+const ELEMENT_EVENTS = new Set(['OnClick', 'OnHover', 'OnMouseEnter', 'OnMouseLeave', 'OnSwipe']);
 
 /** A prop that makes a page variable for you ("Made for you if it doesn't exist") */
 function declaresVariable(prop: PropSchema | undefined): boolean {
@@ -1280,7 +1280,7 @@ function reportPageProblems(source: string): string[] {
     const target = attrs.get('target')?.trim();
     if (ELEMENT_EVENTS.has(name) && target) targets.push({ name, line, target });
     if (ELEMENT_EVENTS.has(name) && !target && !(name === 'OnClick' && parent === 'Button')) {
-      const people = name === 'OnClick' ? 'click' : 'point at';
+      const people = name === 'OnClick' ? 'click' : name === 'OnSwipe' ? 'swipe across' : 'point at';
       let around: { name: string; component: boolean } | undefined;
       for (let i = elements.length - 1; i >= 0; i--) {
         const element = elements[i];

@@ -199,6 +199,7 @@ const componentLoaders: Record<string, () => Promise<{ default: React.ComponentT
   OnHover: () => import('@/components/features/templates/state/events/OnHover'),
   OnMouseEnter: () => import('@/components/features/templates/state/events/OnMouseEnter'),
   OnMouseLeave: () => import('@/components/features/templates/state/events/OnMouseLeave'),
+  OnSwipe: () => import('@/components/features/templates/state/events/OnSwipe'),
   OnKeyPress: () => import('@/components/features/templates/state/events/OnKeyPress'),
   OnKeyUp: () => import('@/components/features/templates/state/events/OnKeyUp'),
   OnVisible: () => import('@/components/features/templates/state/events/OnVisible'),

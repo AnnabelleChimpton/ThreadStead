@@ -205,3 +205,131 @@ export function useElementEvent(event: ElementEvent, target: string | undefined,
 export function eventMarker(ref: React.RefObject<HTMLSpanElement | null>) {
   return <span ref={ref} hidden data-ts-event="" style={{ display: 'none' }} />;
 }
+
+export type SwipeDirection = 'left' | 'right' | 'up' | 'down';
+
+/**
+ * What a swiped element lets the browser still do with a finger, by how
+ * many swipes want each axis: one that only swipes left and right still
+ * scrolls the page up and down (pan-y). Taken back with the last swipe.
+ */
+const swipeAxes = new WeakMap<HTMLElement, { x: number; y: number; before: string }>();
+
+function axesOf(direction: SwipeDirection | undefined) {
+  return { x: direction !== 'up' && direction !== 'down' ? 1 : 0, y: direction !== 'left' && direction !== 'right' ? 1 : 0 };
+}
+
+function holdAxes(element: HTMLElement, direction: SwipeDirection | undefined, by: 1 | -1) {
+  let record = swipeAxes.get(element);
+  if (!record) {
+    if (by < 0) return;
+    record = { x: 0, y: 0, before: element.style.touchAction };
+    swipeAxes.set(element, record);
+  }
+  const { x, y } = axesOf(direction);
+  record.x += x * by;
+  record.y += y * by;
+  if (record.x <= 0 && record.y <= 0) {
+    element.style.touchAction = record.before;
+    swipeAxes.delete(element);
+    return;
+  }
+  element.style.touchAction = record.x > 0 && record.y > 0 ? 'none' : record.x > 0 ? 'pan-y' : 'pan-x';
+}
+
+/** Long enough for a flick, not a slow drag across the page */
+const SWIPE_MS = 1000;
+
+/**
+ * Runs `run` with the element when someone swipes across it: a finger, a
+ * pen, or the mouse held down and dragged, at least `distance` pixels,
+ * mostly one way. No direction: any way. The element it sits in, or with
+ * `target` the page's elements matching it. A swipe isn't a click too.
+ */
+export function useSwipe(direction: SwipeDirection | undefined, target: string | undefined, distance: number, run: (element: HTMLElement) => void) {
+  const markerRef = useRef<HTMLSpanElement>(null);
+  const runRef = useRef(run);
+  useEffect(() => {
+    runRef.current = run;
+  });
+
+  useEffect(() => {
+    const selector = target?.trim();
+    const matches = selector ? matchSelector(selector) : null;
+    const own = selector ? null : elementAround(markerRef.current);
+    if (selector ? !matches : !own) return;
+    /** The element a pointer went down on that this swipe is for */
+    const swiped = (node: EventTarget | null): HTMLElement | null => {
+      if (own) return isElement(node) && own.contains(node) ? own : null;
+      const element = isElement(node) ? node.closest<HTMLElement>(matches!) : null;
+      const root = element?.closest(TEMPLATE_ROOT);
+      return element && root && root !== element ? element : null;
+    };
+
+    let start: { id: number; x: number; y: number; at: number; element: HTMLElement } | null = null;
+    const onDown = (e: PointerEvent) => {
+      if (!e.isPrimary || (e.pointerType === 'mouse' && e.button !== 0)) return;
+      const element = swiped(e.target);
+      if (element) start = { id: e.pointerId, x: e.clientX, y: e.clientY, at: e.timeStamp, element };
+    };
+    const onUp = (e: PointerEvent) => {
+      if (!start || e.pointerId !== start.id) return;
+      const { x, y, at, element } = start;
+      start = null;
+      const dx = e.clientX - x;
+      const dy = e.clientY - y;
+      if (Math.max(Math.abs(dx), Math.abs(dy)) < distance || e.timeStamp - at > SWIPE_MS) return;
+      const way: SwipeDirection = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : dy > 0 ? 'down' : 'up';
+      if (direction && way !== direction) return;
+      // The click a mouse drag ends in is the swipe's, not an OnClick's
+      const swallow = (click: MouseEvent) => {
+        click.stopPropagation();
+        click.preventDefault();
+      };
+      element.addEventListener('click', swallow, { capture: true, once: true });
+      setTimeout(() => element.removeEventListener('click', swallow, { capture: true }), 0);
+      runRef.current(element);
+    };
+    // The browser took the touch over (scrolling, zooming): no swipe
+    const onCancel = (e: PointerEvent) => {
+      if (start && e.pointerId === start.id) start = null;
+    };
+
+    const listenOn: EventTarget = own ?? document;
+    listenOn.addEventListener('pointerdown', onDown as EventListener);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onCancel);
+
+    // Swiping across it doesn't scroll the page that way, for the
+    // elements there now and any the page shows later
+    const held = new Set<HTMLElement>();
+    const update = () => {
+      const now = new Set(own ? [own] : pageElements(selector!).filter((element) => !element.matches(TEMPLATE_ROOT)));
+      for (const element of held) {
+        if (!now.has(element)) {
+          held.delete(element);
+          holdAxes(element, direction, -1);
+        }
+      }
+      for (const element of now) {
+        if (!held.has(element)) {
+          held.add(element);
+          holdAxes(element, direction, 1);
+        }
+      }
+    };
+    update();
+    const observer = own ? null : new MutationObserver(update);
+    if (observer) for (const root of pageRoots()) observer.observe(root, { childList: true, subtree: true });
+
+    return () => {
+      observer?.disconnect();
+      listenOn.removeEventListener('pointerdown', onDown as EventListener);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onCancel);
+      for (const element of held) holdAxes(element, direction, -1);
+    };
+  }, [direction, target, distance]);
+
+  return markerRef;
+}
