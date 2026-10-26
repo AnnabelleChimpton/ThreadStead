@@ -3,6 +3,11 @@ import { screen, fireEvent, waitFor } from '@testing-library/react';
 import MutualFriends from '../MutualFriends';
 import { renderWithTemplateContext, createMockResidentData } from './test-utils';
 
+// PixelIcon uses next/dynamic which does not resolve in the jest environment
+jest.mock('@/components/ui/PixelIcon', () => ({
+  PixelIcon: ({ name }: { name: string }) => <span data-testid={`pixel-icon-${name}`} />
+}));
+
 // Mock fetch globally
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
@@ -194,7 +199,7 @@ describe('MutualFriends Component', () => {
         expect(screen.getByText('Mutual friends: 5')).toBeInTheDocument();
       });
       
-      expect(screen.getByText('🫂')).toBeInTheDocument();
+      expect(screen.getByTestId('pixel-icon-users')).toBeInTheDocument();
       expect(screen.getByTitle('Mutual friends')).toBeInTheDocument();
     });
 

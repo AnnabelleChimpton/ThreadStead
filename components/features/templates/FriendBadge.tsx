@@ -12,7 +12,7 @@ export default function FriendBadge(props: FriendBadgeProps) {
   const { className: customClassName } = componentProps;
   const { viewer } = useResidentData();
 
-  const baseClasses = "inline-flex items-center gap-1 bg-green-200 border border-black px-2 py-0.5 text-xs font-bold shadow-[2px_2px_0_#000] rounded";
+  const baseClasses = "ts-friend-badge inline-flex items-center gap-1 bg-green-200 border border-black px-2 py-0.5 text-xs font-bold shadow-[2px_2px_0_#000] rounded";
   const filteredClasses = removeTailwindConflicts(baseClasses, cssProps);
   const style = applyCSSProps(cssProps);
 

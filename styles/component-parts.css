@@ -158,6 +158,10 @@
 :where([data-template-root][data-site-styles="off"]) .ts-post-content {
   color: var(--ts-ink);
 }
+/* BlogPosts: its words */
+:where([data-template-root][data-site-styles="off"]) .ts-post .thread-content {
+  color: var(--ts-ink);
+}
 /* BlogPosts: its small buttons */
 :where([data-template-root][data-site-styles="off"]) .ts-post-actions button {
   background: var(--ts-card, transparent);
@@ -284,5 +288,307 @@
 :where([data-template-root][data-site-styles="off"]) .ts-color-picker-value {
   color: var(--ts-ink);
   opacity: 0.8;
+  font-family: var(--ts-font);
+}
+/* FollowButton: Follow and Unfollow */
+:where([data-template-root][data-site-styles="off"]) .ts-follow-button {
+  background: var(--ts-card, transparent);
+  color: var(--ts-ink);
+  border-color: var(--ts-edge, currentColor);
+  box-shadow: var(--ts-shadow, none);
+  border-radius: var(--ts-radius, 4px);
+  font-family: var(--ts-font);
+}
+/* FollowButton: "log in to follow" */
+:where([data-template-root][data-site-styles="off"]) .ts-follow-note {
+  color: var(--ts-ink);
+  font-family: var(--ts-font);
+  opacity: 0.8;
+}
+/* FollowButton: "Friends" or "Follows you" */
+:where([data-template-root][data-site-styles="off"]) .ts-follow-status {
+  color: var(--ts-ink);
+  opacity: 0.8;
+}
+/* FriendBadge: the badge */
+:where([data-template-root][data-site-styles="off"]) .ts-friend-badge {
+  background: var(--ts-card, transparent);
+  color: var(--ts-ink);
+  border-color: var(--ts-edge, currentColor);
+  box-shadow: var(--ts-shadow, none);
+  border-radius: var(--ts-radius, 4px);
+  font-family: var(--ts-font);
+}
+/* MutualFriends: the button with the count */
+:where([data-template-root][data-site-styles="off"]) .ts-mutual-friends-button {
+  background: var(--ts-card, transparent);
+  color: var(--ts-ink);
+  border-color: var(--ts-edge, currentColor);
+  box-shadow: var(--ts-shadow, none);
+  border-radius: var(--ts-radius, 4px);
+  font-family: var(--ts-font);
+}
+/* MutualFriends: the friends it opens */
+:where([data-template-root][data-site-styles="off"]) .ts-mutual-friends-list {
+  background: var(--ts-card, transparent);
+  border-color: var(--ts-edge, color-mix(in srgb, currentColor 35%, transparent));
+  box-shadow: var(--ts-shadow, none);
+  border-radius: var(--ts-radius, 0px);
+  color: var(--ts-ink);
+}
+/* MutualFriends: a friend's picture */
+:where([data-template-root][data-site-styles="off"]) .ts-mutual-friends-avatar {
+  border-color: var(--ts-edge, currentColor);
+}
+/* FriendDisplay: the box */
+:where([data-template-root][data-site-styles="off"]) .ts-friends {
+  background: var(--ts-card, transparent);
+  border-color: var(--ts-edge, currentColor);
+  box-shadow: var(--ts-shadow, none);
+  border-radius: var(--ts-radius, 0px);
+  color: var(--ts-ink);
+}
+/* FriendDisplay: its heading */
+:where([data-template-root][data-site-styles="off"]) .ts-friends-heading {
+  color: var(--ts-ink);
+  font-family: var(--ts-font-head);
+  text-shadow: none;
+}
+/* FriendDisplay: one friend */
+:where([data-template-root][data-site-styles="off"]) .ts-friend {
+  background: var(--ts-card, transparent);
+  border-color: var(--ts-edge, color-mix(in srgb, currentColor 35%, transparent));
+  box-shadow: var(--ts-shadow, none);
+  border-radius: var(--ts-radius, 0px);
+  color: var(--ts-ink);
+}
+/* FriendDisplay: a friend under the pointer */
+:where([data-template-root][data-site-styles="off"]) .ts-friend:hover {
+  background: color-mix(in srgb, var(--ts-accent, currentColor) 15%, transparent);
+}
+/* FriendDisplay: their picture */
+:where([data-template-root][data-site-styles="off"]) .ts-friend-avatar {
+  border-color: var(--ts-edge, currentColor);
+}
+/* FriendDisplay: their name */
+:where([data-template-root][data-site-styles="off"]) .ts-friend-name {
+  color: var(--ts-ink);
+}
+/* FriendDisplay: their @name */
+:where([data-template-root][data-site-styles="off"]) .ts-friend-handle {
+  color: var(--ts-ink);
+  opacity: 0.8;
+}
+/* WebsiteDisplay: the box */
+:where([data-template-root][data-site-styles="off"]) .ts-websites {
+  background: var(--ts-card, transparent);
+  border-color: var(--ts-edge, currentColor);
+  box-shadow: var(--ts-shadow, none);
+  border-radius: var(--ts-radius, 0px);
+  color: var(--ts-ink);
+}
+/* WebsiteDisplay: its heading */
+:where([data-template-root][data-site-styles="off"]) .ts-websites-heading {
+  color: var(--ts-ink);
+  font-family: var(--ts-font-head);
+  text-shadow: none;
+}
+/* WebsiteDisplay: one website, with a line at its left */
+:where([data-template-root][data-site-styles="off"]) .ts-website {
+  border-left-color: var(--ts-accent, currentColor);
+}
+/* WebsiteDisplay: its name, a link */
+:where([data-template-root][data-site-styles="off"]) .ts-website-link {
+  color: var(--ts-ink);
+  text-decoration: underline;
+}
+/* WebsiteDisplay: what you said about it */
+:where([data-template-root][data-site-styles="off"]) .ts-website-blurb {
+  color: var(--ts-ink);
+}
+/* WebsiteDisplay: its address */
+:where([data-template-root][data-site-styles="off"]) .ts-website-url {
+  color: var(--ts-ink);
+  opacity: 0.8;
+}
+/* MediaGrid: its heading */
+:where([data-template-root][data-site-styles="off"]) .ts-media-heading {
+  color: var(--ts-ink);
+  font-family: var(--ts-font-head);
+  text-shadow: none;
+}
+/* MediaGrid: the line under it */
+:where([data-template-root][data-site-styles="off"]) .ts-media-subtitle {
+  color: var(--ts-ink);
+  opacity: 0.8;
+}
+/* MediaGrid: "View All" */
+:where([data-template-root][data-site-styles="off"]) .ts-media-view-all {
+  background: var(--ts-card, transparent);
+  color: var(--ts-ink);
+  border-color: var(--ts-edge, currentColor);
+  box-shadow: var(--ts-shadow, none);
+  border-radius: var(--ts-radius, 6px);
+  font-family: var(--ts-font);
+}
+/* MediaGrid: one photo's frame */
+:where([data-template-root][data-site-styles="off"]) .ts-media-item {
+  background: var(--ts-card, transparent);
+  border-color: var(--ts-edge, color-mix(in srgb, currentColor 35%, transparent));
+  box-shadow: var(--ts-shadow, none);
+  border-radius: var(--ts-radius, 0px);
+  color: var(--ts-ink);
+}
+/* MediaGrid: the line under the photos */
+:where([data-template-root][data-site-styles="off"]) .ts-media-more {
+  color: var(--ts-ink);
+}
+/* ProfileBadges: its heading */
+:where([data-template-root][data-site-styles="off"]) .ts-badges-heading {
+  color: var(--ts-ink);
+  font-family: var(--ts-font-head);
+  text-shadow: none;
+}
+/* ProfileBadges: the line under it */
+:where([data-template-root][data-site-styles="off"]) .ts-badges-subtitle {
+  color: var(--ts-ink);
+  opacity: 0.8;
+}
+/* ProfileBadges: "View Collection" */
+:where([data-template-root][data-site-styles="off"]) .ts-badges-view-all {
+  background: var(--ts-card, transparent);
+  color: var(--ts-ink);
+  border-color: var(--ts-edge, currentColor);
+  box-shadow: var(--ts-shadow, none);
+  border-radius: var(--ts-radius, 6px);
+  font-family: var(--ts-font);
+}
+/* ProfileBadges: the lines under the badges */
+:where([data-template-root][data-site-styles="off"]) .ts-badges-more {
+  color: var(--ts-ink);
+}
+/* RevealBox: the button */
+:where([data-template-root][data-site-styles="off"]) .ts-reveal-button {
+  background: var(--ts-card, transparent);
+  color: var(--ts-ink);
+  border-color: var(--ts-edge, currentColor);
+  box-shadow: var(--ts-shadow, none);
+  border-radius: var(--ts-radius, 4px);
+  font-family: var(--ts-font);
+  border: 1px solid var(--ts-edge, currentColor);
+}
+/* RevealBox: the button, as a link (buttonStyle="link" or "minimal") */
+:where([data-template-root][data-site-styles="off"]) .ts-reveal-link {
+  color: var(--ts-ink);
+  border-color: var(--ts-edge, color-mix(in srgb, currentColor 35%, transparent));
+  font-family: var(--ts-font);
+}
+/* RevealBox: what it shows */
+:where([data-template-root][data-site-styles="off"]) .ts-reveal-content {
+  color: var(--ts-ink);
+}
+/* ImageCarousel: the box */
+:where([data-template-root][data-site-styles="off"]) .ts-image-carousel {
+  background: var(--ts-card, transparent);
+  border-radius: var(--ts-radius, 8px);
+  color: var(--ts-ink);
+}
+/* ImageCarousel: the row of small pictures */
+:where([data-template-root][data-site-styles="off"]) .ts-carousel-thumbnails {
+  background: var(--ts-card, transparent);
+}
+/* ImageCarousel: a small picture */
+:where([data-template-root][data-site-styles="off"]) .ts-carousel-thumbnail {
+  border-color: var(--ts-edge, color-mix(in srgb, currentColor 35%, transparent));
+}
+/* ImageCarousel: the one showing */
+:where([data-template-root][data-site-styles="off"]) .ts-carousel-thumbnail[aria-current="true"] {
+  border-color: var(--ts-accent, currentColor);
+}
+/* ImageCarousel: a dot */
+:where([data-template-root][data-site-styles="off"]) .ts-carousel-dot {
+  background-color: var(--ts-edge, color-mix(in srgb, currentColor 35%, transparent));
+}
+/* ImageCarousel: the dot showing */
+:where([data-template-root][data-site-styles="off"]) .ts-carousel-dot-target[aria-current="true"] .ts-carousel-dot {
+  background-color: var(--ts-accent, currentColor);
+}
+/* ImageCarousel: the box when there are no pictures */
+:where([data-template-root][data-site-styles="off"]) .ts-image-carousel-empty {
+  background: var(--ts-card, transparent);
+  border-color: var(--ts-edge, color-mix(in srgb, currentColor 35%, transparent));
+  box-shadow: var(--ts-shadow, none);
+  border-radius: var(--ts-radius, 8px);
+  color: var(--ts-ink);
+  border: 1px dashed var(--ts-edge, color-mix(in srgb, currentColor 35%, transparent));
+}
+/* Embed: the box before Play */
+:where([data-template-root][data-site-styles="off"]) .ts-embed-placeholder {
+  background: var(--ts-card, transparent);
+  border-color: var(--ts-edge, color-mix(in srgb, currentColor 35%, transparent));
+  box-shadow: none;
+  border-radius: var(--ts-radius, 4px);
+  color: var(--ts-ink);
+}
+/* Embed: what's playing */
+:where([data-template-root][data-site-styles="off"]) .ts-embed-title {
+  color: var(--ts-ink);
+}
+/* Embed: Play */
+:where([data-template-root][data-site-styles="off"]) .ts-embed-placeholder .ts-embed-button {
+  background: var(--ts-card, transparent);
+  color: var(--ts-ink);
+  border-color: var(--ts-edge, currentColor);
+  box-shadow: var(--ts-shadow, none);
+  border-radius: var(--ts-radius, 6px);
+  font-family: var(--ts-font);
+}
+/* PolaroidFrame: the caption */
+:where([data-template-root][data-site-styles="off"]) .ts-polaroid-caption {
+  color: var(--ts-note-ink, var(--color-gray-700));
+}
+/* ProfileMusic: the player */
+:where([data-template-root][data-site-styles="off"]) .ts-profile-music .ts-music {
+  background: var(--ts-card, transparent);
+  border-color: var(--ts-edge, currentColor);
+  box-shadow: var(--ts-shadow, none);
+  border-radius: var(--ts-radius, 12px);
+  color: var(--ts-ink);
+}
+/* ProfileMusic: its buttons */
+:where([data-template-root][data-site-styles="off"]) .ts-profile-music .ts-music .ts-music-btn {
+  background: var(--ts-card, transparent);
+  color: var(--ts-ink);
+  border-color: var(--ts-edge, currentColor);
+  box-shadow: var(--ts-shadow, none);
+  border-radius: var(--ts-radius, 6px);
+  font-family: var(--ts-font);
+  border-style: solid;
+}
+/* ProfileMusic: a button under the pointer */
+:where([data-template-root][data-site-styles="off"]) .ts-profile-music .ts-music .ts-music-btn:hover {
+  background: color-mix(in srgb, var(--ts-accent, currentColor) 15%, transparent);
+}
+/* ProfileMusic: a button that's on */
+:where([data-template-root][data-site-styles="off"]) .ts-profile-music .ts-music .ts-music-btn[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--ts-accent, currentColor) 15%, transparent);
+}
+/* ProfileMusic: its small print */
+:where([data-template-root][data-site-styles="off"]) .ts-profile-music .ts-music-note {
+  color: var(--ts-ink);
+  opacity: 0.8;
+}
+/* ProfileMusic: the progress line */
+:where([data-template-root][data-site-styles="off"]) .ts-profile-music .ts-music-track {
+  background-color: var(--ts-edge, color-mix(in srgb, currentColor 35%, transparent));
+}
+/* ProfileMusic: how far it's played */
+:where([data-template-root][data-site-styles="off"]) .ts-profile-music .ts-music-progress {
+  background-color: var(--ts-accent, currentColor);
+}
+/* Notes only you see: the note */
+:where([data-template-root][data-site-styles="off"]) .ts-owner-note {
+  color: var(--ts-ink);
+  border-color: var(--ts-edge, color-mix(in srgb, currentColor 35%, transparent));
   font-family: var(--ts-font);
 }

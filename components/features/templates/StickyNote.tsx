@@ -4,8 +4,9 @@ import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConfl
 const NOTE_COLORS = ['yellow', 'pink', 'blue', 'green', 'orange', 'purple'] as const;
 type NoteColor = (typeof NOTE_COLORS)[number];
 
-// Dark ink, so the text reads on every note colour whatever the page's text colour is
-const INK = '#3b2f1e';
+// Dark ink, so the text reads on every note colour whatever the page's text
+// colour is. A page picks another with --ts-note-ink (component-parts.ts).
+const INK = 'var(--ts-note-ink, #3b2f1e)';
 
 function isNoteColor(value: unknown): value is NoteColor {
   return NOTE_COLORS.includes(value as NoteColor);
@@ -53,6 +54,7 @@ export default function StickyNote(props: StickyNoteProps) {
   }[size];
 
   const baseContainerClasses = [
+    'ts-sticky-note',
     'inline-block',
     colorClasses,
     sizeClasses,
@@ -76,7 +78,7 @@ export default function StickyNote(props: StickyNoteProps) {
       style={mergedStyles}
     >
       {/* Tape effect */}
-      <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-8 h-4 bg-white bg-opacity-70 border border-gray-300 rounded-sm"></div>
+      <div className="ts-sticky-note-tape absolute -top-1 left-1/2 transform -translate-x-1/2 w-8 h-4 bg-white bg-opacity-70 border border-gray-300 rounded-sm"></div>
 
       <div className="relative z-10 ">
         {children}

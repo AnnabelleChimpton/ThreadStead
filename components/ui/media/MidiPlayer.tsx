@@ -236,7 +236,7 @@ export default function MidiPlayer({
             : '';
 
   const progressBar = (
-    <div className="w-full bg-nb-ink-mid/20 rounded-full h-1 mt-1 overflow-hidden" aria-hidden="true">
+    <div className="ts-music-track w-full bg-nb-ink-mid/20 rounded-full h-1 mt-1 overflow-hidden" aria-hidden="true">
       {/* Scaled from the audio clock (paintProgress) */}
       <div className="ts-music-progress bg-nb-ink h-1 w-full origin-left" style={{ transform: 'scaleX(0)' }} />
     </div>
@@ -256,10 +256,10 @@ export default function MidiPlayer({
     >
       {expanded && (
         <div id={panelId} className="px-3 pt-3 pb-2 space-y-3 border-b border-nb-ink-mid/30 text-sm">
-          {credit && <p className="m-0 text-xs text-nb-ink-mid break-words">{credit}</p>}
+          {credit && <p className="ts-music-note m-0 text-xs text-nb-ink-mid break-words">{credit}</p>}
           {duration > 0 && (
             <div>
-              <div className="flex justify-between text-xs text-nb-ink-mid">
+              <div className="ts-music-note flex justify-between text-xs text-nb-ink-mid">
                 <span ref={elapsedRef}>{formatTime(0)}</span>
                 <span>{formatTime(duration)}</span>
               </div>
@@ -277,10 +277,10 @@ export default function MidiPlayer({
               aria-valuetext={muted ? 'Muted' : `${volume}%`}
               className="flex-1 min-w-0"
             />
-            <span className="w-12 text-right text-xs text-nb-ink-mid tabular-nums">{muted ? 'Muted' : `${volume}%`}</span>
+            <span className="ts-music-note w-12 text-right text-xs text-nb-ink-mid tabular-nums">{muted ? 'Muted' : `${volume}%`}</span>
           </label>
           {loop && (
-            <p className="m-0 flex items-center gap-1.5 text-xs text-nb-ink-mid">
+            <p className="ts-music-note m-0 flex items-center gap-1.5 text-xs text-nb-ink-mid">
               <PixelIcon name="repeat" size={12} /> Plays on repeat
             </p>
           )}
@@ -314,7 +314,7 @@ export default function MidiPlayer({
           <div className="text-sm font-semibold truncate" title={title}>{title}</div>
           {isPlaying
             ? progressBar
-            : statusLine && <div className="text-xs text-nb-ink-mid truncate" title={statusLine}>{statusLine}</div>}
+            : statusLine && <div className="ts-music-note text-xs text-nb-ink-mid truncate" title={statusLine}>{statusLine}</div>}
         </div>
 
         <button

@@ -12,7 +12,7 @@ export default function OwnerNote({ className, style, children }: {
   children: React.ReactNode;
 }) {
   return (
-    <p className={`${className} text-sm text-thread-sage border border-dashed border-thread-sage/60 rounded p-2`} style={style}>
+    <p className={`${className} ts-owner-note text-sm text-thread-sage border border-dashed border-thread-sage/60 rounded p-2`} style={style}>
       {children} Only you see this note.
     </p>
   );

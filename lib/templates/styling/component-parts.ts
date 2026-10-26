@@ -26,6 +26,7 @@ export const TOKENS = {
   '--ts-edge': 'Their borders. Unset: the page\'s text colour, faded.',
   '--ts-shadow': 'Their shadows, like 3px 3px 0 teal. Unset: none.',
   '--ts-radius': 'Their corners, like 8px. Unset: as they are.',
+  '--ts-note-ink': 'Writing on StickyNote and PolaroidFrame, which keep their own paper. Unset: dark ink.',
 } as const;
 
 export type Token = keyof typeof TOKENS;
@@ -60,6 +61,12 @@ const heading = { color: INK, 'font-family': HEAD, 'text-shadow': 'none' };
 /** Text that's quieter than the rest (dates, counts, hints) */
 const muted = { color: INK, opacity: '0.8' };
 
+/** A button, or something drawn as one */
+const button = (radius: string) => ({ background: CARD, color: INK, 'border-color': SOLID_EDGE, 'box-shadow': SHADOW, 'border-radius': `var(--ts-radius, ${radius})`, 'font-family': FONT });
+
+/** The chosen one of several (a tab, a thumbnail, a dot), tinted with the accent */
+const chosenTint = 'color-mix(in srgb, var(--ts-accent, currentColor) 15%, transparent)';
+
 export interface Part {
   /** The part's class, `ts-<component>-<part>`: its stable name for a page's CSS */
   part: string;
@@ -77,7 +84,7 @@ export interface Part {
   declarations: Record<string, string>;
 }
 
-/** Phase 1: the components people use most, and the ones site styles off broke */
+/** Every component that draws something of its own */
 export const PARTS: Part[] = [
   // Button
   { component: 'Button', part: 'ts-button', what: 'the button', declarations: { background: CARD, color: INK, 'border-color': SOLID_EDGE, 'box-shadow': SHADOW, 'border-radius': 'var(--ts-radius, 4px)', 'font-family': FONT } },
@@ -114,6 +121,7 @@ export const PARTS: Part[] = [
   { component: 'BlogPosts', part: 'ts-post-author', what: 'who wrote it', declarations: { color: INK } },
   { component: 'BlogPosts', part: 'ts-post-date', what: 'when', declarations: muted },
   { component: 'BlogPosts', part: 'ts-post-content', what: 'what it says', declarations: { color: INK } },
+  { component: 'BlogPosts', part: 'ts-post', what: 'its words', state: ' .thread-content', declarations: { color: INK } },
   { component: 'BlogPosts', part: 'ts-post-actions', what: 'its small buttons', state: ' button', declarations: { background: CARD, color: INK, 'border-color': SOLID_EDGE, 'box-shadow': SHADOW } },
 
   { component: 'BlogPosts', part: 'ts-post-footer', what: 'the line under a post', declarations: { 'border-top-color': EDGE } },
@@ -144,6 +152,82 @@ export const PARTS: Part[] = [
   { component: 'ColorPicker', part: 'ts-color-picker-label', what: 'its label', declarations: { color: INK, 'font-family': FONT } },
   { component: 'ColorPicker', part: 'ts-color-picker-swatch', what: 'the colour box', declarations: { 'border-color': EDGE } },
   { component: 'ColorPicker', part: 'ts-color-picker-value', what: 'the colour\'s code', declarations: { ...muted, 'font-family': FONT } },
+
+  // FollowButton (also in ProfileHeader)
+  { component: 'FollowButton', part: 'ts-follow-button', what: 'Follow and Unfollow', declarations: button('4px') },
+  { component: 'FollowButton', part: 'ts-follow-note', what: '"log in to follow"', declarations: { color: INK, 'font-family': FONT, opacity: '0.8' } },
+  { component: 'FollowButton', part: 'ts-follow-status', what: '"Friends" or "Follows you"', declarations: muted },
+
+  // FriendBadge, MutualFriends (also in ProfileHeader)
+  { component: 'FriendBadge', part: 'ts-friend-badge', what: 'the badge', declarations: button('4px') },
+  { component: 'MutualFriends', part: 'ts-mutual-friends-button', what: 'the button with the count', declarations: button('4px') },
+  { component: 'MutualFriends', part: 'ts-mutual-friends-list', what: 'the friends it opens', declarations: box('0px') },
+  { component: 'MutualFriends', part: 'ts-mutual-friends-avatar', what: 'a friend\'s picture', declarations: { 'border-color': SOLID_EDGE } },
+
+  // FriendDisplay
+  { component: 'FriendDisplay', part: 'ts-friends', what: 'the box', declarations: { ...box('0px'), 'border-color': SOLID_EDGE } },
+  { component: 'FriendDisplay', part: 'ts-friends-heading', what: 'its heading', declarations: heading },
+  { component: 'FriendDisplay', part: 'ts-friend', what: 'one friend', declarations: box('0px') },
+  { component: 'FriendDisplay', part: 'ts-friend', what: 'a friend under the pointer', state: ':hover', declarations: { background: chosenTint } },
+  { component: 'FriendDisplay', part: 'ts-friend-avatar', what: 'their picture', declarations: { 'border-color': SOLID_EDGE } },
+  { component: 'FriendDisplay', part: 'ts-friend-name', what: 'their name', declarations: { color: INK } },
+  { component: 'FriendDisplay', part: 'ts-friend-handle', what: 'their @name', declarations: muted },
+
+  // WebsiteDisplay
+  { component: 'WebsiteDisplay', part: 'ts-websites', what: 'the box', declarations: { ...box('0px'), 'border-color': SOLID_EDGE } },
+  { component: 'WebsiteDisplay', part: 'ts-websites-heading', what: 'its heading', declarations: heading },
+  { component: 'WebsiteDisplay', part: 'ts-website', what: 'one website, with a line at its left', declarations: { 'border-left-color': 'var(--ts-accent, currentColor)' } },
+  { component: 'WebsiteDisplay', part: 'ts-website-link', what: 'its name, a link', declarations: { color: INK, 'text-decoration': 'underline' } },
+  { component: 'WebsiteDisplay', part: 'ts-website-blurb', what: 'what you said about it', declarations: { color: INK } },
+  { component: 'WebsiteDisplay', part: 'ts-website-url', what: 'its address', declarations: muted },
+
+  // MediaGrid
+  { component: 'MediaGrid', part: 'ts-media-heading', what: 'its heading', declarations: heading },
+  { component: 'MediaGrid', part: 'ts-media-subtitle', what: 'the line under it', declarations: muted },
+  { component: 'MediaGrid', part: 'ts-media-view-all', what: '"View All"', declarations: button('6px') },
+  { component: 'MediaGrid', part: 'ts-media-item', what: 'one photo\'s frame', declarations: box('0px') },
+  { component: 'MediaGrid', part: 'ts-media-more', what: 'the line under the photos', declarations: { color: INK } },
+
+  // ProfileBadges
+  { component: 'ProfileBadges', part: 'ts-badges-heading', what: 'its heading', declarations: heading },
+  { component: 'ProfileBadges', part: 'ts-badges-subtitle', what: 'the line under it', declarations: muted },
+  { component: 'ProfileBadges', part: 'ts-badges-view-all', what: '"View Collection"', declarations: button('6px') },
+  { component: 'ProfileBadges', part: 'ts-badges-more', what: 'the lines under the badges', declarations: { color: INK } },
+
+  // RevealBox
+  { component: 'RevealBox', part: 'ts-reveal-button', what: 'the button', declarations: { ...button('4px'), border: `1px solid ${SOLID_EDGE}` } },
+  { component: 'RevealBox', part: 'ts-reveal-link', what: 'the button, as a link (buttonStyle="link" or "minimal")', declarations: { color: INK, 'border-color': EDGE, 'font-family': FONT } },
+  { component: 'RevealBox', part: 'ts-reveal-content', what: 'what it shows', declarations: { color: INK } },
+
+  // ImageCarousel
+  { component: 'ImageCarousel', part: 'ts-image-carousel', what: 'the box', declarations: { background: CARD, 'border-radius': 'var(--ts-radius, 8px)', color: INK } },
+  { component: 'ImageCarousel', part: 'ts-carousel-thumbnails', what: 'the row of small pictures', declarations: { background: CARD } },
+  { component: 'ImageCarousel', part: 'ts-carousel-thumbnail', what: 'a small picture', declarations: { 'border-color': EDGE } },
+  { component: 'ImageCarousel', part: 'ts-carousel-thumbnail', what: 'the one showing', state: '[aria-current="true"]', declarations: { 'border-color': 'var(--ts-accent, currentColor)' } },
+  { component: 'ImageCarousel', part: 'ts-carousel-dot', what: 'a dot', declarations: { 'background-color': EDGE } },
+  { component: 'ImageCarousel', part: 'ts-carousel-dot-target', what: 'the dot showing', state: '[aria-current="true"] .ts-carousel-dot', declarations: { 'background-color': 'var(--ts-accent, currentColor)' } },
+  { component: 'ImageCarousel', part: 'ts-image-carousel-empty', what: 'the box when there are no pictures', declarations: { ...box('8px'), border: `1px dashed ${EDGE}` } },
+
+  // Embed
+  { component: 'Embed', part: 'ts-embed-placeholder', what: 'the box before Play', declarations: { ...box('4px'), 'box-shadow': 'none' } },
+  { component: 'Embed', part: 'ts-embed-title', what: 'what\'s playing', declarations: { color: INK } },
+  // Two classes, like theme-parts.css's rule for it on every page, which it follows
+  { component: 'Embed', part: 'ts-embed-placeholder', what: 'Play', state: ' .ts-embed-button', declarations: button('6px') },
+
+  // PolaroidFrame and StickyNote keep their own paper; only the writing is a token
+  { component: 'PolaroidFrame', part: 'ts-polaroid-caption', what: 'the caption', declarations: { color: 'var(--ts-note-ink, var(--color-gray-700))' } },
+
+  // ProfileMusic: the profile's song player, inside the page
+  { component: 'ProfileMusic', part: 'ts-profile-music', what: 'the player', state: ' .ts-music', declarations: { ...box('12px'), 'border-color': SOLID_EDGE } },
+  { component: 'ProfileMusic', part: 'ts-profile-music', what: 'its buttons', state: ' .ts-music .ts-music-btn', declarations: { ...button('6px'), 'border-style': 'solid' } },
+  { component: 'ProfileMusic', part: 'ts-profile-music', what: 'a button under the pointer', state: ' .ts-music .ts-music-btn:hover', declarations: { background: chosenTint } },
+  { component: 'ProfileMusic', part: 'ts-profile-music', what: 'a button that\'s on', state: ' .ts-music .ts-music-btn[aria-pressed="true"]', declarations: { background: chosenTint } },
+  { component: 'ProfileMusic', part: 'ts-profile-music', what: 'its small print', state: ' .ts-music-note', declarations: muted },
+  { component: 'ProfileMusic', part: 'ts-profile-music', what: 'the progress line', state: ' .ts-music-track', declarations: { 'background-color': EDGE } },
+  { component: 'ProfileMusic', part: 'ts-profile-music', what: 'how far it\'s played', state: ' .ts-music-progress', declarations: { 'background-color': 'var(--ts-accent, currentColor)' } },
+
+  // What the owner sees where a component has nothing to show yet
+  { component: 'Notes only you see', part: 'ts-owner-note', what: 'the note', declarations: { color: INK, 'border-color': EDGE, 'font-family': FONT } },
 ];
 
 const tokensIn = (value: string) => [...value.matchAll(/--ts-[\w-]+/g)].map((m) => m[0]);

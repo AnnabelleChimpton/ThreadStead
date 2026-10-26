@@ -44,7 +44,7 @@ export default function MutualFriends({ username }: { username: string }) {
     <div className="inline-flex flex-col">
       <button
         onClick={() => setExpanded(v => !v)}
-        className="inline-flex items-center gap-2 bg-blue-200 border border-black px-2 py-0.5 text-xs font-bold shadow-[2px_2px_0_#000] rounded"
+        className="ts-mutual-friends-button inline-flex items-center gap-2 bg-blue-200 border border-black px-2 py-0.5 text-xs font-bold shadow-[2px_2px_0_#000] rounded"
         aria-expanded={expanded}
         title="Mutual friends"
       >
@@ -53,7 +53,7 @@ export default function MutualFriends({ username }: { username: string }) {
       </button>
 
       {expanded && (
-        <div className="mt-2 grid grid-cols-3 sm:grid-cols-6 gap-2 p-2 bg-white border border-black shadow-[2px_2px_0_#000]">
+        <div className="ts-mutual-friends-list mt-2 grid grid-cols-3 sm:grid-cols-6 gap-2 p-2 bg-white border border-black shadow-[2px_2px_0_#000]">
           {sample.map(m => (
             <div key={m.userId} className="flex flex-col items-center gap-1">
               <Image src={m.avatarUrl} alt={m.handle} width={40} height={40} className="w-10 h-10 object-cover border border-black" unoptimized={m.avatarUrl?.endsWith('.gif')} />

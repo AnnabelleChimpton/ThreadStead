@@ -38,11 +38,11 @@ export default function WebsiteDisplay(props: WebsiteDisplayProps) {
   }
 
   return (
-    <div className={`websites-section ${containerClassName}`} style={style}>
-      {headingText && <h4 className="section-heading font-bold mb-3">{headingText}</h4>}
+    <div className={`websites-section ts-websites ${containerClassName}`} style={style}>
+      {headingText && <h4 className="section-heading ts-websites-heading font-bold mb-3">{headingText}</h4>}
       <div className="websites-list space-y-3">
         {validWebsites.map((website) => (
-          <div key={website.id} className="website-item border-l-4 border-blue-400 pl-3">
+          <div key={website.id} className="website-item ts-website border-l-4 border-blue-400 pl-3">
             <div className="website-content flex items-start justify-between">
               <div className="website-info flex-1">
                 <h5 className="website-title font-semibold">
@@ -50,15 +50,15 @@ export default function WebsiteDisplay(props: WebsiteDisplayProps) {
                     href={website.url || '#'}
                     target="_blank"
                     rel={website.mine ? "me noopener" : "noopener noreferrer"}
-                    className="website-link text-blue-600 hover:text-blue-800 hover:underline"
+                    className="website-link ts-website-link text-blue-600 hover:text-blue-800 hover:underline"
                   >
                     {website.label || 'Untitled'}
                   </a>
                 </h5>
                 {website.blurb && (
-                  <p className="website-blurb text-sm text-gray-700 mt-1">{website.blurb}</p>
+                  <p className="website-blurb ts-website-blurb text-sm text-gray-700 mt-1">{website.blurb}</p>
                 )}
-                <div className="website-url text-xs text-gray-500 mt-1">
+                <div className="website-url ts-website-url text-xs text-gray-500 mt-1">
                   {website.url || 'No URL'}
                 </div>
               </div>

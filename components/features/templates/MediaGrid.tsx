@@ -52,14 +52,14 @@ export default function MediaGrid(props: MediaGridProps) {
       {headingText && (
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-thread-pine">{headingText}</h3>
-          <p className="text-sm text-thread-sage">
+          <h3 className="ts-media-heading text-lg font-semibold text-thread-pine">{headingText}</h3>
+          <p className="ts-media-subtitle text-sm text-thread-sage">
             {owner?.displayName || owner?.handle || 'This user'}&apos;s favorite photos
           </p>
         </div>
         <div className="flex gap-2">
           {displayImages.length > 0 && (
-            <span className="thread-button-secondary text-sm cursor-default">
+            <span className="ts-media-view-all thread-button-secondary text-sm cursor-default">
               View All
             </span>
           )}
@@ -72,7 +72,7 @@ export default function MediaGrid(props: MediaGridProps) {
         {displayImages.map((image) => (
           <div
             key={image.id}
-            className="media-item border border-thread-sage bg-thread-paper shadow-cozy aspect-square overflow-hidden group relative"
+            className="media-item ts-media-item border border-thread-sage bg-thread-paper shadow-cozy aspect-square overflow-hidden group relative"
           >
             <img
               src={image.url}
@@ -95,7 +95,7 @@ export default function MediaGrid(props: MediaGridProps) {
       {/* Link to full gallery (non-functional in preview) */}
       {displayImages.length > 0 && (
         <div className="text-center">
-          <span className="text-thread-pine text-sm cursor-default">
+          <span className="ts-media-more text-thread-pine text-sm cursor-default">
             Explore {owner?.displayName || owner?.handle || 'this user'}&apos;s complete photo collection →
           </span>
         </div>

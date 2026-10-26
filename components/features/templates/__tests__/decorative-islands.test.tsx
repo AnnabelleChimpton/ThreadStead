@@ -31,7 +31,8 @@ const residentData = {
   guestbook: [],
 } as unknown as ResidentData
 
-const INK = 'rgb(59, 47, 30)' // #3b2f1e
+// Dark ink, or the page's own with --ts-note-ink
+const INK = 'var(--ts-note-ink, #3b2f1e)'
 
 async function hydrate(staticHTML: string, islands: Island[]) {
   const { container } = render(

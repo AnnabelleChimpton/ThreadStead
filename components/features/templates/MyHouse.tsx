@@ -38,7 +38,7 @@ export default function MyHouse(props: MyHouseProps) {
     if (!viewerIsOwner(data)) return null;
     return (
       <p
-        className={`ts-my-house ts-my-house--note text-sm text-thread-sage border border-dashed border-thread-sage/60 rounded p-2 ${className ?? ''}`}
+        className={`ts-my-house ts-my-house--note ts-owner-note text-sm text-thread-sage border border-dashed border-thread-sage/60 rounded p-2 ${className ?? ''}`}
         style={applyCSSProps(cssProps)}
       >
         Your pixel home shows here on your page.

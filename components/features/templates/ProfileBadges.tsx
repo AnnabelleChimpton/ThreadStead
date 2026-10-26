@@ -96,14 +96,14 @@ export default function ProfileBadges(props: ProfileBadgesProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-thread-pine">ThreadRing Badges</h3>
-          <p className="text-sm text-thread-sage">
+          <h3 className="ts-badges-heading text-lg font-semibold text-thread-pine">ThreadRing Badges</h3>
+          <p className="ts-badges-subtitle text-sm text-thread-sage">
             {owner?.displayName || owner?.handle || 'This user'}&apos;s community memberships
           </p>
         </div>
         <div className="flex gap-2">
           {displayBadges.length > 0 && (
-            <span className="thread-button-secondary text-sm cursor-default">
+            <span className="ts-badges-view-all thread-button-secondary text-sm cursor-default">
               View Collection
             </span>
           )}
@@ -118,7 +118,7 @@ export default function ProfileBadges(props: ProfileBadgesProps) {
       {/* More badges indicator */}
       {badges.length > 6 && (
         <div className="text-center">
-          <p className="text-sm text-thread-sage">
+          <p className="ts-badges-more text-sm text-thread-sage">
             +{badges.length - 6} more badge{badges.length - 6 !== 1 ? 's' : ''} in full collection
           </p>
         </div>
@@ -127,7 +127,7 @@ export default function ProfileBadges(props: ProfileBadgesProps) {
       {/* Link to full collection (non-functional in preview) */}
       {displayBadges.length > 0 && (
         <div className="text-center">
-          <span className="text-thread-pine text-sm cursor-default">
+          <span className="ts-badges-more text-thread-pine text-sm cursor-default">
             View Full Badge Collection →
           </span>
         </div>

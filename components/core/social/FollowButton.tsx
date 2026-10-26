@@ -79,13 +79,13 @@ export default function FollowButton({
         <a
           href={actionUrl(residentHost.mainSiteUrl, "follow", username)}
           onClick={(event) => openAction(event, residentHost.mainSiteUrl, "follow", username)}
-          className={`thread-button text-sm ${buttonClassName}`}
+          className={`ts-follow-button thread-button text-sm ${buttonClassName}`}
         >
           Follow {username}<span className="sr-only"> (opens {config.site_name})</span>
         </a>
       );
     }
-    return <span className="thread-label">log in to follow</span>;
+    return <span className="ts-follow-note thread-label">log in to follow</span>;
   }
 
   // Decide label & action
@@ -99,7 +99,7 @@ export default function FollowButton({
         <button
           onClick={follow}
           disabled={busy}
-          className={`thread-button text-sm disabled:opacity-50 ${buttonClassName}`}
+          className={`ts-follow-button thread-button text-sm disabled:opacity-50 ${buttonClassName}`}
           aria-label={followLabel}
         >
           {busy ? "Working…" : followLabel}
@@ -110,14 +110,14 @@ export default function FollowButton({
         <button
           onClick={unfollow}
           disabled={busy}
-          className={`px-3 py-1 text-sm border border-thread-sage bg-thread-paper hover:bg-thread-cream text-thread-charcoal rounded shadow-cozy-sm transition-all disabled:opacity-50 ${buttonClassName}`}
+          className={`ts-follow-button px-3 py-1 text-sm border border-thread-sage bg-thread-paper hover:bg-thread-cream text-thread-charcoal rounded shadow-cozy-sm transition-all disabled:opacity-50 ${buttonClassName}`}
           aria-label="Unfollow"
         >
           {busy ? "Working…" : "Unfollow"}
         </button>
       )}
 
-      <span className="text-xs opacity-70">
+      <span className="ts-follow-status text-xs opacity-70">
         {status === "friends" ? "Friends" : status === "followed_by" ? "Follows you" : null}
       </span>
 

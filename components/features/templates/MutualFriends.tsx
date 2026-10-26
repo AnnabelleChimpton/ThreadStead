@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { PixelIcon } from '@/components/ui/PixelIcon';
 import { useResidentData } from './ResidentDataProvider';
 import { UniversalCSSProps, separateCSSProps, applyCSSProps, removeTailwindConflicts } from '@/lib/templates/styling/universal-css-props';
 
@@ -46,7 +47,7 @@ export default function MutualFriends(props: MutualFriendsProps) {
   // Hide if it's your own page, you're anonymous, loading/errored, or there are no mutuals
   if (loading || err || isOwner || isAnonymous || count === 0) return null;
 
-  const baseClasses = "inline-flex flex-col";
+  const baseClasses = "ts-mutual-friends inline-flex flex-col";
   const filteredClasses = removeTailwindConflicts(baseClasses, cssProps);
   const style = applyCSSProps(cssProps);
 
@@ -58,19 +59,19 @@ export default function MutualFriends(props: MutualFriendsProps) {
     <div className={wrapperClassName} style={style}>
       <button
         onClick={() => setExpanded(v => !v)}
-        className="inline-flex items-center gap-2 bg-blue-200 border border-black px-2 py-0.5 text-xs font-bold shadow-[2px_2px_0_#000] rounded"
+        className="ts-mutual-friends-button inline-flex items-center gap-2 bg-blue-200 border border-black px-2 py-0.5 text-xs font-bold shadow-[2px_2px_0_#000] rounded"
         aria-expanded={expanded}
         title="Mutual friends"
       >
-        <span>🫂</span>
+        <PixelIcon name="users" size={14} />
         <span>Mutual friends: {count}</span>
       </button>
 
       {expanded && (
-        <div className="mt-2 grid grid-cols-3 sm:grid-cols-6 gap-2 p-2 bg-white border border-black shadow-[2px_2px_0_#000]">
+        <div className="ts-mutual-friends-list mt-2 grid grid-cols-3 sm:grid-cols-6 gap-2 p-2 bg-white border border-black shadow-[2px_2px_0_#000]">
           {sample.map(m => (
             <a key={m.userId} href={`/${m.handle}`} className="flex flex-col items-center gap-1 no-underline hover:underline">
-              <img src={m.avatarUrl} alt={m.handle} className="w-10 h-10 object-cover border border-black" />
+              <img src={m.avatarUrl} alt={m.handle} className="ts-mutual-friends-avatar w-10 h-10 object-cover border border-black" />
               <span className="text-xs">{m.handle}</span>
             </a>
           ))}

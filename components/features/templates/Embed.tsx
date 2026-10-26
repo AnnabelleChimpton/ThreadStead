@@ -40,7 +40,7 @@ export default function Embed(props: EmbedProps) {
     if (!viewer?.id || viewer.id !== owner?.id) return null;
     return (
       <p
-        className={`ts-embed ts-embed--unknown text-sm text-thread-sage border border-dashed border-thread-sage/60 rounded p-2 ${className ?? ''}`}
+        className={`ts-embed ts-embed--unknown ts-owner-note text-sm text-thread-sage border border-dashed border-thread-sage/60 rounded p-2 ${className ?? ''}`}
         style={applyCSSProps(cssProps)}
       >
         {whyNoEmbed(src)} Only you see this note.
@@ -78,8 +78,8 @@ export default function Embed(props: EmbedProps) {
           className={`ts-embed-placeholder flex flex-wrap items-center justify-center gap-x-3 gap-y-1 p-2 text-center border border-thread-sage/40 bg-thread-cream rounded text-thread-charcoal ${shape}`}
           style={height === null ? undefined : { minHeight: height }}
         >
-          {title && <span className="font-semibold text-thread-pine">{title}</span>}
-          <Button variant="secondary" size="sm" onClick={() => setPlaying(true)}>
+          {title && <span className="ts-embed-title font-semibold text-thread-pine">{title}</span>}
+          <Button variant="secondary" size="sm" className="ts-embed-button" onClick={() => setPlaying(true)}>
             <PixelIcon name="play" size={14} className="inline-block align-[-2px] mr-1.5" />
             {`Play from ${player.label}`}
           </Button>

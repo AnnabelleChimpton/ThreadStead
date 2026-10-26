@@ -443,6 +443,7 @@ export default function ImageCarousel(props: ImageCarouselProps) {
             <button
               key={index}
               onClick={() => goToSlide(index)}
+              aria-current={index === currentIndex ? 'true' : undefined}
               className={`ts-carousel-thumbnail flex-shrink-0 w-16 h-12 rounded overflow-hidden border-2 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                 index === currentIndex 
                   ? 'border-blue-500 opacity-100' 

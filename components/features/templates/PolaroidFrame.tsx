@@ -21,6 +21,7 @@ export default function PolaroidFrame(props: PolaroidFrameProps) {
   const shadowClass = shadow ? 'shadow-lg' : '';
 
   const baseClasses = [
+    'ts-polaroid',
     'inline-block',
     'bg-white',
     'p-4 pb-12',
@@ -44,11 +45,11 @@ export default function PolaroidFrame(props: PolaroidFrameProps) {
       className={filteredClasses}
       style={mergedStyles}
     >
-      <div className="bg-gray-100 border border-gray-200  ">
+      <div className="ts-polaroid-photo bg-gray-100 border border-gray-200">
         {children}
       </div>
       {caption && (
-        <div className="mt-3 text-center text-sm text-gray-700 font-handwriting">
+        <div className="ts-polaroid-caption mt-3 text-center text-sm text-gray-700 font-handwriting">
           {caption}
         </div>
       )}

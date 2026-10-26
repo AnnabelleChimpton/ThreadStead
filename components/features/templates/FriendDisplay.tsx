@@ -35,25 +35,25 @@ export default function FriendDisplay(props: FriendDisplayProps) {
   }
 
   return (
-    <div className={`featured-friends ${containerClassName}`} style={style}>
-      {headingText && <h4 className="section-heading font-bold mb-3">{headingText}</h4>}
+    <div className={`featured-friends ts-friends ${containerClassName}`} style={style}>
+      {headingText && <h4 className="section-heading ts-friends-heading font-bold mb-3">{headingText}</h4>}
       <div className="grid grid-cols-2 gap-3">
         {featuredFriends.map((friend) => (
           <Link
             key={friend.id}
             href={`/${friend.handle}`}
-            className="friend-card flex items-center gap-2 p-2 border border-gray-300 bg-gray-50 hover:bg-yellow-100 shadow-[1px_1px_0_#000] transition-colors"
+            className="friend-card ts-friend flex items-center gap-2 p-2 border border-gray-300 bg-gray-50 hover:bg-yellow-100 shadow-[1px_1px_0_#000] transition-colors"
           >
             <img 
               src={friend.avatarUrl}
               alt={friend.displayName}
-              className="w-8 h-8 border border-black object-cover flex-shrink-0"
+              className="ts-friend-avatar w-8 h-8 border border-black object-cover flex-shrink-0"
             />
             <div className="min-w-0 flex-1">
-              <div className="font-semibold text-sm truncate">
+              <div className="ts-friend-name font-semibold text-sm truncate">
                 {friend.displayName}
               </div>
-              <div className="text-xs text-gray-600 truncate">
+              <div className="ts-friend-handle text-xs text-gray-600 truncate">
                 @{friend.handle}
               </div>
             </div>

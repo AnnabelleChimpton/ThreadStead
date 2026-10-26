@@ -24,9 +24,9 @@ export default function RevealBox(props: RevealBoxProps) {
 
   // Blue dark enough for its text (blue-500 was 3.7:1 against white)
   const buttonClasses = {
-    'button': 'px-4 py-2 bg-blue-700 text-white rounded hover:bg-blue-800 transition-colors',
-    'link': 'text-blue-700 hover:text-blue-900 underline',
-    'minimal': 'text-gray-600 hover:text-gray-800 border-b border-dashed border-gray-400'
+    'button': 'ts-reveal-button px-4 py-2 bg-blue-700 text-white rounded hover:bg-blue-800 transition-colors',
+    'link': 'ts-reveal-link text-blue-700 hover:text-blue-900 underline',
+    'minimal': 'ts-reveal-link text-gray-600 hover:text-gray-800 border-b border-dashed border-gray-400'
   }[buttonStyle];
 
   const getRevealAnimation = () => {
@@ -51,7 +51,7 @@ export default function RevealBox(props: RevealBoxProps) {
   const appliedStyles = applyCSSProps(cssProps);
 
   return (
-    <div className={filteredClasses} style={appliedStyles}>
+    <div className={`ts-reveal ${filteredClasses}`} style={appliedStyles}>
       {/* Says whether it's open, not only by its words changing */}
       <button
         type="button"
@@ -64,7 +64,7 @@ export default function RevealBox(props: RevealBoxProps) {
       </button>
 
       {isRevealed && (
-        <div id={contentId} className={`mt-4 ${getRevealAnimation()}`}>
+        <div id={contentId} className={`ts-reveal-content mt-4 ${getRevealAnimation()}`}>
           {children}
         </div>
       )}
