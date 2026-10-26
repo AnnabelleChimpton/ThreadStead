@@ -67,3 +67,21 @@ it('sends them back when it is public again', async () => {
   expect(metadata).toMatchObject({ title: 'Garden beds', mood: 'sunny' })
   expect(metadata.textPreview).toContain('sunny side')
 })
+
+it("a post's metadata can't stand in for its title, type or author at the hub", async () => {
+  mockUpdate.mockResolvedValue({ ...saved('public'), metadata: { mood: 'sunny', title: 'Something else', type: 'fork_notification', authorHandle: 'someone', isSpoiler: true } })
+  const req = { method: 'POST', body: { id: 'p1', visibility: 'public' }, headers: {} } as unknown as NextApiRequest
+  const res: any = { status(c: number) { this.statusCode = c; return this }, json(b: any) { this.body = b; return this } }
+  await handler(req, res as NextApiResponse)
+  const [, { metadata }] = mockSubmit.mock.calls[0]
+  expect(metadata).toMatchObject({ title: 'Garden beds', authorHandle: 'ann@HomePageAgain', isSpoiler: false, mood: 'sunny' })
+  expect(metadata).not.toHaveProperty('type')
+})
+
+it('an edit that breaks the title rules is a 400, as it is for a new post', async () => {
+  const req = { method: 'POST', body: { id: 'p1', title: 'x'.repeat(201) }, headers: {} } as unknown as NextApiRequest
+  const res: any = { status(c: number) { this.statusCode = c; return this }, json(b: any) { this.body = b; return this } }
+  await handler(req, res as NextApiResponse)
+  expect(res.statusCode).toBe(400)
+  expect(mockUpdate).not.toHaveBeenCalled()
+})

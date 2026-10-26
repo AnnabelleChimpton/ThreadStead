@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { Visibility } from "@prisma/client";
+import { Prisma, Visibility } from "@prisma/client";
 import { db } from "@/lib/config/database/connection";
 import { PROFILE_WITHOUT_PAGE } from "@/lib/domain/profile/profile-fields";
 
@@ -10,6 +10,10 @@ import { buildPostUri, generateTextPreview, generateExcerpt } from "@/lib/domain
 import { withCsrfProtection } from "@/lib/server/http/csrf";
 import { withRateLimit } from "@/lib/server/http/rate-limit";
 import { queueTellLinkedSites } from "@/lib/webmentions/send";
+import { validatePostTitle } from "@/lib/domain/validation";
+import { UNTITLED_POST } from "@/lib/domain/posts/title";
+import { journalMetadata, updatePostSchema } from "@/lib/domain/posts/request";
+import { validationMessage } from "@/lib/api/validation";
 
 type PostIntent = "sharing" | "asking" | "feeling" | "announcing" | "showing" | "teaching" | "looking" | "celebrating" | "recommending";
 
@@ -19,35 +23,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   const me = await getSessionUser(req);
   if (!me) return res.status(401).json({ error: "not logged in" });
 
-  const {
-    id,
-    title,
-    bodyText,
-    bodyHtml,
-    bodyMarkdown,
-    visibility,
-    intent,
-    isSpoiler,
-    contentWarning,
-    threadRingIds,
-    metadata
-  } = (req.body || {}) as {
-    id?: string;
-    title?: string;
-    bodyText?: string;
-    bodyHtml?: string;
-    bodyMarkdown?: string;
-    visibility?: Visibility;
-    intent?: PostIntent;
-    isSpoiler?: boolean;
-    contentWarning?: string;
-    threadRingIds?: string[];
-    metadata?: any;
-  };
-
-  if (!id) {
-    return res.status(400).json({ error: "Post ID is required" });
-  }
+  const parsed = updatePostSchema.safeParse(req.body ?? {});
+  if (!parsed.success) return res.status(400).json({ error: validationMessage(parsed.error.issues) });
+  const { id, title, bodyText, bodyHtml, bodyMarkdown, visibility, intent, isSpoiler, contentWarning, metadata } = parsed.data;
 
   // First, verify that the user owns this post
   const existingPost = await db.post.findUnique({
@@ -76,7 +54,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   } = {};
 
   // Handle content updates
-  if (typeof title === "string") data.title = title;
+  // The same title rules as a new post (edits skipped them: empty, too long, reserved)
+  if (typeof title === "string") {
+    const titleValidation = validatePostTitle(title || UNTITLED_POST);
+    if (!titleValidation.ok) return res.status(400).json({ error: titleValidation.message, code: titleValidation.code });
+    data.title = titleValidation.normalized;
+  }
   if (typeof bodyText === "string") {
     data.bodyText = bodyText;
     data.bodyHtml = null; // Clear HTML when switching to text
@@ -113,7 +96,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   }
 
   if (metadata !== undefined) {
-    data.metadata = metadata;
+    // Only the editor's journal fields (lib/domain/posts/request.ts)
+    data.metadata = journalMetadata(metadata) ?? Prisma.DbNull;
   }
 
   // Update the post
@@ -174,6 +158,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
           const shared = { platform: "blog", threadRingSlug: slug, threadRingName: membership?.name || slug };
           const metadata = updated.visibility !== "public" ? { ...shared, title: "", textPreview: "", excerpt: "" } : {
+            // The journal fields first, and only those, so nothing in them
+            // can stand in for the post's own fields below
+            ...(journalMetadata(updated.metadata) ?? {}),
             ...shared,
             title: updated.title.length > 200 ? updated.title.substring(0, 197) + "..." : updated.title,
             textPreview,
@@ -183,8 +170,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
             authorHandle: updated.author.primaryHandle,
             isSpoiler: updated.isSpoiler || false,
             contentWarning: updated.contentWarning || null,
-            // Preserve any journal metadata the post carries.
-            ...(((updated as any).metadata as object) || {}),
           };
 
           await authenticatedClient.submitPost(slug, { uri, digest, metadata });

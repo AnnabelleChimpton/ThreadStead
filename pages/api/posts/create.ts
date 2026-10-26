@@ -12,6 +12,8 @@ import type { RingPostResult } from "@/lib/domain/posts/ring-submission";
 import { sendPostToRings } from "@/lib/domain/posts/send-to-rings";
 import { queueTellLinkedSites } from "@/lib/webmentions/send";
 import { UNTITLED_POST } from "@/lib/domain/posts/title";
+import { journalMetadata, postFieldsSchema } from "@/lib/domain/posts/request";
+import { validationMessage } from "@/lib/api/validation";
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method Not Allowed" });
@@ -19,20 +21,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   const viewer = await getSessionUser(req);
   if (!viewer) return res.status(401).json({ error: "not logged in" });
 
-  const { title, bodyText, bodyHtml, bodyMarkdown, visibility, threadRingIds, intent, promptId, isSpoiler, contentWarning, metadata } = (req.body || {}) as {
-    title?: string;
-    bodyText?: string;
-    bodyHtml?: string;
-    bodyMarkdown?: string;
-    visibility?: Visibility;
-    threadRingIds?: string[]; // Array of ThreadRing IDs to associate with post
-    intent?: PostIntent;
-    promptId?: string; // Optional prompt ID to associate with post
-    isSpoiler?: boolean;
-    contentWarning?: string;
-    metadata?: any;
-  };
-
+  const parsed = postFieldsSchema.safeParse(req.body ?? {});
+  if (!parsed.success) return res.status(400).json({ error: validationMessage(parsed.error.issues) });
+  const { title, bodyText, bodyHtml, bodyMarkdown, visibility, threadRingIds, intent, promptId, isSpoiler, contentWarning, metadata } = parsed.data;
 
   if (!bodyText && !bodyHtml && !bodyMarkdown) {
     return res.status(400).json({ error: "bodyText, bodyHtml, or bodyMarkdown required" });
@@ -78,8 +69,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
       // Spoiler/Content Warning fields
       isSpoiler: isSpoiler ?? false,
-      contentWarning: contentWarning ?? null,
-      metadata: metadata ?? undefined,
+      contentWarning: contentWarning?.trim() || null,
+      // Only the editor's journal fields: the rest used to reach the hub over the post's own
+      metadata: journalMetadata(metadata) ?? undefined,
 
       // Ring Hub metadata alignment
       textPreview: textPreview,

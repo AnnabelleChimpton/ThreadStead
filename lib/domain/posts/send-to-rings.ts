@@ -11,6 +11,7 @@
  * the hub accepted.
  */
 import { db } from '@/lib/config/database/connection'
+import { journalMetadata } from '@/lib/domain/posts/request'
 import { createAuthenticatedRingHubClient } from '@/lib/api/ringhub/ringhub-user-operations'
 import { getSiteBaseUrl } from '@/lib/config/site-url'
 import { buildPostUri, generateTextPreview, generateExcerpt } from '@/lib/domain/posts/ringhub-metadata'
@@ -96,6 +97,9 @@ async function sendViaRingHub({ post, authorHandle, userId, ringSlugs, promptId 
     skipMembershipCheck: isLocalhost && !!promptId,
     buildSubmission: async ({ slug, name: ringName }) => {
       const base = {
+        // The journal fields first, and only those (lib/domain/posts/request.ts):
+        // spread last, a post's metadata stood in for its title, type and author
+        ...(journalMetadata(post.metadata) ?? {}),
         title: post.title.length > 200 ? post.title.substring(0, 197) + '...' : post.title,
         textPreview: generateTextPreview(post.bodyText, post.bodyHtml, post.bodyMarkdown),
         excerpt: generateExcerpt(post.bodyText, post.bodyHtml, post.bodyMarkdown),
@@ -109,8 +113,6 @@ async function sendViaRingHub({ post, authorHandle, userId, ringSlugs, promptId 
         // Spoiler content warning information
         isSpoiler: post.isSpoiler || false,
         contentWarning: post.contentWarning || null,
-        // Include journal metadata
-        ...((post.metadata as object) || {}),
       }
 
       const promptDetails = promptId ? await lookUpPrompt(slug, promptId, isLocalhost) : null
