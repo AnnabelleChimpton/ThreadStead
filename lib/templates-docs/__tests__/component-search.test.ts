@@ -35,3 +35,17 @@ test('firstSentence', () => {
   expect(firstSentence('No full stop')).toBe('No full stop')
   expect(firstSentence('Use e.g. this')).toBe('Use e.g. this')
 })
+
+describe('what people type that found nothing (bug bash 2026-10-26)', () => {
+  const real = buildComponentDocs(componentRegistry.getAllRegistrations())
+  const first = (query: string) => searchComponents(real, query)[0]?.name
+  test.each([
+    ['frends', 'FriendDisplay'],
+    ['top friends', 'FriendDisplay'],
+    ['img', 'ProfilePhoto'],
+    ['gallery', 'MediaGrid'],
+    ['carousel', 'ImageCarousel'],
+  ])('%s finds %s first', (query, expected) => {
+    expect(first(query)).toBe(expected)
+  })
+})

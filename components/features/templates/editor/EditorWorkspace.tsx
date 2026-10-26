@@ -82,10 +82,11 @@ export function CodeSettings({ pane, settings }: { pane: CodePane; settings: Ret
  * Tidy (More): the pane's code re-indented (lib/templates/editor/tidy.ts,
  * loaded now) as one edit, so Undo puts it back. Whether anything changed.
  */
-export async function tidyCode(view: EditorView, pane: CodePane): Promise<boolean> {
+export async function tidyCode(view: EditorView, pane: CodePane, css = ''): Promise<boolean> {
   const { tidyHtml, tidyCss } = await import('@/lib/templates/editor/tidy');
   const before = view.state.doc.toString();
-  const after = (pane === 'html' ? tidyHtml : tidyCss)(before);
+  // The page's CSS, for elements it makes keep their spaces (white-space: pre)
+  const after = pane === 'html' ? tidyHtml(before, css) : tidyCss(before);
   if (after === before) return false;
   view.dispatch({ changes: { from: 0, to: before.length, insert: after } });
   return true;

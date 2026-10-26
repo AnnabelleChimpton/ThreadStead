@@ -22,7 +22,8 @@ export default function ProblemsStrip({
   const taken = problems.stripped.filter((s) => s.category !== 'document');
   const count = problems.errors.length + problems.warnings.length + taken.length;
 
-  const row = (key: string, kind: string, message: string, line?: number) => {
+  // `kind`: what sort of problem, when the message doesn't say it itself
+  const row = (key: string, kind: string | null, message: string, line?: number) => {
     const parts = splitLine(message);
     const at = line ?? parts.line;
     return (
@@ -40,7 +41,7 @@ export default function ProblemsStrip({
           <span className="shrink-0 font-mono text-xs text-nb-ink-mid">{where}</span>
         )}
         <span className="text-sm text-nb-ink whitespace-pre-wrap">
-          <span className="font-semibold">{kind}: </span>
+          {kind && <span className="font-semibold">{kind}: </span>}
           {parts.text}
         </span>
       </li>
@@ -56,11 +57,12 @@ export default function ProblemsStrip({
           <h3 className="text-sm font-semibold text-nb-ink m-0 mb-1">
             {problems.errors.length > 0
               ? `Can't save yet: ${problems.errors.length === 1 ? 'one thing needs fixing' : `${problems.errors.length} things need fixing`}`
-              : `${count === 1 ? 'One thing' : `${count} things`} won't work as written`}
+              : `${count === 1 ? 'One thing' : `${count} things`} to look at`}
           </h3>
           <ul className="list-none p-0 m-0 max-h-48 overflow-y-auto">
             {problems.errors.map((e, i) => row(`e${i}`, 'Needs fixing', e))}
-            {problems.warnings.map((w, i) => row(`w${i}`, "Won't work", w))}
+            {/* Each says what it does: some are advice (a class the site styles too, alt text), not breakage */}
+            {problems.warnings.map((w, i) => row(`w${i}`, null, w))}
             {taken.map((s, i) => row(`s${i}`, s.category === 'safety' ? 'Taken out' : 'Not used', `<${s.name}>: ${s.reason ?? ''}`, s.line))}
           </ul>
         </>

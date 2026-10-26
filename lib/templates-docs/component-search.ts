@@ -13,7 +13,7 @@
 import type { ComponentDoc } from './component-docs';
 import { COMPONENT_NICKNAMES } from '@/lib/templates/editor/component-nicknames';
 
-type Searchable = Pick<ComponentDoc, 'name' | 'description' | 'props'>;
+type Searchable = Pick<ComponentDoc, 'name' | 'description' | 'props'> & Partial<Pick<ComponentDoc, 'parent'>>;
 
 /** Words people search for, and the components they mean (with COMPONENT_NICKNAMES, one word for one component) */
 const ALSO: Record<string, string[]> = {
@@ -54,6 +54,10 @@ const ALSO: Record<string, string[]> = {
   picture: ['ProfilePhoto', 'MediaGrid', 'PolaroidFrame', 'ImageCarousel', 'DynamicImage'],
   photo: ['ProfilePhoto', 'MediaGrid', 'PolaroidFrame', 'ImageCarousel'],
   image: ['ProfilePhoto', 'MediaGrid', 'PolaroidFrame', 'ImageCarousel', 'DynamicImage'],
+  img: ['ProfilePhoto', 'MediaGrid', 'PolaroidFrame', 'ImageCarousel', 'DynamicImage'],
+  pics: ['MediaGrid', 'ImageCarousel', 'PolaroidFrame', 'ProfilePhoto'],
+  gallery: ['MediaGrid', 'ImageCarousel', 'PolaroidFrame'],
+  slideshow: ['ImageCarousel'],
   friends: ['FriendDisplay', 'MutualFriends', 'FollowButton'],
   follow: ['FollowButton'],
   rings: ['MyRings', 'RingNav'],
@@ -86,6 +90,13 @@ function scoreToken(item: Searchable, token: string): number {
   if (name.startsWith(token)) return 60;
   if (name.includes(token)) return 40;
   if (COMPONENT_NICKNAMES[token] === item.name) return 35;
+  // A slip of one letter in a longer word: "frends" is friends (bug bash 2026-10-26)
+  if (token.length >= 5) {
+    const near = (word: string) => word.length >= 5 && oneEditApart(word, token);
+    if (near(name) || Object.entries(COMPONENT_NICKNAMES).some(([nick, component]) => component === item.name && near(nick))) return 30;
+    const listed = Object.entries(ALSO).filter(([word]) => near(word)).map(([, names]) => names.indexOf(item.name)).filter((at) => at >= 0);
+    if (listed.length > 0) return 30 - Math.min(...listed) * 0.1;
+  }
   // A word's components in the order listed: game puts ForEach before If
   const listed = Object.entries(ALSO)
     .filter(([word]) => word === token || (token.length > 3 && word.startsWith(token)))
@@ -99,6 +110,14 @@ function scoreToken(item: Searchable, token: string): number {
   return 0;
 }
 
+/** Whether two words are one letter added, dropped or changed apart */
+function oneEditApart(a: string, b: string): boolean {
+  if (Math.abs(a.length - b.length) > 1 || a === b) return false;
+  let i = 0;
+  while (i < a.length && i < b.length && a[i] === b[i]) i++;
+  return a.slice(i + (a.length >= b.length ? 1 : 0)) === b.slice(i + (b.length >= a.length ? 1 : 0));
+}
+
 /** The components matching every word typed, best first; all of them, in order, for an empty search */
 export function searchComponents<T extends Searchable>(items: readonly T[], query: string): T[] {
   const tokens = tokensOf(query);
@@ -107,7 +126,8 @@ export function searchComponents<T extends Searchable>(items: readonly T[], quer
   const whole = squash(query.replace(/[<>/]/g, ''));
   const scored: { item: T; score: number; at: number }[] = [];
   items.forEach((item, at) => {
-    if (tokens.length > 1 && item.name.toLowerCase() === whole) {
+    // "top friends" is the nickname topfriends too
+    if (tokens.length > 1 && (item.name.toLowerCase() === whole || COMPONENT_NICKNAMES[whole] === item.name)) {
       scored.push({ item, score: 1000, at });
       return;
     }
@@ -117,7 +137,9 @@ export function searchComponents<T extends Searchable>(items: readonly T[], quer
       if (s === 0) return;
       score += s;
     }
-    scored.push({ item, score, at });
+    // One that only works inside another (CarouselImage in ImageCarousel)
+    // comes after the one it goes in
+    scored.push({ item, score: item.parent ? score * 0.6 : score, at });
   });
   return scored.sort((a, b) => b.score - a.score || a.at - b.at).map(({ item }) => item);
 }

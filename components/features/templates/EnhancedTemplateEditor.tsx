@@ -980,7 +980,7 @@ export default function EnhancedTemplateEditor({
   const tidy = useCallback(async (pane: CodePane) => {
     const view = (pane === 'html' ? templateViewRef : cssViewRef).current;
     if (!view) return;
-    setSaveMessage(tidyNote(await tidyCode(view, pane)));
+    setSaveMessage(tidyNote(await tidyCode(view, pane, cssViewRef.current?.state.doc.toString() ?? '')));
     setTimeout(() => setSaveMessage(null), 3000);
   }, []);
 
@@ -1487,7 +1487,7 @@ export default function EnhancedTemplateEditor({
           ));
 
       if (hasIssues) {
-        setSaveMessage({ text: "Saved. A few things won't work as written; they're listed under the code.", tone: 'ok' });
+        setSaveMessage({ text: "Saved. A few things to look at are listed under the code.", tone: 'ok' });
         setTimeout(() => setSaveMessage(null), 8000);
       } else {
         setSaveMessage({ text: replacedCSS ? 'Saved. Your old look is in History.' : 'Saved.', tone: 'ok' });

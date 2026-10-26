@@ -102,3 +102,18 @@ test('already tidy stays the same', () => {
   expect(tidyHtml(tidy)).toBe(tidy)
   expect(tidyCss('.a {\n  color: red;\n}')).toBe('.a {\n  color: red;\n}')
 })
+
+describe('elements the page makes keep their spaces (bug bash 2026-10-26)', () => {
+  const art = '<div class="art">\n  /\\_/\\\n ( o.o )\n  > ^ <\n</div>'
+  test('by a class in the page CSS', () => {
+    expect(tidyHtml(art, '.art { white-space: pre; font-family: monospace }')).toBe(art)
+  })
+  test('by its own style, or a <style> in the HTML', () => {
+    const styled = '<div style="white-space: pre-wrap">\n   indented\n      more\n</div>'
+    expect(tidyHtml(styled)).toBe(styled)
+    expect(tidyHtml(`<style>.art { white-space: pre }</style>\n${art}`)).toBe(`<style>.art { white-space: pre }</style>\n${art}`)
+  })
+  test('other divs are still tidied', () => {
+    expect(tidyHtml('<div class="box">\n      text\n</div>', '.art { white-space: pre }')).toBe('<div class="box">\n  text\n</div>')
+  })
+})
