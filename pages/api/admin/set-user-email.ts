@@ -1,4 +1,5 @@
 import { db } from "@/lib/config/database/connection";
+import { looksLikeEmail } from "@/lib/utils/validation/email";
 import { apiHandler } from "@/lib/api/handler";
 import { encryptEmail } from "@/lib/utils/security/email-encryption";
 import { createEmailVerificationToken, sendVerificationEmail } from "@/lib/email-login";
@@ -13,10 +14,9 @@ export default apiHandler(
                 return res.status(400).json({ error: "User ID and Email are required" });
             }
 
-            // Basic email validation
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(email)) {
-                return res.status(400).json({ error: "Invalid email format" });
+            // Length first, then a pattern that can't backtrack (lib/utils/validation/email.ts)
+            if (!looksLikeEmail(email)) {
+                return res.status(400).json({ error: "That doesn't look like an email address." });
             }
 
             // Check if user exists

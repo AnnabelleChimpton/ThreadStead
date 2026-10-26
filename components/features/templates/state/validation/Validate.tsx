@@ -67,7 +67,8 @@ export interface ValidateProps {
 
 // Built-in validation patterns
 const PATTERNS = {
-  email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+  // Dot-separated domain labels: the old pattern backtracked on long input (lib/utils/validation/email.ts)
+  email: /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/,
   url: /^https?:\/\/.+\..+/,
   phone: /^[\d\s\-\+\(\)]+$/
 };
