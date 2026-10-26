@@ -227,11 +227,16 @@ export default function Guestbook({ username, bio, signerLink = "profile", headi
       <div className="thread-divider"></div>
       
       {residentHost ? (
-        <p className="mb-6">
+        // Nobody is signed in on a resident's own address (it never sees a
+        // session), so the guestbook is signed on the main site
+        <div className="mb-6">
+          <p className="text-sm mb-2">
+            You can read this guestbook here. Signing it happens on {config.site_name}.
+          </p>
           <a href={mainSiteProfileUrl(residentHost, "guestbook")} className="thread-button inline-block">
             Sign it on {config.site_name}
           </a>
-        </p>
+        </div>
       ) : (
       <form onSubmit={onSubmit} className="mb-6">
         <label className="block mb-3">
