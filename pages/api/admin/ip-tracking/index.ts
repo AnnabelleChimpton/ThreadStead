@@ -1,7 +1,14 @@
 import { db } from "@/lib/config/database/connection";
 import { apiHandler } from "@/lib/api/handler";
 import { parsePagePagination } from "@/lib/server/http/pagination";
+import { normalizeIp } from "@/lib/server/http/client-ip";
+import { z } from "zod";
 
+/** What IpManagementSection's bulk form sends: one address a line */
+const bulkBlockSchema = z.object({
+  ipAddresses: z.array(z.string().max(100)).min(1).max(500),
+  reason: z.string().trim().max(500).optional(),
+});
 
 export default apiHandler(
   { methods: ["GET", "POST"], auth: "admin", rateLimit: "admin" },
@@ -80,19 +87,18 @@ export default apiHandler(
 
     if (req.method === "POST") {
       // Bulk block IPs
+      const { ipAddresses, reason: givenReason } = bulkBlockSchema.parse(req.body ?? {});
+      const reason = givenReason || "Manual block";
+
+      // Stored the way signups record it (getClientIp): a stray space or a
+      // typo was stored as typed and never matched anyone
+      const bad = ipAddresses.find((ip) => !normalizeIp(ip));
+      if (bad !== undefined) {
+        return res.status(400).json({ error: `"${bad.slice(0, 60)}" isn't an IP address. Nothing was blocked.` });
+      }
+      const validIPs = [...new Set(ipAddresses.map((ip) => normalizeIp(ip) as string))];
+
       try {
-        const { ipAddresses, reason = "Manual block" } = req.body;
-
-        if (!Array.isArray(ipAddresses) || ipAddresses.length === 0) {
-          return res.status(400).json({ error: "IP addresses array is required" });
-        }
-
-        // Validate IP addresses
-        const validIPs = ipAddresses.filter(ip => typeof ip === 'string' && ip.trim().length > 0);
-        if (validIPs.length === 0) {
-          return res.status(400).json({ error: "No valid IP addresses provided" });
-        }
-
         const blockedIPs = await Promise.all(
           validIPs.map(async (ipAddress) => {
             return db.ipSignupTracking.upsert({

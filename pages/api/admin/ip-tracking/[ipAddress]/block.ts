@@ -1,15 +1,18 @@
 import { db } from "@/lib/config/database/connection";
 import { apiHandler } from "@/lib/api/handler";
+import { normalizeIp } from "@/lib/server/http/client-ip";
+import { z } from "zod";
 
+const blockSchema = z.object({ reason: z.string().trim().max(500).optional() });
 
 export default apiHandler(
-  { methods: ["POST"], auth: "admin", rateLimit: "admin" },
-  async (req, res, { user: adminUser }) => {
-    const { ipAddress } = req.query;
-    const { reason = "Manual block" } = req.body;
-
-    if (typeof ipAddress !== "string") {
-      return res.status(400).json({ error: "Invalid IP address" });
+  { methods: ["POST"], auth: "admin", rateLimit: "admin", schema: blockSchema },
+  async (req, res, { user: adminUser, body }) => {
+    const reason = body.reason || "Manual block";
+    // Stored the way signups record it (getClientIp), or the block never matches
+    const ipAddress = normalizeIp(typeof req.query.ipAddress === "string" ? req.query.ipAddress : undefined);
+    if (!ipAddress) {
+      return res.status(400).json({ error: "That isn't an IP address." });
     }
 
     try {
