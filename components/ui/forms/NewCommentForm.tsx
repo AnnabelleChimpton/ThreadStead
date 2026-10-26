@@ -5,6 +5,7 @@ import { csrfFetch, getCsrfToken } from '@/lib/api/client/csrf-fetch';
 import { CapabilityError, requestCapability } from '@/lib/api/client/capability';
 import imageCompression from 'browser-image-compression';
 import { uploadsAsIs } from '@/lib/media/media-types';
+import { COMMENT_MAX } from '@/lib/domain/posts/comments';
 
 export type CommentWire = {
   id: string;
@@ -490,6 +491,7 @@ export default function NewCommentForm({ postId, parentId, onCommentAdded, place
             isDragging ? 'border-green-500 bg-green-50' : ''
           }`}
           rows={3}
+          maxLength={COMMENT_MAX}
           value={content}
           onChange={(e) => setContent(e.target.value)}
           placeholder={placeholder}

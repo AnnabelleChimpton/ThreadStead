@@ -10,6 +10,16 @@ import { getSessionUser } from "@/lib/auth/server";
 import { getHiddenIds, filterBlockedComments } from "@/lib/domain/users/blocks";
 import { AccountHiddenError } from "@/lib/domain/users/moderation";
 import { sendError } from "@/lib/api/errors";
+import { validationMessage } from "@/lib/api/validation";
+import { COMMENT_MAX } from "@/lib/domain/posts/comments";
+import { z } from "zod";
+
+/** What NewCommentForm sends; content that wasn't a string was a 500 */
+const commentSchema = z.object({
+  content: z.string().trim().min(1, "Write something first.").max(COMMENT_MAX),
+  cap: z.string().max(5000).optional(),
+  parentId: z.string().min(1).max(200).nullable().optional(),
+});
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
   const postId = String(req.query.postId || "");
@@ -65,8 +75,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   }
 
   if (req.method === "POST") {
-    const { content, cap, parentId } = (req.body || {}) as { content?: string; cap?: string; parentId?: string };
-    if (!content || !content.trim()) return res.status(400).json({ error: "content required" });
+    const parsed = commentSchema.safeParse(req.body ?? {});
+    if (!parsed.success) return res.status(400).json({ error: validationMessage(parsed.error.issues) });
+    const { content, cap, parentId } = parsed.data;
 
     // Validate parentId if provided
     if (parentId) {
@@ -116,7 +127,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
       const created = await db.comment.create({
         data: { 
-          content: content.trim(), 
+          content,
           postId, 
           authorId, 
           parentId: parentId || null,
