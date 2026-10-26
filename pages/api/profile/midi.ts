@@ -1,11 +1,20 @@
 import { db } from "@/lib/config/database/connection";
 import { requireAction } from "@/lib/domain/users/capabilities";
 import { apiHandler } from "@/lib/api/handler";
+import { z } from "zod";
+
+/** What MidiManager sends; "yes" for autoplay, or an object id, was a 500 */
+const midiSchema = z.object({
+  midiId: z.string().max(200).nullable().optional(),
+  autoplay: z.boolean().optional(),
+  loop: z.boolean().optional(),
+  cap: z.string().max(5000).optional(),
+});
 
 export default apiHandler(
-  { methods: ['POST'], auth: 'user', rateLimit: 'profile_metadata' },
-  async (req, res, { user: me }) => {
-    const { midiId, autoplay, loop, cap } = req.body;
+  { methods: ['POST'], auth: 'user', rateLimit: 'profile_metadata', schema: midiSchema },
+  async (req, res, { user: me, body }) => {
+    const { midiId, autoplay, loop, cap } = body;
 
     if (!cap) {
       return res.status(401).json({ error: "Capability required" });
