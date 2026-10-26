@@ -31,6 +31,9 @@ import addPassword from '@/pages/api/auth/add-password'
 import changePassword from '@/pages/api/auth/change-password'
 import { getSessionUser, endOtherSessions } from '@/lib/auth/server'
 import { db } from '@/lib/config/database/connection'
+
+/** An encrypted phrase in the shape the routes take (lib/auth/password-requests.ts): base64, 88+ characters */
+const blob = (tag: string) => Buffer.from(tag.padEnd(66, '.')).toString('base64')
 import { WRONG_CURRENT_PASSWORD } from '@/lib/auth/current-password'
 
 const mockDb = db as any
@@ -152,7 +155,7 @@ describe('change-password for an account that added a password', () => {
 
   it('changes it with the current password, authMethod still SEED_PHRASE', async () => {
     mockGetSessionUser.mockResolvedValue(added())
-    const res = await call(changePassword, { currentPassword: CURRENT, newPassword: 'New-pass12', encryptedSeedPhrase: 'b' })
+    const res = await call(changePassword, { currentPassword: CURRENT, newPassword: 'New-pass12', encryptedSeedPhrase: blob('b') })
     expect(res.statusCode).toBe(200)
     expect(mockDb.user.update).toHaveBeenCalledTimes(1)
     expect(endOtherSessions).toHaveBeenCalledWith(expect.anything(), 'user-seed')

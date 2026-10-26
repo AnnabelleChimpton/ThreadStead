@@ -3,6 +3,11 @@ import { db } from "@/lib/config/database/connection";
 import { hashPassword } from "@/lib/auth/password";
 import { endOtherSessions, getSessionUser } from "@/lib/auth/server";
 import { sameOriginProtection } from "@/lib/server/http/same-origin";
+import { z } from "zod";
+import { newPasswordSchema } from "@/lib/auth/password-requests";
+import { validationMessage } from "@/lib/api/validation";
+
+const addPasswordSchema = z.object({ password: newPasswordSchema, seedPhrase: z.string().min(1).max(500) });
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   // cookie-authed and not on apiHandler: refuse cross-origin posts here
@@ -11,11 +16,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { password, seedPhrase } = req.body;
-
-  if (!password || !seedPhrase) {
-    return res.status(400).json({ error: "Password and seed phrase are required" });
-  }
+  // The strength rule and plain text: an object reached pbkdf2 and threw
+  const parsed = addPasswordSchema.safeParse(req.body ?? {});
+  if (!parsed.success) return res.status(400).json({ error: validationMessage(parsed.error.issues) });
+  const { password, seedPhrase } = parsed.data;
 
   // Get current user session
   const user = await getSessionUser(req, {

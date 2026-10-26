@@ -5,20 +5,20 @@ import { hashPassword, encryptSeedPhraseWithPassword } from "@/lib/auth/password
 import * as bip39 from "bip39";
 import * as ed from "@noble/ed25519";
 import { toBase64Url } from "@/lib/utils/encoding/base64url";
+import { z } from "zod";
+import { newPasswordSchema } from "@/lib/auth/password-requests";
+
+const resetSchema = z.object({ token: z.string().min(1).max(200), newPassword: newPasswordSchema });
+
+/** What verifyPasswordResetToken throws for a link that can't be used (lib/email-login.ts) */
+const SPENT_LINK = /^(Invalid reset token|Invalid token type|Reset token has)/;
 
 export default apiHandler(
   // CSRF off: signed-out visitors following an emailed reset link; the same-origin check still applies
-  { methods: ["POST"], auth: "none", csrf: false, rateLimit: "auth" },
-  async (req, res) => {
-      const { token, newPassword } = req.body;
-
-      if (!token || !newPassword) {
-          return res.status(400).json({ error: "Token and new password are required" });
-      }
-
-      if (newPassword.length < 8) {
-          return res.status(400).json({ error: "Password must be at least 8 characters" });
-      }
+  // The password is checked before the token is used up: a bad one burned the link
+  { methods: ["POST"], auth: "none", csrf: false, rateLimit: "auth", schema: resetSchema },
+  async (req, res, { body }) => {
+      const { token, newPassword } = body;
 
       try {
           // 1. Verify token
@@ -62,13 +62,15 @@ export default apiHandler(
               where: { userId }
           });
 
-          res.json({ success: true, message: "Password reset successfully. You can now log in." });
+          res.json({ success: true, message: "Your password is set. You can sign in with it now." });
 
       } catch (error) {
           console.error("Password reset error:", error);
-          const msg = error instanceof Error ? error.message : "Failed to reset password";
-          if (msg.includes("Invalid") || msg.includes("expired")) {
-              return res.status(400).json({ error: msg });
+          // Only the token's own reasons go back: "Invalid" also matched
+          // Prisma's error text, file path and all
+          const msg = error instanceof Error ? error.message : "";
+          if (SPENT_LINK.test(msg)) {
+              return res.status(400).json({ error: "That reset link has expired or was already used. Ask for a new one." });
           }
           return res.status(500).json({ error: "Failed to reset password" });
       }

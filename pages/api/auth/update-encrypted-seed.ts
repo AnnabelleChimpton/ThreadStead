@@ -1,15 +1,15 @@
 import { apiHandler } from "@/lib/api/handler";
 import { db } from "@/lib/config/database/connection";
 import { checkCurrentPassword } from "@/lib/auth/current-password";
+import { z } from "zod";
+import { encryptedSeedPhraseSchema, givenPasswordSchema } from "@/lib/auth/password-requests";
+
+const updateSeedSchema = z.object({ encryptedSeedPhrase: encryptedSeedPhraseSchema, currentPassword: givenPasswordSchema.optional() });
 
 export default apiHandler(
-  { methods: ["POST"], auth: "user" },
-  async (req, res, { user }) => {
-    const { encryptedSeedPhrase, currentPassword } = req.body;
-
-    if (!encryptedSeedPhrase) {
-      return res.status(400).json({ error: "Encrypted seed phrase is required" });
-    }
+  { methods: ["POST"], auth: "user", schema: updateSeedSchema },
+  async (req, res, { user, body }) => {
+    const { encryptedSeedPhrase, currentPassword } = body;
 
     // Password sign-in decrypts this blob, so overwriting it is a password change
     if (!(await checkCurrentPassword(req, res, user, currentPassword))) return;

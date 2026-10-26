@@ -69,6 +69,7 @@ jest.mock('@noble/ed25519', () => {
 });
 // bcrypt at 12 rounds is slow and not what's under test here
 jest.mock('@/lib/auth/password', () => ({
+  ...jest.requireActual('@/lib/auth/password'),
   hashPassword: jest.fn(async (pw: string) => `hashed:${pw}`),
   verifyPassword: jest.fn(async (pw: string, hash: string) => hash === `hashed:${pw}`),
 }));
@@ -200,7 +201,7 @@ test('password change keeps this session and ends the others', async () => {
     const wrong = await call(changePassword, {
       method: 'POST',
       cookie: laptop,
-      body: { currentPassword: 'nope', newPassword: 'new-password' },
+      body: { currentPassword: 'nope', newPassword: 'New-password1' },
     });
     expect(wrong.statusCode).toBe(400);
     expect(sessions).toHaveLength(2);
@@ -208,7 +209,7 @@ test('password change keeps this session and ends the others', async () => {
     const changed = await call(changePassword, {
       method: 'POST',
       cookie: laptop,
-      body: { currentPassword: 'old-password', newPassword: 'new-password' },
+      body: { currentPassword: 'old-password', newPassword: 'New-password1' },
     });
     expect(changed.body).toEqual({ success: true });
     expect((await call(me, { cookie: laptop })).body).toMatchObject({ loggedIn: true });

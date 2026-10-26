@@ -2,15 +2,20 @@ import { apiHandler } from "@/lib/api/handler";
 import { db } from "@/lib/config/database/connection";
 import { hashPassword } from "@/lib/auth/password";
 import { checkCurrentPassword, signedInRecently } from "@/lib/auth/current-password";
+import { z } from "zod";
+import { encryptedSeedPhraseSchema, givenPasswordSchema, newPasswordSchema } from "@/lib/auth/password-requests";
+
+const savePasswordSchema = z.object({
+  password: newPasswordSchema,
+  // Signup sends what it just stored in the browser; null leaves the saved one alone
+  encryptedSeedPhrase: encryptedSeedPhraseSchema.nullable().optional(),
+  currentPassword: givenPasswordSchema.optional(),
+});
 
 export default apiHandler(
-  { methods: ["POST"], auth: "user" },
-  async (req, res, { user }) => {
-    const { password, encryptedSeedPhrase, currentPassword } = req.body;
-
-    if (!password || typeof password !== "string") {
-      return res.status(400).json({ error: "Password is required" });
-    }
+  { methods: ["POST"], auth: "user", schema: savePasswordSchema },
+  async (req, res, { user, body }) => {
+    const { password, encryptedSeedPhrase, currentPassword } = body;
 
     if (user.passwordHash || user.encryptedSeedPhrase) {
       // Replacing a password: prove you know the current one
@@ -30,7 +35,8 @@ export default apiHandler(
         where: { id: user.id },
         data: {
           passwordHash,
-          encryptedSeedPhrase,
+          // null wiped the saved one, which password sign-in decrypts
+          ...(encryptedSeedPhrase ? { encryptedSeedPhrase } : {}),
           authMethod: 'PASSWORD'
         }
       });

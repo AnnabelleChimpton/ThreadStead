@@ -42,6 +42,9 @@ import updateEncryptedSeed from '@/pages/api/auth/update-encrypted-seed'
 import { getSessionUser } from '@/lib/auth/server'
 import { db } from '@/lib/config/database/connection'
 import { WRONG_CURRENT_PASSWORD, RECENT_SIGN_IN_MS } from '@/lib/auth/current-password'
+
+/** An encrypted phrase in the shape the routes take (lib/auth/password-requests.ts): base64, 88+ characters */
+const blob = (tag: string) => Buffer.from(tag.padEnd(66, '.')).toString('base64')
 import { RATE_LIMIT_CONFIGS } from '@/lib/server/http/rate-limit'
 
 const mockDb = db as any
@@ -105,7 +108,7 @@ const LIMIT = RATE_LIMIT_CONFIGS.password_checks.limit
 describe('save-password', () => {
   it('refuses to replace a password without the current one', async () => {
     mockGetSessionUser.mockResolvedValue(withPassword())
-    const res = await call(savePassword, { password: 'Attacker-pass1', encryptedSeedPhrase: 'evil' })
+    const res = await call(savePassword, { password: 'Attacker-pass1', encryptedSeedPhrase: blob('evil') })
     expect(res.statusCode).toBe(400)
     expect(res.jsonBody).toEqual({ error: WRONG_CURRENT_PASSWORD })
     expect(mockDb.user.update).not.toHaveBeenCalled()
@@ -121,10 +124,10 @@ describe('save-password', () => {
 
   it('replaces the password when the current one is right', async () => {
     mockGetSessionUser.mockResolvedValue(withPassword())
-    const res = await call(savePassword, { password: 'New-pass12', currentPassword: CURRENT, encryptedSeedPhrase: 'new-blob' })
+    const res = await call(savePassword, { password: 'New-pass12', currentPassword: CURRENT, encryptedSeedPhrase: blob('new-blob') })
     expect(res.statusCode).toBe(200)
     expect(mockDb.user.update).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { id: 'user-pw' }, data: expect.objectContaining({ encryptedSeedPhrase: 'new-blob' }) })
+      expect.objectContaining({ where: { id: 'user-pw' }, data: expect.objectContaining({ encryptedSeedPhrase: blob('new-blob') }) })
     )
   })
 
@@ -138,7 +141,7 @@ describe('save-password', () => {
   it('sets a first password right after sign-in, no current password needed', async () => {
     mockGetSessionUser.mockResolvedValue(withoutPassword())
     sessionIssued(5_000)
-    const res = await call(savePassword, { password: 'First-pass1', encryptedSeedPhrase: 'blob' })
+    const res = await call(savePassword, { password: 'First-pass1', encryptedSeedPhrase: blob('blob') })
     expect(res.statusCode).toBe(200)
     expect(mockDb.session.findUnique).toHaveBeenCalledWith(
       expect.objectContaining({ where: { secret: 'secret123' } })
@@ -149,7 +152,7 @@ describe('save-password', () => {
   it('refuses a first password from an old session', async () => {
     mockGetSessionUser.mockResolvedValue(withoutPassword())
     sessionIssued(RECENT_SIGN_IN_MS + 60_000)
-    const res = await call(savePassword, { password: 'First-pass1', encryptedSeedPhrase: 'blob' })
+    const res = await call(savePassword, { password: 'First-pass1', encryptedSeedPhrase: blob('blob') })
     expect(res.statusCode).toBe(403)
     expect(mockDb.user.update).not.toHaveBeenCalled()
   })
@@ -185,7 +188,7 @@ describe('change-password', () => {
 
   it('changes the password with the right one', async () => {
     mockGetSessionUser.mockResolvedValue(withPassword())
-    const res = await call(changePassword, { currentPassword: CURRENT, newPassword: 'New-pass12', encryptedSeedPhrase: 'b' })
+    const res = await call(changePassword, { currentPassword: CURRENT, newPassword: 'New-pass12', encryptedSeedPhrase: blob('b') })
     expect(res.statusCode).toBe(200)
     expect(mockDb.user.update).toHaveBeenCalledTimes(1)
   })
@@ -204,15 +207,32 @@ describe('change-password', () => {
 describe('update-encrypted-seed', () => {
   it('refuses to overwrite the encrypted seed without the current password', async () => {
     mockGetSessionUser.mockResolvedValue(withPassword())
-    const res = await call(updateEncryptedSeed, { encryptedSeedPhrase: 'evil' })
+    const res = await call(updateEncryptedSeed, { encryptedSeedPhrase: blob('evil') })
     expect(res.statusCode).toBe(400)
     expect(mockDb.user.update).not.toHaveBeenCalled()
   })
 
   it('updates it with the current password', async () => {
     mockGetSessionUser.mockResolvedValue(withPassword())
-    const res = await call(updateEncryptedSeed, { encryptedSeedPhrase: 'new', currentPassword: CURRENT })
+    const res = await call(updateEncryptedSeed, { encryptedSeedPhrase: blob('new'), currentPassword: CURRENT })
     expect(res.statusCode).toBe(200)
-    expect(mockDb.user.update).toHaveBeenCalledWith({ where: { id: 'user-pw' }, data: { encryptedSeedPhrase: 'new' } })
+    expect(mockDb.user.update).toHaveBeenCalledWith({ where: { id: 'user-pw' }, data: { encryptedSeedPhrase: blob('new') } })
+  })
+})
+
+describe('the strength rule is checked on the server too', () => {
+  test('a first password that breaks it is refused, in its words', async () => {
+    mockGetSessionUser.mockResolvedValue({ id: 'user-new', passwordHash: null, encryptedSeedPhrase: null })
+    const res = await call(savePassword, { password: 'a', encryptedSeedPhrase: blob('blob') })
+    expect(res.statusCode).toBe(400)
+    expect(res.jsonBody.error).toBe('Password must be at least 8 characters long')
+    expect(mockDb.user.update).not.toHaveBeenCalled()
+  })
+
+  test("a saved phrase that isn't one is refused: sign-in decrypts it", async () => {
+    mockGetSessionUser.mockResolvedValue({ id: 'user-new', passwordHash: null, encryptedSeedPhrase: null })
+    const res = await call(savePassword, { password: 'First-pass1', encryptedSeedPhrase: 'not base64!' })
+    expect(res.statusCode).toBe(400)
+    expect(mockDb.user.update).not.toHaveBeenCalled()
   })
 })

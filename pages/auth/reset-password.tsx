@@ -6,6 +6,8 @@ import RetroCard from "@/components/ui/layout/RetroCard";
 // No custom Button/Input found, falling back to HTML + RetroButton if needed
 import RetroButton from "@/components/ui/feedback/RetroButton";
 import PageMeta from "@/components/ui/layout/PageMeta";
+import PasswordRules from "@/components/features/auth/PasswordRules";
+import { validatePasswordStrength } from "@/lib/auth/password";
 
 export default function ResetPasswordPage() {
     const router = useRouter();
@@ -18,6 +20,14 @@ export default function ResetPasswordPage() {
         e.preventDefault();
         if (!token || typeof token !== "string") {
             setErrorMsg("Invalid reset link.");
+            setStatus("error");
+            return;
+        }
+
+        // The rule the server checks too (signup and Settings show it as well)
+        const strength = validatePasswordStrength(password);
+        if (!strength.valid) {
+            setErrorMsg(strength.errors[0]);
             setStatus("error");
             return;
         }
@@ -86,9 +96,11 @@ export default function ResetPasswordPage() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-bold mb-2 font-pixel">New Password</label>
+                                <label htmlFor="reset-new-password" className="block text-sm font-bold mb-2 font-pixel">New Password</label>
                                 <input
+                                    id="reset-new-password"
                                     type="password"
+                                    autoComplete="new-password"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     placeholder="Enter new password"
@@ -96,6 +108,7 @@ export default function ResetPasswordPage() {
                                     minLength={8}
                                     className="w-full px-3 py-2 border border-black shadow-[2px_2px_0_#999] rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500 font-pixel text-sm"
                                 />
+                                <PasswordRules password={password} className="mt-2 p-3" />
                             </div>
                         </div>
 

@@ -3,15 +3,19 @@ import { db } from "@/lib/config/database/connection";
 import { hashPassword } from "@/lib/auth/password";
 import { checkCurrentPassword } from "@/lib/auth/current-password";
 import { endOtherSessions } from "@/lib/auth/server";
+import { z } from "zod";
+import { encryptedSeedPhraseSchema, givenPasswordSchema, newPasswordSchema } from "@/lib/auth/password-requests";
+
+const changePasswordSchema = z.object({
+  currentPassword: givenPasswordSchema.min(1),
+  newPassword: newPasswordSchema,
+  encryptedSeedPhrase: encryptedSeedPhraseSchema.optional(),
+});
 
 export default apiHandler(
-  { methods: ["POST"], auth: "user" },
-  async (req, res, { user }) => {
-    const { currentPassword, newPassword, encryptedSeedPhrase } = req.body;
-
-    if (!currentPassword || !newPassword) {
-      return res.status(400).json({ error: "Current password and new password are required" });
-    }
+  { methods: ["POST"], auth: "user", schema: changePasswordSchema },
+  async (req, res, { user, body }) => {
+    const { currentPassword, newPassword, encryptedSeedPhrase } = body;
 
     // passwordHash, not authMethod: accounts that added a password through
     // add-password keep authMethod SEED_PHRASE
@@ -32,9 +36,7 @@ export default apiHandler(
         where: { id: user.id },
         data: {
           passwordHash: newPasswordHash,
-          ...(typeof encryptedSeedPhrase === "string" && encryptedSeedPhrase.length > 0
-            ? { encryptedSeedPhrase } // Updated encrypted seed phrase with new password
-            : {})
+          ...(encryptedSeedPhrase ? { encryptedSeedPhrase } : {}) // Updated encrypted seed phrase with new password
         }
       });
 
