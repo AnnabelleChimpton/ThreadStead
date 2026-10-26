@@ -139,7 +139,7 @@ export const HIDDEN_COMPONENTS: ReadonlySet<string> = new Set([
   'TextElement', 'Heading', 'Paragraph', 'CustomHTMLElement',
   'NotificationCenter', 'NotificationBell', 'UserAccount', 'SiteBranding', 'Breadcrumb', 'ThreadsteadNavigation',
   'ProgressTracker', 'SkillChart', 'ContactCard', 'ArcadeButton', 'FloatingBadge',
-  'DebugValue',
+  'DebugValue', 'EventDiv',
 ])
 
 export function buildComponentDocs(registrations: Map<string, ComponentRegistration>): ComponentDoc[] {

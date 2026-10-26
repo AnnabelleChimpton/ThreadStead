@@ -10,8 +10,9 @@ import { useOnMouseLeaveHandler } from './state/events/OnMouseLeave';
  * EventDiv Component - Interactive div that supports event handlers
  *
  * A div wrapper that integrates with template event handlers like OnHover,
- * OnMouseEnter, OnMouseLeave. Use this instead of native <div> when you need
- * event handling in templates.
+ * OnMouseEnter, OnMouseLeave. Retired from the palette and docs: those
+ * events, and OnClick, now work inside a plain <div> (element-events.tsx).
+ * It keeps rendering for pages that use it.
  *
  * @example
  * ```xml

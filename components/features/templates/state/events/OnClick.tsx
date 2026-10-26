@@ -1,63 +1,57 @@
 'use client';
 
-import React, { createContext, useContext } from 'react';
+import React from 'react';
 import { useTemplateState } from '@/lib/templates/state/TemplateStateProvider';
 import { useResidentData } from '@/components/features/templates/ResidentDataProvider';
 import { useForEachContext } from '../loops/ForEach';
 // QUICK WIN #3: Use centralized ActionExecutor instead of duplicate logic
 import { executeActions } from '@/lib/templates/state/ActionExecutor';
+import { eventMarker, useElementEvent } from './element-events';
 
 /**
  * OnClick Component - Event handler for click events
  *
- * Executes action components (Set, Increment, etc.) when clicked.
- * Should be used as a child of clickable elements like buttons.
+ * Executes action components (Set, Increment, etc.) when clicked. Inside a
+ * Button, the Button runs it (useOnClickHandler). Anywhere else it runs on
+ * a click on the element it sits in, or with target on the page's elements
+ * matching the selector, which become buttons for the keyboard too
+ * (element-events.tsx). In its actions, target="this" is what was clicked.
  *
  * @example
  * ```xml
- * <button>
+ * <div class="card">
  *   <OnClick>
  *     <Set var="counter" expression="$vars.counter + 1" />
  *   </OnClick>
  *   Click me!
- * </button>
- * ```
+ * </div>
  *
- * Note: In the current implementation, OnClick creates a wrapper element.
- * Future versions may integrate more seamlessly with parent elements.
+ * <img id="cat" src="cat.png" alt="Pet the cat">
+ * <OnClick target="#cat"><Increment var="pets" /></OnClick>
+ * ```
  */
 
 export interface OnClickProps {
   /** Action components to execute (Set, Increment, etc.) */
   children?: React.ReactNode;
 
+  /** A selector for the page elements to click, instead of the element it sits in */
+  target?: string;
 }
-
-// Context for event handler (future enhancement)
-interface EventHandlerContextType {
-  registerClickHandler?: (handler: () => void) => void;
-}
-
-const EventHandlerContext = createContext<EventHandlerContextType>({});
 
 export default function OnClick(props: OnClickProps) {
-  const { children } = props;
+  const { children, target } = props;
 
   const templateState = useTemplateState();
   const residentData = useResidentData();
   const forEachContext = useForEachContext();
 
-  /**
-   * Execute all action children
-   */
-  const handleClick = (event: React.MouseEvent) => {
-    executeActions(children, templateState, residentData, forEachContext);
-  };
+  const marker = useElementEvent('click', target, (element) => {
+    executeActions(children, templateState, residentData, forEachContext, element);
+  });
 
-  // Normal mode - render nothing
-  // The click handler is meant to be attached to parent element
-  // For MVP, we'll handle this via parent element detection
-  return null;
+  // Not inside a Button: a marker for finding the element it sits in
+  return eventMarker(marker);
 }
 
 /**
@@ -80,7 +74,7 @@ export { executeActions } from '@/lib/templates/state/ActionExecutor';
  * @param children Component children to search for OnClick
  * @returns Click handler function
  */
-export function useOnClickHandler(children: React.ReactNode): (() => void) | null {
+export function useOnClickHandler(children: React.ReactNode): ((event?: React.MouseEvent) => void) | null {
   const templateState = useTemplateState();
   const residentData = useResidentData();
   const forEachContext = useForEachContext();
@@ -122,7 +116,8 @@ export function useOnClickHandler(children: React.ReactNode): (() => void) | nul
         ? (actualChild.type as any).displayName || actualChild.type.name
         : '';
 
-      if (componentName === 'OnClick') {
+      // One with a target clicks that instead, and renders itself
+      if (componentName === 'OnClick' && !(actualChild.props as OnClickProps).target) {
         found = actualChild;
       }
     });
@@ -131,9 +126,11 @@ export function useOnClickHandler(children: React.ReactNode): (() => void) | nul
   }, [children]);
 
   // P1.4: Memoize handler with useCallback
-  const handler = React.useCallback(() => {
+  const handler = React.useCallback((event?: React.MouseEvent) => {
     if (!onClickChild) return;
-    executeActions((onClickChild as React.ReactElement<OnClickProps>).props.children, templateState, residentData, forEachContext);
+    // The button itself, for target="this"
+    const currentElement = event?.currentTarget as HTMLElement | undefined;
+    executeActions((onClickChild as React.ReactElement<OnClickProps>).props.children, templateState, residentData, forEachContext, currentElement);
   }, [onClickChild, templateState, residentData, forEachContext]);
 
   return onClickChild ? handler : null;
@@ -175,6 +172,6 @@ export function filterOnClickChildren(children: React.ReactNode): React.ReactNod
       ? (actualChild.type as any).displayName || actualChild.type.name
       : '';
 
-    return componentName !== 'OnClick';
+    return componentName !== 'OnClick' || Boolean((actualChild.props as OnClickProps).target);
   });
 }

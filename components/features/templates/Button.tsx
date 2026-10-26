@@ -8,7 +8,9 @@ import { useOnClickHandler, filterOnClickChildren } from './state/events/OnClick
  * Button Component - Interactive button that supports OnClick event handlers
  *
  * This component wraps a native HTML button and integrates with the
- * template variable system's OnClick event handler.
+ * template variable system's OnClick event handler. An OnClick anywhere
+ * else runs on the element it sits in (element-events.tsx); here the
+ * Button runs it, with target="this" meaning the button.
  *
  * @example
  * ```xml

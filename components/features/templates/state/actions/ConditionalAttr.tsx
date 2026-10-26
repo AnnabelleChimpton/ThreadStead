@@ -32,14 +32,11 @@ import { isSafePageAttribute, pageElements } from './page-targets';
  *   value="true"
  * />
  *
- * <!-- Use target="this" for current element -->
- * <div id="panel">
- *   <ConditionalAttr
- *     element="this"
- *     attribute="aria-hidden"
- *     when="$vars.panelHidden"
- *     value="true"
- *   />
+ * <!-- In an event, element="this" is what was clicked -->
+ * <div class="card">
+ *   <OnClick>
+ *     <ConditionalAttr element="this" attribute="data-seen" when="$vars.open" />
+ *   </OnClick>
  * </div>
  * ```
  */
@@ -202,7 +199,8 @@ export default function ConditionalAttr(props: ConditionalAttrProps) {
 export function executeConditionalAttrAction(
   props: ConditionalAttrProps,
   residentData: any,
-  forEachContext: any = null
+  forEachContext: any = null,
+  currentElement?: HTMLElement
 ): void {
   const {
     element,
@@ -223,7 +221,9 @@ export function executeConditionalAttrAction(
     const elements: Element[] = [];
 
     if (element === 'this') {
-      return;
+      // In an event: the element it happened on (element-events.tsx)
+      if (!currentElement) return;
+      elements.push(currentElement);
     } else {
       // Only the page's own elements, never the site around it
       elements.push(...pageElements(element));

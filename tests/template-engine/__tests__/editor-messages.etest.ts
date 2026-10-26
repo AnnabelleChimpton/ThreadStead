@@ -52,8 +52,12 @@ test('an unclosed quote says the line once, with a tip about quotes', async () =
 test('onclick and javascript: links are reported once each, not dropped quietly', async () => {
   const { warnings } = await report('<button onclick="go()">Go</button><p onclick="x()">x</p><a href="javascript:alert(1)">a</a>')
   expect(warnings).toEqual([
-    expect.stringMatching(/^Line 1: onclick="…" on <button> was taken out \(and 1 more like it\)\..*<OnClick> inside a <Button>/),
+    expect.stringMatching(/^Line 1: onclick="…" on <button> was taken out \(and 1 more like it\)\..*put an <OnClick> inside the <button>\.$/),
     expect.stringMatching(/^Line 1: A javascript: link on <a> was taken out\./),
+  ])
+  // A picture can't hold an OnClick: it gets an id and a target
+  expect((await report('<img src="https://example.com/a.png" alt="a" onclick="go()">')).warnings).toEqual([
+    expect.stringMatching(/give the <img> an id and put <OnClick target="#…"> on the page\.$/),
   ])
 })
 
@@ -88,12 +92,57 @@ describe('mistakes that compile and then do nothing', () => {
     expect(warnings[0]).toContain('<If condition="mood" equals="happy">')
   })
 
-  test('Else on the page, and OnClick outside a Button, are reported', async () => {
-    const { warnings } = await report('<Var name="n" initial="0" />\n<If condition="n"><p>a</p></If>\n<Else><p>b</p></Else>\n<div><OnClick><Increment var="n" /></OnClick></div>')
-    expect(warnings).toEqual(expect.arrayContaining([
-      expect.stringMatching(/^Line 3: <Else> only works inside an event like <OnClick>/),
-      expect.stringMatching(/^Line 4: <OnClick> only works straight inside a <Button>/),
-    ]))
+  test('Else on the page is reported', async () => {
+    const { warnings } = await report('<Var name="n" initial="0" />\n<If condition="n"><p>a</p></If>\n<Else><p>b</p></Else>')
+    expect(warnings).toEqual([expect.stringMatching(/^Line 3: <Else> only works inside an event like <OnClick>/)])
+  })
+
+  // OnClick and the mouse events work inside any element, or on target="…"
+  // (element-events.tsx); what's said is when they'd have nothing to attach to
+  test('an OnClick inside any element, or with a target that is on the page, is fine', async () => {
+    for (const source of [
+      '<div class="card"><OnClick><Increment var="n" /></OnClick>Card</div>',
+      '<a href="/x"><img src="https://example.com/a.png" alt="a"><OnClick><Increment var="n" /></OnClick></a>',
+      '<Var name="xs" type="array" initial="[1]" /><ul><ForEach var="xs" item="x"><li><If condition="n"><OnClick><Increment var="n" /></OnClick></If></li></ForEach></ul>',
+      '<RetroCard><OnHover><Increment var="n" /></OnHover>x</RetroCard>',
+      '<Button><OnClick><Increment var="n" /></OnClick>Go</Button>',
+      '<img id="cat" src="https://example.com/a.png" alt="cat">\n<OnClick target="#cat"><Increment var="n" /></OnClick>',
+      '<p class="note">x</p><OnMouseEnter target=".note"><Increment var="n" /></OnMouseEnter>',
+      '<OnClick target="#late"><Increment var="n" /></OnClick><If condition="n"><img id="late" src="https://example.com/a.png" alt=""></If>',
+      '<OnClick target="img"><Increment var="n" /></OnClick><img src="https://example.com/a.png" alt="">',
+      '<OnClick target=".card p"><Increment var="n" /></OnClick>',
+    ]) {
+      expect({ source, warnings: (await report('<Var name="n" type="number" initial="0" />\n' + source)).warnings }).toEqual({ source, warnings: [] })
+    }
+  })
+
+  test('an OnClick at the top of the page, or only inside logic, has nothing to attach to', async () => {
+    const { warnings } = await report('<Var name="n" type="number" initial="0" />\n<OnClick><Increment var="n" /></OnClick>\n<If condition="n">\n  <OnMouseLeave><Increment var="n" /></OnMouseLeave>\n</If>')
+    expect(warnings).toEqual([
+      'Line 2: <OnClick> sits at the top of the page, not inside anything, so there\'s nothing for it to attach to. Put it inside the thing people click, or point it at something with target="…".',
+      'Line 4: <OnMouseLeave> sits at the top of the page, not inside anything, so there\'s nothing for it to attach to. Put it inside the thing people point at, or point it at something with target="…".',
+    ])
+  })
+
+  test('an OnClick inside a component that doesn\'t show what\'s inside it says so', async () => {
+    const { warnings } = await report('<Var name="n" type="boolean" initial="false" />\n<Checkbox var="n" label="x"><OnClick><Toggle var="n" /></OnClick></Checkbox>')
+    expect(warnings).toEqual([expect.stringMatching(/^Line 2: <OnClick> is inside <Checkbox>, which doesn't show what's put inside it.*element around the <Checkbox>/)])
+  })
+
+  test('a target that matches nothing on the page is reported', async () => {
+    const { warnings } = await report(
+      '<Var name="n" type="number" initial="0" />\n<img id="cat" src="https://example.com/a.png" alt="cat">\n<OnClick target="#dog"><Increment var="n" /></OnClick>\n' +
+      '<OnHover target=".nope"><Increment var="n" /></OnHover>\n<OnClick target="cat"><Increment var="n" /></OnClick>'
+    )
+    expect(warnings).toEqual([
+      'Line 3: <OnClick target="#dog">: nothing on your page has id="dog", so nothing happens.',
+      'Line 4: <OnHover target=".nope">: nothing on your page has class="nope", so nothing happens.',
+      'Line 5: <OnClick target="cat">: nothing on your page is a <cat>. For an id, write target="#cat".',
+    ])
+  })
+
+  test('an OnChange inside a Checkbox is fine', async () => {
+    expect((await report('<Var name="n" type="boolean" initial="false" />\n<Var name="c" type="number" initial="0" />\n<Checkbox var="n" label="x"><OnChange><Increment var="c" /></OnChange></Checkbox>')).warnings).toEqual([])
   })
 
   test('a Tab outside Tabs is reported', async () => {

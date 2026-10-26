@@ -326,7 +326,11 @@ function detectSyntaxErrors(htmlString: string): { errors: string[]; warnings: s
       key === 'javascript:'
         ? `Line ${line}: A javascript: link on <${tag}> was taken out${more}. Scripts don’t run on pages here.`
         : `Line ${line}: ${key}="…" on <${tag}> was taken out${more}. Scripts don’t run on pages here.` +
-          (key === 'onclick' ? ' For something to happen on a click, put an <OnClick> inside a <Button>.' : '')
+          (key === 'onclick'
+            ? VOID_TAGS.has(tag.toLowerCase())
+              ? ` For something to happen on a click, give the <${tag}> an id and put <OnClick target="#…"> on the page.`
+              : ` For something to happen on a click, put an <OnClick> inside the <${tag}>.`
+            : '')
     );
   }
 
@@ -1065,11 +1069,14 @@ function reportComponentProps(source: string): string[] {
  * single tag on its own leave these out.
  */
 export function isPageProblem(message: string): boolean {
-  return /uses a variable called|only works (straight )?inside|reads (condition|data|when) as a name|needs name="…" \(or var="…"\)|doesn't do anything yet|doesn't change when a page variable does/.test(message);
+  return /uses a variable called|only works (straight )?inside|reads (condition|data|when) as a name|needs name="…" \(or var="…"\)|doesn't do anything yet|doesn't change when a page variable does|nothing for it to attach to|doesn't show what's put inside it|nothing on your page (has|is)/.test(message);
 }
 
 /** Components that run what's inside them when something happens (OnClick, OnChange, OnMount…) */
 const isEvent = (name: string) => /^On[A-Z]/.test(name);
+
+/** Events that attach to the element they sit in, or to target="…" (element-events.tsx) */
+const ELEMENT_EVENTS = new Set(['OnClick', 'OnHover', 'OnMouseEnter', 'OnMouseLeave']);
 
 /** A prop that makes a page variable for you ("Made for you if it doesn't exist") */
 function declaresVariable(prop: PropSchema | undefined): boolean {
@@ -1088,8 +1095,11 @@ const SCRIPT_IN_CONDITION = /==|!=|<=|>=|&&|\|\||(?<![\w-])[<>](?!=)/;
  *  - JavaScript in an If's condition (it's read as a name, so
  *    condition="mood == 'happy'" is never true);
  *  - Else or ElseIf outside an event (on the page they do nothing);
- *  - OnClick anywhere but straight inside a Button, and a component outside
- *    the one it has to sit in (Tab outside Tabs, Case outside Switch);
+ *  - an OnClick or mouse event with nothing to attach to (at the top of the
+ *    page, or in a component that doesn't show what's inside it), or a
+ *    target that matches nothing in the page;
+ *  - a component outside the one it has to sit in (Tab outside Tabs, Case
+ *    outside Switch);
  *  - ShowVar with nothing to show.
  */
 /** Attributes that point at a file or page */
@@ -1228,15 +1238,36 @@ function reportPageProblems(source: string): string[] {
   const declared = new Set<string>();
   const used: Array<{ name: string; line: number; tag: string; attr: string }> = [];
   const stack: string[] = [];
+  // Every open tag, HTML too: what an OnClick would attach to
+  const elements: Array<{ name: string; component: boolean }> = [];
+  // What a target="…" can match: the page's ids, classes and tags
+  const ids = new Set<string>();
+  const classes = new Set<string>();
+  const tags = new Set<string>();
+  const targets: Array<{ name: string; line: number; target: string }> = [];
 
   for (const token of tokenizeSource(source)) {
     if (token.type === 'close') {
+      const open = elements.map((e) => e.name).lastIndexOf(looksLikeComponentName(token.name) ? token.name : token.name.toLowerCase());
+      if (open !== -1) elements.length = open;
       if (!looksLikeComponentName(token.name)) continue;
       const at = stack.lastIndexOf(token.name);
       if (at !== -1) stack.length = at;
       continue;
     }
-    if (token.type !== 'open' || !looksLikeComponentName(token.name)) continue;
+    if (token.type !== 'open') continue;
+    for (const attribute of token.attributes) {
+      const value = decodeAttributeValue(attribute.value ?? '');
+      const key = attribute.name.toLowerCase();
+      if (key === 'id') ids.add(value.trim().replace(/^user-content-/, ''));
+      if (key === 'class' || key === 'classname') for (const name of value.split(/\s+/)) if (name) classes.add(name);
+    }
+    if (!looksLikeComponentName(token.name)) {
+      const tag = token.name.toLowerCase();
+      tags.add(tag);
+      if (!token.selfClosing && !VOID_TAGS.has(tag)) elements.push({ name: tag, component: false });
+      continue;
+    }
     const registration = componentRegistry.get(token.name);
     if (!registration) continue;
     const name = registration.name;
@@ -1244,15 +1275,36 @@ function reportPageProblems(source: string): string[] {
     const parent = stack[stack.length - 1];
     const attrs = new Map(token.attributes.map((a) => [a.name.toLowerCase(), decodeAttributeValue(a.value ?? '')]));
 
-    // Where it sits
-    if (name === 'OnClick' && parent !== 'Button') {
-      messages.push(
-        `Line ${line}: <OnClick> only works straight inside a <Button>, so here nothing happens on a click.` +
-        (parent ? ` It's inside <${parent}>.` : '')
-      );
+    // Where it sits: an OnClick or mouse event attaches to the element
+    // around it, past logic like If and ForEach (element-events.tsx)
+    const target = attrs.get('target')?.trim();
+    if (ELEMENT_EVENTS.has(name) && target) targets.push({ name, line, target });
+    if (ELEMENT_EVENTS.has(name) && !target && !(name === 'OnClick' && parent === 'Button')) {
+      const people = name === 'OnClick' ? 'click' : 'point at';
+      let around: { name: string; component: boolean } | undefined;
+      for (let i = elements.length - 1; i >= 0; i--) {
+        const element = elements[i];
+        const holder = element.component ? componentRegistry.get(element.name) : undefined;
+        if (!element.component || isEvent(element.name) || holder?.relationship?.acceptsChildren === false || holder?.group !== 'logic') {
+          around = element;
+          break;
+        }
+      }
+      const holder = around?.component ? componentRegistry.get(around.name) : undefined;
+      if (!around) {
+        messages.push(
+          `Line ${line}: <${name}> sits at the top of the page, not inside anything, so there's nothing for it to attach to. ` +
+          `Put it inside the thing people ${people}, or point it at something with target="…".`
+        );
+      } else if (holder?.relationship?.acceptsChildren === false && !isEvent(around.name)) {
+        messages.push(
+          `Line ${line}: <${name}> is inside <${around.name}>, which doesn't show what's put inside it, so nothing happens. ` +
+          `Put it in the element around the <${around.name}>, or point it at something with target="…".`
+        );
+      }
     }
     const needs = registration.relationship?.requiresParent;
-    if (needs && parent !== needs && name !== 'OnClick') {
+    if (needs && parent !== needs) {
       messages.push(`Line ${line}: <${name}> only works inside a <${needs}>.`);
     }
     if ((name === 'Else' || name === 'ElseIf') && !stack.some(isEvent)) {
@@ -1320,7 +1372,26 @@ function reportPageProblems(source: string): string[] {
       messages.push(`Line ${line}: <ShowVar> needs name="…" (or var="…") to know which variable to show.`);
     }
 
-    if (!token.selfClosing) stack.push(name);
+    if (!token.selfClosing) {
+      stack.push(name);
+      elements.push({ name, component: true });
+    }
+  }
+
+  // A target="…" that matches nothing in the page's source: simple
+  // selectors only, and not where a loop makes the ids or classes
+  for (const { name, line, target } of targets) {
+    const id = target.match(/^#([\w-]+)$/)?.[1]?.replace(/^user-content-/, '');
+    const className = target.match(/^\.([\w-]+)$/)?.[1];
+    const tag = /^[a-z][a-z0-9]*$/i.test(target) ? target.toLowerCase() : undefined;
+    const placeholders = (set: Set<string>) => [...set].some((value) => value.includes('{'));
+    if (id && !ids.has(id) && !placeholders(ids)) {
+      messages.push(`Line ${line}: <${name} target="${target}">: nothing on your page has id="${id}", so nothing happens.`);
+    } else if (className && !classes.has(className) && !placeholders(classes)) {
+      messages.push(`Line ${line}: <${name} target="${target}">: nothing on your page has class="${className}", so nothing happens.`);
+    } else if (tag && !tags.has(tag)) {
+      messages.push(`Line ${line}: <${name} target="${target}">: nothing on your page is a <${tag}>. For an id, write target="#${target}".`);
+    }
   }
 
   const reported = new Set<string>();

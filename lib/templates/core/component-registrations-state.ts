@@ -128,7 +128,7 @@ export function registerStateComponents(registry: ComponentRegistry) {
     name: 'EventDiv',
     component: EventDiv,
     group: 'interactive',
-    description: 'A box like a div that reacts to the mouse. Put OnHover, OnMouseEnter or OnMouseLeave directly inside it. OnClick doesn\'t work here; use a Button for clicks.',
+    description: 'A box like a div that reacts to the mouse. A plain div does this now: OnHover, OnMouseEnter, OnMouseLeave and OnClick work inside any element.',
     example: '<Var name="pets" type="number" initial="0" />\n<EventDiv style="padding: 1em; border: 2px dashed pink">\n  <OnMouseEnter><Increment var="pets" /></OnMouseEnter>\n  Pet the cat. Pets so far: <ShowVar name="pets" />\n</EventDiv>',
     props: {
       className: { type: 'string', description: 'Extra classes for your own CSS. It always has the class template-event-div as well.' },
@@ -170,7 +170,7 @@ export function registerStateComponents(registry: ComponentRegistry) {
     name: 'Checkbox',
     component: Checkbox,
     group: 'interactive',
-    description: 'A tick box with a label. Ticking it sets a page variable to true and unticking sets it to false. It doesn\'t take an OnChange.',
+    description: 'A tick box with a label. Ticking it sets a page variable to true and unticking sets it to false. Put an OnChange inside to run actions when it changes.',
     example: '<Var name="watered" type="boolean" initial="false" />\n<Checkbox var="watered" label="I watered the plants today" />\n<p>Watered: <ShowVar name="watered" /></p>',
     props: {
       var: { type: 'string', required: true, description: 'The page variable to set. Use a boolean Var.' },

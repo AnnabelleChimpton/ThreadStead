@@ -5,6 +5,7 @@ import { useTemplateState } from '@/lib/templates/state/TemplateStateProvider';
 import { useResidentData } from '@/components/features/templates/ResidentDataProvider';
 import { useForEachContext } from '../loops/ForEach';
 import { executeActions } from './OnClick';
+import { eventMarker, useElementEvent } from './element-events';
 
 /**
  * OnMouseLeave Component - Event handler for mouse leave events
@@ -30,11 +31,23 @@ export interface OnMouseLeaveProps {
   /** Action components to execute on mouse leave */
   children?: React.ReactNode;
 
+  /** A selector for the page elements to watch, instead of the element it sits in */
+  target?: string;
+
 }
 
 export default function OnMouseLeave(props: OnMouseLeaveProps) {
-  // Normal mode - render nothing
-  return null;
+  const { children, target } = props;
+  const templateState = useTemplateState();
+  const residentData = useResidentData();
+  const forEachContext = useForEachContext();
+
+  // Inside an EventDiv, the EventDiv runs it (useOnMouseLeaveHandler).
+  // Anywhere else: on the element it sits in, or the elements matching target
+  const marker = useElementEvent('leave', target, (element) => {
+    executeActions(children, templateState, residentData, forEachContext, element);
+  });
+  return eventMarker(marker);
 }
 
 /**

@@ -2,6 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { useTemplateStateWithDeps } from '@/lib/templates/state/TemplateStateProvider';
+import { useOnChangeHandler } from '../events/OnChange';
 
 /**
  * Checkbox Component - Checkbox input bound to a boolean template variable
@@ -13,6 +14,9 @@ import { useTemplateStateWithDeps } from '@/lib/templates/state/TemplateStatePro
  * <Checkbox var="agreedToTerms" label="I agree to the terms" />
  * <Checkbox var="darkMode" label="🌙 Dark Mode" />
  * <Checkbox var="notifications" label="Enable notifications" />
+ * <Checkbox var="watered" label="Watered">
+ *   <OnChange><Increment var="ticks" /></OnChange>
+ * </Checkbox>
  * ```
  */
 
@@ -29,7 +33,7 @@ export interface CheckboxProps {
   /** Disabled state */
   disabled?: boolean;
 
-  /** Children (ignored) */
+  /** Children (an OnChange; nothing else shows) */
   children?: React.ReactNode;
 }
 
@@ -39,6 +43,7 @@ export default function Checkbox(props: CheckboxProps) {
     label,
     className: customClassName,
     disabled = false,
+    children,
   } = props;
 
   // PHASE 1.1: Use selective subscription - only re-render when this specific variable changes
@@ -48,9 +53,17 @@ export default function Checkbox(props: CheckboxProps) {
   // PHASE 1.1 FIX: Use getVariable() to get current value, not stale snapshot
   const currentValue = Boolean(templateState.getVariable(varName));
 
+  // Extract OnChange handler from children, as the other inputs do
+  const changeHandler = useOnChangeHandler(children);
+
   // Handle value changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     templateState.setVariable(varName, e.target.checked);
+
+    // Execute OnChange handler if present
+    if (changeHandler) {
+      changeHandler(e.target.checked);
+    }
   };
 
   // Build className

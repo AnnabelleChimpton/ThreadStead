@@ -322,7 +322,7 @@ a {
       {
         id: 'scripts',
         title: 'Buttons that did things',
-        body: "onclick and <script> don't run here, so they're taken out. Most of what they used to do has a tag now. A click goes in an <OnClick> inside a <Button>, and an old hit counter or guestbook script becomes your <Guestbook />. The next lesson is all about buttons.",
+        body: "onclick and <script> don't run here, so they're taken out. Most of what they used to do has a tag now. A click goes in an <OnClick>, inside whatever people click: a <Button>, a link, a <div> around a picture. An old hit counter or guestbook script becomes your <Guestbook />. The next lesson is all about buttons.",
         code: `<Var name="lights" type="boolean" initial="true" />
 
 <Button>
@@ -366,6 +366,7 @@ a {
         tips: [
           "The count belongs to whoever is clicking. It starts again at 0 when they reload, and nobody else sees their number. (It's a toy, not a hit counter!)",
           "<Var> gets a name=. The tags that change it point at it with var=. ShowVar takes either one.",
+          "An <OnClick> works inside anything people click, not only a <Button>: a link, a card, a <div> around a picture. A picture can't hold anything, so give it an id and put <OnClick target=\"#its-id\"> anywhere on the page.",
         ],
         checks: [
           { varDeclared: 'waves', hint: "I can't find a <Var name=\"waves\">. It needs to be on the page for the others to find it." },

@@ -5,6 +5,7 @@ import { useTemplateState } from '@/lib/templates/state/TemplateStateProvider';
 import { useResidentData } from '@/components/features/templates/ResidentDataProvider';
 import { useForEachContext } from '../loops/ForEach';
 import { executeActions } from './OnClick';
+import { eventMarker, useElementEvent } from './element-events';
 
 /**
  * OnMouseEnter Component - Event handler for mouse enter events
@@ -30,11 +31,23 @@ export interface OnMouseEnterProps {
   /** Action components to execute on mouse enter */
   children?: React.ReactNode;
 
+  /** A selector for the page elements to watch, instead of the element it sits in */
+  target?: string;
+
 }
 
 export default function OnMouseEnter(props: OnMouseEnterProps) {
-  // Normal mode - render nothing
-  return null;
+  const { children, target } = props;
+  const templateState = useTemplateState();
+  const residentData = useResidentData();
+  const forEachContext = useForEachContext();
+
+  // Inside an EventDiv, the EventDiv runs it (useOnMouseEnterHandler).
+  // Anywhere else: on the element it sits in, or the elements matching target
+  const marker = useElementEvent('enter', target, (element) => {
+    executeActions(children, templateState, residentData, forEachContext, element);
+  });
+  return eventMarker(marker);
 }
 
 /**
@@ -44,7 +57,7 @@ export default function OnMouseEnter(props: OnMouseEnterProps) {
  * @param children Component children to search for OnMouseEnter
  * @returns Mouse enter handler function
  */
-export function useOnMouseEnterHandler(children: React.ReactNode): (() => void) | null {
+export function useOnMouseEnterHandler(children: React.ReactNode): ((event?: React.MouseEvent) => void) | null {
   const templateState = useTemplateState();
   const residentData = useResidentData();
   const forEachContext = useForEachContext();
@@ -91,9 +104,11 @@ export function useOnMouseEnterHandler(children: React.ReactNode): (() => void) 
   }, [children]);
 
   // P1.4: Memoize handler with useCallback
-  const handler = React.useCallback(() => {
+  const handler = React.useCallback((event?: React.MouseEvent) => {
     if (!onMouseEnterChild) return;
-    executeActions((onMouseEnterChild as React.ReactElement<OnMouseEnterProps>).props.children, templateState, residentData, forEachContext);
+    // The EventDiv, for target="this", as in OnMouseLeave
+    const currentElement = event?.currentTarget as HTMLElement | undefined;
+    executeActions((onMouseEnterChild as React.ReactElement<OnMouseEnterProps>).props.children, templateState, residentData, forEachContext, currentElement);
   }, [onMouseEnterChild, templateState, residentData, forEachContext]);
 
   return onMouseEnterChild ? handler : null;

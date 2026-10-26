@@ -5,6 +5,7 @@ import { useTemplateState } from '@/lib/templates/state/TemplateStateProvider';
 import { useResidentData } from '@/components/features/templates/ResidentDataProvider';
 import { useForEachContext } from '../loops/ForEach';
 import { executeActions } from './OnClick';
+import { eventMarker, useElementEvent } from './element-events';
 
 /**
  * OnHover Component - Event handler for hover events (combines mouseenter + mouseleave)
@@ -27,12 +28,23 @@ export interface OnHoverProps {
   /** Action components to execute on hover */
   children?: React.ReactNode;
 
+  /** A selector for the page elements to watch, instead of the element it sits in */
+  target?: string;
+
 }
 
 export default function OnHover(props: OnHoverProps) {
-  // Normal mode - render nothing
-  // The hover handler is meant to be attached to parent element
-  return null;
+  const { children, target } = props;
+  const templateState = useTemplateState();
+  const residentData = useResidentData();
+  const forEachContext = useForEachContext();
+
+  // Inside an EventDiv, the EventDiv runs it (useOnHoverHandler).
+  // Anywhere else: on the element it sits in, or the elements matching target
+  const marker = useElementEvent('enter', target, (element) => {
+    executeActions(children, templateState, residentData, forEachContext, element);
+  });
+  return eventMarker(marker);
 }
 
 /**

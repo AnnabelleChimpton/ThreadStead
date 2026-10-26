@@ -36,9 +36,11 @@ export function registerEventComponents(registry: ComponentRegistry) {
     name: 'OnClick',
     component: OnClick,
     group: 'logic',
-    description: 'Says what happens when a Button is clicked: the actions inside run in order. It only works as a direct child of a Button. If a Button has more than one, only the last one runs.',
-    example: '<Var name="waves" type="number" initial="0" />\n<Button>\n  <OnClick><Increment var="waves" /><ShowToast message="Waved back" type="info" /></OnClick>\n  Wave hello\n</Button>\n<p>Waves so far: <ShowVar name="waves" /></p>',
-    props: {},
+    description: 'Says what happens when something is clicked: the actions inside run in order. Put it inside the thing people click (a Button, a picture\'s link, a card), or point it at something with target. Something that isn\'t a button or link already works like one for keyboards too: Tab reaches it, Enter or Space presses it. In a Button with more than one, only the last one runs.',
+    example: '<Var name="waves" type="number" initial="0" />\n<div class="wave">\n  <OnClick><Increment var="waves" /><ShowToast message="Waved back" type="info" /></OnClick>\n  <img src="/assets/default-avatar.gif" alt="Wave hello">\n</div>\n<p>Waves so far: <ShowVar name="waves" /></p>',
+    props: {
+      target: { type: 'string', description: 'A CSS selector, like #cat or .card, for what to click instead of the element it sits in. Put it anywhere on the page. An <img> can\'t hold anything, so give it an id and use target="#its-id". Things that show up later count too.' }
+    },
     relationship: {
       type: 'container',
       acceptsChildren: true
@@ -49,7 +51,7 @@ export function registerEventComponents(registry: ComponentRegistry) {
     name: 'OnChange',
     component: OnChange,
     group: 'logic',
-    description: 'Runs the actions inside when the visitor changes an input. It goes inside a TInput, Select, Slider, ColorPicker or RadioGroup, not a Checkbox. The input\'s own variable is already updated when it runs.',
+    description: 'Runs the actions inside when the visitor changes an input. It goes inside a TInput, Select, Slider, ColorPicker, RadioGroup or Checkbox. The input\'s own variable is already updated when it runs.',
     example: '<Var name="mood" type="string" initial="" />\n<Var name="changes" type="number" initial="0" />\n<Select var="mood" placeholder="Pick a mood">\n  <Option value="cozy">Cozy</Option>\n  <Option value="restless">Restless</Option>\n  <OnChange><Increment var="changes" /></OnChange>\n</Select>\n<p>Mood changes: <ShowVar name="changes" /></p>',
     props: {
       debounce: { type: 'number', default: 0, description: 'Wait this many milliseconds after the last change before running, so typing in a TInput runs it once at the end instead of on every key. 0 by default.' }
@@ -96,9 +98,11 @@ export function registerEventComponents(registry: ComponentRegistry) {
     name: 'OnHover',
     component: OnHover,
     group: 'logic',
-    description: 'Runs the actions inside each time the mouse moves onto an EventDiv. Nothing happens when it leaves. It must sit directly inside an EventDiv, and it\'s ignored if that EventDiv also has an OnMouseEnter.',
-    example: '<Var name="boops" type="number" initial="0" />\n<EventDiv style="padding: 1em; border: 1px solid">\n  <OnHover><Increment var="boops" /></OnHover>\n  Boop the snoot. Boops: <ShowVar name="boops" />\n</EventDiv>',
-    props: {},
+    description: 'Runs the actions inside each time the mouse moves onto the element it sits in, or the ones target points at. Nothing happens when it leaves. OnMouseEnter does the same.',
+    example: '<Var name="boops" type="number" initial="0" />\n<div style="padding: 1em; border: 1px solid">\n  <OnHover><Increment var="boops" /></OnHover>\n  Boop the snoot. Boops: <ShowVar name="boops" />\n</div>',
+    props: {
+      target: { type: 'string', description: 'A CSS selector, like #cat or .card, for what to watch instead of the element it sits in. Put it anywhere on the page.' }
+    },
     relationship: {
       type: 'action',
       acceptsChildren: true
@@ -109,9 +113,11 @@ export function registerEventComponents(registry: ComponentRegistry) {
     name: 'OnMouseEnter',
     component: OnMouseEnter,
     group: 'logic',
-    description: 'Runs the actions inside when the mouse moves onto an EventDiv. It must sit directly inside an EventDiv. Pair it with OnMouseLeave to undo the change.',
-    example: '<Var name="sign" type="string" initial="Closed" />\n<EventDiv style="padding: 1em; border: 1px solid">\n  <OnMouseEnter><Set var="sign" value="Open, come in" /></OnMouseEnter>\n  <OnMouseLeave><Set var="sign" value="Closed" /></OnMouseLeave>\n  Shop sign: <ShowVar name="sign" />\n</EventDiv>',
-    props: {},
+    description: 'Runs the actions inside when the mouse moves onto the element it sits in, or the ones target points at. Pair it with OnMouseLeave to undo the change. Phones and keyboards don\'t hover, so don\'t hide anything important behind it.',
+    example: '<Var name="sign" type="string" initial="Closed" />\n<div style="padding: 1em; border: 1px solid">\n  <OnMouseEnter><Set var="sign" value="Open, come in" /></OnMouseEnter>\n  <OnMouseLeave><Set var="sign" value="Closed" /></OnMouseLeave>\n  Shop sign: <ShowVar name="sign" />\n</div>',
+    props: {
+      target: { type: 'string', description: 'A CSS selector, like #cat or .card, for what to watch instead of the element it sits in. Put it anywhere on the page.' }
+    },
     relationship: {
       type: 'action',
       acceptsChildren: true
@@ -122,9 +128,11 @@ export function registerEventComponents(registry: ComponentRegistry) {
     name: 'OnMouseLeave',
     component: OnMouseLeave,
     group: 'logic',
-    description: 'Runs the actions inside when the mouse moves off an EventDiv. It must sit directly inside an EventDiv.',
-    example: '<Var name="sign" type="string" initial="Closed" />\n<EventDiv style="padding: 1em; border: 1px solid">\n  <OnMouseEnter><Set var="sign" value="Open, come in" /></OnMouseEnter>\n  <OnMouseLeave><Set var="sign" value="Closed" /></OnMouseLeave>\n  Shop sign: <ShowVar name="sign" />\n</EventDiv>',
-    props: {},
+    description: 'Runs the actions inside when the mouse moves off the element it sits in, or the ones target points at.',
+    example: '<Var name="sign" type="string" initial="Closed" />\n<div style="padding: 1em; border: 1px solid">\n  <OnMouseEnter><Set var="sign" value="Open, come in" /></OnMouseEnter>\n  <OnMouseLeave><Set var="sign" value="Closed" /></OnMouseLeave>\n  Shop sign: <ShowVar name="sign" />\n</div>',
+    props: {
+      target: { type: 'string', description: 'A CSS selector, like #cat or .card, for what to watch instead of the element it sits in. Put it anywhere on the page.' }
+    },
     relationship: {
       type: 'action',
       acceptsChildren: true

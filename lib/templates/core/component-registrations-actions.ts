@@ -266,7 +266,7 @@ export function registerActionComponents(registry: ComponentRegistry) {
     description: 'Adds a CSS class to elements on your page. Runs inside an event like OnClick or OnMount.',
     example: '<div id="lamp" class="lamp">a little lamp</div>\n<Button>\n  <OnClick><AddClass target="#lamp" className="lit" /></OnClick>\n  Turn on the lamp\n</Button>',
     props: {
-      target: { type: 'string', required: true, description: 'A CSS selector, like #lamp or .note. Every match gets the class. "this" doesn\'t work here.' },
+      target: { type: 'string', required: true, description: 'A CSS selector, like #lamp or .note. Every match gets the class. In an OnClick or a mouse event, "this" is the thing that was clicked or pointed at.' },
       className: { type: 'string', required: true, description: 'One class name to add, like lit.' }
     },
     relationship: {
@@ -282,7 +282,7 @@ export function registerActionComponents(registry: ComponentRegistry) {
     description: 'Takes a CSS class off elements on your page. Runs inside an event like OnClick or OnMount.',
     example: '<div id="lamp" class="lamp lit">a little lamp</div>\n<Button>\n  <OnClick><RemoveClass target="#lamp" className="lit" /></OnClick>\n  Turn off the lamp\n</Button>',
     props: {
-      target: { type: 'string', required: true, description: 'A CSS selector, like #lamp or .note. Every match loses the class. "this" doesn\'t work here.' },
+      target: { type: 'string', required: true, description: 'A CSS selector, like #lamp or .note. Every match loses the class. In an OnClick or a mouse event, "this" is the thing that was clicked or pointed at.' },
       className: { type: 'string', required: true, description: 'One class name to remove, like lit.' }
     },
     relationship: {
@@ -298,7 +298,7 @@ export function registerActionComponents(registry: ComponentRegistry) {
     description: 'Adds a CSS class to elements that don\'t have it and removes it from ones that do. Runs inside an event like OnClick or OnMount.',
     example: '<nav id="menu" class="menu"><a href="/links">links</a></nav>\n<Button>\n  <OnClick><ToggleClass target="#menu" className="open" /></OnClick>\n  Menu\n</Button>',
     props: {
-      target: { type: 'string', required: true, description: 'A CSS selector, like #menu or .note. Every match is switched. "this" doesn\'t work here.' },
+      target: { type: 'string', required: true, description: 'A CSS selector, like #menu or .note. Every match is switched. In an OnClick or a mouse event, "this" is the thing that was clicked or pointed at.' },
       className: { type: 'string', required: true, description: 'One class name to switch on and off, like open.' }
     },
     relationship: {
@@ -589,7 +589,7 @@ export function registerActionComponents(registry: ComponentRegistry) {
     description: 'Puts an attribute on an element while a test passes and takes it off when it doesn\'t, following page variables as they change. Put it on the page; inside an event it only sets the attribute once.',
     example: '<Var name="likes" type="number" initial="0" />\n<Button><OnClick><Increment var="likes" /></OnClick>Like</Button>\n<p id="thanks">Thank you, that made my day.</p>\n<ConditionalAttr element="#thanks" attribute="hidden" when="$vars.likes === 0" />',
     props: {
-      element: { type: 'string', required: true, description: 'A CSS selector for the element or elements, like #thanks or .note. "this" doesn\'t work here.' },
+      element: { type: 'string', required: true, description: 'A CSS selector for the element or elements, like #thanks or .note. Inside an OnClick or a mouse event, "this" is the thing that was clicked or pointed at; on the page on its own, "this" does nothing.' },
       attribute: { type: 'string', required: true, description: 'The attribute to set, like hidden, disabled or aria-expanded.' },
       when: { type: 'string', required: false, description: 'The test. With =, !, < or > in it, it\'s worked out as a calculation, like $vars.likes === 0. Otherwise it names a value that must be on, like $vars.open. Leave it out and the attribute is never set.' },
       value: { type: 'string', default: 'true', description: 'The attribute\'s value while the test passes. Default true.' },

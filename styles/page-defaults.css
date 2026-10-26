@@ -12,6 +12,12 @@
     display: contents !important;
   }
 
+  /* What a page made clickable with <OnClick> (element-events.tsx) shows
+     it. In this first layer, so a cursor the page's own CSS sets wins. */
+  [data-template-root] [data-ts-clickable] {
+    cursor: pointer;
+  }
+
   /* <blink> blinks, the way it did: no browser does it any more, and the
      tag was allowed but did nothing (template audit 15 #18). Not for
      anyone who asked for less motion. */

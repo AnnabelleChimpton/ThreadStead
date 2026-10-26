@@ -143,7 +143,7 @@ const actionRegistry = new Map<string, ActionExecutorFn>([
   ['Merge', withState(executeMergeAction)],
   ['ObjectSet', withState(executeObjectSetAction)],
   ['Extract', withState(executeExtractAction)],
-  ['ConditionalAttr', (call) => executeConditionalAttrAction(call.props, call.residentData, call.forEachContext)],
+  ['ConditionalAttr', (call) => executeConditionalAttrAction(call.props, call.residentData, call.forEachContext, call.currentElement)],
 ]);
 
 /**
