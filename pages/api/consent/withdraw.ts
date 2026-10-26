@@ -3,10 +3,10 @@ import { apiHandler, ApiError } from '@/lib/api/handler';
 import { db } from '../../../lib/config/database/connection';
 import { ConsentType, ConsentAction } from '@prisma/client';
 import { getClientIp } from '@/lib/server/http/client-ip';
+import { z } from 'zod';
 
-interface WithdrawRequest {
-  type?: ConsentType; // If not provided, withdraws all non-essential consents
-}
+/** One type to withdraw; left out, every non-essential one (ConsentManager sends {}) */
+const withdrawSchema = z.object({ type: z.enum(ConsentType).optional() });
 
 interface WithdrawResponse {
   success: boolean;
@@ -16,15 +16,19 @@ interface WithdrawResponse {
 
 /** Withdraws the signed-in user's own consents; see consent/manage.ts. */
 export default apiHandler(
-  { methods: ['POST'], auth: 'user' },
-  async (req, res: NextApiResponse<WithdrawResponse>, { user }) => {
+  { methods: ['POST'], auth: 'user', schema: withdrawSchema },
+  async (req, res: NextApiResponse<WithdrawResponse>, { user, body }) => {
     if (req.query.userId !== undefined && req.query.userId !== user.id) {
       throw new ApiError(403, 'You can only manage your own consent');
     }
     const userId = user.id;
+    const { type } = body;
+    // Was thrown inside the transaction and answered as a 500
+    if (type === ConsentType.ESSENTIAL) {
+      return res.status(400).json({ success: false, error: "Essential cookies keep you signed in, so they can't be turned off." });
+    }
 
     try {
-      const { type }: WithdrawRequest = req.body ?? {};
 
       // Get client IP and user agent for audit trail
       const ipAddress = getClientIp(req);
@@ -32,11 +36,6 @@ export default apiHandler(
 
       await db.$transaction(async (tx) => {
         if (type) {
-          // Withdraw specific consent type (except essential)
-          if (type === ConsentType.ESSENTIAL) {
-            throw new Error('Essential consents cannot be withdrawn');
-          }
-
           await tx.userConsent.upsert({
             where: {
               userId_type: {
@@ -130,7 +129,7 @@ export default apiHandler(
       console.error('Error withdrawing consent:', error);
       return res.status(500).json({
         success: false,
-        error: error instanceof Error ? error.message : 'Internal server error'
+        error: 'Internal server error'
       });
     }
   }

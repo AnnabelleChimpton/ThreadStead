@@ -4,7 +4,8 @@
  * from ?userId, so anyone could read or rewrite anyone's consent by id.
  *
  * The real CSRF check runs here (not mocked), so writes without a matching
- * cookie + header are refused.
+ * cookie + header are refused. Bodies have schemas: a type that isn't one,
+ * or a "granted" that isn't true or false, was a 500 from Prisma.
  */
 import type { NextApiRequest, NextApiResponse } from 'next'
 
@@ -156,6 +157,36 @@ describe('POST /api/consent/manage', () => {
     const { req, res } = makeReqRes({ method: 'POST', query: { userId: ME.id }, body: SAVE_BODY })
     await manage(req, res)
     expect(res.statusCode).toBe(401)
+    expect(writeCalls()).toBe(0)
+  })
+})
+
+describe('consent bodies', () => {
+  test.each([
+    [{ consents: [{ type: 'EVERYTHING', granted: true }] }, "Type isn't one of the choices."],
+    [{ consents: [{ type: 'ANALYTICS', granted: 'false' }] }, "Granted isn't the right kind of value."],
+    [{ consents: Array.from({ length: 50 }, () => ({ type: 'ANALYTICS', granted: true })) }, 'Consents has too many: 4 at most.'],
+    [{}, 'Consents is missing.'],
+  ])('%#: a save the settings page wouldn\'t send is a 400 and writes nothing', async (body, error) => {
+    const { req, res } = makeReqRes({ method: 'POST', body })
+    await manage(req, res)
+    expect(res.statusCode).toBe(400)
+    expect(res.jsonBody.error).toBe(error)
+    expect(writeCalls()).toBe(0)
+  })
+
+  test("essential cookies can't be withdrawn: a 400 that says why, not a 500", async () => {
+    const { req, res } = makeReqRes({ method: 'POST', body: { type: 'ESSENTIAL' } })
+    await withdraw(req, res)
+    expect(res.statusCode).toBe(400)
+    expect(res.jsonBody.error).toMatch(/can't be turned off/)
+    expect(writeCalls()).toBe(0)
+  })
+
+  test('withdrawing a type that isn\'t one is a 400', async () => {
+    const { req, res } = makeReqRes({ method: 'POST', body: { type: 'EVERYTHING' } })
+    await withdraw(req, res)
+    expect(res.statusCode).toBe(400)
     expect(writeCalls()).toBe(0)
   })
 })

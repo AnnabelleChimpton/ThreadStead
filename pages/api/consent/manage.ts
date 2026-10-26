@@ -3,13 +3,17 @@ import { apiHandler, ApiError } from '@/lib/api/handler';
 import { db } from '../../../lib/config/database/connection';
 import { ConsentType, ConsentAction } from '@prisma/client';
 import { getClientIp } from '@/lib/server/http/client-ip';
+import { z } from 'zod';
 
-interface ConsentRequest {
-  consents: {
-    type: ConsentType;
-    granted: boolean;
-  }[];
-}
+/**
+ * What ConsentManager and the cookie banner send: one entry per type at
+ * most. A type that isn't one, or a "granted" that isn't true or false, was
+ * a 500, and the list had no end (every entry is writes in one transaction).
+ */
+const consentsSchema = z.object({
+  consents: z.array(z.object({ type: z.enum(ConsentType), granted: z.boolean() }))
+    .max(Object.values(ConsentType).length),
+});
 
 interface ConsentResponse {
   success: boolean;
@@ -28,8 +32,8 @@ interface ConsentResponse {
  * banner keeps their choice in localStorage.
  */
 export default apiHandler(
-  { methods: ['GET', 'POST'], auth: 'user' },
-  async (req, res: NextApiResponse<ConsentResponse>, { user }) => {
+  { methods: ['GET', 'POST'], auth: 'user', schema: consentsSchema },
+  async (req, res: NextApiResponse<ConsentResponse>, { user, body }) => {
     const { userId } = req.query;
     if (userId !== undefined && userId !== user.id) {
       throw new ApiError(403, 'You can only manage your own consent');
@@ -38,7 +42,7 @@ export default apiHandler(
     if (req.method === 'GET') {
       return getConsents(user.id, res);
     }
-    return updateConsents(user.id, req, res);
+    return updateConsents(user.id, body.consents, req, res);
   }
 );
 
@@ -75,15 +79,11 @@ async function getConsents(userId: string, res: NextApiResponse<ConsentResponse>
 
 async function updateConsents(
   userId: string,
+  consents: z.infer<typeof consentsSchema>['consents'],
   req: NextApiRequest,
   res: NextApiResponse<ConsentResponse>
 ) {
   try {
-    const { consents }: ConsentRequest = req.body;
-
-    if (!consents || !Array.isArray(consents)) {
-      return res.status(400).json({ success: false, error: 'Consents array required' });
-    }
 
     // Get client IP and user agent for audit trail
     const ipAddress = getClientIp(req);
