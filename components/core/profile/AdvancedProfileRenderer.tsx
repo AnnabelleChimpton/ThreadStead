@@ -12,6 +12,7 @@ import { PixelIcon } from '@/components/ui/PixelIcon';
 import { StaticHTMLWithIslands } from './HTMLIslandHydration';
 import { siteStylesOn } from '@/lib/domain/profile/layout';
 import { pageRootAttributes } from '@/lib/templates/compilation/document-head';
+import { USER_CONTENT_PREFIX } from '@/lib/utils/css/css-transform';
 import { pageHash } from '@/components/features/templates/state/actions/page-targets';
 import { readServerOnly } from '@/lib/utils/server-only';
 import { usePageVariables } from './page-variables';
@@ -71,7 +72,10 @@ export default function AdvancedProfileRenderer({ user, residentData }: Advanced
   const islands = compiled?.islands ?? NO_ISLANDS;
   const declared = React.useMemo(() => declaredVariables(islands), [islands]);
   useLandOnPageIds();
-  const profileId = `profile-${user.id}`;
+  const rootAttributes = pageRootAttributes(compiled);
+  // A pasted page's <body id="home"> is the root's, as its CSS knows it
+  // (body#home h1 found nothing; bug bash 2026-10-26)
+  const profileId = rootAttributes?.id ? `${USER_CONTENT_PREFIX}${rootAttributes.id}` : `profile-${user.id}`;
   // The clock, the pointer and a seed, as CSS variables on the root
   usePageVariables(profileId, compiled);
   // A page with no components is its HTML, which React leaves as the server
@@ -89,7 +93,6 @@ export default function AdvancedProfileRenderer({ user, residentData }: Advanced
     return <AdvancedProfileFallback />;
   }
 
-  const rootAttributes = pageRootAttributes(compiled);
   return (
     <TemplateErrorBoundary
       componentName="AdvancedProfileRenderer"

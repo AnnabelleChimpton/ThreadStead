@@ -50,6 +50,8 @@ export interface DocumentHead {
  */
 export interface PageRootAttributes {
   className?: string
+  /** body's id (else html's), as written: the page root gets it with the user-content- prefix every id has */
+  id?: string
   lang?: string
   dir?: string
   data?: Record<string, string>
@@ -128,6 +130,8 @@ export function validRootAttributes(raw: unknown): PageRootAttributes | undefine
     const names = r.className.split(/\s+/).filter((name) => /^-?[_a-zA-Z][\w-]{0,60}$/.test(name))
     if (names.length) out.className = [...new Set(names)].slice(0, 20).join(' ')
   }
+  // <body id="home">: body#home h1 {} found nothing (bug bash 2026-10-26)
+  if (typeof r.id === 'string' && /^[A-Za-z][\w-]{0,60}$/.test(r.id.trim())) out.id = r.id.trim().replace(/^user-content-/, '')
   if (typeof r.lang === 'string' && /^[a-zA-Z]{2,8}(?:-[a-zA-Z0-9]{1,8}){0,3}$/.test(r.lang.trim())) out.lang = r.lang.trim()
   if (typeof r.dir === 'string' && /^(?:ltr|rtl|auto)$/i.test(r.dir.trim())) out.dir = r.dir.trim().toLowerCase()
   if (r.data && typeof r.data === 'object') {
@@ -276,6 +280,7 @@ export function extractDocument(source: string): ExtractedDocument {
   const bodyAttrs = attrs(bodyOpen)
   const root = validRootAttributes({
     className: [htmlAttrs.class, bodyAttrs.class].filter(Boolean).join(' '),
+    id: bodyAttrs.id ?? htmlAttrs.id,
     lang: htmlAttrs.lang ?? bodyAttrs.lang,
     dir: htmlAttrs.dir ?? bodyAttrs.dir,
     data: Object.fromEntries(Object.entries({ ...htmlAttrs, ...bodyAttrs }).filter(([name]) => name.startsWith('data-'))),

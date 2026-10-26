@@ -305,3 +305,33 @@ describe("the site's fonts", () => {
     expect([...new Set(families)].filter((name) => !SITE_FONTS.has(name))).toEqual([])
   })
 })
+
+describe('rendering fixes from the bug bash (2026-10-26)', () => {
+  test('a space inside :has(), :not() or [attr="a b"] keeps html and body selectors whole', () => {
+    expect(page(':root:has(.theme-switch input:checked) { --bg: #111 }')).toContain(':root:root:is(html):has(.theme-switch input:checked) { --bg: #111 }')
+    expect(page('body:has(nav .open) .x { color: red }')).toContain(':root:is(html) body:has(nav .open) :where(.profile-template-root) .x { color: red }')
+    expect(page('html:not([data-theme="light dark"]) .x { color: red }')).toContain(':not([data-theme="light dark"])')
+    // The dark-mode switch's whole-page effect still goes on the page root
+    expect(page('html:has(#dark input:checked) { filter: invert(1) }')).toContain('.profile-template-root { filter: invert(1); }')
+    expectContained(page('html:has(#dark input:checked) { filter: invert(1) } body:has(nav .open) nav { color: red }'))
+  })
+
+  test('[id=…], [for=…] and usemap follow the renamed ids, with or without a # elsewhere; ends-with and contains stay as written', () => {
+    const out = page('[id="main"] { color: red } label[for=x] { color: red } [id$="-box"] { color: red } [id*="nav"] { color: red } img[usemap="#m"] { border: 0 }')
+    expect(out).toContain('[id="user-content-main"]')
+    expect(out).toContain('[for="user-content-x"]')
+    expect(out).toContain('[id$="-box"]')
+    expect(out).toContain('[id*="nav"]')
+    expect(out).toContain('[usemap="#user-content-m"]')
+  })
+
+  test("the phone-only form rules keep off a page's own selects and fields", () => {
+    const css = fs.readFileSync(path.join(__dirname, '..', '..', '..', 'styles/components.css'), 'utf8')
+    const outsidePages = ':where(:not([data-template-root] *))'
+    for (const rule of ['select', 'select:focus-visible', 'input:focus-visible', '.error-message', '.field-invalid', '.field-valid']) {
+      const [name, state = ''] = rule.split(/(?=:focus)/)
+      expect(css).toContain(`${name}${outsidePages}${state}`)
+    }
+    expect(css).not.toMatch(/^\s*select \{/m)
+  })
+})

@@ -1069,7 +1069,7 @@ function reportComponentProps(source: string): string[] {
  * single tag on its own leave these out.
  */
 export function isPageProblem(message: string): boolean {
-  return /uses a variable called|only works (straight )?inside|reads (condition|data|when) as a name|needs name="…" \(or var="…"\)|nothing for it to attach to|doesn't show what's put inside it|nothing on your page (has|is)|only runs inside an event|runs before <Var|there's already a <Var|can't reach into a loop's item|straight inside <ForEach>/.test(message);
+  return /uses a variable called|only works (straight )?inside|reads (condition|data|when) as a name|needs name="…" \(or var="…"\)|nothing for it to attach to|doesn't show what's put inside it|nothing on your page (has|is)|only runs inside an event|runs before <Var|there's already a <Var|can't reach into a loop's item|straight inside <ForEach>|can't sit inside an <svg>|a form can't sit inside|inside something clickable|heading inside a heading/.test(message);
 }
 
 /** Components that run what's inside them when something happens (OnClick, OnChange, OnMount…) */
@@ -1077,6 +1077,9 @@ const isEvent = (name: string) => /^On[A-Z]/.test(name);
 
 /** Events that attach to the element they sit in, or to target="…" (element-events.tsx) */
 const ELEMENT_EVENTS = new Set(['OnClick', 'OnMouseEnter', 'OnMouseLeave', 'OnSwipe']);
+
+/** Components that draw a <form> of their own */
+const FORM_COMPONENTS = new Set(['Guestbook']);
 
 /** Actions: they run when an event does, and on their own do nothing */
 const NEEDS_EVENT = new Set([
@@ -1307,6 +1310,10 @@ function reportPageProblems(source: string): string[] {
     if (!looksLikeComponentName(token.name)) {
       const tag = token.name.toLowerCase();
       tags.add(tag);
+      // A heading inside the heading <Heading> draws: the browser takes them apart
+      if (/^h[1-6]$/.test(tag) && stack.includes('Heading')) {
+        messages.push(`Line ${lineAt(source, token.start)}: a <${tag}> inside <Heading> is a heading inside a heading, which browsers take apart, so the page draws differently. Put the words straight inside <Heading>.`);
+      }
       if (!token.selfClosing && !VOID_TAGS.has(tag)) elements.push({ name: tag, component: false });
       continue;
     }
@@ -1316,6 +1323,17 @@ function reportPageProblems(source: string): string[] {
     const line = lineAt(source, token.start);
     const parent = stack[stack.length - 1];
     const attrs = new Map(token.attributes.map((a) => [a.name.toLowerCase(), decodeAttributeValue(a.value ?? '')]));
+
+    // Where the browser won't keep what a component draws: the page shows,
+    // then is drawn again from scratch in the browser (bug bash 2026-10-26)
+    const inTag = (tag: string) => elements.some((element) => !element.component && element.name === tag);
+    if (inTag('svg')) {
+      messages.push(`Line ${line}: <${name}> can't sit inside an <svg>: a drawing only holds shapes and text. Put it next to the <svg>.`);
+    } else if (FORM_COMPONENTS.has(name) && inTag('form')) {
+      messages.push(`Line ${line}: <${name}> has a form of its own, and a form can't sit inside a <form>. Put it outside the <form>.`);
+    } else if (name === 'Button' && (inTag('button') || inTag('a'))) {
+      messages.push(`Line ${line}: <Button> inside a <${inTag('button') ? 'button' : 'a'}> is a button inside something clickable, which browsers take apart. Use one or the other.`);
+    }
 
     // Where it sits: an OnClick or mouse event attaches to the element
     // around it, past logic like If and ForEach (element-events.tsx)

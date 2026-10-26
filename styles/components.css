@@ -388,9 +388,9 @@
   }
 
   /* Focus states for better mobile accessibility */
-  input:focus-visible,
-  textarea:focus-visible,
-  select:focus-visible {
+  input:where(:not([data-template-root] *)):focus-visible,
+  textarea:where(:not([data-template-root] *)):focus-visible,
+  select:where(:not([data-template-root] *)):focus-visible {
     outline: 2px solid #E27D60;
     outline-offset: 2px;
   }
@@ -469,7 +469,7 @@
   }
 
   /* Mobile error messages */
-  .error-message {
+  .error-message:where(:not([data-template-root] *)) {
     padding: 0.875rem;
     border-radius: 0.5rem;
     font-size: 0.875rem;
@@ -478,7 +478,7 @@
   }
 
   /* Mobile success messages */
-  .success-message {
+  .success-message:where(:not([data-template-root] *)) {
     padding: 0.875rem;
     border-radius: 0.5rem;
     font-size: 0.875rem;
@@ -487,12 +487,12 @@
   }
 
   /* Form validation feedback */
-  .field-invalid {
+  .field-invalid:where(:not([data-template-root] *)) {
     border-color: #EF4444 !important;
     box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
   }
 
-  .field-valid {
+  .field-valid:where(:not([data-template-root] *)) {
     border-color: #10B981 !important;
     box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1) !important;
   }
@@ -510,8 +510,9 @@
     box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
   }
 
-  /* Mobile select styling */
-  select {
+  /* Mobile select styling: the site's own, not a page's (it took the
+     page's selects' look away on phones; bug bash 2026-10-26) */
+  select:where(:not([data-template-root] *)) {
     appearance: none;
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
     background-position: right 0.75rem center;

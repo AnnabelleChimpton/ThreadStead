@@ -797,7 +797,9 @@ describe('CSS the transform used to get wrong (audit cross-check C)', () => {
 
   test('a page written for light and dark says so, unless it already does', () => {
     expect(transformAdvancedCss('p { color: light-dark(black, white) }')).toContain('color-scheme: light dark')
-    expect(transformAdvancedCss('@media (prefers-color-scheme: dark) { p { color: white } }')).toContain('color-scheme: light dark')
+    // Not a page that only styles dark itself: it went near-black for
+    // dark-mode visitors, its own dark text unreadable (bug bash 2026-10-26)
+    expect(transformAdvancedCss('@media (prefers-color-scheme: dark) { p { color: white } }')).not.toContain('color-scheme: light dark')
     expect(transformAdvancedCss(':root { color-scheme: dark } p { color: light-dark(black, white) }')).not.toContain('color-scheme: light dark')
     expect(transformAdvancedCss('p { color: red }')).not.toContain('color-scheme')
   })

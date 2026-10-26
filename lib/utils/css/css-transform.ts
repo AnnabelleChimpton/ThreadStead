@@ -303,7 +303,8 @@ export const USER_CONTENT_PREFIX = 'user-content-'
  * with the prefix are left alone.
  */
 export function prefixUserContentIds(css: string): string {
-  if (!css.includes('#')) return css
+  // [id="main"] and label[for=x] have no # ([id…] only worked when some # was elsewhere)
+  if (!css.includes('#') && !/\[\s*[\w-]+\s*[~|^$*]?=/.test(css)) return css
   const withUrls = css.replace(
     /url\(\s*(['"]?)#(?!user-content-)([^'")\s]+)\1\s*\)/g,
     (_m, quote: string, id: string) => `url(${quote}#${USER_CONTENT_PREFIX}${id}${quote})`
@@ -324,8 +325,12 @@ function prefixAttributeId(attribute: string): string {
   const lower = name.toLowerCase()
   const fragment = lower === 'href' && value.startsWith('#') && value.length > 1 && value !== '#top'
   const idName = /^(?:id|for|name|list|headers|aria-(?:controls|describedby|labelledby|owns|activedescendant|errormessage|flowto|details))$/.test(lower)
-  if ((!fragment && !idName) || value.slice(fragment ? 1 : 0).startsWith(USER_CONTENT_PREFIX) || !value) return attribute
-  const renamed = fragment ? `#${USER_CONTENT_PREFIX}${value.slice(1)}` : `${USER_CONTENT_PREFIX}${value}`
+  const usemap = lower === 'usemap' && value.startsWith('#') && value.length > 1
+  if ((!fragment && !idName && !usemap) || value.slice(fragment || usemap ? 1 : 0).startsWith(USER_CONTENT_PREFIX) || !value) return attribute
+  // Ends with or contains: the renamed id still does, as written
+  // ([id$="-box"] became [id$="user-content--box"] and matched nothing; bug bash 2026-10-26)
+  if (op === '$=' || op === '*=') return attribute
+  const renamed = fragment || usemap ? `#${USER_CONTENT_PREFIX}${value.slice(1)}` : `${USER_CONTENT_PREFIX}${value}`
   return `[${name}${op}${quote || '"'}${renamed}${quote || '"'}${flag}]`
 }
 
@@ -398,8 +403,7 @@ export function scopeAdvancedSelector(selector: string): string {
   if (sel.startsWith(PAGE_ROOT)) return `:root body ${sel}`
 
   // The html and body compounds a selector starts with, and the rest
-  const lead = sel.match(/^((?::root|html)(?![\w-])[^\s>+~]*)?\s*>?\s*(body(?![\w-])[^\s>+~]*)?\s*/i)!
-  const [whole, rootCompound, bodyCompound] = lead
+  const { whole, rootCompound, bodyCompound } = rootLead(sel)
   if (!rootCompound && !bodyCompound) return `:root body ${INSIDE_PAGE} ${sel}`
   // Classes, ids and attributes written on html or body are the page root's
   // (document-head.ts puts a pasted page's there); pseudo-classes stay put
@@ -416,6 +420,38 @@ export function scopeAdvancedSelector(selector: string): string {
   // html or body itself, when the page root carries those classes
   const has = onRoot ? `:has(${INSIDE_PAGE}${onRoot})` : ''
   return `${top}${bodyPart}${has}`
+}
+
+/**
+ * The html (or :root) and body compounds a selector starts with, as far as
+ * they go: past spaces inside :has(), :not() and [attr="a b"] too. Stopped
+ * at the first space, :root:has(.toggle input:checked) was cut in two and
+ * the dark-mode switch did nothing (bug bash 2026-10-26).
+ */
+function rootLead(sel: string): { whole: string; rootCompound?: string; bodyCompound?: string } {
+  let at = 0
+  let rootCompound: string | undefined
+  let bodyCompound: string | undefined
+  if (/^(?::root|html)(?![\w-])/i.test(sel)) {
+    at = compoundEnd(sel, 0)
+    rootCompound = sel.slice(0, at)
+  }
+  const gap = /^\s*>?\s*/.exec(sel.slice(at))![0]
+  if (/^body(?![\w-])/i.test(sel.slice(at + gap.length))) {
+    const start = at + gap.length
+    at = compoundEnd(sel, start)
+    bodyCompound = sel.slice(start, at)
+    at += /^\s*/.exec(sel.slice(at))![0].length
+  } else if (rootCompound) {
+    at += gap.length
+  }
+  return { whole: sel.slice(0, at), rootCompound, bodyCompound }
+}
+
+/** html or body itself, with conditions on them (`html:has(#dark:checked)`, `body.night`, `html > body:hover`) */
+const isRootOrBodyWhen = (selector: string) => {
+  const { whole, rootCompound, bodyCompound } = rootLead(selector.trim())
+  return !!(rootCompound || bodyCompound) && whole.trim() === selector.trim()
 }
 
 /** `body.dark:hover` → name `body`, moved `.dark`, kept `:hover` */
@@ -501,8 +537,6 @@ const isWholePageEffect = (declaration: string) => {
   return WHOLE_PAGE_EFFECTS.test(name) || (/^display$/i.test(name) && /^none\s*(?:!\s*important)?$/i.test(declaration.slice(colon + 1).trim()))
 }
 const ROOT_OR_BODY = /^(?::root|html|body|html\s+body)$/i
-/** html or body with a condition: `html:has(#dark:checked)`, `body.night`, `body:hover` */
-const ROOT_OR_BODY_WHEN = /^(?::root|html|body)(?![\w-])[^\s>+~]*(?:\s*>?\s*body(?![\w-])[^\s>+~]*)?$/i
 
 /**
  * "Do this to my whole page" on html or body (a vintage filter, a tilted
@@ -527,7 +561,7 @@ function effectsMoved(s: CSSStatement): CSSStatement[] | null {
   }
   if (s.kind !== 'rule' || s.body === undefined) return null
   const selectors = splitSelectorList(s.prelude).map((selector) => selector.trim())
-  if (!selectors.every((selector) => ROOT_OR_BODY_WHEN.test(selector))) return null
+  if (!selectors.every((selector) => isRootOrBodyWhen(selector))) return null
 
   const { declarations, nested } = splitRuleBody(s.body)
   const stays: string[] = [] // nested rules kept as written: the page's own, scoped later
@@ -538,7 +572,7 @@ function effectsMoved(s: CSSStatement): CSSStatement[] | null {
       ? splitSelectorList(rule.prelude).flatMap((selector) => selectors.map((parent) => unnested(selector, parent)))
       : []
     const comesOut = hasEffects(rule.body) &&
-      (atName === null ? resolved.every((selector) => ROOT_OR_BODY_WHEN.test(selector)) : EFFECT_GROUPS.has(atName))
+      (atName === null ? resolved.every((selector) => isRootOrBodyWhen(selector)) : EFFECT_GROUPS.has(atName))
     if (!comesOut) stays.push(`${rule.prelude} {${rule.body}}`)
     // body { @media (x) { opacity: 0 } } is @media (x) { body { opacity: 0 } }
     else if (atName !== null) outside.push(...effectsMoved({ kind: 'at', atName, prelude: rule.prelude, body: `${s.prelude} {${rule.body}}` })!)
@@ -697,10 +731,12 @@ export function transformAdvancedCss(
     ...(options.fontImports ?? []).filter((line) => !imports.includes(line)),
     ...imports,
   ]
-  // A page written for light and dark (light-dark(), prefers-color-scheme)
-  // says so, before its own rules, so they can say otherwise: with nothing
-  // declared, light-dark() and form controls stayed light (template audit 13 #9)
-  const schemes = /light-dark\(|prefers-color-scheme/i.test(rest) && !/(?<![\w-])color-scheme\s*:/i.test(rest) ? ':root { color-scheme: light dark; }\n' : ''
+  // A page written with light-dark() says it's for light and dark, before
+  // its own rules, so they can say otherwise: with nothing declared,
+  // light-dark() stayed light (template audit 13 #9). Not for a mention of
+  // prefers-color-scheme: a page that only tweaked a border there went
+  // near-black for dark-mode visitors, its own dark text unreadable (bug bash 2026-10-26)
+  const schemes = /light-dark\(/i.test(rest) && !/(?<![\w-])color-scheme\s*:/i.test(rest) ? ':root { color-scheme: light dark; }\n' : ''
   const scoped = mapSelectors(namePageLayers(moveWholePageEffects(schemes + rest)), scopeAdvancedSelector, { authorScopes: true })
   if (!scoped && allImports.length === 0) return ''
   // Layer statements are the one thing allowed before @import

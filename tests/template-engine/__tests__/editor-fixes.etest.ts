@@ -70,3 +70,21 @@ describe('things that silently did nothing now get a word (bug bash 2026-10-26)'
     expect(says('<Var name="n" type="number" initial="0" /><Button><OnClick><Increment var="n" /></OnClick>+</Button><OnKeyPress keyName=" " scroll="false"><Increment var="n" /></OnKeyPress><OnMount><Set var="n" value="1" /></OnMount>')).toBe('')
   })
 })
+
+describe('where browsers take a component apart, the editor says (bug bash 2026-10-26)', () => {
+  const says = (source: string) => compileTemplateToArtifacts(source).warnings.join('\n')
+  test.each([
+    ['<svg viewBox="0 0 9 9"><text>Hi <DisplayName as="span" /></text></svg>', "can't sit inside an <svg>"],
+    ['<form action="/x"><Guestbook /></form>', "a form can't sit inside a <form>"],
+    ['<button><Button>go</Button></button>', 'inside something clickable'],
+    ['<Heading level="2"><h3>Hi</h3></Heading>', 'a heading inside a heading'],
+  ])('%s', (source, expected) => {
+    expect(says(source)).toContain(expected)
+  })
+})
+
+test("<body id=\"home\"> reaches the page root, so body#home and #home rules apply", async () => {
+  const { pageRootAttributes } = await import('@/lib/templates/compilation/document-head')
+  const artifacts = compileTemplateToArtifacts('<!doctype html><html><body id="home" class="night"><h1>Hi</h1></body></html>')
+  expect(pageRootAttributes({ ast: artifacts.ast })).toMatchObject({ id: 'home', className: 'night' })
+})
