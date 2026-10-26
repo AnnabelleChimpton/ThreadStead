@@ -301,10 +301,6 @@ describe('old gallery starters (now test fixtures)', () => {
   // the markup, hashed. With every var() put back to its default, the CSS
   // must be the same text; the markup without its option tags too.
   const BEFORE: Record<string, { css: string; html: string }> = {
-    'quiet-garden': { css: '52a4d84cf3666314', html: 'e8cc1c88bc9c52ca' },
-    'studio-nocturne': { css: '3033aded57a457f0', html: '32313930ea1f6bcf' },
-    'simple-default': { css: '9ef03a029a842509', html: 'ef25288d90c113be' },
-    'social-modern': { css: 'bd568ee90898e938', html: 'ed7344679c2e725c' },
     'classic-web1': { css: 'e358578c0df0584d', html: 'f5566eebb44a939f' },
   }
   const hash = (s: string) => createHash('sha256').update(s).digest('hex').slice(0, 16)

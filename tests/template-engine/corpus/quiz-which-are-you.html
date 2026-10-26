@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>quiz which are you</title>
+<style>
+.quiz { max-width: 480px; padding: 16px; background: #fff7ec; font: 14px Georgia, serif; border: 2px solid #e2b07a; }
+fieldset { border: 1px dashed #e2b07a; margin-bottom: 8px; } label { display: block; cursor: pointer; }
+.r { display: none; padding: 10px; background: #fde2c2; border-radius: 8px; }
+.quiz:has(.a:checked):has([name$="q1"].a:checked):has([name$="q2"].a:checked) .ra { display: block; }
+.quiz:has([name$="q1"].b:checked):has([name$="q2"].b:checked) .rb { display: block; }
+.quiz:has([name$="q1"].a:checked):has([name$="q2"].b:checked) .rmix, .quiz:has([name$="q1"].b:checked):has([name$="q2"].a:checked) .rmix { display: block; }
+.quiz:has([name$="q1"]:checked):has([name$="q2"]:checked) .hint { display: none; }
+.code textarea { width: 100%; font: 11px monospace; }
+</style>
+</head>
+<body>
+<div class="quiz">
+  <h2>which pastry are you?</h2>
+  <form class="q">
+    <fieldset><legend>pick a weekend</legend>
+      <label><input type="radio" name="q1" class="a"> baking all day</label>
+      <label><input type="radio" name="q1" class="b"> a long walk</label></fieldset>
+    <fieldset><legend>pick a drink</legend>
+      <label><input type="radio" name="q2" class="a"> hot chocolate</label>
+      <label><input type="radio" name="q2" class="b"> black coffee</label></fieldset>
+  </form>
+  <p class="r ra">you are a <b>cinnamon roll</b>: sweet, warm, a bit sticky.</p>
+  <p class="r rb">you are a <b>croissant</b>: flaky, sophisticated, slightly chaotic.</p>
+  <p class="r rmix">you are a <b>pain au chocolat</b>: the best of both.</p>
+  <p class="hint">answer both questions</p>
+  <p class="code">put this on your page: <textarea readonly rows="2">&lt;img src="https://example.com/cinnamon.png" alt="I'm a cinnamon roll"&gt;</textarea></p>
+</div>
+</body>
+</html>

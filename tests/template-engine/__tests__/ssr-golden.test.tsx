@@ -206,16 +206,16 @@ describe('the page is in the response', () => {
 
 describe("a page's <Var>s on the server", () => {
   const nightWindow = () => {
-    const [, source] = corpus().find(([id]) => id === 'example-nightWindow')!
-    return pageForRender(storedInput('example-nightWindow', source))
+    const [, source] = corpus().find(([id]) => id === 'starter-night-window')!
+    return pageForRender(storedInput('starter-night-window', source))
   }
 
   test('render with their declared starting values, not unset', () => {
     const html = renderToString(page(nightWindow(), 'u_visitor'))
-    expect(html).toContain('the lamp is on')
-    expect(html).not.toContain('lights out')
+    expect(html).toContain('The lamp is on')
+    expect(html).not.toContain('Lamp off')
     // (each island has its own Suspense boundary, marked <!--$--> … <!--/$--> in server HTML)
-    expect(html).toMatch(/you(&#x27;|')ve left <ts-island>(<!--\$-->)?0(<!--\/\$-->)?<\/ts-island> on this sill/)
+    expect(html).toMatch(/You(&#x27;|')ve left <ts-island>(<!--\$-->)?0(<!--\/\$-->)?<\/ts-island> here/)
   })
 
   test('never land in the module-wide store (it would carry them into the next request)', () => {
@@ -230,10 +230,10 @@ describe("a page's <Var>s on the server", () => {
       dom.window.localStorage.setItem(`threadstead_template_${OWNER_ID}_lampOn`, 'false')
       dom.window.localStorage.setItem(`threadstead_template_${OWNER_ID}_kudos`, '7')
     })
-    expect(result.html).toContain('the lamp is on')
+    expect(result.html).toContain('The lamp is on')
     expect(result.hydrationErrors.map(String)).toEqual([])
-    expect(result.settled).toContain('lights out')
-    expect(result.settled).not.toContain('the lamp is on')
+    expect(result.settled).toContain('Lamp off')
+    expect(result.settled).not.toContain('The lamp is on')
     expect(result.settled).toMatch(/left\s*"?\s*<ts-island>\s*"?7/)
   })
 })

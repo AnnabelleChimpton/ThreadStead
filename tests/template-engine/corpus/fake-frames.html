@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>fake frames</title>
+<style>
+.frames { display: flex; height: 360px; border: 4px ridge #999; background: #008080; font: 13px "MS Sans Serif", Tahoma, sans-serif; }
+.left { width: 160px; background: #c0c0c0; display: flex; flex-direction: column; gap: 4px; padding: 8px; border-right: 4px ridge #999; }
+.left a { color: #00f; }
+.right { flex: 1; overflow-y: auto; background: #fff; }
+.pane { display: none; padding: 12px; } .pane:target { display: block; }
+.right:not(:has(.pane:target)) #home { display: block; }
+</style>
+</head>
+<body>
+<div class="frames">
+  <nav class="left">
+    <img src="https://example.neocities.org/blinkie.1.png" alt="">
+    <a href="#home">home</a><a href="#cats">cats</a><a href="#midi">midi</a><a href="#links">links</a>
+  </nav>
+  <div class="right">
+    <section id="home" class="pane"><h2>home</h2><p>Like frames, minus the frames. Click the links on the left.</p><p>filler line 0</p><p>filler line 1</p><p>filler line 2</p><p>filler line 3</p><p>filler line 4</p><p>filler line 5</p><p>filler line 6</p><p>filler line 7</p><p>filler line 8</p><p>filler line 9</p></section>
+    <section id="cats" class="pane"><h2>cats</h2><p>Tom, Mittens, Lord Fluffington.</p></section>
+    <section id="midi" class="pane"><h2>midi</h2><p>my midi collection</p></section>
+    <section id="links" class="pane"><h2>links</h2><p>cool sites</p></section>
+  </div>
+</div>
+</body>
+</html>

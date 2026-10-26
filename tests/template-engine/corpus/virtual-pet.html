@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>virtual pet</title>
+<style>
+.pet { width: 260px; margin: 16px; padding: 14px; text-align: center; background: #e9f7ff; border: 3px solid #69c; border-radius: 16px; font: 13px Verdana, sans-serif; }
+.sprite { width: 32px; height: 32px; margin: 16px auto 30px; background: url(https://example.neocities.org/pet.png) 0 0; image-rendering: pixelated; transform: scale(3); animation: bob .8s steps(4) infinite; }
+@keyframes bob { to { background-position: -128px 0; } }
+.sad { color: #c33; }
+</style>
+</head>
+<body>
+<div class="pet">
+  <Var name="food" type="number" initial="3" persist="true" />
+  <Var name="pets" type="number" initial="0" persist="true" />
+  <div class="sprite" aria-label="Biscuit the pixel cat"></div>
+  <p><b>Biscuit</b> &middot; fullness: <ShowVar name="food" />/5 &middot; pets: <ShowVar name="pets" /></p>
+  <If condition="food" lessThan="2"><p class="sad">Biscuit is hungry...</p></If>
+  <Button><OnClick><Increment var="food" max="5" /></OnClick>feed</Button>
+  <Button><OnClick><Increment var="pets" /><ShowToast message="purrr" type="info" /></OnClick>pet</Button>
+  <OnInterval seconds="30"><Decrement var="food" min="0" /></OnInterval>
+</div>
+</body>
+</html>

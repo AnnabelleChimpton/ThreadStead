@@ -12,6 +12,7 @@ import {
 } from '@/lib/templates/default-profile-template'
 import { TEMPLATE_EXAMPLES } from './fixtures/old-starters/examples'
 import { HTML_TEMPLATES } from './fixtures/old-starters/html-templates'
+import { STARTERS, splitStarter } from '@/lib/templates/starters'
 import type { ResidentData } from '@/components/features/templates/ResidentDataProvider'
 import React from 'react'
 import type { JSDOM } from 'jsdom'
@@ -42,6 +43,8 @@ const PASTED_DIR = path.join(__dirname, 'corpus')
 /** Every starter, the generated defaults, and the pasted-page corpus */
 export function corpus(): Array<[string, string]> {
   return [
+    // The starters the gallery offers, as it loads them (CSS to its own tab)
+    ...STARTERS.map((s) => [`starter-${s.id}`, splitStarter(s.template).html] as [string, string]),
     ...Object.entries(TEMPLATE_EXAMPLES).map(([id, t]) => [`example-${id}`, t.template] as [string, string]),
     ['generated-default', generateDefaultProfileTemplate().template],
     ['generated-minimal', getMinimalProfileTemplate().template],

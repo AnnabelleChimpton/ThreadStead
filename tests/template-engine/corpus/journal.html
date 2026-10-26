@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>journal</title>
+<style>
+.diary { max-width: 560px; margin: 20px auto; padding: 24px; background: #fffdf5 repeating-linear-gradient(#0000 0 25px, #e8dcc0 25px 26px); border-left: 30px solid #f2d0d0; font: 16px/26px "Courier New", monospace; color: #333; }
+.diary h1 { font: italic 32px Georgia, serif; margin: 0 0 10px; }
+.entry h2 { font-size: 14px; margin: 0; color: #a55; } .m { font-size: 12px; color: #888; margin: 0; }
+.older summary { cursor: pointer; color: #a55; }
+</style>
+</head>
+<body>
+<div class="diary">
+  <h1>dear diary</h1>
+  <article class="entry"><h2><time datetime="2026-10-23">thursday, oct 23</time></h2><p class="m">mood: <b>sleepy</b> &middot; music: <i>Broadcast</i></p><p>Spent all evening making a cursor trail out of CSS. It sort of works. Tea count: 4.</p></article>
+  <details class="older"><summary>older entries (2)</summary>
+    <article class="entry"><h2>oct 20</h2><p>joined a webring!!</p></article>
+    <article class="entry"><h2>oct 18</h2><p>first post. hello void.</p></article>
+  </details>
+  <h3>my real posts, from the site</h3>
+  <BlogPosts limit="2" />
+</div>
+</body>
+</html>

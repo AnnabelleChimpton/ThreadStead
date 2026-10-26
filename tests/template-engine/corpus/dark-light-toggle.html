@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>dark light toggle</title>
+<style>
+.themed { --bg: #fffaf0; --fg: #222; --accent: #c36; }
+@media (prefers-color-scheme: dark) { .themed { --bg: #1d1b26; --fg: #eee; --accent: #f9c; } }
+.themed:has(.sw:checked) { --bg: #1d1b26; --fg: #eee; --accent: #f9c; }
+.sw { position: absolute; opacity: 0; }
+.swl { cursor: pointer; border: 2px solid var(--accent); color: var(--accent); padding: 2px 10px; border-radius: 999px; display: inline-block; margin: 10px; }
+.page { background: var(--bg); color: var(--fg); padding: 20px; transition: background .3s; }
+.themed { background: var(--bg); }
+</style>
+</head>
+<body>
+<div class="themed">
+  <input type="checkbox" id="dark" class="sw"><label for="dark" class="swl">&#9790; dark mode</label>
+  <div class="page"><h1>my page</h1><p>Toggle the switch. It also follows the visitor's system setting first.</p></div>
+</div>
+</body>
+</html>

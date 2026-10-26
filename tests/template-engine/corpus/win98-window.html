@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>win98 window</title>
+<style>
+.desktop { position: relative; height: 420px; background: #008080; font: 12px Tahoma, "MS Sans Serif", sans-serif; overflow: hidden; }
+.icons { position: absolute; left: 12px; top: 12px; display: grid; gap: 18px; color: #fff; text-align: center; width: 80px; }
+.ic { display: block; font-size: 32px; }
+.window { position: absolute; left: 130px; top: 40px; width: 360px; background: #c0c0c0; border: 2px outset #fff; box-shadow: 1px 1px 0 #000; resize: both; overflow: auto; min-width: 200px; min-height: 120px; }
+.titlebar { background: linear-gradient(90deg, #000080, #1084d0); color: #fff; font-weight: bold; padding: 3px 4px; display: flex; justify-content: space-between; }
+.btns b { display: inline-block; width: 16px; height: 14px; background: #c0c0c0; color: #000; border: 2px outset #fff; margin-left: 2px; text-align: center; line-height: 10px; font-size: 10px; }
+.menubar { padding: 2px 6px; }
+.body { background: #fff; margin: 2px; border: 2px inset #fff; padding: 8px; min-height: 100px; }
+.field { border: 2px inset #fff; font: inherit; }
+.b98 { background: #c0c0c0; border: 2px outset #fff; font: inherit; padding: 2px 14px; }
+.b98:active { border-style: inset; }
+.taskbar { position: absolute; bottom: 0; left: 0; right: 0; height: 28px; background: #c0c0c0; border-top: 2px outset #fff; display: flex; align-items: center; gap: 6px; padding: 0 4px; }
+.start, .task { border: 2px outset #fff; padding: 1px 6px; } .task { border-style: inset; flex: 0 0 160px; } .clock { margin-left: auto; border: 1px inset #fff; padding: 2px 8px; }
+</style>
+</head>
+<body>
+<div class="desktop">
+  <div class="icons"><div class="icon"><span class="ic">&#128193;</span>My Documents</div><div class="icon"><span class="ic">&#128465;</span>Recycle Bin</div></div>
+  <div class="window">
+    <div class="titlebar"><span>About Me - Notepad</span><span class="btns"><b>_</b><b>&#9633;</b><b>&#215;</b></span></div>
+    <div class="menubar"><u>F</u>ile <u>E</u>dit <u>S</u>earch <u>H</u>elp</div>
+    <div class="body">Hi! I'm Pattern.<br>Drag the corner to resize this window.<br><br><label>Name: <input type="text" value="pattern" class="field"></label> <button type="button" class="b98">OK</button></div>
+  </div>
+  <div class="taskbar"><span class="start"><b>&#10070; Start</b></span><span class="task">About Me - Notepad</span><span class="clock">4:20 PM</span></div>
+</div>
+</body>
+</html>
