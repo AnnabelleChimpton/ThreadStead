@@ -6,7 +6,7 @@ import { rateLimitCheck, signupLimitCheck } from "@/lib/server/http/rate-limit";
 import * as ed from "@noble/ed25519";
 import { fromBase64Url } from "@/lib/utils/encoding/base64url";
 import { isBetaKeysEnabled } from "@/lib/config/beta-keys";
-import { createSession, readCookie } from "@/lib/auth/server";
+import { createSession, getSessionUser, readCookie } from "@/lib/auth/server";
 import { getClientIp } from "@/lib/server/http/client-ip";
 import { recordSignup, SignupLimitError } from "@/lib/domain/users/signup-limits";
 import { isRestricted, restrictionMessage } from "@/lib/domain/users/moderation";
@@ -26,7 +26,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     /** A new account only: the resident ticked the house rules, terms and privacy policy */
     agreedToTerms?: boolean;
   };
-  if (!did || !publicKey || !signature) return res.status(400).json({ error: "bad body" });
+  if (typeof did !== "string" || typeof publicKey !== "string" || typeof signature !== "string" || did.length > 200 || publicKey.length > 100 || signature.length > 200) {
+    return res.status(400).json({ error: "bad body" });
+  }
+  // The signature only proves the caller holds *a* key: the DID signed in
+  // must be that key's. Without this, any key plus someone else's DID
+  // signed in as them. (An account moved to a hub DID keeps its key's DID
+  // as originalDid, looked up below.)
+  if (did !== `did:key:ed25519:${publicKey}`) return res.status(401).json({ error: "bad signature" });
 
   const raw = readCookie(req, "retro_nonce");
   if (!raw) return res.status(400).json({ error: "no nonce" });
@@ -57,6 +64,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   // If this is a legacy user migration
   if (legacyDid && !user) {
+    // Moving an account onto a new key only from that account, signed in
+    // (Settings, "Generate a new phrase"): the key above is the new one, and
+    // nothing else proves the caller owns legacyDid
+    const signedIn = await getSessionUser(req);
+    if (typeof legacyDid !== "string" || !signedIn || (signedIn.did !== legacyDid && signedIn.originalDid !== legacyDid)) {
+      return res.status(403).json({ error: "Sign in to that account first." });
+    }
+
     // Look up the legacy user
     const legacyUser = await db.user.findUnique({ where: { did: legacyDid } });
     if (!legacyUser) {
