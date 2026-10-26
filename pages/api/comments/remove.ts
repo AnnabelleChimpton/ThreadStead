@@ -2,14 +2,12 @@ import { db } from "@/lib/config/database/connection";
 
 import { apiHandler } from "@/lib/api/handler";
 import { updateCommentCount } from "@/lib/domain/posts/updateCommentCount";
+import { z } from "zod";
 
 // CSRF protection and rate limiting come from apiHandler
 export default apiHandler(
-  { methods: ["POST"], auth: "user", rateLimit: "comments" },
-  async (req, res, { user: viewer }) => {
-    const { commentId } = (req.body || {}) as { commentId?: string };
-    if (!commentId) return res.status(400).json({ error: "commentId required" });
-
+  { methods: ["POST"], auth: "user", rateLimit: "comments", schema: z.object({ commentId: z.string().min(1).max(200) }) },
+  async (req, res, { user: viewer, body: { commentId } }) => {
     const comment = await db.comment.findUnique({
       where: { id: commentId },
       include: { post: { select: { authorId: true } } },
@@ -20,13 +18,13 @@ export default apiHandler(
     const isCommentAuthor = comment.authorId === viewer.id;
     if (!(isPostOwner || isCommentAuthor)) return res.status(403).json({ error: "forbidden" });
 
-    await db.comment.update({
-      where: { id: commentId },
+    // Only a visible one is taken off the count: removing it twice (a
+    // double click, a retry) took one off each time, and the count drifted
+    const hidden = await db.comment.updateMany({
+      where: { id: commentId, status: "visible" },
       data: { status: "hidden" },
     });
-
-    // Update PostMetrics comment count
-    await updateCommentCount(comment.postId, -1);
+    if (hidden.count === 1) await updateCommentCount(comment.postId, -1);
 
     return res.json({ ok: true });
   }
