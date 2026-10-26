@@ -13,6 +13,7 @@ import { NOTEBOOK_HOMEPAGE } from './notebook-homepage';
 import { OLD_WEB } from './old-web';
 import { SCRAPBOOK } from './scrapbook';
 import { NIGHT_WINDOW } from './night-window';
+import { GAME_CORNER } from './game-corner';
 
 export interface Starter {
   id: string;
@@ -51,6 +52,12 @@ export const STARTERS: Starter[] = [
     name: 'Night Window',
     description: 'A lamp visitors can switch on and off. Shows how buttons that remember things work.',
     template: NIGHT_WINDOW,
+  },
+  {
+    id: 'game-corner',
+    name: 'Game Corner',
+    description: 'A homepage with tic-tac-toe on it. Shows how lists, loops and clicks make a game.',
+    template: GAME_CORNER,
   },
 ];
 
