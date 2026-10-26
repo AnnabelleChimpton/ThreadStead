@@ -58,8 +58,8 @@ export class TemplateCompilationError extends Error {
  * Throws TemplateCompilationError (with ALL collected errors) on failure —
  * callers surface them via lib/templates/errors/template-error-handler.
  */
-export function compileTemplateToArtifacts(template: string): CompiledTemplateArtifacts {
-  const parsed = compileTemplate(template)
+export function compileTemplateToArtifacts(template: string, options: { positionsIn?: string } = {}): CompiledTemplateArtifacts {
+  const parsed = compileTemplate(template, options)
 
   if (!parsed.success || !parsed.ast) {
     throw new TemplateCompilationError(

@@ -23,4 +23,6 @@ export interface PreviewPayload {
   hideNavigation: boolean;
   /** The source, for the popup's Save */
   template: string;
+  /** Words on the preview: the page's words can be changed in place (words-preview.ts) */
+  words?: boolean;
 }

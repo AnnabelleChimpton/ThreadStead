@@ -30,12 +30,18 @@ export type EditorCompile =
       body: { success: false; errors: string[]; warnings: string[] } & ReturnType<typeof formatTemplateErrorForAPI>;
     };
 
-export async function compileForEditor(source: string): Promise<EditorCompile> {
+/**
+ * `positions`: the editor's live preview, which marks where each word and
+ * tag is in `source` (source-positions.ts) so words typed on the preview go
+ * back into the code. Cached apart, and never asked for by a save, so no
+ * stored page carries them.
+ */
+export async function compileForEditor(source: string, { positions = false }: { positions?: boolean } = {}): Promise<EditorCompile> {
   const template = stripNavigationFromTemplate(source);
   try {
     // Cached by source, so a save right after a check doesn't compile twice
-    const result = await getCompiledTemplateWithMetrics(template, async () => {
-      const artifacts = compileTemplateToArtifacts(template);
+    const result = await getCompiledTemplateWithMetrics(positions ? `positions\n${source}` : template, async () => {
+      const artifacts = compileTemplateToArtifacts(template, positions ? { positionsIn: source } : {});
       return {
         ast: artifacts.ast,
         islands: artifacts.islands,

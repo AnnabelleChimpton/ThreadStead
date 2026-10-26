@@ -50,6 +50,7 @@ import { useLocalDraft } from '@/hooks/useLocalDraft';
 import { useSaveChannel, type PageSaved } from '@/hooks/useSaveChannel';
 import { byFileName, picturesOnOwnSites, rewritePictures } from '@/lib/templates/editor/picture-refs';
 import { classClashWarnings } from '@/lib/templates/editor/class-clashes';
+import { tagAgain, wordsSourceEdit, type WordsChange } from '@/lib/templates/editor/words';
 import { COPY_BATCH } from '@/lib/media/upload-context';
 import { useToast } from '@/contexts/ToastContext';
 import TemplateHistoryPanel, { fetchRevision, LookingNotice, type FullRevision } from '@/components/features/templates/TemplateHistoryPanel';
@@ -588,6 +589,8 @@ export default function EnhancedTemplateEditor({
   // `revision` is null while it's fetched; `page` its compile (HTML ones);
   // `failed`: it wouldn't compile, so the preview stays on the code
   const [looking, setLooking] = useState<{ id: string; revision: FullRevision | null; page: PageArtifact | null; failed?: boolean } | null>(null);
+  // Words on the preview: the page's words changed in place (words-preview.ts)
+  const [wordsOn, setWordsOn] = useState(false);
   
   // Data loss warning state
   const [warningDialog, setWarningDialog] = useState<{
@@ -688,7 +691,9 @@ export default function EnhancedTemplateEditor({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include', // Ensure cookies are sent with the request
-        body: JSON.stringify({ template }),
+        // positions: where each word and tag is in this source, for Words
+        // on the preview and Alt-click (compile-for-editor.ts)
+        body: JSON.stringify({ template, positions: true }),
         signal
       });
 
@@ -766,9 +771,10 @@ export default function EnhancedTemplateEditor({
       residentData,
       adminDefaultCss,
       ...shown,
+      words: wordsOn && !old,
     };
     targetWindow.postMessage({ type: 'PREVIEW_DATA', payload }, window.location.origin);
-  }, [user, customCSS, adminDefaultCss, template, cssMode, compiledTemplate, residentData, useStandardLayout, hideNavigation, previewAs, looking]);
+  }, [user, customCSS, adminDefaultCss, template, cssMode, compiledTemplate, residentData, useStandardLayout, hideNavigation, previewAs, looking, wordsOn]);
 
   // Pop-up preview management
   const openPopupPreview = useCallback(async () => {
@@ -849,12 +855,20 @@ export default function EnhancedTemplateEditor({
   // the pop-out, never while it shows a version from History
   const [classClashes, setClassClashes] = useState<string[]>([]);
   const lookingRef = useRef(false);
+  // Words on the preview: what it sends back, handled below (wordsFromPreview)
+  const wordsHandlerRef = useRef<(data: { type: string; [key: string]: unknown }, from: Window) => void>(() => {});
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin || event.data?.type !== 'PAGE_CLASS_CLASHES') return;
-      const source = event.source;
+      if (event.origin !== window.location.origin) return;
+      const source = event.source as Window | null;
       if (!source || (source !== previewFrameRef.current?.contentWindow && source !== popupWindowRef.current)) return;
-      if (lookingRef.current || !Array.isArray(event.data.classes)) return;
+      if (lookingRef.current) return;
+      const type = event.data?.type;
+      if (type === 'WORDS_EDIT' || type === 'WORDS_REFUSED' || type === 'GO_TO_SOURCE') {
+        wordsHandlerRef.current(event.data, source);
+        return;
+      }
+      if (type !== 'PAGE_CLASS_CLASHES' || !Array.isArray(event.data.classes)) return;
       setClassClashes(event.data.classes.filter((name: unknown): name is string => typeof name === 'string').slice(0, 50));
     };
     window.addEventListener('message', onMessage);
@@ -1862,6 +1876,55 @@ export default function EnhancedTemplateEditor({
     );
   };
 
+  // Words changed on the preview, into the code as one edit (lib/templates/
+  // editor/words.ts); Alt-click on the preview, to the element's tag. The
+  // preview's places are in the source it was compiled from.
+  wordsHandlerRef.current = (data, from) => {
+    const note = (text: string) => {
+      setSaveMessage({ text, tone: 'note' });
+      setTimeout(() => setSaveMessage(null), 6000);
+    };
+    const current = templateViewRef.current?.state.doc.toString() ?? template;
+    if (data.type === 'WORDS_REFUSED') {
+      note('Words only on the preview: that took out or added a tag, so it went back. Change tags in the code.');
+    } else if (data.type === 'GO_TO_SOURCE') {
+      const at = Number(data.at);
+      if (!Number.isInteger(at) || at < 0) return;
+      const pos = Math.min(tagAgain(current, lastCompiledTemplate, at) ?? at, current.length);
+      setActiveTab('template');
+      setTimeout(() => {
+        const view = templateViewRef.current;
+        if (!view) return;
+        view.dispatch({ selection: { anchor: pos }, scrollIntoView: true });
+        view.focus();
+      });
+    } else if (data.type === 'WORDS_EDIT' && Array.isArray(data.changes)) {
+      const changes = (data.changes as unknown[]).slice(0, 500).filter((c): c is WordsChange => {
+        const change = c as WordsChange;
+        return Array.isArray(change?.range) && change.range.length === 2 && change.range.every(Number.isInteger) &&
+          typeof change.before === 'string' && typeof change.after === 'string';
+      });
+      const edits = changes.map((change) => wordsSourceEdit(current, lastCompiledTemplate, change));
+      if (edits.length === 0 || edits.some((edit) => edit === null)) {
+        note('That changed in the code since the preview drew it, so nothing was written. The preview shows the code again.');
+        from.postMessage({ type: 'WORDS_RESET' }, window.location.origin);
+        return;
+      }
+      const real = (edits as Array<{ from: number; to: number; insert: string }>)
+        .filter((edit) => edit.from !== edit.to || edit.insert)
+        .sort((a, b) => a.from - b.from);
+      if (real.length === 0) return;
+      const view = templateViewRef.current;
+      if (view) {
+        view.dispatch({ changes: real, userEvent: 'input.words' });
+      } else {
+        let next = current;
+        for (const edit of [...real].sort((a, b) => b.from - a.from)) next = next.slice(0, edit.from) + edit.insert + next.slice(edit.to);
+        handleTemplateChange(next);
+      }
+    }
+  };
+
   // The code you're looking at, if any (Tidy, and Find/Undo/Redo on a phone)
   const codePane: CodePane | null = activeTab === 'template' ? 'html' : activeTab === 'css' ? 'css' : null;
   const startedFromTheme = useStandardLayout ? THEMES.find((t) => t.id === detectTheme(customCSS)) : undefined;
@@ -2313,7 +2376,7 @@ body {
         preview={showPreviewPane ? (
           <LivePreviewPane
             frameRef={previewFrameRef}
-            status={looking ? 'A version from History' : previewFrameReady ? 'Updates as you type' : 'Warming up…'}
+            status={looking ? 'A version from History' : !previewFrameReady ? 'Warming up…' : wordsOn && !useStandardLayout ? 'Click any words to change them' : 'Updates as you type'}
             notice={looking ? (
               <LookingNotice
                 revision={looking.revision}
@@ -2332,6 +2395,7 @@ body {
             onPopOut={openPopupPreview}
             onHide={() => setShowPreviewPane(false)}
             viewAs={useStandardLayout ? undefined : { value: previewAs, onChange: setPreviewAs }}
+            words={useStandardLayout ? undefined : { on: wordsOn, onChange: setWordsOn }}
           />
         ) : null}
       />

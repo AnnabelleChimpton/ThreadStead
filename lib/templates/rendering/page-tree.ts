@@ -62,18 +62,32 @@ export function treeFromHast(node: TemplateNode): PageTreeNode[] {
 }
 
 function childrenFromHast(children: TemplateNode[] | undefined, inSvg: boolean): PageTreeNode[] {
-  const out: PageTreeNode[] = [];
+  return childrenWithRanges(children, inSvg).nodes;
+}
+
+/**
+ * The children, and for each one that's text, where it is in the editor's
+ * source ("12-20"), "x" when it can't be said (two pieces joined into one
+ * DOM text node), or null for an element. Ranges only come from an editor
+ * compile (compile-for-editor.ts positions).
+ */
+function childrenWithRanges(children: TemplateNode[] | undefined, inSvg: boolean): { nodes: PageTreeNode[]; ranges: Array<string | null> } {
+  const nodes: PageTreeNode[] = [];
+  const ranges: Array<string | null> = [];
   for (const child of children ?? []) {
     const converted = nodeFromHast(child, inSvg);
-    if (converted === null) continue;
+    if (converted === null || converted === '') continue;
+    const range = typeof converted === 'string' ? (child.tsRange ? `${child.tsRange[0]}-${child.tsRange[1]}` : 'x') : null;
     // Adjacent text is one text node in the DOM
-    if (typeof converted === 'string' && typeof out[out.length - 1] === 'string') {
-      out[out.length - 1] += converted;
+    if (typeof converted === 'string' && typeof nodes[nodes.length - 1] === 'string') {
+      nodes[nodes.length - 1] += converted;
+      ranges[ranges.length - 1] = 'x';
     } else {
-      out.push(converted);
+      nodes.push(converted);
+      ranges.push(range);
     }
   }
-  return out.filter((n) => n !== '');
+  return { nodes, ranges };
 }
 
 function nodeFromHast(node: TemplateNode, inSvg: boolean): PageTreeNode | null {
@@ -95,8 +109,16 @@ function nodeFromHast(node: TemplateNode, inSvg: boolean): PageTreeNode | null {
   }
 
   const el: PageTreeElement = { t: node.tagName };
+  const { nodes, ranges } = childrenWithRanges(node.children, svg);
+  const children = withoutTableWhitespace(node.tagName, nodes);
+  // Words on the preview: where this element's words and start tag are in
+  // the editor's source (an editor compile only; stored pages have neither)
+  const textRanges = children === nodes
+    ? ranges.filter((range): range is string => range !== null)
+    : nodes.flatMap((child, i) => (typeof child === 'string' && children.includes(child) && ranges[i] !== null ? [ranges[i] as string] : []));
+  if (textRanges.some((range) => range !== 'x')) attrs.push(['data-ts-text', textRanges.join(',')]);
+  if (node.tsAt !== undefined) attrs.push(['data-ts-at', String(node.tsAt)]);
   if (attrs.length) el.a = attrs;
-  const children = withoutTableWhitespace(node.tagName, childrenFromHast(node.children, svg));
   if (children.length) el.c = children;
   if (svg) el.svg = 1;
   return el;

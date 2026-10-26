@@ -14,14 +14,15 @@ export default apiHandler(
     rateLimit: 'template_compile',
   },
   async (req, res) => {
-    const { template } = req.body ?? {};
+    // positions: the live preview's, for Words on the preview (compile-for-editor.ts)
+    const { template, positions } = req.body ?? {};
     if (typeof template !== 'string') {
       return res.status(400).json({ success: false, errors: ['Send the template as text.'], warnings: [] });
     }
     const tooLong = sourceTooLong('template', template);
     if (tooLong) return res.status(413).json({ success: false, errors: [tooLong], warnings: [] });
 
-    const result = await compileForEditor(template);
+    const result = await compileForEditor(template, { positions: positions === true });
     if (!result.ok) return res.status(400).json(result.body);
 
     return res.status(200).json({

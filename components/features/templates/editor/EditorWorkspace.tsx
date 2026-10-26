@@ -455,7 +455,7 @@ type Device = keyof typeof DEVICE_WIDTH;
  * The preview iframe, drawn at a real screen width and scaled to fit, so a
  * narrow pane still shows the laptop layout instead of the phone one.
  */
-export function LivePreviewPane({ frameRef, src = '/template-preview?embed=1', status, notice, onPopOut, onHide, viewAs }: {
+export function LivePreviewPane({ frameRef, src = '/template-preview?embed=1', status, notice, onPopOut, onHide, viewAs, words }: {
   frameRef: React.MutableRefObject<HTMLIFrameElement | null>;
   src?: string;
   status?: React.ReactNode;
@@ -464,6 +464,8 @@ export function LivePreviewPane({ frameRef, src = '/template-preview?embed=1', s
   onHide?: () => void;
   /** Whose view of the page: the owner's, or a signed-out visitor's (IfOwner / IfVisitor, their data) */
   viewAs?: { value: 'owner' | 'visitor'; onChange: (value: 'owner' | 'visitor') => void };
+  /** Words on the preview: change the page's words in place (words-preview.ts) */
+  words?: { on: boolean; onChange: (on: boolean) => void };
 }) {
   const boxRef = useRef<HTMLDivElement | null>(null);
   const [box, setBox] = useState({ width: 0, height: 0 });
@@ -540,6 +542,17 @@ export function LivePreviewPane({ frameRef, src = '/template-preview?embed=1', s
               </button>
             ))}
           </div>
+        )}
+        {words && (
+          <button
+            type="button"
+            className="ts-chip text-xs"
+            aria-pressed={words.on}
+            onClick={() => words.onChange(!words.on)}
+            title="Change the words right on the preview. Alt-click anything to find its code."
+          >
+            Words
+          </button>
         )}
         {status && <span className="text-xs text-nb-ink-mid">{status}</span>}
         <div className="ml-auto flex items-center gap-3">

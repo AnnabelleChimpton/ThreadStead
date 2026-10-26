@@ -1,5 +1,6 @@
 import { useContext, useEffect, useState, useMemo, useRef } from 'react';
 import { siteClassClashes } from '@/lib/templates/editor/class-clashes';
+import { wordsOnPage } from '@/lib/templates/editor/words-preview';
 import type { GetServerSideProps } from 'next';
 import { useRouter } from 'next/router';
 import { PixelIcon } from '@/components/ui/PixelIcon';
@@ -59,14 +60,46 @@ export default function TemplatePreview() {
   // CPU core for as long as the editor stayed open. The retry reads state
   // through a ref instead of the closure so it never needs deps.
   const hasDataRef = useRef(false);
+
+  // Words on the preview (lib/templates/editor/words-preview.ts). Putting a
+  // refused edit back draws the page afresh (a new key), not its HTML back:
+  // React keeps hold of the nodes on the way to components. A redraw that
+  // arrives while someone is writing waits until they leave the words.
+  const [drawKey, setDrawKey] = useState(0);
+  const wordsRef = useRef<ReturnType<typeof wordsOnPage> | null>(null);
+  const waitingRef = useRef<PreviewPayload | null>(null);
+  useEffect(() => {
+    const words = wordsOnPage(
+      document,
+      (message) => getHostWindow()?.postMessage(message, window.location.origin),
+      () => setDrawKey((key) => key + 1)
+    );
+    wordsRef.current = words;
+    const flush = () => setTimeout(() => {
+      if (waitingRef.current && !words.isEditing()) {
+        setPayload(waitingRef.current);
+        waitingRef.current = null;
+      }
+    });
+    document.addEventListener('focusout', flush);
+    return () => {
+      document.removeEventListener('focusout', flush);
+      words.destroy();
+      wordsRef.current = null;
+    };
+  }, []);
+
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       // Only from this site
       if (event.origin !== window.location.origin) return;
       if (event.data.type === 'PREVIEW_DATA') {
         hasDataRef.current = true;
-        setPayload(event.data.payload);
+        if (wordsRef.current?.isEditing()) waitingRef.current = event.data.payload;
+        else setPayload(event.data.payload);
       }
+      // The editor couldn't write those words: show the page as the code has it
+      if (event.data.type === 'WORDS_RESET') setDrawKey((key) => key + 1);
       if (event.data.type === 'CSS_UPDATE') {
         setPayload((prev) => (prev ? { ...prev, customCSS: event.data.customCSS } : null));
       }
@@ -120,6 +153,14 @@ export default function TemplatePreview() {
     }, 300);
     return () => clearTimeout(timer);
   }, [page, pageCssHtml, siteCssHtml, payload?.cssMode]);
+
+  // After each drawing: which words can be changed, if Words is on
+  useEffect(() => {
+    const words = wordsRef.current;
+    if (!words) return;
+    words.set(!!payload?.words && !!page);
+    words.refresh();
+  }, [page, drawKey, payload?.words]);
 
   if (!payload) {
     return (
@@ -191,6 +232,7 @@ export default function TemplatePreview() {
         <PageMeta title="Preview" noIndex />
         {styles}
         <ResidentHtmlBody
+          key={drawKey}
           user={{ id: payload.ownerId, handle: payload.handle, profile: { templateMode: 'advanced', cssMode, compiledTemplate: page } }}
           residentData={residentData}
           hideNavigation={hideNavigation}

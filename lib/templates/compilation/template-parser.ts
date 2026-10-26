@@ -1,6 +1,7 @@
 import { unified } from 'unified';
 import { defaultTreeAdapter, Parser, type DefaultTreeAdapterMap } from 'parse5';
 import { fromParse5 } from 'hast-util-from-parse5';
+import { VFile } from 'vfile';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import { FORM_ACTION_REMOVED, offSiteHost, postsToApi } from './form-action';
 import { find, html as htmlSchema } from 'property-information';
@@ -16,6 +17,7 @@ import {
   prepareSourceForParse,
   tokenizeSource,
 } from './source-scan';
+import { sourcePositions, type SourcePositions } from './source-positions';
 import { extractDocument, type DocumentHead } from './document-head';
 import { isThemeOptionMeta } from './theme-options';
 import { whyNoEmbed } from '../embeds';
@@ -745,20 +747,55 @@ class LinearParser extends Parser<DefaultTreeAdapterMap> {
 
 /**
  * HTML as the browser parses a fragment of it (parseFragment's steps), in
- * one pass that also stops a runaway page (depthGuard)
+ * one pass that also stops a runaway page (depthGuard). `positions`: each
+ * node keeps where it was in `html` (hast-util-from-parse5 needs the file
+ * for that, or it quietly keeps none).
  */
-export function parseHtml(html: string): Root {
+export function parseHtml(html: string, positions = false): Root {
   const parser = LinearParser.getFragmentParser<DefaultTreeAdapterMap>(null, {
     scriptingEnabled: false,
+    sourceCodeLocationInfo: positions,
     treeAdapter: { ...defaultTreeAdapter, ...depthGuard() },
   });
   parser.tokenizer.write(html, true);
-  return fromParse5(parser.getFragment()) as Root;
+  return fromParse5(parser.getFragment(), positions ? { file: new VFile(html) } : undefined) as Root;
+}
+
+/**
+ * Words on the preview (source-positions.ts): each text node of plain HTML
+ * gets `tsRange`, where it is in the editor's source, and each element
+ * `tsAt`, where its start tag is. Not inside components: they clone and
+ * rewrite what they're given. astToJson keeps both; treeFromHast turns
+ * them into the preview's data-ts-text and data-ts-at.
+ */
+type Positioned = HastLike & {
+  value?: string;
+  position?: { start: { offset?: number }; end: { offset?: number } };
+  tsRange?: [number, number];
+  tsAt?: number;
+};
+
+function markSourcePositions(node: Positioned, at: SourcePositions): void {
+  for (const child of (node.children ?? []) as Positioned[]) {
+    const start = child.position?.start.offset;
+    const end = child.position?.end.offset;
+    if (child.type === 'text') {
+      const range = start !== undefined && end !== undefined ? at.text(start, end, child.value ?? '') : null;
+      if (range) child.tsRange = range;
+    } else if (child.type === 'element') {
+      if (child.data?.component) continue;
+      const tag = start !== undefined ? at.tag(start) : null;
+      if (tag !== null) child.tsAt = tag;
+      markSourcePositions(child, at);
+    }
+  }
 }
 
 // Parse HTML to HAST (Hypertext Abstract Syntax Tree)
-// Returns both the parsed tree and information about stripped components
-export function parseTemplate(htmlString: string): Root & {
+// Returns both the parsed tree and information about stripped components.
+// `positionsIn`: the editor's source this was made from (before the site
+// navigation came out), to mark where the page's words are in it
+export function parseTemplate(htmlString: string, positionsIn?: string): Root & {
   _strippedComponents?: StrippedTag[];
   _documentHead?: DocumentHead;
 } {
@@ -776,12 +813,13 @@ export function parseTemplate(htmlString: string): Root & {
   // "homeabout") and the author's own wrapper (template audit 01 #2).
   const processedHtml = prepareSourceForParse(document.body, isRegisteredComponent);
 
-  const tree = parseHtml(processedHtml);
+  const tree = parseHtml(processedHtml, positionsIn !== undefined);
   renameOldTags(tree as HastLike);
   const processed = unified().use(rehypeSanitize, createCustomSchema()).runSync(tree) as Root;
   const removedFormAction = finishSanitizedTree(processed as HastLike);
   lazyLoadLaterImages(processed as HastLike);
   const boxedParagraphs = boxesOutOfParagraphs(processed as HastLike);
+  if (positionsIn !== undefined) markSourcePositions(processed as Positioned, sourcePositions(positionsIn, processedHtml));
 
   // Renamed, not taken out: a boxed <p> (now a <div>) and the old tags
   const renamed = new Set([...Object.keys(OLD_TAG_NAMES), ...(boxedParagraphs.size > 0 ? ['p'] : [])]);
@@ -1335,15 +1373,21 @@ export interface TemplateNode {
    * reads the font imports from it (fontImportsFromCompiledTemplate).
    */
   head?: DocumentHead;
+  /** Editor compiles only (Words on the preview): where this text is in the source */
+  tsRange?: [number, number];
+  /** Editor compiles only: where this element's start tag is in the source */
+  tsAt?: number;
 }
 
 export function astToJson(node: unknown): TemplateNode {
   const typedNode = node as { type: string; value?: string; tagName?: string; properties?: Record<string, unknown>; children?: unknown[]; data?: { component?: boolean } };
 
   if (typedNode.type === 'text') {
+    const range = (node as { tsRange?: [number, number] }).tsRange;
     return {
       type: 'text',
-      value: typedNode.value
+      value: typedNode.value,
+      ...(range && { tsRange: range }),
     };
   }
 
@@ -1355,6 +1399,8 @@ export function astToJson(node: unknown): TemplateNode {
       children: typedNode.children?.map(astToJson) || []
     };
     if (typedNode.data?.component) result.component = true;
+    const tagAt = (node as { tsAt?: number }).tsAt;
+    if (tagAt !== undefined) result.tsAt = tagAt;
 
     return result;
   }
@@ -1473,7 +1519,7 @@ export interface CompilationResult {
   strippedComponents?: StrippedTag[];
 }
 
-export function compileTemplate(htmlString: string): CompilationResult {
+export function compileTemplate(htmlString: string, options: { positionsIn?: string } = {}): CompilationResult {
   try {
     // Characters, like the save check, so the two agree on the same page
     if (htmlString.length > TEMPLATE_LIMITS.maxChars) {
@@ -1496,7 +1542,7 @@ export function compileTemplate(htmlString: string): CompilationResult {
     }
 
     // Parse and sanitize
-    const hast = parseTemplate(htmlString);
+    const hast = parseTemplate(htmlString, options.positionsIn);
 
     // Extract stripped components and attribute warnings from the HAST result
     const strippedComponents = (hast as any)._strippedComponents;
